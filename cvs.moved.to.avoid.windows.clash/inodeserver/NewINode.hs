@@ -19,6 +19,10 @@
 
    There should only be one INodeSource per repository+prefix, or the
    results are undefined.
+
+   Attribute Files.  CVSDB.hs also includes code for attributes,
+   which are stored in "attribute files" with names identical to
+   that of the file, with a # appended.
    -}
 module NewINode(
    INodeSource,

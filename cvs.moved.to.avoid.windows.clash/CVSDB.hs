@@ -18,8 +18,13 @@ module CVSDB(
    -- setting in the list is used.   
 
    ObjectVersion, 
-   -- type of versions in the repository
+   -- type of versions of objects in the repository
    -- instance of Read and Show
+
+   AttributeVersion,
+   -- type of versions of attributes in the repository.
+   -- (Each object has an associated set of attributes, which
+   -- are separately versioned)
 
    ObjectSource,
    -- type of data as retrieved from the repository.
@@ -36,8 +41,9 @@ module CVSDB(
    Location,
    -- represents Location of object in the repository.  Instance of Read/Show.
    newLocation, -- :: Repository -> ObjectSource -> 
-                --   IO (Location,ObjectVersion)
-   -- creates new object in the repository, returning its initial version.
+                --   IO (Location,ObjectVersion,AttributeVersion)
+   -- creates new object in the repository, returning its initial version
+   -- and the version of the associated attributes.
    commit, -- :: Repository -> ObjectSource -> Location -> IO ObjectVersion
    -- commits a new version of the object to the repository, returning its
    -- new version.
@@ -48,8 +54,23 @@ module CVSDB(
    retrieveString, -- :: Repository -> Location -> ObjectVersion -> IO String
    -- retrieveFile retrieves the given version of the object as a String
 
+   Attributes, 
+   -- type of attribute information.  Attributes are keyed
+   -- by a String and may be anything that is an instance of Read and Show  
+   getAttribute, -- :: Read a => Attributes -> String -> Maybe a
+   setAttribute, -- :: Show a => Attributes -> String -> Maybe a -> Attributes
+   getAttributeKeys, -- :: Attributes -> [String]
+   emptyAttributes, -- :: Attributes
+
+   -- Attribute information is supposed to be stored in a special
+   -- kind of file with a name indicated by the location.
+   -- (Yes, this is a hack)
+   attLocation, -- :: Location -> Location
+   -- get attribute location corresponding to a given location.
+
    listVersions, -- :: Repository -> Location -> IO [ObjectVersion]
    -- listVersion lists all versions of the object with the given location.
+
    watch -- :: Repository -> Location -> IA ()
    -- watch returns an event which occurs whenever a commit occurs to the
    -- object with the given location.
@@ -86,8 +107,8 @@ data Repository = Repository {
       -- Working directory.  Includes terminal file separator.
       -- Also includes module name.
    wDirContents :: MVar (FiniteMap Location (MVar (Maybe ObjectVersion))),
-      -- wDirContents contains all versions of objects currently in the
-      -- working directory.
+      -- wDirContents contains all versions of objects (including
+      -- attribute files) currently in the working directory.
    wDirDirs :: MVar (Set Location),
       -- wDirDirs contains the set of all directories known to
       -- already exist in the working directory.
@@ -221,12 +242,15 @@ initialise options =
       cvsModuleName = "db" -- name of CVS module containing objects.
 
 ----------------------------------------------------------------
--- ObjectVersion and ObjectSource
+-- ObjectVersion/AttributeVersion and ObjectSource
 ----------------------------------------------------------------
 
 type ObjectVersion = CVSVersion 
 -- Read and Show also inherited.  This is made
 -- deliberately concise.
+
+type AttributeVersion = CVSVersion
+-- ditto
 
 data ObjectSource = 
       FileObject String
@@ -263,12 +287,7 @@ copyFile source destination =
 exportFile :: ObjectSource -> FilePath -> IO ()
 exportFile (FileObject source) destination = 
    copyFile source destination
-exportFile (StringObject str) destination =
-   do
-      handle <- openFile destination WriteMode
-      hPutStr handle str
-      hClose handle
-
+exportFile (StringObject str) destination = writeFile destination str
 
 
 importString :: String -> IO ObjectSource
@@ -283,11 +302,25 @@ toRealName :: Repository -> CVSFile -> FilePath
 toRealName repository (CVSFile location) =
    (workingDir repository ++ location)
 
+#ifdef DEBUG
+attLocation :: CVSFile -> CVSFile
+attLocation (CVSFile str) = CVSFile (postFix str)
+   where
+      postFix "" = "#"
+      postFix (h:t)
+         | (h=='#') = error ("CVSDB.attLocation applied to "++str)
+         | True = h:postFix t   
+#else
+attLocation :: CVSFile -> CVSFile
+attLocation (CVSFile str) = CVSFile (str++"#")
+#endif
+
 ----------------------------------------------------------------
 -- newLocation
 ----------------------------------------------------------------
 
-newLocation :: Repository -> ObjectSource -> IO (Location,ObjectVersion)
+newLocation :: Repository -> ObjectSource -> 
+   IO (Location,ObjectVersion,AttributeVersion)
 newLocation (repository@Repository{cvsLoc=cvsLoc,newINodes=newINodes}) 
       objectSource =
    do
@@ -296,15 +329,25 @@ newLocation (repository@Repository{cvsLoc=cvsLoc,newINodes=newINodes})
       let cvsFile = CVSFile cvsFileName
       -- now create object
       ensureDirectories repository cvsFile
-      exportFile objectSource (toRealName repository cvsFile)
       -- now add it to repository
+      -- object part
+      exportFile objectSource (toRealName repository cvsFile)
       cvsAddCheck cvsLoc cvsFile
-      version <- updateDirContents repository cvsFile
+      objectVersion <- updateDirContents repository cvsFile
          (\ Nothing -> cvsCommitCheck cvsLoc cvsFile Nothing 
             )
          -- a match failure here means someone else in this process
-         -- is accessing the file
-      return (cvsFile,version)
+         -- is accessing the file    
+      -- attribute part  
+      let cvsFileAtt = attLocation cvsFile
+      writeFile (toRealName repository cvsFileAtt) (show emptyAttributes)
+      cvsAddCheck cvsLoc cvsFileAtt
+      attributeVersion <- updateDirContents repository cvsFileAtt
+         (\ Nothing -> cvsCommitCheck cvsLoc cvsFileAtt Nothing 
+            )
+         -- a match failure here means someone else in this process
+         -- is accessing the file      
+      return (cvsFile,objectVersion,attributeVersion)
 
 
 ----------------------------------------------------------------
@@ -328,6 +371,7 @@ retrieveFile repository cvsFile version destination =
    retrieveGeneral repository cvsFile version
       (copyFile (toRealName repository cvsFile) destination)
 
+retrieveString :: Repository -> Location -> ObjectVersion -> IO String
 retrieveString repository cvsFile version =
    do
       resultHere <- newEmptyMVar
@@ -363,6 +407,66 @@ retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version
       done      
 
          
+----------------------------------------------------------------
+-- Attributes
+----------------------------------------------------------------
+
+newtype Attributes = Attributes [(String,String)]
+
+emptyAttributes :: Attributes
+emptyAttributes = Attributes []
+
+getAttribute :: Read a => Attributes -> String -> Maybe a
+getAttribute (Attributes list) key =
+      searchAttribute list
+   where
+      searchAttribute [] = Nothing
+      searchAttribute ((key',val'):tail) 
+         | (key' == key) = Just(read val')
+         | True = searchAttribute tail
+
+setAttribute :: Show a => Attributes -> String -> Maybe a -> Attributes
+setAttribute (attributes@(Attributes list)) key valopt =
+   case (split [] list,valopt) of
+      (Nothing,Nothing) -> attributes
+      (Just (before,after),Nothing) -> Attributes(before++after)
+      (Nothing,Just val) -> Attributes((key,show val):list)
+      (Just (before,after),Just val) -> 
+         Attributes((key,show val):(before++after))
+   where
+      split acc [] = Nothing
+      split acc ((kv@(key',val')):rest)
+         | (key' == key) = Just(acc,rest)
+         | True = split (kv:acc) rest   
+                 
+getAttributeKeys :: Attributes -> [String]
+getAttributeKeys (Attributes list) =
+   map (\ (key,_) -> key) list
+
+-- Read and Show must output a newline between each item.
+-- This is so that cvs diff files for attribute files don't
+-- get too massive.  At the end we add a character "E".
+instance Show Attributes where
+   showsPrec prec (Attributes list) acc =
+      let
+         acc' = '1':acc
+         showAtts [] acc = acc
+         showAtts (h:t) acc = showAtts t (showsPrec prec h ('\n':acc))
+      in
+         showAtts list []
+ 
+instance Read Attributes where
+   readsPrec prec toRead =   
+      let
+         readAtts :: [(String,String)] -> String -> [(Attributes,String)]
+         readAtts acc toRead =
+            case readsPrec prec toRead of
+               [(next,'\n':remainder)] -> readAtts (next:acc) remainder
+               [] -> case toRead of
+                  '1':remainder -> [(Attributes acc,remainder)]
+      in
+         readAtts [] toRead
+
 ----------------------------------------------------------------
 -- ensureDirectories
 ----------------------------------------------------------------
@@ -420,8 +524,9 @@ ensureDirectories
       addElement newEl set = union set (unitSet newEl)
 
 ----------------------------------------------------------------
--- wDirContents
+-- wDirContents 
 ----------------------------------------------------------------
+
 
 updateDirContents :: Repository -> Location -> 
    (Maybe ObjectVersion -> IO ObjectVersion) ->  IO ObjectVersion
