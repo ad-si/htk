@@ -7,14 +7,27 @@ TOP=@TOP@ @TOP@/mmiss/test/testfiles
 
 export UNISERVER UNIPORT UNIWORKINGDIR UNIEDITOR 
 
-UNISERVER=$HOSTNAME
-UNIPORT=11394
-REMOTESERVER=denebola.informatik.uni-bremen.de
 
-# If no-one is listening on 11394 connect this port up to the remote server.
-isConnected $UNISERVER 11394 || \
-   xterm -title "SSH session to establish tunnel to $REMOTESERVER" -e \
-      ssh2 -R 11394:$REMOTESERVER:11395 $REMOTESERVER &
+
+if test 0 -eq 1
+then
+   # we'll sort out how to do SSL forwarding when Matthias comes back ...
+
+   UNISERVER=$HOSTNAME
+   UNIPORT=11394
+   REMOTESERVER=denebola.informatik.uni-bremen.de
+
+   # If no-one is listening on 11394 connect this port up to the remote server.
+   isConnected $UNISERVER 11394 || \
+      xterm -title "SSH session to establish tunnel to $REMOTESERVER" -e \
+         ssh2 -R 11394:$REMOTESERVER:11395 $REMOTESERVER &
+else
+   echo Insecure access done \(until Matthias gets back\)
+   REMOTESERVER=denebola.informatik.uni-bremen.de
+   UNISERVER=$REMOTESERVER
+   UNIPORT=11395
+fi
+
 
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 UNISERVER=`hostname`

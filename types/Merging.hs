@@ -9,6 +9,7 @@ import List
 import Data.FiniteMap
 import Control.Concurrent.MVar
 import Control.Exception
+import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
@@ -196,7 +197,8 @@ mergeViews (views @ (firstView:_)) =
                                           "unexpected type clash"))
                                        linkOpt
                                  seq link done
-                                 object <- readLink view link
+                                 object <- unsafeInterleaveIO (
+                                    readLink view link)
                                  return (view,link,object)
                               )      
                            linkViewData0

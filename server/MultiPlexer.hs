@@ -43,26 +43,26 @@ newMultiPlexer queryFn =
 sendCommand :: MultiPlexer command response -> command -> IO response
 sendCommand (multiPlexer :: MultiPlexer command response) command =
    do
-      (doNow :: Maybe (MVar response)) <- modifyMVar (stateMVar multiPlexer)
+      responseMVar <- newEmptyMVar
+
+      (alreadyBusy :: Bool) <- modifyMVar (stateMVar multiPlexer)
          (\ state -> 
-            if busy state
-               then
-                  do
-                     responseMVar <- newEmptyMVar
-                     let
-                        queue1 = insertQ (queue state) (command,responseMVar)
-                     return (state {queue = queue1},Just responseMVar)
-               else
-                  return (state {busy = True},Nothing)
+            let
+               queue1 = insertQ (queue state) (command,responseMVar)
+               alreadyBusy = busy state
+            in
+               return (State {queue = queue1,busy = True},alreadyBusy)
             )
-      case doNow of
-         Just responseMVar -> takeMVar responseMVar
-         Nothing ->
+
+      if alreadyBusy
+         then
+            done
+         else
             do
-               [response] <- queryFn multiPlexer [command]
+               yield
                unBusy True multiPlexer
-               return response
-               
+
+      takeMVar responseMVar               
 
 unBusy :: Bool -> MultiPlexer command response -> IO ()
 unBusy doFork (multiPlexer :: MultiPlexer command response) =
