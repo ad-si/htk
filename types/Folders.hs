@@ -26,6 +26,7 @@ import UniqueString
 import BSem
 
 import SimpleForm
+import DialogWin
 
 import GraphDisp
 import GraphConfigure
@@ -40,6 +41,7 @@ import DisplayTypes
 import ObjectTypes
 import DisplayParms
 import GlobalRegistry
+import CreateObjectMenu
 
 ------------------------------------------------
 -- The Display Type
@@ -166,7 +168,7 @@ instance ObjectType FolderType Folder where
    getObjectTypePrim folder = folderType folder
    nodeTitlePrim folder = name folder 
 
-   createObjectMenuItem folderType =
+   createObjectMenuItemPrim folderType =
       fmap
          (\ label -> (label,newEmptyFolder folderType))
          (folderTypeLabel folderType)
@@ -185,8 +187,9 @@ instance ObjectType FolderType Folder where
                         Just link -> [link],
                      arcTypes = [(theArcType,emptyArcTypeParms)],
                      nodeTypes = [(theNodeType,
-                        ValueTitle (\ (str,_ :: Link Folder) -> return str) $$
-                           nodeTypeParms
+                        ValueTitle (\ (str,_) -> return str) $$$
+                        addFileGesture view $$$
+                        nodeTypeParms
                         )],
                      getNodeType = const theNodeType,
                      knownSet = SinkSource (knownFolders folderType),
@@ -203,6 +206,31 @@ instance ObjectType FolderType Folder where
                      })
                Nothing -> Nothing
          )              
+
+-- ------------------------------------------------------------------
+-- Extra option so that folders can add files.
+-- ------------------------------------------------------------------
+
+addFileGesture :: View -> NodeGesture (String,Link Folder)
+addFileGesture view =
+   let
+      addFile (_,folderLink) =
+         do
+            newLinkOpt <- createObjectMenu view
+            case newLinkOpt of
+               Nothing -> createAlertWin "Object creation cancelled" []
+               Just newLink -> 
+                  do
+                     success <- insertInFolder view folderLink newLink
+                     if success 
+                        then
+                           done
+                        else
+                           createErrorWin 
+                           "Object with this name already exists in folder" []
+   in
+      NodeGesture addFile
+
 -- ------------------------------------------------------------------
 -- The VariableSetSource interface to the contents list.
 -- ------------------------------------------------------------------

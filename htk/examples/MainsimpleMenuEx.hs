@@ -18,10 +18,16 @@ main =
          (simpleMenu :: HTkMenu Char) =
             HTkMenu(
                Menu "Names" [
-                  Button "Ariel" 'A',
+                  Button "Andromecha" 'A',
                   Button "Bendickt" 'B',
                   Button "Cordelia" 'C',
                   Button "Duncan" 'D',
+                  Blank,
+                  Menu "More names" [
+                     Button "Elinor" 'E',
+                     Button "Ferdinand" 'F'
+                     ],
+                  Blank,
                   Button "Quit" 'Q'
                   ])
 

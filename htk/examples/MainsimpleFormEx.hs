@@ -72,7 +72,7 @@ main =
             colour //
 
             newFormEntry "British Subject" False //
-            newFormMenu "Language" language 
+            newFormMenu EmptyLabel language 
 
       valueOpt <- doForm "Simple Form Test 1" form
       putStrLn (show valueOpt)

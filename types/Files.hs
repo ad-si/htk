@@ -116,7 +116,7 @@ instance ObjectType FileType File where
    getObjectTypePrim file = fileType file
    nodeTitlePrim file = name file
 
-   createObjectMenuItem fileType =
+   createObjectMenuItemPrim fileType =
       fmap
          (\ label -> (label,newEmptyFile fileType))
          (fileTypeLabel fileType)

@@ -60,6 +60,10 @@ module ObjectTypes(
    -- in daVinci) wrapped.
    nodeTitle, -- :: WrappedObject -> String
 
+   -- Get the object type's entry in the object creation menu.
+   createObjectMenuItem, -- :: WrappedObjectType 
+   -- -> Maybe (String,View -> IO (Maybe WrappedLink))
+
    -- How to save references to object types
    ShortObjectType(..),
 
@@ -131,7 +135,7 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- Returns a title for the object, to be used to index it in containing
       -- folders.
 
-   createObjectMenuItem :: objectType 
+   createObjectMenuItemPrim :: objectType 
       -> Maybe (String,View -> IO (Maybe (Link object)))
       -- This is a menu item (label + creation function) which creates
       -- a link to an object of this type.
@@ -189,6 +193,19 @@ getObjectType (WrappedObject object) =
 
 nodeTitle :: WrappedObject -> String
 nodeTitle (WrappedObject object) = nodeTitlePrim object
+
+createObjectMenuItem :: WrappedObjectType 
+   -> Maybe (String,View -> IO (Maybe WrappedLink))
+createObjectMenuItem (WrappedObjectType objectType) =
+   fmap
+      (\ (str,fn) ->
+         let
+            newfn view =
+               fmap (fmap WrappedLink) (fn view)
+         in
+            (str,newfn)
+         ) 
+      (createObjectMenuItemPrim objectType)
 
 -- ----------------------------------------------------------------
 -- NodeDisplayData

@@ -12,7 +12,8 @@ module SimpleForm(
       -- This creates a new form with a single labelled entry. 
       -- The FormValue class includes text fields and radio buttons.
 
-   newFormMenu, -- :: String -> HTkMenu value -> Form (Maybe value)
+   newFormMenu, -- :: (FormLabel label) => label -> HTkMenu value 
+      -- -> Form (Maybe value)
       -- This creates a new form with a single labelled entry, selected
       -- by a menu.  A value of Nothing indicates that the user did not
       -- click this menu.
@@ -48,6 +49,8 @@ module SimpleForm(
 
    FormLabel(..), -- This class represents things which can be used for
       -- labels in the form.  Instances include String and Image.
+   EmptyLabel(EmptyLabel),
+      -- Another instance of FormLabel, which we use if we don't want a label.
 
    WrappedFormLabel(..), -- this is an existentially wrapped type around
       -- values of type FormLabel.
@@ -288,7 +291,7 @@ newFormEntry label value =
 -- newFormMenu
 -- -------------------------------------------------------------------------
 
-newFormMenu :: String -> HTkMenu value -> Form (Maybe value)
+newFormMenu :: FormLabel label => label -> HTkMenu value -> Form (Maybe value)
 newFormMenu label htkMenu =
    let
       enterForm topLevel =
@@ -372,6 +375,13 @@ data WrappedFormLabel = forall label . FormLabel label
 
 instance FormLabel WrappedFormLabel where
    formLabel frame (WrappedFormLabel label) = formLabel frame label
+
+-- Finally, a label which actually does nothing at all.
+data EmptyLabel = EmptyLabel
+
+instance FormLabel EmptyLabel where
+   formLabel _ _ = return done
+
 
 -- -------------------------------------------------------------------------
 -- The FormValue class 
