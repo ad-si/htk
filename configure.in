@@ -146,8 +146,7 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk $MAKEFILES htk/doc/hdoc/generatedoc includes/config.h)
-   chmod +x htk/doc/hdoc/generatedoc
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk $MAKEFILES includes/config.h)
    echo 'To compile UniForM type "gmake boot" followed by "gmake packages"'
    echo 'If you also want the test programs do "gmake all" instead of "gmake packages"'
 fi

@@ -1930,7 +1930,7 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   ac_config_files="$ac_config_files mk/machinedep.mk mk/boilerplate.mk $MAKEFILES htk/doc/hdoc/generatedoc includes/config.h"
+   ac_config_files="$ac_config_files mk/machinedep.mk mk/boilerplate.mk $MAKEFILES includes/config.h"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -2430,7 +2430,6 @@ do
   "mk/machinedep.mk" ) CONFIG_FILES="$CONFIG_FILES mk/machinedep.mk" ;;
   "mk/boilerplate.mk" ) CONFIG_FILES="$CONFIG_FILES mk/boilerplate.mk" ;;
   "$MAKEFILES" ) CONFIG_FILES="$CONFIG_FILES $MAKEFILES" ;;
-  "htk/doc/hdoc/generatedoc" ) CONFIG_FILES="$CONFIG_FILES htk/doc/hdoc/generatedoc" ;;
   "includes/config.h" ) CONFIG_FILES="$CONFIG_FILES includes/config.h" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -2759,7 +2758,6 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
-   chmod +x htk/doc/hdoc/generatedoc
    echo 'To compile UniForM type "gmake boot" followed by "gmake packages"'
    echo 'If you also want the test programs do "gmake all" instead of "gmake packages"'
 fi
