@@ -431,6 +431,7 @@ isTixAvailable =
       case response of
          "tix" -> return True
          "" -> return False
+         _ -> error ("Wish.isTixAvailable - "++show response)
          -- Match failure here indicates more than one string matching
          -- "tix", which is puzzling.
 
