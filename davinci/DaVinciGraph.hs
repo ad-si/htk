@@ -108,12 +108,12 @@ instance Destroyable DaVinciGraph where
          globalMenuActions = globalMenuActions,otherActions = otherActions,
          destroyActions = destroyActions}) =
       do
+         destroyActions
          destroy context
          emptyRegistry nodes
          emptyRegistry edges
          emptyRegistry globalMenuActions
          emptyRegistry otherActions
-         destroyActions
          signalDestruct daVinciGraph
 
 instance Destructible DaVinciGraph where
