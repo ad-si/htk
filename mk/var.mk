@@ -48,6 +48,7 @@ HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(SERVERDIR):$(HTKDIR)
 
 UTILDIR    	= $(TOP)/util
 CONCDIR    	= $(TOP)/concurrency
+EVENTSDIR       = $(TOP)/events
 REACTORDIR 	= $(TOP)/reactor
 SERVERDIR       = $(TOP)/server
 HTKDIR          = $(TOP)/htk

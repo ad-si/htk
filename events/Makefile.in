@@ -1,0 +1,11 @@
+LIB        = libevents.a
+
+SRCS       = GuardBasics.hs\
+             EventClasses.hs\
+             PrimGuardedChannels.hs\
+             GuardedEvents.hs\
+             GuardedChannels.hs\
+
+SUBDIRS = 
+
+include @TOP@/mk/boilerplate.mk

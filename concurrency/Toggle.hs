@@ -34,11 +34,11 @@ toggle1 (Toggle _ switch) =
       Concurrent.putMVar switch False
       return oldVal
 
-toggle2 :: (Toggle,Toggle) -> IO(Maybe(Bool,Bool))
+toggle2 :: Toggle -> Toggle -> IO(Maybe(Bool,Bool))
 -- switch both MVars, WHICH SHOULD BE DIFFERENT, to False, if they are
 -- both initially true and return Nothing.  Otherwise return the initial 
 -- values.
-toggle2 (Toggle unique1 switch1,Toggle unique2 switch2) =
+toggle2 (Toggle unique1 switch1) (Toggle unique2 switch2) =
    if switch1 == switch2
       then
          fail "Attempt to toggle2 on the same switch in Toggle.toggle2"

@@ -154,7 +154,7 @@ tryToPair(channelEventArgC@(ChannelEventArg valC toggleC continuationC))
       Just(channelEventArgQ@(ChannelEventArg valQ toggleQ continuationQ),
             newQueue) -> 
          do
-            toggleResult <- toggle2(toggleC,toggleQ)
+            toggleResult <- toggle2 toggleC toggleQ
             case toggleResult of
                Nothing ->
                   do -- success

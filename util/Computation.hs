@@ -106,7 +106,7 @@ class Monad m => MonadError m where
 
 instance MonadError IO where
         raise e = do {
-                writeLog ("RAISED EXCP: " ++ (show e) ++ "\n");
+                debug ("RAISED EXCP: " ++ (show e) ++ "\n");
                 ioError e
                 }
         trap = catch
