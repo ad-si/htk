@@ -207,8 +207,9 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder filePathOpt0 =
                      case notFound of
                         [] -> done
                         _ -> errorMess
-                           ("The following referenced files were not found or "
-                              ++ "have an unknown file type:"
+                           ("The following referenced files were not found, "
+                              ++ "have an unknown file type, or have an "
+                              ++ "invalid name:"
                               ++ (concat (map (\ nf -> "\n   " ++ nf) 
                                  notFound))
                               )

@@ -151,8 +151,10 @@ importMMiSSFile view folder dirPath0 name0 ext variantSpec =
             -- "." is not permitted.  NB - any attempt to display
             -- this entityName will mean the EntityNames module
             -- throws an error.
-            entityName :: EntityName
-            entityName = unsplitSpecial name0 ext
+            entityNameWE :: WithError EntityName
+            entityNameWE = unsplitSpecialWE name0 ext
+
+         entityName <- coerceWithErrorOrBreakIO break entityNameWE
 
          -- get variant object.  afterInsertion is an action to be done
          -- after fileVersionLink has been inserted in the variantObject.
@@ -254,9 +256,15 @@ findMMiSSFilesInRepository folder matchString =
          <- mapM 
             (\ (name,tag) ->
                do
-                  linkOpt <- lookupObjectInFolder folderLinkedObject 
-                     (unsplitSpecial name tag)
-                  return (fmap (\ link -> (link,name,tag)) linkOpt)
+                  let
+                     entityNameWE = unsplitSpecialWE name tag
+                  case fromWithError entityNameWE of
+                     Left mess -> return Nothing
+                     Right entityName ->
+                        do
+                           linkOpt <- lookupObjectInFolder folderLinkedObject 
+                              entityName
+                           return (fmap (\ link -> (link,name,tag)) linkOpt)
                )   
             (possibleNames matchString)
       return (catMaybes resultOpts)
@@ -739,8 +747,7 @@ fromDefaultable (Default a) = a
 fromDefaultable (NonDefault a) = a
 
 -- Make a name for an MMiSSFile, as known to the LinkManager.  We use the
--- EntityName specialChar, so it won't be possible to display it (except with
--- Show).
-unsplitSpecial :: String -> String -> EntityName
-unsplitSpecial name ext = fromString (name ++ [specialChar] ++ ext)
+-- EntityName specialChar.
+unsplitSpecialWE :: String -> String -> WithError EntityName
+unsplitSpecialWE name ext = fromStringWE (name ++ [specialChar] ++ ext)
 
