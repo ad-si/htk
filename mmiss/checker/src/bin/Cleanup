@@ -1,0 +1,8 @@
+#! /bin/tcsh -f
+ 
+set HERE=`dirname "$0"`
+
+\rm -Rf ${HERE}/../binaries 
+\rm -f ${HERE}/../config/config*
+
+

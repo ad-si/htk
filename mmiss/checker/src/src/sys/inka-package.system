@@ -1,0 +1,9 @@
+(in-package :user)
+
+(mk:defsystem inka-package
+	:initially-do 
+	(progn 
+	  (eval-when (:compile-toplevel :load-toplevel :execute)
+	    (mk::make-package-unless-exists 'INKA 'USER)
+	    (proclaim '(optimize (speed 3) (safety 1) (compilation-speed 0))))))
+

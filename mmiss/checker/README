@@ -1,0 +1,68 @@
+Installation instruction for the mmiss-checker tool:
+====================================================
+
+1) Description: 
+===============
+
+The miss-checker tool is designed to check MMISS-XML files
+with respect to: 
+
+  o references in the file, that are required must occur in the 
+    same file
+  o the graph of references inside definitions to other definitions 
+    must be acyclic. 
+
+
+2) Installation: 
+================
+
+Requirements: 
+-------------
+This installation has been tested with the following versions
+of autoconf, gmake and lisp. 
+
+ - autoconf (GNU Autoconf) 2.57
+ - GNU Make 3.80
+ - CMU Common Lisp 18e 
+
+CMU Common Lisp 18e is freely available from the CMU Common Lisp 
+website at www.cons.org/cmucl.
+
+
+Installation: 
+-------------
+
+To install the mmiss-checker, proceed as follows from
+the directory where this README file is after unpacking 
+the tar-file. 
+
+ cd src
+ autoconf 
+ ./configure --with-lisp=path2lisp-binary
+ gmake all
+
+This will install the miss-checker executable in a new
+directory bin, adjacent to the src directory. 
+
+
+Installation Example: 
+---------------------
+
+In the following example we assume the lisp binary to be CMU Common Lisp 
+(Version >= 18e) to be at: /share/languages/lisp/linux/cmucl18e/bin/lisp
+
+ cd src
+ autoconf
+ ./configure --with-lisp=/share/languages/lisp/linux/cmucl18e/bin/lisp 
+ gmake all
+
+
+3) Running the checker:
+=======================
+
+Execute from the bin directory created by the installation: 
+
+mmiss-checker miss-xml-file.xml references
+
+
+Any bug reports and comments should be send to autexier@dfki.de.

@@ -1,0 +1,24 @@
+config = config.@OSSHORT@
+
+.PHONY : configure compile install all clean dist-clean 
+
+configure : 
+	@mkdir -p config
+	@echo "setenv BIGSYSLISP @CMULISP@" > config/$(config)
+
+compile : configure 
+	@bin/MakeBinDist @PROGRAM@
+
+install : compile 
+	@mkdir -p ../bin 
+	@cp -Rf dist/@PROGRAM@/bin ../ 
+
+all : configure compile install 
+
+clean : 
+	@bin/Cleanup 
+
+dist-clean : clean 
+	@rm -Rf dist 
+	@rm -Rf ../bin 
+

@@ -1,0 +1,30 @@
+(in-package :user)
+
+(mk:defsystem base
+	      :depends-on (inka-package)
+	      :source-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME") 
+								"src" "share" "base")
+	      :binary-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME") 
+								"binaries" "share" "base" 
+								*lisp-dependent-binary-pathname*)
+	      :components
+	      ((:file "service")
+	       (:file "http-core")
+	       ;; (:file "process_cmu")
+	       (:file "socket" :language :c-so)
+	       (:file "process"
+		      :depends-on ("socket-interface"))
+	       (:file "base64" :language :c++-so)
+	       ;; (:file "base64.h")
+	       (:file "base64-interface"
+		      :depends-on ("base64"))
+	       (:file "socket-interface"
+		      :depends-on ("socket"))
+	       (:file "xml-rpc-parser")
+	       (:file "internet"
+		      :depends-on ("process" "socket-interface"))
+	       )
+	      )
+
+
+	

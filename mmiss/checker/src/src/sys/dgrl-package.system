@@ -1,0 +1,8 @@
+(in-package :user)
+
+(mk:defsystem dgrl-package
+	:initially-do 
+	(progn 
+	  (mk::make-package-unless-exists 'dgrl 'USER)
+	  (proclaim '(optimize (speed 3) (safety 1) (compilation-speed 0)))))
+

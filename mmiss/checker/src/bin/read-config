@@ -1,0 +1,21 @@
+#!/bin/tcsh -f
+#
+
+unalias cd
+unalias pwd
+setenv prefix_rel "`dirname $0`/.."
+
+#
+# set BIGSYSHOME and read the configuration in  ${BIGSYSHOME}/config/ 
+#
+
+setenv BIGSYSHOME "`cd ${prefix_rel} && pwd`"
+source ${BIGSYSHOME}/config/config.`uname -s`
+
+
+#
+# set additional variables (for MathWeb)
+# here should be put everything that follows canonically from the other 
+# config variables
+
+setenv CATSDIR ${BIGSYSHOME}/src/share/parser/caslparser/

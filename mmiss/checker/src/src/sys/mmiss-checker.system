@@ -1,0 +1,16 @@
+(in-package :user)
+
+(mk:defsystem mmiss-checker
+	      :depends-on (base omdoc-parser)
+	      :source-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME") 
+								"src" "mmiss")
+	      :binary-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME") 
+								"binaries" "mmiss" 
+								*lisp-dependent-binary-pathname*)
+	      :components
+	      ((:file "mmiss-analyser")
+	       )
+	      :dump-init-function (lambda () (funcall (intern "MMISS-CHECKER-RESET" :DGRL)))
+	      )
+
+

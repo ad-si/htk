@@ -1,0 +1,49 @@
+#! /bin/tcsh -f
+ 
+unalias cd
+unalias pwd
+ 
+set prefix_rel=`dirname "$0"`/..
+set BIGSYSHOME=`cd ${prefix_rel} && pwd`
+set configfile=${BIGSYSHOME}/config/config.`uname -s`
+
+if (-f "${configfile}") then
+
+    echo "${configfile} already exists, overwrite (y/n)"
+    set query=$<
+
+    if (${query} == "y") then
+      rm ${configfile}
+      $0
+    endif
+
+else 
+
+
+echo -n "Enter path and name of the Lisp binary : " 
+set BIGSYSLISP=$<
+ 
+echo -n "Enter the MathWeb directory, usually /home/${user}/.oz : "
+set BIGSYSMWHOME=$<
+
+echo -n "Enter the MBase directory : "
+set BIGSYSMBASEHOME=$<
+
+echo -n "Enter the path and name of the DaVinci binary : "
+set DAVINCI=$< 
+echo -n "Enter emacs or xemacs for your preferred editor : "
+set editor=$<
+set BIGSYSEMACS=`which $editor` 
+
+
+echo "setenv BIGSYSLISP   $BIGSYSLISP"   >! ${configfile}
+echo "setenv BIGSYSMWHOME $BIGSYSMWHOME" >> ${configfile}
+echo "setenv BIGSYSMBASEHOME $BIGSYSMBASEHOME" >> ${configfile}
+echo "setenv DAVINCI      $DAVINCI"      >> ${configfile}
+echo "setenv BIGSYSEMACS  $BIGSYSEMACS"  >> ${configfile}
+# in read-config:
+#echo "setenv CATSDIR       ${BIGSYSHOME}/src/share/parser/caslparser"  >> ${configfile}
+echo "setenv BIGSYSEMACSSWITCHES ' -bg white -fg black -debug-init -font fixed -q -l '${BIGSYSHOME}/config/emacs.el" >> ${configfile}
+
+endif
+

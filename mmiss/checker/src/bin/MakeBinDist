@@ -1,0 +1,40 @@
+#! /bin/tcsh -f
+ 
+set HERE=`dirname "$0"`
+
+if (${1} == "") then
+    echo 'Please enter a system name: Make <systemname>'
+else
+    set SYSTEM=$1
+    if (-f "${HERE}/../config/config.`uname -s`") then
+	echo -n "Creating new dumps..." 
+	${HERE}/makedumpsystem $SYSTEM > /dev/null
+	echo "Done."
+	${HERE}/makeexecsystem $SYSTEM
+    else
+	
+	if (${2} == "") then 
+	    ${HERE}/make-config
+	else
+	    echo "Installing standard $2 configuration"
+	    ${HERE}/make-config-${2}
+	endif
+
+	${HERE}/makedumpsystem $SYSTEM
+	${HERE}/makeexecsystem $SYSTEM
+
+    endif	
+
+    set ABOVE=`cd .. ; pwd`
+    echo 
+    echo -------------------------------------------------
+    echo Executable of $SYSTEM can be found in 
+    echo  ${ABOVE}/dist/$SYSTEM/bin.
+    echo 
+    echo Run ${ABOVE}/dist/$SYSTEM/bin/$SYSTEM 
+    echo 
+    echo Binary distribution is in 
+    echo ${ABOVE}/dist/$SYSTEM/$SYSTEM-bin.tar.gz
+    echo -------------------------------------------------
+
+endif

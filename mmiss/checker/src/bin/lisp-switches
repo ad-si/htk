@@ -1,0 +1,19 @@
+#!/bin/tcsh -f
+
+if (! ${?BIGSYSLISP}||! ${?BIGSYSHOME}) then
+    source `dirname $0`/read-config
+endif
+
+if (-f "${BIGSYSHOME}/bin/set-lisp-switches") then 
+    echo "Deleting set-lisp-switches"
+    \rm -Rf set-lisp-switches
+endif
+
+cat $BIGSYSHOME/src/sys/lisp-exec-switches.lisp | ${BIGSYSLISP} -batch 
+
+#echo "Setting the following environment variables:"
+#cat $BIGSYSHOME/bin/set-lisp-switches
+
+source $BIGSYSHOME/bin/set-lisp-switches
+\rm -Rf set-lisp-switches
+

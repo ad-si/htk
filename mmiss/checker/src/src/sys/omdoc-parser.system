@@ -1,0 +1,12 @@
+(in-package :user)
+
+(mk:defsystem omdoc-parser
+	      :depends-on (dgrl-package base)
+	      :source-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME")
+								"src" "share" "parser" "omdocparser")	
+	      :binary-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME")
+								"binaries" "share" "parser" "omdocparser"
+								mk::*lisp-dependent-binary-pathname*)
+	      :components
+	      ((:file "omd-parser")
+	       ))

@@ -1,0 +1,14 @@
+#!/bin/tcsh -f
+
+set SYSTEM=$1
+
+source `dirname $0`/read-config
+source `dirname $0`/lisp-switches
+
+set MAKEEVALFORM='(progn (in-package :user)(load "'$BIGSYSHOME'/src/sys/defsystem.lisp" :verbose nil)(load "'$BIGSYSHOME'/src/sys/config-defsystem.lisp" :verbose nil))'
+
+$BIGSYSLISP $FORMEVALSWITCH "$MAKEEVALFORM" $FORMEVALSWITCH "(progn (mk::compile-sys '$SYSTEM)(mk::dump-system '$SYSTEM)(exit))"
+ 
+
+
+
