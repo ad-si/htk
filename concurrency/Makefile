@@ -25,6 +25,6 @@ SRCS       = Thread.hs\
              EasyBroker.hs\
 
 
-SUBDIRS = test server
+SUBDIRS = test
 
 include top/mk/boilerplate.mk

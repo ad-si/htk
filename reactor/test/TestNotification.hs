@@ -13,6 +13,8 @@ module Main(main) where
 import System
 
 import Computation(done)
+import Thread(forkIO)
+import Selective(deadlock)
 import SIM
 import Notification
 
@@ -24,7 +26,8 @@ main =
          start = read startingNo :: Int
          stop = read stoppingNo :: Int
       notifier <- mkNotifier host
-      action notifier start stop
+      forkIO(action notifier start stop)
+      deadlock
 
 action :: Notifier -> Int -> Int -> IO ()
 action notifier loop stop =
@@ -51,3 +54,4 @@ action notifier loop stop =
 
 report :: String -> IO ()
 report str = putStr (str ++ "\n")
+

@@ -1,6 +1,6 @@
 {- Notification is intended for UniForM processes (possibly on
    different machines) to communicate when files are touched.
-   A server is used like the one in uni/concurrency/server/Mainserver.hs.
+   We use the EchoService of uni/server.
    -}
 module Notification(
    Notifier,
@@ -18,7 +18,10 @@ import Object
 
 import Thread
 import Selective
-import SocketEV
+import SocketEV(DescribesHost)
+
+import EchoService
+import CallServer
 
 import Listener
 import ExternalEvent
@@ -29,7 +32,8 @@ import InfoBus
 data Notifier =
    Notifier {
       oID :: ObjectID,
-      handle :: Handle,
+      writeAction :: String -> IO (),
+      closeAction :: IO(),
       eventBroker :: EventBroker () 
          -- we use an EventBroker to handle registrations.
       }
@@ -38,10 +42,7 @@ instance Object Notifier where
    objectID notifier = oID notifier
 
 instance Destructible Notifier where
-   destroy(Notifier{handle=handle}) =
-      do
-         hPutStrLn handle "\0"
-         hClose handle
+   destroy(Notifier{closeAction=closeAction}) = closeAction
 
 instance EventDesignator (Notifier,String) where
    toEventID (notifier,key) = EventID (objectID notifier) key
@@ -50,13 +51,19 @@ mkNotifier :: DescribesHost a => a -> IO Notifier
 mkNotifier hostDesc =
    do
       oID <- newObject
-      handle <- connect hostDesc (11393::Int)
+      (writeAction,receiveAction,closeAction) <-
+         connectBroadcast echoService hostDesc (11393::Int)
       eventBroker <- newEventBroker 
       let
-         notifier = Notifier{oID = oID,handle=handle,eventBroker=eventBroker}
+         notifier = Notifier{
+            oID = oID,
+            writeAction=writeAction,
+            closeAction=closeAction,
+            eventBroker=eventBroker
+            }
          readerThread =
             do
-               key <- hGetLine handle
+               key <- receiveAction
                dispatch eventBroker (notifier,key) () done
             
       forkIO readerThread
@@ -64,9 +71,10 @@ mkNotifier hostDesc =
       return notifier
 
 notify :: Notifier -> String -> IO()
-notify (Notifier{handle=handle}) key = hPutStrLn handle key
+notify (Notifier{writeAction=writeAction}) key = writeAction key
 
 isNotified :: Notifier -> String -> IA ()
 isNotified notifier@(Notifier{eventBroker=eventBroker}) key =
    awaitEvent eventBroker (notifier,key) Oneway done done
+
 

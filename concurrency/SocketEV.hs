@@ -6,12 +6,16 @@
 module SocketEV(
    -- general functions
    HostDesc, -- description of the host, instance of Show
+   
+   getHostString, -- :: DescribesHost host => host -> IO String
+
    DescribesHost(makeHost), -- :: a -> IO HostDesc
       -- defined for Strings and HostDesc
    PortDesc, -- description of the port, instance of Show
    DescribesPort(makePort), -- :: a -> IO PortDesc
       -- defined for Int and PortDesc
 
+   getPortNumber, -- :: DescribesPort port => port -> IO PortNumber
    -- functions for a server
    listenEV, -- :: DescribesPort port => port 
              --      -> IO(EV(HostDesc,PortDesc,Handle))
@@ -45,9 +49,13 @@ instance DescribesHost String where
 instance DescribesHost HostDesc where
    makeHost = return
 
-newtype PortDesc = PortDesc Int deriving Show
+getHostString :: DescribesHost host => host -> IO String
+getHostString hostDesc =
+   do
+      HostDesc name <- makeHost hostDesc
+      return name
 
-descToPort (PortDesc port) = PortNumber(fromIntegral port)   
+newtype PortDesc = PortDesc Int deriving Show
 
 class DescribesPort a where
    makePort :: a -> IO PortDesc
@@ -58,11 +66,17 @@ instance DescribesPort Int where
 instance DescribesPort PortDesc where
    makePort = return
 
+getPortNumber :: DescribesPort port => port -> IO PortID
+getPortNumber portDesc =
+   do
+      PortDesc portNo <- makePort portDesc
+      return (PortNumber(fromIntegral portNo))
+
 listenEV :: DescribesPort port => port -> IO(EV(HostDesc,PortDesc,Handle))
 listenEV portDesc =
    do
-      port <- makePort portDesc
-      socket <- listenOn(descToPort port)
+      portNumber <- getPortNumber portDesc
+      socket <- listenOn portNumber
       newConnections <- 
          newChannel :: (IO (Channel (HostDesc,PortDesc,Handle)))
       let
@@ -79,9 +93,9 @@ listenEV portDesc =
                
 connect :: (DescribesHost host,DescribesPort port) => 
    host -> port -> IO Handle
-connect host port =
+connect hostDesc portDesc =
    do
-      (HostDesc hostName) <- makeHost host
-      portDesc <- makePort port
-      connectTo hostName (descToPort portDesc)
+      hostName <- getHostString hostDesc
+      portNumber <- getPortNumber portDesc
+      connectTo hostName portNumber
 
