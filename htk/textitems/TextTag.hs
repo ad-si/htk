@@ -67,17 +67,16 @@ import Tooltip
 -- TextTag type
 -- -----------------------------------------------------------------------
 
-data TextTag a = TextTag (Editor a) GUIOBJECT
+data TextTag = TextTag Editor GUIOBJECT
 
 
 -- -----------------------------------------------------------------------
 -- construction
 -- -----------------------------------------------------------------------
 
-createTextTag :: (HasIndex (Editor a) i1 BaseIndex,
-                  HasIndex (Editor a) i2 BaseIndex) =>
-                 Editor a -> i1 -> i2 -> [Config (TextTag a)] ->
-                 IO (TextTag a)
+createTextTag :: (HasIndex Editor i1 BaseIndex,
+                  HasIndex Editor i2 BaseIndex) =>
+                 Editor -> i1 -> i2 -> [Config TextTag] -> IO TextTag
 createTextTag ed i1 i2 ol =
   do
     bi1 <- getBaseIndex ed i1
@@ -96,30 +95,30 @@ createTextTag ed i1 i2 ol =
 -- instances
 -- -----------------------------------------------------------------------
 
-instance Eq (TextTag a) where 
+instance Eq TextTag where 
   (TextTag _ w1) == (TextTag _ w2) = (toGUIObject w1) == (toGUIObject w2)
 
-instance GUIObject (TextTag a) where 
+instance GUIObject TextTag where 
   toGUIObject (TextTag _ w) = w
   cname _ = "TextTag"
 
-instance Destroyable (TextTag a) where
+instance Destroyable TextTag where
   destroy = destroy . toGUIObject
 
-instance HasBorder (TextTag a)
+instance HasBorder TextTag
 
-instance HasColour (TextTag a) where 
+instance HasColour TextTag where 
   legalColourID = hasForeGroundColour
 
-instance HasFont (TextTag a)
+instance HasFont TextTag
 
-instance HasJustify (TextTag a)
+instance HasJustify TextTag
 
-instance HasLineSpacing (TextTag a)
+instance HasLineSpacing TextTag
 
-instance HasTabulators (TextTag a)
+instance HasTabulators TextTag
 
-instance Synchronized (TextTag a) where
+instance Synchronized TextTag where
   synchronize = synchronize . toGUIObject
 
 
@@ -127,9 +126,9 @@ instance Synchronized (TextTag a) where
 -- Tag Commands
 -- -----------------------------------------------------------------------
 
-addTextTag :: (HasIndex (Editor a) i1 BaseIndex,
-               HasIndex (Editor a) i2 BaseIndex) =>
-              TextTag a -> i1 -> i2 -> IO ()
+addTextTag :: (HasIndex Editor i1 BaseIndex,
+               HasIndex Editor i2 BaseIndex) =>
+              TextTag -> i1 -> i2 -> IO ()
 addTextTag tag @ (TextTag tp _) start end =
   synchronize tag (
     do
@@ -138,9 +137,9 @@ addTextTag tag @ (TextTag tp _) start end =
       execMethod tag (\nm -> tkTagAdd nm start' end')
   )
 
-removeTextTag :: (HasIndex (Editor a) i1 BaseIndex,
-                  HasIndex (Editor a) i2 BaseIndex) =>
-                 TextTag a -> i1 -> i2 -> IO ()
+removeTextTag :: (HasIndex Editor i1 BaseIndex,
+                  HasIndex Editor i2 BaseIndex) =>
+                 TextTag -> i1 -> i2 -> IO ()
 removeTextTag tag @ (TextTag tp _) start end = 
   synchronize tag (
     do
@@ -149,10 +148,10 @@ removeTextTag tag @ (TextTag tp _) start end =
       execMethod tag (\nm -> tkTagRemove nm start' end')
   )
 
-lowerTextTag :: TextTag a -> IO ()
+lowerTextTag :: TextTag -> IO ()
 lowerTextTag tag = execMethod tag (\nm -> tkTagLower nm)
 
-raiseTextTag :: TextTag a -> IO ()
+raiseTextTag :: TextTag -> IO ()
 raiseTextTag tag = execMethod tag (\nm -> tkTagRaise nm)
 
         
@@ -160,52 +159,52 @@ raiseTextTag tag = execMethod tag (\nm -> tkTagRaise nm)
 -- tag configure options
 -- -----------------------------------------------------------------------
 
-lmargin1 :: Distance -> Config (TextTag a)
+lmargin1 :: Distance -> Config TextTag
 lmargin1 s tag = cset tag "lmargin1" s
 
-getLmargin1 :: TextTag a -> IO Distance
+getLmargin1 :: TextTag -> IO Distance
 getLmargin1 tag = cget tag "lmargin1"
 
-lmargin2 :: Distance -> Config (TextTag a)
+lmargin2 :: Distance -> Config TextTag
 lmargin2 s tag = cset tag "lmargin2" s
 
-getLmargin2 :: TextTag a -> IO Distance
+getLmargin2 :: TextTag -> IO Distance
 getLmargin2 tag = cget tag "lmargin2"
 
-rmargin :: Distance -> Config (TextTag a)
+rmargin :: Distance -> Config TextTag
 rmargin s tag = cset tag "rmargin" s
 
-getRmargin :: TextTag a -> IO Distance
+getRmargin :: TextTag -> IO Distance
 getRmargin tag = cget tag "rmargin"
 
-offset :: Distance -> Config (TextTag a)
+offset :: Distance -> Config TextTag
 offset s tag = cset tag "offset" s
 
-getOffset :: TextTag a -> IO Distance
+getOffset :: TextTag -> IO Distance
 getOffset tag = cget tag "offset"
 
-overstrike :: Toggle -> Config (TextTag a)
+overstrike :: Toggle -> Config TextTag
 overstrike s tag = cset tag "overstrike" s
 
-getOverstrike :: TextTag a -> IO Toggle
+getOverstrike :: TextTag -> IO Toggle
 getOverstrike tag = cget tag "overstrike"
 
-underlined :: Toggle -> Config (TextTag a)
+underlined :: Toggle -> Config TextTag
 underlined s tag = cset tag "underline" s
 
-getUnderlined :: TextTag a -> IO Toggle
+getUnderlined :: TextTag -> IO Toggle
 getUnderlined tag = cget tag "underline"
 
-bgstipple :: BitMapHandle -> Config (TextTag a)
+bgstipple :: BitMapHandle -> Config TextTag
 bgstipple s tag = setBitMapHandle tag "bgstipple" s False
 
-getBgstipple ::TextTag a -> IO BitMapHandle
+getBgstipple ::TextTag -> IO BitMapHandle
 getBgstipple tag = getBitMapHandle tag "bgstipple"
 
-fgstipple :: BitMapHandle -> Config (TextTag a)
+fgstipple :: BitMapHandle -> Config TextTag
 fgstipple s tag = setBitMapHandle tag "fgstipple" s False
 
-getFgstipple :: (TextTag a) -> IO BitMapHandle
+getFgstipple :: TextTag -> IO BitMapHandle
 getFgstipple tag = getBitMapHandle tag "fgstipple"
 
 
@@ -213,7 +212,7 @@ getFgstipple tag = getBitMapHandle tag "fgstipple"
 -- Index: Tag First and Last
 -- -----------------------------------------------------------------------
 
-instance HasIndex (Editor a) (TextTag a, First) BaseIndex where
+instance HasIndex Editor (TextTag, First) BaseIndex where
   getBaseIndex tp (tag,_) =
     synchronize tag (
       do
@@ -221,7 +220,7 @@ instance HasIndex (Editor a) (TextTag a, First) BaseIndex where
         return (IndexText (show tnm ++ ".first"))
     )
 
-instance HasIndex (Editor a) (TextTag a, Last) BaseIndex where
+instance HasIndex Editor (TextTag, Last) BaseIndex where
   getBaseIndex tp (tag,_) =
     synchronize tag (
       do

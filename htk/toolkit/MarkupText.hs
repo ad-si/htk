@@ -170,7 +170,7 @@ import Concurrent(threadDelay)
 unbinds :: Ref [(ObjectID, [IO ()])]
 unbinds = unsafePerformIO (newRef [])
 
-addToState :: Editor String -> [IO ()] -> IO ()
+addToState :: Editor -> [IO ()] -> IO ()
 addToState ed acts =
   do
     let GUIOBJECT oid _ = toGUIObject ed
@@ -207,13 +207,12 @@ data MarkupText =
   | MarkupHRef [MarkupText] [MarkupText]
   | forall w . Widget w => MarkupWindow (IO (w, IO()))
 
-type TagFun =
-  Editor String -> BaseIndex -> BaseIndex -> IO (TextTag String)
+type TagFun = Editor -> BaseIndex -> BaseIndex -> IO TextTag
 
 type Tag = (Position, Position, TagFun)
 
 type EmbWindowFun =
-  Editor String -> BaseIndex -> IO EmbeddedTextWin
+  Editor -> BaseIndex -> IO EmbeddedTextWin
 
 type EmbWindow = (Position, EmbWindowFun)
 
@@ -649,8 +648,8 @@ checkfont f@(Font str) bold italics =
        _ -> f
 -}
 
-clipact :: Editor String -> Mark String -> Mark String -> Ref Bool ->
-           Ref [TextTag String] -> String -> [Tag] -> IO ()
+clipact :: Editor -> Mark -> Mark -> Ref Bool -> Ref [TextTag] ->
+           String -> [Tag] -> IO ()
 clipact ed mark1 mark2 open settags txt tags =
   do
     b <- getRef open
@@ -672,7 +671,7 @@ clipact ed mark1 mark2 open settags txt tags =
          tags' <- insertTags tags
          ed # state st -- restore state
          setRef settags tags')
-  where insertTags :: [Tag] -> IO [TextTag String]
+  where insertTags :: [Tag] -> IO [TextTag]
         insertTags (((l1,c1), (l2,c2), f) : ts) =
           do
             pos1 <- getBaseIndex ed
@@ -694,7 +693,7 @@ parseMarkupText m f =
   where
     simpleProperty :: [MarkupText] -> [MarkupText] -> String ->
                       [Tag] -> [EmbWindow] -> Position -> Bool -> Bool ->
-                      Font -> [Config (TextTag String)] ->
+                      Font -> [Config TextTag] ->
                       IO ((String, [EmbWindow], [Tag]), Position)
     simpleProperty ms m' txt tags wins (line, char) bold italics
                    current_font cnf =
@@ -1007,7 +1006,7 @@ class HasMarkupText w where
   insertAt :: [MarkupText] -> Position -> Config w
   clear :: Config w
 
-instance HasMarkupText (Editor String) where
+instance HasMarkupText Editor where
   new m ed =
     do
       st <- getState ed

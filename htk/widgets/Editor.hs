@@ -88,7 +88,7 @@ import Tooltip
 
 ---
 -- The <code>Editor</code> datatpe.
-newtype Editor a = Editor GUIOBJECT deriving Eq
+newtype Editor = Editor GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
@@ -101,14 +101,13 @@ newtype Editor a = Editor GUIOBJECT deriving Eq
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this editor.
 -- @return result - An editor widget.
-newEditor :: (Container par, GUIValue a) => par -> [Config (Editor a)] ->
-                                            IO (Editor a)
-newEditor par ol =
+newEditor :: Container par => par -> [Config Editor] -> IO Editor
+newEditor par cnf =
   do
     w <- createGUIObject (toGUIObject par) (TEXT cdefault) textMethods
     tp <- return (Editor w)
-    configure tp ol
-  where defvalue :: GUIValue a => Editor a -> a -> a
+    configure tp cnf
+  where defvalue :: GUIValue a => Editor -> a -> a
         defvalue tp a = a
 
 
@@ -118,7 +117,7 @@ newEditor par ol =
 
 ---
 -- Internal.
-instance GUIObject (Editor a) where 
+instance GUIObject Editor where 
 ---
 -- Internal.
   toGUIObject (Editor w) = w
@@ -128,7 +127,7 @@ instance GUIObject (Editor a) where
 
 ---
 -- An editor widget can be destroyed.
-instance Destroyable (Editor a) where
+instance Destroyable Editor where
 ---
 -- Destroys a check button widget.
   destroy = destroy . toGUIObject
@@ -136,60 +135,60 @@ instance Destroyable (Editor a) where
 ---
 -- An editor widget has standard widget properties
 -- (concerning focus, cursor).
-instance Widget (Editor a)
+instance Widget Editor
 
 ---
 -- An editor is also a container for widgets, because it can contain
 -- widgets in embedded windows.
-instance Container (Editor a)
+instance Container Editor
 
 ---
 -- A editor widget has a configureable border.
-instance HasBorder (Editor a)
+instance HasBorder Editor
 
 ---
 -- An editor widget has a foreground and background colour.
-instance HasColour (Editor a) where 
+instance HasColour Editor where 
 ---
 -- Internal.
   legalColourID = hasForeGroundColour
 
 ---
 -- You can specify the size of an editor widget.
-instance HasSize (Editor a)
+instance HasSize Editor
 
 ---
 -- You can specify the font of an editor widget.
-instance HasFont (Editor a)
+instance HasFont Editor
 
 ---
 -- A editor widget is a stateful widget, it can be enabled or
 -- disabled.
-instance HasEnable (Editor a)
+instance HasEnable Editor
 
 ---
 -- You can adjust the line spacing of an editor widget.
-instance HasLineSpacing (Editor a)
+instance HasLineSpacing Editor
 
-instance HasTabulators (Editor a)
+instance HasTabulators Editor
 
-instance HasScroller (Editor a)
+instance HasScroller Editor
 
-instance Synchronized (Editor a) where
+instance Synchronized Editor where
   synchronize = synchronize . toGUIObject
 
-instance GUIValue a => HasValue (Editor a) a where
+instance GUIValue a => HasValue Editor a where
   value val w = setTextLines w val >> return w
   getValue w = getTextLines w
 
-instance HasTooltip (Editor a)
+instance HasTooltip Editor
 
 
 -- -----------------------------------------------------------------------
 -- commands for getting and setting the text content
 -- -----------------------------------------------------------------------
 
-getTextLines :: GUIValue a => Editor a -> IO a
+getTextLines :: GUIValue a => Editor -> IO a
 getTextLines tp =
   do
     start' <- getBaseIndex tp ((1,0) :: Position)
@@ -197,7 +196,7 @@ getTextLines tp =
     evalMethod tp (\nm -> tkGetText nm start' (Just end'))
   where wid = toGUIObject tp
 
-setTextLines :: GUIValue a => Editor a -> a -> IO ()
+setTextLines :: GUIValue a => Editor -> a -> IO ()
 setTextLines tp lns =
   do
     deleteTextRange tp ((1,0) :: Position) EndOfText
@@ -211,43 +210,43 @@ setTextLines tp lns =
 -- commands for reading and writing texts
 -- -----------------------------------------------------------------------
 
-deleteText :: HasIndex (Editor a) i BaseIndex => Editor a -> i -> IO ()
+deleteText :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
 deleteText tp i =
   do
     pos <- getBaseIndex tp i
     execMethod tp (\nm -> tkDeleteText nm pos Nothing)
 
-deleteTextRange :: (HasIndex (Editor a) i1 BaseIndex, 
-                    HasIndex (Editor a) i2 BaseIndex) =>
-                   Editor a -> i1 -> i2 -> IO ()
+deleteTextRange :: (HasIndex Editor i1 BaseIndex, 
+                    HasIndex Editor i2 BaseIndex) =>
+                   Editor -> i1 -> i2 -> IO ()
 deleteTextRange tp start end =
   do
     start' <- getBaseIndex tp start
     end' <- getBaseIndex tp end
     execMethod tp (\nm -> tkDeleteText nm start' (Just end'))
 
-getTextRange :: (HasIndex (Editor String) i1 BaseIndex, 
-                 HasIndex (Editor String) i2 BaseIndex) =>
-                Editor String -> i1 -> i2 -> IO String
+getTextRange :: (HasIndex Editor i1 BaseIndex, 
+                 HasIndex Editor i2 BaseIndex) =>
+                Editor -> i1 -> i2 -> IO String
 getTextRange tp start end = 
   do
     start' <- getBaseIndex tp start
     end' <- getBaseIndex tp end
     evalMethod tp (\nm -> tkGetText nm start' (Just end'))
 
-insertText :: (HasIndex (Editor String) i BaseIndex,GUIValue a) =>
-              Editor String -> i -> a -> IO ()
+insertText :: (HasIndex Editor i BaseIndex,GUIValue a) =>
+              Editor -> i -> a -> IO ()
 insertText tp i txt =
   do
     pos <- getBaseIndex tp i
     execMethod tp (\nm -> tkInsertText nm pos val)
   where val = toGUIValue txt
 
-insertNewline   :: Editor String -> IO ()
+insertNewline   :: Editor -> IO ()
 insertNewline tp = execMethod tp (\nm -> tkInsertNewLine nm)
 
-getTextLine     :: HasIndex (Editor String) i BaseIndex =>
-                   Editor String -> i -> IO String
+getTextLine     :: HasIndex Editor i BaseIndex =>
+                   Editor -> i -> IO String
 getTextLine tp i = 
   do
     (l,c) <- getIndexPosition tp i
@@ -255,7 +254,7 @@ getTextLine tp i =
   where start l = (l,0::Distance)
         end l = ((l+1,0::Distance ),BackwardChars 1)
 
-appendText :: Editor String -> String -> IO ()
+appendText :: Editor -> String -> IO ()
 appendText tp str =
   do
     try (insertText tp EndOfText str)
@@ -269,7 +268,7 @@ appendText tp str =
 
 ---
 -- Writes the contained text to a file.
-writeTextToFile :: Editor String -> FilePath -> IO ()
+writeTextToFile :: Editor -> FilePath -> IO ()
 writeTextToFile tp fnm =
   do
     str <- getValue tp
@@ -277,7 +276,7 @@ writeTextToFile tp fnm =
 
 ---
 -- Reads a text from a file and inserts it into the editor pane.
-readTextFromFile :: Editor String -> FilePath -> IO ()
+readTextFromFile :: Editor -> FilePath -> IO ()
 readTextFromFile tp fnm =
   do
     str <- readFile fnm
@@ -289,7 +288,7 @@ readTextFromFile tp fnm =
 -- BBox
 -- -----------------------------------------------------------------------
 
-instance (HasIndex (Editor a) i BaseIndex) => HasBBox (Editor a) i  where
+instance (HasIndex Editor i BaseIndex) => HasBBox Editor i  where
   bbox w i =
     do
       binx <- getBaseIndex w i
@@ -303,35 +302,35 @@ instance (HasIndex (Editor a) i BaseIndex) => HasBBox (Editor a) i  where
 -- HasIndex
 -- -----------------------------------------------------------------------
 
-instance HasIndex (Editor a) BaseIndex BaseIndex where
+instance HasIndex Editor BaseIndex BaseIndex where
   getBaseIndex w i = return i
 
-instance HasIndex (Editor a) EndOfText BaseIndex where
+instance HasIndex Editor EndOfText BaseIndex where
   getBaseIndex w _ = return (IndexText "end")
 
-instance HasIndex (Editor a) Pixels BaseIndex where
+instance HasIndex Editor Pixels BaseIndex where
   getBaseIndex w p = return (IndexText (show p))
 
-instance HasIndex (Editor a) (Distance, Distance) BaseIndex where
+instance HasIndex Editor (Distance, Distance) BaseIndex where
   getBaseIndex w pos = return (IndexPos pos)
 
-instance HasIndex (Editor a) i BaseIndex => 
-         HasIndex (Editor a) (i,[IndexModifier]) BaseIndex where
+instance HasIndex Editor i BaseIndex => 
+         HasIndex Editor (i,[IndexModifier]) BaseIndex where
   getBaseIndex tp (i,ml) =
     do
       bi <- getBaseIndex tp i
       return
         (IndexText (show (bi::BaseIndex) ++ show (IndexModifiers ml)))
 
-instance HasIndex (Editor a) i BaseIndex => 
-         HasIndex (Editor a) (i,IndexModifier) BaseIndex where
+instance HasIndex Editor i BaseIndex => 
+         HasIndex Editor (i,IndexModifier) BaseIndex where
   getBaseIndex tp (i,m) =
     do
       bi <- getBaseIndex tp i
       return (IndexText (show (bi::BaseIndex) ++ show m))
 
-instance HasIndex (Editor a) i BaseIndex =>
-         HasIndex (Editor a) i (Distance,Distance) where
+instance HasIndex Editor i BaseIndex =>
+         HasIndex Editor i (Distance,Distance) where
   getBaseIndex = getIndexPosition 
 
 
@@ -370,8 +369,8 @@ instance Show IndexModifiers where
 -- Index operations
 -- -----------------------------------------------------------------------
 
-getIndexPosition :: HasIndex (Editor a) i BaseIndex 
-                 => (Editor a) -> i -> IO Position
+getIndexPosition :: HasIndex Editor i BaseIndex 
+                 => Editor -> i -> IO Position
 getIndexPosition tp i = do {
         inx <- getBaseIndex tp i;
         pos <- evalMethod tp (\nm -> tkPosition nm inx);
@@ -380,9 +379,9 @@ getIndexPosition tp i = do {
 }
 
 compareIndices :: (
-        HasIndex (Editor a) i1 BaseIndex,
-        HasIndex (Editor a) i2 BaseIndex
-        ) => (Editor a) -> String -> i1 -> i2 -> IO Bool
+        HasIndex Editor i1 BaseIndex,
+        HasIndex Editor i2 BaseIndex
+        ) => Editor -> String -> i1 -> i2 -> IO Bool
 compareIndices tp op i1 i2 = do
         bi1 <- getBaseIndex tp i1
         bi2 <- getBaseIndex tp i2
@@ -396,7 +395,7 @@ compareIndices tp op i1 i2 = do
 -- selection
 -- -----------------------------------------------------------------------
 
-instance HasSelection (Editor a) where
+instance HasSelection Editor where
         clearSelection tp = synchronize tp (do {
                 start <- getSelectionStart tp;
                 end <- getSelectionEnd tp;
@@ -409,7 +408,7 @@ instance HasSelection (Editor a) where
                         _ -> done
                 })
 
-instance (HasIndex (Editor a) i BaseIndex) => HasSelectionIndex (Editor a) i 
+instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i 
   where
         selection inx tp = synchronize tp (do {
                 binx <- getBaseIndex tp inx;
@@ -425,7 +424,7 @@ instance (HasIndex (Editor a) i BaseIndex) => HasSelectionIndex (Editor a) i
                         _                          -> return False
                 })
 
-instance HasSelectionBaseIndexRange (Editor a) (Distance,Distance) where
+instance HasSelectionBaseIndexRange Editor (Distance,Distance) where
         getSelectionStart tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelFirst nm))
                 case mstart of
@@ -438,9 +437,9 @@ instance HasSelectionBaseIndexRange (Editor a) (Distance,Distance) where
                         (Right v) -> (return . Just) v
 
 instance (
-        HasIndex (Editor a) i1 BaseIndex, 
-        HasIndex (Editor a) i2 BaseIndex
-        ) => HasSelectionIndexRange (Editor a) i1 i2 
+        HasIndex Editor i1 BaseIndex,
+        HasIndex Editor i2 BaseIndex
+        ) => HasSelectionIndexRange Editor i1 i2
   where
         selectionRange start end tp = synchronize tp (do {
                 start' <- getBaseIndex tp start;
@@ -449,20 +448,20 @@ instance (
                 return tp
                 })
 
-instance HasSelectionBaseIndex (Editor a) ((Distance,Distance),(Distance,Distance)) where
+instance HasSelectionBaseIndex Editor ((Distance,Distance),(Distance,Distance)) where
         getSelection = getSelectionRange
 
-instance HasXSelection (Editor a)
+instance HasXSelection Editor
 
 
 -- -----------------------------------------------------------------------
 -- Insertion Cursor
 -- -----------------------------------------------------------------------
 
-instance HasInsertionCursor (Editor a)
+instance HasInsertionCursor Editor
 
-instance ( HasIndex (Editor a) i BaseIndex
-        ) => HasInsertionCursorIndexSet (Editor a) i 
+instance ( HasIndex Editor i BaseIndex
+        ) => HasInsertionCursorIndexSet Editor i 
   where
         insertionCursor inx tp =  synchronize tp (do {
                 binx <- getBaseIndex tp inx;
@@ -470,7 +469,7 @@ instance ( HasIndex (Editor a) i BaseIndex
                 return tp
                 })
 
-instance HasInsertionCursorIndexGet (Editor a) (Distance,Distance) where
+instance HasInsertionCursorIndexGet Editor (Distance,Distance) where
         getInsertionCursor tp =  evalMethod tp (\nm -> tkGetInsertMark nm)
 
 
@@ -478,7 +477,7 @@ instance HasInsertionCursorIndexGet (Editor a) (Distance,Distance) where
 -- View
 -- -----------------------------------------------------------------------
 
-adjustViewTo :: HasIndex (Editor a) i BaseIndex => (Editor a) -> i -> IO ()
+adjustViewTo :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
 adjustViewTo  tp i = 
         synchronize tp (do {
                 inx <- getBaseIndex tp i;
@@ -490,13 +489,13 @@ adjustViewTo  tp i =
 -- Scan
 -- -----------------------------------------------------------------------
 
-scanMark :: HasIndex (Editor a) i BaseIndex => (Editor a) -> i -> IO ()
+scanMark :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
 scanMark tp i = do {
         pos <- getIndexPosition tp i;
         execMethod tp (\nm -> tkScanMark nm pos)
 }
 
-scanDragTo :: HasIndex (Editor a) i BaseIndex => (Editor a) -> i -> IO ()
+scanDragTo :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
 scanDragTo tp i = 
         synchronize tp (do {
                 pos <- getIndexPosition tp i;
@@ -508,10 +507,10 @@ scanDragTo tp i =
 -- Wrap Mode
 -- -----------------------------------------------------------------------
 
-wrap :: WrapMode -> Config (Editor a) 
+wrap :: WrapMode -> Config Editor
 wrap d tp = cset tp "wrap" d
 
-getWrapMode :: Editor a -> IO WrapMode
+getWrapMode :: Editor -> IO WrapMode
 getWrapMode tp = cget tp "wrap"
 
 
@@ -621,8 +620,8 @@ textMethods = defMethods {
 -- Search
 -- -----------------------------------------------------------------------
 
-search :: HasIndex (Editor a) i BaseIndex => 
-        (Editor a) -> SearchSwitch -> String -> i -> IO (Maybe BaseIndex) 
+search :: HasIndex Editor i BaseIndex => 
+          Editor -> SearchSwitch -> String -> i -> IO (Maybe BaseIndex) 
 search tp switch ptn inx = do {
         binx <- getBaseIndex tp inx;
         (RawData mb) <- evalMethod tp (\nm -> tkSearch nm switch ptn binx);

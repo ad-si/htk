@@ -1,16 +1,13 @@
-{- #########################################################################
-
-MODULE        : Prompt
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : A composite prompt widget, like the one outlined by TkGofer. 
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Prompt (
         Prompt,
@@ -29,7 +26,8 @@ import Debug(debug)
 -- --------------------------------------------------------------------------
 -- Definition 
 -- --------------------------------------------------------------------------           
-data GUIValue a => Prompt a = Prompt Box (Label String) (Entry a)
+
+data GUIValue a => Prompt a = Prompt Box Label (Entry a)
 
 
 -- --------------------------------------------------------------------------

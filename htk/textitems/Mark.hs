@@ -38,15 +38,15 @@ import Synchronized
 -- type Mark
 -- -----------------------------------------------------------------------
 
-data Mark a = Mark (Editor a) String deriving Eq
+data Mark = Mark Editor String deriving Eq
 
 
 -- -----------------------------------------------------------------------
 -- creation
 -- -----------------------------------------------------------------------
 
-createMark :: HasIndex (Editor a) i BaseIndex => 
-              Editor a -> String -> i -> IO (Mark a)
+createMark :: HasIndex Editor i BaseIndex => 
+              Editor -> String -> i -> IO Mark
 createMark ed name i =
   synchronize ed (do
                     ix <- getBaseIndex ed i
@@ -58,29 +58,29 @@ createMark ed name i =
 -- Mark Operations
 -- -----------------------------------------------------------------------
 
-setMarkGravity :: Mark a -> Gravity -> IO ()
+setMarkGravity :: Mark -> Gravity -> IO ()
 setMarkGravity mark @ (Mark tp name) grav =     
   execMethod tp (\nm -> tkSetMarkGravity nm name grav)
  where tkSetMarkGravity tnm mnm g =
          [show tnm ++ " mark gravity " ++ show mnm ++ " " ++ show g]
 
-getMarkGravity :: Mark a -> IO ()
+getMarkGravity :: Mark -> IO ()
 getMarkGravity mark @ (Mark tp name) =  
   evalMethod tp (\nm -> tkGetMarkGravity nm name)
  where tkGetMarkGravity tnm mnm =
          [show tnm ++ " mark gravity " ++ show mnm]
 
-unsetMark :: Mark a -> IO ()
+unsetMark :: Mark -> IO ()
 unsetMark (Mark tp name) = execMethod tp (\nm -> tkMarkUnset nm name)
  where tkMarkUnset nm mname  = [show nm ++ " mark unset " ++ show mname]
 
-setMark :: HasIndex (Editor a) i BaseIndex => Mark a -> i -> IO ()
+setMark :: HasIndex Editor i BaseIndex => Mark -> i -> IO ()
 setMark mk@(Mark tp name) i =
   do
     binx <- getBaseIndex tp  i
     execMethod tp (\nm -> tkMarkSet nm name binx)
 
-getCurrentMarks :: Editor a -> IO [Mark a]
+getCurrentMarks :: Editor -> IO [Mark]
 getCurrentMarks tp =
   do
     str <- evalMethod tp (\nm -> [show nm ++ " mark names "])
@@ -90,18 +90,18 @@ getCurrentMarks tp =
 -- Index
 -- -----------------------------------------------------------------------
 
-data MousePosition a = MousePosition (Editor a)
+data MousePosition = MousePosition Editor
 
-instance HasIndex (Editor a) (Mark a) BaseIndex where
+instance HasIndex Editor Mark BaseIndex where
   getBaseIndex w (Mark _ str) = return (IndexText str)
 
-instance HasIndex (Editor a) (Selection (Editor a)) BaseIndex where
+instance HasIndex Editor (Selection Editor) BaseIndex where
   getBaseIndex w p = return (IndexText "sel")
 
-instance HasIndex (Editor a) (ICursor (Editor a)) BaseIndex where
+instance HasIndex Editor (ICursor Editor) BaseIndex where
   getBaseIndex w p = return (IndexText "insert")
 
-instance HasIndex (Editor a) (MousePosition (Editor a)) BaseIndex where
+instance HasIndex Editor MousePosition BaseIndex where
   getBaseIndex w p = return (IndexText "current")
 
 

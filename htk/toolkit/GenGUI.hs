@@ -179,10 +179,10 @@ data CItem c => GenGUI c =
       notepad :: Notepad (Item c),
 
       -- the markup text container
-      editor :: Editor String,
+      editor :: Editor,
 
       -- the status bar
-      status :: Label String,
+      status :: Label,
 
       -- GenGUI's main menu
       topmenu :: Menu,
@@ -300,8 +300,7 @@ newGenGUI mstate =
                             [size (800, 800), background "white"]
            pack np [PadX 5, PadY 5, Fill Both, Expand On]
            (edscr, ed) <- newScrollBox main
-                            (\par -> newEditor par [width 40]
-                                       :: IO (Editor String)) []
+                            (\par -> newEditor par [width 40]) []
            pack edscr [PadX 5, PadY 5, Fill Both, Expand On]
            return (tl, np, edscr, ed))
 

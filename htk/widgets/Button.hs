@@ -38,10 +38,8 @@ import Tooltip
 -- -----------------------------------------------------------------------
 
 ---
--- The <code>Button</code> datatype - a <code>Button String</code>
--- contains text, a <code>Button Image</code> contains an image,
--- a <code>Button BitMap</code> contains a bitmap.
-newtype Button a = Button GUIOBJECT deriving Eq
+-- The <code>Button</code> datatype.
+newtype Button = Button GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
@@ -54,7 +52,7 @@ newtype Button a = Button GUIOBJECT deriving Eq
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this button.
 -- @return result - A button widget.
-newButton :: Container par => par -> [Config (Button a)] -> IO (Button a)
+newButton :: Container par => par -> [Config Button] -> IO Button
 newButton par cnf =
   do
     b <- createGUIObject (toGUIObject par) BUTTON defMethods
@@ -67,7 +65,7 @@ newButton par cnf =
 
 ---
 -- Internal.
-instance GUIObject (Button a) where 
+instance GUIObject Button where 
 ---
 -- Internal.
   toGUIObject (Button w) = w
@@ -77,7 +75,7 @@ instance GUIObject (Button a) where
 
 ---
 -- A button widget can be destroyed.
-instance Destroyable (Button a) where
+instance Destroyable Button where
 ---
 -- Destroys a button widget.
   destroy = destroy . toGUIObject
@@ -85,72 +83,72 @@ instance Destroyable (Button a) where
 ---
 -- A button widget has standard widget properties
 -- (concerning focus, cursor).
-instance Widget (Button a)
+instance Widget Button
 
 ---
 -- A button widget can be flashed (redisplayed several times in
 -- alternate colours) and invoked (the associated event).
-instance ButtonWidget (Button a)
+instance ButtonWidget Button
 
 ---
 -- A button widget can contain a bitmap.
-instance HasBitMap (Button BitMap)
+instance HasBitMap Button
 
 ---
 -- A button widget has a configureable border.
-instance HasBorder (Button a)
+instance HasBorder Button
 
 ---
 -- A button widget has a normal foreground and background colour and an
 -- active/disabled foreground and background colour.
-instance HasColour (Button a) where
+instance HasColour Button where
 ---
 -- Internal.
   legalColourID = buttonColours
 
 ---
 -- A button widget is a stateful widget, it can be enabled or disabled.
-instance HasEnable (Button a)
+instance HasEnable Button
 
 ---
 -- You can specify the font of a button.
-instance HasFont (Button String)
+instance HasFont Button
 
 ---
 -- A button has a configureable text justification.
-instance HasJustify (Button a)
+instance HasJustify Button
 
 ---
 -- A button can contain an image.
-instance HasPhoto (Button Image)
+instance HasPhoto Button
 
 ---
 -- You can specify the size of a button.
-instance HasSize (Button a)
+instance HasSize Button
 
 ---
 -- A button can contain text.
-instance GUIValue v => HasText (Button String) v
+instance GUIValue v => HasText Button v
 
 ---
 -- You can set the index of a text character to underline.
-instance HasUnderline (Button String)
+instance HasUnderline Button
 
 ---
 -- You can synchronize on a button object.
-instance Synchronized (Button a) where
+instance Synchronized Button where
 ---
 -- Synchronizes on a button object.
   synchronize = synchronize . toGUIObject
 
 ---
 -- When a button is clicked, a corresponding event is invoked.
-instance HasCommand (Button a)
+instance HasCommand Button
 
 ---
 -- A button can have a tooltip.
-instance HasTooltip (Button a)
+instance HasTooltip Button
 
 ---
 -- A label has a text anchor.
-instance HasAnchor (Button a)
+instance HasAnchor Button

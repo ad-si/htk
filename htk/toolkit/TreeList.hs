@@ -620,8 +620,8 @@ data CItem a => TREELISTOBJECT a =        -- ** internal representation **
                    is_node :: Bool,                        -- true if node
                    plusminus :: ImageItem,                    -- plusminus
                    obj_lines :: (Line, Line),                     -- lines
-                   obj_img :: Label Image,                 -- object image
-                   obj_nm :: Label String,                  -- object name
+                   obj_img :: Label,                       -- object image
+                   obj_nm :: Label,                         -- object name
                    embedded_win :: EmbeddedCanvasWin,        -- main frame
                    ub_acts :: Ref [IO ()] }              -- unbind actions
 

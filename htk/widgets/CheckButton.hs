@@ -40,11 +40,8 @@ import Tooltip
 
 ---
 -- The <code>CheckButton</code> datatpe - it is associated with a
--- polymorphic <code>TkVariable</code> (first type parameter); a
--- <code>CheckButton a String</code> contains text, a
--- <code>CheckButton a Image</code> contains an image,
--- <code>CheckButton a BitMap</code> contains a bitmap.
-newtype CheckButton a b = CheckButton GUIOBJECT deriving Eq
+-- polymorphic <code>TkVariable</code>.
+newtype CheckButton a = CheckButton GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
@@ -58,8 +55,8 @@ newtype CheckButton a b = CheckButton GUIOBJECT deriving Eq
 -- @param cnf     - the list of configuration options for this
 --                  checkbutton.
 -- @return result - A checkbutton widget.
-newCheckButton :: Container par => par -> [Config (CheckButton a b)] ->
-                                   IO (CheckButton a b)
+newCheckButton :: Container par => par -> [Config (CheckButton a)] ->
+                                   IO (CheckButton a)
 newCheckButton par cnf =
   do
     b <- createGUIObject (toGUIObject par) CHECKBUTTON defMethods
@@ -72,7 +69,7 @@ newCheckButton par cnf =
 
 ---
 -- Internal.
-instance GUIObject (CheckButton a b) where 
+instance GUIObject (CheckButton a) where 
 ---
 -- Internal.
   toGUIObject (CheckButton w) = w
@@ -82,7 +79,7 @@ instance GUIObject (CheckButton a b) where
 
 ---
 -- A checkbutton widget can be destroyed.
-instance Destroyable (CheckButton a b) where
+instance Destroyable (CheckButton a) where
 ---
 -- Destroys a checkbutton widget.
   destroy   = destroy . toGUIObject
@@ -90,26 +87,26 @@ instance Destroyable (CheckButton a b) where
 ---
 -- A checkbutton widget has standard widget properties
 -- (concerning focus, cursor).
-instance Widget (CheckButton a b)
+instance Widget (CheckButton a)
 
 ---
 -- A checkbutton widget can be flashed (redisplayed several times in
 -- alternate colours) and invoked (the associated event) as any button
 -- widget.
-instance ButtonWidget (CheckButton a b)
+instance ButtonWidget (CheckButton a)
 
 ---
 -- A checkbutton widget can contain a bitmap.
-instance HasBitMap (CheckButton a BitMap)
+instance HasBitMap (CheckButton a)
 
 ---
 -- A checkbutton widget has a configureable border.
-instance HasBorder (CheckButton a b)
+instance HasBorder (CheckButton a)
 
 ---
 -- A checkbutton widget has a normal foreground and background colour and
 -- an active/disabled foreground and background colour.
-instance HasColour (CheckButton a b) where 
+instance HasColour (CheckButton a) where 
 ---
 -- Internal.
   legalColourID = buttonColours
@@ -117,57 +114,57 @@ instance HasColour (CheckButton a b) where
 ---
 -- A checkbutton widget is a stateful widget, it can be enabled or
 -- disabled.
-instance HasEnable (CheckButton a b)
+instance HasEnable (CheckButton a)
 
 ---
 -- You can specify the font of a checkbutton.
-instance HasFont (CheckButton a String)
+instance HasFont (CheckButton a)
 
 ---
 -- A checkbutton has a text justification configuration.
-instance HasJustify (CheckButton a String)
+instance HasJustify (CheckButton a)
 
 ---
 -- A checkbutton can contain an image.
-instance HasPhoto (CheckButton a Image)
+instance HasPhoto (CheckButton a)
 
 ---
 -- You can specify the size of a checkbutton.
-instance HasSize (CheckButton a b)
+instance HasSize (CheckButton a)
 
 ---
 -- A checkbutton can contain text.
-instance GUIValue v => HasText (CheckButton a String) v
+instance GUIValue v => HasText (CheckButton a) v
 
 ---
 -- You can set the index of a text character to underline.
-instance HasUnderline (CheckButton a String)
+instance HasUnderline (CheckButton a)
 
 ---
 -- You can synchronize on a checkbutton object.
-instance Synchronized (CheckButton a b) where
+instance Synchronized (CheckButton a) where
 ---
 -- Synchronizes on a checkbutton object.
   synchronize = synchronize . toGUIObject
 
 ---
 -- When a checkbutton is clicked, a corresponding event is invoked.
-instance HasCommand (CheckButton a b)
+instance HasCommand (CheckButton a)
 
 ---
 -- A checkbutton has a value, that corresponds to a polymorphic
 -- <code>TkVariable</code>.
-instance GUIValue a => HasValue (CheckButton a b) a
+instance GUIValue a => HasValue (CheckButton a) a
 
 ---
 -- The polymorphic variable the checkbutton's value is associated with.
-instance HasVariable (CheckButton a b)
+instance HasVariable (CheckButton a)
 
 ---
 -- An checkbutton can have a tooltip (only displayed if you are using
 -- tixwish).
-instance HasTooltip (CheckButton a b)
+instance HasTooltip (CheckButton a)
 
 ---
 -- A checkbutton has a text anchor.
-instance HasAnchor (CheckButton a b)
+instance HasAnchor (CheckButton a)

@@ -73,9 +73,9 @@ dropLast path = dropLast' (tail (reverse path))
 
 updPathMenu :: MenuButton -> Ref (Maybe Menu) ->
                FilePath -> Ref [FilePath] -> Ref [FilePath] ->
-               Ref FilePath -> ListBox [FilePath] ->
-               ListBox [FilePath] -> TkVariable String ->
-               Label FilePath -> Ref Bool -> IO ()
+               Ref FilePath -> ListBox FilePath ->
+               ListBox FilePath -> TkVariable String ->
+               Label -> Ref Bool -> IO ()
 updPathMenu pathmenubutton menuref path foldersref filesref pathref
             folderslb fileslb file_var status showhiddenref =
   do
@@ -117,8 +117,8 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
                status # text "Permission denied!" >> done)
 
 changeToFolder :: FilePath -> Ref [FilePath] -> Ref [FilePath] ->
-                  Ref FilePath -> ListBox [FilePath] ->
-                  ListBox [FilePath] -> TkVariable String -> Bool ->
+                  Ref FilePath -> ListBox FilePath ->
+                  ListBox FilePath -> TkVariable String -> Bool ->
                   IO Bool
 changeToFolder path foldersref filesref pathref folderslb fileslb
                file_var showhidden =
@@ -141,8 +141,8 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
      else return False)
 
 up ::  Ref [FilePath] -> Ref [FilePath] -> Ref FilePath ->
-       ListBox [FilePath] -> ListBox [FilePath] -> TkVariable String ->
-       Label String -> Bool -> IO Bool
+       ListBox FilePath -> ListBox FilePath -> TkVariable String ->
+       Label -> Bool -> IO Bool
 up foldersref filesref pathref folderslb fileslb file_var status
    showhidden =
   do
@@ -155,8 +155,8 @@ up foldersref filesref pathref folderslb fileslb file_var status
      else return True)
 
 selectedFolder :: Int -> Ref [FilePath] -> Ref [FilePath] ->
-                  Ref FilePath -> ListBox [FilePath] ->
-                  ListBox [FilePath] -> TkVariable String -> Bool ->
+                  Ref FilePath -> ListBox FilePath ->
+                  ListBox FilePath -> TkVariable String -> Bool ->
                   IO Bool
 selectedFolder i foldersref filesref pathref folderslb fileslb file_var
                showhidden =
@@ -170,7 +170,7 @@ selectedFolder i foldersref filesref pathref folderslb fileslb file_var
       file_var showhidden
 
 refresh :: Ref [FilePath] -> Ref [FilePath] -> Ref FilePath ->
-           ListBox [FilePath] -> ListBox [FilePath] -> Bool -> IO ()
+           ListBox FilePath -> ListBox FilePath -> Bool -> IO ()
 refresh foldersref filesref pathref folderslb fileslb showhidden =
   do
     folders <- getRef foldersref
@@ -219,11 +219,10 @@ createFolder par childwindow ret =
        buttons <- newFrame main []
        pack buttons [PadX 10, PadY 5, Side AtBottom]
 
-       ok <- newButton buttons [text "Ok", width 12] :: IO (Button String)
+       ok <- newButton buttons [text "Ok", width 12]
        pack ok [PadX 5, Side AtLeft]
 
-       quit <- newButton buttons [text "Cancel",
-                                  width 12] :: IO (Button String)
+       quit <- newButton buttons [text "Cancel", width 12]
        pack quit [PadX 5, Side AtLeft]
 
        clickedok <- clicked ok
@@ -268,11 +267,10 @@ confirmDeleteFile par fp childwindow ret =
        buttons <- newFrame main []
        pack buttons [PadX 10, PadY 5, Side AtBottom]
 
-       ok <- newButton buttons [text "Ok", width 15] :: IO (Button String)
+       ok <- newButton buttons [text "Ok", width 15]
        pack ok [PadX 5, Side AtLeft]
 
        quit <- newButton buttons [text "Cancel", width 15]
-                 :: IO (Button String)
        pack quit [PadX 5, Side AtLeft]
 
        clickedok <- clicked ok
@@ -334,23 +332,19 @@ fileDialog title fp =
     newFolderImg' <- newFolderImg
     deleteFileImg' <- deleteFileImg
 
-    upbutton <- newButton actions [photo upImg'] :: IO (Button Image)
+    upbutton <- newButton actions [photo upImg']
     pack upbutton [PadX 2, Side AtLeft]
 
     refreshbutton <- newButton actions [photo refreshImg']
-                       :: IO (Button Image)
     pack refreshbutton [PadX 2, Side AtLeft]
 
     newfolderbutton <- newButton actions [photo newFolderImg']
-                         :: IO (Button Image)
     pack newfolderbutton [PadX 2, Side AtLeft]
 
     deletefilebutton <- newButton actions [photo deleteFileImg']
-                          :: IO (Button Image)
     pack deletefilebutton [PadX 2, Side AtLeft]
 
     showHiddenFiles <- newCheckButton actions [text "hidden files"]
-                         :: IO (CheckButton a String)
     pack showHiddenFiles [PadX 10, Side AtLeft]
 
     menuref <- newRef Nothing
@@ -392,11 +386,10 @@ fileDialog title fp =
     buttons <- newFrame main []
     pack buttons [PadY 5, PadX 30, Side AtRight]
     msgQ <- newChannel
-    ok <- newButton buttons [text "Ok", width 12] :: IO (Button String)
+    ok <- newButton buttons [text "Ok", width 12]
     pack ok [PadX 5, Side AtLeft]
 
     quit <- newButton buttons [text "Cancel", width 12]
-              :: IO (Button String)
     pack quit [PadX 5, Side AtRight]
 
 

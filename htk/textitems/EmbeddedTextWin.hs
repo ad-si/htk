@@ -56,8 +56,8 @@ newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 -- @param cnf     - the list of configuration options for this embedded
 --                  text window.
 -- @return result - An embedded window inside an editor widget.
-createEmbeddedTextWin :: (HasIndex (Editor a) i BaseIndex, Widget w) =>
-                         (Editor a) -> i -> w ->
+createEmbeddedTextWin :: (HasIndex Editor i BaseIndex, Widget w) =>
+                         Editor -> i -> w ->
                          [Config EmbeddedTextWin] -> IO EmbeddedTextWin
 createEmbeddedTextWin ed i w cnf =
   do
@@ -120,7 +120,7 @@ getStretch ew = cget ew "stretch"
 -- index
 -- -----------------------------------------------------------------------
 
-instance HasIndex (Editor a) EmbeddedTextWin BaseIndex where
+instance HasIndex Editor EmbeddedTextWin BaseIndex where
   getBaseIndex tp win =
     synchronize win
       (do

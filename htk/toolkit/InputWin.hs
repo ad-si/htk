@@ -1,24 +1,13 @@
-{- #########################################################################
-
-MODULE        : InputWin
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Basic input window for record values and their fields.
-                The third argument to inputWin is a is-well-formedness
-                function that is finally called to ensure that the entered
-                record value is legal. The legality of the individual fields
-                is checked by getValue!
-
-TO BE DONE    : The handling of Returns within a form must be considered.
-
-                In presense of text fields, these should normally be
-                flexible rather than the header message!!
-
-
-   ######################################################################### -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 ---
 -- Basic input window for record values and their fields.
@@ -84,7 +73,7 @@ newInputWin str ifun tpconfs =
   b <- newVBox tp []
   pack b [Expand On, Fill Both]
  
-  msg <- newEditor b [value str, size (30,5), borderwidth 0, state Disabled, wrap WordWrap, font fmsg] :: IO (Editor String)
+  msg <- newEditor b [value str, size (30,5), borderwidth 0, state Disabled, wrap WordWrap, font fmsg]
   pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
 
   sp1 <- newSpace b (cm 0.15) []
@@ -111,8 +100,8 @@ newInputWin str ifun tpconfs =
   sb <- newSelectBox b Nothing []
   pack sb [Expand Off, Fill X, Side AtBottom]
 
-  but1 <- addButton sb [text "Ok"] [Expand On, Side AtRight] :: IO (Button String)
-  but2 <- addButton sb [text "Cancel"] [Expand On, Side AtRight] :: IO (Button String)
+  but1 <- addButton sb [text "Ok"] [Expand On, Side AtRight]
+  but2 <- addButton sb [text "Cancel"] [Expand On, Side AtRight]
   
   clickedbut1 <- clicked but1
   clickedbut2 <- clicked but2

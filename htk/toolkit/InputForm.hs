@@ -1,15 +1,13 @@
-{- #########################################################################
-
-MODULE        : InputForm
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : InputForm Abstraction
-
-
-   ######################################################################### -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 ---
 -- the inputform
@@ -223,7 +221,7 @@ undefinedFormValue = userError "form value is not defined"
 -- --------------------------------------------------------------------------
 ---
 -- The <code>EntryField</code> datatype.
-data GUIValue b => EntryField a b = EntryField (Entry b) (Label b) (Ref (FieldInf a))
+data GUIValue b => EntryField a b = EntryField (Entry b) Label (Ref (FieldInf a))
 
 ---
 -- Add a new <code>EntryField</code> to the form
@@ -316,7 +314,7 @@ instance InputField EntryField where
 -- --------------------------------------------------------------------------           
 ---
 -- The <code>TextField</code> datatype.
-data GUIValue b => TextField a b = TextField (Editor b) (Label b) (Ref (FieldInf a))
+data GUIValue b => TextField a b = TextField Editor Label (Ref (FieldInf a))
 
 ---
 -- Add a new <code>TextField</code> to the form
@@ -408,7 +406,7 @@ instance InputField TextField where
 -- --------------------------------------------------------------------------           
 ---
 -- The <code>EntryField</code> datatype.
-data GUIValue b => EnumField a b = EnumField (OptionMenu b) (Label b) (Ref (FieldInf a))
+data GUIValue b => EnumField a b = EnumField (OptionMenu b) Label (Ref (FieldInf a))
 
 ---
 -- Add a new <code>EnumField</code> to the form
@@ -489,7 +487,7 @@ instance InputField EnumField where
 --  Record Fields  
 -- --------------------------------------------------------------------------           
 data RecordField a b = 
-        RecordField (InputForm b) (Label b) (Ref (FieldInf a))
+        RecordField (InputForm b) Label (Ref (FieldInf a))
 
 newRecordField :: InputForm a -> (Box -> IO (InputForm b)) -> [Config (RecordField a b)] -> IO (RecordField a b, InputForm b)
 newRecordField form@(InputForm box e) newform confs = 

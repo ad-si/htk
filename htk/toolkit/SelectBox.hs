@@ -36,9 +36,9 @@ import Packer
 -- SelectBox type
 -- -----------------------------------------------------------------------
 
-data SelectBox a = SelectBox Box (Maybe (Frame,Int)) (Ref [Button a])
+data SelectBox = SelectBox Box (Maybe (Frame,Int)) (Ref [Button])
 
-type Elements a = [Button a]
+type Elements = [Button]
 
 
 -- -----------------------------------------------------------------------
@@ -46,14 +46,13 @@ type Elements a = [Button a]
 -- -----------------------------------------------------------------------
 
 newSelectBox :: Container par =>
-                par -> Maybe Int -> [Config (SelectBox a)] ->
-                IO (SelectBox a)
-newSelectBox par Nothing ol =
+                par -> Maybe Int -> [Config SelectBox] -> IO SelectBox
+newSelectBox par Nothing cnf =
   do
     b <- newHBox par []
     pack b [Expand On, Fill X]
     em <- newRef []
-    configure (SelectBox b Nothing em) ol
+    configure (SelectBox b Nothing em) cnf
 newSelectBox par (Just i) ol =
   do
     b <- newHBox par []
@@ -68,26 +67,26 @@ newSelectBox par (Just i) ol =
 -- SelectBox instances
 -- -----------------------------------------------------------------------
 
-instance Eq (SelectBox a) where 
+instance Eq SelectBox where 
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
-instance Destroyable (SelectBox a) where
+instance Destroyable SelectBox where
   destroy = destroy . toGUIObject
 
-instance GUIObject (SelectBox a) where 
+instance GUIObject SelectBox where 
   toGUIObject (SelectBox b _ e) = toGUIObject b
   cname _ = "SelectBox"
 
-instance HasColour (SelectBox a) where 
+instance HasColour SelectBox where 
   legalColourID = hasForeGroundColour
 
-instance Widget (SelectBox a)
+instance Widget SelectBox
 
-instance HasSize (SelectBox a)
+instance HasSize SelectBox
 
-instance HasBorder (SelectBox a)
+instance HasBorder SelectBox
 
-instance HasEnable (SelectBox a) where
+instance HasEnable SelectBox where
   state st sb@(SelectBox b _ em) = 
     synchronize sb (do
                       ibs <- getRef em
@@ -102,7 +101,7 @@ instance HasEnable (SelectBox a) where
                       sl <- sequence (map getState ibs)
                       return (foldr (||) False (map (/= Disabled) sl)))
 
-instance Synchronized (SelectBox a) where
+instance Synchronized SelectBox where
   synchronize = synchronize . toGUIObject
 
 
@@ -110,13 +109,13 @@ instance Synchronized (SelectBox a) where
 -- selection
 -- -----------------------------------------------------------------------
 
-selectDefault :: SelectBox a -> IO ()
+selectDefault :: SelectBox -> IO ()
 selectDefault sb =
   do
     mbt <- getDefault sb
     incase mbt (\bt -> flash bt >> invoke bt)
 
-getDefault :: SelectBox a -> IO (Maybe (Button a))
+getDefault :: SelectBox -> IO (Maybe Button)
 getDefault (SelectBox b Nothing em) = return Nothing
 getDefault (SelectBox b (Just (f,i)) em) =
   do
@@ -128,15 +127,14 @@ getDefault (SelectBox b (Just (f,i)) em) =
 -- elements
 -- -----------------------------------------------------------------------
 
-addSpace :: SelectBox a -> Distance -> IO Space
+addSpace :: SelectBox -> Distance -> IO Space
 addSpace sb@(SelectBox b _ em) dist =
   do
     s <- newSpace b dist [orient Horizontal]
     pack s []
     return s
 
-addButton :: SelectBox a -> [Config (Button a)] -> [PackOption] ->
-             IO (Button a)
+addButton :: SelectBox -> [Config Button] -> [PackOption] -> IO Button
 addButton sb@(SelectBox b Nothing em) cnf pcnf =
   synchronize sb (do
                     bt <- newButton b cnf

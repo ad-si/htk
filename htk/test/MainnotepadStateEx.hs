@@ -52,12 +52,11 @@ main =
                           [size (cm 15, cm 10), background "white"]
     pack notepad1 []
 
-    add1 <- newButton win1 [text "add item"] :: IO (Button String)
+    add1 <- newButton win1 [text "add item"]
     pack add1 [Fill X]
     clicked_add1 <- clicked add1
 
     import1 <- newButton win1 [text "import other state"]
-                 :: IO (Button String)
     pack import1 [Fill X]
     clicked_import1 <- clicked import1
 
@@ -65,12 +64,11 @@ main =
                           [size (cm 15, cm 10), background "white"]
     pack notepad2 []
 
-    add2 <- newButton win2 [text "add item"] :: IO (Button String)
+    add2 <- newButton win2 [text "add item"]
     pack add2 [Fill X]
     clicked_add2 <- clicked add2
 
     import2 <- newButton win2 [text "import other state"]
-                 :: IO (Button String)
     pack import2 [Fill X]
     clicked_import2 <- clicked import2
 

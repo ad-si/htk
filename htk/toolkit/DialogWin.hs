@@ -48,9 +48,9 @@ type Choice a = (String,a)
 -- The <code>Dialog</code> datatype.
 data Dialog a = Dialog {
                         fWindow    :: Toplevel,
-                        fMessage   :: (Editor String),
-                        fLabel     :: (Label Image),
-                        fSelectBox :: (SelectBox String),
+                        fMessage   :: Editor,
+                        fLabel     :: Label,
+                        fSelectBox :: SelectBox,
                         fEvents    :: (Event a)
                         } deriving Eq
 
@@ -196,7 +196,7 @@ dialog choices def confs tpconfs =
             lbl <- newLabel b2 []
             pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
           
-            msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg] :: IO (Editor String)
+            msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg]
             pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
           
             sp1 <- newSpace b (cm 0.15) []
@@ -217,10 +217,10 @@ dialog choices def confs tpconfs =
       dlg <- configure (Dialog tp msg lbl sb ev) confs
       return dlg
  where fmsg = xfont { family = Just Courier, weight = Just Bold, points = (Just 18) }
-       createChoice :: SelectBox String -> Choice a -> IO (Event a)
+       createChoice :: SelectBox -> Choice a -> IO (Event a)
        createChoice sb (str,val) = 
         do
-         but <- addButton sb [text str] [Expand On, Side AtRight] :: IO (Button String)
+         but <- addButton sb [text str] [Expand On, Side AtRight]
          clickedbut <- clicked but
          return (clickedbut >> (always (return val)))
 

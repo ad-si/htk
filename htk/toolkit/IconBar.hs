@@ -29,15 +29,9 @@ module IconBar (
 
 where
 
---import Concurrency
 import HTk
---import Button
---import Separator
 import BitMap
 import Image
---import Interaction()
---import GUIIntrinsics
---import Debug(debug)
 import ReferenceVariables
 import Configuration
 import Resources
@@ -50,40 +44,39 @@ import GUIObject
 -- -----------------------------------------------------------------------
 
 type Separator = Frame
-data IconBar a = IconBar Box (Ref [Either Separator (Button a)])
+data IconBar = IconBar Box (Ref [Either Separator Button])
 
 
 -- -----------------------------------------------------------------------
 -- Commands
 -- -----------------------------------------------------------------------
 
-newIconBar :: Container par => par -> [Config (IconBar a)] ->
-                               IO (IconBar a)
-newIconBar par ol =
+newIconBar :: Container par => par -> [Config IconBar] -> IO IconBar
+newIconBar par cnf =
   do
     b <- newBox par Rigid []
     em <- newRef []
-    configure (IconBar b em) ol
+    configure (IconBar b em) cnf
 
 
 -- -----------------------------------------------------------------------
 -- IconBar Instances
 -- -----------------------------------------------------------------------
 
-instance Eq (IconBar a) where
+instance Eq IconBar where
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
-instance GUIObject (IconBar a) where
+instance GUIObject IconBar where
   toGUIObject (IconBar b e) = toGUIObject b
   cname _ = "IconBar"
 
-instance Destroyable (IconBar a) where
-  destroy   = destroy . toGUIObject
+instance Destroyable IconBar where
+  destroy = destroy . toGUIObject
 
-instance HasColour (IconBar a) where
+instance HasColour IconBar where
   legalColourID = hasForeGroundColour
 
-instance Widget (IconBar a) where 
+instance Widget IconBar where 
   cursor c ib@(IconBar b pv) =
     synchronize ib
       (do
@@ -92,13 +85,13 @@ instance Widget (IconBar a) where
          foreach bts (cursor c)
          return ib)
 
---instance ChildWidget (IconBar a)
+--instance ChildWidget IconBar
 
-instance HasSize (IconBar a)
+instance HasSize IconBar
 
-instance HasBorder (IconBar a)
+instance HasBorder IconBar
 
-instance HasEnable (IconBar a) where
+instance HasEnable IconBar where
   state st ib = 
     synchronize ib (do
                       ibs <- getIconButtons ib
@@ -114,30 +107,22 @@ instance HasEnable (IconBar a) where
                       sl <- sequence (map getState ibs)
                       return (foldr (||) False (map (/= Disabled) sl)) )
 
-instance HasOrientation (IconBar a) where 
+instance HasOrientation IconBar where 
   orient o sb@(IconBar b bts) =
     do
       orient o b
       return sb
   getOrient (IconBar b bts) = getOrient b
 
-instance Synchronized (IconBar a) where
+instance Synchronized IconBar where
   synchronize w = synchronize (toGUIObject w)
-
-{-
-instance HasTrigger IconBar a where
-  getTrigger ib =
-    do
-      ibs <- getIconButtons ib
-      return (choose (map triggered ibs))
--}
 
 
 -- -----------------------------------------------------------------------
 -- Parent/Child Relationship
 -- -----------------------------------------------------------------------
 
-addSeparator :: IconBar a -> IO Separator
+addSeparator :: IconBar -> IO Separator
 addSeparator ib@(IconBar box _) =
   do
     or <- getOrient ib
@@ -147,46 +132,24 @@ addSeparator ib@(IconBar box _) =
     pack f []
     return f
 
-addButton :: IconBar a -> [Config (Button a)] -> IO (Button a)
+addButton :: IconBar -> [Config Button] -> IO Button
 addButton ib@(IconBar box _) cnf =
   do
     b <- newButton box cnf
     pack b []
     return b
 
-{-
-instance ParentWidget (IconBar a) (Button a) where
-  parent ib @ (IconBar box pv) bt = 
-    synchronize ib (do
-                      changeVar pv (\el -> do
-                                             configure bt [parent box]
-                                             return ((Right bt) : el))
-                      return bt)
--}
-
-{-
-instance ParentWidget (IconBar a) Separator where
-        parent ib@(IconBar box pv) sep = 
-                synchronize ib (do {
-                        changeVar pv ( \ el -> do {
-                                configure sep [parent box];
-                                return ((Left sep) : el)
-                                });
-                        return sep
-                        })
--}
-
 
 -- -----------------------------------------------------------------------
 -- Aux
 -- -----------------------------------------------------------------------
 
-getIconButtons :: IconBar a -> IO [Button a]
+getIconButtons :: IconBar -> IO [Button]
 getIconButtons (IconBar _ elemsref) =
   do
     elems <- getRef elemsref
     return (map (\ (Right b) -> b) (buttons elems))
   where buttons elems = filter (either (\_ -> False) (\_ -> True)) elems
 
-getIconBarItems :: IconBar a -> IO [Either Frame (Button a)]
+getIconBarItems :: IconBar -> IO [Either Frame Button]
 getIconBarItems (IconBar _ elemsref) = getRef elemsref

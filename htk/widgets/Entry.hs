@@ -125,7 +125,7 @@ instance HasFont (Entry a)
 
 ---
 -- The value of an entry field is associated with a polymorphic variable.
-instance HasVariable (Entry String) where
+instance HasVariable (Entry a) where
   variable var@(TkVariable oid) w =
     cset w "textvariable" ("v" ++ show oid) >> return w
 

@@ -36,10 +36,8 @@ import Tooltip
 -- -----------------------------------------------------------------------
 
 ---
--- The <code>Label</code> datatype - a <code>Label String</code> contains
--- text, a <code>Label Image</code> contains an image, a
--- <code>Label BitMap</code> contains a bitmap.
-newtype Label a = Label GUIOBJECT deriving Eq
+-- The <code>Label</code> datatype.
+newtype Label = Label GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
@@ -52,7 +50,7 @@ newtype Label a = Label GUIOBJECT deriving Eq
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this label.
 -- @return result - A label widget.
-newLabel :: Container par => par -> [Config (Label a)] -> IO (Label a)
+newLabel :: Container par => par -> [Config Label] -> IO Label
 newLabel par cnf =
   do
     w <- createWidget (toGUIObject par) LABEL
@@ -65,7 +63,7 @@ newLabel par cnf =
 
 ---
 -- Internal.
-instance GUIObject (Label a) where 
+instance GUIObject Label where 
 ---
 -- Internal.
   toGUIObject (Label w) = w
@@ -75,7 +73,7 @@ instance GUIObject (Label a) where
 
 ---
 -- A label widget can be destroyed.
-instance Destroyable (Label a) where
+instance Destroyable Label where
 ---
 -- Destroys a label widget.
   destroy   = destroy . toGUIObject
@@ -83,59 +81,59 @@ instance Destroyable (Label a) where
 ---
 -- A label widget has standard widget properties
 -- (concerning focus, cursor).
-instance Widget (Label a)
+instance Widget Label
 
 ---
 -- A label widget has a configureable border.
-instance HasBorder (Label a)
+instance HasBorder Label
 
 ---
 -- A label widget has a foreground and background colour.
-instance HasColour (Label a) where 
+instance HasColour Label where 
 ---
 -- Internal.
   legalColourID = hasForeGroundColour
 
 ---
 -- You can specify the font of a label.
-instance HasFont (Label a)
+instance HasFont Label
 
 ---
 -- A label has a configureable text justification.
-instance HasJustify (Label a)
+instance HasJustify Label
 
 ---
 -- A label can contain an image.
-instance HasPhoto (Label Image)
+instance HasPhoto Label
 
 ---
 -- A label can contain a bitmap.
-instance HasBitMap (Label BitMap)
+instance HasBitMap Label
 
 ---
 -- You can specify the size of a label.
-instance HasSize (Label a)
+instance HasSize Label
 
 ---
 -- You can set the index of a text character to underline.
-instance HasUnderline (Label a)
+instance HasUnderline Label
 
 ---
 -- A label can contain text.
-instance GUIValue b => HasText (Label a) b
+instance GUIValue b => HasText Label b
 
 ---
 -- A label widget can have a tooltip (only displayed if you are using
 -- tixwish).
-instance HasTooltip (Label a)
+instance HasTooltip Label
 
 ---
 -- You can synchronize on a label object.
-instance Synchronized (Label a) where
+instance Synchronized Label where
 ---
 -- Synchronizes on a label object.
   synchronize = synchronize . toGUIObject
 
 ---
 -- A label has a text anchor.
-instance HasAnchor (Label a)
+instance HasAnchor Label

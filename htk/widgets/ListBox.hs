@@ -72,8 +72,8 @@ newtype ListBox a = ListBox GUIOBJECT deriving Eq
 --                  widget.
 -- @return result - A listbox widget.
 newListBox :: (Container par, GUIValue a) => par ->
-                                             [Config (ListBox [a])] ->
-                                             IO (ListBox [a])
+                                             [Config (ListBox a)] ->
+                                             IO (ListBox a)
 newListBox par cnf =
   do
     w <- createGUIObject (toGUIObject par) (LISTBOX []) lboxMethods 
@@ -144,7 +144,7 @@ instance HasSize (ListBox a)
 -- The value of a listbox is the list of the displayed objects (these
 -- are instances of class <code>GUIValue</code> and therefore instances
 -- of class <code>Show</code>)
-instance (GUIValue a, GUIValue [a]) => HasValue (ListBox [a]) [a] where
+instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a] where
   value vals w =
     execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
 ---
@@ -223,7 +223,7 @@ instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
     where val' = show (toGUIValue val)
 
 instance (Eq a, GUIValue a, GUIValue [a]) =>
-         HasIndex (ListBox [a]) Int (ListBoxElem a) where 
+         HasIndex (ListBox a) Int (ListBoxElem a) where 
   getBaseIndex lb i =
     synchronize lb
       (do

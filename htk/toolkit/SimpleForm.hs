@@ -201,8 +201,8 @@ doForm title (Form enterForm) =
             enteredForm <- enterForm toplevel
             -- create frame for "OK" and "Cancel" buttons.
             frame <- newFrame toplevel []
-            (okButton :: Button String) <- newButton frame [text "OK"]
-            (cancelButton :: Button String) <- newButton frame [text "Cancel"]
+            okButton <- newButton frame [text "OK"]
+            cancelButton <- newButton frame [text "Cancel"]
       
             -- Pack everything
             packAction enteredForm
@@ -292,7 +292,7 @@ instance FormLabel String where
 instance FormLabel Image where
    formLabel frame image =
       do
-         (label :: Label Image) <- newLabel frame [photo image]
+         label <- newLabel frame [photo image]
          return (pack label [Side AtLeft])
 
 
@@ -389,7 +389,7 @@ data Radio x = Radio x | NoRadio
 -- The NoRadio indicates that no radio button is selected.
 
 class HasConfigRadioButton value where
-   configRadioButton :: value -> Config (RadioButton Int String)
+   configRadioButton :: value -> Config (RadioButton Int)
 
 instance Show value => HasConfigRadioButton value where
    configRadioButton value = text (show value)
