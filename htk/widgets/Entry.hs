@@ -98,6 +98,10 @@ instance HasVariable (Entry String) where
   variable (TkVariable oid) w =
     cset w "textvariable" ("v" ++ show oid) >> return w
 
+instance GUIValue a => HasValue (Entry a) a where
+  value val w = execMethod w (\nm-> tkSetText nm (toGUIValue val)) >> return w
+  getValue w  = evalMethod w (\nm-> tkGetText nm)
+
 instance HasJustify (Entry a)
 
 instance HasEnable(Entry a)
@@ -296,8 +300,8 @@ tkCleanupEntry oid _ =
   tkUndeclVar (tvarname oid) ++ tkUndeclVar ("sv" ++ show oid)
 {-# INLINE tkCleanupEntry #-}
 
-tkSetText :: ObjectName -> String -> TclScript
-tkSetText nm str = [show nm ++ " insert 0 " ++ str]
+tkSetText :: ObjectName -> GUIVALUE -> TclScript
+tkSetText nm val = [show nm ++ " insert 0 " ++ show val]
 {-# INLINE tkSetText #-}
 
 tkGetText :: ObjectName -> TclScript
