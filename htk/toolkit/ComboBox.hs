@@ -32,13 +32,15 @@ import ScrollBox
 import Mouse
 import Keyboard
 import Space
+
 import Interaction()
 import Debug(debug)
 
 -- --------------------------------------------------------------------------
 -- Definition 
 -- --------------------------------------------------------------------------           
-data GUIValue a => ComboBox a = 
+-- GUIValue a restriction removed now, to make GHC happier.
+data ComboBox a = 
         ComboBox { 
                 fComboBox :: Box, 
                 fComboBoxEntry :: (Entry a),
@@ -68,31 +70,31 @@ newComboBox confs = do {
 -- --------------------------------------------------------------------------
 -- Instantiations 
 -- --------------------------------------------------------------------------           
-instance Eq (ComboBox a) where 
+instance GUIValue a => Eq (ComboBox a) where 
         w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
-instance GUIObject (ComboBox a) where 
+instance GUIValue a => GUIObject (ComboBox a) where 
         toGUIObject cb = toGUIObject (fComboBox cb)
         cname _ = "ComboBox"
 
-instance Destructible (ComboBox a) where
+instance GUIValue a => Destructible (ComboBox a) where
         destroy   = destroy . toGUIObject
         destroyed = destroyed . toGUIObject
 
-instance Interactive (ComboBox a)
+instance GUIValue a => Interactive (ComboBox a)
 
-instance Widget (ComboBox a) 
+instance GUIValue a => Widget (ComboBox a) 
 
-instance ChildWidget (ComboBox a)
+instance GUIValue a => ChildWidget (ComboBox a)
 
-instance Synchronized (ComboBox a) where
+instance GUIValue a => Synchronized (ComboBox a) where
         synchronize w = synchronize (toGUIObject w)
         
-instance HasBorder (ComboBox a)
+instance GUIValue a => HasBorder (ComboBox a)
 
-instance HasSize (ComboBox a)
+instance GUIValue a => HasSize (ComboBox a)
 
-instance HasColour (ComboBox a) where
+instance GUIValue a => HasColour (ComboBox a) where
         legalColourID _ _ = True
         setColour cb cid c = 
                 synchronize cb (do {
@@ -104,7 +106,7 @@ instance HasColour (ComboBox a) where
                         return cb
                         })
 
-instance HasFont (ComboBox a) where
+instance GUIValue a => HasFont (ComboBox a) where
         font f cb = 
                 synchronize cb (do {
                         font f (fComboBoxEntry cb);
@@ -142,3 +144,8 @@ instance (GUIValue a, Eq a) => Reactive ComboBox a where
 instance (GUIValue a, Eq a) => HasTrigger ComboBox a where
         getTrigger = return . triggered
  
+
+
+
+
+

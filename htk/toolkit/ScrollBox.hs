@@ -34,7 +34,8 @@ import Debug(debug)
 --  Type
 -- --------------------------------------------------------------------------
 
-data HasScroller a => ScrollBox a = 
+{- HasScroller a requirement removed. -}
+data ScrollBox a = 
         ScrollBox {
                 fScrollFrame    :: Frame, 
                 fPadFrames      :: [Frame],

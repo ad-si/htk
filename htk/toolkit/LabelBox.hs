@@ -72,7 +72,7 @@ instance Destructible (LabelBox a) where
 
 instance Interactive (LabelBox a)
 
-instance Widget a => Widget (LabelBox a) where 
+instance (Widget a,ChildWidget a) => Widget (LabelBox a) where 
         cursor c lb = 
                 synchronize lb (do { 
                         cursor c (fLabelBox lb); 
@@ -81,13 +81,14 @@ instance Widget a => Widget (LabelBox a) where
                         return lb
                         })
 
-instance ChildWidget a => ChildWidget (LabelBox a) 
+instance (Widget a,ChildWidget a) => ChildWidget (LabelBox a) 
 
-instance HasBorder (LabelBox a)
+instance (Widget a,ChildWidget a) => HasBorder (LabelBox a)
 
-instance HasSize (LabelBox a)
+instance (Widget a,ChildWidget a) => HasSize (LabelBox a)
 
-instance HasColour a => HasColour (LabelBox a) where
+instance (Widget a,ChildWidget a,HasColour a) => 
+   HasColour (LabelBox a) where
         legalColourID _ _ = True
         setColour lb cid c = 
                 synchronize lb (do {
@@ -97,12 +98,12 @@ instance HasColour a => HasColour (LabelBox a) where
                         })
 
 
-instance HasFont (LabelBox a) where
+instance (Widget a,ChildWidget a) => HasFont (LabelBox a) where
         font f lb = synchronize lb (do {font f (fLabel lb); return lb})
         getFont lb = getFont (fLabel lb)
 
 
-instance Widget a => HasOrientation (LabelBox a) where 
+instance (Widget a,ChildWidget a) =>  HasOrientation (LabelBox a) where 
         orient Vertical lb = 
                 synchronize lb (do {
                         orient Vertical (fLabelBox lb);
@@ -120,11 +121,11 @@ instance Widget a => HasOrientation (LabelBox a) where
         getOrient lb = getOrient (fLabelBox lb)
 
 
-instance GUIValue b => HasText (LabelBox a) b where
+instance (GUIValue b,Widget a,ChildWidget a) =>  HasText (LabelBox a) b where
         text t lb       = do {text t (fLabel lb); return lb}
         getText lb      = getText (fLabel lb)
 
-instance Synchronized (LabelBox a) where
+instance (Widget a,ChildWidget a) => Synchronized (LabelBox a) where
         synchronize w = synchronize (toGUIObject w)
         
                 
