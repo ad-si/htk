@@ -2,9 +2,8 @@
    framework.
    -}
 module MMiSSObjects(
+   registerMMiSSObjects, -- :: IO ()
    initialiseObjectTypes, -- :: View -> IO ()
-
-
    ) where
 
 import Maybe
@@ -126,6 +125,12 @@ createObjectType (MMiSSObjectTypeData {xmlTag' = xmlTag',typeId' = typeId',
 retrieveObjectType :: View -> String -> IO MMiSSObjectType 
 retrieveObjectType view xmlTag =
    lookupInGlobalRegistry globalRegistry view (constructKey xmlTag)
+
+---
+-- Register MMiSSObjectType.
+registerMMiSSObjects :: IO ()
+registerMMiSSObjects =
+   registerObjectType (error "Unknown MMiSSObjectType" :: MMiSSObjectType)
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObject type, and its instance of HasCodedValue

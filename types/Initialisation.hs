@@ -2,6 +2,7 @@
    and if necessary initialising it with the top item. -}
 module Initialisation(
    initialise, -- :: IO Repository,
+   initialiseGeneral, -- :: (View -> IO ()) -> IO VersionDB.Repository
    ) where
 
 import Debug(debug)
@@ -22,7 +23,13 @@ import Registrations
 ---
 -- Connect to the repository, if necessary initialising it.
 initialise :: IO VersionDB.Repository
-initialise =
+initialise = initialiseGeneral (\ view -> done)
+
+---
+-- More general initialisation, which provides an extra function
+-- to be executed when the very first view is created. 
+initialiseGeneral :: (View -> IO ()) -> IO VersionDB.Repository
+initialiseGeneral initialiseView =
    do
       doRegistrations
 
@@ -31,14 +38,14 @@ initialise =
       case viewVersions of
          [] -> 
             do
-               createRepository repository
+               createRepository initialiseView repository
          _ -> done -- the repository is already initialised
       return repository
 
 ---
 -- Create the repository.
-createRepository :: VersionDB.Repository -> IO ()
-createRepository repository =
+createRepository :: (View -> IO ()) -> VersionDB.Repository -> IO ()
+createRepository initialiseView repository =
    do
       -- (1) create a new view containing just an empty folder
       view <- newView repository
@@ -46,6 +53,7 @@ createRepository repository =
 
       -- (2) initialise plain file type
       mkPlainFileType view
+      initialiseView view
 
       version <- commitView view
 

@@ -1,5 +1,5 @@
-PACKAGES = uni-mmiss
+PACKAGES = uni-mmiss uni-davinci
 
-SRCS       = TestStructure.hs
+SRCS       = TestStructure.hs MainMMiSSWorkbench.hs
 
 include @TOP@/mk/boilerplate.mk

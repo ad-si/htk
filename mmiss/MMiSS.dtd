@@ -1,43 +1,253 @@
-<!-- miniMMiSS -- MMiSSLaTeX for beginners -->
+<!-- miniMMiSS - MMiSSLaTeX for beginners -->
 
-<!ENTITY % unit "atom">
+<!ENTITY % version-attr "versionId        CDATA  #IMPLIED
+                         date             CDATA  #IMPLIED
+                         versionComment   CDATA  #IMPLIED
+                         previousVersion  CDATA  #IMPLIED
+                         authors          CDATA  #IMPLIED
+                         priorAuthors     CDATA  #IMPLIED">
 
-<!ENTITY % conceptualatom "textfragment">
-                      
-<!ENTITY % embeddeditem "include|reference">
-<!ENTITY % text         "(#PCDATA|%embeddeditem;)">
+<!-- The special xml:lang-Attribute holds values defined by IETF RFC 1766
+    which are constructed from the two-letter codes of ISO 639 and the
+    two-letter country codes as defined by ISO 3166. -->
+   
+<!ENTITY % RFC1766 "(aa|ab|af|am|ar|as|ay|az|ba|be|bg|bh|bi|bn|bo|br|ca|co|
+                     cs|cy|da|de|dz|el|en|en-GB|en-US|eo|es|et|eu|fa|fi|fj|
+                     fo|fr|fy|ga|gd|gl|gn|gu|ha|he|hi|hr|hu|hy|ia|ie|ik|id|
+                     is|it|iu|ja|jv|ka|kk|kl|km|kn|ko|ks|ku|ky|la|ln|lo|lt|
+                     lv|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|na|ne|nl|no|oc|om|or|
+                     pa|pl|ps|pt|qu|rm|rn|ro|ru|rw|sa|sd|sg|sh|si|sk|sl|sm|
+                     sn|so|sq|sr|ss|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|
+                     tr|ts|tt|tw|ug|uk|ur|uz|vi|vo|wo|xh|yi|yo|za|zh|zu)">
 
-<!ELEMENT atom %conceptualatom;>
-<!ATTLIST atom label ID #IMPLIED>
-<?MMiSSDisplay atom : green box ?>
+<!ENTITY % notation-matter "notationId  CDATA  #IMPLIED">
 
-<!-- <!ELEMENT textfragment (%text;)*> -->
-<!ELEMENT textfragment (#PCDATA|%embeddeditem;)*> 
-<?MMiSSDisplay textfragment : white triangle ?>
+<!ENTITY % level-of-detail-matter  "levelOfDetailId  CDATA #IMPLIED">
+
+<!ENTITY % interaction-level-matter  "interactionLevelId  CDATA #IMPLIED">
+
+
+<!ENTITY % variant-attr "languageId   xml:lang %RFC1766;
+                         %notation-matter;
+                         %level-of-detail-matter;
+                         %interaction-level-matter">
+
+<!ENTITY % layout-attr " ">
+<!ENTITY % paedagogic-attr " ">
+
+<!ENTITY % attributes "%version-attr; 
+                       %variant-attr; 
+                       %layout-attr;
+                       %paedagogic-attr;">
+
+<!ENTITY % label-matter "label  CDATA  #IMPLIED">
+<!ENTITY % title-matter "title  CDATA  #IMPLIED">
+<!ENTITY % formalism-matter  "notationID  CDATA  #IMPLIED">  
+
+<!--***********************************************************************
+    **  Text and embedded items                                          **
+    *********************************************************************** -->
+
+<!ENTITY % structuralElement "include | link | forwardLink">
+
+<!ENTITY % semanticElement "define | reference | forwardReference">
 
 <!ELEMENT include EMPTY>
-<!ATTLIST include included    ENTITY #REQUIRED
-                  status (present|absent) "absent">
+<!ATTLIST include included    CDATA #REQUIRED
+                  status (present | absent) "absent">
 
-<!ELEMENT reference textfragment>
-<!ATTLIST reference referenced ENTITY #REQUIRED
-                    status (present|absent) "absent">
+<!ELEMENT link (#PCDATA)>
+<!ATTLIST link linked    CDATA #REQUIRED
+               status (present | absent) "absent">
 
-<!ENTITY % group  "package|section|paragraph">
+<!ELEMENT forwardLink (#PCDATA)>
+<!ATTLIST forwardLink linked    CDATA #REQUIRED>
 
-<!ELEMENT paragraph (%unit;)+>
-<!ATTLIST paragraph label     ID #IMPLIED
-                    paratitle CDATA #IMPLIED>
-<?MMiSSDisplay paragraph : yellow triangle ?>
 
-<!ELEMENT section (%group;)+>
-<!ATTLIST section label        ID #IMPLIED
-                  sectiontitle CDATA #REQUIRED>
-<?MMiSSDisplay section : red box ?>
+<!ELEMENT define (#PCDATA)>
+<!ATTLIST define %label-matter;>
+               
+<!ELEMENT reference (#PCDATA)>
+<!ATTLIST reference referenced  CDATA #REQUIRED
+                    status (present | absent) "absent">
+
+<!ELEMENT forwardReference (#PCDATA)>
+<!ATTLIST forwardReference referenced  CDATA #REQUIRED
+                           status (present | absent) "absent">
+
+
+<!ENTITY % embeddedElement "%structuralElement; | %semanticElement;">
+
+<!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
+
+
+
+<!--************************************************************************
+    **  Groups                                                            **
+    ************************************************************************ -->
+
+<!ENTITY % group  "package | section | paragraph | view">
+
+<!ENTITY % conceptualAtom  "textFragment | table | figure | glossaryEntry | bibentry">
+
+<!ENTITY % atom  "%conceptualAtom; | formalAtom">
+
+<!ENTITY % conceptualUnit  "example | exercise | definition">
+
+<!ENTITY % formalUnit  "program | theory | theorem | development | proof | script">
+
+<!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom;">
+
 
 <!ELEMENT package (section)+>
-<!ATTLIST package label        ID #IMPLIED
-                  packagetitle CDATA #REQUIRED>
+<!ATTLIST package %label-matter;
+                  %title-matter;
+                  %formalism-matter;>
 <?MMiSSDisplay package : blue box ?>
+
+<!ELEMENT section (abstract?, introduction?, (%group;)+, summary?)>
+<!ATTLIST section %label-matter;
+                  %title-matter;
+                  %formalism-matter;>
+<?MMiSSDisplay section : red box ?>
+
+
+<!ELEMENT paragraph (%unit;)+>
+<!ATTLIST paragraph %label-matter;
+                    %title-matter;
+                    %formalism-matter;>
+<?MMiSSDisplay paragraph : yellow triangle ?>
+
+
+
+<!--************************************************************************
+    **  Conceptual Units and Atoms                                        **
+    ************************************************************************ -->
+
+<!ELEMENT abstract (paragraph)>
+<!ATTLIST abstract %label-matter;
+                   %title-matter;>
+
+<!ELEMENT introduction (paragraph)>
+<!ATTLIST introduction %label-matter;
+                       %title-matter;>
+
+<!ELEMENT summary  (paragraph)>
+<!ATTLIST summary  %label-matter;
+                   %title-matter;>
+
+<!ELEMENT example  ((%atom;) | %formalUnit;)+>
+<!ATTLIST example %label-matter;
+                  %title-matter;
+                  %formalism-matter;>
+
+<!ELEMENT exercise  ((%atom;) | %formalUnit;)+>
+<!ATTLIST exercise %label-matter;
+                   %title-matter;
+                   %formalism-matter;>
+
+<!ELEMENT definition  ((%atom;) | %formalUnit;)+>
+<!ATTLIST definition %label-matter;
+                     %title-matter;
+                     %formalism-matter;>
+
+<!ELEMENT textFragment %text;>
+<?MMiSSDisplay textFragment : green box ?>
+<-- <?MMiSSDisplay textFragment : white triangle ?> -->
+
+<!ELEMENT table %text;>
+<!ATTLIST table %label-matter;
+                %title-matter;
+                %formalism-matter;>
+<?MMiSSDisplay table : green box ?>
+
+
+<!-- Frage: Wie sollen Diagram, Picture, Animation, Movie umgesetzt werden? -->
+
+<!ELEMENT figure  EMPTY>
+<!ATTLIST figure %label-matter;
+                 %title-matter;
+                 %formalism-matter;>
+<?MMiSSDisplay figure : green box ?>
+
+<!ELEMENT glossaryEntry  %text;>
+<!ATTLIST glossaryEntry %label-matter;
+                        %title-matter;>
+<?MMiSSDisplay glossaryEntry : green box ?>
+
+<!ELEMENT bibEntry  %text;>
+<!ATTLIST package %label-matter;>
+<?MMiSSDisplay bibEntry : green box ?>
+
+
+<!-- Frage: Wie sollen Symbol, Chars, und NumberingPattern in Attribute 
+     umgesetzt werden?  Symbol bzw. Chars koennte man auch als Layout-Attribute
+     definieren 
+-->
+
+<!ELEMENT list  (listitem)+>
+<!ATTLIST list  %label-matter;
+                type  (itemize | enumeration)  #IMPLIED
+                numeringPattern   CDATA  #IMPLIED>
+
+<!ELEMENT listitem  (list | %atom;)>
+<!ATTLIST glossaryEntry %label-matter;
+                        %title-matter;>
+
+
+<!--************************************************************************
+    **  Formal units and atoms                                            **
+    ************************************************************************ -->
+
+
+
+<!ELEMENT program  (%conceptualAtom; | programFragment | program)+>
+<!ATTLIST program %label-matter;
+                  %title-matter;
+                  %formalism-matter;>
+
+<!ELEMENT theory  (%conceptualAtom; | clause | theory)+>
+<!ATTLIST theory %label-matter;
+                 %title-matter;
+                 %formalism-matter;>
+
+<!ELEMENT theorem  (%conceptualAtom; | clause)+>
+<!ATTLIST theorem %label-matter;
+                  %title-matter;
+                  %formalism-matter;>
+
+<!ELEMENT proof  (%conceptualAtom; | step | script | proof)+>
+<!ATTLIST proof %label-matter;
+                %title-matter;
+                %formalism-matter;>
+
+<!ELEMENT development  (%conceptualAtom; | step | script | development)+>
+<!ATTLIST development %label-matter;
+                      %title-matter;
+                      %formalism-matter;>
+
+<!ELEMENT script  (%conceptualAtom; | step | script)+>
+<!ATTLIST script %label-matter;
+                 %title-matter;
+                 %formalism-matter;>
+
+<!ELEMENT formalAtom  (programFragment | clause | step)+>
+<?MMiSSDisplay formalAtom : green box ?>
+
+<!ELEMENT programFragment  (#PCDATA)>
+<!ATTLIST programFragment %label-matter;
+                          %title-matter;
+                          %formalism-matter;>
+
+<!ELEMENT clause  (#PCDATA)>
+<!ATTLIST clause %label-matter;
+                 %title-matter;
+                 %formalism-matter;>
+
+<!ELEMENT step  (#PCDATA)>
+<!ATTLIST step %label-matter;
+               %title-matter;
+               %formalism-matter;>
+
 
 

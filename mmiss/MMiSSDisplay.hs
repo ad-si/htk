@@ -1,6 +1,7 @@
 {- This module describes the display type that is used for MMiSS graphs. -}
 module MMiSSDisplay(
    MMiSSDisplayType,
+   registerMMiSSDisplay, -- :: IO ()
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -103,7 +104,15 @@ newMMiSSDisplay view =
                   key = key,
                   variantAttributes = attributes
                   }))
-      
+-- -----------------------------------------------------------------
+-- Registering the display
+-- -----------------------------------------------------------------
+
+registerMMiSSDisplay :: IO ()
+registerMMiSSDisplay =
+   registerDisplayType
+      (error "Unknown MMiSSDisplay" :: MMiSSDisplayType)
+
 -- -----------------------------------------------------------------
 -- The Global Registry
 -- -----------------------------------------------------------------
