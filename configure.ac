@@ -107,6 +107,8 @@ AC_PATH_PROGS(CP,cp)
 AC_PATH_PROGS(LN,ln)
 AC_PATH_PROGS(MKDIR,mkdir)
 #
+#
+WORK_AROUND_BDB_LINUX_BUG=0
 # Use Berkeley Data Base if user specifies it or if it's
 # available in the environment variable BDBDIR or in the default location.
 AC_ARG_WITH(
@@ -120,13 +122,21 @@ AC_ARG_WITH(
    )
 if test -r "$BDBDIR/lib/libdb.a"; then
    echo Using Berkeley DB installed in $BDBDIR
+
+   if test "$OSTITLE" = "linux"; then
+      echo Working around BDB Linux bug.
+      echo This means you will get some extra messages from 
+      echo MMiSSWorkbench about (1) "malloc: using debugging hooks")
+      echo (2) invalid free pointers.  But hopefully it will work.
+      WORK_AROUND_BDB_LINUX_BUG=1
+   fi
 else
    echo No Berkeley DB installation found or specified with --with-bdb.
    echo You will not be able to compile the simpledb or types directories.
    echo \(But it should still be possible to compile htk.\)
    BDBDIR=
 fi
-AC_SUBST(BDBDIR)   
+AC_SUBST(BDBDIR,WORK_AROUND_BDB_LINUX_BUG)
 #
 # Check for xemacs and gnuclient
 AC_PATH_PROGS(XEMACS,xemacs)
