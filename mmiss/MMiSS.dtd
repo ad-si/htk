@@ -1,4 +1,16 @@
-<!-- miniMMiSS - MMiSSLaTeX for beginners -->
+<!-- 
+  XML Document Type Definition for MMiSSLatex 2
+  Version 0.9 
+  Initial Version: George Russell (2002-June)
+  Current Version: Achim Mahnke   (2002-08-26)
+
+  This DTD is still experimental, it is intended as a basis for discussion.
+  Comments are welcome! (send mail to amahnke@tzi.de)
+
+  Root element is 'package'.
+-->
+
+<!-- ====================== ENTITIES ======================= -->
 
 <!ENTITY % version-attr "versionId        CDATA  #IMPLIED
                          date             CDATA  #IMPLIED
@@ -22,6 +34,10 @@
 
 <!ENTITY % notation-matter "notationId  CDATA  #IMPLIED">
 
+
+<!-- level-of-detail and interaction-level attributes will be enumeration
+     types in the final version. -->
+
 <!ENTITY % level-of-detail-matter  "levelOfDetailId  CDATA #IMPLIED">
 
 <!ENTITY % interaction-level-matter  "interactionLevelId  CDATA #IMPLIED">
@@ -31,6 +47,10 @@
                          %notation-matter;
                          %level-of-detail-matter;
                          %interaction-level-matter">
+
+
+<!-- Layout and paedagogic attributes still have to be defined. Will be
+     enumerations.  -->
 
 <!ENTITY % layout-attr " ">
 <!ENTITY % paedagogic-attr " ">
@@ -44,21 +64,30 @@
 <!ENTITY % title-matter "title  CDATA  #IMPLIED">
 <!ENTITY % formalism-matter  "notationID  CDATA  #IMPLIED">  
 
-<!--***********************************************************************
-    **  Text and embedded items                                          **
-    *********************************************************************** -->
+
+
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Text and embedded items                                          **
+  **                                                                   **
+  ***********************************************************************
+ -->
 
 <!ENTITY % structuralElement "include | link | forwardLink">
 
 <!ENTITY % semanticElement "define | reference | forwardReference">
 
+<!ENTITY % embeddedElement "%structuralElement; | %semanticElement;">
+
+<!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
+
+
 <!ELEMENT include EMPTY>
-<!ATTLIST include included    CDATA #REQUIRED
-                  status (present | absent) "absent">
+<!ATTLIST include included    CDATA #REQUIRED>
 
 <!ELEMENT link (#PCDATA)>
-<!ATTLIST link linked    CDATA #REQUIRED
-               status (present | absent) "absent">
+<!ATTLIST link linked    CDATA #REQUIRED>
 
 <!ELEMENT forwardLink (#PCDATA)>
 <!ATTLIST forwardLink linked    CDATA #REQUIRED>
@@ -68,23 +97,21 @@
 <!ATTLIST define %label-matter;>
                
 <!ELEMENT reference (#PCDATA)>
-<!ATTLIST reference referenced  CDATA #REQUIRED
-                    status (present | absent) "absent">
+<!ATTLIST reference referenced  CDATA #REQUIRED>
 
 <!ELEMENT forwardReference (#PCDATA)>
-<!ATTLIST forwardReference referenced  CDATA #REQUIRED
-                           status (present | absent) "absent">
+<!ATTLIST forwardReference referenced  CDATA #REQUIRED>
 
 
-<!ENTITY % embeddedElement "%structuralElement; | %semanticElement;">
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Groups                                                           **
+  **                                                                   **
+  ***********************************************************************
+ -->
 
-<!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
-
-
-
-<!--************************************************************************
-    **  Groups                                                            **
-    ************************************************************************ -->
+<!-- Views are not defined yet. -->
 
 <!ENTITY % group  "package | section | paragraph | view">
 
@@ -119,10 +146,13 @@
 <?MMiSSDisplay paragraph : yellow triangle ?>
 
 
-
-<!--************************************************************************
-    **  Conceptual Units and Atoms                                        **
-    ************************************************************************ -->
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Conceptual units and atoms                                       **
+  **                                                                   **
+  ***********************************************************************
+ -->
 
 <!ELEMENT abstract (paragraph)>
 <!ATTLIST abstract %label-matter;
@@ -152,8 +182,8 @@
                      %formalism-matter;>
 
 <!ELEMENT textFragment %text;>
+<!ATTLIST textFragment %label-matter;>
 <?MMiSSDisplay textFragment : green box ?>
-<-- <?MMiSSDisplay textFragment : white triangle ?> -->
 
 <!ELEMENT table %text;>
 <!ATTLIST table %label-matter;
@@ -161,8 +191,6 @@
                 %formalism-matter;>
 <?MMiSSDisplay table : green box ?>
 
-
-<!-- Frage: Wie sollen Diagram, Picture, Animation, Movie umgesetzt werden? -->
 
 <!ELEMENT figure  EMPTY>
 <!ATTLIST figure %label-matter;
@@ -179,12 +207,6 @@
 <!ATTLIST package %label-matter;>
 <?MMiSSDisplay bibEntry : green box ?>
 
-
-<!-- Frage: Wie sollen Symbol, Chars, und NumberingPattern in Attribute 
-     umgesetzt werden?  Symbol bzw. Chars koennte man auch als Layout-Attribute
-     definieren 
--->
-
 <!ELEMENT list  (listitem)+>
 <!ATTLIST list  %label-matter;
                 type  (itemize | enumeration)  #IMPLIED
@@ -194,12 +216,13 @@
 <!ATTLIST glossaryEntry %label-matter;
                         %title-matter;>
 
-
-<!--************************************************************************
-    **  Formal units and atoms                                            **
-    ************************************************************************ -->
-
-
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Formal units and atoms                                           **
+  **                                                                   **
+  ***********************************************************************
+ -->
 
 <!ELEMENT program  (%conceptualAtom; | programFragment | program)+>
 <!ATTLIST program %label-matter;
