@@ -422,6 +422,8 @@ Any other reply is used exactly as entered."
    (define-key LaTeX-mode-map "\e\e\eb"          'MMiSS-env-BibEntry)
    (define-key LaTeX-mode-map "\e\e\ea"          'MMiSS-env-AuthorEntry)
    
+   (define-key LaTeX-mode-map [(control x) (control s)] 'MMiSS-commit)
+   (define-key LaTeX-mode-map [(control x) k]    'MMiSS-quit)
    (make-mmiss-menu)
 )
 ;//

@@ -16,6 +16,7 @@ import Maybe
 import Data.Set
 
 import Computation 
+import Debug(debugString)
 
 import ViewType
 import Link
@@ -80,7 +81,7 @@ toEditFormatConverter LaTeX =
                let 
                   str = mkLaTeXString content
 
---             debugString ("START|"++str++"|END")
+               debugString ("START|"++str++"|END")
 
                return (mapWithError fst (parseMMiSSLatex str))
             )

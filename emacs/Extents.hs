@@ -23,6 +23,7 @@ module Extents(
    unmodify,
    listContainers,
    setColourHack,
+   clearModifiedFlag,
    ) where
 
 import Maybe
@@ -168,6 +169,9 @@ lockBuffer es = execEmacs es ("uni-lock-buffer")
 unlockBuffer :: EmacsSession -> IO ()
 unlockBuffer es = execEmacs es ("uni-unlock-buffer")
 
-
+-- Clear the buffer's modified flag (hopefully clearing the "**" in the
+-- XEmacs status display).
+clearModifiedFlag :: EmacsSession -> IO ()
+clearModifiedFlag es = execEmacs es (Literal "(set-buffer-modified-p nil)")
 
 

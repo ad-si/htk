@@ -33,17 +33,20 @@ module EmacsBasic(
    -- destroys the EmacsSession itself, but assume any necessary
    -- destruction on the Emacs side has been done.
 
+   isEmacsWorking, -- :: IO (WithError ())
+   -- Used to test whether Emacs is actually there or not.
    ) where
 
 import IO
 
+import qualified Control.Exception
 import Socket(PortNumber)
 import Concurrent
 import qualified IOExts(unsafePerformIO)
 
 import Object
 import Debug(debugString)
-import Computation(done)
+import Computation
 import WBFiles
 import CommandStringSub(emacsEscape)
 import IOExtras(catchEOF)
@@ -306,6 +309,30 @@ unUniEscape ('\\':'n':rest) = '\n':unUniEscape rest
 unUniEscape ('\\':'\\':rest) = '\\':unUniEscape rest
 unUniEscape (str@('\\':_:rest)) = parseError str
 unUniEscape (ch:rest) =ch:unUniEscape rest
-      
-        
 
+-- ------------------------------------------------------------------------
+-- Test at initialisation
+-- ------------------------------------------------------------------------
+
+isEmacsWorking :: IO (WithError ())
+isEmacsWorking =
+   do
+      success <- Control.Exception.try (
+         do
+            emacsSession <- newEmacsSession "Test Emacs"
+            str1 <- evalEmacsString emacsSession 
+               "(concat \"Hello\" \" \" \"Haskell\")"
+            str2 <- evalEmacsString emacsSession "(uni-prin (+ 2 2))"
+            destroy emacsSession
+            return (str1,str2)
+         )
+      let
+         err = "Error trying to talk to XEmacs gnuserver: "
+      return (
+         case success of
+            Right ("Hello Haskell","4") -> hasValue ()
+            Right sp -> hasError (err ++ "incorrect computed values "
+               ++ show sp)
+            Left excep -> hasError (err ++ show excep)
+         )
+             

@@ -441,7 +441,7 @@ registerObjectType objectType =
                case previous of
                   Nothing -> done
                   Just _ -> putStrLn
-                     ("Warning: for ObjectTypes.rejisterObjectType, "++
+                     ("Warning: for ObjectTypes.registerObjectType, "++
                         typeTypeId ++ " is multiply registered.")
                return (Just (WrappedObjectTypeTypeData objectType),())
             )

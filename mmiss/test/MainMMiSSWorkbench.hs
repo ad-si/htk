@@ -26,6 +26,8 @@ import DaVinciGraph
 
 import VersionGraph
 
+import EmacsBasic
+
 import MMiSSInitialise
 
 main =
@@ -39,6 +41,9 @@ main =
 #if (WORK_AROUND_BDB_LINUX_BUG != 0)
       unSetEnv "MALLOC_CHECK_"
 #endif
+
+      emacsWorkingWE <- isEmacsWorking
+      coerceWithErrorIO emacsWorkingWE
 
       withdrawWish
       seq loadHTkImages done 

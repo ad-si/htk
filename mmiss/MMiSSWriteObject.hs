@@ -57,6 +57,8 @@ import MMiSSPreObjects
 import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSObjectTypeInstance
+import MMiSSEditXml (toExportableXml)
+import MMiSSPackageFolder (MMiSSPackageFolder)
 
 ---
 -- Creates or update an object from an Xml Element.
@@ -216,17 +218,39 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
                   (objectLoc,linkedObject,path) <- case objectLinkOpt of
                      Nothing ->
                         do
+                           (dirName,baseName) <- 
+                              case (entityDir name,entityBase name) of
+                                 (Just dirName,Just baseName) ->
+                                    return (dirName,baseName)
+                                 _ -> break 
+                                    "Attempt to write to object with name \"\""
+                           containingDirLinkOptWE <- lookupObjectByPath 
+                              linkedObject entityPath dirName
+                           (containingDirLink :: Link MMiSSPackageFolder) <-
+                              case fromWithError containingDirLinkOptWE of
+                                 Left mess 
+                                    -> break ("Attempt to create object "
+                                       ++ toString name 
+                                       ++ " in directory not an MMiSS Package "
+                                       ++ " Folder: " ++ mess
+                                       )
+                                 Right Nothing 
+                                    -> break ("Attempt to create object "
+                                       ++ toString name 
+                                       ++ " in non-existent directory")
+                                 Right (Just containingDirLink) 
+                                    -> return containingDirLink
+
+                           containingDir <- readLink view containingDirLink 
+
                            let
-                              baseNameOpt = entityBase name
-                              baseName = fromMaybe 
-                                 (break "MMiSSObjects bug 2") baseNameOpt
+                              containingLinkedObject 
+                                 = toLinkedObject containingDir
 
-                           containingDir <- getContainingDir linkedObject name
+                              objectLoc = NewObject 
+                                 containingLinkedObject baseName
 
-                           let
-                              objectLoc = NewObject containingDir baseName
-
-                           return (objectLoc,containingDir,thisPath)
+                           return (objectLoc,containingLinkedObject,thisPath)
                      Just objectLink ->
                         do
                            object <- readLink view objectLink
@@ -383,7 +407,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                               }
                         return object
                      )
-              
+
                let 
                   (objectLink,afterAct) = fromMaybe 
                      (break "Couldn't insert object in folder")
@@ -400,8 +424,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
          -- (2) Insert the variants in the object
          ---
          -- Split the contents.  contents1 is distinguished because we make it
-         -- the current variant, if it doesn't already appear.  (Yes, this is
-         -- somewhat random.)
+         -- the current variant.  (Yes, this is somewhat random.)
          contents1 : contentsRest = contentsList
 
          varObject = variantObject object
@@ -421,9 +444,16 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                   (variantSpec content)
                case oldVariableOpt of
                   Just (variable @ Variable {element = elementLink}) ->
-                     -- The only thing we do is write the new element to
-                     -- the link.
-                     writeLink view elementLink element
+                     do
+                        -- The only thing we do is write the new element to
+                        -- the link and, if necessary, make it current.
+                        writeLink view elementLink element
+                        if doPoint 
+                           then 
+                               pointVariantObject varObject 
+                                  (variantSpec content) 
+                           else
+                               done
                   Nothing ->
                      do
                         -- Create the new object
@@ -443,7 +473,6 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
 
                         -- Dirty the object
                         dirtyAct
-
       insertItem True contents1
       mapM (insertItem False) contentsRest
 

@@ -254,7 +254,7 @@ handleEvents (editorState :: EditorState ref) =
             confirm ("Commit?") (always (do
                lockBuffer session
                containers <- getModified
-               mapM_
+               (success :: [Bool]) <- mapM
                   (\ hContainer ->
                      do
                         let
@@ -281,17 +281,28 @@ handleEvents (editorState :: EditorState ref) =
                               unmangledContents
                               )
                         case fromWithError written of
-                           Left mess -> showError ("Writing "
-                              ++describe container++": "++mess)
+                           Left mess -> 
+                              do
+                                 showError ("Writing "
+                                    ++describe container++": "++mess)
+                                 return False
                            Right () -> 
-                              -- clear modified flag for container.
-                              unmodify session hContainer
+                              do
+                                 -- clear modified flag for container.
+                                 unmodify session hContainer
+                                 return True
                      )
                   containers
 
                case containers of
                   [] -> createWarningWin "Nothing to commit!" []
                   _ -> done
+
+               if and success
+                  then
+                     clearModifiedFlag session
+                  else
+                     done
 
                unlockBuffer session
                sync iterate

@@ -6,6 +6,7 @@ module EmacsCommands(
    evalEmacs,
    evalEmacsQuick,
    Prin(..),
+   Literal(..),
    ) where
 
 import CommandStringSub(emacsEscape)
@@ -58,12 +59,15 @@ instance HasEmacsCommand (String,[String]) where
 
 -- This wraps a command where we want the output printed.
 -- For these it is safe to use evalEmacsQuick
-data Prin x = Prin x
+newtype Prin x = Prin x
 
 instance HasEmacsCommand x => HasEmacsCommand (Prin x) where
    toEmacsString (Prin x) = 
       "(uni-prin "++toEmacsString x++")"
 
 
+-- This is where we really know what the command should be
+newtype Literal = Literal String
 
-  
+instance HasEmacsCommand Literal where
+   toEmacsString (Literal s) = s

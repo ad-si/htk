@@ -137,7 +137,13 @@
 ; process a new bit of line
 (defun uni-passon-command (command) 
    (let* (
-         (command-parts0 (split-string command "\n"))
+
+; don't do this because the split-string function in Emacs seems to be 
+; broken.
+;        (command-parts0 (split-string command "\n"))
+; instead do this:
+
+         (command-parts0 (uni-split command ?\n))
          (command-parts1 (cons 
             (concat uni-half-line (car command-parts0))
             (cdr command-parts0)
@@ -246,6 +252,7 @@
    )
 
 ; Split the given string at points indicated by the given character.
+; Don't use XEmacs split-string for now since it seems to be broken.
 (defun uni-split (s ch)
    (uni-split-general s 0 (length s) ch)
    )

@@ -53,7 +53,7 @@ import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSVariant
 import MMiSSVariantObject(getCurrentVariantSearch)
-import MMiSSEditXml(TypedName)
+import MMiSSEditXml(TypedName,toExportableXml)
 import MMiSSLaTeX
 import MMiSSObjectTypeInstance
 import MMiSSWriteObject
@@ -295,7 +295,6 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                           -- we change its label to ".", first checking that
                           -- the user hasn't changed it.
                           element0 <- coerceWithErrorOrBreakIO break elementWE
-
                           let
                              description1WE = getLabel element0
 

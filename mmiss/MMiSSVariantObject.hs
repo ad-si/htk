@@ -75,6 +75,12 @@ module MMiSSVariantObject(
       -- -> IO ()
       -- Writing a new object
 
+   pointVariantObject,
+      -- :: VariantObject object cache -> MMiSSVariantSpec -> IO ()
+      -- Set the pointer of the variant object to the given MMiSSVariantSpec,
+      -- which had better exist in the dictionary.  We always run the 
+      -- converter function.
+
    writeVariantObjectAndPoint,
       -- :: VariantObject object cache -> MMiSSVariantSpec 
       -- -> object -> IO ()
@@ -92,6 +98,8 @@ module MMiSSVariantObject(
       -- -> IO (VariantObject object cache)
 
    ) where
+
+import Maybe
 
 import Control.Concurrent.MVar
 
@@ -312,8 +320,25 @@ writeVariantObject variantObject variantSpec object =
              else
                 done
           return variantSpec1
-       )         
+       )  
 
+---
+-- Set the pointer of the variant object to the given MMiSSVariantSpec,
+-- which had better exist in the dictionary.  We always run the converter 
+-- function.
+pointVariantObject :: VariantObject object cache -> MMiSSVariantSpec -> IO ()
+pointVariantObject variantObject newVariantSpec =
+   modifyMVar_ (currentVariantSpec variantObject) (\ oldVariantSpec ->
+      do
+         objectOpt <- variantDictSearchExact (dictionary variantObject) 
+            newVariantSpec
+         let
+            object = fromMaybe (error ("MMiSSVariantObject.pointVariant object"
+               ++ " - point to non-existent variant.")) objectOpt
+         newCache <- (converter variantObject) object
+         broadcast (cache variantObject) newCache
+         return newVariantSpec
+      )
 
 ---
 -- Writing a new object and make it current.
