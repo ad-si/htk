@@ -1,0 +1,12 @@
+#!/bin/csh 
+set HERE=`dirname $0`
+set MACHINEOS="`uname -m`-`uname -s`"
+if ( -e "$HERE/.cmu-lisp-$MACHINEOS" ) then 
+    if ( -e "$HERE/.$MACHINEOS-`basename $0`" ) then
+	$HERE/.cmu-lisp-$MACHINEOS -core "$HERE/.$MACHINEOS-`basename $0`" $*
+      else
+	echo "Could not find appropriate dump .$MACHINEOS-`basename $0`."
+    endif
+  else
+    echo "Could not find appropriate executable for machine type $MACHINEOS."
+endif
