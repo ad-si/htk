@@ -102,8 +102,8 @@ instance HasColour Frame where
 instance HasSize Frame
 
 ---
--- You can synchronize on a label object (in JAVA style).
+-- You can synchronize on a frame object (in JAVA style).
 instance Synchronized Frame where
 ---
--- Synchronizes on a label object.
+-- Synchronizes on a frame object.
   synchronize = synchronize . toGUIObject

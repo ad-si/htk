@@ -134,3 +134,7 @@ instance Synchronized (Label a) where
 ---
 -- Synchronizes on a label object.
   synchronize = synchronize . toGUIObject
+
+---
+-- A label has an anchor.
+instance HasAnchor (Label a)

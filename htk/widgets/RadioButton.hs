@@ -1,15 +1,13 @@
-{- #######################################################################
-
-MODULE        : RadioButton
-AUTHOR        : ludi
-                University of Bremen
-                email:  ludi@informatik.uni-bremen.de
-DATE          : 2001
-VERSION       : alpha
-DESCRIPTION   : tk radiobutton encapsulation
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module RadioButton (
 

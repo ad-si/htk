@@ -149,3 +149,7 @@ instance HasCommand (Button a)
 ---
 -- A button can have a tooltip.
 instance HasTooltip (Button a)
+
+---
+-- A label has an anchor.
+instance HasAnchor (Button a)

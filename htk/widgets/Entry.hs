@@ -1,18 +1,13 @@
-{- #######################################################################
-
-MODULE        : Entry
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Entry Widget
-
-TO BE DONE    : insert
-                selection adjust
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Entry (
 

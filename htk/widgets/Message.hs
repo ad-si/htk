@@ -1,17 +1,14 @@
-{- ######################################################################
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
-MODULE        : Message
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : 
-
- ###################################################################### -}
-
----
--- A simple line to visually separate the GUI into several parts.
 module Message (
 
   Message,
@@ -96,6 +93,10 @@ instance Synchronized (Message a) where
 ---
 -- A message widget can have a tooltip.
 instance HasTooltip (Message a)
+
+---
+-- An message widget has an anchor.
+instance HasAnchor (Message a)
 
 
 -- -----------------------------------------------------------------------

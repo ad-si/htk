@@ -20,7 +20,7 @@ module PackOptions (
 
 ) where
 
-import Resources(Toggle)
+import Resources
 import Geometry
 
 
@@ -52,6 +52,7 @@ data PackOption =
   | IPadY Distance
   | PadX Distance
   | PadY Distance
+  | Anchor Anchor
 
 instance Show PackOption where
   showsPrec d (Side spec) r = "side " ++ show spec ++ r
@@ -61,6 +62,7 @@ instance Show PackOption where
   showsPrec d (IPadY i) r = "ipady " ++ show i ++ r
   showsPrec d (PadX i) r = "padx " ++ show i ++ r
   showsPrec d (PadY i) r = "pady " ++ show i ++ r
+  showsPrec d (Anchor a) r = "anchor " ++ show a ++ r
 
 showPackOptions :: [PackOption] -> String
 showPackOptions [] = ""

@@ -1,15 +1,13 @@
-{- #######################################################################
-
-MODULE        : Button
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : button associated with a pulldown menu
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module MenuButton (
 
@@ -102,3 +100,7 @@ instance HasMenu MenuButton
 ---
 -- A menubutton can have a tooltip.
 instance HasTooltip MenuButton
+
+---
+-- A menubutton has an anchor.
+instance HasAnchor MenuButton

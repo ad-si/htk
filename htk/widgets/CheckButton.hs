@@ -159,8 +159,12 @@ instance GUIValue a => HasValue (CheckButton a b) a
 ---
 -- The polymorphic variable, to which the check button's value
 -- corresponds.
-instance HasVariable (CheckButton a b) {-(TkVariable a)-}
+instance HasVariable (CheckButton a b)
 
 ---
 -- An checkbutton can have a tooltip.
 instance HasTooltip (CheckButton a b)
+
+---
+-- A checkbutton has an anchor.
+instance HasAnchor (CheckButton a b)

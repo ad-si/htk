@@ -23,11 +23,12 @@ main:: IO ()
 main =
   do main <- initHTk []
 
-     l  <- newLabel main [text "Hello, world!"]
+     l  <- newLabel main [width 30, height 5, bg "white",
+                          text "Hello, world!", anchor SouthEast]
      pack l []
 
      nb <- newButton main [text "New Colour"] :: IO (Button String)
-     pack nb []
+     pack nb [Anchor West]
      clickednb <- clicked nb
      spawnEvent (forever (clickednb >>>
                           do bunt <- randomColour

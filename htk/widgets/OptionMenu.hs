@@ -1,20 +1,13 @@
-{- #######################################################################
-
-MODULE        : OptionMenu
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : OptionMenu Widget
-
-TO BE DONE    : should be an instance of class Reactive so that 
-                one can track changes to the value of the option menu,
-                that are due to the user and not the application (we
-                got valueSet for the latter).
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module OptionMenu (
 
@@ -91,6 +84,9 @@ instance GUIValue a => HasValue (OptionMenu a) a where
 -- An option menu can have a tooltip.
 instance HasTooltip (OptionMenu a)
 
+---
+-- An option menu has an anchor.
+instance HasAnchor (OptionMenu a)
 
 -- -----------------------------------------------------------------------
 -- OptionMenu methods
