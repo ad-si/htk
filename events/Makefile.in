@@ -22,6 +22,8 @@ SRCS       = Toggle.hs\
 	     Mutex.hs\
 	     ReferenceVariables.hs\
 
+HTKNOTSRCS = RefQueue.hs MatchChannel.hs RegexChannel.hs
+
 SUBDIRS = test
 
 # Hackery to insert file-specific flags, in this case to stop

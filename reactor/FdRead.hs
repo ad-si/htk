@@ -1,6 +1,16 @@
+#if (__GLASGOW_HASKELL__ >= 503)
+#define NEW_GHC 
+#else
+#undef NEW_GHC
+#endif
+
+#ifndef NEW_GHC
+{-# OPTIONS -#include "unistd.h" #-}
+#endif /* NEW_GHC */
+
 module FdRead(
    fdWriteLn, -- :: Posix.Fd -> String -> IO ()
-   fdWritePrim, -- :: Posix.Fd -> ByteArray Int -> Int -> IO ()
+   fdWritePrim, -- :: Posix.Fd -> CStringLen -> IO ()
    -- The last integer is the length.
    fdMkReadLn, -- :: Posix.Fd -> IO FdBuffer
    fdReadLn, -- :: FdBuffer -> IO ()
@@ -8,18 +18,27 @@ module FdRead(
    ) where
 
 import IO
-import ByteArray
+import CString
+import CTypesISO
 import Concurrent
 import Posix
 
 import Computation
 
-fdWritePrim :: Posix.Fd -> ByteArray Int -> Int -> IO ()
-fdWritePrim fd array len =
+#ifndef NEW_GHC
+foreign import "write" unsafe writePrim :: Fd -> CString -> CSize -> IO CSize
+#else /* NEW_GHC */
+foreign import ccall unsafe "unistd.h write" writePrim :: Fd -> CString -> CSize -> IO CSize
+#endif /* NEW_GHC */
+
+
+fdWritePrim :: Posix.Fd -> CStringLen -> IO ()
+fdWritePrim fd (cstring,len) =
    do
       -- copied from source of PosixIO.lhs
-      rc  <- _ccall_ write fd array len
-      if rc == len
+      let len_csize = fromIntegral len
+      rc  <- writePrim fd cstring len_csize
+      if fromIntegral rc == len_csize
          then 
             done
          else

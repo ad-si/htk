@@ -7,6 +7,11 @@ SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   TempFile.hs Sink.hs Broadcaster.hs VariableSet.hs VariableMap.hs \
   CommandStringSub.hs WaitOnN.hs FileSystem.hs CopyFile.hs
 
+HTKNOTSRCS = Dynamics.hs LineShow.hs Cache.hs FileNames.hs AtomString.hs \
+   Registry.hs DelSet.hs UniqueString.hs UniqueFile.hs TempFile.hs Sink.hs \
+   Broadcaster.hs VariableSet.hs VariableMap.hs CommandStringSub.hs  \
+   WaitOnN.hs FileSystem.hs CopyFile.hs RegularExpression.hs \
+
 SRCSC      = object.c default_options.c copy_file.c
 
 SUBDIRS = test

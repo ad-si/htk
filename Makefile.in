@@ -7,7 +7,8 @@
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
 SUBDIRS=$(UTILDIR) $(EVENTSDIR) $(SERVERDIR) $(REACTORDIR) $(HTKDIR) $(GRAPHSDIR) $(DAVINCIDIR) $(CVSDIR) $(TYPESDIR)
-# (TOOLSDIR) is currently not being worked on.
+
+HTKLIBSUBDIRS=$(UTILDIR) $(EVENTSDIR) $(REACTORDIR) $(WINDOWSDIR) $(HTKDIR)
 
 include @TOP@/mk/boilerplate.mk 
 

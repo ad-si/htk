@@ -1,0 +1,15 @@
+#! /usr/local/bin/bash
+# This script should be run in cygwin in windows in the uni directory.  However it
+# doesn't assume ghc is cygwin-aware.
+GCC=gcc
+GHC=ghc
+
+$GHC -Iincludes -c util/default_options.c
+$GHC -Iincludes -c util/object.c
+$GHC -Iincludes -c windows/callWish.c
+
+
+&&&&&&&&&&&&&&&&&&&&
+#  Need to cygpath -wsp path component names and then change ";" characters back to
+#  : characters. 
+$GHC --make EVERYTHING.hs -package concurrent -package data -package net -package posix -package text -package util -package lang -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances -cpp -iwindows:util:events:reactor:htk\kernel:htk\canvasitems:htk\components:htk\containers:htk\devices:htk\menuitems:htk\packer:htk\resources:htk\textitems:htk\tix:htk\toolkit:htk\toplevel:htk\widgets -Iincludes

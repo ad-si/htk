@@ -75,6 +75,7 @@ CVSDIR          = $(TOP)/cvs
 TYPESDIR        = $(TOP)/types
 VERSIONSDIR     = $(TOP)/versions
 VERSIONSINODEDIR= $(CVSDIR)/inodeserver
+WINDOWSDIR      = $(TOP)/windows
 
 
 CINCLUDES       = $(TOP)/includes

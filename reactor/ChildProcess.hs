@@ -68,8 +68,8 @@ module ChildProcess (
    -- sendMsg sends a String to the ChildProcess, adding a new line
    -- for line mode.
 
-   sendMsgRaw, -- :: ChildProcess -> ByteArray Int -> Int -> IO ()
-   -- sendMsgRaw writes a direct byte array, as (bytes,length) 
+   sendMsgRaw, -- :: ChildProcess -> CStringLen -> IO ()
+   -- sendMsgRaw writes a CStringLen
    -- to the child process.  It does not append a newline.
 
    readMsg, -- :: ChildProcess -> IO String
@@ -389,19 +389,11 @@ sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  =
             return ()
    where l = length str
 
--- sendMsgRaw writes a direct byte array, as (bytes,length) 
--- to the child process.  It does not append a newline.
-sendMsgRaw :: ChildProcess -> ByteArray Int -> Int -> IO ()
-sendMsgRaw (ChildProcess{writeTo = writeTo}) ba len =
-   do
-      debug (
-         let
-            toWrite = CString.unpackNBytesBA ba len
-         in
-            "ChildProcess>"++toWrite
-         )
-      fdWritePrim writeTo ba len
-      done
+-- sendMsgRaw writes a CStringLen to the child process.  
+-- It does not append a newline.
+sendMsgRaw :: ChildProcess -> CString.CStringLen -> IO ()
+sendMsgRaw (ChildProcess{writeTo = writeTo}) cStringLen =
+   fdWritePrim writeTo cStringLen
 
 closeChildProcessFds  :: ChildProcess -> IO ()
 closeChildProcessFds (ChildProcess{closeAction = closeAction}) = 

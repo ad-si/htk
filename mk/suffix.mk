@@ -26,6 +26,10 @@
 #
 # BOOTSRCS Haskell source files which are sources for .hi-boot files.
 #
+# HTKLIBSUBDIRS Subdirectories which contain source files needed to
+# compile libhtk.a.
+# HTKNOTSRCS Files in SRCS which shouldn't be compiled for HTk.
+#
 # Other options which aren't used here (but in var.mk) and which
 # can be useful:
 #  
@@ -43,6 +47,8 @@
 # all      makes both library and test programs in all subdirectories
 # clean    cleans all compiled test programs, object files and libraries.
 # display  displays Make environment variables
+# displayhs displays all Haskell source files needed for libraries.
+# displayhtkhs displays all Haskell source files needed for HTk.
 #
 # libfast  should be like lib but faster, since it uses ghc --make.
 
@@ -53,6 +59,7 @@ OBJSC = $(patsubst %.c,%.o,$(SRCSC))
 OBJS = $(OBJSALLHS)  $(OBJSC)
 LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
           $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
+HTKLIBSRCS = $(filter-out $(HTKNOTSRCS),$(LIBSRCS))
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
@@ -78,7 +85,7 @@ ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean display ghci libfast libfasthere librealfast objsc
+.PHONY : depend libhere lib testhere test all clean ghci libfast libfasthere librealfast displaysrcshere displayhshere displaysrcs displayhs displayhtkhshere displayhtkhs objsc objschere preparehtkwin
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -163,6 +170,12 @@ librealfast : objsc
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi *.h
 	$(MAKE) lib
 
+preparehtk :
+	$(TOP)/mk/mkEverything `$(MAKE) displayhtkhs -s --no-print-directory`
+
+libhtk : preparehtk
+	HTKDIRS=`$(GFIND) htk -type d ! -name CVS -printf ":%p"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -iutil:events:reactor$$HTKDIRS -I$(CINCLUDES)
+
 
 displaysrcshere :
 	@PWD=`pwd`;echo $(ALLFILESALL)
@@ -175,6 +188,13 @@ displaysrcs : displaysrcshere
 
 displayhs : displayhshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displayhs && ) echo
+
+
+displayhtkhshere :
+	@PWD=`pwd`;echo $(HTKLIBSRCS)
+
+displayhtkhs : displayhtkhshere
+	$(foreach subdir,$(HTKLIBSUBDIRS),$(MAKE) -r -C $(subdir) displayhtkhs &&) echo
 
 objschere : $(OBJSC)
 objsc : objschere
@@ -196,7 +216,7 @@ $(HIFILES) : %.hi : %.o
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) $< $(HCFLAGS) -no-recomp -fno-code -ohi $@
+	$(HC) $< $(HCFLAGS) -no-recomp -c -o /dev/null -ohi $@
 
 $(OBJSHS) : %.o : %.hs
 	$(HC) -c $< $(HCFLAGS) 

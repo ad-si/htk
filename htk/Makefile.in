@@ -7,6 +7,7 @@ SRCS       = resources/Resources.hs\
 	     resources/Colour.hs\
 	     resources/Font.hs\
              resources/Tooltip.hs\
+             kernel/CallWish.hs\
              kernel/Wish.hs\
              kernel/EventInfo.hs\
              packer/Packer.hs\
@@ -101,6 +102,7 @@ SRCS       = resources/Resources.hs\
              toolkit/SimpleForm.hs\
              toolkit/GenericBrowser.hs\
 
+HTKNOTSRCS = kernel/CallWish.hs
 
 EXTRA_HC_OPTIONS += -Onot -H30M
 

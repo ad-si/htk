@@ -52,14 +52,12 @@ import List(find)
 import IOExts
 import Posix
 import Concurrent
-import ByteArray
 import CString
 import Exception
 
 import Debug
 import Object
 import Computation
-import WBFiles
 
 import Events
 import Channels
@@ -69,7 +67,6 @@ import Destructible
 import Synchronized
 
 import FdRead
-import ChildProcess
 import BSem
 import InfoBus
 
@@ -77,6 +74,7 @@ import ReferenceVariables
 import EventInfo
 
 import GUIValue
+import CallWish
 
 -- -----------------------------------------------------------------------
 -- basic execution of Tcl commands
@@ -181,34 +179,32 @@ evalCmdInner :: TclScript -> IO TclResponse
 evalCmdInner [] = return (OK "")
 evalCmdInner tclScript =
    do
-      let bl@(barray,len) = prepareCmd tclScript
-      barray `seq` len `seq` evalCmdPrim bl
+      cStringLen <- prepareCmd tclScript
+      evalCmdPrim cStringLen
 
 -- This prepares a command, or sequence of commands, for evalCmdPrim.
 -- The string must be non-empty
-prepareCmd :: TclScript -> (ByteArray Int,Int)
+prepareCmd :: TclScript -> IO CStringLen
 prepareCmd [] = error "Wish.prepareCmd with an empty argument!"
 prepareCmd script =
-   let
-      scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) script
-      evsString = "evS " ++ escape scriptString ++"\n"
-      packed = CString.packString evsString
-      len = length evsString
-   in
-      (packed,len)
+   do
+      let
+         scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) script
+         evsString = "evS " ++ escape scriptString ++"\n"
+      newCStringLen evsString
 
 --
 -- This is the most primitive command evaluator and does not
 -- look at the buffer.  So it shouldn't be called from outside.
-evalCmdPrim :: (ByteArray Int,Int) -> IO TclResponse
-evalCmdPrim (barray,len) =
+evalCmdPrim :: CStringLen -> IO TclResponse
+evalCmdPrim cStringLen =
    do
       let
          rWish = readWish wish
          wWish = writeWish wish
       synchronize (wishLock wish) (
          do     
-            wWish barray len  
+            wWish cStringLen  
             sync(
                   toEvent (rWish |> Eq OKType) >>>=
                      (\ (_,okString) -> return (OK okString))
@@ -255,7 +251,7 @@ data Wish = Wish {
       GuardedEvent (EqMatch TclMessageType) (TclMessageType,String),
       -- Wish output sorted by prefix. 
 
-   writeWish :: ByteArray Int -> Int -> IO (), 
+   writeWish :: CStringLen -> IO (), 
       -- Command to execute a Wish command.
 
    destroyWish :: IO (), -- Command to destroy this Wish instance.
@@ -307,56 +303,50 @@ tixAvailable = IOExts.unsafePerformIO isTixAvailable
 newWish :: IO Wish
 newWish =
    do
-      wishPath <- getWishPath
-      childProcess <- newChildProcess wishPath [linemode True]
+      calledWish <- callWish
       let 
-         writeWish = sendMsgRaw childProcess
-
-         packStr :: (ByteArray Int -> Int -> a) -> (String -> a)
-         packStr toDo str =
-            let
-               packed = packString str
-               len = length str
-            in
-               toDo packed len
+         writeWish = sendCalledWish calledWish
 
       -- Set up initial wish procedures.
-      (packStr writeWish) (
-         "proc ConvertTkValue val {" ++
-            -- The "regsub" commands replace \ by \\ and newline by \\.
-            "regsub -all {\\\\} $val {\\\\\\\\} res1;" ++
-            "regsub -all \\n $res1 {\\\\n} res;" ++
-            "return $res" ++
-            "};" ++
-         "proc evS x {" ++
-            "set status [catch {eval $x} res];" ++
-            "set val [ConvertTkValue $res];" ++ 
-            "if {$status == 0} {puts \"OK $val\"} else {puts \"ER $val\"}" ++
-            "};" ++
-         "proc relay {evId val} {" ++ 
-            "set res [ConvertTkValue $val];" ++
-            "puts \"CO $evId $res\"" ++
-            "};" ++
-         -- The following Tcl functions adds and removes bindings for
-         -- a widget.
-         -- ldelete deletes an item from a list
-         -- (Stolen from Tcl book page 58)
-         "proc ldelete {list value} {" ++
-            "set ix [lsearch -exact $list $value];" ++
-            "if {$ix >=0 } {" ++
-               "return [lreplace $list $ix $ix]" ++
-               "} else {return $list}};" ++
-         -- addtag adds a bind tag for a widget
-         "proc addtag {widget tag} {" ++
-            "set x [bindtags $widget];" ++
-            "lappend x $tag;" ++
-            "bindtags $widget $x};" ++
-         -- rmtag removes a bind tag from a widget
-         "proc rmtag {widget tag} {" ++
-            "bindtags $widget [ldelete [bindtags $widget] $tag]}\n"  
-         )
+         wishHeader =
+            "proc ConvertTkValue val {" ++
+               -- The "regsub" commands replace \ by \\ and newline by \\.
+               "regsub -all {\\\\} $val {\\\\\\\\} res1;" ++
+               "regsub -all \\n $res1 {\\\\n} res;" ++
+               "return $res" ++
+               "};" ++
+            "proc evS x {" ++
+               "set status [catch {eval $x} res];" ++
+               "set val [ConvertTkValue $res];" ++ 
+               "if {$status == 0} {puts \"OK $val\"} else {puts \"ER $val\"}" ++
+               "};" ++
+            "proc relay {evId val} {" ++ 
+               "set res [ConvertTkValue $val];" ++
+               "puts \"CO $evId $res\"" ++
+               "};" ++
+            -- The following Tcl functions adds and removes bindings for
+            -- a widget.
+            -- ldelete deletes an item from a list
+            -- (Stolen from Tcl book page 58)
+            "proc ldelete {list value} {" ++
+               "set ix [lsearch -exact $list $value];" ++
+               "if {$ix >=0 } {" ++
+                  "return [lreplace $list $ix $ix]" ++
+                  "} else {return $list}};" ++
+            -- addtag adds a bind tag for a widget
+            "proc addtag {widget tag} {" ++
+               "set x [bindtags $widget];" ++
+               "lappend x $tag;" ++
+               "bindtags $widget $x};" ++
+            -- rmtag removes a bind tag from a widget
+            "proc rmtag {widget tag} {" ++
+               "bindtags $widget [ldelete [bindtags $widget] $tag]}\n"  
+
+      wishHeaderCStringLen <- newCStringLen wishHeader
+      writeWish wishHeaderCStringLen
+
       -- get readWish reactor going.
-      (readWish,destroyReadWish) <- readWishEvent childProcess
+      (readWish,destroyReadWish) <- readWishEvent calledWish
       -- set up the channels
       commands <- newChannel
       responses <- newChannel
@@ -368,7 +358,7 @@ newWish =
          destroyWish1 =
             do
                destroyReadWish
-               destroy childProcess
+               destroyCalledWish calledWish
                -- Wish reactor will be garbage collected.
       destroyWish <- doOnce destroyWish1
       bufferedCommands <- newMVar (0,[])
@@ -424,16 +414,16 @@ eventForwarder = forever handleEvent
             )
 
 
-readWishEvent :: ChildProcess 
+readWishEvent :: CalledWish 
    -> IO (GuardedEvent (EqMatch TclMessageType) (TclMessageType,String),
       IO())
-readWishEvent childProcess =
+readWishEvent calledWish =
    do
       wishInChannel <- newEqGuardedChannel
       destroy <- spawnEvent(forever(
          do 
             next <- 
-               always (Exception.catch (readMsg childProcess)                                    (\_-> return "OK Terminated"))
+               always (Exception.catch (readCalledWish calledWish)                                    (\_-> return "OK Terminated"))
             send wishInChannel (typeWishAnswer next)
          ))
       return (listen wishInChannel,destroy)
