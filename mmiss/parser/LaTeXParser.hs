@@ -2,6 +2,8 @@ module LaTeXParser (
    -- new interface.  For now, just a make-weight bolted on top of the old one.
 
    PackageId(..),
+   IncludeInfo(..),
+
    parseMMiSSLatex, 
       -- :: FileSystem -> FilePath -> Bool
       -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
@@ -14,13 +16,14 @@ module LaTeXParser (
    makeMMiSSLatexContent,
       -- :: Element -> Bool 
       -- -> [(MMiSSLatexPreamble,PackageId)]
-      -- -> WithError (EmacsContent ((String,Char),[Attribute])) 
+      -- -> WithError (EmacsContent ((String,Char),Element)) 
       -- This is used for Emacs and also for other consumers of LaTeX text
       -- expecting a single file, for example the MMiSS checker and the
       -- XML API.
       -- The bool parameter controls whether MMiSS 'includeXXX' elements are expanded
-      -- into Emacs-Links (False) or into \includeXXX commands when the output is designated
-      -- to be feed into latex (True). In the latter case, the preambles are merged and
+      -- into Emacs-Links (False) or into \IncludeXXX LaTeX commands in case the 
+      -- output is designated to be feed into latex (True). 
+      -- In the latter case, the preambles are merged and
       -- included in the output, otherwise, they are left out.
 
    writeMMiSSLatex, 
@@ -60,33 +63,36 @@ module LaTeXParser (
 
 -- module LaTeXParser where
 
-import IO(FilePath)
+-- import IO(FilePath)
 
 import List
 import Char
 import Monad
 
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Error
-
 import Text.XML.HaXml.Types
-import qualified Text.XML.HaXml.Pretty as PP
-import Text.PrettyPrint.HughesPJ hiding (char,space)
 import Text.XML.HaXml.Combinators hiding (find)
 
 import LaTeXParserCore
 import LaTeXPreamble
--- import Dynamics
 import Computation hiding (try)
-import ExtendedPrelude(unsplitByChar,splitByChar,mapEq)
 import EmacsContent
-import EntityNames
 import AtomString
-import CodedValue
 import FileNames
 import QuickReadShow
 -- import EmacsEdit(TypedName)
 
+-- ---------------------------------------------------------------------------
+-- IncludeInfo describes the information we need about an Include element,
+-- besides its label and minitype.
+-- ---------------------------------------------------------------------------
+
+data IncludeInfo = IncludeInfo {
+   variantOpt :: Maybe Element,
+      -- ^ The variant-attributes element corresponding to the include, if any
+   otherAttributes :: [Attribute]
+      -- ^ The priority, and maybe other things if the DTD gets extended.
+   }
+   
 
 -- ---------------------------------------------------------------------------
 -- New Interface
@@ -124,11 +130,12 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
 				   Right (el @ (Elem _ atts _)) ->
 				      do
 					 let
+                                            cElem = CElem el
 					    packageId = PackageId (getParam "packageId" atts)
 					    preambleList = case preambleOpt of
 					       Nothing -> []
 					       Just preamble -> [(preamble,packageId)]
-					 return (hasValue (el,preambleList))
+					 return (hasValue ((toElem (toCoreDTD "" cElem)), preambleList))
 
   where 
     -- expandInputs guckt noch nicht rekursiv in aufgelöste inputs rein
@@ -189,10 +196,14 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
       in case splitExtension filename of
            Nothing -> combineNames dir (filename ++ ".tex")
            Just(name, ext) -> combineNames dir filename
-      
+    
+    toElem :: Content -> Element
+    toElem (CElem e) = e
+    toElem _ = Elem "Error" [] []
+
 
 makeMMiSSLatexContent :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)]
-   -> WithError (EmacsContent ((String,Char),[Attribute]))
+   -> WithError (EmacsContent ((String,Char), IncludeInfo))
 makeMMiSSLatexContent = makeMMiSSLatex
 
 
@@ -213,18 +224,27 @@ writeMMiSSLatex fileSystem (el @ (Elem _ atts _)) b preambleInfos0 =
                writeString fileSystem result label  
  
 
-mkLaTeXString :: EmacsContent ((String,Char),[Attribute]) -> String
+mkLaTeXString :: EmacsContent ((String,Char),IncludeInfo) -> String
 mkLaTeXString (EmacsContent dataItems) =
    concatMap
       (\ dataItem -> case dataItem of
          EditableText str -> str
-         EmacsLink ((included,ch),attributes) -> 
+         EmacsLink ((included,ch), includeInfo) -> 
             "\\Include"
-            ++ toIncludeStr ch
+--            ++ toIncludeStr ch
+            ++ getIncludeType ch includeInfo
             ++ "{" ++ included ++ "}"
-            ++ "{" ++ (getAttribs  (attributes ++ [statusAttribute]) "" ["included","status"]) ++ "}"
+            ++ "{" ++ (getAttribs  ((otherAttributes includeInfo) 
+                                     ++ [statusAttribute]) "" ["included","status"])
+            ++ "}"
          )     
       dataItems
+  where
+    getIncludeType ch includeInfo = 
+       let objClass = getParam "object-class" (otherAttributes includeInfo)
+       in if (objClass == "")
+            then toIncludeStr ch
+            else toUpperStr objClass
 
 statusAttribute :: Attribute
 statusAttribute = ("status",AttValue [Left "present"])
@@ -234,7 +254,7 @@ statusAttribute = ("status",AttValue [Left "present"])
 -- Old Interface
 -- ---------------------------------------------------------------------------
 
-data Textmode = TextAllowed | NoText | TextFragment
+data Textmode = TextAllowed | NoText
 
 {--
    parseImportCommands is used as fromStringWE-method in the instanciation for
@@ -411,13 +431,20 @@ makeContent (f:frags) NoText parentEnv =
                        whole = myConcatWithError (myConcatWithError begin body) end
                    in myConcatWithError whole (makeContent frags NoText parentEnv)
      (Command name ps) -> 
-        if (name `elem` (map fst includeCommands))
-	  then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
+        if (name `elem` includeCommands)
+	  then let (ename, objClass) = 
+                       case name of 
+                         ('I':'n':'c':'l':'u':'d':'e':rest) -> 
+                               (("include" ++ mapLabelledTag (toLowerStr rest)),(toLowerStr rest))
+                         otherwise -> ("Unit","") 
                    delimElem = case ps of
                                 (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                                 otherwise -> []
-	       in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))] ++ delimElem))
-                                    (makeContent frags NoText parentEnv)
+	       in if (objClass == "")
+                    then hasError("Element type for include command '" ++ name ++ "' is not recognized.")
+                    else myConcatWithError 
+                           (hasValue([(CElem (Elem ename (makeIncludeAttribs objClass ps) []))] ++ delimElem))
+                           (makeContent frags NoText parentEnv)
           else let delimStr = case ps of
                                 (LParams _ _ (Just str) _) -> str
                                 otherwise -> ""
@@ -428,6 +455,7 @@ makeContent (f:frags) NoText parentEnv =
         let piStr = (show sType) ++ ">" ++ str
         in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags NoText parentEnv)
 
+
 makeContent (f:frags) TextAllowed parentEnv = 
   if (parentEnv `elem` (map fst listEnvs)) 
     then
@@ -435,7 +463,8 @@ makeContent (f:frags) TextAllowed parentEnv =
 	(EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
 			   in  mapWithError ([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))] ++)
 					    (makeContent frags TextAllowed parentEnv)
-	(Other str) -> myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) (makeContent frags TextAllowed parentEnv)
+	(Other str) -> myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) 
+                                         (makeContent frags TextAllowed parentEnv)
 	(Env name ps fs) -> 
 	   if (name `elem` (map fst mmiss2EnvIds))
 	     then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a \\item.")
@@ -450,11 +479,13 @@ makeContent (f:frags) TextAllowed parentEnv =
 			     "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
 			     "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
 			     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
-					    ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
+					    ("\\begin{" ++ name ++ "}" 
+                                            ++ (lparamsToString ps) ++ beginDelimStr))))])
 		   end =  case name of 
 			     "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
 			     "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
-			     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
+			     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" 
+                                                   ++ endDelimStr))))])
 		   body = (makeContent fs TextAllowed parentEnv)
 		   whole = myConcatWithError (myConcatWithError begin body) end
 	       in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
@@ -471,7 +502,6 @@ makeContent (f:frags) TextAllowed parentEnv =
         (Special sType str) ->
           let piStr = (show sType) ++ ">" ++ str
           in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags TextAllowed parentEnv)
-
     else   
     ------------------------------------------
     -- Parent is no List environment
@@ -538,14 +568,20 @@ makeContent (f:frags) TextAllowed parentEnv =
 			      whole = myConcatWithError (myConcatWithError begin body) end
 			  in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
 	(Command name ps) -> 
-	   if (name `elem` (map fst includeCommands))
-	     then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
-		      delimElem = case ps of
-				   (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
-				   otherwise -> []
-		  in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))]
+	   if (name `elem` includeCommands)
+	     then let (ename, objClass) = case name of 
+                                             ('I':'n':'c':'l':'u':'d':'e':rest) -> 
+                                                ("include" ++ mapLabelledTag (toLowerStr rest), toLowerStr rest)
+                                             otherwise -> ("Unit","") 
+                      delimElem = case ps of
+                                     (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
+                                     otherwise -> []
+	          in if (objClass == "")
+                       then hasError("Element type for include command '" ++ name ++ "' is not recognized.")
+                       else myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs objClass ps) []))]
 						 ++ delimElem))
-				       (makeContent frags TextAllowed parentEnv)
+		               (makeContent frags TextAllowed parentEnv)
+
 	     else if (name `elem` (map fst embeddedElements))
 		    then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
 			 in  myConcatWithError (hasValue([content])) 
@@ -559,7 +595,6 @@ makeContent (f:frags) TextAllowed parentEnv =
         (Special sType str) ->
           let piStr = (show sType) ++ ">" ++ str
           in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags TextAllowed parentEnv)
-
 
 
 {-- makeNamelessTextFragment:
@@ -615,7 +650,7 @@ makeNamelessTextFragment parentEnv (f:frags) textFrags =
     (Command name _) -> 
       if (name `elem` itemNames)
         then  ((makeTextFragment parentEnv "text" Nothing textFrags []), (f:frags))
-        else if (name `elem` (map fst includeCommands))
+        else if (name `elem` includeCommands)
                then let e1 = (makeTextFragment parentEnv "text" Nothing textFrags [])  
 		        c1 = case e1 of
 			       (CElem (Elem "paragraph" _ ((CElem(Elem _ _ c)):[]))) -> c
@@ -661,7 +696,7 @@ makeTextFragment parentEnv name params (f:frags) content =
                           otherwise -> []
        in makeTextFragment parentEnv name params frags (content ++ [newElem] ++ delimElem) 
     (Command "IncludeText" ps) -> 
-         let newElem = CElem (Elem "includeText" (makeIncludeAttribs ps) [])
+         let newElem = CElem (Elem "includeAtom" (makeIncludeAttribs "Text" ps) [])
              delimElem = case ps of
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                            otherwise -> []
@@ -769,7 +804,8 @@ makeListItem params (f:frags) contentList =
                                        (contentList ++ coerceWithError(makeContent [f] TextAllowed "Item"))
                      else 
                        if (name `elem` (map fst latexEmbeddedFormulaEnvs))
-                         -- als erstes Env. innerhalb eines ListItems kommt eine Formel-Umgebung -> Textfragment erzeugen
+                         -- als erstes Env. innerhalb eines ListItems kommt eine Formel-Umgebung 
+                         -- -> Textfragment erzeugen
             	         then let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
                               in makeListItem params restFrags (contentList ++ [content]) 
                          else
@@ -787,13 +823,13 @@ makeListItem params (f:frags) contentList =
 		                 -- MMiSSLatex-Env. Ignorieren:
                               else makeListItem params frags contentList
      (Command "IncludeText" ps) -> 
-        let newElem = CElem (Elem "includeText" (makeIncludeAttribs ps) [])
+        let newElem = CElem (Elem "includeAtom" (makeIncludeAttribs "Text" ps) [])
             delimElem = case ps of
                           (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                           otherwise -> []
         in makeListItem params frags (contentList ++ [newElem] ++ delimElem)
      (Command "IncludeAtom" ps) ->
-        let newElem = (CElem (Elem "includeAtom" (makeIncludeAttribs ps) []))
+        let newElem = (CElem (Elem "includeAtom" (makeIncludeAttribs "Atom" ps) []))
             delimElem = case ps of
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                            otherwise -> []
@@ -809,7 +845,6 @@ makeListItem params (f:frags) contentList =
          else 
           let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
           in makeListItem params restFrags (contentList ++ [content])
-
      (Special sType str) ->
           let piStr = (show sType) ++ ">" ++ str
               newElem = [(CMisc (PI (piSpecial, piStr)))]
@@ -852,8 +887,11 @@ detectTextMode name = if (name `elem` (map fst (envsWithText ++ mmissPlainTextAt
 makeAttribs :: Params -> String -> [Attribute]
 
 makeAttribs ps name = 
-  if (name `elem` (map fst includeCommands))
-    then makeIncludeAttribs ps
+  if (name `elem` includeCommands)
+    then case name of 
+            ('i':'n':'c':'l':'u':'d':'e':rest) -> 
+               makeIncludeAttribs rest ps
+            otherwise -> makeIncludeAttribs "" ps
     else if (name == "Text")
            then makeTextFragmentAttribs (Just(ps))
 	   else if (name `elem` ["Link"])
@@ -871,10 +909,11 @@ makeAttribs ps name =
 				              (LParams _ atts _ _) -> map convertAttrib atts
 
 
-makeIncludeAttribs :: Params -> [Attribute]
-makeIncludeAttribs (LParams ((SingleParam ((Other labelId):[]) _):[]) atts _ _) =
-  [("included", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
-makeIncludeAttribs _ = []
+makeIncludeAttribs :: String -> Params -> [Attribute]
+makeIncludeAttribs elementType (LParams ((SingleParam ((Other labelId):[]) _):[]) atts _ _) =
+  [("included", (AttValue [Left labelId])), ("object-class",(AttValue [Left (toLowerStr elementType)]))] 
+      ++ (map convertAttrib atts)
+makeIncludeAttribs _ _ = []
 
 
 makeTextFragmentAttribs :: Maybe(Params) -> [Attribute]
@@ -964,12 +1003,20 @@ getAttribs ((name, (AttValue [(Left value)])):as) str excludeList =
     eine Praeambel erzeugt und 'includeXXX'-Elemente werden in MMiSSLaTeX-Include-Kommandos
     umgesetzt. Ist der Bool-Wert 'False', dann wird LaTeX für den XEmacs-Buffer erzeugt. In
     diesem Fall wird keine Preamble generiert und die Includes werden in spezielle EmacsContent-Objekte
+   -- Each distinct preamble occurs once in the list, paired with a list
+   -- for each of its call-sites.
+makeMMiSSLatex (element,preOut,preambles') =
+   -- stub function that doesn't use MMiSSExtraPreambleData for now.
+   makeMMiSSLatex11 (element,preOut,map fst preambles')
+
+
+makeMMiSSLatex11 :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
     umgesetzt, die im MMiSS-XEmacs-Mode speziell behandelt werden.
 --}
 
 
 makeMMiSSLatex :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)] 
-   -> WithError (EmacsContent ((String, Char), [Attribute]))
+   -> WithError (EmacsContent ((String, Char), IncludeInfo))
 
 makeMMiSSLatex (Elem name atts content) preOut preambles = 
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
@@ -991,51 +1038,49 @@ makeMMiSSLatex (Elem name atts content) preOut preambles =
     sortP label [] inList = inList
 
 
-fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), [Attribute])] 
-               -> [EmacsDataItem ((String, Char), [Attribute])]
+fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), IncludeInfo)] 
+               -> [EmacsDataItem ((String, Char), IncludeInfo)]
 
 fillLatex out [] l = l
 
-fillLatex out ((CElem (Elem "text" atts contents)):cs) inList = 
-  let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
-                               then ("\\begin{Included}\n", "\n\\end{Included}")
-                               else ("","")
-      s1 = "\\begin{Text}" 
-      s2 = "[" ++ (getAttribs atts "" []) ++ "]"
-      s3 = "\\end{Text}"
-      items = if (s2 == "[]") 
-                then (fillLatex out contents [])
-                else [(EditableText (b_insert ++ s1 ++ s2))] 
-                     ++ (fillLatex out contents []) 
-                     ++ [(EditableText (s3 ++ e_insert))]
-  in fillLatex out cs (inList ++ items)
+fillLatex out ((CElem (Elem "attributes" _ _)):cs) inList = fillLatex out cs inList
 
-fillLatex out ((CElem (Elem "item" atts contents)):cs) inList = 
-   let s1 = "\\item" 
-       attrStr = (getAttribs atts "" [])
-       s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "] "
-       items = [EditableText (s1 ++ s2)] ++ (fillLatex out contents [])
-   in fillLatex out cs (inList ++ items)
+fillLatex out ((CElem (Elem "generalText" _ content)):cs) inList = 
+  fillLatex out cs (inList ++ (fillLatex out content []))
 
-fillLatex out ((CElem (Elem "emphasis" _ ((CString _ str):_))):cs) inList = 
-   fillLatex out cs (inList ++ [EditableText ("\\Emphasis{" ++ str ++ "}")]) 
+fillLatex out ((CElem (Elem "simpleText" _ content)):cs) inList = 
+  fillLatex out cs (inList ++ (fillLatex out content []))
 
-fillLatex out ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts _)):cs) inList = 
+fillLatex out ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts contentList)):cs) inList = 
    if (out == True) 
      then
        let label = "{" ++ (getParam "included" atts) ++ "}"
-           name = (elemNameToLaTeX ("include" ++ unit))
-           s1 = "{" ++ (getAttribs atts "" ["included"]) ++ "}"
+           name = "Include" ++ (toUpperStr (getParam "object-class" atts))
+           s1 = "{" ++ (getAttribs  (atts ++ (attElemToAtts contentList)) "" ["included","object-class"]) ++ "}"
            items = [(EditableText ("\\" ++ name ++ label ++ s1))]
        in fillLatex out cs (inList ++ items)
      else
        let labelId = getParam "included" atts
-           item = [EmacsLink ((labelId, (fromIncludeStr unit)), atts)]
+           item = [EmacsLink ((labelId, (fromIncludeStr unit)), (mkIncludeInfo atts contentList))]
        in fillLatex out cs (inList ++ item)
+  where
+    -- getVarEl bekommt die Content-Liste eines Include-Elementes - diese Element
+    -- kann nur leer sein oder genau ein variant-attributes-Element enthalten.
+    mkIncludeInfo atts ((CElem v):_) = IncludeInfo {variantOpt = Just(v),
+                                                    otherAttributes = atts}
+    mkIncludeInfo atts _ = IncludeInfo {variantOpt = Nothing,
+                                        otherAttributes = atts} 
 
 -- Translates Link- and Reference-Embedded-Ops:
 --
 fillLatex out ((CElem (Elem name atts contents)):cs) inList
+  | name == "emphasis" =
+       if ((genericLength contents) > 0)
+         then case (last contents) of
+                (CString _ str) -> fillLatex out cs (inList ++ [EditableText ("\\Emphasis{" ++ str ++ "}")]) 
+                otherwise -> fillLatex out cs inList
+         else fillLatex out cs inList
+
   | (name `elem` (map snd linkCommands)) =  
     let s1 = "\\" ++ (elemNameToLaTeX name) 
         phrase = if (length(contents) == 0) 
@@ -1070,16 +1115,65 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
                            _ -> ""
         items = [(EditableText (s1 ++ phrase ++ s2))]
     in fillLatex out cs (inList ++ items)
-  | (name == "formula") =  
-    let envType = getParam "latexEnv" atts
-        latexEnv = maybe "" fst (find ((envType ==) . snd) (latexEmbeddedFormulaEnvs ++ latexAtomFormulaEnvs))
-        (s1, s2) = case latexEnv of
+
+
+fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
+  case getObjectClass contents of
+    "text" ->  
+      let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
+				   then ("\\begin{Included}\n", "\n\\end{Included}")
+				   else ("","")
+	  s1 = "\\begin{Text}" 
+	  s2 = "[" ++ (getAttribs (atts ++ (attElemToAtts contents)) "" []) ++ "]"
+	  s3 = "\\end{Text}"
+	  items = if (s2 == "[]") 
+		    then (fillLatex out contents [])
+		    else [(EditableText (b_insert ++ s1 ++ s2))] 
+			 ++ (fillLatex out contents []) 
+			 ++ [(EditableText (s3 ++ e_insert))]
+      in fillLatex out cs (inList ++ items)
+
+    "item" ->
+      let s1 = "\\item" 
+	  attrStr = (getAttribs (atts ++ (attElemToAtts contents)) "" [])
+	  s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "] "
+	  items = [EditableText (s1 ++ s2)] ++ (fillLatex out contents [])
+      in fillLatex out cs (inList ++ items)
+  
+    "formula" ->  
+      let envType = getParam "latexEnv" (attElemToAtts contents)
+          latexEnv = maybe "" fst (find ((envType ==) . snd) (latexEmbeddedFormulaEnvs ++ latexAtomFormulaEnvs))
+          (s1, s2) = case latexEnv of
                       "$" -> ("$", "$")
                       "$$" -> ("$$", "$$")
                       "\\(" -> ("\\(", "\\)")
                       "\\[" -> ("\\[", "\\]")
                       otherwise -> ("\\begin{" ++ latexEnv ++ "}", "\\end{" ++ latexEnv ++ "}")
-    in fillLatex out cs (inList ++ [(EditableText s1)] ++ (fillLatex out contents []) ++ [(EditableText s2)])     
+      in fillLatex out cs (inList ++ [(EditableText s1)] ++ (fillLatex out contents []) ++ [(EditableText s2)])     
+    "package" ->
+      let s1 = "\\begin{Package}" 
+	  attrStr = if out 
+                      -- Wenn die Präambel mit ausgegeben wird (out = true), dann stehen die
+                      -- Attribute (ausser Label) schon im \Properties-Command.
+		      then "Label={" ++ (getParam "label" ((attElemToAtts contents) ++ atts)) ++ "}"
+		      else getAttribs (atts ++ (attElemToAtts contents)) "" []
+	  s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
+	  s3 = "\\end{Package}"
+	  items = [(EditableText (s1 ++ s2))] ++ (fillLatex out contents []) 
+		  ++ [(EditableText s3)]
+      in fillLatex out cs (inList ++ items)
+
+    objClass ->
+      let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
+				   then ("\\begin{Included}\n", "\n\\end{Included}")
+				   else ("","")
+	  s1 = "\\begin{" ++ (elemNameToLaTeX objClass) ++ "}" 
+	  attrStr = getAttribs (atts ++ (attElemToAtts contents)) "" []
+	  s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
+	  s3 = "\\end{" ++ (elemNameToLaTeX objClass) ++ "}"
+	  items = [(EditableText ( b_insert ++ s1 ++ s2))] ++ (fillLatex out contents []) 
+		  ++ [(EditableText (s3 ++ e_insert))]
+      in fillLatex out cs (inList ++ items)
         
 fillLatex out ((CString _ str):cs) inList = fillLatex out cs (inList ++ [(EditableText str)])
 
@@ -1091,32 +1185,109 @@ fillLatex out ((CMisc (PI (pi, str))):cs) inList
                       in fillLatex out cs (inList ++ [(EditableText newStr)])
   | otherwise =  fillLatex out cs inList
 
-fillLatex out ((CElem (Elem "package" atts contents)):cs) inList = 
-  let s1 = "\\begin{Package}" 
-      attrStr = if out 
-                  then "Label={" ++ (getParam "label" atts) ++ "}"
-                  else getAttribs atts "" []
-      s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
-      s3 = "\\end{Package}"
-      items = [(EditableText (s1 ++ s2))] ++ (fillLatex out contents []) 
-              ++ [(EditableText s3)]
-  in fillLatex out cs (inList ++ items)
-
-fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
-  let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
-                               then ("\\begin{Included}\n", "\n\\end{Included}")
-                               else ("","")
-      s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
-      attrStr = getAttribs atts "" []
-      s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
-      s3 = "\\end{" ++ (elemNameToLaTeX name) ++ "}"
-      items = [(EditableText ( b_insert ++ s1 ++ s2))] ++ (fillLatex out contents []) 
-              ++ [(EditableText (s3 ++ e_insert))]
-  in fillLatex out cs (inList ++ items)
 
 fillLatex out (c:cs) inList = fillLatex out cs inList
 
 
+attElemToAtts :: [Content] -> [Attribute]
+
+attElemToAtts [] = []
+attElemToAtts cs =
+  case head cs of
+     (CElem (Elem "attributes" atts contents)) ->
+       let attEls = concat (map (multi (tag "attribute")) contents)
+       in mkElem attEls atts
+     (CElem (Elem "variant-attributes" atts contents)) ->
+       let attEls = concat (map (tag "attribute") contents)
+       in mkElem attEls atts
+     otherwise -> []   
+  where
+    mkElem attEls atts = 
+          concat
+	    (map (\(cElem) ->
+		    case cElem of
+		      (CElem (Elem _ atts _)) ->
+		        case atts of
+			  ("key", AttValue [Left keyStr]):("value", AttValue [Left valueStr]):_ ->
+			     [(keyStr, AttValue [Left valueStr])]
+			  otherwise -> []
+		      otherwise -> []
+		 ) attEls
+	     ) ++ atts    
+
+
+
+{-- -----------------------------------------------------------------------------------
+
+      Transformation von der ursprünglichen MMiSS-DTD in die Core-DTD
+
+--}
+
+toCoreDTD :: String -> Content -> Content
+toCoreDTD parentTag (CElem (Elem name atts clist))
+    -- Wenn der parent nicht generalText ist, dann läuft das formula-Element
+    -- in den nächsten Fall, da es in mapLabelledTag den Atomen zugeordnet ist:
+  | isPrefixOf "include" name = 
+       CElem (Elem ("include" ++ mapLabelledTag (drop 7 name)) (filterIncludeAtts atts)
+                   (mkInclVariantEl atts))
+  | (name == "formula") && (parentTag == "generalText") =
+       CElem (Elem "embedded" []
+                   ((attribsElem name atts) ++ [CElem (Elem "simpleText" [] clist)]))
+
+  | mapLabelledTag name == "Atom" =
+       CElem (Elem (translateTag parentTag name) (checkAttribs name atts)
+                    ((attribsElem name atts) 
+                     ++ [CElem (Elem "generalText" [] (map (toCoreDTD "generalText") clist))]))
+  | otherwise =      
+       CElem (Elem (translateTag parentTag name) (checkAttribs name atts)
+                   ((attribsElem name atts) ++ (map (toCoreDTD (translateTag parentTag name)) clist)))
+  where
+    attribsElem name atts =
+       if (name `elem` mmissEmbeddedEnvs)
+         then []
+         else
+	   let variantAttribs = filter (\(k,v) -> k `elem` mmissVariantAttribs) atts
+	       variantElemlist = map (\(k, v) -> CElem (Elem "attribute" [("key", (AttValue [Left k])),("value", v)] []))
+				     variantAttribs
+	       variantElem = if ((genericLength variantElemlist) == 0) 
+			       then []
+			       else [(CElem (Elem "variant-attributes" [] variantElemlist))]
+	       otherAttribs = filter (\(k,v) -> not (k `elem` (mmissVariantAttribs ++ mmissSystemAttribs))) atts
+	       otherElemlist = map (\(k, v) -> CElem (Elem "attribute" [("key", (AttValue [Left k])),("value", v)] []))
+				     otherAttribs
+	       otherElem = [(CElem (Elem "other-attributes" [] otherElemlist))]
+	   in if (name `elem` includeCommands)
+                then variantElem
+                else [CElem (Elem "attributes" (filterSystemAttribs name atts) (variantElem ++ otherElem))]
+    filterSystemAttribs name atts = 
+       ("object-class", (AttValue [Left name])):(filter (\(k,v) -> k `elem` mmissSystemAttribs) atts) 
+    checkAttribs name atts =
+       if (name `elem` mmissEmbeddedEnvs)
+         then atts
+         else if (name `elem` includeCommands)
+                then (filter (\(k,v) -> k `elem` mmissIncludeAttribs) atts) 
+                else []
+    translateTag parent name =
+       case mapLabelledTag name of
+         "Atom" -> if (parent == "generalText")
+                     then "embedded"
+                     else "atom"
+         e -> toLowerStr e
+    filterIncludeAtts atts = filter (\(key,v) -> key `elem` mmissIncludeAttribs) atts
+    mkInclVariantEl atts = 
+       let variantAttribs = filter (\(k,v) -> k `elem` mmissVariantAttribs) atts
+	   variantElemlist = map (\(k, v) -> CElem (Elem "attribute" [("key", (AttValue [Left k])),("value", v)] []))
+				     variantAttribs
+	   variantElem = if ((genericLength variantElemlist) == 0) 
+			   then []
+			   else [(CElem (Elem "variant-attributes" [] variantElemlist))]
+       in variantElem
+
+toCoreDTD p c = c
+
+
+getObjectClass :: [Content] -> String
+getObjectClass cs = getParam "object-class" (attElemToAtts cs)
 
 getParam :: String -> [Attribute] -> String
 getParam name atts = let value = lookup name atts
@@ -1150,7 +1321,7 @@ cElemListWithError name ps atts c =
     Left str -> hasError str
 
 
--- Maps an Xml tag to its corresponding mini-type if it has one.
+-- Maps an object-class attribute to its corresponding mini-type if it has one.
 -- (The mini-type is just something that identifies what sort of
 -- include the String needs.)
 classifyLabelledTag :: String -> Maybe Char
@@ -1159,34 +1330,20 @@ classifyLabelledTag str = fromIncludeStrOpt (mapLabelledTag str)
 -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
 -- the corresponding includeXXX command.
 toIncludeStr :: Char -> String
-toIncludeStr 'G' = "Package"
+toIncludeStr 'G' = "Group"
 toIncludeStr 'U' = "Unit"
-toIncludeStr 'E' = "CompositeUnit"
 toIncludeStr 'A' = "Atom"
-toIncludeStr 'T' = "Text"
-toIncludeStr 'S' = "Section"
-toIncludeStr 'c' = "ProgramComponent"
-toIncludeStr 'm' = "Term"
-toIncludeStr 'D' = "DevelopmentStep"
-toIncludeStr 'P' = "Proof"
-toIncludeStr 'o' = "ProofStep"
+toIncludeStr 'E' = "Embedded"
 toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
 
 
 -- | fromIncludeStrOpt
 -- and also handles the case where the first letter is lower-cased.
 fromIncludeStrOpt :: String -> Maybe Char
-fromIncludeStrOpt "Package" = Just 'G'
+fromIncludeStrOpt "Group" = Just 'G'
 fromIncludeStrOpt "Unit" = Just 'U'
 fromIncludeStrOpt "Atom" = Just 'A'
-fromIncludeStrOpt "Text" = Just 'T'
-fromIncludeStrOpt "Section"          = Just 'S'                
-fromIncludeStrOpt "CompositeUnit"    = Just 'E'        
-fromIncludeStrOpt "ProgramComponent" = Just 'c'         
-fromIncludeStrOpt "Proof"            = Just 'P'        
-fromIncludeStrOpt "ProofStep"        = Just 'o'        
-fromIncludeStrOpt "DevelopmentStep"  = Just 'D' 
-fromIncludeStrOpt "Term"             = Just 'm' 
+fromIncludeStrOpt "Embedded" = Just 'E'
 fromIncludeStrOpt (c : cs) | Char.isLower c 
    = fromIncludeStrOpt (toUpper c : cs)
 fromIncludeStrOpt _ = Nothing
@@ -1198,12 +1355,18 @@ fromIncludeStr str = case fromIncludeStrOpt str of
    Nothing -> error 
     ("MMiSSDTDAssumptions.fromIncludeStr - bad include string"++str)
 
--- | Map tags to the name of their corresponding include element (minus
+
+-- | Map object-class attributes to the name of their corresponding include element (minus
 -- \"include\")
 mapLabelledTag :: String -> String
 mapLabelledTag s = 
    case s of
-      "package" -> "Package"
+      "group" -> "Group"
+      "unit" -> "Unit"
+      "atom" -> "Atom"
+      "embedded" -> "Embedded"
+      "package" -> "Group"
+      "section" -> "Group"
       "paragraph" -> "Unit"
       "abstract" -> "Unit"
       "introduction" -> "Unit"
@@ -1211,40 +1374,59 @@ mapLabelledTag s =
       "theory" -> "Unit"
       "program" -> "Unit"
       "view" -> "Unit"
-      "list" -> "CompositeUnit"
-      "itemize" -> "CompositeUnit"
-      "enumerate" -> "CompositeUnit"
-      "description" -> "CompositeUnit"
-      "example" -> "CompositeUnit"
-      "exercise" -> "CompositeUnit"
-      "assignment" -> "CompositeUnit"
-      "solution" -> "CompositeUnit"
-      "illustration" -> "CompositeUnit"
-      "proposition" -> "CompositeUnit"
-      "definition" -> "ConceptualUnit"
-      "theorem" -> "CompositeUnit"
-      "conjecture" -> "CompositeUnit"
-      "falseConjecture" -> "CompositeUnit"
-      "lemma" -> "CompositeUnit"
-      "corollary" -> "CompositeUnit"
-      "assertion" -> "CompositeUnit"
-      "proof" -> "CompositeUnit"
-      "development" -> "CompositeUnit"
-      "comment" -> "Annotation"
-      "note" -> "Annotation"
-      "message" -> "Annotation"
-      "error" -> "Annotation"
-      "glossary" -> "Annotation"
+      "list" -> "Unit"
+      "itemize" -> "Unit"
+      "item" -> "Unit"
+      "enumerate" -> "Unit"
+      "description" -> "Unit"
+      "example" -> "Unit"
+      "exercise" -> "Unit"
+      "assignment" -> "Unit"
+      "solution" -> "Unit"
+      "illustration" -> "Unit"
+      "proposition" -> "Unit"
+      "definition" -> "Unit"
+      "theorem" -> "Unit"
+      "conjecture" -> "Unit"
+      "falseConjecture" -> "Unit"
+      "lemma" -> "Unit"
+      "corollary" -> "Unit"
+      "proof" -> "Unit"
+      "development" -> "Unit"
+      "comment" -> "Unit"
+      "note" -> "Unit"
+      "error" -> "Unit"
+      "warning" -> "Unit"
+      "glossary" -> "Unit"
       "bibEntry" -> "Atom"
-      _ -> mapUpper s
-   where
-      mapUpper [] = []
-      mapUpper (c : cs) = toUpper c : cs      
+      "declaration" -> "Atom"
+      "axiom" -> "Atom"
+      "programFragment" -> "Atom"
+      "source" -> "Atom"
+      "text" -> "Atom"
+      "rule" -> "Atom"
+      "proofStep" -> "Atom"
+      "programComponent" -> "Atom"
+      "developmentStep" -> "Atom"
+      "table" -> "Atom"
+      "figure" -> "Atom"
+      "formula" -> "Atom"
+      "emphasis" -> "emphasis"
+      "cite" -> "cite"
+      n -> n
+--     _ -> error ("LaTeXParser.mapLabelledTag: Unknown element " ++ s) 
 
+toLowerStr :: String -> String
+toLowerStr "" = ""
+toLowerStr (c : cs) 
+  | isUpper c = (toLower c) : cs
+  | otherwise = c:cs
 
-
-append :: a -> [a] -> [a]
-append x xs = xs ++ [x]
+toUpperStr :: String -> String
+toUpperStr "" = ""
+toUpperStr (c : cs) 
+  | isLower c = (toUpper c) : cs
+  | otherwise = c:cs
 
 
 

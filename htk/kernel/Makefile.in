@@ -1,0 +1,10 @@
+# The basic HTk kernel.
+PACKAGE = uni-htk-kernel
+PACKAGES = uni-posixutil uni-reactor
+
+SRCS = BaseClasses.hs ButtonWidget.hs CallWish.hs Colour.hs Configuration.hs Core.hs Cursor.hs EventInfo.hs Font.hs GUIObject.hs GUIObjectKind.hs GUIObjectName.hs GUIValue.hs Geometry.hs GridPackOptions.hs PackOptions.hs Packer.hs Resources.hs TkVariables.hs Tooltip.hs Wish.hs
+
+# We use DOCPP for ASYNC_WISH_ERRORS in Wish.hs
+DOCPP = 1 
+
+include @TOP@/mk/boilerplate.mk

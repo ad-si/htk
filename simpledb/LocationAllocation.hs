@@ -1,4 +1,4 @@
--- | This module handles the allocation of 'Location'/'PrimitiveLocation's.  
+-- | This module handles the allocation of 'Location' or 'PrimitiveLocation's. 
 module LocationAllocation(
    initLocations,
    getNextLocation,

@@ -1,11 +1,5 @@
 PACKAGE = uni-server
 
-ifeq "@OSTITLE@" "linux"
-CRYPTPACKAGES = crypt-linux
-else
-CRYPTPACKAGES = 
-endif
-
 PACKAGES = uni-reactor uni-posixutil uni-htk \
    $(CRYPTPACKAGES) $(if @HAXML@,uni-HaXml) 
 
@@ -14,6 +8,8 @@ SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
    Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs Hosts.hs \
    HostsList.hs GroupFile.hs
+
+SRCSC      = dipperstein_crypt.c
 
 EXTRAEXPORTS = Hosts.xml
 

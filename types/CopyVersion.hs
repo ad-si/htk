@@ -171,6 +171,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         redirects = mapMaybe toRedirect diffs1
 
 
+
      (commitChanges2 
         :: [(Location,Either ICStringLen (ObjectVersion,Location))])
         <- mapM

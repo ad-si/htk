@@ -17,7 +17,6 @@ import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Control.Exception(assert)
 
-import Computation
 import Thread
 import ExtendedPrelude
 import AtomString(toString,fromStringWE)
@@ -31,12 +30,13 @@ import ViewType
 import Link
 import EntityNames
 import LinkManager
-import AttributesType
 
 import EmacsContent
 import EmacsEdit
 
 import Text.XML.HaXml.Types
+
+import LaTeXParser(IncludeInfo(..))
 
 import MMiSSBundleConvert
 import MMiSSImportExportErrors
@@ -49,14 +49,12 @@ import MMiSSEditFormatConverter
 import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSVariant
-import MMiSSVariantObject(getCurrentVariantSearch)
 import MMiSSEditXml(TypedName)
 import MMiSSLaTeX
 import MMiSSObjectTypeInstance
 import MMiSSReAssemble
 import MMiSSPackageFolder
 import MMiSSVariantObject
-import MMiSSElementInfo(changeLabel)
 import MMiSSEditLocks
 import {-# SOURCE #-} MMiSSExportFiles
 
@@ -241,23 +239,33 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   outerVariants1 = refineVariantSearch variants variantSpec
 
                   (contentWE :: WithError (EmacsContent (TypedName,
-                     [Attribute]))) = toEdit name thisElement
+                     IncludeInfo))) = toEdit name thisElement
 
-               (content0 :: EmacsContent (TypedName,[Attribute]))
+               (content0 :: EmacsContent (TypedName,IncludeInfo))
                   <- coerceWithErrorOrBreakIO break2 contentWE
 
                let
-                  mapContent :: EmacsContent (TypedName,[Attribute]) 
+                  mapContent :: EmacsContent (TypedName,IncludeInfo) 
                      -> IO (EmacsContent EditRef)
                   mapContent = mapMonadic
-                     (\ ((string,miniType),includeAttributes) ->
+                     (\ ((string,miniType),includeInfo) ->
                         do
                            (searchName1 :: EntitySearchName) 
                               <- coerceWithErrorOrBreakIO break2 
                                  (fromStringWE string)
+
                            let
-                              linkVariants1 = 
-                                 toMMiSSVariantSpecFromXml includeAttributes
+                              includeAttributes = otherAttributes includeInfo
+
+                              priorityWE = getPriorityAtt includeAttributes
+                           priority <- coerceWithErrorOrBreakIO break2
+                              priorityWE
+
+                           let
+                              linkVariants1 = case variantOpt includeInfo of
+                                 Nothing -> emptyMMiSSVariantSpec
+                                 Just variantElement ->
+                                    toMMiSSVariantSpecFromXml variantElement
 
                               editRef =
                                  EditRef {
@@ -266,8 +274,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                     outerVariants = outerVariants1,
                                     linkVariants = linkVariants1,
                                     miniType = miniType,
-                                    priority = getPriorityAttributes 
-                                       includeAttributes
+                                    priority = priority
                                     }
 
                            return editRef 
@@ -282,17 +289,14 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                      catchAllErrorsWE (
                        do
                           let
+
                              (emacsContent1 :: EmacsContent (TypedName,
-                                   [Attribute])) =
+                                   IncludeInfo)) =
                                 fmap
                                    (\ editRef -> 
                                       ((toString (searchName editRef),
                                          miniType editRef),
-                                         setPriorityAttributes'
-                                            (fromMMiSSVariantSpecToXml
-                                               (linkVariants editRef)
-                                               )
-                                             (priority editRef)
+                                         mkIncludeInfo editRef
                                          )
                                       )
                                    emacsContent0
@@ -320,7 +324,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                              Just element1 ->
                                 let
                                    contentWE :: WithError 
-                                      (EmacsContent (TypedName,[Attribute]))
+                                      (EmacsContent (TypedName,IncludeInfo))
                                    contentWE =
                                       do
                                          element2 
@@ -346,7 +350,6 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                           messageMess ("Commit of "++name++ " successful!")
                           return emacsContentOpt
                        )
-
 
                   finishEdit =
                      do
@@ -407,32 +410,30 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                       form4
 
 
-                  extraForm :: Form (EntitySearchName,(Char,String))
-                  extraForm = form1 // (form3 // form5)
+                  linkDetailsForm :: Form (EntitySearchName,(Char,String))
+                  linkDetailsForm = form1 // (form3 // form5)
 
-               extraFormItem <- mkExtraFormItem extraForm
-               
-               attributesOpt <- inputAttributes view variantAttributesType2
-                  (Just extraFormItem)
-               case attributesOpt of
+               linkDetailsOpt <- doForm "Enter Link Details" linkDetailsForm
+               case linkDetailsOpt of
                   Nothing -> return Nothing
-                  Just attributes ->
+                  Just (searchName1,(miniType1,priority1)) ->
                      do
-                        linkVariants1 
-                           <- toMMiSSVariantSpecFromAttributes attributes
-                        (searchName1,(miniType1,priority1)) 
-                           <- readExtraFormItem extraFormItem
-                        let
-                           editRef = EditRef {
-                              package = package1,
-                              searchName = searchName1,
-                              outerVariants = outerVariants1,
-                              linkVariants = linkVariants1,
-                              priority = priority1,
-                              miniType = miniType1
-                              }
-
-                        return (Just editRef)
+                        linkVariantSpecOpt <- editMMiSSVariantSpec
+                           emptyMMiSSVariantSpec
+                        case linkVariantSpecOpt of
+                           Nothing -> return Nothing
+                           Just linkVariantSpec ->
+                              let
+                                 editRef = EditRef {
+                                    package = package1,
+                                    searchName = searchName1,
+                                    outerVariants = outerVariants1,
+                                    linkVariants = linkVariantSpec,
+                                    priority = priority1,
+                                    miniType = miniType1
+                                    }
+                              in
+                                 return (Just editRef)
             )
 
       emacsFS = EmacsFS {
@@ -625,14 +626,12 @@ reAssembleArg view packageFoldersMVar getContent editFormatConverter
                            nextMVar <- newMVar (toEmacsLinks content0)
 
                            let
-                              content1 :: EmacsContent (TypedName,[Attribute])
+                              content1 :: EmacsContent (TypedName,IncludeInfo)
                               content1 = fmap 
                                  (\ (b,editRef) -> 
                                     ((toString (searchName editRef),
                                           miniType editRef),
-                                       fromMMiSSVariantSpecToXml (
-                                          linkVariants editRef
-                                          )
+                                       mkIncludeInfo editRef
                                        )
                                     )
                                  content0
@@ -673,3 +672,23 @@ getEditRef view editRef =
 toVariants :: EditRef -> MMiSSVariantSearch
 toVariants editRef =
    refineVariantSearch (outerVariants editRef) (linkVariants editRef)
+
+
+mkIncludeInfo :: EditRef -> IncludeInfo
+mkIncludeInfo editRef =
+   let
+      variants1 = linkVariants editRef
+
+      variantOpt = 
+         if variants1 == emptyMMiSSVariantSpec
+            then
+               Nothing
+            else
+               Just (fromMMiSSVariantSpecToXml variants1)
+
+      otherAttributes = setPriorityAtt [] (priority editRef)
+   in
+      IncludeInfo {
+         variantOpt = variantOpt,
+         otherAttributes = otherAttributes
+         }

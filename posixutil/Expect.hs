@@ -60,9 +60,6 @@ data Expect =
 instance Tool Expect where
    getToolStatus expect = getToolStatus (child expect)
 
-instance UnixTool Expect where
-   getUnixProcessID expect = getUnixProcessID (child expect)
-
 instance Object Expect where
    objectID expect = objectID (child expect)
 

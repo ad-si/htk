@@ -30,8 +30,6 @@ import Data.IORef
 import Data.FiniteMap
 import Data.HashTable
 
-import System.Posix.Process
-
 import WBFiles
 import Computation (done)
 
@@ -291,8 +289,7 @@ mkServerId isInternal =
                if isInternal
                   then
                      do
-                        pID <- getProcessID
-                        return(fullHostName ++ ":#" ++ show pID)
+                        return(fullHostName ++ ":#")
                   else
                      do
                         port <- getPort

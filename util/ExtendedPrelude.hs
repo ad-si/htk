@@ -12,7 +12,7 @@ module ExtendedPrelude (
 
    -- * Miscellaneous functions
    monadDot,
-   split,
+   simpleSplit,
    findJust,
    insertOrdLt,
    insertOrdGt,
@@ -157,7 +157,6 @@ padToLength l s =
          else
             s
 
-
 -- | returns Just a if we can read a, and the rest is just spaces.
 readCheck :: Read a => String -> Maybe a
 readCheck str = case reads str of
@@ -205,10 +204,10 @@ mapPartialM mapFn as =
 -- List Operations
 -- ---------------------------------------------------------------------------
 
-split :: (a -> Bool) -> [a] -> [[a]]
-split p s = case dropWhile p s of
+simpleSplit :: (a -> Bool) -> [a] -> [[a]]
+simpleSplit p s = case dropWhile p s of
                 [] -> []
-                s' -> w : split p s''
+                s' -> w : simpleSplit p s''
                       where (w,s'') = break p s' 
 
 findJust :: (a -> Maybe b) -> [a] -> Maybe b
@@ -387,7 +386,7 @@ chop n list =
 -- ------------------------------------------------------------------------
 
 pairList :: a -> [b] -> [(a,b)]
-pairList a bs = map (\ b -> (a,b)) bs
+pairList a bs = fmap (\ b -> (a,b)) bs
 
 -- ------------------------------------------------------------------------
 -- Get the last element (safely)
@@ -529,7 +528,7 @@ isOurFallOut oId exception =
       Nothing -> Nothing 
          -- don't handle this as it's not even a dyn.
       Just dyn ->
-         case fromDyn dyn of
+         case fromDynamic dyn of
             Nothing -> Nothing -- not a fallout.
             Just fallOutExcep -> if fallOutId fallOutExcep /= oId
                then
@@ -573,7 +572,7 @@ newGeneralFallOut =
                   Nothing -> Nothing 
                      -- don't handle this as it's not even a dyn.
                   Just dyn ->
-                     case fromDyn dyn of
+                     case fromDynamic dyn of
                         Nothing -> Nothing 
                            -- not a fallout, or not the right type of a.
                         Just generalFallOutExcep -> 
@@ -597,7 +596,7 @@ ourExcepToMess :: Exception -> Maybe String
 ourExcepToMess excep = case dynExceptions excep of
    Nothing -> Nothing
    Just dyn -> 
-      case fromDyn dyn of
+      case fromDynamic dyn of
          Just fallOut -> Just ("Fall-out exception " 
             ++ show (fallOutId fallOut) ++ ": " ++ mess fallOut)
          Nothing -> Just ("Mysterious dynamic exception " ++ show dyn)
@@ -675,12 +674,12 @@ uniqOrdByKey (getKey :: a -> b) (as :: [a]) =
    let
       fm :: Data.FiniteMap.FiniteMap b a
       fm = Data.FiniteMap.listToFM
-         (map
+         (fmap
             (\ a -> (getKey a,a))
             as
             )
   in
-     map snd (Data.FiniteMap.fmToList fm)
+     fmap snd (Data.FiniteMap.fmToList fm)
 
 -- | Remove duplicate elements from a list where the key function is supplied.
 -- The list order is preserved and of the duplicates, it is the first in the
@@ -767,24 +766,9 @@ maxFM_1 :: Ord key => Data.FiniteMap.FiniteMap key elt -> Maybe key
 keysFM_GE_1 :: Ord key => Data.FiniteMap.FiniteMap key elt -> key -> [key]
 
 
-#if (__GLASGOW_HASKELL__ >= 610)
 fmToList_GE_1 = Data.FiniteMap.fmToList_GE
 maxFM_1 = Data.FiniteMap.maxFM
 keysFM_GE_1 = Data.FiniteMap.keysFM_GE
-#else
--- stopgap solutions
-fmToList_GE_1 map key =
-   filter
-      (\ (key1,_) -> key1 >= key)
-      (Data.FiniteMap.fmToList map)
-
-maxFM_1 map =
-   case Data.FiniteMap.keysFM map of
-      [] -> Nothing
-      keys -> Just (last keys)
-
-keysFM_GE_1 fm key  = map fst (fmToList_GE_1 fm key)
-#endif
 
 -- ------------------------------------------------------------------------
 -- Generalised Merge
@@ -814,8 +798,8 @@ generalisedMerge as bs (compareFn :: a -> b -> Ordering)
            return (mapMaybe fst results,mapMaybe snd results)
 
       gm :: [a] -> [b] -> [m (Maybe a,Maybe c)]
-      gm as [] = map (\ a -> mergeFn (Just a) Nothing) as
-      gm [] bs = map (\ b -> mergeFn Nothing (Just b)) bs
+      gm as [] = fmap (\ a -> mergeFn (Just a) Nothing) as
+      gm [] bs = fmap (\ b -> mergeFn Nothing (Just b)) bs
       gm (as0 @ (a:as1)) (bs0 @ (b:bs1)) = case compareFn a b of
          LT -> mergeFn (Just a) Nothing : gm as1 bs0
          GT -> mergeFn Nothing (Just b) : gm as0 bs1

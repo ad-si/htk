@@ -9,7 +9,7 @@
 
 <request><connect server="denebola:11395" user="ger" password=""><serverRef ref="X"/></connect></request>
 <request><listVersions><serverRef ref="X"/></listVersions></request>
-<request><closeServer><serverRef ref="X"/></closeServer></request>
+<request><closeServer><serverRef ref="X"/></closeServer>/request>
 <request><closeVersion><versionRef ref="Y"/></closeVersion></request>
 <request><checkOut version="1"><serverRef ref="X"/><versionRef ref="V1"/></checkOut></request>
 <request><changeUserInfo><versionRef ref="V1"/><userInfo label="Test label"/></changeUserInfo></request>

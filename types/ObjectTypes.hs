@@ -156,7 +156,6 @@ import System.IO.Unsafe
 import qualified Data.Dynamic
 
 import Registry
-import Computation
 import ExtendedPrelude
 import Dynamics
 import Sink
@@ -370,12 +369,12 @@ instance Ord WrappedLink where
 -- | Returns Nothing if the types don\'t match.
 unpackWrappedLink :: ObjectType objectType object =>
    WrappedLink -> Maybe (Link object)
-unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
+unpackWrappedLink (WrappedLink link) = fromDynamic (toDyn link) 
 
 unpackWrappedLinkWE :: ObjectType objectType object =>
    WrappedLink -> WithError (Link object) 
 unpackWrappedLinkWE (WrappedLink link) =
-   case fromDyn (toDyn link) of
+   case fromDynamic (toDyn link) of
       Just link2 -> hasValue link2
       (Nothing :: Maybe link2Type) ->
          hasError ("Type failure: looking for a " 

@@ -110,7 +110,7 @@ fromStringWEHacked str =
          (\ exception -> case dynExceptions exception of
             Nothing -> Nothing -- don't handle this as it's not even a dyn.
             Just dyn ->
-               case fromDyn dyn of
+               case fromDynamic dyn of
                   Nothing -> Nothing -- not a fromStringError.
                   Just (FromStringExcep mess) -> Just mess
             )

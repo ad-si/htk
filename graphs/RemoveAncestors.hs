@@ -127,3 +127,5 @@ data NodeState =
    |  No  -- ^ the opposite of Yes.
    |  Cycle -- ^ we are already searching from this element.
 
+{- SPECIALIZE removeAncestorsBy 
+   ::  (Node -> IO [Node]) -> [Node] -> IO [Node] -}

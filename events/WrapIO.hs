@@ -16,7 +16,6 @@ module WrapIO(
 
 import Control.Exception
 
-import Computation
 import Thread
 
 import Channels

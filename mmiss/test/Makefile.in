@@ -3,7 +3,7 @@ PACKAGES = uni-mmiss uni-davinci
 SRCS       = TestStructure.hs TestLaTeXStructure.hs MainMMiSSWorkbench.hs
 SRCSC      = MainTempDir.c
 
-EXTRAEXPORTS = MMiSSWorkbench $(wildcard files/*.tex) Makefile.in runWorkbench.in rerunWorkbench.in testfiles isConnected TempDir
+EXTRAEXPORTS = MMiSSWorkbench$(EXESUFFIX) $(wildcard files/*.tex) Makefile.in runWorkbench.in rerunWorkbench.in testfiles isConnected$(EXESUFFIX) TempDir$(EXESUFFIX)
 
 include @TOP@/mk/boilerplate.mk
 
@@ -43,4 +43,4 @@ killWorkbench :
 packages : isConnected
 
 isConnected : IsConnected.hs
-	$(HC) IsConnected.hs -o isConnected -package net
+	$(HC) IsConnected.hs -o isConnected -package network

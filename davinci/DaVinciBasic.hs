@@ -50,15 +50,18 @@ module DaVinciBasic(
    
    ) where
 
+import Maybe
+import IO
+
 import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Foreign.C.String
-import System.Posix.Env
 import Data.IORef
+import System.Environment
 
 import Object
-import Computation
 import WBFiles
+import Computation
 import FileNames
 import Registry
 import UniqueString
@@ -70,7 +73,6 @@ import Events
 import Channels
 import Destructible
 
-import Lock
 import BSem
 import ChildProcess
 import InfoBus
@@ -108,7 +110,8 @@ daVinci = unsafePerformIO newDaVinci
 
 challengeResponsePair :: (String,String)
 challengeResponsePair =
-  ("nothing\nnothing\nnothing","ok\nok\nok\nok\n")
+  ("nothing"++recordSep++"nothing"++recordSep++"nothing",
+   "ok"++recordSep++"ok"++recordSep++"ok"++recordSep++"ok"++recordSep)
 -- 3 nothings and 4 oks, because daVinci also outputs an extra "ok"
 -- right at the beginning.
 
@@ -125,17 +128,17 @@ newDaVinci =
                   return (FileNames.trimDir top ++ "/database/icons")
             Just daVinciIcons -> return daVinciIcons
 
-      existingEnv <- System.Posix.Env.getEnvironment
-
+      env <- System.Environment.getEnvironment
       let 
          configs = [
-            environment (("DAVINCI_ICONDIR",daVinciIcons):existingEnv),
+            environment (("DAVINCI_ICONDIR",daVinciIcons):env),
             arguments ["-pipe"],
             standarderrors False,
             challengeResponse challengeResponsePair,
             toolName "daVinci"
             ]
       childProcess <- newChildProcess daVinciPath configs
+
 -- Send initial command.
       sendMsg childProcess (show (Special Version))
 -- We will collect the answer from this in a moment . . .
@@ -149,8 +152,9 @@ newDaVinci =
 
 -- Collect initial answers from daVinci.
       versionAnswer <- getNextAnswer childProcess
-      -- All commands in future will be channelled through
-      -- doInContextVeryGeneral, and all answers through
+      -- With the exception of "Menu(File(Exit))" which will be used in
+      -- a couple of lines to terminate daVinci, all commands in future will 
+      -- be channelled through doInContextVeryGeneral, and all answers through
       -- the answer dispatcher.
       let
          version = case versionAnswer of
@@ -167,11 +171,14 @@ newDaVinci =
                oID = oID,
                version = version
                }
+
       destroyAnswerDispatcher <- spawn (answerDispatcher daVinci)
       putMVar destroyActMVar (
          do
             deregisterTool daVinci
             forAllContexts destroy
+            sendMsg childProcess (show(Menu(File(Exit))))
+               -- ask daVinci nicely to go, before we kill it.
             destroy childProcess
             destroyAnswerDispatcher
          )
@@ -210,6 +217,32 @@ instance Destroyable DaVinci where
 
 instance Object DaVinci where
    objectID daVinci = oID daVinci
+
+-- ---------------------------------------------------------------------
+-- Code for getting the environment that is or might be relevant to daVinci in
+-- a portable way.
+-- ---------------------------------------------------------------------
+
+getDaVinciEnvironment :: IO [(String,String)]
+getDaVinciEnvironment =
+   do
+      let
+         getEnvOpt :: String -> IO (Maybe (String,String))
+         getEnvOpt envName =
+            do
+               res <- IO.try (getEnv envName)
+               return (case res of
+                  Left error -> Nothing
+                  Right envVal -> Just (envName,envVal)
+                  )
+
+      (daVinciEnvs :: [Maybe (String,String)]) 
+         <- mapM getEnvOpt [
+            "DISPLAY","LD_LIBRARY_PATH","DAVINCIHOME","LANG","OSTYPE",
+            "PATH","PWD","USER"]
+
+      return (catMaybes daVinciEnvs)
+
 
 -- ---------------------------------------------------------------------
 -- Contexts

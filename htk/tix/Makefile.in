@@ -1,0 +1,7 @@
+PACKAGE = uni-htk-tix
+PACKAGES = uni-htk-kernel
+
+SRCS = LabelFrame.hs NoteBook.hs PanedWindow.hs Subwidget.hs
+
+include @TOP@/mk/boilerplate.mk
+

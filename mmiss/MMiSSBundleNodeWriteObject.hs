@@ -4,7 +4,6 @@ module MMiSSBundleNodeWriteObject(
 
 import Text.XML.HaXml.Types
 
-import Computation
 import Thread
 
 import BSem

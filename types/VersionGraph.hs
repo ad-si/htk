@@ -33,27 +33,21 @@ module VersionGraph(
    ) where
 
 import System.IO.Unsafe
-import Control.Concurrent.MVar
 import Control.Concurrent
 import Control.Exception
 
-import Computation
 import Sources
 import Dynamics
 import ExtendedPrelude(mapEq,mapOrd)
 import Messages
 import Thread(forkIODebug)
 
-import Spawn
 import Destructible
-import Events
-import Channels
 
 import BSem
 import HostsPorts hiding (user)
 import Lock
 
-import MenuType
 import SimpleListBox
 import HTk hiding (Arc,Menu)
 
@@ -124,7 +118,8 @@ newVersionGraphInternal ::
 newVersionGraphInternal displaySort repository versionState =
    do
       graph <- mkVersionGraphClientInternal versionState
-      newVersionGraph1 displaySort repository graph "(Local)" True
+      x <- newVersionGraph1 displaySort repository graph "(Local)" True
+      return x
 
 newVersionGraph1 :: 
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms

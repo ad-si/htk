@@ -9,12 +9,7 @@ data Folder = Folder {
 data Versioned x = Versioned {
    loc :: Bool,
    s :: [x]
-   }
-
-versioned_tyRep = mkTyRep "View" "Versioned"
-
-instance HasTyRep1 Versioned where
-   tyRep1 _ = versioned_tyRep
+   } deriving (Typeable)
 
 main =
    do

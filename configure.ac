@@ -317,9 +317,11 @@ if test "$GOAHEAD" = YES; then
       $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
    fi
 
+   FIXFILENAMES=$PWD/mk/FixFileNames
+
    # Find out what GHC thinks this directory is (this will not necessarily be 
    # the same as TOP on Windows).  This string is escaped.
-   GHCTOP=`echo '#PWD' | mk/FixFileNames`
+   GHCTOP=`echo '#PWD' | $FIXFILENAMES`
    echo GHC calls this directory $GHCTOP
    AC_SUBST(GHCTOP)
 
@@ -335,7 +337,7 @@ if test "$GOAHEAD" = YES; then
    # don't.
    SCRIPTS1=`for i in $SCRIPTS;do if test -e $i.in ; then echo $i; fi;done`
 
-   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options" 
+   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/uni-config.h" 
 
 
    AC_OUTPUT($MAKEFILES $SCRIPTS1 $OTHERFILES)
@@ -349,12 +351,7 @@ if test "$GOAHEAD" = YES; then
       # won't work since they have a special meaning for autoconf.
       echo @<:@@:>@ >uni-package.conf
       echo @<:@@:>@ >uni-package.conf.export
-      mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
-
-      # Also add a package corresponding to the extra options we need for the
-      # standard system crypt function on Linux.
-      $GHCPKG --config-file uni-package.conf --add-package <crypt-package.options
-      
+      mk/FixFileNames <uni-package.options | $GHCPKG --package-conf=uni-package.conf register -      
 
       if test -n "$HAXML"
       then
@@ -370,10 +367,11 @@ if test "$GOAHEAD" = YES; then
          GHCPKGOPTS=--force
       fi
       
-      $GHCPKG $GHCPKGOPTS --config-file uni-package.conf.export --add-package <uni-package.options
+      $GHCPKG $GHCPKGOPTS --package-conf=uni-package.conf.export register - <uni-package.options
 
       if test -n "$BDBDIR"; then
-         $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
+         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf register - 
+         ((cd $BDBDIR/lib;$FIXFILENAMES BDBLIB) | (cd $BDBDIR/include;$FIXFILENAMES BDBINCLUDE)) <bdb-package.options | $GHCPKG --package-conf=uni-package.conf.export register - 
       fi
 
       GMAKESHORT=`basename $GMAKE`

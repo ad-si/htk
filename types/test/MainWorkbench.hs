@@ -10,8 +10,6 @@ module Main(main) where
 
 import System
 
-import System.Posix
-
 import WBFiles
 
 import Events
@@ -45,4 +43,4 @@ main =
                newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)
       cleanupWish
-      exitImmediately ExitSuccess
+      exitWith ExitSuccess

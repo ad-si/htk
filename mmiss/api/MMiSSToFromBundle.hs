@@ -17,8 +17,6 @@ module MMiSSToFromBundle(
    toVariants, -- :: MMiSSVariantSpec -> MMiSSRequest.Variants
    ) where
 
-import Monad
-
 import Control.Monad.State
 
 import Text.XML.HaXml.OneOfN
@@ -31,7 +29,7 @@ import IntPlus
 import XmlExtras
 import MMiSSVariant
 
-import LaTeXParser(PackageId(..))
+import qualified LaTeXParser(PackageId(..))
 
 import MMiSSRequest
 import MMiSSFormat

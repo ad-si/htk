@@ -22,6 +22,7 @@ module Computation (
 
         -- * iterators
         forever,
+        foreverUntil,
         foreach,
         while,
 
@@ -44,6 +45,8 @@ module Computation (
 
         fromWithError, -- :: WithError a -> Either String a
         -- unpack a WithError
+        fromWithError1, -- :: a -> WithError a -> a
+        -- simpler form.
         toWithError, -- :: Either String a -> WithError a
         -- pack a WithError
         isError, -- :: WithError a -> Bool
@@ -178,6 +181,10 @@ isError (Value _) = False
 fromWithError :: WithError a -> Either String a
 fromWithError (Error s) = Left s
 fromWithError (Value a) = Right a
+
+fromWithError1 :: a -> WithError a -> a
+fromWithError1 _ (Value a) = a
+fromWithError1 a (Error _) = a
 
 mapWithError :: (a -> b) -> WithError a -> WithError b
 mapWithError f (Error e) = Error e
@@ -334,6 +341,16 @@ toMonadWithError act = MonadWithError (
 
 forever :: Monad m => m a -> m ()
 forever c  = sequence_ (repeat c)     -- x >> forever x
+
+foreverUntil :: Monad m => m Bool -> m ()
+foreverUntil act =
+   do
+      stop <- act
+      if stop
+         then
+            done
+         else
+            foreverUntil act
 
 foreach :: Monad m => [a] -> (a -> m b) -> m ()
 foreach el c = sequence_ (map c el)   -- mapM c el

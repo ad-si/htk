@@ -45,8 +45,8 @@ import MMiSSPackageFolder
 -- 
 data EditFormatConverter = EditFormatConverter {
    toEdit :: String -> Element 
-      -> WithError (EmacsContent (TypedName,[Attribute])),
-   fromEdit :: String -> EmacsContent (TypedName,[Attribute]) 
+      -> WithError (EmacsContent (TypedName,IncludeInfo)),
+   fromEdit :: String -> EmacsContent (TypedName,IncludeInfo) 
       -> IO (WithError Element)
    }
 

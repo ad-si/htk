@@ -79,6 +79,10 @@ module VersionInfo(
       -- :: CompiledFormatString -> VersionInfo -> IO String
       -- Display a VersionInfo according to the given format (which should have
       -- been produced with checkVersionInfoFormat)
+
+   getVersionInteger,
+      -- :: ObjectVersion -> Integer
+      -- A function you should avoid using if at all possible.
    
    ) where
 
@@ -95,7 +99,6 @@ import Dynamics
 import AtomString(StringClass(..))
 import CommandStringSub
 import Messages
-import DeepSeq
 
 import DialogWin
 import SimpleForm
@@ -105,15 +108,18 @@ import HTk(text,height,width,value,background)
 import qualified PasswordFile
 
 import ServerErrors
+import ObjectVersion
 import {-# SOURCE #-} VersionState
+
 
 -- ----------------------------------------------------------------------
 -- The datatypes
 -- ----------------------------------------------------------------------
-
+{-
 newtype ObjectVersion = ObjectVersion Integer 
    deriving (Eq,Ord,Typeable,DeepSeq,Enum)
    -- Type of handle referring to a version.
+-}
 
 firstVersion :: ObjectVersion
 firstVersion = ObjectVersion 1
@@ -192,6 +198,16 @@ instance Show VersionAttributes where
          kvs = map (\ (k,v) -> k ++ "=" ++ v) l
       in
          (concat (intersperse " " kvs)) ++ acc
+
+-- ----------------------------------------------------------------------
+-- Getting out the underlying integer
+-- ----------------------------------------------------------------------
+
+getVersionInteger :: ObjectVersion -> Integer
+getVersionInteger (ObjectVersion i) = i
+{-# DEPRECATED getVersionInteger 
+   "Please don't use getVersionInteger unless you really have to, since\
+   \  it ignores the tree structure of versions." #-}
 
 -- ----------------------------------------------------------------------
 -- Instances of HasBinary

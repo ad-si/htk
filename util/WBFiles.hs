@@ -99,7 +99,7 @@
 --    --uni-wish:/usr/bin/wish --uni-daVinci:/usr/bin/daVinci
 --    @
 --    ... (and so on)
-
+--
 -- However one difference is that options which are not understood
 -- in the default_options string are simply ignored.
 module WBFiles (
@@ -863,13 +863,12 @@ $(
    if  isWindows
       then
         [d|
-           getWindowsTick :: IO Int
            getWindowsTick = valOf "windowsTick" (getArgInt "windowsTick")
         |]
       else
         [d|
-           getWindowsTick :: IO Int
            getWindowsTick = error "getWindowsTick does not exist"
         |]
   )
+getWindowsTick :: IO Int
 

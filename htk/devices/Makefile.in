@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-devices
+PACKAGES = uni-htk-components
+
+SRCS = Bell.hs Printer.hs Screen.hs XSelection.hs
+
+include @TOP@/mk/boilerplate.mk

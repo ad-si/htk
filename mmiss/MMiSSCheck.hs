@@ -3,16 +3,13 @@ module MMiSSCheck(
    mmissCheck,
    ) where
 
-import Maybe
 import Directory
-import Char
 import System
 import Control.Exception -- catches more.
 import Prelude hiding (catch)
 
 import WBFiles
 import FileNames
-import Computation
 import CommandStringSub(bashEscape)
 import ExtendedPrelude
 

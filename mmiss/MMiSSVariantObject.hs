@@ -170,7 +170,6 @@ import Messages
 import VersionInfo
 
 import CodedValue
-import AttributesType
 import MergeTypes
 import ViewType
 
@@ -511,20 +510,11 @@ editMMiSSSearchObject objectTitle variantObject =
    modifyMVar (currentVariantSpec variantObject) 
       (\ variantSpec0 ->
          do
-            -- We go via Attributes, which is probably hopelessly inefficient
-            -- but who cares?
-            attributes <- fromMMiSSVariantSpecToAttributes variantSpec0
-            attributesState <- updateAttributesPrim ("Select variant for "
-               ++objectTitle) attributes variantAttributesType2 Nothing
-            case attributesState of
-               Cancelled -> return (variantSpec0,False)
-               NoForm -> return (variantSpec0,False) 
-                  -- only happens if there are no variant attributes!
-               Changed ->
+            variantsSpec1Opt <- editMMiSSVariantSpec variantSpec0
+            case variantsSpec1Opt of
+               Nothing -> return (variantSpec0,False)
+               Just variantSpec1 ->
                   do
-                     variantSpec1 
-                        <- toMMiSSVariantSpecFromAttributes attributes
-
                      let
                         changed = (variantSpec1 /= variantSpec0)
                      if changed 

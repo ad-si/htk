@@ -25,17 +25,17 @@ import Data.IORef
 import Data.Set
 import Data.FiniteMap
 import Control.Concurrent
+import qualified Data.Dynamic
+import qualified List
 
 import Sources
 import Sink
-import ExtendedPrelude(mapEq,mapOrd)
 import Delayer
 import qualified UniqueString
 import qualified VariableList
 
 import Dynamics
 import Registry
-import Computation
 import ExtendedPrelude
 import Thread
 import CompileFlags
@@ -44,11 +44,8 @@ import Messages
 import Channels
 import Events
 import Destructible
-import Synchronized
 
 import BSem
-
-import MenuType
 
 import GraphDisp
 import GraphConfigure
@@ -117,7 +114,7 @@ data DaVinciGraph = DaVinciGraph {
    redrawAction :: DelayedAction
       -- this is the action that actually gets done when the user actually
       -- asks for a redraw.   
-   }
+   } deriving (Typeable)
 
 data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
 
@@ -216,7 +213,6 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          graphMVar <- newEmptyMVar 
             -- this will hold the graph when it's completed.  This is needed
             -- by some of the handler actions.
-
 
          
          let
@@ -421,13 +417,13 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          setValue otherActions Closed (signalDestruct daVinciGraph)
          setValue otherActions Quit (signalDestruct daVinciGraph)
 
-         sequence_ (map ($ daVinciGraph) (reverse graphConfigs))
+         sequence_ (fmap ($ daVinciGraph) (reverse graphConfigs))
 
          -- Take control of File Menu events.
          doInContext (AppMenu (ControlFileEvents)) context
          let
             -- Work out which options to enable.
-            fileMenuIds = map
+            fileMenuIds = fmap
                (\ (option,_) -> MenuId ("#%"++(fromFileMenuOption option)))
                (fmToList configFileMenuActions)
 
@@ -612,7 +608,7 @@ instance GraphConfig graphConfig
 -- Nodes
 -- -----------------------------------------------------------------------
 
-data DaVinciNode value = DaVinciNode NodeId
+data DaVinciNode value = DaVinciNode NodeId deriving (Typeable)
 
 -- | Tiresomely we need to make the \"real\" node type untyped.
 -- This is so that the interactor which handles drag-and-drop
@@ -629,7 +625,7 @@ data DaVinciNodeType value = DaVinciNodeType {
    nodeDoubleClickAction :: value -> IO (),
    createNodeAndEdgeAction :: value -> IO (),
    createEdgeAction :: Dyn -> value -> IO () 
-   }
+   } deriving (Typeable)
 
 data NodeData = forall value . Typeable value => 
    NodeData (NodeDataData value)
@@ -910,19 +906,7 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
 instance NodeClass DaVinciNode
 
-daVinciNodeTyRep :: TyRep
-daVinciNodeTyRep = mkTyRep "DaVinciGraph" "DaVinciNode"
-
-instance HasTyRep1 DaVinciNode where
-   tyRep1 _ = daVinciNodeTyRep
-
 instance NodeTypeClass DaVinciNodeType
-
-daVinciNodeTypeTyRep :: TyRep
-daVinciNodeTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciNodeType"
-
-instance HasTyRep1 DaVinciNodeType where
-   tyRep1 _ = daVinciNodeTypeTyRep
 
 instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
    newNodeTypePrim 
@@ -1114,7 +1098,7 @@ instance HasConfigValue NodeDragAndDrop DaVinciNodeTypeParms where
 -- Arcs
 -- -----------------------------------------------------------------------
 
-data DaVinciArc value = DaVinciArc EdgeId
+data DaVinciArc value = DaVinciArc EdgeId deriving (Typeable)
 
 -- Like nodes, the "real" type is monomorphic.
 data DaVinciArcType value = DaVinciArcType {
@@ -1123,7 +1107,7 @@ data DaVinciArcType value = DaVinciArcType {
    arcDoubleClickAction :: value -> IO (),
    arcArcText :: value -> IO (SimpleSource String)
 --   arcTitleFunc :: value -> String
-   }
+   } deriving (Typeable)
 
 data DaVinciArcTypeParms value = 
       DaVinciArcTypeParms {
@@ -1255,18 +1239,6 @@ instance DeleteArc DaVinciGraph DaVinciArc where
                return (Just (ArcData edgeType (coDyn newValue)),()))
 
 instance ArcClass DaVinciArc
-
-daVinciArcTyRep :: TyRep
-daVinciArcTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArc"
-
-instance HasTyRep1 DaVinciArc where
-   tyRep1 _ = daVinciArcTyRep
-
-daVinciArcTypeTyRep :: TyRep
-daVinciArcTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArcType"
-
-instance HasTyRep1 DaVinciArcType where
-   tyRep1 _ = daVinciArcTypeTyRep
 
 instance Eq1 DaVinciArcType where
    eq1 = mapEq arcType
@@ -1451,7 +1423,7 @@ encodeAttributes attributes daVinciGraph =
    do
       let
          keysPart =
-            map
+            fmap
                (\ (key,value) -> A key value)
                (fmToList (options attributes))
       case menuOpt attributes of
@@ -1550,7 +1522,7 @@ encodeDaVinciMenu menuHead =
 
    where
       encodeMenuList :: [MenuPrim (Maybe String,MenuId) MenuId] -> [MenuEntry]
-      encodeMenuList menuPrims = map encodeMenuItem menuPrims
+      encodeMenuList menuPrims = fmap encodeMenuItem menuPrims
 
       encodeMenuItem :: MenuPrim (Maybe String,MenuId) MenuId  -> MenuEntry
       encodeMenuItem (Button label menuId) = MenuEntry menuId (MenuLabel label)
@@ -1632,7 +1604,7 @@ sortPendingChanges1 pendingChanges =
             ([],emptySet)
             edgeUpdates1
 
-      (edgeUpdates3 :: [EdgeUpdate]) = filter
+      (edgeUpdates3 :: [EdgeUpdate]) = List.filter
          (\ e -> case e of
             DeleteEdge edgeId -> not (elementOf edgeId obsoleteEdges)
             _ -> True
@@ -1659,7 +1631,7 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
          -- attached to nodes which get deleted without being
          -- deleted themselves, but I can't be bothered now to do 
          -- anything about this.
-         sequence_ (map
+         sequence_ (fmap
             (\ pendingChange -> case pendingChange of
                NU (DeleteNode nodeId) -> deleteFromRegistry nodes nodeId
                EU (DeleteEdge edgeId) -> deleteFromRegistry edges edgeId
@@ -1766,7 +1738,7 @@ fromFileMenuOption option =
 
 toFileMenuOption :: String -> Maybe FileMenuOption
 toFileMenuOption s =
-   lookup s (map (\ (o,s) -> (s,o)) menuOptionList)
+   lookup s (fmap (\ (o,s) -> (s,o)) menuOptionList)
 
 menuOptionList :: [(FileMenuOption,String)]
 menuOptionList = [
@@ -1787,11 +1759,8 @@ menuOptionList = [
 -- actually identical . . .
 coDyn :: (Typeable a,Typeable b) => a -> b
 coDyn valueA =
-   let
-      dyn = toDyn valueA
-   in
-      case fromDyn dyn of
-         Just valueB -> valueB
+   case Data.Dynamic.cast valueA of
+      Just valueB -> valueB
 
 -- ---------------------------------------------------------------------
 -- A safer version of getValue

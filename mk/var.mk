@@ -30,6 +30,9 @@ endif
 
 HCSHORTFLAGS = \
    $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) \
+   -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances \
+   -fwarn-unused-imports -fwarn-missing-signatures -fwarn-unused-binds \
+   -fwarn-deprecations -recomp \
    -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
@@ -59,5 +62,12 @@ CPP = $(HC) -E -cpp -I$(CINCLUDES) $(EXTRA_HC_OPTIONS)
 
 # The directory containing C includes
 CINCLUDES       = $(TOP)/includes
+
+# Suffix of executable files by the current operating system
+ifeq "$(WINDOWS)" "1"
+EXESUFFIX = .exe
+else
+EXESUFFIX =
+endif
 
 

@@ -9,7 +9,7 @@
 -- DisplayParms.readDisplay.
 module MMiSSDTD(
    allElements,
-   allLabelledElements,
+   allDisplayedElements,
    validateElement,
    validateElement0, -- :: Element -> [String]
    getDisplayInstruction,
@@ -29,10 +29,11 @@ module MMiSSDTD(
 
 import IO
 import Maybe
+import qualified List
 
 import Data.FiniteMap
 import System.IO.Unsafe
-import Control.Exception
+import qualified Control.Exception
 
 import WBFiles
 import IOExtras
@@ -49,9 +50,6 @@ import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Validate
 import Text.XML.HaXml.Escape
 
-
-import MMiSSDTDAssumptions
-
 -- -------------------------------------------------------------
 -- The internal representation of a DTD
 -- -------------------------------------------------------------
@@ -59,8 +57,7 @@ import MMiSSDTDAssumptions
 data MMiSSDTD = MMiSSDTD {
    simpleDTD :: Element -> [String],
    displayInstructions :: FiniteMap String String,
-   elements :: [String],
-   labelledElements :: [String]
+   elements :: [String]
    }
 
 -- -------------------------------------------------------------
@@ -108,8 +105,7 @@ readDTD filePath =
          mmissDTD = MMiSSDTD {
             simpleDTD = simpleDTD,
             elements = elements,
-            displayInstructions = listToFM processingInstructions,
-            labelledElements = findLabelledElements dtd
+            displayInstructions = listToFM processingInstructions
             }                            
       return mmissDTD
 
@@ -126,10 +122,13 @@ parseProcessingInstruction str =
 allElements :: [String]
 allElements = elements theDTD
 
--- | allElements, filtering just those elements which have a \"label\"
--- attribute.
-allLabelledElements :: [String]
-allLabelledElements = labelledElements theDTD
+-- | allElements, filtering just those elements which feature in a
+-- Display instruction.
+allDisplayedElements :: [String]
+allDisplayedElements = 
+   List.filter
+      (\ tagName -> elemFM tagName (displayInstructions theDTD))
+      allElements
 
 getDisplayInstruction :: String -> NodeTypes a
 getDisplayInstruction str =

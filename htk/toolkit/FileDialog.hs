@@ -16,7 +16,6 @@ import qualified List(sort)
 
 import Control.Exception
 import Data.IORef
-import System.Posix
 
 import Debug(debug)
 import FileNames
@@ -65,16 +64,12 @@ tryGetFilesAndFolders path showhidden =
             sort fs files folders abs
           else
             do
-              debugMsg ("trying to get file status of " ++ abs ++ f)
-              st' <- Control.Exception.try (getFileStatus (abs ++ f))
-              case st' of
-                Left st -> debugMsg "...failed\n" >>
-                           sort fs files folders abs
-                Right st ->
-                  debugMsg "...ok\n" >>
-                  (if isDirectory st then
-                     sort fs files ((f ++ "/") : folders) abs
-                   else sort fs (f : files) folders abs)
+              fileIsDir <- doesDirectoryExist (abs ++ f)
+              if fileIsDir 
+                 then
+                    sort fs files ((f ++ "/") : folders) abs
+                 else 
+                    sort fs (f : files) folders abs
         sort _ files folders _ =
           return (List.sort files, 
                   if path == "/" then List.sort folders
@@ -385,13 +380,8 @@ fileDialog' :: Bool
 fileDialog' isNew title pathref =
   do
     fp <- getRef pathref
-    -- check wether we got a directory or directory/filename
-    isDir <- doesDirectoryExist fp
-    let (path,fn) = 
-            if isDir 
-            then (if last fp == '/' then fp else fp ++ "/","")
-            else (\ (x,y) -> (x++"/",y)) (splitName fp)
-    setRef pathref path
+    let path = if last fp == '/' then fp else fp ++ "/"
+
     childwindow <- newRef Nothing
 
     main <- createToplevel [text title]
@@ -442,7 +432,7 @@ fileDialog' isNew title pathref =
     filesscb <- newScrollBar fileslist []
     status <- newLabel boxesnmsg [text "Welcome", relief Raised,
                                   font (Lucida, 12::Int), anchor Center]
-    file_var <- createTkVariable fn
+    file_var <- createTkVariable ""
     fileEntry <- newEntry main [bg "white", variable file_var]
                    :: IO (Entry String)
     buttons <- newFrame main []
@@ -526,70 +516,64 @@ fileDialog' isNew title pathref =
                    '/':_ -> file_nm
                    _ -> combineNames trimmedPath file_nm
 
-              est <- Control.Exception.try (getFileStatus fullnm)
-
+              fileIsDir <- doesDirectoryExist fullnm
               let
                  sendFile = syncNoWait (send msgQ (Just fullnm))
 
                  reset = setTkVariable file_var ""
 
-              case est of
-                Right st | isDirectory st ->
-                  do 
-                     showhidden <- getRef showhiddenref
-                     status # text "Reading...     "
-                     success <- changeToFolder fullnm foldersref
-                                filesref pathref
-                                folderslb fileslb
-                                file_var showhidden
-                     (if success then
-                        do status # text "Reading...ready"
-                           nupath <- getRef pathref
-                           updPathMenu pathmenubutton
-                                 menuref nupath foldersref
-                                 filesref pathref folderslb
-                                 fileslb file_var status
-                                 showhiddenref
-                           done
-                        else
-                          do status # text "Permission denied!"
-                             done)
-                     return False
-                Right st ->
-                   if isNew 
-                      then
-                         do
-                            proceed <- confirmMess
-                               "File exists.  Overwrite?"
-
-                            if proceed then sendFile else reset
-                            return proceed
-                      else
-                         do
-                            sendFile
-                            return True
-                Left e ->
-                   do
-                      fileExists <- doesFileExist fullnm
-                      if fileExists
-                         then
-                            do
-                               ioErrorWindow e
-                               reset
-                               return False
+              if fileIsDir
+                 then
+                   do 
+                      showhidden <- getRef showhiddenref
+                      status # text "Reading...     "
+                      success <- changeToFolder fullnm foldersref
+                                 filesref pathref
+                                 folderslb fileslb
+                                 file_var showhidden
+                      (if success then
+                         do status # text "Reading...ready"
+                            nupath <- getRef pathref
+                            updPathMenu pathmenubutton
+                                  menuref nupath foldersref
+                                  filesref pathref folderslb
+                                  fileslb file_var status
+                                  showhiddenref
+                            done
                          else
-                            if isNew
-                               then
-                                  do
-                                     sendFile
-                                     return True
-                               else
-                                  do
-                                     warningMess
-                                        ("No such file or directory: "++ 
-                                           fullnm)
-                                     reset
-                                     return False
+                           do status # text "Permission denied!"
+                              done)
+                      return False
+                   else
+                      do
+                         fileExists <- doesFileExist fullnm
+                         if fileExists
+                            then
+                               if isNew 
+                                  then
+                                     do
+                                        proceed <- confirmMess
+                                           "File exists.  Overwrite?"
+
+                                        if proceed then sendFile else reset
+                                        return proceed
+                                  else
+                                     do
+                                        sendFile
+                                        return True
+                            else
+                               if isNew
+                                  then
+                                     do
+                                        sendFile
+                                        return True
+                                  else
+                                     do
+                                        warningMess
+                                           ("No such file or directory: "++ 
+                                              fullnm)
+                                        reset
+                                        return False
 
         listenDialog :: Event ()
         listenDialog =

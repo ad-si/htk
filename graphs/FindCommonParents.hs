@@ -166,7 +166,7 @@ findCommonParents
       -- (2) Get the list, but don't sort out the order yet.
       nodes1Opt :: [Maybe (node1,[(node1,Maybe node2)])]
       nodes1Opt =
-         map
+         fmap
             (\ v1Node ->
                let
                   nodesOpt = doNode v1Node
@@ -196,13 +196,13 @@ findCommonParents
       -- needs to go first in the pair.
       relations1 :: [(nodeKey,[nodeKey])]
       relations1 =
-         map
+         fmap
             (\ (node,nodes) ->
                let
                   Just nodeKey = getKey1 node
 
                   nodeKeysOpt :: [Maybe nodeKey]
-                  nodeKeysOpt = map
+                  nodeKeysOpt = fmap
                      (\ nodeItem -> case nodeItem of
                         (node1,Nothing) ->
                            let
@@ -219,9 +219,9 @@ findCommonParents
 
       relations :: [(nodeKey,nodeKey)]
       relations = concat
-         (map
+         (fmap
              (\ (thisNodeKey,nodeKeys) ->
-                map
+                fmap
                    (\ parentNodeKey -> (parentNodeKey,thisNodeKey))
                    nodeKeys
                 )
@@ -229,7 +229,7 @@ findCommonParents
              )
 
       nodeKeys :: [nodeKey]
-      nodeKeys = map (\ (thisNodeKey,_) -> thisNodeKey) relations1
+      nodeKeys = fmap (\ (thisNodeKey,_) -> thisNodeKey) relations1
 
       -- (5) do a topological sort.
       nodeKeysInOrder :: [nodeKey]
@@ -238,7 +238,7 @@ findCommonParents
       -- (6) Put the output together
       nodesOut :: [(node1,[(node1,Maybe node2)])]
       nodesOut =
-         map
+         fmap
             (\ nodeKey ->
                let
                   Just nodeData = lookupFM nodeKeyMap nodeKey

@@ -1,0 +1,7 @@
+# This module just serves to unite the various HTk packages into a single
+# package uni-htk
+PACKAGE = uni-htk
+PACKAGES = uni-htk-toolkit # the others will follow
+SRCS = 
+
+include @TOP@/mk/boilerplate.mk

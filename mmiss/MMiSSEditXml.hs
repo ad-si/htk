@@ -2,10 +2,9 @@
 module MMiSSEditXml(
    -- The first argument of each function is the file name.
    toEditableXml, 
-       -- :: String -> Element -> EmacsContent (TypedName,[Attribute]) 
-   fromEditableXml, -- :: String -> EmacsContent (TypedName,[Attribute]) 
+       -- :: String -> Element -> EmacsContent (TypedName,IncludeInfo) 
+   fromEditableXml, -- :: String -> EmacsContent (TypedName,IncludeInfo) 
      -- -> IO (WithError Element)
-   parseXmlString, -- exported for debugging purposes
 
    toExportableXml, -- :: Element -> String
       -- actually defined in MMiSSDTD.
@@ -17,20 +16,166 @@ module MMiSSEditXml(
 import Maybe
 
 import Computation
-import ExtendedPrelude
-import CompileFlags
 
 import EmacsContent
 
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Lex
 
+import XmlExtras
+
+import LaTeXParser(IncludeInfo(..),fromIncludeStrOpt)
+
 import MMiSSDTD
 import MMiSSDTDAssumptions
+import MMiSSXmlBasics
 
 type TypedName = (String,Char)
 
-fromEditableXml :: String -> EmacsContent (TypedName,[Attribute]) 
+-- -------------------------------------------------------------------
+-- toEditableXml
+-- -------------------------------------------------------------------
+
+toEditableXml :: String -> Element -> EmacsContent (TypedName,IncludeInfo) 
+toEditableXml fName elem0 =
+   -- This function functions using the following awful hacks.
+   -- (1) We scan the element to find all included elements 
+   --     and remember them, replacing them by special tag elements
+   --     which have a "name" consisting of just an "X" character (which
+   --     would be illegal in the DTD).
+   -- (2) We print the result out to a string.
+   -- (3) We tokenise the string again.
+   -- (4) We scan for our dummy X characters in the tokens, and replace them
+   --     by appropriate (TypedName,IncludeInfo) items.
+   let
+      includes :: [(TypedName,IncludeInfo)]
+      includes = getIncludes elem0
+
+      elem1 :: Element
+      elem1 = stripIncludes elem0
+
+      exportedString1 :: String
+      exportedString1 = toExportableXml elem1
+
+      tokens :: [Token]
+      tokens = xmlLex "MMiSSEditXml.zoEditableXml" exportedString1 
+
+      dummyElements :: [DummyElementLoc]
+      dummyElements = extractDummyElements tokens
+
+      mkContents :: Posn -> String -> [(TypedName,IncludeInfo)] 
+         -> [DummyElementLoc] -> [EmacsDataItem (TypedName,IncludeInfo)]
+      mkContents stringStart0 rest0 [] [] = addText rest0 []
+      mkContents stringStart0 rest0 (include:includes1) (dummyLoc:dummyLocs1) =
+         let
+            start1 = start dummyLoc
+            end1 = end dummyLoc
+
+            (text,rest1) 
+               = extractFromString stringStart0 (start dummyLoc) rest0
+
+            (_,'/':'>':rest2) = extractFromString start1 end1 rest1
+            stringStart1 = stepString end1 "/>"
+
+            dataItems0 = mkContents stringStart1 rest2 includes1 dummyLocs1
+            dataItems1 = (EmacsLink include):dataItems0
+            dataItems2 = addText text dataItems1
+         in
+            dataItems2
+
+
+      startPos :: Posn
+      startPos = (Pn (error "MMiSSEditXml.1") 1 1 (error "MMiSSEditXml.2")) 
+
+      dataItems :: [EmacsDataItem (TypedName,IncludeInfo)]
+      dataItems = mkContents startPos exportedString1 includes dummyElements
+
+      addText :: String -> [EmacsDataItem (TypedName,IncludeInfo)]
+         -> [EmacsDataItem (TypedName,IncludeInfo)]
+      addText "" dataItems = dataItems
+      addText text dataItems = EditableText text : dataItems
+   in
+      EmacsContent dataItems
+
+
+data DummyElementLoc = DummyElementLoc {
+   start :: Posn,
+   end :: Posn
+   }
+
+extractDummyElements :: [Token] -> [DummyElementLoc]
+extractDummyElements tokens0 =
+   case tokens0 of
+      (startPosn,TokAnyOpen):(_,TokName "X"):(endPosn,TokEndClose):tokens1
+         -> (DummyElementLoc {start = startPosn,end = endPosn})
+            : extractDummyElements tokens1
+      token:tokens1 -> extractDummyElements tokens1
+      [] -> []
+
+stripIncludes :: Element -> Element
+stripIncludes element =
+   mapElement
+      (\ element -> case mapIncludeElement element of
+         Nothing -> Nothing
+         Just _ -> Just dummyElement
+         )
+      element
+
+dummyElement :: Element
+dummyElement = Elem "X" [] []
+
+getIncludes :: Element -> [(TypedName,IncludeInfo)]
+getIncludes elem = mapMaybe mapIncludeElement (getAllElements elem)
+
+mapIncludeElement :: Element -> Maybe (TypedName,IncludeInfo)
+mapIncludeElement elem = coerceWithError (mapIncludeElement1 elem)
+
+mapIncludeElement1 :: Element -> WithError (Maybe (TypedName,IncludeInfo))
+mapIncludeElement1 (Elem name attributes contents) =
+   case name of 
+      'i':'n':'c':'l':'u':'d':'e':name1 -> 
+         do
+            isPresent <- getAttribute attributes "status"
+            case isPresent of
+               Just "present" ->
+                  do
+                     variantOpt <- case contents of
+                        [] -> return Nothing
+                        [CElem variant] -> return (Just variant)
+                        _ -> fail ("Include element does not contain a "
+                           ++ "single variant-attributes element")
+
+                     labelOpt <- getAttribute attributes "included"
+                     label <- case labelOpt of
+                        Nothing -> fail "Include does not have a label"
+                        Just label -> return label
+
+                     miniType <- case fromIncludeStrOpt name1 of
+                        Just c -> return c
+                        Nothing -> fail ("Unrecognised include tag" ++ name)
+                      
+                     let
+                        -- Construct attributes in which "included" and
+                        -- "status" are deleted (since they are used elsewhere)
+                        otherAttributes = 
+                           delAttribute (
+                              delAttribute attributes "included"
+                              ) "status"
+
+                        includeInfo = IncludeInfo {
+                           variantOpt = variantOpt,
+                           otherAttributes = otherAttributes
+                           }
+
+                     return (Just ((label,miniType),includeInfo))
+               _ -> return Nothing
+      _ -> return Nothing
+
+-- -------------------------------------------------------------------
+-- fromEditableXml
+-- -------------------------------------------------------------------
+
+fromEditableXml :: String -> EmacsContent (TypedName,IncludeInfo) 
    -> IO (WithError Element)
 fromEditableXml fName (EmacsContent dataItems) =
    do
@@ -39,193 +184,35 @@ fromEditableXml fName (EmacsContent dataItems) =
             map
                (\ dataItem -> case dataItem of
                   EditableText text -> text
-                  EmacsLink ((link,miniType),attributes) ->
-                        "<include"++toIncludeStr miniType
-                           ++" included=\"" ++ link++"\""
-                           ++" status=\"present\""
-                           ++printAttributes attributes
-                           ++"/>"
+                  EmacsLink include -> fromInclude include
                   )
                dataItems
             )
       xmlParseCheck fName xmlString 
 
-toEditableXml :: String -> Element -> EmacsContent (TypedName,[Attribute])
-toEditableXml fName elem =
-   let
-      xmlString = toExportableXml elem
-   in
-      parseXmlString xmlString
+fromInclude :: (TypedName,IncludeInfo) -> String
+fromInclude ((link,miniType),includeInfo) =
+   "<"
+   ++ includeTagName
+   ++ " included=\"" ++ link++"\""
+   ++ " status=\"present\""
+   ++ printAttributes (otherAttributes includeInfo)
+   ++ ">"
+   ++ variantString
+   ++ "</"
+   ++ includeTagName
+   ++ ">"
+   where
+      includeTagName = "include" ++ toIncludeStr miniType
 
+      variantString = case variantOpt includeInfo of
+         Nothing -> ""
+         Just variantAttributesElement 
+            -> toUglyExportableXml variantAttributesElement
+  
 -- -------------------------------------------------------------------
--- Functions for extracting the includes from XML.
--- We use the HaXml lex functions, which save us the bother of comment-
--- and string- parsing.
---
--- The basic idea is that we tokenise the whole String, search for 
--- suitable includes, and use values of HaXml's Posn type to extract the
--- remaining strings.  There are probably more efficient ways.
---
--- NB.  We can at least assume that the string is well-formed.
+-- Miscellaneous utilities.
 -- -------------------------------------------------------------------
-
-parseXmlString :: String -> EmacsContent (TypedName,[Attribute])
-parseXmlString s0 =
-   let
-      -- (0) if isDebug is set, check that there aren't any funny characters
-      -- which upset HaXml's column-numbering algorithm.
-
-      funny :: Char -> Bool
-      funny '\r' = True
-      funny '\t' = True
-      funny _ = False
-
-      s = 
-         if isDebug -- hopefully if not this will get optimised out.
-            then
-               if any funny s0 then 
-                  error ("MMiSSEditXml: funny chars in "++show s) else s0
-                  
-            else s0
-
-      -- (1) tokenize
-      tokens = xmlLex "MMiSSEditXml.extractAllIncludes" s
-
-      -- (2) get all closed tags
-      closedTags1 = extractClosedTags tokens
-
-      -- (3) get all includes
-      closedTags2 = extractIncludes closedTags1
-
-      -- (4) get all present includes 
-      closedTags3 = extractPresent closedTags2
-
-      -- (5) turn this into contents
-      mkContents :: Posn -> String -> [ClosedTag]
-          -> [EmacsDataItem (TypedName,[Attribute])]
-      mkContents stringStart0 rest0 [] = addText rest0 []
-      mkContents stringStart0 rest0 (closedTag:closedTags) =
-         let
-            start1 = start closedTag
-            end1 = end closedTag
-
-            -- Get the string up to start1.
-            (text,rest1) = extractFromString stringStart0 start1 rest0
-
-            -- Deconstruct the closed tag
-            miniType = fromIncludeStr (name closedTag)
-
-            Just id = lookup "included" (attributes closedTag)
-
-            otherAttributes =
-               mapMaybe
-                  (\ (key,value) -> case key of
-                     "status" -> Nothing
-                     "included" -> Nothing
-                     _ -> Just (key,AttValue [Left value])
-                     )
-                  (attributes closedTag)
-
-            dataItem2 = EmacsLink ((id,miniType),otherAttributes)
-
-            -- Get the other dataitems
-            (_,'/':'>':rest2) = extractFromString start1 end1 rest1
-            stringStart1 = stepString end1 "/>"
-
-            dataItems0 = mkContents stringStart1 rest2 closedTags
-
-            -- Put them together
-            dataItems1 = dataItem2 : dataItems0
-            dataItems2 = addText text dataItems1
-         in
-            dataItems2
-
-      startPos = (Pn (error "MMiSSEditXml.1") 1 1 (error "MMiSSEditXml.2")) 
-      dataItems = mkContents startPos s closedTags3
-
-      addText :: String -> [EmacsDataItem (TypedName,[Attribute])]
-         -> [EmacsDataItem (TypedName,[Attribute])]
-      addText "" dataItems = dataItems
-      addText text dataItems = EditableText text : dataItems
-   in
-      EmacsContent dataItems
-
-                            
--- | Our strategy is to extract all ClosedTags (tags all of whose attributes
--- are Strings, ending with \/>) and then filter them gradually).
-data ClosedTag = ClosedTag {
-   name :: String,
-   attributes :: [(String,String)],
-   start :: Posn,
-   end :: Posn
-   }
-
-extractClosedTags :: [Token] -> [ClosedTag]
-extractClosedTags [] = []
-extractClosedTags (token1:tokens) =
-   case snd token1 of
-      TokAnyOpen ->
-         let
-            -- (1) scan to close
-            (Just (tagData,tokenEnd,restTokens)) = splitToElemGeneral
-               (\ tok -> case snd tok of
-                  TokEndClose -> True
-                  TokAnyClose -> True
-                  _ -> False
-                  )
-               tokens
-
-            -- (2) what we will put afterwards
-            rest = extractClosedTags restTokens
-         in
-            case snd tokenEnd of
-               TokAnyClose -> rest 
-                  -- fall out 1, ends with > not />
-               TokEndClose -> case map snd tagData of
-                  ((TokName name):attData) ->
-                     let
-                        getAttributes :: [TokenT] -> Maybe [(String,String)]
-                        getAttributes [] = Just []
-                        getAttributes (
-                           TokName key : TokEqual : TokQuote 
-                              : TokFreeText value : TokQuote
-                              : restTokens) = 
-                           fmap
-                              (\ restAtts -> (key,value) : restAtts)
-                              (getAttributes restTokens)
-                     in
-                        case getAttributes attData of
-                           Nothing -> rest
-                           Just attributes ->
-                              let
-                                 closedTag = ClosedTag {
-                                    name = name,
-                                    attributes = attributes,
-                                    start = fst token1,
-                                    end = fst tokenEnd
-                                    }
-                              in
-                                 closedTag : rest
-      _ -> extractClosedTags tokens
-            
--- | Extract all tags which have names beginning \"include\", and for those
--- remove the include.
-extractIncludes :: [ClosedTag] -> [ClosedTag]
-extractIncludes = mapMaybe
-   (\ closedTag -> case name closedTag of
-      'i':'n':'c':'l':'u':'d':'e':name1 -> Just (closedTag {name = name1})
-      _ -> Nothing
-      )
-
--- | Extract all tags which have status=present and an included attribute set.
-extractPresent :: [ClosedTag] -> [ClosedTag]
-extractPresent = filter
-   (\ closedTag -> case
-         (lookup "status" (attributes closedTag),
-            lookup "included" (attributes closedTag)) of
-      (Just "present",Just _) -> True
-      _ -> False
-      )
 
 -- | extractFromString extractStart extractEnd string
 -- assumes the string begins at position extractStart, extracts

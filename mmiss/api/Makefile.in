@@ -13,6 +13,6 @@ include @TOP@/mk/boilerplate.mk
 MMiSSRequest.hs : MMiSSRequest.dtd
 	@TOP@/HaXml/tools/DtdToHaskell $< $@
 
-EXTRAEXPORTS = MMiSSRequest.dtd MMiSSServer
+EXTRAEXPORTS = MMiSSRequest.dtd MMiSSServer$(EXESUFFIX)
 
 prepareexports : MMiSSServer

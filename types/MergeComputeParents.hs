@@ -10,9 +10,6 @@ import Data.FiniteMap
 
 import VariableSet(HasKey(..))
 
-import VersionInfo
-import ServerErrors
-
 import VersionDB
 import ViewType
 import MergeTypes

@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-components
+PACKAGES = uni-htk-containers
+
+SRCS = BitMap.hs Focus.hs ICursor.hs Icon.hs Image.hs Index.hs Selection.hs Slider.hs
+
+include @TOP@/mk/boilerplate.mk

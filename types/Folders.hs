@@ -417,7 +417,7 @@ instance ObjectType FolderType Folder where
                      specialNodeActions = 
                         (\ object ->
                            fmap
-                              (\ arcsHidden ->
+                              (\ (arcsHidden :: Maybe NodeArcsHidden) ->
                                  (\ graph node ->
                                     modify arcsHidden graph node
                                  ))
@@ -523,7 +523,7 @@ registerAsMoveable1 objectIsMoveable (_ :: object) =
    do
       let
          getLinkedObject view linkDyn =
-            case fromDyn linkDyn of
+            case fromDynamic linkDyn of
                Nothing -> return Nothing
                Just (link :: Link object) ->
                   do

@@ -49,9 +49,7 @@ import Data.FiniteMap
 
 import WBFiles
 import ICStringLen
-import BinaryAll
 import Dynamics
-import Computation
 import ExtendedPrelude
 import AtomString
 import TempFile
@@ -66,7 +64,8 @@ import WithDir
 
 import CopyFile
 
-import MenuType
+import qualified MenuType
+
 
 import GraphConfigure hiding (Menu)
 import GraphDisp(emptyNodeTypeParms)

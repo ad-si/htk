@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-textitems
+PACKAGES = uni-htk-widgets
+
+SRCS = EmbeddedTextWin.hs Mark.hs TextTag.hs
+
+include @TOP@/mk/boilerplate.mk

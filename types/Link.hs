@@ -145,14 +145,10 @@ import Data.IORef
 import Registry
 import Dynamics
 import VariableSet(HasKey(..))
-import Computation
 import Debug
 import Thread
-import BinaryAll
 import Sources
 import Broadcaster
-
-import ServerErrors
 
 import VersionDB
 import ViewType
@@ -301,7 +297,7 @@ fetchOrSetLink
 
                      readObject (IsntCloned parentVersionOpt) location
                Just (PresentObject {thisVersioned = versionedDyn}) ->
-                  case fromDyn versionedDyn of
+                  case fromDynamic versionedDyn of
                      Just versioned -> return (objectDataOpt,versioned)
                      Nothing ->
                         let
@@ -483,7 +479,7 @@ data Versioned x = Versioned {
    location :: Location, -- Location in the view.
    statusMVar :: MVar (Status x),
    statusBroadcaster :: SimpleBroadcaster (Status x)
-      -- we keep this informed of the current status, mainly for the
+      -- ^ we keep this informed of the current status, mainly for the
       -- purpose of updating information about when a link has been
       -- modified.
       --
@@ -494,9 +490,6 @@ data Versioned x = Versioned {
       -- statusMVar has to be empty while we contact the server.
    } deriving (Typeable)
 
-mkObjectSourceFn :: HasCodedValue x => View 
-   -> Versioned x -> Maybe (ObjectVersion,Location) -> ObjectVersion 
-   -> IO (Maybe CommitChange)
 -- This is the action that computes the ObjectSource to be committed to the
 -- repository.
 --
@@ -504,6 +497,9 @@ mkObjectSourceFn :: HasCodedValue x => View
 -- The Maybe (Location,ObjectVersion) indicates, if set, that this is
 -- a cloned object, and so this should be used if the object is marked
 -- as UpToDate.
+mkObjectSourceFn :: HasCodedValue x => View 
+   -> Versioned x -> Maybe (ObjectVersion,Location) -> ObjectVersion 
+   -> IO (Maybe CommitChange)
 mkObjectSourceFn (view@View{repository = repository})
       (versioned@(Versioned {location = location,statusMVar = statusMVar})) 
       clonedOpt viewVersion =
@@ -779,7 +775,7 @@ getLastChange view (Link location :: Link object) =
       case objectData of
          Nothing -> repositoryLastChange
          Just (PresentObject {thisVersioned = thisVersioned}) ->
-            case fromDyn thisVersioned of
+            case fromDynamic thisVersioned of
                (Just (versioned :: Versioned object)) ->
                   do
                      status <- readMVar (statusMVar versioned)

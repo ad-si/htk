@@ -17,14 +17,14 @@ import AtomString
 -- import CodedValue
 
 import LaTeXParser
-import LaTeXPreamble
+-- import LaTeXPreamble
 import MMiSSFileSystemExamples
 import EmacsContent
-import Text.PrettyPrint.HughesPJ
+-- import Text.PrettyPrint.HughesPJ
 
 import Text.XML.HaXml.Types
-import Text.XML.HaXml.Parse
-import Text.XML.HaXml.Pretty
+-- import Text.XML.HaXml.Parse
+-- import Text.XML.HaXml.Pretty
 import Text.XML.HaXml.Combinators hiding (find)
 
 -- import MMiSSContent
@@ -32,6 +32,7 @@ import MMiSSDTD
 
 -- import MMiSSEditXml
 
+main :: IO()
 main =
    do hSetBuffering stdout NoBuffering
       args <- System.getArgs
@@ -44,11 +45,17 @@ main =
         then do putStr "Structue checking tool for MMiSSLaTeX v0.1\n"
 		putStr "usage:\n  testLaTeX [OPTIONS] INPUTFILE [> OUTFILE]\n"
 		putStr "Options are:\n"
-	        putStr "  -root=<element type>  (default: package)   Checker expects this element type as root of the MMiSS document.\n"
-		putStr "                        This would be 'section' if you just have a section and no whole package in your input\n"
-		putStr "  -xml                  Prints only the resulting XML tree\n"
-		putStr "  -latex                Prints only the regenerated MMiSSLaTeX (parse-validate-regenerate cycle)\n"
-		putStr "  -preamble             Prints the regenerated MMiSSLaTeX with document preamble -> ready for latex\n"
+	        putStr "  -root=<element type>  (default: group)\n" 
+                putStr "              The validation process expects this element type as root\n"
+                putStr "              of the MMiSS document. This would be 'section' if you just have a section and\n"
+                putStr "              no whole package in your input. In the new DTD, the normal root element\n"
+                putStr "              is 'group', the old DTD states a 'package' as root element.\n"
+		putStr "  -xml        Prints only the resulting XML tree\n"
+		putStr "  -latex      Prints only the regenerated MMiSSLaTeX (parse-validate-regenerate cycle)\n"
+		putStr "  -preamble   Prints the regenerated MMiSSLaTeX with document preamble -> ready for latex\n"
+                putStr "  -oldDTD     XML output conforms to the old DTD.\n"
+                putStr "              (You must specify the DTD location with --uni-MMiSSDTD\n"
+                putStr "              and the correct root element with -root= (normally 'package'))\n"
                 putStr "  --uni-MMiSSDTD=<MMiSSDTD-File>  Sets location of the DTD file.\n"
 		exitWith ExitSuccess
         else done
@@ -56,16 +63,19 @@ main =
          mbRoot = find (isPrefixOf "-root=") args 
          expected = case mbRoot of
                       (Just rootOpt) -> drop 6 rootOpt 
-                      Nothing -> "package"
+                      Nothing -> "group"
          xmlOutput   = if ((elemIndices "-xml" args) == []) then False else True
          latexOutput = if ((elemIndices "-latex" args) == []) then False else True
+         oldDTD = if ((elemIndices "-oldDTD" args) == []) then False else True
          latexWithPreOutput = if ((elemIndices "-preamble" args) == []) then False else True
 
 --      doc <- getContents
       --
       -- Parse LaTeX input
       --
-      elEither <- parseMMiSSLatex standardFileSystem fileName True 
+      elEither <- if oldDTD 
+                    then parseMMiSSLatex standardFileSystem fileName True 
+                    else parseMMiSSLatexOldDTD standardFileSystem fileName True 
       (el, preambleList) <- case fromWithError elEither of
                           Left message -> let str = "The following errors occured during parsing:\n" 
                                           in error (str ++ message)
@@ -86,7 +96,7 @@ main =
                            str3 = concat (map (++ " ") l)
                          error (unlines ([str1] ++ [str2] ++ [str3]))
          errors -> do if (xmlOutput == True) 
-                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
+                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE group SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
 --                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
                         else done
                       let  
@@ -112,9 +122,9 @@ main =
         then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el)) 
 -- (render (element el))) 
         else if (latexOutput)
-               then putStr (concat (map getStrOfEmacsDataItem l))
+               then putStr (mkLaTeXString (EmacsContent l))
                else if (latexWithPreOutput) 
-                      then putStr ((concat (map getStrOfEmacsDataItem l)) 
+                      then putStr ((mkLaTeXString (EmacsContent l))
                            ++ "\n\n************** Preamble:\n" ++ preambleStr)
                       else done 
       hPutStr stderr "Parse: Successfull\nValidate XML: Successfull\n"
@@ -138,8 +148,4 @@ duplicateLabels e =
                                              Right _ -> ""
            _ -> ""   
 
-getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
-
-getStrOfEmacsDataItem (EditableText str) = str
-getStrOfEmacsDataItem (EmacsLink ((str,c), _)) = str ++ [c]                                   
 

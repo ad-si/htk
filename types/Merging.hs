@@ -10,10 +10,9 @@ import Maybe
 import List
 
 import Data.FiniteMap
-import Control.Exception
 import System.IO.Unsafe
+import Control.Exception
 
-import Computation
 import ExtendedPrelude
 import Object
 import Sources

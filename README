@@ -1,6 +1,6 @@
 This directory contains Uni, the central part of the UniForM workbench.
-The source of Uni is in the following directories.  The further you get
-down the list, the less reliable things will be!
+The source of Uni and the MMiSS Workbench is in the following directories,
+which are listed in the order they are compiled.  
 
 
    directory    |  contents
@@ -12,86 +12,186 @@ down the list, the less reliable things will be!
    reactor      |  Miscellaneous things for running processes and tools
    posixutil    |  Various utilities that only work under Posix.
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
-                   See htk/examples for a few short introductory examples.
+                |  See htk/examples for a few short introductory examples.
+                |  The htk code is divided among several sub-directories.
+   HaXml-1.11   |  This contains the complete source of HaXml.  This is
+                |  included by uni, but is completely unchanged from the
+                |  official distribution, which is currently the responsibility
+                |  of Malcolm Wallace. 
+                |
+                |  (Actually "completely unchanged" is a lie; I just changed
+                |  two comments for Haddock, and also replaced a reference
+                |  to FiniteMap with the full qualified name Data.FiniteMap.)
+                |
+   HaXml        |  We compile HaXml, if necessary, in this directory.
+   server       |  Stuff for client-server relationships
    graphs       |  General framework for shared graphs.
    davinci      |  This is an encapsulation of DaVinci in Haskell
-   HaXml-1.11   | This contains the complete source of HaXml.  This is
-                | included by uni, but is completely unchanged from the
-                | official distribution, which is currently the responsibility
-                | of Malcolm Wallace. 
-                |
-                | (Actually "completely unchanged" is a lie; I just changed
-                | two comments for Haddock.)
-                |
-   HaXml        | We compile HaXml, if necessary, in this directory.
-   server       |  Stuff for client-server relationships
    simpledb     |  A very simple database system.
+   imports      | 
    types        |  Repository
    emacs        |  Contains the code for editing MMiSS objects with XEmacs
    mmiss/parser |  (Un)Parses LaTeX sources for MMiSS objects.
    mmiss        |  General code for MMiSS objects.
-   mmiss/api    |  Code for interfacing MMiSS via an API (UNDER CONSTRUCTION)
-
-
-Only the Haskell code in util, events, reactor and htk is known to work under
-Windows.  Everything else requires Posix, and so, Unix/Linux.
-
-This module does not contain uni or HTk documentation.  For that you need
-the uni-docs module.  This can be obtained (in binary form) from
-the HTk homepage, 
-   http://www.informatik.uni-bremen.de/htk
+   mmiss/api    |  Code for interfacing MMiSS via an API
 
 Requirements for compiling UniForM
 ----------------------------------
 
-The following are required or at least recommended. 
-(1) gcc.  Ideally what I use -- gcc version 2.95.2.
-    Do not use 2.8* versions since they are known not to work at all with 
-    Glasgow Haskell.  Version 2.71 might work but I suspect Glasgow Haskell 
-    will not support it for much longer.  I have had problems with version
-    3.*.  I think the current situation (March 2003) is that Glasgow Haskell
-    can probably work with gcc 3.* on Linux, but not on Solaris.
-(3) GNU make.  Again, use the latest one - 3.77.  But I think slightly earlier
-    ones may well work.
-(4) A recent version of Glasgow Haskell.  We are currently using 6.0.1.
-(5) If you want to compile the HTk documentation, you will need hdoc
-    whose homepage is
-       http://www.fmi.uni-passau.de/~groessli/hdoc/
-    You will need version 0.8.1 or later.
-(6) A lot of memory will help during HTk (or virtual memory and a lot of
-    patience).  250MB would be nice.  If you still get problems see the
-    section on "Restarting compilation".
-(7) If you are unfortunate enough to be using Windows, you will also need
-    Cygwin or MinGW.  The following instructions assume that you are in a 
-    Cygwin or MinGW shell where the usual Unix utilities (sed, find and so on)
-    are available.  However you will be glad to know that you do NOT need
-    a version of GHC which is Cygwin-aware.  We convert filenames into their
-    Windows equivalents (well, more or less) before passing them to GHC.
-(8) If you want to compile the repository stuff (not needed for HTk or
-    daVinci) you will need to compile and install the Berkeley Database.  You 
-    can get this from 
-       http://www.sleepycat.com
-    You should give BDB's configure a special option, --disable-shared.  
-    This means that BDB is produces static libraries, so you won't need
-    to set up LD_LIBRARY_PATH and carry around the BDB dynamic libraries
-    to call MMiSS executables. Thus, in BDB's directory 
-    [BDB source]/build_unix you might use the command
-       ../dist/configure --disable-shared
-    You might also want a "--prefix" option, to specify a directory BDB
-    should write its compiled stuff to, if you do not have write access to
-    the standard system directories.
+At the moment, the Uni sources and the MMiSS workbench have been 
+successfully compiled and run on Linux/x86, Microsoft Windows XP (running
+MinGW),  Sparc Solaris, and MacOS Darwin.  The HTk part also works on
+FreeBSD.
 
-    UniForM does also of course need to know where to find the compiled BDB
-    stuff, if they are not in the standard place.  You can tell it either
+The following things are specifically required if you want to compile 
+everything.  If you just want HTk, you only need (1)-(3).  If you just want
+HTk + daVinci + HaXml, you only need (1)-(4).  
+
+(1) Glasgow Haskell.   
+    
+    http://www.haskell.org/ghc/docs/latest/html/building/sec-port-info.html
+
+    This release specifically requires version 6.3 of Glasgow Haskell or
+    later.  At the time of writing (14th December 2004) there is no
+    official release on this branch; instead the code has been compiled
+    with a version of GHC compiled from source.  However the code should
+    work with version 6.4, which will be officially released shortly.
+
+    If that hasn't happened yet or you like living dangerously, you can get
+    detailed instructions for compiling GHC from source from here:
+
+       http://research.microsoft.com/%7Esimonpj/tmp/building/
+
+    or here (specifically for Windows)
+
+       http://raintown.org/wiki/index.php/Building_The_Glasgow_Haskell_Compiler_from_source_on_Windows
+
+    NB.  Be *very* careful to follow instructions carefully and don't attempt
+    to be clever or use short cuts.  Compiling the Glasgow Haskell Compiler
+    takes a very long time (maybe as much as several hours) and deviating
+    from the instructions may well cause your compilation to fall over 
+    mysteriously some time later, meaning you'll have to go back to the
+    beginning and repeat the process.
+
+(2) A standard Unix-ish environment.  On 
+    Linux/Solaris/MacOS Darwin/FreeBSD this is a given.  On Windows there is 
+    a choice between MinGW and Cygwin, both of which provide you with 
+    Unix-like shells, gcc, libraries, and so on.  For compiling the Workbench,
+    I recommend MinGW, which seems to be simpler than Cygwin, and friendlier 
+    about working with other (non MinGW/Cygwin) programs.  MinGW is also, by
+    the way, capable of compiling GHC.  You can get it from
+     
+       http://www.mingw.org
+
+    You will need at least MSYS, MinGW and the MSYS Developer Tool Kit.
+    You will probably also want TclTK (for (3).
+    
+    However Cygwin (http://www.cygwin.com) may well work as well.
+
+(3) Tcl/Tk.  htk uses the (very common) "wish" program for all its basic user
+    interaction.  Typing "wish" at your command prompt should produce
+    a small empty window called "wish" if you have it (typing "exit" will
+    then allow you to escape).  If you don't have it, you should be able to
+    find somewhere to download it from 
+
+       http://www.tcl.tk
+
+    If you want another look-and-feel, try tixwish 
+    ( http://tix.sourceforge.net ).
+
+(4) daVinci.  This is what the Workbench uses to display graphs.  You can
+    get version 2.1 from 
+
+       http://www.informatik.uni-bremen.de/daVinci/
+
+    The commercial version of daVinci, daVinci Presenter, is no longer
+    available, but also works with the Workbench.  A new, free, version
+    of daVinci is hopefully on the way.
+
+(5) The Berkeley Database is used for all storage by the repository.
+    You can get this from
+
+       http://www.sleepycat.com
+
+    I recommend using the option --disable-shared when you compile it,
+    since that will prevent you needing to the BDB shared library around
+    when you run executables.
+
+    Thus in BDB's directory [BDB source]/build-unix, you might use
+    the command
+
+       ../dist/configure --disable-shared
+
+    configure has other useful, sometimes essential, options, which
+    you can find out by type 
+   
+       ../dist/configure --help
+
+    For example if you are using MinGW, you need the --enable-mingw option;
+    if you want the compiled code to go somewhere other than the standard
+    system locations (for example, because you don't have administrator
+    permissions on your machine) you will need --prefix, and so on.
+
+    Versions of BDB including 4.1.25, 4.2.52, and 4.3.21 have all been
+    found to work with the Workbench.  You do not need a version with
+    cryptography.
+
+    The Workbench still needs to be able to FIND the BDB files, if they
+    are not installed in the standard place.  You can tell it either
     by setting the environment variable BDBDIR, or by giving UniForM's
     ./configure script an option --with-bdb=[directory path].
-(9) To run MMiSS and TeX the output, you will need MMiSS TeX.  This is 
+
+(6) XEmacs.  This is used directly by the Workbench for editing objects.
+    At the moment I am using XEmacs 21.4 patch 8, but I've had no
+    trouble with other versions which are slightly earlier or slightly later.
+    Do not, however, expect normal GNU Emacs to work, as it won't.
+    (This is mainly because we make heavy use of XEmacs' extent mechanism.
+    GNU Emacs has a similar mechanism, but it has a different interface.
+    Anyone wishing to convert uni/emacs/extents.el to GNU Emacs is welcome
+    to try.)   You can get XEmacs from
+
+       http://www.xemacs.org
+
+    The Workbench communicates with XEmacs using the "gnuserv".
+    This needs to be enabled from XEmacs. You can do this by running
+    the Lisp command "(gnuserv-start)" within XEmacs.  Alternatively you
+    can add the same command to your .xemacs/init.el so that it is run
+    every time XEmacs start.  
+
+    Annoyingly, there are some releases of XEmacs which do not include
+    gnuserv, in particular the Netinstaller version of XEmacs currently 
+    available for Windows.  I have however been able to get an XEmacs working
+    with gnuserv on Windows by compiling the Netinstaller version with a 
+    version of gnuclient/gnuserv compiled from source.  For the latter, I
+    followed the instructions for compiling XEmacs on cygwin, but instead
+    of compiling all the XEmacs sources I just went to the xemacs-21.4.5/
+    directory, ran ./configure (following carefully the instructions here
+
+       http://www.xemacs.org/Documentation/21.5/html/xemacs-faq_3.html#SEC76
+
+    ), and then went into lib-src directory and typed "make".  This saves
+    you the bother of compiling all the rest of XEmacs, which you don't want,
+    since the Netinstaller version has them.  Make sure when you've done that
+    that the cygwin1.dll file is where you keep DLLs on your Windows system
+    (such as C:\WINDOWS\SYSTEM), that gnuserv.exe is where your Netinstaller
+    version of XEmacs can find it (look for mmencode.exe and put it in the
+    same directory), and that gnuclient.exe is on your PATH.  Yes, as I said
+    it's annoying.
+
+(7) To run the Workbench and TeX the output, you will need MMiSS TeX.  This is 
     *not* currently in the public domain.  However assuming you have it,
     and have configure'd it, UniForM again needs to know where to find it.
     It will guess /usr/local/MMISS/tex, but if MMiSS-LaTeX is not there
     you can specify its location with the environment variable MMISSLATEXDIR,
     or by a ./configure option --with-MMiSS-LaTeX=[MMiSS-LaTeX directory]).
     (The name of this directory will most likely end "MMISS/tex".)
+
+    If you don't have MMiSS TeX, you can still compile and run the Workbench,
+    but won't be able to TeX anything.
+
+(8) A thing you should ideally have is a lot of memory (like 250 MB). 
+    Everyone has that much these days, don't they?  But if you don't and
+    a compilation falls over because of it, try "gmake slow".
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
@@ -105,14 +205,18 @@ type (in bash or sh)
 export CVSROOT=:pserver:cvsread@cvs-agbkb.informatik.uni-bremen.de:/repository
 cvs login
 # when cvs login asks for a password, type "cvsread"   
-cvs checkout uni
+cvs checkout -rghc-6-04 uni
 
 This will create a directory uni in your current directory containing
-the latest sources for uni.  
+the latest sources for uni.
+
+NB.  The "-rghc-6-04" is specific to this release, and indicates that
+you specifically want the branch that works for ghc-6.4 style versions of the
+Glasgow Haskell compiler.  (Or, perhaps, later ones.)
 
 Type "man cvs" to find out other CVS commands.
 
-What To Ask Before Compiling
+What To Do Before Compiling
 ----------------------------
 
 1) Do you want a debugging version of Uni?  By default you won't
@@ -121,46 +225,32 @@ What To Ask Before Compiling
       cp local.mk.debug local.mk
    The file local.mk is included, if present, by every Makefile.
    Thus it's also a good thing to use for other Makefile hacking.
-2) Do you want to use the Tk-encapsulation (in directory "htk")?  
-   Then you will need to a copy of Wish, which should be provided as 
-   part of your X-system.  It needs to be in your PATH when you
-   run the ./configure step (see the next section).  If, when you
-   type "wish", a square blank window pops up with the title "wish"
-   then you should be alright.  Type "info tclversion" to see what version
-   you have.  For Unix, you will need at least version 8.0; for Windows,
-   you need at least 8.1.1 (I think), though in both cases it is probably
-   better to use a later version if you have one.
+2) How much do you want to compile?  The default is everything,
+   but you can give configure the option --enable-HTk, if all you
+   want to compile is HTk or --enable-Het if you just want to 
+   compile the things needed for HetCATS (HTk + daVinci + HaXml).
+   If ./configure can't find the files it needs it may decide not
+   to compile everything anyway; for example if it can't find daVinci
+   it will just compile HTk.
+3) The programs (ghc, wish, daVinci, gnuclient) need to be in your PATH
+   when you run ./configure.  (After that, ./configure makes sure they
+   are remembered.)   If you want to compile everything, you will also 
+   need to tell ./configure where to find the Berkeley Data Base, see 
+   (5) in the "Requirements section".
 
-   Some of the programs in HTk use a more sophisticated Tk-encapsulation
-   known as tixwish.
-3) Do you want to draw graphs using Uni's daVinci encapsulation
-   (in directory "davinci")?  Then you need DaVinci.  You can get 
-   this from:
-      http://www.informatik.uni-bremen.de/daVinci/
-   Once you have it, put it in your PATH, with the name "daVinci",
-   for the ./configure step.
-4) Do you want to use our versioning system (in "cvs" and "types")?
-   Then you need cvs, probably version 10.7 or thereabouts.
-   Again, put it in your PATH for the configure step.
-5) Do you want to run the MMiSSWorkbench?  Then you will need
-   XEmacs.  We use version 21.4 (patch 8), but it seems pretty stable,
-   so it probably shouldn't matter if you haven't got *exactly* that
-   version.  You will also need to install AUCTeX and the Lisp file
-   atomic-extents.elc.  All these should be available from 
-   http://www.xemacs.org.
-
-   You should also have XEmacs when you run the MMiSSWorkbench,
-   and it needs to run the XEmacs server.  For this you need to
-   run the Lisp command "(gnuserv-start)" within XEmacs, or put 
-   it in your .xemacs/init.el file when you start up.
-
+   You can also specify these using environment variables.  For example,
+   if you want to use tixwish rather than wish, set the environment variable
+   UNIWISH to the location of your tixwish executable.
 
 Compiling
 ---------
 
 Once you've done all that, the following commands are supposed to do
 it, assuming that you are in the same directory as this README file
-(that is, at the top of the Uni distribution).
+(that is, at the top of the Uni distribution).  Here, and elsewhere in this
+document, I shall use "gmake" to mean "whatever command corresponds to
+GNU make on your system".  Other versions of make, such as that called "make"
+on Solaris, do not work.
    
 # Configure the Makefiles
 ./configure
@@ -302,9 +392,29 @@ make it into Haddock 0.7.  Haddock 0.6 should however work, but the output
 will not look as good; the "Description" fields will not appear in the
 contents lists as they should.
 
-Make sure Haddock is in your path, then do
-   ./configure
-   gmake haddock
+Make sure Haddock is in your path and then type
+
+   ./configure 
+   ./runhaddock.sh
+
+The output may be even better if you can find where Glasgow Haskell installs
+its HTML documentation and, instead of "./configure", use 
+"./configure --with-ghc-html=[directory]".  ./configure tries to figure out
+where the HTML documentation is anyway, but it doesn't always get it right.
+
+
+Other Specific Issues for Windows
+---------------------------------
+
+For wish, daVinci, gnuclient, programs which the Workbench calls externally, 
+there is a problem because the Workbench uses GHC, which expects the
+native Windows file names of their executables, while when you ran ./configure
+it will have hardwired the MinGW (or perhaps CygWin) names, which are tweaked
+to make them look more Unix-y.  The solution is to specify the file names
+directly, by setting the environment variables UNIWISH, UNIDAVINCI and
+UNIGNUCLIENT to the location of the executables.  If they are in your PATH,
+you can in fact just set them to "wish", "daVinci" and "gnuclient".
+
 
 How to Make a Binary Distribution
 ---------------------------------
@@ -325,40 +435,6 @@ This will create .tar.gz and .zip files containing a binary distribution
 You should afterwards re-run ./configure as gmake prepareexports (currently) 
 alters the default_options code in util, to put in generic locations for wish,
 daVinci & co.
-
-How to copy the documentation and binaries onto the web site
-------------------------------------------------------------
-
-Assuming that the web site and binaries are mounted on your machine set
-the variable WWWPREFIX to its location as a file path for the directory,
-not including the final slash.  You can do this either as an environment
-variable, on the make command line, or in mk/local.mk.  Then do
-   gmake www
-
-
-Restarting compilation
-----------------------
-
-If you try to compile HTk with too little memory, Glasgow Haskell will
-fall over, because it is trying to compile too many files at once, and suddenly
-comes across a really big one it can't handle.  You can try making the
-individual object file which GHC gave up on:
-   cd htk
-   gmake toolkit/Notepad.o
-where instead of toolkit/Notepad you put whatever module caused the problems.
-Then restart with
-   gmake packages
-and hope the problem doesn't reoccur.
-
-If this fails you can go back to the old method of compiling the modules
-one by one.  The simplest way is probably to do (from the top directory)
-   gmake packagesquick # Needed if you haven't already completed a build
-   gmake depend # Sets up .depend files for Make
-   gmake lib # Compiles everything, but one by one.
-   gmake packagesquick # Complete the build.  (Yes, you've already done this.)
-
-In theory object files produced by this method should be just the same 
-as those produced by the new one.
 
 Other documentation
 -------------------

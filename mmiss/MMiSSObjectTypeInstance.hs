@@ -30,9 +30,6 @@ import Dynamics
 
 import BSem
 
-import MenuType
-
-import Graph(ArcType,NodeType)
 import GraphDisp
 import GraphConfigure
 
@@ -40,7 +37,6 @@ import ObjectTypes
 import GlobalRegistry
 import LinkDrawer
 import LinkManager
-import ObjectTypes
 import Link
 import DisplayParms
 import MergeTypes
@@ -67,6 +63,7 @@ import MMiSSFileType
 import MMiSSBundle
 import MMiSSPackageFolder
 import MMiSSImportExportErrors
+import MMiSSElementInfo
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
@@ -157,6 +154,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                         (\ link -> exportMMiSSObjectLaTeX view link),
                      Button "Export Object as XML"
                         (\ link -> exportMMiSSObjectXML view link),
+                     Button "Edit Object as XML"
+                        (\ link -> editMMiSSObjectXml view link),
                      Button "Check consistency"
                         (\ link -> mmissCheck view link),
                      Button "Present in ActiveMath"
@@ -216,7 +215,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                         do
                            cache <- toVariantObjectCache 
                               (variantObject mmissObject)
-                           return (getFiles (cacheElement cache))
+                           return (fromWithError1 [] 
+                              (getFiles (cacheElement cache)))
 
                      fileLinks1 :: SimpleSource [EntityFullName]
                      fileLinks1 = fmap

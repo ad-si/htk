@@ -30,7 +30,6 @@ module Myers(
 import Array
 
 import Control.Monad.ST
-import Data.Array.MArray
 import Data.Array.ST
 
 import ExtendedPrelude

@@ -14,12 +14,10 @@ import Data.FiniteMap
 import Dynamics
 
 import CodedValue
-import AttributesType
 import DisplayParms
 import GlobalRegistry
 import Link
 
-import MMiSSDTDAssumptions
 import MMiSSDTD
 import {-# SOURCE #-} MMiSSObjectType
 
@@ -32,18 +30,9 @@ data MMiSSObjectType = MMiSSObjectType {
       -- Describes the type.  This String should be identical with 
       -- corresponding XML Tag, eg "atom".
    typeId :: GlobalKey,
-   attributesType :: AttributesType,
-      -- This describes the attributes peculiar to this MMiSS object type.
    displayParms :: NodeTypes (Link MMiSSObject)
       -- Displays parameters for this object
    } deriving (Typeable)
-
--- ------------------------------------------------------------------------
--- The instance of HasAttributesType
--- ------------------------------------------------------------------------
-
-instance HasAttributesType MMiSSObjectType where
-   toAttributesType objectType = attributesType objectType
 
 -- ------------------------------------------------------------------------
 -- The instances of Dynamics and HasCodedValue
@@ -76,11 +65,10 @@ mmissObjectTypeMap =
             (xmlTag,MMiSSObjectType {
                xmlTag = xmlTag,
                typeId = constructKey xmlTag,
-               attributesType = variantAttributesType,
                displayParms = getDisplayInstruction xmlTag
                })
             )
-         allLabelledElements
+         allDisplayedElements
          )
 
 -- | Return the key in the global registry for objects with this tag

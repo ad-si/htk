@@ -5,12 +5,9 @@ import Maybe
 import System
 
 import WBFiles
-import Computation
 import ExtendedPrelude
 import Messages
 
-import Events
-import Destructible
 import InfoBus
 
 import HTk

@@ -1,6 +1,7 @@
 PACKAGE = uni-simpledb
 PACKAGES = uni-server uni-graphs bdb-package
-SRCS       = BDBOps.hs ServerErrors.hs VersionInfo.hs VersionInfoService.hs \
+SRCS       = BDBOps.hs ServerErrors.hs \
+   ObjectVersion.hs VersionInfo.hs VersionInfoService.hs \
    Permissions.hs ExaminePermissions.hs SimpleDBTypes.hs BDBExtras.hs \
    PrimitiveLocation.hs VersionData.hs SecurityManagement.hs OpenSimpleDB.hs \
    QuerySimpleDB.hs LocationAllocation.hs VersionAllocation.hs \
@@ -8,10 +9,6 @@ SRCS       = BDBOps.hs ServerErrors.hs VersionInfo.hs VersionInfoService.hs \
    GetDiffs.hs SetGetSecurityData.hs Retrieve.hs Commit.hs \
    SimpleDBServer.hs SimpleDBService.hs SimpleDB.hs ObjectSource.hs \
    VersionInfoFilter.hs \
-
-#   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
-#   VersionInfoFilter.hs Permissions.hs \
-
 
 SUBDIRS = test
 SRCSC      = bdbclient.c bdbcommon.c

@@ -45,10 +45,12 @@ module Broadcaster(
 
 import Data.IORef
 import qualified Control.Concurrent.MVar as MVar
+import System.IO.Unsafe
 
 import Sink
 import Sources
 import Delayer
+import Debug(debug)
 
 -- -----------------------------------------------------------------
 -- Datatypes
@@ -236,7 +238,14 @@ mirrorSimpleSourceWithDelayer delayer (simpleSource :: SimpleSource a) =
    do
       sinkId <- newSinkID
       parallelX <- newParallelExec
-      broadcaster <- newSimpleBroadcaster (error "mirrorSimpleSource: 2")
+      let
+         -- emergencyRead should not be used too often I hope.
+         emergencyRead = 
+            do
+               debug "Broadcaster: emergency read"
+               readContents simpleSource
+
+      broadcaster <- newSimpleBroadcaster (unsafePerformIO emergencyRead)
       ref <- newIORef (error "mirrorSimpleSource: 3")
 
       let

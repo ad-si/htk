@@ -3,6 +3,6 @@
 # to refer to it directly.
 PACKAGES = uni-mmiss
 
-SRCS =  TestAST.hs TestLaTeX.hs
+SRCS =  TestLaTeX.hs
 
 include @TOP@/mk/boilerplate.mk

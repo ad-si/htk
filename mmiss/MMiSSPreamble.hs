@@ -8,9 +8,9 @@ module MMiSSPreamble(
    createPreamble, 
       -- :: View -> WrappedLink -> MMiSSLatexPreamble 
       -- -> IO (Link MMiSSPreamble)
-   readPreamble, -- :: View -> Link MMiSSPreamble -> IO MMiSSLatexPreamble
+   readPreamble, -- :: View -> Link MMiSSPreamble -> IO MMiSSLaTeXPreamble
    writePreamble, 
-      -- :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> IO ()
+      -- :: Link MMiSSPreamble -> View -> MMiSSLaTeXPreamble -> IO ()
 
 
    toImportCommands, -- :: MMiSSPreamble -> SimpleSource ImportCommands

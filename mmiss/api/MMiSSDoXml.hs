@@ -17,7 +17,6 @@ import Text.XML.HaXml.Types
 
 
 import Computation
-import ExtendedPrelude
 import Messages
 import WBFiles
 import AtomString
@@ -30,17 +29,16 @@ import PasswordFile
 import MMiSSDTD hiding (validateElement)
 
 
+import MMiSSSecurityOps
 import MMiSSCallServer
 import MMiSSCheckOutCommit
 import MMiSSGetPut
 import MMiSSImportExportErrors
 
-
 import MMiSSRequest
 import MMiSSSessionState
 import MMiSSMessages
 import MMiSSAPIBlock
-import MMiSSSecurityOps
 
 doXml :: Handle -> User -> IO ()
 doXml handle user =

@@ -5,6 +5,8 @@ module MMiSSReAssemble(
    reAssembleNoRecursion,
    ) where
 
+import Maybe
+
 import Computation
 import AtomString
 
@@ -12,9 +14,11 @@ import EntityNames
 
 import Text.XML.HaXml.Types
 
-import MMiSSDTDAssumptions
+import LaTeXParser(IncludeInfo(..))
+
 import MMiSSVariant
-import MMiSSElementInfo(changeLabel)
+import MMiSSElementInfo
+import MMiSSDTDAssumptions
 
 -- | The first action function is to extract the Element and is allowed to 
 -- return Nothing.  This 
@@ -99,9 +103,10 @@ reAssemble
       reAssembleElement variantSearch0 searchData0 
             (element0 @ (Elem name attributes contents0)) =
          do
+            (elementInfo,_) <- monadifyWithError (getElementInfo element0)
             let
                attributesSpec :: MMiSSVariantSpec
-               attributesSpec = toMMiSSVariantSpecFromXml attributes
+               attributesSpec = variants elementInfo
 
                variantSearch1 :: MMiSSVariantSearch
                variantSearch1 
@@ -122,16 +127,20 @@ reAssemble
                            do
                               contents1 <- doContents contents0
                               return (CElem (Elem tag0 attributes0 contents1)) 
-                        Just (referredNameString,linkAttributes,check) ->
+                        Just (referredNameString,includeInfo,check) ->
                            do
                               (referredName :: EntitySearchName)
                                  <- monadifyWithError (
                                     fromStringWE referredNameString)
-                              let
-                                 priority = getPriority element0
 
+                              priority <- monadifyWithError (
+                                 getPriority element0)
+
+                              let
                                  linkAttributesSpec 
-                                    = toMMiSSVariantSpecFromXml linkAttributes
+                                    = fromMaybe emptyMMiSSVariantSpec
+                                       (fmap toMMiSSVariantSpecFromXml
+                                          (variantOpt includeInfo))
 
                                  variantSearch2 = refineVariantSearch
                                     variantSearch1 linkAttributesSpec
@@ -139,9 +148,10 @@ reAssemble
                                  variantSearch2 searchData0 check
                               case elementOpt of
                                  Just element1 -> 
-                                    let
-                                       element2 = setPriority element1 priority
-                                    in
+                                    do
+                                       let
+                                          element2 
+                                             = setPriority element1 priority
                                        return (CElem element2)
                                  Nothing -> return content
                      _ -> return content
@@ -152,7 +162,7 @@ reAssemble
                       file0 <- monadifyWithError (fromStringWE fileStr0)
                       toMonadWithError (doThisFile file0)
                    )    
-               (getFiles element0)
+               (getAllFiles element0)
 
             contents1 <- doContents contents0
             return (Elem name attributes contents1)

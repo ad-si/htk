@@ -1,5 +1,5 @@
 # We establish the following conventions.
-# Haskell files end with ".hs" or ".lhs", c with ".c".
+# Haskell files end with ".hs", c with ".c".
 # Source files are distinguished by prefix.
 # Source files with names beginning "Test" are test files.
 #    These are assumed to be linkable to complete executables
@@ -74,15 +74,12 @@
 #    declare dependencies for wwwhere where necessary to do the copying.
 
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
-OBJSLHS = $(patsubst %.lhs,%.o,$(SRCSLHS))
-OBJSALLHS = $(OBJSHS) $(OBJSLHS)
 OBJSC = $(patsubst %.c,%.o,$(SRCSC))
 OBJSEMACS = $(patsubst %.el,%.elc,$(SRCSEMACS))
-OBJS = $(OBJSALLHS)  $(OBJSC)
-LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
-          $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
+OBJS = $(OBJSHS)  $(OBJSC)
+LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS))
 HADDOCKSRCS = $(patsubst %,haddock/%,$(LIBSRCS))
-EXPORTSRCS = $(filter Test%.hs Main%.hs Test%.lhs Main%.lhs Test%.c Main%.c,$(SRCS) $(SRCSC)) $(SRCSEMACS)
+EXPORTSRCS = $(filter Test%.hs Main%.hs Test%.c Main%.c,$(SRCS) $(SRCSC)) $(SRCSEMACS)
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
@@ -90,22 +87,22 @@ MAINOBJS = $(filter Main%.o,$(OBJS))
 MAINPROGS = $(patsubst Main%.o,%,$(MAINOBJS))
 
 LIBOBJSHS = $(filter-out Test%.o Main%.o,$(OBJSHS))
+
+# Construct list of module names for the benefit of ghc-pkg
+LIBMODULENAMES1 = $(LIBOBJSHS:.o=)
+LIBMODULENAMES = $(subst /,.,$(LIBMODULENAMES1))
+
 TESTOBJSHS = $(filter Test%.o,$(OBJSHS))
 MAINOBJSHS = $(filter Main%.o,$(OBJSHS))
 
-LIBOBJSLHS = $(filter-out Test%.o Main%.o,$(OBJSLHS))
-TESTOBJSLHS = $(filter Test%.o,$(OBJSLHS))
-MAINOBJSLHS = $(filter Main%.o,$(OBJSLHS))
-
-HILIBFILES = $(patsubst %.o,%.hi,$(LIBOBJSLHS) $(LIBOBJSHS))
-HIFILES = $(patsubst %.o,%.hi,$(OBJSALLHS))
+HILIBFILES = $(patsubst %.o,%.hi,$(LIBOBJSHS))
+HIFILES = $(patsubst %.o,%.hi,$(OBJSHS))
 HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
 
-LIBMODULES = $(patsubst %.o,%,$(LIBOBJSLHS) $(LIBOBJSHS))
+LIBMODULES = $(patsubst %.o,%,$(LIBOBJSHS))
 SPLITOBJS = $(patsubst %,%/*.o,$(LIBMODULES))
 
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
-             $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
              $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
 OBJSEMACSFULL = $(patsubst %,$$PWD/%,$(OBJSEMACS))
 EXPORTSRCSFULL = $(patsubst %,$$PWD/%,$(EXPORTSRCS))
@@ -137,9 +134,12 @@ GHCIOBJ = $(PACKAGE).o
 # We only need direct dependencies.
 # Is there any less horrible way of getting gmake to comma-separate
 # a list?
-DEPS' = $(filter-out BEGINCOMMA BEGIN,BEGIN$(PACKAGES:%=COMMA "%"))
+DEPS' = $(filter-out BEGINCOMMA BEGIN,BEGIN$(PACKAGES:%=COMMA %))
 DEPS = $(DEPS':COMMA=,)
 
+LIBMODULENAMESCOMMAS' = $(filter-out BEGINCOMMA BEGIN,BEGIN$(LIBMODULENAMES:%=COMMA %))
+
+LIBMODULENAMESCOMMAS = $(LIBMODULENAMESCOMMAS':COMMA=,)
 #
 #
 # Here are some phony targets
@@ -198,13 +198,11 @@ oldclean:
 
 display :
 	@echo SRCS = $(SRCS)
-	@echo SRCSLHS = $(SRCSLHS)
 	@echo BOOTSRCS = $(BOOTSRCS)
 	@echo SRCSC = $(SRCSC)
 	@echo LIB = $(LIB)
 	@echo LIBS = $(LIBS)
 	@echo OBJSHS = $(OBJSHS)
-	@echo OBJSLHS = $(OBJSLHS)
 	@echo OBJSC = $(OBJSC)
 	@echo OBJSEMACS = $(OBJSEMACS)
 	@echo OBJS = $(OBJS)
@@ -218,13 +216,16 @@ display :
 	@echo DEPS = '$(DEPS)'
 	@echo PACKAGES = $(PACKAGES)
 	@echo WINDOWS = $(WINDOWS)
+	@echo LIBMODULENAMES = $(LIBMODULENAMES)
+	@echo LIBMODULENAMESCOMMAS = $(LIBMODULENAMESCOMMAS)
 
 depend : dependhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
-dependhere : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
-ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
-	$(DEPEND) $(HCFLAGS) $(SRCS) $(SRCSLHS)
+dependhere : $(SRCS) $(HIBOOTFILES)
+
+ifneq "$(strip $(SRCS))" ""
+	$(DEPEND) $(HCFLAGS) $(SRCS)
 endif
 
 ifeq "$(strip $(LIBOBJS))" ""
@@ -240,7 +241,9 @@ mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
 ifneq "$(PACKAGE)" ""
+ifneq "$(strip $(LIBSRCS))" ""
 	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS)
+endif
 	$(AR) -rs $(LIB) $(LIBOBJS)
 endif
 
@@ -252,6 +255,8 @@ packages : packagehere
 # Option to be given to ld for producing GHCi object files.
 WHOLEARCHIVE = $(if $(findstring MacOS,$(OSTITLE)),-all_load,--whole-archive)
 
+PACKAGELIB=$(if $(LIBOBJS),$(PACKAGE),)
+
 packageherequick :
 # The "echo" after the --remove-package means we keep going even if
 # remove-package complains about the package not being there (which it won't
@@ -261,13 +266,7 @@ ifneq "$(PACKAGE)" ""
 	   $(GFIND) lib$(PACKAGE).a -maxdepth 0 -newer $(PACKAGE).o -exec \
 	      $(RM) $(PACKAGE).o \; ; fi
 	$(GHCPKG) --config-file $(PACKAGECONF) --remove-package $(PACKAGE) ; echo ""
-ifneq "$(DOIMPORTS)" ""
-# Copy import files over.
-	$(RM) -rf imports
-	$(MKDIR) imports
-	($(CP) $(HILIBFILES) imports || echo ".hi files not yet compiled")
-endif
-	$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --force --add-package --auto-ghci-libs
+	$(SED) -e 's+PACKAGELIB+$(PACKAGELIB)+g;s+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --force --add-package --auto-ghci-libs
 endif
 
 packagesquick : packageherequick
@@ -277,7 +276,7 @@ packagesquick : packageherequick
 prepareexportshere : 
 ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
-	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --force --add-package 
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS++g;s+DEPS+$(DEPS)+g;s+EXPOSED+$(LIBMODULENAMESCOMMAS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --force --add-package 
 endif
 
 prepareexports : prepareexportshere
@@ -288,11 +287,7 @@ ifeq "$(PACKAGE)" ""
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL)
 else
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ) $(OBJSEMACSFULL)
-ifeq "$(DOIMPORTS)" ""
 	@PWD=`pwd`;echo $(EXPORTHIFILES)
-else
-	@PWD=`pwd`;echo $$PWD/imports/*.hi
-endif
 endif
 
 displayexports : displayexportshere
@@ -346,7 +341,7 @@ $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
 # The only thing we do here is preprocess the file.
 	$(CPP) $< -o $@
-   
+
 
 $(LIBOBJSHS) : %.o : %.hs
 ifeq "$(DOSPLIT)" ""
@@ -357,15 +352,9 @@ else
 endif
 
 
-$(LIBOBJSLHS) : %.o : %.lhs
-	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) 
-
 TESTFLAGS = $(if $(PACKAGE),$(HCSHORTFLAGS) $(THISPACKAGE),$(HCFLAGS))
 
 $(TESTOBJSHS) $(MAINOBJSHS) : %.o : %.hs
-	$(HC) -c $< $(TESTFLAGS)
-
-$(TESTOBJSLHS) $(MAINOBJSLHS) : %.o : %.lhs
 	$(HC) -c $< $(TESTFLAGS)
 
 # C objects ought to depend on the header file as well,

@@ -61,6 +61,7 @@ import MMiSSDTDAssumptions
 import MMiSSVariant
 import MMiSSElementInstances
 import MMiSSFileType
+import MMiSSElementInfo
 
 -- | Check that a bundle being read in passes various structural
 -- requirements
@@ -411,7 +412,7 @@ validateBundle6 = checkAllNodes checkDTD
 
                                     let
                                        files :: [String]
-                                       files = getFiles element
+                                       files = getAllFiles element
                                           -- Yes this does get all files
                                           -- from all sub-elements (not just
                                           -- the head element)

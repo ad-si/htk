@@ -14,7 +14,7 @@ import Data.FiniteMap
 import Debug
 import Computation
 import IOExtras
-import Dynamics(fromDyn)
+import Dynamics(fromDynamic)
 
 import RegularExpression
 import InfoBus
@@ -171,7 +171,7 @@ drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
                putStrLn ("New Node-And-Edge gesture on "++title)) $$$
             NodeDragAndDrop (\ otherDyn this ->
                do
-                  let Just other = fromDyn otherDyn
+                  let Just other = fromDynamic otherDyn
                   putStrLn ("Dragged "++other++" to "++this)
                ) $$$
             ValueTitle (\ title -> return title ) $$$
@@ -197,13 +197,13 @@ drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
             case lookupFM nodeMap nodeString of
                Just node -> node
 
-      sequence_ (map
+      sequence_ (fmap
          (\ (importer,allImported) ->
             let
                importerNode = stringToNode importer
             in
                sequence_
-                  (map
+                  (fmap
                      (\ imported ->
                         newArc graph arcType () 
                            importerNode (stringToNode imported)

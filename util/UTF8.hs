@@ -22,7 +22,7 @@ import List
 
 import Data.Bits
 import Data.Word
-import Control.Monad.Error
+import Control.Monad.Error -- needed for instance Monad (Either String)
 
 import Computation
 

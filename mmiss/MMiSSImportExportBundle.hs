@@ -10,8 +10,6 @@ module MMiSSImportExportBundle(
       -- This corresponds to mmiss/MMiSSRequest.dtd's getObject element.
    ) where
 
-import Computation
-
 import EntityNames
 
 import View

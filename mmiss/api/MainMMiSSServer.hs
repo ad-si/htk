@@ -8,17 +8,17 @@ module Main(main) where
 import IO
 import Time
 
-import Control.Exception
 import Control.Concurrent
-import System.Posix.Signals
+import Control.Exception
 import Network
 
 
-import Computation
 import ExtendedPrelude
 import BinaryAll
+import Computation
 import WBFiles(getXMLPort,parseArgumentsRequiring)
 
+import BlockSigPIPE
 
 import Crypt
 import PasswordFile
@@ -37,7 +37,8 @@ main =
          "top",
          "xmlPort"
          ]
-      installHandler sigPIPE Ignore Nothing
+
+      blockSigPIPE
 
       doRegistrations
       doMMiSSRegistrations

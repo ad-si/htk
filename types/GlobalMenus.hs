@@ -10,11 +10,6 @@ module GlobalMenus(
 
 import Maybe
 
-import Computation
-
-import Events
-import Destructible
-
 import HTk
 import MenuType
 import HTkMenu

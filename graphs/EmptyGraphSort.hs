@@ -29,23 +29,26 @@ data EmptyGraph = EmptyGraph {
    delayer :: Delayer,
    destructChan :: Channel (),
    oId :: ObjectID
-   }
+   } deriving (Typeable)
 
 data EmptyGraphParms = EmptyGraphParms
 
 data EmptyNode value = EmptyNode {
    ioRefN :: IORef value,
    oIdN :: ObjectID
-   }
-data EmptyNodeType value = EmptyNodeType
+   } deriving (Typeable)
+
+data EmptyNodeType value = EmptyNodeType deriving (Typeable)
+
 data EmptyNodeTypeParms value = EmptyNodeTypeParms
 
 data EmptyArc value = EmptyArc {
    ioRefE :: IORef (Maybe value),
    oIdE :: ObjectID
-   }
+   } deriving (Typeable)
 
 newtype EmptyArcType value = EmptyArcType {oIdET :: ObjectID}
+   deriving (Typeable)
 
 data EmptyArcTypeParms value = EmptyArcTypeParms
 
@@ -112,17 +115,6 @@ instance GraphConfig graphConfig
 -- Instances for EmptyNode, EmptyNodeType, EmptyNodeTypeParms
 -- ---------------------------------------------------------------------------
 
-node_tyRep :: TyRep
-node_tyRep = mkTyRep "MMiSSAPI" "EmptyNode"
-instance HasTyRep1 EmptyNode where
-   tyRep1 _ = node_tyRep
-
-
-nodeType_tyRep :: TyRep
-nodeType_tyRep = mkTyRep "MMiSSAPI" "EmptyNodeType"
-instance HasTyRep1 EmptyNodeType where
-   tyRep1 _ = nodeType_tyRep
-
 instance Eq1 EmptyNode where
    eq1 = mapEq oIdN
 
@@ -179,16 +171,6 @@ instance HasModifyValue NodeArcsHidden EmptyGraph EmptyNode where
 -- ---------------------------------------------------------------------------
 -- Instances for EmptyArc, EmptyArcType, EmptyArcTypeParms
 -- ---------------------------------------------------------------------------
-
-arc_tyRep :: TyRep
-arc_tyRep = mkTyRep "MMiSSAPI" "EmptyArc"
-instance HasTyRep1 EmptyArc where
-   tyRep1 _ = arc_tyRep
-
-arcType_tyRep :: TyRep
-arcType_tyRep = mkTyRep "MMiSSAPI" "EmptyArcType"
-instance HasTyRep1 EmptyArcType where
-   tyRep1 _ = arcType_tyRep
 
 instance Eq1 EmptyArc where
    eq1 = mapEq oIdE

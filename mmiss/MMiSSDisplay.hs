@@ -18,19 +18,13 @@ import ViewType(getViewTitleSource)
 import View
 import CodedValue
 import DisplayTypes
-import BasicObjects
 import GlobalRegistry
-import AttributesType
 import GlobalMenus
 import DisplayView
 
-import MMiSSDTDAssumptions
-
 data MMiSSDisplayType = MMiSSDisplayType {
    name :: String,
-   key :: GlobalKey,
-   defaultVariantAttributes :: Attributes
-   -- current settings of the variant attributes
+   key :: GlobalKey
    } deriving (Typeable)
 
 -- -----------------------------------------------------------------
@@ -38,12 +32,10 @@ data MMiSSDisplayType = MMiSSDisplayType {
 -- -----------------------------------------------------------------
 
 instance HasBinary MMiSSDisplayType CodingMonad where
-   writeBin = mapWrite (\ (MMiSSDisplayType {name = name,key = key,
-      defaultVariantAttributes = defaultVariantAttributes}) 
-         -> (name,key,defaultVariantAttributes))
-   readBin = mapRead (\ (name,key,defaultVariantAttributes) ->
-       MMiSSDisplayType {name = name,key = key,
-          defaultVariantAttributes = defaultVariantAttributes})
+   writeBin = mapWrite (\ (MMiSSDisplayType {name = name,key = key})
+         -> (name,key))
+   readBin = mapRead (\ (name,key) ->
+       MMiSSDisplayType {name = name,key = key})
 
 instance DisplayType MMiSSDisplayType where
    displayTypeTypeIdPrim _ = "MMiSSDisplay"
@@ -86,19 +78,15 @@ newMMiSSDisplay view =
    do
       let
          nameForm = newFormEntry "Display Name" ""
-      extraForm <- mkExtraFormItem nameForm
-      attributesOpt 
-         <- inputAttributes view variantAttributesType (Just extraForm)
-      case attributesOpt of
+      nameOpt <- doForm "Enter Display Name" nameForm
+      case nameOpt of
          Nothing -> return Nothing
-         Just attributes ->
+         Just name ->
             do
-               name <- readExtraFormItem extraForm
                key <- newKey displayTypeRegistry view
                return (Just (MMiSSDisplayType {
                   name = name,
-                  key = key,
-                  defaultVariantAttributes = attributes
+                  key = key
                   }))
 -- -----------------------------------------------------------------
 -- Registering the display

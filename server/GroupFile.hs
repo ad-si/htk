@@ -84,7 +84,7 @@ mapGroupFile (GroupFile fm) =
       list1 = fmToList fm
 
       list2 :: [(GroupOrUser,[String])]
-      list2 = map (\ (gOrU,set) -> (gOrU,setToList set)) list1
+      list2 = fmap (\ (gOrU,set) -> (gOrU,setToList set)) list1
    in
       list2
 
@@ -92,7 +92,7 @@ unmapGroupFile :: GroupFileMapTransmit -> GroupFile
 unmapGroupFile list1 =
    let
       list2 :: [(GroupOrUser,Set String)]
-      list2 = map (\ (gOrU,list) -> (gOrU,mkSet list)) list1
+      list2 = fmap (\ (gOrU,list) -> (gOrU,mkSet list)) list1
    in
       GroupFile (listToFM list2)
 

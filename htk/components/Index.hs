@@ -116,7 +116,7 @@ instance Show BaseIndex where
 instance Read BaseIndex where
     readsPrec p str = [(cread str,[])] where
         cread (s @ (x:l)) | isDigit x =
-                case map read (split (== '.') s) of
+                case map read (simpleSplit (== '.') s) of
                         [Distance i] -> IndexNo i
                         [x,y] -> IndexPos (x,y)
                         _ -> error "illegal index specification"

@@ -102,7 +102,7 @@ newGraphEditor
                NodeDragAndDrop (\ sourceDyn target ->
                   do
                      let
-                        Just source = fromDyn sourceDyn
+                        Just source = fromDynamic sourceDyn
                      makeNewArc graph registry source target
                   ) $$$
                shape nodeTypeAttributes $$$

@@ -7,10 +7,6 @@
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
 
-ifeq "@WINDOWS@" "1"
-   # Just HTk (no posixutil)
-   SUBDIRS = util events reactor htk
-else
 ifeq "@BUILDAMOUNT@" "50"  
    # Just HTk
    SUBDIRS = util events reactor posixutil htk
@@ -28,9 +24,8 @@ else
 endif
 endif
 endif
-endif
 
-COMMONEXTRAEXPORTS = VERSION uni-package.conf.export includes/*.h includes/config.h.in mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk bdb-package.options.in configure
+COMMONEXTRAEXPORTS = VERSION uni-package.conf.export includes/*.h mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk configure
 
 ifeq "@WINDOWS@" "1"
 EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 
@@ -64,8 +59,8 @@ findsources :
 	@echo @TOP@/mk/boilerplate.mk.in @TOP@/mk/machinedep.mk.in 
 	@echo @TOP@/mk/var.mk @TOP@/mk/suffix.mk @TOP@/mk/local.mk.debug
 	@echo @TOP@/configure.ac 
-	@echo @TOP@/includes/config.h.in @TOP@/not.a.binary.release 
-	@echo @TOP@/bdb-package.options.in @TOP@/package.spec.template
+	@echo @TOP@/not.a.binary.release 
+	@echo @TOP@/bdb-package.options @TOP@/package.spec.template
 	@echo @TOP@/uni-package.options @TOP@/mk/MainFixFileNames.hs
 tarball.tar.gz:
 	cd @TOP@;@TAR@ -czf tarball.tar.gz `(($(MAKE) -s --no-print-directory findsources) | sed "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo README ; echo configure ; echo VERSION`
@@ -84,3 +79,4 @@ boothere : mk/RemoveSplices
 
 mk/RemoveSplices : mk/MainRemoveSplices.hs
 	$(HC) $< -o $@
+

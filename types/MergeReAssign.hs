@@ -21,7 +21,6 @@ import Data.FiniteMap
 import Data.IORef
 import Data.Set
 
-import Computation
 import ExtendedPrelude
 import Registry
 import Dynamics
@@ -143,7 +142,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                   -- algorithm here.
                   let
                      references1 :: [(ViewId,WrappedMergeLink,[String])]
-                     references1 = map 
+                     references1 = fmap 
                         (\ (view,link) 
                            -> (viewId view,WrappedMergeLink link,pathHereA)
                            ) 
@@ -183,7 +182,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
             (\ nds ->
                do
                   let
-                     (uf : ufs) = map
+                     (uf : ufs) = fmap
                         (\ nd -> lookupWithDefaultFM unionFinds 
                            (error "MergeReassign.1") (toKey nd)
                            )
@@ -216,7 +215,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
                                  sameElements1 <- sameElements uf
                                  let
                                     newIdentifications1 =
-                                       (map toValue sameElements1) 
+                                       (fmap toValue sameElements1) 
                                           : newIdentifications
                                  mkIdentifications oldIdentifications1 
                                     visited1 newIdentifications1
@@ -417,7 +416,7 @@ assignView view (State {registry = registry,allNodes = allNodes})
          allRelevantObjectTypes 
             :: [(WrappedObjectTypeTypeData,GlobalKey,WrappedObjectType)]
          allRelevantObjectTypes = concat
-            (map
+            (fmap
                (\ (wrappedObjectTypeTypeData,globalKeys) ->
                   mapMaybe
                      (\ (globalKey,uses) ->
@@ -665,7 +664,7 @@ debugLinkReAssigner linkReAssign =
       linkMap2 = fmToList linkMap1
 
       linkMap3 :: [((ViewId,String),String)]
-      linkMap3 = map
+      linkMap3 = fmap
          (\ ((vi,wml1),wml2) -> ((vi,debugWML wml1),debugWML wml2))
          linkMap2
 
@@ -676,9 +675,9 @@ debugLinkReAssigner linkReAssign =
       allMergesMap2 = fmToList allMergesMap1
 
       allMergesMap3 :: [(String,[(ViewId,String)])]
-      allMergesMap3 = map
+      allMergesMap3 = fmap
          (\ (wml,vwmls) -> (debugWML wml,
-            (map (\ (v,wml2) -> (viewId v,debugWML wml2)) vwmls)))
+            (fmap (\ (v,wml2) -> (viewId v,debugWML wml2)) vwmls)))
          allMergesMap2
    in
       show (linkMap3,allMergesMap3)

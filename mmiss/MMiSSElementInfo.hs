@@ -18,21 +18,39 @@ module MMiSSElementInfo(
    mergeElementInfoStrict,
       -- :: ElementInfo -> ElementInfo -> WithError ElementInfo
       -- Merge two ElementInfo's (or complain if there is a clash).
+
+   getPackageId, -- :: Element -> WithError (Maybe PackageId)
+   setPackageId, -- :: Element -> PackageId -> Element
+
+
+   getFiles, -- :: Element -> WithError [String]
+   getAllFiles, -- :: Element -> [String]
+   getPriority, -- :: Element -> WithError String
+   getPriorityAtt, -- :: [Attribute] -> WithError String
+   setPriority, -- :: Element -> String -> Element
+   setPriorityAtt, -- :: [Attribute] -> String -> [Attribute]
+   getLabelOpt, -- :: Element -> WithError (Maybe EntitySearchName)
+   getObjectClass, -- :: Element -> WithError (Maybe String)
    ) where
 
 import List
+import Maybe
 
 import AtomString
 import Computation
+import ExtendedPrelude
 
 import Text.XML.HaXml.Types
 
+import XmlExtras
+
 import EntityNames
 
-import LaTeXParser(PackageId)
+import LaTeXParser(PackageId(..))
 
 import MMiSSVariant
-import MMiSSDTDAssumptions
+import MMiSSDTD
+import MMiSSXmlBasics
 
 -- ----------------------------------------------------------------------
 -- Datatypes
@@ -41,16 +59,18 @@ import MMiSSDTDAssumptions
 data ElementInfo = ElementInfo {
    packageIdOpt :: Maybe PackageId,
    packagePathOpt1 :: Maybe EntityFullName,
-      -- the packagePathOpt function will also try to get a packagePath
+      -- ^ the packagePathOpt function will also try to get a packagePath
       -- function from the labelOpt, if packagePathOpt1 is unset.
    packageNameOpt :: Maybe EntityName,
-      -- the name of the containing package object.
+      -- ^ the name of the containing package object.
+      -- NB.  This module doesn't attempt to set this to anything but Nothing;
+      -- that is done by, for example, MMiSSBundleFillIn.fillInBundle
    labelOpt :: Maybe EntitySearchName,
    variants :: MMiSSVariantSpec
    } deriving (Show) -- for debugging.
 
 -- ----------------------------------------------------------------------
--- Functions
+-- Main Functions
 -- ----------------------------------------------------------------------
 
 emptyElementInfo :: ElementInfo 
@@ -63,48 +83,63 @@ emptyElementInfo = ElementInfo {
    }
 
 getElementInfo :: Element -> WithError (ElementInfo,Element)
-getElementInfo (Elem name atts0 content) =
-   let
-      attsToExtract = "label" : "packageId" : "packagePath" 
-         : variantAttributes2
-      (infoAtts,atts1) = 
-         partition 
-            (\ (name,_) -> elem name attsToExtract)
-            atts0
-      elem1 = Elem name atts1 content
+getElementInfo (Elem name0 _ content0) =
+   do
+      (attributesElement,content1) <- case content0 of
+         CElem (attributesElement @ (Elem "attributes" _ _)) : content1
+            -> return (attributesElement,content1)
+         _ -> fail (name0 ++ 
+            " element does not begin with an attributes element") 
 
-      packageIdStrOpt = getAttribute infoAtts "packageId"
-      packageIdOpt =
-         fmap
-            fromString
-            packageIdStrOpt
- 
-      labelStrOpt = getAttribute infoAtts "label"
-     
-      packagePathStrOpt = getAttribute infoAtts "packagePath"
+      let
+         Elem _ attributeElementAttributes0 attributesElementContent 
+            = attributesElement
 
-      variantSpec = toMMiSSVariantSpecFromXml infoAtts
-   in
-      do
-         labelOpt <- case labelStrOpt of 
-            Just labelStr -> 
-               do 
-                  label <- fromStringWE labelStr
-                  return (Just label)
-            Nothing -> return Nothing
-         packagePathOpt <- case packagePathStrOpt of
-            Just packagePathStr -> 
-               do
-                  packagePath <- fromStringWE packagePathStr
-                  return (Just packagePath)
-            Nothing -> return Nothing
-         return (ElementInfo {
-            packageIdOpt = packageIdOpt,
-            packagePathOpt1 = packagePathOpt,
+      case validateElement0 attributesElement of
+         [] -> done
+         errorMessages -> fail (unlines (
+            ("Unable to validate attributes element in " ++ name0 
+               ++ " element:")
+               : errorMessages) ++ toUglyExportableXml attributesElement)
+         -- From now on we can assume attributesElement matches the DTD,
+         -- for example when we call toMMiSSVariantSpecFromXml.
+
+      packageIdOpt0 <- getPackageIdAtt attributeElementAttributes0
+      packagePathOpt0 <- getPackagePathAtt attributeElementAttributes0
+      labelOpt0 <- getLabelAtt attributeElementAttributes0
+
+      let
+         (variants0,restAttributes) = case attributesElementContent of
+            CElem (variantAttributesElement@(Elem "variant-attributes" _ _))
+               : restAttributes ->
+                  (toMMiSSVariantSpecFromXml variantAttributesElement,
+                     restAttributes)
+            _ -> (emptyMMiSSVariantSpec,attributesElementContent)
+
+         elementInfo = ElementInfo {
+            packageIdOpt = packageIdOpt0,
+            packagePathOpt1 = packagePathOpt0,
             packageNameOpt = Nothing,
-            labelOpt = labelOpt,
-            variants = variantSpec
-            },elem1) 
+            labelOpt = labelOpt0,
+            variants = variants0
+            }
+
+         attributeElementAttributes1 = 
+            filter
+               (\ (name,_) -> case name of
+                  "label" -> False
+                  "packageId" -> False
+                  "packagePath" -> False
+                  _ -> True
+                  )
+               attributeElementAttributes0
+
+         attributesElem1 
+            = Elem "attributes" attributeElementAttributes1 restAttributes
+
+         remainingElem = Elem name0 [] (CElem attributesElem1 : content1)
+
+      return (elementInfo,remainingElem)
 
 packagePathOpt :: ElementInfo -> Maybe EntityFullName
 packagePathOpt elInfo = 
@@ -140,7 +175,6 @@ changeLabel element0 name =
 
       return element4
             
-         
 
 mergeElementInfoStrict :: ElementInfo -> ElementInfo -> WithError ElementInfo
 mergeElementInfoStrict elementInfo1 elementInfo2 =
@@ -165,18 +199,191 @@ mergeElementInfoStrict elementInfo1 elementInfo2 =
          = mergeMaybe fieldName (fieldFn elementInfo1) (fieldFn elementInfo2)
 
 -- -----------------------------------------------------------------
+-- Functions for accessing the system attributes
+-- In general, functions ending "Att" work with the attributes list
+-- of the <attribute> element.  Functions which don't work with the
+-- actual <group>, <unit>, <atom> or <embedded> involved. 
+--
+-- The latter functions are also a lot more careless about error conditions.
+-- -----------------------------------------------------------------
+
+
+getLabelOpt :: Element -> WithError (Maybe EntitySearchName)
+getLabelOpt elem =
+   do
+      attributes <- getAttributes elem
+      getLabelAtt attributes
+
+getObjectClass :: Element -> WithError (Maybe String)
+getObjectClass elem =
+   do
+      attributes <- getAttributes elem
+      getObjectClassAtt attributes
+
+getPackageId :: Element -> WithError (Maybe PackageId)
+getPackageId elem =
+   do
+      attributes <- getAttributes elem
+      getPackageIdAtt attributes
+
+-- | Get the files imported by a particular element (but not by included 
+-- elements).
+getFiles :: Element -> WithError [String]
+getFiles elem =
+   do
+      attributes <- getAttributes elem
+      getFilesAtt attributes
+
+getPriority :: Element -> WithError String
+getPriority elem =
+   do
+      attributes <- getAttributes elem
+      getPriorityAtt attributes
+
+-- | Get all the files imported by an element or its included elements.
+getAllFiles :: Element -> [String]
+getAllFiles elem =
+   let
+      elems :: [Element]
+      elems = getAllElements1 elem
+     
+      files1 :: [WithError [String]] 
+      files1 = map getFiles elems
+
+      files2 :: [[String]]
+      files2 = map 
+         (\ ssWE -> case fromWithError ssWE of
+            Left _ -> []
+            Right ss -> ss
+            )
+         files1
+   in
+      uniqOrd (concat files2)    
+
+getAttributes :: Element -> WithError [Attribute]
+getAttributes (Elem name0 _ content) =
+   return (
+      case content of
+         CElem (Elem "attributes" attributes _) : _ -> attributes
+         _ -> []
+         )
+
+getLabelAtt :: [Attribute] -> WithError (Maybe EntitySearchName)
+getLabelAtt attributes =
+   do
+      labelStrOpt <- getAttribute attributes "label"
+      case labelStrOpt of
+         Nothing -> return Nothing
+         Just labelStr -> 
+            do
+               label <- fromStringWE labelStr
+               return (Just label)
+
+
+getObjectClassAtt :: [Attribute] -> WithError (Maybe String)
+getObjectClassAtt attributes = getAttribute attributes "object-class"
+
+getPackageIdAtt :: [Attribute] -> WithError (Maybe PackageId)
+getPackageIdAtt attributes =
+   do
+      packageIdStrOpt <- getAttribute attributes "packageId"
+      return (fmap PackageId packageIdStrOpt)
+
+getPackagePathAtt :: [Attribute] -> WithError (Maybe EntityFullName)
+getPackagePathAtt attributes =
+   do
+      packagePathStrOpt <- getAttribute attributes "packagePath"
+      case packagePathStrOpt of
+         Nothing -> return Nothing
+         Just packagePathStr ->
+            do
+               packagePath <- fromStringWE packagePathStr
+               return (Just packagePath)
+
+getPriorityAtt :: [Attribute] -> WithError String
+getPriorityAtt attributes = 
+   do
+      pOpt <- getAttribute attributes "priority"
+      return (fromMaybe "1" pOpt)
+
+getFilesAtt :: [Attribute] -> WithError [String]
+getFilesAtt attributes = 
+   do
+      filesOpt <- getAttribute attributes "files"
+      return (case filesOpt of
+         Nothing -> []
+         Just files -> splitByChar ',' files
+         )
+
+-- -----------------------------------------------------------------
+-- Functions for setting the system attributes
+-- -----------------------------------------------------------------
+
+setPackageId :: Element -> PackageId -> Element
+setPackageId element packageId =
+   setAttributes (setPackageIdAtt packageId) element
+
+setPriority :: Element -> String -> Element
+setPriority element priority =
+   setAttributes (\ atts -> setPriorityAtt atts priority) element
+
+setAttributes :: ([Attribute] -> [Attribute]) -> Element -> Element
+setAttributes newAttributesFn (Elem name0 atts0 content0) =
+   let
+      (attributesElem0,content1) = case content0 of
+         (CElem attributesElem) : content1 -> 
+            (attributesElem,content1)
+         _ -> (Elem "attributes" [] [],content0)
+            -- I'm not sure if this ever happens.
+      
+      (Elem attributesElemName attributesElemAttributes0
+         attributesElemContent) = attributesElem0
+      attributesElemAttributes1 = newAttributesFn attributesElemAttributes0
+      attributesElem1 = Elem attributesElemName attributesElemAttributes1
+         attributesElemContent
+
+      content2 = (CElem attributesElem1) : content1
+   in
+      Elem name0 atts0 content2
+
+setPackageIdAtt :: PackageId -> [Attribute] -> [Attribute]
+setPackageIdAtt (PackageId id) attributes =
+   setAttribute attributes "packageId" id
+
+setPriorityAtt :: [Attribute] -> String -> [Attribute]
+setPriorityAtt attributes priority =
+   case priority of
+      "1" -> delAttribute attributes "priority"
+      _ -> setAttribute attributes "priority" priority
+
+
+-- -----------------------------------------------------------------
 -- Internal functions
 -- -----------------------------------------------------------------
 
+-- | Add ElementInfo back to an Element.  It is assumed that the
+-- Element supplied is the result of getElementInfo, so it contains
+-- no system attributes apart from objectClass and no variant attributes. 
 prependElementInfo :: ElementInfo -> Element -> Element
-prependElementInfo elInfo (Elem name atts0 content) =
+prependElementInfo elInfo (Elem name0 [] content0) =
    let
-      atts1 = 
+      (attributesElement0,content1) = case content0 of
+         CElem (attributesElement0 @ (Elem "attributes" _ _)) : content1
+            -> (attributesElement0,content1)
+         _ -> error ("MMiSSElementInfo.prependElementInfo: " ++ name0 ++ 
+            " element does not begin with an attributes element") 
+            -- this should not happen, I hope, since this function is supposed
+            -- to be called too internally.
+     
+      Elem _ attributes0 attributesContent = attributesElement0
+
+      -- (1) compute the new system attributes
+      attributes1 :: [Attribute]
+      attributes1 = 
          (addAtt "label" labelOpt) .
          (addAtt "packageId" packageIdOpt) . 
-         (addAtt "packagePath" packagePathOpt1) .
-         ( (fromMMiSSVariantSpecToXml . variants $ elInfo) ++ ) $
-            atts0
+         (addAtt "packagePath" packagePathOpt1) $
+         attributes0
 
       addAtt :: StringClass object 
          => String -> (ElementInfo -> Maybe object) 
@@ -185,8 +392,19 @@ prependElementInfo elInfo (Elem name atts0 content) =
          case toAtt elInfo of
            Nothing -> atts1
            Just att -> setAttribute0 atts1 attName (toString att)
+
+      -- (2) compute the variants, if any
+      variantAttributesElements = 
+         if variants elInfo == emptyMMiSSVariantSpec
+            then
+               []
+            else
+               [CElem (fromMMiSSVariantSpecToXml (variants elInfo))]
+
+      attributesElement1 = Elem "attributes" attributes1 
+         (variantAttributesElements ++ attributesContent)
    in
-      Elem name atts1 content
+      Elem name0 [] ((CElem attributesElement1) : content1)
 
 stripUnnecessaryPackagePath :: ElementInfo -> ElementInfo 
 stripUnnecessaryPackagePath elInfo0 =
@@ -212,3 +430,7 @@ mergeMaybe keyName aOpt1 aOpt2 =
                ": " ++ show a1 ++ " and " ++ show a2)
       (Just a1,_) -> return aOpt1
       _ -> return aOpt2 
+
+
+   
+

@@ -121,7 +121,7 @@ import Object
 import ReferenceVariables
 import Destructible
 
-import qualified ExtendedPrelude(split)
+import qualified ExtendedPrelude(simpleSplit)
 
 import GUIValue
 import EventInfo
@@ -259,7 +259,8 @@ lookupGUIObjectByName :: WidgetName -> IO (Maybe GUIOBJECT)
 lookupGUIObjectByName (WidgetName "") = return Nothing
 lookupGUIObjectByName (WidgetName str) = 
         queryGUI (\wd -> lookupFM wd no)
-        where   wnm = head (reverse (ExtendedPrelude.split (== '.') str)) 
+        where   wnm = 
+                   head (reverse (ExtendedPrelude.simpleSplit (== '.') str)) 
                 no = ObjectID (read ( drop 1 wnm))
 
 getParentObject :: GUIObject w => w -> IO (Maybe GUIOBJECT)

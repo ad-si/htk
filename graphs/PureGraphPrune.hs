@@ -96,7 +96,7 @@ zTrans isHidden ((pureGraph @ (PureGraph fm))
                   -> newArc parentNode
                _ -> arcData
 
-            parents1 = uniqOrd (map mapParent (parents nodeData))
+            parents1 = uniqOrd (fmap mapParent (parents nodeData))
     
             za =
                if isHidden a
@@ -210,7 +210,7 @@ removeOneHiddenParent isHidden (pureGraph @ (PureGraph fm0)
                        Just nodeData | isHidden parent ->
                           let
                              parentNodes1 = parentNodes nodeData
-                             parents1 = map newArc parentNodes1
+                             parents1 = fmap newArc parentNodes1
                           in
                              Just (a,parent,NodeData {parents = parents1})
                        _ -> Nothing

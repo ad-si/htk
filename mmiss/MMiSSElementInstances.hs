@@ -19,11 +19,8 @@ import MMiSSDTD
 -- Typeable
 -- ----------------------------------------------------------------------
 
-element_tyRep :: TyRep
-element_tyRep = mkTyRep "MMiSSElementInstances" "Element"
-
-instance HasTyRep Element where
-   tyRep _ = element_tyRep
+instance Typeable Element where
+   typeOf _ = mkTypeRep "MMiSSElementInstances" "Element"
 
 -- ----------------------------------------------------------------------
 -- StringClass
@@ -56,10 +53,8 @@ instance HasBinary XmlAttributes CodingMonad where
          )
 
 -- (2) Misc
-misc_tyRep :: TyRep
-misc_tyRep = mkTyRep "MMiSSElementInstances" "Misc"
-instance HasTyRep Misc where
-   tyRep _ = misc_tyRep
+instance Typeable Misc where
+   typeOf _ = mkTypeRep "MMiSSElementInstances" "Misc"
 
 instance Monad m => HasBinary Misc m where
    writeBin = mapWrite 
@@ -74,10 +69,8 @@ instance Monad m => HasBinary Misc m where
          )
 
 -- (4) Reference
-reference_tyRef :: TyRep
-reference_tyRef = mkTyRep "MMiSSElementInstances" "Reference"
-instance HasTyRep Reference where
-   tyRep _ = reference_tyRef
+instance Typeable Reference where
+   typeOf _ = mkTypeRep "MMiSSElementInstances" "Reference"
 
 instance Monad m => HasBinary Reference m where
    writeBin = mapWrite (\ ref -> case ref of
@@ -90,10 +83,8 @@ instance Monad m => HasBinary Reference m where
       )
 
 -- (4) Content
-content_tyRep :: TyRep
-content_tyRep = mkTyRep "MMiSSElementInstances" "Content"
-instance HasTyRep Content where
-   tyRep _ = content_tyRep
+instance Typeable Content where
+   typeOf _ = mkTypeRep "MMiSSElementInstances" "Content"
 
 
 type PackedContent = Choice5 Element (Bool,CharData) Reference Misc ()

@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-widgets
+PACKAGES = uni-htk-devices uni-htk-menuitems uni-htk-tix
+
+SRCS = Button.hs Canvas.hs CheckButton.hs ComboBox.hs Editor.hs Entry.hs Label.hs ListBox.hs MenuButton.hs Message.hs OptionMenu.hs RadioButton.hs Scale.hs ScrollBar.hs Space.hs
+
+include @TOP@/mk/boilerplate.mk

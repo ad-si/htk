@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-toolkit
+PACKAGES = uni-htk-toplevel
+
+SRCS = CItem.hs DialogWin.hs FileDialog.hs GenGUI.hs GenericBrowser.hs HTkMenu.hs IconBar.hs InputForm.hs InputWin.hs LogWin.hs MarkupText.hs MenuType.hs ModalDialog.hs Name.hs Notepad.hs Prompt.hs ScrollBox.hs SelectBox.hs Separator.hs SimpleForm.hs SimpleListBox.hs SpinButton.hs TextDisplay.hs TreeList.hs
+
+include @TOP@/mk/boilerplate.mk

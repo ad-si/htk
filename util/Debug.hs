@@ -37,6 +37,7 @@ module Debug(
      -- to the evaluation.
   ) where
 import IO
+
 import System.IO.Unsafe
 import Control.Exception
 

@@ -4,11 +4,10 @@ module ProcessClasses(
    ToolStatus, -- encodes status of process
    Tool(..), -- can get tool status
    SingleInstanceTool(..), -- this tool has at most one instance
-   UnixTool(..), -- this tool has a process identifier.
    CommandTool(..), -- can send commands.
    ) where
 
-import System.Posix
+import System
 
 import Computation
 
@@ -16,7 +15,7 @@ import Computation
 --  Can get status
 -- --------------------------------------------------------------------------
 
-type ToolStatus = Maybe ProcessStatus 
+type ToolStatus = Maybe ExitCode
 
 class Tool t where
     getToolStatus   :: t -> IO ToolStatus
@@ -28,13 +27,6 @@ class Tool t where
 class SingleInstanceTool t where
     getToolInstance :: IO t
 
--- --------------------------------------------------------------------------
--- Tool has a ProcessID.
--- --------------------------------------------------------------------------
-
-class Tool t => UnixTool t where
-    getUnixProcessID :: t -> IO ProcessID
-        
 -- --------------------------------------------------------------------------
 -- Command tools, IE tools where you can send a message and (maybe)
 -- get a response.

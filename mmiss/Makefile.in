@@ -2,6 +2,7 @@ PACKAGE = uni-mmiss
 PACKAGES = uni-types uni-emacs uni-mmiss-parser
 
 SRCS = MMiSSDTDAssumptions.hs \
+   MMiSSInsertionPoint.hs \
    MMiSSAttributes.hs MMiSSVariant.hs MMiSSVariantObject.hs \
    MMiSSDisplay.hs \
    MMiSSDTD.hs MMiSSObjectTypeType.hs MMiSSObjectType.hs \
@@ -25,8 +26,10 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSBundleDissect.hs MMiSSBundleValidate.hs MMiSSBundleReadFiles.hs \
    MMiSSBundleNodeWriteClass.hs MMiSSBundleNodeCheckTypes.hs \
    MMiSSBundleNodeWrite.hs MMiSSBundleNodeWriteObject.hs \
-   MMiSSBundleWrite.hs MMiSSInsertionPoint.hs MMiSSEditLocks.hs \
+   MMiSSBundleWrite.hs MMiSSEditLocks.hs \
    MMiSSBundleNodeEditLocks.hs MMiSSUpdateVariantObject.hs \
+   MMiSSXmlBasics.hs MMiSSGetVariantAttributes.hs \
+
 
 BOOTSRCS = MMiSSReadObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \

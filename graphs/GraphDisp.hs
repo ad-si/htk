@@ -186,6 +186,7 @@ module GraphDisp(
    ) where
 
 import Data.Typeable
+
 import Dynamics
 import VariableList hiding (redraw)
 import Delayer(HasDelayer(..))
@@ -460,12 +461,12 @@ class ArcTypeParms arcTypeParms where
 -- 
 class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,
-   NodeClass node,HasTyRep1 node,NodeTypeClass nodeType,
+   NodeClass node,Typeable1 node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
    SetArcType graph arc arcType,
    DeleteArc graph arc,
-   ArcClass arc,HasTyRep1 arc,ArcTypeClass arcType,
+   ArcClass arc,Typeable1 arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
    GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -497,7 +498,8 @@ instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
 -- Graphs
 ------------------------------------------------------------------------
 
-class (Destructible graph,Ord graph,HasDelayer graph) => GraphClass graph where
+class (Destructible graph,Ord graph,Typeable graph,HasDelayer graph) 
+      => GraphClass graph where
    redrawPrim :: graph -> IO ()
    -- done after updates have been added
 
@@ -546,9 +548,9 @@ class (GraphClass graph,NodeClass node) =>
    -- when we restore normal user interaction.
    -- NB.  This function must not be nested, or it will block.
 
-class (HasTyRep1 node,Ord1 node) => NodeClass node
+class (Typeable1 node,Ord1 node) => NodeClass node
 
-class HasTyRep1 nodeType => NodeTypeClass nodeType
+class Typeable1 nodeType => NodeTypeClass nodeType
 
 class (GraphClass graph,NodeTypeClass nodeType,NodeTypeParms nodeTypeParms)
    => NewNodeType graph nodeType nodeTypeParms where
@@ -588,9 +590,9 @@ class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
    setArcValuePrim  :: Typeable value => graph -> arc value -> value -> IO ()
    getArcValuePrim :: Typeable value => graph -> arc value -> IO value
 
-class (HasTyRep1 arc,Ord1 arc) => ArcClass arc
+class (Typeable1 arc,Ord1 arc) => ArcClass arc
 
-class (HasTyRep1 arcType,Ord1 arcType) => ArcTypeClass arcType where
+class (Typeable1 arcType,Ord1 arcType) => ArcTypeClass arcType where
    -- This is a special arc type which stops the arc being drawn at all.
    invisibleArcType :: Typeable value => arcType value
 

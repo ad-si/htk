@@ -231,7 +231,7 @@ mapGraphConnection
                   SetArcType arc arcType2
                   ]
          SetArcType _ _ -> nop
-         MultiUpdate updates -> MultiUpdate (map mapUpdate updates)
+         MultiUpdate updates -> MultiUpdate (fmap mapUpdate updates)
 
       updateFn1 update1 = updateFn2 (mapUpdate update1)
 
@@ -242,7 +242,7 @@ mapGraphConnection
          let
             cannedGraph1 = graphState graphConnectionData1
             updates1 = updates cannedGraph1
-            updates2 = initialUpdates ++ map mapUpdate updates1
+            updates2 = initialUpdates ++ fmap mapUpdate updates1
             cannedGraph2 = CannedGraph {updates = updates2}
             graphUpdate2 _ = done
             

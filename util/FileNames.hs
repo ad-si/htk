@@ -1,5 +1,5 @@
 -- | FileNames contain facilities for manipulating filenames
--- in a hopefully OS-independent manner.  
+-- in a hopefully OS-independent manner.
 module FileNames(
    fileSep, -- :: Char
             -- file separator
@@ -34,6 +34,9 @@ module FileNames(
             -- :: String -> String -> String
             -- reverse unsplitExtension.
    
+   recordSep, 
+            -- :: String
+            -- separator for between records.
             
    ) where
 
@@ -44,15 +47,17 @@ $(
    if isWindows
       then
          [d|
-            fileSep :: Char
             fileSep = '\\'
+            recordSep = "\r\n"
          |]
       else
          [d|
-            fileSep :: Char
             fileSep = '/'
+            recordSep = "\n"
          |]
    )
+fileSep :: Char
+recordSep :: String
 
 topDir :: String
 topDir = [fileSep]

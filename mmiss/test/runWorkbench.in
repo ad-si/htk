@@ -43,7 +43,13 @@ export UNIEDITOR UNISERVERDIR UNIWORKINGDIR
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 
 # Set local workspace for internal server.
-UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir /tmp/uni.$USER.working.`}
+if [ @WINDOWS@ -eq 1 ]; then
+   UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir $SYSTEMDRIVE\\\\UNI`}
+   # the four backslashes eventually turn into one.
+else
+   UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir /tmp/uni.$USER.working.`}
+fi
+ 
 UNISERVERDIR=${LOCAL_WORKSPACE:-@TOP@/tmp/local-workspace}
 if [ -d $UNISERVERDIR ]; then
   if [ $CLEAR_WORKSPACE = true ]; then

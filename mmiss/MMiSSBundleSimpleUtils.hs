@@ -85,7 +85,6 @@ module MMiSSBundleSimpleUtils(
 
 import Data.FiniteMap
 
-import Monad
 import Maybe
 import IO
 import List
@@ -97,7 +96,6 @@ import Computation
 import ExtendedPrelude
 import AtomString
 import Dynamics
-import UTF8
 import ICStringLen
 
 import EntityNames
@@ -409,7 +407,7 @@ mkBundleText :: (Eq object,Typeable object) => object -> BundleText
 mkBundleText object = 
    let
       dyn1 = toDyn object
-      eqFn1 dyn = case fromDyn dyn of
+      eqFn1 dyn = case fromDynamic dyn of
          Nothing -> False
          Just object2 -> object == object2
    in
@@ -423,7 +421,7 @@ fromBundleTextIO bundleText
 fromBundleTextWE :: Typeable object => BundleText -> WithError object
 fromBundleTextWE bundleText =
    case bundleText of
-      BundleDyn {dyn = dyn} -> fromDynWE dyn
+      BundleDyn {dyn = dyn} -> fromDynamicWE dyn
       NoText -> fail 
          "Attempt to import object with no specified text"
       BundleString {} -> fail

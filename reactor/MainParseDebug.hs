@@ -22,6 +22,7 @@ output handle =
          Right _ -> output handle
          Left _  -> return ()
 
+main :: IO ()
 main =
    do
       debugFileName <- getDebugFileName

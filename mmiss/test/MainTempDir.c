@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "config.h"
+#include "uni-config.h"
 
 
 #define MODE 0700

@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-containers
+PACKAGES = uni-htk-kernel
+
+SRCS = Box.hs Frame.hs Toplevel.hs Window.hs
+
+include @TOP@/mk/boilerplate.mk

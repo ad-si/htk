@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-canvasitems
+PACKAGES = uni-htk-widgets
+
+SRCS = Arc.hs BitMapItem.hs CanvasItem.hs CanvasItemAux.hs CanvasTag.hs EmbeddedCanvasWin.hs ImageItem.hs Line.hs Oval.hs Polygon.hs Rectangle.hs TextItem.hs
+
+include @TOP@/mk/boilerplate.mk

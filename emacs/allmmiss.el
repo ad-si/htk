@@ -46,27 +46,9 @@
     ;; element, only includePackage, hence packages are treated as groups 
     ;; with a yellow button.
       (cons ?G  "yellow") ; group
-      (cons ?S  "yellow") ; section
-
-      (cons ?U  "#98ecb2") ; unit
-      (cons ?E  "#98ecb2") ; conceptual unit
-      (cons ?F  "#98ceda") ; formal unit
-      (cons ?a  "#98ecb2") ; abstract
-      (cons ?I  "#98ecb2") ; introduction
-      (cons ?s  "#98ecb2") ; summary 
-
-      (cons ?A  "#98ecb2")  ; atom
-      (cons ?C  "#98ecb2")  ; conceptual atom
-      (cons ?T  "#98ecb2")  ; text fragment
-
-      (cons ?p  "#98ceda")   ; program fragment
-      (cons ?P  "#98ceda")   ; program
-      (cons ?c  "#98ceda")   ; claus
-      (cons ?t  "#98ceda")   ; theory
-      (cons ?x  "#98ceda")   ; step
-      (cons ?y  "#98ceda")   ; proof
-      (cons ?z  "#98ceda")   ; script
-      (cons ?D  "#98ceda")   ; development
+      (cons ?U  "red") ; unit
+      (cons ?A  "white")  ; atom
+      (cons ?E  "blue")  ; embedded
 
       ;;; #98ceda is light green
       ;;; #98ecb2 is light blue 

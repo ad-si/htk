@@ -46,8 +46,6 @@ import Broadcaster
 
 import BSem
 
-import Graph(ArcType)
-
 import Text.XML.HaXml.Types
 
 import XmlExtras

@@ -1,15 +1,8 @@
-Package {
-   name = "PACKAGE",
-   import_dirs = ["#PWDIMPORTS"],
-   source_dirs = [],
-   library_dirs = ["#PWD"],
-   hs_libraries = ["PACKAGE"],
-   extra_libraries = [],
-   include_dirs = [],
-   c_includes = [],
-   package_deps = [DEPS],
-   extra_ghc_opts = [],
-   extra_cc_opts = [],
-   extra_ld_opts = []
-   }
-   
+name: PACKAGE
+license: AllRightsReserved
+exposed: True
+exposed-modules: EXPOSED
+depends: DEPS
+import-dirs: "#PWDIMPORTS"
+library-dirs: "#PWD"
+hs-libraries: PACKAGELIB

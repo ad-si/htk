@@ -50,21 +50,23 @@ import Char(isSpace)
 -- relative positions within the scrolled range.
 type Fraction = Double
 
--- | Internal.
-instance GUIValue (Fraction, Fraction) where
-  cdefault = (0.0, 0.0)
+data FractionPair = FractionPair Fraction Fraction
 
 -- | Internal.
-instance Show (Fraction, Fraction) where
-  showsPrec d (f1, f2) r = show f1 ++ " " ++ show f2 ++ r
+instance GUIValue FractionPair where
+  cdefault = FractionPair 0.0 0.0
 
 -- | Internal.
-instance Read (Fraction, Fraction) where
+instance Show FractionPair where
+  showsPrec d (FractionPair f1 f2) r = show f1 ++ " " ++ show f2 ++ r
+
+-- | Internal.
+instance Read FractionPair where
    -- Internal.
    readsPrec p b = 
      case readsPrec p b of
        [(x,xs)] -> case readsPrec p xs of
-                      [(y,ys)] -> [((x,y),ys)]
+                      [(y,ys)] -> [(FractionPair x y, ys)]
                       _        -> []
        _        -> []
 

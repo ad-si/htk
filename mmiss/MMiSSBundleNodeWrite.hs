@@ -12,7 +12,6 @@ import Data.FiniteMap
 import Control.Monad.State
 import Control.Monad.Trans
 
-import Computation
 import Thread
 
 import EntityNames

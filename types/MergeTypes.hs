@@ -172,7 +172,7 @@ data WrappedMergeLink = forall object .
 -- | Returns Nothing if the types don\'t match.
 unpackWrappedMergeLink :: HasMerging object =>
     WrappedMergeLink -> Maybe (Link object)
-unpackWrappedMergeLink (WrappedMergeLink link) = fromDyn (toDyn link) 
+unpackWrappedMergeLink (WrappedMergeLink link) = fromDynamic (toDyn link) 
 
 
 instance Eq WrappedMergeLink where

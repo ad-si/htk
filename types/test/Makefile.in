@@ -3,7 +3,7 @@ PACKAGES = uni-types uni-htk uni-davinci
 SRCS       = MainServer.hs MainWorkbench.hs \
    TestGetAttributesType.hs TestCV.hs
 
-EXTRAEXPORTS = Server Makefile.in
+EXTRAEXPORTS = Server$(EXESUFFIX) Makefile.in
 
 include @TOP@/mk/boilerplate.mk
 

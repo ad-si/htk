@@ -142,6 +142,7 @@ displayGraph1
       -> IO (arcTypeParms (Arc,arcLabel))) =
    do
       msgQueue <- newChannel
+
       GraphConnectionData {
          graphState = CannedGraph { updates = updates },
          deRegister = deRegister
@@ -165,7 +166,7 @@ displayGraph1
       (destructionChannel :: Channel ()) <- newChannel
 
       oID <- newObject
-    
+
       let
          displayGraph = DisplayGraph {
             oID = oID,
@@ -263,7 +264,7 @@ displayGraph1
                )
 
       forkIO monitorThread
-  
+
       registerToolDebug "DisplayGraph" displayGraph
 
       return (displayGraph,dispGraph)

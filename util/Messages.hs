@@ -40,6 +40,7 @@ module Messages(
 
 import IO
 import Char
+import qualified List
 
 import Data.Set
 import Control.Concurrent.MVar
@@ -168,7 +169,7 @@ defaultConfirm str =
             do
                result0 <- getLine
                let
-                  result1 = map toUpper (trimSpaces result0)
+                  result1 = fmap toUpper (trimSpaces result0)
 
                case (result1,isPrefix result1 "OK",isPrefix result1 "CANCEL") 
                      of
@@ -212,7 +213,7 @@ clearPendingErrorMessages = cpe emptySet
             messages0 <- readMVar pendingErrorMessagesMVar
             putStrLn (show (messages0,setToList alreadyDisplayedSet0))
             let
-               messages1 = filter
+               messages1 = List.filter
                   (\ message -> not (elementOf message alreadyDisplayedSet0))
                   messages0
 

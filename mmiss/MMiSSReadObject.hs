@@ -23,7 +23,7 @@ import EntityNames
 import Text.XML.HaXml.Types
 
 import MMiSSVariant
-import MMiSSDTDAssumptions
+import MMiSSElementInfo
 import MMiSSVariantObject
 import MMiSSObjectType
 import MMiSSObjectTypeInstance
@@ -178,7 +178,11 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          -- The top element in element0 won't have a packageId if it
          -- came from packageFolder, but we put one in anyway, even though
          -- that may well be unnecessary.
-         element1 <- case getPackageId element0 of
+ 
+
+         packageIdOpt <- coerceWithErrorOrBreakIO break (getPackageId element0)
+
+         element1 <- case packageIdOpt of
             Nothing ->
                do
                   packageId <- mkPackageId view (toLinkedObject packageFolder)

@@ -69,7 +69,6 @@ import Control.Exception
 import GHC.Prim(unsafeCoerce#)
    -- Ouch.  Will go with ghc6.04
 
-import Computation(done)
 import ExtendedPrelude(newFallOut,mkBreakFn)
 import Dynamics
 import BinaryAll
@@ -275,9 +274,9 @@ instance NewRegistry (registry from Dyn)
          return (Untyped registry)
    emptyRegistry (Untyped registry) = emptyRegistry registry
 
-fromDynMessage :: Typeable to => String -> Dyn -> to
-fromDynMessage fName dyn =
-   case fromDyn dyn of
+fromDynamicMessage :: Typeable to => String -> Dyn -> to
+fromDynamicMessage fName dyn =
+   case fromDynamic dyn of
       Just to -> to
       Nothing -> error ("Registry."++fName++" - value has wrong type")
 
@@ -286,7 +285,7 @@ instance (Typeable to,GetSetRegistry (registry from Dyn) from Dyn)
    transformValue (Untyped registry) from transformer =
       do
          let
-            valMapIn = fromDynMessage "transformValue"
+            valMapIn = fromDynamicMessage "transformValue"
             valMapOut val = toDyn val
             transformerDyn dynInOpt =
                do

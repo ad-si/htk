@@ -27,7 +27,6 @@ import Control.Exception hiding (handle)
 import Data.FiniteMap
 import Network hiding (Service)
 
-import System.Posix.Signals
 import Control.Concurrent
 
 import Computation
@@ -36,6 +35,8 @@ import WBFiles(getPort)
 import Thread
 import Object
 import BinaryAll
+
+import BlockSigPIPE
 
 import HostsPorts hiding (user)
 import ServiceClass
@@ -67,7 +68,7 @@ runServer :: [Service] -> IO ()
 runServer serviceList =
    do
       portDesc <- getPort
-      installHandler sigPIPE Ignore Nothing
+      blockSigPIPE
 ------------------------------------------------------------------------
 -- This obscenely long function is divided as follows:
 ------------------------------------------------------------------------

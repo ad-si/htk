@@ -17,8 +17,6 @@ import Maybe
 import View
 import LinkManager
 
-import LaTeXParser(PackageId(..))
-
 import MMiSSInsertionPoint
 import MMiSSBundle
 import MMiSSBundleFillIn

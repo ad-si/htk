@@ -11,8 +11,13 @@ osTitle = "@OSTITLE@"
 isWindows :: Bool
 isWindows = (@WINDOWS@ /= 0)
 
+#ifdef DEBUG
 isDebug :: Bool
-isDebug = True -- set this manually, until we find a better way.
+isDebug = True
+#else
+isDebug :: Bool
+isDebug = False
+#endif
 
 uniVersion :: String
 uniVersion = "@UNIVERSION@"

@@ -1,0 +1,5 @@
+PACKAGE = uni-htk-menuitems
+PACKAGES = uni-htk-containers
+SRCS = Indicator.hs Menu.hs MenuCascade.hs MenuCheckButton.hs MenuCommand.hs MenuItem.hs MenuRadioButton.hs MenuSeparator.hs
+
+include @TOP@/mk/boilerplate.mk

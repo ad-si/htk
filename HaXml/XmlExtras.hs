@@ -15,11 +15,12 @@ module XmlExtras(
       -- -> m ()
 
    getAllElementsByTag1, -- :: (String -> Bool) -> Element -> [Element]
+   getAllElements, -- :: Element -> [Element]
    getAllElements1, -- :: Element -> [Element]
+   mapElement, -- :: (Element -> Maybe Element) -> Element -> Element
    ) where
 
 import Maybe
-import Monad
 
 import Control.Monad.State
 
@@ -55,7 +56,13 @@ elementFoldM visitElement ancestorInfo0 (element @ (Elem _ _ contents)) =
                contents
       mapM_ (elementFoldM visitElement ancestorInfo1) subElements
 
--- Return every constituent element of an element (including itself).
+-- | Return every constituent element of an element (including itself) in
+-- order.
+getAllElements :: Element -> [Element]
+getAllElements element = reverse (getAllElements1 element)
+
+-- | Return every constituent element of an element (including itself) in
+-- reverse order.
 getAllElements1 :: Element -> [Element]
 getAllElements1 element = execState (elementFoldM foldFn () element) []
    where
@@ -65,7 +72,7 @@ getAllElements1 element = execState (elementFoldM foldFn () element) []
             elements0 <- get
             put (element : elements0)
             
--- Return all elements whose tags match a particular conditions
+-- | Return all elements whose tags match a particular conditions
 getAllElementsByTag1 :: (String -> Bool) -> Element -> [Element]
 getAllElementsByTag1 tagFilter element =
    filter
@@ -73,5 +80,20 @@ getAllElementsByTag1 tagFilter element =
       (getAllElements1 element)
 
 
- 
-
+-- | Apply the given function to the Element, and if it returns Nothing
+-- recurse.
+mapElement :: (Element -> Maybe Element) -> Element -> Element
+mapElement changeElement elem0 =
+   case changeElement elem0 of
+      Just elem1 -> elem1
+      Nothing -> 
+         let
+            Elem name atts contents0 = elem0
+            contents1 = map
+               (\ content -> case content of
+                  CElem elem -> CElem (mapElement changeElement elem)
+                  otherContent -> otherContent
+                  )
+               contents0
+         in
+            Elem name atts contents1

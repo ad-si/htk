@@ -18,8 +18,6 @@ import View
 import LinkManager
 import Link
 
-import LaTeXParser
-
 import MMiSSImportExportErrors
 import MMiSSObjectExtract
 import MMiSSVariant

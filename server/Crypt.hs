@@ -11,9 +11,10 @@ import System.IO.Unsafe
 import BSem
 import Lock
 
--- This is what Unix provides, see man page.
-foreign import ccall unsafe "unistd.h crypt" crypt0
+-- Reimplementation of crypt(3) which doesn't require libcrypt.
+foreign import ccall unsafe "dipperstein_crypt.h dipperstein_crypt" crypt0
    :: CString -> CString -> IO CString
+
 
 -- Our basic interface.
 crypt1 :: String -> String -> IO String

@@ -29,20 +29,24 @@ module LaTeXParserCore (
    entitySearchNameParser1,   -- :: GenParser Char st EntityName
    commaSep,
 
-   plainTextAtoms,      -- :: String
-   mmissPlainTextAtoms,  -- :: String
-   envsWithText,        -- :: String,
-   envsWithoutText,     -- :: String
-   mmiss2EnvIds,        -- :: String
-   latexEmbeddedFormulaEnvs,  -- :: String
-   latexAtomFormulaEnvs,      -- :: String
-   linkCommands,              -- :: String
-   refCommands,               -- :: String
-   includeCommands,           -- :: String
-   listEnvs,                  -- :: String
-   itemNames,                 -- :: String
-   embeddedElements,          -- :: String
-   glAttribsExclude,          -- :: String 
+   plainTextAtoms,       -- :: [(String, String)]
+   mmissPlainTextAtoms,  -- :: [String]
+   envsWithText,         -- :: [(String, String)]
+   envsWithoutText,      -- :: [(String, String)] 
+   mmiss2EnvIds,         -- :: [(String, String)]
+   latexEmbeddedFormulaEnvs,  -- :: [(String, String)]
+   latexAtomFormulaEnvs,      -- :: [(String, String)]
+   linkCommands,              -- :: [(String, String)]
+   refCommands,               -- :: [(String, String)]
+   includeCommands,           -- :: [(String, String)]
+   listEnvs,                  -- :: [(String, String)]
+   itemNames,                 -- :: [String]
+   embeddedElements,          -- :: [(String, String)]
+   glAttribsExclude,          -- :: [String] 
+   mmissSystemAttribs,        -- :: [String]
+   mmissVariantAttribs,       -- :: [String]
+   mmissIncludeAttribs,       -- :: [String]
+   mmissEmbeddedEnvs          -- :: [String]
 )
  where
 
@@ -54,21 +58,17 @@ import Monad
 
 import Text.ParserCombinators.Parsec
 
-import Dynamics
 import Computation hiding (try)
-import ExtendedPrelude(unsplitByChar,mapEq)
-import EmacsContent
+-- import ExtendedPrelude(unsplitByChar,mapEq)
+-- import EmacsContent
 import EntityNames
-import AtomString
-import CodedValue
-import QuickReadShow
+-- import AtomString
+-- import CodedValue
+-- import QuickReadShow
 
 
 type EnvId = String
 type Command = String
-type FormId = String
-type LabelId = String
-type Title = String
 type Attributes = [(String, String)]
 type Other = String
 type Delimiter = String
@@ -80,6 +80,7 @@ type Delimiter = String
 data SingleParam = SingleParam [Frag] Char    deriving Show
 
 data SpecialFragType = InputStart | InputEnd deriving (Eq, Show, Read)
+
 
 {--------------------------------------------------------------------------------------------
 
@@ -124,12 +125,16 @@ parseFrags str = parse (frags []) "" str
 -- die in den resultierenden XML-Baum eingefügt werden, um Latex-Anteile zu bewahren, die nicht
 -- zur Struktur und nicht zu den Textbestandteilen gehören.
 
+piInsertLaTeX :: String
 piInsertLaTeX = "mmissInsertLaTeX"
+
+piSpecial :: String
 piSpecial = "mmissSpecial"
 
 -- The search/replace strings listed in latexToUnicodeTranslations are applied to attribute values when
 -- they are stored in XML-attribute instances:
 
+latexToUnicodeTranslations :: [(String, String)]
 latexToUnicodeTranslations = [("\\\"a", "\x00e4"), ("\\\"u", "\x00fc"), ("\\\"o", "\x00f6")]
                           ++ [("\\\"A", "\x00c4"), ("\\\"U", "\x00dc"), ("\\\"O", "\x00d6")] 
                           ++ [("\\ss{}", "\x00df"), ("\\ss", "\x00df")]
@@ -140,6 +145,7 @@ latexToUnicodeTranslations = [("\\\"a", "ä"), ("\\\"u", "ü"), ("\\\"o", "ö")]
                           ++ [("\\ss{}", "ß"), ("\\ss", "ß")]
 --}
 
+unicodeToLatexTranslations :: [(String, String)]
 unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
                           ++ [("Ä", "\\\"A"), ("Ü", "\\\"U"), ("Ö", "\\\"O")] 
                           ++ [("ß", "\\ss{}")]
@@ -147,14 +153,17 @@ unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
                           ++ [("\x00c4", "\\\"A"), ("\x00dc", "\\\"U"), ("\x00d6", "\\\"O")]
                           ++ [("\x00df","\\ss{}")] 
 
+mmissPlainTextAtoms :: [(String, String)]
 mmissPlainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
                  [("Authorentry", "authorEntry"), ("Rule", "rule"), ("ProofStep", "proofStep")] ++
                  [("DevelopmentStep","developmentStep"), ("Source", "source"), ("Declaration","declaration")] ++
                  [ ("Axiom","axiom")]
 
+plainTextAtoms :: [(String, String)]
 plainTextAtoms =  mmissPlainTextAtoms ++ latexAtomFormulaEnvs
 
+envsWithText :: [(String, String)]
 envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract", "abstract")] ++
                [("Introduction", "introduction"),  ("Summary", "summary"), ("Program","program")] ++
 	       [("Exercise","exercise"), ("Example","example"),  ("Definition","definition")] ++
@@ -167,37 +176,59 @@ envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract",
                [("Item","item"), ("Comment","comment"),("Note","note"),("Warning","warning")] ++
                [("Error","error"), ("Glossary", "glossary")] ++ listEnvs
 
+envsWithoutText :: [(String, String)]
 envsWithoutText = [("Package", "package")]
 
+
+includeCommands :: [String]
+includeCommands = map (("Include" ++) . fst) envsWithText
+{--
 includeCommands =  [("IncludeUnit", "includeUnit"), ("IncludeSection", "includeSection")] ++
                    [("IncludeAtom", "includeAtom"), ("IncludeText","includeText")] ++
                    [("IncludeProgramComponent","includeProgramComponent")] ++                  
                    [("IncludeCompositeUnit", "includeCompositeUnit"), ("IncludeTerm","includeTerm")] ++
                    [("IncludeProofStep", "includeProofStep"), ("IncludeProof", "includeProof")] ++
                    [("IncludeDevelopmentStep", "includeDevelopmentStep"), ("IncludeTable","includeTable")] ++
-                   [("IncludeFigure","includeFigure")]
+                   [("IncludeFigure","includeFigure"), ("IncludeAnnotation","includeAnnotation")]
+--}
 
+linkCommands :: [(String, String)]
 linkCommands = [("Link", "link")]
+
+refCommands :: [(String, String)]
 refCommands = [("Reference","reference"), ("Ref","reference")]
+
+linkAndRefCommands :: [(String, String)]
 linkAndRefCommands = linkCommands ++ refCommands
 
-
+embeddedElements :: [(String, String)]
 embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
 		   [("Link","link") , ("Def", "define"), ("Reference", "reference")] ++
                    [("Ref", "reference"), ("Cite", "cite")]
 
 
+listEnvs :: [(String, String)]
 listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate"), ("List","list")]
 
+itemNames :: [String]
 itemNames = ["ListItem", "item", "Item"]
 
 
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
+mmiss2EnvIds :: [(String, String)]
 mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
 
 
+-- TODO: Abstracts, Introduction und Summary können sowohl Sections, also Groups, als 
+-- auch Paragraphs, also Units sein Sie sind hier erstmal als Unit klassifiziert, dass 
+-- muss aber noch ergänzt werden.
+
+mmissEmbeddedEnvs :: [String]
+mmissEmbeddedEnvs = ["emphasis", "cite", "link", "reference", "define","refRelation", "relate"]
+
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
+latexPlainTextEnvs :: [String]
 latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"] ++
                      ["alltt", "lstlisting", "array"] ++ (map fst plainTextAtoms)
 
@@ -207,19 +238,30 @@ latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math",
 -- The following list matches the various LaTeX formula enviroments to theses symbolic names recorded in the
 -- boundsType attribute: 
 
+latexEmbeddedFormulaEnvs :: [(String, String)]
 latexEmbeddedFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "shortDisplaymathDollar")] ++
                    [("\\(", "shortMathParens")]
 
+latexAtomFormulaEnvs :: [(String, String)]
 latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), ("displaymath", "displaymath")] 
-                     ++ [("eqnarray", "eqnarray"), ("eqnarray*", "eqnarrayStar"), ("equation*", "equation*")]
+                     ++ [("eqnarray", "eqnarray"), ("eqnarray*", "eqnarrayStar"), ("equation*", "equationStar")]
 
 
 -- glAttribsExclude is a list with attribute names which are omitted in the process of generating MMiSSLaTeX from
 -- XML.
 
-glAttribsExclude = ["files"]
+glAttribsExclude :: [String]
+glAttribsExclude = ["files","object-class"]
 
 
+mmissSystemAttribs :: [String]
+mmissSystemAttribs = [ "object-class","label","priority","packageId","packagePath","files"]
+
+mmissVariantAttribs :: [String]
+mmissVariantAttribs = ["xml:lang","format","formalism","levelOfDetail","interactionLevel"]
+
+mmissIncludeAttribs :: [String]
+mmissIncludeAttribs = ["included","status","priority","object-class"]
 
 ---------------------------------------------------------------------------------------------
 --
@@ -233,13 +275,11 @@ backslash = char '\\'
 idParser :: GenParser Char st String
 idParser = many (noneOf "}]")
 
--- commaSep :: GenParser Char st a
+commaSep :: GenParser Char st a -> GenParser Char st [a]
 commaSep p = p `sepBy` (oneOf ",")
 
 -- equalSep p = p `sepBy` (oneOf "=")
 
-listTypeParser :: GenParser Char st String
-listTypeParser = try(string "itemize") <|> try(string "enumerate") <|> return ("")
 
 
 {- attributesOrNot checks if a '[' is the next input character. If so, it expects an
@@ -296,9 +336,10 @@ attribute = do spaces
                  then return Nothing 
                  else return (Just(key,v))
 
+{--
 delimitedValue :: String -> GenParser Char st String
 delimitedValue key = try(between (char '{') (char '}') (oldvalue key))
-
+--}
 
 {- The value parser accepts any String enclosed by {}. Furthermore it accepts
    Strings containing arbitrarily nested Substrings enclosed by {}. 
@@ -371,6 +412,7 @@ other = fmap Other (many1 (noneOf "\\%[]{}$"))
 optionParser :: GenParser Char st [String]
 optionParser = commaSep singleOptParser
 
+singleOptParser :: GenParser Char st String
 singleOptParser = many (noneOf "],")
 
 
@@ -479,7 +521,7 @@ lParams id l
 		       <?> (appendSourcePos pos ("[attribute-list] for Command <" ++ id ++ ">")) 
          return (LParams [] attributes Nothing Nothing)
 
-  | id `elem` (map fst includeCommands) =
+  | id `elem` includeCommands =
       do pos <- getPosition
          labelId <-  try(between (char '{') (char '}') idParser)
 	             <?> (appendSourcePos pos ("{referencedLabelID}{attribute-list} for Command <" ++ id ++ ">"))  
@@ -576,6 +618,7 @@ genericParams l =
    <|>  return (reverse l)
 
 
+continueAdhocEnv :: Char -> [Frag] -> GenParser Char st [Frag]
 continueAdhocEnv closingChar l = 
   do try (char closingChar)
      return l
@@ -584,8 +627,8 @@ continueAdhocEnv closingChar l =
                          
 
 -- adhocEnvironment erkennt Umgebungen ohne Namen: ...{text}...
-
-adhocEnvironment =
+adhocEnvironment :: GenParser Char st Frag
+adhocEnvironment =  
    do char '{'
       l <- continueAdhocEnv '}' [] <?> "closing } for unnamed environment"
       return (Env "{}" (LParams [] [] Nothing Nothing) (reverse l))
@@ -690,9 +733,10 @@ continuePlainFormula l delimiter stopChars =
   <|> do str <- plainText stopChars
          continuePlainFormula (l ++ str) delimiter stopChars
 
-
+plainText :: String -> GenParser Char st String
 plainText stopChars = many1 (noneOf stopChars)
 
+plainTextWithoutDollar :: String -> GenParser Char st String
 plainTextWithoutDollar str =
   try (do char '$'
           return str)
@@ -844,7 +888,6 @@ attNameToLatex :: String -> String
 attNameToLatex "xml:lang" = "Language"
 attNameToLatex name = [(toUpper (head name))] ++ (tail name)
 
-
 attNameToXML :: String -> String
 attNameToXML "Language" = "xml:lang"
 attNameToXML name = [(toLower (head name))] ++ (tail name)
@@ -852,7 +895,7 @@ attNameToXML name = [(toLower (head name))] ++ (tail name)
 
 elemNameToLaTeX :: String -> String
 elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd) 
-                                          (mmiss2EnvIds ++ embeddedElements ++ includeCommands))
+                                          (mmiss2EnvIds ++ embeddedElements))
 
 
 

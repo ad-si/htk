@@ -31,11 +31,11 @@ import CopyFile
 import MMiSSBundle
 import MMiSSBundleTypes
 import MMiSSBundleSimpleUtils
-import MMiSSDTDAssumptions
 import MMiSSElementInstances
 import MMiSSFileType
 import MMiSSVariant
 import MMiSSImportExportErrors
+import MMiSSElementInfo
 
 -- -------------------------------------------------------------------------
 -- listUnfoundFiles
@@ -59,7 +59,7 @@ listUnfoundFiles bundle =
                Left mess -> []
                Right element -> [element]
          subElement <- getAllElements1 element
-         fileStr <- getFiles subElement
+         fileStr <- getAllFiles subElement
          fileFullName <- case fromWithError (fromStringWE fileStr) of
             Left _ -> []
             Right fullName -> [fullName]

@@ -225,4 +225,3 @@ getVariableMapByKey variableMap key =
          source1
    in
       SimpleSource source2
-

@@ -49,38 +49,13 @@ import NoAccessObject
 -- Data types
 -- -----------------------------------------------------------------------
 
-newtype AllDisplayedObjectTypes =
-   AllDisplayedObjectTypes (UnsafeRegistry (
-   Keyed WrappedObjectType))
-
-{- commentted out because it upsets ghc with a message
-
-tcLookup: `DisplayView.DisplayedView' is not in scope
-When checking kinds in `DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms'
-When checking kinds in `Maybe (DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)'
-When checking kinds in `IO (Maybe (DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms))
-
 -- | Contains DisplayedObjectType for all object types in the view
 -- We use a Registry as sometime we\'ll have to address the problem of
 -- dynamically adding types, perhaps.
 -- If an object type does not appear in the registry, it means values of
 -- that type are not to be displayed.
-$(
-   if ghcShortVersion >= 603
-      then
-         [d|
-            newtype AllDisplayedObjectTypes =
-               AllDisplayedObjectTypes (UntypedRegistry (
-               Keyed WrappedObjectType))
-         |]
-      else
-         [d|
-            newtype AllDisplayedObjectTypes =
-               AllDisplayedObjectTypes (UnsafeRegistry (
-               Keyed WrappedObjectType))
-         |]
-   )
--}
+newtype AllDisplayedObjectTypes =
+   AllDisplayedObjectTypes (UntypedRegistry (Keyed WrappedObjectType))
 
 -- -----------------------------------------------------------------------
 -- DisplayedObjectType and DisplayedObjectTypes is the information we need 
@@ -89,7 +64,7 @@ $(
 
 -- | This is the data stored by a display for every stored object type.
 -- They mostly have the same meaning as the records in NodeDisplayData
-data DisplayedObjectType objectType object graph node nodeType arcType =
+data DisplayedObjectType object graph node nodeType arcType =
    DisplayedObjectType {
       arcTypes' :: FiniteMap ArcType (arcType ()),
       nodeTypes' :: FiniteMap NodeType (nodeType (Link object)),
@@ -102,11 +77,8 @@ data DisplayedObjectType objectType object graph node nodeType arcType =
 type TransmittedAction graph node object =
    (graph -> node (Link object) -> IO ())
 
-displayedObjectTypeTyRep :: TyRep
-displayedObjectTypeTyRep = mkTyRep "DisplayView" "DisplayedObjectType"
-
-instance HasTyRep6_000111 DisplayedObjectType where
-   tyRep6_000111 _ = displayedObjectTypeTyRep
+instance Typeable5_00111 DisplayedObjectType where
+   typeOf5_00111 _ = mkTypeRep "DisplayView" "DisplayedObjectType"
 
 
 -- | Constructs a AllDisplayedObjectTypes for a particular graph, view and
@@ -130,7 +102,7 @@ getAllDisplayedObjectTypes
       -- (1) get all object types
       objectTypes <- getAllObjectTypesSinked view sink
       -- (2) initialise the registry
-      (registry :: UnsafeRegistry (Keyed WrappedObjectType)) <- newRegistry
+      (registry :: UntypedRegistry (Keyed WrappedObjectType)) <- newRegistry
       let
          allDisplayedObjectTypes = AllDisplayedObjectTypes registry
       -- (3) Now compute it.
@@ -201,7 +173,7 @@ addNewObjectTypeInner
                   arcTypes' = listToFM graphArcTypes
 
                   displayedObjectType :: DisplayedObjectType 
-                        objectType object 
+                        object 
                         graph node nodeType arcType
                   displayedObjectType = DisplayedObjectType {
                      nodeTypes' = nodeTypes',
@@ -372,7 +344,7 @@ displayView
                      getNodeType' = getNodeType',
                      getNodeLinks' = getNodeLinks',
                      specialNodeActions' = specialNodeActions'
-                     } :: DisplayedObjectType objectType object 
+                     } :: DisplayedObjectType object 
                         graph node nodeType arcType) = displayedObjectType
 
                -- (4) construct the physical node

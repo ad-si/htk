@@ -118,6 +118,7 @@ scrollText1 size str =
 -- --------------------------------------------------------------------------
 --  Derived Dialog Window 
 -- --------------------------------------------------------------------------
+
 -- | Constructs an alert window with the given text
 createAlertWin :: String 
    -- ^ the text to be displayed

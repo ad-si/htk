@@ -25,6 +25,7 @@ module VariableSet(
    ) where
 
 import Maybe
+import qualified List
 
 import Data.Set
 
@@ -130,7 +131,7 @@ newVariableSet :: HasKey x key => [x] -> IO (VariableSet x)
 newVariableSet contents =
    do
       broadcaster 
-         <- newBroadcaster (VariableSetData (mkSet (map Keyed contents)))
+         <- newBroadcaster (VariableSetData (mkSet (fmap Keyed contents)))
       return (VariableSet broadcaster)
 
 -- | Update a variable set in some way.
@@ -143,16 +144,17 @@ setVariableSet :: HasKey x key => VariableSet x -> [x] -> IO ()
 setVariableSet (VariableSet broadcaster) newList =
    do
      let
-        newSet = mkSet (map Keyed newList)
+        newSet = mkSet (fmap Keyed newList)
 
         updateFn (VariableSetData oldSet) =
            let
               toAddList 
-                 = filter (\ el -> not (elementOf (Keyed el) oldSet)) newList
-              toDeleteList = map unKey (setToList (minusSet oldSet newSet))
+                 = List.filter 
+                    (\ el -> not (elementOf (Keyed el) oldSet)) newList
+              toDeleteList = fmap unKey (setToList (minusSet oldSet newSet))
               updates = 
-                 [BeginGroup] ++ (map AddElement toAddList)
-                    ++ (map DelElement toDeleteList) ++ [EndGroup]
+                 [BeginGroup] ++ (fmap AddElement toAddList)
+                    ++ (fmap DelElement toDeleteList) ++ [EndGroup]
            in
               (VariableSetData newSet,updates)
 
@@ -166,7 +168,7 @@ instance HasKey x key => HasSource (VariableSet x) [x] (VariableSetUpdate x)
       where
    toSource (VariableSet broadcaster) =
       map1
-         (\ (VariableSetData set) -> map unKey (setToList set))
+         (\ (VariableSetData set) -> fmap unKey (setToList set))
          (toSource broadcaster)
 
 -- --------------------------------------------------------------------
@@ -250,7 +252,7 @@ instance Functor VariableSetUpdate where
 
 mapVariableSetSource :: (x -> y) -> VariableSetSource x -> VariableSetSource y
 mapVariableSetSource fn source =
-   (map1 (map fn)) .
+   (map1 (fmap fn)) .
    (map2 (fmap fn)) $
    source
 
@@ -293,10 +295,10 @@ listToSetSource (simpleSource :: SimpleSource [x]) =
                newSet = mkSet newList
 
                toAdd = minusSet newSet oldSet
-               adds = map AddElement (setToList toAdd)
+               adds = fmap AddElement (setToList toAdd)
 
                toDelete = minusSet oldSet newSet
-               deletes = map DelElement (setToList toDelete)
+               deletes = fmap DelElement (setToList toDelete)
             in
                (newSet,adds ++ deletes)
             )

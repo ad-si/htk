@@ -27,15 +27,11 @@ module Sink(
    parallelExecVSem,
    ) where
 
-import Monad
-
 import Control.Concurrent
 import System.IO.Unsafe
 import Data.IORef
 import Control.Concurrent.Chan
 
-
-import Computation
 import Object
 import ExtendedPrelude
 import Thread

@@ -1,0 +1,6 @@
+PACKAGE = uni-htk-toplevel
+PACKAGES = uni-htk-canvasitems uni-htk-textitems
+
+SRCS = HTk.hs
+
+include @TOP@/mk/boilerplate.mk

@@ -82,7 +82,6 @@ import AtomString(fromString,toString)
 
 import Events(sync)
 
-import MenuType
 import SimpleForm
 import FileDialog
 
@@ -116,7 +115,6 @@ import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
-import MMiSSInsertionPoint
 import ManagePermissions
 
 import {-# SOURCE #-} MMiSSExportLaTeX(pathRef)

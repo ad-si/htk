@@ -25,7 +25,6 @@ import AtomString(toString)
 import ServerErrors
 import VersionDB
 import VersionInfo
-import SimpleDBServer (SimpleDBCommand(..),SimpleDBResponse(..))
 
 import VersionGraph
 import VersionGraphClient

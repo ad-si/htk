@@ -20,8 +20,6 @@ import Control.Concurrent
 
 import Computation
 
-import Synchronized
-
 import BSem
 
 data MSem = MSem {

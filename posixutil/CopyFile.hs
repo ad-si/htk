@@ -2,7 +2,6 @@
 module CopyFile(
    copyFile,
    copyFileWE,
-   linkFile,
    copyStringToFile,
    copyStringToFileCheck,
    copyFileToString,
@@ -21,13 +20,10 @@ import GHC.IO
 import Foreign.C
 import Foreign.Ptr
 import Control.Exception
-import System.Posix
 
 import Computation
 import ICStringLen
 import DeepSeq
-
-import FdRead
 
 foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
    :: CString -> CString -> IO Int
@@ -65,21 +61,6 @@ copyFileWE source destination =
                else
                   return(hasValue ())
 
-
--- | At the moment this does a hard link.  We should perhaps consider
--- letting it do a soft link instead when a hard link is not possible
-linkFile :: String -> String -> IO ()
-linkFile source destination =
-   if source == destination 
-      then
-         done
-      else
-         do
-            success <- try (System.Posix.createLink source destination)
-            case success of
-               Right () -> done
-               Left err ->
-                  error ("CopyFile.linkFile failed with "++show err)
 
 -- | Reads in a file to a String.  NB - differs from readFile in that this
 -- is done instantly, so we don\'t have to worry about semi-closed handles
@@ -180,18 +161,8 @@ copyStringToFile str filePath =
 copyCStringLenToFile :: CStringLen -> FilePath -> IO ()
 copyCStringLenToFile (ptr,len) filePath =
    do
-      let
-         fileMode = unionFileModes ownerReadMode ownerWriteMode
-         openFileFlags = OpenFileFlags {
-            append = False,
-            exclusive = False,
-            noctty = True,
-            nonBlock = True,
-            trunc = True
-            }
-
-      fd <- openFd filePath WriteOnly (Just fileMode) openFileFlags 
-      fdWritePrim fd (ptr,len)
-      System.Posix.closeFd fd
+      handle <- IO.openFile filePath IO.WriteMode
+      hPutBuf handle ptr len
+      IO.hFlush handle
 
 
