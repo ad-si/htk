@@ -18,10 +18,9 @@
 \def\ShortTitle{Algebraic Specification}
 \def\Title{Formal Program Development with Algebraic Specifications}
 
-\Import{.:A/B:../c/d/e}
 
 \begin{document}
-\begin{Package}    [Label=AlgSpec, 
+\begin{Package}[Label=AlgSpec, 
 Title={Formal Program Development with Algebraic Specifications},
 Date=12.09.2002,
 Authors={Christoph Lüth, Markus Roggenbach},
@@ -30,8 +29,7 @@ ShortAuthor={C.~Lüth, M.~Roggenbach},
 ShortTitle={Algebraic Specification},
 Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
 
-\begin{Section}
-[Label=IntroAlgSpec, Title={Signatures, Terms and Algebras}]
+\begin{Section}[Label=IntroAlgSpec, Title={Signatures, Terms and Algebras}]
 
 \begin{Abstract}[Label=Abstract, Title=Overview]
 This section will introduce the basic mathematics of algebraic
@@ -78,7 +76,7 @@ $\omega:s_1\ldots s_n\rightarrow s$.
 
 \begin{Paragraph}[Label=Algebra, Title=Algebra]
 
-Algebras are models of \Link[LinkText=signatures]{DefSignature}.
+Algebras are models of.
 \vspace{1cm}
 \begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
   An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
@@ -96,7 +94,7 @@ Algebras are models of \Link[LinkText=signatures]{DefSignature}.
 
 
 \begin{Paragraph}[Label=Terms, Title=Terms over a Set]
-Let $\Sigma=(S, \Omega)$ be a \Link[LinkText={signature}]{DefSignature}.
+Let $\Sigma=(S, \Omega)$ be a.
 
 An \Emphasis{$S$-sorted set of variables} is given by $X=
 \{X_s\}_{s\in S}$.
@@ -106,7 +104,7 @@ is closed under application of operations.
 \vspace{1cm}
 
 \begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
-Terms form an \Link[LinkText=algebra]{DefAlgebra}.  
+Terms form an.
 \end{Lemma}
 
 \end{Paragraph}
@@ -130,7 +128,7 @@ Pos & \ ::= & \ suc(pre:Nat)
 \end{SpecDefn}
 \end{ProgramFragment}
 
-Note how $(\Nat, 0, +)$ form an \Link[LinkText=algebra]{DefAlgebra}.
+Note how $(\Nat, 0, +)$ form an.
 \end{Paragraph}
 
 \begin{Summary}[Label=Summary, Title=Summing Up]
