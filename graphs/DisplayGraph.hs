@@ -1,6 +1,6 @@
--- | DisplayGraph.displayGraph displays something implementing the
--- Graph interface with something implementing with GraphDisp interface.
--- displayGraph0 is a slightly more general version that also returns the
+-- | 'displayGraph' displays something implementing the
+-- "Graph" interface with something implementing with "GraphDisp" interface.
+-- 'displayGraph0' is a slightly more general version that also returns the
 -- actual graph.
 module DisplayGraph(
    displayGraph,

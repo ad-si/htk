@@ -8,32 +8,31 @@ module Computation (
 
         ( # ), -- reverse of application
 
-        -- exceptions and handlers
+        -- * exceptions and handlers
         propagate,
         try, -- in IO
         tryUntilOK,
         raise,
 
-        -- selectors
+        -- * selectors
         when,  -- when b y means "if b is true, perform y"
         unless,
         incase,
 
-        -- iterators
+        -- * iterators
         forever,
         foreach,
         while,
 
-        -- configure command
+        -- * configure command
         Config, 
         configure,
         config,
 
-        -- The new-style configuration command
+        -- * The new-style configuration command
         HasConfig(..),
 
-        -- Results with error messages attached.
-        -- Error messages
+        -- * Returning results or error messages.
         WithError,
 
         hasError, -- :: String -> WithError a
@@ -66,6 +65,11 @@ module Computation (
         coerceWithErrorStringIO, -- :: String -> WithError a -> IO a
         -- Like coerceWithErrorIO but also takes a String, which will
         -- be included in the eventual error message.
+
+        coerceWithErrorOrBreakIOPrefix, 
+           -- :: String -> (String -> a) -> WithError a -> IO a
+        coerceWithErrorOrBreakPrefix, 
+           -- :: String -> (String -> a) -> WithError a -> a
 
         MonadWithError(..),
         -- newtype which wraps a monadic action returning a WithError a.
@@ -230,20 +234,38 @@ coerceWithErrorStringIO mess (Error err) =
    error ("coerceWithErrorString " ++ mess ++ ": " ++ err)
 
 -- | coerce or use the supplied break function (to be used with 
--- ExtendedPrelude.addFallOut)
+-- 'ExtendedPrelude.addFallOut')
 -- The value is evaluated immediately.
 coerceWithErrorOrBreakIO :: (String -> a) -> WithError a -> IO a
-coerceWithErrorOrBreakIO breakFn aWe =
+coerceWithErrorOrBreakIO = coerceWithErrorOrBreakIOPrefix ""
+
+-- | coerce or use the supplied break function (to be used with 
+-- 'ExtendedPrelude.addFallOut')
+--
+-- The first argument is prepended to any error message.
+-- The value is evaluated immediately.
+coerceWithErrorOrBreakIOPrefix 
+   :: String -> (String -> a) -> WithError a -> IO a
+coerceWithErrorOrBreakIOPrefix errorPrefix breakFn aWe =
    do
       let
-         a = coerceWithErrorOrBreak breakFn aWe
+         a = coerceWithErrorOrBreakPrefix errorPrefix breakFn aWe
       seq a (return a)
 
--- coerce or use the supplied break function (to be used with 
--- ExtendedPrelude.addFallOut)
+-- | coerce or use the supplied break function (to be used with 
+-- 'ExtendedPrelude.addFallOut')
 coerceWithErrorOrBreak :: (String -> a) -> WithError a -> a
-coerceWithErrorOrBreak breakFn (Value a) = a
-coerceWithErrorOrBreak breakFn (Error s) = breakFn s
+coerceWithErrorOrBreak = coerceWithErrorOrBreakPrefix ""
+
+
+-- | coerce or use the supplied break function (to be used with 
+-- 'ExtendedPrelude.addFallOut')
+--
+-- The first argument is prepended to any error message.
+coerceWithErrorOrBreakPrefix :: String -> (String -> a) -> WithError a -> a
+coerceWithErrorOrBreakPrefix errorPrefix breakFn (Value a) = a
+coerceWithErrorOrBreakPrefix errorPrefix breakFn (Error s) 
+   = breakFn (errorPrefix ++ s)
 
 concatWithError :: [WithError a] -> WithError [a]
 concatWithError withErrors =

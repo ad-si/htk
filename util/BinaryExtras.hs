@@ -21,11 +21,8 @@ import Computation
 import ExtendedPrelude
 import IOExtras
 
--- ----------------------------------------------------------------------
--- Read something, but throw an exception if there is an attempt to
--- read more than "limit" characters. 
--- ----------------------------------------------------------------------
-
+-- | Read something, but throw an exception if there is an attempt to
+-- read more than the number of characters given by the first argument. 
 hReadLtd :: HasBinary a IO => Int -> Handle -> IO (WithError a)
 hReadLtd limit handle =
    addFallOutWE (\ break ->
@@ -75,6 +72,8 @@ instance Monad m => HasBinary ClockTime m where
    writeBin = mapWrite (\ (TOD i j) -> (i,j))
    readBin = mapRead (\ (i,j) -> TOD i j)
 
+-- | Time this code was written.  We bung this definition in here
+-- because this module needs GHC-specific access to ClockTime anyway.
 initialClockTime :: ClockTime
 initialClockTime = TOD 1052391874 190946000000
-   -- Time this was written.
+

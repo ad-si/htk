@@ -1,6 +1,10 @@
--- | This module is a (very much trimmed-down) rewrite of the old CodedValue
--- module, which takes advantage of the new Binary modules (in the util
--- directory). 
+-- | This module provides a particular instance of the "Binary" modules
+-- for binary encoding values.  What's new here is that the encoding
+-- functions can also get hold of the 'View'.
+-- 
+-- We also require that instances of 'HasCodedValue' instance 'Typeable'.
+-- This makes it easier to track down the type with the problem when
+-- things go wrong.
 module CodedValue(
    HasCodedValue,
    CodedValue,
@@ -58,6 +62,7 @@ import ViewType
 -- The HasCodedValue class, now a synonym for several existing classes.
 -- --------------------------------------------------------------------------
 
+-- | This monad is used as the argument to the 'HasBinary' class. 
 newtype CodingMonad a = CodingMonad (ArgMonad View StateBinArea a) 
    deriving (Monad)
    -- Thus instances of CodedValue will be able to write to a BinArea
@@ -66,6 +71,9 @@ newtype CodingMonad a = CodingMonad (ArgMonad View StateBinArea a)
 unCodingMonad :: CodingMonad a -> ArgMonad View StateBinArea a
 unCodingMonad (CodingMonad am) = am
 
+-- | NB.  You don't instance this class, instead you declare
+-- instances of 'Typeable' and 'HasBinary' and then 'HasCodedValue'
+-- follows automatically.
 class (Typeable ty,HasBinary ty CodingMonad) => HasCodedValue ty
 
 instance (Typeable ty,HasBinary ty CodingMonad) => HasCodedValue ty
@@ -92,7 +100,7 @@ type CodedValue = ICStringLen
 -- --------------------------------------------------------------------------
 
 
-
+-- | Encode a value within a view.
 doEncodeIO :: HasCodedValue a => a -> View -> IO CodedValue
 doEncodeIO (a ::  a) view = doEncodeIO1 (show (typeOf a)) a view
 
@@ -125,7 +133,7 @@ doEncodeIO1 desc (a ::  a) view =
       wb2 :: WriteBinary CodingMonad
       wb2 = liftWriteBinary CodingMonad wb1
 
-
+-- | Decode a value in a view.
 doDecodeIO :: HasCodedValue a => CodedValue -> View -> IO a
 doDecodeIO codedValue view = 
    let
@@ -174,6 +182,7 @@ doDecodeIO1 desc icsl view =
       rb2 :: ReadBinary CodingMonad
       rb2 = liftReadBinary CodingMonad rb1
 
+-- | Check if two values are equal by comparing their encoding.
 equalByEncode :: HasCodedValue value => (View,value) -> (View,value) 
    -> IO Bool
 equalByEncode vv1 vv2 =
@@ -181,6 +190,7 @@ equalByEncode vv1 vv2 =
       ord <- compareByEncode vv1 vv2
       return (ord == EQ)
 
+-- | Compare two values by comparing their encoding.
 compareByEncode :: HasCodedValue value => (View,value) -> (View,value) 
    -> IO Ordering
 compareByEncode (view1,val1) (view2,val2) =
@@ -195,6 +205,11 @@ compareByEncode (view1,val1) (view2,val2) =
 -- an IO action that depends on the view
 -- --------------------------------------------------------------------------
 
+-- | Used for constructing the 'writeBin' value inside 'HasBinary',
+-- if you have a function which, given the view and the value, computes
+-- something already an instance of 'HasBinary'
+-- 
+-- If you don't need the view, use 'mapWrite' or 'mapWriteIO' instead.
 mapWriteViewIO :: HasBinary value2 CodingMonad
    => (View -> value1 -> IO value2) 
    -> (WriteBinary CodingMonad -> value1 -> CodingMonad ())
@@ -204,6 +219,11 @@ mapWriteViewIO viewFn wb value1 =
       value2 <- liftIO (viewFn view value1)
       writeBin wb value2
 
+-- | Used for constructing the 'readBin' value inside 'HasBinary',
+-- if you have a function which, given the view and something already
+-- an instance of 'HasBinary', computes it.
+-- 
+-- If you don't need the view, use 'mapRead' or 'mapReadIO' instead.
 mapReadViewIO :: HasBinary value2 CodingMonad
    => (View -> value2 -> IO value1)
    -> (ReadBinary CodingMonad -> CodingMonad value1) 

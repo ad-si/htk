@@ -429,12 +429,12 @@ ifneq "$(strip $(LIBOBJS))" ""
 	GHCINTERFACES0=`$(GFIND) $(TOP)/www/ghc/html -name '*.haddock' \
            -printf "--read-interface=$$TOPRELATIVE/ghc/html/%P,%p "` \
 	GHCINTERFACES=`echo $$GHCINTERFACES0 | sed -e 's+/[^/]*.haddock,+,+g'` ;\
-	echo $$HADDOCKINTERFACES; \
         mkdir -p $(TOP)/www/$$SUFFIX ; \
 	cd haddock; \
+	PROLOGUE=`if [ -r ../haddock.prologue ]; then echo -p ../haddock.prologue; fi`; \
 	$(HADDOCK) -h --package $(PACKAGE) -o $(TOP)/www/$$SUFFIX \
            -s sources --dump-interface=../interface.haddock \
-	   $$GHCINTERFACES $$HADDOCKINTERFACES \
+	   $$PROLOGUE $$GHCINTERFACES $$HADDOCKINTERFACES \
            $(LIBSRCS)
 endif
 
@@ -443,7 +443,7 @@ ifdef THISISTOP
 	HADDOCKINTERFACES0=`$(GFIND) $(TOP) -name interface.haddock \
            -printf "--read-interface=%P,%p "`; \
 	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s/interface.haddock,/,/g` ;\
-	$(HADDOCK) -h -o $(TOP)/www \
+	$(HADDOCK) -o $(TOP)/www \
 	   $$HADDOCKINTERFACES \
           --gen-index --gen-contents
 endif

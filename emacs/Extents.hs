@@ -118,7 +118,7 @@ containerFullContents emacsSession this =
          (Prin ("uni-container-contents",this))
       return (parseEmacsContentGeneral str)
 
--- | Returns True if a container is modified
+-- | Returns 'True' if a container is modified
 isModified :: EmacsSession -> String -> IO Bool
 isModified emacsSession this =
    do
@@ -178,7 +178,7 @@ lockBuffer es = execEmacs es ("uni-lock-buffer")
 unlockBuffer :: EmacsSession -> IO ()
 unlockBuffer es = execEmacs es ("uni-unlock-buffer")
 
--- Clear the buffer's modified flag (hopefully clearing the "**" in the
+-- | Clear the buffer's modified flag (hopefully clearing the \"**\" in the
 -- XEmacs status display).
 clearModifiedFlag :: EmacsSession -> IO ()
 clearModifiedFlag es = execEmacs es (Literal "(set-buffer-modified-p nil)")
@@ -202,8 +202,7 @@ currentPoint emacsSession =
       str <- evalEmacsQuick emacsSession (Prin ("point"))
       return (doParseInt str)
 
---
--- Check whether it is safe to insert a button at this point.
+-- | Check whether it is safe to insert a button at this point.
 -- If Yes, return the containing container.
 checkInsertion :: EmacsSession -> Int -> IO (WithError String)
 checkInsertion emacsSession i =
@@ -226,9 +225,9 @@ gotoChar :: Int -> Multi
 gotoChar i = multi ("goto-char",i)
 
 
---
--- The following operations are used for modifying the contents of a container.
--- They return a value of type "Multi" since they indicate the operation
+-- | The following operations are used for modifying the contents of a 
+-- container.
+-- They return a value of type \"Multi\" since they indicate the operation
 -- to be performed; the caller then needs to perform them all at once as
 -- a list.
 pointAfterExtent :: String -> Multi

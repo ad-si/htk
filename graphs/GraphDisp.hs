@@ -8,7 +8,7 @@
 -- (1) some sort of text-only interface.
 -- (2) Windows-style displaying of a tree structure using clickable
 --     folders.
--- In this module we present the classes that any such "graph-drawing package"
+-- In this module we present the classes that any such \"graph-drawing package\"
 -- is supposed to implement.
 -- 
 -- This module is in two parts.  
@@ -48,20 +48,23 @@
 -- 
 -- Nodes and arcs carry values.  Thus all the following carry
 -- a type parameter.  But, for ease of implementation with, for example,
--- DaVinci, the type parameter is required to be an instance of Typeable.
+-- DaVinci, the type parameter is required to be an instance of 'Typeable'.
 -- 
---    node.  A value of this type is an actual node in a graph.
---       (Will be an instance of Typeable via HasTyRep1.)
---    nodeType.  Nodes are created with a particular UniForM "type" which
+-- *   node.  A value of this type is an actual node in a graph.
+--       (Will be an instance of 'Typeable' via 'Typeable1'.)
+--
+-- *   nodeType.  Nodes are created with a particular UniForM \"type\" which
 --       is a Haskell value of type nodetype.  In fact a graph might
 --       conceivably have multiply Haskell types corresponding to node
 --       and nodeType, meaning that nodes, or their UniForM types,
 --       will be distinguished additionally by the Haskell type system. 
---    nodeTypeConfig.  Configuration information for a nodeType.
+--
+-- *   nodeTypeConfig.  Configuration information for a nodeType.
 --       This might include how a node with this type is to be displayed
 --       graphically.  This also includes information on what to do when the
 --       node is clicked.
---    nodeTypeParms.  A collection of nodeTypeConfig's used to construct
+--
+-- *   nodeTypeParms.  A collection of nodeTypeConfig's used to construct
 --       a nodeType
 -- 
 --    Similar constructions for arcs . . .
@@ -82,7 +85,7 @@
 -- provided by DaVinci.  However we extend it by allowing
 -- nodes to have labels.
 -- 
--- This file should be read in conjunction with GraphConfigure.hs,
+-- This file should be read in conjunction with "GraphConfigure",
 -- which contains various configuration options to be used for
 -- graph objects.
 -- 
@@ -90,7 +93,7 @@
 -- ----------------
 --
 -- (1) At the end of a program using a GraphDisp instance,
---     InfoBus.shutdown should be called.  For example,
+--     'shutdown' should be called.  For example,
 --     in the case of the DaVinci instance this is
 --     required to get rid of the DaVinci and HTk processes.
 --
@@ -101,7 +104,8 @@
 --     they are now.
 --
 module GraphDisp(
-   -- User-friendly interface
+   -- * User-Friendly Interface.
+   -- | You should not need any more than this for drawing graphs.
    Graph(..), -- (a type)
       -- Graph takes a lot of parameters I don't want to mentiond
       -- I shall write them in this module signature as "...".
@@ -149,7 +153,9 @@ module GraphDisp(
    Eq1(..),Ord1(..), -- Classes with nodes and arcs should instance,
       -- allowing comparisongs on them.
 
-   -- User-hateful interface, arranged by classes.
+   -- * User-Hateful Interface  
+   -- | This is only needed
+   -- by people wanting to implement new implementations of the interface.
    GraphAll(displaySort),
    GraphClass(..),
    NewGraph(..),
@@ -187,6 +193,10 @@ import Destructible
 
 --- Graphs
 
+-- | The graph implementation will provide a value of this type to
+-- get you started.  For example, for daVinci this is called 'daVinciSort'.
+-- However you then need to use it as an argument to 'newGraph' to construct
+-- the actual graph.
 newtype 
    GraphAll graph graphParms node nodeType nodeTypeParms arc arcType 
       arcTypeParms 
@@ -213,13 +223,9 @@ instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
       arcType arcTypeParms) where
    toDelayer (Graph graph) = toDelayer graph
 
--- The argument to newGraph can be obtained from displaySort
--- (see later in this section), and there should be one of these
--- for each graph display implementation.  EG for daVinci it's
--- called daVinciSort.  So you just have to use 
--- newGraph daVinciSort and then don't have to worry any more about
--- all these type variables.
-
+-- | Construct a new graph.  The input value will be something like
+-- "DaVinciGraph"'s value 'daVinciSort'; the resulting graph will be
+-- returned.
 newGraph :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
    arcType arcTypeParms) => 
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType
@@ -237,6 +243,7 @@ newGraph
          Graph graph graphParms node nodeType nodeTypeParms arc arcType 
          arcTypeParms)
 
+-- | Redraw the graph.  This is needed when you want to show updates.
 redraw :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
    arcType arcTypeParms) =>
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
@@ -244,6 +251,10 @@ redraw :: (GraphAll graph graphParms node nodeType nodeTypeParms arc
    -> IO ()
 redraw (Graph graph) = redrawPrim graph
 
+-- | Take over all interaction on the graph, and perform the given
+-- action, supplying it with an event which is activated when the user
+-- double-clicks a node.  This is helpful when you need an interaction
+-- selecting several nodes.
 getMultipleNodes :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
    arcType arcTypeParms) =>
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
@@ -256,6 +267,7 @@ class GraphParms graphParms where
 
 -- Nodes
 
+-- | construct a new node.
 newNode :: (GraphAll graph graphParms node nodeType nodeTypeParms 
               arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)
@@ -266,6 +278,7 @@ newNode
    (nodeType :: nodeType value) 
    (value :: value) = (newNodePrim graph nodeType value) :: IO (node value)
 
+-- | delete a node
 deleteNode :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                  arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -276,6 +289,7 @@ deleteNode
       arcType arcTypeParms))
    (node :: node value) = deleteNodePrim graph node
 
+-- | get the value associated with a node
 getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                    arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -286,7 +300,7 @@ getNodeValue
       arc arcType arcTypeParms)
    (node :: node value) = getNodeValuePrim graph node
 
-
+-- | set the value associated with a node.
 setNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                    arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -297,6 +311,7 @@ setNodeValue
       arc arcType arcTypeParms)
    (node :: node value) value = setNodeValuePrim graph node value
 
+-- | construct a node type.
 newNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                   arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
@@ -317,7 +332,7 @@ class NodeTypeParms nodeTypeParms where
 
 -- Arcs
 
-
+-- | construct a new arc.
 newArc :: (GraphAll graph graphParms node nodeType nodeTypeParms 
              arc arcType arcTypeParms,
              Typeable value,Typeable nodeFromValue,Typeable nodeToValue) => 
@@ -334,7 +349,10 @@ newArc
    (nodeTo :: node nodeToValue) =
    (newArcPrim graph arcType value nodeFrom nodeTo) :: IO (arc value)
 
-
+-- | Given a node, construct a 'ListDrawer' which can be used as a way
+-- of drawing ordered sets of out-arcs from that node.
+-- (NB.  At the moment daVinci does not do this properly, but that is
+-- daVinci's fault, not mine.)
 newArcListDrawer :: (GraphAll graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms,
       Typeable value,Typeable nodeFromValue)
@@ -349,6 +367,7 @@ newArcListDrawer
    (newArcListDrawerPrim graph nodeFrom) 
 --      :: (ListDrawer (arcType value,value,WrappedNode node) (arc value))
 
+-- | delete an arc
 deleteArc :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                 arc arcType arcTypeParms,
                 Typeable value)=> 
@@ -359,6 +378,7 @@ deleteArc
       arcType arcTypeParms)
    (arc :: arc value) = deleteArcPrim graph arc
 
+-- | set the value associated with an arc
 setArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                   arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -368,6 +388,7 @@ setArcValue
       arcType arcTypeParms)
    (arc :: arc value) (value :: value) = setArcValuePrim graph arc value
 
+-- | get the value associated with an arc
 getArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                   arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -377,6 +398,7 @@ getArcValue
       arcType arcTypeParms)
    (arc :: arc value) = getArcValuePrim graph arc 
 
+-- | create a new arc type
 newArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                  arc arcType arcTypeParms,Typeable value) =>
    (Graph graph graphParms node nodeType nodeTypeParms 

@@ -1,4 +1,4 @@
--- | This module edits Emacs content, including "magic buttons" to allow
+-- | This module edits Emacs content, including \"magic buttons\" to allow
 -- the user expand bits of content further. 
 module EmacsEdit(
    editEmacs, -- :: EmacsFS -> String -> IO ()

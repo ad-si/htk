@@ -1,4 +1,4 @@
--- | Various generic functions to be used with the Binary module. 
+-- | Various functions for declaring new instances of Binary for types.
 module BinaryUtils(
    mapWrite, -- :: HasBinary b m => (a -> b) -> (WriteBinary m -> a -> m ())
    mapRead, -- :: (Monad m,HasBinary b m) => (b -> a) -> (ReadBinary m -> m a)
@@ -72,20 +72,23 @@ import Binary
 -- Mapping HasBinary instances
 -- ----------------------------------------------------------------------
 
--- Two functions for constructing writeBinary/readBinary functions given
--- a conversion function.  Yes I know this is trivial, but it's also
--- VERY common.
+-- | Given a function which converts an (a) to something we can already
+-- convert to binary, return a 'writeBin' function to be used in
+-- instances of 'HasBinary' (a).
 mapWrite :: HasBinary b m => (a -> b) -> (WriteBinary m -> a -> m ())
 mapWrite  fn wb a = writeBin wb (fn a)
 
+-- | Given a function which converts something we can already read from
+-- binary to (a), return a 'readBin' function to be used in instances
+-- of 'HasBinary' (a).
 mapRead :: (Monad m,HasBinary b m) => (b -> a) -> (ReadBinary m -> m a)
 mapRead fn rb =
    do
       b <- readBin rb
       return (fn b)
 
--- Equivalents which rely allow IO functions, of course only for monads
--- which admit IO actions.
+-- | Like 'mapWrite', but the conversion function is also allowed to use
+-- 'IO'.
 mapWriteIO :: (HasBinary b m,MonadIO m) 
    => (a -> IO b) -> (WriteBinary m -> a -> m ())
 mapWriteIO fn wb a = 
@@ -93,6 +96,8 @@ mapWriteIO fn wb a =
       b <- liftIO (fn a)
       writeBin wb b
 
+-- | LIke 'mapRead', but the conversion function is also allowed to use
+-- 'IO'.
 mapReadIO :: (HasBinary b m,MonadIO m) 
    => (b -> IO a) -> (ReadBinary m -> m a)
 mapReadIO fn rb =
@@ -106,6 +111,9 @@ mapReadIO fn rb =
 -- context
 -- ----------------------------------------------------------------------
 
+-- | A monad which hides an additional value which the 'HasBinary' 
+-- instances should be able to get at.  This is used, for example,
+-- by "CodedValue", to make the 'View' available to instances.
 newtype ArgMonad arg m a = ArgMonad (arg -> m a)
 
 mkArgMonad :: (arg -> m a) -> ArgMonad arg m a
@@ -154,9 +162,12 @@ instance MonadIO m => MonadIO (ArgMonad arg m) where
 -- read (since we wouldn't know what type to decode).
 -- ----------------------------------------------------------------------
 
+-- | A wrapper for instances of Binary.  This can be written, but not
+-- read (since we wouldn't know what type to decode).
 data WrappedBinary = 
    forall v . HasBinary v IO => WrappedBinary v
 
+-- | Write a 'WrappedBinary'
 hWriteWrappedBinary :: Handle -> WrappedBinary -> IO ()
 hWriteWrappedBinary handle (WrappedBinary v) = hWrite handle v
 
@@ -166,7 +177,7 @@ hWriteWrappedBinary handle (WrappedBinary v) = hWrite handle v
 -- of writing it.  Of course we have to leave the method for reading it
 -- undefined
 -- ----------------------------------------------------------------------
- 
+
 data WrapBinary m = forall v . HasBinary v m => WrapBinary v
 
 instance HasBinary (WrapBinary m) m where

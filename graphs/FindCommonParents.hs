@@ -35,14 +35,14 @@ import TopSort
 
 data GraphBack node nodeKey = GraphBack {
    getAllNodes :: IO [node],
-      -- Get all nodes in the graph
+      -- ^ Get all nodes in the graph
    getKey :: node -> IO (Maybe nodeKey),
-      -- If the node does not exist in the graph return Nothing.  
-      -- If it does return Just key where key is a "nodeKey", an ordered key
+      -- ^ If the node does not exist in the graph return 'Nothing'.  
+      -- If it does return Just key where key is a \"nodeKey\", an ordered key
       -- uniquely distinguishing the node (and used to detect common elements 
       -- in the two graphs)
    getParents :: node -> IO (Maybe [node])
-      -- If node does not exist return Nothing, otherwise return immediate 
+      -- ^If node does not exist return Nothing, otherwise return immediate 
       -- parents of node.
    }
 

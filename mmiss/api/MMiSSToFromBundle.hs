@@ -201,14 +201,20 @@ toBundleText block ftOpt =
          case readCheck dbnStr of
             Just (blockNo :: Int) ->
                case lookupBlockData block blockNo of
-                  Just blockData | blockType blockData == blockType1
-                     -> return (
-                        BundleString {
-                           contents = blockText blockData,
-                           charType = toCharType (fromDefaultable (
-                              fileContentsCharType ft))
-                           }
-                        )
+                  Just blockData 
+                     | blockType blockData == blockType1
+                        -> return (
+                           BundleString {
+                              contents = blockText blockData,
+                              charType = toCharType (fromDefaultable (
+                                 fileContentsCharType ft))
+                              }
+                           )
+                     | True ->
+                        fail ("Block " ++ show blockNo ++ " found, but has "
+                           ++ "type " ++ show (blockType blockData)
+                           ++ " instead of " ++ show blockType1
+                           )
                   Nothing -> fail ("Block " ++ show blockNo ++ " not found")
             Nothing -> fail ("Can't parse block number " ++ dbnStr)
          where

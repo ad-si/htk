@@ -212,8 +212,8 @@ parseObject :: LocInfo -> Format -> String -> IO Bundle
 parseObject locInfo format objectStr =
    do
       let
-         filePath = "Text in Bundle"
-         fileSystem = oneFileFileSystem "Text in Bundle" objectStr
+         filePath = describeLocInfo locInfo
+         fileSystem = oneFileFileSystem filePath objectStr
       (bundle,_) 
          <- parseBundle1 (toElementInfo locInfo) format fileSystem filePath
       return bundle

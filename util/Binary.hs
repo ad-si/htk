@@ -2,11 +2,17 @@
 -- be written to and from files, stored compactly in memory, and so on.
 -- 
 -- This is a preliminary version of the library, hence I have decided 
--- *not* to optimise heavily, beyond putting in strictness annotations
+-- /not/ to optimise heavily, beyond putting in strictness annotations
 -- in where they seem appropriate.
 -- 
 -- A good place to start optimising would probably be the separate
--- Bytes libary.
+-- "Bytes" libary.
+--
+-- See also "BinaryInstances", which declares instances for the standard
+-- types (and one or two others), "BinaryUtils", which contains
+-- (mostly) material for declaring new instances, "BinaryExtras", 
+-- which contains other miscellaneous utilities, and finally
+-- "BinaryAll" which just imports and reexports everything.
 module Binary (
 
    hWrite, -- :: HasBinary a IO => Handle -> a -> IO ()
@@ -80,29 +86,40 @@ import Bytes
 --     area.
 -- ----------------------------------------------------------------------
 
+-- | A consumer of binary data
 data WriteBinary m =
    WriteBinary {
       writeByte :: Byte -> m (),
+         -- ^ write one byte
       writeBytes :: Bytes -> Int -> m ()
+         -- ^ write multiple bytes
       }
 
+-- | A source of binary data
 data ReadBinary m =
    ReadBinary {
       readByte :: m Byte,
+         -- ^ read one byte
       readBytes :: Int -> m Bytes
+         -- ^ read multiple bytes
       }
 
 class HasBinary a m where
    writeBin :: WriteBinary m -> a -> m ()
+      -- ^ Given a consumer of binary data, and an (a), write out the (a)
    readBin :: ReadBinary m -> m a
+      -- ^ Given a source of binary data, provide an (a)
    
 -- ----------------------------------------------------------------------
 -- Reading/Writing HasBinary instances to Handles.
 -- ----------------------------------------------------------------------
 
+-- | Write an (a) to a 'Handle'
 hWrite :: HasBinary a IO => Handle -> a -> IO ()
 hWrite handle a = writeBin (toWriteBinaryHandle handle) a
 
+
+-- | Read an (a) from a 'Handle'
 hRead :: HasBinary a IO => Handle -> IO a
 hRead handle = readBin (toReadBinaryHandle handle)
 
@@ -151,21 +168,26 @@ bracketDebug i act =
 -- necessary.
 -- ----------------------------------------------------------------------
 
+-- | Somewhere to where you write binary data in memory.
 data BinArea = BinArea {
    bytes :: ! Bytes, -- current storage area
    len :: ! Int, -- its length
    next :: ! Int -- where to write next bit of data.
    }
 
+-- | Write an (a) to memory.  The 'Int' is the length of the area.
 writeToBytes :: HasBinary a StateBinArea => a -> IO (Bytes,Int)
 writeToBytes = writeToBytes0 1000
    -- Be generous, since memory is cheap.  Make it a bit less than a power
    -- of two, since some memory allocation algorithms (buddy algorithm)
    -- like this.
 
+-- | Write an (a) to memory.
+-- The integer argument is an initial guess at the number of bytes
+-- that will be needed.  This should be greater than 0.  If it is
+-- too small, there will be unnecessary reallocations; if too large,
+-- too much memory will be used.
 writeToBytes0 :: HasBinary a StateBinArea => Int -> a -> IO (Bytes,Int)
--- The integer gives the initial size to allocate.  It is probably better that
--- this be an overestimate (unless memory is very tight).
 -- 
 -- The result is returned as a pair (data area,length)
 writeToBytes0 len0 a =
@@ -174,6 +196,7 @@ writeToBytes0 len0 a =
       ((),binArea1) <- runStateT (writeBin writeBinaryBinArea a) binArea0
       closeBinArea binArea1
 
+-- | Create an empty 'BinArea', given the initial size.
 mkEmptyBinArea :: Int -> IO BinArea 
 -- the argument gives the initial size to use (which had better be positive).
 mkEmptyBinArea len =
@@ -185,6 +208,7 @@ mkEmptyBinArea len =
          next = 0
          })
 
+-- | Return all the data currently in the 'BinArea'
 closeBinArea :: BinArea -> IO (Bytes,Int)
 closeBinArea binArea =
    do
@@ -194,8 +218,10 @@ closeBinArea binArea =
       bytes2 <- bytesReAlloc bytes1 len 
       return (bytes2,len)
 
-type StateBinArea = StateT BinArea IO -- a state monad containing the BinArea.
+-- | a state monad containing the BinArea.
+type StateBinArea = StateT BinArea IO 
 
+-- | A 'BinArea' as somewhere to put binary data.
 writeBinaryBinArea :: WriteBinary StateBinArea
 writeBinaryBinArea = WriteBinary {
    writeByte = (\ byte ->
@@ -222,8 +248,9 @@ writeBinaryBinArea = WriteBinary {
       )
    }
 
+
+-- | ensure that the given BinArea can hold at least len bytes.
 ensureBinArea :: BinArea -> Int -> IO BinArea
--- ensure that the given BinArea can hold at least len bytes.
 ensureBinArea binArea size =
    if size <= len binArea
       then
@@ -245,6 +272,8 @@ ensureBinArea binArea size =
 -- worry about reallocing.
 -- ----------------------------------------------------------------------
 
+-- | Read a value from binary data in memory.  The 'Int' is the length,
+-- and there will be an error if this is either too small or too large.
 readFromBytes :: HasBinary a StateBinArea => (Bytes,Int) -> IO a
 readFromBytes (bl@(bytes',len')) =
    do
@@ -255,6 +284,8 @@ readFromBytes (bl@(bytes',len')) =
       checkFullBinArea binArea1
       return a
 
+-- | Turn binary data in memory into a 'BinArea' (so that you can
+-- read from it).
 mkBinArea :: (Bytes,Int) -> BinArea
 mkBinArea (bytes',len') = 
    BinArea {
@@ -272,6 +303,7 @@ checkFullBinArea binArea =
          error "Binary.checkFullBinArea: mysterious extra bytes"
    
 
+-- | A BinArea as a source of binary data.
 readBinaryBinArea :: ReadBinary StateBinArea
 readBinaryBinArea = ReadBinary {
    readByte = StateT (\ binArea0 ->
@@ -310,6 +342,7 @@ checkBinArea binArea newNext =
 -- Lifting writeBinary and readBinary instances.
 -- ----------------------------------------------------------------------
 
+-- | Transform the monad used by a 'WriteBinary'
 liftWriteBinary :: (forall a . m a -> n a) -> WriteBinary m -> WriteBinary n
 liftWriteBinary lift wb =
    let
@@ -318,6 +351,7 @@ liftWriteBinary lift wb =
    in
       WriteBinary {writeByte = writeByte2,writeBytes = writeBytes2}
 
+-- | Transform the monad used by a 'ReadBinary'
 liftReadBinary :: (forall a . m a -> n a) -> ReadBinary m -> ReadBinary n
 liftReadBinary lift rb =
    let

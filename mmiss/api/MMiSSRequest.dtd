@@ -149,6 +149,7 @@
 <!-- A collection of variants. -->
 <!ELEMENT fileVariants (fileVariant)* >
 <!ELEMENT fileVariant ( variants?,fileContents? ) >
+<!ELEMENT fileContents EMPTY >
 <!ATTLIST fileContents
    dataBlock NMTOKEN #REQUIRED
    charType (byte | unicode) "unicode"

@@ -542,7 +542,7 @@ instance GraphConfig graphConfig
 
 data DaVinciNode value = DaVinciNode NodeId
 
--- Tiresomely we need to make the "real" node type untyped.
+-- | Tiresomely we need to make the \"real\" node type untyped.
 -- This is so that the interactor which handles drag-and-drop
 -- can get the type out without knowing what it is.
 data DaVinciNodeType value = DaVinciNodeType {
@@ -1142,12 +1142,6 @@ instance HasConfigValue Color DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (Color colorName) parms =
       parms {arcAttributes = (Att "EDGECOLOR" colorName) $$$ 
-         (arcAttributes parms)}
-
-instance HasConfigValue EdgeObject DaVinciArcTypeParms where
-   configUsed' _ _ = True
-   ($$$) (Object objectStr) parms =
-      parms {arcAttributes = (Att "OBJECT" objectStr) $$$ 
          (arcAttributes parms)}
 
 instance HasConfigValue EdgeDir DaVinciArcTypeParms where

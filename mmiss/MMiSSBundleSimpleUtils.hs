@@ -80,6 +80,7 @@ module MMiSSBundleSimpleUtils(
    subDir, -- :: Maybe EntityName -> Bool -> LocInfo -> WithError LocInfo
    setVariants, -- :: MMiSSVariantSpec -> LocInfo -> WithError LocInfo
    toElementInfo, -- :: LocInfo -> ElementInfo
+   describeLocInfo, -- :: LocInfo -> String
    ) where
 
 import Data.FiniteMap
@@ -742,3 +743,9 @@ toElementInfo locInfo =
       labelOpt = Nothing,
       variants = variants0 locInfo
       }
+
+describeLocInfo :: LocInfo -> String
+describeLocInfo locInfo = 
+   show (packageId locInfo) 
+   ++ "#" ++ show (EntityFullName (reverse (packagePath locInfo)))
+   ++ ":" ++ show (variants0 locInfo)

@@ -53,18 +53,21 @@ parseBundle1 :: ElementInfo -> Format -> FileSystem -> FilePath
    -> IO (Bundle,PackageId)
 parseBundle1 elInfo0 format fileSystem filePath =
    do
+      let
+         coerce = coerceImportExportIOPrefix (filePath ++ ": ")
+
       (element0 :: Element,preambleList :: [(MMiSSLatexPreamble,PackageId)]) 
             <- case format of
          LaTeX -> 
             do
                parseResult <- parseMMiSSLatex fileSystem filePath
-               coerceImportExportIO parseResult
+               coerce parseResult
          XML ->
             do
                xmlStringWE <- readString fileSystem filePath
                xmlString <- coerceImportExportIO xmlStringWE
                elementWE <- xmlParseCheck filePath xmlString
-               element <- coerceImportExportIO elementWE 
+               element <- coerce elementWE 
                return (element,[])
       parseBundle2 elInfo0 element0 preambleList
 

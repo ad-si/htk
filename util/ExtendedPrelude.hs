@@ -1,11 +1,12 @@
 -- | Basic string-manipulation and other functions they forgot to put in
 -- the standard prelude.
 module ExtendedPrelude (
-   -- Operations for trimming spaces from Strings.
+   -- * Trimming spaces from Strings.
    trimTrailing,
    trimLeading,
    trimSpaces,
 
+   -- * Miscellaneous functions
    monadDot,
    split,
    findJust,
@@ -37,6 +38,8 @@ module ExtendedPrelude (
    mapPartialM,
 
    splitByChar,
+
+   -- * Miscellaneous string and list operations
    unsplitByChar,
    unsplitByChar0,
    splitToChar,
@@ -48,12 +51,14 @@ module ExtendedPrelude (
    deleteAndFindFirstOpt,
    divideList,
 
+   -- | Folding on trees
    treeFold,
    treeFoldM,
 
    mapEq, -- used for instancing Eq
    mapOrd, -- used for instancing Ord.
 
+   -- * Exception-driven error mechanism.
    BreakFn,
    addFallOut,
    addFallOutWE,
@@ -71,6 +76,7 @@ module ExtendedPrelude (
    breakOtherExceps, -- :: BreakFn -> IO a -> IO a
    showException2, -- :: Exception -> String
 
+   -- * Other miscellaneous functions
    EqIO(..),OrdIO(..),
 
    uniqOrd,

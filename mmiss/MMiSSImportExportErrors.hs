@@ -4,6 +4,7 @@ module MMiSSImportExportErrors(
    importExportError, -- :: BreakFn
    catchImportExportErrors, -- :: IO a -> IO (Either String a)
    coerceImportExportIO, -- :: WithError a -> IO a
+   coerceImportExportIOPrefix, -- :: String -> WithError a -> IO a
    coerceImportExport, -- :: WithError a -> a
    catchAllErrorsWE, -- :: IO a -> IO (WithError a)
    displayImportExportErrors, -- :: a -> IO a -> IO a
@@ -27,6 +28,10 @@ importExportError = mkBreakFn (fst importExportErrorFallOut)
 
 catchImportExportErrors :: IO a -> IO (Either String a)
 catchImportExportErrors = snd importExportErrorFallOut
+
+coerceImportExportIOPrefix :: String -> WithError a -> IO a
+coerceImportExportIOPrefix errorPrefix = coerceWithErrorOrBreakIOPrefix
+   errorPrefix importExportError
 
 coerceImportExportIO :: WithError a -> IO a
 coerceImportExportIO = coerceWithErrorOrBreakIO importExportError

@@ -1,7 +1,8 @@
 -- | GraphConfigure contains definitions for the various configuration
--- options for GraphDisp objects.  These should be implemented
--- using the Computation.HasConfig interface, applied to instances of
--- GraphParms, NodeTypeParms and ArcTypeParms.
+-- options for "GraphDisp" objects.  These should be implemented
+-- using the 'HasConfig', 'HasConfigValue' and 'ModifyHasDef', 
+-- applied to instances of
+-- 'GraphParms', 'NodeTypeParms' and 'ArcTypeParms'.
 module GraphConfigure(
    GraphAllConfig, -- this is a subclass of GraphAll plus ALL configuration
                    -- options in this file.
@@ -50,9 +51,6 @@ module GraphConfigure(
    -- Edge patterns
    EdgePattern(..),
 
-   -- Edge Label (OBJECT)
-   EdgeObject(..),
-
    -- Edge Direction (_DIR)
    EdgeDir(..),
 
@@ -74,10 +72,6 @@ module GraphConfigure(
 
    -- Double click actions
    DoubleClickAction(..),
-
-   -- A funtion, which is called to set the edge label
-   -- (corresponding to ValueTitle for Nodes
-   TitleFunc(..),
 
    -- Graph Miscellaneous Flags
    OptimiseLayout(..),   
@@ -193,15 +187,14 @@ instance GraphConfig GraphTitle
 
 instance GraphConfig (SimpleSource GraphTitle)
 
+-- | Provide a function which computes a node or arc title string to be 
+-- displayed.
 data ValueTitle value = ValueTitle (value -> IO String)
--- ValueTitles are computed from the node or arc value using the supplied
--- computation when the node or arc is created or when 
--- setNodeValue/setArcValue are called.
 
+-- | Provide a function which computes a source which generates a dynamically-
+-- changing title.
 data ValueTitleSource value
     = ValueTitleSource (value -> IO (SimpleSource String))
--- Allow a node instead to contain a source, allowing the value to be changed
--- dynamically.
 
 instance NodeTypeConfig ValueTitle
 
@@ -227,17 +220,21 @@ instance HasCoMapIO ValueTitle where
 -- operator should also have been set for the graph.
 ------------------------------------------------------------------------
 
+-- | Action to be performed after mouse action not involving any node but 
+-- somewhere on the graph.
+--
+-- If you want to use this, the graph parameters need to include 
+-- 'AllowDragging' 'True'
 data GraphGesture = GraphGesture (IO ())
--- GraphGesture for a graphical interface is a mouse action
--- not involving any nodes but somewhere on the graph.
--- (suggested use: create a new node)
 
 instance GraphConfig GraphGesture
 
+-- | Action to be performed when the user drags a node somewhere else,
+-- but not onto another node. 
+--
+-- If you want to use this, the graph parameters need to include 
+-- 'AllowDragging' 'True'
 data NodeGesture value = NodeGesture (value -> IO ())
--- A NodeGesture for a graphical interface is a mouse action
--- involving one node.  
--- (suggested use: create a new node, and link it to this one)
 
 instance NodeTypeConfig NodeGesture
 
@@ -250,10 +247,13 @@ instance HasCoMapIO NodeGesture where
                b2StringAct bValue
             )
 
+-- | Action to be performed when the user drags one node onto another.
+-- The dragged node's value is passed as a Dyn (since it could have any
+-- type).
+--
+-- If you want to use this, the graph parameters need to include 
+-- 'AllowDragging' 'True'
 data NodeDragAndDrop value = NodeDragAndDrop (Dyn -> value -> IO ())
--- A NodeDragAndDrop corresponds to dragging some other node
--- (which could be of any type - hence its value must be encoded by
--- a Dyn) onto this node (value value).   
 
 instance NodeTypeConfig NodeDragAndDrop
 
@@ -261,70 +261,72 @@ instance NodeTypeConfig NodeDragAndDrop
 -- Double click actions
 ------------------------------------------------------------------------
 
+-- | Action to be performed when a node or arc is double-clicked.
 newtype DoubleClickAction value = DoubleClickAction (value -> IO ())
 
 instance NodeTypeConfig DoubleClickAction
 
 instance ArcTypeConfig DoubleClickAction
 
-newtype TitleFunc value = TitleFunc (value -> String)
-
 ------------------------------------------------------------------------
 -- Shape, colours, and edge patterns
 ------------------------------------------------------------------------
 
--- This datatype is based on DaVinciClasses.hs, including several
--- name clashes.  However we omit Textual, add the file argument
--- to iconic and the shape Triangle.  This datatype may get bigger!
+-- | This datatype is based on "DaVinciClasses", including several
+-- name clashes.  However we omit 'Textual', add the file argument
+-- to 'Icon' and the shape 'Triangle'.  This datatype may get bigger!
 data Shape value = Box | Circle | Ellipse | Rhombus | Triangle | 
    Icon FilePath deriving (Read,Show)
 
 instance NodeTypeConfig Shape
 
-newtype Color value = Color String deriving (Read,Show)
--- The user is responsible for making sure this String is properly
+-- | The user is responsible for making sure this String is properly
 -- formatted.  To quote from the daVinci documentation:
+--
 -- > Can be used to define the background color of a node. The value of this 
 -- > attribute may be any X-Window colorname (see file lib/rgb.txt in your X11
 -- > directory) or any RGB color specification in a format like "#0f331e", 
 -- > where 0f is the hexadecimal value for the red part of the color, 33 is 
 -- > the green part and 1e is the blue.  Hence, a pallet of 16.7 million 
 -- > colors is supported. The default color for nodes is "white".  
--- There is a function for constructing "RGB color specification"s in
--- htk/resources/Colour.hs
+--
+-- There is a function for constructing \"RGB color specification\"s in
+-- "Colour".
+newtype Color value = Color String deriving (Read,Show)
 instance NodeTypeConfig Color
 
 instance ArcTypeConfig Color
 
+-- | The pattern of an edge
 data EdgePattern value = Solid | Dotted | Dashed | Thick | Double 
    deriving (Read,Show)
 
 instance ArcTypeConfig EdgePattern
 
-data EdgeObject value = Object String deriving (Read,Show)
-
-instance ArcTypeConfig EdgeObject
-
-data EdgeDir value = Dir String deriving (Read, Show)
--- The user is responsible for making sure this String is properly
+-- | The user is responsible for making sure this String is properly
 -- formatted.  To quote from the daVinci documentation:
+--
 -- > This attribute is used to control the arrow of an edge. In a graph visualization,
 -- > each edge usually has an arrow pointing to the child node. This attribute can be 
 -- > used to let the arrow be drawn inverse (i.e. pointing to the parent), to get an arrow
 -- > at both sides of an edge or to suppress arrows for a particular edge. The supported 
--- > attribute values are: "last" (1 arrow pointing to the child, default), "first" 
+-- > attribute values are: "last" (1 arrow pointing to the child, default), \"first\" 
 -- >(1 arrow to the parent), "both" (2 arrows to the parent and to children) and "none" 
 -- >(no arrows).
+--
+data EdgeDir value = Dir String deriving (Read, Show)
 
 instance ArcTypeConfig EdgeDir
 
 
-data Head value = Head String deriving (Read, Show)
--- The user is responsible for making sure this String is properly
+-- | The user is responsible for making sure this String is properly
 -- formatted.  To quote from the daVinci documentation:
+--
 -- >  With this attribute you can control the shape of the edge's arrows. 
 -- > The possible values are: "farrow" (default), "arrow", "fcircle", and "circle", 
 -- > where a leading 'f' means filled.
+--
+data Head value = Head String deriving (Read, Show)
 
 instance ArcTypeConfig Head
 
@@ -336,15 +338,17 @@ class ModifyHasDef modification where
    def :: modification 
    isDef :: modification -> Bool
 
--- If True, arcs from the node are not displayed.
+-- | If True, arcs from the node are not displayed.
 newtype NodeArcsHidden = NodeArcsHidden Bool
 
 instance ModifyHasDef NodeArcsHidden where
    def = NodeArcsHidden False
    isDef (NodeArcsHidden b) = not b
 
+-- | The border of this node
 data Border = NoBorder | SingleBorder | DoubleBorder
 
+-- | Compute a 'Border' which dynamically changes.
 data BorderSource value = BorderSource (value -> IO (SimpleSource Border))
 
 instance NodeTypeConfig BorderSource
@@ -358,6 +362,7 @@ instance ModifyHasDef Border where
    isDef _ = False
 -}
 
+-- | The font in which the label of this node is displayed.
 data FontStyle = NormalFontStyle | BoldFontStyle | ItalicFontStyle 
    | BoldItalicFontStyle deriving (Eq)
 
@@ -369,6 +374,7 @@ instance ModifyHasDef FontStyle where
    isDef _ = False
 -}
 
+-- | Compute a 'FontStyle' which dynamically changes.
 data FontStyleSource value
     = FontStyleSource (value -> IO (SimpleSource FontStyle))
 
@@ -380,35 +386,41 @@ instance NodeTypeConfig FontStyleSource
 -- Where these are unset, they should always default to False.
 ------------------------------------------------------------------------
 
-newtype OptimiseLayout = OptimiseLayout Bool
--- If True, try hard to optimise the layout of the graph
+-- | If 'True', try hard to optimise the layout of the graph
 -- on redrawing it.
+newtype OptimiseLayout = OptimiseLayout Bool
+
 
 instance GraphConfig OptimiseLayout
 
-newtype SurveyView = SurveyView Bool
--- If True, add a survey view of the graph; IE display
+-- | If True, add a survey view of the graph; IE display
 -- a picture of the whole graph which fits onto the
 -- screen (without displaying everything)
 -- as well as a picture of the details (which may not
 -- fit onto the screen).
+-- 
+-- (The user can do this anyway from daVinci's menus.)
+newtype SurveyView = SurveyView Bool
 
 instance GraphConfig SurveyView
 
+-- | If True, allow Drag-and-Drop operators.  
 newtype AllowDragging = AllowDragging Bool
--- If True, allow Drag-and-Drop operators.  
 
-newtype AllowClose = AllowClose (Maybe String)
--- If set, make this daVinci window unclosable, with the given error message
+-- | If set, make this daVinci window unclosable, with the given error message
 -- if the user tries.
+newtype AllowClose = AllowClose (Maybe String)
 
 instance GraphConfig AllowDragging
 
+-- | Allows the user to specify a 'Delayer'.  This will postpone redrawing
+-- on the graph.
 instance GraphConfig Delayer
--- Allows the user to specify his own delayer.
 
 instance GraphConfig AllowClose
 
+-- | Which way up the graph is.
+-- 
 -- We copy the DaVinciTypes constructors, though of course this will
 -- mean we have to painfully convert one to the other.
 data Orientation = TopDown | BottomUp | LeftRight | RightLeft 
@@ -492,7 +504,6 @@ class (
    HasConfigValue ValueTitle arcTypeParms,
    HasConfigValue Color arcTypeParms,
    HasConfigValue EdgePattern arcTypeParms,
-   HasConfigValue EdgeObject arcTypeParms,
    HasConfigValue EdgeDir arcTypeParms,
    HasConfigValue Head arcTypeParms
   )
@@ -505,7 +516,6 @@ instance (
    HasConfigValue ValueTitle arcTypeParms,
    HasConfigValue Color arcTypeParms,
    HasConfigValue EdgePattern arcTypeParms,
-   HasConfigValue EdgeObject arcTypeParms,
    HasConfigValue EdgeDir arcTypeParms,
    HasConfigValue Head arcTypeParms)
    => HasArcTypeConfigs arcTypeParms

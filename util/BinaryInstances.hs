@@ -1,4 +1,6 @@
--- | Instances of the Binary.HasBinary class 
+-- | Instances of the 'Binary.HasBinary' class.  This includes the
+-- standard types (except of course for things like function types and
+-- IO) plus a few others. 
 module BinaryInstances(
    -- Methods provided for encoding alternatives
    Choice5(..), 
@@ -285,6 +287,11 @@ decodeWord (CodedList (lPart : codedHigh)) =
 -- unsigned integers) available via the Unsigned type.
 -- -----------------------------------------------------------------------
 
+-- | This is an @newtype@ alias for integral types where the user promises
+-- that the value will be non-negative, and so saves us a bit.
+-- This is what we use for character data incidentally, so that
+-- ASCII characters with codes <128 can be encoded (as themselves) in
+-- just one byte.
 newtype Unsigned integral = Unsigned integral
 
 instance (Monad m,Integral integral,Bits integral) 
@@ -352,6 +359,10 @@ instance Monad m => HasBinary CodedList m where
 -- hunt through the wraps list.
 -- ----------------------------------------------------------------------
 
+-- | This is a rather inelegant way of encoding a type with up to
+-- 5 alternatives.  If 5 is too many, use () for the others, if too
+-- few use 'HasWrapper'.  In fact 'HasWrapper' is probably better
+-- anyway.
 data Choice5 v1 v2 v3 v4 v5 =
       Choice1 v1
    |  Choice2 v2
@@ -416,49 +427,70 @@ instance (Monad m,
 -- convenient (if inefficient) way of encoding algebraic datatypes.
 -- ----------------------------------------------------------------------
 
+-- | A class allowing you to handle types with up to 256 alternatives.
+-- If this all seems to complicated, look at the source file and
+-- the example for the \"Tree\" data type.
 class HasWrapper wrapper m where
    wraps :: [Wrap wrapper m] 
-      -- How to construct wrapper type.  Argument gives a list of alternatives.
+      -- ^ For each alternative in the type, provide a recognition
+      -- 'Byte', and a way of mapping that alternative to the (wrapper)
    unWrap :: wrapper -> UnWrap m
-      -- How to deconstruct.
+      -- ^ Map a (wrapper) to the corresponding recognition 'Byte'
+      -- and the type within the alternative.
 
+
+-- | Newtype alias you need to wrap around something which instances 
+-- 'HasWrapper' to get an actual HasBinary instance.  You will then
+-- need something like this:
+--
+-- > instance Monad m => HasBinary a m where
+-- >   writeBin = mapWrite Wrapped
+-- >   readBin = mapRead wrapped
+--
 newtype Wrapped a = Wrapped {wrapped :: a} 
--- Template for turning something which instances HasWrapper into an
--- instance of HasBinary
 
--- instance Monad m => HasBinary a m where
---    writeBin = mapWrite Wrapped
---    readBin = mapRead wrapped
-
--- Blame GHC that we can't use labels with existential types.
+-- | Value the 'HasWrapper' instance generates from 'unWrap' to
+-- indicate how we should write some value to binary.
 data UnWrap m = forall val . HasBinary val m
    => UnWrap 
-      Byte -- label for this type on writing.
-      val -- value inside this wrapped type.
+      Byte --  label for this type on writing.
+      val --  value inside this wrapped type.
 
+-- | Some alternative the user provides in 'wraps' in the
+-- 'HasWrapper' instance, to indicate one particular alternative we use
+-- when reading from binary.
 data Wrap wrapper m = forall val . HasBinary val m
    => Wrap
-      Byte -- label for this type on reading.  This must, of course, be the
+      Byte --  label for this type on reading.  This must, of course, be the
            -- same as for the corresponding UnWrap.
       (val -> wrapper)
-           -- how to wrap this sort of value.
+           --  how to wrap this sort of value.
 
 -- some abbreviations for construtor functions with varying numbers of 
--- arguments
+-- arguments.
+
+-- | 'Wrap' value for constructor with no arguments.
 wrap0 :: Monad m => Byte -> wrapper -> Wrap wrapper m
 wrap0 label wrapper = Wrap label (\ () -> wrapper)
 
+
+-- | 'Wrap' value for constructor with 1 argument.
 wrap1 :: HasBinary val m => Byte -> (val -> wrapper) -> Wrap wrapper m
 wrap1 = Wrap
 
+
+-- | 'Wrap' value for constructor with 2 arguments.
 wrap2 :: (HasBinary (val1,val2) m) => Byte 
    -> (val1 -> val2 -> wrapper) -> Wrap wrapper m
 wrap2 char con = Wrap char (\ (val1,val2) -> con val1 val2)
 
+
+-- | 'Wrap' value for constructor with 3 arguments.
 wrap3 :: (HasBinary (val1,val2,val3) m) => Byte 
    -> (val1 -> val2 -> val3 -> wrapper) -> Wrap wrapper m
 wrap3 char con = Wrap char (\ (val1,val2,val3) -> con val1 val2 val3)
 
+-- | 'Wrap' value for constructor with 4 arguments.
 wrap4 :: (HasBinary (val1,val2,val3,val4) m)
    => Byte -> (val1 -> val2 -> val3 -> val4 -> wrapper) -> Wrap wrapper m
 wrap4 char con = Wrap char (\ (val1,val2,val3,val4) -> con val1 val2 val3 val4)
@@ -521,6 +553,8 @@ instance (Monad m,HasWrapper (Tree val) m) => HasBinary (Tree val) m where
 -- HasBinary via Strings for things that are instances of Read/Show
 -- ----------------------------------------------------------------------
 
+-- | Newtype alias for things we want to encode or decode via their
+-- 'Read' or 'Show' 'String' representation.
 newtype ReadShow a = ReadShow a
 
 instance (Read a,Show a,Monad m) => HasBinary (ReadShow a) m where
