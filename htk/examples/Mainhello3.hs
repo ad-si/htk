@@ -13,15 +13,12 @@ module Main (
         ) where
 
 import HTk
-import Concurrency(block)
+import Concurrency
 import PulldownMenu
 import Frame
 import Label
 import Entry
 import Keyboard
-
-import IO(stdout)
-
 
 main = do
         htk<- htk []
@@ -47,4 +44,5 @@ main = do
         interactor (\iact -> triggered bt >>> stop iact)
 
 	sync (destroyed win)
-	destroy htk
+        shutdown
+--	destroy htk

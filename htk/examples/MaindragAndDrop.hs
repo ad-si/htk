@@ -17,7 +17,6 @@ import DragAndDrop
 import Button
 import Editor
 import ScrollBox
-import IO(stdout)
 
 showText :: Editor String -> String -> IO ()
 showText ed txt =
@@ -157,6 +156,7 @@ main =
                                                 (str ++
                                                  " dropped on item 6\n\n")))
     sync (destroyed win)
+    shutdown
   where showB :: Bool -> String
         showB True  = " selected\n"
         showB False = " deselected\n"

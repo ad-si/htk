@@ -22,11 +22,8 @@ import RadioGroup
 import Separator
 import Bell(bell)
 
-import IO (stdout)
-
 main = do
 	htk []
-	-- setLogFile (Just stdout)
 
         f   <- newHFBox []        
 	win <- window f [text "Menus!"]
@@ -71,9 +68,10 @@ main = do
 
 	t1<- getTrigger g1; t2<- getTrigger g2
         interactor (const (t1 >>> done))
-
 	
-	block
+	sync(destroyed win)
+        shutdown
+
 	where selected nm t = putStrLn (case t of On -> nm ++ " selected!"
 	                                          Off-> nm ++ " deselected!")
 	                      >> bell 

@@ -22,25 +22,14 @@ import Rectangle
 import CanvasItem
 import Mouse
 import Canvas
-
-
-import InfoBus(shutdown)
-
 import Debug(debug)
 
-import IO(stdout)
-
 main = do
-        htk<- htk []
-
+        htk []
 	cnv <- newCanvas [size (cm 15, cm 15), background "white"]
-
 	win <- window cnv [text "HTk Event Tracker"]
-
 	interactor (moving cnv)
-	
-	sync (destroyed win)
-	
+	sync (destroyed win)	
 	shutdown
 
 	where  moving :: Canvas-> InterActor-> IA()
@@ -55,5 +44,3 @@ main = do
 	                                           show x++ " Y"++ show y
  			 		  debug msg
 					  putStrLn msg)
-
-		     

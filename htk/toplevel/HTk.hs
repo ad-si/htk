@@ -59,7 +59,9 @@ module HTk (
         Destructible(..),
         controller,
         controller',
-        attach
+        attach,
+
+	shutdown
         
         ) where
 
@@ -93,6 +95,8 @@ import Menu(Menu)
 import Icon
 import Box
 import Debug(debug)
+
+import InfoBus(shutdown)
 
 
 -- --------------------------------------------------------------------------

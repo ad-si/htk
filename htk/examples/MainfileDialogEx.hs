@@ -45,3 +45,4 @@ main =
                                                         done))
     interactor (\i -> triggered open +> triggered quit)
     sync (destroyed win)
+    shutdown

@@ -1,11 +1,11 @@
-{- ------------------------------------------------------------------------
+{- --------------------------------------------------------------------
  -
  - file browse example (as an example for the treelist module)
  -
  - Author: ludi
  - $Revision$ from $Date$  
  -
- - ------------------------------------------------------------------------ -}
+ - -------------------------------------------------------------------- -}
 
 module Main (main) where
 
@@ -51,7 +51,9 @@ getMatchedFiles fs abs = getMatchedFiles' fs [] abs
 notEmpty :: FilePath -> IO Bool
 notEmpty fp =
   do
+    putStr ("checking if '" ++ fp ++ "' is empty..");
     c <- getDirectoryContents fp
+    putStrLn ("...ok")
     return (length c > 2)
 
 toTreeListObjects :: TreeList String -> String -> [FilePath] ->
@@ -60,9 +62,9 @@ toTreeListObjects treelist path (f : fs) =
   do
     p <- getPermissions (path ++ f)
     acc <- system ("access -rx " ++ path)
---    isnode <- if acc == ExitSuccess then notEmpty (path ++ f)
---              else return False
-    isnode <- return (acc == ExitSuccess)
+    isnode <- if acc == ExitSuccess then notEmpty (path ++ f)
+              else return False
+--    isnode <- return (acc == ExitSuccess)
     obj <- return (treelist, path ++ f ++ "/", f, isnode)
     objs <- toTreeListObjects treelist path fs
     return (obj : objs)
@@ -121,6 +123,7 @@ main =
                        text "Quit", width 60, command (\ () -> destroy win)]
     interactor (\i -> triggered pretty +> triggered fast +> triggered quit)
     sync (destroyed win)
+    shutdown
 
 folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7

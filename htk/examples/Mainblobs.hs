@@ -25,7 +25,6 @@ import Rectangle
 import CanvasItem
 import Mouse
 import Canvas
-import InfoBus(shutdown)
 
 import Random(randomRIO)
 

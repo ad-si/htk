@@ -29,28 +29,18 @@ import Computation
 
 newtype UIA a = UIA (IA a, [GUIOBJECT])
 
-guiObjectEq (GUIOBJECT id1 _) (GUIOBJECT id2 _) = id1 == id2
-
 instance Actor InterActor (UIA ()) where
    become f (UIA(ia, ws)) = become f ia 
 
 instance Actor (EventStream a) (UIA a) where
    become f (UIA(ia, ws)) = become f ia
 
-{-                                                 -- TD
-instance Actor InterActor (IA ()) where
-   become iact e = become (eventstream iact) e
-
-instance Actor (EventStream a) (IA a) where
-   become = interaction'
--}
-
 instance Functor UIA where
    fmap f e  = e >>>= return . f
 
 instance Event UIA where
   UIA (ia, ws) +> UIA (ia', ws') =
-    UIA (ia +> ia', nubBy guiObjectEq (ws ++ ws'))
+    UIA (ia +> ia', nub (ws ++ ws'))
   UIA (ia, ws) >>>= a = UIA (ia >>>= a, ws)
 
 userInteraction :: (InterActor -> UIA ()) -> IO ()
@@ -66,6 +56,8 @@ userInteraction f =
           do
             wref <- wref'
             ws <- getVar wref
-            (let nuws = deleteBy guiObjectEq w ws
-             in if null nuws then stop iact else setVar wref nuws)
-            putStrLn "Interactor stopped"
+            putStr ("number of widgets = " ++ show(length ws) ++ "...   ")
+            (let nuws = delete w ws
+             in (if null nuws then stop iact >> putStrLn "Interactor stopped"
+                 else setVar wref nuws >> putStr "state updated ...   ") >>
+                putStrLn ("widget destroyed, " ++ show (length nuws) ++ " widgets left\n"))

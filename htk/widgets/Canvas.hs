@@ -129,15 +129,21 @@ screenToCanvasCoord cv ax d sp = evalMethod cv (\nm -> tkCanvas nm ax d sp)
 -- Scrolling
 -- --------------------------------------------------------------------------
 
-type ScrollRegion = (Position,Position,Position,Position)
+type ScrollRegion = (Position,Position)
 
 scrollRegion :: ScrollRegion -> Config Canvas
-scrollRegion (p1,p2,p3,p4) w = cset w "scrollregion" [p1,p2,p3,p4]
+--scrollRegion (p1,p2,p3,p4) w = cset w "scrollregion" [p1,p2,p3,p4]
+scrollRegion ((x1, y1), (x2, y2)) w =
+  let reg = " { " ++ show x1 ++ " " ++ show y1 ++ " " ++ show x2 ++
+            " " ++ show y2 ++ " }"
+  in cset w ("scrollregion" ++ reg) ([] :: [Position])
+
+--scrollRegion ((x1,y1),(x2,y2)) w = cset w ("scrollregion { " ++ show x1 ++ " " ++ show y1 ++ " " ++ show x2 ++ " " ++ show y2 ++ " }") ([] :: [Position])
 
 
 getScrollRegion :: Canvas -> IO ScrollRegion
-getScrollRegion can = 
-   cget can "scrollregion" >>= \[p1,p2,p3,p4] -> return (p1,p2,p3,p4)
+getScrollRegion can =
+   cget can "scrollregion" >>= \[p1,p2] -> return (p1,p2)
 
 
 scrollIncrement :: Orientation -> Distance -> Config Canvas

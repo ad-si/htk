@@ -27,35 +27,58 @@ logMsg ed txt =
     done
 
 cfun :: ChildrenFun String
-cfun (tl, val, _, _) =
-  case val of
-      "/"              -> return [(tl, "/home", "home", True),
-                                  (tl, "/usr", "usr", True),
-                                  (tl, "/tmp", "tmp", True)]
-      "/home"          -> return [(tl, "/home/ludi", "ludi", True)]
-      "/usr"           -> return [(tl, "/usr/bin", "bin", True),
-                                  (tl, "/usr/lib", "lib", True),
-                                  (tl, "/usr/share", "share", True)]
-      "/tmp"           -> return []
-      "/home/ludi"     -> return [(tl, "/home/ludi/www", "www", True)]
-      "/usr/bin"       -> return []
-      "/usr/lib"       -> return []
-      "/usr/share"     -> return []
-      "/home/ludi/www" -> return []
+cfun obj =
+  case getObjectValue obj of
+      "/" ->
+        return [newTreeListObject "/home" "home" Node,
+                newTreeListObject "/usr" "usr" Node,
+                newTreeListObject "/tmp" "tmp" Leaf,
+                newTreeListObject "/floppy" "floppy" Leaf,
+                newTreeListObject "/opt" "opt" Node,
+                newTreeListObject "/etc" "etc" Node]
+      "/home" ->
+        return [newTreeListObject "/home/ludi" "ludi" Node]
+      "/usr" ->
+        return [newTreeListObject "/usr/bin" "bin" Leaf,
+                newTreeListObject "/usr/lib" "lib" Leaf,
+                newTreeListObject "/usr/share" "share" Leaf]
+      "/opt" ->
+        return [newTreeListObject "/opt/Office51" "Office51" Leaf,
+                newTreeListObject "/opt/fsuite" "fsuite" Leaf,
+                newTreeListObject "/opt/gnome" "gnome" Leaf,
+                newTreeListObject "/opt/kde" "kde" Leaf,
+                newTreeListObject "/opt/netscape" "netscape" Leaf,
+                newTreeListObject "/opt/nps" "nps" Leaf,
+                newTreeListObject "/opt/oracle" "oracle" Leaf,
+                newTreeListObject "/opt/skyrix" "skyrix" Leaf]
+      "/etc" ->
+        return [newTreeListObject "/etc/WindowMaker" "WindowMaker" Leaf,
+                newTreeListObject "/etc/X11" "X11" Leaf,
+                newTreeListObject "/etc/httpd" "httpd" Leaf,
+                newTreeListObject "/etc/texmf" "texmf" Leaf,
+                newTreeListObject "/etc/isdn" "isdn" Leaf,
+                newTreeListObject "/etc/ssh" "ssh" Leaf]
+      "/home/ludi" ->
+        return [newTreeListObject "/home/ludi/www" "www" Leaf,
+                newTreeListObject "/home/ludi/archiv" "archiv" Node]
+      "/home/ludi/archiv" ->
+        return [newTreeListObject "/home/ludi/archiv/download" "download" Leaf,
+                newTreeListObject "/home/ludi/archiv/uni" "uni" Leaf,
+                newTreeListObject "/home/ludi/archiv/haskell" "haskell" Leaf]
 
 ifun :: ImageFun String
 ifun obj = folderImg
 
+main :: IO ()
 main =
   do
     win <- htk []
     main <- newVFBox []
     box <- newHBox [parent main]
     win <- window main [text "Tree list example"]
-    treelist <- newTreeList Fast cfun ifun [parent box,
-                                            background "white",
-                                            size (cm 15, cm 10)]
-    setRoot (treelist, "/", "/", True)
+    treelist <- newTreeList Pretty cfun ifun (newTreeListObject "/" "/" Node)
+                            [parent box, background "white",
+                             size (cm 15, cm 8)]
     quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
                        parent box, text "Quit", width 15,
                        command (\ ()-> destroy win)]
@@ -66,10 +89,14 @@ main =
                       (selectionEvent treelist >>>=
                          \mobj -> logMsg output
                                          ((case mobj of
-                                             Just (_, _, nm, _) -> nm
+                                             Just obj -> getObjectName obj
                                              _ -> "Nothing") ++
-                                          " selected")))
+                                          " selected")) +>
+                      (focusEvent treelist >>>=
+                         \obj -> logMsg output (getObjectName obj ++
+                                                " focused")))
     sync (destroyed win)
+    shutdown
 
 folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7

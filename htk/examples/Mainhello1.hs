@@ -14,16 +14,11 @@ where
 
 import HTk
 import Concurrency
-
-
 import Label
 import Button
 import Frame
 import Window
-
 import Random(randomRIO)
-import IO(stdout)
-
 
 randomColour :: IO (Int, Int, Int)
 randomColour = do
@@ -36,7 +31,6 @@ randomColour = do
 main:: IO ()
 main = do
         htk []  
-        setLogFile (Just stdout)
 	f  <- newFrame []        
         l  <- newLabel [value "Hello, world!", parent f]
 	nb <- newButton [text "New Colour", 
@@ -45,6 +39,7 @@ main = do
 					  l # foreground bunt
                                  ), 
 	                 parent f]
-        window f [text "My first HTk program"] 
+        win <- window f [text "My first HTk program"] 
         interactor (\iact-> (triggered nb) >>> done)
-        block
+        sync (destroyed win)
+        shutdown
