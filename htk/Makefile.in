@@ -99,6 +99,7 @@ SRCS       = resources/Resources.hs\
              toolkit/MenuType.hs\
              toolkit/HTkMenu.hs\
              toolkit/SimpleForm.hs\
+             toolkit/GenericBrowser.hs\
 
 
 EXTRA_HC_OPTIONS += -Onot -H30M

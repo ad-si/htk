@@ -25,6 +25,7 @@ SRCS       = MaincanvasEx.hs\
              MainlogWinEx.hs\
              MainsimpleMenuEx.hs\
 	     MaingenGUIFileBrowseEx.hs\
+             MaingenericBrowserEx.hs\
 
 XHCDIRS = $(HTKDIRS)
 

@@ -27,7 +27,7 @@ data Name = Name { short :: Int -> String,
 
 shortdef :: String -> Int -> String
 shortdef str i =
-  if length str > i then take (length str + 2 - i) str ++ ".." else str
+  if length str > i then take (i - 2) str ++ ".." else str
 
 ---
 -- Creates a new name.

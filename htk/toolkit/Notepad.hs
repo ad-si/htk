@@ -66,7 +66,7 @@ import IOExts(unsafePerformIO)
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)
 
-char_px = 7
+char_px = 8
 
 
 -------------------
