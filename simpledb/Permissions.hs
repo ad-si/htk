@@ -203,9 +203,12 @@ permissionsParser :: Parser Permissions
 permissionsParser =
    do
       spaces
-      permission <- permissionParser
-      permissions <- permissions1Parser
-      return (permission:permissions)
+      allowEOF (
+         do
+            permission <- permissionParser
+            permissions <- permissions1Parser
+            return (permission:permissions)
+         )
 
 -- | What we expect after reading a permission
 permissions1Parser :: Parser Permissions
