@@ -82,7 +82,7 @@ instance GUIObject SpinButton where
   cname _ = "SpinButton"
 
 instance Destroyable SpinButton where
-  destroy   = destroy . toGUIObject
+  destroy sb = fDeath sb >> destroy (toGUIObject sb)
 
 instance Widget SpinButton
 

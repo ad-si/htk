@@ -12,7 +12,7 @@
 module LogWin (
 
   LogWin(..),
-  newLogWin,
+  createLogWin,
 
   HasFile(..),
 
@@ -21,50 +21,77 @@ module LogWin (
 ) where
 
 import HTk
-import PromptWin
-import DialogWin
+import Core
 import ScrollBox
-import Interaction()
-import Debug(debug)
+import FileDialog
+import System
 
                 
 -- -----------------------------------------------------------------------
 -- Type
 -- -----------------------------------------------------------------------
 
-data LogWin = LogWin Window (Editor String) 
+data LogWin = LogWin Toplevel Editor (IO ())
+
+
+-- -----------------------------------------------------------------------
+-- Commands
+-- -----------------------------------------------------------------------
+
+createLogWin :: [Config Toplevel] -> IO LogWin
+createLogWin cnf =
+  do
+    win <- createToplevel cnf
+    b <- newVFBox win [relief Groove, borderwidth (cm 0.05) ]
+    pack b []
+    mb <- createMenu win False []
+    filecasc <- createMenuCascade mb [text "File"]
+    mfile <- createMenu win False []
+    filecasc # menu mfile
+    savecmd <- createMenuCommand mfile [text "Save"]
+    clickedsavecmd <- clicked savecmd
+    quitcmd <- createMenuCommand mfile [text "Quit"]
+    clickedquitcmd <- clicked quitcmd
+    win # menu mb
+    (sb, ed)  <- newScrollBox b (\par -> newEditor par [bg "white"]) []
+    pack sb []
+    death <- newChannel
+    let listen :: Event ()
+        listen = (clickedsavecmd >> always (saveLog ed) >> listen) +>
+                 (clickedquitcmd >>> destroy win) +>
+                 receive death
+    spawnEvent listen
+    return (LogWin win ed (syncNoWait (send death ())))
+
+
+saveLog :: Editor -> IO ()
+saveLog ed =
+  do
+    homedir <- getEnv "HOME"
+    selev <- fileDialog "Open file" homedir
+    file  <- sync selev
+    case file of
+      Just fp -> try (writeTextToFile ed fp) >> done
+      _ -> done
+
+
+-- -----------------------------------------------------------------------
+-- commands
+-- -----------------------------------------------------------------------
+
+
+-- -----------------------------------------------------------------------
+-- Events
+-- -----------------------------------------------------------------------
+
+--type LogAction = Top -> Editor -> IO ()
 
                 
--- --------------------------------------------------------------------------
---  Commands (Layout)
--- --------------------------------------------------------------------------
-
-newLogWin :: [Config Window] -> IO LogWin
-newLogWin confs = do
-        b <- newVBox [flexible,relief Groove, borderwidth (cm 0.05) ]
-        mb <- newMenuBar b
-        ed <- newEditor [flexible,bg "white"]
-        sb <- newScrollBox ed [flexible,parent b]
-        win <- window b confs
-        mbe <- getTrigger mb
-        controller win (const (logEvents win ed mbe))
-        return (LogWin win ed)
- where  logEvents win ed mbe = mbe >>>= \c -> c win ed 
-
-
-
-                
--- --------------------------------------------------------------------------
---  Events
--- --------------------------------------------------------------------------
-
-type LogAction = Window -> Editor String -> IO ()
-
-                
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 --  Log Menu (User Dialog)
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
+{-
 newMenuBar :: Box -> IO (MenuButton LogAction)
 newMenuBar b = do {
         b2 <- newHBox [relief Raised, 
@@ -85,29 +112,27 @@ newMenuBar b = do {
         saveLog win ed = do
                 pwin <- newPromptWin "Enter File Name" "" [modal True]
                 forkDialog pwin (\fnm -> incase fnm (writeTextToFile ed))
-
+-}
                 
--- --------------------------------------------------------------------------
---  LogFile
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- LogFile
+-- -----------------------------------------------------------------------
 
 instance GUIObject LogWin where
-        toGUIObject (LogWin win _) = toGUIObject win
-        cname _ = "LogWin"
+  toGUIObject (LogWin win _ _) = toGUIObject win
+  cname _ = "LogWin"
 
-instance Destructible LogWin where
-        destroy (LogWin win _) = destroy win
-        destroyed (LogWin win _) = destroyed win
-                
--- --------------------------------------------------------------------------
---  Write Log
--- --------------------------------------------------------------------------
+instance Destroyable LogWin where
+  destroy (LogWin win _ death) = death >> destroy win
+
+
+-- -----------------------------------------------------------------------
+-- Write Log
+-- -----------------------------------------------------------------------
 
 writeLogWin :: LogWin -> String -> IO ()
-writeLogWin (LogWin _ ed) str = do {
-        try (insertText ed EndOfText str);
-        moveto Vertical ed 1.0;
-        done
-}
-
-
+writeLogWin (LogWin _ ed _) str =
+  do
+    try (insertText ed EndOfText str)
+    moveto Vertical ed 1.0
+    done

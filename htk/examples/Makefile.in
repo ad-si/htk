@@ -22,7 +22,7 @@ SRCS       = MaincanvasEx.hs\
              MainsimpleFormEx.hs\
              MainreliefEx.hs\
              MainspinButtonEx.hs\
-
+             MainlogWinEx.hs\
 
 XHCDIRS = $(HTKDIRS)
 
