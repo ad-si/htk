@@ -1,0 +1,13 @@
+<article
+  ><title
+    >A more complex example</title
+  ><section
+    ><title
+      >Failure</title
+    ><para
+      >Currently this document fails with:</para
+    ><para
+      ><computeroutput
+	>Fail:
+HaXml/Text/XML/HaXml/Xml2Haskell.hs:219: Non-exhaustive patterns in
+case</computeroutput></para></section></article>

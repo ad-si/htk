@@ -7,7 +7,7 @@
 PACKAGE = uni-HaXml
 PACKAGES = text data uni-options
 
-HAXML = @TOP@/HaXml-1.08/src
+HAXML = @TOP@/HaXml-1.09/src
 
 # Disable DEBUG mode.  This is because Malcolm Wallace uses the same
 # flag, and so if it's left it I get lots and lots of Malcolm's trace
@@ -16,7 +16,7 @@ EXTRA_HC_OPTIONS = -UDEBUG
 
 
 # Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in.
-# However we comment out everything that is in GHC (5.05)'s distribution
+# However we comment out everything that is in GHC (5.06)'s distribution
 # already.
 SRCS = \
 	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs Text/XML/HaXml/Lex.hs \
@@ -24,11 +24,13 @@ SRCS = \
 	Text/XML/HaXml/Types.hs Text/XML/HaXml/Validate.hs \
 	Text/XML/HaXml/Wrappers.hs Text/XML/HaXml/OneOfN.hs \
 	Text/XML/HaXml/Xml2Haskell.hs Text/XML/HaXml/Haskell2Xml.hs \
+	Text/XML/HaXml/Verbatim.hs \
 	Text/XML/HaXml/Html/Generate.hs Text/XML/HaXml/Html/Parse.hs \
 	Text/XML/HaXml/Html/Pretty.hs \
-	Text/ParserCombinators/HuttonMeijerWallace.hs \
-
-#	Text/PrettyPrint/HughesPJ.hs
+	Text/XML/HaXml/Xtract/Combinators.hs \
+	Text/XML/HaXml/Xtract/Lex.hs \
+	Text/XML/HaXml/Xtract/Parse.hs \
+	Text/ParserCombinators/HuttonMeijerWallace.hs
 
 include @TOP@/mk/boilerplate.mk
 

@@ -1,0 +1,6 @@
+<article
+  ><para
+    >This should read foo: 
+    <literal
+      >&foo;</literal
+    >.</para></article>

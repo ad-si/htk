@@ -1,0 +1,99 @@
+<!DOCTYPE   [
+<!--  WML 2.0 DTD  ......................................................  -->
+<!--  file: wml20.dtd  -->
+<!--  
+    @Wireless Application Protocol Forum, Ltd. 2001.
+
+	Terms and conditions of use are available from the Wireless Application Protocol Forum Ltd. 
+	Web site (http://www.wapforum.org/what/copyright.htm).
+ -->
+<!-- 
+	This is the WML 2.0 DTD driver file. Please use this formal public identifier to identify it:
+
+         "-//WAPFORUM//DTD WML 2.0//EN"
+                   	          
+     For example, if you are using WML 2.0 directly, use
+     the FPI in the DOCTYPE declaration, with the xmlns attribute
+     on the document element to identify the default namespace:
+
+         <?xml version="1.0"?>
+         <!DOCTYPE html PUBLIC "-//WAPFORUM//DTD WML 2.0//EN"
+                               "http://www.wapforum.org/dtd/wml20.dtd" >
+         <html xmlns="http://www.w3.org/1999/xhtml"
+                   xmlns:wml="http://www.wapforum.org/2001/wml">
+         ...
+         </html>
+
+ -->
+<!--  ============================================  -->
+<!-- 
+		Version, XML Namespaces, and profile information 
+ -->
+<!--  ============================================  -->
+<!-- 
+	Value of XHTML version attribute 
+ -->
+<!ENTITY %XHTML.version "-//WAPFORUM//DTD WML 2.0//EN">
+<!--  
+	Value of XHTML profile attribute
+	
+	Reserved for future use with document profiles 
+ -->
+<!ENTITY %XHTML.profile "">
+<!--  ============================================  -->
+<!-- 
+		Modularisation framework setup
+ -->
+<!--  ============================================  -->
+<!ENTITY %wml-framework.mod PUBLIC "-//WAPFORUM//ENTITIES WML Modular Framework 1.0//EN" "http://www.wapforum.org/DTD/wml-framework-1.mod">
+<!--  WML Modular Framework ......................................................  -->
+<!--  file: wml-framework-1.mod  -->
+<!--  
+    @Wireless Application Protocol Forum, Ltd. 2001.
+
+	Terms and conditions of use are available from the Wireless Application Protocol Forum Ltd. 
+	Web site (http://www.wapforum.org/what/copyright.htm).
+ -->
+<!-- 
+     This DTD module is identified by the PUBLIC and SYSTEM identifiers:
+
+       PUBLIC "-//WAPFORUM//ENTITIES WML Modular Framework 1.0//EN"
+       SYSTEM "http://www.wapforum.org/dtd/wml-framework-1.mod"
+       
+       This is an extension of the XHTML Modular Framework module. In addition to the 
+       required XHTML entities it includes:
+       
+       		*WML datatypes
+       		*WML namespace qualified names
+       		*WML document model       
+ -->
+<!--  
+	XHTML notations
+ -->
+<!ENTITY %xhtml-notations.mod PUBLIC "-//W3C//NOTATIONS XHTML Notations 1.0//EN" "http://www.w3.org/TR/xhtml-modularization/DTD/xhtml-notations-1.mod">
+<!--  ......................................................................  -->
+<!--  XHTML Notations Module  ..............................................  -->
+<!--  file: xhtml-notations-1.mod
+
+     This is XHTML, a reformulation of HTML as a modular XML application.
+     Copyright 1998-2001 W3C (MIT, INRIA, Keio), All Rights Reserved.
+     Revision: $Id$
+
+     This DTD module is identified by the PUBLIC and SYSTEM identifiers:
+
+       PUBLIC "-//W3C//NOTATIONS XHTML Notations 1.0//EN"
+       SYSTEM "http://www.w3.org/TR/xhtml-modularization/DTD/xhtml-notations-1.mod"
+
+     Revisions:
+     (none)
+     .......................................................................  -->
+<!--  Notations
+
+     defines the following notations, many of these imported from
+     other specifications and standards. When an existing FPI is
+     known, it is incorporated here.
+ -->
+<!--  XML Notations .....................................  -->
+<!--  SGML and XML Notations ............................  -->
+<!--  W3C XML 1.0 Recommendation  -->
+]>
