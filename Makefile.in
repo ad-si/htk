@@ -21,7 +21,7 @@ include @TOP@/mk/boilerplate.mk
 # By making tarball.tar.gz and tarball.objects.tar.gz .PHONY we
 # ensure that they always get remade whenever "gmake tarball.tar.gz"
 # or "gmake tarball.objects.tar.gz" are executed.
-.PHONY : tarball.tar.gz tarball.objects.tar.gz findsources findexports exports.tar.gz
+.PHONY : tarball.tar.gz tarball.objects.tar.gz findsources exports.tar.gz
 
 findsources :
 	@$(MAKE) displaysrcs -s --no-print-directory
@@ -31,16 +31,16 @@ findsources :
 
 
 ifeq "@WINDOWS" "1"
-TOPEXPORTS = INSTALL.BAT GHCHTK.BAT.export uni-package.conf.export
+TOPEXPORTS = INSTALL.BAT GHCHTK.BAT.export GHCHTKI.BAT.export uni-package.conf.export
 else
-TOPEXPORTS = install ghchtk.export uni-package.conf.export
+TOPEXPORTS = install ghchtk.export ghchtki.export uni-package.conf.export
 endif
 
 exports.tar.gz :
-	cd @TOP@;@TAR@ -9 -czf exports.tar.gz `(($(MAKE) -s --no-print-directory findexports) | @SED@ "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo $(TOPEXPORTS)`
+	cd @TOP@;@TAR@ -9 -czf exports.tar.gz `(($(MAKE) -s --no-print-directory displayexports) | @SED@ "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo $(TOPEXPORTS)`
 
 exports.zip :
-	cd @TOP@; (($(MAKE) -s --no-print-directory findexports) | @SED@ "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo $(TOPEXPORTS) | @ZIP@ -9@ exports.zip
+	cd @TOP@; (($(MAKE) -s --no-print-directory displayexports) | @SED@ "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo $(TOPEXPORTS) | @ZIP@ -9@ exports.zip
 
 tarball.tar.gz:
 	cd @TOP@;@TAR@ -czf tarball.tar.gz `(($(MAKE) -s --no-print-directory findsources) | sed "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo README ; echo configure`
