@@ -22,6 +22,8 @@ import Name
 import RVar
 import System
 import IOExts
+import Dynamic
+import Dynamics
 
 foldref :: RVar (Maybe Item)
 foldref = unsafePerformIO (newRVar Nothing)
@@ -30,6 +32,11 @@ imgpathref :: RVar (Maybe FilePath)
 imgpathref =
   unsafePerformIO (newRVar Nothing)
 
+lastactiveref :: RVar (Button ())
+lastactiveref = unsafePerformIO (newRVar (unsafePerformIO (newButton [])))
+
+imgref :: RVar (IO Image)
+imgref = unsafePerformIO (newRVar folderImg)
 
 -------------
 -- folders --
@@ -44,6 +51,13 @@ instance HasProp Container ItemIcon where
   getProp (Container _ p) = p
 
 instance CItem Container
+
+instance HasTyCon Container where
+  tyCon c = Dynamic.mkTyCon "Container"
+
+{-
+instance Typeable Container where
+-}
 
 
 -----------------
@@ -71,6 +85,13 @@ instance HasProp MyObject ItemIcon where
   getProp (MyNum _ _ p) = p
 
 instance CItem MyObject
+
+instance HasTyCon MyObject where
+  tyCon c = Dynamic.mkTyCon "MyObject"
+
+{-
+instance Typeable MyObject
+-}
 
 
 ----------------------------------------
@@ -145,6 +166,19 @@ addImg nm mimgpath =
           _ -> done
       _ -> done
 
+addFolder :: String -> IO ()
+addFolder nm =
+  do
+    mpar <- getVar foldref
+    case mpar of
+      Just par ->
+        do
+          pname <- newProp (newName nm)
+          img <- getVar imgref
+          picon <- newProp img
+          addItem par (FolderItem (Container pname picon) [])
+          done
+      _ -> done
 
 -------------------
 -- example items --
@@ -229,34 +263,15 @@ addExampleFolders gui =
           done
   in do
        guiroot <- root gui
+
+       mapM (addImgFolder guiroot "images." imgfolderImg "image_item."
+                         [(img1, imgImg), (img2, imgImg)]) [1]
+
        pname1 <- newProp (newName ("example_folder.1"))
        picon1 <- newProp folderImg
        exfolder1 <- addItem guiroot
                             (FolderItem (Container pname1 picon1) [])
-       mapM (addImgFolder exfolder1 "images." imgfolderImg "image_item."
-                         [(img1, imgImg), (img2, imgImg)]) [1]
-       mapM (addTxtFolder exfolder1 "texts." txtfolderImg "text_item"
-                          [("content of text item 1", txtImg),
-                           ("content of text item 2", txtImg),
-                           ("content of text item 3", txtImg),
-                           ("content of text item 4", txtImg),
-                           ("content of text item 5", txtImg),
-                           ("content of text item 6", txtImg),
-                           ("content of text item 7", txtImg),
-                           ("content of text item 8", txtImg)]) [1..2]
-       mapM (addNumFolder exfolder1 "numbers." numfolderImg "number_item."
-                         [(25 :: Int, numImg), (17, numImg), (8, numImg), 
-                          (73, numImg), (2451, numImg), (3, numImg),
-                          (7182812, numImg), (2, numImg)]) [1..3]
-       mapM (addColFolder exfolder1 "colors." colorfolderImg "color_item."
-                         [(Red, redImg), (Yellow, yellowImg),
-                          (Green, greenImg), (Yellow, yellowImg),
-                          (Yellow, yellowImg), (Red, redImg),
-                          (Green, greenImg), (Blue, blueImg),
-                          (Blue, blueImg)]) [1..4]
 
-       mapM (addImgFolder guiroot "images." imgfolderImg "image_item."
-                         [(img1, imgImg), (img2, imgImg)]) [1]
        mapM (addTxtFolder guiroot "texts." txtfolderImg "text_item"
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
@@ -266,7 +281,19 @@ addExampleFolders gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
-       mapM (addNumFolder guiroot "numbers." numfolderImg "number_item."
+{-
+       mapM (addTxtFolder guiroot "texts." txtfolderImg
+                          "text_item_width_long_name"
+                          [("content of text item 1", txtImg),
+                           ("content of text item 2", txtImg),
+                           ("content of text item 3", txtImg),
+                           ("content of text item 4", txtImg),
+                           ("content of text item 5", txtImg),
+                           ("content of text item 6", txtImg),
+                           ("content of text item 7", txtImg),
+                           ("content of text item 8", txtImg)]) [1..2]
+-}
+       mapM (addNumFolder exfolder1 "numbers." numfolderImg "number_item."
                          [(25 :: Int, numImg), (17, numImg), (8, numImg), 
                           (73, numImg), (2451, numImg), (3, numImg),
                           (7182812, numImg), (2, numImg)]) [1..3]
@@ -275,7 +302,7 @@ addExampleFolders gui =
                           (Green, greenImg), (Yellow, yellowImg),
                           (Yellow, yellowImg), (Red, redImg),
                           (Green, greenImg), (Blue, blueImg),
-                          (Blue, blueImg)]) [1..4]
+                          (Blue, blueImg)]) [1..3]
        done
 
 
@@ -286,10 +313,14 @@ chooseImageFile b =
     fd <- fileDialog "Open file" homedir
     interactor (\i -> fileChosen fd >>>= \mfp -> case mfp of
                                                    Just fp ->
-                                                     b # text fp >>
+                                                     b # text(short fp) >>
                                                      setVar imgpathref
                                                             (Just fp)
                                                    _ -> done)
+  where short :: String -> String
+        short str =
+          if length str > 20 then (".."  ++ drop (length str - 18) str)
+          else str
 
 ----------
 -- init --
@@ -298,6 +329,12 @@ chooseImageFile b =
 main :: IO ()
 main =
   do
+    pname <- newProp (newName "test")
+    picon <- newProp folderImg
+    imgref <- newRVar folderImg
+    putStrLn ("Testing.. object type is " ++
+              show (typeOf (MyImg imgref pname picon)))
+
     tk <- htk []
     main <- newVFBox []
     win <- window main [text "GenGUI example"]
@@ -309,30 +346,31 @@ main =
                          fg "blue", pad Horizontal 10, parent top]
 
     boximg <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addimg <- newButton [pad Vertical 5, pad Horizontal 5,
-                         text "add image item", width 40, parent boximg,
+    addimg <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
+                         text "add image item", width 28, parent boximg,
                          command (\ () -> return ())]
     imgentries <- newVBox [parent boximg]
     imgnmbox <- newHBox [parent imgentries]
     newLabel [value "name:", font (Helvetica, 12::Int), width 8,
               parent imgnmbox]
     imgnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                       background "white", parent imgnmbox] ::
-             IO (Entry String)
+                       background "white", parent imgnmbox,
+                       value "(default)"] :: IO (Entry String)
     imgvalbox <- newHBox [parent imgentries]
     imgbutton <- newButton [text "choose image", width 30,
                             parent imgvalbox, command (\ () -> return ())]
 
     boxtxt <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addtxt <- newButton [pad Vertical 5, pad Horizontal 5,
-                         text "add text item", width 40, parent boxtxt,
+    addtxt <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
+                         text "add text item", width 28, parent boxtxt,
                          command (\ () -> return ())]
     txtentries <- newVBox [parent boxtxt]
     txtnmbox <- newHBox [parent txtentries]
     newLabel [value "name:", font (Helvetica, 12::Int), width 8,
               parent txtnmbox]
     txtnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                       background "white", parent txtnmbox]
+                       background "white", parent txtnmbox,
+                       value "(default)"]
     txtvalbox <- newHBox [parent txtentries]
     newLabel [value "content:", font (Helvetica, 12 :: Int),
               width 8, parent txtvalbox]
@@ -340,15 +378,16 @@ main =
                         background "white", parent txtvalbox]
 
     boxnum <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addnum <- newButton [pad Vertical 5, pad Horizontal 5,
-                         text "add number item", width 40, parent boxnum,
+    addnum <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
+                         text "add number item", width 28, parent boxnum,
                          command (\ () -> return ())]
     numentries <- newVBox [parent boxnum]
     numnmbox <- newHBox [parent numentries]
     newLabel [value "name:", font (Helvetica, 12 :: Int), width 8,
               parent numnmbox]
     numnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                       background "white", parent numnmbox]
+                       background "white", parent numnmbox,
+                       value "(default)"]
     numvalbox <- newHBox [parent numentries]
     newLabel [value "value:", font (Helvetica, 12 :: Int), width 8,
               parent numvalbox]
@@ -356,19 +395,58 @@ main =
                         background "white", parent numvalbox]
 
     boxcol <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addcol <- newButton [pad Vertical 5, pad Horizontal 5,
-                         text "add color item", width 40, parent boxcol,
+    addcol <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
+                         text "add color item", width 28, parent boxcol,
                          command (\ () -> return ())]
     colentries <- newVBox [parent boxcol]
     colnmbox <- newHBox [parent colentries]
     newLabel [value "name:", font (Helvetica, 12 :: Int), width 8,
               parent colnmbox]
     colnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                       background "white", parent colnmbox] ::
-             IO (Entry String)
+                       background "white", parent colnmbox,
+                       value "(default)"] :: IO (Entry String)
     colmenu <- newOptionMenu ["Red", "Green", "Blue", "Yellow"]
-                             [width 25, parent colentries]
+                             [width 20, parent colentries]
 
+    boxfold <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
+    addfold <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
+                          text "add folder", width 28,
+                          parent boxfold,
+                          command (\ () -> return ())]
+    foldentries <- newVBox [parent boxfold]
+    foldnmbox <- newHBox [parent foldentries]
+    newLabel [value "name:", font (Helvetica, 12 :: Int), width 8,
+              parent foldnmbox]
+    foldnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
+                        background "white", parent foldnmbox,
+                        value "(default)"] :: IO (Entry String)
+    foldimgbox <- newHBox [parent foldentries]
+    folderImg' <- folderImg
+    standardfoldimg <- newButton [size (18, 18),
+                                  pad Horizontal 3, photo folderImg',
+                                  parent foldimgbox,
+                                  command (\ () -> return ())]
+    setVar lastactiveref standardfoldimg
+    imgfolderImg' <- imgfolderImg
+    imgfoldimg <- newButton [size (18, 18),
+                             pad Horizontal 3, relief Sunken,
+                             photo imgfolderImg', parent foldimgbox,
+                             command (\ () -> return ())]
+    txtfolderImg' <- txtfolderImg
+    txtfoldimg <- newButton [size (18, 18),
+                             pad Horizontal 3, relief Sunken,
+                             photo txtfolderImg', parent foldimgbox,
+                             command (\ () -> return ())]
+    colorfolderImg' <- colorfolderImg
+    colfoldimg <- newButton [size (18, 18),
+                             pad Horizontal 3, relief Sunken,
+                             photo colorfolderImg', parent foldimgbox,
+                             command (\ () -> return ())]
+    numfolderImg' <- numfolderImg
+    numfoldimg <- newButton [size (18, 18),
+                             pad Horizontal 3, relief Sunken,
+                             photo numfolderImg', parent foldimgbox,
+                             command (\ () -> return ())]
     quit <- newButton [pad Vertical 5, pad Horizontal 10, text "Quit",
                        parent main, command (\ () -> return ())]
 
@@ -390,6 +468,19 @@ main =
                                               addCol nm val) +>
                       (triggered imgbutton >>> chooseImageFile
                                                  imgbutton) +>
+                      (triggered addfold >>> do
+                                               nm <- getValue foldnm
+                                               addFolder nm) +>
+                      (triggered standardfoldimg >>>
+                         imgSelected standardfoldimg folderImg) +>
+                      (triggered imgfoldimg >>>
+                         imgSelected imgfoldimg imgfolderImg) +>
+                      (triggered txtfoldimg >>>
+                         imgSelected txtfoldimg txtfolderImg) +>
+                      (triggered colfoldimg >>>
+                         imgSelected colfoldimg colorfolderImg) +>
+                      (triggered numfoldimg >>>
+                         imgSelected numfoldimg numfolderImg) +>
                       (triggered quit >>> destroy tk) +>
                       (selectedItemInTreeList gui >>>=
                          selectedTl foldlab) +>
@@ -397,6 +488,17 @@ main =
     addExampleFolders gui
     sync (destroyed win)
     destroy tk
+
+imgSelected :: Button () -> IO Image -> IO ()
+imgSelected but img =
+  do
+    but' <- getVar lastactiveref
+    if but' == but then done else
+      do
+        but' # relief Sunken
+        but # relief Raised
+        setVar lastactiveref but
+        setVar imgref img
 
 selectedTl :: Label String -> Maybe Item -> IO ()
 selectedTl foldlab mitem =
@@ -412,22 +514,24 @@ selectedTl foldlab mitem =
                       _ -> setVar foldref Nothing
 
 selectedNp :: (Item, Bool) -> IO ()
-selectedNp (item, b) = done
+selectedNp (item, b) =
+  if b then
+    let mmyobject = Dynamic.fromDynamic (contentD item) :: Maybe MyObject
+    in case mmyobject of
+         Just (MyImg ioimgref _ _) -> putStrLn "image found"
 {-
-  case content item of
-    LeafItem (MyImg ioimgref _ _) ->
-      if b then
-        do
-          ioimg <- getVar ioimgref
-          img <- ioimg
-          main <- newVBox []
-          win <- window main [text "Image"]
-          newLabel [photo img, parent main]
-          quit <- newButton [text "Quit", command (\ () -> return ())]
-          interactor (\i -> triggered quit >>> destroy win)
-      else done
-    _ -> done
+           do
+             ioimg <- getVar ioimgref
+             img <- ioimg
+             main <- newVBox []
+             win <- window main [text "Image"]
+             newLabel [photo img, parent main] :: IO (Label Image)
+             quit <- newButton [text "Quit", command (\ () -> return ())]
+             interactor (\i -> triggered quit >>> destroy win)
 -}
+         Nothing -> putStrLn "cast failed"
+         _ -> putStrLn "not an image"
+  else done
 
 
 ------------

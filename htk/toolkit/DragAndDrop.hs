@@ -83,7 +83,7 @@ newNotepadItem val notepad@(Notepad cnv _ imgsize _ _ _ _ _ _) cnf =
     img <- newImageItem [parent cnv]
     txt <- newTextItem [font (Helvetica, 10 :: Int), parent cnv]
     itemval <- newRVar val
-    itemname <- newRVar (Name { short = \_ -> "", full = "" })
+    itemname <- newRVar (newName "")
     itemsel <- newRVar Nothing
     let item = (NotepadItem img imgsize txt itemval itemname itemsel)
     foldl (>>=) (return item) cnf
@@ -149,10 +149,11 @@ instance Destructible (NotepadItem a) where
   destroyed = destroyed . toGUIObject
 
 name :: Name -> Config (NotepadItem a)
-name itname w@(NotepadItem _ _ txt _ nm _) =
+name itname w@(NotepadItem _ (Distance dx, _) txt _ nm _) =
   do
     setVar nm itname
-    txt # value (full itname)
+    let len = div (dx + 80) 5
+    txt # value {- (full itname) -} (short itname len)
     return w
 
 getName :: NotepadItem a -> (IO Name)
@@ -495,8 +496,9 @@ newNotepad scrolltype imgsize cnf =
                    drop <- getVar dropref
                    (case drop of
                       Nothing -> doSet item
-                      Just (ditem, _, _) ->
-                        if item == ditem then done else doSet item)
+                      Just (ditem, rect1, rect2) ->
+                        if item == ditem then done
+                        else destroy rect1 >> destroy rect2 >> doSet item)
 
               inDropZone (NotepadItem img _ _ _ _ _) =
                 do
@@ -530,26 +532,28 @@ newNotepad scrolltype imgsize cnf =
         moving notepad@(Notepad cnv _ _ _ selecteditemsref _ dropref _
                                 dmsgQ) tag rootx rooty x0 y0 iact =
           (mouseEvent cnv (Button1, Motion) >>>=
-             \ ((x, y), _) -> do
-                                checkDropZones notepad x y
-                                moveItem tag (x - x0) (y - y0)
-                                become iact (moving notepad tag rootx
-                                                    rooty x y iact))
+             \ ((x, y), _) -> synchronize notepad
+                                (do
+                                   checkDropZones notepad x y
+                                   moveItem tag (x - x0) (y - y0)
+                                   become iact (moving notepad tag rootx
+                                                       rooty x y iact)))
          +> (mouseEvent cnv (ButtonRelease Nothing) >>>
-             (do
-                drop <- getVar dropref
-                (case drop of
-                   Nothing -> done
-                   Just (item, rect1, rect2) ->
-                     do
-                       selecteditems <- getVar selecteditemsref
-                       moveItem tag (rootx - x0) (rooty - y0)
-                       setVar dropref Nothing
-                       destroy rect1 
-                       destroy rect2
-                       sendIO dmsgQ (item, selecteditems))
-                {- destroy tag  --   was stattdessen ??? -}
-                become iact (click notepad iact)))
+               synchronize notepad
+                 (do
+                    drop <- getVar dropref
+                    (case drop of
+                       Nothing -> done
+                       Just (item, rect1, rect2) ->
+                         do
+                           selecteditems <- getVar selecteditemsref
+                           moveItem tag (rootx - x0) (rooty - y0)
+                           setVar dropref Nothing
+                           destroy rect1 
+                           destroy rect2
+                           sendIO dmsgQ (item, selecteditems))
+                    {- destroy tag  --   was stattdessen ??? -}
+                    become iact (click notepad iact)))
 
 
 -- instances --
