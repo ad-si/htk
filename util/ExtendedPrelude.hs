@@ -38,6 +38,7 @@ module ExtendedPrelude (
 
    BreakFn,
    addFallOut,
+   addFallOutWE,
    ) where
 
 import Char
@@ -285,6 +286,15 @@ addFallOut getAct =
                         Just (mess fallOutExcep)
             )
          (getAct break)
+
+---
+-- Like addFallOut, but returns a WithError object instead.
+addFallOutWE :: (BreakFn -> IO a) -> IO (WithError a)
+addFallOutWE toAct =
+   do
+      result <- addFallOut toAct
+      return (toWithError result)
+
             
 data FallOutExcep = FallOutExcep {
    fallOutId :: ObjectID,

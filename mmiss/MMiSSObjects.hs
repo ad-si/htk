@@ -25,6 +25,8 @@ import Computation
 import AtomString
 import ExtendedPrelude
 
+import BSem
+
 import DialogWin
 import SimpleForm
 
@@ -45,12 +47,15 @@ import GlobalRegistry
 import DisplayView
 import Folders
 
+import EmacsEdit
+
 import MMiSSAttributes
 import MMiSSPaths
 import MMiSSObjectTypeList
 import MMiSSVariant
 import MMiSSContent
 import MMiSSDTD
+import MMiSSEditXml
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObjectType type, and its instance of HasCodedValue and 
@@ -141,9 +146,11 @@ data MMiSSObject = MMiSSObject {
       -- in the content last created (or null at the beginning).
    referencedObjects :: VariableSet EntityName,
       -- Ditto Reference's.
-   parentFolder :: Link Folder 
+   parentFolder :: Link Folder,
       -- Folder containing this object.  This is also where we search for
       -- other constituent objects.
+   editLock :: BSem
+      -- Set when we are editing this object.
    }
  
 mmissObject_tyRep = mkTyRep "MMiSSObject" "MMiSSObject"
@@ -165,12 +172,15 @@ instance HasCodedValue MMiSSObject where
          referencedObjects <- newEmptyVariableSet
          variantAttributes <- newEmptyAttributes view
          mkVariantAttributes variantAttributes
+         editLock <- newBSem
          return (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
             variantAttributes = variantAttributes,
             objectContents = objectContents,
             includedObjects = includedObjects,
             referencedObjects = referencedObjects,
-            parentFolder = parentFolder},codedValue1)
+            parentFolder = parentFolder,
+            editLock = editLock
+            },codedValue1)
 
 -- ------------------------------------------------------------------
 -- The instances of HasAttributes and HasParents
@@ -308,9 +318,9 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 -- The MMiSSObjectType is the expected type of the object.
 -- @param objectType
 writeToMMiSSObject :: MMiSSObjectType -> View -> Link Folder -> 
-   Maybe String -> Element -> IO (Either String (Link MMiSSObject))
+   Maybe String -> Element -> IO (WithError (Link MMiSSObject))
 writeToMMiSSObject objectType view folderLink expectedLabel element =
-   addFallOut (\ break ->
+   addFallOutWE (\ break ->
       do
          -- (1) validate it.
          case validateElement (xmlTag objectType) element of
@@ -528,6 +538,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                   (includes (accContents structuredContent)))
                referencedObjects <- newVariableSet (map fromString
                   (references (accContents structuredContent)))
+               editLock <- newBSem
                let
                   name = label structuredContent
 
@@ -538,7 +549,8 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                      objectContents = objectContents,
                      includedObjects = includedObjects,
                      referencedObjects = referencedObjects,
-                     parentFolder = folderLink
+                     parentFolder = folderLink,
+                     editLock = editLock
                      }
                objectVersioned <- createObject view object
                objectLink <- makeLink view objectVersioned
@@ -595,12 +607,12 @@ createMMiSSObject objectType view folder =
             let
                xmlElement = coerceWithErrorOrBreak break xmlElementWE
 
-            linkEither <- writeToMMiSSObject objectType view folder Nothing
+            linkWE <- writeToMMiSSObject objectType view folder Nothing
                xmlElement
 
-            case linkEither of
-               Left str -> break str
-               Right link -> return link
+            let
+               link = coerceWithErrorOrBreak break linkWE
+            link `seq` return link
          )
       case result of
          Left str ->
@@ -615,7 +627,89 @@ createMMiSSObject objectType view folder =
 -- ------------------------------------------------------------------
 
 editMMiSSObject :: View -> Link MMiSSObject -> IO ()
-editMMiSSObject view link = done
+editMMiSSObject view link =
+   do
+      object <- readLink view link
+      let
+         parent = parentFolder object
+         variants = variantAttributes object
+         lock = editLock object
+
+         editFS name =
+            addFallOutWE (\ break -> 
+               do
+                  gotObject <- getMMiSSObject view parent name
+                  mmissLink <- case gotObject of
+                     NoObject -> break ("Object "++name++" does not exist")
+                     OtherObject -> break 
+                        ("Object "++name++" is not an MMiSS object")
+                     Exists mmissLink -> return mmissLink
+
+                  object <- readLink view mmissLink
+ 
+                  isAvailable <- tryAcquire lock
+                  if isAvailable
+                     then
+                        done
+                     else 
+                        break ("Object "++name++" is already being edited")
+                  let
+                     contents = objectContents object
+                  -- For the time being we search using the top objects
+                  -- variants, until we think of a better model.
+                  searchObject <- toMMiSSSearchObject variants
+                  elementLinkOpt <- variantDictSearch contents searchObject
+                  elementLink <- case elementLinkOpt of
+                     Nothing -> break ("Object "++name++
+                        " has no matching variant")
+                     Just elementLink -> return elementLink
+                  element <- readLink view elementLink
+                  let
+                     content = toEditableXml name element
+
+                  -- We now have to set up the EditedFile stuff 
+                  let
+                     writeData emacsContent =
+                        addFallOutWE (\ break ->
+                          do
+                             elementWE <- fromEditableXml name emacsContent
+                             let 
+                                element = 
+                                   coerceWithErrorOrBreak break elementWE
+                             element `seq` done
+                             linkWE <- writeToMMiSSObject 
+                                (mmissObjectType object) view parent
+                                (Just name) element
+                             let
+                                link = coerceWithErrorOrBreak break linkWE
+                             link `seq` done
+                          )
+
+                     finishEdit = release lock
+
+                     editedFile = EditedFile {
+                        writeData = writeData,
+                        finishEdit = finishEdit
+                        }
+                  return (content,editedFile)
+               )
+
+         existsFS name =   
+            do
+               gotObject <- getMMiSSObject view parent name
+               return (case gotObject of
+                  NoObject -> hasError ("Object "++name++" does not exist")
+                  OtherObject -> hasError
+                     ("Object "++name++" is not an MMiSS object")
+                  Exists mmissLink -> hasValue ()
+                  )
+
+         emacsFS = EmacsFS {
+            editFS = editFS,
+            existsFS = existsFS
+            }
+
+      editEmacs emacsFS (name object)
 
 -- ------------------------------------------------------------------
 -- Exporting MMiSS objects

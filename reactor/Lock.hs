@@ -40,6 +40,11 @@ class Lock l where
 -- acquire a lock
    acquire :: l -> IO ()
 
+---
+-- acquire a lock and return True, if that can be done at once, otherwise
+-- return False.
+   tryAcquire :: l -> IO Bool
+
 
 -- --------------------------------------------------------------------------
 --  Exceptions

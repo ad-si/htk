@@ -12,7 +12,7 @@ module MMiSSDTD(
    allElements,
    validateElement,
    getDisplayInstruction,
-   xmlParseCheck, -- :: String -> String -> IO (Either String Element)
+   xmlParseCheck, -- :: String -> String -> IO (WithError Element)
    ) where
 
 import IO

@@ -12,6 +12,8 @@ module BSem (
    newBSem,
    newLockedBSem
    ) where
+
+import Maybe
  
 import Concurrent
 
@@ -35,6 +37,10 @@ newtype BSem = BSem (MVar ()) deriving Eq
 instance Lock BSem where
    acquire (BSem sem) = takeMVar sem
    release (BSem sem) = putMVar sem ()
+   tryAcquire (BSem sem) = 
+      do
+         success <- tryTakeMVar sem
+         return (isJust success)
 
 instance Synchronized BSem where
    synchronize (BSem sem) c = 

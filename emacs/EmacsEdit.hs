@@ -1,6 +1,9 @@
 {- This module edits Emacs content, including "magic buttons" to allow
    the user expand bits of content further. -}
 module EmacsEdit(
+   editEmacs, -- :: EmacsFS -> String -> IO ()
+   EmacsFS(..),
+   EditedFile(..),
    ) where
 
 import Computation
@@ -31,7 +34,7 @@ data EmacsFS = EmacsFS {
    -- attempts to edit the file name.
    -- It returns the initial contents and the file's EditedFile structure.
    editFS :: String -> IO (WithError (EmacsContent String,EditedFile)),
-   -- | verifyFS name
+   -- | existsFS name
    -- checks that the file exists and can be read (without trying to edit it)
    existsFS :: String -> IO (WithError ())
    }
