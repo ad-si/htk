@@ -80,7 +80,7 @@ main =
                              size (cm 15, cm 8)]
     quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
                        parent box, text "Quit", width 15,
-                       command (\ ()-> destroy win)]
+                       command (\ ()-> destroy tk)]
     output <- newEditor [width 40, height 6,
                          state Disabled] :: IO (Editor String)
     scrollbox <- newScrollBox output [parent main]
@@ -92,7 +92,10 @@ main =
                                              _ -> "Nothing") ++
                                           " selected")) +>
                       (focusEvent treelist >>>=
-                         \obj -> logMsg output (getObjectName obj ++
+                         \mobj -> logMsg output
+                                         ((case mobj of
+                                             Just obj -> getObjectName obj
+                                             _ -> "no object") ++
                                                 " focused")))
     sync (destroyed win)
     destroy tk

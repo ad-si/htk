@@ -93,7 +93,7 @@ data Eq a => TreeList a =
            (ImageFun a)                           -- object image function
            (RVar (Maybe (TREELISTOBJECT a)))            -- selected object
            (MsgQueue (Maybe (TreeListObject a)))     -- selection notifier
-           (MsgQueue (TreeListObject a))                 -- focus notifier
+           (MsgQueue (Maybe (TreeListObject a)))         -- focus notifier
 
 newTreeList :: Eq a => Style -> ChildrenFun a -> ImageFun a ->
                        TreeListObject a -> [Config (TreeList a)] ->
@@ -247,7 +247,7 @@ instance HasSize (TreeList a) where
 selectionEvent :: TreeList a -> IA (Maybe (TreeListObject a))
 selectionEvent (TreeList _ _ _ _ _ _ _ msgQ _) = lift (receive msgQ)
 
-focusEvent :: TreeList a -> IA (TreeListObject a)
+focusEvent :: TreeList a -> IA (Maybe (TreeListObject a))
 focusEvent (TreeList _ _ _ _ _ _ _ _ msgQ) = lift (receive msgQ)
 
 
@@ -604,9 +604,9 @@ mkTreeListObject treelist@(TreeList cnv _ style _ cfun _ _ _ msgQ) val
                               txt # bg "grey" >>
                               txt # fg "white" >> 
                               sendIO msgQ
-                                     (TreeListObject (val, nm,
-                                                      if isnode then Node
-                                                      else Leaf)) >>
+                                     (Just (TreeListObject (val, nm,
+                                                            if isnode then Node
+                                                            else Leaf))) >>
                               done)) +>
                       (mouseLeave txt >>>
                          do
@@ -614,7 +614,9 @@ mkTreeListObject treelist@(TreeList cnv _ style _ cfun _ _ _ msgQ) val
                            (if b then done
                             else
                               txt # bg "white" >>
-                              txt # fg "black" >> done)) +>
+                              txt # fg "black" >>
+                              sendIO msgQ Nothing >>
+                              done)) +>
                       (mouseButtonPress txt 1 >>>
                          selectObject treelist obj) +>
                       (mouseButtonPress cnv 1 >>>

@@ -36,7 +36,7 @@ import System
 import Channels
 import Maybe
 
-debug = True
+debug = False
 debugMsg str = if debug then putStr (">>> " ++ str ++ "\n\n") else done
 
 getFilesAndFolders :: FilePath -> Bool -> IO ([FilePath], [FilePath])

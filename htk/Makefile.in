@@ -91,6 +91,7 @@ SRCS       = \
 	 toolkit/MatrixBox.hs\
          toolkit/TreeList.hs\
 	 toolkit/FileDialog.hs\
+         toolkit/Name.hs\
 	 filebrowser/TreeListPath.hs\
 	 filebrowser/FileActions.hs\
          toolkit/Property.hs\
