@@ -267,6 +267,12 @@ newChildProcess path confs  =
          (1,1,"#") -> done
          x -> error ("ChildProcess.999 error"++show x)
 
+      byteCountOut <- fdWrite writeIn "#"
+      (strIn,byteCountIn) <- fdRead readIn 1
+      case (byteCountOut,byteCountIn,strIn) of
+         (1,1,"#") -> done
+         x -> error ("ChildProcess.9998 error"++show x)
+
       let
          passOnStdErrs = stderr parms
 
