@@ -1,0 +1,126 @@
+The MMiSS Workbench
+===================
+
+George Russell
+
+Introduction
+------------
+
+The MMiSS Workbench is a program for storing, retrieving and manipulating 
+documents.  Documents can exist in multiple versions, like the CVS 
+system or its replacement SubVersion.  However, unlike CVS, the MMiSS Workbench
+is also able to work intelligently with the components of the document.
+Dcouments are split into a tree-like structure, for example a chapter
+is split into its component sections, these in turns into paragraphs,
+and so on.  These components can then be reused in other documents, or
+even in other places in the same document.
+
+Strictly speaking, it is not the MMiSS Workbench which does the storing.
+Instead there is a separate MMiSS Server, which may run on the same machine as
+the Workbench, or may be connected to it over the Internet.  Everything
+stored by the MMiSS Workbench is actually stored in one of these servers.
+
+The MMiSS Workbench is not the only mechanism for talking to the MMiSS Server.
+Indeed, a Java client (the "mmiss-client") is under development which
+provides an alternative interface.  The MMiSS Workbench does however have
+the following advantages over the Java client:
+
+   .  The available versions, and the objects within them, are attractively
+      displayed using the daVinci.
+   .  Documents or parts of documents can be dynamically edited from within
+      the Workbench using XEmacs.
+
+On the other hand the Workbench requires Glasgow Haskell, a Unix-like
+operating system, XEmacs, and daVinci.  In practice this means
+Linux and FreeBSD on Intel-compatible PCs, Solaris on SPARCs, and Apple Mac
+computers running Mac OS X.  It should not in fact be too difficult to port the
+Workbench to Windows, though this has not yet been done.  
+
+On other machines, the Java client, which requires nothing but the standard
+Java classes, is the only option.  However in this document we will assume
+that the user does have daVinci and XEmacs installed and wants to know
+how to run the workbench.
+
+The workbench is a large and sophisticated program, containing more than
+100,000 lines of Haskell code.  Hence it will only be possible to sketch
+its functions in this document.  However the graphical interface is fairly
+intuitive, so that if you have got the Workbench running and gone through
+this document, using the Workbench should be easy enough.
+
+Starting the Workbench
+----------------------
+
+Before you start the Workbench, you need to get XEmacs running.  The Workbench
+is fairly tolerant of versions, so any recent version (version 21.4
+or thereabouts) should do.  Once XEmacs is running, the \verb+gnuserv+ server
+needs to be started.  This is an XEmacs program which allows XEmacs to
+be externally controlled by other programs running on the same machine, and
+the Workbench uses this for editing.  The XEmacs function you need is
+\verb+gnuserv-start+, so you can start the server by getting the XEmacs
+cursor to type a command (type ESC-X), then type the command 
+\verb+gnuserv-start+.  If you would rather have this done automatically
+every time you start XEmacs, find your XEmacs initialisation file or
+create a new one (it should have a name like \verb+.xemacs/init.el+) and
+add the line \verb+(gnuserv-start).
+
+Once you have done this, go to the directory where you have installed
+the MMiSS Workbench, which will have a name like \verb+uni+, and then go to
+the subdirectory \verb+mmiss/test+.  Then type 
+\begin{verbatim}
+   ./runWorkbench
+\end{verbatim}
+All going well, the "MMiSS Repository Client Control Center" screen should
+appear.
+
+The MMiSS Repository Client Control Center
+------------------------------------------
+
+[picture]
+
+From the Control Center window, you can connect to different servers.  
+In the above  picture, the first line "denebola (Bremen)" refers to a server 
+which runs on the host 
+\verb+denebola.informatik.uni-bremen.de+; and clicking on the "Connect"
+button will attempt to connect to it.  The second line allows you to
+specify an another server, by typing in a host and, if the host uses a 
+non-standard port, its port number.  The third line. the "Local Working Area",
+connects you to a server which is private to your Workbench; this
+is useful for storing working copies.  Finally, the "Quit" button exits
+the whole workbench.
+
+It is possible to modify the contents of the Control Center Window, so that
+another server or servers is shown rather than "denebola (Bremen)", 
+by modifying the file 
+\verb+server/Hosts.xml+ in the \verb+uni+ directory before the repository
+starts.
+
+The Control Center window remains around, and you should go back to it 
+whenever you want to open another connection to a server, or when you
+want to quit the Workbench.
+
+Connecting to a Server
+----------------------
+
+When you first connect to a server, the following window will appear.
+
+[picture]
+
+This is asking you for the default "User Id" you wish to be known by when 
+creating new versions of objects.  You can avoid getting this window by 
+instead setting the environment variable \verb+UNIUSER+ to your preferred
+default "User Id".
+
+If you are connecting to the "local working area", you should then be
+connected right away.  However for other servers you will be asked to
+supply a user identifier and password.
+
+[picture]
+
+The "User Id" displayed will be the default "User Id" you just typed;
+however you can replace it by a different one if you like.   You must also
+of course type a password.  Should authentication succeed, you should
+see the Version Graph right away, otherwise you will get an error message
+and the chance to try again.
+
+The Version Graph
+-----------------
