@@ -13,6 +13,9 @@ module AbstractGraphView where
    Funktionen anpassen bzgl. erweiteren edges + nodes
    neue Funktionen implementieren
    Testen mit LispInterface, Daten aus test.data
+
+   Evtl. noch Aktionen "Benutzer klickt auf leere
+   Fläche bzw. fügt neue Kante ein" vorsehen?
 -}
 
 import DaVinciGraph
