@@ -173,6 +173,7 @@ import Concurrent(threadDelay)
 
 unbinds :: Ref [(ObjectID, [IO ()])]
 unbinds = unsafePerformIO (newRef [])
+{-# NOINLINE unbinds #-}
 
 addToState :: Editor -> [IO ()] -> IO ()
 addToState ed acts =

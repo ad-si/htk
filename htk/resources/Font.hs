@@ -33,7 +33,6 @@ import GUIValue
 import Char
 import ExtendedPrelude(split)
 import Debug(debug)
-import IOExts(unsafePerformIO)
 
 
 -- -----------------------------------------------------------------------

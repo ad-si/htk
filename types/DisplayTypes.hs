@@ -92,6 +92,7 @@ instance Eq WrappedDisplayType where
 
 displayTypeDataRegistry :: Registry String WrappedDisplayType
 displayTypeDataRegistry = IOExts.unsafePerformIO newRegistry
+{-# NOINLINE displayTypeDataRegistry #-}
 
 registerDisplayType :: DisplayType displayType => displayType -> IO ()
 registerDisplayType displayType =

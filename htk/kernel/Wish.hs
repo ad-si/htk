@@ -340,6 +340,7 @@ cleanupWish = destroy wish
 
 tixAvailable :: Bool
 tixAvailable = IOExts.unsafePerformIO isTixAvailable
+{-# NOINLINE tixAvailable #-}
 
 newWish :: IO Wish
 newWish =

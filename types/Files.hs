@@ -186,6 +186,7 @@ globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 
 emptyVariableSet :: VariableSet (WrappedLink,ArcType)
 emptyVariableSet = IOExts.unsafePerformIO newEmptyVariableSet
+{-# NOINLINE emptyVariableSet #-}
          
 -- ------------------------------------------------------------------
 -- newEmptyFile

@@ -279,6 +279,7 @@ data WrappedObjectTypeTypeData = forall objectType object .
 
 objectTypeTypeDataRegistry :: Registry String WrappedObjectTypeTypeData
 objectTypeTypeDataRegistry = IOExts.unsafePerformIO newRegistry
+{-# NOINLINE objectTypeTypeDataRegistry #-}
 
 registerObjectType :: ObjectType objectType object => objectType -> IO ()
 registerObjectType objectType =

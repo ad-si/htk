@@ -435,6 +435,7 @@ makeParsedArguments =
 parsedArguments :: ParsedArguments
 -- the unique set of parsed arguments
 parsedArguments = IOExts.unsafePerformIO makeParsedArguments
+{-# NOINLINE parsedArguments #-}
 
 getArgValue :: String -> IO (Maybe ArgValue)
 getArgValue optionName =

@@ -63,8 +63,6 @@ import Maybe
 import CItem
 import FiniteMap
 
-import IOExts(unsafePerformIO)
-
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)
 

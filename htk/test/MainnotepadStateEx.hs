@@ -19,6 +19,7 @@ import IOExts(unsafePerformIO)
 
 idref :: Ref Int
 idref = unsafePerformIO (newRef 0)
+{-# NOINLINE idref #-}
 
 newID :: IO Int
 newID =

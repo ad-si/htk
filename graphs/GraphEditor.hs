@@ -18,9 +18,6 @@ module GraphEditor (
    DisplayableCannedGraph,
    ) where
 
-import qualified IOExts(unsafePerformIO)
-
-
 import Concurrent(forkIO,killThread)
 
 import Registry

@@ -25,13 +25,16 @@ foldref = unsafePerformIO (newRef Nothing)
 imgpathref :: Ref (Maybe FilePath)
 imgpathref =
   unsafePerformIO (newRef Nothing)
+{-# NOINLINE imgpathref #-}
 
 lastactiveref :: Ref Button
 lastactiveref = unsafePerformIO (newRef (unsafePerformIO
                                            (newButton NONE [])))
+{-# NOINLINE lastactiveref #-}
 
 imgref :: Ref (IO Image)
 imgref = unsafePerformIO (newRef folderImg)
+{-# NOINLINE imgref #-}
 
 data Col = Red | Green | Blue | Yellow deriving Eq
 

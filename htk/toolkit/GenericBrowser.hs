@@ -39,6 +39,7 @@ class CItem o => GBObject o where
 
 posRef :: Ref Position
 posRef = unsafePerformIO (newRef (10, 10))
+{-# NOINLINE posRef #-}
 
 resetPos :: IO ()
 resetPos = setRef posRef (40, 40)

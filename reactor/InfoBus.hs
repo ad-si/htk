@@ -49,6 +49,7 @@ type Tools = FiniteMap ObjectID (IO ())
 
 toolmanager :: ToolManager
 toolmanager = IOExts.unsafePerformIO (newMVar emptyFM)
+{-# NOINLINE toolmanager #-}
 
 
 -- --------------------------------------------------------------------------

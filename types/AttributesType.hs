@@ -240,6 +240,7 @@ instance HasAttributeTypeKey Bool where
 attributeTypeKeyRegistry :: Registry AttributeTypeKey 
    (Attributes -> AttributeKey -> IO (Form (IO ())))
 attributeTypeKeyRegistry = IOExts.unsafePerformIO newRegistry
+{-# NOINLINE attributeTypeKeyRegistry #-}
 
 ---
 -- This must be done for every attribute value type at the start 

@@ -67,6 +67,7 @@ getFileTypeByExtension ext =
 type Id = Int
 
 idref = unsafePerformIO (newRef 0)
+{-# NOINLINE idref #-}
  
 newID :: IO Id
 newID = do id <- getRef idref
