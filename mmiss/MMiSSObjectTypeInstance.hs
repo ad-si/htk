@@ -506,8 +506,8 @@ instance HasBundleNodeData MMiSSObject where
                         then
                            do
                               element1 <- readLink view (element variable)
-                              exportedStrWE <- exportElement
-                                 view (format exportOpts) [] element1
+                              exportedStrWE <- exportElement1
+                                 view (format exportOpts) False [] element1
                               exportedStr <- coerceImportExportIO exportedStrWE
                               return (BundleString {
                                  contents = fromString exportedStr,

@@ -78,8 +78,8 @@ exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
          if getText exportOpts
             then
                do
-                  extractedWE <- extractMMiSSObject1 view mmissObjectLink 
-                        (Just variantSearch) exportOpts
+                  extractedWE <- extractMMiSSObject1 view True 
+                        mmissObjectLink (Just variantSearch) exportOpts
 
                   (objectString :: String,exportFiles :: ExportFiles)
                      <- coerceImportExportIO extractedWE

@@ -60,7 +60,7 @@ parseBundle1 elInfo0 format fileSystem filePath =
             <- case format of
          LaTeX -> 
             do
-               parseResult <- parseMMiSSLatex fileSystem filePath
+               parseResult <- parseMMiSSLatex fileSystem filePath True
                coerce parseResult
          XML ->
             do

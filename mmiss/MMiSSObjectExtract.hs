@@ -29,13 +29,15 @@ import {-# SOURCE #-} MMiSSExportFiles
 extractMMiSSObject :: View -> Link MMiSSObject -> Format 
    -> IO (WithError (String,ExportFiles))
 extractMMiSSObject view link format1 =
-   extractMMiSSObject1 view link Nothing 
+   extractMMiSSObject1 view True link Nothing 
       (ExportOpts {getText = True,format = format1,recurseDepth = infinity})
 
 extractMMiSSObject1 :: 
-   View -> Link MMiSSObject -> Maybe MMiSSVariantSearch -> ExportOpts 
+   View 
+   -> Bool -- ^ if True include \documentclass header.
+   -> Link MMiSSObject -> Maybe MMiSSVariantSearch -> ExportOpts 
    -> IO (WithError (String,ExportFiles))
-extractMMiSSObject1 view link maybeVariant exportOpts =
+extractMMiSSObject1 view includeHeader link maybeVariant exportOpts =
    do
       if getText exportOpts 
          then
@@ -49,7 +51,8 @@ extractMMiSSObject1 view link maybeVariant exportOpts =
          Right (element,packageFolders,exportFiles0) ->
             do
                strWE <- 
-                  exportElement view (format exportOpts) packageFolders element
+                  exportElement1 view (format exportOpts) includeHeader 
+                     packageFolders element
                return (mapWithError
                   (\ str -> (str,exportFiles0))
                   strWE

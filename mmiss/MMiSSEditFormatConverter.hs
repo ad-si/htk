@@ -7,6 +7,12 @@ module MMiSSEditFormatConverter(
    exportElement,
       -- :: View -> Format -> [MMiSSPackageFolder] -> Element 
       -- -> IO (WithError String)
+
+   -- for specification see comment by definition.
+   exportElement1,
+      -- :: View -> Format 
+      -- -> Bool -- ^ if set, include a \documentclass header. 
+      -- -> [MMiSSPackageFolder] -> Element  -> IO (WithError String)
    ) where
 
 import Maybe
@@ -70,7 +76,7 @@ toEditFormatConverter LaTeX =
                   fileSystem = oneFileFileSystem fileName str
 
 
-               parsedWE <- parseMMiSSLatex fileSystem fileName
+               parsedWE <- parseMMiSSLatex fileSystem fileName False
 
 --             debugString ("START|"++str++"|END")
 
@@ -83,8 +89,14 @@ toEditFormatConverter LaTeX =
 
 exportElement :: View -> Format 
    -> [MMiSSPackageFolder] -> Element -> IO (WithError String)
-exportElement _ XML _ element = return (hasValue (toExportableXml element))
-exportElement view LaTeX packageFolders element =
+exportElement view format = exportElement1 view format True
+
+-- | Convert an Element to an XML or LaTeX String
+exportElement1 :: View -> Format 
+   -> Bool -- ^ if set, include a \documentclass header. 
+   -> [MMiSSPackageFolder] -> Element  -> IO (WithError String)
+exportElement1 _ XML _ _ element = return (hasValue (toExportableXml element))
+exportElement1 view LaTeX includeHeader packageFolders element =
    do
       (laTeXPreambles :: [(MMiSSLatexPreamble,PackageId)]) 
          <- mapM
@@ -103,7 +115,8 @@ exportElement view LaTeX packageFolders element =
             packageFolders
 
       let
-         emacsContentWE = makeMMiSSLatexContent element True laTeXPreambles
+         emacsContentWE = 
+            makeMMiSSLatexContent element includeHeader laTeXPreambles
       return (mapWithError
          (\ emacsContent -> mkLaTeXString emacsContent)
          emacsContentWE
