@@ -368,13 +368,20 @@ dialog plain choices def confs tpconfs =
             let ev0 = choose events0
 
             -- Arrange for escape when the user destroys the window
-            (destroyEvent,_)  <- bindSimple tp Destroy
+            (destroyEvent,unbindAction)  <- bindSimple tp Destroy
 
             let
                ev = 
-                     ev0
-                  +> (destroyEvent >>>= destroyedFallOut)
-
+                     (do
+                         result <- ev0 
+                         always unbindAction
+                         return result
+                     )
+                  +> (do
+                         destroyEvent
+                         always unbindAction
+                         destroyedFallOut
+                     )
 
             return (tp, emsg, lmsg, lbl,sb,ev)
       dlg <- configure (Dialog tp emsg lmsg lbl sb ev) confs

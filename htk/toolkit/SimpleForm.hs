@@ -385,13 +385,13 @@ doForm1 canCancel title (Form enterForm) =
       (toplevel,enteredForm,okEvent,cancelEvent) <- delayWish (
          do
             toplevel <- createToplevel [text title]
-            enteredForm <- enterForm toplevel
+            enteredForm0 <- enterForm toplevel
             -- create frame for "OK" and "Cancel" buttons.
             frame <- newFrame toplevel []
             okButton <- newButton frame [text "OK"]
             okEvent <- clicked okButton
 
-            packAction enteredForm
+            packAction enteredForm0
             pack okButton [Side AtLeft]
 
             cancelEvent <-
@@ -404,8 +404,19 @@ doForm1 canCancel title (Form enterForm) =
                   else
                      return never
 
+            (destroyEvent,cancelBind) <- bindSimple toplevel Destroy
+
+            let
+               enteredForm =
+                  enteredForm0 {
+                     destroyAction = 
+                        do
+                           destroyAction enteredForm0
+                           cancelBind
+                        }
+
             pack frame [Side AtTop]
-            return (toplevel,enteredForm,okEvent,cancelEvent)
+            return (toplevel,enteredForm,okEvent,cancelEvent +> destroyEvent)
          )
 
       let
@@ -465,15 +476,24 @@ doFormList title (formList :: [(Form x,String)]) =
             enterResults <- mapM (doOneForm toplevel) formList
             return (toplevel,enterResults)
          )
+      (destroyEvent,unbind) <- bindSimple toplevel Destroy
+ 
       let
-         event = choose (map fst enterResults)
+         event0 = choose (map fst enterResults)
+
+         event1 = event0
+            +> (do
+               destroyEvent
+               return (fail "Window destroyed")
+               )
 
          destroyWindow :: IO ()
          destroyWindow = 
             do
                mapM_ snd enterResults
+               unbind
                destroy toplevel
-      return (event,destroyWindow)
+      return (event1,destroyWindow)
 
  
 -- -------------------------------------------------------------------------
