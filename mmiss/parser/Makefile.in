@@ -6,4 +6,4 @@ PACKAGES = uni-emacs $(if @HAXML@,uni-HaXml)
 
 SRCS = LaTeXParser.hs
 
-include @TOP@/mk/boilerplate.mk 
+include @TOP@/mk/boilerplate.mk
