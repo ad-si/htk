@@ -246,14 +246,14 @@ $(
       then
          [d|
             forkProcess0 :: IO () -> IO ProcessID
-            forkProcess0 = $(dynName "PosixProcess.forkProcess")
+            forkProcess0 = $(dynName "forkProcess")
          |]
       else
          [d|
             forkProcess0 :: IO () -> IO ProcessID
             forkProcess0 childAct =
                do
-                  processIDOpt <- $(dynName "PosixProcess.forkProcess")
+                  processIDOpt <- $(dynName "forkProcess")
                   case processIDOpt of
                      Nothing -> -- child
                         do
