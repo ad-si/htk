@@ -46,6 +46,8 @@ setUpGraph (_::
 
       (killChannel :: Channel ()) <- newChannel
 
+      stringMVar <- newMVar ""
+
       let
          disp s tD = debug (s ++ (show tD))
          (nullNodeParms :: nodeTypeParms Int) = emptyNodeTypeParms
@@ -73,13 +75,50 @@ setUpGraph (_::
                \ _ -> return "Type 2"
                ))) $ nullNodeParms
 
+         buttonChar :: MenuButton Char
+         buttonChar =
+            Button "In" 
+               (\ char -> do
+                  str <- takeMVar stringMVar
+                  putMVar stringMVar (str++[char])
+                  ) 
+
+         (nodeTypeCharParms :: nodeTypeParms Char) =
+            (nodeTypeConfig buttonChar) .
+            (nodeTypeConfig (ValueTitle (
+               \ char -> return [char]
+               ))) $ emptyNodeTypeParms
+
+         buttonWrite :: MenuButton ()
+         buttonWrite =
+            Button "Write"
+               (\ () -> do
+                  str <- takeMVar stringMVar
+                  putStrLn str
+                  putMVar stringMVar ""
+                  )
+
+         (nodeTypeWriteParms :: nodeTypeParms ()) =
+            (nodeTypeConfig buttonWrite) .
+            (nodeTypeConfig (ValueTitle (\ _ -> return "Write"))) 
+              $ emptyNodeTypeParms
+
+         (nodeTypeSmallParms :: nodeTypeParms ()) =
+            (nodeTypeConfig (Menu Nothing [])) 
+               $ emptyNodeTypeParms
+
       (nodeType1 :: nodeType Int) <- newNodeType graph nodeType1Parms
       (nodeType2 :: nodeType Int) <- newNodeType graph nodeType2Parms
+      (nodeTypeSmall :: nodeType ()) <- newNodeType graph nodeTypeSmallParms
 
       (nodeA1 :: node Int) <- newNode nodeType1 graph 1
       (nodeB1 :: node Int) <- newNode nodeType1 graph 2
       (nodeC2 :: node Int) <- newNode nodeType2 graph 3
-
+{-
+      (nodeChars :: [node Char]) <- mapM (newNode nodeTypeChar graph) 
+         "0123456789"
+      (nodeWrite :: node ()) <- newNode nodeTypeWrite graph ()
+-}
       let
          (nullArcParms :: arcTypeParms String) = emptyArcTypeParms
          arcMenu1 = Button "ArcType1" (disp "ArcType1")
@@ -93,11 +132,17 @@ setUpGraph (_::
          newArc arcType1 graph "Arc A" nodeC2 nodeA1
       (arcB :: arc String Int Int) <-
          newArc arcType1 graph "Arc B" nodeC2 nodeB1
-   
+
+      {-
+      (arcWrite :: arc String Int ()) <-
+          newArc arcType1 graph "" nodeA1 nodeWrite
+
+      (arcChars :: [arc String Int Char]) <-
+         mapM (newArc arcType1 graph "" nodeA1) nodeChars
+      -}
       redraw graph
 
       sync(
             (lift(receive killChannel) >>> destroy graph)
          +> (destroyed graph)
          )
-

@@ -1,4 +1,10 @@
-{- Here we fit DaVinci into the GraphDisp framework. -}
+{- Here we fit DaVinci into the GraphDisp framework.
+   
+   We do not give any configuration options to DaVinci 
+   or HTk.  However, if this is desired, they can be
+   set up by calling the htk and/or davinci functions 
+   before, with the appropriate options.
+   -}
 module DaVinciGraphDisp(
    daVinciSort,
    DaVinciGraph,
@@ -53,7 +59,12 @@ data DaVinciGraph =
 
 instance SIM.Destructible DaVinciGraph where
    SIM.destroy (DaVinciGraph graph _ ) = SIM.destroy graph
-   SIM.destroyed (DaVinciGraph graph _ ) = SIM.destroyed graph
+   SIM.destroyed (DaVinciGraph graph daVinci ) = (
+         SIM.destroyed graph 
+      +> DaVinci.lastGraphClosed daVinci
+      +> SIM.destroyed daVinci
+      )
+
 
 newtype DaVinciGraphParms = DaVinciGraphParms [Config DaVinci.Graph]
 
@@ -63,7 +74,7 @@ instance Graph DaVinciGraph where
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraph (DaVinciGraphParms graphParms) =
       do
-         daVinci <- DaVinci.davinci []
+         (daVinci :: DaVinci.DaVinci) <- DaVinci.davinci []
          graph <- DaVinci.newGraph (graphParms ++ [
             DaVinci.gapwidth 4,
             DaVinci.gapheight 40,

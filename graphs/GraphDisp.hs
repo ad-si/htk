@@ -53,6 +53,13 @@
    The functionality provided in this file is inspired by that
    provided by DaVinci.  However we extend it by allowing
    nodes to have labels provided in the form of Dynamic values.
+
+   Additional Notes
+   ----------------
+   (1) At the end of a program using a GraphDisp instance,
+       InfoBus.shutdown should be called.  For example,
+       in the case of the DaVinci instance this is
+       required to get rid of the DaVinci and HTk processes.
    -}
 module GraphDisp(
    GraphAll(displaySort),

@@ -3,7 +3,10 @@ module Main(main) where
 
 import GraphDispTest
 import DaVinciGraphDisp
+import SIM(shutdown)
 
-main = setUpGraph daVinciSort
-
+main = 
+   do
+      setUpGraph daVinciSort
+      shutdown
    
