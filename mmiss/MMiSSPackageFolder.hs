@@ -122,8 +122,8 @@ import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
-import MMiSSExportLaTeX(pathRef)
 
+import {-# SOURCE #-} MMiSSExportLaTeX(pathRef)
 import {-# SOURCE #-} MMiSSObjectTypeInstance
 import {-# SOURCE #-} MMiSSBundleWrite
 

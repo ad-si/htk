@@ -207,7 +207,7 @@ importsState :: ImportsState Int
 importsState = unsafePerformIO (
    do
       delayer <- newDelayer
-      newImportsState folderStructure putStrLn delayer
+      newImportsState folderStructure delayer
    )
 {-# NOINLINE importsState #-}
 

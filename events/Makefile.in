@@ -20,8 +20,6 @@ SRCS       = Toggle.hs\
              MatchChannel.hs\
              RegexChannel.hs\
              Synchronized.hs\
-	     Mutex.hs\
-	     ReferenceVariables.hs\
 
 SUBDIRS = test
 

@@ -15,25 +15,24 @@ module ReferenceVariables(
   changeRef, -- :: Ref a -> (a -> a) -> IO ()
   changeRefM, -- :: Ref a-> (a-> IO a) -> IO () 
   withRef,   -- :: Ref a -> (a -> b) -> IO b
---  updRef,
   getRef     -- :: Ref a -> IO a
 
 ) where
 
 import Computation
 import Synchronized
-import Mutex
+import MSem
 import IOExts(IORef,newIORef,readIORef,writeIORef)
 import Concurrent
 
-data Ref a = Ref Mutex (MVar (IORef a))
+data Ref a = Ref MSem (MVar (IORef a))
 
 newRef :: a -> IO (Ref a)
 newRef val = 
   do
     ioref <- newIORef val
     mvar <- newMVar ioref
-    mtx <- newMutex
+    mtx <- newMSem
     return (Ref mtx mvar)
 
 setRef :: Ref a -> a -> IO ()
@@ -80,20 +79,3 @@ getRef (Ref _ mvar) =
 instance Synchronized (Ref a) where
   synchronize (Ref mtx mvar) = synchronize mtx
 
-{-
-updRef (Ref mvar) cmd =
-  do
-    ioref <- takeMVar mvar
-    val <- readIORef ioref
-    ans <- try (cmd val)
-    case ans of
-      Left e ->
-        do
-          putMVar mvar ioref
-          raise e
-      Right (val',res) ->
-        do
-          writeIORef ioref val'
-          putMVar mvar ioref
-          return res
--}

@@ -11,6 +11,8 @@
 
 module Main (main) where
 
+import ReferenceVariables
+
 import HTk
 import FileDialog
 import System
@@ -18,8 +20,9 @@ import System
 exportPS :: Canvas -> IO ()
 exportPS cnv =
   do
-    homedir <- getEnv "HOME"
-    selev <- fileDialog "Open file" homedir
+    homeDir <- getEnv "HOME"
+    homeDirRef <- newRef homeDir
+    selev <- fileDialog "Open file" homeDirRef
     file  <- sync selev
     case file of
       Just fp -> try (postscript cnv [psfile fp] >>
