@@ -1,9 +1,20 @@
 #!/bin/sh
 # Test script for running the workbench.
-export UNIEDITOR UNISERVER UNIWORKINGDIR
+export UNIEDITOR UNISERVER UNIWORKINGDIR 
+
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 UNISERVER=`hostname`
 UNIWORKINGDIR=/tmp/uni.temp.$USER
+
+# The following variables have to be set since in the binary release they
+# cannot (at the moment) be hardwired into the binaries.
+export UNIWISH UNIDAVINCI UNIDAVINCIICONS UNIGNUCLIENT UNITOP
+UNIWISH=${UNIWISH:-@WISH@}
+UNIDAVINCI=${UNIDAVINCI:-@DAVINCI@}
+UNIDAVINCIICONS=${UNIDAVINCIICONS:-@TOP@/database/icons}
+UNIGNUCLIENT=${UNIGNUCLIENT:-@GNUCLIENT@}
+UNITOP=${UNITOP:-@TOP@}
+
 gmake killServer
 gmake killWorkbench
 gmake runServer

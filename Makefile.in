@@ -18,7 +18,7 @@ else
 endif
 endif
 
-COMMONEXTRAEXPORTS = uni-package.conf.export includes/*.h
+COMMONEXTRAEXPORTS = uni-package.conf.export includes/*.h includes/config.h.in mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk bdb-package.options.in configure
 
 ifeq "@WINDOWS@" "1"
 EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 

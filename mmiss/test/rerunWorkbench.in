@@ -4,6 +4,16 @@ export UNIEDITOR UNISERVER UNIWORKINGDIR
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 UNISERVER=${UNISERVER:-`hostname`}
 UNIWORKINGDIR=/tmp/uni.temp2.$USER
+
+# The following variables have to be set since in the binary release they
+# cannot (at the moment) be hardwired into the binaries.
+export UNIWISH UNIDAVINCI UNIDAVINCIICONS UNIGNUCLIENT UNITOP
+UNIWISH=${UNIWISH:-@WISH@}
+UNIDAVINCI=${UNIDAVINCI:-@DAVINCI@}
+UNIDAVINCIICONS=${UNIDAVINCIICONS:-@TOP@/database/icons}
+UNIGNUCLIENT=${UNIGNUCLIENT:-@GNUCLIENT@}
+UNITOP=${UNITOP:-@TOP@}
+
 if test @WORK_AROUND_BDB_LINUX_BUG@ -ne 0
   then
      export MALLOC_CHECK_

@@ -22,4 +22,4 @@ log_HC_OPTIONS = -no-hs-main
 
 include @TOP@/mk/boilerplate.mk
 
-prepareexports : MMiSSWorkbench
+prepareexports : runCommand

@@ -110,6 +110,7 @@ SPLITOBJS = $(patsubst %,%/*.o,$(LIBMODULES))
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
              $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
              $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
+OBJSEMACSFULL = $(patsubst %,$$PWD/%,$(OBJSEMACS))
 EXPORTSRCSFULL = $(patsubst %,$$PWD/%,$(EXPORTSRCS))
 EXPORTHIFILES = $(patsubst %,$$PWD/%,$(HILIBFILES))
 
@@ -282,7 +283,7 @@ displayexportshere :
 ifeq "$(PACKAGE)" ""
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL)
 else
-	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ)
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ) $(OBJSEMACSFULL)
 ifeq "$(DOIMPORTS)" ""
 	@PWD=`pwd`;echo $(EXPORTHIFILES)
 else

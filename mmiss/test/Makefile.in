@@ -2,7 +2,7 @@ PACKAGES = uni-mmiss uni-davinci
 
 SRCS       = TestStructure.hs TestLaTeXStructure.hs MainMMiSSWorkbench.hs
 
-EXTRAEXPORTS = MMiSSWorkbench files/test_1.tex files/test_2.tex files/demo-terms.tex files/demo.tex files/algspec.tex
+EXTRAEXPORTS = MMiSSWorkbench files/test_1.tex files/test_2.tex files/demo-terms.tex files/demo.tex files/algspec.tex Makefile.in runWorkbench.in rerunWorkbench.in
 
 include @TOP@/mk/boilerplate.mk
 

@@ -12,6 +12,6 @@ BOOTSRCS = MMiSSObjects.boot.hs
 
 SUBDIRS = test
 
-EXTRAEXPORTS = MMiSS.dtd
+EXTRAEXPORTS = MMiSS.dtd scripts/domisslatex.in scripts/doxdvi.in scripts/doacroread.in scripts/dolp.in scripts/docp.in
 
 include @TOP@/mk/boilerplate.mk

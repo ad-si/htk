@@ -1,7 +1,17 @@
 dnl == autoconf source for the UniForM workbench ==
 dnl some details stolen from GHC configure.in file.
 # Check that sources are available
-AC_INIT(util/Debug.hs)
+AC_INIT(mk/suffix.mk)
+#
+# Is this configure script being run in a binary release or not?
+if test -r "not.a.binary.release"; then
+   echo Configuring for building from source 
+   BINARY=NO
+else
+   echo Configuring a binary release
+   BINARY=YES
+fi
+AC_SUBST(BINARY)
 #
 # Set GOAHEAD to NO prevent modifying Makefiles and so on.
 GOAHEAD=YES
@@ -57,8 +67,10 @@ echo "You need GNU make to compile uni".
 # Check for ghc
 AC_PATH_PROGS(GHC,ghc)
 if test -z "$GHC"; then
-   echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
-   GOAHEAD=NO
+   if test "$BINARY" = NO; then
+      echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
+      GOAHEAD=NO
+   fi
 else
    UNI_GHC_VERSION([GhcVersion],[GhcMajVersion],[GhcMinVersion],[GhcPatchLevel])
   AC_SUBST(GhcVersion)
@@ -75,13 +87,15 @@ fi
 # Check for ghc-pkg
 AC_PATH_PROGS(GHCPKG,ghc-pkg)
 if test -z "$GHCPKG"; then
-   echo Without ghc-pkg you cannot compile UniForM.
-   GOAHEAD=NO
+   if test "$BINARY" = NO; then
+      echo Without ghc-pkg you cannot compile UniForM.
+      GOAHEAD=NO
+   fi
 fi
 
 #
 # Check for wish
-AC_PATH_PROGS(WISH,wish wish_8.0,NOTFOUND)
+AC_PATH_PROGS(WISH,wish wish_8.0 tixwish,NOTFOUND)
 if test -z "$WISH"; then
     echo "Without wish you can run hardly any of UniForM's graphical programs"
     WISH="/usr/bin/wish"
@@ -202,11 +216,13 @@ AC_SUBST(DEFAULTOPTIONS)
 MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
-   echo Compiling MainFixFileNames
-   # We need to remove the interface file as otherwise strange things
-   # happen if the format changes.
-   rm -rf mk/Main.hi
-   $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
+   if test "$BINARY" = NO; then
+      echo Compiling MainFixFileNames
+      # We need to remove the interface file as otherwise strange things
+      # happen if the format changes.
+      rm -rf mk/Main.hi
+      $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
+   fi
 
    # Find out what GHC thinks this directory is (this will not necessarily be 
    # the same as TOP on Windows).  This string is escaped.
@@ -216,44 +232,50 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp"
+   if test "$BINARY" = NO; then
+      SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp"
+   else
+      SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp"
+   fi
 
    AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS)
    chmod +x $SCRIPTS
 
-   echo Setting up packages and export packages file as empty
-   # The echo prints []; the funny things bracketted by @ signs are
-   # "Quadrigraphs" which express this so.  Normal square brackets
-   # won't work since they have a special meaning for autoconf.
-   echo @<:@@:>@ >uni-package.conf
-   echo @<:@@:>@ >uni-package.conf.export
-   mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
+   if test "$BINARY" = NO
+   then   
+      echo Setting up packages and export packages file as empty
+      # The echo prints []; the funny things bracketted by @ signs are
+      # "Quadrigraphs" which express this so.  Normal square brackets
+      # won't work since they have a special meaning for autoconf.
+      echo @<:@@:>@ >uni-package.conf
+      echo @<:@@:>@ >uni-package.conf.export
+      mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
 
-   
-   if test -n "$HAXML"
-   then
-      echo Linking to HaXml sources.
-      ${GMAKE} -C $HAXML -r lnsrcs
+      if test -n "$HAXML"
+      then
+         echo Linking to HaXml sources.
+         ${GMAKE} -C $HAXML -r lnsrcs
+      fi
+
+      # Use GHCPKG option with --force if necessary
+      if test "$GhcMajVersion.$GhcMinVersion" = "5.02"
+      then
+         GHCPKGOPTS=
+      else
+         GHCPKGOPTS=--force
+      fi
+      
+      $GHCPKG $GHCPKGOPTS --config-file uni-package.conf.export --add-package <uni-package.options
+
+      if test -n "$BDBDIR"; then
+         $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
+      fi
+
+      GMAKESHORT=`basename $GMAKE`
+
+      echo To compile UniForM type \"${GMAKESHORT} boot\" followed by \"${GMAKESHORT} packages\"
+      echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
    fi
-
-   # Use GHCPKG option with --force if necessary
-   if test "$GhcMajVersion.$GhcMinVersion" = "5.02"
-   then
-      GHCPKGOPTS=
-   else
-      GHCPKGOPTS=--force
-   fi
-   
-   $GHCPKG $GHCPKGOPTS --config-file uni-package.conf.export --add-package <uni-package.options
-
-   if test -n "$BDBDIR"; then
-      $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
-   fi
-
-   GMAKESHORT=`basename $GMAKE`
-
-   echo To compile UniForM type \"${GMAKESHORT} boot\" followed by \"${GMAKESHORT} packages\"
-   echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
 fi
 
 
