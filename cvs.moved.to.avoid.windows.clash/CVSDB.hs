@@ -121,6 +121,8 @@ import RegularExpression
 import FileNames
 import CVSHigh
 import LineShow
+import AllocateService
+import CallServer
 
 import qualified Allocate(initialCVSFile)
 
@@ -136,10 +138,8 @@ data Repository = Repository {
       -- wDirDirs contains the set of all directories known to
       -- already exist in the working directory.
    notifier :: Notifier,
-   allocator :: Handle,
-      -- Handle is the connection to the allocate program
-      -- (code in inodeserver/Mainallocate.hs).
-   allocatorSem :: BSem
+   allocator :: AllocateRequest -> IO AllocateAnswer
+   -- Calls allocator service
    }
 
 data RepositoryParameter =
@@ -214,9 +214,8 @@ initialise options =
 
       notifier <- mkNotifier hostName
 
-      allocator <- connect hostName (11394::Int)
-      allocatorSem <- newBSem
-  
+      (allocator,_) <- connectReply allocateService hostName (11393::Int)
+
       wDirContents <- newMVar emptyFM
       wDirDirs <- newMVar emptySet
 
@@ -226,8 +225,7 @@ initialise options =
          wDirContents = wDirContents,
          wDirDirs = wDirDirs,
          notifier = notifier,
-         allocator = allocator,
-         allocatorSem = allocatorSem
+         allocator = allocator
          }
    where
       getHost :: String -> Maybe String
@@ -343,14 +341,14 @@ newLocation :: Repository -> ObjectSource -> Attributes ->
 newLocation repository objectSource attributes =
    do
       -- get a new file name
-      cvsFile <- askAllocator repository ""
+      NewCVSFile cvsFile <- (allocator repository) GetNewCVSFile 
       newGeneralLocation repository objectSource cvsFile attributes
 
 newInitialLocation :: Repository -> ObjectSource -> IO ()
-newInitialLocation (repository@Repository{allocator=allocator}) objectSource =
+newInitialLocation repository objectSource =
    do
       -- get a new file name
-      cvsFile <- askAllocator repository ""
+      NewCVSFile cvsFile <- (allocator repository) GetNewCVSFile 
       if(Allocate.initialCVSFile /= cvsFile) 
          then
             ioError(userError 
@@ -410,8 +408,8 @@ commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier})
 -- we will have newVersion = 1.1.1.1 and commitVersion = 1.1.1.
    do
       -- get the new version number
-      (commitVersion :: CVSVersion) <- 
-         askAllocator repository (show(cvsFile,parentVersion))
+      NewCVSVersion commitVersion <- 
+         (allocator repository) (GetNewCVSVersion cvsFile parentVersion)
       newVersion <- retrieveGeneral repository cvsFile parentVersion 
          (do
             exportFile objectSource (toRealName repository cvsFile)
@@ -667,16 +665,3 @@ watch :: Repository -> Location -> IA ()
 watch (repository@Repository{notifier=notifier}) 
       (cvsFile@(CVSFile cvsFileName)) =
    isNotified notifier cvsFileName
-
-----------------------------------------------------------------
--- Accessing the allocator
-----------------------------------------------------------------
-
-askAllocator :: Read result => Repository -> String -> IO result
-askAllocator (Repository{allocator=allocator,allocatorSem=allocatorSem}) 
-      message = 
-   synchronize(allocatorSem) 
-      (do
-         hPutStrLn allocator message
-         hGetLineR allocator
-         )
