@@ -62,7 +62,7 @@ import Lock
 import SimpleForm
 import MenuType
 import SimpleListBox
-import MarkupText
+import MarkupText hiding (not)
 import DialogWin
 import HTk hiding (Arc,Menu)
 
@@ -74,6 +74,7 @@ import GraphConfigure
 import NewNames
 
 import VersionInfo
+import VersionInfoFilter
 
 import VersionDB
 import View
@@ -171,7 +172,8 @@ newVersionGraph1
             (GraphTitle title) $$
             (GlobalMenu (Menu Nothing [
                Button "Merge" doMerge,
-               Button "Copy Versions To ..." copyVersions1
+               Button "Copy Versions To ..." copyVersions1,
+               Button "Select Versions to View" (setNewFilter graphClient)
                ])) $$
             (if isInternal
                then
@@ -206,7 +208,9 @@ newVersionGraph1
                (LocalMenu (Menu Nothing [
                   Button "Checkout" checkOutNode,
                   Button "View Info" viewCheckedInNode,
-                  Button "Edit Info" editCheckedInNode
+                  Button "Edit Info" editCheckedInNode,
+                  Button "Delete" (mDelCheckedInNode upDeleteCount),
+                  Button "Undelete" (mDelCheckedInNode downDeleteCount)
                   ])) $$$
                emptyNodeTypeParms                                 
             else if nodeType == workingType
@@ -218,15 +222,22 @@ newVersionGraph1
                (LocalMenu (Menu Nothing [
                   Button "Commit" commitVersionInfo1,
                   Button "View Info" viewWorkingNode,
-                  Button "Edit Info" editWorkingNode
+                  Button "Edit Info" editWorkingNode,
+                  Button "Delete" (mDelCheckedInNode upDeleteCount),
+                  Button "Undelete" (mDelCheckedInNode downDeleteCount)
                   ])) $$$
                emptyNodeTypeParms
             else if nodeType == checkedInTypeHidden
             then
                Box $$$
-               (ValueTitle nodeTitle) $$$
                (LocalMenu (Menu Nothing [
-                  ])) $$$ -- TBD
+                  Button "Checkout" checkOutNode,
+                  Button "View Info" viewCheckedInNode,
+                  Button "Edit Info" editCheckedInNode,
+                  Button "Delete" (mDelCheckedInNode upDeleteCount),
+                  Button "Undelete" (mDelCheckedInNode downDeleteCount)
+                  ])) $$$
+               (ValueTitle nodeTitle) $$$
                (staticFontStyle BoldItalicFontStyle) $$$
                emptyNodeTypeParms 
             else if nodeType == workingTypeHidden
@@ -350,6 +361,22 @@ newVersionGraph1
                      Nothing -> done
                      Just userInfo1 -> modifyUserInfo repository userInfo1
                )
+     
+         -- Delete or undelete node
+         mDelCheckedInNode :: (VersionInfo -> WithError VersionInfo) 
+            -> VersionInfo1 -> IO ()
+         mDelCheckedInNode delFn versionInfo1 =   
+            doOp (
+               do
+                  let 
+                     versionInfo0 = toVersionInfo versionInfo1
+                     versionInfo1WE = delFn versionInfo0
+                  case fromWithError versionInfo1WE of
+                     Right versionInfo1 ->
+                        modifyUserInfo repository (user versionInfo1)
+                     Left mess -> errorMess mess
+               )
+
 
          -- Display the view information for a checked-in version
          viewCheckedInNode :: VersionInfo1 -> IO ()
@@ -622,6 +649,19 @@ toVersionGraphRepository = repository
 
 toVersionGraphClient :: VersionGraph -> VersionGraphClient
 toVersionGraphClient = graph
+
+
+-- --------------------------------------------------------------------
+-- VersionInfoFilter operations
+-- --------------------------------------------------------------------
+
+setNewFilter :: VersionGraphClient -> IO ()
+setNewFilter graphClient =
+   do
+      filterOpt <- readVersionInfoFilter
+      case filterOpt of
+         Nothing -> done
+         Just newFilter -> setNewFilter0 graphClient newFilter
 
 -- --------------------------------------------------------------------
 -- Committing.

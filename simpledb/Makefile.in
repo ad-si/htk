@@ -2,6 +2,7 @@ PACKAGE = uni-simpledb
 PACKAGES = uni-server bdb-package
 SRCS       = BDBOps.hs VersionInfo.hs VersionInfoService.hs \
    SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
+   VersionInfoFilter.hs \
 
 
 SUBDIRS = test

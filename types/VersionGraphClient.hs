@@ -25,9 +25,7 @@ module VersionGraphClient(
       -- :: VersionGraphClient -> View -> IO ()
 
 
-   changeIsHidden,
-      -- :: VersionGraphClient -> (VersionInfo -> Bool) -> IO ()
-    
+   setNewFilter0, -- :: VersionGraphClient -> VersionGraphFilter -> IO ()
 
    toVersionGraphConnection,  
       -- :: VersionGraphClient -> GraphConnection VersionInfo1 () () ()
@@ -63,6 +61,7 @@ import Thread
 import Sources
 import Sink
 import Dynamics
+import ExtendedPrelude
 
 import InfoBus
 
@@ -78,6 +77,7 @@ import qualified VersionDag
 import VersionDB hiding (VersionInfo1)
 import ViewType
 import VersionInfo hiding (getVersionInfos)
+import VersionInfoFilter
 
 import VersionInfoService
 
@@ -93,7 +93,7 @@ data VersionGraphNode =
 data VersionInfo1 = VersionInfo1 {
    versionInfo :: VersionInfo,
    viewOpt :: Maybe View
-   } deriving (Eq,Ord,Typeable)
+   } deriving (Typeable)
 
 data VersionGraphClient = VersionGraphClient {
    versionDag :: VersionDag VersionGraphNode VersionInfo1 Bool,
@@ -114,6 +114,16 @@ type VersionTypes dataSort = dataSort VersionInfo1 () Bool ()
 instance Show VersionGraphNode where -- this is mainly used for debugging
    show (CheckedInNode ov) = "Checked in node:" ++ show ov
    show (WorkingNode _) = "Unknown view" 
+
+
+versionInfo1Map versionInfo1 
+   = (Full (versionInfo versionInfo1),viewOpt versionInfo1)
+
+instance Eq VersionInfo1 where
+   (==) = mapEq versionInfo1Map
+
+instance Ord VersionInfo1 where
+   compare = mapOrd versionInfo1Map   
 
 -- ------------------------------------------------------------------------
 -- Creating VersionGraphClient's.
@@ -195,7 +205,9 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
                   (\ parent -> (isWorking,CheckedInNode parent))
                   (parents . user . versionInfo $ versionInfo1) 
 
-      versionDag <- newVersionDag isHidden0 toNodeKey toParents
+      versionDag <- newVersionDag 
+         ((mkHidden defaultVersionInfoFilter) . versionInfo) 
+         toNodeKey toParents
 
       newNodeActions <- newRegistry
 
@@ -279,6 +291,13 @@ newWorkingVersion versionGraphClient view =
 deleteWorkingVersion :: VersionGraphClient -> View -> IO ()
 deleteWorkingVersion versionGraphClient view =
    deleteVersion (versionDag versionGraphClient) (WorkingNode view)
+
+setNewFilter0 :: VersionGraphClient -> VersionInfoFilter -> IO ()
+setNewFilter0 graphClient filter =
+   changeIsHidden graphClient (mkHidden filter)
+
+mkHidden :: VersionInfoFilter -> (VersionInfo -> Bool)
+mkHidden filter versionInfo = not (filterVersionInfo filter versionInfo)
 
 changeIsHidden :: VersionGraphClient -> (VersionInfo -> Bool) -> IO ()
 changeIsHidden versionGraphClient isHidden =

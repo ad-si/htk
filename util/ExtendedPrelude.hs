@@ -4,10 +4,11 @@
 -- Basic string-manipulation and other functions they forgot to put in
 -- the standard prelude.
 module ExtendedPrelude (
-   -- * Trimming spaces from Strings.
+   -- * Trimming spaces from Strings and putting them back again.
    trimTrailing,
    trimLeading,
    trimSpaces,
+   padToLength,
 
    -- * Miscellaneous functions
    monadDot,
@@ -81,6 +82,7 @@ module ExtendedPrelude (
 
    -- * Other miscellaneous functions
    EqIO(..),OrdIO(..),
+   Full(..),
 
    uniqOrd,
    uniqOrdOrder,
@@ -141,6 +143,19 @@ trimLeading (str@(ch:rest)) = if isSpace ch then trimLeading rest else str
 -- | Remove trailing and leading spaces
 trimSpaces :: String -> String
 trimSpaces = trimTrailing . trimLeading
+
+-- | Pad a string if necessary to the given length with leading spaces.
+padToLength :: Int -> String -> String
+padToLength l s =
+   let
+      len = length s
+   in
+      if len < l
+         then
+            replicate (l - len) ' ' ++ s
+         else
+            s
+
 
 -- | returns Just a if we can read a, and the rest is just spaces.
 readCheck :: Read a => String -> Maybe a
@@ -616,6 +631,14 @@ breakOtherExceps break act =
 
 
 
+-- ------------------------------------------------------------------------
+-- Miscellanous equality types
+-- ------------------------------------------------------------------------
+
+-- | indicates that an Ord or Eq instance really does need to
+-- take everything into account.
+newtype Full a = Full a
+   
 -- ------------------------------------------------------------------------
 -- Where equality and comparing requires IO.
 -- ------------------------------------------------------------------------

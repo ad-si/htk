@@ -122,6 +122,8 @@ module SimpleForm(
 
    editableTextForm, -- :: [Config Editor] -> Form String
       -- A form for typing (possibly several lines of) editable text.
+   editableTextForm0, -- :: [Config Editor] -> Form String
+      -- Like 'editableTextForm' but no scrollbars are displayed.
 
    ) where
 
@@ -887,6 +889,7 @@ instance FormValue () where
 -- An editable text window as a form entry.
 -- -------------------------------------------------------------------------
 
+-- | An editable text window as a form entry
 -- Useful config options: 
 --   (value String) to set initial contents
 --   (height i), (width i) to set the height and width in characters.
@@ -911,6 +914,31 @@ editableTextForm configs =
                   pack scrollBar1 [Side AtRight,Fill Y,Expand On]
                   pack editorFrame []
                   pack scrollBar2 [Side AtTop,Fill X,Expand On]
+               ),
+            getFormValue = (
+               do
+                  value <- getValue editor
+                  return (hasValue value)
+               ),
+            destroyAction = done
+            })
+     )
+
+
+-- | Like 'editableTextForm' but no scrollbars are displayed.
+editableTextForm0 :: [Config Editor] -> Form String
+editableTextForm0 configs =
+   Form (\ container ->
+      do
+         editorFrame <- newFrame container []
+
+         editor <- newEditor editorFrame (configs ++ [wrap NoWrap])
+         
+         return (EnteredForm {
+            packAction = 
+               (do
+                  pack editor [Side AtRight]
+                  pack editorFrame []
                ),
             getFormValue = (
                do

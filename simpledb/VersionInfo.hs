@@ -319,6 +319,47 @@ instance Ord VersionInfo where
    compare = mapOrd user
 
 -- ----------------------------------------------------------------------
+-- Instances of Eq and Ord where we don't cheat
+-- ----------------------------------------------------------------------
+
+instance Eq VersionAttributes where
+   (==) = mapEq (\ (VersionAttributes fm) -> fmToList fm)
+
+instance Ord VersionAttributes where
+   compare = mapOrd (\ (VersionAttributes fm) -> fmToList fm)
+
+
+userInfoMap (Full user) 
+   = (label user,contents user,version user,parents user,
+      versionAttributes user)
+
+instance Eq (Full UserInfo) where
+   (==) = mapEq userInfoMap
+      
+instance Ord (Full UserInfo) where
+   compare = mapOrd userInfoMap
+
+serverInfoMap (Full serverInfo) 
+   = (serverId serverInfo,serialNo serverInfo,timeStamp serverInfo,
+      userId serverInfo)
+
+instance Eq (Full ServerInfo) where
+   (==) = mapEq serverInfoMap
+      
+instance Ord (Full ServerInfo) where
+   compare = mapOrd serverInfoMap
+
+versionInfoMap (Full versionInfo) =
+   (Full (user versionInfo),Full (server versionInfo),isPresent versionInfo)
+
+instance Eq (Full VersionInfo) where
+   (==) = mapEq versionInfoMap
+
+instance Ord (Full VersionInfo) where
+   compare = mapOrd versionInfoMap
+
+      
+-- ----------------------------------------------------------------------
 -- Code for filling in the ServerInfo, if necessary, also checking
 -- that the user meets the appropriate criteria.
 -- We set isPresent to be False if necessary.  To set this to True,
