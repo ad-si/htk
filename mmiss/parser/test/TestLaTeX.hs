@@ -41,7 +41,7 @@ main =
       fileName <- return(last args)
       if ((length (elemIndices "--help" args)) > 0)
         then do putStr "Structue checking tool for MMiSSLaTeX v0.1\n"
-		putStr "usage:\n  testLaTeX [OPTIONS] < INPUTFILE [> OUTFILE]\n"
+		putStr "usage:\n  testLaTeX [OPTIONS] INPUTFILE [> OUTFILE]\n"
 		putStr "Options are:\n"
 	        putStr "  -root=<element type>  (default: package)   Checker expects this element type as root of the MMiSS document.\n"
 		putStr "                        This would be 'section' if you just have a section and no whole package in your input\n"
