@@ -1,24 +1,23 @@
 % This file contains a lot of -*- mode: Latex -*-
 %
-\subsection{Menues}
+\section{Menues}
+\label{sec:menues}
 
 Menues in \HTk are nots straightforward, mainly due to Tk's awkward
-way of handling menues, which means that rather surprisingly
-\emph{menues need not be packed}.
+way of handling menues. Rather surprisingly, menues need \emph{not} be
+packed.
 
 Menues are modelled by the type
 \href{Menu.html#Menu.Menu}{\texttt{Menu}}. Menues can either be the
 normal things which appear in a menu bar (typically at the top of a
 window), or attached to a single button, or pop-up menus which pop up
-out of nowhere. Word from the wise here: the latter are typically
-considered bad interface design, since they rarely confirm to user
-expectations (i.e. the user has no way of knowing wether a pop-up menu
-will appear). Try to use pop-up menues as optional, convenient
-short-cuts. While we're at it, try also to use one menu bar only, at
-the top of the window, since several menu bars in one window will be
-confusing, and try not to change the menus while the user isn't
-looking. \ToBeDone{Good user interface design ref here--
-  wotshisname-man?}
+out of nowhere. Actually, these are typically considered bad interface
+design, since they rarely confirm to user expectations (i.e. the user
+has no way of knowing wether a pop-up menu will appear). Try to use
+pop-up menues only as optional, convenient short-cuts. While we're at
+it, try also to use one menu bar only, at the top of the window, since
+several menu bars in one window will be confusing, and try not to
+change the menus while the user isn't looking.
 
 Menus in \HTk can contain:
 \begin{itemize}
@@ -30,7 +29,7 @@ Menus in \HTk can contain:
 \item and separators.
 \end{itemize}
 
-Checkbuttons and radio buttons have a state, which from \HTk can be
+Checkbuttons and radio buttons have a state, which can be
 access by attaching a \emph{Tk variable} to them (class
 \href{HTk.html#HTk.HasVariable}{\texttt{HasVariable}}; a
 \texttt{TkVariable} is created with
@@ -48,15 +47,15 @@ main =
 \end{code}
 Now, we create the element holding the menu, and attach it as a
 menubar to the window. The second parameter to \texttt{createMenu} is
-a boolean determining wether this is a pull-off menu\footnote{Slightly
-  unfortunate choice of words there. Also, this should be a
-  configuration, but for tedious technical reasons can't.}
+a boolean determining wether this is a tear-off menu\footnote{This should be a
+  configuration, but for tedious technical reasons isn't.} (i.e. a
+menu which you can tear off from its menu button, and keep open).
 \begin{code}
     menubar <- createMenu main False []
     main # menu menubar
 \end{code}
 Each pull-down menu in the menubar is in fact a submenu; we first
-create such a subwindow, and then attach a menu to it:
+create such a submenu, and then attach a menu to it:
 \begin{code}
     pd1 <- createMenuCascade menubar [text "First Menu"]
     m1 <- createMenu menubar False []
@@ -78,7 +77,7 @@ items, followed by a separator and a submenu of two more items:
   
 Now we create a second pulldown menu with the a check button, and a
 group of three radio buttons. Note that Tk variables can hold all
-types which are instances of the class \texttt{GuiValue}, in
+types which are instances of the class \texttt{GUIValue}, in
 particular strings and characters (and note how we have to
 disambiguate the overloaded numerals).
 \begin{code}
@@ -100,7 +99,11 @@ This code in itself defines the menu. To query the state of the
 variables, we bind the check button, and spawn a thread which reads
 the variables. However, you do not need to bind anything to a button
 if you do not want to react on it being pressed, and just want to read
-the value of the variable at some point. 
+the value of the variable at some point. A menu command is an instance
+of class \texttt{HasCommand}, so you can use \texttt{clicked} to bind
+a simple event to it (see
+Sect.~\href{ssec:teenage-clicks}).
+
 \begin{code}                                  
     cl <- clicked c1
     spawnEvent (forever (
@@ -116,10 +119,9 @@ The source for the preceding example is in
 particular pop-up menues--- can be found in
 \texttt{htk/examples/simple/Mainmenu.hs}.
 
-\ToBeDone{Two wee screenshots here.}           
-
 The reader will probably agree that this is a lot of code for such a
 simple task, and quite unnecessarily so. For the convenient design of
-menus, we recommend the \texttt{SimpleMenu} module from the toolkit,
-which is at an abstraction level more suitable for a functional
-language.
+menus, we recommend the menu modules from the toolkit (see
+Sect.~\ref{ssec:forms-menus}), which are at an abstraction level more
+suitable for a functional language.
+

@@ -1,10 +1,13 @@
+% This file contains a lot of -*- mode: Latex -*-
+%
 \subsection{Entry}
+\label{ssec:entry-widget}
 
 An \emph{entry box} is a box which contains one editable line of
-text. If is used to input short texts, such as a name and a credit
+text. If is used to input short texts, such as a name or a credit
 card number.
 
-As opposed to previous widgets, entries are a polymorph over the type
+As opposed to previous widgets, entries are polymorph over the type
 of values they are supposed to hold and edit, hence an entry is
 created with 
 \begin{xcode}
@@ -14,11 +17,13 @@ created with
 
 The current state of the input is the \emph{value} of the entry; it is
 accessed and set with the configuration from the class
-\href{Configuration.html#Configuration.HasValue}. Note that the values
+\href{Configuration.html#Configuration.HasValue}{\texttt{HasValue}}.
+Note that the values
 need not be strings, but must be an instance of \texttt{GUIValue}.
 
 Tk only provides the basic editing functions for entry widgets. If you
-want to read the value of the entry when the return key is pressed,
+want anything more, for example to read the value of the entry when
+the return key is pressed, 
 you have to do this yourself by binding to the \texttt{KeyPress}
 event. Here is a very basic example of how to use an entry widget: we
 build an entry widget, and when the return key is pressed, we change
@@ -61,7 +66,7 @@ An alternative to using values is to use \texttt{TkVariables}. These
 are variables on the Tk side, which can be directly connected to the
 widget in the sense that the variable always holds the entry's state.
 The advantage of this approach is that we can share values across
-widgets (see \texttt{Mainhello3.hs} in \texttt{examples/simple}).
+widgets (see \texttt{Mainhello3.hs} in \texttt{htk/examples/simple}).
 
 % There was a way to specify the maximal length of the text to be input,
 % but I have forgotten how. Erh, revisiting Welch-- was there?

@@ -8,8 +8,7 @@
   to the widget you want to scroll. This is done with the class
   \href{ScrollBar.html#ScrollBar.HasScroller}{HasScroller}: you create
   a scroll bar, and attach it to the scrollable widget with
-  \texttt{scrollbar} option. The example below shows how to use
-  scrollbars. Don't forget to pack both the scrollable widget and the
+  \texttt{scrollbar} option. The example below shows how. Don't forget to pack both the scrollable widget and the
   scrollbar.
 
 
@@ -25,7 +24,7 @@
   As opposed to entries, list boxes (quite obviously) have lists of
   values:
 \begin{xcode}
-  instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a]
+instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a]
 \end{xcode}
 When the user selects something from the the listbox, Tk's selection
 is set, which can be queried with the methods of the module
@@ -34,11 +33,13 @@ is set, which can be queried with the methods of the module
 you want that, you need to bind the left mouse button (which generates
 the selection).
 
-  Here is a short example which demonstrates the usage of listboxes,
-  selections and scrollbars. Note the type constraint on the
-  \texttt{newListBox} below --- we need this to force the type to
-  \texttt{String}, since it can not be inferred.
+Table~\ref{tab:listbox} shows a short example which demonstrates the
+usage of listboxes, selections and scrollbars. Note the type
+constraint on the \texttt{newListBox} --- we need this to force
+the type to \texttt{String}, since it can not be
+inferred. Fig.~\ref{fig:listbox} shows a screenshot.
 
+\begin{table}[htbp]
 \begin{code}
 module Main (main) where
 
@@ -66,6 +67,9 @@ main =
      "Fourteen", "Fifteen", "Sixteen", "Seventeen",
      "Eighteen", "Nineteen", "Twenty"]
 \end{code}
+      \caption{Example program for list boxes and scrollbars.}
+      \label{tab:listbox}
+\end{table}
 
 The position of entries in a list box can be indexed with instances of
 the class \texttt{HasIndex}. For more on indices, see
@@ -76,6 +80,13 @@ instance HasIndex (ListBox a) EndOfText Int
 instance (Eq a, GUIValue a) => 
          HasIndex (ListBox [a]) (ListBoxElem a) Int  
 \end{xcode}
+\begin{wrapfigure}[15]{r}{4.5cm}
+  \begin{center}
+    \includegraphics[width=4cm]{img/screenshot-listbox}    
+  \end{center}
+  \caption{A list box.}
+  \label{fig:listbox}
+\end{wrapfigure}
 In other words, the index is a number (starting with 0), the
 \texttt{EndOfText} (only constructor of the synonymous data type), or
 the element itself. 
@@ -99,9 +110,8 @@ box:
   toolkits.)
 \end{itemize}
 Selections are handled by the selection classes (see
-Section~\ref{ssec:selection}) below. You can set the selection, or
+Section~\ref{ssec:selections}) below. You can set the selection, or
 query the current selection as in the code above.
 
-\ToBeDone{Show a screenshot here.}
 
 

@@ -43,7 +43,7 @@ clicked event occurs, the program is finished.
 
 This combination of events as a case distinction --- when this event
 occurs, do something, when the other event occurs, do something
-different --- is achieved by the third important operation on
+different --- is achieved by the fourth important operation on
 events, the \emph{choice} combinator 
 \begin{xcode}
 (+>) :: Event a-> Event a-> Event a

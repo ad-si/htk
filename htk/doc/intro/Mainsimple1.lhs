@@ -39,8 +39,9 @@ This introduces three important concepts in \HTk:
 \item secondly, GUI elements are created with functions called
   \texttt{new}X, which take a \emph{configuration} list as
   argument. The configuration determines the visual appearance; here,
-  the text which is displayed on the button
-\item thirdly, creating a GUI element does not display it \textit{per
+  the text which is displayed on the button. GUI elements, such as
+  this button, are called \emph{widgets}.
+\item thirdly, creating a widget does not display it \textit{per
     se}. To display it, we have to explicitly place it on the screen;
   this is done with the \texttt{pack} command. This command takes a
   list of packing options as argument; more on that below.
@@ -55,7 +56,7 @@ event by changing the button's label.
 Setting up external events to produce an \texttt{Event a} is called
 \emph{binding}. When we bind an external event, we specify the
 external action that we wish to bind (e.g. this button being clicked,
-mouse movement over this window, right button being clicked with
+mouse movement over this window, or right button being clicked with
 control-key being pressed and user doing a handstand whilst whistling
 `Auld Lang Syne'). The general case is the \texttt{bind} function
 which we will see below, but for the simple case of a button being
@@ -64,7 +65,7 @@ clicked, we can use the function
 clicked :: Button a-> IO (Event ())  
 \end{xcode}
 
-The composed event we want to synchronise on is the click of the
+The composed event is the click of the
 button, followed by changing the label. The following code achieves
 the desired effect:
 \begin{code}
@@ -84,8 +85,7 @@ this random string; how exactly this works will be explained below.
 Another function requires an explanation here: \texttt{forever ::
   Event a-> Event a} takes an event, and returns this event composed
 with itself. Thus, synchronising on this event will synchronise on it
-once, then wait for this event occuring again. The effect here is that
-the effect we want to achieve occurs recurrently. Had we left out the
+once, then wait for this event to occur again. Had we left out the
 \texttt{forever}, our program would just wait for one button press,
 change the text of the button once and go on its merry way (in this
 case, terminate). With \texttt{forever}, we have it waiting for the

@@ -80,19 +80,19 @@
 
 \begin{abstract}
   This paper introduces the basics of \HTk, a toolkit to build
-  graphical user interfaces (GUIs) in Haskell. \HTk{} is based on an
+  graphical user interfaces in Haskell. \HTk{} is an
   encapsulation of Tcl/Tk \cite{Ousterhout,Welch}, but we will not
   assume any previous knowledge of Tcl/Tk. The article is meant as a
-  rough guide and introduction to the structure of \HTk; it is not
-  meant as a complete reference manual. Rather, it should give readers
+  rough guide and introduction to the structure of \HTk. It is not
+  meant as a complete reference manual; Rather, it should give readers
   enough information and background to get them started on their first
   \HTk programs, to know which parts of \HTk might be potentially useful
   in the applications they have in mind, what is feasible to build
-  with \HTk and what not, and finally to enable them to find further
+  with \HTk, and finally to enable them to find further
   information quickly in the reference material.
 \end{abstract}
 
-\ifx\pdfoutput\undefined\relax\else\pagebreak\fi
+\newpage
 
 \tableofcontents{}
 
@@ -122,35 +122,38 @@ In \HTk, these two aspects are modelled by \emph{monads}. The static
 aspect is modelled in the \texttt{IO} monad, where all of Haskell's
 external interactions takes place. The dynamic aspect is modelled by
 \emph{events}. For a more complete description of events, we refer to
-\cite{ger:Events}. For the time being, events are an abstract datatype
-with three main operations.
+\cite{ger:Events}, but for the time being, events are an abstract datatype
+with three main operations:
 
-The central operation is 
+\begin{itemize}
+\item The central operation is \emph{synchronisation}
 \begin{verbatim}
 sync :: Event a-> IO a
 \end{verbatim}
 which holds the current thread until an event of type \texttt{Event a}
 occurs.  The basic events will be user interactions, such as clicking
-a button. The sequencing operator
+a button. 
+\item  The \emph{sequencing} operator
 \begin{verbatim}
 (>>>=) :: Event a-> (a-> IO b)-> Event b
 \end{verbatim}
 attaches an IO action to an event; if we synchronize on this event,
-the IO action will be performed after the event occurs. The final
-operator turns an IO action into an event:
+the IO action will be performed after the event occurs. 
+\item Finally, the \emph{always} operator turns an IO action into an event:
 \begin{verbatim}
-always :: IO a-> Event a 
+always :: IO a-> Event a
 \end{verbatim}
-Monads form a monad, with monad composition given by \texttt{>>>=} and
+\end{itemize}
+Events form a monad, with monad composition given by \texttt{>>>=} and
 \texttt{sync}. The monad composition corresponds to event sequencing;
 if we synchronise on an event composed from simple events, we wait for
-each of them in turn. By composing events in this way, complex
-behaviours can be modelled in a single event. 
+each of them in turn. By composing events in this way, fairly complex
+behaviours can be modelled in a single event.
 
 That the dynamic behaviour is not modelled with \texttt{IO} actions
 directly reflects the fact that user interaction in a graphical user
-interface is different from other forms of IO, because it happens
-\emph{asynchronously}.
+interface is different from other forms of I/O, because it happens
+asynchronously.
 
 Further, events allow the user interface to be concurrent in a natural
 and controlled way, leading to a reasonable and still tractable degree
@@ -159,8 +162,7 @@ of concurrency; the function
 spawnEvent :: Event () -> IO (IO ())
 \end{verbatim}
 spawns a concurrent thread which syncronises on the given event. The
-\texttt{IO} action returned kills the concurrent thread; most of the
-time, we will not need this.
+\texttt{IO} action returned kills the concurrent thread.
 
 \input{Mainsimple1.lhs}
 
@@ -168,12 +170,15 @@ time, we will not need this.
 
 \subsection{Structure of this Paper}
 
-The rest of this paper is organized as follows: we will first
-explain the organization of the datatypes modelling the static
-behaviour of the graphical user interface. In
-section~\ref{sec:events}, we will describe events and in particular
-how to generate them from user input. After this, we will describe
-every widget in detail.
+The rest of this paper is organized as follows: we will first explain
+the organization of the datatypes modelling the static behaviour of
+the graphical user interface. In Section~\ref{sec:events}, we will
+describe events and in particular how to generate them from user
+input. After this, we will embark on a guided tour through \HTk's
+widgets (Sect.~\ref{sec:basic-widgets} to
+Sect.~\ref{sec:tix-widgets}), covering basic widgets, menues, editors,
+canvasses, windows and tix widgets, finishing off with an overview of
+\HTk's toolkit.
 
 \section{Elements of \HTk}
 
@@ -197,8 +202,8 @@ The class \href{Packer.html#Container}{\texttt{Container}} designates
 GUI elements into which other GUI elements may be packed.
 
 Instances of \texttt{Container} include \texttt{Toplevel} (windows),
-\texttt{HTk} (Tk's root window), and \texttt{Frame}; furthermore
-\texttt{Canvas}, and and \texttt{Editor} (and a few Tix widgets).
+\texttt{HTk} (Tk's root window), \texttt{Frame}, and furthermore
+\texttt{Canvas}, and \texttt{Editor} (and a few Tix widgets).
 
 The class \texttt{Container} is \emph{abstract} --- it has no class
 functions, and only serves to structure the code. Abstract classes are
@@ -230,7 +235,7 @@ Some configurations are only supported by one particular widget, and
 thus are a simple monomorphic function. However, most configurations
 are supported by many, but not all widgets, and each configuration by
 different ones, and this behaviour is modelled in \HTk by type
-classes. The configuration classes can all be found in the module
+classes. Common configuration classes can be found in the module
 \href{Configuration.html}{\texttt{Configuration}}. For example, the
 text configuration is given by this class:
 \begin{xcode}
@@ -239,7 +244,7 @@ class (GUIObject w, GUIValue v) => HasText w v where
   getText :: HasText w v => w -> IO v
 \end{xcode}
 The class \texttt{GUIObject w} is one of \HTk's most basic classes.
-Its instances are widgets, and other interface elements we will
+Its instances are widgets and other interface elements we will
 encounter later (canvas items, text tags, windows). \texttt{GUIValue
   v} is another basic class, the instances of which are all basic
 datatypes which can be communicated to Tk: \texttt{Int},
@@ -248,7 +253,8 @@ Now, all widgets can be configured with a text are instances of the
 class \texttt{HasText}, such as \texttt{Button}.
 
 
-\subsection{The class \texttt{Destructable}}
+\subsection{The class \texttt{Destroyable}}
+\label{ssec:destroyable}
 
 The class \texttt{Destroyable a} has the main class function
 \begin{xcode}
@@ -256,9 +262,9 @@ The class \texttt{Destroyable a} has the main class function
 \end{xcode}
 which when called will destroy its argument. All GUI elements are
 instances of this class, and calling the destroy function will remove
-them from the screen. In particular, calling destroy on the return
+them from the screen. In particular,  destroying the return
 value of \texttt{initHTk} will close all windows opened by the program
-(i.e. remove the whole GUI).
+(i.e. remove the whole GUI). 
 
 \subsection{Concurrency and the class \texttt{Synchronize}}
 
@@ -267,7 +273,7 @@ function
 \begin{xcode}
   synchronize a :: a-> IO b-> IO b
 \end{xcode}
-implements a \emph{monitor}, like the synonymous method in the
+describes a \emph{monitor}, like the synonymous method in the
 programming language \textsc{Java} \cite{ArnoldGosling}. All GUI
 elements are instances of this class. It allows convenient handling of
 concurrency--- if two IO actions must not interleave, you synchronize
@@ -286,7 +292,7 @@ The abstract data type \texttt{Distance}, implemented in the module
 \href{Geometry.html}{\texttt{Geometry}}, represents distances in \HTk.
 Distances can be specified in \texttt{cm}, \texttt{mm}, \texttt{ic}
 (inches) and \texttt{pp} (points), with functions  \texttt{cm:: Int->
-  Distance}. Moreover, \texttt{Distance} is an instance of
+  Distance} etc. Moreover, \texttt{Distance} is an instance of
 \texttt{Num}, so we can specify the distance 3 (meaning 3 pixels)
 directly. 
 
@@ -295,8 +301,16 @@ directly.
 The abstract data type \texttt{Colour}, implemented in the module
 \href{Geometry.html}{\texttt{Geometry}}, represents colours in
 HTk. Just like distances, the type itself is abstract, but unlike
-distances, there is a class \texttt{ColourDesignator}, the instances
-of which give ways of describing colours, such as:
+distances, there is a class \texttt{ColourDesignator} allowing
+colours to be specified in a flexible manner by overloading. Functions
+expecting a colour as an argument take any instance of
+\texttt{ColourDesignator} as argument, such as 
+\begin{xcode}
+background :: (ColourDesignator c, HasColour w) => c -> Config w 
+foreground :: (ColourDesignator c, HasColour w) => c -> Config w   
+\end{xcode}
+which set the background or foreground of any interface element which
+has a colour (nearly all). Its main instances are:
 \begin{xcode}
 instance ColourDesignator [Char]
 instance ColourDesignator (Int, Int, Int)
@@ -304,8 +318,9 @@ instance ColourDesignator (Double, Double, Double)
 \end{xcode}
 The strings are named colours (\texttt{red}, \texttt{white},
 \texttt{black}, etc.), the tuples are RGB values. (The functions of
-the type classes \texttt{Colour} and \texttt{ColourDesignator} are for
-HTk's internal consumption only.)
+the type classes \texttt{HasColour} and \texttt{ColourDesignator} are
+for HTk's internal consumption only, but annoyingly appear all over
+the documentation.)
 
 \subsubsection{Fonts}
 
@@ -322,11 +337,9 @@ where the five enumerated types are available on most systems. With
 \texttt{Other}, you can directly give a more exotic family such as
 \texttt{clearlyu alternate glyphs}. 
 
-The class
-\href{Font.html#Font.FontDesignator}{\texttt{FontDesignator}} allows
-fonts to be specified in a flexible manner by overloading. This is
-used whenever a font has to be specified, e.g. in a text tag or as a
-configuration for a label widget. Its main instances are the following:
+Just like with colours, there is a class
+\href{Font.html#Font.FontDesignator}{\texttt{FontDesignator}}, the
+instances of which give ways of describing fonts, such as the following:
 \begin{xcode}
 instance FontDesignator FontFamily 
 instance FontDesignator (FontFamily,Int) 
@@ -372,9 +385,10 @@ of the program!
 
 \href{BitMap.html}{Bitmaps} have a foreground and a background. The
 difference between images and bitmaps is that bitmaps are more
-versatile, e.g. you can change the foreground and background. There is
-also a number of predefined bitmaps (\texttt{Hourglass, Questhead},
-etc.) Apart from that, bitmaps are quite boring.
+versatile, e.g. you can change the foreground and background, but only
+have two colours. There is also a number of predefined bitmaps
+(\texttt{Hourglass, Questhead}, etc.) Apart from that, bitmaps are
+quite boring.
 
 \subsubsection{Cursors} 
 
@@ -383,7 +397,7 @@ displayed by the cursor while over this widget, by using the
 \href{BaseClasses.html#BaseClasses.cursor}{\texttt{cursor}}
 configuration. The class \texttt{CursorDesignator} from the module
 \href{Cursor.html}{Cursor} module allows cursors to be specified in an
-overloaded way (like Fonts). The simplest way to get a cursor is to
+overloaded way (like colours and fonts). The simplest way to get a cursor is to
 avail yourself of some of the predefined ones (at least under X
 windows), but you can build your own cursor by giving a bitmap, a
 mask, and colours.
@@ -394,7 +408,7 @@ mask, and colours.
 \label{sec:packing}
 
 As mentioned above, after widgets have been created (with e.g.
-\texttt{newButton}), they will not be displayed yet; this only happens
+\texttt{newButton}), they will not be displayed just yet; this only happens
 after they have been packed. One can use this effect by first creating
 lots of widgets, and then packing them in one go, lessening the
 unpleasant flicker effect occuring when the GUI is built one interface
@@ -407,13 +421,12 @@ them at once. The argument then consists of a sequence of
 \texttt{pack} commands. Unfortunately, the flickering effect cannot be
 totally eliminated.
 
-
 Packing in particular determines the visual layout of the GUI by the
 order in which the widgets are packed, and by packing options. Tk's
 know different packing algorithms (or \emph{geometry managers}, in Tk
-parlance); of these, \HTk supports the standard packer, and the grid
-packer.
-
+parlance); of these, \HTk supports the pack geometry manager, and the grid
+geometry manager. The third, the place geometry manager, could easily
+be added, if you are so inclined.
 
 \subsubsection{The Standard Packer}
 
@@ -434,7 +447,7 @@ data PackOption = Side SideSpec  | Fill FillSpec
 \end{xcode}
 The first two constructors are most important here. The
 \href{PackOptions.html#PackOptions.SideSpec}{SideSpec} specifies where
-the widget is packed (top, bottom, left, right)e, and
+the widget is packed (top, bottom, left, right), and
 \href{PackOptions.html#PackOptions.FillSpec}{FillSpec} specifies in
 which direction it expands to fill the available space.  Bear in mind
 that widgets are packed as tight as possible, and that once packed,
@@ -449,17 +462,16 @@ element is expanded (i.e. the window is resized), and \texttt{Anchor}
 specifies a gravity (a side to which the widgets stick). The rest
 create a padding border around the widget in various directions.
 
-It is quite normal that most of the times the packing will not look
+It is quite normal that most of the time the arrangement of the
+widgets will not look
 like intended, and you will need to use frame widgets (see
-\ref{ssec:frames}).
+Section~\ref{ssec:frames}).
 
 \subsubsection{The Grid Packer}
 
 The grid packer divides the container widget into a grid, and allows
 placement of widgets relative to that grid. To pack a single widget
-use the 
-\href{Packer.html#Packer.grid}
-{following function:}
+use the following function:
 \begin{xcode}
 grid :: Widget w => w -> [GridPackOption] -> IO ()
 \end{xcode}
@@ -469,7 +481,7 @@ The datatype
 {\texttt{GridPackOptions}} specifies the packing options for the grid
 packer.
 
-Note that within the same container you cannot use different packing
+Within the same container you cannot use different packing
 algorithms. The first widget packed into a container defines the
 packing for this container.
 
@@ -501,6 +513,8 @@ Bindings are generated by calling one of \texttt{clicked},
 flexible, as can be seen by its complex type.
 
 \subsection{Simple Clicks}
+\label{ssec:teenage-clicks}
+
 Simple interface elements such as buttons and menu entries which
   are instances of the class
   \href{HTk.html#HTk.HasCommand}{\texttt{HasCommand}}. For these, we
@@ -509,34 +523,38 @@ Simple interface elements such as buttons and menu entries which
 clicked :: HasCommand w => w -> IO (Event ())
 \end{xcode} 
 The event here occurs when the element is clicked. The event does
-not have any additional information. 
+not have any additional information --- a click is just a click, after
+all.
 
 \subsection{Simple Binds}
 For all GUI elements, the function
-  \href{HTk.html#HTk.bindSimple}{\texttt{bindSimple}} 
+  \href{HTk.html#HTk.bindSimple}{\texttt{bindSimple}} provides a
+  simple way of binding. Its arguments are the GUI element concerned,
+  and a specification of the kind of events we are interested in:
 \begin{xcode}    
 bindSimple::GUIObject wid => wid -> WishEventType 
                                  -> IO (Event (), IO ())
 \end{xcode}
-where \href{HTk.html#HTk.WishEventType}{\texttt{WishEventType}} is an
+\href{HTk.html#HTk.WishEventType}{\texttt{WishEventType}} is an
 algebraic data type describing the kind of event we would like to bind
 to, much along the lines of Tk's events which in turn are given by X
 events:
 \begin{xcode}
 data WishEventType =
-   Activate | 
    ButtonPress (Maybe BNo) | ButtonRelease (Maybe BNo) | 
-   Circulate |
-   Colormap | Configure | Deactivate | Destroy | Enter | Expose |
-   FocusIn | FocusOut | Gravity | 
+   Motion | 
+   Enter  | Leave | 
    KeyPress (Maybe KeySym) | KeyRelease (Maybe KeySym)|
-   Motion | Leave | Map | Property | Reparent | Unmap | 
+   Activate | Circulate | Colormap | Configure | Deactivate | 
+   Destroy | Expose | FocusIn | FocusOut | Gravity | 
+   Map | Property | Reparent | Unmap | 
    Visibility deriving (Show,Eq,Ord)   
 \end{xcode}
 Each constructor corresponds to a different event, such as
 \begin{itemize}
 \item mouse buttons pressed and released (\texttt{ButtonPress (Maybe
-    Int)}, \texttt{ButtonRelease (Maybe Int)}),
+    BNo)}, \texttt{ButtonRelease (Maybe BNo)}, where \texttt{BNo} is
+  just \texttt{Int}),
 \item mouse movements (\texttt{Motion}),
 \item the mouse entering or leaving a GUI element (\texttt{Enter},
   \texttt{Leave}),
@@ -594,14 +612,15 @@ both relative to the window in which the event occurs, and the root
 window (i.e. the screen), and the button being pressed. 
 
 \section{Basic Widgets}
+\label{sec:basic-widgets}
 
 In the following sections, we give a brief tour around \HTk's widgets.
-These are essentially Tk's widgets. We have simple widgets which are
-explained in short sentences of words with less than three syllables,
-menues, text widgets, and canvasses, which require a slightly longer
-explanation.
+We have simple widgets which are explained in short sentences of words
+with less than three syllables, menues, text widgets, and canvasses,
+which require a slightly longer explanation.
 
-There are more widgets: if you can use Tix (you should anyway, it
+There are more widgets: if you can use Tix (an enhance version of
+Tcl/Tk; you should use it anyway, it
 looks slightly less clunky than plain Tcl/Tk), there are the useful
 tab and pane widgets. And because \HTk is an abstraction on top of Tk,
 there are a variety of so-called \emph{mega-widgets} which are
@@ -645,17 +664,17 @@ can use the grid packer inside a window using the standard packer.
   and the justification (class \texttt{HasJustified}) can be
   specified. The \texttt{aspect} configuration (for messages only)
   specifies the width of the text as a percentage of the height; so
-  \texttt{aspect 200} gives a message of width twice its height.
+  \texttt{aspect 200} gives a message twice as wide as high.
 
 \input{Mainentry.lhs} %% Entry widgets.
 
 \input{Mainlist.lhs} %% Scrollbars, List boxes.
 
-
+\input{Mainmenu.lhs} %% Menues
 
 \section{The Editor}
 
-\label{ssec:textwidget}
+\label{sec:textwidget}
 
 An editor (also called a text widget) is a very flexible and powerful
 widget to display and edit texts. As opposed to labels and messages,
@@ -669,7 +688,7 @@ Editors are created with \texttt{newEditor}. The datatype
 \texttt{Editor} is monomorphic, but editors have a value (their
 textual content), and are thus members of the class \texttt{HasValue}.
 
-Besides the usual configuration options, editors provide the following:
+Besides the usual, editors provide configurations to
 \begin{itemize}
 \item set the spacing with the
   methods of the class
@@ -740,7 +759,7 @@ marking it with the mouse button. Similarly, in list boxes, entries
 can be selected. Abstractly, these kind of selections are modelled
 with the selection type classes (module
 \href{Selection.html}{\texttt{Selection}}). There are five classes, of
-which \texttt{HasSelection}, \texttt{HaseSelectionIndex} and
+which \texttt{HasSelection}, \texttt{HasSelectionIndex} and
 \texttt{HasSelectionIndexRang} let you set the selection, and
 \texttt{HasSelectionBaseIndex} and \texttt{HasSelectionBaseIndexRange}
 let you query the selection. The selected text, entries \textit{etc.}
@@ -777,8 +796,8 @@ the user clicks the text, something exciting happens. This allows you
 very easily to implement hypertext, references and so on. 
 
 When you insert into an editor, the text tags are accommodated
-appropriately; i.e. if you insert into the middle of a text widget,
-then the end of the tag is moved.
+appropriately; i.e. if you insert into the middle of a text tag,
+then the end of the tag is moved accordingly.
 
 \subsection{Editing}
 
@@ -793,12 +812,13 @@ but be warned: \emph{You can only change the text of enabled editors!}
 Trying to insert text into a disabled editor is one of the most common
 Tk errors; it will not generate a run-time error but just silently
 fail to change the text of the editor, leaving the programmer in
-unbelieving dismay.
+puzzled dismay.
 
-The example \texttt{simple/Maintexttag.hs} shows what you can do with
-text tags, and how to use them. The module \texttt{MarkupText} allows
-a more abstract approach to displaying text with differents fonts,
-hyperreferences and so on (see below).
+The example \texttt{htk/examples/simple/Maintexttag.hs} shows what you
+can do with text tags, and how to use them. The module
+\texttt{MarkupText} from the toolkit allows a more abstract approach
+to displaying text with differents fonts, hyperreferences and so on
+(see Section~\ref{sec:toolkit} below). 
 
 \subsection{Marks and More}
 
@@ -815,8 +835,15 @@ mark specifies wether when text is inserted at the exact position of
 the text, it should move to the left, or the right.
 
 There's more you can do with an editor. For one, you can also insert
-widgets into the text (this is called an embedded window), so you can
-have buttons (and yes, even another editor) inside an editor. 
+widgets into the text (this is called an \emph{embedded window}), with
+the function 
+\begin{xcode}
+createEmbeddedTextWin :: (HasIndex Editor i BaseIndex, Widget w) =>
+                         Editor -> i -> w ->
+                         [Config EmbeddedTextWin] -> IO EmbeddedTextWin
+\end{xcode}
+so you can have buttons, entries, and even another editor inside an
+editor (see the module \href{EmbeddedTextWin.html}{\texttt{EmbeddedTextWin}}).
 
 Further, you can search the text inside an editor (with the
 \texttt{search} function), read and write the contents to and from a
@@ -824,6 +851,7 @@ file, scroll the contents to a specific position, and much more as
 found in the module \href{Editor.html}{\texttt{Editor}}.
 
 \section{The Canvas Widget}
+\label{sec:canvas-widget}
 
 A canvas is a widget to draw on, i.e. we can put graphical objects on
 it (lines, polygons, circles and ellipses, wee images, and even whole
@@ -832,8 +860,9 @@ drawing area can be far larger than the displayed area.
 
 The graphical objects on a canvas are called \emph{canvas items}. Just
 like for widgets, the different kinds of canvas items are represented
-by different types. Canvas items can be configured, but of course the
-configurations are mostly different from widget configurations.
+by different types. Canvas items can be configured (but of course the
+configurations are mostly different from widget configurations), and
+we can bind events to them.
 
 \subsection{Canvas Item Configurations}
 
@@ -843,7 +872,7 @@ The most important configurations, provided by all canvas items, are:
 \item \texttt{HasCoords} sets or returns the coordinates of the canvas
   item on the canvas. Nearly all canvas items (except for lines) have
   a position (\texttt{HasPosition}), and many have a size
-  \texttt{HasSize}.
+  (\texttt{HasSize}).
 \item \texttt{FilledCanvasItem} allows to configure the filling
   colour, outline colour, stipple and width of the outline of the
   canvas item. Note that for some canvas item (e.g. lines), setting
@@ -854,6 +883,15 @@ The most important configurations, provided by all canvas items, are:
 
 \subsection{Canvas Items} 
 
+\begin{wrapfigure}[15]{r}{7cm}
+  \begin{center}
+    \includegraphics[width=6cm]{img/screenshot-canvas}    
+  \end{center}
+  \caption{Canvas items: 
+    a text item, three image items, a line item, an arc and an
+    embedded window (a button).}
+  \label{fig:xmas-canvas}
+\end{wrapfigure}
 The following are the types of canvas items:
 
 \begin{itemize}
@@ -901,20 +939,84 @@ the so-called \textit{search specification}, so you can select the
 canvas item closest to a given canvas location etc. 
 
 For more on canvasses, see the examples under
-\texttt{examples/canvas}. \texttt{MainxmasCanvas.hs} shows a variety
-of canvas items, and how to set up a cheap and cheerful drag-and-drop.
+\texttt{htk/examples/canvas}. \texttt{MainxmasCanvas.hs} (screenshot
+Fig.~\ref{fig:xmas-canvas}) shows a variety of canvas items, and how
+to set up a cheap and cheerful drag-and-drop.
 
 \section{Windows}
+\label{sec:windows}
 
-What is commonly known as a window is called a \emph{toplevel} in Tk
-and \HTk.
+What is commonly known as a window is called a \emph{toplevel} widget
+in Tk and \HTk. They are created with a function 
+\begin{xcode}
+createToplevel :: [Config Toplevel] -> IO Toplevel
+\end{xcode}
+but (of course) they need not be packed, they just appear. Toplevels
+are containers (instances of \texttt{Container}), so you can just pack
+other widgets into them. They are closed by destroying them (see
+Sect.~\ref{ssec:destroyable}). 
 
-\begin{itemize}
-\item window managers
-\item focus
-\end{itemize}
+The familiar properties expected from a window are all in the class 
+\texttt{Window} from module \href{Window.html}{\texttt{Window}}. Its
+size can be configured either by classes \texttt{HasGeometry} or
+\texttt{HasPosition} and \texttt{HasSize}, and its title by the class
+\texttt{HasText}. The \texttt{screen} configuration sets the screen
+the window appears on (the display in X windows speak).
+
+In Tk, toplevels can have a menu attached which is the \emph{system
+  menu} for this window. \HTk{} does not support this, but it should
+be easy to do.
+
+\subsection{Window Managers}
+
+Windows are managed by the \emph{window manager}. It controls the size
+and location of the windows appearing on the screen, trying to mediate
+between the slew of applications vying for the user's attention. 
+
+This means that even though the program can request a particular
+geometry (i.e. size and location), it is not guaranteed to get it; in
+particular, the window manager may decide to place the window
+somewhere else entirely. 
+
+\HTk{} does not support all of Tk's commands to communicate with the
+window manager, but most of the important ones. These are the class
+functions of the \texttt{Window} class, as mentioned above, and the
+\href{Screen.html}{\texttt{Screen}} module, which allows you to query
+the properties of the display (e.g. height and width).
+
+\subsection{Focus}
+\label{ssec:focus}
+
+The \emph{focus} determines which window receives keyboard
+events. It is managed by the window manager. Sometimes, it is
+necessary for an application to \emph{grab the focus}, i.e. require
+that all input go to this window before proceeding. For example when
+implementing a window which asks the user to confirm a choice, you do
+not want to user to start any other interaction, you want them to
+answer the question. Such a window, which has to answered before the
+program is allowed to proceed, is called \emph{modal}. 
+
+Grabbing the focus is done with the functions \texttt{grabLocal} or
+\texttt{grabGlobal} from the module
+\href{Focus.html}{\texttt{Focus}}. A local grab means that the user
+cannot interact with any other window from the same application; a
+global grab means that the use cannot interact with any other
+window. After grabbing the focus, you should return the grab with
+\texttt{returnGrab}. 
+
+Global grabs are dangerous, because if you forget to return the grab
+(or even worse, your application crashes), the user is effectively
+frozen out. On the other hand, for example when requiring sensitive
+information such as passwords or credit card numbers, they are a good
+idea to keep the user from typing his password into an chat window. 
+
+The toolkit (see Sect.~\ref{sec:toolkit}) offers the modules
+\href{ModalDialog.html}{\texttt{ModalDialog}} and 
+\href{DialogWin.html}{\texttt{DialogWin}} which implement modal
+dialogs, and various oft-used dialog windows. 
 
 \section{Tix and Tix Widgets}
+\label{sec:tix-widgets}
 
 Tix is an enhanced version of Tcl/Tk; in particular, it replaces
 Tcl/Tk's rustic default looks by something a bit more
@@ -955,7 +1057,7 @@ Here is an overview over the Tix widgets encapsulated by \HTk:
   the left (the mailboxes or the bookmarks) by grabbing the dividing
   line and moving it horizontally. For its usage, see
   \href{PanedWindow.html}{\texttt{PanedWindow}} and the example
-  \texttt{MainPanedWindow.hs} in \texttt{examples/tix}.
+  \texttt{MainPanedWindow.hs} in \texttt{htk/examples/tix}.
 
 \item A \href{NoteBook.html}{note book} has a number of pages
   with tabs on top. It displays one page at a time, selected by the
@@ -971,8 +1073,8 @@ Here is an overview over the Tix widgets encapsulated by \HTk:
   but with not quite as versatile selection schemes. 
 \end{itemize}
 
-Fig.~\ref{fig:tix-widgets} shows notebooks, labelled frames and combo
-boxen. 
+Fig.~\ref{fig:tix-widgets} shows notebooks, labelled frames and a combo
+box. 
 
 There are many more Tix widgets, but we have found not all of them as
 immediately useful as the ones above. Feel free to encapsulate more
@@ -984,23 +1086,51 @@ which is much nicer.
 
 \label{sec:toolkit}
 
-The toolkit contains a number of so-called \emph{mega-widgets}; these
-are widgets which are implemented in Haskell rather than Tcl/Tk. We
-just mention the these widgets here, without explaining them in
-detail, and show some screen shots. For most of them, their usage is
-pretty obvious. 
+The toolkit contains a number of so-called \emph{mega-widgets} and
+\emph{dialog windows}. Mega-widgets are are widgets which are implemented in
+Haskell rather than Tcl/Tk, and a dialog is a window querying the user
+for information. We just mention these here, without explaining them
+in detail, and show some screen shots. For most of them, their usage
+is pretty obvious.
 
-The examples mentioned below can be found in
-\texttt{examples/toolkit}.
+The examples mentioned below can be found in \texttt{htk/examples/toolkit}.
 
-\begin{itemize}
+\subsection{Dialog Windows}
 
-\item The module \texttt{DialogWin} contains an abstraction for
-  dialogue windows, and built on top of that, frequently used windows,
-  such as error, warning, information, and confirmation windows. See
-  the example in \texttt{Maindialog.hs}.
+\begin{figure}[htbp]
+  \begin{center}      
+    \includegraphics[width=\textwidth]{img/screenshot-dialogs}
+    \caption{Dialog windows: alert, information, confirmation and error}
+    \label{fig:dialogs}
+  \end{center}
+\end{figure}
 
-\item The module \texttt{MarkupText} provides an easier, more abstract
+The module \texttt{ModalDialog} builds  modal dialogue
+(see Sect.~\ref{ssec:focus}) with toplevels (see
+Sect.~\ref{ssec:focus}). The module \texttt{DialogWin} contains an
+abstraction for dialogue windows, and built on top of that, frequently
+used windows, such as alert, information, confirmation windows and
+windows, and much more (Fig.~\ref{fig:dialogs}). See the example in
+\texttt{Maindialog.hs}.
+
+
+The module \texttt{FileDialog} implements a dialog query for a file
+name while browsing the directory. The file dialog is vaguely in the
+style of GTK+, with directories on the left and files on the
+right. See the example in \texttt{Mainfiledialog.hs}, and the
+screenshot in Fig.~\ref{fig:toolkit}.
+
+\subsection{Mega-Widgets}
+
+\begin{figure}[htbp]
+   \begin{center}
+     \includegraphics[width=\textwidth]{img/screenshot-toolkit}
+     \caption{Toolkit components: Markup text, spin buttons, tree lists and a file dialog.}
+     \label{fig:toolkit}
+   \end{center}
+\end{figure}
+
+  The module \texttt{MarkupText} provides an easier, more abstract
   and flexible way of filling an editor with markup text. For example,
   you can simply write 
 \begin{xcode}
@@ -1010,36 +1140,57 @@ The examples mentioned below can be found in
  without needing to count the indices for the text tags
  manually. Hypertext, embedded widgets, mathematical symbols and much
  more are also supported. See also the example in \texttt{Mainmarkup.hs}.
- 
-\item A \texttt{SpinButton} is a entry with two arrows which can
+
+  A \texttt{SpinButton} is a entry with two arrows which can
   increment or decrement the entry's value. See the example in
   \texttt{Mainspinbutton.hs}.
   
-\item A \texttt{TreeList} is a graphical representation of a tree
+  A \texttt{TreeList} is a graphical representation of a tree
   structure. It allows subtrees to be hidden or shown. One popular use
   of this is to display the file system (see example
-  \texttt{Maintreelist}), but the possibilities are manyfold.
+  \texttt{Maintreelist.hs}), but the possibilities are manyfold.
+
+  The module \texttt{LogWin} implements a log window, a scrolled
+  toplevel in which text is displayed, to which the program can
+  append. The user can clear the whole text, or save it to a file. 
+
+\subsection{Notepads and GenGUI}
   
-\item The \texttt{Notepad} is a canvas which displays \emph{items}. An
+  The \texttt{Notepad} is a canvas which displays \emph{items}. An
   item is given by the class \texttt{CItem}; it has a name and an
   icon. The notepad lets the user arrange the icons by dragging them
   around, and allows drag-and-drop between items.
 
-\item The generic \texttt{GenGUI} interface allows the visualisation
+  The generic \texttt{GenGUI} interface allows the visualisation
   of items which are arranged in a hierarchical structure. It uses a
   tree list to display the hierarchy, a notepad to display all items,
   and an editor to display a single item selectable by
-  double-clicking. See the examples in \texttt{examples/gengui}.
+  double-clicking. See the examples in \texttt{htk/examples/gengui}.
 
-\item The module \texttt{LogWin} implements a log window, a scrolled
-  toplevel in which text is displayed, to which the program can
-  append. The user can clear the whole text, or save it to a file. 
+\subsection{Forms and Menus}
 
-\item \texttt{ModalDialog.hs} takes a toplevel (i.e. a window), and
-  implement a modal dialogue with it. A window is called \emph{modal}
-  if it has be answered before the program is allowed to proceed.
+\label{ssec:forms-menus}
 
-\item Small mega-widgets: 
+  The module \texttt{SimpleForm} implements forms in a simple, but
+  typed manner. Roughly spoken, a form consists of pairs of a label
+  and an entry, radio button, menu or other widget. The possible
+  values entered by the user can be sanity-checked with so-called
+  guards. See the example in \texttt{Mainsimpleform.hs}.
+
+  The module \texttt{MenuType} gives an abstract (and rather more
+  user-friendly way) of describing menus. It does not support radio
+  buttons yet, but potentially you might want to use to build menus
+  rather than Tk's slightly convoluted way (remember
+  Sect.~\ref{sec:menues}). \texttt{HtkMenu} implements
+  these for \texttt{HTk} (i.e. \texttt{MenuType} are the types, and
+  \texttt{HTk} menu the implementation); see the example in
+  \texttt{Mainsimplemenu.hs}.
+
+\subsection{Small Mega-Widgets}
+
+These are small but rather useful mega-widgets. We just mention them
+briefly: 
+
   \begin{itemize}
   \item A \texttt{ScrollBox} is a scrollable widget inside a box scroll
     bars attached.
@@ -1051,8 +1202,8 @@ The examples mentioned below can be found in
     (ideally of the same size showing an image, but this is not
     enforced.) 
   \end{itemize}
-  
-\end{itemize}
+
+
 
 \bibliography{intro}
 \bibliographystyle{plain}

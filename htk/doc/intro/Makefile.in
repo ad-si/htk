@@ -16,9 +16,9 @@ dochere : intro.pdf intro.ps
 # dvi/ps does not depend on img/hsMines/screenshotXX.eps because
 # otherwise make tries to remake them from .png's, which fails 
 # because of too many colours and breaks the .eps files -- sigh.
-intro.dvi: intro.bbl img/intro-title.eps img/screenshot-tixwidgets.eps 
+intro.dvi: intro.bbl img/intro-title.eps img/screenshot-tixwidgets.eps img/screenshot-canvas.eps img/screenshot-dialogs.eps img/screenshot-listbox.eps img/screenshot-toolkit.eps
 
-intro.pdf: intro.bbl img/intro-title.png img/screenshot-tixwidgets.eps img/hsMines/screenshot01.png img/hsMines/screenshot02.png img/hsMines/screenshot03.png img/hsMines/screenshot04.png img/hsMines/screenshot05.png 
+intro.pdf: intro.bbl img/intro-title.png img/screenshot-tixwidgets.eps img/hsMines/screenshot01.png img/hsMines/screenshot02.png img/hsMines/screenshot03.png img/hsMines/screenshot04.png img/hsMines/screenshot05.png img/screenshot-canvas.png img/screenshot-dialogs.png img/screenshot-listbox.png img/screenshot-toolkit.png
 
 .PHONY : displaytheseexports
 
