@@ -6,7 +6,7 @@ SRCS       = VersionDB.hs ViewType.hs CodedValue.hs \
    View.hs AttributesType.hs DisplayParms.hs GlobalRegistry.hs Folders.hs \
    DisplayView.hs Files.hs VersionGraphService.hs VersionGraph.hs \
    Initialisation.hs CallEditor.hs CreateObjectMenu.hs Registrations.hs \
-   ViewFileSystem.hs GetAttributesType.hs
+   ViewFileSystem.hs GetAttributesType.hs GlobalMenus.hs
 
 SUBDIRS    = test
 

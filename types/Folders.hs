@@ -52,6 +52,7 @@ import GlobalRegistry
 import CreateObjectMenu
 import DisplayView
 import GetAttributesType
+import GlobalMenus
 
 ------------------------------------------------
 -- The Display Type
@@ -98,29 +99,6 @@ instance DisplayType FolderDisplayType where
 displayTypeRegistry :: GlobalRegistry FolderDisplayType
 displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
 {-# NOINLINE displayTypeRegistry #-}
-
-newObjectTypeMenu :: View -> IO GlobalMenu
-newObjectTypeMenu view =
-   do
-      wrappedObjectTypeTypes <- getAllObjectTypeTypes
-      let
-         menuItem :: WrappedObjectTypeTypeData -> Maybe (String,IO ())
-         menuItem (WrappedObjectTypeTypeData objectType) =
-            fmap
-               (\ (label,mkAction) -> (label,mkAction view))
-               (createObjectTypeMenuItemPrim objectType) 
-
-         menuItems :: [(String,IO ())]
-         menuItems = catMaybes (map menuItem wrappedObjectTypeTypes)
-
-         menu :: MenuPrim (Maybe String) (IO ())
-         menu = Menu (Just "Create Object Type")
-            (map (\ (label,action) -> Button label action) menuItems)
-
-         globalMenu :: GlobalMenu
-         globalMenu = GlobalMenu menu
-
-      return globalMenu
 
 -- ------------------------------------------------------------------
 -- FolderType and its instance of HasCodedValue and HasAttributesType

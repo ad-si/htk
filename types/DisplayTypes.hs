@@ -29,6 +29,11 @@ module DisplayTypes(
       -- Decode the display types in this codedValue and store them.
    exportDisplayTypes, -- :: View -> IO CodedValue
       -- Encode the display types in a view.
+
+   getAllDisplayTypeTypes, -- :: IO [WrappedDisplayType]
+      -- Get all registered type-types for displays
+   getAllDisplayTypes, -- :: View -> IO [WrappedDisplayType]
+      -- Get all display types currently registered in this view.
    ) where
 
 
@@ -39,11 +44,13 @@ import Computation
 import Dynamics
 import Source
 
+import GraphDisp
 import GraphConfigure
 
 import ViewType
 import CodedValue
 import GlobalRegistry
+import {-# SOURCE #-} qualified DisplayView
 
 class HasCodedValue displayType => DisplayType displayType where
    displayTypeTypeIdPrim :: displayType -> String
@@ -63,6 +70,58 @@ class HasCodedValue displayType => DisplayType displayType where
    graphParmsPrim :: HasGraphConfigs graphParms 
       => View -> displayType -> Source String -> IO graphParms
    -- The source will contain the current user title for this version.
+
+   createDisplayTypeMenuItemPrim :: displayType -> Maybe (String,View -> IO ())
+      -- This is a menu item (label + creation function) which creates a new
+      -- display type and inserts it in the global registry.  We do not look
+      -- at the argument.
+
+      -- This is what the outside actually calls, but the implementation may
+      -- instead choose to provide createObjectTypeMenuItemNoInsert.
+
+   createDisplayTypeMenuItemNoInsert 
+      :: Maybe (String,View -> IO (Maybe displayType))
+      -- This is a menu item (label + creation function) which creates a new
+      -- object type but does NOT insert it in the global registry.
+      --  
+
+   openDisplayMenuItemPrim :: 
+      GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+         arc arcType arcTypeParms
+      => (Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms) 
+      -> displayType 
+      -> Maybe (String,View 
+         -> IO (Maybe (DisplayView.DisplayedView graph graphParms node 
+            nodeType nodeTypeParms arc arcType arcTypeParms)))
+
+   -- Default values
+
+   createDisplayTypeMenuItemPrim badDisplayType =
+      fmap
+         (\ (label,createAct0) ->
+            let
+               createAct1 view =
+                  do
+                     displayTypeOpt <- createAct0 view
+                     case displayTypeOpt of
+                        Nothing -> done
+                        Just (displayType :: displayType) ->
+                           do
+                              let 
+                                 registry 
+                                    = displayTypeGlobalRegistry displayType
+                                 key = displayTypeIdPrim displayType
+                              addToGlobalRegistry registry view key displayType
+            in
+               (label,createAct1)
+            )
+         createDisplayTypeMenuItemNoInsert
+
+
+   createDisplayTypeMenuItemNoInsert = Nothing
+   openDisplayMenuItemPrim _ _ = Nothing
+
 
 
 -- ------------------------------------------------------------------
@@ -246,3 +305,27 @@ instance HasCodedValue WrappedDisplayType where
 decodeIO' :: DisplayType displayType => displayType -> CodedValue -> View ->
    IO (displayType,CodedValue)
 decodeIO' _ codedValue0 view = safeDecodeIO codedValue0 view
+
+-- -----------------------------------------------------------------
+-- Extract all display types
+-- -----------------------------------------------------------------
+
+getAllDisplayTypeTypes :: IO [WrappedDisplayType]
+getAllDisplayTypeTypes =
+   do
+      contents <- listRegistryContents displayTypeDataRegistry
+      return (map snd contents)
+
+getAllDisplayTypes :: View -> IO [WrappedDisplayType]
+getAllDisplayTypes view =
+   do
+      allDisplayTypeTypes <- getAllDisplayTypeTypes
+      allDisplayTypesLists <- mapM
+         (\ (WrappedDisplayType displayType) ->
+            do
+               let globalRegistry = displayTypeGlobalRegistry displayType
+               displayTypes <- getAllElements globalRegistry view
+               return (map WrappedDisplayType displayTypes)
+            )
+         allDisplayTypeTypes
+      return (concat allDisplayTypesLists)

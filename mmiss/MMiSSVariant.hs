@@ -17,6 +17,7 @@ module MMiSSVariant(
    newEmptyVariantDict,
    variantDictSearch,
    addToVariantDict,
+   variantAttributesType,
    ) where
 
 import Maybe
@@ -30,6 +31,7 @@ import Registry
 
 import CodedValue
 import BasicObjects
+import AttributesType
 
 ---
 -- variantAttributes is the list of all attributes to be classed as
@@ -44,6 +46,17 @@ variantAttributes = ["language","formalism","level-of-detail",
 variantAttributesArray :: Array Int String
 variantAttributesArray = 
    listArray (1,length variantAttributes) variantAttributes
+
+-- -------------------------------------------------------------------
+-- Here are the variantAttributes as an AttributesType.
+-- -------------------------------------------------------------------
+
+variantAttributesType :: AttributesType
+variantAttributesType =
+   foldl
+      (\ attType name -> needs (mkAttributeKey name) "" attType)
+      emptyAttributesType
+      variantAttributes
 
 -- -------------------------------------------------------------------
 -- The impure interface
