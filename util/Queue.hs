@@ -23,10 +23,6 @@ DESCRIPTION   :
       removeQ :: Queue a -> Maybe (a,Queue a) -- pop from queue.
       insertAtEndQ :: Queue a -> a -> Queue a 
       -- undo the effect of the previous removeQ.
-  
-      headQ,tailQ and isEmptyQ are used very inefficiently in
-      Buffer.hs but this module appears to be obsolete anyway. 
-
    ######################################################################### -}
 
 
@@ -38,12 +34,13 @@ module Queue (
         isEmptyQ,
         insertQ,
         removeQ,
-        insertAtEndQ
+        insertAtEndQ,
+
+        listToQueue,
+        queueToList,
         ) where
 
 import Maybes
-import Debug(debug)
-
 
 -- --------------------------------------------------------------------------
 -- Data Type
@@ -62,18 +59,6 @@ instance Eq a => Eq (Queue a) where
 
 instance Functor Queue where
         fmap f (Queue l1 l2) = Queue (map f l1) (map f l2)
-
-{-
-instance Monad Queue where
-        return x = Queue [x] []
-        (Queue fl rl) >>= k  = Queue (concat (map k fl)) (concat (map k rl))
-
-instance MonadZero Queue where
-        zero = Queue [] []
-
-instance MonadPlus Queue where
-        (Queue fx rx) ++ (Queue fy ry) = Queue (fx ++ reverse rx ++ fy) ry
--}
 
 -- --------------------------------------------------------------------------
 -- Operations
@@ -126,3 +111,22 @@ removeQ (Queue fl rl ) = Just (head rl, Queue fl (tail rl))
 
 insertAtEndQ :: Queue a -> a -> Queue a 
 insertAtEndQ (Queue fl rl) next = Queue fl (next:rl)
+
+-- --------------------------------------------------------------------------
+-- Converting to and from lists
+-- --------------------------------------------------------------------------
+
+
+---
+-- Converts a list to a queue with the first element of the list the
+-- first element of the queue.
+listToQueue :: [a] -> Queue a
+listToQueue xs = foldl insertQ emptyQ xs 
+
+---
+-- Inverts listToQueue
+queueToList :: Queue a -> [a]
+queueToList (Queue fl rl) = revAppend fl rl
+   where
+      revAppend = flip (foldl (flip (:))) 
+      -- point-free programming at its worst . . .

@@ -72,6 +72,7 @@ import Synchronized
 import FdRead
 import ChildProcess
 import BSem
+import InfoBus
 
 import ReferenceVariables
 import EventInfo
@@ -261,13 +262,14 @@ data Wish = Wish {
    destroyWish :: IO (), -- Command to destroy this Wish instance.
 
 
-   bufferedCommands :: MVar (Int,TclScript)
+   bufferedCommands :: MVar (Int,TclScript),
       -- The integer indicates if buffering is going on.
       --    If non-zero it is.  When we start new buffering, we
       --    increment the integer.
       -- The TclScript contains the current contents of the buffer
       --    IN REVERSE ORDER.
       -- If the integer is 0, the TclScript is [].
+   oID :: ObjectID
    }
 
 type TclCmd = String
@@ -281,6 +283,9 @@ data TclMessageType = OKType | ERType | COType | EVType deriving (Eq,Ord,Show)
 -- ----------------------------------------------------------------
 -- wish instances
 -- ----------------------------------------------------------------
+
+instance Object Wish where
+   objectID wish = oID wish
 
 instance Destroyable Wish where
    destroy wish = destroyWish wish
@@ -368,6 +373,7 @@ newWish =
                -- Wish reactor will be garbage collected.
       destroyWish <- doOnce destroyWish1
       bufferedCommands <- newMVar (0,[])
+      oID <- newObject 
       let
          wish = Wish {
             commands = commands,
@@ -379,9 +385,12 @@ newWish =
             readWish = readWish,
             writeWish = writeWish,
             destroyWish = destroyWish,
-            bufferedCommands = bufferedCommands
+            bufferedCommands = bufferedCommands,
+            oID = oID
             }
       spawnEvent eventForwarder
+
+      registerTool wish -- so that shutdown works.
 
       return wish
 
