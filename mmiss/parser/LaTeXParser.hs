@@ -1,10 +1,11 @@
 module LaTeXParser (
    latexDoc,
    parseMMiSSLatex, 
-   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
+   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
+   -- old :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, 
-   -- new :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
+   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
    -- The same, for a file.
    makeMMiSSLatex,
    -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
@@ -53,6 +54,7 @@ import qualified Dynamics
 import Computation hiding (try)
 import ParsecError
 import EmacsContent
+import EntityNames
 import AtomString
 import qualified CodedValue
 -- import EmacsEdit(TypedName)
@@ -141,6 +143,20 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeTextFragment","includeText
 mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
 
 
+-- specialTreatmentInPreamble contains all Commands which are specially treated in the process
+-- of generation a MMiSSLaTeX-Preamble out of the Fragments collected before the \begin{document}:
+
+specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import"]
+
+
+-- Die beiden folgenden Funktionen legen den String fest, der den Anfang und das Ende der
+-- von MMiSS generierten Input-Preamble markiert. Zum Vergleich wird der gesamte String
+-- verwendet:
+
+startInputPragma = "%% MMiSSLaTeX input preamble"
+endInputPragma = "%% End of MMiSSLaTeX input preamble"
+
+
 
 ---------------------------------------------------------------------------------------------
 --
@@ -177,6 +193,7 @@ attribute = do spaces
                spaces
                v <- choice ((delimitedValue key):((value ",]"):[])) 
                     <?> "value for attribute '" ++ key ++ "'"
+               spaces
                return (key, v)
 
 delimitedValue :: String -> GenParser Char st String
@@ -223,8 +240,11 @@ optionParser = commaSep singleOptParser
 singleOptParser = many (noneOf "],")
 
 
--- begin erkennt den Namen einer Umgebung (id)
+-- **************************************************************************************
+--
+-- Hier 
 
+-- begin erkennt den Namen einer Umgebung (id)
 begin :: GenParser Char st String
 begin = do  try (string "begin")
             spaces
@@ -232,7 +252,6 @@ begin = do  try (string "begin")
             return(c)
                             
 -- end  ueberprueft, ob als naechstes ein \end{id} in der Source auftaucht.
-
 end :: GenParser Char st String
 end = do backslash
          string "end"
@@ -387,22 +406,34 @@ lParams id l
                            versionAtts = [("versiondate", versionDate)]
                        in return(optionAtts ++ nameAtts ++ versionAtts)
          return(LParams [] attributes Nothing Nothing)
-
+{--
  | (id == "Import") = 
       do p <- try(between (char '{') (char '}') idParser)
                 <?> ("Missing Argument for \\ImportPath.")
          return (LParams [(SingleParam [(Other p)] '{')] [] Nothing Nothing)
+--} 
+  | otherwise = do optionStr <- option "" (choice ((try (string "[]")):(try(between (char '[') (char ']') (value "]"))):[]))
+                   options <- case optionStr of
+                                "" -> return([])
+                                "[]" -> return([])
+                                otherwise -> return([(SingleParam [(Other optionStr)] '[')])
+                   restParams <- genericParams []
+                   return(LParams (options ++ restParams) [] Nothing Nothing)
 
- | otherwise = do str <- try (try (between (char '{') (char '}') (value "")))
-                  p <- return [(Other str)]
-                  lParams id ((SingleParam p '{'):l)  
-               <|>  do str <- try (try (between (char '[') (char ']') (value "]")))
-                       p <- return [(Other str)]
-                       lParams id ((SingleParam p '['):l)
-               <|>  do str <- try (try (between (char '(') (char ')') (value ")")))
-                       p <- return [(Other str)]
-                       lParams id ((SingleParam p '('):l)
-               <|>  return (LParams (reverse l) [] Nothing Nothing)
+
+genericParams :: [SingleParam] -> GenParser Char st [SingleParam]
+genericParams l =
+   do str <- try (try (between (char '{') (char '}') (value "")))
+      p <- return [(Other str)]
+      genericParams ((SingleParam p '{'):l)  
+   <|>  do str <- try (try (between (char '(') (char ')') (value ")")))
+           p <- return [(Other str)]
+           genericParams ((SingleParam p '('):l)
+   <|>  return (reverse l)
+
+--               <|>  do str <- try (try (between (char '[') (char ']') (value "]")))
+--                       p <- return [(Other str)]
+--                       lParams id ((SingleParam p '['):l)
 
 
 continueAdhocEnv closingChar l = 
@@ -490,7 +521,7 @@ latexDoc l =  do f <-  frag <?> "Fragment"
 
 
 {--
-   parseMMiSSLatex is used as fromStringWE-method in the instanciation for
+   parsePreamble is used as fromStringWE-method in the instanciation for
    MMiSSLatexPreamble as StringClass. 
 --}
 
@@ -508,22 +539,131 @@ parsePreamble s =
       Left err -> hasError (show err)
 
 
-
 {--
--- Haupt-Funktion (eigentlich main)
-
-mparse :: SourceName -> IO ()
-mparse fname = do result <- parseFromFile (latexDoc []) fname
-                  case result of 
-                      Left err -> print err
-                      Right f -> print f
+   parseImportCommands is used as fromStringWE-method in the instanciation for
+   ImportCommands as StringClass. 
 --}
+
+parseImportCommands :: String -> WithError ImportCommands
+
+parseImportCommands s = 
+  let result = parse (latexDoc []) "" s
+  in case result of
+       Right (Env _ _ fs)  -> 
+          case (fromWithError (makeImportCmds fs [])) of
+             Right pMaybe -> case pMaybe of
+                               Just(p) -> hasValue(p)
+                               Nothing -> hasError("Strange: makeImportCommands returns no error and no import commands.")
+             Left err -> hasError(show err)
+       Left err -> hasError (show err)
+
+
+
+-- **********************************************************************************************
+--
+-- Die nachfolgenden Parser werden werden zum Parsen der Path-Statements aus der Import-Präambel
+-- benutzt
+--
+-- entityNameParser erkennt einen EntityName, der aus Buchstaben und anderen Zeichen bestehen
+-- darf, ausser: ".\\{}"  Die {}-Klammern und der Backslash sind nicht erlaubt, weil sie 
+-- in LaTeX zum Kennzeichnen von Token benutzt werden.
+
+entityNameParser :: GenParser Char st String
+entityNameParser = many1 (noneOf ".\\{},= \t\n")
+
+identifierParser :: GenParser Char st String
+identifierParser = try(do spaces 
+                          str <- choice ((try(string "Root"))
+                                         :(try(string "Current"))
+                                         :(try(string "Parent"))
+                                         :(try(entityNameParser)):[])
+                          spaces
+                          return(str))
+
+entityFullNameParser :: [String] -> GenParser Char st EntityFullName
+entityFullNameParser l = 
+  do id <- try (identifierParser) 
+     point <- option "" (string ".")
+     if (point == ".") 
+       then entityFullNameParser (l ++ [id])
+       else return(EntityFullName (map EntityName (l ++ [id])))
+
+
+
+-- ***********************************************************************************************
+---
+-- Die nachfolgenden Parser werden zum parsen der Import-Statements in der Präambel benutzt:
+--
+-- simpleDirectiveParser erkennt die einfachen Import-Direktiven: Global, Local, Qualified, Unqualified:
+simpleDirectiveParser :: GenParser Char st [Directive]
+simpleDirectiveParser = 
+  try(do spaces
+         str <- choice ((try (string "Global"))
+                        :(try (string "Local"))
+			:(try (string "Qualified"))
+			:(try (string "Unqualified")):[])
+         spaces
+         case str of
+           "Global" -> return([Global])
+           "Local" ->  return([Local])
+           "Qualified" -> return([Qualified])
+           "Unqualified" -> return([Unqualified]))
+
+-- Parst Hide- und Reveal-Direktiven, die eine Liste von Namen als Parameter haben:
+hideRevealDirectiveParser :: GenParser Char st [Directive]
+hideRevealDirectiveParser =
+  try(do spaces
+         string "Hide"
+         char '{'
+         nameList <- commaSep identifierParser
+         char '}'
+         spaces
+         return([Hide (map EntityName nameList)]))
+  <|> try(do spaces
+             string "Reveal"
+             char '{'
+             nameList <- commaSep identifierParser
+             char '}'
+             spaces
+             return([Reveal (map EntityName nameList)]))
+
+-- Parst die Liste der Umbenennungen von Namen (Rename-Direktive):
+renameDirectiveParser :: GenParser Char st [Directive]
+renameDirectiveParser =
+  try(do spaces
+         dirStr <- string "Rename"
+         char '{'
+         nameList <- commaSep namePairParser
+         char '}'
+         spaces
+         return(nameList))
+
+-- Parst ein name=name-Paar aus der Rename-Liste (siehe renameDirectiveParser):
+namePairParser ::  GenParser Char st Directive
+namePairParser = try( do spaces
+                         firstName <- identifierParser
+                         spaces
+                         char '='
+                         spaces
+                         secondName <-identifierParser
+                         spaces
+                         return(Rename (EntityName firstName) (EntityName secondName)))
+
+-- Parst eine einzelne Direktive:
+directiveParser :: GenParser Char st [Directive]
+directiveParser = simpleDirectiveParser 
+                  <|> hideRevealDirectiveParser 
+
+-- directivesParser parst die Direktiven eines Import-Statements
+directivesParser :: GenParser Char st [Directive]
+directivesParser = do listOfDirectiveLists <- commaSep (choice ((renameDirectiveParser):(directiveParser):[]))
+                      return(foldl (++) [] listOfDirectiveLists)
 
 
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
     XML-structure.  --}
 
-parseMMiSSLatex :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
+parseMMiSSLatex :: String -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
 
 parseMMiSSLatex s = 
   let result = parse (latexDoc []) "" s
@@ -533,7 +673,7 @@ parseMMiSSLatex s =
        Left err -> hasError (show err)
 
 
-parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
+parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands))
 parseMMiSSLatexFile s = do result <- parseFromFile (latexDoc []) s
  		           case result of
 			     Right ast  -> return(makeXML ast)
@@ -544,7 +684,7 @@ parseAndShow s = do result <- parseFromFile (latexDoc []) s
  		    case result of
 	              Right ast  -> do resXML <- return (fromWithError (makeXML ast))
                                        case resXML of
-                                         Right (e, mbPreamble) -> putStrLn (showElement (hasValue e))
+                                         Right (e, mbPreamble, mbImportCmds) -> putStrLn (showElement (hasValue e))
                                          Left err -> print err
      	              Left err -> print err
 
@@ -556,7 +696,7 @@ showElement1 :: Content -> String
 showElement1 (CElem e) = (render . PP.element) e
 
 
-makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
+makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
 makeXML frag = findFirstEnv [frag] [] False
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch und erzeugt einen
@@ -566,50 +706,62 @@ makeXML frag = findFirstEnv [frag] [] False
     Kindern fortgesetzt. Gleichzeitig wird das Aufsammeln von Praeambel-Fragmenten beendet.
     Findet es innerhalb des document-Envs ein package-Env, dann wird dieses als Wurzel des
     erzeugten XML-Baums eingesetzt und mittels 'makeContent' der Inhalt des packages in XML umgesetzt.
-    Am Ende wird das Praeambel-Element an die package sowie an alle Elemente des XML-Baums (jeweils
-    ans Ende des Element-Contents) angehaengt. Enthaelt die document-Umgebung nach dem Package-Env.
+    Am Ende wird die Präambel erzeugt. Enthaelt die document-Umgebung nach dem Package-Env.
     noch MMiSSLatex- oder Latex-Fragmente, so werden diese ignoriert.
     Trifft die Funktion innerhalb des Root- oder document-Fragments auf eine andere MMiSSLatex-Umgebung
-    als 'package', dann wird angenommen, dass es sich um ein Teildokument haldelt, das ausgecheckt wurde.
+    als 'package', dann wird angenommen, dass es sich um ein Teildokument handelt, das ausgecheckt wurde.
     Der Inhalt dieses Elementes (das kann eine Unit sein, aber auch ein Atom - z.B. ein TextFragment)
-    wird als Wurzel fuer den erzeugten XML-Baum eingesetzt und der Inhalt der Umgebung XML umgewandelt.
+    wird als Wurzel fuer den erzeugten XML-Baum eingesetzt und der Inhalt der Umgebung in XML umgewandelt.
     Hier wird jedoch keine Praeambel hinzugefuegt, weil es sich nur um ein Teildokument handelt,
     das mit Praeambel ausgecheckt wurde.
 --}
     
 
-findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble)
+findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
 
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
 findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs _ = 
-  let propAtts = case (getProperties preambleFs) of 
-                   Just((LParams _ atts _ _)) -> atts
-                   Nothing -> []
-      atts1 = unionAttributes propAtts packAtts
+  let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
+      preamble = makePreamble (filterGeneratedPreambleParts newPreambleFs)
+      importCmds = makeImportCmds newPreambleFs []
       atts2 = getPathAttrib preambleFs
       xmlAtts = map convertAttrib (atts1 ++ atts2)
       content = makeContent fs NoText "package"
-      newPropertiesFrag = (Command "Properties" (LParams [] atts1 Nothing Nothing))
-      preamble = makePreamble ((filterProperties preambleFs) ++ [newPropertiesFrag])
   in case (fromWithError content) of
-       Right c -> pairWithError (hasValue(Elem "package" xmlAtts c)) preamble
-       Left err -> pairWithError (hasError(err)) preamble
+       Right c -> let elem = hasValue(Elem "package" xmlAtts c)
+                      elemPre = pairWithError elem preamble
+                      elemPreImp = pairWithError elemPre importCmds
+                  in  flattenTupel elemPreImp
+       Left err -> let elemPre = pairWithError (hasError(err)) preamble
+                       elemPreImp = pairWithError elemPre importCmds
+                   in  flattenTupel elemPreImp
+
 
 findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
     let content = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
-        preamble = makePreamble preambleFs
+        preamble = hasValue(Nothing)
+        importCmds = hasValue(Nothing)
     in case (fromWithError content) of
-         (Left str) -> pairWithError (hasError(str)) preamble
-         (Right cs) -> if ((genericLength cs) == 0) 
-		         then pairWithError (hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")) 
-                              preamble
-                         else let ce = head cs
-                              in case ce of 
-			           (CElem e) -> pairWithError (hasValue(e)) preamble
-			           _ -> pairWithError (hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'"))
-                                                      preamble
+         (Left str) -> let elemPre = pairWithError (hasError(str)) preamble
+                           elemPreImp = pairWithError elemPre importCmds
+                       in  flattenTupel elemPreImp                           
+         (Right cs) -> 
+            if ((genericLength cs) == 0) 
+              then let elem = hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
+                       elemPre = pairWithError elem preamble
+                       elemPreImp = pairWithError elemPre importCmds
+                   in  flattenTupel elemPreImp
+              else let ce = head cs
+                   in case ce of 
+			(CElem e) -> let elemPre = pairWithError (hasValue(e)) preamble
+                                         elemPreImp = pairWithError elemPre importCmds
+                                     in  flattenTupel elemPreImp
+			_ -> let elem = hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
+                                 elemPre = pairWithError elem preamble
+                                 elemPreImp = pairWithError elemPre importCmds
+                             in  flattenTupel elemPreImp
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
            then findFirstEnv rest preambleFs beforeDocument
@@ -623,11 +775,26 @@ findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument =
 -- Frag is no Environment: Must be Command, Other or Escaped Char.
 -- We are before \begin{document}, so add to preamble: 
 findFirstEnv (f:fs) preambleFs True = findFirstEnv fs (preambleFs ++ [f]) True
--- We are in the document, so ignore it. (TODO: Comments which stand between the \begin{document}
--- and the package element are thrown away here. This has to be solved:
-findFirstEnv (f:fs) preambleFs False = findFirstEnv fs preambleFs False
+
+-- We are in the document but before the package env. or some other env. We decided to pull the Fragments
+-- found here out to the Preamble. So they will be listed before the \begin{document} once the user
+-- checks out the MMiSSLaTeX document:
+findFirstEnv (f:fs) preambleFs False = findFirstEnv fs (preambleFs ++ [f]) False
+
 findFirstEnv [] _ _  = hasError("No root environment ('package' or some other env.) found!")           
 
+
+flattenTupel :: WithError((a,b),c) -> WithError (a, b, c)
+
+flattenTupel t = case fromWithError t of
+                   Left(str) -> hasError(str)
+                   Right((a,b),c) -> hasValue((a,b,c)) 
+
+
+-- makePreamble erzeugt aus den Präambel-Fragmente die MMiSSLatexPreamble-Datenstruktur.
+-- Die von MMiSS erzeugten Input-Kommandos müssen vorher ausgefilter worden sein.
+-- Die Funktion ignoriert ausserdem alle Kommandos, deren Namen in der List 'specialTreatmentInPreamble'
+-- auftauchen, da diese gesondert behandelt werden.
 
 makePreamble :: [Frag] -> WithError (Maybe MMiSSLatexPreamble)
 makePreamble [] = hasValue(Nothing)
@@ -663,15 +830,14 @@ makePrePackage _ = Package [] "" ""
 
 makePreRest :: [Frag] -> String -> String
 makePreRest [] inStr = inStr
-makePreRest (f:[]) inStr =
-  case f of
-    (Command "documentclass" _) -> inStr
-    (Command "usepackage" _) -> inStr
-    _ -> inStr ++ (makeTextElem [f])
+makePreRest (f@(Command name _):[]) inStr =
+  if (name `elem` specialTreatmentInPreamble) 
+     then inStr
+     else inStr ++ (makeTextElem [f])
 
 makePreRest (f1:f2:fs) inStr =
   case f1 of
-     (Command name ps) -> 
+     (Command name _) -> 
         if (name == "documentclass") || (name == "usepackage") 
           then case f2 of
                  (Other str) -> if (length (filter (not . (`elem` "\n\t ")) str) == 0)  
@@ -679,8 +845,117 @@ makePreRest (f1:f2:fs) inStr =
                                   else makePreRest fs (inStr ++ str)
                  (EscapedChar c) -> makePreRest fs inStr
                  _ -> makePreRest (f2:fs) inStr
-          else makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
+          else 
+            if (name `elem` specialTreatmentInPreamble) 
+              then makePreRest (f2:fs) inStr
+	      else makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
      _ -> makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
+
+
+{-- addPropertiesFrag bekommt die Fragmente der Präambel sowie die Attribute, die am Package-Env.
+definiert wurden übergeben und erzeugt daraus eine geänderte Liste von Präambel-Fragmenten.
+Dazu wird das \Properties-Commando aus der Präambel herausgefiltert und dessen Attributwert mit denen
+des Packages vereiningt. Diese neuen Attributwerte werden wiederum als \Properties-Fragment codiert
+und in die zurückgegeben Fragement-Liste eingefügt. Im Prinzip werden also die Package-Attributwerte
+in das \Properties-Fragment, das in der Präambel steht, hineingesetzt.
+--}
+addPropertiesFrag :: [Frag] -> Attributes -> ([Frag], Attributes)
+addPropertiesFrag preambleFs packAtts =
+  let propAtts = case (getProperties preambleFs) of 
+                   Just((LParams _ atts _ _)) -> atts
+                   Nothing -> []
+      atts1 = unionAttributes packAtts propAtts
+      newPropertiesFrag = (Command "Properties" (LParams [] atts1 Nothing Nothing))
+  in ((filterProperties preambleFs) ++ [newPropertiesFrag], atts1)
+
+
+-- filterGeneratedPreambleParts filtert aus den Präambelfragmenten die von MMiSS beim Auschecken
+-- generierten Anteile heraus. Dies sind zur Zeit die Include-Kommandos etc., die auf LaTeX-Ebene
+-- benötigt werden, um die importierten semantischen Elemente (für die auch LaTeX-Kommandos definiert
+-- sind), in dieser LaTeX-Quelle bekfindIndex (stringInFrag inputPragmaStart) fsannt zu machen.
+-- TODO:  Es muss noch überprüft werden, ob Start- und Endpragma überhaupt vorkamen und ob sie in 
+-- der richtigen Reihenfolge aufgetaucht sind.
+
+filterGeneratedPreambleParts :: [Frag] ->[Frag]
+
+filterGeneratedPreambleParts fs = 
+  let firstPart = takeWhile (not . (stringInFrag startInputPragma)) fs
+      secondPart = dropWhile (not . (stringInFrag endInputPragma)) fs
+  in firstPart ++ secondPart
+
+
+stringInFrag :: String -> Frag -> Bool
+
+stringInFrag inStr (Other str) =  (str == inStr) 
+stringInFrag _ _ = False
+
+
+-- makeImportCmds bekommt die Präambel-Fragmente übergeben, sucht darin die
+-- Import-Kommandos (\Path und \Import), parsed deren Argumente und generiert
+-- daraus die ImportCommands:
+
+makeImportCmds :: [Frag] -> [ImportCommand] -> WithError (Maybe ImportCommands)
+
+makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) importCmds =
+  case singleParams of
+    (SingleParam ((Other aliasStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
+      -> let aliasEl = parse entityNameParser "" aliasStr
+             packageNameEl = parse (entityFullNameParser []) "" packageNameStr
+         in case aliasEl of
+               Right alias  -> 
+                 case packageNameEl of 
+                   Right packageName -> makeImportCmds fs (importCmds ++ [(PathAlias (EntityName alias) packageName)])
+                   Left err -> hasError ("Parse error in second argument of Path-Command:\n"
+                                     ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                     ++ show err)
+               Left err -> hasError ("Parse error in first argument of Path-Command:\n"
+                                   ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                   ++ show err)
+    otherwise -> hasError("The following Path-Command in the Import-preamble has to few or wrong arguments:\n"                      ++ (makeTextElem [cmd]))
+
+makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCmds =
+  case singleParams of
+    -- Matcht auf \Import[]{packageName}: Der leere optionale Parameter führt beim Parsen
+    -- zu einem SingleParam mit leerem String:
+    (SingleParam [] _) : (SingleParam ((Other packageNameStr):_) _)  : _
+       -> genPackageName packageNameStr
+
+    -- Matcht \Import{packageName}  (keine Direktiven angegeben): 
+    (SingleParam ((Other packageNameStr):_) _) : []
+       -> genPackageName packageNameStr
+
+    -- Matcht auf \Import[directives]{packageName}:
+    (SingleParam ((Other directivesStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
+      -> let packageNameEl = parse (entityFullNameParser []) "" packageNameStr
+             directivesEl = parse directivesParser "" directivesStr
+         in case directivesEl of
+               Right directives  -> 
+                 case packageNameEl of 
+                   Right packageName -> makeImportCmds fs (importCmds ++ [(Import directives packageName)])
+                   Left err -> hasError ("Parse error in second argument of Import-Command:\n"
+                                     ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                     ++ show err)
+               Left err -> hasError ("Parse error in first argument of Import-Command:\n"
+                                   ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                   ++ show err)
+    otherwise -> hasError("The following Import-Command in the Import-preamble has to few or wrong arguments:\n"
+--                          ++ (makeTextElem [cmd]))
+                          ++ (show cmd))
+    where
+       genPackageName :: String -> WithError (Maybe ImportCommands)
+       genPackageName packageNameStr = 
+         let packageNameEl = parse (entityFullNameParser []) "" packageNameStr
+         in case packageNameEl of 
+              Right packageName -> makeImportCmds fs (importCmds ++ [(Import [] packageName)])
+              Left err -> hasError ("Parse error in Package-name argument of Import-Command:\n"
+                                     ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                     ++ show err)
+
+makeImportCmds (f:fs) importCmds = makeImportCmds fs importCmds
+
+makeImportCmds [] importCmds = if ((genericLength importCmds) == 0)
+                                 then hasValue(Nothing)
+                                 else hasValue(Just((ImportCommands importCmds)))
 
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
@@ -1382,6 +1657,68 @@ makePackageText commandName (Package options name versiondate) =
   in "\\" ++ commandName ++ optStr ++ "{" ++ name ++ "}" ++ versionStr ++ "\n"
 
 
+makeImportsText :: ImportCommands -> String
+makeImportsText (ImportCommands cmds) = 
+  let impStrs = map makeImportCmdText cmds
+  in concat (map (++ "\n") impStrs)
+
+makeImportCmdText :: ImportCommand -> String
+makeImportCmdText (Import ds (EntityFullName entityNames)) =
+  let renStr = collectRenames ds ""
+      newDs = filter (not.isRename) ds
+      dirStr = if ((genericLength newDs) > 0)
+                 then drop 2 (concat (map makeDirectiveText newDs))
+                 else ""
+      tmpStr = if ((genericLength renStr) > 1) && ((genericLength dirStr) > 1)
+                 then ", "
+                 else ""
+      packageName = let namesList = [ str | (EntityName str) <- entityNames]
+                    in if (namesList == [])
+                         then ""
+                         else init (concat (map (++ ".") namesList))
+      directivesStr = if (dirStr ++ tmpStr ++ renStr) == "" 
+                        then ""
+                        else "[" ++ (dirStr ++ tmpStr ++ renStr) ++ "]"
+  in "\\Import" ++ directivesStr ++ "{" ++ packageName ++ "}"    
+
+makeImportCmdText (PathAlias (EntityName alias) (EntityFullName entityNames)) =
+  let namesList = [ str | (EntityName str) <- entityNames]
+      packageName = if (namesList == [])
+                      then ""
+                      else init (concat (map (++ ".") namesList))
+  in "\\Path{" ++ alias ++ "}{" ++ packageName ++ "}"
+
+
+makeDirectiveText :: Directive -> String
+makeDirectiveText Qualified = ", Qualified"
+makeDirectiveText Unqualified = ", Unqualified"
+makeDirectiveText Global = ", Global"
+makeDirectiveText Local = ", Local"
+makeDirectiveText (Hide names) = 
+  let l = [ n | (EntityName n) <- names]
+      str = if l == [] then "" else init (concat (map (++ ",") l))
+  in ", Hide{" ++ str ++ "}"
+makeDirectiveText  (Reveal names) =  
+  let l = [ n | (EntityName n) <- names]
+      str = if (l == []) then "" else init (concat (map (++ ",") l))
+  in ", Reveal{" ++ str ++ "}"
+
+collectRenames :: [Directive] -> String -> String
+collectRenames ((Rename (EntityName newName) (EntityName oldName)):ds) str = 
+  collectRenames ds (str ++ ", " ++ newName ++ "=" ++ oldName)
+collectRenames (d:ds) str = collectRenames ds str 
+collectRenames [] str = 
+  if ((genericLength str) > 0) 
+    then let str1 = drop 2 str
+         in "Rename{" ++ str1 ++ "}"
+    else str
+
+
+isRename :: Directive -> Bool
+isRename (Rename _ _) = True
+isRename _ = False
+             
+
 getParam :: String -> [Attribute] -> String
 getParam name atts = let value = lookup name atts
                      in case value of
@@ -1389,7 +1726,6 @@ getParam name atts = let value = lookup name atts
                           Nothing -> ""
 
 
--- ??? Generell alle Attribute einklammern?
 getAttribs :: [Attribute] -> String -> [String] -> String
 getAttribs [] str _ = if ((take 1 str) == ",") 
                        then (drop 1 str)
@@ -1545,7 +1881,7 @@ parseAndMakeMMiSSLatex name _ =
   do result <- parseMMiSSLatexFile name
      case (fromWithError result) of
        Left err -> print err
-       Right (e, mbPreamble) -> 
+       Right (e, mbPreamble, mbImportCmds) -> 
          case (fromWithError (makeMMiSSLatex (e, True, []))) of
            Left err -> print err
            Right (EmacsContent l) ->  putStrLn (concat (map getStrOfEmacsDataItem l))
@@ -1584,13 +1920,18 @@ appendSourcePos pos str = str ++ "in Line "
 
 ---------------------------------------------------------------------------------------------
 --
--- MMiSSLatexPreamble is an instance of StringClass
+-- MMiSSLatexPreamble and ImportCommands are instances of StringClass
 --
 ---------------------------------------------------------------------------------------------
 
 instance StringClass MMiSSLatexPreamble where
    fromStringWE string = parsePreamble string
    toString preamble = makePreambleText preamble
+
+instance StringClass ImportCommands where
+   fromStringWE string = parseImportCommands string
+   toString importCmds = makeImportsText importCmds
+
 
 -- ----------------------------------------------------------------------------------
 -- Instances of Typeable & HasCodedValue for Preamble and MMiSSLatexPreamble 
