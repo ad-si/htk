@@ -25,7 +25,6 @@ import ExtendedPrelude
 import Registry
 import Dynamics
 import VariableSet (toKey)
-import AtomString (toString)
 import Debug(debug)
 import VisitedSet
 import Thread
@@ -532,7 +531,7 @@ debugWML :: WrappedMergeLink -> String
 debugWML (WrappedMergeLink link) = debugLink link
 
 debugLink :: Link x -> String
-debugLink = toString . toKey
+debugLink = show . toKey
 
 debugView :: View -> String
 debugView = show . viewId

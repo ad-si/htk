@@ -513,24 +513,25 @@ instance HasTyRep1 ShortObjectType where
    tyRep1 _ = shortObjectType_tyRep
 
 instance ObjectType objectType object
-       => HasCodedValue (ShortObjectType objectType) where
-   encodeIO (ShortObjectType objectType) codedValue view =
+       => HasBinary (ShortObjectType objectType) CodingMonad where
+
+   writeBin = mapWriteViewIO (\ view (ShortObjectType objectType) ->
       do
          let 
             globalRegistry = objectTypeGlobalRegistry objectType
             key = objectTypeIdPrim objectType
 
          addToGlobalRegistry globalRegistry view key objectType
-         encodeIO key codedValue view
-
-   decodeIO codedValue0 view =
+         return key
+      )
+   readBin = mapReadViewIO (\ view key ->
       do
-         (key,codedValue1) <- safeDecodeIO codedValue0 view
          let 
             globalRegistry = objectTypeGlobalRegistry 
                (error "Don't look at me" :: objectType)
          objectType  <- lookupInGlobalRegistry globalRegistry view key
-         return (ShortObjectType objectType,codedValue1)
+         return (ShortObjectType objectType)
+      )
          
 -- -----------------------------------------------------------------
 -- Initialising and writing the Global Registries
@@ -664,26 +665,26 @@ wrappedObjectType_tyRep = mkTyRep "ObjectTypes" "WrappedObjectType"
 instance HasTyRep WrappedObjectType where
    tyRep _ = wrappedObjectType_tyRep
 
-instance HasCodedValue WrappedObjectType where
-   encodeIO (WrappedObjectType objectType) codedValue0 view =
-      do
-         codedValue1 
-            <- encodeIO (ShortObjectType objectType) codedValue0 view
-         codedValue2 
-            <- encodeIO (objectTypeTypeIdPrim objectType) codedValue1 view
-         return codedValue2
-
-   decodeIO codedValue0 view =
-      do
-         (typeKey :: String,codedValue1) <- safeDecodeIO codedValue0 view
-         Just (WrappedObjectTypeTypeData objectType') <-
-            getValueOpt objectTypeTypeDataRegistry typeKey
-         (objectType,codedValue2) <- decodeIO' objectType' codedValue1 view
-         return (WrappedObjectType objectType,codedValue2)
-
-decodeIO' :: ObjectType objectType object 
-   => objectType -> CodedValue -> View -> IO (objectType,CodedValue)
-decodeIO' _ codedValue0 view = safeDecodeIO codedValue0 view
+instance HasBinary WrappedObjectType CodingMonad where
+   writeBin = mapWrite 
+      (\ (WrappedObjectType objectType) ->
+         (objectTypeTypeIdPrim objectType,
+            WrapBinary (ShortObjectType objectType)
+               :: WrapBinary CodingMonad
+               )
+         )
+   readBin =
+      mapReadPairViewIO 
+         (\ view (typeKey :: String) ->
+            do
+               Just (WrappedObjectTypeTypeData objectType') <-
+                  getValueOpt objectTypeTypeDataRegistry typeKey
+               return (WrappedRead
+                  (ShortObjectType objectType')
+                  (\ (ShortObjectType objectType) 
+                     -> WrappedObjectType objectType)
+                  )
+            )
 
 -- -----------------------------------------------------------------
 -- Similarly, we make WrappedLink an instance of HasCodedValue
@@ -697,30 +698,32 @@ instance HasTyRep WrappedLink where
 -- The only important thing about the value returned by toObjectType is 
 -- its types; the value itself are undefined.
 toObjectType :: ObjectType objectType object => Link object -> objectType
-toObjectType link = error "toLinkType"
+toObjectType link = error "toObjectType"
 
 ---
--- toLinkType is similar but returns a decodeIO action for the link type.
-toLinkType :: ObjectType objectType object => objectType -> 
-   (CodedValue -> View -> IO (Link object,CodedValue))
-toLinkType objectType = safeDecodeIO
+-- toLinkType is similar in the other direction.
+toLinkType :: ObjectType objectType object => objectType -> Link object
+toLinkType objectType = error "toLinkType"
 
-instance HasCodedValue WrappedLink where
-   encodeIO (WrappedLink link) codedValue0 view =
-      do
-         let objectType = toObjectType link
-         codedValue1 <- encodeIO link codedValue0 view
-         codedValue2 
-            <- encodeIO (objectTypeTypeIdPrim objectType) codedValue1 view
-         return codedValue2
 
-   decodeIO codedValue0 view =
-      do
-         (typeKey :: String,codedValue1) <- safeDecodeIO codedValue0 view
-         Just (WrappedObjectTypeTypeData objectType) <-
-            getValueOpt objectTypeTypeDataRegistry typeKey
-         (link,codedValue2) <- toLinkType objectType codedValue1 view
-         return (WrappedLink link,codedValue2)
+instance HasBinary WrappedLink CodingMonad where
+   writeBin = mapWrite
+      (\ (WrappedLink link) ->
+         let
+            objectType = toObjectType link
+         in
+            (objectTypeTypeIdPrim objectType,
+               WrapBinary link :: WrapBinary CodingMonad)
+         )
+   readBin = mapReadPairViewIO
+      (\ view (typeKey :: String) ->
+         do
+            Just (WrappedObjectTypeTypeData objectType) <-
+               getValueOpt objectTypeTypeDataRegistry typeKey
+            let
+               link0 = toLinkType objectType
+            return (WrappedRead link0 WrappedLink)
+         )
 
 -- -----------------------------------------------------------------
 -- We make WrappedObjectType and WrappedObjectTypeTypeData instance 

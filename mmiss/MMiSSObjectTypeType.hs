@@ -61,14 +61,16 @@ mmissObjectType_tyRep = mkTyRep "MMiSSObject" "MMiSSObjectType"
 instance HasTyRep MMiSSObjectType where
    tyRep _ = mmissObjectType_tyRep
 
-instance HasCodedValue MMiSSObjectType where
-   encodeIO = mapEncodeIO
+instance HasBinary MMiSSObjectType CodingMonad where
+   writeBin = mapWrite
       (\ (MMiSSObjectType {xmlTag = xmlTag}) -> xmlTag)
-   decodeIO codedValue0 view =
-      do
-         (xmlTag,codedValue1) <- safeDecodeIO codedValue0 view
-         let (Just objectType) = lookupFM mmissObjectTypeMap xmlTag
-         return (objectType,codedValue1)
+   readBin = mapRead
+      (\ xmlTag ->
+         let 
+            (Just objectType) = lookupFM mmissObjectTypeMap xmlTag
+         in
+            objectType
+         )
 
 -- ------------------------------------------------------------------------
 -- mmissObjectTypeMap contains all object types read from the DTD.

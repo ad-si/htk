@@ -29,7 +29,7 @@ import Foreign.C.Types
 
 import WBFiles
 import ICStringLen
-import BinaryIO
+import BinaryAll
 
 import BSem
 
@@ -104,7 +104,11 @@ readBDBLock = unsafePerformIO newBSem
 newtype DB = DB CChar
 type BDB = Ptr DB
 
-newtype BDBKey = BDBKey Word32 deriving (HasBinaryIO,Eq,Ord,Show)
+newtype BDBKey = BDBKey Word32 deriving (Eq,Ord,Show)
+
+instance Monad m => HasBinary BDBKey m where
+   writeBin = mapWrite (\ (BDBKey w) -> w)
+   readBin = mapRead BDBKey 
 
 foreign import ccall unsafe "bdbclient.h db_connect" dbConnect
    :: CString -> IO BDB

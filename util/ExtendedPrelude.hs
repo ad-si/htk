@@ -65,6 +65,8 @@ module ExtendedPrelude (
    simpleFallOut,
    mkBreakFn,
    newFallOut,
+
+   EqIO(..),OrdIO(..),
    ) where
 
 import Char
@@ -481,4 +483,12 @@ newFallOut =
 
       return (id,tryFn)
 
-      
+-- ------------------------------------------------------------------------
+-- Where equality and comparing requires IO.
+-- ------------------------------------------------------------------------
+
+class EqIO v where
+   eqIO :: v -> v -> IO Bool
+
+class EqIO v => OrdIO v where
+   compareIO :: v -> v -> IO Ordering

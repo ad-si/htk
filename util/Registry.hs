@@ -55,6 +55,7 @@ import IO
 import Maybe
 import Maybes
 
+import Control.Monad.Trans
 import qualified GlaExts(unsafeCoerce#)
 import IOExts(newIORef,readIORef,writeIORef)
 import FiniteMap
@@ -62,6 +63,7 @@ import Concurrent
 
 import Computation(done)
 import Dynamics
+import BinaryAll
 
 
 -- ----------------------------------------------------------------------
@@ -423,3 +425,13 @@ getValue' label registry from =
 getValue' label = getValue
 
 #endif
+
+-- ----------------------------------------------------------------------
+-- Instance of HasBinary for monads which have IO.
+-- ----------------------------------------------------------------------
+
+instance (HasBinary (from,to) m,Ord from,MonadIO m) 
+   => HasBinary (Registry from to) m where
+
+   writeBin = mapWriteIO listRegistryContents
+   readBin = mapReadIO listToNewRegistry

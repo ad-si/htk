@@ -8,13 +8,17 @@ module ObjectSource(
    exportFile, -- :: ObjectSource -> FilePath -> IO ()
    -- exportFile writes the contents of the object as a file with the
    -- supplied name, overwriting whatever was there before.
+   exportICStringLen, -- :: ObjectSource -> IO ICStringLen
+   -- export as an ICStringLen
+
    importString, -- :: String -> IO ObjectSource
    -- importString makes an object with the given contents.
    importFile, -- :: FilePath -> IO ObjectSource
    -- importFile makes an object from the given file.
-
-   getICSL, -- :: ObjectSource -> IO ICStringLen
-   fromICSL, -- :: ICStringLen -> ObjectSource
+   importICStringLen, -- :: ICStringLen -> IO ObjectSource
+   -- import an ICStringLen
+   importICStringLenPure, -- :: ICStringLen -> ObjectSource
+   -- import an ICStringLen (don't really need IO)
    ) where
 
 
@@ -30,11 +34,14 @@ import CopyFile
 
 newtype ObjectSource = ObjectSource (IO ICStringLen)
 
-getICSL :: ObjectSource -> IO ICStringLen
-getICSL (ObjectSource act) = act
+exportICStringLen :: ObjectSource -> IO ICStringLen
+exportICStringLen (ObjectSource act) = act
 
-fromICSL :: ICStringLen -> ObjectSource
-fromICSL icsl = ObjectSource (return icsl)
+importICStringLen :: ICStringLen -> IO ObjectSource
+importICStringLen icsl = return (importICStringLenPure icsl)
+
+importICStringLenPure :: ICStringLen -> ObjectSource
+importICStringLenPure icsl = ObjectSource (return icsl)
 
 exportString :: ObjectSource -> IO String
 exportString (ObjectSource act) =
@@ -50,10 +57,10 @@ exportFile (ObjectSource act) filePath =
          (\ len cString -> copyCStringLenToFile (cString,len) filePath)
 
 importString :: String -> IO ObjectSource
-importString str = return (fromICSL (fromString str))
+importString str = importICStringLen (fromString str)
 
 importFile :: FilePath -> IO ObjectSource
 importFile file =
    do
       icsl <- copyFileToICStringLen file
-      return (fromICSL icsl)
+      importICStringLen icsl

@@ -16,7 +16,7 @@ import IO
 
 import Debug
 import Object
-import BinaryIO
+import Binary
 
 import Events
 import GuardedEvents
@@ -63,14 +63,14 @@ mkNotifier1 =
       let
          notifier = Notifier{
             oID = oID,
-            writeAction=(\ str -> writeAction (ReadShow str)),
+            writeAction=(\ str -> writeAction str),
             closeAction=closeAction,
             eventChannel=eventChannel
             }
 
          readerThread =
             do
-               (ReadShow key) <- receiveAction
+               key <- receiveAction
                sync (send eventChannel (key,()))
                readerThread            
 

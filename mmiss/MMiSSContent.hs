@@ -14,6 +14,7 @@ import List
 
 import Computation
 import Dynamics
+import BinaryAll(Choice5(..))
 
 import CodedValue
 import EntityNames
@@ -41,29 +42,32 @@ attributes_tyRep = mkTyRep "MMiSSContent" "XmlAttributes"
 instance HasTyRep XmlAttributes where
    tyRep _ = attributes_tyRep
 
-instance HasCodedValue XmlAttributes where
-   encodeIO (XmlAttributes xmlAttributes) codedValue view =
-      do         
-         attributesWE <- fromXmlAttributes view xmlAttributes
-         encodeIO (coerceWithError attributesWE) codedValue view
-   decodeIO codedValue0 view =
-      do
-         (attributes,codedValue1) <- decodeIO codedValue0 view
-         xmlAttributes <- toXmlAttributes attributes
-         return (XmlAttributes xmlAttributes,codedValue1)
+instance HasBinary XmlAttributes CodingMonad where
+   writeBin = mapWriteViewIO 
+      (\ view (XmlAttributes xmlAttributes) ->
+         do         
+            attributesWE <- fromXmlAttributes view xmlAttributes
+            return (coerceWithError attributesWE)
+         )
+   readBin = mapReadViewIO
+      (\ view attributes ->
+         do
+            xmlAttributes <- toXmlAttributes attributes
+            return (XmlAttributes xmlAttributes)
+         )
 
 -- (2) Misc
 misc_tyRep = mkTyRep "MMiSSContent" "Misc"
 instance HasTyRep Misc where
    tyRep _ = misc_tyRep
 
-instance HasCodedValue Misc where
-   encodeIO = mapEncodeIO 
+instance Monad m => HasBinary Misc m where
+   writeBin = mapWrite 
       (\ misc -> case misc of
          Comment comment -> Left comment
          PI pi -> Right pi
          )
-   decodeIO = mapDecodeIO 
+   readBin = mapRead 
       (\ either -> case either of
          Left comment -> Comment comment
          Right pi -> PI pi
@@ -74,12 +78,12 @@ reference_tyRef = mkTyRep "MMiSSContent" "Reference"
 instance HasTyRep Reference where
    tyRep _ = reference_tyRef
 
-instance HasCodedValue Reference where
-   encodeIO = mapEncodeIO (\ ref -> case ref of
+instance Monad m => HasBinary Reference m where
+   writeBin = mapWrite (\ ref -> case ref of
       RefEntity n1 -> Left n1
       RefChar n2 -> Right n2
       )
-   decodeIO = mapDecodeIO (\ either -> case either of
+   readBin = mapRead (\ either -> case either of
       Left n1 -> RefEntity n1
       Right n2 -> RefChar n2
       )
@@ -105,9 +109,9 @@ fromPackedContent choice = case choice of
    Choice3 r -> CRef r
    Choice4 m -> CMisc m
 
-instance HasCodedValue Content where
-   encodeIO = mapEncodeIO toPackedContent
-   decodeIO = mapDecodeIO fromPackedContent
+instance HasBinary Content CodingMonad where
+   writeBin = mapWrite toPackedContent
+   readBin = mapRead fromPackedContent
 
 -- (5) Element
 
@@ -115,11 +119,11 @@ element_tyRep = mkTyRep "MMiSSContent" "Element"
 instance HasTyRep Element where
    tyRep _ = element_tyRep
 
-instance HasCodedValue Element where
-   encodeIO = mapEncodeIO 
+instance HasBinary Element CodingMonad where
+   writeBin = mapWrite
       (\ (Elem name xmlAttributes contents) 
          -> (name,XmlAttributes xmlAttributes,contents))
-   decodeIO = mapDecodeIO
+   readBin = mapRead
       (\ (name,XmlAttributes xmlAttributes,contents) 
          -> Elem name xmlAttributes contents) 
 
@@ -128,13 +132,13 @@ linkType_tyRep = mkTyRep "MMiSSContent" "LinkType"
 instance HasTyRep LinkType where
    tyRep _ = linkType_tyRep
 
-instance HasCodedValue LinkType where
-   encodeIO = mapEncodeIO (\ linkType -> case linkType of
+instance Monad m => HasBinary LinkType m where
+   writeBin = mapWrite (\ linkType -> case linkType of
       IncludeLink -> 'I'
       ReferenceLink -> 'R'
       LinkLink -> 'L'
       )
-   decodeIO = mapDecodeIO (\ char -> case char of
+   readBin = mapRead (\ char -> case char of
       'I' -> IncludeLink
       'R' -> ReferenceLink
       'L' -> LinkLink

@@ -10,7 +10,7 @@ module SimpleDB(
 
    ObjectVersion, 
    -- type of versions of objects in the repository
-   -- instance of Read/Show/StringClass
+   -- instance of Show/StringClass
 
    module ObjectSource,
 
@@ -41,6 +41,9 @@ module SimpleDB(
    -- by copying it to file at FilePath.
    retrieveString, -- :: Repository -> Location -> ObjectVersion -> IO String
    -- retrieveFile retrieves the given version of the object as a String
+   retrieveObjectSource, 
+      -- :: Repository -> Location -> ObjectVersion -> IO ObjectSource
+      -- retrieves the given version as an ObjectSource.
 
    listVersions, -- :: Repository -> IO [ObjectVersion]
    -- listVersion lists all versions in the repository.
@@ -87,7 +90,6 @@ module SimpleDB(
 
 import Object
 import Computation(done)
-import BinaryIO
 import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
@@ -109,7 +111,7 @@ import CopyFile
 import SimpleDBServer
 import SimpleDBService
 import VersionInfo hiding (server)
-import ObjectSource hiding (getICSL,fromICSL)
+import ObjectSource
    -- that prevents those two functions being exported
 import qualified ObjectSource
 
@@ -255,7 +257,8 @@ retrieveObjectSource repository location objectVersion =
       let
          icsl = toData response
       seq icsl done
-      return (ObjectSource.fromICSL icsl)
+
+      importICStringLen icsl
 
 retrieveString :: Repository -> Location -> ObjectVersion -> IO String
 retrieveString repository location objectVersion =
@@ -284,7 +287,7 @@ commit repository versionExtra redirects newStuff0 =
                case newItem of
                   Left objectSource ->
                      do
-                        icsl <- ObjectSource.getICSL objectSource
+                        icsl <- ObjectSource.exportICStringLen objectSource
                         return (location,Left icsl)
                   Right locVers -> return (location,Right locVers)
                )

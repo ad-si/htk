@@ -2,7 +2,7 @@ PACKAGE = uni-types
 PACKAGES = uni-simpledb uni-graphs
 
 SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
-   CodedValueStore.hs Link.hs BasicObjects.hs DisplayTypes.hs ObjectTypes.hs \
+   Link.hs BasicObjects.hs DisplayTypes.hs ObjectTypes.hs \
    View.hs AttributesType.hs DisplayParms.hs GlobalRegistry.hs Folders.hs \
    DisplayView.hs Files.hs VersionGraph.hs \
    Initialisation.hs CallEditor.hs CreateObjectMenu.hs Registrations.hs \

@@ -73,7 +73,6 @@ import VersionDB
 import VersionGraphClient
 import ViewType
 import CodedValue
-import CodedValueStore
 import DisplayTypes
 import ObjectTypes
 import Link
@@ -231,7 +230,7 @@ commitView1 preserveVersion newVersion1
             phantomView = error "CodedValue for view needs View (2)!"
 
          viewCodedValue <- doEncodeIO viewData phantomView
-         viewObjectSource <- toObjectSource viewCodedValue 
+         viewObjectSource <- importICStringLen viewCodedValue 
 
          let
             objectsData2 :: [(Location,CommitChange)]
@@ -271,10 +270,6 @@ data ViewData = ViewData {
    objectTypesData :: CodedValue
    }
 
-viewData_tyRep = mkTyRep "View" "ViewData"
-instance HasTyRep ViewData where
-   tyRep _ = viewData_tyRep
-
 -- Here's the real primitive type
 type Tuple = (CodedValue,CodedValue)
 
@@ -289,9 +284,9 @@ unmkTuple (displayTypesData,objectTypesData) =
    ViewData {
       displayTypesData = displayTypesData,objectTypesData = objectTypesData}
 
-instance HasCodedValue ViewData where
-   encodeIO = mapEncodeIO mkTuple 
-   decodeIO = mapDecodeIO unmkTuple
+instance HasBinary ViewData CodingMonad where
+   writeBin = mapWrite mkTuple
+   readBin = mapRead unmkTuple
 
 -- ---------------------------------------------------------------------
 -- synchronizeView

@@ -55,12 +55,9 @@ mmissPreambleType_tyRep = mkTyRep "MMiSSPreamble" "MMiSSPreambleType"
 instance HasTyRep MMiSSPreambleType where
    tyRep _ = mmissPreambleType_tyRep
 
-instance HasCodedValue MMiSSPreambleType where
-   encodeIO = mapEncodeIO (\ _ -> ())
-   decodeIO codedValue0 view = 
-      do
-         ((),codedValue1) <- decodeIO codedValue0 view
-         return (MMiSSPreambleType,codedValue1)
+instance Monad m => HasBinary MMiSSPreambleType m where
+   writeBin = mapWrite (\ MMiSSPreambleType -> ())
+   readBin = mapRead (\ () -> MMiSSPreambleType)
 
 -- -------------------------------------------------------------------
 -- MMiSSPreamble
@@ -76,20 +73,20 @@ mmissPreamble_tyRep = mkTyRep "MMiSSPreamble" "MMiSSPreamble"
 instance HasTyRep MMiSSPreamble where
    tyRep _ = mmissPreamble_tyRep
 
-instance HasCodedValue MMiSSPreamble where
-   encodeIO (MMiSSPreamble {preamble = preamble}) 
-         codedValue view =
-      do
-         latexPreamble <- readIORef preamble
-         encodeIO latexPreamble codedValue view
-   decodeIO codedValue0 view =
-      do
-         (latexPreamble,codedValue1) 
-            <- decodeIO codedValue0 view
-         preamble <- newIORef latexPreamble
-         editLock <- newBSem
-         return (MMiSSPreamble {preamble = preamble,editLock = editLock},
-            codedValue1)
+instance HasBinary MMiSSPreamble CodingMonad where
+   writeBin = mapWriteIO
+      (\ (MMiSSPreamble {preamble = preamble}) ->
+         do
+            latexPreamble <- readIORef preamble
+            return latexPreamble
+         )
+   readBin = mapReadIO
+      (\ latexPreamble ->
+         do
+            preamble <- newIORef latexPreamble
+            editLock <- newBSem
+            return (MMiSSPreamble {preamble = preamble,editLock = editLock})
+         )
 
 -- -------------------------------------------------------------------
 -- Merging

@@ -39,7 +39,6 @@ import UniqueString
 import Computation
 import Spawn
 import NewNames
-import BinaryIO
 import Debug
 
 import InfoBus

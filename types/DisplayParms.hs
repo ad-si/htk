@@ -31,6 +31,7 @@ import Char
 
 import Computation
 import Dynamics
+import BinaryAll(ReadShow(..))
 
 import HTk
 import SimpleForm
@@ -83,83 +84,59 @@ emptyArcTypes :: ArcTypes value
 emptyArcTypes = ArcTypes []
 
 -- -----------------------------------------------------------------------
--- Instances of Typeable and HasCodedValue.
+-- Instances of HasBinary.
 -- -----------------------------------------------------------------------
 
-shape_tyRep = mkTyRep "DisplayParms" "Shape"
-instance HasTyRep1 Shape where
-   tyRep1 _ = shape_tyRep
-instance Typeable value => HasCodedValue (Shape value) where
-   encodeIO = mapEncodeIO show
-   decodeIO = mapDecodeIO read
+instance Monad m => HasBinary (Shape value) m where
+   writeBin = mapWrite ReadShow
+   readBin = mapRead (\ (ReadShow x) -> x)
 
-color_tyRep = mkTyRep "DisplayParms" "Color"
-instance HasTyRep1 Color where
-   tyRep1 _ = color_tyRep
-instance Typeable value => HasCodedValue (Color value) where
-   encodeIO = mapEncodeIO (\ (Color str) -> str)
-   decodeIO = mapDecodeIO (\ str -> Color str)
+instance Monad m => HasBinary (Color value) m where
+   writeBin = mapWrite ReadShow
+   readBin = mapRead (\ (ReadShow x) -> x)
 
-edgePattern_tyRep = mkTyRep "DisplayParms" "EdgePattern"
-instance HasTyRep1 EdgePattern where
-   tyRep1 _ = edgePattern_tyRep
-instance Typeable value => HasCodedValue (EdgePattern value) where
-   encodeIO = mapEncodeIO show
-   decodeIO = mapDecodeIO read
+instance Monad m => HasBinary (EdgePattern value) m where
+   writeBin = mapWrite ReadShow
+   readBin = mapRead (\ (ReadShow x) -> x)
 
-simpleNodeAttributes_tyRep = mkTyRep "DisplayParms" "SimpleNodeAttributes"
-instance HasTyRep1 SimpleNodeAttributes where
-   tyRep1 _ = simpleNodeAttributes_tyRep
-instance Typeable value => HasCodedValue (SimpleNodeAttributes value) where
-   encodeIO = mapEncodeIO (\ 
+instance Monad m => HasBinary (SimpleNodeAttributes value) m where
+   writeBin = mapWrite (\ 
       (SimpleNodeAttributes {shape = shape,nodeColor = nodeColor}) ->
       (shape,nodeColor)
       )
-   decodeIO = mapDecodeIO (\ (shape,nodeColor) ->
+   readBin = mapRead (\ (shape,nodeColor) ->
       (SimpleNodeAttributes {shape = shape,nodeColor = nodeColor})
       )
 
-simpleArcAttributes_tyRep = mkTyRep "DisplayParms" "SimpleArcAttributes"
-instance HasTyRep1 SimpleArcAttributes where
-   tyRep1 _ = simpleArcAttributes_tyRep
-instance Typeable value => HasCodedValue (SimpleArcAttributes value) where
-   encodeIO = mapEncodeIO (\ 
+instance Monad m => HasBinary (SimpleArcAttributes value) m where
+   writeBin = mapWrite (\ 
       (SimpleArcAttributes {edgePattern = edgePattern,arcColor = arcColor}) 
          ->
       (edgePattern,arcColor)
       )
-   decodeIO = mapDecodeIO (\ (edgePattern,arcColor) ->
+   readBin = mapRead (\ (edgePattern,arcColor) ->
       (SimpleArcAttributes {edgePattern = edgePattern,arcColor = arcColor})
       )
 
-displayTypeFilter_tyRep = mkTyRep "DisplayParms" "DisplayTypeFilter"
-instance HasTyRep DisplayTypeFilter where
-   tyRep _ = displayTypeFilter_tyRep
-instance HasCodedValue DisplayTypeFilter where
-   encodeIO = mapEncodeIO (\ f ->
+instance HasBinary DisplayTypeFilter CodingMonad where
+   writeBin = mapWrite (\ f ->
       case f of
          AllDisplays -> Nothing
          ThisDisplay wd -> Just wd
       )
-   decodeIO = mapDecodeIO (\ j ->
+   readBin = mapRead (\ j ->
       case j of
          Nothing -> AllDisplays
          Just wd -> ThisDisplay wd
       )
 
-nodeTypes_tyRep = mkTyRep "DisplayParms" "NodeTypes"
-instance HasTyRep1 NodeTypes where
-   tyRep1 _ = nodeTypes_tyRep
-instance Typeable value => HasCodedValue (NodeTypes value) where
-   encodeIO = mapEncodeIO (\ (NodeTypes l) -> l)
-   decodeIO = mapDecodeIO (\ l -> (NodeTypes l))
+instance HasBinary (NodeTypes value) CodingMonad where
+   writeBin = mapWrite (\ (NodeTypes l) -> l)
+   readBin = mapRead (\ l -> (NodeTypes l))
 
-arcTypes_tyRep = mkTyRep "DisplayParms" "ArcTypes"
-instance HasTyRep1 ArcTypes where
-   tyRep1 _ = arcTypes_tyRep
-instance Typeable value => HasCodedValue (ArcTypes value) where
-   encodeIO = mapEncodeIO (\ (ArcTypes l) -> l)
-   decodeIO = mapDecodeIO (\ l -> (ArcTypes l))
+instance HasBinary (ArcTypes value) CodingMonad where
+   writeBin = mapWrite (\ (ArcTypes l) -> l)
+   readBin = mapRead (\ l -> (ArcTypes l))
 
 -- -----------------------------------------------------------------------
 -- The external functions

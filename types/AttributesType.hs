@@ -69,14 +69,11 @@ data AttributesState =
 --
 -- AttributesType is an instance of HasCodedValue
 data AttributesType = AttributesType [(AttributeKey,AttributeTypeKey)]
+   deriving (Typeable)
 
-attributesType_tyRep = mkTyRep "AttributesType" "AttributesType"
-instance HasTyRep AttributesType where
-   tyRep _ = attributesType_tyRep
-
-instance HasCodedValue AttributesType where
-   encodeIO = mapEncodeIO (\ (AttributesType list) -> list)
-   decodeIO = mapDecodeIO (\ list -> AttributesType list)
+instance Monad m => HasBinary AttributesType m where
+   writeBin = mapWrite (\ (AttributesType list) -> list)
+   readBin = mapRead (\ list -> AttributesType list)
 
 ---
 -- inputAttributes view attributesType extraFormItemOpt
@@ -234,15 +231,11 @@ extraFormItemToForm (ExtraFormItem form ioRef) =
 -- so that we can identify the attribute, given its key.  The keys
 -- themselves must all be registered, in the same way as object type types
 -- and display types are. 
-newtype AttributeTypeKey = AttributeTypeKey String deriving (Ord,Eq)
+newtype AttributeTypeKey = AttributeTypeKey String deriving (Ord,Eq,Typeable)
 
-attributeTypeKey_tyRep = mkTyRep "AttributesType" "AttributeTypeKey"
-instance HasTyRep AttributeTypeKey where
-   tyRep _ = attributeTypeKey_tyRep
-
-instance HasCodedValue AttributeTypeKey where
-   encodeIO = mapEncodeIO (\ (AttributeTypeKey str) -> str)
-   decodeIO = mapDecodeIO (\ str -> AttributeTypeKey str)
+instance Monad m => HasBinary AttributeTypeKey m where
+   writeBin = mapWrite (\ (AttributeTypeKey str) -> str)
+   readBin = mapRead (\ str -> AttributeTypeKey str)
 
 --- 
 -- The instance is for error messages.
@@ -382,16 +375,11 @@ data AttributeKey = AttributeKey {
       -- attributes.  We should try to keep this unique . . .
    descriptor :: String
       -- this describes how to refer to the key on a form.
-   }
+   } deriving (Typeable)
 
-attributeKey_tyRep = mkTyRep "AttributesType" "AttributeKey"
-instance HasTyRep AttributeKey where
-   tyRep _ = attributeKey_tyRep
-
-instance HasCodedValue AttributeKey where
-   encodeIO = mapEncodeIO 
-      (\ attribute -> (name attribute,descriptor attribute))
-   decodeIO = mapDecodeIO (\ (name,descriptor) -> AttributeKey {
+instance Monad m => HasBinary AttributeKey m where
+   writeBin = mapWrite (\ attribute -> (name attribute,descriptor attribute))
+   readBin = mapRead (\ (name,descriptor) -> AttributeKey {
       name = name,
       descriptor = descriptor
       })
@@ -461,25 +449,6 @@ instance (HasConfigRadioButton value,Bounded value,Enum value,
                   Radio _ -> Just radio
                )
             form0 
-            
-
----
--- At this point we find it useful to define HasCodedValue for Radio.
-radio_tyRep = mkTyRep "AttributesType" "Radio"
-instance HasTyRep1 Radio where
-   tyRep1 _ = radio_tyRep
-
-instance HasCodedValue value => HasCodedValue (Radio value) where
-   encodeIO = mapEncodeIO (\ radio ->
-      case radio of 
-         NoRadio -> Nothing
-         Radio value -> Just value
-      )
-   decodeIO = mapDecodeIO (\ valueOpt ->
-      case valueOpt of
-         Nothing -> NoRadio
-         Just value -> Radio value
-       )
 
 -- -------------------------------------------------------------------
 -- The HasAttributesType class and the editObjectAttributes class.

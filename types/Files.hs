@@ -57,30 +57,25 @@ data FileType = FileType {
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (Link File),
    canEdit :: Bool
-   }
+   } deriving (Typeable)
 
-fileType_tyRep = mkTyRep "Files" "FileType"
-instance HasTyRep FileType where
-   tyRep _ = fileType_tyRep
-
-instance HasCodedValue FileType where
-   encodeIO = mapEncodeIO 
+instance HasBinary FileType CodingMonad where
+   writeBin = mapWrite
       (\ (FileType {fileTypeId = fileTypeId,fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,canEdit = canEdit})
          -> (fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
             canEdit)
          )
-   decodeIO codedValue0 view =
-      do
-         ((fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
-               canEdit),
-            codedValue1) <- safeDecodeIO codedValue0 view
-         return (FileType {fileTypeId = fileTypeId,
+   readBin = mapRead
+      (\ (fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
+               canEdit) ->
+         FileType {fileTypeId = fileTypeId,
             fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,
-            canEdit = canEdit},codedValue1)
+            canEdit = canEdit}
+         )
 
 instance HasAttributesType FileType where
    toAttributesType fileType = requiredAttributes fileType
@@ -95,29 +90,24 @@ data File = File {
    attributes :: Attributes,
    linkedObject :: LinkedObject,
    simpleFile :: SimpleFile
-   }
-
-file_tyRep = mkTyRep "Files" "File"
-instance HasTyRep File where
-   tyRep _ = file_tyRep
+   } deriving (Typeable)
 
 instance HasAttributes File where
    readPrimAttributes object = attributes object
 
-instance HasCodedValue File where
-   encodeIO = mapEncodeIO 
+instance HasBinary File CodingMonad where
+   writeBin = mapWrite
       (\ (File {fileType = fileType,attributes = attributes,
              linkedObject = linkedObject,simpleFile = simpleFile}) ->
          (fileTypeId fileType,attributes,linkedObject,simpleFile)
          )
-   decodeIO codedValue0 view =
-      do
-         ((fileTypeId,attributes,linkedObject,simpleFile),codedValue1) <-
-            safeDecodeIO codedValue0 view
-         fileType <- lookupInGlobalRegistry globalRegistry view fileTypeId
-         return (File {fileType = fileType,attributes = attributes,
-             linkedObject = linkedObject,simpleFile = simpleFile},
-             codedValue1)
+   readBin = mapReadViewIO
+      (\ view (fileTypeId,attributes,linkedObject,simpleFile) ->
+         do
+            fileType <- lookupInGlobalRegistry globalRegistry view fileTypeId
+            return (File {fileType = fileType,attributes = attributes,
+             linkedObject = linkedObject,simpleFile = simpleFile})
+         )
 
 -- ------------------------------------------------------------------
 -- Merging

@@ -50,14 +50,13 @@ import CopyFile
 import VersionDB
 
 import CodedValue
-import CodedValueStore
 import Link
 import MergeTypes
 import ViewType
 
 newtype SimpleFile = SimpleFile {
    filePath :: FilePath -- where it is stored here
-   }
+   } 
 
 -- ------------------------------------------------------------------------
 -- Creating new values
@@ -87,25 +86,16 @@ class HasFilePath fileItem where
 -- Instances
 -- ------------------------------------------------------------------------
 
-simpleFile_tyRep = mkTyRep "BasicObjects" "SimpleFile"
-
-instance HasTyRep SimpleFile where
-   tyRep _ = simpleFile_tyRep
-
-instance HasCodedValue SimpleFile where
-   -- We represent the file by its contents.
-   encodeIO (SimpleFile {filePath = filePath}) codedValue0 view =
-      do
-         contents <- copyFileToString filePath
-         encodeIO contents codedValue0 view
-   decodeIO codedValue0 view =
-      do
-         (contents,codedValue1) <- safeDecodeIO codedValue0 view
-         filePath <- newTempFile
-         copyStringToFile contents filePath
-         return (SimpleFile {
-            filePath = filePath
-            },codedValue1)
+instance HasBinary SimpleFile CodingMonad where
+   writeBin = mapWriteIO 
+      (\ simpleFile -> copyFileToICStringLen (filePath simpleFile))
+   readBin = mapReadIO 
+      (\ icsl ->
+         do
+            filePath <- newTempFile
+            copyICStringLenToFile icsl filePath
+            return (SimpleFile {filePath = filePath})
+         )
 
 instance HasFilePath SimpleFile where
    toFilePath simpleFile = filePath simpleFile
@@ -125,31 +115,22 @@ newEmptyAttributes view =
       registry <- newRegistry
       return (Attributes {view = view,registry = registry})
 
-attributes_tyRep = mkTyRep "BasicObjects" "Attributes"
+instance HasBinary Attributes CodingMonad where
+   writeBin = mapWriteIO
+      (\ attributes -> listRegistryContents (registry attributes))
+   readBin = mapReadViewIO
+      (\ view contents -> 
+         do
+            registry <- listToNewRegistry contents
+            let 
+               attributes = Attributes {
+                  view = view,
+                  registry = registry
+                  }
+            return attributes
+         )
 
-instance HasTyRep Attributes where
-   tyRep _ = attributes_tyRep
-
-instance HasCodedValue Attributes where
-   encodeIO (Attributes {registry = registry}) codedValue0 view =
-      do
-         (contents::[([Char],CodedValue)]) <- listRegistryContents registry
-         codedValue1 <- encodeIO contents codedValue0 view
-         return codedValue1
-
-   decodeIO codedValue0 view =
-      do
-         (contents::[([Char],CodedValue)],codedValue1) 
-            <- safeDecodeIO codedValue0 view
-         registry <- listToNewRegistry contents
-         let 
-            attributes = Attributes {
-               view = view,
-               registry = registry
-               }
-         return (attributes,codedValue1)
-
-instance HasCodedValue to => GetSetRegistry Attributes String to where
+instance HasBinary to CodingMonad => GetSetRegistry Attributes String to where
    transformValue (Attributes{view = view,registry = registry}) from
          transformer =
       let

@@ -14,7 +14,9 @@ import Directory
 import FileNames
 import WBFiles
 import CopyFile
-import BinaryIO
+import Binary
+import BinaryUtils(WrappedBinary(..))
+import BinaryInstances()
 
 import Thread
 
@@ -32,7 +34,7 @@ serviceArg :: (ServiceClass inType outType stateType) =>
 serviceArg 
    = (error "ServiceClass.1",error "ServiceClass.2",error "ServiceClass.3")
 
-class (HasBinaryIO inType,HasBinaryIO outType) =>
+class (HasBinary inType IO,HasBinary outType IO) =>
 -- inType is input to requests
 -- outType is output to requests.
 -- stateType is state.  This is shared between all clients of this
@@ -107,11 +109,11 @@ class (HasBinaryIO inType,HasBinaryIO outType) =>
 
    -- This is the function we actually use on connect.
    sendOnConnectWrapped :: (inType,outType,stateType) -> User -> stateType 
-       -> IO WrappedBinaryIO
+       -> IO WrappedBinary
    sendOnConnectWrapped service user state =
        do
           str <- sendOnConnect service user state
-          return (WrappedBinaryIO str)
+          return (WrappedBinary str)
           
 getBackupFile :: ServiceClass inType outType stateType =>
    (inType,outType,stateType) -> IO FilePath

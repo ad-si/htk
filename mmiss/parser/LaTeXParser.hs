@@ -1989,21 +1989,21 @@ package_tyRep = Dynamics.mkTyRep "LaTeXParser" "Package"
 instance Dynamics.HasTyRep Package where
    tyRep _ = package_tyRep
 
-instance CodedValue.HasCodedValue Package where
-   encodeIO = CodedValue.mapEncodeIO 
+instance Monad m => CodedValue.HasBinary Package m where
+   writeBin = mapWrite 
       (\ (Package options packageName versionData) -> (options,packageName,versionData))
-   decodeIO = CodedValue.mapDecodeIO
+   readBin = mapRead
       (\ (options,packageName,versionData) -> Package options packageName versionData)
 
 preamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSLatexPreamble"
 instance Dynamics.HasTyRep MMiSSLatexPreamble where
    tyRep _ = preamble_tyRep
 
-instance CodedValue.HasCodedValue MMiSSLatexPreamble where
-   encodeIO = CodedValue.mapEncodeIO
+instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
+   writeBin = mapWrite
       (\ (MMiSSLatexPreamble latexPreamble importCommands) ->
          (latexPreamble,importCommands))
-   decodeIO = CodedValue.mapDecodeIO
+   readBin = mapRead
       (\ (latexPreamble,importCommands) ->
          (MMiSSLatexPreamble latexPreamble importCommands))
 
@@ -2011,11 +2011,11 @@ latexPreamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "LaTeXPreamble"
 instance Dynamics.HasTyRep LaTeXPreamble where
    tyRep _ = latexPreamble_tyRep
 
-instance CodedValue.HasCodedValue LaTeXPreamble where
-   encodeIO = CodedValue.mapEncodeIO
+instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
+   writeBin = mapWrite
       (\ (Preamble documentClass packages string) -> 
          (documentClass,packages,string))
-   decodeIO = CodedValue.mapDecodeIO
+   readBin = mapRead
       (\ (documentClass,packages,string) ->
          (Preamble documentClass packages string))
 
@@ -2024,12 +2024,12 @@ mmissOntology_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSOntology"
 instance HasTyRep MMiSSOntology where
    tyRep _ = mmissOntology_tyRep
 
-instance HasCodedValue MMiSSOntology where
-   encodeIO = mapEncodeIO (
+instance Monad m => CodedValue.HasBinary MMiSSOntology m where
+   writeBin = mapWrite (
       \ (MMiSSOntology classes objects relations objectLinks) ->
       (classes,objects,relations,objectLinks)
       )
-   decodeIO = mapDecodeIO (
+   readBin = mapRead (
       \ (classes,objects,relations,objectLinks) ->
       (MMiSSOntology classes objects relations objectLinks)
       )
@@ -2038,12 +2038,12 @@ classDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "ClassDecl"
 instance HasTyRep ClassDecl where
    tyRep _ = classDecl_tyRep
 
-instance HasCodedValue ClassDecl where
-   encodeIO = mapEncodeIO (
+instance Monad m => HasBinary ClassDecl m where
+   writeBin = mapWrite (
       \ (ClassDecl className classText super) ->
       (className,classText,super)
       )
-   decodeIO = mapDecodeIO (
+   readBin = mapRead (
       \ (className,classText,super) ->
       (ClassDecl className classText super)
       )
@@ -2052,12 +2052,12 @@ objectDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "ObjectDecl"
 instance HasTyRep ObjectDecl where
    tyRep _ = objectDecl_tyRep
 
-instance HasCodedValue ObjectDecl where
-   encodeIO = mapEncodeIO (
+instance Monad m => HasBinary ObjectDecl m where
+   writeBin = mapWrite (
       \ (ObjectDecl objName objectText instanceOf) ->
       (objName,objectText,instanceOf)
       )
-   decodeIO = mapDecodeIO (
+   readBin = mapRead (
       \ (objName,objectText,instanceOf) ->
       (ObjectDecl objName objectText instanceOf)
       )
@@ -2066,12 +2066,12 @@ relationDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "RelationDecl"
 instance HasTyRep RelationDecl where
    tyRep _ = relationDecl_tyRep
 
-instance HasCodedValue RelationDecl where
-   encodeIO = mapEncodeIO (
+instance Monad m => HasBinary RelationDecl m where
+   writeBin = mapWrite (
       \ (RelationDecl multiplicities relName relationText source target) ->
       (multiplicities,relName,relationText,source,target)
       )
-   decodeIO = mapDecodeIO (
+   readBin = mapRead (
       \ (multiplicities,relName,relationText,source,target) ->
       (RelationDecl multiplicities relName relationText source target)
       )
@@ -2080,12 +2080,12 @@ objectLink_tyRep = Dynamics.mkTyRep "LaTeXParser" "ObjectLink"
 instance HasTyRep ObjectLink where
    tyRep _ = objectLink_tyRep
 
-instance HasCodedValue ObjectLink where
-   encodeIO = mapEncodeIO (
+instance Monad m => HasBinary ObjectLink m where
+   writeBin = mapWrite (
       \ (ObjectLink sourceObj targetObj linkRelation) ->
       (sourceObj,targetObj,linkRelation)
       )
-   decodeIO = mapDecodeIO (
+   readBin = mapRead (
       \ (sourceObj,targetObj,linkRelation) ->
       (ObjectLink sourceObj targetObj linkRelation)
       )

@@ -532,20 +532,20 @@ mmissVariants_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariants"
 instance HasTyRep MMiSSVariants where
    tyRep _ = mmissVariants_tyRep
 
-instance HasCodedValue MMiSSVariants where
-   encodeIO = mapEncodeIO unmkMMiSSVariants
-   decodeIO = mapDecodeIO mkMMiSSVariants
+instance Monad m => HasBinary MMiSSVariants m where
+   writeBin = mapWrite unmkMMiSSVariants
+   readBin = mapRead mkMMiSSVariants
 
-instance HasCodedValue MMiSSVariantSpec where
-   encodeIO = mapEncodeIO 
+instance Monad m => HasBinary MMiSSVariantSpec m where
+   writeBin = mapWrite 
       (\ (MMiSSVariantSpec variants) -> unmkMMiSSVariants variants)
-   decodeIO = mapDecodeIO
+   readBin = mapRead
       (\ list -> MMiSSVariantSpec (mkMMiSSVariants list))
 
-instance HasCodedValue MMiSSVariantSearch where
-   encodeIO = mapEncodeIO 
+instance Monad m => HasBinary MMiSSVariantSearch m where
+   writeBin = mapWrite
       (\ (MMiSSVariantSearch variants) -> unmkMMiSSVariants variants)
-   decodeIO = mapDecodeIO
+   readBin = mapRead
       (\ list -> MMiSSVariantSearch (mkMMiSSVariants list))
 
 -- ------------------------------------------------------------------------
@@ -559,17 +559,20 @@ instance HasTyRep1 MMiSSVariantDict where
 -- The CodedValue instance also has the job of reassigning the variant values
 -- in the dictionary which are previously Nothing to the version of the
 -- new view.
-instance HasCodedValue a => HasCodedValue (MMiSSVariantDict a) where
-   decodeIO = mapDecodeIO (\ registry -> MMiSSVariantDict registry)
+instance HasBinary a CodingMonad 
+      => HasBinary (MMiSSVariantDict a) CodingMonad where
 
-   encodeIO (mmissVariantDict @ (MMiSSVariantDict registry)) codedValue0 view =
+   readBin = mapRead (\ registry -> MMiSSVariantDict registry)
+
+   writeBin = mapWriteViewIO (\ view 
+         (mmissVariantDict @ (MMiSSVariantDict registry)) ->
       do
          versionOpt <- readMVar (committingVersion view)
          case versionOpt of
             Nothing -> done
             Just version -> setUnsetVersions mmissVariantDict version
-         codedValue1 <- encodeIO registry codedValue0 view
-         return codedValue1
+         return registry
+      )
  
 -- This function does the reassignation.
 setUnsetVersions :: MMiSSVariantDict a -> Version -> IO ()

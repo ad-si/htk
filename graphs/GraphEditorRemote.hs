@@ -5,7 +5,7 @@ module GraphEditorRemote(graphEditorRemote) where
 import Concurrent
 
 import Computation(done)
-import BinaryIO
+import BinaryAll
 
 import Thread
 import HostsPorts

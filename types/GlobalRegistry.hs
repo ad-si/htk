@@ -75,14 +75,9 @@ newtype GlobalKey = GlobalKey AtomString deriving (Ord,Eq)
 -- Instances for GlobalKey
 -- ---------------------------------------------------------------
 
-globalKey_tyRep = mkTyRep "GlobalRegistry" "GlobalKey"
-
-instance HasTyRep GlobalKey where
-   tyRep _ = globalKey_tyRep
-
-instance HasCodedValue GlobalKey where
-   encodeIO = mapEncodeIO (\ (GlobalKey a) -> Str a)
-   decodeIO = mapDecodeIO (\ (Str a) -> GlobalKey a)
+instance Monad m => HasBinary GlobalKey m where
+   writeBin = mapWrite (\ (GlobalKey a) -> Str a)
+   readBin = mapRead (\ (Str a) -> GlobalKey a)
 
 unpackGlobalKey :: GlobalKey -> String
 unpackGlobalKey (GlobalKey atomString) = toString atomString
@@ -434,7 +429,14 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
             )
          mapWE
  
-            
+-- ---------------------------------------------------------------
+-- HasBinary for UniqueStringSource
+-- ---------------------------------------------------------------
+
+
+instance HasBinary UniqueStringSource CodingMonad where
+   writeBin = mapWriteIO (\ source -> readUniqueStringSource source)
+   readBin = mapReadIO (\ is -> createUniqueStringSource is)
 
           
 

@@ -17,7 +17,7 @@ import NewNames
 import Graph
 import SimpleGraph
 import GraphEditor
-import BinaryIO
+import BinaryAll
 import Debug(debug)
 
 data FrozenGraph = FrozenGraph {

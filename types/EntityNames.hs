@@ -35,6 +35,7 @@ import ExtendedPrelude
 import DeepSeq
 import Dynamics
 import Computation
+import BinaryAll
 
 import SimpleForm
 
@@ -47,7 +48,7 @@ import CodedValue
 ---
 -- Example EntityName's "a", "bc".  In general a non-empty sequence of
 -- characters none of which may be ".", "/" or ":".
-newtype EntityName = EntityName String deriving (Eq,Ord)
+newtype EntityName = EntityName String deriving (Eq,Ord,Typeable)
 ---
 -- An EntityFullName is a name for some object, relative to some other
 -- object.  "." represents that other object.
@@ -134,55 +135,39 @@ data Directive =
 -- Instances of CodedValue
 -- ----------------------------------------------------------------------
 
-directive_tyRep = mkTyRep "EntityNames" "Directive"
-instance HasTyRep Directive where
-   tyRep _ = directive_tyRep
-
-instance HasPacker Directive where
-   packs = [
-      pack0 'q' Qualified,
-      pack0 'u' Unqualified,
-      pack0 'g' Global,
-      pack0 'l' Local,
-      pack1 'h' Hide,
-      pack1 'r' Reveal,
-      pack2 'R' Rename
+instance Monad m => HasWrapper Directive m where
+   wraps = [
+      wrap0 0 Qualified,
+      wrap0 1 Unqualified,
+      wrap0 2 Global,
+      wrap0 3 Local,
+      wrap1 4 Hide,
+      wrap1 5 Reveal,
+      wrap2 6 Rename
       ]
-   unPack = (\ packer -> case packer of
-      Qualified -> UnPack 'q' ()
-      Unqualified -> UnPack 'u' ()
-      Global -> UnPack 'g' ()
-      Local -> UnPack 'l' ()
-      Hide l -> UnPack 'h' l
-      Reveal l -> UnPack 'r' l
-      Rename n o -> UnPack 'R' (n,o)
+   unWrap = (\ wrapper -> case wrapper of
+      Qualified -> UnWrap 0 ()
+      Unqualified -> UnWrap 1 ()
+      Global -> UnWrap 2 ()
+      Local -> UnWrap 3 ()
+      Hide l -> UnWrap 4 l
+      Reveal l -> UnWrap 5 l
+      Rename n o -> UnWrap 6 (n,o)
       )
 
-instance HasCodedValue Directive where
-   encodeIO = mapEncodeIO Packed
-   decodeIO = mapDecodeIO (\ (Packed p) -> p)
-
-importCommand_tyRep = mkTyRep "EntityNames" "ImportCommand"
-instance HasTyRep ImportCommand where
-   tyRep _ = importCommand_tyRep
-
-instance HasCodedValue ImportCommand where
-   encodeIO = mapEncodeIO (\ ic -> case ic of
+instance Monad m => HasBinary ImportCommand m where
+   writeBin = mapWrite (\ ic -> case ic of
       Import ds e -> Left (ds,e)
       PathAlias e ef -> Right (e,ef)
       )
-   decodeIO = mapDecodeIO (\ et -> case et of
+   readBin = mapRead (\ et -> case et of
       Left (ds,e) -> Import ds e
       Right (e,ef) -> PathAlias e ef
       )
 
-importCommands_tyRep = mkTyRep "EntityNames" "ImportCommands"
-instance HasTyRep ImportCommands where
-   tyRep _ = importCommands_tyRep
-
-instance HasCodedValue ImportCommands where
-   encodeIO = mapEncodeIO (\ (ImportCommands ics) -> ics)
-   decodeIO = mapDecodeIO (\ ics -> ImportCommands ics)
+instance Monad m => HasBinary ImportCommands m where
+   writeBin = mapWrite (\ (ImportCommands ics) -> ics)
+   readBin = mapRead (\ ics -> ImportCommands ics)
    
 
 
@@ -293,46 +278,24 @@ instance FormTextFieldIO EntityPath where
    readFormStringIO = return . fromStringWE
 
 -- ----------------------------------------------------------------------
--- Instances of Typeable and HasCodedValue
+-- Instances of HasCodedValue
 -- ----------------------------------------------------------------------
 
-entityName_tyRep = mkTyRep "EntityNames" "EntityName"
-instance HasTyRep EntityName where
-   tyRep _ = entityName_tyRep
+instance Monad m => HasBinary EntityName m where
+   writeBin = mapWrite (\ name -> Str name)
+   readBin = mapRead (\ (Str name) -> name)
 
-instance HasCodedValue EntityName where
-   encodeIO = mapEncodeIO (\ name -> Str name)
-   decodeIO = mapDecodeIO (\ (Str name) -> name)
+instance Monad m => HasBinary EntityFullName m where
+   writeBin = mapWrite (\ name -> Str name)
+   readBin = mapRead (\ (Str name) -> name)
 
---
+instance Monad m => HasBinary EntitySearchName m where
+   writeBin = mapWrite (\ name -> Str name)
+   readBin = mapRead (\ (Str name) -> name)
 
-entityFullName_tyRep = mkTyRep "EntityNames" "EntityFullName"
-instance HasTyRep EntityFullName where
-   tyRep _ = entityFullName_tyRep
-
-instance HasCodedValue EntityFullName where
-   encodeIO = mapEncodeIO (\ name -> Str name)
-   decodeIO = mapDecodeIO (\ (Str name) -> name)
-
---
-
-entitySearchName_tyRep = mkTyRep "EntityNames" "EntitySearchName"
-instance HasTyRep EntitySearchName where
-   tyRep _ = entitySearchName_tyRep
-
-instance HasCodedValue EntitySearchName where
-   encodeIO = mapEncodeIO (\ name -> Str name)
-   decodeIO = mapDecodeIO (\ (Str name) -> name)
-
---
-
-entityPath_tyRep = mkTyRep "EntityNames" "EntityPath"
-instance HasTyRep EntityPath where
-   tyRep _ = entityPath_tyRep
-
-instance HasCodedValue EntityPath where
-   encodeIO = mapEncodeIO (\ name -> Str name)
-   decodeIO = mapDecodeIO (\ (Str name) -> name)
+instance Monad m => HasBinary EntityPath m where
+   writeBin = mapWrite (\ name -> Str name)
+   readBin = mapRead (\ (Str name) -> name)
 
 -- ----------------------------------------------------------------------
 -- raiseEntityPath

@@ -7,6 +7,7 @@ module CopyFile(
    copyStringToFileCheck,
    copyFileToString,
    copyFileToStringCheck,
+   copyICStringLenToFile,
 
    copyCStringLenToFile,
    copyFileToCStringLen,
@@ -142,8 +143,14 @@ copyFileToICStringLen filePath =
                      do
                         lenRead <- hGetBuf handle cString len_i
                         when (lenRead < len_i)
-                           (error"EOF within BinaryIO")
+                           (error"EOF within CopyFile.copyFileToICStringLen")
                      )
+
+copyICStringLenToFile :: ICStringLen -> FilePath -> IO ()
+copyICStringLenToFile icsl filePath =
+   withICStringLen icsl (\ i cstr ->
+      copyCStringLenToFile (cstr,i) filePath
+      )
 
 ---
 -- Write to a file, catching certain errors.

@@ -88,12 +88,13 @@ import Control.Concurrent.Chan
 import Control.Concurrent.MVar
 
 import Computation
-import BinaryIO
+import BinaryAll
 import WBFiles
 import ExtendedPrelude
 import Dynamics
 import HostName
 import Posix(getProcessID)
+import AtomString(StringClass(..))
 
 import DialogWin
 import SimpleForm
@@ -108,7 +109,7 @@ import LogFile
 -- The datatypes
 -- ----------------------------------------------------------------------
 
-newtype ObjectVersion = ObjectVersion Int deriving (Eq,Ord,HasBinaryIO)
+newtype ObjectVersion = ObjectVersion Int deriving (Eq,Ord,Typeable)
    -- Type of handle referring to a version.
 
 firstVersion :: ObjectVersion
@@ -150,54 +151,65 @@ data ServerInfo = ServerInfo {
 data VersionInfo = VersionInfo {
    user :: UserInfo,
    server :: ServerInfo
-   } deriving Show
+   } deriving (Show,Typeable)
 
 -- ----------------------------------------------------------------------
--- Instances of Show
+-- Instances of Show, StringClass
 -- ----------------------------------------------------------------------
 
 instance Show ObjectVersion where
    showsPrec n (ObjectVersion v) acc = "[" ++ show v ++ "]" ++ acc
 
+instance StringClass ObjectVersion where
+   toString (ObjectVersion v) = show v
+   fromStringWE s =
+      case readCheck s of
+         Just i -> hasValue (ObjectVersion i)
+         Nothing -> hasError "Can't parse ObjectVersion - must be a number"
+
 -- ----------------------------------------------------------------------
--- Instances of HasBinaryIO
+-- Instances of HasBinary
 -- ----------------------------------------------------------------------
    
-instance HasBinaryIO UserInfo where
-   hPut = mapHPut 
+instance Monad m => HasBinary ObjectVersion m where
+   writeBin = mapWrite (\ (ObjectVersion i) -> i)
+   readBin = mapRead ObjectVersion
+   
+instance Monad m => HasBinary UserInfo m where
+   writeBin = mapWrite 
       (\ (UserInfo {label = label,contents = contents,private = private,
             version = version,parents = parents}) 
          ->
          (label,contents,private,version,parents)
          )
-   hGetIntWE = mapHGetIntWE 
+   readBin = mapRead
       (\ (label,contents,private,version,parents) 
          ->
          (UserInfo {label = label,contents = contents,private = private,
             version = version,parents = parents}) 
          )
 
-instance HasBinaryIO ServerInfo where
-   hPut = mapHPut 
+instance Monad m => HasBinary ServerInfo m where
+   writeBin = mapWrite
       (\ (ServerInfo {serverId = serverId,serialNo = serialNo,
             timeStamp = timeStamp,userId = userId})
          ->
          (serverId,serialNo,timeStamp,userId)
          )
-   hGetIntWE = mapHGetIntWE 
+   readBin = mapRead 
       (\ (serverId,serialNo,timeStamp,userId)
          ->
          (ServerInfo {serverId = serverId,serialNo = serialNo,
             timeStamp = timeStamp,userId = userId})
          )
 
-instance HasBinaryIO VersionInfo where
-   hPut = mapHPut 
+instance Monad m => HasBinary VersionInfo m where
+   writeBin = mapWrite
       (\ (VersionInfo {user = user,server = server})
          ->
          (user,server)
          )
-   hGetIntWE = mapHGetIntWE 
+   readBin = mapRead 
       (\ (user,server)
          ->
          (VersionInfo {user = user,server = server})
@@ -240,15 +252,6 @@ instance Eq VersionInfo where
 
 instance Ord VersionInfo where
    compare = mapOrd user
-
--- ----------------------------------------------------------------------
--- Instances of Typeable
--- ----------------------------------------------------------------------
-
-versionInfo_tyRep = mkTyRep "VersionInfo" "VersionInfo"
-
-instance HasTyRep VersionInfo where
-   tyRep _ = versionInfo_tyRep
 
 -- ----------------------------------------------------------------------
 -- Code for filling in the ServerInfo, if necessary, also checking

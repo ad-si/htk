@@ -16,6 +16,9 @@ module AtomString(
    fromStringWEHacked,
    fromStringError,
       -- provide a primitive way for decoding String's to return an error.
+
+   Str(..),
+      -- WRAP 
    ) where               
 
 import Concurrent
@@ -29,6 +32,9 @@ import QuickReadShow
 import Dynamics
 import DeepSeq
 import Computation
+import Binary
+import BinaryUtils
+import BinaryInstances
 
 data AtomSource = AtomSource (MVar (FiniteMap PackedString AtomString))
    -- where AtomStrings come from
@@ -142,3 +148,13 @@ readAtom :: AtomString -> IO String
 readAtom (AtomString packedString) =
    return(unpackPS packedString)
 
+------------------------------------------------------------------------
+-- The Str class.  Wrapping an instance of StringClass in this gives
+-- you an instance of HasBinary.
+------------------------------------------------------------------------
+
+newtype Str a = Str a
+
+instance (Monad m,StringClass a) => HasBinary (Str a) m where
+   writeBin = mapWrite (\ (Str a) -> toString a)
+   readBin = mapRead (\ str -> Str (fromString str))

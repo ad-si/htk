@@ -43,11 +43,11 @@ mmissDisplayType_tyRep = mkTyRep "MMiSSDisplay" "MMiSSDisplayType"
 instance HasTyRep MMiSSDisplayType where
    tyRep _ = mmissDisplayType_tyRep
 
-instance HasCodedValue MMiSSDisplayType where
-   encodeIO = mapEncodeIO (\ (MMiSSDisplayType {name = name,key = key,
+instance HasBinary MMiSSDisplayType CodingMonad where
+   writeBin = mapWrite (\ (MMiSSDisplayType {name = name,key = key,
       defaultVariantAttributes = defaultVariantAttributes}) 
          -> (name,key,defaultVariantAttributes))
-   decodeIO = mapDecodeIO (\ (name,key,defaultVariantAttributes) ->
+   readBin = mapRead (\ (name,key,defaultVariantAttributes) ->
        MMiSSDisplayType {name = name,key = key,
           defaultVariantAttributes = defaultVariantAttributes})
 

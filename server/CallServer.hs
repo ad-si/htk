@@ -3,7 +3,7 @@ module CallServer(
    -- The context of all these functions is the same and is omitted from
    -- the following signature declarations.
    -- (?server :: HostPort,ServiceClass inType outType stateType,
-   --       HasBinaryIO header)
+   --       HasBinary header IO)
 
 
    connectReply, -- :: 
@@ -49,8 +49,8 @@ import Computation
 import Debug(debug)
 import Object
 import WBFiles
-import BinaryIO
 import ExtendedPrelude
+import BinaryAll
 
 import Destructible
 
@@ -67,7 +67,7 @@ import HostsList
 
 connectReply :: 
    (?server :: HostPort,
-      ServiceClass inType outType stateType,HasBinaryIO header)
+      ServiceClass inType outType stateType,HasBinary header IO)
    => (inType,outType,stateType)  
    -> IO (inType -> IO outType,IO (),header)
 connectReply service =
@@ -77,23 +77,23 @@ connectReply service =
          _ -> ioError(userError("connectReply handed a non-Reply service"))
       (connection@ Connection {handle = handle}) <- connectBasic service
 
-      header <- hGet handle
+      header <- hRead handle
 
       bSem <- newBSem 
       let
          sendMessage inData =
             synchronize bSem (
                do
-                  hPut handle inData
+                  hWrite handle inData
                   hFlush handle
-                  hGet handle
+                  hRead handle
                )
          closeAct = destroy connection
       return (sendMessage,closeAct,header)
    
 connectBroadcast :: 
    (?server :: HostPort,
-      ServiceClass inType outType stateType,HasBinaryIO header)
+      ServiceClass inType outType stateType,HasBinary header IO)
    => (inType,outType,stateType)     
    -> IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcast service =
@@ -106,7 +106,7 @@ connectBroadcast service =
 
 connectBroadcastOther :: 
    (?server :: HostPort,
-      ServiceClass inType outType stateType,HasBinaryIO header)
+      ServiceClass inType outType stateType,HasBinary header IO)
    => (inType,outType,stateType) ->     
       IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastOther service =
@@ -119,7 +119,7 @@ connectBroadcastOther service =
 
 connectExternal :: 
    (?server :: HostPort,
-      ServiceClass inType outType stateType,HasBinaryIO header)
+      ServiceClass inType outType stateType,HasBinary header IO)
    => (inType,outType,stateType) 
    -> IO (IO outType,IO (),header)
 connectExternal service =
@@ -133,14 +133,14 @@ connectExternal service =
 
 connectBroadcastGeneral :: 
    (?server :: HostPort,
-      ServiceClass inType outType stateType,HasBinaryIO header)
+      ServiceClass inType outType stateType,HasBinary header IO)
    => (inType,outType,stateType)     
    -> IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastGeneral service =
    do
       (connection@ Connection {handle = handle}) <- connectBasic service
 
-      header <- hGet handle
+      header <- hRead handle
 
       readBSem <- newBSem
       writeBSem <- newBSem      
@@ -149,10 +149,10 @@ connectBroadcastGeneral service =
          sendMessage inData =
             synchronize readBSem (
                do
-                  hPut handle inData
+                  hWrite handle inData
                   hFlush handle
                )
-         getMessage = synchronize writeBSem (hGet handle)
+         getMessage = synchronize writeBSem (hRead handle)
          closeAct = destroy connection
 
       return (sendMessage,getMessage,closeAct,header)
@@ -227,9 +227,7 @@ connectBasic service =
                   Nothing -> connectFailure "Server connection cancelled"
                   Just (user,password) -> return (user,password)
 
-               hPut handle serviceKey
-               hPut handle user
-               hPut handle password
+               hWrite handle (serviceKey,user,password)
                hFlush handle
 
                response <- hGetLine handle 

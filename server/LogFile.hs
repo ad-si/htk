@@ -1,5 +1,5 @@
 {- This module deals with reading and writing a log file containing
-   entries which are instances of HasBinaryIO. -}
+   entries which are instances of HasBinary. -}
 module LogFile(
    LogFile,
    openLog,
@@ -12,20 +12,20 @@ import IO
 
 import WBFiles
 import Computation
-import BinaryIO
+import BinaryAll
 import IOExtras
 
 newtype LogFile a = LogFile Handle
 
 -- | Reads the entries in a LogFile.
-openLog :: HasBinaryIO a => String -> IO (LogFile a,[a])
+openLog :: HasBinary a IO => String -> IO (LogFile a,[a])
 openLog logFileName =
    do
       (logFile,as) <- openLog1 logFileName
       return (logFile,reverse as)
 
 -- ! Reads the entries in a LogFile, returning them in reverse order.
-openLog1 :: HasBinaryIO a => String -> IO (LogFile a,[a])
+openLog1 :: HasBinary a IO => String -> IO (LogFile a,[a])
 openLog1 logFileName =
    do
       fpath <- getServerFile logFileName
@@ -34,7 +34,7 @@ openLog1 logFileName =
       return (LogFile handle,items)
 
 -- | Reads the entries in a LogFile, without opening it for writing.
-readLog :: HasBinaryIO a => String -> IO [a]
+readLog :: HasBinary a IO => String -> IO [a]
 readLog logFileName =
    do
       fpath <- getServerFile logFileName
@@ -46,12 +46,12 @@ readLog logFileName =
 
 
 -- The second argument is an accumulating parameter.
-readLogItems :: HasBinaryIO a => Handle -> [a] -> IO [a]
+readLogItems :: HasBinary a IO => Handle -> [a] -> IO [a]
 readLogItems handle as =
    do
       pos1 <- hGetPosn handle
-      aWEOpt <- catchEOF (hGetWE handle)
-      case aWEOpt of
+      aOpt <- catchEOF (hRead handle)
+      case aOpt of
          Nothing -> -- EOF
             do
                pos2 <- hGetPosn handle
@@ -62,20 +62,12 @@ readLogItems handle as =
                      hSetPosn pos1
                   )
                return as -- this is how we normally end.
-         Just aWE -> 
-            case fromWithError aWE of
-               Left mess ->
-                  error (
-                     "Server could not restarted due to parse error in "
-                     ++ show handle ++ ": " ++ mess)
-               Right a ->
-                  do
-                     readLogItems handle (a : as)
+         Just a -> readLogItems handle (a : as)
 
 
 
-writeLog :: HasBinaryIO a => LogFile a -> a -> IO ()
+writeLog :: HasBinary a IO => LogFile a -> a -> IO ()
 writeLog (LogFile handle) a =
    do
-      hPut handle a
+      hWrite handle a
       hFlush handle

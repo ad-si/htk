@@ -872,54 +872,39 @@ data FrozenLinkedObject = FrozenLinkedObject {
    wrappedLink' :: WrappedLink,
    insertion' :: Maybe Insertion,
    contents' :: [(EntityName,LinkedObjectPtr)]
-   } deriving (Eq)
+   } deriving (Eq,Typeable)
 
-frozenLinkedObject_tyRep = mkTyRep "LinkManager" "FrozenLinkedObject"
-instance HasTyRep FrozenLinkedObject where
-   tyRep _ = frozenLinkedObject_tyRep
-
-instance HasCodedValue FrozenLinkedObject where
-   encodeIO = mapEncodeIO (\ (FrozenLinkedObject {wrappedLink' = wrappedLink,
+instance HasBinary FrozenLinkedObject CodingMonad where
+   writeBin = mapWrite (\ (FrozenLinkedObject {wrappedLink' = wrappedLink,
       insertion' = insertion,contents' = contents})
       -> (wrappedLink,insertion,contents))
-   decodeIO = mapDecodeIO (\ (wrappedLink,insertion,contents) ->
+   readBin = mapRead (\ (wrappedLink,insertion,contents) ->
       (FrozenLinkedObject {wrappedLink' = wrappedLink,insertion' = insertion,
          contents' = contents}))
 
 -- ----------------------------------------------------------------------
--- Instances of Typeable and HasCodedValue via a FrozenLinkedObject
+-- Instances of HasCodedValue via a FrozenLinkedObject
 -- ----------------------------------------------------------------------
 
-linkedObject_tyRep = mkTyRep "LinkManager" "LinkedObject"
-instance HasTyRep LinkedObject where
-   tyRep _ = linkedObject_tyRep
-
-linkSource_tyRep = mkTyRep "LinkManager" "LinkSource"
-instance HasTyRep1 LinkSource where
-   tyRep1 _ = linkSource_tyRep
-
-instance HasCodedValue LinkedObject where
-   encodeIO linkedObject codedValue view =
+instance HasBinary LinkedObject CodingMonad where
+   writeBin = mapWriteIO (\ linkedObject ->
       do
          frozenLinkedObject <- freezeLinkedObject linkedObject
-         encodeIO frozenLinkedObject codedValue view
-   decodeIO codedValue0 view =
+         return frozenLinkedObject
+      )
+   readBin = mapReadViewIO (\ view frozenLinkedObject ->
       do
-         (frozenLinkedObject,codedValue1) <- decodeIO codedValue0 view
          linkedObjectWE <- createLinkedObject view False frozenLinkedObject
-         return (coerceWithError linkedObjectWE,codedValue1)
+         return (coerceWithError linkedObjectWE)
+      )
      
 -- ----------------------------------------------------------------------
 -- CodedValue for Insertion
 -- ----------------------------------------------------------------------
 
-insertion_tyRep = mkTyRep "LinkManager" "Insertion"
-instance HasTyRep Insertion where
-   tyRep _ = insertion_tyRep
-
-instance HasCodedValue Insertion where
-   encodeIO = mapEncodeIO (\ insertion -> (parent insertion,name insertion))
-   decodeIO = mapDecodeIO (\ (parent,name) -> 
+instance HasBinary Insertion CodingMonad where
+   writeBin = mapWrite (\ insertion -> (parent insertion,name insertion))
+   readBin = mapRead (\ (parent,name) -> 
       Insertion {parent = parent,name = name})
 
 -- ----------------------------------------------------------------------
@@ -934,7 +919,7 @@ instance HasCodedValue Insertion where
 -- for encoding references to LinkedObjects in other objects.
 --
 -- We include the WrappedLink in the LinkedObjectPtr so that a LinkedObjectPtr
--- can be decodeIO'd and encodeIO'd without having to reference the object
+-- can be decoded and encoded without having to reference the object
 -- itself.
 --
 -- Each LinkedObject also stores its own LinkedObjectPtr, as thisPtr.
@@ -961,21 +946,15 @@ mkLinkedObjectPtr view wrappedLink =
       linkedObjectPtr
 
 
-linkedObjectPtr_tyRep = mkTyRep "LinkManager" "LinkedObjectPtr"
-instance HasTyRep LinkedObjectPtr where
-   tyRep _ = linkedObjectPtr_tyRep
-
-instance HasCodedValue LinkedObjectPtr where
-   encodeIO (LinkedObjectPtr {wrappedLinkInPtr = wrappedLink})
-         codedValue0 view = encodeIO wrappedLink codedValue0 view
-   decodeIO codedValue0 view =
-      do
-         (wrappedLink,codedValue1) <- decodeIO codedValue0 view
-         let
-            linkedObjectPtr = mkLinkedObjectPtr view wrappedLink
-         return (linkedObjectPtr,codedValue1)
-
-
+instance HasBinary LinkedObjectPtr CodingMonad where
+   writeBin = mapWrite 
+      (\ (LinkedObjectPtr {wrappedLinkInPtr = wrappedLink}) 
+         -> wrappedLink
+         )
+   readBin = mapReadViewIO 
+      (\ view wrappedLink ->
+         return (mkLinkedObjectPtr view wrappedLink)
+         )
 
 instance Eq LinkedObjectPtr where
    (==) ptr1 ptr2 = wrappedLinkInPtr ptr1 == wrappedLinkInPtr ptr2
@@ -998,24 +977,14 @@ data FrozenLinkEnvironment = FrozenLinkEnvironment {
    path' :: EntityPath
    }
 
-frozenLinkEnvironment_tyRep = mkTyRep "LinkManager" "FrozenLinkEnvironment"
-
-instance HasTyRep FrozenLinkEnvironment where
-   tyRep _ = frozenLinkEnvironment_tyRep
-
-instance HasCodedValue FrozenLinkEnvironment where
-   encodeIO = mapEncodeIO (\ 
-      (FrozenLinkEnvironment {linkedObject' = linkedObject',path' = path'})
+instance HasBinary FrozenLinkEnvironment CodingMonad where
+   writeBin = mapWrite (
+      \ (FrozenLinkEnvironment {linkedObject' = linkedObject',path' = path'})
       -> (linkedObject',path')
       )
-   decodeIO = mapDecodeIO (\ (linkedObject',path') ->
+   readBin = mapRead (\ (linkedObject',path') ->
       (FrozenLinkEnvironment {linkedObject' = linkedObject',path' = path'})
       )
-
-linkEnvironment_tyRep = mkTyRep "LinkManager" "LinkEnvironment"
-
-instance HasTyRep LinkEnvironment where
-   tyRep _ = linkEnvironment_tyRep
 
 instance Eq LinkEnvironment where
    (==) = mapEq oID
@@ -1052,18 +1021,22 @@ createLinkEnvironment (FrozenLinkEnvironment {linkedObject' = linkedObject',
 
 newtype FrozenLinkSource value = FrozenLinkSource {
    linksSource' :: [(EntityFullName,value)]
-   }
+   } 
 
 frozenLinkSource_tyRep = mkTyRep "LinkManager" "FrozenLinkSource"
 
 instance HasTyRep1 FrozenLinkSource where
    tyRep1 _ = frozenLinkSource_tyRep
 
-instance HasCodedValue value => HasCodedValue (FrozenLinkSource value) where
-   encodeIO = mapEncodeIO (\ (FrozenLinkSource {linksSource' = linksSource'})
-      -> linksSource')
-   decodeIO = mapDecodeIO (\ linksSource'
-      -> FrozenLinkSource {linksSource' = linksSource'})
+instance HasBinary value CodingMonad 
+   => HasBinary (FrozenLinkSource value) CodingMonad where
+
+   writeBin = mapWrite 
+      (\ (FrozenLinkSource {linksSource' = linksSource'})
+         -> linksSource'
+         )
+   readBin = mapRead
+      (\ linksSource' -> FrozenLinkSource {linksSource' = linksSource'})
 
 freezeLinkSource :: LinkSource value -> IO (FrozenLinkSource value)
 freezeLinkSource linkSource =
@@ -1118,20 +1091,22 @@ linkSourceSet_tyRep = mkTyRep "LinkManager" "LinkSourceSet"
 instance HasTyRep1 LinkSourceSet where
    tyRep1 _ = linkSourceSet_tyRep
 
-instance HasCodedValue value => HasCodedValue (LinkSourceSet value) where
-   encodeIO (LinkSourceSet linkEnvironment linkSources) codedValue view =
+instance HasBinary value CodingMonad 
+   => HasBinary (LinkSourceSet value) CodingMonad where
+
+   writeBin = mapWriteIO (\ (LinkSourceSet linkEnvironment linkSources) ->
       do
          frozenLinkEnvironment <- freezeLinkEnvironment linkEnvironment
          frozenLinkSources <- mapM freezeLinkSource linkSources
-         encodeIO (frozenLinkEnvironment,frozenLinkSources) codedValue view
-   decodeIO codedValue0 view =
+         return (frozenLinkEnvironment,frozenLinkSources)
+      )
+   readBin = mapReadIO (\ (frozenLinkEnvironment,frozenLinkSources) ->
       do
-         ((frozenLinkEnvironment,frozenLinkSources),codedValue1) <-
-            decodeIO codedValue0 view
          linkEnvironment <- createLinkEnvironment frozenLinkEnvironment
          linkSources <- mapM (createLinkSource linkEnvironment)
             frozenLinkSources
-         return (LinkSourceSet linkEnvironment linkSources,codedValue1)
+         return (LinkSourceSet linkEnvironment linkSources)
+      )
 
 
 -- ----------------------------------------------------------------------

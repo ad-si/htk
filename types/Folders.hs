@@ -81,9 +81,9 @@ folderDisplayType_tyRep = mkTyRep "Folders" "FolderDisplayType"
 instance HasTyRep FolderDisplayType where
    tyRep _ = folderDisplayType_tyRep
 
-instance HasCodedValue FolderDisplayType where
-   encodeIO = mapEncodeIO (\ FolderDisplayType -> ())
-   decodeIO = mapDecodeIO (\ () -> FolderDisplayType)
+instance Monad m => HasBinary FolderDisplayType m where
+   writeBin = mapWrite (\ FolderDisplayType -> ())
+   readBin = mapRead (\ () -> FolderDisplayType)
 
 instance DisplayType FolderDisplayType where
    displayTypeTypeIdPrim _  = "Folders"
@@ -135,24 +135,24 @@ folderType_tyRep = mkTyRep "Folders" "FolderType"
 instance HasTyRep FolderType where
    tyRep _ = folderType_tyRep
 
-instance HasCodedValue FolderType where
-   encodeIO = mapEncodeIO 
+instance HasBinary FolderType CodingMonad where
+   writeBin = mapWrite
       (\ (FolderType {folderTypeId = folderTypeId,
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt})
          -> (folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
-               topFolderLinkOpt))
-   decodeIO codedValue0 view =
-      do
-         ((folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
-            topFolderLinkOpt),
-            codedValue1) <- safeDecodeIO codedValue0 view
-         return (FolderType {folderTypeId = folderTypeId,
+               topFolderLinkOpt)
+         )
+   readBin = mapRead
+      (\ (folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
+            topFolderLinkOpt) ->
+         FolderType {folderTypeId = folderTypeId,
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt
-            },codedValue1)
+            }
+         )
 
 instance HasAttributesType FolderType where
    toAttributesType folderType = requiredAttributes folderType
@@ -179,18 +179,16 @@ instance HasTyRep Folder where
 instance HasAttributes Folder where
    readPrimAttributes object = attributes object
 
-instance HasCodedValue Folder where
-   encodeIO = mapEncodeIO 
+instance HasBinary Folder CodingMonad where
+   writeBin = mapWrite 
       (\ (Folder {folderType = folderType,attributes = attributes,
              linkedObject = linkedObject}) ->
          (folderTypeId folderType,attributes,linkedObject)
          )
-   decodeIO codedValue0 view =
-      do
-         ((folderTypeId,attributes,linkedObject),codedValue1) <-
-            safeDecodeIO codedValue0 view
-         folder <- createFolder view folderTypeId attributes linkedObject
-         return (folder,codedValue1)
+   readBin = mapReadViewIO 
+      (\ view (folderTypeId,attributes,linkedObject) ->
+         createFolder view folderTypeId attributes linkedObject
+         )
 
 ---
 -- Thus function is also used during merging.

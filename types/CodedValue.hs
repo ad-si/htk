@@ -1,852 +1,215 @@
-{- This module handles the basics of representing values, via the
-   repository (where files are included). 
-
-   View.hs needs to be compiled before this module, but uses the
-   HasCodedValue class.  We allow this by creating an interface
-   file CodedValue.hi-boot, which just contain the class definition.
-   -}
+{- This module is a (very much trimmed-down) rewrite of the old CodedValue
+   module, which takes advantage of the new Binary modules (in the util
+   directory). -}
 module CodedValue(
-   CodedValue(..),
-      -- This represents values in a uniform (and not too inefficient)
-      -- way.  A CodedValue is essentially a String, only with record
-      -- boundaries.
-      -- (actually defined in CodedValueStore)
+   HasCodedValue,
+   CodedValue,
+   CodingMonad, -- instance of MonadIO
+   thisView, -- :: CodingMonad View
 
-   safeDecodeIO,
-      -- This is recommended instead of the class method decodeIO since in
-      -- DEBUG mode it catches format errors and handles them.  In non-DEBUG
-      -- it is exactly the same as decodeIO, and should cost nothing more.
+   doEncodeIO, -- :: HasCodedValue a => a -> View -> IO CodedValue
+   doDecodeIO, -- :: HasCodedValue a => CodedValue -> View -> IO a
+   equalByEncode, 
+      -- :: HasCodedValue value => (View,value) -> (View,value) -> IO Bool
 
-   HasCodedValue(..),
-      -- class of things that can be converted to and from a CodedValue
-      -- Conversion can be impure, and use the repository; hence
-      -- (although we won't use it in this file) links and so on will
-      -- be included.  The instances of this class form an important
-      -- part of this module.  They include integers (of various flavours),
-      -- Bool, Char, String.  Also included are Either x y, tuples
-      -- of size from 0 to 4 and Maybe x for x already an instance. 
-      -- For lists there are two types, [x] and ShortList x,
-   ShortList(..),
-      -- which are equivalent except that lists are represented with
-      -- a record boundary between each element, making them more suitable
-      -- where the elements, or the lists, are long enough to make 
-      -- CVS-style diff'ing important. 
-   List(..),
-      -- a synonym for lists.  This is used to evade certain tiresome features
-      -- of ghc5.02.1's type system.
-   Str(..),
-      -- A type Str X where X is an instance of StringClass,
-      -- will inherit HasCodedValue according to String.
-   Choice5(..),
-      -- like Either but between 5 types.  Hopefully this will allow
-      -- efficient encoding of most cases where we have 3 or more constructors.
-
-   -- HasPacker is a way of constructing HasCodedValue instances for
-   -- general datatypes.
-   Packed(..),
-   HasPacker(..),
-   Pack(..),UnPack(..),
-   pack0,pack1,pack2,pack3,pack4,
-      -- used for constructing HasPacker instances.
-   
-   
-
-   -- We also provide the following mechanisms for providing instances
-   -- of HasCodedValue:
-   
-   -- basic manipulation:
-   emptyCodedValue,
-   isEmptyCodedValue, -- :: CodedValue -> Bool
-   addBoundary, -- :: CodedValue -> CodedValue
-   removeBoundary, -- :: CodedValue -> Maybe CodedValue
-
-   -- errors on decoding:
-   formatError, -- :: String -> a
-      -- signals such an error
-   catchFormatError, -- :: IO a -> (String -> IO a) -> IO a
-      -- catches it.
-
-   -- putting values together.
-
-   -- encoding/decoding one value (without adding it to something before).
-   doEncodeIO, 
-      -- :: HasCodedValue value => value -> View -> IO CodedValue
-   doDecodeIO,
-      -- :: HasCodedValue value => CodedValue -> View -> IO value
-
-   -- encoding two values
-   encode2IO, -- :: (HasCodedValue value1,HasCodedValue value2) 
-      -- => value1 -> value2 -> CodedValue -> View -> IO CodedValue
-   decode2IO, -- :: (HasCodedValue value1,HasCodedValue value2)
-      -- => CodedValue -> View -> IO ((value1,value2),CodedValue
-
-   -- encoding and decoding multiple values
-   -- (This is different from encoding a list directly since we
-   -- don't use an accumulating list.)
-   -- NB.  These assume that encoding is a 1-1 function.  They should therefore
-   -- not be used for something with a null encoding (such as the () type).
-   doEncodeMultipleIO, 
-      -- :: HasCodedValue value => [value] -> View -> IO CodedValue
-   doDecodeMultipleIO,
-      -- :: HasCodedValue value => CodedValue -> View -> IO [value]
-
-   HasPureCodedValue(..), -- "pure" coded values, which code without
-      -- using IO or the repository.  HasCodedValue follows from this.
+   -- Functions for constructing instances (when mapWrite/mapRead aren't
+   -- enough)
+   mapWriteViewIO, 
+      -- :: HasBinary value2 CodingMonad
+      -- => (View -> value1 -> IO value2) -- this you must provide 
+      -- -> WriteBinary CodingMonad -> value1 -> CodingMonad ()
+   mapReadViewIO,
+      -- :: HasBinary value2 CodingMonad
+      -- => (View -> value2 -> IO value1) -- this you must provide
+      -- -> ReadBinary CodingMonad -> CodingMonad value1
+   mapReadPairViewIO,
+      -- :: HasBinary typeKey CodingMonad
+      -- => (View ­> typeKey -> IO (WrappedRead value)) 
+      -- -> ReadBinary CodingMonad -> CodingMonad value 
+      -- How to read values of wrapped type, 
+      --    eg WrappedLink, WrappedDisplayType, and friends.
+      -- To write values, write a pair (typeKey,value2) where value2 is
+      -- the value inside the wrapped type.
+   WrappedRead(..),
 
 
-   -- HasConverter and the mapEncode*/mapDecode* functions are used
-   -- for making an instance of HasCodedValue when we can convert
-   -- to/from such an instance.
-   HasConverter(..), -- class of conversion functions.
-      -- (Nothing follows from this, but it is sometimes useful as an
-      -- abbreviation.)
+   -- types and values exported for convenience from other modules.
+   HasBinary(..),
+   mapWrite,mapRead,mapWriteIO,mapReadIO,
+   WrapBinary(..),
 
-   mapEncodeIO, -- :: HasCodedValue value2 => (value1 -> value2) 
-      -- -> (value1 -> CodedValue -> View -> IO CodedValue)
-   mapDecodeIO, -- :: HasCodedValue value2 => (value2 -> value1) 
-      -- -> (CodedValue -> View -> IO (value1,CodedValue))
 
-   mapEncodePure, -- :: HasPureCodedValue value2 => (value1 -> value2) 
-      -- -> (value2 -> CodedValue -> CodedValue)
-   mapDecodePure, -- :: HasPureCodedValue value2 => (value2 -> value1)
-      -- -> (CodedValue -> (value1,CodedValue))
-
-   equalByEncode, -- :: HasCodedValue value => (View,value) -> (View,value)
-      -- -> IO Bool
-      -- Returns True if the two values encode to the same CodedValue.
-      -- They are encoded with the views passed with them.
    ) where
 
-import Char
+import Control.Monad.State
+import Control.Monad.Trans
 
-import Exception
+import Bytes
+import BinaryAll
 import Dynamics
-import Bits
-import Int
+import ICStringLen
+import ExtendedPrelude
 
-import UniqueString
-import AtomString(StringClass(..))
-import ExtendedPrelude(findJust)
-import Registry
-import Sources
-import VariableSet
-import VariableMap
-import BinaryIO
-
-import VersionDB
 import ViewType
-import CodedValueStore
 
----------------------------------------------------------------------
--- CodedValue's and operations on them.
----------------------------------------------------------------------
+-- --------------------------------------------------------------------------
+-- The HasCodedValue class, now a synonym for several existing classes.
+-- --------------------------------------------------------------------------
 
-emptyCodedValue :: CodedValue
-emptyCodedValue = CodedValue []
+newtype CodingMonad a = CodingMonad (ArgMonad View StateBinArea a) 
+   deriving (Monad)
+   -- Thus instances of CodedValue will be able to write to a BinArea
+   -- (so can be coded) and know the containing view.
 
-isEmptyCodedValue :: CodedValue -> Bool
-isEmptyCodedValue (CodedValue []) = True
-isEmptyCodedValue _ = False
+unCodingMonad :: CodingMonad a -> ArgMonad View StateBinArea a
+unCodingMonad (CodingMonad am) = am
 
-addBoundary :: CodedValue -> CodedValue
-addBoundary (CodedValue l) = CodedValue (Nothing : l)
+class (Typeable ty,HasBinary ty CodingMonad) => HasCodedValue ty
 
-removeBoundary :: CodedValue -> Maybe CodedValue
-removeBoundary (CodedValue (Nothing : rest)) = Just (CodedValue rest)
-removeBoundary _ = Nothing
-
----
--- prefix combines two codedValues into one codedValue.
--- The format is [length of first codedValue] [codedValue1] [codedValue2]
-prefix :: CodedValue -> CodedValue -> CodedValue
-prefix (CodedValue l1) (CodedValue l2) =
-   let
-      len = length l1
-   in
-      encodePure len (CodedValue (l1 ++ l2))
-
----
--- unprefix inverts prefix
-unprefix :: CodedValue -> (CodedValue,CodedValue) 
-unprefix codedValue0 =
-   let
-      (len,CodedValue l) = decodePure codedValue0
-      (l1,l2) = splitAt len l
-   in
-      (CodedValue l1,CodedValue l2)
+instance (Typeable ty,HasBinary ty CodingMonad) => HasCodedValue ty
 
 
----------------------------------------------------------------------
--- HasCodedValue
--- We make this superclass Typeable because in fact we will need
--- Typeable wherever we need HasCodedValue anyway, since View needs
--- to store Versioned items in a dynamic type.
----------------------------------------------------------------------
+-- --------------------------------------------------------------------------
+-- Monad trickery for CodingMonad
+-- --------------------------------------------------------------------------
 
-class Typeable value => HasCodedValue value where
-   encodeIO :: value -> CodedValue -> View -> IO CodedValue
-      -- prepend a value to a coded value (like show)
-   decodeIO :: CodedValue -> View -> IO (value,CodedValue)
-      -- extract a value from a coded value (like read)
+instance MonadIO CodingMonad where
+   liftIO act = CodingMonad (liftIO act)
 
-mapEncodeIO :: HasCodedValue value2 => (value1 -> value2) 
-   -> (value1 -> CodedValue -> View -> IO CodedValue)
-mapEncodeIO encoder = encodeIO . encoder
+thisView :: CodingMonad View
+thisView = CodingMonad (mkArgMonad return)
 
-mapDecodeIO :: HasCodedValue value2 => (value2 -> value1) 
-   -> (CodedValue -> View -> IO (value1,CodedValue))
-mapDecodeIO decoder codedValue0 repository =
+-- --------------------------------------------------------------------------
+-- Values of type CodedValue
+-- --------------------------------------------------------------------------
+
+type CodedValue = ICStringLen
+
+-- --------------------------------------------------------------------------
+-- Reading and writing values of type CodedValue.
+-- --------------------------------------------------------------------------
+
+doEncodeIO :: HasBinary a CodingMonad
+   => a -> View -> IO CodedValue
+doEncodeIO (a ::  a) view =
    do
-      (value2,codedValue1) <- safeDecodeIO codedValue0 repository
-      return (decoder value2,codedValue1)
-
-encode2IO :: (HasCodedValue value1,HasCodedValue value2) 
-   => value1 -> value2 -> CodedValue -> View -> IO CodedValue
-encode2IO value1 value2 codedValue0 repository =
-   do
-      codedValue1 <- encodeIO value2 codedValue0 repository
-      codedValue2 <- encodeIO value1 codedValue1 repository
-      return codedValue2
-
-decode2IO :: (HasCodedValue value1,HasCodedValue value2)
-   => CodedValue -> View -> IO ((value1,value2),CodedValue)
-decode2IO codedValue0 repository =
-   do
-      (value1,codedValue1) <- safeDecodeIO codedValue0 repository
-      (value2,codedValue2) <- safeDecodeIO codedValue1 repository
-      return ((value1,value2),codedValue2)
-
-doEncodeIO :: HasCodedValue value => value -> View -> IO CodedValue
-doEncodeIO value repository = encodeIO value emptyCodedValue repository
-
-doDecodeIO :: HasCodedValue value => CodedValue -> View -> IO value
-doDecodeIO codedValue repository =
-   wrapFormatError(   
-      do
-         (value,rest) <- safeDecodeIO codedValue repository
-         if isEmptyCodedValue rest
-            then
-               return value
-            else
-               formatError "Extra trailing junk"
-      )
-
-doEncodeMultipleIO :: HasCodedValue value => [value] -> View -> IO CodedValue
-doEncodeMultipleIO values view = doEncodeMultipleIO' values emptyCodedValue
+      binArea1 <- mkEmptyBinArea 1024
+      ((),binArea2) <-
+         runStateT 
+            (runArgMonad view 
+               (unCodingMonad
+                  (writeBin wb2 a)
+                  )
+               )
+            binArea1 
+      bl <- closeBinArea binArea2
+      bytesToICStringLen bl
    where
-      doEncodeMultipleIO' [] codedValue = return codedValue
-      doEncodeMultipleIO' (h:t) codedValue0 =
-         do
-            codedValue1 <- encodeIO h codedValue0 view
-            doEncodeMultipleIO' t codedValue1
+      wb1 :: WriteBinary (ArgMonad View StateBinArea)
+      wb1 = writeBinaryToArgMonad writeBinaryBinArea
 
-doDecodeMultipleIO :: HasCodedValue value => CodedValue -> View -> IO [value]
-doDecodeMultipleIO codedValue view = 
-      doDecodeMultipleIO' codedValue []
+      wb2 :: WriteBinary CodingMonad
+      wb2 = WriteBinary {
+         writeByte = (\ b -> CodingMonad (writeByte wb1 b)),
+         writeBytes = (\ bs l -> CodingMonad (writeBytes wb1 bs l))
+         }
+
+doDecodeIO :: HasBinary a CodingMonad => CodedValue -> View -> IO a
+doDecodeIO icsl view =
+   do
+      let
+         bl = bytesFromICStringLen icsl
+         binArea1 = mkBinArea bl
+
+      (a,binArea2) <-
+         runStateT
+            (runArgMonad view
+               (unCodingMonad
+                  (readBin rb2)
+                  )
+               )
+            binArea1
+
+      checkFullBinArea binArea2
+      touchICStringLen icsl
+      return a
    where
-      doDecodeMultipleIO' codedValue0 l =
-         if isEmptyCodedValue codedValue0 
-         then 
-            return l
-         else
+      rb1 :: ReadBinary (ArgMonad View StateBinArea)
+      rb1 = readBinaryToArgMonad readBinaryBinArea
+
+      rb2 :: ReadBinary CodingMonad
+      rb2 = ReadBinary {
+         readByte = CodingMonad (readByte rb1),
+         readBytes = (\ l -> CodingMonad (readBytes rb1 l)) 
+         }
+
+equalByEncode :: HasBinary value CodingMonad => (View,value) -> (View,value) 
+   -> IO Bool
+equalByEncode vv1 vv2 =
+   do
+      ord <- compareByEncode vv1 vv2
+      return (ord == EQ)
+
+compareByEncode :: HasBinary value CodingMonad => (View,value) -> (View,value) 
+   -> IO Ordering
+compareByEncode (view1,val1) (view2,val2) =
+   do
+      icsl1 <- doEncodeIO val1 view1
+      icsl2 <- doEncodeIO val2 view2
+      compareIO icsl1 icsl2
+
+-- --------------------------------------------------------------------------
+-- How to construct instances of HasCodedValue, when we've got
+-- an IO action that depends on the view
+-- --------------------------------------------------------------------------
+
+mapWriteViewIO :: HasBinary value2 CodingMonad
+   => (View -> value1 -> IO value2) 
+   -> (WriteBinary CodingMonad -> value1 -> CodingMonad ())
+mapWriteViewIO viewFn wb value1 =
+   do
+      view <- thisView      
+      value2 <- liftIO (viewFn view value1)
+      writeBin wb value2
+
+mapReadViewIO :: HasBinary value2 CodingMonad
+   => (View -> value2 -> IO value1)
+   -> (ReadBinary CodingMonad -> CodingMonad value1) 
+mapReadViewIO viewFn rb = 
+   do
+      value2 <- readBin rb
+      view <- thisView
+      liftIO (viewFn view value2)
+
+-- --------------------------------------------------------------------------
+-- Getting wrapped values where the type to be got is indexed by a typeKey.
+-- The typeKey and wrapped value need to be written as an ordinary pair,
+-- with the typeKey first.
+-- --------------------------------------------------------------------------
+
+data WrappedRead value = 
+   forall value2 . 
+      HasBinary value2 CodingMonad => WrappedRead value2 (value2 -> value)
+      -- value2 is the type to be put inside a wrapped type.
+      -- 
+      -- The first argument to WrappedRead only gives the type, and is
+      --    not evaluated.
+      -- The second argument will be the constructor giving the value to
+      --    to be returned.
+
+mapReadPairViewIO :: HasBinary key CodingMonad
+   => (View -> key -> IO (WrappedRead value))
+   -> ReadBinary CodingMonad -> CodingMonad value
+mapReadPairViewIO lookupFn rb =
+   do
+      key <- readBin rb
+      view <- thisView
+      wrappedRead <- liftIO (lookupFn view key)
+      let
+         doWrappedRead (WrappedRead _ fn) =
             do
-              (value,codedValue1) <- wrapFormatError(decodeIO codedValue0 view)
-              doDecodeMultipleIO' codedValue1 (value:l)
-
----------------------------------------------------------------------
--- Combining instances of HasCodedValue
----------------------------------------------------------------------
-
-instance (HasCodedValue value1,HasCodedValue value2) 
-   => HasCodedValue (value1,value2)
-      where
-   encodeIO (value1,value2) codedValue repository =
-      encode2IO value1 value2 codedValue repository
-
-   decodeIO codedValue repository = decode2IO codedValue repository
-
-instance (HasCodedValue value1,HasCodedValue value2,HasCodedValue value3) 
-   => HasCodedValue (value1,value2,value3)
-      where
-   encodeIO = mapEncodeIO (\ (v1,v2,v3) -> (v1,(v2,v3))) 
-   decodeIO = mapDecodeIO (\ (v1,(v2,v3)) -> (v1,v2,v3))
-
-instance (HasCodedValue value1,HasCodedValue value2,HasCodedValue value3,
-      HasCodedValue value4) 
-   => HasCodedValue (value1,value2,value3,value4)
-      where
-   encodeIO = mapEncodeIO (\ (v1,v2,v3,v4) -> (v1,(v2,(v3,v4)))) 
-   decodeIO = mapDecodeIO (\ (v1,(v2,(v3,v4))) -> (v1,v2,v3,v4))
-
-instance (HasCodedValue value1,HasCodedValue value2,HasCodedValue value3,
-      HasCodedValue value4,HasCodedValue value5) 
-   => HasCodedValue (value1,value2,value3,value4,value5)
-      where
-   encodeIO = mapEncodeIO (\ (v1,v2,v3,v4,v5) -> (v1,(v2,(v3,(v4,v5))))) 
-   decodeIO = mapDecodeIO (\ (v1,(v2,(v3,(v4,v5)))) -> (v1,v2,v3,v4,v5))
-
-
-instance (HasCodedValue value1,HasCodedValue value2) 
-   => HasCodedValue (Either value1 value2)
-      where
-   encodeIO (Left value1) codedValue repository =
-      encode2IO 'L' value1 codedValue repository
-   encodeIO (Right value2) codedValue repository =
-      encode2IO 'R' value2 codedValue repository
-   decodeIO codedValue0 repository =
-      do
-         (letter,codedValue1) <- safeDecodeIO codedValue0 repository
-         case letter of
-            'L' ->
-               do
-                  (value1,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Left value1,codedValue2)
-            'R' ->
-               do
-                  (value2,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Right value2,codedValue2)
-            _ -> formatError "Unexpected character decoding Either"
-
-instance HasCodedValue value => HasCodedValue (Maybe value) where
-   encodeIO = mapEncodeIO 
-      (\ value -> case value of 
-         Just value -> Left value
-         Nothing -> Right ()
-         )
-   decodeIO = mapDecodeIO
-      (\ value -> case value of
-         Left value -> Just value
-         Right () -> Nothing
-         )
----
--- When you want to encode larger choices, Choice5 (defined for
--- similar purposes in util/BinaryIO) is recommended.
--- If the choice is between fewer than 5 items, just set the unused
--- type variables to ().
-choice_tyRep = mkTyRep "CodedValue" "Choice"
-instance HasTyRep5 Choice5 where
-   tyRep5 _ = choice_tyRep
-
-instance (HasCodedValue v1,HasCodedValue v2,HasCodedValue v3,HasCodedValue v4,
-      HasCodedValue v5) => HasCodedValue (Choice5 v1 v2 v3 v4 v5) where
-   encodeIO (Choice1 v) codedValue repository =
-      encode2IO '1' v codedValue repository
-   encodeIO (Choice2 v) codedValue repository =
-      encode2IO '2' v codedValue repository
-   encodeIO (Choice3 v) codedValue repository =
-      encode2IO '3' v codedValue repository
-   encodeIO (Choice4 v) codedValue repository =
-      encode2IO '4' v codedValue repository
-   encodeIO (Choice5 v) codedValue repository =
-      encode2IO '5' v codedValue repository
-   decodeIO codedValue0 repository =
-      do
-         (char,codedValue1) <- safeDecodeIO codedValue0 repository
-         case char of
-            '1' ->
-               do
-                  (v :: v1,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Choice1 v,codedValue2)
-            '2' ->
-               do
-                  (v :: v2,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Choice2 v,codedValue2)
-            '3' ->
-               do
-                  (v :: v3,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Choice3 v,codedValue2)
-            '4' ->
-               do
-                  (v :: v4,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Choice4 v,codedValue2)
-            '5' ->
-               do
-                  (v :: v5,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Choice5 v,codedValue2)
-            _ -> formatError "Unexpected character decoding Either"
-
-
----------------------------------------------------------------------
--- More complex alternatives.
--- This is based on util.BinaryIO.HasWrapper
----------------------------------------------------------------------
-
-newtype Packed packer = Packed packer 
-   -- used to avoid overlapping type instances.
-
-class HasPacker packer where
-   packs :: [Pack packer] 
-      -- How to construct packer type.  Argument gives a list of alternatives.
-   unPack :: packer -> UnPack
-      -- How to deconstruct.
-
--- Blame GHC that we can't use labels with existential types.
-data UnPack = forall val . HasCodedValue val
-   => UnPack 
-      Char -- label for this type on writing.
-      val -- value inside this packed type.
-
-data Pack packer = forall val . HasCodedValue val
-   => Pack
-      Char -- label for this type on reading.  This must, of course, be the
-           -- same as for the corresponding UnPack.
-      (val -> packer)
-           -- how to pack this sort of value.
-
--- some abbreviations for construtor functions with varying numbers of 
--- arguments
-pack0 :: Char -> packer -> Pack packer
-pack0 label packer = Pack label (\ () -> packer)
-
-pack1 :: HasCodedValue val => Char -> (val -> packer) -> Pack packer
-pack1 = Pack
-
-pack2 :: (HasCodedValue val1,HasCodedValue val2) => Char 
-   -> (val1 -> val2 -> packer) -> Pack packer
-pack2 char con = Pack char (\ (val1,val2) -> con val1 val2)
-
-pack3 :: (HasCodedValue val1,HasCodedValue val2,HasCodedValue val3) => Char 
-   -> (val1 -> val2 -> val3 -> packer) -> Pack packer
-pack3 char con = Pack char (\ (val1,val2,val3) -> con val1 val2 val3)
-
-pack4 :: (HasCodedValue val1,HasCodedValue val2,HasCodedValue val3,
-      HasCodedValue val4)
-   => Char -> (val1 -> val2 -> val3 -> val4 -> packer) -> Pack packer
-pack4 char con = Pack char (\ (val1,val2,val3,val4) -> con val1 val2 val3 val4)
-
-instance (Typeable (Packed packer),HasPacker packer) 
-      => HasCodedValue (Packed packer) where
-   encodeIO (Packed packer) codedValue repository =  encode' (unPack packer)
-      where
-         encode' (UnPack label val) = encode2IO label val codedValue repository
-   decodeIO codedValue0 repository =
-      do
-         (thisLabel,codedValue1) <- safeDecodeIO codedValue0 repository
-         let
-            innerPack :: HasCodedValue val 
-               => (val -> packer) -> IO (Packed packer,CodedValue)
-            innerPack packFn =
-               do
-                  (val,codedValue2) <- safeDecodeIO codedValue1 repository
-                  return (Packed (packFn val),codedValue2)
-
-         case findJust
-            (\ (Pack label packFn) -> 
-               if label == thisLabel then Just (innerPack packFn) else Nothing
-               )
-            packs of
-
-            Nothing -> formatError (
-               "CodedValue.HasPacker - bad label " ++ show thisLabel)
-            Just getPack -> getPack
-
-packed_tyRep = mkTyRep "CodedValue" "Packed"
-
-instance HasTyRep1 Packed where
-   tyRep1 _ = packed_tyRep
-
----------------------------------------------------------------------
--- Lists
----------------------------------------------------------------------
-
----
--- We go via an explicit list constructor.  
-newtype List value = List [value]
-
-instance HasCodedValue value => HasCodedValue [value] where
-   encodeIO = mapEncodeIO (\ l -> List l)
-   decodeIO = mapDecodeIO (\ (List l) -> l)
-
-list_tyRep = mkTyRep "CodedValue" "List"
-instance HasTyRep1 List where
-   tyRep1 _ = list_tyRep
-
-instance HasCodedValue value => HasCodedValue (List value)
-      where
-   -- Lists being large items, we put a "Nothing" before
-   -- each entry.
-   encodeIO (List values) codedValue0 repository =
-      do
-         let
-            l = length values
-
-            encodeValues :: [value] -> CodedValue -> View 
-               -> IO CodedValue
-            encodeValues [] codedValue repository = return codedValue
-            encodeValues (v:vs) codedValue0 repository =
-               do
-                  codedValue1 <- encodeValues vs codedValue0 repository
-                  codedValue2 <- encodeIO v codedValue1 repository
-                  let codedValue3 = addBoundary codedValue2
-                  return codedValue3
-
-         codedValue1 <- encodeValues values codedValue0 repository
-         codedValue2 <- encodeIO l codedValue1 repository
-         return codedValue2
-   decodeIO codedValue0 repository =
-      do
-         (l :: Int,codedValue1) <- safeDecodeIO codedValue0 repository
-         let
-            decodeNValues :: Int -> CodedValue -> IO ([value],CodedValue)
-            decodeNValues n codedValue0 =
-               if n<=0
-                  then
-                     if n<0
-                        then 
-                           formatError 
-                              "Bad list length in CodedValue.decodeIO"
-                        else
-                           return ([],codedValue0)
-                  else
-                     do
-                        codedValue1 <-
-                           case removeBoundary codedValue0 of
-                              Just codedValue -> return codedValue
-                              Nothing -> 
-                                 formatError "List element boundary missing"
-                        (value1,codedValue2) 
-                           <- safeDecodeIO codedValue1 repository
-                        (values,codedValue3) <- decodeNValues (n-1) codedValue2
-                        return (value1:values,codedValue3)
-         (list,codedValue) <- decodeNValues l codedValue1
-         return (List list,codedValue)
-
----------------------------------------------------------------------
--- ShortLists
--- are like lists, except we don't put a record boundary
--- at the start of each item (and so they are intended for 
--- Strings etcetera).
----------------------------------------------------------------------
-
-newtype ShortList a = ShortList [a]
-
--- make them Typeable
-shortList_tyRep = mkTyRep "CodedValue" "ShortList"
-
-instance HasTyRep1 ShortList where
-   tyRep1 _ = shortList_tyRep
-
-instance HasCodedValue value => HasCodedValue (ShortList value)
-      where
-   encodeIO (ShortList values) codedValue0 repository =
-      do
-         let
-            l = length values
-
-            encodeValues :: [value] -> CodedValue -> View 
-               -> IO CodedValue
-            encodeValues [] codedValue repository = return codedValue
-            encodeValues (v:vs) codedValue0 repository =
-               do
-                  codedValue1 <- encodeValues vs codedValue0 repository
-                  codedValue2 <- encodeIO v codedValue1 repository
-                  return codedValue2
-
-         codedValue1 <- encodeValues values codedValue0 repository
-         codedValue2 <- encodeIO l codedValue1 repository
-         return codedValue2
-   decodeIO codedValue0 repository =
-      do
-         (l :: Int,codedValue1) <- safeDecodeIO codedValue0 repository
-         let
-            decodeNValues :: Int -> CodedValue -> IO ([value],CodedValue)
-            decodeNValues n codedValue0 =
-               if n<=0
-                  then
-                     if n<0
-                        then 
-                           formatError 
-                              "Bad list length in CodedValue.decodeIO"
-                        else
-                           return ([],codedValue0)
-                  else
-                     do
-                        (value1,codedValue1) 
-                           <- safeDecodeIO codedValue0 repository
-                        (values,codedValue2) <- decodeNValues (n-1) codedValue1
-                        return (value1:values,codedValue2)
-         (list,codedValue2) <- decodeNValues l codedValue1
-         return (ShortList list,codedValue2)
-
----------------------------------------------------------------------
--- Pure Coded Values (which don't require IO or access to the repository)
----------------------------------------------------------------------
-
-class Typeable value => HasPureCodedValue value where
-    encodePure :: value -> CodedValue -> CodedValue
-    decodePure :: CodedValue -> (value,CodedValue)
-
-instance HasPureCodedValue value => HasCodedValue value where
-    encodeIO value codedValue repository =
-       return (encodePure value codedValue)
-    decodeIO codedValue repository =
-       -- force an error to be raised here if there is one.
-       codedValue `seq` (return (decodePure codedValue))
-
-mapEncodePure :: HasPureCodedValue value2 => (value1 -> value2) 
-   -> (value1 -> CodedValue -> CodedValue)
-mapEncodePure encoder = encodePure . encoder
-
-mapDecodePure :: HasPureCodedValue value2 => (value2 -> value1)
-   -> (CodedValue -> (value1,CodedValue))
-mapDecodePure decoder codedValue0 =
-   let
-      (value2,codedValue1) = decodePure codedValue0
-   in
-      (decoder value2,codedValue1)
-
----------------------------------------------------------------------
--- Basic Types apart from integers
----------------------------------------------------------------------
-
-
-instance HasPureCodedValue () where
-   -- used in fact for encoding Maybe.
-   encodePure () codedValue = codedValue
-   decodePure codedValue = ((),codedValue)
-
-instance HasPureCodedValue Char where
-   encodePure ch (CodedValue soFar) = CodedValue ((Just ch) : soFar)
-   decodePure (CodedValue (Just ch : rest)) = (ch,CodedValue rest)
-   decodePure _ = formatError "Decoding char, found an unexpected record end"
-
--- String's.
--- The following overlapping instance explicitly makes Strings go via
--- ShortList Char.
-instance HasCodedValue String where
-   encodeIO = mapEncodeIO (\ str -> ShortList str)
-   decodeIO = mapDecodeIO (\ (ShortList str) -> str)
-
--- We automate StringClass => HasCodedValue, but wrap it
--- up in the Str type to allow alternative instances.
-
-str_tyRep = mkTyRep "CodedValue" "Str"
-instance HasTyRep1 Str where
-   tyRep1 _ = str_tyRep 
-
-instance (Typeable str,StringClass str) => HasCodedValue (Str str) where
-   encodeIO = mapEncodeIO (\ (Str str) -> toString str)
-   decodeIO = mapDecodeIO (\ str -> Str (fromString str))
-
--- Bool's.
-instance HasPureCodedValue Bool where
-   encodePure = mapEncodePure (\ b -> if b then 'T' else 'F')
-   decodePure = mapDecodePure (\ c -> case c of
-      'T' -> True
-      'F' -> False
-      ch -> formatError ("Decoding bool, found an unexpected char "
-         ++show ch)
-      )
-
--- We make CodedValue an instance itself
-
-codedValue_tyRep = mkTyRep "CodedValue" "CodedValue"
-instance HasTyRep CodedValue where
-   tyRep _ = codedValue_tyRep
-
-instance HasPureCodedValue CodedValue where
-   encodePure value codedValue = prefix value codedValue
-   decodePure codedValue = unprefix codedValue
-
----------------------------------------------------------------------
--- UniqueStringSource
----------------------------------------------------------------------
-
-instance HasCodedValue UniqueStringSource where
-   encodeIO v codedValue view =
-      do
-         l <- readUniqueStringSource v
-         encodeIO l codedValue view
-   decodeIO codedValue0 view =
-      do
-         (l,codedValue1) <- safeDecodeIO codedValue0 view
-         v <- createUniqueStringSource l
-         return (v,codedValue1)
-
----------------------------------------------------------------------
--- Location and ObjectVersion (from CVSDB)
----------------------------------------------------------------------
-
-instance HasCodedValue Location where
-   encodeIO = mapEncodeIO (\ location -> Str location)
-   decodeIO = mapDecodeIO (\ (Str location) -> location)
-
-instance HasCodedValue ObjectVersion where
-   encodeIO = mapEncodeIO (\ objectVersion -> Str objectVersion)
-   decodeIO = mapDecodeIO (\ (Str objectVersion) -> objectVersion)
-
----------------------------------------------------------------------
--- Integers
--- NB.  This code takes over from the integer code in util/BinaryIO.hs
----------------------------------------------------------------------
-
-codedList_tyRep = mkTyRep "CodedValue" "CodedList"
-instance HasTyRep CodedList where
-   tyRep _ = codedList_tyRep
-
-instance HasPureCodedValue CodedList where
-   encodePure (CodedList [i]) codedValue =
-      encodePure (chrGeneral (i .|. topBit)) codedValue
-   encodePure (CodedList (x:xs)) codedValue =
-      encodePure (chrGeneral x) (encodePure (CodedList xs) codedValue)
-
-   decodePure codedValue =
-      let
-         (ch,nextCodedValue) = decodePure codedValue 
-         i = ordGeneral ch
-      in
-         if i<topBit
-            then
-               let
-                  (CodedList xs,rest) = decodePure nextCodedValue
-               in
-                  (CodedList (i:xs),rest)
-            else
-               (CodedList [i `xor` topBit],nextCodedValue)
-
-instance (Typeable integral,Integral integral,Bits integral) 
-   => HasPureCodedValue integral where
-   encodePure value codedValue = 
-      encodePure (encode' value :: CodedList) codedValue
-   decodePure codedValue0 =
-      let
-          (value' :: CodedList,codedValue1) = decodePure codedValue0
-      in
-          (decode' value',codedValue1)
-
----------------------------------------------------------------------
--- We make Registry's an instance of HasCodedValue
----------------------------------------------------------------------
-
-instance (HasCodedValue from,HasCodedValue to,Ord from) 
-      => HasCodedValue (Registry from to) where
-   encodeIO value codedValue view =
-      do
-         contents <- listRegistryContents value
-         encodeIO contents codedValue view
-   decodeIO codedValue0 view =
-      do
-         (contents,codedValue1) <- safeDecodeIO codedValue0 view
-         registry <- listToNewRegistry contents
-         return (registry,codedValue1)
-
----------------------------------------------------------------------
--- We make VariableSet's and VariableMap's an instance of HasCodedValue
----------------------------------------------------------------------
-
-instance (Typeable x,HasCodedValue [x],HasKey x key) 
-      => HasCodedValue (VariableSet x) where
-   encodeIO variableSet codedValue view =
-      do
-         list <- readContents variableSet
-         encodeIO list codedValue view
-
-   decodeIO codedValue0 view =
-      do
-         (list,codedValue1) <- safeDecodeIO codedValue0 view
-         variableSet <- newVariableSet list
-         return (variableSet,codedValue1)
-
-instance (Ord key,HasCodedValue key,HasCodedValue elt) 
-   => HasCodedValue (VariableMap key elt) where
-
-   encodeIO variableMap codedValue view =
-      do
-         mapData <- readContents variableMap
-         let list = mapToList mapData
-         encodeIO list codedValue view
-
-   decodeIO codedValue0 view =
-      do
-         (list,codedValue1) <- safeDecodeIO codedValue0 view
-         variableMap <- newVariableMap list
-         return (variableMap,codedValue1)
-         
-
----------------------------------------------------------------------
--- FormatError's
----------------------------------------------------------------------
-
-newtype FormatError = FormatError String
-
-formatErrorTag :: TyRep
-formatErrorTag = mkTyRep "CodedValue" "FormatError"
-
-instance HasTyRep FormatError where
-   tyRep _ = formatErrorTag
-
-formatError :: String -> a
-formatError message = throwDyn (FormatError (
-   "format error: "++message))
-
-catchFormatError :: IO a -> (String -> IO a) -> IO a
-catchFormatError =
-   catchJust
-      (\ exception -> -- get out the FormatError String, if
-                      -- it's here
-         case dynExceptions exception of
-            Just dyn ->
-               case fromDyn dyn of
-                  Just (FormatError str) -> Just str
-                  Nothing -> Nothing
-            Nothing -> Nothing
-         )
-
--- -------------------------------------------------------------------
--- Functions for tracking down format errors in input.
--- -------------------------------------------------------------------
-
----
--- Used in this file to protect functions which may raise a format error
--- on reading something.  wrapFormatError should be put round functions 
--- used at the interface to the user.
-wrapFormatError :: HasCodedValue a => IO a -> IO a
-#ifdef DEBUG
-wrapFormatError (action :: IO a) =
-   catchFormatError action
-      (\ str ->
-         let
-            tyPar = undefined :: a
-         in 
-            error ("CodedValue: "++str++" reading value of type "++
-               show (typeOf tyPar))
-         )
-#else 
-wrapFormatError action = action
-{-# INLINE wrapFormatError #-}
-#endif
-
----
--- Used in this file instead of decodeIO.
-safeDecodeIO :: HasCodedValue value 
-   => CodedValue -> View -> IO (value,CodedValue)
-#ifdef DEBUG
-safeDecodeIO codedValue view =
-      wrapFormatError2 (decodeIO codedValue view)
-   where
-      wrapFormatError2 (action :: IO (a,CodedValue)) =
-         catchFormatError action
-            (\ str ->
-               let
-                  tyPar = undefined :: a
-                  CodedValue l = codedValue
-               in 
-                  formatError ("CodedValue: "++str++" reading value of type "++
-                     show (typeOf tyPar) ++ " from "++show (take 10 l)++"...")
-               )
-
-#else
-safeDecodeIO = decodeIO
-#endif
-
--- -------------------------------------------------------------------
--- Utility functions
--- -------------------------------------------------------------------
-
-equalByEncode :: HasCodedValue value => (View,value) -> (View,value) -> IO Bool
-equalByEncode (view1,value1) (view2,value2) =
-   do
-      codedValue1 <- doEncodeIO value1 view1
-      codedValue2 <- doEncodeIO value2 view2
-      return (codedValue1 == codedValue2)
+               val <- readBin rb
+               return (fn val)
+      doWrappedRead wrappedRead
+   
 

@@ -128,6 +128,8 @@ import IORef
 
 import Computation
 import ExtendedPrelude
+import BinaryAll(HasBinary(..),mapWrite,mapRead)
+import Dynamics(Typeable)
 
 import Events
 import Channels
@@ -770,7 +772,7 @@ instance FormTextFieldIO value => FormTextFieldIO (Maybe value) where
 -- Radio Int is _not_ recommended.
 -- -------------------------------------------------------------------------
 
-data Radio x = Radio x | NoRadio
+data Radio x = Radio x | NoRadio deriving (Typeable)
 -- The NoRadio indicates that no radio button is selected.
 
 class HasConfigRadioButton value where
@@ -831,6 +833,17 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
                destroyAction = done
                }
          return enteredForm
+
+-- We need elsewhere in the workbench a Binary instance for Radio
+instance (Monad m,HasBinary x m) => HasBinary (Radio x) m where
+   writeBin = mapWrite (\ radio -> case radio of
+      Radio x -> Just x
+      NoRadio -> Nothing
+      )
+   readBin = mapRead (\ xOpt -> case xOpt of
+      Just x -> Radio x
+      Nothing -> NoRadio
+      )
 
 -- -------------------------------------------------------------------------
 -- Instance #3 - Check buttons a.k.a. Bools.

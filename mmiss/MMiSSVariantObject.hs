@@ -246,25 +246,26 @@ frozenVariantObject_tyRep = mkTyRep "MMiSSVariantObject" "FrozenVariantObject"
 instance HasTyRep2 FrozenVariantObject where
    tyRep2 _ = frozenVariantObject_tyRep
 
-instance (HasCodedValue object,HasCodedValue cache) 
-      => HasCodedValue (FrozenVariantObject object cache) where
+instance (HasBinary object CodingMonad,HasBinary cache CodingMonad) 
+      => HasBinary (FrozenVariantObject object cache) CodingMonad where
 
-   encodeIO = mapEncodeIO (\ 
-      (FrozenVariantObject {
+   writeBin = mapWrite
+      (\ (FrozenVariantObject {
          dictionary' = dictionary',
          currentVariantSpec' = currentVariantSpec',
          cache' = cache'}) 
-      ->
-      (dictionary',currentVariantSpec',cache')
-      )
+         ->
+         (dictionary',currentVariantSpec',cache')
+         )
 
 
-   decodeIO = mapDecodeIO (\ (dictionary',currentVariantSpec',cache') ->
-      (FrozenVariantObject {
-         dictionary' = dictionary',
-         currentVariantSpec' = currentVariantSpec',
-         cache' = cache'}) 
-      )
+   readBin = mapRead
+      (\ (dictionary',currentVariantSpec',cache') ->
+         (FrozenVariantObject {
+            dictionary' = dictionary',
+            currentVariantSpec' = currentVariantSpec',
+            cache' = cache'}) 
+         )
 
 -- -----------------------------------------------------------------------
 -- Accessing a VariantObject

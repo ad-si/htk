@@ -9,7 +9,6 @@ module Initialisation(
 
 import Debug(debug)
 import Computation
-import BinaryIO
 
 import HostsPorts
 import CallServer

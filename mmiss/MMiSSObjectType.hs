@@ -128,24 +128,23 @@ mmissObject_tyRep = mkTyRep "MMiSSObjectType" "MMiSSObject"
 instance HasTyRep MMiSSObject where
    tyRep _ = mmissObject_tyRep
 
-instance HasCodedValue MMiSSObject where
-   encodeIO (MMiSSObject {mmissObjectType = mmissObjectType,
-      linkedObject = linkedObject,variantObject = variantObject}) 
-         codedValue0 view =
-      do
-         frozenVariantObject <- freezeVariantObject variantObject
-         encodeIO (mmissObjectType,linkedObject,frozenVariantObject)
-            codedValue0 view
-
-   decodeIO codedValue0 view =
-      do
-         ((mmissObjectType,linkedObject,frozenVariantObject),codedValue1) 
-            <- decodeIO codedValue0 view
-         variantObject <- unfreezeVariantObject (converter view linkedObject)
-            frozenVariantObject
-         mmissObject 
-            <- createMMiSSObject mmissObjectType linkedObject variantObject
-         return (mmissObject,codedValue1)
+instance HasBinary MMiSSObject CodingMonad where
+   writeBin = mapWriteIO
+      (\ (MMiSSObject {mmissObjectType = mmissObjectType,
+            linkedObject = linkedObject,variantObject = variantObject}) ->
+         do
+            frozenVariantObject <- freezeVariantObject variantObject
+            return (mmissObjectType,linkedObject,frozenVariantObject)
+         )
+   readBin = mapReadViewIO
+      (\ view (mmissObjectType,linkedObject,frozenVariantObject) ->
+         do 
+            variantObject <- unfreezeVariantObject 
+               (converter view linkedObject) frozenVariantObject
+            mmissObject 
+               <- createMMiSSObject mmissObjectType linkedObject variantObject
+            return mmissObject
+        )
 
 -- Also used during merging.
 createMMiSSObject :: MMiSSObjectType -> LinkedObject 
@@ -193,52 +192,52 @@ cache_tyRep = mkTyRep "MMiSSObjects" "Cache"
 instance HasTyRep Cache where
    tyRep _ = cache_tyRep
 
-instance HasCodedValue Variable where
-   encodeIO = mapEncodeIO (\ --
-      (Variable {
+instance HasBinary Variable CodingMonad where
+   writeBin = mapWrite
+      (\ (Variable {
          element = element,
          preamble = preamble
          }) 
       ->
       (element,preamble)
       )
-   decodeIO codedValue0 view =
-      do
-         ((element,preamble),codedValue1) <- decodeIO codedValue0 view
-         editLock <- newBSem
-         let
-            variable = Variable {
-               element = element,
-               preamble = preamble,
-               editLock = editLock
-               }
-         return (variable,codedValue1)
+   readBin = mapReadIO
+      (\ (element,preamble) ->
+         do
+            editLock <- newBSem
+            let
+               variable = Variable {
+                  element = element,
+                  preamble = preamble,
+                  editLock = editLock
+                  }
+            return variable
+         )
 
-instance HasCodedValue Cache where
-
-   encodeIO = mapEncodeIO (\ 
-      (Cache {
+instance HasBinary Cache CodingMonad where
+   writeBin = mapWrite
+      (\ (Cache {
          cacheElement = cacheElement,
          cacheLinkEnvironment = cacheLinkEnvironment,
          cacheLinks = cacheLinks,
          cachePreamble = cachePreamble
          })
-      ->
-      (cacheElement,LinkSourceSet cacheLinkEnvironment [cacheLinks],
-         cachePreamble)
-      )
+         ->
+         (cacheElement,LinkSourceSet cacheLinkEnvironment [cacheLinks],
+            cachePreamble)
+         )
 
-   decodeIO = mapDecodeIO (\ --
-      (cacheElement,LinkSourceSet cacheLinkEnvironment [cacheLinks],
+   readBin = mapRead
+      (\ (cacheElement,LinkSourceSet cacheLinkEnvironment [cacheLinks],
          cachePreamble)
       ->
-      (Cache {
-         cacheElement = cacheElement,
-         cacheLinkEnvironment = cacheLinkEnvironment,
-         cacheLinks = cacheLinks,
-         cachePreamble = cachePreamble
-         })
-      )
+         (Cache {
+            cacheElement = cacheElement,
+            cacheLinkEnvironment = cacheLinkEnvironment,
+            cacheLinks = cacheLinks,
+            cachePreamble = cachePreamble
+            })
+         )
 
 -- ---------------------------------------------------------------------
 -- Converting a Variable to a Cache

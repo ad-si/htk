@@ -45,6 +45,7 @@ import IO
 import Maybe
 import Monad
 
+import Control.Monad.Trans
 import Data.FiniteMap
 import Data.Set
 
@@ -55,7 +56,7 @@ import IOExts
 import Dynamics
 import FileNames
 import ICStringLen
-import BinaryIO
+import BinaryAll
 
 import IOExtras
 import WBFiles
@@ -70,7 +71,7 @@ import VersionInfo
 -- The query types.
 -- -------------------------------------------------------------------
 
-newtype Location = Location Int deriving (Eq,Ord,HasBinaryIO)
+newtype Location = Location Int deriving (Eq,Ord,Show,Typeable)
 
 specialLocation1 :: Location
 specialLocation1 = Location 0
@@ -175,91 +176,79 @@ type ChangeData = Either ICStringLen (Location,ObjectVersion)
    --    arises, for example, during merging.
 
 -- -----------------------------------------------------------------------
--- SimpleDBCommand/Response & Diff as instances of HasBinaryIO
+-- Instances of HasBinary
 -- -----------------------------------------------------------------------
 
-instance HasWrapper SimpleDBCommand where
+instance Monad m => HasBinary Location m where
+   writeBin = mapWrite (\ (Location i) -> i)
+   readBin = mapRead Location
+
+instance Monad m => HasBinary PrimitiveLocation m where
+   writeBin = mapWrite (\ (PrimitiveLocation i) -> i)
+   readBin = mapRead PrimitiveLocation
+
+instance MonadIO m => HasWrapper SimpleDBCommand m where
    wraps = [
-      wrap0 'n' NewLocation,
-      wrap0 'N' NewVersion,
-      wrap0 'L' ListVersions,
-      wrap2 'R' Retrieve,
-      wrap2 'c' LastChange,
-      wrap3 'C' Commit,
-      wrap1 'm' ModifyUserInfo,
-      wrap1 'v' GetVersionInfo,
-      wrap2 'd' GetDiffs,
-      wrap1 'M' MultiCommand
+      wrap0 0 NewLocation,
+      wrap0 1 NewVersion,
+      wrap0 2 ListVersions,
+      wrap2 3 Retrieve,
+      wrap2 4 LastChange,
+      wrap3 5 Commit,
+      wrap1 6 ModifyUserInfo,
+      wrap1 7 GetVersionInfo,
+      wrap2 8 GetDiffs,
+      wrap1 9 MultiCommand
       ]
    unWrap = (\ wrapper -> case wrapper of
-      NewLocation -> UnWrap 'n' ()
-      NewVersion -> UnWrap 'N' ()
-      ListVersions -> UnWrap 'L' ()
-      Retrieve l v -> UnWrap 'R' (l,v)
-      LastChange l v -> UnWrap 'c' (l,v)
-      Commit v r n -> UnWrap 'C' (v,r,n)
-      ModifyUserInfo v -> UnWrap 'm' v
-      GetVersionInfo v -> UnWrap 'v' v
-      GetDiffs v vs -> UnWrap 'd' (v,vs)
-      MultiCommand l -> UnWrap 'M' l
+      NewLocation -> UnWrap 0 ()
+      NewVersion -> UnWrap 1 ()
+      ListVersions -> UnWrap 2 ()
+      Retrieve l v -> UnWrap 3 (l,v)
+      LastChange l v -> UnWrap 4 (l,v)
+      Commit v r n -> UnWrap 5 (v,r,n)
+      ModifyUserInfo v -> UnWrap 6 v
+      GetVersionInfo v -> UnWrap 7 v
+      GetDiffs v vs -> UnWrap 8 (v,vs)
+      MultiCommand l -> UnWrap 9 l
       )
 
-instance HasWrapper SimpleDBResponse where
+instance MonadIO m => HasWrapper SimpleDBResponse m where
    wraps = [
-      wrap1 'L' IsLocation,
-      wrap1 'o' IsObjectVersion,
-      wrap1 'O' IsObjectVersions,
-      wrap1 'D' IsData,
-      wrap1 'E' IsError,
-      wrap1 'd' IsDiffs,
-      wrap1 'v' IsVersionInfo,
-      wrap0 'K' IsOK,
-      wrap1 'M' MultiResponse
+      wrap1 0 IsLocation,
+      wrap1 1 IsObjectVersion,
+      wrap1 2 IsObjectVersions,
+      wrap1 3 IsData,
+      wrap1 4 IsError,
+      wrap1 5 IsDiffs,
+      wrap1 6 IsVersionInfo,
+      wrap0 7 IsOK,
+      wrap1 8 MultiResponse
       ]
    unWrap = (\ wrapper -> case wrapper of
-      IsLocation l -> UnWrap 'L' l
-      IsObjectVersion v -> UnWrap 'o' v
-      IsObjectVersions vs -> UnWrap 'O' vs
-      IsData d -> UnWrap 'D' d
-      IsDiffs ds -> UnWrap 'd' ds
-      IsVersionInfo v -> UnWrap 'v' v
-      IsError e -> UnWrap 'E' e
-      IsOK -> UnWrap 'K' ()
-      MultiResponse l -> UnWrap 'M' l
+      IsLocation l -> UnWrap 0 l
+      IsObjectVersion v -> UnWrap 1 v
+      IsObjectVersions vs -> UnWrap 2 vs
+      IsData d -> UnWrap 3 d
+      IsError e -> UnWrap 4 e
+      IsDiffs ds -> UnWrap 5 ds
+      IsVersionInfo v -> UnWrap 6 v
+      IsOK -> UnWrap 7 ()
+      MultiResponse l -> UnWrap 8 l
       )
 
-instance HasWrapper Diff where
+instance MonadIO m => HasWrapper Diff m where
    wraps = [
-      wrap0 'O' IsOld,
-      wrap2 'C' IsChanged,
-      wrap1 'N' IsNew
+      wrap0 1 IsOld,
+      wrap2 2 IsChanged,
+      wrap1 3 IsNew
       ]
 
    unWrap = (\ wrapper -> case wrapper of
-      IsOld -> UnWrap 'O' ()
-      IsChanged e c -> UnWrap 'C' (e,c)
-      IsNew c -> UnWrap 'N' c
+      IsOld -> UnWrap 1 ()
+      IsChanged e c -> UnWrap 2 (e,c)
+      IsNew c -> UnWrap 3 c
       )
-
--- -------------------------------------------------------------------
--- Instances for locations and objectVersions
--- -------------------------------------------------------------------
-
-instance StringClass Location where
-   toString (Location i) = show i
-   fromString s = Location (read s)
-
-location_tyRep = mkTyRep "SimpleDBServer" "Location"
-instance HasTyRep Location where
-   tyRep _ = location_tyRep
-
-instance StringClass ObjectVersion where
-   toString (ObjectVersion i) = show i
-   fromString s = ObjectVersion (read s)
-
-objectVersion_tyRep = mkTyRep "SimpleDBServer" "ObjectVersion"
-instance HasTyRep ObjectVersion where
-   tyRep _ = objectVersion_tyRep
 
 -- -------------------------------------------------------------------
 -- The SimpleDB type.
@@ -288,7 +277,7 @@ data SimpleDB = SimpleDB {
 -- even when versions are exported from one repository to another.  However
 -- the repository is free to reassign PrimitiveLocation's behind the
 -- scenes. 
-newtype PrimitiveLocation = PrimitiveLocation Int deriving (Eq,Ord,HasBinaryIO)
+newtype PrimitiveLocation = PrimitiveLocation Int deriving (Eq,Ord)
 
 
 
@@ -574,17 +563,17 @@ lastChange simpleDB location objectVersion =
 -- ServerOp operations
 -- -------------------------------------------------------------------
 
-instance HasWrapper ServerOp where
+instance Monad m => HasWrapper ServerOp m where
    wraps = [
-      wrap4 'C' FrozenVersion,
-      wrap0 'V' AllocVersion,
-      wrap0 'L' AllocLocation
+      wrap4 0 FrozenVersion,
+      wrap0 1 AllocVersion,
+      wrap0 2 AllocLocation
       ]
 
    unWrap = (\ wrapper -> case wrapper of
-      FrozenVersion p t o r -> UnWrap 'C' (p,t,o,r)
-      AllocVersion -> UnWrap 'V' ()
-      AllocLocation -> UnWrap 'L' ()
+      FrozenVersion p t o r -> UnWrap 0 (p,t,o,r)
+      AllocVersion -> UnWrap 1 ()
+      AllocLocation -> UnWrap 2 ()
       )
 
 -- Carry out a ServerOp, also writing it to the log file if successful.

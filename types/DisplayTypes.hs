@@ -134,6 +134,7 @@ class HasCodedValue displayType => DisplayType displayType where
 data WrappedDisplayType = forall displayType .
    DisplayType displayType => WrappedDisplayType displayType
 
+
 displayTypeTypeId :: WrappedDisplayType -> String
 displayTypeTypeId (WrappedDisplayType displayType) =
    displayTypeTypeIdPrim displayType
@@ -186,31 +187,28 @@ registerDisplayType displayType =
 -- ----------------------------------------------------------------
 
 newtype ShortDisplayType displayType = ShortDisplayType displayType
+   deriving (Typeable)
 
--- Tycon for it
-shortDisplayType_tyRep =  mkTyRep "DisplayTypes" "ShortDisplayType"
+instance DisplayType displayType 
+      => HasBinary (ShortDisplayType displayType) CodingMonad where
 
-instance HasTyRep1 ShortDisplayType where
-   tyRep1 _ = shortDisplayType_tyRep
-
-instance DisplayType displayType => HasCodedValue (ShortDisplayType displayType) where
-   encodeIO (ShortDisplayType displayType) codedValue view =
+   writeBin = mapWriteViewIO (\ view (ShortDisplayType displayType) ->
       do
          let 
             globalRegistry = displayTypeGlobalRegistry displayType
             key = displayTypeIdPrim displayType
 
          addToGlobalRegistry globalRegistry view key displayType
-         encodeIO key codedValue view
-
-   decodeIO codedValue0 view =
+         return key
+      )
+   readBin = mapReadViewIO (\ view key ->
       do
-         (key,codedValue1) <- safeDecodeIO codedValue0 view
          let 
             globalRegistry = displayTypeGlobalRegistry 
                (error "Don't look at me" :: displayType)
          displayType  <- lookupInGlobalRegistry globalRegistry view key
-         return (ShortDisplayType displayType,codedValue1)
+         return (ShortDisplayType displayType)
+      )
          
 -- -----------------------------------------------------------------
 -- Initialising and writing the Global Registries
@@ -293,26 +291,27 @@ wrappedDisplayType_tyRep = mkTyRep "DisplayTypes" "WrappedDisplayType"
 instance HasTyRep WrappedDisplayType where
    tyRep _ = wrappedDisplayType_tyRep
 
-instance HasCodedValue WrappedDisplayType where
-   encodeIO (WrappedDisplayType displayType) codedValue0 view =
-      do
-         codedValue1 
-            <- encodeIO (ShortDisplayType displayType) codedValue0 view
-         codedValue2 
-            <- encodeIO (displayTypeTypeIdPrim displayType) codedValue1 view
-         return codedValue2
+instance HasBinary WrappedDisplayType CodingMonad where
+   writeBin = mapWrite 
+      (\ (WrappedDisplayType displayType) ->
+         (displayTypeTypeIdPrim displayType,
+            (WrapBinary (ShortDisplayType displayType)
+               :: WrapBinary CodingMonad))
+         )
+   readBin = 
+      mapReadPairViewIO
+         (\ view (typeKey :: String) ->
+            do
+               Just (WrappedDisplayType displayType') <-
+                  getValueOpt displayTypeDataRegistry typeKey
 
-   decodeIO codedValue0 view =
-      do
-         (typeKey :: String,codedValue1) <- safeDecodeIO codedValue0 view
-         Just (WrappedDisplayType displayType') <-
-            getValueOpt displayTypeDataRegistry typeKey
-         (displayType,codedValue2) <- decodeIO' displayType' codedValue1 view
-         return (WrappedDisplayType displayType,codedValue2)
-
-decodeIO' :: DisplayType displayType => displayType -> CodedValue -> View ->
-   IO (displayType,CodedValue)
-decodeIO' _ codedValue0 view = safeDecodeIO codedValue0 view
+               return (WrappedRead 
+                  (ShortDisplayType displayType') 
+                  (\ (ShortDisplayType displayType) -> 
+                     (WrappedDisplayType displayType)
+                     )
+                  )
+            )
 
 -- -----------------------------------------------------------------
 -- Extract all display types

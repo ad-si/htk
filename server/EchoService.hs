@@ -5,7 +5,7 @@ module EchoService(
    echoServiceWrapped -- :: pass to runServer to run server.
    ) where
 
-import BinaryIO
+import BinaryAll
 
 import ServiceClass
 
@@ -13,10 +13,10 @@ newtype EchoState = EchoState ()
 -- The Echo service has no state but we create a new type for it to
 -- distinguish it from all the other instances of ServiceClass.
 
-echoService = serviceArg :: (ReadShow String,ReadShow String,EchoState)
+echoService = serviceArg :: (String,String,EchoState)
 echoServiceWrapped = Service echoService 
 
-instance ServiceClass (ReadShow String) (ReadShow String) EchoState where
+instance ServiceClass String String EchoState where
    serviceId _ = "Echo"
    serviceMode _ = Broadcast
    initialState _ = return(EchoState ())

@@ -9,7 +9,6 @@ import Maybe
 
 import Data.FiniteMap
 
-import ObjectSource(fromICSL)
 import VersionDB
 import VersionInfo
 
@@ -56,7 +55,8 @@ copyVersion (FromTo {from = fromRepository,to = toRepository}) parents
         toCommitChange (location,IsNew {changed = changed}) 
            = Just (mapChanged location changed)
 
-        mapChanged location (Left icsl) = (location,Left (fromICSL icsl))
+        mapChanged location (Left icsl) 
+           = (location,Left (importICStringLenPure icsl))
         mapChanged location (Right (location1,fromVersion)) 
            = (location,Right (location1,mapParent fromVersion))
 

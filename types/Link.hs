@@ -120,25 +120,21 @@ import VariableSet(HasKey(..))
 import Computation
 import Debug
 import Thread
+import BinaryAll
 
 import VersionDB
 import ViewType
 import CodedValue
-import CodedValueStore
 
 -- ----------------------------------------------------------------------
 -- Links
 -- ----------------------------------------------------------------------
 
-newtype Link x = Link Location deriving (Eq,Ord)
+newtype Link x = Link Location deriving (Eq,Ord,Typeable)
 
-link_tyRep = mkTyRep "Link" "Link"
-instance HasTyRep1 Link where
-   tyRep1 _ = link_tyRep
-
-instance Typeable x => HasCodedValue (Link x) where
-   encodeIO = mapEncodeIO (\ (Link location) -> Str location)
-   decodeIO = mapDecodeIO (\ (Str location) -> Link location)
+instance Monad m => HasBinary (Link x) m where
+   writeBin = mapWrite (\ (Link location) -> location)
+   readBin = mapRead Link
 
 instance HasKey (Link x) Location where
    toKey (Link location) = location
@@ -186,9 +182,10 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                         Just parentVersion -> return parentVersion
  
                      -- create a new versioned object
-                     (str :: String) <- 
-                        retrieveString repository location parentVersion
-                     x <- doDecodeIO (fromString str) view
+                     (osource :: ObjectSource) <-
+                        retrieveObjectSource repository location parentVersion
+                     icsl <- exportICStringLen osource
+                     x <- doDecodeIO icsl view
                      statusMVar <- newMVar (UpToDate x)
                      let
                         versioned = Versioned {
@@ -352,7 +349,7 @@ mkObjectSourceFn (view@View{repository = repository})
          commitX x  =
             do
                xCodedValue <- doEncodeIO x view
-               xObjectSource <- toObjectSource xCodedValue
+               xObjectSource <- importICStringLen xCodedValue
                return (x,Just (Left xObjectSource))
 
       (x,objectSourceOpt) <- case status of

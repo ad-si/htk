@@ -63,9 +63,9 @@ mmissPackageFolderType_tyRep
 instance HasTyRep MMiSSPackageFolderType where
    tyRep _ = mmissPackageFolderType_tyRep
 
-instance HasCodedValue MMiSSPackageFolderType where
-   encodeIO = mapEncodeIO (\ _ -> ())
-   decodeIO = mapDecodeIO (\ () -> theMMiSSPackageFolderType)
+instance Monad m => HasBinary MMiSSPackageFolderType m where
+   writeBin = mapWrite (\ _ -> ())
+   readBin = mapRead (\ () -> theMMiSSPackageFolderType)
 
 -- ------------------------------------------------------------------------
 -- The MMiSSPackageFolder type and its instance of HasCodedValue
@@ -84,16 +84,17 @@ mmissPackageFolder_tyRep = mkTyRep "MMiSSPackageFolder" "MMiSSPackageFolder"
 instance HasTyRep MMiSSPackageFolder where
    tyRep _ = mmissPackageFolder_tyRep
 
-instance HasCodedValue MMiSSPackageFolder where
-   encodeIO = mapEncodeIO (\ 
-      (MMiSSPackageFolder {linkedObject = linkedObject})
+instance HasBinary MMiSSPackageFolder CodingMonad where
+   writeBin = mapWrite
+      (\ (MMiSSPackageFolder {linkedObject = linkedObject})
          -> linkedObject
-      )
-   decodeIO codedValue0 view =
-      do
-         (linkedObject,codedValue1) <- decodeIO codedValue0 view
-         mmissPackageFolder <- createMMiSSPackageFolder view linkedObject
-         return (mmissPackageFolder,codedValue1)
+         )
+   readBin = mapReadViewIO
+      (\ view linkedObject ->
+         do
+            mmissPackageFolder <- createMMiSSPackageFolder view linkedObject
+            return mmissPackageFolder
+         )
 
 instance HasLinkedObject MMiSSPackageFolder where
    toLinkedObject mmissPackageFolder = linkedObject mmissPackageFolder

@@ -29,13 +29,13 @@ import System.Posix.Signals
 
 import Computation
 import ExtendedPrelude
-import BinaryIO
 import WBFiles(getPort)
 import Concurrent
 import Thread
 import Object
-import HostsPorts
+import BinaryAll
 
+import HostsPorts
 import ServiceClass
 import Crypt
 import PasswordFile
@@ -217,7 +217,7 @@ runServer serviceList =
                                     let
                                        outputAction handle =
                                           do
-                                             hPut handle output
+                                             hWrite handle output
                                              hFlush handle
                                     broadcastAction clientData outputAction
                                     return newState
@@ -251,7 +251,7 @@ runServer serviceList =
 
                                     wrappedHeader <- sendOnConnectWrapped 
                                        service user state
-                                    hPutWrapped handle wrappedHeader
+                                    hWriteWrappedBinary handle wrappedHeader
                                     hFlush handle
                                     oldClients <- takeMVar clients
                                     putMVar clients (clientData:oldClients)
@@ -262,7 +262,7 @@ runServer serviceList =
                               clientReadAction :: IO ()
                               clientReadAction =
                                  do
-                                    input <- hGet handle
+                                    input <- hRead handle
                                     handleInput clientData (return input)
                                     clientReadAction
 
@@ -394,13 +394,9 @@ initialConnect serviceMap handle =
          do
             resultOrString <- addFallOut (\ break ->
                do
-                  (keyWE :: WithError String) <- hGetIntWE 1 handle
-                  (userIdWE :: WithError String) <- hGetIntWE 1 handle
-                  (passwordWE :: WithError String) <- hGetIntWE 1 handle
-
-                  key <- coerceWithErrorOrBreakIO break keyWE
-                  userId <- coerceWithErrorOrBreakIO break userIdWE
-                  password <- coerceWithErrorOrBreakIO break passwordWE
+                  connectDataWE <- hReadLtd 256 handle
+                  (key,userId,password) <- 
+                     coerceWithErrorOrBreakIO break connectDataWE
 
                   -- (1) find the service
                   serviceData <- case lookupFM serviceMap key of

@@ -3,7 +3,7 @@ module VersionInfoService(
    versionInfoService, -- use only for calling the service!
    ) where
 
-import BinaryIO
+import BinaryAll
 
 import ServiceClass
 
@@ -40,4 +40,4 @@ instance ServiceClass (Bool,VersionInfo) (Bool,VersionInfo) VersionState where
    sendOnConnectWrapped _ _ versionState =
       do
          versionInfos <- getVersionInfos versionState
-         return (WrappedBinaryIO versionInfos)
+         return (WrappedBinary versionInfos)
