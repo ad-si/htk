@@ -9,7 +9,7 @@ import System
 import Monad (foldM)
 
 import HTk hiding (State)
-import DialogWin (createAlertWin)
+import DialogWin (createAlertWin,createMessageWin)
 
 -- The state of a single field.
 data State = Cleared Int 
@@ -27,11 +27,9 @@ mines :: State-> Int
 mines (Unexplored{mine= True}) = 1
 mines _                        = 0
 
-
--- The state of the playing field, and the handlers to
--- all buttons representing the field.
--- (We keep them separate, because the former changes as
---  the game progresses, but not the latter).
+-- Our playing field: an array of states, and the button handlers for 
+-- them. (We keep them separate, since the state wil change,
+-- and the button handlers don't.)
 type Mines   = Array (Int, Int) State
 type Buttons = Array (Int, Int) Button
 
@@ -64,11 +62,11 @@ createMines (w, h) =
          mine   = Unexplored{mine= True, flagged= False}
          nomine = Unexplored{mine= False, flagged= False}
 
--- Peek at list of fields, and count the number of adjacent mines.
--- If there are no adjacent mines, we recursively peek at all the
+-- Peek at a list of fields, and count the number of
+-- adjacent mines. If there are none, we recursively peek at all the
 -- adjacent fields, which are
 -- a. not already cleared, and
--- b. not on our list of fields to peek a
+-- b. not on our list of fields to peek at
 -- Precondition: all fields in the list are untouched.
 peek :: Buttons-> Mines-> [(Int, Int)]-> IO Mines
 peek b m [] = return m
@@ -83,7 +81,10 @@ peek b m (xy:rest) =
             else peek b nu rest
   
 
--- open up a field (mouse left-click) and peek at it
+-- open up a field (mouse left-click)
+-- returns Nothing, if we click on a hidden mine, the input if we 
+-- click on a flagged field (without a mine), and peeks at the field
+-- otherwise
 open :: Buttons-> Mines-> (Int, Int)-> IO (Maybe Mines)
 open b m xy = 
   case m!xy of 
@@ -98,10 +99,10 @@ flag b m xy =
   case m!xy of
     Cleared _ -> return m
     s@(Unexplored{flagged= f})-> 
-        do b!xy # (text (if not f then "F" else " "))
+        do b!xy # (text (if f then " " else "F"))
            return (m // [(xy, s{flagged= not f})])
                                  
--- create all buttons, and set up the event handlers for them.
+-- create all buttons, and set up the handlers for them.
 -- Returns a list of pairs of buttons, and their position.
 buttons :: Container par=> par-> Button-> Event() -> (Int, Int)
                            -> IO [((Int, Int), Button)]
@@ -120,11 +121,18 @@ buttons par sb startEv (size@(xmax, ymax)) =
          gameLost = do createAlertWin "*** BOOM!***\nYou lost." []
                        sb # (text "X-(")
                        done
+         gameWon :: IO ()
+	 gameWon = createMessageWin "You have won!" []
          -- the button handlers: 
          play :: Mines-> Event ()
          play m = do r <- choose leCl >>>= open bArr m
                      case r of Nothing -> always gameLost >> gameOver
-                               Just nu -> play nu
+                               Just nu -> -- for simplicity, we have won
+			                  -- if no untouched fields are left
+			                  if all (not.untouched)
+					                   (elems nu) then 
+			                    always gameWon >> gameOver
+                                          else play nu
                   +>
                   do r<- choose riCl >>>= flag bArr m
                      play r
