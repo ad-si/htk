@@ -322,8 +322,8 @@ main = do
   hSetBuffering stdout LineBuffering
   putStrLn "(ANSWER T \"This is the abstraction viewer for daVinci\")"
   gv <- initgraphs
---  s <- readFile "test.data"
---  sequence (map (process_command gv) (lines s))
+  s <- readFile "testAbstractnodes.data"
+  sequence (map (process_command gv) (lines s))
   command_loop gv
   where
   process_command gv s =
