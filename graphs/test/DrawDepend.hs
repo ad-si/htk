@@ -49,7 +49,7 @@ parseDepend =
          programArguments =
             ProgramArgument {
                optionName = "prune",
-               optionHelp = "Only show minimal dependencies",
+               optionHelp = "flag to prune non-essential dependencies",
                defaultVal = Just (BoolValue False),
                argType = BOOL
                } : usualProgramArguments

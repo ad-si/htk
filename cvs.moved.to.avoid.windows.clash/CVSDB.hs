@@ -90,6 +90,7 @@ import IO
 import System
 import Directory
 
+import qualified IOExts
 import PackedString
 import CTypesISO(CSize)
 import ST
@@ -319,6 +320,14 @@ copyStringToFileAlternative string destination =
          else
             return ()
 
+
+copyFileToString  :: FilePath -> IO String
+copyFileToString file =
+   do
+      (addr,len) <- IOExts.slurpFile file
+      CString.unpackCStringLenIO addr len
+
+{-
 -- readFile by itself won't do as it works lazily.
 copyFileToString :: String -> IO String
 copyFileToString file =
@@ -331,6 +340,7 @@ copyFileToString file =
       -- hClose should make it unnecessary, but it breaks
       -- the Versions test on Linux.
       return contents
+-}
       
 exportFile :: ObjectSource -> FilePath -> IO ()
 exportFile (FileObject source) destination = copyFile source destination

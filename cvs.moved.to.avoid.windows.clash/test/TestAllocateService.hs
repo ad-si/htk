@@ -1,7 +1,4 @@
 {- TestAllocateService tests allocation via the allocate service.
-   There should be 1 argument, the host on which the allocate service
-   is running.  We assume a port of 11393.
-
    The tests you can run are (a) enter a blank line, which gives
    you a new CVS file; (b) enter two non-empty strings,
    which finds a new version; the first string should be a file and

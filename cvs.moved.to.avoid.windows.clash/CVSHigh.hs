@@ -60,6 +60,8 @@ import Debug(debug)
 import ExtendedPrelude
 import Dynamics
 
+import qualified Thread
+
 import RegularExpression
 import Expect
 import SIM
@@ -150,7 +152,17 @@ tryCVS :: String -> Expect -> IA a -> IO (Maybe a,CVSReturn)
 tryCVS mess exp event =
    do
       result <- tryIO isCVSError (sync event)
-      status <- getToolStatus exp
+      status1 <- getToolStatus exp
+      -- If status isn't here yet (this shouldn't happen very often)
+      -- wait 0.2 seconds and try again before giving up.
+      status <-
+         case status1 of
+            Nothing ->
+               do
+                  debug "CVSHigh.tryCVS: Delayed status - waiting"
+                  Thread.delay (Thread.secs 0.2)
+                  getToolStatus exp
+            _ -> return status1 
       debug status
       destroy exp
       case result of

@@ -236,7 +236,7 @@ usualProgramArguments = [
       },
    ProgramArgument{
       optionName = "cvsRoot",
-      optionHelp = "The CVSROOT for CVS",
+      optionHelp = "CVSROOT for CVS",
       defaultVal = Nothing,
       argType = STRING
       },
@@ -291,6 +291,7 @@ parseArgValue BOOL str =
       false = Just (BoolValue False)
    in
       case str of
+         "" -> true
          "True" -> true
          "False" -> false
          "+" -> true
@@ -538,8 +539,8 @@ parseTheseArgumentsRequiring' arguments required =
          case parseArgValue argType value of
             Nothing ->
                do
-                  printToErr("For --uni-"++ option ++ ", "++value++" isn't "++
-                     (showArgType argType))
+                  printToErr("For --uni-"++ option ++ ", "++(show value)++
+                     " isn't "++ (showArgType argType))
                   return 
                      (upgradeError True (ExitFailure 4) prevExit,prevMap)
                      -- we always take notice of this error, since it

@@ -156,18 +156,18 @@ data ChildProcess =
                        -- it returns the first input that's available.
       writeTo :: Fd,   -- to write to the process
       readFrom :: Fd,  -- to read from the process
+      
+      closeAction :: IO (), -- action when we closeChildProcessFd's.
+
       processID :: Posix.ProcessID,
                        -- process id of child
       watchStatus :: (Maybe (WatchDog ProcessStatus)), 
                        -- indicates exit code when process finishes
       toolStatus :: (PVar ToolStatus), 
                        -- ditto
-      bufferVar :: (MVar String), 
+      bufferVar :: (MVar String) 
                        -- bufferVar of previous characters (only relevant
-                       -- for line mode)
-      cleanUp :: IO () 
-         -- extra action to be done when the child process
-         -- is destroyed.              
+                       -- for line mode)     
       }
 
 -- -------------------------------------------------------------------------
@@ -228,14 +228,13 @@ newChildProcess path confs  =
             -- doesn't seem to be another way of doing this.
             Posix.installHandler Posix.sigPIPE Posix.Ignore Nothing
 
-            cleanUp <-
+            closeAction <-
                case readWriteErr of
                   Nothing ->
                      return (
                         do
---                           try(Posix.fdClose writeIn)
---                           try(Posix.fdClose readOut)
-                             done
+                           Posix.fdClose writeIn
+                           Posix.fdClose readOut
                         )
                   Just (readErr,writeErr) ->
                      do
@@ -259,7 +258,7 @@ newChildProcess path confs  =
                watchStatus = watchStatus,
                toolStatus = toolStatus,
                bufferVar = bufferVar,
-               cleanUp = cleanUp
+               closeAction = closeAction
                })
       connect writeIn readIn writeOut readOut readWriteErr Nothing parms =
          do -- child process
@@ -326,7 +325,6 @@ instance Object ChildProcess where
 instance Destructible ChildProcess where
    destroy child = 
       do
-         cleanUp child
          res <- try(Posix.signalProcess Posix.sigKILL (processID child))
          case res of
             Left error -> 
@@ -411,10 +409,8 @@ sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  =
 
 
 closeChildProcessFds  :: ChildProcess -> IO ()
-closeChildProcessFds (ChildProcess{writeTo = writeTo,readFrom = readFrom}) = 
-   do 
-      Posix.fdClose writeTo
-      Posix.fdClose readFrom
+closeChildProcessFds (ChildProcess{closeAction = closeAction}) = 
+   closeAction
 
 -- -------------------------------------------------------------------------
 -- Displaying stdErr output
