@@ -21,6 +21,7 @@ module Folders(
    registerExtraFolderType, -- :: FolderType -> IO ()
    mkFolderType0, -- :: GlobalKey -> NodeTypes (Link Folder) -> FolderType
 
+   describeLinkedObject, -- :: View -> LinkedObject -> IO String
    ) where
 
 import Maybe
@@ -55,6 +56,7 @@ import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
 
+import FolderStructure(getName)
 import Imports
 
 import ViewType(getViewTitleSource,importsState)
@@ -609,6 +611,14 @@ getImportsState view =
          newImportsState folderStructure (\ mess -> errorMess mess)
          )
       (importsState view)
+
+describeLinkedObject :: View -> LinkedObject -> IO String
+describeLinkedObject view linkedObject =
+   do
+      importsState <- getImportsState view
+      fullName <- getName (folders importsState) linkedObject
+      return (toString fullName)
+   
 
 -- ------------------------------------------------------------------
 -- Indexing in a folder

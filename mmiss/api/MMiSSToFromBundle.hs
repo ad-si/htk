@@ -7,8 +7,12 @@
    and for converting to and from MMiSSVariantSpec's.
    -}
 module MMiSSToFromBundle(
-   toBundle, -- :: Block -> MMiSSRequest.Files -> WithError MMiSSBundle.Bundle
-   fromBundle, -- :: MMiSSBundle.Bundle -> State Block MMiSSRequest.Files
+   toBundleNode, 
+      -- :: Block -> MMiSSRequest.File 
+      -- -> WithError (MMiSSBundle.FileLoc,MMiSSBundle.BundleNode)
+   fromBundleNode,
+      -- :: (MMiSSBundle.FileLoc,MMiSSBundle.BundleNode)
+      -- -> BlockM MMiSSRequest.File
 
    toExportOpts, -- :: MMiSSRequest.GetObject_Attrs -> MMiSSBundle.ExportOpts
 
@@ -49,11 +53,11 @@ type BlockM = State Block
 toBundle :: Block -> MMiSSRequest.Files -> WithError MMiSSBundle.Bundle
 toBundle block (Files files) =
    do
-      (nodes :: [(FileLoc,BundleNode)]) <- mapM (toBundleNode block) files
+      (nodes :: [BundleNode]) <- mapM (toBundleNode block) files
       return (Bundle nodes)
 
 fromBundle :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Files
-fromBundle (Bundle (bundles :: [(FileLoc,BundleNode)])) =
+fromBundle (Bundle (bundles :: [BundleNode])) =
    do
       files <- mapM fromBundleNode bundles
       return (Files files) 
@@ -63,7 +67,7 @@ fromBundle (Bundle (bundles :: [(FileLoc,BundleNode)])) =
 -- ---------------------------------------------------------------------------
 
 toBundleNode :: Block -> MMiSSRequest.File 
-   -> WithError (MMiSSBundle.FileLoc,MMiSSBundle.BundleNode)
+   -> WithError (MMiSSBundle.BundleNode)
 toBundleNode block (File fileLoc0 oneOfOpt) =
    case oneOfOpt of
       Nothing -> hasError 
@@ -84,18 +88,24 @@ toBundleNode block (File fileLoc0 oneOfOpt) =
                         return (vSpecOpt,bundleText)
                      )
                   variants
-            return (fileLoc1,Object vList)
+            return (mkBundleNode (Object vList))
       Just (TwoOf2 files) ->
          do
             bundle <- toBundle block files 
-            return (fileLoc1,Dir bundle)      
+            return (mkBundleNode (Dir bundle))      
    where
       fileLoc1 = toFileLoc fileLoc0
 
-fromBundleNode :: (MMiSSBundle.FileLoc,MMiSSBundle.BundleNode)
-   -> BlockM MMiSSRequest.File
-fromBundleNode (fileLoc0,bundleNode) =
-   case bundleNode of
+      mkBundleNode :: BundleNodeData -> BundleNode
+      mkBundleNode bundleNodeData1 = BundleNode {
+         fileLoc = fileLoc1,
+         bundleNodeData = bundleNodeData1
+         }
+  
+fromBundleNode :: MMiSSBundle.BundleNode -> BlockM MMiSSRequest.File
+fromBundleNode (BundleNode {
+      fileLoc = fileLoc0,bundleNodeData = bundleNodeData0}) =
+   case bundleNodeData0 of
       Object vList ->
          do
             (variants :: [FileVariant]) <- 
@@ -108,14 +118,15 @@ fromBundleNode (fileLoc0,bundleNode) =
                         return (FileVariant variantsOpt contents)
                      )
                   vList
-            return (File fileLoc1 (Just (OneOf2 (FileVariants variants))))
+            return (mkFile (Just (OneOf2 (FileVariants variants))))
       Dir bundle ->
          do
             files <- fromBundle bundle
-            return (File fileLoc1 (Just (TwoOf2 files))) 
+            return (mkFile (Just (TwoOf2 files))) 
    where
       fileLoc1 = fromFileLoc fileLoc0
 
+      mkFile fileData = File fileLoc1 fileData
 -- ---------------------------------------------------------------------------
 -- Converting to and from MMiSSVariantSpec
 -- ---------------------------------------------------------------------------

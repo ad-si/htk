@@ -63,8 +63,8 @@ data GetObject_format = GetObject_format_LaTeX  |
 data GetObject_recurse = GetObject_recurse_justThis  | 
 			 GetObject_recurse_allIncluded
 		       deriving (Eq,Show)
-newtype GetObjectResponse = GetObjectResponse Files 		deriving (Eq,Show)
-data PutObject = PutObject VersionRef ObjectFullName Files
+newtype GetObjectResponse = GetObjectResponse File 		deriving (Eq,Show)
+data PutObject = PutObject VersionRef ObjectFullName File
 	       deriving (Eq,Show)
 data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
 data ServerRef = ServerRef
@@ -123,6 +123,7 @@ data ObjectType_baseType = ObjectType_baseType_folder  |
 			   ObjectType_baseType_plainFile  |  ObjectType_baseType_mmissFolder
 			    |  ObjectType_baseType_mmissObject  | 
 			   ObjectType_baseType_mmissFile  |  ObjectType_baseType_mmissPreamble
+			    |  ObjectType_baseType_unknownType
 			 deriving (Eq,Show)
 newtype ObjectFullName = ObjectFullName String 		deriving (Eq,Show)
 data Variant = Variant
@@ -405,7 +406,7 @@ instance XmlContent GetObjectResponse where
     fromElem (CElem (Elem "getObjectResponse" [] c0):rest) =
 	(\(a,ca)->
 	   (Just (GetObjectResponse a), rest))
-	(definite fromElem "<files>" "getObjectResponse" c0)
+	(definite fromElem "<file>" "getObjectResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetObjectResponse a) =
@@ -416,7 +417,7 @@ instance XmlContent PutObject where
 	   (\(b,cb)->
 	      (\(c,cc)->
 		 (Just (PutObject a b c), rest))
-	      (definite fromElem "<files>" "putObject" cb))
+	      (definite fromElem "<file>" "putObject" cb))
 	   (definite fromElem "<objectFullName>" "putObject" ca))
 	(definite fromElem "<versionRef>" "putObject" c0)
     fromElem (CMisc _:rest) = fromElem rest
@@ -656,6 +657,7 @@ instance XmlAttrType ObjectType_baseType where
 	    translate "mmissObject" = Just ObjectType_baseType_mmissObject
 	    translate "mmissFile" = Just ObjectType_baseType_mmissFile
 	    translate "mmissPreamble" = Just ObjectType_baseType_mmissPreamble
+	    translate "unknownType" = Just ObjectType_baseType_unknownType
 	    translate _ = Nothing
     toAttrFrTyp n ObjectType_baseType_folder = Just (n, str2attr "folder")
     toAttrFrTyp n ObjectType_baseType_plainFile = Just (n, str2attr "plainFile")
@@ -663,6 +665,7 @@ instance XmlAttrType ObjectType_baseType where
     toAttrFrTyp n ObjectType_baseType_mmissObject = Just (n, str2attr "mmissObject")
     toAttrFrTyp n ObjectType_baseType_mmissFile = Just (n, str2attr "mmissFile")
     toAttrFrTyp n ObjectType_baseType_mmissPreamble = Just (n, str2attr "mmissPreamble")
+    toAttrFrTyp n ObjectType_baseType_unknownType = Just (n, str2attr "unknownType")
 instance XmlContent ObjectFullName where
     fromElem (CElem (Elem "objectFullName" [] c0):rest) =
 	(\(a,ca)->

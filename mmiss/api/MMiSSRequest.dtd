@@ -70,6 +70,15 @@
 <!-- Get the contents of an object in the repository. 
      This will be implemented for (a) MMiSS objects; (b) MMiSS files;
      (c) folders or MMiSSPackageFolders. 
+
+     The interpretation depends on whether the <variants> element is
+     supplied or not.  If <variants> IS NOT supplied, we get everything
+     in all variants in the object, file, folder or package folder, including,
+     if recurse=allIncluded, everything in the subfolders too.  If <variants>
+     IS supplied, the object must be either an MMiSS object or MMiSS file;
+     we get just that variant of that object or that file, except that
+     should recurse=allIncluded we also recursively attempt replace all import 
+     statements in the input object by the referenced objects.
      -->
 <!ELEMENT getObject (versionRef,objectFullName,variants?) >
 <!ATTLIST getObject
@@ -85,21 +94,14 @@
     "format" specifies whether the content of MMiSS objects should be given
     in LaTeX or XML.  They will be sent with an objectType with 
     baseType=mmissFile, and extType=tex or xml.
-
-    "recurse" varies in meaning depending on what sort of object we
-    are retrieving.  It is ignored for MMiSS File's.
-    For MMiSS objects, we retrieve just the object, but not the imported
-    files, unless recurse=allIncluded.  For folders, we include just
-    the objects actually in the folder if recurse=justThis, otherwise we
-    also include the objects in all constituent folders.
     -->
 
-<!ELEMENT getObjectResponse (files) >
+<!ELEMENT getObjectResponse (file) >
  
 
 <!-- Attempt to import the given object(s) into the specified object in the
      repository. -->
-<!ELEMENT putObject (versionRef,objectFullName,files) >
+<!ELEMENT putObject (versionRef,objectFullName,file) >
 <!ELEMENT putObjectResponse EMPTY >
 
 <!--
@@ -207,7 +209,7 @@
 <!ATTLIST objectType
    baseType ( folder | plainFile 
       | mmissFolder | mmissObject | mmissFile 
-      | mmissPreamble ) #REQUIRED
+      | mmissPreamble | unknownType ) #REQUIRED
    extType CDATA #IMPLIED
    extraType CDATA #IMPLIED
    >

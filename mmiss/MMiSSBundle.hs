@@ -1,10 +1,10 @@
 {- A Bundle encodes a collection of MMiSS objects, packages,
    package folders and so on to be imported into or exported from the
-   repository. 
+   repository.  A BundleNode encodes a single object. 
 
-   Thus the type corresponds fairly closely to the (files) element in
-   api/MMiSSRequest.dtd.  Conversion functions are in 
-   mmiss/api/MMiSSToFromBundle.hs.
+   Thus the types correspond fairly closely to the (files) and (file) 
+   elements, respectively, in api/MMiSSRequest.dtd.  Conversion functions are 
+   in mmiss/api/MMiSSToFromBundle.hs.
 
    We also define the ExportOpts type, because that parallels the
    GetObject_Attrs type in api/MMiSSRequest.hs.
@@ -16,6 +16,7 @@ module MMiSSBundle (
    BundleType(..),
    BundleTypeEnum(..),
    BundleNode(..),
+   BundleNodeData(..),
    BundleText(..),
    CharType(..),      
 
@@ -25,6 +26,8 @@ module MMiSSBundle (
    bundleToElement, -- :: BundleText -> WithError Element
    nameFileLoc, -- :: FileLoc -> WithError EntityName
    describeFileLoc, -- :: FileLoc -> String
+
+   getUnknownBundleNode, -- :: LinkedObject -> IO BundleNode
    ) where
 
 import Maybe
@@ -40,6 +43,8 @@ import Computation
 
 import EntityNames
 
+import LinkManager
+
 import LaTeXParser(MMiSSLatexPreamble)
 
 import MMiSSVariant
@@ -52,7 +57,7 @@ import MMiSSFormat
 
 newtype PackageId = PackageId String deriving (Eq,Ord)
 
-newtype Bundle = Bundle [(FileLoc,BundleNode)]
+newtype Bundle = Bundle [BundleNode]
 
 data FileLoc = FileLoc {
    name :: Maybe String, 
@@ -68,9 +73,15 @@ data BundleType = BundleType {
 
 data BundleTypeEnum = FolderEnum | FileEnum 
    | MMiSSFolderEnum | MMiSSObjectEnum | MMiSSFileEnum | MMiSSPreambleEnum
+   | UnknownType
    deriving (Ord,Eq)
 
-data BundleNode =
+data BundleNode = BundleNode {
+   fileLoc :: FileLoc,
+   bundleNodeData :: BundleNodeData
+   }
+
+data BundleNodeData =
       Object [(Maybe MMiSSVariantSpec,BundleText)]
          -- For MMiSSObjects it will be possible to work out the variants
          -- from the BundleText; for these the variants are optional.
@@ -154,4 +165,34 @@ describeBundleTypeEnum bte = case bte of
    MMiSSObjectEnum -> "MMiSS object"
    MMiSSFileEnum -> "MMiSS file"
    MMiSSPreambleEnum -> "MMiSS preamble"
-    
+   UnknownType -> "Object of unknown type"
+
+-- --------------------------------------------------------------------------
+-- Miscellaneous functions
+-- --------------------------------------------------------------------------
+
+-- BundleNode extraction in the case when we can't do the job properly and
+-- need a soft fall-out.
+getUnknownBundleNode :: LinkedObject -> IO BundleNode
+getUnknownBundleNode linkedObject =
+   do
+      insertionOpt <- getCurrentInsertion linkedObject
+      let
+         name1 = fmap
+            (toString . snd . unmkInsertion)
+            insertionOpt
+
+         objectType1 = BundleType {
+            base = UnknownType,
+            ext = Nothing,
+            extra = Nothing
+            }
+
+         fileLoc1 = FileLoc {name = name1, objectType = objectType1}
+
+         bundleNode = BundleNode {
+            fileLoc = fileLoc1,
+            bundleNodeData = Object []
+            }
+      return bundleNode
+ 
