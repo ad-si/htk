@@ -201,10 +201,7 @@ instance Monad m => HasBinary ImportCommands m where
 -- ----------------------------------------------------------------------
 
 instance StringClass EntityName where
-   toString (EntityName name) | (all (/= specialChar) name) = name
-   toString (EntityName name) = error (
-      "EntityNames.toString: Special character discovered in EntityName "
-      ++ show name)
+   toString (EntityName str) = str
 
    fromStringWE = mkFromStringWE entityNameParser "Entity Name"
 
