@@ -22,6 +22,7 @@ SRCS       = Thread.hs\
              Channels.hs\
              FileEV.hs\
              SocketEV.hs\
+             EasyBroker.hs\
 
 
 SUBDIRS = test server
