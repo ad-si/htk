@@ -5,8 +5,6 @@ module EmacsEdit(
    EmacsFS(..),
    EditedFile(..),
    PrintAction(..),
-
-   TypedName,
    ) where
 
 import Maybe
@@ -37,49 +35,47 @@ import Extents
 
 ---
 -- EmacsFS describes the interface this module needs to the file system.
+-- The file system is allowed its own handle, a ref.  For the functions,
+-- it is required that "ref" instances Eq and Ord.
 -- 
--- We include along with the name a single character which corresponds to
--- a type designation.  It should be one of the characters listed in
--- allmmiss.el's variable MMiSS-colours, so currently one of G/U/A/T.
--- NB.  We assume that no two TypedName's exist with the same String but
--- different Chars.
---
 -- It is also assumed that editFS will stop the same file being opened if
 -- it is already open (without it being closed by finishEdit).
-type TypedName = (String,Char)
-
-data EmacsFS = EmacsFS {
+data EmacsFS ref = EmacsFS {
    -- | editFS name
    -- attempts to edit the file name.
    -- It returns the initial contents and the file's EditedFile structure.
-   editFS :: TypedName -> IO (WithError (EmacsContent TypedName,EditedFile)),
-   -- | existsFS name
-   -- checks that the file exists and can be read (without trying to edit it)
-   existsFS :: TypedName -> IO (WithError ())
+   editFS :: ref -> IO (WithError (EmacsContent ref,EditedFile ref)),
+   -- | miniType returns a character corresponding to a type designation.
+   -- These letters correspond to those in the list MMiSS-colours in
+   -- allmmiss.el.
+   toMiniType :: ref -> Char,
+   -- | toDescription returns a user-friendly name for the reference (used in
+   -- error messages and for button names).
+   toDescription :: ref -> String
    }
 
 ---
 -- EditedFile (provided by the caller) describes a file as it is edited by
 -- this module
-data EditedFile = EditedFile {
-   writeData :: EmacsContent TypedName -> IO (WithError ()),
+data EditedFile ref = EditedFile {
+   writeData :: EmacsContent ref -> IO (WithError ()),
       -- ^ Attempt to write back the edited content (this may be done more than
       --   once)
    finishEdit :: IO ()
-      -- action to be called at the end (when we no longer want to edit
+      -- ^ action to be called at the end (when we no longer want to edit
       -- this file).
    }
 
 ---
--- The PrintAction, supplied by the caller, prints the given TypedName 
+-- The PrintAction, supplied by the caller, prints the given ref 
 -- as displayed in the buffer, which should be included in the buffer.  To 
 -- do this it in turn is provided with a function which given a particular 
 -- String returns what the Emacs buffer
 -- currently contains for that String.  Included items are given as 
 -- EmacsLink; the Bool indicates whether the included item is expanded (True)
 -- or not.  
-newtype PrintAction = PrintAction 
-   (String -> (String -> IO (WithError (EmacsContent (Bool,TypedName))))
+newtype PrintAction ref = PrintAction 
+   (ref -> (ref -> IO (WithError (EmacsContent (Bool,ref))))
       -> IO ()
       )
 
@@ -87,14 +83,14 @@ newtype PrintAction = PrintAction
 -- Other datatypes
 -- ----------------------------------------------------------------------
 
-data EditorState = EditorState {
+data EditorState ref = EditorState {
    emacsSession :: EmacsSession,
-   emacsFS :: EmacsFS,
-   openFiles :: Registry String EditedFile, -- ^ currently edited files
-      -- (the names are not mangled)
-   typedNameMangler :: TypedNameMangler,
+   emacsFS :: EmacsFS ref,
+   openFiles :: Registry ref (EditedFile ref), -- ^ currently edited files
+
+   typedNameMangler :: TypedNameMangler ref,
       -- This makes all names seen by Emacs unique.
-   printAction :: PrintAction,
+   printAction :: PrintAction ref,
    topMangledName :: MangledTypedName
    }      
 
@@ -105,11 +101,12 @@ data EditorState = EditorState {
 ---
 -- editEmacs edits a particular file, with the specified file system. 
 -- This function terminates when the user finishes editing.
-editEmacs :: EmacsFS -> PrintAction -> TypedName -> IO ()
-editEmacs emacsFS printAction name =
+editEmacs :: Ord ref => EmacsFS ref -> PrintAction ref -> ref -> IO ()
+editEmacs emacsFS printAction ref =
    do
       typedNameMangler <- newTypedNameMangler
-      mangledName <- newMangledTypedName typedNameMangler name
+      mangledName <- newMangledTypedName typedNameMangler ref 
+         (toMiniType emacsFS ref)
 
       let
          -- action for opening the Emacs window, after openFile has managed
@@ -117,7 +114,7 @@ editEmacs emacsFS printAction name =
          parentAction =
             do
                -- (1) Initialise Emacs and MMiSS-TeX.
-               emacsSession <- newEmacsSession (describe name)
+               emacsSession <- newEmacsSession (toDescription emacsFS ref)
                execEmacs emacsSession "MMiSS-init"
                lockBuffer emacsSession
                setColourHack emacsSession
@@ -141,7 +138,7 @@ editEmacs emacsFS printAction name =
                      }
                return (parent,editorState)
 
-      editorStateOpt <- openFile emacsFS parentAction name mangledName
+      editorStateOpt <- openFile emacsFS parentAction ref mangledName
 
       case editorStateOpt of
          Just editorState ->
@@ -164,11 +161,12 @@ editEmacs emacsFS printAction name =
 -- which openFile in turn returns.
 --
 -- If we do not succeed, openFile returns Nothing.
-openFile :: EmacsFS -> IO (String,EditorState) -> TypedName -> MangledTypedName
-   -> IO (Maybe EditorState)
-openFile emacsFS parentAction name mangledName =
+openFile :: Ord ref 
+   => EmacsFS ref -> IO (String,EditorState ref) -> ref -> MangledTypedName
+   -> IO (Maybe (EditorState ref))
+openFile emacsFS parentAction ref mangledName =
    do
-      emacsFileWE <- editFS emacsFS name
+      emacsFileWE <- editFS emacsFS ref
       case fromWithError emacsFileWE of
          Left message -> 
             do
@@ -182,12 +180,12 @@ openFile emacsFS parentAction name mangledName =
                (parent,state) <- parentAction
 
                -- Add a new entry to the registry
-               setValue (openFiles state) (key name) emacsFile
+               setValue (openFiles state) ref emacsFile
 
                let
                   session = emacsSession state
 
-                  (headString,endString) = containerTexts name 
+                  (headString,endString) = containerTexts emacsFS ref
 
                -- Insert the button
                addHeadButton session parent (headName mangledName) headString
@@ -198,9 +196,10 @@ openFile emacsFS parentAction name mangledName =
                      EmacsLink child -> 
                         do
                            mangledChild <- newMangledTypedName 
-                              (typedNameMangler state) child
+                              (typedNameMangler state) child 
+                              (toMiniType emacsFS child)
                            addButton session parent (normalName mangledChild) 
-                              (buttonText child)
+                              (buttonText emacsFS child)
                      EditableText str ->
                         addText session parent str
                      )
@@ -217,8 +216,8 @@ openFile emacsFS parentAction name mangledName =
 -- The event handler
 -- ----------------------------------------------------------------------
 
-handleEvents :: EditorState -> Event ()
-handleEvents editorState =
+handleEvents :: Ord ref => EditorState ref -> Event ()
+handleEvents (editorState :: EditorState ref) =
    let
       session = emacsSession editorState
 
@@ -229,6 +228,12 @@ handleEvents editorState =
       event key = emacsEvent session key
 
       iterate = handleEvents editorState
+
+      fs :: EmacsFS ref
+      fs = emacsFS editorState
+
+      describe :: ref -> String
+      describe ref = toDescription fs ref
 
       confirm :: String -> Event () -> Event ()
       confirm str event =
@@ -259,12 +264,13 @@ handleEvents editorState =
                                  hContainer)
                         container <- readMangled mangledContainer
                         fileOpt <- getValueOpt (openFiles editorState) 
-                           (key container)
-                        let
-                           file = case fileOpt of
-                              Just file -> file
-                              Nothing -> error ("handleEvents: container "++
-                                 describe container ++" does not exist")
+                           container
+                        
+                        file <- case fileOpt of
+                           Just file -> return file
+                           Nothing -> error ("handleEvents: container "++
+                              describe container ++" does not exist")
+
                         mangledContents 
                            <- extractContents editorState mangledContainer 
                         (unmangledContents,_) 
@@ -303,8 +309,8 @@ handleEvents editorState =
             case parseButton str of
                Normal mangledName ->
                   do
-                     name <- always (readMangled mangledName)
-                     confirm ("Expand "++describe name++"?") (
+                     ref <- always (readMangled mangledName)
+                     confirm ("Expand "++describe ref++"?") (
                         let
                            parentAction =
                               do
@@ -314,8 +320,7 @@ handleEvents editorState =
                            always (
                               do
                                  lockBuffer session
-                                 openFile (emacsFS editorState) parentAction 
-                                    name mangledName
+                                 openFile fs parentAction ref mangledName
                                  unlockBuffer session
                                  sync iterate
                               )
@@ -326,7 +331,7 @@ handleEvents editorState =
                         let
                            normal = normalName mangledName
 
-                        name <- readMangled mangledName
+                        ref <- readMangled mangledName
 
                         lockBuffer session
 
@@ -336,7 +341,7 @@ handleEvents editorState =
                               if modified
                                  then
                                     createConfirmWin ("Collapse "
-                                       ++describe name++" without saving?") []
+                                       ++describe ref++" without saving?") []
                                  else
                                     return True
 
@@ -358,10 +363,10 @@ handleEvents editorState =
                                        (str:_) -> case parseButton str of
                                           Normal mangledName2 ->
                                              do
-                                                name2 
-                                                   <- readMangled mangledName2 
+                                                ref2 
+                                                   <- readMangled mangledName2
                                                 createErrorWin ("Collapse " 
-                                                   ++ describe name2
+                                                   ++ describe ref2 
                                                    ++ " first!") []
                                                 return False
                               else
@@ -369,16 +374,17 @@ handleEvents editorState =
                         if proceed2
                            then
                               do
-                                 collapse session normal (buttonText name)
+                                 collapse session normal (buttonText fs ref)
                                  transformValue (openFiles editorState) 
-                                       (key name)
-                                    (\ stateOpt ->
+                                       ref
+                                    (\ (stateOpt :: Maybe (EditedFile ref)) ->
                                        do
                                           case stateOpt of
                                              Just state -> finishEdit state
-                                             Nothing -> putStrLn ("Odd - "
-                                                ++ describe name
-                                                ++ " already collapsed")
+                                             Nothing ->
+                                                putStrLn ("Odd - "
+                                                   ++ describe ref
+                                                   ++ " already collapsed")
                                           return (Nothing,())
                                        ) 
                            else
@@ -426,43 +432,45 @@ handleEvents editorState =
 -- Printing 
 -- ----------------------------------------------------------------------
 
-doPrint :: EditorState -> MangledTypedName -> IO ()
-doPrint editorState mangledToEdit =
+doPrint :: Ord ref => EditorState ref -> MangledTypedName -> IO ()
+doPrint (editorState :: EditorState ref) mangledToEdit =
    do
       -- The main problem here is writing the function to be passed to the
       -- print action.
 
-      -- Since the print action only supplies TypedNames we create a registry
-      -- mapping the String part of the TypedNames to their corresponding
+      -- We create a registry mapping ref's to their corresponding
       -- MangledTypedName (which should currently be open).  Since files are
       -- only supposed to be open once (see comments to EditFS) this is not
       -- a problem.
-      (openMangledNames :: Registry String MangledTypedName) <- newRegistry
+      (openMangledNames :: Registry ref MangledTypedName) <- newRegistry
 
       let
          session = emacsSession editorState
 
+         describe :: ref -> String
+         describe = toDescription (emacsFS editorState)
+
          readMangled = readMangledTypedName (typedNameMangler editorState)
 
-         printFunction :: String 
-            -> IO (WithError (EmacsContent (Bool,TypedName)))
-         printFunction toGetStr =
+         printFunction :: ref 
+            -> IO (WithError (EmacsContent (Bool,ref)))
+         printFunction ref =
             addFallOutWE (\ break ->
                do
-                  mangledToGetOpt <- getValueOpt openMangledNames toGetStr
-                  let
-                     mangledToGet = case mangledToGetOpt of
-                        Just mangledToGet -> mangledToGet
-                        Nothing -> break ("EmacsEdit: couldn't find "
-                           ++toGetStr)
+                  mangledToGetOpt <- getValueOpt openMangledNames ref
+
+                  mangledToGet <- case mangledToGetOpt of
+                     Just mangledToGet -> return mangledToGet
+                     Nothing -> break (
+                        "EmacsEdit: couldn't find "++describe ref)
                   seq mangledToGet done
 
                   mangledContents <- extractContents editorState mangledToGet
                   (unmangledContents,associations) 
                      <- unmangleContents editorState mangledContents  
                   mapM_
-                     (\ (typedName,mangledTypedName) -> setValue 
-                        openMangledNames (key typedName) mangledTypedName
+                     (\ (ref,mangledTypedName) -> setValue 
+                        openMangledNames ref mangledTypedName
                         )
                      associations
                   return unmangledContents
@@ -471,16 +479,16 @@ doPrint editorState mangledToEdit =
          (PrintAction mkPrint) = printAction editorState
 
       toEdit <- readMangled mangledToEdit
-      setValue openMangledNames (key toEdit) mangledToEdit
+      setValue openMangledNames toEdit mangledToEdit
 
       lockBuffer session
       toEditType <- getExtentType session (normalName mangledToEdit)
       if toEditType == "container"
          then
-            mkPrint (key toEdit) printFunction
+            mkPrint toEdit printFunction
          else
-            createErrorWin ("Extent "++describe toEdit
-               ++" is not currently open") []
+           createErrorWin ("Extent "++describe toEdit
+              ++" is not currently open") []
       unlockBuffer session
 
 -- ----------------------------------------------------------------------
@@ -489,7 +497,7 @@ doPrint editorState mangledToEdit =
 -- Bools indicate that the corresponding extent is further expanded.
 -- ----------------------------------------------------------------------
 
-extractContents :: EditorState -> MangledTypedName 
+extractContents :: EditorState ref -> MangledTypedName 
    -> IO (EmacsContent (Bool,MangledTypedName))
 extractContents editorState mangledToGet =
    do
@@ -518,16 +526,16 @@ extractContents editorState mangledToGet =
 ---
 -- Unmangled the MangledTypedNames in an EmacsContent and return a list
 -- of the associations where the Bool is True.
-unmangleContents :: EditorState -> EmacsContent (Bool,MangledTypedName)
-   -> IO (EmacsContent (Bool,TypedName),[(TypedName,MangledTypedName)])
-unmangleContents editorState (EmacsContent list0) =
+unmangleContents :: EditorState ref -> EmacsContent (Bool,MangledTypedName)
+   -> IO (EmacsContent (Bool,ref),[(ref,MangledTypedName)])
+unmangleContents (editorState :: EditorState ref) (EmacsContent list0) =
    do
       let
          readMangled = readMangledTypedName (typedNameMangler editorState)
 
          doList :: [EmacsDataItem (Bool,MangledTypedName)] ->
-            IO ([EmacsDataItem (Bool,TypedName)],
-               [(TypedName,MangledTypedName)])
+            IO ([EmacsDataItem (Bool,ref)],
+               [(ref,MangledTypedName)])
          doList [] = return ([],[])
          doList (EditableText text : rest) =
             do
@@ -536,10 +544,10 @@ unmangleContents editorState (EmacsContent list0) =
          doList (EmacsLink (b,mangledTypedName) : rest) =
             do
                (l1,l2) <- doList rest
-               typedName <- readMangled mangledTypedName
+               ref <- readMangled mangledTypedName
                let
-                  l2' = if b then (typedName,mangledTypedName):l2 else l2
-               return (EmacsLink (b,typedName) : l1,l2')
+                  l2' = if b then (ref,mangledTypedName):l2 else l2
+               return (EmacsLink (b,ref) : l1,l2')
        
       (list1,associations) <- doList list0
       return (EmacsContent list1,associations)
@@ -584,61 +592,51 @@ parseMangledTypedName (c:cs) =
 
 
 -- ----------------------------------------------------------------------
--- TypedName utilities
+-- Extracting texts from refs.
 -- ----------------------------------------------------------------------
-
----
--- Unique key for TypedName's.
-key :: TypedName -> String
-key (str,c) = str
-
----
--- How the user sees a TypedName
-describe :: TypedName -> String
-describe (str,c) = str
 
 ---
 -- Head button text and end text for a container
-containerTexts :: TypedName -> (String,String)
-containerTexts name =
-   ("["++describe name++":\n","]\n")
+containerTexts :: EmacsFS ref -> ref -> (String,String)
+containerTexts fs ref = ("["++toDescription fs ref++":\n","]\n")
 
 ---
 -- Button text for a (collapsed) button
-buttonText :: TypedName -> String
-buttonText name =
-   ("["++describe name++"]")
+buttonText :: EmacsFS ref -> ref -> String
+buttonText fs ref = "["++toDescription fs ref++"]"
 
 -- ----------------------------------------------------------------------
--- The Typed Name Mangler.
--- We actually need a number of Name Manglers, one for each letter.
--- (It is somewhat anomalous that we preserve the letters, but Emacs needs
--- to know them to know what colour to make buttons.
+-- The NameGenerator.  This has to map the "ref's" in an EmacsFS into
+-- MangledTypedName's.
 -- ----------------------------------------------------------------------
 
-data TypedNameMangler = TypedNameMangler (Registry Char NameMangler)
+data TypedNameMangler ref = TypedNameMangler (Registry Char (NameMangler ref))
 
 data MangledTypedName = MangledTypedName String Char
 
-newTypedNameMangler :: IO TypedNameMangler 
+newTypedNameMangler :: IO (TypedNameMangler ref)
 newTypedNameMangler = 
    do
       registry <- newRegistry
       return (TypedNameMangler registry)
 
-newMangledTypedName :: TypedNameMangler -> TypedName -> IO MangledTypedName
-newMangledTypedName (TypedNameMangler registry) (str,c) =
+---
+-- newMangledTypedName expects in addition to the thing to be mangled, its
+-- minitype.
+newMangledTypedName :: TypedNameMangler ref -> ref -> Char 
+   -> IO MangledTypedName
+newMangledTypedName (TypedNameMangler registry) ref c =
    transformValue registry c 
       (\ nameManglerOpt -> 
          do
             nameMangler <- case nameManglerOpt of
                Nothing -> newNameMangler
                Just nameMangler -> return nameMangler
-            mangledName <- newMangledName nameMangler str
+            mangledName <- newMangledName nameMangler ref
             return (Just nameMangler,MangledTypedName mangledName c)
          )
 
-readMangledTypedName :: TypedNameMangler -> MangledTypedName -> IO TypedName
+readMangledTypedName :: TypedNameMangler ref -> MangledTypedName -> IO ref
 readMangledTypedName (TypedNameMangler registry) (MangledTypedName name c) =
    do
       nameManglerOpt <- getValueOpt registry c
@@ -646,5 +644,5 @@ readMangledTypedName (TypedNameMangler registry) (MangledTypedName name c) =
          Nothing -> error "EmacsEdit: unknown letter"
          Just nameMangler ->
             do
-               str <- readMangledName nameMangler name
-               return (str,c)   
+               ref <- readMangledName nameMangler name
+               return ref

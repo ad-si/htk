@@ -51,7 +51,7 @@ import BDBClient
 -- The query types.
 -- -------------------------------------------------------------------
 
-newtype Location = Location Int
+newtype Location = Location Int deriving (Eq,Ord)
 
 firstLocation :: Location
 -- The magic number 0 is also used by initialiseSimpleDB
@@ -60,7 +60,7 @@ firstLocation = Location 0
 secondLocation :: Location
 secondLocation = Location 1
 
-newtype ObjectVersion = ObjectVersion Int
+newtype ObjectVersion = ObjectVersion Int deriving (Eq,Ord)
 
 firstVersion :: ObjectVersion
 firstVersion = ObjectVersion 0
@@ -101,12 +101,16 @@ instance StringClass Location where
    toString (Location i) = show i
    fromString s = Location (read s)
 
+#if 0
+-- Using a GHC 5 extension we can now derive these, more efficiently.
+
 instance Eq Location where
    (==) (Location l1) (Location l2) = (==) l1 l2
    (/=) (Location l1) (Location l2) = (/=) l1 l2
 
 instance Ord Location where
    compare (Location l1) (Location l2) = compare l1 l2
+#endif
 
 location_tyRep = mkTyRep "SimpleDBServer" "Location"
 instance HasTyRep Location where
@@ -116,12 +120,15 @@ instance StringClass ObjectVersion where
    toString (ObjectVersion i) = show i
    fromString s = ObjectVersion (read s)
 
+#if 0 
+-- Using a GHC 5 extension we can now derive these, more efficiently.
 instance Eq ObjectVersion where
    (==) (ObjectVersion l1) (ObjectVersion l2) = (==) l1 l2
    (/=) (ObjectVersion l1) (ObjectVersion l2) = (/=) l1 l2
 
 instance Ord ObjectVersion where
    compare (ObjectVersion l1) (ObjectVersion l2) = compare l1 l2
+#endif
 
 objectVersion_tyRep = mkTyRep "SimpleDBServer" "ObjectVersion"
 instance HasTyRep ObjectVersion where

@@ -22,6 +22,8 @@ module DisplayParms(
    simpleNodeTypesForm,
    readDisplay,
    defaultNodeTypes,
+
+   valueTitleSource,
    ) where
 
 import Maybe
@@ -41,6 +43,9 @@ import GraphDisp
 
 import DisplayTypes
 import CodedValue
+import Link
+import ObjectTypes
+import View
 
 -- -----------------------------------------------------------------------
 -- The Types and Datatypes
@@ -359,3 +364,19 @@ createSimpleNodeTypes c s =
 
 defaultNodeTypes :: NodeTypes a
 defaultNodeTypes = createSimpleNodeTypes White Box
+
+-- -----------------------------------------------------------------------
+-- A function for getting a parameter which describes the title from the
+-- object's nodeTitleSource.
+-- -----------------------------------------------------------------------
+
+valueTitleSource :: ObjectType objectType object 
+   => View -> ValueTitleSource (Link object)
+valueTitleSource view =
+   let
+      getNodeTitleSource link =
+         do
+            object <- readLink view link
+            return (nodeTitleSourcePrim object)
+   in
+      ValueTitleSource getNodeTitleSource

@@ -16,7 +16,7 @@ import qualified IOExts(unsafePerformIO)
 
 import Dynamics
 import Computation
-import AtomString(fromString)
+import AtomString(fromString,toString)
 import Sink
 import Sources
 import Broadcaster
@@ -39,7 +39,10 @@ import DisplayParms
 import GlobalRegistry
 import CallEditor
 import GetAttributesType
-import {-# SOURCE #-} Folders
+import Folders
+import EntityNames
+import LinkManager
+
 
 -- ------------------------------------------------------------------
 -- FileType and its instance of HasCodedValue and HasAttributesType
@@ -49,8 +52,7 @@ data FileType = FileType {
    fileTypeId :: GlobalKey,
    fileTypeLabel :: Maybe String,
    requiredAttributes :: AttributesType,
-   displayParms :: NodeTypes (String,Link File),
-   knownFiles :: VariableSet (Link File),
+   displayParms :: NodeTypes (Link File),
    canEdit :: Bool
    }
 
@@ -71,12 +73,11 @@ instance HasCodedValue FileType where
          ((fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
                canEdit),
             codedValue1) <- safeDecodeIO codedValue0 view
-         knownFiles <- newEmptyVariableSet
          return (FileType {fileTypeId = fileTypeId,
             fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,
-            knownFiles = knownFiles,canEdit = canEdit},codedValue1)
+            canEdit = canEdit},codedValue1)
 
 instance HasAttributesType FileType where
    toAttributesType fileType = requiredAttributes fileType
@@ -89,7 +90,7 @@ instance HasAttributesType FileType where
 data File = File {
    fileType :: FileType,
    attributes :: Attributes,
-   name :: String,
+   linkedObject :: LinkedObject,
    simpleFile :: SimpleFile
    }
 
@@ -103,16 +104,16 @@ instance HasAttributes File where
 instance HasCodedValue File where
    encodeIO = mapEncodeIO 
       (\ (File {fileType = fileType,attributes = attributes,
-             name = name,simpleFile = simpleFile}) ->
-         (fileTypeId fileType,attributes,name,simpleFile)
+             linkedObject = linkedObject,simpleFile = simpleFile}) ->
+         (fileTypeId fileType,attributes,linkedObject,simpleFile)
          )
    decodeIO codedValue0 view =
       do
-         ((fileTypeId,attributes,name,simpleFile),codedValue1) <-
+         ((fileTypeId,attributes,linkedObject,simpleFile),codedValue1) <-
             safeDecodeIO codedValue0 view
          fileType <- lookupInGlobalRegistry globalRegistry view fileTypeId
          return (File {fileType = fileType,attributes = attributes,
-             name = name,simpleFile = simpleFile},
+             linkedObject = linkedObject,simpleFile = simpleFile},
              codedValue1)
 
 -- ------------------------------------------------------------------
@@ -129,11 +130,10 @@ instance ObjectType FileType File where
    objectTypeIdPrim objectType = fileTypeId objectType
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim file = fileType file
-   nodeTitlePrim file = name file
-
-
-   createObjectTypeMenuItemNoInsert =
-      Just ("File type",createNewFileType)
+   toLinkedObjectOpt file = Just (linkedObject file)
+   nodeTitleSourcePrim file =
+      fmap toString 
+         (getLinkedObjectTitle (linkedObject file) (fromString "NOT INSERTED"))
 
    createObjectMenuItemPrim fileType =
       fmap
@@ -155,11 +155,11 @@ instance ObjectType FileType File where
                         let
                            allowTextEdit = canEdit fileType
 
-                           textEdit (_,link) = editObject view link
+                           textEdit link = editObject view link
 
                            editOptions1 = [
                               Button "Edit Attributes" 
-                                 (\ (_,link) -> editObjectAttributes view link)
+                                 (\ link -> editObjectAttributes view link)
                                  ]
 
                            editOptions2 =
@@ -175,7 +175,7 @@ instance ObjectType FileType File where
 
                            parms1 = 
                               menu $$$ 
-                              ValueTitle (\ (str,_) -> return str) $$$
+                              valueTitleSource view $$$
                               nodeTypeParms
 
                            parms2 =
@@ -187,17 +187,17 @@ instance ObjectType FileType File where
                         in
                            [(theNodeType,parms2)],
                      getNodeType = const theNodeType,
-                     knownSet = toSource (knownFiles fileType),
-                     mustFocus = (\ _ -> return False),
-                     focus = (\ link -> return
-                        (emptyVariableSetSource,emptyVariableSetSource)),
+                     getNodeLinks = (\ link -> return emptyArcEnds),
                      closeDown = done,
                      specialNodeActions = (\ _ ->
                         SimpleSource (staticSource (\ graph node -> done))
                         )
                      })
                Nothing -> Nothing
-         )              
+         )
+
+instance HasLinkedObject File where
+   toLinkedObject object = linkedObject object
 
 -- ------------------------------------------------------------------
 -- Getting at the SimpleFile
@@ -207,7 +207,7 @@ instance HasFilePath File where
    toFilePath file = toFilePath (simpleFile file)
 
 -- ------------------------------------------------------------------
--- The global registry and a permanently empty variable set
+-- The global registry
 -- ------------------------------------------------------------------
 
 globalRegistry :: GlobalRegistry FileType
@@ -221,11 +221,14 @@ globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 -- Creating a new empty file with the given name
 -- We use the inputAttributes method to get the attributes, and
 -- return Nothing if the user cancels.
-newEmptyFile :: FileType -> View -> Link Folder -> IO (Maybe (Link File,Bool))
-newEmptyFile fileType view _ =
+newEmptyFile :: FileType -> View -> LinkedObject -> IO (Maybe (Link File))
+newEmptyFile fileType view parentLinkedObject =
    do
       -- Construct an extraFormItem for the name.
-      extraFormItem <- mkExtraFormItem (newFormEntry "Name" "")
+      extraFormItem <- 
+         mkExtraFormItem(
+            guardNothing "File name not specified"
+               (newFormEntry "Name" Nothing))
       attributesOpt <- inputAttributes view (requiredAttributes fileType)
          (Just extraFormItem)
       case attributesOpt of
@@ -234,16 +237,17 @@ newEmptyFile fileType view _ =
             do
                name <- readExtraFormItem extraFormItem
                simpleFile <- newSimpleFile view
-               let
-                  file = File {
-                     fileType = fileType,
-                     attributes = attributes,
-                     name = name,
-                     simpleFile = simpleFile
-                     }
-               versioned <- createObject view file
-               link <- makeLink view versioned
-               return (Just (link,False))
+               createLinkedObjectChild view parentLinkedObject name
+                  (\ linkedObject ->
+                     return (
+                        File {
+                           fileType = fileType,
+                           attributes = attributes,
+                           linkedObject = linkedObject,
+                           simpleFile = simpleFile
+                           }
+                        )
+                     )
 
 -- ------------------------------------------------------------------
 -- Registering the file type
@@ -275,14 +279,12 @@ plainFileNodeTypeParms =
 mkPlainFileType :: View -> IO FileType
 mkPlainFileType view =
    do
-      knownFiles <- newEmptyVariableSet
       let
          fileType = FileType {
             fileTypeId = plainFileKey,
             fileTypeLabel = Just "Plain file",
             requiredAttributes = emptyAttributesType,
             displayParms = plainFileNodeTypeParms,
-            knownFiles = knownFiles,
             canEdit = True
             }
 
@@ -306,7 +308,7 @@ createNewFileType :: View -> IO (Maybe FileType)
 createNewFileType view =
    do
       let
-         firstForm :: Form (String,(Bool,NodeTypes (String,Link File))) =
+         firstForm :: Form (String,(Bool,NodeTypes (Link File))) =
             titleForm //
             canEditForm //
             simpleNodeTypesForm
@@ -330,13 +332,11 @@ createNewFileType view =
                   Just requiredAttributes ->
                      do
                         fileTypeId <- newKey globalRegistry view
-                        knownFiles <- newEmptyVariableSet
                         return (Just(FileType {
                            fileTypeId = fileTypeId,
                            fileTypeLabel = Just title,
                            requiredAttributes = requiredAttributes,
                            displayParms = displayParms,
-                           knownFiles = knownFiles,
                            canEdit = canEdit
                            }))
 

@@ -40,6 +40,7 @@ module GraphConfigure(
    -- Titles for graphs and objects
    GraphTitle(..),
    ValueTitle(..),
+   ValueTitleSource(..),
 
    -- Shapes for nodes
    Shape(..),
@@ -78,6 +79,7 @@ import Computation(HasConfig(($$),configUsed),done)
 import ExtendedPrelude
 import Dynamics(Dyn,Typeable)
 import Sources
+import Delayer
 
 import MenuType
 
@@ -181,6 +183,11 @@ data ValueTitle value = ValueTitle (value -> IO String)
 -- ValueTitles are computed from the node or arc value using the supplied
 -- computation when the node or arc is created or when 
 -- setNodeValue/setArcValue are called.
+
+data ValueTitleSource value
+    = ValueTitleSource (value -> IO (SimpleSource String))
+-- Allow a node instead to contain a source, allowing the value to be changed
+-- dynamically.
 
 instance NodeTypeConfig ValueTitle
 
@@ -328,6 +335,9 @@ newtype AllowDragging = AllowDragging Bool
 
 instance GraphConfig AllowDragging
 
+instance GraphConfig Delayer
+-- Allows the user to specify his own delayer.
+
 ------------------------------------------------------------------------
 -- Grouping options
 -- GraphAllConfig
@@ -338,8 +348,8 @@ class (
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
-
-   HasConfig (SimpleSource GraphTitle) graphParms
+   HasConfig (SimpleSource GraphTitle) graphParms,
+   HasConfig Delayer graphParms
    )
    => HasGraphConfigs graphParms
 
@@ -348,8 +358,8 @@ instance (
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
-
-   HasConfig (SimpleSource GraphTitle) graphParms
+   HasConfig (SimpleSource GraphTitle) graphParms,
+   HasConfig Delayer graphParms
    )
    => HasGraphConfigs graphParms
 
@@ -357,6 +367,7 @@ class (
    NodeTypeParms nodeTypeParms,
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
+   HasConfigValue ValueTitleSource nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
    HasConfigValue DoubleClickAction nodeTypeParms,
@@ -370,6 +381,7 @@ instance (
    NodeTypeParms nodeTypeParms,
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
+   HasConfigValue ValueTitleSource nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
    HasConfigValue DoubleClickAction nodeTypeParms,

@@ -19,6 +19,13 @@ module View(
    commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
       -- a global version.
+   synchronizeView, -- :: View -> IO b -> IO b
+      -- Perform some action during which no commit should take place.
+   createViewObject, 
+      -- :: (HasCodedValue object)
+      -- => View -> (Link object -> IO (object,extra))
+      -- -> IO extra
+      -- Function for creating an object which requires its own link.  
 
    parentVersion, -- :: View -> IO (Maybe Version)
       -- returns the current parent version of the view.
@@ -38,6 +45,9 @@ import FileSystem
 import CopyFile
 import Sources
 import Broadcaster
+import Delayer
+
+import VSem
 
 import VersionDB
 import ViewType
@@ -45,6 +55,8 @@ import CodedValue
 import CodedValueStore
 import DisplayTypes
 import ObjectTypes
+import Link
+
 
 -- ----------------------------------------------------------------------
 -- The Version type
@@ -70,6 +82,8 @@ newView repository =
       viewIdObj <- newObject
       fileSystem <- newFileSystem
       titleSource <- newSimpleBroadcaster ""
+      commitLock <- newVSem
+      delayer <- newDelayer
 
       return (View {
          viewId = ViewId viewIdObj,
@@ -77,7 +91,9 @@ newView repository =
          objects = objects,
          parentMVar = parentMVar,
          titleSource = titleSource,
-         fileSystem = fileSystem
+         fileSystem = fileSystem,
+         commitLock = commitLock,
+         delayer = delayer
          })
 
 listViews :: Repository -> IO [Version]
@@ -117,6 +133,8 @@ getView repository objectVersion =
       parentMVar <- newMVar (Just objectVersion)
       fileSystem <- newFileSystem
       titleSource <- newSimpleBroadcaster ""
+      commitLock <- newVSem
+      delayer <- newDelayer
       let
          view = View {
             viewId = viewId,
@@ -124,7 +142,9 @@ getView repository objectVersion =
             objects = objects,
             titleSource = titleSource,
             parentMVar = parentMVar,
-            fileSystem = fileSystem
+            fileSystem = fileSystem,
+            commitLock = commitLock,
+            delayer = delayer
             }
 
       importDisplayTypes displayTypesData view
@@ -133,46 +153,45 @@ getView repository objectVersion =
 
 commitView :: View -> IO Version
 commitView (view @ View {repository = repository,objects = objects,
-      parentMVar = parentMVar}) =
-   -- NB - this ought to lock against updates, but at the moment doesn't.
-   -- But we do lock against other commits using parentMVar.
-   do
-      parentOpt <- takeMVar parentMVar
+      parentMVar = parentMVar,commitLock = commitLock}) =
+   synchronizeGlobal commitLock (
+      do
+         parentOpt <- takeMVar parentMVar
 
-      displayTypesData <- exportDisplayTypes view
+         displayTypesData <- exportDisplayTypes view
 
-      objectTypesData <- exportObjectTypes view
+         objectTypesData <- exportObjectTypes view
 
-      locations <- listKeys objects
-      (objectsData :: [(Location,Version)]) <-
-         mapM
-            (\ location ->
-               do
-                  objectsData <- getValue objects location
-                  objectVersion <- case objectsData of 
-                     AbsentObject objectVersion -> return objectVersion
-                     PresentObject _ commitAction -> commitAction
-                  return (location,objectVersion)
-               )
-               locations
-            
-      let
-         viewData =
-            ViewData {
-               objectsData = objectsData,
-               displayTypesData = displayTypesData,
-               objectTypesData = objectTypesData
-               }
+         locations <- listKeys objects
+         (objectsData :: [(Location,Version)]) <-
+            mapM
+               (\ location ->
+                  do
+                     objectsData <- getValue objects location
+                     objectVersion <- case objectsData of 
+                        AbsentObject objectVersion -> return objectVersion
+                        PresentObject _ commitAction -> commitAction
+                     return (location,objectVersion)
+                  )
+                  locations
+               
+         let
+            viewData =
+               ViewData {
+                  objectsData = objectsData,
+                  displayTypesData = displayTypesData,
+                  objectTypesData = objectTypesData
+                  }
 
-         phantomView = error "CodedValue for view needs View (2)!"
+            phantomView = error "CodedValue for view needs View (2)!"
 
-      viewCodedValue <- doEncodeIO viewData phantomView
-      viewObjectSource <- toObjectSource viewCodedValue 
-      newVersion <- commit repository viewObjectSource firstLocation 
-         parentOpt
-      putMVar parentMVar (Just newVersion)
-      return newVersion
-
+         viewCodedValue <- doEncodeIO viewData phantomView
+         viewObjectSource <- toObjectSource viewCodedValue 
+         newVersion <- commit repository viewObjectSource firstLocation 
+            parentOpt
+         putMVar parentMVar (Just newVersion)
+         return newVersion
+      )
 ---
 -- returns the current parent version of the view.
 parentVersion :: View -> IO (Maybe Version)
@@ -210,6 +229,37 @@ unmkTuple (objectsData,displayTypesData,objectTypesData) =
 instance HasCodedValue ViewData where
    encodeIO = mapEncodeIO mkTuple 
    decodeIO = mapDecodeIO unmkTuple
+
+-- ---------------------------------------------------------------------
+-- synchronizeView
+-- ---------------------------------------------------------------------
+
+-- Perform some action during which no commit should take place.
+synchronizeView :: View -> IO b -> IO b
+synchronizeView view action = synchronizeLocal (commitLock view) action
+
+-- ----------------------------------------------------------------------
+-- createViewObject
+-- ----------------------------------------------------------------------
+
+---
+-- Function for creating an object which requires its own link. 
+-- The function provided returns Nothing if there was an error and the
+-- object should not, after all, be inserted. 
+createViewObject :: (HasCodedValue object) 
+   => View -> (Link object -> IO (Maybe object,extra))
+   -> IO extra
+createViewObject view getObject =
+   synchronizeView view (
+      do
+         versioned <- newEmptyObject view
+         link <- makeLink view versioned
+         (objectOpt,extra) <- getObject link
+         case objectOpt of
+            Just object -> updateObject view object versioned
+            Nothing -> deleteLink view link
+         return extra
+      )
 
 -- ----------------------------------------------------------------------
 -- Ensure files are present

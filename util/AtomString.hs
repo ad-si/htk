@@ -13,7 +13,7 @@ module AtomString(
    StringClass(..),
       -- encodes that a type encodes strings in some way.
 
-   fromStringWE,
+   fromStringWEHacked,
    fromStringError,
       -- provide a primitive way for decoding String's to return an error.
    ) where               
@@ -59,10 +59,22 @@ instance HasTyRep AtomString where
 
 class StringClass stringClass where
    toString :: stringClass -> String
+
+   -- We leave it up to the instance whether fromString or fromStringWE or both
+   -- are defined.  Most of the time we only use fromString, but there are
+   -- just a few cases (such as EntityNames) where we need fromStringWE.
+   -- 
+   -- For cases where we don't have fromStringWE fromStringWEHacked provides
+   -- an alternative solution, if you can bear it.
    fromString :: String -> stringClass
+   fromString s = coerceWithError (fromStringWE s)
+
+   fromStringWE :: String -> WithError stringClass
 
 instance StringClass AtomString where
    fromString string = IOExts.unsafePerformIO (mkAtom string)
+   fromStringWE string = hasValue (fromString string)
+
    toString atom = IOExts.unsafePerformIO (readAtom atom)
 
 instance StringClass stringClass => QuickRead stringClass where
@@ -76,9 +88,9 @@ instance StringClass stringClass => QuickShow stringClass where
 -- fromString by using the usual dreadful hack with Exception.
 ------------------------------------------------------------------------
 
-fromStringWE :: (StringClass stringClass,DeepSeq stringClass) 
+fromStringWEHacked :: (StringClass stringClass,DeepSeq stringClass) 
    => String -> IO (WithError stringClass)
-fromStringWE str =
+fromStringWEHacked str =
    do
       either <- tryJust
          (\ exception -> case dynExceptions exception of

@@ -112,7 +112,7 @@ import Int
 import UniqueString
 import AtomString(StringClass(..))
 import Registry
-import Sink
+import Sources
 import VariableSet
 import VariableMap
 

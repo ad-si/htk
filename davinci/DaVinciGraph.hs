@@ -28,6 +28,9 @@ import FiniteMap
 import Concurrent
 import Sources
 import Sink
+import ExtendedPrelude(mapEq,mapOrd)
+import Delayer
+import qualified VariableList
 
 import Dynamics
 import Registry
@@ -79,10 +82,12 @@ data DaVinciGraph = DaVinciGraph {
       -- changes can be delayed in this way, namely
       -- node and edge additions and deletions.
       -- Changes to types are not delayed.  Changes to attribute values,
-      -- EG setNodeValuePrim, cause this list to be flushed, as does
-      -- redrawPrim.
+      -- cause this list to be flushed, as does redrawPrim.
    pendingChangesLock :: BSem,
-      -- This lock is acquired during the flushPendingChanges action.
+      -- This lock is acquired during, flushPendingChanges, newNodePrim,
+      -- and setNodeTitle.  
+      -- Where both pendingChangesLock and pendingChangesMVar are needed,
+      -- the first should be got first.
 
    globalMenuActions :: Registry MenuId (IO ()),
    otherActions :: Registry DaVinciAnswer (IO ()),
@@ -98,10 +103,15 @@ data DaVinciGraph = DaVinciGraph {
    destroyActions :: IO (),
    -- Various actions to be done when the graph is closed. 
 
-   redrawChannel :: Channel Bool
+   redrawChannel :: Channel Bool,
    -- Sending True along this channel indicates that a 
    -- redraw is desired.
    -- Sending False along it ends the appropriate thread.
+
+   delayer :: Delayer,
+   redrawAction :: DelayedAction
+      -- this is the action that actually gets done when the user actually
+      -- asks for a redraw.   
    }
 
 data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
@@ -110,15 +120,24 @@ data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
    surveyView :: Bool,
    configDoImprove :: Bool,
-   graphTitleSource :: Maybe (SimpleSource GraphTitle)
+   graphTitleSource :: Maybe (SimpleSource GraphTitle),
+   delayerOpt :: Maybe Delayer
    }
+
+instance Eq DaVinciGraph where
+   (==) = mapEq context
+
+instance Ord DaVinciGraph where
+   compare = mapOrd context
 
 instance Destroyable DaVinciGraph where
    destroy (daVinciGraph @ DaVinciGraph {
          context = context,nodes = nodes,edges = edges,
          globalMenuActions = globalMenuActions,otherActions = otherActions,
-         destroyActions = destroyActions,redrawChannel = redrawChannel}) =
+         destroyActions = destroyActions,redrawChannel = redrawChannel,
+         delayer = delayer,redrawAction = redrawAction}) =
       do
+         cancelDelayedAct delayer redrawAction
          sync (noWait (send redrawChannel False))
          destroyActions
          destroy context
@@ -161,15 +180,18 @@ redrawThread (daVinciGraph @ DaVinciGraph{
          else
             done
 
+instance HasDelayer DaVinciGraph where
+   toDelayer daVinciGraph = delayer daVinciGraph
+
 instance GraphClass DaVinciGraph where
    redrawPrim (daVinciGraph @ DaVinciGraph{
-         redrawChannel = redrawChannel}) = 
-      sync(noWait(send redrawChannel True))
+         delayer = delayer,redrawAction = redrawAction}) =
+      delayedAct delayer redrawAction
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraphPrim (DaVinciGraphParms {graphConfigs = graphConfigs,
          configDoImprove = configDoImprove,surveyView = surveyView,
-         graphTitleSource = graphTitleSource}) =
+         graphTitleSource = graphTitleSource,delayerOpt = delayerOpt}) =
       do
          nodes <- newRegistry
          edges <- newRegistry
@@ -299,6 +321,13 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                               setTitle currentTitle
                      return (addSink,invalidate sink)
 
+         -- Set up a delayer and a redraw action which uses it.
+         delayer <- case delayerOpt of
+            Just delayer -> return delayer
+            Nothing -> newDelayer
+
+         redrawAction
+            <- newDelayedAction (sync(noWait(send redrawChannel True)))
          let
             daVinciGraph =
                DaVinciGraph {
@@ -313,7 +342,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   lastSelectionRef = lastSelectionRef,
                   destructionChannel = destructionChannel,
                   destroyActions = destroySink,
-                  redrawChannel = redrawChannel
+                  redrawChannel = redrawChannel,
+                  delayer = delayer,
+                  redrawAction = redrawAction
                   }
 
          setValue otherActions Closed (signalDestruct daVinciGraph)
@@ -341,7 +372,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
 instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
       graphConfigs = [],configDoImprove = False,surveyView = False,
-      graphTitleSource = Nothing     
+      graphTitleSource = Nothing,delayerOpt = Nothing     
       }
 
 addGraphConfigCmd :: DaVinciCmd -> DaVinciGraphParms -> DaVinciGraphParms
@@ -356,6 +387,11 @@ instance HasConfig GraphTitle DaVinciGraphParms where
    configUsed _ _  = True
    ($$) (GraphTitle graphTitle) =
       addGraphConfigCmd (Window(Title graphTitle))
+
+
+instance HasConfig Delayer DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) delayer graphParms = graphParms {delayerOpt = Just delayer}
 
 instance HasConfig (SimpleSource GraphTitle) DaVinciGraphParms where
    configUsed _ _  = True
@@ -422,7 +458,7 @@ data DaVinciNode value = DaVinciNode NodeId
 -- can get the type out without knowing what it is.
 data DaVinciNodeType value = DaVinciNodeType {
    nodeType :: Type,
-   nodeText :: value -> IO String,
+   nodeText :: value -> IO (SimpleSource String),
       -- how to compute the displayed name of the node
    nodeMenuActions :: Registry MenuId (value -> IO ()),
    nodeDoubleClickAction :: value -> IO (),
@@ -436,7 +472,7 @@ data NodeData = forall value . Typeable value =>
 data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
       nodeAttributes :: Attributes value,
-      configNodeText :: value -> IO String,
+      configNodeText :: value -> IO (SimpleSource String),
       configNodeDoubleClickAction :: value -> IO (),
       configCreateNodeAndEdgeAction :: value -> IO (),
       configCreateEdgeAction :: Dyn -> value -> IO ()
@@ -453,14 +489,22 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
          (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
          (nodeType @ DaVinciNodeType {
             nodeType = daVinciNodeType,nodeText = nodeText})
-         value =
+         (value :: value) =
       do
-         thisNodeText <- nodeText value
+         thisNodeTextSource <- nodeText value
+     
          nodeId <- newNodeId context
+         let
+            (daVinciNode :: DaVinciNode value) = DaVinciNode nodeId
          setValue nodes nodeId (NodeData nodeType value)
-         addNodeUpdate daVinciGraph (
-            NewNode nodeId daVinciNodeType [A "OBJECT" thisNodeText])
-         return (DaVinciNode nodeId)
+         synchronize (pendingChangesLock daVinciGraph) (
+            do
+               thisNodeText <- addNewAction thisNodeTextSource 
+                  (setNodeTitle daVinciGraph daVinciNode)
+               addNodeUpdate daVinciGraph (
+                  NewNode nodeId daVinciNodeType [A "OBJECT" thisNodeText])
+            )
+         return daVinciNode
 
 instance DeleteNode DaVinciGraph DaVinciNode where
    deleteNodePrim (daVinciGraph @ 
@@ -474,23 +518,6 @@ instance DeleteNode DaVinciGraph DaVinciNode where
       do
          (Just (NodeData _ nodeValue)) <- getValueOpt nodes nodeId
          return (coDyn nodeValue)
-
-   setNodeValuePrim (daVinciGraph @ DaVinciGraph {
-         context = context,nodes = nodes}) (DaVinciNode nodeId) newValue =
-      do
-         flushPendingChanges daVinciGraph
-         newTitle <- transformValue nodes nodeId
-            (\ (Just (NodeData nodeType _)) -> 
-               do
-                  let newValue' = coDyn newValue
-                  -- newValue' is actually the same as newValue but we
-                  -- need this to make the types work.
-                  newTitle <- (nodeText nodeType) newValue'
-                  return (Just (NodeData nodeType newValue'),newTitle)
-               )
-         doInContext (DaVinciTypes.Graph(
-               ChangeAttr[Node nodeId [A "OBJECT" newTitle]]))
-            context
 
 instance NodeClass DaVinciNode where
 
@@ -540,7 +567,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
 instance NodeTypeParms DaVinciNodeTypeParms where
    emptyNodeTypeParms = DaVinciNodeTypeParms {
       nodeAttributes = emptyAttributes,
-      configNodeText = const (return ""),
+      configNodeText = const (return (staticSimpleSource "")),
       configNodeDoubleClickAction = const done,
       configCreateNodeAndEdgeAction = const done,
       configCreateEdgeAction = const (const done)
@@ -576,7 +603,18 @@ instance NodeTypeConfig graphConfig
 
 instance HasConfigValue ValueTitle DaVinciNodeTypeParms where
    configUsed' _ _ = True
-   ($$$) (ValueTitle nodeText) parms = 
+   ($$$) (ValueTitle nodeText') parms = 
+      let
+         nodeText value =
+            do
+               initial <- nodeText' value
+               return (staticSimpleSource initial)
+      in
+         parms { configNodeText = nodeText }
+
+instance HasConfigValue ValueTitleSource DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (ValueTitleSource nodeText) parms = 
       parms { configNodeText = nodeText }
 
 instance HasConfigValue Shape DaVinciNodeTypeParms where
@@ -705,19 +743,82 @@ instance Eq1 DaVinciArc where
 instance Ord1 DaVinciArc where
    compare1 (DaVinciArc n1) (DaVinciArc n2) = compare n1 n2 
 
+addArcGeneral :: Typeable value
+    => DaVinciGraph -> DaVinciArcType value
+    -> DaVinciArc value -> value
+    -> DaVinciNode nodeFromValue -> DaVinciNode nodeToValue 
+    -> IO ()
+addArcGeneral 
+      (daVinciGraph @ DaVinciGraph {edges = edges})
+      daVinciArcType (DaVinciArc edgeId) value 
+      (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
+   do
+      setValue edges edgeId (ArcData daVinciArcType value)
+      addEdgeUpdate daVinciGraph 
+         (NewEdge edgeId (arcType daVinciArcType) [] nodeFrom nodeTo)
 
-instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
+ 
+instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc 
+         DaVinciArcType
       where
-   newArcPrim 
-         (daVinciGraph @ DaVinciGraph {context = context,edges = edges}) 
-         daVinciArcType
-         value (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
+   newArcPrim daVinciGraph daVinciArcType value nodeFrom nodeTo =
       do
-         edgeId <- newEdgeId context
-         setValue edges edgeId (ArcData daVinciArcType value)
-         addEdgeUpdate daVinciGraph 
-            (NewEdge edgeId (arcType daVinciArcType) [] nodeFrom nodeTo)
-         return (DaVinciArc edgeId)
+         edgeId <- newEdgeId (context daVinciGraph)
+         let
+            newArc = DaVinciArc edgeId
+
+         addArcGeneral daVinciGraph daVinciArcType newArc value 
+            nodeFrom nodeTo
+
+         return newArc
+
+   newArcListDrawerPrim
+         (daVinciGraph @ DaVinciGraph {context = context,edges = edges}) 
+         nodeFrom =
+      -- We ignore positional data for now, since daVinci does too.
+
+      let
+         newPos _ aOpt =
+            do
+               edgeId <- newEdgeId context
+               let
+                  newArc = DaVinciArc edgeId
+               case aOpt of
+                  Nothing -> done
+                  Just (daVinciArcType,value,WrappedNode nodeTo) ->
+                     addArcGeneral daVinciGraph daVinciArcType newArc
+                        value nodeFrom nodeTo
+               return newArc
+
+         setPos (arc@(DaVinciArc edgeId)) aOpt =
+            do
+               -- Delete the old, if present
+               delPos arc
+
+               -- Add the new
+               case aOpt of
+                  Nothing -> done
+                  Just (daVinciArcType,value,WrappedNode nodeTo) ->
+                     addArcGeneral daVinciGraph daVinciArcType arc
+                        value nodeFrom nodeTo
+
+         delPos (DaVinciArc edgeId) =
+            do
+               -- Delete the old, if present
+               deleteOld <- deleteFromRegistryBool edges edgeId
+               if deleteOld
+                  then
+                     addEdgeUpdate daVinciGraph (DeleteEdge edgeId)
+                  else
+                     done
+
+         redraw' = redrawPrim daVinciGraph
+
+         listDrawer = VariableList.ListDrawer {
+            VariableList.newPos = newPos,VariableList.setPos = setPos,
+            VariableList.delPos = delPos,VariableList.redraw = redraw'}
+      in
+         listDrawer
 
 instance DeleteArc DaVinciGraph DaVinciArc where
    deleteArcPrim (daVinciGraph @ DaVinciGraph {edges=edges,context = context})
@@ -1018,8 +1119,8 @@ sortPendingChanges pendingChanges =
       else
          let
             (newNodes,deleteNodes,newEdges,deleteEdges) =
-               foldl
-                  (\ (nnSF,dnSF,neSF,deSF) change -> 
+               foldr -- so that the nodes are in the same order as in list.
+                  (\ change (nnSF,dnSF,neSF,deSF) -> 
                      case change of
                         NU(nn @ (NewNode _ _ _)) -> (nn:nnSF,dnSF,neSF,deSF)
                         NU(dn @ (DeleteNode _)) -> (nnSF,dn:dnSF,neSF,deSF)
@@ -1084,6 +1185,31 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
             pendingChanges
             )
       )
+
+-- -----------------------------------------------------------------------
+-- Setting node titles.
+-- -----------------------------------------------------------------------
+
+---
+-- This is called internally, by the function set up by newNodePrim.
+-- The function returns False to indicate that this function failed as
+-- the node has been deleted.
+setNodeTitle :: Typeable value => DaVinciGraph -> DaVinciNode value -> String
+   -> IO Bool
+setNodeTitle daVinciGraph (daVinciNode@(DaVinciNode nodeId)) newTitle =
+   do
+      flushPendingChanges daVinciGraph
+      synchronize (pendingChangesLock daVinciGraph) (
+         do
+            nodeDataOpt <- getValueOpt (nodes daVinciGraph) nodeId
+            case nodeDataOpt of
+               Nothing -> return False
+               Just (nodeData :: NodeData) ->
+                  do
+                     modify ("OBJECT",newTitle) daVinciGraph daVinciNode
+                     return True
+         )
+
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions
 -- -----------------------------------------------------------------------

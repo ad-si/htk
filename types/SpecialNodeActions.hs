@@ -7,12 +7,14 @@ module SpecialNodeActions(
    setFontStyle,
    setArcsHidden,
    getNodeActions,
+   emptyNodeActions,
    ) where
 
 import KeyedChanges
 import Sources
 import Broadcaster
 import Dynamics
+import Computation(done)
 
 import GraphConfigure
 
@@ -51,6 +53,10 @@ sendOrDelete modification =
 -- ------------------------------------------------------------------
 -- The consumer's interface
 -- ------------------------------------------------------------------
+
+emptyNodeActions :: (HasNodeModifies graph node,Typeable value)
+   => SimpleSource (graph -> node value -> IO ())
+emptyNodeActions = staticSimpleSource . const . const $ done
 
 getNodeActions :: (HasNodeModifies graph node,Typeable value) 
    => NodeActionSource -> SimpleSource (graph -> node value -> IO ())

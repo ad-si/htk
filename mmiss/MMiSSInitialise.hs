@@ -3,16 +3,22 @@ module MMiSSInitialise(
    mmissInitialise, -- :: IO Repository,
    ) where
 
+import Computation(done)
+
 import VersionDB
 import Initialisation
+import View
 
 import MMiSSRegistrations
-import MMiSSObjects
 
 mmissInitialise :: IO Repository
 mmissInitialise =
    do
       doMMiSSRegistrations -- register MMiSS types
-      repository <- initialiseGeneral MMiSSObjects.initialiseObjectTypes
+      repository <- initialiseGeneral viewInitialisations
           -- do standard initialisations
       return repository
+
+-- viewInitialisations does nothing now
+viewInitialisations :: View -> IO ()
+viewInitialisations view = done

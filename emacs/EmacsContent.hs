@@ -6,9 +6,12 @@ module EmacsContent(
    parseEmacsContent,
    parseEmacsContentGeneral,
    collapseEmacsContent,
+   toEmacsLinks,
    ) where
 
 import Maybe
+
+import ExtendedPrelude(HasMapMonadic(..))
 
 import EmacsSExp
 
@@ -29,6 +32,32 @@ instance Functor EmacsContent where
             )
          dataItems
          )
+
+instance HasMapMonadic EmacsContent where
+   mapMonadic act (EmacsContent dataItems0) =
+      do
+         dataItems1 <- mapMonadic
+            (\ dataItem -> case dataItem of
+               EditableText text -> return (EditableText text)
+               EmacsLink link0 ->
+                  do
+                     link1 <- act link0
+                     return (EmacsLink link1)
+               )
+            dataItems0
+         return (EmacsContent dataItems1)
+
+---
+-- Extract the links from an EmacsContent
+toEmacsLinks :: EmacsContent l -> [l]
+toEmacsLinks (EmacsContent dataItems) =
+   mapMaybe
+      (\ dataItem -> case dataItem of
+         EditableText _ -> Nothing
+         EmacsLink link -> Just link
+         )
+      dataItems
+
 
 ---
 -- Extract the contents as returned from sendmess.el's uni-container-contents

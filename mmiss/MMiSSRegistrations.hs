@@ -3,13 +3,24 @@
    -}
 module MMiSSRegistrations(doMMiSSRegistrations) where
 
-import MMiSSPathsSimple
-import MMiSSObjects
+import ObjectTypes
+
+import MMiSSObjectTypeType
+
+import MMiSSObjectTypeType
+import MMiSSObjectTypeInstance
 import MMiSSDisplay
+import MMiSSPreamble
 
 doMMiSSRegistrations :: IO ()
 doMMiSSRegistrations =
    do
-      registerMMiSSPaths
       registerMMiSSObjects
       registerMMiSSDisplay
+
+registerMMiSSObjects :: IO ()
+registerMMiSSObjects =
+   do
+      registerObjectType (error "Unknown MMiSSObjectType" :: MMiSSObjectType)
+      registerObjectType (error "Unknown MMiSSPreambleType" 
+         :: MMiSSPreambleType)

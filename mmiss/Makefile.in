@@ -1,17 +1,36 @@
 PACKAGE = uni-mmiss
 PACKAGES = uni-types uni-emacs uni-mmiss-parser
 
-SRCS = MMiSSPaths.hs MMiSSDTDAssumptions.hs MMiSSRegistrations.hs \
-   MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
-   MMiSSDTD.hs MMiSSObjectTypeList.hs \
-   MMiSSPathsSimple.hs MMiSSObjects.hs MMiSSEditXml.hs MMiSSInitialise.hs \
-   MMiSSReAssemble.hs MMiSSRunCommand.hs MMiSSLaTeX.hs \
-   $(if @HAXML@,,XmlValidate.hs)
+SRCS = MMiSSDTDAssumptions.hs \
+   MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSVariantObject.hs \
+   MMiSSDisplay.hs \
+   MMiSSDTD.hs MMiSSObjectTypeType.hs MMiSSObjectType.hs \
+   MMiSSPreamble.hs MMiSSFormat.hs MMiSSLaTeXAssumptions.hs \
+   MMiSSEditXml.hs MMiSSEditFormatConverter.hs MMiSSEmacsEdit.hs \
+   MMiSSObjectTypeInstance.hs MMiSSObjectExtract.hs \
+   MMiSSExportLaTeX.hs MMiSSPrint.hs MMiSSImportLaTeX.hs \
+   MMiSSEditAttributes.hs \
+   MMiSSPreObjects.hs MMiSSWriteObject.hs MMiSSReadObject.hs \
+   MMiSSReAssemble.hs MMiSSRunCommand.hs MMiSSLaTeX.hs\
+   $(if @HAXML@,,XmlValidate.hs) \
+   MMiSSRegistrations.hs MMiSSInitialise.hs 
 
-BOOTSRCS = MMiSSObjects.boot.hs
+BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
+   MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs
 
 SUBDIRS = test
 
 EXTRAEXPORTS = MMiSS.dtd scripts/domisslatex.in scripts/doxdvi.in scripts/doacroread.in scripts/dolp.in scripts/docp.in
 
 include @TOP@/mk/boilerplate.mk
+
+
+.PHONY : displayextrasrcs
+
+displaysrcshere : displayextrasrcs
+
+displayextrasrcs :
+	@echo @TOP@/mmiss/MMiSS.dtd @TOP@/mmiss/scripts/domisslatex.in 
+	@echo @TOP@/mmiss/scripts/doxdvi.in @TOP@/mmiss/scripts/doacroread.in
+	@echo @TOP@/mmiss/scripts/dolp.in @TOP@/mmiss/scripts/docp.in
+

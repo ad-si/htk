@@ -8,7 +8,13 @@ include @TOP@/mk/boilerplate.mk
 
 prepareexports : MMiSSWorkbench
 
-.PHONY : runServer runWorkbench killServer killWorkbench
+displaysrcshere : displayextrasrcs
+
+displayextrasrcs :
+	@echo @TOP@/mmiss/test/rerunWorkbench.in @TOP@/mmiss/test/runWorkbench.in
+	@echo @TOP@/mmiss/test/restartWorkbench.in
+
+.PHONY : runServer runWorkbench killServer killWorkbench displayextrasrcs
 
 WORKINGDIR = $${UNIWORKINGDIR:-/tmp/@}
 DBDIR = $(WORKINGDIR)/simpledb

@@ -4,6 +4,12 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+64) 4.12.02
+I am implementing the folders (after a major change in the object model with
+a memory leak which means that elements of the openContents registry in the
+type Folders.Folder never get deleted, even when the relevant DisplayedView
+is deleted.
+
 63) 8.10.02
 There seems to be an erratic bug in daVinci version 2 which causes it not to 
 respond to multi(set_context("_C")) commands.  This causes the whole program

@@ -26,25 +26,45 @@ module ExtendedPrelude (
    insertOrdAlternate,
    bottom,
 
+   chop, -- :: Int -> [a] -> Maybe [a]
+      -- removes last elements from a list
+   lastOpt, -- :: [a] -> Maybe a
+      -- gets the last element of a list, safely.
+
    -- Indicates that this type allows an IO-style map.
    HasMapIO(..),
+   HasMapMonadic(..),
+   mapPartialM,
 
    splitByChar,
    unsplitByChar,
    splitToChar,
+   splitToElem,
+   splitToElemGeneral,
+   deleteFirst,
+   deleteAndFindFirst,
+   divideList,
 
    treeFold,
    treeFoldM,
 
+   mapEq, -- used for instancing Eq
+   mapOrd, -- used for instancing Ord.
+
    BreakFn,
    addFallOut,
    addFallOutWE,
+
+   addSimpleFallOut,
+   simpleFallOut,
    ) where
 
 import Char
 import Monad
+import Maybe
 
 import Exception
+import qualified IOExts(unsafePerformIO)
 
 import Object
 import Debug(debug)
@@ -98,11 +118,25 @@ monadDot f g x =
       f y
 
 -- ---------------------------------------------------------------------------
--- The HasMapIO class
+-- Things to do with maps
 -- ---------------------------------------------------------------------------
 
+-- NB.  HasMapIO should really be called HasCoMapIO or something.
 class HasMapIO option where
    mapIO :: (a -> IO b) -> option b -> option a
+
+class HasMapMonadic h where
+   mapMonadic :: Monad m => (a -> m b) -> h a -> m (h b)
+
+instance HasMapMonadic [] where
+   mapMonadic = mapM
+
+mapPartialM :: Monad m => (a -> m (Maybe b)) -> [a] -> m [b]
+mapPartialM mapFn as =
+   do
+      bOpts <- mapM mapFn as
+      return (catMaybes bOpts)
+{-# SPECIALIZE mapPartialM :: (a -> IO (Maybe b)) -> [a] -> IO [b] #-}
 
 -- ---------------------------------------------------------------------------
 -- List Operations
@@ -119,6 +153,32 @@ findJust f [] = Nothing
 findJust f (x:xs) = case f x of
    (y@ (Just _)) -> y
    Nothing -> findJust f xs
+
+deleteFirst :: (a -> Bool) -> [a] -> [a]
+deleteFirst fn [] = error "ExtendedPrelude.deleteFirst - not found"
+deleteFirst fn (a:as) = 
+   if fn a then as else a:deleteFirst fn as
+
+deleteAndFindFirst :: (a -> Bool) -> [a] -> (a,[a])
+deleteAndFindFirst fn [] 
+   = error "ExtendedPrelude.deleteAndFindFirst - not found"
+deleteAndFindFirst fn (a:as) =
+   if fn a then (a,as) else 
+      let 
+         (a1,as1) = deleteAndFindFirst fn as
+      in
+         (a1,a:as1)
+
+divideList :: (a -> Either b c) -> [a] -> ([b],[c])
+divideList fn [] = ([],[])
+divideList fn (a:as) =
+   let
+      (bs,cs) = divideList fn as
+   in
+      case fn a of
+         Left b -> (b:bs,cs)
+         Right c -> (bs,c:cs)
+
 
 -- ---------------------------------------------------------------------------
 -- Ordered List Operations
@@ -205,6 +265,55 @@ splitToChar c = sTC
                (sTC xs)
 
 -- ------------------------------------------------------------------------
+-- Like splitToChar, but with an arbitrary predicate.
+-- ------------------------------------------------------------------------
+
+splitToElem :: (a -> Bool) -> [a] -> Maybe ([a],[a])
+splitToElem fn = sTC
+   where
+      sTC [] = Nothing
+      sTC (x:xs) = 
+         if fn x then Just ([],xs) else 
+            fmap
+               (\ (xs1,xs2) -> (x:xs1,xs2))
+               (sTC xs)
+
+-- ------------------------------------------------------------------------
+-- Like splitToElem, but also return the matching element
+-- ------------------------------------------------------------------------
+
+splitToElemGeneral :: (a -> Bool) -> [a] -> Maybe ([a],a,[a])
+splitToElemGeneral fn = sTC
+   where
+      sTC [] = Nothing
+      sTC (x:xs) = 
+         if fn x then Just ([],x,xs) else 
+            fmap
+               (\ (xs1,x1,xs2) -> (x:xs1,x1,xs2))
+               (sTC xs)
+
+-- ------------------------------------------------------------------------
+-- Removing the last n elements from a list
+-- ------------------------------------------------------------------------
+
+chop :: Int -> [a] -> Maybe [a]
+chop n list =
+   let
+      toTake = length list - n
+   in
+      if toTake >=0 then Just (take toTake list) else Nothing
+
+
+-- ------------------------------------------------------------------------
+-- Get the last element (safely)
+-- ------------------------------------------------------------------------
+
+lastOpt :: [a] -> Maybe a
+lastOpt [] = Nothing
+lastOpt [a] = Just a
+lastOpt (_:rest) = lastOpt rest
+
+-- ------------------------------------------------------------------------
 -- Folding a Tree
 -- ------------------------------------------------------------------------
 
@@ -245,6 +354,20 @@ treeFoldM visitNode initialAncestor initialState node =
          (\ state node -> treeFoldM visitNode newAncestor state node)
          newState
          children
+
+-- ------------------------------------------------------------------------
+-- Functions which make it easy to create new instances of Eq and Ord.
+-- ------------------------------------------------------------------------
+
+---
+-- Produce an equality function for b
+mapEq :: Eq a => (b -> a) -> (b -> b -> Bool)
+mapEq toA b1 b2 = (toA b1) == (toA b2)
+
+---
+-- Produce a compare function for b
+mapOrd :: Ord a => (b -> a) -> (b -> b -> Ordering)
+mapOrd toA b1 b2 = compare (toA b1) (toA b2)
 
 -- ------------------------------------------------------------------------
 -- Adding fall-out actions to IO actions
@@ -304,3 +427,29 @@ data FallOutExcep = FallOutExcep {
 fallOutExcep_tyRep = mkTyRep "ExtendedPrelude" "FallOutExcep"
 instance HasTyRep FallOutExcep where
    tyRep _ = fallOutExcep_tyRep
+
+addSimpleFallOut :: IO a -> IO (Either String a)
+addSimpleFallOut act =
+   do
+      id <- newObject
+      tryJust
+         (\ exception -> case dynExceptions exception of
+            Nothing -> Nothing -- don't handle this as it's not even a dyn.
+            Just dyn ->
+               case fromDyn dyn of
+                  Nothing -> Nothing -- not a fallout.
+                  Just fallOutExcep -> if fallOutId fallOutExcep /= simpleID
+                     then
+                        Nothing 
+                        -- don't handle this; it's from another addFallOut
+                     else
+                        Just (mess fallOutExcep)
+            )
+         act
+
+simpleFallOut :: BreakFn
+simpleFallOut mess = throwDyn (FallOutExcep {fallOutId = simpleID,mess = mess})
+
+simpleID :: ObjectID
+simpleID = IOExts.unsafePerformIO newObject
+{-# NOINLINE simpleID #-}

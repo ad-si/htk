@@ -6,7 +6,7 @@ module Link(
    -- instances of HasCodedValue, which means they
    -- can themselves be stored in the repository, for example as attributes
    -- of other objects.
-   Link,
+   Link, -- instance of Eq,Ord.
 
    topLink, -- :: Link x
       -- This link points to the "top object".  This needs to be
@@ -29,6 +29,14 @@ module Link(
 
    createObject, -- :: HasCodedValue x => View -> x -> IO (Versioned x) 
    -- This is used for creating a completely new object.
+
+   deleteLink, -- :: HasCodedValue x => View -> Link x -> IO ()
+   -- This deletes an object from the View.
+   -- NB.  It is very important to make sure that the object is not later
+   -- dereferenced by fetchLink or readLink, or you will simply get a crash.
+   -- 
+   -- The LinkManager.deleteLinkedObject takes care of this for any links
+   -- it stores.
 
    newEmptyObject, -- :: HasCodedValue x => View -> IO (Versioned x)
    -- This creates an object with no contents as a stop-gap so you can
@@ -54,6 +62,22 @@ module Link(
    -- look up a link to an object in the repository.
    readLink, -- :: HasCodedValue x => View -> Link x -> IO x
    -- Does fetchLink and readObject in one go.
+   writeLink, -- :: HasCodedValue x => View -> Link x -> x -> IO ()
+   -- Does fetchLink and updateObject in one go.
+   createLink, -- :: HasCodedValue x => View -> x -> IO (Link x)
+   -- Does createObject and makeLink in one go.
+
+   fetchLinkWE, -- :: HasCodedValue x => View -> Link x 
+      -- -> IO (WithError(Versioned x))
+      -- Like fetchLink but should not crash for deleted links.
+   readLinkWE, -- :: HasCodedValue x => View -> Link x -> IO (WithError x)
+      -- Like readLink but should not crash for deleted links.
+
+
+   eqLink, -- :: Link x -> Link x -> Ordering
+   compareLink, -- :: Link x -> Link y -> Ordering
+      -- Provide an efficient way of testing two links for equality, and
+      -- ordering them.
    ) where
 
 import Concurrent
@@ -62,6 +86,7 @@ import Registry
 import Dynamics
 import AtomString(fromString)
 import VariableSet(HasKey(..))
+import Computation
 
 import VersionDB
 import ViewType
@@ -72,7 +97,7 @@ import CodedValueStore
 -- Links
 -- ----------------------------------------------------------------------
 
-newtype Link x = Link Location
+newtype Link x = Link Location deriving (Eq,Ord)
 
 link_tyRep = mkTyRep "Link" "Link"
 instance HasTyRep1 Link where
@@ -92,18 +117,28 @@ makeLink :: HasCodedValue x => View -> Versioned x -> IO (Link x)
 makeLink _ (Versioned {location = location}) = return (Link location)
 
 fetchLink :: HasCodedValue x => View -> Link x -> IO (Versioned x)
-fetchLink (view@View{repository = repository,objects = objects}) 
+fetchLink view link =
+   do
+      versionedWE <- fetchLinkWE view link
+      return (coerceWithError versionedWE)
+
+fetchLinkWE :: HasCodedValue x => View -> Link x 
+   -> IO (WithError (Versioned x))
+fetchLinkWE (view@View{repository = repository,objects = objects}) 
       (Link location) =
    do
       transformValue objects location 
          (\ objectDataOpt ->
           do
+            let
+               err mess = return (objectDataOpt,hasError mess) 
             case objectDataOpt of
-               Nothing -> error "View.fetchLink: Link to object not in view!!"
+               Nothing -> err "View.fetchLink: Link to object not in view!!"
                Just (PresentObject versionedDyn _) ->
                   case fromDyn versionedDyn of
-                     Just versioned -> return (objectDataOpt,versioned)
-                     Nothing -> error "View.fetchLink - type error in link"
+                     Just versioned 
+                        -> return (objectDataOpt,hasValue versioned)
+                     Nothing -> err "View.fetchLink - type error in link"
                Just (AbsentObject objectVersion) ->
                   do
                      -- create a new Versioned object
@@ -119,7 +154,7 @@ fetchLink (view@View{repository = repository,objects = objects})
                      return (Just(
                         PresentObject (toDyn versioned) 
                            (commitVersioned view versioned)),
-                        versioned)
+                        hasValue versioned)
             )                 
 
 readLink :: HasCodedValue x => View -> Link x -> IO x
@@ -128,6 +163,36 @@ readLink view link =
       versioned <- fetchLink view link
       readObject view versioned 
 
+writeLink :: HasCodedValue x => View -> Link x -> x -> IO ()
+writeLink view link x =
+   do
+      versioned <- fetchLink view link
+      updateObject view x versioned
+
+createLink :: HasCodedValue x => View -> x -> IO (Link x)
+createLink view x =
+   do
+      versioned <- createObject view x
+      makeLink view versioned
+
+readLinkWE :: HasCodedValue x => View -> Link x -> IO (WithError x)
+readLinkWE view link =
+   do
+      versionedWE <- fetchLinkWE view link
+      mapWithErrorIO'
+         (\ versioned ->
+            do
+               object <- readObject view versioned
+               return (hasValue object)
+            )
+         versionedWE
+
+
+eqLink :: Link x -> Link y -> Bool
+eqLink (Link loc1) (Link loc2) = loc1 == loc2
+
+compareLink :: Link x -> Link y -> Ordering
+compareLink (Link loc1) (Link loc2) = compare loc1 loc2
 
 -- ----------------------------------------------------------------------
 -- Versioned
@@ -225,6 +290,19 @@ createObjectGeneral view status location =
       (versioned,objectData) <- makeObjectData view status location
       setValue (objects view) location objectData
       return versioned
+
+---
+-- This deletes an object from the View.
+-- NB.  It is very important to make sure that the object has first
+-- been deleted from anything which references it by link (EG folders)
+-- or you will get the program crashing when someone tries to follow the
+-- link.  
+--
+-- Links provided by the LinkManager (and I don't know of any others) can
+-- be deleted using LinkManager.deleteLinkedObject (which also calls
+-- deleteLink).
+deleteLink :: HasCodedValue x => View -> Link x -> IO ()
+deleteLink view (Link location) = deleteFromRegistry (objects view) location
 
 ---
 -- As with createObjectGeneral, create the versioned object and 

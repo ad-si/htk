@@ -1,17 +1,17 @@
 PACKAGE = uni-types
 PACKAGES = uni-simpledb uni-graphs
 
-SRCS       = VersionDB.hs ViewType.hs CodedValue.hs \
+SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    CodedValueStore.hs Link.hs BasicObjects.hs DisplayTypes.hs ObjectTypes.hs \
    View.hs AttributesType.hs DisplayParms.hs GlobalRegistry.hs Folders.hs \
    DisplayView.hs Files.hs VersionGraphService.hs VersionGraph.hs \
    Initialisation.hs CallEditor.hs CreateObjectMenu.hs Registrations.hs \
-   ViewFileSystem.hs GetAttributesType.hs GlobalMenus.hs \
+   GetAttributesType.hs GlobalMenus.hs \
    SpecialNodeActions.hs EntityNames.hs LinkManager.hs
 
 SUBDIRS    = test
 
-BOOTSRCS = DisplayView.boot.hs Folders.boot.hs
+BOOTSRCS = DisplayView.boot.hs Folders.boot.hs LinkManager.boot.hs
 
 include @TOP@/mk/boilerplate.mk
 

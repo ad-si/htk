@@ -22,6 +22,7 @@ module ObjectTypes(
    ObjectType(..), 
       -- the class giving ALL the methods (thank heaven for functional
       -- dependencies).
+
    WrappedObject(..), -- monomorphic object type
    WrappedObjectType(..), -- monomorphic objectType type
    WrappedObjectTypeTypeData(..), 
@@ -31,6 +32,13 @@ module ObjectTypes(
 
    NodeDisplayData(..), -- how to display a particular node type with
       -- a particular display type.
+   ArcEnds,
+      -- ArcEnds is a type synonym describing how the arcs to or from
+      -- a node are to be described.
+   emptyArcEnds,
+      -- :: ArcEnds
+      -- For the simple case of no arcs.
+
    ArcType,  -- ArcType and NodeType are labels provided by the object type
       -- implementation for particular arcs and arc types in a display.
       -- They correspond to Strings and are instances of StringClass; this is
@@ -46,7 +54,7 @@ module ObjectTypes(
 
 
    -- monomorphic links and versions
-   WrappedLink(..),
+   WrappedLink(..), -- instance of Eq,Ord
    WrappedVersioned(..),
 
 
@@ -62,14 +70,20 @@ module ObjectTypes(
    getObjectType, -- :: WrappedObject -> WrappedObjectType
    -- Extract the title of an object (the name used to describe it
    -- in daVinci) wrapped.
-   nodeTitle, -- :: WrappedObject -> String
+   nodeTitleSource, -- :: WrappedObject -> SimpleSource String
+
+   -- Get the String corresponding to an object type's registry.
+   objectTypeTypeId, -- :: WrappedObjectType -> String
+
+   -- extract the current title of an object.
+   nodeTitleIOPrim, -- :: ObjectType objectType object => object -> IO String
+   nodeTitleIO, -- :: WrappedObject -> IO String
 
    -- Get the object type's entry in the object creation menu.
-   -- The object creation function is returned.  This also returns a Bool
-   -- which means, if set, that the function has already been entered into
-   -- the folder.
+   -- The object creation function is returned.  The object should be inserted
+   -- in the folder.
    createObjectMenuItem, -- :: WrappedObjectType 
-   -- -> Maybe (String,View -> Link Folder -> IO (Maybe (WrappedLink,Bool)))
+   -- -> Maybe (String,View -> LinkedObject -> IO (Maybe WrappedLink))
 
    -- How to save references to object types
    ShortObjectType(..),
@@ -103,7 +117,8 @@ import Registry
 import Computation
 import Dynamics
 import Sink
-import VariableSet
+import qualified VariableList
+import VariableSet(HasKey(..))
 import Sources
 
 import GraphDisp
@@ -113,12 +128,13 @@ import Graph(ArcType,NodeType)
 import VersionDB(Location)
 import CodedValue
 
+import qualified LinkDrawer
 import DisplayTypes
 import ViewType
 import Link
 import GlobalRegistry
 import {-# SOURCE #-} DisplayView
-import {-# SOURCE #-} Folders
+import {-# SOURCE #-} LinkManager
 
 -- ----------------------------------------------------------------
 -- The ObjectType class
@@ -146,12 +162,10 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- this Haskell value.  This function should not look at its argument.
       -- The keys in this registry should be indexed according to
       -- objectTypeIdPrim
+   extraObjectTypes :: IO [objectType]
+      -- Extract any extra object types not listed in the global registry.
    getObjectTypePrim :: object -> objectType
       -- Extracts the type of an object.
-
-   nodeTitlePrim :: object -> String
-      -- Returns a title for the object, to be used to index it in containing
-      -- folders.
 
    createObjectTypeMenuItemPrim :: objectType -> Maybe (String,View -> IO ())
       -- This is a menu item (label + creation function) which creates a new
@@ -168,15 +182,22 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       --      
 
    createObjectMenuItemPrim :: objectType 
-      -> Maybe (String,View -> Link Folder -> IO (Maybe (Link object,Bool)))
+      -> Maybe (String,View -> LinkedObject -> IO (Maybe (Link object)))
       -- This is a menu item (label + creation function) which creates
-      -- a link to an object of this type in the supplied folder, and 
+      -- a link to an object of this type in the supplied linked object, and 
       -- inserts it in the folder.
-      -- If the returned Bool is True, that means the object has been inserted
-      -- in the folder, otherwise that still has to be done.
 
-   copyObject :: object -> FilePath -> IO ()
-      -- copy object into given file path for the benefit of tools.
+   toLinkedObjectOpt :: object -> Maybe LinkManager.LinkedObject
+      -- Extract the object's LinkedObject, if any.
+
+   nodeTitlePrim :: object -> String
+      -- Returns a title for the object.
+      -- Either this function or nodeTitleSourcePrim should be defined.
+
+   nodeTitleSourcePrim :: object -> SimpleSource String
+      -- Returns a title, which may change.
+
+   nodeTitleSourcePrim object = staticSimpleSource (nodeTitlePrim object)
 
    getNodeDisplayData :: 
       (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
@@ -184,13 +205,15 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       => View -> WrappedDisplayType -> objectType 
       -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-      -> IO (Maybe 
-         (NodeDisplayData graph node nodeTypeParms arcTypeParms 
+      -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
             objectType object))
       -- Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
-      -- Returning Nothing stops any value of this type being displayed.
+ 
+      -- Nothing means that this object is not displayed at all in the
+      -- display.  The implementation is also responsible for making sure
+      -- it never occurs on the RHS of a getNodeLinks.
 
       -- NB.  Although this is an IO action, the display code assumes that
       -- the result is a constant; once you've returned a value for a
@@ -202,6 +225,8 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- be executed as part of the actions attached to nodes and edges, when
       -- it will return quickly (provided the displayed view has actually been
       -- set up.
+
+   extraObjectTypes = return []
 
    createObjectTypeMenuItemPrim badObjectType =
       fmap
@@ -247,6 +272,12 @@ data WrappedVersioned = forall objectType object .
 data WrappedLink = forall objectType object .
    ObjectType objectType object => WrappedLink (Link object)
 
+instance Eq WrappedLink where
+   (==) (WrappedLink link1) (WrappedLink link2) = eqLink link1 link2
+
+instance Ord WrappedLink where
+   compare (WrappedLink link1) (WrappedLink link2) = compareLink link1 link2
+
 -- ----------------------------------------------------------------
 -- Unpacking wrapped types
 -- ----------------------------------------------------------------
@@ -258,27 +289,37 @@ unpackWrappedLink :: ObjectType objectType object =>
 unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
 
 -- ----------------------------------------------------------------
--- Some non-prim functions on WrappedObject's.
+-- Some miscellaneous utilities constructed from the primitives.
 -- ----------------------------------------------------------------
+
+objectTypeTypeId :: WrappedObjectType -> String
+objectTypeTypeId (WrappedObjectType objectType) =
+   objectTypeTypeIdPrim objectType
 
 getObjectType :: WrappedObject -> WrappedObjectType
 getObjectType (WrappedObject object) = 
    WrappedObjectType (getObjectTypePrim object)
 
-nodeTitle :: WrappedObject -> String
-nodeTitle (WrappedObject object) = nodeTitlePrim object
+nodeTitleSource :: WrappedObject -> SimpleSource String
+nodeTitleSource (WrappedObject object) = nodeTitleSourcePrim object
+
+nodeTitleIOPrim :: ObjectType objectType object => object -> IO String
+nodeTitleIOPrim object = readContents (nodeTitleSourcePrim object)
+
+nodeTitleIO :: WrappedObject -> IO String
+nodeTitleIO (WrappedObject object) = nodeTitleIOPrim object
 
 createObjectMenuItem :: WrappedObjectType 
-   -> Maybe (String,View -> Link Folder -> IO (Maybe (WrappedLink,Bool)))
+   -> Maybe (String,View -> LinkedObject -> IO (Maybe WrappedLink))
 createObjectMenuItem (WrappedObjectType objectType) =
    fmap
       (\ (str,fn) ->
          let
-            newfn view folder =
+            newfn view linkedObject =
                do
-                  resultOpt <- fn view folder
+                  resultOpt <- fn view linkedObject
                   return (fmap
-                     (\ (link,bool) -> (WrappedLink link,bool))
+                     (\ link -> WrappedLink link)
                      resultOpt
                      )
          in
@@ -309,25 +350,13 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
       -- this NodeDisplayData.
 
       arcTypes :: [(ArcType,arcTypeParms ())],
-      nodeTypes :: [(NodeType,nodeTypeParms (String,Link object))],
+      nodeTypes :: [(NodeType,nodeTypeParms (Link object))],
 
       -- getNodeType retrieves the node type for a particular node.
       getNodeType :: object -> NodeType,
 
-      -- We maintain a set of objects called the knownSet.  The knownSet
-      -- contains known objects of this type; in particular it includes
-      -- all new created objects of this type in this view.
-      knownSet :: VariableSetSource (Link object),
-
-      -- Returns True if we must focus the object (display edges from
-      -- focus) whenever we display it.
-      mustFocus :: Link object -> IO Bool,
-
-      -- focus returns variable sets for the arcs from and to a given
-      -- object.  Every arc should appear in exactly one of these sets.
-      focus :: Link object -> 
-         IO (VariableSetSource (WrappedLink,ArcType),
-            VariableSetSource (WrappedLink,ArcType)),
+      -- getNodeLinks returns the arcs from this node.
+      getNodeLinks :: Link object -> IO ArcEnds,
 
       closeDown :: IO (),
          -- This tells the display implementation it is OK to stop
@@ -335,11 +364,17 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
          -- anyway, if other people are interested).
 
       specialNodeActions :: object -> 
-         SimpleSource (graph -> node (String,Link object) -> IO ())
+         SimpleSource (graph -> node (Link object) -> IO ())
          -- The specialNodeActions allow the object to make dynamic
          -- modifications to graph nodes representing it.
          -- The module SpecialNodeActions can be used to generate this type.
       }
+
+type ArcEnds = VariableList.VariableList (
+   LinkDrawer.ArcData WrappedLink ArcType)
+
+emptyArcEnds :: ArcEnds
+emptyArcEnds = VariableList.emptyVariableList
 
 -- ----------------------------------------------------------------
 -- Registry of Object Types
@@ -514,8 +549,9 @@ getAllObjectTypes view =
          (\ (WrappedObjectTypeTypeData objectType) ->
             do
                let globalRegistry = objectTypeGlobalRegistry objectType
-               objectTypes <- getAllElements globalRegistry view
-               return (map WrappedObjectType objectTypes)
+               objectTypes1 <- getAllElements globalRegistry view
+               objectTypes2 <- extraObjectTypes
+               return (map WrappedObjectType (objectTypes1 ++ objectTypes2))
             )
          allObjectTypeTypes
       return (concat allWrappedObjectTypes)
@@ -535,8 +571,9 @@ getAllObjectTypesSinked view sink =
                let 
                   globalRegistry = objectTypeGlobalRegistry objectType
                   sink' = coMapSink WrappedObjectType sink
-               objectTypes <- getAllElementsSinked globalRegistry view sink'
-               return (map WrappedObjectType objectTypes)
+               objectTypes1 <- getAllElementsSinked globalRegistry view sink'
+               objectTypes2 <- extraObjectTypes 
+               return (map WrappedObjectType (objectTypes1 ++ objectTypes2))
             )
          allObjectTypeTypes
       return (concat allWrappedObjectTypes)

@@ -8,17 +8,26 @@ module MMiSSDTDAssumptions(
    findLabelledElements, -- :: DocTypeDecl -> [String]
 
    ClassifiedElement(..),
-   classifyElement, -- :: Element -> ClassifiedElement
+   classifyElement, -- :: Element -> WithError ClassifiedElement
    unclassifyElement, -- :: Element -> Maybe (String,Element -> WithError ())
 
    getMiniType, -- :: String -> Char
    toIncludeStr, -- :: Char -> String
    fromIncludeStr, -- :: String -> Char
 
-   getLabel, -- :: Element -> Maybe String
+   getLabel, -- :: Element -> String
+      -- Get an Element's label.
+   setLabel, -- :: Element -> String -> Element
+      -- Set an Element's label. 
+     
+   getPath, -- :: Element -> WithError EntityPath
+      -- Get an Element's path.  This must be a single String and defaults to 
+      -- "."
 
    variantAttributes, -- :: [String]
    variantAttributesType, -- :: AttributesType
+
+   printAttributes, -- :: [Attribute] -> String
    ) where
 
 #include "config.h"
@@ -28,6 +37,7 @@ import Char
 
 import ExtendedPrelude
 import Computation
+import AtomString
 
 #if HAXMLINT
 import Text.XML.HaXml.Types
@@ -36,6 +46,9 @@ import XmlTypes
 #endif
 
 import AttributesType
+
+import EntityNames
+
 import LaTeXParser
 
 ---
@@ -62,34 +75,45 @@ findLabelledElements (DTD _ _ markups) =
 -- This contains the output of classifyElement, which describes how the 
 -- supplied Element should be structured and, if necessary, replaced.
 data ClassifiedElement =
-      Link String --  present link to entity with this label
-   |  Reference String -- present reference to entity with this label
-   |  Include String -- present include of an entity with this label.  The 
+      Link EntityFullName --  present link to entity with this label
+   |  Reference EntityFullName -- present reference to entity with this label
+   |  Include EntityFullName 
+         -- present include of an entity with this label.  The 
          -- element itself was the import
-   |  DirectInclude String Element
+   |  DirectInclude EntityFullName Element
          -- The Element was an entity with this label.  The Element returned
          -- is an include pointer to it.
    |  Other
 
-classifyElement :: Element -> ClassifiedElement
+classifyElement :: Element -> WithError ClassifiedElement
 classifyElement (Elem name attributes content) =
 -- The various assumptions made by this function about attributes being 
 -- present should be enforced by the DTD.
    let
       -- abbreviations
       getAtt key = getAttribute attributes key
+      
 
       cErr str = error ("MMiSSDTDAssumptions.classifyElement: "++str)
+      -- cErr should only be used for "This-can't-happen" errors, so things
+      -- that should not happen if XML matched the DTD.
 
       -- General code for handling includes/links/references.  It assumes
       -- the attribute for the referenced object (the first argument) exists.
-      generalRef :: String -> (String -> ClassifiedElement) 
-         -> ClassifiedElement
+      generalRef :: String -> (EntityFullName -> ClassifiedElement) 
+         -> WithError ClassifiedElement
       generalRef refName constructor =
-         case (getAtt refName,getAtt "status") of
-            (Just linked,Just "present") -> constructor linked
-            (Just linked,_) -> Other
-            (Nothing,_) -> cErr (refName++" attribute is not defined")
+         case getAtt refName of
+            Just linkedString -> 
+               -- We check that the link is an EntityFullName 
+               -- even if the link is absent
+               mapWithError
+                  (\ linked -> case getAtt "status" of
+                     Just "present" -> constructor linked
+                     Nothing -> Other
+                     )
+                  (fromStringWE linkedString)
+            Nothing -> cErr (refName++" attribute is not defined")
 
       -- Code for links.  We assume the attribute "linked" refers to the
       -- linked object
@@ -120,12 +144,16 @@ classifyElement (Elem name attributes content) =
       --    "included" pointing to the value of the supplied label attribute.  
       --    Second attribute is "status=present".
       mkInclude includeChar = case getAtt "label" of
-         Nothing -> Other
-         Just label ->
-            DirectInclude label (Elem ("include" ++ toIncludeStr includeChar) [
-               ("included",AttValue [Left label]),
-               ("status",AttValue [Left "present"])
-               ] [])
+         Nothing -> hasValue Other
+         Just labelString ->
+            mapWithError (\ label ->
+               DirectInclude label 
+                  (Elem ("include" ++ toIncludeStr includeChar) [
+                  ("included",AttValue [Left labelString]),
+                  ("status",AttValue [Left "present"])
+                  ] [])
+               )
+               (fromStringWE labelString)
 
    in
       case name of
@@ -140,7 +168,7 @@ classifyElement (Elem name attributes content) =
 
          _ -> case classifyLabelledTag name of
             Just c -> mkInclude c
-            Nothing -> Other
+            Nothing -> hasValue Other
 
 ---
 -- We also use classifyLabelledTag to get the mini-type-letter, used by
@@ -157,10 +185,12 @@ getMiniType str = case classifyLabelledTag str of
 -- ----------------------------------------------------------------------
 
 ---
--- Given an Element which is an include, returns the contained label and a 
+-- Given an Element which is an include, returns the contained label,
+-- the specific attributes for the include, and a 
 -- function which verifies that the given Element matches.  For other elements,
 -- returns Nothing.
-unclassifyElement :: Element -> Maybe (String,Element -> WithError ())
+unclassifyElement :: Element -> Maybe (String,[Attribute],
+   Element -> WithError ())
 unclassifyElement (Elem name attributes _) =
    let
       includeSort :: Maybe Char
@@ -176,6 +206,7 @@ unclassifyElement (Elem name attributes _) =
                   (error ("MMiSSDTDAssumptions: "++name
                      ++" element has no included attribute"))
                   (getAttribute attributes "included"),
+               attributes,
                (\ (Elem newName _ _) ->
                   if includeSort == classifyLabelledTag newName
                      then
@@ -210,9 +241,35 @@ getAttribute attributes key =
       attributes
 
 ---
--- Get an Element's label.  This must be a single String.
-getLabel :: Element -> Maybe String
-getLabel (Elem xmlTag attributes _) = getAttribute attributes "label"
+-- Get an Element's label, assuming it was of DirectInclude type.
+getLabel :: Element -> WithError EntityFullName
+getLabel element = 
+   mapWithError' 
+      (\ classified -> case classified of
+         (DirectInclude label _) -> hasValue label
+         _ -> hasError "Element has no label!"
+         )
+      (classifyElement element)
+
+---
+-- Set an Element's label, assuming it was of DirectInclude type.
+setLabel :: Element -> EntityFullName -> Element
+setLabel (Elem name attributes0 content) entityFullName =
+   let
+      attributes1 = deleteFirst (\ (key,_) -> key == "label") attributes0
+      attributes2 = ("label",AttValue [Left (toString entityFullName)])
+         : attributes1
+   in
+      Elem name attributes2 content
+    
+---
+-- Get an Element's path.  This must be a single String and defaults to "."
+getPath :: Element -> WithError EntityPath
+getPath (Elem xmlTag attributes _) = 
+   let
+      pathString = fromMaybe "." (getAttribute attributes "path")
+   in
+      fromStringWE pathString 
 
 -- ----------------------------------------------------------------------
 -- Variant Attributes
@@ -236,4 +293,20 @@ variantAttributesType =
 
 
 
+-- ----------------------------------------------------------------------
+-- Display/Parse attributes in Xml format
+-- If the list is non-empty, we also prepend a space.
+-- We assume the attribute values are just single strings.
+-- ----------------------------------------------------------------------
 
+printAttributes :: [Attribute] -> String
+printAttributes attributes =
+   concatMap
+      (\ (name,attValue) -> case attValue of
+         AttValue [Left value] -> 
+            " "++name++"="++"\""++value++"\""
+            )
+      attributes
+
+
+   

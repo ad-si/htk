@@ -6,6 +6,7 @@ module AttributesType(
    AttributesState(..),
    inputAttributes,
    updateAttributes,
+   updateAttributesPrim,
    emptyAttributesType,
    AttributeValue(..),
    needs,
@@ -425,11 +426,11 @@ class (HasCodedValue value,HasAttributeTypeKey value)
       -> Form (Maybe value)
 
 ---
--- Instance 1: instances of FormTextField, where we simply take over
+-- Instance 1: instances of FormTextFieldIO, where we simply take over
 -- the Maybe instance defined in SimpleForm.  This includes strings
 -- and numbers (provided they instance HasAttributeTypeKey).
 instance (HasCodedValue value,HasAttributeTypeKey value,
-      FormTextField value) => AttributeValue value where
+      FormTextFieldIO value) => AttributeValue value where
    newFormEntry' = newFormEntry
 
 ---

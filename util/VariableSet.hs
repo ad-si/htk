@@ -18,6 +18,9 @@ module VariableSet(
 
    mapVariableSetSourceIO',
    concatVariableSetSource,
+
+   mapVariableSetSource,
+   singletonSetSource,
    ) where
 
 import Maybe
@@ -26,6 +29,7 @@ import Set
 import Concurrent
 
 import Computation
+import Registry
 import Dynamics
 import Sink
 import Sources
@@ -71,9 +75,18 @@ newtype VariableSetData x = VariableSetData (Set (Keyed x))
 
 ---
 -- Encodes the updates to a variable set.
+-- BeginGroup does not actually alter the set itself, but
+-- indicate that a group of updates is about to begin, terminated by EndGroup.  
+-- This prevents the client from trying to recalculate the state after every single
+-- update.
+--
+-- BeginGroup/EndGroup may be nested (though I don't have any application for that
+-- yet).
 data VariableSetUpdate x =
       AddElement x
    |  DelElement x
+   |  BeginGroup
+   |  EndGroup
 
 update :: HasKey x key 
    => VariableSetUpdate x -> VariableSetData x 
@@ -81,6 +94,7 @@ update :: HasKey x key
 update setUpdate (variableSet @ (VariableSetData set)) =
    let
       noop = (variableSet,[])
+      grouper = (variableSet,[setUpdate])
       oneop newSet = (VariableSetData newSet,[setUpdate])
    in
       case setUpdate of
@@ -97,6 +111,8 @@ update setUpdate (variableSet @ (VariableSetData set)) =
             in
                if isElement then oneop (delFromSet set kx)
                   else noop
+         BeginGroup -> grouper
+         EndGroup -> grouper
 
 newtype VariableSet x 
    = VariableSet (Broadcaster (VariableSetData x) (VariableSetUpdate x))
@@ -142,7 +158,8 @@ setVariableSet (VariableSet broadcaster) newList =
                  = filter (\ el -> not (elementOf (Keyed el) oldSet)) newList
               toDeleteList = map unKey (setToList (minusSet oldSet newSet))
               updates = 
-                 (map DelElement toDeleteList) ++ (map AddElement toAddList)
+                 [BeginGroup] ++ (map AddElement toAddList)
+                    ++ (map DelElement toDeleteList) ++ [EndGroup]
            in
               (VariableSetData newSet,updates)
 
@@ -207,6 +224,8 @@ mapVariableSetSourceIO' mapFn=
                   case yOpt of
                      Nothing -> return Nothing
                      Just y -> return (Just (DelElement y))
+            BeginGroup -> return (Just BeginGroup)
+            EndGroup -> return (Just EndGroup)
          )
       )
 
@@ -233,6 +252,42 @@ concatVariableSetSource (source1 :: VariableSetSource x) source2 =
    in
       res
    
+-- --------------------------------------------------------------------
+-- VariableSetUpdate is an instance of Functor.
+-- mapVariableSetSource is functor-like for VariableSetSource.
+-- --------------------------------------------------------------------
 
+instance Functor VariableSetUpdate where
+   fmap fn (AddElement x) = AddElement (fn x)
+   fmap fn (DelElement x) = DelElement (fn x)
+   fmap fn BeginGroup = BeginGroup
+   fmap fn EndGroup = EndGroup
 
+mapVariableSetSource :: (x -> y) -> VariableSetSource x -> VariableSetSource y
+mapVariableSetSource fn source =
+   (map1 (map fn)) .
+   (map2 (fmap fn)) $
+   source
 
+-- --------------------------------------------------------------------
+-- singletonSetSource creates a VariableSet with a single element
+-- --------------------------------------------------------------------
+
+singletonSetSource :: SimpleSource x -> VariableSetSource x
+singletonSetSource (source0 :: SimpleSource x) =
+   let
+      (source1 :: Source x x) = toSource source0
+      (source2 :: Source x (x,x)) = mkHistorySource id source1
+      (source3 :: Source [x] [VariableSetUpdate x]) =
+         (map1
+            (\ x -> [x])
+            )
+         .
+         (map2
+            (\ (x1,x2) -> [BeginGroup,AddElement x2,DelElement x1,EndGroup])
+            )
+         $
+         source2
+      (source4 :: VariableSetSource x) = flattenSource source3
+   in
+      source4

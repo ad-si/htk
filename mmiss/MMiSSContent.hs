@@ -4,6 +4,7 @@ module MMiSSContent(
    structureContents,
    StructuredContent(..),
    AccContents(..),
+   LinkType(..),
    ) where
 
 #include "config.h"
@@ -14,6 +15,7 @@ import Computation
 import Dynamics
 
 import CodedValue
+import EntityNames
 
 #if HAXMLINT
 import Text.XML.HaXml.Types
@@ -23,6 +25,7 @@ import XmlTypes
 
 import MMiSSAttributes
 import MMiSSDTDAssumptions
+import MMiSSVariant
 
 -- ------------------------------------------------------------------------
 --
@@ -119,61 +122,86 @@ instance HasCodedValue Element where
       (\ (name,XmlAttributes xmlAttributes,contents) 
          -> Elem name xmlAttributes contents) 
 
+-- (6) LinkType
+linkType_tyRep = mkTyRep "MMiSSContent" "LinkType"
+instance HasTyRep LinkType where
+   tyRep _ = linkType_tyRep
+
+instance HasCodedValue LinkType where
+   encodeIO = mapEncodeIO (\ linkType -> case linkType of
+      IncludeLink -> 'I'
+      ReferenceLink -> 'R'
+      LinkLink -> 'L'
+      )
+   decodeIO = mapDecodeIO (\ char -> case char of
+      'I' -> IncludeLink
+      'R' -> ReferenceLink
+      'L' -> LinkLink
+      _ -> error ("MMiSSContent: unexpected char "++show char)
+      )
+
 -- ------------------------------------------------------------------------
 -- Structuring Content data in input.
 -- ------------------------------------------------------------------------
 
 data StructuredContent = StructuredContent {
    tag :: String, -- The Xml Tag of the head of this object.
-   label :: String, -- The object's label
-   attributes :: [Attribute], -- The attributes, in Xml format
+   label :: EntityFullName, -- The object's label
+   path :: EntityPath, -- The path, if specified.
+   variantSpec :: MMiSSVariantSpec,
+      -- The variants of this object.
+   attributes :: [Attribute],
+      -- The objects attributes, in HaXml format.
    accContents :: AccContents -- The data that comes from the children
    }
 
+---
+-- Type of a link/reference/include from a document.
+data LinkType = IncludeLink | LinkLink | ReferenceLink
+
 data AccContents = AccContents {
    contents :: [Content], -- what's inside the object
-   includes :: [String], -- included entities (including ones in this document)
-   children :: [StructuredContent], 
-      -- included entities (in this XML document)
-   links :: [String], -- linked entities
-   references :: [String] -- referenced entities
+   children :: [StructuredContent],
+      -- other nodes split off from this one.
+   links :: [(EntityFullName,MMiSSVariantSearch,LinkType)] 
+      -- all included, linked or referenced entities in this object in
+      -- order.
+      --
+      -- For documents which are split into more than one StructuredContent
+      -- links contains the links into this particular part, including links
+      -- to the (split off) children.
    }
 
 nullAccContents :: AccContents
-nullAccContents = 
-   AccContents {contents = [],includes = [],children = [],
-      links = [],references = []}
+nullAccContents = AccContents {contents = [],children = [],links = []}
 
 addAccContents :: AccContents -> AccContents -> AccContents
 addAccContents 
    (AccContents {
       contents = contents1,
-      includes = includes1,
       children = children1,
-      links = links1,
-      references = references1})
+      links = links1})
    (AccContents {
       contents = contents2,
-      includes = includes2,
       children = children2,
-      links = links2,
-      references = references2}) =
+      links = links2}) =
    AccContents {
       contents = contents1 ++ contents2,
-      includes = includes1 ++ includes2,
       children = children1 ++ children2,
-      links = links1 ++ links2,
-      references = references1 ++ references2
-      }
+      links = links1 ++ links2}
 
 -- ----------------------------------------------------------------------
 -- Structuring Contents
 -- ----------------------------------------------------------------------
 
 structureContents :: Element -> WithError StructuredContent
-structureContents elem = case structureElement elem of
-   Left (_,_,structuredContent) -> hasValue structuredContent
-   Right _ -> hasError "Top-level in Xml does not have a label attribute"
+structureContents element = 
+   mapWithError'
+      (\ structured -> case structured of
+         Left (_,_,structuredContent) -> hasValue structuredContent
+         Right _ -> hasError "Top-level in Xml does not have a label attribute"
+         )
+      (structureElement element)
 
 ---
 -- For DirectInclude items, structureElement returns (a) the associated
@@ -183,50 +211,67 @@ structureContents elem = case structureElement elem of
 -- For other items, we return AccContents corresponding to the content of
 -- the item.
 structureElement :: Element 
-   -> Either (String,Element,StructuredContent) AccContents
+   -> WithError (Either (EntityFullName,Element,StructuredContent) AccContents)
 structureElement (element @ (Elem tag attributes contents0)) =
-   let
-      accContentsl = map structureContent contents0
-      accContents = foldr addAccContents nullAccContents accContentsl
+   (flip mapWithError')
+      (concatWithError (map structureContent contents0))
+      (\ accContentsl ->
+         let
+            accContents = foldr addAccContents nullAccContents accContentsl
 
-      -- code for handling include/link/reference's.
-      newElem = Elem tag attributes (contents accContents)
+            -- code for handling include/link/reference's.
+            newElem = Elem tag attributes (contents accContents)
 
-      wrapContents = Right (accContents {contents = [CElem newElem]})
+            wrapContents = 
+               hasValue (Right (accContents {contents = [CElem newElem]}))
 
-      addPointer newPtr =
-         Right (addAccContents 
-            newPtr (accContents {contents = [CElem newElem]})
-            )
-   in
-      case classifyElement element of
-         DirectInclude label element ->
-            Left (
-               label,
-               element,
-               StructuredContent {
-                  tag = tag,
-                  label = label,
-                  attributes = attributes,
-                  accContents = accContents
-                  }
-               )
-         Include label -> addPointer (nullAccContents {includes = [label]})
-         Reference label -> addPointer (nullAccContents {references = [label]})
-         Link label -> addPointer (nullAccContents {links = [label]})
-         Other -> wrapContents
+            addPointer label linkType =
+               hasValue (Right (AccContents {
+                     contents = [CElem newElem],
+                     children = [],
+                     links = [(label,emptyMMiSSVariantSearch,linkType)]
+                     }))
+
+            variantSpec = toMMiSSVariantSpecFromXml attributes
+         in
+            (flip mapWithError')
+               (pairWithError (classifyElement element) (getPath element))
+               (\ (classifiedElement,path) ->
+                  case classifiedElement of
+                     DirectInclude label element ->
+                        hasValue (Left (
+                           label,
+                           element,
+                           StructuredContent {
+                              tag = tag,
+                              label = label,
+                              path = path,
+                              variantSpec = variantSpec,
+                              attributes = attributes,
+                              accContents = accContents
+                              }
+                           ))
+                     Include label -> addPointer label IncludeLink
+                     Reference label -> addPointer label ReferenceLink
+                     Link label -> addPointer label LinkLink
+                     Other -> wrapContents
+                  )
+         )
            
-structureContent ::  Content -> AccContents
+structureContent ::  Content -> WithError AccContents
 structureContent content =
    case content of
-      CElem element -> case structureElement element of
-         Left (lab,element,structuredContent) -> 
-               nullAccContents {
-                  contents = [CElem element],
-                  children = [structuredContent],
-                  includes = [lab],
-                  references = []
-                  }
-         Right contents -> contents
-      other -> nullAccContents {contents = [other]}
+      CElem element -> 
+         (flip mapWithError)
+            (structureElement element)
+            (\ structuredElement -> case structuredElement of
+               Left (lab,element,structuredContent) -> 
+                     AccContents {
+                        contents = [CElem element],
+                        children = [structuredContent],
+                        links = [(lab,emptyMMiSSVariantSearch,IncludeLink)]
+                        }
+               Right contents -> contents
+               )
+      other -> hasValue (nullAccContents {contents = [other]})
  

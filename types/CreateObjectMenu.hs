@@ -15,28 +15,25 @@ import SimpleForm
 
 import View
 import Link
+import LinkManager
 import ObjectTypes
-import {-# SOURCE #-} Folders
 
 ---
 -- puts up a menu which selects an object type and creates an object in
 -- the given folder.
--- 
--- If the Bool is True on return that means the object has been actually
--- inserted in the folder, otherwise that still has to be done.
-createObjectMenu :: View -> Link Folder -> IO (Maybe (WrappedLink,Bool))
-createObjectMenu view folderLink =
+createObjectMenu :: (HasLinkedObject parent,ObjectType parentType parent)
+   => View -> Link parent -> IO (Maybe WrappedLink)
+createObjectMenu view (parentLink :: Link parent) =
    do
       allObjectTypes <- getAllObjectTypes view
       let
          (allObjectTypeMenuItems :: 
-            [(String,View -> Link Folder -> IO (Maybe (WrappedLink,Bool)))]) =
+            [(String,View -> LinkedObject -> IO (Maybe WrappedLink))]) =
             mapMaybe
                createObjectMenuItem
                allObjectTypes
 
-         (form :: Form (View -> Link Folder 
-            -> IO (Maybe (WrappedLink,Bool)))) = 
+         (form :: Form (View -> LinkedObject -> IO (Maybe WrappedLink))) = 
             case allObjectTypes of 
                [] -> error "No available object types" 
                   -- unlikely, Folder should be available at least.
@@ -44,5 +41,7 @@ createObjectMenu view folderLink =
       createFnOpt <- doForm "Object Type selection" form
       case createFnOpt of
          Nothing -> return Nothing
-         Just createFn -> createFn view folderLink
-     
+         Just createFn -> 
+            do
+               parent <- readLink view parentLink
+               createFn view (toLinkedObject parent) 

@@ -75,6 +75,8 @@
       ;;; #98ceda is light green
       ;;; #98ecb2 is light blue 
 
+      ; This is not an MMiSS element, but used in MMiSSPreamble.hs
+      (cons ?B  "blue") ; preamble
       )
    )
 

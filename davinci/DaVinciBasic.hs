@@ -11,6 +11,7 @@
    -}
 module DaVinciBasic(
    Context, -- refers to a context, IE a particular (independent) graph.
+      -- instance of Eq, Ord.
 
    newContext, -- :: (DaVinciAnswer -> IO ()) -> IO Context
       -- Open a new context (and start daVinci, if this is the first time).
@@ -58,6 +59,7 @@ import FileNames
 import Registry
 import UniqueString
 import Thread
+import ExtendedPrelude(mapOrd,mapEq)
 
 import Spawn
 import Events
@@ -496,3 +498,13 @@ newMenuId context =
    do
       menuIdString <- newUniqueString (menuIdSource context)
       return (MenuId menuIdString)
+
+-- ---------------------------------------------------------------------
+-- Instances of Eq and Ord for Context
+-- ---------------------------------------------------------------------
+
+instance Eq Context where
+   (==) = mapEq contextId   
+
+instance Ord Context where
+   compare = mapOrd contextId   

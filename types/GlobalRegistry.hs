@@ -41,6 +41,7 @@ import Registry
 import AtomString
 import UniqueString
 import Sink
+import Sources
 import VariableSet
 import VariableMap
 

@@ -43,7 +43,7 @@ import Char
 #if HAXMLINT
 import Text.XML.HaXml.Types
 import qualified Text.XML.HaXml.Pretty as PP
-import Text.PrettyPrint.HughesPJ hiding (char)
+import Text.PrettyPrint.HughesPJ hiding (char,space)
 #else
 import XmlTypes
 import qualified XmlPP as PP

@@ -340,13 +340,8 @@ boot : boothere
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-ifeq "$(GhcMajVersion).$(GhcMinVersion)" "5.02"
-	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp -c -fno-code -ohi $@
-else
-# Later GHC's accept something that looks very like the .boot.hs file
-# except that we need to preprocess it first.
-	$(CPP) $< -o $@ 
-endif
+# The only thing we do here is preprocess the file.
+	$(CPP) $< -o $@ -I$(CINCLUDES)
    
 
 $(LIBOBJSHS) : %.o : %.hs

@@ -17,6 +17,13 @@ module Broadcaster(
    applyUpdate, -- :: Broadcaster x d -> (x -> (x,[d])) -> IO ()
 
    applyGeneralUpdate, -- :: GeneralBroadcaster x d -> (x -> (x,[d],extra)) -> IO extra
+
+   switchOffSimpleSource, 
+      -- :: SimpleSource a -> IO (SimpleSource a,IO (IO ()))
+      -- Replace a SimpleSource by another which comes with a switch-off 
+      -- function, which temporarily blocks further updates.
+      -- The action returned by the switch-off function switches the source 
+      -- again.
    ) where
 
 import Sources
@@ -108,3 +115,30 @@ instance HasSource (GeneralBroadcaster x d) x d where
 
 instance HasSimpleSource (SimpleBroadcaster x) x where
    toSimpleSource simpleBroadcaster = simpleSource simpleBroadcaster
+
+
+-- -----------------------------------------------------------------
+-- switchOffSimpleSource
+-- -----------------------------------------------------------------
+
+-- | Replace a SimpleSource by another which comes with a switch-off function,
+-- which temporarily blocks further updates.
+-- The action returned by the switch-off function switches the source back on
+-- again.
+switchOffSimpleSource :: SimpleSource a -> IO (SimpleSource a,IO (IO ()))
+switchOffSimpleSource simpleSource =
+   do
+      broadcaster <- newSimpleBroadcaster simpleSource
+      let
+         switchOffSource = staticSimpleSourceIO (readContents simpleSource)
+
+         switchOff =
+            do
+               broadcast broadcaster switchOffSource
+               return (broadcast broadcaster simpleSource)
+
+         newSource =
+            do
+               source <- toSimpleSource broadcaster
+               source
+      return (newSource,switchOff)

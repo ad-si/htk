@@ -28,17 +28,16 @@ import XmlPP
 
 import MMiSSContent
 import MMiSSDTD
-import MMiSSObjects
 import MMiSSEditXml
 
 main =
    do
       doc <- getContents
       let
-         elEither = parseMMiSSLatex Nothing doc
+         elEither = parseMMiSSLatex doc
       el <- case  fromWithError elEither of
          Left str -> ioError (userError str)
-         Right str -> return str
+         Right (el,_) -> return el
       putStr (toExportableXml el)
 {-
       let verified = validateElement "package" el

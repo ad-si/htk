@@ -113,7 +113,6 @@ module GraphDisp(
 
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
    deleteNode,   -- :: Graph ... -> node value -> IO ()
-   setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
    getNodeValue, -- :: Graph ... -> node value -> IO value
    newNodeType,  -- :: Graph ... -> nodeTypeParms value -> IO (nodeType value)
    NodeTypeParms(..),
@@ -121,6 +120,13 @@ module GraphDisp(
    newArc,      -- :: Graph ... -> arcType value -> value 
                 --    -> node nodeFromValue -> node nodeToValue
                 --    -> IO (arc value)
+
+   WrappedNode(..),
+   newArcListDrawer,
+                -- :: Graph .. -> node nodeFromValue
+                -- -> ListDrawer (arcType value,value,WrappedNode node) 
+                --    (arc value)
+
    deleteArc,   -- :: Graph ... -> arc value 
                 --    -> IO ()
    setArcValue, -- :: Graph ... -> arc value
@@ -158,6 +164,8 @@ module GraphDisp(
 import Dynamics
 import ExtendedPrelude(monadDot)
 import Computation(HasConfig(..))
+import VariableList hiding (redraw)
+import Delayer(HasDelayer(..))
 
 import Destructible
 
@@ -172,7 +180,7 @@ newtype
       arcTypeParms 
    => Graph graph graphParms node nodeType nodeTypeParms arc arcType 
       arcTypeParms
-   = Graph graph
+   = Graph graph deriving (Eq,Ord)
 
 
 instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
@@ -181,12 +189,17 @@ instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
       arcType arcTypeParms) where
    destroy (Graph graph) = destroy graph
 
-
 instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
    arcTypeParms) 
    => Destructible (Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms) where
    destroyed (Graph graph) = destroyed graph
+
+instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
+   arcTypeParms) 
+   => HasDelayer (Graph graph graphParms node nodeType nodeTypeParms arc
+      arcType arcTypeParms) where
+   toDelayer (Graph graph) = toDelayer graph
 
 -- The argument to newGraph can be obtained from displaySort
 -- (see later in this section), and there should be one of these
@@ -244,17 +257,6 @@ deleteNode
       arcType arcTypeParms))
    (node :: node value) = deleteNodePrim graph node
 
-setNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                   arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   -> node value -> value -> IO ()
-setNodeValue
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms)
-   (node :: node value)
-   (value :: value) = setNodeValuePrim graph node value
-
 getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                    arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -301,6 +303,21 @@ newArc
    (nodeFrom :: node nodeFromValue)
    (nodeTo :: node nodeToValue) =
    (newArcPrim graph arcType value nodeFrom nodeTo) :: IO (arc value)
+
+
+newArcListDrawer :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms,
+      Typeable value,Typeable nodeFromValue)
+  => (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+  -> node nodeFromValue
+  -> ListDrawer (arcType value,value,WrappedNode node) (arc value)
+newArcListDrawer 
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+   (nodeFrom :: node nodeFromValue) =
+   (newArcListDrawerPrim graph nodeFrom) 
+--      :: (ListDrawer (arcType value,value,WrappedNode node) (arc value))
 
 deleteArc :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                 arc arcType arcTypeParms,
@@ -391,9 +408,13 @@ instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
 -- Graphs
 ------------------------------------------------------------------------
 
-class (Destructible graph) => GraphClass graph where
+class (Destructible graph,Ord graph,HasDelayer graph) => GraphClass graph where
    redrawPrim :: graph -> IO ()
    -- done after updates have been added
+
+   -- The Delayer temporarily disables redraw actions, or at least tries to.
+   -- (For daVinci the situation is that redraw actions currently have to
+   -- be forced anyway when attributes are changed.)
 
 class (GraphClass graph,GraphParms graphParms) 
    => NewGraph graph graphParms where
@@ -416,8 +437,6 @@ class (GraphClass graph,NodeClass node) =>
       DeleteNode graph node where
    deleteNodePrim :: Typeable value =>
       graph -> node value -> IO ()
-   setNodeValuePrim :: Typeable value =>
-      graph -> node value -> value -> IO ()
    getNodeValuePrim :: Typeable value =>
       graph -> node value -> IO value
 
@@ -446,6 +465,14 @@ class (GraphClass graph,NodeClass nodeFrom,NodeClass nodeTo,ArcClass arc,
       => graph -> arcType value -> value 
       -> nodeFrom nodeFromValue -> nodeTo nodeToValue
       -> IO (arc value)
+
+   newArcListDrawerPrim ::
+      (Typeable value,Typeable nodeFromValue)
+      => graph -> nodeFrom nodeFromValue 
+      -> ListDrawer (arcType value,value,WrappedNode nodeTo) (arc value)
+
+data WrappedNode node = forall value . Typeable value 
+   => WrappedNode (node value)
 
 class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
    deleteArcPrim :: (Typeable value) => graph -> arc value -> IO ()
@@ -496,5 +523,3 @@ class Eq1 takesParm where
 
 class Eq1 takesParm => Ord1 takesParm where
    compare1 :: takesParm value1 -> takesParm value1 -> Ordering
-
-

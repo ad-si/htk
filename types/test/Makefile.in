@@ -7,9 +7,16 @@ EXTRAEXPORTS = Server
 
 include @TOP@/mk/boilerplate.mk
 
-.PHONY : runServer runWorkbench killServer killWorkbench
+.PHONY : runServer runWorkbench killServer killWorkbench displayextrasrcs
 
 prepareexports : Server
+
+displaysrcshere : displayextrasrcs
+
+displayextrasrcs :
+	@echo @TOP@/types/test/rerunWorkbench.in @TOP@/types/test/runWorkbench.in
+
+
 
 runServer :
 	@MKDIR@ -p /var/tmp/simpledb

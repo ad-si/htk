@@ -66,6 +66,8 @@ update (variableUpdate @ (VariableMapUpdate update))
                (VariableMapData (delFromFM map key),[variableUpdate],True)
             else
                (variableMap,[],False)
+      BeginGroup -> (variableMap,[variableUpdate],True)
+      EndGroup -> (variableMap,[variableUpdate],True)
    where
       member key = isJust (lookupFM map key)
 
@@ -157,9 +159,7 @@ instance Ord key => HasSource (VariableMapSet key elt element) [element]
             .
             (map2
                (\ (VariableMapUpdate update) ->
-                  case update of
-                     AddElement (key,elt) -> AddElement (mkElement key elt)
-                     DelElement (key,elt) -> DelElement (mkElement key elt)
+                  fmap (\ (key,elt) -> mkElement key elt) update
                   )
                )
             $

@@ -26,8 +26,9 @@ import UniqueFile
 import FileSystem
 import Broadcaster
 import Sources
+import Delayer
 
-import BSem
+import VSem
 
 import VersionDB
 
@@ -40,7 +41,14 @@ data View = View {
    titleSource :: SimpleBroadcaster String, -- current title of this view.
 
    -- Contains "real" copies of files for the benefit of tools
-   fileSystem :: FileSystem
+   fileSystem :: FileSystem,
+
+   -- locally locked while some update operations are going on;
+   -- globally locked during commits.
+   commitLock :: VSem,
+
+   -- Blocked when complex updates are going on.
+   delayer :: Delayer
    }
 
 data ObjectData =
@@ -65,3 +73,11 @@ instance QuickShow ViewId where
 
 getViewTitleSource :: View -> SimpleSource String
 getViewTitleSource view = toSimpleSource (titleSource view)
+
+
+-- -----------------------------------------------------------------
+-- Instance of HasDelayer
+-- -----------------------------------------------------------------
+
+instance HasDelayer View where
+   toDelayer view = delayer view

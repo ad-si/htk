@@ -7,7 +7,13 @@
 PACKAGE = uni-HaXml
 PACKAGES = text data uni-options
 
-HAXML = @TOP@/HaXml-1.07b/src
+HAXML = @TOP@/HaXml-1.08/src
+
+# Disable DEBUG mode.  This is because Malcolm Wallace uses the same
+# flag, and so if it's left it I get lots and lots of Malcolm's trace
+# messages, which I don't want.
+EXTRA_HC_OPTIONS = -UDEBUG
+
 
 # Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in.
 # However we comment out everything that is in GHC (5.05)'s distribution

@@ -23,3 +23,11 @@ log_HC_OPTIONS = -no-hs-main
 include @TOP@/mk/boilerplate.mk
 
 prepareexports : runCommand
+
+.PHONY : displayextrasrcs
+
+displaysrcshere : displayextrasrcs
+
+displayextrasrcs :
+	@echo @TOP@/posixutil/daVinci.debug.in 	@TOP@/posixutil/wish.debug.in
+

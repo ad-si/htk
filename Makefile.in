@@ -42,7 +42,9 @@ findsources :
 	@echo @TOP@/mk/boilerplate.mk.in @TOP@/mk/machinedep.mk.in 
 	@echo @TOP@/mk/var.mk @TOP@/mk/suffix.mk @TOP@/mk/local.mk.debug
 	@echo @TOP@/configure.ac 
-
+	@echo @TOP@/includes/config.h.in @TOP@/not.a.binary.release 
+	@echo @TOP@/bdb-package.options.in @TOP@/package.spec.template
+	@echo @TOP@/uni-package.options @TOP@/mk/MainFixFileNames.hs
 tarball.tar.gz:
 	cd @TOP@;@TAR@ -czf tarball.tar.gz `(($(MAKE) -s --no-print-directory findsources) | sed "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo README ; echo configure`
 

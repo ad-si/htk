@@ -23,6 +23,7 @@ DESCRIPTION   :
       removeQ :: Queue a -> Maybe (a,Queue a) -- pop from queue.
       insertAtEndQ :: Queue a -> a -> Queue a 
       -- undo the effect of the previous removeQ.
+      isEmptyQ :: Queue a -> Bool
    ######################################################################### -}
 
 

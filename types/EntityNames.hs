@@ -17,6 +17,8 @@ module EntityNames(
       -- Find the parent of the object, if there is one.
    entityBase, -- :: EntityFullName -> Maybe EntityName
       -- Find the name of the object within its parent.
+   trivialFullName, -- :: EntityFullName
+      -- Name with no components.
    trivialPath, -- :: EntityPath
       -- Path just searching in this object.
 
@@ -268,6 +270,9 @@ entityDir (EntityFullName names) = fmap EntityFullName (chop 1 names)
 
 entityBase :: EntityFullName -> Maybe EntityName
 entityBase (EntityFullName names) = lastOpt names
+
+trivialFullName :: EntityFullName
+trivialFullName = EntityFullName []
 
 trivialPath :: EntityPath
 trivialPath = EntityPath [FromHere (EntityFullName [])]

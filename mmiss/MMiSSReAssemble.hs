@@ -10,6 +10,8 @@ module MMiSSReAssemble(
 import Computation
 import AtomString
 
+import EntityNames
+
 #if HAXMLINT
 import Text.XML.HaXml.Types
 #else
@@ -17,7 +19,7 @@ import XmlTypes
 #endif
 
 import MMiSSDTDAssumptions
-import MMiSSPathsSimple
+import MMiSSVariant
 
 ---
 -- The action to extract the Element is allowed to return Nothing.  This 
@@ -31,92 +33,127 @@ import MMiSSPathsSimple
 -- MMiSSObjects.printAction uses a horrible trick which assumes that the
 -- children of an Element are visited in the order supplied.
 reAssemble :: 
-   (EntityName -> searchData -> IO (WithError (Maybe (Element,searchData)))) 
-   -> EntityName -> searchData
+   (EntityFullName -> MMiSSVariantSearch -> searchData 
+   -> IO (WithError (Maybe (Element,searchData)))) 
+   -> EntityFullName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
 reAssemble 
-      (getElement :: EntityName -> searchData 
+      (getElement :: EntityFullName -> MMiSSVariantSearch -> searchData 
          -> IO (WithError (Maybe (Element,searchData)))) 
-      (topName :: EntityName) 
-      (searchData0 :: searchData)
+      (topName :: EntityFullName)
+      (topVariantSearch :: MMiSSVariantSearch) 
+      (topSearchData :: searchData)
       =
    -- We make heavy use of Computation.MonadWithError here 
    let
-      getElementWE :: EntityName -> searchData -> 
+      getElementWE :: EntityFullName -> MMiSSVariantSearch -> searchData -> 
          MonadWithError IO (Maybe (Element,searchData))
-      getElementWE entityName searchData 
-         = MonadWithError (getElement entityName searchData)
+      getElementWE entityName variantSearch searchData 
+         = MonadWithError (getElement entityName variantSearch searchData)
 
-      reAssembleElement :: searchData -> Element -> MonadWithError IO Element
-      reAssembleElement searchData0 (Elem name attributes contents0) =
+      -- reAssembleWhole does the whole reassembly of the top element.
+      MonadWithError (reAssembleWhole :: IO (WithError (Maybe Element))) 
+         = reAssembleName topName topVariantSearch topSearchData
+            (\ _ -> hasValue ())
+      
+      -- Reassemble an element designated by name, returning Nothing if
+      -- no element of this name can be found.
+      -- The last argument designates a check to be carried out
+      -- (for example, to determine if the element has appropriate type).
+      reAssembleName :: EntityFullName -> MMiSSVariantSearch -> searchData
+         -> (Element -> WithError ()) -> MonadWithError IO (Maybe Element)
+      reAssembleName fullName variantSearch0 searchData0 check =
+         do
+            elementOpt <- getElementWE fullName variantSearch0 searchData0
+            case elementOpt of
+               Nothing -> return Nothing
+               Just (element0,searchData1) ->
+                  do
+
+                     monadifyWithError (check element0)
+                     element1 <- reAssembleElement variantSearch0 
+                        searchData1 element0
+                     return (Just element1)
+
+      -- Reassemble an element, which is not itself an include.
+      reAssembleElement :: MMiSSVariantSearch -> searchData -> Element 
+         -> MonadWithError IO Element
+      reAssembleElement variantSearch0 searchData0 
+            (Elem name attributes contents0) =
          do
             let
+               attributesSpec :: MMiSSVariantSpec
+               attributesSpec = toMMiSSVariantSpecFromXml attributes
+
+               variantSearch1 :: MMiSSVariantSearch
+               variantSearch1 
+                  = refineVariantSearch variantSearch0 attributesSpec
+
                doContent :: Content -> MonadWithError IO Content 
                doContent content =
                   case content of
-                     CElem element -> case unclassifyElement element of
+                     CElem element0 -> case unclassifyElement element0 of
                         Nothing -> return content
-                        Just (referredNameString,check) ->
+                        Just (referredNameString,linkAttributes,check) ->
                            do
+                              (referredName :: EntityFullName)
+                                 <- monadifyWithError (
+                                    fromStringWE referredNameString)
                               let
-                                 referredName = fromString referredNameString
-                              elementOpt 
-                                 <- getElementWE referredName searchData0
+                                 linkAttributesSpec 
+                                    = toMMiSSVariantSpecFromXml linkAttributes
+
+                                 variantSearch2 = refineVariantSearch
+                                    variantSearch1 linkAttributesSpec
+                              elementOpt <- reAssembleName referredName
+                                 variantSearch2 searchData0 check
                               case elementOpt of
+                                 Just element1 -> return (CElem element1)
                                  Nothing -> return content
-                                 Just (element0,searchData1) ->
-                                    do
-                                       monadifyWithError (check element0)
-                                       element1 <- reAssembleElement 
-                                          searchData1 
-                                          element0
-                                       return (CElem element1)
                      _ -> return content
 
             contents1 <- mapM doContent contents0
             return (Elem name attributes contents1)
    in
       do
-         -- Handle the top element (this needs to be done specially, since
-         -- getElement is not allowed to return Nothing
-         topElementOptWE <- getElement topName searchData0
-         case fromWithError topElementOptWE of
-            Left error -> return (hasError error)
-            Right Nothing -> return (hasError ("Element "++toString topName++
-               " is not expanded and so there is nothing to show"))
-            Right (Just (element,searchData1)) ->
-               let
-                  (MonadWithError action) 
-                     = reAssembleElement searchData1 element
-               in
-                  action
+         elementOptWE <- reAssembleWhole
+         return (mapWithError'
+            (\ elementOpt -> case elementOpt of
+               Nothing -> hasError ("Element "++toString topName++
+                  " is not expanded and so there is nothing to show")
+               Just element -> hasValue element
+               )
+            elementOptWE
+            )
 
 ---
 -- reAssembleNoRecursion is like reAssemble, but it also checks that there
 -- are no names which are recursively expanded.
 reAssembleNoRecursion :: 
-   (EntityName -> searchData -> IO (WithError (Maybe (Element,searchData)))) 
-   -> EntityName -> searchData
+   (EntityFullName -> MMiSSVariantSearch -> searchData 
+      -> IO (WithError (Maybe (Element,searchData)))) 
+   -> EntityFullName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
-reAssembleNoRecursion getElement entityName searchData =
+reAssembleNoRecursion getElement entityName variantSearch searchData =
    let
       -- We do this by threading down an additional list containing the
-      -- elements already looked up.
-      getElement' entityName (searchData,alreadyLookedUp) =
-         if elem entityName alreadyLookedUp 
+      -- elements with their MMiSSVariantSearch objects already looked up.
+      getElement' entityName variantSearch (searchData,alreadyLookedUp) =
+         if elem (entityName,variantSearch) alreadyLookedUp 
             then
                return (hasError ("Element "++toString entityName++
                   " directly or indirectly includes itself"))
             else
                do
-                  lookedUpWE <- getElement entityName searchData
+                  lookedUpWE <- getElement entityName variantSearch searchData
                   return (mapWithError
                      (fmap
                         (\ (element,searchData) -> 
-                           (element,(searchData,entityName:alreadyLookedUp))
+                           (element,(searchData,(entityName,variantSearch)
+                              :alreadyLookedUp))
                            )
                         )
                      lookedUpWE
                      )
    in
-      reAssemble getElement' entityName (searchData,[])
+      reAssemble getElement' entityName variantSearch (searchData,[])

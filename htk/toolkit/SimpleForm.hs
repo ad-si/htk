@@ -65,6 +65,9 @@ module SimpleForm(
       -- error message.
    guardFormIO, -- :: (x -> IO Bool) -> String -> Form x -> Form x
       -- IO'based version of guardForm.
+   guardNothing, -- :: String -> Form (Maybe x) -> Form x
+      -- Checks that Nothing is not returned, with the attached error
+      -- message.
 
    FormValue(..), -- This is a class of values which can be read in from a 
       -- simple form.  Instances include Int, String and Bool and ().
@@ -247,6 +250,14 @@ guardFormIO test mess =
         res <- test x
         return (if res then hasValue x else hasError mess)
      )
+
+guardNothing :: String -> Form (Maybe x) -> Form x
+guardNothing mess =
+   mapForm (\ xOpt -> 
+      case xOpt of
+      Nothing -> hasError mess
+      Just x -> hasValue x
+      )
 
 
 -- -------------------------------------------------------------------------
@@ -621,25 +632,32 @@ instance FormTextFieldIO value => FormValue value where
          return enteredForm
 
 -- -------------------------------------------------------------------------
--- Instance #2.   Maybe something that's an instance of FormTextField,
+-- Instance #2B.   Maybe something that's an instance of FormTextFieldIO
 -- so corresponding to Maybe String or Maybe Number.
--- It is possible to nest FormTextField's Maybe(Maybe . . .) but this is
+-- It is possible to nest FormTextFieldIO's Maybe(Maybe . . .) but this is
 -- not recommended.
 -- When reading a null string, this will be parsed as a value rather than
 -- Nothing if possible; this happens for example with String.
 -- -------------------------------------------------------------------------
 
-instance FormTextField value => FormTextField (Maybe value) where
-   makeFormString Nothing = ""
-   makeFormString (Just value) = makeFormString value
+instance FormTextFieldIO value => FormTextFieldIO (Maybe value) where
+   makeFormStringIO Nothing = return ""
+   makeFormStringIO (Just value) = makeFormStringIO value
 
-   readFormString "" = case fromWithError (readFormString "") of
-      Left _ -> hasValue Nothing
-      Right x -> hasValue (Just x)
-   readFormString str = mapWithError Just (readFormString str)
+   readFormStringIO "" = 
+      do
+         null <- readFormStringIO ""
+         return (case fromWithError null of
+            Left _ -> hasValue Nothing
+            Right x -> hasValue (Just x)
+            )
+   readFormStringIO str = 
+      do
+         xWE <- readFormStringIO str
+         return (mapWithError Just xWE) 
 
 -- -------------------------------------------------------------------------
--- Instance #2 - Radio Buttons
+-- Instance #2C - Radio Buttons
 -- If "x" is an instance of "Show", "Bounded" and "Enum", "Radio x" will be an
 -- instance of FormValue, and will display the buttons in order.
 -- But if you don't like this define your own instances of Show or,

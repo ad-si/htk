@@ -192,14 +192,18 @@ fi
 AC_SUBST(MISSLATEX)
 #
 # Decide whether to compile in HaXml or not.
-if test $GhcShortVersion -gt 504
-then
-   HAXML=HaXml
-   HAXMLINT=1
-else
-   HAXML=""
-   HAXMLINT=0
-fi
+# (Change: we ALWAYS do this)
+# if test $GhcShortVersion -gt 504
+# then
+#    HAXML=HaXml
+#    HAXMLINT=1
+# else
+#    HAXML=""
+#    HAXMLINT=0
+# fi
+HAXML=HaXml
+HAXMLINT=1
+
 AC_SUBST(HAXML)
 AC_SUBST(HAXMLINT)
 

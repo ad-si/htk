@@ -7,17 +7,17 @@ module Folders(
    FolderType,
    getTopFolder, 
    getInFolder,
+   mkFolderInsertion,
    lookupFileName,
    newEmptyFolder,
-   insertInFolder,
-   insertInFolderCheck,
    getPlainFolderType,
    plainFolderKey,
 
    FolderDisplayType(FolderDisplayType),
    folderDisplayKey,
-
-   HasParent(..),
+   createWithLinkedObject,
+   createWithLinkedObjectIO,
+   createWithLinkedObjectSplitIO,
    ) where
 
 import Maybe
@@ -26,14 +26,18 @@ import FiniteMap
 import qualified IOExts(unsafePerformIO)
 
 import Dynamics
+import Object
+import Registry
 import Computation
 import Sink
 import Sources
 import Broadcaster
 import VariableSet
-import VariableMap
+import VariableSetBlocker
+import VariableList
 import UniqueString
-import AtomString(fromString)
+import AtomString(fromString,toString)
+import Delayer(toDelayer,delay)
 
 import BSem
 
@@ -58,6 +62,9 @@ import CreateObjectMenu
 import DisplayView
 import GetAttributesType
 import GlobalMenus
+import EntityNames
+import LinkDrawer (toArcData,ArcData)
+import LinkManager
 
 ------------------------------------------------
 -- The Display Type
@@ -89,6 +96,7 @@ instance DisplayType FolderDisplayType where
                      )
                   (getViewTitleSource view)
          return (
+            (toDelayer view) $$
             globalMenu $$
             AllowDragging True $$
             graphTitleSource $$
@@ -116,9 +124,8 @@ data FolderType = FolderType {
    folderTypeLabel :: Maybe String,
       -- Menu label to be used for creating objects of this type.
    requiredAttributes :: AttributesType,
-   displayParms :: NodeTypes (String,Link Folder),
-   topFolderLinkOpt :: Maybe (Link Folder),
-   knownFolders :: VariableSet (Link Folder)
+   displayParms :: NodeTypes (Link Folder),
+   topFolderLinkOpt :: Maybe (Link Folder)
    }
 
 folderType_tyRep = mkTyRep "Folders" "FolderType"
@@ -138,13 +145,11 @@ instance HasCodedValue FolderType where
          ((folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
             topFolderLinkOpt),
             codedValue1) <- safeDecodeIO codedValue0 view
-         knownFolders <- newEmptyVariableSet
          return (FolderType {folderTypeId = folderTypeId,
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
-            displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt,
-            knownFolders = knownFolders},codedValue1)
-
+            displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt
+            },codedValue1)
 
 instance HasAttributesType FolderType where
    toAttributesType folderType = requiredAttributes folderType
@@ -158,11 +163,10 @@ instance HasAttributesType FolderType where
 data Folder = Folder {
    folderType :: FolderType,
    attributes :: Attributes,
-   name :: String,
-   contents :: VariableMap String WrappedLink,
-   contentsLock :: BSem, -- The contentsLock should be set whenever the
-      -- contents are in the process of being updated.
-   hideFolderArcs :: SimpleBroadcaster (Maybe NodeArcsHidden)
+   linkedObject :: LinkedObject,
+   hideFolderArcs :: SimpleBroadcaster (Maybe NodeArcsHidden),
+   openContents :: Blocker WrappedLink
+      -- Contains blocker for contents of linkedObject.
    }
 
 folder_tyRep = mkTyRep "Folders" "Folder"
@@ -175,18 +179,18 @@ instance HasAttributes Folder where
 instance HasCodedValue Folder where
    encodeIO = mapEncodeIO 
       (\ (Folder {folderType = folderType,attributes = attributes,
-             name = name,contents = contents}) ->
-         (folderTypeId folderType,attributes,name,contents)
+             linkedObject = linkedObject}) ->
+         (folderTypeId folderType,attributes,linkedObject)
          )
    decodeIO codedValue0 view =
       do
-         ((folderTypeId,attributes,name,contents),codedValue1) <-
+         ((folderTypeId,attributes,linkedObject),codedValue1) <-
             safeDecodeIO codedValue0 view
          folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
-         contentsLock <- newBSem
          hideFolderArcs <- mkArcsHiddenSource
+         openContents <- newOpenContents linkedObject
          return (Folder {folderType = folderType,attributes = attributes,
-            name = name,contents = contents,contentsLock = contentsLock,
+            linkedObject = linkedObject,openContents = openContents,
             hideFolderArcs = hideFolderArcs},codedValue1)
 
 -- ------------------------------------------------------------------
@@ -205,7 +209,8 @@ instance ObjectType FolderType Folder where
    objectTypeIdPrim objectType = folderTypeId objectType
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim folder = folderType folder
-   nodeTitlePrim folder = name folder 
+   nodeTitleSourcePrim folder = fmap toString 
+      (getLinkedObjectTitle (linkedObject folder) (fromString "TOP"))
 
    createObjectTypeMenuItemNoInsert =
       Just ("Folder type",createNewFolderType)
@@ -215,17 +220,28 @@ instance ObjectType FolderType Folder where
          (\ label -> (label,newEmptyFolder folderType))
          (folderTypeLabel folderType)
 
+   toLinkedObjectOpt folder = Just (linkedObject folder)
+
    getNodeDisplayData view wrappedDisplayType folderType 
          displayedViewAction =
-      return (
+      do
+         blockID <- newBlockID
+
          let
             nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 
                (displayParms folderType)
-            focusAction (_,link) =
+
+            openAction link = 
                do
-                  displayedView <- displayedViewAction
-                  focusLink displayedView link 
-         in
+                  folder <- readLink view link
+                  delay view (openBlocker (openContents folder) blockID)
+
+            closeAction link = 
+               do
+                  folder <- readLink view link
+                  delay view (closeBlocker (openContents folder) blockID)
+
+         return (
             case nodeTypeParmsOpt of
                Just nodeTypeParms ->
                   Just (NodeDisplayData {
@@ -236,12 +252,18 @@ instance ObjectType FolderType Folder where
                      nodeTypes = 
                         let
                            editOptions1 = [
-                              Button "Edit Attributes" (\ (_,link) 
+                              Button "Open Folder" (\ link 
+                                 -> openAction link
+                                 ),
+                              Button "Close Folder" (\ link 
+                                 -> closeAction link
+                                 ),
+                              Button "Edit Attributes" (\ link 
                                  -> editObjectAttributes view link),
-                              Button "Hide Links" (\ (_,link) ->
+                              Button "Hide Links" (\ link ->
                                  hideAction link True
                                  ),
-                              Button "Reveal Links" (\ (_,link) ->
+                              Button "Reveal Links" (\ link ->
                                  hideAction link False
                                  )
                               ]
@@ -250,20 +272,16 @@ instance ObjectType FolderType Folder where
                         in
                           [(theNodeType,
                            menu $$$
-                           ValueTitle (\ (str,_) -> return str) $$$
-                           (DoubleClickAction focusAction) $$$
+                           (valueTitleSource view) $$$
+                           (DoubleClickAction openAction) $$$
                            addFileGesture view $$$
                            nodeTypeParms
                            )],
                      getNodeType = const theNodeType,
-                     knownSet = toSource (knownFolders folderType),
-                     mustFocus = (\ _ -> return False),
-                     focus = (\ link ->
+                     getNodeLinks = (\ link ->
                         do
-                           updateSet (knownFolders folderType) 
-                              (AddElement link)
                            folder <- readLink view link
-                           return (mkArcs (contents folder),staticSource [])
+                           toArcEnds (openContents folder) blockID
                         ),
                      closeDown = done,
                      specialNodeActions = 
@@ -277,7 +295,7 @@ instance ObjectType FolderType Folder where
                            )
                      })
                Nothing -> Nothing
-         )              
+            )              
       where
          hideAction :: Link Folder -> Bool -> IO () 
          hideAction link bool =
@@ -289,35 +307,20 @@ instance ObjectType FolderType Folder where
 -- Extra option so that folders can add files.
 -- ------------------------------------------------------------------
 
-addFileGesture :: View -> NodeGesture (String,Link Folder)
+addFileGesture :: View -> NodeGesture (Link Folder)
 addFileGesture view =
    let
-      addFile (_,folderLink) =
+      addFile folderLink =
          do
             objectCreation <- createObjectMenu view folderLink
             case objectCreation of
                Nothing -> createAlertWin "Object creation cancelled" []
-               Just (newLink,inserted) -> 
-                  do
-                     if inserted 
-                        then
-                           done
-                        else
-                           do
-                              insertInFolderCheck view folderLink newLink
-                              done
+               Just newLink -> done
    in
       NodeGesture addFile
 
--- ------------------------------------------------------------------
--- The VariableSetSource interface to the contents list.
--- ------------------------------------------------------------------
-
-mkArcs :: VariableMap String WrappedLink ->
-    VariableSetSource (WrappedLink,ArcType)
-mkArcs variableMap = mapToVariableSetSource 
-   (\ str wrappedLink -> (wrappedLink,theArcType)) variableMap
-
+instance HasLinkedObject Folder where
+   toLinkedObject folder = linkedObject folder
 
 -- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set
@@ -360,15 +363,13 @@ plainFolderNodeTypeParms =
 mkPlainFolderType :: View -> IO FolderType
 mkPlainFolderType view = 
    do
-      knownFolders <- newEmptyVariableSet
       let
          folderType = FolderType {
             folderTypeId = plainFolderKey,
             folderTypeLabel = Just "Plain",
             requiredAttributes = emptyAttributesType,
             displayParms = plainFolderNodeTypeParms,
-            topFolderLinkOpt = Just topLink,
-            knownFolders = knownFolders
+            topFolderLinkOpt = Just topLink
             }
 
       addToGlobalRegistry globalRegistry view plainFolderKey folderType
@@ -403,15 +404,16 @@ getTopFolder view =
             -- Create the topFolder.
             folderType <- mkPlainFolderType view
             attributes <- newEmptyAttributes view
-            contents <- newEmptyVariableMap
-            contentsLock <- newBSem
+            linkedObjectWE <- newLinkedObject view (
+               WrappedLink (topLink :: Link Folder)) Nothing
+            linkedObject <- coerceWithErrorIO linkedObjectWE 
+            openContents <- newOpenContents linkedObject
             hideFolderArcs <- mkArcsHiddenSource
             return (Folder {
                folderType = folderType,
                attributes = attributes,
-               name = "TOP",
-               contents = contents,
-               contentsLock = contentsLock,
+               linkedObject = linkedObject,
+               openContents = openContents,
                hideFolderArcs = hideFolderArcs
                })               
          )
@@ -421,6 +423,9 @@ getTopFolder view =
 -- Indexing in a folder
 -- ------------------------------------------------------------------
 
+{-# DEPRECATED getInFolder,lookupFileName "Use LinkManager functions instead" 
+    #-}
+
 ---
 -- getInFolder returns the wrapped link indexed in the folder by the given
 -- string, if it exists.
@@ -428,8 +433,8 @@ getInFolder :: View -> Link Folder -> String -> IO (Maybe WrappedLink)
 getInFolder view link str =
    do
       folder <- readLink view link
-      map <- readContents (contents folder)
-      return (lookupMap map str)
+      linkedObjectOpt <- lookupNameSimple (linkedObject folder) str
+      return (fmap toWrappedLink linkedObjectOpt)
 
 ---
 -- lookupLink looks up a link by file name, given by components, with
@@ -462,15 +467,20 @@ lookupFileName view (first:rest) =
 -- ------------------------------------------------------------------
 
 ---
--- Create a new empty folder in the view.
+-- Create a new empty folder in the view and insert it in
+-- the given parent.
+--
 -- We use the inputAttributes method to get the attributes, and
--- return Nothing if the user cancels.
-newEmptyFolder :: FolderType -> View -> Link Folder 
-   -> IO (Maybe (Link Folder,Bool))
-newEmptyFolder folderType view _ =
+-- return Nothing if the user cancels, or there was some other error.
+newEmptyFolder :: FolderType -> View -> LinkedObject 
+   -> IO (Maybe (Link Folder))
+newEmptyFolder folderType view parentLinkedObject =
    do
       -- Construct an extraFormItem for the name.
-      extraFormItem <- mkExtraFormItem (newFormEntry "Name" "")
+      extraFormItem <- 
+         mkExtraFormItem (
+            guardNothing "Folder name not specified"
+               (newFormEntry "Name" Nothing))
       attributesOpt <- inputAttributes view (requiredAttributes folderType)
          (Just extraFormItem)
       case attributesOpt of
@@ -478,67 +488,27 @@ newEmptyFolder folderType view _ =
          Just attributes ->
             do
                name <- readExtraFormItem extraFormItem
-               contents <- newEmptyVariableMap
-               contentsLock <- newBSem
                hideFolderArcs <- mkArcsHiddenSource
-               let
-                  folder = Folder {
-                     folderType = folderType,
-                     attributes = attributes,
-                     name = name,
-                     contents = contents,
-                     contentsLock = contentsLock,
-                     hideFolderArcs = hideFolderArcs
-                     }
-               versioned <- createObject view folder
-               link <- makeLink view versioned
-               return (Just (link,False))
+               createLinkedObjectChild view parentLinkedObject name
+                  (\ linkedObject ->
+                     do
+                        openContents <- newOpenContents linkedObject
+                        let
+                           folder =
+                              Folder {
+                                 folderType = folderType,
+                                 attributes = attributes,
+                                 linkedObject = linkedObject,
+                                 openContents = openContents,
+                                 hideFolderArcs = hideFolderArcs
+                                 }
+                        return folder
+                     )
 
 ---
--- insertInFolder attempts to insert an object into a folder.  It
--- fails and returns False if the attempt fails because an object 
--- with that name is already in the folder.
-insertInFolder :: View -> Link Folder -> WrappedLink -> IO Bool
-insertInFolder view folderLink wrappedLink =
-   do
-      versioned <- fetchLink view folderLink
-      folder <- readObject view versioned
-
-      wrappedObject <- wrapReadLink view wrappedLink
-      let
-         name = nodeTitle wrappedObject
-
-      dirtyObject view versioned 
-      -- To be on the safe side, we dirty the folder before changing it.
-      synchronize (contentsLock folder) (
-         do
-            map <- readContents (contents folder)
-            case lookupMap map name of
-               Just _ -> return False
-               Nothing ->
-                  do
-                     updateMap (contents folder) 
-                        (VariableMapUpdate (AddElement (name,wrappedLink)))
-                     return True
-         )
-
----
--- Like insertInFolder, but also displays a message when it fails
-insertInFolderCheck :: View -> Link Folder -> WrappedLink -> IO Bool
-insertInFolderCheck view folderLink wrappedLink =
-   do
-      success <- insertInFolder view folderLink wrappedLink
-      if success 
-         then 
-            done 
-         else                       
-            do
-               wrappedObject <- wrapReadLink view wrappedLink
-               let
-                  name = nodeTitle wrappedObject
-               createErrorWin 
-                  ("Object " ++ name ++ "already exists in folder") []
-      return success  
+-- Making an insertion into a folder
+mkFolderInsertion :: Folder -> EntityName -> Insertion
+mkFolderInsertion folder = mkInsertion (linkedObject folder)
 
 -- ------------------------------------------------------------------
 -- creating a new folder type
@@ -548,7 +518,7 @@ createNewFolderType :: View -> IO (Maybe FolderType)
 createNewFolderType view =
    do
       let
-         firstForm :: Form (String,NodeTypes (String,Link Folder)) =
+         firstForm :: Form (String,NodeTypes (Link Folder)) =
             titleForm //
             simpleNodeTypesForm
 
@@ -567,15 +537,15 @@ createNewFolderType view =
                   Just requiredAttributes ->
                      do
                         folderTypeId <- newKey globalRegistry view
-                        knownFolders <- newEmptyVariableSet
                         return (Just(FolderType {
                            folderTypeId = folderTypeId,
                            folderTypeLabel = Just title,
                            requiredAttributes = requiredAttributes,
                            displayParms = displayParms,
-                           topFolderLinkOpt = Nothing,
-                           knownFolders = knownFolders
+                           topFolderLinkOpt = Nothing
                            }))
+
+
 -- ------------------------------------------------------------------
 -- Creating the folder actions
 -- ------------------------------------------------------------------
@@ -584,10 +554,101 @@ mkArcsHiddenSource :: IO (SimpleBroadcaster (Maybe NodeArcsHidden))
 mkArcsHiddenSource = newSimpleBroadcaster Nothing
 
 -- ------------------------------------------------------------------
--- The HasParent class
--- Implemented for MMiSS objects.
+-- Creating new objects in a folder.
 -- ------------------------------------------------------------------
 
-class HasParent object where
-   toParent :: object -> Maybe (Link Folder)
-   -- Nothing might indicate, for example, the top folder.
+--
+-- General purpose object creation functions, which also does helpful 
+-- things like displaying the error message if things go wrong.
+createWithLinkedObject :: ObjectType objectType object
+   => View -> Link Folder -> EntityName -> (LinkedObject -> object) 
+   -> IO (Maybe (Link object))
+createWithLinkedObject view parentLink name toObject =
+   createWithLinkedObjectIO view parentLink name (return . toObject)
+
+createWithLinkedObjectIO :: ObjectType objectType object
+   => View -> Link Folder -> EntityName -> (LinkedObject -> IO object) 
+   -> IO (Maybe (Link object))
+createWithLinkedObjectIO view parentLink name getObject =
+   do
+      parent <- readLink view parentLink
+      let
+         insertion = mkInsertion (linkedObject parent) name
+      act <- createViewObject view (\ link ->
+         do
+            linkedObjectWE <- newLinkedObject
+               view (WrappedLink link) (Just insertion)
+            case fromWithError linkedObjectWE of
+               Right linkedObject ->
+                  do
+                     object <- getObject linkedObject
+                     return (Just object,return (Just link))
+               Left mess ->
+                  return (Nothing,
+                     do
+                        createErrorWin mess []
+                        return Nothing
+                     )
+         )
+      act
+
+---
+-- This function is like createWithLinkedObjectIO, but does not actually
+-- insert the new object into the folder, instead inserting it nowhere.
+-- The action it returns DOES insert the object in the folder. 
+createWithLinkedObjectSplitIO :: ObjectType objectType object
+   => View -> Link Folder -> EntityName -> (LinkedObject -> IO object) 
+   -> IO (Maybe (Link object,IO (WithError ())))
+createWithLinkedObjectSplitIO view parentLink name getObject =
+   do
+      let
+         insertFolderAct linkedObject1 =
+            do
+               parent <- readLink view parentLink
+               let
+                  insertion = mkInsertion (linkedObject parent) name
+               moveObject linkedObject1 (Just insertion)
+
+      act <- createViewObject view (\ link ->
+         do
+            linkedObjectWE <- newLinkedObject
+               view (WrappedLink link) Nothing
+            case fromWithError linkedObjectWE of
+               Right linkedObject ->
+                  do
+                     object <- getObject linkedObject
+                     return (Just object,
+                        return (Just (link,insertFolderAct linkedObject)))
+               Left mess ->
+                  return (Nothing,
+                     do
+                        createErrorWin mess []
+                        return Nothing
+                     )
+         )
+      act
+
+
+-- ------------------------------------------------------------------
+-- Initialising the folder's blocker.
+-- ------------------------------------------------------------------
+
+toArcEnds :: Blocker WrappedLink -> BlockID -> IO ArcEnds
+toArcEnds blocker blockID = 
+   do
+      (setSource1 :: VariableSetSource WrappedLink) 
+         <- blockVariableSet blocker blockID
+
+      let
+         variableSet1 :: VariableList WrappedLink
+         variableSet1 = newVariableListFromSet setSource1
+
+         variableSet2 :: VariableList (ArcData WrappedLink ArcType)
+         variableSet2 = fmap
+            (\ wrappedLink -> toArcData wrappedLink theArcType True)
+            variableSet1
+
+      return variableSet2
+
+newOpenContents :: LinkedObject -> IO (Blocker WrappedLink)
+newOpenContents linkedObject = newBlocker (objectContents linkedObject)

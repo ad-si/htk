@@ -9,6 +9,8 @@ module Sink(
    Sink,
    newSink,
    newSinkGeneral,
+   newParallelSink,
+   newParallelDelayedSink,
 
    putSink,
    putSinkMultiple,
@@ -17,6 +19,11 @@ module Sink(
    coMapIOSink',
 
    CanAddSinks(..),
+   addNewAction,
+
+   ParallelExec,
+   newParallelExec,
+   parallelExec,
    ) where
 
 import Monad
@@ -27,6 +34,7 @@ import Control.Concurrent.Chan
 
 import Computation
 import Object
+import ExtendedPrelude
 
 -- -------------------------------------------------------------------------
 -- The HasInvalidate
@@ -194,10 +202,42 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    addNewSinkGeneral sinkSource action sinkID = 
       do
          parallelX <- newParallelExec
-         addNewQuickSinkGeneral 
-            sinkSource 
-            (\ delta -> parallelExec parallelX (action delta))
-            sinkID
+         addNewSinkVeryGeneral sinkSource action sinkID parallelX
+
+   ---
+   -- Like addNewQuickSink, but use the supplied ParallelExec as well
+   addNewSinkVeryGeneral :: sinkSource -> (delta -> IO ()) -> SinkID
+      -> ParallelExec -> IO (x,Sink delta)
+   addNewSinkVeryGeneral sinkSource action sinkID parallelX =
+      addNewQuickSinkGeneral 
+         sinkSource 
+         (\ delta -> parallelExec parallelX (
+            do
+               -- add an extra check here to prevent surplus queued actions
+               -- being performed after the sink has been invalidated.
+               interested <- isInterested sinkID
+               if interested then action delta else done
+            ))
+         sinkID
+     
+   ---
+   -- Like addNewSinkVeryGeneral, but compute an action from the x value which
+   -- is performed in the parallelExec thread first of all.
+   addNewSinkWithInitial :: sinkSource -> (x -> IO ()) -> (delta -> IO ()) 
+      -> SinkID -> ParallelExec -> IO (x,Sink delta)
+   addNewSinkWithInitial sinkSource xAction deltaAction sinkID parallelX =
+      do
+         mVar <- newEmptyMVar
+         let
+            firstAct =
+               do
+                  x <- takeMVar mVar
+                  xAction x
+         parallelExec parallelX firstAct
+         (returnValue @ (x,sink)) 
+            <- addNewSinkVeryGeneral sinkSource deltaAction sinkID parallelX
+         putMVar mVar x
+         return returnValue
 
    ---
    -- Like addNewSink, but the action is guaranteed to terminate quickly
@@ -209,15 +249,6 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
          x <- addOldSink sinkSource sink
          return (x,sink)
 
-   ---
-   -- Get contents without adding a sink
-   readContents :: sinkSource -> IO x
-   readContents sinkSource =
-      do
-         (x,sink) <- addNewQuickSink sinkSource (\ _ -> done)
-         invalidate sink
-         return x
-     
    ---
    -- Like addNewQuickSink, but use the supplied SinkID
    addNewQuickSinkGeneral :: sinkSource -> (delta -> IO ()) -> SinkID 
@@ -232,14 +263,38 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    -- Adds a pre-existing sink.
    addOldSink :: sinkSource -> Sink delta -> IO x
 
+---
+-- Add an action to a sinkSource which is performed until the action returns
+-- False.
+addNewAction :: CanAddSinks sinkSource x delta 
+   => sinkSource -> (delta -> IO Bool) -> IO x
+addNewAction sinkSource action =
+   do
+      sinkMVar <- newEmptyMVar 
+      let
+         deltaAct delta =
+            do
+               continue <- action delta 
+               if continue
+                  then
+                     done
+                  else
+                     do
+                        sink <- takeMVar sinkMVar
+                        invalidate sink
+                        simpleFallOut ""
+
+      (x,sink) <- addNewSink sinkSource deltaAct
+      putMVar sinkMVar sink
+      return x
+
 -- -------------------------------------------------------------------------
 -- A ParallelExec executes actions concurrently in a separate thread
 -- 
 -- Apart from (probably) being cheaper than forking off a new thread 
 -- each time, it also guarantees the order of the actions.
 --
--- There is no way of stopping the thread, but we expect the garbage-collector
--- to do it.
+-- The Thread can be stopped with simpleFallOut.
 -- -------------------------------------------------------------------------
 
 newtype ParallelExec = ParallelExec (Chan (IO ()))
@@ -249,14 +304,58 @@ newParallelExec =
    do
       chan <- newChan
       let
-         parallelExecThread =
+         parallelExecThread0 =
             do
                act <- readChan chan
                act
-               parallelExecThread
+               parallelExecThread0
+
+         parallelExecThread =
+            do
+               addSimpleFallOut parallelExecThread0
+               done
 
       forkIO parallelExecThread
       return (ParallelExec chan)
 
 parallelExec :: ParallelExec -> IO () -> IO ()
 parallelExec (ParallelExec chan) act = writeChan chan act
+
+---
+-- Creates a new sink which executes actions in a parallelExec thread.
+newParallelSink :: (x -> IO ()) -> IO (Sink x)
+newParallelSink action =
+   do
+      parallelX <- newParallelExec
+      sinkID <- newSinkID
+      newSinkGeneral sinkID (\ delta -> parallelExec parallelX (
+         do
+            interested <- isInterested sinkID
+            if interested then action delta else done
+         ))
+
+---
+-- Creates a new sink which executes actions in a parallelExec thread,
+-- but allow the function generating these actions to be specified later,
+-- via the returned command.
+newParallelDelayedSink :: IO (Sink x,(x -> IO ()) -> IO ())
+newParallelDelayedSink =
+   do
+      actionMVar <- newEmptyMVar
+      parallelX <- newParallelExec
+      sinkID <- newSinkID
+
+      sink <- newSinkGeneral sinkID (\ delta -> parallelExec parallelX (
+         do
+            interested <- isInterested sinkID
+            if interested 
+               then 
+                  do
+                     action <- readMVar actionMVar
+                     action delta 
+               else 
+                  done
+         ))
+
+      return (sink,putMVar actionMVar)
+ 

@@ -13,6 +13,10 @@ module Sources(
    staticSource, -- :: x -> Source x d
       -- returns a source which never changes
 
+   staticSourceIO, -- :: IO x -> Source x d
+      -- returns a source which never changes but gets its initial value
+      -- from an IO action.
+
    variableSource, -- :: x -> IO (Source x d,(x -> (x,[d])) -> IO ())
       -- returns a source which can change.  The supplied action
       -- changes it.
@@ -49,11 +53,20 @@ module Sources(
       -- :: (x -> state) -> (state -> d1 -> (state,d2)) 
       --    -> Source x d1 -> Source (x,state) d2
 
+   stepSource,
+      -- :: (x -> d2) -> (d1 -> d2) -> Source x d1 -> Source x d2
+      -- This modifies the source so that whenever we attempt to read from it,
+      -- the current "x" value is BOTH returned AND converted to an instant
+      -- update (via the first function).
+
    -- Combinators
    choose,
       -- :: Source x1 d1 -> Source x2 d2 -> Source (x1,x2) (Either d1 d2)
    seqSource,
       -- :: Source x1 x1 -> (x1 -> Source x2 d2) -> Source x2 d2   
+   flattenSource,
+      -- :: Source x [d] -> Source x d
+      -- A Source combinator which "flattens" lists of updates.
 
    -- Monadic Sources
    SimpleSource(..), 
@@ -62,10 +75,17 @@ module Sources(
 
    staticSimpleSource, -- :: x -> SimpleSource x
 
+   staticSimpleSourceIO, -- :: IO x -> SimpleSource x
+
    -- We also instance CanAddSinks (SimpleSource x) x x.
    -- This is done via the following class
    HasSource(..),
    HasSimpleSource(..),
+
+   readContents, 
+      -- :: HasSource source x d => source -> IO x
+      -- Get the current contents of the source, but don't specify any other
+      -- action.
 
    -- miscellaneous handy utilities,
    mkHistorySource, -- :: (x -> d) -> Source x d -> Source x (d,d)
@@ -80,6 +100,17 @@ module Sources(
    sequenceSimpleSource, -- :: [SimpleSource x] -> SimpleSource [x]
    -- Does a similar job to pairSimpleSources, so that the sources run
    -- parallel.
+
+   change1, -- :: SimpleSource x -> x -> SimpleSource x
+   -- replaces the first value of the SimpleSource.
+
+   addNewSourceActions, 
+      -- :: Source x d -> (x -> IO ()) -> (d -> IO ()) 
+      -- -> SinkID -> ParallelExec -> IO x
+   -- Run the specified actions for the source, using the given SinkID and
+   -- in the ParallelExec thread.
+   -- The x -> IO () action is guaranteed to be performed before any of the
+   -- d -> IO () actions.
    ) where
 
 import Maybe
@@ -87,6 +118,7 @@ import Maybe
 import Concurrent
 import IOExts
 
+import Computation(done)
 import Sink
 
 -- -----------------------------------------------------------------
@@ -108,6 +140,10 @@ data SourceData x d = SourceData {
 
 staticSource :: x -> Source x d
 staticSource x = Source (\ _ -> return x)
+
+
+staticSourceIO :: IO x -> Source x d
+staticSourceIO action = Source (\ _ -> action)
 
 variableSource :: x -> IO (Source x d,(x -> (x,[d])) -> IO ())
 variableSource x =
@@ -254,6 +290,28 @@ mkComputedClient getClient =
                let
                   (Client realClientFn) = getClient x
                realClientFn d
+      return (client,putMVar mVar)
+
+---
+-- mkComputedClient is like mkComputedClient, but still more dangerously
+-- allows an IO action to compute the client.
+--
+-- It also allows the supplied function to provide Nothing, indicating no
+-- client.
+mkComputedClientIO :: (x -> IO (Maybe (Client d))) -> IO (Client d,x -> IO ())
+mkComputedClientIO getClient =
+   do
+      mVar <- newEmptyMVar
+      let
+         client = Client clientFn
+
+         clientFn d =
+            do
+               x <- takeMVar mVar
+               clientOpt <- getClient x
+               case clientOpt of
+                  Nothing -> return Nothing
+                  Just (Client realClientFn) -> realClientFn d
       return (client,putMVar mVar)
 
 ---
@@ -433,6 +491,41 @@ foldClient state1 foldFn (Client clientFn2) =
    in
       Client clientFn1
 
+stepSource :: (x -> d2) -> (d1 -> d2) -> Source x d1 -> Source x d2
+stepSource fromX fromD (Source addClient1) =
+   let
+      addClient2 (Client clientFn2) =
+         do
+            let
+               computeClient x = clientFn2 (fromX x)
+            (computedClient,setX) <- mkComputedClientIO computeClient
+            x <- addClient1 ((coMapClient fromD) computedClient)
+            setX x
+            return x
+   in
+      Source addClient2 
+
+---
+-- A Source combinator which "flattens" lists of updates.
+flattenSource :: Source x [d] -> Source x d
+flattenSource (Source addClient1) =
+   let
+      addClient2 client1 = addClient1 (flattenClient client1)
+   in
+      (Source addClient2)
+
+flattenClient :: Client d -> Client [d]
+flattenClient client0 = Client (mkClientFn client0)
+   where
+      mkClientFn :: Client d -> [d] -> IO (Maybe (Client [d]))
+      mkClientFn client0 [] = return (Just (flattenClient client0))
+      mkClientFn (Client clientFn1) (d:ds) =
+         do
+            client1Opt <- clientFn1 d
+            case client1Opt of
+               Nothing -> return Nothing
+               Just client2 -> mkClientFn client2 ds
+
 -- -----------------------------------------------------------------
 -- Combinators
 -- -----------------------------------------------------------------
@@ -515,6 +608,9 @@ newtype SimpleSource x = SimpleSource (Source x x)
 staticSimpleSource :: x -> SimpleSource x
 staticSimpleSource x = SimpleSource (staticSource x)
 
+staticSimpleSourceIO :: IO x -> SimpleSource x
+staticSimpleSourceIO act = SimpleSource (staticSourceIO act)
+
 instance Functor SimpleSource where
    fmap mapFn (SimpleSource source) = 
       SimpleSource ( (map1 mapFn) . (map2 mapFn) $ source)
@@ -550,6 +646,19 @@ instance HasSimpleSource (SimpleSource x) x where
 instance HasSource (SimpleSource x) x x where
    toSource (SimpleSource source) = source
 
+-- -----------------------------------------------------------------
+-- The readContents function
+-- -----------------------------------------------------------------
+
+---
+-- Get the current contents of the source, but don't specify any other
+-- action.
+readContents :: HasSource source x d => source -> IO x
+readContents hasSource =
+   let
+      trivialClient = Client (\ _ -> return Nothing)
+   in   
+      attachClient trivialClient (toSource hasSource)
 
 -- -----------------------------------------------------------------
 -- Instance of CanAddSinks
@@ -570,14 +679,6 @@ instance HasSource hasSource x d => CanAddSinks hasSource x d where
                      else
                         Nothing
                      )
-         attachClient client (toSource hasSource)
-
-   readContents hasSource =
-      do
-         let
-            client = Client clientFn
-
-            clientFn _ = return Nothing
          attachClient client (toSource hasSource)
 
 -- -----------------------------------------------------------------
@@ -629,8 +730,7 @@ mkHistorySimpleSource :: x -> SimpleSource x -> SimpleSource (x,x)
 mkHistorySimpleSource lastX (SimpleSource source) =
    SimpleSource (map1 (\ x -> (lastX,x)) (mkHistorySource id source))
 
----
--- filter out consecutive duplicates
+-- | filter out consecutive duplicates
 uniqSimpleSource :: Eq x => SimpleSource x -> SimpleSource x
 uniqSimpleSource (SimpleSource source0) =
    let
@@ -639,3 +739,31 @@ uniqSimpleSource (SimpleSource source0) =
          source1
    in
       SimpleSource source2
+
+
+-- | replaces the first value of the SimpleSource.
+change1 :: SimpleSource x -> x -> SimpleSource x
+change1 (SimpleSource source) x = SimpleSource (map1 (\ _ -> x) source)
+
+-- | Run the specified actions for the source, using the given SinkID and
+-- in the ParallelExec thread.
+-- The x -> IO () action is guaranteed to be performed before any of the
+-- d -> IO () actions.
+addNewSourceActions :: Source x d -> (x -> IO ()) -> (d -> IO ()) 
+   -> SinkID -> ParallelExec -> IO x
+addNewSourceActions (source1 :: Source x d) actionX actionD sinkID parallelX =
+   do
+      mVar <- newEmptyMVar -- used to return the first x value
+      let
+         actionX' x = 
+            do
+               putMVar mVar x
+               actionX x
+
+         (source2 :: Source x (IO ())) = stepSource actionX' actionD source1
+      addNewQuickSinkGeneral 
+         source2 
+         (\ action -> parallelExec parallelX action)
+         sinkID
+      takeMVar mVar
+

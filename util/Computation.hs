@@ -70,7 +70,9 @@ module Computation (
         -- we concatenate the errors, inserting a newline between them if 
         -- there are two.
         coerceWithError, -- :: WithError a -> a
+        coerceWithErrorIO, -- :: WithError a -> IO a
         -- get out result or throw error.
+        -- The second throws the error immediately.
 
         MonadWithError(..),
         -- newtype which wraps a monadic action returning a WithError a.
@@ -81,6 +83,11 @@ module Computation (
         coerceWithErrorOrBreak, -- :: (String -> a) -> WithError a -> a
         -- coerce or use the supplied break function (to be used with 
         -- ExtendedPrelude.addFallOut)
+
+        coerceWithErrorOrBreakIO, -- :: (String -> a) -> WithError a -> IO a
+        -- coerce or use the supplied break function (to be used with 
+        -- ExtendedPrelude.addFallOut)
+        -- The value is evaluated immediately.
 
         concatWithError, -- :: [WithError a] -> WithError [a]
         -- like pair but using lists.
@@ -195,6 +202,20 @@ pairWithError (Error e) (Error f) = Error (e++"\n"++f)
 coerceWithError :: WithError a -> a
 coerceWithError (Value a) = a
 coerceWithError (Error err) = error err
+
+coerceWithErrorIO :: WithError a -> IO a
+coerceWithErrorIO (Value a) = return a
+coerceWithErrorIO (Error err) = error err
+
+-- | coerce or use the supplied break function (to be used with 
+-- ExtendedPrelude.addFallOut)
+-- The value is evaluated immediately.
+coerceWithErrorOrBreakIO :: (String -> a) -> WithError a -> IO a
+coerceWithErrorOrBreakIO breakFn aWe =
+   do
+      let
+         a = coerceWithErrorOrBreak breakFn aWe
+      seq a (return a)
 
 -- coerce or use the supplied break function (to be used with 
 -- ExtendedPrelude.addFallOut)
