@@ -52,7 +52,7 @@ main = do
 -- This funtion calls the full drawTree function
 drawTree2 tlp can = do
 	num <- getNumberElementsIO tlp
-	can2 <- newCanvas [background "white", size (cm 10 ,cm ((num*0.5)+0.5))]
+	can2 <- newCanvas [background "white", size (cm 10 ,cm ((num*0.51)+0.51))]
 	ecan <- newEmbeddedCanvasWin can2 [parent can, position (cm 5, cm 5)]
 	drawTree tlp can2 (cm 0.5, cm 0.5) tlp can
 	
@@ -108,8 +108,8 @@ drawSiblingTrees (tlp:tlps) can (x,y) tlpstatic canstatic =
 	if (tlps == []) then (do drawTree tlp can (x,y) tlpstatic canstatic)
 	else (do drawTree tlp can (x,y) tlpstatic canstatic
 		 num <- getNumberOpenElementsIO tlp
-		 l <- newLine [coord [(x,y),(x,(y+(cm (num*0.5))))],outlinewidth (mm 0.25), filling "black", parent can]
-		 drawSiblingTrees tlps can (x,(y+(cm (num*0.5)))) tlpstatic canstatic)
+		 l <- newLine [coord [(x,y),(x,(y+(cm (num*0.51))))],outlinewidth (mm 0.25), filling "black", parent can]
+		 drawSiblingTrees tlps can (x,(y+(cm (num*0.51)))) tlpstatic canstatic)
 
 -- This function outputs the contents of the clicked folder to a terminal
 -- window
