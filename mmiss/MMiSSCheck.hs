@@ -125,11 +125,11 @@ mmissCheck view link =
                 fullXmlFile = (trimDir workingDir) `combineNames` xmlFile
 
             -- Export needed attached graphics files.
-            exportFiles view fullXmlFile expFiles
+            exportFiles view workingDir expFiles
 
             -- Write the String to a file.
             copyStringToFile contents fullXmlFile
- 
+
             -- run the checker
             runChecker "MMiSS Consistency Checker" "mmisschecker" 
 		       workingDir [xmlFile]
