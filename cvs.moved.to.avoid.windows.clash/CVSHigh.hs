@@ -120,15 +120,16 @@ cvsError mess =
 
 -- tryCVS is wrapped around the entire processing of a CVS process
 -- represented by Expect and returns the result or CVS error as
--- appropriate.
-tryCVS :: Expect -> IA a -> IO (Maybe a,CVSReturn)
-tryCVS exp event =
+-- appropriate. 
+-- The first argument is a name to be added to error messages.
+tryCVS :: String -> Expect -> IA a -> IO (Maybe a,CVSReturn)
+tryCVS mess exp event =
    do
       result <- tryIO isCVSError (sync event)
       status <- getToolStatus exp
       case result of
          Left errorMess -> 
-            return (Nothing,toCVSReturn (Just errorMess) status)
+            return (Nothing,toCVSReturn (Just (mess++": "++errorMess)) status)
          Right value ->
             return (Just value,toCVSReturn Nothing status)
    where
@@ -198,7 +199,7 @@ cvsAdd (CVSLoc globalOptions) file =
       exp <- callCVS globalOptions
          (Add{file=file})
       
-      (_,result) <- tryCVS exp
+      (_,result) <- tryCVS "cvs add" exp
          (do
             guard exp ((match exp fileAdded) +> (match exp directoryAdded))
             mustEOFHere exp
@@ -274,7 +275,7 @@ done
                return ???
     -}
       -- (back to main "do" in cvsCommit function)
-      tryCVS exp (guard exp (event1 +> event2))
+      tryCVS "cvs commit" exp (guard exp (event1 +> event2))
 
 cvsUpdate :: CVSLoc -> CVSFile -> CVSVersion -> IO CVSReturn
 cvsUpdate (CVSLoc globalOptions) file version =
@@ -285,7 +286,7 @@ cvsUpdate (CVSLoc globalOptions) file version =
       -- nothing (if the file is already in the directory in this version)
       --   or
       -- P (filename)
-      (_,result) <- tryCVS exp(
+      (_,result) <- tryCVS "cvs update" exp(
             (do
                match exp (high "\\`[PU] ")
                mustEOFHere exp
@@ -358,7 +359,7 @@ cvsListVersions (CVSLoc globalOptions) file =
                preamble
                body []
 
-      tryCVS exp logOutput
+      tryCVS "cvs log" exp logOutput
       
 
 
