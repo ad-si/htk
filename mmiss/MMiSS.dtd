@@ -337,7 +337,7 @@
 
 <!ELEMENT  summary  (%m.summary.mix;)*>
 <!ATTLIST  summary  %all-attributes;>
-<?MMiSSDisplay summay : Green box ?>
+<?MMiSSDisplay summary : Green box ?>
 
 <!ELEMENT  example  (%m.example.mix;)*>
 <!ATTLIST  example  %all-attributes;>
