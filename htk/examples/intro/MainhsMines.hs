@@ -268,8 +268,8 @@ run htk currentSize =
           (startClick >>> start
         +> quitClick >>> destroy htk
         +> choose [csr1, csr2, csr3, csr4, csr5] >>> 
-             createMessageWin "Changes come into effect 
-               after \"Restart\"." []))
+             createMessageWin ("Changes come into effect\n" 
+               ++ "after \"Restart\".") []))
 
     -- the restart handler (note no forever!)
     spawnEvent (restartClick >>> 

@@ -103,5 +103,4 @@ main =
                                           putStrLn "state imported")))
     finishHTk
 
-folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
-1UV+qjB659uWkBlj9tIBw873BQA7"]
+folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ1UV+qjB659uWkBlj9tIBw873BQA7"]

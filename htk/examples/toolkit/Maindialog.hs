@@ -84,8 +84,8 @@ main =
  
   clickedbut7 <- clicked but7
   spawnEvent (forever (clickedbut7 >>>
-    createWarningWin "Please extinguish all cigarettes and switch off
-all mobile phones." []))
+    createWarningWin ("Please extinguish all cigarettes and switch off \n"
+       ++ "all mobile phones.") []))
  
   clickedbut8 <- clicked but8
   spawnEvent (forever (clickedbut8 >>>

@@ -150,7 +150,7 @@ bytesReAlloc (Bytes ptr1) newLen0 =
 #if (__GLASGOW_HASKELL__ == 600)
             max 1 newLen0
 #else
-            newLen
+            newLen0
 #endif
       ptr2 <- reallocBytes ptr1 newLen
       return (Bytes ptr2)

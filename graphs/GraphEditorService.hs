@@ -103,7 +103,7 @@ instance ServiceClass
          (GraphConnectionData {
             graphState = graphState,
             deRegister = deRegister,
-            graphUpdate = graphUpdate,
+            graphUpdate = graphUpdate
             }) <- shareGraph graph (\ update -> done)
 
          -- Avoid wasting a branch number

@@ -206,7 +206,7 @@ addNewObjectType (displayedView @ DisplayedView {
       view = view,
       allDisplayedObjectTypes = allDisplayedObjectTypes,
       allTopLinksSet = allTopLinksSet,
-      wrappedDisplayType = wrappedDisplayType,
+      wrappedDisplayType = wrappedDisplayType
       }) wrappedObjectType =
    do
       topLinks <- addNewObjectTypeInner graph view allDisplayedObjectTypes

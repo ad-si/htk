@@ -1054,7 +1054,7 @@ instance ArcTypeParms DaVinciArcTypeParms where
    emptyArcTypeParms = DaVinciArcTypeParms {
       arcAttributes = emptyAttributes,
       configArcDoubleClickAction = const done,
-      configArcText = const (return (staticSimpleSource "")),
+      configArcText = const (return (staticSimpleSource ""))
       }
 
    invisibleArcTypeParms = InvisibleArcTypeParms
