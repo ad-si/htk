@@ -5,6 +5,7 @@ PACKAGES = uni-htk
 SRCSLHS       = Mainsimple1.lhs \
                 Mainsimple2.lhs \
 		Mainlist.lhs \
+	        Mainentry.lhs\
 		Mainmenu.lhs \
                 MainHsMines.lhs
 

@@ -3,7 +3,7 @@
 
 \subsubsection{Scrollbars}
   
-  I assume the esteemed reader has already seen a scrollbar. In HTk
+  I assume the esteemed reader has already seen a scrollbar. In \HTk
   (and Tk), once you created a scrollbar you will need to connect it
   to the widget you want to scroll. This is done with the class
   \href{ScrollBar.html#ScrollBar.HasScroller}{HasScroller}: you create
@@ -19,22 +19,24 @@
   which you can select one. Listboxes can be scrollable, which is most
   helpful since they can hold more items than are visible at a given
   time.  
-
-  In HTk, list boxes are a polymorphic type, created with the
-  following function. The contents of a list box are accessed and set
-  with the configuration from the class
-  \href{Configuration.html#Configuration.HasValue}: \begin{xcode}
+  
+  Just like entries, list boxes are a polymorphic type, created with
+  the function \texttt{newListBox} with the by now familiar signature.
+  As opposed to entries, list boxes (quite obviously) have lists of
+  values:
+\begin{xcode}
   instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a]
-  \end{xcode} When the user selects something from the the listbox,
-  Tk's selection is set, which can be queried with the methods of the
-  module \href{Selection.html}{\texttt{Select}}, in particular
-  \texttt{getSelection}.\footnote{Yes, the selection classes are a bit
-  over the top.} No event is generated --- if you want that, you need
-  to bind the left mouse button (which generates the selection).
+\end{xcode}
+When the user selects something from the the listbox, Tk's selection
+is set, which can be queried with the methods of the module
+\href{Selection.html}{\texttt{Select}}, in particular
+\texttt{getSelection}. No event is generated \textit{per se} --- if
+you want that, you need to bind the left mouse button (which generates
+the selection).
 
   Here is a short example which demonstrates the usage of listboxes,
   selections and scrollbars. Note the type constraint on the
-  newListBox below --- we need this to force the type to
+  \texttt{newListBox} below --- we need this to force the type to
   \texttt{String}, since it can not be inferred.
 
 \begin{code}
@@ -67,7 +69,7 @@ main =
 
 The position of entries in a list box can be indexed with instances of
 the class \texttt{HasIndex}. For more on indices, see
-Section~\ref{ssec:indices}), but the important instances here are
+Section~\ref{ssec:indices}, but the important instances here are
 \begin{xcode}
 instance HasIndex (ListBox a) Int Int
 instance HasIndex (ListBox a) EndOfText Int

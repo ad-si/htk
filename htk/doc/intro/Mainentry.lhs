@@ -1,7 +1,8 @@
 \subsubsection{Entry}
 
 An \emph{entry box} is a box which contains one editable line of
-text. If is used to input short texts, such as a name. 
+text. If is used to input short texts, such as a name and a credit
+card number.
 
 As opposed to previous widgets, entries are a polymorph over the type
 of values they are supposed to hold and edit, hence an entry is
@@ -12,9 +13,9 @@ created with
 \end{xcode}
 
 The current state of the input is the \emph{value} of the entry; it is
-manipulated with the functions of class \texttt{HasValue}. Note that
-the values need not be strings, but must be an instance of
-\texttt{GUIValue}. 
+accessed and set with the configuration from the class
+\href{Configuration.html#Configuration.HasValue}. Note that the values
+need not be strings, but must be an instance of \texttt{GUIValue}.
 
 Tk only provides the basic editing functions for entry widgets. If you
 want to read the value of the entry when the return key is pressed,
@@ -38,7 +39,7 @@ main =
 
      f <- newFrame main []
      l <- newLabel f [text "Rename: "]
-     e <- (newEntry f [value ""])::IO (Entry String)
+     e <- (newEntry f [value "", width 20])::IO (Entry String)
 
      (entered, _) <-
        bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
@@ -47,9 +48,11 @@ main =
      pack l [PadX 10, Side AtLeft]
      pack e [PadX 10, Side AtRight]
 
-     spawnEvent (forever (entered >>> do txt <- (getValue e) :: IO String
-                                         e # value ""
-                                         main # text txt >> done))
+     spawnEvent 
+      (forever 
+        (entered >>> do txt <- (getValue e) :: IO String
+                        e # value ""
+                        main # text txt >> done))
 
      finishHTk  
 \end{code}
@@ -60,8 +63,8 @@ widget in the sense that the variable always holds the entry's state.
 The advantage of this approach is that we can share values across
 widgets (see \texttt{Mainhello3.hs} in \texttt{examples/simple}).
 
-There was a way to specify the maximal length of the text to be input,
-but I have forgotten how. \texttt{TBD!} 
+% There was a way to specify the maximal length of the text to be input,
+% but I have forgotten how. Erh, revisiting Welch-- was there?
 
 Finally, entry widgets implement the quite flexible indexing and
 selection classes (see Sect.~\ref{ssec:indices} and

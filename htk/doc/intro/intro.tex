@@ -8,6 +8,21 @@
 \usepackage{hyperref}
 \usepackage{graphicx}
 
+%%% -- Useful macros ----------------------------------------------------
+
+%% The code environment typesets its contents verbatim.
+\def\code{\verbatim}
+\def\endcode{\endverbatim}
+%% Same typesetting as code, but different name; this is
+%% for code you do not want to show up in literal scripts. 
+%% (i.e. the code with syntax errors in it :-)
+\def\xcode{\verbatim}
+\def\endxcode{\endverbatim}
+%% Code snippets in the text:
+% \def\codetxt{\textcolor{codecol}\verb} %% hmm...
+% \let\MMTextTT=\texttt{}
+% \renewcommand{\texttt}[1]{\textcolor{codecol}{\MMTextTT{#1}}}
+
 
 %%% -- Configuration ----------------------------------------------------
 
@@ -32,22 +47,19 @@
  }
 \fi
 
+%
+% Layout
+%
 
-%%% -- Useful macros ----------------------------------------------------
+% no parindent
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1ex}  
 
-%% The code environment typesets its contents verbatim.
-\def\code{\verbatim}
-\def\endcode{\endverbatim}
-%% Same typesetting as code, but different name; this is
-%% for code you do not want to show up in literal scripts. 
-%% (i.e. the code with syntax errors in it :-)
-\def\xcode{\verbatim}
-\def\endxcode{\endverbatim}
-%% Code snippets in the text:
-% \def\codetxt{\textcolor{codecol}\verb} %% hmm...
-% \let\MMTextTT=\texttt{}
-% \renewcommand{\texttt}[1]{\textcolor{codecol}{\MMTextTT{#1}}}
-
+% wider page
+\addtolength{\textwidth}{2cm}
+\addtolength{\evensidemargin}{-1cm} 
+\addtolength{\oddsidemargin}{-1cm}
+                                                   
 
 \title{A Short Introduction to \HTk \\
   Graphical User Interfaces for Haskell}
@@ -64,71 +76,91 @@
 \ifx\pdfoutput\undefined\maketitle
 \else\includegraphics[width=\textwidth]{img/intro-title}\fi
 
+\begin{abstract}
+  This paper introduces the basics of \HTk, a toolkit to build
+  graphical user interfaces (GUIs) in Haskell. \HTk{} is based on an
+  encapsulation of Tcl/Tk \cite{Ousterhout,Welch}, but we will not
+  assume any previous knowledge of Tcl/Tk. The article is meant as a
+  rough guide and introduction to the structure of \HTk; it is not
+  meant as a complete reference manual. Rather, it should give readers
+  enough information and background to get them started on their first
+  \HTk programs, to know which parts of \HTk might be potentially useful
+  in the applications they have in mind, what is feasible to build
+  with \HTk and what not, and finally to enable them to find further
+  information quickly in the reference material.
+\end{abstract}
+
+\ifx\pdfoutput\undefined\relax\else\pagebreak\fi
+
 \section{Getting Started}
 
-This article is an introduction to the basics of \HTk, a toolkit to
-build graphical user interfaces (GUIs) in Haskell. \HTk{} is based on
-an encapsulation of Tcl/Tk \cite{Ousterhout,Welch}, but we will not
-assume any previous knowledge of Tcl/Tk. The article is meant as a
-rough guide and introduction to the structure of HTk; it is not meant
-as a complete reference manual. Rather, it should give readers enough
-information and background to get them started on their first HTk
-programs, to know which parts of HTk might be potentially useful in
-the applications they have in mind, what is feasible to build with HTk
-and what not, and finally to enable them to find further information
-quickly in the \href{index.html}{online reference material}. 
-
+\subsection*{How to Read This Document}
 For maximum benefit, you should read this text in its PDF incarnation,
 and enable your acrobat reader to display weblinks (menu
 \texttt{File}, submenu \texttt{Preferences}, submenu
-\texttt{Weblink}). If you have configured HTk correctly, then the
+\texttt{Weblink}). If you have configured \HTk correctly, then the
 hyperlinks in this document should display the corresponding online
-material; \href{index.html}{this should take you to the index page.}
+reference material; \href{index.html}{this should take you to the
+  index page}. The online reference material can also be found in
+\texttt{htk/doc/hdoc}.
 
 \subsection{Basics}
 
 When we design and implement a graphical user interface, we have to
-take two aspects into account: the \emph{static} aspect, 
-which is to specify its appearance (which buttons to place where, what
-menues to display, etc.), and the \emph{dynamic} aspect, which
-specifies its behaviour in reaction to the user's actions. 
+take two aspects into account: the \emph{static} aspect, which
+specifies its appearance (which buttons to place where, what menues to
+display, etc.), and the \emph{dynamic} aspect, which specifies its
+behaviour in reaction to the user's actions. The two can be
+interlinked: as a reaction to the user's action, the graphical user
+interface may change its appearance.
 
-In \HTk, these two aspects are modelled by \emph{monads}. The dynamic
+In \HTk, these two aspects are modelled by \emph{monads}. The static
 aspect is modelled in the \texttt{IO} monad, where all of Haskell's
 external interactions takes place. The dynamic aspect is modelled by
 \emph{events}. For a more complete description of events, we refer to
-\cite{ger:Events}. For the time being, events are an abstract datatype
-with two main operations.
+\cite{ger:Events}. For the time being, events are a monad with two
+main operations.
 
-The central operation is \texttt{sync :: Event a-> IO a} which holds
+The central operation is 
+\begin{verbatim}
+sync :: Event a-> IO a
+\end{verbatim}
+which holds
 the current thread until an event of type \texttt{Event a} occurs.
-Further, \texttt{(>>>=) :: Event a-> (a-> IO b)-> Event b} takes an
-event and an IO action, and returns an event, which when we sync on it
+The basic events will be user interactions, such as clicking a button.
+The event monad's composition corresponds to event sequencing: we wait
+for one event, then for the next, and so on.
+The other main operation
+\begin{verbatim}
+always :: IO a-> Event a 
+\end{verbatim}
+makes an \texttt{IO} action into an event which when we \texttt{sync}
+on it performs the \texttt{IO} action. Thus, we can build the
+derived operation 
+\begin{verbatim}
+(>>>=) :: Event a-> (a-> IO b)-> Event b
+e >>>= f = e >>= always. f
+\end{verbatim}
+which takes an event, which when we sync on it
 performs the IO action after successful synchronisation. As with the
 monad composition, \texttt{(>>>)::Event a-> IO b-> Event b} is the
 derived version where the second function throws away its argument.
 
-We can thus prove $fmemoiemfoe$
-\begin{itemize}
-\item wergrewg
-\begin{code}
-f x y 
-\end{code}
-\end{itemize}
-
-Moreover, events form a monad, which allows us to build complex
-behaviour from basic behaviours in a compositional way by the monad's
-composition.
-
-Events are always embedded in the \texttt{IO} monad with the
-\texttt{sync} operation. That the dynamic behaviour is not modelled
-with \texttt{IO} actions directly reflects the fact that user
-interaction in a graphical user interface is different from other
-forms of IO, because it happens \emph{asynchronously}.
+That the dynamic behaviour is not modelled with \texttt{IO} actions
+directly reflects the fact that user interaction in a graphical user
+interface is different from other forms of IO, because it happens
+\emph{asynchronously}.
 
 Further, events allow the user interface to be concurrent in a natural
 and controlled way, which allows for a reasonable degree of
-concurrency which is still tractable.
+concurrency which is still tractable; the function
+\begin{verbatim}
+spawnEvent :: Event () -> IO (IO ())
+\end{verbatim}
+spawns a concurrent thread which syncronises on the given event. As we
+will see below, a single event can describe quite complex
+behaviour. The \texttt{IO} action returned kills the concurrent
+thread; most of the time, we will not need this.
 
 \input{Mainsimple1.lhs}
 
@@ -136,26 +168,28 @@ concurrency which is still tractable.
 
 \subsection{Structure of this Paper}
 
-The rest of this short paper is organized as follows: we will first
+The rest of this paper is organized as follows: we will first
 explain the organization of the datatypes modelling the static
 behaviour of the graphical user interface. In
 section~\ref{sec:events}, we will describe events and in particular
 how to generate them from user input. After this, we will describe
 every widget in detail.
 
-
 \section{Elements of \HTk}
 
 In general, \HTk has a couple of abstract datatypes used to model
 elements of the graphical user interface, such as buttons, menues,
-short text fields, longer text fields and so on. Let us examine the
-buttons used in Section~\ref{ssec:ex1} above. There is an abstract
-datatype \texttt{Button}, created with the following function
+short text fields, longer texts, and so on. Recall from
+Section~\ref{ssec:ex1} above that there is an abstract datatype
+\texttt{Button}, elements of which are created with the function
 \begin{xcode}
 newButton :: Container par=> par-> [Config Button]-> IO Button
 \end{xcode}
-
-Let us first examine the class \texttt{Container}. 
+This takes a parent GUI element, and a list of configurations as
+parameter. We will first examine the class \texttt{Container}, which
+models the GUI element hierarchy, and then the configurations,
+followed by resources such as fonts and colours. At the end of this
+section, we explain packing.
 
 \subsection{The GUI element hierarchy and the \texttt{Container} class.}
 
@@ -168,42 +202,19 @@ Instances of \texttt{Container} include \texttt{Toplevel} (windows),
 
 The class \texttt{Container} is \emph{abstract} --- it has no class
 functions, and only serves to structure the code. Abstract classes are
-used frequently in HTk to impose a typing discipline onto Tk's untyped
+used frequently in \HTk to impose a typing discipline onto Tk's untyped
 GUI element structure, with the benefit that type checking can prevent
 run time errors.
 
-\subsection{Configurations and Resources}
+\subsection{Configurations}
 
 Above, the text of the button was set with a \emph{configuration
   option}. Configuration options determine various attributes of a
 widget. They can be given at the time of creation, or changed later
-on. Not every widget supports all configurations, and this behaviour
-is modelled in HTk by Haskell's type classes: configurations in
-general are polymorphic over all widgets, but particular
-configurations are restricted to certain classes of widgets.
-
-For example, the text configuration is given by this class:
-\begin{xcode}
-class (GUIObject w, GUIValue v) => HasText w v where
-  text :: HasText w v => v -> Config w
-  getText :: HasText w v => w -> IO v
-\end{xcode}
-The class \texttt{GUIObject w} is one of HTk's most basic classes. Its
-instances are widgets, and other interface elements we will encounter
-later (canvas items, text tags). \texttt{GUIValue v} is another basic
-class, the instances of which are all basic datatypes which can be
-communicated to Tk: \texttt{Int}, \texttt{Double}, \texttt{Bool},
-\texttt{String} and \texttt{[String]}. 
-
-Widgets can be configured with a text are instances of the class
-\texttt{HasText}, such as \texttt{Button}. 
-
-The configuration classes can all be found in the module
-\href{Configuration.html}{\texttt{Configuration}}.
-
-The configuration type is just a type synonym\footnote{Type synonyms
+on. In general, the configuration type is just a type
+synonym\footnote{Type synonyms 
   like that in class confusions confuse Hdoc, which is why they appear
-  expanded at various places of HTk's source code--- just in case you
+  expanded at various places of \HTk's source code--- just in case you
   happen to browse it, which you are more than welcome to.}
 \begin{xcode}
 type Config w = w -> IO w
@@ -215,15 +226,35 @@ provides useful syntactic sugar:
 ( # ) :: a -> (a -> b) -> b
 o # f = f o  
 \end{xcode}
+Some configurations are only supported by one particular widget, and
+thus are a simple monomorphic function. However, most configurations
+are supported by many, but not all widgets, and each configuration by
+different ones, and this behaviour is modelled in \HTk by type
+classes. The configuration classes can all be found in the module
+\href{Configuration.html}{\texttt{Configuration}}. For example, the
+text configuration is given by this class:
+\begin{xcode}
+class (GUIObject w, GUIValue v) => HasText w v where
+  text :: HasText w v => v -> Config w
+  getText :: HasText w v => w -> IO v
+\end{xcode}
+The class \texttt{GUIObject w} is one of \HTk's most basic classes.
+Its instances are widgets, and other interface elements we will
+encounter later (canvas items, text tags, windows). \texttt{GUIValue
+  v} is another basic class, the instances of which are all basic
+datatypes which can be communicated to Tk: \texttt{Int},
+\texttt{Double}, \texttt{Bool}, \texttt{String} and \texttt{[String]}.
+Now, all widgets can be configured with a text are instances of the
+class \texttt{HasText}, such as \texttt{Button}.
 
-Note the difference between configuration options, which determine the
-appearance, and behaviour of the widget, and packing options, which
-determine the way it is packed. 
+
+
+\subsection{Resources}
 
 \subsubsection{Geometry}
 
 The abstract data type \texttt{Distance}, implemented in the module
-\href{Geometry.html}{\texttt{Geometry}}, represents distances in HTk.
+\href{Geometry.html}{\texttt{Geometry}}, represents distances in \HTk.
 Distances can be specified in \texttt{cm}, \texttt{mm}, \texttt{ic}
 (inches) and \texttt{pp} (points), with functions  \texttt{cm:: Int->
   Distance}. Moreover, \texttt{Distance} is an instance of
@@ -268,12 +299,12 @@ fonts to be specified in a flexible manner by overloading. This is
 used whenever a font has to be specified, e.g. in a text tag or as a
 configuration for a label widget. Its main instances are the following:
 \begin{xcode}
-instance FontDesignator FontFamily where
-instance FontDesignator (FontFamily,Int) where
-instance FontDesignator (FontFamily,FontWeight,Int) where
-instance FontDesignator (FontFamily,FontSlant,Int) where
-instance FontDesignator String where
-instance FontDesignator XFont where
+instance FontDesignator FontFamily 
+instance FontDesignator (FontFamily,Int) 
+instance FontDesignator (FontFamily,FontWeight,Int) 
+instance FontDesignator (FontFamily,FontSlant,Int) 
+instance FontDesignator String 
+instance FontDesignator XFont 
 \end{xcode}
 The first three allows fonts to be specified by the font family, plus
 the size, plus the weight or the slant, respectively; the second from
@@ -285,7 +316,8 @@ the last an X-style specification as an abstract datatype.
 Be warned that fonts are, in principle, not very portable under X,
 since the available fonts are determined by the fonts of the X server
 the programm is running on. It is best to stick to well-known font
-families such as the above, and usual sizes. 
+families such as the above, and usual sizes. (So, no \texttt{clearlyu
+  alternate glyphs} in 144 pixels.)
 
 \subsection{Packing}
 
@@ -296,13 +328,20 @@ As mentioned above, after widgets have been created (with e.g.
 after they have been packed. One can use this effect by first creating
 lots of widgets, and then packing them in one go, lessening the
 unpleasant flicker effect occuring when the GUI is built one interface
-at a time.\footnote{Unfortunately, this effect cannot be totally
-  eliminated.}
+at a time. To minimize the flickering further, use the function
+\begin{xcode}
+delayWish :: IO a-> IO a
+\end{xcode}
+which delays all \texttt{Tk} commands in the argument, and performs
+them at once. The argument then consists of a sequence of
+\texttt{pack} commands. Unfortunately, the flickering effect cannot be
+totally eliminated.
+
 
 Packing in particular determines the visual layout of the GUI by the
 order in which the widgets are packed, and by packing options. Tk's
 know different packing algorithms (or \emph{geometry managers}, in Tk
-parlance); of these, HTk supports the standard packer, and the grid
+parlance); of these, \HTk supports the standard packer, and the grid
 packer.
 
 
@@ -318,21 +357,22 @@ The datatype
 \href{PackOptions.html#PackOptions.PackOption}{PackOption}
 is defined as 
 \begin{xcode}
-  data PackOption = Side SideSpec  | Fill FillSpec 
-                  | Expand Toggle  | Anchor Anchor
-                  | IPadX Distance | IPadY Distance
-                  | PadX Distance  | PadY Distance
+data PackOption = Side SideSpec  | Fill FillSpec 
+                | Expand Toggle  | Anchor Anchor
+                | IPadX Distance | IPadY Distance
+                | PadX Distance  | PadY Distance
 \end{xcode}
 The first two constructors are most important here. The
-\href{PackOptions.html#PackOptions.SideSpec}{SideSpec}
-specifies where the widget is packed (top, bottom, left, right)e, and
-\href{PackOptions.html#PackOptions.FillSpec}{FillSpec}
-specifies in which direction it expands to fill the available space.
-Bear in mind that widgets are packed as tight as possible (in
-particular into windows), and that once packed, they are never
-repacked. That is, if e.g. a widget is packed against the top, it will
-sit in the middle (if no \texttt{Fill X} is specified), and will not
-move if a widget is packed against the right-hand side.
+\href{PackOptions.html#PackOptions.SideSpec}{SideSpec} specifies where
+the widget is packed (top, bottom, left, right)e, and
+\href{PackOptions.html#PackOptions.FillSpec}{FillSpec} specifies in
+which direction it expands to fill the available space.  Bear in mind
+that widgets are packed as tight as possible, and that once packed,
+they are never repacked, moved or resized. That is, if e.g. a widget
+is packed against the top, it will sit in the middle (if no
+\texttt{Fill X} is specified), and will not move if a widget is packed
+against the right-hand side, although the window may be increased in
+size to make a new widget fit.
 
 \texttt{Expand} just means that the widget expands when the containing
 element is expanded (i.e. the window is resized), and \texttt{Anchor}
@@ -369,7 +409,7 @@ packing for this container.
 
 In general, events are an abstract datatype for communication and
 synchronisation, much in the spirit of process algebras such as CCS
-\cite{Milner:CommunicationConcurrency}, CSP \cite{Hoare,Roscoe} or
+\cite{Milner:CommunicationConcurrency}, CSP \cite{Roscoe} or
 the $\pi$ calculus \cite{Milner:PiCalculus}. Here, an 
 \href{Events.html}{\texttt{Event}} is
 an abstract datatype with operations such as \texttt{sync},
@@ -382,12 +422,12 @@ clicking a button), we set it up to produce an event, on which we can
 synchronise and thus produce a reaction to the user's action.
 
 One important caveat here is that once you set up a binding, you
-\emph{must} eventually synchronise on the resulting events, since
+\emph{must} eventually \emph{synchronise} on the resulting events, since
 otherwise the unused events will pile up and result in a memory leak.
 
 Bindings are generated by calling one of \texttt{clicked},
 \texttt{bindSimple} and \texttt{bind}, where \texttt{bind} is most
-flexible, which shows up in the type.
+flexible, as can be seen by its complex type.
 
 \subsection{Simple Clicks}
 Simple interface elements such as buttons and menu entries which
@@ -397,19 +437,32 @@ Simple interface elements such as buttons and menu entries which
 \begin{xcode}    
 clicked :: HasCommand w => w -> IO (Event ())
 \end{xcode} 
-  The event here occurs when the element is clicked. The event does
-  not have any additional information. 
+The event here occurs when the element is clicked. The event does
+not have any additional information. 
 
 \subsection{Simple Binds}
 For all GUI elements, the function
   \href{HTk.html#HTk.bindSimple}{\texttt{bindSimple}} 
 \begin{xcode}    
-bindSimple::GUIObject wid => wid -> WishEventType -> IO (Event (), IO ())
+bindSimple::GUIObject wid => wid -> WishEventType 
+                                 -> IO (Event (), IO ())
 \end{xcode}
 where \href{HTk.html#HTk.WishEventType}{\texttt{WishEventType}} is an
 algebraic data type describing the kind of event we would like to bind
 to, much along the lines of Tk's events which in turn are given by X
-events. Each constructor corresponds to a different event, such as
+events:
+\begin{xcode}
+data WishEventType =
+   Activate | 
+   ButtonPress (Maybe BNo) | ButtonRelease (Maybe BNo) | 
+   Circulate |
+   Colormap | Configure | Deactivate | Destroy | Enter | Expose |
+   FocusIn | FocusOut | Gravity | 
+   KeyPress (Maybe KeySym) | KeyRelease (Maybe KeySym)|
+   Motion | Leave | Map | Property | Reparent | Unmap | 
+   Visibility deriving (Show,Eq,Ord)   
+\end{xcode}
+Each constructor corresponds to a different event, such as
 \begin{itemize}
 \item mouse buttons pressed and released (\texttt{ButtonPress (Maybe
     Int)}, \texttt{ButtonRelease (Maybe Int)}),
@@ -419,11 +472,12 @@ events. Each constructor corresponds to a different event, such as
 \item keys pressed or release (\texttt{KeyPress (Maybe KeySym)},
   \texttt{KeyRelease (Maybe KeySym)}),
 \item and various window events (\texttt{Map}, \texttt{Unmap},
-  \texttt{Expose}, \ldots).
+  \texttt{Expose}, \texttt{Activate},\ldots).
 \end{itemize}
 Note that not every GUI element can generate every event. Obviously,
 only windows can generate window events, but more subtly, only entry
-widgets, editor widgets and windows can generate \texttt{Key} events.
+widgets, editor widgets and toplevels (i.e. windows) can generate
+\texttt{Key} events.
 
 The return value of \texttt{bind} is an event, and an IO action which
 unbinds the event. You should use this action if you are not
@@ -451,7 +505,7 @@ make sense; for example, double and triple pertain to mouse button
 presses, and modifying a mouse button press with a different button is
 not really helpful. Note that the argument of bind is a list of
 events, meaning of course that each of the events generates in event
-(not only their combination).
+(not their combination).
 
 Here, the first component of the return value is an event of
 \texttt{EventInfo}, which is a labelled record as
@@ -470,15 +524,15 @@ window (i.e. the screen), and the button being pressed.
 
 \section{Widgets}
 
-In the following, we give a brief tour around HTk's widgets. These are
+In the following, we give a brief tour around \HTk's widgets. These are
 essentially Tk's widgets. We have simple widgets which are explained
 in short sentences of words with less than three syllables, menues,
-text widgets, and canvasses, which require a sllightly longer
+text widgets, and canvasses, which require a slightly longer
 explanation. 
 
 There are more widgets: if you can use Tix (you should anyway, it
 looks slightly less clunky than plain Tcl/Tk), there are the useful
-tab and pane widgets. And because HTk is an abstraction on top of Tk,
+tab and pane widgets. And because \HTk is an abstraction on top of Tk,
 there are a variety of so-called \emph{mega-widgets} which are
 implemented in Haskell; these can be found in the toolkit
 (Sect.~\ref{sec:toolkit}).
@@ -521,7 +575,9 @@ can use the grid packer inside a window using the standard packer.
   sophisticated widgets for longer text messages; messages linebreak
   the text. For both, the font of the text (class \texttt{HasFont})
   and the justification (class \texttt{HasJustified}) can be
-  specified.
+  specified. The \texttt{aspect} configuration (for messages only)
+  specifies the width of the text as a percentage of the height; so
+  \texttt{aspect 200} gives a message of width twice its height.
 
 \input{Mainentry.lhs} %% Entry widgets.
 
@@ -533,14 +589,19 @@ can use the grid packer inside a window using the standard packer.
 
 \label{ssec:textwidget}
 
-A editor (also called a text widget). As opposed to labels
-and messages, is scrollable (i.e. an instance of class
+An editor (also called a text widget) is a very flexible and powerful
+widget to display and edit texts. As opposed to labels and messages,
+is scrollable (i.e. an instance of class
 \href{ScrollBar.html#ScrollBar.HasScroller}{HasScroller}), but its
 chief difference to labels and messages are that it can be
 \emph{edited} and has \emph{text tags}, which make into one of Tk's
-most powerful widgets.
+most powerful widgets. 
 
-Besides the usual configuration options, you can also
+Editors are created with \texttt{newEditor}. The datatype
+\texttt{Editor} is monomorphic, but editors have a value (their
+textual content), and are thus members of the class \texttt{HasValue}.
+
+Besides the usual configuration options, editors provide the following:
 \begin{itemize}
 \item set the spacing with the
   methods of the class
@@ -599,8 +660,8 @@ instance HasIndex Editor i BaseIndex =>
 
 Index modifiers (only for editors) are modelled by type
 \href{Editor.html#Editor.IndexModifier}{\texttt{IndexModifier}}, and
-specify things like ''three words forward'', or a ''one line
-backwards''.
+specify things like `three words forward', or a `one line
+back'.
 
 \subsubsection{Selections}
 
@@ -618,7 +679,7 @@ let you query the selection. The selected text, entries \textit{etc.}
 are indexed with indices (see Sect.~\ref{ssec:indices}). The
 \texttt{Range} classes have a pair of functions, which set or get the
 start or end of the selection, respectively, whereas the
-\textit{HasSelectionIndex} and \texttt{HasSelectionBaseIndex} classes
+\texttt{HasSelectionIndex} and \texttt{HasSelectionBaseIndex} classes
 get or set the selection as list of indices.
 
 This selection is Tk-internal, and should not be confused with
@@ -651,17 +712,20 @@ When you insert into an editor, the text tags are accommodated
 appropriately; i.e. if you insert into the middle of a text widget,
 then the end of the tag is moved.
 
-As mentioned above, a text widget can be edited, i.e. the user can
-type text into the widget. This feature can be considered just as a
-conveniently set up set of key bindings (e.g. the key \texttt{a} is
-bound to the function which inserts an \texttt{a} at the current
-cursor position). You can switch off the editing behaviour with the
-function \texttt{disable} from the class
+\subsubsection{Editing}
+
+As mentioned above, the editor's text can be edited, i.e. the user can
+type text into the widget. This feature can be considered as a
+conveniently set up set of key bindings (e.g. the key `a' is bound to
+the function which inserts an `a' at the current cursor position). You
+can switch off the editing behaviour with the function
+\texttt{disable} from the class
 \href{Configuration.html#Configuration.HasEnable}{\texttt{HasEnable}},
 but be warned: \emph{You can only change the text of enabled editors!}
-Trying to insert text into a disabled editor is one of the most Tk
-errors; it will not generate a run-time error but just silently fail
-to change the text of the editor.
+Trying to insert text into a disabled editor is one of the most common
+Tk errors; it will not generate a run-time error but just silently
+fail to change the text of the editor, leaving the programmer in
+unbelieving dismay.
 
 The example \texttt{simple/Maintexttag.hs} shows what you can do with
 text tags, and how to use them. The module \texttt{MarkupText} allows
@@ -672,9 +736,11 @@ hyperreferences and so on (see below).
 
 To keep track of positions within an editor, you can use marks (type
 \href{Mark.html}{\texttt{Mark}}).\footnote{The first one to send us an
-  email saying ``Shouldn't this type have been renamed to Euro?''
+  email saying `Shouldn't this type have been renamed to Euro?'
   will be forcefed Perl scripts until his mind explodes into a regular
-  expression. You have been warned.} Essentially, you can put a mark
+  expression. You have been warned. Other than that, we strongly
+  encourage any comments about \HTk{} or this wee manual. Go on, send
+  us that mail!} Essentially, you can put a mark
 into an editor at a specified position (with \texttt{createMark}), and
 query its position later (\texttt{getBaseIndex}). The gravity of the
 mark specifies wether when text is inserted at the exact position of
@@ -687,7 +753,7 @@ have buttons (and yes, even another editor) inside an editor.
 Further, you can search the text inside an editor (with the
 \texttt{search} function), read and write the contents to and from a
 file, scroll the contents to a specific position, and much more as
-found in the module \texttt{Editor.html}{\texttt{Editor}}.
+found in the module \href{Editor.html}{\texttt{Editor}}.
 
 \subsection{The Canvas Widget}
 
@@ -730,7 +796,7 @@ The following are the types of canvas items:
   points, which define a list of line segments. The segments can be
   joined in various ways (with the \texttt{joinstyle} configuration),
   you can draw splines (class
-  \href{CanvasItem.SegmentedCanvasItem}{\texttt{SegmentedCanvasItem}}), and put arrows on the either (or both) ends (configurations \texttt{arrowshape} and \texttt{arrowstyle}). 
+  \href{CanvasItem.SegmentedCanvasItem}{\texttt{SegmentedCanvasItem}}), and put arrows on either (or both) ends (configurations \texttt{arrowshape} and \texttt{arrowstyle}). 
 \item \texttt{Oval}: an oval is either given by defining its
   \emph{bounding box}, i.e. the smallest rectangle enclosing it. If
   the bounding box is a square, the oval is a circle.\footnote{Except
@@ -742,8 +808,9 @@ The following are the types of canvas items:
 \item \texttt{Rectangle}: a rectangle is given by two points. 
 \item \texttt{TextItem}: a text item is a text, possibly consisting of
   more than one line. It is an instance of \texttt{HasFont}. (Note
-  that Htk does not support Tk's selection and insertion methods for
-  text items; it should be easy to add, if you really require that.)
+  that \HTk{} curently does not support Tk's selection and insertion
+  methods for text items; it should be easy to add, if you really
+  require that.)
 \item \texttt{EmbeddedCanvasWin}: an embedded canvas window is a
   widget embedded into a canvas. All instances of class
   \texttt{Widget} can be embedded into a canvas. Note that you don't
@@ -758,7 +825,12 @@ to canvas items. A canvas tag is an instance of the class
 \texttt{CanvasItem} (but setting e.g. its filling colour will of
 course have no effect). Canvas tags are in particular useful because
 you can not only add canvas items explicitly to the tag, but also by
-the so-called \texttt{search specification}. 
+the so-called \textit{search specification}, so you can select the
+canvas item closest to a given canvas location etc. 
+
+For more on canvasses, see the examples under
+\texttt{examples/canvas}. \texttt{MainxmasCanvas.hs} shows a variety
+of canvas items, and how to set up a cheap and cheerful drag-and-drop.
 
 
 \subsection{Miscellenea}

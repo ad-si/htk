@@ -41,21 +41,24 @@ create an event with the \texttt{clicked} function. However, we need
 to change the behaviour of the spawned event such that when this new
 clicked event occurs, the program is finished. 
 
-This combination of events as a case distinction --- "`when this event
+This combination of events as a case distinction --- when this event
 occurs, do something, when the other event occurs, do something
-different"' --- is achieved by the third important operation on
-events, the \emph{choice} combinator \texttt{(+>) :: Event a-> Event
-  a-> Event a}. Hence, we need to combine the previous dynamic
-behaviour and the new behaviour by \texttt{+>}. The new behaviour,
-finishing the program, is achieved by calling the \texttt{destroy}
-action on \texttt{main}.  This closes the main window and lets the
-program terminate gracefully:
+different --- is achieved by the third important operation on
+events, the \emph{choice} combinator 
+\begin{xcode}
+(+>) :: Event a-> Event a-> Event a
+\end{xcode}
+Hence, we need to combine the previous dynamic behaviour and the new
+behaviour by \texttt{+>}. The new behaviour, finishing the program, is
+achieved by calling the \texttt{destroy} action on \texttt{main}.
+This closes the main window and lets the program terminate gracefully:
 \begin{code}
      click  <- clicked b
      click2 <- clicked b2
      spawnEvent 
       (forever 
-        ((click >>> do nu_label <- mapM randomRIO (replicate 5 ('a','z'))
+        ((click >>> do nu_label <- mapM randomRIO
+                                       (replicate 5 ('a','z'))
                        b # text nu_label
                        done)
         +> (click2 >>> destroy main)))

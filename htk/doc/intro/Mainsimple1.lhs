@@ -42,8 +42,8 @@ This introduces three important concepts in \HTk:
   the text which is displayed on the button
 \item thirdly, creating a GUI element does not display it \textit{per
     se}. To display it, we have to explicitly place it on the screen;
-  this is done with the \texttt{pack} command. This command also takes
-  a list of configurations as arguments; more on that below.
+  this is done with the \texttt{pack} command. This command takes a
+  list of packing options as argument; more on that below.
 \end{itemize}
 
 To specify the dynamic behaviour, we need two ingredients: firstly, we
@@ -57,19 +57,22 @@ Setting up external events to produce an \texttt{Event a} is called
 external action that we wish to bind (e.g. this button being clicked,
 mouse movement over this window, right button being clicked with
 control-key being pressed and user doing a handstand whilst whistling
-"'Auld Lang Syne"`). The general case is the \texttt{bind} function
+`Auld Lang Syne'). The general case is the \texttt{bind} function
 which we will see below, but for the simple case of a button being
-clicked, we can use the function \texttt{clicked :: Button a-> IO
-  (Event ())}. 
+clicked, we can use the function
+\begin{xcode}
+clicked :: Button a-> IO (Event ())  
+\end{xcode}
 
 The composed event we want to synchronise on is the click of the
 button, followed by changing the label. The following code achieves
 the desired effect:
 \begin{code}
      click <- clicked b
-     spawnEvent 
+     spawnEvent  
       (forever 
-        (click >>> do nu_label <- mapM randomRIO (replicate 5 ('a','z'))
+        (click >>> do nu_label <- mapM randomRIO 
+                                       (replicate 5 ('a','z'))
                       b # text nu_label))
      finishHTk
 \end{code}     
@@ -78,22 +81,23 @@ five actions of type \texttt{IO Char}, and \texttt{mapM} evaluates
 them to a random string of length 5. The next line sets the label to
 this random string; how exactly this works will be explained below.
 
-Two more functions require an explanation here: \texttt{forever ::
+Another function requires an explanation here: \texttt{forever ::
   Event a-> Event a} takes an event, and returns this event composed
 with itself. Thus, synchronising on this event will synchronise on it
 once, then wait for this event occuring again. The effect here is that
 the effect we want to achieve occurs recurrently. Had we left out the
 \texttt{forever}, our program would just wait for one button press,
-change the colour of the button once and go on its merry way (in this
-case, terminate). With \texttt{forever}, we have it wait for the next
-button press after the first one occurs. 
+change the text of the button once and go on its merry way (in this
+case, terminate). With \texttt{forever}, we have it waiting for the
+next button press after the first one occurs.
 
-Finally, \texttt{spawnEvent} takes an event, and creates a concurrent
-thread which synchronises on this event. This is not strictly
-necessary here, since we do nothing else, but it is good practice to
-leave handling of events to threads different from the main thread.
-Exactly how many threads one creates --- one for each button, or just
-one for the whole GUI --- is a matter of taste and judgement.
+As mentioned above, \texttt{spawnEvent} takes an event, and creates a
+concurrent thread which synchronises on this event. This is not
+strictly necessary here, since we do nothing else, but it is good
+practice to leave handling of events to threads different from the
+main thread.  Exactly how many threads one creates --- one for each
+button, or just one for the whole GUI --- is a matter of taste and
+judgement.
 
 At the end of the program, the main thread has to wait for the GUI to
 finish; if it just exited, the whole program would terminate. We do
