@@ -4,6 +4,7 @@ module Main (
 
 import qualified IOExts(performGC)
 
+import Object
 import SIM
 import Expect
 import RegularExpression

@@ -28,6 +28,7 @@ import ScrollBar
 import Frame
 import Debug(debug)
 
+
                 
 -- --------------------------------------------------------------------------
 --  Type
@@ -106,7 +107,7 @@ instance Destructible (ScrollBox a) where
 
 instance Interactive (ScrollBox a)
 
-instance Widget a => Widget (ScrollBox a) where
+instance (Widget a,HasScroller a) => Widget (ScrollBox a) where
         cursor c sb = 
                 synchronize sb (do { 
                         foreach (fPadFrames sb) (cursor c);
@@ -116,9 +117,9 @@ instance Widget a => Widget (ScrollBox a) where
                         return sb
                         })
 
-instance Widget a => ChildWidget (ScrollBox a)
+instance (Widget a,HasScroller a) => ChildWidget (ScrollBox a)
         
-instance HasColour a => HasColour (ScrollBox a) where
+instance (HasColour a,HasScroller a) => HasColour (ScrollBox a) where
         legalColourID _ _ = True
         setColour sb cid c = 
                 synchronize sb (do {
@@ -148,9 +149,10 @@ instance Synchronized (ScrollBox a) where
 --  Selector
 -- --------------------------------------------------------------------------
 
-getScrolledWidget :: (Widget a, ChildWidget a) => ScrollBox a -> a
+getScrolledWidget :: (Widget a, ChildWidget a,HasScroller a) => 
+   ScrollBox a -> a
 getScrolledWidget = fScrolledWidget
 
-getScrollBars :: ScrollBox a ->  [ScrollBar]
+getScrollBars :: HasScroller a => ScrollBox a ->  [ScrollBar]
 getScrollBars = fScrollBars
 
