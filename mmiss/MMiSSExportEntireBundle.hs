@@ -242,7 +242,7 @@ exportDirPlus view linkedObject0 exportOpts0 extraNodes =
          recurseDepth1 = recurseDepth0 - 1
 
          exportOpts1 = exportOpts0 {
-            recurseDepth = recurseDepth0
+            recurseDepth = recurseDepth1
             }
 
       linkedObjects <- if recurseDepth1 >= 0

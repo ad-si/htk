@@ -9,7 +9,7 @@ VERSION       : 0.2
 DESCRIPTION   : Lock class definition
 
 Lock is an instance of a typical thing we synchronize with.
-Possible instances are BSem and Mutex.
+Possible instances are BSem and MSem.
 
    ######################################################################### -}
 

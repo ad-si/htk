@@ -86,7 +86,7 @@ getFileLocForExport view linkedObject exportOpts =
             _ -> objectType0
 
          fileLoc1 = fileLoc0 {objectType = objectType1}
-      return fileLoc0
+      return fileLoc1
 
 getFileLocAndParent :: View -> LinkedObject -> IO (FileLoc,Maybe LinkedObject)
 getFileLocAndParent view linkedObject =
