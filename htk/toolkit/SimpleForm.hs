@@ -8,9 +8,12 @@ module SimpleForm(
       -- But mapForm is more general.
 
    newFormEntry, -- :: (FormLabel label,FormValue value) 
-      -- => label -> value -> Form x
+      -- => label -> value -> Form value
       -- This creates a new form with a single labelled entry. 
       -- The FormValue class includes text fields and radio buttons.
+
+   emptyForm, -- :: Form ()
+      -- The empty form (rather boring).
 
    newFormMenu, -- :: (FormLabel label) => label -> HTkMenu value 
       -- -> Form (Maybe value)
@@ -25,6 +28,10 @@ module SimpleForm(
 
    (\\), -- :: Form value1 -> Form value2 -> Form (value1,value2)
       -- Like //, but combines two forms side-by-side.
+
+   column, -- :: [Form value] -> Form [value]
+   row, -- :: [Form value] -> Form [value]
+      -- Two other combinators obtained by iterating (//) and (\\)
 
    doForm, -- :: String -> Form x -> IO (Maybe x)
       -- This displays a form.  The first string is the title;
@@ -229,6 +236,37 @@ guardForm test mess =
 
 infixr 9 \\ -- so it binds more tightly than //
       
+
+-- -------------------------------------------------------------------------
+-- emptyForm, column and row
+-- -------------------------------------------------------------------------
+
+emptyForm :: Form ()
+emptyForm = Form (\ container ->
+   return (EnteredForm {
+      packAction = done,
+      getFormValue = return (Right ()),
+      destroyAction = done
+      })
+   )
+
+emptyFormList :: Form [a]
+emptyFormList = fmap (const []) emptyForm
+
+column :: [Form value] -> Form [value]
+column forms =
+   foldr
+      (\ form listForm -> fmap (uncurry (:)) (form // listForm))
+      emptyFormList
+      forms
+
+row :: [Form value] -> Form [value]
+row forms =
+   foldr
+      (\ form listForm -> fmap (uncurry (:)) (form // listForm))
+      emptyFormList
+      forms
+
 -- -------------------------------------------------------------------------
 -- The doForm action 
 -- -------------------------------------------------------------------------

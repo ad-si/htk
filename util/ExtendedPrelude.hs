@@ -12,6 +12,11 @@ VERSION       : 0.2
 
 
 module ExtendedPrelude (
+   -- Operations for trimming spaces from Strings.
+   trimTrailing,
+   trimLeading,
+   trimSpaces,
+
    monadDot,
    split,
    insertOrdLt,
@@ -23,7 +28,42 @@ module ExtendedPrelude (
    HasMapIO(..),
     ) where
 
+import Char
+
 import Debug(debug)
+
+-- ---------------------------------------------------------------------------
+-- Character operations
+-- ---------------------------------------------------------------------------
+
+---
+-- Remove trailing spaces (We try to avoid reconstructing the string,
+-- on the assumption that there aren't often spaces)
+trimTrailing :: String -> String
+trimTrailing str = 
+   case tt str of
+      Nothing -> str
+      Just str2 -> str2
+   where
+      tt [] = Nothing
+      tt (str@[ch]) = if isSpace ch then Just [] else Nothing
+      tt (ch:rest) = 
+         case tt rest of
+            Nothing -> Nothing
+            (j@(Just "")) -> if isSpace ch then j else Just [ch]
+            Just trimmed -> Just (ch:trimmed)
+
+---
+-- Remove leading spaces
+trimLeading :: String -> String
+trimLeading [] = []
+trimLeading (str@(ch:rest)) = if isSpace ch then trimLeading rest else str
+
+---
+-- Remove trailing and leading spaces
+trimSpaces :: String -> String
+trimSpaces = trimTrailing . trimLeading
+
 
 -- ---------------------------------------------------------------------------
 -- Monad Operations

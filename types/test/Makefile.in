@@ -1,6 +1,7 @@
 PACKAGES = uni-types uni-htk uni-davinci
 
-SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs
+SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs \
+   TestGetAttributesType.hs
 
 include @TOP@/mk/boilerplate.mk
 
