@@ -60,6 +60,9 @@ module VersionInfo(
       -- VersionInfo is uneditable.
    editVersionInfo, -- :: String -> VersionInfo -> IO (Maybe UserInfo)
 
+   -- comparing VersionInfo's globally uniquely.
+   VersionInfoKey, -- instance of Ord
+   mapVersionInfo, -- :: VersionInfo -> VersionInfoKey
    ) where
 
 import IO
@@ -185,26 +188,25 @@ instance HasBinaryIO VersionInfo where
          )
 
 -- ----------------------------------------------------------------------
--- Instances of Eq and Ord
--- There are two comparison methods, one for ServerInfo, and one for 
--- UserInfo/VersionInfo.
---
--- The one for ServerInfo should be globally unique, but the user can
---    subvert this by committing versions with explicit values which override
---    those of an existing version, by hacking the Haskell code for the
---    Workbench (for example).  
--- The one for UserInfo/VersionInfo is only unique for this server, on the
---    other hand it is guaranteed to be really unique, whatever the user does.
+-- Comparing VersionInfo in a globally unique way, assuming the
+-- client doesn't rig the VersionInfos.
 -- ----------------------------------------------------------------------
 
-mapServerInfo :: ServerInfo -> (Int,String)
-mapServerInfo serverInfo = (serialNo serverInfo,serverId serverInfo)
+type VersionInfoKey = (Int,String,String) -- must be instance of Ord
 
-instance Eq ServerInfo where
-   (==) = mapEq mapServerInfo
+mapVersionInfo :: VersionInfo -> VersionInfoKey
+mapVersionInfo versionInfo =
+   let
+      server1 = server versionInfo
+   in
+      (serialNo server1,serverId server1,userId server1)
 
-instance Ord ServerInfo where
-   compare = mapOrd mapServerInfo
+
+-- ----------------------------------------------------------------------
+-- Instance of Eq and Ord.  This version will only be unique for
+-- the repository.  But then it really will be unique, whatever the
+-- client does.
+-- ----------------------------------------------------------------------
 
 instance Eq UserInfo where
    (==) = mapEq version

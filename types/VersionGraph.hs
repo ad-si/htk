@@ -79,6 +79,7 @@ import DisplayView
 import VersionGraphClient
 import Folders
 import Merging
+import {-# SOURCE #-} CopyVersions
 
 -- --------------------------------------------------------------------
 -- The datatypes
@@ -135,7 +136,10 @@ newVersionGraph
       let
          getVersionInfo1 = getVersionInfo graph
 
-      -- This MVar will contain the actual displayed graph, when set up.
+      -- This MVar will contain the actual version graph, when set up.
+      versionGraphMVar <- newEmptyMVar
+
+      -- This MVar will contain the actual displayed graph when set up.
       dispGraphMVar <- newEmptyMVar
 
       -- Checked-out versions are associated with two elements of the
@@ -148,8 +152,12 @@ newVersionGraph
       let
          -- Parameters for displayGraph
          graphParms = 
-            (GraphTitle "Versions") $$
-            (GlobalMenu (Menu Nothing [Button "Merge" doMerge])) $$
+            (GraphTitle (show (toServer repository))) $$
+            (GlobalMenu (Menu Nothing [
+               Button "Merge" doMerge,
+               Button "Copy Versions" copyVersions1
+               ])) $$
+                 
             emptyGraphParms
          
          -- getNodeTypeParms constructs the parameters for a node
@@ -496,6 +504,12 @@ newVersionGraph
                      Just nodes -> Just (map mergeVersion nodes)
                return objectVersionsOpt
 
+         -- Function to do when the user asks to copy versions.
+         copyVersions1 :: IO ()
+         copyVersions1 =
+            do
+               versionGraph <- readMVar versionGraphMVar
+               copyVersions versionGraph
                  
          -- Function to be executed when the user requests a merge.
          -- We can only merge checked-in versions.
@@ -584,21 +598,25 @@ newVersionGraph
             do
                sync (destroyed displayedGraph)
                sendIO destroyedChannel ()
-               
+
+
+      closeDownAction <- doOnce closeDownAction'
 
       spawn destructorThread
 
-      closeDownAction <- doOnce closeDownAction'
-               
+      let
+         versionGraph = VersionGraph {
+            displayedGraph = displayedGraph,
+            graph = graph,
+            closeDownAction = closeDownAction,
+            closedEvent = receive destroyedChannel,
+            repository = repository,
+            selectCheckedInVersions = selectCheckedInVersions
+            }
+
+      putMVar versionGraphMVar versionGraph
       -- And return it
-      return (VersionGraph {
-         displayedGraph = displayedGraph,
-         graph = graph,
-         closeDownAction = closeDownAction,
-         closedEvent = receive destroyedChannel,
-         repository = repository,
-         selectCheckedInVersions = selectCheckedInVersions
-         }) 
+      return versionGraph
 
 
 -- Operation on a viewed node, protected so that it is a no-op

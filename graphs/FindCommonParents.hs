@@ -54,11 +54,14 @@ data GraphBack node nodeKey = GraphBack {
 
 findCommonParents :: (Show node1,Show node2,Show nodeKey,Ord nodeKey) 
    => GraphBack node1 nodeKey -> GraphBack node2 nodeKey -> [node1] 
-   -> IO [(node1,[Either node1 node2])]
+   -> IO [(node1,[(node1,Maybe node2)])]
    -- G1, G2 and V1.
    -- Note that the nodes are kept distinct, even by type; they can only be 
-   --    compared by nodeKey.  In the returned list Left node1 is an element 
-   --    of v1, and Right node2 an element of G2.
+   --    compared by nodeKey. 
+   -- The returned list [(node1,Maybe node2)] contains the parents of
+   -- the node, each element corresponding to one parent, with first
+   -- the node in the first graph, and second (if it already exists) the
+   -- node in the second graph.
 findCommonParents 
       (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey) 
       (v1 :: [node1]) =
@@ -97,7 +100,7 @@ findCommonParents
       let
          -- doNode gets the list for the given node, or Nothing if it is 
          -- already in G2.
-         doNode :: node1 -> IO (Maybe [Either node1 node2])
+         doNode :: node1 -> IO (Maybe [(node1,Maybe node2)])
          doNode node =
             do
                Just nodeKey <- getKey1 node
@@ -109,8 +112,12 @@ findCommonParents
                         (_,list) <- doNodes nodes emptySet []
                         return (Just (reverse list))
             where
-               doNodes :: [node1] -> Set nodeKey -> [Either node1 node2]
-                  -> IO (Set nodeKey,[Either node1 node2])
+               -- 
+               -- The following functions have the job of scanning back
+               -- through g1, looking for parents also in g2, or which
+               -- will be by merit of being copied.
+               doNodes :: [node1] -> Set nodeKey -> [(node1,Maybe node2)]
+                  -> IO (Set nodeKey,[(node1,Maybe node2)])
                -- Set is visited set.
                -- list is accumulating parameter.
                doNodes nodes visited0 acc0 =
@@ -119,13 +126,14 @@ findCommonParents
                      (visited0,acc0)
                      nodes
 
-               doNode1 :: node1 -> Set nodeKey -> [Either node1 node2] 
-                  -> IO (Set nodeKey,[Either node1 node2])
-               -- Set is visited set.
+               doNode1 :: node1 -> Set nodeKey -> [(node1,Maybe node2)] 
+                  -> IO (Set nodeKey,[(node1,Maybe node2)])
+               -- Set is visited set, ancestors already visited.
                -- list is accumulating parameter.
-               doNode1 node visited0 acc0 =
+               doNode1 node1 visited0 acc0 =
+                  -- Examine node1 to see if it is common ancestor.
                   do
-                     Just nodeKey <- getKey1 node      
+                     Just nodeKey <- getKey1 node1      
                      if elementOf nodeKey visited0
                         then 
                            return (visited0,acc0)
@@ -135,17 +143,24 @@ findCommonParents
                                  visited1 = addToSet visited0 nodeKey
                               case (lookupFM g2Dict nodeKey,
                                     lookupFM v1Dict nodeKey) of
-                                 (Just node2,_) -> -- found a node in g2
-                                    return (visited1,Right node2 : acc0)
-                                 (Nothing,Just node1) -> -- found a node in v1
-                                    return (visited1,Left node1 : acc0)
+                                 (Just node2,_) ->
+                                    -- Node is in g2.  Since node was found
+                                    -- by scanning back in graph1,
+                                    -- it is also in graph1.  Hence this is
+                                    -- a common node.
+                                    return (visited1,(node1,Just node2) : acc0)
+                                 (Nothing,Just node1) -> 
+                                    -- This node is in v, but not g2 yet.
+                                    return (visited1,(node1,Nothing) : acc0)
                                  (Nothing,Nothing) ->
+                                    -- Have to scan back to this node's
+                                    -- ancestors.
                                     do
                                        Just nodes <- getParents1 node
                                        doNodes nodes visited1 acc0
 
       -- (2) Get the list, but don't sort out the order yet.
-      (nodes1Opt :: [Maybe (node1,[Either node1 node2])]) <-
+      (nodes1Opt :: [Maybe (node1,[(node1,Maybe node2)])]) <-
          mapM
             (\ v1Node ->
                do
@@ -155,11 +170,11 @@ findCommonParents
             v1
 
       let
-         nodes1 :: [(node1,[Either node1 node2])]
+         nodes1 :: [(node1,[(node1,Maybe node2)])]
          nodes1 = catMaybes nodes1Opt
 
       -- (3) Construct a map from nodeKey to the elements of this list. 
-      (nodeKeyMap :: FiniteMap nodeKey (node1,[Either node1 node2])) <- foldM
+      (nodeKeyMap :: FiniteMap nodeKey (node1,[(node1,Maybe node2)])) <- foldM
          (\ map0 (nodeData @ (node1,nodes)) ->
             do
                Just nodeKey <- getKey1 node1
@@ -179,11 +194,11 @@ findCommonParents
                   Just nodeKey <- getKey1 node
                   (nodeKeysOpt :: [Maybe nodeKey]) <- mapM
                      (\ nodeItem -> case nodeItem of
-                        Left node1 ->
+                        (node1,Nothing) ->
                            do
                               Just nodeKey2 <- getKey1 node1
                               return (Just nodeKey2)
-                        Right _ -> return Nothing
+                        (node1,Just _) -> return Nothing
                         )
                      nodes
                   return (nodeKey,catMaybes nodeKeysOpt)
@@ -210,7 +225,7 @@ findCommonParents
          nodeKeysInOrder = topSort1 relations nodeKeys
 
          -- (6) Put the output together
-         nodesOut :: [(node1,[Either node1 node2])]
+         nodesOut :: [(node1,[(node1,Maybe node2)])]
          nodesOut =
             map
                (\ nodeKey ->

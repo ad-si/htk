@@ -27,6 +27,7 @@ import GraphDisp
 import GraphConfigure
 
 import HostsPorts
+import CallServer (tryConnect)
 
 import VersionDB
 import Initialisation
@@ -60,13 +61,13 @@ addVersionGraph displaySort hostPort =
                return (versionGraphOpt,())
          Nothing ->
             do
-               repositoryOrError <- Control.Exception.try (
+               repositoryOrCancelOrError <- Control.Exception.try (
                   let
                      ?server = hostPort
                   in
-                     Initialisation.openRepository
+                     tryConnect (Initialisation.openRepository)
                   )
-               case repositoryOrError of
+               case repositoryOrCancelOrError of
                   Left excep ->
                      do
                         createErrorWin (
@@ -74,7 +75,11 @@ addVersionGraph displaySort hostPort =
                            " with error " ++ show excep
                            ) []
                         return (versionGraphOpt,())
-                  Right repository ->
+                  Right (Left mess) ->
+                     do
+                        createMessageWin mess []
+                        return (versionGraphOpt,())
+                  Right (Right repository) -> 
                      do
                         versionGraph <- newVersionGraph displaySort repository
                         forkIO (

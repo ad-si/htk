@@ -74,7 +74,7 @@ toEditFormatConverter LaTeX =
 --             debugString ("START|"++str++"|END")
 
                return (mapWithError 
-                  (\ (element,_,_) -> element) 
+                  (\ (element,_) -> element) 
                   (parseMMiSSLatex str)
                   )
             )

@@ -31,6 +31,13 @@ module CallServer(
    connectExternal, -- ::
       -- (inType,outType,stateType) -> IO (IO outType,IO (),header)
       -- Connect to an External service.
+
+   tryConnect, 
+      -- :: IO a -> IO (Either String a)
+      -- Wrap round an operation that tries to connect to a server;
+      -- this catches connection failures (specifically, when the user
+      -- cancels when asked for a userid/password).
+
    ) where
 
 import IO
@@ -43,6 +50,7 @@ import Debug(debug)
 import Object
 import WBFiles
 import BinaryIO
+import ExtendedPrelude
 
 import Destructible
 
@@ -305,8 +313,15 @@ getUserPassword0 user0 password0 =
       resultOpt <- doForm "Connecting to Server" form
       case resultOpt of
          Just result -> return result
-         Nothing ->
-            do
-               createErrorWin 
-                  "Sorry, without a server connection we cannot proceed" []
-               getUserPassword0 user0 password0     
+         Nothing -> connectFailure "Server connection cancelled"
+
+tryConnect :: IO a -> IO (Either String a)
+
+connectFailure = mkBreakFn connectFailureId
+
+(connectFailureId,tryConnect) = mkConnectFallOut
+
+mkConnectFallOut = unsafePerformIO newFallOut
+{-# NOINLINE mkConnectFallOut #-}
+
+

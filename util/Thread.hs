@@ -49,13 +49,17 @@ module Thread (
    mapMConcurrent,
    mapMConcurrent_,
       -- evaluate a list of IO actions concurrently.   
+   mapMConcurrentExcep,
+      -- evaluate a list of IO actions concurrently, also propagating
+      -- exceptions properly.
    ) 
 where
 
+import Control.Exception
+import Control.Concurrent
+
 import Maybes
-import Concurrent
 import Computation
-import Exception
 
 import Debug(debug,(@:))
 
@@ -173,6 +177,38 @@ mapMConcurrent mapFn as =
             )
          as
       mapM takeMVar mVars
+
+-- this version is careful to propagate exceptions, at a slight cost.
+mapMConcurrentExcep :: (a -> IO b) -> [a] -> IO [b]
+mapMConcurrentExcep mapFn [] = return []
+mapMConcurrentExcep mapFn [a] =
+   do
+      b <- mapFn a
+      return [b]
+mapMConcurrentExcep mapFn as =
+   do
+      (mVars :: [MVar (Either Exception b)]) <- mapM
+         (\ a ->
+            do
+               mVar <- newEmptyMVar
+               let
+                  act =
+                     do
+                        bAnswer <- Control.Exception.try (mapFn a)
+                        putMVar mVar bAnswer
+               forkIO act
+               return mVar
+            )
+         as
+      mapM 
+         (\ mVar ->
+            do
+               bAnswer <- takeMVar mVar
+               propagate bAnswer
+            )
+         mVars
+
+
 
 mapMConcurrent_ :: (a -> IO ()) -> [a] -> IO ()
 mapMConcurrent_ mapFn as = mapM_ (\ a -> forkIO (mapFn a)) as

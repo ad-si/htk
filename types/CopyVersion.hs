@@ -2,6 +2,7 @@
    one repository to another. -} 
 module CopyVersion(
    copyVersion,
+   FromTo(..),
    ) where
 
 import Maybe

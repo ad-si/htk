@@ -59,6 +59,8 @@ module ExtendedPrelude (
 
    addSimpleFallOut,
    simpleFallOut,
+   mkBreakFn,
+   newFallOut,
    ) where
 
 import Char
@@ -405,25 +407,8 @@ type BreakFn = (forall other . String -> other)
 addFallOut :: (BreakFn -> IO a) -> IO (Either String a)
 addFallOut getAct =
    do
-      id <- newObject
-      let
-         break :: BreakFn
-         break mess = throwDyn (FallOutExcep {
-            fallOutId = id,mess = mess})
-      tryJust
-         (\ exception -> case dynExceptions exception of
-            Nothing -> Nothing -- don't handle this as it's not even a dyn.
-            Just dyn ->
-               case fromDyn dyn of
-                  Nothing -> Nothing -- not a fallout.
-                  Just fallOutExcep -> if fallOutId fallOutExcep /= id
-                     then
-                        Nothing 
-                        -- don't handle this; it's from another addFallOut
-                     else
-                        Just (mess fallOutExcep)
-            )
-         (getAct break)
+      (id,tryFn) <- newFallOut
+      tryFn (getAct (mkBreakFn id))
 
 ---
 -- Like addFallOut, but returns a WithError object instead.
@@ -434,6 +419,17 @@ addFallOutWE toAct =
       return (toWithError result)
 
             
+simpleFallOut :: BreakFn
+simpleFallOut = mkBreakFn simpleFallOutId
+
+addSimpleFallOut :: IO a -> IO (Either String a)
+
+
+(simpleFallOutId,addSimpleFallOut) = mkSimpleFallOut
+
+mkSimpleFallOut = IOExts.unsafePerformIO newFallOut
+{-# NOINLINE mkSimpleFallOut #-}
+
 data FallOutExcep = FallOutExcep {
    fallOutId :: ObjectID,
    mess :: String
@@ -443,28 +439,34 @@ fallOutExcep_tyRep = mkTyRep "ExtendedPrelude" "FallOutExcep"
 instance HasTyRep FallOutExcep where
    tyRep _ = fallOutExcep_tyRep
 
-addSimpleFallOut :: IO a -> IO (Either String a)
-addSimpleFallOut act =
+
+mkBreakFn :: ObjectID -> BreakFn
+mkBreakFn id mess = throwDyn (FallOutExcep {fallOutId = id,mess = mess})
+
+
+newFallOut :: IO (ObjectID,IO a -> IO (Either String a))
+newFallOut =
    do
       id <- newObject
-      tryJust
-         (\ exception -> case dynExceptions exception of
-            Nothing -> Nothing -- don't handle this as it's not even a dyn.
-            Just dyn ->
-               case fromDyn dyn of
-                  Nothing -> Nothing -- not a fallout.
-                  Just fallOutExcep -> if fallOutId fallOutExcep /= simpleID
-                     then
-                        Nothing 
-                        -- don't handle this; it's from another addFallOut
-                     else
-                        Just (mess fallOutExcep)
-            )
-         act
+      let
+         tryFn act =
+            tryJust
+               (\ exception -> case dynExceptions exception of
+                  Nothing -> Nothing 
+                     -- don't handle this as it's not even a dyn.
+                  Just dyn ->
+                     case fromDyn dyn of
+                        Nothing -> Nothing -- not a fallout.
+                        Just fallOutExcep -> if fallOutId fallOutExcep /= id
+                           then
+                              Nothing 
+                              -- don't handle this; it's from another 
+                              -- addFallOut
+                           else
+                              Just (mess fallOutExcep)
+                  )
+               act
 
-simpleFallOut :: BreakFn
-simpleFallOut mess = throwDyn (FallOutExcep {fallOutId = simpleID,mess = mess})
+      return (id,tryFn)
 
-simpleID :: ObjectID
-simpleID = IOExts.unsafePerformIO newObject
-{-# NOINLINE simpleID #-}
+      

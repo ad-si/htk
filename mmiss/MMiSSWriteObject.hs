@@ -20,6 +20,7 @@ import VariableSet (toKey)
 import VariableSetBlocker
 import Sources
 import ReferenceCount
+import Thread(mapMConcurrentExcep)
 
 import BSem
 
@@ -352,7 +353,8 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
          newLinks <- 
             synchronizeView view (
                Control.Exception.finally (
-                  mapM (simpleWriteToMMiSSObject preambleLink view break) 
+                  mapMConcurrentExcep
+                     (simpleWriteToMMiSSObject preambleLink view break) 
                      preObjectsList2
                      )
                   releaseAct
