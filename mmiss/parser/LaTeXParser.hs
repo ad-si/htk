@@ -1,11 +1,10 @@
 module LaTeXParser (
    latexDoc,
    parseMMiSSLatex, 
-   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
-   -- old :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
+   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, 
-   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
+   -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- The same, for a file.
    makeMMiSSLatex,
    -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
@@ -79,7 +78,49 @@ data Textmode = TextAllowed | NoText | TextFragment
 data Package = Package Options PackageName Versiondate deriving Show
 type DocumentClass = Package
 
-data MMiSSLatexPreamble = Preamble DocumentClass [Package] String deriving Show
+data MMiSSLatexPreamble = MMiSSLatexPreamble { 
+  latexPreamble :: LaTeXPreamble,
+  importCommands :: Maybe ImportCommands
+}
+
+data LaTeXPreamble = Preamble DocumentClass [Package] String deriving Show
+
+{--  These structures should be included in MMiSSLatexPreamble :
+
+data MMiSSOntology = MMiSSOntology {
+  classes :: [ClassDecl],
+  objects :: [ObjectDecl],
+  relations :: [RelationDecl],
+  objectLinks :: [ObjectLink]
+} deriving(Show)
+
+data ClassDecl = ClassDecl {
+  className :: String,
+  classText :: String,
+  super :: Maybe String
+} deriving(Show)
+
+data ObjectDecl = ObjectDecl {
+  objName :: String,
+  objectText :: String,
+  instanceOf :: String
+} deriving(Show)
+
+data RelationDecl = RelationDecl {
+  multiplicities :: Maybe String,
+  relName :: String,
+  relationText :: String,
+  source :: String,
+  target :: String
+} deriving(Show)
+
+data ObjectLink = ObjectLink {
+  sourceObj :: String,
+  targetObj :: String,
+  linkRelation :: String
+} deriving(Show)
+
+--}
 
 {--------------------------------------------------------------------------------------------
 
@@ -137,10 +178,13 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeTextFragment","includeText
 		   [("Link","link") , ("Define", "define"), ("Reference", "reference")] ++
                    [("ForwardLink","link"), ("ForwardReference", "reference")]
 
-
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
 mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
+
+
+-- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
+latexPlainTextEnvs = ["verbatim", "verbatim*"]
 
 
 -- specialTreatmentInPreamble contains all Commands which are specially treated in the process
@@ -296,7 +340,7 @@ beginBlock = do id <- begin
                 p <- envParams id
 --                beginDelim <-  option "" (try (many1 space))
 --                l <- continue [] id
-                l <- if (id `elem` (map fst plainTextAtoms))
+                l <- if (id `elem` ((map fst plainTextAtoms) ++ latexPlainTextEnvs))
                        then continuePlain "" id
                        else continue [] id
 --                endDelim <-  option "" (try (many1 space))
@@ -520,43 +564,6 @@ latexDoc l =  do f <-  frag <?> "Fragment"
 	      <|> return (Env "Root" (LParams [] [] Nothing Nothing) (reverse l))
 
 
-{--
-   parsePreamble is used as fromStringWE-method in the instanciation for
-   MMiSSLatexPreamble as StringClass. 
---}
-
-parsePreamble :: String -> WithError MMiSSLatexPreamble
-
-parsePreamble s = 
-  let result = parse (latexDoc []) "" s
-  in
-    case result of
-      Right (Env _ _ fs)  -> case (fromWithError (makePreamble fs)) of
-                               Right pMaybe -> case pMaybe of
-					         Just(p) -> hasValue(p)
-                                                 Nothing -> hasError("Strange: makePreamble returns no error and no preamble.")
-			       Left err -> hasError(show err)
-      Left err -> hasError (show err)
-
-
-{--
-   parseImportCommands is used as fromStringWE-method in the instanciation for
-   ImportCommands as StringClass. 
---}
-
-parseImportCommands :: String -> WithError ImportCommands
-
-parseImportCommands s = 
-  let result = parse (latexDoc []) "" s
-  in case result of
-       Right (Env _ _ fs)  -> 
-          case (fromWithError (makeImportCmds fs [])) of
-             Right pMaybe -> case pMaybe of
-                               Just(p) -> hasValue(p)
-                               Nothing -> hasError("Strange: makeImportCommands returns no error and no import commands.")
-             Left err -> hasError(show err)
-       Left err -> hasError (show err)
-
 
 
 -- **********************************************************************************************
@@ -663,7 +670,7 @@ directivesParser = do listOfDirectiveLists <- commaSep (choice ((renameDirective
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
     XML-structure.  --}
 
-parseMMiSSLatex :: String -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
+parseMMiSSLatex :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
 
 parseMMiSSLatex s = 
   let result = parse (latexDoc []) "" s
@@ -673,18 +680,66 @@ parseMMiSSLatex s =
        Left err -> hasError (show err)
 
 
-parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands))
+parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
 parseMMiSSLatexFile s = do result <- parseFromFile (latexDoc []) s
  		           case result of
 			     Right ast  -> return(makeXML ast)
  		             Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
+
+
+{--
+   parsePreamble is used as fromStringWE-method in the instanciation for
+   MMiSSLatexPreamble as StringClass. 
+--}
+
+parsePreamble :: String -> WithError MMiSSLatexPreamble
+
+parsePreamble s = 
+  let result = parse (latexDoc []) "" s
+  in
+    case result of
+      Right (Env _ _ fs)  -> 
+         let preambleEl = makePreamble fs
+             impCmds = makeImportCmds fs []
+             bothEl = fromWithError(pairWithError preambleEl impCmds)
+         in case bothEl of
+              Right (preambleEl, impCmds) -> 
+                case preambleEl of
+                  Just(p) -> hasValue( MMiSSLatexPreamble { 
+                                             latexPreamble = p, 
+                                             importCommands = impCmds
+                                       })
+                  Nothing -> hasError("Strange: makePreamble returns no error and no preamble.")
+	      Left err -> hasError(show err)
+      Left err -> hasError (show err)
+
+
+{--
+   parseImportCommands is used as fromStringWE-method in the instanciation for
+   ImportCommands as StringClass. 
+
+
+parseImportCommands :: String -> WithError ImportCommands
+
+parseImportCommands s = 
+  let result = parse (latexDoc []) "" s
+  in case result of
+       Right (Env _ _ fs)  -> 
+          case (fromWithError (makeImportCmds fs [])) of
+             Right pMaybe -> case pMaybe of
+                               Just(p) -> hasValue(p)
+                               Nothing -> hasError("Strange: makeImportCommands returns no error and no import commands.")
+             Left err -> hasError(show err)
+       Left err -> hasError (show err)
+--}
+
 
 parseAndShow :: SourceName -> IO ()
 parseAndShow s = do result <- parseFromFile (latexDoc []) s
  		    case result of
 	              Right ast  -> do resXML <- return (fromWithError (makeXML ast))
                                        case resXML of
-                                         Right (e, mbPreamble, mbImportCmds) -> putStrLn (showElement (hasValue e))
+                                         Right (e, mbPreamble) -> putStrLn (showElement (hasValue e))
                                          Left err -> print err
      	              Left err -> print err
 
@@ -696,7 +751,7 @@ showElement1 :: Content -> String
 showElement1 (CElem e) = (render . PP.element) e
 
 
-makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
+makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
 makeXML frag = findFirstEnv [frag] [] False
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch und erzeugt einen
@@ -717,51 +772,55 @@ makeXML frag = findFirstEnv [frag] [] False
 --}
     
 
-findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble, Maybe ImportCommands)
+findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble)
 
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
 findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs _ = 
   let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
-      preamble = makePreamble (filterGeneratedPreambleParts newPreambleFs)
+      latexPre = makePreamble (filterGeneratedPreambleParts newPreambleFs)
       importCmds = makeImportCmds newPreambleFs []
       atts2 = getPathAttrib preambleFs
       xmlAtts = map convertAttrib (atts1 ++ atts2)
       content = makeContent fs NoText "package"
   in case (fromWithError content) of
        Right c -> let elem = hasValue(Elem "package" xmlAtts c)
-                      elemPre = pairWithError elem preamble
-                      elemPreImp = pairWithError elemPre importCmds
-                  in  flattenTupel elemPreImp
-       Left err -> let elemPre = pairWithError (hasError(err)) preamble
-                       elemPreImp = pairWithError elemPre importCmds
-                   in  flattenTupel elemPreImp
+                      mmissPreamble = 
+                              case fromWithError latexPre of
+                                 Left str -> hasError(str)
+                                 Right(lp) -> 
+                                   case lp of
+                                      Just(p) ->
+                                        let impCmds = case fromWithError(importCmds) of
+                                                         Right(v) -> v
+                                                         Left str -> Nothing
+                                        in  hasValue (Just(MMiSSLatexPreamble {
+                                                             latexPreamble = p,
+                                                             importCommands = impCmds
+                                                           }))
+                                      Nothing -> hasError("MMiSSLatexPreamble is empty!")
+                  in pairWithError elem mmissPreamble 
+
+       Left err -> let preEl = fromWithError(pairWithError latexPre importCmds)
+                       mmissPreamble = case preEl of 
+                                          Right _ -> hasValue(Nothing)
+                                          Left str -> hasError(str)
+                   in pairWithError (hasError(err)) mmissPreamble
 
 
 findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
     let content = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
-        preamble = hasValue(Nothing)
-        importCmds = hasValue(Nothing)
+        preambleDummy = Nothing
     in case (fromWithError content) of
-         (Left str) -> let elemPre = pairWithError (hasError(str)) preamble
-                           elemPreImp = pairWithError elemPre importCmds
-                       in  flattenTupel elemPreImp                           
+         (Left str) -> hasError(str)
          (Right cs) -> 
             if ((genericLength cs) == 0) 
-              then let elem = hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
-                       elemPre = pairWithError elem preamble
-                       elemPreImp = pairWithError elemPre importCmds
-                   in  flattenTupel elemPreImp
+              then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
               else let ce = head cs
                    in case ce of 
-			(CElem e) -> let elemPre = pairWithError (hasValue(e)) preamble
-                                         elemPreImp = pairWithError elemPre importCmds
-                                     in  flattenTupel elemPreImp
-			_ -> let elem = hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
-                                 elemPre = pairWithError elem preamble
-                                 elemPreImp = pairWithError elemPre importCmds
-                             in  flattenTupel elemPreImp
+			(CElem e) -> hasValue(e, preambleDummy)
+			_ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
            then findFirstEnv rest preambleFs beforeDocument
@@ -784,19 +843,16 @@ findFirstEnv (f:fs) preambleFs False = findFirstEnv fs (preambleFs ++ [f]) False
 findFirstEnv [] _ _  = hasError("No root environment ('package' or some other env.) found!")           
 
 
-flattenTupel :: WithError((a,b),c) -> WithError (a, b, c)
+-- makePreamble erzeugt aus den Präambel-Fragmenten die LaTeXPreamble-Datenstruktur.
+-- Die von MMiSS erzeugten Input-Kommandos müssen vorher ausgefiltert worden sein.
+-- Erkannt wird der \documentclass sowie die \usepackage-Befehle. Alle anderen in der Fragmentliste
+-- befindlichen Kommandos, Strings oder EscapedChars, die der Author später wieder in der Latex-Quell
+-- benötigt,  werden im String 'rest' aufgesammelt.  
+-- Die Funktion ignoriert dabei alle Kommandos, deren Namen in der List 'specialTreatmentInPreamble'
+-- auftauchen, da diese gesondert behandelt werden. Diese Kommandos werden auch nicht in den 
+-- 'rest'-String übernommen.
 
-flattenTupel t = case fromWithError t of
-                   Left(str) -> hasError(str)
-                   Right((a,b),c) -> hasValue((a,b,c)) 
-
-
--- makePreamble erzeugt aus den Präambel-Fragmente die MMiSSLatexPreamble-Datenstruktur.
--- Die von MMiSS erzeugten Input-Kommandos müssen vorher ausgefilter worden sein.
--- Die Funktion ignoriert ausserdem alle Kommandos, deren Namen in der List 'specialTreatmentInPreamble'
--- auftauchen, da diese gesondert behandelt werden.
-
-makePreamble :: [Frag] -> WithError (Maybe MMiSSLatexPreamble)
+makePreamble :: [Frag] -> WithError (Maybe LaTeXPreamble)
 makePreamble [] = hasValue(Nothing)
 makePreamble (f:fs) =
   case f of
@@ -1625,9 +1681,15 @@ data MMiSSLatexPreamble = Preamble DocumentClass [Package] String
 unionPreambles :: [MMiSSLatexPreamble] -> Maybe MMiSSLatexPreamble
 unionPreambles [] = Nothing
 unionPreambles (p:[]) = Just(p)
-unionPreambles (p1:p2:ps) = unionPreambles ((union2Preambles p1 p2): ps)
+unionPreambles (p1:p2:ps) = 
+  let latexPre1 = latexPreamble p1
+      latexPre2 = latexPreamble p2
+      unionPre = union2Preambles latexPre1 latexPre2
+      newPreamble = MMiSSLatexPreamble {latexPreamble = unionPre, 
+                                        importCommands = (importCommands p1)}
+  in unionPreambles (newPreamble:ps)
 
-union2Preambles :: MMiSSLatexPreamble -> MMiSSLatexPreamble -> MMiSSLatexPreamble
+union2Preambles :: LaTeXPreamble -> LaTeXPreamble -> LaTeXPreamble
 union2Preambles (Preamble (Package classOpt1 className versiondate) packages1 rest1) (Preamble (Package classOpt2 _ _) packages2 rest2) = Preamble (Package (nub (classOpt1 ++ classOpt2)) className versiondate) (unionPackages packages1 packages2) (rest1 ++ rest2)
 
 unionPackages :: [Package] -> [Package] -> [Package]
@@ -1639,12 +1701,21 @@ eqPackage (Package opt1 name1 version1) (Package opt2 name2 version2)  =
 
 
 
-makePreambleText :: MMiSSLatexPreamble -> String
-makePreambleText (Preamble documentClass packages rest) =
-  (makePackageText "documentclass" documentClass)
-   ++ (concat (map (makePackageText "usepackage") packages)) 
-   ++ rest
+-- makePreambleText erzeugt aus einer MMiSSLatexPreamble-Datenstruktur einen String.
+-- Wird als toString-Funktion in der Deklarierung von MMiSSLatexPreamble als Instanz von
+-- StringClass verwendet.
 
+makePreambleText :: MMiSSLatexPreamble -> String
+makePreambleText mmissPreamble = 
+  let (Preamble documentClass packages rest) = latexPreamble mmissPreamble
+      str1 = (makePackageText "documentclass" documentClass)
+               ++ (concat (map (makePackageText "usepackage") packages)) 
+               ++ rest
+      impCmds = importCommands mmissPreamble
+      str2 = case impCmds of
+               Just(cmds) -> makeImportsText cmds
+               Nothing -> ""
+  in str1 ++ str2
 
 makePackageText :: String -> Package -> String
 makePackageText commandName (Package options name versiondate) =
@@ -1867,40 +1938,16 @@ mapLabelledTag s =
 piInsertLaTeX = "mmiss:InsertLaTeX"
 
 
-{--
-parseAndMakeMMiSSLatex :: String -> Bool -> String
-parseAndMakeMMiSSLatex doc pre = 
-  let root <- parseMMiSSLatex Nothing doc
-      root1 <- coerceWithError root
-     ((EmacsContent l), pre) <- coerceWithError(makeMMiSSLatex (root1, True))
-  in concat (map getStrOfEmacsDataItem l)
---}
-
 parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
 parseAndMakeMMiSSLatex name _ = 
   do result <- parseMMiSSLatexFile name
      case (fromWithError result) of
        Left err -> print err
-       Right (e, mbPreamble, mbImportCmds) -> 
+       Right (e, mbPreamble) -> 
          case (fromWithError (makeMMiSSLatex (e, True, []))) of
            Left err -> print err
            Right (EmacsContent l) ->  putStrLn (concat (map getStrOfEmacsDataItem l))
 
-{--                     
-     root1 <- return(coerceWithError root)
-     ((EmacsContent l), pre) <- return(coerceWithError(makeMMiSSLatex (root1, True)))
-     putStrLn (concat (map getStrOfEmacsDataItem l))
---}
-
-{--
-parseMakeParse :: SourceName -> IO (WithError Element)
-
-parseMakeParse name = do root <- parseMMiSSLatexFile name
-                         root1 <- return(coerceWithError root)
-			 (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, True)))
-			 str <- return (concat (map getStrOfEmacsDataItem l))
-                         return(parseMMiSSLatex str)
---}
 
 getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
 
@@ -1920,7 +1967,7 @@ appendSourcePos pos str = str ++ "in Line "
 
 ---------------------------------------------------------------------------------------------
 --
--- MMiSSLatexPreamble and ImportCommands are instances of StringClass
+-- MMiSSLatexPreamble is an instance of StringClass
 --
 ---------------------------------------------------------------------------------------------
 
@@ -1928,16 +1975,16 @@ instance StringClass MMiSSLatexPreamble where
    fromStringWE string = parsePreamble string
    toString preamble = makePreambleText preamble
 
-instance StringClass ImportCommands where
-   fromStringWE string = parseImportCommands string
-   toString importCmds = makeImportsText importCmds
+--instance StringClass ImportCommands where
+--   fromStringWE string = parseImportCommands string
+--   toString importCmds = makeImportsText importCmds
 
 
 -- ----------------------------------------------------------------------------------
 -- Instances of Typeable & HasCodedValue for Preamble and MMiSSLatexPreamble 
 -- (added by George)
 -- ----------------------------------------------------------------------------------
-
+{--
 package_tyRep = Dynamics.mkTyRep "LaTeXParser" "Package"
 instance Dynamics.HasTyRep Package where
    tyRep _ = package_tyRep
@@ -1957,4 +2004,14 @@ instance CodedValue.HasCodedValue MMiSSLatexPreamble where
       (\ (Preamble documentClass packages string) -> (documentClass,packages,string))
    decodeIO = CodedValue.mapDecodeIO
       (\ (documentClass,packages,string) -> Preamble documentClass packages string)
+--}
 
+-- Rubbish: To be deleted
+
+{--
+flattenTupel :: WithError((a,b),c) -> WithError (a, b, c)
+
+flattenTupel t = case fromWithError t of
+                   Left(str) -> hasError(str)
+                   Right((a,b),c) -> hasValue((a,b,c)) 
+--}
