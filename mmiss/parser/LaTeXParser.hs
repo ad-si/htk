@@ -218,7 +218,7 @@ mkLaTeXString (EmacsContent dataItems) =
             "\\Include"
             ++ toIncludeStr ch
             ++ "{" ++ included ++ "}"
-            ++ "{" ++ (getAttribs  (attributes ++ [statusAttribute]) "" []) ++ "}"
+            ++ "{" ++ (getAttribs  (attributes ++ [statusAttribute]) "" ["included","status"]) ++ "}"
          )     
       dataItems
 
