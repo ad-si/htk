@@ -13,6 +13,47 @@ else
 fi
 AC_SUBST(BINARY)
 #
+#
+# Determine how much we shall try to build.  At the moment this is
+# simply a number BUILDAMOUNT which has the following meanings:
+#
+# 100 => everything
+# 70 => Het
+# 50 => only HTk
+# It defaults to 100.  If it is set lower, we will build less.  We may build
+# less anyway, if we can't find all the required programs, for example the
+# Berkeley Data Base.
+BUILDAMOUNT=100
+
+AC_ARG_ENABLE(
+   MMiSS,
+   AC_HELP_STRING(
+      [--enable-MMiSS],
+      [Compile everything needed for MMiSS]
+      ),
+   BUILDAMOUNT=100,
+   )
+
+AC_ARG_ENABLE(
+   Het,
+   AC_HELP_STRING(
+      [--enable-Het],
+      [Compile everything needed for HetCATS]
+      ),
+   BUILDAMOUNT=70,
+   )
+
+AC_ARG_ENABLE(
+   HTk,
+   AC_HELP_STRING(
+      [--enable-HTk],
+      [Compile everything needed for HTk]
+      ),
+   BUILDAMOUNT=50,
+   )
+
+AC_SUBST(BUILDAMOUNT)
+   
 # Set GOAHEAD to NO prevent modifying Makefiles and so on.
 GOAHEAD=YES
 #
@@ -158,6 +199,11 @@ else
    echo You will not be able to compile the simpledb or types directories.
    echo \(But it should still be possible to compile htk.\)
    BDBDIR=
+
+   if [ $BUILDAMOUNT -gt 70 ]
+   then
+      BUILDAMOUNT=70
+   fi
 fi
 AC_SUBST(BDBDIR)
 #

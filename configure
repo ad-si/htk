@@ -762,6 +762,13 @@ if test -n "$ac_init_help"; then
 
   cat <<\_ACEOF
 
+Optional Features:
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-MMiSS          Compile everything needed for MMiSS
+  --enable-Het            Compile everything needed for HetCATS
+  --enable-HTk            Compile everything needed for HTk
+
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
@@ -1124,6 +1131,38 @@ else
 fi
 
 #
+#
+# Determine how much we shall try to build.  At the moment this is
+# simply a number BUILDAMOUNT which has the following meanings:
+#
+# 100 => everything
+# 70 => Het
+# 50 => only HTk
+# It defaults to 100.  If it is set lower, we will build less.  We may build
+# less anyway, if we can't find all the required programs, for example the
+# Berkeley Data Base.
+BUILDAMOUNT=100
+
+# Check whether --enable-MMiSS or --disable-MMiSS was given.
+if test "${enable_MMiSS+set}" = set; then
+  enableval="$enable_MMiSS"
+  BUILDAMOUNT=100
+fi;
+
+# Check whether --enable-Het or --disable-Het was given.
+if test "${enable_Het+set}" = set; then
+  enableval="$enable_Het"
+  BUILDAMOUNT=70
+fi;
+
+# Check whether --enable-HTk or --disable-HTk was given.
+if test "${enable_HTk+set}" = set; then
+  enableval="$enable_HTk"
+  BUILDAMOUNT=50
+fi;
+
+
+
 # Set GOAHEAD to NO prevent modifying Makefiles and so on.
 GOAHEAD=YES
 #
@@ -1949,6 +1988,11 @@ else
    echo You will not be able to compile the simpledb or types directories.
    echo \(But it should still be possible to compile htk.\)
    BDBDIR=
+
+   if  $BUILDAMOUNT -gt 70
+   then
+      BUILDAMOUNT=70
+   fi
 fi
 
 #
@@ -2875,6 +2919,7 @@ s,@ECHO_N@,$ECHO_N,;t t
 s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
 s,@BINARY@,$BINARY,;t t
+s,@BUILDAMOUNT@,$BUILDAMOUNT,;t t
 s,@TOP@,$TOP,;t t
 s,@WINDOWS@,$WINDOWS,;t t
 s,@OSTITLE@,$OSTITLE,;t t

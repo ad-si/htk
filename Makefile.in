@@ -8,16 +8,24 @@
 # by recursively calling $(MAKE) -C (subdir) lib.
 
 ifeq "@WINDOWS@" "1"
+   # Just HTk (no posixutil)
    SUBDIRS = util events reactor htk
 else
-ifeq "@BDBDIR@" ""
-   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci 
+ifeq "@BUILDAMOUNT@" "50"  
+   # Just HTk
+   SUBDIRS = util events reactor posixutil htk
 else
-ifeq ($(findstring het,$(MAKECMDGOALS)),)
+ifeq "@BUILDAMOUNT@" "70"
+   # Just HetCATs stuff
+   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci
+else
+ifeq "@BUILDAMOUNT@" "100"
+   # All MMiSS stuff
    SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs \
           davinci simpledb imports types emacs mmiss/parser mmiss 
 else
-   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci 
+   echo !!!! Makefile bug: unexpected value @BUILDAMOUNT@ - please fix !!!!
+endif
 endif
 endif
 endif
