@@ -3,6 +3,7 @@
 <fileTypes>
 <fileType tag="gif" menu="xvmenu" colour="red"/>
 <fileType tag="jpeg" menu="xvmenu" colour="green"/>
+<fileType tag="png" menu="xvmenu" colour="blue"/>
 <menu id="xvmenu">
    <command title="view" command="xv %F"/>
    <separator/>

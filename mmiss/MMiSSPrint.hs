@@ -27,7 +27,6 @@ printMMiSSObject view link =
             (result1WE :: WithError (String,ExportFiles))
                <- extractMMiSSObject view link LaTeX
             (string,exportFiles0) <- coerceWithErrorOrBreakIO break result1WE
- 
             object <- readLink view link
             objectTitle <- objectName object
 

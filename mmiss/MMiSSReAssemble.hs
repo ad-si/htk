@@ -14,6 +14,8 @@ import Text.XML.HaXml.Types
 
 import MMiSSDTDAssumptions
 import MMiSSVariant
+import MMiSSContent(getAllElementFiles)
+import MMiSSDTD(toExportableXml) -- DEBUG
 
 ---
 -- The first action function is to extract the Element and is allowed to 
@@ -109,11 +111,18 @@ reAssemble
                doThisFile :: String -> IO ()
                doThisFile file = doFile variantSearch0 searchData0 file
 
+               doContents :: [Content] -> MonadWithError IO [Content]
+               doContents = mapM doContent
+
                doContent :: Content -> MonadWithError IO Content 
                doContent content =
                   case content of
-                     CElem element0 -> case unclassifyElement element0 of
-                        Nothing -> return content
+                     CElem (element0 @ (Elem tag0 attributes0 contents0))
+                           -> case unclassifyElement element0 of
+                        Nothing ->
+                           do
+                              contents1 <- doContents contents0
+                              return (CElem (Elem tag0 attributes0 contents1)) 
                         Just (referredNameString,linkAttributes,check) ->
                            do
                               (referredName :: EntitySearchName)
@@ -138,9 +147,9 @@ reAssemble
                                  Nothing -> return content
                      _ -> return content
 
-            toMonadWithError (mapM_ doThisFile (getFiles element0))
+            toMonadWithError (mapM_ doThisFile (getAllElementFiles element0))
 
-            contents1 <- mapM doContent contents0
+            contents1 <- doContents contents0
             return (Elem name attributes contents1)
    in
       do
