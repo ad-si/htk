@@ -3,7 +3,10 @@ module DrawDepend(
   drawDepend
   ) where
 
+import List
+import Maybe
 import IO
+import System
 
 import Set
 import FiniteMap
@@ -14,8 +17,11 @@ import IOExtras
 
 import RegularExpression
 import InfoBus
+import SIM(Destructible(..),sync)
 
 import GraphDisp
+
+import Hasse
 
 --------------------------------------------------------------------------
 -- Parsing the .depend file.
@@ -36,12 +42,22 @@ data SemiParsedDepend = SemiParsedDepend [(String,String)]
 parseDepend :: IO ParsedDepend
 parseDepend =
    do
+      args <- getArgs
+   
       depend <- openFile ".depend" ReadMode
       semiParsedDepend <- semiParseDepend depend
       let
-         parsedDepend = finishParseDepend semiParsedDepend
+         doFilter = isJust(find (== "h") args)
+         filteredDepend =
+            if doFilter
+               then
+                  filterDepend semiParsedDepend
+               else
+                  semiParsedDepend
+         parsedDepend = finishParseDepend filteredDepend
       hClose depend
       return parsedDepend
+
 
 semiParseDepend :: Handle -> IO SemiParsedDepend
 semiParseDepend handle = semiParseDependAcc handle []
@@ -73,6 +89,10 @@ semiParseDependAcc handle soFar =
                                  '.':'/':imported -> imp imported
                                  '/':imported -> continue
                                  imported -> imp imported
+
+filterDepend :: SemiParsedDepend -> SemiParsedDepend
+filterDepend (SemiParsedDepend dependencies) = 
+   SemiParsedDepend (hasse dependencies)
 
 finishParseDepend :: SemiParsedDepend -> ParsedDepend
 finishParseDepend (SemiParsedDepend dependencies) =
@@ -173,8 +193,5 @@ drawDepend (_::
 
       redraw graph
 
-      quitCommand <- getLine
-      shutdown
-       
-
+      sync (destroyed graph)
 
