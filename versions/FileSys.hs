@@ -19,8 +19,11 @@ module FileSys(
       -- :: [RepositoryParameter] -> IO FileSys
       -- Establish a connection to a FileSys
    Version, -- Type of a version of the file system
-   FileObj, -- Object in the file system.  
+   FileObj, -- Object in the file system with a particular version.  
    FolderObj, -- A folder in the file system
+   AttributesObj, -- represents a set of attributes.
+   -- Each file or folder has one of these, with exception
+   -- of the top folder.
 
    getVersions, 
       -- :: FileSys -> IO [Version]
@@ -35,13 +38,23 @@ module FileSys(
    getFolderContents,
       -- :: FileSys -> FolderObj -> [((String,UniType),FileObj)]
    lookupInFolder,
-      -- :: FileSys -> FolderObj -> String -> UniType -> Maybe FileObj
+      -- :: FileSys -> FolderObj -> String -> UniType -> 
+      --       Maybe (FileObj,AttributesObj)
    extractFileObj,
       -- :: FileSys -> FileObj -> FilePath -> IO ()
       -- copies a whole FileObj into the specified location.
       -- (If a directory, the location should not end with the file
-      -- separator)
+      -- separator),
+   extractAttributesObj,
+      -- :: FileSys -> AttributesObj -> IO Attributes
    
+   -- The following 5 come from CVSDB
+   Attributes,
+   getAttribute, -- :: Read a => Attributes -> String -> Maybe a
+   setAttribute, -- :: Show a => Attributes -> String -> Maybe a -> Attributes
+   getAttributeKeys, -- :: Attributes -> [String]
+   emptyAttributes, -- :: Attributes
+
    Change(..),
       -- Change encodes the type of changes in a version
    BrokenPath, 
@@ -96,6 +109,7 @@ data Change =
       NewFile BrokenPath -- File (not folder) with this name has been added
    |  NewFolder BrokenPath -- New folder has been added.
    |  EditFile BrokenPath -- File (already in FileSys) has been edited.
+   |  EditAttributes BrokenPath -- set attributes for this path.
    |  RMObject BrokenPath -- remove this file or folder
    |  MVObject BrokenPath BrokenPath -- Move first object to second.
 
@@ -118,10 +132,17 @@ instance Ord FileObj where
 instance Show FileObj where
    showsPrec prec (FileObj l o _) acc = showsPrec prec (l,o) acc
 
-data FolderObj = FolderObj (FiniteMap (String,UniType) FileObj)
+data FolderObj = 
+   FolderObj (FiniteMap (String,UniType) (FileObj,AttributesObj))
+
+data AttributesObj = AttributesObj Location AttributeVersion
+   deriving (Eq,Ord,Show)
+   -- attlocation is not yet applied to location.
+
 
 data FileSys = FileSys {
    folderCache :: Cache FileObj FolderObj,
+   attributesCache :: Cache AttributesObj Attributes,
    repository :: Repository,
    typeDataBase :: UniTypeDataBase,
    folderType :: UniType
@@ -138,16 +159,19 @@ readFolderObj :: UniTypeDataBase -> String -> IO FolderObj
 readFolderObj typeDataBase str =
    do
       let
-         LineShow (contents :: [(String,String,Location,ObjectVersion)]) =  
+         LineShow (contents :: 
+               [(String,String,Location,ObjectVersion,AttributesObj)]) =  
             read str
       contentsList <- 
          mapM
-           (\ (baseName,extension,location,objectVersion) ->
+           (\ (baseName,extension,location,objectVersion,attributeVersion) ->
               do
                  uniType <- lookupByExtension typeDataBase extension
                  return (
                     (baseName,uniType),
-                    FileObj location objectVersion uniType
+                    (FileObj location objectVersion uniType,
+                       AttributesObj location attributeVersion
+                       )
                     )
               )
            contents
@@ -159,25 +183,30 @@ readFolderObj typeDataBase str =
 writeFolderObj :: FolderObj -> IO ObjectSource
 writeFolderObj (FolderObj folderMap) =
    let
-      contentsList' :: [((String,UniType),FileObj)] = fmToList folderMap
+      contentsList' :: [((String,UniType),(FileObj,AttributesObj)] = 
+         fmToList folderMap
       contentsList =
          map
-            (\ (strType,FileObj location objectVersion _) ->
-               (strType,location,objectVersion)
+            (\ (strType,(FileObj location objectVersion _,
+                  AttributesObj _ attributeVersion)) ->
+               (strType,location,objectVersion,attributeVersion)
                )
             contentsList'
    in
       writePrimitiveFolderObj contentsList
 
-writePrimitiveFolderObj :: [((String,UniType),Location,ObjectVersion)] -> 
+writePrimitiveFolderObj :: 
+      [((String,UniType),Location,ObjectVersion,AttributeVersion))] -> 
    IO ObjectSource 
 writePrimitiveFolderObj contentsList =
    do
       let
-         contents :: [(String,String,Location,ObjectVersion)] =
+         contents :: [(String,String,Location,ObjectVersion,AttributeVersion)] =
             map
-               (\ ((baseName,uniType),location,objectVersion) ->
-                  (baseName,getExtension uniType,location,objectVersion)
+               (\ ((baseName,uniType),location,objectVersion,
+                     attributeVersion) ->
+                  (baseName,getExtension uniType,location,objectVersion,
+                     attributeVersion)
                   )
                contentsList
          str = show(LineShow contents)
@@ -210,13 +239,20 @@ connectFileSys repositoryParameters =
                   folderStr <- 
                      retrieveString repository location objectVersion
                   readFolderObj typeDataBase folderStr
-               ) 
+               )
+
+      attributesCache <-
+         newCache
+            (\ (AttributesObj location attributeVersion) ->
+               retrieveAttributes repository location attributeVersion
+               )
 
       folderType <- 
          registerType typeDataBase (UniTypeData{name="Folder",extension=""})
       return (FileSys{
          repository=repository,
          folderCache=folderCache,
+         attributesCache=attributesCache,
          typeDataBase=typeDataBase,
          folderType=folderType
          })
@@ -255,7 +291,8 @@ getFolderObj
 getFolderContents :: FileSys -> FolderObj -> [((String,UniType),FileObj)]
 getFolderContents _ (FolderObj folderMap) = (fmToList folderMap)
 
-lookupInFolder :: FileSys -> FolderObj -> String -> UniType -> Maybe FileObj
+lookupInFolder :: FileSys -> FolderObj -> String -> UniType -> 
+   Maybe (FileObj,AttributesObj)
 lookupInFolder _ (FolderObj folderMap) baseName uniType =
    lookupFM folderMap (baseName,uniType)
 
@@ -301,7 +338,7 @@ lookupLocalPath fileSys fileObj (inHere:rest) =
       (str,uniType) <- unmakeFileName (typeDataBase fileSys) inHere
       case lookupInFolder fileSys folderObj str uniType of
          Nothing -> fileSysError ("lookupLocalPath : "++inHere++" not found")
-         Just fileObj -> lookupLocalPath fileSys fileObj rest
+         Just (fileObj,_) -> lookupLocalPath fileSys fileObj rest
 
 ------------------------------------------------------------------
 -- Updating the file system

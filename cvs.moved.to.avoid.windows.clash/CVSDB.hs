@@ -69,11 +69,13 @@ module CVSDB(
    getAttributeKeys, -- :: Attributes -> [String]
    emptyAttributes, -- :: Attributes
 
-   -- Attribute information is supposed to be stored in a special
-   -- kind of file with a name indicated by the location.
-   -- (Yes, this is a hack)
-   attLocation, -- :: Location -> Location
-   -- get attribute location corresponding to a given location.
+   commitAttributes, -- :: Repository -> Attributes -> Location -> 
+      --                      AttributeVersion -> IO ObjectVersion
+      -- similar to commit.
+   retrieveAttributes, -- :: Repository -> Location -> AttributeVersion ->
+                       --       IO Attributes
+   -- similar to retrieveString
+    
 
    listVersions, -- :: Repository -> Location -> IO [ObjectVersion]
    -- listVersion lists all versions of the object with the given location.
@@ -332,19 +334,6 @@ toRealName :: Repository -> CVSFile -> FilePath
 toRealName repository (CVSFile location) =
    (workingDir repository ++ location)
 
-#ifdef DEBUG
-attLocation :: CVSFile -> CVSFile
-attLocation (CVSFile str) = CVSFile (postFix str)
-   where
-      postFix "" = "#"
-      postFix (h:t)
-         | (h=='#') = error ("CVSDB.attLocation applied to "++str)
-         | True = h:postFix t   
-#else
-attLocation :: CVSFile -> CVSFile
-attLocation (CVSFile str) = CVSFile (str++"#")
-#endif
-
 ----------------------------------------------------------------
 -- newLocation and newInitialLocation
 ----------------------------------------------------------------
@@ -527,6 +516,38 @@ instance Read Attributes where
          map
            (\ (res,rest) -> (Attributes res,rest))
            result
+
+commitAttributes :: Repository -> Attributes -> Location -> 
+   AttributeVersion -> IO ObjectVersion
+commitAttributes repository attributes location attributeVersion =
+   do
+      let
+         attLoc = attLocation location
+      objectSource <- importString (show attributes)
+      commit repository objectSource attLoc attributeVersion
+
+retrieveAttributes :: Repository -> Location -> AttributeVersion -> 
+   IO Attributes
+retrieveAttributes repository location attributeVersion =
+   do
+      let
+         attLoc = attLocation location
+      contents <- retrieveString repository attLoc attributeVersion
+      return (read contents)
+
+#ifdef DEBUG
+attLocation :: CVSFile -> CVSFile
+attLocation (CVSFile str) = CVSFile (postFix str)
+   where
+      postFix "" = "#"
+      postFix (h:t)
+         | (h=='#') = error ("CVSDB.attLocation applied to "++str)
+         | True = h:postFix t   
+#else
+attLocation :: CVSFile -> CVSFile
+attLocation (CVSFile str) = CVSFile (str++"#")
+#endif
+
 
 ----------------------------------------------------------------
 -- ensureDirectories
