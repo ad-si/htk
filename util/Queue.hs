@@ -24,6 +24,7 @@ DESCRIPTION   :
       insertAtEndQ :: Queue a -> a -> Queue a 
       -- undo the effect of the previous removeQ.
       isEmptyQ :: Queue a -> Bool
+      queueToList :: Queue a -> [a]
    ######################################################################### -}
 
 

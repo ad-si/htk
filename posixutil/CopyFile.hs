@@ -9,14 +9,14 @@ module CopyFile(
 
    copyCStringLenToFile,
    copyFileToCStringLen,
+   copyFileToICStringLen,
    ) where
 
 import qualified IO
 
-import PackedString
+import GHC.IO
 import CTypesISO(CSize)
 import ST
-import ByteArray(ByteArray)
 import qualified IOExts
 import qualified Exception
 import CString
@@ -25,6 +25,7 @@ import Foreign
 import Posix
 
 import Computation
+import ICStringLen
 
 import FdRead
 
@@ -104,41 +105,30 @@ copyFileToStringCheck filePath =
 
 copyFileToCStringLen :: FilePath -> IO CStringLen
 copyFileToCStringLen file =
-#if __GLASGOW_HASKELL__ <= 503
--- We catch ioErrors which don't match certain criteria and return 
--- the null string.  This is because IOExts.slurpFile fails on files 
--- of zero length with an IOError which doesn't pass any of the
--- standard test functions
-   do
-      let
-         selector ex =
-            case Exception.ioErrors ex of
-               Nothing -> Nothing
-               Just (ioError :: IOError) ->
-                  let
-                     testFuns = [
-                        IO.isAlreadyExistsError,
-                        IO.isDoesNotExistError,
-                        IO.isAlreadyInUseError,
-                        IO.isFullError,
-                        IO.isEOFError,
-                        IO.isIllegalOperation,
-                        IO.isPermissionError,
-                        IO.isUserError
-                        ]
-                     isStandard = any id (map ($ ioError) testFuns)
-                  in
-                     if isStandard then Nothing else Just ()
-
-      Exception.catchJust selector 
-         (copyFileToCStringLen' file) (\ _ -> newCStringLen "")
-
-copyFileToCStringLen' :: FilePath -> IO CStringLen
-copyFileToCStringLen' file =      
-#endif
    do
       (ptr,len) <- IOExts.slurpFile file
       return (Ptr.castPtr ptr,len)
+
+copyFileToICStringLen :: FilePath -> IO ICStringLen
+copyFileToICStringLen filePath =
+   do
+      -- shamelessly pirated from GHC's slurpFile function.
+      handle <- IO.openFile filePath IO.ReadMode
+      len <- IO.hFileSize handle
+      if len > fromIntegral (maxBound::Int) 
+         then
+            error "CopyFile.copyFileToICStringLen: file too big" 
+         else
+            do
+               let
+                  len_i = fromIntegral len
+               mkICStringLen len_i
+                  (\ cString -> 
+                     do
+                        lenRead <- hGetBuf handle cString len_i
+                        when (lenRead < len_i)
+                           (error"EOF within BinaryIO")
+                     )
 
 ---
 -- Write to a file, catching certain errors.

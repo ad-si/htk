@@ -199,7 +199,7 @@ createFolder view folderTypeId attributes linkedObject =
    do
       folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
       hideFolderArcs <- mkArcsHiddenSource
-      openContents <- newOpenContents linkedObject
+      openContents <- newOpenContents view linkedObject
       return (Folder {folderType = folderType,attributes = attributes,
          linkedObject = linkedObject,openContents = openContents,
          hideFolderArcs = hideFolderArcs})
@@ -489,7 +489,7 @@ getTopFolder view =
             linkedObjectWE <- newLinkedObject view (
                WrappedLink (topLink :: Link Folder)) Nothing
             linkedObject <- coerceWithErrorIO linkedObjectWE 
-            openContents <- newOpenContents linkedObject
+            openContents <- newOpenContents view linkedObject
             hideFolderArcs <- mkArcsHiddenSource
             return (Folder {
                folderType = folderType,
@@ -574,7 +574,7 @@ newEmptyFolder folderType view parentLinkedObject =
                createLinkedObjectChild view parentLinkedObject name
                   (\ linkedObject ->
                      do
-                        openContents <- newOpenContents linkedObject
+                        openContents <- newOpenContents view linkedObject
                         let
                            folder =
                               Folder {
@@ -732,5 +732,7 @@ toArcEnds blocker blockID =
 
       return variableSet2
 
-newOpenContents :: LinkedObject -> IO (Blocker WrappedLink)
-newOpenContents linkedObject = newBlocker (objectContents linkedObject)
+newOpenContents :: View -> LinkedObject -> IO (Blocker WrappedLink)
+newOpenContents view linkedObject 
+   = newBlockerWithPreAction (objectContents linkedObject) 
+      (wrapPreFetchLinks view)

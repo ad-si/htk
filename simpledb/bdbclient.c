@@ -7,36 +7,47 @@
 #include "bdbclient.h"
 #include "bdbcommon.h"
 
-void debug (uint32 recno,const char *data,uint32 length);
+static void debug (uint32 recno,const char *data,uint32 length);
 
-DB * db_connect(const char *server) {
-   DB_ENV *db_env;
+static void ensure_db_env ();
+
+
+static DB_ENV *db_env = NULL;
+
+DB * db_connect(const char *database) {
    DB *db;
    DB *result;
-   int error;
-   
-   run_db("db_env_create",
-      db_env_create(&db_env,DB_CLIENT));
-   run_db("db_env->set_rpc_server",
-      db_env->set_rpc_server(db_env,NULL,server,20,3600,0));
-   run_db("db_env->open",
-      db_env->open(db_env,DATABASE,DB_CREATE | DB_INIT_MPOOL,0));
+   int error; 
+
+   ensure_db_env(database);
+
    run_db("db_create",
       db_create(&db,db_env,0));
 
 #if ( (DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR >= 1))) 
    run_db("db_open",
-      db->open(db,NULL,DATABASE,NULL,DB_RECNO,DB_CREATE,0664));
+      db->open(db,NULL,DBNAME,NULL,DB_RECNO,DB_CREATE,0664));
+
 #else
    run_db("db_open",
-      db->open(db,DATABASE,NULL,DB_RECNO,DB_CREATE,0664));
+      db->open(db,DBNAME,NULL,DB_RECNO,DB_CREATE,0664));
 #endif
 
    return db;
    }
 
+void ensure_db_env (const char *database) {
+   if (!db_env) {
+      run_db("db_env_create",
+         db_env_create(&db_env,0));
+      run_db("db_env->open",
+         db_env->open(db_env,database,
+            DB_CREATE | DB_RECOVER | DB_INIT_MPOOL,0));
+      }
+   }
 
-void db_store(DB *db,const char *data,uint32 length,uint32 *recno) {
+void db_store(DB *db,const char *data,uint32 length,
+      uint32 *recno) {
    DBT key_dbt,data_dbt;
    db_recno_t db_recno;
 
@@ -48,14 +59,18 @@ void db_store(DB *db,const char *data,uint32 length,uint32 *recno) {
    data_dbt.data=data;
    data_dbt.size=length;
    run_db("DB->put",
-      db->put(db,NULL,&key_dbt,&data_dbt,DB_APPEND));
-   *recno = (uint32) db_recno;
+#if 0
+      db->put(db,NULL,&key_dbt,&data_dbt,DB_APPEND | DB_AUTO_COMMIT));
+#else
+      db->put(db,NULL,&key_dbt,&data_dbt,DB_APPEND ));
+#endif
+   *recno = * ((uint32 *) key_dbt.data);
    }
 
 void db_retrieve(DB *db,uint32 recno,char **datap,uint32 *length) {
    DBT key_dbt,data_dbt;
    db_recno_t db_recno;
-   char *permanent_data;
+   int db_get_out;
 
    memset(&key_dbt, 0, sizeof(key_dbt));
    memset(&data_dbt, 0, sizeof(data_dbt));
@@ -63,19 +78,24 @@ void db_retrieve(DB *db,uint32 recno,char **datap,uint32 *length) {
    db_recno = (db_recno_t) recno;
    key_dbt.data = &db_recno;
    key_dbt.size = sizeof(db_recno);
-   run_db("DB->get",db->get(db,NULL,&key_dbt,&data_dbt,0));
-
-   *length = (uint32) data_dbt.size;
-
-   permanent_data = malloc(data_dbt.size);
-   if (!permanent_data) {
-      fprintf(stderr,"OUT OF MEMORY - malloc failed.");
-      exit(EXIT_FAILURE);
+   
+   db_get_out = db->get(db,NULL,&key_dbt,&data_dbt,0);
+   if (db_get_out == DB_NOTFOUND) {
+      *datap = NULL;
+      *length = 0;
       }
+   else {    
+      run_db("DB->get",db_get_out);
 
-   memcpy(permanent_data,(char *)data_dbt.data,(size_t) data_dbt.size);
-   *datap = (char *) permanent_data;
+      *length = (uint32) data_dbt.size;
+      *datap = (char *)data_dbt.data;
+      }
    }
+
+void db_flush(DB *db) {
+   db -> sync(db,0);
+   }
+
 
 void debug (uint32 recno,const char *data,uint32 length) {
    uint32 toPrint = (length > 20 ? 20 : length);

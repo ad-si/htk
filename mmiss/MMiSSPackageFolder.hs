@@ -92,7 +92,7 @@ instance HasCodedValue MMiSSPackageFolder where
    decodeIO codedValue0 view =
       do
          (linkedObject,codedValue1) <- decodeIO codedValue0 view
-         mmissPackageFolder <- createMMiSSPackageFolder linkedObject
+         mmissPackageFolder <- createMMiSSPackageFolder view linkedObject
          return (mmissPackageFolder,codedValue1)
 
 instance HasLinkedObject MMiSSPackageFolder where
@@ -102,8 +102,8 @@ instance HasLinkedObject MMiSSPackageFolder where
 -- Constructing the MMiSSPackageFolder
 -- ------------------------------------------------------------------------
 
-createMMiSSPackageFolder :: LinkedObject -> IO MMiSSPackageFolder
-createMMiSSPackageFolder linkedObject =
+createMMiSSPackageFolder :: View -> LinkedObject -> IO MMiSSPackageFolder
+createMMiSSPackageFolder view linkedObject =
    do
      let
         -- Create blocker for link to head package
@@ -116,7 +116,8 @@ createMMiSSPackageFolder linkedObject =
         packageLinkSet :: VariableSetSource WrappedLink
         packageLinkSet = listToSetSource packageLinks
 
-     blocker1 <- newBlocker packageLinkSet
+     blocker1 
+        <- newBlockerWithPreAction packageLinkSet (wrapPreFetchLinks view)
 
      let
         -- Create blocker for links to contents.
@@ -168,7 +169,8 @@ instance HasMerging MMiSSPackageFolder where
 
             newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
 
-            mmissPackageFolder <- createMMiSSPackageFolder newLinkedObject
+            mmissPackageFolder 
+               <- createMMiSSPackageFolder newView newLinkedObject
 
             setLink newView mmissPackageFolder newLink
 
@@ -347,7 +349,7 @@ importMMiSSPackage view parentLinkedObject =
                resultWE <- addFallOutWE (\ break ->
                   do
                      mmissPackageFolder 
-                        <- createMMiSSPackageFolder linkedObject
+                        <- createMMiSSPackageFolder view linkedObject
                      writeLink view link mmissPackageFolder
 
                      let

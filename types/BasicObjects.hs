@@ -35,6 +35,8 @@ module BasicObjects(
 
    ) where
 
+import IO
+
 import qualified IOExts(unsafePerformIO)
 import Concurrent
 
@@ -42,6 +44,8 @@ import Computation(done)
 import Dynamics
 import TempFile
 import Registry
+
+import CopyFile
 
 import VersionDB
 
@@ -51,10 +55,8 @@ import Link
 import MergeTypes
 import ViewType
 
-data SimpleFile = SimpleFile {
-   location :: Location, -- where the real file is stored in CVS
-   filePath :: FilePath, -- where it is stored here
-   parentVersionMVar :: MVar (Maybe ObjectVersion) -- parent version, if any.
+newtype SimpleFile = SimpleFile {
+   filePath :: FilePath -- where it is stored here
    }
 
 -- ------------------------------------------------------------------------
@@ -67,12 +69,8 @@ newSimpleFile view =
       let repository = getRepository view
       filePath <- newTempFile
       writeFile filePath ""
-      location <- newLocation repository
-      parentVersionMVar <- newMVar Nothing
       return (SimpleFile {
-         location = location,
-         filePath = filePath,
-         parentVersionMVar = parentVersionMVar
+         filePath = filePath
          })
 
 getSimpleFileName :: SimpleFile -> FilePath
@@ -95,29 +93,18 @@ instance HasTyRep SimpleFile where
    tyRep _ = simpleFile_tyRep
 
 instance HasCodedValue SimpleFile where
-   -- We represent the file as a pair (Location,ObjectVersion)
-   encodeIO (SimpleFile {location = location,filePath = filePath,
-         parentVersionMVar = parentVersionMVar}) codedValue0 view =
+   -- We represent the file by its contents.
+   encodeIO (SimpleFile {filePath = filePath}) codedValue0 view =
       do
-         let repository = getRepository view
-         parentVersionOpt <- takeMVar parentVersionMVar
-         objectSource <- importFile filePath
-         objectVersion <- commit repository objectSource location 
-            parentVersionOpt
-         putMVar parentVersionMVar (Just objectVersion)
-         encodeIO (location,objectVersion) codedValue0 view
+         contents <- copyFileToString filePath
+         encodeIO contents codedValue0 view
    decodeIO codedValue0 view =
       do
-         ((location,objectVersion),codedValue1) 
-            <- safeDecodeIO codedValue0 view
+         (contents,codedValue1) <- safeDecodeIO codedValue0 view
          filePath <- newTempFile
-         let repository = getRepository view
-         retrieveFile repository location objectVersion filePath
-         parentVersionMVar <- newMVar (Just objectVersion)
+         copyStringToFile contents filePath
          return (SimpleFile {
-            location = location,
-            filePath = filePath,
-            parentVersionMVar = parentVersionMVar
+            filePath = filePath
             },codedValue1)
 
 instance HasFilePath SimpleFile where

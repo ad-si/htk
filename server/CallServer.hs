@@ -32,7 +32,6 @@ import IO
 
 import Control.Concurrent.MVar
 import System.IO.Unsafe
-import Foreign.C.String
 
 import Computation
 import Debug(debug)
@@ -60,7 +59,6 @@ connectReply service =
       case (serviceMode service) of
          Reply -> done
          _ -> ioError(userError("connectReply handed a non-Reply service"))
-
       (connection@ Connection {handle = handle}) <- connectBasic service
 
       headerLine <- hGetLine handle
@@ -73,6 +71,7 @@ connectReply service =
             synchronize bSem (
                do
                   hPut handle inData
+                  hFlush handle
                   hGet handle
                )
          closeAct = destroy connection
@@ -116,7 +115,11 @@ connectBroadcastGeneral service =
 
       let
          sendMessage inData =
-            synchronize readBSem (hPut handle inData)
+            synchronize readBSem (
+               do
+                  hPut handle inData
+                  hFlush handle
+               )
          getMessage = synchronize writeBSem (hGet handle)
          closeAct = destroy connection
 
@@ -178,21 +181,21 @@ connectBasic service =
 
          -- This function iterates attempting to get a connection.
          -- The Bool is True the first time it is called.
-         connectBasic :: CStringLen -> Bool -> IO Connection
-         connectBasic serviceKeyCSL firstTime =
+         connectBasic :: Bool -> IO Connection
+         connectBasic firstTime =
             do    
                handle <- connect hostDesc portDesc
-               hSetBuffering handle NoBuffering
+
+               hSetBuffering handle (BlockBuffering (Just 4096))
+                  -- since we may well be doing the connection via SSL,
+                  -- we use a big buffer, and only flush when necessary.
                               
                (user,password) <- getUserPasswordGeneral firstTime
-               withCStringLen user (\ userCSL ->
-                  withCStringLen password (\ passwordCSL ->
-                     do
-                        hPut handle serviceKeyCSL
-                        hPut handle userCSL
-                        hPut handle passwordCSL
-                     )
-                   )
+               hPut handle serviceKey
+               hPut handle user
+               hPut handle password
+               hFlush handle
+
                response <- hGetLine handle 
                case response of
                   "OK" -> 
@@ -205,10 +208,9 @@ connectBasic service =
                         hClose handle
                         createErrorWin
                            ("Server rejected connection: " ++ errorMess) []
-                        connectBasic serviceKeyCSL False
+                        connectBasic False
               
-      withCStringLen serviceKey 
-         (\ serviceKeyCSL -> connectBasic serviceKeyCSL True)
+      connectBasic True
 
 ------------------------------------------------------------------------
 -- Code for maintaining the user and password.

@@ -19,9 +19,6 @@ module Server(
 import IO
 import List
 
-import Foreign.C.String
-import Foreign.Marshal.Alloc
-
 import Control.Exception hiding (handle)
 
 import Data.FiniteMap
@@ -235,7 +232,8 @@ runServer serviceList =
                                     -- client list
 
                                     header <- sendOnConnect service user state
-                                    hPutStrLnFlush handle (show header)
+                                    hPutStrLn handle (show header)
+                                    hFlush handle
                                     oldClients <- takeMVar clients
                                     putMVar clients (clientData:oldClients)
                                     putMVar stateMVar state
@@ -256,8 +254,9 @@ runServer serviceList =
                                                    user (input,oldState)
                                              let
                                                 outputAction handle =
-                                                   hPut handle output
-
+                                                   do
+                                                      hPut handle output
+                                                      hFlush handle
                                              broadcastAction clientData 
                                                 outputAction
                                              return newState
@@ -339,7 +338,11 @@ runServer serviceList =
          serverAction =
             do
                (handle,_,_) <- accept socket
-               hSetBuffering handle NoBuffering
+
+               hSetBuffering handle (BlockBuffering (Just 4096))
+                  -- since we may well be doing the connection via SSL,
+                  -- we use a big buffer, and only flush when necessary.
+
                connectionOpt <- initialConnect serviceMap handle
                case connectionOpt of
                   Nothing -> done
@@ -368,71 +371,49 @@ initialConnect :: FiniteMap String ServiceData -> Handle
 initialConnect serviceMap handle =
    do
       -- wrap everything so EOF's can't cause trouble here.  This means
-      -- we have three levels of exception handlers, is that a record?
+      -- we have two levels of exception handlers, incidentally.
       resultOrExcep <- Control.Exception.try (
          do
             resultOrString <- addFallOut (\ break ->
                do
-                  -- We don't use PackedString's here, as the GHC 
-                  -- implementation of reading PackedString's from Handles (
-                  -- for 5.04.3) seems to be broken.
-                  (keyCStringWE :: WithError CStringLen) <- hGetIntWE 1 handle
-                  (userIdCStringWE :: WithError CStringLen) 
-                     <- hGetIntWE 1 handle
-                  (passwordCStringWE :: WithError CStringLen) 
-                     <- hGetIntWE 1 handle
-                  finally (
-                     do
-                        keyCString 
-                           <- coerceWithErrorOrBreakIO break keyCStringWE
-                        userIdCString 
-                           <- coerceWithErrorOrBreakIO break userIdCStringWE
-                        passwordCString
-                           <- coerceWithErrorOrBreakIO break passwordCStringWE
+                  (keyWE :: WithError String) <- hGetIntWE 1 handle
+                  (userIdWE :: WithError String) <- hGetIntWE 1 handle
+                  (passwordWE :: WithError String) <- hGetIntWE 1 handle
 
-                        key <- peekCStringLen keyCString
-                        userId <- peekCStringLen userIdCString
-                        password <- peekCStringLen passwordCString
+                  key <- coerceWithErrorOrBreakIO break keyWE
+                  userId <- coerceWithErrorOrBreakIO break userIdWE
+                  password <- coerceWithErrorOrBreakIO break passwordWE
 
-                        -- (1) find the service
-                        serviceData <- case lookupFM serviceMap key of
-                           Nothing -> break ("Service " ++ show key 
-                              ++ " not recognised")
-                           Just serviceData -> return serviceData
+                  -- (1) find the service
+                  serviceData <- case lookupFM serviceMap key of
+                     Nothing -> break ("Service " ++ show key 
+                        ++ " not recognised")
+                     Just serviceData -> return serviceData
 
-                        -- (2) find the user
+                  -- (2) find the user
 
-                        let
-                           authError = break "Unable to authenticate user"
+                  let
+                     authError = break "Unable to authenticate user"
 
-                        userOpt <- getUserEntry userId
-                        user <- case userOpt of
-                           Nothing -> authError
-                           Just user -> return user
+                  userOpt <- getUserEntry userId
+                  user <- case userOpt of
+                     Nothing -> authError
+                     Just user -> return user
 
-                        passwordOK <- verifyPassword password 
-                           (encryptedPassword user)
-                        if passwordOK 
-                           then
-                              return (serviceData,user)
-                           else
-                              authError
-                     )
-                     (do
-                        let
-                           freeCSLWE cslWE = case fromWithError cslWE of
-                              Left _ -> done
-                              Right (cString,_) -> free cString 
-                        freeCSLWE keyCStringWE
-                        freeCSLWE userIdCStringWE
-                        freeCSLWE passwordCStringWE
-                     )
+                  passwordOK <- verifyPassword password 
+                     (encryptedPassword user)
+                  if passwordOK 
+                     then
+                        return (serviceData,user)
+                     else
+                        authError
                )
 
             case resultOrString of
                Right result -> 
                  do
                      hPutStrLn handle "OK"
+                     hFlush handle
                      return (Just result)
                Left mess -> 
                   do

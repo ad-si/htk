@@ -45,7 +45,10 @@ module Thread (
    delay,
    after,
    every,
-   
+
+   mapMConcurrent,
+   mapMConcurrent_,
+      -- evaluate a list of IO actions concurrently.   
    ) 
 where
 
@@ -144,5 +147,34 @@ forkIOquiet label action =
       forkIO newAction          
 
 
+-- --------------------------------------------------------------------------
+-- mapMConcurrent
+-- --------------------------------------------------------------------------
+
+mapMConcurrent :: (a -> IO b) -> [a] -> IO [b]
+mapMConcurrent mapFn [] = return []
+mapMConcurrent mapFn [a] =
+   do
+      b <- mapFn a
+      return [b]
+mapMConcurrent mapFn as =
+   do
+      (mVars :: [MVar b]) <- mapM
+         (\ a ->
+            do
+               mVar <- newEmptyMVar
+               let
+                  act =
+                     do
+                        b <- mapFn a
+                        putMVar mVar b
+               forkIO act
+               return mVar
+            )
+         as
+      mapM takeMVar mVars
+
+mapMConcurrent_ :: (a -> IO ()) -> [a] -> IO ()
+mapMConcurrent_ mapFn as = mapM_ (\ a -> forkIO (mapFn a)) as
 
 

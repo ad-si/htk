@@ -8,6 +8,7 @@ import List
 
 import Data.FiniteMap
 import Control.Concurrent.MVar
+import Control.Exception
 
 import Computation
 import ExtendedPrelude
@@ -18,6 +19,7 @@ import FileSystem
 import Registry
 import Delayer
 import DeepSeq
+import Thread
 
 import Destructible
 
@@ -203,7 +205,12 @@ mergeViews (views @ (firstView:_)) =
                         linkViewData1
                      coerceWithErrorOrBreakIO break unitWE
 
-            mapM_ mergeOne (fmToList (allMergesMap linkReAssigner))
+            breaks <- mapMConcurrent 
+               (\ wrappedMergeLink 
+                  -> Control.Exception.try (mergeOne wrappedMergeLink))
+               (fmToList (allMergesMap linkReAssigner))
+
+            mapM_ propagate breaks
 
             return newView
          )

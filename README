@@ -70,12 +70,12 @@ The following are required or at least recommended.
     daVinci) you will need to compile and install the Berkeley Database.  You 
     can get this from 
        http://www.sleepycat.com
-    BDB's configure needs two special options, --enable-rpc, and 
-    --disable-shared.  The former sets things up so the BDB can be called
-    remotely via RPC; the latter creates static objects, so that MMiSS is
-    statically linked with BDB.  Thus, in BDB's directory 
+    You should give BDB's configure a special option, --disable-shared.  
+    This means that BDB is produces static libraries, so you won't need
+    to set up LD_LIBRARY_PATH and carry around the BDB dynamic libraries
+    to call MMiSS executables. Thus, in BDB's directory 
     [BDB source]/dist you might use the command
-       ../build_unix/configure --enable-rpc --disable-shared
+       ../build_unix/configure --disable-shared
     You might also want a "--prefix" option, to specify a directory BDB
     should write its compiled stuff to, if you do not have write access to
     the standard system directories.

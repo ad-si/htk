@@ -10,9 +10,21 @@ module VariableSetBlocker(
    closeBlocker, -- :: HasKey a key => Blocker a -> BlockID -> IO ()
    blockVariableSet, 
       -- :: HasKey a key => Blocker a -> BlockID -> VariableSetSource a
+
+
+   newBlockerWithPreAction 
+      -- :: HasKey a key => VariableSetSource a -> ([a] -> IO ()) 
+      -- -> IO (Blocker a)
+      --
+      -- newBlockerWithPreAction creates a blocker that additionally permits
+      -- an action that is performed the very first time the blocker is
+      -- opened.  
+      -- The arguments to the action are the contents of the variable set
+      -- at about the time of the opening.
    ) where
 
-import Concurrent
+import System.IO.Unsafe
+import Control.Concurrent
 
 import Object
 import Registry
@@ -49,6 +61,18 @@ newBlocker setSource =
             setSource = setSource
             }
       return blocker
+
+newBlockerWithPreAction 
+   :: HasKey a key => VariableSetSource a -> ([a] -> IO ()) -> IO (Blocker a)
+newBlockerWithPreAction setSource0 preAction =
+   let
+      action = 
+         do
+            list <- readContents setSource0
+            preAction list
+      setSource1 = (unsafePerformIO action) `seq` setSource0
+   in
+      newBlocker setSource1
              
 newBlockID :: IO BlockID
 newBlockID =

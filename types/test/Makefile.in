@@ -7,28 +7,30 @@ EXTRAEXPORTS = Server berkeley_db_svc Makefile.in
 
 include @TOP@/mk/boilerplate.mk
 
-.PHONY : runServer runWorkbench killServer killWorkbench displayextrasrcs
+.PHONY : runServer restartServer runWorkbench killServer killWorkbench \
+   displayextrasrcs
 
-prepareexports : Server berkeley_db_svc
+prepareexports : Server 
 
 displaysrcshere : displayextrasrcs
 
 displayextrasrcs :
-	@echo @TOP@/types/test/rerunWorkbench.in @TOP@/types/test/runWorkbench.in @TOP@/types/test/berkeley_db_svc
+	@echo @TOP@/types/test/rerunWorkbench.in @TOP@/types/test/runWorkbench.in 
 
 SERVERDIR = /tmp/server.$$USER
 
 runServer : 
-	@MKDIR@ -p /var/tmp/simpledb
-	./berkeley_db_svc -h /var/tmp/simpledb &
 	@MKDIR@ $(SERVERDIR)
 	@CP@ @TOP@/server/passwd.dummy $(SERVERDIR)/passwd
+	$(MAKE) restartServer
+
+restartServer :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Server --uni-debug=s.debug --uni-serverDir=$(SERVERDIR) &
 
+
 killServer :
-	(pkill "^berkeley_db_svc$$" || echo not running)
 	(pkill "^Server$$" || echo not running)
-	rm -rf $(SERVERDIR) VersionGraph.backup storeDir /var/tmp/simpledb
+	rm -rf $(SERVERDIR) VersionGraph.backup storeDir
 
 runWorkbench :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Workbench --uni-debug=w.debug
@@ -36,8 +38,3 @@ runWorkbench :
 illWorkbench :
 	(pkill "^Workbench$$" || echo not running)
 	rm -rf /tmp/#
-
-boot : berkeley_db_svc
-berkeley_db_svc : @BDBDIR@/bin/berkeley_db_svc
-	rm -rf $@
-	ln -sf $< $@

@@ -70,10 +70,10 @@ class StringClass stringClass where
    fromString s = coerceWithError (fromStringWE s)
 
    fromStringWE :: String -> WithError stringClass
+   fromStringWE s = hasValue (fromString s)
 
 instance StringClass AtomString where
    fromString string = IOExts.unsafePerformIO (mkAtom string)
-   fromStringWE string = hasValue (fromString string)
 
    toString atom = IOExts.unsafePerformIO (readAtom atom)
 

@@ -102,15 +102,11 @@ class (HasBinaryIO inType,HasBinaryIO outType) =>
       do
          contents <- backupToString service state
          filePath <- getBackupFile service
-         writeFile filePath contents
+         copyStringToFile contents filePath
           
 getBackupFile :: ServiceClass inType outType stateType =>
    (inType,outType,stateType) -> IO FilePath
-getBackupFile service =
-   do
-      backupDir <- getBackupDir
-      return (combineNames (trimDir backupDir) ((serviceId service)
-         ++".backup"))
+getBackupFile service = getServerFile (serviceId service ++ ".backup")
  
 data ServiceMode =
       Reply     -- Send output just to client sending input

@@ -67,6 +67,8 @@ module ObjectTypes(
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
    wrapReadLink, -- :: View -> WrappedLink -> IO WrappedObject
+
+   wrapPreFetchLinks, -- :: View -> [WrappedLink] -> IO ()
    
    -- Extract the object type of an object, wrapped.
    getObjectType, -- :: WrappedObject -> WrappedObjectType
@@ -127,6 +129,7 @@ import Sink
 import qualified VariableList
 import VariableSet(HasKey(..))
 import Sources
+import Thread
 
 import GraphDisp
 import GraphConfigure
@@ -467,6 +470,17 @@ wrapReadLink view wrappedLink =
    do
       versioned <- wrapFetchLink view wrappedLink
       wrapReadObject view versioned 
+
+
+wrapPreFetchLinks :: View -> [WrappedLink] -> IO ()
+wrapPreFetchLinks view wrappedLinks =
+   mapMConcurrent_
+      (\ (WrappedLink link) ->
+         do
+            fetchLink view link
+            done
+         ) 
+      wrappedLinks
 
 -- ----------------------------------------------------------------
 -- Accessing the GlobalRegistry's

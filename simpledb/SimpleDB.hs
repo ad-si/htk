@@ -1,9 +1,4 @@
-{- This is the user-interface to the simpleDB.
-   Any resemblance to the interface to the CVSDB module is entirely
-   deliberate. 
-
-   We implement all functions except getCVSFilePath and watch, which
-   aren't used anyway, and also don't implement DirectAccess (ditto).
+{- This is the user-interface to the SimpleDB.
    -}
 module SimpleDB(
    Repository,
@@ -14,52 +9,29 @@ module SimpleDB(
    -- type of versions of objects in the repository
    -- instance of Read/Show/StringClass
 
-   ObjectSource,
-   -- type of data as retrieved from the repository.
-   exportString, -- :: ObjectSource -> IO String
-   -- exportString extracts the contents of the object as a String
-   exportFile, -- :: ObjectSource -> FilePath -> IO ()
-   -- exportFile writes the contents of the object as a file with the
-   -- supplied name, overwriting whatever was there before.
-   importString, -- :: String -> IO ObjectSource
-   -- importString makes an object with the given contents.
-   importFile, -- :: FilePath -> IO ObjectSource
-   -- importFile makes an object from the given file.
+   module ObjectSource,
 
    Location,
    -- represents Location of object in the repository.  Instance of 
    -- Read/Show/Eq.
-   firstLocation, -- :: Location
-   secondLocation, -- :: Location
+   specialLocation1, -- :: Location
+   specialLocation2, -- :: Location
    -- These two locations are special.  They are already allocated,
    -- and may be used as the user desires.
 
    firstVersion, -- :: ObjectVersion
-   -- This should be the very first version the firstLocation object
+   -- This should be the very first version the specialLocation1 object
    -- receives.
 
    newLocation, -- :: Repository -> IO Location
    -- allocate a new unique location in the repository.
-   -- and the version of the associated attributes.
 
-   commit, -- :: Repository -> ObjectSource -> Location 
-      -- -> Maybe ObjectVersion -> IO ObjectVersion
-   -- commits a new version of the object to the repository, returning its
-   -- new version.  The version, if supplied, should be a previous version of
-   -- this object.  If it is NOT supplied, this MUST be the first time
-   -- we store to this object.
+   newVersion, -- :: Repository -> IO Location
+   -- allocate a new unique version in the repository.
 
-
-   -- Two-Stage commit   
-   commitStage1,
-      -- :: Repository -> Location -> Maybe ObjectVersion -> IO ObjectVersion
-   commitStage2, 
-      -- :: Repository -> ObjectSource -> Location -> ObjectVersion -> IO ()
-   -- This divides the work of the commit function into two halves, the first
-   -- of which allocates and returns a new object version, the second of 
-   -- which actually commits.  commitStage2 should be given the ObjectVersion
-   -- returned by commitStage1; of course this should also not be re-used.
-
+   lastChange, 
+      -- :: Repository -> Location -> ObjectVersion -> IO ObjectVersion
+      -- return the ObjectVersion in which this object was last updated.
    retrieveFile, -- :: Repository -> Location -> ObjectVersion -> FilePath ->
                  --       IO ()
    -- retrieveFile retrieves the given version of the object at Location
@@ -67,26 +39,46 @@ module SimpleDB(
    retrieveString, -- :: Repository -> Location -> ObjectVersion -> IO String
    -- retrieveFile retrieves the given version of the object as a String
 
-   listVersions, -- :: Repository -> Location -> IO [ObjectVersion]
-   -- listVersion lists all versions of the object with the given location.
+   listVersions, -- :: Repository -> IO [ObjectVersion]
+   -- listVersion lists all versions in the repository.
 
+   commit,
+      --  :: Repository -> Maybe ObjectVersion -> ObjectVersion
+      -- -> [(Location,ObjectSource)] -> IO ()
+      -- Commit a complete new version to the repository.
+      --
+      -- Maybe ObjectVersion
+      --    is the parent version
+      --    (or Nothing for the very first version)
+      -- ObjectVersion
+      --    is the version for this commit.  This must be unique and
+      --    either firstVersion, for the very first version, or else
+      --    allocated by newVersion
+      -- [(Location,ObjectSource)] 
+      --    is the list of updates.  Later updates take priority over
+      --    earlier ones.
    ) where
 
 import Object
 import Computation(done)
 import BinaryIO
+import ICStringLen
+import Debug(debug)
 
 import Destructible
 
 import InfoBus
 
 import CallServer
+import MultiPlexer
 
 import CopyFile
 
 import SimpleDBServer
 import SimpleDBService
-import BDBClient
+import ObjectSource hiding (getICSL,fromICSL)
+   -- that prevents those two functions being exported
+import qualified ObjectSource
 
 
 ----------------------------------------------------------------
@@ -94,7 +86,6 @@ import BDBClient
 ----------------------------------------------------------------
 
 data Repository = Repository {
-   bdb :: BDB,
    queryRepository :: SimpleDBCommand -> IO SimpleDBResponse,
    closeDown :: IO (),
    oID :: ObjectID
@@ -106,17 +97,46 @@ initialise =
       (queryRepository0,closeDown,"") <- connectReply simpleDBService
 
       let
-         queryRepository command =
-            do
-               (ReadShow response) <- queryRepository0 (ReadShow command)
+         queryRepository1 :: SimpleDBCommand -> IO SimpleDBResponse
+         queryRepository1 =
+#ifdef DEBUG
+            \ simpleDBCommand -> do
+               debug simpleDBCommand
+               response <- queryRepository0 simpleDBCommand
+               debug response
                return response
+#else
+            queryRepository0
+#endif
 
-      bdb <- openBDB
+         queryRepository2 :: [SimpleDBCommand] -> IO [SimpleDBResponse]
+         queryRepository2 [] = return []
+         queryRepository2 [command] =
+            do
+               response <- queryRepository1 command
+               return [response]
+         queryRepository2 commands =         
+            do
+               (MultiResponse responses) <- queryRepository1 
+                  (MultiCommand commands)
+               return responses
+
+      multiPlexer <- newMultiPlexer queryRepository2
+
+      let
+         queryRepository3 :: SimpleDBCommand -> IO SimpleDBResponse
+         queryRepository3 command =
+            do
+               response <- sendCommand multiPlexer command
+               case response of
+                  IsError mess -> error mess
+                  _ -> return response
+
+
       oID <- newObject
       let
          repository = Repository {
-            bdb = bdb,
-            queryRepository = queryRepository,
+            queryRepository = queryRepository3,
             closeDown = closeDown,
             oID = oID
             }
@@ -137,39 +157,37 @@ instance Destroyable Repository where
 newLocation :: Repository -> IO Location
 newLocation repository =
    do
-      response <- queryRepository repository NewLocation
+      response <- queryRepository repository (NewLocation)
       return (toLocation response)
 
-commit :: Repository -> ObjectSource -> Location 
-   -> Maybe ObjectVersion -> IO ObjectVersion
-commit repository objectSource location parent =
+newVersion :: Repository -> IO ObjectVersion
+newVersion repository =
    do
-      bdbKey <- writeBDB (bdb repository) objectSource
-      response <- queryRepository repository (Commit bdbKey location parent)
+      response <- queryRepository repository (NewVersion)
       return (toObjectVersion response)
 
-commitStage1 
-   :: Repository -> Location -> Maybe ObjectVersion -> IO ObjectVersion
-commitStage1 repository location parent =
+lastChange :: Repository -> Location -> ObjectVersion -> IO ObjectVersion
+lastChange repository location objectVersion =
    do
-      response <- queryRepository repository (CommitStage1 location parent)
+      response 
+         <- queryRepository repository (LastChange location objectVersion)
       return (toObjectVersion response)
 
-commitStage2 
-   :: Repository -> ObjectSource -> Location -> ObjectVersion -> IO ()
-commitStage2 repository objectSource location thisVersion =
+listVersions :: Repository -> IO [ObjectVersion]
+listVersions repository =
    do
-      bdbKey <- writeBDB (bdb repository) objectSource
-      IsNothing <- queryRepository repository 
-         (CommitStage2 bdbKey location thisVersion)
-      done
+      response <- queryRepository repository ListVersions 
+      return (toObjectVersions response)
 
 retrieveObjectSource :: Repository -> Location -> ObjectVersion 
    -> IO ObjectSource
 retrieveObjectSource repository location objectVersion =
    do
       response <- queryRepository repository (Retrieve location objectVersion)
-      readBDB (bdb repository) (toContents response)
+      let
+         icsl = toData response
+      seq icsl done
+      return (ObjectSource.fromICSL icsl)
 
 retrieveString :: Repository -> Location -> ObjectVersion -> IO String
 retrieveString repository location objectVersion =
@@ -183,11 +201,25 @@ retrieveFile repository location objectVersion filePath =
       objectSource <- retrieveObjectSource repository location objectVersion
       exportFile objectSource filePath
 
-listVersions :: Repository -> Location -> IO [ObjectVersion]
-listVersions repository location =
+commit :: Repository -> Maybe ObjectVersion -> ObjectVersion
+   -> [(Location,ObjectSource)] -> IO ()
+commit repository parentVersionOpt thisVersion newStuff0 =
    do
-      response <- queryRepository repository (ListVersions location)
-      return (toObjectVersions response)
+      (newStuff1 :: [(Location,ICStringLen)]) <-
+         mapM
+            (\ (location,objectSource) ->
+               do
+                  icsl <- ObjectSource.getICSL objectSource
+                  return (location,icsl)
+               )
+            newStuff0
+
+      response <- queryRepository repository
+         (Commit parentVersionOpt thisVersion newStuff1)
+
+      case response of
+         IsOK -> done
+         _ -> error ("Commit error: unexpected response")
 
 ----------------------------------------------------------------
 -- Unpacking SimpleDBResponse
@@ -205,9 +237,13 @@ toObjectVersions :: SimpleDBResponse -> [ObjectVersion]
 toObjectVersions (IsObjectVersions objectVersions) = objectVersions
 toObjectVersions r = unpackError "objectVersions" r
 
-toContents :: SimpleDBResponse -> BDBKey
-toContents (IsContents bdbKey) = bdbKey
-toContents r = unpackError "object" r
+toData :: SimpleDBResponse -> ICStringLen
+toData (IsData icsl) = icsl
+toData r = unpackError "object" r
 
-unpackError s r = error ("Expecting "++s++" in "++show r)
+unpackError s r = error ("Expecting " ++ s ++ ": " ++ 
+   case r of
+      IsError mess -> mess
+      _ -> " but found something else"
+   ) 
 

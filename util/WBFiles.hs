@@ -61,8 +61,7 @@
    top           The directory in which UniForM is installed
 
    daVinciIcons  The directory containing daVinci icons
-   backupDir     The directory to which the server programs should write
-                 backup files
+
    workingDir    The directory used for temporary files.
 
    server        The host name of the server
@@ -72,7 +71,7 @@
 
    debug         Where Debug.debug messages should go
 
-   serverDir      Where Server stores its files
+   serverDir     Where Server stores its files
 
    MMiSSDTD      Location of DTD file for MMiSS.
 
@@ -122,9 +121,7 @@ module WBFiles (
       -- returns location of MMiSSDTD, if set.
    getPort, -- IO Int
 
-   -- getBackupDir and getWorkingDir trim a right-file-separator
-   -- from their arguments, if any.
-   getBackupDir, -- IO String
+   -- getWorkingDir trims a right-file-separator from its argument, if any.
    getWorkingDir, -- :: IO String
 
    -- getDebugFileName returns the name of the debug file.
@@ -139,6 +136,8 @@ module WBFiles (
    -- Store options.
    getServerFile, -- :: String -> IO String
       -- Get a file for the use of the server.
+   getServerDir, --  :: IO String
+      -- Get the server's private directory.
 
    -- Access to other options.
    getArgString, -- :: String -> IO (Maybe String)
@@ -254,12 +253,6 @@ getTOP = valOf (getArgString "top")
 getPort :: IO Int
 getPort = valOf (getArgInt "port")
 
-getBackupDir :: IO String
-getBackupDir = 
-   do
-      backupDir' <- valOf (getArgString "backupDir")
-      return (trimDir backupDir')
-
 getWorkingDir :: IO String
 getWorkingDir = 
    do
@@ -372,12 +365,6 @@ usualProgramArguments = [
       optionName = "top",
       optionHelp = "path where UniForM was installed",
       defaultVal = Nothing,
-      argType = STRING
-      },
-   ProgramArgument{
-      optionName = "backupDir",
-      optionHelp = "directory where servers backup files",
-      defaultVal = Just (StringValue "."),
       argType = STRING
       },
    ProgramArgument{

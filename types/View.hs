@@ -32,6 +32,7 @@ module View(
    ) where
 
 import Directory
+import Maybe
 
 import Data.IORef
 import Control.Concurrent.MVar
@@ -73,7 +74,7 @@ type Version = ObjectVersion
 -- (The View datatype is imported from ViewType)
 --
 -- Conventions.  The index to the view is stored in location
--- firstLocation.  The top link is secondLocation.
+-- specialLocation1.  The top link is specialLocation2.
 -- ----------------------------------------------------------------------
 
 newView :: Repository -> IO View
@@ -103,14 +104,14 @@ newView repository =
          })
 
 listViews :: Repository -> IO [Version]
-listViews repository = listVersions repository firstLocation
+listViews repository = listVersions repository
 
 getView :: Repository -> Version -> IO View
 getView repository objectVersion =
    do
       objectId <- newObject
       let viewId = ViewId objectId
-      viewString <- retrieveString repository firstLocation objectVersion
+      viewString <- retrieveString repository specialLocation1 objectVersion
       let
          viewCodedValue = fromString viewString
 
@@ -121,27 +122,11 @@ getView repository objectVersion =
          -- overlap.
       (ViewData {
          title = title,
-         objectsData = objectsData,
          displayTypesData = displayTypesData,
          objectTypesData = objectTypesData
          }) <- doDecodeIO viewCodedValue phantomView
 
-      -- Convert lists to registries.  objectsData requires special handling 
-      -- because the registry is a LockedRegistry and doesn't have a direct 
-      -- function.
       objects <- newRegistry
-      mapM_
-         (\ (location,thisObjectVersion,viewVersion) ->
-            do
-               lastChange <- newIORef (Just viewVersion)
-               setValue objects location 
-                  (AbsentObject {
-                      thisObjectVersion = thisObjectVersion,
-                      lastChange = lastChange
-                      })
-            )
-         objectsData
-
       parentsMVar <- newMVar [objectVersion]
       fileSystem <- newFileSystem
       titleSource <- newSimpleBroadcaster title
@@ -167,45 +152,35 @@ getView repository objectVersion =
 
 commitView :: View -> IO Version
 commitView (view @ View {repository = repository,objects = objects,
-      parentsMVar = parentsMVar,commitLock = commitLock}) =
+      commitLock = commitLock}) =
    synchronizeGlobal commitLock (
       do
-         parents <- takeMVar parentsMVar
+         newVersion1 <- newVersion repository 
 
-         -- We use a two-stage commit on the top link, so we can commit
-         -- the other objects knowing what the view version will be.
-         -- This is passed as the argument to commitVersion, and also written
-         -- to the committingVersion MVar.
-         newVersion <- commitStage1 repository firstLocation 
-            (case parents of 
-               [] -> Nothing
-               parent : _ -> Just parent
-               )
-
-         swapMVar (committingVersion view) (Just newVersion)
+         swapMVar (committingVersion view) (Just newVersion1)
 
          displayTypesData <- exportDisplayTypes view
 
          objectTypesData <- exportObjectTypes view
 
          locations <- listKeys objects
-         (objectsData :: [(Location,Version,Version)]) <-
+
+         (objectsData0 :: [Maybe (Location,ObjectSource)]) <-
+            -- compute the data for objects to commit.
             mapM
                (\ location ->
                   do
-                     objectsData <- getValue objects location
-                     objectVersion <- case objectsData of 
-                        AbsentObject {thisObjectVersion = thisObjectVersion}
-                           -> return thisObjectVersion
-                        PresentObject {commitAct = commitAct}
-                           -> commitAct newVersion
-                     (Just viewVersion) <- readIORef (lastChange objectsData)
-                        -- Nothing is impossible, because commitAct is supposed
-                        -- (via commitVersioned) to set lastChange, if the
-                        -- object is new or dirty.
-                     return (location,objectVersion,viewVersion)
+                     objectData <- getValue objects location
+                     objectSourceOpt <- mkObjectSource objectData newVersion1
+                     return (fmap
+                        (\ objectSource -> (location,objectSource))
+                        objectSourceOpt
+                        )
                   )
-                  locations
+               locations
+         let
+            objectsData1 :: [(Location,ObjectSource)]
+            objectsData1 = catMaybes objectsData0
 
          title <- readContents (titleSource view)
                
@@ -213,7 +188,6 @@ commitView (view @ View {repository = repository,objects = objects,
             viewData =
                ViewData {
                   title = title,
-                  objectsData = objectsData,
                   displayTypesData = displayTypesData,
                   objectTypesData = objectTypesData
                   }
@@ -223,12 +197,16 @@ commitView (view @ View {repository = repository,objects = objects,
          viewCodedValue <- doEncodeIO viewData phantomView
          viewObjectSource <- toObjectSource viewCodedValue 
 
-         commitStage2 repository viewObjectSource firstLocation newVersion
+         let
+            objectsData2 :: [(Location,ObjectSource)]
+            objectsData2 = (specialLocation1,viewObjectSource) : objectsData1
+
+         parentOpt <- getParentVersion view 
+
+         commit repository parentOpt newVersion1 objectsData2
 
          swapMVar (committingVersion view) Nothing
-
-         putMVar parentsMVar [newVersion]
-         return newVersion
+         return newVersion1
       )
 ---
 -- returns the current parent version of the view.
@@ -243,9 +221,6 @@ parentVersions view = readMVar (parentsMVar view)
 -- which we store in the top file of a version.
 data ViewData = ViewData {
    title :: String,
-   objectsData :: [(Location,ObjectVersion,ObjectVersion)],
-      -- The location, object version, and the version in which this object
-      -- was last changed.
    displayTypesData :: CodedValue,
    objectTypesData :: CodedValue
    }
@@ -255,18 +230,17 @@ instance HasTyRep ViewData where
    tyRep _ = viewData_tyRep
 
 -- Here's the real primitive type
-type Tuple 
-   = (String,[(Location,ObjectVersion,ObjectVersion)],CodedValue,CodedValue)
+type Tuple = (String,CodedValue,CodedValue)
 
 mkTuple :: ViewData -> Tuple
-mkTuple (ViewData {title = title,objectsData = objectsData,
+mkTuple (ViewData {title = title,
    displayTypesData = displayTypesData,
    objectTypesData = objectTypesData}) =
-      (title,objectsData,displayTypesData,objectTypesData)
+      (title,displayTypesData,objectTypesData)
 
 unmkTuple :: Tuple -> ViewData
-unmkTuple (title,objectsData,displayTypesData,objectTypesData) =
-   ViewData {title = title,objectsData = objectsData,
+unmkTuple (title,displayTypesData,objectTypesData) =
+   ViewData {title = title,
       displayTypesData = displayTypesData,objectTypesData = objectTypesData}
 
 instance HasCodedValue ViewData where

@@ -308,18 +308,11 @@ instance HasCodedValue value => HasCodedValue (Maybe value) where
          Left value -> Just value
          Right () -> Nothing
          )
-
 ---
--- When you want to encode larger choices, Choice5 is recommended.
+-- When you want to encode larger choices, Choice5 (defined for
+-- similar purposes in util/BinaryIO) is recommended.
 -- If the choice is between fewer than 5 items, just set the unused
 -- type variables to ().
-data Choice5 v1 v2 v3 v4 v5 =
-      Choice1 v1
-   |  Choice2 v2
-   |  Choice3 v3
-   |  Choice4 v4
-   |  Choice5 v5
-
 choice_tyRep = mkTyRep "CodedValue" "Choice"
 instance HasTyRep5 Choice5 where
    tyRep5 _ = choice_tyRep
@@ -537,7 +530,6 @@ instance HasCodedValue String where
 
 -- We automate StringClass => HasCodedValue, but wrap it
 -- up in the Str type to allow alternative instances.
-newtype Str a = Str a
 
 str_tyRep = mkTyRep "CodedValue" "Str"
 instance HasTyRep1 Str where

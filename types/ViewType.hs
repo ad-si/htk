@@ -14,6 +14,8 @@ module ViewType(
 
    getViewTitleSource, -- :: View -> Source String
 
+   getParentVersion, -- :: View -> Maybe ObjectVersion
+
    ) where
 
 import Control.Concurrent
@@ -38,9 +40,14 @@ data View = View {
    viewId :: ViewId,
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
+
    parentsMVar :: MVar [ObjectVersion],
    -- parents of this view.  (None for the first version, multiple for
    -- merged versions.)
+   --
+   -- The first element of this list, if any, is special in that it is
+   -- used as the version sent to the server when requesting links not
+   -- already in the view, by the getParentVersion function.
  
    titleSource :: SimpleBroadcaster String, -- current title of this view.
 
@@ -64,21 +71,13 @@ data ObjectData =
          -- Object is checked out.
          thisVersioned :: Dyn,
             -- Versioned x for it.
-         commitAct :: ObjectVersion -> IO ObjectVersion,
-            -- commit action returning the new object version
+         mkObjectSource :: ObjectVersion -> IO (Maybe ObjectSource)
+            -- action that constructs the ObjectSource for the object.
             -- The supplied ObjectVersion is that belonging to the
-            -- containing view (or top link).
-         lastChange :: IORef (Maybe ObjectVersion)
-            -- ObjectVersion for top link of view in which this object 
-            -- was last changed.  If the object was changed in this view, 
-            -- lastChange is Nothing.
-         }
-   |  AbsentObject {
-         -- Object is not checked out.
-         thisObjectVersion :: ObjectVersion,
-            -- current version of object.
-         lastChange :: IORef (Maybe ObjectVersion)
-            -- see comments for PresentObject
+            -- containing view.
+            --
+            -- If it returns Nothing, that means the object does not
+            -- need to be updated, as this version is up-to-date.
          }
 
 getRepository :: View -> Repository
@@ -88,6 +87,21 @@ newtype ViewId = ViewId ObjectID deriving (Eq,Ord)
 
 instance QuickShow ViewId where
    quickShow = WrapShow (\ (ViewId oId) -> oId)
+
+-- -----------------------------------------------------------------
+-- getParentVersion
+-- -----------------------------------------------------------------
+
+-- getParentVersion retrieves the version number sent to the server
+-- on requesting items not already in the view.
+getParentVersion :: View -> IO (Maybe ObjectVersion)
+getParentVersion view =
+   do
+      parents <- readMVar (parentsMVar view)
+      return (case parents of
+         parent : _ -> Just parent
+         [] -> Nothing
+         )
 
 -- -----------------------------------------------------------------
 -- Function for extracting the title of a View as a SimpleSource

@@ -3,32 +3,62 @@
 module BinaryIO(
    HasBinaryIO(..), -- class of things that can be encoded.
       -- instances defined: 
-      --    CStringLen, 
+      --    ICStringLen,
+      --    integers,
+      --    Strings,
+      --    Bool,
+      --    tuples and lists,
+      --    Choice5, 
       --    ReadShow a where a instances Read and Show
+      --    Str a where a instances StringClass
    ReadShow(..),
-      -- Mixture contains an optional Read/Show instance and an optional
-      -- other instance of HasBinaryIO.
-   Mixture(..),
+   Str(..),
+
+   -- We define 
+   Choice5(..),
+      -- A choice between five types
+
+   -- HasWrapper is used as a way of constructing HasBinaryIO instances
+   -- for general datatypes.
+   HasWrapper(..),
+   Wrap(..),UnWrap(..),
+   wrap0,wrap1,wrap2,wrap3,
+      -- used for constructing HasWrapper instances.
 
    HasConverter(..), -- class for converting to and from binary representations
    CodedList(..), -- binary representation (basically a list of integers)
    topBit, -- top bit of characters, as an integer.
    chrGeneral, -- functions for converting integers to and from Char.
    ordGeneral,
+
+
+   -- mapHPut and mapHGetIntWE are used for constructing instances of
+   -- HasBinaryIO, given functions which convert them to and from other 
+   -- instances.  (For examples, see the sourcecode of this module.)
+   mapHPut,
+      -- :: HasBinaryIO value2 => (value1 -> value2) -> Handle -> value1 
+      -- -> IO ()
+   mapHGetIntWE,
+      -- :: HasBinaryIO value2 => (value2 -> value1) -> Int -> Handle
+      -- -> IO (WithError value1)
    ) where
 
-import IO
+import IO hiding (hGetChar)
+import qualified HGetCharHack (hackhGetChar)
+
 import Char
 
 import Data.Bits
-import Data.PackedString
+import Data.Word
 import GHC.Int(Int32)
-import Foreign.C.String
-import GHC.IO
-import Foreign.Marshal.Alloc
+import GHC.IO hiding (hGetChar)
 
 import Computation
 import ExtendedPrelude
+import ICStringLen
+import AtomString
+
+hGetChar = HGetCharHack.hackhGetChar
 
 -- ---------------------------------------------------------------------------
 -- The HasBinaryIO class
@@ -57,7 +87,7 @@ class HasBinaryIO value where
          value <- hGetIntWE i handle
          coerceWithErrorIO value
 
-   hGetWE = hGetIntWE 0
+   hGetWE = hGetIntWE 4
 
    hGetIntWE _ = hGetWE
 
@@ -78,130 +108,90 @@ instance (Read a,Show a) => HasBinaryIO (ReadShow a) where
                "Extra characters parsing " ++ show str))
             _ -> return (hasError ("Couldn't parse " ++ show str))
 
+
 -- ---------------------------------------------------------------------------
--- Something Showable, and something instancing HasBinaryIO
+-- Instances of StringClass
 -- ---------------------------------------------------------------------------
 
-data Mixture text binary = Mixture {
-   textOpt :: Maybe text,
-   binaryOpt :: Maybe binary
-   }
+newtype Str a = Str a
 
-instance (Read text,Show text,HasBinaryIO binary) 
-      => HasBinaryIO (Mixture text binary) where
-   hPut handle (Mixture {textOpt = textOpt,binaryOpt = binaryOpt}) =
-      case (textOpt,binaryOpt) of
-         (Just text,Just binary) ->
-            do
-               hPutChar handle '3'
-               hPut handle (ReadShow text)
-               hPut handle binary
-         (Just text,Nothing) ->
-            do
-               hPutChar handle '2'
-               hPut handle (ReadShow text)
-         (Nothing,Just binary) ->
-            do
-               hPutChar handle '1'
-               hPut handle binary
-         (Nothing,Nothing) ->
-               hPutChar handle '0'
+instance StringClass a => HasBinaryIO (Str a) where
+   hPut handle (Str value) = hPut handle (toString value)
    hGetIntWE limit handle =
-      addFallOutWE (\ break ->
-         do
-            char <- hGetChar handle
-            case char of
-               '3' ->
-                  do
-                     textWE <- hGetIntWE limit handle
-                     (ReadShow text) <- coerceWithErrorOrBreakIO break textWE
-                     binaryWE <- hGetIntWE limit handle
-                     binary <- coerceWithErrorOrBreakIO break binaryWE
-                     return (Mixture {
-                        textOpt = Just text,binaryOpt = Just binary})  
-               '2' ->
-                  do
-                     textWE <- hGetIntWE limit handle
-                     (ReadShow text) <- coerceWithErrorOrBreakIO break textWE
-                     return (Mixture {
-                        textOpt = Just text,binaryOpt = Nothing})  
-               '1' ->
-                  do
-                     binaryWE <- hGetIntWE limit handle
-                     binary <- coerceWithErrorOrBreakIO break binaryWE
-                     return (Mixture {
-                        textOpt = Nothing,binaryOpt = Just binary})  
-               '0' ->
-                     return (Mixture {
-                        textOpt = Nothing,binaryOpt = Nothing})
-               _ -> break "Unexpected character parsing mixture"
-         )   
-                      
-      
+      do
+         (strWE :: WithError String) <- hGetIntWE limit handle 
+         return (mapWithError
+            (Str . fromString)
+            strWE
+            )
+
+-- ---------------------------------------------------------------------------
+-- Char
+-- ---------------------------------------------------------------------------
+
+instance HasBinaryIO Char where
+   hPut = mapHPut ord
+   hGetIntWE = mapHGetIntWE chr
+
 -- ---------------------------------------------------------------------------
 -- String
 -- ---------------------------------------------------------------------------
 
 instance HasBinaryIO String where
-   hPut handle str = hPut handle (packString str)
+   hPut handle str =
+      do
+         let
+            icsl :: ICStringLen
+            icsl = fromString str
+
+         hPut handle icsl
    hGetIntWE limit handle =
       do
-         packedWE <- hGetIntWE limit handle
-         return (mapWithError unpackPS packedWE)
+         (icslWE :: WithError ICStringLen) <- hGetIntWE limit handle
+         return (mapWithError toString icslWE)
 
 -- ---------------------------------------------------------------------------
--- PackedString
+-- ICStringLen
 -- ---------------------------------------------------------------------------
 
-instance HasBinaryIO PackedString where
-   hPut handle packedString =
-      do
-         hPut handle (lengthPS packedString :: Int)
-         hPutPS handle packedString
+instance HasBinaryIO ICStringLen where
+   hPut handle icsl =
+      withICStringLen icsl
+         (\ len cString -> 
+            do
+               hPut handle len
+               hPutBuf handle cString len
+            )
+
    hGetIntWE limit handle =
       do
          (lenWE :: WithError Int) <- hGetIntWE limit handle
          mapWithErrorIO'
             (\ len ->
                do
-                  packed <- hGetPS handle len
-                  return (hasValue packed)
-               )
-            lenWE
-
--- ---------------------------------------------------------------------------
--- CStringLen
--- ---------------------------------------------------------------------------
-
-instance HasBinaryIO CStringLen where
-   -- NB NB.  It is the responsibility of the caller of the hGet* functions
-   -- to deallocate the CString.  This may be done using 
-   -- Foreign.Marshal.Alloc.Free.
-
-   hPut handle (cString,len) =
-      do
-         hPut handle len
-         hPutBuf handle cString len
-   hGetIntWE i handle =
-      do
-         (lenWE :: WithError Int) <- hGetIntWE i handle
-         mapWithErrorIO'
-            (\ len ->
-               do
-                  -- need to allocate space first.
-                  cStringPtr <- mallocBytes len 
-                  lenRead <- hGetBuf handle cStringPtr len
-                  if lenRead < len
+                  if len < 0
                      then
-                        do
-                           free cStringPtr
-                           return (hasError ("EOF within BinaryIO"))
+                        return (hasError "Negative string length")
                      else
-                        return (hasValue (cStringPtr,len))
+                        do
+                           (icsl,unitWE) <- mkICStringLenExtra len 
+                              (\ cString ->
+                                  do
+                                     lenRead <- hGetBuf handle cString len
+                                     return (if lenRead < len
+                                        then
+                                          hasError "EOF within BinaryIO"
+                                        else
+                                          hasValue ()
+                                        )
+                                  )
+                           return (mapWithError (\ () -> icsl) unitWE)
                )
             lenWE
 
    hGetWE = hGetIntWE 4 -- allow a higher default
+
+
 -- ---------------------------------------------------------------------------
 -- CodedList's.  These are used indirectly for integers.
 -- ---------------------------------------------------------------------------
@@ -249,15 +239,28 @@ ordGeneral value = fromIntegral (ord value)
 
 -- ---------------------------------------------------------------------------
 -- Integers
+-- We do the most common integral types, but not 
 -- ---------------------------------------------------------------------------
 
-instance (Integral integral,Bits integral) => HasBinaryIO integral where
-   hPut handle int = hPut handle (encode' int :: CodedList)
-   hGetIntWE i handle =
-      do
-         (clWE :: WithError CodedList) <- hGetIntWE i handle
-         return (mapWithError decode' clWE)
-   hGetWE = hGetIntWE 4
+instance HasBinaryIO Int where
+   hPut = mapHPut encodeIntegral
+   hGetIntWE = mapHGetIntWE decodeIntegral
+
+instance HasBinaryIO Word where
+   hPut = mapHPut encodeIntegral
+   hGetIntWE = mapHGetIntWE decodeIntegral
+
+instance HasBinaryIO Int32 where
+   hPut = mapHPut encodeIntegral
+   hGetIntWE = mapHGetIntWE decodeIntegral
+
+instance HasBinaryIO Word32 where
+   hPut = mapHPut encodeIntegral
+   hGetIntWE = mapHGetIntWE decodeIntegral
+
+instance HasBinaryIO Integer where
+   hPut = mapHPut encodeIntegral
+   hGetIntWE = mapHGetIntWE decodeIntegral
 
 bitsInChar :: Int
 -- Number of bits easily stored in the Char type.  Thus if Unicode ends
@@ -283,11 +286,19 @@ class HasConverter value1 value2 where
    encode' :: value1 -> value2
    decode' :: value2 -> value1
 
+encodeIntegral :: (Integral integral,Bits integral) 
+   => integral -> CodedList
+encodeIntegral = encode'
+
+decodeIntegral :: (Integral integral,Bits integral) 
+   => CodedList -> integral
+decodeIntegral = decode'
+
 instance (Integral integral,Bits integral) 
    => HasConverter integral CodedList 
       where
    encode' i =
-      if (i >= nextBit) || (i < -nextBit) 
+      if isLarge i
          then
             let
                lowestPart = i .&. mask
@@ -305,6 +316,16 @@ instance (Integral integral,Bits integral)
                         i
             in
                CodedList [fromIntegral wrapped]
+      where
+         isLarge :: integral -> Bool
+         -- we need separate versions for unsigned and signed types
+         isLarge =
+            if ( -nextBit :: integral) < 0
+               then -- integral
+                  (\ i -> (i >= nextBit) || (i < -nextBit))
+               else -- word
+                  (\ i -> i >= nextBit)
+ 
    decode' (CodedList [wpped]) =
       let
          wrapped = fromIntegral wpped
@@ -321,4 +342,336 @@ instance (Integral integral,Bits integral)
       in
          lowestPart + (highPart `shiftL` bitsPerChar)
 
+
+-- ---------------------------------------------------------------------------
+--
+-- ** Ways of combining instances of HasBinaryIO ******
+-- 
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- Unit.
+-- ---------------------------------------------------------------------------
+
+instance HasBinaryIO () where
+   hPut handle () = done
+   hGetWE handle = return (hasValue ())
+
+
+-- ---------------------------------------------------------------------------
+-- When we can convert to something else we can encode.
+-- ---------------------------------------------------------------------------
+
+mapHPut :: HasBinaryIO value2 => (value1 -> value2) -> Handle -> value1 
+   -> IO ()
+mapHPut mapFn handle value1 = hPut handle (mapFn value1)
+
+mapHGetIntWE :: HasBinaryIO value2 => (value2 -> value1) -> Int -> Handle
+   -> IO (WithError value1)
+mapHGetIntWE mapFn limit handle =
+   do
+      value2WE <- hGetIntWE limit handle
+      return (mapWithError mapFn value2WE)
+
+-- ---------------------------------------------------------------------------
+-- Tuples
+-- ---------------------------------------------------------------------------
+
+instance (HasBinaryIO value1,HasBinaryIO value2) 
+   => HasBinaryIO (value1,value2) where
+
+   hPut handle (value1,value2) =
+      do
+         hPut handle value1
+         hPut handle value2
+
+   hGetIntWE limit handle =
+      do
+         value1WE <- hGetIntWE limit handle 
+         mapWithErrorIO'
+            (\ value1 ->
+               do
+                  value2WE <- hGetIntWE limit handle
+                  return (mapWithError (\ value2 -> (value1,value2)) value2WE)
+               )
+            value1WE
+
+instance (HasBinaryIO value1,HasBinaryIO (value2,value3)) 
+    => HasBinaryIO (value1,value2,value3) where
+
+    hPut = mapHPut (\ (value1,value2,value3) -> (value1,(value2,value3)))
+    hGetIntWE = mapHGetIntWE (\ (value1,(value2,value3))
+       -> (value1,value2,value3))
+
+-- ---------------------------------------------------------------------------
+-- Bool
+-- ---------------------------------------------------------------------------
+
+encodeBool :: Bool -> Either () ()
+encodeBool = encode'
+
+decodeBool :: Either () () -> Bool 
+decodeBool = decode'
+
+instance HasConverter Bool (Either () ()) where
+   encode' False = Left ()
+   encode' True = Right ()
+   decode' (Left ()) = False
+   decode' (Right ()) = True
+
+instance HasBinaryIO Bool where
+    hPut = mapHPut encodeBool
+    hGetIntWE = mapHGetIntWE decodeBool
+
+   
+-- ---------------------------------------------------------------------------
+-- Maybe
+-- ---------------------------------------------------------------------------
+
+encodeMaybe :: Maybe v -> Either v ()
+encodeMaybe = encode'
+
+decodeMaybe :: Either v () -> Maybe v 
+decodeMaybe = decode'
+
+instance HasConverter (Maybe v) (Either v ()) where
+   encode' (Just v) = Left v
+   encode' Nothing = Right ()
+   decode' (Left v) = Just v
+   decode' (Right ()) = Nothing
+
+instance HasBinaryIO v => HasBinaryIO (Maybe v) where
+    hPut = mapHPut encodeMaybe
+    hGetIntWE = mapHGetIntWE decodeMaybe
+
+   
+-- ---------------------------------------------------------------------------
+-- Either
+-- ---------------------------------------------------------------------------
+
+instance (HasBinaryIO v1,HasBinaryIO v2) => HasBinaryIO (Either v1 v2) where
+   hPut handle (Left v1) =
+      do
+         hPutChar handle 'L'
+         hPut handle v1
+   hPut handle (Right v2) =
+      do
+         hPutChar handle 'R'
+         hPut handle v2
+   hGetIntWE limit handle =
+      do
+         switch <- hGetChar handle
+         let
+            ret cons vWE = return (mapWithError cons vWE)
+         case switch of
+            'L' ->
+               do
+                  v1WE <- hGetIntWE limit handle 
+                  ret Left v1WE
+            'R' ->
+               do
+                  v2WE <- hGetIntWE limit handle 
+                  ret Right v2WE
+            _ -> return (hasError ("BinaryIO.Either - unexpected " 
+               ++ [switch]))
+               
+
+
+-- ---------------------------------------------------------------------------
+-- Choice of 5 (or up to 5) types.
+-- ---------------------------------------------------------------------------
+
+
+---
+-- When you want to encode larger choices, Choice5 is recommended.
+-- If the choice is between fewer than 5 items, just set the unused
+-- type variables to ().
+data Choice5 v1 v2 v3 v4 v5 =
+      Choice1 v1
+   |  Choice2 v2
+   |  Choice3 v3
+   |  Choice4 v4
+   |  Choice5 v5
+
+instance 
+   (HasBinaryIO v1,HasBinaryIO v2,HasBinaryIO v3,HasBinaryIO v4,HasBinaryIO v5)
+   => HasBinaryIO (Choice5 v1 v2 v3 v4 v5) where
+
+   hPut handle (Choice1 v1) =
+      do
+         hPutChar handle '1'
+         hPut handle v1
+   hPut handle (Choice2 v2) =
+      do
+         hPutChar handle '2'
+         hPut handle v2
+   hPut handle (Choice3 v3) =
+      do
+         hPutChar handle '3'
+         hPut handle v3
+   hPut handle (Choice4 v4) =
+      do
+         hPutChar handle '4'
+         hPut handle v4
+   hPut handle (Choice5 v5) =
+      do
+         hPutChar handle '5'
+         hPut handle v5
+
+   hGetIntWE limit handle =
+      do
+         switch <- hGetChar handle
+         let
+            ret cons vWE = return (mapWithError cons vWE)
+          
+         case switch of
+            '1' ->
+               do
+                  v1WE <- hGetIntWE limit handle 
+                  ret Choice1 v1WE
+            '2' ->
+               do
+                  v2WE <- hGetIntWE limit handle 
+                  ret Choice2 v2WE
+            '3' ->
+               do
+                  v3WE <- hGetIntWE limit handle 
+                  ret Choice3 v3WE
+            '4' ->
+               do
+                  v4WE <- hGetIntWE limit handle 
+                  ret Choice4 v4WE
+            '5' ->
+               do
+                  v5WE <- hGetIntWE limit handle 
+                  ret Choice5 v5WE
+            _ -> return (hasError ("BinaryIO.Choice5 - unexpected " 
+               ++ [switch]))
+  
+-- ---------------------------------------------------------------------------
+-- Lists (apart from Strings)
+-- ---------------------------------------------------------------------------
+
+instance HasBinaryIO value => HasBinaryIO [value] where
+
+   hPut handle list =
+      do
+         let
+            len = length list
+         hPut handle len
+         mapM_ (hPut handle) list
+
+   hGetIntWE limit handle =
+      do
+         lenWE <- hGetIntWE limit handle
+         let
+            readN :: Int -> IO (WithError [value])
+            readN 0 = return (hasValue [])
+            readN n =
+               do
+                  valueWE <- hGetIntWE limit handle
+                  mapWithErrorIO' 
+                     (\ value ->
+                        do
+                           valuesWE <- readN (n-1)
+                           return (mapWithError
+                              (\ values -> value : values)
+                              valuesWE
+                              )
+                        )
+                     valueWE
+
+         mapWithErrorIO'
+            (\ len ->
+               if len < 0
+                  then
+                     return (hasError "Negative list length")
+                  else
+                     readN len
+               )
+            lenWE 
+
+
+-- ---------------------------------------------------------------------------
+-- More complex structures.
+-- This is used as a general extensible way of encoding more complex datatypes.
+-- ---------------------------------------------------------------------------
+
+class HasWrapper wrapper where
+   wraps :: [Wrap wrapper] 
+      -- How to construct wrapper type.  Argument gives a list of alternatives.
+   unWrap :: wrapper -> UnWrap
+      -- How to deconstruct.
+
+-- Blame GHC that we can't use labels with existential types.
+data UnWrap = forall val . HasBinaryIO val
+   => UnWrap 
+      Char -- label for this type on writing.
+      val -- value inside this wrapped type.
+
+data Wrap wrapper = forall val . HasBinaryIO val
+   => Wrap
+      Char -- label for this type on reading.  This must, of course, be the
+           -- same as for the corresponding UnWrap.
+      (val -> wrapper)
+           -- how to wrap this sort of value.
+
+-- some abbreviations for construtor functions with varying numbers of 
+-- arguments
+wrap0 :: Char -> wrapper -> Wrap wrapper
+wrap0 label wrapper = Wrap label (\ () -> wrapper)
+
+wrap1 :: HasBinaryIO val => Char -> (val -> wrapper) -> Wrap wrapper
+wrap1 = Wrap
+
+wrap2 :: (HasBinaryIO val1,HasBinaryIO val2) => Char 
+   -> (val1 -> val2 -> wrapper) -> Wrap wrapper
+wrap2 char con = Wrap char (\ (val1,val2) -> con val1 val2)
+
+wrap3 :: (HasBinaryIO val1,HasBinaryIO val2,HasBinaryIO val3) => Char 
+   -> (val1 -> val2 -> val3 -> wrapper) -> Wrap wrapper
+wrap3 char con = Wrap char (\ (val1,val2,val3) -> con val1 val2 val3)
+
+instance HasWrapper wrapper => HasBinaryIO wrapper where
+   hPut handle wrapper = hPut' (unWrap wrapper)
+      where
+         hPut' (UnWrap label val) =
+            do
+               hPutChar handle label
+               hPut handle val
+   hGetIntWE limit handle =
+      do
+         thisLabel <- hGetChar handle
+         let
+            innerWrap :: HasBinaryIO val 
+               => (val -> wrapper) -> IO (WithError wrapper) 
+            innerWrap wrapFn =
+               do
+                  valWE <- hGetIntWE limit handle
+                  return (mapWithError wrapFn valWE)
+
+         case findJust
+            (\ (Wrap label wrapFn) -> 
+               if label == thisLabel then Just (innerWrap wrapFn) else Nothing
+               )
+            wraps of
+
+            Nothing -> return (hasError ("BinaryIO.HasWrapper - bad label "
+               ++ show thisLabel))
+            Just getWrap -> getWrap
+
+{- Here is a little example -}
+data Tree val =
+      Leaf val
+   |  Node [Tree val]
+
+instance HasBinaryIO val => HasWrapper (Tree val) where
+   wraps = [
+      Wrap 'L' Leaf,
+      Wrap 'N' Node
+      ]
+   unWrap = (\ wrapper -> case wrapper of
+      Leaf v -> UnWrap 'L' v
+      Node l -> UnWrap 'N' l
+      )
 

@@ -23,10 +23,12 @@ import RemoveAncestors
 import Graph(Node)
 
 import Link
+import CodedValue
 import View
 import VersionGraphClient
 
-mergePrune :: [(View,Link object,object)] -> IO [(View,Link object,object)]
+mergePrune :: HasCodedValue object
+   => [(View,Link object,object)] -> IO [(View,Link object,object)]
 mergePrune (linkList0 :: [(View,Link object,object)]) =
    do
       -- (1) cluster identical Link values together, to reorganise the
@@ -55,8 +57,8 @@ mergePrune (linkList0 :: [(View,Link object,object)]) =
 
       return linkList3
 
-mergePruneInner 
-   :: [(View,Link object,object)] -> IO [(View,Link object,object)]
+mergePruneInner :: HasCodedValue object
+   => [(View,Link object,object)] -> IO [(View,Link object,object)]
 mergePruneInner (linkList0 :: [(View,Link object,object)])
       =
    do
@@ -93,7 +95,7 @@ mergePruneInner (linkList0 :: [(View,Link object,object)])
 
       return result
 
-getVersion :: View -> Link object -> IO Version
+getVersion :: HasCodedValue object => View -> Link object -> IO Version
 getVersion view link =
    do
       objectVersionOpt <- getLastChange view link 
