@@ -49,17 +49,16 @@ data CollectibleObj = CollectibleObj ForeignObj (PVar(IO ()))
 newCollectibleObj :: IO CollectibleObj 
 newCollectibleObj = 
    do
-      addr <- Storable.malloc 1
       storageVar <- newPVar done 
       let 
          whenDone =
             changeVar storageVar
                (\ action ->
                   do
-                     action
+                     try action
                      return done
                   )
-      foreignObj <- makeForeignObj addr whenDone
+      foreignObj <- makeForeignObj nullAddr whenDone
       return (CollectibleObj foreignObj storageVar)
 
 instance Eq CollectibleObj where
