@@ -111,7 +111,9 @@
 
 <!ENTITY % conceptualAtom  "textFragment | table | figure | glossaryEntry | bibentry">
 
-<!ENTITY % atom  "%conceptualAtom; | formalAtom">
+<!ENTITY % formalAtom  "programFragment | clause | step">
+
+<!ENTITY % atom  "%conceptualAtom; | %formalAtom;">
 
 <!ENTITY % conceptualUnit  "example | exercise | definition">
 
@@ -271,10 +273,6 @@
                  %formalism-matter;
                  %attributes;>
 
-<!ELEMENT formalAtom  (programFragment | clause | step)+>
-<!ATTLIST script %formalism-matter;
-                 %attributes;>
-<?MMiSSDisplay formalAtom : green box ?>
 
 <!ELEMENT programFragment  (#PCDATA)>
 <!ATTLIST programFragment %label-matter;
