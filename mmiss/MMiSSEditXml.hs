@@ -95,6 +95,8 @@ parseXmlString s0 =
 
       s = if any funny s0 then error ("MMiSSEditXml: funny chars in "++show s)
          else s0
+#else
+      s = s0
 #endif
 
       -- (1) tokenize
