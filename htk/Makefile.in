@@ -102,7 +102,7 @@ SRCS       = resources/Resources.hs\
              toolkit/SimpleForm.hs\
              toolkit/GenericBrowser.hs\
 
-HTKNOTSRCS = kernel/CallWish.hs
+HTKNOTSRCS = kernel/CallWish.hs toolkit/FileDialog.hs toolkit/LogWin.hs
 
 EXTRA_HC_OPTIONS += -Onot -H30M
 
