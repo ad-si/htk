@@ -4,10 +4,13 @@ module NoAccessObject(
    NoAccessObject,NoAccessObjectType,
       -- Instances of ObjectType, HasLinkedObject
    createNoAccessObject,
-      -- :: WrappedLink -> IO NoAccessObject
+      -- :: WrappedLink -> IO LinkedObject
       -- Create a new NoAccessObject.  This will have a LinkedObject with
       -- no parent or name; these should be set if possible by the
       -- caller.
+   isNoAccessLink,
+      -- :: WrappedLink -> Bool
+      -- Returns True if this link is for a NoAccessObject.
    registerNoAccessObjectType, -- :: IO ()
    ) where
 
@@ -15,6 +18,7 @@ import Maybe
 
 import System.IO.Unsafe
 import Data.Typeable
+import Control.Monad.Fix
 
 import BinaryAll 
 import AtomString
@@ -26,6 +30,7 @@ import GraphConfigure
 import CodedValue
 
 import ObjectTypes
+import Link
 import LinkManager
 import MergeTypes
 import GlobalRegistry
@@ -71,7 +76,7 @@ instance HasMerging NoAccessObject where
             ++ name))
 
 instance ObjectType NoAccessObjectType NoAccessObject where
-   objectTypeTypeIdPrim _ = "NoAccessObject"
+   objectTypeTypeIdPrim _ = noAccessObjectTypeId 
    objectTypeIdPrim _ = noAccessTypeKey
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim _ = NoAccessObjectType
@@ -104,20 +109,31 @@ instance ObjectType NoAccessObjectType NoAccessObject where
          return (Just nodeDisplayData)
    
 -- -------------------------------------------------------------------
--- Creating
+-- Creating and distinguishing
 -- -------------------------------------------------------------------
 
-createNoAccessObject :: View -> WrappedLink -> IO NoAccessObject
-createNoAccessObject view wrappedLink =
-   do
-      linkedObjectWE <- newLinkedObject view wrappedLink Nothing
-      linkedObject <- coerceWithErrorIO linkedObjectWE
-      let
-         noAccessObject = NoAccessObject {
-            linkedObject = linkedObject
-            }
+createNoAccessObject :: View -> WrappedLink -> IO LinkedObject
+createNoAccessObject view (wrappedLink @ (WrappedLink link)) =
+   Control.Monad.Fix.mfix
+      (\ linkedObject ->
+         do
+            let
+               noAccessObject = NoAccessObject {
+                  linkedObject = linkedObject
+                  }
+            link2 <- pokeLink view link noAccessObject
+            let
+               wrappedLink2 = WrappedLink link2
+            linkedObjectWE <- newLinkedObject view wrappedLink2 Nothing
+            coerceWithErrorIO linkedObjectWE
+         )
 
-      return noAccessObject
+isNoAccessLink :: WrappedLink -> Bool
+isNoAccessLink wrappedLink = 
+   linkObjectTypeTypeId wrappedLink == noAccessObjectTypeId
+
+noAccessObjectTypeId :: String
+noAccessObjectTypeId = "NoAccessObject"
 
 -- -------------------------------------------------------------------
 -- Registering

@@ -3,6 +3,9 @@
 -- 
 -- This module defines links, which are pointers to objects in the repository.
 -- Thus they can be part of other objects. 
+--
+-- NB errors.  Errors are indicated by exceptions, in the format of the
+-- ServerErrors module.
 module Link(
    -- Links.
    -- A Link x is a pointer to an object of type x.  Links are made
@@ -79,6 +82,11 @@ module Link(
    writeLinkIfNe, 
       -- :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
       -- does fetchLink and updateObjectIfNe in one go.
+   pokeLink, -- :: HasCodedValue x => View -> x -> Link y -> x -> IO (Link x)
+      -- Writes a value into the view's object dictionary at the given
+      -- link, MARKING IT AS UP-TO-DATE.  This is used for the NoAccessObject.
+
+
    createLink, -- :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
    -- Does createObject and makeLink in one go.
    newEmptyLink, -- :: HasCodedValue x => View -> Link y -> IO (Link x)
@@ -91,11 +99,6 @@ module Link(
    dirtyLink, -- :: HasCodedValue x => View -> Link x -> IO ()
    -- Does fetchLink and dirtyObject in one go.
 
-   fetchLinkWE, -- :: HasCodedValue x => View -> Link x 
-      -- -> IO (WithError(Versioned x))
-      -- Like fetchLink but should not crash for deleted links.
-   readLinkWE, -- :: HasCodedValue x => View -> Link x -> IO (WithError x)
-      -- Like readLink but should not crash for deleted links.
    isEmptyLink, -- :: View -> Link x -> IO Bool
       -- returns True if the link is empty (for example, was created
       -- by newEmptyLink and not yet set.
@@ -178,10 +181,7 @@ makeLink _ (Versioned {location = location}) = return (Link location)
 
 -- | look up a link to an object in the repository.
 fetchLink :: HasCodedValue x => View -> Link x -> IO (Versioned x)
-fetchLink view link =
-   do
-      versionedWE <- fetchLinkWE view link
-      return (coerceWithError versionedWE)
+fetchLink view link = fetchOrSetLink (return Nothing) view link
 
 isEmptyLink :: HasCodedValue x => View -> Link x -> IO Bool
 isEmptyLink view link =
@@ -200,17 +200,13 @@ preFetchLinks view links =
          )
       links
    
-fetchLinkWE :: HasCodedValue x => View -> Link x 
-   -> IO (WithError (Versioned x))
-fetchLinkWE = fetchOrSetLinkWE (return Nothing)
-
--- | fetchOrSetLinkWE is a function for both fetching a link, and for 
+-- | fetchOrSetLink is a function for both fetching a link, and for 
 -- creating a link if one is not already there.  The first action contains
 -- the action which can return a status value which is used to construct a
 -- new value.
-fetchOrSetLinkWE :: HasCodedValue x 
-   => IO (Maybe (Status x)) -> View -> Link x -> IO (WithError (Versioned x))
-fetchOrSetLinkWE 
+fetchOrSetLink :: HasCodedValue x 
+   => IO (Maybe (Status x)) -> View -> Link x -> IO (Versioned x)
+fetchOrSetLink
       getNewStatusOpt 
       (view@View{repository = repository,objects = objects}) 
       ((Link location) :: Link x) =
@@ -222,18 +218,21 @@ fetchOrSetLinkWE
                xName :: String
                xName = show (typeOf (undefined :: x))
 
-               err mess = return (objectDataOpt,hasError (
-                  "fetchLink " ++ xName ++ ": " ++ mess))
+               err (errorType,mess) = 
+                  throwError errorType 
+                     ("fetchLink " ++ xName ++ ": " ++ mess)
+                  -- The LockedRegistry code should ensure the old value 
+                  -- of objectDataOpt gets written back.
 
                -- readObject Nothing has to be used for the initial
                -- EMPTY version.
                -- 
                -- The first two arguments should not be True and Nothing
                readObject :: ReadObjectArg -> Location 
-                  -> IO (Maybe ObjectData,WithError (Versioned x))
+                  -> IO (Maybe ObjectData,Versioned x)
                readObject readObjectArg oldLocation =
                   do
-                     (statusOS :: Either String (Status x)) <-
+                     (statusOS :: Either (ErrorType,String) (Status x)) <-
                         catchError (
                            do
                               osourceOpt <- case toObjectVersionOpt 
@@ -244,28 +243,27 @@ fetchOrSetLinkWE
                                        retrieveObjectSource repository 
                                        oldVersion oldLocation
                                        )
-                              status <- case osourceOpt of
+                              case osourceOpt of
                                  Just osource ->
                                     do
                                        icsl <- exportICStringLen osource
                                        x <- doDecodeIO icsl view
-                                       return (UpToDate x)
+                                       return (Right (UpToDate x))
                                  Nothing ->
                                     do
                                        statusOpt <- getNewStatusOpt
                                        case statusOpt of
                                           Nothing -> 
-                                             throwError ClientError (
+                                             return (Left  (ClientError,
                                                 "Link " ++ show location
-                                                ++ " not found")
-                                          Just status -> return status
-                              return (Right status)
+                                                ++ " not found"))
+                                          Just status -> return (Right status)
                            )
                            (\ errorType mess ->
-                              Left (show errorType++": "++mess)
+                              Left (errorType,mess)
                               )
                      case statusOS of
-                        Left mess -> err mess
+                        Left etMess -> err etMess
                         Right status ->
                            do
                               statusMVar <- newMVar status
@@ -288,7 +286,7 @@ fetchOrSetLinkWE
                                              (isCloned readObjectArg)
                                              )
                                     }),
-                                 hasValue versioned
+                                 versioned
                                  )
                      
             case objectDataOpt of
@@ -299,14 +297,15 @@ fetchOrSetLinkWE
                      readObject (IsntCloned parentVersionOpt) location
                Just (PresentObject {thisVersioned = versionedDyn}) ->
                   case fromDyn versionedDyn of
-                     Just versioned 
-                        -> return (objectDataOpt,hasValue versioned)
+                     Just versioned -> return (objectDataOpt,versioned)
                      Nothing ->
                         let
                            yName = show versionedDyn
                         in
-                           err ("fetchLink - type error in link: "
+                           throwError ClientError 
+                             ("fetchLink - type error in link: "
                               ++ "found a " ++ yName
+                              ++ "looking for a " ++ xName
                               ++ " from " ++ show location)
                Just (ClonedObject {
                   sourceLocation = oldLocation,sourceVersion = oldVersion}) ->
@@ -338,6 +337,43 @@ writeLink view link x =
    do
       versioned <- fetchLink view link
       updateObject view x versioned
+
+-- | Writes a value into the view's object dictionary at the given
+-- link, MARKING IT AS UP-TO-DATE.  This is used for the NoAccessObject.
+pokeLink :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
+pokeLink view (Link location) x =
+   do
+      let
+         status = UpToDate x 
+
+      statusMVar <- newMVar status
+      statusBroadcaster <- newSimpleBroadcaster status
+
+      let
+         thisVersioned = Versioned {
+            location = location,
+            statusMVar = statusMVar,
+            statusBroadcaster = statusBroadcaster
+            }
+
+         dyn = toDyn thisVersioned
+
+         mkObjectSource viewVersion =
+            do
+               status <- readMVar statusMVar
+               case status of
+                  UpToDate x -> done
+                  _ -> error "Link: pokeLink'd object is dirty!!"
+               return Nothing
+
+         objectData = PresentObject {
+            thisVersioned = dyn,
+            mkObjectSource = mkObjectSource
+            }
+
+      setValue (objects view) location objectData
+      return (Link location)
+
 
 -- | does 'fetchLink' and 'updateObjectIfNe' in one go.
 writeLinkIfNe :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
@@ -374,17 +410,6 @@ dirtyLink view link =
       versioned <- fetchLink view link
       dirtyObject view versioned
 
-readLinkWE :: HasCodedValue x => View -> Link x -> IO (WithError x)
-readLinkWE view link =
-   do
-      versionedWE <- fetchLinkWE view link
-      mapWithErrorIO'
-         (\ versioned ->
-            do
-               object <- readObject view versioned
-               return (hasValue object)
-            )
-         versionedWE
 
 -- | Provide an efficient way of testing two links for equality
 eqLink :: Link x -> Link y -> Bool
@@ -524,8 +549,7 @@ setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
                x <- action
                return (Just (Virgin x))
 
-      versionedWE <- fetchOrSetLinkWE statusAct view topLink
-      coerceWithErrorIO versionedWE
+      fetchOrSetLink statusAct view topLink
 
 -- | This is used for creating a completely new object.
 createObject :: HasCodedValue x => View -> Link y -> x -> IO (Versioned x)
@@ -597,8 +621,7 @@ createObjectGeneral1 view status location =
                writeIORef objectCreatedRef True
                return (Just status)
 
-      versionedWE <- fetchOrSetLinkWE statAct view (Link location)
-      versioned <- coerceWithErrorIO versionedWE
+      versioned <- fetchOrSetLink statAct view (Link location)
       
       objectCreated <- readIORef objectCreatedRef
       return (versioned,objectCreated)

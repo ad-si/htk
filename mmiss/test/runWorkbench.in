@@ -31,6 +31,8 @@ shift `expr $OPTIND - 1`
 
 cd @TOP@/mmiss/test
 
+set -e
+
 # Check that files are here
 TOP=@TOP@ @TOP@/mmiss/test/testfiles
 

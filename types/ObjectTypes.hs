@@ -93,6 +93,7 @@ module ObjectTypes(
 
    -- Get the String corresponding to an object type's registry.
    objectTypeTypeId, -- :: WrappedObjectType -> String
+   linkObjectTypeTypeId, -- :: WrappedLink -> String
 
    -- Get the GlobalKey for an object type, which identifies
    -- the object type among others of the same Haskell type.
@@ -407,6 +408,14 @@ wrappedLinkTypeName (WrappedLink (_ :: Link object)) =
 objectTypeTypeId :: WrappedObjectType -> String
 objectTypeTypeId (WrappedObjectType objectType) =
    objectTypeTypeIdPrim objectType
+
+linkObjectTypeTypeId :: WrappedLink -> String
+linkObjectTypeTypeId (WrappedLink link) 
+      = objectTypeTypeIdPrim (toObjectType link)
+   where
+      toObjectType :: ObjectType objectType object => Link object -> objectType
+      toObjectType _ = getObjectTypePrim (
+         error "ObjectTypes: undefined object type")
 
 objectTypeId :: WrappedObjectType -> GlobalKey
 objectTypeId (WrappedObjectType objectType) = objectTypeIdPrim objectType

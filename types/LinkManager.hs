@@ -250,6 +250,8 @@ import Messages
 import FolderStructure
 import Imports
 
+import ServerErrors
+
 import LinkDrawer
 import CodedValue
 import ObjectTypes
@@ -259,6 +261,7 @@ import ViewType
 import View
 import MergeTypes
 import {-# SOURCE #-} Folders
+import {-# SOURCE #-} NoAccessObject
 
 -- ----------------------------------------------------------------------
 -- User interface
@@ -334,7 +337,10 @@ listObjectContents linkedObject =
       (\ fm -> 
          map
             (\ (entityName,linkedObjectPtr) 
-               -> (entityName,fromLinkedObjectPtr linkedObjectPtr))
+               -> (entityName,
+                  fromLinkedObjectPtr1 linkedObject entityName 
+                     linkedObjectPtr)
+               )
             (fmToList fm)
          )
       (toSimpleSource (contents linkedObject))
@@ -462,7 +468,8 @@ lookupNameInFolder linkedObject entityName =
    do
       linkedObjectPtrOpt <- readContents (
          lookupEntityName linkedObject entityName)
-      return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
+      return (fmap (fromLinkedObjectPtr1 linkedObject entityName) 
+         linkedObjectPtrOpt)
 
 -- | Extract a full name as a sub object of a given object.
 lookupFullNameInFolder :: LinkedObject -> EntityFullName 
@@ -479,7 +486,8 @@ lookupFullNameInFolder linkedObject (EntityFullName names)
             case linkedObjectPtrOpt of
                Nothing -> return Nothing
                Just linkedObjectPtr 
-                  -> lookup1 (fromLinkedObjectPtr linkedObjectPtr) names
+                  -> lookup1 (fromLinkedObjectPtr1 linkedObject name 
+                     linkedObjectPtr) names
 
 -- | Make an insertion
 mkInsertion :: LinkedObject -> EntityName -> Insertion
@@ -742,7 +750,8 @@ toFolderStructure root =
       getContentsSource linkedObject =
          return .
             (fmap
-               (mapFM (\ _ -> fromLinkedObjectPtr))
+               (mapFM (\ entityName ptr -> 
+                  fromLinkedObjectPtr1 linkedObject entityName ptr))
                )
             . contentsSource $ linkedObject
 
@@ -1068,13 +1077,38 @@ instance HasBinary Insertion CodingMonad where
 -- Each LinkedObject also stores its own LinkedObjectPtr, as thisPtr.
 -- ----------------------------------------------------------------------
 
+
 data LinkedObjectPtr = LinkedObjectPtr {
    linkedObjectInPtr :: LinkedObject,
+      -- ^ this value is created by an unsafePerformIO.  An advantage of
+      -- this is that we only try to read it when we actually need it.
    wrappedLinkInPtr :: WrappedLink
    }
 
+-- | Turning a 'LinkedObjectPtr' into the corresponding 'LinkedObject'
+-- when we can't guess the parent insertion to use if it is not readable.
 fromLinkedObjectPtr :: LinkedObjectPtr -> LinkedObject
 fromLinkedObjectPtr = linkedObjectInPtr
+
+-- | Turning a 'LinkedObjectPtr' into the corresponding 'LinkedObject'
+-- when we can guess the parent insertion to use if it is not readable.
+fromLinkedObjectPtr1 
+   :: LinkedObject -> EntityName -> LinkedObjectPtr -> LinkedObject
+fromLinkedObjectPtr1 parentLinkedObject entityName linkedObjectPtr =
+   unsafePerformIO (
+      do
+         let
+            linkedObject1 = linkedObjectInPtr linkedObjectPtr
+         if isNoAccessLink (wrappedLinkInPtr (thisPtr linkedObject1))
+            then
+               do
+                  resWE <- moveObject linkedObject1 (
+                     Just (mkInsertion parentLinkedObject entityName))
+                  coerceWithErrorIO resWE
+            else
+               done
+         return linkedObject1
+      )                        
 
 mkLinkedObjectPtr :: View -> WrappedLink -> LinkedObjectPtr
 mkLinkedObjectPtr view wrappedLink =
@@ -1106,11 +1140,22 @@ instance Ord LinkedObjectPtr where
    compare ptr1 ptr2 = compare (wrappedLinkInPtr ptr1) (wrappedLinkInPtr ptr2) 
 
 extractLinkedObject :: WrappedLink -> View -> IO LinkedObject
-extractLinkedObject (WrappedLink link) view =
+extractLinkedObject (wrappedLink @ (WrappedLink link)) view =
    do
-      object <- readLink view link
-      return (fromMaybe (error "LinkManager.99") (toLinkedObjectOpt object))
+      (result :: (Either (ErrorType,String) LinkedObject)) 
+         <- catchError (
+            do
+               object <- readLink view link
+               case toLinkedObjectOpt object of
+                  Nothing -> error "LinkManager: object has no linked object"
+                  Just linkedObject -> return (Right linkedObject)
+            )
+            (\ errorType mess -> Left (errorType,mess))
 
+      case result of
+         Right linkedObject -> return linkedObject
+         Left (AccessError,_) -> createNoAccessObject view wrappedLink
+         Left (errorType,mess) -> throwError errorType mess
 
 lookupEntityName 
    :: LinkedObject -> EntityName -> SimpleSource (Maybe LinkedObjectPtr)
