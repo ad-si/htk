@@ -10,7 +10,7 @@ SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
 endif
 
 
-SRCSC = MainrunCommand.c forkExec.c Mainlog.c
+SRCSC = MainrunCommand.c Mainlog.c
 
 SUBDIRS = test
 

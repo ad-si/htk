@@ -25,6 +25,10 @@ data MergeLinks object = forall key . (Ord key,Show key,Typeable key)
    => MergeLinks (View -> Link object -> IO (ObjectLinks key))
 
 
+emptyMergeLinks :: MergeLinks object
+emptyMergeLinks 
+   = MergeLinks (\ _ _ -> return ((ObjectLinks []) :: ObjectLinks ()))
+ 
 -- | This contains the reassignments made in merging, mapping each link to
 -- its corresponding link in the final merge.
 data LinkReAssigner = LinkReAssigner {

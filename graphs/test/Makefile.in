@@ -2,7 +2,8 @@ PACKAGE = uni-graphs-test
 PACKAGES = uni-graphs
 
 SRCS = GraphDispTest.hs TopSort.hs Hasse.hs DrawDepend.hs \
-       TestGetAttributes.hs TestGetAttributes2.hs
+       TestGetAttributes.hs TestGetAttributes2.hs \
+       RemoveAncestorsTest.hs \
 
 include @TOP@/mk/boilerplate.mk
 

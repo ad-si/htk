@@ -42,6 +42,7 @@ import GetAttributesType
 import Folders
 import EntityNames
 import LinkManager
+import MergeTypes
 
 
 -- ------------------------------------------------------------------
@@ -195,6 +196,8 @@ instance ObjectType FileType File where
                      })
                Nothing -> Nothing
          )
+
+   getMergeLinks = emptyMergeLinks
 
 instance HasLinkedObject File where
    toLinkedObject object = linkedObject object
