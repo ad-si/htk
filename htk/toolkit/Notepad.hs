@@ -176,6 +176,32 @@ createNotepadItem val notepad cnf =
                              it_long_name_bg = lnbg,
                              it_bg = itemsel }
     foldl (>>=) (return item) cnf
+
+
+    (entered, _) <- bindSimple item Enter
+    (left, _) <- bindSimple item Leave
+    spawnEvent (forever ((entered >>>
+                            (do putStrLn "entered"
+                                last <- getRef (entered_item notepad)
+                                if not (isJust last)
+                                  then do setRef (entered_item notepad)
+                                                 (Just item)
+                                          enteredItem notepad item
+                                  else if fromJust last /= item
+                                         then do leftItem notepad
+                                                          (fromJust last)
+                                                 setRef
+                                                   (entered_item notepad)
+                                                   (Just item)
+                                                 enteredItem notepad item
+                                         else done)) +>
+                         (left >>>
+                            (do putStrLn "left"
+                                last <- getRef (entered_item notepad)
+                                setRef (entered_item notepad) Nothing
+                                if isJust last
+                                  then leftItem notepad (fromJust last)
+                                  else done))))
     addItemToState notepad item
     return item
 
@@ -987,10 +1013,10 @@ newNotepad par scrolltype imgsize mstate cnf =
                                     setRef entereditemref Nothing
                                   else done)) >>
                        listenNotepad)
-          +> (do
+{-          +> (do
                 (x, y) <- motion >>>= getCoords
                 always (checkEnteredItem (x, y))
-                listenNotepad)
+                listenNotepad)-}
           +> (do
                 (x, y) <- click >>>= getCoords
                 always
