@@ -55,8 +55,8 @@ newtype CheckButton a b = CheckButton GUIOBJECT deriving Eq
 -- Constructs a new checkbutton widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this check
---                  button.
+-- @param cnf     - the list of configuration options for this
+--                  checkbutton.
 -- @return result - A checkbutton widget.
 newCheckButton :: Container par => par -> [Config (CheckButton a b)] ->
                                    IO (CheckButton a b)

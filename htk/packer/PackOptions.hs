@@ -57,14 +57,14 @@ instance Show FillSpec where
   showsPrec d None r = "none" ++ r
 
 data PackOption =
-    Side SideSpec
-  | Fill FillSpec
-  | Expand Toggle
-  | IPadX Distance
-  | IPadY Distance
-  | PadX Distance
-  | PadY Distance
-  | Anchor Anchor
+    Side SideSpec         --' side to pack the widget
+  | Fill FillSpec         --' orientations to fill.
+  | Expand Toggle         --' expand toggle
+  | IPadX Distance        --' inner horizontal pad
+  | IPadY Distance        --' inner vertical pad
+  | PadX Distance         --' horizontal pad
+  | PadY Distance         --' vertical pad
+  | Anchor Anchor         --' anchor position
 
 ---
 -- Internal.

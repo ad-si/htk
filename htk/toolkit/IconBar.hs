@@ -105,7 +105,7 @@ instance HasEnable (IconBar a) where
                       foreach ibs (\ib -> configure ib [state st])
                       return ib)
   getState ib = do
-                  b <- isEnabled ib;
+                  b <- isEnabled ib
                   if b then return Normal else return Disabled
 
   isEnabled ib =

@@ -1,3 +1,14 @@
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
+
 ---
 -- Basic dialog window and a couple of predefined abstractions!
 module DialogWin (

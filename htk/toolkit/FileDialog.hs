@@ -9,6 +9,8 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>file dialog box</strong>.
 module FileDialog (
 
   fileDialog
@@ -289,10 +291,17 @@ confirmDeleteFile par fp childwindow ret =
 
        modalDialog main True listenDialog)
 
+---
+-- Opens a file dialog box.
+-- @param title   - the window title of the file dialog box.
+-- @param fp      - the filepath to browse.
+-- @return result - An event (returning the selected FilePath if
+--                  available) that is invoked when the file dialog is
+--                  finished.
 fileDialog :: String -> FilePath -> IO (Event (Maybe FilePath))
-fileDialog title path' =
+fileDialog title fp =
   do
-    let path = if last path' == '/' then path' else path' ++ "/"
+    let path = if last fp == '/' then fp else fp ++ "/"
 
     childwindow <- newRef Nothing
 

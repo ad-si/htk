@@ -9,6 +9,8 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>embedded windows</strong> inside an editor widget.
 module EmbeddedTextWin (
 
   EmbeddedTextWin,
@@ -36,6 +38,8 @@ import Wish
 -- type EmbeddedTextWin
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>EmbeddedTextWin</code> datatype.
 newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 
 
@@ -43,45 +47,56 @@ newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new embedded window inside an editor widget and returns 
+-- a handler.
+-- @param ed      - the parent editor widget.
+-- @param i       - the editor's index to place the embedded window.
+-- @param w       - the contained widget.
+-- @param cnf     - the list of configuration options for this embedded
+--                  text window.
+-- @return result - An embedded window inside an editor widget.
 createEmbeddedTextWin :: (HasIndex (Editor a) i BaseIndex, Widget w) =>
                          (Editor a) -> i -> w ->
                          [Config EmbeddedTextWin] -> IO EmbeddedTextWin
-createEmbeddedTextWin ed i w ol =
+createEmbeddedTextWin ed i w cnf =
   do
     binx <- getBaseIndex ed i
     pos <- getBaseIndex ed (binx::BaseIndex)
     nm <- getObjectName (toGUIObject w)
     wid <- createGUIObject (toGUIObject ed)
              (EMBEDDEDTEXTWIN (unparse pos) nm) winMethods
-    configure (EmbeddedTextWin wid) ({-(parent ed) :-} ol)
+    configure (EmbeddedTextWin wid) cnf
   where unparse :: Position -> GUIVALUE
         unparse (x,y) = toGUIValue (RawData (show x ++ "." ++ show y))
 
 
--- --------------------------------------------------------------------------
--- Instantiations
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject EmbeddedTextWin where 
+---
+-- Internal.
   toGUIObject (EmbeddedTextWin w) = w
+---
+-- Internal.
   cname _ = "EmbeddedTextWin"
 
+---
+-- An embedded text window can be destroyed.
 instance Destroyable EmbeddedTextWin where
+---
+-- Destroys an embedded text window.
   destroy = destroy . toGUIObject
 
---instance HasPadding EmbeddedTextWin
-
---instance HasAlign EmbeddedTextWin
-
-{-
-instance ParentWidget (Editor a) EmbeddedTextWin where
-        parent tp item = do {
-                packTextWindowItem (toGUIObject tp) (toGUIObject item) (Just winMethods);
-                return item
-                }
--}
-
+---
+-- You can synchronize on an embedded text window object.
 instance Synchronized EmbeddedTextWin where
+---
+-- Synchronizes on an embedded text window object.
   synchronize = synchronize . toGUIObject
 
 
@@ -89,9 +104,14 @@ instance Synchronized EmbeddedTextWin where
 -- widget specific configuration options
 -- -----------------------------------------------------------------------
 
+---
+-- If set the contained widget is stretched vertically to match the
+-- spacing of the line.
 stretch :: Toggle -> Config EmbeddedTextWin
 stretch t w = cset w "stretch" t
 
+---
+-- Gets the current stretch setting.
 getStretch :: EmbeddedTextWin -> IO Toggle
 getStretch ew = cget ew "stretch"
 

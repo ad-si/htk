@@ -11,8 +11,9 @@
 
 ---
 -- HTk's <strong>notebook</strong> and
--- <strong>notebook pages</strong>. This widget is from the Tix library and
--- therefore only available if Tix is installed.
+-- <strong>notebook pages</strong>.
+-- This widget is from the Tix library and therefore only available if
+-- you are using tixwish.
 module NoteBook (
 
   NoteBook,

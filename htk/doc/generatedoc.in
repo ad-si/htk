@@ -57,10 +57,12 @@ rm -f ./*.html
     ../canvasitems/Rectangle.hs\
     ../canvasitems/TextItem.hs\
 \
+    ../menuitems/Indicator.hs\
     ../menuitems/Menu.hs\
     ../menuitems/MenuCascade.hs\
     ../menuitems/MenuCheckButton.hs\
     ../menuitems/MenuCommand.hs\
+    ../menuitems/MenuItem.hs\
     ../menuitems/MenuRadioButton.hs\
     ../menuitems/MenuSeparator.hs\
 \
@@ -81,8 +83,24 @@ rm -f ./*.html
     ../packer/PackOptions.hs\
     ../packer/GridPackOptions.hs\
 \
-    ../tix/NoteBook.hs\
     ../tix/LabelFrame.hs\
+    ../tix/NoteBook.hs\
+    ../tix/PanedWindow.hs\
+\
+    ../toolkit/CItem.hs\
+    ../toolkit/DialogWin.hs\
+    ../toolkit/FileDialog.hs\
+    ../toolkit/GenGUI.hs\
+    ../toolkit/IconBar.hs\
+    ../toolkit/InputForm.hs\
+    ../toolkit/InputWin.hs\
+    ../toolkit/ModalDialog.hs\
+    ../toolkit/Name.hs\
+    ../toolkit/Notepad.hs\
+    ../toolkit/Prompt.hs\
+    ../toolkit/ScrollBox.hs\
+    ../toolkit/SelectBox.hs\
+    ../toolkit/TreeList.hs\
 \
     ../../events/Events.hs\
     ../../events/Destructible.hs\
@@ -92,3 +110,6 @@ rm -f ./*.html
     ../../events/Channels.hs\
 \
     ../../util/Computation.hs
+
+#    ../toolkit/SimpleForm.hs\
+#    ../toolkit/MarkupText.hs\

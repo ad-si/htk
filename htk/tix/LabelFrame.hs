@@ -69,17 +69,27 @@ newLabelFrame par cnf =
 -- widget specific configuration options
 -- -----------------------------------------------------------------------
 
-labelSide :: LabelSide -> LabelFrame -> IO LabelFrame
+---
+-- You can specify the side to display the label.
+labelSide :: LabelSide -> Config LabelFrame
 labelSide ls w = cset w "labelside" ls
 
+---
+-- Gets the side where the label is displayed.
 getLabelSide :: LabelFrame -> IO LabelSide
 getLabelSide w = cget w "labelside"
 
+---
+-- The <code>LabelSide</code> datatype.
 data LabelSide =
     TopLabel | LeftLabel | RightLabel | BottomLabel | NoLabel
   | AcrossTopLabel
 
+---
+-- Internal.
 instance Read LabelSide where
+---
+-- Internal.
   readsPrec p b =
     case dropWhile isSpace b of
       't':'o':'p': xs -> [(TopLabel,xs)]
@@ -90,7 +100,11 @@ instance Read LabelSide where
       'a':'c':'r':'o':'s':'s':'t':'o':'p': xs -> [(AcrossTopLabel, xs)]
       _ -> []
 
+---
+-- Internal.
 instance Show LabelSide where
+---
+-- Internal.
   showsPrec d p r =
     (case p of TopLabel -> "top"
                LeftLabel -> "left"
@@ -99,7 +113,11 @@ instance Show LabelSide where
                NoLabel -> "none"
                AcrossTopLabel -> "acrosstop") ++ r
 
+---
+-- Internal.
 instance GUIValue LabelSide where
+---
+-- Internal.
   cdefault = TopLabel
 
 

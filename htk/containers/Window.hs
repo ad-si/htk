@@ -78,7 +78,7 @@ class GUIObject w => Window w where
   putWinOnTop win  = execMethod win (\nm -> [tkPutOnTop nm])
   putWinAtBottom win = execMethod win (\nm -> [tkPutAtBottom nm])
 
-{- TD (ludi)
+{- TD
   transient :: Window -> Config Window
   transient pwin twin @ (Window _ _ pv) = do {
           onm <- getObjectName (toGUIObject pwin); 

@@ -137,7 +137,7 @@ instance GUIValue v => HasText (Button String) v
 instance HasUnderline (Button String)
 
 ---
--- You can synchronize on a button object (in JAVA style).
+-- You can synchronize on a button object.
 instance Synchronized (Button a) where
 ---
 -- Synchronizes on a button object.

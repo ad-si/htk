@@ -163,28 +163,60 @@ createPane nb ccnf cnf =
 -- pane creation options
 -- -----------------------------------------------------------------------
 
+---
+-- Specifies that the new pane should be placed after pane in the list of
+-- panes in this PanedWindow widget
+-- (this is an initial configuration that cannot be changed later).
 after :: Pane -> CreationConfig Pane
 after pane =
   do nm <- getObjectName (toGUIObject pane)
      return ("after " ++ show nm)
 
+---
+-- Specifies that the new pane should be placed before pane in the list of
+-- panes in this PanedWindow widget
+-- (this is an initial configuration that cannot be changed later).
 before :: Pane -> CreationConfig Pane
 before pane =
   do nm <- getObjectName (toGUIObject pane)
      return ("before " ++ show nm)
 
+---
+-- Specifies the position of the new pane in the list of panes in this
+-- PanedWindow widget. 0 means the first position, 1 means the second,
+-- and so on.
 at :: Int -> CreationConfig Pane
 at n = return ("at " ++ show n)
 
+---
+-- Specifies the expand/shrink factor of this pane as a non-negative
+-- floating point number. The default value is 0.0. The expand/shrink
+-- factor is used to calculate how much each pane should grow or shrink
+-- when the size of the PanedWindow main window is changed. When the main 
+-- window expands/shrinks by n pixels, then pane i will grow/shrink by
+-- about n * factor(i) / summation(factors), where factor(i) is the
+-- expand/shrink factor of pane i and summation(factors) is the summation
+-- of the expand/shrink factors of all the panes. If summation(factors) 
+-- is 0.0, however, only the last visible pane will be grown or shrunk. 
 expand :: Double -> CreationConfig Pane
 expand d = return ("expand " ++ show d)
 
+---
+-- Specifies the minimum size, in pixels, of the new pane; the default
+-- is 0.
 minsize :: Int -> CreationConfig Pane
 minsize i = return ("min " ++ show i)
 
+---
+-- Specifies the maximum size, in pixels, of the new pane; the default is
+-- 10000.
 maxsize :: Int -> CreationConfig Pane
 maxsize i = return ("max " ++ show i)
 
+---
+-- Specifies the size, in pixels, of the new pane; if the -size option is 
+-- not given, the PanedWindow widget will use the natural size of the pane
+-- subwidget. 
 initsize :: Int -> CreationConfig Pane
 initsize i = return ("size " ++ show i)
 
