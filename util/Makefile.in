@@ -1,5 +1,14 @@
 PACKAGE = uni-util
-PACKAGES = concurrent lang data network text haskell-src uni-options
+
+ifeq "$(sort 603 @GhcShortVersion@)" "603 @GhcShortVersion@"
+# We are using ghc6.3 or later, which requires the template-haskell
+# package to be specified.
+TEMPLATEHASKELLPACKAGE = template-haskell
+else
+TEMPLATEHASKELLPACKAGE =
+endif
+
+PACKAGES = concurrent lang data network text haskell-src uni-options $(TEMPLATEHASKELLPACKAGE)
 
 SRCS       = \
   TemplateHaskellHelps.hs CompileFlags.hs \
