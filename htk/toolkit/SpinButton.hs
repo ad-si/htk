@@ -173,12 +173,12 @@ instance HasSize SpinButton
 
 msDownButtonImg :: Image
 msDownButtonImg = 
-  unsafePerformIO (newImage NONE [imgData GIF 
-     "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPoRvHnRRys5oCADs="])
+  unsafePerformIO (newImage NONE [imgData# GIF 
+     "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPoRvHnRRys5oCADs=\0"#])
 {-# NOINLINE msDownButtonImg #-}
 
 msUpButtonImg :: Image
 msUpButtonImg = 
-  unsafePerformIO (newImage NONE [imgData GIF 
-     "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPF2nh6aKKkp0CADs"])
+  unsafePerformIO (newImage NONE [imgData# GIF 
+     "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPF2nh6aKKkp0CADs\0"#])
 {-# NOINLINE msUpButtonImg #-}

@@ -104,7 +104,7 @@ SRCS       = resources/Resources.hs\
 
 HTKNOTSRCS = kernel/CallWish.hs toolkit/FileDialog.hs toolkit/LogWin.hs
 
-EXTRA_HC_OPTIONS += -Onot -H30M
+EXTRA_HC_OPTIONS += -H40M
 
 SUBDIRS = test examples
 
