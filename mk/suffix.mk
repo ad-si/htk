@@ -181,7 +181,8 @@ libfast : libfasthere
 slow : slowhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) slow && ) echo Finished make slow
 
-slowhere : boothere dependhere libhere packageherequick
+slowhere : boothere dependhere
+	$(MAKE) -r libhere packageherequick
 
 clean: cleanprogs
 	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`
