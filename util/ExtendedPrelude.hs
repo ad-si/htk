@@ -79,6 +79,7 @@ module ExtendedPrelude (
    catchOurExceps, -- :: IO a -> IO (Either String a) 
    errorOurExceps, -- :: IO a -> IO a
    ourExcepToMess, -- :: Exception -> Maybe String
+   breakOtherExceps, -- :: BreakFn -> IO a -> IO a
 
    EqIO(..),OrdIO(..),
 
@@ -602,6 +603,21 @@ errorOurExceps act =
       case eOrA of
          Left mess -> error mess
          Right a -> return a
+
+breakOtherExceps :: BreakFn -> IO a -> IO a
+breakOtherExceps break act =
+   catchJust
+      (\ excep -> if isJust (ourExcepToMess excep) 
+         then
+            Nothing
+         else
+            Just (break ("Haskell Exception: " ++ show excep))
+         )
+      act
+      id
+            
+
+
 
 -- ------------------------------------------------------------------------
 -- Where equality and comparing requires IO.

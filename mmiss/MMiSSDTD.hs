@@ -37,9 +37,8 @@ import Text.XML.HaXml.Pretty
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Validate
+import Text.XML.HaXml.Escape
 
-
-import XmlEscape
 
 import MMiSSDTDAssumptions
 

@@ -7,7 +7,7 @@
 PACKAGE = uni-HaXml
 PACKAGES = text data uni-util
 
-HAXML = @TOP@/HaXml-1.10/src
+HAXML = @TOP@/HaXml-1.11/src
 
 # Disable DEBUG mode.  This is because Malcolm Wallace uses the same
 # flag, and so if it's left it I get lots and lots of Malcolm's trace

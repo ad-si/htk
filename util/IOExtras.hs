@@ -21,12 +21,13 @@ module IOExtras(
       -- carry out a pure modification of an IORef.  
       -- From ghc5.05 onwards, we should be able to use atomicModifyIORef
       -- for this.
+
    ) where
 
 import IO
 
 import Data.IORef
-import Exception
+import Control.Exception
 import Storable
 
 catchEOF :: IO a -> IO (Maybe a)
@@ -64,14 +65,5 @@ hGetLineR handle =
       return (read line)
 
 simpleModifyIORef :: IORef a -> (a -> (a,b)) -> IO b
-#if (__GLASGOW_HASKELL__ >= 505)
 simpleModifyIORef = atomicModifyIORef
-#else
-simpleModifyIORef ioRef fn =
-   do
-      a0 <- readIORef ioRef
-      let
-         (a1,b) = fn a0
-      writeIORef ioRef a1
-      return b
-#endif
+

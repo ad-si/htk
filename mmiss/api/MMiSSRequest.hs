@@ -6,37 +6,37 @@ import Text.XML.HaXml.OneOfN
 
 {-Type decls-}
 
+newtype Request = Request (OneOf9 Connect CloseServer ListVersions CheckOut ChangeUserInfo CommitVersion CloseVersion GetObject PutObject) 		deriving (Eq,Show)
+data Response = Response Messages
+			 (Maybe (OneOf9 ConnectResponse CloseServerResponse ListVersionsResponse CheckOutResponse ChangeUserInfoResponse CommitVersionResponse CloseVersionResponse GetObjectResponse PutObjectResponse))
+	      deriving (Eq,Show)
 data Connect = Connect Connect_Attrs (Maybe ServerRef)
 	     deriving (Eq,Show)
 data Connect_Attrs = Connect_Attrs
-    { connectServer :: (Defaultable String)
+    { connectServer :: (Maybe String)
     , connectUser :: (Maybe String)
     , connectPassword :: (Maybe String)
     } deriving (Eq,Show)
-data ConnectResponse = ConnectResponse (Maybe ServerRef) Messages
-		     deriving (Eq,Show)
+newtype ConnectResponse = ConnectResponse (Maybe ServerRef) 		deriving (Eq,Show)
 newtype CloseServer = CloseServer ServerRef 		deriving (Eq,Show)
-newtype CloseServerResponse = CloseServerResponse Messages 		deriving (Eq,Show)
+data CloseServerResponse = CloseServerResponse 		deriving (Eq,Show)
 newtype ListVersions = ListVersions ServerRef 		deriving (Eq,Show)
-data ListVersionsResponse = ListVersionsResponse [VersionInfo]
-						 Messages
-			  deriving (Eq,Show)
+newtype ListVersionsResponse = ListVersionsResponse [VersionInfo] 		deriving (Eq,Show)
 data CheckOut = CheckOut CheckOut_Attrs ServerRef
 			 (Maybe VersionRef)
 	      deriving (Eq,Show)
 data CheckOut_Attrs = CheckOut_Attrs
     { checkOutVersion :: String
     } deriving (Eq,Show)
-data CheckOutResponse = CheckOutResponse (Maybe VersionRef)
-					 Messages
-		      deriving (Eq,Show)
+newtype CheckOutResponse = CheckOutResponse (Maybe VersionRef) 		deriving (Eq,Show)
 data ChangeUserInfo = ChangeUserInfo VersionRef UserInfo
 		    deriving (Eq,Show)
-newtype ChangeUserInfoResponse = ChangeUserInfoResponse Messages 		deriving (Eq,Show)
-newtype CommitVersion = CommitVersion VersionRef 		deriving (Eq,Show)
-newtype CommitVersionResponse = CommitVersionResponse Messages 		deriving (Eq,Show)
+data ChangeUserInfoResponse = ChangeUserInfoResponse 		deriving (Eq,Show)
+data CommitVersion = CommitVersion VersionRef (Maybe UserInfo)
+		   deriving (Eq,Show)
+data CommitVersionResponse = CommitVersionResponse 		deriving (Eq,Show)
 newtype CloseVersion = CloseVersion VersionRef 		deriving (Eq,Show)
-newtype CloseVersionResponse = CloseVersionResponse Messages 		deriving (Eq,Show)
+data CloseVersionResponse = CloseVersionResponse 		deriving (Eq,Show)
 data GetObject = GetObject GetObject_Attrs VersionRef
 			   ObjectFullName (Maybe Variants)
 	       deriving (Eq,Show)
@@ -54,11 +54,10 @@ data GetObject_format = GetObject_format_LaTeX  |
 data GetObject_recurse = GetObject_recurse_justThis  | 
 			 GetObject_recurse_allIncluded
 		       deriving (Eq,Show)
-data GetObjectResponse = GetObjectResponse (Maybe Files) Messages
-		       deriving (Eq,Show)
+newtype GetObjectResponse = GetObjectResponse (Maybe Files) 		deriving (Eq,Show)
 data PutObject = PutObject VersionRef ObjectFullName Files
 	       deriving (Eq,Show)
-newtype PutObjectResponse = PutObjectResponse Messages 		deriving (Eq,Show)
+data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
 data ServerRef = ServerRef
     { serverRefRef :: String
     } deriving (Eq,Show)
@@ -73,7 +72,14 @@ data FileLocation = FileLocation (Maybe ObjectName) ObjectType
 newtype FileVariants = FileVariants [FileVariant] 		deriving (Eq,Show)
 data FileVariant = FileVariant (Maybe Variants) FileContents
 		 deriving (Eq,Show)
-newtype FileContents = FileContents String 		deriving (Eq,Show)
+data FileContents = FileContents FileContents_Attrs String
+		  deriving (Eq,Show)
+data FileContents_Attrs = FileContents_Attrs
+    { fileContentsCharType :: (Defaultable FileContents_charType)
+    } deriving (Eq,Show)
+data FileContents_charType = FileContents_charType_byte  | 
+			     FileContents_charType_unicode
+			   deriving (Eq,Show)
 data VersionInfo = VersionInfo VersionInfo_Attrs UserInfo
 			       ServerInfo
 		 deriving (Eq,Show)
@@ -120,10 +126,7 @@ data Messages = Messages Messages_Attrs [Messages_]
 data Messages_Attrs = Messages_Attrs
     { messagesStatus :: (Defaultable Messages_status)
     } deriving (Eq,Show)
-data Messages_ = Messages_Alert Alert
-	       | Messages_Error Error
-	       | Messages_Warning Warning
-	       | Messages_Message Message
+data Messages_ = Messages_ Alert Error Warning Message
 	       deriving (Eq,Show)
 data Messages_status = Messages_status_success  | 
 		       Messages_status_fail  |  Messages_status_panic
@@ -136,6 +139,26 @@ newtype Message = Message String 		deriving (Eq,Show)
 
 {-Instance decls-}
 
+instance XmlContent Request where
+    fromElem (CElem (Elem "request" [] c0):rest) =
+	(\(a,ca)->
+	   (Just (Request a), rest))
+	(definite fromElem "OneOf" "request" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (Request a) =
+	[CElem (Elem "request" [] (toElem a))]
+instance XmlContent Response where
+    fromElem (CElem (Elem "response" [] c0):rest) =
+	(\(a,ca)->
+	   (\(b,cb)->
+	      (Just (Response a b), rest))
+	   (fromElem ca))
+	(definite fromElem "<messages>" "response" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (Response a b) =
+	[CElem (Elem "response" [] (toElem a ++ maybe [] toElem b))]
 instance XmlContent Connect where
     fromElem (CElem (Elem "connect" as c0):rest) =
 	(\(a,ca)->
@@ -148,26 +171,24 @@ instance XmlContent Connect where
 instance XmlAttributes Connect_Attrs where
     fromAttrs as =
 	Connect_Attrs
-	  { connectServer = defaultA fromAttrToStr "localhost" "server" as
+	  { connectServer = possibleA fromAttrToStr "server" as
 	  , connectUser = possibleA fromAttrToStr "user" as
 	  , connectPassword = possibleA fromAttrToStr "password" as
 	  }
     toAttrs v = catMaybes 
-	[ defaultToAttr toAttrFrStr "server" (connectServer v)
+	[ maybeToAttr toAttrFrStr "server" (connectServer v)
 	, maybeToAttr toAttrFrStr "user" (connectUser v)
 	, maybeToAttr toAttrFrStr "password" (connectPassword v)
 	]
 instance XmlContent ConnectResponse where
     fromElem (CElem (Elem "connectResponse" [] c0):rest) =
 	(\(a,ca)->
-	   (\(b,cb)->
-	      (Just (ConnectResponse a b), rest))
-	   (definite fromElem "<messages>" "connectResponse" ca))
+	   (Just (ConnectResponse a), rest))
 	(fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (ConnectResponse a b) =
-	[CElem (Elem "connectResponse" [] (maybe [] toElem a ++ toElem b))]
+    toElem (ConnectResponse a) =
+	[CElem (Elem "connectResponse" [] (maybe [] toElem a))]
 instance XmlContent CloseServer where
     fromElem (CElem (Elem "closeServer" [] c0):rest) =
 	(\(a,ca)->
@@ -178,14 +199,12 @@ instance XmlContent CloseServer where
     toElem (CloseServer a) =
 	[CElem (Elem "closeServer" [] (toElem a))]
 instance XmlContent CloseServerResponse where
-    fromElem (CElem (Elem "closeServerResponse" [] c0):rest) =
-	(\(a,ca)->
-	   (Just (CloseServerResponse a), rest))
-	(definite fromElem "<messages>" "closeServerResponse" c0)
+    fromElem (CElem (Elem "closeServerResponse" [] []):rest) =
+	(Just CloseServerResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (CloseServerResponse a) =
-	[CElem (Elem "closeServerResponse" [] (toElem a))]
+    toElem CloseServerResponse =
+	[CElem (Elem "closeServerResponse" [] [])]
 instance XmlContent ListVersions where
     fromElem (CElem (Elem "listVersions" [] c0):rest) =
 	(\(a,ca)->
@@ -198,15 +217,12 @@ instance XmlContent ListVersions where
 instance XmlContent ListVersionsResponse where
     fromElem (CElem (Elem "listVersionsResponse" [] c0):rest) =
 	(\(a,ca)->
-	   (\(b,cb)->
-	      (Just (ListVersionsResponse a b), rest))
-	   (definite fromElem "<messages>" "listVersionsResponse" ca))
+	   (Just (ListVersionsResponse a), rest))
 	(many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (ListVersionsResponse a b) =
-	[CElem (Elem "listVersionsResponse" [] (concatMap toElem a ++
-						toElem b))]
+    toElem (ListVersionsResponse a) =
+	[CElem (Elem "listVersionsResponse" [] (concatMap toElem a))]
 instance XmlContent CheckOut where
     fromElem (CElem (Elem "checkOut" as c0):rest) =
 	(\(a,ca)->
@@ -230,15 +246,12 @@ instance XmlAttributes CheckOut_Attrs where
 instance XmlContent CheckOutResponse where
     fromElem (CElem (Elem "checkOutResponse" [] c0):rest) =
 	(\(a,ca)->
-	   (\(b,cb)->
-	      (Just (CheckOutResponse a b), rest))
-	   (definite fromElem "<messages>" "checkOutResponse" ca))
+	   (Just (CheckOutResponse a), rest))
 	(fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (CheckOutResponse a b) =
-	[CElem (Elem "checkOutResponse" [] (maybe [] toElem a ++
-					    toElem b))]
+    toElem (CheckOutResponse a) =
+	[CElem (Elem "checkOutResponse" [] (maybe [] toElem a))]
 instance XmlContent ChangeUserInfo where
     fromElem (CElem (Elem "changeUserInfo" [] c0):rest) =
 	(\(a,ca)->
@@ -251,32 +264,30 @@ instance XmlContent ChangeUserInfo where
     toElem (ChangeUserInfo a b) =
 	[CElem (Elem "changeUserInfo" [] (toElem a ++ toElem b))]
 instance XmlContent ChangeUserInfoResponse where
-    fromElem (CElem (Elem "changeUserInfoResponse" [] c0):rest) =
-	(\(a,ca)->
-	   (Just (ChangeUserInfoResponse a), rest))
-	(definite fromElem "<messages>" "changeUserInfoResponse" c0)
+    fromElem (CElem (Elem "changeUserInfoResponse" [] []):rest) =
+	(Just ChangeUserInfoResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (ChangeUserInfoResponse a) =
-	[CElem (Elem "changeUserInfoResponse" [] (toElem a))]
+    toElem ChangeUserInfoResponse =
+	[CElem (Elem "changeUserInfoResponse" [] [])]
 instance XmlContent CommitVersion where
     fromElem (CElem (Elem "commitVersion" [] c0):rest) =
 	(\(a,ca)->
-	   (Just (CommitVersion a), rest))
+	   (\(b,cb)->
+	      (Just (CommitVersion a b), rest))
+	   (fromElem ca))
 	(definite fromElem "<versionRef>" "commitVersion" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (CommitVersion a) =
-	[CElem (Elem "commitVersion" [] (toElem a))]
+    toElem (CommitVersion a b) =
+	[CElem (Elem "commitVersion" [] (toElem a ++ maybe [] toElem b))]
 instance XmlContent CommitVersionResponse where
-    fromElem (CElem (Elem "commitVersionResponse" [] c0):rest) =
-	(\(a,ca)->
-	   (Just (CommitVersionResponse a), rest))
-	(definite fromElem "<messages>" "commitVersionResponse" c0)
+    fromElem (CElem (Elem "commitVersionResponse" [] []):rest) =
+	(Just CommitVersionResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (CommitVersionResponse a) =
-	[CElem (Elem "commitVersionResponse" [] (toElem a))]
+    toElem CommitVersionResponse =
+	[CElem (Elem "commitVersionResponse" [] [])]
 instance XmlContent CloseVersion where
     fromElem (CElem (Elem "closeVersion" [] c0):rest) =
 	(\(a,ca)->
@@ -287,14 +298,12 @@ instance XmlContent CloseVersion where
     toElem (CloseVersion a) =
 	[CElem (Elem "closeVersion" [] (toElem a))]
 instance XmlContent CloseVersionResponse where
-    fromElem (CElem (Elem "closeVersionResponse" [] c0):rest) =
-	(\(a,ca)->
-	   (Just (CloseVersionResponse a), rest))
-	(definite fromElem "<messages>" "closeVersionResponse" c0)
+    fromElem (CElem (Elem "closeVersionResponse" [] []):rest) =
+	(Just CloseVersionResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (CloseVersionResponse a) =
-	[CElem (Elem "closeVersionResponse" [] (toElem a))]
+    toElem CloseVersionResponse =
+	[CElem (Elem "closeVersionResponse" [] [])]
 instance XmlContent GetObject where
     fromElem (CElem (Elem "getObject" as c0):rest) =
 	(\(a,ca)->
@@ -351,15 +360,12 @@ instance XmlAttrType GetObject_recurse where
 instance XmlContent GetObjectResponse where
     fromElem (CElem (Elem "getObjectResponse" [] c0):rest) =
 	(\(a,ca)->
-	   (\(b,cb)->
-	      (Just (GetObjectResponse a b), rest))
-	   (definite fromElem "<messages>" "getObjectResponse" ca))
+	   (Just (GetObjectResponse a), rest))
 	(fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (GetObjectResponse a b) =
-	[CElem (Elem "getObjectResponse" [] (maybe [] toElem a ++
-					     toElem b))]
+    toElem (GetObjectResponse a) =
+	[CElem (Elem "getObjectResponse" [] (maybe [] toElem a))]
 instance XmlContent PutObject where
     fromElem (CElem (Elem "putObject" [] c0):rest) =
 	(\(a,ca)->
@@ -374,14 +380,12 @@ instance XmlContent PutObject where
     toElem (PutObject a b c) =
 	[CElem (Elem "putObject" [] (toElem a ++ toElem b ++ toElem c))]
 instance XmlContent PutObjectResponse where
-    fromElem (CElem (Elem "putObjectResponse" [] c0):rest) =
-	(\(a,ca)->
-	   (Just (PutObjectResponse a), rest))
-	(definite fromElem "<messages>" "putObjectResponse" c0)
+    fromElem (CElem (Elem "putObjectResponse" [] []):rest) =
+	(Just PutObjectResponse, rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (PutObjectResponse a) =
-	[CElem (Elem "putObjectResponse" [] (toElem a))]
+    toElem PutObjectResponse =
+	[CElem (Elem "putObjectResponse" [] [])]
 instance XmlContent ServerRef where
     fromElem (CElem (Elem "serverRef" as []):rest) =
 	(Just (fromAttrs as), rest)
@@ -464,14 +468,31 @@ instance XmlContent FileVariant where
     toElem (FileVariant a b) =
 	[CElem (Elem "fileVariant" [] (maybe [] toElem a ++ toElem b))]
 instance XmlContent FileContents where
-    fromElem (CElem (Elem "fileContents" [] c0):rest) =
+    fromElem (CElem (Elem "fileContents" as c0):rest) =
 	(\(a,ca)->
-	   (Just (FileContents a), rest))
+	   (Just (FileContents (fromAttrs as) a), rest))
 	(definite fromText "text" "fileContents" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (FileContents a) =
-	[CElem (Elem "fileContents" [] (toText a))]
+    toElem (FileContents as a) =
+	[CElem (Elem "fileContents" (toAttrs as) (toText a))]
+instance XmlAttributes FileContents_Attrs where
+    fromAttrs as =
+	FileContents_Attrs
+	  { fileContentsCharType = defaultA fromAttrToTyp FileContents_charType_unicode "charType" as
+	  }
+    toAttrs v = catMaybes 
+	[ defaultToAttr toAttrFrTyp "charType" (fileContentsCharType v)
+	]
+instance XmlAttrType FileContents_charType where
+    fromAttrToTyp n (n',v)
+	| n==n'     = translate (attr2str v)
+	| otherwise = Nothing
+      where translate "byte" = Just FileContents_charType_byte
+	    translate "unicode" = Just FileContents_charType_unicode
+	    translate _ = Nothing
+    toAttrFrTyp n FileContents_charType_byte = Just (n, str2attr "byte")
+    toAttrFrTyp n FileContents_charType_unicode = Just (n, str2attr "unicode")
 instance XmlContent VersionInfo where
     fromElem (CElem (Elem "versionInfo" as c0):rest) =
 	(\(a,ca)->
@@ -650,25 +671,22 @@ instance XmlAttributes Messages_Attrs where
 	]
 instance XmlContent Messages_ where
     fromElem c0 =
-	case (fromElem c0) of
-	(Just a,rest) -> (Just (Messages_Alert a), rest)
-	(_,_) ->
-		case (fromElem c0) of
-		(Just a,rest) -> (Just (Messages_Error a), rest)
-		(_,_) ->
-			case (fromElem c0) of
-			(Just a,rest) -> (Just (Messages_Warning a), rest)
-			(_,_) ->
-				case (fromElem c0) of
-				(Just a,rest) -> (Just (Messages_Message a), rest)
-				(_,_) ->
-				    (Nothing, c0)
-    fromElem (CMisc _:rest) = fromElem rest
-    fromElem rest = (Nothing, rest)
-    toElem (Messages_Alert a) = toElem a
-    toElem (Messages_Error a) = toElem a
-    toElem (Messages_Warning a) = toElem a
-    toElem (Messages_Message a) = toElem a
+	case (\(a,ca)->
+		(\(b,cb)->
+		   (\(c,cc)->
+		      (\(d,cd)->
+			 (a,b,c,d,cd))
+		      (fromElem cc))
+		   (fromElem cb))
+		(fromElem ca))
+	     (fromElem c0) of
+	(Just a,Just b,Just c,Just d,rest) -> (Just (Messages_ a b c
+							       d), rest)
+	(_,_,_,_,_) ->
+	    (Nothing, c0)
+    toElem (Messages_ a b c d) =
+	[CElem (Elem "messages" [] (toElem a ++ toElem b ++ toElem c ++
+				    toElem d))]
 instance XmlAttrType Messages_status where
     fromAttrToTyp n (n',v)
 	| n==n'     = translate (attr2str v)

@@ -2,6 +2,29 @@
    XML Document Type Definition for requests to be sent to MMiSS.
    -->
 
+<!-- The element type corresponding to a request.  
+     (We use double parentheses (( )) to work around an annoying bug in
+     HaXml-1.10) -->
+<!ELEMENT request  (( 
+      connect | closeServer | listVersions 
+      | checkOut | changeUserInfo | commitVersion 
+      | closeVersion | getObject | putObject 
+      )) 
+   >
+
+<!-- The element type corresponding to a response. 
+
+     All requests which match the DTD, even those which have no useful 
+     information to return on success (EG closeServer), will return a 
+     corresponding response.
+
+     -->
+<!ELEMENT response (messages,
+     (connectResponse | closeServerResponse | listVersionsResponse
+      | checkOutResponse | changeUserInfoResponse | commitVersionResponse
+      | closeVersionResponse | getObjectResponse | putObjectResponse
+      )? )
+   >
 
 <!-- Connecting to a particular server. 
    If the serverRef is specified it is used to identify the server in
@@ -10,39 +33,40 @@
    -->
 <!ELEMENT connect (serverRef)? >
 <!ATTLIST connect
-   server CDATA "localhost"
+   server CDATA #IMPLIED
    user CDATA #IMPLIED
    password CDATA #IMPLIED
    >
-<!ELEMENT connectResponse (serverRef?,messages) >
+<!ELEMENT connectResponse (serverRef?) >
 
 
 <!-- Closing the connection to a server. -->
 <!ELEMENT closeServer (serverRef) >
-<!ELEMENT closeServerResponse (messages) >
+<!ELEMENT closeServerResponse EMPTY >
 
 
 <!-- Listing all known versions. -->
 <!ELEMENT listVersions (serverRef) >
-<!ELEMENT listVersionsResponse (versionInfo*,messages) >
+<!ELEMENT listVersionsResponse (versionInfo*) >
 
 
 <!-- Checking out a version. -->
 <!ELEMENT checkOut (serverRef,versionRef?) >
 <!ATTLIST checkOut version CDATA #REQUIRED >
-<!ELEMENT checkOutResponse (versionRef?,messages) >
+<!ELEMENT checkOutResponse (versionRef?) >
 
 <!-- Changing the user-info of a current checked-out version. -->
 <!ELEMENT changeUserInfo (versionRef,userInfo) >
-<!ELEMENT changeUserInfoResponse (messages) >
+<!ELEMENT changeUserInfoResponse EMPTY >
 
-<!-- Committing a checked-out version. -->
-<!ELEMENT commitVersion (versionRef) >
-<!ELEMENT commitVersionResponse (messages) >
+<!-- Committing a checked-out version.  If the userInfo is supplied we
+     also change that. -->
+<!ELEMENT commitVersion (versionRef,userInfo?) >
+<!ELEMENT commitVersionResponse EMPTY >
 
 <!-- Closing a checked-out version. -->
 <!ELEMENT closeVersion (versionRef) >
-<!ELEMENT closeVersionResponse (messages) >
+<!ELEMENT closeVersionResponse EMPTY >
 
 <!-- Get the contents of an object in the repository. 
      This will be implemented for (a) MMiSS objects; (b) MMiSS files;
@@ -71,13 +95,13 @@
     also include the objects in all constituent folders.
     -->
 
-<!ELEMENT getObjectResponse (files?,messages) >
+<!ELEMENT getObjectResponse (files?) >
  
 
 <!-- Attempt to import the given object(s) into the specified object in the
      repository. -->
 <!ELEMENT putObject (versionRef,objectFullName,files) >
-<!ELEMENT putObjectResponse (messages) >
+<!ELEMENT putObjectResponse EMPTY >
 
 <!--
    Basic Data Types (shared with MMiSSReply.dtd)
@@ -109,6 +133,9 @@
 <!ELEMENT fileVariants (fileVariant)* >
 <!ELEMENT fileVariant ( variants? , fileContents ) >
 <!ELEMENT fileContents ( #PCDATA ) >
+<!ATTLIST fileContents 
+   charType (byte | unicode) "unicode"
+   >
 
 <!-- The VersionInfo and friends. -->
 <!ELEMENT versionInfo (userInfo,serverInfo)>

@@ -1,0 +1,41 @@
+How to connect to the MMiSS server
+==================================
+
+Initial Login
+-------------
+
+The client and server both use a primitive string format during authentication.
+Namely, a single byte containing the length of the string, which must be
+at most 127, followed by the bytes of the string itself.  (This means that
+when prompting for the user's user-id and password, the client should fault
+any that are too long.)
+
+(1) The client should connect to the server on whatever port the user 
+specifies; the default should be 11396.
+
+The client should then send the following three strings to the server:
+(a) "MMiSS-XML";
+(b) the user-id;
+(c) the password.
+
+(2) The server will then send back either
+(a) the string "OK", if the login attempt succeeded
+or
+(b) a string beginning "ERROR: " followed by an explanatory message
+(which should be displayed).
+
+If login does not succeed the server will close the connection.
+
+Processing XML instructions
+---------------------------
+
+If login succeeded, we are ready to process MMiSS requests, formatted according
+to MMiSSRequest.dtd.  The client should repeatedly send <request> elements.
+Each time it does this, the server should respond with a <response> element.
+
+The client should parse the <response> element.  In particular the <messages>
+element should be communicated to the user, if non-empty.   If it contains
+status=panic, the client should not send any more requests to the server,
+and the server may drop the connection.
+
+When the client has finished, it should drop the connection.

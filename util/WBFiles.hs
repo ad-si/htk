@@ -55,6 +55,7 @@
    user          The user-id to use connecting to the server
    password      The password to use connecting to the server
    port          The port on the server to connect to
+   xmlPort       The port for the XML server (which has a different default)
 
    debug         Where Debug.debug messages should go
 
@@ -121,6 +122,8 @@ module WBFiles (
       -- returns location of hosts file.
 
    getPort, -- IO Int
+
+   getXMLPort, -- IO Int
 
    -- getWorkingDir trims a right-file-separator from its argument, if any.
    getWorkingDir, -- :: IO String
@@ -262,6 +265,9 @@ getTOPPath names =
 
 getPort :: IO Int
 getPort = valOf (getArgInt "port")
+
+getXMLPort :: IO Int
+getXMLPort = valOf (getArgInt "xmlPort")
 
 getWorkingDir :: IO String
 getWorkingDir = 
@@ -417,6 +423,12 @@ usualProgramArguments = [
       argType = INT
       },
    ProgramArgument{
+      optionName = "xmlPort",
+      optionHelp = "port for the MMiSS-XML server",
+      defaultVal = Just (IntValue defaultXMLPort),
+      argType = INT
+      },
+   ProgramArgument{
       optionName = "debug",
       optionHelp = "file for debug output",
       defaultVal = Just (StringValue "/tmp/uniform.DEBUG"),
@@ -426,6 +438,10 @@ usualProgramArguments = [
 
 defaultPort :: Int
 defaultPort = 11393
+
+
+defaultXMLPort :: Int
+defaultXMLPort = 11396
 
 
 ------------------------------------------------------------------------
