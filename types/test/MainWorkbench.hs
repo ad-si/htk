@@ -29,7 +29,6 @@ main =
    do
       parseArgumentsRequiring [
          "editor",
-         "cvsRoot",
          "top",
          "server"
          ]

@@ -9,7 +9,7 @@
 ifeq "@WINDOWS@" "1"
    SUBDIRS = util events reactor htk
 else
-   SUBDIRS= util events reactor posixutil htk server graphs davinci cvsdb types
+   SUBDIRS= util events reactor posixutil htk server simpledb graphs davinci types
 endif
 
 include @TOP@/mk/boilerplate.mk 

@@ -1,6 +1,6 @@
 {- VersionDB specifies the low-level repository
    system being used.  -}
 module VersionDB(
-   module CVSDB
+   module SimpleDB
    ) where
-import CVSDB
+import SimpleDB

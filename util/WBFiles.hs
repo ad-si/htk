@@ -63,6 +63,9 @@
    port          The port on the server to connect to
    debug         Where Debug.debug messages should go
 
+   simpleStore   Storage on disk of SimpleStore
+   storeDir      Where Store stores its files
+
    The options wish, daVinci, cvs, daVinciIcons, top 
    should all be set automatically by the configure procedure.  
    The configure procedure constructs a variable DEFAULTOPTIONS
@@ -108,10 +111,15 @@ module WBFiles (
    getCVSROOT, -- ditto
    getServer, -- ditto
 
+   -- Store options.
+   getSimpleStore, -- :: IO String
+   getStoreDir, -- :: IO String
+
    -- Access to other options.
    getArgString, -- :: String -> IO (Maybe String)
    getArgBool, -- :: String -> IO (Maybe Bool)
    getArgInt, -- :: String -> IO (Maybe Int)
+   
 
    -- getWB* are provided for compatibility only.  DO NOT USE.
    getWBToolFilePath, -- :: String-> IO String
@@ -220,6 +228,12 @@ getWorkingDir =
 getDebugFileName :: IO String
 getDebugFileName = valOf (getArgString "debug")
 
+getSimpleStore :: IO String
+getSimpleStore = valOf (getArgString "simpleStore")
+
+getStoreDir :: IO String
+getStoreDir = valOf (getArgString "storeDir")
+
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
 
@@ -300,6 +314,18 @@ usualProgramArguments = [
       optionName = "backupDir",
       optionHelp = "directory where servers backup files",
       defaultVal = Just (StringValue "."),
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "simpleStore",
+      optionHelp = "where server store goes",
+      defaultVal = Just (StringValue "serverStore"),
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "storeDir",
+      optionHelp = "where server store directory goes",
+      defaultVal = Just (StringValue "storeDir"),
       argType = STRING
       },
    ProgramArgument{

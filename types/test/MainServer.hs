@@ -5,14 +5,10 @@ import IO
 
 import Server
 
-import EchoService
-import AllocateService
-import GraphEditorService
+import SimpleDBService
 import VersionGraphService
 
 main = runServer [
-   echoServiceWrapped,
-   allocateServiceWrapped,
-   graphEditorServiceWrapped,
+   simpleDBServiceWrapped,
    versionGraphServiceWrapped
    ]

@@ -1,0 +1,6 @@
+PACKAGE = uni-simpledb
+PACKAGES = uni-server
+SRCS       = SimpleStore.hs SimpleDBServer.hs SimpleDBService.hs SimpleDB.hs
+SUBDIRS = test
+
+include @TOP@/mk/boilerplate.mk
