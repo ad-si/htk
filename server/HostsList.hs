@@ -31,6 +31,8 @@ import ExtendedPrelude
 
 import Registry
 
+import CopyFile
+
 import SimpleForm
 
 import Text.XML.HaXml.Xml2Haskell
@@ -161,7 +163,9 @@ getHostsRegistry :: IO (Registry HostKey HostData)
 getHostsRegistry =
    do
       hosts <- getHosts
-      (Hosts hostList) <- readXml hosts
+      hostsString <- copyFileToString hosts
+      let
+         Just (Hosts hostList) = readXml hostsString
       let
          err s = error ("In " ++ hosts ++ ": " ++ s)
 
