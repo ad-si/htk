@@ -38,7 +38,7 @@ createTkVariable val =
   do
     oid <- newObject
     execTclScript ["global v" ++ show oid,
-                   "set v" ++ show oid ++ " " ++ show val]
+                   "set v" ++ show oid ++ " " ++ show (toGUIValue val)]
     return (TkVariable oid)
 
 
@@ -57,7 +57,7 @@ readTkVariable (TkVariable oid) =
 setTkVariable :: GUIValue a => TkVariable a -> a -> IO ()
 setTkVariable (TkVariable oid) val =
   execTclScript ["global v" ++ show oid,
-                 "set v" ++ show oid ++ " " ++ show val]
+                 "set v" ++ show oid ++ " " ++ show (toGUIValue val)]
 
 
 -- -----------------------------------------------------------------------

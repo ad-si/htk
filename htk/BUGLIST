@@ -8,13 +8,6 @@ FileDialog hangs [crimson, 17.08.01]
  If the "create folder" button is clicked, the file dialog does not 
  respond to further interaction; you can only quit. 
 
-creadTK can't parse Bool? [cxl/crimson, 21.09.01]
-  resources/GUIValue.hs falls over when parsing a Bool. Or it tries to
-  parse Bools as something else: 
-     do v<- (createTkVariable True):: IO (TkVariable Bool)
-        readTkVariable v
-   leads to "NO PARSE: True".
-
 TkVariables [cxl, 17.09.01]
  MenuCheckButtons can have TkVariables of any type. Using e.g. list of
  string leads to 
@@ -39,3 +32,12 @@ Text Editors become enabled [mclee, 14.09.01]
   insert markup function should leave the text editor in its
   previous state.
 Fixed - ludi/cxl, 20.09.01
+
+creadTK can't parse Bool? [cxl/crimson, 21.09.01]
+  resources/GUIValue.hs falls over when parsing a Bool. Or it tries to
+  parse Bools as something else: 
+     do v<- (createTkVariable True):: IO (TkVariable Bool)
+        readTkVariable v
+   leads to "NO PARSE: True".
+
+Fixed - ludi/cxl, 28.09.01
