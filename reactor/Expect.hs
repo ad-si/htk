@@ -377,6 +377,9 @@ getPendingChanges regChannel rst =
 class PatternDesignator p where
    toPattern :: p -> Pattern       
 
+instance PatternDesignator Pattern where
+   toPattern ptn = ptn
+
 instance PatternDesignator [Char] where
    toPattern string = Pattern (compile string) 0 string
 
@@ -633,27 +636,36 @@ registerPtn pattern eID listener rst =
    do
       logExpect ("registerPtn" ++ show eID)
       (RST patterns eventMap) <- registerListener eID listener rst
-      return (RST (insertOrd higherPriority pattern patterns) eventMap)
+      let newPatterns = insertOrd higherPriority pattern patterns
+      debugPatterns newPatterns 
+      return (RST newPatterns eventMap)
    where
       higherPriority (Pattern _ priority1 _) (Pattern _ priority2 _) = 
          priority1 > priority2
 
 deregisterPtn :: Pattern -> EventID -> Listener -> RST -> IO RST
-deregisterPtn (Pattern _ _ patStr) eID listener rst = 
+deregisterPtn (Pattern _ prio patStr) eID listener rst = 
    do
       logExpect ("deregisterPtn " ++ show eID)
       (RST patterns eventMap) <- deregisterListener eID listener rst
       let 
          newPatterns = 
             filter 
-               (\ (Pattern _ _ patStr') ->
-                  patStr' /= patStr
+               (\ (Pattern _ prio' patStr') ->
+                  (patStr' /= patStr) || (prio' /= prio)
                   )
             patterns
+
+      debugPatterns newPatterns
       return (RST newPatterns eventMap)
 
-
-
+debugPatterns ptns = debug(mkString ptns)
+   where
+      mkString ptns=
+         concat(map
+            (\ (Pattern _ prio _) -> (show prio))
+            ptns)
+{-# INLINE debugPatterns #-}
 -- --------------------------------------------------------------------------
 --  Logging 
 -- --------------------------------------------------------------------------

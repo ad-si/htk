@@ -133,10 +133,13 @@ instance HasTrigger EventStream a where
    getTrigger eventStream = withVar' (state eventStream) fEvents
 
 instance HasBinding (EventStream a) a where
+-- bind :: EventStream a -> IA a -> IO ()
    bind es e = 
       do
          e' <- getTrigger es
          become es ((e' \> e) +> e)
+
+-- unbind :: EventStream a -> IA a -> IO ()
    unbind es e =  
       do
          e' <- getTrigger es

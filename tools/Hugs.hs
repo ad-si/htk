@@ -48,10 +48,8 @@ module Hugs (
    detailedKindErrors,
    importChasing,
    setPrompt,
-   getPrompt,
    setRepeatString,
-   getRepeatString,
-   
+
    interruptHugs,
    shellEscape,
    changeModule,
@@ -94,6 +92,7 @@ import WBFiles
 
 
 import Expect
+import RegularExpression (escapeString,getSubStrings)
 import Debug(debug)
 
 import EventStream
@@ -109,10 +108,8 @@ data Hugs =
       Expect                          -- background intrp
       Window                          -- main window
       (Editor String)                 -- text widget
-      (EventStream ())                -- event dispatcher
-      (PVar (String,String))          -- prompt, repeat string  ...
-
-
+      (EventStream ())                -- event dispatcher.  Uses of this
+                                      -- are called eD
 
 -- --------------------------------------------------------------------------
 -- Classes
@@ -127,141 +124,175 @@ class HugsSourceObj o where
 -- --------------------------------------------------------------------------
 
 instance Object Hugs where
-   objectID (Hugs tool _ _ _ _) = objectID tool
+   objectID (Hugs tool _ _ _) = objectID tool
 
 
 instance Destructible Hugs where
-   destroy (Hugs tool win _ _ _) =  
+   destroy (Hugs expect win _ _) =  
       do
-         destroy tool
+         destroy expect
          try (destroy win)
          done
 
-   destroyed (Hugs tool _ _ _ _) = destroyed tool
+   destroyed (Hugs expect _ _ _) = destroyed expect
 
 instance Tool Hugs where
-   getToolStatus (Hugs tool _ _ _ _) = getToolStatus tool
+   getToolStatus (Hugs expect _ _ _) = getToolStatus expect
 
                 
 -- --------------------------------------------------------------------------
 --  Commands
 -- --------------------------------------------------------------------------
 
+promptKey :: String
+-- we force Hugs to think prompts always end with promptKey followed
+-- by a newline; that makes them easier to spot.
+promptKey = "PROMPTXYZZY"
+
 instance HugsSourceObj [FilePath] where
    newHugs files confs = 
       do     
-         exp <- newExpect "hugs" (confs++[standarderrors False, args]);
-         state <- newPVar ("Prelude>","$$")
-         es <- newEventStream
+         exp <- newExpect "hugs" 
+            (confs++[standarderrors True,linemode True,args]);
 
          (win,tp,bm) <- newHugsWindow exp
-         -- win :: Window, tp :: Editor String, bm :: Box
-         let hugs = Hugs exp win tp es state)
+
+         eD <- newEventStream 
+
+         let hugs = Hugs exp win tp eD
 
          newHugsMenu hugs tp bm
 
-         matchUntilPrompt exp win tp
+         -- win :: Window, tp :: Editor String, bm :: Box
+         let 
+            -- Here is code for the various events we will need.
+   
+            -- (1) Prompt.  Remove prompt key and echo without newline
+            promptPattern = toPattern
+               ("\\`(.*)"++(escapeString promptKey)++"\\'",4::Int)
+   
+            matchPrompt = 
+               match exp promptPattern >>>=
+                  ( \ matchResult ->
+                     do
+                        let head : _ = getSubStrings matchResult
+                        appendText tp head
+                     )
+            -- (2) Parsing.  Ignore any lines
+            --     beginning "Parsing"
+            parsePattern = toPattern("\\`Parsing",3::Int)
+            matchParsing =
+               expect exp parsePattern >>> done
+            -- (3) backspaces.  (before the first prompt).  Ignore any lines
+            --     containing just backspaces.
+            backspaces = toPattern("\\`\\b*\\'",2::Int)
+            matchBackspaces =
+               expect exp backspaces >>> done
+            -- (4) copy.  Copy other lines to tp.
+            matchAny = toPattern "\\`(.|\n)*\\'" -- should match anything
+            matchCopy  =
+               expect exp matchAny >>>=
+                  (\ line ->
+                     appendText tp (line ++ "\n")
+                     )
+   
+            -- (5) Pick up various cases of termination
+            terminated= 
+                  destroyed win >>> destroy exp
+               +> destroyed exp >>> destroy win
+               +> matchEOF exp >>> destroy win
+
+            -- This is what we do when waiting for a prompt
+            
+            matchUntilPrompt :: IO () = 
+            -- raises an exception if the window is terminated first. 
+                  sync(
+                        matchPrompt
+                     +> notPrompt >>> matchUntilPrompt
+                     )
+               where
+                  notPrompt = 
+                        ((matchParsing +> matchBackspaces +> matchCopy) >>> 
+                           matchUntilPrompt) 
+                     +> terminated >>> ioError(toolFailed "hugs")
+
+         matchUntilPrompt
 
          when (files /= []) (hugs # loadDefinitions files)
 
          interactor (\iact ->
-               receive es  |>> done
-            +> matchPrompt exp tp "Prelude> " >>> done
-                 +>     expect exp ("^.*\n",2::Int) >>>= appendText tp
-                 +>     expect exp (".+", 1::Int) >>>= appendText tp 
-                 +>     match exp ("\n",0::Int) >>> insertNewline tp
-                 +>     terminated exp win >>> do {
-                                become es (inaction::IA ()); stop iact}                 
-                 +>     keyPressed tp "Return" >>> do {
-                                cmd <- getCommand tp;
-                                execCmd (cmd ++ "\n") exp
-                                }
-                 );
-                return hugs
-        } where args = arguments (
-                        ["-Etextedit %s","-s","-t","-f","-g","-w","-.","-u","-k","-i"])
-                matchPrompt exp tp pr = 
-                        expect exp (('^':stringToPtn pr), 4::Int) >>>= 
-                                appendText tp
-                stringToPtn [] = []
-                stringToPtn ('?':str) = "\\?" ++ stringToPtn str
-                stringToPtn (c:str) = c : stringToPtn str
+         -- handle normal lines
+               lift(receive eD)  
+            +> matchPrompt
+            +> matchCopy
+            +> terminated >>> 
+                  do
+                     become eD (inaction::IA())
+                     stop iact
+            +> keyPressed tp "Return" >>> 
+                  do
+                     cmd <- getCommand tp
+                     execCmd (cmd ++ "\n") exp
+            )
+         return hugs
+      where 
+         args = 
+             arguments (
+                ["-Etextedit %s","-s","-t","-f","-g","-w","-.","-u","-k","-i","-p%s> "++promptKey++"\n\""])
 
-                
 -- --------------------------------------------------------------------------
 --  Utils
 -- --------------------------------------------------------------------------
 
-terminated exp win = 
-        destroyed win >>> destroy exp
-   +>   destroyed exp >>> destroy win
-   +>   matchEOF exp >>> destroy win
-
 getCommand :: Editor String -> IO String 
-getCommand tp = do 
-        str <- getTextLine tp (EndOfText,BackwardLines 2)
-        case dropWhile (/= '>') str of
-                []    -> return []
-                (x:l) -> return l
-
-
-
-
-matchUntilPrompt :: Expect -> Window -> Editor String -> IO Bool
-matchUntilPrompt exp win tp  = 
+getCommand tp = 
    do 
-      es <- newEventStream
-      become es (
-            matchLine exp  >>>= ( \ line ->
-               do
-                  (case line of 
-                     'P':'a':'r':'s':'i':_ -> done
-                      _ -> appendText tp (line ++ "\n")
-                      )
-                  return True
-               )
-         +> expect exp ("^Prelude> $",2) >>>= (\ line -> 
-               do
-                   appendText tp (line ++ "\n")
-                   become es (inaction :: IA Bool)
-                   return False
-               )
-         +> terminated exp win >>> 
-               do
-                  become es (inaction :: IA Bool) 
-                  raise hugsFailed
-               
-         )
+      str <- getTextLine tp (EndOfText,BackwardLines 2)
+      case dropWhile (/= '>') str of
+         []    -> return []
+         (x:l) -> return l
 
-   while (receiveIO es) id
 
-hugsFailed = toolFailed "hugs"
 
-                
 -- --------------------------------------------------------------------------
 --  Hugs Import Chaser
 -- --------------------------------------------------------------------------
 
 getImports :: FilePath -> IO [String]
-getImports fname = do { 
-        exp <- newExpect "grep" [
-                        arguments ["import",fname],
-                        pollinterval (Just (secs 0.1))
-                        ];
-        ch <- newChannel;
-        interactor (chaser exp ch []);
-        sync (receive ch);
-} where chaser exp ch imports iact = 
-                matchLine exp >>> done 
-           +>   expect exp ("^import .*\n",1::Int) >>>= (\str ->
-                        become iact (chaser exp ch ((fetchImports str) ++ imports) iact))
-           +>   matchEOF exp >>> do {sendIO ch (reverse imports); stop iact}
-        fetchImports str = words (takeWhile notEnd (drop 6 str))
-        notEnd '(' = False
-        notEnd ';' = False
-        notEnd _ = True
-
-
+getImports fname = 
+   do
+      exp <- newExpect "grep" [
+         arguments ["import",fname],
+         pollinterval (Just (secs 0.1))
+         ]
+      ch <- newChannel;
+      interactor (chaser exp ch [])
+      sync (receive ch)
+   where 
+      importLinePattern =
+         toPattern
+           ("\\` *import +((A-Z)(A-Z|a-z|0-9)*)",1::Int)
+      importLine exp =
+         match exp importLinePattern >>>=
+            (\ matchResult ->
+               let
+                  moduleName : _ = 
+                     getSubStrings matchResult
+               in
+                  return moduleName
+               ) 
+      chaser exp ch imports iact = 
+            matchLine exp >>> done 
+         +> importLine exp >>>= 
+               (\ moduleName ->
+                  do
+                     debug "moduleName"
+                     become iact (chaser exp ch (moduleName:imports) iact)
+                  )
+         +> matchEOF exp >>> 
+               do
+                  sendIO ch (reverse imports)
+                  stop iact
                 
 -- --------------------------------------------------------------------------
 --  Hugs Configure Options
@@ -297,7 +328,10 @@ detailedKindErrors t hugs = configureHugs (":set " ++ option t ++ "k") hugs
 importChasing :: Toggle -> Config Hugs
 importChasing t hugs = configureHugs (":set " ++ option t ++ "i") hugs
 
-configureHugs c h = do {execHugsCmd c h; return h}
+configureHugs c h = 
+   do
+      execHugsCmd c h
+      return h
 
 option On = "+"
 option Off = "-"
@@ -323,8 +357,7 @@ exitHugs :: Hugs -> IO ()
 exitHugs hugs = execHugsCmd ":quit" hugs
 
 loadDefinitions :: [String] -> Hugs -> IO ()
-loadDefinitions fnms hugs = execHugsCmd (":load " ++ fnms') hugs
-        where fnms' = foldr (\f l -> f ++ " " ++ l) [] fnms
+loadDefinitions fnms hugs = execHugsCmd (":load " ++ (unwords fnms)) hugs
 
 loadAdditionalFiles :: String -> Hugs -> IO ()
 loadAdditionalFiles fnms hugs = execHugsCmd (":also " ++ fnms) hugs
@@ -360,44 +393,28 @@ displayInfoAboutNames :: String -> Hugs -> IO ()
 displayInfoAboutNames names hugs = execHugsCmd (":info " ++ names) hugs
 
 setPrompt :: String -> Hugs -> IO ()
-setPrompt t hugs @ (Hugs _ _ _ _ state) = do {
-        (_,rs) <- getVar state;
-        setVar state (t,rs);
-        execHugsCmd (":set +p" ++ t ++ " ") hugs
-}
+setPrompt t hugs = 
+   execHugsCmd (":set +p" ++ (show(t ++ promptKey))) hugs
 
-getPrompt :: Hugs -> IO String
-getPrompt (Hugs _ _ _ _ state) = do {
-        (pr,_) <- getVar state;
-        return pr
-}
+     
 
 setRepeatString :: String -> Hugs -> IO ()
-setRepeatString t hugs @ (Hugs _ _ _ _ state) = do {
-        (pr,_) <- getVar state;
-        setVar state (pr,t);
-        execHugsCmd (":set +r" ++ t) hugs
-}
-
-getRepeatString :: Hugs -> IO String
-getRepeatString (Hugs _ _ _ _ state) = do {
-        (_,rs) <- getVar state;
-        return rs
-}
+setRepeatString t hugs = 
+   execHugsCmd (":set +r" ++ (show t)) hugs
 
 interruptHugs :: Hugs -> IO ()
-interruptHugs (Hugs exp _ tp _ _) = do {
-        insertNewline tp;
-        pid <- getUnixProcessID exp;
-        signalProcess sigINT pid;
-        done
-}
+interruptHugs (Hugs exp _ tp _ ) = 
+   do
+      insertNewline tp
+      pid <- getUnixProcessID exp
+      signalProcess sigINT pid
+      done
 
-
-execHugsCmd cmd (Hugs exp _ tp _ _) = do
-        insertText tp EndOfText cmd
-        insertNewline tp
-        execOneWayCmd (cmd ++ "\n") exp
+execHugsCmd cmd (Hugs exp _ tp _) = 
+   do
+      insertText tp EndOfText cmd
+      insertNewline tp
+      execOneWayCmd (cmd ++ "\n") exp
 
 
 -- --------------------------------------------------------------------------
@@ -430,132 +447,121 @@ newHugsWindow exp =
       opts :: (Widget w,HasSize w,HasColour w,HasBorder w) => [Config w]
       opts = [fill Horizontal,height (cm 0.7),relief Groove, borderwidth (cm 0.05),bg "grey"]
 
-
                 
 -- --------------------------------------------------------------------------
 --  Hugs Menus
 -- --------------------------------------------------------------------------
 
 newHugsMenu :: Hugs -> Editor String -> Box -> IO ()
-newHugsMenu hugs @ (Hugs _ win _ el _) tp b = do {
-        
-        mbl <- newMenuButton [text "File",bg "grey", parent b];
-        mnl <- newPulldownMenu mbl [tearOff On];
-        newMenuItem mnl [text "Load Files ...", 
-                setICmd hugs loadDefinitions "Load Files" "L"];
-        newMenuItem mnl [text "Also Files ...",
-                setICmd hugs loadAdditionalFiles "Load additional files" ""];
-        newMenuItem mnl [text "Project File ...",
-                setICmd hugs (loadProject) "Project file" "R"];
-        newSeparator [parent mnl];
-        newMenuItem mnl [text "Search Path ...",
-                setICmd hugs setSearchPath "Search Path" "P"];
-        newMenuItem mnl [text "Load Module ...",
-                setICmd hugs loadModule "Module Name" ""];
-        newSeparator [parent mnl];
-        newMenuItem mnl [text "Reload Files",setCmd hugs repeatLastLoad "L"];
-        newMenuItem mnl [text "Unload Files",setCmd hugs (loadDefinitions []) ""];
-        newSeparator [parent mnl];
-        newMenuItem mnl [text "Quit Hugs",setCmd hugs exitHugs "Q"];
+newHugsMenu hugs @ (Hugs _ win _ _ ) tp b = 
+   do
+      mbl <- newMenuButton [text "File",bg "grey", parent b]
+      mnl <- newPulldownMenu mbl [tearOff On]
+      newMenuItem mnl [text "Load Files ...", 
+              setICmd hugs loadDefinitions "Load Files" "L"]
+      newMenuItem mnl [text "Also Files ...",
+              setICmd hugs loadAdditionalFiles "Load additional files" ""]
+      newMenuItem mnl [text "Project File ...",
+              setICmd hugs (loadProject) "Project file" "R"]
+      newSeparator [parent mnl]
+      newMenuItem mnl [text "Search Path ...",
+              setICmd hugs setSearchPath "Search Path" "P"]
+      newMenuItem mnl [text "Load Module ...",
+              setICmd hugs loadModule "Module Name" ""]
+      newSeparator [parent mnl]
+      newMenuItem mnl [text "Reload Files",setCmd hugs repeatLastLoad "L"]
+      newMenuItem mnl [
+         text "Unload Files",
+         setCmd hugs (loadDefinitions []) ""
+         ]
+      newSeparator [parent mnl]
+      newMenuItem mnl [text "Quit Hugs",setCmd hugs exitHugs "Q"]
+      
+      newSpace sp [bg "grey", parent b]
+      mbe <- newMenuButton [text "Edit",bg "grey", parent b]
+      mne <- newPulldownMenu mbe [tearOff On]
+      newMenuItem mne [text "Edit",setCmd hugs editLastFile ""]
+      newMenuItem mne [text "Edit File ...",
+              setICmd hugs editLoadedFile "Module file" "E"]
+      newMenuItem mne [text "Find & Edit Name ...",
+              setICmd hugs findDefinition "Name" "" ] -- TBD
+      
+      newSpace sp [bg "grey", parent b]
+      mbf <- newMenuButton [text "Names",bg "grey", parent b]
+      mnf <- newPulldownMenu mbf [tearOff On]
+      newMenuItem mnf [text "List All Names", setCmd hugs (listNames []) ""]
+      newMenuItem mnf [text "List Names ...",
+              setICmd hugs listNames "Names" "N"]
+      newMenuItem mnf [text "Info Name ...",
+              setICmd hugs displayInfoAboutNames "Names" "M"]
+      
+      newSpace sp [bg "grey", parent b]
+      mbc <- newMenuButton [text "Commands",bg "grey", parent b]
+      mnc <- newPulldownMenu mbc [tearOff On]
+      newMenuItem mnc [text "Interrupt", 
+                      underline 1,
+                      setCmd hugs interruptHugs "C"
+                      ]
+      newMenuItem  mnc [text "Change Directory ...",
+              setICmd hugs changeDirectory "Change Directory" "D"]
+      newMenuItem mnc [text "Garbage Collect",setCmd hugs forceGC "G"]
+      newMenuItem mnc [text "Shell Escape",
+              setICmd hugs shellEscape "Shell command" "S"]
+      mn <- newMenuItem mnc [text "Empty Transcript"]
+      
+      newSpace sp [bg "grey", parent b]
+      mbo <- newMenuButton [text "Options",bg "grey", parent b]
+      mno <- newPulldownMenu mbo [tearOff On]
+      newCheckButton [text "Print Statistics",
+                      setOption hugs printStatistics, parent mno]
+      newCheckButton [text "Print Type after Evaluation",
+                      setOption hugs printTypeAfterEval, parent mno]
+      newCheckButton [text "Terminate on Error",
+                      setOption hugs terminateOnError, parent mno]
+      newCheckButton [text "Garbage Collector Notification",
+                      setOption hugs gcNotification, parent mno]
+      newCheckButton [text "Literate Modules",
+                      setOption hugs literateModules, parent mno]
+      newCheckButton [text "List Files Loaded",
+                      setOption hugs listFilesLoaded, parent mno]
+      newCheckButton [text "Display Dots While Loading",
+                      setOption hugs displayDotsWhileLoading, parent mno]
+      newCheckButton [text "Use Show to Display Results",
+                      setOption hugs useShowToDisplayResults, parent mno]
+      newCheckButton [text "Show Detailed Kind Errors",
+                      setOption hugs detailedKindErrors, parent mno]
+      newCheckButton [text "Import Chasing",
+                      setOption hugs importChasing, parent mno]
+      newSeparator [parent mno]
+      newMenuItem mno [text "Set Prompt ...",
+                      setICmd hugs setPrompt "Set Prompt" ""
+                      ]
+      newMenuItem mno [text "Set Repeat String ...",
+                      setICmd hugs setRepeatString "Set Repeat String" ""
+                      ]              
+      newMenuItem mno [text "Set Font ...",
+                      setICmd hugs setRepeatString "Set Font" ""
+                      ]
+      
+      
+      
+      sph <- newSpace sp [bg "grey", fill Horizontal, expand On, parent b]
+      mbh <- newMenuButton [text "Help",bg "grey", 
+                      side AtRight, anchor East, parent b]
+      mnh <- newPulldownMenu mbh [tearOff On]
+      newMenuItem mnh [text "List Commands",
+                      setCmd hugs (listCommands) ""
+                      ]
+      newMenuItem mnh [text "List Options",
+                      setCmd hugs (listOptions) ""
+                      ]
+      newMenuItem mnh [text "Tool Info"]
+      
+      
+      done
 
-
-        newSpace sp [bg "grey", parent b];
-        mbe <- newMenuButton [text "Edit",bg "grey", parent b];
-        mne <- newPulldownMenu mbe [tearOff On];
-        newMenuItem mne [text "Edit",setCmd hugs editLastFile ""];
-        newMenuItem mne [text "Edit File ...",
-                setICmd hugs editLoadedFile "Module file" "E"];
-        newMenuItem mne [text "Find & Edit Name ...",
-                setICmd hugs findDefinition "Name" "" ]; -- TBD
-
-        
-        newSpace sp [bg "grey", parent b];
-        mbf <- newMenuButton [text "Names",bg "grey", parent b];
-        mnf <- newPulldownMenu mbf [tearOff On];
-        newMenuItem mnf [text "List All Names", setCmd hugs (listNames []) ""];
-        newMenuItem mnf [text "List Names ...",
-                setICmd hugs listNames "Names" "N"];
-        newMenuItem mnf [text "Info Name ...",
-                setICmd hugs displayInfoAboutNames "Names" "M"];
-
-
-        newSpace sp [bg "grey", parent b];
-        mbc <- newMenuButton [text "Commands",bg "grey", parent b];
-        mnc <- newPulldownMenu mbc [tearOff On];
-        newMenuItem mnc [text "Interrupt", 
-                        underline 1,
-                        setCmd hugs interruptHugs "C"
-                        ];
-        newMenuItem  mnc [text "Change Directory ...",
-                setICmd hugs changeDirectory "Change Directory" "D"];
-        newMenuItem mnc [text "Garbage Collect",setCmd hugs forceGC "G"];
-        newMenuItem mnc [text "Shell Escape",
-                setICmd hugs shellEscape "Shell command" "S"];
-        mn <- newMenuItem mnc [text "Empty Transcript"];
-
-{-
-        mne <- getTrigger mn;
-        el # registerEH mn (
-                mne >>> do { 
-                        deleteTextRange tp ((1,0) :: Position) EndOfText;
-                        pr <- getPrompt hugs;
-                        insertText tp ((1,0) :: Position) pr 
-                        }
-                );
-
--}
-        newSpace sp [bg "grey", parent b];
-        mbo <- newMenuButton [text "Options",bg "grey", parent b];
-        mno <- newPulldownMenu mbo [tearOff On];
-        newCheckButton [text "Print Statistics",
-                        setOption hugs printStatistics, parent mno];
-        newCheckButton [text "Print Type after Evaluation",
-                        setOption hugs printTypeAfterEval, parent mno];
-        newCheckButton [text "Terminate on Error",
-                        setOption hugs terminateOnError, parent mno];
-        newCheckButton [text "Garbage Collector Notification",
-                        setOption hugs gcNotification, parent mno];
-        newCheckButton [text "Literate Modules",
-                        setOption hugs literateModules, parent mno];
-        newCheckButton [text "List Files Loaded",
-                        setOption hugs listFilesLoaded, parent mno];
-        newCheckButton [text "Display Dots While Loading",
-                        setOption hugs displayDotsWhileLoading, parent mno];
-        newCheckButton [text "Use Show to Display Results",
-                        setOption hugs useShowToDisplayResults, parent mno];
-        newCheckButton [text "Show Detailed Kind Errors",
-                        setOption hugs detailedKindErrors, parent mno];
-        newCheckButton [text "Import Chasing",
-                        setOption hugs importChasing, parent mno];
-        newSeparator [parent mno];
-        newMenuItem mno [text "Set Prompt ...",
-                        setICmd hugs setPrompt "Set Prompt" ""
-                        ];
-        newMenuItem mno [text "Set Repeat String ...",
-                        setICmd hugs setRepeatString "Set Repeat String" ""
-                        ];              
-        newMenuItem mno [text "Set Font ...",
-                        setICmd hugs setRepeatString "Set Font" ""
-                        ];
-
-
-
-        sph <- newSpace sp [bg "grey", fill Horizontal, expand On, parent b];
-        mbh <- newMenuButton [text "Help",bg "grey", 
-                        side AtRight, anchor East, parent b];
-        mnh <- newPulldownMenu mbh [tearOff On];
-        newMenuItem mnh [text "List Commands",
-                        setCmd hugs (listCommands) ""
-                        ];
-        newMenuItem mnh [text "List Options",
-                        setCmd hugs (listOptions) ""
-                        ];
-        newMenuItem mnh [text "Tool Info"];
-
-
-        done
-
-} where sp = cm 0.5
+   where 
+      sp = cm 0.5
 
 
                 
@@ -564,49 +570,53 @@ newHugsMenu hugs @ (Hugs _ win _ el _) tp b = do {
 -- --------------------------------------------------------------------------
 
 setOption :: Hugs -> (Toggle -> Config Hugs) -> Config (CheckButton ())
-setOption hugs @ (Hugs _ win _ el _) option butt = do {
-        butt # command (\toggle -> do {
-                        configure hugs [option toggle];
-                        done
-                        });
-        bind el (triggered butt >>> done);
-        return butt
-}
-
+setOption hugs @ (Hugs _ win _ eD) option butt = 
+   do
+      butt # command (\toggle -> 
+         do
+            configure hugs [option toggle];
+            done
+         )
+      bind eD (triggered butt >>> done)
+      return butt
 
 setCmd :: Hugs -> (Hugs -> IO ()) -> String -> Config (Button ())
-setCmd hugs  @ (Hugs _ win _ el _) cmd "" butt = do 
-        butt # command (\() -> cmd hugs);
-        bind el (triggered butt >>> done)
-        return butt
-setCmd hugs @ (Hugs _ win _ el _) cmd key butt = do 
-        butt # command (\() -> cmd hugs);
-        bind el (
-                        triggered butt >>> done
-                  +>    keystroke butt (Control,key) >>> cmd hugs
-                )
-        configure butt [accelerator ("Ctrl-" ++ key)]           
+setCmd hugs  @ (Hugs _ win _ eD) cmd "" butt = 
+   do 
+      butt # command (\() -> cmd hugs)
+      bind eD (triggered butt >>> done)
+      return butt
+setCmd hugs @ (Hugs _ win _ eD) cmd key butt = 
+   do 
+      butt # command (\() -> cmd hugs);
+      bind eD (
+            triggered butt >>> done
+         +> keystroke butt (Control,key) >>> cmd hugs
+         )
+      configure butt [accelerator ("Ctrl-" ++ key)]           
 
 
 setICmd :: GUIValue a 
-        => Hugs -> (a -> Hugs -> IO ()) -> String -> String -> Config (Button ())
-setICmd hugs @ (Hugs _ win _ el _) cmd title _ butt = do
-        butt # command return;
-        bind el (triggered butt >>> 
-           (forkIO (doRequest) >>= \id -> return () ))
-        return butt
- where doRequest = do {
-        (x,y) <- getPosition win;
-        pwin <- newPromptWin title cdefault [
-                        modal True, 
-                        transient win,
-                        size (cm 10,cm 5),
-                        position (x + (cm 4),y + (cm 4))
-                        ];
-        forkDialog pwin (\ans -> 
-           case ans of
-                Nothing -> done
-                (Just val) -> cmd val hugs
-          )
-}
-                
+        => Hugs -> (a -> Hugs -> IO ()) -> String -> String -> 
+           Config (Button ())
+setICmd hugs @ (Hugs _ win _ eD) cmd title _ butt = 
+   do
+      butt # command return;
+      bind eD (triggered butt >>> 
+         (forkIO (doRequest) >>= \id -> return () ))
+      return butt
+   where 
+      doRequest = 
+         do
+            (x,y) <- getPosition win;
+            pwin <- newPromptWin title cdefault [
+               modal True, 
+               transient win,
+               size (cm 10,cm 5),
+               position (x + (cm 4),y + (cm 4))
+               ]
+            forkDialog pwin (\ans -> 
+               case ans of
+                   Nothing -> done
+                   (Just val) -> cmd val hugs
+               ) 

@@ -81,11 +81,12 @@ class HasMapTrigger w where
 -- --------------------------------------------------------------------------
 
 -- This class appears to be unused (although implemented) in
--- both the reactor and HTk
+-- both the reactor and HTk.  It is however used in tools/Hugs.hs
 class HasBinding o a where
     bind   :: o -> IA a -> IO ()
     unbind :: o -> IA a -> IO ()
-
+-- bind/unbind are implemented particularly for event streams, and add/remove 
+-- an interaction for that event stream.
 
 -- --------------------------------------------------------------------------
 --  Object Classes

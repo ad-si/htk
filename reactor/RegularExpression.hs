@@ -44,7 +44,9 @@ module RegularExpression(
    matchString, -- match a regular expression
    getSubStrings, -- substrings in regular expression
    getAfter, -- get remaining unmatched string
-   getMatched -- get matched string.
+   getMatched, -- get matched string.
+   escapeString -- given a string, return string for regular expression
+                -- that matches that string.
    ) where
 
 import RegexString
@@ -86,3 +88,12 @@ getAfter (MatchResult _ _ after _ ) = after
 
 getMatched :: MatchResult -> String
 getMatched (MatchResult _ matched _  _ ) = matched
+
+escapeString :: String -> String
+escapeString [] = []
+escapeString (c:rest) =
+   if special c
+      then '\\':c:(escapeString rest)
+      else c:(escapeString rest)
+   where
+      special c = elem c ".*+?{}|\\[]()^$"

@@ -56,10 +56,10 @@ insertOrdGt x l = insertOrd (>=) x l
 
 insertOrd :: (a -> a -> Bool) -> a -> [a] -> [a]
 insertOrd p x [] = [x]
-insertOrd p x (e:l) =
+insertOrd p x ll@(e:l) =
    if p x e
    then
-      x : l
+      x : ll
    else
       e : (insertOrd p x l)
 
