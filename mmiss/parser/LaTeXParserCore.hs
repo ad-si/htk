@@ -255,10 +255,16 @@ attributesOrNot =  (do pos <- getPosition
 {- attParser parses the list of attributes belonging to an MMiSS-Environment -}
 
 attParser :: GenParser Char st Attributes
-attParser = commaSep attribute
+attParser = do attlist <- commaSep attribute
+               return(normalizeAttlist attlist)
             <|> return([])
+  where
+    normalizeAttlist [] = []
+    normalizeAttlist ((Just(key,value)):as) = (key,value):(normalizeAttlist as) 
+    normalizeAttlist ((Nothing):as) = normalizeAttlist as
 
-attribute :: GenParser Char st (String, String)
+
+attribute :: GenParser Char st (Maybe (String, String))
 attribute = do spaces
                key <- try(many1(noneOf " ,=}]\n\t\f\r\v")) <?> "attribute name"
                spaces
@@ -279,8 +285,9 @@ attribute = do spaces
                                                ("Label '" ++ v ++ "' contains illegal characters ")) 
                               Right _ -> done
                  _ -> done
-               new_v <- if (v == "{}") then return "" else return v
-               return (key, new_v)
+               if (v == "{}") 
+                 then return Nothing 
+                 else return (Just(key,v))
 
 delimitedValue :: String -> GenParser Char st String
 delimitedValue key = try(between (char '{') (char '}') (oldvalue key))
