@@ -1,3 +1,6 @@
+#ifndef BDBCLIENT_H
+#define BDBCLIENT_H
+
 #include "db.h"
 #include "limits.h"
 
@@ -19,5 +22,5 @@ void db_store(DB *db,const char *data,uint32 length,uint32 *recno);
    returned in length. */
 void db_retrieve(DB *db,uint32 recno,char **datap,uint32 *length);
 
-
+#endif
 

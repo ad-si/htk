@@ -1,3 +1,6 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
 #if 0
 This file may be included by either Haskell or (perhaps) C.  So we
 dont put any sort of comments in, apart from this one.
@@ -7,3 +10,4 @@ dont put any sort of comments in, apart from this one.
 #define WINDOWS @WINDOWS@
 #define UNIVERSION "@UNIVERSION@"
 
+#endif

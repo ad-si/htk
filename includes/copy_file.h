@@ -1,3 +1,6 @@
+#ifndef COPY_FILE_H
+#define COPY_FILE_H
+
 /* copy_file is a routine for copying files as fast as
    possible.  We need to do this sometimes for moving stuff
    in and out of the CVS cache.
@@ -19,3 +22,5 @@ int copy_file(const char *from,const char *to);
 int copy_string_to_file(size_t length,const char *source,const char *to);
 /* A negative result indicates an error.  The only possible value
    is ETOBAD. */
+
+#endif

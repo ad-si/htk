@@ -1,3 +1,6 @@
+#ifndef NEW_OBJECT_H
+#define NEW_OBJECT_H
+
 /* This C function returns a unique int each time it is called.
    (Up to a limit of 2^32 iterations).
 
@@ -8,3 +11,5 @@
    */
 
 int next_object_id();
+
+#endif

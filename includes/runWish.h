@@ -1,3 +1,6 @@
+#ifndef RUNwISH_H
+#define RUNwISH_H
+
 /* Writes and gets responses from wish.  wish is started, if it hasn't
    already. 
    */
@@ -17,5 +20,5 @@ size_t read_from_wish(char *buffer,size_t bufferSize);
 
 /* returns number of bytes available from wish. */
 size_t read_from_wish_avail();
-
+#endif
 
