@@ -74,7 +74,6 @@ SRCS       = resources/Resources.hs\
              toolkit/IconBar.hs\
              toolkit/SelectBox.hs\
              toolkit/MarkupText.hs\
-             toolkit/UtilWin.hs\
 	     toolkit/ModalDialog.hs\
              toolkit/Separator.hs\
 	     toolkit/DialogWin.hs\
