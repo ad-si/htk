@@ -12,6 +12,8 @@ endif
 
 SRCSC = MainrunCommand.c forkExec.c Mainlog.c
 
+SUBDIRS = test
+
 EXTRAEXPORTS = runCommand
 
 # For runCommand we link with -no-hs-main since it's not actually a Haskell
