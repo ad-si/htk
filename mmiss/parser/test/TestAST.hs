@@ -3,7 +3,7 @@
    back again. -}
 module Main(main) where
 
-#include "config.h"
+-- #include "config.h"
 
 import IO
 
@@ -17,15 +17,9 @@ import CodedValue
 import LaTeXParser
 import EmacsContent
 
-#if HAXMLINT
--- import Text.XML.HaXml.Types
--- import Text.XML.HaXml.Parse
--- import Text.XML.HaXml.Pretty
-#else
--- import XmlTypes
--- import XmlParse
--- import XmlPP
-#endif
+import Text.XML.HaXml.Types
+import Text.XML.HaXml.Parse
+import Text.XML.HaXml.Pretty
 
 -- import MMiSSContent
 -- import MMiSSDTD

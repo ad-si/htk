@@ -222,7 +222,7 @@ mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCo
 
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
-latexPlainTextEnvs = ["verbatim", "verbatim*", "math", "displaymath", "equation"]
+latexPlainTextEnvs = ["verbatim", "verbatim*", "math", "displaymath", "equation", "code", "xcode", "scode"]
 
 
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
@@ -288,10 +288,11 @@ attribute = do spaces
                spaces
                char '=' <?> "value for attribute '" ++ key ++ "'"
                spaces
-               v <- choice ((delimitedValue key):((value ",]"):[])) 
+               v <- choice ((try(string "{}")):((delimitedValue key):((value ",]"):[]))) 
                     <?> "value for attribute '" ++ key ++ "'"
                spaces
-               return (key, v)
+               new_v <- if (v == "{}") then return "" else return v
+               return (key, new_v)
 
 delimitedValue :: String -> GenParser Char st String
 delimitedValue key = between (char '{') (char '}') (value "")
@@ -379,8 +380,6 @@ continuePlain l id = (try (do endId id
                             continuePlain (l ++ [bs]) id
                      <|> do str <- plainText "\\"
                             continuePlain (l ++ str) id
-
-plainText stopChars = many1 (noneOf stopChars)
 
 
 mySpaces ::  String -> GenParser Char st String
@@ -601,9 +600,8 @@ mathEnv = try( do c <- oneOf "(["
 simpleMathEnv :: GenParser Char st Frag
 simpleMathEnv = 
   try (do string "$$"
-          str <- plainText "$"
-          string "$$"
-          return (Env ("$$") (LParams [] [] Nothing Nothing) [(Other str)])
+          fs <- continuePlainFormula "" "$$" "$"
+          return (Env ("$$") (LParams [] [] Nothing Nothing) fs)
   )
   <|>
     try( do char '$'
@@ -611,6 +609,7 @@ simpleMathEnv =
             char '$'
             return (Env ("$") (LParams [] [] Nothing Nothing) [(Other str)])
     )
+
 
 continuePlainFormula ::  String -> String -> [Char] -> GenParser Char st [Frag]
 -- 1. String : The accumulation of characters, parsed so far
@@ -624,6 +623,9 @@ continuePlainFormula l delimiter stopChars =
          continuePlainFormula (l ++ [sc]) delimiter stopChars
   <|> do str <- plainText stopChars
          continuePlainFormula (l ++ str) delimiter stopChars
+
+
+plainText stopChars = many1 (noneOf stopChars)
 
 
 -- frag erkennt Latex-Fragmente: Kommentare, Environments, Commands und Escaped Chars. 
@@ -1216,10 +1218,14 @@ makeContent (f:frags) NoText parentEnv =
                       --       auf das von Latex erzeugte Layout haben kann.
      (Env name ps fs) -> 
        if (name `elem` ((map fst plainTextAtoms) ++ (map fst latexFormulaEnvs)))
-         then hasError("No Environment '" ++ name ++ "' allowed inside a " ++ parentEnv ++ "!")
+         then hasError("Environment '" ++ name ++ 
+                       "' with label '" ++ (getLabelFromParams ps) ++ 
+                       "' not allowed inside a " ++ parentEnv ++ "!")
          else
            if (name == "TextFragment")
-	     then hasError("No Environment 'TextFragment' allowed inside a " ++ parentEnv ++ "!")
+	     then hasError("No Environment 'TextFragment'" ++ 
+                           "' with label '" ++ (getLabelFromParams ps) ++ 
+                           "' allowed inside a " ++ parentEnv ++ "!")
              else
                if (name `elem` (map fst mmiss2EnvIds))
 	         then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
@@ -1837,6 +1843,13 @@ getDefineText  (LParams ps _ _ _) =
     then let (SingleParam fs _) = genericIndex ps 1
          in  [(CString True (makeTextElem fs ""))]
     else []
+
+getLabelFromParams :: Params -> String
+getLabelFromParams (LParams _ atts _ _) =
+  case (find ((== "Label") . fst) atts) of
+    Just((_, label)) -> label
+    Nothing -> ""
+
 
 convertAttrib :: (String, String) -> Attribute
 convertAttrib (l, r) = ((attNameToXML l), AttValue [Left (latexToUnicode r)])
