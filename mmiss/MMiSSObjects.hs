@@ -48,6 +48,8 @@ import Folders
 
 import EmacsEdit
 
+import LaTeXParser
+
 import MMiSSDTDAssumptions(getMiniType)
 import MMiSSAttributes
 import MMiSSPathsSimple
@@ -671,20 +673,32 @@ createMMiSSObject objectType view folder =
       result <- addFallOut (\ break ->
          do
             let
-               createMMiSSForm :: Form String
-               createMMiSSForm = newFormEntry "Read Xml from" ""
+               createMMiSSForm :: Form (Format,String)
+               createMMiSSForm =
+                  fmap 
+                     (\ ((),details) -> details)
+                     (nullForm "Read" 
+                        SimpleForm.\\ 
+                        (formatForm 
+                           SimpleForm.\\ 
+                        newFormEntry "from" ""
+                        ))
             detailsOpt <- doForm
                ("Creating new "++xmlTag objectType)
                createMMiSSForm
             let
-               xmlPath = case detailsOpt of
+               (format,filePath) = case detailsOpt of
                   Nothing -> break "Creation cancelled"
-                  Just path -> path
-            xmlStringWE <- copyFileToStringCheck xmlPath
-            let
-               xmlString = coerceWithErrorOrBreak break xmlStringWE
+                  Just details -> details
 
-            xmlElementWE <- xmlParseCheck xmlPath xmlString
+            inputStringWE <- copyFileToStringCheck filePath
+            let
+               inputString = coerceWithErrorOrBreak break inputStringWE
+
+            xmlElementWE <- 
+               case format of
+                  XML ->  xmlParseCheck filePath inputString
+                  LaTeX -> return (parseMMiSSLatex inputString)
             let
                xmlElement = coerceWithErrorOrBreak break xmlElementWE
 
@@ -815,6 +829,16 @@ getObjectMiniType object = getMiniType (xmlTag (mmissObjectType object))
 
 exportMMiSSObject :: View -> Link MMiSSObject -> IO ()
 exportMMiSSObject view link = done
+
+
+-- ------------------------------------------------------------------
+-- Selecting the format of files
+-- ------------------------------------------------------------------
+
+data Format = LaTeX | XML
+
+formatForm :: Form Format
+formatForm = newFormOptionMenu2 [("LaTeX",LaTeX),("XML",XML)]
 
 -- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set

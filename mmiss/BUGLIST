@@ -7,6 +7,10 @@ Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 38) 12.09.02
 The Emacs editing frame is not getting deleted.
 
+13.09.02
+Turns out to be simple problem with local variable getting clobbered.
+FIXED
+
 37) 12.09.02
 Problems with Emacs having difficulty finding the variable uni-allow-changes.
 

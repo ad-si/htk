@@ -1,5 +1,5 @@
 PACKAGE = uni-mmiss
-PACKAGES = uni-types uni-emacs
+PACKAGES = uni-types uni-emacs uni-mmiss-parser
 
 SRCS = MMiSSPaths.hs MMiSSDTDAssumptions.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \

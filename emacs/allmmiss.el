@@ -29,8 +29,11 @@
   )
 
 (defun MMiSS-delete ()
-  (kill-buffer (current-buffer))
-  (delete-frame MMiSS-frame)
+  ; The local variable MMiSS-frame will get stomped on by the kill-buffer.
+  (let ((MMiSS-frame-saved MMiSS-frame))
+     (kill-buffer (current-buffer))
+     (delete-frame MMiSS-frame-saved)
+     )
   )
 
 ; Note on colours.

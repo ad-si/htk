@@ -15,6 +15,10 @@ module SimpleForm(
    emptyForm, -- :: Form ()
       -- The empty form (rather boring).
 
+   nullForm, -- :: FormLabel label => label -> Form ()
+      -- also pretty boring; just displays the label but doesn't provide
+      -- any interaction.
+
    newFormMenu, -- :: (FormLabel label) => label -> HTkMenu value 
       -- -> Form (Maybe value)
       -- This creates a new form with a single labelled entry, selected
@@ -63,7 +67,9 @@ module SimpleForm(
       -- IO'based version of guardForm.
 
    FormValue(..), -- This is a class of values which can be read in from a 
-     -- simple form.  Instances include Int, String and Bool.
+      -- simple form.  Instances include Int, String and Bool and ().
+      -- (() just does nothing and is useful if you want a label without
+      -- anything on it.)
       -- A user friendly way of constructing new instances is to instance
       -- one of the following two classes.
 
@@ -290,7 +296,7 @@ infixr 9 \\ -- so it binds more tightly than //
       
 
 -- -------------------------------------------------------------------------
--- emptyForm, column and row
+-- emptyForm, nullForm, column and row
 -- -------------------------------------------------------------------------
 
 emptyForm :: Form ()
@@ -301,6 +307,9 @@ emptyForm = Form (\ container ->
       destroyAction = done
       })
    )
+
+nullForm :: FormLabel label => label -> Form ()
+nullForm label = newFormEntry label ()
 
 emptyFormList :: Form [a]
 emptyFormList = fmap (const []) emptyForm
@@ -401,7 +410,6 @@ newFormEntry label value =
             return enteredForm
    in
       Form enterForm
-
 
 -- -------------------------------------------------------------------------
 -- newFormMenu
@@ -711,3 +719,16 @@ instance FormValue Bool where
                }
          return enteredForm
 
+-- -------------------------------------------------------------------------
+-- ()
+-- -------------------------------------------------------------------------
+
+instance FormValue () where
+   makeFormEntry frame () =
+      return (
+         EnteredForm {
+            packAction = done,
+            getFormValue = return (hasValue ()),
+            destroyAction = done
+            }
+         )
