@@ -41,6 +41,7 @@
 <!ENTITY % system-attr "priorAuthors    CDATA  #IMPLIED
                         version         CDATA  #IMPLIED
                         priority        CDATA  #IMPLIED
+                        packageId       CDATA  #IMPLIED
                         files           CDATA  #IMPLIED">
 
 <!-- The special xml:lang-Attribute holds values defined by IETF RFC 1766
