@@ -1,7 +1,7 @@
 PACKAGE = uni-mmiss
 PACKAGES = uni-types uni-emacs
 
-SRCS = MMiSSPaths.hs MMiSSGeneric.hs MMiSSRegistrations.hs
+SRCS = MMiSSPaths.hs MMiSSGeneric.hs MMiSSObjects.hs MMiSSRegistrations.hs
 
 
 include @TOP@/mk/boilerplate.mk

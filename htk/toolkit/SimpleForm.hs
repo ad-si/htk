@@ -61,6 +61,13 @@ module SimpleForm(
      -- simple form.  Instances include Int, String and Bool.
       -- A user friendly way of constructing new instances is to instance
       -- one of the following two classes.
+
+   mapMakeFormEntry, 
+   -- :: FormValue value2 
+   -- => (value1 -> value2) -> (value2 -> value1) 
+   -- -> (Frame -> value1 -> IO (EnteredForm value1))
+    -- Function for creating one instance of FormValue from another.
+
 --   FormRadioButton(..), -- This class is used for types which are suitable
       -- for being read with radio buttons, for example a small enumeration.
    FormTextField(..), -- This class is used for types which can be
@@ -77,6 +84,7 @@ module SimpleForm(
    Radio(..), -- type for wrapping round something to use radio buttons.
    HasConfigRadioButton(..), -- for setting fancy configurations for
       -- radio buttons.
+
    ) where
 
 import Char
@@ -516,6 +524,14 @@ instance FormLabel EmptyLabel where
 class FormValue value where
    makeFormEntry :: Frame -> value -> IO (EnteredForm value)
    -- Create a new form entry, given a default value.
+
+mapMakeFormEntry :: FormValue value2 
+   => (value1 -> value2) -> (value2 -> value1) 
+   -> (Frame -> value1 -> IO (EnteredForm value1))
+mapMakeFormEntry toValue2 fromValue2 frame value1 =
+   do
+      enteredForm <- makeFormEntry frame (toValue2 value1)
+      return (mapEnteredForm fromValue2 enteredForm)
 
 -- -------------------------------------------------------------------------
 -- Instance #1 - FormTextField's, corresponding to a single line of text.

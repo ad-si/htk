@@ -11,6 +11,8 @@ module MMiSSPaths(
    topPath,
 
    registerMMiSSPaths,
+
+   pathNameKey,
    ) where
 
 import ExtendedPrelude
@@ -171,6 +173,12 @@ instance HasCodedValue EntityPath where
    encodeIO = mapEncodeIO (\ path -> Str path)
    decodeIO = mapDecodeIO (\ (Str path) -> path)
 
+-- ---------------------------------------------------------------------
+-- The key to be used to describe an EntityPath
+-- ---------------------------------------------------------------------
+
+pathNameKey :: AttributeKey
+pathNameKey = mkAttributeKey "Pathname"
 
 -- ---------------------------------------------------------------------
 -- Make EntityName's and EntityPath's suitable attribute types

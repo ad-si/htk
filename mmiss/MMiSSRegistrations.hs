@@ -9,4 +9,3 @@ doMMiSSRegistrations :: IO ()
 doMMiSSRegistrations =
    do
       registerMMiSSPaths
-   

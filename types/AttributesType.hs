@@ -15,6 +15,10 @@ module AttributesType(
    mkAttributeTypeKey,
    HasAttributeTypeKey(..),
 
+   AttributeKey,
+   mkAttributeKey,
+
+
    registerAttribute,
    getAllAttributeTypeKeys,
    defaultAttributeTypeKey,
