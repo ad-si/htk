@@ -1,0 +1,2 @@
+#!/usr/local/bin/bash
+/home/sparc-solaris7/local/bin/cvs $*

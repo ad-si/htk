@@ -40,7 +40,8 @@ module ChildProcess (
    -- In particular newChildProcess does.
    linemode,       -- :: Bool -> Config PosixProcess               
    -- for meaning of linemode see readMsg.
-   arguments,      -- :: [String] -> Config PosixProcess           
+   arguments,      -- :: [String] -> Config PosixProcess
+   appendArguments,-- :: [String] -> Config PosixProcess
    environment,    -- :: [(String,String)] -> Config PosixProcess  
    workingdir,     -- :: FilePath -> Config PosixProcess           
    standarderrors, -- :: Bool -> Config PosixProcess
@@ -121,6 +122,7 @@ defaultPosixProcess =
 
 linemode        :: Bool -> Config PosixProcess
 arguments       :: [String] -> Config PosixProcess
+appendArguments :: [String] -> Config PosixProcess
 environment     :: [(String,String)] -> Config PosixProcess
 workingdir      :: FilePath -> Config PosixProcess
 standarderrors  :: Bool -> Config PosixProcess
@@ -132,6 +134,8 @@ environment env' parms = return parms{env = Just env'}
 workingdir wdir' parms = return parms{wdir = Just wdir'}
 standarderrors err' parms = return parms{stderr = err'}
 pollinterval err' parms = return parms{pinterval = err'}
+
+appendArguments args' parms = return parms{args = (args parms) ++ args'}
 
 -- -------------------------------------------------------------------------
 -- Data Declaration

@@ -9,11 +9,12 @@ following directories:
    bin          |  Shell scripts which might be needed for building Uni
    util         |  Miscellanous Haskell functions used all over Uni
    concurrency  |  Concurrency functions
-   reactor      |  The Reactor, for gluings processes together
+   reactor      |  The Reactor, for gluing processes together
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
-                   See htk/examples for a couple of short introductory examples.
+                   See htk/examples for a few short introductory examples.
    davinci      |  This is an encapsulation of DaVinci in Haskell
    www          |  Functions for manipulating HTML in Haskell
+   tools        |  Encapsulations of some tools in Haskell.
 
    database     |  Data for various Uni components
 
@@ -22,10 +23,6 @@ However the repository manager is currently in a very unsatisfactory
 state and needs a great deal more work before this can be done.  However
 we hope this fragment will be of interest to show what the guts of a
 real Haskell program look like.
-
-(The rest of this README is specific to the local Bremen
- installation in places -- adopt to your specific site needs as 
- appropriate.)
 
 Requirements
 ------------
@@ -56,12 +53,17 @@ The following are required or at least recommended.
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
 your copies, here are details.  The Uni sources are kept in a 
-CVS repository in /home/uniform/repository.  So for example to get
-a complete set of the latest version of the sources you type (on the 
-Informatik network)
+publicly accessible CVS repository at cvs-agbkb.informatik.uni-bremen.de.  
+So for example to get a complete set of the latest version of the sources you 
+type
 
-   export CVSROOT=/home/uniform/repository
-   cvs checkout uni
+export CVSROOT=:pserver:cvsread@cvs-agbkb.informatik.uni-bremen.de:/repository
+cvs login
+# when cvs login asks for a password, type "cvsread"   
+cvs checkout uni
+
+This will create a directory uni in your current directory containing
+the latest sources for uni.  
 
 Type "man cvs" to find out other CVS commands.
 
