@@ -284,10 +284,10 @@ runServer serviceList =
                                              clientReadAction
                                           -- clientReadAction cannot return 
                                           -- otherwise
-                                          if isEOFError exception
-                                             then
+                                          case exception of 
+                                             IOException _ ->
                                                 done
-                                             else
+                                             _ ->
                                                 putStrLn (
                                                    "Server error on "
                                                    ++ show serviceKey ++ ": "
@@ -447,12 +447,12 @@ initialConnect serviceMap handle =
       case resultOrExcep of
          Left excep -> 
             do
-               if isEOFError excep
-                 then 
+               case excep of 
+                 IOException _ ->
                     done 
                        -- we ignore this, because mmiss/test/IsConnected
                        -- provokes it.
-                 else
+                 _ ->
                     putStrLn ("IO error in initial connect " ++ show excep)
                hClose handle
                return Nothing

@@ -209,7 +209,7 @@ instance HasBinaryIO ICStringLen where
                                      if lenRead < len
                                         then
                                            let
-                                              eofError =
+                                              eofError = IOException $
                                                  mkIOError eofErrorType
                                                     "BinaryIO" (Just handle)
                                                     Nothing

@@ -65,7 +65,7 @@ mkICStringLen len writeFn =
    do
       ptr <- mallocArray len
       writeFn ptr
-      foreignPtr <- newForeignPtr ptr (free ptr)
+      foreignPtr <- newForeignPtr ptr finalizerFree
       return (ICStringLen foreignPtr len)
 
 mkICStringLenExtra :: Int -> (CString -> IO extra) -> IO (ICStringLen,extra)
@@ -73,7 +73,7 @@ mkICStringLenExtra len writeFn =
    do
       ptr <- mallocArray len
       extra <- writeFn ptr
-      foreignPtr <- newForeignPtr ptr (free ptr)
+      foreignPtr <- newForeignPtr ptr finalizerFree
       return (ICStringLen foreignPtr len,extra)
 
 withICStringLen :: ICStringLen -> (Int -> CString -> IO a) -> IO a

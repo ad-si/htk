@@ -260,10 +260,10 @@ newChildProcess path confs  =
 
       (path,arguments1,environment1,errorResponse) `deepSeq` done
 
-      processOpt <- GHC.Conc.forkProcess
+      processOpt <- GHC.Conc.forkProcessPrim
          -- This version of forkProcess stops any other threads in the child.
       case processOpt of
-         Nothing -> -- child process
+         0 -> -- child process
             do
                dupTo readIn stdInput
                fdClose readIn
@@ -288,7 +288,7 @@ newChildProcess path confs  =
                putStrLn errorResponse
                System.exitWith (System.ExitFailure 16)
 
-         Just processID ->
+         processID ->
             do
                childObjectID <- newObject
                bufferVar <- newMVar ""
