@@ -42,6 +42,7 @@ import IO
 import Directory
 import Monad
 import Maybe
+import Char
 
 import System.IO.Unsafe
 import Data.FiniteMap
@@ -59,6 +60,7 @@ import CommandStringSub
 import Sources
 import Messages
 import Thread
+import UTF8
 
 import WithDir
 
@@ -794,17 +796,36 @@ instance HasBundleNodeWrite MMiSSFile where
                   writeLink view fileLink file
             else
                done
-         let
-            newVersions :: [(MMiSSVariantSpec,MMiSSFileVersion)]
-            newVersions = 
-               map
-                  (\ (Just variantSpec,bundleText) ->
+
+         (newVersions :: [(MMiSSVariantSpec,MMiSSFileVersion)]) <- mapM
+            (\ (Just variantSpec,bundleText) ->
+               do
+                  text <- case MMiSSBundle.charType bundleText of
+                     Byte -> return (MMiSSBundle.contents bundleText)
+                     Unicode ->
+                        do
+                           let
+                              -- this is awkward and unexpected, but we
+                              -- try to handle it as best as we can.
+                              str1 :: String
+                              str1 = toString (MMiSSBundle.contents bundleText)
+
+                              str2WE :: WithError String
+                              str2WE = fromUTF8WE str1
+                           str2 <- coerceImportExportIO str2WE
+                           if any (\ ch -> ord ch >= 256) str2
+                              then
+                                 importExportError ("File contains character "
+                                    ++ "that doesn't fit into 8 bits")
+                              else
+                                 return (fromString str2)
+                  return 
                      (variantSpec,
                         MMiSSFileVersion {
                            text = MMiSSBundle.contents bundleText
                            }
                         )
-                     )
+                  )
                   (toVariants node)
 
          file <- readLink view fileLink

@@ -88,6 +88,7 @@ module ExtendedPrelude (
    uniqOrdByKey, -- :: Ord b => (a -> b) -> [a] -> [a]
    -- Remove duplicate elements from a list where the key function is supplied.
    allSame,
+   allEq, -- :: Eq a => [a] -> Bool
    findDuplicate, -- :: Ord a => (b -> a) -> [b] -> Maybe b
 
    fmToList_GE_1,
@@ -693,6 +694,11 @@ allSame fn (a : as) =
                Nothing
             else
                Just False  
+
+-- | If all the elements are equal, return True
+allEq :: Eq a => [a] -> Bool
+allEq [] = True
+allEq (a:as) = all (== a) as
 
 -- ------------------------------------------------------------------------
 -- Operations on FiniteMaps

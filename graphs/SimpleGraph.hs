@@ -32,6 +32,9 @@ module SimpleGraph(
       -- -> Node -- node
       -- -> IO () -- action to perform when the node is created in the graph.
       -- -> IO ()
+
+   ClientData(..),
+
    ) where
 
 import List(delete)
