@@ -141,12 +141,10 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
                                       Button "Unhide abstracted nodes" (
 				        \ (name, descr, gid) -> do oldGv <- readIORef gv
 					                           (Result descr error) <- showIt gid descr gv
-								                          -- command_loop gv
 					                           case error of
 								     Just _ -> do writeIORef gv oldGv
 								                  return ()
-								     Nothing -> do addnode gid "ABSTRACT" "unhide wurde gewaehlt" gv
-								                   redisplay gid gv
+								     Nothing -> do redisplay gid gv
 								                   return () 
 				         )
 				      ]) $$$            
