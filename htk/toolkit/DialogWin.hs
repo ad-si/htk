@@ -32,9 +32,14 @@ module DialogWin (
         loadHTkImages,
 
         questionImg,
+
+        useHTk,
         ) where
 
-import IOExts (unsafePerformIO)
+import System.IO.Unsafe
+
+import Messages
+
 import Core
 import HTk
 import Space
@@ -337,6 +342,29 @@ dialog plain choices def confs tpconfs =
          clickedbut <- clicked but
          return (clickedbut >> (always (return val)))
 
+
+-- --------------------------------------------------------------------------
+-- The useHTk function
+-- --------------------------------------------------------------------------
+
+htkMessFns :: MessFns
+htkMessFns = MessFns {
+   alertFn = (\ mess -> createAlertWin mess []),
+   errorFn = (\ mess -> createErrorWin mess []),
+   warningFn = (\ mess -> createWarningWin mess []),
+   confirmFn = (\ mess -> createConfirmWin mess []),
+   messageFn = (\ mess -> createMessageWin mess []),
+   htkPres = True
+   }
+
+useHTk :: IO ()
+useHTk = setMessFns htkMessFns
+
+-- Deprecate the alternative
+{-# DEPRECATED createAlertWin,createErrorWin,createWarningWin,
+   createConfirmWin,createMessageWin 
+   "Please use the functions in util/Messages instead"
+   #-}
 
 -- --------------------------------------------------------------------------
 -- Images for the various Dialog Windows

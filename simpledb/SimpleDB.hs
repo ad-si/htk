@@ -100,6 +100,9 @@ module SimpleDB(
       -- :: IO a -> IO (Maybe a)
       -- Catch the exception provoked by the retrieveXXX functions and
       -- getVersionInfo when a version is not found.
+   notFoundError, -- :: a
+      -- Throw a notFound error (as caught by catchNotFound).
+
    catchAlreadyExists,
       -- :: IO a -> IO (Either ObjectVersion a)
       -- Catch the exception provoked by commit and modifyVersionInfo
@@ -113,7 +116,6 @@ module SimpleDB(
       -- returns something unexpected.
    dbError, -- :: String -> a
       -- Throw error to be caught by catchDBError.
-
    ) where
 
 import System.IO.Unsafe(unsafePerformIO)

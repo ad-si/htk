@@ -10,6 +10,7 @@ import Debug(debug)
 import WBFiles
 import Computation
 import ExtendedPrelude
+import Messages
 
 import Events
 import Destructible
@@ -67,6 +68,7 @@ data UserAction =
 mainWindow :: IO ()
 mainWindow =
    do
+      useHTk
       hostPorts <- getHostPorts
       let
          remoteServers :: [(Form HostPort,String)]
@@ -111,7 +113,7 @@ mainWindow =
                case fromWithError actionWE of
                   Left mess ->
                      do
-                        createErrorWin mess []
+                        errorMess mess
                         mainLoop
                   Right action -> doAction action               
 
@@ -126,9 +128,8 @@ mainWindow =
                mainLoop
          doAction Quit =
             do
-               reallyQuit <- createConfirmWin
+               reallyQuit <- confirmMess
                   "Do you really want to quit?"
-                  []
                if reallyQuit
                   then
                      do

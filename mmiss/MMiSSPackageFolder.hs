@@ -31,6 +31,19 @@ module MMiSSPackageFolder(
       -- :: View -> MMiSSPackageFolder -> EntitySearchName 
       -- -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
       -- Get a package-folder from another one by search name.
+
+   importMMiSSPackage1,
+      -- :: View -> LinkedObject -> Maybe String
+      -- -> IO (Maybe (Link MMiSSPackageFolder))
+      -- Import a new MMiSSPackage into a folder designated by a LinkedObject.
+      -- The String, if supplied, is the file-path to read it from.
+
+   reimportMMiSSPackage1,
+      -- :: View -> Link MMiSSPackageFolder -> Maybe String -> IO ()
+      -- Reimport an MMiSSPackage into its existing package folder.
+      -- The String, if supplied, is the file-path to read it from.
+      
+
    ) where
 
 import Maybe
@@ -48,9 +61,9 @@ import VariableSet
 import VariableSetBlocker
 import VariableList
 import Delayer(delay)
+import Messages
 
 import MenuType
-import DialogWin
 
 import GraphDisp
 import GraphConfigure
@@ -504,7 +517,14 @@ thePreambleArcType = fromString "B"
 
 importMMiSSPackage :: View -> LinkedObject 
    -> IO (Maybe (Link MMiSSPackageFolder))
-importMMiSSPackage view parentLinkedObject =
+importMMiSSPackage view linkedObject 
+   = importMMiSSPackage1 view linkedObject Nothing
+
+-- The last argument is the file path to import the file from.  If Nothing,
+-- as for importMMiSSPackage, we will prompt the user.
+importMMiSSPackage1 :: View -> LinkedObject -> Maybe String
+   -> IO (Maybe (Link MMiSSPackageFolder))
+importMMiSSPackage1 view parentLinkedObject filePathOpt =
    do
       -- We create the LinkedObject first of all, but without putting 
       -- anything in it, or putting it into anything, enabling us to 
@@ -527,7 +547,7 @@ importMMiSSPackage view parentLinkedObject =
       case fromWithError linkedObjectWE of
          Left mess -> 
             do
-               createErrorWin mess []
+               errorMess mess
                error1
          Right linkedObject ->
 --            (delay view) .
@@ -558,7 +578,7 @@ importMMiSSPackage view parentLinkedObject =
                         packageType = retrieveObjectType "package"
 
                      result <- importMMiSSLaTeX preambleLink1 packageType view 
-                        getLinkedObject
+                        getLinkedObject filePathOpt
 
                      if isJust result
                         then
@@ -572,7 +592,7 @@ importMMiSSPackage view parentLinkedObject =
                case fromWithError resultWE of
                   Left mess -> 
                      do
-                        createErrorWin mess []
+                        errorMess mess
                         error2
                   Right Nothing -> error2
                   Right result -> return (Just link)
@@ -582,7 +602,12 @@ importMMiSSPackage view parentLinkedObject =
 -- This function is implemented like a (very) stripped-down version of
 -- importMMiSSPackage.
 reimportMMiSSPackage :: View -> Link MMiSSPackageFolder -> IO ()
-reimportMMiSSPackage view packageFolderLink =
+reimportMMiSSPackage view packageFolderLink = 
+   reimportMMiSSPackage1 view packageFolderLink Nothing
+
+reimportMMiSSPackage1 :: View -> Link MMiSSPackageFolder -> Maybe String 
+   -> IO ()
+reimportMMiSSPackage1 view packageFolderLink filePathOpt =
    do
       resultWE <- addFallOutWE (\ break ->
          do
@@ -612,7 +637,7 @@ reimportMMiSSPackage view packageFolderLink =
                packageType = retrieveObjectType "package"
 
             result <- importMMiSSLaTeX (preambleLink packageFolder)
-               packageType view getLinkedObject
+               packageType view getLinkedObject filePathOpt
             -- don't care if errors, as any errors will already have been
             -- shown.
             done
@@ -620,7 +645,7 @@ reimportMMiSSPackage view packageFolderLink =
 
       case fromWithError resultWE of
          Right () -> done
-         Left mess -> createErrorWin mess []
+         Left mess -> errorMess mess
 
 -- ------------------------------------------------------------------------
 -- Miscellaneous Functions

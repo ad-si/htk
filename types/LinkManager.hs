@@ -83,6 +83,10 @@ module LinkManager(
       -- Get the contents of a LinkedObject (those objects contained in it,
       -- like elements in a folder)
 
+   listObjectContents,
+      -- :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
+      -- List the contents of an object by EntityName.
+
    lookupObjectContents,
       -- :: LinkedObject -> EntityName -> SimpleSource (Maybe WrappedLink)
       -- Get a SimpleSource item corresponding to the EntityName element of
@@ -223,6 +227,7 @@ import VariableSet
 import VariableList
 import AtomString(fromStringWE,toString)
 import Object
+import Messages
 
 import DialogWin
 
@@ -293,6 +298,19 @@ objectContents linkedObject =
          (toSimpleSource (contents linkedObject))
          )
 
+
+-- | List the contents of an object by EntityName.
+listObjectContents :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
+listObjectContents linkedObject =
+   fmap
+      (\ fm -> 
+         map
+            (\ (entityName,linkedObjectPtr) 
+               -> (entityName,fromLinkedObjectPtr linkedObjectPtr))
+            (fmToList fm)
+         )
+      (toSimpleSource (contents linkedObject))
+
 --
 -- Get a SimpleSource item corresponding to the EntityName element of
 -- the object contents.
@@ -336,7 +354,7 @@ createLinkedObjectChild view parentLinkedObject name getObject =
                   Right () -> return (Just objectLink)
                   Left mess ->
                      do
-                        createErrorWin mess []
+                        errorMess mess
                         return Nothing
 
 ---
@@ -369,7 +387,7 @@ createLinkedObjectChildSplit view parentLinkedObject name getObject =
                Left mess ->
                   return (Nothing,
                      do
-                        createErrorWin mess []
+                        errorMess mess
                         return Nothing
                      )
          )

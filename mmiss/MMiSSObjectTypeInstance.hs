@@ -55,7 +55,6 @@ import MMiSSFileType
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
-import {-# SOURCE #-} MMiSSImportLaTeX
 import {-# SOURCE #-} MMiSSExportLaTeX
 import {-# SOURCE #-} MMiSSPackageFolder
 

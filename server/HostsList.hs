@@ -28,6 +28,7 @@ import Network
 import Computation
 import WBFiles
 import ExtendedPrelude
+import Messages
 
 import Registry
 
@@ -54,11 +55,28 @@ getDefaultUser :: IO String
 getDefaultUser =
    do
       userOpt <- getUser -- can be set by an option/environment variable.
+
+      htk <- htkPresent
       case userOpt of
          Just user -> return user
          Nothing ->
-            doFormMust "Default User" (userForm "")
-                                 
+            if htk
+               then
+                  doFormMust "Default User" (userForm "")
+               else
+                  let
+                     du =
+                        do
+                           user1 <- textQuery "Default User"
+                           if user1 == ""
+                              then
+                                 do
+                                    putStrLn "User Id must be non-empty"
+                                    du
+                              else
+                                 return user1
+                  in
+                     du
 
 userForm :: String -> Form String
 userForm defUser =
@@ -136,8 +154,25 @@ getUserPassword mustQuery hostPort =
                         )
                      form2a
 
-               userPasswordOpt <- doForm "Connecting to Server" 
-                  (form1 // form2)
+               htk <- htkPresent
+               userPasswordOpt <- 
+                  if htk
+                     then
+                        doForm "Connecting to Server" (form1 // form2) 
+                     else
+                        do
+                           user1 <- textQuery ("Enter user id, or just hit"
+                              ++ " RETURN for " ++ userDefault)
+                           let
+                              user = 
+                                 if user1 == "" then userDefault else user1
+                           password1 <- textQuery ("Enter password, or hit"
+                              ++ " RETURN to cancel operation")
+                           if password1 == ""
+                              then
+                                 return Nothing
+                              else
+                                 return (Just (user,password1))
 
                case userPasswordOpt of
                   Nothing -> done

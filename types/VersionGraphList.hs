@@ -22,11 +22,10 @@ import Control.Exception
 import Registry
 import Computation(done)
 import ExtendedPrelude(ourExcepToMess)
+import Messages
 
 import Events
 import Destructible
-
-import DialogWin
 
 import GraphDisp
 import GraphConfigure
@@ -64,8 +63,8 @@ addVersionGraph displaySort hostPortOpt =
       (\ versionGraphOpt -> case versionGraphOpt of
          Just _ ->
             do
-               createErrorWin ("You are already connected to "
-                  ++ showHostPortOpt hostPortOpt) []
+               errorMess ("You are already connected to "
+                  ++ showHostPortOpt hostPortOpt)
                return (versionGraphOpt,())
          Nothing ->
             case hostPortOpt of
@@ -98,14 +97,14 @@ addVersionGraph displaySort hostPortOpt =
                               let
                                  excepStr = fromMaybe (show excep) 
                                     (ourExcepToMess excep) 
-                              createErrorWin (
+                              errorMess (
                                  "Failed to connect to " ++ show hostPort ++
                                  " with error " ++ excepStr
-                                 ) []
+                                 ) 
                               return (versionGraphOpt,())
                         Right (Left mess) ->
                            do
-                              createMessageWin mess []
+                              messageMess mess
                               return (versionGraphOpt,())
                         Right (Right repository) -> 
                            do

@@ -37,6 +37,10 @@ module ExtendedPrelude (
    lastOpt, -- :: [a] -> Maybe a
       -- gets the last element of a list, safely.
 
+   isPrefix, 
+      -- :: Eq a => [a] -> [a] -> Just [a]
+      -- returns remainder if the first list is a prefix of the second one.
+
    -- Indicates that this type allows an IO-style map.
    HasCoMapIO(..),
    HasMapIO(..),
@@ -376,6 +380,20 @@ lastOpt :: [a] -> Maybe a
 lastOpt [] = Nothing
 lastOpt [a] = Just a
 lastOpt (_:rest) = lastOpt rest
+
+
+-- ------------------------------------------------------------------------
+-- Prefix functions
+-- ------------------------------------------------------------------------
+
+
+
+-- | returns remainder if the first list is a prefix of the second one.
+isPrefix :: Eq a => [a] -> [a] -> Maybe [a]
+isPrefix [] s = Just s
+isPrefix (c1 : c1s) (c2 : c2s) | c1 == c2 
+   = isPrefix c1s c2s
+isPrefix _ _ = Nothing
 
 -- ------------------------------------------------------------------------
 -- Folding a Tree

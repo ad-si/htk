@@ -12,11 +12,11 @@ import ExtendedPrelude
 import WBFiles
 import FileNames
 import Delayer
+import Messages
 
 import Events
 
 import FileDialog
-import DialogWin
 
 import CopyFile
 
@@ -44,26 +44,35 @@ import {-# SOURCE #-} MMiSSWriteObject
 
 
 ---
--- Import a new object from a LaTeX file and attach it to the subdirectory
--- of a given PackageFolder.
+-- Import a new object from a LaTeX or XML file and attach it to the 
+-- subdirectory of a given PackageFolder.
 --
 -- The preamble should be written to the link given by the first
 -- argument.
 --
--- The complicated last argument constructs or retrieves the parent linked 
--- object, given the name of the package.
+-- The complicated EntityName -> .. argument constructs or retrieves the 
+-- parent linked object, given the name of the package.
+-- 
+-- The Maybe FilePath argument provides the name of the file to be read.
+-- If it is Nothing, the user is quizzed.
 importMMiSSLaTeX :: Link MMiSSPreamble -> MMiSSObjectType -> View
    -> (EntityName -> IO (WithError MMiSSPackageFolder)) 
+   -> Maybe FilePath
    -> IO (Maybe (Link MMiSSObject))
-importMMiSSLaTeX preambleLink objectType view getPackageFolder =
+importMMiSSLaTeX preambleLink objectType view getPackageFolder filePathOpt0 =
    do
       result <- addFallOut (\ break ->
          do
-	    top <- getTOP 
-            let
-               fullName = unbreakName [top,"mmiss","test","files"]
-            dialogEvent <- fileDialog "Import Sources" fullName
-            filePathOpt <- sync dialogEvent
+            filePathOpt <- case filePathOpt0 of
+               Just _ -> return filePathOpt0
+               Nothing ->
+                  do
+                     top <- getTOP 
+                     let
+                        fullName = unbreakName [top,"mmiss","test","files"]
+                     dialogEvent <- fileDialog "Import Sources" fullName
+                     sync dialogEvent
+
             case filePathOpt of
                Nothing -> return Nothing
                Just filePath0 ->
@@ -197,13 +206,12 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                      -- Complain about missing files if necessary
                      case notFound of
                         [] -> done
-                        _ -> createErrorWin
+                        _ -> errorMess
                            ("The following referenced files were not found or "
                               ++ "have an unknown file type:"
                               ++ (concat (map (\ nf -> "\n   " ++ nf) 
                                  notFound))
                               )
-                            []
 
                      -- Remove duplicates again
                      let
@@ -220,18 +228,18 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                      
                      case fromWithError (listWithError resultWEs) of
                         Right _ -> done
-                        Left mess -> createErrorWin mess []
+                        Left mess -> errorMess mess
                      
                      return (Just link)
          )
       case result of
          Left str ->
             do
-               createMessageWin str []
+               messageMess str
                return Nothing
          Right (linkOpt@(Just link)) -> 
             do
-               createMessageWin "Import successful!" [] 
+               messageMess "Import successful!" 
                return linkOpt
          Right Nothing -> return Nothing 
             -- message has already been displayed by fileDialog.

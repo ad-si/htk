@@ -6,8 +6,7 @@ module LocalMenus(
 
 import Sources
 import Computation
-
-import DialogWin
+import Messages
 
 import Link
 import ObjectTypes
@@ -22,8 +21,7 @@ deleteObject view link =
       object <- readLink view link
       title <- nodeTitleIOPrim object
       
-      goAhead <- createConfirmWin (
-         "Really delete " ++ show title ++ "?") []
+      goAhead <- confirmMess ("Really delete " ++ show title ++ "?")
 
       if goAhead 
          then
@@ -35,8 +33,6 @@ deleteObject view link =
 -- don't do this as it creates problems for committing link environments.
 -- some time we will need a way of pruning views to remove dead links ...
 --                   deleteLink view link
-                  Left mess ->
-                     createWarningWin (
-                        "Deletion failed: "++mess) []
+                  Left mess -> warningMess ("Deletion failed: "++mess)
          else
             done

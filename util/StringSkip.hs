@@ -53,6 +53,7 @@ import List
 import Maybe
 
 import Debug.Trace
+import ExtendedPrelude
 
 -- -------------------------------------------------------------------------
 -- The types
@@ -177,9 +178,3 @@ copyAfter str =
 revAppend :: [a] -> [a] -> [a]
 revAppend [] as = as
 revAppend (a : as1) as2 = revAppend as1 (a : as2)
-
-isPrefix :: String -> String -> Maybe String
-isPrefix [] s = Just s
-isPrefix (c1 : c1s) (c2 : c2s) | c1 == c2 
-   = isPrefix c1s c2s
-isPrefix _ _ = Nothing

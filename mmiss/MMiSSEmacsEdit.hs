@@ -22,11 +22,11 @@ import ExtendedPrelude
 import AtomString(toString,fromString,fromStringWE)
 import ReferenceCount
 import Sources
+import Messages
 
 import Lock
 
 import SimpleForm
-import DialogWin
 import MenuType
 
 import GraphConfigure
@@ -133,7 +133,7 @@ editMMiSSObjectInner formatConverter view link =
       case fromWithError packageAndNameWE of
          Left mess ->
             do
-               createErrorWin mess []
+               errorMess mess
                done
          Right (package,name) ->
             do
@@ -343,20 +343,19 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                    case fromWithError contentWE of
                                       Left mess ->
                                          do
-                                            createWarningWin
+                                            warningMess
                                                ("Commit of " ++ name 
                                                   ++ " successful, but "
                                                   ++ "attempt to recompute "
                                                   ++ "magic buttons failed:\n"
-                                                  ++ mess) []
+                                                  ++ mess)
                                             return Nothing
                                       Right content0 ->
                                          do
                                             content1 <- mapContent content0
                                             return (Just content1)
                                
-                          createMessageWin 
-                             ("Commit of "++name++ " successful!") []
+                          messageMess ("Commit of "++name++ " successful!")
                           return emacsContentOpt
                        )
 
@@ -527,7 +526,7 @@ mkPrintAction view editFormatConverter =
                (package topRef,topMVar)
 
             case fromWithError elementWE of
-               Left error -> createErrorWin error []
+               Left error -> errorMess error
                Right element ->
                   do
                      -- Extract all preambles and exportFiles
@@ -542,7 +541,7 @@ mkPrintAction view editFormatConverter =
                            stringWE <- exportElement view LaTeX 
                                  preambleLinks element
                            case fromWithError stringWE of
-                              Left error -> createErrorWin error []
+                              Left error -> errorMess error
                               Right str -> mmissLaTeX view
                                  (toString (searchName topRef)) str
                                  exportFiles
@@ -615,7 +614,7 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
                   case fromWithError preambleLinkWE of
                      Left mess ->
                         do
-                           createErrorWin (name ++ ": " ++ mess) []
+                           errorMess (name ++ ": " ++ mess)
                            return Nothing
                      Right (packageFolder1,preambleLink) ->
                         do

@@ -14,8 +14,7 @@ import Data.FiniteMap
 import FileNames
 import Computation
 import ExtendedPrelude
-
-import DialogWin
+import Messages
 
 import View(View)
 import Link
@@ -29,7 +28,7 @@ type ExportFiles = [(MMiSSPackageFolder,String,MMiSSVariantSearch)]
 
 -- | Export the given ExportFiles to the directory by the given filePath.
 -- NB.  We do not abort this operation, instead complaining from time to
--- time via createErrorWin
+-- time via errorMess
 exportFiles :: View -> FilePath -> ExportFiles -> IO () 
 exportFiles view dir0 exportFiles0 =
    do
@@ -68,11 +67,10 @@ exportFiles view dir0 exportFiles0 =
 
       case notFound1 of
          [] -> done
-         _ -> createErrorWin
+         _ -> errorMess
             ("Unable to find files in repository: " 
                ++ (concat (map (\ file -> "\n   " ++ file) notFound1))
                )
-            []
 
       -- Check for duplicates and construct map
       let
@@ -92,12 +90,11 @@ exportFiles view dir0 exportFiles0 =
 
       case duplicates of
          [] -> done
-         _ -> createErrorWin 
+         _ -> errorMess 
             ("Multiple variants of the same file cannot be printed; sorry:"
                ++ (concat (map (\ (name,ext) -> "\n   "
                   ++ unsplitExtension name ext) duplicates))
                )
-            []
 
       -- Now do the export
       let
@@ -109,6 +106,6 @@ exportFiles view dir0 exportFiles0 =
          (fmToList exportFiles3)
 
       case fromWithError (listWithError unitWEs) of
-         Left mess -> createErrorWin mess []
+         Left mess -> errorMess mess
          Right _ -> done
  

@@ -15,6 +15,7 @@ import FileNames
 import Computation
 import CommandStringSub(bashEscape)
 import ExtendedPrelude
+import Messages
 
 import SafeSystem
 import CopyFile
@@ -22,7 +23,6 @@ import CopyFile
 import TempFile
 import Computation
 
-import DialogWin
 import SimpleForm
 
 import View
@@ -62,7 +62,7 @@ mmiss2AM view linke =
                            takeMVar guard -- empty MVar, then reset to False
 			   putMVar guard False
        else do putMVar guard True -- we need to fill it again
-  	       createAlertWin "ActivMath already running." []
+  	       alertMess "ActiveMath already running."
 
 -- Unguarded call into AM
 mmiss2AMu :: View -> Link MMiSSObject-> IO ()

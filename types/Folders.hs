@@ -6,6 +6,7 @@ module Folders(
    Folder,
    FolderType,
    getTopFolder,
+   getTopLinkedObject,
    getImportsState,
    getInFolder,
    mkFolderInsertion,
@@ -41,6 +42,7 @@ import AtomString(fromString,toString)
 import Delayer(toDelayer,delay)
 import ExtendedPrelude
 import Store
+import Messages
 
 import BSem
 
@@ -405,7 +407,7 @@ addFileGesture view =
          do
             objectCreation <- createObjectMenu view folderLink
             case objectCreation of
-               Nothing -> createAlertWin "Object creation cancelled" []
+               Nothing -> alertMess "Object creation cancelled"
                Just newLink -> done 
    in
       NodeGesture addFile
@@ -522,7 +524,7 @@ getImportsState view =
          folder <- readLink view folderLink
          let
             folderStructure = toFolderStructure (linkedObject folder)
-         newImportsState folderStructure (\ mess -> createErrorWin mess [])
+         newImportsState folderStructure (\ mess -> errorMess mess)
          )
       (importsState view)
 
@@ -693,7 +695,7 @@ createWithLinkedObjectIO view parentLink name getObject =
                Left mess ->
                   return (Nothing,
                      do
-                        createErrorWin mess []
+                        errorMess mess
                         return Nothing
                      )
          )
@@ -729,7 +731,7 @@ createWithLinkedObjectSplitIO view parentLink name getObject =
                Left mess ->
                   return (Nothing,
                      do
-                        createErrorWin mess []
+                        errorMess mess
                         return Nothing
                      )
          )
@@ -761,3 +763,16 @@ newOpenContents :: View -> LinkedObject -> IO (Blocker WrappedLink)
 newOpenContents view linkedObject 
    = newBlockerWithPreAction (objectContents linkedObject) 
       (wrapPreFetchLinks view)
+
+-- ------------------------------------------------------------------
+-- The top linked object.  (Assuming the topLink is a folder, as indeed
+-- it will be.)
+-- ------------------------------------------------------------------
+
+getTopLinkedObject :: View -> IO LinkedObject
+getTopLinkedObject view =
+   do
+      folderLink <- getTopFolder view
+      folder <- readLink view folderLink
+      return (toLinkedObject folder)
+      

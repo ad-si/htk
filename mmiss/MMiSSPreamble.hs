@@ -26,10 +26,9 @@ import AtomString
 import VariableSet
 import Sources
 import Broadcaster
+import Messages
 
 import BSem
-
-import DialogWin
 
 import Graph(NodeType)
 import GraphDisp
@@ -202,7 +201,7 @@ mkPreambleFS view link =
 
 printAction :: PrintAction MMiSSPreamble
 printAction = PrintAction 
-   (\ _ _ -> createErrorWin "Cannot print a preamble!" [])
+   (\ _ _ -> errorMess "Cannot print a preamble!")
 
 ---
 -- We need to define an ordering on MMiSSPreamble's for EditFS, but since

@@ -51,11 +51,9 @@ import Object
 import WBFiles
 import ExtendedPrelude
 import BinaryAll
+import Messages
 
 import Destructible
-
-import SimpleForm
-import DialogWin
 
 import HostsPorts
 
@@ -247,11 +245,10 @@ connectBasic service =
                         registerToolDebug ("callServer:" ++ serviceKey) 
                            connection
                         return connection
-                  errorMess ->
+                  mess ->
                      do
                         hClose handle
-                        createErrorWin
-                           ("Server rejected connection: " ++ errorMess) []
+                        errorMess ("Server rejected connection: " ++ mess)
                         connectBasic False
               
       connectBasic True

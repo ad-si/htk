@@ -17,6 +17,11 @@ module HostsPorts(
       -- Function for getting the textual description of a host, if none
       -- is already known.
 
+   fromHostDescription,
+      -- :: String -> IO (WithError HostPort)
+      -- Turn the textual description of a host into a HostPort,
+      -- reversing mkHostDescription.
+
    connect, -- :: (? server :: HostPort) => IO Handle
 
    getPortNumber, -- :: DescribesPort port => port -> IO PortNumber
@@ -113,12 +118,34 @@ mkHostPort host port =
 
 mkHostDescription :: (Show portNo,Num portNo) => String -> portNo -> String
 mkHostDescription hostStr i =
-   if i == 11393 
+   if i == defaultPort
       then
          hostStr
       else
          hostStr ++ ":" ++ show i
 
+ 
+-- | Turn the textual description of a host into a HostPort,
+-- reversing mkHostDescription.
+fromHostDescription :: String -> IO (WithError HostPort)
+fromHostDescription description =
+   do
+      let
+          (hostPortWE :: WithError (String,Int)) 
+             = case splitToChar ':' description of
+                Nothing -> hasValue (description,defaultPort)
+                Just (host,portStr) 
+                   | (Just port) <- readCheck portStr
+                      -> hasValue (host,port)
+                   | True -> hasError ("Cannot parse port number " ++ portStr
+                      ++ " in " ++ description)
+     
+      mapWithErrorIO
+         (\ (host,port) -> mkHostPort host port)
+         hostPortWE
+
+defaultPort :: Num portNo => portNo
+defaultPort = 11393
 
 getHostString :: DescribesHost host => host -> IO String
 getHostString hostDesc =

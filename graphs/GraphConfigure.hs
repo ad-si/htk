@@ -205,6 +205,8 @@ data ValueTitleSource value
 
 instance NodeTypeConfig ValueTitle
 
+instance NodeTypeConfig ValueTitleSource
+
 instance ArcTypeConfig ValueTitle
 
 instance HasCoMapIO ValueTitle where
@@ -260,6 +262,10 @@ instance NodeTypeConfig NodeDragAndDrop
 ------------------------------------------------------------------------
 
 newtype DoubleClickAction value = DoubleClickAction (value -> IO ())
+
+instance NodeTypeConfig DoubleClickAction
+
+instance ArcTypeConfig DoubleClickAction
 
 newtype TitleFunc value = TitleFunc (value -> String)
 

@@ -36,7 +36,7 @@ module EntityNames(
    entityFullNameParser, -- :: GenParser Char st EntityFullName
    entitySearchNameParser, -- :: GenParser Char st EntitySearchName
 
-   -- special character also allowed for internal purposes in EntityName's.
+   -- special character used in EntityName's to indicate an extension.
    specialChar, -- :: Char
    ) where
 
@@ -61,18 +61,14 @@ import SimpleForm
 
 ---
 -- Represented as a letter followed by a sequence of characters which may be 
--- letters, digits, '_' or ':'.  Letters and digits do not have to be
+-- letters, digits, '_', ':' or '.'.  Letters and digits do not have to be
 -- ASCII; any Unicode letters or digits are permitted.
 --
 -- "Root", "Parent" or "Current" are forbidden in the written representation.
 -- However they can arise internally though prefixing by a module which has
 -- such components in its name.
 --
--- Example EntityName's: "a", "bc", "z9_", "þ1".
---
--- FOR INTERNAL USE ONLY.  EntityName's may also include the \x7f
--- character, provided it is not at the beginning.  
--- (This is used for file extensions, instead of ".").
+-- Example EntityName's: "a", "bc", "z9_", "þ1", "cxl.gif".
 newtype EntityName = EntityName String deriving (Eq,Ord,Typeable,Show)
 
 ---
@@ -80,9 +76,9 @@ newtype EntityName = EntityName String deriving (Eq,Ord,Typeable,Show)
 -- some object within it.
 --
 -- If the path is non-empty, it is represented as a sequence of EntityName's 
--- separated by '.' (but spaces are not allowed).
+-- separated by '/' (but spaces are not allowed).
 --
--- Example EntityFullName's: "a", "a.bc", "z9_.q".
+-- Example EntityFullName's: "a", "a/bc", "z9_/q".
 --
 -- If the path is empty it is represented by "Current".
 -- 
@@ -92,10 +88,10 @@ newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 -- which may or may not be within it.
 --
 -- It may be an EntityFullName, or may be preceded by one of the following
--- (in each case separated by dots), "Current", "Root" or some non-empty 
+-- (in each case separated by '/'), "Current", "Root" or some non-empty 
 -- sequence of "Parent".  
 
--- Example EntitySearchName's: "a", "Current.a", "Root.a", "Parent.Parent.a".
+-- Example EntitySearchName's: "a", "Current/a", "Root/a", "Parent/Parent/a".
 --
 -- FromHere is actually identical to FromCurrent, *except* when the
 -- search-name is the expansion of an alias.  
@@ -103,7 +99,7 @@ newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 -- FromAbsolute is an absolute name, that always works within an object and
 -- ignores any environment.  It is (currently) only used internally and
 -- so has no readable parse syntax.  If displayed it is displayed as 
--- #ABSOLUTE.[fullName] or #ABSOLUTE.
+-- #ABSOLUTE/[fullName] or #ABSOLUTE.
 data EntitySearchName = 
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
@@ -118,7 +114,7 @@ data EntitySearchName =
 
 -- A PackageName for a path alias is defined as follows:
 -- 
--- PackageName ::= Identifier | Alias | PackageName.Identifier
+-- PackageName ::= Identifier | Alias | PackageName/Identifier
 --
 -- where an Alias is an Identifier which was defined through a path alias statement.
 -- Furthermore, an Identifier can be one these special values: "Root", "Current", "Parent" 
@@ -128,12 +124,12 @@ data EntitySearchName =
 -- alias ::= <name>       (names defined by path alias statements)
 -- specialName ::= "Current" | "Parent" | "Root"
 -- identifier ::= <specialName> | <alias> | <name>     (identifier and alias are disjoint)
--- <fullname> ::= <identifier>  ("." <fullname>)*
+-- <fullname> ::= <identifier>  ("/" <fullname>)*
 -- 
 -- where: <name> is meant as defined by George above, but cannot be a specialName
 --
 -- So, we code identifier with the datatype 'EntityName' and the fullnames with
--- 'EntityFullName'. The individual parts of a PackageName, devided by "." are
+-- 'EntityFullName'. The individual parts of a PackageName, devided by "/" are
 -- translated into list members of the corresponding EntityFullName-value.
 
 
@@ -215,25 +211,25 @@ instance StringClass EntityName where
 instance StringClass EntityFullName where
    toString (EntityFullName []) = "Current"
    toString (EntityFullName entityNames) =
-      unsplitByChar '.' (map toString entityNames)
+      unsplitByChar '/' (map toString entityNames)
 
    fromStringWE = mkFromStringWE entityFullNameParser "Entity FullName" 
 
 instance StringClass EntitySearchName where
    toString (FromRoot (EntityFullName [])) = "Root"
-   toString (FromRoot fullName) = "Root." ++ toString fullName
+   toString (FromRoot fullName) = "Root/" ++ toString fullName
    toString (FromCurrent (EntityFullName [])) = "Current"
-   toString (FromCurrent fullName) = "Current." ++ toString fullName
+   toString (FromCurrent fullName) = "Current/" ++ toString fullName
    toString (FromHere fullName) = toString fullName
    toString (FromParent (FromHere (EntityFullName []))) = "Parent"
-   toString (FromParent searchName) = "Parent." ++ toString searchName
+   toString (FromParent searchName) = "Parent/" ++ toString searchName
    toString (FromAbsolute (EntityFullName [])) = "#ABSOLUTE"
-   toString (FromAbsolute fullName) = "#ABSOLUTE." ++ toString fullName
+   toString (FromAbsolute fullName) = "#ABSOLUTE/" ++ toString fullName
 
    fromStringWE (str @ ('#':'A':'B':'S':'O':'L':'U':'T':'E':rest)) 
       | rest == [] 
          = hasValue (FromAbsolute (EntityFullName []))
-      | '.' : fullNameStr <- rest,
+      | '/' : fullNameStr <- rest,
          Right fullName <- fromWithError (fromStringWE fullNameStr)
          = hasValue (FromAbsolute fullName)
    fromStringWE str
@@ -352,13 +348,13 @@ simpleNameCharParser =
          || (ch == specialChar))
 
 specialChar :: Char
-specialChar = '\x7f'
+specialChar = '.'
 
 simpleNamesParser :: GenParser Char st [String]
 simpleNamesParser =
    do
       spaces
-      sepBy simpleNameParser (char '.')
+      sepBy simpleNameParser (char '/')
 
 entityNameParser :: GenParser Char st EntityName
 entityNameParser =
@@ -375,7 +371,7 @@ entityFullNameParser =
       spaces
       strs <- simpleNamesParser
       case mkEntityFullName strs of
-         Nothing -> fail (show (unsplitByChar0 '.' strs)  
+         Nothing -> fail (show (unsplitByChar0 '/' strs)  
             ++ " is not a valid entity full name")
          Just name -> return name 
 
@@ -385,7 +381,7 @@ entitySearchNameParser =
       spaces
       strs <- simpleNamesParser
       case mkEntitySearchName strs of
-         Nothing -> fail (show (unsplitByChar0 '.' strs)  
+         Nothing -> fail (show (unsplitByChar0 '/' strs)  
             ++ " is not a valid entity search name")
          Just name -> return name 
 

@@ -13,8 +13,7 @@ import ExtendedPrelude
 import IntPlus
 import AtomString(toString)
 import Sources (readContents)
-
-import DialogWin
+import Messages
 
 import View
 import Link
@@ -216,7 +215,7 @@ hackWithError a enable aWE = case fromWithError aWE of
       if enable 
          then
             do
-               createWarningWin mess []
+               warningMess mess
                return (hasValue a)
          else
             return (hasError mess)

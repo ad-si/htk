@@ -24,6 +24,8 @@ module MMiSSVariant(
    MMiSSVariantSearch,
    MMiSSVariantSpec,
    refineVariantSearch,
+   addToVariantSearch,
+   removeFromVariantSearch,
    toMMiSSVariantSearchFromXml,
    toMMiSSVariantSpecFromXml,
    fromMMiSSVariantSpecToXml,
@@ -43,7 +45,7 @@ module MMiSSVariant(
    MMiSSVariants,
 
    displayMMiSSVariantDictKeys, -- :: MMiSSVariantDict object -> IO ()
-      -- put up a window describing the keys in the object.
+      -- describing the keys in the object.
 
    copyVariantDict 
       -- :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object 
@@ -58,11 +60,12 @@ import Monad
 import Control.Concurrent.MVar
 import Data.FiniteMap
 
-import Computation (done,fromWithError)
+import Computation(done,fromWithError,WithError,hasValue,hasError,mapWithError)
 import AtomString
 import Registry
 import ExtendedPrelude
 import Dynamics
+import Messages
 
 import LogWin
 
@@ -377,6 +380,33 @@ fromMMiSSSpecToSearch :: MMiSSVariantSpec -> MMiSSVariantSearch
 fromMMiSSSpecToSearch (MMiSSVariantSpec variants) =
    MMiSSVariantSearch variants
 
+-- | (addToVariantSearch variantSearch key value) sets key=value for 
+-- variantSearch.
+addToVariantSearch :: MMiSSVariantSearch -> String -> String 
+   -> WithError MMiSSVariantSearch
+addToVariantSearch variantSearch key0 value0 =
+   let
+      variantSpec = MMiSSVariantSpec (mkMMiSSVariants [(key0,value0)])
+   in
+      if all (\ att -> key att /= key0) variants
+         then
+            hasError ("No variant attribute " ++ key0 ++ " known")
+         else
+            hasValue (refineVariantSearch variantSearch variantSpec)
+
+-- | (removeFromVariantSearch variantSearch key) removes the setting of
+-- key from variantSearch (or complains if there is none)
+removeFromVariantSearch :: MMiSSVariantSearch -> String 
+   -> WithError MMiSSVariantSearch
+removeFromVariantSearch (MMiSSVariantSearch variants0) key0 =
+   mapWithError MMiSSVariantSearch (removeFromVariants variants0 key0)
+
+-- MMiSSVariants function for unsetting a value
+removeFromVariants :: MMiSSVariants -> String  -> WithError MMiSSVariants
+removeFromVariants (MMiSSVariants list0) key0 =
+   case deleteAndFindFirstOpt (\ (va,_) -> key va == key0) list0 of
+      Nothing -> hasError ("Key " ++ key0 ++ " is unset")
+      Just (_,list1) -> hasValue (MMiSSVariants list1)
 
 -- ------------------------------------------------------------------------
 -- Interface via the Attributes type.
@@ -695,16 +725,28 @@ instance Show MMiSSVariantSpec where
 instance Show MMiSSVariantSearch where
    show (MMiSSVariantSearch variants) = show variants
 
-displayMMiSSVariantDictKeys :: MMiSSVariantDict object -> IO ()
-displayMMiSSVariantDictKeys (MMiSSVariantDict registry) =
+descriptionMMiSSVariantDictKeys :: MMiSSVariantDict object -> IO String
+descriptionMMiSSVariantDictKeys (MMiSSVariantDict registry) =
    do
       (keys :: [MMiSSVariants]) <- listKeys registry
       let
          description = case keys of
             [] -> "Object contains no variants"
             _ -> unsplitByChar '\n' (map show keys)
-      win <- createLogWin []
-      writeLogWin win description
+      return description
+
+displayMMiSSVariantDictKeys :: MMiSSVariantDict object -> IO ()
+displayMMiSSVariantDictKeys variantDict =
+   do
+      description <- descriptionMMiSSVariantDictKeys variantDict
+      htkPres <- htkPresent
+      if htkPres
+         then
+            do
+               win <- createLogWin []
+               writeLogWin win description
+         else
+            messageMess description
 
 -- ------------------------------------------------------------------------
 -- Copying a VariantDict.

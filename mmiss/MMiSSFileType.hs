@@ -48,6 +48,7 @@ import TempFile
 import FileNames
 import CommandStringSub
 import Sources
+import Messages
 
 import CopyFile
 
@@ -688,7 +689,7 @@ execCommand view title0 confirm command0 link =
                let
                   confirmString1 = doFormatString confirmString0 dict
                seq confirmString1 done
-               createConfirmWin confirmString1 []  
+               confirmMess confirmString1  
 
       if goAhead
          then

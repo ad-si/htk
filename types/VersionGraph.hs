@@ -50,6 +50,8 @@ import UniqueString
 import Sources
 import Broadcaster
 import Dynamics
+import ExtendedPrelude(mapEq,mapOrd)
+import Messages
 
 import Spawn
 import Destructible
@@ -109,6 +111,16 @@ data ViewedNode = ViewedNode {
    bSem :: BSem -- locks commit operations.
    }
    
+-- --------------------------------------------------------------------
+-- Instances
+-- --------------------------------------------------------------------
+
+instance Eq VersionGraph where
+   (==) = mapEq repository
+
+instance Ord VersionGraph where
+   compare = mapOrd repository
+
 -- --------------------------------------------------------------------
 -- Opening a new VersionGraph
 -- --------------------------------------------------------------------
@@ -253,10 +265,10 @@ newVersionGraph1
                                  Just userInfo1 -> 
                                     reallyCheckOutNode userInfo1 node version
                         else
-                           createErrorWin 
+                           errorMess 
                               ("Version is not checked into this repository\n"
                               ++ "(It may be a parent version from another "
-                              ++ "repository)") []
+                              ++ "repository)")
 
          reallyCheckOutNode :: UserInfo -> Node -> Version -> IO ()
          reallyCheckOutNode userInfo parentNode version =
@@ -472,9 +484,8 @@ newVersionGraph1
                         case nodeToVersion mergeNode of
                            Nothing -> -- not a version, must be a view.
                               do
-                                 createErrorWin 
+                                 errorMess 
                                     "You may only select checked-in versions"
-                                    []
                                  return Nothing
                            Just version -> 
                               do
@@ -572,15 +583,15 @@ newVersionGraph1
                objectVersionsOpt <- selectCheckedInVersions "Versions to Merge"
                case objectVersionsOpt of
                   Nothing -> done
-                  Just [] -> createErrorWin "No versions specified!" []
-                  Just [_] -> createErrorWin "Only one version specified" []
+                  Just [] -> errorMess "No versions specified!"
+                  Just [_] -> errorMess "Only one version specified"
                   Just objectVersions ->
                      do
                         -- Go ahead.
                         viewWE <- mergeNodes repository graph (
                            map Right objectVersions)
                         case fromWithError viewWE of
-                           Left mess -> createErrorWin mess []
+                           Left mess -> errorMess mess
                            Right view ->
                               do
                                  -- Create a node corresponding to view,

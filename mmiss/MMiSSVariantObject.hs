@@ -126,8 +126,7 @@ import Computation (done)
 import Sources
 import Broadcaster
 import Sink
-
-import DialogWin
+import Messages
 
 import VersionInfo
 
@@ -428,8 +427,8 @@ editMMiSSSearchObject objectTitle variantObject =
                                        return (variantSpec1,True)
                                  Nothing -> 
                                     do
-                                       createErrorWin 
-                                          "No matching variant found!" []
+                                       errorMess 
+                                          "No matching variant found!"
                                        return (variantSpec0,False)
                         else
                            return (variantSpec0,False) 

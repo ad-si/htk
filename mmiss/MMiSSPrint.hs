@@ -6,8 +6,7 @@ module MMiSSPrint(
 import Computation
 import ExtendedPrelude
 import Sources
-
-import DialogWin
+import Messages
 
 import View
 import Link
@@ -34,5 +33,5 @@ printMMiSSObject view link =
          )
       case result of
          Right () -> done
-         Left mess -> createErrorWin mess []
+         Left mess -> errorMess mess
 

@@ -161,10 +161,19 @@ preFetchLinks view links =
          )
       links
    
-
 fetchLinkWE :: HasCodedValue x => View -> Link x 
    -> IO (WithError (Versioned x))
-fetchLinkWE (view@View{repository = repository,objects = objects}) 
+fetchLinkWE = fetchOrSetLinkWE (return Nothing)
+
+-- | fetchOrSetLinkWE is a function for both fetching a link, and for 
+-- creating a link if one is not already there.  The first action contains
+-- the action which can return a status value which is used to construct a
+-- new value.
+fetchOrSetLinkWE :: HasCodedValue x 
+   => IO (Maybe (Status x)) -> View -> Link x -> IO (WithError (Versioned x))
+fetchOrSetLinkWE 
+      getNewStatusOpt 
+      (view@View{repository = repository,objects = objects}) 
       ((Link location) :: Link x) =
    do
       transformValue objects location 
@@ -181,19 +190,33 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                   -> IO (Maybe ObjectData,WithError (Versioned x))
                readObject isCloned oldVersion oldLocation =
                   do
-                     (xOS :: Either String x) <-
+                     (statusOS :: Either String (Status x)) <-
                         catchDBError (
                            do
-                              osource <- retrieveObjectSource repository 
+                              osourceOpt <- catchNotFound (
+                                 retrieveObjectSource repository 
                                  oldLocation oldVersion
-                              icsl <- exportICStringLen osource
-                              doDecodeIO icsl view
+                                 )
+                              case osourceOpt of
+                                 Just osource ->
+                                    do
+                                       icsl <- exportICStringLen osource
+                                       x <- doDecodeIO icsl view
+                                       return (UpToDate x)
+                                 Nothing ->
+                                    do
+                                       statusOpt <- getNewStatusOpt
+                                       case statusOpt of
+                                          Nothing -> 
+                                             dbError ("Link " ++ show location
+                                                ++ " not found")
+                                          Just status -> return status
                            )
-                     case xOS of
+                     case statusOS of
                         Left mess -> err mess
-                        Right x ->
+                        Right status ->
                            do
-                              statusMVar <- newMVar (UpToDate x)
+                              statusMVar <- newMVar status
                               let
                                  versioned = Versioned {
                                     location = location,
@@ -400,26 +423,14 @@ setLink view x (Link location) = createObjectGeneral view (Virgin x) location
 setOrGetTopLink :: HasCodedValue x => View -> IO x -> IO (Versioned x)
 setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
    do
-      -- We delay using versionedAct doing things that don't need to be
-      -- done inside transformValue, the reason being that then we
-      -- can use fetchLink (which needs transformValue to have finished).
-      versionedAct <- transformValue objects specialLocation2
-         (\ objectDataOpt ->
-            case objectDataOpt of
-               Nothing ->
-                  do
-                     -- Not in repository, create.
-                     x <- action
-                     (versioned,objectData) <-
-                         makeObjectData view (Virgin x) specialLocation2
-                     return (Just objectData,return versioned)
-               Just objectData ->
-                do
-                  -- Is in repository.  So we just return something
-                  -- to get the topLink
-                  return (Just objectData,fetchLink view topLink)
-            )
-      versionedAct   
+      let
+         statusAct =
+            do
+               x <- action
+               return (Just (Virgin x))
+
+      versionedWE <- fetchOrSetLinkWE statusAct view topLink
+      coerceWithErrorIO versionedWE
 
 createObject :: HasCodedValue x => View -> x -> IO (Versioned x)
 createObject view x =
@@ -440,9 +451,25 @@ createObjectGeneral :: HasCodedValue x => View -> Status x -> Location
 -- allocated location, given a Status (Virgin or Empty) to put in it.
 createObjectGeneral view status location =
    do
-      (versioned,objectData) <- makeObjectData view status location
-      setValue (objects view) location objectData
-      return versioned
+      -- We use fetchOrSetLinKWE to do the actual work
+      objectCreatedRef <- newIORef False
+      
+      let
+         statAct = 
+            do
+               writeIORef objectCreatedRef True
+               return (Just status)
+
+      versionedWE <- fetchOrSetLinkWE statAct view (Link location)
+      versioned <- coerceWithErrorIO versionedWE
+      
+      objectCreated <- readIORef objectCreatedRef
+      if objectCreated
+         then
+            return versioned
+         else
+            error ("Attempt to create " ++ show location ++ 
+               " which already exists")
 
 ---
 -- This deletes an object from the View.
@@ -459,23 +486,6 @@ deleteLink view (Link location) =
    do
       debug ("Deleting " ++ show location)
       deleteFromRegistry (objects view) location
-
----
--- As with createObjectGeneral, create the versioned object and 
--- object data to put in the objects registry.  (All objects eventually
--- are created via this function.)
-makeObjectData :: HasCodedValue x => View -> Status x -> Location 
-   -> IO (Versioned x,ObjectData)
-makeObjectData view (status :: Status x) location =
-   do
-      statusMVar <- newMVar status
-      let versioned = Versioned {location = location,statusMVar = statusMVar}
-      return (versioned,
-         (PresentObject {
-            thisVersioned = toDyn versioned,
-            mkObjectSource = mkObjectSourceFn view versioned Nothing
-            })) 
-
 
 updateObject :: HasCodedValue x => View -> x -> Versioned x -> IO ()
 updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =

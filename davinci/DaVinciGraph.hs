@@ -41,13 +41,12 @@ import ExtendedPrelude
 import Debug(debug)
 import Thread
 import CompileFlags
+import Messages
 
 import Channels
 import Events
 import Destructible
 import Synchronized
-
-import DialogWin
 
 import BSem
 
@@ -293,7 +292,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                      AllowClose Nothing ->
                         do
                            proceed 
-                              <- createConfirmWin "Really close window?" []
+                              <- confirmMess "Really close window?"
                            if proceed
                               then
                                  do
@@ -301,8 +300,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                                     destroy graph
                               else
                                  done
-                     AllowClose (Just mess) ->
-                        createErrorWin mess [] 
+                     AllowClose (Just mess) -> errorMess mess 
             actGlobalMenu menuId =
                do
                   action <- getValueHere globalMenuActions menuId
@@ -622,9 +620,8 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
             closeAct =
                do
-                  createErrorWin 
+                  errorMess 
                      "Unexpected close interrupting multiple node selection!"
-                     []
                   signalDestruct daVinciGraph
 
             newHandler :: DaVinciAnswer -> IO ()
@@ -636,15 +633,14 @@ instance DeleteNode DaVinciGraph DaVinciNode where
                   do
                      nodeIdOpt <- readIORef lastSel
                      case nodeIdOpt of
-                        Nothing -> createErrorWin 
-                           "Confusing node selection ignored" []
+                        Nothing -> errorMess "Confusing node selection ignored"
                         Just nodeId ->
                            do
                               nodeDataOpt 
                                  <- getValueOpt (nodes daVinciGraph) nodeId
                               case nodeDataOpt of
-                                 Nothing -> createErrorWin
-                                    "Confusing node selection ignored (2)" []
+                                 Nothing -> errorMess
+                                    "Confusing node selection ignored (2)"
                                  Just (NodeData nodeType _) ->
                                     do
                                        let
@@ -656,9 +652,8 @@ instance DeleteNode DaVinciGraph DaVinciNode where
                EdgeSelectionLabels _ _ -> done
                Closed -> closeAct
                Quit -> closeAct
-               _ ->  createErrorWin
-                  ("Other user input ignored during multiple node selection")
-                  []
+               _ ->  errorMess
+                  "Other user input ignored during multiple node selection"
 
 
             act = mkAct (receive channel)

@@ -9,6 +9,7 @@ import Computation
 import ExtendedPrelude
 import WBFiles
 import FileNames
+import Messages
 
 import Events
 
@@ -68,9 +69,9 @@ exportMMiSSObjectGeneral format view link =
                            Nothing -> thisDir
                            Just (writeDir,_) -> writeDir
                      exportFiles view writeDir exportFiles0 
-               Nothing -> createMessageWin "Export cancelled" []
+               Nothing -> messageMess "Export cancelled"
          )
 
       case result of
          Right () -> done
-         Left mess -> createErrorWin mess []
+         Left mess -> errorMess mess

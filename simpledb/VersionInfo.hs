@@ -87,6 +87,18 @@ module VersionInfo(
    -- comparing VersionInfo's globally uniquely.
    VersionInfoKey, -- instance of Ord
    mapVersionInfo, -- :: VersionInfo -> VersionInfoKey
+
+
+   checkVersionInfoFormat, 
+      -- :: String -> WithError CompiledFormatString
+      -- Compile a format string, checking at the same time that it only uses
+      -- format letters we know about.
+
+   evalVersionInfoFormat, 
+      -- :: CompiledFormatString -> VersionInfo -> IO String
+      -- Display a VersionInfo according to the given format (which should have
+      -- been produced with checkVersionInfoFormat)
+   
    ) where
 
 import IO
@@ -107,6 +119,7 @@ import Dynamics
 import HostName
 import Posix(getProcessID)
 import AtomString(StringClass(..))
+import CommandStringSub
 
 import DialogWin
 import SimpleForm
@@ -672,3 +685,80 @@ mkServerId isInternal =
                            else
                               fullHostName ++ ":" ++ show port
                            )
+
+-- ----------------------------------------------------------------------
+-- We also support textual display of a VersionInfo using format letters
+-- (the CommandStringSub method).  Here
+--    %V is expanded to the version number
+--    %L to the label
+--    %C to the contents (detailed description)
+--    %P to the parents (as a list of version numbers)
+--    %U to the committing user
+--    %T to the timestamp
+-- 
+-- Example: a format of "%V %L %P\n" will give a short description of the
+-- version (version number, label, and parents).  "%V %L %P %U %T\n%C\n" will
+-- put the short information (version number, label, parents, user, timestamp)
+-- on one line, then give the contents separately.
+-- ----------------------------------------------------------------------
+
+-- Compile a format string, checking at the same time that it only uses
+-- format letters we know about.
+checkVersionInfoFormat :: String -> WithError CompiledFormatString
+checkVersionInfoFormat formatStr =
+   let
+      compileFormat1WE = compileFormatString formatStr
+
+      testCalendarTime = CalendarTime {
+         ctYear = 2004,ctMonth = January,ctDay = 7,ctHour = 20,ctMin = 47,
+         ctSec = 50,ctPicosec = 0,ctWDay = Wednesday,ctYDay = 6,
+         ctTZName = "CET", ctTZ = 3600,ctIsDST = False
+         }
+   in
+      mapWithError'
+         (\ compileFormat1 -> 
+            -- We test the format on topVersionInfo
+            mapWithError
+               (const compileFormat1)
+               (evalVersionInfoFormatWE compileFormat1 
+                  topVersionInfo testCalendarTime)
+            )   
+         compileFormat1WE
+
+-- Display a VersionInfo according to the given format (which should have
+-- been produced with checkVersionInfoFormat)
+evalVersionInfoFormat :: CompiledFormatString -> VersionInfo -> IO String
+evalVersionInfoFormat compileFormat versionInfo =
+   do
+      calendarTime <- toCalendarTime (timeStamp (server versionInfo))
+      let
+         stringWE 
+            = evalVersionInfoFormatWE compileFormat versionInfo calendarTime
+      coerceWithErrorIO stringWE
+
+-- Only used internally.
+evalVersionInfoFormatWE :: CompiledFormatString -> VersionInfo 
+   -> CalendarTime -> WithError String
+evalVersionInfoFormatWE compileFormat versionInfo calendarTime =
+   let
+      user1 = user versionInfo
+      server1 = server versionInfo
+
+      expander ch = case ch of
+         'V' -> Just (vToS (version user1))
+         'L' -> Just (label user1)
+         'C' -> Just (contents user1)
+         'P' -> Just (vsToS (parents user1))
+         'U' -> Just (userId server1)
+         'T' -> Just (calendarTimeToString calendarTime)
+         _ -> Nothing
+
+      -- Functions stolen from displayVersionInfo function
+      vToS :: ObjectVersion -> String
+      vToS (ObjectVersion v) = show v
+
+      vsToS :: [ObjectVersion] -> String
+      vsToS [] = ""
+      vsToS vs = unsplitByChar ' ' (map vToS vs)
+   in
+      runFormatString compileFormat expander

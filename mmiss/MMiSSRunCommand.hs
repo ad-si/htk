@@ -17,13 +17,14 @@ import System
 import Concurrent
 
 import Computation
+import Messages
 
 import SafeSystem
 import CopyFile
 
-import DialogWin
 import TextDisplay
 import HTk
+import DialogWin
 
 ---
 -- Run a tool, return ExitCode and tool output.
@@ -75,5 +76,5 @@ copyFileBool source destination =
          Right () -> return True
          Left mess -> 
             do
-               createErrorWin mess []
+               errorMess mess
                return False

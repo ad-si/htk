@@ -4,6 +4,9 @@
 module MMiSSObjectExtract(
    extractMMiSSObject,
       -- :: View -> Link MMiSSObject -> Format -> IO (WithError String)
+   extractMMiSSObject1,
+      -- :: Maybe MMiSSVariantSearch -> View -> Link MMiSSObject 
+      -- -> Format -> IO (WithError (String,ExportFiles))
    ) where
 
 import Computation
@@ -22,9 +25,13 @@ import {-# SOURCE #-} MMiSSExportFiles
 
 extractMMiSSObject :: View -> Link MMiSSObject -> Format 
    -> IO (WithError (String,ExportFiles))
-extractMMiSSObject view link format =
+extractMMiSSObject = extractMMiSSObject1 Nothing
+
+extractMMiSSObject1 :: Maybe MMiSSVariantSearch -> View -> Link MMiSSObject 
+   -> Format -> IO (WithError (String,ExportFiles))
+extractMMiSSObject1 maybeVariant view link format =
    do
-      extractedWE <- readMMiSSObject view link Nothing infinity True
+      extractedWE <- readMMiSSObject view link maybeVariant infinity True
       case fromWithError extractedWE of
          Left mess -> return (hasError mess)
          Right (element,preambleLinks,exportFiles0) ->

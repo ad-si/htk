@@ -14,6 +14,7 @@ import Computation
 import Registry
 import NameMangle
 import ExtendedPrelude
+import Messages
 
 import Events
 import Channels
@@ -185,7 +186,7 @@ openFile emacsFS parentAction ref mangledName =
       case fromWithError emacsFileWE of
          Left message -> 
             do
-               createErrorWin message []
+               errorMess message
                return Nothing
          Right (emacsContent,emacsFile) ->
             do
@@ -251,11 +252,11 @@ handleEvents (editorState :: EditorState ref) =
       confirm :: String -> Event () -> Event ()
       confirm str event =
          do
-            goAhead <- always (createConfirmWin str [])
+            goAhead <- always (confirmMess str)
             if goAhead then event else iterate
 
       showError :: String -> IO ()
-      showError str = createErrorWin str []
+      showError str = errorMess str
 
       getModified =
          do
@@ -294,8 +295,8 @@ handleEvents (editorState :: EditorState ref) =
                      unlockBuffer session
                Delete ->
                   do
-                     goAhead <- createConfirmWin
-                        ("Really delete " ++ describe ref ++ "?") []
+                     goAhead <- confirmMess
+                        ("Really delete " ++ describe ref ++ "?")
                      when goAhead (deleteExtent session buttonId)
 
    in
@@ -353,7 +354,7 @@ handleEvents (editorState :: EditorState ref) =
                   containers
 
                case containers of
-                  [] -> createWarningWin "Nothing to commit!" []
+                  [] -> warningMess "Nothing to commit!"
                   _ -> done
 
                if and success
@@ -402,8 +403,8 @@ handleEvents (editorState :: EditorState ref) =
                               modified <- isModified session normal
                               if modified
                                  then
-                                    createConfirmWin ("Collapse "
-                                       ++describe ref++" without saving?") []
+                                    confirmMess ("Collapse "
+                                       ++describe ref++" without saving?")
                                  else
                                     return True
 
@@ -427,9 +428,9 @@ handleEvents (editorState :: EditorState ref) =
                                              do
                                                 ref2 
                                                    <- readMangled mangledName2
-                                                createErrorWin ("Collapse " 
+                                                errorMess ("Collapse " 
                                                    ++ describe ref2 
-                                                   ++ " first!") []
+                                                   ++ " first!")
                                                 return False
                               else
                                  return False
@@ -471,7 +472,7 @@ handleEvents (editorState :: EditorState ref) =
                      case modified of
                         [] -> return True
                         _ ->
-                          createConfirmWin "Exit without saving anything?" []
+                          confirmMess "Exit without saving anything?"
                if proceed 
                   then
                      do
@@ -498,7 +499,7 @@ handleEvents (editorState :: EditorState ref) =
                   -- even though the Haskell buffer is locked.
                containerWE <- checkInsertion session point
                case fromWithError containerWE of
-                  Left error -> createErrorWin error []
+                  Left error -> errorMess error
                   Right containerStr ->
                      do
                         let
@@ -506,7 +507,7 @@ handleEvents (editorState :: EditorState ref) =
                         container <- readMangled mangledTypedName
                         newRefOptWE <- createRef fs container
                         case fromWithError newRefOptWE of
-                           Left error -> createErrorWin error []
+                           Left error -> errorMess error
                            Right Nothing -> done
                            Right (Just ref) ->
                               do
@@ -593,8 +594,8 @@ doPrint (editorState :: EditorState ref) mangledToEdit =
          then
             mkPrint toEdit printFunction
          else
-           createErrorWin ("Extent "++describe toEdit
-              ++" is not currently open") []
+            errorMess ("Extent "++describe toEdit
+               ++" is not currently open")
       unlockBuffer session
 
 

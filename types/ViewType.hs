@@ -33,6 +33,7 @@ import Broadcaster
 import Sources
 import Delayer
 import Store
+import ExtendedPrelude(mapEq,mapOrd)
 
 import VSem
 
@@ -103,6 +104,12 @@ newtype ViewId = ViewId ObjectID deriving (Eq,Ord)
 
 instance QuickShow ViewId where
    quickShow = WrapShow (\ (ViewId oId) -> oId)
+
+instance Eq View where
+   (==) = mapEq viewId
+
+instance Ord View where
+   compare = mapOrd viewId
 
 -- -----------------------------------------------------------------
 -- Extracting the parents
