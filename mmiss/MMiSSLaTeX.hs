@@ -22,12 +22,17 @@ import Computation
 
 import SimpleForm
 
+import View(View)
+
 import MMiSSRunCommand
+import MMiSSVariant
+import {-# SOURCE #-} MMiSSPackageFolder
+import {-# SOURCE #-} MMiSSExportFiles
 
 ---
 -- The first String is the name of the file; the second its contents.
-mmissLaTeX :: String -> String -> IO ()
-mmissLaTeX fileName contents =
+mmissLaTeX :: View -> String -> String -> ExportFiles -> IO ()
+mmissLaTeX view fileName contents exportFiles0 =
    do
       -- Create a directory to work in.
       laTeXDir <- newTempFile
@@ -81,6 +86,9 @@ mmissLaTeX fileName contents =
                laTeXFile = fileName ++ ".tex"
 
                fullLaTeXFile = (trimDir laTeXDir) `combineNames` laTeXFile
+
+            -- Export needed attached graphics files.
+            exportFiles view laTeXDir exportFiles0
 
             -- Run file through misstex.
             formatOpt <- doForm ("Format for "++fileName) outputTypeForm

@@ -150,6 +150,7 @@ instance Monad m => HasBinary LinkType m where
 data StructuredContent = StructuredContent {
    tag :: String, -- The Xml Tag of the head of this object.
    label :: EntitySearchName, -- The object's label
+   files :: [String], -- The external files
    variantSpec :: MMiSSVariantSpec,
       -- The variants of this object.
    attributes :: [Attribute],
@@ -252,13 +253,14 @@ structureElement (element @ (Elem tag attributes contents0)) =
                (classifyElement element)
                (\ classifiedElement ->
                   case classifiedElement of
-                     DirectInclude label element ->
+                     DirectInclude label element1 ->
                         hasValue (Left (
                            label,
-                           element,
+                           element1,
                            StructuredContent {
                               tag = tag,
                               label = label,
+                              files = getFiles element,
                               variantSpec = variantSpec,
                               attributes = attributes,
                               accContents = accContents

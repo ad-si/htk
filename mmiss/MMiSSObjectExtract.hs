@@ -18,12 +18,19 @@ import MMiSSVariant
 import MMiSSReAssemble
 import MMiSSEditFormatConverter
 import {-# SOURCE #-} MMiSSReadObject
+import {-# SOURCE #-} MMiSSExportFiles
 
 extractMMiSSObject :: View -> Link MMiSSObject -> Format 
-   -> IO (WithError String)
+   -> IO (WithError (String,ExportFiles))
 extractMMiSSObject view link format =
    do
       extractedWE <- readMMiSSObject view link Nothing infinity True
-      mapWithErrorIO' (\ (element,preambleLinks) 
-         -> exportElement view format preambleLinks element)
-         extractedWE
+      case fromWithError extractedWE of
+         Left mess -> return (hasError mess)
+         Right (element,preambleLinks,exportFiles0) ->
+            do
+               strWE <- exportElement view format preambleLinks element
+               return (mapWithError
+                  (\ str -> (str,exportFiles0))
+                  strWE
+                  )

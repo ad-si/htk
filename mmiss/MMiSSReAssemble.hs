@@ -22,9 +22,13 @@ import MMiSSDTDAssumptions
 import MMiSSVariant
 
 ---
--- The action to extract the Element is allowed to return Nothing.  This 
+-- The first action function is to extract the Element and is allowed to 
+-- return Nothing.  This 
 -- means don't expand.   It will provoke an error if it does this for the
 -- very top element however, since then we have no Element to return.
+--
+-- The second action function is called for each reference to a graphics
+-- file within an element.
 --
 -- The search data is threaded down through containing elements.
 -- So for example if getElement name1 search1 generates (element2,search2),
@@ -38,12 +42,14 @@ import MMiSSVariant
 -- OK, as we couldn't do it any other way.
 reAssemble :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 
-   -> IO (WithError (Maybe (Element,searchData)))) 
+      -> IO (WithError (Maybe (Element,searchData)))) 
+   -> (MMiSSVariantSearch -> searchData -> String -> IO ())
    -> EntitySearchName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
 reAssemble 
       (getElement :: EntitySearchName -> MMiSSVariantSearch -> searchData 
-         -> IO (WithError (Maybe (Element,searchData)))) 
+         -> IO (WithError (Maybe (Element,searchData))))
+      (doFile :: MMiSSVariantSearch -> searchData -> String -> IO ())
       (topName :: EntitySearchName)
       (topVariantSearch :: MMiSSVariantSearch) 
       (topSearchData :: searchData)
@@ -75,9 +81,18 @@ reAssemble
                   do
                      monadifyWithError (check element0)
 
-                     -- Set the Element to have the original EntitySearchName.
+                     -- Set the Element to have the original EntitySearchName,
+                     -- with one exception.  If the searchName is FromAbsolute
+                     -- we replace FromAbsolute by FromHere.
+                     -- Excuse for this: (1) we don't want FromAbsolute turning
+                     -- up in anything exported to the outside world;
+                     -- (2) If FromAbsolute works, so will FromHere.
                      let
-                        element1 = setLabel element0 searchName
+                        searchName2 = case searchName of
+                           FromAbsolute fullName -> FromHere fullName
+                           _ -> searchName
+
+                        element1 = setLabel element0 searchName2
 
                      element2 <- reAssembleElement variantSearch0 
                         searchData1 element1
@@ -87,7 +102,7 @@ reAssemble
       reAssembleElement :: MMiSSVariantSearch -> searchData -> Element 
          -> MonadWithError IO Element
       reAssembleElement variantSearch0 searchData0 
-            (Elem name attributes contents0) =
+            (element0 @ (Elem name attributes contents0)) =
          do
             let
                attributesSpec :: MMiSSVariantSpec
@@ -96,6 +111,9 @@ reAssemble
                variantSearch1 :: MMiSSVariantSearch
                variantSearch1 
                   = refineVariantSearch variantSearch0 attributesSpec
+
+               doThisFile :: String -> IO ()
+               doThisFile file = doFile variantSearch0 searchData0 file
 
                doContent :: Content -> MonadWithError IO Content 
                doContent content =
@@ -126,6 +144,8 @@ reAssemble
                                  Nothing -> return content
                      _ -> return content
 
+            toMonadWithError (mapM_ doThisFile (getFiles element0))
+
             contents1 <- mapM doContent contents0
             return (Elem name attributes contents1)
    in
@@ -146,9 +166,10 @@ reAssemble
 reAssembleNoRecursion :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 
       -> IO (WithError (Maybe (Element,searchData)))) 
+   -> (MMiSSVariantSearch -> searchData -> String -> IO ())
    -> EntitySearchName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
-reAssembleNoRecursion getElement entityName variantSearch searchData =
+reAssembleNoRecursion getElement doFile entityName variantSearch searchData =
    let
       -- We do this by threading down an additional list containing the
       -- elements with their MMiSSVariantSearch objects already looked up.
@@ -169,5 +190,8 @@ reAssembleNoRecursion getElement entityName variantSearch searchData =
                         )
                      lookedUpWE
                      )
+
+      doFile' variantSearch0 (searchData0,_) str =
+         doFile variantSearch0 searchData0 str
    in
-      reAssemble getElement' entityName variantSearch (searchData,[])
+      reAssemble getElement' doFile' entityName variantSearch (searchData,[])

@@ -24,7 +24,7 @@ import MMiSSObjectExtract
 import MMiSSFormat
 import MMiSSObjectType
 
-
+import {-# SOURCE #-} MMiSSExportFiles
 
 exportMMiSSObjectLaTeX :: View -> Link MMiSSObject -> IO ()
 exportMMiSSObjectLaTeX = exportMMiSSObjectGeneral LaTeX
@@ -51,14 +51,19 @@ exportMMiSSObjectGeneral format view link =
             case filePathOpt of
                Just filePath ->
                   do
-                     stringWE <- extractMMiSSObject view link format
+                     (result1WE :: WithError (String,ExportFiles))
+                        <- extractMMiSSObject view link format
                      let
-                        string = coerceWithErrorOrBreak break stringWE
+                        (string,exportFiles0) 
+                           = coerceWithErrorOrBreak break result1WE
 
 
                      -- Write to the file
                      resultWE <- copyStringToFileCheck string filePath
                      coerceWithErrorOrBreakIO break resultWE
+
+                     -- Write the attached files.
+                     exportFiles view filePath exportFiles0 
                Nothing -> createMessageWin "Export cancelled" []
          )
 

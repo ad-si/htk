@@ -66,6 +66,7 @@ import MMiSSReadObject
 import MMiSSReAssemble
 import MMiSSPreamble
 import MMiSSPackageFolder
+import {-# SOURCE #-} MMiSSExportFiles
 
 
 -- ----------------------------------------------------------------------
@@ -327,7 +328,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                              thisObjectType view package1 Nothing
                              element1 False
 
-                          (link,elementOpt) 
+                          (link,elementOpt,preObjects) 
                              <- coerceWithErrorOrBreakIO break writeOutWE
 
                           setFontStyle (nodeActions object) 
@@ -512,9 +513,13 @@ mkPrintAction view editFormatConverter =
                :: MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]) 
                <- newMVar []
 
-            let
+
+            -- To gather the export files we put them in this MVar
+            (exportFilesMVar :: MVar ExportFiles)
+               <- newMVar []
 
             topMVar <- newMVar [(True,topRef)]
+             
 
             let
                variantSearch = refineVariantSearch (outerVariants topRef)
@@ -523,14 +528,18 @@ mkPrintAction view editFormatConverter =
             elementWE <- reAssemble 
                (reAssembleArg view preambleLinksMVar getContent 
                   editFormatConverter) 
-               (searchName topRef) variantSearch topMVar
+               (doFile exportFilesMVar)
+               (searchName topRef) variantSearch 
+               (package topRef,topMVar)
 
             case fromWithError elementWE of
                Left error -> createErrorWin error []
                Right element ->
                   do
-                     -- Extract all preambles
+                     -- Extract all preambles and exportFiles
                      preambleLinks <- takeMVar preambleLinksMVar
+
+                     exportFiles <- takeMVar exportFilesMVar
 
                      -- We do the actual printing in a separate thread,
                      -- so the user can continue editing.
@@ -540,16 +549,19 @@ mkPrintAction view editFormatConverter =
                                  preambleLinks element
                            case fromWithError stringWE of
                               Left error -> createErrorWin error []
-                              Right str -> mmissLaTeX (
-                                 toString (searchName topRef)) str
+                              Right str -> mmissLaTeX view
+                                 (toString (searchName topRef)) str
+                                 exportFiles
                         )
                      done
    in
       PrintAction printAction
 
--- Function to be passed to the reAssemble function.  This needs 
+-- Function to be passed as first argument of the reAssemble function.  
+-- This needs 
 -- four arguments in addition to those provided by reAssemble:
--- the view, an MVar for writing preamble links to, the
+-- the view, the MMiSSPackageFolder used for looking up MMiSSFile's,
+-- an MVar for writing preamble links to, the
 -- getContent function, and the EditFormatConverter.
 --
 -- Unfortunately reAssemble doesn't do exactly what we want;
@@ -563,10 +575,11 @@ reAssembleArg :: View -> MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]
    -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef))))        
    -> EditFormatConverter
    -> EntitySearchName
-   -> MMiSSVariantSearch -> MVar [(Bool,EditRef)] 
-   -> IO (WithError (Maybe (Element,MVar [(Bool,EditRef)])))
+   -> MMiSSVariantSearch -> (MMiSSPackageFolder,MVar [(Bool,EditRef)]) 
+   -> IO (WithError (Maybe (Element,
+      (MMiSSPackageFolder,MVar [(Bool,EditRef)]))))
 reAssembleArg view preambleLinksMVar getContent editFormatConverter
-      entitySearchName variantSearch0 mVar =
+      entitySearchName variantSearch0 (packageFolder0,mVar) =
    do
       ((doExpand,editRef):rest) <- takeMVar mVar
 
@@ -576,8 +589,8 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
       let
          name = toString (searchName editRef)
 
-         preambleAct :: IO (WithError (Link MMiSSPreamble))
-         preambleAct =
+         packageAct :: IO (WithError (MMiSSPackageFolder,Link MMiSSPreamble))
+         packageAct =
             do
                objectLinkWE <- getEditRef view editRef
                mapWithErrorIO'
@@ -588,7 +601,10 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
                         packageFolderWE <- getMMiSSPackageFolder
                            view mmissObject
                         return (mapWithError
-                           toMMiSSPreambleLink
+                           (\ packageFolder 
+                              -> (packageFolder,
+                                 toMMiSSPreambleLink packageFolder)
+                              )
                            packageFolderWE
                            )
                      )
@@ -601,13 +617,13 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
                   -- Get the preamble link first of all,
                   -- as if we can't get the preamble we
                   -- can't print the object.
-                  preambleLinkWE <- preambleAct
+                  preambleLinkWE <- packageAct
                   case fromWithError preambleLinkWE of
                      Left mess ->
                         do
                            createErrorWin (name ++ ": " ++ mess) []
                            return Nothing
-                     Right preambleLink ->
+                     Right (packageFolder1,preambleLink) ->
                         do
                            (content0WE 
                                  :: WithError (EmacsContent (Bool,EditRef)))
@@ -656,10 +672,16 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
                                        )
                                  )
 
-                           return (Just (element,nextMVar))
+                           return (Just (element,(packageFolder1,nextMVar)))
                )                                  
          else
             return (hasValue Nothing)
+
+-- | Function to be passed as second argument to MMiSSPackageFolder
+doFile :: MVar ExportFiles -> MMiSSVariantSearch 
+   -> (MMiSSPackageFolder,MVar [(Bool,EditRef)]) -> String -> IO ()
+doFile mVar variantSearch0 (packageFolder0,_) file0 =
+   modifyMVar_ mVar (return . ((packageFolder0,file0,variantSearch0) :))
 
 ---
 -- Given an EditRef, extract a link to the referenced object.

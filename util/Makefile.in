@@ -1,5 +1,5 @@
 PACKAGE = uni-util
-PACKAGES = concurrent lang data network text uni-options
+PACKAGES = concurrent lang data network text haskell-src uni-options
 
 SRCS       = \
   CompileFlags.hs Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \

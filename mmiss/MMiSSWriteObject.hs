@@ -83,10 +83,11 @@ import MMiSSPackageFolder
 -- multiple (more than one) output elements, we return the top element,
 -- namely the one that actually got written to the object.  (This is used
 -- to update the XEmacs buffer when we write an object that has new included
--- objects.)
+-- objects.); (3) the PreObjects for the insertion.  This will be used
+-- by MMiSSImportLaTeX to find all the files which need to be imported.
 writeToMMiSSObject :: MMiSSObjectType -> View 
    -> MMiSSPackageFolder -> Maybe EntitySearchName -> Element -> Bool 
-   -> IO (WithError (Link MMiSSObject,Maybe Element))
+   -> IO (WithError (Link MMiSSObject,Maybe Element,PreObjects))
 writeToMMiSSObject objectType view packageFolder 
    expectedLabel element checkThisEditLock =
  
@@ -162,7 +163,7 @@ writeToMMiSSObject objectType view packageFolder
                            return (package objectLoc,preObjects1,
                               childs structuredContent)
 
-         preObjects 
+         (preObjects :: PreObjects)
             <- treeFoldM treeFoldFn packageFolder emptyPreObjects contents
          let
             preObjectsWithoutHead = 
@@ -206,7 +207,7 @@ writeToMMiSSObject objectType view packageFolder
                _ -> Just (toTopElement contents)
 
          -- (9) return a link to the head object
-         return (headLink,newElementOpt)
+         return (headLink,newElementOpt,preObjects)
       ))
 
 

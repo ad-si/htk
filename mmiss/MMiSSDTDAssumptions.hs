@@ -39,6 +39,9 @@ module MMiSSDTDAssumptions(
    isPackageTag, -- :: String -> Bool
       -- Returns True if an element with this tag is to be treated as a 
       -- package.
+
+   getFiles, -- :: Element -> [String]
+      -- Return all the external files in an element
    ) where
 
 #include "config.h"
@@ -292,6 +295,13 @@ delLabel (Elem name attributes0 content) =
       attributes1 = deleteFirstOpt (\ (key,_) -> key == "label") attributes0
    in
       Elem name attributes1 content
+
+
+getFiles :: Element -> [String]
+getFiles (Elem _ attributes _)
+   = case getAttribute attributes "file" of
+      Nothing -> []
+      Just files -> splitByChar '.' files
 
 getPriority :: Element -> String
 getPriority (Elem _ attributes _) 

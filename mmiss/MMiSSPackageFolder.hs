@@ -28,7 +28,6 @@ module MMiSSPackageFolder(
       -- :: View -> MMiSSPackageFolder -> EntitySearchName 
       -- -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
       -- Get a package-folder from another one by search name.
-
    ) where
 
 import Maybe
@@ -68,9 +67,9 @@ import MergePrune
 
 import MMiSSObjectType hiding (linkedObject)
 import MMiSSObjectTypeType hiding (displayParms)
-import MMiSSImportLaTeX
 import MMiSSObjectTypeInstance
 import MMiSSPreamble
+import {-# SOURCE #-} MMiSSImportLaTeX
 
 -- ------------------------------------------------------------------------
 -- The MMiSSPackageFolderType type and its instance of HasCodedValue

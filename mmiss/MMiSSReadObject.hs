@@ -40,6 +40,8 @@ import MMiSSObjectTypeInstance
 import MMiSSReAssemble
 import MMiSSPackageFolder
 
+import {-# SOURCE #-} MMiSSExportFiles
+
 
 ---
 -- Retrieve a single MMiSSObject's data (not any of its children)
@@ -58,7 +60,7 @@ simpleReadFromMMiSSObject view objectLink variantSearch =
 
 ---
 -- Retrieve an object, expanding includes to a certain depth.  We also 
--- get links to all preambles.
+-- get links to all preambles and ExportFiles.
 --
 -- If allowNotFound is set, not found messages cause us to put up a warning
 -- window, otherwise they will be fatal.
@@ -67,7 +69,8 @@ simpleReadFromMMiSSObject view objectLink variantSearch =
 -- current one.
 readMMiSSObject :: View -> Link MMiSSObject -> Maybe MMiSSVariantSearch
    -> IntPlus -> Bool 
-   -> IO (WithError (Element,[(Link MMiSSPreamble,MMiSSExtraPreambleData)]))
+   -> IO (WithError (Element,[(Link MMiSSPreamble,MMiSSExtraPreambleData)],
+      ExportFiles))
 readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
    addFallOutWE (\ break ->
       do 
@@ -83,8 +86,11 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
             :: MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]) 
             <- newMVar []
 
+         -- And to gather all ExportFiles we put them here:
+         (exportFilesMVar :: MVar ExportFiles) <- newMVar []
+
          let
-            -- getElement is the function to be passed to
+            -- getElement is the first function to be passed to
             -- MMiSSReAssemble.reAssembleNoRecursion.  
 
             -- The MMiSSPackageFolder is the folder to look from.  
@@ -161,6 +167,15 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                         (packageFolder,depth - 1)))
                   )
 
+
+            -- doFile is the second function to be passed to 
+            -- reAssembleNoRecursion.
+            doFile :: MMiSSVariantSearch -> (MMiSSPackageFolder,IntPlus) 
+               -> String -> IO ()
+            doFile variantSearch0 (packageFolder0,_) file =
+               modifyMVar_ exportFilesMVar
+                  (return . ((packageFolder0,file,variantSearch0) :))
+
          -- Construct the top data for reAssembleNoRecursion.
 
          -- we need to get the object's package folder and a search name for
@@ -181,13 +196,15 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
             Just thisVariantSearch -> return thisVariantSearch
             Nothing -> getCurrentVariantSearch (variantObject object)
 
-         elementWE <- reAssembleNoRecursion getElement searchName
+         elementWE <- reAssembleNoRecursion getElement doFile searchName
             thisVariantSearch (packageFolder,depth0)
 
          element <- coerceWithErrorOrBreakIO break elementWE
 
          preambleLinks <- takeMVar preambleLinksMVar
-         return (element,preambleLinks)
+
+         exportFiles <- takeMVar exportFilesMVar
+         return (element,preambleLinks,exportFiles)
       )
          
 ---

@@ -6,7 +6,7 @@
 <menu id="xvmenu">
    <command title="view" command="xv %F"/>
    <separator/>
-   <subMenu menu="variants">
+   <subMenu menu="variants"/>
 </menu>
 <menu id="variants" title="Variants">
    <displayVariants title="Display"/>

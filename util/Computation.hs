@@ -87,6 +87,7 @@ module Computation (
         -- This is itself an instance of Monad, allowing functions defined
         -- on monads, such as mapM, work on them.
         monadifyWithError, -- :: Monad m => WithError a -> MonadWithError m a
+        toMonadWithError, -- :: Monad m => m a -> MonadWithError m a
 
         coerceWithErrorOrBreak, -- :: (String -> a) -> WithError a -> a
         -- coerce or use the supplied break function (to be used with 
@@ -304,6 +305,13 @@ instance Monad m => Monad (MonadWithError m) where
 
 monadifyWithError :: Monad m => WithError a -> MonadWithError m a
 monadifyWithError we = MonadWithError (return we)
+
+toMonadWithError :: Monad m => m a -> MonadWithError m a
+toMonadWithError act = MonadWithError (
+   do
+      a <- act
+      return (hasValue a)
+   )
 
 -- --------------------------------------------------------------------------
 -- Derived Control Abstractions: Iteration

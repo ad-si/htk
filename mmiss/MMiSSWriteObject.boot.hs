@@ -17,5 +17,6 @@ writeToMMiSSObject ::
    -> GHC.Base.Bool 
    -> GHC.IOBase.IO (Computation.WithError (
       Link.Link MMiSSObjectType.MMiSSObject,
-      Data.Maybe.Maybe ELEMENT))
+      Data.Maybe.Maybe ELEMENT,
+      MMiSSPreObjects.PreObjects))
 

@@ -32,6 +32,8 @@ module ExtendedPrelude (
 
    chop, -- :: Int -> [a] -> Maybe [a]
       -- removes last elements from a list
+   pairList, -- :: a -> [b] -> [(a,b)]
+      -- pair of elements of a list.
    lastOpt, -- :: [a] -> Maybe a
       -- gets the last element of a list, safely.
 
@@ -358,6 +360,12 @@ chop n list =
    in
       if toTake >=0 then Just (take toTake list) else Nothing
 
+-- ------------------------------------------------------------------------
+-- Pair off elements of a list
+-- ------------------------------------------------------------------------
+
+pairList :: a -> [b] -> [(a,b)]
+pairList a bs = map (\ b -> (a,b)) bs
 
 -- ------------------------------------------------------------------------
 -- Get the last element (safely)

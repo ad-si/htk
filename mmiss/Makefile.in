@@ -16,10 +16,12 @@ SRCS = MMiSSDTDAssumptions.hs \
    $(if @HAXML@,,XmlValidate.hs) \
    MMiSSRegistrations.hs MMiSSInitialise.hs \
    MMiSSFiles.hs MMiSSFileType.hs \
+   MMiSSExportFiles.hs 
 
 BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \
-   MMiSSPackageFolder.boot.hs 
+   MMiSSPackageFolder.boot.hs MMiSSImportLaTeX.boot.hs \
+   MMiSSExportLaTeX.boot.hs MMiSSExportFiles.boot.hs
 
 SUBDIRS = test
 

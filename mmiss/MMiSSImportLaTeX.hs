@@ -4,6 +4,7 @@ module MMiSSImportLaTeX(
    ) where
 
 import Maybe
+import Monad
 
 import Computation
 import ExtendedPrelude
@@ -30,6 +31,10 @@ import MMiSSDTDAssumptions
 import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSPreamble
+import MMiSSFileType
+import MMiSSContent
+import MMiSSPreObjects
+import MMiSSVariant(MMiSSVariantSpec)
 import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSWriteObject
 
@@ -56,8 +61,11 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
             filePathOpt <- sync dialogEvent
             case filePathOpt of
                Nothing -> return Nothing
-               Just filePath ->
+               Just filePath0 ->
                   do
+                     let
+                        filePath = trimDir filePath0
+
 	             inputStringWE <- copyFileToStringCheck filePath
                      inputString 
                         <- coerceWithErrorOrBreakIO break inputStringWE
@@ -93,10 +101,111 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
 
                      writePreamble preambleLink view preamble
 
-                     linkWE <- writeToMMiSSObject objectType view
+                     resultWE <- writeToMMiSSObject objectType view
                         packageFolder Nothing element True
 
-                     (link,_) <- coerceWithErrorOrBreakIO break linkWE
+                     (link,_,preObjects) 
+                        <- coerceWithErrorOrBreakIO break resultWE
+                     
+                     -- Now add all referenced files belonging to this
+                     -- package, getting them from preObjects.
+                     -- From here on we treat all errors softly,
+                     -- not breaking but simply reporting them and moving on.
+                     -- This is because the package import itself has
+                     -- succeeded.
+                     let
+                        toLinkedObject' = toMMiSSPackageFolderLinkedObject
+
+                        insertions1 :: [(ObjectLoc,[StructuredContent])]
+                        insertions1 = listPreObjects preObjects
+
+                        -- filter all insertions out which aren't into
+                        -- this package folder and get the StructuredContent
+                        -- for the rest
+                        insertions2 :: [StructuredContent]
+                        insertions2 = concat (
+                           map 
+                              (\ (objectLoc,contents) ->
+                                 if toLinkedObject' (package objectLoc) 
+                                       == toLinkedObject' packageFolder
+                                    then
+                                       contents
+                                    else
+                                       []
+                                 )
+                              insertions1
+                              )
+
+                        -- Now get the files for all the objects
+                        insertions3 :: [(MMiSSVariantSpec,String)]
+                        insertions3 = concat (
+                           map
+                              (\ content -> 
+                                 pairList (variantSpec content) (files content)
+                              )
+                              insertions2
+                           )
+
+                        -- Remove duplicates
+                        insertions4 :: [(MMiSSVariantSpec,String)]
+                        insertions4 = uniqOrd insertions3
+
+                     -- Now find all files of appropriate file type within
+                     -- the directory, as (name,extension) pairs.
+                     -- Also remember which files we did not find, so we can
+                     -- complain.
+                     (insertions5 :: [(MMiSSVariantSpec,String,String)],
+                           notFound :: [String])
+                        <- foldM
+                           (\ (found0,notFound0) (variantSpec,toFind) ->
+                              do
+                                 foundPairs <- findMMiSSFilesInDirectory
+                                    filePath toFind
+                                 return (case foundPairs of
+                                    [] -> (found0,toFind : notFound0)
+                                    _ -> 
+                                       let
+                                          foundList :: [(MMiSSVariantSpec,
+                                             String,String)]
+                                          foundList = map
+                                             (\ (name,ext) 
+                                                -> (variantSpec,name,ext))
+                                             foundPairs
+                                       in
+                                          (foundList ++ found0,notFound0)
+                                    )
+                              )
+                           ([],[])
+                           insertions4
+
+                     -- Complain about missing files if necessary
+                     case notFound of
+                        [] -> done
+                        _ -> createErrorWin
+                           ("The following referenced files were not found or "
+                              ++ "have an unknown file type:"
+                              ++ (concat (map (\ nf -> "\n   " ++ nf) 
+                                 notFound))
+                              )
+                            []
+
+                     -- Remove duplicates again
+                     let
+                        insertions6 :: [(MMiSSVariantSpec,String,String)]
+                        insertions6 = uniqOrd insertions5
+
+                     -- Now do the insertions.  
+                     resultWEs <- mapM
+                        (\ (variantSpec,name,ext) ->
+                           importMMiSSFile view (toLinkedObject' packageFolder)
+                              filePath name ext variantSpec
+                           )
+                        insertions6  
+                     
+                     case fromWithError (listWithError resultWEs) of
+                        Right _ -> done
+                        Left mess -> createErrorWin mess []
+                     
                      return (Just link)
          )
       case result of

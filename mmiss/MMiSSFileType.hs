@@ -9,7 +9,10 @@ module MMiSSFileType(
       -- The object's location is given by containing directory,
       -- name, and extension.
 
-
+   exportMMiSSFile,
+      -- :: View -> FilePath -> Link MMiSSFile -> MMiSSVariantSearch
+      -- -> IO (WithError ())
+      -- Write an MMiSSFile to a directory.
 
    findMMiSSFilesInRepository, 
      -- :: HasLinkedObject folder 

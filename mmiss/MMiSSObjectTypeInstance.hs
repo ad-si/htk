@@ -44,8 +44,6 @@ import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSVariant
 import MMiSSVariantObject
-import MMiSSImportLaTeX
-import MMiSSExportLaTeX
 import MMiSSContent
 import MMiSSPrint
 import MMiSSEditXml(toExportableXml)
@@ -53,6 +51,8 @@ import MMiSSEditXml(toExportableXml)
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
+import {-# SOURCE #-} MMiSSImportLaTeX
+import {-# SOURCE #-} MMiSSExportLaTeX
 
 -- -------------------------------------------------------------------------
 -- The instance
