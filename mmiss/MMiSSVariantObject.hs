@@ -225,7 +225,7 @@ newEmptyVariantObject1 converter1 =
    do
       dictionary1 <- newEmptyVariantDict 
 
-      currentVariantSpec1 <- newMVar (error "MMiSSVariantObject.1")
+      currentVariantSpec1 <- newMVar emptyMMiSSVariantSpec
       cache1 <- newSimpleBroadcaster (error "MMiSSVariantObject.2")
 
       let

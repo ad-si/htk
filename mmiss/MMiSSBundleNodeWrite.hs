@@ -49,8 +49,9 @@ import {-# SOURCE #-} MMiSSObjectTypeInstance
 data PreWriteNodeData = PreWriteNodeData {
    node :: BundleNode,
    thisLink :: SplitLink, -- ^ Where to put this node
-   parentLink :: Maybe SplitLink
+   parentLink :: Maybe (SplitLink,EntityName)
        -- ^ If set, we should make this child a parent of the given node,
+       -- with the given name
        -- after all the nodes have been written.
    }
 
@@ -68,8 +69,8 @@ mkPreWriteData view insertionPoint bundleNode =
       -- The top node needs special handling.  We cannot for example
       -- assume that it has a parent; we may be importing directly
       -- into the top node.
-      (preWriteNodeData0,ancestorInfo0) <- case insertionPoint of
-         Right (folderLink,_) ->
+      (preWriteNodeData0,ancestorInfo0,nameOpt) <- case insertionPoint of
+         Right (folderLink,name) ->
             do
                -- This object is new and should be written to this folder.
                thisLink <- newEmptySplitLink view (
@@ -79,14 +80,14 @@ mkPreWriteData view insertionPoint bundleNode =
                   preWriteNodeData0 = PreWriteNodeData {
                      node = bundleNode,
                      thisLink = thisLink,
-                     parentLink = Just (FolderC folderLink)
+                     parentLink = Just (FolderC folderLink,name)
                      }
                   ancestorInfo0 = AncestorInfo {
                      names = [],
                      parent = thisLink,
                      parentExists = False
                      }
-               return (preWriteNodeData0,ancestorInfo0)
+               return (preWriteNodeData0,ancestorInfo0,Just name)
          Left linkedObject ->
             let
                thisLink = splitLinkedObject linkedObject
@@ -102,7 +103,7 @@ mkPreWriteData view insertionPoint bundleNode =
                   parentExists = True
                   }
             in
-               return (preWriteNodeData0,ancestorInfo0)
+               return (preWriteNodeData0,ancestorInfo0,Nothing)
 
       let
          preWriteData0 = PreWriteData {
@@ -114,6 +115,13 @@ mkPreWriteData view insertionPoint bundleNode =
          bundleFoldFn ancestorInfo0 bundleNode0 =
             do
                let
+                  Just nameStr1 = name . fileLoc $ bundleNode0
+                  -- This pattern will of course fail for preambles.
+                  -- But it won't fail for the top node, because we
+                  -- use bundleFoldM1, which doesn't visit the top node.
+                  name1 :: EntityName
+                  name1 = fromString nameStr1
+        
                   createEmpty =
                      do
                         thisLink <- newEmptySplitLink view
@@ -142,17 +150,16 @@ mkPreWriteData view insertionPoint bundleNode =
                               do
                                  parentLinkedObject <- readSplitLink view
                                     (parent ancestorInfo0)
-                                 let
-                                    Just nameStr1 
-                                       = name . fileLoc $ bundleNode0
-
-                                    name1 :: EntityName
-                                    name1 = fromString nameStr1
 
                                  thisLinkedObjectOpt <- lookupNameInFolder 
                                     parentLinkedObject name1
                                  case thisLinkedObjectOpt of
                                     Nothing -> createEmpty
+                                    Just thisLinkedObject -> 
+                                       return (
+                                          splitLinkedObject thisLinkedObject,
+                                          True
+                                           )
                         else
                            createEmpty
 
@@ -165,9 +172,9 @@ mkPreWriteData view insertionPoint bundleNode =
                      parentLink = 
                         if thisExists 
                            then 
-                              Just (parent ancestorInfo0) 
-                           else 
                               Nothing
+                           else
+                              Just (parent ancestorInfo0,name1) 
                      }
 
                   thisName = alwaysNameFileLoc (fileLoc bundleNode0)
@@ -270,13 +277,10 @@ makeConnections view preWriteData =
                     parentLink nodeData) of
                (MMiSSPreambleEnum,_) -> done
                (_,Nothing) -> done
-               (_,Just parentLink1) ->
+               (_,Just (parentLink1,name1)) ->
                   do
                      parentLinkedObject <- readSplitLink view parentLink1
                      thisLinkedObject <- readSplitLink view (thisLink nodeData)
-                     let
-                        Just nameStr = name . fileLoc . node $ nodeData
-                        name1 = fromString nameStr
                      resultWE <- moveObject thisLinkedObject 
                         (Just (mkInsertion parentLinkedObject name1))
                      coerceImportExportIO resultWE

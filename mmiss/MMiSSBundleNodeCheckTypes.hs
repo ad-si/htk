@@ -39,10 +39,7 @@ checkBundleNodeTypes view insertionPoint bundleNode =
             Left linkedObject -> 
                checkBundleNodeTypes1 view (Just linkedObject) bundleNode
             Right _ ->
-               case name . fileLoc $ bundleNode of
-                  Nothing -> return (fail 
-                     "No name supplied for object which has to be created")
-                  Just _ -> return done
+               return done
 
       check2WE <- checkSimpleTypesExist view bundleNode
       let

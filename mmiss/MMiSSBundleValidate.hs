@@ -181,18 +181,19 @@ toContainerType bundleNode1 =
 -- -----------------------------------------------------------------------
 
 validateBundle2 :: Bundle -> WithError ()
-validateBundle2 = checkAllNodes checkNamesExt
+validateBundle2 = checkAllNodes1 checkNamesExt
    where
-      checkNamesExt bundleNode1 =
+      checkNamesExt isTop bundleNode1 =
          let
             fileLoc1 = fileLoc bundleNode1
 
             objectType1 = objectType fileLoc1
 
             mustHaveName =
-               case name fileLoc1 of
-                  Nothing -> err bundleNode1 "Object has no name"
-                  Just _ -> done
+               case (name fileLoc1,isTop,base objectType1) of
+                  (Just _,_,_) -> done
+                  (_,True,MMiSSFolderEnum) -> done
+                  _  -> err bundleNode1 "Object has no name"
             mustNotHaveName =
                case name fileLoc1 of
                   Just _ -> err bundleNode1 "Preamble has a name"
@@ -436,6 +437,29 @@ checkAllNodes checkBundleNode (Bundle packageBundles) =
                _ -> done
    in
       cNodes (map snd packageBundles)
+
+
+-- checkAllNodes1 provides an extra argument which indicates if this
+-- is the head node.
+checkAllNodes1 :: (Bool -> BundleNode -> WithError ()) -> Bundle 
+   -> WithError ()
+checkAllNodes1 checkBundleNode (Bundle packageBundles) =
+   let
+      cNodes :: Bool -> [BundleNode] -> WithError ()
+      cNodes isTop nodes = checkList (cNode isTop) nodes
+
+      cNode :: Bool -> BundleNode -> WithError ()
+      cNode isTop bundleNode =
+         do
+            checkBundleNode isTop bundleNode
+            case bundleNodeData bundleNode of
+               Dir bundleNodes -> cNodes False bundleNodes
+               _ -> done
+   in
+      cNodes True (map snd packageBundles)
+   
+
+
 
 -- slightly better than mapM_ because if it discovers multiple errors
 -- it returns them all.
