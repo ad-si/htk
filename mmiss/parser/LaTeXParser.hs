@@ -3,9 +3,11 @@ module LaTeXParser where
 
 import Parsec
 import Char
--- import Computation
-
--- type LaTeXText = [Frag]
+import XmlTypes
+import Pretty hiding (char, spaces)
+import qualified XmlPP as PP
+import Computation hiding (try)
+import ParsecError
 
 type EnvId = String
 type Command = String
@@ -38,10 +40,11 @@ data Params = MParams (Maybe FormId) LabelId Title Attributes   -- Parameter of 
 
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
-mmiss2EnvIds = ["package","section","paragraph","view","example","exercise","definition"] ++
-               ["textfragment","table","figure","glossaryentry", "program","theory","theorem"] ++
-               ["conjecture","lemma","corollary","assertion","development","proof","script"] ++
-               ["programfragment","clause","step","bibentry","authorentry"]
+mmiss2EnvIds = ["Package","Section","Paragraph","View","Example","Exercise","Definition"] ++
+               ["TextFragment","Table","Figure","GlossaryEntry", "Program","Theory","Theorem"] ++
+               ["Conjecture","Lemma","Corollary","Assertion","Development","Proof","Script"] ++
+               ["ProgramFragment","Clause","Step","Bibentry","Authorentry","List","Listitem"] ++
+               ["Emphasis"]
 
 ---------------------------------------------------------------------------------------------
 --
@@ -49,21 +52,28 @@ mmiss2EnvIds = ["package","section","paragraph","view","example","exercise","def
 --
 ---------------------------------------------------------------------------------------------
 
+backslash :: GenParser Char st Char
 backslash = char '\\'
 
+idParser :: GenParser Char st String
 idParser = many (noneOf "}]")
 
-
+-- commaSep :: GenParser Char st a
 commaSep p = p `sepBy` (oneOf ",")
 
 -- equalSep p = p `sepBy` (oneOf "=")
 
+listTypeParser :: GenParser Char st String
+listTypeParser = try(string "itemize") <|> try(string "enumeration") <|> return ("")
+
 
 {- attParser parses the list of attributes belonging to an MMiSS-Environment -}
 
+attParser :: GenParser Char st Attributes
 attParser = commaSep attribute
             <|> return([])
 
+attribute :: GenParser Char st (String, String)
 attribute = do spaces
                key <- try(many1(noneOf ",=}")) <?> "attribute name"
                spaces
@@ -73,10 +83,13 @@ attribute = do spaces
                     <?> "value for attribute '" ++ key ++ "'"
                return (key, v)
 
+delimitedValue :: String -> GenParser Char st String
 delimitedValue key = between (char '{') (char '}') (value1 key)
 
+value :: GenParser Char st String
 value = many1 (noneOf ",}")
 
+value1 :: String -> GenParser Char st String
 value1 key = try(many1 (noneOf "}")) <?> "value for attribute '" ++ key ++ "'" 
 
 
@@ -86,17 +99,29 @@ value1 key = try(many1 (noneOf "}")) <?> "value for attribute '" ++ key ++ "'"
    (the latter since LaTeX 2e I think), the l und r parameters to genParam
    hold the delimiter character, to look out for. e.g. l = '{', r = '}'  -}
 
-genParam l r = between (char l) (char r) frag <?> ("fragment between " ++ [l] ++ " and " ++ [r])
+genParam :: Char -> Char -> GenParser Char st Frag
+genParam l r = between (char l) (char r) (otherDelim r) <?> ("fragment between " ++ [l] ++ " and " ++ [r])
 
 
+-- other konsumiert solange Text, bis ein Backslash oder Kommentarzeichen auftaucht und
+-- generiert ein Other-Fragment mit diesem Text.
 
--- other generiert Text-Fragmente
-
+other :: GenParser Char st Frag
 other = fmap Other (many1 (noneOf "\\%"))
+
+
+-- otherDelim konsumiert solange Text, bis ein Backslash, Kommentarzeichen oder ein
+-- Delimiter (r) auftaucht. Dient dazu, um Other-Fragmente in Parametern zu erkennen;
+-- in Parametern darf das schliessende Zeichen nicht ueberlesen werden.
+
+otherDelim :: Char -> GenParser Char st Frag
+otherDelim r = let s = "\\%" ++ [r]
+               in fmap Other (many1 (noneOf s))
 
 
 -- begin erkennt den Namen einer Umgebung (id)
 
+begin :: GenParser Char st String
 begin = do  try (string "begin")
             spaces
             c <- between (char '{') (char '}') idParser
@@ -105,12 +130,19 @@ begin = do  try (string "begin")
                             
 -- end  ueberprueft, ob als naechstes ein \end{id} in der Source auftaucht.
 
+end :: String -> GenParser Char st String
 end id = do backslash
             string "end"
             spaces 
             c <- between (char '{') (char '}') idParser
             return(c)
 
+
+-- continue wird vom Parser 'beginBlock' benutzt, um nach dem schliessenden Tag fuer
+-- 'id' zu suchen. Der Inhalt der vom beginBlock erkannten Umgebung wird durch den
+-- frag-Parser geschickt.
+
+continue ::  [Frag] -> String -> GenParser Char st [Frag]
 continue l id = (try (end id) >>= 
                        (\ x -> if x == id then return l else fail ("no matching end-Tag for <" ++ id ++ ">")))
                 <|> do f <- frag
@@ -127,26 +159,63 @@ beginBlock = do id <- begin
                 return (Env id params (reverse l))
 
 
-envParams id = if ((map toLower id) `elem` mmiss2EnvIds) 
-                 then mEnvParams 
-                 else lParams [] <?> ("Parameters for LaTeX-Environment <" ++ id ++ ">")
+-- envParams unterscheidet MMiSSLatex-Umgebungen von Latex-Umgebungen und stoesst
+-- die passende Erkennungsfunktion fuer die Parameter an.
+
+envParams :: String -> GenParser Char st Params
+envParams id =  if (id `elem` mmiss2EnvIds) 
+                    then if (id == "list")
+                           then mListParams id
+			   else mEnvParams id 
+                    else lParams [] <?> ("Parameters for LaTeX-Environment <" ++ id ++ ">")
 
 
-mEnvParams = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
-                spaces
-                labelId <-  try(between (char '{') (char '}') idParser)
-		            <?> "{labelID}{title}{attribute-list} for MMiSS-Environment"  
-		spaces
-                title <- try(between (char '{') (char '}') idParser)
-                         <?> "{title}{attribute-list} for MMiSS-Environment"  
-                spaces
- 		attributes <- try(between (char '{') (char '}') attParser)
-                              <?> "{attribute-list} for MMiSS-Environment"
-                if formId == "" 
-                  then return(MParams Nothing labelId title attributes)
-                  else return(MParams (Just(formId)) labelId title attributes)
+-- mListParams erkennt die Parameter, die zu einer MMiSSLatex-Umgebung gehoeren 
+-- (mit Ausnahme von List-Umgebungen. Dies sind: 
+-- [FormalismID] {LabelID} {Title} {Attributes}
+
+mEnvParams :: String -> GenParser Char st Params
+mEnvParams id = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
+		   spaces
+		   labelId <-  try(between (char '{') (char '}') idParser)
+			       <?> "{labelID}{title}{attribute-list} for Environment <" ++ id ++ ">"   
+		   spaces
+		   
+		   title <- try(between (char '{') (char '}') idParser)
+			    <?> "{title}{attribute-list} for Environment <" ++ id ++ ">"   
+		   spaces
+		   attributes <- try(between (char '{') (char '}') attParser)
+				 <?> "{attribute-list} for Environment <" ++ id ++ ">"   
+		   if formId == "" 
+		     then return(MParams Nothing labelId title attributes)
+		     else return(MParams (Just(formId)) labelId title attributes)
 
 
+-- mListParams erkennt die Parameter, die zu einer MMiSSLatex-List-Umgebung gehoeren.
+-- Die Unterscheidung zu mEnvParams ist notwendig, da List-Umgebungen kein Title-
+-- Parameter haben.
+
+mListParams :: String -> GenParser Char st Params
+mListParams id = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
+		    spaces
+		    labelId <-  try(between (char '{') (char '}') idParser)
+			        <?> "{labelID}{title}{attribute-list} for Environment <" ++ id ++ ">"   
+		    spaces
+                    listType <- try(between (char '{') (char '}') listTypeParser)
+                                <?> "listtype 'itemize' or 'enumeration' for Environment <list>"
+	            spaces
+		    attributes <- try(between (char '{') (char '}') attParser)
+				 <?> "{attribute-list} for Environment <" ++ id ++ ">"   
+		    if formId == "" 
+		      then return(MParams Nothing labelId "" (("Type",listType):attributes))
+		      else return(MParams (Just(formId)) labelId "" (("Type",listType):attributes))
+	
+
+-- lParams erkennt Parameter eines Latex-Commands. Diese koennen in normalen, geschweiften
+-- oder eckigen Klammern eingeschlossen sein. Es wird nicht geprueft, ob die Parameter
+-- und ihre Reihenfolge den Latex-Definitionen entsprechen.
+	    
+lParams :: [SingleParam] -> GenParser Char st Params
 lParams l = do p <- try ( genParam '{' '}' )
                lParams ((SingleParam p '{'):l)  
             <|>  do p <- try ( genParam '[' ']' )
@@ -155,7 +224,7 @@ lParams l = do p <- try ( genParam '{' '}' )
                     lParams ((SingleParam p '('):l)
             <|>  return (LParams (reverse l))
 
-
+{--
 continueAdhocEnv l = do try (char '}')
                         return l
                      <|> do f <- frag
@@ -167,13 +236,14 @@ continueAdhocEnv l = do try (char '}')
 adhocEnvironment = do char '{'
                       l <- continueAdhocEnv [] <?> "closing } for unnamed environment"
                       return (Env "" (LParams []) (reverse l))
-
+--}
 
 
 -- command erkennt LaTeX-Kommandos. Escaped letters wie \{, \$ etc. werden hier 
 -- nicht erkannt, sondern von escapedChar geparst.
+
 command :: GenParser Char st Frag
-command = do c <- many1 (noneOf "\\\v\f\t\r\n{[ ")
+command = do c <- many1 (noneOf "\\\v\f\t\r\n{[( ")
              skipMany (oneOf " \t")
              l <- lParams [] 
 	     return (Command c l)
@@ -190,36 +260,120 @@ escapedChar = do c <- try (oneOf "\\#$&~_^%{} ")
 -- comment erkennt Kommentarzeilen. Kommentare werden als Other-Fragment behandelt
 --
 
+comment :: GenParser Char st Frag
 comment = do char '%'
              s <- manyTill anyChar (try newline)
              return (Other ("%" ++ s))
 
 
+-- frag erkennt Latex-Fragmente: Kommentare, Environments, Commands und Escaped Chars. 
+-- Alle anderen Zeichenfolgen werden in das Fragment 'other' verpackt.
+
 frag :: GenParser Char st Frag
 frag = comment
-       <|> do backslash
-              beginBlock <|> escapedChar <|> command <|> return (Other "\\")
---     <|> adhocEnvironment
-       <|> other
+	 <|> do backslash
+		beginBlock <|> escapedChar <|> command <|> return (Other "\\")
+  --     <|> adhocEnvironment
+	 <|> other
+		
 
-
--- doc ist der Haupt-Parser. Er sammelt die Fragmente der Root-Ebene ein und kapselt
+-- latexDoc ist der Haupt-Parser. Er sammelt die Fragmente der Root-Ebene ein und kapselt
 -- sie in eine virtuelle Root-Umgebung, damit eine saubere Baum-Struktur entsteht. 
 
-doc :: [Frag] -> GenParser Char st Frag
-doc l =  do f <- frag <?> "Fragment"
-            doc (f:l)
-         <|> return (Env "Root" (LParams []) (reverse l))
+latexDoc :: [Frag] -> GenParser Char st Frag
+latexDoc l =  do f <-  frag <?> "Fragment"
+		 latexDoc (f:l)
+	      <|> return (Env "Root" (LParams []) (reverse l))
 
 
 -- Haupt-Funktion (eigentlich main)
 
 mparse :: SourceName -> IO ()
-mparse fname = do result <- parseFromFile (doc []) fname
+mparse fname = do result <- parseFromFile (latexDoc []) fname
                   case result of 
                       Left err -> print err
                       Right f -> print f
 
 
 
+{-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
+    XML-structure.  --}
+
+parseMMiSSLatex :: SourceName -> IO (WithError Element)
+
+parseMMiSSLatex s = do result <- parseFromFile (latexDoc []) s
+ 		       case result of
+			   Right ast  -> return(makeXML ast)
+			   Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
+
+
+showElement :: WithError Element -> String
+
+showElement e = coerceWithError (mapWithError (render . PP.element) e)
+
+
+makeXML :: Frag -> WithError Element
+
+makeXML frag = let (rootElem, frags) = coerceWithError(findFirstPackage [frag])
+	       in  hasValue(rootElem)
+
+
+findFirstPackage :: [Frag] -> WithError (Element, [Frag])
+
+findFirstPackage 
+    ((Env "Root" _ fs):[])    = findFirstPackage fs
+findFirstPackage 
+    ((Env "document" _ fs):_) = findFirstPackage fs
+findFirstPackage 
+    ((Env "Package" ps fs):_) = hasValue(((Elem "package" (makeAttribs ps) 
+					    (makeContent fs), fs)))
+findFirstPackage 
+    (f:fs)                    = findFirstPackage fs
+findFirstPackage 
+    []                        = hasError("No topmost 'package' element found!")           
+
+
+makeContent :: [Frag] -> [Content]
+
+makeContent (f:frags) = 
+   case f of
+     (Env name ps fs) -> 
+       if (name `elem` mmiss2EnvIds) 
+	 then [(CElem (Elem name (makeAttribs ps)
+	    (makeContent fs)))] ++ (makeContent frags)
+         else (makeContent fs) ++ (makeContent frags)
+     (Command "Emphasis" ps) -> 
+	(CElem (Elem "emphasis" [] 
+                    [CString True (getEmphasisText ps)])):(makeContent frags)
+     _ -> makeContent frags 
+makeContent [] = []
+
+
+
+--  MParams (Maybe FormId) LabelId Title Attributes
+makeAttribs :: Params -> [Attribute]
+
+makeAttribs 
+  (MParams Nothing label title atts) = [("label", (AttValue [Left label]))] ++
+                                       [("title", (AttValue [Left title]))] ++
+                                       (map convertAttribs atts)
+makeAttribs 
+  (MParams (Just formID) label title atts) = [("notationID", (AttValue [Left formID]))] ++
+			 		     [("label", (AttValue [Left label]))] ++
+                                             [("title", (AttValue [Left title]))] ++
+                                             (map convertAttribs atts)
+makeAttribs 
+  _ = []
+  
+
+convertAttribs :: (String, String) -> Attribute
+
+convertAttribs (l, r) = (l, AttValue [Left r])
+
+
+getEmphasisText :: Params -> String
+
+getEmphasisText (LParams []) = ""
+getEmphasisText (LParams ((SingleParam (Other s) _):ps)) = s
+ 
 
