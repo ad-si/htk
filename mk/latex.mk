@@ -3,19 +3,25 @@
 #
 # Strangely, this may not work with Solaris make-- use GNU make instead.
 
-.SUFFIXES: .tex .bib .fig .eps .bbl .ps .pdf .dvi
+.SUFFIXES: .tex .bib .fig .eps .png .bbl .ps .pdf .dvi
 
-FIG2DEV = fig2dev
-LATEX   = latex
+FIG2DEV  = fig2dev
+LATEX    = latex
 PDFLATEX = pdflatex
-BIBTEX  = bibtex
-DVIPS   = dvips
+BIBTEX   = bibtex
+DVIPS    = dvips
+PNGTOPNM = pngtopnm
+PNMTOPS  = pnmtops
 
 .fig.eps:
 	$(FIG2DEV) -L ps $< > $@
 
 .fig.pdf:
 	$(FIG2DEV) -L pdf $< > $@
+
+# This will fall over if there are too many colours in the PNG file...
+.png.eps:
+	$(PNGTOPNM) $< | $(PNMTOPS) > $@
 
 .dvi.ps:
 	$(DVIPS) -o $@ $<
