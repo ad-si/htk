@@ -4,6 +4,10 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+72) 04.04.03
+Editing objects in a merged view is liable to lead to fetchLink errors.
+FIXED
+
 71) 01.04.03
 If an object is deleted from a package and we then try to close the package
 folder we get a "DeleteAndFindFirst" error.

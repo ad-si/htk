@@ -291,12 +291,14 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                          )
                                       )
                                    emacsContent0
+
                           elementWE <- fromEdit name emacsContent1
 
                           -- We now play games with the element.  Specifically,
                           -- we change its label to ".", first checking that
                           -- the user hasn't changed it.
                           element0 <- coerceWithErrorOrBreakIO break elementWE
+
                           let
                              description1WE = getLabel element0
 
@@ -320,8 +322,10 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                           writeOutWE <- writeToMMiSSObject (preamble variable)
                              thisObjectType view thisLinkedObject Nothing
                              element1 False
+
                           (link,elementOpt) 
                              <- coerceWithErrorOrBreakIO break writeOutWE
+
                           setFontStyle (nodeActions object) 
                              BoldItalicFontStyle
 

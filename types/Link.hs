@@ -111,6 +111,7 @@ import Dynamics
 import AtomString(fromString)
 import VariableSet(HasKey(..))
 import Computation
+import Debug
 
 import VersionDB
 import ViewType
@@ -366,7 +367,10 @@ createObjectGeneral view status location =
 -- be deleted using LinkManager.deleteLinkedObject (which also calls
 -- deleteLink).
 deleteLink :: HasCodedValue x => View -> Link x -> IO ()
-deleteLink view (Link location) = deleteFromRegistry (objects view) location
+deleteLink view (Link location) = 
+   do
+      debug ("Deleting " ++ show location)
+      deleteFromRegistry (objects view) location
 
 ---
 -- As with createObjectGeneral, create the versioned object and 

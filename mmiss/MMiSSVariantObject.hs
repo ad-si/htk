@@ -93,9 +93,12 @@ module MMiSSVariantObject(
       -- -> IO ((ObjectLinks (MMiSSVariants,key)))
 
    attemptMergeVariantObject,
-      -- :: (View -> object -> IO object) 
+      -- :: (object -> IO cache) -> (View -> object -> IO object) 
       -- -> [(View,VariantObject object cache)]
       -- -> IO (VariantObject object cache)
+      --
+      -- The first argument is the new converter, the second the function to
+      -- be used to map old objects to new objects.
 
    displayObjectVariants,
       -- :: VariantObject object cache -> IO ()
@@ -105,6 +108,7 @@ module MMiSSVariantObject(
 import Maybe
 
 import Control.Concurrent.MVar
+import System.IO.Unsafe(unsafeInterleaveIO)
 
 import Dynamics
 import Computation (done)
@@ -426,10 +430,13 @@ variantObjectObjectLinks getIndividualObjectLinks variantObject =
     getMMiSSVariantDictObjectLinks getIndividualObjectLinks 
        (dictionary variantObject)
 
+-- The first argument is the new converter, the second the function to
+-- be used to map old objects to new objects.
 attemptMergeVariantObject
-   :: (View -> object -> IO object) -> [(View,VariantObject object cache)]
+   :: (object -> IO cache) -> (View -> object -> IO object) 
+   -> [(View,VariantObject object cache)]
    -> IO (VariantObject object cache)
-attemptMergeVariantObject convertObject variantObjects =
+attemptMergeVariantObject newConverter convertObject variantObjects =
    do
       dictionary1 <- attemptMergeMMiSSVariantDict convertObject
          (map 
@@ -439,12 +446,15 @@ attemptMergeVariantObject convertObject variantObjects =
       let
          (_,headVariant):_ = variantObjects
 
-         converter1 = converter headVariant
-
       currentVariantSpec1 <- readMVar (currentVariantSpec headVariant)
       (Just object1) <- variantDictSearch dictionary1 
          (fromMMiSSSpecToSearch currentVariantSpec1)
-      cache1 <- converter1 object1
+
+      -- we use unsafeInterleaveIO during the cache conversion since
+      -- the rest of the view might not be set up yet, so it's better to
+      -- delay computing the cache until we need it, which hopefully won't
+      -- be until the merge is complete.
+      cache1 <- unsafeInterleaveIO (newConverter object1)
 
       let
          frozenVariantObject = FrozenVariantObject {
@@ -453,7 +463,7 @@ attemptMergeVariantObject convertObject variantObjects =
             cache' = cache1
             }
 
-      unfreezeVariantObject converter1 frozenVariantObject
+      unfreezeVariantObject newConverter frozenVariantObject
 
 -- -----------------------------------------------------------------------
 -- Displaying

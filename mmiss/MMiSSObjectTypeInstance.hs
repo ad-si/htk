@@ -310,7 +310,9 @@ instance HasMerging MMiSSObject where
                            }
                      return variable1
 
-            variantObject1 <- attemptMergeVariantObject reAssign
+            variantObject1 <- attemptMergeVariantObject
+               (converter newView linkedObject1)
+               reAssign
                (map (\ (view,_,object) -> (view,variantObject object)) vlos1)
 
             -- (4) Create the object, and put it in the view.

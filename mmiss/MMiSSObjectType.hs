@@ -28,7 +28,7 @@ module MMiSSObjectType(
 
 #include "config.h"
 
-import Computation(coerceWithErrorIO)
+import Computation(coerceWithErrorIO,fromWithError)
 import Sources
 import VariableSet
 import VariableSetBlocker
@@ -37,6 +37,8 @@ import AtomString (fromString,toString)
 import ReferenceCount
 
 import BSem
+
+import DialogWin
 
 import Graph(ArcType)
 
@@ -56,6 +58,7 @@ import LinkManager
 import EntityNames
 import SpecialNodeActions
 
+import MMiSSDTDAssumptions
 import MMiSSVariantObject
 import MMiSSContent
 import MMiSSPreamble
@@ -246,8 +249,19 @@ converter :: View -> LinkedObject -> Variable -> IO Cache
 converter view linkedObject variable =
    do
       cacheElement <- readLink view (element variable)
-      cacheLinkEnvironment <- newLinkEnvironment linkedObject
-         (raiseEntityPath trivialPath)
+
+      cachePath <- case fromWithError (getPath cacheElement) of
+         Left error -> 
+            do
+               createErrorWin (
+                  "Couldn't parse element's path: "
+                     ++ error ++ "\n Defaulting to"
+                     ++ toString trivialPath) []
+               return trivialPath
+         Right cachePath -> return cachePath
+               
+      cacheLinkEnvironment <- newLinkEnvironment linkedObject 
+         (raiseEntityPath cachePath)
       let
          structureContentsWE = structureContents cacheElement
       structureContents <- coerceWithErrorIO structureContentsWE

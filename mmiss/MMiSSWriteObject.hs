@@ -16,6 +16,7 @@ import Computation
 import ExtendedPrelude
 import AtomString
 import Delayer
+import VariableSet (toKey)
 import VariableSetBlocker
 import Sources
 import ReferenceCount
@@ -148,7 +149,6 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
                      Just containingDir -> return containingDir
 
                   return containingDir
-
 
          -- Function to tell us if this is the head object.
          (isThisObject :: ObjectLoc -> Bool) <- 
@@ -345,7 +345,6 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
             bSems1 = concat (map catMaybes bSems0)
 
          releaseActWE <- tryAcquireBSemsWithError fst snd bSems1
-
          releaseAct <- coerceWithErrorOrBreakIO break releaseActWE
 
          -- (7) Add all objects, return links to them with the head object 
@@ -472,6 +471,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                                   (variantSpec content) 
                            else
                                done
+
                   Nothing ->
                      do
                         -- Create the new object
@@ -491,6 +491,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
 
                         -- Dirty the object
                         dirtyAct
+
       insertItem True contents1
       mapM (insertItem False) contentsRest
 
