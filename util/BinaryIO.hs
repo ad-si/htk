@@ -415,6 +415,23 @@ instance (HasBinaryIO value1,HasBinaryIO (value2,value3))
     hGetIntWE = mapHGetIntWE (\ (value1,(value2,value3))
        -> (value1,value2,value3))
 
+instance (HasBinaryIO value1,HasBinaryIO (value2,value3,value4)) 
+    => HasBinaryIO (value1,value2,value3,value4) where
+
+    hPut = mapHPut (\ (value1,value2,value3,value4) 
+       -> (value1,(value2,value3,value4)))
+    hGetIntWE = mapHGetIntWE (\ (value1,(value2,value3,value4))
+       -> (value1,value2,value3,value4))
+
+
+instance (HasBinaryIO value1,HasBinaryIO (value2,value3,value4,value5)) 
+    => HasBinaryIO (value1,value2,value3,value4,value5) where
+
+    hPut = mapHPut (\ (value1,value2,value3,value4,value5) 
+       -> (value1,(value2,value3,value4,value5)))
+    hGetIntWE = mapHGetIntWE (\ (value1,(value2,value3,value4,value5))
+       -> (value1,value2,value3,value4,value5))
+
 -- ---------------------------------------------------------------------------
 -- Bool
 -- ---------------------------------------------------------------------------

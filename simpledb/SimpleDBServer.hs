@@ -51,6 +51,7 @@ import IOExtras
 import WBFiles
 
 import BDBClient
+import VersionInfo
 
 -- -------------------------------------------------------------------
 -- The query types.
@@ -67,8 +68,6 @@ specialLocation2 = Location 1
 maxLocation :: Location 
 maxLocation = specialLocation2 
    -- this should be the highest initially allocated location.
-
-newtype ObjectVersion = ObjectVersion Int deriving (Eq,Ord,HasBinaryIO)
 
 firstVersion :: ObjectVersion
 firstVersion = ObjectVersion 0

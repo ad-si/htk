@@ -1,5 +1,5 @@
 PACKAGE = uni-util
-PACKAGES = concurrent lang data text uni-options
+PACKAGES = concurrent lang data text net uni-options
 
 SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \
@@ -10,7 +10,7 @@ SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   DeepSeq.hs NameMangle.hs KeyedChanges.hs \
   Sources.hs Broadcaster.hs ReferenceCount.hs Delayer.hs VariableList.hs \
   Myers.hs VariableSetBlocker.hs IntPlus.hs UnionFind.hs BinaryIO.hs \
-  ICStringLen.hs HGetCharHack.hs VisitedSet.hs StrError.hs \
+  ICStringLen.hs HGetCharHack.hs VisitedSet.hs StrError.hs HostName.hs \
 
 
 SRCSC      = new_object.c default_options.c copy_file.c

@@ -1,16 +1,3 @@
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
-#include "config.h"
-
-
-#ifndef NEW_GHC 
-{-# OPTIONS -#include "default_options.h" #-}
-#endif /* NEW_GHC */
-
 {- #########################################################################
 
    The WBFiles module is in charge of decoding information from the command
@@ -72,6 +59,12 @@
    debug         Where Debug.debug messages should go
 
    serverDir     Where Server stores its files
+   serverId      The unique identifier of the server.
+                 Since this really does have to be globally unique,
+                 it is by default constructed from a combination
+                 of the machine's hostname and the server port.
+                 You had better not change it unless you know what
+                 you are doing.
 
    MMiSSDTD      Location of DTD file for MMiSS.
 
@@ -96,6 +89,9 @@
    
    ######################################################################### -}
 
+#include "config.h"
+   /* we need config.h so we can see if we are running Windows and if so
+      define getWindowsTick */
 
 module WBFiles (
    -- Functions for reading the results of initialising WBFiles.
@@ -138,6 +134,8 @@ module WBFiles (
       -- Get a file for the use of the server.
    getServerDir, --  :: IO String
       -- Get the server's private directory.
+   getServerId, -- :: IO String
+      -- Return a (globally unique) id for this server.
 
    -- Access to other options.
    getArgString, -- :: String -> IO (Maybe String)
@@ -203,6 +201,7 @@ import qualified Addr
 import qualified CString
 
 import FileNames
+import HostName
 
 ------------------------------------------------------------------------
 -- Specific access functions.
@@ -270,6 +269,23 @@ getServerFile innerName =
 
 getServerDir :: IO String
 getServerDir = valOf (getArgString "serverDir")
+
+getServerId :: IO String
+getServerId =
+   do
+      serverIdOpt <- getArgString "serverId"
+      case serverIdOpt of
+         Just serverId -> return serverId
+         Nothing ->
+            do
+               fullHostName <- getFullHostName
+               port <- getPort
+               return (if port == defaultPort
+                  then
+                     fullHostName
+                  else
+                     fullHostName ++ ":" ++ show port
+                  )
 
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
@@ -374,6 +390,12 @@ usualProgramArguments = [
       argType = STRING
       },
    ProgramArgument{
+      optionName = "serverId",
+      optionHelp = "globally unique server identifier (EXPERTS ONLY)",
+      defaultVal = Nothing,
+      argType = STRING
+      },
+   ProgramArgument{
       optionName = "workingDir",
       optionHelp = "directory used for temporary files",
       defaultVal = Just (StringValue "/tmp"),
@@ -400,7 +422,7 @@ usualProgramArguments = [
    ProgramArgument{
       optionName = "port",
       optionHelp = "port for the server",
-      defaultVal = Just (IntValue 11393),
+      defaultVal = Just (IntValue defaultPort),
       argType = INT
       },
    ProgramArgument{
@@ -410,6 +432,9 @@ usualProgramArguments = [
       argType = STRING
       }
    ]
+
+defaultPort :: Int
+defaultPort = 11393
 
 
 ------------------------------------------------------------------------
@@ -627,13 +652,9 @@ parseTheseArgumentsRequiring' arguments required =
 
          (initial :: ParseState) = (Nothing,initialMap)
 
-#ifndef NEW_GHC
-      afterDefault <- foldM (handleParameter False) initial defaultOptions
-#else /* NEW_GHC */
       defaultOptionsStr <- CString.peekCString defaultOptions
       afterDefault <- foldM (handleParameter False) initial 
          (words defaultOptionsStr)
-#endif /* NEW_GHC */
 
       parameters <- getArgs
 
@@ -784,17 +805,9 @@ parseTheseArgumentsRequiring' arguments required =
       upgradeError True (ExitFailure level1) (Just (ExitFailure level2)) =
          Just (ExitFailure (max level1 level2))
 
-#ifndef NEW_GHC
-defaultOptions :: [String]
-defaultOptions = words (CString.unpackCString addr_defaultOptions)
-#else /* NEW_GHC */
-foreign import ccall  "default_options.h & default_options" defaultOptions :: CString.CString
-#endif /* NEW_GHC */
+foreign import ccall  "default_options.h & default_options" 
+   defaultOptions :: CString.CString
 
-#ifndef NEW_GHC
-foreign label "default_options" addr_defaultOptions :: Addr.Addr
-
-#endif /* NEW_GHC */
 ------------------------------------------------------------------------
 -- Printing to stderr.
 ------------------------------------------------------------------------

@@ -5,7 +5,9 @@
 
    The password file has the following format:
 
-user:encrypted password:other data:...
+user:encrypted password:status:other data:...
+
+   Current valid values for status are "ADMIN" or "".
 
    -}
 module PasswordFile(
@@ -29,6 +31,7 @@ import WBFiles
 data User = User {
    userId :: String,
    encryptedPassword :: String,
+   isAdmin :: Bool,
    other :: String
    }
 
@@ -72,10 +75,11 @@ getUserEntrys =
 parseLine :: String -> WithError User
 parseLine userLine =
    case splitByChar ':' userLine of
-      userId:encryptedPassword:other:_ ->
+      userId:encryptedPassword:status:other:_ ->
          hasValue (User {
             userId = userId,
             encryptedPassword = encryptedPassword,
+            isAdmin = (status == "ADMIN"),
             other = other
             })
       _ -> hasError (
