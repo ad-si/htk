@@ -5,8 +5,7 @@ module LaTeXParser (
 
    parseMMiSSLatex, 
       -- :: FileSystem -> FilePath 
-      -- -> IO (WithError ((Element,PackageId),
-      --    [(MMiSSLatexPreamble,PackageId)]))
+      -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
    makeMMiSSLatexContent,
       -- :: Element -> Bool 
       -- -> [(MMiSSLatexPreamble,PackageId)]
@@ -80,7 +79,7 @@ import Text.XML.HaXml.Combinators hiding (find)
 
 import Dynamics
 import Computation hiding (try)
-import ExtendedPrelude(unsplitByChar)
+import ExtendedPrelude(unsplitByChar,mapEq)
 import ParsecError
 import EmacsContent
 import EntityNames
@@ -103,7 +102,7 @@ data FileSystem = FileSystem {
 
 -- Functions
 parseMMiSSLatex :: FileSystem -> FilePath 
-   -> IO (WithError ((Element,PackageId),[(MMiSSLatexPreamble,PackageId)]))
+   -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
 parseMMiSSLatex fileSystem filePath =
    do
       strWE <- readString fileSystem filePath 
@@ -123,7 +122,7 @@ parseMMiSSLatex fileSystem filePath =
                            preambleList = case preambleOpt of
                               Nothing -> []
                               Just preamble -> [(preamble,packageId)]
-                        return (hasValue ((el,packageId),preambleList))
+                        return (hasValue (el,preambleList))
                          
 makeMMiSSLatexContent :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)]
    -> WithError (EmacsContent ((String,Char),[Attribute]))
@@ -2540,15 +2539,26 @@ instance StringClass MMiSSLatexPreamble where
 --   fromStringWE string = parseImportCommands string
 --   toString importCmds = makeImportsText importCmds
 
+-- --------------------------------------------------------------------------
+-- PackageId is an instance of StringClass
+-- --------------------------------------------------------------------------
+
+instance StringClass PackageId where
+   fromString = PackageId
+   toString (PackageId str) = str
 
 -- ----------------------------------------------------------------------------------
--- Instances of Typeable & HasCodedValue for Preamble and MMiSSLatexPreamble 
--- (added by George)
+-- Instances of Typeable, HasCodedValue and Eq for Package and 
+-- MMiSSLatexPreamble (added by George)
 -- ----------------------------------------------------------------------------------
 
 package_tyRep = Dynamics.mkTyRep "LaTeXParser" "Package"
 instance Dynamics.HasTyRep Package where
    tyRep _ = package_tyRep
+
+instance Eq Package where
+   (==) = mapEq
+      (\ (Package options packageName versionData) -> (options,packageName,versionData))
 
 instance Monad m => CodedValue.HasBinary Package m where
    writeBin = mapWrite 
@@ -2559,6 +2569,11 @@ instance Monad m => CodedValue.HasBinary Package m where
 preamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSLatexPreamble"
 instance Dynamics.HasTyRep MMiSSLatexPreamble where
    tyRep _ = preamble_tyRep
+
+instance Eq MMiSSLatexPreamble where
+   (==) = mapEq 
+      (\ (MMiSSLatexPreamble latexPreamble importCommands) ->
+         (latexPreamble,importCommands))
 
 instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
    writeBin = mapWrite
@@ -2571,6 +2586,11 @@ instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
 latexPreamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "LaTeXPreamble"
 instance Dynamics.HasTyRep LaTeXPreamble where
    tyRep _ = latexPreamble_tyRep
+
+instance Eq LaTeXPreamble where
+   (==) = mapEq 
+      (\ (Preamble documentClass packages string) -> 
+         (documentClass,packages,string))   
 
 instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
    writeBin = mapWrite
