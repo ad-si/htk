@@ -109,11 +109,19 @@ instance HasReceiveEV EventStream messageType where
                   (state eventStream) 
                   (\ias -> (ias {fReplied = False},ias))
                -- unset fReplied.
-            return (
-                  receive (msgchannel listener) >>>= 
-                     (handleEvent eventStream interactions)
-               +> internals done
-               )
+            let
+               newEvent =
+                     receive (msgchannel listener) >>>=
+                        (\ result ->
+                           do
+                              valueOpt <-
+                                 handleEvent eventStream interactions result
+                              case valueOpt of 
+                                 Just value -> return value
+                                 Nothing -> sync newEvent
+                           )
+                  +> internals done
+            return newEvent
          ) where listener = toListener eventStream
 
 
@@ -205,7 +213,7 @@ interaction' eventStream nEvent@(IA _ externals) =
 --  Event Handling
 -- --------------------------------------------------------------------------
 
-handleEvent :: EventStream a -> InterActions a -> Message -> IO a
+handleEvent :: EventStream a -> InterActions a -> Message -> IO (Maybe a)
 handleEvent eventStream interActions (Message Notice eventId info) = 
    do
       changeVar' (state eventStream) (\ias -> ias{fReplied = True})
@@ -218,9 +226,11 @@ handleEvent eventStream interActions (Message Request eventId info) = do
         reply eventStream
         propagate ans
 
-execReaction :: InterActions a -> EventID -> Dyn -> IO a
+execReaction :: InterActions a -> EventID -> Dyn -> IO (Maybe a)
 execReaction interActions eventId val =
-    case (lookupWithDefaultFM interActions missing eventId) of
-        Action _ _ continuation -> continuation val
- where  reg _   = done
-        missing = Action reg reg (\_ -> error "EventStream: MISSING Binding")
+   case (lookupFM interActions eventId) of
+      Just (Action _ _ continuation) -> 
+         do
+            result <- continuation val
+            return (Just result)
+      Nothing -> return Nothing

@@ -37,25 +37,15 @@ The following are required or at least recommended.
     will not support it for much longer.
 (3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
-(4) A recent version of Glasgow Haskell.  The latest binary
-    release (4.06) should probably do, though I use an even
-    later one.  If you want to use an up-to-the-minute GHC like me,
-    the best way is to download a recent binary release for your
-    machine, get the latest sources from Glasgow Haskell's anoncvs
-    repository (which is updated every evening), and then use the
-    binary release to compile the latest sources. 
-    This is a painful process which is already done for you for Solaris.
-    The latest usable version for Solaris should be in 
-       /usr/local/pub-bkb/ghc/ghc-latest
-    and the sources should be in 
-       /usr/local/pub-bkb/ghc/fptools.
+(4) A recent version of Glasgow Haskell.  You should try to get the
+    latest binary release, which is currently 4.08.1.
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
 your copies, here are details.  The Uni sources are kept in a 
 publicly accessible CVS repository at cvs-agbkb.informatik.uni-bremen.de.  
 So for example to get a complete set of the latest version of the sources you 
-type
+type (in bash or sh)
 
 export CVSROOT=:pserver:cvsread@cvs-agbkb.informatik.uni-bremen.de:/repository
 cvs login
