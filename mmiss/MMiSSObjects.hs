@@ -1,6 +1,6 @@
 {- This module defines an object in MMiSS as part of the ObjectTypes framework.
    -}
-module MMiSSObject(
+module MMiSSObjects(
    ) where
 
 import Maybe
