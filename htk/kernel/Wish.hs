@@ -264,7 +264,7 @@ doResponse1 (OK res) = return ()
 #if ! ASYNC_WISH_ERRORS
 doResponse1 (ER err) =
    do 
-      fingersCrossed err
+      always (fingersCrossed err)
       done
 #endif
 
