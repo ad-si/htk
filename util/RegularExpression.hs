@@ -66,8 +66,11 @@ compile str = RegularExpression(mkRegex str)
 data MatchResult = MatchResult String String String [String] deriving Show
 -- Strings are before,matched portion,after, and the 
 -- list $1,$2,... corresponding to matched subexpressions.
-instance Typeable MatchResult where
-   typeOf _ = matchResultTypeTag
+
+matchResult_tyCon = mkTyCon "RegularExpression" "MatchResult"
+
+instance HasTyCon MatchResult where
+   tyCon _ = matchResult_tyCon
 
 matchResultTypeTag = 
    Dynamics.mkTypeTag

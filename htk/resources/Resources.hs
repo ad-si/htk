@@ -175,8 +175,8 @@ instance Show Toggle where
 toggleT :: TyCon 
 toggleT = mkTyCon "Resources" "Toggle"
 
-instance Typeable Toggle where
-  typeOf _ = mkTypeTag toggleT []
+instance HasTyCon Toggle where
+  tyCon _ = toggleT
 
 toggle :: Toggle -> Toggle
 toggle On = Off

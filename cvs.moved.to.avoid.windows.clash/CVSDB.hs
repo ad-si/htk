@@ -31,8 +31,10 @@ module CVSDB(
    Location,
    -- represents Location of object in the repository.  Instance of 
    -- Read/Show/Eq.
-   initialLocation, -- :: Location
-   -- returns the (already allocated) initialLocation.
+   firstLocation, -- :: Location
+   secondLocation, -- :: Location
+   -- These two locations are special.  They are already allocated,
+   -- and may be used as the user desires.
 
    newLocation, -- :: Repository -> IO Location
    -- allocate a new unique location in the repository.
@@ -107,7 +109,7 @@ import LineShow
 import AllocateService
 import CallServer
 
-import qualified Allocate(initialCVSFile)
+import qualified Allocate(firstCVSFile,secondCVSFile)
 
 data Repository = Repository {
    cvsLoc :: CVSLoc, -- CVSHigh location of repository.
@@ -321,8 +323,11 @@ importString str = return (StringObject str)
 importFile :: FilePath -> IO ObjectSource
 importFile file = return (FileObject file)
 
-initialLocation :: Location
-initialLocation = Allocate.initialCVSFile
+firstLocation :: Location
+firstLocation = Allocate.firstCVSFile
+
+secondLocation :: Location
+secondLocation = Allocate.secondCVSFile
 
 getFilePath :: Repository -> CVSFile -> IO FilePath
 getFilePath repository cvsFile =

@@ -1,7 +1,7 @@
 {- Allocate is used by the allocator to generate new
    versions and CVS file names. 
 
-   It is here because initialCVSFile is also used by CVSDB.
+   It is here because firstCVSFile and secondCVSFile are also used by CVSDB.
 
    For testing purposes this module should be compilable by Hugs.
    -}
@@ -17,8 +17,9 @@ module Allocate(
    -- the cvsCommit function) which is a successor to the
    -- one supplied.
 
-   initialCVSFile -- :: CVSFile
-   -- Should be #2(newINode(initialAllocateState))
+   firstCVSFile, -- :: CVSFile
+   secondCVSFile, -- :: CVSFile
+   -- These are the first two CVSFiles allocated.
    ) where
 import Char
 
@@ -36,18 +37,31 @@ data AllocateState = AllocateState {
    versionMap :: VersionMap -- state for generating new versions.
    } deriving (Read,Show)
 
-initialAllocateState :: AllocateState
-initialAllocateState = AllocateState {
+
+-- Allocate the first two names
+allocateState0 :: AllocateState
+allocateState0 = AllocateState {
    encodedName = initialEncodedName,
    versionMap = initialVersionMap
    }
 
-initialCVSFile :: CVSFile
-initialCVSFile =
-   let
-      (_,cvsFile) = newCVSFile initialAllocateState
-   in
-      cvsFile
+allocateResult1 :: (AllocateState,CVSFile)
+allocateResult1 = newCVSFile allocateState0
+
+firstCVSFile :: CVSFile
+firstCVSFile = snd allocateResult1
+
+allocateState1 :: AllocateState
+allocateState1 = fst allocateResult1
+
+allocateResult2 :: (AllocateState,CVSFile)
+allocateResult2 = newCVSFile allocateState1
+
+secondCVSFile :: CVSFile
+secondCVSFile = snd allocateResult2
+
+initialAllocateState :: AllocateState
+initialAllocateState = fst allocateResult2
 
 ---------------------------------------------------------------------
 -- Allocating a new CVSFile.

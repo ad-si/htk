@@ -1,5 +1,10 @@
 {- This module handles the basics of representing values, via the
-   repository (where files are included). -}
+   repository (where files are included). 
+
+   View.hs needs to be compiled before this module, but uses the
+   HasCodedValue class.  We allow this by creating an interface
+   file CodedValue.hi-boot, which just contain the class definition.
+   -}
 module CodedValue(
    CodedValue(..),
       -- This represents values in a uniform (and not too inefficient)
@@ -86,7 +91,7 @@ import Int
 import AtomString(StringClass(..))
 
 import VersionDB
-import View
+import ViewType
 
 ---------------------------------------------------------------------
 -- CodedValue's and operations on them.
@@ -115,9 +120,12 @@ removeBoundary _ = formatError "Record does not end where expected"
 
 ---------------------------------------------------------------------
 -- HasCodedValue
+-- We make this superclass Typeable because in fact we will need
+-- Typeable wherever we need HasCodedValue anyway, since View needs
+-- to store Versioned items in a dynamic type.
 ---------------------------------------------------------------------
 
-class HasCodedValue value where
+class Typeable value => HasCodedValue value where
    encodeIO :: value -> CodedValue -> View -> IO CodedValue
       -- prepend a value to a coded value (like show)
    decodeIO :: CodedValue -> View -> IO (value,CodedValue)
@@ -285,6 +293,12 @@ instance HasCodedValue value => HasCodedValue [value]
 
 newtype ShortList a = ShortList [a]
 
+-- make them Typeable
+shortList_tyCon = mkTyCon "CodedValue" "ShortList"
+
+instance HasTyCon1 ShortList where
+   tyCon1 _ = shortList_tyCon
+
 instance HasCodedValue value => HasCodedValue (ShortList value)
       where
    encodeIO (ShortList values) codedValue0 repository =
@@ -330,7 +344,7 @@ instance HasCodedValue value => HasCodedValue (ShortList value)
 -- Pure Coded Values (which don't require IO or access to the repository)
 ---------------------------------------------------------------------
 
-class HasPureCodedValue value where
+class Typeable value => HasPureCodedValue value where
     encodePure :: value -> CodedValue -> CodedValue
     decodePure :: CodedValue -> (value,CodedValue)
 
@@ -378,7 +392,11 @@ instance HasCodedValue String where
 -- up in the Str type to allow alternative instances.
 newtype Str a = Str a
 
-instance StringClass str => HasCodedValue (Str str) where
+str_tyCon = mkTyCon "CodedValue" "Str"
+instance HasTyCon1 Str where
+   tyCon1 _ = str_tyCon 
+
+instance (Typeable str,StringClass str) => HasCodedValue (Str str) where
    encodeIO = mapEncodeIO (\ (Str str) -> toString str)
    decodeIO = mapDecodeIO (\ str -> Str (fromString str))
 
@@ -391,6 +409,20 @@ instance HasPureCodedValue Bool where
       ch -> formatError ("Decoding bool, found an unexpected char "
          ++show ch)
       )
+
+---------------------------------------------------------------------
+-- Location and ObjectVersion (from CVSDB)
+---------------------------------------------------------------------
+
+instance HasCodedValue Location where
+   encodeIO = mapEncodeIO (\ location -> Str location)
+   decodeIO = mapDecodeIO (\ (Str location) -> location)
+
+instance HasCodedValue ObjectVersion where
+   encodeIO = mapEncodeIO (\ objectVersion -> Str objectVersion)
+   decodeIO = mapDecodeIO (\ (Str objectVersion) -> objectVersion)
+
+
 
 ---------------------------------------------------------------------
 -- Integers
@@ -418,6 +450,10 @@ nextBit = bit (bitsInChar - 2)
 
 newtype CodedList = CodedList [Int32]
 -- This is a nonempty list of integers in [0,2^(bitsInChar-1)).
+
+codedList_tyCon = mkTyCon "CodedValue" "CodedList"
+instance HasTyCon CodedList where
+   tyCon _ = codedList_tyCon
 
 chrGeneral :: Integral a => a -> Char
 chrGeneral value = chr (fromIntegral value)
@@ -484,7 +520,7 @@ instance (Integral integral,Bits integral)
          lowestPart + (highPart `shiftL` bitsPerChar)
 
 
-instance (Integral integral,Bits integral) 
+instance (Typeable integral,Integral integral,Bits integral) 
    => HasPureCodedValue integral where
    encodePure value codedValue = 
       encodePure (encode' value :: CodedList) codedValue

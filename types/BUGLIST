@@ -1,0 +1,4 @@
+View.commitView should prevent anyone doing any updates while
+it commits.  For this we need a special kind of lock by which
+commitView can lock out any updates, but updates can't lock out
+each other.

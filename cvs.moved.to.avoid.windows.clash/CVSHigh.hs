@@ -60,6 +60,7 @@ import System
 import Posix
 import Exception
 
+import Computation(done)
 import Debug(debug)
 import ExtendedPrelude
 import Dynamics
@@ -138,11 +139,11 @@ newCVSLoc cvsRoot workingDir =
 -------------------------------------------------------------
 
 newtype CVSError = CVSError String
-instance Typeable CVSError where
-   typeOf _ = tag_CVSError
 
-tag_CVSError :: TypeTag
-tag_CVSError = mkTypeTag (mkTyCon "CVSHigh" "CVSError") []
+tyCon_CVSError = mkTyCon "CVSHigh" "CVSError"
+
+instance HasTyCon CVSError where
+   tyCon _ = tyCon_CVSError
 
 cvsError :: String -> IO a
 cvsError mess =
@@ -379,11 +380,21 @@ cvsListVersions (CVSLoc globalOptions) file =
                   body (this:acc)
                   )
 
+         -- Fallback case for when CVS doesn't know anything about the file
+         knowNothing :: Event [CVSVersion]
+         knowNothing =
+            do
+               mat "cvs server: nothing known about .*"
+               mustEOFHere exp
+               return []
+
          logOutput :: Event [CVSVersion]
          logOutput =
-            do
-               preamble
-               body []
+               knowNothing
+            +> (do
+                  preamble
+                  body []
+               )
 
       tryCVS "cvs log" exp logOutput
      
@@ -429,8 +440,12 @@ cvsCommitCheck loc file version =
 cvsListVersionsCheck :: CVSLoc -> CVSFile -> IO [CVSVersion]
 cvsListVersionsCheck loc file =
    do
+      -- We allow the empty list as a special case
       (listOpt,cvsReturn) <- cvsListVersions loc file
-      checkReturn cvsReturn
+      case (listOpt,cvsReturn) of
+         (Just [],CVSProblem Nothing (Just (Exited (ExitFailure 1)))) 
+            -> done
+         _ -> checkReturn cvsReturn
       let
          Just list = listOpt
       return list
