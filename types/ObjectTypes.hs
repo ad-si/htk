@@ -104,6 +104,7 @@ import Computation
 import Dynamics
 import Sink
 import VariableSet
+import Source
 
 import GraphDisp
 import GraphConfigure
@@ -184,7 +185,8 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
       -> IO (Maybe 
-         (NodeDisplayData nodeTypeParms arcTypeParms objectType object))
+         (NodeDisplayData graph node nodeTypeParms arcTypeParms 
+            objectType object))
       -- Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
@@ -296,7 +298,7 @@ instance HasKey WrappedLink Location where
 instance HasKey (WrappedLink,ArcType) Location where
    toKey (wrappedLink,arcType) = toKey wrappedLink
 
-data NodeDisplayData nodeTypeParms arcTypeParms objectType object =
+data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
    NodeDisplayData {
       topLinks :: [Link object],
          -- topLinks displays the links to start display on
@@ -327,10 +329,15 @@ data NodeDisplayData nodeTypeParms arcTypeParms objectType object =
          IO (VariableSetSource (WrappedLink,ArcType),
             VariableSetSource (WrappedLink,ArcType)),
 
-      closeDown :: IO ()
+      closeDown :: IO (),
          -- This tells the display implementation it is OK to stop
          -- updating the variable set (though it may choose to do so
          -- anyway, if other people are interested).
+
+      specialNodeActions :: object -> 
+         Source (graph -> node (String,Link object) -> IO ())
+         -- The specialNodeActions allow the object to make dynamic
+         -- modifications to graph nodes representing it.
       }
 
 -- ----------------------------------------------------------------

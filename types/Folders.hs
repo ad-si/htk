@@ -159,8 +159,9 @@ data Folder = Folder {
    attributes :: Attributes,
    name :: String,
    contents :: VariableMap String WrappedLink,
-   contentsLock :: BSem -- The contentsLock should be set whenever the
+   contentsLock :: BSem, -- The contentsLock should be set whenever the
       -- contents are in the process of being updated.
+   hideFolderArcs :: SimpleSource (Maybe NodeArcsHidden)
    }
 
 folder_tyRep = mkTyRep "Folders" "Folder"
@@ -182,9 +183,10 @@ instance HasCodedValue Folder where
             safeDecodeIO codedValue0 view
          folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
          contentsLock <- newBSem
+         hideFolderArcs <- mkArcsHiddenSource
          return (Folder {folderType = folderType,attributes = attributes,
-             name = name,contents = contents,contentsLock = contentsLock},
-             codedValue1)
+            name = name,contents = contents,contentsLock = contentsLock,
+            hideFolderArcs = hideFolderArcs},codedValue1)
 
 -- ------------------------------------------------------------------
 -- The instance of ObjectType
@@ -233,10 +235,16 @@ instance ObjectType FolderType Folder where
                      nodeTypes = 
                         let
                            editOptions1 = [
-                              Button "Edit Attributes" 
-                                 (\ (_,link) -> editObjectAttributes view link)
-                                 ]
-                           menu = LocalMenu (Menu (Just "Folder edits") 
+                              Button "Edit Attributes" (\ (_,link) 
+                                 -> editObjectAttributes view link),
+                              Button "Hide Links" (\ (_,link) ->
+                                 hideAction link True
+                                 ),
+                              Button "Reveal Links" (\ (_,link) ->
+                                 hideAction link False
+                                 )
+                              ]
+                           menu = LocalMenu (Menu (Just "Folder options") 
                               editOptions1)
                         in
                           [(theNodeType,
@@ -257,10 +265,26 @@ instance ObjectType FolderType Folder where
                            return (mkArcs (contents folder),
                               staticSinkSource [])
                         ),
-                     closeDown = done
+                     closeDown = done,
+                     specialNodeActions = 
+                        (\ object ->
+                           fmap
+                              (\ arcsHidden ->
+                                 (\ graph node ->
+                                    modify arcsHidden graph node
+                                 ))
+                              (mkSource (hideFolderArcs object))
+                           )
                      })
                Nothing -> Nothing
          )              
+      where
+         hideAction :: Link Folder -> Bool -> IO () 
+         hideAction link bool =
+            do
+               folder <- readLink view link
+               sendSimpleSource (hideFolderArcs folder) 
+                  (Just (NodeArcsHidden bool))
 
 -- ------------------------------------------------------------------
 -- Extra option so that folders can add files.
@@ -382,12 +406,14 @@ getTopFolder view =
             attributes <- newEmptyAttributes view
             contents <- newEmptyVariableMap
             contentsLock <- newBSem
+            hideFolderArcs <- mkArcsHiddenSource
             return (Folder {
                folderType = folderType,
                attributes = attributes,
                name = "TOP",
                contents = contents,
-               contentsLock = contentsLock
+               contentsLock = contentsLock,
+               hideFolderArcs = hideFolderArcs
                })               
          )
       makeLink view versioned
@@ -455,13 +481,15 @@ newEmptyFolder folderType view _ =
                name <- readExtraFormItem extraFormItem
                contents <- newEmptyVariableMap
                contentsLock <- newBSem
+               hideFolderArcs <- mkArcsHiddenSource
                let
                   folder = Folder {
                      folderType = folderType,
                      attributes = attributes,
                      name = name,
                      contents = contents,
-                     contentsLock = contentsLock
+                     contentsLock = contentsLock,
+                     hideFolderArcs = hideFolderArcs
                      }
                versioned <- createObject view folder
                link <- makeLink view versioned
@@ -549,6 +577,12 @@ createNewFolderType view =
                            topFolderLinkOpt = Nothing,
                            knownFolders = knownFolders
                            }))
+-- ------------------------------------------------------------------
+-- Creating the folder actions
+-- ------------------------------------------------------------------
+
+mkArcsHiddenSource :: IO (SimpleSource (Maybe NodeArcsHidden))
+mkArcsHiddenSource = newSimpleSource Nothing
 
 -- ------------------------------------------------------------------
 -- The HasParent class

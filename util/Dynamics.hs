@@ -60,6 +60,10 @@ module Dynamics (
         HasTyRep2_11(..),
         HasTyRep3_011(..),
         HasTyRep4_0011(..),
+        HasTyRep3_111(..),
+        HasTyRep4_0111(..),
+        HasTyRep5_00111(..),
+        HasTyRep6_000111(..),
 #endif
         ) 
 where
@@ -265,6 +269,57 @@ instance (HasTyRep4_0011 ty,Typeable value1) => HasTyRep3_011 (ty value1) where
          (v :: value1) = error "Dynamics.27"
       in
          appTyRep (tyRep4_0011 tC) (typeOf v)
+
+class HasTyRep3_111 ty where
+   tyRep3_111 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2,HasTyRep1 typeArg3) =>
+      ty typeArg1 typeArg2 typeArg3 -> TyRep
+
+instance (HasTyRep3_111 ty,HasTyRep1 typeArg) => HasTyRep2_11 (ty typeArg) 
+      where
+   tyRep2_11 _ =
+      let
+         (tC :: ty typeArg Dummy Dummy) = error "Dynamics.28"
+         (v :: typeArg ()) = error "Dynamics.29"
+      in
+          appTyRep (tyRep3_111 tC) (toTypeRep (tyRep1 v))
+
+class HasTyRep4_0111 ty where
+   tyRep4_0111 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2,HasTyRep1 typeArg3) =>
+      ty value typeArg1 typeArg2 typeArg3 -> TyRep
+
+instance (HasTyRep4_0111 ty,Typeable value) => HasTyRep3_111 (ty value) where
+   tyRep3_111 _ =
+      let
+         (tC :: ty value Dummy Dummy Dummy) = error "Dynamics.29"
+         (v :: value) = error "Dynamics.30"
+      in
+         appTyRep (tyRep4_0111 tC) (typeOf v)
+
+class HasTyRep5_00111 ty where
+   tyRep5_00111 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2,HasTyRep1 typeArg3) =>
+      ty value1 value2 typeArg1 typeArg2 typeArg3 -> TyRep
+
+instance (HasTyRep5_00111 ty,Typeable value) => HasTyRep4_0111 (ty value) where
+   tyRep4_0111 _ =
+      let
+         (tC :: ty value () Dummy Dummy Dummy) = error "Dynamics.30"
+         (v :: value) = error "Dynamics.31"
+      in
+         appTyRep (tyRep5_00111 tC) (typeOf v)
+
+
+class HasTyRep6_000111 ty where
+   tyRep6_000111 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2,HasTyRep1 typeArg3) =>
+      ty value1 value2 value3 typeArg1 typeArg2 typeArg3 -> TyRep
+
+instance (HasTyRep6_000111 ty,Typeable value) 
+      => HasTyRep5_00111 (ty value) where
+   tyRep5_00111 _ =
+      let
+         (tC :: ty value () () Dummy Dummy Dummy) = error "Dynamics.32"
+         (v :: value) = error "Dynamics.33"
+      in
+         appTyRep (tyRep6_000111 tC) (typeOf v)
 
 data Dummy x = Dummy x
 

@@ -8,12 +8,16 @@ module GraphConfigure(
                    -- options in this file.
    HasGraphConfigs, -- all options for configuring graphs
    HasNodeTypeConfigs, -- ditto node types
+   HasNodeModifies, -- all options for modifying nodes.
    HasArcTypeConfigs, -- ditto arc types
 
    HasConfig(($$),configUsed), -- from Computation
    HasConfigValue(($$$),configUsed'), 
                    -- HasConfig lifted to options/configurations of kind
                    -- 1 which take a Typeable value.
+   HasModifyValue(..),
+      -- used for changing properties of existing objects.
+
    -- LocalMenu describes menus or buttons for objects that carry a value,
    -- IE nodes or arcs.
    LocalMenu(..),
@@ -46,6 +50,9 @@ module GraphConfigure(
    -- Edge patterns
    EdgePattern(..),
 
+   NodeArcsHidden(..), -- Setting if a node's arcs are hidden or not.
+   Border(..), -- Specifying a node's border.
+
    -- Drag and Drop actions.
    GraphGesture(..),
    NodeGesture(..),
@@ -64,7 +71,7 @@ module GraphConfigure(
    ($$$?),
    ) where
 
-import Computation(HasConfig(($$),configUsed))
+import Computation(HasConfig(($$),configUsed),done)
 import ExtendedPrelude
 import Dynamics(Dyn,Typeable)
 import Source
@@ -100,6 +107,20 @@ instance (Typeable value,HasConfigValue option configuration)
 ($$$?) (Just option) configuration = ($$$) option configuration
 
 infixr 0 $$$?
+
+
+------------------------------------------------------------------------
+-- HasModifyValue is used for dynamic changes to nodes and arcs.
+------------------------------------------------------------------------
+
+class HasModifyValue option graph object where
+   modify :: Typeable value => option -> graph -> object value -> IO ()
+
+instance HasModifyValue option graph object 
+   => HasModifyValue (Maybe option) graph object
+   where
+      modify Nothing _ _ = done
+      modify (Just option) graph node = modify option graph node
 
 ------------------------------------------------------------------------
 -- Menus and buttons
@@ -249,6 +270,15 @@ data EdgePattern value = Solid | Dotted | Dashed | Thick | Double
 instance ArcTypeConfig EdgePattern
 
 ------------------------------------------------------------------------
+-- Node miscellaneous flags
+------------------------------------------------------------------------
+
+-- If True, arcs from the node are not displayed.
+newtype NodeArcsHidden = NodeArcsHidden Bool
+
+data Border = NoBorder | SingleBorder | DoubleBorder
+
+------------------------------------------------------------------------
 -- Graph Miscellaneous Flags.
 -- (Fairly daVinci specific)
 -- Where these are unset, they should always default to False.
@@ -307,8 +337,10 @@ class (
    HasConfigValue NodeDragAndDrop nodeTypeParms,
    HasConfigValue DoubleClickAction nodeTypeParms,
    HasConfigValue Shape nodeTypeParms,
-   HasConfigValue Color nodeTypeParms)
+   HasConfigValue Color nodeTypeParms
+   )
    => HasNodeTypeConfigs nodeTypeParms
+
 
 instance (
    NodeTypeParms nodeTypeParms,
@@ -318,9 +350,19 @@ instance (
    HasConfigValue NodeDragAndDrop nodeTypeParms,
    HasConfigValue DoubleClickAction nodeTypeParms,
    HasConfigValue Shape nodeTypeParms,
-   HasConfigValue Color nodeTypeParms)
+   HasConfigValue Color nodeTypeParms
+   )
    => HasNodeTypeConfigs nodeTypeParms
 
+class (
+   HasModifyValue NodeArcsHidden graph node,
+   HasModifyValue Border graph node
+   ) => HasNodeModifies graph node
+
+instance (
+   HasModifyValue NodeArcsHidden graph node,
+   HasModifyValue Border graph node
+   ) => HasNodeModifies graph node
 
 class (
    ArcTypeParms arcTypeParms,
@@ -345,6 +387,7 @@ class
       arc arcType arcTypeParms,
    HasGraphConfigs graphParms,
    HasNodeTypeConfigs nodeTypeParms,
+   HasNodeModifies graph node,
    HasArcTypeConfigs arcTypeParms
    ) 
    => GraphAllConfig graph graphParms node nodeType nodeTypeParms
@@ -355,6 +398,7 @@ instance
       arc arcType arcTypeParms,
    HasGraphConfigs graphParms,
    HasNodeTypeConfigs nodeTypeParms,
+   HasNodeModifies graph node,
    HasArcTypeConfigs arcTypeParms
    ) 
    => GraphAllConfig graph graphParms node nodeType nodeTypeParms

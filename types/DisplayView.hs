@@ -51,7 +51,7 @@ import View
 ---
 -- This is the data stored by a display for every stored object type.
 -- They mostly have the same meaning as the records in NodeDisplayData
-data DisplayedObjectType objectType object nodeType arcType =
+data DisplayedObjectType objectType object graph node nodeType arcType =
    DisplayedObjectType {
       arcTypes' :: FiniteMap ArcType (arcType ()),
       nodeTypes' :: FiniteMap NodeType (nodeType (String,Link object)),
@@ -59,14 +59,19 @@ data DisplayedObjectType objectType object nodeType arcType =
       mustFocus' :: Link object -> IO Bool,
       focus' :: Link object -> IO (VariableSetSource (WrappedLink,ArcType),
          VariableSetSource (WrappedLink,ArcType)),
-      closeDown' :: IO ()
+      closeDown' :: IO (),
+      specialNodeActions' :: object 
+         -> Source (graph -> node (String,Link object) -> IO ())
       }
+
+type TransmittedAction graph node object =
+   (graph -> node (String,Link object) -> IO ())
 
 #ifdef NEW_GHC
 displayedObjectTypeTyRep = mkTyRep "DisplayView" "DisplayedObjectType"
 
-instance HasTyRep4_0011 DisplayedObjectType where
-   tyRep4_0011 _ = displayedObjectTypeTyRep
+instance HasTyRep6_000111 DisplayedObjectType where
+   tyRep6_000111 _ = displayedObjectTypeTyRep
 #endif
 
 ---
@@ -141,7 +146,7 @@ addNewObjectTypeInner
          wrappedDisplayType objectType displayedViewAction
       case nodeDisplayDataOpt of
          Nothing -> return []
-         Just (nodeDisplayData :: NodeDisplayData nodeTypeParms 
+         Just (nodeDisplayData :: NodeDisplayData graph node nodeTypeParms 
                arcTypeParms objectType object) ->
             do
                -- Create node types map
@@ -172,14 +177,15 @@ addNewObjectTypeInner
 
                   displayedObjectType :: DisplayedObjectType 
                         objectType object 
-                        nodeType arcType
+                        graph node nodeType arcType
                   displayedObjectType = DisplayedObjectType {
                      nodeTypes' = nodeTypes',
                      arcTypes' = arcTypes',
                      getNodeType' = getNodeType nodeDisplayData,
                      mustFocus' = mustFocus nodeDisplayData,
                      focus' = focus nodeDisplayData,
-                     closeDown' = closeDown nodeDisplayData
+                     closeDown' = closeDown nodeDisplayData,
+                     specialNodeActions' = specialNodeActions nodeDisplayData
                      }
 
                   wrappedLinks :: [WrappedLink]
@@ -382,7 +388,8 @@ displayNodeUnWrapped
          wrappedObjectType = WrappedObjectType (getObjectTypePrim object)
 
          getDisplayedObjectTypeOpt :: ObjectType objectType object =>
-            IO (Maybe (DisplayedObjectType objectType object nodeType arcType))
+            IO (Maybe (DisplayedObjectType objectType object graph node 
+               nodeType arcType))
          getDisplayedObjectTypeOpt = 
             getValueOpt nodeTypesRegistry (Keyed wrappedObjectType)
 
@@ -395,8 +402,10 @@ displayNodeUnWrapped
             getNodeType' = getNodeType',
             mustFocus' = mustFocus',
             focus' = focus',
-            closeDown' = closeDown'
-            } :: DisplayedObjectType objectType object nodeType arcType) ->
+            closeDown' = closeDown',
+            specialNodeActions' = specialNodeActions'
+            } :: DisplayedObjectType objectType object 
+               graph node nodeType arcType) ->
             do
                (graphNode :: node (String,Link object),considerFocus) <- 
                   transformValue nodes (Keyed (WrappedLink link))
@@ -419,6 +428,31 @@ displayNodeUnWrapped
                                     (nodeTitlePrim object,link)
                               mVar <- newMVar False
                               sinkID <- newSinkID
+
+                              -- arrange to have the sink-id invalidated when
+                              -- the DisplayedView is closed.
+                              addCloseDownAction displayedView 
+                                 (invalidate sinkID)
+
+                              -- Arrange to have the special node actions
+                              -- performed.
+                              let
+                                 thisNodeActions :: Source (
+                                    TransmittedAction graph node object)
+                                 thisNodeActions = specialNodeActions' object
+
+                                 (Graph primGraph) = graph 
+
+                                 actFn :: TransmittedAction graph node object
+                                    -> IO ()
+                                 actFn nodeAction 
+                                    = nodeAction primGraph graphNode
+
+                              (act,_) <- addNewSinkGeneral thisNodeActions 
+                                 actFn sinkID
+
+                              actFn act
+
                               return (Just (graphNode,mVar,sinkID),
                                  (graphNode,True))
                      )
@@ -474,7 +508,7 @@ focusLinkInner ::
       arc arcType arcTypeParms,ObjectType objectType object)
    => (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
-   -> DisplayedObjectType objectType object nodeType arcType
+   -> DisplayedObjectType objectType object graph node nodeType arcType
    -> Link object -> node (String,Link object) -> IO ()
 focusLinkInner       
       (displayedView@DisplayedView{view=view,graph=graph,nodes=nodes,
@@ -570,7 +604,6 @@ focusLinkInner
                            currentArcs
                         release arcsBSem
                         redraw graph
-                        addCloseDownAction displayedView (invalidate sink)
                processArcs arcsFrom 
                   (\ arcType node2 -> newArc graph arcType () node node2) 
                processArcs arcsTo 

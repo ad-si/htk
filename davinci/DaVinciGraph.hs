@@ -615,6 +615,36 @@ instance HasConfigValue DoubleClickAction DaVinciNodeTypeParms where
       parms {configNodeDoubleClickAction = action}
 
 ------------------------------------------------------------------------
+-- Instances of HasModifyValue
+------------------------------------------------------------------------
+
+instance HasModifyValue NodeArcsHidden DaVinciGraph DaVinciNode where
+   modify (NodeArcsHidden hide) daVinciGraph (DaVinciNode nodeId) =
+      do
+         flushPendingChanges daVinciGraph
+         doInContext (DaVinciTypes.Menu (
+            Abstraction ((if hide then HideEdges else ShowEdges) [nodeId])
+            )) (context daVinciGraph)
+
+instance HasModifyValue (String,String) DaVinciGraph DaVinciNode where
+   modify (key,value) daVinciGraph (DaVinciNode nodeId) =
+      do
+         flushPendingChanges daVinciGraph
+         doInContext
+            (DaVinciTypes.Graph (ChangeAttr [Node nodeId [A key value]]))
+            (context daVinciGraph)
+
+instance HasModifyValue Border DaVinciGraph DaVinciNode where
+   modify border =
+      let
+         borderStr = case border of
+            NoBorder -> "none"
+            SingleBorder -> "single"
+            DoubleBorder -> "double"
+      in
+         modify ("BORDER",borderStr)
+
+------------------------------------------------------------------------
 -- Node type configs for drag and drop
 ------------------------------------------------------------------------
 

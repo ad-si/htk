@@ -10,6 +10,7 @@ module Source(
 
    Source,
    mkSource,
+   mkStaticSource,
    ) where
 
 import Sink
@@ -50,6 +51,13 @@ mkSource simpleSource =
    Source {
       addOldS = (\ sink -> addOldSink simpleSource sink),
       readC = readContents simpleSource
+      }
+
+mkStaticSource :: x -> Source x
+mkStaticSource x =
+   Source {
+      addOldS = (\ sink -> return x),
+      readC = return x
       }
 
 instance CanAddSinks (Source x) x x where

@@ -22,6 +22,7 @@ import XmlParse
 
 import Dynamics
 import Sink
+import Source
 import VariableSet
 import Computation
 import AtomString
@@ -172,8 +173,9 @@ data MMiSSObject = MMiSSObject {
    parentFolder :: Link Folder,
       -- Folder containing this object.  This is also where we search for
       -- other constituent objects.
-   editLock :: BSem
+   editLock :: BSem,
       -- Set when we are editing this object.
+   objectBorder :: SimpleSource (Maybe Border)
    }
  
 mmissObject_tyRep = mkTyRep "MMiSSObject" "MMiSSObject"
@@ -197,6 +199,7 @@ instance HasCodedValue MMiSSObject where
          variantAttributes <- newEmptyAttributes view
          mkVariantAttributes variantAttributes
          editLock <- newBSem
+         objectBorder <- mkObjectBorder
          return (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
             variantAttributes = variantAttributes,
             objectContents = objectContents,
@@ -204,7 +207,8 @@ instance HasCodedValue MMiSSObject where
             referencedObjects = referencedObjects,
             linkedObjects = linkedObjects,
             parentFolder = parentFolder,
-            editLock = editLock
+            editLock = editLock,
+            objectBorder = objectBorder
             },codedValue1)
 
 -- ------------------------------------------------------------------
@@ -355,7 +359,17 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   knownSet = SinkSource (knownObjects objectType),
                   mustFocus = (\ _ -> return True),
                   focus = focus,
-                  closeDown = done
+                  closeDown = done,
+                  specialNodeActions =
+                     (\ object ->
+                        fmap
+                           (\ border ->
+                              (\ graph node ->
+                                 modify border graph node
+                              ))
+                           (mkSource (objectBorder object))
+                        )
+
                   })
       )  
 
@@ -640,6 +654,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                linkedObjects <- newVariableSet (map fromString
                   (links (accContents structuredContent)))
                editLock <- newBSem
+               objectBorder <- mkObjectBorder
                let
                   name = label structuredContent
 
@@ -652,7 +667,8 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                      referencedObjects = referencedObjects,
                      linkedObjects = linkedObjects,
                      parentFolder = folderLink,
-                     editLock = editLock
+                     editLock = editLock,
+                     objectBorder = objectBorder
                      }
                objectVersioned <- createObject view object
                objectLink <- makeLink view objectVersioned
@@ -778,6 +794,9 @@ editMMiSSObjectInner
          parent = parentFolder object
          variants = variantAttributes object
 
+         setBorder object border 
+            = sendSimpleSource (objectBorder object) (Just border)
+
          editFS (name,miniType) =
             addFallOutWE (\ break -> 
                do
@@ -803,6 +822,8 @@ editMMiSSObjectInner
                         done
                      else 
                         break ("Object "++name++" is already being edited")
+                  setBorder object DoubleBorder
+
                   let
                      contents = objectContents object
                   -- For the time being we search using the top objects
@@ -846,6 +867,7 @@ editMMiSSObjectInner
                      finishEdit =
                         do
                            release lock
+                           setBorder object SingleBorder
                            deleteFromRegistry formatExtraStash name
 
                      editedFile = EditedFile {
@@ -1172,6 +1194,13 @@ globalRegistry :: GlobalRegistry MMiSSObjectType
 globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
 
+
+-- ------------------------------------------------------------------
+-- Object Border source
+-- ------------------------------------------------------------------
+
+mkObjectBorder :: IO (SimpleSource (Maybe Border))
+mkObjectBorder = newSimpleSource Nothing
 
 -- ------------------------------------------------------------------
 -- Error messages

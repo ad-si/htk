@@ -18,6 +18,7 @@ import Dynamics
 import Computation
 import AtomString(fromString)
 import Sink
+import Source
 import VariableSet
 import UniqueString
 
@@ -191,7 +192,10 @@ instance ObjectType FileType File where
                         return (SinkSource emptyVariableSet,
                            SinkSource emptyVariableSet)
                         ),
-                     closeDown = done
+                     closeDown = done,
+                     specialNodeActions = (\ _ ->
+                        mkStaticSource (\ graph node -> done)
+                        )
                      })
                Nothing -> Nothing
          )              
