@@ -27,13 +27,14 @@ import FiniteMap
 
 import QuickReadShow
 import FileNames
+import UniqueFile
 
 import CVSTypes
 
 data AllocateState = AllocateState {
 -- AllocateState consists of two completely independent parts,
 -- one for generating CVSFiles and one for generating CVSVersions.
-   encodedName :: EncodedName, -- next new CVSFile in an encoded form.
+   encodedName :: UniqueFileCounter, -- next new CVSFile in an encoded form.
    versionMap :: VersionMap -- state for generating new versions.
    } deriving (Read,Show)
 
@@ -41,7 +42,7 @@ data AllocateState = AllocateState {
 -- Allocate the first two names
 allocateState0 :: AllocateState
 allocateState0 = AllocateState {
-   encodedName = initialEncodedName,
+   encodedName = initialUniqueFileCounter,
    versionMap = initialVersionMap
    }
 
@@ -67,85 +68,12 @@ initialAllocateState = fst allocateResult2
 -- Allocating a new CVSFile.
 ---------------------------------------------------------------------
 
-{- 
-   Strategy: each file name has the form 
-   [char]/[char]/.../[char]
-   followed (on the repository) by ",v".
-   The [char] is chosen from the 64-character set:
-
-   lower case and upper case letters (52)
-   digits (10)
-   @+
-   
-   Thus each char corresponds to a number between 0 and 63.
-   The characters are divided into those with numbers <22
-   and those with numbers >=22.  Characters with numbers >=22 
-   correspond to bits of the directory entry of the file name.
-   The ones with numbers <22 correspond to the file name part.
-   Thus the file names can get arbitrarily long.  The reason
-   for choosing 22 is that it maximises the number of possibilities
-   when there are up to three parts, which is 39754.
-   -}
-
 newCVSFile :: AllocateState -> (AllocateState,CVSFile)
-newCVSFile allocateState =
+newCVSFile (allocateState@AllocateState{encodedName = encodedName0}) =
    let
-      encoded = encodedName allocateState
-      nextAllocateState = allocateState {encodedName=increment encoded}
-      name = CVSFile(toString encoded)
+      (str,encodedName1) = stepUniqueFileCounter encodedName0
    in
-      (nextAllocateState,name)
-
-
-type EncodedName = [Int]
--- name to be generated encoded as ints, last component (of filename) 
--- first in list.
-
-initialEncodedName :: EncodedName
-initialEncodedName = [0]
-
-toString :: EncodedName -> String
-toString (first:rest) = tS [encodeChar first] rest
-   where
-      tS :: String -> [Int] -> String
-      tS acc [] = acc
-      tS acc (first:rest) = tS ((encodeChar first):fileSep:acc) rest
-
-encodeChar :: Int -> Char
-encodeChar i=
-   if i<26 then
-      chr(ord 'a' + i)
-   else if i<52 then
-      chr((ord 'A'-26)+i)
-   else if i<62 then
-      chr((ord '0'-52)+i)
-   else case i of
-      62 -> '@'
-      63 -> '+'
-
-increment :: EncodedName -> EncodedName
-increment (file:rest) =
-   if file==(divider-1) 
-      then
-         0:(incrementDirs rest)
-      else
-         (file+1):rest
-   where
-      incrementDirs :: [Int] -> [Int]
-      incrementDirs [] = [divider]
-      incrementDirs (first:rest) =
-         if first==(nChars-1) 
-            then
-               divider:(incrementDirs rest)
-            else
-               (first+1):rest    
-
-
-divider :: Int
-divider = 22
-
-nChars :: Int
-nChars = 64
+      (allocateState {encodedName = encodedName1},CVSFile str)
 
 ---------------------------------------------------------------------
 -- Allocating a new CVSVersion.

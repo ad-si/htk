@@ -43,6 +43,7 @@
    daVinciIcons  The directory containing daVinci icons
    backupDir     The directory to which the server programs should write
                  backup files
+   workingDir    The directory used for temporary files.
 
    cvsRoot       The CVS root to be used for cvs
    server        The host name of the server
@@ -76,7 +77,11 @@ module WBFiles (
    getDaVinciPath, -- ditto daVinci
    getTOP, -- ditto
    getPort, -- IO Int
+
+   -- getBackupDir and getWorkingDir trim a right-file-separator
+   -- from their arguments, if any.
    getBackupDir, -- IO String
+   getWorkingDir, -- :: IO String
  
    -- values for which we don't are:
    getDaVinciIcons, -- :: IO (Maybe String)
@@ -179,7 +184,16 @@ getPort :: IO Int
 getPort = valOf (getArgInt "port")
 
 getBackupDir :: IO String
-getBackupDir = valOf (getArgString "backupDir")
+getBackupDir = 
+   do
+      backupDir' <- valOf (getArgString "backupDir")
+      return (trimDir backupDir')
+
+getWorkingDir :: IO String
+getWorkingDir = 
+   do
+      workingDir' <- valOf (getArgString "workingDir")
+      return (trimDir workingDir')
 
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
@@ -255,6 +269,12 @@ usualProgramArguments = [
       optionName = "backupDir",
       optionHelp = "directory where servers backup files",
       defaultVal = Just (StringValue "."),
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "workingDir",
+      optionHelp = "directory used for temporary files",
+      defaultVal = Just (StringValue "/tmp"),
       argType = STRING
       },
    ProgramArgument{

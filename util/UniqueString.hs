@@ -12,9 +12,10 @@ module UniqueString(
    UniqueStringCounter,
 
    firstUniqueStringCounter, -- :: UniqueStringCounter
-   stepUniqueStringCounter, -- :: UniqueStringCounter -> UniqueStringCounter
-   toStringUniqueStringCounter, -- :: UniqueStringCounter -> String
-
+      -- This is what you start with
+   stepUniqueStringCounter, -- :: UniqueStringCounter 
+      -- -> (String,UniqueStringCounter)
+      -- and this is how you get a new String out.
    ) where
 
 import Array
@@ -52,8 +53,11 @@ newUniqueString :: UniqueStringSource -> IO String
 newUniqueString (UniqueStringSource mVar) =
    do
       uniqueStringCounter <- takeMVar mVar
-      putMVar mVar (stepUniqueStringCounter uniqueStringCounter)
-      return (toStringUniqueStringCounter uniqueStringCounter)
+      let 
+         (str,nextUniqueStringCounter) = 
+            stepUniqueStringCounter uniqueStringCounter
+      putMVar mVar nextUniqueStringCounter
+      return str
 
 -- -------------------------------------------------------------------
 -- The pure interface.
@@ -66,9 +70,10 @@ newtype UniqueStringCounter = UniqueStringCounter [Int]
 firstUniqueStringCounter :: UniqueStringCounter
 firstUniqueStringCounter = UniqueStringCounter [0]
 
-stepUniqueStringCounter :: UniqueStringCounter -> UniqueStringCounter
-stepUniqueStringCounter (UniqueStringCounter ilist) =
-      UniqueStringCounter (step ilist)
+stepUniqueStringCounter :: UniqueStringCounter -> (String,UniqueStringCounter)
+stepUniqueStringCounter (uniqueStringCounter @ (UniqueStringCounter ilist)) =
+      (toStringUniqueStringCounter uniqueStringCounter,
+         UniqueStringCounter (step ilist))
    where
       step [] = [0]
       step (first:rest) =

@@ -33,9 +33,3 @@ class HasCodedValueType value where
 
 instance Typeable value => HasCodedValueType value where
    codedValueType value = CodedValueType (typeOf value)
-
-shortList_tag :: TyCon
-shortList_tag = mkTyCon "CodedValueType" "ShortList"
-
-instance HasTyCon1 ShortList where
-   tyCon1 _ = shortList_tag

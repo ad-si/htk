@@ -47,6 +47,7 @@
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
 OBJSC = $(patsubst %.c,%.o,$(SRCSC))
 OBJS = $(OBJSHS) $(OBJSC)
+LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS))
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
@@ -59,7 +60,7 @@ HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean display ghci
+.PHONY : depend libhere lib testhere test all clean display ghci libfast libfasthere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -125,7 +126,7 @@ testhere : $(TESTPROGS)
 mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
-	$(TOP)/mk/mkEverything $(SRCS)
+	$(TOP)/mk/mkEverything $(LIBSRCS)
 	$(HC) --make EVERYTHING.hs $(HCFLAGS)
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi
 	$(AR) -r $(LIB) $(LIBOBJS)

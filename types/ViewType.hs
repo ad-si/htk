@@ -11,6 +11,7 @@ import Concurrent
 
 import Dynamics
 import Registry
+import UniqueFile
 
 import BSem
 

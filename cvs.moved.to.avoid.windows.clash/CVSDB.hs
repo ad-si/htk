@@ -8,9 +8,7 @@ module CVSDB(
    RepositoryParameter(WorkingDir),
    -- The workingDir is a directory for the private
    -- use of the CVSDB module.
-   initialise, -- :: [RepositoryParameter] -> IO Repository
-   -- Where the same parameter is specified multiple times, the first
-   -- setting in the list is used.   
+   initialise, -- :: IO Repository
 
    ObjectVersion, 
    -- type of versions of objects in the repository
@@ -40,7 +38,7 @@ module CVSDB(
    -- allocate a new unique location in the repository.
    -- and the version of the associated attributes.
 
-   getFilePath, -- :: Repository -> Location -> IO FilePath
+   getCVSFilePath, -- :: Repository -> Location -> IO FilePath
    -- get the REAL, complete, file path corresponding to a particular
    -- location.  This allows it to be modified in place.
    -- If this is done, it's important that ObjectSource be
@@ -93,6 +91,7 @@ import QuickReadShow
 import FiniteMap
 import Maybes
 import IOExtras
+import UniqueFile
 
 import Events
 
@@ -116,12 +115,11 @@ data Repository = Repository {
    workingDir :: String, 
       -- Working directory.  Includes terminal file separator.
       -- Also includes module name.
+   uniqueFileStore :: UniqueFileStore,
+      -- Provides place where CVS files are locally stored.
    wDirContents :: LockedRegistry Location ObjectVersion,
       -- wDirContents contains all versions of objects (including
       -- attribute files) currently in the working directory.
-   wDirDirs :: MVar (Set Location),
-      -- wDirDirs contains the set of all directories known to
-      -- already exist in the working directory.
    notifier :: Notifier,
    allocator :: AllocateRequest -> IO AllocateAnswer
    -- Calls allocator service
@@ -135,23 +133,10 @@ type Location = CVSFile
 -- Initialisation
 ----------------------------------------------------------------
 
-initialise :: [RepositoryParameter] -> IO Repository
-initialise options =
-   do      
-      workingDir' <-
-         case (firstJust 
-            (map
-               (\ option -> 
-                  case option of 
-                     WorkingDir workingDir -> Just workingDir
-                     _ -> Nothing
-                  ) 
-               options
-               )
-            ) of
-            Just workingDir -> return workingDir
-            Nothing -> 
-               error "CVSDB.initialise - must specify working directory"
+initialise :: IO Repository
+initialise =
+   do
+      workingDir' <- getWorkingDir
 
       cvsRootOpt <- getCVSROOT
 
@@ -161,19 +146,13 @@ initialise options =
 
       cvsLoc' <- newCVSLoc cvsRoot workingDir'
 
-      dirExists <- doesDirectoryExist workingDir'
-      if dirExists 
-         then
-            done
-         else
-            createDirectory workingDir'
+      catchAlreadyExists (createDirectory workingDir')
       setCurrentDirectory workingDir'  
  
       cvsCheckoutCheck cvsLoc' (CVSFile cvsModuleName)
 
       let 
-         workingDir = workingDir' ++ [fileSep] ++ cvsModuleName ++ 
-            [fileSep]
+         workingDir = workingDir' ++ [fileSep] ++ cvsModuleName 
 
       cvsLoc <- newCVSLoc cvsRoot workingDir
 
@@ -182,13 +161,22 @@ initialise options =
       (allocator,closeAction,header) <- connectReply allocateService
 
       wDirContents <- newRegistry
-      wDirDirs <- newMVar emptySet
 
+      uniqueFileStore <- newUniqueFileStore workingDir
+         (\ subDir ->
+            do
+               createDirectory (combineNames workingDir subDir)
+               cvsAdd cvsLoc (CVSFile subDir)
+               -- ignore errors, which may be due to directory already
+               -- existing in repository
+               done
+            )
+               
       return Repository {
          cvsLoc = cvsLoc,
          workingDir = workingDir,
          wDirContents = wDirContents,
-         wDirDirs = wDirDirs,
+         uniqueFileStore = uniqueFileStore,
          notifier = notifier,
          allocator = allocator
          }
@@ -315,7 +303,7 @@ exportToCVSFile repository objectSource cvsFile =
 directAccessError :: IO a
 directAccessError =
    error "DirectAccess objects cannot be read from indirectly."
-   -- use getFilePath instead
+   -- use getCVSFilePath instead
 
 importString :: String -> IO ObjectSource
 importString str = return (StringObject str)
@@ -329,17 +317,17 @@ firstLocation = Allocate.firstCVSFile
 secondLocation :: Location
 secondLocation = Allocate.secondCVSFile
 
-getFilePath :: Repository -> CVSFile -> IO FilePath
-getFilePath repository cvsFile =
+getCVSFilePath :: Repository -> CVSFile -> IO FilePath
+getCVSFilePath repository cvsFile =
    do
-      ensureDirectories repository cvsFile
+      ensureDirs repository cvsFile
       return (toRealName repository cvsFile)
--- getFilePath is identical to toRealName except that
+-- getCVSFilePath is identical to toRealName except that
 -- it also ensures that the directories are there.
 
 toRealName :: Repository -> CVSFile -> FilePath
 toRealName repository (CVSFile location) =
-   (workingDir repository ++ location)
+   combineNames (workingDir repository) location
 
 ----------------------------------------------------------------
 -- Adding an object for the first time
@@ -359,7 +347,7 @@ initialiseLocation (repository@Repository{cvsLoc=cvsLoc})
       objectSource cvsFile =
    do
       -- now create object
-      ensureDirectories repository cvsFile
+      ensureDirs repository cvsFile
       -- now add it to repository
       -- object part
       exportToCVSFile repository objectSource cvsFile
@@ -458,7 +446,7 @@ retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version
                   Just _ -> getFile
                   Nothing -> 
                      do 
-                        ensureDirectories repository cvsFile
+                        ensureDirs repository cvsFile
                         getFile
                result <- action
                return (version,result)
@@ -467,60 +455,12 @@ retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version
 
          
 ----------------------------------------------------------------
--- ensureDirectories
+-- ensureDirs
 ----------------------------------------------------------------
 
-ensureDirectories :: Repository -> CVSFile -> IO ()
--- ensureDirectories repository file
--- makes sure that all the directories in which file is contained
--- exist, adding it to the repository if necessary.
--- (We assume that adding directories to a repository which
--- are already there is harmless.)
--- A surprisingly complicated function.  Can it be simplified?
--- It needs to be done before every read or write to the archive.
--- Hence we cache the known directories in wDirDirs.
-ensureDirectories
-      (repository@
-         Repository{cvsLoc=cvsLoc,wDirDirs=wDirDirs})
-      (CVSFile cvsFile) =
-   case splitName cvsFile of
-      Nothing -> return () -- no more subdirectories
-      Just (dir,_) ->
-         do
-            let dirCVS = CVSFile dir
-
-            knownDirs <- takeMVar wDirDirs
-            if elementOf dirCVS knownDirs
-               then
-                  do -- nothing
-                     putMVar wDirDirs knownDirs
-               else
-                  do
-                     exists <- doesDirectoryExist 
-                        (toRealName repository dirCVS)
-                     if exists
-                        then -- hardly anything
-                           do
-                              putMVar wDirDirs (addElement dirCVS knownDirs)
-                        else -- recurse and (probably) create
-                           do
-                              putMVar wDirDirs knownDirs
-                              ensureDirectories repository dirCVS
-                              knownDirs <- takeMVar wDirDirs
-                              if elementOf dirCVS knownDirs 
-                                 then -- interesting race condition
-                                    do
-                                       putMVar wDirDirs knownDirs
-                                 else
-                                    do
-                                       createDirectory 
-                                          (toRealName repository dirCVS)
-                                       cvsAddCheck cvsLoc dirCVS
-                                       putMVar wDirDirs 
-                                          (addElement dirCVS knownDirs)
-   where
-      addElement :: Ord a => a -> Set a -> Set a
-      addElement newEl set = union set (unitSet newEl)
+ensureDirs :: Repository -> CVSFile -> IO ()
+ensureDirs repository (CVSFile fileName) =
+   ensureDirectories (uniqueFileStore repository) fileName
 
 ----------------------------------------------------------------
 -- wDirContents 

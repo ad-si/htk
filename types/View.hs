@@ -17,6 +17,7 @@ module View(
    commitView, -- :: View -> IO ObjectVersion
       -- This commits all the objects in a particular view, returning
       -- a global version.
+   getRepository, -- :: View -> Repository
 
    -- Links.
    -- A Link x is a pointer to an object of type x.  Links are made
@@ -66,11 +67,16 @@ module View(
    -- look up a link to an object in the repository.
    ) where
 
+import Directory
+
 import Concurrent
 
 import Registry
 import Dynamics
 import AtomString(fromString)
+import UniqueFile
+import FileNames
+import WBFiles
 
 import VersionDB
 import ViewType
@@ -92,7 +98,6 @@ newView repository =
    do
       objects <- newRegistry
       parentMVar <- newMVar Nothing
-      
       return (View {
          repository = repository,
          objects = objects,
@@ -155,6 +160,9 @@ commitView (View {repository = repository,objects = objects,
          parentOpt
       putMVar parentMVar (Just newObjectVersion)
       return newObjectVersion
+
+getRepository :: View -> Repository
+getRepository view = repository view
 
 -- ----------------------------------------------------------------------
 -- Links
@@ -304,6 +312,7 @@ readObject view (Versioned{statusMVar = statusMVar}) =
          Virgin x -> return x
          UpToDate x _ -> return x
          Dirty x _ -> return x
+
 
 
 
