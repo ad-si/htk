@@ -16,36 +16,30 @@ Notepad,
 NotepadItem,
 ItemName(..),
 
-name {- :: ItemName -> Config (NotepadItem a) -},
-getName {- :: NotepadItem a -> (IO ItemName) -},
+name,              {- ItemName -> Config (NotepadItem a) -}
+getName,           {- NotepadItem a -> (IO ItemName) -}
 
-newNotepadItem {- :: a -> Notepad a -> [Config (NotepadItem a)] -> IO (NotepadItem a) -},
+newNotepad,        {- Bool -> [Config (Notepad a)] -> IO (Notepad a) -}
+newNotepadItem,    {- a -> Notepad a -> [Config (NotepadItem a)] ->
+                      IO (NotepadItem a) -}
 
-deleteItem {- :: Notepad a -> NotepadItem a -> IO () -},
+selectAll,         {- Notepad a -> IO () -}
+deselectAll,       {- Notepad a -> IO () -}
+selectItem,        {- Notepad a -> NotepadItem a -> IO () -}
+selectAnotherItem, {- Notepad a -> NotepadItem a -> IO () -}
+selectItemsWithin, {- Position -> Position -> Notepad a -> IO () -}
+deselectItem,      {- Notepad a -> NotepadItem a -> IO () -}
 
-newNotepad {- :: ScrollType -> [Config (Notepad a)] -> IO (Notepad a) -},
+deleteItem,        {- Notepad a -> NotepadItem a -> IO () -}
+getSelectedItems,  {- Notepad a -> NotepadItem a -> IO () -}
 
-selectAll {- :: Notepad a -> IO () -},
-
-deselectAll {- :: Notepad a -> IO () -},
-
-selectItem {- :: Notepad a -> NotepadItem a -> IO () -},
-
-selectAnotherItem {- :: Notepad a -> NotepadItem a -> IO () -},
-
-selectItemsWithin {- :: Position -> Position -> Notepad a -> IO () -},
-
-deselectItem {- :: Notepad a -> NotepadItem a -> IO () -},
-
-getSelectedItems {- :: Notepad a -> NotepadItem a -> IO () -},
-
---dropEvent {- :: NotepadItem a -> IA [(NotepadItem a)] -},
-
-selectionEvent {- :: NotepadItem a -> IA () -}
+--dropEvent,          {- NotepadItem a -> IA [(NotepadItem a)] -}
+selectionEvent,    {- NotepadItem a -> IA () -}
 
 ) where
 
 import Concurrency
+import Channels
 import GUICore
 import HTk
 import EmbeddedCanvasWin
@@ -65,21 +59,18 @@ import RVar
 
 debug = True
 
-debugMsg str =
-  if debug then
-    putStr("################################# " ++ str ++ "\n\n")
-  else
-    done
+debugMsg str = if debug then putStr(">>> " ++ str ++ "\n\n") else done
+
 
 -------------------
 -- Notepad items --
 -------------------
 
--- types --
+-- type --
 
 data NotepadItem a =
   NotepadItem ImageItem (TextItem String) (RVar a) (RVar ItemName)
-              (RVar (Maybe (Rectangle, Rectangle))) deriving Eq
+    (RVar (Maybe (Rectangle, Rectangle))) (MsgQueue (NotepadItem a))
 
 
 -- constructor --
@@ -93,34 +84,38 @@ newNotepadItem val notepad@(Notepad cnv _ _ _ _) cnf =
     itemval <- newRVar val
     itemname <- newRVar (ItemName { short = \_ -> "", full = "" })
     itemsel <- newRVar Nothing
-    item <- return(NotepadItem img txt itemval itemname itemsel)
+    msgQ <- newMsgQueue
+    item <- return(NotepadItem img txt itemval itemname itemsel msgQ)
     foldl (>>=) (return item) cnf
-    interactor(readyToMove img notepad item)
+    interactor(inside img notepad item)
     addItemToState notepad item
     return item
-  where readyToMove :: ImageItem -> Notepad a -> NotepadItem a ->
-                       InterActor -> IA ()
-        readyToMove img notepad@(Notepad _ _ _ _ entereditemref) item iact =
+  where inside :: ImageItem -> Notepad a -> NotepadItem a ->
+                  InterActor -> IA ()
+        inside img notepad@(Notepad _ _ _ _ entereditemref) item iact =
              (mouseEnter img >>> (debugMsg "entered item" >>
                                   setVar entereditemref (Just item)))
           +> (mouseLeave img >>> (debugMsg "left item" >>
                                   setVar entereditemref Nothing))
 
 
--- instances (NotepadItem) --
+-- instances --
+
+instance Eq (NotepadItem a) where
+  (NotepadItem img1 _ _ _ _ _) == (NotepadItem img2 _ _ _ _ _) = img1 == img2
 
 instance GUIObject (NotepadItem a) where
-  toGUIObject (NotepadItem img _ _ _ _) = toGUIObject img
+  toGUIObject (NotepadItem img _ _ _ _ _) = toGUIObject img
   cname _ = "NotepadItem"
 
 instance HasPosition (NotepadItem a) where
-  position p@(x, y) n@(NotepadItem img txt _ _ _) =
+  position p@(x, y) n@(NotepadItem img txt _ _ _ _) =
     itemPositionD2 p img >> itemPositionD2 (x, y + 35) txt >> return n
-  getPosition (NotepadItem img _ _ _ _) = getItemPositionD2 img
+  getPosition (NotepadItem img _ _ _ _ _) = getItemPositionD2 img
 
 instance HasPhoto(NotepadItem a) where
-  photo i item@(NotepadItem img _ _ _ _) = img # photo i >> return item
-  getPhoto (NotepadItem img _ _ _ _) = getPhoto img
+  photo i item@(NotepadItem img _ _ _ _ _) = img # photo i >> return item
+  getPhoto (NotepadItem img _ _ _ _ _) = getPhoto img
 
 instance Interactive (NotepadItem a)
 
@@ -132,37 +127,44 @@ data ItemName = ItemName { short :: Int -> String,
 	                   full  :: String }
 
 name :: ItemName -> Config (NotepadItem a)
-name itname w@(NotepadItem _ txt _ nm _) =
+name itname w@(NotepadItem _ txt _ nm _ _) =
   do
     setVar nm itname
     txt # value (full itname)
     return w
 
 getName :: NotepadItem a -> (IO ItemName)
-getName (NotepadItem _ _ _ nm _) =
+getName (NotepadItem _ _ _ nm _ _) =
   do
     itemname <- getVar nm
     return itemname
 
---dropEvent :: NotepadItem a -> IA [(NotepadItem a)]
 
-selectionEvent :: NotepadItem a -> IA ()
-selectionEvent (NotepadItem img _ _ _ _) =
+-- events --
+
+-- dropEvent :: NotepadItem a -> IA [(NotepadItem a)]
+
+selectionEvent :: NotepadItem a -> IA (NotepadItem a)
+selectionEvent (NotepadItem _ _ _ _ _ msgQ) = lift(receive msgQ)
+
+{-
+selectionEvent (NotepadItem img _ _ _ _ _) =
   mouseButtonPress img 1 >>>= \ _ -> return ()
+-}
 
 
 -------------
 -- Notepad --
 -------------
 
--- types --
+-- type --
 
 data Notepad a =
   Notepad Canvas (Maybe (ScrollBox Canvas)) (RVar ([NotepadItem a]))
           (RVar ([NotepadItem a])) (RVar (Maybe (NotepadItem a))) deriving Eq
 
 
--- state functionality --
+-- state --
 
 addItemToState :: Notepad a -> NotepadItem a -> IO ()
 addItemToState notepad@(Notepad _ _ notepaditemsref _ _) item =
@@ -171,7 +173,7 @@ addItemToState notepad@(Notepad _ _ notepaditemsref _ _) item =
     setVar notepaditemsref (item : notepaditems)
 
 highlight :: Canvas -> NotepadItem a -> IO ()
-highlight cnv item@(NotepadItem img txt _ _ sel) =
+highlight cnv item@(NotepadItem img txt _ _ sel _) =
   do
     txt # filling "white"
     s <- getVar sel
@@ -192,7 +194,7 @@ highlight cnv item@(NotepadItem img txt _ _ sel) =
       Just _  -> done
 
 deHighlight :: NotepadItem a -> IO ()
-deHighlight (NotepadItem img txt _ _ sel) =
+deHighlight (NotepadItem img txt _ _ sel _) =
   do
     txt # filling "black"
     s <- getVar sel
@@ -202,22 +204,23 @@ deHighlight (NotepadItem img txt _ _ sel) =
         destroy rect1 >> destroy rect2 >> setVar sel Nothing
 
 selectItem :: Notepad a -> NotepadItem a -> IO ()
-selectItem notepad@(Notepad cnv _ _ selecteditemsref _) item =
+selectItem notepad@(Notepad cnv _ _ selecteditemsref msgQ) item =
   do
     deselectAll notepad
     highlight cnv item
     selecteditems <- getVar selecteditemsref
     setVar selecteditemsref (item : selecteditems)
+--    send msgQ
 
 selectAnotherItem :: Notepad a -> NotepadItem a -> IO ()
-selectAnotherItem (Notepad cnv _ _ selecteditemsref _) item =
+selectAnotherItem (Notepad cnv _ _ selecteditemsref msgQ) item =
   do
     highlight cnv item
     selecteditems <- getVar selecteditemsref
     setVar selecteditemsref (item : selecteditems)
 
 deselectItem :: Notepad a -> NotepadItem a -> IO ()
-deselectItem (Notepad _ _ _ selecteditemsref _) item =
+deselectItem (Notepad _ _ _ selecteditemsref msgQ) item =
   do
     deHighlight item
     selecteditems <- getVar selecteditemsref
@@ -311,7 +314,7 @@ newNotepad scrolled cnf =
                                           debugMsg "rectangle created"
                                           become iact (selecting notepad rect
                                                                  x y x y iact)
-                             Just item@(NotepadItem img _ _ _ _) ->
+                             Just item@(NotepadItem img _ _ _ _ _) ->
                                do
                                  b <- isSelected notepad item
                                  (if b then
@@ -354,26 +357,8 @@ newNotepad scrolled cnf =
                   selectItemsWithin (x0, y0) (x1, y1) notepad
                   become iact (click notepad iact))
 
---        removeNonSelected :: CanvasTag -> [NotepadItem a] -> IO ()
---        removeNonSelected tag (item@(NotepadItem img txt _ _ selref) : items) =
---          do
---            removeCanvasTag img tag
---            removeCanvasTag txt tag
---            sel <- getVar selref
---            case sel of
---              Nothing             -> done
---              Just (rect1, rect2) ->
---                debugMsg "ERROR: Non-selected item with rectangle" >>
---                removeCanvasTag rect1 tag >> removeCanvasTag rect2 tag
---                                                  -- sollte nicht der Fall sein
---            itemname <- getName item
---            debugMsg("Removed " ++ full itemname ++ " from CanvasTag")
---            removeNonSelected tag items
---        removeNonSelected _ []                                         =
---          debugMsg "CanvasTag ready" >> done
-
         addToTag :: CanvasTag -> NotepadItem a -> IO ()
-        addToTag tag (NotepadItem img txt _ _ rectref) =
+        addToTag tag (NotepadItem img txt _ _ rectref _) =
           do
             img # tags [tag]
             txt # tags [tag]
@@ -392,11 +377,6 @@ newNotepad scrolled cnf =
             notepaditems <- getVar notepaditemsref
             selecteditems <- getVar selecteditemsref
             tag <- newCanvasTag [parent cnv]
---            debugMsg "CanvasTag created (all items)"
---            removeNonSelected tag (filter
---                                     (\ item -> not(any ((==) item)
---                                                        selecteditems)) 
---                                     notepaditems)
             mapM (addToTag tag) selecteditems >> done
             debugMsg "CanvasTag created"
             return tag
@@ -416,7 +396,7 @@ newNotepad scrolled cnf =
                become iact (click notepad iact)))
 
 
--- instances (Notepad) --
+-- instances --
 
 instance GUIObject (Notepad a) where
   toGUIObject (Notepad cnv scr _ _ _) = case scr of
@@ -458,4 +438,4 @@ instance ParentWidget (Notepad a) (NotepadItem a)
 
 -- state export --
 
---getItems :: Notepad a -> IO [Config (NotepadItem a)]
+--getItems :: Notepad a -> IO [Config (NotepadItem a)]   ???

@@ -2,6 +2,7 @@ pgm
 *.o
 *.hi
 .depend
+Makefile
 Makefile.bak
 *%
 backup*
