@@ -77,7 +77,7 @@
 
 <!ENTITY % semanticElement "define | reference">
 
-<!ENTITY % embeddedElement "%structuralElement; | %semanticElement;">
+<!ENTITY % embeddedElement "%structuralElement; | %semanticElement; | emphasis">
 
 <!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
 
@@ -96,6 +96,9 @@
 <!ELEMENT reference (#PCDATA)>
 <!ATTLIST reference referenced  CDATA #REQUIRED
                     status  (present | absent) "absent">
+
+<!ELEMENT emphasis (#PCDATA)>
+
 
 <!--
   ***********************************************************************
