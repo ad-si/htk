@@ -19,10 +19,7 @@ import SIM(shutdown)
 import WBFiles(parseArguments)
 
    
-setUpGraph 
-   (displaySort ::
-       GraphDisp.Graph graph graphParms node nodeType nodeTypeParms arc 
-          arcType arcTypeParms) =
+setUpGraph (displaySort) =
    do
 
       -- Create new graph
@@ -40,11 +37,11 @@ setUpGraph
       -- Setup node and egde types
 
       let
-         (nodeType1Parms :: nodeTypeParms ()) =
+         nodeType1Parms =
             LocalMenu (Menu Nothing []) $$$ emptyNodeTypeParms
 
-         arcType1Parms = LocalMenu (Menu Nothing [])  
-                         $$$ emptyArcTypeParms
+         arcType1Parms = 
+            LocalMenu (Menu Nothing []) $$$ emptyArcTypeParms
 
       nodeType1 <- newNodeType graph nodeType1Parms
 
