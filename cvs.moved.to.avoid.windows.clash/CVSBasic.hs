@@ -50,7 +50,7 @@ instance Read CVSFile where
             (\ (result,rest) -> (CVSFile result,rest))
             parses
 
-newtype CVSVersion = CVSVersion String deriving Eq
+newtype CVSVersion = CVSVersion String deriving (Eq,Ord)
  
 instance Show CVSVersion where
    showsPrec prec (CVSVersion str) acc = showsPrec prec str acc

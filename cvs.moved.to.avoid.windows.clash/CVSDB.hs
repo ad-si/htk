@@ -49,9 +49,11 @@ module CVSDB(
    -- creates an object with a new initial location, or else
    -- raise an error.  (Used when file system is initialised)
 
-   commit, -- :: Repository -> ObjectSource -> Location -> IO ObjectVersion
+   commit, -- :: Repository -> ObjectSource -> Location -> 
+           --    (Maybe ObjectVersion) -> IO ObjectVersion
    -- commits a new version of the object to the repository, returning its
-   -- new version.
+   -- new version.  The version if supplied is passed to CVSHigh
+   -- as the parent version.
    retrieveFile, -- :: Repository -> Location -> ObjectVersion -> FilePath ->
                  --       IO ()
    -- retrieveFile retrieves the given version of the object at Location
@@ -392,14 +394,15 @@ newGeneralLocation (repository@Repository{cvsLoc=cvsLoc})
 -- commit and retrieveFile/retrieveString
 ----------------------------------------------------------------
 
-commit :: Repository -> ObjectSource -> Location -> IO ObjectVersion
+commit :: Repository -> ObjectSource -> Location -> (Maybe ObjectVersion) -> 
+   IO ObjectVersion
 commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier}) 
-      objectSource (cvsFile@(CVSFile cvsFileName)) =
+      objectSource (cvsFile@(CVSFile cvsFileName)) parentVersion =
    do
       ensureDirectories repository cvsFile
       exportFile objectSource (toRealName repository cvsFile)
       version <- updateDirContents repository cvsFile
-         (\ _ -> cvsCommitCheck cvsLoc cvsFile Nothing)
+         (\ _ -> cvsCommitCheck cvsLoc cvsFile parentVersion)
       notify notifier cvsFileName
       return version
 
