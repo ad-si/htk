@@ -34,7 +34,7 @@ module View(
 import Directory
 
 import Data.IORef
-import Control.Concurrent
+import Control.Concurrent.MVar
 
 
 import Debug(debug)
@@ -88,6 +88,7 @@ newView repository =
       titleSource <- newSimpleBroadcaster ""
       commitLock <- newVSem
       delayer <- newDelayer
+      committingVersion <- newMVar Nothing
 
       return (View {
          viewId = ViewId viewIdObj,
@@ -97,7 +98,8 @@ newView repository =
          titleSource = titleSource,
          fileSystem = fileSystem,
          commitLock = commitLock,
-         delayer = delayer
+         delayer = delayer,
+         committingVersion = committingVersion
          })
 
 listViews :: Repository -> IO [Version]
@@ -144,6 +146,7 @@ getView repository objectVersion =
       titleSource <- newSimpleBroadcaster ""
       commitLock <- newVSem
       delayer <- newDelayer
+      committingVersion <- newMVar Nothing
       let
          view = View {
             viewId = viewId,
@@ -153,7 +156,8 @@ getView repository objectVersion =
             parentsMVar = parentsMVar,
             fileSystem = fileSystem,
             commitLock = commitLock,
-            delayer = delayer
+            delayer = delayer,
+            committingVersion = committingVersion
             }
 
       importDisplayTypes displayTypesData view
@@ -169,11 +173,15 @@ commitView (view @ View {repository = repository,objects = objects,
 
          -- We use a two-stage commit on the top link, so we can commit
          -- the other objects knowing what the view version will be.
+         -- This is passed as the argument to commitVersion, and also written
+         -- to the committingVersion MVar.
          newVersion <- commitStage1 repository firstLocation 
             (case parents of 
                [] -> Nothing
                parent : _ -> Just parent
                )
+
+         swapMVar (committingVersion view) (Just newVersion)
 
          displayTypesData <- exportDisplayTypes view
 
@@ -212,6 +220,8 @@ commitView (view @ View {repository = repository,objects = objects,
          viewObjectSource <- toObjectSource viewCodedValue 
 
          commitStage2 repository viewObjectSource firstLocation newVersion
+
+         swapMVar (committingVersion view) Nothing
 
          putMVar parentsMVar [newVersion]
          return newVersion

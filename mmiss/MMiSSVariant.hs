@@ -20,9 +20,6 @@ module MMiSSVariant(
    addToVariantDict,
    queryInsert,
 
---   emptyMMiSSSearchObject,
---   MMiSSSearchObject,
-
    -- For the time being, newtype variants of MMiSSSearchObject.
    MMiSSVariantSearch,
    MMiSSVariantSpec,
@@ -37,212 +34,316 @@ module MMiSSVariant(
    emptyMMiSSVariantSearch,
    emptyMMiSSVariantSpec,
 
---   toMMiSSSearchObject,
---   fromMMiSSSearchObject,
---   toMMiSSSearchObjectFromXml,
---   mergeMMiSSSearchObjects,
-
---   mkVariantAttributes,
---   extractVariantAttributes,
+   -- Merging
+   getMMiSSVariantDictObjectLinks, 
    ) where
 
-#include "config.h"
-
 import Maybe
-import List
 import Monad
 
-import Array
-import Concurrent
-import FiniteMap
-import Set
-import Exception
+import Control.Concurrent.MVar
+import Data.FiniteMap
 
+import Computation (done)
+import AtomString
+import Registry
 import ExtendedPrelude
 import Dynamics
-import Registry
-import Computation(done)
 
+import GraphOps
 
-#if HAXMLINT
-import Text.XML.HaXml.Types(Attribute,AttValue(..))
-#else
-import XmlTypes(Attribute,AttValue(..))
-#endif
-
-import CodedValue
+import ViewType
+import View
+import VersionGraphClient
 import BasicObjects
-import AttributesType
+import CodedValue
+import MergeTypes
 
+import Text.XML.HaXml.Types(Attribute,AttValue(..))
 
 import MMiSSDTDAssumptions
----
--- variantAttributes itself is imported from MMiSSDTDAssumptions.
-variantAttributesArray :: Array Int String
-variantAttributesArray = 
-   listArray (1,length variantAttributes) variantAttributes
 
-variantAttributesSet :: Set String
-variantAttributesSet = mkSet variantAttributes
+-- -----------------------------------------------------------------------
+-- Implementation Note
+-- 
+-- This is a complete reimplementation of this module.  The previous version
+-- used a clever indexing strategy which was unfortunately extremely 
+-- inflexible.  This version uses a more general scoring method, in which
+-- we score each available variant, and then pick the highest-scoring.
+-- -----------------------------------------------------------------------
 
--- -------------------------------------------------------------------
--- The impure interface
--- -------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- The list of variant attributes
+-- -----------------------------------------------------------------------
 
-newtype MMiSSVariantDict a = MMiSSVariantDict (MVar (VariantDict a))
+data VariantAttribute = VariantAttribute {
+   key :: String,
+   score :: Maybe String -> Maybe String -> IO Integer,
+      -- first argument is the value being searched for,
+      -- second the value of this attribute.
+      -- Nothing in either case means "unset".
 
-newEmptyVariantDict :: IO (MMiSSVariantDict a)
-newEmptyVariantDict = 
-   do
-      mVar <- newMVar emptyVariantDict
-      return (MMiSSVariantDict mVar)
+      -- Positive scores mean it matches more.
+   innerIgnored :: Bool
+      -- True if outer settings of this attribute are NOT overruled by an
+      -- inner one (when expanding document).  
+   }
 
-variantDictSearch :: MMiSSVariantDict a -> MMiSSVariantSearch -> 
-   IO (Maybe a)
-variantDictSearch (MMiSSVariantDict mVar) (MMiSSVariantSearch searchObject) =
-   do
-      dict <- readMVar mVar
-      return (searchVariantDict dict searchObject)
+-- The list of all available attributes
+-- NB.  The function setVersion and getVersion are going to assume that
+-- the versionVariant comes first.
+variants :: [VariantAttribute]
+variants =
+   versionVariant :
+      map
+         (\ key -> VariantAttribute {
+            key = key,
+            innerIgnored = False,
+            score = (\ s1Opt s2Opt ->
+               return (case (s1Opt,s2Opt) of
+                  (Just s1,Just s2) -> 
+                     if s1 == s2 then 1000 else 0
+                  (Nothing,Nothing) -> 500
+                  _ -> 100
+                  )
+               )
+            })
+         MMiSSDTDAssumptions.variantAttributes
 
-variantDictSearchExact :: MMiSSVariantDict a -> MMiSSVariantSpec -> 
-   IO (Maybe a)
-variantDictSearchExact (MMiSSVariantDict mVar) (MMiSSVariantSpec searchObject)
-      =
-   do
-      dict <- readMVar mVar
-      return (searchVariantDictExact dict searchObject)
+-- the most complicated attribute, the one which controls versions,
+-- which we score highly.
+versionVariant :: VariantAttribute
+versionVariant = VariantAttribute {
+   key = "Version",
+   innerIgnored = True,
+   score = (\ s1Opt s2Opt ->
+      case (s1Opt,s2Opt) of
+         (Just searchKey,Just thisKey) -> 
+            if searchKey == thisKey
+               then
+                  return 8000
+               else
+                  do
+                     let
+                        searchNode = versionToNode (fromString searchKey)
+                        thisNode = versionToNode (fromString thisKey)
 
-addToVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> a -> IO ()
-addToVariantDict (MMiSSVariantDict mVar) (MMiSSVariantSpec searchObject) value
-      =
-   do
-      dict <- takeMVar mVar
-      putMVar mVar (addToPureVariantDict dict searchObject value)
+                     is <- isAncestor versionGraph thisNode searchNode
 
----
--- Query if, when were immediately to insert a value with the second
--- set of attributes (this), and then search with the first set (parent)
--- we would get the value back.
--- We use a ghastly exceptions-trick to insert a pseudo-value into the
---    dictionary.
--- The method looks inefficient since we have to create a new dictionary;
---    however I hope that lazy evaluation will prevent too much work being
---    done. 
-queryInsert :: MMiSSVariantDict a -> MMiSSVariantSpec -> MMiSSVariantSearch
-   -> IO Bool
-queryInsert (MMiSSVariantDict mVar) 
-      (MMiSSVariantSpec parent) (MMiSSVariantSearch this) =
-   do
-      dict <- readMVar mVar
-      let 
-         dict2 = addToPureVariantDict dict this (error "#")
-      catchJust 
-         errorCalls
-         ( (fromJust (searchVariantDict dict2 parent)) `seq` (return False))
-         (\ str -> if str == "#" then return True else error str)
+                     return (if is then 4000 else 0)
+         (Just searchKey,Nothing) -> return 0
+         (Nothing,_) -> return 500
+      )
+   }
+           
+-- -----------------------------------------------------------------------
+-- The other datatypes
+-- -----------------------------------------------------------------------
 
+newtype MMiSSVariantSpec = MMiSSVariantSpec MMiSSVariants deriving (Eq,Ord)
 
--- -------------------------------------------------------------------
--- The pure(ish) interface starts here
--- VariantDict
--- -------------------------------------------------------------------
+newtype MMiSSVariantSearch = MMiSSVariantSearch MMiSSVariants deriving (Eq,Ord)
 
----
--- The integer and list encode the number of the attribute to test and
---    what tests should be made.
---    Invariants: 
---       (1) the (Int,String) pairs, ordered lexicographically, increase
---           and are distinct in the VariantDict list.
---       (2) In each (Int,_,VariantDict), the integer is less than any of
---           those in the VariantDict.
-data VariantDict a = VariantDict [(Int,String,VariantDict a)] (Maybe a)
+newtype MMiSSVariants = MMiSSVariants [(VariantAttribute,String)]
+   -- The elements of this list are in the same order as the variants list.
 
-emptyVariantDict :: VariantDict a
-emptyVariantDict = VariantDict [] Nothing
-
-
--- -------------------------------------------------------------------
--- The MMiSSSearchObject type, its relatives, and the instances of Eq
--- and Ord.
--- -------------------------------------------------------------------
-
----
--- Contains variant attributes
-newtype MMiSSSearchObject 
-   = MMiSSSearchObject (FiniteMap String String) deriving Eq
+-- ------------------------------------------------------------------------
+-- Functions and Instances for MMiSSVariants
+-- ----------------------------------------------------------------------- 
 
 ---
--- An MMiSSVariantSearch is something used to select from a collection
--- of different variants.
-newtype MMiSSVariantSearch 
-   = MMiSSVariantSearch MMiSSSearchObject deriving (Eq,Ord)
+-- Construct MMiSSVariants, given a list of pairs (key,value)
+mkMMiSSVariants :: [(String,String)] -> MMiSSVariants
+mkMMiSSVariants theseVariants =
+   MMiSSVariants (
+      mapMaybe
+         (\ variant ->
+            findJust
+               (\ (thisKey,thisValue) -> 
+                  if thisKey == key variant
+                     then
+                        Just (variant,thisValue)
+                     else
+                        Nothing
+                  )
+               theseVariants
+            )
+         variants
+      )
 
----
--- An MMiSSVariantSpec is something used to specify a particular variant.
-newtype MMiSSVariantSpec 
-   = MMiSSVariantSpec MMiSSSearchObject deriving (Eq,Ord)
+unmkMMiSSVariants :: MMiSSVariants -> [(String,String)]
+unmkMMiSSVariants (MMiSSVariants pairs) 
+   = map (\ (variant,thisValue) -> (key variant,thisValue)) pairs
 
----
--- We need to define an ordering on MMiSSSearchObject
+instance Eq MMiSSVariants where
+   (==) = mapEq unmkMMiSSVariants
 
-instance Ord MMiSSSearchObject where
-   compare = mapOrd (\ (MMiSSSearchObject fm) -> fmToList fm)
+instance Ord MMiSSVariants where
+   compare = mapOrd unmkMMiSSVariants
 
--- -------------------------------------------------------------------
--- Functions for MMiSSVariantSearch/Spec
--- -------------------------------------------------------------------
 
-emptyMMiSSVariantSearch :: MMiSSVariantSearch
-emptyMMiSSVariantSearch = MMiSSVariantSearch emptyMMiSSSearchObject
+getAsList :: MMiSSVariants -> [(VariantAttribute,Maybe String)]
+getAsList (MMiSSVariants pairs) =
+   let
+      gAL :: [(VariantAttribute,String)] -> [VariantAttribute] 
+         -> [(VariantAttribute,Maybe String)]
+      gAL (theseVAVs @ ((thisVA,thisVal):restVAVs)) (headVA:restVAs) =
+         if key thisVA == key headVA 
+            then 
+               (headVA,Just thisVal) : (gAL restVAVs restVAs)
+            else
+               (headVA,Nothing) : (gAL theseVAVs restVAs)
+      gAL [] (headVA : restVAs) =
+               (headVA,Nothing) : (gAL [] restVAs)
+      gAL [] [] = []
+   in
+      gAL pairs variants
 
-emptyMMiSSVariantSpec :: MMiSSVariantSpec
-emptyMMiSSVariantSpec = MMiSSVariantSpec emptyMMiSSSearchObject
+-- Compare a searched-for value (first argument) with a variant.
+scoreMMiSSVariants :: MMiSSVariants -> MMiSSVariants -> IO Integer
+scoreMMiSSVariants variants1 variants2 =
+   let
+      triples :: [(VariantAttribute,Maybe String,Maybe String)]
+      triples = 
+            zipWith
+               (\ (va,value1Opt) (_,value2Opt) -> (va,value1Opt,value2Opt))
+               (getAsList variants1) (getAsList variants2)
+
+   in
+      foldM 
+         (\ score0 (va,s1Opt,s2Opt) ->
+            do
+               thisScore <- score va s1Opt s2Opt
+               return (score0 + thisScore)
+            )
+         0
+         triples 
+
+-- Get and set the version variant
+getVersion :: MMiSSVariants -> Maybe String
+getVersion (MMiSSVariants list) = case list of
+   ((VariantAttribute {key = key1},value) : _)
+      | key1 == key versionVariant  -> Just value
+   _ -> Nothing
+
+setVersion :: MMiSSVariants -> String -> MMiSSVariants
+setVersion (MMiSSVariants list0) value = 
+   let
+      list1 = case list0 of
+         ((VariantAttribute {key = key1},_) : rest) 
+            | key1 == key versionVariant  -> rest
+         _ -> list1
+   in
+      MMiSSVariants ((versionVariant,value) : list1)
+
+
+-- ------------------------------------------------------------------------
+-- More sophisticated functions for manipulating MMiSSVariantSpec and
+-- MMiSSVariantSearch
+-- ------------------------------------------------------------------------
+
 
 refineVariantSearch :: MMiSSVariantSearch -> MMiSSVariantSpec
     -> MMiSSVariantSearch
-refineVariantSearch (MMiSSVariantSearch searchObject1) 
-      (MMiSSVariantSpec searchObject2) 
-   = (MMiSSVariantSearch (mergeMMiSSSearchObjects searchObject1 searchObject2))
+refineVariantSearch 
+      (MMiSSVariantSearch variantsOuter) 
+      (MMiSSVariantSpec variantsInner) =
+   let
+      outerList :: [(VariantAttribute,Maybe String)]
+      outerList = getAsList variantsOuter
+ 
+      innerList :: [(VariantAttribute,Maybe String)]
+      innerList = getAsList variantsInner
+
+      refinedList1 :: [(VariantAttribute,Maybe String)]
+      refinedList1 = zipWith
+         (\ (va1,outerOpt) (_,innerOpt) -> 
+            let
+               refinedOpt = case (outerOpt,innerOpt) of
+                  (Just outer,Just inner) -> 
+                     Just (if innerIgnored va1
+                        then
+                           outer
+                        else
+                           inner
+                        )
+                  (Just outer,Nothing) -> Just outer
+                  (Nothing,Just inner) -> Just inner
+                  (Nothing,Nothing) -> Nothing
+            in
+               (va1,refinedOpt)
+            ) 
+         outerList innerList
+
+      refinedList2 :: [(VariantAttribute,String)]
+      refinedList2 = mapMaybe
+         (\ (va,refinedOpt) -> fmap (\ refined -> (va,refined)) refinedOpt)
+         refinedList1
+   in
+      MMiSSVariantSearch (MMiSSVariants refinedList2)
+
+emptyVariants :: MMiSSVariants 
+emptyVariants = MMiSSVariants []
+
+emptyMMiSSVariantSearch :: MMiSSVariantSearch
+emptyMMiSSVariantSearch = MMiSSVariantSearch emptyVariants
+
+emptyMMiSSVariantSpec :: MMiSSVariantSpec
+emptyMMiSSVariantSpec = MMiSSVariantSpec emptyVariants
+
+---
+-- NB.  We do not allow variant versions to be specified in XML!
+toMMiSSVariantsFromXml :: [Attribute] -> MMiSSVariants
+toMMiSSVariantsFromXml attributes =
+   mkMMiSSVariants [ (key1,value) | 
+      (key1,AttValue [Left value]) <- attributes,
+      key1 /= key versionVariant 
+      ]
+  
+  
 
 toMMiSSVariantSearchFromXml :: [Attribute] -> MMiSSVariantSearch
 toMMiSSVariantSearchFromXml attributes 
-   = MMiSSVariantSearch (toMMiSSSearchObjectFromXml attributes)
+   = MMiSSVariantSearch (toMMiSSVariantsFromXml attributes)
 
 toMMiSSVariantSpecFromXml :: [Attribute] -> MMiSSVariantSpec
 toMMiSSVariantSpecFromXml attributes
-   = MMiSSVariantSpec (toMMiSSSearchObjectFromXml attributes)
+   = MMiSSVariantSpec (toMMiSSVariantsFromXml attributes)
 
+
+-- Get the Xml attributes from the variant attributes
+fromMMiSSVariantsToXml :: MMiSSVariants -> [Attribute]
+fromMMiSSVariantsToXml variants =
+   map
+      (\ (key,value) -> (key,AttValue [Left value]))
+      (unmkMMiSSVariants variants)
+
+ 
 fromMMiSSVariantSpecToXml :: MMiSSVariantSpec -> [Attribute]
-fromMMiSSVariantSpecToXml (MMiSSVariantSpec searchObject)
-   = fromMMiSSSearchObjectToXml searchObject
+fromMMiSSVariantSpecToXml (MMiSSVariantSpec variants)
+   = fromMMiSSVariantsToXml variants
 
 fromMMiSSVariantSpecToAttributes :: MMiSSVariantSpec -> IO Attributes
-fromMMiSSVariantSpecToAttributes (MMiSSVariantSpec searchObject) =
-   fromMMiSSSearchObject searchObject
+fromMMiSSVariantSpecToAttributes (MMiSSVariantSpec variants) =
+   fromMMiSSVariants variants
 
 toMMiSSVariantSpecFromAttributes :: Attributes -> IO MMiSSVariantSpec
 toMMiSSVariantSpecFromAttributes attributes =
    do
-      searchObject <- toMMiSSSearchObject attributes
-      return (MMiSSVariantSpec searchObject)
+      variants <- toMMiSSVariants attributes
+      return (MMiSSVariantSpec variants)
 
 fromMMiSSSpecToSearch :: MMiSSVariantSpec -> MMiSSVariantSearch
-fromMMiSSSpecToSearch (MMiSSVariantSpec searchObject) =
-   MMiSSVariantSearch searchObject
+fromMMiSSSpecToSearch (MMiSSVariantSpec variants) =
+   MMiSSVariantSearch variants
 
--- -------------------------------------------------------------------
--- Searching by a map to strings, and handling inheritance of these values.
--- -------------------------------------------------------------------
 
----
--- No settings for variant attributes
-emptyMMiSSSearchObject :: MMiSSSearchObject
-emptyMMiSSSearchObject = MMiSSSearchObject emptyFM 
+-- ------------------------------------------------------------------------
+-- Interface via the Attributes type.
+-- ------------------------------------------------------------------------
 
----
--- Get the variant attributes
-toMMiSSSearchObject :: Attributes -> IO MMiSSSearchObject
-toMMiSSSearchObject attributes =
+toMMiSSVariants :: Attributes -> IO MMiSSVariants
+toMMiSSVariants attributes =
   do
      (attributePairs :: [Maybe (String,String)]) <-
         mapM
@@ -255,15 +356,15 @@ toMMiSSSearchObject attributes =
                     Just str -> return (Just (attKey,str))
               )
            variantAttributes
-     return (MMiSSSearchObject (listToFM (catMaybes attributePairs)))
+     return (mkMMiSSVariants (catMaybes attributePairs))
 
 ---
 -- Extracting an Attributes value from an MMiSSSearchObject
-fromMMiSSSearchObject :: MMiSSSearchObject -> IO Attributes
-fromMMiSSSearchObject (MMiSSSearchObject fm) =
+fromMMiSSVariants :: MMiSSVariants -> IO Attributes
+fromMMiSSVariants mmissVariants =
    do
       let
-         (list :: [(String,String)]) = fmToList fm
+         (list :: [(String,String)]) = unmkMMiSSVariants mmissVariants
 
          view = error "Oops - I didn't realise MMiSSVariant.hs needed a view!"
 
@@ -273,196 +374,186 @@ fromMMiSSSearchObject (MMiSSSearchObject fm) =
          list
       return attributes
 
----
--- Get the variant attributes from a set of Xml attributes
-toMMiSSSearchObjectFromXml :: [Attribute] -> MMiSSSearchObject
-toMMiSSSearchObjectFromXml attributes =
-   MMiSSSearchObject (listToFM [ 
-      (key,value) | 
-         (key,AttValue [Left value]) <- attributes,
-         elementOf key variantAttributesSet 
-      ])
+-- ------------------------------------------------------------------------
+-- The dictionary and functions for it.
+-- ------------------------------------------------------------------------
 
----
--- Get the Xml attributes from the variant attributes
-fromMMiSSSearchObjectToXml :: MMiSSSearchObject -> [Attribute]
-fromMMiSSSearchObjectToXml (MMiSSSearchObject fmap) =
-   map
-      (\ (key,value) -> (key,AttValue [Left value]))
-      (fmToList fmap)
+newtype MMiSSVariantDict a = MMiSSVariantDict (Registry MMiSSVariants a)
 
----
--- Search a dictionary by an MMiSSSearchObject
-searchVariantDict :: VariantDict a -> MMiSSSearchObject -> Maybe a
-searchVariantDict (VariantDict branches simple) 
-      (searchObject @ (MMiSSSearchObject attMap)) =
-   let
-      doRest [] = simple
-      doRest ((level,key,dict):rest) =
-         do
+
+newEmptyVariantDict :: IO (MMiSSVariantDict a)
+newEmptyVariantDict =
+   do
+      registry <- newRegistry
+      return (MMiSSVariantDict registry)
+
+variantDictSearch :: MMiSSVariantDict a -> MMiSSVariantSearch -> IO (Maybe a)
+variantDictSearch variantDict search =
+   do
+      resultOpt <- variantDictSearchGeneral variantDict search
+      return (fmap (\ (_,_,a) -> a) resultOpt)
+
+variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch 
+      -> IO (Maybe (Integer,MMiSSVariants,a))
+variantDictSearchGeneral 
+      ((MMiSSVariantDict registry) :: MMiSSVariantDict a) 
+      (MMiSSVariantSearch searchVariants) =
+   do
+      (contents :: [(MMiSSVariants,a)]) <- listRegistryContents registry
+
+      (scored :: [(Integer,MMiSSVariants,a)]) <- mapM
+         (\ (thisVariants,a) -> 
+            do
+               thisScore <- scoreMMiSSVariants searchVariants thisVariants
+               return (thisScore,thisVariants,a)
+            ) 
+         contents
+
+      case scored of
+         [] -> return Nothing
+         _ -> 
             let
-               attKey = variantAttributesArray ! level
-               valOpt = lookupFM attMap attKey
-            let
-               matched = case valOpt of
-                  Nothing -> True
-                  Just str -> (str == key)
-            if matched
-               then
-                  case searchVariantDict dict searchObject of
-                     Nothing -> doRest rest
-                     searched -> searched
-               else
-                  doRest rest
-   in
-      doRest branches
-
----
--- Search a dictionary by an MMiSSSearchObject, where we insist that
--- we only match accept an exact match.
-searchVariantDictExact :: VariantDict a -> MMiSSSearchObject -> Maybe a
-searchVariantDictExact variantDict searchObject =
-   let
-      intKeys = convertMMiSSSearchObject searchObject               
-      doRest [] (VariantDict _ simple) = simple
-      doRest ((index,val) : rest) (VariantDict branches _) =
-         let
-            findFun (index2,val2,dict2) =
-               if (index2,val2) == (index,val) then Just dict2 else Nothing
-         in
-            case findJust findFun branches of
-               Nothing -> Nothing
-               Just dict -> doRest rest dict
-   in
-      doRest intKeys variantDict
-
----
--- Merge two search objects.  The settings in the second one take priority.
-mergeMMiSSSearchObjects :: MMiSSSearchObject -> MMiSSSearchObject 
-   -> MMiSSSearchObject
-mergeMMiSSSearchObjects (MMiSSSearchObject map1) (MMiSSSearchObject map2) =
-   (MMiSSSearchObject (plusFM map1 map2))
-
--- -------------------------------------------------------------------
--- Adding to a variant dictionary
--- -------------------------------------------------------------------
+               mr = foldr1
+                  (\ (mr1 @ (max1,_,_)) (mr2 @ (max2,_,_)) ->
+                     if max1 >= max2 then mr1 else mr2
+                     )
+                  scored
+            in
+               return (Just mr)
 
 
----
--- Add a key, the key data being specified by a set of String options,
--- in the order of variantAttributes.
-addToPureVariantDict :: VariantDict a -> MMiSSSearchObject -> a 
-   -> VariantDict a
-addToPureVariantDict variantDict mmissSearchObject value =
-   addKey variantDict (convertMMiSSSearchObject mmissSearchObject) value
-
----
--- Convert an MMiSSSearchObject into (Int,String) representation, listing
--- the set attributes by index
-convertMMiSSSearchObject :: MMiSSSearchObject -> [(Int,String)]
-convertMMiSSSearchObject (MMiSSSearchObject attMap) =
-   let
-      (keys1 :: [Maybe String]) 
-         = map (\ str -> lookupFM attMap str) variantAttributes
-      (keys2 :: [(Int,Maybe String)]) =
-         zip [1..] keys1
-      (keys3 :: [(Int,String)]) = mapMaybe
-         (\ (i,sOpt) -> fmap (\ s -> (i,s)) sOpt)
-         keys2
-   in
-      keys3
-  
----
--- Add a key.  The key data is specified by a list of (Int,String) pairs,
--- where the integers specify the relevant variant attribute and MUST BE
--- IN INCREASING ORDER.
-addKey :: VariantDict a -> [(Int,String)] -> a -> VariantDict a
-addKey (VariantDict list _) [] value = (VariantDict list (Just value))
-addKey (VariantDict list1 def) ((level,key):restKeys) value =
-   let
-      -- set things up for using ExtendedPrelude.insertOrdAlternate.
-      comp (level1,key1,_) (level2,key2,_) =
-         compare (level1,key1) (level2,key2)
-      addEmptyDict [] = (VariantDict [] (Just value))
-      addEmptyDict ((level1,key1):rest) =
-         (VariantDict [(level1,key1,addEmptyDict rest)] Nothing)
-
-      ifNotFound = (level,key,addEmptyDict restKeys)
-
-      ifFound (level2,key2,dict) = (level2,key2,addKey dict restKeys value)
-
-      list2 = insertOrdAlternate comp ifNotFound ifFound list1
-   in
-      (VariantDict list2 def)
-   
--- -------------------------------------------------------------------
--- Instances of HasCodedValue
--- -------------------------------------------------------------------
+variantDictSearchExact :: MMiSSVariantDict a -> MMiSSVariantSpec -> 
+   IO (Maybe a)
+variantDictSearchExact (MMiSSVariantDict registry) (MMiSSVariantSpec variants)
+   = getValueOpt registry variants
 
 
-variantDict_tyRep = mkTyRep "MMiSSVariant" "VariantDict"
-instance HasTyRep1 VariantDict where
-   tyRep1 _ = variantDict_tyRep
+addToVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> a -> IO ()
+addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a 
+  = setValue registry variants a
 
-instance HasCodedValue a => HasCodedValue (VariantDict a) where
-   encodeIO = mapEncodeIO (\ (VariantDict l def) -> (l,def))
-   decodeIO = mapDecodeIO (\ (l,def) -> VariantDict l def)
+queryInsert :: MMiSSVariantDict a -> MMiSSVariantSpec -> MMiSSVariantSearch
+   -> IO Bool
+queryInsert variantDict 
+      (variantSpec @ (MMiSSVariantSpec thisVariants)) 
+      (variantSearch @ (MMiSSVariantSearch searchVariants)) =
+   do
+      searchOpt <- variantDictSearchGeneral variantDict variantSearch
+      case searchOpt of
+         Nothing -> return True
+         Just (score1,foundVariants,_) ->
+            do
+               score2 <- scoreMMiSSVariants searchVariants thisVariants
+               return (case compare score1 score2 of
+                  LT -> True
+                  GT -> False
+                  EQ -> 
+                     -- uh-oh.  We guess that the scoring returns
+                     -- earlier variants first
+                     thisVariants <= foundVariants
+                  )
 
-mmissVariantDict_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantDict"
-instance HasTyRep1 MMiSSVariantDict where
-   tyRep1 _ = variantDict_tyRep
-
-instance HasCodedValue a => HasCodedValue (MMiSSVariantDict a) where
-   encodeIO (MMiSSVariantDict mVar) codedValue view =
-      do
-         dict <- readMVar mVar
-         encodeIO dict codedValue view
-   decodeIO codedValue0 view =
-      do
-         (dict,codedValue1) <- decodeIO codedValue0 view
-         mVar <- newMVar dict
-         return (MMiSSVariantDict mVar,codedValue1)
+-- ------------------------------------------------------------------------
+-- Instances Typeable and CodedValue for MMiSSVariantSpec/Search
+-- ------------------------------------------------------------------------
 
 mmissVariantSpec_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantSpec"
 instance HasTyRep MMiSSVariantSpec where
    tyRep _ = mmissVariantSpec_tyRep
 
+mmissVariantSearch_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantSearch"
+instance HasTyRep MMiSSVariantSearch where
+   tyRep _ = mmissVariantSearch_tyRep
+
+mmissVariants_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariants"
+instance HasTyRep MMiSSVariants where
+   tyRep _ = mmissVariants_tyRep
+
+instance HasCodedValue MMiSSVariants where
+   encodeIO = mapEncodeIO unmkMMiSSVariants
+   decodeIO = mapDecodeIO mkMMiSSVariants
+
 instance HasCodedValue MMiSSVariantSpec where
-   encodeIO = mapEncodeIO (\ (MMiSSVariantSpec searchObject) -> searchObject)
-   decodeIO = mapDecodeIO (\ searchObject -> MMiSSVariantSpec searchObject)
+   encodeIO = mapEncodeIO 
+      (\ (MMiSSVariantSpec variants) -> unmkMMiSSVariants variants)
+   decodeIO = mapDecodeIO
+      (\ list -> MMiSSVariantSpec (mkMMiSSVariants list))
 
-mmissSearchObject_tyRep = mkTyRep "MMiSSVariant" "MMiSSSearchObject"
-instance HasTyRep MMiSSSearchObject where
-   tyRep _ = mmissSearchObject_tyRep
+instance HasCodedValue MMiSSVariantSearch where
+   encodeIO = mapEncodeIO 
+      (\ (MMiSSVariantSearch variants) -> unmkMMiSSVariants variants)
+   decodeIO = mapDecodeIO
+      (\ list -> MMiSSVariantSearch (mkMMiSSVariants list))
 
-instance HasCodedValue MMiSSSearchObject where
-   encodeIO = mapEncodeIO (\ (MMiSSSearchObject map) -> fmToList map)
-   decodeIO = mapDecodeIO (\ list -> MMiSSSearchObject (listToFM list))
+-- ------------------------------------------------------------------------
+-- Instances of Typeable and CodedValue for MMiSSVariantDict.
+-- ------------------------------------------------------------------------
 
--- -------------------------------------------------------------------
--- Other utility functions involving variant attributes
--- -------------------------------------------------------------------
+mmissVariantDict_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantDict"
+instance HasTyRep1 MMiSSVariantDict where
+   tyRep1 _ = mmissVariantDict_tyRep
 
----
--- Filling out unset fields.  We replace these by "" for now.
-mkVariantAttributes :: Attributes -> IO ()
-mkVariantAttributes atts =
+-- The CodedValue instance also has the job of reassigning the variant values
+-- in the dictionary which are previously Nothing to the version of the
+-- new view.
+instance HasCodedValue a => HasCodedValue (MMiSSVariantDict a) where
+   decodeIO = mapDecodeIO (\ registry -> MMiSSVariantDict registry)
+
+   encodeIO (mmissVariantDict @ (MMiSSVariantDict registry)) codedValue0 view =
+      do
+         versionOpt <- readMVar (committingVersion view)
+         case versionOpt of
+            Nothing -> done
+            Just version -> setUnsetVersions mmissVariantDict version
+         codedValue1 <- encodeIO registry codedValue0 view
+         return codedValue1
+ 
+-- This function does the reassignation.
+setUnsetVersions :: MMiSSVariantDict a -> Version -> IO ()
+setUnsetVersions ((MMiSSVariantDict registry) :: MMiSSVariantDict a) 
+      newVersion =
    do
       let
-         fillIn str =
-            do
-               valueOpt <- getValueOpt atts str
-               case valueOpt of
-                  Just ( _ :: String) -> done
-                  Nothing -> setValue atts str ""
-      mapM_ fillIn variantAttributes
+         versionString = toString newVersion
+      (registryContents :: [(MMiSSVariants,a)])
+         <- listRegistryContents registry 
+      let
+         toReAssign :: [(MMiSSVariants,a)]
+         toReAssign = 
+            filter
+               (\ (variant,_) -> not (isJust (getVersion variant)))
+               registryContents
 
----
--- Filter a set of Xml Attributes to extract only the variant attributes
-extractVariantAttributes :: [Attribute] -> [Attribute]
-extractVariantAttributes attributes =
-   filter
-      (\ (name,attVal) -> elementOf name variantAttributesSet
-         )
-      attributes
-   
+      mapM_
+         (\ (oldVariant,value) -> 
+            do
+               deleteFromRegistry registry oldVariant
+               setValue registry (setVersion oldVariant versionString) value
+            )
+         toReAssign
+
+
+-- ------------------------------------------------------------------------
+-- Merging variant dictionaries
+-- ------------------------------------------------------------------------
+
+getMMiSSVariantDictObjectLinks 
+   :: (a -> IO (ObjectLinks key)) -> MMiSSVariantDict a 
+   -> IO ((ObjectLinks (MMiSSVariants,key)))
+getMMiSSVariantDictObjectLinks 
+      (getIndividualObjectLinks :: a -> IO (ObjectLinks key)) 
+      ((MMiSSVariantDict registry) :: MMiSSVariantDict a) =
+   do
+      (contents :: [(MMiSSVariants,a)]) <- listRegistryContents registry
+      (result :: [ObjectLinks (MMiSSVariants,key)]) <- mapM
+         (\ (variants,a) ->
+            do
+               objectLinks <- getIndividualObjectLinks a
+               return (fmap (\ key -> (variants,key)) objectLinks)
+            )
+         contents
+      return (concatObjectLinks result)
+
+attemptMergeMMiSSVariantDict
+   :: ((View,a) -> a) -> [(View,MMiSSVariantDict a)] -> IO (MMiSSVariantDict a)
+attemptMergeMMiSSVariantDict = error "TBD"

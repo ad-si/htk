@@ -52,7 +52,11 @@ data View = View {
    commitLock :: VSem,
 
    -- Blocked when complex updates are going on.
-   delayer :: Delayer
+   delayer :: Delayer,
+
+   -- If set, this means we are in the middle of a commit, and the
+   -- view is going to have this version.
+   committingVersion :: MVar (Maybe ObjectVersion)
    }
 
 data ObjectData =

@@ -109,6 +109,8 @@ mergeViews (views @ (firstView:_)) =
 
             parentsMVar1 <- newMVar parents1
 
+            committingVersion <- newMVar Nothing
+
             let
                newView = View {
                   viewId = viewId1,
@@ -118,7 +120,8 @@ mergeViews (views @ (firstView:_)) =
                   fileSystem = fileSystem1,
                   commitLock = commitLock1,
                   delayer = delayer1,
-                  parentsMVar = parentsMVar1
+                  parentsMVar = parentsMVar1,
+                  committingVersion = committingVersion
                   }
 
 

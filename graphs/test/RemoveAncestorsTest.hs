@@ -1,13 +1,21 @@
-{- Test graph for RemoveAncestors.  This module is used with ghci. -}
+{- Test graph for RemoveAncestors.  This module is used with ghci. 
+   Also for GraphOps. -}
 module RemoveAncestorsTest where
 
 import RemoveAncestors
+import GraphOps
 
 test :: [Int] -> IO ()
 test l0 =
    do
       l1 <- removeAncestorsBy edges l0
       putStrLn (show l1)
+      
+test2 :: Int -> Int -> IO ()
+test2 i1 i2 =
+   do
+      is <- isAncestorBy edges i1 i2 
+      putStrLn (show is)
       
 
 edges :: Int -> IO [Int]
