@@ -5,11 +5,11 @@
 <!-- The element type corresponding to a request.  
      (We use double parentheses (( )) to work around an annoying bug in
      HaXml-1.10) -->
-<!ELEMENT request  (( 
+<!ELEMENT request  ( 
       connect | closeServer | listVersions 
       | checkOut | changeUserInfo | commitVersion 
       | closeVersion | getObject | putObject 
-      )) 
+      )
    >
 
 <!-- The element type corresponding to a response. 

@@ -1,4 +1,9 @@
-{- API for MMiSS.  This gives basic text-only access to the repository. -}
+{- API for MMiSS.  This gives basic text-only access to the repository. 
+
+   NB.  This module is now largely obsolete, and will be replaced for
+   practical purposes by the XML interface in the other modules in this
+   directory.  Still it may still be useful for testing and so on.
+   -}
 module MMiSSAPI(
    -- General Idea.  We maintain lots of "current" things,  the 
    -- "current server", the "current version", the "current directory", and 

@@ -6,7 +6,16 @@ import Text.XML.HaXml.OneOfN
 
 {-Type decls-}
 
-newtype Request = Request (OneOf9 Connect CloseServer ListVersions CheckOut ChangeUserInfo CommitVersion CloseVersion GetObject PutObject) 		deriving (Eq,Show)
+data Request = RequestConnect Connect
+	     | RequestCloseServer CloseServer
+	     | RequestListVersions ListVersions
+	     | RequestCheckOut CheckOut
+	     | RequestChangeUserInfo ChangeUserInfo
+	     | RequestCommitVersion CommitVersion
+	     | RequestCloseVersion CloseVersion
+	     | RequestGetObject GetObject
+	     | RequestPutObject PutObject
+	     deriving (Eq,Show)
 data Response = Response Messages
 			 (Maybe (OneOf9 ConnectResponse CloseServerResponse ListVersionsResponse CheckOutResponse ChangeUserInfoResponse CommitVersionResponse CloseVersionResponse GetObjectResponse PutObjectResponse))
 	      deriving (Eq,Show)
@@ -126,7 +135,10 @@ data Messages = Messages Messages_Attrs [Messages_]
 data Messages_Attrs = Messages_Attrs
     { messagesStatus :: (Defaultable Messages_status)
     } deriving (Eq,Show)
-data Messages_ = Messages_ Alert Error Warning Message
+data Messages_ = Messages_Alert Alert
+	       | Messages_Error Error
+	       | Messages_Warning Warning
+	       | Messages_Message Message
 	       deriving (Eq,Show)
 data Messages_status = Messages_status_success  | 
 		       Messages_status_fail  |  Messages_status_panic
@@ -141,13 +153,45 @@ newtype Message = Message String 		deriving (Eq,Show)
 
 instance XmlContent Request where
     fromElem (CElem (Elem "request" [] c0):rest) =
-	(\(a,ca)->
-	   (Just (Request a), rest))
-	(definite fromElem "OneOf" "request" c0)
+	case (fromElem c0) of
+	(Just a,_) -> (Just (RequestConnect a), rest)
+	(_,_) ->
+		case (fromElem c0) of
+		(Just a,_) -> (Just (RequestCloseServer a), rest)
+		(_,_) ->
+			case (fromElem c0) of
+			(Just a,_) -> (Just (RequestListVersions a), rest)
+			(_,_) ->
+				case (fromElem c0) of
+				(Just a,_) -> (Just (RequestCheckOut a), rest)
+				(_,_) ->
+					case (fromElem c0) of
+					(Just a,_) -> (Just (RequestChangeUserInfo a), rest)
+					(_,_) ->
+						case (fromElem c0) of
+						(Just a,_) -> (Just (RequestCommitVersion a), rest)
+						(_,_) ->
+							case (fromElem c0) of
+							(Just a,_) -> (Just (RequestCloseVersion a), rest)
+							(_,_) ->
+								case (fromElem c0) of
+								(Just a,_) -> (Just (RequestGetObject a), rest)
+								(_,_) ->
+									case (fromElem c0) of
+									(Just a,_) -> (Just (RequestPutObject a), rest)
+									(_,_) ->
+									    (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (Request a) =
-	[CElem (Elem "request" [] (toElem a))]
+    toElem (RequestConnect a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestCloseServer a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestListVersions a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestCheckOut a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestChangeUserInfo a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestCommitVersion a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestCloseVersion a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestGetObject a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestPutObject a) = [CElem (Elem "request" [] (toElem a) )]
 instance XmlContent Response where
     fromElem (CElem (Elem "response" [] c0):rest) =
 	(\(a,ca)->
@@ -671,22 +715,25 @@ instance XmlAttributes Messages_Attrs where
 	]
 instance XmlContent Messages_ where
     fromElem c0 =
-	case (\(a,ca)->
-		(\(b,cb)->
-		   (\(c,cc)->
-		      (\(d,cd)->
-			 (a,b,c,d,cd))
-		      (fromElem cc))
-		   (fromElem cb))
-		(fromElem ca))
-	     (fromElem c0) of
-	(Just a,Just b,Just c,Just d,rest) -> (Just (Messages_ a b c
-							       d), rest)
-	(_,_,_,_,_) ->
-	    (Nothing, c0)
-    toElem (Messages_ a b c d) =
-	[CElem (Elem "messages" [] (toElem a ++ toElem b ++ toElem c ++
-				    toElem d))]
+	case (fromElem c0) of
+	(Just a,rest) -> (Just (Messages_Alert a), rest)
+	(_,_) ->
+		case (fromElem c0) of
+		(Just a,rest) -> (Just (Messages_Error a), rest)
+		(_,_) ->
+			case (fromElem c0) of
+			(Just a,rest) -> (Just (Messages_Warning a), rest)
+			(_,_) ->
+				case (fromElem c0) of
+				(Just a,rest) -> (Just (Messages_Message a), rest)
+				(_,_) ->
+				    (Nothing, c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (Messages_Alert a) = toElem a
+    toElem (Messages_Error a) = toElem a
+    toElem (Messages_Warning a) = toElem a
+    toElem (Messages_Message a) = toElem a
 instance XmlAttrType Messages_status where
     fromAttrToTyp n (n',v)
 	| n==n'     = translate (attr2str v)
