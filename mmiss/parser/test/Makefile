@@ -3,6 +3,6 @@
 # to refer to it directly.
 PACKAGES = uni-mmiss uni-mmiss-parser
 
-SRCS =  TestShort.hs TestAST.hs TestLaTeX.hs
+SRCS =  TestAST.hs TestLaTeX.hs
 
 include /home/amahnke/uni/mk/boilerplate.mk

@@ -23,11 +23,8 @@ module LaTeXParser (
    toIncludeStr, -- Char -> String
    -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
    -- the corresponding includeXXX command.
---   showElement, -- WithError Element -> String
    mapLabelledTag,
    MMiSSLatexPreamble, 
---   parseAndShow,
---   parseAndMakeMMiSSLatex,
    parsePreamble
    )
  where
@@ -1875,7 +1872,12 @@ applyTranslation outStr inStr (search, replaceStr) =
 
 {-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
     Element ist das Root-Element des auszugebenden Dokumentbaumes, der Bool-Wert legt fest,
-    ob eine Praeambel erzeugt werden soll (True) oder nicht (False).
+    ob das erzeugte LaTeX-Fragment ein komplettes File sein soll, dass ohne Änderungen
+    geteXt werden kann (True), oder nicht (False). Wenn es komplett sein soll, dann wird 
+    eine Praeambel erzeugt und 'includeXXX'-Elemente werden in MMiSSLaTeX-Include-Kommandos
+    umgesetzt. Ist der Bool-Wert 'False', dann wird LaTeX für den XEmacs-Buffer erzeugt. In
+    diesem Fall wird keine Preamble generiert und die Includes werden in spezielle EmacsContent-Objekte
+    umgesetzt, die im MMiSS-XEmacs-Mode speziell behandelt werden.
 --}
 
 makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
@@ -1900,12 +1902,17 @@ fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), [Attribute])]
 fillLatex out [] l = l
 
 fillLatex out ((CElem (Elem "textFragment" atts contents)):cs) inList = 
-  let s1 = "\\begin{TextFragment}" 
+  let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
+                               then ("\\begin{Included}\n", "\n\\end{Included}")
+                               else ("","")
+      s1 = "\\begin{TextFragment}" 
       s2 = "[" ++ (getAttribs atts "" []) ++ "]"
       s3 = "\\end{TextFragment}"
       items = if (s2 == "[]") 
                 then (fillLatex out contents [])
-                else [(EditableText (s1 ++ s2))] ++ (fillLatex out contents []) ++ [(EditableText s3)]
+                else [(EditableText (b_insert ++ s1 ++ s2))] 
+                     ++ (fillLatex out contents []) 
+                     ++ [(EditableText (s3 ++ e_insert))]
   in fillLatex out cs (inList ++ items)
 
 fillLatex out ((CElem (Elem "listItem" atts contents)):cs) inList = 
@@ -1931,6 +1938,8 @@ fillLatex out ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts _)):cs) inLi
            item = [EmacsLink ((labelId, (fromIncludeStr unit)), atts)]
        in fillLatex out cs (inList ++ item)
 
+-- Translates Link- and Reference-Embedded-Ops:
+--
 fillLatex out ((CElem (Elem name atts contents)):cs) inList
   | (name `elem` (map snd linkAndRefCommands)) =  
     let forwardStr = if ((getParam "status" atts) == "absent")
@@ -1977,12 +1986,15 @@ fillLatex out ((CMisc (Comment str)):cs) inList = fillLatex out cs (inList ++ [(
 fillLatex out ((CMisc (PI (piInsertLaTeX, str))):cs) inList =  fillLatex out cs (inList ++ [(EditableText str)])
 
 fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
-  let s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
+  let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
+                               then ("\\begin{Included}\n", "\n\\end{Included}")
+                               else ("","")
+      s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
       attrStr = getAttribs atts "" []
       s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
       s3 = "\\end{" ++ (elemNameToLaTeX name) ++ "}"
-      items = [(EditableText (s1 ++ s2))] ++ (fillLatex out contents []) 
-              ++ [(EditableText s3)]
+      items = [(EditableText ( b_insert ++ s1 ++ s2))] ++ (fillLatex out contents []) 
+              ++ [(EditableText (s3 ++ e_insert))]
   in fillLatex out cs (inList ++ items)
 
 fillLatex out (c:cs) inList = fillLatex out cs inList
