@@ -235,11 +235,11 @@ showWholeClassGraph onto gv (name, descr, gid) =
 		     return () 
 
 
-showAllRelations :: MMiSSOntology -> A.GraphInfo -> [String] -> (String, Int, Int) -> IO ()
-showAllRelations onto gv rels (name, _, gid) =
+showAllRelations :: MMiSSOntology -> A.GraphInfo -> Bool -> [String] -> (String, Int, Int) -> IO ()
+showAllRelations onto gv withIncoming rels (name, _, gid) =
   do oldGv <- readIORef gv
      (A.Result descr error) <- purgeGraph gid gv
-     updateDaVinciGraph (reduceToRelations (getClassGraph onto) name rels) gid gv
+     updateDaVinciGraph (reduceToRelations (getClassGraph onto) withIncoming name rels) gid gv
      case error of
        Just _ -> do writeIORef gv oldGv
 		    return ()
@@ -247,13 +247,15 @@ showAllRelations onto gv rels (name, _, gid) =
 		     return () 
 
 
-reduceToRelations :: Gr (String,String,OntoObjectType) String -> String -> [String] 
+reduceToRelations :: Gr (String,String,OntoObjectType) String -> Bool -> String -> [String] 
                      -> Gr (String,String,OntoObjectType) String
-reduceToRelations g name forbiddenRels = 
+reduceToRelations g withIncoming name forbiddenRels = 
   let g1 = elfilter (mynotElem forbiddenRels) g
   in case findLNode g1 name of
        Nothing -> g1
-       Just(node) -> let nodeList = dfs [node] g1
+       Just(node) -> let nodeList = if withIncoming 
+                                      then udfs [node] g1
+                                      else dfs [node] g1
                          toDelete = (nodes g1) \\ nodeList
                      in delNodes toDelete g1 
   where 
@@ -395,7 +397,8 @@ hideObjectsForVisible onto gv (name,descr,gid) =
        Nothing -> return()
        Just g ->
          do oldGraph <- return(A.ontoGraph g)
-            let objectNodeIDs = map (\(_,v,_,_) -> v) (gsel (\(_,_,(_,_,t),_) -> t == OntoClass) oldGraph)
+            let objectNodeIDs = map (\(_,v,_,_) -> v) (gsel (\(_,_,(_,_,t),_) -> t == OntoObject) oldGraph)
+            A.Result _ _ <- purgeGraph gid gv     
             updateDaVinciGraph (nfilter (`notElem` objectNodeIDs) oldGraph) gid gv
             A.redisplay gid gv
             return () 
@@ -435,6 +438,15 @@ createLocalMenu onto ginfo =
                           ,(Menu (Just "Show adjacent") 
                              [Button "Subclasses" (showSuperSubClasses onto ginfo False False),
                               Button "Sub/Superclasses" (showSuperSubClasses onto ginfo True False)])
+                          ,(Menu (Just "Show relations")
+                             [(Menu (Just "Outgoing") 
+                                 ([Button "All relations" (showAllRelations onto ginfo False ["isa"]),
+                                   Blank] ++ (createRelationMenuButtons False (getRelationNames onto) onto ginfo)))
+                             ,(Menu (Just "Out + In") 
+                                 ([Button "All relations" (showAllRelations onto ginfo True ["isa"]),
+                                  Blank] ++ (createRelationMenuButtons True (getRelationNames onto) onto ginfo)))
+                             ]
+                           )
                         ]
                       ),
                       (Menu (Just "For visible nodes") 
@@ -449,11 +461,6 @@ createLocalMenu onto ginfo =
                           ,Button "Hide objects" (hideObjectsForVisible onto ginfo)
                         ]
                       ),
-                      (Menu (Just "Show relations") 
-                        ([Button "All relations" (showAllRelations onto ginfo ["isa"]),
-                          Blank]
-                          ++ (createRelationMenuButtons (getRelationNames onto) onto ginfo))
-                      ),
                       Button "Show whole class graph" (showWholeClassGraph onto ginfo),
                       Button "Show whole object graph" (showWholeObjectGraph onto ginfo),
                       Button "Reduce to this node" (reduceToThisNode onto ginfo)
@@ -461,10 +468,10 @@ createLocalMenu onto ginfo =
                      ))
 
 
-createRelationMenuButtons relNames onto ginfo = map createButton relNames
+createRelationMenuButtons withIncomingRels relNames onto ginfo = map createButton relNames
   where 
     createButton name = (Button (name) 
-                                (showAllRelations onto ginfo (delete name (relNames ++ ["isa"]))))
+                                (showAllRelations onto ginfo withIncomingRels (delete name (relNames ++ ["isa"]))))
 
 
 findLNode :: Gr (String,String,OntoObjectType) String -> String -> Maybe Node
