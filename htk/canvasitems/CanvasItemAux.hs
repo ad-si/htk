@@ -15,7 +15,8 @@ DESCRIPTION   : Canvas Items - Auxiliary functions
 module CanvasItemAux (
         Canvas,
 
-        CanvasItem(..),
+	HasCoords(..),
+        CanvasItem,
 
         createCanvasItem,
 

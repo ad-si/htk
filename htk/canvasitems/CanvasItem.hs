@@ -18,6 +18,8 @@ module CanvasItem (
         BitMapHandle(..),
         BitMap,
 
+	HasCoords(..),
+
         CanvasItem(..),
         FilledCanvasItem(..),
         SegmentedCanvasItem(..),
@@ -47,11 +49,15 @@ import Debug(debug)
 -- Class CanvasItem
 -- --------------------------------------------------------------------------
 
-class (GUIObject w,Synchronized w) => CanvasItem w where
-        defaultCoord    :: w -> Coord
+class HasCoords w where
         coord           :: Coord -> Config w
         getCoord        :: w -> IO Coord
-        defaultCoord w   = [(0,0),(0,0)]
+
+class (GUIObject w, Synchronized w) => CanvasItem w where
+	defaultCoord    :: w -> Coord
+	defaultCoord w  = [(0,0),(0,0)]
+	
+instance CanvasItem w=> HasCoords w where
         coord co item = synchronize item (do { 
                 icoord co item;
                 try (execMethod item (\nm -> tkCoordItem nm co));
@@ -66,6 +72,7 @@ class (GUIObject w,Synchronized w) => CanvasItem w where
                         case kind of {(CANVASITEM _ coord) -> return coord}
                         }
                 })
+
 
 icoord ::CanvasItem w => Coord -> Config w
 icoord co w = do {
