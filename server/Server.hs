@@ -197,7 +197,6 @@ runServer portDesc serviceList =
                                           (putMVar stateMVar oldState)
                                           (handleRequest service 
                                              (input,oldState))
-                                    putMVar stateMVar newState
                                     backupTick
                                     let
                                        outLine = show output
