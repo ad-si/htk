@@ -35,6 +35,9 @@ module MarkupText (
   leftmargin,
   wrapmargin,
   rightmargin,
+  centered,
+  flushright,
+  flushleft,
   href,
   window,
 
@@ -188,7 +191,7 @@ addToState ed acts =
 -- The <code>MarkupText</code> datatype.
 data MarkupText =
     MarkupText [MarkupText]
-  | MarkupProse String
+  | MarkupProse [String]
   | MarkupSpecialChar Font Int
   | MarkupFont Font [MarkupText]
   | MarkupNewline
@@ -200,6 +203,7 @@ data MarkupText =
   | MarkupFlipColour Colour Colour [MarkupText]
   | MarkupFlipUnderline [MarkupText]
   | MarkupUnderline [MarkupText]
+  | MarkupJustify Justify [MarkupText]
   | MarkupAction (IO ()) [MarkupText]
   | MarkupClipUp [MarkupText] [MarkupText]
   | MarkupRangeAction (Maybe (IO ())) (Maybe (IO ())) [MarkupText]
@@ -226,7 +230,7 @@ type EmbWindow = (Position, EmbWindowFun)
 ---
 -- The markup prose combinator.
 prose :: String -> MarkupText
-prose str = MarkupProse str
+prose str = MarkupProse (lines str)
 
 ---
 -- The markup font combinator.
@@ -247,6 +251,21 @@ bold = MarkupBold
 -- The markup underline combinator.
 underline :: [MarkupText] -> MarkupText
 underline = MarkupUnderline
+
+---
+-- Center this part of the text
+centered :: [MarkupText]-> MarkupText
+centered = MarkupJustify JustCenter
+
+---
+-- Flush this part of the against the left margin
+flushleft :: [MarkupText]-> MarkupText
+flushleft = MarkupJustify JustLeft
+
+----
+-- Flush this part of the against the right margin
+flushright :: [MarkupText]-> MarkupText
+flushright = MarkupJustify JustRight
 
 ---
 -- The markup italics combinator.
@@ -271,7 +290,7 @@ bgcolour c = MarkupBgColour (toColour c)
 ---
 -- The markup space combinator (a number of space characters).
 spaces :: Int -> MarkupText
-spaces n = MarkupProse (replicate n ' ')
+spaces n = MarkupProse [replicate n ' ']
 
 ---
 -- The markup flipcolour combinator (flips the colour when the mouse
@@ -319,6 +338,7 @@ wrapmargin = MarkupWrapMargin
 -- The markup right margin combinator.
 rightmargin :: Int -> [MarkupText] -> MarkupText
 rightmargin = MarkupRightMargin
+
 
 ---
 -- The markup window combinator (a widget container inside the editor
@@ -971,9 +991,16 @@ parseMarkupText m f =
                                           (line, char) bold italics
                                           current_font
 
-        MarkupProse str -> parseMarkupText' ms (txt ++ str) tags wins
-                             (line, char + Distance (length str)) bold
-                             italics current_font
+        MarkupProse [str] -> parseMarkupText' ms
+                                      (txt ++ str) tags wins
+		 		      (line, char + Distance (length str))
+				      bold italics current_font
+        MarkupProse (l:rest) -> parseMarkupText' (MarkupProse rest:ms) 
+	                              (txt++ l++ "\n") tags wins
+	 		              (line+ 1, 0)
+				      bold italics current_font
+        MarkupProse [] -> parseMarkupText' ms txt tags wins
+	 		              (line, char) bold italics current_font
 
         MarkupSpecialChar f i ->
           parseMarkupText' (MarkupFont f [prose [chr i]] : ms) txt tags
@@ -1010,6 +1037,10 @@ parseMarkupText m f =
         MarkupUnderline m' ->
           simpleProperty ms m' txt tags wins (line, char)
                          bold italics current_font [underlined On]
+
+        MarkupJustify j m' -> 
+	  simpleProperty ms m' txt tags wins (line, char)
+	                 bold italics current_font [justify j] 
 
         MarkupFont f m' ->
           do

@@ -4,6 +4,9 @@ LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
 SRCS       = MainnotepadStateEx.hs\
              MainwithdrawConfigTest.hs\
              MaintreeListStateEx.hs\
+	     MainreliefEx.hs\
+	     MainselectBoxEx.hs\
+	     MainweemenuEx.hs
 
 XHCDIRS = $(HTKDIRS)
 

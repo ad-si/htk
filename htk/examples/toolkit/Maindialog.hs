@@ -24,13 +24,14 @@ main :: IO ()
 main =
  do
   htk <- initHTk[text "main window"]
-  but1 <- newButton htk [text "create ModalDialog"]
-  but4 <- newButton htk [text "create nonModalDialog"]
-  but5 <- newButton htk [text "create newAlertWin"]
-  but6 <- newButton htk [text "create newErrorWin"]
-  but7 <- newButton htk [text "create newWarningWin"]
-  but8 <- newButton htk [text "create newConfirmWin"]
-  but9 <- newButton htk [text "create InputWin"]
+  but1 <- newButton htk [text "Modal Dialogs"]
+  but4 <- newButton htk [text "Non-modal dialogs"]
+  but5 <- newButton htk [text "Alerts"]
+  but6 <- newButton htk [text "Errors"]
+  but7 <- newButton htk [text "Warnings"]
+  but8 <- newButton htk [text "Confirmation"]
+  but8a <- newButton htk [text "Information"] 
+  but9 <- newButton htk [text "Input window"] 
   but2 <- newButton htk [text " Quit example "]
 
   pack but1 []
@@ -39,75 +40,81 @@ main =
   pack but6 []  
   pack but7 []  
   pack but8 []  
+  pack but8a []  
   pack but9 []  
   pack but2 []
 
   clickedbut1 <- clicked but1
-  spawnEvent (forever (clickedbut1 >> always (do 
-                                               tp <- createToplevel [text "ModalDialog"]
-                                               but3 <- newButton tp [text "Ok"]
-                                               pack but3 []    
-                                               clickedbut3 <- clicked but3
-                                               test <- modalDialog tp True (clickedbut3 >> (always (return "ModalDialogOk")))
-					       putStrLn test
-					       )))
+  spawnEvent (forever (clickedbut1 >>>
+    (do tp <- createToplevel [text "ModalDialog"]
+        but3 <- newButton tp [text "Ok"]
+        pack but3 []    
+        clickedbut3 <- clicked but3
+        test <- modalDialog tp True (clickedbut3 >> 
+	                             (always (return "ModalDialogOk")))
+	putStrLn test)))
+
   clickedbut4 <- clicked but4
-  spawnEvent (forever (clickedbut4 >> always (do 
-                                               tp <- createToplevel [text "nonModalDialog"]
-                                               but3 <- newButton tp [text "Ok"]
-                                               pack but3 []    
-                                               clickedbut3 <- clicked but3
-                                               test <- modalDialog tp False (clickedbut3 >> (always (return "nonModalDialogOk")))
-					       putStrLn test
-					       )))
+  spawnEvent (forever (clickedbut4 >>>
+    (do tp <- createToplevel [text "nonModalDialog"]
+        but3 <- newButton tp [text "Ok"]
+        pack but3 []    
+        clickedbut3 <- clicked but3
+        test <- modalDialog tp False (clickedbut3 >>> 
+	                               (return "nonModalDialogOk"))
+        putStrLn test)))
  
   clickedbut5 <- clicked but5
-  spawnEvent (forever (clickedbut5 >> always (do 
-                                               createAlertWin "An Alert Window has been triggered.\nThis would be the place to put some warning or so!" []  
-					       putStrLn "done with AlertWin"
-					       )))
+
+  spawnEvent (forever (clickedbut5 >>> 
+    createAlertWin "Your printer is on fire!\nLeave the room immediately." []))
  
   clickedbut6 <- clicked but6
-  spawnEvent (forever (clickedbut6 >> always (do 
-                                               createErrorWin "An Error Window has been triggered.\nThis would be the place where to find the error message!" []  
-					       putStrLn "done with ErrorWin"
-					       )))
+  spawnEvent (forever (clickedbut6 >>>
+    createErrorWin "Segmentation violation.\nCore dumped." []))
  
   clickedbut7 <- clicked but7
-  spawnEvent (forever (clickedbut7 >> always (do 
-                                               createWarningWin "A Warning Window has been triggered.\nThis text here could be a warning!" []
-					       putStrLn "done with WarningWin"
-					       )))
+  spawnEvent (forever (clickedbut7 >>>
+    createWarningWin "Please extinguish all cigarettes\nand switch off
+all mobile phones." []))
  
   clickedbut8 <- clicked but8
-  spawnEvent (forever (clickedbut8 >> always (do 
-                                               res <- createConfirmWin "A Confirm Window has been triggered.\nHere the action to be confirmed would be found!" []  
-					       putStr "done with ConfirmWinWin: "
-					       putStrLn (show res)
-					       )))
+  spawnEvent (forever (clickedbut8 >>>
+    (do res <- createConfirmWin "Really delete all files?" []  
+        putStrLn ("Result of confirmation: "++ show res))))
+					       
+  clickedbut8a <- clicked but8a
+  spawnEvent (forever (clickedbut8a >>>
+    createMessageWin "This is a message window.\nConsider this some useful information.\n" []))
 
   clickedbut9 <- clicked but9
-  spawnEvent (forever (clickedbut9 >> always (do
-                                               -- one adt to store the entered information and the initial field values
-                                               let def = Test{ent1="HALLO WELT!", ent2="TEST", enu1=5, ent3=42}
-					       -- create the InputForm (as a function so there is no parent)
-					       -- give as value (Just a) or Nothing
-					       let iform p = newInputForm p (Just def) []
-					       -- create the InputWindow with the formfunction
-					       -- returns the InputWindow and the InputForm (which can be filled now)
-                                               (iwin,form) <- createInputWin "HELLO THERE\n try and enter some informations." iform []
-					       -- add various fields here to the InputForm
-					       newTextField form [size (5,5), selector ent1, text "Editor String",
-					                           modifier (\ old val -> old {ent1=val})] :: IO (TextField Test String)
-					       newEntryField form [text "Entry Int", selector ent3, modifier (\ old val -> (old {ent3=val}))] :: IO (EntryField Test Int)
-					       newEnumField form [0,1,2,3,4,5] [text "Option Int", selector enu1, modifier (\ old val -> old {enu1=val})] :: IO (EnumField Test Int)
-                                               -- wait 					       
-					       res <- wait iwin True
-                                               case res of
-					        Nothing -> putStrLn "canceled"
-						Just val -> putStrLn(show(val # ent1)++" "++show(val # ent3)++" "++show(val # enu1))
-					       )))
+  spawnEvent (forever (clickedbut9 >>> 
+    (do -- one adt to store the entered information and 
+        -- the initial field values
+        let def = Test{ent1="HALLO WELT!", ent2="TEST", enu1=5, ent3=42}
+	-- create the InputForm (as a function so there is no parent)
+	-- give as value (Just a) or Nothing
+	let iform p = newInputForm p (Just def) []
+	-- create the InputWindow with the formfunction
+	-- returns the InputWindow and the InputForm (which can be filled now)
+        (iwin,form) <- createInputWin "Hi there\nPlease enter all relevant data below." iform []
+        -- add various fields here to the InputForm
+	newTextField form [size (5,5), selector ent1, text "Editor String",
+	                   modifier (\ old val -> old {ent1=val})] 
+                                         :: IO (TextField Test String)
+        newEntryField form [text "Entry Int", selector ent3, 
+                            modifier (\ old val -> (old {ent3=val}))] 
+                                         :: IO (EntryField Test Int)
+        newEnumField form [0,1,2,3,4,5] 
+          [text "Option Int", selector enu1, 
+           modifier (\ old val -> old {enu1=val})] :: IO (EnumField Test Int)
+        -- wait for user input
+        res <- wait iwin True
+        case res of
+           Nothing -> putStrLn "canceled"
+           Just val -> putStrLn(show(val # ent1)++ " "++
+                                show(val # ent3)++ " "++ show(val # enu1)))))
  
   clickedbut2 <- clicked but2
-  spawnEvent (forever (clickedbut2 >> always (destroy htk))) 
+  spawnEvent (forever (clickedbut2 >>> destroy htk)) -- game over.
   finishHTk

@@ -87,6 +87,8 @@ main =
          newline,
          bgcolour "yellow" [prose "Special characters:"],
          newline,
+	 centered [prose "This line centered...\nand this as well?!?"], newline,
+	 newline,
          forallsmall, prose ", ",
          forallbig, prose ", ",
          exists, prose ", ",
