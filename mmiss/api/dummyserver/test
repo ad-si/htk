@@ -1,0 +1,11 @@
+#!/bin/sh
+cd `dirname $0`
+pkill MMiSSAPITestServer
+rm -rf MMiSSAPITestServer
+ln -sf ../MMiSSServer MMiSSAPITestServer
+UNISERVERDIR=$PWD
+UNISERVER=localhost
+UNIXMLPORT=11397
+export UNISERVERDIR UNISERVER UNIXMLPORT
+./MMiSSAPITestServer &
+../testMMiSSServer
