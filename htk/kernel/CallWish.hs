@@ -95,7 +95,7 @@ foreign import ccall unsafe "runWish.h read_from_wish" readFromWishPrim
 #ifndef NEW_GHC
 foreign import "read_from_wish_avail" unsafe readFromWishAvail :: IO CSize
 #else
-foreign import ccall unsafe "runWish.h readFromWishAvail" readFromWishAvail 
+foreign import ccall unsafe "runWish.h read_from_wish_avail" readFromWishAvail 
    :: IO CSize
 #endif
 
