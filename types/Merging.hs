@@ -1,5 +1,6 @@
 {- This module is the top-level one which does merging. -}
 module Merging(
+   mergeNodes,
    ) where
 
 import Maybe

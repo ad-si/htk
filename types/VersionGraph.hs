@@ -18,6 +18,9 @@ module VersionGraph(
       -- around with the version graph!
    ) where
 
+import Control.Concurrent.MVar
+import Control.Concurrent
+
 import Computation
 import WBFiles(getServer)
 import Registry
@@ -25,6 +28,7 @@ import AtomString
 import UniqueString
 import Sources
 import Broadcaster
+import Dynamics
 
 import Spawn
 import Destructible
@@ -35,6 +39,9 @@ import CallServer
 
 import SimpleForm
 import MenuType
+import SimpleListBox
+import MarkupText
+import DialogWin
 
 import Graph
 import SimpleGraph
@@ -186,6 +193,9 @@ newVersionGraph
       -- this graph.
       (graph :: VersionTypes SimpleGraph,closeConnection :: IO ()) 
          <- connectToServer
+
+      -- This MVar will contain the actual displayed graph, when set up.
+      dispGraphMVar <- newEmptyMVar
 
       -- Checked-out versions are associated with two elements of the
       -- Node type.  The most important one is the current one, with
@@ -367,13 +377,145 @@ newVersionGraph
          doMerge :: IO ()
          doMerge =
             do
+               -- retrieve the graph.
+               dispGraph <- readMVar dispGraphMVar
+
                -- The difficult part is indicating what is to be
-               -- merged.
-               error "TBD"
+               -- merged.  We do this using a ListBox.
+               listBox <- newSimpleListBox
+                  "Versions to Merge"
+                  mergeLabel
+                  (40,6)
+               -- Construct event for delete actions in this list.
+               (deleteEvent :: Event [SimpleListBoxItem MergeCandidate],
+                  terminator) <- bindSelection listBox
+
+               let
+                  mkMergeCandidate :: WrappedNode node -> IO MergeCandidate
+                  mkMergeCandidate (WrappedNode node0) =
+                     do
+                        mergeNode0 <- getNodeValue dispGraph node0
+                        let
+                           (mergeNode :: Node) 
+                              = dynCast "VersionGraph.mkMergeCandidate"
+                                 mergeNode0
+
+                        (mergeLabel :: String) <- nodeTitle mergeNode
+
+                        contents <- case nodeToVersion mergeNode of
+                           Nothing -> -- not a version, must be a view.
+                              do
+                                 workingNodeOpt <- getValueOpt
+                                    workingNodeRegistry mergeNode
+                                 case workingNodeOpt of
+                                    Just viewNode 
+                                       -> return (Left (thisView viewNode))
+                           Just version -> return (Right version)
+
+                        let 
+                           mergeCandidate = MergeCandidate {
+                              mergeNode = mergeNode,
+                              mergeLabel = mergeLabel,
+                              contents = contents
+                              }
+
+                        return mergeCandidate
+
+                  -- This function is passed to getMultipleNodes for the
+                  -- graph and returns the nodes to merge, or Nothing
+                  -- if the operation is to be cancelled.
+                  getNodes :: Event (WrappedNode node) 
+                     -> IO (Maybe [MergeCandidate])
+                  getNodes newVersion =
+                     do
+                         -- Construct event for confirm window.
+                         (confirmChannel :: Channel Bool) <- newChannel
+                         let
+                            confirmThread =
+                               do
+                                  goAhead <- createConfirmWin' [
+                                     prose (
+                                        "Double-Click Version to Select\n"
+                                        ++"Select in List Box to Remove\n"
+                                        ++"When finished click OK or Cancel"
+                                        )
+                                     ] []
+                                  sendIO confirmChannel goAhead
+                         forkIO confirmThread
+                         let
+                            confirmEvent :: Event Bool
+                            confirmEvent = receive confirmChannel
+
+                            -- Now here is the event for the business of
+                            -- getNodes 
+                            getNodesEvent :: Event (Maybe [MergeCandidate])
+                            getNodesEvent =
+                                  (do
+                                     confirmed <- confirmEvent
+                                     always (if confirmed 
+                                        then
+                                           do
+                                              mergeCandidates <- getItems
+                                                 listBox
+                                              return (Just mergeCandidates)
+                                        else
+                                           return Nothing
+                                        )
+                                 )
+                               +> (do
+                                     (selection :: WrappedNode node)
+                                        <- newVersion
+                                     always (
+                                        do
+                                           mergeCandidate <- 
+                                              mkMergeCandidate selection
+                                           addItemAtEnd listBox 
+                                              mergeCandidate
+                                        )
+                                     getNodesEvent
+                                 )
+                               +> (do
+                                     itemsToDelete <- deleteEvent
+                                     always (mapM_
+                                        (\ listBoxItem ->
+                                           deleteItem listBox listBoxItem
+                                           )
+                                        itemsToDelete
+                                        )
+                                     getNodesEvent
+                                 )
+
+                         sync getNodesEvent
+
+               -- Do the business.
+               nodesToMergeOpt <- getMultipleNodes dispGraph getNodes
+
+               -- Clean up
+               terminator
+               destroy listBox
+
+               case nodesToMergeOpt of
+                  Nothing -> done
+                  Just [] -> createErrorWin "No versions specified!" []
+                  Just [_] -> createErrorWin "Only one version specified" []
+                  Just mergeCandidates ->
+                     do
+                        -- Go ahead.
+                        viewWE <- mergeNodes repository (
+                           map contents mergeCandidates)
+                        case fromWithError viewWE of
+                           Left mess -> createErrorWin mess []
+                           Right view ->
+                              do
+                                 -- Create a node corresponding to view,
+                                 -- and to its parent nodes.
+                                 error "VG" 
 
       -- Construct the graph
-      displayedGraph <- displayGraph displaySort graph graphParms
+      (displayedGraph,dispGraph) <- displayGraph0 displaySort graph graphParms
          getNodeTypeParms getArcTypeParms
+
+      putMVar dispGraphMVar dispGraph
 
       -- Close-down stuff
       destroyedChannel <- newChannel
@@ -401,6 +543,14 @@ newVersionGraph
          closeDownAction = closeDownAction,
          closedEvent = receive destroyedChannel
          }) 
+
+-- Type used exclusively by the doMerge function to indicate a node being
+-- merged
+data MergeCandidate = MergeCandidate {
+   mergeNode :: Node,
+   mergeLabel :: String,
+   contents :: Either View ObjectVersion
+   }
 
 -- --------------------------------------------------------------------
 -- Instances of Destroyable/Destructible

@@ -18,6 +18,8 @@ module SimpleListBox(
       -- :: SimpleListBox value -> value -> IO (SimpleListBoxItem value)
    deleteItem,
       -- :: SimpleListBox value -> SimpleListBoxItem value -> IO ()
+   getItems,
+      -- :: SimpleListBox value -> IO [value]
 
    bindSelection,
       -- :: SimpleListBox value 
@@ -156,7 +158,13 @@ deleteItem simpleListBox simpleListBoxItem =
       (listBox simpleListBox) # value newValue
       putMVar mVar contents1
       done
-      
+
+getItems :: SimpleListBox value -> IO [value]
+getItems simpleListBox = 
+   do
+      contents <- readMVar (contentsMVar simpleListBox)
+      return (map val contents)
+ 
 bindSelection :: SimpleListBox val 
    -> IO (Event [SimpleListBoxItem val],IO ())
 bindSelection simpleListBox =

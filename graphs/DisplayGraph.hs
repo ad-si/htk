@@ -1,8 +1,11 @@
 {- DisplayGraph.displayGraph displays something implementing the
    Graph interface with something implementing with GraphDisp interface.
+   displayGraph0 is a slightly more general version that also returns the
+   actual graph.
    -}
 module DisplayGraph(
    displayGraph,
+   displayGraph0,
    DisplayGraph
    ) where
 
@@ -43,7 +46,37 @@ displayGraph ::
          -> IO (arcTypeParms Arc))
                  -- see previous argument.
    -> IO DisplayGraph
-displayGraph 
+displayGraph displaySort graph graphParms getNodeParms getArcParms =
+   do
+      (displayedGraph,_) <- displayGraph0 displaySort graph graphParms 
+         getNodeParms getArcParms
+      return displayedGraph
+
+
+displayGraph0 ::
+      (GraphAll dispGraph graphParms node nodeType nodeTypeParms 
+            arc arcType arcTypeParms,
+         Typeable nodeLabel,Typeable nodeTypeLabel,Typeable arcLabel,
+         Typeable arcTypeLabel,
+         Graph.Graph graph)
+   => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
+          arc arcType arcTypeParms)
+   -> (graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
+   -> graphParms -- these are the parameters to use setting up the graph
+   -> (DisplayGraph -> NodeType -> nodeTypeLabel 
+          -> IO (nodeTypeParms Node))
+                 -- this gets parameters for setting up a node type.
+                 -- NB - we don't (and can't) recompute the parameters
+                 -- if we get a SetNodeTypeLabel or SetArcTypeLabel update.
+                 -- We provide the function with the DisplayGraph
+                 -- this function will return, to make tying the knot easier
+                 -- in versions/VersionGraph.hs
+   -> (DisplayGraph -> ArcType -> arcTypeLabel 
+         -> IO (arcTypeParms Arc))
+                 -- see previous argument.
+   -> IO (DisplayGraph,GraphDisp.Graph dispGraph graphParms 
+      node nodeType nodeTypeParms arc arcType arcTypeParms)
+displayGraph0
    (displaySort ::
        GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms arc 
           arcType arcTypeParms)
@@ -170,7 +203,7 @@ displayGraph
   
       registerTool displayGraph
 
-      return displayGraph
+      return (displayGraph,dispGraph)
 
 --------------------------------------------------------------------
 -- The DisplayGraph type.  (We create this so that we can end
