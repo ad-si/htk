@@ -287,14 +287,23 @@ runServer serviceList =
                                           -- clientReadAction cannot return 
                                           -- otherwise
                                           case exception of 
-                                             IOException _ ->
-                                                done
+                                             IOException excep
+                                                | isEOFError excep
+                                                   -> done
                                              _ ->
                                                 putStrLn (
                                                    "Server error on "
                                                    ++ show serviceKey ++ ": "
                                                    ++ show exception
                                                    )
+                                          state0 <- takeMVar stateMVar
+                                          deleteClient clientData
+                                          state1 <- 
+                                             handleClientDisconnect service
+                                                user state0
+                                          putMVar stateMVar state1
+                                          
+                                     
                                        ) -- end of forkIO
                                     done
 
