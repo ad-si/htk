@@ -13,65 +13,57 @@ Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
 
 \begin{document}
 \begin{Package}[Label={Algebra I}, LevelOfDetail=Lecture]
-\begin{Section}[Label={Explanation}, LevelOfDetail=LectureNotes]
+\begin{Section}[Label={Explanation}, LevelOfDetail=Lecture]
 \begin{Paragraph}[Label={Explanation Paragr}, LevelOfDetail=Lecture]
 Hier nun BinAlg in CASL:
 \IncludeProgramFragment{BinAlg}{}
 \end{Paragraph}
 \end{Section}
-\begin{Section}[Label={CASL Module Section}, LevelOfDetail=LectureNotes]
+\begin{Section}[Label={CASL Module Section}, LevelOfDetail=Lecture]
 \begin{Paragraph}[Label={CASL Module Paragraph}, LevelOfDetail=Lecture]
 \begin{Program}[Label={Algebra I Module}, LevelOfDetail=Lecture]
-\begin{ProgramFragment}[Label=Header, LevelOfDetail=Lecture, Format=ASCII]
-library Basic/Algebra_I version 0.7
-%% authors: M.Roggenbach, T.Mossakowski, L.Schröder
-
-%% date: 23.3.01
-
-%prec( {__*__} < {__^__})%
-%prec( {__+__, __-__, -__} < {__/__, __*__})%
-%left_assoc( __+__, __*__, __^__)%
-\end{ProgramFragment}
-\begin{ProgramFragment}[Label=Imports, LevelOfDetail=Lecture, Format=ASCII]
-from Basic/RelationsAndOrders version 0.7 get
-    TotalOrder, ExtTotalOrder, RichTotalOrder, PreOrder, 
-    EquivalenceRelation
-from Basic/Numbers version 0.7 get Nat, Int, Rat
-\end{ProgramFragment}
-
 \begin{ProgramFragment}[Label=BinAlg, LevelOfDetail=Lecture, Format=ASCII]
+\begin{verbatim}
 spec BinAlg =
     sort Elem;
     op __*__ : Elem * Elem -> Elem;
 end
+\end{verbatim}
 \end{ProgramFragment}
 
 \begin{ProgramFragment}[Label=BinAlg, LevelOfDetail=Lecture, Format=LaTeX]
+\begin{hetcasl}
 \KW[view]{spec} \=\SId{BinAlg} \= \Ax{=}\\
 \>\KW[preds]{sort} \=\Id{Elem} \\
 \>\KW[preds]{op} \=\_\_\Ax{*}\_\_ : \=\Id{Elem} \Ax{\times} \Id{Elem} \Ax{\rightarrow}~\Id{Elem} \\
 ~~~~~~\=\kill
 \KW{end}\\
+\end{hetcasl}
 \end{ProgramFragment}
 
 \begin{ProgramFragment}[Label=Semigroup, LevelOfDetail=Lecture, Format=ASCII]
+\begin{verbatim}
 spec Semigroup =
     BinAlg
 then
     op __*__ : Elem * Elem -> Elem, assoc;
 end
+\end{verbatim}
 \end{ProgramFragment}
 
 \begin{ProgramFragment}[Label=Semigroup, LevelOfDetail=Lecture, Format=LaTeX]
+\begin{hetcasl}
 \KW[view]{spec} \=\SId{Semigroup} \= \Ax{=}\\
 \>\SId{BinAlg}  \\
 \KW[view]{then}\\
 \>\KW[preds]{op} \=\_\_\Ax{*}\_\_ : \=\Id{Elem} \Ax{\times} \Id{Elem} \Ax{\rightarrow}~\Id{Elem}, \Id{assoc} \\
 ~~~~\=~~~~~~\=\kill
 \KW{end}\\
+\end{hetcasl}
 \end{ProgramFragment}
 
 \begin{ProgramFragment}[Label=PowerTheorems, LevelOfDetail=Lecture, Format=ASCII]
+\begin{verbatim}
 spec PowerTheorems [sort Exponent;
                     ops __+__, __*__ : Exponent * Exponent -> Exponent;] =
     SigPowerBinAlg [sort Exponent;]
@@ -82,9 +74,11 @@ then
     . x ^ (n * m) = (x ^ n) ^ m %(mult_Power)%
     %% miss_program_fragment_end Power_Axioms
 end
+\end{verbatim}
 \end{ProgramFragment}
 
 \begin{ProgramFragment}[Label=PowerTheorems, LevelOfDetail=Lecture, Format=LaTeX]
+\begin{hetcasl}
 \KW[view]{spec} \=\SId{PowerTheorems} \=[\\
 \>\> ~\=\KW[preds]{sort} \=\Id{Exponent} \\
 \>\>\> \KW[preds]{ops} \=\_\_\Ax{+}\_\_, \_\_\Ax{*}\_\_ \\
@@ -101,6 +95,7 @@ end
 \>\Ax{\bullet} \Id{x} \Id{\^{}} (\Id{n} \Ax{*} \Id{m}) \Ax{=} \Id{x} \Id{\^{}} \Id{n} \Id{\^{}} \Id{m} \`{\small{}\KW{\%(}mult\_Power\KW{)\%}}\\
 \>{\small{}\KW{\%\%} miss\_program\_fragment\_end Power\_Axioms} \\
 \KW{end}\\
+\end{hetcasl}
 \end{ProgramFragment}
 
 \end{Program}
