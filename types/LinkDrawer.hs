@@ -373,15 +373,19 @@ newLinkDrawer
                      -- a mustFollow, delink the destination (which may in turn
                      -- cause other deletions), otherwise delete from the 
                      -- optional arcs
-                     arcData <- remDependentArc pos thisNode
-                     if mustFollow arcData
-                        then
-                           unAddNode (destination arcData)
-                        else
-                           remOptionalArc pos arcData
+                     arcDataOpt <- remDependentArc pos thisNode
+                     case arcDataOpt of
+                        Nothing -> done
+                        Just arcData ->
+                           do
+                              if mustFollow arcData
+                                 then
+                                    unAddNode (destination arcData)
+                                 else
+                                    remOptionalArc pos arcData
 
-                     -- Physically remove the arc
-                     delPos0 pos
+                              -- Physically remove the arc
+                              delPos0 pos
 
                redraw1 :: IO ()
                redraw1 = redraw0
@@ -461,28 +465,37 @@ newLinkDrawer
                )
 
          -- remDependentArc removes the arc and also returns its ArcData.
-         remDependentArc :: pos -> node -> IO (ArcData node arc)
+         -- if used on a non-existent arc (for example, one already deleted)
+         -- it returns Nothing.
+         remDependentArc :: pos -> node -> IO (Maybe (ArcData node arc))
          remDependentArc pos parent =
             transformValue allNodes parent (\ nodeRecordOpt -> case
                   nodeRecordOpt of
                Just (nodeRecord0 :: NodeRecord node nodeArg arc pos) ->
                   case ifDisplayed nodeRecord0 of
                      Just nodeDisplayed0 ->
-                        let
-                           ((pos1,arcData1),dependentArcs1) =
-                              deleteAndFindFirst
+                        return (
+                           case
+                              deleteAndFindFirstOpt
                                  (\ (pos1,_) -> pos1 == pos)
                                  (dependentArcs nodeDisplayed0)
+                                 of
+                              Just ((pos1,arcData1),dependentArcs1) ->
+                                 let
+                                    nodeDisplayed1 = nodeDisplayed0 {
+                                       dependentArcs = dependentArcs1
+                                       }
 
-                           nodeDisplayed1 = nodeDisplayed0 {
-                              dependentArcs = dependentArcs1
-                              }
-
-                           nodeRecord1 = nodeRecord0 {
-                              ifDisplayed = Just nodeDisplayed1
-                              }
-                        in
-                           return (Just nodeRecord1,arcData1)
+                                    nodeRecord1 = nodeRecord0 {
+                                       ifDisplayed = Just nodeDisplayed1
+                                       }
+                                 in 
+                                     (Just nodeRecord1,Just arcData1)
+                              Nothing ->
+                                 (Just nodeRecord0,Nothing)
+                           )
+                     Nothing -> return (Just nodeRecord0,Nothing)
+               Nothing -> return (Nothing,Nothing)
                )
 
          getNodeArg :: node -> IO nodeArg

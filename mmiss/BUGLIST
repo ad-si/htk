@@ -7,6 +7,7 @@ Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 71) 01.04.03
 If an object is deleted from a package and we then try to close the package
 folder we get a "DeleteAndFindFirst" error.
+FIXED
 
 70) 01.04.03
 In merging test, new objects are somehow disappearing.

@@ -43,6 +43,7 @@ module ExtendedPrelude (
    splitToElemGeneral,
    deleteFirst,
    deleteAndFindFirst,
+   deleteAndFindFirstOpt,
    divideList,
 
    treeFold,
@@ -168,6 +169,14 @@ deleteAndFindFirst fn (a:as) =
          (a1,as1) = deleteAndFindFirst fn as
       in
          (a1,a:as1)
+
+deleteAndFindFirstOpt :: (a -> Bool) -> [a] -> Maybe (a,[a])
+deleteAndFindFirstOpt fn [] = Nothing
+deleteAndFindFirstOpt fn (a:as) =
+   if fn a then Just (a,as) else
+      fmap
+         (\ (a1,as1) -> (a1,a:as1))
+         (deleteAndFindFirstOpt fn as)
 
 divideList :: (a -> Either b c) -> [a] -> ([b],[c])
 divideList fn [] = ([],[])
