@@ -102,6 +102,10 @@ module ObjectTypes(
    -- How to save references to object types
    ShortObjectType(..),
 
+   getObjectTypeByKey, 
+      -- :: ObjectType objectType object => View -> GlobalKey -> IO objectType
+      -- How to look up an object by its global key.
+
    -- These functions are used (by the View module) to import and export object
    -- types.
    importObjectTypes, -- :: CodedValue -> View -> IO ()
@@ -529,24 +533,45 @@ instance HasTyRep1 ShortObjectType where
 instance ObjectType objectType object
        => HasBinary (ShortObjectType objectType) CodingMonad where
 
-   writeBin = mapWriteViewIO (\ view (ShortObjectType objectType) ->
-      do
-         let 
-            globalRegistry = objectTypeGlobalRegistry objectType
-            key = objectTypeIdPrim objectType
-
-         addToGlobalRegistry globalRegistry view key objectType
-         return key
-      )
+   writeBin = mapWrite (\ (ShortObjectType objectType) ->
+      objectTypeIdPrim objectType)
    readBin = mapReadViewIO (\ view key ->
       do
-         let 
-            globalRegistry = objectTypeGlobalRegistry 
-               (error "Don't look at me" :: objectType)
-         objectType  <- lookupInGlobalRegistry globalRegistry view key
+         objectType <- getObjectTypeByKey view key
          return (ShortObjectType objectType)
       )
-         
+
+getObjectTypeByKey 
+   :: ObjectType objectType object => View -> GlobalKey -> IO objectType
+getObjectTypeByKey view key =
+   do
+      let 
+         globalRegistry = objectTypeGlobalRegistry 
+            (error "Don't look at me" :: objectType)
+      objectTypeOpt  <- lookupInGlobalRegistryOpt globalRegistry view key
+      case objectTypeOpt of
+         Just objectType -> return objectType
+         Nothing ->
+            do
+               objectTypes <- extraObjectTypes
+               let
+                  objectTypeOpt = findJust
+                     (\ objectType0 -> 
+                        if objectTypeIdPrim objectType0 == key
+                           then
+                              Just objectType0
+                           else
+                              Nothing
+                        )
+                     objectTypes
+               case objectTypeOpt of
+                  Just objectType -> return objectType
+                  Nothing ->
+                     error ("Error in ObjectTypes.getObjectTypeByKey: "
+                        ++ "no type with key " ++ describeGlobalKey key
+                        ++ " found in registry or extraObjectTypes"
+                        )
+    
 -- -----------------------------------------------------------------
 -- Initialising and writing the Global Registries
 -- -----------------------------------------------------------------

@@ -206,7 +206,11 @@ instance DisplayType displayType
          let 
             globalRegistry = displayTypeGlobalRegistry 
                (error "Don't look at me" :: displayType)
-         displayType  <- lookupInGlobalRegistry globalRegistry view key
+         displayTypeOpt  <- lookupInGlobalRegistryOpt globalRegistry view key
+         displayType <- case displayTypeOpt of
+            Just displayType -> return displayType
+            Nothing -> error ("Unknown display type for DisplayTypes.readBin: "
+               ++ describeGlobalKey key)
          return (ShortDisplayType displayType)
       )
          

@@ -187,7 +187,10 @@
 
 <!-- Object Types. 
    An object type is described by its baseType, sometimes additionally 
-   qualified by an extType.
+   qualified by an extType and extraType. 
+
+   The difference between extType and extraType is that the extType
+   is part of the file name of an object, while extraType is not.
 
    The list of baseTypes given in this DTD may be extended later on.
 
@@ -196,7 +199,9 @@
       not specified for an mmissFolder, mmissPreamble or mmissObject.
 
       The combination of baseType=mmissFile and extType="tex" or "xml" 
-      is reserved for MMiSS objects being exported.   
+      is reserved for MMiSS objects being exported.
+
+   The extra data contains extra information identifying particular    
    -->
 <!ELEMENT objectType EMPTY >
 <!ATTLIST objectType
@@ -204,6 +209,7 @@
       | mmissFolder | mmissObject | mmissFile 
       | mmissPreamble ) #REQUIRED
    extType CDATA #IMPLIED
+   extraType CDATA #IMPLIED
    >
 
 <!-- A path of an object from some other object, for example "A/B". 

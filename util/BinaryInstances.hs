@@ -65,6 +65,17 @@ instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5) m)
    writeBin = mapWrite (\ (v1,v2,v3,v4,v5) -> (v1,(v2,v3,v4,v5)))
    readBin = mapRead (\ (v1,(v2,v3,v4,v5)) -> (v1,v2,v3,v4,v5))
 
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6) m) 
+   => HasBinary (v1,v2,v3,v4,v5,v6) m where
+   writeBin = mapWrite (\ (v1,v2,v3,v4,v5,v6) -> (v1,(v2,v3,v4,v5,v6)))
+   readBin = mapRead (\ (v1,(v2,v3,v4,v5,v6)) -> (v1,v2,v3,v4,v5,v6))
+
+
+instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6,v7) m) 
+   => HasBinary (v1,v2,v3,v4,v5,v6,v7) m where
+   writeBin = mapWrite (\ (v1,v2,v3,v4,v5,v6,v7) -> (v1,(v2,v3,v4,v5,v6,v7)))
+   readBin = mapRead (\ (v1,(v2,v3,v4,v5,v6,v7)) -> (v1,v2,v3,v4,v5,v6,v7))
+
 -- -----------------------------------------------------------------------
 -- Encoding Byte and (Bytes,Int).
 -- -----------------------------------------------------------------------

@@ -90,8 +90,7 @@ createRepository initialiseView repository =
       view <- newView repository
       topFolderLink <- getTopFolder view
 
-      -- (2) initialise plain file type
-      mkPlainFileType view
+      -- (2) run initialiseView
       initialiseView view
 
       -- (3) Create the version

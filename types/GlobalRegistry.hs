@@ -29,13 +29,17 @@ module GlobalRegistry(
    newKey,
    firstKey,
    oneOffKey,
+
    lookupInGlobalRegistry,
+   lookupInGlobalRegistryOpt,
    addToGlobalRegistry,
    addToGlobalRegistryOpt,
    getAllElements,
    getAllElementsSinked,
 
    mergeViewsInGlobalRegistry,
+
+   describeGlobalKey, 
    ) where
 
 import Maybe
@@ -229,9 +233,20 @@ lookupInGlobalRegistry :: GlobalRegistry objectType -> View -> GlobalKey ->
    IO objectType
 lookupInGlobalRegistry globalRegistry view key =
    do
+      objectTypeOpt <- lookupInGlobalRegistryOpt globalRegistry view key
+      case objectTypeOpt of
+         Just objectType -> return objectType
+         Nothing -> error ("GlobalRegistry.lookupInGlobalRegistry: failed "
+            ++ " with " ++ describeGlobalKey key)
+{-# DEPRECATED lookupInGlobalRegistry
+   "Please use ObjectTypes.getObjectTypeByKey instead" #-}
+
+lookupInGlobalRegistryOpt :: GlobalRegistry objectType -> View -> GlobalKey ->
+   IO (Maybe objectType)
+lookupInGlobalRegistryOpt globalRegistry view key =
+   do
       viewData <- lookupViewData globalRegistry view
-      Just objectType <- lookupVariableMap (objectTypes viewData) key
-      return objectType
+      lookupVariableMap (objectTypes viewData) key
 
 ---
 -- Add a new object type (with name created by newKey) 
@@ -438,6 +453,12 @@ instance HasBinary UniqueStringSource CodingMonad where
    writeBin = mapWriteIO (\ source -> readUniqueStringSource source)
    readBin = mapReadIO (\ is -> createUniqueStringSource is)
 
+-- ---------------------------------------------------------------
+-- Describing a global key (for debugging or error purposes only).
+-- ---------------------------------------------------------------
+
+describeGlobalKey :: GlobalKey -> String
+describeGlobalKey (GlobalKey atomString) = toString atomString
           
 
 

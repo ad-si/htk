@@ -117,6 +117,7 @@ newtype ObjectName = ObjectName String 		deriving (Eq,Show)
 data ObjectType = ObjectType
     { objectTypeBaseType :: ObjectType_baseType
     , objectTypeExtType :: (Maybe String)
+    , objectTypeExtraType :: (Maybe String)
     } deriving (Eq,Show)
 data ObjectType_baseType = ObjectType_baseType_folder  | 
 			   ObjectType_baseType_plainFile  |  ObjectType_baseType_mmissFolder
@@ -638,10 +639,12 @@ instance XmlAttributes ObjectType where
 	ObjectType
 	  { objectTypeBaseType = definiteA fromAttrToTyp "objectType" "baseType" as
 	  , objectTypeExtType = possibleA fromAttrToStr "extType" as
+	  , objectTypeExtraType = possibleA fromAttrToStr "extraType" as
 	  }
     toAttrs v = catMaybes 
 	[ toAttrFrTyp "baseType" (objectTypeBaseType v)
 	, maybeToAttr toAttrFrStr "extType" (objectTypeExtType v)
+	, maybeToAttr toAttrFrStr "extraType" (objectTypeExtraType v)
 	]
 instance XmlAttrType ObjectType_baseType where
     fromAttrToTyp n (n',v)

@@ -8,8 +8,6 @@ module Files(
       -- instance of HasAttributes, HasFilePath
    FileType,
    newEmptyFile,
-   getPlainFileType,
-   mkPlainFileType,   
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -104,7 +102,7 @@ instance HasBinary File CodingMonad where
    readBin = mapReadViewIO
       (\ view (fileTypeId,attributes,linkedObject,simpleFile) ->
          do
-            fileType <- lookupInGlobalRegistry globalRegistry view fileTypeId
+            fileType <- getObjectTypeByKey view fileTypeId
             return (File {fileType = fileType,attributes = attributes,
              linkedObject = linkedObject,simpleFile = simpleFile})
          )
@@ -181,6 +179,8 @@ instance ObjectType FileType File where
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim file = fileType file
    toLinkedObjectOpt file = Just (linkedObject file)
+   extraObjectTypes = return [plainFileType]
+
    nodeTitleSourcePrim file =
       fmap toString 
          (getLinkedObjectTitle (linkedObject file) (fromString "NOT INSERTED"))
@@ -311,6 +311,14 @@ registerFiles =
 -- The plain file type
 -- ------------------------------------------------------------------
 
+plainFileType :: FileType
+plainFileType = FileType {
+   fileTypeId = plainFileKey,
+   fileTypeLabel = Just "Plain file",
+   requiredAttributes = emptyAttributesType,
+   displayParms = plainFileNodeTypeParms,
+   canEdit = True
+   }
 
 plainFileNodeTypeParms :: NodeTypes value
 plainFileNodeTypeParms =
@@ -319,32 +327,6 @@ plainFileNodeTypeParms =
       (SimpleNodeAttributes { shape = Nothing, 
          nodeColor = Just (Color "green")}) 
       emptyNodeTypes
-
----
--- mkPlainFileType is used to construct the file type
--- when the repository is initialised (in createRepository),
--- and add it to the global registry.  It also adds the
--- file display type to the display type registry.
-mkPlainFileType :: View -> IO FileType
-mkPlainFileType view =
-   do
-      let
-         fileType = FileType {
-            fileTypeId = plainFileKey,
-            fileTypeLabel = Just "Plain file",
-            requiredAttributes = emptyAttributesType,
-            displayParms = plainFileNodeTypeParms,
-            canEdit = True
-            }
-
-      addToGlobalRegistry globalRegistry view plainFileKey fileType
-
-      return fileType
-
-
-getPlainFileType :: View -> IO FileType
-getPlainFileType view =
-   lookupInGlobalRegistry globalRegistry view plainFileKey
 
 plainFileKey :: GlobalKey
 plainFileKey =  oneOffKey "Files" ""

@@ -8,6 +8,7 @@ module AttributesType(
    updateAttributes,
    updateAttributesPrim,
    emptyAttributesType,
+   isEmptyAttributesType,
    AttributeValue(..),
    needs,
    mkAttributesType,
@@ -160,6 +161,11 @@ updateAttributesPrim title attributes (AttributesType attributesList)
 -- corresponds to an attributesType with no conditions on the attributes.
 emptyAttributesType :: AttributesType
 emptyAttributesType = AttributesType []
+
+-- | returns True if the AttributesType has no attributes
+isEmptyAttributesType :: AttributesType -> Bool
+isEmptyAttributesType (AttributesType []) = True
+isEmptyAttributesType _ = False
 
 ---
 -- Adds a new attribute

@@ -12,20 +12,22 @@ module Folders(
    mkFolderInsertion,
    lookupFileName,
    newEmptyFolder,
-   getPlainFolderType,
-   plainFolderKey,
 
    FolderDisplayType(FolderDisplayType),
-   folderDisplayKey,
    createWithLinkedObject,
    createWithLinkedObjectIO,
    createWithLinkedObjectSplitIO,
+
+   registerExtraFolderType, -- :: FolderType -> IO ()
+   mkFolderType0, -- :: GlobalKey -> NodeTypes (Link Folder) -> FolderType
+
    ) where
 
 import Maybe
 
-import FiniteMap
-import qualified IOExts(unsafePerformIO)
+import Data.FiniteMap
+import System.IO.Unsafe
+import Data.IORef
 
 import Dynamics
 import Object
@@ -121,7 +123,7 @@ instance DisplayType FolderDisplayType where
       Just ("New Folders Display",openGeneralDisplay displaySort displayType)
 
 displayTypeRegistry :: GlobalRegistry FolderDisplayType
-displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
+displayTypeRegistry = unsafePerformIO createGlobalRegistry
 {-# NOINLINE displayTypeRegistry #-}
 
 -- ------------------------------------------------------------------
@@ -130,8 +132,12 @@ displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
 
 data FolderType = FolderType {
    folderTypeId :: GlobalKey,
+   allowAddFiles :: Bool,
+      -- If this is set, allow new objects to be created within a folder of 
+      -- this type by dragging from it using addFileGesture.
    folderTypeLabel :: Maybe String,
-      -- Menu label to be used for creating objects of this type.
+      -- If set, allow folders of this type to be added with addFileGesture;
+      -- the String will be the menu label the use selects. 
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (Link Folder),
    topFolderLinkOpt :: Maybe (Link Folder)
@@ -144,20 +150,23 @@ instance HasTyRep FolderType where
 instance HasBinary FolderType CodingMonad where
    writeBin = mapWrite
       (\ (FolderType {folderTypeId = folderTypeId,
+            allowAddFiles = allowAddFiles,
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt})
-         -> (folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
-               topFolderLinkOpt)
+         -> 
+         (folderTypeId,allowAddFiles,folderTypeLabel,
+            requiredAttributes,displayParms,topFolderLinkOpt)
          )
    readBin = mapRead
-      (\ (folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
-            topFolderLinkOpt) ->
-         FolderType {folderTypeId = folderTypeId,
+      (\ (folderTypeId,allowAddFiles,folderTypeLabel,
+            requiredAttributes,displayParms,topFolderLinkOpt)
+         ->
+         (FolderType {folderTypeId = folderTypeId,
+            allowAddFiles = allowAddFiles,
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
-            displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt
-            }
+            displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt})
          )
 
 instance HasAttributesType FolderType where
@@ -201,7 +210,7 @@ instance HasBinary Folder CodingMonad where
 createFolder :: View -> GlobalKey -> Attributes -> LinkedObject -> IO Folder
 createFolder view folderTypeId attributes linkedObject =
    do
-      folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
+      folderType <- getObjectTypeByKey view folderTypeId
       hideFolderArcs <- mkArcsHiddenSource
       openContents <- newOpenContents view linkedObject
       return (Folder {folderType = folderType,attributes = attributes,
@@ -291,6 +300,9 @@ instance ObjectType FolderType Folder where
    objectTypeTypeIdPrim _ = "Folders"
    objectTypeIdPrim objectType = folderTypeId objectType
    objectTypeGlobalRegistry _ = globalRegistry
+
+   extraObjectTypes = getExtraFolderTypes
+
    getObjectTypePrim folder = folderType folder
    nodeTitleSourcePrim folder = fmap toString 
       (getLinkedObjectTitle (linkedObject folder) (fromString "TOP"))
@@ -341,15 +353,21 @@ instance ObjectType FolderType Folder where
                               Button "Close Folder" (\ link 
                                  -> closeAction link
                                  ),
-                              Button "Edit Attributes" (\ link 
-                                 -> editObjectAttributes view link),
                               Button "Hide Links" (\ link ->
                                  hideAction link True
                                  ),
                               Button "Reveal Links" (\ link ->
                                  hideAction link False
                                  )
-                              ]
+                              ] ++
+                              if isEmptyAttributesType 
+                                    (requiredAttributes folderType)
+                                 then
+                                    []
+                                 else [
+                                    Button "Edit Attributes" (\ link 
+                                       -> editObjectAttributes view link)
+                                    ]
                            menu = LocalMenu (Menu (Just "Folder options") 
                               editOptions1)
                         in
@@ -357,7 +375,12 @@ instance ObjectType FolderType Folder where
                            menu $$$
                            (valueTitleSource view) $$$
                            (DoubleClickAction openAction) $$$
-                           addFileGesture view $$$
+                           (if allowAddFiles folderType
+                              then 
+                                 Just (addFileGesture view)
+                              else
+                                 Nothing
+                              ) $$$?
                            nodeTypeParms
                            )],
                      getNodeType = const theNodeType,
@@ -420,7 +443,7 @@ instance HasLinkedObject Folder where
 -- ------------------------------------------------------------------
 
 globalRegistry :: GlobalRegistry FolderType
-globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
+globalRegistry = unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
 
 -- ------------------------------------------------------------------
@@ -434,11 +457,81 @@ registerFolders =
       registerDisplayType 
          (error "Unknown FolderDisplayType" :: FolderDisplayType)
 
+-- ------------------------------------------------------------------
+-- The list of extra folder types.
+-- ------------------------------------------------------------------
+
+getExtraFolderTypes :: IO [FolderType]
+getExtraFolderTypes =
+   atomicModifyIORef extraFolderTypesList 
+      (\ ftl0 ->
+         let
+            ftl1 = ftl0 {isUsed = True}
+         in
+            (ftl1,folderTypes ftl1)
+         )
+
+-- This MUST be done before any structure displays are opened.
+registerExtraFolderType :: FolderType -> IO ()
+registerExtraFolderType folderType =
+   do
+      ftl1 <- atomicModifyIORef extraFolderTypesList
+         (\ ftl0 ->
+            let
+               ftl1 = ftl0 {folderTypes = folderType : folderTypes ftl0}
+            in
+               (ftl1,ftl1)
+            )
+      if isUsed ftl1 
+         then
+            error ("Folders.registerExtraFolderType: attempt to use this for "
+               ++ describeFolderType folderType
+               ++ " when a structure display has already been opened.")
+         else
+            done
+
+describeFolderType :: FolderType -> String
+describeFolderType ft = 
+   fromMaybe
+      (describeGlobalKey (folderTypeId ft)) 
+      (folderTypeLabel ft)
+                 
+
+data FolderTypeList = FolderTypeList {
+   folderTypes :: [FolderType],
+   isUsed :: Bool 
+      -- becomes True when extraObjectTypes is accessed.  Used to
+      -- detect attempts to add extra folder types too late. 
+   }
+
+extraFolderTypesList :: IORef FolderTypeList
+extraFolderTypesList = unsafePerformIO mkExtraFolderTypesList
+{-# NOINLINE extraFolderTypesList #-}
+
+mkExtraFolderTypesList :: IO (IORef FolderTypeList)
+mkExtraFolderTypesList = 
+   let
+      folderTypeList = FolderTypeList {
+         folderTypes = [plainFolderType],
+         isUsed = False
+         }
+   in
+      newIORef folderTypeList
 
 
 -- ------------------------------------------------------------------
 -- The plain folder type
 -- ------------------------------------------------------------------
+
+plainFolderType :: FolderType
+plainFolderType = FolderType {
+   folderTypeId = plainFolderKey,
+   allowAddFiles = True,
+   folderTypeLabel = Just "Plain Folder",
+   requiredAttributes = emptyAttributesType,
+   displayParms = plainFolderNodeTypeParms,
+   topFolderLinkOpt = Just topLink
+   }
 
 plainFolderNodeTypeParms :: NodeTypes value
 plainFolderNodeTypeParms =
@@ -448,39 +541,29 @@ plainFolderNodeTypeParms =
          nodeColor = Just (Color "green")}) 
       emptyNodeTypes
 
----
--- mkPlainFolderType is used to construct the folder type
--- when the repository is initialised (in getTopFolder),
--- and add it to the global registry.  It also adds the
--- folder display type to the display type registry.
-mkPlainFolderType :: View -> IO FolderType
-mkPlainFolderType view = 
-   do
-      let
-         folderType = FolderType {
-            folderTypeId = plainFolderKey,
-            folderTypeLabel = Just "Plain Folder",
-            requiredAttributes = emptyAttributesType,
-            displayParms = plainFolderNodeTypeParms,
-            topFolderLinkOpt = Just topLink
-            }
-
-      addToGlobalRegistry globalRegistry view plainFolderKey folderType
-      addToGlobalRegistry displayTypeRegistry view folderDisplayKey 
-         FolderDisplayType
-
-      return folderType
-
-getPlainFolderType :: View -> IO FolderType
-getPlainFolderType view =
-   lookupInGlobalRegistry globalRegistry view plainFolderKey
-
 plainFolderKey :: GlobalKey
 plainFolderKey = oneOffKey "Folders" ""
 
 folderDisplayKey :: GlobalKey
 folderDisplayKey = oneOffKey "Folders" "Display"
 
+-- ------------------------------------------------------------------
+-- Creating other FolderType's.
+-- NB.  These must still be either (1) put in the GlobalRegistry of
+-- views where they are used, or (2) registered with registerExtraFolderType.
+-- ------------------------------------------------------------------
+
+mkFolderType0 :: GlobalKey -> NodeTypes (Link Folder) -> FolderType
+mkFolderType0 thisKey displayParms =
+   FolderType {
+      folderTypeId = thisKey,
+      allowAddFiles = False,
+      folderTypeLabel = Nothing,
+      requiredAttributes = emptyAttributesType,
+      displayParms = displayParms,
+      topFolderLinkOpt = Nothing
+      }
+      
 
 -- ------------------------------------------------------------------
 -- Retrieving the top folder.
@@ -495,7 +578,6 @@ getTopFolder view =
       versioned <- setOrGetTopLink view (
          do
             -- Create the topFolder.
-            folderType <- mkPlainFolderType view
             attributes <- newEmptyAttributes view
             linkedObjectWE <- newLinkedObject view (
                WrappedLink (topLink :: Link Folder)) Nothing
@@ -503,7 +585,7 @@ getTopFolder view =
             openContents <- newOpenContents view linkedObject
             hideFolderArcs <- mkArcsHiddenSource
             return (Folder {
-               folderType = folderType,
+               folderType = plainFolderType,
                attributes = attributes,
                linkedObject = linkedObject,
                openContents = openContents,
@@ -648,6 +730,7 @@ createNewFolderType view =
                         folderTypeId <- newKey globalRegistry view
                         return (Just(FolderType {
                            folderTypeId = folderTypeId,
+                           allowAddFiles = True,
                            folderTypeLabel = Just title,
                            requiredAttributes = requiredAttributes,
                            displayParms = displayParms,

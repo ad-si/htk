@@ -62,7 +62,8 @@ data FileLoc = FileLoc {
    
 data BundleType = BundleType {
    base :: BundleTypeEnum,
-   ext :: Maybe String
+   ext :: Maybe String,
+   extra :: Maybe String
    } deriving (Ord,Eq)
 
 data BundleTypeEnum = FolderEnum | FileEnum 

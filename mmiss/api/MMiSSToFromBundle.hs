@@ -227,14 +227,16 @@ toBundleType :: MMiSSRequest.ObjectType -> MMiSSBundle.BundleType
 toBundleType ot =
    BundleType {
       base = toBundleTypeEnum (objectTypeBaseType ot),
-      ext = objectTypeExtType ot
+      ext = objectTypeExtType ot,
+      extra = objectTypeExtraType ot
       }
 
 fromBundleType :: MMiSSBundle.BundleType -> MMiSSRequest.ObjectType
 fromBundleType bt =
    ObjectType {
       objectTypeBaseType = fromBundleTypeEnum (base bt),
-      objectTypeExtType = ext bt
+      objectTypeExtType = ext bt,
+      objectTypeExtraType = extra bt
       }
 
 -- ---------------------------------------------------------------------------
