@@ -1,11 +1,13 @@
-{- ------------------------------------------------------------------------
- -
- - HTk First Steps: Hello World with an entry widget
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - ------------------------------------------------------------------------ -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -34,13 +36,12 @@ main =
      pack e [PadX 10, Side AtRight]
 
      clickedqb <- clicked qb
-
-     spawnEvent (clickedqb >>> destroy main)
-
-     (entered, _) <- bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
-
-     spawnEvent (forever (entered >>> do txt <- readTkVariable v1
-				         main # text txt))
+     (entered, _) <-
+       bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
+     spawnEvent (forever ((clickedqb >>> destroy main) +>
+                          (entered >>> do txt <- readTkVariable v1
+				          main # text txt >> done)))
 
      (main_destr, _) <- bindSimple main Destroy
      sync main_destr
+     finishHTk main

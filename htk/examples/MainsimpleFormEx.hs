@@ -1,3 +1,14 @@
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
+
 {- Tests and demonstrates toolkit/SimpleForm.hs -}
 module Main(main) where
 

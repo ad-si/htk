@@ -67,4 +67,5 @@ main =
     spawnEvent (forever notmoving)
 
     (htk_destr, _) <- bindSimple main Destroy
-    sync(htk_destr)
+    sync htk_destr
+    finishHTk main

@@ -39,4 +39,5 @@ main =
     pack but3 [Fill Both, Expand On]
 
     (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
+    sync htk_destr
+    finishHTk main

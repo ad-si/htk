@@ -1,11 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - HTk First steps: the ubiquitous "Hello World!"
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -23,16 +25,16 @@ main:: IO ()
 main =
   do main <- initHTk []
 
-     l  <- newLabel main [width 30, height 5, bg "white",
-                          text "Hello, world!", anchor SouthEast]
+     l  <- newLabel main [height 5, text "Hello, world!"]
      pack l []
 
      nb <- newButton main [text "New Colour"] :: IO (Button String)
-     pack nb [Anchor West]
+     pack nb []
      clickednb <- clicked nb
      spawnEvent (forever (clickednb >>>
                           do bunt <- randomColour
                              l # foreground bunt))
 
      (htk_destr, _) <- bindSimple main Destroy
-     sync (htk_destr)
+     sync htk_destr
+     finishHTk main

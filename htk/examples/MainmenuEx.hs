@@ -1,12 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - HTk Examples: Menus
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -27,11 +28,9 @@ main =
     v1 <- createTkVariable "1"
     c1 <- createMenuCheckButton m [text "MenuCheckButton", variable v1]
     clickedc1 <- clicked c1
-    spawnEvent (forever (clickedc1 >> always (selected "c1" v1)))
 
     b1 <- createMenuCommand m [text "b1"]
     clickedb1 <- clicked b1
-    spawnEvent (forever (clickedb1 >> always (click "b1")))
 
     createMenuSeparator m []
 
@@ -48,16 +47,12 @@ main =
                                     variable v2]
 
     clickedr1 <- clicked r1
-    spawnEvent (forever (clickedr1 >> always (selected "r1"  v2)))
     clickedr2 <- clicked r2
-    spawnEvent (forever (clickedr2 >> always (selected "r2"  v2)))
     clickedr3 <- clicked r3
-    spawnEvent (forever (clickedr3 >> always (selected "r3"  v2)))
 
     v3 <- createTkVariable "1"
     c2 <- createMenuCheckButton m [text "Check", variable v3]
     clickedc2 <- clicked c2
-    spawnEvent (forever (clickedc2 >> always (selected "c2" v3)))
 
     pulldown2 <- createMenuCascade menubar [text "Second Menu"]
     m2 <- createMenu main False []
@@ -65,21 +60,17 @@ main =
 
     b2 <- createMenuCommand m2 [text "Some Text Item"]
     clickedb2 <- clicked b2
-    spawnEvent (forever (clickedb2 >> always (click "b2")))
 
     b3 <- createMenuCommand m2 [text "Some Other Item"]
     clickedb3 <- clicked b3
-    spawnEvent (forever (clickedb3 >> always (click "b3")))
 
     v4 <- createTkVariable (0 :: Int)
     ra <- createMenuRadioButton m2 [text "Select A", value (1 :: Int),
                                     variable v4]
     clickedra <- clicked ra
-    spawnEvent (forever (clickedra >> always (selected "ra" v4)))
     rb <- createMenuRadioButton m2 [text "Select B", value (2 :: Int),
                                     variable v4]
     clickedrb <- clicked rb
-    spawnEvent (forever (clickedrb >> always (selected "rb" v4)))
 
     v5 <- createTkVariable (0.2 :: Double)
 
@@ -87,10 +78,6 @@ main =
            :: IO (Button String)
     pack b [Side AtBottom, PadY 10]
     clickedb <- clicked b
-    spawnEvent (forever (clickedb >>
-                         always (do
-                                   i <- readTkVariable v5
-                                   putStrLn ("value is " ++ show i))))
 
     rw1 <- newRadioButton main [text "RadioButton 1", variable v5,
                                 value (0.1 :: Double)]
@@ -107,7 +94,6 @@ main =
             :: IO (CheckButton String String)
     pack cw [Side AtBottom, PadY 10]
     clickedcw <- clicked cw
-    spawnEvent (forever (clickedcw >> always (selected "cw" v6)))
 
     mbutton <- newMenuButton main [text "MenuButton"]
     pack mbutton [Side AtBottom]
@@ -119,11 +105,8 @@ main =
     mbutton # menu buttonmenu
 
     clickedcmd1 <- clicked cmd1
-    spawnEvent (forever (clickedcmd1 >> always (click "cmd1")))
     clickedcmd2 <- clicked cmd2
-    spawnEvent (forever (clickedcmd2 >> always (click "cmd2")))
     clickedcmd3 <- clicked cmd3
-    spawnEvent (forever (clickedcmd3 >> always (click "cmd3")))
 
     men <- createMenu main False []
 
@@ -158,23 +141,42 @@ main =
      -- (eop, _) <- bindSimple men Destroy 
      -- Solution: have one thread handle the pop-up menu exclusively.
 
-    spawnEvent (forever menusel)
 
-    spawnEvent (forever (press >>>=
-                           \eventInfo ->
-                             do popup men (xRoot eventInfo, yRoot eventInfo)
-                                          (Nothing :: Maybe HTk)
-
-				putStrLn "We've popped up"))
+    spawnEvent (forever ((clickedc1 >> always (selected "c1" v1)) +>
+                         (clickedb1 >> always (click "b1")) +>
+                         (clickedr1 >> always (selected "r1"  v2)) +>
+                         (clickedr2 >> always (selected "r2"  v2)) +>
+                         (clickedr3 >> always (selected "r3"  v2)) +>
+                         (clickedc2 >> always (selected "c2" v3)) +>
+                         (clickedb2 >> always (click "b2")) +>
+                         (clickedb3 >> always (click "b3")) +>
+                         (clickedra >> always (selected "ra" v4)) +>
+                         (clickedrb >> always (selected "rb" v4)) +>
+                         (clickedb >>
+                          always (do
+                                    i <- readTkVariable v5
+                                    putStrLn ("value is " ++ show i))) +>
+                         (clickedcw >> always (selected "cw" v6)) +>
+                         (clickedcmd1 >> always (click "cmd1")) +>
+                         (clickedcmd2 >> always (click "cmd2")) +>
+                         (clickedcmd3 >> always (click "cmd3")) +>
+                         menusel +>
+                         (press >>>=
+                            \eventInfo ->
+                              do popup men (xRoot eventInfo,
+                                            yRoot eventInfo)
+                                           (Nothing :: Maybe HTk)
+				 putStrLn "We've popped up")))
 
     (htk_destr, _) <- bindSimple main Destroy
     sync htk_destr
+    finishHTk main
 
   where selected :: GUIValue a => String -> TkVariable a -> IO ()
         selected nm var =
           do
             val <- readTkVariable var
-            putStrLn (nm ++ " " ++ show val) -- >> bell
+            putStrLn (nm ++ " " ++ show val)
 
         click :: String -> IO ()
-        click nm = putStrLn (nm ++ " clicked") -- >> bell
+        click nm = putStrLn (nm ++ " clicked")

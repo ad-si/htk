@@ -1,3 +1,14 @@
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
+
 module Main(main) where
 
 import HTk
@@ -102,6 +113,5 @@ main =
   spawnEvent (forever (clickedbut2 >> always (destroy htk)))
  
   (htk_destr, _) <- bindSimple htk Destroy
-  sync (htk_destr)
-
-
+  sync htk_destr
+  finishHTk htk

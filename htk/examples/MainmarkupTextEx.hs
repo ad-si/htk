@@ -17,7 +17,7 @@ import MarkupText
 main :: IO ()
 main =
   do
-    htk <- initHTk [text "markup text example"]
+    htk <- initHTk [text "markup text example", size (500, 400)]
 
     ed <- newEditor htk [size (80,5), state Disabled] ::
             IO (Editor String)
@@ -145,10 +145,5 @@ main =
     ed # insertAt add_txt (4,5)
 
     (htk_destr, _) <- bindSimple htk Destroy
-    sync (htk_destr)
-
-
-
-
-
-
+    sync htk_destr
+    finishHTk htk

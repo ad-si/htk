@@ -1,0 +1,13 @@
+LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
+       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+
+SRCS       = MainnotepadStateEx.hs\
+#             MaintreeListStateEx.hs\
+#             MaintreeListStateEx2.hs\
+
+XHCDIRS = $(HTKDIRS)
+
+include @TOP@/mk/boilerplate.mk
+
+
+

@@ -99,7 +99,7 @@ SRCS       = resources/Resources.hs\
 
 EXTRA_HC_OPTIONS += -Onot -H30M
 
-SUBDIRS = examples
+SUBDIRS = test examples
 
 XHCDIRS = $(HTKSDIRS)
 

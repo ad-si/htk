@@ -1,11 +1,13 @@
-{- ----------------------------------------------------------------------
- -
- - HTk Examples: Borders/Reliefs
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -13,21 +15,36 @@ import HTk
 
 main:: IO ()
 main = do
-         tk <- htk []
-	 f  <- newVBox []
-	 f1 <- newHBox  [parent f, pad Vertical 10]   
-	 f2 <- newHBox  [parent f, pad Vertical 10]
-         newLabel [value "Groove", relief Groove, borderwidth (mm 1),
-                   parent f1, pad Horizontal 10, font bigfont]
-	 newLabel [value "Ridge",  relief Ridge,  borderwidth (mm 1),
-                   parent f1, pad Horizontal 10, font bigfont]
-	 newLabel [value "Sunken", relief Sunken, borderwidth (mm 1),
-                   parent f2, pad Horizontal 10, font bigfont]
-	 newLabel [value "Raised", relief Raised, borderwidth (mm 1),
-                   parent f2, pad Horizontal 10, font bigfont]
-         win <- window f [text "Different Reliefs"] 
-         sync (destroyed win)
-         destroy tk
+         main <- initHTk [text "Different Reliefs"]
+
+	 f  <- newVBox main []
+         pack f []
+
+	 f1 <- newHBox f []   
+         pack f1 [PadY 10]
+
+	 f2 <- newHBox f []
+         pack f2 [PadY 10]
+
+         l1 <- newLabel f1 [text "Groove", relief Groove,
+                            borderwidth (mm 1), font bigfont]
+         pack l1 [PadX 10]
+
+	 l2 <- newLabel f1 [text "Ridge", relief Ridge,
+                            borderwidth (mm 1), font bigfont]
+         pack l2 [PadX 10]
+
+	 l3 <- newLabel f2 [text "Sunken", relief Sunken,
+                            borderwidth (mm 1), font bigfont]
+         pack l3 [PadX 10]
+
+	 l4 <- newLabel f2 [text "Raised", relief Raised,
+                             borderwidth (mm 1), font bigfont]
+         pack l4 [PadX 10]
+
+         (htk_destr, _) <- bindSimple main Destroy
+         sync htk_destr
+         finishHTk main
 
        where bigfont=  xfont {family = Just Lucida, weight = Just Bold, 
 	        	      pixels = (Just 18)}

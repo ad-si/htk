@@ -1,11 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - HTk Examples: Listboxes and Scrollbars
- -
- - Author: cxl
- - $Revision$ from $Date$
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -29,7 +31,9 @@ main =
 					        show (sel::
                                                         Maybe [Int])))))
     (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
+    sync htk_destr
+    finishHTk main
+
   where numbers =
           ["One", "Two", "Three", "Four", "Five", "Six", "Seven",
            "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirtheen",

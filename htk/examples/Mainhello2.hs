@@ -1,11 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - HTk First Steps: Hello World with a button
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -32,10 +34,5 @@ main =
      spawnEvent (clickedqb >>> destroy main)
 
      (htk_destr, _) <- bindSimple main Destroy
-     sync (htk_destr)
-
-{- this does not return when the main window is destroyed!
---  simpler:
-     sync clickedqb
-     destroy main
--}
+     sync htk_destr
+     finishHTk main

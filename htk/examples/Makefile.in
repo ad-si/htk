@@ -1,8 +1,7 @@
 LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
        $(TOP)/events/libevents.a $(TOP)/util/libutil.a
 
-SRCS       = Mainex1.hs\
-             MaincanvasEx.hs\
+SRCS       = MaincanvasEx.hs\
              MainxmasCanvas.hs\
              Mainhello1.hs\
              Mainhello2.hs\
@@ -14,18 +13,17 @@ SRCS       = Mainex1.hs\
              MaintextTagEx.hs\
              MaintixWidgetEx.hs\
              MainpanedWindowEx.hs\
-             MainiconBarEx.hs\
              MainselectBoxEx.hs\
              MainmarkupTextEx.hs\
              MainutilWinEx.hs\
              MaingenGUIEx.hs\
 	     MainmodalDialogTest.hs\
              MainnotepadEx.hs\
-             MainnotepadStateEx.hs\
              MainfileBrowseEx.hs\
              MainsimpleFormEx.hs\
+             MainreliefEx.hs\
 
-#             MaintreeListEx.hs\
+#             MainnotepadStateEx.hs\
 #             MaintreeListStateEx.hs\
 #             MaintreeListStateEx2.hs\
 

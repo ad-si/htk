@@ -148,10 +148,6 @@ addButton sb@(SelectBox b (Just (f,i)) em) cnf pcnf =
                     el <- getRef em
                     let is_default = (i == length el + 1)
 
-                    putStrLn (show (length el) ++"\n")
-
-                    if is_default then putStrLn "default" else done
-
                     bt <- if is_default then newButton f cnf
                           else newButton b cnf
                     (if is_default then

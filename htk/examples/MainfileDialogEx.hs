@@ -1,11 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - File dialog example
- -
- - Author: ludi
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -31,11 +33,14 @@ main =
     pack quit [PadX 10, PadY 5, Fill X, Expand On]
     clickedquit <- clicked quit
     clickedopen <- clicked open
-    spawnEvent (forever (clickedquit >> always (destroy main)))
-    spawnEvent (forever (clickedopen >>>
-                      do selev <- fileDialog "Open file" dir
-			 file  <- sync selev
-			 case file of Just fp ->msg # text ("selected " ++ fp)
-                                      _ -> msg # text "dialog canceled"))
+    spawnEvent (forever ((clickedquit >> always (destroy main)) +>
+                         (clickedopen >>>
+                            do selev <- fileDialog "Open file" dir
+			       file  <- sync selev
+			       case file of
+                                 Just fp ->
+                                   msg # text ("selected " ++ fp) >> done
+                                 _ -> msg # text "dialog canceled" >> done)))
     (win_destr, _) <- bindSimple main Destroy
     sync win_destr
+    finishHTk main

@@ -37,4 +37,5 @@ main =
     b4_2 <- addButton sb2 [text "Button4.2"] [] :: IO (Button String)
 
     (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
+    sync htk_destr
+    finishHTk main

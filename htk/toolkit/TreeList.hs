@@ -156,12 +156,13 @@ newTreeList par cfun objs cnf =
             pho <- getIcon val
             img # photo pho
     mapM setImg rootobjs
+    packTreeListObject (head rootobjs) True (5, 5)
     let packObjs :: CItem a => Position -> [TREELISTOBJECT a] -> IO ()
         packObjs (x, y) (obj : objs) =
           packTreeListObject obj False (x, y) >>
           packObjs (x,  y + Distance lineheight) objs
         packObjs _ _ = done
-    packObjs (5, 5) rootobjs
+    packObjs (5, 5 + Distance lineheight) (tail rootobjs)
     updScrollRegion cnv stateref
     (press, ub) <- bindSimple cnv (ButtonPress (Just (BNo 1)))
     death <- newChannel
@@ -239,7 +240,6 @@ recoverTreeList par cfun st cnf =
                     _ _ _) = head state
     pho <- getIcon id
     img_lab # photo pho
-    putStrLn "packing root"
     packTreeListObject root True (5, 5)
     let mselexp = find (\ exportitem -> selected exportitem) st
     case mselexp of
@@ -288,7 +288,6 @@ clearTreeList tl =
                                     putStr "!"
                                     destroy emb
                                     putStr "!") state
-    putStrLn ""
     setRef (internal_state tl) []
 
 getObjectFromTreeList :: CItem a => TreeList a -> a ->
@@ -824,7 +823,7 @@ removeObject _ (TREELISTOBJECT _ _ isnode plusminus drawnstuff _ _ emb
     destroy (selHLine drawnstuff)
     destroy (selVLine drawnstuff)
     ubs <- getRef ubref
-    mapM (\act -> putStrLn "unbind" >> act) ubs
+    mapM id ubs
     setRef ubref []
     done
 
@@ -895,44 +894,46 @@ reopenSubObjects _ _ _ = return []
 pressed :: CItem c => TREELISTOBJECT c -> IO ()
 pressed obj@(TREELISTOBJECT val tl isnode plusminus drawnstuff _ _ emb
                             _) =
-  do
-    state <- getRef (internal_state tl)
-    c <- getCoord emb
-    index <-
-      return
-        ((fromJust
-            (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj)
-                       state))) + 1)
-    (i, isopen, prevopen) <- getObjInfo obj state
-    (if isopen then
-       do                                                 -- *** close ***
-         pho <- plusImg
-         plusminus # photo pho
-         (children, opensubobjvals) <- getChildren state obj
-         mapM (removeObject tl) children
-         setRef (internal_state tl)
-                (take (index - 1) state ++
-                 [StateEntry obj False i opensubobjvals] ++
-                 drop (index + length children) state)
-         mapM (shiftObject (-(length children) * lineheight))
-              (drop (index + length children) state)
-         done
-     else
-       do                                                  -- *** open ***
-         pho <- minusImg
-         plusminus # photo pho
-         ch <- (cfun tl) (TreeListObject (val, if isnode then Node
-                                               else Leaf))
-         thisobjch <- mkTreeListObjects tl ch (i + 1) prevopen
-         chobjs <- reopenSubObjects (cfun tl) prevopen thisobjch
-         setRef (internal_state tl)
-                (take (index - 1) state ++ [StateEntry obj True i []] ++
-                 map mkEntry chobjs ++ drop index state)
-         mapM (shiftObject ((length chobjs) * lineheight))
-              (drop index state)
-         insertObjects tl (head c) chobjs
-         done)
-    updScrollRegion (cnv tl) (internal_state tl)
+  synchronize tl
+    (do
+       state <- getRef (internal_state tl)
+       c <- getCoord emb
+       index <-
+         return
+           ((fromJust
+               (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj)
+                          state))) + 1)
+       (i, isopen, prevopen) <- getObjInfo obj state
+       (if isopen then
+          do                                              -- *** close ***
+            pho <- plusImg
+            plusminus # photo pho
+            (children, opensubobjvals) <- getChildren state obj
+            mapM (removeObject tl) children
+            setRef (internal_state tl)
+                   (take (index - 1) state ++
+                    [StateEntry obj False i opensubobjvals] ++
+                    drop (index + length children) state)
+            mapM (shiftObject (-(length children) * lineheight))
+                 (drop (index + length children) state)
+            done
+        else
+          do                                               -- *** open ***
+            pho <- minusImg
+            plusminus # photo pho
+            ch <- (cfun tl) (TreeListObject (val, if isnode then Node
+                                                  else Leaf))
+            thisobjch <- mkTreeListObjects tl ch (i + 1) prevopen
+            chobjs <- reopenSubObjects (cfun tl) prevopen thisobjch
+            setRef (internal_state tl)
+                   (take (index - 1) state ++
+                    [StateEntry obj True i []] ++
+                    map mkEntry chobjs ++ drop index state)
+            mapM (shiftObject ((length chobjs) * lineheight))
+                 (drop index state)
+            insertObjects tl (head c) chobjs
+            done)
+       updScrollRegion (cnv tl) (internal_state tl))
 
 -- selects objects and send the concerned event
 selectObject :: CItem c => TreeList c -> TREELISTOBJECT c -> IO ()

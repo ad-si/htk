@@ -569,6 +569,7 @@ main =
     addExampleFolders newID gui
     (htk_destr, _) <- bindSimple main Destroy
     sync (htk_destr)
+    finishHTk main
 
 imgSelected :: Button () -> IO Image -> IO ()
 imgSelected but img =

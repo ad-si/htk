@@ -1,15 +1,14 @@
-{- -----------------------------------------------------------------------
- -
- - HTk Examples: Canvas #3
- -
- - This examples demonstrates the usefulness of real concurrency, and 
- - also shows that Tcl/Tk is too slow for applications with a lot of
- - Graphics. 
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
+
 
 module Main (main) where
 
@@ -17,7 +16,7 @@ import HTk
 import Random(randomRIO)
 import Concurrent(threadDelay)
 
-toInt :: Distance-> Int
+toInt :: Distance -> Int
 toInt = fromInteger . toInteger
 
 randomColour :: IO (Int, Int, Int)
@@ -53,7 +52,8 @@ main =
 			             c <- colourDot cnv x y col
 			             spawn (sparkle c (x,y) col 0 255))))
     (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
+    sync htk_destr
+    finishHTk main
 
    where colourDot cnv x y col = createOval cnv [filling col, size (2, 2),
                                                  position (x - 1, y - 1)]
