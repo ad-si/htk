@@ -68,6 +68,7 @@ type ImageFun = TreeListObject -> IO Image
 data TreeList =
   TreeList Canvas (ScrollBox Canvas) (RVar [StateEntry]) ChildrenFun ImageFun
            (RVar (Maybe TreeListObject))     -- selected object
+           (MsgQueue (Maybe TreeListObject))
 
 newTreeList :: ChildrenFun -> ImageFun -> [Config TreeList] -> IO TreeList
 newTreeList cfun ifun cnf =
@@ -76,13 +77,14 @@ newTreeList cfun ifun cnf =
     scr <- newScrollBox cnv []
     stateref <- newRVar []
     selref <- newRVar Nothing
-    treelist <- return(TreeList cnv scr stateref cfun ifun selref)
+    msgQ <- newMsgQueue
+    treelist <- return(TreeList cnv scr stateref cfun ifun selref msgQ)
     foldl (>>=) (return treelist) cnf
     return treelist
 
 setRoot :: TreeList -> TreeListObject -> IO ()
-setRoot (TreeList cnv _ stateref _ ifun _)
-        root@(TreeListObject _ _ img _ emb _) =
+setRoot (TreeList cnv _ stateref _ ifun _ _)
+        root@(TreeListObject _ _ img _ emb) =
   do
     setVar stateref [StateEntry root False 0]
     pho  <- ifun root
@@ -92,7 +94,7 @@ setRoot (TreeList cnv _ stateref _ ifun _)
     done
 
 instance GUIObject TreeList where
-  toGUIObject (TreeList _ scr _ _ _ _) = toGUIObject scr
+  toGUIObject (TreeList _ scr _ _ _ _ _) = toGUIObject scr
   cname _ = "TreeList"
 
 instance Destructible TreeList where
@@ -111,17 +113,21 @@ instance Synchronized TreeList where
 instance HasBorder TreeList
 
 instance HasColour TreeList where
-  legalColourID (TreeList cnv _ _ _ _ _) = hasBackGroundColour cnv
-  setColour treelist@(TreeList cnv _ _ _ _ _) cid col =
+  legalColourID (TreeList cnv _ _ _ _ _ _) = hasBackGroundColour cnv
+  setColour treelist@(TreeList cnv _ _ _ _ _ _) cid col =
     setColour cnv cid col >> return treelist
-  getColour (TreeList cnv _ _ _ _ _) cid = getColour cnv cid
+  getColour (TreeList cnv _ _ _ _ _ _) cid = getColour cnv cid
 
 instance HasSize TreeList where
-  width s treelist@(TreeList cnv _ _ _ _ _) = cnv # width s >> return treelist
-  getWidth (TreeList cnv _ _ _ _ _) = getWidth cnv
-  height s treelist@(TreeList cnv _ _ _ _ _) =
+  width s treelist@(TreeList cnv _ _ _ _ _ _) =
+    cnv # width s >> return treelist
+  getWidth (TreeList cnv _ _ _ _ _ _) = getWidth cnv
+  height s treelist@(TreeList cnv _ _ _ _ _ _) =
     cnv # height s >> return treelist
-  getHeight (TreeList cnv _ _ _ _ _) = getHeight cnv
+  getHeight (TreeList cnv _ _ _ _ _ _) = getHeight cnv
+
+selectionEvent :: TreeList -> IA (Maybe TreeListObject)
+selectionEvent (TreeList _ _ _ _ _ _ msgQ) = lift(receive msgQ)
 
 
 -- tree list objects --
@@ -132,16 +138,15 @@ data TreeListObject =
                  (Label Image)                                  -- object image
                  (Label String)                                  -- object name
                  EmbeddedCanvasWin                                      -- main
-                 (MsgQueue ())
 
 shiftObject :: Int -> StateEntry -> IO ()
-shiftObject dy (StateEntry (TreeListObject _ _ _ _ emb _) _ _) =
+shiftObject dy (StateEntry (TreeListObject _ _ _ _ emb) _ _) =
   moveItem emb 0 (Distance dy)
 
 insertObjects' :: Canvas -> ImageFun -> Position -> Int -> [TreeListObject] -> 
                   IO ()
 insertObjects' cnv ifun p@(x, y) i
-              (obj@(TreeListObject _ _ img _ emb _) : objs) =
+              (obj@(TreeListObject _ _ img _ emb) : objs) =
   do
     pho <- ifun obj
     img # photo pho
@@ -152,7 +157,7 @@ insertObjects' _ _ _ _ _ = done
 
 insertObjects :: TreeList -> Int -> Position -> Int -> [TreeListObject] ->
                  IO ()
-insertObjects treelist@(TreeList cnv _ stateref _ ifun _) index (x, y) intd
+insertObjects treelist@(TreeList cnv _ stateref _ ifun _ _) index (x, y) intd
               children =
   do
     state <- getVar stateref
@@ -160,10 +165,10 @@ insertObjects treelist@(TreeList cnv _ stateref _ ifun _) index (x, y) intd
     insertObjects' cnv ifun (x, y + Distance lineheight) intd children
 
 removeObjects :: TreeList -> Int -> [TreeListObject] -> IO ()
-removeObjects treelist@(TreeList _ _ stateref _ _ _) index children = 
+removeObjects treelist@(TreeList _ _ stateref _ _ _ _) index children = 
   do
     state <- getVar stateref
-    mapM (\ (TreeListObject _ _ _ _ emb _) -> destroy emb) children
+    mapM (\ (TreeListObject _ _ _ _ emb) -> destroy emb) children
     mapM (shiftObject (-(length children) * lineheight))
          (drop (index + length children) state)
     done
@@ -177,8 +182,8 @@ mkEntry :: Int -> TreeListObject -> StateEntry
 mkEntry i obj = StateEntry obj False i
 
 pressed :: TreeList -> TreeListObject -> IO ()
-pressed treelist@(TreeList _ _ stateref cfun _ _)
-        obj@(TreeListObject _ arrow _ _ emb _) =
+pressed treelist@(TreeList _ _ stateref cfun _ _ _)
+        obj@(TreeListObject _ arrow _ _ emb) =
   do
     children <- cfun treelist obj
     state <- getVar stateref
@@ -208,32 +213,44 @@ pressed treelist@(TreeList _ _ stateref cfun _ _)
          nustate <- getVar stateref
          debugPrintState nustate)
 
-selectObject :: TreeList -> TreeListObject -> IO ()
-selectObject (TreeList _ _ _ _ _ selref)
-             obj@(TreeListObject _ _ _ txt _ msgQ) =
+unmarkSelectedObject :: TreeList -> IO ()
+unmarkSelectedObject (TreeList _ _ _ _ _ selref _) =
   do
     sel <- getVar selref
     case sel of
-      Nothing -> done
-      Just (TreeListObject _ _ _ txt' _ _) -> do
+      Just (TreeListObject _ _ _ txt' _) -> do
                                                 txt' # fg "black"
                                                 txt' # bg "white"
                                                 done
+      _ -> done
+
+selectObject :: TreeList -> TreeListObject -> IO ()
+selectObject treelist@(TreeList _ _ _ _ _ selref msgQ)
+             obj@(TreeListObject _ _ _ txt _) =
+  do
+    unmarkSelectedObject treelist
+    setVar selref (Just obj)
     txt # fg "white"
     txt # bg "blue"
-    setVar selref (Just obj)
-    sendIO msgQ ()
+    sendIO msgQ (Just obj)
+
+deselect :: TreeList -> IO ()
+deselect treelist@(TreeList _ _ _ _ _ selref msgQ) =
+  do
+    unmarkSelectedObject treelist
+    setVar selref Nothing
+    sendIO msgQ Nothing
 
 isSelected :: TreeList -> TreeListObject -> IO Bool
-isSelected (TreeList _ _ _ _ _ selref) obj =
+isSelected (TreeList _ _ _ _ _ selref _) obj =
   do
     sel <- getVar selref
     case sel of
-      Nothing -> return False
       Just s -> return (s == obj)
+      _ -> return False
 
 newTreeListObject :: TreeList -> [Config TreeListObject] -> IO TreeListObject
-newTreeListObject treelist cnf =
+newTreeListObject treelist@(TreeList cnv _ _ _ _ _ _) cnf =
   do
     box <- newHBox [background "white"]
     pho <- newImage [filename "./images/closed.gif"]
@@ -241,8 +258,7 @@ newTreeListObject treelist cnf =
     img <- newLabel [background "white", parent box]
     txt <- newLabel [background "white", parent box]
     emb <- newEmbeddedCanvasWin box [anchor NorthWest]
-    msgQ <- newMsgQueue
-    obj <- return(TreeListObject treelist arrow img txt emb msgQ)
+    obj <- return(TreeListObject treelist arrow img txt emb)
     foldl (>>=) (return obj) cnf
     interactor (\i -> (mouseEnter txt >>> do
                                             b <- isSelected treelist obj
@@ -259,15 +275,17 @@ newTreeListObject treelist cnf =
                                                txt # bg "white" >>
                                                txt # fg "black" >> done)) +>
                       (mouseButtonPress txt 1 >>> selectObject treelist obj) +>
-                      (mouseButtonPress arrow 1 >>> pressed treelist obj))
+                      (mouseButtonPress arrow 1 >>> pressed treelist obj) +>
+                      (mouseButtonPress cnv 1 >>> deselect treelist))
+
     return obj
 
 instance Eq TreeListObject where
-  (TreeListObject _ _ txt1 _ _ _) == (TreeListObject _ _ txt2 _ _ _) =
+  (TreeListObject _ _ txt1 _ _) == (TreeListObject _ _ txt2 _ _) =
     txt1 == txt2
 
 instance GUIObject TreeListObject where
-  toGUIObject (TreeListObject _ _ _ _ emb _) = toGUIObject emb
+  toGUIObject (TreeListObject _ _ _ _ emb) = toGUIObject emb
   cname _ = "TreeListObject"
 
 instance Destructible TreeListObject where
@@ -275,18 +293,15 @@ instance Destructible TreeListObject where
   destroyed = destroyed . toGUIObject
 
 instance HasPhoto TreeListObject where
-  photo i obj@(TreeListObject _ _ img _ _ _) = img # photo i >> return obj
-  getPhoto (TreeListObject _ _ img _ _ _) = getPhoto img
+  photo i obj@(TreeListObject _ _ img _ _) = img # photo i >> return obj
+  getPhoto (TreeListObject _ _ img _ _) = getPhoto img
 
 instance Interactive TreeListObject
 
 type ObjectName = String
 
 name :: ObjectName -> Config TreeListObject
-name nm obj@(TreeListObject _ _ _ txt _ _) = txt # value nm >> return obj
+name nm obj@(TreeListObject _ _ _ txt _) = txt # value nm >> return obj
 
 getName :: TreeListObject -> IO String
-getName (TreeListObject _ _ _ txt _ _) = getValue txt
-
-selectionEvent :: TreeListObject -> IA ()
-selectionEvent (TreeListObject _ _ _ _ _ msgQ) = lift(receive msgQ)
+getName (TreeListObject _ _ _ txt _) = getValue txt
