@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- This module exports basic types and classes on index positions, e.g.
+-- inside an editor or entry widget.
 module Index (
 
   EndOfText(..),
@@ -31,7 +34,11 @@ import Char
 -- HasIndex
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 class HasIndex w i b where
+---
+-- Internal.
   getBaseIndex :: w -> i -> IO b
 
 
@@ -39,17 +46,32 @@ class HasIndex w i b where
 -- Index: End of text
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>EndOfText</code> datatype - a handle indexing the last
+-- position inside the concerned widget.
 data EndOfText = EndOfText deriving Eq
 
+---
+-- Internal.
 instance Show EndOfText where
+---
+-- Internal.
   showsPrec d _ r = "end" ++ r 
 
+---
+-- Internal.
 instance Read EndOfText where
+---
+-- Internal.
   readsPrec p str = 
     case str of ('e':'n':'d':xs) -> [(EndOfText,xs)]
                 _ -> []
 
+---
+-- Internal.
 instance GUIValue EndOfText where
+---
+-- Internal.
   cdefault = EndOfText
 
 
@@ -57,19 +79,33 @@ instance GUIValue EndOfText where
 -- Index: Pixels i.e. @x,y for listbox and text widgets
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>Pixels</code> datatype - a handle indexing a position inside
+-- a widget with its coordinates.
 data Pixels = Pixels Distance Distance
 
+---
+-- Internal.
 instance Show Pixels where
+---
+-- Internal.
    showsPrec d (Pixels x y) r = "@" ++ show x ++ "," ++ show y ++ r
-        
+
 
 -- -----------------------------------------------------------------------
 -- Index: First, for entry and text widgets
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>First</code> datatype - a handle indexing the first entry
+-- e.g. inside a listbox.
 data First = First 
 
+---
+-- Internal.
 instance Show First where
+---
+-- Internal.
    showsPrec d _ r = "first" ++ r
         
 
@@ -77,9 +113,16 @@ instance Show First where
 -- Index: Last, for entry and text widgets
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>Last</code> datatype - a handle indexing the last entry
+-- e.g. inside a listbox.
 data Last = Last 
 
+---
+-- Internal.
 instance Show Last where
+---
+-- Internal.
    showsPrec d _ r = "first" ++ r
         
 
@@ -87,21 +130,37 @@ instance Show Last where
 -- BaseIndex
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>BaseIndex</code> datatype - an index handle specified by
+-- an index number, an index position (line, char) or an index text (see
+-- text marks).
 data BaseIndex =
-          IndexNo Int                   -- entries
-        | IndexPos Position             -- text widgets
-        | IndexText String              -- listbox'es, "end" etc.
+          IndexNo Int                   --' entries, listboxes
+        | IndexPos Position             --' text widgets
+        | IndexText String              --' listboxes, "end" etc.
 
+---
+-- Internal.
 instance GUIValue BaseIndex where
-        cdefault = IndexNo 0
+---
+-- Internal.
+  cdefault = IndexNo 0
 
+---
+-- Internal.
 instance Show BaseIndex where
+---
+-- Internal.
    showsPrec d c r = cshow c ++ r where
         cshow (IndexNo i) = show i
         cshow (IndexPos (x,y)) = show x ++ "." ++ show y
         cshow (IndexText s) = s
 
+---
+-- Internal.
 instance Read BaseIndex where
+---
+-- Internal.
     readsPrec p str = [(cread str,[])] where
         cread (s @ (x:l)) | isDigit x =
                 case map read (split (== '.') s) of

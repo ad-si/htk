@@ -170,17 +170,33 @@ instance HasEnable Editor
 -- You can adjust the line spacing of an editor widget.
 instance HasLineSpacing Editor
 
+---
+-- An editor widget has adjustable tab stops.
 instance HasTabulators Editor
 
+---
+-- An editor is a scrollable widget.
 instance HasScroller Editor
 
+---
+-- You can synchronize on an editor widget.
 instance Synchronized Editor where
+---
+-- Synchronizes on an editor widget.
   synchronize = synchronize . toGUIObject
 
+---
+-- An editor widget has a value (its textual content).
 instance GUIValue a => HasValue Editor a where
+---
+-- Sets the editor's value.
   value val w = setTextLines w val >> return w
+---
+-- Gets the editor's value.
   getValue w = getTextLines w
 
+---
+-- An editor widget can have a tooltip.
 instance HasTooltip Editor
 
 
@@ -210,12 +226,22 @@ setTextLines tp lns =
 -- commands for reading and writing texts
 -- -----------------------------------------------------------------------
 
+---
+-- Deletes the character at the specified index.
+-- @param ed      - the concerned editor widget.
+-- @param i       - the concerned index.
+-- @return result - None.
 deleteText :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
-deleteText tp i =
+deleteText ed i =
   do
-    pos <- getBaseIndex tp i
-    execMethod tp (\nm -> tkDeleteText nm pos Nothing)
+    pos <- getBaseIndex ed i
+    execMethod ed (\nm -> tkDeleteText nm pos Nothing)
 
+---
+-- Deletes the text in the specified range.
+-- @param start   - the start index.
+-- @param end     - the end index.
+-- @return result - None.
 deleteTextRange :: (HasIndex Editor i1 BaseIndex, 
                     HasIndex Editor i2 BaseIndex) =>
                    Editor -> i1 -> i2 -> IO ()
@@ -225,26 +251,47 @@ deleteTextRange tp start end =
     end' <- getBaseIndex tp end
     execMethod tp (\nm -> tkDeleteText nm start' (Just end'))
 
+---
+-- Gets the text in the specified range.
+-- @param ed      - the concerned editor widget.
+-- @param start   - the start index.
+-- @param end     - the end index.
+-- @return result - The editor's text in the specified range.
 getTextRange :: (HasIndex Editor i1 BaseIndex, 
                  HasIndex Editor i2 BaseIndex) =>
                 Editor -> i1 -> i2 -> IO String
-getTextRange tp start end = 
+getTextRange ed start end =
   do
-    start' <- getBaseIndex tp start
-    end' <- getBaseIndex tp end
-    evalMethod tp (\nm -> tkGetText nm start' (Just end'))
+    start' <- getBaseIndex ed start
+    end' <- getBaseIndex ed end
+    evalMethod ed (\nm -> tkGetText nm start' (Just end'))
 
+---
+-- Inserts the given text at the specified index.
+-- @param ed      - the concerned editor widget.
+-- @param i       - the index to insert the text.
+-- @param txt     - the text to insert.
+-- @return result - None.
 insertText :: (HasIndex Editor i BaseIndex,GUIValue a) =>
               Editor -> i -> a -> IO ()
-insertText tp i txt =
+insertText ed i txt =
   do
-    pos <- getBaseIndex tp i
-    execMethod tp (\nm -> tkInsertText nm pos val)
+    pos <- getBaseIndex ed i
+    execMethod ed (\nm -> tkInsertText nm pos val)
   where val = toGUIValue txt
 
+---
+-- Inserts a newline character at the end of the editor widget.
+-- @param ed      - the concerned editor widget.
+-- @return result - None.
 insertNewline   :: Editor -> IO ()
-insertNewline tp = execMethod tp (\nm -> tkInsertNewLine nm)
+insertNewline ed = execMethod ed (\nm -> tkInsertNewLine nm)
 
+---
+-- Gets a text line from an editor widget.
+-- @param ed      - the concerned editor widget.
+-- @param i       - an index in the requested text line.
+-- @return result - The requested line of text.
 getTextLine     :: HasIndex Editor i BaseIndex =>
                    Editor -> i -> IO String
 getTextLine tp i = 
@@ -254,11 +301,16 @@ getTextLine tp i =
   where start l = (l,0::Distance)
         end l = ((l+1,0::Distance ),BackwardChars 1)
 
+---
+-- Appends text at the end of the editor widget.
+-- @param ed      - the concerned editor widget.
+-- @param str     - the text to append.
+-- @return result - None.
 appendText :: Editor -> String -> IO ()
-appendText tp str =
+appendText ed str =
   do
-    try (insertText tp EndOfText str)
-    moveto Vertical tp 1.0
+    try (insertText ed EndOfText str)
+    moveto Vertical ed 1.0
     done
 
 
@@ -268,19 +320,25 @@ appendText tp str =
 
 ---
 -- Writes the contained text to a file.
+-- @param ed      - the concerned editor widget.
+-- @param fnm     - the name of the file.
+-- @return result - None.
 writeTextToFile :: Editor -> FilePath -> IO ()
-writeTextToFile tp fnm =
+writeTextToFile ed fnm =
   do
-    str <- getValue tp
+    str <- getValue ed
     writeFile fnm str
 
 ---
 -- Reads a text from a file and inserts it into the editor pane.
+-- @param ed      - the concerned editor widget.
+-- @param fnm     - the name of the file.
+-- @return result - None.
 readTextFromFile :: Editor -> FilePath -> IO ()
-readTextFromFile tp fnm =
+readTextFromFile ed fnm =
   do
     str <- readFile fnm
-    configure tp [value str]
+    configure ed [value str]
     done
 
 
@@ -288,7 +346,12 @@ readTextFromFile tp fnm =
 -- BBox
 -- -----------------------------------------------------------------------
 
+---
+-- You can find out the bounding box of characters inside an editor
+-- widget.
 instance (HasIndex Editor i BaseIndex) => HasBBox Editor i  where
+---
+-- Returns the bounding box of the character at the specified index.
   bbox w i =
     do
       binx <- getBaseIndex w i
@@ -302,35 +365,65 @@ instance (HasIndex Editor i BaseIndex) => HasBBox Editor i  where
 -- HasIndex
 -- -----------------------------------------------------------------------
 
+---
+-- A base index is a valid index for an editor widget.
 instance HasIndex Editor BaseIndex BaseIndex where
+---
+-- Internal.
   getBaseIndex w i = return i
 
+---
+-- The <code>EndOfText</code> index is a valid index for an editor widget.
 instance HasIndex Editor EndOfText BaseIndex where
+---
+-- Internal.
   getBaseIndex w _ = return (IndexText "end")
 
+---
+-- A position in pixels is a valid index for an editor widget.
 instance HasIndex Editor Pixels BaseIndex where
+---
+-- Internal.
   getBaseIndex w p = return (IndexText (show p))
 
+---
+-- A pair of line and character is a valid index for an editor widget.
 instance HasIndex Editor (Distance, Distance) BaseIndex where
+---
+-- Internal.
   getBaseIndex w pos = return (IndexPos pos)
 
+---
+-- A pair of a valid index and a list of index modifiers is a valid index
+-- for an editor widget.
 instance HasIndex Editor i BaseIndex => 
          HasIndex Editor (i,[IndexModifier]) BaseIndex where
+---
+-- Internal.
   getBaseIndex tp (i,ml) =
     do
       bi <- getBaseIndex tp i
       return
         (IndexText (show (bi::BaseIndex) ++ show (IndexModifiers ml)))
 
+---
+-- A pair of a valid index and an index modifier is a valid index for an
+-- editor widget.
 instance HasIndex Editor i BaseIndex => 
          HasIndex Editor (i,IndexModifier) BaseIndex where
+---
+-- Internal.
   getBaseIndex tp (i,m) =
     do
       bi <- getBaseIndex tp i
       return (IndexText (show (bi::BaseIndex) ++ show m))
 
+---
+-- Internal.
 instance HasIndex Editor i BaseIndex =>
          HasIndex Editor i (Distance,Distance) where
+---
+-- Internal.
   getBaseIndex = getIndexPosition 
 
 
@@ -338,8 +431,12 @@ instance HasIndex Editor i BaseIndex =>
 -- Index modifiers
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>IndexModifiers</code> datatype.
 newtype IndexModifiers = IndexModifiers [IndexModifier]
 
+---
+-- The <code>IndexModifier</code> datatype.
 data IndexModifier =
           ForwardChars Int
         | BackwardChars Int
@@ -350,7 +447,11 @@ data IndexModifier =
         | WordStart 
         | WordEnd
 
+---
+-- Internal.
 instance Show IndexModifier where
+---
+-- Internal.
    showsPrec d (ForwardChars counts) r = "+" ++ show counts ++ "chars " ++ r
    showsPrec d (BackwardChars counts) r = "-" ++ show counts ++ "chars " ++ r
    showsPrec d (ForwardLines counts) r = "+" ++ show counts ++ "lines " ++ r
@@ -360,7 +461,11 @@ instance Show IndexModifier where
    showsPrec d WordStart r = " wordstart " ++ r
    showsPrec d WordEnd r = " wordend " ++ r
 
+---
+-- Internal.
 instance Show IndexModifiers where
+---
+-- Internal.
    showsPrec d (IndexModifiers []) r = r
    showsPrec d (IndexModifiers (m:ml)) r = show m ++ " " ++ show (IndexModifiers ml) ++ r
 
@@ -369,23 +474,37 @@ instance Show IndexModifiers where
 -- Index operations
 -- -----------------------------------------------------------------------
 
+---
+-- Returns the position on the text widget for a given index.
+-- @param ed      - the concerned editor widget.
+-- @param i       - the concerned index.
+-- @return result - The requested position.
 getIndexPosition :: HasIndex Editor i BaseIndex 
                  => Editor -> i -> IO Position
-getIndexPosition tp i = do {
-        inx <- getBaseIndex tp i;
-        pos <- evalMethod tp (\nm -> tkPosition nm inx);
+getIndexPosition ed i = do {
+        inx <- getBaseIndex ed i;
+        pos <- evalMethod ed (\nm -> tkPosition nm inx);
         case pos of
                 (IndexPos pos) -> return pos
 }
 
+---
+-- Compares two indizes.
+-- @param ed      - the concerned editor widget.
+-- @param op      - an operation given as a string ("==", "<=", ">=", "<",
+--                - ">", "!=").
+-- @param i1      - the first index.
+-- @param i2      - the second index.
+-- @return result - <code>True</code> or <code>False</code>, depending on 
+--                - the given operation.
 compareIndices :: (
         HasIndex Editor i1 BaseIndex,
         HasIndex Editor i2 BaseIndex
         ) => Editor -> String -> i1 -> i2 -> IO Bool
-compareIndices tp op i1 i2 = do
-        bi1 <- getBaseIndex tp i1
-        bi2 <- getBaseIndex tp i2
-        evalMethod tp (\nm -> tkCompare nm op bi1 bi2)
+compareIndices ed op i1 i2 = do
+        bi1 <- getBaseIndex ed i1
+        bi2 <- getBaseIndex ed i2
+        evalMethod ed (\nm -> tkCompare nm op bi1 bi2)
  where  tkCompare :: ObjectName -> String -> BaseIndex -> BaseIndex -> TclScript
         tkCompare nm op i1 i2 = 
                 [show nm ++ " compare " ++ show i1 ++ op ++ " " ++ " " ++ show i2] 
@@ -395,7 +514,11 @@ compareIndices tp op i1 i2 = do
 -- selection
 -- -----------------------------------------------------------------------
 
+---
+-- You can select text inside an editor widget.
 instance HasSelection Editor where
+---
+-- Clears the editors selection.
         clearSelection tp = synchronize tp (do {
                 start <- getSelectionStart tp;
                 end <- getSelectionEnd tp;
@@ -408,13 +531,19 @@ instance HasSelection Editor where
                         _ -> done
                 })
 
+---
+-- An editor widget's characters are selectable.
 instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i 
   where
+---
+-- Selects the character at the specified index.
         selection inx tp = synchronize tp (do {
                 binx <- getBaseIndex tp inx;
                 execMethod tp (\nm -> tkSelection nm binx);
                 return tp
                 })
+---
+-- Queries if the character at the specified index is selected.
         isSelected tp inx = synchronize tp (do {
                 binx <- getBaseIndex tp inx;
                 start <- getSelectionStart tp;
@@ -424,23 +553,33 @@ instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i
                         _                          -> return False
                 })
 
+---
+-- You can select a text range inside an editor widget.
 instance HasSelectionBaseIndexRange Editor (Distance,Distance) where
+---
+-- Gets the start index of the editor's selection.
         getSelectionStart tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelFirst nm))
                 case mstart of
                         (Left e)  -> return Nothing -- actually a tk error
                         (Right v) -> (return . Just) v
+---
+-- Gets the end index of the editor's selection.
         getSelectionEnd tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelEnd nm))
                 case mstart of
                         (Left e)  -> return Nothing -- actually a tk error
                         (Right v) -> (return . Just) v
 
+---
+-- You can select a text range inside an editor widget.
 instance (
         HasIndex Editor i1 BaseIndex,
         HasIndex Editor i2 BaseIndex
         ) => HasSelectionIndexRange Editor i1 i2
   where
+---
+-- Sets the selection range inside the editor widget.
         selectionRange start end tp = synchronize tp (do {
                 start' <- getBaseIndex tp start;
                 end' <- getBaseIndex tp end;
@@ -448,9 +587,15 @@ instance (
                 return tp
                 })
 
+---
+-- You can select a text range inside an editor widget.
 instance HasSelectionBaseIndex Editor ((Distance,Distance),(Distance,Distance)) where
+---
+-- Gets the selection range inside the editor widget.
         getSelection = getSelectionRange
 
+---
+-- An editor widget has an X selection.
 instance HasXSelection Editor
 
 
@@ -458,18 +603,28 @@ instance HasXSelection Editor
 -- Insertion Cursor
 -- -----------------------------------------------------------------------
 
+---
+-- An editor widget has an insertion cursor.
 instance HasInsertionCursor Editor
 
+---
+-- The insertion cursor of an editor widget can be set by a base index.
 instance ( HasIndex Editor i BaseIndex
         ) => HasInsertionCursorIndexSet Editor i 
   where
+---
+-- Sets the position of the insertion cursor.
         insertionCursor inx tp =  synchronize tp (do {
                 binx <- getBaseIndex tp inx;
                 execMethod tp (\nm -> tkSetInsertMark nm binx);
                 return tp
                 })
 
+---
+-- You can get the position of the insertion cursor of an editor widget.
 instance HasInsertionCursorIndexGet Editor (Distance,Distance) where
+---
+-- Gets the position of the insertion cursor.
         getInsertionCursor tp =  evalMethod tp (\nm -> tkGetInsertMark nm)
 
 
@@ -477,11 +632,17 @@ instance HasInsertionCursorIndexGet Editor (Distance,Distance) where
 -- View
 -- -----------------------------------------------------------------------
 
+---
+-- Adjusts the view so that the character at the specified position is
+-- visible.
+-- @param ed      - the concerned editor widget.
+-- @param i       - the index to adjust the view to.
+-- @return result - None.
 adjustViewTo :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
-adjustViewTo  tp i = 
-        synchronize tp (do {
-                inx <- getBaseIndex tp i;
-                execMethod tp (\nm -> tkSee nm inx)
+adjustViewTo ed i = 
+        synchronize ed (do {
+                inx <- getBaseIndex ed i;
+                execMethod ed (\nm -> tkSee nm inx)
                 })
 
 
@@ -489,17 +650,27 @@ adjustViewTo  tp i =
 -- Scan
 -- -----------------------------------------------------------------------
 
+---
+-- Anchor a scrolling operation.
+-- @param ed      - the concerned editor widget.
+-- @param i       - the concerned index.
+-- @return result - None.
 scanMark :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
-scanMark tp i = do {
-        pos <- getIndexPosition tp i;
-        execMethod tp (\nm -> tkScanMark nm pos)
+scanMark ed i = do {
+        pos <- getIndexPosition ed i;
+        execMethod ed (\nm -> tkScanMark nm pos)
 }
 
+---
+-- Scroll based on a new position.
+-- @param ed      - the concerned editor widget.
+-- @param i       - the concerned index.
+-- @return result - None.
 scanDragTo :: HasIndex Editor i BaseIndex => Editor -> i -> IO ()
-scanDragTo tp i = 
-        synchronize tp (do {
-                pos <- getIndexPosition tp i;
-                execMethod tp (\nm -> tkScanDragTo nm pos)
+scanDragTo ed i = 
+        synchronize ed (do {
+                pos <- getIndexPosition ed i;
+                execMethod ed (\nm -> tkScanDragTo nm pos)
                 })
 
 
@@ -507,9 +678,13 @@ scanDragTo tp i =
 -- Wrap Mode
 -- -----------------------------------------------------------------------
 
+---
+-- Sets the editor's wrap mode.
 wrap :: WrapMode -> Config Editor
 wrap d tp = cset tp "wrap" d
 
+---
+-- Gets the editor's wrap mode.
 getWrapMode :: Editor -> IO WrapMode
 getWrapMode tp = cget tp "wrap"
 
@@ -518,12 +693,22 @@ getWrapMode tp = cget tp "wrap"
 --  WrapMode
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>WrapMode</code> datatype.
 data WrapMode = NoWrap | CharWrap | WordWrap deriving (Eq,Ord,Enum)
 
+---
+-- Internal.
 instance GUIValue WrapMode where
+---
+-- Internal.
         cdefault = NoWrap
 
+---
+-- Internal.
 instance Read WrapMode where
+---
+-- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'n':'o':'n':'e':xs -> [(NoWrap,xs)]
@@ -531,7 +716,11 @@ instance Read WrapMode where
         'w':'o':'r':'d':xs -> [(WordWrap,xs)]
         _ -> []
 
+---
+-- Internal.
 instance Show WrapMode where
+---
+-- Internal.
    showsPrec d p r = 
       (case p of 
          NoWrap -> "none"  
@@ -544,8 +733,15 @@ instance Show WrapMode where
 -- tabulators
 -- -----------------------------------------------------------------------
 
+---
+-- Widgets with adjustable tab stops instantiate the
+-- <code>class HasTabulators</code>.
 class GUIObject w => HasTabulators w where
+---
+-- Sets the tab stops.
         tabs            :: String -> Config w
+---
+-- Gets the tab stops.
         getTabs         :: w -> IO String
         tabs s w        = cset w "tabs" s
         getTabs w       = cget w "tabs"
@@ -556,12 +752,27 @@ class GUIObject w => HasTabulators w where
 -- Line Spacings
 -- -----------------------------------------------------------------------
 
+---
+-- Widgets with an adjustable line spacing instantiate the
+-- <code>class HasLineSpacing</code>.
 class GUIObject w => HasLineSpacing w where
+---
+-- Sets the space above an unwrapped line.
         spaceAbove      :: Distance -> Config w
+---
+-- Gets the space above an unwrapped line.
         getSpaceAbove   :: w -> IO Distance
+---
+-- Sets the space above a wrapped line.
         spaceWrap       :: Distance -> Config w
+---
+-- Gets the space above a wrapped line.
         getSpaceWrap    :: w -> IO Distance
+---
+-- Sets the space below an unwrapped line.
         spaceBelow      :: Distance -> Config w
+---
+-- Sets the space below an unwrapped line.
         getSpaceBelow   :: w -> IO Distance
         getSpaceAbove w = cget w "spacing1"
         spaceAbove d w  = cset w "spacing1" d
@@ -575,31 +786,49 @@ class GUIObject w => HasLineSpacing w where
 -- Search Switch
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>SearchDirection</code> datatype.
 data SearchDirection = Forward | Backward deriving (Eq,Ord,Enum)
  
+---
+-- Internal.
 instance Show SearchDirection where 
+---
+-- Internal.
   showsPrec d p r = 
       (case p of 
          Forward -> " -forward"  
          Backward -> " -backward"  
         ) ++ r
 
+---
+-- The <code>SearchMode</code> datatype.
 data SearchMode = Exact | Nocase deriving (Eq,Ord,Enum)
 
+---
+-- Internal.
 instance Show SearchMode where 
+---
+-- Internal.
   showsPrec d p r = 
       (case p of 
          Exact -> " -exact"  
          Nocase -> " -nocase"  
         ) ++ r
 
+---
+-- The <code>SearchSwitch</code> datatype.
 data SearchSwitch = SearchSwitch {
                 searchdirection :: SearchDirection,
                 searchmode :: SearchMode,
                 rexexp :: Bool
                 }
 
+---
+-- Internal.
 instance Show SearchSwitch where
+---
+-- Internal.
   showsPrec _ (SearchSwitch d m False) r = 
         show d ++ show m ++ r
   showsPrec _ (SearchSwitch d m True) r = 
@@ -620,11 +849,18 @@ textMethods = defMethods {
 -- Search
 -- -----------------------------------------------------------------------
 
+---
+-- Searches for text inside an editor widget.
+-- @param ed      - the concerned editor widget.
+-- @param switch  - the search switch.
+-- @param ptn     - the searched text or regular expression.
+-- @param inx     - the start index.
+-- @return result - The index of the first match (if successful).
 search :: HasIndex Editor i BaseIndex => 
           Editor -> SearchSwitch -> String -> i -> IO (Maybe BaseIndex) 
-search tp switch ptn inx = do {
-        binx <- getBaseIndex tp inx;
-        (RawData mb) <- evalMethod tp (\nm -> tkSearch nm switch ptn binx);
+search ed switch ptn inx = do {
+        binx <- getBaseIndex ed inx;
+        (RawData mb) <- evalMethod ed (\nm -> tkSearch nm switch ptn binx);
         case dropWhile isSpace mb of
                 ""  -> return Nothing
                 s   -> creadTk s >>= return . Just

@@ -9,6 +9,8 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- A simple drag and drop field.
 module Notepad (
 
   Notepad,
@@ -17,7 +19,6 @@ module Notepad (
   newNotepad,
   createNotepadItem,
   getFreeItemPosition,
-  scrollTo,
   getItemValue,
 
   ScrollType(..),
@@ -73,6 +74,9 @@ char_px = 7
 -------------------
 
 -- type
+
+---
+-- The <code>NotepadItem</code> datatype.
 data NotepadItem a =
   NotepadItem { it_img :: ImageItem,                              -- image
                 it_img_size :: Size,                      -- size of image
@@ -140,7 +144,16 @@ leftItem notepad item =
        putStrLn "ok"
        done)
 
+
 -- constructor
+
+---
+-- Creates a new notepad item and returns a handler.
+-- @param val     - the notepad item's value.
+-- @param notepad - the concerned notepad.
+-- @param cnf     - the list of configuration options for this notepad
+--                - item.
+-- @return result - A notepad item.
 createNotepadItem :: CItem c => c -> Notepad c ->
                                 [Config (NotepadItem c)] ->
                                 IO (NotepadItem c)
@@ -168,6 +181,10 @@ createNotepadItem val notepad cnf =
     addItemToState notepad item
     return item
 
+---
+-- Returns a free item position on the notepad.
+-- @param notepad - the concerned notepad.
+-- @return result - the free position on the notepad.
 getFreeItemPosition :: CItem c => Notepad c -> IO Position
 getFreeItemPosition notepad =
    let num_cols = 4
@@ -198,32 +215,58 @@ getFreeItemPosition notepad =
                  else return pos)
         getPos (10 + dx, 10 + dy_n)
 
+---
+-- Gets the value from a notepad item.
 getItemValue :: NotepadItem a -> IO a
 getItemValue item = getRef (it_val item)
 
 
 -- instances --
 
+---
+-- Internal.
 instance Eq (NotepadItem a) where
+---
+-- Internal.
   item1 == item2 = it_img item1 == it_img item2
 
+---
+-- Internal.
 instance GUIObject (NotepadItem a) where
+---
+-- Internal.
   toGUIObject item = toGUIObject (it_img item)
+---
+-- Internal.
   cname _ = "NotepadItem"
 
+---
+-- You can synchronize on a notepad item.
 instance Synchronized (NotepadItem a) where
+---
+-- Synchronizes on a notepad item.
   synchronize item = synchronize (toGUIObject (it_img item))
 
+---
+-- A notepad item has a position on the associated notepad.
 instance HasPosition (NotepadItem a) where
+---
+-- Sets the notepad item's position.
   position p@(x, y) item =
     itemPositionD2 p (it_img item) >>
     let (Distance iwidth, Distance iheight) = it_img_size item
     in itemPositionD2 (x, y + Distance (div iheight 2 + 7))
                       (it_txt item) >>
        return item
+---
+-- Gets the notepad item's position.
   getPosition item = getItemPositionD2 (it_img item)
 
+---
+-- A notepad item can be destroyed.
 instance Destroyable (NotepadItem a) where
+---
+-- Destroys a notepad item.
   destroy item =
     do
       destroy (it_img item)
@@ -233,6 +276,8 @@ instance Destroyable (NotepadItem a) where
         Just (rect1, rect2) -> destroy rect1 >> destroy rect2
         _ -> done
 
+---
+-- (Re-)sets the name of a notepad item.
 setName :: CItem c => NotepadItem c -> Name -> IO ()
 setName item nm =
   do
@@ -246,6 +291,11 @@ setName item nm =
 -- notepad events
 --------------------------------------------------------------------------
 
+---
+-- Binds a listener for notepad events to the notepad and returns
+-- a corresponding event and an unbind action.
+-- @param np      - the concerned notepad.
+-- @return result - A pair of (event, unbind action).
 bindNotepadEv :: Notepad a -> IO (Event (NotepadEvent a), IO ())
 bindNotepadEv np =
   do
@@ -253,14 +303,16 @@ bindNotepadEv np =
     setRef (event_queue np) (Just ch)
     return (receive ch, setRef (event_queue np) Nothing)
 
+---
+-- The <code>NotepadEvent</code> datatype.
 data NotepadEvent a =
-    Dropped (NotepadItem a, [NotepadItem a])
-  | Selected (NotepadItem a)
-  | Deselected (NotepadItem a)
-  | Doubleclick (NotepadItem a)
-  | Rightclick [NotepadItem a]
-  | ReleaseSelection
-  | ReleaseMovement EventInfo           -- needed for use with GenGUI
+    Dropped (NotepadItem a, [NotepadItem a])     --' Drop event.
+  | Selected (NotepadItem a)                     --' Selection event.
+  | Deselected (NotepadItem a)                   --' Deselection event.
+  | Doubleclick (NotepadItem a)                  --' Doubleclick event.
+  | Rightclick [NotepadItem a]                   --' Rightclick event.
+  | ReleaseSelection                             --' Buttonrelease after a selection.
+  | ReleaseMovement EventInfo                    --' Buttonrelease after a movement.
 
 sendEv :: Notepad a -> NotepadEvent a -> IO ()
 sendEv np ev =
@@ -275,6 +327,8 @@ sendEv np ev =
 -- Notepad type
 --------------------------------------------------------------------------
 
+---
+-- The <code>Notepad</code> datatype.
 data Notepad a =
   Notepad { -- main canvas widget
             canvas :: Canvas,
@@ -309,6 +363,8 @@ data Notepad a =
             -- clean up when destroyed
             clean_up :: [IO ()] }
 
+---
+-- The <code>ScrollType</code> datatype.
 data ScrollType = Scrolled | NotScrolled deriving Eq
 
 data UndoMotion = ToPerform (IO ()) | Performed
@@ -361,6 +417,11 @@ deHighlight item =
         destroy rect1 >> destroy rect2 >> setRef (it_bg item) Nothing
       _ -> done
 
+---
+-- Selects a specific notepad item.
+-- @param np      - the concerned notepad.
+-- @param item    - the concerned notepad item.
+-- @return result - None.
 selectItem :: Notepad a -> NotepadItem a -> IO ()
 selectItem np item =
   do
@@ -370,6 +431,11 @@ selectItem np item =
     setRef (selected_items np) (item : selecteditems)
     sendEv np (Selected item)
 
+---
+-- Adds an item to the notepad's selection.
+-- @param np      - the concerned notepad.
+-- @param item    - the concerned notepad item.
+-- @return result - None.
 selectAnotherItem :: Notepad a -> NotepadItem a -> IO ()
 selectAnotherItem np item =
   do
@@ -378,6 +444,11 @@ selectAnotherItem np item =
     setRef (selected_items np) (item : selecteditems)
     sendEv np (Selected item)
 
+---
+-- Deselects a notepad item.
+-- @param np      - the concerned notepad.
+-- @param item    - the concerned notepad item.
+-- @return result - None.
 deselectItem :: Notepad a -> NotepadItem a -> IO ()
 deselectItem np item =
   do
@@ -386,6 +457,10 @@ deselectItem np item =
     setRef (selected_items np) (filter ((/=) item) selecteditems)
     sendEv np (Deselected item)
 
+---
+-- Selects all items inside the notepad.
+-- @param np      - the concerned notepad.
+-- @return result - None.
 selectAll :: Notepad a -> IO ()
 selectAll np =
   do
@@ -397,6 +472,10 @@ selectAll np =
          notepaditems
     setRef (selected_items np) notepaditems
 
+---
+-- Deselects all items inside the notepad.
+-- @param np      - the concerned notepad.
+-- @return result - None.
 deselectAll :: Notepad a -> IO ()
 deselectAll np =
   do
@@ -409,6 +488,11 @@ deselectAll np =
          notepaditems
     setRef (selected_items np) []
 
+---
+-- Deletes an item from a notepad.
+-- @param np      - the concerned notepad.
+-- @param item    - the concerned notepad item.
+-- @return result - None.
 deleteItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 deleteItem np item =
   synchronize np
@@ -423,6 +507,10 @@ deleteItem np item =
        setRef (selected_items np) (filter ((/=) item) selecteditems)
        destroy item)
 
+---
+-- Deletes all items from a notepad.
+-- @param np      - the concerned notepad.
+-- @return result - None.
 clearNotepad :: Notepad a -> IO ()
 clearNotepad np =
   do
@@ -431,9 +519,8 @@ clearNotepad np =
     setRef (items np) []
     setRef (selected_items np) []
 
-scrollTo :: CItem c => Notepad c -> NotepadItem c -> IO ()
-scrollTo notepad item = done
-
+---
+-- Internal (for use with GenGUI).
 undoLastMotion :: Notepad a -> IO ()
 undoLastMotion np =
   synchronize np (do
@@ -444,14 +531,26 @@ undoLastMotion np =
                                         act'
                       _ -> done)
 
+---
+-- <code>True</code> if the given notepad item is selected.
+-- @param np      - the concerned notepad.
+-- @param item    - the concerned notepad item.
+-- @return result - <code>True</code> if the given notepad item is
+--                - selected, otherwise <code>False</code>.
 isNotepadItemSelected :: Notepad a -> NotepadItem a -> IO Bool
 isNotepadItemSelected np item =
   do
     selecteditems <- getRef (selected_items np)
     return (any ((==) item) selecteditems)
 
+---
+-- Selects all items within the specified region.
+-- @param p1      - the upper left coordinate of the region.
+-- @param p2      - the lower right coordinate of the region.
+-- @param np      - the concerned notepad.
+-- @return result - None.
 selectItemsWithin :: Position -> Position -> Notepad a -> IO ()
-selectItemsWithin (x0, y0) (x1, y1) np =
+selectItemsWithin p1@(x0, y0) p2@(x1, y1) np =
   do
     notepaditems <- getRef (items np)
     let within :: Position -> Bool
@@ -468,9 +567,17 @@ selectItemsWithin (x0, y0) (x1, y1) np =
          notepaditems
     done
 
+---
+-- Gets the items from a notepad.
+-- @param np      - the concerned notepad.
+-- @return result - A list of the contained notepad items.
 getItems :: Notepad a -> IO [NotepadItem a]
 getItems np = getRef (items np)
 
+---
+-- Gets the selected items from a notepad.
+-- @param np      - the concerned notepad.
+-- @return result - A list of the selected notepad items.
 getSelectedItems :: Notepad a -> IO [NotepadItem a]
 getSelectedItems np = getRef (selected_items np)
 
@@ -479,6 +586,16 @@ getSelectedItems np = getRef (selected_items np)
 -- notepad construction
 --------------------------------------------------------------------------
 
+---
+-- Constructs a new notepad and returns a handler.
+-- @param par        - the parent widget (which has to be a container
+--                   - widget).
+-- @param scrolltype - the scrolltype for this notepad.
+-- @param imgsize    - the size of the notepad items images for this
+--                   - notepad.
+-- @param mstate     - an optional previous notepad state to recover.
+-- @param cnf        - the list of configuration options for this notepad.
+-- @return result - A notepad.
 newNotepad :: (CItem c, Container par) =>
               par -> ScrollType -> Size -> Maybe (NotepadState c) ->
               [Config (Notepad c)] -> IO (Notepad c)
@@ -866,36 +983,71 @@ newNotepad par scrolltype imgsize mstate cnf =
 
 -- instances --
 
+---
+-- Internal.
 instance GUIObject (Notepad a) where
+---
+-- Internal.
   toGUIObject np =
     case (scrollbox np) of Nothing -> toGUIObject (canvas np)
                            Just box -> toGUIObject box
+---
+-- Internal.
   cname _ = "Notepad"
 
+---
+-- A notepad can be destroyed.
 instance Destroyable (Notepad a) where
+---
+-- Destroys a notepad.
   destroy = destroy . toGUIObject          -- TD : clean up !!!
 
+---
+-- A notepad has standard widget properties
+-- (concerning focus, cursor).
 instance Widget (Notepad a)
 
+---
+-- You can synchronize on a notepad object.
 instance Synchronized (Notepad a) where
+---
+-- Synchronizes on a notepad object.
   synchronize w = synchronize (toGUIObject w)
 
+---
+-- A notepad has a configureable border.
 instance HasBorder (Notepad a)
 
+---
+-- A notepad has a configureable background colour.
 instance HasColour (Notepad a) where
+---
+-- Internal.
   legalColourID np = hasBackGroundColour (canvas np)
+---
+-- Internal.
   setColour notepad cid col =
     setColour (canvas notepad) cid col >> return notepad
+---
+-- Internal.
   getColour np cid = getColour (canvas np) cid
 
+---
+-- A notepad has a configureable size.
 instance HasSize (Notepad a) where
+---
+-- Sets the notepad's width.
   width s np =
     do
       (_, (_, sizey)) <- getScrollRegion (canvas np)
       (canvas np) # scrollRegion ((0, 0), (s, sizey))
       if isJust (scrollbox np) then done else canvas np # width s >> done
       return np
+---
+-- Gets the notepad's width.
   getWidth np = getWidth (canvas np)
+---
+-- Sets the notepad's height.
   height s np =
     do
       (_, (sizex, _)) <- getScrollRegion (canvas np)
@@ -903,6 +1055,8 @@ instance HasSize (Notepad a) where
       (if (isJust (scrollbox np)) then done
        else canvas np # height s >> done)
       return np
+---
+-- Gets the notepad's height.
   getHeight np = getHeight (canvas np)
 
 
@@ -910,6 +1064,8 @@ instance HasSize (Notepad a) where
 -- state import / export
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>NotepadExportItem</code> datatype.
 data CItem c => NotepadExportItem c =
   NotepadExportItem { val :: c,
                       pos :: Position,
@@ -917,6 +1073,10 @@ data CItem c => NotepadExportItem c =
 
 type NotepadState c = [NotepadExportItem c]
 
+---
+-- Exports a notepad's state.
+-- @param np      - the concerned notepad.
+-- @return result - The notepad's state.
 exportNotepadState :: CItem c => Notepad c -> IO (NotepadState c)
 exportNotepadState np =
   synchronize np (do
@@ -935,6 +1095,10 @@ exportNotepadState np =
                                         selected = is_selected } : rest)
         exportNotepadState' _ _ = return []
 
+---
+-- Imports a notepad's state.
+-- @param np      - the concerned notepad.
+-- @return result - None.
 importNotepadState :: CItem c => Notepad c -> NotepadState c -> IO ()
 importNotepadState np st =
   synchronize np (do

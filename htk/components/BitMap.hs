@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+
+---
+-- This module provides access to bitmap resources.
 module BitMap (
 
   BitMap,
@@ -49,20 +52,37 @@ import Packer
 -- BitMap designators
 -- -----------------------------------------------------------------------
 
-data BitMapHandle = 
+---
+-- The <code>BitMapHandle</code> datatype - a handle for a bitmap
+-- resource.
+data BitMapHandle =
           Predefined String 
         | BitMapHandle BitMap 
         | BitMapFile String
 
+---
+-- Internal.
 class BitMapDesignator d where
+---
+-- Internal.
   toBitMap :: d -> BitMapHandle
 
+---
+-- Internal.
 instance BitMapDesignator BitMapHandle where
+---
+-- Internal.
   toBitMap = id
 
+---
+-- Internal.
 instance BitMapDesignator BitMap where
+---
+-- Internal.
   toBitMap h = BitMapHandle h
 
+---
+-- A string is a handle for a bitmap file.
 instance BitMapDesignator [Char] where
   toBitMap h = BitMapFile h
 
@@ -84,7 +104,8 @@ class GUIObject w => HasBitMap w where
 -- type BitMap 
 -- -----------------------------------------------------------------------
 
-
+---
+-- The <code>BitMap</code> datatype.
 newtype BitMap = BitMapWDG GUIOBJECT deriving Eq
 
 
@@ -92,6 +113,15 @@ newtype BitMap = BitMapWDG GUIOBJECT deriving Eq
 -- commands
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new bitmap object and returns a handler.<br>
+-- The bitmap object can be packed like a widget, then it is implicitely
+-- displayed inside a label widget.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param cnf     - the list of configuration options for this bitmap
+--                  object.
+-- @return result - A bitmap object.
 newBitMap :: Container par => par -> [Config BitMap] -> IO BitMap
 newBitMap par confs =
   do
@@ -103,15 +133,44 @@ newBitMap par confs =
 -- predefined Tk BitMaps
 -- -----------------------------------------------------------------------
 
-errmap, gray50, gray25, hourglass, info, questhead, question, warning :: BitMapHandle
-
+---
+-- A handle for the predefined "error" bitmap.
+errmap :: BitMapHandle
 errmap = Predefined "error" 
+
+---
+-- A handle for the predefined "gray50" bitmap.
+gray50 :: BitMapHandle
 gray50 = Predefined "gray50" 
+
+---
+-- A handle for the predefined "gray25" bitmap.
+gray25 :: BitMapHandle
 gray25 = Predefined "gray25" 
+
+---
+-- A handle for the predefined "hourglass" bitmap.
+hourglass :: BitMapHandle
 hourglass = Predefined "hourglass"
+
+---
+-- A handle for the predefined "info" bitmap.
+info :: BitMapHandle
 info = Predefined "info" 
+
+---
+-- A handle for the predefined "questhead" bitmap.
+questhead :: BitMapHandle
 questhead = Predefined "questhead"
+
+---
+-- A handle for the predefined "question" bitmap.
+question :: BitMapHandle
 question = Predefined "question" 
+
+---
+-- A handle for the predefined "warning" bitmap.
+warning :: BitMapHandle
 warning = Predefined "warning"
 
 
@@ -119,30 +178,63 @@ warning = Predefined "warning"
 -- configuration options
 -- -----------------------------------------------------------------------
 
-instance GUIObject BitMap where 
-        toGUIObject (BitMapWDG w) = w
-        cname _ = "BitMap"
+---
+-- Internal.
+instance GUIObject BitMap where
+---
+-- Internal.
+  toGUIObject (BitMapWDG w) = w
+---
+-- Internal.
+  cname _ = "BitMap"
 
+---
+-- A bitmap object can be destroyed.
 instance Destroyable BitMap where
-  destroy   = destroy . toGUIObject
+---
+-- Destroys a bitmap object.
+  destroy = destroy . toGUIObject
 
+---
+-- A bitmap object has standard widget properties
+-- (concerning focus, cursor / if implicitely displayed inside a label
+-- widget).
 instance Widget BitMap
 
+---
+-- A bitmap object has a configureable border (if implicitely displayed
+-- inside a label widget).
 instance HasBorder BitMap
 
+---
+-- A bitmap object has a configureable foreground and background colour
+-- (if implicitely displayed inside a label widget).
 instance HasColour BitMap where 
   legalColourID = hasForeGroundColour
 
+---
+-- You can specify the size of the containing label, if the bitmap is
+-- implicitely displayed inside a label widget.
 instance HasSize BitMap
 
+---
+-- Bitmaps can be read from files.
 instance HasFile BitMap where
+---
+-- Specifies the bitmap's file path.
   filename fname w =
     execTclScript [tkBitMapCreate no fname] >> cset w "image" no
     where no = getObjectNo (toGUIObject w)
+---
+-- Gets the bitmap's file name.
   getFileName w = evalTclScript [tkGetBitMapFile no]
     where no = getObjectNo (toGUIObject w)
 
+---
+-- You can synchronize on a bitmap object.
 instance Synchronized BitMap where
+---
+-- Synchronizes on a bitmap object.
   synchronize (BitMapWDG w) = synchronize w
 
 
@@ -150,6 +242,8 @@ instance Synchronized BitMap where
 -- auxiliary functions
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 setBitMapHandle :: GUIObject w => w -> ConfigID -> BitMapHandle ->
                    Bool -> IO w
 setBitMapHandle w cnm (Predefined d) _ = cset w cnm d 
@@ -168,9 +262,13 @@ setBitMapHandle w cnm (BitMapHandle h) False =
    buttons, but not for windows!
 -}
 
+---
+-- Internal.
 getBitMapHandle :: GUIObject w => w -> ConfigID -> IO BitMapHandle
 getBitMapHandle w cnm = cget w cnm >>= stringToBitMapHandle
 
+---
+-- Internal.
 stringToBitMapHandle :: String -> IO BitMapHandle
 stringToBitMapHandle "" = return (Predefined "")
 stringToBitMapHandle ('@':tl) = return (BitMapFile tl)          

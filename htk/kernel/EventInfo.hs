@@ -47,6 +47,7 @@ data EventInfo = EventInfo { x :: Distance,
 defaultEventInfoSet :: EventInfoSet
 defaultEventInfoSet = mkEventInfoSet [Px, Py, PX, PY, Pb]
 
+
 -- --------------------------------------------------------------
 -- Event Parameters
 -- --------------------------------------------------------------
@@ -74,6 +75,7 @@ epFromChar ch =
    case ch of
       '#' -> HASH
       other -> read ['P',other]   
+
 
 -- --------------------------------------------------------------
 -- Functions

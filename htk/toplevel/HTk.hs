@@ -239,23 +239,52 @@ import Printer
 -- type HTk and its instances
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>HTk</code> datatype - a handle for the wish instance and
+-- the main window.
 newtype HTk = HTk GUIOBJECT
 
+---
+-- Internal.
 instance GUIObject HTk where
+---
+-- Internal.
   toGUIObject (HTk obj) = obj
+---
+-- Internal.
   cname _ = "HTk"
 
+---
+-- Internal.
 instance Eq HTk where 
+---
+-- Internal.
   (HTk obj1) == (HTk obj2) = obj1 == obj2
 
+---
+-- The wish instance can be destroyed.
 instance Destroyable HTk where
+---
+-- Destroys the wish instance.
   destroy = destroy . toGUIObject
 
+---
+-- The wish instance is associated with the main window (with various
+-- configurations and actions concerning its stacking order, display
+-- status, screen, aspect ratio etc.).
 instance Window HTk
 
+---
+-- The main window is a container for widgets. You can pack widgets to
+-- the main window via pack or grid command in the
+-- <code>module Packer</code>.
 instance Container HTk
 
+---
+-- You can synchronize on the wish instance.
 instance Synchronized HTk where
+---
+-- Synchronizes on the wish instance.
   synchronize = synchronize . toGUIObject
 
 
@@ -272,12 +301,17 @@ theHTkMVar :: MVar (Maybe HTk)
 theHTkMVar = IOExts.unsafePerformIO (newMVar Nothing)
 {-# NOINLINE theHTkMVar #-} 
 
+---
+-- Initializes HTk.
+-- @param cnf     - the list of configuration options for the wish
+--                - instance / main window.
+-- @return result - The wish instance.
 initHTk :: [Config HTk] -> IO HTk
-initHTk opts =                            -- config (TD)
+initHTk cnf =
   do
     htkOpt <- takeMVar theHTkMVar
     htk <- case htkOpt of
-       Nothing -> newHTk opts
+       Nothing -> newHTk cnf
        Just htk -> error "HTk.initHTk called when HTk is already initialised!"
     putMVar theHTkMVar (Just htk)
     return htk
@@ -312,7 +346,9 @@ withdrawWish =
       htk <- getHTk
       withdraw htk
 
-withdrawMainWin :: HTk -> IO HTk   -- Config HTk, HDoc problem!
+---
+-- Withdraws the main window.
+withdrawMainWin :: Config HTk
 withdrawMainWin htk =
   do
     withdraw htk
@@ -350,9 +386,13 @@ htkMethods = Methods tkGetToplevelConfig
 -- application updates
 -- -----------------------------------------------------------------------
 
+---
+-- Updates all tasks.
 updateAllTasks :: IO ()
 updateAllTasks = execTclScript ["update"]
 
+---
+-- Updates idle tasks.
 updateIdleTasks :: IO ()
 updateIdleTasks = execTclScript ["update idletasks"]
 
@@ -361,9 +401,15 @@ updateIdleTasks = execTclScript ["update idletasks"]
 -- application Name
 -- -----------------------------------------------------------------------
 
+---
+-- The wish instance has a value - the application name.
 instance GUIValue v => HasValue HTk v where
+---
+-- Sets the application name.
   value aname htk =
     do
       execTclScript ["tk appname " ++ show aname]
       return htk
+---
+-- Gets the application name.
   getValue _ = evalTclScript ["tk appname"] >>= creadTk

@@ -20,6 +20,7 @@ import Computation (try)
 import HTk
 import Focus
 
+
 -- -----------------------------------------------------------------------
 -- Basic Behaviours for modelling Modal Dialogs
 -- -----------------------------------------------------------------------

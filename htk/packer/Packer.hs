@@ -43,7 +43,7 @@ import Core
 ---
 -- Container widgets instantiate the abstract <code>class Container</code>
 -- to enable packing.
-class GUIObject a => Container a where
+class GUIObject a => Container a
 
 
 -- -----------------------------------------------------------------------

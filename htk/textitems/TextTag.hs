@@ -9,6 +9,8 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- This module provides access to text tags inside an editor widget.
 module TextTag (
 
   module Index,
@@ -67,6 +69,8 @@ import Tooltip
 -- TextTag type
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>TextTag</code> datatype.
 data TextTag = TextTag Editor GUIOBJECT
 
 
@@ -74,20 +78,26 @@ data TextTag = TextTag Editor GUIOBJECT
 -- construction
 -- -----------------------------------------------------------------------
 
+---
+-- Creates a text tag inside an editor widget and returns a handler.
+-- @param ed      - the concerned editor widget.
+-- @param i1      - the start index.
+-- @param i2      - the end index.
+-- @param cnf     - the list of configuration options for this text tag.
+-- @return result - A text tag.
 createTextTag :: (HasIndex Editor i1 BaseIndex,
                   HasIndex Editor i2 BaseIndex) =>
                  Editor -> i1 -> i2 -> [Config TextTag] -> IO TextTag
-createTextTag ed i1 i2 ol =
+createTextTag ed i1 i2 cnf =
   do
     bi1 <- getBaseIndex ed i1
     bi2 <- getBaseIndex ed i2
     w <- createGUIObject (toGUIObject ed)
                          (TEXTTAG (map unparse [bi1::BaseIndex,bi2]))
                          tagMethods
-    configure (TextTag ed w) ol
+    configure (TextTag ed w) cnf
   where unparse (IndexNo _)   = GUIVALUE HaskellTk ""
         unparse (IndexText s) = GUIVALUE HaskellTk  ("{" ++ s ++ "}")
---        unparse (IndexText s) = GUIVALUE HaskellTk  ("\\{" ++ s ++ "\\}")
         unparse p             = GUIVALUE HaskellTk  (show p ++ " ")
 
 
@@ -95,30 +105,62 @@ createTextTag ed i1 i2 ol =
 -- instances
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance Eq TextTag where 
+---
+-- Internal.
   (TextTag _ w1) == (TextTag _ w2) = (toGUIObject w1) == (toGUIObject w2)
 
+---
+-- Internal.
 instance GUIObject TextTag where 
+---
+-- Internal.
   toGUIObject (TextTag _ w) = w
+---
+-- Internal.
   cname _ = "TextTag"
 
+---
+-- A text tag can be destroyed.
 instance Destroyable TextTag where
+---
+-- Destroys a text tag.
   destroy = destroy . toGUIObject
 
+---
+-- A text tag has a configureable border.
 instance HasBorder TextTag
 
+---
+-- A text tag has a configureable foregroud and background colour.
 instance HasColour TextTag where 
+---
+-- Internal.
   legalColourID = hasForeGroundColour
 
+---
+-- A text tag has a configureable font.
 instance HasFont TextTag
 
+---
+-- A text tag has a configureable text justification.
 instance HasJustify TextTag
 
+---
+-- A text tag has a configureable line spacing.
 instance HasLineSpacing TextTag
 
+---
+-- A text tag has adjustable tab stops.
 instance HasTabulators TextTag
 
+---
+-- You can synchronize on a text tag object.
 instance Synchronized TextTag where
+---
+-- Synchronizes on a text tag object.
   synchronize = synchronize . toGUIObject
 
 
@@ -126,10 +168,16 @@ instance Synchronized TextTag where
 -- Tag Commands
 -- -----------------------------------------------------------------------
 
+---
+-- Adds the specified text range to a text tag.
+-- @param tag     - the concerned text tag.
+-- @param start   - the start index.
+-- @param end     - the end index.
+-- @return result - None.
 addTextTag :: (HasIndex Editor i1 BaseIndex,
                HasIndex Editor i2 BaseIndex) =>
               TextTag -> i1 -> i2 -> IO ()
-addTextTag tag @ (TextTag tp _) start end =
+addTextTag tag@(TextTag tp _) start end =
   synchronize tag (
     do
       start' <- getBaseIndex tp start
@@ -137,6 +185,12 @@ addTextTag tag @ (TextTag tp _) start end =
       execMethod tag (\nm -> tkTagAdd nm start' end')
   )
 
+---
+-- Removes the specified text range from a text tag.
+-- @param tag     - the concerned text tag.
+-- @param start   - the start index.
+-- @param end     - the end index.
+-- @return result - None.
 removeTextTag :: (HasIndex Editor i1 BaseIndex,
                   HasIndex Editor i2 BaseIndex) =>
                  TextTag -> i1 -> i2 -> IO ()
@@ -148,9 +202,17 @@ removeTextTag tag @ (TextTag tp _) start end =
       execMethod tag (\nm -> tkTagRemove nm start' end')
   )
 
+---
+-- Lowers the text tag.
+-- @param tag     - the concerned text tag.
+-- @return result - None.
 lowerTextTag :: TextTag -> IO ()
 lowerTextTag tag = execMethod tag (\nm -> tkTagLower nm)
 
+---
+-- Raises the given text tag.
+-- @param tag     - the concerned text tag.
+-- @return result - None.
 raiseTextTag :: TextTag -> IO ()
 raiseTextTag tag = execMethod tag (\nm -> tkTagRaise nm)
 
@@ -159,51 +221,84 @@ raiseTextTag tag = execMethod tag (\nm -> tkTagRaise nm)
 -- tag configure options
 -- -----------------------------------------------------------------------
 
+---
+-- Sets the normal left intend for a line.
 lmargin1 :: Distance -> Config TextTag
 lmargin1 s tag = cset tag "lmargin1" s
 
+---
+-- Gets the normal left intend for a line.
 getLmargin1 :: TextTag -> IO Distance
 getLmargin1 tag = cget tag "lmargin1"
 
+---
+-- Sets the intend for a part of a line that gets wrapped.
 lmargin2 :: Distance -> Config TextTag
 lmargin2 s tag = cset tag "lmargin2" s
 
+---
+-- Gets the intend for a part of a line that gets wrapped.
 getLmargin2 :: TextTag -> IO Distance
 getLmargin2 tag = cget tag "lmargin2"
 
+---
+-- Sets the right-hand margin.
 rmargin :: Distance -> Config TextTag
 rmargin s tag = cset tag "rmargin" s
 
+---
+-- Gets the right-hand margin.
 getRmargin :: TextTag -> IO Distance
 getRmargin tag = cget tag "rmargin"
 
+---
+-- Sets the baseline offset (positive for superscripts).
 offset :: Distance -> Config TextTag
 offset s tag = cset tag "offset" s
 
+---
+-- Gets the baseline offset.
 getOffset :: TextTag -> IO Distance
 getOffset tag = cget tag "offset"
 
+---
+-- If <code>True</code>, the text is drawn with a horizontal line through
+-- it.
 overstrike :: Toggle -> Config TextTag
 overstrike s tag = cset tag "overstrike" s
 
+---
+-- Gets the current overstrike setting.
 getOverstrike :: TextTag -> IO Toggle
 getOverstrike tag = cget tag "overstrike"
 
+---
+-- If <code>True</code>, the text is underlined.
 underlined :: Toggle -> Config TextTag
 underlined s tag = cset tag "underline" s
 
+---
+-- Gets the current underline setting.
 getUnderlined :: TextTag -> IO Toggle
 getUnderlined tag = cget tag "underline"
 
+---
+-- Sets a stipple pattern for the background colour.
 bgstipple :: BitMapHandle -> Config TextTag
 bgstipple s tag = setBitMapHandle tag "bgstipple" s False
 
+---
+-- Gets the stipple pattern for the background colour.
 getBgstipple ::TextTag -> IO BitMapHandle
 getBgstipple tag = getBitMapHandle tag "bgstipple"
 
+---
+-- Sets a stipple pattern for the foreground colour.
 fgstipple :: BitMapHandle -> Config TextTag
 fgstipple s tag = setBitMapHandle tag "fgstipple" s False
 
+---
+-- Gets the stipple pattern for the foreground colour.
 getFgstipple :: TextTag -> IO BitMapHandle
 getFgstipple tag = getBitMapHandle tag "fgstipple"
 
@@ -212,7 +307,11 @@ getFgstipple tag = getBitMapHandle tag "fgstipple"
 -- Index: Tag First and Last
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance HasIndex Editor (TextTag, First) BaseIndex where
+---
+-- Internal.
   getBaseIndex tp (tag,_) =
     synchronize tag (
       do
@@ -220,7 +319,11 @@ instance HasIndex Editor (TextTag, First) BaseIndex where
         return (IndexText (show tnm ++ ".first"))
     )
 
+---
+-- Internal.
 instance HasIndex Editor (TextTag, Last) BaseIndex where
+---
+-- Internal.
   getBaseIndex tp (tag,_) =
     synchronize tag (
       do

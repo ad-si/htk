@@ -683,9 +683,6 @@ addItem gui par@(IntFolderItem _ chref) newitem =
                            setItemPosition item pos
                            it <- createNotepadItem item (notepad gui)
                                                    [position pos]
-
-                           scrollTo (notepad gui) it
-
                            done
                        else done
          _ -> done

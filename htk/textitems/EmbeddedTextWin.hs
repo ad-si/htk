@@ -120,7 +120,11 @@ getStretch ew = cget ew "stretch"
 -- index
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance HasIndex Editor EmbeddedTextWin BaseIndex where
+---
+-- Internal.
   getBaseIndex tp win =
     synchronize win
       (do
@@ -130,6 +134,7 @@ instance HasIndex Editor EmbeddedTextWin BaseIndex where
               do
                 str <- evalTclScript (tkWinIndex pnm wnm)
                 return (read str))
+
 
 -- -----------------------------------------------------------------------
 -- Text Item Methods

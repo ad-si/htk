@@ -9,18 +9,19 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- This module provides access to the X selection.
 module XSelection (
-        module Index,
-        module Selection,
 
-        HasXSelection(..),
+  module Index,
+  module Selection,
 
-        XSelection(..),
+  HasXSelection(..),
 
-        clearXSelection,
-        getXSelection,
---        getXSelectionOwner,
---        setXSelectionOwner
+  XSelection(..),
+
+  clearXSelection,
+  getXSelection,
 
 ) where
 
@@ -37,8 +38,15 @@ import Window
 -- class HasXSelection
 -- -----------------------------------------------------------------------
 
+---
+-- Widgets that have an X selection instantiate the
+-- <code>class HasXSelection</code>.
 class HasSelection w => HasXSelection w where
+---
+-- Sets whether the selection should be exported or not.
   exportSelection         :: Bool -> Config w
+---
+-- Gets the current selection export setting.
   getExportSelection      :: w -> IO Bool
   exportSelection b w     = cset w "exportSelection" b
   getExportSelection w    = cget w "exportSelection"
@@ -48,6 +56,8 @@ class HasSelection w => HasXSelection w where
 -- types
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>XSelection</code> datatype.
 data XSelection = PRIMARY | CLIPBOARD deriving (Eq, Ord, Show, Read)
 
 type TargetType = String        -- STRING, ATOM, INTEGER ...
@@ -57,35 +67,27 @@ type TargetType = String        -- STRING, ATOM, INTEGER ...
 -- instances
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIValue XSelection where
-        cdefault = PRIMARY
+---
+-- Internal.
+  cdefault = PRIMARY
 
 
 -- -----------------------------------------------------------------------
 -- XSelection commands
 -- -----------------------------------------------------------------------
 
+---
+-- Clears the X selection.
 clearXSelection :: GUIObject a => Screen a -> XSelection -> IO ()
 clearXSelection (Screen win) sel = 
         execMethod win (\nm  ->  ["selection clear -displayof " ++ show nm ++ " -selection " ++ show sel])
 
+---
+-- Gets the current X selection.
 getXSelection :: (GUIObject a, GUIValue b) =>
                  Screen a-> XSelection -> TargetType -> IO b
 getXSelection (Screen win) sel tp = 
         evalMethod win (\nm  ->  ["selection get -displayof " ++ show nm ++ " -selection " ++ show sel ++ " -type " ++ tp])
-
-{- TD
-getXSelectionOwner :: (GUIObject a, Window w) => Screen a -> XSelection ->
-                                                 IO (Maybe w)
-getXSelectionOwner (Screen win) sel = do {
-        str <- evalMethod win (\nm -> ["selection own -displayof " ++ show nm ++ " -selection "]);
-        case dropWhile (isSpace) str of
-                "" -> return Nothing
-                nm -> lookupWindow nm
-        }
-
-setXSelectionOwner :: Window w => w -> XSelection -> IO ()
-setXSelectionOwner win sel = 
-        execMethod win (\nm  -> 
-           ["selection own -selection -command {} " ++ show sel ++ " " ++ show nm])
--}

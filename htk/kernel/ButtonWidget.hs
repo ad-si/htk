@@ -1,29 +1,16 @@
 -- -----------------------------------------------------------------------
 --
--- HH  HH  TTTTTTTT  kk
--- HH  HH     TT     kk  kk
--- HH  HH     TT     kk kk
--- HHHHHH     TT     kkkk
--- HH  HH     TT     kk kk
--- HH  HH     TT     kk  kk
--- HH  HH     TT     kk   kk
+-- $Source$
 --
--- (c) University of Bremen
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
 --
--- Original author: Einar Karlsen,
---                  University of Bremen
---                  email: ewk@informatik.uni-bremen.de
---
--- Current authors: cxl, ger, ludi
---
--- Module : ButtonWidget
---
--- $Revision$ from $Date$
+-- $Revision$ from $Date$  
 -- Last modification by $Author$
 --
 -- -----------------------------------------------------------------------
 
-
+---
+-- This module provides general functionality on button widgets.
 module ButtonWidget (
 
   ButtonWidget(..),
@@ -41,8 +28,14 @@ import Configuration
 -- class ButtonWidget
 -- -----------------------------------------------------------------------
 
+---
+-- Button widgets instantiate the <code>class ButtonWidget</code>.
 class Widget w => ButtonWidget w where
+---
+-- Flashes the given button widget.
   flash   :: w -> IO ()
+---
+-- Invokes the given button widget.
   invoke  :: w -> IO ()
   flash w  = do {try(execMethod w (\ nm -> tkFlash nm)); done}
   invoke w = execMethod (toGUIObject w) (\ nm -> tkInvoke nm)
@@ -62,6 +55,8 @@ tkInvoke name = [show name ++ " invoke"]
 -- aux. button commands
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 buttonColours :: HasColour w => w -> ConfigID -> Bool
 buttonColours w "background" = True
 buttonColours w "foreground" = True

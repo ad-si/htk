@@ -189,3 +189,4 @@ showElements = concatMap (++ " ") . (map show)
 
 tkPick :: ObjectName -> Int -> TclScript
 tkPick name index = [show name ++ " pick " ++ show index]
+{-# INLINE tkPick #-}

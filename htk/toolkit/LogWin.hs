@@ -9,6 +9,8 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- A simple log window.
 module LogWin (
 
   LogWin(..),
@@ -31,6 +33,8 @@ import System
 -- Type
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>LogWin</code> datatype.
 data LogWin = LogWin Toplevel Editor (IO ())
 
 
@@ -38,6 +42,10 @@ data LogWin = LogWin Toplevel Editor (IO ())
 -- Commands
 -- -----------------------------------------------------------------------
 
+---
+-- Creates a new log window and returns a handler.
+-- @param cnf     - the list of configuration options for this log window.
+-- @return result - A log window.
 createLogWin :: [Config Toplevel] -> IO LogWin
 createLogWin cnf =
   do
@@ -76,53 +84,24 @@ saveLog ed =
 
 
 -- -----------------------------------------------------------------------
--- commands
+-- instances
 -- -----------------------------------------------------------------------
 
-
--- -----------------------------------------------------------------------
--- Events
--- -----------------------------------------------------------------------
-
---type LogAction = Top -> Editor -> IO ()
-
-                
--- -----------------------------------------------------------------------
---  Log Menu (User Dialog)
--- -----------------------------------------------------------------------
-
-{-
-newMenuBar :: Box -> IO (MenuButton LogAction)
-newMenuBar b = do {
-        b2 <- newHBox [relief Raised, 
-                borderwidth (cm 0.05), 
-                bg "grey",
-                fill Horizontal,
-                parent b];
-        mb <- newMenuButton [text "File",bg "grey",parent b2];
-        mn <- newPulldownMenu mb [tearOff On];
-        newButton [text "Save ...", handler saveLog,parent mn];
-        newButton [text "Quit", handler quitLog,parent mn];
-        return mb
-} where handler c = command (\() -> return c)
-        quitLog :: LogAction
-        quitLog win _ = destroy win
-
-        saveLog :: LogAction
-        saveLog win ed = do
-                pwin <- newPromptWin "Enter File Name" "" [modal True]
-                forkDialog pwin (\fnm -> incase fnm (writeTextToFile ed))
--}
-                
--- -----------------------------------------------------------------------
--- LogFile
--- -----------------------------------------------------------------------
-
+---
+-- Internal.
 instance GUIObject LogWin where
+---
+-- Internal.
   toGUIObject (LogWin win _ _) = toGUIObject win
+---
+-- Internal.
   cname _ = "LogWin"
 
+---
+-- A log window can be destroyed.
 instance Destroyable LogWin where
+---
+-- Destroys a log window.
   destroy (LogWin win _ death) = death >> destroy win
 
 
@@ -130,8 +109,13 @@ instance Destroyable LogWin where
 -- Write Log
 -- -----------------------------------------------------------------------
 
+---
+-- Writes into the log window.
+-- @param lw      - the concerned log window.
+-- @param str     - the text to write to the log window.
+-- @return result - None.
 writeLogWin :: LogWin -> String -> IO ()
-writeLogWin (LogWin _ ed _) str =
+writeLogWin lw@(LogWin _ ed _) str =
   do
     try (insertText ed EndOfText str)
     moveto Vertical ed 1.0

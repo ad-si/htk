@@ -1,3 +1,14 @@
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
+
 ---
 -- Separators for widgets. It is just
 -- a frame with a given relief and borderwidth etc. 

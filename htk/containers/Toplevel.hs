@@ -86,8 +86,8 @@ instance Destroyable Toplevel where
 instance Widget Toplevel
 
 ---
--- A frame widget is a container for widgets. You can pack widgets to
--- a frame widget via pack or grid command in the
+-- A toplevel widget is a container for widgets. You can pack widgets to
+-- a toplevel widget via pack or grid command in the
 -- <code>module Packer</code>.
 instance Container Toplevel
 
