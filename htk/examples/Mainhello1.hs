@@ -28,7 +28,7 @@ main =
      l  <- newLabel main [height 5, text "Hello, world!"]
      pack l []
 
-     nb <- newButton main [text "New Colour"] :: IO (Button String)
+     nb <- newButton main [text "New Colour"]
      pack nb []
      clickednb <- clicked nb
      spawnEvent (forever (clickednb >>>

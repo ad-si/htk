@@ -59,8 +59,7 @@ module HTk (
   module Scale,
   module ScrollBar,
   module Screen,
-
-  module Box,    -- TD: does not work properly yet!!
+  module Box,
 
 
 -- tix submodules
@@ -68,6 +67,10 @@ module HTk (
   module NoteBook,
   module LabelFrame,
   module PanedWindow,
+
+-- devices submodules
+
+  module Bell,
 
 
 -- menu / menuitem submodules
@@ -203,7 +206,6 @@ import Colour
 import GUIValue
 import Core
 import BaseClasses
---import Icon
 import Box
 import Toplevel
 import Window
@@ -222,6 +224,7 @@ import EmbeddedTextWin
 import NoteBook
 import LabelFrame
 import PanedWindow
+import Bell
 
 
 data AbstractWidget = NONE

@@ -40,10 +40,9 @@ main =
                  filling "green", outlinewidth (mm 1), outline "black"]
 
     b <- newButton c [text "Click me!", relief Raised]
-           :: IO (Button String)
     eb <- createEmbeddedCanvasWin c b [position (cm 2, cm 12)]
     clickedb <- clicked b
-    spawnEvent (forever (clickedb >> always (putStrLn "click")))
+    spawnEvent (forever (clickedb >> always (putStrLn "click" >> bell)))
     (press, _) <- bind c [WishEvent [] (ButtonPress (Just (BNo 1)))]
     (move, _) <- bind c [WishEvent [Button1] Motion]
     (release, _) <- bindSimple c (ButtonRelease (Just (BNo 1)))
@@ -60,8 +59,8 @@ main =
         notmoving = do
                       (x, y) <- press >>>= \i-> return (x i, y i)
                       ct <- always (do ct<- createCanvasTag c []
-                                       addCanvasTag (closest x y) ct
-				       return ct)   
+                                       addCanvasTag (closest (x, y)) ct
+				       return ct)
                       moving x y ct         
 
     spawnEvent (forever notmoving)

@@ -19,8 +19,7 @@ main =
   do
     htk <- initHTk [text "markup text example", size (500, 400)]
 
-    ed <- newEditor htk [size (80,5), state Disabled] ::
-            IO (Editor String)
+    ed <- newEditor htk [size (80,5), state Disabled]
     pack ed [Fill Both, Expand On]
 
     let
@@ -113,7 +112,6 @@ main =
                    but <- newButton ed
                             [text "This is an embedded button widget",
                              cursor arrow]
-                            :: IO (Button String)
                    clickedbut <- clicked but
                    death <- newChannel
                    let listenButton :: Event ()

@@ -103,7 +103,7 @@ main =
             [background "white"]
     pack tl [Fill Both, Expand On]
 
-    quit <- newButton main [text "Quit", width 15] :: IO (Button String)
+    quit <- newButton main [text "Quit", width 15]
     pack quit [Side AtBottom, PadX 10, PadY 5]
 
     clickedquit <- clicked quit

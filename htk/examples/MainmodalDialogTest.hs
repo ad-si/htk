@@ -24,15 +24,14 @@ main :: IO ()
 main =
  do
   htk <- initHTk[text "main window"]
-  but1 <- newButton htk [text "create ModalDialog"] :: IO (Button String)
-  but4 <- newButton htk [text "create nonModalDialog"] :: IO (Button String)
-  but5 <- newButton htk [text "create newAlertWin"] :: IO (Button String)
-  but6 <- newButton htk [text "create newErrorWin"] :: IO (Button String)
-  but7 <- newButton htk [text "create newWarningWin"] :: IO (Button String)
-  but8 <- newButton htk [text "create newConfirmWin"] :: IO (Button String)
-  but9 <- newButton htk [text "create InputWin"] :: IO (Button String)
-  but2 <- newButton htk [text " Quit example "] :: IO (Button String)
-  
+  but1 <- newButton htk [text "create ModalDialog"]
+  but4 <- newButton htk [text "create nonModalDialog"]
+  but5 <- newButton htk [text "create newAlertWin"]
+  but6 <- newButton htk [text "create newErrorWin"]
+  but7 <- newButton htk [text "create newWarningWin"]
+  but8 <- newButton htk [text "create newConfirmWin"]
+  but9 <- newButton htk [text "create InputWin"]
+  but2 <- newButton htk [text " Quit example "]
 
   pack but1 []
   pack but4 []
@@ -46,7 +45,7 @@ main =
   clickedbut1 <- clicked but1
   spawnEvent (forever (clickedbut1 >> always (do 
                                                tp <- createToplevel [text "ModalDialog"]
-                                               but3 <- newButton tp [text "Ok"] :: IO (Button String)
+                                               but3 <- newButton tp [text "Ok"]
                                                pack but3 []    
                                                clickedbut3 <- clicked but3
                                                test <- modalDialog tp True (clickedbut3 >> (always (return "ModalDialogOk")))
@@ -55,7 +54,7 @@ main =
   clickedbut4 <- clicked but4
   spawnEvent (forever (clickedbut4 >> always (do 
                                                tp <- createToplevel [text "nonModalDialog"]
-                                               but3 <- newButton tp [text "Ok"] :: IO (Button String)
+                                               but3 <- newButton tp [text "Ok"]
                                                pack but3 []    
                                                clickedbut3 <- clicked but3
                                                test <- modalDialog tp False (clickedbut3 >> (always (return "nonModalDialogOk")))

@@ -18,7 +18,7 @@ main =
   do
     main <- initHTk [text "A Listbox"]
     lb  <- newListBox main [value numbers, bg "white", size (15, 10)] ::
-             IO (ListBox [String])
+             IO (ListBox String)
     pack lb [Side AtLeft]
     scb <- newScrollBar main []
     pack scb [Side AtRight, Fill Y]

@@ -26,7 +26,7 @@ imgpathref :: Ref (Maybe FilePath)
 imgpathref =
   unsafePerformIO (newRef Nothing)
 
-lastactiveref :: Ref (Button ())
+lastactiveref :: Ref Button
 lastactiveref = unsafePerformIO (newRef (unsafePerformIO
                                            (newButton NONE [])))
 
@@ -445,7 +445,6 @@ main =
     boxcol <- newFrame main []
     pack boxcol [PadX 10, PadY 10, Fill X, Expand On]
     addcol <- newButton boxcol [height 3, text "add color item", width 28]
-                :: IO (Button String)
     pack addcol [PadX 10, PadY 10, Side AtLeft]
     colentries <- newFrame boxcol []
     pack colentries [Side AtRight]
@@ -514,10 +513,10 @@ main =
                              command (\ () -> return ())]
                     :: IO (Button String)
 -}
-    export <- newButton main [text "Export state"] :: IO (Button String)
+    export <- newButton main [text "Export state"]
     pack export [PadX 10, PadY 5, Fill X, Expand On]
     clickedexport <- clicked export
-    quit <- newButton main [text "Quit"]  :: IO (Button String)
+    quit <- newButton main [text "Quit"]
     pack quit [PadX 10, PadY 5, Fill X, Expand On]
     clickedquit <- clicked quit
 
@@ -588,7 +587,7 @@ main =
     addExampleFolders newID gui
     finishHTk
 
-imgSelected :: Button () -> IO Image -> IO ()
+imgSelected :: Button -> IO Image -> IO ()
 imgSelected but img =
   do
     but' <- getRef lastactiveref
@@ -599,7 +598,7 @@ imgSelected but img =
         setRef lastactiveref but
         setRef imgref img
 
-selectedTl :: Label String -> Maybe (Item Obj) -> IO ()
+selectedTl :: Label -> Maybe (Item Obj) -> IO ()
 selectedTl foldlab mitem =
   case mitem of
     Nothing -> foldlab # text "no folder selected" >> done
@@ -617,11 +616,9 @@ doubleClickNp item =
                             main <- createToplevel [text "Image"]
                             img <- ioimg
                             lab <- newLabel main [anchor Center,
-                                                  photo img] ::
-                                     IO (Label Image)
+                                                  photo img]
                             pack lab []
                             quit <- newButton main [text "Close"]
-                                      :: IO (Button String)
                             pack quit []
                             clickedquit <- clicked quit
                             spawnEvent (clickedquit >>> destroy main)
@@ -632,11 +629,9 @@ doubleClickNp item =
                                  [anchor Center,
                                   text ("     " ++ str ++ "     "),
                                   height 5, relief Sunken,
-                                  font (Helvetica, 12 :: Int)] ::
-                               IO (Label String)
+                                  font (Helvetica, 12 :: Int)]
                         pack lab []
                         quit <- newButton main [text "Close"]
-                                  :: IO (Button String)
                         pack quit []
                         clickedquit <- clicked quit
                         spawnEvent (clickedquit >>> destroy main)
@@ -657,10 +652,8 @@ doubleClickNp item =
                                                Green -> "Green"
                                                Blue -> "Blue"
                                                Yellow -> "Yellow")]
-                                     :: IO (Label String)
                             pack lab []
                             quit <- newButton main [text "Close"]
-                                      :: IO (Button String)
                             pack quit []
                             clickedquit <- clicked quit
                             spawnEvent (clickedquit >>> destroy main)
@@ -670,11 +663,9 @@ doubleClickNp item =
                       lab <- newLabel main
                                [anchor Center, text (show n),
                                 relief Sunken, size (20,8),
-                                font (Helvetica, 18 :: Int)] ::
-                             IO (Label String)
+                                font (Helvetica, 18 :: Int)]
                       pack lab []
                       quit <- newButton main [text "Close"]
-                                :: IO (Button String)
                       pack quit []
                       clickedquit <- clicked quit
                       spawnEvent (clickedquit >>> destroy main)

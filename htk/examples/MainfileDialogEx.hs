@@ -23,13 +23,12 @@ main =
     let dir = case args of a:_ -> a; [] -> homedir
     main <- initHTk [text "file dialog example"]
     open <- newButton main [text ("Open file dialog ("++ dir++ ")"),
-		            width 60] :: IO (Button String)
+		            width 60]
     pack open [PadX 10, PadY 5]
     msg <- newLabel main [text "Welcome", font (Lucida, 12::Int),
                           height 2, relief Sunken, bg "white"]
     pack msg [PadX 10, PadY 5, Fill X, Expand On]
     quit <- newButton main [text "Quit"]
-              :: IO (Button String)
     pack quit [PadX 10, PadY 5, Fill X, Expand On]
     clickedquit <- clicked quit
     clickedopen <- clicked open

@@ -75,7 +75,6 @@ main =
     v5 <- createTkVariable (0.2 :: Double)
 
     b <- newButton main [text "show selection above"]
-           :: IO (Button String)
     pack b [Side AtBottom, PadY 10]
     clickedb <- clicked b
 
@@ -91,7 +90,6 @@ main =
 
     v6 <- createTkVariable True
     cw <- newCheckButton main [text "CheckButton", variable v6]
-            :: IO (CheckButton String String)
     pack cw [Side AtBottom, PadY 10]
     clickedcw <- clicked cw
 

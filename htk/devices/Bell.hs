@@ -1,45 +1,44 @@
-{- #########################################################################
-
-MODULE        : Bell
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : The Bell, and how to ring it 
-
-   ######################################################################### -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Bell (
-        Window,
-        ringBell,
-        bell
+
+  Window,
+  ringBell,
+  bell
         
-        ) where
+) where
 
---import Concurrency
-import GUICore
-import Debug(debug)
+import Window
+import Toplevel
+import Core
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Ring Bell 
--- --------------------------------------------------------------------------           
-ringBell :: Maybe Window -> IO ()
+-- -----------------------------------------------------------------------
+
+ringBell :: Window w => Maybe w -> IO ()
 ringBell Nothing = execTclScript [tkRing Nothing]
 ringBell (Just win) = execMethod win (\ nm -> [tkRing (Just nm)])
 
-
 bell :: IO ()
-bell = ringBell Nothing
+bell = ringBell (Nothing :: Maybe Toplevel)
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Unparsing of Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 tkRing :: Maybe ObjectName -> TclCmd
 tkRing Nothing = "bell"
 tkRing (Just win) = "bell -displayof " ++ show win 
 {-# INLINE tkRing #-}
-

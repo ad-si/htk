@@ -48,6 +48,7 @@ SRCS       = resources/Resources.hs\
              textitems/EmbeddedTextWin.hs\
              textitems/TextTag.hs\
              textitems/Mark.hs\
+             devices/Bell.hs\
 	     devices/Mouse.hs\
 	     devices/Keyboard.hs\
 	     devices/XSelection.hs\
@@ -95,7 +96,6 @@ SRCS       = resources/Resources.hs\
 
 #            components/Icon.hs\
 #            devices/Printer.hs\
-#            devices/Bell.hs\
 
 
 EXTRA_HC_OPTIONS += -Onot -H30M

@@ -47,8 +47,7 @@ main =
     pack notepad [Fill Both, Expand On]
 
     (scrollbox, output) <- newScrollBox logwin
-                             (\ p -> newEditor p [state Disabled] ::
-                                     IO (Editor String)) []
+                             (\ p -> newEditor p [state Disabled]) []
     pack scrollbox [Fill Both, Expand On]
 
     item1_img <- newImage NONE [filename "./images/item1.gif"]
@@ -121,7 +120,7 @@ main =
                          (controla >> always (selectAll notepad))))
     finishHTk
 
-  where showMsg :: Editor String -> String -> IO ()
+  where showMsg :: Editor -> String -> IO ()
         showMsg ed txt =
           do
             ed # state Normal

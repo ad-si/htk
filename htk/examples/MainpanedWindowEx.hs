@@ -29,13 +29,13 @@ main =
     pack pwh [Fill Both, Expand On]
     pack pwv [Fill Both, Expand On]
 
-    but1 <- newButton paneh2 [text "pane1"] :: IO (Button String)
+    but1 <- newButton paneh2 [text "pane1"]
     pack but1 [Fill Both, Expand On]
 
-    but2 <- newButton panev1 [text "pane2"] :: IO (Button String)
+    but2 <- newButton panev1 [text "pane2"]
     pack but2 [Fill Both, Expand On]
 
-    but3 <- newButton panev2 [text "pane3"] :: IO (Button String)
+    but3 <- newButton panev2 [text "pane3"]
     pack but3 [Fill Both, Expand On]
 
     finishHTk

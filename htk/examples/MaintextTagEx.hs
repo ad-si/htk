@@ -18,8 +18,7 @@ main :: IO ()
 main =
   do
     main <- initHTk [text "text tag example"]
-    ed <- newEditor main [size(50, 15),
-                          cursor xterm] :: IO (Editor String)
+    ed <- newEditor main [size(50, 15), cursor xterm]
     pack ed [Fill Both, Expand On]
 
     appendText ed "This is line1\nThis is line2\nThis is line3\nThis is line4\nThis is line5\n\nClick here to quit!\n\n\n"
@@ -66,7 +65,6 @@ main =
                                             ed # cursor xterm >> done))))
 
     but <- newButton ed [text "This is an embedded button widget"]
-             :: IO (Button String)
     createEmbeddedTextWin ed (IndexPos (9,0)) but []
 
     finishHTk

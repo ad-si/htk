@@ -1,76 +1,82 @@
-{- #########################################################################
-
-MODULE        : Printer
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : A simple printer utitity wrapped around Tk's print feature.
-                This means - it only works for canvas items (sorry).
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 
 module Printer (
-        HasPostscript(..),
 
-        PostScript,
-        postscript,
-        pageheight,
-        pagewidth,
-        pagex,
-        pagey,
-        rotate,
-        pageAnchor,
-        getPageAnchor,
+  HasPostscript(..),
 
-        ColourMode(..),
-        colourmode
+  PostScript,
+  postscript,
+  pageheight,
+  pagewidth,
+  pagex,
+  pagey,
+  rotate,
+  pageAnchor,
+  getPageAnchor,
 
-        ) where
+  ColourMode(..),
+  colourmode
 
-import Thread
-import GUICore
+) where
+
+
+--import Thread
+import Core
 import Char(isSpace)
-import Debug(debug)
+--import Debug(debug)
+import Computation
+import Configuration
+import Destructible
+import Geometry
+import Resources
 
--- --------------------------------------------------------------------------
--- HasPostscript Objects 
--- -------------------------------------------------------------------------- 
+
+-- -----------------------------------------------------------------------
+-- HasPostscript class
+-- -----------------------------------------------------------------------
 
 class GUIObject w => HasPostscript w where
-        postscript :: w -> [Config PostScript] -> IO ()
-        postscript target confs  = do {
-                wid <- createGUIObject POSTSCRIPT defMethods;
-                configure (PostScript wid) confs;
-                args <- lookupConfigs wid;
-                catch 
-                        (execMethod target (\nm -> [tkPostScript nm args]))
-                        (\e -> destroy wid >> raise e); 
-                destroy wid
-        }where tkPostScript :: ObjectName -> [ConfigOption] -> TclCmd
-               tkPostScript name args = 
-                   show name ++ " postscript " ++ showConfigs args
+  postscript :: w -> [Config PostScript] -> IO ()
+  postscript target confs =
+    do
+      wid <- createGUIObject NONE POSTSCRIPT defMethods
+      configure (PostScript wid) confs
+--      args <- lookupConfigs wid
+      catch 
+        (execMethod target (\nm -> [tkPostScript nm [] {-args-}]))
+        (\e -> destroy wid >> raise e)
+      destroy wid
+    where tkPostScript :: ObjectName -> [ConfigOption] -> TclCmd
+          tkPostScript name args = 
+            show name ++ " postscript " ++ showConfigs args
 
 
--- --------------------------------------------------------------------------
--- Postscript Objects 
--- -------------------------------------------------------------------------- 
+-- -----------------------------------------------------------------------
+-- datatype
+-- -----------------------------------------------------------------------
 
 newtype PostScript = PostScript GUIOBJECT
 
--- --------------------------------------------------------------------------
--- ColourModes 
--- -------------------------------------------------------------------------- 
 
-data ColourMode = FullColourMode | GrayScaleMode | MonoChromeMode
-        deriving (Eq,Ord,Enum)
+-- -----------------------------------------------------------------------
+-- ColourModes
+-- -----------------------------------------------------------------------
+
+data ColourMode =
+  FullColourMode | GrayScaleMode | MonoChromeMode deriving (Eq,Ord,Enum)
 
 instance GUIValue ColourMode where
-        cdefault = FullColourMode
+  cdefault = FullColourMode
 
 instance Read ColourMode where
    readsPrec p b =
@@ -88,9 +94,9 @@ instance Show ColourMode where
          MonoChromeMode -> "mono"
         ) ++ r
 
--- --------------------------------------------------------------------------
---  Configuation Options
--- -------------------------------------------------------------------------- 
+-- -----------------------------------------------------------------------
+-- Configuation Options
+-- -----------------------------------------------------------------------
 
 colourmode :: ColourMode -> Config PostScript
 colourmode cmode w = cset w "colormode" cmode
@@ -117,16 +123,16 @@ getPageAnchor :: PostScript -> IO Anchor
 getPageAnchor w = cget w "pageanchor"
 
 
--- --------------------------------------------------------------------------
---  Instantiations
--- -------------------------------------------------------------------------- 
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance GUIObject PostScript where
-        toGUIObject (PostScript w) = w
-        cname _ = "PostScript"
+  toGUIObject (PostScript w) = w
+  cname _ = "PostScript"
 
 instance HasSize PostScript
 
 instance HasFile PostScript where
-        filename fname w = cset w  "file" fname
-        getFileName w = cget w  "file"
+  filename fname w = cset w  "file" fname
+  getFileName w = cget w  "file"

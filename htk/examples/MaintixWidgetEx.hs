@@ -77,7 +77,7 @@ main =
          lab <- newLabel main [text "Sorry, only for use with Tix!"]
          pack lab [PadX 20, PadY 10]
 
-         quit <- newButton main [text " Quit "] :: IO (Button String)
+         quit <- newButton main [text " Quit "]
          pack quit [PadY 10]
          clickedquit <- clicked quit
          spawnEvent (clickedquit >>> destroy main)
