@@ -366,7 +366,7 @@ mkPlainFolderType view =
       let
          folderType = FolderType {
             folderTypeId = plainFolderKey,
-            folderTypeLabel = Just "Plain",
+            folderTypeLabel = Just "Plain Folder",
             requiredAttributes = emptyAttributesType,
             displayParms = plainFolderNodeTypeParms,
             topFolderLinkOpt = Just topLink

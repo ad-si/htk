@@ -62,6 +62,12 @@ module LinkManager(
       -- :: LinkedObject -> VariableSetSource WrappedLink
       -- Get the contents of a LinkedObject (those objects contained in it,
       -- like elements in a folder)
+
+   lookupObjectContents,
+      -- :: LinkedObject -> EntityName -> SimpleSource (Maybe WrappedLink)
+      -- Get a SimpleSource item corresponding to the EntityName element of
+      -- the object contents.
+
    lookupNameSimple,
       -- :: LinkedObject -> String -> IO (Maybe LinkedObject)
       -- Extract a single element in a linkedObject's contents by name.
@@ -77,6 +83,10 @@ module LinkManager(
       -- Extract the EntityName from the insertion in a LinkedObject.
       -- The second argument is a default String to use, if the Insertion is
       -- Nothing.
+   getLinkedObjectTitleOpt,
+      -- :: LinkedObject -> SimpleSource (Maybe EntityName)
+      -- Extract the EntityName from a LinkedObject, if any.
+
 
    toObjectLink, 
       -- :: (HasLinkedObject object,ObjectType objectType object)
@@ -205,6 +215,18 @@ objectContents linkedObject =
    mapToVariableSetSource 
       (\ _ linkedObjectPtr -> wrappedLinkInPtr linkedObjectPtr)
       (contents linkedObject) 
+
+--
+-- Get a SimpleSource item corresponding to the EntityName element of
+-- the object contents.
+lookupObjectContents :: LinkedObject -> EntityName 
+   -> SimpleSource (Maybe WrappedLink)
+lookupObjectContents linkedObject entityName =
+   fmap
+      (fmap wrappedLinkInPtr)
+      (getVariableMapByKey (contents linkedObject) entityName)
+
+
 
 ---
 -- Delete an object including its record in the view and the parent
@@ -364,12 +386,13 @@ toParentLink object1 =
 -- Nothing.
 getLinkedObjectTitle :: LinkedObject -> EntityName -> SimpleSource EntityName
 getLinkedObjectTitle linkedObject def =
-   fmap
-      (\ insertionOpt -> case insertionOpt of
-         Nothing -> def
-         Just insertion -> name insertion
-         )
-      (insertion linkedObject)
+   fmap (fromMaybe def) (getLinkedObjectTitleOpt linkedObject)
+
+---
+-- Extract the EntityName from a LinkedObject, if any.
+getLinkedObjectTitleOpt :: LinkedObject -> SimpleSource (Maybe EntityName)
+getLinkedObjectTitleOpt linkedObject =
+   fmap (fmap name) (insertion linkedObject)
 
 ---
 -- Create a new LinkEnvironment

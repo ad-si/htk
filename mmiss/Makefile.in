@@ -12,6 +12,7 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSEditAttributes.hs \
    MMiSSPreObjects.hs MMiSSWriteObject.hs MMiSSReadObject.hs \
    MMiSSReAssemble.hs MMiSSRunCommand.hs MMiSSLaTeX.hs\
+   MMiSSPackageFolder.hs \
    $(if @HAXML@,,XmlValidate.hs) \
    MMiSSRegistrations.hs MMiSSInitialise.hs 
 

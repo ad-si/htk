@@ -28,6 +28,10 @@ module MMiSSDTDAssumptions(
    variantAttributesType, -- :: AttributesType
 
    printAttributes, -- :: [Attribute] -> String
+
+   isPackageTag, -- :: String -> Bool
+      -- Returns True if an element with this tag is to be treated as a 
+      -- package.
    ) where
 
 #include "config.h"
@@ -183,6 +187,11 @@ getMiniType str = case classifyLabelledTag str of
    Just c -> c
    Nothing -> error ("Attempt to edit object with unclassifiable tag "++str)
 
+
+---
+-- Returns True if an element with this tag is to be treated as a package.
+isPackageTag :: String -> Bool
+isPackageTag s = (s == "package")
 
 
 -- ----------------------------------------------------------------------

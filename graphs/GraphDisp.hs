@@ -155,7 +155,7 @@ module GraphDisp(
    NewArc(..),
    DeleteArc(..),
    ArcClass,
-   ArcTypeClass,
+   ArcTypeClass(..),
    NewArcType(..),
    ArcTypeConfig,
 
@@ -361,6 +361,11 @@ newArcType
 class ArcTypeParms arcTypeParms where
    emptyArcTypeParms :: Typeable value => arcTypeParms value
 
+   -- This is a special arc type parms which will not be drawn at all.
+   -- The effect of setting options to an invisibleArcTypeParms object
+   -- is for now undefined.
+   invisibleArcTypeParms :: Typeable value => arcTypeParms value
+
    coMapArcTypeParms :: (Typeable value1,Typeable value2) => 
       (value2 -> value1) -> arcTypeParms value1 -> arcTypeParms value2
 
@@ -481,7 +486,9 @@ class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
 
 class (HasTyRep1 arc,Ord1 arc) => ArcClass arc
 
-class HasTyRep1 arcType => ArcTypeClass arcType
+class (HasTyRep1 arcType,Ord1 arcType) => ArcTypeClass arcType where
+   -- This is a special arc type which stops the arc being drawn at all.
+   invisibleArcType :: Typeable value => arcType value
 
 class (GraphClass graph,ArcTypeClass arcType,ArcTypeParms arcTypeParms) => 
       NewArcType graph arcType arcTypeParms where

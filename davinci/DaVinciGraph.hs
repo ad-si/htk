@@ -30,11 +30,13 @@ import Sources
 import Sink
 import ExtendedPrelude(mapEq,mapOrd)
 import Delayer
+import qualified UniqueString
 import qualified VariableList
 
 import Dynamics
 import Registry
 import Computation
+import ExtendedPrelude
 import Debug(debug)
 import Thread
 
@@ -727,10 +729,12 @@ data DaVinciArcType value = DaVinciArcType {
    arcDoubleClickAction :: value -> IO ()
    }
 
-data DaVinciArcTypeParms value = DaVinciArcTypeParms {
-   arcAttributes :: Attributes value,
-   configArcDoubleClickAction :: value -> IO ()
-   }
+data DaVinciArcTypeParms value = 
+      DaVinciArcTypeParms {
+         arcAttributes :: Attributes value,
+         configArcDoubleClickAction :: value -> IO ()
+         }
+   |  InvisibleArcTypeParms
 
 data ArcData = forall value . Typeable value 
    => ArcData (DaVinciArcType value) value
@@ -752,10 +756,14 @@ addArcGeneral
       daVinciArcType (DaVinciArc edgeId) value 
       (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
    do
-      setValue edges edgeId (ArcData daVinciArcType value)
-      addEdgeUpdate daVinciGraph 
-         (NewEdge edgeId (arcType daVinciArcType) [] nodeFrom nodeTo)
-
+      if daVinciArcType `eq1` invisibleArcType
+         then
+            done
+         else
+            do
+               setValue edges edgeId (ArcData daVinciArcType value)
+               addEdgeUpdate daVinciGraph 
+                  (NewEdge edgeId (arcType daVinciArcType) [] nodeFrom nodeTo)
  
 instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc 
          DaVinciArcType
@@ -852,9 +860,20 @@ daVinciArcTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArcType"
 instance HasTyRep1 DaVinciArcType where
    tyRep1 _ = daVinciArcTypeTyRep
 
+instance Eq1 DaVinciArcType where
+   eq1 = mapEq arcType
+
+instance Ord1 DaVinciArcType where
+   compare1 = mapOrd arcType
+
 instance ArcTypeClass DaVinciArcType where
+   invisibleArcType = DaVinciArcType {
+      arcType = Type (UniqueString.newNonUnique "Invisible")
+      }
 
 instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
+   newArcTypePrim _ InvisibleArcTypeParms = return invisibleArcType
+
    newArcTypePrim
          (daVinciGraph@DaVinciGraph{context = context})
          (DaVinciArcTypeParms{arcAttributes = arcAttributes,
@@ -879,6 +898,8 @@ instance ArcTypeParms DaVinciArcTypeParms where
       configArcDoubleClickAction = const done
       }
 
+   invisibleArcTypeParms = InvisibleArcTypeParms
+
    coMapArcTypeParms coMapFn
       (DaVinciArcTypeParms {
          arcAttributes = arcAttributes,
@@ -888,6 +909,7 @@ instance ArcTypeParms DaVinciArcTypeParms where
          arcAttributes = coMapAttributes coMapFn arcAttributes,
          configArcDoubleClickAction = configArcDoubleClickAction . coMapFn
          })
+   coMapArcTypeParms coMapFn InvisibleArcTypeParms = InvisibleArcTypeParms
 
 instance HasConfigValue Color DaVinciArcTypeParms where
    configUsed' _ _ = True

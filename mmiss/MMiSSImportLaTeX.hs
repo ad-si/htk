@@ -3,6 +3,8 @@ module MMiSSImportLaTeX(
    importMMiSSLaTeX,
    ) where
 
+import Maybe
+
 import Computation
 import ExtendedPrelude
 import WBFiles
@@ -18,9 +20,11 @@ import CopyFile
 import View
 import Link
 import LinkManager
+import EntityNames
 
 import LaTeXParser
 
+import MMiSSDTDAssumptions
 import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSPreamble
@@ -28,10 +32,14 @@ import {-# SOURCE #-} MMiSSWriteObject
 
 ---
 -- Import a new object from a LaTeX file and attach it to the subdirectory
--- of a given LinkedObject
-importMMiSSLaTeX :: MMiSSObjectType -> View -> LinkedObject 
+-- of a given LinkedObject.
+--
+-- The complicated last argument constructs or retrieves the parent linked 
+-- object, given the name of the package.
+importMMiSSLaTeX :: MMiSSObjectType -> View
+   -> (EntityName -> IO (WithError LinkedObject)) 
    -> IO (Maybe (Link MMiSSObject))
-importMMiSSLaTeX objectType view linkedObject =
+importMMiSSLaTeX objectType view getLinkedObject =
    do
       result <- addFallOut (\ break ->
          do
@@ -54,6 +62,21 @@ importMMiSSLaTeX objectType view linkedObject =
 
                      (element,preambleOpt) 
                         <- coerceWithErrorOrBreakIO break parseResultWE
+
+                     fullLabel 
+                        <- coerceWithErrorOrBreakIO break (getLabel element)
+
+                     let
+                        baseLabel = fromMaybe
+                           (break "Element label has no name!")
+                           (entityBase fullLabel)
+
+                     seq baseLabel done
+
+                     linkedObjectWE <- getLinkedObject baseLabel
+                     linkedObject 
+                        <- coerceWithErrorOrBreakIO break linkedObjectWE
+
                      preamble <- case preambleOpt of
                         Just preamble -> return preamble
                         Nothing -> break "Object has no preamble!"

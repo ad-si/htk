@@ -13,6 +13,7 @@ import Computation
 
 import Events
 import Destructible
+import InfoBus
 
 #if (WORK_AROUND_BDB_LINUX_BUG != 0)
 import SysVars

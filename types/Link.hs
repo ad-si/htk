@@ -42,8 +42,8 @@ module Link(
    -- This creates an object with no contents as a stop-gap so you can
    -- create a link to it, EG for constructing circular lists.
    -- WARNING - updateObject must be used to put in an actual value,
-   -- before readObject is done on this Versioned value, or before
-   -- commitView.
+   -- before readObject is done on this Versioned value.  This must also be
+   -- done before any commitView, unless the object is deleted via deleteLink.
 
    updateObject, -- :: HasCodedValue x => View -> x -> Versioned x -> IO ()
    -- This replaces the x value inside an object by a new value, and
@@ -66,6 +66,9 @@ module Link(
    -- Does fetchLink and updateObject in one go.
    createLink, -- :: HasCodedValue x => View -> x -> IO (Link x)
    -- Does createObject and makeLink in one go.
+   newEmptyLink, -- :: HasCodedValue x => View -> IO (Link x)
+   -- Like newEmptyObject; similar considerations apply.
+
 
    dirtyLink, -- :: HasCodedValue x => View -> Link x -> IO ()
    -- Does fetchLink and dirtyObject in one go.
@@ -176,6 +179,12 @@ createLink :: HasCodedValue x => View -> x -> IO (Link x)
 createLink view x =
    do
       versioned <- createObject view x
+      makeLink view versioned
+
+newEmptyLink :: HasCodedValue x => View -> IO (Link x)
+newEmptyLink view =
+   do
+      versioned <- newEmptyObject view
       makeLink view versioned
 
 dirtyLink :: HasCodedValue x => View -> Link x -> IO ()

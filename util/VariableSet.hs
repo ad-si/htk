@@ -21,6 +21,7 @@ module VariableSet(
 
    mapVariableSetSource,
    singletonSetSource,
+   listToSetSource,
    ) where
 
 import Maybe
@@ -291,3 +292,40 @@ singletonSetSource (source0 :: SimpleSource x) =
       (source4 :: VariableSetSource x) = flattenSource source3
    in
       source4
+
+---
+-- Creates a VariableSetSource whose elements are the same as those of the
+-- corresponding list.
+listToSetSource :: Ord x => SimpleSource [x] -> VariableSetSource x
+listToSetSource (simpleSource :: SimpleSource [x]) =
+   let
+      source1 :: Source [x] [x]
+      source1 = toSource simpleSource
+
+      source2 :: Source ([x],Set x) [VariableSetUpdate x]
+      source2 = foldSource
+         (\ list -> mkSet list)
+         (\ oldSet newList ->
+            let
+               newSet = mkSet newList
+
+               toAdd = minusSet newSet oldSet
+               adds = map AddElement (setToList toAdd)
+
+               toDelete = minusSet oldSet newSet
+               deletes = map DelElement (setToList toDelete)
+            in
+               (newSet,adds ++ deletes)
+            )
+         source1
+
+      source3 :: Source [x] [VariableSetUpdate x]
+      source3 = map1 fst source2
+
+      source4 :: Source [x] (VariableSetUpdate x)
+      source4 = flattenSource source3
+   in
+      source4
+
+      
+      

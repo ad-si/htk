@@ -47,6 +47,7 @@ module Registry(
    ) where
 
 import IO
+import Maybe
 import Maybes
 
 import qualified GlaExts(unsafeCoerce#)
@@ -316,13 +317,10 @@ instance KeyOpsRegistry (registry from Obj) from
 -- Locked registries.  These improve on the previous model in
 -- that transformValue actions do not lock the whole registry,
 -- but only the key whose value is being transformed.
--- NB - for the time being it is FORBIDDEN to delete elements from
--- a locked registry, and doing so will result in a error failure.
--- Fixing this will require a slightly more sophisticated structure,
--- since currently we have the assumption that once an MVar goes into
--- the registry, it stays there.  The best way might be to replace
--- MVar by MVar (Maybe ..), and signal that the value has been deleted
--- by putting Nothing in the MVar.
+-- NB - there is a subtle concurrency problem with deleting from a locked
+-- registry.  If this happens at the same time as we attempt to transform a
+-- value, the delete action can return, while the transform action is still
+-- going on.
 -- ----------------------------------------------------------------------
 
 newtype LockedRegistry from to = Locked (Registry from (MVar to))
@@ -360,9 +358,10 @@ instance Ord from => GetSetRegistry (LockedRegistry from to) from to where
                   "Register.transformValue on a LockedRegister has attempted to delete!"
          return extra 
 
-instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where   
-   deleteFromRegistryBool _ _ = error 
-      "Sorry, can't delete from Locked registries"
+instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
+   deleteFromRegistryBool (Locked registry) from =
+      transformValue registry from
+         (\ (mVarOpt :: Maybe (MVar to)) -> return (Nothing,isJust mVarOpt))
    listKeys (Locked registry) = listKeys registry
 
 -- ----------------------------------------------------------------------
