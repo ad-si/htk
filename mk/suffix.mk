@@ -250,6 +250,9 @@ packagehere : libfasthere packageherequick
 packages : packagehere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packages && ) echo Finished make packages
 
+# Option to be given to ld for producing GHCi object files.
+WHOLEARCHIVE = $(if $(findstring,MacOS,$(OSTITLE)),-all_load,--whole-archive)
+
 packageherequick :
 # The "echo" after the --remove-package means we keep going even if
 # remove-package complains about the package not being there (which it won't
@@ -263,7 +266,7 @@ ifneq "$(DOIMPORTS)" ""
 	$(CP) $(HILIBFILES) imports
 endif
 	$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --add-package 
-	if [ -s $(LIB) ]; then $(LD) -r --whole-archive -o $(GHCIOBJ) $(LIB); fi
+	if [ -s $(LIB) ]; then $(LD) -r $(WHOLEARCHIVE) -o $(GHCIOBJ) $(LIB); fi
 endif
 
 packagesquick : packageherequick

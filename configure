@@ -1207,6 +1207,7 @@ case `uname` in
    Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
    SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
    FreeBSD* ) WINDOWS=0 ; OSTITLE=freebsd ;;
+   Darwin*) WINDOWS=0 ; OSTITLE=MacOS ;;
    * ) WINDOWS=0; OSTITLE=unknown ;;
 esac
 
