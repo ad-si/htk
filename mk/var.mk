@@ -43,7 +43,7 @@ CFLAGS           = $(GHCINCDIR)
 # same directory, so that gmake properly identifies them.
 # NB.  XHCDIRS can be used to add extra directories.  It should
 # end with a colon.
-HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(SERVERDIR):$(HTKDIR):$(DAVINCIDIR):$(GRAPHSDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR):$(VERSIONSDIR)
+HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(SERVERDIR):$(HTKDIR):$(DAVINCIDIR):$(GRAPHSDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR):$(TYPESDIR):$(VERSIONSDIR)
 # $(OMSCDIR):$(OMSNOTIDIR):$(OMSDIR):$(WBDIR):$(TOOLSDIR):$(DEMODIR):$(SCHEMADIR):$(IDLDIR)
 
 UTILDIR    	= $(TOP)/util
@@ -67,6 +67,7 @@ GRAPHSDIR       = $(TOP)/graphs
 WWWDIR          = $(TOP)/www
 TOOLSDIR        = $(TOP)/tools
 CVSDIR          = $(TOP)/cvs
+TYPESDIR        = $(TOP)/types
 VERSIONSDIR     = $(TOP)/versions
 VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 

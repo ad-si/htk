@@ -1,0 +1,5 @@
+LIB        = libtypes.a
+SRCS       = AttributeRepresentation.hs
+SUBDIRS    = test
+
+include @TOP@/mk/boilerplate.mk
