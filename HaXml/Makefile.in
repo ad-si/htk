@@ -12,7 +12,7 @@ HAXML = @TOP@/HaXml-1.09/src
 # Disable DEBUG mode.  This is because Malcolm Wallace uses the same
 # flag, and so if it's left it I get lots and lots of Malcolm's trace
 # messages, which I don't want.
-EXTRA_HC_OPTIONS = -UDEBUG
+EXTRA_HC_OPTIONS += -UDEBUG
 
 
 SRCS = $(HAXMLSRCS) XmlEscape.hs XmlFix.hs

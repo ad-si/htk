@@ -17,7 +17,7 @@ SUBDIRS    = test
 BOOTSRCS = DisplayView.boot.hs Folders.boot.hs LinkManager.boot.hs \
    ObjectTypes.boot.hs CopyVersions.boot.hs VersionGraph.boot.hs
 
-EXTRA_HC_OPTIONS = -H100M
+EXTRA_HC_OPTIONS += -H100M
 
 include @TOP@/mk/boilerplate.mk
 
