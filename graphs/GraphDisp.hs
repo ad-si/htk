@@ -73,7 +73,7 @@ module GraphDisp(
    MenuButton(..)
    ) where
 
-import Dynamic
+import Dynamics
 import SIM(IA)
 
 ------------------------------------------------------------------------
@@ -114,8 +114,21 @@ instance (GraphConfig graphConfig,GraphParms graphParms) =>
 
 class (Graph graph,Node node,NodeType nodeType) =>
       NewNode graph node nodeType where
-   newNode :: nodeType -> graph -> Dynamic -> IO node
-   readNode :: graph -> node -> IO (nodeType,Dynamic)
+   newNodePrim :: nodeType -> graph -> Dyn -> IO node
+   readNodePrim :: graph -> node -> IO (nodeType,Dyn)
+
+newNode :: (NewNode graph node nodeType,Typeable val) =>
+   nodeType -> graph -> val -> IO node
+newNode nodeType graph val =
+   newNodePrim nodeType graph (toDyn val)
+
+readNode :: (NewNode graph node nodeType,Typeable val) =>
+   graph -> node -> IO (nodeType,val)
+readNode graph node =
+   do
+      (nodeType,dyn) <- readNodePrim graph node
+      val <- coerceIO dyn
+      return (nodeType,val)
 
 class (Graph graph,Node node) =>
       DeleteNode graph node where
@@ -156,8 +169,21 @@ instance (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
 
 class (Graph graph,Node nodeFrom,Node nodeTo,Arc arc,ArcType arcType) =>
       NewArc graph nodeFrom nodeTo arc arcType where
-   newArc :: arcType -> graph -> nodeFrom -> nodeTo -> Dynamic -> IO arc
-   readArc :: graph -> arc -> IO (arcType,nodeFrom,nodeTo,Dynamic)
+   newArcPrim :: arcType -> graph -> nodeFrom -> nodeTo -> Dyn -> IO arc
+   readArcPrim :: graph -> arc -> IO (arcType,nodeFrom,nodeTo,Dyn)
+
+newArc :: (NewArc graph nodeFrom nodeTo arc arcType,Typeable val) =>
+   arcType -> graph -> nodeFrom -> nodeTo -> val -> IO arc
+newArc arcType graph nodeFrom nodeTo val =
+   newArcPrim arcType graph nodeFrom nodeTo (toDyn val)
+
+readArc :: (NewArc graph nodeFrom nodeTo arc arcType,Typeable val) =>
+   graph -> arc -> IO (arcType,nodeFrom,nodeTo,val)
+readArc graph arc =
+   do
+      (nodeType,nodeFrom,nodeTo,dyn) <- readArcPrim graph arc
+      val <- coerceIO dyn
+      return (nodeType,nodeFrom,nodeTo,val)
 
 class (Graph graph,Arc arc) => DeleteArc graph arc where
    deleteArc :: graph -> arc -> IO ()
@@ -197,8 +223,12 @@ instance (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
 -- allowing an elegant recursive definition.
 ------------------------------------------------------------------------
 
+instance NodeTypeConfig MenuButton where
+
+instance ArcTypeConfig MenuButton where
+
 data MenuButton =
-      Button String (IA Dynamic)
+      Button String (IA Dyn)
       -- first argument is text to put on button
       -- second is event for when button is pressed.
       -- The dynamic value is that supplied to the node/arc when it
@@ -206,6 +236,8 @@ data MenuButton =
    |  Menu (Maybe String) [MenuButton]
       -- first argument is title for menu, if any
       -- second argument is list of buttons.
+
+
 
 
 
