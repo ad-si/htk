@@ -61,18 +61,29 @@
 
 <!-- Variant attributes  -->
 
-<!ENTITY % detail-matter  "levelOfDetail  CDATA #IMPLIED">
+<!ENTITY % detail-matter  "levelOfDetail  CDATA  #IMPLIED">
 
 <!ENTITY % presentation-matter  "interactionLevel  CDATA #IMPLIED">
 
+<!ENTITY % DocFormat  "PDF|PS|EPS|PPT|RTF|DOC">
+<!ENTITY % PictureFormat  "PNG|PICT|JPEG|GIF|BMP|WMF|TIFF">
+<!ENTITY % MovieFormat  "">
+<!ENTITY % TextFormat  "ASCII|ISOLatinOne|LaTeX">
+<!ENTITY % HTMLFormat  "WesternHTML">
+<!ENTITY % XMLFormat  "MMiSSXML|CaslXML">
+<!ENTITY % ScriptFormat  "Script">
 
-<!ENTITY % format-matter     "format      CDATA  #IMPLIED">
+<!ENTITY % format-matter  "format  CDATA  (%DocFormat;|%PictureFormat;|
+                                           %TextFormat;|%HTMLFormat;|
+                                           %XMLFormat;|%ScriptFormat;|
+                                           NONE|ANY)  'ANY'">
+
+
 <!ENTITY % formalism-matter  "formalism   CDATA  #IMPLIED">
 
 <!ENTITY % pedagogical-matter "">
 
 <!ENTITY % variant-attr "xml:lang  %RFC1766; 'en-GB'
-                         %format-matter;
                          %formalism-matter;
                          %detail-matter;
                          %presentation-matter;
