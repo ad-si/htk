@@ -74,11 +74,11 @@ module WBFiles (
    getDaVinciPath, -- ditto daVinci
    getTOP, -- ditto
    getPort, -- IO Int
+   getBackupDir, -- IO String
  
    -- values for which we don't are:
    getDaVinciIcons, -- :: IO (Maybe String)
    getCVSROOT, -- ditto
-   getBackupDir, -- ditto
    getServer, -- ditto
 
    -- Access to other options.
@@ -173,14 +173,14 @@ getTOP = valOf (getArgString "top")
 getPort :: IO Int
 getPort = valOf (getArgInt "port")
 
+getBackupDir :: IO String
+getBackupDir = valOf (getArgString "backupDir")
+
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
 
 getCVSROOT :: IO (Maybe String)
 getCVSROOT = getArgString "cvsRoot"
-
-getBackupDir :: IO (Maybe String)
-getBackupDir = getArgString "backupDir"
 
 getServer :: IO (Maybe String)
 getServer = getArgString "server"

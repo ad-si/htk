@@ -90,12 +90,12 @@ import IO
 import System
 import Directory
 
-import qualified IOExts
 import PackedString
 import CTypesISO(CSize)
 import ST
 
 import Debug(debug)
+import IOExtras
 import WBFiles
 
 import Concurrent
@@ -272,7 +272,7 @@ data ObjectSource =
 
 exportString :: ObjectSource -> IO String
 exportString (StringObject str) = return str
-exportString (FileObject name) = copyFileToString name
+exportString (FileObject name) = readFileInstant name
 
 foreign import "copy_file" unsafe copyFilePrim 
    :: (ByteArray Int) -> (ByteArray Int) -> IO Int
@@ -320,28 +320,6 @@ copyStringToFileAlternative string destination =
          else
             return ()
 
-
-copyFileToString  :: FilePath -> IO String
-copyFileToString file =
-   do
-      (addr,len) <- IOExts.slurpFile file
-      CString.unpackCStringLenIO addr len
-
-{-
--- readFile by itself won't do as it works lazily.
-copyFileToString :: String -> IO String
-copyFileToString file =
-   do
-      handle <- openFile file ReadMode
-      contents <- hGetContents handle
-      seq (last contents) (hClose handle)
-      -- The seq hopefully forces everything to be read.
-      -- PS I've tried removing seq on the grounds that
-      -- hClose should make it unnecessary, but it breaks
-      -- the Versions test on Linux.
-      return contents
--}
-      
 exportFile :: ObjectSource -> FilePath -> IO ()
 exportFile (FileObject source) destination = copyFile source destination
 exportFile (StringObject str) destination = copyStringToFile str destination
@@ -462,7 +440,7 @@ retrieveString repository cvsFile version =
       resultHere <- newEmptyMVar
       retrieveGeneral repository cvsFile version
          (do
-            contents <- copyFileToString (toRealName repository cvsFile)
+            contents <- readFileInstant (toRealName repository cvsFile)
             putMVar resultHere contents
             )
       takeMVar resultHere

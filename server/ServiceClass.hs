@@ -9,6 +9,12 @@ module ServiceClass(
    BackupDelay(..)
    ) where
 
+import Directory
+
+import FileNames
+import WBFiles
+import IOExtras
+
 import Thread
 
 data Service = forall inType outType stateType . 
@@ -63,6 +69,43 @@ class (Read inType,Show inType,Read outType,Show outType) =>
    -- requires the whole service to wait, so it shouldn't take too long.
    sendOnConnect _ _ = return ""
 
+   -- If the following functions are defined, the initialState and
+   -- backupAction are automatically defined, to restore and save the
+   -- state from a file obtained by a file of name serviceId in the
+   -- directory backupDir (see WBFiles.hs).
+   initialStateFromString :: (inType,outType,stateType) -> Maybe String 
+      -> IO stateType
+    -- Nothing corresponds to no backup file and presumably initialisation.
+
+   backupToString :: (inType,outType,stateType) -> stateType -> IO String
+
+   initialState service =
+      do
+         filePath <- getBackupFile service
+         exists <- doesFileExist filePath
+         contentsOpt <-
+            if exists
+               then
+                  do
+                     contents <- readFileInstant filePath
+                     return (Just contents)
+               else
+                  return Nothing
+         initialStateFromString service contentsOpt
+
+   backupAction service state =
+      do
+         contents <- backupToString service state
+         filePath <- getBackupFile service
+         writeFile filePath contents
+          
+getBackupFile :: ServiceClass inType outType stateType =>
+   (inType,outType,stateType) -> IO FilePath
+getBackupFile service =
+   do
+      backupDir <- getBackupDir
+      return (combineNames (trimDir backupDir) (serviceId service))
+ 
 data ServiceMode =
       Reply     -- Send output just to client sending input
    |  Broadcast -- Send output to all clients waiting on this service.
