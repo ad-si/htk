@@ -78,6 +78,7 @@ connectReply service =
       header <- hRead handle
 
       bSem <- newBSem 
+
       let
          sendMessage inData =
             synchronize bSem (

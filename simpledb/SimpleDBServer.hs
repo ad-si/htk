@@ -145,7 +145,7 @@ data SimpleDBResponse =
    |  IsDiffs [(Location,Diff)]
    |  IsVersionInfo VersionInfo
    |  IsError String
-   |  IsNotFound 
+   |  IsNotFound String
    |  IsOK
    |  MultiResponse [SimpleDBResponse]
   deriving (Show)
@@ -263,7 +263,7 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       wrap1 6 IsVersionInfo,
       wrap0 7 IsOK,
       wrap1 8 MultiResponse,
-      wrap0 9 IsNotFound
+      wrap1 9 IsNotFound
       ]
    unWrap = (\ wrapper -> case wrapper of
       IsLocation l -> UnWrap 0 l
@@ -275,7 +275,7 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       IsVersionInfo v -> UnWrap 6 v
       IsOK -> UnWrap 7 ()
       MultiResponse l -> UnWrap 8 l
-      IsNotFound -> UnWrap 9 ()
+      IsNotFound s -> UnWrap 9 s
       )
 
 instance MonadIO m => HasWrapper Diff m where
@@ -409,11 +409,7 @@ querySimpleDB user
          do
             icslOptWE <- retrieveData simpleDB location objectVersion
             case fromWithError icslOptWE of
-               Left mess 
-                  | mess == versionNotFoundMess 
-                     -> return IsNotFound
-                  | True 
-                     -> return (IsError mess)
+               Left mess -> return (IsNotFound mess)
                Right icsl -> return (IsData icsl)
       Commit versionInformation redirects newStuff0 ->
          let
@@ -606,7 +602,7 @@ querySimpleDB user
          do
             versionInfoOpt <- lookupVersionInfo versionState objectVersion
             return (case versionInfoOpt of
-               Nothing -> IsNotFound 
+               Nothing -> IsNotFound "Version info"
                Just versionInfo -> IsVersionInfo versionInfo
                )
       GetDiffs version versions ->

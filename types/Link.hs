@@ -12,12 +12,8 @@ module Link(
       -- This link points to the "top object".  This needs to be
       -- created 
 
-   setTopLink, -- :: HasCodedValue x => View -> x -> IO (Versioned x)
-      -- This initialises the top link to a particular value.  It should
-      -- only be used once, in setting up the repository.
-
    setOrGetTopLink, -- :: HasCodedValue x => View -> IO x -> IO (Versioned x)
-      -- setOrGetTopLink is somewhat safer than setTopLink and initialises the
+      -- setOrGetTopLink initialises the
       -- top object, if that hasn't already been done, via the supplied action.
       -- Otherwise it (harmlessly) returns the existing object.
 
@@ -186,17 +182,25 @@ fetchOrSetLinkWE
                err mess = return (objectDataOpt,hasError (
                   "fetchLink " ++ xName ++ ": " ++ mess))
 
-               readObject :: Bool -> ObjectVersion -> Location 
+               -- readObject Nothing has to be used for the initial
+               -- EMPTY version.
+               -- 
+               -- The first two arguments should not be True and Nothing
+               readObject :: ReadObjectArg -> Location 
                   -> IO (Maybe ObjectData,WithError (Versioned x))
-               readObject isCloned oldVersion oldLocation =
+               readObject readObjectArg oldLocation =
                   do
                      (statusOS :: Either String (Status x)) <-
                         catchDBError (
                            do
-                              osourceOpt <- catchNotFound (
-                                 retrieveObjectSource repository 
-                                 oldLocation oldVersion
-                                 )
+                              osourceOpt <- case toObjectVersionOpt 
+                                    readObjectArg of
+                                 Nothing -> return Nothing
+                                 Just oldVersion ->
+                                    catchNotFound (
+                                       retrieveObjectSource repository 
+                                       oldLocation oldVersion
+                                       )
                               case osourceOpt of
                                  Just osource ->
                                     do
@@ -227,12 +231,12 @@ fetchOrSetLinkWE
                                     thisVersioned = toDyn versioned,
                                     mkObjectSource 
                                        = mkObjectSourceFn view versioned
-                                          (if isCloned 
-                                             then
-                                                Just (oldLocation,oldVersion)
-                                             else
-                                                Nothing
-                                            )           
+                                          (fmap
+                                             (\ oldVersion ->
+                                                (oldLocation,oldVersion)
+                                                )
+                                             (isCloned readObjectArg)
+                                             )
                                     }),
                                  hasValue versioned
                                  )
@@ -241,12 +245,8 @@ fetchOrSetLinkWE
                Nothing ->
                   do
                      parentVersionOpt <- getParentVersion view
-                     parentVersion <- case parentVersionOpt of
-                        Nothing -> error ("Attempt to retrieve non-existent "
-                           ++ "link in uncommitted view.")
-                        Just parentVersion -> return parentVersion
 
-                     readObject False parentVersion location
+                     readObject (IsntCloned parentVersionOpt) location
                Just (PresentObject {thisVersioned = versionedDyn}) ->
                   case fromDyn versionedDyn of
                      Just versioned 
@@ -260,8 +260,20 @@ fetchOrSetLinkWE
                               ++ " from " ++ show location)
                Just (ClonedObject {
                   sourceLocation = oldLocation,sourceVersion = oldVersion}) ->
-                     readObject True oldVersion oldLocation
+                     readObject (IsCloned oldVersion) oldLocation
             )
+   where
+      toObjectVersionOpt :: ReadObjectArg -> Maybe ObjectVersion
+      toObjectVersionOpt (IsCloned objectVersion) = Just objectVersion
+      toObjectVersionOpt (IsntCloned objectVersionOpt) = objectVersionOpt
+
+      isCloned :: ReadObjectArg -> Maybe ObjectVersion
+      isCloned (IsCloned objectVersion) = Just objectVersion
+      isCloned (IsntCloned _) = Nothing
+
+data ReadObjectArg =
+      IsCloned ObjectVersion
+   |  IsntCloned (Maybe ObjectVersion)
 
 readLink :: HasCodedValue x => View -> Link x -> IO x
 readLink view link =
@@ -410,11 +422,19 @@ data Status x =
    |  Dirty x -- This object committed, but since modified
    |  Virgin x -- Object never committed.
 
-setTopLink :: HasCodedValue x => View -> x -> IO (Versioned x)
-setTopLink view x = setLink view x (Link specialLocation2)
-
 setLink :: HasCodedValue x => View -> x -> Link x -> IO (Versioned x)
-setLink view x (Link location) = createObjectGeneral view (Virgin x) location
+setLink view x (Link location) = 
+   do
+      (versioned,objectCreated) 
+         <- createObjectGeneral1 view (Virgin x) location
+      if objectCreated
+         then
+            done
+         else
+            updateObject view x versioned
+
+      return versioned
+               
 
 ---
 -- setOrGetTopLink is somewhat safer than setTopLink and initialises the
@@ -445,11 +465,26 @@ newEmptyObject view =
       location <- newLocation (repository view)
       createObjectGeneral view Empty location
 
-createObjectGeneral :: HasCodedValue x => View -> Status x -> Location 
-   -> IO (Versioned x)
 -- createObjectGeneral creates a completely new object for an already-
 -- allocated location, given a Status (Virgin or Empty) to put in it.
+createObjectGeneral :: HasCodedValue x => View -> Status x -> Location 
+   -> IO (Versioned x)
 createObjectGeneral view status location =
+   do
+      (versioned,objectCreated) <- createObjectGeneral1 view status location
+      if objectCreated
+         then
+            return versioned
+         else
+            error ("Attempt to create " ++ show location ++ 
+               " which already exists")
+
+-- | Creates a new object with the given status and location, returning
+-- the corresponding Versioned and True.  If we can't because the
+-- object already exists, return the corresponding Versioned and False.
+createObjectGeneral1 :: HasCodedValue x => View -> Status x -> Location 
+   -> IO (Versioned x,Bool)
+createObjectGeneral1 view status location =
    do
       -- We use fetchOrSetLinKWE to do the actual work
       objectCreatedRef <- newIORef False
@@ -464,12 +499,7 @@ createObjectGeneral view status location =
       versioned <- coerceWithErrorIO versionedWE
       
       objectCreated <- readIORef objectCreatedRef
-      if objectCreated
-         then
-            return versioned
-         else
-            error ("Attempt to create " ++ show location ++ 
-               " which already exists")
+      return (versioned,objectCreated)
 
 ---
 -- This deletes an object from the View.

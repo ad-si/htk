@@ -100,7 +100,7 @@ module SimpleDB(
       -- :: IO a -> IO (Maybe a)
       -- Catch the exception provoked by the retrieveXXX functions and
       -- getVersionInfo when a version is not found.
-   notFoundError, -- :: a
+   notFoundError, -- :: String -> a
       -- Throw a notFound error (as caught by catchNotFound).
 
    catchAlreadyExists,
@@ -366,7 +366,7 @@ retrieveVersionInfo repository version =
       response <- queryRepository repository (GetVersionInfo version)
       case response of
          IsVersionInfo v -> return v
-         IsNotFound -> notFoundError
+         IsNotFound s -> notFoundError s
          _ -> dbError ("GetVersionInfo: unexpected response")
 
 
@@ -397,7 +397,7 @@ toObjectVersions r = unpackError "objectVersions" r
 
 toData :: SimpleDBResponse -> ICStringLen
 toData (IsData icsl) = icsl
-toData IsNotFound = notFoundError
+toData (IsNotFound s) = notFoundError s
 toData r = unpackError "object" r
 
 unpackError s r = dbError ("Expecting " ++ s ++ ": " ++ 
@@ -434,12 +434,12 @@ catchNotFound act =
    do 
       result <- catchNotFound' act
       return (case result of
-         Left "" -> Nothing
+         Left _ -> Nothing
          Right a -> Just a
          )
 
-notFoundError :: a
-notFoundError = mkBreakFn notFoundId ""
+notFoundError :: String -> a
+notFoundError s = mkBreakFn notFoundId ("Not found error: " ++ s)
 
 mkNotFoundFallOut = unsafePerformIO newFallOut
 {-# NOINLINE mkNotFoundFallOut #-}

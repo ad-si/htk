@@ -6,6 +6,7 @@
 module MMiSSFormat(
    Format(..),
    formatForm, -- :: Form Format
+   toExtension, -- :: Format -> String
    ) where
 
 import Computation
@@ -17,6 +18,6 @@ data Format = LaTeX | XML deriving Show
 formatForm :: Form Format
 formatForm = newFormOptionMenu2 [("LaTeX",LaTeX),("XML",XML)]
 
-
-
-   
+toExtension :: Format -> String
+toExtension LaTeX = "tex"
+toExtension XML = "xml"

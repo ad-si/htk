@@ -571,7 +571,7 @@ getFormat format name =
                Just (_,Just base) -> base
                _ -> apiError ("Can't get file name to write out " ++ name)
                   -- I think this shouldn't happen anyway.
-            fileName = toString base
+            fileName = unsplitExtension (toString base) (toExtension format)
 
 
          copiedWE <- copyStringToFileCheck fileContents fileName
@@ -752,13 +752,15 @@ shell command =
 fallOut :: (ObjectID,IO a -> IO (Either String a))
 fallOut = unsafePerformIO newFallOut
 
-printError :: IO a -> IO a
+printError :: IO a -> IO a 
+   -- we go via anyErrorToAPI for historical reasons
 printError act =
    do
-      stringOrA <- snd fallOut act
+      stringOrA <- snd fallOut (anyErrorToAPI act)
       case stringOrA of
          Left mess -> error ("API error: " ++ mess)
          Right a -> return a
+
 
 apiError :: BreakFn
 apiError = mkBreakFn (fst fallOut)
@@ -771,5 +773,6 @@ anyErrorToAPI act =
          Right (Right a) -> return a
          Right (Left apiMess) -> apiError apiMess
          Left excep -> case ourExcepToMess excep of
-            Just mess -> apiError mess
-            Nothing -> apiError (show excep)
+            Just mess -> apiError ("Uncaught exception: " ++ mess)
+            Nothing -> apiError ("Uncaught and unknown exception: " 
+               ++ show excep)
