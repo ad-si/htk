@@ -29,7 +29,7 @@ main =
       pv <- newPVar 0
       inter <- newInterActor 
          (\iact -> 
-               expect exp (".+") >>>=
+               matchLine exp >>>=
                   (\ line ->
                      do
                         IO.putStr "line:"
@@ -41,26 +41,13 @@ main =
             +> matchEOF exp >>> 
                   do 
                      IO.putStr "end\n"
-                     IO.hFlush stdout 
+                     putStr "about to stop" 
+                     IO.hFlush stdout
                      stop iact
             )
+      putStr "returned from newInterActor"
       sync(destroyed inter)
-       
-#if 0                       
-                    expect exp ("^AWK\n",[Case_Insensitive]) >>> do {
-                        changeVar' pv (+ 1);
-                        putStr "awk\n";
-                        done
-                        }
-                +>  expect exp ("^PERL\n", [Case_Insensitive]) >>> do {
-                        putStr "perl\n"; 
-                        destroy exp;
-                        count <- getVar pv;
-                        putStr ("caught " ++ show count ++ "\n");               
-                        putStr "quitting\n"; 
-                        }
-                +>  matchEOF exp >>> do {
-                        shutdown;
-                        stop iact;
-                        }
-#endif 
+      shutdown
+
+
+

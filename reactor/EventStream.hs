@@ -172,18 +172,21 @@ interaction' eventStream nEvent@(IA _ externals) =
       let
          packEvent (x,y) = EE x y
          unpackEvent (EE x y) = (x,y)
+      debug "interactions' 1"
       (oldInteractions,newInteractions) <- 
          updVar' 
             (state eventStream) 
             (register (addListToFM emptyFM (map unpackEvent externals)))
-      deregisterEvents 
-         (map packEvent 
-            (fmToList (oldInteractions `minusFM` newInteractions))) 
-           listener
-      registerEvents 
-         (map packEvent 
-            (fmToList (newInteractions `minusFM` oldInteractions))) 
-           listener
+      debug "interactions' 2"
+      let 
+         toDeregister = fmToList (oldInteractions `minusFM` newInteractions)
+         toRegister = fmToList (newInteractions `minusFM` oldInteractions)
+      debug ("Deregistering "++show (length toDeregister) ++
+             " registering " ++ show (length toRegister))
+      deregisterEvents (map packEvent toDeregister) listener
+      debug "interactions' 3"
+      registerEvents (map packEvent toRegister) listener
+      debug "interactions' 4"
    where  
       register newInteractions (
          IAS{fReplied = replied,fInteractions = oldInteractions}) = 

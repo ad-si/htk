@@ -28,12 +28,12 @@ main =
       pv <- newPVar 0
       inter <- newInterActor 
          (\iact -> 
-               expect exp ("^AWK\n") >>> 
+               expect exp ("^AWK$") >>> 
                   do
                      changeVar' pv (+ 1)
                      putStr "awk\n"
                      done
-            +> expect exp ("^PERL\n") >>> 
+            +> expect exp ("^PERL$") >>> 
                   do
                      putStr "perl\n"
                      destroy exp
@@ -48,4 +48,8 @@ main =
                      stop iact
             )
       sync(destroyed inter)
+
+
+
+
 

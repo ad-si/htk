@@ -127,13 +127,18 @@ interactor f =
 -- --------------------------------------------------------------------------
 
 stop :: InterActor -> IO a
-stop iact = do 
-   -- this also deadlocks.
-   become iact (inaction :: IA ())
-   -- that should deregister everything.
-   reply iact
-   sendIO (destruction iact) ()
-   deadlock
+stop iact = 
+   do 
+      -- this also deadlocks.
+      debug "stop 1"
+      become iact (inaction :: IA ())
+      -- that should deregister everything.
+      debug "stop 2"
+      reply iact
+      debug "stop 3"
+      sendIO (destruction iact) ()
+      debug "stop 4"
+      deadlock
 
 -- --------------------------------------------------------------------------
 --  Destructor for Interactor

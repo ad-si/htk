@@ -83,6 +83,7 @@ import Object
 import qualified Posix
 import Posix(ProcessID,ProcessStatus(..),Fd,fdRead,fdWrite)
 import Concurrency
+import Concurrent
 import Interaction
 import WatchDog
 import Maybes
@@ -137,15 +138,22 @@ pollinterval err' parms = return parms{pinterval = err'}
 -- -------------------------------------------------------------------------
 
 data ChildProcess = 
-   ChildProcess 
-      ObjectID        
-      Bool                                    -- line oriented?
-      Fd                                      -- write end 
-      Fd                                      -- read end
-      Posix.ProcessID 
-      (Maybe (WatchDog ProcessStatus))
-      (PVar ToolStatus)
-
+   ChildProcess {
+      childObjectID :: ObjectID, 
+      lineMode :: Bool,-- if True readMsg returns lines, otherwise
+                       -- it returns the first input that's available.
+      writeTo :: Fd,   -- to write to the process
+      readFrom :: Fd,  -- to read from the process
+      processID :: Posix.ProcessID,
+                       -- process id of child
+      watchStatus :: (Maybe (WatchDog ProcessStatus)), 
+                       -- indicates exit code when process finishes
+      toolStatus :: (PVar ToolStatus), 
+                       -- ditto
+      bufferVar :: (MVar String) 
+                       -- bufferVar of previous characters (only relevant
+                       -- for line mode)
+      }
 
 -- -------------------------------------------------------------------------
 -- Constructor
@@ -155,19 +163,18 @@ newChildProcess :: FilePath -> [Config PosixProcess] -> IO ChildProcess
 newChildProcess path confs  =
    do                     -- (write,read)
       parms <- configure defaultPosixProcess confs
-      oid <- newObject
       (readIn,writeIn) <- Posix.createPipe 
       -- Pipe to send things to child
       (readOut,writeOut) <- Posix.createPipe 
       -- Pipe to read things back from child.
-      mpid <- Posix.forkProcess 
-      connect oid writeIn readIn writeOut readOut mpid parms
+      mprocessID <- Posix.forkProcess 
+      connect writeIn readIn writeOut readOut mprocessID parms
    where
       -- We send an initial character over the Child Process output pipe
       -- before doing anything else.  I don't know why, but this
       -- seems to stop the first character of the child's output being
       -- lost.
-      connect oid writeIn readIn writeOut readOut (Just pid) parms = 
+      connect writeIn readIn writeOut readOut (Just processID) parms = 
          do -- parent process
             waitForInputFd readOut
             result <- fdRead readOut 1
@@ -177,13 +184,24 @@ newChildProcess path confs  =
                else
                   done
 
-            toolStatusPVar <- newPVar Nothing
-            d <- terminationWatchDog (pinterval parms) toolStatusPVar pid
+            childObjectID <- newObject
+            toolStatus <- newPVar Nothing
+            watchStatus <- 
+               terminationWatchDog (pinterval parms) toolStatus processID
+            bufferVar <- newMVar ""
             Posix.fdClose readIn
             Posix.fdClose writeOut
-            return (ChildProcess oid (lmode parms) writeIn readOut pid d toolStatusPVar)
- 
-      connect oid writeIn readIn writeOut readOut Nothing parms =
+            return (ChildProcess {
+               childObjectID = childObjectID,
+               lineMode = lmode parms,
+               writeTo = writeIn,
+               readFrom = readOut,
+               processID = processID,
+               watchStatus = watchStatus,
+               toolStatus = toolStatus,
+               bufferVar = bufferVar
+               })
+      connect writeIn readIn writeOut readOut Nothing parms =
          do -- child process
             Posix.dupTo readIn Posix.stdInput
             Posix.dupTo writeOut Posix.stdOutput
@@ -239,76 +257,93 @@ getStatus toolStatusPVar pid =
 -- --------------------------------------------------------------------------
 
 instance Object ChildProcess where
-   objectID (ChildProcess oid  _ _ _ _ _ _) = oid
+   objectID = childObjectID
 
 instance Destructible ChildProcess where
-   destroy (ChildProcess  _ _ _ _ pid _ _) = 
-      Posix.signalProcess Posix.sigKILL pid
+   destroy child = Posix.signalProcess Posix.sigKILL (processID child)
    -- we can only wait for destruction if we set up a watchdog.
-   destroyed (ChildProcess _ _ _ _ _ (Just d) _) = receive d |>> done 
-   destroyed _ = inaction
+   destroyed child = 
+      let
+         Just watchDog = watchStatus child
+      in 
+         receive watchDog |>> done 
 
 
 instance Tool ChildProcess where
-   getToolStatus (ChildProcess _ _ _ _  pid _ toolStatusPVar) = getStatus toolStatusPVar pid
+   getToolStatus 
+         (ChildProcess {processID = processID,toolStatus = toolStatus}) = 
+      getStatus toolStatus processID
 
 
 instance UnixTool ChildProcess where
-   getUnixProcessID (ChildProcess _ _ _ _ pid _ _) = return pid 
+   getUnixProcessID child = return(processID child)
 
 
 -- -------------------------------------------------------------------------
 -- Commands
 -- -------------------------------------------------------------------------
 
--- Note on blocking and Posix.fdRead.  This is essentially equivalent
--- to the Posix read function.  This will block until at least 1
--- byte is available and then return all that are available up to
--- the user specified limit.  Since that blocks the entire process
--- (not just this thread) this means we should technically only
--- call Posix.fdRead if we already know there is stuff on the 
--- channel (e.g. via waitForInputFd).  readLine breaks this restriction
--- and so line-mode input can block everything if only half a line is written.
+{- line mode readMsg has been changed so it doesn't do a Posix.fdRead
+   on every character. -}
 readMsg :: ChildProcess -> IO String
-readMsg (ChildProcess _ True w r pid _ _) = 
--- return 1 line of input
-   do 
-      waitForInputFd r
-      readLine r ""
-readMsg (ChildProcess _ False w r pid _ _) = 
--- return next wodge of input, up to limit of 1000 chars.
-   do 
-      waitForInputFd r
-      (inp,count) <- Posix.fdRead r 1000
-      debug ("readMsg read " ++ inp)
+readMsg (ChildProcess 
+      {lineMode = True, readFrom = readFrom, bufferVar = bufferVar}) = 
+   do
+      buffer <- takeMVar bufferVar 
+      (newBuffer,result) <- readWithBuffer readFrom buffer []
+      putMVar bufferVar newBuffer
+      return result
+   where
+      readWithBuffer readFrom [] acc = 
+      -- we use an accumulating parameter since I don't want a
+      -- non-tail-recursive action.
+         do
+            nextChunk <- readChunk readFrom
+            readWithBuffer readFrom nextChunk acc
+      readWithBuffer readFrom ('\n' : rest) acc =
+         return (rest,reverse acc)
+      readWithBuffer readFrom (other : rest) acc =
+         readWithBuffer readFrom rest (other : acc)
+readMsg (ChildProcess {lineMode = False,readFrom = readFrom}) = 
+   readChunk readFrom
+
+readChunk :: Fd -> IO String
+-- read a chunk of characters, waiting until at least one is available.
+readChunk fd =
+   do
+      waitForInputFd fd
+      (input,count) <- Posix.fdRead fd 1000
+      debug ("readChunk read " ++ input)
       if count <= 0 
          then 
             raise (userError "ChildProcess: input error")
          else
-            return inp                      
+            return input
+
 
 sendMsg :: ChildProcess -> String -> IO ()
-sendMsg (ChildProcess _ True w r pid _ _) str  = writeLine w str
-sendMsg (chp @ (ChildProcess _ False w r pid _ _)) str  = 
+sendMsg (ChildProcess{lineMode = True,writeTo = writeTo}) str  = 
+   writeLine writeTo str
+sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  = 
    do 
       debug("sendMsg sending " ++ str)
-      count <- Posix.fdWrite w str
+      count <- Posix.fdWrite writeTo str
       -- see man -s 2 write for when write() returns 0.
       if count < 0 
          then
             raise writeLineError
          else if count < l then
-            sendMsg chp (drop count str)
+            sendMsg child (drop count str)
          else
             return ()
    where l = length str
 
 
 closeChildProcessFds  :: ChildProcess -> IO ()
-closeChildProcessFds (ChildProcess _ _ w r _ _ _) = 
+closeChildProcessFds (ChildProcess{writeTo = writeTo,readFrom = readFrom}) = 
    do 
-      Posix.fdClose w
-      Posix.fdClose r
+      Posix.fdClose writeTo
+      Posix.fdClose readFrom
 
 -- -------------------------------------------------------------------------
 -- Reading and Writing Lines from Channels

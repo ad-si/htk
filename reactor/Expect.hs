@@ -10,7 +10,11 @@ AUTHOR        : Einar Karlsen,
                 email:  ewk@informatik.uni-bremen.de
 DATE          : 1996
 VERSION       : alpha
-DESCRIPTION   : Provides similar functionality as the expect tool documented 
+DESCRIPTION   : (Einar's commments are now somewhat out of date.  See below
+                for changes.)
+
+
+                Provides similar functionality as the expect tool documented 
                 in
 
                 D. Libes: expect: Scripts for Controlling Interactive 
@@ -51,6 +55,17 @@ TO BE DONE  :   It should be possible to run tools like passwd and ftp in the
                 which explains why the current release does not support
                 running ftp and passwd for the time being.
 
+Changes:
+   1) use of the GHC RegexString interface instead of the above.
+      (This eventually calls the GNU regexp library, so should be
+      much quicker.)
+   2) The reader thread and writer thread now communicate by a 
+      channel.  The child process is run in line mode (normally) and
+      the writer thread gets the lines complete. 
+   3) The registration channel is now made a MsgQueue (so if you
+      send something on it you don't have to wait for something t
+      pick it up) and attemptMatch is the only function which looks
+      at it.  This simplifies the code somewhat.
 
    ######################################################################### -}
 
@@ -77,7 +92,10 @@ module Expect (
    commandFailed
    ) where
 
+#ifdef DEBUG
 import qualified IOExts(unsafePerformIO)
+#endif
+
 import FiniteMap
 import Posix(signalProcess,sigKILL)
 
@@ -104,17 +122,20 @@ import RegularExpression
 data Expect = 
    Expect {
       child           :: ChildProcess,         -- unix server
-      sap             :: SAP String (),
-      -- The reader sends messages read from the tool by calling
-      -- the eventsap; the matcher uses "provide" to process them.
+      childOutput     :: Channel String,
+      -- the reader sends each line output by the child along this
+      -- channel.
       eofChannel      :: Channel (),           -- eof signal  
       -- the reader sends a message along this channel when it
       -- gets an error.
-      regChannel       :: Channel (RST -> IO RST), 
+      regChannel      :: MsgQueue (RST -> IO RST), 
       -- Registration changes.  A registration change is a function
       -- from RST to IO RST which you send along regChannel and which
       -- is read by the matcher thread.  The function had better be
       -- quickly handled.
+      -- Why a queue and not a channel?  Because we terminate the
+      -- matcher thread when EOF is received, so there is no-one
+      -- at home to receive any final registration changes.
       collectable     :: Maybe CollectibleObj
       }
 
@@ -124,15 +145,12 @@ data Pattern = Pattern RegularExpression Int String
 data EOF = EOF
 
 data RST = RST [Pattern] (FiniteMap EventID [Listener])
+-- RST contains the state for the matcher.
 -- RST contains the map from Patterns to channels, arranged in two ways.
 -- The list contains all patterns matched.    The FiniteMap indexes
 -- them (by EventID), giving the list of listeners to send to, in
 -- order of priority.
 -- (The FiniteMap can also contain the EOF event.)
-
-data EST = EST String RST
--- This is the state maintained by the matcher thread.  The String
--- is the buffer of previously read characters
 
 
 -- --------------------------------------------------------------------------
@@ -142,22 +160,23 @@ data EST = EST String RST
 newExpect :: FilePath -> [Config PosixProcess] -> IO Expect
 newExpect tool confs = 
    do 
-      sap <- newSAP
+      childOutput <- newChannel
       eofChannel <- newChannel
-      regChannel <- newChannel
-      child <- newChildProcess tool ((linemode False) : confs)
-         -- this means the child process runs with linemode False
-         -- UNLESS the configurations say otherwise.
+      regChannel <- newMsgQueue
+      child <- newChildProcess tool ((linemode True) : confs)
+         -- this means the child process runs with linemode True
+         -- UNLESS the configurations say otherwise.  However that
+         -- is not recommended.
       let 
          expect =
             Expect {
                child=child,
-               sap=sap,
+               childOutput=childOutput,
                eofChannel=eofChannel,
                regChannel=regChannel,
                collectable=Nothing
                }
-      forkIO (matcher expect (EST "" emptyRST))
+      forkIO (matcher expect emptyRST)
       forkIO (reader expect)
       cobj <- newCollectibleObj
       -- specify that when we want to GC this Expect instance
@@ -166,13 +185,13 @@ newExpect tool confs =
       return (expect {collectable = Just cobj}) 
 
 -- --------------------------------------------------------------------------
---  Reader Thread.  This reads messages from the child.
---  When it obtains them it communicates them by passing them to
---  the SAP.
+--  Reader Thread.  This reads messages from the child and passes them
+--  along the childOutput channel.
 -- --------------------------------------------------------------------------
 
 reader :: Expect -> IO ()
-reader expect@(Expect{child=child,sap=sap,eofChannel=eofChannel}) = 
+reader expect@
+      (Expect{child=child,childOutput=childOutput,eofChannel=eofChannel}) = 
    do
       ans <- try(readMsg child)
       case ans of
@@ -182,58 +201,52 @@ reader expect@(Expect{child=child,sap=sap,eofChannel=eofChannel}) =
                closeChildProcessFds child
          Right v ->  
             do
-               sync(call sap v)
+               sendIO childOutput v
                reader expect
-        
-                        
+
 -- --------------------------------------------------------------------------
 --  Dispatcher and Adaptor Thread
 -- --------------------------------------------------------------------------
 
-matcher :: Expect -> EST -> IO ()
+matcher :: Expect -> RST -> IO ()
 matcher 
-      expect@(Expect{sap=sap,eofChannel=eofChannel,regChannel=regChannel}) 
-      est@(EST buffer rst) = 
+      expect@(Expect{
+         childOutput=childOutput,
+         eofChannel=eofChannel,
+         regChannel=regChannel})
+      rst = 
    sync (
-         (provide sap 
-            (\msg -> 
+         receive childOutput >>>=
+            (\line ->
                -- message received from the tool via "reader".
                do
-                  newEst <- attemptMatch expect (EST (buffer ++ msg) rst)
-                  return ((),newEst) 
-               ) >>>= \ newEst -> matcher expect newEst
-            )
-      +> registrationChanged regChannel rst >>>=  
-           (\ newRst -> 
-                do
-                   newEst <- attemptMatch expect (EST buffer newRst)
-                   matcher expect newEst
-                )
-      +> whenEV (buffer == "") 
-           (receive eofChannel >>> 
-              do
-                 newEst <- delegateEOF expect est
-                 matcher expect newEst
-              )
+                  attemptMatch expect line rst
+               )
+      +> receive eofChannel >>> 
+           do
+              delegateEOF expect rst
       )
 
 -- attemptMatch finds and handles all the non-overlapping matched
--- patterns in the buffer.
-attemptMatch :: Expect -> EST -> IO EST 
-attemptMatch expect (EST "" rst)= return (EST "" rst)
-attemptMatch expect (EST ('\n':buffer) rst) = 
-   attemptMatch expect (EST buffer rst)
-attemptMatch expect est@(EST buffer (RST patterns _)) = 
+-- patterns in a line, then returns the new registration
+-- event.
+attemptMatch :: Expect -> String -> RST -> IO ()
+attemptMatch expect line oldRst = 
    do
-      case (matchPattern patterns buffer) of 
+      rst@(RST patterns _) <- 
+         getPendingChanges (regChannel expect) oldRst
+      case (matchPattern patterns line) of 
          Nothing -> 
+            -- wait for matching patterns to arrive
             do
-               logNoMatch buffer           
-               return est
+               debug "attemptMatch 1"
+               newRst <-  getOneChange (regChannel expect) rst
+               debug "attemptMatch 2"
+               attemptMatch expect line newRst
          Just (pattern,matchResult) -> 
             do
-               logMatch buffer pattern matchResult
-               delegateEvent expect pattern matchResult est
+               logMatch line pattern matchResult
+               delegateEvent expect pattern matchResult rst
 
 -- matchPattern patterns str 
 -- searches for the first matching pattern in the list of patterns.
@@ -241,81 +254,112 @@ attemptMatch expect est@(EST buffer (RST patterns _)) =
 -- plus the MatchResult value.
 matchPattern :: [Pattern] -> String -> Maybe (Pattern,MatchResult)
 matchPattern patterns string =
-   firstJust
-      (map
-         ( \ pattern @ (Pattern regularExpression _ patString) ->
-            case matchString regularExpression string of
-               Nothing -> Nothing
-               Just matchResult -> Just (pattern,matchResult)
-            )  
-         patterns
-         )
+   firstJust (map (matchOnePattern string) patterns)
 
+matchOnePattern :: String -> Pattern -> Maybe (Pattern,MatchResult)
+matchOnePattern string pattern @ (Pattern regularExpression _ patString) = 
+#ifdef DEBUG
+   IOExts.unsafePerformIO(
+      do
+         debug("Is "++patString++" in "++string)
+         case matchString regularExpression string of
+            Nothing -> 
+               do
+                  debug "No"
+                  return Nothing
+            Just matchResult ->
+               do 
+                  debug matchResult
+                  return (Just(pattern,matchResult))
+      )
+ 
+#else
+   case matchString regularExpression string of
+      Nothing -> Nothing
+      Just matchResult -> Just (pattern,matchResult)
+#endif
 {- delegateEvent handles a successful match.
    delegateEvent expect pattern matchResult est
    pattern is the successful match.
    -}
-delegateEvent :: Expect -> Pattern -> MatchResult -> EST -> IO EST
-delegateEvent expect @ (Expect{regChannel=regChannel}) 
-      pattern matchResult est@(EST buffer rst) = 
-   sync (
-      choose (map (\ listener -> oneway listener eID matchResult) listeners) 
-         >>>= -- wait until one of the listeners accepts the event.
-            (\ ev -> -- this is the event to wait for for an acknowledgment.
-               do
-                   newRst <- awaitReply' regChannel ev rst
-                   logAck
-                   attemptMatch expect (EST (getAfter matchResult) newRst)
-               )
-      +> registrationChanged regChannel rst >>>= 
-         \ newRst -> attemptMatch expect (EST buffer newRst)
-      )
+delegateEvent :: Expect -> Pattern -> MatchResult -> RST -> IO ()
+delegateEvent 
+      expect @ (Expect{regChannel=regChannel}) pattern matchResult rst =
+   do
+      nextLineChannel <- newChannel
+      let
+         toWaitFor = receive nextLineChannel
+         toSend bool = send nextLineChannel bool
+      nextLine <- sync (
+         choose (map
+            (\ listener -> oneway listener eID (matchResult,toSend)) 
+            listeners)
+            >>>= -- wait until one of the listeners accepts the event.
+               (\ ev ->
+                   -- this is the event to wait for for an acknowledgment.
+                  do
+                     sync ev
+                     nextLine <- sync toWaitFor
+                     logAck
+                     return nextLine
+                  )
+         )
+      if nextLine
+         then
+            matcher expect rst
+         else
+            attemptMatch expect restLine rst              
   where 
      eID = toEventID (expect,pattern)
      listeners = getListeners eID rst
+     restLine = getAfter matchResult
 
-
-delegateEOF :: Expect -> EST -> IO EST
+delegateEOF :: Expect -> RST -> IO ()
 -- delegateEOF is similar to delegateEvent but is called when an
--- EOF message is received from the reader.
-delegateEOF expect @ (Expect{regChannel=regChannel}) est@(EST buffer rst)= 
-   sync (  
+-- EOF message is received from the reader.  It also has to get
+-- pending registration changes (which delegateEvent doesn't have
+-- to do as attemptMatch has just done it.
+delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
+   do 
+      rst <- getPendingChanges regChannel oldRst
+      let 
+         eID = toEventID (expect,EOF)
+         listeners = getListeners eID rst
+      sync (  
          choose (map (\ listener -> oneway listener eID ()) listeners) >>>= 
             (\ ev -> -- this is the event to wait for for an acknowledgment. 
                do
-                  newRst <- awaitReply' regChannel ev rst
+                  sync ev
                   logAck
-                  return (EST buffer rst)
                )
-      +> registrationChanged regChannel rst >>>=
-            (\ newRst ->
-               delegateEOF expect (EST buffer newRst)
-               )
-      )
-   where   
-      eID = toEventID (expect,EOF)
-      listeners = getListeners eID rst
+         )
+      done
 
 -- --------------------------------------------------------------------------
---  Awaiting replies
+-- Actions which receive and process registration events
 -- --------------------------------------------------------------------------
 
--- awaitReply' regChannel reply est
--- waits for reply to happen while simultaneously
--- monitoring registration changes to update rst
-awaitReply' :: Channel (RST -> IO RST) -> EV () -> RST -> IO RST
-awaitReply' regChannel reply rst = 
-   sync (
-         reply >>> return rst
-      +> registrationChanged regChannel rst >>>= 
-            \ newRst -> awaitReply' regChannel reply newRst
-      )
+-- getOneChange waits for one change
+getOneChange :: MsgQueue (RST -> IO RST) -> RST -> IO RST
+getOneChange regChannel rst = sync (registrationChanged regChannel rst)
 
-registrationChanged :: Channel (RST -> IO RST) -> RST -> EV RST
+-- getPendingChanges gets all pending changes.
+getPendingChanges :: MsgQueue (RST -> IO RST) -> RST -> IO RST 
+getPendingChanges regChannel rst =
+   do 
+      optionalChange <- poll(receive regChannel)
+      case optionalChange of
+         Nothing -> return rst
+         Just registrationChange ->
+            do
+               newRst <- registrationChange rst 
+               getPendingChanges regChannel newRst 
+
+
+registrationChanged :: MsgQueue (RST -> IO RST) -> RST -> EV RST
 registrationChanged regChannel rst = 
    receive regChannel >>>= 
       (\ registrationChange -> registrationChange rst )
-
 
 -- --------------------------------------------------------------------------
 -- We now come to code which enables the user to set up patterns
@@ -380,13 +424,23 @@ instance CommandTool Expect where
 --  Derived Events
 -- --------------------------------------------------------------------------
 
-expect :: PatternDesignator p => Expect -> p -> IA String
+expect :: PatternDesignator ptn => Expect -> ptn -> IA String
 expect exp ptn = 
-   match exp ptn >>>= 
-      ( \ matchResult ->
-         return (getMatched matchResult)
+   match exp ptn >>>=
+      ( \ matchResult -> return (getMatched matchResult))
+ 
+
+expect' :: PatternDesignator ptn => Expect -> ptn -> 
+   IA (String,Bool -> EV ())
+expect' exp ptn = 
+   match' exp ptn >>>= 
+      ( \ (matchResult,nextLine) ->
+         return (getMatched matchResult,nextLine)
          )
 
+-- this function should now not be used.
+matchLongLine = error "Expect.matchLongLine used"
+{- 
 matchLongLine:: Expect -> IA String
 matchLongLine exp = 
    expect exp "^.*" >>>=
@@ -403,10 +457,10 @@ matchLongLine exp =
                   )
                 )
          +> expect exp "\n" >>> return (soFar++"\n")
-             
+-}             
 
 matchLine:: Expect -> IA String
-matchLine exp = expect exp "^.*\n" 
+matchLine exp = expect exp "^.*$" 
 
 
 -- --------------------------------------------------------------------------
@@ -425,26 +479,42 @@ matchEOF expect =
       Expect {regChannel=regChannel} = expect
       register listener   = 
          sendIO regChannel (registerListener eID listener) 
-      deregister 
-         listener = sendIO regChannel (deregisterListener eID listener)
+      deregister listener = 
+         sendIO regChannel (deregisterListener eID listener)
 
 
 -- --------------------------------------------------------------------------
 --  Matching Event 
 -- --------------------------------------------------------------------------
 
-match :: PatternDesignator p => Expect -> p -> IA MatchResult 
-match expect p = interaction eID register unregister 
+match :: PatternDesignator ptn => Expect -> ptn -> IA MatchResult 
+match expect ptn  =
+   match' expect ptn >>>=
+      (\ (matchResult,nextLine) ->
+         do
+            sync(nextLine True)
+            return matchResult
+         )
+
+match' :: PatternDesignator ptn => Expect -> ptn -> 
+   IA (MatchResult,Bool -> EV()) 
+match' expect ptn = interaction eID register unregister 
 -- Use match to make an IA which returns the Regular Expression
 -- result for particular patterns.
    where 
       eID = toEventID (expect,pattern)
-      pattern = toPattern p
+      pattern = toPattern ptn
       Expect {regChannel=regChannel} = expect
       register listener = 
-         sendIO regChannel (registerPtn pattern eID listener)
+         do
+            debug "register1"
+            sendIO regChannel (registerPtn pattern eID listener)
+            debug "register2"
       unregister listener = 
-         sendIO regChannel (deregisterPtn pattern eID listener)
+         do
+            debug "unregister1"
+            sendIO regChannel (deregisterPtn pattern eID listener)
+            debug "unregister2"
 
 -- --------------------------------------------------------------------------
 --  RST - registration/deregistration and lookup
@@ -522,15 +592,15 @@ deregisterPtn (Pattern _ _ patStr) eID listener rst =
 -- --------------------------------------------------------------------------
 
 logMatch :: String -> Pattern -> MatchResult -> IO ()
-logMatch buffer pattern@(Pattern _ prio patStr) matchResult = 
+logMatch line pattern@(Pattern _ prio patStr) matchResult = 
    do
-      logExpect ("Buffer = " ++ show buffer)
+      logExpect ("Line = " ++ show line)
       logExpect ("Pattern = " ++ show prio ++ ":" ++ patStr)
       logExpect ("Matched = " ++ show (getMatched matchResult))
       logExpect ("Rest = " ++ show (getAfter matchResult))
 
 logNoMatch :: String -> IO ()
-logNoMatch buffer = logExpect ("NoMatch found in " ++ show buffer)
+logNoMatch line = logExpect ("NoMatch found in " ++ show line)
 logAck :: IO()
 logAck = 
    do
@@ -538,7 +608,7 @@ logAck =
       logExpect ("----------------")
 
 logExpect :: String -> IO ()
-logExpect buffer = debug ("Expect:"++buffer) 
+logExpect mess = debug ("Expect:"++mess) 
 {-# INLINE logAck #-}
 {-# INLINE logMatch #-}
 {-# INLINE logExpect #-}

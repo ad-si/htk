@@ -28,28 +28,19 @@ import Debug(debug)
 main =  
    do
       exp <- newExpect "csh" [arguments ["-sf"]];
-{-      sync (
-         match exp ("^.+%") >>>=
-            (\ matchResult ->
-               putStr ("Prompt\n Matched:"++(show (getMatched matchResult))++
-                   "\n Substrings:"++(show(getSubStrings matchResult))++"\n")
-               )
-         )
--}
       inter <- newInterActor 
          (\iact -> 
                match exp ("^PERL") >>> 
                   do
-                     print "caught perl"
-                      
+                     debug "caught perl"
             +> match exp ("^awk") >>> 
                   do
-                     print "caught awk"
+                     debug "caught awk"
             +> matchLine exp >>>=
-                  (\ line -> putStr (line++"\n"))
+                  (\ line -> debug (line++"\n"))
             +> matchEOF exp >>> 
                   do
-                      putStr "Quitting interactor\n" 
+                      debug "Quitting interactor\n" 
                       stop iact
             )
       execCmd "echo awk\n" exp
@@ -63,9 +54,12 @@ main =
       execCmd "echo AWK\n" exp
       execCmd "echo AWK\n" exp
       execCmd "echo PERL\n" exp
+      debug "About to delay"
       delay(secs 1)
-      execCmd "exit" exp
+      debug "End of delay"
+      execCmd "exit\n" exp
       sync(destroyed inter)
+
 
 
 
