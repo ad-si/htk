@@ -11,8 +11,16 @@ module Registry(
    GetSetRegistry(..),
    KeyOpsRegistry(..),
       -- These classes describe access operations for registries.
+   -- other specific operations
    listRegistryContents,
       -- :: Registry from to -> IO [(from,to)]
+
+   -- Operations which get and set the Dyn directly from an UntypedRegistry
+   setValueAsDyn,
+      -- :: Ord from => UntypedRegistry from -> from -> Dyn -> IO ()
+   getValueAsDyn,
+      -- :: Ord from => UntypedRegistry from -> from -> IO Dyn
+
    ) where
 
 import IO
@@ -108,11 +116,18 @@ instance Ord from => NewRegistry (UntypedRegistry from) where
          return (UntypedRegistry registry)
    emptyRegistry (UntypedRegistry registry) = emptyRegistry registry
 
+setValueAsDyn :: Ord from => UntypedRegistry from -> from -> Dyn -> IO ()
+setValueAsDyn (UntypedRegistry registry) from toDyn = 
+   setValue registry from toDyn
+
+getValueAsDyn :: Ord from => UntypedRegistry from -> from -> IO Dyn
+getValueAsDyn (UntypedRegistry registry) from = getValue registry from
+
 instance (Ord from,Typeable to) 
    => GetSetRegistry (UntypedRegistry from) from to where
-   getValue (UntypedRegistry registry) from =
+   getValue registry from =
       do
-         dyn <- getValue registry from
+         dyn <- getValueAsDyn registry from
          case fromDyn dyn of
             Nothing ->
                ioError(userError "Registry.getValue - value of wrong type")
@@ -126,11 +141,11 @@ instance (Ord from,Typeable to)
                case fromDyn dyn of
                   Nothing -> return Nothing
                   Just value -> return value
-   setValue (UntypedRegistry registry) from to =
+   setValue registry from to =
       do
          let
             dyn = toDyn to
-         setValue registry from dyn
+         setValueAsDyn registry from dyn
 
 instance Ord from => KeyOpsRegistry (UntypedRegistry from) from where
    deleteFromRegistry (UntypedRegistry registry) from =

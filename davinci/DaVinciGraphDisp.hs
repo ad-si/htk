@@ -34,6 +34,7 @@ import Registry
 import qualified DaVinci
 import qualified HTk
 import qualified SIM
+import Event
 
 import GraphDisp
 
@@ -56,13 +57,26 @@ data DaVinciGraph =
    DaVinciGraph {
       graph :: DaVinci.Graph,
       daVinci :: DaVinci.DaVinci,
+
+      -- maps from DaVinci nodes and edges to various things.
       nodeValues :: UntypedRegistry DaVinci.Node,
       edgeValues :: UntypedRegistry DaVinci.Edge,
-      nodeTypes :: UntypedRegistry DaVinci.Node
+      nodeTypes :: Registry DaVinci.Node DaVinciNodeTypePrim,
+      dragAndDropper :: SIM.InterActor
+         -- interactor to handle dragging and dropping 
       }
 
 instance SIM.Destructible DaVinciGraph where
-   SIM.destroy (DaVinciGraph {graph=graph}) = SIM.destroy graph
+   SIM.destroy (DaVinciGraph {graph = graph,nodeValues = nodeValues,
+         edgeValues = edgeValues,nodeTypes = nodeTypes,
+         dragAndDropper = dragAndDropper}) = 
+      do
+         SIM.destroy dragAndDropper
+         SIM.destroy graph
+         emptyRegistry nodeValues
+         emptyRegistry edgeValues
+         emptyRegistry nodeTypes
+
    SIM.destroyed (DaVinciGraph {graph=graph,daVinci=daVinci} ) = (
          SIM.destroyed graph 
       +> DaVinci.lastGraphClosed daVinci
@@ -70,15 +84,17 @@ instance SIM.Destructible DaVinciGraph where
       )
 
 
-newtype DaVinciGraphParms = DaVinciGraphParms {
-   graphConfigs :: [Config DaVinci.Graph]
+data DaVinciGraphParms = DaVinciGraphParms {
+   graphConfigs :: [Config DaVinci.Graph],
+   graphConfigGesture :: IO ()
    }
 
 instance Graph DaVinciGraph where
    redraw (DaVinciGraph{graph=graph}) = DaVinci.redrawGraph graph
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
-   newGraph (DaVinciGraphParms {graphConfigs=graphConfigs}) =
+   newGraph (DaVinciGraphParms {
+         graphConfigs=graphConfigs,graphConfigGesture=graphGesture}) =
       do
          (daVinci :: DaVinci.DaVinci) <- DaVinci.davinci []
          graph <- DaVinci.newGraph ([
@@ -94,16 +110,39 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          edgeValues <- newRegistry
          nodeTypes <- newRegistry
 
+         -- Set up drag and dropper interactor
+         dragAndDropper <- SIM.newInterActor (\iact ->
+               DaVinci.createNodeGesture graph >>> graphGesture
+            +> DaVinci.createChildGesture graph >>>=
+                  (\ daVinciNode ->
+                     do
+                        nodeTypePrim <- getValue nodeTypes daVinciNode
+                        dyn <- getValueAsDyn nodeValues daVinciNode
+                        (onNodeGesture nodeTypePrim) dyn
+                     )      
+            +> DaVinci.createEdgeGesture graph >>>=
+                  (\ (nodeFrom,nodeTo) ->
+                     do
+                        fromDyn <- getValueAsDyn nodeValues nodeFrom
+                        toDyn <- getValueAsDyn nodeValues nodeTo
+                        nodeTypePrim <- getValue nodeTypes nodeTo
+                        (onNodeDragAndDrop nodeTypePrim) fromDyn toDyn 
+                  )
+            )   
+                 
+
          return (DaVinciGraph{
             graph = graph,
             daVinci = daVinci,
             nodeValues = nodeValues,
             edgeValues = edgeValues,
-            nodeTypes = nodeTypes
+            nodeTypes = nodeTypes,
+            dragAndDropper = dragAndDropper
             })
 
 instance GraphParms DaVinciGraphParms where
-   emptyGraphParms = DaVinciGraphParms {graphConfigs = []}
+   emptyGraphParms = DaVinciGraphParms {
+      graphConfigs = [],graphConfigGesture = done}
 
 instance GraphConfigParms GraphTitle DaVinciGraphParms where
    graphConfigUsed _ _  = True
@@ -125,34 +164,52 @@ instance GraphConfig graphConfig
 
 data DaVinciNode value = DaVinciNode DaVinci.Node
 
-data DaVinciNodeType value = 
-   DaVinciNodeType DaVinci.NodeType (value -> IO String)
-   -- the second argument gives the displayed name of the node.
+-- Tiresomely we need to make the "real" node type untyped.
+-- This is so that the interactor which handles drag-and-drop
+-- can get the type out without knowing what it is.
+newtype DaVinciNodeType value = DaVinciNodeType DaVinciNodeTypePrim
+
+data DaVinciNodeTypePrim = DaVinciNodeTypePrim {
+   nodeType :: DaVinci.NodeType,
+   nodeText :: Dyn -> IO String,
+      -- how to compute the displayed name of the node
+   onNodeGesture :: Dyn -> IO (),
+      -- action on node gesture
+   onNodeDragAndDrop :: Dyn -> Dyn -> IO ()
+      -- action on node drag and drop
+   }
 
 data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
-      nodeText :: (value -> IO String),
-      nodeTypeConfigs :: [DaVinciGraph -> Config DaVinci.NodeType]
-         -- config options.
+      nodeTypeConfigs :: [DaVinciGraph -> Config DaVinci.NodeType],
+         -- DaVinci config options,
+      configNodeText :: (value -> IO String),
+      configNodeGesture :: value -> IO (),
+      configNodeDragAndDrop :: Dyn -> value -> IO ()
       }
 
 instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
-   newNode daVinciNodeType@(DaVinciNodeType nodeType getNodeTitle) 
-         (DaVinciGraph{
-            graph=graph,nodeValues=nodeValues,nodeTypes=nodeTypes}) 
+   newNode (DaVinciNodeType (nodeTypePrim @ DaVinciNodeTypePrim {
+              nodeType = daVinciNodeType,nodeText = nodeText}))
+           (DaVinciGraph {
+              graph=graph,nodeValues=nodeValues,nodeTypes=nodeTypes}) 
             value =
       do
-         nodeText <- getNodeTitle value
-         node <- DaVinci.newNode graph Nothing [DaVinci.nodetype nodeType]
-         setValue nodeValues node value
-         setValue nodeTypes node daVinciNodeType
+         let valueDyn = toDyn value
+         thisNodeText <- nodeText valueDyn
+         node <- DaVinci.newNode graph Nothing [
+            DaVinci.nodetype daVinciNodeType]
+         setValueAsDyn nodeValues node valueDyn
+         setValue nodeTypes node nodeTypePrim
          configure node [
-            HTk.text nodeText,
+            HTk.text thisNodeText,
             DaVinci.border DaVinci.cdefault
             ]
          return (DaVinciNode node)
    getNodeType (DaVinciGraph {nodeTypes=nodeTypes}) (DaVinciNode node) = 
-      getValue nodeTypes node
+      do
+         primType <- getValue nodeTypes node
+         return (DaVinciNodeType primType)
 
 instance DeleteNode DaVinciGraph DaVinciNode where
    deleteNode (DaVinciGraph {nodeValues=nodeValues,nodeTypes=nodeTypes})
@@ -168,10 +225,10 @@ instance DeleteNode DaVinciGraph DaVinciNode where
    setNodeValue (DaVinciGraph {nodeValues=nodeValues,nodeTypes=nodeTypes})
          (DaVinciNode node) newValue =
       do
-         setValue nodeValues node newValue
-         (nodeType@(DaVinciNodeType _ getTitle)) <- 
-            getValue nodeTypes node
-         newTitle <- getTitle newValue
+         let valueDyn = toDyn newValue
+         setValueAsDyn nodeValues node valueDyn
+         nodeType <- getValue nodeTypes node
+         newTitle <- (nodeText nodeType) valueDyn
          HTk.text newTitle node
          done
 
@@ -198,8 +255,10 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
             daVinci = daVinci
             })) 
          (DaVinciNodeTypeParms {
-            nodeText = nodeText,
-            nodeTypeConfigs = nodeTypeConfigs
+            nodeTypeConfigs = nodeTypeConfigs,
+            configNodeText = configNodeText,
+            configNodeGesture = configNodeGesture,
+            configNodeDragAndDrop = configNodeDragAndDrop
             }) =
       do
          let
@@ -207,13 +266,33 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
                map 
                   (\ mkConfig -> mkConfig daVinciGraph) 
                   nodeTypeConfigs
+            nodeText dyn =
+               do
+                  let Just value = fromDyn dyn
+                  configNodeText value
+            onNodeGesture dyn =
+               do
+                  let Just value = fromDyn dyn
+                  configNodeGesture value
+            onNodeDragAndDrop dynFrom dynTo =
+               do
+                  let Just value = fromDyn dynTo
+                  configNodeDragAndDrop dynFrom value
+              
          nodeType <- DaVinci.newNodeType graph Nothing (reverse configs)
-         return (DaVinciNodeType nodeType nodeText)
+         return (DaVinciNodeType (DaVinciNodeTypePrim {
+            nodeType = nodeType,
+            nodeText = nodeText,
+            onNodeGesture = onNodeGesture,
+            onNodeDragAndDrop = onNodeDragAndDrop
+            }))
 
 instance NodeTypeParms DaVinciNodeTypeParms where
    emptyNodeTypeParms = DaVinciNodeTypeParms {
-      nodeText = (\ value -> return ""),
-      nodeTypeConfigs = []
+      nodeTypeConfigs = [],
+      configNodeText = (\ value -> return ""),
+      configNodeGesture = (\ value -> done),
+      configNodeDragAndDrop = (\ dyn value -> done)
       }
 
 instance NodeTypeConfig graphConfig 
@@ -229,7 +308,7 @@ instance NodeTypeConfig graphConfig
 instance NodeTypeConfigParms ValueTitle DaVinciNodeTypeParms where
    nodeTypeConfigUsed _ _ = True
    nodeTypeConfig (ValueTitle nodeText) parms = 
-      parms { nodeText = nodeText }
+      parms { configNodeText = nodeText }
 
 instance NodeTypeConfigParms Shape DaVinciNodeTypeParms where
    nodeTypeConfigUsed _ _ = True
@@ -423,4 +502,28 @@ convertEdgeButton (LocalMenu menuPrim)
             )   
          menuPrim
       )
+
+------------------------------------------------------------------------
+-- Drag And Drop
+------------------------------------------------------------------------
+
+instance GraphConfigParms GraphGesture DaVinciGraphParms where
+   graphConfigUsed _ _ = True
+   
+   graphConfig (GraphGesture action) graphParms =
+      graphParms {graphConfigGesture = action}
+
+
+instance NodeTypeConfigParms NodeGesture DaVinciNodeTypeParms where
+   nodeTypeConfigUsed _ _ = True
+
+   nodeTypeConfig (NodeGesture onNodeGesture) nodeTypeParms =
+      nodeTypeParms {configNodeGesture = onNodeGesture}
+
+
+instance NodeTypeConfigParms NodeDragAndDrop DaVinciNodeTypeParms where
+   nodeTypeConfigUsed _ _ = True
+
+   nodeTypeConfig (NodeDragAndDrop onNodeDragAndDrop) nodeTypeParms =
+      nodeTypeParms {configNodeDragAndDrop = onNodeDragAndDrop}
 

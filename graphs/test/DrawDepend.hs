@@ -14,6 +14,7 @@ import FiniteMap
 import Debug
 import Computation
 import IOExtras
+import Dynamics(fromDyn)
 
 import RegularExpression
 import InfoBus
@@ -126,8 +127,11 @@ drawDepend ::
    (GraphAll graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms,
     GraphConfigParms GraphTitle graphParms,
+    GraphConfigParms GraphGesture graphParms,
     NodeTypeConfigParms ValueTitle nodeTypeParms,
-    NodeTypeConfigParms LocalMenu nodeTypeParms
+    NodeTypeConfigParms LocalMenu nodeTypeParms,
+    NodeTypeConfigParms NodeGesture nodeTypeParms,
+    NodeTypeConfigParms NodeDragAndDrop nodeTypeParms
     ) 
    => (graph,graphParms,
       node Int,nodeType Int,nodeTypeParms Int,
@@ -146,11 +150,19 @@ drawDepend (_::
       let
          nullGraphParms = emptyGraphParms :: graphParms
          graphParms =
+            (graphConfig (GraphGesture (putStrLn "New Node Gesture"))) .
             (graphConfig (GraphTitle "Haskell Dependencies")) $
                nullGraphParms
 
          (nullNodeParms :: nodeTypeParms String) = emptyNodeTypeParms
          nodeTypeParms =
+            (nodeTypeConfig (NodeGesture (\ title ->
+               putStrLn ("New Node-And-Edge gesture on "++title)))) .
+            (nodeTypeConfig (NodeDragAndDrop (\ otherDyn this ->
+               do
+                  let Just other = fromDyn otherDyn
+                  putStrLn ("Dragged "++other++" to "++this)
+               ))) .
             (nodeTypeConfig (ValueTitle (\ title -> return title ))) .
             (nodeTypeConfig (LocalMenu (Button "Type1" 
                   (\ title -> putStrLn title))))
