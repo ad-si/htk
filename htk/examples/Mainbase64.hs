@@ -37,20 +37,23 @@ getMatchedFiles fs abs = getMatchedFiles' fs [] [] abs
         getMatchedFiles' (f : fs) dirs files abs =
           if ((f == ".") || (f == "..")) then
             do
+              putStr "1\n"
               r <- getMatchedFiles' fs dirs files abs
               return r
           else
             do
+              putStr ("getting permissions of " ++ f  ++ "\n")
               b <- getPermissions (abs ++ "/" ++ f)
+              putStr "finished\n"
               (if not(hidden f)
-               then if searchable b
-                    then getMatchedFiles' fs (f : dirs) files abs
+               then putStr "searchable ?\n" >> if searchable b
+                    then putStr "2\n" >>
+                         getMatchedFiles' fs (f : dirs) files abs
                     else if gif f
-                         then getMatchedFiles' fs dirs (f : files) abs
-                         else getMatchedFiles' fs dirs files abs
-               else getMatchedFiles' fs dirs files abs)
-
-        getMatchedFiles' _ dirs files _ = return (dirs ++ files)
+                         then putStr "3\n" >> getMatchedFiles' fs dirs (f : files) abs
+                         else putStr "4\n" >> getMatchedFiles' fs dirs files abs
+               else putStr "5\n" >> getMatchedFiles' fs dirs files abs)
+        getMatchedFiles' _ dirs files _ = putStr "6\n" >> return (dirs ++ files)
         hidden :: FilePath -> Bool
         hidden ('.':_) = True
         hidden _ = False
@@ -88,6 +91,9 @@ toTreeListObjects treelist path (f : fs) =
     return (obj : objs)
 toTreeListObjects _ _ _ = return []
 
+printcontents (f : fs) = putStr (f ++ "\n") >> printcontents fs
+printcontents _ = done
+
 cfun :: ChildrenFun String
 cfun (tl, val, nm) =
   do
@@ -99,6 +105,7 @@ cfun (tl, val, nm) =
      else
        do
          dcontents <- getDirectoryContents val
+         printcontents dcontents
          putStr "contents read\n"
          matched_files <- getMatchedFiles dcontents val
          putStr "contents sorted\n"
