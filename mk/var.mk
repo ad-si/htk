@@ -4,12 +4,7 @@
 # Export all variables!
 # export 
 include top/mk/settings.mk # find out location of top directory
-
-
-include $(UNIDIR)/mk/machinedep.mk # set variables which depend on the machine
--include $(UNIDIR)/mk/local.mk  # If available, include local variable changes
-# (This file is not included in the standard CVS distribution and
-# is intended to contain directives for debugging.)
+# Includes for local variable changes at the end of this file
 
 # Glasgow Haskell Compiler
 # HCHOME set in machinedep.mk
@@ -82,5 +77,10 @@ VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 HTKDIRS = $(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):
 
 HTKSDIRS = resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:
+
+include $(UNIDIR)/mk/machinedep.mk # set variables which depend on the machine
+-include $(UNIDIR)/mk/local.mk  # If available, include local variable changes
+# (This file is not included in the standard CVS distribution and
+# is intended to contain directives for debugging.)
 
 
