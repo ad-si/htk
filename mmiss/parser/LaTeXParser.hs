@@ -1,4 +1,5 @@
 module LaTeXParser (
+   mparse,
    parseMMiSSLatex, 
    -- :: Maybe MMiSSLatexPreamble -> String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
@@ -20,7 +21,7 @@ module LaTeXParser (
    toIncludeStr, -- Char -> String
    -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
    -- the corresponding includeXXX command.
---   parseAndMakeMMiSSLatex,  -- SourceName -> Bool -> IO ()
+   parseAndMakeMMiSSLatex,  -- SourceName -> Bool -> IO ()
    -- parseAndMakeMMiSSLatex parses a MMiSSLatex file and converts it back to MMiSSLatex
    -- combination of parseMMiSSLatexFile and makeMMiSSLatex 
    showElement, -- WithError Element -> String
@@ -308,8 +309,7 @@ lParams id l
                           p <- try ( genParam '{' '}' )
                           return (LParams [(SingleParam p '{')] Nothing)
   | id `elem` (map fst includeCommands) =
-      do spaces
-	 labelId <-  try(between (char '{') (char '}') idParser)
+      do labelId <-  try(between (char '{') (char '}') idParser)
 	             <?> "{referencedLabelID}{attribute-list} for Command <" ++ id ++ ">"   
 	 spaces
 	 attributes <- try(between (char '{') (char '}') attParser)
@@ -376,10 +376,13 @@ adhocEnvironment = do char '{'
 -- nicht erkannt, sondern von escapedChar geparst.
 
 command :: GenParser Char st Frag
-command = do c <- many1 (noneOf "\\\v\f\t\r\n{[(}]} \"")
-             skipMany (oneOf " \t")
-             l <- lParams c [] 
-	     return (Command c l)
+command = do c <- try (many1 (noneOf "\\\v\f\t\r\n{[(}]} \""))
+             str1 <- try (many (oneOf " \t"))
+             l <- lParams c []
+             if (c `elem` (map fst (embeddedElements ++ linkAndRefCommands ++ includeCommands)))
+               then return (Command c l)
+               else return (Command (c ++ str1) l)
+
 
 -- escapedChar erkennt die mit Backslash ihrer Sonderbedeutung in LaTeX entbundenen
 -- Zeichen sowie das geschuetzte Leerzeichen.
@@ -436,7 +439,7 @@ parseMMiSSLatex :: Maybe MMiSSLatexPreamble -> String -> WithError Element
 parseMMiSSLatex preamble s = 
   let result = parse (latexDoc []) "" s
   in case result of
---     Right ast  -> trace s (makeXML ast)
+--     Right ast  -> trace s (makeXML peamble ast)
        Right ast  -> makeXML preamble ast
        Left err -> hasError (concat (map messageString (errorMessages(err))))
 
@@ -457,6 +460,8 @@ parseAndShow s = do result <- parseFromFile (latexDoc []) s
 showElement :: WithError Element -> String
 showElement e = coerceWithError (mapWithError (render . PP.element) e)
 
+showElement1 :: Content -> String
+showElement1 (CElem e) = (render . PP.element) e
 
 makeXML :: Maybe MMiSSLatexPreamble -> Frag -> WithError Element
 makeXML preamble frag = case preamble of
@@ -554,22 +559,29 @@ makeContent (f:frags) NoText parentEnv =
 	                                               (makeContent fs (detectTextMode name) name))
                              (makeContent frags NoText parentEnv)
                  else  -- No MMiSS-Env.
-		   myConcatWithError (makeContent fs NoText parentEnv) (makeContent frags NoText parentEnv)
-     (Command name ps) -> if (name `elem` (map fst includeCommands))
-			    then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
-				 in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))]))
-                                                      (makeContent frags NoText parentEnv)
-			    else makeContent frags NoText parentEnv
+                   let begin = hasValue([(CMisc (Comment 
+                                                 ("\n\\begin{" ++ name ++ "}" ++ (lparamsToString ps))))])
+                       end =  hasValue([(CMisc (Comment ("\n\\end{" ++ name ++ "}")))])
+	   	       body = (makeContent fs NoText parentEnv)
+                       whole = myConcatWithError (myConcatWithError begin body) end
+                   in myConcatWithError whole (makeContent frags NoText parentEnv)
+--		   myConcatWithError (makeContent fs NoText parentEnv) (makeContent frags NoText parentEnv)
+     (Command name ps) -> 
+        if (name `elem` (map fst includeCommands))
+	  then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
+	       in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))]))
+                                    (makeContent frags NoText parentEnv)
+	  else makeContent frags NoText parentEnv
      _ -> makeContent frags NoText parentEnv
 
 makeContent (f:frags) TextAllowed "List" = 
    case f of
      (Other str) -> myConcatWithError (hasValue([(CMisc (Comment str))])) (makeContent frags TextAllowed "List")
      (Env name ps fs) -> 
-               if (name `elem` (map fst mmiss2EnvIds))
-	         then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a ListItem.")
-                 else  -- No MMiSS-Env.
-		    myConcatWithError (makeContent fs TextAllowed "List") (makeContent frags TextAllowed "List")
+        if (name `elem` (map fst mmiss2EnvIds))
+          then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a ListItem.")
+          else  -- No MMiSS-Env.
+	    myConcatWithError (makeContent fs TextAllowed "List") (makeContent frags TextAllowed "List")
      (Command "ListItem" ps) -> 
          let (content, restFrags) = makeListItem ps frags []
          in myConcatWithError (hasValue([content])) (makeContent restFrags TextAllowed "List")
@@ -577,8 +589,9 @@ makeContent (f:frags) TextAllowed "List" =
 
 makeContent (f:frags) TextAllowed parentEnv = 
    case f of
-     (EscapedChar c) ->  myConcatWithError (hasValue([(CMisc (Comment [c]))])) 
-                                           (makeContent frags TextAllowed parentEnv)
+     (EscapedChar c) ->  let cstr = if (c == '\\') then "\\" else [c]
+                         in myConcatWithError (hasValue([(CMisc (Comment cstr))])) 
+                                              (makeContent frags TextAllowed parentEnv)
      (Other str) -> if ((head str) == '%')
                       then myConcatWithError (hasValue([(CMisc (Comment str))])) 
                                              (makeContent frags TextAllowed parentEnv)
@@ -607,13 +620,26 @@ makeContent (f:frags) TextAllowed parentEnv =
 	                                                             (makeContent fs (detectTextMode name) name))
                                            (makeContent frags TextAllowed parentEnv)
                  else  -- No MMiSS-Env.
-		   myConcatWithError (makeContent fs TextAllowed parentEnv) 
-                                     (makeContent frags TextAllowed parentEnv)
-     (Command name ps) -> if (name `elem` (map fst includeCommands))
-			    then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
-				 in myConcatWithError (cElemListWithError ename (makeIncludeAttribs ps) (hasValue([])))
-                                                      (makeContent frags TextAllowed parentEnv)
-			    else makeContent frags TextAllowed parentEnv
+                   let begin = hasValue([(CMisc (Comment 
+                                                 ("\n\\begin{" ++ name ++ "}" ++ (lparamsToString ps))))])
+                       end =  hasValue([(CMisc (Comment ("\n\\end{" ++ name ++ "}")))])
+	   	       body = (makeContent fs TextAllowed parentEnv)
+                       whole = myConcatWithError (myConcatWithError begin body) end
+                   in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
+--		   myConcatWithError (makeContent fs TextAllowed parentEnv) 
+--                                     (makeContent frags TextAllowed parentEnv)
+     (Command name ps) -> 
+        if (name `elem` (map fst includeCommands))
+	  then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
+	       in myConcatWithError (cElemListWithError ename (makeIncludeAttribs ps) (hasValue([])))
+                                                        (makeContent frags TextAllowed parentEnv)
+          else if (name `elem` (map fst embeddedElements))
+                 then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+                      in  myConcatWithError (hasValue([content])) 
+	   	                            (makeContent restFrags TextAllowed parentEnv)
+                 else myConcatWithError (hasValue([CMisc (Comment ("\\" ++ name ++ (lparamsToString ps)))]))
+                                        (makeContent frags TextAllowed parentEnv)
+--                 else makeContent frags TextAllowed parentEnv
 
 
 makeTextElem :: [Frag] -> String 
@@ -621,7 +647,7 @@ makeTextElem :: [Frag] -> String
 makeTextElem [] = ""
 makeTextElem (f:fs) = 
   case f of
-    (EscapedChar c) -> "\\" ++ [c] ++ (makeTextElem fs)
+    (EscapedChar c) -> "\\" ++ (if (c == '\\') then "\\" else [c]) ++ (makeTextElem fs)
     (Other str) -> str ++ (makeTextElem fs)
     (Command name ps) -> "\\" ++ name ++ (lparamsToString ps) ++ (makeTextElem fs)
     (Env name ps content) -> "\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++
@@ -666,7 +692,8 @@ makeNamelessTextFragment parentEnv (f:frags) textFrags =
                                                     else (e1, ([f] ++ frags))
                                                _ -> (e1, ([f] ++ frags))
 
-                             else makeNamelessTextFragment parentEnv (fs ++ frags) textFrags   -- Latex-Env.
+--                             else makeNamelessTextFragment parentEnv (fs ++ frags) textFrags   -- Latex-Env.
+                             else makeNamelessTextFragment parentEnv frags (textFrags ++ [f])  -- Latex-Env.
     (Command "ListItem" _) -> ((makeTextFragment parentEnv "textFragment" Nothing textFrags []), (f:frags))
     _ -> makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
 
@@ -682,7 +709,8 @@ makeTextFragment parentEnv name params [] content =
 makeTextFragment parentEnv name params (f:frags) content =
   case f of
     (Other str) -> makeTextFragment parentEnv name params frags (content ++ [(CString True str)])
-    (EscapedChar c) -> makeTextFragment parentEnv name params frags (content ++ [(CString True ("\\" ++ [c]))])
+    (EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
+                       in makeTextFragment parentEnv name params frags (content ++ [(CString True ("\\" ++ cstr))])
     (Command "Emphasis" ps) -> let newElem = (CElem (Elem "emphasis" [] [(CString True (getEmphasisText ps))]))
 			        in makeTextFragment parentEnv name params frags (content ++ [newElem]) 
     (Command "IncludeTextFragment" ps) -> 
@@ -703,7 +731,14 @@ makeTextFragment parentEnv name params (f:frags) content =
     (Command "Define" ps) ->
          let newElem = CElem (Elem "define" (makeDefineAttribs ps) (getDefineText ps))
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
-    (Env _ _ fs) -> makeTextFragment parentEnv name params (fs ++ frags) content
+    (Command cname ps) ->
+         let newElem = CMisc (Comment ("\\" ++ cname ++ (lparamsToString ps)))
+ 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
+    (Env ename ps fs) -> 
+         let begin = [CMisc (Comment ("\n\\begin{" ++ ename ++ "}\\n" ++ (lparamsToString ps)))]
+             end =  [CMisc (Comment ("\n\\end{" ++ ename ++ "}"))]
+             (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
+         in makeTextFragment parentEnv name params frags (content ++ begin ++ c ++ end)
     _ -> makeTextFragment parentEnv name params frags content                         
 
 
@@ -747,6 +782,14 @@ makeListItem params (f:frags) contentList =
         in makeListItem params frags (contentList ++ [newElem])
      (Command "ListItem" ps) -> 
         ((CElem (Elem "listItem" (makeListItemAttribs params) contentList)), (f:frags))
+{--
+     (Command name ps) -> 
+        if (name `elem` (map fst embeddedElements))
+          then let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+               in makeListItem params restFrags (contentList ++ [content]) 
+          else let newElem = CMisc (Comment ("\\" ++ name ++ (lparamsToString ps)))
+               in makeListItem params frags (contentList ++ [newElem])
+--}
      _ -> makeListItem params frags contentList
 
 
@@ -755,8 +798,12 @@ concatTextElems :: [Content] -> [Content]
 concatTextElems [] = []
 concatTextElems ((CString True s1):((CString True s2):rest)) = concatTextElems ((CString True (s1 ++ s2)):rest)
 concatTextElems ((CString True s1):((CElem e):rest)) = [(CString True s1), (CElem e)] ++ (concatTextElems rest)
+concatTextElems ((CString True s1):((CMisc e):rest)) = [(CString True s1), (CMisc e)] ++ (concatTextElems rest)
 concatTextElems ((CElem e):((CString True str):rest)) =
   [(CElem e)] ++ (concatTextElems ((CString True str):rest))
+concatTextElems ((CElem e1):((CMisc e2):rest)) =
+  [(CElem e1), (CMisc e2)] ++ (concatTextElems rest)
+concatTextElems ((CMisc e1):e2:rest) = [(CMisc e1)] ++ (concatTextElems (e2:rest))
 concatTextElems (e1:[]) = [e1]
 
 {--
@@ -780,7 +827,7 @@ detectTextMode name = if (name `elem` (map fst (envsWithText ++ plainTextAtoms))
 makeAttribs :: Params -> String -> [Attribute]
 
 makeAttribs ps name = 
-  if (name `elem` ["IncludeGroup", "IncludeUnit", "IncludeAtom", "IncludeTextFragment"])
+  if (name `elem` (map fst includeCommands))
     then makeIncludeAttribs ps
     else if (name == "TextFragment")
            then makeTextFragmentAttribs (Just(ps))
@@ -856,11 +903,11 @@ makeRefAttribs _ = []
 
 
 makeDefineAttribs :: Params -> [Attribute]
-makeDefineAttribs (LParams ((SingleParam (Other labelId) _):_) atts) =
+makeDefineAttribs (LParams ((SingleParam (Other labelId) _):(SingleParam (Other body) _):_) atts) =
   let attList = case atts of
                   Just(a) -> (map convertAttrib a)
                   Nothing -> []
-  in [("label", (AttValue [Left labelId]))] ++ attList
+  in [("label", (AttValue [Left labelId])), ("body", (AttValue [Left body]))] ++ attList
 makeDefineAttribs _ = []
 
 
@@ -918,7 +965,7 @@ fillLatex :: [Content] -> [EmacsDataItem (String, Char)] -> [EmacsDataItem (Stri
 fillLatex [] l = l
 
 fillLatex ((CElem (Elem "textFragment" atts contents)):cs) inList = 
-   let s1 = "\\begin{TextFragment}" 
+   let s1 = "\n\\begin{TextFragment}" 
        s2 = "[" ++ (getParam "notation" atts) ++ "]"
        s3 = "{" ++ (getParam "label" atts) ++ "}"
        s4 = "{" ++ (getAttribs atts "" ["notation", "label"]) ++ "}"
@@ -930,7 +977,7 @@ fillLatex ((CElem (Elem "textFragment" atts contents)):cs) inList =
    in fillLatex cs (inList ++ items)
 
 fillLatex ((CElem (Elem "list" atts contents)):cs) inList = 
-   let s1 = "\\begin{List}" 
+   let s1 = "\n\\begin{List}" 
        s2 = "{" ++ (getParam "label" atts) ++ "}"
        listtype = getParam "type" atts
        s3 = "{" ++ listtype ++ "}"
@@ -959,7 +1006,7 @@ fillLatex ((CElem (Elem name atts contents)):cs) inList
     let forwardStr = if ((getParam "status" atts) == "absent")
                        then "Forward"
                        else ""
-        s1 = "  \\" ++ forwardStr ++ (elemNameToLaTeX name) 
+        s1 = "\\" ++ forwardStr ++ (elemNameToLaTeX name) 
         str = if (length(contents) == 0) then "" 
                  else let c = head contents
                       in case c of
@@ -970,19 +1017,25 @@ fillLatex ((CElem (Elem name atts contents)):cs) inList
         s4 = "{" ++ (getAttribs atts "" ["linked", "referenced", "status"]) ++ "}"
         items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
     in fillLatex cs (inList ++ items)
-
-
+  | (name == "define") =
+    let s1 = "\\" ++ (elemNameToLaTeX name)
+        s2 = "{" ++ (getParam "label" atts) ++ "}"
+        s3 = "{" ++ (getParam "body" atts) ++ "}"
+        s4 = "{" ++ (getAttribs atts "" ["label", "body"]) ++ "}"
+        items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
+    in fillLatex cs (inList ++ items)
+        
 fillLatex ((CString _ str):cs) inList = fillLatex cs (inList ++ [(EditableText str)])
 
 fillLatex ((CMisc (Comment str)):cs) inList = fillLatex cs (inList ++ [(EditableText str)])
 
 fillLatex ((CElem (Elem name atts contents)):cs) inList = 
-  let s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
+  let s1 = "\n\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
       s2 = "[" ++ (getParam "notation" atts) ++ "]"
       s3 = "{" ++ (getParam "label" atts) ++ "}"
       s4 = "{" ++ (getParam "title" atts) ++ "}"
       s5 = "{" ++ (getAttribs atts "" ["notation", "label", "title"]) ++ "}\n"
-      s6 = "\\end{" ++ (elemNameToLaTeX name) ++ "}\n"
+      s6 = "\n\\end{" ++ (elemNameToLaTeX name) ++ "}\n"
       items = [(EditableText (s1 ++ s2 ++ s3 ++ s4 ++ s5))] ++ (fillLatex contents []) 
               ++ [(EditableText s6)]
   in fillLatex cs (inList ++ items)
@@ -1019,7 +1072,8 @@ attNameToXML name = [(toLower (head name))] ++ (tail name)
 
 
 elemNameToLaTeX :: String -> String
-elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd) mmiss2EnvIds)
+elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd) 
+                                          (mmiss2EnvIds ++ embeddedElements ++ includeCommands))
 
 
 myConcatWithError :: WithError [a] -> WithError [a] -> WithError [a]
@@ -1125,13 +1179,13 @@ mapLabelledTag s =
       mapUpper [] = []
       mapUpper (c : cs) = toUpper c : cs      
 
-{--
+
 parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
-parseAndMakeMMiSSLatex name pre = do root <- parseMMiSSLatexFile name
-                                     root1 <- return(coerceWithError root)
-				     (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, pre)))
-				     putStrLn (concat (map getStrOfEmacsDataItem l))
---}
+parseAndMakeMMiSSLatex name pre = 
+  do root <- parseMMiSSLatexFile Nothing name
+     root1 <- return(coerceWithError root)
+     ((EmacsContent l), pre) <- return(coerceWithError(makeMMiSSLatex (root1, True)))
+     putStrLn (concat (map getStrOfEmacsDataItem l))
 
 {--
 parseMakeParse :: SourceName -> IO (WithError Element)
