@@ -15,13 +15,14 @@ module Toggle(
 import qualified Concurrent
 import qualified IOExts(unsafePerformIO)
 import Debug(debug,(@:))
+import Object
 
-data Toggle = Toggle Unique (Concurrent.MVar Bool)
+data Toggle = Toggle ObjectID (Concurrent.MVar Bool)
 
 newToggle :: IO Toggle
 newToggle = 
    do
-      uniqVal <- unique
+      uniqVal <- newObject
       switch <- Concurrent.newMVar True
       return (Toggle uniqVal switch)
 
@@ -80,19 +81,6 @@ toggle2 (Toggle unique1 switch1,Toggle unique2 switch2) =
             return result
  
 
-{- To fix a possible deadlock we need a supply of unique ordered things.
-   -}
-type Unique = Int
-
-uniqueSource :: Concurrent.MVar Int
-uniqueSource = IOExts.unsafePerformIO(Concurrent.newMVar 0)
-
-unique :: IO Int
-unique =
-   do
-      next <- Concurrent.takeMVar uniqueSource
-      "53" @: Concurrent.putMVar uniqueSource (next+1)
-      return next 
 
 
 

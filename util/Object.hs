@@ -1,7 +1,9 @@
+{-# OPTIONS -#include "object.h" #-}
+ 
 {- #########################################################################
 
 MODULE        : Object
-AUTHOR        : Einar Karlsen,  George
+AUTHOR        : Einar Karlsen,  completely rewrittenn by George
                 University of Bremen
                 email:  ewk@informatik.uni-bremen.de
 DATE          : 1999
@@ -9,24 +11,17 @@ VERSION       : 0.2
 DESCRIPTION   : Objects, basically entities with a unique ID. Used later on
                 to tag 1) widgets, 2) interactors, 3) graphs etc. 
 
-                Currently, its just a simple integer, with all the inherent
-                limitations. A more general solution would be to use a
-                world wide unique string generated using e.g. CORBA.
+We now use C (in object.c).  This means it should be faster.  Also it gets
+rid of an unsafePerformIO, which has already caused problems with Linux GHC.
 
-
-   ######################################################################### -}
+   ######################################################################## -}
 
 
 module Object (
-
-        ObjectID(..),
-        Object(..),
-        newObject
-        ) where
-
-import IOExts(unsafePerformIO)
-import Concurrent
-import Computation
+   ObjectID(..),
+   Object(..),
+   newObject
+   ) where
 
 import Debug(debug)
 
@@ -34,43 +29,29 @@ import Debug(debug)
 -- Class Object
 -- --------------------------------------------------------------------------
 
-newtype ObjectID = ObjectID Int
+newtype ObjectID = ObjectID Double deriving (Eq,Ord)
 
 class Object o where
-        objectID :: o -> ObjectID
-
-
--- --------------------------------------------------------------------------
--- Instance Object
--- --------------------------------------------------------------------------
-
-instance Eq ObjectID where
-        (ObjectID o1) == (ObjectID o2) = o1 == o2
-
-instance Ord ObjectID where
-        (ObjectID o1) <= (ObjectID o2) = o1 <= o2
+   objectID :: o -> ObjectID
 
 instance Show ObjectID where
-    showsPrec d (ObjectID n) r = showsPrec d n r
+   showsPrec d (ObjectID n) r = showsPrec d n r
 
 instance Read ObjectID where
-    readsPrec p b =
+   readsPrec p b =
       case reads b of
-        [] -> []
-        ((v,xs):_) ->[(ObjectID v,xs)]
+         [] -> []
+         ((v,xs):_) ->[(ObjectID v,xs)]
 
 -- --------------------------------------------------------------------------
 -- New Object Identifier
 -- --------------------------------------------------------------------------
 
+foreign import "next_object_id" unsafe newObjectPrim :: IO Double
+
 newObject :: IO ObjectID
-newObject = do {
-        n <- takeMVar objectid;
-        putMVar objectid (succ n);
-        return (ObjectID n)
-        }       
-
-objectid :: MVar Int
-objectid = unsafePerformIO(newMVar 0)
-
+newObject = 
+   do
+      nextDouble <- newObjectPrim 
+      return(ObjectID nextDouble)
 
