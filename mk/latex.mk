@@ -26,7 +26,7 @@ DVIPS   = dvips
 # This will fall over if we did not run LaTeX on $< at least once to
 # create a .aux file...
 .bib.bbl:
-	$(LATEX) $<; $(BIBTEX) $*
+	$(LATEX) $*.tex; $(BIBTEX) $*
 
 .tex.dvi:
 	$(LATEX) $<; $(LATEX) $<
