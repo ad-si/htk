@@ -250,7 +250,7 @@ toResponseBlockData response =
    let
       [CElem element] = toElem response
 
-      icsl = fromString (toExportableXml element)
+      icsl = fromString (toUglyExportableXml element)
    in
       BlockData {blockType = 0,blockText = icsl}
       

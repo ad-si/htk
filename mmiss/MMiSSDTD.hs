@@ -18,6 +18,7 @@ module MMiSSDTD(
       -- variant of xmlParseCheck which cheats using unsafePerformIO
       -- (Should work anyway.)
    toExportableXml, -- :: Element -> String
+   toUglyExportableXml, -- :: Element -> String
 
    -- General interface for reading in and validating against a DTD.
    MMiSSDTD,
@@ -196,6 +197,16 @@ instance DeepSeq Misc where
 -- UnParsing XML
 -- -------------------------------------------------------------
 
+toUglyExportableXml :: Element -> String
+toUglyExportableXml elem =
+   let
+      style = Style {
+         mode = OneLineMode,
+         lineLength = 80,
+         ribbonsPerLine = 1.5
+         }
+   in
+       (renderStyle style) . element . (xmlEscape stdXmlEscaper) $ elem
 
 toExportableXml :: Element -> String
 toExportableXml elem = 

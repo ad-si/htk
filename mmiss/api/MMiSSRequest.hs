@@ -488,7 +488,7 @@ instance XmlContent Bundle_ where
 	(_,_,_) ->
 	    (Nothing, c0)
     toElem (Bundle_ a b) =
-	[CElem (Elem "bundle" [] (toElem a ++ toElem b))]
+	(toElem a ++ toElem b)
 instance XmlContent PackageId where
     fromElem (CElem (Elem "packageId" as []):rest) =
 	(Just (fromAttrs as), rest)
