@@ -10,6 +10,9 @@
 module SharedGraphService(
    sharedGraphService,
    sharedGraphServiceWrapped
+   -- Both sharedGraphService and sharedGraphServiceWrapped take
+   -- a type parameter with type the type of the node label,
+   -- which isn't looked at.
    ) where
 
 import Dynamics
@@ -19,17 +22,21 @@ import Selective(inaction)
 import ServiceClass
 
 import SharedGraph
+import Graph
 
 sharedGraphService :: (Typeable nodeLabel,Read nodeLabel,Show nodeLabel) =>
+   nodeLabel -> 
    (Update String nodeLabel,Update String nodeLabel,SharedGraph nodeLabel)
-sharedGraphService = serviceArg 
+sharedGraphService (_ :: nodeLabel) = 
+   serviceArg :: 
+      (Update String nodeLabel,Update String nodeLabel,SharedGraph nodeLabel)
+
 
 sharedGraphServiceWrapped 
    :: (Typeable nodeLabel,Read nodeLabel,Show nodeLabel) => 
    nodeLabel -> Service
-sharedGraphServiceWrapped (_ :: nodeLabel) = 
-   Service (sharedGraphService :: 
-      (Update String nodeLabel,Update String nodeLabel,SharedGraph nodeLabel))
+sharedGraphServiceWrapped nodeLabel = 
+   Service (sharedGraphService nodeLabel)
 
 instance (Typeable nodeLabel,Read nodeLabel,Show nodeLabel) =>
       ServiceClass (Update String nodeLabel) (Update String nodeLabel) 
@@ -45,8 +52,8 @@ instance (Typeable nodeLabel,Read nodeLabel,Show nodeLabel) =>
    handleRequest _ (update,sharedGraph) =
       do
          (updateWithNodes :: Update Node nodeLabel) <-
-            mapMUpdate (toNode sharedGraph) update
-         updateSharedGraph sharedGraph updateWithNodes
+            mapMUpdate toNode update
+         updateGraph sharedGraph updateWithNodes
          return (update,sharedGraph)
    sendOnConnect _ sharedGraph =
       do

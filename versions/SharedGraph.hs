@@ -2,33 +2,6 @@
    modifiable directed graph. -}
 module SharedGraph(
 
-   -- Nodes
-   Node,
-      -- nodes are essentially Strings.  Allocating these nodes in
-      -- a unique way is the caller's responsibility
-      -- Node is an instance of (Eq,Ord)
-   toNode, 
-      -- toNode :: SharedGraph -> String -> IO Node
-   fromNode,
-      -- fromNode :: SharedGraph -> Node -> IO String
-      -- toNode and fromNode are guaranteed to behave as the identity function
-      -- were String to be identified with String. 
-
-   -- Updates
-   Update,
-      -- datatype encoding update to shared graph
-      -- Parameterised on node vertex type and node label.
-      -- node must be an instance of Ord.
-      -- Update derives (Read,Show).
-      -- The node type as fed to shareGraph and updateShareGraph is
-      -- always Node.  However Node is not an instance of Read or Show,
-      -- so to convert to/from readable updates you use mapMUpdate together
-      -- with toNode and fromNode.
-   mapMUpdate, -- :: (Ord nodeIn,Ord nodeOut) => 
-      --                (nodeIn -> IO nodeOut) -> Update nodeIn nodeLabel ->
-      -- IO (Update nodeOut nodeLabel)
-      -- map updates monadically by node label.
-
    -- SharedGraphs (which change) and CannedGraphs (which don't).
    -- CannedGraphs are used for transferring SharedGraphs around.
    SharedGraph, 
@@ -54,20 +27,6 @@ module SharedGraph(
              --    makeSharedGraph creates a shared graph given a 
              --    canned graph plus a source of updates.
 
-   -- Writing to a SharedGraph.
-   updateSharedGraph, -- :: SharedGraph nodeLabel -> Update Node nodeLabel -> 
-             --               IO ()
-             --    apply a direct update to the shared graph
-
-   -- Interrogating SharedGraphs.
-   getNodes,        -- :: SharedGraph nodeLabel -> IO [Node]
-   getPredecessors, -- :: SharedGraph nodeLabel -> Node -> IO [Node]
-   getSuccessors,   -- :: SharedGraph nodeLabel -> Node -> IO [Node]
-   getLabel,        -- :: SharedGraph nodeLabel -> Node -> IO nodeLabel
-   -- getPredecessors,getSuccessors,getLabel raise errors if they
-   -- can't find a node.
-                 
-   
    ) where
 
 import FiniteMap
@@ -77,80 +36,11 @@ import Concurrent(readMVar)
 import ExtendedPrelude
 import SmallSet
 import QuickReadShow
-import AtomString
-
 import EasyBroker
 
 import SIM
 
-------------------------------------------------------------------------
--- Nodes
-------------------------------------------------------------------------
-
-newtype Node = Node AtomString deriving (Eq,Ord)
- 
-primToNode :: AtomSource -> String -> IO Node
-primToNode atomSource nodeString = 
-   do
-      atomString <- mkAtom atomSource nodeString
-      return (Node atomString)
- 
-toNode :: SharedGraph nodeLabel -> String -> IO Node
-toNode (SharedGraph{atomSource=atomSource}) nodeString = 
-   primToNode atomSource nodeString
- 
-primFromNode :: AtomSource -> Node -> IO String
-primFromNode atomSource (Node atomString) = readAtom atomSource atomString
-
-fromNode :: SharedGraph nodeLabel -> Node -> IO String
-fromNode (SharedGraph{atomSource=atomSource}) node =
-   primFromNode atomSource node
-
-------------------------------------------------------------------------
--- Update
-------------------------------------------------------------------------
-
-data (Ord node) => Update node nodeLabel =
-   EditNode {
-      node :: node, 
-      -- if this node is not in graph add it,
-      -- likewise for nodes not previously mentioned in
-      -- pred and succ list.  When a node is added, its 
-      -- predecessors, successors and label are all empty unless
-      -- values are specified/              
-      predecessorsOpt :: Maybe (SmallSet node), 
-         -- replace predecessors if Just.
-      successorsOpt :: Maybe (SmallSet node), 
-         -- ditto successors
-      nodeLabelOpt :: Maybe nodeLabel -- ditto label
-      } deriving (Read,Show)
-
-mapMUpdate :: (Ord nodeIn,Ord nodeOut) => 
-      (nodeIn -> IO nodeOut) -> Update nodeIn nodeLabel -> 
-      IO (Update nodeOut nodeLabel)
-mapMUpdate act (EditNode {
-      node = nodeIn,
-      predecessorsOpt = predecessorsInOpt,
-      successorsOpt = successorsInOpt,
-      nodeLabelOpt = nodeLabelOpt
-      }) =
-   do
-      nodeOut <- act nodeIn
-      let
-         mapSmallSetOpt Nothing = return Nothing
-         mapSmallSetOpt (Just smallSetIn) =
-            do
-               smallSetOut <- mapMSmallSet act smallSetIn
-               return (Just smallSetOut)
-      predecessorsOutOpt <- mapSmallSetOpt predecessorsInOpt
-      successorsOutOpt <- mapSmallSetOpt successorsInOpt
-      return (EditNode {
-         node = nodeOut,
-         predecessorsOpt = predecessorsOutOpt,
-         successorsOpt = successorsOutOpt,
-         nodeLabelOpt = nodeLabelOpt
-         })  
-                      
+import Graph
 
 ------------------------------------------------------------------------
 -- CannedGraph
@@ -190,7 +80,6 @@ emptyCannedGraph = CannedGraph []
 ------------------------------------------------------------------------
 
 data SharedGraph nodeLabel = SharedGraph {
-   atomSource :: AtomSource,
    nodeLookUp :: MVar (NodeMap nodeLabel),
    -- the MVar should at any time contain a graph with a consistent
    -- set of predecessors and successors.
@@ -205,7 +94,6 @@ shareGraph :: (Read nodeLabel,Show nodeLabel) =>
    SharedGraph nodeLabel -> 
    IO (CannedGraph nodeLabel,EV(Update Node nodeLabel),IO())
 shareGraph SharedGraph{
-   atomSource=atomSource,
    nodeLookUp=nodeLookUp,
    updateSource=updateSource
    } =
@@ -217,7 +105,7 @@ shareGraph SharedGraph{
       registerEventSink updateSource eventSink
       putMVar nodeLookUp nodeMap
       -- unlock
-      cannedGraph <- canGraph atomSource nodeMap
+      cannedGraph <- canGraph nodeMap
       return (cannedGraph,receive channel,
          deregisterEventSink updateSource eventSink)
       
@@ -239,13 +127,12 @@ makeSharedGraph :: (Read nodeLabel,Show nodeLabel) =>
       IO (SharedGraph nodeLabel)
 makeSharedGraph (cannedGraph,updateEvent) =
    do
-      (atomSource,nodeMap) <- uncanGraph cannedGraph
+      nodeMap <- uncanGraph cannedGraph
       nodeLookUp <- newMVar nodeMap
       updateSource <- newEasyBroker
       let
          sharedGraph =
             SharedGraph{
-               atomSource=atomSource,
                nodeLookUp=nodeLookUp,
                updateSource=updateSource
                }
@@ -265,10 +152,9 @@ makeSharedGraph (cannedGraph,updateEvent) =
 ------------------------------------------------------------------------
 
 uncanGraph :: (Read nodeLabel,Show nodeLabel) => 
-   CannedGraph nodeLabel -> IO (AtomSource,NodeMap nodeLabel)
+   CannedGraph nodeLabel -> IO (NodeMap nodeLabel)
 uncanGraph (CannedGraph cannedGraphNodes) =
    do
-      atomSource <- emptyAtomSource
       let
          cannedGraphNodeToUpdate(CannedGraphNode{
             nodeString = nodeString,
@@ -276,8 +162,8 @@ uncanGraph (CannedGraph cannedGraphNodes) =
             nodeLabel = nodeLabel
             }) =
             do
-               nodeAtom <- primToNode atomSource nodeString
-               successorAtoms <- mapM (primToNode atomSource) successorStrings
+               nodeAtom <- toNode nodeString
+               successorAtoms <- mapM toNode successorStrings
                return(EditNode{
                   node = nodeAtom,
                   predecessorsOpt = Nothing,
@@ -292,19 +178,19 @@ uncanGraph (CannedGraph cannedGraphNodes) =
                applyEdit
                emptyNodeMap
                updates
-      return (atomSource,nodeMap)
+      return nodeMap
 
 canGraph :: (Read nodeLabel,Show nodeLabel) => 
-   AtomSource -> NodeMap nodeLabel -> IO (CannedGraph nodeLabel)
-canGraph atomSource nodeMap =
+   NodeMap nodeLabel -> IO (CannedGraph nodeLabel)
+canGraph nodeMap =
    do
       let
          canNode (node,NodeData{successors=successors,label=label}) =
             do
-               nodeString <- primFromNode atomSource node
+               nodeString <- fromNode node
                successorStrings <- 
                   mapM
-                     (\ node -> primFromNode atomSource node)
+                     (\ node -> fromNode node)
                      (listSmallSet successors)   
                return(CannedGraphNode{
                   nodeString=nodeString,
@@ -476,43 +362,42 @@ setNodeSuccessors node successors2 nodeMap1 =
       nodeMap4    
    
 ------------------------------------------------------------------------
--- Interrogating SharedGraphs.
+-- Instance of Graph
 ------------------------------------------------------------------------
 
-getNodes :: SharedGraph nodeLabel -> IO [Node]
-getNodes (SharedGraph {nodeLookUp = nodeLookUp}) =
-   do
-      nodeMap <- readMVar nodeLookUp
-      return (
-         map
-            (\ (node,nodeData) -> node)          
-            (listNodeMap nodeMap)
-         )
+instance Graph SharedGraph where
+   getNodes (SharedGraph {nodeLookUp = nodeLookUp}) =
+      do
+         nodeMap <- readMVar nodeLookUp
+         return (
+            map
+               (\ (node,nodeData) -> node)          
+               (listNodeMap nodeMap)
+            )
+   
+   getPredecessors sharedGraph node =
+      do
+         nodeData <- getNodeData sharedGraph node
+         return (listSmallSet (predecessors nodeData))
+   
+   getSuccessors sharedGraph node =
+      do
+         nodeData <- getNodeData sharedGraph node
+         return (listSmallSet (successors nodeData))
+   
+   getLabel sharedGraph node =
+      do
+         nodeData <- getNodeData sharedGraph node
+         return (label nodeData)
+   
+   updateGraph = updateSharedGraph
+
 
 getNodeData :: SharedGraph nodeLabel -> Node -> IO (NodeData nodeLabel)
 getNodeData (SharedGraph {nodeLookUp = nodeLookUp}) node =
    do
       nodeMap <- readMVar nodeLookUp
       return(lookupError nodeMap node)
-
-getPredecessors :: SharedGraph nodeLabel -> Node -> IO [Node]
-getPredecessors sharedGraph node =
-   do
-      nodeData <- getNodeData sharedGraph node
-      return (listSmallSet (predecessors nodeData))
-
-getSuccessors :: SharedGraph nodeLabel -> Node -> IO [Node]
-getSuccessors sharedGraph node =
-   do
-      nodeData <- getNodeData sharedGraph node
-      return (listSmallSet (successors nodeData))
-
-getLabel :: SharedGraph nodeLabel -> Node -> IO nodeLabel
-getLabel sharedGraph node =
-   do
-      nodeData <- getNodeData sharedGraph node
-      return (label nodeData)
-
-
+   
 
 

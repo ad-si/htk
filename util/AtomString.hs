@@ -3,17 +3,14 @@
    to improve.
    -}
 module AtomString(
-   AtomSource, -- where AtomStrings come from
-   emptyAtomSource, 
-      -- :: IO AtomSource
-      -- new source
    AtomString, -- represents a string.  Instance of Ord & Eq
-   mkAtom, -- :: AtomSource -> String -> IO AtomString
-   readAtom -- :: AtomSource -> AtomString -> IO String
+   mkAtom, -- :: String -> IO AtomString
+   readAtom -- :: AtomString -> IO String
    ) where               
 
 import Concurrent
 import FiniteMap
+import qualified IOExts(unsafePerformIO)
 import PackedString
 
 import Debug(debug)
@@ -29,14 +26,21 @@ emptyAtomSource =
       mVar <- newMVar emptyFM
       return (AtomSource mVar)
 
+theAtomSource :: AtomSource
+theAtomSource = IOExts.unsafePerformIO emptyAtomSource
+{-# NOINLINE theAtomSource #-} 
+-- avoid GHC bug with Linux optimisation which can clone MVars.
+
 newtype AtomString = AtomString PackedString deriving (Ord,Eq)
 -- in fact Eq could be unsafePtrEq
 
-mkAtom :: AtomSource -> String -> IO AtomString
-mkAtom (AtomSource mVar) str =
+mkAtom :: String -> IO AtomString
+mkAtom str =
    do
       let
          packed = packString str
+         AtomSource mVar = theAtomSource
+
       map <- takeMVar mVar
       let
          (result,newMap) = case lookupFM map packed of
@@ -48,7 +52,7 @@ mkAtom (AtomSource mVar) str =
       return result
 
               
-readAtom :: AtomSource -> AtomString -> IO String
-readAtom _ (AtomString packedString) =
+readAtom :: AtomString -> IO String
+readAtom (AtomString packedString) =
    return(unpackPS packedString)
 
