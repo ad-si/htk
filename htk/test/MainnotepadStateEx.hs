@@ -86,7 +86,7 @@ main =
                               i <- num
                               id <- newID
                               createNotepadItem
-                                (MyItem id (newName ("item" ++ show i))
+                                (MyItem id (createName ("item" ++ show i))
                                         img)
                                 notepad1 [position (cm 2, cm 2)]
                               done) +>
@@ -95,7 +95,7 @@ main =
                               i <- num
                               id <- newID
                               createNotepadItem
-                                (MyItem id (newName ("item" ++ show i))
+                                (MyItem id (createName ("item" ++ show i))
                                         img)
                                 notepad2 [position (cm 2, cm 2)]
                               done) +>
@@ -115,13 +115,3 @@ main =
 
 img :: IO Image
 img = newImage NONE [filename "images/notepaditem.gif"]
-
-
-{-
-[imgData GIF "R0lGODlhMAAwAOMAAEuvTTqIPDJ0Mxk6GQAAABAnESlhKiFOIggTCEKbRP//////////////////
-/////yH+FUNyZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAPACwAAAAAMAAwAAAE2fDJSau9OOvN
-u/9gKI5kaZ5oqq5s675w/AJ0bd/Aiu/8PfbAIK1zCwiESFwGNyDQAoNAEmnhNWkCwnFKlfSugQKh
-EH0OBraBAWAoA9Q9r9UZHpcPhEEBkaCNEU0FBgViBzwPQFcAWVsABIaOa44EUlkIfk5cNIqMWHZN
-aI6hnZOam5mkWWRnknmeWwSZO4hzrzQJjziui1qYh7Q7igF5An1NBgICraO9pbNyTLJNzQaxBMu2
-zj4Vpt01S96aROFAP+TfKlwy6+zt7u/w8fLz9PX29/j5+vv8HxEAOw=="]
--}

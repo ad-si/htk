@@ -11,7 +11,7 @@
 module Name (
 
   Name(..),
-  newName,
+  createName,
   getFullName,
   getShortName
 
@@ -22,10 +22,10 @@ data Name = Name { short :: Int -> String,
 
 shortdef :: String -> Int -> String
 shortdef str i =
-  if length str > i then ".." ++ drop (length str + 2 - i) str else str
+  if length str > i then take (length str + 2 - i) str ++ ".." else str
 
-newName :: String -> Name
-newName str = Name { short = shortdef str, full = str }
+createName :: String -> Name
+createName str = Name { short = shortdef str, full = str }
 
 getFullName :: Name -> String
 getFullName nm = full nm

@@ -114,11 +114,6 @@ instance HasSize Message where
 ---
 -- A message widget can contain text.
 instance GUIValue b => HasText Message b where
----
--- Sets the text of the message widget.
--- @param t	  - the text to set.
--- @param w	  - the concerned message widget.
--- @return result - The concerned message widget.
   text t w   = cset w "text" t
 ---
 -- Gets the text from a message widget.
@@ -149,9 +144,6 @@ instance HasAnchor Message
 
 ---
 -- Sets the aspect of a message widget (100 * width / height).
--- @param i	  - the aspect to set.
--- @param mes	  - the concerned message widget.
--- @return result - The concerned message widget.
 aspect :: Int -> Config Message
 aspect i mes = cset mes "aspect" i
 

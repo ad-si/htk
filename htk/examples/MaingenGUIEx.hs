@@ -79,7 +79,7 @@ addTxt newID gui name ent =
       Just par ->
         do
           id <- newID
-          let nm = newName name
+          let nm = createName name
               ic = txtImg
               val = MyTxt id ent
           addItem gui par (LeafItem (nm, ic, val) Nothing)
@@ -94,7 +94,7 @@ addCol newID gui name ent =
       Just par -> 
         do
           id <- newID
-          let nm = newName name
+          let nm = createName name
               ic = case ent of "Red" -> redImg
                                "Blue" -> blueImg
                                "Green" -> greenImg
@@ -118,7 +118,7 @@ addImg nm mimgpath =
           Just imgpath -> do
                             let img = newImage NONE [filename imgpath]
                             pval <- newProp (toDyn img)
-                            pname <- newProp (newName nm)
+                            pname <- newProp (createName nm)
                             picon <- newProp imgImg
                             addItem par
                                     (LeafItem (MyObject pname picon pval))
@@ -136,7 +136,7 @@ addFolder nm =
       Just par ->
         do
           pval <- newProp (toDyn nm)
-          pname <- newProp (newName nm)
+          pname <- newProp (createName nm)
           img <- getRef imgref
           picon <- newProp img
           addItem par (FolderItem (MyContainer pname picon pval) [])
@@ -157,7 +157,7 @@ addExampleFolders newID gui =
         do
           id <- newID
           let val = MyNum id num
-              nm = newName (name ++ show i) 
+              nm = createName (name ++ show i) 
           return (LeafItem (nm, ic, val) Nothing)
 
       addNumFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
@@ -165,7 +165,7 @@ addExampleFolders newID gui =
                       IO ()
       addNumFolder newID gui par name ic subnm vals_icons i =
         do
-          let nm = newName (name ++ show i)
+          let nm = createName (name ++ show i)
           items <- mapM (mkNumItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
@@ -179,7 +179,7 @@ addExampleFolders newID gui =
         do
           id <- newID
           let val = MyTxt id str
-              nm = newName (name ++ show i)
+              nm = createName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
       addTxtFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
@@ -187,7 +187,7 @@ addExampleFolders newID gui =
                       IO ()
       addTxtFolder newID gui par name ic subnm vals_icons i =
         do
-          let nm = newName (name ++ show i)
+          let nm = createName (name ++ show i)
           items <- mapM (mkTxtItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
@@ -201,7 +201,7 @@ addExampleFolders newID gui =
         do
           id <- newID
           let val = MyImage id img
-              nm = newName (name ++ show i)
+              nm = createName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
       addImgFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
@@ -209,7 +209,7 @@ addExampleFolders newID gui =
                       Int -> IO ()
       addImgFolder newID gui par name ic subnm vals_icons i =
         do
-          let nm = newName (name ++ show i)
+          let nm = createName (name ++ show i)
           items <- mapM (mkImgItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
@@ -223,7 +223,7 @@ addExampleFolders newID gui =
         do
           id <- newID
           let val = MyColor id col
-              nm = newName (name ++ show i)
+              nm = createName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
       addColFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
@@ -231,7 +231,7 @@ addExampleFolders newID gui =
                       IO ()
       addColFolder newID gui par name ic subnm vals_icons i =
         do
-          let nm = newName (name ++ show i)
+          let nm = createName (name ++ show i)
           items <- mapM (mkColItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
@@ -241,14 +241,14 @@ addExampleFolders newID gui =
   in do
        guiroot <- root gui
 
-       let nm1 = newName "example_folder.1"
+       let nm1 = createName "example_folder.1"
        exfolder1 <- do
                       id <- newID
                       addItem gui guiroot
                         (FolderItem (nm1, folderImg, MyContainer id) []
                                     Nothing)
 
-       let nm2 = newName "example_folder.2"
+       let nm2 = createName "example_folder.2"
        exfolder2 <- do
                       id <- newID
                       addItem gui guiroot
@@ -266,8 +266,8 @@ addExampleFolders newID gui =
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
 
-       mapM (addTxtFolder guiroot "texts." txtfolderImg
-                          "text_item_width_long_name"
+       mapM (addTxtFolder newID gui guiroot "texts." txtfolderImg
+                          "text_item_with_long_name."
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
                            ("content of text item 3", txtImg),

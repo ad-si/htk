@@ -13,7 +13,6 @@ module Index (
 
   EndOfText(..),
   HasIndex(..),
-  HasBBox(..),
 
   BaseIndex(..),
   Pixels(..),
@@ -34,14 +33,6 @@ import Char
 
 class HasIndex w i b where
   getBaseIndex :: w -> i -> IO b
-
-
--- -----------------------------------------------------------------------
--- BBox
--- -----------------------------------------------------------------------
-
-class GUIObject w => HasBBox w i where
-  bbox :: w -> i -> IO (Maybe (Distance,Distance,Distance,Distance))
 
 
 -- -----------------------------------------------------------------------

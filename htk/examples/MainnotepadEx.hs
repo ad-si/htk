@@ -60,32 +60,32 @@ main =
 
     id <- newID
     item1 <- createNotepadItem (MyItem id
-                                  (newName "NotepadItem1") item1_img)
+                                  (createName "NotepadItem1") item1_img)
                                notepad [position (cm 2, cm 2)]
 
     id <- newID
     item2 <- createNotepadItem (MyItem id
-                                  (newName "NotepadItem2") item2_img)
+                                  (createName "NotepadItem2") item2_img)
                                notepad [position (cm 5, cm 2)]
 
     id <- newID
     item3 <- createNotepadItem (MyItem id
-                                  (newName "NotepadItem3") item3_img)
+                                  (createName "NotepadItem3") item3_img)
                                notepad [position (cm 8, cm 2)]
 
     id <- newID
     item4 <- createNotepadItem (MyItem id
-                                  (newName "NotepadItem4") item4_img)
+                                  (createName "NotepadItem4") item4_img)
                                notepad [position (cm 2, cm 5)]
 
     id <- newID
     item5 <- createNotepadItem (MyItem id
-                                  (newName "NotepadItem5") item5_img)
+                                  (createName "NotepadItem5") item5_img)
                                notepad [position (cm 5, cm 5)]
 
     id <- newID
     item6 <- createNotepadItem (MyItem id
-                                  (newName "NotepadItem6") item6_img)
+                                  (createName "NotepadItem6") item6_img)
                                 notepad [position (cm 8, cm 5)]
 
     (np_event, _) <- bindNotepadEv notepad

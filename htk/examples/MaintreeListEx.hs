@@ -28,7 +28,7 @@ instance Eq FileObject where
   FileObject path1 _ _ == FileObject path2 _ _ = path1 == path2
 
 instance CItem FileObject where
-  getName (FileObject _ nm _) = return (newName nm)
+  getName (FileObject _ nm _) = return (createName nm)
   getIcon (FileObject _ _ img) = img
 
 getMatchedFiles :: [FilePath] -> FilePath -> IO [FilePath]

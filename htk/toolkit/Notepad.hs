@@ -61,6 +61,8 @@ import CItem
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)
 
+char_px = 7
+
 
 -------------------
 -- Notepad items --
@@ -68,12 +70,59 @@ getCoords eventInfo = return (x eventInfo, y eventInfo)
 
 -- type
 data NotepadItem a =
-  NotepadItem ImageItem                                           -- image
-              Size                                        -- size of image
-              TextItem                                   -- displayed name
-              (Ref a)                                             -- value
-              (Ref (Maybe (Rectangle, Rectangle)))       -- bg if selected
+  NotepadItem { it_img :: ImageItem,                              -- image
+                it_img_size :: Size,                      -- size of image
+                it_txt :: TextItem,                      -- displayed name
+                it_val :: Ref a,                                  -- value
+                it_long_name_bg :: Ref (Maybe Rectangle), -- long names bg
+                it_bg :: Ref (Maybe (Rectangle, Rectangle)) }
+                                                         -- bg if selected
 
+-- handler for enter events
+enteredItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
+enteredItem notepad item =
+--  synchronize notepad
+    (do
+       v <- getRef (it_val item)
+       nm <- getName v
+       let fullnm = full nm
+       it_txt item # text fullnm
+       setRef (entered_item notepad) (Just item)
+       mlast_bg <- getRef (it_long_name_bg item)
+       case mlast_bg of
+         Nothing -> do
+                      Just (x1, y1, x2, y2) <-
+                        bbox (canvas notepad) (it_txt item)
+                      b <- isNotepadItemSelected notepad item
+                      let colconf =
+                            if b then [filling "blue", outline "blue"]
+                            else [filling "white", outline "black"]
+                      rect <- createRectangle (canvas notepad)
+                                (coord [(x1 - 5, y1 - 1),
+                                        (x2 + 5, y2 + 1)] : colconf)
+                      putItemOnTop rect
+                      putItemOnTop (it_txt item)
+                      setRef (it_long_name_bg item) (Just rect)
+         _ -> done
+       done)
+
+-- handler for leave events
+leftItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
+leftItem notepad item =
+  do
+    let (Distance dx, _) = img_size notepad
+        len = div (dx + 80) char_px
+    v <- getRef (it_val item)
+    nm <- getName v
+    let shortnm = short nm len
+    setRef (entered_item notepad) Nothing
+    it_txt item # text shortnm
+    mlast_bg <- getRef (it_long_name_bg item)
+    case mlast_bg of
+      Just last_bg -> destroy last_bg >>
+                      setRef (it_long_name_bg item) Nothing
+      _ -> done
+    done
 
 -- constructor
 createNotepadItem :: CItem c => c -> Notepad c ->
@@ -84,74 +133,83 @@ createNotepadItem val notepad cnf =
     pho <- getIcon val
     img <- createImageItem (canvas notepad) [photo pho]
     let (Distance dx, _) = img_size notepad
-        len = div (dx + 80) 5
+        len = div (dx + 80) char_px
     nm <- getName val
     txt <- createTextItem (canvas notepad) [font (Helvetica, 10 :: Int),
                                             text (short nm len)]
     itemval <- newRef val
     itemsel <- newRef Nothing
-    let item = NotepadItem img (img_size notepad) txt itemval itemsel
+    lnbg <- newRef Nothing
+    let item = NotepadItem { it_img = img,
+                             it_img_size = (img_size notepad),
+                             it_txt = txt,
+                             it_val = itemval,
+                             it_long_name_bg = lnbg,
+                             it_bg = itemsel }
     foldl (>>=) (return item) cnf
 
     (enter1, _) <- bindSimple img Enter
     (leave1, _) <- bindSimple img Leave
+{-
     (enter2, _) <- bindSimple txt Enter
     (leave2, _) <- bindSimple txt Leave
+-}
 
     let listenItem :: Event ()
         listenItem =
-             (enter1 >> always
-                          (setRef (entered_item notepad) (Just item)))
-          +> (leave1 >> always (setRef (entered_item notepad) Nothing))
-          +> (enter2 >> always
-                          (setRef (entered_item notepad) (Just item)))
-          +> (leave2 >> always (setRef (entered_item notepad) Nothing))
+             (enter1 >>> enteredItem notepad item)
+          +> (leave1 >>> leftItem notepad item)
+{-
+          +> (enter2 >>> enteredItem notepad item)
+          +> (leave2 >>> leftItem notepad item)
+-}
 
-    spawnEvent (forever listenItem)          -- TD: stop threads !!!
+    spawnEvent (forever listenItem)
 
     addItemToState notepad item
     return item
 
 getItemValue :: NotepadItem a -> IO a
-getItemValue (NotepadItem _ _ _ valref _) = getRef valref
+getItemValue item = getRef (it_val item)
 
 
 -- instances --
 
 instance Eq (NotepadItem a) where
-  (NotepadItem img1 _ _ _ _) == (NotepadItem img2 _ _ _ _) =
-    img1 == img2
+  item1 == item2 = it_img item1 == it_img item2
 
 instance GUIObject (NotepadItem a) where
-  toGUIObject (NotepadItem img _ _ _ _) = toGUIObject img
+  toGUIObject item = toGUIObject (it_img item)
   cname _ = "NotepadItem"
 
 instance Synchronized (NotepadItem a) where
-  synchronize = synchronize . toGUIObject
+  synchronize item = synchronize (toGUIObject (it_img item))
 
 instance HasPosition (NotepadItem a) where
-  position p@(x, y) n@(NotepadItem img imgsize txt _ _) =
-    itemPositionD2 p img >>
-    let (Distance iwidth, Distance iheight) = imgsize
-    in itemPositionD2 (x, y + Distance (div iheight 2 + 7)) txt >>
-       return n
-  getPosition (NotepadItem img _ _ _ _) = getItemPositionD2 img
+  position p@(x, y) item =
+    itemPositionD2 p (it_img item) >>
+    let (Distance iwidth, Distance iheight) = it_img_size item
+    in itemPositionD2 (x, y + Distance (div iheight 2 + 10))
+                      (it_txt item) >>
+       return item
+  getPosition item = getItemPositionD2 (it_img item)
 
 instance Destroyable (NotepadItem a) where
-  destroy item@(NotepadItem img _ txt _ itemsel) =
+  destroy item =
     do
-      destroy img
-      destroy txt
-      mrects <- getRef itemsel
+      destroy (it_img item)
+      destroy (it_txt item)
+      mrects <- getRef (it_bg item)
       case mrects of
         Just (rect1, rect2) -> destroy rect1 >> destroy rect2
         _ -> done
 
 setName :: CItem c => NotepadItem c -> Name -> IO ()
-setName item@(NotepadItem _ (Distance dx, _) txt _ _) nm =
+setName item nm =
   do
-    let len = div (dx + 80) 5
-    txt # text (short nm len)
+    let (Distance dx, _) = it_img_size item
+        len = div (dx + 80) char_px
+    it_txt item # text (short nm len)
     done
 
 
@@ -235,11 +293,11 @@ addItemToState notepad item =
     setRef (items notepad) (item : notepaditems)
 
 highlight :: Canvas -> NotepadItem a -> IO ()
-highlight cnv item@(NotepadItem img imgsize txt _ sel) =
+highlight cnv item =
   do
-    let (Distance iwidth, Distance iheight) = imgsize
-    txt # filling "white"
-    s <- getRef sel
+    let (Distance iwidth, Distance iheight) = it_img_size item
+    it_txt item # filling "white"
+    s <- getRef (it_bg item)
     case s of
       Nothing -> do
                    (x, y) <- getPosition item
@@ -249,30 +307,30 @@ highlight cnv item@(NotepadItem img imgsize txt _ sel) =
                                  [(x - Distance (div iwidth 2 + 1),
                                    y - Distance (div iheight 2 + 1)),
                                   (x + Distance (div iwidth 2),
-                                   y + Distance (div iheight 2 + 1))]]
+                                   y + Distance (div iheight 2 + 4))]]
                    putItemAtBottom rect1
                    rect2 <- createRectangle cnv
                               [filling "blue", outline "blue",
                                coord
                                  [(x - Distance
-                                         (max (div iwidth 2 + 30) 40),
-                                   y + Distance (div iheight 2 + 1)),
+                                         (max (div iwidth 2 + 40) 40),
+                                   y + Distance (div iheight 2 + 4)),
                                   (x + Distance
-                                         (max (div iwidth 2 + 30) 40),
-                                   y + Distance (div iheight 2 + 14))]]
+                                         (max (div iwidth 2 + 40) 40),
+                                   y + Distance (div iheight 2 + 17))]]
                    putItemAtBottom rect2
-                   setRef sel (Just (rect1, rect2))
+                   setRef (it_bg item) (Just (rect1, rect2))
       Just _  -> done
 
 deHighlight :: NotepadItem a -> IO ()
-deHighlight item@(NotepadItem img _ txt _ sel) =
+deHighlight item =
   do
-    txt # filling "black"
-    s <- getRef sel
+    it_txt item # filling "black"
+    s <- getRef (it_bg item)
     case s of
-      Nothing             -> done
       Just (rect1, rect2) ->
-        destroy rect1 >> destroy rect2 >> setRef sel Nothing
+        destroy rect1 >> destroy rect2 >> setRef (it_bg item) Nothing
+      _ -> done
 
 selectItem :: Notepad a -> NotepadItem a -> IO ()
 selectItem np item =
@@ -445,19 +503,19 @@ newNotepad par scrolltype imgsize mstate cnf =
         getD = do
                  (dx_norm, dx_displ_norm) <- view Horizontal cnv
                  (dy_norm, _) <- view Vertical cnv
---                 (Distance sizex, Distance sizey) <- getSize cnv
-                 (_, (Distance sizex, Distance sizey)) <- getScrollRegion cnv
+                 (_, (Distance sizex, Distance sizey)) <-
+                   getScrollRegion cnv
                  return (Distance (round (dx_norm *
                                           fromInteger (toInteger sizex))),
                          Distance (round (dy_norm *
                                           fromInteger (toInteger sizey))))
 
         addToTag :: CanvasTag -> NotepadItem a -> IO ()
-        addToTag tag (NotepadItem img _ txt _ rectref) =
+        addToTag tag item =
           do
-            img # tags [tag]
-            txt # tags [tag]
-            rects <- getRef rectref
+            it_img item # tags [tag]
+            it_txt item # tags [tag]
+            rects <- getRef (it_bg item)
             case rects of
               Nothing            -> done
               Just(rect1, rect2) -> do
@@ -476,26 +534,27 @@ newNotepad par scrolltype imgsize mstate cnf =
 
         checkDropZones :: Notepad a -> Distance -> Distance -> IO ()
         checkDropZones notepad x y =
-          let doSet item@(NotepadItem _ imgsize _ _ _)=
+          let doSet item =
                 do
                   (x, y) <- getPosition item
-                  let (Distance iwidth, Distance iheight) = imgsize
+                  let (Distance iwidth, Distance iheight) =
+                        it_img_size item
                   rect1 <- createRectangle (canvas notepad)
                              [filling "yellow", outline "yellow",
                               coord [(x - Distance (div iwidth 2 + 1),
                                       y - Distance (div iheight 2 + 1)),
                                      (x + Distance (div iwidth 2),
-                                      y + Distance (div iheight 2 + 1))]]
+                                      y + Distance (div iheight 2 + 4))]]
                   putItemAtBottom rect1
                   rect2 <- createRectangle (canvas notepad)
                              [filling "yellow", outline "yellow",
                               coord
                                 [(x - Distance
-                                        (max (div iwidth 2 + 30) 40),
-                                  y + Distance (div iheight 2 + 1)),
+                                        (max (div iwidth 2 + 40) 40),
+                                  y + Distance (div iheight 2 + 4)),
                                  (x + Distance
-                                        (max (div iwidth 2 + 30) 40),
-                                  y + Distance (div iheight 2 + 14))]]
+                                        (max (div iwidth 2 + 40) 40),
+                                  y + Distance (div iheight 2 + 17))]]
                   putItemAtBottom rect2
                   setRef (drop_item notepad) (Just (item, rect1, rect2))
 
@@ -508,9 +567,9 @@ newNotepad par scrolltype imgsize mstate cnf =
                        if item == ditem then done
                        else destroy rect1 >> destroy rect2 >> doSet item
 
-              inDropZone (NotepadItem img _ _ _ _) =
+              inDropZone item =
                 do
-                  (x_it, y_it) <- getPosition img
+                  (x_it, y_it) <- getPosition (it_img item)
                   return (if x_it - 30 < x && x_it + 30 > x &&
                              y_it - 30 < y && y_it + 30 > y then True
                           else False)
@@ -559,9 +618,9 @@ newNotepad par scrolltype imgsize mstate cnf =
           in selectByRectangle' pos rect
 
         checkPositions :: [NotepadItem a] -> IO Bool
-        checkPositions (item@(NotepadItem _ imgsize _ _ _) : items) =
+        checkPositions (item : items) =
           do
-            let (Distance iwidth, Distance iheight) = imgsize
+            let (Distance iwidth, Distance iheight) = it_img_size item
             (x, y) <- getPosition item
             let min_x = x - Distance (max (div iwidth 2 + 30) 40)
                 max_x = x + Distance (max (div iwidth 2 + 30) 40)
@@ -629,8 +688,9 @@ newNotepad par scrolltype imgsize mstate cnf =
                                       (selectByRectangle dx dy (x, y)
                                                          rect)
                                     done
-                       Just item@(NotepadItem img _ _ _ _) ->
+                       Just item ->
                          do
+                           Just entereditem <- getRef entereditemref
                            b <- isNotepadItemSelected notepad item
                            if b then done else selectItem notepad item
                            t <- createTagFromSelection notepad
@@ -734,7 +794,8 @@ instance HasSize (Notepad a) where
     do
       (_, (sizex, _)) <- getScrollRegion (canvas np)
       (canvas np) # scrollRegion ((0, 0), (sizex, s))
-      if (isJust (scrollbox np)) then done else canvas np # height s >> done
+      (if (isJust (scrollbox np)) then done
+       else canvas np # height s >> done)
       return np
   getHeight np = getHeight (canvas np)
 
@@ -757,11 +818,10 @@ exportNotepadState np =
                     exportNotepadState' np items')
   where exportNotepadState' :: CItem c => Notepad c -> [NotepadItem c] ->
                                IO (NotepadState c)
-        exportNotepadState' np (item@(NotepadItem img _ txt val _) :
-                                items) =
+        exportNotepadState' np (item : items) =
           do
-            val' <- getRef val
-            pos <- getPosition img
+            val' <- getRef (it_val item)
+            pos <- getPosition (it_img item)
             is_selected <- isNotepadItemSelected np item
             rest <- exportNotepadState' np items
             return (NotepadExportItem { val = val',

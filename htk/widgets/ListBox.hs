@@ -145,11 +145,6 @@ instance HasSize (ListBox a)
 -- are instances of class <code>GUIValue</code> and therefore instances
 -- of class <code>Show</code>)
 instance (GUIValue a, GUIValue [a]) => HasValue (ListBox [a]) [a] where
----
--- Sets the list of displayed objects.
--- @param vals	  - the list of objects to display.
--- @param w	  - the concerned listbox.
--- @return result - The concerned listbox.
   value vals w =
     execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
 ---

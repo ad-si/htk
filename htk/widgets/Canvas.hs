@@ -187,6 +187,25 @@ confine b cnv = cset cnv "confine" b
 getConfine :: Canvas -> IO Bool
 getConfine w = cget w "confine"
 
+-- -----------------------------------------------------------------------
+-- bounding boxes
+-- -----------------------------------------------------------------------
+
+instance GUIObject c => HasBBox Canvas c where
+  bbox cnv item =
+    do
+      objnm <- getObjectName (toGUIObject item)
+      ans <- try (evalMethod cnv (\nm -> tkBBox nm objnm))
+      case ans of
+        Left e -> return Nothing
+        Right a -> return (Just a)
+
+tkBBox :: ObjectName -> ObjectName -> TclScript
+tkBBox nm (CanvasItemName _ cid) =
+  ["global " ++ drop 1 (show cid), show nm ++ " bbox " ++ show cid]
+tkBBox _ _ = []
+{-# INLINE tkBBox #-}
+
 
 -- -----------------------------------------------------------------------
 -- coordinate transformation

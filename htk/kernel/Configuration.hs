@@ -50,7 +50,8 @@ module Configuration (
   HasAlign(..),
   HasIncrement(..),
   HasEnable(..),
-  HasAnchor(..)
+  HasAnchor(..),
+  HasBBox(..)
 
 ) where
 
@@ -61,6 +62,14 @@ import GUIValue
 import Colour
 import Font
 import Resources
+
+
+-- -----------------------------------------------------------------------
+-- BBox
+-- -----------------------------------------------------------------------
+
+class GUIObject w => HasBBox w i where
+  bbox :: w -> i -> IO (Maybe (Distance,Distance,Distance,Distance))
 
 
 -- -----------------------------------------------------------------------
