@@ -1,16 +1,13 @@
-{- #########################################################################
-
-MODULE        : ModalDialog
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Defines a simple behavioural abstraction for modal dialogs 
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module ModalDialog (
 

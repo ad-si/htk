@@ -130,6 +130,9 @@ module HTk (
   initHTk, -- :: [Config HTk] -> IO HTk
   -- initHTk initialises HTk.
 
+  withdrawMainWin, -- :: Config HTk
+  -- withDraw as a configuration
+
   finishHTk, -- :: Htk-> IO ()
   -- waits for all wish to finish and then terminates
 
@@ -301,6 +304,11 @@ withdrawWish =
       htk <- getHTk
       withdraw htk
 
+withdrawMainWin :: HTk -> IO HTk   -- Config HTk, HDoc problem!
+withdrawMainWin htk =
+  do
+    withdraw htk
+    return htk
 
 --- @doc finishHTk
 -- waits for HTk to finish, and calls cleanupWish to clean up. 

@@ -24,8 +24,8 @@ main =
     pack ed [Fill Both, Expand On]
 
     Font str <- getFont ed
-    putStrLn ("Font: "++ str)
-    
+--    putStrLn ("Font: "++ str)
+
     but <- newButton ed [text "This is an embedded button widget"]
              :: IO (Button String)
 
@@ -117,8 +117,13 @@ main =
          MarkupText.sum,
          newline, newline,
          href [link "A link to another MarkupText"] txt2,
-         newline, newline{-,
-         window but-}]
+         newline, newline,
+--         window but,
+         newline, newline,
+         clipup
+           [link "This is a clipup"]
+           [leftmargin 10
+              [prose "Another line of prose"]]]
 
       add_txt :: [MarkupText]
       add_txt =

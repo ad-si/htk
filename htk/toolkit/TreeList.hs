@@ -93,6 +93,7 @@ data CItem a => StateEntry a =
              Bool                            -- open: True / closed: False
              Int                                            -- intendation
              [a]           -- ids of previously open subobjects for reopen
+    deriving Eq
 
 type ChildrenFun a = TreeListObject a -> IO [TreeListObject a]
 
@@ -265,7 +266,7 @@ recoverTreeList par cfun st cnf =
     return tl
 
 ---
--- Deletes all objects from a tree list.
+-- Deletes all objects from the tree list.
 clearTreeList :: CItem c => TreeList c -> IO ()
 clearTreeList tl =
   do
@@ -292,13 +293,14 @@ clearTreeList tl =
     setRef (internal_state tl) []
 
 getObjectFromTreeList :: CItem a => TreeList a -> a ->
-                                    IO (Maybe (TREELISTOBJECT a))
+                                    IO (Maybe (TREELISTOBJECT a, Bool))
 getObjectFromTreeList tl objval =
   do
     state <- getRef (internal_state tl)
     let msentry = find (entryEqualsObject objval) state
     case msentry of
-      Just (StateEntry obj _ _ _) -> return (Just obj)
+      Just sentry@(StateEntry obj _ _ _) ->
+        return (Just (obj, head state == sentry))
       _ -> return Nothing
   where entryEqualsObject :: CItem a => a -> StateEntry a -> Bool
         entryEqualsObject objval (StateEntry obj _ _ _) =
@@ -309,7 +311,7 @@ isNode tl val =
   do
     mobj <- getObjectFromTreeList tl val
     return (case mobj of
-              Just obj -> Just (is_node obj)
+              Just (obj, _) -> Just (is_node obj)
               _ -> Nothing)
 
 isLeaf :: CItem a => TreeList a -> a -> IO (Maybe Bool)
@@ -327,7 +329,7 @@ mkNode tl val =
     case mleaf of
       Just True ->
         do
-          Just obj <- getObjectFromTreeList tl val
+          Just (obj, isroot) <- getObjectFromTreeList tl val
           nm <- getTreeListObjectName obj
           [(x, y)] <- getCoord (embedded_win obj)
           removeObject tl obj
@@ -335,7 +337,7 @@ mkNode tl val =
           objectChanged tl obj nuobj
           pho <- getIcon val
           obj_img nuobj # photo pho
-          packTreeListObject nuobj False (x - 15, y)
+          packTreeListObject nuobj isroot (x - 15, y)
       _ -> done
 
 mkLeaf :: CItem a => TreeList a -> a -> IO ()
@@ -345,7 +347,7 @@ mkLeaf tl val =
     case mnode of
       Just True ->
         do
-          Just obj <- getObjectFromTreeList tl val
+          Just (obj, isroot) <- getObjectFromTreeList tl val
           Just (ch, _) <- getChildrenAndUpper tl val
           (if null ch then done
            else error "TreeList (mkLeaf) : node is not empty")
@@ -356,13 +358,13 @@ mkLeaf tl val =
           objectChanged tl obj nuobj
           pho <- getIcon val
           obj_img nuobj # photo pho
-          packTreeListObject nuobj False (x - 15, y)
+          packTreeListObject nuobj isroot (x - 15, y)
       _ -> done
 
 removeTreeListObject :: CItem a => TreeList a -> a -> IO ()
 removeTreeListObject tl val =
   do
-    Just obj <- getObjectFromTreeList tl val
+    Just (obj, _) <- getObjectFromTreeList tl val
     mch <- getChildrenAndUpper tl val
     case mch of
       Just (ch, upper) ->

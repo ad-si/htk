@@ -21,7 +21,7 @@ main =
     (if tixAvailable then
 
        do
-         nb <- newNoteBook main [size (400, 450)]
+         nb <- newNoteBook main [size (300, 300)]
          pack nb [PadX 10, PadY 10, Fill X, Expand On]
 
          page1 <- createNoteBookPage nb "Entries" []
@@ -62,6 +62,12 @@ main =
          e4 <- newEntry lf_web [tooltip "enter your homepage"]
                  :: IO (Entry String)
          grid e4 [GridPos (1,1), GridPadX 5, GridPadY 5]
+
+         lf_inf <- newLabelFrame page2 [text "Info"]
+         grid lf_inf [GridPos (0,0), Sticky NSEW]
+
+         inf2 <- newMessage lf_inf [text "This is an example for widgets, that are only available with tixwish.\nYou can get information about which wish you are using via the tixAvailbale flag.", tooltip "tix widget example info"] :: IO (Message String)
+         grid inf2 [GridPos (0,0), Sticky NSEW]
 
          finishHTk main
 

@@ -39,10 +39,15 @@ getMatchedFiles fs abs = getMatchedFiles' fs [] abs
           do
             p' <- try (getPermissions (abs ++ f))
             case p' of
-              Right p -> if f == "." || f == ".." || not(searchable p) ||
-                            hidden f then
-                           getMatchedFiles' fs dirs abs
-                         else getMatchedFiles' fs (f : dirs) abs
+              Right p -> do
+                           b' <- try (return (not (searchable p)))
+                           case b' of
+                             Right b ->
+                               if f == "." || f == ".." || b ||
+                               hidden f then
+                                 getMatchedFiles' fs dirs abs
+                               else getMatchedFiles' fs (f : dirs) abs
+                             Left _ -> getMatchedFiles' fs (f : dirs) abs
               Left _ -> getMatchedFiles' fs (f : dirs) abs
         getMatchedFiles' _ dirs _ = return dirs
 
@@ -68,7 +73,6 @@ toTreeListObjects :: String -> [FilePath] ->
                      IO [TreeListObject FileObject]
 toTreeListObjects path (f : fs) =
   do
-    p <- getPermissions (path ++ f)
     acc <- system ("access -rx " ++ path)
     isnode <- if acc == ExitSuccess then
                 do

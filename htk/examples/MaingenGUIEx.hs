@@ -17,7 +17,7 @@ import Name
 import ReferenceVariables
 import System
 import IOExts
-import Dynamic
+import DialogWin
 
 foldref :: Ref (Maybe (Item Obj))
 foldref = unsafePerformIO (newRef Nothing)
@@ -43,11 +43,15 @@ data MyObject =
     MyContainer Id
   | MyColor Id Col
   | MyImage Id (IO Image)
+  | MyTxt Id String
+  | MyNum Id Int
 
 getID :: MyObject -> Id
 getID (MyContainer id) = id
 getID (MyColor id _) = id
 getID (MyImage id _) = id
+getID (MyTxt id _) = id
+getID (MyNum id _) = id
 
 instance Eq MyObject where
   myobj1 == myobj2 = getID myobj1 == getID myobj2
@@ -64,25 +68,23 @@ instance Eq Obj where
 -- external adding of folders / items --
 ----------------------------------------
 
-{-
-addNum :: String -> String -> IO ()
-addNum nm ent = putStrLn ("not yet implemented")
--}
+addNum :: IO Id -> GenGUI Obj -> String -> String -> IO ()
+addNum newID gui name ent = putStrLn "not yet implemented"
 
-{-
-addTxt :: String -> String -> IO ()
-addTxt nm ent =
+addTxt :: IO Id -> GenGUI Obj -> String -> String -> IO ()
+addTxt newID gui name ent =
   do
     mpar <- getRef foldref
     case mpar of
-      Just par -> do
-                    pname <- newProp (newName nm)
-                    picon <- newProp txtImg
-                    pval <- newProp (toDyn ent)
-                    addItem par (LeafItem (MyObject pname picon pval))
-                    done
+      Just par ->
+        do
+          id <- newID
+          let nm = newName name
+              ic = txtImg
+              val = MyTxt id ent
+          addItem gui par (LeafItem (nm, ic, val) Nothing)
+          done
       _ -> done
--}
 
 addCol :: IO Id -> GenGUI Obj -> String -> String -> IO ()
 addCol newID gui name ent =
@@ -149,49 +151,50 @@ addFolder nm =
 
 addExampleFolders :: IO Id -> GenGUI Obj -> IO ()
 addExampleFolders newID gui =
-  let 
-{-
-      mkTxtItem :: String -> (Int, (String, ItemIcon)) -> IO NewItem
-      mkTxtItem nm (i, (val, icon)) =
+  let mkNumItem :: IO Id -> String -> (Int, (Int, IO Image)) ->
+                   IO (NewItem Obj)
+      mkNumItem newID name (i, (num, ic)) =
         do
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn val)
-          return (LeafItem (MyObject pname picon pval))
+          id <- newID
+          let val = MyNum id num
+              nm = newName (name ++ show i) 
+          return (LeafItem (nm, ic, val) Nothing)
 
-      addTxtFolder :: Item -> String -> ItemIcon -> String ->
-                     [(String, ItemIcon)] -> Int -> IO ()
-      addTxtFolder par nm icon subnm vals_icons i =
+      addNumFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
+                      IO Image -> String -> [(Int, IO Image)] -> Int ->
+                      IO ()
+      addNumFolder newID gui par name ic subnm vals_icons i =
         do
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn ())
-          items <- mapM (mkTxtItem subnm) (zip [1..(length vals_icons)]
-                                               vals_icons)
-          addItem par (FolderItem (MyContainer pname picon pval) items)
+          let nm = newName (name ++ show i)
+          items <- mapM (mkNumItem newID subnm)
+                        (zip [1..(length vals_icons)] vals_icons)
+          id <- newID
+          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+                                      Nothing)
           done
--}
-{-
-      mkNumItem :: String -> (Int, (Int, ItemIcon)) -> IO NewItem
-      mkNumItem nm (i, (val, icon)) =
-        do
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn val)
-          return (LeafItem (MyObject pname picon pval))
 
-      addNumFolder :: Item -> String -> ItemIcon -> String ->
-                      [(Int, ItemIcon)] -> Int -> IO ()
-      addNumFolder par nm icon subnm vals_icons i =
+      mkTxtItem :: IO Id -> String -> (Int, (String, IO Image)) ->
+                   IO (NewItem Obj)
+      mkTxtItem newID name (i, (str, ic)) =
         do
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn ())
-          items <- mapM (mkNumItem subnm) (zip [1..(length vals_icons)]
-                                               vals_icons)
-          addItem par (FolderItem (MyContainer pname picon pval) items)
+          id <- newID
+          let val = MyTxt id str
+              nm = newName (name ++ show i)
+          return (LeafItem (nm, ic, val) Nothing)
+
+      addTxtFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
+                      IO Image -> String -> [(String, IO Image)] -> Int ->
+                      IO ()
+      addTxtFolder newID gui par name ic subnm vals_icons i =
+        do
+          let nm = newName (name ++ show i)
+          items <- mapM (mkTxtItem newID subnm)
+                        (zip [1..(length vals_icons)] vals_icons)
+          id <- newID
+          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+                                      Nothing)
           done
--}
+
       mkImgItem :: IO Id -> String -> (Int, (IO Image, IO Image)) ->
                    IO (NewItem Obj)
       mkImgItem newID name (i, (img, ic)) =
@@ -238,19 +241,22 @@ addExampleFolders newID gui =
   in do
        guiroot <- root gui
 
-       mapM (addImgFolder newID gui guiroot "images." imgfolderImg
-                          "image_item."
-                          [(img1, imgImg), (img2, imgImg)]) [1]
-
-       let nm1 = newName ("example_folder.1")
+       let nm1 = newName "example_folder.1"
        exfolder1 <- do
                       id <- newID
                       addItem gui guiroot
                         (FolderItem (nm1, folderImg, MyContainer id) []
                                     Nothing)
 
-{-
-       mapM (addTxtFolder guiroot "texts." txtfolderImg "text_item"
+       let nm2 = newName "example_folder.2"
+       exfolder2 <- do
+                      id <- newID
+                      addItem gui guiroot
+                        (FolderItem (nm2, folderImg, MyContainer id) []
+                                    Nothing)
+
+       mapM (addTxtFolder newID gui exfolder2 "texts." txtfolderImg
+                          "text_item."
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
                            ("content of text item 3", txtImg),
@@ -259,6 +265,7 @@ addExampleFolders newID gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
+{-
        mapM (addTxtFolder guiroot "texts." txtfolderImg
                           "text_item_width_long_name"
                           [("content of text item 1", txtImg),
@@ -269,18 +276,22 @@ addExampleFolders newID gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
-       mapM (addNumFolder exfolder1 "numbers." numfolderImg "number_item."
-                         [(25 :: Int, numImg), (17, numImg), (8, numImg), 
-                          (73, numImg), (2451, numImg), (3, numImg),
-                          (7182812, numImg), (2, numImg)]) [1..3]
 -}
-       mapM (addColFolder newID gui guiroot "colors." colorfolderImg
+       mapM (addNumFolder newID gui exfolder1 "numbers." numfolderImg
+                          "number_item."
+                          [(25 :: Int, numImg), (17, numImg), (8, numImg),
+                           (73, numImg), (2451, numImg), (3, numImg),
+                           (7182812, numImg), (2, numImg)]) [1..3]
+       mapM (addColFolder newID gui exfolder2 "colors." colorfolderImg
                           "color_item."
                           [(Red, redImg), (Yellow, yellowImg),
                            (Green, greenImg), (Yellow, yellowImg),
                            (Yellow, yellowImg), (Red, redImg),
                            (Green, greenImg), (Blue, blueImg),
                            (Blue, blueImg)]) [1..3]
+       mapM (addImgFolder newID gui guiroot "images." imgfolderImg
+                          "image_item."
+                          [(img1, imgImg), (img2, imgImg)]) [1..2]
        done
 
 {-
@@ -323,12 +334,20 @@ main =
     gui <- newGenGUI Nothing :: IO (GenGUI Obj)
 
     -- create menu content
-    m <- createMenu main True []
+    m <- createMenu main False []
     pulldown1 <- createMenuCascade (genGUIMainMenu gui)
-                                   [text "Info", menu m]
-    createMenuCommand m [text "GenGUI Info"]
+                                   [text "File", menu m]
+    inf <- createMenuCommand m [text "GenGUI Info"]
+    clickedinf <- clicked inf
+    spawnEvent
+      (forever (clickedinf >>>
+                newAlertWin "This is an example for the GenGUI module."
+                            []))
+
     createMenuSeparator m []
-    createMenuCommand m [text "Quit"]
+    quit <- createMenuCommand m [text "Quit"]
+    clickedquit <- clicked quit
+    spawnEvent (clickedquit >>> destroy main)
 
     top <- newVFBox main []
     pack top [PadX 5, PadY 5, Fill X, Expand On]
@@ -585,101 +604,78 @@ selectedTl foldlab mitem =
   case mitem of
     Nothing -> foldlab # text "no folder selected" >> done
     Just item -> let val = content item
-                 in case val of
-                      (nm, _, _) ->
-                        do
-                          foldlab # text ("'" ++ full nm ++ "'")
-                          setRef foldref (Just item)
-                      _ -> setRef foldref Nothing
+                     (nm, _, _) = val
+                 in do
+                      foldlab # text ("'" ++ full nm ++ "'")
+                      setRef foldref (Just item)
 
 doubleClickNp :: Item Obj -> IO ()
-doubleClickNp item = done
-{-
-  let newitem = content item
-  in case newitem of
-       LeafItem ext ->
-         do
-           val <- get ext :: IO Dynamic
-           case fromDynamic val :: Maybe (IO Image) of
-             Just ioimg -> do
-                             main <- createToplevel [text "Image"]
-                             img <- ioimg
-                             lab <- newLabel main [photo img] ::
-                                      IO (Label Image)
-                             pack lab []
-                             quit <- newButton main [text "Close"]
-                                       :: IO (Button String)
-                             pack quit []
-                             clickedquit <- clicked quit
-                             spawnEvent (forever (clickedquit >>
-                                                  always (destroy main)))
-                             done
-             _ -> done
-           case fromDynamic val :: Maybe String of
-             Just str -> do
-                           main <- createToplevel [text "Text"]
-                           lab <- newLabel main
-                                    [text ("     " ++ str ++ "     "),
-                                     height 5, relief Sunken,
-                                     font (Helvetica, 12 :: Int)] ::
-                                  IO (Label String)
-                           pack lab []
-                           quit <- newButton main [text "Close"]
-                                     :: IO (Button String)
-                           pack quit []
-                           clickedquit <- clicked quit
-                           spawnEvent (forever (clickedquit >>
-                                                always (destroy main)))
-                           done
-             _ -> done
-           case fromDynamic val :: Maybe Col of
-             Just mycolor -> do
-                               main <- createToplevel [text "Color"]
-                               lab <- newLabel main
-                                        [relief Sunken, size (20,8),
-                                         font (Helvetica, 18 :: Int),
-                                         bg (case mycolor of
-                                               Red -> "red"
-                                               Green -> "green"
-                                               Blue -> "blue"
-                                               Yellow -> "yellow"),
-                                         text (case mycolor of
-                                                  Red -> "Red"
-                                                  Green -> "Green"
-                                                  Blue -> "Blue"
-                                                  Yellow -> "Yellow")]
-                                        :: IO (Label String)
-                               pack lab []
-                               quit <- newButton main [text "Close"]
-                                         :: IO (Button String)
-                               pack quit []
-                               clickedquit <- clicked quit
-                               spawnEvent
-                                 (forever (clickedquit >>
-                                           always (destroy main)))
-                               done
-
-             _ -> done
-           case fromDynamic val :: Maybe Int of
-             Just n -> do
-                         main <- createToplevel [text "Number"]
-                         lab <- newLabel main
-                                  [text (show n), relief Sunken,
-                                   size (20,8),
-                                   font (Helvetica, 18 :: Int)] ::
-                                IO (Label String)
-                         pack lab []
-                         quit <- newButton main [text "Close"]
-                                   :: IO (Button String)
-                         pack quit []
-                         clickedquit <- clicked quit
-                         spawnEvent (forever (clickedquit >>
-                                              always (destroy main)))
-                         done
-             _ -> done
-       _ -> done
--}
-
+doubleClickNp item =
+  let (_, _, myobj) = content item
+  in case myobj of
+       MyImage _ ioimg -> do
+                            main <- createToplevel [text "Image"]
+                            img <- ioimg
+                            lab <- newLabel main [photo img] ::
+                                     IO (Label Image)
+                            pack lab []
+                            quit <- newButton main [text "Close"]
+                                      :: IO (Button String)
+                            pack quit []
+                            clickedquit <- clicked quit
+                            spawnEvent (clickedquit >>> destroy main)
+                            done
+       MyTxt _ str -> do
+                        main <- createToplevel [text "Text"]
+                        lab <- newLabel main
+                                 [text ("     " ++ str ++ "     "),
+                                  height 5, relief Sunken,
+                                  font (Helvetica, 12 :: Int)] ::
+                               IO (Label String)
+                        pack lab []
+                        quit <- newButton main [text "Close"]
+                                  :: IO (Button String)
+                        pack quit []
+                        clickedquit <- clicked quit
+                        spawnEvent (clickedquit >>> destroy main)
+                        done
+       MyColor _ mycol -> do
+                            main <- createToplevel [text "Color"]
+                            lab <- newLabel main
+                                     [relief Sunken, size (20,8),
+                                      font (Helvetica, 18 :: Int),
+                                      bg (case mycol of
+                                            Red -> "red"
+                                            Green -> "green"
+                                            Blue -> "blue"
+                                            Yellow -> "yellow"),
+                                      text (case mycol of
+                                               Red -> "Red"
+                                               Green -> "Green"
+                                               Blue -> "Blue"
+                                               Yellow -> "Yellow")]
+                                     :: IO (Label String)
+                            pack lab []
+                            quit <- newButton main [text "Close"]
+                                      :: IO (Button String)
+                            pack quit []
+                            clickedquit <- clicked quit
+                            spawnEvent (clickedquit >>> destroy main)
+                            done
+       MyNum _ n -> do
+                      main <- createToplevel [text "Number"]
+                      lab <- newLabel main
+                               [text (show n), relief Sunken,
+                                size (20,8),
+                                font (Helvetica, 18 :: Int)] ::
+                             IO (Label String)
+                      pack lab []
+                      quit <- newButton main [text "Close"]
+                                :: IO (Button String)
+                      pack quit []
+                      clickedquit <- clicked quit
+                      spawnEvent (clickedquit >>> destroy main)
+                      done
 
 exportState :: GenGUI Obj -> IO ()
 exportState gui =

@@ -35,8 +35,6 @@ module MarkupText (
   rightmargin,
   href,
   window,
---  image,
---  bitmap,
 
 -- special characters
   alpha,
@@ -205,8 +203,6 @@ data MarkupText =
   | MarkupLeftMargin Int [MarkupText]
   | MarkupWrapMargin Int [MarkupText]
   | MarkupRightMargin Int [MarkupText]
-  | MarkupImage Image
-  | MarkupBitMap BitMapHandle
   | MarkupHRef [MarkupText] [MarkupText]
   | forall w . Widget w => MarkupWindow w
 
@@ -282,12 +278,6 @@ rightmargin = MarkupRightMargin
 
 window :: Widget w => w -> MarkupText
 window = MarkupWindow
-
-image :: Image -> MarkupText
-image = MarkupImage
-
-bitmap :: BitMapHandle -> MarkupText
-bitmap = MarkupBitMap
 
 href :: [MarkupText] -> [MarkupText] -> MarkupText
 href = MarkupHRef
@@ -652,12 +642,19 @@ clipact ed mark1 mark2 open settags txt tags =
     (if b then
        do
          tags' <- getRef settags
+         st <- getState ed
+         if st == Disabled then ed # state Normal >> done else done
          mapM destroy tags'
          deleteTextRange ed mark1 mark2
+         ed # state st -- restore state
+         done
      else
        do
+         st <- getState ed
+         if st == Disabled then ed # state Normal >> done else done
          insertText ed mark1 txt
          tags' <- insertTags tags
+         ed # state st -- restore state
          setRef settags tags')
   where insertTags :: [Tag] -> IO [TextTag String]
         insertTags (((l1,c1), (l2,c2), f) : ts) =
@@ -753,7 +750,7 @@ parseMarkupText m f =
                                f
 
             let (Font fstr) = f
-            putStrLn fstr
+--            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -770,7 +767,7 @@ parseMarkupText m f =
                                current_font
 
             let (Font fstr) = current_font
-            putStrLn fstr
+--            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -787,7 +784,7 @@ parseMarkupText m f =
                                current_font
 
             let (Font fstr) = current_font
-            putStrLn fstr
+--            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -977,7 +974,10 @@ parseMarkupText m f =
 
         MarkupWindow wid ->
           let win = ((line, char),
-                     \ed pos -> createEmbeddedTextWin ed pos wid [])
+                     \ed pos -> do
+                                  w <- createEmbeddedTextWin ed pos wid []
+                                  addToState ed [destroy w]
+                                  return w)
           in parseMarkupText' ms txt tags (win : wins) (line, char)
                               bold italics current_font
 
@@ -997,7 +997,6 @@ class HasMarkupText w where
 instance HasMarkupText (Editor String) where
   new m ed =
     do
-      putStrLn "new"
       st <- getState ed
       if st == Disabled then ed # state Normal >> done else done
       f <- getFont ed
@@ -1011,7 +1010,7 @@ instance HasMarkupText (Editor String) where
       mapM (\ (pos, f) -> do
                             pos' <- getBaseIndex ed pos
                             ew <- f ed pos'
-                            addToState ed [putStrLn "destroying embedded window" >> destroy ew])
+                            addToState ed [destroy ew])
            wins
       ed # state st -- restore state
       return ed
@@ -1021,6 +1020,8 @@ instance HasMarkupText (Editor String) where
       f <- getFont ed
       (txt, wins, tags) <- parseMarkupText m f
       l <- getTextLine ed pos
+      st <- getState ed
+      if st == Disabled then ed # state Normal >> done else done
       insertText ed pos (replicate (fromDistance char - length l) ' ' ++
                          txt)
       let tags' = shiftTags pos tags
@@ -1029,6 +1030,7 @@ instance HasMarkupText (Editor String) where
                                    pos2' <- getBaseIndex ed pos2
                                    f ed pos1' pos2')
            tags'
+      ed # state st -- restore state
       return ed
     where
       shiftTags :: Position -> [Tag] -> [Tag]
@@ -1048,7 +1050,6 @@ instance HasMarkupText (Editor String) where
 
   clear ed =
     do
-      putStrLn "clear"
       let obj@(GUIOBJECT oid _) = toGUIObject ed
       unbinds' <- getRef unbinds
       mapM (\ (oid', ubs) -> if oid == oid' then

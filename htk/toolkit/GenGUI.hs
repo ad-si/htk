@@ -358,12 +358,6 @@ newGenGUI mstate =
                                  Focused mobjninf ->
                                    tlObjectFocused gui clipboard mobjninf
                                  _ -> done)) +>
-{-
-                         (receive (selectionEvent tl) >>>=
-                            tlObjectSelected gui) +>
-                         (receive (focusEvent tl) >>>=
-                            tlObjectFocused gui clipboard) +>
--}
                          (do
                             ev_inf <- enter_ed
                             always
