@@ -83,10 +83,8 @@ $(
       else
          [d| 
             matchRegexAll0 regEx str =
-               fmap
-                  (\ (before,matched,after,_,substrings) ->
-                     (before,matched,after,substrings)
-                     )
+               ($idVar fmap)
+                  (\ (a,b,c,_,d) -> (a,b,c,d) )
                   (RegexString.matchRegexAll regEx str)
          |]
    )

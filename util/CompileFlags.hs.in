@@ -13,3 +13,7 @@ isWindows = (@WINDOWS@ /= 0)
 
 isDebug :: Bool
 isDebug = True -- set this manually, until we find a better way.
+
+idVar = [| id |] 
+   -- This is a useful way of breaking incorrect type-errors
+   -- in unused splices.
