@@ -138,6 +138,8 @@ parseMMiSSLatex fileSystem filePath =
 				   return (hasValue (el,preambleList))
 
   where 
+    -- expandInputs guckt noch nicht rekursiv in aufgelöste inputs rein
+    --
     expandInputs :: FileSystem -> FilePath -> Frag -> IO ( WithError([Frag]) )
     expandInputs fileSystem filePath f =
       case f of
@@ -173,9 +175,10 @@ parseMMiSSLatex fileSystem filePath =
         otherwise -> return(hasValue([f]))
 
     createInputPath filePath filename = 
-      case splitExtension filename of
-        Nothing -> filename ++ ".tex"
-        Just(name, ext) -> filename
+      let (dir, _) = splitName filePath
+      in case splitExtension filename of
+           Nothing -> combineNames dir (filename ++ ".tex")
+           Just(name, ext) -> combineNames dir filename
       
 
 makeMMiSSLatexContent :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)]
@@ -393,8 +396,7 @@ envsWithoutText = [("Package", "package")]
 
 includeCommands =  [("IncludeUnit", "includeUnit"), ("IncludeSection", "includeSection")] ++
                    [("IncludeAtom", "includeAtom"), ("IncludeText","includeText")] ++
-                   [("IncludeProgramComponent","includeProgramComponent")] ++
-                   [("IncludeCompositeUnit", "includeCompositeUnit"), ("IncludeTerm","includeTerm")] ++
+                   [("IncludeProgramComponent","includeProgramComponent")] ++                   [("IncludeCompositeUnit", "includeCompositeUnit"), ("IncludeTerm","includeTerm")] ++
                    [("IncludeProofStep", "includeProofStep"), ("IncludeProof", "includeProof")] ++
                    [("IncludeDevelopmentStep", "includeDevelopmentStep"), ("IncludeTable","includeTable")] ++
                    [("IncludeFigure","includeFigure")]
@@ -421,7 +423,7 @@ mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCo
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
 latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"] ++
-                     ["alltt", "lstlisting", "array"]
+                     ["alltt", "lstlisting", "array"] ++ (map fst plainTextAtoms)
 
 
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
@@ -433,7 +435,7 @@ latexEmbeddedFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "
                    [("\\(", "shortMathParens")]
 
 latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), ("displaymath", "displaymath")] 
-
+                     ++ [("eqnarray", "eqnarray"), ("eqnarray*", "eqnarrayStar")]
 
 -- specialTreatmentInPreamble contains all Commands which are specially treated in the process
 -- of generation a MMiSSLaTeX-Preamble out of the Fragments collected before the \begin{document}:
@@ -1124,6 +1126,8 @@ showElement1 :: Content -> String
 showElement1 (CElem e) = (render . PP.element) e
 --}
 
+-- <?xml version="1.0" encoding="ISO-8859-1"?>
+
 
 makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
 makeXML frag = 
@@ -1494,7 +1498,8 @@ makeContent (f:frags) NoText parentEnv =
      (EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
                         in  mapWithError ([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))] ++)
                                          (makeContent frags NoText parentEnv)
-     (Other str) -> if ((length (filter (not . (`elem` "\n ")) str) == 0) ||
+     (Other str) -> if ((length (filter (not . isSpace) str) == 0) ||
+                        (length (filter (not . isControl) str) == 0) ||
 			((head str) == '%'))
                       -- String besteht nur aus Leerzeichen oder Zeilenenden
                       then mapWithError ([(CMisc (PI (piInsertLaTeX ,str)))] ++) (makeContent frags NoText parentEnv)
