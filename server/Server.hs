@@ -230,17 +230,20 @@ runServer serviceList =
                                              cleanUp
                                              throw exception
 
-                           state <- takeMVar stateMVar
-                           -- Send initial stuff and add client to client list
-                           header <- sendOnConnect service state
-                           hPutStrLnFlush handle (show header)
-                           oldClients <- takeMVar clients
-                           putMVar clients (clientData:oldClients)
-                           putMVar stateMVar state
+                              clientStartup =
+                                 do
+                                    state <- takeMVar stateMVar
+                                    -- Send initial stuff and add client to 
+                                    -- client list
 
-                           -- clientReadAction is basically thread for 
-                           -- reading client output
-                           let
+                                    header <- sendOnConnect service state
+                                    hPutStrLnFlush handle (show header)
+                                    oldClients <- takeMVar clients
+                                    putMVar clients (clientData:oldClients)
+                                    putMVar stateMVar state
+
+                              -- clientReadAction is basically thread for 
+                              -- reading client output
                               clientReadAction :: IO ()
                               clientReadAction =
                                  do
@@ -271,10 +274,12 @@ runServer serviceList =
                                     putMVar stateMVar newState
                                     backupTick
                                     clientReadAction
+
                            -- however it needs a wrapper so harmless
                            -- (EOF) errors don't cause any trouble.
                            forkIO(
                               do
+                                 clientStartup
                                  Left exception 
                                     <- Exception.try clientReadAction
                                  -- clientReadAction cannot return otherwise
