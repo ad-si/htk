@@ -104,11 +104,73 @@ lookupNodes importsState (node :: node)
       let
          folderStructure = folders importsState
 
-         globalError = staticSimpleSource (
-            map
-               (\ (searchName,value) -> (Error,value))
-               searchData
-            )
+         mkGlobalError :: (EntitySearchName,value) 
+            -> IO (SimpleSource (LookupResult node,value))
+            -- resolve only FromAbsolute searches.
+         mkGlobalError (FromAbsolute fullName,value) =
+            do
+               simpleSource <- lookupFullName folderStructure node fullName
+               return (fmap
+                  (\ nodeOpt -> 
+                     (case nodeOpt of
+                        Nothing -> NotFound
+                        Just node1 -> Found node1,
+                        value
+                        )
+                     )
+                  simpleSource
+                  )
+         mkGlobalError (searchName,value) =
+            return (staticSimpleSource (Error,value))
+
+         getGlobalError :: IO (SimpleSource [(LookupResult node,value)])
+         getGlobalError =
+            do
+               (globalErrors :: [SimpleSource (LookupResult node,value)])
+                  <- mapM mkGlobalError searchData
+               return (sequenceSimpleSource globalErrors)
+
+         mkNonError :: Env node -> (EntitySearchName,value) ->
+            IO (SimpleSource (LookupResult node,value))
+         mkNonError localEnv (searchName,value) =
+            case searchName of
+               FromAbsolute fullName ->
+                  do
+                     nodeOptSource 
+                        <- lookupFullName folderStructure node fullName
+                     return (fmap
+                        (\ nodeOpt -> 
+                           (case nodeOpt of
+                              Nothing -> NotFound
+                              Just node1 -> Found node1,
+                              value
+                              )
+                           ) 
+                        nodeOptSource
+                        )
+               _ ->
+                  do
+                     (source1 :: SimpleSource (Maybe (Env node))) 
+                        <- lookupEnv folderStructure
+                           localEnv (mkNames searchName)
+                     let
+                        source2 
+                           :: SimpleSource (LookupResult node,
+                              value)
+                        source2 =
+                           mapIO
+                              (\ envOpt ->
+                                 do
+                                    lookupResult <- 
+                                       mkLookupResult 
+                                          importsState node
+                                          searchName envOpt
+                                    return (lookupResult,value)
+                                 )
+                              source1
+                     
+                     return source2
+
 
       case sourceOpt of
          Nothing -> 
@@ -116,7 +178,7 @@ lookupNodes importsState (node :: node)
                name <- getName (folders importsState) node
                reportError importsState
                   (toString name ++ " is not an MMiSS package")
-               return globalError
+               getGlobalError
          Just (source :: SimpleSource (WithError (LocalNodeData node))) ->
             return (mapIOSeq
                source
@@ -128,7 +190,7 @@ lookupNodes importsState (node :: node)
                               reportError importsState mess
                            else
                               done
-                        return globalError
+                        getGlobalError
                   Right localNodeData ->
                      do
                         let
@@ -136,30 +198,8 @@ lookupNodes importsState (node :: node)
                         (lookupSources0 
                            :: [SimpleSource (LookupResult node,value)])
                            <- mapM
-                              (\ (searchName,value) -> 
-                                 do
-                                    (source1 
-                                       :: SimpleSource (Maybe (Env node))) 
-                                       <- lookupEnv folderStructure
-                                          localEnv0 (mkNames searchName)
-                                    let
-                                       source2 
-                                          :: SimpleSource (LookupResult node,
-                                             value)
-                                       source2 =
-                                          mapIO
-                                             (\ envOpt ->
-                                                do
-                                                   lookupResult <- 
-                                                      mkLookupResult 
-                                                         importsState node
-                                                         searchName envOpt
-                                                   return (lookupResult,value)
-                                                )
-                                             source1
-                                    
-                                    return source2
-                                 )
+                              (\ searchValue -> 
+                                 mkNonError localEnv0 searchValue) 
                               searchData
                         let
                            lookupSources1 
@@ -174,6 +214,16 @@ lookupNodes importsState (node :: node)
 lookupNode :: Ord node => ImportsState node -> node -> EntitySearchName 
    -> IO (SimpleSource (LookupResult node))
    -- get value of search name within some object.
+lookupNode importsState (node :: node) (FromAbsolute fullName) =
+   do
+      fullNameSource <- lookupFullName (folders importsState) node fullName
+      return (fmap
+         (\ nodeOpt -> case nodeOpt of
+            Nothing -> NotFound
+            Just node -> Found node
+            )
+         fullNameSource
+         )
 lookupNode importsState (node :: node) searchName =
    do
       sourceOpt <- getLocalNodeData importsState node
@@ -457,7 +507,7 @@ mkLocalNodeData importsState (node :: node) globalNodeDataSource =
                                  mapWithError
                                     (\ localEnv ->
                                        LocalNodeData {
-                                          localEnv = localEnv
+                                          localEnv = setThis localEnv node
                                           }
                                        )
 

@@ -155,7 +155,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
             Nothing -> break "Attempt to read deleted object?"
             Just objectName -> return objectName
          let
-            searchName = FromHere (EntityFullName [objectName])
+            searchName = FromAbsolute (EntityFullName [objectName])
 
          thisVariantSearch <- case variantSearchOpt of
             Just thisVariantSearch -> return thisVariantSearch

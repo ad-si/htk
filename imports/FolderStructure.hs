@@ -87,7 +87,7 @@ getName :: Ord node => FolderStructure node -> node -> IO EntityFullName
 getName (FolderStructure {getParent = getParent1,root = root1}) (node :: node) =
    do
       names <- getName1 [] node
-      return (EntityFullName (reverse names))
+      return (EntityFullName names)
    where
       getName1 :: [EntityName] -> node -> IO [EntityName]
       getName1 names1 node0 =

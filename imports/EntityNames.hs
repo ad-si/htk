@@ -92,11 +92,17 @@ newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 --
 -- FromHere is actually identical to FromCurrent, *except* when the
 -- search-name is the expansion of an alias.  
+--
+-- FromAbsolute is an absolute name, that always works within an object and
+-- ignores any environment.  It is (currently) only used internally and
+-- so has no readable syntax.  If displayed it is displayed as 
+-- #ABSOLUTE.[fullName]
 data EntitySearchName = 
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
    |  FromCurrent EntityFullName
    |  FromRoot EntityFullName
+   |  FromAbsolute EntityFullName
    deriving (Eq,Ord,Show)
 
 -- *************************************************************************
@@ -211,6 +217,8 @@ instance StringClass EntitySearchName where
    toString (FromHere fullName) = toString fullName
    toString (FromParent (FromHere (EntityFullName []))) = "Parent"
    toString (FromParent searchName) = "Parent." ++ toString searchName
+   toString (FromAbsolute (EntityFullName [])) = "#ABSOLUTE"
+   toString (FromAbsolute fullName) = "#ABSOLUTE." ++ toString fullName
 
    fromStringWE = mkFromStringWE entitySearchNameParser "Entity Search Name" 
           
@@ -229,6 +237,7 @@ instance DeepSeq EntitySearchName where
    deepSeq (FromCurrent fN) y = deepSeq fN y
    deepSeq (FromParent sN) y = deepSeq sN y
    deepSeq (FromRoot fn) y = deepSeq fn y
+   deepSeq (FromAbsolute fn) y = deepSeq fn y
 
 -- ----------------------------------------------------------------------
 -- Thus we make them instances of FormTextField
@@ -302,6 +311,9 @@ searchNameDirBase (FromCurrent fname0) = case entityDirBase fname0 of
    Nothing -> Just (FromParent (FromCurrent trivialFullName),Nothing)
 searchNameDirBase (FromParent sname0) = case searchNameDirBase sname0 of
    Just (sname1,nameOpt) -> Just (FromParent sname1,nameOpt)
+searchNameDirBase (FromAbsolute fname0) = case entityDirBase fname0 of
+   Just (fname1,name) -> Just (FromAbsolute fname1,Just name)
+   Nothing -> Nothing
 
 
 -- ----------------------------------------------------------------------

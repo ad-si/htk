@@ -63,6 +63,8 @@ module ObjectTypes(
      -- WrappedLink -> Maybe (Link object)
    toWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink
    fromWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink -> WrappedLink
+   wrappedLinkTypeName, -- :: WrappedLink -> String
+      -- Get the name of the (Haskell) type within a WrappedLink.
 
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
@@ -344,6 +346,10 @@ fromWrappedMergeLink (WrappedLink (_ :: Link object)) (WrappedMergeLink link0)
       link1 = dynCast "ObjectTypes.fromWrappedMergeLink error" link0
    in
       WrappedLink link1
+
+wrappedLinkTypeName :: WrappedLink -> String
+wrappedLinkTypeName (WrappedLink (_ :: Link object)) =
+   show (typeOf (undefined :: object))
 
 -- ----------------------------------------------------------------
 -- Some miscellaneous utilities constructed from the primitives.

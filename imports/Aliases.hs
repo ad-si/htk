@@ -62,21 +62,21 @@ mkAliases (ImportCommands importCommands) =
       cycleCheckAliases :: Aliases -> WithError Aliases
       cycleCheckAliases 
             (aliases @ (Aliases {begin = begin0,general = general0})) =
+         -- Only aliases in the general0, namely those where the RHS does not
+         -- begin with Root, Parent or Current, can cause problems.  For
+         -- aliases which begin Root, Parent or Current can only be expanded
+         -- at the start of a search name, and so cannot be expanded again.
+         --
+         -- So we include the begin0 names in the graph, but do not check
+         -- their expansions.
+    
          let
             nodes :: [EntityName]
             nodes = keysFM begin0 ++ keysFM general0
 
-            getNames :: EntitySearchName -> [EntityName]
-            getNames (FromParent esn) = getNames esn
-            getNames (FromHere (EntityFullName names)) = names
-            getNames (FromCurrent (EntityFullName names)) = names
-            getNames (FromRoot (EntityFullName names)) = names
-
             components :: EntityName -> [EntityName]
             components entityName =
-               case lookupFM begin0 entityName of
-                  Just esn -> getNames esn
-                  Nothing -> lookupWithDefaultFM general0 [] entityName
+               lookupWithDefaultFM general0 [] entityName
          in
             case findCycle nodes components of
                Nothing -> hasValue aliases

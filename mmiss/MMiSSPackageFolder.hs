@@ -559,7 +559,7 @@ lookupMMiSSObject view packageFolder searchName =
          (toMMiSSPackageFolderLinkedObject packageFolder) searchName
       case fromWithError objectLinkOptWE of
          Left mess -> return (hasError (
-            "Object " ++ toString searchName ++ " is not an MMiSS object"))
+            "Error looking for MMiSS object: " ++ mess))
          Right _ -> return objectLinkOptWE
 
 lookupMMiSSPackageFolder :: View -> MMiSSPackageFolder -> EntitySearchName 
@@ -570,8 +570,7 @@ lookupMMiSSPackageFolder view packageFolder searchName =
          (toMMiSSPackageFolderLinkedObject packageFolder) searchName
       case fromWithError objectLinkOptWE of
          Left mess -> return (hasError (
-            "Object " ++ toString searchName 
-               ++ " is not an MMiSS package folder"))
+            "Error looking for MMiSS package folder: " ++ mess))
          Right _ -> return objectLinkOptWE
 
 lookupMMiSSObjectMustExist :: View -> MMiSSPackageFolder -> EntitySearchName 

@@ -5,7 +5,11 @@
 (require 'tex-site)
 (put 'erase-buffer 'disabled nil)
 (defun MMiSS-init ()
-  (setq LaTeX-mode-hook        'mmiss-mode)  
+
+;  Why in creation the Saarbrückers wanted to clobber the LaTeX mode whenever
+;  you use MMiSS-LaTeX is a mystery to me.  We comment this line of theirs
+;  out.  (GER, 7th October 2003)
+;  (setq LaTeX-mode-hook        'mmiss-mode)  
 
   ; The local variables uni-process and uni-half-line
   ; get stomped on by MMiSSTeX-mode so need to be reconstructed

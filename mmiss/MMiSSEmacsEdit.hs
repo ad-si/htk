@@ -142,7 +142,7 @@ editMMiSSObjectInner formatConverter view link =
             do
                let
                   searchName :: EntitySearchName
-                  searchName = FromHere (EntityFullName [name])
+                  searchName = FromAbsolute (EntityFullName [name])
 
                   emacsFS = mkEmacsFS view formatConverter 
                   printAction = mkPrintAction view formatConverter 
@@ -167,8 +167,13 @@ editMMiSSObjectInner formatConverter view link =
 mkEmacsFS :: View -> EditFormatConverter -> EmacsFS EditRef
 mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
    let
+      -- toDescription needs to eliminate the FromAbsolute that occurs
+      -- for the top edited buffer
       toDescription :: EditRef -> String
-      toDescription = toString . searchName
+      toDescription editRef =
+         case searchName editRef of
+            FromAbsolute fullName -> toString fullName
+            searchName1 -> toString searchName1
 
       -- Now for the difficult one.
       editFS :: EditRef 
@@ -314,7 +319,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                              -- say, the including object alters its preamble.
 
                              element1 = setLabel element0
-                                (FromHere (EntityFullName [name1]))
+                                (FromAbsolute (EntityFullName [name1]))
 
                           writeOutWE <- writeToMMiSSObject
                              thisObjectType view package1 Nothing

@@ -8,7 +8,7 @@
   (put 'erase-buffer 'disabled nil)
   (defun MMiSS-init (string)
     (load-file "./mmisstex.el")
-    (setq LaTeX-mode-hook        'mmiss-mode)  
+;    (setq LaTeX-mode-hook        'mmiss-mode)  
     (MMiSSTeX-mode)
     (easy-menu-remove  LaTeX-mode-menu)
     (insert string)

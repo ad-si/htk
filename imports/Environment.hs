@@ -15,6 +15,11 @@ module Environment(
    emptyESource,
       -- :: ESource node
 
+   setThis,
+      -- :: Env node -> node -> Env node
+      -- Set the top node of the Env.  (This is used for all
+      -- local environments)
+
    newESource,
       -- :: FolderStructure node -> node -> EntityFullName 
       -- -> IO (ESource node)
@@ -122,8 +127,8 @@ newESource (folderStructure :: FolderStructure node) node
                      Just node2 -> newSource node2 names
                   )
                )
-     
 
+     
 -- construct the union of two environments, or complain about
 -- clashes.
 union :: Ord node => FolderStructure node -> ESource node -> ESource node 
@@ -145,6 +150,12 @@ union (folderStructure :: FolderStructure node) source1 source2 =
       -- If the Maybe EntityName is set, this is an inner union with the
       -- given EntityName, and we expect the corresponding nodes to be the
       -- same, if present.
+      --
+      -- Otherwise if thisNameOpt is Nothing, this means we are at the
+      -- top level of the union, and we do not set the top node at all.
+      -- (That means for example that if we import several packages,
+      -- we do not attempt to unify the package-folder element of each
+      -- package.)
       unionEnv :: Maybe EntityName -> Env node -> Env node
          -> IO (SimpleSource (WithError (Env node)))
       unionEnv thisNameOpt env1 env2 =
@@ -154,10 +165,16 @@ union (folderStructure :: FolderStructure node) source1 source2 =
                   (Just node1,Just node2) | node1 == node2 ->
                      wrap (\ contents -> 
                         This {this = node1,contents = contents})
+                  (Just node1,Just node2) -> err ("Name " ++ toString thisName 
+                     ++ " multiply defined")
+                  (Just node1,Nothing) ->
+                     wrap (\ contents -> 
+                        This {this = node1,contents = contents})
+                  (Nothing,Just node2) ->
+                     wrap (\ contents -> 
+                        This {this = node2,contents = contents})
                   (Nothing,Nothing) ->
                      wrap (\ contents -> NoThis {contents = contents})
-                  _ -> err ("Name " ++ toString thisName 
-                     ++ " multiply defined")
             Nothing -> wrap (\ contents -> NoThis {contents = contents})
          where
             err :: String -> IO (SimpleSource (WithError (Env node)))
@@ -595,6 +612,19 @@ thisOpt :: Env node -> Maybe node
 thisOpt (Leaf {this = this}) = Just this
 thisOpt (This {this = this}) = Just this
 thisOpt (NoThis {}) = Nothing
+
+-- Set the top node of the Env.  (This is used for all
+-- local environments)
+setThis:: Env node -> node -> Env node
+setThis env this1 =
+   case contentsOpt env of
+      Nothing -> Leaf {this = this1}
+      Just contents1 -> This {this = this1,contents = contents1}
+
+contentsOpt :: Env node -> Maybe (FiniteMap EntityName (Env node))
+contentsOpt (Leaf {}) = Nothing
+contentsOpt (This {contents = contents}) = Just contents
+contentsOpt (NoThis {contents = contents}) = Just contents
 
 toContents :: FolderStructure node -> Env node 
    -> IO (SimpleSource (FiniteMap EntityName (Env node)))

@@ -503,7 +503,7 @@ lookupObject view linkedObject searchName =
             in
                case linkOpt of
                   Nothing -> hasError (toString searchName 
-                     ++ " has wrong type")
+                     ++ " has wrong type: " ++ wrappedLinkTypeName wrappedLink)
                   Just link -> hasValue (Just link)
          )
 
