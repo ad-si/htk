@@ -80,7 +80,8 @@ module ObjectTypes(
       -- :: HasCodedValue x => View -> WrappedLink -> x -> IO (Link x)
    wrapNewEmptyLink,
       -- :: HasCodedValue x => View -> WrappedLink -> IO (Link x)
-
+   wrapMoveLink,
+      -- :: View -> WrappedLink -> WrappedLink -> IO ()
 
    wrapPreFetchLinks, -- :: View -> [WrappedLink] -> IO ()
    
@@ -547,6 +548,9 @@ wrapCreateLink view (WrappedLink parentLink) x =
 wrapNewEmptyLink :: HasCodedValue x => View -> WrappedLink -> IO (Link x)
 wrapNewEmptyLink view (WrappedLink parentLink) = newEmptyLink view parentLink
 
+wrapMoveLink :: View -> WrappedLink -> WrappedLink -> IO ()
+wrapMoveLink view (WrappedLink parentLink) (WrappedLink thisLink) =
+   moveLink view parentLink thisLink
 
 -- | Get on with fetching the given 'WrappedLink's concurrently.
 wrapPreFetchLinks :: View -> [WrappedLink] -> IO ()

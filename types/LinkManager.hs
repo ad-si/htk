@@ -930,6 +930,19 @@ createLinkedObject view isNew frozenLinkedObject =
                                  removePrevious
                                  putMVar previousMVar insertionOpt
                                  broadcast insertionBroadcaster insertionOpt
+
+                                 case insertionOpt of
+                                    Just insertion ->
+                                       do
+                                          let 
+                                             thisWrappedLink = wrappedLink' 
+                                                frozenLinkedObject
+                                             parentWrappedLink = 
+                                                wrappedLinkInPtr 
+                                                   (parent insertion)
+                                          wrapMoveLink view parentWrappedLink
+                                             thisWrappedLink
+                                    Nothing -> done
                                  return (hasValue ())
                            Just mess ->
                               do
