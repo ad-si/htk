@@ -243,7 +243,7 @@
 
 <!ENTITY % m.problem.mix   "%m.compositeUnit.class;">
 <!ENTITY % m.solution.mix  "%m.compositeUnit.class;">
-<!ENTITY % m.example.mix   "%m.compositeUnit.mix;">
+<!ENTITY % m.example.mix   "%m.compositeUnit.mix; | %m.atom.class;">
 
 <!ENTITY % m.exercise.mix    "%m.problem.mix;">
 <!ENTITY % m.assignment.mix  "%m.problem.mix;">
@@ -422,10 +422,10 @@
 <!ATTLIST  development  %all-attributes;>
 <?MMiSSDisplay development : Green box ?>
 
-<!ELEMENT item (%m.item.mix;)*>
-<!ATTLIST item descItem   CDATA  #IMPLIED
-               %structure-attr;
-               %system-attr;>
+<!ELEMENT  item (%m.item.mix;)*>
+<!ATTLIST  item descItem   CDATA  #IMPLIED
+                %structure-attr;
+                %system-attr;>
 
 <!ELEMENT  comment  (%m.comment.mix;)*>
 <!ATTLIST  comment  %all-attributes;>
