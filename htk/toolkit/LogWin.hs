@@ -1,36 +1,26 @@
-{- #########################################################################
-
-MODULE        : LogWin
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Basic log window.
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module LogWin (
-        LogWin(..),
-        newLogWin,
 
-        GUIObject(..),
-        HasFile(..),
+  LogWin(..),
+  newLogWin,
 
-        writeLogWin
+  HasFile(..),
 
-        ) where
+  writeLogWin
 
-import Concurrency
+) where
+
 import HTk
-import Separator
-import Button
-import PulldownMenu
-import Space
-import Editor
-import ScrollBar
 import PromptWin
 import DialogWin
 import ScrollBox
@@ -38,9 +28,9 @@ import Interaction()
 import Debug(debug)
 
                 
--- --------------------------------------------------------------------------
---  Type
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Type
+-- -----------------------------------------------------------------------
 
 data LogWin = LogWin Window (Editor String) 
 
