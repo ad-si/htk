@@ -132,14 +132,6 @@ AC_SUBST(BDBDIR)
 AC_PATH_PROGS(XEMACS,xemacs)
 AC_PATH_PROGS(GNUCLIENT,gnuclient)
 #
-# Check for DtdToHaskell
-AC_PATH_PROGS(DTDTOHASKELL,DtdToHaskell)
-if test -z "$DTDTOHASKELL"; then
-   echo DtdToHaskell is needed for compiling the MMiSS DTD, if you change it.
-   echo It '*should*' be included with the GHC distribution
-fi
-#
-# 
 # Construct the default options, used by 
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
