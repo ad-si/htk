@@ -59,10 +59,18 @@ import Dynamics
 
 import Selective(EV,inaction)
 
+import NewNames
+
 class Graph graph where
    -- access functions
    getNodes :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> IO [Node]
+   getArcs :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> IO [Arc]
+   getNodeTypes :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> IO [NodeType]
+   getArcTypes :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> IO [ArcType]
 
    getArcsOut :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> Node -> IO [Arc]
@@ -86,11 +94,25 @@ class Graph graph where
    getArcTypeLabel :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> ArcType -> IO arcTypeLabel
 
-   shareGraph :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> 
-      GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
+   shareGraph :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    newGraph :: GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> IO (graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 
+   -- Functions for changing the state.
+   newNodeType :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> nodeTypeLabel -> IO NodeType
+   newNode :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> NodeType -> nodeLabel -> IO Node
+   newArcType :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> arcTypeLabel -> IO ArcType
+   newArc :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
+      -> ArcType -> arcLabel -> Node -> Node -> IO Arc 
+
+   -- Other updates, such as deletions should be done with the update 
+   -- function.  It is also possible to add nodes, arcs, arctypes and
+   -- nodetypes using update; however in this case the caller is responsible
+   -- for providing a globally new label.  
    update :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> IO ()
 
@@ -116,9 +138,12 @@ data GraphConnectionData nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
    deRegister :: IO (),
       -- disables graphUpdates
    graphUpdate :: Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
-      -> IO()
+      -> IO(),
       -- Similar to update (in class definition) except that
       -- it doesn't get echoed on graphUpdates.
+   nameSourceBranch :: NameSourceBranch
+      -- A source of new names.  Each graph should contain a NameSource
+      -- to generate new node strings.
    }
 
 ------------------------------------------------------------------------

@@ -31,6 +31,7 @@ import Exception(tryAllIO)
 import Computation (done)
 import Object
 import Registry
+import AtomString
 
 import Selective
 import BSem
@@ -38,6 +39,7 @@ import BSem
 import SIMClasses(Destructible(..))
 import InfoBus
 
+import NewNames
 import Graph
 
 ------------------------------------------------------------------------
@@ -50,6 +52,8 @@ data SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
       nodeTypeData :: Registry NodeType nodeTypeLabel,
       arcData :: Registry Arc (ArcData arcLabel),
       arcTypeData :: Registry ArcType arcTypeLabel,
+      nameSource :: NameSource,
+         -- Where new Node/Arc/NodeType/ArcType's can come from.
       clientsMVar :: MVar
          [ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel],
       parentDeRegister :: IO (),
@@ -101,6 +105,9 @@ instance Eq (ClientData nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 
 instance Graph SimpleGraph where
    getNodes graph = synchronize graph (listKeys (nodeData graph))
+   getArcs graph = synchronize graph (listKeys (arcData graph))
+   getNodeTypes graph = synchronize graph (listKeys (nodeTypeData graph))
+   getArcTypes graph = synchronize graph (listKeys (arcTypeData graph))
 
    getArcsOut = getNodeInfo arcsOut
    getArcsIn = getNodeInfo arcsIn
@@ -140,11 +147,14 @@ instance Graph SimpleGraph where
                   graphUpdate update = 
                      applyUpdateFromClient graph update clientData
 
+               nameSourceBranch <- branch (nameSource graph)
+
                return 
                   (GraphConnectionData {
                      graphState = graphState,
                      deRegister = deRegister,
-                     graphUpdate = graphUpdate
+                     graphUpdate = graphUpdate,
+                     nameSourceBranch = nameSourceBranch
                      })
             ) -- end of sync
          )
@@ -155,9 +165,11 @@ instance Graph SimpleGraph where
          GraphConnectionData {
             graphState = graphState,
             deRegister = deRegister,
-            graphUpdate = graphUpdate
+            graphUpdate = graphUpdate,
+            nameSourceBranch = nameSourceBranch
             } <- getGraphConnection (sendIO graphUpdatesQueue)
-         graph <- uncannGraph graphState deRegister
+
+         graph <- uncannGraph graphState deRegister nameSourceBranch
          let
             mVar = clientsMVar graph
          -- modify client list  
@@ -183,25 +195,37 @@ instance Graph SimpleGraph where
          registerTool graph
          return graph
 
+   newNodeType graph nodeTypeLabel =
+      do
+         name <- getNewName (nameSource graph)
+         let (nodeType :: NodeType) = fromString name
+         update graph (NewNodeType nodeType nodeTypeLabel)
+         return nodeType
+
+   newNode graph nodeType nodeLabel =
+      do
+         name <- getNewName (nameSource graph)
+         let (node :: Node) = fromString name
+         update graph (NewNode node nodeType nodeLabel)
+         return node
+
+   newArcType graph arcTypeLabel =
+      do
+         name <- getNewName (nameSource graph)
+         let (arcType :: ArcType) = fromString name
+         update graph (NewArcType arcType arcTypeLabel)
+         return arcType
+
+   newArc graph arcType arcLabel source target =
+      do
+         name <- getNewName (nameSource graph)
+         let (arc :: Arc) = fromString name
+         update graph (NewArc arc arcType arcLabel source target)
+         return arc
+
    update graph update = applyUpdate graph update (const True)
 
-   newEmptyGraph =
-      do
-         nodeData <- newRegistry
-         nodeTypeData <- newRegistry
-         arcData <- newRegistry
-         arcTypeData <- newRegistry
-         clientsMVar <- newMVar []
-         bSem <- newBSem
-         graphID <- newObject
-         return (SimpleGraph {
-            nodeData = nodeData,nodeTypeData = nodeTypeData,
-            arcData = arcData,arcTypeData = arcTypeData,
-            parentDeRegister = done,
-            clientsMVar = clientsMVar,
-            bSem = bSem,
-            graphID = graphID
-            })
+   newEmptyGraph = newEmptyGraphWithSource initialBranch
 
 getNodeInfo :: 
    (NodeData nodeLabel -> result)
@@ -452,7 +476,7 @@ innerApplyUpdate
                   Nothing -> killUpdate
 
 ------------------------------------------------------------------------
--- Canning and Uncanning
+-- Canning, Uncanning, and graph creation.
 -- These are the part of sharing graphs not involving communication.
 ------------------------------------------------------------------------
 
@@ -503,21 +527,45 @@ cannGraph (SimpleGraph{
             })
             
 uncannGraph :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
-   -> IO ()
+   -> IO () -> NameSourceBranch
    -> IO (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 -- the second argument is the deregistration function of the parent,
--- which we need to put in the SimpleGraph.
+-- which we need to put in the SimpleGraph.  The third argument is
+-- the graph's NameSource, ditto.
 uncannGraph 
       ((CannedGraph {updates = updates}) 
          :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
-      parentDeRegister =
+      parentDeRegister nameSourceBranch =
    do
       (graph' :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
-         <- newEmptyGraph
+         <- newEmptyGraphWithSource nameSourceBranch
       let
          graph = graph {parentDeRegister = parentDeRegister}
       sequence_ (map (update graph) updates)
       return graph
+
+newEmptyGraphWithSource :: NameSourceBranch 
+   -> IO (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
+newEmptyGraphWithSource nameSourceBranch =
+   do
+      nodeData <- newRegistry
+      nodeTypeData <- newRegistry
+      arcData <- newRegistry
+      arcTypeData <- newRegistry
+      clientsMVar <- newMVar []
+      bSem <- newBSem
+      graphID <- newObject
+      nameSource <- useBranch nameSourceBranch
+
+      return (SimpleGraph {
+         nodeData = nodeData,nodeTypeData = nodeTypeData,
+         arcData = arcData,arcTypeData = arcTypeData,
+         nameSource = nameSource,
+         parentDeRegister = done,
+         clientsMVar = clientsMVar,
+         bSem = bSem,
+         graphID = graphID
+         })
 
 
 
