@@ -376,18 +376,25 @@ continuePlain l id = (try (do endId id
 plainText stopChars = many1 (noneOf stopChars)
 
 
+mySpaces ::  String -> GenParser Char st String
+mySpaces str = do s <- space
+                  mySpaces (str ++ [s])
+               <|> return(str)
+
 -- beginBlock erkennt den Start einer Umgebung (\begin{id}) und parst mittels
 -- 'continue' den Inhalt der Umgebung. 'continue' achtet darauf, dass es zu der 
 -- id aus dem begin-Block auch ein \end{id}-Block gibt.  
                
 beginBlock :: GenParser Char st Frag
 beginBlock = do id <- begin
-                spaces
+                spaceStr <- option "" (try(mySpaces ""))
+                frags <- if (spaceStr == "") then return([]) else return([(Other spaceStr)])
+--                spaces
                 p <- envParams id
                 l <- if (id `elem` ((map fst plainTextAtoms) ++ latexPlainTextEnvs))
                        then continuePlain "" id
                        else continue [] id
-                return (Env id p (reverse l))
+                return (Env id p (frags ++ (reverse l)))
 
 
 -- envParams unterscheidet MMiSSLatex-Umgebungen von Latex-Umgebungen und stoesst
@@ -1743,7 +1750,7 @@ fillLatex out ((CElem (Elem "textFragment" atts contents)):cs) inList =
 fillLatex out ((CElem (Elem "listItem" atts contents)):cs) inList = 
    let s1 = "\\ListItem" 
        attrStr = (getAttribs atts "" [])
-       s2 = if (attrStr == "") then " " else "[" ++ attrStr ++ "] "
+       s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "] "
        items = [EditableText (s1 ++ s2)] ++ (fillLatex out contents [])
    in fillLatex out cs (inList ++ items)
 
