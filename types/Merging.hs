@@ -150,19 +150,44 @@ mergeViews (views @ (firstView:_)) =
                mergeObjectTypeTypeData (WrappedObjectTypeTypeData objectType)
                      =
                   do
-                     allTypesWE <- mergeViewsInGlobalRegistry 
+                     allRegistryTypesWE <- mergeViewsInGlobalRegistry 
                         (objectTypeGlobalRegistry objectType) views newView
-                     allTypes <- coerceWithErrorOrBreakIO break allTypesWE
-                     return (map 
-                        (\ (key,viewTypes) ->
-                           (key,map
-                              (\ (view,objectType) 
-                                 -> (view,WrappedObjectType objectType))
-                              viewTypes
+                     allRegistryTypes 
+                        <- coerceWithErrorOrBreakIO break allRegistryTypesWE
+                     let
+                        allRegistryTypes1 = map 
+                           (\ (key,viewTypes) ->
+                              (key,map
+                                 (\ (view,objectType) 
+                                    -> (view,WrappedObjectType objectType))
+                                 viewTypes
+                                 )
                               )
-                           )
-                        allTypes
-                        )
+                           allRegistryTypes
+
+                        getExtraObjectTypes1 :: ObjectType objectType object =>
+                           objectType -> IO [objectType]
+                        getExtraObjectTypes1 _ = extraObjectTypes
+
+                        getExtraObjectTypes :: IO [WrappedObjectType]
+                        getExtraObjectTypes =
+                           do
+                              extraObjectTypes1 
+                                 <- getExtraObjectTypes1 objectType
+                              return (map WrappedObjectType extraObjectTypes1)
+
+                     extraObjectTypes <- getExtraObjectTypes
+                     let
+                        extraObjectTypes2 = map
+                           (\ wrappedObjectType  ->
+                              (objectTypeId wrappedObjectType,
+                                 map 
+                                    (\ view -> (view,wrappedObjectType))
+                                    views
+                                 )
+                              )
+                           extraObjectTypes
+                     return (allRegistryTypes1 ++ extraObjectTypes2)
 
                mergeDisplayTypeTypeData :: WrappedDisplayType -> IO ()
                mergeDisplayTypeTypeData (WrappedDisplayType displayType)
