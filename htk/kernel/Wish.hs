@@ -6,8 +6,8 @@ module Wish (
   execTclScript,
   execCmd,
   evalCmd,
-  escape,
-  delimitString,
+  -- escape,
+  -- delimitString,
   Wish(..),
   TclCmd,
   TclScript,
@@ -55,6 +55,8 @@ import ChildProcess
 import ReferenceVariables
 import EventInfo
 
+import GUIValue
+
 -- -----------------------------------------------------------------------
 -- basic execution of Tcl commands
 -- -----------------------------------------------------------------------
@@ -87,7 +89,7 @@ evalCmd :: TclCmd -> IO TclResponse
 evalCmd cmd =
    do
       let
-         str = "evS "++ escape cmd ++ "\n"
+         str = "evS "++ toTkString cmd ++ "\n"
          -- We go to some trouble to pack the string first,
          -- as this has the side-effect of meaning it will
          -- be fully evaluated, so we are locked for minimum time. 
@@ -108,57 +110,6 @@ evalCmd cmd =
       return result
 
 
--- ------------------------------------------------------------------
--- escaping strings 
--- ------------------------------------------------------------------
-
-escape :: String -> String
-escape = delimitString . escapeString
-
--- escapeString quotes the special characters inside String.
-escapeString :: String -> String
-escapeString = concat . (map quoteChar)
-
--- delimitString places quotes around a String, if it contains
--- spaces, making it possible to use it as a single argument.
-delimitString :: String -> String
-delimitString "" = "\"\""
-delimitString str =
-   if isJust (find isSpace str)
-   then
-      '\"':(str++"\"")
-   else
-      str
-
--- quoteChar quotes characters special to Tcl, but not %.
-quoteChar :: Char -> String
-quoteChar ch =
-   case ch of
-      '\\' -> "\\\\"
-      '\"' -> "\\\""
-      '\n' -> "\\n"
-      '{' -> "\\{"
-      '}' -> "\\}"
-      '$' -> "\\$"
-      '[' -> "\\["
-      ']' -> "\\]"
-      ';' -> "\\;"
-      other -> 
-         if isPrint ch
-            then
-               [ch]
-            else
-               let
-                  nchar = ord ch
-               in
-                  if (nchar<0 || nchar >=256)
-                     then
-                        error "TclSyntax: bad char"
-                     else
-                        let
-                           (hi,lo) = nchar `divMod` 16
-                        in
-                           ['\\','x',intToDigit hi,intToDigit lo]
 
 -- -----------------------------------------------------------------------
 -- wish datatypes

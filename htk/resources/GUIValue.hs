@@ -30,14 +30,18 @@ module GUIValue (
 
         fromGUIValueIO,
         creadTk,
+	toTkString,
+	escapeString,
+	delimitString,
 
-        illegalGUIValue 
+        illegalGUIValue
         ) where
 
 import Computation(raise)
 import Char
 import Debug(debug)
-
+import Maybe(isJust)
+import List (find)
 
 -- --------------------------------------------------------------------------
 --  Options
@@ -58,9 +62,9 @@ class (Show a, Read a) => GUIValue a where
         maybeGUIValue                   :: GUIVALUE -> (Maybe a)
         fromGUIValue                    :: GUIVALUE -> a
         toGUIValue v                     = 
-                GUIVALUE HaskellTk (toTKS (show (show v)))
+                GUIVALUE HaskellTk (toTkString (show v))
         maybeGUIValue (GUIVALUE HaskellTk s)     = 
-                case [x | (x,t) <- reads (read (fromTKS s)), ("","") <- lex t] of
+                case [x | (x,t) <- reads (read (fromTkString s)), ("","") <- lex t] of
                         [x] -> Just x
                         _   -> Nothing  
         maybeGUIValue (GUIVALUE Tk s)    = 
@@ -149,8 +153,8 @@ instance GUIValue RawData where
 
 instance GUIValue [Char] where
         cdefault = []
-        toGUIValue str = GUIVALUE HaskellTk (toTKS (show str))
-        maybeGUIValue (GUIVALUE HaskellTk str) = Just (read (fromTKS str))
+        toGUIValue str = GUIVALUE HaskellTk (toTkString str)
+        maybeGUIValue (GUIVALUE HaskellTk str) = Just (read (fromTkString str))
         maybeGUIValue (GUIVALUE Tk str) =  Just str      
                 {- tk delivers raw, unquoted strings - great !! -}
 
@@ -161,8 +165,8 @@ instance GUIValue [Char] where
 
 instance GUIValue [[Char]] where
         cdefault = []
-        toGUIValue l = GUIVALUE HaskellTk (toTKS (show (unlines l)))
-        maybeGUIValue (GUIVALUE HaskellTk str) = Just (lines (read (fromTKS str)))
+        toGUIValue l = GUIVALUE HaskellTk (toTkString (unlines l))
+        maybeGUIValue (GUIVALUE HaskellTk str) = Just (lines (read (fromTkString str)))
         maybeGUIValue (GUIVALUE Tk str) = Just (lines str)
 
 
@@ -218,6 +222,7 @@ instance GUIValue Double where
 -- Tk String Conversion
 -- --------------------------------------------------------------------------
 
+{-
 toTKS []                = []
 -- toTKS ('\n':str)     = "\\n" ++ toTKS str
 -- toTKS ('\t':str)     = "\\t" ++ toTKS str
@@ -230,19 +235,69 @@ toTKS ('}':str)         = "\\}" ++ toTKS str
 toTKS ('$':str)         = "\\$" ++ toTKS str
 toTKS (x:str)           = x : toTKS str
 
+-}
 
-fromTKS [] = []
--- fromTKS ('\"':str)   = fromTKS str
--- fromTKS ('\\':'\\':str)      = '\\' : fromTKS str
--- fromTKS ('\\':'n':str)       = '\n' : fromTKS str
--- fromTKS ('\\':'t':str)       = '\t' : fromTKS str
-fromTKS ('\\':'[':str)  = '[' : fromTKS str
-fromTKS ('\\':']':str)  = ']' : fromTKS str
-fromTKS ('\\':'{':str)  = '{' : fromTKS str
-fromTKS ('\\':'}':str)  = '}' : fromTKS str
-fromTKS ('\\':'$':str)  = '$' : fromTKS str
--- fromTKS ('\\':'\"':str)      = '\"' : fromTKS str
-fromTKS (x:str)         = x : fromTKS str
+toTkString :: String -> String
+toTkString = delimitString . escapeString
+
+-- escapeString quotes the special characters inside String.
+escapeString :: String -> String
+escapeString = concat . (map quoteChar)
+
+-- delimitString places quotes around a String, if it contains
+-- spaces, making it possible to use it as a single argument.
+delimitString :: String -> String
+delimitString "" = "\"\""
+delimitString str =
+   if isJust (find isSpace str)
+   then
+      '\"':(str++"\"")
+   else
+      str
+
+-- quoteChar quotes characters special to Tcl, but not %.
+quoteChar :: Char -> String
+quoteChar ch =
+   case ch of
+      '\\' -> "\\\\"
+      '\"' -> "\\\""
+      '\n' -> "\\n"
+      '{' -> "\\{"
+      '}' -> "\\}"
+      '$' -> "\\$"
+      '[' -> "\\["
+      ']' -> "\\]"
+      ';' -> "\\;"
+      other -> 
+         if isPrint ch
+            then
+               [ch]
+            else
+               let
+                  nchar = ord ch
+               in
+                  if (nchar<0 || nchar >=256)
+                     then
+                        error "TclSyntax: bad char"
+                     else
+                        let
+                           (hi,lo) = nchar `divMod` 16
+                        in
+                           ['\\','x',intToDigit hi,intToDigit lo]
 
 
+fromTkString :: String-> String
+
+fromTkString [] = []
+-- fromTkString ('\"':str)   = fromTkString str
+-- fromTkString ('\\':'\\':str)      = '\\' : fromTkString str
+-- fromTkString ('\\':'n':str)       = '\n' : fromTkString str
+-- fromTkString ('\\':'t':str)       = '\t' : fromTkString str
+fromTkString ('\\':'[':str)  = '[' : fromTkString str
+fromTkString ('\\':']':str)  = ']' : fromTkString str
+fromTkString ('\\':'{':str)  = '{' : fromTkString str
+fromTkString ('\\':'}':str)  = '}' : fromTkString str
+fromTkString ('\\':'$':str)  = '$' : fromTkString str
+-- fromTkString ('\\':'\"':str)      = '\"' : fromTkString str
+fromTkString (x:str)         = x : fromTkString str
 
