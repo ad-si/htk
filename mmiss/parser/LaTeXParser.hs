@@ -2,11 +2,9 @@ module LaTeXParser (
    latexDoc,
    parseMMiSSLatex, 
    -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
-   -- old :: Maybe MMiSSLatexPreamble -> String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, 
    -- new :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
-   -- old :: SourceName -> IO (WithError Element)
    -- The same, for a file.
    makeMMiSSLatex,
    -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent TypedName)
@@ -27,7 +25,8 @@ module LaTeXParser (
    mapLabelledTag,
    MMiSSLatexPreamble, 
    parseAndShow,
-   parseAndMakeMMiSSLatex
+   parseAndMakeMMiSSLatex,
+   parsePreamble
    )
  where
 
@@ -54,10 +53,11 @@ import qualified Dynamics
 import Computation hiding (try)
 import ParsecError
 import EmacsContent
+import AtomString
 import qualified CodedValue
 -- import EmacsEdit(TypedName)
 
--- type MMiSSLatexPreamble = String
+
 type EnvId = String
 type Command = String
 type FormId = String
@@ -140,6 +140,8 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeTextFragment","includeText
 
 mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
 
+
+
 ---------------------------------------------------------------------------------------------
 --
 -- Hier beginnen die Parser
@@ -180,6 +182,12 @@ attribute = do spaces
 delimitedValue :: String -> GenParser Char st String
 delimitedValue key = between (char '{') (char '}') (value "")
 
+
+{- The value parser accepts any String enclosed by {}. Furthermore it accepts
+   Strings containing arbitrarily nested Substrings enclosed by {}. 
+   It stops at characters, specified by 'rightClosure'. 
+-}
+
 value :: String -> GenParser Char st String
 value rightClosure = 
   try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
@@ -199,68 +207,12 @@ value rightClosure =
              return s1)
 
 
-{- bracedValue parses an arbitrary Parameter of a LaTeX-Environment or Command (no Parameter of
-   MMiSSLaTeX-Environments - these are handled by "attParser".
-   Because LaTeX-Environment-Parameters can be delimited by either '{' or '[' or '('
-   (the latter since LaTeX 2e I think), the l und r parameters to bracedValue
-   hold the delimiter character, to look out for. e.g. l = '{', r = '}' 
--}
-
-bracedValue :: Char -> Char -> GenParser Char st String
-bracedValue l r = 
-  try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
-         s2 <- try(between (char l) (char r) (bracedValue l r))
-         s3 <- option "" (bracedValue l r)
-         return (s1 ++ [l] ++ s2 ++ [r] ++ s3))
-  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
-             s2 <- try(string ([l] ++ [r]))
-             s3 <- option "" (bracedValue l r)
-             return (s1 ++ [l] ++ [r] ++ s3))
-  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
-             s2 <- try(between (char '{') (char '}') (bracedValue l r))
-             s3 <- option "" (bracedValue l r)
-             return (s1 ++ [l] ++ [r] ++ s3))
-  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
-             s2 <- try(string "{}")
-             s3 <- option "" (bracedValue l r)
-             return (s1 ++ "{}" ++ s3))
-  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
-             s2 <- char '\\'
-             s3 <- anyChar
-             s4 <- option "" (bracedValue l r)
-             return (s1 ++ [s2] ++ [s3] ++ s4))
-  <|> try(do s1 <- try(many1 (noneOf ([l] ++ [r] ++ "{}\\")))
-             return s1)
-
-
-{-
-genParam :: Char -> Char -> GenParser Char st [Frag]
--- genParam l r = between (char l) (char r) (otherDelim r) <?> ("fragment between " ++ [l] ++ " and " ++ [r])
-genParam l r = do char l
-                  fs <- continueParam []
-                  char r
-                  return fs
-        
-continueParam :: [Frag] -> GenParser Char st [Frag]
-continueParam fs = do f <- frag 
-                      continueParam (f:fs)
-                   <|> return (reverse fs)
--}
-
-
 -- other konsumiert solange Text, bis ein Backslash oder Kommentarzeichen auftaucht und
 -- generiert ein Other-Fragment mit diesem Text.
 
 other :: GenParser Char st Frag
 other = fmap Other (many1 (noneOf "\\%[]{}"))
 
--- otherDelim konsumiert solange Text, bis ein Backslash, Kommentarzeichen oder ein
--- Delimiter (r) auftaucht. Dient dazu, um Other-Fragmente in Parametern zu erkennen;
--- in Parametern darf das schliessende Zeichen nicht ueberlesen werden.
-{-
-otherDelim :: String -> GenParser Char st Frag
-otherDelim s = fmap Other (many (noneOf s))
--}
 
 -- optionParser erkennt die Optionen fuer \documentclass[xx,yy,...]{classname}
 -- und \usepackage[xx,yy,..]{packagename} Commands
@@ -533,6 +485,26 @@ latexDoc l =  do f <-  frag <?> "Fragment"
 
 
 {--
+   parseMMiSSLatex is used as fromStringWE-method in the instanciation for
+   MMiSSLatexPreamble as StringClass. 
+--}
+
+parsePreamble :: String -> WithError MMiSSLatexPreamble
+
+parsePreamble s = 
+  let result = parse (latexDoc []) "" s
+  in
+    case result of
+      Right (Env _ _ fs)  -> case (fromWithError (makePreamble fs)) of
+                               Right pMaybe -> case pMaybe of
+					         Just(p) -> hasValue(p)
+                                                 Nothing -> hasError("Strange: makePreamble returns no error and no preamble.")
+			       Left err -> hasError(show err)
+      Left err -> hasError (show err)
+
+
+
+{--
 -- Haupt-Funktion (eigentlich main)
 
 mparse :: SourceName -> IO ()
@@ -654,7 +626,7 @@ findFirstEnv (f:fs) preambleFs False = findFirstEnv fs preambleFs False
 findFirstEnv [] _ _  = hasError("No root environment ('package' or some other env.) found!")           
 
 
-makePreamble :: [Frag] -> WithError(Maybe MMiSSLatexPreamble)
+makePreamble :: [Frag] -> WithError (Maybe MMiSSLatexPreamble)
 makePreamble [] = hasValue(Nothing)
 makePreamble (f:fs) =
   case f of
@@ -706,17 +678,6 @@ makePreRest (f1:f2:fs) inStr =
                  _ -> makePreRest (f2:fs) inStr
           else makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
      _ -> makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
-
-
-{--
-addPreamble :: Content -> Content -> Content
-addPreamble preambleElem (CElem (Elem name atts content))  = 
-  if ((name `elem` (map snd includeCommands)) || (name == "figure")) 
-    then CElem (Elem name atts content)
-    else CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
-addPreamble _ e = e
---}
-
 
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
@@ -1596,6 +1557,16 @@ appendSourcePos pos str = str ++ "in Line "
                           ++ (show (sourceLine pos)) ++ " Column " 
                           ++ (show (sourceColumn pos)) ++ "."
 
+
+---------------------------------------------------------------------------------------------
+--
+-- MMiSSLatexPreamble is an instance of StringClass
+--
+---------------------------------------------------------------------------------------------
+
+instance StringClass MMiSSLatexPreamble where
+   fromStringWE string = parsePreamble string
+   toString preamble = makePreambleText preamble
 
 -- ----------------------------------------------------------------------------------
 -- Instances of Typeable & HasCodedValue for Preamble and MMiSSLatexPreamble 
