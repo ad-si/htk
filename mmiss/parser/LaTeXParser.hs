@@ -3,7 +3,7 @@ module LaTeXParser (
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, -- :: SourceName -> IO (WithError Element)
    -- The same, for a file.
-   makeMMiSSLatex -- Element -> WithError (EmacsContent String)
+   makeMMiSSLatex -- (Element, Bool) -> WithError (EmacsContent String)
    -- Turns an Element into a MMiSSLaTeX source
    )
  where
