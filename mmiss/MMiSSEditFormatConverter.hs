@@ -21,6 +21,8 @@ import Data.FiniteMap
 
 import Computation 
 import Debug(debugString)
+import Messages
+import AtomString(toString)
 
 import ViewType
 import Link
@@ -79,6 +81,29 @@ toEditFormatConverter LaTeX =
                parsedWE <- parseMMiSSLatex fileSystem fileName False
 
 --             debugString ("START|"++str++"|END")
+
+               case fromWithError parsedWE of
+                  Left mess -> return (Left mess)
+                  Right (element,preambles) ->
+                     do
+                        case preambles of 
+                           (preamble,_):_ ->
+                              let
+                                 maxLen = 70
+
+                                 preambleString1 = toString preamble
+                                 preambleString2 = 
+                                    if length preambleString1 < maxLen
+                                       then 
+                                          preambleString1
+                                       else
+                                          take maxLen preambleString1
+                                             ++ "..."
+                              in
+                                 errorMess ("Unexpected preamble: \n   " ++
+                                    preambleString2 ++ "\n ignored")
+                           [] -> done
+                        return (Right element)
 
                return (mapWithError 
                   (\ (element,_) -> element) 
