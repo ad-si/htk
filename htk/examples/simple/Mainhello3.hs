@@ -26,17 +26,21 @@ main =
      pulldown1 # menu m
      qb <- createMenuCommand m [text "Quit"]
 
-     f <- newFrame main []
+     f  <- newFrame main []
+     f2 <- newFrame f []
      v1 <- createTkVariable ""
-     l <- newLabel f [text "Rename: "]
-     e <- (newEntry f [variable v1])::IO (Entry String)
+     l  <- newLabel f [text "Rename: "]
+     e1 <- (newEntry f2 [variable v1])::IO (Entry String)
+     e2 <- (newEntry f2 [variable v1])::IO (Entry String)
 
      (entered, _) <-
-       bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
+       bind e1 [WishEvent [] (KeyPress (Just (KeySym "Return")))]
 	
      pack f []
      pack l [PadX 10, Side AtLeft]
-     pack e [PadX 10, Side AtRight]
+     pack f2 [Side AtRight]
+     pack e1 [PadX 10, Side AtTop]
+     pack e2 [PadX 10, Side AtBottom]
 
      clickedqb <- clicked qb
      spawnEvent (forever ((clickedqb >>> destroy main) +>
