@@ -12,6 +12,8 @@ import IO
 import List
 import Maybe
 
+import Delayer
+
 import EntityNames
 
 import View
@@ -64,38 +66,40 @@ writeBundle1 (Bundle []) _ _ _ _ _ =
    importExportError "Attempt to write empty bundle"
 writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
       packageIdOpt filePathOpt view lockSet insertionPoint =
-   do
-      let
-         packageId = fromMaybe packageId0 packageIdOpt
+   delay view (
+      do
+         let
+            packageId = fromMaybe packageId0 packageIdOpt
 
-      bundle1 <- fillInBundle (toInsertionPointName insertionPoint) bundle0
-      coerceImportExportIO (validateBundle bundle1)
-      let
-         bundle2WE = dissectBundle bundle1
-      bundle2 <- coerceImportExportIO bundle2WE
-      bundle3 <- case filePathOpt of
-         Nothing -> return bundle2
-         Just filePath -> readFiles filePath bundle2
+         bundle1 <- fillInBundle (toInsertionPointName insertionPoint) bundle0
+         coerceImportExportIO (validateBundle bundle1)
+         let
+            bundle2WE = dissectBundle bundle1
+         bundle2 <- coerceImportExportIO bundle2WE
+         bundle3 <- case filePathOpt of
+            Nothing -> return bundle2
+            Just filePath -> readFiles filePath bundle2
 
-      let
-         Bundle packageBundleNodes = bundle3
+         let
+            Bundle packageBundleNodes = bundle3
 
-      bundleNode <- case List.lookup packageId packageBundleNodes of
-         Just bundleNode -> return bundleNode
-         Nothing -> 
-            importExportError ("PackageId " ++ packageIdStr packageId
-               ++ " not found")
+         bundleNode <- case List.lookup packageId packageBundleNodes of
+            Just bundleNode -> return bundleNode
+            Nothing -> 
+               importExportError ("PackageId " ++ packageIdStr packageId
+                  ++ " not found")
 
-      checkTypesWE <- checkBundleNodeTypes view insertionPoint bundleNode
-      coerceImportExportIO checkTypesWE
+         checkTypesWE <- checkBundleNodeTypes view insertionPoint bundleNode
+         coerceImportExportIO checkTypesWE
 
-      releaseActWE 
-         <- acquireBundleNodeEditLocks view lockSet insertionPoint bundleNode
-      releaseAct <- coerceImportExportIO releaseActWE
+         releaseActWE <- acquireBundleNodeEditLocks view lockSet 
+            insertionPoint bundleNode
+         releaseAct <- coerceImportExportIO releaseActWE
 
-      finally
-         (writeBundleNode view insertionPoint bundleNode)
-         releaseAct
+         finally
+            (writeBundleNode view insertionPoint bundleNode)
+            releaseAct
+      )
 
        
             
