@@ -11,6 +11,18 @@ module VersionInfo(
    ServerInfo(..),
    VersionInfo(..),
 
+   -- Functions for manipulating VersionAttributes,
+   
+   VersionAttributes,
+   lookupVersionAttribute, -- :: VersionAttributes -> String -> Maybe String
+   setVersionAttribute,
+       -- :: VersionAttributes -> String -> String -> VersionAttributes
+   emptyVersionAttributes, -- :: VersionAttributes
+   exportVersionAttributes, -- :: VersionAttributes -> [(String,String)]
+   importVersionAttributes, -- :: [(String,String)] -> VersionAttributes
+
+
+
    -- 
    -- Server-side interface.
    --
@@ -104,6 +116,7 @@ module VersionInfo(
 import IO
 import Time
 import Maybe
+import List (intersperse)
 
 import System.IO.Unsafe
 import Data.IORef
@@ -150,11 +163,18 @@ data UserInfo = UserInfo {
       -- ^ More detailed text about this version
    version :: ObjectVersion,
       -- ^ The objectVersion for this commit.
-   parents :: [ObjectVersion]
+   parents :: [ObjectVersion],
       -- ^ Parents of this version.  The first parent, if any, is special
       -- as on commit we describe the entries by their difference from
       -- this first parent.
+   versionAttributes :: VersionAttributes
+      -- ^ Version attributes.
    } deriving Show
+
+-- | miscellaneous attributes.
+-- At the moment the only envisaged use for these is for the deletion
+-- count, but we provide more for so the format can be extended easily.
+newtype VersionAttributes = VersionAttributes (FiniteMap String String)
 
 -- | The information that can either be automatically constructed by the
 -- server, or specified on commit.  Once constructed the ServerInfo value
@@ -199,6 +219,17 @@ instance StringClass ObjectVersion where
          Just i -> hasValue (ObjectVersion i)
          Nothing -> hasError "Can't parse ObjectVersion - must be a number"
 
+instance Show VersionAttributes where
+   showsPrec n (VersionAttributes fm) acc =
+      let
+         l :: [(String,String)]
+         l = fmToList fm
+
+         kvs :: [String]
+         kvs = map (\ (k,v) -> k ++ "=" ++ v) l
+      in
+         (concat (intersperse " " kvs)) ++ acc
+
 -- ----------------------------------------------------------------------
 -- Instances of HasBinary
 -- ----------------------------------------------------------------------
@@ -210,15 +241,17 @@ instance Monad m => HasBinary ObjectVersion m where
 instance Monad m => HasBinary UserInfo m where
    writeBin = mapWrite 
       (\ (UserInfo {label = label,contents = contents,
-            version = version,parents = parents}) 
+            version = version,parents = parents,
+            versionAttributes = versionAttributes}) 
          ->
-         (label,contents,version,parents)
+         (label,contents,version,parents,versionAttributes)
          )
    readBin = mapRead
-      (\ (label,contents,version,parents) 
+      (\ (label,contents,version,parents,versionAttributes) 
          ->
          (UserInfo {label = label,contents = contents,
-            version = version,parents = parents}) 
+            version = version,parents = parents,
+            versionAttributes = versionAttributes}) 
          )
 
 instance Monad m => HasBinary ServerInfo m where
@@ -246,6 +279,10 @@ instance Monad m => HasBinary VersionInfo m where
          ->
          (VersionInfo {user = user,server = server,isPresent = isPresent})
          )
+
+instance Monad m => HasBinary VersionAttributes m where
+   writeBin = mapWrite exportVersionAttributes
+   readBin = mapRead importVersionAttributes
 
 -- ----------------------------------------------------------------------
 -- Comparing VersionInfo in a globally unique way, assuming the
@@ -516,7 +553,8 @@ topVersionInfo = VersionInfo {
       label = "EMPTY",
       contents = "Initial empty version",
       version = firstVersion,
-      parents = []
+      parents = [],
+      versionAttributes = emptyVersionAttributes
       },
    server = ServerInfo {
       serverId = "",
@@ -558,7 +596,8 @@ displayVersionInfo allowSystem versionInfo =
          Nothing
          (scroll [
             b (label user1),newline,
-            n (contents user1),newline
+            n (contents user1),newline,
+            n ("Attributes: " ++ show (versionAttributes user1)),newline
             ])
          [text "Version Info"]
 
@@ -596,7 +635,8 @@ cleanVersionInfo :: VersionInfo -> VersionInfo
 cleanVersionInfo versionInfo0 =
    let
       user0 = user versionInfo0
-      user1 = user0 {label = "",contents = ""}
+      user1 = user0 {label = "",contents = "",
+         versionAttributes = emptyVersionAttributes}
       versionInfo1 = versionInfo0 {user = user1}
    in
       versionInfo1
@@ -608,6 +648,9 @@ cleanVersionInfo versionInfo0 =
 --
 -- It only returns a UserInfo, since the rest of a 
 -- VersionInfo is uneditable.
+-- 
+-- In no case do we allow the user to edit the version attributes,
+-- because I can't be bothered.
 editVersionInfo :: String -> VersionInfo -> IO (Maybe UserInfo)
 editVersionInfo text versionInfo =
    do
@@ -700,6 +743,27 @@ mkServerId isInternal =
                            else
                               fullHostName ++ ":" ++ show port
                            )
+-- ----------------------------------------------------------------------
+-- VersionAttributes function
+-- ----------------------------------------------------------------------
+
+lookupVersionAttribute :: VersionAttributes -> String -> Maybe String
+lookupVersionAttribute (VersionAttributes fm) key =
+   lookupFM fm key
+
+setVersionAttribute :: VersionAttributes -> String -> String 
+   -> VersionAttributes
+setVersionAttribute (VersionAttributes fm) key value =
+   VersionAttributes (addToFM fm key value)
+
+emptyVersionAttributes :: VersionAttributes
+emptyVersionAttributes = VersionAttributes emptyFM
+
+exportVersionAttributes :: VersionAttributes -> [(String,String)]
+exportVersionAttributes (VersionAttributes fm) = fmToList fm
+
+importVersionAttributes :: [(String,String)] -> VersionAttributes
+importVersionAttributes l = VersionAttributes (listToFM l)
 
 -- ----------------------------------------------------------------------
 -- We also support textual display of a VersionInfo using format letters
@@ -710,6 +774,7 @@ mkServerId isInternal =
 --    %P to the parents (as a list of version numbers)
 --    %U to the committing user
 --    %T to the timestamp
+--    %A to the version attributes
 -- 
 -- Example: a format of "%V %L %P\n" will give a short description of the
 -- version (version number, label, and parents).  "%V %L %P %U %T\n%C\n" will
@@ -766,6 +831,7 @@ evalVersionInfoFormatWE compileFormat versionInfo calendarTime =
          'P' -> Just (vsToS (parents user1))
          'U' -> Just (userId server1)
          'T' -> Just (calendarTimeToString calendarTime)
+         'A' -> Just (show (versionAttributes user1))
          _ -> Nothing
 
       -- Functions stolen from displayVersionInfo function
