@@ -161,7 +161,7 @@ tkSetCanvasItemConfigs (CanvasItemName name tid) args =
         ]
 	where tagVariables ((cid, cval) : ol) =
                 case cid of
-                  "tag" -> ["global \"" ++ (drop 2 (show cval))] ++
+                  "tag" -> ["global \"" ++ (drop 3 (show cval))] ++
                            tagVariables ol
                   _     -> tagVariables ol
               tagVariables _                  = []

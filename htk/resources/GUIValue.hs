@@ -227,7 +227,7 @@ toTKS ('{':str)         = "\\{" ++ toTKS str
 toTKS ('}':str)         = "\\}" ++ toTKS str
 -- toTKS ('\\':str)     = "\\\\" ++ toTKS str
 -- toTKS ('\"':str)     = "\\\"" ++ toTKS str
---toTKS ('$':str)         = "\\$" ++ toTKS str   --(ludi) experimentell
+toTKS ('$':str)         = "\\$" ++ toTKS str
 toTKS (x:str)           = x : toTKS str
 
 

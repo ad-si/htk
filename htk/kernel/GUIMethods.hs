@@ -89,15 +89,15 @@ type ConfigOption = (ConfigID, GUIVALUE)
 --  Instances (Show)
 -- --------------------------------------------------------------------------
 
-showConfig (cid, cval) = "-" ++ cid ++ " " ++ show cval
+--showConfig (cid, cval) = "-" ++ cid ++ " " ++ show cval
 
-{-
+
 showConfig (cid, cval) =
   "-" ++ cid ++ " " ++
   case cid of
-    "tag" -> "\"" ++ (drop 3 (show cval))
+    "tag" -> "\"" ++ (drop 2 (show cval))
     _     -> show cval
--}
+
 
 showConfigs [] = " "
 showConfigs (x : ol) = (showConfig x) ++ " " ++ (showConfigs ol)
