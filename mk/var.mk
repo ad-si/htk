@@ -32,7 +32,7 @@ HCFLAGS = $(HCSYSLIBS) \
           -fglasgow-exts \
           -fallow-overlapping-instances \
           -fallow-undecidable-instances \
-	  -cpp -hi-diffs -fvia-C \
+	  -cpp -hi-diffs \
 	  $(GHCINCDIR) \
 	  -H25M -K5M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
 

@@ -3,7 +3,7 @@
    too heavyweight.
    -}
 module SmallSet(
-   SmallSet,
+   SmallSet, -- instance of Read, Show
    emptySmallSet,
       -- :: Ord elt => SmallSet elt
    addSmallSet,
@@ -16,12 +16,16 @@ module SmallSet(
       -- is not in the set.
    listSmallSet,
       -- :: Ord elt => SmallSet elt -> [elt]
-   minusSmallSet
+   minusSmallSet,
       -- :: Ord elt => SmallSet elt -> SmallSet elt -> SmallSet elt
       -- returns nodes in first set but not in second
+   mapMSmallSet
+      -- :: (Ord eltIn,Ord eltOut) => 
+      --    (eltIn -> IO eltOut) -> SmallSet eltInt -> IO (SmallSet eltOut)
    ) where
 
 import ExtendedPrelude
+import QuickReadShow
 
 ------------------------------------------------------------------------
 -- We use lists because Haskell sets carry too much
@@ -33,6 +37,16 @@ import ExtendedPrelude
 ------------------------------------------------------------------------
 
 newtype Ord elt => SmallSet elt = SmallSet [elt]
+
+instance (Ord elt,Read elt) => QuickRead (SmallSet elt) where
+   quickRead = WrapRead (
+      \ list -> SmallSet list
+      )
+
+instance (Ord elt,Show elt) => QuickShow (SmallSet elt) where
+   quickShow = WrapShow (
+      \ (SmallSet list) -> list
+      )
 
 emptySmallSet :: Ord elt => SmallSet elt
 emptySmallSet = SmallSet []
@@ -73,5 +87,16 @@ minusSmallSet (SmallSet eltList1) (SmallSet eltList2) =
       subtract [] eltList2 = []
       subtract eltList1@(first1:rest1) eltList2@(first2:rest2) =
          case compare first1 first2 of
-            LT -> first1:(subtract rest1 
+            LT -> first1:(subtract rest1 eltList2)
+            EQ -> subtract rest1 rest2
+            GT -> subtract eltList1 rest2
+
+mapMSmallSet :: (Ord eltIn,Ord eltOut) => 
+      (eltIn -> IO eltOut) -> SmallSet eltIn -> IO (SmallSet eltOut)
+mapMSmallSet fn (SmallSet eltListIn) = 
+   do
+      eltListOut <- mapM fn eltListIn
+      return(SmallSet eltListOut)
+
+
 

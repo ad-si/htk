@@ -14,6 +14,17 @@ module SharedGraph(
 
    Update,
       -- datatype encoding update to shared graph
+      -- Parameterised on node vertex type and node label.
+      -- node must be an instance of Ord.
+      -- Update derives (Read,Show).
+      -- The node type as fed to shareGraph and updateShareGraph is
+      -- always Node.  However Node is not an instance of Read or Show,
+      -- so to convert to/from readable updates you use mapMUpdate together
+      -- with toNode and fromNode.
+   mapMUpdate, -- :: (Ord nodeIn,Ord nodeOut) => 
+      --                (nodeIn -> IO nodeOut) -> Update nodeIn nodeLabel ->
+      -- IO (Update nodeOut nodeLabel)
+      -- map updates monadically by node label.
 
    SharedGraph, 
       -- SharedGraph takes a parameter nodeLabel
@@ -24,23 +35,21 @@ module SharedGraph(
       -- an instance of Read/Show and so is CannedGraph
    emptyCannedGraph, -- :: CannedGraph nodeLabel 
 
-   canGraph, -- :: (Read nodeLabel,Show nodeLabel) => 
-             --    AtomSource -> NodeMap nodeLabel -> 
-             --    IO (CannedGraph nodeLabel)
-             -- retrieves the current contents of the graph
    shareGraph, -- :: (Read nodeLabel,Show nodeLabel) => 
              --    SharedGraph nodeLabel -> 
-             --       IO (CannedGraph nodeLabel,EV(Update nodeLabel),IO())
+             --       IO (CannedGraph nodeLabel,
+             --          EV(Update Node nodeLabel),IO())
              --    Returns (a) a canned graph; (b) an event conveying updates
              --    to that graph; (c) an action which you should perform
              --    when you want the event to stop being generated.
 
    makeSharedGraph, -- :: (Read nodeLabel,Show nodeLabel) =>
-             --    (CannedGraph nodeLabel,EV(Update nodeLabel)) ->
+             --    (CannedGraph nodeLabel,EV(Update Node nodeLabel)) ->
              --       IO (SharedGraph nodeLabel)
              --    makeSharedGraph creates a shared graph given a 
              --    canned graph plus a source of updates.
-   updateSharedGraph -- :: SharedGraph nodeLabel -> Update nodeLabel -> IO ()
+   updateSharedGraph -- :: SharedGraph nodeLabel -> Update Node nodeLabel -> 
+             --               IO ()
              --    apply a direct update to the shared graph
                  
    
@@ -82,23 +91,54 @@ fromNode (SharedGraph{atomSource=atomSource}) node =
    primFromNode atomSource node
 
 ------------------------------------------------------------------------
--- Update and CannedGraph
+-- Update
 ------------------------------------------------------------------------
 
-data Update nodeLabel =
+data (Ord node) => Update node nodeLabel =
    EditNode {
-      node :: Node, 
+      node :: node, 
       -- if this node is not in graph add it,
       -- likewise for nodes not previously mentioned in
       -- pred and succ list.  When a node is added, its 
       -- predecessors, successors and label are all empty unless
       -- values are specified/              
-      predecessorsOpt :: Maybe (SmallSet Node), 
+      predecessorsOpt :: Maybe (SmallSet node), 
          -- replace predecessors if Just.
-      successorsOpt :: Maybe (SmallSet Node), 
+      successorsOpt :: Maybe (SmallSet node), 
          -- ditto successors
       nodeLabelOpt :: Maybe nodeLabel -- ditto label
-      }
+      } deriving (Read,Show)
+
+mapMUpdate :: (Ord nodeIn,Ord nodeOut) => 
+      (nodeIn -> IO nodeOut) -> Update nodeIn nodeLabel -> 
+      IO (Update nodeOut nodeLabel)
+mapMUpdate act (EditNode {
+      node = nodeIn,
+      predecessorsOpt = predecessorsInOpt,
+      successorsOpt = successorsInOpt,
+      nodeLabelOpt = nodeLabelOpt
+      }) =
+   do
+      nodeOut <- act nodeIn
+      let
+         mapSmallSetOpt Nothing = return Nothing
+         mapSmallSetOpt (Just smallSetIn) =
+            do
+               smallSetOut <- mapMSmallSet act smallSetIn
+               return (Just smallSetOut)
+      predecessorsOutOpt <- mapSmallSetOpt predecessorsInOpt
+      successorsOutOpt <- mapSmallSetOpt successorsInOpt
+      return (EditNode {
+         node = nodeOut,
+         predecessorsOpt = predecessorsOutOpt,
+         successorsOpt = successorsOutOpt,
+         nodeLabelOpt = nodeLabelOpt
+         })  
+                      
+
+------------------------------------------------------------------------
+-- CannedGraph
+------------------------------------------------------------------------
 
 data (Read nodeLabel,Show nodeLabel) => CannedGraph nodeLabel =
    CannedGraph [CannedGraphNode nodeLabel] deriving (Read,Show)
@@ -138,7 +178,7 @@ data SharedGraph nodeLabel = SharedGraph {
    nodeLookUp :: MVar (NodeMap nodeLabel),
    -- the MVar should at any time contain a graph with a consistent
    -- set of predecessors and successors.
-   updateSource :: EasyBroker (Update nodeLabel)
+   updateSource :: EasyBroker (Update Node nodeLabel)
    }
 
 -- shareGraph and updateSharedGraph need
@@ -147,7 +187,7 @@ data SharedGraph nodeLabel = SharedGraph {
 -- by locking on nodeLookUp.  
 shareGraph :: (Read nodeLabel,Show nodeLabel) => 
    SharedGraph nodeLabel -> 
-   IO (CannedGraph nodeLabel,EV(Update nodeLabel),IO())
+   IO (CannedGraph nodeLabel,EV(Update Node nodeLabel),IO())
 shareGraph SharedGraph{
    atomSource=atomSource,
    nodeLookUp=nodeLookUp,
@@ -165,7 +205,7 @@ shareGraph SharedGraph{
       return (cannedGraph,receive channel,
          deregisterEventSink updateSource eventSink)
       
-updateSharedGraph :: SharedGraph nodeLabel -> Update nodeLabel -> IO ()
+updateSharedGraph :: SharedGraph nodeLabel -> Update Node nodeLabel -> IO ()
 updateSharedGraph 
       (SharedGraph{nodeLookUp=nodeLookUp,updateSource=updateSource}) 
       update =
@@ -179,7 +219,8 @@ updateSharedGraph
       -- unlock
 
 makeSharedGraph :: (Read nodeLabel,Show nodeLabel) =>
-   (CannedGraph nodeLabel,EV(Update nodeLabel)) -> IO (SharedGraph nodeLabel)
+      (CannedGraph nodeLabel,EV(Update Node nodeLabel)) -> 
+      IO (SharedGraph nodeLabel)
 makeSharedGraph (cannedGraph,updateEvent) =
    do
       (atomSource,nodeMap) <- uncanGraph cannedGraph
@@ -300,7 +341,7 @@ defaultNodeData = NodeData {
    label = error "SharedGraph default unset"
    }
 
-applyEdit :: Update nodeLabel -> NodeMap nodeLabel -> NodeMap nodeLabel
+applyEdit :: Update Node nodeLabel -> NodeMap nodeLabel -> NodeMap nodeLabel
 applyEdit 
       (EditNode{
          node=node,
