@@ -182,7 +182,7 @@ libfast : libfasthere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) libfast && ) echo Finished make libfast
 
 clean: cleanprogs
-	$(RM) -rf `$(GFIND) . -name "*.hi" -o -name "*.o" -o -name "*.a" -o -name ".depend"`
+	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`
 
 cleanprogs:
 	$(RM) -rf $(TESTPROGS) $(MAINPROGS)
