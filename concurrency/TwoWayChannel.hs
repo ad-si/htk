@@ -84,7 +84,7 @@ leftEvent (TwoWayChannel mVar) valL =
                            return (Right newRQueue,Immediate)
                         NoMatch newLQueue ->
                            return (Left newLQueue,Awaiting)
-            "60" @: Concurrent.putMVar mVar newChannel
+            Concurrent.putMVar mVar newChannel
             return result
    in
       PrimEvent syncFun
@@ -115,7 +115,7 @@ rightEvent (TwoWayChannel mVar) valL =
                            return (Left newRQueue,Immediate)
                         NoMatch newLQueue ->
                            return (Right newLQueue,Awaiting)
-            "61" @: Concurrent.putMVar mVar newChannel
+            Concurrent.putMVar mVar newChannel
             return result
    in
       PrimEvent syncFun
