@@ -117,6 +117,11 @@ newGUIObject par@(GUIOBJECT parId parostref) kind meths =
                                                 (TextTagID oid))
                                         parId meths)
                      return (GUIOBJECT oid ost)
+      EMBEDDEDTEXTWIN _ _ -> do
+                               ost <- newRef (OST kind (TextPaneItemName parnm
+                                                          (TextTagID oid))
+                                                  parId meths)
+                               return (GUIOBJECT oid ost)
       MENUITEM _ i -> do
                         ost <- newRef (OST kind (MenuItemName parnm i)
                                            parId meths)
