@@ -7,17 +7,12 @@
  -
  - ------------------------------------------------------------------------ -}
 
-module Main (
-        main 
-        ) 
-where
+module Main (main) where
 
 import HTk
-import Concurrency
 import Label
-import Button
 import Frame
-import Window
+import Button
 import Random(randomRIO)
 
 randomColour :: IO (Int, Int, Int)
@@ -27,10 +22,9 @@ randomColour = do
    blue <-randomRIO(0,255)
    return (red, green, blue)
       
-
 main:: IO ()
 main = do
-        htk []  
+        tk <- htk []  
 	f  <- newFrame []        
         l  <- newLabel [value "Hello, world!", parent f]
 	nb <- newButton [text "New Colour", 
@@ -42,4 +36,4 @@ main = do
         win <- window f [text "My first HTk program"] 
         interactor (\iact-> (triggered nb) >>> done)
         sync (destroyed win)
-        shutdown
+        destroy tk

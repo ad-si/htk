@@ -10,7 +10,6 @@
 module Main (main) where
 
 import HTk
-import Concurrency
 import Image
 import TreeList
 import Button
@@ -72,7 +71,7 @@ ifun obj = folderImg
 main :: IO ()
 main =
   do
-    win <- htk []
+    tk <- htk []
     main <- newVFBox []
     box <- newHBox [parent main]
     win <- window main [text "Tree list example"]
@@ -96,7 +95,7 @@ main =
                          \obj -> logMsg output (getObjectName obj ++
                                                 " focused")))
     sync (destroyed win)
-    shutdown
+    destroy tk
 
 folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7

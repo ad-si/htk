@@ -10,14 +10,13 @@
 import HTk
 import Label
 import Button
-import Concurrency
 import Mouse
 import UserInteraction
 
 main :: IO ()
 main =
   do
-    htk []
+    tk <- htk []
     main <- newVBox []
     win <- window main [text "user interactions test"]
     labels <- newHBox [parent main]
@@ -54,4 +53,4 @@ main =
                          command (\ () -> destroy lab3)]
     interactor (\i -> triggered destr1 >>> destroy lab1 +> triggered destr2 +> triggered destr3)
     sync(destroyed win)
-    shutdown
+    destroy tk

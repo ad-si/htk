@@ -7,22 +7,17 @@
  -
  - ------------------------------------------------------------------------ -}
 
-module Main (
-        main
-
-        ) where
+module Main (main) where
 
 import HTk
-import Concurrency
 import PulldownMenu
-import Frame
 import Label
 import Entry
 import Keyboard
 
+main :: IO ()
 main = do
-        htk<- htk []
-
+        tk <- htk []
         f   <- newVBox []        
 	win <- window f [text "My third HTk Program"]
 	mbt <- newMenuButton  [text "File", parent f, side AtLeft]
@@ -34,14 +29,8 @@ main = do
         l   <- newLabel [value "Rename: ", parent f1, 
 			 pad Horizontal (cm 1), side AtLeft]
         e   <- (newEntry [side AtRight, parent f1]):: IO (Entry String)
-
---      interactor (\iact -> userinteraction e (KeyPress (Just "Return")) Request 
 	interactor (\iact -> keyPressed e "Return"
 	                     >>> do {txt<- getVar e; win # text txt; done})
-
-
         interactor (\iact -> triggered bt >>> stop iact)
-
 	sync (destroyed win)
-        shutdown
---	destroy htk
+	destroy tk

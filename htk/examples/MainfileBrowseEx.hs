@@ -10,7 +10,6 @@
 module Main (main) where
 
 import HTk
-import Concurrency
 import Image
 import TreeList
 import Button
@@ -110,7 +109,7 @@ launch st _ =
 main :: IO ()
 main =
   do
-    htk []
+    tk <- htk []
     main <- newVFBox []
     box <- newVBox [parent main]
     win <- window main [text "file browse example"]
@@ -123,7 +122,7 @@ main =
                        text "Quit", width 60, command (\ () -> destroy win)]
     interactor (\i -> triggered pretty +> triggered fast +> triggered quit)
     sync (destroyed win)
-    shutdown
+    destroy tk
 
 folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7

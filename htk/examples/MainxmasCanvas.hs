@@ -9,37 +9,23 @@
  -
  - ------------------------------------------------------------------------ -}
 
-module Main (
-        main
-
-        ) where
+module Main (main) where
 
 import HTk
-import Concurrency
-import PulldownMenu
-import Frame
 import Line
 import Arc
-import Oval
-import Rectangle
-import CanvasItem
 import Image
 import ImageItem
 import TextItem
 import EmbeddedCanvasWin
-import CanvasTag
-
 import Mouse
 import Canvas
+import Button
+import CanvasTag
 
-import IO(stdout)
-
-  
- 				
+main :: IO ()
 main = do
-        win<- htk []
-        setLogFile (Just stdout)
-
+        tk <- htk []
 	c <- newCanvas [size (cm 20, cm 15), background "white"]
 	win <- window c [text "HTk CanvasExample"]
 
@@ -53,30 +39,23 @@ main = do
 
 	newTextItem  [position (cm 4, cm 2), value "Merry Xmas!",
 			font (Helvetica, Bold, 24::Int), parent c]
-
-	
 	newLine [coord [(cm 2, cm 8), (cm 3, cm 9), 
 			(cm 3, cm 8), (cm 2, cm 9), (cm 4, cm 8.5)],
 		 capstyle CapRound, joinstyle JoinMiter, outlinewidth (mm 1),
 		 arrowstyle LastEnd, filling "red", parent c]
-
 	newArc  [position (cm 5, cm 8), size (cm 1.5, cm 1.5), extent 110,
 		 filling "green", outlinewidth (mm 1), 
 		 outline "black", parent c]
 
 	b<- newButton [text "Click me!", relief Raised]
-
-
-	eb <- newEmbeddedCanvasWin b [position (cm 2, cm 12), parent c] 	
-
+	eb <- newEmbeddedCanvasWin b [position (cm 2, cm 12), parent c]
 	b # (command (\()-> destroy eb))
 
 	interactor (\i-> triggered b)
-
 	interactor (\i-> notmoving c i)
-				    	
-	sync (destroyed win)
 
+	sync (destroyed win)
+        destroy tk
 
    where  notmoving :: Canvas-> InterActor-> IA ()
 	  notmoving c iact = 
@@ -90,16 +69,4 @@ main = do
 		   \((x, y), _)-> do {moveItem ct (x- x0) (y- y0) >>
 				      become iact (moving c ct x y iact)})
 		+> (mouseEvent c (ButtonRelease Nothing)
-		    >>> do { {-destroy ct;-} become iact (notmoving c iact)})
-		
-	  
-
-
-
-
-
-
-
-
-
-
+		    >>> do { become iact (notmoving c iact)})

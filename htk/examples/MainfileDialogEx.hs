@@ -10,16 +10,16 @@
 module Main (main) where
 
 import HTk
-import Concurrency
 import Button
 import Label
 import FileDialog
 import System
 
+main :: IO ()
 main =
   do
     homedir <- getEnv "HOME"
-    htk []
+    tk <- htk []
     main <- newVFBox []
     win <- window main [text "file dialog example"]
     open <- newButton [pad Horizontal 10, pad Vertical 5, parent main,
@@ -45,4 +45,4 @@ main =
                                                         done))
     interactor (\i -> triggered open +> triggered quit)
     sync (destroyed win)
-    shutdown
+    destroy tk

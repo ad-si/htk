@@ -211,8 +211,6 @@ instance Destructible (TreeList a) where
   destroy = destroy . toGUIObject
   destroyed = destroyed . toGUIObject
 
-instance Interactive (TreeList a)
-
 instance Widget (TreeList a)
 
 instance ChildWidget (TreeList a)
@@ -445,55 +443,56 @@ pressed :: Eq a => TREELISTOBJECT a -> IO ()
 pressed obj@(TREELISTOBJECT val (treelist@(TreeList cnv _ style stateref
                                                     cfun _ _ _ _))
                             isnode arrow drawnstuff _ _ emb) =
-  do
-    state <- getVar stateref
-    c <- getCoord emb
-    index <-
-      return
-        ((fromJust
-          (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj)
-                     state))) + 1)
-    (i, isopen, prevopen) <- getObjInfo obj state
-    (if isopen then
-       do                                                 -- *** close ***
-         (if style == Fast then
-            do
-              pho <- closedImg
-              fromJust arrow # photo pho
-              done
-          else head (selPlusMinus drawnstuff) #
-                 filling "black" >> done)
-         (children, opensubobjvals) <- getChildren state obj
-         removeObjects treelist index children
-         setVar stateref (take (index - 1) state ++
-                          [StateEntry obj False i opensubobjvals] ++
-                          drop (index + length children) state)
-         mapM (shiftObject style (-(length children) * lineheight))
-              (drop (index + length children) state)
-         done
-     else
-       do                                                  -- *** open ***
-         (if style == Fast then
-            do
-              pho <- openImg
-              fromJust arrow # photo pho
-              done
-          else head (selPlusMinus drawnstuff) #
-                 filling white >> done)
-         nm <- getName obj
-         ch <- cfun (TreeListObject (val, nm, if isnode then Node
-                                              else Leaf))
-         thisobjch <- mkTreeListObjects treelist ch (i + 1)
-         chobjs <- reopenSubObjects cfun prevopen thisobjch
-         setVar stateref (take (index - 1) state ++
-                          [StateEntry obj True i []] ++
-                          map mkEntry chobjs ++
-                          drop index state)
-         mapM (shiftObject style ((length chobjs) * lineheight))
-              (drop index state)
-         insertObjects treelist (head c) chobjs
-         done)
-    updScrollRegion cnv stateref
+  synchronize treelist
+    (do
+       state <- getVar stateref
+       c <- getCoord emb
+       index <-
+         return
+           ((fromJust
+             (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj)
+                        state))) + 1)
+       (i, isopen, prevopen) <- getObjInfo obj state
+       (if isopen then
+          do                                                 -- *** close ***
+            (if style == Fast then
+               do
+                 pho <- closedImg
+                 fromJust arrow # photo pho
+                 done
+             else head (selPlusMinus drawnstuff) #
+                    filling "black" >> done)
+            (children, opensubobjvals) <- getChildren state obj
+            removeObjects treelist index children
+            setVar stateref (take (index - 1) state ++
+                             [StateEntry obj False i opensubobjvals] ++
+                             drop (index + length children) state)
+            mapM (shiftObject style (-(length children) * lineheight))
+                 (drop (index + length children) state)
+            done
+        else
+          do                                                  -- *** open ***
+            (if style == Fast then
+               do
+                 pho <- openImg
+                 fromJust arrow # photo pho
+                 done
+             else head (selPlusMinus drawnstuff) #
+                    filling white >> done)
+            nm <- getName obj
+            ch <- cfun (TreeListObject (val, nm, if isnode then Node
+                                                 else Leaf))
+            thisobjch <- mkTreeListObjects treelist ch (i + 1)
+            chobjs <- reopenSubObjects cfun prevopen thisobjch
+            setVar stateref (take (index - 1) state ++
+                             [StateEntry obj True i []] ++
+                             map mkEntry chobjs ++
+                             drop index state)
+            mapM (shiftObject style ((length chobjs) * lineheight))
+                 (drop index state)
+            insertObjects treelist (head c) chobjs
+            done)
+       updScrollRegion cnv stateref)
 
 unmarkSelectedObject :: TreeList a -> IO ()
 unmarkSelectedObject (TreeList _ _ _ _ _ _ selref _ _) =
@@ -501,9 +500,9 @@ unmarkSelectedObject (TreeList _ _ _ _ _ _ selref _ _) =
     sel <- getVar selref
     case sel of
       Just (TREELISTOBJECT _ _ _ _ _ _ txt _) -> do
-                                                     txt # fg "black"
-                                                     txt # bg "white"
-                                                     done
+                                                   txt # fg "black"
+                                                   txt # bg "white"
+                                                   done
       _ -> done
 
 selectObject :: TreeList a -> TREELISTOBJECT a -> IO ()

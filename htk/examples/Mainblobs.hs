@@ -10,26 +10,14 @@
  -
  - ------------------------------------------------------------------------ -}
 
-module Main (
-        main
-
-        ) where
+module Main (main) where
 
 import HTk
 import Concurrency
-import PulldownMenu
-import Frame
-import Line
 import Oval
-import Rectangle
-import CanvasItem
 import Mouse
 import Canvas
-
 import Random(randomRIO)
-
-import IO(stdout)
-
 
 toInt :: Distance-> Int
 toInt = fromInteger . toInteger
@@ -48,12 +36,10 @@ nextColour (r, g, b) = do
    blue <-randomRIO(0,10)
    return (mk (r+red), mk (g+green), mk (b+blue))
    where mk col = max (col `mod` 255) 25
-  
- 				
-main = do
-        win<- htk []
-        -- setLogFile (Just stdout)
 
+main :: IO ()
+main = do
+        tk <- htk []
 	f <- newVFBox[]
 	win <- window f [text "Pretty Blobs"]
 	cnv <- newCanvas [size (cm 15, cm 15), parent f,
@@ -64,7 +50,7 @@ main = do
 					      forkIO (sparkle c (x,y) col 0 255)
 					      done)
         sync (destroyed win)
-	shutdown
+	destroy tk
 
    where colourDot cnv x y col = newOval [parent cnv, filling col,
 	  		         	  size (2, 2), position (x-1, y-1)]

@@ -10,24 +10,18 @@
  -
  - ------------------------------------------------------------------------ -}
 
-module Main (
-  main
-) where
+module Main (main) where
 
 import HTk
-import Concurrency(sync)
 import PulldownMenu
-import Frame
-import Line
-import Oval
 import Rectangle
-import CanvasItem
 import Mouse
 import Canvas
 import RVar
 
+main :: IO ()
 main = do
-         htk []
+         tk <- htk []
          f <- newVFBox[]
          win <- window f [text "HTk Drawing Pad"]
          cnv <- newCanvas [size (cm 15, cm 15), parent f,
@@ -36,7 +30,7 @@ main = do
          interactor (\iact-> mouseButtonPress cnv 3 >>>=
                                \ (x, y)-> putRect cnv ("yellow", (x, y)))
          sync(destroyed win)
-         shutdown
+         destroy tk
 
 putRects cnv = mapM_ (putRect cnv) [("red", (cm 0.2, cm 4)),
 			            ("green", (cm 2.2, cm 4)),

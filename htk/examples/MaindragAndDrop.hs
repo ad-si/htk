@@ -11,7 +11,6 @@ module Main (main) where
 
 import HTk
 import Frame
-import Concurrency
 import Image
 import DragAndDrop
 import Button
@@ -45,9 +44,10 @@ showSelectedItems notepad ed =
     ed # state Disabled
     done
 
+main :: IO ()
 main =
   do
-    win <- htk []
+    tk <- htk []
     main <- newVFBox []
     box <- newHFBox [parent main]
     win <- window main [text "Drag and drop example"]
@@ -74,8 +74,6 @@ main =
                       triggered deselectall +> triggered showselection)
     scrollbox <- newScrollBox output [parent main]
     item1_img <- newImage [filename "./images/item1.gif"]
-    size <- getSize(item1_img)
-    putStr("image1 size:" ++ showSize size ++ "\n")
     item2_img <- newImage [filename "./images/item2.gif"]
     item3_img <- newImage [filename "./images/item3.gif"]
     item4_img <- newImage [filename "./images/item2.gif"]
@@ -156,7 +154,8 @@ main =
                                                 (str ++
                                                  " dropped on item 6\n\n")))
     sync (destroyed win)
-    shutdown
+    destroy tk
+
   where showB :: Bool -> String
         showB True  = " selected\n"
         showB False = " deselected\n"

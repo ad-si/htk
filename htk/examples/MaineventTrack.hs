@@ -7,30 +7,21 @@
  -
  - ------------------------------------------------------------------------ -}
 
-module Main (
-        main
-
-        ) where
+module Main (main) where
 
 import HTk
-import Concurrency(block)
-import PulldownMenu
-import Frame
-import Line
-import Oval
-import Rectangle
-import CanvasItem
 import Mouse
 import Canvas
 import Debug(debug)
 
+main :: IO ()
 main = do
-        htk []
+        tk <- htk []
 	cnv <- newCanvas [size (cm 15, cm 15), background "white"]
 	win <- window cnv [text "HTk Event Tracker"]
 	interactor (moving cnv)
-	sync (destroyed win)	
-	shutdown
+	sync (destroyed win)
+	destroy tk
 
 	where  moving :: Canvas-> InterActor-> IA()
 	       moving c i = 

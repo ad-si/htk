@@ -8,20 +8,16 @@
  - ------------------------------------------------------------------------ -}
 
 
-module Main (
-        main
-
-        ) where
+module Main (main) where
 
 import HTk
-import Concurrency
 import PulldownMenu
 import Frame
 import Label
 
+main :: IO ()
 main = do
-        htk []
-
+        tk <- htk []
         f   <- newFrame []        
 	win <- window f [text "My second HTk Program"]
 	mbt <- newMenuButton  [text "File", parent f, side AtTop]
@@ -32,6 +28,5 @@ main = do
         l  <- newLabel  [value "Hello, world!", parent f, 
 			 relief Groove, pad Horizontal (cm 1), side AtBottom]
         interactor (\iact -> triggered bt >>> stop iact)
-
         sync (destroyed win) 
-        shutdown
+        destroy tk

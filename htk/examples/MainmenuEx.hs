@@ -8,22 +8,17 @@
  - ------------------------------------------------------------------------ -}
 
 
-module Main (
-        main
-
-        ) where
+module Main (main) where
 
 import HTk
-import Concurrency(block)
-import Mouse
-import Menu
 import PulldownMenu
 import RadioGroup
 import Separator
 import Bell(bell)
 
+main :: IO ()
 main = do
-	htk []
+	tk <- htk []
 
         f   <- newHFBox []        
 	win <- window f [text "Menus!"]
@@ -70,7 +65,7 @@ main = do
         interactor (const (t1 >>> done))
 	
 	sync(destroyed win)
-        shutdown
+        destroy tk
 
 	where selected nm t = putStrLn (case t of On -> nm ++ " selected!"
 	                                          Off-> nm ++ " deselected!")

@@ -407,7 +407,7 @@ testCanvas =
                 background "red",
                 closeEnough 5,
                 confine True,
-                scrollRegion ((1,1),(1,1),(1,1),(1,1)),
+                scrollRegion ((1,1),(1,1)),
                 scrollIncrement Horizontal 1,
                 scrollIncrement Vertical 1              
                 ]                                               >>= \ cv2 ->
