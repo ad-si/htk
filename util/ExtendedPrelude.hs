@@ -26,7 +26,10 @@ module ExtendedPrelude (
 
    -- Indicates that this type allows an IO-style map.
    HasMapIO(..),
-    ) where
+
+   splitByChar,
+   unsplitByChar,
+   ) where
 
 import Char
 
@@ -120,3 +123,32 @@ insertOrd p x ll@(e:l) =
 
 bottom :: a
 bottom = error "Attempted to evaluate ExtendedPrelude.bottom"
+
+
+-- ---------------------------------------------------------------------------
+-- Splitting a string up into a list of strings and unsplitting back
+-- by a single character.
+-- Examples:
+--    splitByChar '.' "a.b.." = ["a","b","",""]
+--    splitByChar '.' "" = [""]
+-- unsplitByChar is the inverse function.
+-- ---------------------------------------------------------------------------
+
+splitByChar :: Char -> String -> [String]
+splitByChar ch s = split s
+   where
+      split s = case splitTo s of
+         Nothing -> [s]
+         Just (s1,s2) -> s1 : split s2
+
+      splitTo [] = Nothing
+      splitTo (c:cs) = if c == ch then Just ([],cs) else
+         fmap
+            (\ (cs1,cs2) -> (c:cs1,cs2))
+            (splitTo cs)
+
+unsplitByChar :: Char -> [String] -> String
+unsplitByChar ch [] = error "unsplitByChar not defined for empty list"
+unsplitByChar ch l = foldr1 (\w s -> w ++ ch:s) l
+
+

@@ -48,10 +48,14 @@ module SimpleForm(
       -- the supplied function is called.  If it returns Right y, we return y
       -- and close the window; if it returns Left error, the error message is 
       -- displayed, and we continue.
+   mapFormIO, -- :: (x -> IO (Either String y)) -> Form x -> Form y
+      -- IO'based version of mapForm.
+
    guardForm, -- :: (x -> Bool) -> String -> Form x -> Form x
       -- guardForm uses mapForm to check the value of x with the supplied
       -- error message.
-
+   guardFormIO, -- :: (x -> IO Bool) -> String -> Form x -> Form x
+      -- IO'based version of guardForm.
 
    FormValue(..), -- This is a class of values which can be read in from a 
      -- simple form.  Instances include Int, String and Bool.
@@ -130,6 +134,19 @@ mapEnteredForm' f
          return (mapWithError' f we1)
       }
 
+mapEnteredFormIO' :: (a -> IO (WithError b)) -> EnteredForm a 
+   -> EnteredForm b
+mapEnteredFormIO' f 
+   (EnteredForm{packAction = packAction,getFormValue = getFormValue,
+      destroyAction = destroyAction}) =
+   EnteredForm {packAction = packAction,destroyAction = destroyAction,
+      getFormValue = do
+         we1 <- getFormValue
+         case we1 of
+            Right a -> f a
+            Left err -> return (Left err)
+      }
+
 -- -------------------------------------------------------------------------
 -- The Form type and (//)
 -- -------------------------------------------------------------------------
@@ -155,6 +172,16 @@ mapForm f (Form getEnteredForm0) =
          do
             enteredForm1 <- getEnteredForm0 container
             return (mapEnteredForm' f enteredForm1)
+   in
+       Form getEnteredForm1
+
+mapFormIO :: (x -> IO (WithError y)) -> Form x -> Form y
+mapFormIO f (Form getEnteredForm0) =
+   let
+      getEnteredForm1 container =
+         do
+            enteredForm1 <- getEnteredForm0 container
+            return (mapEnteredFormIO' f enteredForm1)
    in
        Form getEnteredForm1
 
@@ -194,6 +221,14 @@ infixr 8 // -- so it binds less tightly than \\
 guardForm :: (x -> Bool) -> String -> Form x -> Form x
 guardForm test mess =
   mapForm (\x -> if test x then Right x else Left mess)
+
+guardFormIO :: (x -> IO Bool) -> String -> Form x -> Form x
+guardFormIO test mess =
+  mapFormIO (\ x -> 
+     do
+        res <- test x
+        return (if res then Right x else Left mess)
+     )
 
 
 -- -------------------------------------------------------------------------

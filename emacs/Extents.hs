@@ -14,7 +14,7 @@ module Extents(
 
 import EmacsBasic
 import EmacsCommands
-import ExtentContents
+import EmacsContent
 
 addContainerBuffer :: EmacsSession -> String -> IO ()
 addContainerBuffer emacsSession str =
@@ -51,11 +51,11 @@ collapse :: EmacsSession -> String -> String -> IO ()
 collapse emacsSession this text =
    execEmacs emacsSession ("uni-collapse",[this,text])
 
-containerContents :: EmacsSession -> String -> IO (EmacsContents String)
+containerContents :: EmacsSession -> String -> IO (EmacsContent String)
 containerContents emacsSession this =
    do
       str <- evalEmacsQuick emacsSession 
          (Prin ("uni-container-contents",[this]))
-      return (parseEmacsContents str)
+      return (parseEmacsContent str)
 
 

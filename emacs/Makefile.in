@@ -1,7 +1,7 @@
 PACKAGE = uni-emacs
 PACKAGES = uni-server
 
-SRCS = EmacsBasic.hs EmacsCommands.hs EmacsSExp.hs ExtentContents.hs Extents.hs
+SRCS = EmacsBasic.hs EmacsCommands.hs EmacsSExp.hs EmacsContent.hs Extents.hs
 
 SRCSC = 
 
