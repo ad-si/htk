@@ -7,6 +7,8 @@ SRCS = MMiSSAPI.hs MMiSSRequest.hs \
    MMiSSMessages.hs MMiSSDoXml.hs MainMMiSSServer.hs \
    TestMMiSSServer.hs \
 
+BOOTSRCS = MMiSSDoXml.boot.hs
+
 include @TOP@/mk/boilerplate.mk
 
 MMiSSRequest.hs : MMiSSRequest.dtd

@@ -230,10 +230,17 @@ connectBasic service =
                   -- since we may well be doing the connection via SSL,
                   -- we use a big buffer, and only flush when necessary.
 
-               userPasswordOpt <- getUserPassword (not firstTime) (?server)
-               (user,password) <- case userPasswordOpt of
-                  Nothing -> connectFailure "Server connection cancelled"
-                  Just (user,password) -> return (user,password)
+               (user,password,tryAgain) <- case toLoginInfo ?server of
+                  Just loginInfo -> 
+                     return (user loginInfo,password loginInfo,False)
+                  Nothing ->
+                     do
+                        userPasswordOpt 
+                           <- getUserPassword (not firstTime) (?server)
+                        case userPasswordOpt of
+                           Nothing -> connectFailure 
+                              "Server connection cancelled"
+                           Just (user,password) -> return (user,password,True)
 
                hWrite handle (serviceKey,user,password)
                hFlush handle
@@ -250,8 +257,11 @@ connectBasic service =
                      do
                         hClose handle
                         errorMess ("Server rejected connection: " ++ mess)
-                        connectBasic False
-              
+                        if tryAgain
+                           then
+                              connectBasic False
+                           else
+                              connectFailure "Authentication failed"
       connectBasic True
 
 

@@ -27,7 +27,9 @@ main =
       hFlush handle
       ack <- hRead handle
       putStrLn ack
-
+      forkIO (display handle)
+      sendIn handle
+{-
       forever (
          do
             request <- getLine
@@ -36,6 +38,7 @@ main =
             response <- hRead handle
             putStrLn response
          )
+   -}
 
 display :: Handle -> IO ()
 display handle =
@@ -45,12 +48,13 @@ display handle =
          (Just (BlockData {blockType = 0,blockText = icsl})) 
             = lookupBlockData block 0
       putStr (toString icsl)
+      hFlush stdout
       display handle
 
 sendIn :: Handle -> IO ()
 sendIn  handle =
    do
-      line <- getLine 
+      line <- getLine
       let
          (block,0) = addBlockData emptyBlock 
             (BlockData {blockType = 0,blockText = fromString line})

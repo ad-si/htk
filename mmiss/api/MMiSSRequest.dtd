@@ -13,11 +13,7 @@
    >
 
 <!-- The element type corresponding to a response. 
-
-     All requests which match the DTD, even those which have no useful 
-     information to return on success (EG closeServer), will return a 
-     corresponding response.
-
+     Successful requests will return a corresponding response.
      -->
 <!ELEMENT response (messages,
      (connectResponse | closeServerResponse | listVersionsResponse
@@ -37,7 +33,7 @@
    user CDATA #IMPLIED
    password CDATA #IMPLIED
    >
-<!ELEMENT connectResponse (serverRef?) >
+<!ELEMENT connectResponse (serverRef) >
 
 
 <!-- Closing the connection to a server. -->
@@ -53,6 +49,9 @@
 <!-- Checking out a version. -->
 <!ELEMENT checkOut (serverRef,versionRef?) >
 <!ATTLIST checkOut version CDATA #REQUIRED >
+
+<!-- The version itself is represented by a sequence of digits -->
+
 <!ELEMENT checkOutResponse (versionRef?) >
 
 <!-- Changing the user-info of a current checked-out version. -->
@@ -154,7 +153,17 @@
 <!-- version and parents should /not/ be set for changeUserInfo.
      (This is just how the server structures them and I can't be bothered
      to create an especial element for 
-     everything-the-user-is-allowed-to-change.) -->
+     everything-the-user-is-allowed-to-change.) 
+
+     The value of the version attribute is a sequence of digits (the same as 
+     are supplied as values of the version attribute of the checkOut element).
+     Example "123".
+
+     The value of the parents attribute represents the parent versions of
+     this versions, and is a sequence of sequences of digits, separated by
+     spaces.  Example: "" (if no parents), "123" (one parent), "123 456"
+     (two parents)
+     -->
 
 <!ELEMENT serverInfo EMPTY>
 <!ATTLIST serverInfo 
@@ -163,6 +172,13 @@
    timeStamp CDATA #REQUIRED
    userId CDATA #REQUIRED
    >
+<!-- The timestamp has the format
+        <digits>+<digits>
+     where the digits encode two integers N1 and N2 (in order) representing
+     the time elapsed since 00:00:00 UTC on 1 Jan 1970.  This will be
+     N1 + (N2 / 10^12) seconds.  0<=N2<10^12.
+  -->
+
 
 <!-- A name of an object in a folder, for example "A" -->
 <!ELEMENT objectName (#PCDATA) >

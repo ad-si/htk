@@ -214,20 +214,14 @@ getHostsRegistry =
                      Default portStr -> portStr
                      NonDefault portStr -> portStr
                   
-                  (portNum :: Int) = case readCheck portStr of
+                  (port1 :: Int) = case readCheck portStr of
                      Just portNum -> portNum
                      Nothing -> err (show portStr 
                         ++ " is not a valid port number")
 
-               port1 <- getPortNumber portNum
+               hostPort1 <- mkHostPort host1 port1 (hostDescription host)
+                  Nothing
 
-               let
-                  description1 = fromMaybe
-                     (mkHostDescription host1 portNum)
-                     (hostDescription host)
-
-                  hostPort1 = HostPort {
-                     host = host1,port = port1,description = description1}
                userPassword1 <- newIORef (hostUser host,Nothing)
                let
                   hostData = HostData {

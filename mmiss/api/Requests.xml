@@ -1,0 +1,11 @@
+<!-- 
+   Test file for MMiSSRequest.dtd, to be validated with the 
+   testrequests script.
+   The <requests></requests> pair is not part of the DTD but needs to be there
+   to get the thing to parse. -->
+<requests>
+<request><connect server="denebola:11395" user="ger" password="XXXX"><serverRef ref="X"/></connect></request>
+<request><listVersions><serverRef ref="X"/></listVersions></request>
+<request><closeServer><serverRef ref="X"/></closeServer></request>
+<request><closeVersion><versionRef ref="Y"/></closeVersion></request>
+</requests>

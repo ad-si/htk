@@ -35,7 +35,7 @@ import Thread
 import Object
 import BinaryAll
 
-import HostsPorts
+import HostsPorts hiding (user)
 import ServiceClass
 import Crypt
 import PasswordFile

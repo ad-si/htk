@@ -26,7 +26,7 @@ data Connect_Attrs = Connect_Attrs
     , connectUser :: (Maybe String)
     , connectPassword :: (Maybe String)
     } deriving (Eq,Show)
-newtype ConnectResponse = ConnectResponse (Maybe ServerRef) 		deriving (Eq,Show)
+newtype ConnectResponse = ConnectResponse ServerRef 		deriving (Eq,Show)
 newtype CloseServer = CloseServer ServerRef 		deriving (Eq,Show)
 data CloseServerResponse = CloseServerResponse 		deriving (Eq,Show)
 newtype ListVersions = ListVersions ServerRef 		deriving (Eq,Show)
@@ -227,11 +227,11 @@ instance XmlContent ConnectResponse where
     fromElem (CElem (Elem "connectResponse" [] c0):rest) =
 	(\(a,ca)->
 	   (Just (ConnectResponse a), rest))
-	(fromElem c0)
+	(definite fromElem "<serverRef>" "connectResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (ConnectResponse a) =
-	[CElem (Elem "connectResponse" [] (maybe [] toElem a))]
+	[CElem (Elem "connectResponse" [] (toElem a))]
 instance XmlContent CloseServer where
     fromElem (CElem (Elem "closeServer" [] c0):rest) =
 	(\(a,ca)->

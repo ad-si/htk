@@ -37,6 +37,8 @@ commitVersion = error "TBD"
 -- --------------------------------------------------------------------------
 
 closeVersion :: MMiSSSessionState -> CloseVersion -> IO CloseVersionResponse
-closeVersion = error "TBD"
-
+closeVersion state (CloseVersion versionRef) =
+   do
+      deleteView state versionRef
+      return CloseVersionResponse
 

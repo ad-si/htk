@@ -2,6 +2,9 @@
    distributes XML requests. -}
 module MMiSSDoXml(
    doXml, -- :: Handle -> IO ()
+
+   ourError, -- :: BreakFn
+
    ) where
 
 import IO
@@ -76,9 +79,7 @@ doRequests state handle user =
       case result of
          Right () -> done
          Left mess -> 
-            do
-               putStrLn mess
-               signalError handle Messages_status_fail mess
+            signalError handle Messages_status_fail mess
 
       doRequests state handle user
       
@@ -206,9 +207,7 @@ signalErrors handle status messes =
 readRequest :: Handle -> IO (Request,Block)
 readRequest handle =
    do
-      putStrLn "B1"
       block <- readBlock handle
-      putStrLn "B2"
       requestStr <- case lookupBlockData block 0 of
          Just (BlockData {blockType = 0,blockText = icsl}) -> 
             return (toString icsl)
@@ -222,7 +221,6 @@ readRequest handle =
       case validateElement "request" element of
          [] -> done
          errors -> ourError (unlines errors)
-      putStrLn "BE"
 
       case fromElem [CElem element] of
          (Just request,[]) -> return (request,block)

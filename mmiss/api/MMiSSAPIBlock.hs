@@ -56,7 +56,6 @@ readBlock :: Handle -> IO Block
 readBlock handle =
    do
       (nDataBlocks :: Word) <- hRead handle
-      putStrLn (show nDataBlocks)
       let
          readBlock :: IO BlockData
          readBlock =

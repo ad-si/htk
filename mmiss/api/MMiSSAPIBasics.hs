@@ -3,6 +3,9 @@
 module MMiSSAPIBasics(
    ) where
 
+import Data.FiniteMap
+import Control.Concurrent.MVar
+
 import ExtendedPrelude
 
 import MMiSSRequest
@@ -16,3 +19,4 @@ instance Ord ServerRef where
 
 instance Ord VersionRef where
    compare = mapOrd versionRefRef
+

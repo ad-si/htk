@@ -1,0 +1,4 @@
+#!/bin/sh
+cat - MMiSSRequest.dtd <<EXTRADTD | xmllint --dtdvalid - --noout Requests.xml 
+<!ELEMENT requests (request*) >
+EXTRADTD
