@@ -168,27 +168,36 @@ connectBroadcastGeneral service =
 
 data Connection = Connection {
    handle :: Handle,
-   oId :: ObjectID
+   oId :: ObjectID,
+   destroyAct :: IO ()
    }
 
 newConnection :: Handle -> IO Connection
 newConnection handle =
-   do
+   mdo
       oId <- newObject
-      return (Connection {
-         handle = handle,
-         oId = oId
-         })
+      connection <- 
+         do
+            destroyAct <- doOnce (destroySimple connection)
+            return (Connection {
+               handle = handle,
+               oId = oId,
+               destroyAct = destroyAct
+               })
+      return connection
 
 instance Object Connection where
    objectID (Connection {oId = oId}) = oId
-   
-instance Destroyable Connection where
-   destroy (connection@Connection {handle = handle}) =
-      do
-         deregisterTool connection
-         hClose handle
 
+destroySimple :: Connection -> IO ()
+destroySimple (connection@Connection {handle = handle}) =
+   do
+      deregisterTool connection
+      -- hClose handle
+      -- doesn't seem to terminate for some reason.
+
+instance Destroyable Connection where
+   destroy = destroyAct 
 ------------------------------------------------------------------------
 -- getHost is used by all of them
 ------------------------------------------------------------------------
@@ -239,7 +248,8 @@ connectBasic service =
                   "OK" -> 
                      do
                         connection <- newConnection handle
-                        registerTool connection
+                        registerToolDebug ("callServer:" ++ serviceKey) 
+                           connection
                         return connection
                   errorMess ->
                      do

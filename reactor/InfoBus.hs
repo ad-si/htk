@@ -18,6 +18,7 @@ DESCRIPTION   :
 
 module InfoBus (        
    registerTool,
+   registerToolDebug,
    deregisterTool,   
    shutdown,
    registerDestroyAct,
@@ -64,6 +65,14 @@ registerTool t =
       putMVar toolmanager (addToFM map (objectID t) (destroy t))
       done          
 
+registerToolDebug :: (Object t, Destroyable t) => String -> t -> IO ()
+registerToolDebug title t = 
+   do 
+      map <- takeMVar toolmanager 
+      putMVar toolmanager (addToFM map (objectID t) (destroy t))
+      debug ("registerTool " ++ title,objectID t)
+      done          
+
 
 deregisterTool :: (Object t) => t -> IO ()
 deregisterTool t =  
@@ -75,15 +84,21 @@ deregisterTool t =
             map <- takeMVar toolmanager
             putMVar toolmanager (delFromFM map oid)
          )
+      debug ("deregisterTool ",oid)
       done
 
 shutdown :: IO ()
 shutdown = 
    do
       map <- takeMVar toolmanager
-      let cmds = eltsFM map
+      let toShutDown = fmToList map
       putMVar toolmanager emptyFM
-      foreach cmds (\cmd -> try cmd)
+      foreach toShutDown 
+         (\ (oid,cmd) -> 
+            do
+               debug ("Shutting down ",oid)
+               try cmd
+            )
       IOExts.performGC
 
 -- --------------------------------------------------------------------------

@@ -177,7 +177,8 @@ newDaVinci =
             destroy childProcess
             destroyAnswerDispatcher
          )
-      registerTool daVinci
+
+      registerToolDebug "daVinci" daVinci
       return daVinci
   
 daVinciVersion :: Maybe String
@@ -406,7 +407,8 @@ withHandler newHandler context act =
 
 -- ---------------------------------------------------------------------
 -- Answer dispatcher
--- This has two jobs: 
+-- This has three jobs:
+-- (0) handle the file-menu events we allow, namely "#%print" and "#%close".
 -- (1) It runs the handler attached to the context.
 -- (2) It sends the destruct event for a context when appropriate.
 --     (IE we receive a "close" message for that context, or
@@ -497,6 +499,18 @@ getMultiAnswer childProcess =
                return (contextId,answer2)
          _ -> error ("Unexpected daVinci answer expecting contextId: "
             ++ show answer1)
+
+simpleExec :: ChildProcess -> DaVinciCmd -> IO ()
+   -- used during initialisation, before we've entered multi-mode.
+   -- If the result isn't OK we provoke an error.
+simpleExec childProcess cmd =
+   do
+      sendMsg childProcess (show cmd)
+      answer <- getNextAnswer childProcess
+      case answer of
+         Ok -> done
+         _ -> error ("daVinci failure: command " ++ show cmd ++ " returned "
+            ++ show answer)
 
 getNextAnswer :: ChildProcess -> IO DaVinciAnswer
 getNextAnswer childProcess =

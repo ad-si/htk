@@ -123,7 +123,7 @@ newVersionGraph ::
 newVersionGraph displaySort repository =
    do
       graph <- mkVersionSimpleGraph
-      newVersionGraph1 displaySort repository graph (show ?server)
+      newVersionGraph1 displaySort repository graph (show ?server) False
 
 newVersionGraphInternal ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
@@ -134,18 +134,18 @@ newVersionGraphInternal ::
 newVersionGraphInternal displaySort repository versionState =
    do
       graph <- mkVersionSimpleGraphInternal versionState
-      newVersionGraph1 displaySort repository graph "(Internal)"
+      newVersionGraph1 displaySort repository graph "(Internal)" True
 
 newVersionGraph1 :: 
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-   -> Repository -> VersionSimpleGraph -> String -> IO VersionGraph
+   -> Repository -> VersionSimpleGraph -> String -> Bool -> IO VersionGraph
 newVersionGraph1 
       (displaySort 
          :: GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
-         arc arcType arcTypeParms) repository graph title =
+         arc arcType arcTypeParms) repository graph title isInternal =
    do
       -- All working nodes.
       (workingNodeRegistry :: Registry Node ViewedNode) <- newRegistry
@@ -177,7 +177,14 @@ newVersionGraph1
                Button "Merge" doMerge,
                Button "Copy Versions" copyVersions1
                ])) $$
-                 
+            (AllowClose
+               (if isInternal
+                  then
+                     Just "Internal Version Graph cannot be closed"
+                  else
+                     Nothing
+                  )
+               ) $$
             emptyGraphParms
          
          -- getNodeTypeParms constructs the parameters for a node

@@ -418,7 +418,7 @@ newWish =
             }
       spawnEvent eventForwarder
 
-      registerTool wish -- so that shutdown works.
+      registerToolDebug "Wish" wish -- so that shutdown works.
 
       return wish
 

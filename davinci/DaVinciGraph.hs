@@ -22,10 +22,11 @@ module DaVinciGraph(
 
 import Maybe
 
-import IOExts
-import Set
-import FiniteMap
-import Concurrent
+import Data.IORef
+import Data.Set
+import Data.FiniteMap
+import Control.Concurrent
+
 import Sources
 import Sink
 import ExtendedPrelude(mapEq,mapOrd)
@@ -128,6 +129,8 @@ data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
    surveyView :: Bool,
    configDoImprove :: Bool,
+   configAllowClose :: AllowClose,
+   configGlobalMenu :: Maybe GlobalMenu,
    graphTitleSource :: Maybe (SimpleSource GraphTitle),
    delayerOpt :: Maybe Delayer
    }
@@ -200,6 +203,8 @@ instance GraphClass DaVinciGraph where
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraphPrim (DaVinciGraphParms {graphConfigs = graphConfigs,
          configDoImprove = configDoImprove,surveyView = surveyView,
+         configAllowClose = configAllowClose,
+         configGlobalMenu = configGlobalMenu,
          graphTitleSource = graphTitleSource,delayerOpt = delayerOpt}) =
       do
          nodes <- newRegistry
@@ -207,11 +212,20 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          globalMenuActions <- newRegistry
          otherActions <- newRegistry
          lastSelectionRef <- newIORef LastNone
+
+         graphMVar <- newEmptyMVar 
+            -- this will hold the graph when it's completed.  This is needed
+            -- by some of the handler actions.
+
+
          
          let
             -- We now come to write the handler function for
             -- the context.  This is quite complex so we handle the
             -- various cases one by one, in separate functions.
+            --
+            -- The handler needs to depend on the context, so that it
+            -- can handle Close and Print events appropriately.
             handler :: DaVinciAnswer -> IO ()
             -- In general, the rule is that if we don't find
             -- a handler function, we do nothing.  We do, however,
@@ -269,8 +283,28 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                            ArcData arcType arcValue <- getValue edges edgeId
                            (arcDoubleClickAction arcType) arcValue
                      _ -> error "DaVinciGraph: confusing edge double click"
-
             actGlobalMenu :: MenuId -> IO ()
+            actGlobalMenu (MenuId "#%print") =
+               do
+                  graph <- readMVar graphMVar
+                  doInContext  
+                     (DaVinciTypes.Menu (File (Print Nothing))) (context graph)
+            actGlobalMenu (MenuId "#%close") =
+               do
+                  case configAllowClose of
+                     AllowClose Nothing ->
+                        do
+                           proceed 
+                              <- createConfirmWin "Really close window?" []
+                           if proceed
+                              then
+                                 do
+                                    graph <- readMVar graphMVar
+                                    destroy graph
+                              else
+                                 done
+                     AllowClose (Just mess) ->
+                        createErrorWin mess [] 
             actGlobalMenu menuId =
                do
                   action <- getValue globalMenuActions menuId
@@ -306,6 +340,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   (createEdgeAction nodeType2) (toDyn nodeValue1) nodeValue2
 
          context <- newContext handler
+
          pendingChangesMVar <- newMVar []
          destructionChannel <- newChannel
          redrawChannel <- newChannel
@@ -356,10 +391,28 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   redrawAction = redrawAction
                   }
 
+         putMVar graphMVar daVinciGraph
+
          setValue otherActions Closed (signalDestruct daVinciGraph)
          setValue otherActions Quit (signalDestruct daVinciGraph)
 
          sequence_ (map ($ daVinciGraph) (reverse graphConfigs))
+
+         -- Take control of File Menu events.
+         doInContext (AppMenu (ControlFileEvents)) context
+         let
+            fileMenuIds = [MenuId "#%print",MenuId "#%close"]
+
+         -- Attach globalMenu if necessary and get its menuids as well.
+         -- (All global menu-ids need to be activated at once.)
+         globalMenuIds <- case configGlobalMenu of
+            Nothing -> return []
+            Just globalMenu -> mkGlobalMenu daVinciGraph globalMenu
+
+         -- Activate global menus.
+         doInContext 
+            (AppMenu (ActivateMenus (fileMenuIds ++ globalMenuIds)))
+            context        
 
          addSink
 
@@ -381,7 +434,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
 instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
       graphConfigs = [],configDoImprove = False,surveyView = False,
-      graphTitleSource = Nothing,delayerOpt = Nothing     
+      graphTitleSource = Nothing,delayerOpt = Nothing,
+      configAllowClose = AllowClose Nothing,
+      configGlobalMenu = Nothing
       }
 
 addGraphConfigCmd :: DaVinciCmd -> DaVinciGraphParms -> DaVinciGraphParms
@@ -417,6 +472,11 @@ instance HasConfig SurveyView DaVinciGraphParms where
    ($$) (SurveyView surveyView) daVinciGraphParms =
       daVinciGraphParms {surveyView = surveyView}
 
+instance HasConfig AllowClose DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) allowClose daVinciGraphParms =
+      daVinciGraphParms {configAllowClose = allowClose}
+
 instance HasConfig AllowDragging DaVinciGraphParms where
    configUsed _ _  = True
 
@@ -427,17 +487,17 @@ instance HasConfig AllowDragging DaVinciGraphParms where
 instance HasConfig GlobalMenu DaVinciGraphParms where
    configUsed _ _ = True
    ($$) globalMenu graphParms =
-      graphParms {
-         graphConfigs =
-            (\ daVinciGraph ->
-               do
-                  menuEntries <- encodeGlobalMenu globalMenu daVinciGraph
-                  doInContext (AppMenu(CreateMenus menuEntries))
-                     (context daVinciGraph)
-                  doInContext (AppMenu(ActivateMenus(getMenuIds menuEntries)))
-                     (context daVinciGraph)
-               ) : (graphConfigs graphParms)
-         }
+      graphParms {configGlobalMenu = Just globalMenu}
+
+-- Create a global menu and return the ids of the menu-entries, which
+-- still need to be activated.
+mkGlobalMenu :: DaVinciGraph -> GlobalMenu -> IO [MenuId]
+mkGlobalMenu daVinciGraph globalMenu =
+   do
+      menuEntries <- encodeGlobalMenu globalMenu daVinciGraph
+      doInContext (AppMenu(CreateMenus menuEntries))
+         (context daVinciGraph)
+      return (getMenuIds menuEntries)
 
 instance HasConfig GraphGesture DaVinciGraphParms where
    configUsed _ _ = True

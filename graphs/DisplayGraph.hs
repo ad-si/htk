@@ -208,7 +208,7 @@ displayGraph0
 
       forkIO monitorThread
   
-      registerTool displayGraph
+      registerToolDebug "DisplayGraph" displayGraph
 
       return (displayGraph,dispGraph)
 

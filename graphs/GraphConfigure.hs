@@ -82,6 +82,7 @@ module GraphConfigure(
    OptimiseLayout(..),   
    SurveyView(..),
    AllowDragging(..),
+   AllowClose(..),
 
    -- ($$$?) is used for Maybe (option), where Nothing means
    -- "No change".
@@ -375,10 +376,16 @@ instance GraphConfig SurveyView
 newtype AllowDragging = AllowDragging Bool
 -- If True, allow Drag-and-Drop operators.  
 
+newtype AllowClose = AllowClose (Maybe String)
+-- If set, make this daVinci window unclosable, with the given error message
+-- if the user tries.
+
 instance GraphConfig AllowDragging
 
 instance GraphConfig Delayer
 -- Allows the user to specify his own delayer.
+
+instance GraphConfig AllowClose
 
 ------------------------------------------------------------------------
 -- Grouping options
@@ -390,6 +397,7 @@ class (
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
+   HasConfig AllowClose graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )
@@ -400,6 +408,7 @@ instance (
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
+   HasConfig AllowClose graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )
