@@ -24,6 +24,7 @@ import Rectangle
 import CanvasItem
 import Mouse
 import Canvas
+import RVar
 
 main = do
          htk []
@@ -44,6 +45,18 @@ putRects cnv = mapM_ (putRect cnv) [("red", (cm 0.2, cm 4)),
 putRect cnv (col, pos) = do
 	r<- newRectangle [size (cm 1, cm 1), parent cnv, position pos,
 			  outline "black", filling col]
+        posref <- newRVar pos
+        interactor (move r posref)
+
+        where move :: Rectangle -> RVar Position -> InterActor -> IA ()
+              move r posref iact =
+                ((mouseEvent r (Button1, Motion) >>>=
+                    \ ((x, y), _) -> do
+                                       (x0, y0) <- getVar posref
+                                       moveItem r (x - x0) (y - y0)
+                                       setVar posref (x, y)))
+
+{-
 	interactor (notmoving r)
 
 	where  notmoving :: Rectangle-> InterActor-> IA () 
@@ -54,10 +67,11 @@ putRect cnv (col, pos) = do
 	           +> (mouseEvent r (Button2, Motion) 
 	                    >>>= \((x, y), _)-> scaleItem r x y 0.99 0.99))
 
-	       moving :: Rectangle -> Distance-> Distance->InterActor-> IA()
+	       moving :: Rectangle -> Distance-> Distance->InterActor-> IA ()
 	       moving r x0 y0 iact = 
 		    ((mouseEvent r (Button1, Motion)
 		     >>>= \((x, y), _)-> moveItem r (x- x0) (y- y0) >>
                                          become iact (moving r x y iact))
 	          +> (mouseEvent r (ButtonRelease Nothing)
 		     >>> become iact (notmoving r iact)))
+-}
