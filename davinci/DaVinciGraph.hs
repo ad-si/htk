@@ -625,6 +625,13 @@ instance HasModifyValue NodeArcsHidden DaVinciGraph DaVinciNode where
          doInContext (DaVinciTypes.Menu (
             Abstraction ((if hide then HideEdges else ShowEdges) [nodeId])
             )) (context daVinciGraph)
+         case daVinciVersion of
+            Just _ -> done
+            Nothing ->
+               -- work around daVinci 2 bug which causes edge hiding to be
+               -- delayed
+               doInContext (DaVinciTypes.Graph (ChangeAttr ([Node nodeId []])))
+                  (context daVinciGraph)
 
 instance HasModifyValue (String,String) DaVinciGraph DaVinciNode where
    modify (key,value) daVinciGraph (DaVinciNode nodeId) =

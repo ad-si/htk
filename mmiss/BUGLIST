@@ -57,6 +57,10 @@ node being edited) in daVinci2, but this is I think a bug in daVinci2 not
 daVinci3.  Therefore I shall for now consider this item
 FIXED.
 
+27.09.02
+In fact I have discovered (and implemented) a workaround for the daVinci2
+bug.
+
 54) 25.09.02
 Sort out LaTeX preambles.  At the moment the current hack is to attach
 the preamble to every single sub-object.  This is bad because (a) it is
