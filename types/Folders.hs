@@ -155,31 +155,36 @@ instance ObjectType FolderType Folder where
    nodeTitlePrim folder = name folder 
 
    getNodeDisplayData view wrappedDisplayType folderType =
-      let
-         nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 
-            (displayParms folderType)
-      in
-         case nodeTypeParmsOpt of
-            Just nodeTypeParms ->
-               Just (NodeDisplayData {
-                  topLinks = case topFolderLinkOpt folderType of
-                     Nothing -> []
-                     Just link -> [link],
-                  arcTypes = [(theArcType,emptyArcTypeParms)],
-                  nodeTypes = [(theNodeType,nodeTypeParms)],
-                  getNodeType = const theNodeType,
-                  knownSet = SinkSource (knownFolders folderType),
-                  focus = (\ link ->
-                     do
-                        folder <- readLink view link
-                        updateSet (knownFolders folderType) (AddElement link)
-                        return (mkArcs (contents folder),
-                           SinkSource emptyVariableSet)
-                     ),
-                  closeDown = done
-                  })
-            Nothing -> Nothing
-                  
+      return (
+         let
+            nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 
+               (displayParms folderType)
+         in
+            case nodeTypeParmsOpt of
+               Just nodeTypeParms ->
+                  Just (NodeDisplayData {
+                     topLinks = case topFolderLinkOpt folderType of
+                        Nothing -> []
+                        Just link -> [link],
+                     arcTypes = [(theArcType,emptyArcTypeParms)],
+                     nodeTypes = [(theNodeType,
+                        ValueTitle (\ (str,f::Folder) -> return str) $$
+                           nodeTypeParms
+                        )],
+                     getNodeType = const theNodeType,
+                     knownSet = SinkSource (knownFolders folderType),
+                     focus = (\ link ->
+                        do
+                           folder <- readLink view link
+                           updateSet (knownFolders folderType) 
+                              (AddElement link)
+                           return (mkArcs (contents folder),
+                              SinkSource emptyVariableSet)
+                        ),
+                     closeDown = done
+                     })
+               Nothing -> Nothing
+         )              
 -- ------------------------------------------------------------------
 -- The VariableSetSource interface to the contents list.
 -- ------------------------------------------------------------------
@@ -229,7 +234,7 @@ getPlainFolderType view =
    do
       knownFolders <- newEmptyVariableSet
       key <- newKey globalRegistry view
-      let 
+      let
          folderType = FolderType {
             folderTypeId = key,
             requiredAttributes = emptyAttributesType,

@@ -68,6 +68,9 @@ module ObjectTypes(
    importObjectTypes, -- :: CodedValue -> View -> IO ()
    exportObjectTypes, -- :: View -> IO CodedValue
    
+
+   -- getAllObjectTypes returns every object type known to the view.
+   getAllObjectTypes, -- :: View -> IO [WrappedObjectType]
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -125,11 +128,16 @@ class (HasCodedValue objectType,HasCodedValue object) =>
    getNodeDisplayData :: 
       (HasNodeTypeConfigs nodeTypeParms,HasArcTypeConfigs arcTypeParms) 
       => View -> WrappedDisplayType -> objectType ->
-         Maybe (NodeDisplayData nodeTypeParms arcTypeParms objectType object)
+         IO (Maybe
+           (NodeDisplayData nodeTypeParms arcTypeParms objectType object))
       -- Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
       -- Returning Nothing stops any value of this type being displayed.
+
+      -- NB.  Although this is an IO action, the display code assumes that
+      -- the result is a constant; once you've returned a value for a
+      -- particular WrappedDisplayType, it's fixed.
 
 -- ----------------------------------------------------------------
 -- Basic Types
@@ -370,6 +378,24 @@ exportOneObjectType objectType view =
    do
       let globalRegistry = objectTypeGlobalRegistry objectType
       exportViewFromGlobalRegistry globalRegistry view
+
+-- -----------------------------------------------------------------
+-- Extract all ObjectTypes in a view (used for doing displays)
+-- -----------------------------------------------------------------
+
+getAllObjectTypes :: View -> IO [WrappedObjectType]
+getAllObjectTypes view =
+   do
+      allObjectTypeTypes <- listRegistryContents objectTypeTypeDataRegistry
+      allWrappedObjectTypes <- mapM
+         (\ (_,WrappedObjectTypeTypeData objectType) ->
+            do
+               let globalRegistry = objectTypeGlobalRegistry objectType
+               objectTypes <- getAllElements globalRegistry view
+               return (map WrappedObjectType objectTypes)
+            )
+         allObjectTypeTypes
+      return (concat allWrappedObjectTypes)
 
 -- -----------------------------------------------------------------
 -- We make WrappedObjectType an instance of HasCodedValue.
