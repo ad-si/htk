@@ -50,7 +50,6 @@ import Char
 import List(find)
 
 import IOExts
-import Posix
 import Concurrent
 import CString
 import Exception
@@ -66,7 +65,6 @@ import EqGuard
 import Destructible
 import Synchronized
 
-import FdRead
 import BSem
 import InfoBus
 

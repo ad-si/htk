@@ -19,7 +19,6 @@ module FileDialog (
 
 import HTk
 import Directory
-import Posix
 import ReferenceVariables
 import System
 import Maybe

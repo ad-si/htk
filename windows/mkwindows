@@ -1,11 +1,16 @@
 #! /usr/local/bin/bash
 # This script should be run in cygwin in the uni directory.  However it
 # doesn't assume ghc is cygwin-aware.
+
 GCC=gcc
 GHC=ghc
 MAKE=make
 FIND=find
 CP=cp
+
+if [ -z $SKIPINTRO ]
+then
+
 
 ./configure
 
@@ -14,12 +19,17 @@ $GHC -Iincludes -c util/default_options.c
 $GHC -Iincludes -c util/object.c
 $GHC -Iincludes -c windows/runWish.c
 
-$GHC mk/mkEverything.c -o mk/mkEverything
+$GCC mk/mkEverything.c -o mk/mkEverything
 
 mk/mkEverything `$MAKE displayhtkhs -s --no-print-directory`
 
-$GHC --make EVERYTHING.hs -package concurrent -package data -package text -package lang -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances -cpp -iwindows:util:events:reactor:htk\kernel:htk\canvasitems:htk\components:htk\containers:htk\devices:htk\menuitems:htk\packer:htk\resources:htk\textitems:htk\tix:htk\toolkit:htk\toplevel:htk\widgets -Iincludes -O
+fi
 
-mkdir imports
+IMPORTS=`cygpath -awp windows:util:events:reactor:htk/kernel:htk/canvasitems:htk/components:htk/containers:htk/devices:htk/menuitems:htk/packer:htk/resources:htk/textitems:htk/tix:htk/toolkit:htk/toplevel:htk/widgets`
+echo $IMPORTS
+
+$GHC --make EVERYTHING.hs -package concurrent -package data -package text -package lang -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances -cpp -i"$IMPORTS" -Iincludes -O
+
+mkdir -p imports
 $CP `$FIND . -name "*.hi"` imports
 $GHC `$FIND . -name "*.o"` -o libhtkwin.a

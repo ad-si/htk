@@ -6,7 +6,8 @@ SRCS = Lock.hs BSem.hs InfoBus.hs CallServer.hs ProcessClasses.hs \
     FdRead.hs ChildProcess.hs Notification.hs MainParseDebug.hs Expect.hs \
     SafeSystem.hs
 
-HTKNOTSRCS = CallServer.hs Expect.hs SafeSystem.hs Notification.hs
+HTKNOTSRCS = CallServer.hs Expect.hs SafeSystem.hs Notification.hs \
+    ProcessClasses.hs ChildProcess.hs FdRead.hs
 
 SRCSC = MainrunCommand.c
 

@@ -41,7 +41,6 @@ import Core
 import BaseClasses(Widget)
 import Configuration
 import Char(isDigit)
-import qualified Posix (getEnvVar)
 import Computation
 import Synchronized
 import Destructible
