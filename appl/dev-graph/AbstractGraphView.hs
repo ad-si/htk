@@ -137,7 +137,7 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
 	           emptyGraphParms)
                    menus 
       abstractNodetypeparams = LocalMenu
-                                  (Menu (Just "View") [
+                                  (
                                       Button "Unhide abstracted nodes" (
 				        \ (name, descr, gid) -> do oldGv <- readIORef gv
 					                           (Result descr error) <- showIt gid descr gv
@@ -147,7 +147,7 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
 								     Nothing -> do redisplay gid gv
 								                   return () 
 				         )
-				      ]) $$$            
+				      ) $$$            
 	                       Rhombus  $$$
                                ValueTitle ( \ (name,descr,gid) -> return name) $$$
                                emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)

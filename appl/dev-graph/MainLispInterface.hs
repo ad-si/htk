@@ -256,12 +256,15 @@ hideedges gid [LP edges] graphs =
 hideedges _ _ graphs = do
   return_fail graphs "hideedges: illegal argument format"
 
--- noch nicht richtig implementiert
 hideedgetype gid [AP edgetype] graphs =
   AbstractGraphView.hideedgetype gid edgetype graphs
 hideedgetype _ _ graphs =
   return_fail graphs "hideedgetype: illegal argument format"
 
+hidenodetype gid [AP nodetype] graphs =
+  AbstractGraphView.hidenodetype gid nodetype graphs
+hidenodetype _ _ graphs =
+  return_fail graphs "hidenodetype: illegal argument format"
 
 showIt gid [AP ev_id] graphs = 
   case try_to_read ev_id :: Maybe Int of
@@ -277,6 +280,7 @@ command "quit" cid _ gv = do
   delallgraphs gv
   cmd_succeeds cid ""
 
+
 command c cid [] gv = 
    cmd_fails cid (c++" needs a graph id")
 command c cid (gid:args) gv = do
@@ -289,10 +293,11 @@ command c cid (gid:args) gv = do
          ("dellink",Main.dellink), 
          ("redisplay",Main.redisplay),
          ("hidenodes",Main.hidenodes),
+         ("hidenodetype",Main.hidenodetype),
          ("abstractnodes",Main.abstractnodes),
          ("show",Main.showIt),
-         ("hideedges",Main.hideedges)]) of --,
---	 ("hideedgetype",Main.hideedgetype)]) of
+         ("hideedges",Main.hideedges),
+	 ("hideedgetype",Main.hideedgetype)]) of
     (_,Nothing) -> cmd_fails cid ("unknown command: "++c)
     (Nothing,_) -> cmd_fails cid ("illegal graph id: "++gid)
     (Just gid', Just cmd) -> do 
@@ -305,7 +310,6 @@ command c cid (gid:args) gv = do
 command_loop gv =
   do s <- getLine
      let lexres = lexer s
-     putStrLn ("Point 1 " ++ s)	 
      case lexres of
         "(":c:cid:args -> command (map toLower c) cid args gv
 	otherwise -> return ()
@@ -318,8 +322,8 @@ main = do
   hSetBuffering stdout LineBuffering
   putStrLn "(ANSWER T \"This is the abstraction viewer for daVinci\")"
   gv <- initgraphs
-  s <- readFile "test.data"
-  sequence (map (process_command gv) (lines s))
+--  s <- readFile "test.data"
+--  sequence (map (process_command gv) (lines s))
   command_loop gv
   where
   process_command gv s =
