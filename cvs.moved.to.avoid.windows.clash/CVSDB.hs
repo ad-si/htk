@@ -43,7 +43,7 @@ module CVSDB(
    Location,
    -- represents Location of object in the repository.  Instance of 
    -- Read/Show/Eq.
-   newLocation, -- :: Repository -> ObjectSource -> 
+   newLocation, -- :: Repository -> ObjectSource -> Attributes ->
                 --   IO (Location,ObjectVersion,AttributeVersion)
    -- creates new object in the repository, returning its initial version
    -- and the version of the associated attributes.
@@ -343,13 +343,13 @@ toRealName repository (CVSFile location) =
 -- newLocation and newInitialLocation
 ----------------------------------------------------------------
 
-newLocation :: Repository -> ObjectSource ->  
+newLocation :: Repository -> ObjectSource -> Attributes -> 
    IO (Location,ObjectVersion,AttributeVersion)
-newLocation repository objectSource =
+newLocation repository objectSource attributes =
    do
       -- get a new file name
       cvsFile <- askAllocator repository ""
-      newGeneralLocation repository objectSource cvsFile
+      newGeneralLocation repository objectSource cvsFile attributes
 
 newInitialLocation :: Repository -> ObjectSource -> IO ()
 newInitialLocation (repository@Repository{allocator=allocator}) objectSource =
@@ -362,13 +362,13 @@ newInitialLocation (repository@Repository{allocator=allocator}) objectSource =
                 "Attempt to initialise already-initialised database"
                 )
          else
-            newGeneralLocation repository objectSource cvsFile
+            newGeneralLocation repository objectSource cvsFile emptyAttributes
       done
 
-newGeneralLocation :: Repository -> ObjectSource -> CVSFile ->
+newGeneralLocation :: Repository -> ObjectSource -> CVSFile -> Attributes ->
    IO (Location,ObjectVersion,AttributeVersion)
 newGeneralLocation (repository@Repository{cvsLoc=cvsLoc}) 
-      objectSource cvsFile =
+      objectSource cvsFile attributes =
    do
       -- now create object
       ensureDirectories repository cvsFile
@@ -383,7 +383,7 @@ newGeneralLocation (repository@Repository{cvsLoc=cvsLoc})
          -- is accessing the file    
       -- attribute part  
       let cvsFileAtt = attLocation cvsFile
-      writeFile (toRealName repository cvsFileAtt) (show emptyAttributes)
+      writeFile (toRealName repository cvsFileAtt) (show attributes)
       cvsAddCheck cvsLoc cvsFileAtt
       attributeVersion <- updateDirContents repository cvsFileAtt
          (\ Nothing -> cvsCommitCheck cvsLoc cvsFileAtt Nothing 
@@ -391,7 +391,6 @@ newGeneralLocation (repository@Repository{cvsLoc=cvsLoc})
          -- a match failure here means someone else in this process
          -- is accessing the file      
       return (cvsFile,objectVersion,attributeVersion)
-
 
 ----------------------------------------------------------------
 -- commit and retrieveFile/retrieveString

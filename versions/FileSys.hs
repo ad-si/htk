@@ -400,6 +400,8 @@ encodeAndCheck fileSys version filePath changes =
                   EditFile brokenPath ->
                      encodeFileChange 
                         False filePath fileSys changeTree brokenPath
+                  EditAttributes brokenPath attributes ->
+                     encodeAttributes attributes fileSys changeTree brokenPath
                   RMObject brokenPath ->
                      encodeRMObject fileSys changeTree brokenPath
                   MVObject brokenPathFrom brokenPathTo ->
@@ -552,6 +554,26 @@ encodeNewFolder fileSys changeTree brokenPath =
    encodeInsertion (NewObject (NewFolder (ChangeFolder emptyFM)) emptyFolder)
       fileSys changeTree brokenPath
 
+encodeAttributes :: Attributes -> FileSys -> ChangeTree -> BrokenPath -> 
+      IO ChangeTree
+-- encodeAttributes sets new attributes
+encodeAttributes attributes fileSys changeTree brokenPath =
+   let
+      updateFn :: (String,UniType) -> ChangeFolder -> ChangeFolder
+      updateFn strType (ChangeFolder folderMap) =
+         let
+            newObj =
+               case lookupFM folderMap strType of
+                  Just(NewObject contents _) ->
+                     NewObject contents attributes
+                  Just(OldObject contents _ fileObj) ->
+                     OldObject contents attributes fileObj
+                  -- match failure means that the object does not exist.
+         in
+            ChangeFolder(addToFM folderMap strType newObj)
+   in    
+      encodeChangeTreeUpdate updateFn fileSys changeTree brokenPath
+
 encodeRMObject :: FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree
 encodeRMObject fileSys changeTree brokenPath =
 -- encodeRMObject removes an object
@@ -611,61 +633,70 @@ commitTree :: FileSys -> ChangeTree -> IO ObjectVersion
 -- be the same as the old one.)
 commitTree fileSys changeTree =
    do
-      (location,objectVersion) <- commitTree' fileSys changeTree
+      (location,objectVersion,attributeVersion) <- 
+         commitTree' fileSys changeTree
       assert (location==initialLocation)
          "commitTree A"
       return objectVersion
 
--- commitTree' commits a changeTree and returns its new location and
--- objectVersion.  (For the top of the changeTree the new location
+-- commitTree' commits a changeTree and returns its new location,
+-- objectVersion and attributeVersion.  
+-- (For the top of the changeTree the new location
 -- had better be the same as the old one of course.)
-commitTree' :: FileSys -> ChangeTree -> IO (Location,ObjectVersion)
+commitTree' :: FileSys -> ChangeTree -> 
+   IO (Location,ObjectVersion,AttributeVersion)
 commitTree' (fileSys@FileSys{repository=repository}) changeTree =
    case changeTree of
-      ExistingObject (FileObj location objectVersion _) -> 
-         return (location,objectVersion)
-      UpdateFile (Original Nothing) filePath ->
+      (NewObject (NewFile filePath) attributes) ->
          do
             objectSource <- importFile filePath
-            (location,objectVersion,_) <- 
-               newLocation repository objectSource
-            return (location,objectVersion)
-      UpdateFile (Original(Just(location,oldObjectVersion))) filePath ->
+            newLocation repository objectSource attributes            
+      (NewObject (NewFolder changeFolder) attributes) ->
          do
-            objectSource <- importFile filePath
-            objectVersion <- 
-               commit repository objectSource location oldObjectVersion
-            return (location,objectVersion)
-      UpdateFolder (Original original) (ChangeFolder changeFolderMap) ->
+            objectSource <- commitFolder fileSys changeFolder
+            newLocation repository objectSource attributes
+      (OldObject contents attributes 
+         (FileObj location objectVersion attributeVersion)
+         ) ->
          do
-            let
-               folderContents :: [((String,UniType),ChangeTree)] =
-                  fmToList changeFolderMap
-               folderContents2 :: 
-                     [IO ((String,UniType),Location,ObjectVersion)] =
-                  map
-                     (\ (strType,changeTree) ->
-                        do
-                           (location,objectVersion) <- 
-                              commitTree' fileSys changeTree
-                           return (strType,location,objectVersion)
-                        ) 
-                     folderContents
-            (folderContents3 :: [((String,UniType),Location,ObjectVersion)])
-               <- sequence folderContents2
-            objectSource <- writePrimitiveFolderObj folderContents3
-            case original of
-               Nothing ->
-                  do
-                     (location,objectVersion,_) <-
-                        newLocation repository objectSource
-                     return (location,objectVersion)
-               Just (location,oldObjectVersion) ->
-                  do
-                     objectVersion <- commit repository objectSource location
-                        oldObjectVersion
-                     return (location,objectVersion)
+            newObjectVersion <-
+               case contents of
+                  Unchanged -> objectVersion
+                  EditFile filePath ->
+                     do
+                        objectSource <- importFile filePath
+                        commit repository objectSource location objectVersion
+                  EditFolder changeFolder ->
+                     do
+                        objectSource <- commitFolder fileSys changeFolder
+                        commit repository objectSource location objectVersion
+            newAttributeVersion <-
+               case maybeAttributes of
+                  Nothing -> attributeVersion
+                  Just attributes -> commitAttributes repository attributes 
+                     location attributeVersion
+            return (location,newObjectVersion,newAttributeVersion)
  
+commitFolder :: FileSys -> ChangeFolder -> IO ObjectSource
+commitFolder fileSys (ChangeFolder changeMap) =
+   do
+      let
+         folderContents :: [((String,UniType),ChangeTree)] =
+            fmToList changeFolderMap
+         (folderContents2 :: [IO ((String,UniType),Location,ObjectVersion,
+                  AttributeVersion)]) =
+            map
+               (\ (strType,changeTree) ->
+                  do
+                     (location,objectVersion,attributeVersion) <- 
+                        commitTree' fileSys changeTree
+                     return (strType,location,objectVersion,attributeVersion)
+                  ) 
+               folderContents
+      (folderContents3 :: [((String,UniType),Location,ObjectVersion,
+            AttributeVersion)])
+         <- sequence folderContents2
+      writePrimitiveFolderObj folderContents3
          
 ------------------------------------------------------------------
 -- Errors

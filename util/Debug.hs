@@ -62,7 +62,8 @@ debug _ = return ()
 debugAct :: String -> IO a -> IO a
 debugAct _ act = act
 
-{-# inline debug debugAct #-}
+{-# inline debug #-}
+{-# inline debugAct #-}
 
 #endif
 
