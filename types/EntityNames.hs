@@ -124,11 +124,11 @@ data Directive =
    |  Unqualified
    |  Global
    |  Local
-   |  Hide [EntityName]
-   |  Reveal [EntityName]
+   |  Hide [EntityFullName]
+   |  Reveal [EntityFullName]
    |  Rename {
                newName :: EntityName,
-               oldName :: EntityName
+               oldName :: EntityFullName
              }
 
 -- ----------------------------------------------------------------------
