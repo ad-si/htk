@@ -33,6 +33,8 @@ instance HasProp NumItem ItemIcon where
   getProp (NumFolderItem _ p) = p
   getProp (NumItem _ _ p) = p
 
+instance CItem NumItem
+
 
 ----------------
 -- text items --
@@ -49,6 +51,8 @@ instance HasProp TxtItem ItemIcon where
   getProp (TxtFolderItem _ p) = p
   getProp (TxtItem _ _ p) = p
 
+instance CItem TxtItem
+
 
 -------------------------
 -- add folders / items --
@@ -63,26 +67,27 @@ addTxt :: GenGUI -> String -> IO ()
 addTxt gui nm =
   do
     putStrLn ("adding txt folder: name = '" ++ nm)
-    pname <- newProp {fullname  = nm,
-                      shortname = \n -> take n nm}
+    pname <- newProp (Name {fullname  = nm,
+                            shortname = \n -> take n nm})
     picon <- newProp folderImg
     val1 <- newRVar ("content of '" ++ nm ++ "1'")
-    pname1 <- newProp {fullname  = nm ++ "1",
-                       shortname = \n -> take n (nm ++ "1")}
+    pname1 <- newProp (Name {fullname  = nm ++ "1",
+                             shortname = \n -> take n (nm ++ "1")})
     picon1 <- newProp folderImg
     val2 <- newRVar ("content of '" ++ nm ++ "2'")
-    pname2 <- newProp {fullname  = nm ++ "2",
-                       shortname = \n -> take n (nm ++ "2")}
+    pname2 <- newProp (Name {fullname  = nm ++ "2",
+                             shortname = \n -> take n (nm ++ "2")})
     picon2 <- newProp folderImg
     val3 <- newRVar ("content of '" ++ nm ++ "3'")
-    pname3 <- newProp {fullname  = nm ++ "3",
-                       shortname = \n -> take n (nm ++ "3")}
+    pname3 <- newProp (Name {fullname  = nm ++ "3",
+                             shortname = \n -> take n (nm ++ "3")})
     picon3 <- newProp folderImg
     guiroot <- root gui
     addItem guiroot (FolderItem (TxtFolderItem pname picon)
                                 [LeafItem (TxtItem val1 pname1 picon1),
                                  LeafItem (TxtItem val2 pname2 picon2),
                                  LeafItem (TxtItem val3 pname3 picon3)])
+    done
 
 ----------
 -- init --

@@ -70,9 +70,9 @@ data NewItem =
   | forall i . CItem i => LeafItem i
 
 
--------------------
--- internal type --
--------------------
+-----------------------------------
+-- internal type & functionality --
+-----------------------------------
 
 type Id = String
 
@@ -85,9 +85,7 @@ data Item = IntFolderItem GenGUI                             -- parent gui
                         Id                                  -- internal id
                         NewItem                 -- external representation
 
-          | Root InternalState
-                 (RVar Int)
-                 (RVar (Maybe (TreeList Item)))
+          | Root (RVar (Maybe (GenGUI)))
 
 isFolder :: Item -> Bool
 isFolder (IntFolderItem _ _ _ _) = True
@@ -118,7 +116,7 @@ instance Eq Item where
     id1 == id2 && gui1 == gui2
   (IntLeafItem gui1 id1 _) == (IntLeafItem gui2 id2 _) =
     id1 == id2 && gui1 == gui2
-  (Root _ _ tlref1) == (Root _ _ tlref2) = tlref1 == tlref2
+  (Root mguiref1) == (Root mguiref2) = mguiref1 == mguiref2
 
 
 --------------------
@@ -128,10 +126,10 @@ instance Eq Item where
 type InternalState = RVar [Item]
 
 root :: GenGUI -> IO Item
-root (GenGUI tl np ed win idref intstate) =
+root gui =
   do
-    tlref <- newRVar (Just tl)
-    return (Root intstate idref tlref)
+    mguiref <- newRVar (Just gui)
+    return (Root mguiref)
 
 --status :: Item -> IO NewItem
 
@@ -155,19 +153,19 @@ newGenGUI =
     objects <- newVFBox [parent main]
     intstate <- newRVar []
     idref <- newRVar 0
-    tlref <- newRVar Nothing
+    guiref <- newRVar Nothing
     tl <- newTreeList Pretty cfun ifun
-                      (newTreeListObject (Root intstate idref tlref)
+                      (newTreeListObject (Root guiref)
                                          "object root" Node)
                       [background "white", size (400, 220),
                        parent objects]
-    setVar tlref (Just tl)
     np <- newNotepad True [size (400, 280), background "white",
                            parent objects]
     ed <- newEditor [state Disabled]
     edscr <- newScrollBox ed [parent main]
-    return (GenGUI tl np ed win idref intstate)
-
+    let gui = (GenGUI tl np ed win idref intstate)
+    setVar guiref (Just gui)
+    return gui
 
 ----------------------------
 -- exported functionality --
@@ -175,7 +173,15 @@ newGenGUI =
 
 children :: Item -> IO [Item]
 children (IntFolderItem _ _ _ chref) = getVar chref
-children (Root intstate _ _) = getVar intstate
+children (Root mguiref) =
+  do
+    mgui <- getVar mguiref
+    case mgui of
+      (Just (GenGUI _ _ _ _ _ intstate)) ->
+        do
+          items <- getVar intstate
+          return items
+      _ -> return []
 children _ = error "GenGUI: children called for a leaf"
 
 addItem :: Item -> NewItem -> IO Item
@@ -186,6 +192,18 @@ addItem (IntFolderItem (gui@(GenGUI tl _ _ _ _ _)) id ext chref) newitem =
     setVar chref (ch ++ [item])
     updateTreeList tl
     return item
+addItem (Root mguiref) newitem =
+  do
+    mgui <- getVar mguiref
+    case mgui of
+      Just gui@(GenGUI tl _ _ _ _ intstate) ->
+        do
+          items <- getVar intstate
+          item <- toItem gui newitem
+          setVar intstate (items ++ [item])
+          updateTreeList tl
+          return item
+      _ -> error "Root empty"
 
 --content :: forall i . CItem i => Item -> i
 
