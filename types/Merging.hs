@@ -18,6 +18,7 @@ import ExtendedPrelude
 import Object
 import Sources
 import Thread
+import Registry (setValue)
 
 import Destructible
 
@@ -32,6 +33,7 @@ import ViewType
 import View
 import MergeTypes
 import MergeReAssign
+import MergeComputeParents
 
 -- | Do all the work of merging, checking out views before merging as
 -- necessary.
@@ -174,6 +176,16 @@ mergeViews (views @ (firstView:_)) =
                         newView newLink linkViewData1
                      coerceWithErrorOrBreakIO break postMergeWE
 
+            -- (5) compute parent information for merging.
+            (parentLocations :: [(Location,Location)]) 
+               <- computeParents firstView linkReAssigner
+            mapM_ 
+               (\ (object,parent) 
+                  -> setValue (parentChanges newView) object parent
+                  )
+               parentLocations
+
+            -- (6) do post-merge operations
             postMergesOrExcep <- mapMConcurrent 
                (\ wrappedMergeLink 
                   -> Control.Exception.try (mergeOne wrappedMergeLink))

@@ -17,11 +17,12 @@ import VersionDB
 import ViewType
 import MergeTypes
 import View
+import Link
 import NoAccessObject -- used for dummy wrapped link
 
 
 -- | Compute all the parents information for the merge given by the
-­- 'LinkReAssigner'.  This means listing *all* the parents for links not
+-- 'LinkReAssigner'.  This means listing *all* the parents for links not
 -- in the head view.
 computeParents 
    :: View -- ^ the head view
@@ -38,7 +39,7 @@ computeParents headView linkReAssigner =
             filter
                (\ (_,equalLinks) ->
                   not (any
-                     (\ (view,_) -> viewId view /= viewId headView)
+                     (\ (view,_) -> viewId view == viewId headView)
                      equalLinks
                      )
                   )
@@ -49,7 +50,7 @@ computeParents headView linkReAssigner =
          parentsToFind :: [(WrappedMergeLink,View,WrappedMergeLink)]
          parentsToFind = map
             (\ (wml1,(view,wml2):_) -> (wml1,view,wml2))
-            allMergesList
+            allNonHeadsList
 
       -- Command to get parent information
       (getParentsCommands :: [SimpleDBCommand]) <-
@@ -63,11 +64,10 @@ computeParents headView linkReAssigner =
                   return (GetParentLocation (version,location))
                )             
             parentsToFind
-         )
 
       (MultiResponse (parentData :: [SimpleDBResponse])) <-
          queryRepository (repository headView) 
-            (MultiCommand getParentCommands))
+            (MultiCommand getParentsCommands)
       (parentLocations :: [Maybe Location]) <- mapM
          (\ response -> case response of
             IsLocation location -> return (Just location)
@@ -90,10 +90,11 @@ computeParents headView linkReAssigner =
                keyLink :: Link NoAccessObject
                keyLink = mkHackedLink location
 
-               keyWrappedLink = WrappedLink keyLink
+               keyWrappedLink :: WrappedMergeLink
+               keyWrappedLink = WrappedMergeLink keyLink
                
                Just targetLink = 
-                  lookupFM (allMergesMap linkReAssigner) 
+                  lookupFM (linkMap linkReAssigner) 
                      (viewId view,keyWrappedLink)
             in
                toKey targetLink
@@ -108,7 +109,7 @@ computeParents headView linkReAssigner =
                         translatedLocation 
                            = translateParentLocation view location
                      in
-                        (toKey originalWML,translatedLocation)
+                        Just (toKey originalWML,translatedLocation)
                )
             foundParents
                   
