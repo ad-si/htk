@@ -70,8 +70,8 @@ if test "$GOAHEAD" = YES; then
    $CC mk/mkEverything.c -o mk/mkEverything
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c htk/doc/generatedoc)
-   chmod +x htk/doc/generatedoc
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c htk/doc/hdoc/generatedoc)
+   chmod +x htk/doc/hdoc/generatedoc
    echo The default UniForM options, C-escaped, are in util/default_options.c
    echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
 fi
