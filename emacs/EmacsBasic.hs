@@ -267,7 +267,7 @@ initialiseEmacsBasic =
       top <- getTOP
       let 
          load :: String -> String
-         load name = " (load \"" ++ top ++ "/emacs/" ++ name ++ ".elc\")"
+         load name = " (load \"" ++ top ++ "/emacs/" ++ name ++ "\")"
       execGnuClient (
          "(progn "++load "sendmess"++load "mmisstex"++load "extents"++
             load "allmmiss"++")"

@@ -183,7 +183,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
          addFallOutWE (\ break -> 
             do
                let
-                  name = toString searchName0
+                  name = toDescription editRef
                   variants = toVariants editRef
 
                -- Get the object data
@@ -309,8 +309,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                    emacsContent0
 
                           elementWE <- fromEdit name emacsContent1
-
                           element0 <- coerceWithErrorOrBreakIO break elementWE
+
 
                           let
                              -- We will write the object back into its

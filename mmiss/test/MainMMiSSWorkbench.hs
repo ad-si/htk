@@ -130,6 +130,7 @@ mainWindow =
                            (\ (_,versionGraph) -> destroy versionGraph)
                            versionGraphList
                         cleanupWish
+                        shutdown
                         exitImmediately ExitSuccess
                   else
                      mainLoop

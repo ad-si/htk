@@ -100,12 +100,12 @@ instance GUIValue v=> HasText (Dialog a) v where
 
 
 -- | Returns configuration option for dialogs that displays text using a 
--- scrollbox if it is bigger than the default size (currently (39,6).
+-- scrollbox if it is bigger than the default size (currently (60,6).
 -- It also returns a Bool which indicates if we are to use createDialogWin
 -- (False) or createDialogWin' (True).
 
 scrollText :: String -> (Config (Dialog a),Bool)
-scrollText = scrollText1 (39,6)
+scrollText = scrollText1 (60,6)
 
 
 -- | Configuration option for dialogs that displays text using a scrollbox

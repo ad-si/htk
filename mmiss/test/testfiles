@@ -1,10 +1,12 @@
 #!/bin/sh
 set -e
-if [ ! \( -r $TOP/emacs/sendmess.elc -a -r $TOP/emacs/allmmiss.elc -a -r $TOP/emacs/extents.elc -a -r $TOP/emacs/mmisstex.elc \) ]
-then
-echo Emacs bytecode in $TOP/emacs must be compiled first!!
-exit 16
-fi
+# Test for .elc files omitted since (1) Workbench checks it can talk to XEmacs
+# when it starts up anyway; (2) .el files are also OK.
+# if [ ! \( -r $TOP/emacs/sendmess.elc -a -r $TOP/emacs/allmmiss.elc -a -r $TOP/emacs/extents.elc -a -r $TOP/emacs/mmisstex.elc \) ]
+# then
+# echo Emacs bytecode in $TOP/emacs must be compiled first!!
+# exit 16
+# fi
 
 if [ ! -r $TOP/posixutil/runCommand ]
 then

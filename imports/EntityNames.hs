@@ -95,8 +95,8 @@ newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 --
 -- FromAbsolute is an absolute name, that always works within an object and
 -- ignores any environment.  It is (currently) only used internally and
--- so has no readable syntax.  If displayed it is displayed as 
--- #ABSOLUTE.[fullName]
+-- so has no readable parse syntax.  If displayed it is displayed as 
+-- #ABSOLUTE.[fullName] or #ABSOLUTE.
 data EntitySearchName = 
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
@@ -220,7 +220,14 @@ instance StringClass EntitySearchName where
    toString (FromAbsolute (EntityFullName [])) = "#ABSOLUTE"
    toString (FromAbsolute fullName) = "#ABSOLUTE." ++ toString fullName
 
-   fromStringWE = mkFromStringWE entitySearchNameParser "Entity Search Name" 
+   fromStringWE (str @ ('#':'A':'B':'S':'O':'L':'U':'T':'E':rest)) 
+      | rest == [] 
+         = hasValue (FromAbsolute (EntityFullName []))
+      | '.' : fullNameStr <- rest,
+         Right fullName <- fromWithError (fromStringWE fullNameStr)
+         = hasValue (FromAbsolute fullName)
+   fromStringWE str
+      = mkFromStringWE entitySearchNameParser "Entity Search Name" str
           
 -- ----------------------------------------------------------------------
 -- To pick up errors we use DeepSeq to do the necessary seq'ing.
