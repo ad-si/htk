@@ -12,7 +12,7 @@ DESCRIPTION   : The kernel of the Concurrency ToolKit
 
 
 module Concurrency (
-         MVar(..),
+         MVar,
 
          module Thread,
          module Variable,

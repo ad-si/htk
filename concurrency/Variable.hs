@@ -19,7 +19,7 @@ module Variable (
 
         applyVar,
 
-        MVar(..),
+        MVar,
         newEmptyMVar,
         newMVar,
         takeMVar,

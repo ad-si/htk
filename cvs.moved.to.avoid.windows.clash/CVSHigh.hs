@@ -7,6 +7,8 @@ module CVSHigh(
       -- The best value to receive is CVSSuccess, which indicates
       -- that CVS returned with no complaints, and without producing
       -- unexpected output.
+   CVSFile(..),    -- CVSFile and CVSVersion are newtypes for String,
+   CVSVersion(..), -- imported from CVSBasic
    CVSLoc,
       -- CVSLoc points to the repository and the client's working directory,
       -- plus any other information that stays the same between CVS comamnds.
@@ -38,6 +40,7 @@ import System
 import Posix
 import Exception
 
+import Debug(debug)
 import Maybes
 import Dynamics
 
@@ -84,7 +87,7 @@ newtype CVSLoc = CVSLoc GlobalOptions
 newCVSLoc :: String -> String -> IO CVSLoc
 newCVSLoc cvsRoot workingDir =
    return(CVSLoc(GlobalOptionsSimple
-      {workingDir = workingDir,cvsRoot=workingDir}))
+      {workingDir = workingDir,cvsRoot=cvsRoot}))
 
 --------------------------------------------------------------
 --- Structuring Expect events.
@@ -110,7 +113,10 @@ tag_CVSError :: TypeTag
 tag_CVSError = mkTypeTag (mkTyCon "CVSHigh" "CVSError") []
 
 cvsError :: String -> IO a
-cvsError mess = throw(DynException(toDyn(CVSError mess)))
+cvsError mess =
+   do
+      debug ("cvsError "++mess)
+      throw(DynException(toDyn(CVSError mess)))
 
 -- tryCVS is wrapped around the entire processing of a CVS process
 -- represented by Expect and returns the result or CVS error as
@@ -152,13 +158,16 @@ low ptn = toPattern (ptn,0::Int)
 -- As all these cause fatal errors, they also kill the Expect instance.
 -------------------------------------------------------------
 
--- This matches any line with 0 priority and raises an error
+-- This matches any line with 0 priority and raises an error after spooling
+-- to end of file.
 noLineHere :: Expect -> IA a
 noLineHere exp =    
    (matchLine exp >>>=
       (\ line -> 
          do
+            debug "destroying cvs expect"
             destroy exp
+            debug "destroyed cvs expect"
             cvsError("Couldn't parse: "++(show line))
          )
       )
@@ -168,7 +177,9 @@ noEOFHere :: Expect -> IA a
 noEOFHere exp =
    (matchEOF exp >>>
       do
+         debug "destroying cvs expect (EOF) "
          destroy exp
+         debug "destroyed cvs expect"
          cvsError "Unexpected EOF"
       )
 
@@ -243,7 +254,7 @@ done
                mat "\\`Checking in .*;\\'"
                guard exp (mat "")
                revision <- 
-                  guard exp (mat "\\`new revision: (.*); previous revision'" >>>=
+                  guard exp (mat "\\`new revision: (.*); previous revision: " >>>=
                      (\ matcher ->
                         return (head (getSubStrings matcher))
                         )
@@ -251,7 +262,17 @@ done
                guard exp (mat "\\`done\\'")
                mustEOFHere exp
                return (CVSVersion revision)
-
+{-  (3) when no changes were made to the file, and no version
+    was specified, or else the version was the same as the version
+    of the file, nothing is output.  But we don't handle
+    this because it isn't clear here what CVSVersion to return,
+    if none is supplied.  Should we handle it?
+    
+         event3 :: IA CVSVersion =
+            do
+               mustEOFHere
+               return ???
+    -}
       -- (back to main "do" in cvsCommit function)
       tryCVS exp (guard exp (event1 +> event2))
 
@@ -266,7 +287,7 @@ cvsUpdate (CVSLoc globalOptions) file version =
       -- P (filename)
       (_,result) <- tryCVS exp(
             (do
-               match exp (high "\\`P ")
+               match exp (high "\\`[PU] ")
                mustEOFHere exp
                ) 
          +> mustEOFHere exp
@@ -288,8 +309,8 @@ cvsListVersions (CVSLoc globalOptions) file =
          preamble :: IA () =
             -- skip everything until we get to a line beginning "total revisions"
                (do
-                  mat "\\`total revisions "
-                  guard exp (mat "\\`description\\'")
+                  mat "\\`total revisions: "
+                  guard exp (mat "\\`description:\\'")
                   )
             +> (do
                   matchLine exp
@@ -302,10 +323,16 @@ cvsListVersions (CVSLoc globalOptions) file =
                guard exp (mat "\\`----------------------------\\'")
                revision <- 
                   guard exp (mat "\\`revision (.*)\\'" >>>=
-                     \ matcher -> return(getSubString matcher 1) 
+                     \ matcher -> return(getSubString matcher 0) 
                      )
                guard exp (mat "\\`date")
-               guard exp (mat "\\`X\\'")
+               guard exp (
+                  (mat "\\`X\\'") +>
+                  (do
+                     mat "\\`branches:  "
+                     guard exp (mat "\\`X\\'")
+                     )
+                  )
                return (CVSVersion revision)
                )
 

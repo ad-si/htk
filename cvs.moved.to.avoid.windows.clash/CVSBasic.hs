@@ -37,9 +37,9 @@ compileGlobalOptions(
       ]
    ]
 
-newtype CVSFile = CVSFile String
+newtype CVSFile = CVSFile String deriving Show
 
-newtype CVSVersion = CVSVersion String
+newtype CVSVersion = CVSVersion String deriving Show
  
 data CVSCommand =
       UpdateSimple {

@@ -94,9 +94,9 @@ instance Event.Event ExternalEvent.IA where
    sync = pollOrSync Event.sync
    poll = pollOrSync Event.poll
    
-   trivial (value::a) = 
+   fromIO (action::IO a) = 
       let
-         triv = (trivial value) :: EV a
+         triv = (fromIO action) :: EV a
       in
          lift triv
 

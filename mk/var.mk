@@ -19,9 +19,9 @@ DEPEND           = $(HCHOME)/bin/ghc -M -optdep-f -optdep.depend
 GHCINCDIR        = -I$(HCHOME)/lib/includes 
 
 ifdef DEBUG
-   HC_OPTIONS = -recomp -Onot -DDEBUG
+   HC_OPTIONS = -recomp -fwarn-deprecations -Onot -DDEBUG
 else
-   HC_OPTIONS = -recomp -O -O2-for-C
+   HC_OPTIONS = -recomp -fwarn-deprecations -O -O2-for-C
 endif
 
 HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
@@ -51,7 +51,7 @@ CFLAGS           = $(GHCINCDIR)
 # HCDIRS when that gives lots of extra warnings?  The reason
 # is so that mkdependHS uses the local name for files in the
 # same directory, so that gmake properly identifies them.
-HCDIRS =  .:$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(HTKDIR):$(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):$(DAVINCIDIR):$(WWWDIR):$(TOOLSDIR)
+HCDIRS =  .:$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(HTKDIR):$(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):$(DAVINCIDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR)
 # $(OMSCDIR):$(OMSNOTIDIR):$(OMSDIR):$(WBDIR):$(TOOLSDIR):$(DEMODIR):$(SCHEMADIR):$(IDLDIR)
 
 UTILDIR    	= top/util

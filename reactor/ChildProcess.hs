@@ -264,8 +264,15 @@ instance Object ChildProcess where
    objectID = childObjectID
 
 instance Destructible ChildProcess where
-   destroy child = Posix.signalProcess Posix.sigKILL (processID child)
-   -- we can only wait for destruction if we set up a watchdog.
+   destroy child = 
+      do
+         res <- try(Posix.signalProcess Posix.sigKILL (processID child))
+         case res of
+            Left error -> 
+               debug "ChildProcess.destroy failed; destruction anticipated?"
+            _ -> return ()
+
+   -- We can only wait for destruction if we set up a watchdog.
    destroyed child = 
       let
          Just watchDog = watchStatus child

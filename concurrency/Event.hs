@@ -52,9 +52,10 @@ class Functor e => Event e where
         (+>)     :: e a -> e a -> e a
         tryEV    :: e a -> e (Answer a)
         e >>> c = e >>>= (\ _ -> c)
-        trivial  :: a -> e a
-        -- trivial is the event which always (and immediately) returns
-        -- with the given value.
+        fromIO   :: IO a -> e a
+        -- fromIO converts an action into an event
+        -- which is always available and returns the result of
+        -- the supplied action.
 
 instance Event e => Monad e where
    -- This is to allow us to use the "do" notation.  This means we
@@ -65,7 +66,7 @@ instance Event e => Monad e where
            ev1 >>>=
               ( \ ev1res -> sync(ev2fun ev1res)
                  )
-        return = trivial
+        return value = fromIO (return value)
 
 -- --------------------------------------------------------------------------
 --  Synchronization
