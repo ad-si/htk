@@ -1,7 +1,7 @@
 This document describes the proposed security model for MMiSS, both at the
 high level, as seen by the user, and at the low-level, as seen at the
 interface to UniForM's (extremely basic) database model.
-               George Russell 25th October 2002.
+               George Russell   18th August 2004
 
 Users
 -----
@@ -18,94 +18,124 @@ A group corresponds to a list [Either Group User].  Thus groups can include
 users and also recursively other groups, all of whose users themselves
 inherit the privileges of the group.
 
+The groups are defined by a "groups" file in the server's directory.
+The group file might look like this
+
+% beginning of file
+group1:#user1,#user2
+group2:group1,#user3
+% end of file
+
+This says that "group1 includes the users user1 and user2,group2 includes
+those users in group1, and also user3".  Note that users in the "groups" file
+are preceded by "#".
+
+The groups file is read when the server starts up, but also dynamically
+checked when the server is running, so the server is never more than 
+5 seconds out of date.
+
+Comment lines (beginning with "%"), blank lines, and mutually inclusive
+groups are all allowed.
+
 Permissions
 -----------
 
-A permission describes the access a user may have to an object.  It corresponds
-to the Haskell type
+A permission contains 4 components
+(1) if it is granting access ("+") or denying it ("-").
+(2) the user or group to which the permission applies.  As 
+in the group file, user names should be preceded by "#".
+In addition "*" indicates that the permission applies to everyone.
+(3) the activities to which the permission applies.  These are 
+denoted by letters, either "r" for "read", "w" for write, or "p" for
+change permissions.  "rw" would thus denote that the permission applies 
+to both reading and writing.
+(4) the versions to which the permission applies.  Here the person
+typing the permission will need the actual version number.  The
+syntax is [m] for "version m", [m..], for "version m and all its descendants",
+[..n] for "version n and all its ancestors", [m..n] for all versions to
+which both [m..] and [..n] apply.  This part may also be omitted,
+indicating that the permission applies to all versions.
 
-   data Permission = Permission {
-      readAccess :: Maybe Bool,
-      writeAccess :: Maybe Bool
-      }
+(3) and (if included) (4) should be preceded by colons.
 
-Just True means access is permitted; Just Nothing that it is forbidden.
-Nothing is a don't know, meaning this permission is not applicable.
+Thus "+#user1:rwp" means "give user 'user1' read, write and permissions 
+access",  "-group1:w:[4..]" means "deny the group 'group1' write 
+access to version 4 or its descendants".
 
-Access Classes
+In general an object is qualified by a list of permissions.  This
+is represented textually as a string with the individual permissions
+separated by spaces, as in "+#user1:rwp -group1:w:[4..]".
+In this list, earlier entries always override later ones; thus the
+above list gives user "user1" write access to all versions, even if
+"user1" belongs to "group1".
+
+When there is no applicable permission in a list of permissions, the
+list of permissions is deemed to grant access.
+
+"permissions" access is special; it allows those who have it to change
+permissions.  It is an error to grant or deny permissions access
+selectively by version, so "-group1:p:[4..]" would not be accepted.
+
+Global Permissions
+------------------
+
+There is a global list of permissions.  This controls all access to the
+repository.  For example, to check out a version the global permissions
+must give the user permission to read that version; to commit it again
+or to alter its contents or title the user must have permission to write
+that version.  Everyone able to log in is able to get at the list of
+"VersionInfo"s for the repository (it seems to complicated otherwise to
+have varying lists of what individual users may and may not see), but
+for example adding "-#user:rw" to the front of the server's global permissions
+will deny "#user" any other access.
+
+However global permissions do not allow different parts of an individual
+version to have different permissions.  For this we need
+to understand something about "Objects in the Repository".
+
+Objects in the Repository
+-------------------------
+
+Objects in the repository have an individual Location.  The Location
+identifies the individual object, and remains the same through different
+versions.* 
+
+Each Location also has a parent Location, except for one Location in each
+view, that corresponding to the TOP folder.
+
+Each Location has a list of permissions associated with it.  (By default
+this is empty).
+
+For the server to permit an activity ("read", "write" or "permissions") on
+a location all the following permissions must grant it.
+(a) the location's own permissions.
+(b) the permissions on all the locations ancestors.
+(c) the global permissions.
+
+Note that to change the permissions on a location you need all of (a),
+(b) & (c); it is not enough for just the location's own permissions
+to change it.
+
+* actually this is a slight lie.  It is possible for the same location to
+refer to different objects in different versions, after versions have
+been copied between repositories.  At the lowest level the server does
+however have things called "PrimitiveLocations" which really do have this
+property.  Thus in the above you should really read "PrimitiveLocation"
+instead of "Location".
+
+User Interface
 --------------
 
-An Access Class corresponds to a collection of objects in the database; it
-describes what access any user has to those objects.  The access class
-corresponds to the Haskell type 
+The global permissions can be changed by selecting an option on the
+edit menu of the version graph.  Object permissions can be changed
+by selecting an option on a menu of the corresponding view graph.
+In the latter case, the permission is not (unlike other changes) applied
+to the view; it is made immediately to the server.
 
-   data AccessClass = AccessClass {
-      permissions :: [(Group,Permission)],
-      parent :: Maybe AccessClass
-      }
+ADMIN
+-----
 
-To determine the permission the user has for a particular access class
-for reading, we scan down the permissions list looking for the first element 
-such that (a) the user belongs to the Group; (b) readAccess is Just (True or 
-False).  The value (True or False) is to determine whether access is granted 
-or not.  If no such element is found, we look at the parent value.  If that
-is Just accessClass we repeat with that accessClass (and if necessary, with
-parents of that accessClass, and so on and so on).  If it is Nothing we
-do not give permission.  Checking write access is exactly the same except we
-check the writeAccess fields.
-
-Groups and Access Classes as Objects
-------------------------------------
-
-Groups and Access Classes will be objects in the Workbench, just like anything
-else.  Every object visible by the user (though not, for example, variants
-of the same object) will have its own unique AccessClass object, which
-will be displayed (at least, if requested) by daVinci.  When an object is
-created in a folder, the "parent" access class will be the access class of
-the folder.  An AccessClass object
-can be edited (a special editor will be provided), assuming of course its
-AccessClass permits.  An AccessClass object in turn references various
-Groups.  Groups themselves will be objects and themselves will be editable.
-There will (probably) be a special folder containing the top-level groups;
-anyone creating a new group will need write access to this special folder.
-
-Low-level Implementation
-------------------------
-
-This strategy is designed so that the server needs to know as little as 
-possible about the structure of the objects themselves.  It needs to be
-able to parse AccessClasses and Groups but that is straightforward.  It needs
-to parse and control the list that specifies what versions of each object 
-appear in a particular (global) version; at the moment that list is itself
-a database object, but in view of this it should probably be transferred
-to a server structure.  Anyway there is nothing much challenging here.
-
-The most challenging problem will be integrating this with the Berkeley DB.
-At the moment we use a standard BDB server program which has no security
-features.  Although the BDB API allows you to establish a connection over
-SSH, there is no server program that does this.  So we would need to write
-a special server program (starting probably with the source to the BDB server
-program) that does this, and also does the security checks.  This can be
-written entirely in C, but it may be more convenient (and more secure!) to
-call into Haskell to do some of the computation.
-
-Limitations
------------
-
-Because we have (deliberately) avoided making the security policy depend on 
-the structure of individual objects (apart from AccessClass and Group objects
-themselves), this limits what we can do in some ways; for example we can't
-set a policy for a folder that new items may be written to it, but old ones
-may not be edited or deleted, nor can we set a policy for an MMiSS object
-where variants in the same version have differing permissions.  The best way
-to fix this might be to add an extra optional String field to the Permissions 
-type permit different object types to process this in some way.  This would 
-allow the server to run this code in the workbench.  However I recommend that 
-we do not do this in the beginning.
-
-I do not think users themselves should be MMiSS objects in the beginning,
-since the user database will need to be accessible by SSH (however it does it)
-and so is probably going to be something like a plain text file.  If we
-can't find a public domain tool which makes it easy to update this database,
-the administrator will have to do so via XEmacs.  (Like the CVS repository 
-password file . . .)
+In addition there is a group ADMIN.  Users belonging to this group can
+switch the server into a mode whereby everything they do henceforth
+is permitted (unless the groups file changes to remove them from ADMIN).
+This protects users from painting themselves into a corner.
