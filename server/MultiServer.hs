@@ -33,6 +33,7 @@ import Random
 
 import Socket
 import qualified SocketPrim
+import qualified Network.BSD
 import Concurrent
 
 import Registry
@@ -46,7 +47,7 @@ data MultiServer = MultiServer {
    socket :: Socket,
 
    -- returns True if we accept clients from this host
-   hostNameFilter :: String -> Bool,
+   hostNameFilter :: String -> IO Bool,
 
    -- map to MVar for unsatisfied requests
    awaitedClients :: Registry String (MVar Handle)
@@ -66,9 +67,24 @@ newMultiServer acceptNonLocal portNumberOpt =
       let
          portNumber = fromMaybe SocketPrim.aNY_PORT portNumberOpt
       socket <- listenOn (PortNumber portNumber)
+
+      thisHostName <- Network.BSD.getHostName
+      thisHostEntry <- Network.BSD.getHostByName thisHostName
       let
-         hostNameFilter = 
-            if acceptNonLocal then const True else (== "localhost")
+         thisHostAddress = Network.BSD.hostAddress thisHostEntry
+      localHostAddress <- SocketPrim.inet_addr "127.0.0.1"
+
+      let
+         hostNameFilter otherHostName =
+            if acceptNonLocal then return True else 
+               do
+                  otherHostEntry <- Network.BSD.getHostByName otherHostName
+                  let
+                     otherHostAddress = Network.BSD.hostAddress otherHostEntry
+                  return (otherHostAddress == localHostAddress ||
+                     otherHostAddress == thisHostAddress
+                     )
+
       awaitedClients <- newRegistry
       let
          multiServer =
@@ -84,7 +100,8 @@ workerThread :: MultiServer -> IO ()
 workerThread multiServer =
    do
       (handle,hostName,_) <- accept (socket multiServer)
-      if hostNameFilter multiServer hostName
+      acceptThisHost <- hostNameFilter multiServer hostName
+      if acceptThisHost
          then
             do
                key <- hGetLine handle

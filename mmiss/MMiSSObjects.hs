@@ -4,6 +4,9 @@
 module MMiSSObjects(
    registerMMiSSObjects, -- :: IO ()
    initialiseObjectTypes, -- :: View -> IO ()
+
+   mkLaTeXString, -- :: EmacsContent TypedName -> String
+   -- mkLaTeXString is exported solely for testing purposes.
    ) where
 
 import Maybe
@@ -23,6 +26,7 @@ import VariableSet
 import Computation
 import AtomString
 import ExtendedPrelude
+import Debug
 
 import BSem
 
@@ -47,6 +51,7 @@ import DisplayView
 import Folders
 
 import EmacsEdit
+import EmacsContent
 
 import LaTeXParser
 
@@ -255,8 +260,10 @@ instance ObjectType MMiSSObjectType MMiSSObject where
          newNodeTypeParms nodeTypeParms =
             let
                editOptions = [
-                  Button "Edit Object"
-                     (\ (_,link) -> editMMiSSObject view link),
+                  Button "Edit Object as LaTeX"
+                     (\ (_,link) -> editMMiSSObjectLaTeX view link),
+                  Button "Edit Object as XML"
+                     (\ (_,link) -> editMMiSSObjectXml view link),
                   Button "Edit Attributes" 
                      (\ (_,link) -> editObjectAttributes view link),
                   Button "Export Object"
@@ -721,11 +728,23 @@ createMMiSSObject objectType view folder =
 -- Editing MMiSSObjects
 -- ------------------------------------------------------------------
 
-editMMiSSObject :: View -> Link MMiSSObject -> IO ()
-editMMiSSObject view link =
+
+editMMiSSObjectXml :: View -> Link MMiSSObject -> IO ()
+editMMiSSObjectXml = editMMiSSObjectGeneral XML
+
+editMMiSSObjectLaTeX :: View -> Link MMiSSObject -> IO ()
+editMMiSSObjectLaTeX = editMMiSSObjectGeneral LaTeX
+
+editMMiSSObjectGeneral :: Format -> View -> Link MMiSSObject -> IO ()
+editMMiSSObjectGeneral format view link =
    do
       object <- readLink view link
       let
+         (EditFormatConverter {
+            toEdit = toEdit,
+            fromEdit = fromEdit
+            }) = toEditFormatConverter format
+
          parent = parentFolder object
          variants = variantAttributes object
 
@@ -765,15 +784,17 @@ editMMiSSObject view link =
                         " has no matching variant")
                      Just elementLink -> return elementLink
                   element <- readLink view elementLink
+
                   let
-                     content = toEditableXml name element
+                     contentWE = toEdit name element
+                     content = coerceWithErrorOrBreak break contentWE
 
                   -- We now have to set up the EditedFile stuff 
                   let
                      writeData emacsContent =
                         addFallOutWE (\ break ->
                           do
-                             elementWE <- fromEditableXml name emacsContent
+                             elementWE <- fromEdit name emacsContent
                              let 
                                 element = 
                                    coerceWithErrorOrBreak break elementWE
@@ -839,6 +860,52 @@ data Format = LaTeX | XML
 
 formatForm :: Form Format
 formatForm = newFormOptionMenu2 [("LaTeX",LaTeX),("XML",XML)]
+
+---
+-- For EditFormatConvert, the String's are the file name (made available
+-- for error messages).
+data EditFormatConverter = EditFormatConverter {
+   toEdit :: String -> Element -> WithError (EmacsContent TypedName),
+   fromEdit :: String -> EmacsContent TypedName -> IO (WithError Element)
+   }
+
+toEditFormatConverter :: Format -> EditFormatConverter
+toEditFormatConverter XML = EditFormatConverter {
+   toEdit = (\ str elem -> hasValue (toEditableXml str elem)),
+   fromEdit = fromEditableXml
+   }
+toEditFormatConverter LaTeX = EditFormatConverter {
+   toEdit = (\ _ element -> makeMMiSSLatex (element,False)),
+   fromEdit = (\ string content 
+      ->
+         do
+            let 
+               str = mkLaTeXString content
+            debugString ("START|"++str++"|END")
+            return (parseMMiSSLatex str)
+         )
+   }
+      
+
+mkLaTeXString :: EmacsContent TypedName -> String
+mkLaTeXString (EmacsContent dataItems) =
+   concatMap
+      (\ dataItem -> case dataItem of
+         EditableText str -> str
+         EmacsLink (included,ch) -> 
+            "\\Include"
+            ++(case ch of
+               'G' -> "Group"
+               'A' -> "Atom"
+               'U' -> "Unit"
+               'T' -> "TextFragment"
+               _ -> error ("MMiSSObjects: mysterious minitype letter: "++[ch])
+               )
+            ++ "{" ++ included ++ "}{status=present}"
+         )     
+      dataItems
+   
+
 
 -- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set

@@ -3,8 +3,9 @@ module LaTeXParser (
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, -- :: SourceName -> IO (WithError Element)
    -- The same, for a file.
-   makeMMiSSLatex -- (Element, Bool) -> WithError (EmacsContent String)
+   makeMMiSSLatex -- (Element, Bool) -> WithError (EmacsContent TypedName)
    -- Turns an Element into a MMiSSLaTeX source
+   -- If the Bool is set, attaches a preamble.
    )
  where
 
@@ -19,6 +20,7 @@ import qualified XmlPP as PP
 import Computation hiding (try)
 import ParsecError
 import EmacsContent
+import EmacsEdit(TypedName)
 
 type EnvId = String
 type Command = String
@@ -774,7 +776,7 @@ getEmphasisText (LParams ((SingleParam (Other s) _):ps) _) = s
 {-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
 --}
 
-makeMMiSSLatex :: (Element, Bool) -> WithError (EmacsContent (String, Char))
+makeMMiSSLatex :: (Element, Bool) -> WithError (EmacsContent TypedName)
 makeMMiSSLatex ((Elem "textFragment" atts contents), False) = 
    let s1 = "\\begin{TextFragment}" 
        s2 = "[" ++ (getParam "notationID" atts) ++ "]"

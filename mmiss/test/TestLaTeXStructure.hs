@@ -20,6 +20,7 @@ import LaTeXParser
 
 import MMiSSContent
 import MMiSSDTD
+import MMiSSObjects
 
 main =
    do
@@ -34,9 +35,7 @@ main =
          [] -> done
          errors -> error (unlines errors)
       let
-         structured = coerceWithError (structureContents el)
-         (contents1 :: [Content]) = contents (accContents structured)
-      coded1 <- doEncodeIO contents1 undefined
-      putStrLn (toString coded1)
-      (contents2 :: [Content]) <- doDecodeIO coded1 undefined
-      putStrLn (render (vcat (map content contents2)))
+         unparsedWE = makeMMiSSLatex (el,False)
+         unparsed = coerceWithError unparsedWE
+
+      putStrLn (mkLaTeXString unparsed)         

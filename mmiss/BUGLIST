@@ -4,6 +4,30 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+40) 13.09.02
+The same-host test accepting calls from Emacs in server/MultiServer.hs
+was too strict (because Linux gives "localhost.uni-bremen.de" and not
+"localhost").  I have changed it to use the IP address instead.
+(There is probably still a lurking security hole if we there's a corrupt
+name-server somewhere).
+FIXED
+
+39) 13.09.02
+Reading in and editing files in LaTeX has now been coded.  The
+following errors have been discovered in parser/LaTeXParser.hs
+(a) When it finds an error on parsing LaTeX strings it raises
+    Fail, rather than returning WithError, crashing the
+    repository.
+(b) It inserts the preamble even when told not do (given a 
+    False argument)
+(c) It has a problem parsing \IncludeGroup.
+(d) There is a mysterious 
+   Fail: No text allowed inside a package!
+
+The good news is that reading a file in LaTeX and inserting it
+in Emacs mostly works, even though saving it again doesn't.  So
+we have enough for a demonstration. 
+
 38) 12.09.02
 The Emacs editing frame is not getting deleted.
 
