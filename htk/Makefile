@@ -90,7 +90,7 @@ SRCS       = \
       
 EXTRA_HC_OPTIONS += -Onot -H30M
 
-SUBDIRS = test
+SUBDIRS = test examples
 
 include top/mk/boilerplate.mk
 
