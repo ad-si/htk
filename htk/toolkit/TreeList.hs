@@ -41,7 +41,7 @@ import Maybe
 debug = True
 debugMsg str = if debug then putStr(">>> " ++ str ++ "\n\n") else done
 
-debugPrintState ((StateEntry obj open intend) : ents) =
+debugPrintState ((StateEntry obj open intend _) : ents) =
   if debug then
     do
       objname <- getName obj
@@ -54,6 +54,9 @@ debugPrintState [] = putStr "\n\n"
 intendation = 15
 lineheight = 20
 
+closedImg = newImage [filename "./images/closed.gif"]
+openImg = newImage [filename "./images/open.gif"]
+
 
 -- tree lists --
 
@@ -61,6 +64,13 @@ data StateEntry =
   StateEntry TreeListObject                                           -- object
              Bool                                 -- open: True / closed: False
              Int                                                 -- intendation
+             [OldEntry]                                            -- -> reopen
+
+data OldEntry =
+  OldEntry Image
+           String                                                       -- name
+           Int                                                   -- intendation
+           Bool                                                -- open / closed
 
 type ChildrenFun = TreeList -> TreeListObject -> IO [TreeListObject]
 type ImageFun = TreeListObject -> IO Image
@@ -86,7 +96,7 @@ setRoot :: TreeList -> TreeListObject -> IO ()
 setRoot (TreeList cnv _ stateref _ ifun _ _)
         root@(TreeListObject _ _ img _ emb) =
   do
-    setVar stateref [StateEntry root False 0]
+    setVar stateref [StateEntry root False 0 []]
     pho  <- ifun root
     img # photo pho
     emb # coord [(5, 5)]
@@ -140,20 +150,8 @@ data TreeListObject =
                  EmbeddedCanvasWin                                      -- main
 
 shiftObject :: Int -> StateEntry -> IO ()
-shiftObject dy (StateEntry (TreeListObject _ _ _ _ emb) _ _) =
+shiftObject dy (StateEntry (TreeListObject _ _ _ _ emb) _ _ _) =
   moveItem emb 0 (Distance dy)
-
-insertObjects' :: Canvas -> ImageFun -> Position -> Int -> [TreeListObject] -> 
-                  IO ()
-insertObjects' cnv ifun p@(x, y) i
-              (obj@(TreeListObject _ _ img _ emb) : objs) =
-  do
-    pho <- ifun obj
-    img # photo pho
-    emb # coord [(5 + Distance (i * intendation), y)]
-    emb # parent cnv
-    insertObjects' cnv ifun (x, y + Distance lineheight) i objs
-insertObjects' _ _ _ _ _ = done
 
 insertObjects :: TreeList -> Int -> Position -> Int -> [TreeListObject] ->
                  IO ()
@@ -163,6 +161,39 @@ insertObjects treelist@(TreeList cnv _ stateref _ ifun _ _) index (x, y) intd
     state <- getVar stateref
     mapM (shiftObject ((length children) * lineheight)) (drop index state)
     insertObjects' cnv ifun (x, y + Distance lineheight) intd children
+  where insertObjects' :: Canvas -> ImageFun -> Position -> Int ->
+                          [TreeListObject] -> IO ()
+        insertObjects' cnv ifun p@(x, y) i
+                       (obj@(TreeListObject _ _ img _ emb) : objs) =
+          do
+            pho <- ifun obj
+            img # photo pho
+            emb # coord [(5 + Distance (i * intendation), y)]
+            emb # parent cnv
+            insertObjects' cnv ifun (x, y + Distance lineheight) i objs
+        insertObjects' _ _ _ _ _ = done
+
+insertOldObjects :: TreeList -> Int -> TreeListObject -> [OldEntry] ->
+                    IO [StateEntry]
+insertOldObjects treelist@(TreeList _ _ stateref _ _ _ _) index
+                 (TreeListObject _ _ _ _ emb) osts =
+  do
+    state <- getVar stateref
+    [(_, y)] <- getCoord emb
+    mapM (shiftObject ((length osts) * lineheight)) (drop index state)
+    insertOldObjects' treelist (y + Distance lineheight) osts []
+  where insertOldObjects' :: TreeList -> Distance -> [OldEntry] ->
+                             [StateEntry] -> IO [StateEntry]
+        insertOldObjects' treelist@(TreeList cnv _ _ _ _ _ _) y
+                          ((OldEntry img nm i b) : osts) sts =
+          do
+            obj@(TreeListObject _ _ _ _ emb) <- newTreeListObject treelist
+                                                  [photo img, name nm]
+            emb # parent cnv
+            emb # coord [(Distance (i * intendation), y)]
+            insertOldObjects' treelist (y + Distance lineheight) osts
+                              (StateEntry obj b i [] : sts)
+        insertOldObjects' _ _ _ sts = return (reverse sts)
 
 removeObjects :: TreeList -> Int -> [TreeListObject] -> IO ()
 removeObjects treelist@(TreeList _ _ stateref _ _ _ _) index children = 
@@ -174,41 +205,81 @@ removeObjects treelist@(TreeList _ _ stateref _ _ _ _) index children =
     done
 
 getIntendAndOpen :: TreeListObject -> [StateEntry] -> IO (Int, Bool)
-getIntendAndOpen obj (StateEntry obj' isopen i : entries) =
+getIntendAndOpen obj (StateEntry obj' isopen i _ : entries) =
   if obj == obj' then (if isopen then return (i, True) else return (i, False))
     else getIntendAndOpen obj entries
 
 mkEntry :: Int -> TreeListObject -> StateEntry
-mkEntry i obj = StateEntry obj False i
+mkEntry i obj = StateEntry obj False i []
+
+getOldEntries :: [StateEntry] -> TreeListObject -> [OldEntry]
+getOldEntries ((StateEntry obj' _ _ oldentries) : sts) obj =
+  if obj == obj' then oldentries else getOldEntries sts obj
+
+toOldEntry :: StateEntry -> IO OldEntry
+toOldEntry (StateEntry obj b i _) =
+  do
+    nm <- getName obj
+    Just img <- getPhoto obj
+    return (OldEntry img nm i b)
+
+getChildren :: [StateEntry] -> TreeListObject ->
+               IO ([TreeListObject], [OldEntry])
+getChildren state obj = getChildren' state obj (-1) [] []
+  where getChildren' :: [StateEntry] -> TreeListObject -> Int ->
+                        [TreeListObject] -> [OldEntry] ->
+                        IO ([TreeListObject], [OldEntry])
+        getChildren' (st@(StateEntry obj' _ intend _) : es) obj i objs osts =
+          if (i == -1 && obj /= obj') then getChildren' es obj i objs osts else
+            if (obj == obj') then getChildren' es obj intend objs osts else
+              if (intend > i) then do
+                                     ost <- toOldEntry st
+                                     getChildren' es obj i (obj' : objs)
+                                                  (ost : osts)
+                else return (reverse objs, reverse osts)
+        getChildren' _ _ _ objs osts = return (reverse objs, reverse osts)
 
 pressed :: TreeList -> TreeListObject -> IO ()
 pressed treelist@(TreeList _ _ stateref cfun _ _ _)
         obj@(TreeListObject _ arrow _ _ emb) =
   do
-    children <- cfun treelist obj
     state <- getVar stateref
     c <- getCoord emb
     index <-
       return
         ((fromJust
-          (elemIndex obj (map (\ (StateEntry obj _ _) -> obj) state))) + 1)
+          (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj) state))) + 1)
     (i,b) <- getIntendAndOpen obj state
     (if b then
        do
+         (children, sentries) <- getChildren state obj
          removeObjects treelist index children
          setVar stateref (take (index - 1) state ++
-                          [StateEntry obj False i] ++
+                          [StateEntry obj False i sentries] ++
                           drop (index + length children) state)
-         pho <- newImage [filename "./images/closed.gif"]
+         pho <- closedImg
          arrow # photo pho
          nustate <- getVar stateref
          debugPrintState nustate
      else
        do
-         insertObjects treelist index (head c) (i + 1) children
-         setVar stateref (take (index - 1) state ++ [StateEntry obj True i] ++
-                          map (mkEntry (i + 1)) children ++ drop index state)
-         pho <- newImage [filename "./images/open.gif"]
+         oldents <- return (getOldEntries state obj)
+         (case oldents of
+            [] ->
+              do
+                children <- cfun treelist obj
+                insertObjects treelist index (head c) (i + 1) children
+                setVar stateref (take (index - 1) state ++
+                                 [StateEntry obj True i []] ++
+                                 map (mkEntry (i + 1)) children ++
+                                 drop index state)
+            _ ->
+              do
+                oldobjs <- insertOldObjects treelist index obj oldents
+                setVar stateref (take (index - 1) state ++
+                                 [StateEntry obj True i []] ++ oldobjs ++
+                                 drop index state))
+         pho <- openImg
          arrow # photo pho
          nustate <- getVar stateref
          debugPrintState nustate)
@@ -253,7 +324,7 @@ newTreeListObject :: TreeList -> [Config TreeListObject] -> IO TreeListObject
 newTreeListObject treelist@(TreeList cnv _ _ _ _ _ _) cnf =
   do
     box <- newHBox [background "white"]
-    pho <- newImage [filename "./images/closed.gif"]
+    pho <- closedImg
     arrow <- newLabel [background "white", photo pho, parent box]
     img <- newLabel [background "white", parent box]
     txt <- newLabel [background "white", parent box]

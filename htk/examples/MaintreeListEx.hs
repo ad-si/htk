@@ -17,6 +17,7 @@ import Button
 import Editor
 import ScrollBox
 import Maybe
+import IO(stdout)
 
 logMsg :: Editor String -> String -> IO ()
 logMsg ed txt =
@@ -45,20 +46,26 @@ cfun treelist obj =
                    obj3 <- newTreeListObject treelist [name "share"]
                    return [obj1, obj2, obj3]
       "tmp"   -> return []
-      "ludi"  -> return []
+      "ludi"  -> do
+                   obj1 <- newTreeListObject treelist [name "www"]
+                   return [obj1]
       "bin"   -> return []
       "lib"   -> return []
       "share" -> return []
+      "www"   -> return []
+
+folderImg = newImage [filename "./images/folder.gif"]
 
 ifun :: ImageFun
 ifun obj =
   do
-    img <- newImage [filename "./images/folder.gif"]
+    img <- folderImg
     return img
 
 main =
   do
     win <- htk []
+    setLogFile(Just stdout)
     main <- newVFBox []
     box <- newHBox [parent main]
     win <- window main [text "Tree list example"]
