@@ -4,6 +4,7 @@ module EmacsCommands(
    HasEmacsCommand(..),
    execEmacs,
    evalEmacs,
+   Prin(..),
    ) where
 
 import CommandStringSub(emacsEscape)
@@ -42,4 +43,14 @@ instance HasEmacsCommand (String,[String]) where
          concatArgs = concatMap
             (\ arg -> " \""++emacsEscape arg++"\"")
             args
+
+-- This wraps a command where we want the output printed.
+data Prin x = Prin x
+
+instance HasEmacsCommand x => HasEmacsCommand (Prin x) where
+   toEmacsString (Prin x) = 
+      "(uni-prin "++toEmacsString x++")"
+
+
+
   

@@ -1,5 +1,15 @@
 {- Haskell interface to the high-level extent functions in sendmess.el-}
 module Extents(
+   addContainerBuffer,
+   prependContainerBuffer,
+   addContainer,
+   addButton,
+   addText,
+   boundContainer,
+   deleteExtent,
+   boundContainer,
+   collapse,
+   containerContents,
    ) where
 
 import EmacsBasic
@@ -44,7 +54,7 @@ collapse emacsSession this text =
 containerContents :: EmacsSession -> String -> IO (EmacsContents String)
 containerContents emacsSession this =
    do
-      str <- evalEmacs emacsSession ("uni-container-contents",[this])
+      str <- evalEmacs emacsSession (Prin ("uni-container-contents",[this]))
       return (parseEmacsContents str)
 
 

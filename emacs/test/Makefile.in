@@ -1,0 +1,5 @@
+SRCS = TestExtents.hs
+
+PACKAGES = uni-emacs
+
+include @TOP@/mk/boilerplate.mk

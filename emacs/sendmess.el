@@ -208,8 +208,7 @@
    )
 
 ; Describe an object for Haskell
-(defun uni-prin (s) 
-   (let ((print-escape-newlines t)) (uni-ps (prin1-to-string s))))
+(defun uni-prin (s) (let ((print-escape-newlines t)) (prin1-to-string s)))
 
 ; Apply f to the first n elements of l
 (defun uni-appn (f l n)
@@ -412,13 +411,14 @@
                   (extent-end (extent-end-position extent))
                   )
                (cond 
-                  ((< last-text (extent-start-position  container))
+                  ((< last-text extent-start)
                      (setq list-so-far (cons (buffer-string last-text 
                         extent-start) list-so-far)))
                   )
                (setq last-text extent-end)
                (setq list-so-far 
                   (cons (uni-get-extent-descriptor extent) list-so-far))
+               nil
                )
             )
          container nil nil nil nil 'uni-extent-type

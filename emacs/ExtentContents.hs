@@ -13,8 +13,10 @@ import EmacsSExp
 data EmacsDataItem linkType =
       EmacsLink linkType -- key to some other emacs object
    |  EditableText String -- key to text to be edited
-
-newtype EmacsContents linkType = EmacsContents [EmacsDataItem linkType]
+   deriving (Show)
+   
+newtype EmacsContents linkType = EmacsContents [EmacsDataItem linkType]   
+   deriving (Show)
 
 ---
 -- Extract the contents as returned from sendmess.el's uni-container-contents
