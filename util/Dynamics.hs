@@ -67,14 +67,6 @@ import qualified Dynamic
 import Dynamic(Typeable(..),TypeRep)
 import Debug(debug)
 
-#if (0 && __GLASGOW_HASKELL__ >= 503)
-
-import GHC.Dynamic(Dynamic(..))
-
-#else
-import PrelDynamic(Dynamic(..))
-#endif
-
 import qualified GlaExts
 
 type Dyn = Dynamic.Dynamic
@@ -82,10 +74,10 @@ type Dyn = Dynamic.Dynamic
 badTyRep = error "Tyrep accessed"
 
 fromDyn :: Typeable a => Dyn -> Maybe a
-fromDyn (Dynamic _ o) = Just (GlaExts.unsafeCoerce# o)
+fromDyn = Dynamic.fromDynamic
 
 toDyn :: Typeable a => a -> Dyn
-toDyn d = Dynamic badTyRep (GlaExts.unsafeCoerce# d)
+toDyn = Dynamic.toDyn
 
 type TypeTag = Dynamic.TypeRep
 type TyCon = Dynamic.TyCon

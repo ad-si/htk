@@ -221,7 +221,7 @@ undefinedFormValue = userError "form value is not defined"
 -- --------------------------------------------------------------------------
 ---
 -- The <code>EntryField</code> datatype.
-data GUIValue b => EntryField a b = EntryField (Entry b) Label (Ref (FieldInf a))
+data EntryField a b = EntryField (Entry b) Label (Ref (FieldInf a))
 
 ---
 -- Add a new <code>EntryField</code> to the form
@@ -314,7 +314,7 @@ instance InputField EntryField where
 -- --------------------------------------------------------------------------           
 ---
 -- The <code>TextField</code> datatype.
-data GUIValue b => TextField a b = TextField Editor Label (Ref (FieldInf a))
+data TextField a b = TextField Editor Label (Ref (FieldInf a))
 
 ---
 -- Add a new <code>TextField</code> to the form
@@ -406,7 +406,7 @@ instance InputField TextField where
 -- --------------------------------------------------------------------------           
 ---
 -- The <code>EntryField</code> datatype.
-data GUIValue b => EnumField a b = EnumField (OptionMenu b) Label (Ref (FieldInf a))
+data EnumField a b = EnumField (OptionMenu b) Label (Ref (FieldInf a))
 
 ---
 -- Add a new <code>EnumField</code> to the form

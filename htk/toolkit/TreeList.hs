@@ -84,7 +84,7 @@ cwidth = 15
 -- basic types
 -- -----------------------------------------------------------------------
 
-data CItem a => StateEntry a =
+data StateEntry a =
   StateEntry (TREELISTOBJECT a)                                  -- object
              Bool                            -- open: True / closed: False
              Int                                            -- intendation

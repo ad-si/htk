@@ -101,7 +101,7 @@ class HasSelectionIndex w i => HasSelectionBaseIndexRange w i where
 
 ---
 -- The <code>Selection</code> datatype.
-newtype HasSelection w => Selection w = Selection w
+newtype Selection w = Selection w
 
 
 -- -----------------------------------------------------------------------

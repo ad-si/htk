@@ -186,8 +186,14 @@ data DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType
 -- WrappedNode
 -- -----------------------------------------------------------------------
 
+class (HasTyRep1 node,ObjectType objectType object) 
+   => WrappedNodeContents node object objectType 
+
+instance (HasTyRep1 node,ObjectType objectType object) 
+   => WrappedNodeContents node object objectType 
+
 data WrappedNode node = 
-   forall object objectType . (HasTyRep1 node,ObjectType objectType object) 
+   forall object objectType . WrappedNodeContents node object objectType 
    => WrappedNode (node (String,Link object))
                                   
 -- ----------------------------------------------------------------------

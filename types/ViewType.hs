@@ -26,10 +26,6 @@ import BSem
 
 import VersionDB
 
--- Recursive imports!
-import {-# SOURCE #-} DisplayTypes
-import {-# SOURCE #-} ObjectTypes
-
 data View = View {
    viewId :: ViewId,
    repository :: Repository,

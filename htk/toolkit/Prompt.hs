@@ -32,7 +32,7 @@ import Entry
 
 ---
 -- The <code>Prompt</code> datatype.
-data GUIValue a => Prompt a = Prompt Box Label (Entry a)
+data Prompt a = Prompt Box Label (Entry a)
 
 
 -- -----------------------------------------------------------------------

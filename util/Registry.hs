@@ -186,7 +186,7 @@ instance Ord from => KeyOpsRegistry (Registry from to) from where
          map <- readMVar mVar
          return (keysFM map)
 
-listRegistryContents :: Registry from to -> IO [(from,to)]
+listRegistryContents :: Ord from => Registry from to -> IO [(from,to)]
 listRegistryContents (Registry mVar) =
    do
       map <- readMVar mVar

@@ -62,7 +62,7 @@ import Maybe
 
 ---
 -- External representation of gengui objects.
-data CItem c => NewItem c =
+data NewItem c =
 
     LeafItem c (Maybe (Position,     -- position on notepad
                        Bool          -- selected in notepad
@@ -91,7 +91,7 @@ isNewItemFolder _ = False
 
 ---
 -- internal object representation
-data CItem c => Item c =
+data Item c =
     IntFolderItem (NewItem c)                   -- external representation
                   (Ref [Item c])                               -- subitems
   | IntLeafItem (NewItem c)                     -- external representation
@@ -207,7 +207,7 @@ exportGenGUIState gui =
 
 ---
 -- The <code>GenGUI</code> datatye.
-data CItem c => GenGUI c =
+data GenGUI c =
   GenGUI
     { -- the treelist
       treelist :: TreeList (Item c),
@@ -826,7 +826,7 @@ content _ = error "GenGUI (content) : called for root"
 
 ---
 -- The <code>GenGUIEvent</code> datatype.
-data CItem c => GenGUIEvent c =
+data GenGUIEvent c =
     FocusTreeList (Maybe (Item c)) 
   | SelectTreeList (Maybe (Item c))
   | FocusNotepad (Item c, Bool) -- what's the Bool?

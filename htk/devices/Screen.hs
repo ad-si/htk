@@ -37,7 +37,7 @@ import Window
 
 ---
 -- The <code>Screen</code> datatype.
-newtype Window w => Screen w = Screen w
+newtype Screen w = Screen w
 
 
 -- -----------------------------------------------------------------------
@@ -48,7 +48,7 @@ newtype Window w => Screen w = Screen w
 -- Gets the height of the screen.
 -- @param scr     - the concerned screen.
 -- @return result - The screen's height.
-getScreenHeight :: GUIObject a => Screen a -> IO Distance
+getScreenHeight :: Window a => Screen a -> IO Distance
 getScreenHeight scr@(Screen win) = 
         evalMethod win (\nm -> ["winfo screenheight " ++ show nm])
 
@@ -56,7 +56,7 @@ getScreenHeight scr@(Screen win) =
 -- Gets the width of the screen.
 -- @param scr     - the concerned screen.
 -- @return result - The screen's width.
-getScreenWidth :: GUIObject a => Screen a -> IO Distance
+getScreenWidth :: Window a => Screen a -> IO Distance
 getScreenWidth scr@(Screen win)= 
         evalMethod win (\nm -> ["winfo screenwidth " ++ show nm])
 
@@ -64,7 +64,7 @@ getScreenWidth scr@(Screen win)=
 -- Gets the visual properties of the screen.
 -- @param scr     - the concerned screen.
 -- @return result - The visual properties.
-getScreenVisual :: GUIObject a => Screen a -> IO VisualClass     
+getScreenVisual :: Window a => Screen a -> IO VisualClass     
 getScreenVisual scr@(Screen win) = 
         evalMethod win (\nm -> ["winfo screenvisual " ++ show nm])      
 
@@ -72,7 +72,7 @@ getScreenVisual scr@(Screen win) =
 -- Gets the screen manager from a screen.
 -- @param scr     - the concerned screen.
 -- @return result - A textual representation of the screen manager.
-getScreenManager :: GUIObject a => Screen a -> IO String 
+getScreenManager :: Window a => Screen a -> IO String 
 getScreenManager (Screen win) = 
         evalMethod win (\nm -> ["winfo manager " ++ show nm])   
         

@@ -124,7 +124,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean
+.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -151,8 +151,13 @@ lib : libhere
 libfast : libfasthere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) libfast && ) echo Finished make libfast
 
-clean:
+clean: cleanprogs
 	$(RM) -rf `$(GFIND) -name "*.hi" -o -name "*.o" -o -name "*.a" -o -name ".depend"`
+
+cleanprogs:
+	$(RM) -rf $(TESTPROGS) $(MAINPROGS)
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) cleanprogs && ) echo Finished make cleanprogs
+
 
 oldclean:
 	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(HIBOOTFILES) $(HIFILES) $(LIB)
@@ -296,7 +301,14 @@ endif
    
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp $(HIBOOTEXTRA) -fno-code -ohi $@
+ifeq "$(GhcMajVersion).$(GhcMinVersion)" "5.02"
+	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp -c -fno-code -ohi $@
+else
+# Later GHC's accept something that looks very like the .boot.hs file
+# except that we need to preprocess it first.
+	$(CPP) $< -o $@ 
+endif
+   
 
 $(LIBOBJSHS) : %.o : %.hs
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS)
@@ -316,7 +328,7 @@ $(TESTOBJSLHS) $(MAINOBJSLHS) : %.o : %.lhs
 # but this is tricky when the C file is inside a subdirectory
 # of this one.
 $(OBJSC) : %.o : %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CCH) $(CFLAGS) -c $< -o $@
 
 ifndef FAST
 -include .depend

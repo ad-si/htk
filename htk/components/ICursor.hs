@@ -68,7 +68,7 @@ class HasInsertionCursor w => HasInsertionCursorIndexGet w i where
 
 ---
 -- The <code>ICursor</code> datatype.
-newtype HasInsertionCursor w => ICursor w = ICursor w
+newtype ICursor w = ICursor w
 
 
 -- -----------------------------------------------------------------------

@@ -60,7 +60,7 @@ class Widget w => HasSlider w where
 
 ---
 -- The <code>Slider</code> datatype.
-newtype HasSlider w => Slider w = Slider w
+newtype Slider w = Slider w
 
 
 -- -----------------------------------------------------------------------
