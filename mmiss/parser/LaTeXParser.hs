@@ -1,3 +1,4 @@
+{--
 module LaTeXParser (
    parseMMiSSLatex, -- :: String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
@@ -8,8 +9,8 @@ module LaTeXParser (
    -- If the Bool is set, attaches a preamble.
    )
  where
-
--- module LaTeXParser where
+--}
+module LaTeXParser where
 
 import List
 import Parsec
@@ -158,7 +159,7 @@ other = fmap Other (many1 (noneOf "\\%"))
 
 otherDelim :: Char -> GenParser Char st Frag
 otherDelim r = let s = "\\%" ++ [r]
-               in fmap Other (many1 (noneOf s))
+               in fmap Other (many (noneOf s))
 
 
 -- begin erkennt den Namen einer Umgebung (id)
@@ -284,9 +285,11 @@ lParams id l
 	 spaces
 	 attributes <- try(between (char '{') (char '}') attParser)
 		       <?> "{attribute-list} for Environment <" ++ id ++ ">"   
-         if (attributes == []) 
-           then return (LParams [(SingleParam optFrag '['), (SingleParam (Other labelId) '{')] Nothing)
-           else return (LParams [(SingleParam optFrag '['), (SingleParam (Other labelId) '{')] (Just(attributes)))
+         statusAtt <- if (isPrefixOf "Forward" id) 
+			then return (("status", "absent"))
+			else return (("status", "present"))
+         attributes <- return (attributes ++ [statusAtt])
+         return (LParams [(SingleParam optFrag '['), (SingleParam (Other labelId) '{')] (Just(attributes)))
  
  | id == "Define" = 
       do labelId <-  try(between (char '{') (char '}') idParser)
@@ -461,7 +464,7 @@ makeContent (f:frags) NoText parentEnv =
                  else  -- No MMiSS-Env.
 		   hasValue(coerceWithError(makeContent fs NoText parentEnv) 
                             ++ coerceWithError(makeContent frags NoText parentEnv))
-     (Command name ps) -> if (name `elem` (map fst includeCommands))      -- TODO: Referencen anlegen
+     (Command name ps) -> if (name `elem` (map fst includeCommands))
 			    then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
 				 in hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))]
                                              ++ coerceWithError(makeContent frags NoText parentEnv))
@@ -595,16 +598,16 @@ makeTextFragment parentEnv name params (f:frags) content =
          let newElem = CElem (Elem "includeTextFragment" (makeIncludeAttribs ps) [])
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Command "Link" ps) ->
-         let newElem = CElem (Elem "link" (makeLinkAttribs ps "present") (getLinkText ps))
+         let newElem = CElem (Elem "link" (makeLinkAttribs ps) (getLinkText ps))
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Command "ForwardLink" ps) -> 
-         let newElem = CElem (Elem "link" (makeLinkAttribs ps "absent") (getLinkText ps))
+         let newElem = CElem (Elem "link" (makeLinkAttribs ps) (getLinkText ps))
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Command "Reference" ps) ->
-         let newElem = CElem (Elem "reference" (makeRefAttribs ps "present") (getLinkText ps))
+         let newElem = CElem (Elem "reference" (makeRefAttribs ps) (getLinkText ps))
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Command "ForwardReference" ps) -> 
-         let newElem = CElem (Elem "reference" (makeRefAttribs ps "absent") (getLinkText ps))
+         let newElem = CElem (Elem "reference" (makeRefAttribs ps) (getLinkText ps))
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Command "Define" ps) ->
          let newElem = CElem (Elem "define" (makeDefineAttribs ps) (getDefineText ps))
@@ -718,28 +721,28 @@ makeTextFragmentAttribs (Just((LParams ((SingleParam (Other labelId) _):[]) Noth
 makeTextFragmentAttribs _ = []
 
 
-makeLinkAttribs :: Params -> String -> [Attribute]
-makeLinkAttribs (LParams ps (Just(atts))) status =
-  [("linked", (AttValue [Left labelId])), ("status", (AttValue [Left status]))] ++ (map convertAttrib atts)
+makeLinkAttribs :: Params -> [Attribute]
+makeLinkAttribs (LParams ps (Just(atts))) =
+  [("linked", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
   where
     (SingleParam (Other labelId) _) = genericIndex ps 1
-makeLinkAttribs (LParams ps Nothing) status =
-  [("linked", (AttValue [Left labelId])), ("status", (AttValue [Left status]))]
+makeLinkAttribs (LParams ps Nothing) =
+  [("linked", (AttValue [Left labelId]))]
   where
     (SingleParam (Other labelId) _) = genericIndex ps 1
-makeLinkAttribs _ _ = []
+makeLinkAttribs _ = []
 
 
-makeRefAttribs :: Params -> String -> [Attribute]
-makeRefAttribs (LParams ps (Just(atts))) status =
-  [("referenced", (AttValue [Left labelId])), ("status", (AttValue [Left status]))] ++ (map convertAttrib atts)
+makeRefAttribs :: Params -> [Attribute]
+makeRefAttribs (LParams ps (Just(atts))) =
+  [("referenced", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
   where
     (SingleParam (Other labelId) _) = genericIndex ps 1
-makeRefAttribs (LParams ps Nothing) status =
-  [("referenced", (AttValue [Left labelId])), ("status", (AttValue [Left status]))]
+makeRefAttribs (LParams ps Nothing) =
+  [("referenced", (AttValue [Left labelId]))]
   where
     (SingleParam (Other labelId) _) = genericIndex ps 1
-makeRefAttribs _ _ = []
+makeRefAttribs _ = []
 
 
 makeDefineAttribs :: Params -> [Attribute]
@@ -747,11 +750,14 @@ makeDefineAttribs (LParams ((SingleParam (Other labelId) _):_) (Just(atts))) =
   [("label", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
 
 
+-- getLinkText erwartet die Params eines Link oder Reference-Elementes und extrahiert daraus
+-- den LinkText, der im ersten SingleParam steht und leer sein kann.
+
 getLinkText :: Params -> [Content]
-getLinkText (LParams ((SingleParam (Other str) _):_) _) = 
-  if (str == "") 
-    then []
-    else [(CString True str)]
+getLinkText (LParams ((SingleParam f '['):_) _) =
+  let str = makeTextElem [f]
+  in if (str == "") then []
+       else [(CString True str)]
 
 
 getDefineText :: Params -> [Content]
@@ -887,6 +893,21 @@ fillLatex ((CElem (Elem "includeTextFragment" atts _)):cs) inList =
    let labelId = getParam "included" atts
        item = [EmacsLink (labelId, 'T')]
    in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem name atts contents)):cs) inList
+  | (name `elem` (map snd linkAndRefCommands)) =  
+    let forwardStr = if ((getParam "status" atts) == "absent")
+                       then "Forward"
+                       else ""
+        s1 = "  \\" ++ forwardStr ++ (toLatexName name) 
+        str = if (length(contents) == 0) then ""
+                 else let (CString _ body) = head contents in body
+        s2 = "[" ++ str ++ "]"
+        s3 = "{" ++ (getParam "label" atts) ++ "}"
+        s4 = "{" ++ (getAttribs atts "" ["label"]) ++ "}"
+        items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
+    in fillLatex cs (inList ++ items)
+
 
 fillLatex ((CString _ str):cs) inList = fillLatex cs (inList ++ [(EditableText str)])
 
