@@ -1,0 +1,505 @@
+\documentclass[a4paper]{article}
+
+\usepackage[dvips]{changebar}
+
+%% an environment for bits of the texts which have been changed
+% \newenvironment{changed}{\chgbarbegin}{\chgbarend}
+
+\setlength{\parindent}{0mm}
+\setlength{\parskip}{.5ex}
+
+
+\begin{document}
+
+{\Large{The Future of the UniForM workbench}}
+
+\rule{\textwidth}{.2pt} 
+
+%% \\[1ex]
+
+\today 
+\hfill
+\begin{tabular}[t]{l}
+George Russell \\
+Christoph L\"uth
+\end{tabular}\\[3ex]
+
+This paper explores the future development of the UniForM workbench.
+
+
+This is done in two stages: first from the prospective user's point of
+view, describing how the workbench is to be used, and secondly from
+the prospective tool integrator's point of view, describing how the
+workbench would be instantiated to a particular setting: since the
+UniForM workbench is a generic tool integration framework, in order to
+apply it to a particular setting (e.g. developing Haskell programs or
+formal program development in CASL), one has to make changes and
+adaptions at compile time; this gives a particular \emph{instance} of
+the workbench.
+
+
+\section{The User's Perspective}
+
+This section describes how a user will interact with the UniForM
+workbench. We describe the interaction in two stages: first, those
+interactions which are the same for all instantiations of the
+workbench, followed by more specific instances of the workbench.
+
+
+\subsection{Generic Usage}
+
+At the moment, there are two main interaction modes: the version
+graph, and the development graph. The version graph shows all
+available versions, and let the user pick some to work on, serving as
+a session management as well. The development graph is where the
+actual development takes place, i.e. objects are changed and new
+objects are created. 
+
+\subsubsection{Version Graph}
+
+When the user starts the workbench, he is presented with the
+\emph{version graph}. The version graph shows all versions present in
+the workbench, as a dag (where nodes correspond to versions, and links 
+to the is-revised-by relation). 
+
+Note that in terms of the workbench, a \emph{version} is a
+\emph{configuration} of versioned objects (containing files,
+directories etc.) In CVS terms, a version corresponds to a particular
+tag. \emph{We may want to find a better name for this?}
+
+
+Some versions will be \emph{checked out}, i.e. copies are placed in
+the user's workspace\footnote{Probably but not necessarily his local
+  file space.}; we call them \emph{working versions}. Those will be
+highlighted depending on their status:
+\begin{itemize}
+\item They have been checked out but there no changes yet (wrt. to the
+  repository);
+\item There are local changes wrt. to the repository.
+\item There are changes in the repository but not locally.
+\item There are both local changes and changes in the repository.
+\end{itemize}
+
+The user can now:
+\begin{itemize}
+\item Select a working version. The workbench will close the version
+  graph and open the development window (\ref{sec:development-graph}).
+\item Select one version to be checked out into his local workspace.
+\item Select a working version to be merged with updates the
+  repository. This may cause \emph{merge conflicts}, if the merge
+  operation fails. 
+\item Select a working version to check it back into the
+  repository. It will fail if there are changes in the repository wrt
+  to the working version, requiring to user to merge the working
+  version with the repository first, or if there are outstanding,
+  unresolved merge conflicts.
+\item Select two (or more) versions to merge. This will produce a new
+  working version.
+\end{itemize}
+
+The last working version the user has been working with (if any) will
+be highlighted; a button will let the user resume his work there
+directly. 
+
+\emph{Future expansions} here might include the ability to lock
+versions and outdate versions.
+
+\subsubsection{Development Graph}
+\label{sec:development-graph}
+
+The \emph{development graph} shows the development objects (source
+files, specifications, \&c). Here, the actual development takes
+place, and so the development graph is fairly instance-specific. 
+
+The development graph has 
+\begin{itemize}
+\item as nodes, the \emph{development objects}. These include folders
+  (directories) and files. 
+
+  Objects (\emph{or only files?}) have \emph{attributes}; some of
+  these are instance-specific, but one attribute which they are
+  required to have is the \emph{type}. The particular types are
+  defined by the instance.
+
+\item as edges, \emph{links} between development objects. Links
+  correspond to dependencies between objects.
+  
+  One kind of link which is provided for all instances is the
+  \emph{contains}-relationship between folders and other folders or
+  files. Other links are instance-specific.
+\end{itemize}
+
+The user can now do the following:
+\begin{itemize}
+\item Select an operation on one particular object (from a pop-up menu
+  on the object): 
+  \begin{itemize}
+  \item Delete the object.
+  \item Rename the object, or move it (to somewhere else in the folder
+    hierarchy.) Moving is probably achied by drag\&drop rather than
+    the pop-up menu, though.
+  \item Change those attributes which can be changed.
+  \item Open or close a folder, causing the contained objects to
+    appear or disappear.
+  \item Edit the object. The default editing operation is to put the
+    object into an XEmacs buffer, but particular types of objects may
+    not be editable at all, or have a more particular edit operation.
+    Editing may result in a changed object, which may result in links
+    being changed. \emph{For the time being, for implementation
+      reasons, we restrict ourselves to outgoing links changing here.}
+    
+    To resolve change conflicts (see above), we require the user to
+    edit all objects for which a merge conflict occured (i.e. the
+    merge operation failed).
+  \item Select instance-specific operations.
+  \end{itemize}
+\item Select operations which work on the whole graph:
+  \begin{itemize}
+  \item Return to the version graph.
+  \item Update this working version (\emph{This may be a future
+      expansion, we don't really need this here at this point.}).
+  \item Create new objects. Not all types of objects can be created
+    from scratch.
+  \end{itemize}
+\end{itemize}
+
+\emph{Future expansions:} For particular instances of the workbench,
+where the development graph is more a development tree, displaying the
+development graph in a tree-like fashion (like Windows' Explorer or
+the Finder on the Mac) may be more appropriate. 
+
+In a more general vein, we may want to have different \emph{views} of
+the same development graph which only shows particular object or link
+types, displayed in a different fashion. (E.g. the tree-like display
+just proposed would display the view of the graph given by restricting
+links to the \emph{contains}-link.) Thus, a \emph{graph view} contains
+a set of object types and link types visible in this view, plus a
+display method.
+
+From one view, the user can always change to another view by an
+appropriate operation, or even use more then one view concurrently.
+
+\subsection{Specific Instances}
+
+\subsubsection{The Hugs workbench}
+
+This is as sketched Einar's thesis. It would be nice to extend this to
+a general Haskell development environment, which also handles the
+GHC's many intermediate files.
+
+The \emph{object types} are Haskell source files. They can be edited. 
+
+As \emph{links}, we have import links denoting one module imports
+another. This 
+
+\emph{Remark:} Since there is only type of link between objects, which
+moreover does not suitably organize the display of the
+objects.\footnote{For example, the corresponding graph for HTk would
+  not be very helpful.} Thus, the actual Hugs development graph might
+more appropriately be viewed as the objects in the usual folder
+hierarchie and no import links; and the view with all import links is
+called the \emph{import} or \emph{dependency graph}.
+
+\subsubsection{The Isabelle workbench}
+
+Proving with Isabelle, or one if its many instances. This subsumes the
+HOL-Z workbench, the HOL-CSP workbench, the transformation system TAS
+in its present incarnation, but not CASL.
+
+The \emph{object types} and the operations on them are:
+\begin{description}
+\item[Theories:] Isabelle's theories, filename ending in
+  \texttt{.thy}\footnote{HOL-Z's filenames end in \texttt{.zthy}, but
+    HOL-Z is no longer actively supported.},
+  plus ML code for that theory, filename ending in \texttt{.ML}. 
+  
+  Theories can be edited.
+  
+  Theories are read into Isabelle from within Isabelle, i.e. there is
+  an Isabelle command to load a particular theory.
+
+\item[Proof scripts:] self-contained scripts of Isabelle commands which 
+  prove one or more theorems. 
+  
+  Proof scripts can't be edited (since this might make them
+  inconsistent). They are created from within Isabelle, i.e. Isabelle
+  offers the user the possibility to export a proof as a proof-script.
+  They can be read into other sessions, again from within Isabelle
+  rather than the devleopment graph.
+
+  Proof scripts can be added to theories. In that case, the script is
+  always read when the theory is loaded into Isabelle.
+
+\item[Session scripts:] scripts of Isabelle commands which lead from an
+  initial Isabelle configuration to a particular Isabelle state.  
+  
+  Sessions are edited by starting Isabelle with them. When Isabelle
+  terminates orderly, it writes a new session into the session file;
+  if it aborts, it may leave the session file untouched.
+
+  A session can be created from scratch. Initially, it does not
+  contain anything at all. The user will be able to load theories and
+  proof scripts into the session, and create new proofs and theorems.
+  All of this will be initiated from within Isabelle.
+\end{description}
+
+
+Between objects, we have links as follows:
+\begin{description}
+\item[Extension links] from a theory to another theory denote
+  conservative extensions --- the basic way in which Isabelle builds
+  theories.
+\item[Loads-theory links] from a session or proof scrpt to a theory
+  indicate that the  session or proof script loads the theory. 
+\item[Lives-in] links from a proof script to a theory indicate the
+  theory which the theorem(s) proved in the proof script inhabit. (All 
+  Isabelle theorems live in a particular theory.) 
+\item[Loads-script links]  from a session or proof script to a theory
+  indicate that the session or proof script reads the proof
+  script. (So proof scripts can depend on other proof scripts.)
+\end{description}
+
+All of these links are dependency links (i.e. change propagates along
+them.)
+
+\subsubsection{The CASL workbench}
+
+--- to be done ---
+
+\section{The Implementor's Point of View}
+
+\emph{Presently, this section describes internals of the UniForM
+  workbench as well, which probably should not be visible to a tool
+  integrator.}
+
+\subsection{Versions} 
+
+The user is provided with a (single) Versions window.  This shows all the 
+(global) versions, as a DAG.  The following operations are 
+permitted with a version
+\begin{enumerate}
+\item  retrieve a version producing a Working Version.
+    (A Working Version corresponds to an area in the users own file space;
+    it should not be accessible by everyone else.  However access to the
+    Working Version will be filtered through UniForM, so we can keep track
+    of the changes, and don't have to download everything each time.
+%    \begin{changebar}
+      We store the changes the user makes to the version somewhere in
+      the local file space, and write them back into the repository as 
+      a whole. 
+%    \end{changebar}
+  \item (this will be done later) merge two versions to produce a
+    Working Version.  (This will be done as follows.  Each type of
+    object will have a merge operation.  For folders this is a
+    straightforward recurse operation.  For text files, we produce a
+    ``merged file'', something like \texttt{diff -Dfoo} or cvs, and
+    put it into a text editor.
+\end{enumerate}
+
+%Once the user has a working version the files in the working version are
+%displayed as a DAG.  (Or some of them anyway; we allow the user to
+%expand/collapse nodes.)  The user can, for each file
+%\begin{enumerate}
+%\item edit it (we bung it into an editor);
+%\item edit attributes (using HTk at first, but we should write this
+%    so we can easily change to something else.) 
+%\item rename it;
+%\item delete it.
+%\end{enumerate}
+%Also of course the user can create new objects.
+
+%The user can then check in a complete new working version.
+
+\subsection{Objects}
+
+Each object has a type. For non-folder objects, there is a class
+\texttt{ObjType} which contains all operations available for objects
+of that type:
+
+\begin{enumerate}
+\item is this a source file type (in the first stage it always will
+  be. \emph{What would be examples for useful non-source files?})
+\item the editing method: none, default, or a specific tool;
+% \item for non-source files, an optional tool for editing source files.
+\item required attributes for this type. 
+  
+  Note that attributes can be inherited.  For example (once we've
+  added tools), a (target) library (.a) object will probably require
+  as attributes (of the .a object or a containing folder) a list of
+  the component objects.
+\item a tool for creating it.
+\item display information:
+  \begin{itemize}
+  \item the icon
+  \item the name of the type
+  \item a method for displaying an object of that type
+  \item others (perhaps a printing method, or a method which renders
+    the object in HTML so we can display the development graph in a
+    net browser)
+  \end{itemize}
+\end{enumerate}
+
+Folder objects have a folder type, which wraps up its contents into an
+existential type, where all components are of class \texttt{ObjType}.
+
+Adding types can be done 
+\begin{itemize}
+\item at runtime, by specifying simple things (label, tool as a
+  command line, icon file);
+\item at compile/link time. Adding types at compile time creates a new
+  instance of the workbench. Different instances of the workbench are
+  incompatible in the sense that e.g. the Hugs workbench can't
+  exchanges objects with (or even talk to) the Isabelle workbench.
+\end{itemize}
+%Hopefully the latter will rarely, if ever, be necessary, especially as
+%it introduces the possibility of communicating UniForM's disagreeing
+%about what types are around..
+
+%Editors: there should be a single XEmacs session
+%around, and "bunging something into the editor" will mean popping up a
+%new frame containing it. 
+
+
+% \begin{changebar}
+% \subsection{Objects}
+
+\subsubsection{Attributes}
+
+Links are implemented as particular attributes of type
+\texttt{Location}, which uniquely identifies an object regardless of
+its particular location (i.e. file path). I think since links are
+often used there should be a library of functions which implement
+particular often-used functions on links, such as:
+\begin{itemize}
+\item get the source object 
+\item get the target object
+\item for an object, get all incoming links
+\item for an object, get all outgoing links
+\end{itemize}
+
+Also, links can in turn have attributes, such as a name, or the colour
+in which we want it displayed. These attributes could be implemented
+by having a \texttt{ObjLink} class which specifies these (so these are
+not file attributes in the technical sense above).
+
+Implementing the two operations which find all incoming or outgoing
+links may be complicated; we can probably get away for now with only
+implementing the second. (We need this for the change notifications
+below.)
+
+\subsubsection{Change notifications}
+
+\emph{Needs to be rewritten.}
+
+Change notifiers (of type \texttt{IA a}) allow tools to listen for
+changes of objects and links, as follows:
+\begin{itemize}
+\item a new version of an object has been checked in;
+\item change propagated along dependency links, i.e. if a new version
+  is checked in for an object $o$, for all objects $p$ such that there
+  is a dependency link $l:o\rightarrow p$ a change notifier is
+  generated;
+\item creation or deletion of a link;
+\item creation or deletion of an object. 
+\end{itemize}
+
+The standard UniForM workbench interface will deal with most of these
+notifiers (by e.g. highlighting objects which are currently in the
+user's private workspace, and for which a change notification has been
+received), but if we encapsulate a tool, we may want to access
+notification interactions directly. (For example, Isabelle wants to
+know when its theory files changes.)
+
+% \end{changebar}
+
+\subsection{Second Stage: Tools}
+
+There are two sort of tools: oneshot and systematic.  
+
+\subsubsection{Oneshot Tools}
+
+A oneshot tool has to be specified explicitly by the user as a means of 
+creating a new object.  An example would be trying to apply a tactic.
+UniForM may need to remember the tool applied.  Specifically for oneshot
+tools mapping to non-source objects, we remember the tool.  For oneshot
+tools mapping to source objects, we remember the tool, unless the user
+goes on to edit the source object, in which case we remember the source
+object.  ?? oneshot tools mapping to multiple objects ??  We need to make
+sure that on retrieving a version, the oneshot tools are executed in the
+correct order.
+
+% \begin{changebar}
+%  Can't we describe oneshot tools as a specific \emph{command line
+%    tool}, which essentially is the encapsulation of the shell (or
+%  other scripting tools like Tcl, Perl, Python\dots)? 
+  
+%  Applying a single tactic is probably not application of a tool ---
+%  the Isabelle encapsulation should abstract from Isabelle's datatypes
+%  like tactics, rewriting sets and so on.
+% \end{changebar}
+
+\subsubsection{Systematic Tools}
+
+Systematic tools map to objects to objects on the basis of rules based on
+the types and names of the objects.  Here are two sorts:
+
+\begin{verbatim}
+(name,type1) -> (name,type2)
+\end{verbatim}
+
+This kind of systematic tool maps one type to another type (always
+a non-source type).  This would
+correspond to compiling a source file to an object file, for example.
+
+\begin{verbatim}
+(name,folder type) -> (something in this folder,type2)
+\end{verbatim}
+
+This would correspond to compiling, for example, a bunch of source objects
+(in the folder) to a library in that folder.
+
+In fact we can (and will) generalise this, allowing multiple target objects.
+\begin{verbatim}
+(name,type) -> (name,type1),(name,type2),...
+\end{verbatim}
+
+In addition, systematic tools should come with an additional action
+(probably yet another tool) which computes dependencies for
+\texttt{(name,type1)}.  These dependencies will be ensured up-to-date
+before the object is computed.  The dependencies will be assumed a
+pure function of the file contents+attributes, so will be cached (as
+one of the file attributes) and hopefully not recomputed too often,
+though we will doubtless need a way of recomputing them when things go
+wrong.
+
+I HOPE that most tools (oneshot and systematic) can also be defined at 
+run-time.  Thus there will also be a (global) tools graph, and 
+UniForM will complain when the rules given above lead to multiple ways of
+getting the same file (or at least expect some disambiguation).
+
+% \begin{changebar}
+  Tools also create links. This is done just as with objects --- thus,
+  we add constructors \texttt{CreateLink}, \texttt{DeleteLink} or
+  \texttt{ChangeLink} (new source or new target) to the
+  \texttt{Change} datatype. 
+
+  But it can be tedious to explicitly set or delete links everytime we
+  create a new version. (For Isabelle, it is fairly easy to write
+  something which reads out the set of all ancestor theories for a 
+  theory, but it would be tedious to keep track of new ancestors and
+  even more cumbersome to find out which ancestors have been removed.)
+ 
+  Thus, some links are generated automatically by a tool which is
+  called when a new version of an object is created (i.e. after
+  editing an object). This can be achieved by a change
+  notification interactor, which listens for changes and generates new 
+  links if the version of an object changes.
+% \end{changebar}
+
+\end{document}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
