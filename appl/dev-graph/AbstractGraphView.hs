@@ -7,6 +7,12 @@ module AbstractGraphView where
    Graphs, nodes, and edges are handled via
    descriptors (here: integers), while node and
    edge types are handled by user-supplied strings.
+   
+   todo:
+   AbstractionGraph erweitern
+   Funktionen anpassen bzgl. erweiteren edges + nodes
+   neue Funktionen implementieren
+   Testen mit LispInterface, Daten aus test.data
 -}
 
 import DaVinciGraph
@@ -38,8 +44,8 @@ data AbstractionGraph = AbstractionGraph {
        theGraph :: OurGraph, -- (DaVinciNode,String) () (DaVinciEdge,String) (),
        nodeTypes :: [(String,DaVinciNodeType (String,Int))],
        edgeTypes :: [(String,DaVinciArcType (String,Int))],
-       nodes :: [(Int,DaVinciNode (String,Int))], -- id, daVinci
-       edges :: [(Int,(Int,Int,DaVinciArc (String,Int)))], -- id, src, tar, daVinci
+       nodes :: [(Int,(String,DaVinciNode (String,Int)))], -- id, daVinci
+       edges :: [(Int,(Int,Int,String,DaVinciArc (String,Int)))], -- id, src, tar, type, daVinci
        -- probably, also the abstracted graph needs to be stored,
        -- and a list of hide/abstract events with the hidden nodes/edges (for each event),
        -- which is used to restore things when show_it is called
@@ -63,6 +69,7 @@ return_fail graphs msg =
 
 -- lookup a graph descriptor and execute a command on the graph
 -- the delete flag specifies if the graph should be removed from the graph list afterwards
+-- fetch_graph :: Descr -> GraphInfo -> Bool -> a ?
 fetch_graph gid (gs,ev_cnt) delete cmd =
   case lookup gid gs of
     Just g -> do (g',descr,err) <- cmd g
@@ -158,21 +165,134 @@ redisplay gid (gs,ev_cnt) =
     do redraw (theGraph g)
        return (g,0,Nothing)
     )
+hidenodetype :: Descr -> String -> GraphInfo -> IO Result
 
 hidenodes :: Descr -> [Descr] -> GraphInfo -> IO Result
 hidenodes gid node_list (gs,ev_cnt) =
+{- Baustelle1:
+fuer jeden Knoten:
+- reinfuehrende edges finden, rausfuehrende edges finden
+- jede der ersteren mit jeder der letzteren zu einer edge verschmelzen
+  (mit source der reinfuehrenden, target der rausfuehrenden, typ wie in edgeComp angegeben)
+  wenn nichts in der edgeComp-Tabelle drin ist, dann keine Kante erzeugen
+- doppelte edges vom gleichen Typ entfernen. (evtl. erst spaeter implementieren)
+
+
+- mit fetch_graph den Graphen raussuchen
+- mit map auf die Liste der zu versteckenden Knoten folgendes ausfuehren (geht das so mit map?):
+- den Knoten aus dem Graphen entfernen, aber in nodes im labbeled record lassen
+- ein Listentupel aus den reingehenden und rausgehenden Edges machen
+
+-> wie kriege ich deren Typen?
+
+- Pfade bilden
+
+
+fetch_graph gid (gs,ev_cnt) False (\g ->
+   case sequence (map (\node -> lookup node (nodes g)) node_list) of
+     Nothing -> fehler!!!
+     Just nl ->  ...
+   do l <- sequence (map (\node -> 
+     do case lookup node (nodes g) of
+       Just n -> do deleteNode (theGraph g) n
+                    makePaths gid (fetch_edges_of_node gid (gs,ev_cnt) node) (gs,ev_cnt)
+		    return (g,0,Nothing)
+        Nothing -> return (g,0,Just ("hidenodes: illegal node: "++ show node))
+     
+       )
+
+    node_list)
+    return (g, ... l ....
+   )
+
+
+- Pfade bilden:
+- eine reinfuehrende edge nehmen, mit allen rausgeheneden verschmelzen
+- dasselbe mit den anderen reinfuehrenden edges wiederholen
+
+-> warum ist der Rueckgabewert von lookup bei edges ein Tripel?
+
+
+makePaths :: Descr -> ([Descr],[Descr]) -> GraphInfo -> IO Result
+makePaths gid (inEdges, outEdges) (gs,ev_cnt)
+
+-- wenn es keine rein- und/oder rausfuehrenden edges (mehr) gibt, sind wir fertig
+  | inEdges == [] || outEdges == [] = do fetch_graph gid (gs,ev_cnt) False
+                                      return (g,0,Nothing)
+-- sonst "eigentliche" Arbeit				      
+  | otherwise = do fetch_graph gid (gs,ev_cnt) False
+                   let edge <- head inEdges
+                   do case lookup edge (edges g) of
+                       Just (_,_,e) -> makePathsAux gid edge outEdges (gs,ev_cnt)
+		                       makePaths gid (tail inEdges, outEdges) (gs,ev_cnt)		       
+			
+                        Nothing -> return (g,0,Just ("dellink: illegal edge: "++show edge))
+     
+
+makePathsAux :: Descr -> Descr -> [Descr] -> GraphInfo -> IO Result
+makePathsAux gid edge [] (gs,ev_cnt) = do fetch_graph gid (gs,ev_cnt) False
+                                          return (g,0,Nothing)
+makePathsAux gid edge edge_list (gs,ev_cnt) = do fetch_graph gid (gs,ev_cnt) False
+                                                 do let oe <- head edge_list
+						    case lookup oe (edges g) of
+						     Just (_,_,oe) -> do addlink gid (determineEdgeType e oe) ##name## ##(lookup scr)## ##(lookup tar)## (gs,ev_cnt)
+					                                 makePathsAux gid edge (tail edge_list) (gs,ev_cnt)
+						     Nothing -> return (g,0,Just("makePaths: illegal edge: " ++show edge))
+
+						      
+  
+
+
+-}
   undefined
 
+
+-- like hidenodes, but replaces the hidden nodes by a new node
+--  with a menu to unhide the nodes
 abstractnodes :: Descr -> [Descr] -> GraphInfo -> IO Result
 abstractnodes gid node_list (gs,ev_cnt) =
+{- Baustelle:
+Ueberlegung : ist es nicht sinnvoller, die zu versteckenden Knotentypen zu uebergeben?
+Graph: fetch_graph gid (gs,ev_cnt) False do ...
+
+
+
+(\g -> 
+   do case lookup nodetype (nodeTypes g) of
+       Nothing -> return (g,0,Just ("abstractnodes: illegal node type: "++nodetype))
+       Just nt -> do
+        node <- newNode (theGraph g) nt (name,ev_cnt)
+        return (g{nodes = (ev_cnt,node):nodes g},ev_cnt,Nothing)
+   )
+
+
+
+makePaths :: Graph ->  [(Int,DaVinciNode (String,Int))] -> ...... -- [String] -> [(EdgeType,NodeType)]
+makePaths gr [] et = []
+makePaths gr tgt et = if (notElem tgt1 node_list) then
+		         newTgt
+		   else (makePaths gr (snd(findNode gr tgt1)) ((getEdgeType(fst(head tgt))):et) )++newTgt
+
+  	where	tgt1 = snd(head tgt)
+		newTgt = (determineEdgeType ((fst(head tgt)):(map read et)),snd(head tgt)):(makePaths gr (tail tgt) et)
+
+-}
   undefined
+hideedgetype :: Descr -> String -> GraphInfo -> IO Result
 
 hideedges :: Descr -> [Descr] -> GraphInfo -> IO Result
 hideedges gid edge_list (gs,ev_cnt) =
+{- Baustelle3:
+- edge aus ourGraph entfernen, aber in edges lassen
+-}
   undefined
 
 show_it :: Descr -> Descr -> GraphInfo -> IO Result
 show_it gid hide_event (gs,ev_cnt) =
+{- Baustelle4:
+wiederherstellen: die angegebenen edges, nodes aus dem labbeled record wieder in den Graphen einfuegen
+-}
+
   undefined
 
 

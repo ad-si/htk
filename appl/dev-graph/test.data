@@ -8,4 +8,8 @@
 
 (redisplay 4 0)  
 
-(quit 5)
+(hidenodes 5 0 (1 2))
+
+(redisplay 6 0)
+
+(quit 7)
