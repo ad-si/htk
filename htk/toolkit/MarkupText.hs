@@ -673,12 +673,6 @@ and = symbchr 217
 bigand :: MarkupText
 bigand = bigsymbchr 217
 
-
----
--- Special character.
-bigand :: MarkupText
-bigand = bigsymbchr 217
-
 ---
 -- Special character.
 or :: MarkupText
