@@ -43,6 +43,12 @@ The following are required or at least recommended.
 (6) A lot of memory will help during HTk (or virtual memory and a lot of
     patience).  250MB would be nice.  If you still get problems see the
     section on "Restarting compilation".
+(7) If you are unfortunate enough to be using Windows, you will also need
+    Cygwin.  The following instructions assume that you are in a 
+    Cygwin bash shell where the usual Unix utilities (sed, find and so on)
+    are available.  However you will be glad to know that you do NOT need
+    a version of GHC which is Cygwin-aware.  We convert filenames into their
+    Windows equivalents (well, more or less) before passing them to GHC.
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update

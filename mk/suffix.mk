@@ -13,7 +13,7 @@
 #    and the ".hs" file.  So "Mainserver.hs" goes to "server".
 #
 # All other files go into the library for the directory,
-#    $(LIB), constructed out of the package name $(PACKAGE).
+#    $(LIB), constructed out of the package name $PACKAGE).
 # The variables the Makefiles in the individual subdirectories
 # need to set, if non-null, are
 # SUBDIRS  the list of subdirectories to recurse to, which should
@@ -88,6 +88,9 @@ MAINOBJSLHS = $(filter Main%.o,$(OBJSLHS))
 HILIBFILES = $(patsubst %.o,%.hi,$(LIBOBJSLHS) $(LIBOBJSHS))
 HIFILES = $(patsubst %.o,%.hi,$(OBJSALLHS))
 HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
+
+LIBMODULES = $(patsubst %.o,%,$(LIBOBJSLHS) $(LIBOBJSHS))
+SPLITOBJS = $(patsubst %,%/*.o,$(LIBMODULES))
 
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
              $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
@@ -208,8 +211,14 @@ mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
 ifneq "$(PACKAGE)" ""
+ifeq "$(DOSPLIT)" ""
 	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS)
 	$(AR) -r $(LIB) $(LIBOBJS)
+else
+	for i in $(LIBMODULES) ; do $(MKDIR) -p $$i ; done
+	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS) -split-objs
+	$(AR) -r $(LIB) $(SPLITOBJS) $(OBJSC)
+endif
 endif
 
 packagehere : libfasthere packageherequick
@@ -314,7 +323,13 @@ endif
    
 
 $(LIBOBJSHS) : %.o : %.hs
+ifeq "$(DOSPLIT)" ""
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS)
+else
+	$(MKDIR) -p $(@D)/$(*F)
+	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) -split-objs
+endif
+
 
 $(LIBOBJSLHS) : %.o : %.lhs
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) 
