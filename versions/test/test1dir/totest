@@ -5,6 +5,5 @@ pkill -x allocate
 pkill -x server
 rm -rf /home/uniform/backup/repository/db
 mkdir /home/uniform/backup/repository/db
-top/concurrency/server/server &
-top/cvs/inodeserver/allocate &
+top/cvs/AllocateService &
 top/versions/test/test1

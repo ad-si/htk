@@ -63,7 +63,7 @@ connectReply service hostDesc portDesc =
                outLine <-
                   synchronize bSem (
                      do
-                        hPutStrLn handle (show inLine)
+                        hPutStrLn handle inLine
                         hGetLine handle
                      )
                return (read outLine)

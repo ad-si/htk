@@ -11,6 +11,8 @@ module AllocateService(
    AllocateAnswer(..)      
    ) where
 
+import Debug(debug)
+
 import ServiceClass
 
 import CVSTypes
@@ -37,15 +39,17 @@ instance ServiceClass AllocateRequest AllocateAnswer AllocateState where
    initialState _ =return  initialAllocateState
 
    handleRequest _ (GetNewCVSFile,allocateState) =
-      let
-         (newState,cvsFile) = newCVSFile allocateState
-      in
+      do
+         debug "newCVSFile request received"
+         let
+            (newState,cvsFile) = newCVSFile allocateState
          return (NewCVSFile cvsFile,newState)
    handleRequest _ (GetNewCVSVersion cvsFile oldCVSVersion,allocateState) =
-      let
-         (newState,cvsVersion) = 
-            newCVSVersion allocateState cvsFile oldCVSVersion
-      in
+      do
+         debug "newCVSVersion request received"
+         let
+            (newState,cvsVersion) = 
+               newCVSVersion allocateState cvsFile oldCVSVersion
          return (NewCVSVersion cvsVersion,newState)
 
    getBackupDelay _ = return BackupNever
