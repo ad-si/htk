@@ -4,7 +4,7 @@ Package {
    source_dirs = [],
    library_dirs = ["@BDBDIR@/lib"],
    hs_libraries = [],
-   extra_libraries = ["db","nsl","dl"],
+   extra_libraries = ["db","dl"],
    include_dirs = ["@BDBDIR@/include"],
    c_includes = [],
    package_deps = [],
