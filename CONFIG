@@ -8,3 +8,7 @@ for i in `find . -type d ! -name CVS`; do
    if [ -h $i/top ]; then rm -rf $i/top; fi
    ln -s $FULLUNIDIR $i/top
 done
+
+# Set up a file mk/settings.h.  This is to be used by 
+# utils/WBFiles.hs
+echo \#define UNIDIR \"$FULLUNIDIR\" >mk/settings.h

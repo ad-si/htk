@@ -72,5 +72,6 @@ HTKTEXTITEMDIR   = $(HTKDIR)/textitems
 DAVINCIDIR       = top/davinci
 WWWDIR           = top/www
 TOOLSDIR         = top/tools
+CVSDIR           = top/cvs
 
 

@@ -19,11 +19,23 @@ module WBFiles (
    getWBExportFilePath
    ) where
 
-
+import IO
 import qualified System
+import qualified IOExts(unsafePerformIO)
 import Debug(debug)
 
+#include "top/mk/settings.h"
 
+prefix :: String
+-- use unsafePerformIO to prevent the IO action being done more than once.
+prefix =
+   IOExts.unsafePerformIO(
+      do
+         rootVar <- try (System.getEnv "WB_ROOT")
+         case rootVar of
+            Left error -> return (UNIDIR ++ "/database")
+            Right value -> return value
+      )
 -- --------------------------------------------------------------------------
 -- WorkBench File
 -- --------------------------------------------------------------------------
@@ -31,27 +43,23 @@ import Debug(debug)
 getWBFilePath :: FilePath -> IO FilePath
 getWBFilePath fnm = 
    do
-      prefix <- System.getEnv "WB_ROOT"
       return (prefix ++ "/" ++ fnm)
 
 
 getWBToolFilePath :: FilePath -> IO FilePath
 getWBToolFilePath fnm = 
    do
-      prefix <- System.getEnv "WB_ROOT"
       return (prefix ++ "/bin/" ++ fnm)
 
 getWBImageFilePath :: FilePath -> IO FilePath
 getWBImageFilePath fnm = 
    do 
-      prefix <- System.getEnv "WB_ROOT"
       return (prefix ++ "/images/" ++ fnm)
 
 
 getWBExportFilePath :: FilePath -> IO FilePath
 getWBExportFilePath fnm = 
    do
-      prefix <- System.getEnv "WB_ROOT"
       return (prefix ++ "/exports/" ++ fnm)
 
 
