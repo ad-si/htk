@@ -285,9 +285,15 @@ boothere : $(HIBOOTFILES)
 boot : boothere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) boot &&) echo $(MAKE) boot finished.
 
+ifeq "$(GhcMajVersion).$(GhcMinVersion" "5.02"
+   HIBOOTEXTRA = -c
+else
+   HIBOOTEXTRA =
+endif
+   
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp -fno-code -ohi $@
+	$(HC) $< $(HCSHORTFLAGS) -package uni-options -package-name $(PACKAGE) -no-recomp $(HIBOOTEXTRA) -fno-code -ohi $@
 
 $(LIBOBJSHS) : %.o : %.hs
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS)
