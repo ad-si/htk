@@ -13,21 +13,29 @@ module MMiSSPaths(
    registerMMiSSPaths,
 
    pathNameKey,
+   lookupByObject,
+
+   checkLookup,
    ) where
 
+import Maybe
+
 import ExtendedPrelude
+import Registry
 import Computation
 import AtomString
 import Dynamics
 import VariableSet
 
 import SimpleForm
+import DialogWin
 
 import View
 import CodedValue
 import ObjectTypes
 import Folders
 import Link
+import BasicObjects
 import AttributesType
 
 -- ---------------------------------------------------------------------
@@ -200,6 +208,40 @@ registerMMiSSPaths =
       let e = error "registerMMiSSPaths"
       registerAttribute (e :: EntityName)
       registerAttribute (e :: EntityPath)
+
+-- ---------------------------------------------------------------------
+-- Look up an EntityName for an object implementing pathNameKey
+-- ---------------------------------------------------------------------
+
+lookupByObject :: HasAttributes object => View -> object -> EntityName 
+   -> IO (Maybe WrappedLink)
+lookupByObject view object entityName =
+   do
+      let
+         registryKey = fromAttributeKey pathNameKey
+         attributes = readPrimAttributes object
+      entityPathOpt <- getValueOpt attributes registryKey
+      case entityPathOpt of
+         Nothing -> error ("MMiSSPaths: Object does not define "++registryKey)
+         Just entityPath -> lookupByPath view entityPath entityName 
+ 
+-- ---------------------------------------------------------------------
+-- Used for providing an error message
+-- ---------------------------------------------------------------------
+
+checkLookup :: (EntityName -> IO (Maybe WrappedLink)) 
+   -> (EntityName -> IO (Maybe WrappedLink))
+checkLookup lookupFn entityName =
+   do
+      wrappedLinkOpt <- lookupFn entityName
+      if isNothing wrappedLinkOpt
+         then
+            createErrorWin
+               ("MMiSS object "++toString entityName++" cannot be found")
+               []
+         else
+            done
+      return wrappedLinkOpt  
 
 -- ---------------------------------------------------------------------
 -- Make EntityName accessible by HasKey

@@ -13,9 +13,15 @@ module Sink(
    putSink,
    coMapSink,
    coMapSink',
+   coMapIOSink',
 
    CanAddSinks(..),
    SinkSource(..),
+
+   staticSinkSource,
+   mapSinkSource,
+   mapSinkSourceIO,
+   pairSinkSource,
    ) where
 
 import Concurrent
@@ -135,6 +141,20 @@ coMapSink' fn (Sink {sinkID = sinkID,action = action}) =
    in
       Sink {sinkID = sinkID,action = action'}
 
+---
+-- A version which allows an IO action, which had better not take too long.
+coMapIOSink' :: (y -> IO (Maybe x)) -> Sink x -> Sink y
+coMapIOSink' actFn (Sink {sinkID = sinkID,action = action}) =
+    let
+       action' y =
+          do
+             xOpt <- actFn y
+             case xOpt of
+                Nothing -> done
+                Just x -> action x
+    in
+       Sink {sinkID = sinkID,action = action'}
+                   
 -- -------------------------------------------------------------------------
 -- The CanAddSinks class.
 -- -------------------------------------------------------------------------
@@ -213,3 +233,60 @@ data SinkSource x delta = forall sinkSource . CanAddSinks sinkSource x delta
 
 instance CanAddSinks (SinkSource x delta) x delta where
    addOldSink (SinkSource sinkSource) sink = addOldSink sinkSource sink
+
+-- -------------------------------------------------------------------------
+-- Sink combinators
+-- -------------------------------------------------------------------------
+
+newtype StaticSinkSource x delta = StaticSinkSource x
+
+instance CanAddSinks (StaticSinkSource x delta) x delta where
+   addOldSink (StaticSinkSource x) sink = return x
+
+staticSinkSource :: x -> SinkSource x delta
+staticSinkSource x = SinkSource (StaticSinkSource x)
+
+data MappedSinkSource x delta = forall x0 delta0 . 
+   MappedSinkSource (x0 -> x) (delta0 -> delta) (SinkSource x0 delta0)
+
+instance CanAddSinks (MappedSinkSource x delta) x delta where
+   addOldSink (MappedSinkSource xMap deltaMap sinkSource) sink =
+      do
+         x0 <- addOldSink sinkSource (coMapSink deltaMap sink)
+         return (xMap x0)
+
+mapSinkSource :: (x0 -> x) -> (delta0 -> delta) -> SinkSource x0 delta0 
+   -> SinkSource x delta
+mapSinkSource xMap deltaMap sinkSource = 
+   SinkSource (MappedSinkSource xMap deltaMap sinkSource)
+
+data MappedSinkSourceIO x delta = forall x0 delta0 . 
+   MappedSinkSourceIO (x0 -> IO x) (delta0 -> IO (Maybe delta)) 
+      (SinkSource x0 delta0)
+
+instance CanAddSinks (MappedSinkSourceIO x delta) x delta where
+   addOldSink (MappedSinkSourceIO xMap deltaMap sinkSource) sink =
+      do
+         x0 <- addOldSink sinkSource (coMapIOSink' deltaMap sink)
+         xMap x0
+
+mapSinkSourceIO :: (x0 -> IO x) -> (delta0 -> IO (Maybe delta)) 
+   -> SinkSource x0 delta0 -> SinkSource x delta
+mapSinkSourceIO xMap deltaMap sinkSource = 
+   SinkSource (MappedSinkSourceIO xMap deltaMap sinkSource)
+
+data TwoSinkSources x1 delta1 x2 delta2 = 
+   TwoSinkSources (SinkSource x1 delta1) (SinkSource x2 delta2)
+
+instance CanAddSinks (TwoSinkSources x1 delta1 x2 delta2) (x1,x2) 
+      (Either delta1 delta2) where
+   addOldSink (TwoSinkSources sinkSource1 sinkSource2) sink =
+      do
+         x1 <- addOldSink sinkSource1 (coMapSink Left sink)
+         x2 <- addOldSink sinkSource2 (coMapSink Right sink)
+         return (x1,x2)
+
+pairSinkSource :: SinkSource x1 delta1 -> SinkSource x2 delta2 
+   -> SinkSource (x1,x2) (Either delta1 delta2)
+pairSinkSource sinkSource1 sinkSource2 
+   = SinkSource (TwoSinkSources sinkSource1 sinkSource2)

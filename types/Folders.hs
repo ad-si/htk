@@ -267,11 +267,11 @@ instance ObjectType FolderType Folder where
                      mustFocus = (\ _ -> return False),
                      focus = (\ link ->
                         do
-                           folder <- readLink view link
                            updateSet (knownFolders folderType) 
                               (AddElement link)
+                           folder <- readLink view link
                            return (mkArcs (contents folder),
-                              SinkSource emptyVariableSet)
+                              staticSinkSource [])
                         ),
                      closeDown = done
                      })
@@ -320,11 +320,6 @@ globalRegistry :: GlobalRegistry FolderType
 globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
 
-
-emptyVariableSet :: VariableSet (WrappedLink,ArcType)
-emptyVariableSet = IOExts.unsafePerformIO newEmptyVariableSet
-{-# NOINLINE emptyVariableSet #-}
- 
 -- ------------------------------------------------------------------
 -- Registering the folder type and display
 -- ------------------------------------------------------------------

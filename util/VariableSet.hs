@@ -13,7 +13,12 @@ module VariableSet(
    updateSet,
 
    VariableSetSource,
+
+   mapVariableSetSourceIO',
+   concatVariableSetSource,
    ) where
+
+import Maybe
 
 import Set
 import Concurrent
@@ -147,6 +152,54 @@ instance HasTyRep1 VariableSet where
 -- --------------------------------------------------------------------
 
 type VariableSetSource x = SinkSource [x] (VariableSetUpdate x)
+
+-- --------------------------------------------------------------------
+-- Combinators for VariableSetSource
+-- --------------------------------------------------------------------
+
+mapVariableSetSourceIO' :: (x -> IO (Maybe y)) -> VariableSetSource x 
+   -> VariableSetSource y
+mapVariableSetSourceIO' mapFn variableSetSource =
+   mapSinkSourceIO
+      (\ currentEls ->
+         do
+            newEls <- mapM mapFn currentEls
+            return (catMaybes newEls)
+         )
+      (\ change ->
+         case change of
+            AddElement x ->
+               do
+                  yOpt <- mapFn x
+                  case yOpt of
+                     Nothing -> return Nothing
+                     Just y -> return (Just (AddElement y))
+            DelElement x ->
+               do
+                  yOpt <- mapFn x
+                  case yOpt of
+                     Nothing -> return Nothing
+                     Just y -> return (Just (DelElement y))
+         )
+      variableSetSource
+
+concatVariableSetSource :: VariableSetSource x -> VariableSetSource x 
+   -> VariableSetSource x
+concatVariableSetSource (source1 :: VariableSetSource x) source2 =
+   let
+      pair :: SinkSource ([x],[x]) 
+         (Either (VariableSetUpdate x) (VariableSetUpdate x))
+      pair = pairSinkSource source1 source2
+
+      res :: SinkSource [x] (VariableSetUpdate x)
+      res = mapSinkSource (\ (x1,x2) -> x1 ++ x2)
+         (\ xlr -> case xlr of 
+            Left x -> x 
+            Right x -> x
+            )
+         pair
+   in
+      res
    
 
 

@@ -3,27 +3,40 @@
 module MMiSSObject(
    ) where
 
+import Maybe
+
 import Concurrent
 import qualified IOExts(unsafePerformIO)
 
 import Dynamics
+import Sink
 import VariableSet
+import Computation
+import AtomString
+
+import DialogWin
+
+import GraphDisp
+import GraphConfigure
+import Graph(NodeType,ArcType)
 
 import CodedValue
 import Link
+import View
 import ObjectTypes
 import BasicObjects
 import AttributesType
 import DisplayParms
 import GlobalRegistry
-
+import DisplayView
 import EmacsContent
 
 import MMiSSPaths
 import MMiSSGeneric
 
 -- ------------------------------------------------------------------------
--- The MMiSSObjectType type, and its instance of HasCodedValue
+-- The MMiSSObjectType type, and its instance of HasCodedValue and 
+--    HasAttributesType
 -- ------------------------------------------------------------------------
 
 data MMiSSObjectType = MMiSSObjectType {
@@ -34,7 +47,7 @@ data MMiSSObjectType = MMiSSObjectType {
    extraAttributes :: AttributesType,
       -- This describes the attributes peculiar to this MMiSS object type.
       -- All MMiSS objects additionally have the attributes
-      -- (pathNameKey,EntityPath) and (autoExpand,Bool)
+      -- (pathNameKey,EntityPath) and (autoExpandKey,Bool)
       -- which should not be included here.
    displayParms :: NodeTypes (String,Link MMiSSObject),
       -- Displays parameters for this object
@@ -62,6 +75,12 @@ instance HasCodedValue MMiSSObjectType where
          return (MMiSSObjectType {xmlTag = xmlTag,typeId = typeId,
             extraAttributes = extraAttributes,displayParms = displayParms,
             knownObjects = knownObjects},codedValue1)
+
+instance HasAttributesType MMiSSObjectType where
+   toAttributesType objectType =
+      (needs pathNameKey (error "MMiSSObjects.1" :: EntityPath)) .
+      (needs autoExpandKey (error "MMiSSObjects.2" :: Bool)) $
+      extraAttributes objectType
          
 -- ------------------------------------------------------------------------
 -- The MMiSSObject type, and its instance of HasCodedValue
@@ -103,7 +122,147 @@ instance HasCodedValue MMiSSObject where
             attributes = attributes,content = content,
             includedObjects = includedObjects,
             referencedObjects = referencedObjects},codedValue1)
-         
+
+-- ------------------------------------------------------------------
+-- The instance of HasAttributes
+-- ------------------------------------------------------------------
+
+instance HasAttributes MMiSSObject where
+   readPrimAttributes object = attributes object
+
+-- ------------------------------------------------------------------
+-- The instance of ObjectType
+-- ------------------------------------------------------------------
+
+instance ObjectType MMiSSObjectType MMiSSObject where
+   objectTypeTypeIdPrim _ = "MMiSSObjects"
+
+   objectTypeIdPrim objectType = typeId objectType
+
+   objectTypeGlobalRegistry object = globalRegistry
+
+   getObjectTypePrim object = mmissObjectType object
+
+   nodeTitlePrim object = name object
+
+   createObjectMenuItemPrim objectType = 
+      Just (xmlTag objectType,\ view -> createMMiSSObject objectType view)
+
+   getNodeDisplayData view wrappedDisplayType objectType getDisplayedView
+         = return (
+      let
+         includedArcParms =
+            Color "red" $$$
+            Dotted $$$
+            emptyArcTypeParms
+         includedArcType = fromString "I"
+
+         referencedArcParms =
+            Color "red" $$$
+            Dashed $$$
+            emptyArcTypeParms
+         referencedArcType = fromString "R"
+
+         theNodeType = fromString ""
+
+
+         focusAction (_,link) =
+            do
+               displayedView <- getDisplayedView
+               focusLink displayedView link
+
+         newNodeTypeParms nodeTypeParms =
+            let
+               editOptions = [
+                  Button "Edit Object"
+                     (\ (_,link) -> editMMiSSObject view link),
+                  Button "Edit Attributes" 
+                     (\ (_,link) -> editObjectAttributes view link),
+                  Button "Export Object"
+                     (\ (_,link) -> exportMMiSSObject view link)
+                  ]
+               menu = LocalMenu (Menu Nothing editOptions)
+            in
+               menu $$$
+               ValueTitle (\ (str,_) -> return str) $$$
+               (DoubleClickAction focusAction) $$$
+               nodeTypeParms
+
+         focus link =
+            do
+               updateSet (knownObjects objectType) (AddElement link)
+               mmissObject <- readLink view link
+               let
+                  includedNames :: VariableSetSource EntityName
+                  includedNames = SinkSource (includedObjects mmissObject)
+
+                  referencedNames :: VariableSetSource EntityName
+                  referencedNames = SinkSource (referencedObjects mmissObject)
+ 
+                  arcEntityName :: ArcType -> EntityName 
+                     -> IO (Maybe (WrappedLink,ArcType))
+                  arcEntityName arcType entityName = 
+                     do
+                        linkOpt <- checkLookup 
+                           (lookupByObject view mmissObject) entityName
+                        return (fmap
+                           (\ link -> (link,arcType))
+                           linkOpt
+                           )
+
+                  includedLinks ::  VariableSetSource (WrappedLink,ArcType) 
+                  includedLinks = mapVariableSetSourceIO'
+                     (arcEntityName includedArcType)
+                     includedNames
+                  
+                  referencedLinks ::  VariableSetSource (WrappedLink,ArcType) 
+                  referencedLinks = mapVariableSetSourceIO'
+                     (arcEntityName referencedArcType)
+                     referencedNames
+
+                  allLinks :: VariableSetSource (WrappedLink,ArcType)
+                  allLinks = concatVariableSetSource includedLinks 
+                     referencedLinks                  
+               return (allLinks,staticSinkSource [])
+      in
+         case getNodeTypeParms wrappedDisplayType (displayParms objectType) of
+            Nothing -> Nothing
+            Just nodeTypeParms ->
+               Just (NodeDisplayData {
+                  topLinks = [],
+                  arcTypes = [
+                     (includedArcType,includedArcParms),
+                     (referencedArcType,referencedArcParms)
+                     ],
+                  nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
+                  getNodeType = (\ object -> theNodeType),
+                  knownSet = SinkSource (knownObjects objectType),
+                  mustFocus = (\ _ -> return False),
+                  focus = focus,
+                  closeDown = done
+                  })
+      )  
+
+-- ------------------------------------------------------------------
+-- Creating new MMiSSObjects
+-- ------------------------------------------------------------------
+
+createMMiSSObject :: MMiSSObjectType -> View -> IO (Maybe (Link MMiSSObject))
+createMMiSSObject _ _ = return Nothing -- for now.
+
+-- ------------------------------------------------------------------
+-- Editing MMiSSObjects
+-- ------------------------------------------------------------------
+
+editMMiSSObject :: View -> Link MMiSSObject -> IO ()
+editMMiSSObject view link = done
+
+-- ------------------------------------------------------------------
+-- Exporting MMiSS objects
+-- ------------------------------------------------------------------
+
+exportMMiSSObject :: View -> Link MMiSSObject -> IO ()
+exportMMiSSObject view link = done
 
 -- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set
@@ -114,6 +273,12 @@ globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
 
 
+-- ------------------------------------------------------------------
+-- Error messages
+-- ------------------------------------------------------------------
+
+errorMess :: String -> IO ()
+errorMess mess = createErrorWin mess []
 
       
    

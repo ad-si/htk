@@ -17,7 +17,7 @@ module AttributesType(
 
    AttributeKey,
    mkAttributeKey,
-
+   fromAttributeKey,
 
    registerAttribute,
    getAllAttributeTypeKeys,
@@ -164,11 +164,10 @@ emptyAttributesType = AttributesType []
 
 ---
 -- Adds a new attribute
-needs :: AttributeValue value => String -> value -> AttributesType 
+needs :: AttributeValue value => AttributeKey -> value -> AttributesType 
    -> AttributesType
-needs keyStr val (AttributesType list) =
+needs key val (AttributesType list) =
    let
-      key = mkAttributeKey keyStr
       typeKey = attributeTypeKey val 
    in
       AttributesType ((key,typeKey):list)
@@ -399,6 +398,11 @@ mkAttributeKey str = AttributeKey {
    name = str,
    descriptor = str
    }
+
+---
+-- This returns the String by the the attribute key should be accessed.
+fromAttributeKey :: AttributeKey -> String
+fromAttributeKey attributeKey = name attributeKey
        
 -- -------------------------------------------------------------------
 -- The AttributeValue class and some instances.
