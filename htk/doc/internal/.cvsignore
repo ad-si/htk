@@ -4,5 +4,8 @@
 *.dvi
 *.log
 *.toc
+*.ps
+*.pdf
 *%
 *.html
+Makefile
