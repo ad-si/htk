@@ -1,0 +1,7 @@
+pgm
+*.o
+*.hi
+.depend
+Makefile.bak
+*%
+backup*
