@@ -1,4 +1,4 @@
--- | This implements setting and modifying the VersionInfo/UserInfo 
+-- | This implements setting and modifying the VersionInfo\/UserInfo 
 -- information.
 module ModifyUserInfo(
    modifyUserInfo,
