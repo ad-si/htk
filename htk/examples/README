@@ -16,13 +16,6 @@ incredibly versatile text widget with its text
 annotations. CanvasEx.hs, XmasCanvas.hs and Blobs.hs introduce the
 canvas widget (XmasCanvas obviously with a seasonal theme).
 
-IMPORTANT: Note that you need to set the environment variable WB_ROOT
-to some directory, which has a subdirectory bin containing an
-executable named wish which is (the Tcl/Tk shell) wish (or a link
-to it). The standard configuration script sets a link in uni/bin to
-this effect; the scrip SET_WB_ROOT sets the environment variable
-accordingly.
-
 These programs were first conceived for a course at Uni Bremen introducing
 (amongst others) HTk-- if you read German, you can look at the corresponding
 slides at http://www.informatik.uni-bremen.de/~cxl/lehre/asp99.
