@@ -365,7 +365,9 @@ undoLastMotion np =
   synchronize np (do
                     act <- getRef (undo_last_motion np)
                     case act of
-                      ToPerform act' -> act'
+                      ToPerform act' -> setRef (undo_last_motion np)
+                                               Performed >>
+                                        act'
                       _ -> done)
 
 isSelected :: Notepad a -> NotepadItem a -> IO Bool
@@ -576,17 +578,20 @@ newNotepad par scrolltype imgsize mstate cnf =
                         case drop of
                           Just (item, rect1, rect2) ->
                             do
-                              selecteditems <- getRef selecteditemsref
                               act <- getRef (undo_last_motion notepad)
                               case act of
-                                Performed ->
-                                  moveItem t (rootx - x0) (rooty - y0)
-                                _ -> done
+                                Performed -> done
+                                _ -> do
+                                       moveItem t (rootx - x0)
+                                                  (rooty - y0)
+                                       selecteditems <-
+                                         getRef selecteditemsref
+                                       sendEv notepad
+                                              (Dropped (item,
+                                                        selecteditems))
                               setRef dropref Nothing
                               destroy rect1 
                               destroy rect2
-                              sendEv notepad
-                                     (Dropped (item, selecteditems))
                           _ -> done))
 
         listenNotepad :: Event ()

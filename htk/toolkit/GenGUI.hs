@@ -413,6 +413,7 @@ newGenGUI mstate =
                                  Deselected c ->
                                    npItemSelected gui (c, False)
                                  Notepad.Dropped inf ->
+                                   putStrLn "np: drop event" >>
                                    npDropEvent gui inf
                                  Notepad.Doubleclick inf ->
                                    npDoubleClick gui inf
