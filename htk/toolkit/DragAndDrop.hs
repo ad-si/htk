@@ -41,6 +41,7 @@ module DragAndDrop (
 
   dropEvent,
   selectionEvent,
+  doubleClickEvent
 
 ) where
 
@@ -78,7 +79,7 @@ data NotepadItem a =
 
 newNotepadItem :: a -> Notepad a -> [Config (NotepadItem a)] ->
                   IO (NotepadItem a)
-newNotepadItem val notepad@(Notepad cnv _ imgsize _ _ _ _ _ _) cnf =
+newNotepadItem val notepad@(Notepad cnv _ imgsize _ _ _ _ _ _ _) cnf =
   do
     img <- newImageItem [parent cnv]
     txt <- newTextItem [font (Helvetica, 10 :: Int), parent cnv]
@@ -92,7 +93,7 @@ newNotepadItem val notepad@(Notepad cnv _ imgsize _ _ _ _ _ _) cnf =
     return item
   where inside :: ImageItem -> TextItem String -> Notepad a ->
                   NotepadItem a -> InterActor -> IA ()
-        inside img txt (Notepad _ _ _ _ _ entereditemref _ _ _) item
+        inside img txt (Notepad _ _ _ _ _ entereditemref _ _ _ _) item
                iact =
           (mouseEnter img >>> setVar entereditemref (Just item)) +>
           (mouseEnter txt >>> setVar entereditemref (Just item)) +>
@@ -166,10 +167,14 @@ getName (NotepadItem _ _ _ _ nm _) =
 -- events --
 
 dropEvent :: Notepad a -> IA (NotepadItem a, [NotepadItem a])
-dropEvent (Notepad _ _ _ _ _ _ _ _ dmsgQ) = lift (receive dmsgQ)
+dropEvent (Notepad _ _ _ _ _ _ _ _ dmsgQ _) = lift (receive dmsgQ)
 
 selectionEvent :: Notepad a -> IA (NotepadItem a, Bool)
-selectionEvent (Notepad _ _ _ _ _ _ _ smsgQ _) = lift (receive smsgQ)
+selectionEvent (Notepad _ _ _ _ _ _ _ smsgQ _ _) = lift (receive smsgQ)
+
+doubleClickEvent :: Notepad a -> IA (NotepadItem a)
+doubleClickEvent (Notepad _ _ _ _ _ _ _ _ _ doubleclickmsgQ) =
+  lift (receive doubleclickmsgQ)
 
 
 -------------
@@ -189,6 +194,7 @@ data Notepad a =
                              -- entered item when other items dragged / bg
           (MsgQueue (NotepadItem a, Bool))        -- selection event queue
           (MsgQueue (NotepadItem a, [NotepadItem a]))   -- dnd event queue
+          (MsgQueue (NotepadItem a))            -- doubleclick event queue
   deriving Eq
 
 data ScrollType = Scrolled | NotScrolled deriving Eq
@@ -199,7 +205,7 @@ type ImageSize = Size
 -- state --
 
 addItemToState :: Notepad a -> NotepadItem a -> IO ()
-addItemToState notepad@(Notepad _ _ _ notepaditemsref _ _ _ _ _) item =
+addItemToState notepad@(Notepad _ _ _ notepaditemsref _ _ _ _ _ _) item =
   do
     notepaditems <- getVar notepaditemsref
     setVar notepaditemsref (item : notepaditems)
@@ -248,7 +254,7 @@ deHighlight item@(NotepadItem img _ txt _ _ sel) =
         destroy rect1 >> destroy rect2 >> setVar sel Nothing
 
 selectItem :: Notepad a -> NotepadItem a -> IO ()
-selectItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _) item =
+selectItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _ _) item =
   synchronize np
     (do
        deselectAll np
@@ -258,7 +264,7 @@ selectItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _) item =
        sendIO smsgQ (item, True))
 
 selectAnotherItem :: Notepad a -> NotepadItem a -> IO ()
-selectAnotherItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _)
+selectAnotherItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _ _)
                   item =
   synchronize np
     (do
@@ -268,7 +274,7 @@ selectAnotherItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _)
        sendIO smsgQ (item, True))
 
 deselectItem :: Notepad a -> NotepadItem a -> IO ()
-deselectItem np@(Notepad _ _ _ _ selecteditemsref _ _ smsgQ _) item =
+deselectItem np@(Notepad _ _ _ _ selecteditemsref _ _ smsgQ _ _) item =
   synchronize np
     (do
        deHighlight item
@@ -278,7 +284,7 @@ deselectItem np@(Notepad _ _ _ _ selecteditemsref _ _ smsgQ _) item =
 
 selectAll :: Notepad a -> IO ()
 selectAll np@(Notepad cnv _ _ notepaditemsref selecteditemsref _ _ smsgQ
-                      _) =
+                      _ _) =
   synchronize np
     (do
        notepaditems <- getVar notepaditemsref
@@ -291,7 +297,7 @@ selectAll np@(Notepad cnv _ _ notepaditemsref selecteditemsref _ _ smsgQ
 
 deselectAll :: Notepad a -> IO ()
 deselectAll np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ smsgQ 
-                        _) =
+                        _ _) =
   synchronize np
     (do
        notepaditems <- getVar notepaditemsref
@@ -305,7 +311,7 @@ deselectAll np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ smsgQ
        done)
 
 deleteItem :: Notepad a -> NotepadItem a -> IO ()
-deleteItem np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _)
+deleteItem np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _ _)
            item =
   synchronize np
     (do
@@ -316,7 +322,8 @@ deleteItem np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _)
        destroy item)
 
 clearNotepad :: Notepad a -> IO ()
-clearNotepad np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _) =
+clearNotepad np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _
+                         _) =
   synchronize np
     (do
        notepaditems <- getVar notepaditemsref
@@ -325,7 +332,7 @@ clearNotepad np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _) =
        setVar selecteditemsref [])
 
 isSelected :: Notepad a -> NotepadItem a -> IO Bool
-isSelected np@(Notepad _ _ _ _ selecteditemsref _ _ _ _) item =
+isSelected np@(Notepad _ _ _ _ selecteditemsref _ _ _ _ _) item =
   synchronize np
     (do
        selecteditems <- getVar selecteditemsref
@@ -334,7 +341,7 @@ isSelected np@(Notepad _ _ _ _ selecteditemsref _ _ _ _) item =
 selectItemsWithin :: Position -> Position -> Notepad a -> IO ()
 selectItemsWithin (x0, y0) (x1, y1)
                   np@(Notepad _ _ _ notepaditemsref selecteditemsref _
-                              _ _ _) =
+                              _ _ _ _) =
   synchronize np
     (do
        notepaditems <- getVar notepaditemsref
@@ -351,7 +358,7 @@ selectItemsWithin (x0, y0) (x1, y1)
        done)
 
 getSelectedItems :: Notepad a -> IO [NotepadItem a]
-getSelectedItems np@(Notepad _ _ _ _ selecteditemsref _ _ _ _) =
+getSelectedItems np@(Notepad _ _ _ _ selecteditemsref _ _ _ _ _) =
   synchronize np
     (do
        selecteditems <- getVar selecteditemsref
@@ -372,21 +379,24 @@ newNotepad scrolltype imgsize cnf =
     cnv <- newCanvas []
     smsgQ <- newMsgQueue
     dmsgQ <- newMsgQueue
+    doubleclickmsgQ <- newMsgQueue
     notepad <- if scrolled then
                  do
                    scrollbox <- newScrollBox cnv []
                    return (Notepad cnv (Just scrollbox) imgsize
                                    notepaditemsref selecteditemsref
-                                   entereditemref dropref smsgQ dmsgQ)
+                                   entereditemref dropref smsgQ dmsgQ
+                                   doubleclickmsgQ)
                else
                  return (Notepad cnv Nothing imgsize notepaditemsref
                                  selecteditemsref entereditemref dropref
-                                 smsgQ dmsgQ)
+                                 smsgQ dmsgQ doubleclickmsgQ)
     interactor (click notepad)
     foldl (>>=) (return notepad) cnf
     return notepad
   where click :: Notepad a -> InterActor -> IA ()
-        click notepad@(Notepad cnv _ _ _ _ entereditemref _ _ _) iact =
+        click notepad@(Notepad cnv _ _ _ _ entereditemref _ _ _
+                               doubleclickmsgQ) iact =
             (mouseButtonPress cnv 1 >>>=
              \ (x, y) -> do
                            entereditem <- getVar entereditemref
@@ -408,23 +418,26 @@ newNotepad scrolltype imgsize cnf =
                                  tag <- createTagFromSelection notepad
                                  become iact (moving notepad tag x y x y
                                                      iact))
-         +> (mouseEvent cnv (Shift, ButtonPress (Just 1)) >>>=
-             \ (x, y) -> do
-                           entereditem <- getVar entereditemref
-                           case entereditem of
-                             Nothing -> done
-                             Just item -> do
-                                            b <- isSelected notepad item
-                                            (if b then
-                                               deselectItem notepad item
-                                             else
-                                               selectAnotherItem notepad
-                                                                 item))
+         +> (mouseEvent cnv (Double, ButtonPress (Just 1)) >>>
+               do
+                 entereditem <- getVar entereditemref
+                 case entereditem of
+                   Just item -> sendIO doubleclickmsgQ item
+                   _ -> done)
+         +> (mouseEvent cnv (Shift, ButtonPress (Just 1)) >>>
+               do
+                 entereditem <- getVar entereditemref
+                 case entereditem of
+                   Just item -> do
+                                  b <- isSelected notepad item
+                                  (if b then deselectItem notepad item
+                                   else selectAnotherItem notepad item)
+                   _ -> done)
 
         selectingByRectangle :: Notepad a -> Rectangle -> Distance ->
                                 Distance -> Distance -> Distance ->
                                 InterActor -> IA ()
-        selectingByRectangle np@(Notepad cnv _ _ _ _ _ _ _ _) rect x0 y0
+        selectingByRectangle np@(Notepad cnv _ _ _ _ _ _ _ _ _) rect x0 y0
                              x1 y1 iact =
              (mouseEvent cnv (Button1, Motion) >>>=
               \ ((x, y), _)-> do
@@ -454,7 +467,7 @@ newNotepad scrolltype imgsize cnf =
         createTagFromSelection :: Notepad a -> IO CanvasTag
         createTagFromSelection notepad@(Notepad cnv _ _ notepaditemsref
                                                 selecteditemsref _ _ _
-                                                _) =
+                                                _ _) =
           do
             notepaditems <- getVar notepaditemsref
             selecteditems <- getVar selecteditemsref
@@ -464,7 +477,7 @@ newNotepad scrolltype imgsize cnf =
 
         checkDropZones :: Notepad a -> Distance -> Distance -> IO ()
         checkDropZones notepad@(Notepad cnv _ _ notepaditemsref
-                                        selecteditemsref _ dropref _ _)
+                                        selecteditemsref _ dropref _ _ _)
                        x y =
           let doSet item@(NotepadItem _ imgsize _ _ _ _)=
                 do
@@ -530,7 +543,7 @@ newNotepad scrolltype imgsize cnf =
         moving :: Notepad a -> CanvasTag -> Distance -> Distance ->
                   Distance -> Distance -> InterActor -> IA ()
         moving notepad@(Notepad cnv _ _ _ selecteditemsref _ dropref _
-                                dmsgQ) tag rootx rooty x0 y0 iact =
+                                dmsgQ _) tag rootx rooty x0 y0 iact =
           (mouseEvent cnv (Button1, Motion) >>>=
              \ ((x, y), _) -> synchronize notepad
                                 (do
@@ -559,7 +572,7 @@ newNotepad scrolltype imgsize cnf =
 -- instances --
 
 instance GUIObject (Notepad a) where
-  toGUIObject (Notepad cnv scr _ _ _ _ _ _ _) =
+  toGUIObject (Notepad cnv scr _ _ _ _ _ _ _ _) =
     case scr of Nothing  -> toGUIObject cnv
                 Just box -> toGUIObject box
   cname _ = "Notepad"
@@ -588,18 +601,18 @@ instance Synchronized (Notepad a) where
 instance HasBorder (Notepad a)
 
 instance HasColour (Notepad a) where
-  legalColourID (Notepad cnv _ _ _ _ _ _ _ _) = hasBackGroundColour cnv
-  setColour notepad@(Notepad cnv _ _ _ _ _ _ _ _) cid col =
+  legalColourID (Notepad cnv _ _ _ _ _ _ _ _ _) = hasBackGroundColour cnv
+  setColour notepad@(Notepad cnv _ _ _ _ _ _ _ _ _) cid col =
     setColour cnv cid col >> return notepad
-  getColour (Notepad cnv _ _ _ _ _ _ _ _) cid = getColour cnv cid
+  getColour (Notepad cnv _ _ _ _ _ _ _ _ _) cid = getColour cnv cid
 
 instance HasSize (Notepad a) where
-  width s notepad@(Notepad cnv _ _ _ _ _ _ _ _)  =
+  width s notepad@(Notepad cnv _ _ _ _ _ _ _ _ _)  =
     cnv # width s >> return notepad
-  getWidth (Notepad cnv _ _ _ _ _ _ _ _) = getWidth cnv
-  height s notepad@(Notepad cnv _ _ _ _ _ _ _ _) =
+  getWidth (Notepad cnv _ _ _ _ _ _ _ _ _) = getWidth cnv
+  height s notepad@(Notepad cnv _ _ _ _ _ _ _ _ _) =
     cnv # height s >> return notepad
-  getHeight (Notepad cnv _ _ _ _ _ _ _ _) = getHeight cnv
+  getHeight (Notepad cnv _ _ _ _ _ _ _ _ _) = getHeight cnv
 
 instance ParentWidget (Notepad a) (NotepadItem a)
 

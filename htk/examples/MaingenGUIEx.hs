@@ -23,7 +23,6 @@ import RVar
 import System
 import IOExts
 import Dynamic
-import Dynamics
 
 foldref :: RVar (Maybe Item)
 foldref = unsafePerformIO (newRVar Nothing)
@@ -38,8 +37,13 @@ lastactiveref = unsafePerformIO (newRVar (unsafePerformIO (newButton [])))
 imgref :: RVar (IO Image)
 imgref = unsafePerformIO (newRVar folderImg)
 
+instance Typeable Image where
+  typeOf i = typeOf ()           -- ??
+
+{-
 instance HasTyCon Image where
-  tyCon i = Dynamic.mkTyCon "Image"
+  tyCon i = mkTyCon "Image"
+-}
 
 
 -------------
@@ -59,17 +63,15 @@ instance HasProp Container Value where
 
 instance CItem Container
 
-{-
-instance HasTyCon Container where
-  tyCon c = Dynamic.mkTyCon "Container"
--}
-
 
 -----------------
 -- object type --
 -----------------
 
-data MyColor = Red | Green | Blue | Yellow
+data MyColor = Red | Green | Blue | Yellow deriving Eq
+
+instance Typeable MyColor where
+  typeOf i = typeOf ()
 
 data MyObject =
   MyObject (Prop Name) (Prop ItemIcon) (Prop Value)
@@ -85,11 +87,6 @@ instance HasProp MyObject Value where
 
 instance CItem MyObject
 
-{-
-instance HasTyCon MyObject where
-  tyCon c = Dynamic.mkTyCon "MyObject"
--}
-
 
 ----------------------------------------
 -- external adding of folders / items --
@@ -98,7 +95,6 @@ instance HasTyCon MyObject where
 addNum :: String -> String -> IO ()
 addNum nm ent = putStrLn ("not yet implemented")
 
-{-
 addTxt :: String -> String -> IO ()
 addTxt nm ent =
   do
@@ -108,45 +104,30 @@ addTxt nm ent =
                     pname <- newProp (newName nm)
                     picon <- newProp txtImg
                     pval <- newProp (toDyn ent)
-                    addItem par (LeafItem (MyObject valref pname picon))
+                    addItem par (LeafItem (MyObject pname picon pval))
                     done
       _ -> done
--}
-{-
+
 addCol :: String -> String -> IO ()
 addCol nm ent =
   do
     mpar <- getVar foldref 
     case mpar of
       Just par -> 
-        case ent of
-          "Red" -> do
-                     valref <- newRVar Red
-                     pname <- newProp (newName nm)
-                     picon <- newProp redImg
-                     addItem par (LeafItem (MyCol valref pname picon))
-                     done
-          "Blue" -> do
-                      valref <- newRVar Blue
-                      pname <- newProp (newName nm)
-                      picon <- newProp blueImg
-                      addItem par (LeafItem (MyCol valref pname picon))
-                      done
-          "Green" -> do
-                       valref <- newRVar Green
-                       pname <- newProp (newName nm)
-                       picon <- newProp greenImg
-                       addItem par (LeafItem (MyCol valref pname picon))
-                       done
-          "Yellow" -> do
-                        valref <- newRVar Yellow
-                        pname <- newProp (newName nm)
-                        picon <- newProp yellowImg
-                        addItem par (LeafItem (MyCol valref pname picon))
-                        done
-          _ -> done
-      _ -> done
--}
+        do
+          pval <- newProp (case ent of
+                             "Red" -> toDyn Red
+                             "Blue" -> toDyn Blue
+                             "Green" -> toDyn Green
+                             "Yellow" -> toDyn Yellow)
+          pname <- newProp (newName nm)
+          picon <- newProp (case ent of
+                              "Red" -> redImg
+                              "Blue" -> blueImg
+                              "Green" -> greenImg
+                              "Yellow" -> yellowImg)
+          addItem par (LeafItem (MyObject pname picon pval))
+          done
 
 addImg :: String -> Maybe FilePath -> IO ()
 addImg nm mimgpath =
@@ -157,7 +138,7 @@ addImg nm mimgpath =
         case mimgpath of
           Just imgpath -> do
                             let img = newImage [filename imgpath]
-                            pval <- newProp (Dynamics.toDyn img)
+                            pval <- newProp (toDyn img)
                             pname <- newProp (newName nm)
                             picon <- newProp imgImg
                             addItem par
@@ -166,7 +147,6 @@ addImg nm mimgpath =
           _ -> done
       _ -> done
 
-{-
 addFolder :: String -> IO ()
 addFolder nm =
   do
@@ -174,13 +154,14 @@ addFolder nm =
     case mpar of
       Just par ->
         do
+          pval <- newProp (toDyn nm)
           pname <- newProp (newName nm)
           img <- getVar imgref
           picon <- newProp img
-          addItem par (FolderItem (Container pname picon) [])
+          addItem par (FolderItem (Container pname picon pval) [])
           done
       _ -> done
--}
+
 
 -------------------
 -- example items --
@@ -193,28 +174,28 @@ addExampleFolders gui =
         do
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
-          pval <- newProp (Dynamics.toDyn val)
+          pval <- newProp (toDyn val)
           return (LeafItem (MyObject pname picon pval))
 
       addImgFolder :: Item -> String -> ItemIcon -> String ->
                       [(IO Image, ItemIcon)] -> Int -> IO ()
       addImgFolder par nm icon subnm vals_icons i =
         do
-          pval <- newProp (Dynamics.toDyn ())
+          pval <- newProp (toDyn ())
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
           items <- mapM (mkImgItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
           addItem par (FolderItem (Container pname picon pval) items)
           done
-{-
+
       mkTxtItem :: String -> (Int, (String, ItemIcon)) -> IO NewItem
       mkTxtItem nm (i, (val, icon)) =
         do
-          valref <- newRVar val
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
-          return (LeafItem (MyTxt valref pname picon))
+          pval <- newProp (toDyn val)
+          return (LeafItem (MyObject pname picon pval))
 
       addTxtFolder :: Item -> String -> ItemIcon -> String ->
                      [(String, ItemIcon)] -> Int -> IO ()
@@ -222,19 +203,19 @@ addExampleFolders gui =
         do
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
+          pval <- newProp (toDyn ())
           items <- mapM (mkTxtItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon) items)
+          addItem par (FolderItem (Container pname picon pval) items)
           done
--}
-{-
+
       mkNumItem :: String -> (Int, (Int, ItemIcon)) -> IO NewItem
       mkNumItem nm (i, (val, icon)) =
         do
-          valref <- newRVar val
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
-          return (LeafItem (MyNum valref pname picon))
+          pval <- newProp (toDyn val)
+          return (LeafItem (MyObject pname picon pval))
 
       addNumFolder :: Item -> String -> ItemIcon -> String ->
                       [(Int, ItemIcon)] -> Int -> IO ()
@@ -242,19 +223,19 @@ addExampleFolders gui =
         do
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
+          pval <- newProp (toDyn ())
           items <- mapM (mkNumItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon) items)
+          addItem par (FolderItem (Container pname picon pval) items)
           done
--}
-{-
+
       mkColItem :: String -> (Int, (MyColor, ItemIcon)) -> IO NewItem
       mkColItem nm (i, (val, icon)) =
         do
-          valref <- newRVar val
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
-          return (LeafItem (MyCol valref pname picon))
+          pval <- newProp (toDyn val)
+          return (LeafItem (MyObject pname picon pval))
 
       addColFolder :: Item -> String -> ItemIcon -> String ->
                       [(MyColor, ItemIcon)] -> Int -> IO ()
@@ -262,23 +243,22 @@ addExampleFolders gui =
         do
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
+          pval <- newProp (toDyn ())
           items <- mapM (mkColItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon) items)
+          addItem par (FolderItem (Container pname picon pval) items)
           done
--}
   in do
        guiroot <- root gui
 
        mapM (addImgFolder guiroot "images." imgfolderImg "image_item."
-                         [(folderImg, imgImg), (folderImg, imgImg)]) [1]
+                         [(img1, imgImg), (img2, imgImg)]) [1]
 
-{-
        pname1 <- newProp (newName ("example_folder.1"))
        picon1 <- newProp folderImg
+       pval1 <- newProp (toDyn ())
        exfolder1 <- addItem guiroot
-                            (FolderItem (Container pname1 picon1) [])
-
+                      (FolderItem (Container pname1 picon1 pval1) [])
        mapM (addTxtFolder guiroot "texts." txtfolderImg "text_item"
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
@@ -288,8 +268,6 @@ addExampleFolders gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
--}
-{-
        mapM (addTxtFolder guiroot "texts." txtfolderImg
                           "text_item_width_long_name"
                           [("content of text item 1", txtImg),
@@ -300,8 +278,6 @@ addExampleFolders gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
--}
-{-
        mapM (addNumFolder exfolder1 "numbers." numfolderImg "number_item."
                          [(25 :: Int, numImg), (17, numImg), (8, numImg), 
                           (73, numImg), (2451, numImg), (3, numImg),
@@ -312,7 +288,6 @@ addExampleFolders gui =
                           (Yellow, yellowImg), (Red, redImg),
                           (Green, greenImg), (Blue, blueImg),
                           (Blue, blueImg)]) [1..3]
--}
        done
 
 
@@ -339,14 +314,6 @@ chooseImageFile b =
 main :: IO ()
 main =
   do
-{-
-    pname <- newProp (newName "test")
-    picon <- newProp folderImg
-    imgref <- newRVar folderImg
-    putStrLn ("Testing.. object type is " ++
-              show (typeOf (MyImg imgref pname picon)))
--}
-
     tk <- htk []
     main <- newVFBox []
     win <- window main [text "GenGUI example"]
@@ -469,7 +436,7 @@ main =
                       (triggered addtxt >>> do
                                               nm <- getValue txtnm
                                               val <- getValue txtval
-                                              {-addTxt nm val-}
+                                              addTxt nm val
                                               done) +>
                       (triggered addnum >>> do
                                               nm <- getValue numnm
@@ -479,13 +446,13 @@ main =
                       (triggered addcol >>> do
                                               nm <- getValue colnm
                                               val <- getValue colmenu
-                                              {-addCol nm val-}
+                                              addCol nm val
                                               done) +>
                       (triggered imgbutton >>> chooseImageFile
                                                  imgbutton) +>
                       (triggered addfold >>> do
                                                nm <- getValue foldnm
-                                               {-addFolder nm-}
+                                               addFolder nm
                                                done) +>
                       (triggered standardfoldimg >>>
                          imgSelected standardfoldimg folderImg) +>
@@ -500,7 +467,7 @@ main =
                       (triggered quit >>> destroy tk) +>
                       (selectedItemInTreeList gui >>>=
                          selectedTl foldlab) +>
-                      (selectedItemInNotepad gui >>>= selectedNp))
+                      (doubleClickInNotepad gui >>>= doubleClickNp))
     addExampleFolders gui
     sync (destroyed win)
     destroy tk
@@ -529,50 +496,81 @@ selectedTl foldlab mitem =
                           setVar foldref (Just item)
                       _ -> setVar foldref Nothing
 
-selectedNp :: (Item, Bool) -> IO ()
-selectedNp (item, b) =
-  if b then
-    let newitem = content item
-    in case newitem of
-         LeafItem ext ->
-           do
-             val <- get ext :: IO Dynamic
-             putStrLn ("got dynamic value : " ++ show val)
-             let iodummy = newImage []
-             let ioimg = Dynamic.fromDyn val iodummy
-             dummy <- iodummy
-             img <- ioimg
-             (if img /= dummy then
-                do
-                  main <- newVBox []
-                  win <- window main [text "Image"]
-                  putStrLn "(1)"
-                  newLabel [photo img, parent main] :: IO (Label Image)
-                  putStrLn "(2)"
-                  quit <- newButton [text "Quit", parent main,
-                                     command (\ () -> return ())]
-                  interactor (\i -> triggered quit >>> destroy win)
-              else putStrLn "no image or cast failed")
-         _ -> putStrLn "folder item selected"
-  else done
+doubleClickNp :: Item -> IO ()
+doubleClickNp item =
+  let newitem = content item
+  in case newitem of
+       LeafItem ext ->
+         do
+           val <- get ext :: IO Dynamic
+           case fromDynamic val :: Maybe (IO Image) of
+             Just ioimg -> do
+                             main <- newVBox []
+                             win <- window main [text "Image"]
+                             img <- ioimg
+                             newLabel [photo img, parent main] ::
+                               IO (Label Image)
+                             quit <- newButton
+                                       [text "Close", parent main,
+                                        command (\ () -> return ())]
+                             interactor (\i -> triggered quit >>>
+                                                 destroy win)
+             _ -> done
+           case fromDynamic val :: Maybe String of
+             Just str -> do
+                           main <- newVBox []
+                           win <- window main [text "Text"]
+                           newLabel [value ("     " ++ str ++ "     "),
+                                     parent main, height 5,
+                                     relief Sunken,
+                                     font (Helvetica, 12 :: Int)] ::
+                             IO (Label String)
+                           quit <- newButton
+                                     [text "Close", parent main,
+                                      command (\ () -> return ())]
+                           interactor (\i -> triggered quit >>>
+                                               destroy win)
+             _ -> done
+           case fromDynamic val :: Maybe MyColor of
+             Just mycolor -> do
+                               main <- newVBox []
+                               win <- window main [text "Color"]
+                               newLabel [parent main,
+                                         relief Sunken, size (20,8),
+                                         font (Helvetica, 18 :: Int),
+                                         bg (case mycolor of
+                                               Red -> "red"
+                                               Green -> "green"
+                                               Blue -> "blue"
+                                               Yellow -> "yellow"),
+                                         value (case mycolor of
+                                                  Red -> "Red"
+                                                  Green -> "Green"
+                                                  Blue -> "Blue"
+                                                  Yellow -> "Yellow")]
+                                 :: IO (Label String)
+                               quit <- newButton
+                                         [text "Close", parent main,
+                                          command (\ () -> return ())]
+                               interactor (\i -> triggered quit >>>
+                                                   destroy win)
+             _ -> done
+           case fromDynamic val :: Maybe Int of
+             Just n -> do
+                         main <- newVBox []
+                         win <- window main [text "Number"]
+                         newLabel [value (show n), relief Sunken,
+                                   size (20,8),
+                                   font (Helvetica, 18 :: Int),
+                                   parent main] ::
+                           IO (Label String)
+                         quit <- newButton [text "Close", parent main,
+                                            command (\ () -> return ())]
+                         interactor (\i -> triggered quit >>>
+                                             destroy win)
+             _ -> done
+       _ -> done
 
-{-
-  if b then
-    let mmyobject = Dynamic.fromDynamic (contentD item) :: Maybe MyObject
-    in case mmyobject of
-         Just (MyImg ioimgref _ _) -> putStrLn "image found" >>
-           do
-             ioimg <- getVar ioimgref
-             img <- ioimg
-             main <- newVBox []
-             win <- window main [text "Image"]
-             newLabel [photo img, parent main] :: IO (Label Image)
-             quit <- newButton [text "Quit", command (\ () -> return ())]
-             interactor (\i -> triggered quit >>> destroy win)
-         Nothing -> putStrLn "cast failed"
-         _ -> putStrLn "not an image"
-  else done
--}
 
 ------------
 -- images --
