@@ -43,7 +43,6 @@ main =
       prefix <- getCurrentDirectory
       iNodeSource <- mkINodeSource prefix
       debug "iNodeSource"
-      portDesc <- makePort (11394::Int)
-      newClientEV <- listenEV portDesc
+      newClientEV <- listenEV (11394::Int)
       debug "listening"
       mainLoop iNodeSource newClientEV

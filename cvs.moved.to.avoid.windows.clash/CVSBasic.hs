@@ -37,7 +37,7 @@ compileGlobalOptions(
       ]
    ]
 
-newtype CVSFile = CVSFile String
+newtype CVSFile = CVSFile String deriving (Eq,Ord)
 instance Show CVSFile where
    showsPrec prec (CVSFile str) acc = showsPrec prec str acc
 
@@ -50,7 +50,7 @@ instance Read CVSFile where
             (\ (result,rest) -> (CVSFile result,rest))
             parses
 
-newtype CVSVersion = CVSVersion String 
+newtype CVSVersion = CVSVersion String deriving Eq
  
 instance Show CVSVersion where
    showsPrec prec (CVSVersion str) acc = showsPrec prec str acc

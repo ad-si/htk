@@ -9,6 +9,9 @@ module CVSHigh(
       -- unexpected output.
    checkReturn, -- :: CVSReturn -> IO ()
       -- confirms that CVSReturn is CVSSuccess or throws an error
+
+      -- An alternative approach is to use the routines with names
+      -- ending in Check which add checkReturn automatically.
    CVSFile(..),    -- CVSFile and CVSVersion are newtypes for String,
    CVSVersion(..), -- imported from CVSBasic
    CVSLoc,
@@ -18,10 +21,12 @@ module CVSHigh(
       -- First string is repository; second working directory.
    cvsAdd, -- :: CVSLoc -> CVSFile -> IO CVSReturn
       -- cvsAdd adds a new directory or file to the repository.
-      -- It needs to be done before a commit operation.   
+      -- It needs to be done before a commit operation.
+   cvsAddCheck, -- :: CVSLoc -> CVSFile -> IO ()
    cvsUpdate, -- :: CVSLoc -> CVSFile -> CVSVersion -> IO CVSReturn
       -- cvsUpdate retrieves a particular version of a file from the
       -- repository to the client's working directory.
+   cvsUpdateCheck, -- :: CVSLoc -> CVSFile -> CVSVersion -> IO ()
    cvsCommit, 
       -- :: CVSLoc -> CVSFile -> (Maybe CVSVersion) -> 
       --   IO (Maybe CVSVersion,CVSReturn)
@@ -31,13 +36,19 @@ module CVSHigh(
       -- is a revision.
       -- In the event of a successful return, the String is the version
       -- assigned to the new version.
+   cvsCommitCheck, -- :: CVSLoc -> CVSFile -> (Maybe CVSVersion) ->
+      --   IO CVSVersion
    cvsListVersions,
       -- :: CVSLoc -> CVSFile -> IO (Maybe [CVSVersion],CVSReturn)
       -- If successful, returns all versions known so far of the file 
       -- argument.
-   cvsCheckout
+   cvsListVersionsCheck,
+      -- :: CVSLoc -> CVSFile -> IO [CVSVersion]
+   cvsCheckout,
       -- :: CVSLoc -> CVSFile -> IO CVSReturn
       -- This is used to initialise a directory
+   cvsCheckoutCheck
+      -- :: CVSLoc -> CVSFile -> IO ()
    ) where
 
 import System
@@ -93,6 +104,7 @@ checkReturn err = ioError(userError(show err))
 newtype CVSLoc = CVSLoc GlobalOptions
 
 newCVSLoc :: String -> String -> IO CVSLoc
+-- NB - CVSDB actually calls this twice.
 newCVSLoc cvsRoot workingDir =
    return(CVSLoc(GlobalOptionsSimple
       {workingDir = workingDir,cvsRoot=cvsRoot}))
@@ -384,3 +396,39 @@ cvsCheckout (CVSLoc globalOptions) file =
             +> mustEOFHere exp
       (_,result) <- tryCVS "cvs checkout" exp checkoutOut
       return result
+
+--------------------------------------------------------------
+-- Checked versions
+--------------------------------------------------------------
+
+cvsAddCheck :: CVSLoc -> CVSFile -> IO ()
+cvsAddCheck loc file = cvsAdd loc file >>= checkReturn
+
+cvsUpdateCheck :: CVSLoc -> CVSFile -> CVSVersion -> IO ()
+cvsUpdateCheck loc file version = cvsUpdate loc file version >>= checkReturn
+
+cvsCommitCheck :: CVSLoc -> CVSFile -> (Maybe CVSVersion) -> IO CVSVersion
+cvsCommitCheck loc file version =
+   do
+      (cvsVersOpt,cvsReturn) <- cvsCommit loc file version
+      checkReturn cvsReturn
+      let 
+         Just cvsVers = cvsVersOpt
+      return cvsVers
+
+cvsListVersionsCheck :: CVSLoc -> CVSFile -> IO [CVSVersion]
+cvsListVersionsCheck loc file =
+   do
+      (listOpt,cvsReturn) <- cvsListVersions loc file
+      checkReturn cvsReturn
+      let
+         Just list = listOpt
+      return list
+
+cvsCheckoutCheck :: CVSLoc -> CVSFile -> IO ()
+cvsCheckoutCheck loc file = cvsCheckout loc file >>= checkReturn
+
+
+
+
+
