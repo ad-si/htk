@@ -2,6 +2,7 @@ LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
        $(TOP)/events/libevents.a $(TOP)/util/libutil.a
 
 SRCS       = MainnotepadStateEx.hs\
+	     MainiconBarEx.hs\
              MainwithdrawConfigTest.hs\
              MaintreeListStateEx.hs\
 	     MainreliefEx.hs\

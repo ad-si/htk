@@ -1,0 +1,13 @@
+*.o
+*.hi
+.depend
+Makefile
+*%
+
+iconBarEx
+notepadStateEx
+selectBoxEx
+treeListStateEx
+weemenuEx
+reliefEx
+withdrawConfigTest
