@@ -36,6 +36,10 @@ module FileSys(
       -- :: FileSys -> FolderObj -> [((String,UniType),FileObj)]
    lookupInFolder,
       -- :: FileSys -> FolderObj -> String -> UniType -> Maybe FileObj
+   lookupLocalFilePath,
+      -- :: FileSys -> FileObj -> FilePath -> IO FileObj
+      -- lookupLocalPath looks up an object contained within another following
+      -- the path names provided.
    extractFileObj,
       -- :: FileSys -> FileObj -> FilePath -> IO ()
       -- copies a whole FileObj into the specified location.
@@ -323,6 +327,9 @@ extractFileAttributes (FileSys{attributesCache=attributesCache})
    (FileObj location _ attributeVersion _) =
       getCached attributesCache (AttributesObj location attributeVersion)
       
+lookupLocalFilePath :: FileSys -> FileObj -> FilePath -> IO FileObj
+lookupLocalFilePath fileSys fileObj filePath =
+   lookupLocalPath fileSys fileObj (breakName filePath)
 
 lookupLocalPath :: FileSys -> FileObj -> BrokenPath -> IO FileObj
 -- lookupLocalPath looks up an object contained within another following

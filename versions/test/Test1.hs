@@ -67,6 +67,7 @@ main =
          NewFile bat
          ]
 
+
       writeTxt ("foo"+++"bat") "bat2"
       version3 <- commit version2 [
          ChangeFile bat
@@ -82,6 +83,23 @@ main =
          RMObject foo
          ]
 
+      top2 <- getTop fileSys version2
+      barObj2 <- lookupLocalFilePath fileSys top2 "bar.txt"
+      barAtts <- extractFileAttributes fileSys barObj2
+
+      batObj2 <- lookupLocalFilePath fileSys top2 "foo/bat.txt"
+      batAtts <- extractFileAttributes fileSys batObj2
+
+      let
+         barAtts' = setAttribute barAtts "BAR" (Just 2)
+         barAtts'' = setAttribute barAtts' "FOO" (Just "BAR")
+         batAtts' = setAttribute batAtts "FOO" (Just "BAZ")
+      
+      version22 <- commit version2 [
+         ChangeAttributes bar barAtts'',
+         ChangeAttributes bat batAtts'
+         ]
+
       let
          output version str =
             do
@@ -89,10 +107,20 @@ main =
                extractFileObj fileSys top (directory +++ str)
       output version1 "1"
       output version2 "2"
+      output version22 "22"
       output version3 "3"
       output version4 "4"
+
+      top22 <- getTop fileSys version22
+      barObj22 <- lookupLocalFilePath fileSys top22 "bar.txt"
+      barAtts <- extractFileAttributes fileSys barObj22
+
+      batObj22 <- lookupLocalFilePath fileSys top22 "foo/bat.txt"
+      batAtts <- extractFileAttributes fileSys batObj22
+      putStr(show (barAtts,batAtts))
+
                
-         
+                   
       
    
       
