@@ -63,8 +63,7 @@
 #
 # libfast  should be like lib but faster, since it uses ghc --make.
 #
-# exports.tar.gz Makes a tarball of all files to be exported contained
-#          in this subdirectory.
+# exports  construct .zip and .tar.gz binary archives.
 #
 # We also define trivial targets doc and dochere.  The subdirectory
 # Makefiles should implement appropriate dependencies for dochere, if any!!
@@ -138,7 +137,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames exports.tar.gz exports.zip
+.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -368,13 +367,14 @@ exportnames :
 
 # The name of the export file
 EXPORTPREFIX = uni-$(UNIVERSION)-$(OSTITLE)-ghc-$(GhcVersion)
-exports.tar.gz :
-	DIR=`pwd`;cd $(TOP)/..;$(TAR) -czf $$DIR/exports.tar.gz `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
-	$(LN) -s $@ $(EXPORTPREFIX).tar.gz
 
-exports.zip :
-	DIR=`pwd`;cd $(TOP)/..;$(ZIP) -9 $$DIR/exports.zip `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
-	$(LN) -s $@ $(EXPORTPREFIX).zip
+exports : $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip
+
+$(EXPORTPREFIX).tar.gz :
+	DIR=`pwd`;cd $(TOP)/..;$(TAR) -czf $$DIR/$@ `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
+
+$(EXPORTPREFIX).zip :
+	DIR=`pwd`;cd $(TOP)/..;$(ZIP) -9 $$DIR/$@ `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
 
 
 

@@ -236,12 +236,13 @@ The following (should) work.
 #
    gmake doc
    gmake prepareexports
-   gmake exports.tar.gz
+   gmake exports
 
-Then exports.tar.gz will be the binary distribution.  You should afterwards
-re-run ./configure as gmake prepareexports (currently) alters the 
-default_options code in util, to put in generic locations for wish, daVinci 
-& co.
+This will create .tar.gz and .zip files containing a binary distribution
+(the names begin with uni- and includes version numbers and so on).  
+You should afterwards re-run ./configure as gmake prepareexports (currently) 
+alters the default_options code in util, to put in generic locations for wish,
+daVinci & co.
 
 For systems where hdoc & LaTeX are not installed you could for example
 find a machine where you CAN build the documentation, do it there,
