@@ -7,7 +7,7 @@ SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs UniqueFile.hs \
   TempFile.hs Sink.hs Broadcaster.hs VariableSet.hs VariableMap.hs \
   CommandStringSub.hs WaitOnN.hs FileSystem.hs PtrMagic.hs CacheTable.hs \
-  Source.hs
+  Source.hs XmlValue.hs
 
 SRCSC      = new_object.c default_options.c copy_file.c
 

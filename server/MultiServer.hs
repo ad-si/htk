@@ -46,7 +46,7 @@ data MultiServer = MultiServer {
    socket :: Socket,
 
    -- returns True if we accept clients from this host
-   hostNameFilter :: Hostname -> Bool,
+   hostNameFilter :: String -> Bool,
 
    -- map to MVar for unsatisfied requests
    awaitedClients :: Registry String (MVar Handle)

@@ -35,10 +35,12 @@ module AttributesType(
 import Maybe
 
 import IOExts
+import ExtendedPrelude
 
 import Dynamics
 import Registry
 import Computation
+import XmlValue
 
 import DialogWin
 import SimpleForm
@@ -242,6 +244,10 @@ instance HasCodedValue AttributeTypeKey where
    encodeIO = mapEncodeIO (\ (AttributeTypeKey str) -> str)
    decodeIO = mapDecodeIO (\ str -> AttributeTypeKey str)
 
+--- 
+-- The instance is for error messages.
+instance Show AttributeTypeKey where
+   show (AttributeTypeKey str) = last (splitByChar '.' str)
 
 ---
 -- Construct a new attribute key.  The arguments should be 
@@ -410,8 +416,9 @@ fromAttributeKey attributeKey = name attributeKey
 
 --- @doc AttributeValue
 -- Class of values which can be attributes.  
-class (HasCodedValue value,HasAttributeTypeKey value) 
+class (HasCodedValue value,HasAttributeTypeKey value,XmlValue value) 
       => AttributeValue value where
+
 ---
 -- newFormEntry' is identical to SimpleForm.newFormEntry except
 -- that it takes and returns (Maybe value).
@@ -422,8 +429,8 @@ class (HasCodedValue value,HasAttributeTypeKey value)
 -- Instance 1: instances of FormTextField, where we simply take over
 -- the Maybe instance defined in SimpleForm.  This includes strings
 -- and numbers (provided they instance HasAttributeTypeKey).
-instance (HasCodedValue value,HasAttributeTypeKey value,FormTextField value) 
-      => AttributeValue value where
+instance (XmlValue value,HasCodedValue value,HasAttributeTypeKey value,
+      FormTextField value) => AttributeValue value where
    newFormEntry' = newFormEntry
 
 ---
@@ -437,6 +444,7 @@ instance AttributeValue Bool where
 ---
 -- Instance 3 - Radio Buttons.  
 instance (HasConfigRadioButton value,Bounded value,Enum value,
+      XmlValue (Radio value),
       HasCodedValue value,HasAttributeTypeKey (Radio value)) 
       => AttributeValue (Radio value) where
 
