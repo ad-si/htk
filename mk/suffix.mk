@@ -67,7 +67,7 @@ OBJSC = $(patsubst %.c,%.o,$(SRCSC))
 OBJS = $(OBJSALLHS)  $(OBJSC)
 LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
           $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
-EXPORTSRCS = $(filter Test%.% Main%.%,$(SRCS) $(SRCSC))
+EXPORTSRCS = $(filter Test%.hs Main%.hs Test%.lhs Main%.lhs Test%.c Main%.c,$(SRCS) $(SRCSC))
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
@@ -232,7 +232,7 @@ packagesquick : packageherequick
 prepareexportshere : 
 ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
-	sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(GHCPKG) --config-file $(PACKAGECONF).export --add-package 
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) --config-file $(PACKAGECONF).export --add-package 
 endif
 
 prepareexports : prepareexportshere
@@ -242,7 +242,7 @@ displayexportshere :
 ifeq "$(PACKAGE)" ""
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL)
 else
-	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(LIB) 
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ)
 ifeq "$(DOIMPORTS)" ""
 	@PWD=`pwd`;echo $(EXPORTHIFILES)
 else

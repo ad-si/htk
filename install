@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# Script for installing package on a Unix box
+mk/FixFileNames <uni-package.conf.export >uni-package.conf
+mk/FixFileNames <ghchtk.export >ghchtk
+mk/FixFileNames <ghcihtk.export >ghcihtk
+chmod +x ghchtk ghcihtk
