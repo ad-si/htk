@@ -78,7 +78,6 @@ import ExtendedPrelude
 import Dynamics
 
 import DialogWin
-import MarkupText
 import SimpleForm
 import HTk(text,height,width,value,background)
 
@@ -396,7 +395,9 @@ displayVersionInfo allowSystem versionInfo =
       let
          user1 = user versionInfo
          server1 = server versionInfo
-      showSystem <- createDialogWin'
+      -- We don't use createDialogWin' and fancy markup text because 
+      -- DialogWin constrains this only to fit into a window of size (30,5).
+      showSystem <- createDialogWin
          (("Quit",False) :
              if allowSystem 
                 then
@@ -405,20 +406,10 @@ displayVersionInfo allowSystem versionInfo =
                    []
             )
          Nothing
-         [new [
-            bold [prose (label user1)],
-            newline,
-            prose (contents user1),
-            newline,
-            italics [prose (
-               if private user1
-                  then
-                     "not for export"
-                  else
-                     "for export"
-                  )
-               ]
-            ]]
+         [text (label user1 ++ "\n"
+            ++ contents user1 ++ "\n"
+            ++ if private user1 then "not for export" else "for export"
+            )]
          [text "Version Info"]
 
       let
@@ -433,23 +424,17 @@ displayVersionInfo allowSystem versionInfo =
          (do
             calendarTime <- toCalendarTime (timeStamp server1)
 
-            createDialogWin'
+            createDialogWin
                [("Quit",())]
                Nothing
-               [new [
-                  bold [prose "Version: "],prose (vToS (version user1)),
-                     newline,
-                  bold [prose "Parents: "],prose (vsToS (parents user1)),
-                     newline,
-                  bold [prose "ServerId: "],prose (serverId server1),
-                     newline,
-                  bold [prose "Serial No: "],prose (show (serialNo server1)),
-                     newline,
-                  bold [prose "Created by: "],prose (userId server1),
-                     newline,
-                  bold [prose "Created on: "],
-                     prose (calendarTimeToString calendarTime)
-                  ]]
+               [text (
+                  "Version: " ++ vToS (version user1) ++ "\n"
+                  ++ "Parents: " ++ vsToS (parents user1) ++ "\n"
+                  ++ "ServerId: " ++ serverId server1 ++ "\n"
+                  ++ "Serial No: " ++ show (serialNo server1) ++ "\n"
+                  ++ "Created by: " ++ userId server1 ++ "\n"
+                  ++ "Created on: " ++ calendarTimeToString calendarTime
+                  )]
                [text "Version System Info"]
                )
 
