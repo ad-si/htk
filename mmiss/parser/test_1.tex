@@ -13,36 +13,38 @@ Roggenbach},Comment=Test,Language=de,LevelOfDetail=LectureNotes,InteractionLevel
 Roggenbach, Michael Drouineaud},PriorAuthors={Markus Roggenbach}}
 \begin{Abstract}[]{a1}{Abstract}{}
   Dies ist der Abstract.
-  \end{Abstract}\begin{Introduction}[]{intro1}{Introduction}{}
-    \begin{TextFragment}[Latex]{tf1}{}
+\end{Abstract}
+\begin{Introduction}[]{intro1}{Introduction}{}
+\begin{TextFragment}[Latex]{tf1}{}
     Dies ist die Einf\"uhrung.
-    \end{TextFragment}
-  \end{Introduction}
+\end{TextFragment}
+\end{Introduction}
 
-  \begin{Section}{Section1.1}{Formal Methods in Software Design}{}
+\begin{Section}{Section1.1}{Formal Methods in Software Design}{}
   Text, direkt am Beginn der Section1.1 
   ``Use of mathematics in software development''\\
-  \begin{TextFragment}[]{}{}
+\begin{TextFragment}[]{}{}
   Dies ist ein TextFragment hinter der Einf\"uhrung mit
   \Emphasis{hervorgehobenem} Text. Ausserdem steht hier noch
   ein \LaTeX{}-Befehl drin.
-  \end{TextFragment}
   \Link[]{para2}{}
   \ForwardLink[]{para2}{}
   \Reference{para2}{}
   \ForwardReference{para2}{}
-  \begin{Paragraph}[]{para1}{First Paragraph}{Authors=Achim Mahnke,Date=11.09.2002}
-    \begin{Definition}[]{def1}{First Definition}{}
-      Text innerhalb der Definition (muss zum textFragment werden).
+\end{TextFragment}
 
-      \begin{Program}[C]{}{First program}{}
-        \begin{ProgramFragment}[]{}{}{}
-          Programtext in C.
-        \end{ProgramFragment}
-        Dieser Text erscheint hinter dem ProgramFragment.
-      \end{Program}
-    \end{Definition}
-  \end{Paragraph}
+\begin{Paragraph}[]{para1}{First Paragraph}{Authors=Achim Mahnke,Date=11.09.2002}
+\begin{Definition}[]{def1}{First Definition}{}
+  Text innerhalb der Definition (muss zum textFragment werden).
+
+\begin{Program}[C]{}{First program}{}
+\begin{ProgramFragment}[]{}{}{}
+    Programtext in C.
+\end{ProgramFragment}
+  Dieser Text erscheint hinter dem ProgramFragment.
+\end{Program}
+\end{Definition}
+\end{Paragraph}
 \end{Section}
 \begin{Paragraph}[]{para2}{Second Paragraph}{Authors=Achim Mahnke,Date=11.09.2002}
 \begin{Table}[LaTeX]{Table1.1.1}{Waterfall Model}{}

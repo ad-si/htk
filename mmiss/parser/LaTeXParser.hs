@@ -1,9 +1,12 @@
 module LaTeXParser (
-   parseMMiSSLatex, -- :: String -> WithError Element
+   parseMMiSSLatex, 
+   -- :: Maybe MMiSSLatexPreamble -> String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, -- :: SourceName -> IO (WithError Element)
    -- The same, for a file.
-   makeMMiSSLatex, -- (Element, Bool) -> WithError (EmacsContent TypedName)
+   makeMMiSSLatex,
+   -- :: (Element, Bool) 
+   -- -> WithError (EmacsContent TypedName, MMiSSLatexPreamble)
    -- Turns an Element into a MMiSSLaTeX source
    -- If the Bool is set, attaches a preamble.
 
@@ -17,11 +20,12 @@ module LaTeXParser (
    toIncludeStr, -- Char -> String
    -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
    -- the corresponding includeXXX command.
-   parseAndMakeMMiSSLatex,  -- SourceName -> Bool -> IO ()
+--   parseAndMakeMMiSSLatex,  -- SourceName -> Bool -> IO ()
    -- parseAndMakeMMiSSLatex parses a MMiSSLatex file and converts it back to MMiSSLatex
    -- combination of parseMMiSSLatexFile and makeMMiSSLatex 
    showElement, -- WithError Element -> String
-   mapLabelledTag 
+   mapLabelledTag,
+   MMiSSLatexPreamble
    )
  where
 
@@ -39,6 +43,7 @@ import ParsecError
 import EmacsContent
 -- import EmacsEdit(TypedName)
 
+type MMiSSLatexPreamble = String
 type EnvId = String
 type Command = String
 type FormId = String
@@ -426,20 +431,21 @@ mparse fname = do result <- parseFromFile (latexDoc []) fname
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
     XML-structure.  --}
 
-parseMMiSSLatex :: String -> WithError Element
+parseMMiSSLatex :: Maybe MMiSSLatexPreamble -> String -> WithError Element
 
-parseMMiSSLatex s = let result = parse (latexDoc []) "" s
-		    in case result of
-			 Right ast  -> trace s (makeXML ast)
---			 Right ast  -> makeXML ast
-			 Left err -> hasError (concat (map messageString (errorMessages(err))))
+parseMMiSSLatex preamble s = 
+  let result = parse (latexDoc []) "" s
+  in case result of
+--     Right ast  -> trace s (makeXML ast)
+       Right ast  -> makeXML preamble ast
+       Left err -> hasError (concat (map messageString (errorMessages(err))))
 
 
-parseMMiSSLatexFile :: SourceName -> IO (WithError Element)
-parseMMiSSLatexFile s = do result <- parseFromFile (latexDoc []) s
- 		           case result of
-			     Right ast  -> return(makeXML ast)
-			     Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
+parseMMiSSLatexFile :: Maybe MMiSSLatexPreamble -> SourceName -> IO (WithError Element)
+parseMMiSSLatexFile p s = do result <- parseFromFile (latexDoc []) s
+ 		             case result of
+			       Right ast  -> return(makeXML p ast)
+			       Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
 
 parseAndShow :: SourceName -> IO ()
 parseAndShow s = do result <- parseFromFile (latexDoc []) s
@@ -452,9 +458,10 @@ showElement :: WithError Element -> String
 showElement e = coerceWithError (mapWithError (render . PP.element) e)
 
 
-makeXML :: Frag -> WithError Element
-makeXML frag = findFirstEnv [frag] [] False
-
+makeXML :: Maybe MMiSSLatexPreamble -> Frag -> WithError Element
+makeXML preamble frag = case preamble of
+                          Nothing -> findFirstEnv [frag] [] False
+                          Just(str) -> findFirstEnv [frag] [(Other str)] False
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch und erzeugt einen
     XML-Baum. Die Funktion sucht innerhalb des Environments 'Root' (vom Parser obligatorisch
@@ -477,7 +484,7 @@ makeXML frag = findFirstEnv [frag] [] False
 
 findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError Element
 
-findFirstEnv ((Env "Root" _ fs):[]) _ _  = findFirstEnv fs [] True
+findFirstEnv ((Env "Root" _ fs):[]) preambleFS _  = findFirstEnv fs preambleFS True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
 findFirstEnv ((Env "Package" ps fs):_) preambleFs _ = 
   let atts = makeAttribs ps "Package"
@@ -883,20 +890,20 @@ getEmphasisText (LParams ((SingleParam (Other s) _):ps) _) = s
 {-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
 --}
 
-makeMMiSSLatex :: (Element, Bool) -> WithError (EmacsContent (String, Char))
+makeMMiSSLatex :: (Element, Bool) -> WithError ((EmacsContent (String, Char)),  MMiSSLatexPreamble)
 
 makeMMiSSLatex ((Elem name atts content), preOut) = 
-  let items = fillLatex [(CElem (Elem name atts content))] [] 
-  in if preOut 
-       then
-         let lastElem = last content
-             preambleItem = case lastElem of
-                               (CMisc (PI (_ ,str))) -> [(EditableText str)]
-                               _ -> []
-             beginDocument = [EditableText "\\begin{document}\n"]
-             endDocument = [EditableText "\\end{document}"]
-         in hasValue(EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument))
-       else hasValue(EmacsContent items)
+  let items = fillLatex [(CElem (Elem name atts content))] []
+      lastElem = last content
+      preambleText = case lastElem of
+                        (CMisc (PI (_ ,str))) -> str
+                        _ -> ""
+      preambleItem = [(EditableText preambleText)]
+  in if preOut then 
+       let beginDocument = [EditableText "\\begin{document}\n"]
+           endDocument = [EditableText "\\end{document}"]
+         in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)), preambleText)
+       else hasValue((EmacsContent items), preambleText)
 
 
 fillLatex :: [Content] -> [EmacsDataItem (String, Char)] -> [EmacsDataItem (String, Char)]
@@ -1111,14 +1118,15 @@ mapLabelledTag s =
       mapUpper [] = []
       mapUpper (c : cs) = toUpper c : cs      
 
-
+{--
 parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
 parseAndMakeMMiSSLatex name pre = do root <- parseMMiSSLatexFile name
                                      root1 <- return(coerceWithError root)
 				     (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, pre)))
 				     putStrLn (concat (map getStrOfEmacsDataItem l))
+--}
 
-
+{--
 parseMakeParse :: SourceName -> IO (WithError Element)
 
 parseMakeParse name = do root <- parseMMiSSLatexFile name
@@ -1126,7 +1134,7 @@ parseMakeParse name = do root <- parseMMiSSLatexFile name
 			 (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, True)))
 			 str <- return (concat (map getStrOfEmacsDataItem l))
                          return(parseMMiSSLatex str)
-
+--}
 
 getStrOfEmacsDataItem :: EmacsDataItem (String, Char) -> String
 
