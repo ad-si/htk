@@ -18,3 +18,5 @@ files.  For now we'll have to leave it.
 3)  ghc5.02, optimised + unoptimised version, Solaris.
     On closing window in optimised version, nothing else seems to be 
     possible.
+
+(File now obsolete, types/BUGLIST is the real one)
