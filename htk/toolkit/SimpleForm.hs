@@ -46,6 +46,9 @@ module SimpleForm(
    FormLabel(..), -- This class represents things which can be used for
       -- labels in the form.  Instances include String and Image.
 
+   WrappedFormLabel(..), -- this is an existentially wrapped type around
+      -- values of type FormLabel.
+
    Radio(..), -- type for wrapping round something to use radio buttons.
    HasConfigRadioButton(..), -- for setting fancy configurations for
       -- radio buttons.
@@ -352,6 +355,24 @@ instance FormTextField value => FormValue value where
          return enteredForm
 
 -- -------------------------------------------------------------------------
+-- Instance #2.   Maybe something that's an instance of FormTextField,
+-- so corresponding to Maybe String or Maybe Number.
+-- It is possible to nest FormTextField's Maybe(Maybe . . .) but this is
+-- not recommended.
+-- When reading a null string, this will be parsed as a value rather than
+-- Nothing if possible; this happens for example with String.
+-- -------------------------------------------------------------------------
+
+instance FormTextField value => FormTextField (Maybe value) where
+   makeFormString Nothing = ""
+   makeFormString (Just value) = makeFormString value
+
+   readFormString "" = case readFormString "" of
+      Left _ -> Right Nothing
+      Right x -> Right (Just x)
+   readFormString str = mapWithError Just (readFormString str)
+
+-- -------------------------------------------------------------------------
 -- Instance #2 - Radio Buttons
 -- If "x" is an instance of "Show", "Bounded" and "Enum", "Radio x" will be an
 -- instance of FormValue, and will display the buttons in order.
@@ -441,3 +462,4 @@ instance FormValue Bool where
                destroyAction = done
                }
          return enteredForm
+

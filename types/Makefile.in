@@ -3,16 +3,16 @@ LIBS = \
    $(TOP)/cvs/libcvs.a $(TOP)/graphs/libgraphs.a $(TOP)/reactor/libreactor.a \
    $(TOP)/server/libserver.a $(TOP)/concurrency/libconcurrency.a \
    $(TOP)/util/libutil.a
-SRCS = CodedValue.hs CodedValueStore.hs DisplayTypes.hs Link.hs ObjectTypes.hs\
-   VersionDB.hs View.hs ViewType.hs
-# SRCS       = VersionDB.hs ViewType.hs CodedValue.hs CodedValueType.hs \
+SRCS       = VersionDB.hs ViewType.hs CodedValue.hs \
    CodedValueStore.hs Link.hs BasicObjects.hs DisplayTypes.hs ObjectTypes.hs \
-   View.hs
+   View.hs AttributesType.hs
 
 SUBDIRS    = test
 
 # Used for recursion, see the file RECURSION
 BOOTSRCS = DisplayTypes.boot.hs ObjectTypes.boot.hs
+
+XHCDIRS = $(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

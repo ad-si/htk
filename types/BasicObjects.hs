@@ -26,18 +26,6 @@ module BasicObjects(
       --    instance HasCodedValue to => GetSetRegistry Attributes String to
 
    newEmptyAttributes, -- :: View -> IO Attributes
-{-
-   AttributesType, -- conditions on Attributes
-   -- These specify particular attributes which must be present, and
-   -- their types.
-
-   AttributeType, -- conditions on a particular attribute
-   mkAttributeType, -- HasCodedValueType a => String -> a -> AttributeType
-      -- make an attribute with name the given string and values of
-      -- type the second argument (which isn't looked at).
-
-   verifyAttributeType, -- :: 
--}
 
    ) where
 
@@ -51,7 +39,6 @@ import VersionDB
 
 import CodedValue
 import CodedValueStore
-import CodedValueType
 import Link
 import ViewType
 

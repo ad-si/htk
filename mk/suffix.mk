@@ -57,6 +57,13 @@ MAINOBJS = $(filter Main%.o,$(OBJS))
 MAINPROGS = $(patsubst Main%.o,%,$(MAINOBJS))
 HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
+
+HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
+             $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
+OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC)) \
+            $$PWD/Makefile.in
+ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
+
 #
 #
 # Here are some phony targets
@@ -137,6 +144,19 @@ ifneq "$(strip $(LIBOBJS))" ""
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi
 	$(AR) -r $(LIB) $(LIBOBJS)
 endif
+
+displaysrcshere :
+	@PWD=`pwd`;echo $(ALLFILESALL)
+
+displayhshere :
+	@PWD=`pwd`;echo $(HSFILESALL)
+
+displaysrcs : displaysrcshere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displaysrcs && ) echo 
+
+displayhs : displayhshere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displayhs && ) echo
+
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^

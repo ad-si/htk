@@ -18,10 +18,15 @@ include @TOP@/mk/boilerplate.mk
 # By making tarball.tar.gz and tarball.objects.tar.gz .PHONY we
 # ensure that they always get remade whenever "gmake tarball.tar.gz"
 # or "gmake tarball.objects.tar.gz" are executed.
-.PHONY : tarball.tar.gz tarball.objects.tar.gz 
+.PHONY : tarball.tar.gz tarball.objects.tar.gz findsources
+
+findsources :
+	@$(MAKE) displaysrcs -s --no-print-directory
+	@echo mk/boilerplate.mk.in mk/machinedep.mk.in mk/var.mk mk/suffix.mk
+	@echo mk/mkEverything.c configure.in 
 
 tarball.tar.gz:
-	gtar -czf tarball.tar.gz `gfind . '(' -name '*.hs' -o -name '*.c' -o -name '*.h' -o -name '*.mk' -o -name Makefile -o -name 'README' -o -name '*.in' -o -name configure ')' ` 
+	gtar -czf tarball.tar.gz `$(MAKE) -s --no-print-directory findsources ; echo README ; echo configure`
 
 # tar of all object and .hi files (but not .depend/library/exec files which 
 # are cheaper to regenerate)
