@@ -565,12 +565,17 @@ data BaseIndex =
   IndexNo Int | IndexPos Position | IndexText String 
 \end{xcode}
 The class \texttt{HasIndex} models which way of indexing a position
-inside a widget is valid. For text widgets, we have 
+inside a widget is valid.\footnote{From an abstract point of view, the
+  type class is unfortunate, since the last type parameter is only for
+  internal consumption; it models the so-called base index of the
+  widget, i.e. the type into which other ways of indexing will have to
+  be translated. As a user, you can just disregard the last parameter
+  of the class.} For text widgets, we have
 \begin{xcode}
 instance HasIndex Editor BaseIndex BaseIndex  
 \end{xcode}
-so we can just speciqfy the index as a position (i.e. a row and column
-number), but we can also specify the index by the constant
+so we can just specify the index as a position (i.e. a row and column
+number, starting from 0), but we can also specify the index by the constant
 \texttt{EndOfText} (only constructor of the data type
 \texttt{EndOfText}), or by its screen coordinates (\texttt{Pixels}),
 or by \emph{modifying} one of the other indices:
@@ -583,10 +588,37 @@ instance HasIndex Editor i BaseIndex =>
          HasIndex Editor (i, IndexModifier) BaseIndex  
 \end{xcode}
 
-Index modifiers are modelled by type
+Index modifiers (only for editors) are modelled by type
 \href{Editor.html#Editor.IndexModifier}{\texttt{IndexModifier}}, and
 specify things like ''three words forward'', or a ''one line
-backwards''. 
+backwards''.
+
+\subsubsection{Selections}
+
+\label{ssec:selections}
+
+In an editor (and an entry widget), text can be \emph{selected} by
+marking it with the mouse button. Similarly, in list boxes, entries
+can be selected. Abstractly, these kind of selections are modelled
+with the selection type classes (module
+\href{Selection.html}{\texttt{Selection}}). There are five classes, of
+which \texttt{HasSelection}, \texttt{HaseSelectionIndex} and
+\texttt{HasSelectionIndexRang} let you set the selection, and
+\texttt{HasSelectionBaseIndex} and \texttt{HasSelectionBaseIndexRange}
+let you query the selection. The selected text, entries \textit{etc.}
+are indexed with indices (see Sect.~\ref{ssec:indices}). The
+\texttt{Range} classes have a pair of functions, which set or get the
+start or end of the selection, respectively, whereas the
+\textit{HasSelectionIndex} and \texttt{HasSelectionBaseIndex} classes
+get or set the selection as list of indices.
+
+This selection is Tk-internal, and should not be confused with
+selection as implemented by X Windows. This selection is handled by
+the class \texttt{HasXSelection}. Its instances are entries and
+editors. For those, Tk's selection can also be the X selection. The
+module \href{XSelection.html}{\texttt{XSelection}} allows access to
+the X selection (get the current selection, selecting wether widgets
+export their selection etc.)
 
 
 \subsubsection{Text Tags}
@@ -629,15 +661,15 @@ hyperreferences and so on (see below).
 
 \subsubsection{Marks and More}
 
-To keep track of positions within an editor, you can use marks
-(\href{Mark.html}{\texttt{Mark}}). Essentially, you can put a mark
+To keep track of positions within an editor, you can use marks (type
+\href{Mark.html}{\texttt{Mark}}).\footnote{The first one to send us an
+  email saying ``Shouldn't this type have been renamed to Euro?''
+  will be forcefed Perl scripts until his mind explodes into a regular
+  expression. You have been warned.} Essentially, you can put a mark
 into an editor at a specified position (with \texttt{createMark}), and
 query its position later (\texttt{getBaseIndex}). The gravity of the
 mark specifies wether when text is inserted at the exact position of
-the text, it should move to the left, or the right.\footnote{The first
-  one to send us an email saying ''Shouldn't this type have been
-  renamed to Euro?'' will be forcefed on Perl scripts until his mind
-  explodes into a regular expression. You have been warned.} 
+the text, it should move to the left, or the right.
 
 There's more you can do with an editor. For one, you can also insert
 widgets into the text (this is called an embedded window), so you can
@@ -645,18 +677,82 @@ have buttons (and yes, even another editor) inside an editor.
 
 Further, you can search the text inside an editor (with the
 \texttt{search} function), read and write the contents to and from a
-file, scroll the contents to a specific position, and much more as can
-be seen in the module \texttt{Editor.html}{\texttt{Editor}}.
+file, scroll the contents to a specific position, and much more as
+found in the module \texttt{Editor.html}{\texttt{Editor}}.
 
 \subsection{The Canvas Widget}
 
-A canvas is a widget to draw on. By drawing, I mean we can put
-graphical objects on it (lines, polygons, circles and ellipses, wee
-images, and even whole widgets) at a specified position. A canvas is
-scrollable, so its drawing area can be far larger than the displayed
-area. 
+A canvas is a widget to draw on, i.e. we can put graphical objects on
+it (lines, polygons, circles and ellipses, wee images, and even whole
+widgets) at a specified position. A canvas is scrollable, so its
+drawing area can be far larger than the displayed area.
 
-The graphical objects are represented by the datatype 
+The graphical objects on a canvas are called \emph{canvas items}. Just
+like for widgets, the different kinds of canvas items are represented
+by different types. Canvas items can be configured, but of course the
+configurations are mostly different from widget configurations.
+
+\subsubsection{Canvas Item Configurations}
+
+The most important configurations, provided by all canvas items, are: 
+
+\begin{itemize}
+\item \texttt{HasCoords} sets or returns the coordinates of the canvas
+  item on the canvas.
+\item \texttt{FilledCanvasItem} allows to configure the filling
+  colour, outline colour, stipple and width of the outline of the
+  canvas item. Note that for some canvas item (e.g. lines), setting
+  the outline does nothing, but setting the filling colour sets the
+  colour of the item. A stipple, incidentally, is a bitmap mask used
+  to draw the item. 
+\item 
+\end{itemize}
+
+\subsubsection{Canvas Items} 
+
+The following are the types of canvas items:
+
+\begin{itemize}
+\item \texttt{Arc}: a section of an oval, given by the start angle and
+  the length (configurations \texttt{start} and \texttt{extent}).
+\item \texttt{BitmapItem} and \texttt{ImageItem}: canvas items given
+  by bitmaps and images. The image of an image item is set with the
+  \texttt{HasPhoto} class, just like for some widgets.
+\item \texttt{LineItem}: a line item is given by a list of two or more
+  points, which define a list of line segments. The segments can be
+  joined in various ways (with the \texttt{joinstyle} configuration),
+  you can draw splines (class
+  \href{CanvasItem.SegmentedCanvasItem}{\texttt{SegmentedCanvasItem}}), and put arrows on the either (or both) ends (configurations \texttt{arrowshape} and \texttt{arrowstyle}). 
+\item \texttt{Oval}: an oval is either given by defining its
+  \emph{bounding box}, i.e. the smallest rectangle enclosing it. If
+  the bounding box is a square, the oval is a circle.\footnote{Except
+    it usually won't \emph{look} like a circle on the screen, because
+    most screens pixels are rectangularly-shaped, so a ten by ten
+    pixel entity is not a square.}
+\item \texttt{Polygon}: a polygon is given by a list of
+  vertices. Strangely, one cannot configure the join style of the
+  polygon, but you can configure splines.
+\item \texttt{Rectangle}: a rectangle is given by two points. 
+\item \texttt{TextItem}: a text item is a text, possibly consisting of
+  more than one line. It is an instance of \texttt{HasFont}. (Note
+  that Htk does not support Tk's selection and insertion methods for
+  text items; it should be easy to add, if you really require that.)
+\item \texttt{EmbeddedCanvasWin}: an embedded canvas window is a
+  widget embedded into a canvas. All instances of class
+  \texttt{Widget} can be embedded into a canvas. Note that you don't
+  need to pack embedded widgets; they appear as soon as the embedded
+  canvas window is created.
+\end{itemize}
+
+\subsubsection{Canvas Tags}
+
+A \emph{canvas tag} is a convenient way to refer
+to canvas items. A canvas tag is an instance of the class
+\texttt{CanvasItem} (but setting e.g. its filling colour will of
+course have no effect). Canvas tags are in particular useful because
+you can not only add canvas items explicitly to the tag, but also by
+the so-called \texttt{search specification}. 
+
 
 
 \section{The Toolkit}

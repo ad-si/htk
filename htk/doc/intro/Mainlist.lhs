@@ -51,11 +51,12 @@ main =
      pack scb [Side AtRight, Fill Y]
      lb # scrollbar Vertical scb
      (press, _) <- bindSimple lb (ButtonPress (Just 1))
+     lb # selectMode Extended
      spawnEvent (forever
        (press >> always 
           (do sel<- getSelection lb
-	      putStrLn ("Selected "++ 
-		        show (sel:: Maybe [Int])))))
+              putStrLn ("Selected "++ 
+                        show (sel:: Maybe [Int])))))
      finishHTk where
   numbers = 
     ["One", "Two", "Three", "Four", "Five", "Six", "Seven",
@@ -63,6 +64,41 @@ main =
      "Fourteen", "Fifteen", "Sixteen", "Seventeen",
      "Eighteen", "Nineteen", "Twenty"]
 \end{code}
+
+The position of entries in a list box can be indexed with instances of
+the class \texttt{HasIndex}. For more on indices, see
+Section~\ref{ssec:indices}), but the important instances here are
+\begin{xcode}
+instance HasIndex (ListBox a) Int Int
+instance HasIndex (ListBox a) EndOfText Int
+instance (Eq a, GUIValue a) => 
+         HasIndex (ListBox [a]) (ListBoxElem a) Int  
+\end{xcode}
+In other words, the index is a number (starting with 0), the
+\texttt{EndOfText} (only constructor of the synonymous data type), or
+the element itself. 
+
+A configuration particular to list boxes is the \emph{selection
+  mode}. The \texttt{SelectMode} is an enumeration of four
+constructor, which determines the way elements are selected in a list
+box: 
+\begin{itemize}
+\item \texttt{Single} means a single element can be selected;
+\item \texttt{Browse} means a single element can be selected, and the
+  selection can be dragged with the mouse;
+\item \texttt{Multiple} means more than one element can be selected
+  by toggling the selection state (so to select three elements you
+  have to select each of them in turn);
+\item \texttt{Extended} means more than one element can be selected,
+  with the first selection forming the so-called \emph{anchor}; shift
+  and first button selects the range from the anchor to that entry;
+  and control and first button toggles the selection state of single
+  items. (This is the most common behaviour of list boxes in other GUI
+  toolkits.)
+\end{itemize}
+Selections are handled by the selection classes (see
+Section~\ref{ssec:selection}) below. You can set the selection, or
+query the current selection as in the code above.
 
 \ToBeDone{Show a screenshot here.}
 
