@@ -5,6 +5,10 @@
    currentDirectory/A is used for the FileSys working
    directory.  The real files are in currentDirectory/B.
    The versions go into currentDirectory/1,2,3...
+
+   To run this test, cd test1dir and to ./totest.  The directory
+   names in ./totest will need some hacking and you will need
+   to set up a CVS repository - sorry . . .
    -}
 module Main(main) where
 

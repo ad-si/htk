@@ -44,7 +44,12 @@ data UniTypeData =
 newtype UniTypeDataBase = UniTypeDataBase (MVar (FiniteMap Extension UniType))
 
 data UniType = UniType {typeName::Name,typeExtension::Extension} 
-   deriving (Eq,Ord,Show)
+   deriving (Eq,Ord)
+
+instance Show UniType where
+   showsPrec prec uniType acc = 
+      showsPrec prec ('.':(typeExtension uniType)) acc
+   
 
 newUniTypeDataBase :: IO UniTypeDataBase
 newUniTypeDataBase = 

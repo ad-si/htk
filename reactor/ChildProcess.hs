@@ -167,6 +167,10 @@ newChildProcess :: FilePath -> [Config PosixProcess] -> IO ChildProcess
 newChildProcess path confs  =
    do                     -- (write,read)
       parms <- configure defaultPosixProcess confs
+
+      debug("newChildProcess:")
+      debug(path:(args parms))
+
       (readIn,writeIn) <- Posix.createPipe 
       -- Pipe to send things to child
       (readOut,writeOut) <- Posix.createPipe 
@@ -193,6 +197,7 @@ newChildProcess path confs  =
             watchStatus <- 
                terminationWatchDog (pinterval parms) toolStatus processID
             bufferVar <- newMVar ""
+
             Posix.fdClose readIn
             Posix.fdClose writeOut
             return (ChildProcess {

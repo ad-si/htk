@@ -50,77 +50,40 @@ import qualified Concurrent
 import Queue
 import PrimEvent
 import Toggle
--- only used for debugging
-import qualified IOExts(unsafePerformIO)
 import Debug(debug,newId)
 
 newTwoWayChannel :: IO (TwoWayChannel leftType rightType)
 newTwoWayChannel = 
    do
       mVar <- Concurrent.newMVar (Left emptyQ)
-#ifdef DEBUG
-      channelId <- newId
-      return (TwoWayChannel channelId mVar)
-#else 
       return (TwoWayChannel mVar)
-#endif
 
 leftEvent :: TwoWayChannel leftType rightType -> leftType -> PrimEvent rightType
 -- Sorry - the implementation of this and rightEvent are identical except 
 -- that the strings "left" and "right" are interchanged (as are "Left" 
 -- and "Right")
-#ifdef DEBUG
-leftEvent (TwoWayChannel id mVar) valL = 
-#else
 leftEvent (TwoWayChannel mVar) valL = 
-#endif
    let
       syncFun (PrimEventArg (toggle,continuation)) =
          do
-#ifdef DEBUG
-            let deb s = debug ("left"++s++":"++(show id))
-#endif
             let candidate = ChannelEventArg valL toggle continuation
             getChannel <- Concurrent.takeMVar mVar
             (newChannel,result) <- case getChannel of
                Left lQueue -> -- join this item to the existing queue of
                   -- unhandled left items
-#ifdef DEBUG
-                  do
-                     deb "E2 adding" 
-                     return(Left(insertQ lQueue 
-                        (ChannelEventArg valL toggle continuation)),Awaiting)
-
-#else
                   return(Left(insertQ lQueue 
                      (ChannelEventArg valL toggle continuation)),Awaiting)
-#endif
                Right rQueue -> -- attempt to pair this item with one of
                   -- the queue of unhandled right items.
                   do
                      trial <- tryToPair candidate rQueue
                      case trial of
-#ifdef DEBUG
-                        Success newRQueue ->
-                           do
-                              deb "E2 matched"                              
-                              return (Right newRQueue,Immediate)
-                        Anticipated newRQueue ->
-                           do
-                              deb "E2 anticipated"
-                              return (Right newRQueue,Immediate)
-                        NoMatch newLQueue ->
-                           do
-                              deb "E2 nomatch"
-                              return (Left newLQueue,Awaiting)
-#else
                         Success newRQueue ->
                            return (Right newRQueue,Immediate)
                         Anticipated newRQueue ->
                            return (Right newRQueue,Immediate)
                         NoMatch newLQueue ->
                            return (Left newLQueue,Awaiting)
-#endif
             Concurrent.putMVar mVar newChannel
             return result
    in
@@ -130,73 +93,35 @@ rightEvent :: TwoWayChannel leftType rightType -> rightType -> PrimEvent leftTyp
 -- Sorry - the implementation of this and leftEvent are identical except 
 -- that the strings "right" and "left" are interchanged (as are "Right" 
 -- and "Left")
-#ifdef DEBUG
-rightEvent (TwoWayChannel id mVar) valL = 
-#else
 rightEvent (TwoWayChannel mVar) valL = 
-#endif
    let
       syncFun (PrimEventArg (toggle,continuation)) =
          do
-#ifdef DEBUG
-            let deb s = debug ("right"++s++":"++(show id))
-            deb "E1"
-#endif
             let candidate = ChannelEventArg valL toggle continuation
             getChannel <- Concurrent.takeMVar mVar
             (newChannel,result) <- case getChannel of
                Right lQueue -> -- join this item to the existing queue of
                   -- unhandled right items
-#ifdef DEBUG
-                  do
-                     deb "E2 adding" 
-                     return(Right(insertQ lQueue 
-                        (ChannelEventArg valL toggle continuation)),Awaiting)
-
-#else
                   return(Right(insertQ lQueue 
                      (ChannelEventArg valL toggle continuation)),Awaiting)
-#endif
                Left rQueue -> -- attempt to pair this item with one of
                   -- the queue of unhandled left items.
                   do
                      trial <- tryToPair candidate rQueue
                      case trial of
-#ifdef DEBUG
-                        Success newRQueue ->
-                           do
-                              deb "E2 matched"                              
-                              return (Left newRQueue,Immediate)
-                        Anticipated newRQueue ->
-                           do
-                              deb "E2 anticipated"
-                              return (Left newRQueue,Immediate)
-                        NoMatch newLQueue ->
-                           do
-                              deb "E2 nomatch"
-                              return (Right newLQueue,Awaiting)
-#else
                         Success newRQueue ->
                            return (Left newRQueue,Immediate)
                         Anticipated newRQueue ->
                            return (Left newRQueue,Immediate)
                         NoMatch newLQueue ->
                            return (Right newLQueue,Awaiting)
-#endif
             Concurrent.putMVar mVar newChannel
-#ifdef DEBUG
-            debug ("rightE2:"++(show id))
-#endif
             return result
    in
       PrimEvent syncFun
 
 data TwoWayChannel leftType rightType = 
    TwoWayChannel 
-#ifdef DEBUG
-     Int       
-#else
-#endif
      (Concurrent.MVar(
          Either
             (Queue (ChannelEventArg leftType rightType)) 

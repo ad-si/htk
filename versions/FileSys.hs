@@ -115,6 +115,9 @@ instance Ord FileObj where
    (<)     (FileObj l1 o1 _) (FileObj l2 o2 _) = (<)     (l1,o1) (l2,o2)
    (>)     (FileObj l1 o1 _) (FileObj l2 o2 _) = (>)     (l1,o1) (l2,o2)
 
+instance Show FileObj where
+   showsPrec prec (FileObj l o _) acc = showsPrec prec (l,o) acc
+
 data FolderObj = FolderObj (FiniteMap (String,UniType) FileObj)
 
 data FileSys = FileSys {
@@ -311,6 +314,7 @@ commitVersion fileSys version filePath changes =
       -- we first encode the changes in a change tree, also checking for
       -- errors.  Then we commit them.
       changeTree <- encodeAndCheck fileSys version filePath changes
+      debug changeTree
       newObjectVersion <- commitTree fileSys changeTree
       return (Version newObjectVersion)
 
@@ -323,10 +327,15 @@ data ChangeTree =
       -- new version of file, stored at FilePath
    |  UpdateFolder Original ChangeFolder
       -- new version of folder
+   deriving Show
 
 newtype ChangeFolder = ChangeFolder (FiniteMap (String,UniType) ChangeTree)
 
-newtype Original = Original (Maybe (Location,ObjectVersion))
+instance Show ChangeFolder where
+   showsPrec prec (ChangeFolder map) acc = showsPrec prec (fmToList map) acc
+
+
+newtype Original = Original (Maybe (Location,ObjectVersion)) deriving Show
 -- If the object is new, this is Nothing, otherwise it is
 -- Just (the location of the version we are revising)
 
@@ -345,7 +354,7 @@ encodeAndCheck fileSys version filePath changes =
          encode [] changeTree = return changeTree
          encode (firstChange:restChanges) changeTree =
             do
-               case firstChange of
+               nextChange <- case firstChange of
                   NewFile brokenPath ->
                      encodeFileChange 
                         True filePath fileSys changeTree brokenPath
@@ -364,6 +373,7 @@ encodeAndCheck fileSys version filePath changes =
                            fileSys changeTree brokenPathFrom
                         encodeInsertion 
                            treeOfOld fileSys withDelete brokenPathTo
+               encode restChanges nextChange
 
       encode changes initialChangeTree
 

@@ -91,11 +91,13 @@ import IO
 import System
 import Directory
 
+import Debug(debug)
+
 import Concurrent
 import Set
 import qualified BSD
-import PackedString
-import Addr(Addr)
+import CString
+import ByteArray(ByteArray)
 
 import Computation(done)
 import FiniteMap
@@ -272,8 +274,8 @@ exportString :: ObjectSource -> IO String
 exportString (StringObject str) = return str
 exportString (FileObject name) = readFile name
 
-foreign import "copy_file" unsafe copyFilePrim :: Addr -> Addr -> 
-   IO Int
+foreign import "copy_file" unsafe copyFilePrim 
+   :: (ByteArray Int) -> (ByteArray Int) -> IO Int
 -- "unsafe" means we promise that copy_file won't provoke a garbage 
 -- collection while it is running.  We know this because copy_file
 -- doesn't call back to Haskell at all.
@@ -285,9 +287,16 @@ copyFile source destination =
          return ()
       else
          do
+            let 
+               sourcePrim = CString.packString source
+               destinationPrim = CString.packString destination 
+#if 0
             let
                sourcePrim = psToCString(packString source)
                destinationPrim = psToCString(packString destination)
+            debug ("CVSDB.copyFile: "++source++"->"++destination)
+            debug (sourcePrim,destinationPrim)
+#endif
             code <- copyFilePrim sourcePrim destinationPrim
             if (code<0)
                then
@@ -398,11 +407,15 @@ commit :: Repository -> ObjectSource -> Location -> (Maybe ObjectVersion) ->
    IO ObjectVersion
 commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier}) 
       objectSource (cvsFile@(CVSFile cvsFileName)) parentVersion =
+-- sadly we must currently throw the parentVersion away, because
+-- the cvsCommitCheck version argument takes the (CVS) version number
+-- to create, not the one to branch from.  Allocating one to create
+-- is tricky since we don't know what's already allocated.
    do
       ensureDirectories repository cvsFile
       exportFile objectSource (toRealName repository cvsFile)
       version <- updateDirContents repository cvsFile
-         (\ _ -> cvsCommitCheck cvsLoc cvsFile parentVersion)
+         (\ _ -> cvsCommitCheck cvsLoc cvsFile Nothing)
       notify notifier cvsFileName
       return version
 
