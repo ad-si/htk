@@ -1,8 +1,9 @@
 PACKAGES = uni-mmiss uni-davinci
 
 SRCS       = TestStructure.hs TestLaTeXStructure.hs MainMMiSSWorkbench.hs
+SRCSC      = MainTempDir.c
 
-EXTRAEXPORTS = MMiSSWorkbench files/test_1.tex files/test_2.tex files/demo-terms.tex files/demo.tex files/algspec.tex Makefile.in runWorkbench.in rerunWorkbench.in runWorkbenchRemote.in testfiles isConnected
+EXTRAEXPORTS = MMiSSWorkbench files/test_1.tex files/test_2.tex files/demo-terms.tex files/demo.tex files/algspec.tex Makefile.in runWorkbench.in rerunWorkbench.in runWorkbenchRemote.in testfiles isConnected TempDir
 
 include @TOP@/mk/boilerplate.mk
 
@@ -33,7 +34,7 @@ killRestartServer :
 	rm -rf $(WORKINGDIR)/tmp
 
 runWorkbench :
-	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./MMiSSWorkbench --uni-debug=w.debug
+	./MMiSSWorkbench --uni-debug=w.debug
 
 killWorkbench :
 	(pkill "^MMiSSWorkbench$$" || echo not running)

@@ -5,7 +5,7 @@
    in a single-threaded way.  The server code should ensure this. -}
 module SimpleDBServer(
    SimpleDB, -- SimpleDB.  There should be only one of them per program.
-   openSimpleDB, -- :: IO SimpleDB
+   openSimpleDB, -- :: VersionState -> IO SimpleDB
       -- Initialise database, reading backup off disk if necessary.
 
    -- SimpleDBCommand/Response are the types of queries and responses
@@ -35,7 +35,8 @@ module SimpleDBServer(
    -- allocated.
    firstVersion, -- :: Version
 
-   querySimpleDB, -- :: SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
+   querySimpleDB, 
+      -- :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 
    ServerOp, -- exported solely for MainDumpFiles.hs
    ) where

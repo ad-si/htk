@@ -146,7 +146,7 @@ addNewObjectTypeInner
       ((wrappedObjectType @ (WrappedObjectType (objectType :: objectType)))) 
       =
    do
-      nodeDisplayDataOpt <- getNodeDisplayData view 
+      nodeDisplayDataOpt <- getNodeDisplayData1 graph view 
          wrappedDisplayType objectType displayedViewAction
       case nodeDisplayDataOpt of
          Nothing -> return []

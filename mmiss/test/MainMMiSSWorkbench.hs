@@ -53,7 +53,8 @@ main =
 
 data UserAction =
       Connect HostPort
-   |  Quit -- doesn't seem to work right now.
+   |  ConnectInternal
+   |  Quit -- only partially works.
 
 mainWindow :: IO ()
 mainWindow =
@@ -75,30 +76,26 @@ mainWindow =
                      (nullForm serverName)
                return (Just (remoteForm,"Connect"))
 
-      (localServer :: Maybe (Form HostPort,String)) <-
-         do
-            hostPort <- mkHostPort "localhost" (11393 :: Int)
-            let
-               localForm = fmap
-                  (\ () -> hostPort)
-                  (nullForm "Local Server")
-            return (Just (localForm,"Connect"))
-
       let
          (otherServer :: Maybe (Form HostPort,String)) =
             Just (hostPortForm Nothing Nothing,"Connect")
 
          serverForms :: [(Form HostPort,String)]
-         serverForms = catMaybes [remoteServer,localServer,otherServer]
+         serverForms = catMaybes [remoteServer,otherServer]
 
          map' :: (a -> b) -> (Form a,String) -> (Form b,String)
          map' fn (form,s) = (fmap fn form,s)
+
+         internalForm :: (Form (),String)
+         internalForm = (nullForm "Internal Server","Connect")
   
          quitForm :: (Form (),String)
          quitForm = (nullForm "","Quit")
 
          mainFormList =
-            (map (map' Connect) serverForms) ++ [map' (const Quit) quitForm]
+            (map (map' Connect) serverForms) 
+               ++ [map' (const ConnectInternal) internalForm,
+                  map' (const Quit) quitForm]
 
       (event,closeWindow) <- doFormList "MMiSS action" mainFormList 
       let
@@ -116,9 +113,12 @@ mainWindow =
          doAction :: UserAction -> IO ()
          doAction (Connect hostPort) =
             do
-               addVersionGraph daVinciSort hostPort
+               addVersionGraph daVinciSort (Just hostPort)
                mainLoop
-
+         doAction ConnectInternal =
+            do
+               addVersionGraph daVinciSort Nothing
+               mainLoop
          doAction Quit =
             do
                reallyQuit <- createConfirmWin

@@ -11,10 +11,10 @@ ifeq "@WINDOWS@" "1"
    SUBDIRS = util events reactor htk
 else
 ifeq "@BDBDIR@" ""
-   SUBDIRS = util events reactor posixutil htk server graphs davinci 
+   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci 
 else
-   SUBDIRS = util events reactor posixutil htk server graphs davinci simpledb \
-             types emacs @HAXML@ mmiss/parser mmiss 
+   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci \
+             simpledb types emacs mmiss/parser mmiss 
 endif
 endif
 

@@ -2,15 +2,21 @@
 
 set -e
 
+cd @TOP@/mmiss/test
+
 # Check that files are here
 TOP=@TOP@ @TOP@/mmiss/test/testfiles
 
 # Test script for running the workbench.
-export UNIEDITOR UNISERVER UNIWORKINGDIR UNIPORT
+export UNIEDITOR UNISERVER UNISERVERDIR UNIWORKINGDIR UNIPORT
 
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 UNISERVER=denebola.informatik.uni-bremen.de
-UNIWORKINGDIR=/tmp/uni.temp.$USER
+# 11395 is used by the remote server.
+UNIPORT=11395
+
+UNISERVERDIR=${UNISERVERDIR:-`./TempDir /tmp/uni.$USER.server.`}
+UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir /tmp/uni.$USER.working.`}
 
 # The following variables have to be set since in the binary release they
 # cannot (at the moment) be hardwired into the binaries.
@@ -20,18 +26,7 @@ UNIDAVINCI=${UNIDAVINCI:-@DAVINCI@}
 UNIDAVINCIICONS=${UNIDAVINCIICONS:-@TOP@/database/icons}
 UNIGNUCLIENT=${UNIGNUCLIENT:-@GNUCLIENT@}
 UNITOP=${UNITOP:-@TOP@}
-UNIUSER=${UNIUSER:-dummyUser}
-UNIPASSWORD=${UNIPASSWORD:-dummy0}
 
-
-gmake killServer
 gmake killWorkbench
-
-# 11393 is used by the local server.
-UNIPORT=11393
-gmake runServer
-
-# 11395 is used by the remote server.
-UNIPORT=11395
 
 gmake runWorkbench

@@ -27,6 +27,8 @@ import ViewType
 import ObjectTypes
 import DisplayTypes
 import {-# SOURCE #-} DisplayView
+import {-# SOURCE #-} VersionGraph
+
 
 ---
 -- newDefaultMenu is a recommended general-purpose menu for attaching
@@ -42,6 +44,9 @@ newDefaultMenu displaySort view =
       objectTypeMenu <- newObjectTypeMenu view
       displayTypeMenu <- newDisplayTypeMenu view
       let
+         commitViewAct = commitViewInGraph view
+         commitViewMenu = GlobalMenu (Button "Commit" commitViewAct)
+
          openDisplayTypeAct =
             do
                openDisplayType displaySort view
@@ -49,7 +54,7 @@ newDefaultMenu displaySort view =
          openDisplayTypeMenu = 
             GlobalMenu (Button "Open Display" openDisplayTypeAct)
       return (combineGlobalMenus 
-         [objectTypeMenu,displayTypeMenu,openDisplayTypeMenu])
+         [commitViewMenu,objectTypeMenu,displayTypeMenu,openDisplayTypeMenu])
 
 newObjectTypeMenu :: View -> IO GlobalMenu
 newObjectTypeMenu view =

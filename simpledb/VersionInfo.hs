@@ -47,6 +47,14 @@ module VersionInfo(
    registerAct, -- :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
       -- Register an action to be done each time we add a new versionInfo.
 
+
+   registerAndGet, 
+      -- :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) 
+      -- -> IO [VersionInfo]
+      -- Combine getVersionInfos and registerAct, so that even with 
+      -- concurrency, we can be sure no other updates will be allowed to get 
+      -- inbetween the two actions.
+
    --
    -- Client-side interface
    --
@@ -363,6 +371,18 @@ registerAct versionState actFn =
             writeIORef (versionInfoActRef versionState) actFn
             return map0
          )
+
+registerAndGet :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> 
+   IO [VersionInfo]
+registerAndGet versionState actFn =
+   modifyMVar (versionInfosRef versionState) 
+      (\ map0 ->
+         do
+            writeIORef (versionInfoActRef versionState) actFn
+            return (map0,eltsFM map0)
+         )
+
+
 
 -- ----------------------------------------------------------------------
 -- Creating, Viewing and Editing the VersionInfo

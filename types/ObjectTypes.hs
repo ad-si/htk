@@ -247,6 +247,24 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
       -- it will return quickly (provided the displayed view has actually been
       -- set up.
 
+   getNodeDisplayData1 ::
+      (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+         arc arcType arcTypeParms)
+      => Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms
+      -> View -> WrappedDisplayType -> objectType 
+      -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+      -> IO (Maybe (NodeDisplayData graph node nodeTypeParms arcTypeParms 
+            objectType object))
+      -- 
+      -- Slightly generalised version of getNodeDisplayData which also
+      -- takes the enclosing graph (to be used as a display sort for
+      -- opening new graphs).
+
+   getNodeDisplayData1 graph = getNodeDisplayData
+
+
    extraObjectTypes = return []
 
    createObjectTypeMenuItemPrim badObjectType =

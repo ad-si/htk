@@ -8,8 +8,9 @@ module VersionGraph(
    VersionGraph, -- a graph being displayed.  Instance of Destructible
       -- A type parameterised on graphParms and nodeTypeParms
    newVersionGraph, 
-      -- :: Repository -> IO VersionGraph
-      -- The server is taken from the WBFiles --uni-server parameter.
+      -- :: (display sort) -> Repository -> IO VersionGraph
+   newVersionGraphInternal,
+      -- :: (display sort) -> Repository -> VersionState -> IO VersionGraph
 
    versionToNode,
       -- :: ObjectVersion -> Node
@@ -31,8 +32,13 @@ module VersionGraph(
       -- Provide a list-box interface allowing the user to click on the
       -- version graph to select checked-in versions in the graph.
 
+   commitViewInGraph, 
+      -- :: VersionGraph -> View -> IO ()
+      -- Commit a view in the graph (after prompting the user in the
+      -- normal way) and reconnect the graph nodes.
    ) where
 
+import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Control.Concurrent
 
@@ -73,7 +79,7 @@ import VersionInfo
 
 import VersionDB
 import View
-import ViewType(viewId,viewInfoBroadcaster)
+import ViewType(viewId,viewInfoBroadcaster,ViewId)
 import DisplayTypes
 import DisplayView
 import VersionGraphClient
@@ -91,7 +97,9 @@ data VersionGraph = VersionGraph {
    closeDownAction :: IO (),
    closedEvent :: Event (),
    repository :: Repository,
-   selectCheckedInVersions :: String -> IO (Maybe [ObjectVersion])
+   selectCheckedInVersions :: String -> IO (Maybe [ObjectVersion]),
+   commitViewInGraph1 :: View -> IO () 
+      -- ^ described at the head of this module.
    }
 
 ---
@@ -105,20 +113,39 @@ data ViewedNode = ViewedNode {
 -- Opening a new VersionGraph
 -- --------------------------------------------------------------------
 
----
--- The server is taken from the WBFiles --uni-server parameter.
---
--- We use fixIO
 newVersionGraph :: 
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms,
+   ?server :: HostPort)
+   => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+   -> Repository -> IO VersionGraph
+newVersionGraph displaySort repository =
+   do
+      graph <- mkVersionSimpleGraph
+      newVersionGraph1 displaySort repository graph (show ?server)
+
+newVersionGraphInternal ::
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-   -> Repository -> IO VersionGraph
-newVersionGraph 
+   -> Repository -> VersionState -> IO VersionGraph
+newVersionGraphInternal displaySort repository versionState =
+   do
+      graph <- mkVersionSimpleGraphInternal versionState
+      newVersionGraph1 displaySort repository graph "(Internal)"
+
+newVersionGraph1 :: 
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms)
+   => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+   -> Repository -> VersionSimpleGraph -> String -> IO VersionGraph
+newVersionGraph1 
       (displaySort 
          :: GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
-         arc arcType arcTypeParms) repository =
+         arc arcType arcTypeParms) repository graph title =
    do
       -- All working nodes.
       (workingNodeRegistry :: Registry Node ViewedNode) <- newRegistry
@@ -126,13 +153,6 @@ newVersionGraph
       -- graph which is connected to the server and will (via displayGraph)
       -- be displayed.  We will update the version graph by displaying
       -- this graph.
-
-      graph <- 
-         let
-            ?server = toServer repository
-         in
-            mkVersionSimpleGraph
-
       let
          getVersionInfo1 = getVersionInfo graph
 
@@ -152,7 +172,7 @@ newVersionGraph
       let
          -- Parameters for displayGraph
          graphParms = 
-            (GraphTitle (show (toServer repository))) $$
+            (GraphTitle title) $$
             (GlobalMenu (Menu Nothing [
                Button "Merge" doMerge,
                Button "Copy Versions" copyVersions1
@@ -243,12 +263,22 @@ newVersionGraph
                update graph (NewNode thisNode workingType viewInfo)
                Graph.newArc graph workingArcType () parentNode thisNode
 
+               versionGraph <- readMVar versionGraphMVar
+               recordViewVersionGraph view versionGraph
+
                (Just displayedView) <- openGeneralDisplay
                   displaySort FolderDisplayType view
                addCloseDownAction displayedView (
                   update graph (DeleteNode thisNode)
                   )
                done
+
+         commitViewInGraph1 :: View -> IO ()
+         commitViewInGraph1 view =
+            do
+               let
+                  node = toNode (WorkingNode view)
+               commitNode node
                       
          commitNode :: Node -> IO ()
          commitNode node =
@@ -611,7 +641,8 @@ newVersionGraph
             closeDownAction = closeDownAction,
             closedEvent = receive destroyedChannel,
             repository = repository,
-            selectCheckedInVersions = selectCheckedInVersions
+            selectCheckedInVersions = selectCheckedInVersions,
+            commitViewInGraph1 = commitViewInGraph1
             }
 
       putMVar versionGraphMVar versionGraph
@@ -700,6 +731,34 @@ getVersionPars operation parentUserString parentString =
          windowTitle = operation++" "++parentString
       doForm windowTitle form
 
+-- --------------------------------------------------------------------
+-- commitViewInGraph. 
+-- --------------------------------------------------------------------
+
+commitViewInGraph :: View -> IO ()
+commitViewInGraph view =
+   do
+      versionGraphOpt <- getViewVersionGraph view
+      case versionGraphOpt of
+         Nothing -> done
+         Just versionGraph -> commitViewInGraph1 versionGraph view
+
+-- --------------------------------------------------------------------
+-- Another global registry (sigh).  Maps views to the corresponding
+-- VersionGraph.
+-- --------------------------------------------------------------------
+
+recordViewVersionGraph :: View -> VersionGraph -> IO ()
+recordViewVersionGraph view versionGraph =
+   setValue viewToVersionGraphRegistry (viewId view) versionGraph
+
+getViewVersionGraph :: View -> IO (Maybe VersionGraph) 
+getViewVersionGraph view 
+   = getValueOpt viewToVersionGraphRegistry (viewId view) 
+
+viewToVersionGraphRegistry :: Registry ViewId VersionGraph
+viewToVersionGraphRegistry = unsafePerformIO newRegistry
+{-# NOINLINE viewToVersionGraphRegistry #-}
 
 
     

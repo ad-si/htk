@@ -1,10 +1,14 @@
-{- Module which maintains the list of VersionGraphs. -}
+{- Module which maintains the list of external VersionGraphs. -}
 module VersionGraphList(
    addVersionGraph,
-      -- :: HostPort -> IO ()
+      -- :: Maybe HostPort -> IO ()
       -- attempt to open a new version graph by connecting to a server.
    getCurrentVersionGraphs, 
-      -- :: IO [(HostPort,Repository)]
+      -- :: IO [(Maybe HostPort,Repository)]
+      --
+      -- Nothing means "the internal server".
+
+   showHostPortOpt, -- :: Maybe HostPort -> String
    ) where
 
 import Maybe
@@ -29,6 +33,8 @@ import GraphConfigure
 import HostsPorts
 import CallServer (tryConnect)
 
+import VersionInfo
+
 import VersionDB
 import Initialisation
 import VersionGraph
@@ -37,7 +43,8 @@ import VersionGraph
 -- The current version graphs
 -- -------------------------------------------------------------------------
 
-currentVersionGraphs :: LockedRegistry HostPort VersionGraph
+currentVersionGraphs :: LockedRegistry (Maybe HostPort) VersionGraph
+   -- Here "Nothing" denotes the internal server.
 currentVersionGraphs = unsafePerformIO newRegistry
 {-# NOINLINE currentVersionGraphs #-}
 
@@ -50,60 +57,85 @@ addVersionGraph ::
       arc arcType arcTypeParms)
    => (GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-   -> HostPort -> IO ()
-addVersionGraph displaySort hostPort =
-   transformValue currentVersionGraphs hostPort
+   -> Maybe HostPort -> IO ()
+addVersionGraph displaySort hostPortOpt =
+   transformValue currentVersionGraphs hostPortOpt
       (\ versionGraphOpt -> case versionGraphOpt of
          Just _ ->
             do
                createErrorWin ("You are already connected to "
-                  ++ show hostPort) []
+                  ++ showHostPortOpt hostPortOpt) []
                return (versionGraphOpt,())
          Nothing ->
-            do
-               repositoryOrCancelOrError <- Control.Exception.try (
-                  let
-                     ?server = hostPort
-                  in
-                     tryConnect (Initialisation.openRepository)
-                  )
-               case repositoryOrCancelOrError of
-                  Left excep ->
-                     do
-                        createErrorWin (
-                           "Failed to connect to " ++ show hostPort ++
-                           " with error " ++ show excep
-                           ) []
-                        return (versionGraphOpt,())
-                  Right (Left mess) ->
-                     do
-                        createMessageWin mess []
-                        return (versionGraphOpt,())
-                  Right (Right repository) -> 
-                     do
-                        versionGraph <- newVersionGraph displaySort repository
-                        forkIO (
+            case hostPortOpt of
+               Nothing ->
+                  do
+                     versionState <- mkVersionState
+                     repository <- initialiseInternal versionState
+                     versionGraph <- newVersionGraphInternal 
+                        displaySort repository versionState
+                     forkIO (
+                        do
+                           sync (destroyed versionGraph)
+                           deleteFromRegistry currentVersionGraphs 
+                              hostPortOpt
+                        )
+                     return (Just versionGraph,())
+               Just hostPort ->
+                  do      
+
+                     repositoryOrCancelOrError <- Control.Exception.try (
+                        let
+                           ?server = hostPort
+                        in
+                           tryConnect (Initialisation.openRepository)
+                        )
+                     case repositoryOrCancelOrError of
+                        Left excep ->
                            do
-                              sync (destroyed versionGraph)
-                              deleteFromRegistry currentVersionGraphs hostPort
-                           )
-                        return (Just versionGraph,())
+                              createErrorWin (
+                                 "Failed to connect to " ++ show hostPort ++
+                                 " with error " ++ show excep
+                                 ) []
+                              return (versionGraphOpt,())
+                        Right (Left mess) ->
+                           do
+                              createMessageWin mess []
+                              return (versionGraphOpt,())
+                        Right (Right repository) -> 
+                           do
+                              versionGraph <- 
+                                 let
+                                    ?server = hostPort
+                                 in
+                                    newVersionGraph displaySort repository
+                              forkIO (
+                                 do
+                                    sync (destroyed versionGraph)
+                                    deleteFromRegistry currentVersionGraphs 
+                                       hostPortOpt
+                                 )
+                              return (Just versionGraph,())
          )
 
-getCurrentVersionGraphs :: IO [(HostPort,VersionGraph)]
+getCurrentVersionGraphs :: IO [(Maybe HostPort,VersionGraph)]
 getCurrentVersionGraphs =
    do
       hostPorts <- listKeys currentVersionGraphs
-      repositoryOpts <- mapM
+      versionGraphOpts <- mapM
          -- allow for the possibility that someone else simultaneously
-         -- deletes a repository before we get around to looking at it.
-         (\ hostPort -> 
+         -- deletes a versionGraph before we get around to looking at it.
+         (\ hostPortOpt -> 
              do
-                repositoryOpt <- getValueOpt currentVersionGraphs hostPort
+                versionGraphOpt <- getValueOpt currentVersionGraphs hostPortOpt
                 return (fmap 
-                   (\ repository -> (hostPort,repository)) repositoryOpt
+                   (\ versionGraph -> (hostPortOpt,versionGraph)) 
+                      versionGraphOpt
                    )
              )
          hostPorts
-      return (catMaybes repositoryOpts)
-      
+      return (catMaybes versionGraphOpts)
+
+showHostPortOpt :: Maybe HostPort -> String
+showHostPortOpt Nothing = "the internal server"
+showHostPortOpt (Just hostPort) = show hostPort

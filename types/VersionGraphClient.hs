@@ -5,6 +5,9 @@ module VersionGraphClient(
    -- Get the VersionGraph, and arrange for the connection to be closed
    -- when the program ends.
    mkVersionSimpleGraph, -- :: (?server :: HostPort) => IO (VersionSimpleGraph)
+   mkVersionSimpleGraphInternal,
+      -- :: VersionState -> IO (VersionTypes SimpleGraph)
+
    VersionTypes,
    VersionSimpleGraph, -- alias for VersionSimpleGraph
 
@@ -28,6 +31,8 @@ module VersionGraphClient(
    getVersionInfo, -- :: VersionSimpleGraph -> Node -> IO VersionInfo
       -- Get the version Info for a node.
    ) where
+
+import Control.Concurrent.MVar
 
 import AtomString
 import UniqueString
@@ -86,6 +91,16 @@ mkVersionSimpleGraph =
       return versionGraph
 
 ---
+-- Get the VersionGraph (internal version), and arrange for the connection to 
+-- be closed when the program ends.
+mkVersionSimpleGraphInternal :: VersionState -> IO (VersionTypes SimpleGraph)
+mkVersionSimpleGraphInternal versionState =
+   do
+      (versionGraph,terminator) <- connectToServerInternal versionState
+      registerDestroyAct terminator
+      return versionGraph
+
+---
 -- retrieve the VersionInfo corresponding to a given version.
 getVersionInfo :: VersionTypes SimpleGraph -> Node -> IO VersionInfo
 getVersionInfo versionGraph node = getNodeLabel versionGraph node
@@ -101,7 +116,36 @@ connectToServer =
    do
       (getNextUpdate,closeConnection,initialVersionInfos) 
           <- connectExternal versionInfoService
+      connectToServer1 getNextUpdate closeConnection initialVersionInfos
 
+---
+-- connectToServerInternal connects to the internal server.
+connectToServerInternal :: VersionState -> IO (VersionSimpleGraph,IO ())
+connectToServerInternal versionState =
+   do
+      (updateMVar :: MVar (Bool,VersionInfo)) <- newEmptyMVar
+      let
+         updateFn updateAct =
+            do
+               update <- updateAct
+               putMVar updateMVar update
+
+      versionInfos <- registerAndGet versionState updateFn
+      let
+         getNextUpdate = takeMVar updateMVar
+
+      connectToServer1 getNextUpdate done versionInfos    
+
+---
+-- This is the general version-graph construction function, for
+-- external and internal version graphs.  
+connectToServer1 :: 
+   IO (Bool,VersionInfo) -- ^ source of updates.
+   -> IO () -- ^ close action
+   -> [VersionInfo] -- ^ initial versionInfos
+   -> IO (VersionSimpleGraph,IO ())
+connectToServer1 getNextUpdate closeConnection initialVersionInfos =
+   do
       (graph :: VersionTypes SimpleGraph) <- newEmptyGraph
 
       debug initialVersionInfos

@@ -42,15 +42,15 @@ copyVersions versionGraphFrom =
       addFallOut (\ break ->
          do
             -- Select what repository to copy to.
-            (versionGraphs :: [(HostPort,VersionGraph)]) 
+            (versionGraphs :: [(Maybe HostPort,VersionGraph)]) 
                <- getCurrentVersionGraphs
 
             let
                openMenu :: Form VersionGraph
                openMenu = newFormOptionMenu2
                   (map
-                     (\ (hostPort,versionGraph) ->
-                           (show hostPort,versionGraph)
+                     (\ (hostPortOpt,versionGraph) ->
+                           (showHostPortOpt hostPortOpt,versionGraph)
                         )
                      versionGraphs
                      )

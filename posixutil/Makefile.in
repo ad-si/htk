@@ -14,7 +14,7 @@ SRCSC = MainrunCommand.c Mainlog.c
 
 SUBDIRS = test
 
-EXTRAEXPORTS = runCommand
+EXTRAEXPORTS = runCommand log daVinci.debug.in wish.debug.in
 
 # For runCommand we link with -no-hs-main since it's not actually a Haskell
 # program.
@@ -24,7 +24,7 @@ log_HC_OPTIONS = -no-hs-main
 
 include @TOP@/mk/boilerplate.mk
 
-prepareexports : runCommand
+prepareexports : runCommand log
 
 .PHONY : displayextrasrcs
 

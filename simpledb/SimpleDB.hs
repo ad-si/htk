@@ -6,8 +6,7 @@ module SimpleDB(
       -- Instance of Ord/Eq.
 
    initialise, -- :: (?server :: HostPort) => IO Repository
-   toServer, -- :: Repository -> HostPort
-      -- extract the HostPort with which this Repository was created.
+   initialiseInternal, -- :: VersionState -> IO Repository
 
    ObjectVersion, 
    -- type of versions of objects in the repository
@@ -92,14 +91,18 @@ import BinaryIO
 import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
+import WBFiles(getUser)
 
 import Destructible
+import BSem
+import Synchronized
 
 import InfoBus
 
 import HostsPorts
 import CallServer
 import MultiPlexer
+import PasswordFile
 
 import CopyFile
 
@@ -118,8 +121,7 @@ import qualified ObjectSource
 data Repository = Repository {
    queryRepository :: SimpleDBCommand -> IO SimpleDBResponse,
    closeDown :: IO (),
-   oID :: ObjectID,
-   server :: HostPort
+   oID :: ObjectID
    }
 
 initialise :: (?server :: HostPort) => IO Repository
@@ -154,30 +156,57 @@ initialise =
 
       multiPlexer <- newMultiPlexer queryRepository2
 
+      initialise1 (sendCommand multiPlexer) closeDown
+
+initialiseInternal :: VersionState -> IO Repository
+initialiseInternal versionState =
+   do
+      simpleDB <- openSimpleDB versionState
+
+      userOpt <- getUser
+
+      bSem <- newBSem
       let
-         queryRepository3 :: SimpleDBCommand -> IO SimpleDBResponse
-         queryRepository3 command =
+         userId1 = case userOpt of 
+            Just userId1 -> userId1
+            Nothing -> "root"
+
+         user = User {
+            PasswordFile.userId = userId1,
+            encryptedPassword = "",
+            isAdmin = True,
+            other = ""
+            }
+
+           
+         queryRepository command = 
+            synchronize bSem (querySimpleDB user simpleDB command)
+
+      initialise1 queryRepository done
+
+initialise1 :: (SimpleDBCommand -> IO SimpleDBResponse) -> IO () 
+   -> IO Repository
+initialise1 queryRepository1 closeDown =
+   do
+      let
+         queryRepository2 :: SimpleDBCommand -> IO SimpleDBResponse
+         queryRepository2 command =
             do
-               response <- sendCommand multiPlexer command
+               response <- queryRepository1 command
                case response of
                   IsError mess -> error ("Server error: mess")
                   _ -> return response
 
-
       oID <- newObject
       let
          repository = Repository {
-            queryRepository = queryRepository3,
+            queryRepository = queryRepository2,
             closeDown = closeDown,
-            oID = oID,
-            server = ?server
+            oID = oID
             }
 
       registerTool repository
       return repository
-
-toServer :: Repository -> HostPort
-toServer = server
 
 instance Object Repository where
    objectID repository = oID repository
