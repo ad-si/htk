@@ -553,12 +553,12 @@ command = do c <- try (many1 letter)
              star <- option "" (try (string "*"))
              l <- do braceDelim <- try (string "{}")
                      return (LParams [] [] (Just(braceDelim)) Nothing)
-                 <|> do blankDelim <- try (many1 space)
-                        return (LParams [] [] (Just(blankDelim)) Nothing)
-                 <|> do p <- (lParams c [])
-                        sp <- option "" (try (many1 space))
-                        sp1 <- if (sp == "") then (return Nothing) else (return (Just sp))
-                        return (insertDelims p sp1 Nothing)
+                  <|> do blankDelim <- try (many1 space)
+                         return (LParams [] [] (Just(blankDelim)) Nothing)
+                  <|> do p <- (lParams c [])
+                         sp <- option "" (try (many1 space))
+                         sp1 <- if (sp == "") then (return Nothing) else (return (Just sp))
+                         return (insertDelims p sp1 Nothing)
              return (Command (c ++ star) l)
 
 
@@ -736,13 +736,19 @@ namePairParser = try( do spaces
 
 -- Parst eine einzelne Direktive:
 directiveParser :: GenParser Char st [Directive]
-directiveParser = simpleDirectiveParser 
+directiveParser = renameDirectiveParser
                   <|> hideRevealDirectiveParser 
+                  <|> simpleDirectiveParser
+                  <?> "valid directive in import command."
 
 -- directivesParser parst die Direktiven eines Import-Statements
-directivesParser :: GenParser Char st [Directive]
-directivesParser = do listOfDirectiveLists <- commaSep (choice ((renameDirectiveParser):(directiveParser):[]))
-                      return(foldl (++) [] listOfDirectiveLists)
+directivesParser :: [Directive] -> GenParser Char st [Directive]
+directivesParser ds = 
+  do d <- directiveParser
+     sep <- option "" (string ",")
+     if (sep == "")
+       then return(ds ++ d)
+       else directivesParser (ds ++ d)
 
 
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
@@ -1066,7 +1072,7 @@ makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCm
     -- Matcht auf \Import[directives]{packageName}:
     (SingleParam ((Other directivesStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
       -> let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
-             directivesEl = parse directivesParser "" directivesStr
+             directivesEl = parse (directivesParser []) "" directivesStr
          in case directivesEl of
                Right directives  -> 
                  case packageNameEl of 
@@ -1074,7 +1080,7 @@ makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCm
                    Left err -> hasError ("Parse error in second argument of Import-Command:\n"
                                      ++ (makeTextElem [cmd] ++ "\nError:\n")
                                      ++ show err)
-               Left err -> hasError ("Parse error in first argument of Import-Command:\n"
+               Left err -> hasError ("Parse error in directives of Import-Command:\n"
                                    ++ (makeTextElem [cmd] ++ "\nError:\n")
                                    ++ show err)
     otherwise -> hasError("The following Import-Command in the Import-preamble has to few or wrong arguments:\n"
