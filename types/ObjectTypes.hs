@@ -246,6 +246,13 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
 
    nodeTitleSourcePrim object = staticSimpleSource (nodeTitlePrim object)
 
+   nodeTitlePrim object =
+      seq (nodeTitleSourcePrim object) 
+         (error "Only nodeTitleSourcePrim should call nodeTitlePrim!")
+      -- pointless definition except that it avoids warning messages
+      -- about not defining nodeTitlePrim, when nodeTitleSourcePrim is
+      -- defined.
+
    getNodeDisplayData :: 
       (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
          arc arcType arcTypeParms)

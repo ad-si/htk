@@ -11,7 +11,7 @@ SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    MergeTypes.hs Merging.hs MergeReAssign.hs MergePrune.hs \
    VersionGraphClient.hs LocalMenus.hs CopyVersion.hs VersionGraphList.hs \
    CopyVersionInfos.hs CopyVersions.hs ToggleAdminStatus.hs \
-   ManagePermissions.hs 
+   ManagePermissions.hs NoAccessObject.hs \
 
 SUBDIRS    = test
 
