@@ -125,12 +125,7 @@ getAllPermissions :: View -> LinkedObject
       -- upwards.
 getAllPermissions view thisLinkedObject =
    do
-      parentVersionOpt <- getParentVersion view
-      parentVersion <- case parentVersionOpt of
-         Just parentVersion -> return parentVersion
-         Nothing ->
-            error ("Attempt to get permissions for a view with no parent "
-               ++ " version")
+      parentVersion <- getViewVersion view
       let
          thisLocation = toLocation thisLinkedObject
 
@@ -192,7 +187,6 @@ getPermissionsParentLinkedObject view thisLinkedObject =
                               return (Just parentLinkedObject)
                            else 
                               failure
-
 
 -- -----------------------------------------------------------------------
 -- Utility functions

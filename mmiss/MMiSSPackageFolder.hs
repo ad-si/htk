@@ -117,6 +117,7 @@ import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
 import MMiSSInsertionPoint
+import ManagePermissions
 
 import {-# SOURCE #-} MMiSSExportLaTeX(pathRef)
 import {-# SOURCE #-} MMiSSObjectTypeInstance
@@ -480,6 +481,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                Button "Hide Links" (\ link -> hideAction link True),
                Button "Reveal Links" (\ link -> hideAction link False)
                ]
+               ++ permissionsMenu view
 
             menu = LocalMenu (Menu Nothing menuOptions)
 

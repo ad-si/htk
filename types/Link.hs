@@ -543,7 +543,7 @@ moveLink view (Link newParent) (Link object) =
 
 moveLocation :: View -> Location -> Location -> IO ()
 moveLocation view newParent object =
-   setValue (parentChanges view) newParent object
+   setValue (parentChanges view) object newParent
 
 -- | This creates an object with no contents as a stop-gap so you can
 -- create a link to it, EG for constructing circular lists.

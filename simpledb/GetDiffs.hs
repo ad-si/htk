@@ -161,7 +161,7 @@ getDiffs simpleDB user thisVersion parentVersions =
          diffFM thisFM parentFM =
             filter
                (\ (location,parent1) -> 
-                  (lookupFM parentFM location == Just parent1)
+                  (lookupFM parentFM location /= Just parent1)
                   )
                (fmToList thisFM)
 
