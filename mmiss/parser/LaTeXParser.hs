@@ -19,6 +19,11 @@ module LaTeXParser (
    mergePreambles, -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
 
 
+   mkLaTeXString, 
+      -- :: EmacsContent ((String,Char),[Attribute]) -> String
+      -- Convert the contents of an Emacs buffer representing a particular
+      -- LaTeX file into a String.
+
    -- OLD INTERFACE
    frags,
 
