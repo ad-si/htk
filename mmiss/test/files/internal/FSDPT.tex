@@ -1,0 +1,3058 @@
+\documentclass[landscape, autoslides, light]{mmiss}
+
+%\input{diagrams}
+%\diagramstyle[size=2cm,heads=blacktriangle]
+\MMlogo{TU_ohne}
+\usepackage{latexsym}
+%\usepackage{epsfig}
+\input xy
+\xyoption{all} \xyoption{2cell}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[all]{xy}
+\usepackage{proof}
+\usepackage{xspace}
+\usepackage{casl}
+
+
+
+
+
+
+
+
+\newcommand{\ns}{\normalsize}
+\newcommand{\kl}{[ \hspace{-4pt} [ \hspace{4pt}}
+\newcommand{\kr}{ \hspace{4pt} ] \hspace{-4pt} ] }
+\newcommand{\eqd}{\stackrel{\mathrm def}{=}}
+\newcommand{\ekl}{[\![}
+\newcommand{\ekr}{]\!]}
+\newcommand{\nat}{{I\!\!N}}
+\newcommand{\CASL}{\textmd{\textsc{Casl}}\xspace }
+\newcommand{\CoCASL}{\textmd{\textsc{CoCasl}}\xspace }
+\newcommand{\vsp}{\pause\vspace{8mm}}
+\maketoc
+
+\begin{document}
+\begin{Package}[Label={FSDPT}, Title={Formal Specification of Data and Process Types}, ShortTitle={FSDPT}, Authors={Horst Reichel}, Date={February 2003}, LevelOfDetail=Lecture, Language=en-GB]
+
+
+\begin{Section}[Title={Literature}, Label={section1}]
+
+%............................................
+
+\begin{Paragraph}[Title={Data Types}, Label=Paragraph1]
+\small
+\begin{List}[ListType=itemize]
+\ListItem J. Loeckx, H.--D. Ehrich, M. Wolf: Specification of
+   Abstract Data Types, Wiley and Teubner, 1996
+ \ListItem E. Astesiano, H.--J. Kreowski, B. Krieg--Br{\"u}ckner
+       (Eds.): Algebraic Foundations of Systems Specification, IFIP
+      State--of--the--art reports, Springer,1999
+\ListItem   N. Shankar, S. Owre, J. M. Rushby, D. W.
+Stringer--Calvert: PVS Prover Guide, Version 2.4, SRI
+International, November 2001, (http://pvs.csl.sri.com)
+ \ListItem The algebraic specification language \CASL,
+ (http://www.brics.dk/Projects/CoFI/CASL.html)
+%%%%%%%%%%%%%%%%%
+%\MMstartApplication{knopf}{C:/JFLAP04/JFLAP.jar}
+%%%%%%%%%%%%%%%%%
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Process Types}, Label=Paragraph2]
+\begin{List}[ListType=itemize]
+\ListItem B. Jacobs: Exercises in coalgebraic specification, In
+  \textsc{R. Backhous,  R. Crole} and \textsc{J. Gibbons} (Eds.):
+  Algebraic and Coalgebraic Methods in the Mathematics of
+  Program Construction, vol. 2297 of Lecture Notes in
+  Computer Scienc, pages 237--280, Springer, Berlin, 2002
+ % \item H. Tews: The Coalgebraic Class Specification Language CCSL
+ % - Syntax and Semantics - Technical Report ISSN 1430--211X,
+ % TU Dresden Fakult{\"a}t Informatik, URL:
+ % http://www.inf.tu-dresden.de,
+ \ListItem Proceedings of the CMCS--Workshops, ENTCS Volumes 11, 19,
+ 33, 44, 65
+ \ListItem T. Mossakowski, H. Reichel, M. Roggenbach, L.
+ Schr\"oder: Algebraic-co-algebraic specification in \CoCASL, to
+ appear in Proceedings of WADT 2002, Springer LNCS.
+\end{List}
+\ns
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Introduction}, Label={section2}]
+
+%............................................
+
+\begin{Paragraph}[Title={Kinds of  Specifications}, Label=Paragraph3]
+\pause
+
+There are several kinds of specifications \pause
+
+\begin{List}[ListType=itemize]
+ \ListItem model oriented specifications \pause
+ \ListItem axiomatic specifications \pause
+ \ListItem executable specifications
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Model oriented Specifications}, Label=Paragraph4]
+
+\small
+In model oriented specifications a high level formal language is
+used to describe a specific model for the intended data type.
+Those high level formal languages may be specially designed
+languages like \textbf{Z} (see J. Bowen: Formal Specification and
+Documentation using Z, International Thomson Computer Press,
+London, 1996) or it can be a \textbf{type theory}.
+
+In this Lecture we will not present this style of specifications.
+
+The specification language \hyperlink{BOBJ}{BOBJ} is an example
+with executable specifications.
+\ns
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Axiomatic Specifications}, Label=Paragraph5]
+
+This lecture will focus on axiomatic specifications. By means of
+suitable logics classes of models will represent abstract type,
+such that each model represents a correct implementation of the
+abstract type.\pause
+
+This approach raises the question: \Emphasis{What kind of
+mathematical structures can be used to represent correct
+implementations of data and process types?}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph6]
+\pause
+
+The foundations presented in the course are based on the
+assumption that \pause
+\begin{List}[ListType=itemize]
+    \ListItem \textcolor{blue}{a \textbf{data type} can be represented
+    by a set of \textbf{constructors} and their properties}, and \pause
+    \ListItem \textcolor{blue} {a \textbf{process type} can be
+    represented by a set of \textbf{observers (atomic experiments, destructors)}
+    and their properties}.
+\end{List}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph7]
+
+To illustrate this rather abstract formulation, let us discuss
+informally some examples.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph8]
+
+
+>From the Peano axiomatization of natural numbers we know that the
+data type of natural numbers can be defined by two constructors:
+\vspace{8mm} \small
+\begin{verbatim}
+   BEGIN Nat :  SPEC
+       SORT        Nat ;
+       CONSTRUCTOR  zero : -> Nat;
+                    suc  : Nat ->Nat
+   END Nat
+\end{verbatim}
+\ns
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph9]
+
+satisfying the following (second--order) axioms:\vspace{8mm}
+
+ \begin{List}[ListType=enumerate]
+ \ListItem $\forall x_{Nat}. \neg (suc(x) = zero )$; \pause
+ \ListItem  $\forall x_{Nat} , y_{Nat} . suc(x) = suc(y) \Rightarrow
+    x = y $; \pause
+ \ListItem  $\forall R_{Nat \to Bool} . ((R(zero) \wedge \forall x_{Nat} .
+   (R(x) \Rightarrow R(suc(x)))) \Rightarrow \forall y_{Nat} .
+   R(y))$
+ \end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph10]
+
+Similarly, the data type of finite lists can be defined by two
+constructors: \vspace{8mm} \small
+\begin{verbatim}
+   BEGIN List[ X : TYPE] : SPEC
+      SORT               List;
+      CONSTRUCTOR  Nil : -> List;
+                   Cons : X * List -> List
+   END List
+\end{verbatim}
+\ns
+
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph11]
+
+satisfying the following properties:\vspace{8mm}
+\begin{List}[ListType=enumerate]
+    \ListItem  $\forall x_{Elem}, l_{Lists}. \neg( cons(x,l) = nil) $ \pause
+    \ListItem  $\forall x_{Elem}, y_{Elem}, l_{Lists}, r_{Lists}.
+   (cons(x,l) = cons(y,r) \Rightarrow $ \\
+      $(x = y \wedge l = r)) $ \pause
+    \ListItem $\forall R_{Lists \to Bool}.(R(nil) \wedge \forall x_{Elem}, l_{Lists}.
+   (R(l) \Rightarrow R(cons(x,l))) \Rightarrow \forall r_{Lists} .
+   R(r))$
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph12]
+
+We see that correct implementations of data types can be
+represented by first--order structures of a many--sorted signature
+(alphabet), whose properties can be expressed in first-- and
+second--order logic.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition - Initiality}, Label=Paragraph13]
+
+The  axioms for natural number and for list can equivalently be
+expressed in the following way:\pause \\ Let $\mathbb{N}$ denote
+the \texttt{Nat}--structure of natural numbers with the usual
+interpretation of the two constructors. Then the  axioms are
+equivalent to the following \emph{\textbf{initiality axiom:}}
+\begin{quote} For each $\Sigma_{Nat}$--structure $\mathbb{A}$
+there exists exactly one homomorphism \\$ h : \mathbb{ N} \to
+\mathbb{A}$ \end{quote}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition - Initiality}, Label=Paragraph14]
+
+Let $ \mathbb{L}(M)$ denote the \texttt{List(M)}--structure which
+interprets \texttt{Nil} as the empty list and \texttt{cons} as
+extending a given list by a given element out of the set $M$. Then
+the axioms are equivalent to \begin{quote} For each
+\texttt{List(M)}--structure $ \mathbb{A}(M)$ there exits exactly
+one homomorphism $$ h : \mathbb{L}(M) \to \mathbb{A}(M)$$ which is
+the identity on $M$.\end{quote}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition - Initiality}, Label=Paragraph15]
+
+The initiality axiom provides us with a powerful
+\textcolor{blue}{\textbf{definition and proof principle for data
+types:}}
+ \pause
+\begin{List}[ListType=itemize]
+ \ListItem the \textbf{definition principle} is based on the
+\textbf{existence} of the homomorphism  \pause \ListItem the
+\textbf{proof principle} is based on the \textbf{uniqueness} of
+the homomorphism.
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition - Finality}, Label=Paragraph16]
+
+To discuss process types, let us start with the \emph{signature of
+partial deterministic automata}:
+
+\small
+\begin{verbatim}
+    BEGIN Automata[In , Out : Type] : SPEC
+       SORT         State ;
+       OPERATIONS   next : In * State -> State + 1 ;
+                    out : State -> Out + 1
+    END
+ \end{verbatim}
+ \ns
+
+ where + denotes the disjoint union and $1 = \{ * \}$ the singleton
+ set.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Basic Intuition - Finality}, Label=Paragraph17]
+
+For fixed interpretation of the input and output alphabets by sets
+$A$ and $B$ an $(A, B)$--automaton is given by
+$$ \mathbb{M} = (A, B, M, next_{\mathbb{M}}: A \times M \to M + 1,
+out_{\mathbb{M}}: M \to B +1)$$ For a given state $m \in M$ we can
+define the \textcolor{blue}{behaviour of $ \mathbb{M}$ at $m \in
+M$} $$ beh_{m, \mathbb{M}} : A^* \to B + 1 $$ as follows:
+
+
+Let $$ next^* : A^* \times M \to M +1 $$ be defined by
+\small
+$$\begin{array}{lll}next^*(\varepsilon, m)&  = &  m \; \mbox{ for
+all } m \in M,\\ & & \\
+ next^*(aw,m)&  = & \left\{ \begin{array}{ll}
+ m' & \mbox{ if } next^*(w,m) = m_1 \mbox{ and } next(a,m_1) =
+ m'\\  &
+ \mbox{ for some } m_1 \in M \\
+ \ast & \mbox{else} \end{array} \right .\end{array} $$
+where $w \in A^*, a \in A$.
+\ns
+ Then the behaviour function is
+given by:
+
+$$\begin{array}{lll}
+beh_{m,\mathbb{M}}(\varepsilon) & = & out_{\mathbb M}(m) \\
+ &  &  \\
+beh_{m,\mathbb{M}}(aw) & = & \left\{\begin{array}{ll} out_{\mathbb
+M}(m') & \mbox{if } next^*(aw,m) = m' \\ \ast & else
+\end{array} \right. \end{array}$$
+
+One can easily check that for each behaviour function holds:
+
+If $beh_{m,\mathbb{M}}(w) = *$ then $beh_{m,\mathbb{M}}(aw) = *$
+for all $w \in A^*, a \in A$.
+
+Now the behaviour functions itself can be seen as states of an
+$(A, B)$--automaton
+$$\mathbb{F} = (A, F, B; next_{\mathbb F}: A
+\times F \to F + \mathbf{1}, out_{\mathbb F}: F \to B +
+\mathbf{1})$$ with $$ F = \{ \beta: A^* \to B + \mathbf{1}\; | \;
+\forall a,w .(\beta(w) = \ast) \Rightarrow (\beta(aw) = \ast)\}$$
+and $$\begin{array}{lll} next_{\mathbb F}(a, \beta) & = & \lambda
+w . \beta(aw)\\ out_{\mathbb F} (\beta) & = & \beta(\varepsilon)
+\end{array}$$
+
+It turns out that there is a unique homomorphism
+$$h : \mathbb{M} \to \mathbb{F}$$  given
+ by $h(m) = \beta_{\mathbb{M}, m}$, i.e.\begin{center}
+ \textcolor{blue}{$\mathbb{F}$ is a final $(A, B)$--automaton.}
+\end{center}
+\pause In other words: \\ \pause \textcolor{red}{The final
+$(A,B)$--automaton $\mathbb F$ represents the type of behaviours
+of all $(A,B)$--automata.}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Conclusion}, Label=Paragraph18]
+\pause
+ \textcolor{red}{\textbf{
+\begin{List}[ListType=itemize]
+    \ListItem initial structures can be used to represent data types.
+    \pause
+    \ListItem final structure can be used to represent types of
+    behaviours, i.e. process types.
+\end{List}}}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Notation}, Label=Paragraph19]
+
+\small
+\begin{List}[ListType=itemize]
+\ListItem \textbf{Composition of mappings $(;)$}: If $f: A \to B, g :
+B \to C$ then $f;g : A \to C$ with $(f;g)(x) = g(f(x))$ for each
+$x \in A$.\pause
+
+\ListItem \textbf{Composition of mappings $(\circ)$}: If $f: A \to B,
+g : B \to C$ then $g \circ f : A \to C$ with $(g \circ f)(x) =
+g(f(x))$ for each $x \in A$.\pause
+
+\ListItem For any set $M$ there exists a unique mapping $!_M : M \to
+\mathbf{1}$. \pause
+
+\ListItem For any  sets $A, B$ there are \textbf{projections} $\pi_1 :
+A \times B \to A, \; \pi_2 : A \times B \to B$ and for each pair
+of mappings $f: M \to A, \; g : M \to B$ there is a unique mapping
+$\langle f,g \rangle : M \to A \times B$ with $ \langle f,g
+\rangle ;\pi_1 = f, \langle f,g \rangle ;\pi_2 = g$.\pause
+
+\ListItem A consequence is the equality $\langle \pi_1, \pi_2 \rangle
+= Id_{A \times B}$.
+
+\ListItem  If $f: A \to B, g : M \to N$ are arbitrary mappings, then
+$f \times g : A \times M \to B \times N$ denotes the mapping $
+\langle \pi_1 ;f, \pi_2 ;g): A \times M \to B \times N$. \pause
+
+\ListItem For any sets $A, B$ there are \textbf{injections} $\kappa_1
+: A \to A + B, \kappa_2 : B \to A + B$ and for each pair of
+mappings $f : A \to C, g : B \to C$ there is a unique mapping
+$[f,g] : A + B \to C$ with $\kappa_1 ; [f,g] = f $ and $\kappa_2 ;
+[f,g] = g $.\pause
+
+\ListItem A consequence is the equality $[ \kappa_1, \kappa_2 ]= Id_{A
++ B}$.\pause
+
+\ListItem If $f: A \to B, g : M \to N$ are arbitrary mappings, then $f
++ g : A + M \to B + N$ denotes the mapping $[ f ; \kappa_1 , g ;
+\kappa_2 ] : A + M \to B + M$. \ns
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Specification Languages and Tools}, Label=Paragraph20]
+
+There are several specification languages, supported by an
+associated tool, which can be used to specify data and process
+types: \pause
+
+\begin{List}[ListType=itemize]
+    \ListItem CCSL: Coalgebraic Class Specification Language, (TU
+    Dresden, Technical Report: TUD--FI02--08--August 2002,
+    (http://wwwtcs.inf.tu-dresden.de/~tews/ccsl/)\pause
+    \ListItem \CASL (and its extension to \CoCASL): CoFI, The
+     Common Framework Initiative for Algebraic Specification and
+     Development
+     (http://www.brics.dk/Projects/CoFI/Documents/CASL/)\pause
+    \ListItem \hypertarget{BOBJ}{BOBJ}: Part of the TATAMI--Project
+    (http://www.cs.ucsd.edu/groups/tatami/ and
+     http://www.cs.ucsd.edu/groups/tatami/bobj/)
+\end{List}
+
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Initial Algebras as Data Types}, Label={section3}]
+
+\begin{Section}[Title={Existence of initial models}, Label={section3_1}]
+\begin{Paragraph}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={First Examples}, Label=Paragraph21]
+
+The examples of natural numbers and list would be represented in
+CCSL as follows:
+
+\begin{verbatim}
+  BEGIN nat : INITIAL SPEC
+      SORT          Nat ;
+      CONSTRUCTOR   zero : -> Nat ;
+                    succ : Nat -> Nat
+  END nat
+\end{verbatim}
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph22]
+\begin{verbatim}
+  BEGIN list[B : TYPE] : INITIAL SPEC
+      SORT          List ;
+      CONSTRUCTOR   nil : -> List ;
+                    cons : B * List -> List
+  END list
+\end{verbatim}
+
+
+ The corresponding specifications in
+\hyperlink{nat-casl}{CASL} or in \hyperlink{nat-bobj}{BOBJ} differ
+only on the syntactic level.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph23]
+
+The key word \texttt{INITIAL} within the specifications above
+constrains the model classes to the initial ones. But, what about
+the axioms in the Peano axiomatization given above? The
+CCSL--specifications do not contain any axioms (explicitly). \\
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph24]
+To discuss this problem we jump on a more abstract level,
+syntactically independent from the specific specification
+languages.
+
+\pause
+
+\small
+\begin{Definition}[Title = {Many--sorted first--order signature}, Label = {signature}]
+ A many--sorted first--order signature $$\Sigma =
+(Sorts, Ops, Pred)$$ is given by a finite set $Sorts$ of sort
+symbols and a finite set $Ops$ of typed operation symbols, each of
+the form $\sigma : w \to s$ with $s \in Sorts$, $w \in Sorts^*$,
+and a finite set of typed predicate symbols $\varrho : w$.
+
+A $\Sigma$--structure ($\Sigma$--algebra) $$\mathbb{A} = ((A_s | s
+\in Sorts), (\sigma_{\mathbb A} : A_w \to A_s \; | \; \sigma \in
+Ops), (\varrho_{\mathbb A} \subseteq A_w \; | \;\varrho \in Pred
+))$$ is given by a $Sorts$--indexed family of sets, and an
+$Ops$--indexed family of functions $\sigma_{\mathbb A} : A_w \to
+A_s $ where $A_{s_1\ldots s_n} = A_{s_1} \times \ldots A_{s_n}$
+and $A_{\varepsilon} = \mathbf{1}$ and a $Pred$--indexed family of
+sets $(\varrho_{\mathbb A} \subseteq A_w \; | \; \varrho \in
+Pred)$.
+
+A $\Sigma$--homomorphism $$h : \mathbb{A} \to \mathbb{B}$$ is
+given by a $Sorts$--indexed family $h = (h_s : A_s \to B_s\; | \;
+s \in Sorts)$, such that for each $\sigma : w \to s$, each
+$\varrho : w$ and each $(a_1, \ldots , a_n) \in A_w$ the following
+homomorphism conditions are satisfied: $$\begin{array}{ll}
+ h_s(\sigma_{\mathbb A}(a_1, \ldots ,a_n)) = \sigma_{\mathbb
+ B}(h_{s_1}(a_1), \ldots , h_{s_n}(a_n) \\
+ (a_1, \ldots a_n) \in \varrho_{\mathbb A} \quad \Rightarrow \quad
+ (h_{s_1}(a_1), \ldots , h_{s_n}(a_n)) \in \varrho_{\mathbb B}
+ \end{array}$$ \end{Definition}
+
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph25]
+ \small
+ Recall, that for a given class $\mathcal{C}$ of
+ $\Sigma$--structures a $\Sigma$--structure $\mathbb{I}$ is called
+ \textbf{initial in $\mathcal{C}$}, if for each $\Sigma$--structure
+ $\mathbb{M} \in \mathcal{C}$ there is exactly one
+ $\Sigma$--homomorphism $h : \mathbb{I} \to \mathbb{M}$.
+
+
+ By induction one can extend the typing of operation symbols to
+typing of $\Sigma$--terms, such that for any term $t : s_1 \ldots
+s_n \to s$ and any $\Sigma$--structure $\mathbb A$ one gets the
+interpretation $$\ekl t \ekr_{\:{\mathbb A}} : A_w \to A_s$$ of
+the term $t$ in $\mathbb A$.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph26]
+If the terms contain variables, i.e., if $ t \in T_s(\Sigma, X)$,
+where $X = (X_s \; | \; s \in Sorts)$ is a set of typed
+first--order variables, one needs in addition a valuation of the
+variables, i.e., a mapping $\varphi = (\varphi_s : X_s \to A_s)$
+to define inductively the value $$\ekl t \ekr_{\varphi} \in A_s$$
+if $t \in T_s(\Sigma, X)$.
+
+%............................................
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={Minimal Herbrand Model}, Label=Paragraph27]
+
+ The minimal Herbrand model $\mathbb{T}^{\Sigma}$ is given by the
+ground terms ( variable free terms ), which means
+$\mathbb{T}^{\Sigma}_s = T_s(\Sigma, \emptyset)$ then there is
+exactly one $\Sigma$--homomorphism
+$$ h^{\mathbb A} : \mathbb{T}_{\Sigma} \to {\mathbb A}$$ defined
+by $ h^{\mathbb A}_s(t) = \ekl t \ekr_{\:{\mathbb A}}$. It is
+worth to notice that in the minimal Herbrand model each relation
+symbol $r \in Pred$ is interpreted by the empty set. \ns
+
+%............................................
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={Minimal Herbrand Model}, Label=Paragraph28]
+\begin{Corollary}[Title = {Initial Algebras as Data Types}, Label = {Corollary1}]
+For any first--order signature $\Sigma$ the minimal Herbrand model
+$\mathbb{T}^{\Sigma}$ is an initial model in the class of all
+$\Sigma$--structures. \end{Corollary}
+
+\vspace{1.5cm}
+
+This observation raises the question: \textcolor{red}{Does an
+initial model exist for each class of models?}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph29]
+\small Let us consider the class of models defined by the
+following specification:\\ \pause
+\begin{verbatim}
+   BEGIN spec-0 : LOOSE SPEC
+     SORT           Char ;
+     OPERATION   m : Char * Char -> Char ;
+     ASSERTION
+     ass  : FORALL(x, y, z : Char). m(x,m(y,z)) = m(m(x,y),z) ;
+     idem : EXISTS(x : Char) . m(x,x) = x
+   END spec-0
+\end{verbatim}\pause
+
+ The class of models is given by  non--empty sets together
+with an associative binary operations such that there is at least
+one idempotent element.\pause
+
+It is not hard to see, that \textcolor{red}{there is no initial
+model for that class}.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph30]
+
+If we modify the specification to
+\begin{verbatim}
+   BEGIN spec-1 : LOOSE SPEC
+     SORT           Char ;
+     OPERATION   m : Char * Char -> Char ;
+                 c : -> Char ;
+     ASSERTION
+     ass  : FORALL(x, y, z : Char). m(x,m(y,z)) = m(m(x,y),z) ;
+     idem :  m(c,c) = c
+   END spec-1
+\end{verbatim}
+the resulting model class contains an initial model, given by an
+one--element structure.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph31]
+
+ In general, for model classes specified by means of axioms
+using existential quantifiers, disjunction of negation the
+existence of an initial model is not guaranteed.\pause
+
+To see this, let $AX$ be any set of first--order, closed formulae
+over $\Sigma$, and let be
+$$Mod(AX) = \{ \mathbb{A} \; | \; \mathbb{A}
+\vdash F \mbox{ for all } F \in AX \; \}.$$
+\
+We define a family of relation $$\backsim^{AX} \; = \; (
+\backsim_s^{AX} \; \subseteq \; T_s(\Sigma, \emptyset) \times
+T_s(\Sigma, \emptyset) \; | \; s \in Sorts )$$ as follows:
+$$ t_1 \backsim^{AX} t_2 \quad \mbox{iff} \quad AX \vdash t_1 = t_2 .
+$$
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph32]
+\ns
+\begin{Theorem}[Title = {Initial Algebras as Data Types}, Label = {Theorem1}]
+For each set of first--order axioms $AX$ the $Sorts$--indexed
+family of relations $\backsim^{AX} $ is a congruence relation in
+the minimal Herbrand model $\mathbb{T}^{\Sigma}$, i.e., each
+$\backsim^{AX}_s $ is an equivalence relation, and for each
+function symbol $\sigma : s_1 \ldots s_n \to s_0$ it holds
+$$\sigma(t_1, \ldots t_n) \backsim^{AX}_{s_0} \sigma(t'_1, \ldots
+, t'_n) \quad \mbox{if} \quad t_i \backsim^{AX}_{s_i} t'_i \;
+\mbox{ for } i = 1, \ldots , n .$$\end{Theorem}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph33]
+\small
+ \textbf{Proof:} The above definition of the relation
+ $\backsim^{AX}$ can be expressed equivalently by
+ $t_1 \backsim^{AX}_s t_2$ iff $\ekl t_1 \ekr_{\mathbf{A}} = \ekl t_2
+ \ekr_{\mathbf{A}}$ for all $\mathbf{A} \in Mod(AX)$, if $t_1, t_2
+ \in \mathbb{T}^{\;\Sigma}_s$. From this one gets immediately that
+ each relation is an equivalence relation.
+
+ In order to see that $\backsim^{AX}$ is a congruence relation one
+ has to remind the inductive definition of $\ekl t
+ \ekr_{\;\mathbb{A}}$ which is given by $$\ekl \sigma(t_1, \ldots , t_n)
+ \ekr_{\;\mathbb{A}} = \sigma_{\mathbb{A}}(\ekl t_1 \ekr_{\;\mathbb{A}} ,
+ \ldots ,\ekl t_n \ekr_{\;\mathbb{A}}).$$ With the assumption
+$ t_i \backsim^{AX}_{s_i} t'_i \; \mbox{ for } i = 1, \ldots , n$
+we get $$\ekl \sigma ( t_1, \ldots , t_n) \ekr_{\;\mathbb{A}} =
+\sigma_{\mathbb{A}}(\;\ekl t_1 \ekr_{\;\mathbb{A}} ,
+ \ldots , \ekl t_n \ekr_{\;\mathbb{A}}) = \sigma_{\mathbb{A}}
+ (\;\ekl t'_1 \ekr_{\;\mathbb{A}} ,
+ \ldots ,\ekl t'_n \ekr_{\;\mathbb{A}}) = \\ \ekl \sigma (t'_1, \ldots ,
+ t'_n) \ekr_{\;\mathbb{A}},$$ which means $\sigma (t_1, \ldots t_n)
+\backsim^{AX}_{s_0} \sigma(t'_1, \ldots , t'_n) $. \hfill qed.
+
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Canonical Structure}, Label=Paragraph34]
+ The theorem above and the notation introduced gives us
+the possibility to construct a new $\Sigma$--structure, which is
+called \textcolor{blue}{the canonical $AX$--structure}, denoted by
+\textcolor{blue}{$\mathbb{T}(\Sigma,AX)$}. The carrier sets are
+defined by
+$$T(\Sigma,AX)_s = \{ \overline{t}_{AX} \; | \; t \in T(\Sigma,
+\emptyset) \},$$ the operations are defined by $$
+\sigma_{\mathbb{T}(\Sigma,AX)}( \overline{t_1}_{AX}, \ldots ,
+\overline{t_n}_{AX}) = \overline{ \sigma (t_1, \ldots ,
+t_n)}_{AX}$$
+ and the interpretation of the predicate symbols is given by
+$$ \varrho_{\mathbb{T}(\Sigma,AX)} =  \{ (\overline{t_1}_{AX},
+\ldots , \overline{t_m}_{AX} ) \; | \; AX \vdash \varrho (t_1,
+\ldots , t_m) \; \}.$$
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph35]
+\ns
+ Now, the question is, whether $$ \mathbb{T}(\Sigma,AX) \in
+Mod(AX)$$ holds?
+
+Let us consider the specification \textsc{Spec-0}. In that case
+the induced congruence relation would be the identity relation, so
+that $ \mathbb{T}(\Sigma,AX)$ becomes the minimal Herbrand model
+which does not satisfy the required axiom. Therefore, in general
+the answer to the question above is NO.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph36]
+
+\small
+The answer is YES, if the set of axioms satisfy some  conditions.
+To specify these conditions, we have to introduce two concepts.
+\begin{List}[ListType=enumerate]
+  \ListItem A set of axioms $AX$ is called \emph{negation true}, if for
+  each formula either $AX \vdash F$ or $AX \vdash \neg F$.
+  \ListItem A set of axioms \emph{owns witnesses}, if for each formula
+  $\exists x . F$ there exists a term with
+  $AX \; \vdash \; \exists x . F \rightarrow F[x := t]$.
+\end{List}
+Specification \textsc{Spec-1} has a set of axioms  which owns
+witnesses.
+
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph37]
+\ns
+\begin{Theorem}[Title = {Initial Algebras as Data Types}, Label = {Theorem2}] Let $AX$ be a consistent set
+of axioms which is negation true and which owns witnesses, then
+for each formula $F$ holds
+$$\mathbb{T}(\Sigma,AX) \vDash F \quad \mbox{iff} \quad AX \vdash
+F$$
+\end{Theorem}\pause
+\small
+
+The proof of this theorem is strongly related to the completeness
+of deduction calculi of first--order logic and will be omitted
+here.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph38]
+
+In practical applications the two properties of
+negation truth and of owning witnesses are hard to check. \\
+\pause For so--called universal Horn--formulae one can prove in a
+direct way that the canonical model of a set $AX$  of universal
+Horn--formulae is a model of that set.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Universal Horn--formulae}, Label=Paragraph39]
+The set of \emph{universal Horn--formulae} is inductively defined
+by the following set of derivation rules:
+\begin{List}[ListType=enumerate]
+  \ListItem  If $F_1, \ldots , F_n, F$ for $n \in \nat$ are atomic
+  formulae then $\neg F_1 \vee \ldots \vee \neg F_n \vee F$ is an
+  universal Horn--formula; \pause
+  \ListItem If $F_1, \ldots , F_n$ for $n \in \nat$ are atomic
+  formulae then $\neg F_1 \vee \ldots \vee \neg F_n$ is a
+  universal Horn--formula;\pause
+  \ListItem If $F, G$ are universal Horn--formulae, then the conjunction $F
+  \wedge G$ is an universal Horn--formula too; \pause
+  \ListItem If $F$ is an universal Horn--formula, then $\forall x . F$
+  is a universal Horn--formula.
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Existence of Initial Models}, Label=Paragraph40]
+\ns
+\begin{Theorem}[Title = {Initial Algebras as Data Types}, Label = {Theorem3}] Let $AX$ be
+a consistent set of universal Horn formulae over a signature
+$\Sigma$. Then the canonical $AX$--structure $
+\mathbb{T}(\Sigma,AX)$ is an initial model in the class of all
+$\Sigma$--structures satisfying each axiom out of $AX$.
+\end{Theorem}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph41]
+
+\small \small \textbf{Proof:}  We will prove that for each
+universal Horn--formula $G$ holds
+$$(*) \hspace{1cm} AX \vdash G \quad \mbox{implies} \quad
+\mathbb{T}(\Sigma,AX) \vDash G.$$ The theorem is an immediate
+consequence of (*).
+
+First we prove that (*) and its inverse is true for atomic
+formulae. If $G$ equals $\varrho (t_1, \ldots , t_m)$ by
+definition $\mathbb{T}(\Sigma,AX) \vDash \varrho (t_1, \ldots ,
+t_m)$ iff $(\overline{(t_1)}_{AX} , \ldots ,
+\overline{(t_m)}_{AX}) \in \varrho_{\mathbb{T}(\Sigma,AX)}$ iff
+$AX \vdash \varrho (t_1, \ldots , t_m)$. If $G$ equals $t = t'$
+then by definition $\mathbb{T}(\Sigma,AX) \vDash t = t'$ iff
+$\overline{t}_{AX} = \overline{t'}_{AX}$ iff $t \backsim^{AX} t'$
+iff $AX \vdash t = t'$.
+
+Now we assume that $G$ equals $\neg F_1 \vee \ldots \vee \neg F_n
+\vee F$. The case $n = 0$ is proved by (*). We have to prove
+$\mathbb{T}(\Sigma,AX) \vDash (F_1 \wedge \ldots F_n \to F)$. Let
+be $\mathbb{T}(\Sigma,AX) \vDash (F_1 \wedge \ldots F_n )$ which
+means $\mathbb{T}(\Sigma,AX) \vDash F_i$ for $i = 1, \ldots , n$.
+Since each $F_i$ is atomic, by (*) this is equivalent to $AX
+\vdash F_i, \; i = 1, \ldots , n$. By the precondition $AX \vdash
+(F_1 \wedge \ldots F_n \to F)$ this implies $AX \vdash F$ which by
+(*) is equivalent to $\mathbb{T}(\Sigma,AX) \vDash F$, so that
+finally $\mathbb{T}(\Sigma,AX) \vDash (F_1 \wedge \ldots F_n \to
+F)$ holds.
+
+If $G$ equals $\neg F_1 \vee \ldots \neg F_n$ and $AX \vdash \neg
+F_1 \vee \ldots \neg F_n$, then $AX \vdash \neg (F_1 \wedge \ldots
+\wedge F_n)$. If $\mathbb{T}(\Sigma,AX)$ would not be a model of
+$\neg F_1 \vee \ldots \neg F_n$ , then holds
+$\mathbb{T}(\Sigma,AX) \vDash F_i, \; i = 1, \ldots , n.$ By $(*)$
+this implies $AX \vdash (F_1 \wedge \ldots \wedge F_n)$, i.e., $AX
+\vdash \neg F_1 \vee \ldots \neg F_n$ and $AX \vdash (F_1 \wedge
+\ldots \wedge F_n)$. This contradicts to the assumption, that $AX$
+is a consistent set of axioms.
+
+The last two cases can be proved by induction on the syntactic
+structure of $G$.
+
+If $G = G_1 \wedge G_2$, where $G_1, G_2$ are universal
+Horn--formulae, $(*)$ follows immediately from the induction
+hypothesis.
+
+Finally let be $G = \forall x . F$, $F$ a universal Horn--formula
+and $AX \vdash \forall x . F$. Then $AX \vdash F[x := t]$ for each
+ground term $t$. Since each $F[x := t]$ is again a universal
+Horn--formula  the induction hypothesis implies
+$\mathbb{T}(\Sigma,AX) \vDash F[x := t]$ for each ground term $t$,
+which means $\mathbb{T}(\Sigma,AX) \vDash \forall x . F$. \hfill
+qed.
+
+\emph{This theorem implies, that we can use the same kind of
+formulae to specify  data types by initiality constraints that are
+used in logic programming, i.e. in PROLOG.}
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Initial Specifications of Data Types}, Label={section3_2}]
+\begin{Paragraph}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Examples}, Label=Paragraph42]
+
+\ns The first example is the specification of
+\textcolor{blue}{natural numbers}. For this specification one has
+to find the right constructors. Having the Peano axiomatization of
+natural numbers in mind, it is not difficult to choose the
+constant \textcolor{blue}{$zero$} and the unary successor function
+\textcolor{blue}{$succ$} as constructors.
+
+In case of \textcolor{green}{finite lists} over a parametric type
+of list elements one takes the empty list \textcolor{green}{$nil$}
+as a constant and \textcolor{green}{$cons$} as a binary
+constructor.
+
+The resulting \hyperlink{nat-casl}{\CASL specifications } are as
+follows.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Examples}, Label=Paragraph43]
+
+Parametric data types will be discussed in more detail in the
+section of Generic Specifications.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Examples}, Label=Paragraph44]
+
+Finding the right constructors is not always as simple as in the
+previous examples. Let us consider \textcolor{blue}{finitely
+branching trees with finite depth}.
+
+The inductive structure of \textcolor{blue}{binary trees} is easy,
+one takes a constant \textcolor{blue}{$zero$}, representing the
+binary tree with exactly one node and with no subtrees, and a
+binary constructor \textcolor{blue}{$2-cons$} which makes a new
+binary tree out of two binary trees, by making the given trees to
+the subtrees of the (new) root node.
+
+The resulting \hyperlink{2-trees}{specification of binary trees}
+is a straight forward generalization of the specification of
+natural numbers.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Examples}, Label=Paragraph45]
+
+However, the inductive structure of binary trees does not help us
+to find the inductive structure of finitely branching trees with
+finite depth. In case of binary trees we have just one dimension,
+the depth of a binary tree, which characterizes the inductive
+structure.
+
+In case of finitely branching trees with finite depth we have two
+dimensions, the depth and the breadth. This means, we have to
+generalize the constructor $2-cons$ to a constructor which accepts
+an finite sequence of trees as argument, not just a pair as above.
+
+This leads to the following \hyperlink{trees}{specification of
+finitely branching trees with finite depth}.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Examples}, Label=Paragraph46]
+In the previous examples the specifications have not used any
+axioms, i.e. any two constructor terms represent two different
+data values of the corresponding data typ. This situation is not
+always given. Let us consider the data type of
+\textcolor{blue}{integers}.
+
+A first possibility is the following
+\hyperlink{integer}{specification } which uses the constant $zero$
+and the two unary constructors $pred$ and $suc$.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph47]
+
+But, one could specify the data types of integers also by sticking
+together two copies of natural numbers. This idea would lead to
+the following \hyperlink{integer2}{specification of integers}.
+
+This observation raises the question, in which sense  the two
+specifications of integers specify the same data type. We will
+come back to this question if we have discussed the functional
+enrichment of data types.
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Functional Enrichment of Data Types}, Label={section3_3}]
+\begin{Paragraph}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph48]
+\small
+
+The inductive definition of functions on natural numbers can be
+extended to arbitrary initially specified data types.
+
+Formally we take a specification of a data type and enrich this
+specification by one or more new function symbols and new axioms
+in such a way that \pause
+\begin{List}[ListType=itemize]
+    \ListItem each term over the extended set of function symbols can
+      value preservingly be reduced by the added axioms to a term over the
+    original set of function symbols (\textcolor{red}{no
+    junk})\pause
+    \ListItem the new axioms do not force terms over the original set
+    of functions symbols to have equal values, if the terms have
+    different values with respect to the original set of axioms
+    (\textcolor{red}{no confusion}).
+\end{List}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph49]
+\ns
+
+ The following functional enrichment of natural numbers is an
+example with junk:
+
+\begin{SpecDefn}{Nat-with-junk}~= \item[\Free~\Group]
+\begin{Items} \item[\Sort] \( Nat \)
+\item[\Ops] \( 0zero : Nat;\)
+\\          \( suc\_\_ : Nat \tfun Nat; \)
+\\ \(  \_\_+\_\_ : Nat \times Nat \tfun Nat;\)
+\item[\Axiom] \( \forall x : Nat \. x + zero = x ; \)~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph50]
+
+Whereas the next specification illustrates confusion:
+
+\begin{SpecDefn}{Nat-with-confusion}~= \item[\Free~\Group]
+\begin{Items} \item[\Sort] \( Nat \)
+\item[\Ops] \( zero : Nat;\)
+\\          \( suc\_\_ : Nat \tfun Nat; \)
+\\ \(  \_\_+\_\_ : Nat \times Nat \tfun Nat;\)
+\item[\Axioms] \( \forall x : Nat \. x + zero = x ;\)
+\\ \( \forall x,y : Nat \. x + suc~ y = suc( x+y ) ; \)
+\\ \( \forall x: Nat \. x + x = zero; \) ~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph51]
+
+A correct functional enrichment of natural numbers with addition
+is given by
+
+\begin{SpecDefn}{Nat-with-addition}~= \item[\Free~\Group]
+\begin{Items} \item[\Sort] \( Nat \)
+\item[\Ops] \( zero : Nat;\)
+\\          \( suc\_\_ : Nat \tfun Nat; \)
+\\ \(  \_\_+\_\_ : Nat \times Nat \tfun Nat;\)
+\item[\Axioms] \( \forall x : Nat \. x + zero = x ;\)
+\\ \( \forall x,y : Nat \. x + suc~ y = suc( x+y ) ; \)
+ ~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph52]
+
+An interesting exercise is the inductive definition of the depth
+function on finitely branching trees with finite depth. The
+definition of the function $depth : Tree \to Nat$ requires some
+auxiliary functions like the maximum of a list of natural numbers,
+since the depth of a tree is one plus the maximal depth of the
+sons of the root node. The inductive definition of the maximum
+function again requires an auxiliary function namely the
+less--or--equal relation on natural numbers. At the end we obtain
+a rather complex specification, which will be discusses in the
+tutorial.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Equivalence of Specifications}, Label=Paragraph53]
+\small
+Now we can come back to the two specifications of integers.
+
+Generally one can say that \textcolor{blue}{two specifications
+define the same data type if there is a specification which
+extends the given specification conservatively.}
+
+To make this precise we have to define the concept of conservative
+extensions of specifications.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Equivalence of Specifications}, Label=Paragraph54]
+
+\begin{Definition}[Title = {Initial Algebras as Data Types}, Label = {Definition1}]
+\begin{List}[ListType=enumerate]
+    \ListItem An ordered pair $Spec = (\Sigma, AX)$, consisting of a
+signature $\Sigma$ and a set $AX$ formulae is called a
+\textbf{specification}. A $\Sigma$--structur $ \mathbb{A}$ is
+called a $Spec$--model if it satisfies each axiom out of $AX$.
+\pause
+ \ListItem A signature $\Sigma_1 = ( Sorts_1, Ops_1, Pred_1)$ is
+a \textbf{sub--signature} of a signature $\Sigma_2 = ( Sorts_2,
+Ops_2, Pred_2)$ if the corresponding components are subsets
+compatible with the typing of the operations and predicates. For
+each $\Sigma_2$--structure $ \mathbb{A}$ the \textbf{restriction}
+of $ \mathbb{A}$ to the sub--signature $\Sigma_1$ is denoted by $
+\mathbb{A}|_{\Sigma_{1}}$
+ \pause
+  \ListItem $Spec_1 = (\Sigma_1, AX_1)$
+is a \textbf{sub--specification} of $Spec_2 = (\Sigma_2, AX_2)$ if
+$\sigma_1$ is a sub--signature of $\Sigma_2$ and $AX_2 \models F $
+for each $F \in  AX_1$.
+ \pause
+ \ListItem  $Spec_2 = (\Sigma_2, AX_2)$ is a \textbf{conservative} extension
+ of $Spec_1 = (\Sigma_1, AX_1)$ if $Spec_1$ is a
+ sub--specification of $Spec_2$ and for each $Spec_2$--model
+ $\mathbb{A}$ the restriction $\mathbb{A}|_{\Sigma_{1}}$ is a
+ $Spec_1$--model.
+\end{List}
+\end{Definition}
+\pause
+ \vspace{2cm}
+ The following specification  is a conservative extension of the
+two previously given specification of integers:
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph55]
+\footnotesize
+
+
+\begin{SpecDefn}{Integer\_3}~= \item[\Free~\Group]
+\begin{Items} \item[\Sort] \( Nat, Int; \)
+\item[\Ops] \( zero : Nat; \)
+\\ \( 0: Int;\)
+\\ \( suc : Nat \tfun Nat; \)
+\\ \( suc, pred : Int \tfun Int;\)
+\\ \( pos, neg : Nat \tfun Int;\)
+\item[\Axioms] \( \forall x : Int \. pred( suc (x)) = x ; \)
+\\ \( \forall x : Int \. suc (pred (x)) = x ; \)
+\\  \( pos(zero) = neg(zero) = 0 ;\)
+\\ \( \forall x : Nat \. pred (neg (x)) = neg (suc(x)) ; \)
+ \\ \( \forall x : Nat \. pred(pos (suc (x))) = pos(x) ; \)
+\\ \( \forall x : Nat \. suc(neg (suc (x))) = neg (x) ; \)
+\\ \( \forall x : Nat \. suc(pos (x)) = pos (suc(x)) ; \)
+\\ \( \forall x : Nat \. neg ( sux (x)) = pred (neg(x)) ; \)
+\\ \( \forall x : Nat \. pos( suc (x)) = suc ( pos(x)) ; \)
+~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Equivalence of Specifications}, Label=Paragraph56]
+\ns
+
+ Intuitively the equivalence of two initial specifications of
+one and the same data type means: \\ \pause \textcolor{blue}{the
+constructors of one specification can inductively be defined by
+the constructors of the other specification and vice versa.}
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Generic Specifications}, Label={section3_4}]
+\begin{Paragraph}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph57]
+\small
+In many cases data types are parametric like lists, decorated
+trees, sets, and multisets.\pause
+
+Semantically a parametric data type can not be represented by an
+isomorphism class. \pause
+
+Let us discuss the situation for the generic data typ of
+\emph{finite lists}
+
+\(\Sigma_{Lists}\) = \begin{BasicSpec} \I\Sorts \( Elem, Lists;\)
+\I\Ops \( nil : Lists; \)
+\\ \( cons : Elem \* Lists \tfun Lists \)
+\end{BasicSpec}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph58]
+The generic data type of finite list would be represented by the
+ class of  those $\Sigma_{Lists}$--structures $\mathbb{A}$
+such that up to isomorphisms $ A_{Lists} = (A_{Elem})^*,
+nil_{\mathbb A} = []$, $ cons_{\mathbb A} (x, [x_1, \ldots , x_n])
+= [x,x_1, \ldots,x ],$ i.e., only the interpretation of the sort
+$Elem$ is not constraint. \pause
+
+The constraint part satisfies again an initiality condition:\\
+\pause A $\sigma_{Lists}$--structure $\mathbb L$ is an model of
+the described class of models if for each
+$\Sigma_{Lists}$--structure $\mathbb A$ with $L_{Elem} = A_{Elem}$
+there exists exactly one homomorphism $\varphi : {\mathbb L} \to
+{\mathbb A}$ with $\varphi_{Elem} = Id_{(L_{Elem})} (=
+Id_{(A_{Elem})}$.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph59]
+\small
+\begin{Definition}[Title = {Initial Algebras as Data Types}, Label = {Definition2}]
+If $Spec_1$ is a sub--specification of $Spec_2$ then
+\textcolor{red}{ $Spec_1$ \textbf{then free} $Spec_2$} is called
+an \textcolor{red}{\textbf{initial constraint} in $Spec_2$}.
+
+\pause A $Specc_2$--model $\mathbb{A}$ satisfies the initial
+constraint, written $ Spec_1 \; \mathbf{then \; free} \; Spec_2 \;
+\models \mathbb{A} $ if for each $Spec_2$--model $ \mathbb{B}$
+with $ \mathbb{A}|_{Spec_1} = \mathbb{B}|_{Spec_1}$ there is
+exactly one $\Sigma_2$--homomorphism $\varphi  : \mathbb{A} \to
+\mathbb{B}$ which extends the identity , i.e. $\varphi_s =
+Id_{A_s}$ for each $s \in Sorts(\Sigma_1)$.
+
+\pause If one abstains from the uniqueness of the homomorphism
+$\varphi^* : \mathbb{A} \to \mathbb{B}$ then one obtains a
+\textcolor{red}{\textbf{generating constraint} in $Spec_2$},
+written $ Spec_1 \; \mathbf{then \; generated} \; Spec_2 \;
+\models \mathbb{A}. $
+\end{Definition}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph60]
+The case of an initial constraint $Spec_1 \; \mathbf{then \; free}
+\; Spec_2 $ with $Spec_1 ( \emptyset, \emptyset)$ corresponds to
+the specification of the class of initial $Spec_2$--models,
+discussed in the previous section.\\ \pause The example of list is
+given by \pause  \footnotesize
+\begin{SpecDefn}{List\_1}~= \I\Sort \( Elem;
+\) \item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( Lists; \) \I\Ops \( nil : Lists; \)
+\\ \( cons : Elem \* Lists \tfun Lists \)
+ ~\EndGroup \end{Items} \I \End
+\end{SpecDefn} \small
+In this example the specification $Spec_1$ consists just of the
+sort name $Elem$, i.e. the sets of operation names, of predicate
+names, and of axioms are empty.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph61]
+
+The previously given specification
+\begin{SpecDefn}{Lists}[\Sort \hspace{1pt} \(Elem\)] ~=
+ \item[\Free~\Group]
+\begin{Items}
+\I\Sort \(Lists;\) \I\Ops \(nil : Lists; \)
+\\ \( cons : Elem \* Lists \tfun Lists \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+is another syntactic representation of the same data type. This
+version make the parameter explicit and allows the substitution of
+the formal parameters by actual ones.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Ordered Lists}, Label=Paragraph62]
+
+A parameter of a generic specification can be an arbitrary
+specification. A typical situation where the parameter part of a
+generic specification is a nontrivial specification is the case of
+\textcolor{blue}{ordered lists}. \footnotesize
+\begin{SpecDefn}{Linear\_Order} ~=
+\I\Sort \(Elem \) \I\Pred \( \_\_ \leq \_\_ : Elem \* Elem;\)
+\I\Vars \( x,y,z:  Elem \) \I\Axioms~
+\\ \( x \leq x; \)
+\\ \( ( x \leq y \wedge y \leq x ) \imp x = y; \)
+\\ \( (x \leq y \wedge y \leq z ) \imp x \leq z; \)
+\\ \( x \leq y \vee y \leq x ;\)
+\I\End \end{SpecDefn}
+
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph63]
+\small \hypertarget{orderdlists}{}
+\begin{SpecDefn}{Ordered\_Lists}[\SpecName{Linear\_Order}] ~=
+ \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( Lists; \) \I\Ops \( nil : Lists; \)
+\\ \( cons : Elem \* Lists \tfun Lists; \)
+\I\Pred \( ordered : Lists; \)
+ \I\Vars \(x,y : Elem, l: Lists; \)
+ \I\Axioms \( ordered (nil); \)
+ \\ \(ordered(cons(x,nil)); \)
+ \\ \( (x \leq y \wedge x \not= y \wedge ordered(cons(y,l))) \imp
+ ordered(cons(x, cons(y,l))); \)
+ ~\EndGroup \end{Items}
+\item[\Then] \item[\Sort ]\( Ordered = \{ l : Lists \.
+ordered(l)\}; \)
+  \item[\End] \end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Predicative Subtyping}, Label=Paragraph64]
+
+There are two new topics in this specification:\pause
+\begin{List}[ListType=enumerate]
+    \ListItem the use of a predicate within an initiality
+    constraint;\pause
+    \ListItem defining a subtype by a predicate.
+\end{List}\pause
+
+A predicate introduced within an initiality constraint is
+interpreted minimally in a model of that specification.\pause
+
+The second point is just a very useful feature of the \CASL
+language which allows to name a subset defined by a predicate.
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Decorated Trees}, Label=Paragraph65]
+
+ Generic Specifications with several parameters can also be used.
+ In that case parameters can individually be instantiated. An
+ example is \textcolor{blue}{ trees with different types of labels
+ at leafs and internal nodes}.\pause
+
+ \begin{SpecDefn}{Trees}[\Sort  \(Elem1 \)][\Sort  \(Elem2 \)] ~=
+ \item[\Free~\Group]
+\begin{Items}
+\I\Sorts \(Trees < Treeseq;\) \I\Ops \( leaf : Elem1 \tfun
+Trees;\) \\ \( h\_cons : Trees \* Treeseq \tfun Treeseq; \)
+\\ \( v\_cons : Elem2 \* Treeseq \tfun Trees \)
+  ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Sets}, Label=Paragraph66]
+
+The next generic specification describes the \textcolor{blue}{set
+of all finite subsets} of a given parameter set: \pause
+
+\begin{SpecDefn}{Sets}[\Sort \hspace{1pt} \(Elem\)] ~=
+ \item[\Free~\Group]
+\begin{Items}
+\I\Sort \(Sets;\) \I\Ops \(empty: Sets; \)
+\\ \( add : Elem\* Sets \tfun Sets; \)
+\I\Axioms \( \forall x : Elem; s : Sets \. add(x, add(x,s)) =
+add(x,s); \)
+\\ \( \forall x,y :Elem; s : Sets \. add(x, add(y,s)) = add(y,
+add(x,s))\)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+%..........................................
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={functional ennrichment of sets}, Label=Paragraph67]
+
+ What about the definition of the
+ \textcolor{blue}{membership relation}?
+
+ \begin{SpecDefn}{Membership} ~= \SpecName{Sets}
+ \I\Then
+ \I{\Free~\Type}~
+  \( Boole ::= true \| false; \)
+\I\Then \item[\Group] \begin{Items} \I\Ops \( \_\_ \in \_\_ : Elem
+* Sets \tfun Bool; \) \I\Vars \( x, y : Elem; s : Sets ;\)
+\I\Axioms~
+\\ \( x \in empty = false ; \)
+\\ \( x \in add(x,s) = true ; \)
+\\ \( \neg x = y  \imp x \in add(y,s) = x \in s ;\)
+~\EndGroup \end{Items}
+\end{SpecDefn}
+
+%............................................
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={functional ennrichment of sets}, Label=Paragraph68]
+
+ One should be aware, that the previous functional enrichment is
+ not an inductive definition of the membership relation since it
+ uses a negated equality as premise of an implication. For those
+ kinds of axioms the existence of initial models is not
+ guaranteed. An inductive definition of the membership relation
+ will be discussed in the tutorial.
+
+
+%............................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Parameter instantiation}, Label=Paragraph69]
+
+\begin{SpecDefn} {List\_of\_Interger} ~= \textsc{List} [\textsc{Integer}
+ \Fit \( Elem \mapsto Int \)] \End \end{SpecDefn}
+
+\begin{SpecDefn} {Sets\_of\_Interger} ~= \textsc{Sets} [\textsc{Integer}
+ \Fit \( Elem \mapsto Int \)] \End \end{SpecDefn}
+
+Generic specification with several parameters can be partially
+instantiated:
+\begin{SpecDefn}{Trees\_with\_Integer} ~=
+\textsc{Trees}[\textsc{Integer} \Fit \(Elem1 \mapsto Int\)] \End
+\end{SpecDefn}
+
+Whereas the following specification instantiates both parameters
+\begin{SpecDefn}{Trees\_with\_Integers\_and\_Naturals} ~=
+\textsc{Trees}[\textsc{Integer} \Fit \(Elem1 \mapsto
+Int\)][\textsc{Nat\_0} \Fit \(Elem2 \mapsto Nat\)] \End
+\end{SpecDefn}
+
+%...........................................................
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Partial Constructors}, Label={section3_5}]
+\begin{Paragraph}
+
+\ns
+
+ In some applications it may happen that some functions are not
+totally defined. To see a simple example for partial functions,
+consider the construction of the set of finite, connected paths
+over a directed graph. It makes only sense to append an edge to a
+path if the range node of the edge equals the domain node of the
+path. Another example is given by \textcolor{blue}{powerlists},
+introduced by Jayadev Misra as a data type for parallel recursion.
+
+%........................................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={basic notions}, Label=Paragraph70]
+
+A partial function will be represented by $f : A \pfun B$ and the
+domain is denoted by $def \; f $ which is formally a unary
+predicate on $A$.
+
+If one extends the notion of a $\Sigma$--structure  $ \mathbb{A}$
+in such a way that $\sigma_{ \mathbb{A}}: A_w \pfun A_s$ may be a
+partial function, then one obtains the notion of \textbf{partial
+$\Sigma$--structures}.
+
+
+
+For \textbf{partial $\Sigma$--structures} the notion of a
+homomorphism has to be generalized.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph71]
+
+A \textbf{homomorphism between partial $\Sigma$--structures}
+$\varphi : \mathbb{A}  \to \mathbb{B}$ is given by a family
+$\varphi = (\varphi_s : A_s \to B_s \;|\; s \in Sorts_{\Sigma})$
+of mappings, such that  for each $\sigma : w \to s$, each $\varrho
+: w$ and each $(a_1, \ldots , a_n) \in A_w$ the following
+homomorphism conditions are satisfied: \small $$\begin{array}{l}
+ \mbox{if
+} a_1, \ldots , a_n) \in dom(\sigma_{\mathbb A}) \mbox{ then }
+(h_{s_1}(a_1), \ldots , h_{s_n}(a_n)) \in dom(\sigma_{\mathbb B})
+\mbox{ and}\\
+ ( h_s(\sigma_{\mathbb A}(a_1, \ldots ,a_n)) =
+\sigma_{\mathbb
+ B}(h_{s_1}(a_1), \ldots , h_{s_n}(a_n)), \\
+  (a_1, \ldots a_n) \in \varrho_{\mathbb A} \quad \Rightarrow \quad
+ (h_{s_1}(a_1), \ldots , h_{s_n}(a_n)) \in \varrho_{\mathbb B}
+ \end{array}$$
+
+\end{Paragraph}
+ \begin{Paragraph}[Label=Paragraph72]
+\ns
+ By this definition homomorphisms between partial
+$\Sigma$--structures have to preserve definedness, but do not
+necessarily  reflect it. Therefore, an initial, partial
+$\Sigma$--structure has minimal domains for its partial
+operations. If there are no axioms which imply the applicability
+of partial operations to some arguments, the domains of the
+partial operations in initial $\Sigma$--structures are empty. But,
+in that case a partial constructor would generate nothing and
+would be useless.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph73]
+
+In order to state applicability of partial operations by axioms,
+we associate with each partial operation $\sigma$ a predicate $def
+\sigma$.
+
+Another way to state the applicability of partial operations is
+the use of term equations. First we have to define the validity of
+term equations for partial $\Sigma$--structures. There are two
+versions of validity, \textbf{strong equality} and
+\textbf{existential equality}.
+
+%...............................................................
+
+\end{Paragraph}
+\begin{Paragraph}[Title={strong and existential equalities}, Label=Paragraph74]
+\small
+\begin{Definition}[Title = {Initial Algebras as Data Types}, Label = {Definition3}]
+Let be $\Sigma$ a signature which may contain partial operations,
+$X$  a finite set of typed variables, and $t_1, t_2 \in T(\Sigma,
+X)_s $ for some sort $s \in Sorts_{\Sigma}$. Then $X . t_1 = t_2$
+denotes a \emph{strong equality} and $X . t_1 \eeq t_2$ denotes an
+\emph{existential equality}.
+
+
+In order to define the notion of a solution of a term equation in
+the presence of partial operations, we define formally whether
+\textbf{a term $t \in T(\Sigma, X)_s$ defines a value (denoted
+$\ekl t \ekr_{ \mathbb{A}, \varphi}$) in a partial
+$\Sigma$--structure $ \mathbb{A}$} for a given valuation $\varphi
+: X \to A$:
+\begin{List}[ListType=enumerate]
+  \ListItem if $t= x \in X_s, s \in Sorts_{\Sigma}$ then  $\ekl t \ekr_{
+  \mathbb{A}, \varphi}$ is defined and its value is given by $$\ekl t
+  \ekr_{\mathbb{A}, \varphi} = \varphi(x).$$ \pause
+  \ListItem if $t = \sigma (t_1, \ldots , t_n)$ then $\ekl \sigma (t_1, \ldots ,
+  t_n) \ekr_{ \mathbb{A}, \varphi}$ is defined if $\ekl t_i \ekr_{\mathbb{A},
+  \varphi}$ is defined for $i = 1, \ldots , n$ and $(\ekl t_1
+  \ekr_{\mathbb{A}, \varphi}, \ldots, \ekl t_n \ekr_{\mathbb{A},
+  \varphi}) \in dom(\sigma_{ \mathbb{A}})$. \\ In that case the value
+  is given by $$\ekl \sigma (t_1, \ldots ,
+  t_n) \ekr_{ \mathbb{A}, \varphi} = \sigma_{ \mathbb{A}}(\ekl t_1
+  \ekr_{\mathbb{A}, \varphi}, \ldots, \ekl t_n \ekr_{\mathbb{A},
+  \varphi}).$$
+\end{List}
+
+For any partial $\Sigma$--structure $ \mathbb{A}$ \textbf{a
+valuation $\varphi : X \to A$ is a solution of the strong equality
+$X . t_1 = t_2$ in $ \mathbb{A}$}, if either, both $\ekl t_1
+\ekr_{\mathbb{A},\varphi} $ and $\ekl t_2
+\ekr_{\mathbb{A},\varphi} $ are not defined, or both are defined
+and evaluate to the same value.
+
+For any partial $\Sigma$--structure $ \mathbb{A}$ \textbf{a
+valuation $\varphi : X \to A$ is a solution of the existential
+equality $X . t_1 \eeq t_2$ in $ \mathbb{A}$}, if  both $\ekl t_1
+\ekr_{\mathbb{A},\varphi} $ and $\ekl t_2
+\ekr_{\mathbb{A},\varphi} $  are defined and evaluate to the same
+value.\\
+ Finally $ \mathbb{A} \models X . t_1 = t_2$, if each valuation
+ $\varphi X \to A$ is a solution of $X . t_1 = t_2$, and
+$ \mathbb{A} \models X . t_1 \eeq t_2$, if each valuation
+ $\varphi X \to A$ is a solution of $X . t_1 \eeq_2$.
+
+ If $\varrho \in Pred_{\Sigma}$ then $\varrho(t_1,
+ \ldots , t_m)_{ \mathbb{A}, \varphi} = true$ if $\ekl t_i  \ekr_{\mathbb{A},
+ \varphi}$ is defined for each $i = 1, \ldots , m$ and if $(\ekl t_1
+ \ekr_{\mathbb{A}, \varphi}, \ldots , \ekl t_m
+ \ekr_{\mathbb{A}, \varphi}) \in \varrho_{ \mathbb{A}}$.
+\end{Definition}
+
+
+\newpage{}
+\ns
+
+ This definition implies, that for $t, t' \in T(\Sigma, X)$ and
+each valuation $\varphi : X \to A$ it holds that $\ekl t'
+\ekr_{\mathbb{A}, \varphi})$ is defined, if $t'$ is a subterm of
+$t$ and $\ekl t \ekr_{\mathbb{A}, \varphi})$ itself is defined. A
+predicate assigns the truth value $false$ if it is applied to (at
+least one) undefined argument.
+
+
+It is worth to notice, that existential equality alone would be
+sufficient. But since strong equality has some popularity too,
+CASL offers both of them. For instance the following logical
+equivalence is always true: $$ def (\sigma (x_1, \ldots , x_n))
+\quad  \Leftrightarrow \quad \sigma (x_1, \ldots , x_n) \eeq
+\sigma (x_1, \ldots , x_n).$$
+
+\newpage{}
+
+Let's illustrate the use of partial operations in specifications.
+
+
+\begin{SpecDefn}{Free\_Sets\_with\_P\_choose} ~=
+\SpecName{Sets}[\Sort~\(Elem\)] \item[\Then]\item[\Free~\Group]
+\begin{Items}
+\item[\Pred] \( \_\_ is\_in \_\_ : Elem \* Sets; \) \item[\Axioms]
+\( \forall x : Elem \. x~ is\_in~ empty = false;\)
+\\ \(\forall x,y : Elem, s : Sets \. x~ is\_in~ s \Rightarrow x~
+is\_in~ add(y,s);\)
+\\ \( \forall x : Elem, s : Sets \. x~ is\_in~ add(x,s);\)
+ ~\EndGroup \end{Items}
+ \item[\Then]
+\item[\Op] \(choose : Sets \pfun Elem;\) \item[\End]
+\end{SpecDefn}
+
+\newpage{}
+\small
+In this example $choose(s)~ is\_in ~s$ equals to $false$, since
+$choose(s)$ is a term representing an undefined value, for short
+an undefined term.
+
+The equation $$ add( choose(s),s) = add(choose(s), add(y,s))$$ is
+true, since both sides are undefined terms, whereas the
+existential equation $$add( choose(s),s) \eeq add(choose(s),
+add(y,s))$$ does not hold.
+
+Asserting $\forall s : Sets \; . \;choose(s)\; is\_in \; s$ as an
+axiom implies that $choose(s)$ is defined, for any $s$. The same
+effect is caused if $\forall s : Sets \; .\; add( choose(s),s) =
+s$ would be added as an axiom, since the right hand side of the
+strong equality always denotes a defined value.
+
+\newpage{}
+\ns
+
+ Let us now specify the motivating example from the beginning
+of this section.
+
+
+\begin{SpecDefn}{Directed\_Graph} ~=
+\I\Sorts \(Nodes, Edges;\) \I\Ops \( from : Edges \tfun Nodes ;\)
+\\ \( to : Edge \tfun Nodes; \) \I\End \end{SpecDefn}
+
+\newpage{}
+\small
+\begin{SpecDefn}{Path\_over\_Graphs}[\SpecName{Directed\_Graph}] ~=
+\item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( Path;\) \I\Ops \( nil : Nodes \tfun Path;\)
+\\ \(app : Edges \* Path \pfun Path;\)
+\\ \( from, to : Path \tfun Nodes;\)
+\I\Axiom \(\[\forall x : Edges, p : Path \. app(x,p) \eeq
+ append(x,p) \Implies
+ \\\M to(app(x,p)) = to(p) \wedge
+ from(app(x,p)) = from(x) \wedge
+ \\\M to(x) = from(p);\]\)
+ \\ \( \forall x :Edge, p : Path \. to(x) = from(p) \Rightarrow
+ app(x,p) \eeq app(x,p);\)
+  ~\EndGroup \end{Items} \item[\End] \end{SpecDefn}
+
+
+\newpage{}
+\ns
+
+Good exercises for the tutorial are the specifications of
+functional enrichments  of  concatenating  finite paths as a new
+partial operation and the specification of the length function.
+
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph77]
+
+The next example is the specification of powerlists: \small
+\begin{SpecDefn}{PowerLists}[\Sort~\(Elem\)] ~=
+\SpecName{Nat-with-addition} \item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( Powerlist ; \) \I\Ops \( \{\_\} : Elem \tfun
+Powerlist;\)
+ \\ \( \_\_|\_\_ : Powerlist \* Powerlist \pfun Powerlist; \)
+ \\ \( length : Powerlist \tfun Nat; \)
+ \I\Vars \( x : Elem; l, r : Powerlist; \)
+ \I\Axioms~
+ \\ \( length( \{x\}) = suc(Zero);\)
+ \\ \( def (l | r) \Implies length( l | r ) = length(l ) +
+ length(r); \)
+ \\ \( length(l) = length(r) \Implies def (l | r) ;\)
+ ~\EndGroup \end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={$WHILE$--loop}, Label=Paragraph78]
+\ns
+
+ As next example we study the specification of the
+$WHILE$--loop. This example is of interest since without partial
+operations this important construction could not be specified. On
+the other hand, this example can be used to prove, that each
+computable function on natural numbers can be specified as a
+functional enrichment of the data type \textsc{Nat}.
+
+
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph79]
+\small
+The first version uses strong equality:
+
+\begin{SpecDefn}{While\_with\_strong\_equality} ~=
+\SpecName{Boole} \I \Then
+ \I\Sort \(M; \)
+ \I\Op \( p : M \tfun Boole ;\)
+ \I\Ops \( f,g : M \pfun M;\) \I\Then
+ \I{\Free~\Group} \begin{Items}
+ \I\Op \( while : M \pfun M; \)
+ \I\Var \( x : M; \)
+ \I\Axioms \(  p(x) = false \imp while(x ) = f(x); \)
+ \\ \(p(x) = true \imp while(x) = while(g(x));\) \EndGroup
+ \end{Items}
+ \I\End
+ \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph80]
+The second version uses existential equality:
+
+\begin{SpecDefn}{While\_with\_existential\_equality} ~= \textsc{Boole}
+\I \Then
+ \I\Sort \(M; \)
+ \I\Op \( p : M \tfun Boole ;\)
+ \I\Ops \( f,g : M \pfun M;\) \I \Then
+ \I{\Free~\Group} \begin{Items}
+ \I\Op \( while : M \pfun M; \)
+ \I\Var \( x : M; \)
+ \I\Axioms \(  p(x) = false \wedge f(x) \eeq f(x)
+ \imp while(x ) \eeq f(x); \)
+ \\ \(p(x) = true \wedge while(g(x)) \eeq while(g(x))
+ \imp \\\M while(x) \eeq while(g(x));\) \EndGroup
+ \end{Items}
+ \I\End
+ \end{SpecDefn}
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Data Refinement}, Label={section3_6}]
+\begin{Paragraph}
+\small
+ Axiomatic specifications of data types are aimed at minimizing
+the conceptual distance between an application area and the first
+formal model. As a consequence, the conceptual distance between
+the first formal model and the implementation level can be rather
+big. In order to bridge the conceptual distance between the data
+types used in the specification and the data types available at
+the implementation level, it may be useful to introduce
+intermediate levels of abstraction and to design an implementation
+of the abstract specification by \textbf{stepwise refinements}.
+
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph81]
+
+Implementations of abstract specifications by means of stepwise
+refinements leads to  the concept of
+\textcolor{blue}{implementations of an abstract data type by
+another one}, short \textcolor{blue}{\textbf{abstract
+implementations}}.\pause \vspace{8mm}
+
+We illustrate this concept, by implementing the generic data type
+of sets by the data type of ordered list.\pause \vspace{8mm}
+
+Since this generic implementation requires not just elements but
+elements with a linear order, we modify the generic data type of
+set accordingly:
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph82]
+\begin{SpecDefn}{Sets2}[\SpecName{Linear\_Order}] ~=
+\item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \(Sets; \) \I\Ops \( empty : Sets; \)
+\\ \( add : Elem \* Sets \tfun Sets; \)
+\I\Vars \( x,y: Elem, s: Sets\)
+\\ \( add(x, add(x,s)) = add(x,s);\)
+\\ \( add(x, add(y,s)) = add(y, add(x,s));\)
+ ~\EndGroup \end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+ \begin{Paragraph}[Label=Paragraph83]
+
+ Next let us recall the generic specification of
+ \hyperlink{orderdlists}{ordered lists}.\pause \vspace{8mm}
+
+ We can use the sort $Orderd$ in that specification to implement
+ the sort $Sets$ in \textsc{Sets2}. \pause \vspace{8mm}
+
+  But, which operation in the
+ specification of ordered list can be used to implement $add :
+ Elem \times Sets \to Sets$? \pause \vspace{8mm}
+
+ Since there is no appropriate
+ operation, we have to define such an operation by a functional
+ enrichment of \SpecName{Ordered\_Lists}.
+
+\end{Paragraph}
+ \begin{Paragraph}[Label=Paragraph84]
+ \small
+\begin{SpecDefn}{Orderd\_Lists\_2}[\SpecName{Linear\_Order}] ~=
+\SpecName{Ordered\_Lists} \item[\Then] \Group \begin{Items}\I\Ops
+\( add\_ol : Elem \* Ordered \tfun Ordered; \) \I\Vars \(x,y :
+Elem, l:
+Lists\) \I\Axioms \( add\_ol(x,nil) = cons(x,l);\) \\
+ \(\[ (x \leq y \wedge x \not= y \wedge
+ordered(cons(y,l))) \imp \\\M
+ add\_ol (x, cons(y,l)) = cons(x, cons(y,l)); \]\)
+ \\ \( (x = y \wedge ordered(cons(y,l))) \imp
+ \\\M add\_ol(x, cons(y,l)) = cons(y,l); \)
+ \\ \( \[ (y \leq x \wedge x \not= y \wedge ordered(cons(y,l)))
+  \imp \\\M add\_ol(x, cons(y,l)) = cons(y, add\_ol(x,l)); \]\)
+~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+ \begin{Paragraph}[Label=Paragraph85]
+
+ The intended generic implementation can now be specified by a
+so--called \textcolor{blue}{\textbf{view}}:\pause
+
+\begin{SpecDefn}[\View]{Sets\_as\_Ordered\_lists} :
+\SpecName{Sets2} \To \hspace{1mm}\SpecName{Ordered\_Lists\_2} ~= \\
+\( Sets \mapsto Ordered, empty \mapsto nil, add \mapsto add\_ol\)
+\End \end{SpecDefn}\pause
+
+Since the generic parameter in both specifications is not
+implicated in the implementation the view does not say anything
+about the sort and predicate of the generic parameter.
+
+\end{Paragraph}
+ \begin{Paragraph}[Label=Paragraph86]
+
+ However, the view above raises some \textcolor{blue}{proof obligations}:
+ \pause \\ one has to
+prove that the axioms of the domain specifications are mapped by
+the view to logical consequences of the axioms in the range
+specification, \pause \\ i.e. one has to show that the universally
+quantified equations
+$$\begin{array}{l}
+ add\_ol(x, add\_ol(x,l)) = add\_ol(x,l) \\
+ add\_ol(x, add\_ol(y,l)) = add\_ol(y, add\_ol(x,l)) \end{array}$$
+are logical consequences of the axioms in
+\textsc{Ordered\_Lists}.\pause \\ For the first equation this is
+easy to see. The proof for the second equations takes some more
+work.
+
+
+\end{Paragraph}
+\end{Section}
+\end{Section}
+\begin{Section}[Title={Final Coalgebras as Process Types}, Label={section4}]
+
+In the introduction we have seen, that finality constraints can be
+used to specify types of behavior which may also be called process
+types. The first step is the formal definition of finality
+constraints.
+
+\begin{Section}[Title={Final Constraints}, Label={section4_1}]
+\begin{Paragraph}
+
+Dual to initiality constraints we want to restrict model classes
+in such a way that for some parts of the specification the models
+are final.\pause
+
+\begin{Definition}[Title = {Final Coalgebras as Process Types}, Label = {Definition4}]
+Provided $Spec_1 = (\Sigma_1, AX_1) \sqsubseteq Spec_2 =
+(\Sigma_2, AX_2),$ then
+$$Spec_1 \; \mathbf{then \;cofree} \; Spec_2 $$ is called an
+\textbf{final constraint} in $Spec_2$.
+\end{Definition}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Final Constraints}, Label=Paragraph87]
+
+A $Spec_2$--model $ \mathbb{A}$ satisfies the final constraint,
+written $$ \mathbb{A} \; \models \; Spec_1 \; \mathbf{then \;
+cofree} \; Spec_2
+$$ if for each $Spec_2$--model $ \mathbb{B}$ with
+$\mathbb{B}|_{Spec_1} = \mathbb{A}|_{Spec_1}$ there is exactly one
+$\Sigma_2$--homomorphism $\varphi : \mathbb{A} \to \mathbb{B}$
+which extends the identity, i.e. $\varphi_s = Id_{A_s}$ for each
+$s \in Sorts(\Sigma_1)$. \\ \pause If the existence condition is
+given up and only the uniqueness is required, one gets a
+\textbf{cogenerated constraint}, written
+$$Spec_1 \; \mathbf{then \;cogenerated} \; Spec_2 $$
+
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Final Constraints}, Label=Paragraph88]
+
+If $Spec_1$ is the empty specification we will write just
+$\mathbf{cofree} \; Spec_2$ respectively $\mathbf{cogenerated} \;
+Spec_2$.
+
+Let us first check some examples ( that turn out to be of no
+interest):
+\begin{SpecDefn}{Final-1} ~=
+\item[\Cofree~\Group] \begin{Items} \item[\Sort] \( Elem \)
+~\EndGroup
+ \end{Items} \End \end{SpecDefn}\pause
+
+The final constraint in this specification constrains the
+interpretation of the sort $Elem$ to  singleton sets.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Final Constraints}, Label=Paragraph89]
+
+What about the following specification:\pause
+
+\begin{SpecDefn}{Final-2}~= \item[\Cofree~\Group]
+\begin{Items} \item[\Sort] \( Nat \)
+\item[\Ops] \( 0 : Nat;\)
+\\          \( suc\_\_ : Nat \tfun Nat \)~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}\pause
+
+This specification specifies also the class of singleton sets,
+additionally equipped with the unique interpretations of $0$ and
+$suc$.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Final Constraints}, Label=Paragraph90]
+
+
+ The collapsing to a singleton set ist caused by
+the fact that there is no observation specified which has to
+result in at least two different results, i.e. the result of any
+experiment, if there is any,  is always the same. This means that
+any two elements behaves in the same way an will therefore be
+identified in the final model.
+
+Final and cogenerated constraints restrict the model classes to so
+called \textcolor{blue}{most abstract models} which identify any
+two elements that are \textcolor{blue}{indistinguishable}.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph91]
+
+What about the weaker requirement of a cogenerated constraint? It
+turns out, that in both cases the specified model classes
+coincide. We will come back to the different of cofree and
+cogenerated constraints later.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph92]
+
+Let us consider the next example:\pause
+%\begin{Example}
+\begin{SpecDefn}{Final-3}~= \SpecName{Boole}\\ \Then
+\item[\Cofree~\Group]
+\begin{Items} \item[\Sort] \( Elem \)
+\item[\Op] \( observe : Elem \tfun Boole \)~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+%\end{Example}
+\pause
+In this example the states can only be observed, but there is no
+possibility to change the state, i.e., there is no dynamics.
+Therefore the interpretation $ \mathbb{F}$ with $
+\mathbb{F}_{Elem} = \{ true, false \}$ and $observe_{ \mathbb{F}}
+= Id_{Boole}$ forms an interpretation which satisfies the
+specified final constraint.
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Examples of Process Types}, Label={section4_2}]
+\begin{Paragraph}
+
+The previous examples have not really been useful. In this section
+we will present some more useful specifications.\pause
+
+Let us start with some very well known concepts, namely
+\textcolor{blue}{Mealy and Moore automata}:\pause
+
+
+
+\begin{SpecDefn}{Moore\_Automata\_1}~=
+ \I\Sort \( In, Out, States; \)
+ \I\Ops \( next : In\* States \tfun States;\) \\ \(observe : States \tfun Out; \)
+ \item[\End]
+\end{SpecDefn}
+
+
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Moore--Automata}, Label=Paragraph93]
+
+\begin{SpecDefn}{Moore\_Automata\_2}~=
+\I\Sort \( In, Out; \) \item[\Then] \item[\Cogenerated~\Group]
+\begin{Items}
+\I\Sort \( States; \) \I\Ops \( next : In \* States \tfun
+States;\) \\ \(observe : States \tfun Out; \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Moore--Automata}, Label=Paragraph94]
+
+\begin{SpecDefn}{Moore\_Automata\_3}~=
+\I\Sort \( In, Out; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( States; \) \I\Ops \( next : In \* States \tfun
+States;\) \\ \(observe : States \tfun Out; \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Moore--Automata}, Label=Paragraph95]
+
+Which classes of models are specified by these three
+specifications?\pause
+
+\vspace{8mm}
+
+The first specification uses loose semantics and specifies the
+class of all Moore--Automata (with arbitrary input and output
+alphabets). \pause
+
+\vspace{8mm}
+
+ The second specifications constrains the model class to the most
+abstract, i.e. state reduced, Moore--Automata. \pause
+
+\vspace{8mm}
+
+ The third specification restricts  the model class
+additionally to those Moore--Automata that are final in the
+classes of Moore--Automata with equal input alphabets and equal
+output alphabets.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={final Moore--automaton}, Label=Paragraph96]
+
+\ns
+
+ What we can say on final Moore--automata? \pause \vspace{8mm}
+
+First, it is easy to see that any two final Moore--automata with
+equal input and output alphabet are isomorphic. \pause
+\vspace{8mm}
+
+But, does a final Moore--automaton exist and how it would looks
+like? We know that in a final coalgebra any two elements can be
+distinguished by an experiment. What kind of experiments can be
+performed in a given state on an Moore--automaton?
+
+\end{Paragraph}
+\begin{Paragraph}[Title={final Moore--automaton}, Label=Paragraph97]
+\small What kind of experiments can be performed with an arbitrary
+state?\pause \vspace{8mm}
+ First, a state denoted by $s$ may be observed by
+$observe_{\mathbb{F}}(s)$ which results in a value in
+$\mathbb{F}_{Out} = B$. Do we have to identify any two states
+$s_1, s_2$ if $observe_{\mathbb{F}}(s_1) =
+observe_{\mathbb{F}}(s_2)$? \\ \pause \vspace{8mm}
+Now we can perform further experiments like \\
+\pause $observe_{\mathbb{F}}(next_{\mathbb{F}}(x_1,s))$ \\ \pause
+$observe_{\mathbb{F}}(next_{\mathbb{F}}(x_2,next_{\mathbb{F}}(x_1,s)))$ \\
+\pause and so on.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph98]
+
+ Let us define for any word $w \in
+A^*$ $next_{\mathbb{F}}(w,s)$ inductively by
+$$\begin{array}{lll}
+next_{\mathbb{F}}(\varepsilon,s) &  = & s \\
+next_{\mathbb{F}}(vx,s) & = &
+next_{\mathbb{F}}(x,next_{\mathbb{F}}(v,s))\\ \end{array}$$\pause
+Notice that the word $w \in A^*$ is processed from left to right.
+By induction on $w \in A^*$ one can prove
+ $$next_{\mathbb{F}}(w, next_{\mathbb{F}}(x ,s)) =
+  next_{\mathbb{F}}(xw ,s)).$$\pause
+
+ With this notation we can say that two
+states behave differently iff there exists an input word $w \in
+A^*$ with $$ observe_{\mathbb{F}}(next_{\mathbb{F}}(w,s_1)) \not=
+observe_{\mathbb{F}}(next_{\mathbb{F}}(w,s_2)).$$
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph99]
+
+Or in other words, they behave equally, if the generate the same
+input--output--mapping, i.e., $$\lambda\;  w \in A^* \; . \;
+observe_{\mathbb{F}}(next_{\mathbb{F}}(w,s_1)) = \lambda\;  w \in
+A^* \; . \;
+observe_{\mathbb{F}}(next_{\mathbb{F}}(w,s_2)).$$\pause
+
+The next important observation is that the mappings $\{f : A^* \to
+B \}$ can be made to an interpretation which satisfies the final
+constraint. \pause
+
+We set $$\begin{array}{lll} \mathbb{F}_{States} & = & \{f : A^*
+\to B \} \\ observe_{\mathbb{F}}(\varphi) &= &
+\varphi(\varepsilon) \\ next_{\mathbb{F}}(x,f) & = & \lambda \; w
+\in A^* \; . \; f(xw)\\ \end{array}$$
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph100]
+
+To prove that $ \mathbb{F}$ satisfies the final constraint let
+$\mathbb{P}$ be any interpretation with $P_{In} = A,$ and $P_{Out}
+= B$. \pause We have to prove that there is exactly on
+homomorphism $\varphi^* : \mathbb{P} \to \mathbb{F}$ with
+$\varphi^*_{In} = Id_A$ and $\varphi^*_{Out} = Id_B$. \\ \pause We
+define $\varphi^*_{States} : P_{States} \to F_{States}$ by
+$$\varphi^*_{States}(p) = \lambda \; w \in A^* . \;
+observe_{\mathbb{P}}(next_{\mathbb{P}}(w,p)).$$ \pause It remains
+to show, that this definition really defines a homomorphism.\pause
+$$\begin{array}{lll}
+\varphi^*_{States}(next_{\mathbb{P}}(x,p)) & = & \lambda \; w \in
+A^* . \; observe_{\mathbb{P}}(next_{\mathbb{P}}(w,
+next_{\mathbb{P}}(x,p)) \\
+ & = & \lambda \; w \in A^* . \;
+ observe_{\mathbb{P}}(next_{\mathbb{P}}(xw,p)) \\
+ & = & next_{\mathbb{F}}(x, \lambda \; w \in A^* . \;
+ observe_{\mathbb{P}}(next_{\mathbb{P}}(w,p))) \\
+  & = & next_{\mathbb{F}}(x, \varphi^*_{States}(p))\\
+  \end{array}$$
+  proves the compatibility with the $next$--operation, and
+$$\begin{array}{lll}
+observe_{\mathbb{F}}(\varphi^*_{States}(p)) & = &
+observe_{\mathbb{F}}(\lambda \; w \in A^* . \;
+observe_{\mathbb{P}}(next_{\mathbb{P}}(w,p))) \\
+ & = & \lambda \; w \in A^* . \;
+observe_{\mathbb{P}}(next_{\mathbb{P}}( \varepsilon,p)))\\
+ & = & \lambda \; w \in A^* . \; observe_{\mathbb{P}}(p) \\
+ & = & observe_{\mathbb{P}}(p) \\  \end{array}$$
+ proves the compatibility with the $observe$--operation.\pause
+
+ It remains to show that this is the only homomorphism. This is
+ left to the tutorial.
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={Mealy--automata}, Label=Paragraph101]
+
+ Another type of processes is given by Mealy--automata
+
+\begin{SpecDefn}{Mealy\_Automata}~=
+\I\Sort \( In, Out; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( States; \) \I\Ops \( next : In \* States \tfun
+States;\) \\ \(observe :In \*  States \tfun Out; \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}\pause
+
+In that process type the output mapping depends on the state and
+an additional input value.
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={Mealy--automata}, Label=Paragraph102]
+
+ What about a process $\mathbb{F}$ which
+satisfies this final constraint?\pause \vspace{8mm}
+
+It is not to difficult to see, that one has to take now
+$F_{States} = {States} = \{ f : A^+ \to B \}$ and
+$observe_{\mathbb{F}}(x,f) = f(x)$, where on the right hand side
+$x$ represents the string of length one, consisting of the input
+value $x \in A$. The state transition function $next$ can be
+defined as in the previous example.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Streams}, Label=Paragraph103]
+
+A famous process type is given by so--called \textbf{streams}:
+
+\vspace{12mm}
+
+\begin{SpecDefn}{Streams}[\Sort \(Elem\)]~=
+\item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( Streams; \) \I\Ops \( head : Streams  \tfun Elem;\)
+\\ \(tail : Streams \tfun Streams; \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Streams}, Label=Paragraph104]
+
+The model $\mathbb{F}$ with $F_{Elem} = B$ which satisfies this
+specification is given by $$ \begin{array}{lll} F_{Streams} & = &
+\{ s : \mathbb{N} \to B \} \\ head_{\mathbb{F}}(s) & = & s(0) \\
+tail_{\mathbb{F}}(s)& = & \lambda \; x \in \mathbb{N} \;. \;
+s(x+1) \\ \end{array}$$
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Function Type}, Label=Paragraph105]
+
+If one wants to work with the function type, this can also be
+defined as a process type. The intuition behind this specification
+is to consider functions as one--step computations.
+
+\begin{SpecDefn}{Function\_Type}~=
+\I\Sort \( In, Out; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( Fun; \) \I\Ops \( apply : In \* Fun \tfun Out;\)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Function Type}, Label=Paragraph106]
+
+Lambda--abstraction, known from $\lambda$--calculus turns out as
+the universal property of the final model, i.e., let be given
+$$ f : In \times M \to Out$$
+then $ \lambda m \in M \centerdot f : M \to (In \to Out)$
+coincides with the $Fun$--component of the unique homomorphism
+$$!_{\mathbb{M}} : \mathbb{M} \to \mathbb{F}$$
+where $\mathbb{F}_{Fun} = Out^{In}$.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Function Type}, Label=Paragraph107]
+
+On the other side, if there is given a mapping $$\varphi : In \to
+Out ( \in Out^{In})$$ \pause
+
+this mapping can also be seen as $$\varphi : In \times \{ * \} \to
+Out$$ \pause
+
+such that the unique homomorphism to the final model maps $*$ to
+$\varphi$.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Observable Termination}, Label=Paragraph108]
+\ns
+
+ By the next specification we want to specify a process type
+which represents terminating and non--terminating  streams which
+we call \textbf{sequences}. To represent the the observable
+termination of a process we need something like runtime message.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Observable Termination}, Label=Paragraph109]
+\small
+\begin{SpecDefn}{Sequences}~=
+\I\Sort \( Elem; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( Seq; \) \item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( Result; \) \I\Ops \( end : Result; \)
+ \\ \( emb : Elem \* Seq \tfun Result;\)
+  ~\EndGroup \end{Items}
+  \I\Ops \( step : Seq \tfun Result;\)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Observable Termination}, Label=Paragraph110]
+\ns
+ This specification would look much simpler, if in addition to
+the cartesian product $Typ_1 \times Typ_2$ the \textbf{disjoint
+union} $Typ_1 + Typ_2$ together with the canonical injections
+$inj_1 : Type_1 \to  Typ_1 + Typ_2$ and $inj_2 : Type_2 \to  Typ_1
++ Typ_2$ is on hand.
+
+ \vspace{8mm}
+
+ In that case the specification
+would look like:
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Observable Termination}, Label=Paragraph111]
+\small
+\begin{SpecDefn}{Sequences}~=
+\I\Sort \( Elem; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( Seq; \) \I\Ops \( step : Seq \tfun (Elem \* Seq)
++\mathbf{1};\)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+where $\mathbf{1}$ denotes the constant type of the empty
+cartesian product, representing the singleton set $\{*\}$.
+
+In order to make the following specifications more readable,
+\textbf{we assume for the following, that the disjoint union + is
+available}.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Observable Termination}, Label=Paragraph112]
+\ns
+With this assumption partial Moore--Automata would be
+specified as follow:
+\begin{SpecDefn}{Partial\_Moore\_Automata\_3}~=
+\I\Sort \( In, Out; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( States; \) \I\Ops \( next : In \* States \tfun States +
+1;\) \\ \(observe : States \tfun Out; \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Nondeterminsm}, Label=Paragraph113]
+
+Finally we will specify processes with finitary
+nondeterminism.\vsp
+
+For a given set of action the dynamics of the process associates
+with each action and each state a finite, possibly empty set of
+successor states.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph114]
+\small
+\begin{SpecDefn}{Nondeterministic\_Automata}~=
+\I\Sort \( Actions; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sorts \( States;\) \item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( StateSets; \) \I\Ops \( empty : StateSets; \)
+ \\ \( add : States \* StateSets \tfun StateSets;\)
+ \I\Axioms \( \forall x : States, s : StateSets \. add(x,
+ add(x,s)) = s;\)
+ \\ \(\[\forall x,y : States, s : StateSets \. \\ add(x,
+ add(y,s)) =  add(y, add(x,s)); ~\EndGroup \]\)
+   \end{Items}
+  \I \Op \( step : States \tfun StateSets;\)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Nondeterminism}, Label=Paragraph115]
+
+In that case it is not so easy to prove the existence of a most
+abstract model.\vsp
+
+If we use the weaker cogenerated constraint, the resulting class
+of models is easier to describe.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph116]
+\small
+\begin{SpecDefn}{Nondeterministic\_Automata\_2}~=
+\I\Sort \( Actions; \) \item[\Then] \item[\Cogenerated~\Group]
+\begin{Items}
+\I\Sorts \( States;\) \item[\Then] \item[\Free~\Group]
+\begin{Items}
+\I\Sort \( StateSets; \) \I\Ops \( empty : StateSets; \)
+ \\ \( add : States \* StateSets \tfun StateSets;\)
+ \I\Axioms \( \forall x : States, s : StateSets \. add(x,
+ add(x,s)) = s;\)
+ \\ \(\[\forall x,y : States, s : StateSets \. \\ add(x,
+ add(y,s)) =  add(y, add(x,s)); ~\EndGroup \]\)
+   \end{Items}
+  \I \Op \( step : States \tfun StateSets;\)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Bisimulation}, Label=Paragraph117]
+\small
+This specification defines the class of so--called \Emphasis{most
+abstract} non--deterministic automata, where an automaton is
+called most abstract if any two states are indistinguishable. \vsp
+
+In case of deterministic automata two states are indistinguishable
+if they generate the same input--output function (see the
+construction of a final deterministic automaton). \pause  For
+non--deterministic automata this notion is based on the concept of
+\Emphasis{bisimulation relations}.\vsp
+
+Let $\mathbb{P}, \mathbb{Q}$ be any two non--deterministic
+automata with equal sets of actions.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Bisimulation}, Label=Paragraph118]
+
+\begin{Definition}[Label=DefBisimulation,Title=Bisimulation]
+A binary relation $ \mathcal{S} \subseteq \mathbb{P}_{States}
+\times \mathbb{Q}_{States}$ is called a \Emphasis{(strong)
+simulation} if whenever $(p,q) \in \mathcal{S}$ implies that for
+all $a \in \mathbb{P}_{Actions} (= \mathbb{Q}_{Actions}), q' \in
+\mathbb{Q}_{States}$ with $q' \in step_{\mathbb{Q}}(q)$ there
+exists a $p'\in \mathbb{P}_{States}$ with $p' \in
+step_{\mathbb{P}}(p)$ and $(p',q') \in \mathcal{S}$.\\ \pause
+$\mathcal{S}$ is called a \Emphasis{(strong) bisimulation} if both
+$\mathcal{S}$ and the inverse relation $\mathcal{S}^{-1}$ are
+strong simulations.\\ \pause Two states $p, q$ are called
+\Emphasis{bisimular} (or indistinguishable), if there exists a
+bisimulation $ \mathcal{S}$ with $(p,q) \in \mathcal{S}$.
+\end{Definition}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Nondeterminism}, Label=Paragraph119]
+
+The \textcolor{blue}{final non--deterministic automaton} can now
+be understood as the greatest most abstract non--deterministic
+automaton, containing each most abstract non--deterministic
+automaton as a sub--automaton.
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={Coinduction}, Label={section4_3}]
+\begin{Paragraph}
+
+\small
+In case of process type one wants to define functions that built
+new behaviors out of given behaviors.\pause \vspace{8mm}
+
+The standard way to define such functions is
+\textcolor{red}{\textbf{coinduction}}. \pause \vspace{8mm}
+
+The process type of streams is simple enough to present  fist
+simple coinductive function definitions.\pause \vspace{8mm}
+
+The \textcolor{blue}{\textbf{general methodology of a coinductive
+definition}} is the following: \\ \pause \emph{Define over the
+domain of the wanted function a process in such a way, that the
+unique homomorphism from the domain process to the final model
+represents the wanted function.}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinduction}, Label=Paragraph120]
+\ns
+
+ Let us consider the  function of  \textcolor{blue}{merging
+two streams}. Streams are merged together like the two sides of a
+zipper.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinduction}, Label=Paragraph121]
+
+\small
+\begin{SpecDefn}{Streams\_2}~=
+\I\Sort \( Elem; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sort \( Streams; \) \I\Ops \( head : Streams  \tfun Elem;\)
+\\ \(tail : Streams \tfun Streams; \)
+ ~\EndGroup\end{Items}
+\item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Op \( merge : Streams \* Streams \tfun Streams; \)
+ \I\Axiom \( \forall s_1, s_2 : Streams \. head(merge(s_1, s_2) =
+ head(s_1) ; \) \\
+ \(\forall s_1, s_2 : Streams \. tail(merge(s_1, s_2)) =
+ merge(s_2, tail(s_1));\)
+ ~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinduction}, Label=Paragraph122]
+
+According to that methodology we defined two mappings
+$$\begin{array}{l} head_m : Streams \times Streams \to Elem, \\ tail_m :
+Streams \times Streams \to Streams \times Streams\\ \end{array}$$
+by $head_m(s_1, s_2) = head(s_1)$ and $tail_m(s_1, s_2) = (s_2,
+tail(s_1))$. Since $merge$ becomes a homomorphism we obtain:
+$(head(s_1) = )head_m(s_1, s_2) = head(merge(s_1, s_2))$ and
+$merge(tail_m(s_1, s_2)) = tail(merge(s_1,s_2))$ which means by
+definition of $tail_m$ that $merge(s_2, tail(s_1)) =
+tail(merge(s_1, s_2).$ Thus, the specification above defines
+$merge$ without explicitly using the two operations $head_m,
+tail_m$.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinduction}, Label=Paragraph123]
+
+
+
+\begin{SpecDefn}{Sequencial\_Composition\_of\_Sequences}~=
+\SpecName{Sequences} \item[\Then] \item[\Cofree~\Group]
+\begin{Items}\I\Op \( app : Seq \* Seq \tfun Seq; \)
+\I\Axioms \(\[\forall s_1, s_2 : Seq \. step(s_1) = inj_2(*)
+\wedge step(s_2) = inj_2(*) \\\M \imp step(app(s_1,s_2)) =
+inj_2(*);\]\)
+\\ \(\[\forall s, s_1, s_2 : Seq \. step(s_1) = inj_1(x,s) \\\M \imp
+step(app(s_1,s_2)) = inj_1(x,(app(s,s_2)));\]\)
+\\ \(\[\forall s_1, s_2 : Seq \. step(s_1) = inj_2(*) \wedge
+step(s_2) = inj_1(x,s) \\\M \imp step(app(s_1,s_2)) = inj_1(x,s);
+~\EndGroup \]\)
+\end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinductive Proofs}, Label=Paragraph124]
+
+This example can be used to show that final constraints do not
+only provide a definition principle, as demonstrated above, but
+also a \textcolor{red}{\textbf{proof principle, based on the
+uniqueness of the homomorphism}}.\pause \vspace{8mm}
+
+Intuitively one would expect that the sequence $app(s_1, s_2)$
+behaves like $s_1$ if $s_1$ is a non--terminating sequence. To
+prove this property by \textbf{coinduction} one has to transform
+this property into the identity of homomorphisms to the final
+model.\pause \vspace{8mm}
+
+How we can characterize the class of non--terminating sequences,
+i.e., streams, as a subclass of sequences?
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinductive Proofs}, Label=Paragraph125]
+
+First we have to be aware that in most cases subtypes of processes
+can not be defined by means of a defining predicate.
+\pause\vspace{8mm}
+
+In the example of the process types of streams and sequences one
+can see streams as a subtype of sequences. Since the halting
+problem is undecidable we can not specify the characteristic
+function of that subtype.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph126]
+
+There are also formal reasons why we are not able to specify the
+characteristic function of the subtype of non--terminating
+sequences. The domain type of the function we want to specify is
+defined be a final constraint and the range type by an initial
+constraint. An inductive definition would require a domain type
+defined by an initial constraint, and a coinductive definition
+requires a range type defined by a final constraint.\vsp
+
+But we
+can construct by coinduction an embedding of the class of streams
+into the class of sequences. In the following coinductive
+specification $embed : Streams \to Seq$ will denote the embedding
+of streams into sequences:
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph127]
+
+\begin{SpecDefn}{Embedding\_of\_Streams\_into\_Sequences}~=
+\I\Sort \( Elem; \) \item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Sorts \( Streams, Seq;\) \I\Ops \( head : Streams  \tfun
+Elem;\)
+\\ \(tail : Streams \tfun Streams; \)
+\\ \(step : Seq \tfun (Elem \* Seq) + \mathbf{1};\)
+ ~\EndGroup \end{Items}
+\item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+\I\Op \( \textcolor{red}{embed : Streams \tfun Seq}; \)
+  \I\Axiom
+\(\forall s : Streams \. step(embed(s)) =
+inj_1(head(s),embed(tail(s)));\)
+  ~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Coinductive Proofs}, Label=Paragraph128]
+
+To prove the expected property we define the following two
+mappings
+$$\begin{array}{lll}
+f : Streams \times Seq \to Seq & \mbox{with} & f(s_1,s_2) =
+embed(s_1) \\
+h : Streams \times Seq \to Seq & \mbox{with} & h(s_1,s_2) =
+app(embed(s_1),s_2) \\ \end{array}$$ and show that they are
+equal.\pause
+
+Since the range type of both mappings is a type defined by a final
+constraint, we can prove the equality by coinduction, which means,
+we make $Streams \times Seq$ to a process of the process type
+\textsc{Sequences} and prove that both mappings are homomorphisms.
+Since there is exactly one homomorphism, this proves the equality.
+
+To follow this approach, we define $$step^* : Streams \times Seq
+\to (Elem \times (Streams \times Seq)) + \mathbf{1}$$ by
+$$step^*(s_1,s_2) = inj_1(head(s_1),(tail(s_1),s_2)).$$
+It remains to prove the commutativity of the following diagrams:
+$$ \xymatrix{\ar @{} [drrrr] | {(1)}
+Str \times Seq \ar[d]_{step^*} \ar[rrrr]^f & & & & Seq \ar[d]^{step} \\
+(El \times (Str \times Seq)) + \mathbf{1} \ar[rrrr]_{(Id_{El}
+\times f) + Id_{\mathbf{1}}} & & & & (El\times Seq) + \mathbf{1}
+}$$
+$$\xymatrix{\ar @{} [drrrr] | {(2)}
+Str \times Seq \ar[d]_{step^*} \ar[rrrr]^h & & & &  Seq \ar[d]^{step} \\
+(El \times (Str \times Seq)) + \mathbf{1} \ar[rrrr]_{(Id_{El}
+\times h) + Id_{\mathbf{1}}} & & & & (El\times Seq) + \mathbf{1}
+}$$ The commutativity of diagram $(1)$ follows from
+$$\begin{array}{lll}
+step(f(s_1,s_2)) & = & step(embed(s_1)) \\
+ & =  & inj_1(head(s_1), embed(tail(s_1))) \\
+ & = & [(Id_{El} \times f) + Id_{\mathbf{1}}]
+ (inj_1(head(s_1),(tail(s_1),s_2))) \\
+ & = &  [(Id_{El} \times f) + Id_{\mathbf{1}}](step^*(s_1,s_2))
+ \\ \end{array}$$
+  and the commutativity of diagram $(2)$ is given by:
+$$\begin{array}{lll}
+step(h(s_1,s_2)) & = & step(app(embed(s_1),s_2)) \\
+ & = & inj_1(head(s_1), app(embed(tail(s_1)),s_2)) \\
+  & = & [(Id_{El} \times h) +
+  Id_{\mathbf{1}}](inj_1(head(s_1),(tail(s_1),s_2)))\\
+   & = & [(Id_{El} \times h) + Id_{\mathbf{1}}](step^*(s_1,s_2))
+ \\ \end{array}.$$
+
+\end{Paragraph}
+\end{Section}
+ \begin{Section}[Title={Behavioural Subtypes}, Label={section4_4}]
+\begin{Paragraph}
+
+Above we argued, that in general interesting subclasses of process
+types can not be specified by boolean--valued functions.\vsp
+
+In the following we will demonstrate that predicates defined by
+initial and final constraints can be used to specify behavioural
+subtypes.\vsp
+
+The first example specifies those streams that eventually produce
+(contain or output) an element that satisfies a given property.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={sometimes}, Label=Paragraph129]
+
+\begin{SpecDefn}{SomeTimes}~= \SpecName{Streams}
+ \item[\Then]
+\I\Pred \( P : Elem; \) \item[\Free~\Group]
+\begin{Items}
+\I\Pred \( ST : Streams;\) \I\Vars \( s : Streams; \) \I\Axioms \(
+P(head(s)) \Implies ST(s);\)
+\\ \(ST(tail(s)) \Implies ST(s);\)
+  ~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={sometimes}, Label=Paragraph130]
+
+\begin{SpecDefn}{SomeTimes}~= \SpecName{Streams}
+ \item[\Then]
+\I\Pred \( P : Elem; \) \item[\Free~\Group]
+\begin{Items}
+\I\Pred \( ST : Streams;\) \I\Vars \( s : Streams; \) \I\Axioms \(
+P(head(s)) \Implies ST(s);\)
+\\ \(ST(tail(s)) \Implies ST(s);\)
+  ~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+Notice,  this \Emphasis{liveness property} is expressed by an
+initial constraint. This is related to the fact, that liveness
+properties are represented as least fixed points in
+$\mu$--calculus.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={allways}, Label=Paragraph131]
+
+If we want to specify the class of all those streams that contain
+only elements which satisfy a given property, then we have to
+define the corresponding predicate by a final constraint:
+
+\begin{SpecDefn}{AllWays}~= \SpecName{Streams}
+ \item[\Then]
+\I\Pred \( P : Elem; \) \item[\Cofree~\Group]
+\begin{Items}
+\I\Pred \( AW : Streams;\) \I\Vars \( s : Streams; \) \I\Axioms \(
+AW(s) \Implies P(head(s));\)
+\\ \(AW(s) \Implies AW(tail(s));\)
+  ~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={allways}, Label=Paragraph132]
+
+\ns Notice, this \Emphasis{safety property} is expressed by a
+final constraint. This is related to the fact, that safety
+properties are represented as greatest fixed points in
+$\mu$--calculus.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={allways sometimes}, Label=Paragraph133]
+
+\ns The next example deals with the specification of a
+\Emphasis{fairness property} which states that a stream contains
+infinitely often elements satisfying  a given property.
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph134]
+\small
+\begin{SpecDefn}{AllWays\_SomeTimes}~= \SpecName{Streams} \I \Then
+\I\Pred \( P : Elem; \) \item[\Cofree~\Group] \item[\Then]
+\begin{Items}
+ \item[\Free~\Group]
+\begin{Items}
+\I\Pred \( ST : Streams;\) \I\Vars \( s : Streams; \) \I\Axioms \(
+P(head(s)) \Implies ST(s);\)
+\\ \(ST(tail(s)) \Implies ST(s);\)
+  ~\EndGroup \end{Items}
+\I\Pred \( AwSt : Streams;\) \I\Vars \( s : Streams; \) \I\Axioms
+\( AwSt(s) \Implies ST(s);\)
+\\ \(AwSt(s) \Implies AwSt(tail(s));\)
+  ~\EndGroup \end{Items} \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={allways sometimes}, Label=Paragraph135]
+
+\ns The specification \SpecName{AllWays\_SomeTimes} demonstrates
+that the combination of initial and final constraints is much more
+expressive then initial or final constraints alone.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Component Connectors}, Label=Paragraph136]
+\small The next examples present a notion of J. Rutten, who uses
+coinductively defined predicates to represent a channel--based
+coordination model. The coordinators are called
+\textcolor{blue}{connectors}. The input ends and output ends of
+connectors are so--called \textcolor{blue}{timed data streams}. A
+timed data stream is a pair of a stream (infinite sequence) of
+abstract data items and an infinite sequence of natural numbers,
+representing the moments in time at which their corresponding data
+items are being input or output.\pause
+
+See: F. Arbab, J.J.M.M. Rutten: A coinductive calculus of
+component connectors, CWI Report SEN--R0216, September 30, 2002
+
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Timed Data Streams}, Label=Paragraph137]
+\small
+\begin{SpecDefn}{Timed\_Data\_Streams}[\Sort Data] ~= \textsc{Nat}
+\Then \item[\Cofree~\Group]
+\begin{Items}
+\I\Sorts \( Ds, Ts; \) \I\Ops \( hd : Ds \tfun Data \)
+\\ \( ht : Ts \tfun Nat; \)
+\\ \( \_\_': Ds \tfun Ds; \)
+\\ \( \_\_': Ts \tfun Ts;\)
+\I\Pred \( Tds : Ds \* Ts;\) \I\Vars \( D : Ds; T : Ts\) \I\Axiom
+\( Tds(D,T) \Implies ht(T) < ht(T') \wedge Tds(D', T');\)
+~\EndGroup
+\end{Items}
+\I\Sort \(\textcolor{blue}{TDS[Data] = \{ (D,T): Ds \* Ts \.
+Tds(D,T) \}} \);
+ \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+ \begin{Paragraph}[Title={Comparing Time Streams}, Label=Paragraph138]
+
+In the following one needs a relation $T1 < T2$ between time
+streams  $T1, T2 : Ts$ which states that in each moment the time
+stamp of $T1$ denotes an earlier point in time as the time stamp
+of $T2$.\pause
+
+\begin{SpecDefn}{Before\_and\_Equal} ~= \SpecName{Timed\_Data\_Streams}
+\Then \item[\Cofree~\Group]
+\begin{Items}
+\I\Pred \( \textcolor{blue}{\_\_ < \_\_ , \_\_ = \_ \_ : Ts \*
+Ts}; \)
+\\ \(\textcolor{blue}{ \_\_ = \_ \_ , : Ds \* Ds}; \)
+\I\Axiom \( \forall T1, T2 : Ts \. T1 < T2 \Implies ht(T1) <
+ht(T2) \wedge T1' < T2'; \)
+ \\ \( \forall T1, T2 : Ts \. T1 = T2
+\Implies ht(T1) = ht(T2) \wedge T1' = T2'; \)
+\\ \( \forall D1, TD : Ds \. D1 = D2
+\Implies ht(D1) = ht(TD2) \wedge D1' = D2'; \) ~\EndGroup
+\end{Items}  \item[\End] \end{SpecDefn}
+
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Timed Merging of TDS}, Label=Paragraph139]
+\small\vspace{-5mm}
+\begin{SpecDefn}{Merge} ~= \SpecName{Timed\_Data\_Streams}
+\item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+ \I\Pred \( \textcolor{blue}{Me : TDS \* TDS \* TDS };\)
+ \I\Vars \( (D1,T1), (D2,DT2), (D3,T3) : TDS ; \)
+ \I\Axioms \( Me((D1,T1),(D2,T2),(D3,T3)) \Implies \neg(ht(T1)=
+ ht(T2)) \wedge  ; \)
+ \\ \(Me((D1,T1),(D2,T2),(D3,T3)) \wedge ht(T1) < ht(T2)) \Implies
+ \\ \M hd(D1) = hd(D3) \wedge ht(T1) = ht(T3) \wedge
+ Me((D1',T1'),(D2,T2),(D3',T3')); \)
+\\ \(Me((D1,T1),(D2,T2),(D3,T3)) \wedge ht(T2) < ht(T1)) \Implies
+ \\ \M hd(D2) = hd(D3) \wedge ht(T2) = ht(T3) \wedge
+ Me((D1,T1),(D2',T2'),(D3',T3')); \)
+  ~\EndGroup \end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Timed Merging of TDS}, Label=Paragraph140]
+
+The connector $Me$ merges the two data Streams $D1, D2$ into the
+data stream $D3$ on a 'first come first served' basis. It works
+only if the data in $(D1,T1), (D2,T2)$ do not appear at the same
+moment. The data element that is handled first, say $hd(D1)$ at
+time $ht(T1) < ht(T2)$ is the first element to be put into $D3$:
+$hd(D1) = hd(D3)$, at exactly the same moment: $ht(T1) = ht(T3)$.
+After that, the connector handles the remainder of the streams in
+the same manner again: $Me((D1',T1'),(D2,T2),(D3',T3'))$.\vsp
+
+Is this merge connector fair, i.e., does it input infinitely many
+data elements from both data streams $D1, D2$?
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Component Connectors}, Label=Paragraph141]
+
+By means of the product of relations the composition  of
+connectors can be formalized in a natural way.\vsp
+
+We will illustrate this by an example taken from Rutten. It
+composes an unbounded fifo lossy buffer with a driver that
+corrects the lossiness of the buffer.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Lossy Buffer}, Label=Paragraph142]
+
+\begin{SpecDefn}{Lossy\_Buffer} ~= \SpecName{Timed\_Data\_Streams}
+\item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+ \I\Pred \( \textcolor{blue}{L : TDS[Data] \* TDS[Data] \* TDS[Boole] };\)
+ \I\Vars \( (D1,T1), (D2,T2) : TDS[Data], (D3,T3) : TDS[Boole] ; \)
+ \I\Axioms \( L((D1,T1), (D2,DT2), (D3,T3)) \Implies
+ \\ \M (T1 < T3 \wedge T1 < T2) \wedge
+  \\ \M (( hd(D3) = true \wedge hd(D1) = hd(D2) \wedge
+  L((D1',T1'), (D2',T2'), (D3', T3')))
+  \\ \M \vee (hd(D3) = false \wedge L((D1',T1'), (D2,T2), (D3',
+  T3')))); \)
+  ~\EndGroup \end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Lossy Buffer}, Label=Paragraph143]
+
+The lossy buffer inputs data items at $(D1, T1)$. For every data
+there are two possible scenarios:\pause
+\begin{List}[ListType=enumerate]
+    \ListItem the data item is stored successfully and is output at
+    some later moment at $D2$ together (not necessarily
+    simultaneously) with a success signal $true$ along $D3$, after
+    which the connector proceeds as before with the remainder of
+    all streams involved. \pause
+    \ListItem storage of the data fails, no data item is output along
+    $D2$ and $false$ signaling the failure is output along $D3$,
+    and the connector proceeds as before, now with $(D1', T1'),
+    (D3', T3')$ but with $(D2, T2)$ unchanged.
+\end{List}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Driver}, Label=Paragraph144]
+
+\begin{SpecDefn}{Driver} ~= \SpecName{Timed\_Data\_Streams}
+\item[\Then] \item[\Cofree~\Group]
+\begin{Items}
+ \I\Pred \( \textcolor{blue}{D : TDS[Data] \* TDS[Boole] \* TDS[Data]  };\)
+ \I\Vars \( (D1,T1), (D3,T3) : TDS[Data], (D2,T2) : TDS[Boole] ; \)
+ \I\Axioms \( L((D1,T1), (D2,DT2), (D3,T3)) \Implies
+ \\ \M ( T1 = T3 \wedge T1 < T2 < T1' \wedge hd(D3) = hd(D1))
+ \wedge
+ \\ \M ((hd(D2) = true \wedge D((D1',T1'), (D2', T2'), (D3',
+ T3'))) \vee
+ \\ \M (hd(D2) = false \wedge D((D1 ,T1'), (D2', T2'), (D3',
+ T3')))); \)
+ ~\EndGroup \end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Driver}, Label=Paragraph145]
+
+The driver inputs data items at $D1$ and outputs them at $D3$.
+Before proceeding with the next data item, it checks it input at
+$D2$. \\ \pause If $hd(D2) = true$ then the last data item that
+has been output is considered to have been handled correctly (by
+the lossy buffer), and the driver proceeds as before with the
+remainder of all streams involved. \\ \pause If $hd(D2) = false$,
+however, something has gone wrong (the buffer has lost the data
+item), and the driver sends the data item again. This is modelled
+here by $D((D1 ,T1'), (D2', T2'), (D3',T3'))$, in which all
+streams have progressed one step but for $D1$, which remains
+unchanged, i.e. $hd(D1)$ is again the next data item that the
+driver will output, but with changed time stream $T1'$.
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Composing Connectors}, Label=Paragraph146]
+
+\begin{SpecDefn}{Composition} ~= \SpecName{Driver} \And~
+\SpecName{Lossy\_Buffer} \I\Then \I\Pred \( \textcolor{blue}{D
+\circ L : DTS[Data] \* TDS[Data]};\) \I\Vars \( (D1, T1), (D2, T2)
+: TDS[Data];\) \I\Axioms \(D \circ L ((D1, T1), (D2, T2)) \Equiv
+\\ \M \Exists (D3, T3) : DTS[Data] \. \Exists (D,T) : DTS[Boole]
+\. \\ \M D((D1,T1), (D,T), (D3, T3)) \wedge L((D3, T3), (D,L),
+(D2,T2)); \)
+\\ \(\textcolor{red}{D \circ L ((D1, T1), (D2, T2))
+\Implies D1 = D2 \wedge T1 <
+T2 }; \) \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Composing Connectors}, Label=Paragraph147]
+
+The driver takes $(D1, T1)$ and $(D,T)$ as input streams and $(D3,
+T3)$ as output stream, whereas the lossy buffer takes $(D3, T3)$
+as input and both $(D,T), (D2, T2)$ as output streams. \vsp
+
+This means, that according to the composition $D \circ L$ the
+timed streams $(D3, T3)$ and $(D,T)$ are used only for internal
+communication. \vsp
+
+The axiom \(\textcolor{red}{D \circ L ((D1, T1), (D2, T2))
+\Implies D1 = D2 \wedge T1 < T2 } \) states that \Emphasis{$D
+\circ L$ behaves like an unbounded fifo buffer}. The validity of
+the axiom can be proved by coinduction. (The proof will be
+discussed in the tutorial.)
+
+\end{Paragraph}
+\end{Section}
+\end{Section}
+\begin{Section}[Title={Summary}, Label={section5}]
+
+\begin{Paragraph}[Title={Data Types}, Label=Paragraph148]
+\ns
+%\textcolor{blue}{\textbf{Data Types}}
+\begin{List}[ListType=itemize]
+    \ListItem generic data types can be specified by means of initial
+    constraints.\pause
+    \ListItem for the definition of a data type one should use a
+    minimal set of constructors.\pause
+    \item initial constraints offer \pause \begin{List}[ListType=itemize]
+        \ListItem \Emphasis{definition principle}, based on the existence of a
+        homomorphism from the initial model to an arbitrary
+        model.\pause
+        \ListItem \Emphasis{proof principle}, based on the uniqueness
+        of the homomorphism.
+    \end{List}
+\end{List}\end{Paragraph}
+\begin{Paragraph}[Title={Data Types}, Label=Paragraph149]
+\begin{List}[ListType=itemize]
+    \ListItem Due to the minimality of the set of constructors, data
+    types may be laborious to use. However, the value in use can
+    be increased by \Emphasis{functional enrichments} of data
+    types.\pause
+    \ListItem functional enrichments of data types be not allowed to
+    generate \Emphasis{confusion} or \Emphasis{junk}.\pause
+    \ListItem for each data type one should define the equality
+    function as one of the functional enrichments.\pause
+    \ListItem functional enrichments are powerful enough to specify
+    all computable functions.
+
+\end{List}\end{Paragraph}
+\begin{Paragraph}[Title={Data Types}, Label=Paragraph150]
+\begin{List}[ListType=itemize]
+
+    \ListItem relations defined by initial constraints are interpreted
+    minimally.\pause
+    \ListItem partial constructors of data types have minimal domains
+    of definitions.
+\end{List}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Process Types}, Label=Paragraph151]
+\begin{List}[ListType=itemize]
+    \ListItem generic process types can be specified by means of final
+    constraints.\pause
+    \ListItem for the definition of a process type one should use a
+    minimal set of observations (destructors, experiments). \pause
+    \item \begin{List}[ListType=itemize]
+        \ListItem final  constraints offer a
+       \Emphasis{definition principle}, based on the existence of a
+        homomorphism to the final  model from an arbitrary
+        model.\pause
+        \ListItem \Emphasis{proof principle}, based on the uniqueness
+        of the homomorphism.
+    \end{List}
+\end{List}\end{Paragraph}
+\begin{Paragraph}[Title={Process Types}, Label=Paragraph152]
+\begin{List}[ListType=itemize]
+    \ListItem based on the chosen set of destructors one can define
+    process composing operations a functional enrichments of
+    process types.\pause
+    \ListItem predicates defined by final constraints are interpreted
+    maximally.\pause
+    \ListItem the notion of sub--model of a process types corresponds
+    to a safety property for the process type.\pause
+    \ListItem cogenerated constraints can be used in cases where no
+    final model exists, but most abstract models exist.
+\end{List}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Nesting of Process and Data Types}, Label=Paragraph153]
+
+\begin{List}[ListType=itemize]
+    \ListItem Nesting of final constraints in initial constraints
+    leads to new data types that can not be specified with final
+    constraints only.\pause
+    \ListItem Nesting of initial constraints in final constraints is
+    the general case in order to define the observable environment
+    of a process type.\pause
+    \ListItem Predicates on process types defined by initial
+    constraints represent \Emphasis{liveness properties}.
+
+\end{List}\end{Paragraph}
+\begin{Paragraph}[Title={Nesting of Process and Data Types}, Label=Paragraph154]
+\begin{List}[ListType=itemize]
+
+    \ListItem Predicates on process types defined by final
+    constraints represent \Emphasis{safety properties}. \pause
+    \ListItem Predicates on process types defined by nesting of final
+    and initial constraints represent \Emphasis{fairness properties}.
+\end{List}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\end{document}
+
+\end{Paragraph}
+\end{Section}
+%\begin{Section}[Title={CCSL specifications}, Label={section6}]
+
+%\end{Section}
+\begin{Section}[Title={\CASL specifications}, Label={section7}]
+
+\begin{Paragraph}[Label=Paragraph155]
+\hypertarget{nat-casl}{\CASL specifications of natural numbers and
+lists:}\pause
+\begin{SpecDefn}{Natural}~= \item[\Free~ \Type] \(Nat ::= zero \;| \;
+suc(Nat)\) \End \end{SpecDefn}\pause \vfill
+\begin{SpecDefn}{Lists}[\Sort \hspace{1pt} \(Elem\)] ~=
+ \item[\Free~\Group]
+\begin{Items}
+\I\Sort \(Lists;\) \I\Ops \(nil : Lists; \)
+\\ \( cons : Elem \* Lists \tfun Lists \)
+ ~\EndGroup \end{Items}  \item[\End]
+\end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph156]
+\hypertarget{2-trees}{\CASL specifications of binary trees:}\pause
+\begin{SpecDefn}{Bintree}~= \item[\Free~ \Type] \(2\_Trees ::= zero \;| \;
+2\_cons(2\_Trees, 2\_Trees)\) \End \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph157]
+\hypertarget{trees}{\CASL specification of finitely branching
+trees with finite depth}
+
+\begin{SpecDefn}{Trees}~= \item[\Free~\Group]
+\begin{Items} \item[\Sort] \(Tree, TreeSeq;\)
+\item[\Ops] \( nil : TreeSeq;\)
+\\ \( h\_cons : Tree \times TreeSeq \tfun TreeSeq;\)
+\\ \( v\_cons : TreeSeq \tfun Tree \)  ~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph158]
+\hypertarget{integer}{\CASL specification of integers}
+
+\begin{SpecDefn}{Integer}~= \item[\Free~\Group]
+\begin{Items} \item[\Sort] \( Int; \)
+\item[\Ops] \( 0: Int;\)
+\\ \( suc, pred : Int \tfun Int;\)
+\item[\Axioms] \( \forall x : Int \. pred( suc (x)) = x ; \)
+\\ \( \forall x : Int \. suc (pred (x)) = x ; \)
+~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph159]
+
+\hypertarget{integer2}{another \CASL specification of integers}
+
+\begin{SpecDefn}{Integer\_2}~= \\ \textsc{Natural}
+\item[\Then] \item[\Free~\Group]
+\begin{Items} \item[\Sort] \( Int; \)
+\item[\Ops] \( pos : Nat \tfun Int; \)
+\\ \( neg : Nat \tfun Int\)
+\item[\Axiom] \( pos(0) = neg(0)\) ~\EndGroup
+\end{Items} \item[\End] \end{SpecDefn}
+
+
+\end{Paragraph}
+\end{Section}
+\begin{Section}[Title={BOBJ specifications}, Label={section8}]
+\begin{Paragraph}[Label=Paragraph160]
+\hypertarget{nat-bobj}{BOBJ specifications of natural numbers and
+lists:}\pause
+\small
+\begin{verbatim}
+  dth NAT is
+     sort Nat .
+     op   zero : -> Nat .
+     op   suc : Nat -> Nat .
+  end
+\end{verbatim}\pause
+
+\begin{verbatim}
+  dth LIST[B :: TRIV] is
+     sort List .
+     op   nil : -> List .
+     op   cons : Elt List -> List .
+  end
+\end{verbatim}
+
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph161]
+
+where \texttt{TRIV} is given by
+\begin{verbatim}
+ th TRIV is
+    sort Elt .
+ end
+ \end{verbatim}
+ \ns
+\end{Paragraph}
+\end{Section}
+\end{Package}
+\end{document}
+
+
+
+\end{Package}
+\end{document}
