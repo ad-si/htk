@@ -301,6 +301,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                               else
                                  done
                      AllowClose (Just mess) -> errorMess mess 
+            actGlobalMenu (MenuId (menuId @ ('#':'%':_))) =
+               alertMess ("Mysterious daVinci menu selection " ++ menuId 
+                  ++ " ignored")
             actGlobalMenu menuId =
                do
                   action <- getValueHere globalMenuActions menuId

@@ -228,6 +228,7 @@ converter view linkedObject variantSpec variable =
                (ElementInfo {
                   packageIdOpt = Nothing,
                   packagePathOpt1 = Just name,
+                  packageNameOpt = Nothing,
                   labelOpt = Nothing,
                   variants = variantSpec
                   })

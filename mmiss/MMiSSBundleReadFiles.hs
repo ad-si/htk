@@ -124,7 +124,7 @@ readFiles filePath bundle =
                            bundleNodeData 
                               = Object [(Just variantSpec,bundleText)]
                            
-                           bundleNodeWE = wrapContainingMMiSSPackage
+                           bundleNodeWE = wrapContainingMMiSSPackage Nothing
                               fullName (mmissFileType ext) bundleNodeData 
 
                            bundleNode = coerceWithErrorOrBreak

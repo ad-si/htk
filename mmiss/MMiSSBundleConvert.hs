@@ -2,16 +2,18 @@
    in LaTeX or XML into bundles. -}
 module MMiSSBundleConvert(
    parseBundle, 
-      -- :: Format -> FileSystem -> FilePath -> IO Bundle
-      -- Convert a LaTeX/Xml file into a Bundle
+      -- :: Format -> FileSystem -> FilePath -> IO (Bundle,PackageId)
+      -- Convert a LaTeX/Xml file into a Bundle, also returning the PackageId
+      -- of the package actually containing its contents.
    parseBundle1,
-      -- :: ElementInfo -> Format -> FileSystem -> FilePath -> IO Bundle
+      -- :: ElementInfo -> Format -> FileSystem -> FilePath 
+      -- -> IO (Bundle,PackageId)
       -- As for parseBundle, but also takes ElementInfo, containing location
       -- information, for example inferred from the position of the file 
       -- within a Bundle.
    parseBundle2,
       -- :: ElementInfo -> Element -> [(MMiSSLatexPreamble,PackageId)] 
-      -- -> IO Bundle
+      -- -> IO (Bundle,PackageId)
       -- As for parseBundle1, but takes the element directly rather than
       -- reading it from a file system.
    ) where
@@ -42,11 +44,12 @@ import MMiSSElementInfo
 -- Parsing
 -- -------------------------------------------------------------------------
 
-parseBundle :: Format -> FileSystem -> FilePath -> IO Bundle
+parseBundle :: Format -> FileSystem -> FilePath -> IO (Bundle,PackageId)
 parseBundle = parseBundle1 (
-   emptyElementInfo {packageIdOpt = Just (fromString "")})
+   emptyElementInfo {packageIdOpt = Just defaultPackageId})
 
-parseBundle1 :: ElementInfo -> Format -> FileSystem -> FilePath -> IO Bundle
+parseBundle1 :: ElementInfo -> Format -> FileSystem -> FilePath 
+   -> IO (Bundle,PackageId)
 parseBundle1 elInfo0 format fileSystem filePath =
    do
       (element0 :: Element,preambleList :: [(MMiSSLatexPreamble,PackageId)]) 
@@ -65,7 +68,7 @@ parseBundle1 elInfo0 format fileSystem filePath =
       parseBundle2 elInfo0 element0 preambleList
 
 parseBundle2 :: ElementInfo -> Element -> [(MMiSSLatexPreamble,PackageId)] 
-   -> IO Bundle
+   -> IO (Bundle,PackageId)
 parseBundle2 elInfo0 element0 preambleList =
    do
       let 
@@ -76,12 +79,10 @@ parseBundle2 elInfo0 element0 preambleList =
          elInfo2WE = mergeElementInfoStrict elInfo0 elInfo1
       elInfo2 <- coerceImportExportIO elInfo2WE
 
-      packageId <- case packageIdOpt elInfo2 of
-         Just packageId -> return packageId
-         Nothing -> importExportError "Unable to determine package id"
-            -- in fact I think this will never happen, since imported files
-            -- will be parsed by parseBundle, and files in bundles should
-            -- come to this function with their packageId.
+      packageId <- return (case packageIdOpt elInfo2 of
+         Just packageId -> packageId
+         Nothing -> defaultPackageId
+         )
 
       packagePath <- case packagePathOpt elInfo2 of
          Just packagePath -> return packagePath
@@ -116,9 +117,10 @@ parseBundle2 elInfo0 element0 preambleList =
 
 
          elementText = mkBundleText element1
-         elementNodeData = Object [(Nothing,elementText)]
-         elementPackageWE = wrapContainingMMiSSPackage packagePath 
-            mmissObjectType elementNodeData
+         elementNodeData = Object [(Just (variants elInfo2),elementText)]
+         elementPackageWE = wrapContainingMMiSSPackage  
+            (packageNameOpt elInfo2) packagePath mmissObjectType 
+            elementNodeData
 
       elementPackage <- coerceImportExportIO elementPackageWE
                          
@@ -130,6 +132,11 @@ parseBundle2 elInfo0 element0 preambleList =
 
       bothBundles <- coerceImportExportIO bothBundlesWE
 
-      return bothBundles    
+      return (bothBundles,packageId)   
+
+-- This value is also that returned by LaTeXParser, so should not be changed
+-- unless that, too, is updated.
+defaultPackageId :: PackageId 
+defaultPackageId = fromString "" 
             
                

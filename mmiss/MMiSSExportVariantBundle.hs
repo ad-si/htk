@@ -12,6 +12,7 @@ import Messages
 import Computation
 import AtomString
 import ExtendedPrelude(uniqOrd)
+import Sources(readContents)
 
 import EntityNames(EntityFullName)
 
@@ -166,8 +167,11 @@ wrapContainingMMiSSPackage2 view object bundleType bundleNodeData =
          view object
       (packageFolder,name) <- coerceImportExportIO packageFolderAndNameWE
       packageId <- mkPackageId view (toLinkedObject packageFolder)
+
+      packageFolderNameOpt <- readContents (getLinkedObjectTitleOpt (
+         toLinkedObject packageFolder))
       let
-         bundleNodeWE 
-            = wrapContainingMMiSSPackage name bundleType bundleNodeData
+         bundleNodeWE = wrapContainingMMiSSPackage packageFolderNameOpt name 
+            bundleType bundleNodeData
       bundleNode <- coerceImportExportIO bundleNodeWE
       return (Bundle [(packageId,bundleNode)])

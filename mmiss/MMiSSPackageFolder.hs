@@ -62,6 +62,7 @@ module MMiSSPackageFolder(
    ) where
 
 import Maybe
+import List
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
@@ -73,7 +74,7 @@ import FileNames
 import Dynamics
 import Sink
 import Sources
-import AtomString(fromString,toString)
+import AtomString(fromString,toString,fromStringWE)
 import VariableSet
 import VariableSetBlocker
 import VariableList
@@ -114,6 +115,7 @@ import MMiSSObjectType hiding (linkedObject)
 import MMiSSObjectTypeType hiding (displayParms)
 import MMiSSPreamble
 import MMiSSImportExportErrors
+import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
@@ -640,11 +642,48 @@ importMMiSSPackage1 view parentLinkedObject filePathOpt0 =
                   let
                      (dirPath,_) = splitName filePath
 
-                  bundle <- parseBundle format standardFileSystem filePath
-                  writeBundle bundle Nothing (Just dirPath) view 
-                     (Right folderLink) 
+                  (bundle,packageId) 
+                     <- parseBundle format standardFileSystem filePath
+                  let
+                     nameWE = guessName bundle packageId
+                  name <- coerceImportExportIO nameWE
+                  writeBundle bundle (Just packageId) (Just dirPath) view 
+                     (Right (folderLink,name)) 
                   return True
       )
+
+-- Some tiresome code to work out what to call the package in which we
+-- insert a bundle.  We look for an element 
+guessName :: Bundle -> PackageId -> WithError EntityName
+guessName (Bundle packageBundles) packageId = 
+   case List.lookup packageId packageBundles of
+      Nothing -> fail ("Bug: missing packageId " ++ toString packageId)
+      Just bundleNode -> guessNodeName bundleNode
+
+guessNodeName :: BundleNode -> WithError EntityName
+guessNodeName bundleNode = case bundleNodeData bundleNode of
+   MMiSSBundle.Object _ -> 
+      case name . fileLoc $ bundleNode of
+         Nothing -> fail 
+            "Element has no name, and I don't know where to put it"
+         Just nameStr -> fromStringWE nameStr
+   MMiSSBundle.Dir nodes -> 
+      let
+         nodesNotPreambles = 
+            filter
+               (\ node -> case base . objectType . fileLoc $ node of
+                  MMiSSPreambleEnum -> False
+                  _ -> True
+                  )
+               nodes
+      in
+         case nodesNotPreambles of
+            [node] -> guessNodeName node
+            _ -> fail (
+              "Bug: bundleNodeData after parseBundle contains 0 or >1 "
+              ++ "non-preamble nodes")
+   NoData -> fail "Bug: bundleNodeData after parseBundle contains NoData"
+ 
 
 -- Import a new version into an existing MMiSS package.
 reimportMMiSSPackage :: View -> Link MMiSSPackageFolder -> IO ()
@@ -668,8 +707,9 @@ reimportMMiSSPackage1 view packageFolderLink filePathOpt0 =
                   let
                      (dirPath,_) = splitName filePath
 
-                  bundle <- parseBundle format standardFileSystem filePath
-                  writeBundle bundle Nothing (Just dirPath) view 
+                  (bundle,packageId) 
+                     <- parseBundle format standardFileSystem filePath
+                  writeBundle bundle (Just packageId) (Just dirPath) view 
                      (Left (toLinkedObject packageFolder))
       )
 

@@ -69,7 +69,7 @@ mkPreWriteData view insertionPoint bundleNode =
       -- assume that it has a parent; we may be importing directly
       -- into the top node.
       (preWriteNodeData0,ancestorInfo0) <- case insertionPoint of
-         Right folderLink ->
+         Right (folderLink,_) ->
             do
                -- This object is new and should be written to this folder.
                thisLink <- newEmptySplitLink view (
@@ -303,6 +303,5 @@ writeBundleNode view insertionPoint bundleNode =
    do
       preWriteData <- mkPreWriteData view insertionPoint bundleNode
       writePreWriteData view preWriteData
-
 
 

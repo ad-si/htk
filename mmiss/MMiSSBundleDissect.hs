@@ -182,7 +182,7 @@ splitInnerElement packageId0 element0 =
                elementNodeData 
                   = Object [(Just (variants elementInfo),elementText)]
 
-            elementPackage <- wrapContainingMMiSSPackage packagePath 
+            elementPackage <- wrapContainingMMiSSPackage Nothing packagePath 
                mmissObjectType elementNodeData
             let
                elementBundle :: Bundle

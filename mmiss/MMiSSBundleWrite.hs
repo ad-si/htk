@@ -7,6 +7,7 @@ module MMiSSBundleWrite(
 
 import IO
 import List
+import Maybe
 
 import EntityNames
 
@@ -37,9 +38,15 @@ writeBundle ::
       -- ^ which view to write the node to
    -> InsertionPoint 
    -> IO ()
-writeBundle bundle0 packageIdOpt filePathOpt view insertionPoint =
+writeBundle (Bundle []) _ _ _ _ = 
+   importExportError "Attempt to write empty bundle"
+writeBundle (bundle0 @ (Bundle ((packageId0,_):_)))
+      packageIdOpt filePathOpt view insertionPoint =
    do
-      bundle1 <- fillInBundle bundle0
+      let
+         packageId = fromMaybe packageId0 packageIdOpt
+
+      bundle1 <- fillInBundle (toInsertionPointName insertionPoint) bundle0
       coerceImportExportIO (validateBundle bundle1)
       let
          bundle2WE = dissectBundle bundle1
@@ -51,15 +58,11 @@ writeBundle bundle0 packageIdOpt filePathOpt view insertionPoint =
       let
          Bundle packageBundleNodes = bundle3
 
-      bundleNode <- case packageIdOpt of
-         Just packageId -> case List.lookup packageId packageBundleNodes of
-            Just bundleNode -> return bundleNode
-            Nothing -> 
-               importExportError ("PackageId " ++ packageIdStr packageId
-                  ++ " not found")
-         Nothing -> case packageBundleNodes of
-            (_,bundleNode) : _ -> return bundleNode
-            [] -> importExportError "Bundle contains no packages"
+      bundleNode <- case List.lookup packageId packageBundleNodes of
+         Just bundleNode -> return bundleNode
+         Nothing -> 
+            importExportError ("PackageId " ++ packageIdStr packageId
+               ++ " not found")
 
       checkTypesWE <- checkBundleNodeTypes view insertionPoint bundleNode
       coerceImportExportIO checkTypesWE

@@ -9,7 +9,7 @@
           whether we are inside a package or not). 
    -}
 module MMiSSBundleFillIn(
-   fillInBundle, -- :: Bundle -> IO Bundle
+   fillInBundle, -- :: Maybe EntityName -> Bundle -> IO Bundle
    ) where
 
 import Maybe
@@ -37,14 +37,19 @@ import MMiSSVariant
 -- fillInBundle
 -- -----------------------------------------------------------------------
 
-fillInBundle :: Bundle -> IO Bundle
-fillInBundle (Bundle bundleItems) =
+fillInBundle :: Maybe EntityName -> Bundle -> IO Bundle
+fillInBundle packageNameOpt (Bundle bundleItems) =
    do
       (parsedOut :: [(PackageId,ParseNodeOut)]) <-
          mapM
             (\ (packageId,bundleNode) ->
                do
-                  parsedOut <- parseNode (initialLocInfo packageId) bundleNode
+                  let
+                     locInfo0 = initialLocInfo packageId
+                     locInfo1 = locInfo0 {
+                        packageNameOpt1 = packageNameOpt
+                        }
+                  parsedOut <- parseNode locInfo1 bundleNode
                   return (packageId,parsedOut)
                )
             bundleItems
@@ -105,15 +110,17 @@ parseNode locInfo0 bundleNode =
          Dir bundleNodes0 ->
             do
                let
-                  nameWE = fileLocToName fileLoc1
-               name <- coerceImportExportIO nameWE
+                  nameOptWE = fileLocToNameOptWE fileLoc1
+               nameOpt <- coerceImportExportIO nameOptWE
 
                let
                   isPackageFolder = case base1 of
                      MMiSSFolderEnum -> True
                      _ -> False
 
-                  locInfo1 = subDir name isPackageFolder locInfo0
+                  locInfo1WE = subDir nameOpt isPackageFolder locInfo0
+               locInfo1 <- coerceImportExportIO locInfo1WE
+
                (bundleNodes1,bundles) <- parseNodes locInfo1 bundleNodes0
                return (Just (mkNode (Dir bundleNodes1)),bundles)
 
@@ -208,7 +215,8 @@ parseObject locInfo format objectStr =
       let
          filePath = "Text in Bundle"
          fileSystem = oneFileFileSystem "Text in Bundle" objectStr
-      bundle <- parseBundle1 (toElementInfo locInfo) format fileSystem filePath
+      (bundle,_) 
+         <- parseBundle1 (toElementInfo locInfo) format fileSystem filePath
       return bundle
 
 parseNodes :: LocInfo -> [BundleNode] -> IO ([BundleNode],[Bundle]) 

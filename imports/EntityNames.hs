@@ -13,6 +13,9 @@ module EntityNames(
       -- Find the parent of the object, if there is one.
    entityBase, -- :: EntityFullName -> Maybe EntityName
       -- Find the name of the object within its parent.
+   entityDirBase,
+      -- :: EntityFullName -> Maybe (EntityFullName,EntityName)
+      -- return both dir and base component.
    combineDirBase, -- :: EntityFullName -> EntityName -> EntityFullName
 
    trivialFullName, -- :: EntityFullName

@@ -136,8 +136,6 @@ mkIncludeElement (Elem name atts contents) =
 -- if so and status is "present", extract the corresponding LinkType and label.
 -- ----------------------------------------------------------------------
 
--- | ACHTUNG.  This function assumes that the Element has already been
--- validated against the DTD.
 classifyLink :: Element -> Maybe (LinkType,String)
 classifyLink (Elem name attributes _)  =
    let
@@ -147,7 +145,8 @@ classifyLink (Elem name attributes _)  =
          case getAttribute attributes refAttName of
             Just labelString -> case getAttribute attributes "status" of
                Just "present" -> Just (linkType,labelString)
-               Nothing -> Nothing
+               _ -> Nothing
+            _ -> Nothing
   in
      case name of
          -- Links

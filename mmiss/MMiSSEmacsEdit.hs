@@ -315,14 +315,15 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                              elInfo = ElementInfo {
                                 packageIdOpt = Nothing,
                                 packagePathOpt1 = Just name1,
+                                packageNameOpt = Nothing,
                                 labelOpt 
                                    = Just (FromHere name1),
                                 variants = linkVariants editRef
                                 }
 
                                 
-                          bundle <- parseBundle2 elInfo element0 []
-                          writeBundle bundle Nothing Nothing view 
+                          (bundle,packageId) <- parseBundle2 elInfo element0 []
+                          writeBundle bundle (Just packageId) Nothing view 
                              (Left (toLinkedObject package1))
 
                           emacsContentOpt <- case reduceElement element0 of

@@ -48,6 +48,17 @@ import View
 -- Data types
 -- -----------------------------------------------------------------------
 
+newtype AllDisplayedObjectTypes =
+   AllDisplayedObjectTypes (UnsafeRegistry (
+   Keyed WrappedObjectType))
+
+{- commentted out because it upsets ghc with a message
+
+tcLookup: `DisplayView.DisplayedView' is not in scope
+When checking kinds in `DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms'
+When checking kinds in `Maybe (DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)'
+When checking kinds in `IO (Maybe (DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms))
+
 ---
 -- Contains DisplayedObjectType for all object types in the view
 -- We use a Registry as sometime we'll have to address the problem of
@@ -69,6 +80,7 @@ $(
                Keyed WrappedObjectType))
          |]
    )
+-}
 
 -- -----------------------------------------------------------------------
 -- DisplayedObjectType and DisplayedObjectTypes is the information we need 

@@ -42,6 +42,8 @@ data ElementInfo = ElementInfo {
    packagePathOpt1 :: Maybe EntityFullName,
       -- the packagePathOpt function will also try to get a packagePath
       -- function from the labelOpt, if packagePathOpt1 is unset.
+   packageNameOpt :: Maybe EntityName,
+      -- the name of the containing package object.
    labelOpt :: Maybe EntitySearchName,
    variants :: MMiSSVariantSpec
    }
@@ -54,6 +56,7 @@ emptyElementInfo :: ElementInfo
 emptyElementInfo = ElementInfo {
    packageIdOpt = Nothing,
    packagePathOpt1 = Nothing,
+   packageNameOpt = Nothing,
    labelOpt = Nothing,
    variants = emptyMMiSSVariantSpec
    }
@@ -97,6 +100,7 @@ getElementInfo (Elem name atts0 content) =
          return (ElementInfo {
             packageIdOpt = packageIdOpt,
             packagePathOpt1 = packagePathOpt,
+            packageNameOpt = Nothing,
             labelOpt = labelOpt,
             variants = variantSpec
             },elem1) 
@@ -123,11 +127,13 @@ mergeElementInfoStrict elementInfo1 elementInfo2 =
       packageIdOpt0 <- mm "packageId" packageIdOpt
       labelOpt0 <- mm "label" labelOpt
       packagePathOpt0 <- mm "packagePath" packagePathOpt1
+      packageNameOpt0 <- mm "package name" packageNameOpt
       variants0 <- mergeMMiSSVariantSpecStrict 
          (variants elementInfo1) (variants elementInfo2)
       return (ElementInfo {
          packageIdOpt = packageIdOpt0,
          labelOpt = labelOpt0,
+         packageNameOpt = packageNameOpt0,
          packagePathOpt1 = packagePathOpt0,
          variants = variants0
          })

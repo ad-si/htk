@@ -4,6 +4,10 @@ module MMiSSInsertionPoint(
    getInsertionPoint,
       -- :: View -> EntityFullName -> IO (WithError InsertionPoint)
       -- Get the insertion point for an object with the given name.
+
+
+   toInsertionPointName, -- :: InsertionPoint -> Maybe EntityName
+
    ) where
 
 import Computation
@@ -18,21 +22,20 @@ import Folders
 
 import MMiSSSplitLink
 
-type InsertionPoint = Either LinkedObject (Link Folder)
+type InsertionPoint = Either LinkedObject (Link Folder,EntityName)
    -- Left LinkedObject means overwrite this object.
    -- Right (Link Folder) means insert in this folder.
 
-getInsertionPoint :: View -> EntityFullName 
-   -> IO (WithError (Either LinkedObject (Link Folder)))
+getInsertionPoint :: View -> EntityFullName -> IO (WithError InsertionPoint)
 getInsertionPoint view fullName =
    do
       linkedObjectOpt <- lookupLinkedObjectByFullName view fullName
       case linkedObjectOpt of
          Just linkedObject -> return (hasValue (Left linkedObject)) 
-         Nothing -> case entityDir fullName of
+         Nothing -> case entityDirBase fullName of
             Nothing -> return (hasError 
                "Attempt to write to Root element, and no root element found")
-            Just dirName ->
+            Just (dirName,baseName) ->
                do
                   folderOpt <- lookupLinkedObjectByFullName view dirName
                   case folderOpt of
@@ -42,7 +45,16 @@ getInsertionPoint view fullName =
                      Just linkedObject -> 
                         case splitLinkedObject linkedObject of
                            FolderC folderLink 
-                             -> return (hasValue (Right folderLink))
+                             -> return (hasValue (Right (folderLink,baseName)))
                            _ -> return (hasError ("Attempt to insert new "
                               ++ "object in node not a folder"
                               ))
+
+-- -------------------------------------------------------------------------
+-- Getting the name from an insertion point
+-- -------------------------------------------------------------------------
+
+toInsertionPointName :: InsertionPoint -> Maybe EntityName
+toInsertionPointName (Left _) = Nothing
+toInsertionPointName (Right (_,name)) = Just name
+

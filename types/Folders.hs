@@ -310,8 +310,13 @@ instance ObjectType FolderType Folder where
    extraObjectTypes = getExtraFolderTypes
 
    getObjectTypePrim folder = folderType folder
-   nodeTitleSourcePrim folder = fmap toString 
-      (getLinkedObjectTitle (linkedObject folder) (fromString "Root"))
+   nodeTitleSourcePrim folder =
+      do
+         entityNameOpt <- getLinkedObjectTitleOpt (linkedObject folder)
+         return (case entityNameOpt of
+            Nothing -> "Root"
+            Just entityName -> toString entityName
+            )
 
    createObjectTypeMenuItemNoInsert =
       Just ("Folder type",createNewFolderType)

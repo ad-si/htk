@@ -107,6 +107,7 @@ validateBundle0 = checkAllNodes checkUnknown
                      _ -> done
                      )
                   objects
+            (_,Dir _) -> done
       
 -- -----------------------------------------------------------------------
 -- DIROBJECT, STRUCTURE.  Other checks in this folder may assume
@@ -312,7 +313,7 @@ validateBundle5 (bundle @ (Bundle packageBundles)) =
                        )
                     bundleNodes0
                case (preambles,base . objectType . fileLoc $ bundleNode1) of
-                  ([preamble],MMiSSPreambleEnum) -> done
+                  ([preamble],MMiSSFolderEnum) -> done
                   ([],_) -> done
                   _ -> err bundleNode1 "Folder has too many preambles"
                bundleNames <- 

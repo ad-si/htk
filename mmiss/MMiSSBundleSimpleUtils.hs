@@ -33,7 +33,7 @@ module MMiSSBundleSimpleUtils(
       -- :: BundleNode -> BundleNode
 
    wrapContainingMMiSSPackage,
-      -- :: EntityFullName -> BundleType -> BundleNodeData 
+      -- :: Maybe EntityName -> EntityFullName -> BundleType -> BundleNodeData 
       -- -> WithError BundleNode
 
    bundleTextToString,
@@ -43,8 +43,8 @@ module MMiSSBundleSimpleUtils(
       -- :: BundleText -> ICStringLen
       -- this also checks that CharType = Byte.
 
-   fileLocToName,
-      -- :: FileLoc -> WithError EntityName
+   fileLocToNameOptWE,
+      -- :: FileLoc -> WithError (Maybe EntityName)
 
    getAllNodes, -- :: Bundle -> [(LocInfo,BundleNode)]
    getAllNodes1, -- :: Bundle -> [(LocInfo,BundleNode)]
@@ -81,7 +81,7 @@ module MMiSSBundleSimpleUtils(
 
    LocInfo(..),
    initialLocInfo, -- :: PackageId -> LocInfo
-   subDir, -- :: EntityName -> Bool -> LocInfo -> LocInfo
+   subDir, -- :: Maybe EntityName -> Bool -> LocInfo -> WithError LocInfo
    setVariants, -- :: MMiSSVariantSpec -> LocInfo -> WithError LocInfo
    toElementInfo, -- :: LocInfo -> ElementInfo
    ) where
@@ -332,9 +332,16 @@ describeFileLoc fileLoc =
    where
       fallBack :: FileLoc -> String
       fallBack fileLoc =
-         case ext (objectType fileLoc) of
-            Just ext1 -> "Unnamed object with extension " ++ ext1
+         "Unnamed object with type " ++ describeBundleType (objectType fileLoc)
           
+describeBundleType :: BundleType -> String
+describeBundleType bundleType = 
+   describeBundleTypeEnum (base bundleType)
+      ++ d "ext" (ext bundleType) ++ d "extra" (extra bundleType)
+   where
+      d :: String -> Maybe String -> String
+      d key Nothing = ""
+      d key (Just v) = " with " ++ key ++ "=" ++ v
 
 describeBundleTypeEnum :: BundleTypeEnum -> String
 describeBundleTypeEnum bte = case bte of
@@ -346,10 +353,13 @@ describeBundleTypeEnum bte = case bte of
    MMiSSPreambleEnum -> "MMiSS preamble"
    UnknownType -> "Object of unknown type"
 
-fileLocToName :: FileLoc -> WithError EntityName
-fileLocToName fileLoc = case name fileLoc of
-   Nothing -> fail "Missing name, where one is necessary"
-   Just nameStr -> fromStringWE nameStr
+fileLocToNameOptWE :: FileLoc -> WithError (Maybe EntityName)
+fileLocToNameOptWE fileLoc = case name fileLoc of
+   Nothing -> return Nothing
+   Just nameStr ->
+      do
+         name <- fromStringWE nameStr
+         return (Just name)
 
 preambleEntityName :: EntityName
 preambleEntityName = EntityName "#PREAMBLE"
@@ -443,10 +453,12 @@ mkOneMMiSSPackage node1 =
 
 -- Given the package path for an object, and the object's type and data 
 -- construct the BundleNode for the package with the object
-wrapContainingMMiSSPackage :: EntityFullName -> BundleType -> BundleNodeData 
+-- The first argument will be the name of the package, if supplied.
+wrapContainingMMiSSPackage 
+   :: Maybe EntityName -> EntityFullName -> BundleType -> BundleNodeData 
    -> WithError BundleNode
-wrapContainingMMiSSPackage (EntityFullName []) _ _ = fail "Null packagePath!"
-wrapContainingMMiSSPackage fullName bundleType bundleNodeData0 =
+wrapContainingMMiSSPackage _ (EntityFullName []) _ _ = fail "Null packagePath!"
+wrapContainingMMiSSPackage packageNameOpt fullName bundleType bundleNodeData0 =
    let
       wrapSubFolder :: EntityFullName -> BundleNode
       wrapSubFolder (EntityFullName [name0]) =
@@ -480,7 +492,7 @@ wrapContainingMMiSSPackage fullName bundleType bundleNodeData0 =
 
       bundleNode0 = wrapSubFolder fullName
       fileLoc1 = FileLoc {
-         name = Nothing,
+         name = fmap toString packageNameOpt,
          objectType = mmissPackageType
          }
       bundleNodeData1 = Dir [bundleNode0]
@@ -575,7 +587,7 @@ getAllNodes1 bundle = execState (bundleFoldM foldFn toPackageId bundle) []
                      Left _ -> EntityName "#BADNAME"
                      Right name1 -> name1
 
-               locInfo1 = subDir0 name1 locInfo0
+               locInfo1 = coerceWithError (subDir0 (Just name1) locInfo0)
             list0 <- get
             put ((locInfo1,bundleNode) : list0)
             let
@@ -677,7 +689,14 @@ getTag bundleNode1 =
 
 data LocInfo = LocInfo {
    packageId :: PackageId,
-   packagePath :: [EntityName], -- lowest directories first
+   packagePath :: [EntityName], 
+      -- lowest directories first.
+      -- NB.  The packagePath does not include the very top directory name,
+      -- if any.
+   packageNameOpt1 :: Maybe EntityName,
+      -- The name of the containing package, if known.
+   isInitial :: Bool,
+      -- True only for initialLocInfo.
    variants0 :: MMiSSVariantSpec,
    insidePackageFolder :: Bool 
       -- used to work out how to fill in blank extra fields in folders. 
@@ -687,14 +706,18 @@ initialLocInfo :: PackageId -> LocInfo
 initialLocInfo packageId = LocInfo {
    packageId = packageId,
    packagePath = [],
+   packageNameOpt1 = Nothing,
+   isInitial = True,
    variants0 = emptyMMiSSVariantSpec,
    insidePackageFolder = False
    }
 
 -- The Bool is True if we are going inside a package folder.
-subDir :: EntityName -> Bool -> LocInfo -> LocInfo
-subDir name isPackageFolder =
-   (insidePackageFolder0 isPackageFolder) . (subDir0 name)
+subDir :: Maybe EntityName -> Bool -> LocInfo -> WithError LocInfo
+subDir nameOpt isPackageFolder locInfo0 =
+   do
+      locInfo1 <- subDir0 nameOpt locInfo0
+      return (insidePackageFolder0 isPackageFolder locInfo1)
 
 insidePackageFolder0 :: Bool -> LocInfo -> LocInfo
 insidePackageFolder0 isPackageFolder locInfo0
@@ -702,12 +725,18 @@ insidePackageFolder0 isPackageFolder locInfo0
       insidePackageFolder = isPackageFolder || (insidePackageFolder locInfo0)
       }
 
-
-subDir0 :: EntityName -> LocInfo -> LocInfo
-subDir0 name locInfo0 
-   = locInfo0 {
-       packagePath = name : packagePath locInfo0
-       }
+-- This will return an error only if the name is not supplied and
+-- this is not the isInitial package.
+subDir0 :: Maybe EntityName -> LocInfo -> WithError LocInfo
+subDir0 nameOpt locInfo0 =
+   if isInitial locInfo0
+      then
+         return (locInfo0 {isInitial = False,packageNameOpt1 = nameOpt})
+      else
+         case nameOpt of
+            Nothing -> fail "Missing name, where name required"
+            Just name -> return (
+               locInfo0 {packagePath = name : packagePath locInfo0})
 
 setVariants :: MMiSSVariantSpec -> LocInfo -> WithError LocInfo
 setVariants variantSpec locInfo0 =
@@ -721,6 +750,7 @@ toElementInfo locInfo =
       packageIdOpt = Just (packageId locInfo),
       packagePathOpt1 = 
          Just . EntityFullName . reverse  . packagePath $ locInfo,
+      packageNameOpt = packageNameOpt1 locInfo,
       labelOpt = Nothing,
       variants = variants0 locInfo
       }
