@@ -33,8 +33,6 @@ import Computation
 import DisplayParms
 
 import Pretty
-import XmlFix
-import XmlEscape
 import Text.XML.HaXml.Pretty
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
@@ -189,7 +187,7 @@ instance DeepSeq Misc where
 
 toExportableXml :: Element -> String
 toExportableXml elem = 
-  xmlFix . render . element . (xmlEscape stdXmlEscaper) $ elem
+    render . element . (xmlEscape stdXmlEscaper) $ elem
 
 
 

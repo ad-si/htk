@@ -121,6 +121,30 @@ toReadBinaryHandle handle =
       readBytes = hGetBytes handle
       }
 
+toWriteBinaryHandleDebug :: Handle -> WriteBinary IO
+toWriteBinaryHandleDebug handle = 
+   WriteBinary {
+      writeByte = (\ b -> bracketDebug 1 (hPutByte handle b)),
+      writeBytes = (\ b i -> bracketDebug i (hPutBytes handle b i))
+      }
+
+toReadBinaryHandleDebug :: Handle -> ReadBinary IO
+toReadBinaryHandleDebug handle =
+   ReadBinary {
+      readByte = bracketDebug 1 (hGetByte handle),
+      readBytes = (\ i -> bracketDebug i (hGetBytes handle i))
+      }
+
+bracketDebug :: Int -> IO a -> IO a
+bracketDebug i act = 
+   do
+      putStr ("[" ++ show i) 
+      hFlush stdout
+      a <- act
+      putStr "]"
+      hFlush stdout
+      return a
+
 -- ----------------------------------------------------------------------
 -- Writing HasBinary instances to a memory area
 --

@@ -52,6 +52,8 @@ module StringSkip (
 import List
 import Maybe
 
+import Debug.Trace
+
 -- -------------------------------------------------------------------------
 -- The types
 -- -------------------------------------------------------------------------
@@ -101,10 +103,13 @@ atEnd = StringSkip (\ state -> (null (ap state),state))
 
 
 copy :: StringSkip Char
-copy = StringSkip (\ (State {bp = bp0,ap = ap0}) ->
+copy = copy1 "Copy at end"
+
+copy1 :: String -> StringSkip Char
+copy1 mess = StringSkip (\ (State {bp = bp0,ap = ap0}) ->
    case ap0 of
       c : ap1 -> (c,State {bp = c : bp0,ap = ap1})
-      [] -> error "Copy at end"
+      [] -> error mess
       )
 
 copyOrEnd :: StringSkip (Maybe Char)
@@ -162,7 +167,7 @@ copyAfter str =
             return ()
          else
             do
-               copy
+               copy1 ("Not found " ++ str)
                copyAfter str
 
 -- --------------------------------------------------------------------------
