@@ -25,6 +25,7 @@ SRCS       = Mainex1.hs\
              MaindragAndDropStateEx.hs\
              MaintreeListStateEx.hs\
              MaintreeListStateEx2.hs\
+	     MainmodalDialogTest.hs\
 
 XHCDIRS = $(HTKDIRS)
 

@@ -4,7 +4,7 @@ SRCS       = resources/Resources.hs\
              resources/GUIValue.hs\
 	     resources/Geometry.hs\
 	     resources/Cursor.hs\
- 	     resources/Colour.hs\
+	     resources/Colour.hs\
 	     resources/Font.hs\
              resources/Tooltip.hs\
              kernel/Wish.hs\
@@ -74,7 +74,8 @@ SRCS       = resources/Resources.hs\
              toolkit/SelectBox.hs\
              toolkit/MarkupText.hs\
              toolkit/UtilWin.hs\
-     	     menuitems/MenuItem.hs\
+	     toolkit/ModalDialog.hs\
+	     menuitems/MenuItem.hs\
              menuitems/Menu.hs\
              menuitems/MenuCascade.hs\
              menuitems/MenuCommand.hs\
