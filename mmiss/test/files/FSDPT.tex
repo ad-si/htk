@@ -178,7 +178,7 @@ data type of natural numbers can be defined by two constructors:
 
 satisfying the following (second--order) axioms:\vspace{8mm}
 
- \begin{List}[ListType=enumeration]
+ \begin{List}[ListType=enumerate]
  \ListItem $\forall x_{Nat}. \neg (suc(x) = zero )$; \pause
  \ListItem  $\forall x_{Nat} , y_{Nat} . suc(x) = suc(y) \Rightarrow
     x = y $; \pause
@@ -210,7 +210,7 @@ constructors: \vspace{8mm} \small
 \begin{Paragraph}[Title={Basic Intuition}, Label=Paragraph11]
 
 satisfying the following properties:\vspace{8mm}
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
     \ListItem  $\forall x_{Elem}, l_{Lists}. \neg( cons(x,l) = nil) $ \pause
     \ListItem  $\forall x_{Elem}, y_{Elem}, l_{Lists}, r_{Lists}.
    (cons(x,l) = cons(y,r) \Rightarrow $ \\
@@ -720,7 +720,7 @@ the answer to the question above is NO.
 \small
 The answer is YES, if the set of axioms satisfy some  conditions.
 To specify these conditions, we have to introduce two concepts.
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
   \ListItem A set of axioms $AX$ is called \emph{negation true}, if for
   each formula either $AX \vdash F$ or $AX \vdash \neg F$.
   \ListItem A set of axioms \emph{owns witnesses}, if for each formula
@@ -765,7 +765,7 @@ Horn--formulae is a model of that set.
 \begin{Paragraph}[Title={Universal Horn--formulae}, Label=Paragraph39]
 The set of \emph{universal Horn--formulae} is inductively defined
 by the following set of derivation rules:
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
   \ListItem  If $F_1, \ldots , F_n, F$ for $n \in \nat$ are atomic
   formulae then $\neg F_1 \vee \ldots \vee \neg F_n \vee F$ is an
   universal Horn--formula; \pause
@@ -1068,7 +1068,7 @@ extensions of specifications.
 \begin{Paragraph}[Title={Equivalence of Specifications}, Label=Paragraph54]
 
 \begin{Definition}[Title = {Initial Algebras as Data Types}, Label = {Definition1}]
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
     \ListItem An ordered pair $Spec = (\Sigma, AX)$, consisting of a
 signature $\Sigma$ and a set $AX$ formulae is called a
 \textbf{specification}. A $\Sigma$--structur $ \mathbb{A}$ is
@@ -1287,7 +1287,7 @@ ordered(l)\}; \)
 \begin{Paragraph}[Title={Predicative Subtyping}, Label=Paragraph64]
 
 There are two new topics in this specification:\pause
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
     \ListItem the use of a predicate within an initiality
     constraint;\pause
     \ListItem defining a subtype by a predicate.
@@ -1496,7 +1496,7 @@ the presence of partial operations, we define formally whether
 $\ekl t \ekr_{ \mathbb{A}, \varphi}$) in a partial
 $\Sigma$--structure $ \mathbb{A}$} for a given valuation $\varphi
 : X \to A$:
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
   \ListItem if $t= x \in X_s, s \in Sorts_{\Sigma}$ then  $\ekl t \ekr_{
   \mathbb{A}, \varphi}$ is defined and its value is given by $$\ekl t
   \ekr_{\mathbb{A}, \varphi} = \varphi(x).$$ \pause
@@ -2774,7 +2774,7 @@ corrects the lossiness of the buffer.
 
 The lossy buffer inputs data items at $(D1, T1)$. For every data
 there are two possible scenarios:\pause
-\begin{List}[ListType=enumeration]
+\begin{List}[ListType=enumerate]
     \ListItem the data item is stored successfully and is output at
     some later moment at $D2$ together (not necessarily
     simultaneously) with a success signal $true$ along $D3$, after
