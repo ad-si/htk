@@ -21,7 +21,7 @@ BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
 
 SUBDIRS = test
 
-EXTRAEXPORTS = MMiSS.dtd scripts/domisslatex.in scripts/doxdvi.in scripts/doacroread.in scripts/dolp.in scripts/docp.in
+EXTRAEXPORTS = MMiSS.dtd scripts/domisslatex.in scripts/doxdvi.in scripts/doacroread.in scripts/dolp.in
 
 include @TOP@/mk/boilerplate.mk
 
@@ -33,5 +33,5 @@ displaysrcshere : displayextrasrcs
 displayextrasrcs :
 	@echo @TOP@/mmiss/MMiSS.dtd @TOP@/mmiss/scripts/domisslatex.in 
 	@echo @TOP@/mmiss/scripts/doxdvi.in @TOP@/mmiss/scripts/doacroread.in
-	@echo @TOP@/mmiss/scripts/dolp.in @TOP@/mmiss/scripts/docp.in
+	@echo @TOP@/mmiss/scripts/dolp.in
 
