@@ -21,6 +21,7 @@ module TreeListPath (
 	getFilePathIO,
 	getTreePathIO,
 	getFolders,
+	getFiles,
 
 	initTreeList,
 	
@@ -96,9 +97,21 @@ getFolders (f:rem) = if ((f == ".") || (f == "..")) then
 		  r <- getFolders rem
 		  return r
 		else do
-			b <- doesDirectoryExist f
+			b <- getPermissions f
 			r <- getFolders rem
-			return (if b then (f:r) else r)
+			return (if (searchable b) then (f:r) else r)
+
+getFiles :: [FilePath] -> IO [FilePath]
+getFiles [] = return []
+getFiles (f:rem) = if ((f == ".") || (f == "..")) then
+		do
+		  r <- getFiles rem
+		  return r
+		else do
+			b <- getPermissions f
+			r <- getFiles rem
+			return (if (searchable b) then r else (f:r))
+
 		
 getNumberElements :: Treelistpath a Bool Treepath -> Double
 getNumberElements (Node a b c []) = 1
@@ -111,7 +124,7 @@ getNumberOpenElements :: Treelistpath a Bool Treepath -> Double
 getNumberOpenElements (Node a b c []) = 1
 getNumberOpenElements (Node a b c tlps)
 	| (b==True) = 1 + sum(map getNumberOpenElements tlps)
-	| otherwise = 1
+	| (b==False) = 1
 	
 getNumberOpenElementsIO :: Treelistpath a Bool Treepath -> IO Double
 getNumberOpenElementsIO tlp = return (getNumberOpenElements tlp)
