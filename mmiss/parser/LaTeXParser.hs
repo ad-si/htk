@@ -1355,10 +1355,13 @@ makePrePackage _ = Package [] "" ""
 
 makePreRest :: [Frag] -> String -> String
 makePreRest [] inStr = inStr
-makePreRest (f@(Command name _):[]) inStr =
-  if (name `elem` specialTreatmentInPreamble) 
-     then inStr
-     else inStr ++ (makeTextElem [f] "")
+makePreRest (f:[]) inStr =
+  case f of
+    (Command name _) ->
+       if (name `elem` specialTreatmentInPreamble) 
+         then inStr
+         else inStr ++ (makeTextElem [f] "")
+    _ -> inStr
 
 makePreRest (f1:(f2:fs)) inStr =
   case f1 of
