@@ -12,26 +12,41 @@ import List
 
 import Computation
 import AtomString
+-- import WBFiles
 
 -- import CodedValue
 
 import LaTeXParser
+import MMiSSFileSystemExamples
 import EmacsContent
 import Text.PrettyPrint.HughesPJ
 
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Pretty
+import Text.XML.HaXml.Combinators hiding (find)
 
-import MMiSSContent
+-- import MMiSSContent
 import MMiSSDTD
 
 -- import MMiSSEditXml
 
 main =
-   do
-      hSetBuffering stdout NoBuffering
+   do hSetBuffering stdout NoBuffering
       args <- System.getArgs
+      fileName <- return(last args)
+      if ((length (elemIndices "--help" args)) > 0)
+        then do putStr "Structue checking tool for MMiSSLaTeX v0.1\n"
+		putStr "usage:\n  testLaTeX [OPTIONS] < INPUTFILE [> OUTFILE]\n"
+		putStr "Options are:\n"
+	        putStr "  -root=<element type>  (default: package)   Checker expects this element type as root of the MMiSS document.\n"
+		putStr "                        This would be 'section' if you just have a section and no whole package in your input\n"
+		putStr "  -xml                  Prints only the resulting XML tree\n"
+		putStr "  -latex                Prints only the regenerated MMiSSLaTeX (parse-validate-regenerate cycle)\n"
+		putStr "  -preamble             Prints the regenerated MMiSSLaTeX with document preamble -> ready for latex\n"
+                putStr "  --uni-MMiSSDTD=<MMiSSDTD-File>  Sets location of the DTD file.\n"
+		exitWith ExitSuccess
+        else done
       let
          mbRoot = find (isPrefixOf "-root=") args 
          expected = case mbRoot of
@@ -41,34 +56,41 @@ main =
          latexOutput = if ((elemIndices "-latex" args) == []) then False else True
          latexWithPreOutput = if ((elemIndices "-preamble" args) == []) then False else True
 
-      doc <- getContents
+--      doc <- getContents
       --
       -- Parse LaTeX input
       --
-      let elEither = parseMMiSSLatex doc
-      (el, preamble) <- case fromWithError elEither of
-                          Left message -> let str = "Parse: The following errors occured:\n\n" 
-                                          in ioError (userError (message ++ str))
+      elEither <- parseMMiSSLatex standardFileSystem fileName 
+      (el, preambleList) <- case fromWithError elEither of
+                          Left message -> let str = "The following errors occured during parsing:\n" 
+                                          in error (str ++ message)
                           Right a -> return a
       --
       -- validate the XML-Element 
       --
       let verified = validateElement expected el
       case verified of
-         [] -> done
-         errors -> do putStr(render (element el))
+         [] -> case (duplicateLabels el) of
+                 [] -> done
+                 l -> do if (xmlOutput == True) then putStr(render (element el)) else done
+                         let  
+                           str1 = "\nParse: Successfull\nValidating: Successfull"
+                           str2 = "The following Labels are duplicated:\n"
+                           str3 = concat (map (++ " ") l)
+                         error (unlines ([str1] ++ [str2] ++ [str3]))
+         errors -> do if (xmlOutput == True) then putStr(render (element el)) else done
                       let  
-                         str1 = "\nParse: Successfull\n"
-                         str2 = "Validate XML: The following errors occured:\n\n"
+                         str1 = "Parse: Successfull\n"
+                         str2 = "The following errors occured during validation against the DTD:\n\n"
                       error (unlines ([str1] ++ [str2] ++ errors))
       --
       -- Reconstruct LaTeX from XML-Element and Preamble 
       --
       let emptyPreambleData = MMiSSExtraPreambleData {callSite = Nothing}
           (emacsCont, preambleStr) = 
-            case preamble of
-              Nothing -> (makeMMiSSLatex (el, True, []), "")
-              (Just(a)) -> (makeMMiSSLatex (el, True, [(a,[emptyPreambleData])]), (toString a))               
+            case preambleList of
+              [] -> (makeMMiSSLatex (el, True, []), "")
+              (p:ps) -> (makeMMiSSLatex (el, True, [((fst p),[emptyPreambleData])]), (toString (fst p)))               
           (EmacsContent l) = coerceWithError emacsCont
       if (xmlOutput == True) 
         then putStr (render (element el)) 
@@ -78,8 +100,24 @@ main =
                       then putStr ((concat (map getStrOfEmacsDataItem l)) 
                            ++ "\n\n************** Preamble:\n" ++ preambleStr)
                       else done 
-      hPutStr stderr "\nParse: Successfull\nValidate XML: Successfull\n"
+      hPutStr stderr "Parse: Successfull\nValidate XML: Successfull\n"
 
+
+duplicateLabels :: Element -> [String]
+
+duplicateLabels e = 
+  let contents = multi (attr "label") (CElem e)
+      labels = filter (/= "") (map extractLabel contents)
+  in nub(labels \\ (nub labels))
+  where
+    extractLabel (CElem(Elem _ attrs _)) = 
+      let labelAtt = find ((== "label").fst) attrs
+      in case labelAtt of
+           Just((_, (AttValue []))) -> ""
+           Just((_, (AttValue (v:[])))) -> case v of
+                                             Left str -> str
+                                             Right _ -> ""
+           _ -> ""   
 
 getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
 

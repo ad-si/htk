@@ -32,10 +32,10 @@ module LaTeXParser (
    parseMMiSSLatex1, 
    -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- Turn MMiSSLaTeX into an Element.   
-   parseMMiSSLatex1File, 
+--   parseMMiSSLatex1File, 
    -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- The same, for a file.
-   makeMMiSSLatex1,
+   makeMMiSSLatex,
    -- :: (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
    --   -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Turns an Element into a MMiSSLaTeX source
@@ -75,6 +75,7 @@ import IOExts
 import List
 import Parsec
 import Char
+import Monad
 
 import Text.XML.HaXml.Types
 import qualified Text.XML.HaXml.Pretty as PP
@@ -89,6 +90,7 @@ import EmacsContent
 import EntityNames
 import AtomString
 import CodedValue
+import FileNames
 -- import EmacsEdit(TypedName)
 
 
@@ -113,21 +115,68 @@ parseMMiSSLatex fileSystem filePath =
       case fromWithError strWE of
          Left err -> return (fail err)
          Right str ->
-            do
-               let
-                  parsedWE = parseMMiSSLatex1 str
-               case fromWithError parsedWE of
-                  Left err -> return (fail err)
-                  Right (el @ (Elem _ atts _),preambleOpt) ->
-                     do
-                        let
-                           packageId = PackageId (getParam "packageId" atts)
+            do let result = parse (frags []) "" str
+               case result of
+		  Left err -> return (hasError (show err))
+		  Right fs  ->  
+		    do 
+                       aList <- mapM (expandInputs fileSystem filePath) fs  -- IO [WithError([Frag])]
+                       parsedWE <- return(listWithError aList) -- WithError [[Frag]]   
+		       case fromWithError parsedWE of
+			 Left err -> return (fail err)
+			 Right newFrags  -> 
+			   let xmlWE = makeXML (Env "Root" (LParams [] [] Nothing Nothing) (concat newFrags))
+			   in case fromWithError xmlWE of
+			     Right (el @ (Elem _ atts _),preambleOpt) ->
+				do
+				   let
+				      packageId = PackageId (getParam "packageId" atts)
+				      preambleList = case preambleOpt of
+					 Nothing -> []
+					 Just preamble -> [(preamble,packageId)]
+				   return (hasValue (el,preambleList))
 
-                           preambleList = case preambleOpt of
-                              Nothing -> []
-                              Just preamble -> [(preamble,packageId)]
-                        return (hasValue (el,preambleList))
-                         
+  where 
+    expandInputs :: FileSystem -> FilePath -> Frag -> IO ( WithError([Frag]) )
+    expandInputs fileSystem filePath f =
+      case f of
+        (Env id ps contentFrags) -> 
+           do aList <- mapM (expandInputs fileSystem filePath) contentFrags -- IO [WithError([Frag])]
+              parsedWE <- return(listWithError aList) -- WithError [[Frag]]   
+              case fromWithError parsedWE of
+	        Left err -> return (fail err)
+		Right newFrags  ->  
+                  return (hasValue([(Env id ps (concat newFrags))]))
+        (Command "input" (LParams sps _ _ _)) -> 
+           do let fstr = singleParamToString(head sps)
+                  filename = delete '{' (delete '}' fstr)          
+              strWE <- readString fileSystem (createInputPath filePath filename)
+	      case fromWithError strWE of 
+		Left err -> return (fail (err ++ " File: " ++ (createInputPath filePath filename)))
+		Right str -> 
+		  let result = parse (frags []) "" str      
+		  in case result of
+		       Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
+		       Right newfs -> return (hasValue (newfs))
+        (Command "include" (LParams sps _ _ _)) -> 
+           do let fstr = singleParamToString(head sps)
+                  filename = delete '{' (delete '}' fstr)          
+              strWE <- readString fileSystem (createInputPath filePath filename)
+	      case fromWithError strWE of 
+		Left err -> return (fail (err ++ " File: " ++ (createInputPath filePath filename)))
+		Right str -> 
+		  let result = parse (frags []) "" str      
+		  in case result of
+		       Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
+		       Right newfs -> return (hasValue (newfs))
+        otherwise -> return(hasValue([f]))
+
+    createInputPath filePath filename = 
+      case splitExtension filename of
+        Nothing -> filename ++ ".tex"
+        Just(name, ext) -> filename
+      
+
 makeMMiSSLatexContent :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)]
    -> WithError (EmacsContent ((String,Char),[Attribute]))
 makeMMiSSLatexContent el b preambleInfos0 =
@@ -137,7 +186,7 @@ makeMMiSSLatexContent el b preambleInfos0 =
             -> (preamble,error "No preamble data supplied"))
          preambleInfos0
    in
-      makeMMiSSLatex1 (el,b,preambleInfos1)
+      makeMMiSSLatex (el,b,preambleInfos1)
 
 
 writeMMiSSLatex :: FileSystem -> Element -> Bool ->
@@ -371,7 +420,7 @@ mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCo
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
 latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"] ++
-                     ["alltt"]
+                     ["alltt", "lstlisting", "array"]
 
 
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
@@ -852,20 +901,22 @@ plainText stopChars = many1 (noneOf stopChars)
 -- Alle anderen Zeichenfolgen werden in das Fragment 'other' verpackt.
 
 frag :: GenParser Char st Frag
-frag = comment
-	 <|> do backslash
-		mathEnv <|> beginBlock <|> escapedChar <|> command  <|> return (Other "\\")
-         <|> adhocEnvironment
-         <|> simpleMathEnv
-	 <|> other
+frag = 
+    comment
+    <|> do backslash
+	   mathEnv <|> beginBlock <|> escapedChar <|> command <|> return (Other "\\")
+    <|> adhocEnvironment
+    <|> simpleMathEnv
+    <|> other
 		
 
 -- frags ist der Haupt-Parser. Er sammelt die Fragmente der Root-Ebene ein.
 
 frags :: [Frag] -> GenParser Char st [Frag]
-frags l =  do f <-  frag <?> "Fragment"
-              frags (f:l)
-	   <|> return(reverse l)
+frags l =  
+  do f <-  frag <?> "Fragment"
+     frags (f:l)
+  <|> return(reverse l)
 
 
 
@@ -980,20 +1031,20 @@ directivesParser ds =
 
 parseMMiSSLatex1 :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
 
-parseMMiSSLatex1 s = 
-  let result = parse (frags []) "" s
+parseMMiSSLatex1 str = 
+  let result = parse (frags []) "" str
   in case result of
---     Right ast  -> trace s (makeXML peamble ast)
+--     Right ast  -> trace str (makeXML peamble ast)
        Right fs  -> makeXML (Env "Root" (LParams [] [] Nothing Nothing) fs)
        Left err -> hasError (show err)
 
-
+{--
 parseMMiSSLatex1File :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
 parseMMiSSLatex1File s = do result <- parseFromFile (frags []) s
  		            case result of
 			       Right fs  -> return(makeXML (Env "Root" (LParams [] [] Nothing Nothing) fs))
  		               Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
-
+--}
 
 {--
    parsePreamble is used as fromStringWE-method in the instanciation for
@@ -2122,12 +2173,12 @@ newtype MMiSSExtraPreambleData = MMiSSExtraPreambleData {
       -- Nothing means that this is the head element.
    }
 
-makeMMiSSLatex1 :: 
+makeMMiSSLatex :: 
    (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
    -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Each distinct preamble occurs once in the list, paired with a list
    -- for each of its call-sites.
-makeMMiSSLatex1 (element,preOut,preambles') =
+makeMMiSSLatex (element,preOut,preambles') =
    -- stub function that doesn't use MMiSSExtraPreambleData for now.
    makeMMiSSLatex11 (element,preOut,map fst preambles')
 
