@@ -1,0 +1,11 @@
+LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
+       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+
+SRCSLHS       = Mainsimple1.lhs \
+                Mainsimple2.lhs \
+                MainhsMines.lhs
+
+XHCDIRS = $(HTKDIRS)
+
+include @TOP@/mk/boilerplate.mk
+
