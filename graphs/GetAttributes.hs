@@ -2,14 +2,15 @@
    to get information from the user.
    -}
 module GetAttributes(
-   NodeTypeAttributes(..), 
+   NodeTypeAttributes(..), -- instance of Typeable 
    getNodeTypeAttributes, -- :: IO (Maybe NodeTypeAttributes)
-   NodeAttributes(..),
+   NodeAttributes(..), -- instance of Typeable 
    getNodeAttributes, -- :: IO (Maybe NodeAttributes)
-   ArcTypeAttributes, 
+   ArcTypeAttributes(..), -- instance of Typeable
    getArcTypeAttributes, -- :: IO (Maybe ArcTypeAttributes)
-   ArcAttributes, 
+   ArcAttributes(..), -- instance of Typeable 
    getArcAttributes, -- :: IO (Maybe ArcAttributes)
+   displayError, -- :: String -> IO ()
    ) where
 
 import Exception
@@ -42,6 +43,11 @@ data NodeTypeAttributes nodeLabel = NodeTypeAttributes {
    shape :: GraphConfigure.Shape nodeLabel,
    nodeTypeTitle :: String
    } deriving (Read,Show)
+
+nodeTypeAttributes_tycon = mkTyCon "GetAttributes" "NodeTypeAttributes"
+
+instance HasTyCon1 NodeTypeAttributes where
+   tyCon1 _ = nodeTypeAttributes_tycon
 
 data PreAttributes = PreAttributes {
    shapeSort :: ShapeSort,
@@ -101,6 +107,11 @@ data NodeAttributes nodeType = NodeAttributes {
    nodeType :: nodeType,
    nodeTitle :: String
    } deriving (Read,Show)
+
+nodeAttributes_tycon = mkTyCon "GetAttributes" "NodeAttributes"
+
+instance HasTyCon1 NodeAttributes where
+   tyCon1 _ = nodeAttributes_tycon
 
 data NodePreAttributes = NodePreAttributes {
    preNodeType :: String,
@@ -168,6 +179,11 @@ data ArcTypeAttributes = ArcTypeAttributes {
    arcTypeTitle :: String
    } deriving (Read,Show)
 
+arcTypeAttributes_tycon = mkTyCon "GetAttributes" "arcTypeAttributes"
+
+instance HasTyCon ArcTypeAttributes where
+   tyCon _ = arcTypeAttributes_tycon
+
 getArcTypeAttributes :: IO (Maybe ArcTypeAttributes) 
 getArcTypeAttributes =
    do
@@ -190,6 +206,11 @@ getArcTypeAttributes =
 data ArcAttributes arcType = ArcAttributes {
    arcType :: arcType
    } deriving (Read,Show)
+
+arcAttributes_tycon = mkTyCon "GetAttributes" "ArcAttributes"
+
+instance HasTyCon1 ArcAttributes where
+   tyCon1 _ = arcAttributes_tycon
 
 data ArcPreAttributes = ArcPreAttributes {
    preArcType :: String

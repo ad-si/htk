@@ -2,7 +2,7 @@ LIB        = libgraphs.a
 # SRCS       = Graph.hs SharedGraph.hs SharedGraphService.hs \
 #   SharedGraphClient.hs GraphDisp.hs
 SRCS       = GraphDisp.hs GraphConfigure.hs NewNames.hs Graph.hs \
-   SimpleGraph.hs GetAttributes.hs DisplayGraph.hs
+   SimpleGraph.hs GetAttributes.hs DisplayGraph.hs GraphEditor.hs
 SUBDIRS    = test
 
 XHCDIRS = $(HTKDIRS)

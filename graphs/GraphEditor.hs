@@ -1,0 +1,287 @@
+{- #########################################################################
+
+   This Graph Editor is inspired by the one by Einar Karlsen but uses
+   the new graph interface.
+
+   ######################################################################### -}
+
+
+module GraphEditor (
+   newGraphEditor,
+   GraphEditor,
+   ) where
+
+import qualified IOExts(unsafePerformIO)
+
+
+import Concurrent(forkIO,killThread)
+
+import Registry
+import Computation(done)
+import Object
+import Debug(debug)
+import Dynamics
+
+import Selective
+
+import InfoBus
+import SIM(lift,Destructible(..),IA)
+
+import DisplayGraph
+import Graph
+import qualified GraphDisp
+import GraphConfigure
+import GetAttributes
+
+-- We use macros again as an abbreviation
+#define GRAPH (graph String (NodeTypeAttributes Node) () ArcTypeAttributes)
+
+newGraphEditor :: 
+   (GraphDisp.GraphAll dispGraph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms,
+    HasConfig AllowDragging graphParms,
+    HasConfig SurveyView graphParms,
+    HasConfig GraphGesture graphParms,
+    HasConfig GlobalMenu graphParms,
+    HasConfig GraphTitle graphParms,
+
+    HasConfigValue ValueTitle nodeTypeParms,
+    HasConfigValue NodeGesture nodeTypeParms,
+    HasConfigValue NodeDragAndDrop nodeTypeParms,
+    HasConfigValue Shape nodeTypeParms,
+    
+    Graph graph) 
+   => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+   -> GRAPH
+   -> IO GraphEditor
+newGraphEditor 
+      (displaySort :: GraphDisp.Graph dispGraph graphParms 
+         node nodeType nodeTypeParms arc arcType arcTypeParms)
+      (graph :: GRAPH) =
+   do
+      registry <- newNodeArcTypeRegistry graph
+
+      let
+         (graphParms :: graphParms) =
+            GraphTitle "Graph Editor" $$
+            GlobalMenu (
+               Menu (Just "New Types") [
+                  Button "New Node Type" (makeNewNodeType graph registry),
+                  Button "New Arc Type" (makeNewArcType graph registry)
+                  ]
+               )  $$
+            GraphGesture (makeNewNode graph registry >> done) $$
+            SurveyView True $$
+            AllowDragging True $$
+            GraphDisp.emptyGraphParms
+
+         makeNodeTypeParms :: (NodeType,NodeTypeAttributes Node) ->
+            IO (nodeTypeParms Node)
+         makeNodeTypeParms (nodeType,nodeTypeAttributes) =
+            return (         
+               ValueTitle (\ node -> 
+                  do
+                     nodeOwnTitle <- getNodeLabel graph node
+                     return (
+                        (nodeTypeTitle nodeTypeAttributes) ++ "." ++ 
+                           nodeOwnTitle
+                        )
+                  ) $$$
+               NodeGesture (\ source -> makeNewNodeArc graph registry source) 
+                                                                         $$$
+               NodeDragAndDrop (\ sourceDyn target ->
+                  do
+                     let
+                        Just source = fromDyn sourceDyn
+                     makeNewArc graph registry source target
+                  ) $$$
+               shape nodeTypeAttributes $$$
+               GraphDisp.emptyNodeTypeParms
+               )
+
+         makeArcTypeParms (arcType,arcTypeAttributes) = 
+            return GraphDisp.emptyArcTypeParms
+
+      displayGraphInstance <-
+         displayGraph displaySort graph graphParms 
+            makeNodeTypeParms makeArcTypeParms
+
+      oID <- newObject
+      let
+         graphEditor = GraphEditor {
+            oID = oID,
+            destroyAction = 
+               do
+                  destroyRegistry registry
+                  destroy displayGraphInstance
+               ,
+            destroyedEvent = destroyed displayGraphInstance
+            }
+
+      registerTool graphEditor
+
+      return graphEditor
+
+-- -----------------------------------------------------------------------
+-- GraphEditor
+-- This type is only there to allow us to destroy it.
+-- -----------------------------------------------------------------------
+
+data GraphEditor = GraphEditor {
+   oID :: ObjectID,
+   destroyAction :: IO (), -- run this to end everything
+   destroyedEvent :: IA ()
+   }
+
+instance Object GraphEditor where
+   objectID graphEditor = oID graphEditor
+
+instance Destructible GraphEditor where
+   destroy graphEditor = destroyAction graphEditor
+   destroyed graphEditor = destroyedEvent graphEditor
+
+
+-- -----------------------------------------------------------------------
+-- Nodes
+-- -----------------------------------------------------------------------
+
+-- This action is used when the user requests a new type
+makeNewNodeType :: Graph graph 
+   => GRAPH
+   -> NodeArcTypeRegistry
+   -> IO ()
+makeNewNodeType graph registry =
+   do
+      attributesOpt <- getNodeTypeAttributes
+      case attributesOpt of
+         Nothing -> done
+         Just (attributes :: NodeTypeAttributes Node) ->
+            do
+               nodeType <- newNodeType graph attributes
+               setValue (nodeTypes registry) 
+                  (nodeTypeTitle attributes) nodeType
+
+-- This action is used to construct a new node.
+-- (This is sometimes used as part of a node-and-edge construction)
+makeNewNode :: Graph graph
+   => GRAPH
+   -> NodeArcTypeRegistry
+   -> IO (Maybe Node)
+makeNewNode graph registry =
+   do
+      attributesOpt <- getNodeAttributes (nodeTypes registry)
+      case attributesOpt of
+         Nothing -> return Nothing
+         Just attributes ->
+            do
+               node <- newNode graph (nodeType attributes) 
+                  (nodeTitle attributes)
+               return (Just node)
+               
+-- -----------------------------------------------------------------------
+-- Arcs
+-- -----------------------------------------------------------------------
+
+-- This action is used when the user requests a new type
+makeNewArcType :: Graph graph 
+   => GRAPH
+   -> NodeArcTypeRegistry
+   -> IO ()
+makeNewArcType graph registry =
+   do
+      attributesOpt <- getArcTypeAttributes
+      case attributesOpt of
+         Nothing -> done
+         Just (attributes :: ArcTypeAttributes) ->
+            do
+               arcType <- newArcType graph attributes
+               setValue (arcTypes registry) 
+                  (arcTypeTitle attributes) arcType
+
+-- This action makes a new arc between two nodes.
+makeNewArc :: Graph graph 
+   => GRAPH
+   -> NodeArcTypeRegistry
+   -> Node -> Node -> IO ()
+makeNewArc graph registry source target =
+   do
+      attributesOpt <- getArcAttributes (arcTypes registry)
+      case attributesOpt of
+         Nothing -> done
+         Just (attributes :: ArcAttributes ArcType) ->
+            do
+               newArc graph (arcType attributes) () source target
+               done
+-- This action makes a new node hanging from another one.
+makeNewNodeArc :: Graph graph
+   => GRAPH
+   -> NodeArcTypeRegistry
+   -> Node -> IO ()
+makeNewNodeArc graph registry source =
+   do
+      targetOpt <- makeNewNode graph registry
+      case targetOpt of
+         Nothing -> done
+         Just target -> makeNewArc graph registry source target
+
+-- -----------------------------------------------------------------------
+-- Maintaining the Registries of nodes and arc types.
+-- (These are used for getting node and arc types when we query
+-- the user about new nodes and arcs.)
+-- -----------------------------------------------------------------------
+
+type NodeTypeRegistry = Registry String NodeType
+
+type ArcTypeRegistry = Registry String ArcType
+
+data NodeArcTypeRegistry = NodeArcTypeRegistry {
+   nodeTypes :: NodeTypeRegistry,
+   arcTypes :: ArcTypeRegistry,
+   destroyRegistry :: IO ()
+   }
+
+newNodeArcTypeRegistry :: Graph graph 
+   => GRAPH
+   -> IO NodeArcTypeRegistry
+newNodeArcTypeRegistry graph =
+   do
+      (nodeTypes :: NodeTypeRegistry) <- newRegistry
+      (arcTypes :: ArcTypeRegistry) <- newRegistry
+
+      updateQueue <- newMsgQueue 
+      GraphConnectionData {
+         graphState = CannedGraph { updates = oldUpdates },
+         deRegister = deRegister
+         } <- shareGraph graph (sendIO updateQueue)
+
+      let
+         handleUpdate (NewNodeType nodeType attributes) =
+            setValue nodeTypes (nodeTypeTitle attributes) nodeType
+         handleUpdate (NewArcType arcType attributes) =
+            setValue arcTypes (arcTypeTitle attributes) arcType
+         handleUpdate _ = done
+
+         monitorThread =
+            do
+               update <- receiveIO updateQueue
+               handleUpdate update
+               monitorThread
+
+      sequence_ (map handleUpdate oldUpdates)
+
+      monitorThreadID <- forkIO monitorThread
+      
+      let
+         destroyRegistry =
+            do
+               killThread monitorThreadID
+               deRegister
+               emptyRegistry nodeTypes
+               emptyRegistry arcTypes
+      return (NodeArcTypeRegistry {
+         nodeTypes = nodeTypes,
+         arcTypes = arcTypes,
+         destroyRegistry = destroyRegistry
+         })  
+

@@ -136,30 +136,24 @@ drawDepend ::
     HasConfigValue NodeGesture nodeTypeParms,
     HasConfigValue NodeDragAndDrop nodeTypeParms
     ) 
-   => (graph,graphParms,
-      node Int,nodeType Int,nodeTypeParms Int,
-      arc String Int Int,arcType String,arcTypeParms String) 
+   => (Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms) 
    -> IO ()
-drawDepend (_::
-   (graph,graphParms,
-      node Int,nodeType Int,nodeTypeParms Int,
-      arc String Int Int,arcType String,arcTypeParms String) 
-      ) =
+drawDepend (displaySort :: Graph graph graphParms node nodeType nodeTypeParms
+   arc arcType arcTypeParms) =
    do
       (ParsedDepend dependMap) <- parseDepend
       let
          (dependencies :: [(String,[String])]) = fmToList dependMap
 
       let
-         nullGraphParms = emptyGraphParms :: graphParms
          graphParms =
             GraphGesture (putStrLn "New Node Gesture") $$
             AllowDragging True $$
             SurveyView True $$
             GraphTitle "Haskell Dependencies" $$
-               nullGraphParms
+               emptyGraphParms
 
-         (nullNodeParms :: nodeTypeParms String) = emptyNodeTypeParms
          nodeTypeParms =
             NodeGesture (\ title ->
                putStrLn ("New Node-And-Edge gesture on "++title)) $$$
@@ -171,19 +165,17 @@ drawDepend (_::
             ValueTitle (\ title -> return title ) $$$
             LocalMenu (Button "Type1" 
                   (\ title -> putStrLn title)) $$$
-               nullNodeParms
-   
-         (nullArcParms :: arcTypeParms ()) = emptyArcTypeParms
+               emptyNodeTypeParms
 
-      (graph::graph) <- newGraph graphParms
-      (nodeType :: nodeType String) <- newNodeType graph nodeTypeParms
-      (arcType :: arcType ()) <- newArcType graph nullArcParms
+      graph <- newGraph displaySort graphParms
+      nodeType  <- newNodeType graph nodeTypeParms
+      arcType <- newArcType graph emptyArcTypeParms
 
       (nodes :: [(String,node String)]) <-
          mapM
             (\ (importer,_) ->
                do
-                  node <- newNode nodeType graph importer
+                  node <- newNode graph nodeType importer
                   return (importer,node)
                )
             dependencies
@@ -201,9 +193,8 @@ drawDepend (_::
                sequence_
                   (map
                      (\ imported ->
-                        (newArc arcType graph () 
-                           importerNode (stringToNode imported)) :: 
-                           IO (arc () String String)
+                        newArc graph arcType () 
+                           importerNode (stringToNode imported)
                         ) 
                      allImported
                      )

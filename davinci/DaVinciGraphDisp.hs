@@ -46,9 +46,9 @@ import GraphConfigure
 -- How you refer to everything
 ------------------------------------------------------------------------
 
-daVinciSort :: (DaVinciGraph,DaVinciGraphParms,
-   DaVinciNode a,DaVinciNodeType b,DaVinciNodeTypeParms c,
-   DaVinciArc p d e,DaVinciArcType q,DaVinciArcTypeParms r) = displaySort
+daVinciSort :: Graph DaVinciGraph 
+   DaVinciGraphParms DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms = displaySort
 
 ------------------------------------------------------------------------
 -- Graphs
@@ -98,8 +98,8 @@ data DaVinciGraphParms = DaVinciGraphParms {
    configDoImprove :: Bool
    }
 
-instance Graph DaVinciGraph where
-   redraw (DaVinciGraph{graph=graph,doImprove = doImprove}) = 
+instance GraphClass DaVinciGraph where
+   redrawPrim (DaVinciGraph{graph=graph,doImprove = doImprove}) = 
       do
          if doImprove
             then
@@ -109,7 +109,7 @@ instance Graph DaVinciGraph where
          DaVinci.redrawGraph graph
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
-   newGraph (DaVinciGraphParms {
+   newGraphPrim (DaVinciGraphParms {
          graphConfigs=graphConfigs,graphConfigGesture=graphGesture,
          configDoImprove=configDoImprove,surveyView=surveyView}) =
       do
@@ -233,10 +233,11 @@ data DaVinciNodeTypeParms value =
       }
 
 instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
-   newNode (DaVinciNodeType (nodeTypePrim @ DaVinciNodeTypePrim {
-              nodeType = daVinciNodeType,nodeText = nodeText}))
+   newNodePrim
            (DaVinciGraph {
               graph=graph,nodeValues=nodeValues,nodeTypes=nodeTypes}) 
+           (DaVinciNodeType (nodeTypePrim @ DaVinciNodeTypePrim {
+              nodeType = daVinciNodeType,nodeText = nodeText}))
             value =
       do
          let valueDyn = toDyn value
@@ -250,23 +251,24 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
             DaVinci.border DaVinci.cdefault
             ]
          return (DaVinciNode node)
-   getNodeType (DaVinciGraph {nodeTypes=nodeTypes}) (DaVinciNode node) = 
+   getNodeTypePrim (DaVinciGraph {nodeTypes=nodeTypes}) (DaVinciNode node) = 
       do
          primType <- getValue nodeTypes node
          return (DaVinciNodeType primType)
 
 instance DeleteNode DaVinciGraph DaVinciNode where
-   deleteNode (DaVinciGraph {nodeValues=nodeValues,nodeTypes=nodeTypes})
+   deleteNodePrim (DaVinciGraph {nodeValues=nodeValues,nodeTypes=nodeTypes})
          (DaVinciNode node) = 
       do
          SIM.destroy node
          deleteFromRegistry nodeValues node
          deleteFromRegistry nodeTypes node
 
-   getNodeValue (DaVinciGraph {nodeValues=nodeValues}) (DaVinciNode node) = 
+   getNodeValuePrim 
+         (DaVinciGraph {nodeValues=nodeValues}) (DaVinciNode node) = 
       getValue nodeValues node
 
-   setNodeValue (DaVinciGraph {nodeValues=nodeValues,nodeTypes=nodeTypes})
+   setNodeValuePrim (DaVinciGraph {nodeValues=nodeValues,nodeTypes=nodeTypes})
          (DaVinciNode node) newValue =
       do
          let valueDyn = toDyn newValue
@@ -276,14 +278,14 @@ instance DeleteNode DaVinciGraph DaVinciNode where
          HTk.text newTitle node
          done
 
-instance Node DaVinciNode where
+instance NodeClass DaVinciNode where
 
 daVinciNodeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNode"
 
 instance HasTyCon1 DaVinciNode where
    tyCon1 _ = daVinciNodeTyCon
 
-instance NodeType DaVinciNodeType where
+instance NodeTypeClass DaVinciNodeType where
 
 -- Although it isn't obligatory, we make DaVinciNodeType things
 -- Typeable so that we can save them dynamically.
@@ -293,7 +295,7 @@ instance HasTyCon1 DaVinciNodeType where
    tyCon1 _ = daVinciNodeTypeTyCon
 
 instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
-   newNodeType 
+   newNodeTypePrim 
          (daVinciGraph@(DaVinciGraph{
             graph = graph,
             daVinci = daVinci
@@ -397,7 +399,7 @@ data DaVinciArcTypeParms value =
 
 instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
       where
-   newArc (DaVinciArcType edgeType) (DaVinciGraph {edgeValues=edgeValues})
+   newArcPrim (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArcType edgeType)
          value (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
       do
          edge <- DaVinci.newEdge Nothing nodeFrom nodeTo 
@@ -406,46 +408,46 @@ instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
          return (DaVinciArc edge)
 
 instance GetFrom DaVinciGraph DaVinciNode DaVinciArc where
-   getFrom _ (DaVinciArc edge) =
+   getFromPrim _ (DaVinciArc edge) =
       do
          nodeFrom <- DaVinci.getSource edge
          return (DaVinciNode nodeFrom)
 
 instance GetTo DaVinciGraph DaVinciNode DaVinciArc where
-   getTo _ (DaVinciArc edge) =
+   getToPrim _ (DaVinciArc edge) =
       do
          nodeTo <- DaVinci.getTarget edge
          return (DaVinciNode nodeTo)
 
 instance GetArcType DaVinciGraph DaVinciArc DaVinciArcType where
-   getArcType _ (DaVinciArc edge) =
+   getArcTypePrim _ (DaVinciArc edge) =
       do
          edgeType <- DaVinci.getEdgeType edge
          return (DaVinciArcType edgeType)
 
 instance DeleteArc DaVinciGraph DaVinciArc where
-   deleteArc (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArc edge) =
+   deleteArcPrim (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArc edge) =
       do
          SIM.destroy edge
          deleteFromRegistry edgeValues edge
 
-   getArcValue (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArc edge) = 
+   getArcValuePrim (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArc edge) = 
       getValue edgeValues edge
 
-   setArcValue (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArc edge) 
+   setArcValuePrim (DaVinciGraph {edgeValues=edgeValues}) (DaVinciArc edge) 
       newValue = setValue edgeValues edge newValue
 
-instance Arc DaVinciArc where
+instance ArcClass DaVinciArc where
 
 daVinciArcTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArc"
 
 instance HasTyCon3 DaVinciArc where
    tyCon3 _ = daVinciArcTyCon
 
-instance ArcType DaVinciArcType where
+instance ArcTypeClass DaVinciArcType where
 
 instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
-   newArcType 
+   newArcTypePrim
          (daVinciGraph@(DaVinciGraph{
             graph = graph,
             daVinci = daVinci

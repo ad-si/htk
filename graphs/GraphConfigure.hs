@@ -1,6 +1,7 @@
 {- GraphConfigure contains definitions for the various configuration
    options for GraphDisp objects.  These should be implemented
-   using the Computation.HasConfig interface.
+   using the Computation.HasConfig interface, applied to instances of
+   GraphParms, NodeTypeParms and ArcTypeParms.
    -}
 module GraphConfigure(
    HasConfig(($$),configUsed), -- from Computation

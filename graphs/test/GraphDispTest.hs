@@ -16,8 +16,9 @@ import GraphDisp
 import GraphConfigure
 
 setUpGraph :: 
-   (GraphAll graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms,
+   (GraphAll graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms
+      ,
     HasConfig GraphTitle graphParms,
     HasConfig OptimiseLayout graphParms,
     HasConfigValue LocalMenu nodeTypeParms,
@@ -25,29 +26,20 @@ setUpGraph ::
     HasConfigValue ValueTitle nodeTypeParms,
     HasConfigValue LocalMenu arcTypeParms
     ) 
-   => (graph,graphParms,
-      node Int,nodeType Int,nodeTypeParms Int,
-      arc String Int Int,arcType String,arcTypeParms String) 
+   => (Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
    -> IO ()
-setUpGraph (_::
-   (graph,graphParms,
-      node Int,nodeType Int,nodeTypeParms Int,
-      arc String Int Int,arcType String,arcTypeParms String) 
-      )=
+setUpGraph 
+   (displaySort ::
+       GraphDisp.Graph graph graphParms node nodeType nodeTypeParms arc 
+          arcType arcTypeParms) =
    do
       let
-         nullGraphParms = emptyGraphParms :: graphParms
-      if (configUsed (GraphTitle "") nullGraphParms)
-         then
-            return ()
-         else
-            error "Graph Title config is ignored!"
-      let
-         (graphParms :: graphParms) = 
+         graphParms  = 
             GraphTitle "Test Graph Display" $$
             OptimiseLayout True $$ 
-            nullGraphParms 
-      (graph::graph) <- newGraph graphParms
+            emptyGraphParms 
+      graph <- newGraph displaySort graphParms
 
       (killChannel :: Channel ()) <- newChannel
 
@@ -109,38 +101,34 @@ setUpGraph (_::
          (nodeTypeSmallParms :: nodeTypeParms ()) =
             LocalMenu (Menu Nothing []) $$$ emptyNodeTypeParms
 
-      (nodeType1 :: nodeType Int) <- newNodeType graph nodeType1Parms
-      (nodeType2 :: nodeType Int) <- newNodeType graph nodeType2Parms
-      (nodeTypeChar :: nodeType Char) <- newNodeType graph nodeTypeCharParms
-      (nodeTypeWrite :: nodeType ()) <- newNodeType graph nodeTypeWriteParms
-      (nodeTypeSmall :: nodeType ()) <- newNodeType graph nodeTypeSmallParms
+      nodeType1  <- newNodeType graph nodeType1Parms
+      nodeType2 <- newNodeType graph nodeType2Parms
+      nodeTypeChar <- newNodeType graph nodeTypeCharParms
+      nodeTypeWrite <- newNodeType graph nodeTypeWriteParms
+      nodeTypeSmall <- newNodeType graph nodeTypeSmallParms
 
-      (nodeA1 :: node Int) <- newNode nodeType1 graph 1
-      (nodeB1 :: node Int) <- newNode nodeType1 graph 2
-      (nodeC2 :: node Int) <- newNode nodeType2 graph 3
+      nodeA1 <- newNode graph nodeType1 1
+      nodeB1 <- newNode graph nodeType1 2
+      nodeC2 <- newNode graph nodeType2 3
 
-      (nodeChars :: [node Char]) <- mapM (newNode nodeTypeChar graph) 
+      (nodeChars :: [node Char]) <- mapM (newNode graph nodeTypeChar) 
          "0123456789"
-      (nodeWrite :: node ()) <- newNode nodeTypeWrite graph ()
+      nodeWrite  <- newNode graph nodeTypeWrite ()
 
       let
-         (nullArcParms :: arcTypeParms String) = emptyArcTypeParms
          arcMenu1 = LocalMenu(Button "ArcType1" (disp "ArcType1"))
 
-         arcType1Parms = arcMenu1 $$$ nullArcParms
+         arcType1Parms = arcMenu1 $$$ emptyArcTypeParms
 
-      (arcType1 :: arcType String) <- newArcType graph arcType1Parms
+      arcType1 <- newArcType graph arcType1Parms
 
-      (arcA :: arc String Int Int) <- 
-         newArc arcType1 graph "Arc A" nodeC2 nodeA1
-      (arcB :: arc String Int Int) <-
-         newArc arcType1 graph "Arc B" nodeC2 nodeB1
+      arcA <- newArc graph arcType1 "Arc A" nodeC2 nodeA1
+      arcB <- newArc graph arcType1 "Arc B" nodeC2 nodeB1
 
-      (arcWrite :: arc String Int ()) <-
-          newArc arcType1 graph "" nodeA1 nodeWrite
+      arcWrite <- newArc graph arcType1 "" nodeA1 nodeWrite
 
       (arcChars :: [arc String Int Char]) <-
-         mapM (newArc arcType1 graph "" nodeA1) nodeChars
+         mapM (newArc graph arcType1 "" nodeA1) nodeChars
 
       redraw graph
 

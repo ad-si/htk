@@ -15,6 +15,11 @@ module Registry(
    listRegistryContents,
       -- :: Registry from to -> IO [(from,to)]
 
+   -- Operation for getting values directly from a Registry
+   getRegistryValue,
+      -- :: Ord from => Registry from to -> from -> IO to
+      -- (This can be used to get a value without having to put
+      -- a type annotation on it.)
    -- Operations which get and set the Dyn directly from an UntypedRegistry
    setValueAsDyn,
       -- :: Ord from => UntypedRegistry from -> from -> Dyn -> IO ()
@@ -88,6 +93,8 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
          map <- takeMVar mVar
          putMVar mVar (addToFM map from to)
 
+getRegistryValue :: Ord from => Registry from to -> from -> IO to
+getRegistryValue registry from = getValue registry from
 
 instance Ord from => KeyOpsRegistry (Registry from to) from where
    deleteFromRegistry (Registry mVar) from =
