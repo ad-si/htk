@@ -44,6 +44,7 @@ import qualified IOExts(unsafePerformIO)
 import qualified Concurrent
 import Dynamic
 import Exception
+import Computation(done)
 
 import WBFiles
 
