@@ -287,10 +287,10 @@ delegateEvent :: Expect -> Pattern -> MatchResult -> RST -> IO ()
 delegateEvent 
       expect @ (Expect{regChannel=regChannel}) pattern matchResult rst =
    do
-      nextLineChannel <- newChannel
+      nextLineQueue <- newMsgQueue
       let
-         toWaitFor = receive nextLineChannel
-         toSend bool = send nextLineChannel bool
+         toWaitFor = receive nextLineQueue
+         toSend bool = send nextLineQueue bool
       nextLine <- sync (
          choose (map
             (\ listener -> oneway listener eID (matchResult,toSend)) 
