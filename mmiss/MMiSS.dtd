@@ -1,4 +1,3 @@
-<?daVinci-display (FooBarBAz : ?>
 <!-- miniMMiSS -- MMiSSLaTeX for beginners -->
 
 <!ENTITY % unit "atom">
@@ -10,9 +9,11 @@
 
 <!ELEMENT atom %conceptualatom;>
 <!ATTLIST atom label CDATA #IMPLIED>
+<?MMiSSDisplay atom : green box ?>
 
 <!-- <!ELEMENT textfragment (%text;)*> -->
 <!ELEMENT textfragment (#PCDATA|%embeddeditem;)*> 
+<?MMiSSDisplay textfragment : white triangle ?>
 
 <!ELEMENT include EMPTY>
 <!ATTLIST include included    CDATA #REQUIRED
@@ -27,13 +28,16 @@
 <!ELEMENT paragraph (%unit;)+>
 <!ATTLIST paragraph label     CDATA #IMPLIED
                     paratitle CDATA #IMPLIED>
+<?MMiSSDisplay paragraph : yellow triangle ?>
 
 <!ELEMENT section (%group;)+>
 <!ATTLIST section label        CDATA #IMPLIED
                   sectiontitle CDATA #REQUIRED>
+<?MMiSSDisplay section : red box ?>
 
 <!ELEMENT package (section)+>
 <!ATTLIST package label        CDATA #IMPLIED
                   packagetitle CDATA #REQUIRED>
+<?MMiSSDisplay package : blue box ?>
 
 

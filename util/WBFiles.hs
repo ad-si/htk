@@ -72,6 +72,8 @@
    simpleStore   Storage on disk of SimpleStore
    storeDir      Where Store stores its files
 
+   MMiSSDTD      Location of DTD file for MMiSS.
+
    toolTimeOut   Time-out waiting for responses from a tool when
                  it starts up and we are doing challenge-response
                  verification.
@@ -100,8 +102,6 @@ module WBFiles (
    -- configuration file can be accessed without Maybe.
    getWishPath, -- :: IO String 
       -- gets the path for wish
-   getTixwishPath, -- :: IO String
-      -- gets the path for tixwish
    getDaVinciPath, 
       -- ditto daVinci
    getGnuClientPath,
@@ -116,6 +116,8 @@ module WBFiles (
    getTOP, -- ditto
    getEditorString, -- :: IO (Maybe String)
       -- returns editor string, if set.
+   getMMiSSDTD, -- :: IO (Maybe String)
+      -- returns location of MMiSSDTD, if set.
    getPort, -- IO Int
 
    -- getBackupDir and getWorkingDir trim a right-file-separator
@@ -211,14 +213,14 @@ valOf action =
          Just a -> return a
          Nothing -> error ("An option is surprisingly unset")
 
-getTixwishPath :: IO String
-getTixwishPath = valOf (getArgString "tixwish")
-
 getWishPath :: IO String 
 getWishPath = valOf (getArgString "wish")
 
 getEditorString :: IO (Maybe String)
 getEditorString = getArgString "editor" 
+
+getMMiSSDTD :: IO (Maybe String)
+getMMiSSDTD = getArgString "MMiSSDTD"
 
 getDaVinciPath :: IO String
 getDaVinciPath = valOf (getArgString "daVinci")
@@ -333,6 +335,12 @@ usualProgramArguments = [
    ProgramArgument{
       optionName = "editor",
       optionHelp = "text editor cmd; %F => filename; %N => user-visible name",
+      defaultVal = Nothing,
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "MMiSSDTD",
+      optionHelp = "Filename for MMiSS's DTD",
       defaultVal = Nothing,
       argType = STRING
       },

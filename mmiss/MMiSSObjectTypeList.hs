@@ -9,6 +9,8 @@ module MMiSSObjectTypeList(
    mmissObjectTypeMap, -- :: FiniteMap String MMiSSObjectTypeData
    ) where
 
+import Maybe
+
 import FiniteMap
 
 import GraphConfigure
@@ -19,8 +21,7 @@ import GlobalRegistry
 import Link
 
 import MMiSSVariant
-import DTD_MMiSS
-import MMiSSVerify
+import MMiSSDTD
 import {-# SOURCE #-} MMiSSObjects
 
 ---
@@ -29,7 +30,6 @@ import {-# SOURCE #-} MMiSSObjects
 data MMiSSObjectTypeData = MMiSSObjectTypeData {
    xmlTag' :: String,
    typeId' :: GlobalKey,
-   dtdItem' :: DTDItem,
    attributesType' :: AttributesType,
    displayParms' :: NodeTypes (String,Link MMiSSObject)
    }
@@ -39,33 +39,16 @@ mmissObjectTypeMap :: FiniteMap String MMiSSObjectTypeData
 mmissObjectTypeMap =
    listToFM
       (map
-         (\ (xmlTag,dtdItem,attributesType,displayParms) ->
+         (\ xmlTag ->
             (xmlTag,MMiSSObjectTypeData {
                xmlTag' = xmlTag,
                typeId' = oneOffKey "MMiSSObjectTypeList" xmlTag,
-               dtdItem' = dtdItem,
-               attributesType' = attributesType,
-               displayParms' = displayParms
-               }))        
-         mmissObjectTypeList
+               attributesType' = allAttributes,
+               displayParms' = getDisplayInstruction xmlTag
+               })
+            )
+         allElements
          )
-
--- The string is the xml tag.  The GlobalKey is deduced from this.
-mmissObjectTypeList :: [(String,DTDItem,AttributesType,
-   NodeTypes (String,Link MMiSSObject))]
-mmissObjectTypeList = [
-   ("textfragment",toDTDItem (e :: Textfragment),allAttributes,
-      simpleNodeTypes "white" Triangle),
-   ("paragraph",toDTDItem (e :: Paragraph),allAttributes,
-      simpleNodeTypes "yellow" Triangle),
-   ("atom",toDTDItem (e :: Atom),allAttributes,simpleNodeTypes "green" Box),
-   ("section",toDTDItem (e :: Section),allAttributes,
-      simpleNodeTypes "red" Box),
-   ("package",toDTDItem (e :: Package),allAttributes,
-      simpleNodeTypes "blue" Box)
-   ]
-   where 
-      e = error "MMiSSObjectTypeList 1"
 
 -- All the attributes we provide are the same.
 extraAttributes :: [String]
@@ -78,12 +61,3 @@ allAttributes =
       (\ attType name -> needs (mkAttributeKey name) "" attType)
       variantAttributesType
       extraAttributes
-
-simpleNodeTypes :: String -> Shape (String,Link MMiSSObject) 
-    -> NodeTypes (String,Link MMiSSObject)
-simpleNodeTypes colorName shape = 
-   addNodeRule
-      AllDisplays
-      (SimpleNodeAttributes {nodeColor = Just (Color colorName),
-         shape = Just shape})
-      emptyNodeTypes

@@ -3,13 +3,10 @@ PACKAGES = uni-types uni-emacs
 
 SRCS = MMiSSPaths.hs MMiSSObjects.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
-   DTD_MMiSS.hs MMiSSVerify.hs MMiSSObjectTypeList.hs VerifyFile.hs \
+   MMiSSObjectTypeList.hs VerifyFile.hs XmlValidate.hs MMiSSDTD.hs
 
 BOOTSRCS = MMiSSObjects.boot.hs
 
 SUBDIRS = test
 
 include @TOP@/mk/boilerplate.mk
-
-DTD_MMiSS.hs : MMiSS.dtd
-	@DTDTOHASKELL@ $< > $@ 

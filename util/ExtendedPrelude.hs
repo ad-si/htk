@@ -30,6 +30,7 @@ module ExtendedPrelude (
 
    splitByChar,
    unsplitByChar,
+   splitToChar,
    ) where
 
 import Char
@@ -166,4 +167,19 @@ unsplitByChar :: Char -> [String] -> String
 unsplitByChar ch [] = error "unsplitByChar not defined for empty list"
 unsplitByChar ch l = foldr1 (\w s -> w ++ ch:s) l
 
+-- ------------------------------------------------------------------------
+-- Splitting to and after a character
+-- ------------------------------------------------------------------------
 
+---
+-- We split at the first occurrence of the character, returning the
+-- string before and after.
+splitToChar :: Char -> String -> Maybe (String,String)
+splitToChar c = sTC
+   where
+      sTC [] = Nothing
+      sTC (x:xs) = 
+         if x == c then Just ([],xs) else 
+            fmap
+               (\ (xs1,xs2) -> (x:xs1,xs2))
+               (sTC xs)

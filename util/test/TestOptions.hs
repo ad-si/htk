@@ -20,3 +20,4 @@ main =
       testGet "backupDir" getBackupDir
       testGet "server" getServer
       testGet "gnuclient" getGnuClientPath
+      testGet "MMiSS DTD" getMMiSSDTD

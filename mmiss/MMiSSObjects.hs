@@ -1,4 +1,5 @@
-{- This module defines an object in MMiSS as part of the ObjectTypes framework.
+{- This module defines an object in MMiSS as part of the ObjectTypes 
+   framework.
    -}
 module MMiSSObjects(
    initialiseObjectTypes, -- :: View -> IO ()
@@ -13,6 +14,7 @@ import Concurrent
 import qualified IOExts(unsafePerformIO)
 
 import XmlTypes
+import XmlValidate
 
 import Dynamics
 import Sink
@@ -38,10 +40,10 @@ import DisplayView
 import EmacsContent
 
 import MMiSSPaths
-import MMiSSVerify
 import MMiSSObjectTypeList
 import MMiSSVariant
 import MMiSSContent
+import MMiSSDTD
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObjectType type, and its instance of HasCodedValue and 
@@ -52,8 +54,6 @@ data MMiSSObjectType = MMiSSObjectType {
    xmlTag :: String, 
       -- Describes the type.  This String should be identical with 
       -- corresponding XML Tag, eg "atom".
-   dtdItem :: DTDItem,
-      -- Describes the XML format of objects of this type.
    typeId :: GlobalKey,
    attributesType :: AttributesType,
       -- This describes the attributes peculiar to this MMiSS object type.
@@ -101,12 +101,12 @@ initialiseObjectTypes view =
 
 createObjectType :: MMiSSObjectTypeData -> IO MMiSSObjectType
 createObjectType (MMiSSObjectTypeData {xmlTag' = xmlTag',typeId' = typeId',
-      dtdItem' = dtdItem',attributesType' = attributesType',
+      attributesType' = attributesType',
       displayParms' = displayParms'}) = 
    do
       knownObjects <- newEmptyVariableSet
       return (MMiSSObjectType {xmlTag = xmlTag',typeId = typeId',
-         dtdItem = dtdItem',attributesType = attributesType',
+         attributesType = attributesType',
          displayParms = displayParms',knownObjects = knownObjects})
          
          

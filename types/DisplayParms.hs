@@ -20,7 +20,12 @@ module DisplayParms(
    SimpleArcAttributes(..),
 
    simpleNodeTypesForm,
+   readDisplay,
+   defaultNodeTypes,
    ) where
+
+import Maybe
+import Char
 
 import Computation
 import Dynamics
@@ -266,7 +271,7 @@ simpleNodeTypesForm =
 -- Select a colour 
 -- We steal the following trick from htk/examples/toolkit/Mainsimpleform.hs
 data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet 
-   deriving (Bounded,Enum,Show)
+   deriving (Bounded,Enum,Read,Show)
 
 instance HasConfigRadioButton OurColour where
    configRadioButton colour = HTk.background (show colour)
@@ -278,15 +283,18 @@ colorForm =
          case radColour of
             NoRadio -> hasError "No colour specified"
             Radio (col :: OurColour) 
-               -> hasValue (GraphConfigure.Color (show col))
+               -> hasValue (convertColour col)
          )
       (newFormEntry EmptyLabel NoRadio)
+
+convertColour :: OurColour -> GraphConfigure.Color a
+convertColour col = GraphConfigure.Color (show col)
 
 --- 
 -- Select a shape.  For this we need our own shape type, as we exclude
 -- GraphConfigure's Icon option.
 data OurShape = Box | Circle | Ellipse | Rhombus | Triangle 
-   deriving (Show,Bounded,Enum)
+   deriving (Read,Show,Bounded,Enum)
 
 convertShape :: OurShape -> Shape value 
 convertShape Box = GraphConfigure.Box
@@ -304,3 +312,48 @@ shapeForm =
             Radio (shape :: OurShape) -> hasValue (convertShape shape)
          )
       (newFormEntry EmptyLabel NoRadio)
+
+-- -----------------------------------------------------------------------
+-- A simple format for describing graphics instructions.
+-- For the time being we simply regard this as a list of words, which
+-- are either colours or shapes.
+-- -----------------------------------------------------------------------
+
+readDisplay :: String -> NodeTypes a
+readDisplay str =
+   let
+      instructions = words str
+
+      normalise (c:cs) = (toUpper c):(map toLower cs)
+         -- uppercase first char, lowercase rest
+         -- normalise "" shouldn't happen as "words" doesn't produce an
+         -- empty string.
+
+      doInstruction :: (OurColour,OurShape) -> String 
+         -> (OurColour,OurShape)
+      doInstruction (c,s) word0 =
+         let
+            word1 = normalise word0
+         in
+            case reads word1 of
+               [(color,"")] -> (color,s)
+               _ -> case reads word1 of
+                  [(shape,"")] -> (c,shape)
+                  _ -> error ("Graphics instruction "++word0++
+                     " not understood")
+
+      (c,s) = foldl doInstruction (White,Box) instructions
+   in
+      createSimpleNodeTypes c s
+
+createSimpleNodeTypes :: OurColour -> OurShape -> NodeTypes a
+createSimpleNodeTypes c s =
+   addNodeRule
+      AllDisplays
+      (SimpleNodeAttributes {nodeColor = Just (convertColour c),
+         shape = Just (convertShape s)})
+      emptyNodeTypes
+
+
+defaultNodeTypes :: NodeTypes a
+defaultNodeTypes = createSimpleNodeTypes White Box
