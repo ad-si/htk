@@ -269,12 +269,17 @@ begin = do  try (string "begin")
                             
 -- end  ueberprueft, ob als naechstes ein \end{id} in der Source auftaucht.
 
-end :: String -> GenParser Char st String
-end id = do backslash
-            string "end"
-            spaces 
-            c <- between (char '{') (char '}') idParser
-            return(c)
+end :: GenParser Char st String
+end = do backslash
+         string "end"
+         spaces 
+         c <- between (char '{') (char '}') idParser
+         return(c)
+
+endId :: String -> GenParser Char st String
+endId id = do backslash
+              str <- string ("end{" ++ id ++ "}")
+              return(str)
 
 
 -- continue wird vom Parser 'beginBlock' benutzt, um nach dem schliessenden Tag fuer
@@ -282,20 +287,20 @@ end id = do backslash
 -- frag-Parser geschickt.
 
 continue ::  [Frag] -> String -> GenParser Char st [Frag]
-continue l id = (try (end id) >>= 
+continue l id = (try (end) >>= 
                        (\ x -> if x == id then return l else fail ("no matching end-Tag for <" ++ id ++ ">")))
                 <|> do f <- frag
                        continue (f:l) id
 
 continuePlain ::  String -> String -> GenParser Char st [Frag]
-continuePlain l id = (try (end id) >>= 
-                         (\ x -> if (x == id) 
-                                   then return ([(Other l)])
-                                   else continuePlain (l ++ "\\end{" ++ x ++ "}") id  ))
+continuePlain l id = (try (do endId id 
+                              return ([(Other l)])))
+                     <|> do bs <- backslash
+                            continuePlain (l ++ [bs]) id
                      <|> do str <- plainText
                             continuePlain (l ++ str) id
 
-plainText = many (noneOf "\\")
+plainText = many1 (noneOf "\\")
 
 
 -- beginBlock erkennt den Start einer Umgebung (\begin{id}) und parst mittels
@@ -306,10 +311,10 @@ beginBlock :: GenParser Char st Frag
 beginBlock = do id <- begin
                 p <- envParams id
 --                beginDelim <-  option "" (try (many1 space))
---                l <- if (id `elem` (map fst plainTextAtoms))
-                l <- continue [] id
---                       then continuePlain "" id
---                       else continue [] id
+--                l <- continue [] id
+                l <- if (id `elem` (map fst plainTextAtoms))
+                       then continuePlain "" id
+                       else continue [] id
 --                endDelim <-  option "" (try (many1 space))
 --                params <- return (insertDelims p (Just(beginDelim)) (Just(endDelim)))
 --                return (Env id params (reverse l))
@@ -690,7 +695,7 @@ makeContent [] _ _ = hasValue([])
 makeContent (f:frags) NoText parentEnv = 
    case f of
      (EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
-                        in  mapWithError ([(CMisc (PI (piInsertLaTeX , cstr)))] ++)
+                        in  mapWithError ([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))] ++)
                                          (makeContent frags NoText parentEnv)
      (Other str) -> if ((length (filter (not . (`elem` "\n ")) str) == 0) ||
 			((head str) == '%'))
@@ -775,7 +780,7 @@ makeContent (f:frags) TextAllowed "List" =
 makeContent (f:frags) TextAllowed parentEnv = 
    case f of
      (EscapedChar c) ->  let cstr = if (c == '\\') then "\\" else [c]
-                         in myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX ,cstr)))])) 
+                         in myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))])) 
                                               (makeContent frags TextAllowed parentEnv)
      (Other str) -> if ((head str) == '%')
                       then myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX ,str)))])) 
@@ -1034,6 +1039,8 @@ makeListItem params [] contentList =
 
 makeListItem params (f:frags) contentList =
    case f of
+     (EscapedChar c) -> let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+                        in makeListItem params restFrags (contentList ++ [content])
      (Other str) -> 
         if (str /= "")
 	  then let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
@@ -1083,6 +1090,9 @@ makeListItem params (f:frags) contentList =
                           (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                           otherwise -> []
         in ((CElem (Elem "listItem" (makeListItemAttribs params) (delimElem ++ contentList))), (f:frags))
+     (Command _ _) -> let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+                      in makeListItem params restFrags (contentList ++ [content])
+
 {--
      (Command name ps) -> 
         if (name `elem` (map fst embeddedElements))
@@ -1091,7 +1101,6 @@ makeListItem params (f:frags) contentList =
           else let newElem = CMisc (Comment ("\\" ++ name ++ (lparamsToString ps)))
                in makeListItem params frags (contentList ++ [newElem])
 --}
-     _ -> makeListItem params frags contentList
 
 
 concatTextElems :: [Content] -> [Content]
@@ -1277,8 +1286,13 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
   | (name == "define") =
     let s1 = "\\" ++ (elemNameToLaTeX name)
         s2 = "{" ++ (getParam "label" atts) ++ "}"
-        s3 = "{" ++ (getParam "body" atts) ++ "}"
-        s4 = "{" ++ (getAttribs atts "" ["label", "body"]) ++ "}"
+        str = if (length(contents) == 0) then "" 
+                 else let c = head contents
+                      in case c of
+                           (CString _ body) -> body
+                           _ -> ""
+        s3 = "{" ++ str ++ "}"
+        s4 = "{" ++ (getAttribs atts "" ["label"]) ++ "}"
         items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
     in fillLatex out cs (inList ++ items)
         
