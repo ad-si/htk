@@ -147,8 +147,10 @@ module MarkupText (
 
 
 -- container class for markup texts
-  HasMarkupText(..)
+  HasMarkupText(..),
 
+
+  scrollMarkupText,
 ) where
 
 import HTk
@@ -211,7 +213,7 @@ data MarkupText =
   | MarkupWrapMargin Int [MarkupText]
   | MarkupRightMargin Int [MarkupText]
   | MarkupHRef [MarkupText] [MarkupText]
-  | forall w . Widget w => MarkupWindow (IO (w, IO()))
+  | forall w . Widget w => MarkupWindow (Editor -> IO (w, IO()))
 
 type TagFun = Editor -> BaseIndex -> BaseIndex -> IO TextTag
 
@@ -343,7 +345,7 @@ rightmargin = MarkupRightMargin
 ---
 -- The markup window combinator (a widget container inside the editor
 -- widget).
-window :: Widget w => IO (w, IO()) -> MarkupText
+window :: Widget w => (Editor -> IO (w, IO())) -> MarkupText
 window = MarkupWindow
 
 ---
@@ -1270,7 +1272,7 @@ parseMarkupText m f =
         MarkupWindow iowid ->
           let win = ((line, char),
                      \ed pos -> do
-                                  (wid, cleanup) <- iowid
+                                  (wid, cleanup) <- iowid ed
                                   w <- createEmbeddedTextWin ed pos wid []
                                   addToState ed [cleanup]
                                   return w)
@@ -1372,3 +1374,32 @@ instance HasMarkupText Editor where
 
 fromDistance :: Distance -> Int
 fromDistance (Distance i) = i
+
+-- -----------------------------------------------------------------------
+-- A utility for putting a scroll-bar around MarkupText.
+-- -----------------------------------------------------------------------
+
+scrollMarkupText :: Size -> [MarkupText] -> MarkupText
+scrollMarkupText size1 markups =
+   let
+      action :: Editor -> IO (Frame,IO ())
+      action editor =
+         do
+            editorFrame <- newFrame editor []
+            editorFrame2 <- newFrame editorFrame []
+
+            editor <- newEditor editorFrame2 [wrap NoWrap,disable,new markups,size size1]
+            scrollBar1 <- newScrollBar editorFrame2 [orient Vertical]
+            scrollBar2 <- newScrollBar editorFrame [orient Horizontal]
+
+            editor # scrollbar Vertical scrollBar1
+            editor # scrollbar Horizontal scrollBar2
+
+            pack editor [Side AtRight,Fill Both]
+            pack scrollBar1 [Side AtRight,Fill Y,Expand On]
+            pack editorFrame2 [Side AtTop]
+            pack scrollBar2 [Side AtTop,Fill X]
+            return (editorFrame,destroy editorFrame)
+
+   in
+      window action

@@ -1,4 +1,5 @@
-{- This module defines the service that implements the SimpleDB -}
+{- This module defines the service that implements the SimpleDB for 
+   an external server. -}
 module SimpleDBService(
    simpleDBService,
    mkSimpleDBServices,
@@ -16,7 +17,7 @@ import VersionInfoService
 mkSimpleDBServices :: IO [Service]
 mkSimpleDBServices =
    do
-      versionState <- mkVersionState
+      versionState <- mkVersionState False
 
       simpleDB <- openSimpleDB versionState
       let

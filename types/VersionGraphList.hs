@@ -70,8 +70,9 @@ addVersionGraph displaySort hostPortOpt =
             case hostPortOpt of
                Nothing ->
                   do
-                     versionState <- mkVersionState
-                     repository <- initialiseInternal versionState
+                     versionState <- mkVersionState True
+                     repository 
+                        <- Initialisation.openRepositoryInternal versionState
                      versionGraph <- newVersionGraphInternal 
                         displaySort repository versionState
                      forkIO (

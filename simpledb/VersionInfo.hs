@@ -16,6 +16,8 @@ module VersionInfo(
    --
 
    mkVersionInfo,
+      -- :: VersionState -> PasswordFile.User 
+      -- -> Either UserInfo VersionInfo -> IO (WithError VersionInfo)
       -- :: PasswordFile.User -> Either UserInfo VersionInfo 
       -- -> IO (WithError VersionInfo)
       -- Fill out the files in a VersionInfo, checking that the user is
@@ -32,7 +34,9 @@ module VersionInfo(
       -- Clear settable fields (used on checkout).
 
    VersionState,
-   mkVersionState, -- :: IO VersionState
+
+   mkVersionState, -- :: Bool -> IO VersionState
+      -- The Bool should be True for an internal server, False otherwise.
    addVersionInfo, 
       -- :: VersionState -> (Bool,VersionInfo) -> IO ()
       -- Modify the VersionInfos.  The Bool should be set if and only if
@@ -46,6 +50,7 @@ module VersionInfo(
 
    registerAct, -- :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
       -- Register an action to be done each time we add a new versionInfo.
+      -- NB.  The action must always execute its argument exactly once.
 
 
    registerAndGet, 
@@ -87,9 +92,12 @@ import BinaryIO
 import WBFiles
 import ExtendedPrelude
 import Dynamics
+import HostName
+import Posix(getProcessID)
 
 import DialogWin
 import SimpleForm
+import MarkupText
 import HTk(text,height,width,value,background)
 
 import qualified PasswordFile
@@ -200,14 +208,19 @@ instance HasBinaryIO VersionInfo where
 -- client doesn't rig the VersionInfos.
 -- ----------------------------------------------------------------------
 
-type VersionInfoKey = (Int,String,String) -- must be instance of Ord
+type VersionInfoKey = (Int,String,String,ClockTime) -- must be instance of Ord
 
 mapVersionInfo :: VersionInfo -> VersionInfoKey
 mapVersionInfo versionInfo =
    let
       server1 = server versionInfo
    in
-      (serialNo server1,serverId server1,userId server1)
+      (serialNo server1,serverId server1,userId server1,timeStamp server1)
+      -- The userId is necessary as a security measure, since otherwise
+      --    a user could create a version with whatever id he liked and
+      --    then effectively overwrite someone else's version.  The timeStamp
+      --    guards against the possibility of a server being restarted and
+      --    new serial-numbers generated.
 
 
 -- ----------------------------------------------------------------------
@@ -242,9 +255,9 @@ instance HasTyRep VersionInfo where
 -- that the user meets the appropriate criteria.
 -- ----------------------------------------------------------------------
 
-mkVersionInfo :: PasswordFile.User -> Either UserInfo VersionInfo 
-   -> IO (WithError VersionInfo)
-mkVersionInfo user (Left versionUser) =
+mkVersionInfo :: VersionState -> PasswordFile.User 
+   -> Either UserInfo VersionInfo -> IO (WithError VersionInfo)
+mkVersionInfo versionState user (Left versionUser) =
    do
       timeStamp <- getClockTime
       let
@@ -252,7 +265,7 @@ mkVersionInfo user (Left versionUser) =
          userId = PasswordFile.userId user
 
          versionServer = ServerInfo {
-            serverId = thisServerId,
+            serverId = (thisServerId versionState),
             serialNo = serialNo,
             timeStamp = timeStamp,
             userId = userId
@@ -264,7 +277,7 @@ mkVersionInfo user (Left versionUser) =
             }
 
       return (hasValue versionInfo)
-mkVersionInfo user (Right versionInfo) =
+mkVersionInfo versionState user (Right versionInfo) =
    return (
       let
          thisUser = userId (server versionInfo)
@@ -290,10 +303,6 @@ changeUserInfo user1 versionInfo userInfo =
             hasError ("You cannot modify the version information for "
                ++ thisUser ++ ".")
 
-thisServerId :: String
-thisServerId = unsafePerformIO getServerId
-{-# NOINLINE thisServerId #-}
-
 -- ----------------------------------------------------------------------
 -- Accessing the version data
 -- ----------------------------------------------------------------------
@@ -303,14 +312,15 @@ data VersionState = VersionState {
       -- all VersionInfos so far.
       -- also used as a lock on various operations.
    versionInfoActRef :: IORef ( IO (Bool,VersionInfo) -> IO ()),
-   logFile :: LogFile VersionInfo
+   logFile :: LogFile VersionInfo,
+   thisServerId :: String
    }
 
 objectVersion :: VersionInfo -> ObjectVersion 
 objectVersion = version . user
 
-mkVersionState :: IO VersionState
-mkVersionState =
+mkVersionState :: Bool -> IO VersionState
+mkVersionState isInternal =
    do
       (logFile,versionInfosList) <- openLog "versionInfos"
       let
@@ -325,12 +335,19 @@ mkVersionState =
             versionInfosList
 
       versionInfosRef <- newMVar versionInfos
-      versionInfoActRef <- newIORef (\ _ -> done)
+      versionInfoActRef <- newIORef (\ act 
+         -> do
+               act
+               done
+         )
+
+      thisServerId <- mkServerId isInternal
 
       return (VersionState {
          versionInfosRef = versionInfosRef,
          versionInfoActRef = versionInfoActRef,
-         logFile = logFile
+         logFile = logFile,
+         thisServerId = thisServerId
          })
 
 addVersionInfo :: VersionState -> (Bool,VersionInfo) -> IO ()
@@ -417,9 +434,17 @@ displayVersionInfo allowSystem versionInfo =
       let
          user1 = user versionInfo
          server1 = server versionInfo
-      -- We don't use createDialogWin' and fancy markup text because 
-      -- DialogWin constrains this only to fit into a window of size (30,5).
-      showSystem <- createDialogWin
+
+         scroll :: [MarkupText] -> [Config (Dialog a)]
+         scroll markups = [new [scrollMarkupText (39,6) markups]]
+
+         b :: String -> MarkupText
+         b str = bold [prose str]
+
+         n :: String -> MarkupText
+         n str = prose str
+
+      showSystem <- createDialogWin'
          (("Quit",False) :
              if allowSystem 
                 then
@@ -428,10 +453,11 @@ displayVersionInfo allowSystem versionInfo =
                    []
             )
          Nothing
-         [text (label user1 ++ "\n"
-            ++ contents user1 ++ "\n"
-            ++ if private user1 then "not for export" else "for export"
-            )]
+         (scroll [
+            b (label user1),newline,
+            n (contents user1),newline,
+            n (if private user1 then "not for export" else "for export")
+            ])
          [text "Version Info"]
 
       let
@@ -446,19 +472,21 @@ displayVersionInfo allowSystem versionInfo =
          (do
             calendarTime <- toCalendarTime (timeStamp server1)
 
-            createDialogWin
+            createDialogWin'
                [("Quit",())]
                Nothing
-               [text (
-                  "Version: " ++ vToS (version user1) ++ "\n"
-                  ++ "Parents: " ++ vsToS (parents user1) ++ "\n"
-                  ++ "ServerId: " ++ serverId server1 ++ "\n"
-                  ++ "Serial No: " ++ show (serialNo server1) ++ "\n"
-                  ++ "Created by: " ++ userId server1 ++ "\n"
-                  ++ "Created on: " ++ calendarTimeToString calendarTime
-                  )]
+               (scroll [
+                  b "Version: ",n (vToS (version user1)),newline,
+                  b "Parents: ",n (vsToS (parents user1)),newline,
+                  b "ServerId: ",n (serverId server1),newline,
+                  b "Serial No: ",n (show (serialNo server1)),newline,
+                  b "Created by: " ,n (userId server1),newline,
+                  b "Created on: ", n (calendarTimeToString calendarTime)
+                  ])
                [text "Version System Info"]
                )
+
+
 
 -- cleanVersionInfo is used to clear user-settable fields when a version
 -- is checked out.
@@ -524,3 +552,32 @@ editVersionInfo title versionInfo =
                in
                   Just user1
          )
+
+-- ----------------------------------------------------------------------
+-- Generating a unique server identifier.
+-- ----------------------------------------------------------------------
+
+-- | The argument specifies whether the server is internal or not.
+mkServerId :: Bool -> IO String
+mkServerId isInternal =
+   do
+      serverIdOpt <- getServerId
+      case serverIdOpt of
+         Just serverId -> return serverId
+         Nothing ->
+            do
+               fullHostName <- getFullHostName
+               if isInternal
+                  then
+                     do
+                        pID <- getProcessID
+                        return(fullHostName ++ ":" ++ show pID)
+                  else
+                     do
+                        port <- getPort
+                        return (if port == 11393
+                           then
+                              fullHostName
+                           else
+                              fullHostName ++ ":" ++ show port
+                           )

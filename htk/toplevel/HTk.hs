@@ -155,7 +155,9 @@ module HTk (
   Destroyable(..),
 
   done,
-  cleanupWish
+  cleanupWish,
+
+  getHTk,
 ) where
 
 import Concurrent

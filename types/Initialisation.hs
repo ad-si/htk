@@ -4,6 +4,7 @@ module Initialisation(
    initialise, -- :: IO Repository,
    openRepository, -- :: (?server :: HostPort) => IO VersionDB.Repository
    initialiseGeneral, -- :: (View -> IO ()) -> IO VersionDB.Repository
+   openRepositoryInternal, -- :: VersionState -> IO VersionDB.Repository
    ) where
 
 import Debug(debug)
@@ -15,6 +16,7 @@ import CallServer
 
 import Graph
 
+import qualified VersionInfo
 import qualified VersionDB
 import View
 import Folders
@@ -33,11 +35,16 @@ import Registrations
 -- The xxxGeneral functions allow an additional function to be executed
 -- on the first view.
 --
+-- The xxxInternal functions are used for the internal server.
 initialise :: (?server :: HostPort) => IO VersionDB.Repository
 initialise = initialiseGeneral (\ view -> done)
 
 openRepository :: (?server :: HostPort) => IO VersionDB.Repository
 openRepository = openRepositoryGeneral (\ view -> done)
+
+
+openRepositoryInternal :: VersionInfo.VersionState -> IO VersionDB.Repository
+openRepositoryInternal = openRepositoryGeneralInternal (\ view -> done)
 
 ---
 -- More general initialisation, which provides an extra function
@@ -54,6 +61,19 @@ openRepositoryGeneral :: (?server :: HostPort)
 openRepositoryGeneral initialiseView = 
    do
       repository <- VersionDB.initialise
+      viewVersions <- listViews repository
+      case viewVersions of
+         [] -> 
+            do
+               createRepository initialiseView repository
+         _ -> done -- the repository is already initialised
+      return repository
+
+openRepositoryGeneralInternal 
+   :: (View -> IO ()) -> VersionInfo.VersionState -> IO VersionDB.Repository
+openRepositoryGeneralInternal initialiseView versionState = 
+   do
+      repository <- VersionDB.initialiseInternal versionState
       viewVersions <- listViews repository
       case viewVersions of
          [] -> 

@@ -383,7 +383,7 @@ querySimpleDB user
                Right icsl -> return (IsData icsl)
       Commit versionExtra redirects newStuff0 ->
          do
-            versionInfoWE <- mkVersionInfo user versionExtra
+            versionInfoWE <- mkVersionInfo versionState user versionExtra
             case fromWithError versionInfoWE of
                Left mess -> return (IsError mess)
                Right versionInfo ->

@@ -134,7 +134,7 @@ module WBFiles (
       -- Get a file for the use of the server.
    getServerDir, --  :: IO String
       -- Get the server's private directory.
-   getServerId, -- :: IO String
+   getServerId, -- :: IO (Maybe String)
       -- Return a (globally unique) id for this server.
 
    -- Access to other options.
@@ -270,22 +270,9 @@ getServerFile innerName =
 getServerDir :: IO String
 getServerDir = valOf (getArgString "serverDir")
 
-getServerId :: IO String
-getServerId =
-   do
-      serverIdOpt <- getArgString "serverId"
-      case serverIdOpt of
-         Just serverId -> return serverId
-         Nothing ->
-            do
-               fullHostName <- getFullHostName
-               port <- getPort
-               return (if port == defaultPort
-                  then
-                     fullHostName
-                  else
-                     fullHostName ++ ":" ++ show port
-                  )
+getServerId :: IO (Maybe String)
+getServerId = getArgString "serverId"
+
 
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
