@@ -22,4 +22,4 @@ runWorkbench :
 
 killWorkbench :
 	(pkill "^MMiSSWorkbench$$" || echo not running)
-	rm -rf /tmp/#
+	rm -rf $${UNIWORKINGDIR:-/tmp/#}

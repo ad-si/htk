@@ -13,7 +13,7 @@ ifeq "@BDBDIR@" ""
    SUBDIRS = util events reactor posixutil htk server graphs davinci
 else
    SUBDIRS = util events reactor posixutil htk server graphs davinci simpledb \
-             types emacs mmiss
+             types emacs mmiss/parser mmiss
 endif
 endif
 

@@ -2,6 +2,7 @@
 # Test script for running the workbench.
 export UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 export UNISERVER=`hostname`
+export UNIWORKINGDIR=/tmp/uni.temp.$USER
 gmake killServer
 gmake killWorkbench
 gmake runServer

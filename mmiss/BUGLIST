@@ -4,6 +4,28 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+22) 04.09.02
+Incorporate mmiss/parser into the source-file hierarchy, and add an
+interface specification for it.
+FIXED
+
+21) 04.09.02
+On editing file get message
+Fail: EmacsBasic: XEmacs error: (error Cannot modify start of a buffer) in command (uni-add-container-buffer "Npara1")
+
+This is the first time this has occurred and it seems to be erratic.
+So I'll see if it occurs again (and hope it doesn't).
+
+20) 04.09.02
+Collapsing an item in the editor doesn't turn off its read lock.
+Solution: put call to finishEdit in.
+FIXED
+
+19) 04.09.02
+mmiss/test/{Makefile.in,runWorkbench.in} altered so that location of
+temporary files depends on user.
+FIXED
+
 18) 04.09.02
 Compiled unoptimised with Linux doesn't start at all but produces
 a message saying "Prelude.read: no parse". 
@@ -30,6 +52,9 @@ claims the file is already being edited when it isn't; (b) fails to put button
 back when it has failed.
 (b) is due to EmacsEdit.openFile not returning a success code and no-one
 being prepared to handle its failure; now fixed.
+
+(a) is a silly typo in MMiSSObjects.
+FIXED
 
 14) 02.09.02
 Intermittently VersionGraph does not start up properly.

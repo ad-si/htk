@@ -88,21 +88,30 @@ editEmacs (emacsFS @ (EmacsFS {editFS = editFS,existsFS = existsFS})) name =
             }
 
       -- (4) Open the file
-      openFile editorState (normalName name) name
+      success <- openFile editorState (normalName name) name
 
-      -- (5) Handle the Emacs events, until the user quits.
-      sync (handleEvents editorState)
+      if success 
+         then
+            -- (5) Handle the Emacs events, until the user quits.
+            sync (handleEvents editorState)
+         else
+            destroy emacsSession
 
 -- ----------------------------------------------------------------------
 -- Open a new file and insert it in a container
 -- ----------------------------------------------------------------------
 
-openFile :: EditorState -> String -> String -> IO ()
+---
+-- Returns True if successful.
+openFile :: EditorState -> String -> String -> IO Bool
 openFile state parent name =
    do
       emacsFileWE <- editFS (emacsFS state) name
       case fromWithError emacsFileWE of
-         Left message -> createErrorWin message []
+         Left message -> 
+            do
+               createErrorWin message []
+               return False
          Right (EmacsContent initialContents,emacsFile) ->
             do
                -- Add a new entry to the registry
@@ -118,7 +127,7 @@ openFile state parent name =
                mapM
                   (\ dataItem -> case dataItem of
                      EmacsLink child -> 
-                        addButton session parent (normalName name) name
+                        addButton session parent (normalName child) child
                      EditableText str ->
                         addText session parent str
                      )
@@ -126,6 +135,7 @@ openFile state parent name =
 
                -- Insert the boundary
                boundContainer session parent
+               return True
 
 -- ----------------------------------------------------------------------
 -- The event handler
@@ -206,7 +216,14 @@ handleEvents editorState =
                   confirm ("Expand "++name++"?") (
                      always (do
                         expand session str
-                        openFile editorState str name
+                        success <- openFile editorState str name
+                        if success
+                           then
+                              done
+                           else
+                              do
+                                 collapse session str name
+                                 done
                         sync iterate                        
                         )
                      )
@@ -214,7 +231,15 @@ handleEvents editorState =
                   confirm ("Collapse "++name++" without saving?") (
                      always (do
                         collapse session (normalName name) name
-                        deleteFromRegistry (openFiles editorState) name
+                        transformValue (openFiles editorState) name
+                           (\ stateOpt ->
+                              do
+                                 case stateOpt of
+                                    Just state -> finishEdit state
+                                    Nothing -> putStrLn ("Odd - "++name++
+                                       " already collapsed")
+                                 return (Nothing,())
+                              ) 
                         sync iterate
                         )
                      )

@@ -1,5 +1,9 @@
-
-module LaTeXParser where
+module LaTeXParser(
+   parseMMiSSLatex, -- :: String -> WithError Element
+   -- Turn MMiSSLaTeX into an Element.   
+   parseMMiSSLatexFile, -- :: SourceName -> IO (WithError Element)
+   -- The same, for a file.
+   ) where
 
 import Parsec
 import Char

@@ -640,7 +640,6 @@ editMMiSSObject view link =
       let
          parent = parentFolder object
          variants = variantAttributes object
-         lock = editLock object
 
          editFS name =
             addFallOutWE (\ break -> 
@@ -653,6 +652,9 @@ editMMiSSObject view link =
                      Exists mmissLink -> return mmissLink
 
                   object <- readLink view mmissLink
+
+                  let
+                     lock = editLock object
  
                   isAvailable <- tryAcquire lock
                   if isAvailable

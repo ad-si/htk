@@ -172,7 +172,7 @@
       (delete-region extent-start extent-end)
       (let
          ((new-extent (uni-create-container-extent extent-id extent-start)))
-         (puthash extent-id new-extent)
+;         (puthash extent-id new-extent uni-extent-hash-table)
          )
       )
    )
@@ -188,7 +188,7 @@
       (let
          ((new-extent 
             (uni-create-button-extent extent-id extent-start button-text)))
-         (puthash extent-id new-extent)
+;         (puthash extent-id new-extent uni-extent-hash-table)
          )
       )
    )
