@@ -15,7 +15,7 @@ HAXML = @TOP@/HaXml-1.10/src
 EXTRA_HC_OPTIONS += -UDEBUG -cpp
 
 
-SRCS = $(HAXMLSRCS) XmlEscape.hs XmlFix.hs tools/MainDtdToHaskell.hs
+SRCS = $(HAXMLSRCS) XmlFix.hs
 
 # Taken from the setting for LIBSRCS in $(HAXML)/../Makefile.
 HAXMLSRCS = \
@@ -35,7 +35,9 @@ HAXMLSRCS = \
 	Text/XML/HaXml/DtdToHaskell/Convert.hs \
 	Text/XML/HaXml/DtdToHaskell/Instance.hs \
 	Text/ParserCombinators/HuttonMeijerWallace.hs \
-	Text/PrettyPrint/HughesPJ.hs 
+
+#	Text/PrettyPrint/HughesPJ.hs 
+# Commented out as it is now in GHC.
 
 
 include @TOP@/mk/boilerplate.mk
@@ -45,5 +47,5 @@ lnsrcs : Makefile
 	$(foreach file,$(HAXMLSRCS),\
            $(MKDIR) -p `dirname $(file)` \
            && $(LN) -s $(HAXML)/$(file) $(file) &&) \
-        $(LN) -s $(HAXML)/tools/DtdToHaskell.hs tools/MainDtdToHaskell.hs && \
+        $(LN) -sf $(HAXML)/tools/DtdToHaskell.hs tools/MainDtdToHaskell.hs && \
         echo "Don't copy again" >lnsrcs
