@@ -40,6 +40,7 @@ import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
 
+import ViewType(getViewTitleSource)
 import View
 import CodedValue
 import Link
@@ -73,17 +74,16 @@ instance HasCodedValue FolderDisplayType where
 instance DisplayType FolderDisplayType where
    displayTypeTypeIdPrim _  = "Folders"
 
-   graphParmsPrim view FolderDisplayType titleSource =
+   graphParmsPrim displaySort view FolderDisplayType =
       do
+         globalMenu <- newDefaultMenu displaySort view
          let
-            graphTitleSource =
+            graphTitleSource =  
                fmap
-                  (\ versionTitle -> GraphTitle (versionTitle++
-                     ": directory listing")
-                     ) 
-                  titleSource
- 
-         globalMenu <- newObjectTypeMenu view
+                  (\ versionTitle -> 
+                     GraphTitle (versionTitle++": directory listing")
+                     )
+                  (getViewTitleSource view)
          return (
             globalMenu $$
             AllowDragging True $$
@@ -95,6 +95,9 @@ instance DisplayType FolderDisplayType where
    displayTypeGlobalRegistry _ = displayTypeRegistry
 
    displayTypeIdPrim FolderDisplayType = folderDisplayKey
+
+   openDisplayMenuItemPrim displaySort displayType =
+      Just ("New Folders Display",openGeneralDisplay displaySort displayType)
 
 displayTypeRegistry :: GlobalRegistry FolderDisplayType
 displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry

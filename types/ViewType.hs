@@ -11,6 +11,9 @@ module ViewType(
    getRepository, -- :: View -> Repository
 
    ViewId(..),
+
+   getViewTitleSource, -- :: View -> Source String
+
    ) where
 
 import Concurrent
@@ -21,6 +24,7 @@ import Dynamics
 import Registry
 import UniqueFile
 import FileSystem
+import Source
 
 import BSem
 
@@ -31,6 +35,8 @@ data View = View {
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
    parentMVar :: MVar (Maybe ObjectVersion),
+
+   titleSource :: SimpleSource String, -- current title of this view.
 
    -- Contains "real" copies of files for the benefit of tools
    fileSystem :: FileSystem
@@ -51,3 +57,10 @@ newtype ViewId = ViewId ObjectID deriving (Eq,Ord)
 
 instance QuickShow ViewId where
    quickShow = WrapShow (\ (ViewId oId) -> oId)
+
+-- -----------------------------------------------------------------
+-- Function for extracting the title of a View as a Source
+-- -----------------------------------------------------------------
+
+getViewTitleSource :: View -> Source String
+getViewTitleSource view = mkSource (titleSource view)

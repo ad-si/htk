@@ -9,7 +9,7 @@ module DisplayTypes(
 
    -- Functions for extracting graph parameters.
    graphParms, -- :: HasGraphConfigs graphParms 
-      -- => View -> WrappedDisplayType -> Source String -> IO graphParms
+      -- => View -> WrappedDisplayType -> IO graphParms
 
    -- NB.  Node and arc parameters are supplied by the particular
    -- object type instances.
@@ -67,8 +67,13 @@ class HasCodedValue displayType => DisplayType displayType where
    -- This returns the key for a displayType, used to access it in
    -- the global registry.
 
-   graphParmsPrim :: HasGraphConfigs graphParms 
-      => View -> displayType -> Source String -> IO graphParms
+   graphParmsPrim ::  
+      (GraphAllConfig graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+      => (Graph graph graphParms node nodeType nodeTypeParms 
+         arc arcType arcTypeParms)
+      -> View -> displayType 
+      -> IO graphParms
    -- The source will contain the current user title for this version.
 
    createDisplayTypeMenuItemPrim :: displayType -> Maybe (String,View -> IO ())
@@ -122,8 +127,6 @@ class HasCodedValue displayType => DisplayType displayType where
    createDisplayTypeMenuItemNoInsert = Nothing
    openDisplayMenuItemPrim _ _ = Nothing
 
-
-
 -- ------------------------------------------------------------------
 -- Wrapped display types
 -- ------------------------------------------------------------------
@@ -135,10 +138,15 @@ displayTypeTypeId :: WrappedDisplayType -> String
 displayTypeTypeId (WrappedDisplayType displayType) =
    displayTypeTypeIdPrim displayType
 
-graphParms :: HasGraphConfigs graphParms 
-   => View -> WrappedDisplayType -> Source String -> IO graphParms
-graphParms view (WrappedDisplayType displayType) source
-   = graphParmsPrim view displayType source
+graphParms ::
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms)
+   => (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+   -> View -> WrappedDisplayType 
+   -> IO graphParms
+graphParms displaySort view (WrappedDisplayType displayType)
+   = graphParmsPrim displaySort view displayType
 
 
 -- ------------------------------------------------------------------

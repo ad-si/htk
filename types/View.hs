@@ -36,6 +36,7 @@ import AtomString(fromString)
 import Object
 import FileSystem
 import CopyFile
+import Source
 
 import VersionDB
 import ViewType
@@ -67,12 +68,14 @@ newView repository =
       parentMVar <- newMVar Nothing
       viewIdObj <- newObject
       fileSystem <- newFileSystem
+      titleSource <- newSimpleSource ""
 
       return (View {
          viewId = ViewId viewIdObj,
          repository = repository,
          objects = objects,
          parentMVar = parentMVar,
+         titleSource = titleSource,
          fileSystem = fileSystem
          })
 
@@ -112,11 +115,13 @@ getView repository objectVersion =
 
       parentMVar <- newMVar (Just objectVersion)
       fileSystem <- newFileSystem
+      titleSource <- newSimpleSource ""
       let
          view = View {
             viewId = viewId,
             repository = repository,
             objects = objects,
+            titleSource = titleSource,
             parentMVar = parentMVar,
             fileSystem = fileSystem
             }

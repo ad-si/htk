@@ -22,6 +22,9 @@ module GraphConfigure(
    -- value, IE graphs.
    GlobalMenu(..),
 
+   -- function for combining global menus.
+   combineGlobalMenus, -- :: [GlobalMenu] -> GlobalMenu
+
    -- MenuPrim is supposed to be the generalised Menu/Button type.
    MenuPrim(..), -- a type with TWO parameters.  We provide maps
                        -- and monadic methods for both.
@@ -131,6 +134,14 @@ instance HasMapIO LocalMenu where
                )
             menuPrim
             )
+
+---
+-- As a service to MMiSS we provide a function which combines
+-- several GlobalMenus into one.
+combineGlobalMenus :: [GlobalMenu] -> GlobalMenu
+combineGlobalMenus globalMenus =
+   GlobalMenu
+      (Menu Nothing (map (\ (GlobalMenu menu) -> menu) globalMenus))
 
 
 ------------------------------------------------------------------------

@@ -3,12 +3,15 @@
    types.
    -}
 module GlobalMenus(
+   newDefaultMenu,
    newObjectTypeMenu,
    newDisplayTypeMenu,
    openDisplayType,
    ) where
 
 import Maybe
+
+import Computation
 
 import Events
 import Destructible
@@ -24,6 +27,29 @@ import ViewType
 import ObjectTypes
 import DisplayTypes
 import {-# SOURCE #-} DisplayView
+
+---
+-- newDefaultMenu is a recommended general-purpose menu for attaching
+-- to view displays 
+newDefaultMenu :: 
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms)
+   => (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+   -> View -> IO GlobalMenu
+newDefaultMenu displaySort view =
+   do 
+      objectTypeMenu <- newObjectTypeMenu view
+      displayTypeMenu <- newDisplayTypeMenu view
+      let
+         openDisplayTypeAct =
+            do
+               openDisplayType displaySort view
+               done
+         openDisplayTypeMenu = 
+            GlobalMenu (Button "Open Display" openDisplayTypeAct)
+      return (combineGlobalMenus 
+         [objectTypeMenu,displayTypeMenu,openDisplayTypeMenu])
 
 newObjectTypeMenu :: View -> IO GlobalMenu
 newObjectTypeMenu view =

@@ -43,7 +43,7 @@ import NewNames
 
 import VersionDB
 import View
-import ViewType(viewId)
+import ViewType(viewId,titleSource)
 import VersionGraphService
 import DisplayTypes
 import DisplayView
@@ -71,8 +71,7 @@ data VersionGraphNode =
 -- Information we keep about working nodes.
 data ViewedNode = ViewedNode {
    thisView :: View, -- view for this node
-   parent :: Node, -- (checked-in) parent version.
-   titleSource :: SimpleSource String -- The current title for the node.
+   parent :: Node -- (checked-in) parent version.
    }
    
 -- --------------------------------------------------------------------
@@ -271,22 +270,20 @@ newVersionGraph
          reallyCheckOutNode title parentNode version =
             do
                view <- getView repository version
+               sendSimpleSource (titleSource view) title
                let versionGraphNode = WorkingNode view
                let thisNode = toNode versionGraphNode
                thisArc <- newWorkingArc arcStringSource
-               titleSource <- newSimpleSource title
                setValue workingNodeRegistry thisNode 
                   (ViewedNode{
                      thisView = view,
-                     parent = parentNode,
-                     titleSource = titleSource
+                     parent = parentNode
                      })
                update graph (NewNode thisNode workingType title)
                update graph (NewArc thisArc workingArcType () 
                   parentNode thisNode) 
-               displayedView <- displayView displaySort 
-                  (WrappedDisplayType FolderDisplayType) view 
-                  (mkSource titleSource)
+               (Just displayedView) <- openGeneralDisplay
+                  displaySort FolderDisplayType view
                addCloseDownAction displayedView (
                   update graph (DeleteNode thisNode)
                   )
@@ -318,8 +315,8 @@ newVersionGraph
                   transformValue workingNodeRegistry thisNode
                   (\ viewedNodeOpt ->
                      let
-                        getNodeData viewedNode
-                           = (parent viewedNode,titleSource viewedNode)
+                        getNodeData viewedNode = (parent viewedNode,
+                           titleSource (thisView viewedNode))
                      in
                         return (Nothing,fmap getNodeData viewedNodeOpt)
                      )
@@ -353,8 +350,7 @@ newVersionGraph
                         setValue workingNodeRegistry thisNode 
                            (ViewedNode {
                               thisView = view,
-                              parent = newNode,
-                              titleSource = titleSource
+                              parent = newNode
                               }) 
 
                         update graph (NewNode thisNode workingType title)

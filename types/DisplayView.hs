@@ -12,6 +12,8 @@ module DisplayView(
    focusLink,
    addCloseDownAction,
    addNewObjectType,
+
+   openGeneralDisplay,
    ) where
 
 import IOExts
@@ -265,19 +267,18 @@ displayView ::
    => (Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
    -> WrappedDisplayType -> View 
-   -> Source String
    -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms 
          arc arcType arcTypeParms)
 displayView 
       (displaySort :: Graph 
       graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms) 
-      wrappedDisplayType view source =
+      wrappedDisplayType view =
    do
       -- (0) Where the displayed view will go, when we've got it
       displayedViewMVar <- newEmptyMVar
 
       -- (1) get the graph parameters and set up the graph
-      graphPars <- graphParms view wrappedDisplayType source
+      graphPars <- graphParms displaySort view wrappedDisplayType
       graph <- newGraph displaySort graphPars
 
       -- (2) construct the nodes registry
@@ -612,4 +613,23 @@ doCloseDownActions displayedView =
                action
                doCloseDownActions displayedView
 
+-- ------------------------------------------------------------------------    
+-- Function suitable for using in DisplayTypes.openDisplayMenuItemPrim
+-- ------------------------------------------------------------------------    
 
+openGeneralDisplay :: 
+   (  GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+         arc arcType arcTypeParms,
+      DisplayType displayType
+      )
+   => (Graph graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms) 
+   -> displayType 
+   -> View
+   -> IO (Maybe (DisplayView.DisplayedView graph graphParms node 
+      nodeType nodeTypeParms arc arcType arcTypeParms))
+openGeneralDisplay displaySort displayType view =
+   do
+      displayedView <- displayView displaySort 
+         (WrappedDisplayType displayType) view
+      return (Just displayedView)
