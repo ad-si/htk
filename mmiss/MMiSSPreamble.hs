@@ -154,10 +154,13 @@ editPreamble :: View -> Link MMiSSPreamble -> IO ()
 editPreamble view link =
    do
       preamble <- readLink view link
+      let
+         preambleFS = mkPreambleFS view link
+
       editEmacs preambleFS printAction preamble
 
-preambleFS :: EmacsFS MMiSSPreamble
-preambleFS =
+mkPreambleFS :: View -> Link MMiSSPreamble -> EmacsFS MMiSSPreamble
+mkPreambleFS view link =
    let
       editFS (MMiSSPreamble {preamble = preamble,editLock = editLock}) =
          addFallOutWE (\ break ->
@@ -177,6 +180,7 @@ preambleFS =
                            (\ latexPreamble -> 
                               do
                                  broadcast preamble latexPreamble
+                                 dirtyLink view link
                                  return Nothing
                               )
                            latexPreambleWE
