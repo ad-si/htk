@@ -12,6 +12,20 @@
 module Main (main) where
 
 import HTk
+import FileDialog
+import System
+
+exportPS :: Canvas -> IO ()
+exportPS cnv =
+  do
+    homedir <- getEnv "HOME"
+    selev <- fileDialog "Open file" homedir
+    file  <- sync selev
+    case file of
+      Just fp -> try (postscript cnv [psfile fp] >>
+                      putStrLn "postscript exported") >> done
+      _ -> done
+
 
 main :: IO ()
 main =
@@ -20,13 +34,17 @@ main =
     cnv <- newCanvas main [size(cm 15, cm 15), background "white"]
     pack cnv []
     putRects cnv
+    but <- newButton main [text "PS export"]
+    clickedbut <- clicked but
+    pack but [Fill X, Expand On]
     (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just (BNo 3)))]
     let listenMouseClicks :: Event ()
         listenMouseClicks = do
                               (x, y) <- click >>>= \i-> return(x i, y i)
                               always (do
                                         putRect cnv ("yellow", (x, y)))
-    spawnEvent (forever listenMouseClicks)
+    spawnEvent (forever (listenMouseClicks +>
+                         (clickedbut >>> exportPS cnv)))
     finishHTk
 
 putRects cnv = mapM (putRect cnv) [("red", (cm 0.2, cm 4)),

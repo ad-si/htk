@@ -16,7 +16,7 @@
 -- A canvas widget contains <strong>canvas items</strong>.
 module Canvas (
 
---  HasPostscript(..),   -- TD: ps export
+  HasPostscript(..),   -- TD: ps export
 
   ScrollBar,
   HasScroller(..),
@@ -49,7 +49,7 @@ import Resources
 import Geometry
 import Image
 import ScrollBar
---import Printer        -- TD: PS export
+import Printer
 import Computation
 import Destructible
 import Synchronized
@@ -136,7 +136,9 @@ instance HasSize Canvas
 -- A canvas is a scrollable widget.
 instance HasScroller Canvas
 
---instance HasPostscript Canvas
+---
+-- The contents of a canvas is printable.
+instance HasPostscript Canvas
 
 ---
 -- You can synchronize on a canvas object (in JAVA style).

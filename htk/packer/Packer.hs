@@ -43,7 +43,7 @@ import Core
 ---
 -- Container widgets instantiate the abstract <code>class Container</code>
 -- to enable packing.
-class GUIObject a => Container a
+class GUIObject a => Container a where
 
 
 -- -----------------------------------------------------------------------
@@ -105,4 +105,5 @@ pack wid opts =
 data AbstractWidget = NONE
 instance GUIObject AbstractWidget where
   toGUIObject _ = ROOT
+  cname _ = "AbstractWidget"
 instance Container AbstractWidget

@@ -22,7 +22,10 @@ module Printer (
   pagey,
   rotate,
   pageAnchor,
-  getPageAnchor,
+  pswidth,
+  psheight,
+  pssize,
+  psfile,
 
   ColourMode(..),
   colourmode
@@ -30,10 +33,8 @@ module Printer (
 ) where
 
 
---import Thread
 import Core
 import Char(isSpace)
---import Debug(debug)
 import Computation
 import Configuration
 import Destructible
@@ -47,26 +48,23 @@ import Packer
 -- -----------------------------------------------------------------------
 
 class GUIObject w => HasPostscript w where
-  postscript :: w -> [Config PostScript] -> IO ()
+  postscript :: w -> [CreationConfig PostScript] -> IO ()
   postscript target confs =
     do
-      wid <- createGUIObject (toGUIObject NONE) POSTSCRIPT defMethods
-      configure (PostScript wid) confs
---      args <- lookupConfigs wid
-      catch 
-        (execMethod target (\nm -> [tkPostScript nm [] {-args-}]))
-        (\e -> destroy wid >> raise e)
-      destroy wid
-    where tkPostScript :: ObjectName -> [ConfigOption] -> TclCmd
-          tkPostScript name args = 
-            show name ++ " postscript " ++ showConfigs args
+      confstr <- showCreationConfigs confs
+      try
+        (execMethod target (\nm -> [tkPostScript nm confstr]))
+      done
+    where tkPostScript :: ObjectName -> String -> TclCmd
+          tkPostScript name confstr = 
+            show name ++ " postscript " ++ confstr
 
 
 -- -----------------------------------------------------------------------
 -- datatype
 -- -----------------------------------------------------------------------
 
-newtype PostScript = PostScript GUIOBJECT
+data PostScript = PostScript
 
 
 -- -----------------------------------------------------------------------
@@ -95,45 +93,44 @@ instance Show ColourMode where
          MonoChromeMode -> "mono"
         ) ++ r
 
+
 -- -----------------------------------------------------------------------
 -- Configuation Options
 -- -----------------------------------------------------------------------
 
-colourmode :: ColourMode -> Config PostScript
-colourmode cmode w = cset w "colormode" cmode
+colourmode :: ColourMode -> CreationConfig PostScript
+colourmode cmode = return ("colormode " ++ show cmode)
 
-pageheight :: Distance -> Config PostScript
-pageheight h w = cset w  "pageheight" h
+pageheight :: Distance -> CreationConfig PostScript
+pageheight h = return ("pageheight " ++ show h)
 
-pagewidth :: Distance -> Config PostScript
-pagewidth h w = cset w  "pagewidth" h
+pagewidth :: Distance -> CreationConfig PostScript
+pagewidth h = return ("pagewidth " ++ show h)
 
-pagex :: Distance -> Config PostScript
-pagex h w = cset w  "pagex" h
+pagex :: Distance -> CreationConfig PostScript
+pagex h = return ("pagex " ++ show h)
 
-pagey :: Distance -> Config PostScript
-pagey h w = cset w  "pagey" h
+pagey :: Distance -> CreationConfig PostScript
+pagey h = return ("pagey " ++ show h)
 
-rotate :: Bool -> Config PostScript
-rotate r w = cset w  "rotate" r
+rotate :: Bool -> CreationConfig PostScript
+rotate r = return ("rotate" ++ show r)
 
-pageAnchor :: Anchor -> Config PostScript
-pageAnchor anch w = cset w  "pageanchor" anch
+pageAnchor :: Anchor -> CreationConfig PostScript
+pageAnchor anch = return ("pageanchor" ++ show anch)
 
-getPageAnchor :: PostScript -> IO Anchor
-getPageAnchor w = cget w "pageanchor"
+pswidth :: Distance -> CreationConfig PostScript
+pswidth w = return ("width " ++ show w)
 
+psheight :: Distance -> CreationConfig PostScript
+psheight h = return ("height " ++ show h)
 
--- -----------------------------------------------------------------------
--- instances
--- -----------------------------------------------------------------------
+pssize :: Size -> CreationConfig PostScript
+pssize (w, h) =
+  do
+    wstr <- pswidth w
+    hstr <- psheight h
+    return (wstr ++ " -" ++ hstr)
 
-instance GUIObject PostScript where
-  toGUIObject (PostScript w) = w
-  cname _ = "PostScript"
-
-instance HasSize PostScript
-
-instance HasFile PostScript where
-  filename fname w = cset w  "file" fname
-  getFileName w = cget w  "file"
+psfile :: String -> CreationConfig PostScript
+psfile fnm = return ("file " ++ fnm)

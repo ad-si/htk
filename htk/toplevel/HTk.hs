@@ -69,12 +69,11 @@ module HTk (
   module PanedWindow,
   module ComboBox,
 
+
 -- devices submodules
 
   module Bell,
-
-
---
+  module Printer,
 
 
 -- menu / menuitem submodules
@@ -233,6 +232,7 @@ import ComboBox
 import Bell
 import Focus
 import Icon
+import Printer
 
 
 -- -----------------------------------------------------------------------
