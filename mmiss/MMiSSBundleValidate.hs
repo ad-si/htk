@@ -18,8 +18,8 @@
 --    objects and MMiSS files always do.
 -- ENTITYNAME) The name constructed from the FileLoc (with nameFileLoc) 
 --    should always be a valid EntityName.
--- NAMES) Everything except preambles has name = Just [something] in its 
---    fileLoc.  Preambles don't.
+-- NAMES) Everything except preambles or top-level nodes have 
+--    name = Just [something] in their fileLoc.  Preambles don't.
 -- EXT) ext is only set for MMiSS files.  extra is only set for ordinary files
 --    and folders.
 -- EXTEXISTS) for MMiSS files, ext is a file type known to MMiSSFileType.
@@ -35,7 +35,7 @@
 module MMiSSBundleValidate(
    validateBundle, -- :: Bundle -> WithError ()
    
-   validateBundleOut, -- :: Bundle -> WithError ()
+   validateBundleOut, -- :: Bundle -> IO ()
       -- used, at least during debugging, for validating bundles before they
       -- are transmitted to the user.
    ) where
@@ -47,6 +47,7 @@ import Maybe
 import Text.XML.HaXml.Types
 import XmlExtras
 
+import Messages
 import Computation
 import ExtendedPrelude
 import AtomString
@@ -62,6 +63,8 @@ import MMiSSVariant
 import MMiSSElementInstances
 import MMiSSFileType
 
+-- | Check that a bundle being read in passes various structural
+-- requirements
 validateBundle :: Bundle -> WithError ()
 validateBundle bundle =
    do
@@ -74,8 +77,20 @@ validateBundle bundle =
       validateBundle6 bundle -- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
       validateBundle7 bundle -- NOUNICODE
 
-validateBundleOut :: Bundle -> WithError ()
+
+-- | Check that a bundle being output passes various structural
+-- requirements.  These are less strict than for validateBundle because,
+-- for example, text fields might not be filled in, if the user only asked
+-- for locations.
+validateBundleOut :: Bundle -> IO ()
 validateBundleOut bundle =
+   case fromWithError (validateBundleOut1 bundle) of
+      Right () -> done
+      Left mess ->
+         alertMess ("Exported Bundle fails validation check: \n" ++ mess)
+
+validateBundleOut1 :: Bundle -> WithError ()
+validateBundleOut1 bundle =
    do
       validateBundle1 bundle -- DIROBJECT STRUCTURE
       validateBundle2 bundle -- NAMES EXT EXTEXISTS
@@ -193,6 +208,7 @@ validateBundle2 = checkAllNodes1 checkNamesExt
                case (name fileLoc1,isTop,base objectType1) of
                   (Just _,_,_) -> done
                   (_,True,MMiSSFolderEnum) -> done
+                  (_,True,FolderEnum) -> done
                   _  -> err bundleNode1 "Object has no name"
             mustNotHaveName =
                case name fileLoc1 of
@@ -202,6 +218,8 @@ validateBundle2 = checkAllNodes1 checkNamesExt
             mustHaveFileExt =
                case ext objectType1 of
                   Nothing -> err bundleNode1 "Type specifies no extension"
+                  Just "tex" -> done -- "tex" and "xml" occur in exported
+                  Just "xml" -> done -- bundles for MMiSS objects.
                   Just ext1 -> if fileTypeExists ext1
                      then
                         done

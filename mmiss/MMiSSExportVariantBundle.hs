@@ -34,6 +34,7 @@ import MMiSSObjectType
 import MMiSSFileType
 import MMiSSBundleUtils
 import MMiSSBundleSimpleUtils
+import MMiSSBundleValidate
 
 import {-# SOURCE #-} MMiSSExportFiles
 import {-# SOURCE #-} MMiSSReadObject
@@ -46,17 +47,22 @@ import MMiSSPackageFolder
 exportLinkedObjectVariant 
    :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch -> IO Bundle
 exportLinkedObjectVariant view linkedObject exportOpts variantSearch =
-   case splitLinkedObject linkedObject of
-      MMiSSFileC fileLink -> 
-         exportMMiSSFileVariant view fileLink exportOpts variantSearch
-      MMiSSObjectC objectLink ->
-         exportMMiSSObjectVariant view objectLink exportOpts variantSearch
-      _ ->     
-         do
-            packageId <- mkPackageId view linkedObject
-            errorMess ("Unable to extract " ++ packageIdStr packageId)
-            bundleNode <- getUnknownBundleNode view linkedObject
-            return (Bundle [(packageId,bundleNode)])
+   do
+      bundle <-
+         case splitLinkedObject linkedObject of
+            MMiSSFileC fileLink -> 
+               exportMMiSSFileVariant view fileLink exportOpts variantSearch
+            MMiSSObjectC objectLink -> 
+               exportMMiSSObjectVariant view 
+                  objectLink exportOpts variantSearch
+            _ ->     
+               do
+                  packageId <- mkPackageId view linkedObject
+                  errorMess ("Unable to extract " ++ packageIdStr packageId)
+                  bundleNode <- getUnknownBundleNode view linkedObject
+                  return (Bundle [(packageId,bundleNode)])
+      validateBundleOut bundle
+      return bundle  
 
 
 -- --------------------------------------------------------------------------
@@ -83,8 +89,9 @@ exportMMiSSObjectVariant view mmissObjectLink exportOpts variantSearch =
                         charType = Unicode
                         }
 
-                     bundleNodeData = Object [(Nothing,bundleText)]
-                        -- we don't supply variants, which will be encoded
+                     bundleNodeData = Object [(Just emptyMMiSSVariantSpec,
+                        bundleText)]
+                        -- The real variants will be encoded
                         -- in the objectString anyway.
                   return (bundleNodeData,exportFiles)
             else

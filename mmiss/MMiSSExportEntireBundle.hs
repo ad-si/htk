@@ -9,11 +9,11 @@ module MMiSSExportEntireBundle(
       -- -> IO BundleNode
    ) where
 
-import Messages
 import AtomString
 import Sources
 import ICStringLen
 import Thread
+import Messages
 
 import View
 import Link
@@ -28,6 +28,7 @@ import MMiSSFileType
 import MMiSSSplitLink
 import MMiSSPreamble
 
+import MMiSSBundleValidate
 import MMiSSBundle
 import MMiSSBundleUtils
 import MMiSSObjectTypeInstance
@@ -45,7 +46,10 @@ exportEntireLinkedObject view linkedObject exportOpts =
    do
       bundleNode <- exportEntireLinkedObject1 view linkedObject exportOpts
       packageId <- mkPackageId view linkedObject
-      return (Bundle [(packageId,bundleNode)])
+      let
+         bundle = Bundle [(packageId,bundleNode)]
+      validateBundleOut bundle
+      return bundle
 
 -- --------------------------------------------------------------------------
 -- Splitting

@@ -37,7 +37,7 @@ module Link(
    cloneLink, 
       -- :: HasCodedValue x => View -> Link x -> View -> Link x -> IO ()
       -- cloneLink view1 link1 view2 link2
-      -- *requires* that (a) link1 is not changed in view1; (b) link2 does
+      -- requires that (a) link1 is not changed in view1; (b) link2 does
       -- not exist in view2.  It creates a copy of link1 in view2, as link2.
 
    newEmptyObject, -- :: HasCodedValue x => View -> IO (Versioned x)
@@ -145,6 +145,10 @@ import CodedValue
 -- Links
 -- ----------------------------------------------------------------------
 
+-- | A Link x is a pointer to an object of type x.  Links are made
+-- instances of HasCodedValue, which means they
+-- can themselves be stored in the repository, for example as attributes
+-- of other objects.
 newtype Link x = Link Location deriving (Eq,Ord,Typeable)
 
 instance Monad m => HasBinary (Link x) m where
@@ -154,12 +158,15 @@ instance Monad m => HasBinary (Link x) m where
 instance HasKey (Link x) Location where
    toKey (Link location) = location
 
+-- | This link points to the \"top object\".  This needs to be
+-- created 
 topLink :: Link x
 topLink = Link specialLocation2
 
 makeLink :: HasCodedValue x => View -> Versioned x -> IO (Link x)
 makeLink _ (Versioned {location = location}) = return (Link location)
 
+-- | look up a link to an object in the repository.
 fetchLink :: HasCodedValue x => View -> Link x -> IO (Versioned x)
 fetchLink view link =
    do
@@ -172,6 +179,7 @@ isEmptyLink view link =
       versioned <- fetchLink view link
       isEmptyObject versioned
 
+-- | This function collects a lot of links in parallel.
 preFetchLinks :: HasCodedValue x => View -> [Link x] -> IO ()
 preFetchLinks view links =
    mapMConcurrent_ 
@@ -302,36 +310,42 @@ data ReadObjectArg =
       IsCloned ObjectVersion
    |  IsntCloned (Maybe ObjectVersion)
 
+-- | Does 'fetchLink' and 'readObject' in one go.
 readLink :: HasCodedValue x => View -> Link x -> IO x
 readLink view link =
    do
       versioned <- fetchLink view link
       readObject view versioned 
 
+-- | Does 'fetchLink' and 'updateObject' in one go.
 writeLink :: HasCodedValue x => View -> Link x -> x -> IO ()
 writeLink view link x =
    do
       versioned <- fetchLink view link
       updateObject view x versioned
 
+-- | does 'fetchLink' and 'updateObjectIfNe' in one go.
 writeLinkIfNe :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
 writeLinkIfNe view link x =
    do
       versioned <- fetchLink view link
       updateObjectIfNe view x versioned
 
+-- | Does 'createObject' and 'makeLink' in one go.
 createLink :: HasCodedValue x => View -> x -> IO (Link x)
 createLink view x =
    do
       versioned <- createObject view x
       makeLink view versioned
 
+-- | Like 'newEmptyObject'; similar considerations apply.
 newEmptyLink :: HasCodedValue x => View -> IO (Link x)
 newEmptyLink view =
    do
       versioned <- newEmptyObject view
       makeLink view versioned
 
+-- | Allocate a new link but don't put it in any view.
 absolutelyNewLink :: HasCodedValue x => Repository -> IO (Link x)
 absolutelyNewLink repository =
    do
@@ -357,13 +371,17 @@ readLinkWE view link =
             )
          versionedWE
 
-
+-- | Provide an efficient way of testing two links for equality
 eqLink :: Link x -> Link y -> Bool
 eqLink (Link loc1) (Link loc2) = loc1 == loc2
 
+-- | Provide an efficient way of comparing two links.
 compareLink :: Link x -> Link y -> Ordering
 compareLink (Link loc1) (Link loc2) = compare loc1 loc2
 
+-- | cloneLink view1 link1 view2 link2
+-- requires that (a) link1 is not changed in view1; (b) link2 does
+-- not exist in view2.  It creates a copy of link1 in view2, as link2.
 cloneLink :: HasCodedValue x => View -> Link x -> View -> Link x -> IO ()
 cloneLink view1 (Link location1) view2 (Link location2) =
    do
@@ -400,6 +418,9 @@ cloneLink view1 (Link location1) view2 (Link location2) =
 -- Versioned
 -- ----------------------------------------------------------------------
 
+-- | A Versioned x is a box containing an actual x which can be
+-- stored in the repository.  The x needs to be an instance of 
+-- 'HasCodedValue'.
 data Versioned x = Versioned {
    location :: Location, -- Location in the view.
    statusMVar :: MVar (Status x),
@@ -466,6 +487,9 @@ data Status x =
    |  Dirty x -- This object committed, but since modified
    |  Virgin x -- Object never committed.
 
+-- | Set the contents of a pre-allocated link to a particular value.
+-- NB.  This function is only intended for use for merging.  The
+-- link should not have anything in it before.
 setLink :: HasCodedValue x => View -> x -> Link x -> IO (Versioned x)
 setLink view x (Link location) = 
    do
@@ -479,7 +503,7 @@ setLink view x (Link location) =
 
       return versioned
                
--- | setOrGetTopLink is somewhat safer than setTopLink and initialises the
+-- | setOrGetTopLink is somewhat safer than 'setTopLink' and initialises the
 -- top object, if that hasn\'t already been done, via the supplied action.
 -- Otherwise it (harmlessly) returns the existing object.
 setOrGetTopLink :: HasCodedValue x => View -> IO x -> IO (Versioned x)
@@ -494,6 +518,7 @@ setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
       versionedWE <- fetchOrSetLinkWE statusAct view topLink
       coerceWithErrorIO versionedWE
 
+-- | This is used for creating a completely new object.
 createObject :: HasCodedValue x => View -> x -> IO (Versioned x)
 createObject view x =
    do
@@ -501,6 +526,11 @@ createObject view x =
 
       createObjectGeneral view (Virgin x) location
 
+-- | This creates an object with no contents as a stop-gap so you can
+-- create a link to it, EG for constructing circular lists.
+-- WARNING - updateObject must be used to put in an actual value,
+-- before readObject is done on this Versioned value.  This must also be
+-- done before any commitView, unless the object is deleted via deleteLink.
 newEmptyObject :: HasCodedValue x => View -> IO (Versioned x)
 newEmptyObject view = 
    do
@@ -567,12 +597,16 @@ deleteLink view (Link location) =
       debug ("Deleting " ++ show location)
       deleteFromRegistry (objects view) location
 
+-- | This replaces the x value inside an object by a new value, and
+-- marks it to be stored anew.
 updateObject :: HasCodedValue x => View -> x -> Versioned x -> IO ()
 updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
    do
       status <- takeMVar statusMVar
       putNewStatus versioned (updateStatus x status)
 
+-- | Like 'updateObject', except that it does nothing if x is no change
+-- from the previous value.
 updateObjectIfNe :: (HasCodedValue x,Eq x) => View -> x -> Versioned x 
    -> IO Bool
 updateObjectIfNe view x (versioned@Versioned{statusMVar = statusMVar}) =
@@ -596,6 +630,9 @@ updateStatus x status = case status of
    UpToDate _ -> Dirty x
    Dirty _ -> Dirty x
 
+-- | This marks the x value to be stored anew, even though it hasn't
+-- been changed.  This is needed, for example, when x points to a file,
+-- which has been updated on the side.
 dirtyObject :: HasCodedValue x => View -> Versioned x -> IO ()
 dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
    do
@@ -607,6 +644,7 @@ dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
 
       putNewStatus versioned newStatus
 
+-- | get the current contents of the object.
 readObject :: HasCodedValue x => View -> Versioned x -> IO x
 readObject view (versioned@Versioned{statusMVar = statusMVar} :: Versioned x) =
    do
@@ -634,6 +672,8 @@ putNewStatus versioned status =
 -- Access to whether the object is dirty or not
 -- ----------------------------------------------------------------------
 
+-- | Return a source which is 'True' whenever the versioned value is
+-- dirty (meaning that it has uncommitted data).
 getIsDirtySimpleSource :: Versioned x -> SimpleSource Bool
 getIsDirtySimpleSource (versioned :: Versioned x) =
    let
@@ -661,6 +701,7 @@ getIsDirtySimpleSource (versioned :: Versioned x) =
 -- Access to the lastChange
 -- ----------------------------------------------------------------------
 
+-- | Return the last-change indicator for a link in the view.
 getLastChange 
    :: HasCodedValue object => View -> Link object -> IO (Maybe ObjectVersion)
 getLastChange view (Link location :: Link object) =

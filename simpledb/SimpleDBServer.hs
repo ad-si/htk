@@ -49,11 +49,11 @@ import Monad
 import Control.Monad.Trans
 import Data.FiniteMap
 import Data.Set
+import Data.IORef
 
 import Computation
 import ExtendedPrelude
 import AtomString
-import IOExts
 import Dynamics
 import FileNames
 import ICStringLen
