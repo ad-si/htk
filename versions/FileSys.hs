@@ -105,7 +105,7 @@ data Change =
       NewFile BrokenPath -- File (not folder) with this name has been added
    |  NewFolder BrokenPath -- New folder has been added.
    |  EditFile BrokenPath -- File (already in FileSys) has been edited.
-   |  EditAttributes BrokenPath Attributes - set attributes for this path.
+   |  EditAttributes BrokenPath Attributes -- set attributes for this path.
    |  RMObject BrokenPath -- remove this file or folder
    |  MVObject BrokenPath BrokenPath -- Move first object to second.
 
@@ -268,7 +268,7 @@ getTop (FileSys{folderType=folderType}) (Version objectVersion) =
 getFolderObj :: FileSys -> FileObj -> IO FolderObj
 getFolderObj 
       (fileSys@FileSys{folderCache=folderCache,folderType=folderType})
-      (fileObj@(FileObj _ _ objectType)) =
+      (fileObj@(FileObj _ _ _ objectType)) =
    do
       if objectType /= folderType
          then
@@ -354,26 +354,27 @@ commitVersion fileSys version filePath changes =
 data ChangeTree = 
       -- This models the folder structure of the file system.
       -- The idea is to contain only the contents of changed folders.
-      ExistingObject FileObj
-      -- version of file or folder already in database 
-   |  UpdateFile Original FilePath
-      -- new version of file, stored at FilePath
-   |  UpdateFolder Original ChangeFolder
-      -- new version of folder
+      NewObject NewContents Attributes
+      -- new file at this path with its attributes
+   |  OldObject OldContents (Maybe Attributes) FileObj
+      -- already existing object with new contents and attributes if set.
    deriving Show
 
-data UpdateFile =
-   UpdateFile
+data NewContents = 
+      NewFile FilePath
+   |  NewFolder ChangeFolder
+   deriving Show
+
+data OldContents =
+      Unchanged
+   |  EditFile FilePath
+   |  EditFolder ChangeFolder
+   deriving Show
 
 newtype ChangeFolder = ChangeFolder (FiniteMap (String,UniType) ChangeTree)
-
+   
 instance Show ChangeFolder where
    showsPrec prec (ChangeFolder map) acc = showsPrec prec (fmToList map) acc
-
-
-newtype Original = Original (Maybe (Location,ObjectVersion)) deriving Show
--- If the object is new, this is Nothing, otherwise it is
--- Just (the location of the version we are revising)
 
 ------------------------------------------------------------------
 -- Turning sequences of changes into change trees.
@@ -426,7 +427,7 @@ encodeChangeTreeUpdate :: ((String,UniType) -> ChangeFolder -> ChangeFolder)
 encodeChangeTreeUpdate updateFn
       fileSys changeTree (brokenPath@(inHere:restPath)) =
    do
-      (original,changeFolder@(ChangeFolder folderMap)) <-
+      (changeFolder@(ChangeFolder folderMap),wrapper) <-
          getChangeFolder fileSys changeTree
       strType@(str,uniType) <- unmakeFileName (typeDataBase fileSys) inHere
       case restPath of
@@ -434,7 +435,7 @@ encodeChangeTreeUpdate updateFn
             let
                newChangeFolder = updateFn strType changeFolder
             in
-               return (UpdateFolder original newChangeFolder)
+               return (wrapper newChangeFolder)
          _ ->
             do 
                assert (uniType == folderType fileSys) 
@@ -448,30 +449,54 @@ encodeChangeTreeUpdate updateFn
                      updateFn fileSys innerChangeTree restPath
                let
                   newTree =
-                     UpdateFolder original 
+                     wrapper 
                        (ChangeFolder(
                         addToFM folderMap strType newInnerTree
                         ))
                return newTree
    where
-      -- getChangeFolder reads a change tree which should correspond to
-      -- a folder top, and returns the corresponding (Original,ChangeFolder)
-      -- if it is.
-      getChangeFolder :: FileSys -> ChangeTree -> IO (Original,ChangeFolder)
-      getChangeFolder fileSys (UpdateFile _ _) =
-         fileSysError("getChangeError: no folder where one expected")
-      getChangeFolder fileSys (UpdateFolder original changeFolder) =
-         return (original,changeFolder)
+      -- getChangeFolder reads a ChangeTree which should correspond to
+      -- a folder top.  It returns (1) a ChangeFolder corresponding to the
+      -- contents; (2) a function for wrapping up a new ChangeFolder
+      -- in a ChangeTree as a new version of that ChangeFolder. 
+      getChangeFolder :: FileSys -> ChangeTree ->
+         IO (ChangeFolder,ChangeFolder -> ChangeTree)
       getChangeFolder fileSys 
-            (ExistingObject (fileObj@(FileObj location objectVersion _ ))) =
+            (NewObject (NewFolder changeFolder) attributes) =
+         return (
+            changeFolder,
+            \ newChangeFolder ->
+               (NewObject (NewFolder newChangeFolder) attributes)
+            )
+      getChangeFolder fileSys
+            (NewObject (NewFile changeFolder) attributes) =
+         fileSysError("getChangeError: no folder where one expected")
+      getChangeFolder fileSys 
+            (OldObject Unchanged maybeAttributes fileObj) =
          do 
             FolderObj map <- getFolderObj fileSys fileObj
             let
-               changeMap = mapFM
-                  (\ key fileObj -> ExistingObject fileObj)
+               changeFolder = ChangeFolder(mapFM
+                  (\ key fileObj -> OldObject Unchanged Nothing fileObj)
                   map
-            return 
-               (Original(Just(location,objectVersion)),ChangeFolder changeMap)
+                  )
+            return ( 
+               changeFolder,
+               \ newChangeFolder ->
+                  OldObject (EditFolder newChangeFolder) maybeAttributes 
+                     fileObj
+               )
+      getChangeFolder fileSys 
+            (OldObject (EditFile _) maybeAttributes fileObj) =
+         fileSysError("getChangeError: no folder where one expected (2)")
+      getChangeFolder fileSys 
+            (OldObject (EditFolder changeFolder) maybeAttributes fileObj) =
+         return (
+            changeFolder,
+            \ newChangeFolder ->
+               (OldObject (EditFolder newChangeFolder) maybeAttributes 
+                  fileObj)
+            )
 
 encodeFileChange :: Bool -> FilePath -> FileSys -> ChangeTree -> 
    BrokenPath -> IO ChangeTree
@@ -495,18 +520,19 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
          updateFn :: (String,UniType) -> ChangeFolder -> ChangeFolder
          updateFn strType (ChangeFolder folderMap) =
             let
-               original =
+               newChangeTree :: ChangeTree =
                   if isNew
                      then
-                        Original Nothing
+                        NewObject (NewFile completeName) emptyAttributes
                      else
                         case lookupFM folderMap strType of
-                           Just (ExistingObject 
-                              (FileObj location objectVersion _)
-                              ) -> Original(Just (location,objectVersion))
-                           Just (UpdateFile original _) -> original
-                           -- match error if file not in folder (so not
-                           -- new) or this is a folder instead.
+                           Just (OldObject Unchanged attributes fileObj) ->
+                              (OldObject (EditFile completeName) attributes 
+                                 fileObj)
+                           Just (OldObject (EditFile _) attributes fileObj) ->
+                              (OldObject (EditFile completeName) attributes 
+                                 fileObj)
+                           -- match error if file is a folder instead.
                            Nothing -> 
                               let
                                  (str,uniType) = strType
@@ -514,18 +540,16 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
                               in
                                  error (
                                     "FileSys.encodeFileChange: In file edit "
-                                    ++fname++" does not exist") 
-               newMap = addToFM folderMap strType  
-                  (UpdateFile original completeName)
+                                    ++completeName++" does not exist") 
+               newMap = addToFM folderMap strType newChangeTree
             in
-               ChangeFolder newMap
-               
+               ChangeFolder new
       encodeChangeTreeUpdate updateFn fileSys changeTree brokenPath
 
 encodeNewFolder :: FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree
 -- encodeNewFolder adds a new folder
 encodeNewFolder fileSys changeTree brokenPath =
-   encodeInsertion (UpdateFolder (Original Nothing) (ChangeFolder emptyFM))
+   encodeInsertion (NewObject (NewFolder (ChangeFolder emptyFM)) emptyFolder)
       fileSys changeTree brokenPath
 
 encodeRMObject :: FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree
@@ -560,17 +584,22 @@ encodeInsertion changeTreeToInsert fileSys changeTree brokenPath =
 getLocation :: FileSys -> BrokenPath -> ChangeTree -> 
    IO ChangeTree
 getLocation fileSys [] changeTree = return changeTree
-getLocation fileSys brokenPath (ExistingObject fileObj) =
+getLocation fileSys brokenPath (OldObject Unchanged _ fileObj) =
    do
       fileObj <- lookupLocalPath fileSys fileObj brokenPath
-      return (ExistingObject fileObj)
-getLocation fileSys (inHere:rest) (UpdateFolder _ (ChangeFolder map)) =
-   do
-      strType <- unmakeFileName (typeDataBase fileSys) inHere
-      case lookupFM map strType of
-         Just changeTree -> getLocation fileSys rest changeTree
-getLocation fileSys (inHere:rest) (UpdateFile _ _) =
-   fileSysError("getLocation B "++inHere)
+      return (OldObject Unchanged Nothing fileObj)
+getLocation fileSys brokenPath 
+      (OldObject (EditFolder (ChangeFolder map)) _ _) = 
+         lookupInFolder brokenPath map
+getLocation fileSys brokenPath
+      (NewObject (NewFolder (ChangeFolder map)) _) =
+         lookupInFolder brokenPath map 
+   where
+      lookupInFolder (inHere:rest) map =
+         do
+            strType <- unmakeFileName (typeDataBase fileSys) inHere
+            case lookupFM map strType of
+               Just changeTree -> getLocation fileSys rest changeTree
 
 ------------------------------------------------------------------
 -- Committing a ChangeTree
