@@ -395,7 +395,7 @@ selected (i.e. clicked). Note that we do not bind anything to the
 difficulty submenu. This is because we are actually not interested in
 the user selecting a new difficulty during the game, we just read out
 the value set by the user every time we restart a game. (This is not
-ver polite --- it might be better to inform the user of this when he
+very polite --- it might be better to inform the user of this when he
 changes the selection, but this is just a small demonstration program.) 
 
 \subsection{The field}
@@ -405,18 +405,17 @@ playfield which can be used to restart the game.
 \begin{code}
     sm <- newButton main [photo smSmileImg]
     startClick <- clicked sm
-
-    pack sm [Side AtTop, PadY 20, PadX 20, Anchor North] 
+    
+    pack sm [Side AtTop, PadY 20, PadX 20]
 \end{code}
 We create a \texttt{Button} called \emph{sm} (from \textbf{sm}iley
 btw), bind it to an event, and pack it at the top of the \texttt{main}
-window, padding it 20 pixels wide in both directions and aligning to
-the top (which is \texttt{North} on most maps). The \texttt{photo}
+window, padding it 20 pixels wide in both directions. The \texttt{photo}
 configuration assigns an image to any widget that can hold one, such
 as a button. In this case we have a collection of base64 encoded GIFs
 directly in the code (not shown here); \footnote{The images have been
-  taken from gnomines (the GNOME minesweeper clone, where they are
-  attributed to Tuomas Kuosmanen \texttt{tigert} (Tuomas Kuosmanen).}
+  taken from gnomines (the GNOME minesweeper clone), where they are
+  attributed to \texttt{tigert} (Tuomas Kuosmanen).}
 this has the advantages of making the code stand-alone. As we will see
 later, there are also tiny \texttt{Images} for the empty field and the
 numbers and not only the flag; the main reason for this is to that all
@@ -426,9 +425,9 @@ colour the 8 has\dots But back to the smiley.
 
 Same as the \texttt{menu commands}, the \texttt{Button} is useless by
 itself. To get things started we create a channel named
-\emph{restartCh}. We will set things up such that sending ... over the
+\emph{restartCh}. We will set things up such that sending something
+(anything, really) over the
 channel will restart the game.
-
 
 \begin{code}
     restartCh <- newChannel
@@ -446,20 +445,6 @@ because it is packed after the button it is placed below.
 \begin{code}
     pack bfr [Side AtTop, PadX 15] 
 \end{code}
-
-\begin{comment}
-\begin{code}
--- code for number of flags/mines and counter; commented out as it
--- will make the screenshots invalid
---    lf   <- newFrame main []
---    flags <- newLabel lf [text "00/00", font (Lucida, 12::Int)]
---    time  <- newLabel lf [text "00:00", font (Lucida, 12::Int)] 
---    pack lf    [Side AtBottom, Expand On, Fill X]
---    pack flags [Side AtLeft,  PadX 5, PadY 5]
---    pack time  [Side AtRight, PadX 5, PadY 5]
-\end{code}
-\end{comment}
-
 
 Until now this was all very plain and straight. The buttons for the
 field are created in a more complex way. The function \texttt{buttons}

@@ -145,7 +145,7 @@ always :: IO a-> Event a
 \end{verbatim}
 \end{itemize}
 Events form a monad, with monad composition given by \texttt{>>>=} and
-\texttt{sync}. The monad composition corresponds to event sequencing;
+\texttt{always}. The monad composition corresponds to event sequencing;
 if we synchronise on an event composed from simple events, we wait for
 each of them in turn. By composing events in this way, fairly complex
 behaviours can be modelled in a single event.
@@ -498,10 +498,12 @@ an abstract datatype with operations such as \texttt{sync},
 \texttt{+>} and \texttt{>>>=}, which additionally form a monad; we
 refer to \cite{ger:Events} for more information. 
 
-In \HTk, events are mostly generated from user interactions by means
-of the \emph{bind} commands. By binding a user interaction (such as
-clicking a button), we set it up to produce an event, on which we can
-synchronise and thus produce a reaction to the user's action.
+In \HTk, basic events arise from user interactions by means of the
+\emph{bind} commands. By binding a user interaction (such as clicking
+a button), we set it up to produce an event, on which we can
+synchronise and thus produce a reaction to the user's action. We can
+then use the event operators to build more complex events with these
+basic events.
 
 One important caveat here is that once you set up a binding, you
 \emph{must} eventually \emph{synchronise} on the resulting events, since
@@ -537,18 +539,17 @@ bindSimple::GUIObject wid => wid -> WishEventType
 \end{xcode}
 \href{HTk.html#HTk.WishEventType}{\texttt{WishEventType}} is an
 algebraic data type describing the kind of event we would like to bind
-to, much along the lines of Tk's events which in turn are given by X
-events:
+to, much along the lines of Tk's events:
 \begin{xcode}
 data WishEventType =
-   ButtonPress (Maybe BNo) | ButtonRelease (Maybe BNo) | 
-   Motion | 
+   ButtonPress (Maybe BNo) | ButtonRelease (Maybe BNo) |
+   Motion |
    Enter  | Leave | 
    KeyPress (Maybe KeySym) | KeyRelease (Maybe KeySym)|
-   Activate | Circulate | Colormap | Configure | Deactivate | 
-   Destroy | Expose | FocusIn | FocusOut | Gravity | 
-   Map | Property | Reparent | Unmap | 
-   Visibility deriving (Show,Eq,Ord)   
+   Activate | Circulate | Colormap | Configure | Deactivate |
+   Destroy | Expose | FocusIn | FocusOut | Gravity |
+   Map | Property | Reparent | Unmap |
+   Visibility deriving (Show,Eq,Ord)
 \end{xcode}
 Each constructor corresponds to a different event, such as
 \begin{itemize}

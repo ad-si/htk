@@ -1,20 +1,20 @@
 % This file contains a lot of -*- mode: Latex -*-
 %
-\section{Menues}
-\label{sec:menues}
+\section{Menus}
+\label{sec:Menus}
 
-Menues in \HTk are nots straightforward, mainly due to Tk's awkward
-way of handling menues. Rather surprisingly, menues need \emph{not} be
+Menus in \HTk are not straightforward, mainly due to Tk's awkward
+way of handling Menus. Rather surprisingly, Menus need \emph{not} be
 packed.
 
-Menues are modelled by the type
-\href{Menu.html#Menu.Menu}{\texttt{Menu}}. Menues can either be the
+Menus are modelled by the type
+\href{Menu.html#Menu.Menu}{\texttt{Menu}}. Menus can either be the
 normal things which appear in a menu bar (typically at the top of a
 window), or attached to a single button, or pop-up menus which pop up
 out of nowhere. Actually, these are typically considered bad interface
 design, since they rarely confirm to user expectations (i.e. the user
 has no way of knowing wether a pop-up menu will appear). Try to use
-pop-up menues only as optional, convenient short-cuts. While we're at
+pop-up Menus only as optional, convenient short-cuts. While we're at
 it, try also to use one menu bar only, at the top of the window, since
 several menu bars in one window will be confusing, and try not to
 change the menus while the user isn't looking.
@@ -23,7 +23,7 @@ Menus in \HTk can contain:
 \begin{itemize}
 \item simple commands (which are instance of the \texttt{HasClicked}
   class),
-\item submenues (cascades),
+\item sub-menus (cascades),
 \item checkbuttons (boolean toggles),
 \item radiobuttons (multiple exclusive selections),
 \item and separators.
@@ -115,8 +115,8 @@ Sect.~\href{ssec:teenage-clicks}).
 \end{code}
 
 The source for the preceding example is in
-\texttt{htk/doc/intro/Mainmenu.lhs}. Other uses of menues--- in
-particular pop-up menues--- can be found in
+\texttt{htk/doc/intro/Mainmenu.lhs}. Other uses of menus--- in
+particular pop-up menus--- can be found in
 \texttt{htk/examples/simple/Mainmenu.hs}.
 
 The reader will probably agree that this is a lot of code for such a
