@@ -68,9 +68,7 @@ openRepositoryGeneralInternal initialiseView versionState =
       repository <- VersionDB.initialiseInternal versionState
       viewVersions <- listViews repository
       case viewVersions of
-         [] -> 
-            do
-               createRepository initialiseView repository
+         [] -> createRepository initialiseView repository
          _ -> done -- the repository is already initialised
       return repository
 

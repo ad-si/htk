@@ -142,7 +142,8 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                   )         
                parentChanges
 
-            versionOpt <- modifyUserInfo1 simpleDB user versionInformation txn
+            versionOpt 
+               <- modifyUserInfo1 simpleDB user versionInformation txn True
             if isJust versionOpt 
                then
                   do

@@ -146,7 +146,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex
+.PHONY : dependhere depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex slow slowhere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -177,6 +177,11 @@ lib : libhere
 
 libfast : libfasthere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) libfast && ) echo Finished make libfast
+
+slow : slowhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) slow && ) echo Finished make slow
+
+slowhere : boothere dependhere libhere packageherequick
 
 clean: cleanprogs
 	$(RM) -rf `$(GFIND) . \( \! -path "./HaXml-*" \) \( -name "*.hi" -o -name "*.o" -o -name "*.a" -o -name ".depend" \)`
@@ -213,11 +218,13 @@ display :
 	@echo PACKAGES = $(PACKAGES)
 	@echo WINDOWS = $(WINDOWS)
 
-depend : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
+depend : dependhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
+
+dependhere : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
 ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
 	$(DEPEND) $(HCFLAGS) $(SRCS) $(SRCSLHS)
 endif
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
 ifeq "$(strip $(LIBOBJS))" ""
 # no library

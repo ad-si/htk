@@ -17,7 +17,6 @@ module VersionState(
 
    getVersionInfos, -- :: VersionState -> IO [VersionInfo]
       -- get all the version infos, in undefined order.
-
    registerAct, -- :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
       -- Register an action to be done each time we add a new versionInfo.
       -- NB.  The action must always execute its argument exactly once.
