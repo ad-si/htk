@@ -49,6 +49,7 @@ import MMiSSExportLaTeX
 import MMiSSContent
 import MMiSSPrint
 import MMiSSEditXml(toExportableXml)
+-- import CASLFragments
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
@@ -99,21 +100,24 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   closeBlocker (extraNodes object) blockID
 
             includedArcParms =
-               Color "red" $$$
-               Thick $$$
+--               Color "red" $$$
+               Head "arrow" $$$
+               Solid $$$
                emptyArcTypeParms
 
             -- The ArcType's are defined by MMiSSObjectType.
             referencedArcType = fromString "R"
 
             referencedArcParms =
-               Color "red" $$$
+--               Color "red" $$$
                Dotted $$$
+               Head "arrow" $$$
                emptyArcTypeParms
 
             linkedArcParms =
-               Color "red" $$$
+--               Color "red" $$$
                Dashed $$$
+               Head "arrow" $$$
                emptyArcTypeParms
 
             toArcType :: LinkType -> ArcType
@@ -154,6 +158,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      Button "Hide Preamble Object"
                         (\ link -> closeAction link),
                      Button "Delete" (deleteObject view)
+--                     Button "Add CASL variant" (\ link -> addCASLVariant view link)
                      ]
                   menu = LocalMenu (Menu Nothing editOptions)
                in
