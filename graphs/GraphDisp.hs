@@ -24,7 +24,7 @@
    DaVinci, the type parameter is required to be an instance of Typeable.
 
       node.  A value of this type is an actual node in a graph.
-         (Will be an instance of Typeable.)
+         (Will be an instance of Typeable via HasTyCon1.)
       nodeType.  Nodes are created with a particular UniForM "type" which
          is a Haskell value of type nodetype.  In fact a graph might
          conceivably have multiply Haskell types corresponding to node
@@ -96,11 +96,6 @@ module GraphDisp(
    ArcTypeConfig,
    ArcTypeParms(..),
    ArcTypeConfigParms(..),
-
-   -- HasTyCon1 and HasTyCon3 must be implemented for nodes and arcs.
-   -- Doing this makes them typeable.
-   HasTyCon1 (..),
-   HasTyCon3 (..),
 
    -- LocalMenu describes menus or buttons for objects that carry a value,
    -- IE nodes or arcs.
@@ -423,38 +418,6 @@ data ValueTitle value = ValueTitle (value -> IO String)
 instance NodeTypeConfig ValueTitle
 
 instance ArcTypeConfig ValueTitle
- 
-
-------------------------------------------------------------------------
--- The HasTyCon1 and HasTyCon3 classes are used to indicate that
--- a type constructor produces typeable values
-------------------------------------------------------------------------
-
-class HasTyCon1 typeCon where
-   tyCon1 :: Typeable value => typeCon value -> TyCon
-
-instance (HasTyCon1 typeCon,Typeable value) => Typeable (typeCon value) where
-   typeOf _ =
-      let
-         (tC :: typeCon value) = tC
-         (v :: value) = v
-      in
-         mkTypeTag (tyCon1 tC) [typeOf v]
- 
-class HasTyCon3 typeCon where
-   tyCon3 :: (Typeable value1,Typeable value2,Typeable value3) 
-      => typeCon value1 value2 value3 -> TyCon
-
-instance (HasTyCon3 typeCon,Typeable value1,Typeable value2,Typeable value3) 
-      => Typeable (typeCon value1 value2 value3) where
-   typeOf _ =
-      let
-         (tC :: typeCon value1 value2 value3) = tC
-         (v1 :: value1) = v1
-         (v2 :: value2) = v2
-         (v3 :: value3) = v3
-      in
-         mkTypeTag (tyCon3 tC) [typeOf v1,typeOf v2,typeOf v3]
 
 ------------------------------------------------------------------------
 -- The Kind* classes are a silly hack so that we 

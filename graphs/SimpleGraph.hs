@@ -25,11 +25,13 @@ module SimpleGraph(
 
 import List(delete)
 
+import Concurrent
+import Exception(tryAllIO)
+
 import Computation (done)
 import Object
 import Registry
 
-import Concurrent
 import Selective
 import BSem
 
@@ -117,46 +119,44 @@ instance Graph SimpleGraph where
       synchronize graph (getValue (arcTypeData graph) arcType)
 
    shareGraph graph =
-      synchronize graph (
-         do
-            graphState <- cannGraph graph
-            graphUpdatesQueue <- newMsgQueue
-            let
-               graphUpdates = receive graphUpdatesQueue
-            clientID <- newObject 
-            let
-               clientSink update = sendIO graphUpdatesQueue update
-               clientData = ClientData 
-                  {clientID = clientID,clientSink = clientSink}
-               mVar = clientsMVar graph
-            oldClients <- takeMVar mVar
-            putMVar mVar (clientData : oldClients)
-            let
-               deRegister =
-                  do
-                     -- It is intentional that we don't sync this.
-                     -- I don't see how it can matter.
-                     oldClients <- takeMVar mVar
-                     putMVar mVar (delete clientData oldClients)
-               graphUpdate update = 
-                  applyUpdateFromClient graph update clientData
+      (\ clientSink ->
+         synchronize graph (
+            do
+               graphState <- cannGraph graph
+               clientID <- newObject 
+               let
+                  clientData = ClientData 
+                     {clientID = clientID,clientSink = clientSink}
+                  mVar = clientsMVar graph
+               oldClients <- takeMVar mVar
+               putMVar mVar (clientData : oldClients)
+               let
+                  deRegister =
+                     do
+                        -- It is intentional that we don't sync this.
+                        -- I don't see how it can matter.
+                        oldClients <- takeMVar mVar
+                        putMVar mVar (delete clientData oldClients)
+                  graphUpdate update = 
+                     applyUpdateFromClient graph update clientData
 
-            return 
-               (GraphConnection {
-                  graphState = graphState,
-                  graphUpdates = graphUpdates,
-                  deRegister = deRegister,
-                  graphUpdate = graphUpdate
-                  })
-         ) -- end of sync
+               return 
+                  (GraphConnectionData {
+                     graphState = graphState,
+                     deRegister = deRegister,
+                     graphUpdate = graphUpdate
+                     })
+            ) -- end of sync
+         )
 
-   newGraph (GraphConnection {
-      graphState = graphState,
-      graphUpdates = graphUpdates,
-      deRegister = deRegister,
-      graphUpdate = graphUpdate
-      }) =
+   newGraph getGraphConnection =
       do
+         graphUpdatesQueue <- newMsgQueue
+         GraphConnectionData {
+            graphState = graphState,
+            deRegister = deRegister,
+            graphUpdate = graphUpdate
+            } <- getGraphConnection (sendIO graphUpdatesQueue)
          graph <- uncannGraph graphState deRegister
          let
             mVar = clientsMVar graph
@@ -175,7 +175,7 @@ instance Graph SimpleGraph where
          let
             receiveChanges =
                do
-                  update <- sync graphUpdates
+                  update <- receiveIO graphUpdatesQueue
                   applyUpdateFromClient graph update clientData
                   receiveChanges
          forkIO receiveChanges
@@ -184,6 +184,24 @@ instance Graph SimpleGraph where
          return graph
 
    update graph update = applyUpdate graph update (const True)
+
+   newEmptyGraph =
+      do
+         nodeData <- newRegistry
+         nodeTypeData <- newRegistry
+         arcData <- newRegistry
+         arcTypeData <- newRegistry
+         clientsMVar <- newMVar []
+         bSem <- newBSem
+         graphID <- newObject
+         return (SimpleGraph {
+            nodeData = nodeData,nodeTypeData = nodeTypeData,
+            arcData = arcData,arcTypeData = arcTypeData,
+            parentDeRegister = done,
+            clientsMVar = clientsMVar,
+            bSem = bSem,
+            graphID = graphID
+            })
 
 getNodeInfo :: 
    (NodeData nodeLabel -> result)
@@ -260,119 +278,127 @@ applyUpdate ::
 applyUpdate 
       (graph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
       update proceedFn =
-   synchronize graph (
-      do
-         -- (1) do the update.
-         case update of
-            NewNodeType nodeType nodeTypeLabel ->
-               setValue (nodeTypeData graph) nodeType nodeTypeLabel
-            SetNodeTypeLabel nodeType nodeTypeLabel ->
-               setValue (nodeTypeData graph) nodeType nodeTypeLabel
-            NewNode node nodeType nodeLabel ->
-               setValue (nodeData graph) node
-                  (NodeData {
-                     nodeLabel = nodeLabel,
-                     nodeType = nodeType,
-                     arcsIn = [],
-                     arcsOut = []
-                     })
-            DeleteNode node -> 
-               do
-                  let
-                     nodeRegistry = nodeData graph
-                     arcRegistry = arcData graph
-                  (NodeData {arcsIn = arcsIn,arcsOut = arcsOut}
-                        :: NodeData nodeLabel) <-
-                     getValue nodeRegistry node
-                  sequence_
-                     (map
-                        (\ arc -> deleteFromRegistry arcRegistry arc)
-                        (arcsIn ++ arcsOut)
-                        )
-                  deleteFromRegistry (nodeData graph) node
-            SetNodeLabel node nodeLabel ->
-               do
-                  let
-                     registry = nodeData graph
-                  (nodeData :: NodeData nodeLabel) <- getValue registry node
-                  setValue registry node (nodeData {nodeLabel = nodeLabel})
-            NewArcType arcType arcTypeLabel ->
-               setValue (arcTypeData graph) arcType arcTypeLabel
-            SetArcTypeLabel arcType arcTypeLabel ->
-               setValue (arcTypeData graph) arcType arcTypeLabel
-            NewArc arc arcType arcLabel nodeSource nodeTarget ->
-               do
-                  let
-                     arcRegistry = arcData graph
-                     nodeRegistry = nodeData graph
-                     newArcData = ArcData {
-                        arcLabel = arcLabel,
-                        arcType = arcType,
-                        source = nodeSource,
-                        target = nodeTarget
-                        }
-                  setValue arcRegistry arc newArcData
+   do
+      clients <- synchronize graph (
+         -- (1) Update graph, and get list of current clients.
+         do
+            case update of
+               NewNodeType nodeType nodeTypeLabel ->
+                  setValue (nodeTypeData graph) nodeType nodeTypeLabel
+               SetNodeTypeLabel nodeType nodeTypeLabel ->
+                  setValue (nodeTypeData graph) nodeType nodeTypeLabel
+               NewNode node nodeType nodeLabel ->
+                  setValue (nodeData graph) node
+                     (NodeData {
+                        nodeLabel = nodeLabel,
+                        nodeType = nodeType,
+                        arcsIn = [],
+                        arcsOut = []
+                        })
+               DeleteNode node -> 
+                  do
+                     let
+                        nodeRegistry = nodeData graph
+                        arcRegistry = arcData graph
+                     (NodeData {arcsIn = arcsIn,arcsOut = arcsOut}
+                           :: NodeData nodeLabel) <-
+                        getValue nodeRegistry node
+                     sequence_
+                        (map
+                           (\ arc -> deleteFromRegistry arcRegistry arc)
+                           (arcsIn ++ arcsOut)
+                           )
+                     deleteFromRegistry (nodeData graph) node
+               SetNodeLabel node nodeLabel ->
+                  do
+                     let
+                        registry = nodeData graph
+                     (nodeData :: NodeData nodeLabel) <- 
+                        getValue registry node
+                     setValue registry node (nodeData {nodeLabel = nodeLabel})
+               NewArcType arcType arcTypeLabel ->
+                  setValue (arcTypeData graph) arcType arcTypeLabel
+               SetArcTypeLabel arcType arcTypeLabel ->
+                  setValue (arcTypeData graph) arcType arcTypeLabel
+               NewArc arc arcType arcLabel nodeSource nodeTarget ->
+                  do
+                     let
+                        arcRegistry = arcData graph
+                        nodeRegistry = nodeData graph
+                        newArcData = ArcData {
+                           arcLabel = arcLabel,
+                           arcType = arcType,
+                           source = nodeSource,
+                           target = nodeTarget
+                           }
+                     setValue arcRegistry arc newArcData
+   
+                     (nodeSourceData :: NodeData nodeLabel)
+                        <- getValue nodeRegistry nodeSource
+                     let
+                        newNodeSourceData = nodeSourceData {
+                           arcsOut = arc : (arcsOut nodeSourceData)
+                           }
+                     setValue nodeRegistry nodeSource newNodeSourceData
+   
+                     (nodeTargetData :: NodeData nodeLabel) 
+                        <- getValue nodeRegistry nodeTarget
+                     let
+                        newNodeTargetData = nodeTargetData {
+                           arcsIn = arc : (arcsIn nodeTargetData)
+                           }
+                     setValue nodeRegistry nodeTarget newNodeTargetData
+               DeleteArc arc ->
+                  do
+                     let
+                        arcRegistry = arcData graph
+                        nodeRegistry = nodeData graph
+                     (ArcData {source = source,target = target} 
+                        :: ArcData arcLabel)
+                        <- getValue arcRegistry arc
+                     deleteFromRegistry arcRegistry arc
+   
+                     (nodeSourceData :: NodeData nodeLabel) 
+                        <- getValue nodeRegistry source
+                     let
+                        newNodeSourceData = nodeSourceData {
+                           arcsOut = delete arc (arcsOut nodeSourceData)
+                           }
+                     setValue nodeRegistry source newNodeSourceData
+   
+                     (nodeTargetData :: NodeData nodeLabel)
+                        <- getValue nodeRegistry target
+                     let
+                        newNodeTargetData = nodeTargetData {
+                           arcsIn = delete arc (arcsIn nodeTargetData)
+                           }
+                     setValue nodeRegistry target newNodeTargetData
+               SetArcLabel arc arcLabel ->
+                  do
+                     let
+                        registry = arcData graph
+                     (arcData :: ArcData arcLabel) <- getValue registry arc
+                     setValue registry arc (arcData {arcLabel = arcLabel})
 
-                  (nodeSourceData :: NodeData nodeLabel)
-                     <- getValue nodeRegistry nodeSource
-                  let
-                     newNodeSourceData = nodeSourceData {
-                        arcsOut = arc : (arcsOut nodeSourceData)
-                        }
-                  setValue nodeRegistry nodeSource newNodeSourceData
-
-                  (nodeTargetData :: NodeData nodeLabel) 
-                     <- getValue nodeRegistry nodeTarget
-                  let
-                     newNodeTargetData = nodeTargetData {
-                        arcsIn = arc : (arcsIn nodeTargetData)
-                        }
-                  setValue nodeRegistry nodeTarget newNodeTargetData
-            DeleteArc arc ->
-               do
-                  let
-                     arcRegistry = arcData graph
-                     nodeRegistry = nodeData graph
-                  (ArcData {source = source,target = target} 
-                     :: ArcData arcLabel)
-                     <- getValue arcRegistry arc
-                  deleteFromRegistry arcRegistry arc
-
-                  (nodeSourceData :: NodeData nodeLabel) 
-                     <- getValue nodeRegistry source
-                  let
-                     newNodeSourceData = nodeSourceData {
-                        arcsOut = delete arc (arcsOut nodeSourceData)
-                        }
-                  setValue nodeRegistry source newNodeSourceData
-
-                  (nodeTargetData :: NodeData nodeLabel)
-                     <- getValue nodeRegistry target
-                  let
-                     newNodeTargetData = nodeTargetData {
-                        arcsIn = delete arc (arcsIn nodeTargetData)
-                        }
-                  setValue nodeRegistry target newNodeTargetData
-            SetArcLabel arc arcLabel ->
-               do
-                  let
-                     registry = arcData graph
-                  (arcData :: ArcData arcLabel) <- getValue registry arc
-                  setValue registry arc (arcData {arcLabel = arcLabel})
-         -- (2) Tell the clients
-         clients <- readMVar (clientsMVar graph)       
-         sequence_
-            (map
-               (\ clientData ->
-                  if proceedFn clientData
-                     then
-                        clientSink clientData update
-                     else
-                        done
-                  )
-               clients
+            readMVar (clientsMVar graph)
+         ) -- end of synchronize.  
+      -- (2) Tell the clients
+      sequence_
+         (map
+            (\ clientData ->
+               if proceedFn clientData
+                  then
+                     do
+                        result <- tryAllIO (clientSink clientData update) 
+                        case result of
+                           Left exception ->
+                              putStrLn ("Client error "++(show exception))
+                           Right () -> done
+                  else
+                     done
                )
-      ) -- end of synchronize.  
+            clients
+            )
 
 ------------------------------------------------------------------------
 -- Canning and Uncanning
@@ -389,87 +415,57 @@ cannGraph (SimpleGraph{
    }) =
    do
       nodeTypes <- listRegistryContents nodeTypeData
-      arcTypes <- listRegistryContents arcTypeData
-
       nodeRegistryContents <- listRegistryContents nodeData
-      let
-         nodes =
-            map
-               (\ (node,NodeData 
-                  {nodeLabel = nodeLabel,nodeType = nodeType}) ->
-                  (node,nodeType,nodeLabel)
-                  )
-               nodeRegistryContents
-
+      arcTypes <- listRegistryContents arcTypeData
       arcRegistryContents <- listRegistryContents arcData
+  
       let
-         arcs =
+         nodeTypeUpdates =
             map
-               (\ (arc,ArcData
-                  {arcType = arcType,arcLabel = arcLabel,
-                     source = source,target = target}) ->
-                  (arc,arcType,arcLabel,source,target)
+               (\ (nodeType,nodeTypeLabel) 
+                  -> NewNodeType nodeType nodeTypeLabel
+                  )
+               nodeTypes
+         nodeUpdates =
+            map
+               (\ (node,NodeData {nodeType = nodeType,nodeLabel = nodeLabel})
+                  -> NewNode node nodeType nodeLabel
+                  )
+               nodeRegistryContents 
+         arcTypeUpdates =
+            map
+               (\ (arcType,arcTypeLabel) 
+                  -> NewArcType arcType arcTypeLabel
+                  )
+               arcTypes
+         arcUpdates =
+            map
+               (\ (arc,ArcData {arcType = arcType,arcLabel = arcLabel,
+                     source = source,target = target}) 
+                  -> NewArc arc arcType arcLabel source target
                   )
                arcRegistryContents
-      return (CannedGraph {nodeTypes = nodeTypes,nodes = nodes,
-         arcTypes = arcTypes,arcs = arcs})
+
+      return (CannedGraph {
+         updates = nodeTypeUpdates ++ nodeUpdates ++ arcTypeUpdates 
+            ++ arcUpdates
+            })
             
 uncannGraph :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> IO ()
    -> IO (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 -- the second argument is the deregistration function of the parent,
 -- which we need to put in the SimpleGraph.
-uncannGraph (CannedGraph {nodeTypes = nodeTypes,nodes = nodes,
-   arcTypes = arcTypes,arcs = arcs}) parentDeRegister =
+uncannGraph 
+      ((CannedGraph {updates = updates}) 
+         :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
+      parentDeRegister =
    do
+      (graph' :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
+         <- newEmptyGraph
       let
-         nodeTypeUpdates =
-            map 
-               (\ (nodeType,nodeTypeLabel) -> 
-                  NewNodeType nodeType nodeTypeLabel
-                  )
-               nodeTypes
-         nodeUpdates =
-            map
-               (\ (node,nodeType,nodeLabel) ->
-                  NewNode node nodeType nodeLabel
-                  )
-               nodes
-         arcTypeUpdates =
-            map
-               (\ (arcType,arcTypeLabel) ->
-                  NewArcType arcType arcTypeLabel
-                  )
-               arcTypes
-         arcUpdates =
-            map
-               (\ (arc,arcType,arcLabel,source,target) ->
-                  NewArc arc arcType arcLabel source target
-                  )
-               arcs
-
-      nodeData <- newRegistry
-      nodeTypeData <- newRegistry
-      arcData <- newRegistry
-      arcTypeData <- newRegistry
-      clientsMVar <- newMVar []
-      bSem <- newBSem
-      graphID <- newObject
-
-      let
-         graph = SimpleGraph {
-            nodeData = nodeData,nodeTypeData = nodeTypeData,
-            arcData = arcData,arcTypeData = arcTypeData,
-            parentDeRegister = parentDeRegister,
-            clientsMVar = clientsMVar,
-            bSem = bSem,
-            graphID = graphID
-            }
-      sequence_ (
-         map 
-            (update graph) 
-            (nodeTypeUpdates ++ nodeUpdates ++ arcTypeUpdates ++ arcUpdates)
-         )
+         graph = graph {parentDeRegister = parentDeRegister}
+      sequence_ (map (update graph) updates)
       return graph
 
 
