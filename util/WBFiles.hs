@@ -221,16 +221,17 @@ import HostName
 -- Specific access functions.
 ------------------------------------------------------------------------
 
-valOf :: IO (Maybe a) -> IO a
-valOf action =
+valOf :: String -> IO (Maybe a) -> IO a
+valOf optionName action =
    do
       valueOpt <- action
       case valueOpt of
          Just a -> return a
-         Nothing -> error ("An option is surprisingly unset")
+         Nothing -> 
+            error ("option --uni-" ++ optionName ++ " is surprisingly unset")
 
 getWishPath :: IO String 
-getWishPath = valOf (getArgString "wish")
+getWishPath = valOf "wish" (getArgString "wish")
 
 getEditorString :: IO (Maybe String)
 getEditorString = getArgString "editor" 
@@ -265,16 +266,16 @@ getHosts =
    
 
 getDaVinciPath :: IO String
-getDaVinciPath = valOf (getArgString "daVinci")
+getDaVinciPath = valOf "daVinci" (getArgString "daVinci")
 
 getGnuClientPath :: IO String
-getGnuClientPath = valOf (getArgString "gnuclient")
+getGnuClientPath = valOf "gnuclient" (getArgString "gnuclient")
 
 getToolTimeOut :: IO Int
-getToolTimeOut = valOf (getArgInt "toolTimeOut")
+getToolTimeOut = valOf "toolTimeOut" (getArgInt "toolTimeOut")
 
 getTOP :: IO String
-getTOP = valOf (getArgString "top")
+getTOP = valOf "top" (getArgString "top")
 
 -- | Get a path within the top directory.  
 getTOPPath :: [String] -> IO String
@@ -284,19 +285,19 @@ getTOPPath names =
       return (unbreakName (trimDir top:names))
 
 getPort :: IO Int
-getPort = valOf (getArgInt "port")
+getPort = valOf "port" (getArgInt "port")
 
 getXMLPort :: IO Int
-getXMLPort = valOf (getArgInt "xmlPort")
+getXMLPort = valOf "xmlPort" (getArgInt "xmlPort")
 
 getWorkingDir :: IO String
 getWorkingDir = 
    do
-      workingDir' <- valOf (getArgString "workingDir")
+      workingDir' <- valOf "workingDir" (getArgString "workingDir")
       return (trimDir workingDir')
 
 getDebugFileName :: IO String
-getDebugFileName = valOf (getArgString "debug")
+getDebugFileName = valOf "debug" (getArgString "debug")
 
 getServerFile :: String -> IO String
 getServerFile innerName =
@@ -305,7 +306,7 @@ getServerFile innerName =
       return (combineNames (trimDir serverDir) innerName)
 
 getServerDir :: IO String
-getServerDir = valOf (getArgString "serverDir")
+getServerDir = valOf "serverDir" (getArgString "serverDir")
 
 getServerId :: IO (Maybe String)
 getServerId = getArgString "serverId"
@@ -854,7 +855,7 @@ $(
    if  isWindows
       then
         [d|
-           getWindowsTick = valOf (getArgInt "windowsTick")
+           getWindowsTick = valOf "windowsTick" (getArgInt "windowsTick")
         |]
       else
          [d|
