@@ -12,3 +12,6 @@ done
 # Set up a file mk/settings.h.  This is to be used by 
 # utils/WBFiles.hs
 echo \#define UNIDIR \"$FULLUNIDIR\" >mk/settings.h
+
+# set up a file mk/settings.mk.  This is used everywhere . . .
+echo UNIDIR = $FULLUNIDIR >mk/settings.mk

@@ -28,6 +28,7 @@ import Channels
 import EV
 import FileEV
 import Thread
+import Debug(debug)
 
 newtype HostDesc = HostDesc String deriving Show
 

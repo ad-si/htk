@@ -3,9 +3,11 @@
 # 
 # Export all variables!
 # export 
+include top/mk/settings.mk # find out location of top directory
 
-include top/mk/machinedep.mk # set variables which depend on the machine
--include top/mk/local.mk  # If available, include local variable changes
+
+include $(UNIDIR)/mk/machinedep.mk # set variables which depend on the machine
+-include $(UNIDIR)/mk/local.mk  # If available, include local variable changes
 # (This file is not included in the standard CVS distribution and
 # is intended to contain directives for debugging.)
 
@@ -25,10 +27,6 @@ else
 endif
 
 HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
-# Version as it used to be before the GHC library names all changed
-# HCSYSLIBS = -syslib posix -syslib misc -syslib exts -syslib concurrent
-
-HCLIBSACTUAL = $(HCHOME)/lib/libHSposix.a $(HCHOME)/lib/libHSposix_cbits.a $(HCHOME)/lib/libHSmisc.a $(HCHOME)/lib/libHSmisc_cbits.a $(HCHOME)/lib/libHSexts.a $(HCHOME)/lib/libHSconcurrent.a $(HCHOME)/lib/libHS.a $(HCHOME)/lib/libHS_cbits.a $(HCHOME)/lib/libHSrts.a $(HCHOME)/lib/libgmp.a -lc -lm
 
 HCFLAGS = $(HCSYSLIBS) \
           -i$(HCDIRS) \
@@ -54,10 +52,10 @@ CFLAGS           = $(GHCINCDIR)
 HCDIRS =  .:$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(HTKDIR):$(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):$(DAVINCIDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR)
 # $(OMSCDIR):$(OMSNOTIDIR):$(OMSDIR):$(WBDIR):$(TOOLSDIR):$(DEMODIR):$(SCHEMADIR):$(IDLDIR)
 
-UTILDIR    	= top/util
-CONCDIR    	= top/concurrency
-REACTORDIR 	= top/reactor
-HTKDIR           = top/htk
+UTILDIR    	= $(UNIDIR)/util
+CONCDIR    	= $(UNIDIR)/concurrency
+REACTORDIR 	= $(UNIDIR)/reactor
+HTKDIR           = $(UNIDIR)/htk
 HTKRESOURCEDIR    =  $(HTKDIR)/resources
 HTKCANVASITEMDIR    = $(HTKDIR)/canvasitems
 HTKKERNELDIR     = $(HTKDIR)/kernel
@@ -69,9 +67,9 @@ HTKTOPLEVELDIR   = $(HTKDIR)/toplevel
 HTKWIDGETSDIR    = $(HTKDIR)/widgets
 HTKDEVICESDIR    = $(HTKDIR)/devices
 HTKTEXTITEMDIR   = $(HTKDIR)/textitems
-DAVINCIDIR       = top/davinci
-WWWDIR           = top/www
-TOOLSDIR         = top/tools
-CVSDIR           = top/cvs
+DAVINCIDIR       = $(UNIDIR)/davinci
+WWWDIR           = $(UNIDIR)/www
+TOOLSDIR         = $(UNIDIR)/tools
+CVSDIR           = $(UNIDIR)/cvs
 
 

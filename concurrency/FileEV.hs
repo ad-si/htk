@@ -11,6 +11,11 @@ module FileEV(
 
 import IO
 import Concurrent
+import Posix
+import PosixUtil
+
+import Computation
+import Debug(debug)
 
 import Thread
 import Channels
@@ -37,9 +42,14 @@ makeFileEV :: Handle -> IO HandleEV
 makeFileEV handle =
    do
       readChannel <- newChannel  -- read from handle
+
+      fd <- handleToFd handle
+
       let
+         fdInt = fdToInt fd
          toForkRead = -- convert output from the Handle
             do
+               threadWaitRead fdInt
                line <- hGetLine handle
                sendIO readChannel line
                toForkRead
@@ -49,3 +59,5 @@ makeFileEV handle =
       return (HandleEV (receive readChannel) handle readThread)
 
                
+
+

@@ -37,10 +37,33 @@ compileGlobalOptions(
       ]
    ]
 
-newtype CVSFile = CVSFile String deriving Show
+newtype CVSFile = CVSFile String
+instance Show CVSFile where
+   showsPrec prec (CVSFile str) acc = showsPrec prec str acc
 
-newtype CVSVersion = CVSVersion String deriving Show
+instance Read CVSFile where
+   readsPrec prec str =
+      let
+         parses :: [(String,String)] = readsPrec prec str
+      in
+         map
+            (\ (result,rest) -> (CVSFile result,rest))
+            parses
+
+newtype CVSVersion = CVSVersion String 
  
+instance Show CVSVersion where
+   showsPrec prec (CVSVersion str) acc = showsPrec prec str acc
+
+instance Read CVSVersion where
+   readsPrec prec str =
+      let
+         parses :: [(String,String)] = readsPrec prec str
+      in
+         map
+            (\ (result,rest) -> (CVSVersion result,rest))
+            parses
+
 data CVSCommand =
       UpdateSimple {
          revision :: CVSVersion,
@@ -56,7 +79,13 @@ data CVSCommand =
    |  Add { -- this needs to be done for all new files.
          file :: CVSFile
          }
-
+   |  CheckoutSimple {
+         file :: CVSFile
+         }
+   |  StatusSimple {
+         file :: CVSFile
+         }
+         
 compileCVSCommand :: CVSCommand -> [Config PosixProcess]
 compileCVSCommand command =
       [appendArguments (compile command)]
@@ -85,6 +114,14 @@ compileCVSCommand command =
          ]
       compile(Add{file=CVSFile file}) = [
          "add",
+         file
+         ]
+      compile(CheckoutSimple{file=CVSFile file}) = [
+         "checkout",
+         file
+         ]
+      compile(StatusSimple{file=CVSFile file}) = [
+         "status",
          file
          ]
 

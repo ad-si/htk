@@ -45,5 +45,6 @@ commandLoop loc =
          ["update",file,version] ->
             showOut (cvsUpdate loc (CVSFile file) (CVSVersion version))
          ["list",file] -> showOut(cvsListVersions loc (CVSFile file))
+         ["checkout",file] -> showOut(cvsCheckout loc (CVSFile file))
          _ -> putStr("Couldn't parse: "++command++"\n")
       commandLoop loc

@@ -7,6 +7,8 @@ module CVSHigh(
       -- The best value to receive is CVSSuccess, which indicates
       -- that CVS returned with no complaints, and without producing
       -- unexpected output.
+   checkReturn, -- :: CVSReturn -> IO ()
+      -- confirms that CVSReturn is CVSSuccess or throws an error
    CVSFile(..),    -- CVSFile and CVSVersion are newtypes for String,
    CVSVersion(..), -- imported from CVSBasic
    CVSLoc,
@@ -29,10 +31,13 @@ module CVSHigh(
       -- is a revision.
       -- In the event of a successful return, the String is the version
       -- assigned to the new version.
-   cvsListVersions
+   cvsListVersions,
       -- :: CVSLoc -> CVSFile -> IO (Maybe [CVSVersion],CVSReturn)
       -- If successful, returns all versions known so far of the file 
       -- argument.
+   cvsCheckout
+      -- :: CVSLoc -> CVSFile -> IO CVSReturn
+      -- This is used to initialise a directory
    ) where
 
 import System
@@ -41,7 +46,7 @@ import Posix
 import Exception
 
 import Debug(debug)
-import Maybes
+import ExtendedPrelude
 import Dynamics
 
 import RegularExpression
@@ -81,6 +86,9 @@ instance Show CVSReturn where
                      Just something -> something++"\n"++acc2
             in 
                acc3
+
+checkReturn CVSSuccess = return ()
+checkReturn err = ioError(userError(show err)) 
 
 newtype CVSLoc = CVSLoc GlobalOptions
 
@@ -140,7 +148,7 @@ tryCVS mess exp event =
          (\ dynamic ->
             fmap (\ (CVSError mess) -> mess) (fromDyn dynamic)
             )
-         `compMaybe`
+         `monadDot` -- did you know Maybe was an instance of Monad?
          justDynExceptions
 
 
@@ -304,6 +312,7 @@ cvsListVersions (CVSLoc globalOptions) file =
                (do
                   mat "\\`total revisions: "
                   guard exp (mat "\\`description:\\'")
+                  return ()
                   )
             +> (do
                   matchLine exp
@@ -355,7 +364,23 @@ cvsListVersions (CVSLoc globalOptions) file =
                body []
 
       tryCVS "cvs log" exp logOutput
-      
+     
+cvsCheckout :: CVSLoc -> CVSFile -> IO CVSReturn
+cvsCheckout (CVSLoc globalOptions) file =
+   do
+      exp <- callCVS globalOptions (CheckoutSimple{file=file})
+      -- we expect a series of lines of the form "U ".
 
+      let
+         mat ptn = match exp (high ptn)
 
+         oneLine = mat "\\`U "
 
+         checkoutOut :: IA () =
+               (do
+                  oneLine
+                  checkoutOut
+                  ) 
+            +> mustEOFHere exp
+      (_,result) <- tryCVS "cvs checkout" exp checkoutOut
+      return result

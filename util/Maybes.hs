@@ -5,7 +5,6 @@ module Maybes (
    firstJust, -- :: [Maybe a] -> Maybe a
    maybeToBool, -- :: Maybe a -> Bool
                 -- same as isJust
-   compMaybe -- :: (b -> Maybe c) -> (a -> Maybe b) -> (a -> Maybe c)
    ) where
 
 import Maybe -- renamer will tell us if there are any conflicts
@@ -19,10 +18,4 @@ firstJust (Nothing : ms) = firstJust ms
 
 maybeToBool :: Maybe a -> Bool
 maybeToBool = isJust
-
-compMaybe :: (b -> Maybe c) -> (a -> Maybe b) -> (a -> Maybe c)
-compMaybe second first avalue =
-   case first avalue of
-      Nothing -> Nothing
-      Just bvalue -> second bvalue
 

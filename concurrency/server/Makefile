@@ -1,4 +1,4 @@
-LIBS = top/concurrency/libconcurrency.a top/util/libutil.a
+LIBS = $(UNIDIR)/concurrency/libconcurrency.a $(UNIDIR)/util/libutil.a
 
 SRCS       = Mainserver.hs\
 
