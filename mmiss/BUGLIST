@@ -4,6 +4,12 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+60) 1.10.02
+I have made Emacs keep track of when the contents of an extent are modified.
+This means for example that collapsing an unmodified container produces
+no warning, and committing only commits the modified containers.
+FIXED
+
 59) 27.09.02
 See also (5).
 We need to improve things when the user does "Close" or "Quit" from the

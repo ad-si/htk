@@ -12,8 +12,6 @@ module MMiSSEditXml(
 
 #include "config.h"
 
-import Pretty
-
 import Computation
 import ExtendedPrelude
 import RegularExpression
@@ -24,10 +22,12 @@ import EmacsEdit (TypedName)
 
 #if HAXMLINT
 import Text.XML.HaXml.Types
-import Text.Xml.HaXml.Pretty
+import Text.XML.HaXml.Pretty
+import Text.PrettyPrint.HughesPJ hiding (char)
 #else
 import XmlTypes
 import XmlPP
+import Pretty
 #endif
 
 import MMiSSDTD

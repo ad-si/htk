@@ -41,13 +41,14 @@ import Char
 
 #if HAXMLINT
 import Text.XML.HaXml.Types
-import qualified Text.Xml.HaXml.Pretty as PP
+import qualified Text.XML.HaXml.Pretty as PP
+import Text.PrettyPrint.HughesPJ hiding (char)
 #else
 import XmlTypes
 import qualified XmlPP as PP
+import Pretty hiding (char, spaces)
 #endif
 
-import Pretty hiding (char, spaces)
 import Computation hiding (try)
 import ParsecError
 import EmacsContent

@@ -21,13 +21,19 @@ module MMiSSDTDAssumptions(
    variantAttributesType, -- :: AttributesType
    ) where
 
+#include "config.h"
+
 import Maybe
 import Char
 
-import XmlTypes
-
 import ExtendedPrelude
 import Computation
+
+#if HAXMLINT
+import Text.XML.HaXml.Types
+#else
+import XmlTypes
+#endif
 
 import AttributesType
 import LaTeXParser

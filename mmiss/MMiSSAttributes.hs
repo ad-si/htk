@@ -15,7 +15,7 @@ import Computation
 import Registry
 
 #if HAXMLINT
-import Text.XML.HaXml.Types
+import Text.XML.HaXml.Types as XmlTypes
 #else
 import XmlTypes
 #endif
