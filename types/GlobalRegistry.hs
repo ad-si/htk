@@ -27,6 +27,7 @@ module GlobalRegistry(
    newKey,
    lookupInGlobalRegistry,
    addToGlobalRegistry,
+   getAllElements,
    ) where
 
 import Registry
@@ -124,6 +125,17 @@ deleteViewFromGlobalRegistry :: HasCodedValue objectType =>
    GlobalRegistry objectType -> View -> IO ()
 deleteViewFromGlobalRegistry (GlobalRegistry globalRegistry) view =
   deleteFromRegistry globalRegistry (viewId view)
+
+-- ---------------------------------------------------------------
+-- What the DisplayView module needs to know about global registries.
+-- ---------------------------------------------------------------
+
+getAllElements :: GlobalRegistry objectType -> View -> IO [objectType]
+getAllElements globalRegistry view =
+   do
+      viewData <- lookupViewData globalRegistry view
+      contents <- listRegistryContents (objectTypes viewData)
+      return (map snd contents)
 
 -- ---------------------------------------------------------------
 -- What the implementors of object types need to know about them.

@@ -61,13 +61,13 @@ instance DisplayType FolderDisplayType where
       -- We will need to add more options later for menus.
       emptyGraphParms
 
-   displayTypeGlobalRegistry _ = folderTypeRegistry
+   displayTypeGlobalRegistry _ = displayTypeRegistry
 
    displayTypeIdPrim (FolderDisplayType as) = as
 
-folderTypeRegistry :: GlobalRegistry FolderDisplayType
-folderTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
-{-# NOINLINE folderTypeRegistry #-}
+displayTypeRegistry :: GlobalRegistry FolderDisplayType
+displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
+{-# NOINLINE displayTypeRegistry #-}
 
 -- ------------------------------------------------------------------
 -- FolderType and its instance of HasCodedValue
@@ -222,7 +222,8 @@ registerFolders =
 ---
 -- mkPlainFolderType is used to construct the folder type
 -- when the repository is initialised (in getTopFolder),
--- and add it to the global registry.
+-- and add it to the global registry.  It also adds the
+-- folder display type to the display type registry.
 getPlainFolderType :: View -> IO FolderType
 getPlainFolderType view = 
    do
@@ -236,7 +237,14 @@ getPlainFolderType view =
             topFolderLinkOpt = Just topLink,
             knownFolders = knownFolders
             }
+
       addToGlobalRegistry globalRegistry view key folderType
+
+      displayTypeKey <- newKey displayTypeRegistry view
+      let
+         displayType = FolderDisplayType displayTypeKey
+      addToGlobalRegistry displayTypeRegistry view key displayType
+
       return folderType
 
 -- ------------------------------------------------------------------
