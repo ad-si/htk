@@ -196,14 +196,10 @@ testhere : $(TESTPROGS)
 mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
-ifneq "$(strip $(PACKAGE))" ""
+ifneq "$(PACKAGE)" ""
 	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS)
 	$(AR) -r $(LIB) $(LIBOBJS)
 endif
-
-$(GHCIOBJ) : $(LIB)
-	$(LD) -r --whole-archive -o $@ $<
-
 
 packagehere : libfasthere packageherequick
 
@@ -214,7 +210,7 @@ packageherequick :
 # The "echo" after the --remove-package means we keep going even if
 # remove-package complains about the package not being there (which it won't
 # be, the first time we use this).
-ifneq "$(strip $(PACKAGE))" ""
+ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF) --remove-package $(PACKAGE) ; echo ""
 ifneq "$(DOIMPORTS)" ""
 # Copy import files over.
@@ -223,7 +219,7 @@ ifneq "$(DOIMPORTS)" ""
 	$(CP) $(HILIBFILES) imports
 endif
 	sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) --config-file $(PACKAGECONF) --add-package 
-	$(MAKE) $(GHCIOBJ)
+	if [ -s $(LIB) ]; then $(LD) -r --whole-archive -o $(GHCIOBJ) $(LIB); fi
 endif
 
 packagesquick : packageherequick
@@ -231,7 +227,7 @@ packagesquick : packageherequick
 
 
 prepareexportshere : 
-ifneq "$(strip $(PACKAGE))" ""
+ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
 	sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(GHCPKG) --config-file $(PACKAGECONF).export --add-package 
 endif
@@ -239,18 +235,20 @@ endif
 prepareexports : prepareexportshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) prepareexports && ) echo Finished make prepareexports
 
-
 displayexportshere :
-ifeq "$(strip $(PACKAGE))" ""
+ifeq "$(PACKAGE)" ""
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL)
 else
 	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(LIB) 
 ifeq "$(DOIMPORTS)" ""
 	@PWD=`pwd`;echo $(EXPORTHIFILES)
 else
-	@PWD=`pwd`;echo $PWD/imports/*.hi
+	@PWD=`pwd`;echo $$PWD/imports/*.hi
 endif
 endif
+
+displayexports : displayexportshere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displayexports && ) echo
 
 displaysrcshere :
 	@PWD=`pwd`;echo $(ALLFILESALL)
@@ -297,11 +295,13 @@ $(LIBOBJSHS) : %.o : %.hs
 $(LIBOBJSLHS) : %.o : %.lhs
 	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) 
 
+TESTFLAGS = $(if $(PACKAGE),$(HCSHORTFLAGS) $(THISPACKAGE),$(HCFLAGS))
+
 $(TESTOBJSHS) $(MAINOBJSHS) : %.o : %.hs
-	$(HC) -c $< $(HCFLAGS) $(THISPACKAGE)
+	$(HC) -c $< $(TESTFLAGS)
 
 $(TESTOBJSLHS) $(MAINOBJSLHS) : %.o : %.lhs
-	$(HC) -c $< $(HCFLAGS) $(THISPACKAGE)
+	$(HC) -c $< $(TESTFLAGS)
 
 # C objects ought to depend on the header file as well,
 # but this is tricky when the C file is inside a subdirectory

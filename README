@@ -8,8 +8,9 @@ The source of Uni is in the following directories:
    util         |  Miscellanous Haskell functions used all over Uni
    events       |  Events, providing a way for concurrent events to 
                 |  communicated
-   server       |  Stuff for client-server relationships
    reactor      |  Miscellaneous things for running processes and tools
+   server       |  Stuff for client-server relationships
+   posixutil    |  Various utilities that only work under Posix.
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
                    See htk/examples for a few short introductory examples.
    graphs       |  General framework for shared graphs.
@@ -17,23 +18,21 @@ The source of Uni is in the following directories:
    (from here on, things aren't known to work yet)
    cvs          |  encapsulation of cvs
    types        |  Repository (UNDER CONSTRUCTION)
-   tools        |  Encapsulations of some tools in Haskell.
    appl         |  Stand-alone UniForM applications
-   database     |  Data for various Uni components
 
-Requirements
-------------
+Only the Haskell code in util, events, reactor and htk is known to work under
+Windows.  Everything else requires Posix, and so, Unix/Linux.
+
+Requirements for compiling UniForM
+----------------------------------
 
 The following are required or at least recommended. 
-(1) A Unix box (probably it has to be Linux/x86 or Solaris).  Nearly
-    all development has been done on Solaris so that is most likely to
-    work.
-(2) gcc.  Ideally what I use -- gcc version 2.95.2.
+(1) gcc.  Ideally what I use -- gcc version 2.95.2.
     Do not use 2.8* versions since they are known not to work at all with 
     Glasgow Haskell.  Version 2.71 might work but I suspect Glasgow Haskell 
     will not support it for much longer.  I have had problems with version
     3.*
-(3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
+(3) GNU make.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
 (4) A recent version of Glasgow Haskell.  You should try to get the
     latest binary release, which is currently 5.02.3.
@@ -75,14 +74,20 @@ What To Ask Before Compiling
    part of your X-system.  It needs to be in your PATH when you
    run the ./configure step (see the next section).  If, when you
    type "wish", a square blank window pops up with the title "wish"
-   then you should be alright.
+   then you should be alright.  Type "info tclversion" to see what version
+   you have.  For Unix, you will need at least version 8.0; for Windows,
+   you need at least 8.1.1 (I think), though in both cases it is probably
+   better to use a later version if you have one.
+
+   Some of the programs in HTk use a more sophisticated Tk-encapsulation
+   known as tixwish.
 3) Do you want to draw graphs using Uni's daVinci encapsulation
    (in directory "davinci")?  Then you need DaVinci.  You can get 
    this from:
       http://www.informatik.uni-bremen.de/daVinci/
    Once you have it, put it in your PATH, with the name "daVinci",
    for the ./configure step.
-4) Do you want to use our versioning system (in "cvs" and "versions")?
+4) Do you want to use our versioning system (in "cvs" and "types")?
    Then you need cvs, probably version 10.7 or thereabouts.
    Again, put it in your PATH for the configure step.
 
@@ -96,10 +101,107 @@ it, assuming that you are in the same directory as this README file
 # Configure the Makefiles
 ./configure
 # Work out what order to do compilation in
-gmake depend
+gmake boot
 # Compile Uni
 gmake all
 
+Other Make targets for UniForM developers
+-----------------------------------------
+
+The 
+   ./configure
+   gmake boot
+   gmake all
+sequence described above is just if you want to build the whole thing from
+scratch.  Once you've done this, you may want to modify a file and then
+recompile. 
+
+The Make targets described in this section all work in any directory of uni
+that contains a Makefile.  If you use then in a subdirectory, they will only
+apply to that subdirectory.  For example, if you have modified a file, you
+can do
+   gmake all
+in the directory containing that file
+
+As described in the next section "Makefiles for uni", source files are
+divided into package files, test files and main files.  You can use
+   gmake package
+   gmake test
+or
+   gmake main
+to compile just the files you are interested in.  Of course, to compile
+the test or main files, you should already have compiled the package files.
+
+You can also compile any individual file.  This is often useful when you
+modify one file and want to get GHC to check it.  First, as preparation, you
+need to do
+   gmake depend
+and then you can use
+   gmake [object file]
+where the object file for, say, Foo.hs is Foo.o.
+
+If you add a source file, or want to add a whole new subdirectory with its
+own Makefile, you will need to modify a Makefile.  These are described in
+the next section.
+
+Makefiles for uni
+-----------------
+
+In each subdirectory of uni there is a file Makefile.in.  If you want to
+create another new package you will need to copy this file.  It normally has
+the following format:
+
+---- cut here --------------
+SRCS = foo1.hs foo2.hs foo3.lhs . . .
+PACKAGE = [package name]
+PACKAGES = package1 package2 . . .
+
+include @TOP@/mk/boilerplate.mk
+---- cut here --------------
+Thus we have a list of variable settings (which may be in any order),
+then we include the general Make magic.  
+
+SRCS contains all the Haskell source files in this directory.
+   The Makefiles interpret these specially according to name.
+   Files with names of the type "Test*.hs" or "Test*.lhs" are test programs,
+      should contain a module Main, and will be compiled to an executable
+      with name "test*", or "test*.exe" on Windows, for example "TestFoo.hs"
+      will go to "Foo" or "Foo.exe"
+   Files with names "Main*.hs" or "Main*.lhs" are just the same
+      as files "Test*.hs" or "Test*.hs", except that the final executable
+      is just called "*", so "MainFoo.hs" goes to "Foo".
+   All other files are package files.  They should contain a module with the
+      name of the file (so the file Foo.hs must contain the module Foo; the
+      module subdir/Bar.hs must contain the module Bar).
+
+PACKAGE is the name you want to give to the package contained in this 
+   directory.  Normally this name begins with "uni-". This should be
+   specified if and only if the directory contains library files.
+PACKAGES is the list of packages you will need.  This includes
+   GHC packages (net and posix for example) and also UniForM packages
+   (like uni-htk).  You only have to give direct dependencies here; for
+   example uni-htk imports uni-util, so if you specify uni-htk, you do not
+   need uni-util.   
+
+The following variables also occur occasionally:
+SUBDIRS specifies a list of subdirectories of this directory also containing
+   Makefiles, into which we should recurse.
+SRCSC is like SRCS, but expects a list of C files.
+
+Makefile.in can also contain variable settings which, for example, specify
+   special GHC options to use, but I shall not explain this here.  You may
+   be able to work some of them out by looking at the Makefiles, for example
+   htk/Makefile.in.
+
+After you've modified a Makefile, you should run
+   ./configure 
+(from the top directory)
+followed by 
+   gmake packagesquick
+to reset the package file.  You will also need to run
+   gmake depend
+if the import dependencies between the files you are working on have changed.
+ 
 Making hdoc documentation
 -------------------------
 
@@ -159,21 +261,6 @@ Other Makefile Hacking
 
 The file mk/local.mk (mentioned above) is included in every Makefile if
 present, and can be used to change the options and provide extra targets.
-
-If you use FAST=YES on the Make command line, this makes make IGNORE all 
-Haskell dependencies.  Suppose you have made some small change to A.hs.  You 
-think that the interface to A has no significant changes; for example the 
-inlined functions exported from A have not changed; so that it really 
-shouldn't be necessary to recompile any other module.  Then if you like living
-dangerously or are in a hurry you can use FAST=YES to prevent this, as in
-   cd [directory containing A.hs]
-   gmake FAST=YES A.o
-   gmake FAST=YES lib
-   gmake FAST=YES testProgram
-or whatever to recompile testProgram with the new A.o, without recompiling
-anything else.
-
-If it falls over don't blame me, take out FAST=YES and do it the slow way . . .
 
 Conclusion
 ----------

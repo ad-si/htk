@@ -114,6 +114,7 @@ module GraphDisp(
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
    deleteNode,   -- :: Graph ... -> node value -> IO ()
    setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
+   getNodeValue, -- :: Graph ... -> node value -> IO value
    newNodeType,  -- :: Graph ... -> nodeTypeParms value -> IO (nodeType value)
    NodeTypeParms(..),
 
@@ -124,8 +125,13 @@ module GraphDisp(
                 --    -> IO ()
    setArcValue, -- :: Graph ... -> arc value
                 --    -> value -> IO ()
+   getArcValue, -- :: Graph ... -> arc value
+                --    -> IO value
    newArcType,  -- :: Graph ... -> arcTypeParms value -> IO (arcType value)
    ArcTypeParms(..),
+
+   Eq1(..),Ord1(..), -- Classes with nodes and arcs should instance,
+      -- allowing comparisongs on them.
 
    -- User-hateful interface, arranged by classes.
    GraphAll(displaySort),
@@ -249,6 +255,16 @@ setNodeValue
    (node :: node value)
    (value :: value) = setNodeValuePrim graph node value
 
+getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+                   arc arcType arcTypeParms,Typeable value) => 
+   (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+   -> node value -> IO value
+getNodeValue
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms)
+   (node :: node value) = getNodeValuePrim graph node
+
 newNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                   arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
@@ -304,6 +320,15 @@ setArcValue
    (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
       arcType arcTypeParms)
    (arc :: arc value) (value :: value) = setArcValuePrim graph arc value
+
+getArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+                  arc arcType arcTypeParms,Typeable value) => 
+   (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms) -> arc value -> IO value
+getArcValue
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+      arcType arcTypeParms)
+   (arc :: arc value) = getArcValuePrim graph arc 
 
 newArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                  arc arcType arcTypeParms,Typeable value) =>
@@ -396,7 +421,7 @@ class (GraphClass graph,NodeClass node) =>
    getNodeValuePrim :: Typeable value =>
       graph -> node value -> IO value
 
-class HasTyRep1 node => NodeClass node
+class (HasTyRep1 node,Ord1 node) => NodeClass node
 
 class HasTyRep1 nodeType => NodeTypeClass nodeType
 
@@ -427,7 +452,7 @@ class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
    setArcValuePrim  :: Typeable value => graph -> arc value -> value -> IO ()
    getArcValuePrim :: Typeable value => graph -> arc value -> IO value
 
-class HasTyRep1 arc => ArcClass arc
+class (HasTyRep1 arc,Ord1 arc) => ArcClass arc
 
 class HasTyRep1 arcType => ArcTypeClass arcType
 
@@ -462,6 +487,14 @@ class Kind3 takes3Parms where
 instance Kind3 takesParms where
    kindThree _ = ()
 
+-- ----------------------------------------------------------------------
+-- Classes for comparing and equality for types of kind 1
+-- ----------------------------------------------------------------------
 
+class Eq1 takesParm where
+   eq1 :: takesParm value1 -> takesParm value1 -> Bool
+
+class Eq1 takesParm => Ord1 takesParm where
+   compare1 :: takesParm value1 -> takesParm value1 -> Ordering
 
 

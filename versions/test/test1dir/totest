@@ -1,9 +1,0 @@
-#!/usr/local/bin/bash
-export UNICVSROOT=/home/ger/repository
-export UNISERVER=`hostname`
-rm -rf A B 1 2 22 3 4
-pkill -x AllocateService
-rm -rf /home/uniform/backup/repository/db
-mkdir /home/uniform/backup/repository/db
-../../../cvs/AllocateService &
-../test1

@@ -1,4 +1,4 @@
-PACKAGES = uni-types uni-htk
+PACKAGES = uni-types uni-htk uni-davinci
 
 SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs
 

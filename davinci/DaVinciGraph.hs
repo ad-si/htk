@@ -366,6 +366,12 @@ data DaVinciNodeTypeParms value =
       configCreateEdgeAction :: Dyn -> value -> IO ()
       }
 
+instance Eq1 DaVinciNode where
+   eq1 (DaVinciNode n1) (DaVinciNode n2) = (n1 == n2)
+
+instance Ord1 DaVinciNode where
+   compare1 (DaVinciNode n1) (DaVinciNode n2) = compare n1 n2 
+
 instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
    newNodePrim
          (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
@@ -386,6 +392,12 @@ instance DeleteNode DaVinciGraph DaVinciNode where
          (DaVinciNode nodeId) = 
       do
          addNodeUpdate daVinciGraph (DeleteNode nodeId) 
+
+   getNodeValuePrim (daVinciGraph @ DaVinciGraph {
+         context = context,nodes = nodes}) (DaVinciNode nodeId) =
+      do
+         (Just (NodeData _ nodeValue)) <- getValueOpt nodes nodeId
+         return (coDyn nodeValue)
 
    setNodeValuePrim (daVinciGraph @ DaVinciGraph {
          context = context,nodes = nodes}) (DaVinciNode nodeId) newValue =
@@ -561,6 +573,14 @@ data DaVinciArcTypeParms value = DaVinciArcTypeParms {
 data ArcData = forall value . Typeable value 
    => ArcData (DaVinciArcType value) value
 
+
+instance Eq1 DaVinciArc where
+   eq1 (DaVinciArc n1) (DaVinciArc n2) = (n1 == n2)
+
+instance Ord1 DaVinciArc where
+   compare1 (DaVinciArc n1) (DaVinciArc n2) = compare n1 n2 
+
+
 instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
       where
    newArcPrim 
@@ -580,6 +600,12 @@ instance DeleteArc DaVinciGraph DaVinciArc where
       do
          addEdgeUpdate daVinciGraph (DeleteEdge edgeId)
          deleteFromRegistry edges edgeId
+
+   getArcValuePrim (daVinciGraph @ DaVinciGraph {
+         context = context,edges = edges}) (DaVinciArc edgeId) =
+      do
+         (Just (ArcData _ arcValue)) <- getValueOpt edges edgeId
+         return (coDyn arcValue)
 
    setArcValuePrim (daVinciGraph @ DaVinciGraph {
          context = context,edges = edges}) (DaVinciArc edgeId) newValue =

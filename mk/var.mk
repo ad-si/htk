@@ -23,12 +23,12 @@ endif
 
 HCSHORTFLAGS = \
    -cpp -recomp -fwarn-deprecations \
+   $(HC_OPTIONS) $(EXTRA_HC_OPTIONS) \
    -package-conf $(PACKAGECONF) 
 
 PACKAGESARGS = $(PACKAGES:%=-package %)
 
-HCFLAGS = $(HCSHORTFLAGS) $(PACKAGESARGS) \
-   $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
+HCFLAGS = $(HCSHORTFLAGS) $(PACKAGESARGS) 
 
 THISPACKAGE = $(if $(PACKAGE),-package $(PACKAGE))
 
