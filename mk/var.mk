@@ -43,7 +43,7 @@ LINKFLAGS =
 # Compiler for compiling C programs that are part of UniForM.  For the
 # time being we use GHC.
 CCH              = $(HC)
-CFLAGS           = -package uni-options
+CFLAGS           = -package-conf $(PACKAGECONF) -package uni-options
 
 # C preprocessor
 CPP              = $(CC) -E -P -x c -traditional -D__GLASGOW_HASKELL__=$(GhcMajVersion)$(GhcMinVersion) 
