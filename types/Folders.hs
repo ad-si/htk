@@ -76,7 +76,7 @@ displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
 data FolderType = FolderType {
    folderTypeId :: AtomString,   
    requiredAttributes :: AttributesType,
-   displayParms :: NodeTypes (String,Folder),
+   displayParms :: NodeTypes (String,Link Folder),
    topFolderLinkOpt :: Maybe (Link Folder),
    knownFolders :: VariableSet (Link Folder)
    }
@@ -168,11 +168,12 @@ instance ObjectType FolderType Folder where
                         Just link -> [link],
                      arcTypes = [(theArcType,emptyArcTypeParms)],
                      nodeTypes = [(theNodeType,
-                        ValueTitle (\ (str,f::Folder) -> return str) $$
+                        ValueTitle (\ (str,_ :: Link Folder) -> return str) $$
                            nodeTypeParms
                         )],
                      getNodeType = const theNodeType,
                      knownSet = SinkSource (knownFolders folderType),
+                     mustFocus = (\ _ -> return False),
                      focus = (\ link ->
                         do
                            folder <- readLink view link

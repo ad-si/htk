@@ -71,6 +71,11 @@ module ObjectTypes(
 
    -- getAllObjectTypes returns every object type known to the view.
    getAllObjectTypes, -- :: View -> IO [WrappedObjectType]
+
+
+   -- toObjectValue produces the object value corresponding to a given
+   -- objectType.  This value should not be evaluated.
+   toObjectValue, -- :: ObjectType objectType type :: objectType -> object
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -139,6 +144,9 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- the result is a constant; once you've returned a value for a
       -- particular WrappedDisplayType, it's fixed.
 
+toObjectValue :: ObjectType objectType object => objectType -> object
+toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
+
 -- ----------------------------------------------------------------
 -- Basic Types
 -- ----------------------------------------------------------------
@@ -199,15 +207,19 @@ data NodeDisplayData nodeTypeParms arcTypeParms objectType object =
       -- this NodeDisplayData.
 
       arcTypes :: [(ArcType,arcTypeParms ())],
-      nodeTypes :: [(NodeType,nodeTypeParms (String,object))],
+      nodeTypes :: [(NodeType,nodeTypeParms (String,Link object))],
 
       -- getNodeType retrieves the node type for a particular node.
-      getNodeType :: objectType -> NodeType,
+      getNodeType :: object -> NodeType,
 
       -- We maintain a set of objects called the knownSet.  The knownSet
       -- contains known objects of this type; in particular it includes
       -- all new created objects of this type in this view.
       knownSet :: VariableSetSource (Link object),
+
+      -- Returns True if we must focus the object (display edges from
+      -- focus) whenever we display it.
+      mustFocus :: Link object -> IO Bool,
 
       -- focus returns variable sets for the arcs from and to a given
       -- object.  Every arc should appear in exactly one of these sets.
@@ -464,3 +476,12 @@ instance HasCodedValue WrappedLink where
             getValueOpt objectTypeTypeDataRegistry typeKey
          (link,codedValue2) <- toLinkType objectType codedValue1 view
          return (WrappedLink link,codedValue2)
+
+-- -----------------------------------------------------------------
+-- We make WrappedObjectType an instance of HasKey
+-- -----------------------------------------------------------------
+
+instance HasKey WrappedObjectType (String,AtomString) where
+   toKey (WrappedObjectType objectType) =
+      (objectTypeTypeIdPrim objectType,objectTypeIdPrim objectType)
+

@@ -41,6 +41,8 @@ module Dynamics (
         coerce, -- read Dyn or (match) error
         coerceIO, -- read Dyn or fail with typeMismatch
         typeMismatch,
+        dynCast, -- Cast to another value of the same type, or
+           -- error (useful for extracting from existential types).
 
         -- The HasTyCon* classes are abbreviations for constructing
         -- instances of Typeable. 
@@ -48,6 +50,8 @@ module Dynamics (
         HasTyCon1(..),
         HasTyCon2(..),
         HasTyCon3(..),
+        HasTyCon4(..),
+        HasTyCon40011(..),
         ) 
 where
 
@@ -91,6 +95,11 @@ coerceIO d =
 typeMismatch :: IOError
 typeMismatch = 
         userError "internal type of dynamics does not match expected type"
+
+dynCast :: (Typeable a,Typeable b) => String -> a -> b
+dynCast mess value = case fromDyn (toDyn value) of
+   Nothing -> error ("Dynamics.dynCast failure in "++mess)
+   Just value2 -> value2
 
 ------------------------------------------------------------------------
 -- The HasTyCon* classes are used to indicate that
@@ -147,5 +156,39 @@ instance (HasTyCon3 typeCon,Typeable value1,Typeable value2,Typeable value3)
       in
          mkTypeTag (tyCon3 tC) [typeOf v1,typeOf v2,typeOf v3]
 
+class HasTyCon4 typeCon where
+   tyCon4 :: (Typeable value1,Typeable value2,Typeable value3,Typeable value4) 
+      => typeCon value1 value2 value3 value4 -> TyCon
 
+instance (HasTyCon4 typeCon,Typeable value1,Typeable value2,Typeable value3,
+      Typeable value4) => Typeable (typeCon value1 value2 value3 value4) where
+   typeOf _ =
+      let
+         (tC :: typeCon value1 value2 value3 value4) = tC
+         (v1 :: value1) = v1
+         (v2 :: value2) = v2
+         (v3 :: value3) = v3
+         (v4 :: value4) = v4
+      in
+         mkTypeTag (tyCon4 tC) [typeOf v1,typeOf v2,typeOf v3,typeOf v4]
+
+class HasTyCon40011 typeCon where
+   tyCon40011 :: (Typeable value1,Typeable value2,
+      HasTyCon1 con3,HasTyCon1 con4)
+      => typeCon value1 value2 con3 con4 -> TyCon
+
+instance (HasTyCon40011 typeCon,Typeable value1,Typeable value2,
+      HasTyCon1 con3,HasTyCon1 con4) 
+      => Typeable (typeCon value1 value2 con3 con4) where
+   typeOf _ =
+      let
+         (tC :: typeCon value1 value2 con3 con4) = tC
+         (v1 :: value1) = v1
+         (v2 :: value2) = v2
+         (v3 :: con3 ()) = v3
+         (v4 :: con4 ()) = v4
+         mk con = mkTypeTag con []
+      in
+         mkTypeTag (tyCon40011 tC) [typeOf v1,typeOf v2,
+            mk (tyCon1 v3),mk (tyCon1 v4)]
 

@@ -411,8 +411,6 @@ instance HasTyCon1 DaVinciNode where
 
 instance NodeTypeClass DaVinciNodeType where
 
--- Although it isn't obligatory, we make DaVinciNodeType things
--- Typeable so that we can save them dynamically.
 daVinciNodeTypeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNodeType"
 
 instance HasTyCon1 DaVinciNodeType where
@@ -595,6 +593,11 @@ daVinciArcTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArc"
 
 instance HasTyCon1 DaVinciArc where
    tyCon1 _ = daVinciArcTyCon
+
+daVinciArcTypeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArcType"
+
+instance HasTyCon1 DaVinciArcType where
+   tyCon1 _ = daVinciArcTypeTyCon
 
 instance ArcTypeClass DaVinciArcType where
 

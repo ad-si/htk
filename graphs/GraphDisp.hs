@@ -396,7 +396,7 @@ class (GraphClass graph,NodeClass node) =>
 
 class HasTyCon1 node => NodeClass node
 
-class Kind1 nodeType => NodeTypeClass nodeType
+class HasTyCon1 nodeType => NodeTypeClass nodeType
 
 class (GraphClass graph,NodeTypeClass nodeType,NodeTypeParms nodeTypeParms)
    => NewNodeType graph nodeType nodeTypeParms where
@@ -426,7 +426,7 @@ class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
 
 class HasTyCon1 arc => ArcClass arc
 
-class Kind1 arcType => ArcTypeClass arcType
+class HasTyCon1 arcType => ArcTypeClass arcType
 
 class (GraphClass graph,ArcTypeClass arcType,ArcTypeParms arcTypeParms) => 
       NewArcType graph arcType arcTypeParms where
