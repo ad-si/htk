@@ -23,6 +23,8 @@ module Image (
 
   Format(..),
   imgData,
+  imgGamma,
+  imgPalette
 ) where
 
 import Core
@@ -95,6 +97,37 @@ formatToString f =
     GIF -> "GIF"
     PPM -> "PPM"
     _   -> "PGM"
+
+
+---
+-- The <code>gamma</code> correction factor. Values less than one
+-- darken the image, values greater than one brighten up the image.
+imgGamma :: Double -> Config Image
+imgGamma g = tkImgConfig ("-gamma "++ show g)
+
+---
+-- The colour palette specifies a private palette for this image. 
+-- You can either specify a grayscale palette (of n shades of grey), or an
+-- RGB triple. 
+class PaletteSpec p where 
+  -- Internal function only
+  tkShowPalette :: p-> String
+
+instance PaletteSpec Int where 
+  tkShowPalette p = show p
+
+instance PaletteSpec (Int, Int, Int) where
+  tkShowPalette (r, g, b) = show r ++ "/"++ show g++ "/"++ show b
+
+imgPalette :: PaletteSpec p=> p-> Config Image
+imgPalette p = tkImgConfig ("-palette "++ tkShowPalette p) 
+
+
+-- We leave the  getImgGamma and getImgPalette functions as exercises
+-- to the interested reader of this source code. 
+
+
+
 
 
 -- -----------------------------------------------------------------------
@@ -195,3 +228,10 @@ tkGetImageFile no = (show no) ++ " cget -file "
 
 tkImageCreateFromData :: Int -> Format -> String -> String
 tkImageCreateFromData no f dat = "image create photo " ++ show no ++ " -data " ++ show dat ++ " -format " ++ show (formatToString f)
+
+tkImgConfig :: String-> Config Image
+tkImgConfig cstr w = 
+  do execTclScript [show no++ " configure "++ cstr]
+     return w
+  where no = getObjectNo (toGUIObject w)
+{-# INLINE tkImgConfig #-}
