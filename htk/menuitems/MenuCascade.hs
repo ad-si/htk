@@ -18,7 +18,8 @@ module MenuCascade (
   HasAccelerator(..),
 
   MenuCascade,
-  createMenuCascade
+  createMenuCascade,
+  createPulldownMenu
 
 ) where
 
@@ -157,3 +158,19 @@ instance GUIValue v => HasText MenuCascade v where
 ---
 -- You can set the index of a text character to underline.
 instance HasUnderline MenuCascade
+
+
+---
+-- Utility function: create a pulldown menu 
+--
+-- @param mpar    - the parent menu.
+-- @param conf    - the list of configuration options for this pulldown menu
+-- @return result - A menu cascade item.
+
+createPulldownMenu :: Menu-> [Config MenuCascade]-> IO Menu
+createPulldownMenu mpar conf =
+  do pd <- createMenuCascade mpar conf
+     m  <- createMenu mpar False []
+     pd # menu m
+     return m
+
