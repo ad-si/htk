@@ -28,6 +28,10 @@ mines (Unexplored{mine= True}) = 1
 mines _                        = 0
 
 
+-- The state of the playing field, and the handlers to
+-- all buttons representing the field.
+-- (We keep them separate, because the former changes as
+--  the game progresses, but not the latter).
 type Mines   = Array (Int, Int) State
 type Buttons = Array (Int, Int) Button
 
@@ -60,11 +64,11 @@ createMines (w, h) =
          mine   = Unexplored{mine= True, flagged= False}
          nomine = Unexplored{mine= False, flagged= False}
 
--- Peek at a field (x, y), and count the number of
--- adjacent mines. If there are none, we recursively peek at all the
+-- Peek at list of fields, and count the number of adjacent mines.
+-- If there are no adjacent mines, we recursively peek at all the
 -- adjacent fields, which are
 -- a. not already cleared, and
--- b. not on our list of fields to peek at
+-- b. not on our list of fields to peek a
 -- Precondition: all fields in the list are untouched.
 peek :: Buttons-> Mines-> [(Int, Int)]-> IO Mines
 peek b m [] = return m
@@ -79,7 +83,7 @@ peek b m (xy:rest) =
             else peek b nu rest
   
 
--- open up a field (mouse left-click)
+-- open up a field (mouse left-click) and peek at it
 open :: Buttons-> Mines-> (Int, Int)-> IO (Maybe Mines)
 open b m xy = 
   case m!xy of 
@@ -94,10 +98,10 @@ flag b m xy =
   case m!xy of
     Cleared _ -> return m
     s@(Unexplored{flagged= f})-> 
-        do b!xy # (text (if f then "F" else " "))
+        do b!xy # (text (if not f then "F" else " "))
            return (m // [(xy, s{flagged= not f})])
                                  
--- create all buttons, and set up the handlers for them.
+-- create all buttons, and set up the event handlers for them.
 -- Returns a list of pairs of buttons, and their position.
 buttons :: Container par=> par-> Button-> Event() -> (Int, Int)
                            -> IO [((Int, Int), Button)]
@@ -107,7 +111,7 @@ buttons par sb startEv (size@(xmax, ymax)) =
                                                          y <- [1.. ymax]]
      let bArr = array ((1,1), size) buttons
          getButtonClick b n xy = 
-            do (click, _) <- bindSimple b (ButtonPress (Just (BNo n)))
+            do (click, _) <- bindSimple b (ButtonPress (Just n))
                return (click >> return xy)
      leCl <- mapM (\(xy, b)-> getButtonClick b 1 xy) buttons
      riCl <- mapM (\(xy, b)-> getButtonClick b 3 xy) buttons
@@ -138,15 +142,6 @@ buttons par sb startEv (size@(xmax, ymax)) =
 
      spawnEvent start
      return buttons
-
-
-createPulldownMenu :: Menu-> [Config MenuCascade]-> IO Menu
-createPulldownMenu mpar conf =
-  do pd <- createMenuCascade mpar conf
-     m  <- createMenu mpar False []
-     pd # menu m
-     return m
-
 
 main :: IO ()
 main = 
