@@ -93,14 +93,16 @@ listVersions state (ListVersions serverRef) =
    do
       versionGraph <- lookupVersionGraph state serverRef
       let
-         simpleGraph :: VersionSimpleGraph 
-         simpleGraph = toVersionGraphGraph versionGraph
+         graphClient :: VersionGraphClient 
+         graphClient = toVersionGraphClient versionGraph
 
-      (nodes :: [Node]) <- getNodes simpleGraph
-      (versionInfos0 :: [VersionInfo.VersionInfo]) 
-         <- mapM (getNodeLabel simpleGraph) nodes
-
+      (versionInfos1 :: [VersionGraphClient.VersionInfo1]) 
+         <- getVersionInfos graphClient
       let
-         versionInfos1 = map fromOurVersionInfo versionInfos0
+         versionInfos2 :: [VersionInfo.VersionInfo]
+         versionInfos2 = map toVersionInfo versionInfos1
 
-      return (ListVersionsResponse versionInfos1)
+         versionInfos3 :: [MMiSSRequest.VersionInfo]
+         versionInfos3 = map fromOurVersionInfo versionInfos2
+
+      return (ListVersionsResponse versionInfos3)

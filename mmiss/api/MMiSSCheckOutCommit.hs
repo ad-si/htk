@@ -45,10 +45,10 @@ checkOut state (CheckOut (CheckOut_Attrs {checkOutVersion = versionStr} )
       versionGraph <- lookupVersionGraph state serverRef
       let
          repository = toVersionGraphRepository versionGraph
-         versionSimpleGraph = toVersionGraphGraph versionGraph
+         versionGraphClient = toVersionGraphClient versionGraph
 
       viewOpt <- catchNotFound (
-         getView repository versionSimpleGraph objectVersion)
+         getView repository versionGraphClient objectVersion)
       versionRef <- case viewOpt of
          Nothing -> importExportError "Version not found"
          Just view -> setView state versionRefOpt view
@@ -113,8 +113,8 @@ setUserInfo view userInfo1 =
       broadcast broadcaster (viewInfo0 {VersionInfo.user = user1})
 
 checkUserInfo :: UserInfo -> IO ()
-checkUserInfo userInfo =
-   case (userInfoVersion userInfo,userInfoParents userInfo) of
+checkUserInfo (UserInfo userInfo_attrs _) =
+   case (userInfoVersion userInfo_attrs,userInfoParents userInfo_attrs) of
       (Nothing,Nothing) -> done
       _ -> importExportError 
          "You aren't allowed to set the version number or parents of a version"
