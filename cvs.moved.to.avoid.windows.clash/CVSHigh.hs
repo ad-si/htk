@@ -99,7 +99,10 @@ instance Show CVSReturn where
                acc3
 
 checkReturn CVSSuccess = return ()
-checkReturn err = ioError(userError(show err)) 
+checkReturn err = 
+   do
+      debug err
+      ioError(userError(show err)) 
 
 newtype CVSLoc = CVSLoc GlobalOptions
 
@@ -148,6 +151,7 @@ tryCVS mess exp event =
    do
       result <- tryIO isCVSError (sync event)
       status <- getToolStatus exp
+      debug status
       destroy exp
       case result of
          Left errorMess -> 

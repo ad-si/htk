@@ -233,8 +233,9 @@ newChildProcess path confs  =
                   Nothing ->
                      return (
                         do
-                           Posix.fdClose writeIn
-                           Posix.fdClose readOut
+--                           try(Posix.fdClose writeIn)
+--                           try(Posix.fdClose readOut)
+                             done
                         )
                   Just (readErr,writeErr) ->
                      do
@@ -325,12 +326,12 @@ instance Object ChildProcess where
 instance Destructible ChildProcess where
    destroy child = 
       do
+         cleanUp child
          res <- try(Posix.signalProcess Posix.sigKILL (processID child))
          case res of
             Left error -> 
                debug "ChildProcess.destroy failed; destruction anticipated?"
             _ -> return ()
-         cleanUp child
 
    -- We can only wait for destruction if we set up a watchdog.
    destroyed child = 
