@@ -296,7 +296,7 @@ if test "$GOAHEAD" = YES; then
    echo ''
    echo '------------------- Configuration Successful ------------------'
    if test "$BINARY" = NO; then
-      SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs"
+      SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs"
    else
       SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp posixutil/daVinci.debug posixutil/wish.debug"
    fi

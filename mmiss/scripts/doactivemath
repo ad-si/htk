@@ -1,0 +1,9 @@
+#!/bin/sh
+# 
+# Call into ActiveMath from MMiSS repository.
+# 
+# Argument 1 = working directory
+# Argument 2 = name of XML file to present
+#
+cd $1
+exec xterm -fn 10x20 -T "This is Inactive Math." -e less $2

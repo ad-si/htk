@@ -175,7 +175,7 @@ newVersionGraph1
             (GraphTitle title) $$
             (GlobalMenu (Menu Nothing [
                Button "Merge" doMerge,
-               Button "Copy Versions" copyVersions1
+               Button "Copy Versions To ..." copyVersions1
                ])) $$
             (AllowClose
                (if isInternal

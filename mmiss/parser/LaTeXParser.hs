@@ -32,6 +32,7 @@ module LaTeXParser (
    mapLabelledTag,
    MMiSSLatexPreamble, 
    parsePreamble,
+   emptyMMiSSLatexPreamble,
    Frag(..),
    Params(..)
    )
@@ -778,7 +779,6 @@ parseMMiSSLatexFile s = do result <- parseFromFile (frags []) s
 --}
 
 parsePreamble :: String -> WithError MMiSSLatexPreamble
-
 parsePreamble s = 
   let result = parse (frags []) "" s
   in
@@ -798,6 +798,9 @@ parsePreamble s =
 	      Left err -> hasError(show err)
       Left err -> hasError (show err)
 
+emptyMMiSSLatexPreamble :: MMiSSLatexPreamble
+emptyMMiSSLatexPreamble = 
+  MMiSSLatexPreamble (Preamble (Package [] "mmiss" "today") [] "") Nothing
 
 {--
    parseImportCommands is used as fromStringWE-method in the instanciation for

@@ -92,7 +92,7 @@ mainWindow =
          map' fn (form,s) = (fmap fn form,s)
 
          internalForm :: (Form (),String)
-         internalForm = (nullForm "Internal Server","Connect")
+         internalForm = (nullForm "Local Working Area","Connect")
   
          quitForm :: (Form (),String)
          quitForm = (nullForm "","Quit")
@@ -102,7 +102,7 @@ mainWindow =
                ++ [map' (const ConnectInternal) internalForm,
                   map' (const Quit) quitForm]
 
-      (event,closeWindow) <- doFormList "MMiSS action" mainFormList 
+      (event,closeWindow) <- doFormList "MMiSS Repository Client Control Center" mainFormList 
       let
          mainLoop :: IO ()
          mainLoop =
@@ -127,7 +127,7 @@ mainWindow =
          doAction Quit =
             do
                reallyQuit <- createConfirmWin
-                  "Exit Workbench without saving anything?"
+                  "Do you really want to quit?"
                   []
                if reallyQuit
                   then

@@ -47,6 +47,8 @@ import MMiSSVariant
 import MMiSSVariantObject
 import MMiSSContent
 import MMiSSPrint
+import MMiSSCheck
+import MMiSSActiveMath
 import MMiSSEditXml(toExportableXml)
 -- import CASLFragments
 
@@ -133,6 +135,12 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                            ),
                      Button "Export Object as LaTeX"
                         (\ link -> exportMMiSSObjectLaTeX view link),
+                     Button "Export Object as XML"
+                        (\ link -> exportMMiSSObjectXML view link),
+                     Button "Check consistency"
+                        (\ link -> mmissCheck view link),
+                     Button "Present in ActiveMath"
+		        (\ link -> mmiss2AM view link),
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)

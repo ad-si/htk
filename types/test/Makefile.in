@@ -17,7 +17,7 @@ displaysrcshere : displayextrasrcs
 displayextrasrcs :
 	@echo @TOP@/types/test/rerunWorkbench.in @TOP@/types/test/runWorkbench.in 
 
-SERVERDIR = /tmp/server.$$USER
+SERVERDIR = @TOP@/tmp/server-workspace
 
 runServer : 
 	@MKDIR@ $(SERVERDIR)

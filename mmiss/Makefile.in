@@ -16,7 +16,7 @@ SRCS = MMiSSDTDAssumptions.hs \
    $(if @HAXML@,,XmlValidate.hs) \
    MMiSSRegistrations.hs MMiSSInitialise.hs \
    MMiSSFiles.hs MMiSSFileType.hs \
-   MMiSSExportFiles.hs 
+   MMiSSExportFiles.hs MMiSSCheck.hs MMiSSActiveMath.hs MMiSSCheck_DTD.hs
 
 BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \

@@ -5,6 +5,7 @@ module MMiSSImportLaTeX(
 
 import Maybe
 import Monad
+import Char (toLower)
 
 import Computation
 import ExtendedPrelude
@@ -25,6 +26,9 @@ import Link
 import LinkManager
 import EntityNames
 
+import Text.XML.HaXml.Types 
+import Text.XML.HaXml.Parse (xmlParse)
+
 import LaTeXParser
 
 import MMiSSDTDAssumptions
@@ -37,6 +41,25 @@ import MMiSSPreObjects
 import MMiSSVariant(MMiSSVariantSpec)
 import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSWriteObject
+
+
+looksLikeXml :: String-> Bool
+looksLikeXml str =
+  case splitName str of
+   Just (dir, fname) ->
+     case splitExtension fname of 
+       Just (_, ext) -> let lext = map toLower ext in lext == "xml"  
+				                      || lext == "omdoc"
+       _             -> False
+   _ -> False
+
+parseXml :: String-> String-> IO (WithError (Element, Maybe MMiSSLatexPreamble))
+parseXml fname src = 
+  do putStrLn "Parsing XML..."
+     catch (do let Document _ _ el = xmlParse fname src 
+               putStrLn "Successfully parsed XML"
+	       return (hasValue (el, Just emptyMMiSSLatexPreamble)))
+            (\err-> return (hasError (show err)))
 
 ---
 -- Import a new object from a LaTeX file and attach it to the subdirectory
@@ -57,20 +80,22 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
 	    top <- getTOP 
             let
                fullName = unbreakName [top,"mmiss","test","files"]
-            dialogEvent <- fileDialog "Import LaTeX sources" fullName
+            dialogEvent <- fileDialog "Import Sources" fullName
             filePathOpt <- sync dialogEvent
             case filePathOpt of
                Nothing -> return Nothing
                Just filePath0 ->
                   do
-                     let
-                        filePath = trimDir filePath0
+                     let filePath = trimDir filePath0
 
 	             inputStringWE <- copyFileToStringCheck filePath
                      inputString 
                         <- coerceWithErrorOrBreakIO break inputStringWE
-                     let
-                        parseResultWE = parseMMiSSLatex inputString
+                     parseResultWE <- if not (looksLikeXml filePath)  then 
+					   do putStrLn "We have LaTeX."
+                                              return (parseMMiSSLatex inputString)
+					else
+					   parseXml filePath inputString
 
                      (element,preambleOpt) 
                         <- coerceWithErrorOrBreakIO break parseResultWE

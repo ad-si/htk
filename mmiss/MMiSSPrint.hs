@@ -36,3 +36,4 @@ printMMiSSObject view link =
       case result of
          Right () -> done
          Left mess -> createErrorWin mess []
+

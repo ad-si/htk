@@ -661,7 +661,7 @@ callVisiulizer ((CATSData path name p t r g):xs) 0 =
                  progstat <- finishChildProcess child
                  case (p # p_graph) of
                   0 -> do --davinci
-                        newchild <- executeChild "davinci" [(path++(noending name)++".davinci")]
+                        newchild <- executeChild "daVinci" [(path++(noending name)++".davinci")]
                         return ((CATSData path name p t r Nothing):xs)
                   1 -> do --ps
                         newchild <- executeChild "gv" [(path++(noending name)++".dot.ps")]

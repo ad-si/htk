@@ -37,7 +37,6 @@ mmissLaTeX view fileName contents exportFiles0 =
       -- Create a directory to work in.
       laTeXDir <- newTempFile
       createDirectory laTeXDir
-
       addFallOut (\ break -> -- break does not necessarily mean an error here.
          do
             -- Initial definitions

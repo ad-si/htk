@@ -1,0 +1,16 @@
+#!/bin/sh
+# 
+# Pass a file to MMiSS checker.
+# 
+# Argument 1 = working directory
+# Argument 2 = name of XML file
+#
+echo '
+<checklist>
+  <check name="Occurence check" success="Yes"></check>
+  <check name="Cyclic definitions" success="No">
+         <message>All your definitions are rubbish!</message>
+         <mmissobject id="7585"/><mmissobject id="2070498"/>
+  </check>
+</checklist>
+'

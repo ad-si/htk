@@ -194,7 +194,7 @@ workAroundDaVinciBug1 =
 
 daVinciSkip :: IO ()
 daVinciSkip =
-   if workAroundDaVinciBug1 then delay (secs 0.05) else done
+   if workAroundDaVinciBug1 then delay (secs 0.1) else done
     
 instance Destroyable DaVinci where
    destroy (DaVinci {

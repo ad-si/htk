@@ -1,0 +1,27 @@
+<?xml version=´1.0´ encoding="utf-8"?>
+
+<!--
+ 
+  This DTD specifies the format in which the MMiSS document checker 
+  returns the results of its checks.
+
+  Serge Autexier, Christoph Lüth 11.12.03
+
+  $Id$
+
+-->
+
+<!ELEMENT checklist ((check)+)>
+
+<!-- Result of one check. The message and mmissobject specify
+     errors and objects in which errors occur -->
+<!ELEMENT check (message?, (mmissobject)*)>
+<!ATTLIST check name CDATA #REQUIRED
+                success (Yes|No) #REQUIRED>
+
+<!ELEMENT message (#PCDATA)>
+
+<!ELEMENT mmissobject EMPTY>
+<!ATTLIST mmissobject id CDATA #REQUIRED>
+
+

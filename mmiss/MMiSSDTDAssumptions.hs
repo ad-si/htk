@@ -57,7 +57,7 @@ import AttributesType
 
 import EntityNames
 
-import LaTeXParser
+import LaTeXParser hiding (Other)
 
 ---
 -- How to distinguish those elements in the DTD which can be displayed

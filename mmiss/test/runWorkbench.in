@@ -1,20 +1,60 @@
 #!/bin/sh
+#
+# MMiSS runWorkbench skript. 
+#
+# Starts a Workbench client.
 
-set -e
+
+help() 
+{
+  echo "MMiSS Workbench client start script.
+Usage: `basename $0` options, where valid options include: 
+  -C clear local workspace
+  -l <dir>  specify location of local workspace
+  -p <port> specify default port to connect to on server
+"
+}
+
+CLEAR_WORKSPACE=false
+
+# Process command line options
+while getopts Cl:p:? OPT; do 
+  case $OPT in
+    C ) CLEAR_WORKSPACE=true; ;;
+    l ) LOCAL_WORKSPACE=$OPTARG ;;
+    p ) export UNIPORT=$OPTARG ;;
+    \? ) help ; exit 0 ;;
+  esac
+done
+
+shift `expr $OPTIND - 1`
 
 cd @TOP@/mmiss/test
 
 # Check that files are here
 TOP=@TOP@ @TOP@/mmiss/test/testfiles
 
-# Test script for running the workbench.
+
 export UNIEDITOR UNISERVERDIR UNIWORKINGDIR 
 
+# Check XEmacs is present.
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 
-UNISERVERDIR=${UNISERVERDIR:-`./TempDir /tmp/uni.$USER.server.`}
-echo Using $UNISERVERDIR for the internal server.  Set UNISERVERDIR next time to reuse it.
+# Set local workspace for internal server.
 UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir /tmp/uni.$USER.working.`}
+UNISERVERDIR=${LOCAL_WORKSPACE:-/home/cxl/uni/tmp/local-workspace}
+if [ -d $UNISERVERDIR ]; then
+  if [ $CLEAR_WORKSPACE = true ]; then
+    echo Clearing local workspace. 
+    command rm -rf $UNISERVERDIR/*
+  else  
+    echo Using local workspace at $UNISERVERDIR.
+  fi
+else
+  echo Creating new local workspace at $UNISERVERDIR.
+  mkdir -p $UNISERVERDIR
+fi
+
 
 # The following variables have to be set since in the binary release they
 # cannot (at the moment) be hardwired into the binaries.
@@ -25,6 +65,20 @@ UNIDAVINCIICONS=${UNIDAVINCIICONS:-@TOP@/database/icons}
 UNIGNUCLIENT=${UNIGNUCLIENT:-@GNUCLIENT@}
 UNITOP=${UNITOP:-@TOP@}
 
-gmake killWorkbench
+# There is no harm in running more than one workbench client on the 
+# same machine, sharing the same local workspace (it may even make sense
+# to do that), but they should not use the same UNIWORKINGDIR. 
+if [ -f ${UNIWORKINGDIR}/wb.pid ]; then
+  OTHERPID=`cat $UNIWORKINGDIR/wb.pid` 
+  echo "Another client is running with the same working directory $UNIWORKINGDIR. 
+Exit the ither client, use kill $OTHERPID, or if there is no such process,
+delete the file ${UNIWORKINGDIR}/wb.pid and restart.
+"
+  exit 0
+else
+  echo $$ > ${UNIWORKINGDIR}/wb.pid
+fi
 
-gmake runWorkbench
+
+# Run the workbench.
+./MMiSSWorkbench --uni-debug=w.debug
