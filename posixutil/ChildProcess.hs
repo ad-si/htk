@@ -59,6 +59,8 @@ module ChildProcess (
    -- Set a "challenge" and "response".  Each is given as a String.
    -- The challenge (first String) will have newline appended if in line-mode.
    -- However the response will always be expected exactly as is.
+   toolName, -- :: String -> Config PosixProcess
+   -- The name of the tool, used in error messages and in the debug file.
 
    -- the settings encoded in (parms::[Config PosixProcess]) can be
    -- decoded, with a standard set of defaults, using
@@ -133,7 +135,8 @@ data PosixProcess =
       chksize         :: Int, 
       lmode           :: Bool, -- line mode
       stderr          :: Bool, -- include stderr
-      cresponse       :: Maybe (String,String)
+      cresponse       :: Maybe (String,String),
+      toolname        :: Maybe String
      }
 
 defaultPosixProcess :: PosixProcess
@@ -145,7 +148,8 @@ defaultPosixProcess =
       chksize = 1000,
       lmode = True,
       stderr = True,
-      cresponse = Nothing 
+      cresponse = Nothing,
+      toolname = Nothing
       }
 
 
@@ -156,6 +160,8 @@ environment     :: [(String,String)] -> Config PosixProcess
 workingdir      :: FilePath -> Config PosixProcess
 chunksize       :: Int-> Config PosixProcess
 standarderrors  :: Bool -> Config PosixProcess
+challengeResponse :: (String,String) -> Config PosixProcess
+toolName :: String -> Config PosixProcess
 
 linemode lm' parms = return parms{lmode = lm'}
 arguments args' parms = return parms{args = args'}
@@ -164,6 +170,7 @@ workingdir wdir' parms = return parms{wdir = Just wdir'}
 chunksize size' parms = return parms{chksize= size' }
 standarderrors err' parms = return parms{stderr = err'}
 challengeResponse cr parms = return parms {cresponse = Just cr}
+toolName n parms = return parms {toolname = Just n}
 
 appendArguments args' parms = return parms{args = (args parms) ++ args'}
 
@@ -271,9 +278,11 @@ newChildProcess path confs  =
                               Posix.fdClose readOut
                            )
             let
-               toolTitle = case splitName path of
-                  Just (dir,toolTitle) -> toolTitle
-                  Nothing -> path
+               toolTitle = 
+                  case (toolname parms,splitName path) of
+                     (Just toolTitle,_) -> toolTitle
+                     (Nothing,Just (dir,toolTitle)) -> toolTitle
+                     (Nothing,Nothing) -> path
 
                newChild = ChildProcess {
                   childObjectID = childObjectID,
@@ -304,14 +313,12 @@ newChildProcess path confs  =
                         result <- case resultOpt of
                            Nothing ->
                               do
-                                 putStrLn (
-                                    "Timed out reading output from tool " ++
-                                    path ++ "\n" ++
+                                 error (
+                                    "Timed out waiting for initial output\n" ++
                                     "Guess: either it's the wrong tool, " ++
                                     "or else you need to set the option \n"
-                                    ++ "--uni-option=" ++
+                                    ++ "  --uni-option=" ++
                                     "[LARGE NUMBER OF MILLISECONDS]")
-                                 error "Timed out"
                            Just result -> return result
 
 #ifdef DEBUG
@@ -325,16 +332,25 @@ newChildProcess path confs  =
                               if isPrefixOf result errorResponse
                                  || isPrefixOf errorResponse result
                               then
-                                 error ("Couldn't execute "++path)
+                                 error ("Couldn't execute tool")
                               else
                                  error ("Unexpected response was "++
                                     show result)
                         )
-                     (\ error ->  
+                     (\ exception ->  
                         do
-                           putStrLn ("Attempt to start "++path++" failed")
-                           alwaysDebug ("GHC error"++show error)
-                           Exception.throw error
+                           putStrLn ("Attempt to start "++toolTitle++
+                              " from path \""++path++"\" failed")
+                           case Exception.errorCalls exception of
+                              Just mess -> 
+                                 do
+                                    putStrLn mess
+                                    error "Tool start failed"
+                              Nothing ->
+                                 do
+                                    putStrLn ("Mysterious exception: "
+                                       ++show exception)
+                                    Exception.throw exception
                         ) 
             return newChild
       connect writeIn readIn writeOut readOut readWriteErr Nothing parms =

@@ -222,8 +222,11 @@ callWish :: IO CalledWish
 callWish = 
    do
       wishPath <- getWishPath
-      childProcess <- newChildProcess wishPath [linemode True,
-         challengeResponse challengeResponsePair]
+      childProcess <- newChildProcess wishPath [
+         linemode True,
+         challengeResponse challengeResponsePair,
+         toolName "wish"
+         ]
       return (CalledWish childProcess)
 
 challengeResponsePair :: (String,String)

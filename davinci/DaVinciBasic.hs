@@ -124,7 +124,8 @@ newDaVinci =
             environment (("DAVINCI_ICONDIR",daVinciIcons):existingEnv),
             arguments ["-pipe"],
             standarderrors False,
-            challengeResponse challengeResponsePair
+            challengeResponse challengeResponsePair,
+            toolName "daVinci"
             ]
       childProcess <- newChildProcess daVinciPath configs
 -- Send initial command.
