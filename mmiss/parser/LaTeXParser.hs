@@ -49,13 +49,13 @@ import qualified XmlPP as PP
 import Pretty hiding (char, spaces, space)
 #endif
 
-import qualified Dynamics
+import Dynamics
 import Computation hiding (try)
 import ParsecError
 import EmacsContent
 import EntityNames
 import AtomString
-import qualified CodedValue
+import CodedValue
 -- import EmacsEdit(TypedName)
 
 
@@ -85,7 +85,7 @@ data MMiSSLatexPreamble = MMiSSLatexPreamble {
 
 data LaTeXPreamble = Preamble DocumentClass [Package] String deriving Show
 
-{--  These structures should be included in MMiSSLatexPreamble :
+{--  These structures should be included in MMiSSLatexPreamble : -}
 
 data MMiSSOntology = MMiSSOntology {
   classes :: [ClassDecl],
@@ -120,7 +120,7 @@ data ObjectLink = ObjectLink {
   linkRelation :: String
 } deriving(Show)
 
---}
+
 
 {--------------------------------------------------------------------------------------------
 
@@ -1984,7 +1984,7 @@ instance StringClass MMiSSLatexPreamble where
 -- Instances of Typeable & HasCodedValue for Preamble and MMiSSLatexPreamble 
 -- (added by George)
 -- ----------------------------------------------------------------------------------
-{--
+
 package_tyRep = Dynamics.mkTyRep "LaTeXParser" "Package"
 instance Dynamics.HasTyRep Package where
    tyRep _ = package_tyRep
@@ -2001,9 +2001,95 @@ instance Dynamics.HasTyRep MMiSSLatexPreamble where
 
 instance CodedValue.HasCodedValue MMiSSLatexPreamble where
    encodeIO = CodedValue.mapEncodeIO
-      (\ (Preamble documentClass packages string) -> (documentClass,packages,string))
+      (\ (MMiSSLatexPreamble latexPreamble importCommands) ->
+         (latexPreamble,importCommands))
    decodeIO = CodedValue.mapDecodeIO
-      (\ (documentClass,packages,string) -> Preamble documentClass packages string)
+      (\ (latexPreamble,importCommands) ->
+         (MMiSSLatexPreamble latexPreamble importCommands))
+
+latexPreamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "LaTeXPreamble"
+instance Dynamics.HasTyRep LaTeXPreamble where
+   tyRep _ = latexPreamble_tyRep
+
+instance CodedValue.HasCodedValue LaTeXPreamble where
+   encodeIO = CodedValue.mapEncodeIO
+      (\ (Preamble documentClass packages string) -> 
+         (documentClass,packages,string))
+   decodeIO = CodedValue.mapDecodeIO
+      (\ (documentClass,packages,string) ->
+         (Preamble documentClass packages string))
+
+
+mmissOntology_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSOntology"
+instance HasTyRep MMiSSOntology where
+   tyRep _ = mmissOntology_tyRep
+
+instance HasCodedValue MMiSSOntology where
+   encodeIO = mapEncodeIO (
+      \ (MMiSSOntology classes objects relations objectLinks) ->
+      (classes,objects,relations,objectLinks)
+      )
+   decodeIO = mapDecodeIO (
+      \ (classes,objects,relations,objectLinks) ->
+      (MMiSSOntology classes objects relations objectLinks)
+      )
+
+classDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "ClassDecl"
+instance HasTyRep ClassDecl where
+   tyRep _ = classDecl_tyRep
+
+instance HasCodedValue ClassDecl where
+   encodeIO = mapEncodeIO (
+      \ (ClassDecl className classText super) ->
+      (className,classText,super)
+      )
+   decodeIO = mapDecodeIO (
+      \ (className,classText,super) ->
+      (ClassDecl className classText super)
+      )
+
+objectDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "ObjectDecl"
+instance HasTyRep ObjectDecl where
+   tyRep _ = objectDecl_tyRep
+
+instance HasCodedValue ObjectDecl where
+   encodeIO = mapEncodeIO (
+      \ (ObjectDecl objName objectText instanceOf) ->
+      (objName,objectText,instanceOf)
+      )
+   decodeIO = mapDecodeIO (
+      \ (objName,objectText,instanceOf) ->
+      (ObjectDecl objName objectText instanceOf)
+      )
+
+relationDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "RelationDecl"
+instance HasTyRep RelationDecl where
+   tyRep _ = relationDecl_tyRep
+
+instance HasCodedValue RelationDecl where
+   encodeIO = mapEncodeIO (
+      \ (RelationDecl multiplicities relName relationText source target) ->
+      (multiplicities,relName,relationText,source,target)
+      )
+   decodeIO = mapDecodeIO (
+      \ (multiplicities,relName,relationText,source,target) ->
+      (RelationDecl multiplicities relName relationText source target)
+      )
+
+objectLink_tyRep = Dynamics.mkTyRep "LaTeXParser" "ObjectLink"
+instance HasTyRep ObjectLink where
+   tyRep _ = objectLink_tyRep
+
+instance HasCodedValue ObjectLink where
+   encodeIO = mapEncodeIO (
+      \ (ObjectLink sourceObj targetObj linkRelation) ->
+      (sourceObj,targetObj,linkRelation)
+      )
+   decodeIO = mapDecodeIO (
+      \ (sourceObj,targetObj,linkRelation) ->
+      (ObjectLink sourceObj targetObj linkRelation)
+      )
+
 --}
 
 -- Rubbish: To be deleted

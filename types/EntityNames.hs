@@ -130,6 +130,61 @@ data Directive =
                oldName :: EntityName
              }
 
+-- ----------------------------------------------------------------------
+-- Instances of CodedValue
+-- ----------------------------------------------------------------------
+
+directive_tyRep = mkTyRep "EntityNames" "Directive"
+instance HasTyRep Directive where
+   tyRep _ = directive_tyRep
+
+instance HasPacker Directive where
+   packs = [
+      pack0 'q' Qualified,
+      pack0 'u' Unqualified,
+      pack0 'g' Global,
+      pack0 'l' Local,
+      pack1 'h' Hide,
+      pack1 'r' Reveal,
+      pack2 'R' Rename
+      ]
+   unPack = (\ packer -> case packer of
+      Qualified -> UnPack 'q' ()
+      Unqualified -> UnPack 'u' ()
+      Global -> UnPack 'g' ()
+      Local -> UnPack 'l' ()
+      Hide l -> UnPack 'h' l
+      Reveal l -> UnPack 'r' l
+      Rename n o -> UnPack 'R' (n,o)
+      )
+
+instance HasCodedValue Directive where
+   encodeIO = mapEncodeIO Packed
+   decodeIO = mapDecodeIO (\ (Packed p) -> p)
+
+importCommand_tyRep = mkTyRep "EntityNames" "ImportCommand"
+instance HasTyRep ImportCommand where
+   tyRep _ = importCommand_tyRep
+
+instance HasCodedValue ImportCommand where
+   encodeIO = mapEncodeIO (\ ic -> case ic of
+      Import ds e -> Left (ds,e)
+      PathAlias e ef -> Right (e,ef)
+      )
+   decodeIO = mapDecodeIO (\ et -> case et of
+      Left (ds,e) -> Import ds e
+      Right (e,ef) -> PathAlias e ef
+      )
+
+importCommands_tyRep = mkTyRep "EntityNames" "ImportCommands"
+instance HasTyRep ImportCommands where
+   tyRep _ = importCommands_tyRep
+
+instance HasCodedValue ImportCommands where
+   encodeIO = mapEncodeIO (\ (ImportCommands ics) -> ics)
+   decodeIO = mapDecodeIO (\ ics -> ImportCommands ics)
+   
+
 
 -- ----------------------------------------------------------------------
 -- Instances of StringClass

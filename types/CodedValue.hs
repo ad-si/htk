@@ -41,6 +41,16 @@ module CodedValue(
       -- like Either but between 5 types.  Hopefully this will allow
       -- efficient encoding of most cases where we have 3 or more constructors.
 
+   -- HasPacker is a way of constructing HasCodedValue instances for
+   -- general datatypes.
+   Packed(..),
+   HasPacker(..),
+   Pack(..),UnPack(..),
+   pack0,pack1,pack2,pack3,pack4,
+      -- used for constructing HasPacker instances.
+   
+   
+
    -- We also provide the following mechanisms for providing instances
    -- of HasCodedValue:
    
@@ -116,6 +126,7 @@ import Int
 
 import UniqueString
 import AtomString(StringClass(..))
+import ExtendedPrelude(findJust)
 import Registry
 import Sources
 import VariableSet
@@ -275,7 +286,6 @@ instance (HasCodedValue value1,HasCodedValue value2,HasCodedValue value3,
    decodeIO = mapDecodeIO (\ (v1,(v2,(v3,(v4,v5)))) -> (v1,v2,v3,v4,v5))
 
 
-
 instance (HasCodedValue value1,HasCodedValue value2) 
    => HasCodedValue (Either value1 value2)
       where
@@ -355,6 +365,85 @@ instance (HasCodedValue v1,HasCodedValue v2,HasCodedValue v3,HasCodedValue v4,
                   return (Choice5 v,codedValue2)
             _ -> formatError "Unexpected character decoding Either"
 
+
+---------------------------------------------------------------------
+-- More complex alternatives.
+-- This is based on util.BinaryIO.HasWrapper
+---------------------------------------------------------------------
+
+newtype Packed packer = Packed packer 
+   -- used to avoid overlapping type instances.
+
+class HasPacker packer where
+   packs :: [Pack packer] 
+      -- How to construct packer type.  Argument gives a list of alternatives.
+   unPack :: packer -> UnPack
+      -- How to deconstruct.
+
+-- Blame GHC that we can't use labels with existential types.
+data UnPack = forall val . HasCodedValue val
+   => UnPack 
+      Char -- label for this type on writing.
+      val -- value inside this packed type.
+
+data Pack packer = forall val . HasCodedValue val
+   => Pack
+      Char -- label for this type on reading.  This must, of course, be the
+           -- same as for the corresponding UnPack.
+      (val -> packer)
+           -- how to pack this sort of value.
+
+-- some abbreviations for construtor functions with varying numbers of 
+-- arguments
+pack0 :: Char -> packer -> Pack packer
+pack0 label packer = Pack label (\ () -> packer)
+
+pack1 :: HasCodedValue val => Char -> (val -> packer) -> Pack packer
+pack1 = Pack
+
+pack2 :: (HasCodedValue val1,HasCodedValue val2) => Char 
+   -> (val1 -> val2 -> packer) -> Pack packer
+pack2 char con = Pack char (\ (val1,val2) -> con val1 val2)
+
+pack3 :: (HasCodedValue val1,HasCodedValue val2,HasCodedValue val3) => Char 
+   -> (val1 -> val2 -> val3 -> packer) -> Pack packer
+pack3 char con = Pack char (\ (val1,val2,val3) -> con val1 val2 val3)
+
+pack4 :: (HasCodedValue val1,HasCodedValue val2,HasCodedValue val3,
+      HasCodedValue val4)
+   => Char -> (val1 -> val2 -> val3 -> val4 -> packer) -> Pack packer
+pack4 char con = Pack char (\ (val1,val2,val3,val4) -> con val1 val2 val3 val4)
+
+instance (Typeable (Packed packer),HasPacker packer) 
+      => HasCodedValue (Packed packer) where
+   encodeIO (Packed packer) codedValue repository =  encode' (unPack packer)
+      where
+         encode' (UnPack label val) = encode2IO label val codedValue repository
+   decodeIO codedValue0 repository =
+      do
+         (thisLabel,codedValue1) <- safeDecodeIO codedValue0 repository
+         let
+            innerPack :: HasCodedValue val 
+               => (val -> packer) -> IO (Packed packer,CodedValue)
+            innerPack packFn =
+               do
+                  (val,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Packed (packFn val),codedValue2)
+
+         case findJust
+            (\ (Pack label packFn) -> 
+               if label == thisLabel then Just (innerPack packFn) else Nothing
+               )
+            packs of
+
+            Nothing -> formatError (
+               "CodedValue.HasPacker - bad label " ++ show thisLabel)
+            Just getPack -> getPack
+
+packed_tyRep = mkTyRep "CodedValue" "Packed"
+
+instance HasTyRep1 Packed where
+   tyRep1 _ = packed_tyRep
 
 ---------------------------------------------------------------------
 -- Lists
@@ -760,3 +849,4 @@ equalByEncode (view1,value1) (view2,value2) =
       codedValue1 <- doEncodeIO value1 view1
       codedValue2 <- doEncodeIO value2 view2
       return (codedValue1 == codedValue2)
+
