@@ -1,7 +1,0 @@
-*.o
-*.hi
-.depend
-Makefile
-*%
-pgip.hs
-pgml.hs

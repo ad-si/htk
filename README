@@ -29,8 +29,6 @@ down the list, the less reliable things will be!
    mmiss        |  General code for MMiSS objects.
    mmiss/api    |  Code for interfacing MMiSS via an API (UNDER CONSTRUCTION)
 
-   appl         |  Stand-alone UniForM applications
-
 
 Only the Haskell code in util, events, reactor and htk is known to work under
 Windows.  Everything else requires Posix, and so, Unix/Linux.

@@ -1,9 +1,0 @@
-LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
-       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
-
-SRCS       = Maincats-gui.hs
-
-XHCDIRS = $(HTKDIRS)
-
-include @TOP@/mk/boilerplate.mk
-
