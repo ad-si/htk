@@ -258,38 +258,18 @@ tagMethods =
 -- unparsing of tag commands
 -- -----------------------------------------------------------------------
 
-{-
-tkPackTextTag :: ObjectKind -> ObjectName -> ObjectName ->
-                 [ConfigOption] -> ObjectID -> [Binding] -> TclScript
-tkPackTextTag _ _ name _ oid binds =
-  concatMap (tkBindTextTag name oid) binds
--}
-
 tkGetTextTagConfig :: ObjectName -> ConfigID -> TclScript
 tkGetTextTagConfig (TextPaneItemName name tnm) cid =
   [(show name) ++ " tag cget " ++ (show tnm) ++ " -" ++ cid]
 tkGetTextTagConfig _ _ = []
-
-{-
-tkGetTextTagConfig :: ObjectName -> ConfigID -> TclScript
-tkGetTextTagConfig (TextPaneItemName name tnm) cid =            
-        [(show name) ++ " tag cget " ++ (show tnm) ++ " -" ++ cid]
-tkGetTextTagConfig _ _ = []
--}
+{-# INLINE tkGetTextTagConfig #-}
 
 tkSetTextTagConfigs :: ObjectName -> [ConfigOption] -> TclScript
 tkSetTextTagConfigs _ [] = []
 tkSetTextTagConfigs (TextPaneItemName name (tnm @ (TextTagID k))) args = 
   [show name ++ " tag configure " ++ show tnm ++ " " ++ showConfigs args]
 tkSetTextTagConfigs _ _ = []
-
-{-
-tkSetTextTagConfigs :: ObjectName -> [ConfigOption] -> TclScript
-tkSetTextTagConfigs _ [] = []
-tkSetTextTagConfigs (TextPaneItemName name (tnm @ (TextTagID k))) args = 
-        [show name ++ " tag configure " ++ show tnm ++ " " ++ showConfigs args]
-tkSetTextTagConfigs _ _ = []
--}
+{-# INLINE tkSetTextTagConfigs #-}
 
 tkCreateTextTag :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
                    [ConfigOption] -> TclScript
@@ -299,15 +279,6 @@ tkCreateTextTag _ (TEXTTAG il) (TextPaneItemName name tnm) _ args =
   where unfold (GUIVALUE _ str) = str ++ " "
 --tkCreateTextTag _ _ _ _ _ = []
 {-# INLINE tkCreateTextTag #-}
-
-{-
-tkCreateTextTag :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> TclScript
-tkCreateTextTag (TEXTTAG il) (TextPaneItemName name tnm) oid args =
-         [show name ++ " tag add " ++ show tnm ++ " " ++ concat (map unfold il)
-         ++ " " ++ (showConfigs args)]
- where unfold (GUIVALUE _ str) = str
-tkCreateTextTag _ _ _ _ = []
--}
 
 tkTagAdd :: ObjectName -> BaseIndex -> BaseIndex -> TclScript
 tkTagAdd (TextPaneItemName name tnm) start end =
@@ -322,17 +293,10 @@ tkTagDelete (TextPaneItemName name tnm) =
 tkTagDelete _ = []
 {-# INLINE tkTagDelete #-}
 
-{-
-tkTagDelete :: ObjectID -> ObjectName -> TclScript
-tkTagDelete oid (TextPaneItemName name tnm) =
-  [show name ++ " tag delete " ++ show tnm]
-tkTagDelete _ _ = []
--}
-
 tkBindTextTag :: ObjectName -> BindTag -> [WishEvent] -> EventInfoSet ->
-                 TclScript
+                 Bool -> TclScript
 tkBindTextTag (TextPaneItemName name tnm) bindTag wishEvents
-              eventInfoSet =
+              eventInfoSet _ =
   let doBind = show name ++ " tag bind " ++ show tnm ++ " " ++
                delimitString (foldr (\ event soFar -> showP event soFar)
                                     "" wishEvents) ++ " " ++
@@ -340,27 +304,13 @@ tkBindTextTag (TextPaneItemName name tnm) bindTag wishEvents
   in [doBind]
 {-# INLINE tkBindTextTag #-}
 
-{-
-tkBindTextTag :: ObjectName -> ObjectID -> Binding -> TclScript
-tkBindTextTag (TextPaneItemName name tnm) (ObjectID no) (tkev,fields) = 
-  [show name ++ " tag bind " ++ show tnm ++ " " ++ tkev ++ 
-   " {puts stdout {EV " ++ show no ++ " " ++ tkev ++ " " ++
-   show fields ++ " }; flush stdout};"]
-tkBindTextTag _ _ _ = []
--}
-
-tkUnbindTextTag :: ObjectName -> BindTag -> [WishEvent] -> TclScript
-tkUnbindTextTag (TextPaneItemName name tnm) bindTag wishEvents = 
+tkUnbindTextTag :: ObjectName -> BindTag -> [WishEvent] -> Bool ->
+                   TclScript
+tkUnbindTextTag (TextPaneItemName name tnm) bindTag wishEvents _ =
  [show name ++ " tag bind " ++ show tnm ++ " " ++
   delimitString (foldr (\ event soFar -> showP event soFar)
                        "" wishEvents) ++ " {}"]
 {-# INLINE tkUnbindTextTag #-}
-
-{-
-tkUnbindTextTag :: ObjectName -> ObjectID -> Binding -> TclScript
-tkUnbindTextTag (TextPaneItemName name tnm) _ (tkev,_) = 
-  [show name ++ " tag bind " ++ show tnm ++ " " ++ tkev ++ " {}"]
--}
 
 tkTagLower :: ObjectName -> TclScript
 tkTagLower (TextPaneItemName name tnm) =

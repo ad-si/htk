@@ -230,7 +230,7 @@ data Methods =
             gridCmd     :: ObjectName -> [GridPackOption] -> TclScript,
             destroyCmd  :: ObjectName -> TclScript,
             bindCmd     :: ObjectName -> BindTag -> [WishEvent] ->
-                           EventInfoSet -> TclScript,
+                           EventInfoSet -> Bool -> TclScript,
             unbindCmd   :: ObjectName -> BindTag -> [WishEvent] ->
-                           TclScript,
+                           Bool -> TclScript,
             cleanupCmd  :: ObjectID -> ObjectName -> TclScript }

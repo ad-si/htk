@@ -169,25 +169,18 @@ tkDestroyCanvasItem name@(CanvasItemName _ tid) =
 tkDestroyCanvasItem _ = []
 
 tkBindCanvasItem :: ObjectName -> BindTag -> [WishEvent] ->
-                    EventInfoSet -> TclScript
+                    EventInfoSet -> Bool -> TclScript
 tkBindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents
-                 eventInfoSet =
+                 eventInfoSet _ =
   ["global " ++ drop 1 (show cid),
    show cnvnm ++ " bind " ++ show cid ++ " " ++
    delimitString (foldr (\ event soFar -> showP event soFar)
                         "" wishEvents) ++ " " ++
    mkBoundCmdArg bindTag eventInfoSet]
 
-tkUnbindCanvasItem :: ObjectName -> BindTag -> [WishEvent] -> TclScript
-tkUnbindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents = []
-{-
-  let doRm = "rmtag " ++ show nm ++ bindTagS bindTag
-      doUnBind = "bind " ++ bindTagS bindTag ++ " " ++
-                 delimitString (foldr (\ event soFar -> showP event soFar)
-                                      "" wishEvents) ++ " {}"
-  in [doRm, doUnBind]
--}
-
+tkUnbindCanvasItem :: ObjectName -> BindTag -> [WishEvent] -> Bool ->
+                      TclScript
+tkUnbindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents _ = []
 
 tkCleanupCanvasItem :: ObjectID -> ObjectName -> TclScript
 tkCleanupCanvasItem _ (CanvasItemName _ tid) =

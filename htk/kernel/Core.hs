@@ -97,7 +97,8 @@ module Core (
   BNo(..),
   bind,
   bindSimple,
-
+  bindPath,
+  bindPathSimple,
   HasCommand(..),
 
 -- needed to build bind and unbind methods in widget classes:
@@ -107,6 +108,7 @@ module Core (
   delimitString,
   BindTag,
   EventInfoSet,
+
 
 -- ** Tk variables **
 
@@ -315,8 +317,8 @@ voidMethods = Methods (\_ _ -> [])
                       (\_ _ -> [])
                       (\_ _ -> [])
                       (\_ -> [])
+                      (\_ _ _ _ _ -> [])
                       (\_ _ _ _ -> [])
-                      (\_ _ _ -> [])
                       (\_ _ -> [])
 
 
@@ -336,22 +338,25 @@ tkGrid :: ObjectName -> [GridPackOption] -> TclScript
 tkGrid name opts =
   ["grid " ++ show name ++ " " ++ showGridPackOptions opts]
 
-tkBindWidget :: ObjectName -> BindTag -> [WishEvent] -> EventInfoSet ->
-                TclScript
-tkBindWidget nm bindTag wishEvents eventInfoSet =
-  let doBind = "bind " ++ show nm ++ " " ++
-               delimitString (foldr (\ event soFar -> showP event soFar)
-                                    "" wishEvents) ++ " " ++
-               mkBoundCmdArg bindTag eventInfoSet
-  in [doBind]
+tkBindWidget :: ObjectName -> BindTag -> [WishEvent] ->
+                EventInfoSet -> Bool -> TclScript
+tkBindWidget nm bindTag wishEvents eventInfoSet bindToTag =
+  let evStr = delimitString (foldr (\ event soFar -> showP event
+                                                                soFar)
+                                   "" wishEvents) ++ " " ++
+              mkBoundCmdArg bindTag eventInfoSet
+  in if bindToTag then ["addtag " ++ show nm ++ " " ++ bindTagS bindTag,
+                        "bind " ++ bindTagS bindTag ++ " " ++ evStr]
+     else ["bind " ++ show nm ++ " " ++ evStr]
 
-tkUnbindWidget :: ObjectName -> BindTag -> [WishEvent] -> TclScript
-tkUnbindWidget nm bindTag wishEvents =
-  let {-doRm = "rmtag " ++ show nm ++ " " ++ bindTagS bindTag-}
-      doUnBind = "bind " ++ show nm ++ " " ++
-                 delimitString (foldr (\ event soFar -> showP event soFar)
-                                      "" wishEvents) ++ " {}"
-  in [{-doRm,-} doUnBind]
+tkUnbindWidget :: ObjectName -> BindTag -> [WishEvent] -> Bool ->
+                  TclScript
+tkUnbindWidget nm bindTag wishEvents boundToTag =
+  let evStr = delimitString (foldr (\ event soFar -> showP event soFar)
+                                   "" wishEvents) ++ " {}"
+  in if boundToTag then ["rmtag " ++ show nm ++ " " ++ bindTagS bindTag,
+                         "bind " ++ bindTagS bindTag ++ " " ++ evStr]
+     else ["bind " ++ show nm ++ " " ++ evStr]
 
 tkDestroyWidget :: ObjectName -> TclScript
 tkDestroyWidget name = ["destroy " ++ show name]
@@ -386,11 +391,9 @@ class GUIObject w => HasCommand w where
 -- bindings
 -- ---------------------------------------------------------------------
 
----
--- Binds an event for this widget.  The second action returns unbinds
--- the event.
-bind :: GUIObject wid => wid -> [WishEvent] -> IO (Event EventInfo,IO ())
-bind wid wishEvents =
+doBind :: GUIObject wid => Bool -> wid -> [WishEvent] ->
+                           IO (Event EventInfo,IO ())
+doBind bindToTag wid wishEvents =
    do
       -- Allocate a bindtag
       let mVar = bindTags wish
@@ -401,21 +404,48 @@ bind wid wishEvents =
       meth <- withRef ostref methods
       nm <- getObjectName (toGUIObject wid)
       execTclScript ((bindCmd meth) nm bindTag wishEvents
-                                    defaultEventInfoSet)
+                                    defaultEventInfoSet bindToTag)
       let
          event =
             toEvent (listen (eventQueue wish) |> Eq bindTag)
                >>>= (\ (_,eventInfoSet) -> return eventInfoSet)
          unbind :: IO ()
-         unbind = execTclScript ((unbindCmd meth) nm bindTag wishEvents)
+         unbind = execTclScript ((unbindCmd meth) nm bindTag wishEvents
+                                                  bindToTag)
       return (event,unbind)
 
+doBindSimple :: GUIObject wid => Bool -> wid -> WishEventType ->
+                                 IO (Event (),IO ())
+doBindSimple bindToTag wid wishEventType =
+  do
+     (event1, deregister) <-
+       doBind bindToTag wid [WishEvent [] wishEventType]
+     return (event1 >>> done, deregister)
+
+---
+-- Binds an event for this widget.  The second action returned unbinds
+-- the event.
+bind :: GUIObject wid => wid -> [WishEvent] -> IO (Event EventInfo,IO ())
+bind = doBind True
+
+---
+-- Simple version of bind for only one event and without modifiers.
 bindSimple :: GUIObject wid => wid -> WishEventType ->
                                IO (Event (),IO ())
-bindSimple wid wishEventType =
-   do
-      (event1, deregister) <- bind wid [WishEvent [] wishEventType]
-      return (event1 >>> done,deregister)
+bindSimple = doBindSimple True
+
+---
+-- Binds an event for this widget and its parent widgets. The second
+-- action returned unbinds the event.
+bindPath :: Widget wid => wid -> [WishEvent] -> IO (Event EventInfo,IO ())
+bindPath = doBind False
+
+---
+-- Simple version of bindPath for only one event and without modifiers.
+bindPathSimple :: Widget wid => wid -> WishEventType ->
+                                IO (Event (), IO ())
+bindPathSimple = doBindSimple False
+
 
 
 -- -----------------------------------------------------------------------

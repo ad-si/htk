@@ -26,9 +26,6 @@ main =
     Font str <- getFont ed
     putStrLn ("Font: "++ str)
 
-    but <- newButton ed [text "This is an embedded button widget"]
-             :: IO (Button String)
-
     let
       link :: String -> MarkupText
       link str = flipcolour "#4756ff" "#4c90ff"
@@ -64,20 +61,16 @@ main =
             prose ", ",
             MarkupText.underline [prose "underline"],
             prose " ..."],
-
-{- bug in font module (problem: parse of default font fails in getFont):
-         newline,
-         prose "Font attributes: ",
-         bold [prose "BOLD"],
--}
-
          newline,
          newline,
          action (putStrLn "action1")
            [link "This is an action, click here!"],
          newline,
-	 prose "This text is ", MarkupText.offset 10 [prose "raised"], 
-	 prose " and ", MarkupText.offset (-10) [prose "lowered."], prose ".",
+	 prose "This text is ",
+         MarkupText.offset 10 [prose "raised"], 
+	 prose " and ",
+         MarkupText.offset (-10) [prose "lowered."],
+         prose ".",
          newline,
          clipup
            [link "This is a clipup"]
@@ -119,7 +112,21 @@ main =
          newline, newline,
          href [link "A link to another MarkupText"] txt2,
          newline, newline,
-         window but,
+         window (do
+                   but <- newButton ed
+                            [text "This is an embedded button widget",
+                             cursor arrow]
+                            :: IO (Button String)
+                   clickedbut <- clicked but
+                   death <- newChannel
+                   let listenButton :: Event ()
+                       listenButton =
+                         clickedbut >> (always
+                                          (putStrLn "clicked button") >>
+                                        listenButton) +>
+                         receive death
+                   spawnEvent listenButton
+                   return (but, syncNoWait (send death ()))),
          newline, newline,
          clipup
            [link "This is a clipup"]
@@ -144,42 +151,9 @@ main =
          newline,
          prose "When you go back the inserted text will not be there anymore!",
          newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
-         prose "When you go back the inserted text will not be there anymore!",
-         newline,
          newline,
          href [link "Back"] txt]
 
     ed # new txt
     ed # insertAt add_txt (4,5)
-    sync(never)
---    finishHTk
+    finishHTk

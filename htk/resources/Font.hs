@@ -31,30 +31,31 @@ import Debug(debug)
 import IOExts(unsafePerformIO)
 
 
--- --------------------------------------------------------------------------
---  Font 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Font
+-- -----------------------------------------------------------------------
 
 newtype Font  = Font String
 
-data XFont = XFont {
-                foundry   :: String,
-                family    :: Maybe FontFamily,
-                weight    :: Maybe FontWeight,
-                slant     :: Maybe FontSlant,
-                fontwidth :: Maybe FontWidth,
-                pixels    :: (Maybe Int),
-                points    :: (Maybe Int),
-                xres      :: (Maybe Int),
-                yres      :: (Maybe Int),
-                spacing   :: Maybe FontSpacing,
-                charwidth :: (Maybe Int),
-                charset   :: Maybe String
-                }
+data XFont =
+    XFont { foundry   :: String,
+            family    :: Maybe FontFamily,
+            weight    :: Maybe FontWeight,
+            slant     :: Maybe FontSlant,
+            fontwidth :: Maybe FontWidth,
+            pixels    :: (Maybe Int),
+            points    :: (Maybe Int),
+            xres      :: (Maybe Int),
+            yres      :: (Maybe Int),
+            spacing   :: Maybe FontSpacing,
+            charwidth :: (Maybe Int),
+            charset   :: Maybe String }
+  | XFontAlias String
 
--- --------------------------------------------------------------------------
---  Font 
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+-- Font
+-- -----------------------------------------------------------------------
 
 class FontDesignator fh where
         toFont :: fh -> Font
@@ -81,9 +82,9 @@ instance FontDesignator (FontFamily,FontSlant,Int) where
         toFont (ch,sl,po) = toFont (xfont {family = Just ch, slant = Just sl, points = (Just po)})
 
 
--- --------------------------------------------------------------------------
---  X Font Construction 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- X Font Construction
+-- -----------------------------------------------------------------------
 
 xfont :: XFont
 xfont = XFont {
@@ -116,9 +117,9 @@ instance Read Font where
    readsPrec p str = [(Font str,[])] 
 
 
--- --------------------------------------------------------------------------
---  XFont Instantations 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- XFont Instantations
+-- -----------------------------------------------------------------------
 
 instance GUIValue XFont where
         cdefault = read "-Adobe-Helvetica-Normal-R-Normal-*-*-120-*-*-*-*-*-*"
@@ -133,16 +134,24 @@ instance Show XFont where
                mshow po ++ hy ++ mshow xr ++ hy ++ mshow yr ++ hy ++ 
                mshow sp ++ hy ++ mshow cw ++ hy ++ mshow cs ++ hy ++ "*"
                where hy = "-"
+        cshow (XFontAlias str) = str
 
 instance Read XFont where
    readsPrec p str = [(cread (dropWhile isSpace str),[])] 
      where
         cread s @ ('-':str) = toXFont (split (== '-') str)
 {-
-        cread s = let [fa,po,fw] = words s 
-                  in toFont(fa, (read (drop 1 po)) :: Int
+        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs, y] _ =
+                XFont fo (mread fa) (mread we) (mread sl) (mread sw)
+                        (mread pi) (mread po) (mread xr) (mread yr)
+                        (mread sp) (mread cw) (mread cs)
+        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs, y, _] _ =
+                 XFont fo (mread fa) (mread we) (mread sl) (mread sw)
+                        (mread pi) (mread po) (mread xr) (mread yr)
+                        (mread sp) (mread cw) (mread cs)
+        toXFont _ str = XFontAlias str
 -}
---        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs, y] =
+
         toXFont (fo : fa : we : sl : sw : pi : po : xr : yr : sp : cw : cs : y : _) =
                 XFont fo (mread fa) (mread we) (mread sl) (mread sw)
                         (mread pi) (mread po) (mread xr) (mread yr)
@@ -156,7 +165,6 @@ mshow (Just a) = show a
 mread :: Read a => String -> Maybe a
 mread "*" = Nothing
 mread str = Just (read str)
---unsafePerformIO (putStrLn ("reading " ++ str) >> return (Just (read str)))
 
 
 -- -----------------------------------------------------------------------
@@ -165,19 +173,12 @@ mread str = Just (read str)
 
 data FontWeight = NormalWeight | Medium | Bold
 
-
 instance Read FontWeight where
    readsPrec p b =
-     case dropWhile (isSpace) b of
-        'N':'o':'r':'m':'a':'l':xs -> [(NormalWeight,xs)]
+     case dropWhile (isSpace) (map toLower b) of
         'n':'o':'r':'m':'a':'l':xs -> [(NormalWeight,xs)]
-
-        'M':'e':'d':'i':'u':'m':xs -> [(Medium,xs)]
         'm':'e':'d':'i':'u':'m':xs -> [(Medium,xs)]
-
-        'B':'o':'l':'d':xs -> [(Bold,xs)]
         'b':'o':'l':'d':xs -> [(Bold,xs)]
-
         _ -> []
 
 instance Show FontWeight where
@@ -197,27 +198,23 @@ instance GUIValue FontWeight where
 --  FontFamily
 -- -----------------------------------------------------------------------
 
-data FontFamily = Lucida | Times | Helvetica | Courier | Symbol
+data FontFamily =
+    Lucida
+  | Times
+  | Helvetica
+  | Courier
+  | Symbol
+  | Other String
 
 instance Read FontFamily where
    readsPrec p b =
-     case dropWhile (isSpace) b of
-        'L':'u':'c':'i':'d':'a':xs -> [(Lucida,xs)]
+     case dropWhile (isSpace) (map toLower b) of
         'l':'u':'c':'i':'d':'a':xs -> [(Lucida,xs)]
-
-        'T':'i':'m':'e':'s':xs -> [(Times,xs)]
         't':'i':'m':'e':'s':xs -> [(Times,xs)]
-
-        'H':'e':'l':'v':'e':'t':'i':'c':'a':xs -> [(Helvetica,xs)]
         'h':'e':'l':'v':'e':'t':'i':'c':'a':xs -> [(Helvetica,xs)]
-
-        'C':'o':'u':'r':'i':'e':'r':xs -> [(Courier,xs)]
         'c':'o':'u':'r':'i':'e':'r':xs -> [(Courier,xs)]
-
-        'S':'y':'m':'b':'o':'l':xs -> [(Symbol,xs)]
         's':'y':'m':'b':'o':'l':xs -> [(Symbol,xs)]
-
-        _ -> []
+        fstr -> [(Other fstr, [])]
 
 instance Show FontFamily where
    showsPrec d p r = 
@@ -227,30 +224,25 @@ instance Show FontFamily where
         Helvetica -> "Helvetica"
         Courier -> "Courier"
 	Symbol -> "Symbol"
+        Other fstr -> fstr
         ) ++ r
 
 instance GUIValue FontFamily where
         cdefault = Courier
 
 
--- --------------------------------------------------------------------------
---  FontSlant 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- FontSlant
+-- -----------------------------------------------------------------------
 
 data FontSlant = Roman | Italic | Oblique 
 
 instance Read FontSlant where
    readsPrec p b =
-     case dropWhile (isSpace) b of
-        'R':xs -> [(Roman,xs)]
+     case dropWhile (isSpace) (map toLower b) of
         'r':xs -> [(Roman,xs)]
-
-        'I':xs -> [(Italic,xs)]
         'i':xs -> [(Italic,xs)]
-
-        'O':xs -> [(Oblique,xs)]
         'o':xs -> [(Oblique,xs)]
-
         _ -> []
 
 instance Show FontSlant where
@@ -265,24 +257,18 @@ instance GUIValue FontSlant where
         cdefault = Roman
 
 
--- --------------------------------------------------------------------------
---  FontWidth 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- FontWidth
+-- -----------------------------------------------------------------------
 
 data FontWidth = NormalWidth | Condensed | Narrow
 
 instance Read FontWidth where
    readsPrec p b =
-     case dropWhile (isSpace) b of
-        'N':'o':'r':'m':'a':'l':xs -> [(NormalWidth,xs)]
+     case dropWhile (isSpace) (map toLower b) of
         'n':'o':'r':'m':'a':'l':xs -> [(NormalWidth,xs)]
-
-        'C':'o':'n':'d':'e':'n':'s':'e':'d':xs -> [(Condensed,xs)]
         'c':'o':'n':'d':'e':'n':'s':'e':'d':xs -> [(Condensed,xs)]
-
-        'N':'a':'r':'r':'o':'w':xs -> [(Narrow,xs)]
         'n':'a':'r':'r':'o':'w':xs -> [(Narrow,xs)]
-
         _ -> []
 
 instance Show FontWidth where
@@ -305,13 +291,9 @@ data FontSpacing = MonoSpace | Proportional
 
 instance Read FontSpacing where
    readsPrec p b =
-     case dropWhile (isSpace) b of
-        'M':xs -> [(MonoSpace,xs)]
+     case dropWhile (isSpace) (map toLower b) of
         'm':xs -> [(MonoSpace,xs)]
-
-        'P':xs -> [(Proportional,xs)]
         'p':xs -> [(Proportional,xs)]
-
         _ -> []
 
 instance Show FontSpacing where
@@ -323,4 +305,3 @@ instance Show FontSpacing where
 
 instance GUIValue FontSpacing where
         cdefault =  MonoSpace
-

@@ -205,7 +205,7 @@ data MarkupText =
   | MarkupWrapMargin Int [MarkupText]
   | MarkupRightMargin Int [MarkupText]
   | MarkupHRef [MarkupText] [MarkupText]
-  | forall w . Widget w => MarkupWindow w
+  | forall w . Widget w => MarkupWindow (IO (w, IO()))
 
 type TagFun =
   Editor String -> BaseIndex -> BaseIndex -> IO (TextTag String)
@@ -277,7 +277,7 @@ wrapmargin = MarkupWrapMargin
 rightmargin :: Int -> [MarkupText] -> MarkupText
 rightmargin = MarkupRightMargin
 
-window :: Widget w => w -> MarkupText
+window :: Widget w => IO (w, IO()) -> MarkupText
 window = MarkupWindow
 
 href :: [MarkupText] -> [MarkupText] -> MarkupText
@@ -975,11 +975,12 @@ parseMarkupText m f =
                              bold
                              italics current_font
 
-        MarkupWindow wid ->
+        MarkupWindow iowid ->
           let win = ((line, char),
                      \ed pos -> do
+                                  (wid, cleanup) <- iowid
                                   w <- createEmbeddedTextWin ed pos wid []
---                                  addToState ed [destroy w >> putStrLn "embedded text win destroyed"]
+                                  addToState ed [cleanup]
                                   return w)
           in parseMarkupText' ms txt tags (win : wins) (line, char)
                               bold italics current_font
