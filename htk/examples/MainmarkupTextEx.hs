@@ -24,7 +24,7 @@ main =
     pack ed [Fill Both, Expand On]
 
     Font str <- getFont ed
---    putStrLn ("Font: "++ str)
+    putStrLn ("Font: "++ str)
 
     but <- newButton ed [text "This is an embedded button widget"]
              :: IO (Button String)
@@ -40,6 +40,7 @@ main =
       txt =
         [newline,
          prose "This is prose.",
+         bold [prose "BOLD"],
          newline,
          newline,
          newline,

@@ -123,6 +123,7 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
   do
     let path' = if path == "" then "/" else path
     acc <- system ("access -rx \"" ++ path' ++ "\"")
+--    acc <- queryAccess path' True False True
     (if acc == ExitSuccess then
        do
          setRef pathref path

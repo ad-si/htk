@@ -96,10 +96,15 @@ enteredItem notepad item =
          Nothing -> do
                       Just (x1, y1, x2, y2) <-
                         bbox (canvas notepad) (it_txt item)
+                      (_, (sizex, _)) <- getScrollRegion (canvas notepad)
+                      let dx = if x1 < 0 then -x1 + 6
+                               else if x2 > sizex then (sizex - x2)
+                                       else 0 
+                      moveItem (it_txt item) dx 0
                       b <- isNotepadItemSelected notepad item
                       rect <- createRectangle (canvas notepad)
-                                (coord [(x1 - 5, y1 - 1),
-                                        (x2 + 5, y2 + 1)] :
+                                (coord [(x1 - 5 + dx, y1 - 1),
+                                        (x2 + 5 + dx, y2 + 1)] :
                                  (if b then [filling "blue",
                                              outline "blue"]
                                   else [filling "white",
@@ -115,6 +120,9 @@ leftItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 leftItem notepad item =
   synchronize item
     (do
+       (x, y) <- getPosition item
+       let (Distance iwidth, Distance iheight) = img_size notepad
+       it_txt item # position (x, y + Distance (div iheight 2 + 7))
        let (Distance dx, _) = img_size notepad
            len = div (dx + 80) char_px
        v <- getRef (it_val item)
@@ -396,14 +404,19 @@ deselectAll np =
          notepaditems
     setRef (selected_items np) []
 
-deleteItem :: Notepad a -> NotepadItem a -> IO ()
+deleteItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 deleteItem np item =
-  do
-    notepaditems <- getRef (items np)
-    selecteditems <- getRef (selected_items np)
-    setRef (items np) (filter ((/=) item) notepaditems)
-    setRef (selected_items np) (filter ((/=) item) selecteditems)
-    destroy item
+  synchronize np
+    (do
+       notepaditems <- getRef (items np)
+       selecteditems <- getRef (selected_items np)
+       entereditem <- getRef (entered_item np)
+       (if isJust entereditem then setRef (entered_item np) Nothing >>
+                                   leftItem np (fromJust entereditem)
+        else done)
+       setRef (items np) (filter ((/=) item) notepaditems)
+       setRef (selected_items np) (filter ((/=) item) selecteditems)
+       destroy item)
 
 clearNotepad :: Notepad a -> IO ()
 clearNotepad np =
@@ -414,16 +427,9 @@ clearNotepad np =
     setRef (selected_items np) []
 
 scrollTo :: CItem c => Notepad c -> NotepadItem c -> IO ()
-scrollTo notepad item =
+scrollTo notepad item = done
   do
-    (w, h) <- getSize (canvas notepad)
-    putStrLn ("height = " ++ show h ++ ", width = " ++ show w)
-    putStrLn "scrolling"
-{-
-    (x, y) <- getPosition item
-    cnm <- getObjectName (toGUIObject (canvas notepad))
-    execTclScript [show cnm ++ " scan dragto " ++ show x ++ " " ++ show y]
--}
+    (dx, dy) <- 
 
 undoLastMotion :: Notepad a -> IO ()
 undoLastMotion np =
@@ -646,20 +652,38 @@ newNotepad par scrolltype imgsize mstate cnf =
                              destroy rect))
           in selectByRectangle' pos rect
 
-        checkPositions :: [NotepadItem a] -> IO Bool
+        checkPositions :: [NotepadItem a] -> IO (Distance, Distance)
         checkPositions (item : items) =
           do
             let (Distance iwidth, Distance iheight) = it_img_size item
-            (x, y) <- getPosition item
-            let min_x = x - Distance (max (div iwidth 2 + 30) 40)
-                max_x = x + Distance (max (div iwidth 2 + 30) 40)
-                min_y = y - Distance (div iheight 2 + 1)
-                max_y = y + Distance (div iheight 2 + 14)
-            (_, (sizex, sizey)) <- getScrollRegion (canvas notepad)
-            (if (min_x < 0 || max_x > sizex ||
-                 min_y < 0 || max_y > sizey) then return False
-             else checkPositions items)
-        checkPositions [] = return True
+            (Distance x, Distance y) <- getPosition item
+            (Distance dx, Distance dy) <- checkPositions items
+            (_, (Distance sizex, Distance sizey)) <-
+              getScrollRegion (canvas notepad)
+            let min_x = x - (max (div iwidth 2 + 30) 40)
+                max_x = x + (max (div iwidth 2 + 30) 40)
+                min_y = y - (div iheight 2 + 1)
+                max_y = y + (div iheight 2 + 14)
+                dx' = if dx < 0 then min min_x dx
+                      else if dx == 0 then
+                             if min_x < 0 then min_x
+                             else if min_x < 0 then min_x
+                                  else if max_x > sizex then max_x - sizex
+                                       else 0
+                           else if dx > 0 then
+                                  max dx (max_x - sizex)
+                                else 0
+                dy' = if dy < 0 then min min_y dy
+                      else if dy == 0 then
+                             if min_y < 0 then min_y
+                             else if min_y < 0 then min_y
+                                  else if max_y > sizey then max_y - sizey
+                                       else 0
+                           else if dy > 0 then
+                                  max dy (max_y - sizey)
+                                else 0
+            return (Distance dx', Distance dy')
+        checkPositions [] = return (Distance 0, Distance 0)
 
         moveSelectedItems :: Position -> Position -> CanvasTag ->
                              Event ()
@@ -695,16 +719,16 @@ newNotepad par scrolltype imgsize mstate cnf =
                               destroy rect2
                           _ -> do
                                  selecteditems <- getRef selecteditemsref
-                                 b <- checkPositions selecteditems
-                                 (if b then done
-                                  else undoLastMotion notepad)))
+                                 (dx, dy) <- checkPositions selecteditems
+                                 moveItem t (-dx) (-dy)))
 
         checkEnteredItem (x, y) =
           let overItem item =
                 do
+                  (dx, dy) <- getD
                   (x_it, y_it) <- getPosition (it_img item)
-                  return (if x_it - 30 < x && x_it + 30 > x &&
-                             y_it - 10 < y && y_it + 30 > y then True
+                  return (if x_it - 30 < x + dx && x_it + 30 > x + dx &&
+                             y_it - 10 < y + dy && y_it + 30 > y + dy then True
                           else False)
               checkItems (item : items) =
                 do

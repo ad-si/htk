@@ -751,7 +751,7 @@ parseMarkupText m f =
                                f
 
             let (Font fstr) = f
---            putStrLn fstr
+            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -1004,10 +1004,10 @@ instance HasMarkupText (Editor String) where
       if st == Disabled then ed # state Normal >> done else done
       f <- getFont ed
       (txt, wins, tags) <- parseMarkupText m f
-      putStrLn "Hallo1"
-      threadDelay(5000000)
+--      putStrLn "Hallo1"
+--      threadDelay(5000000)
       ed # value txt
-      putStrLn "Hallo2"
+--      putStrLn "Hallo2"
       mapM (\ (pos1, pos2, f) -> do
                                    pos1' <- getBaseIndex ed pos1
                                    pos2' <- getBaseIndex ed pos2

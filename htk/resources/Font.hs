@@ -1,16 +1,13 @@
-{- #########################################################################
-
-MODULE        : Font
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Font specifications
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Font (
         FontDesignator(..),
@@ -31,6 +28,8 @@ import GUIValue
 import Char
 import ExtendedPrelude(split)
 import Debug(debug)
+import IOExts(unsafePerformIO)
+
 
 -- --------------------------------------------------------------------------
 --  Font 
@@ -103,9 +102,9 @@ xfont = XFont {
                 }
 
 
--- --------------------------------------------------------------------------
---  Font Instantations 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Font Instantations
+-- -----------------------------------------------------------------------
 
 instance GUIValue Font where
         cdefault = toFont xfont
@@ -143,7 +142,8 @@ instance Read XFont where
         cread s = let [fa,po,fw] = words s 
                   in toFont(fa, (read (drop 1 po)) :: Int
 -}
-        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs,y] =
+--        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs, y] =
+        toXFont (fo : fa : we : sl : sw : pi : po : xr : yr : sp : cw : cs : y : _) =
                 XFont fo (mread fa) (mread we) (mread sl) (mread sw)
                         (mread pi) (mread po) (mread xr) (mread yr)
                         (mread sp) (mread cw) (mread cs)
@@ -156,11 +156,12 @@ mshow (Just a) = show a
 mread :: Read a => String -> Maybe a
 mread "*" = Nothing
 mread str = Just (read str)
+--unsafePerformIO (putStrLn ("reading " ++ str) >> return (Just (read str)))
 
 
--- --------------------------------------------------------------------------
---  FontWeight 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- FontWeight
+-- -----------------------------------------------------------------------
 
 data FontWeight = NormalWeight | Medium | Bold
 
@@ -169,8 +170,14 @@ instance Read FontWeight where
    readsPrec p b =
      case dropWhile (isSpace) b of
         'N':'o':'r':'m':'a':'l':xs -> [(NormalWeight,xs)]
+        'n':'o':'r':'m':'a':'l':xs -> [(NormalWeight,xs)]
+
         'M':'e':'d':'i':'u':'m':xs -> [(Medium,xs)]
+        'm':'e':'d':'i':'u':'m':xs -> [(Medium,xs)]
+
         'B':'o':'l':'d':xs -> [(Bold,xs)]
+        'b':'o':'l':'d':xs -> [(Bold,xs)]
+
         _ -> []
 
 instance Show FontWeight where
@@ -186,19 +193,30 @@ instance GUIValue FontWeight where
 
 
 
--- --------------------------------------------------------------------------
---  FontFamily 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+--  FontFamily
+-- -----------------------------------------------------------------------
 
-data FontFamily = Lucida | Times | Helvetica | Courier
+data FontFamily = Lucida | Times | Helvetica | Courier | Symbol
 
 instance Read FontFamily where
    readsPrec p b =
      case dropWhile (isSpace) b of
         'L':'u':'c':'i':'d':'a':xs -> [(Lucida,xs)]
+        'l':'u':'c':'i':'d':'a':xs -> [(Lucida,xs)]
+
         'T':'i':'m':'e':'s':xs -> [(Times,xs)]
-        'H':'e':'l':'v':'t':'c':'a':xs -> [(Helvetica,xs)]
+        't':'i':'m':'e':'s':xs -> [(Times,xs)]
+
+        'H':'e':'l':'v':'e':'t':'i':'c':'a':xs -> [(Helvetica,xs)]
+        'h':'e':'l':'v':'e':'t':'i':'c':'a':xs -> [(Helvetica,xs)]
+
         'C':'o':'u':'r':'i':'e':'r':xs -> [(Courier,xs)]
+        'c':'o':'u':'r':'i':'e':'r':xs -> [(Courier,xs)]
+
+        'S':'y':'m':'b':'o':'l':xs -> [(Symbol,xs)]
+        's':'y':'m':'b':'o':'l':xs -> [(Symbol,xs)]
+
         _ -> []
 
 instance Show FontFamily where
@@ -208,6 +226,7 @@ instance Show FontFamily where
         Times -> "Times"
         Helvetica -> "Helvetica"
         Courier -> "Courier"
+	Symbol -> "Symbol"
         ) ++ r
 
 instance GUIValue FontFamily where
@@ -224,8 +243,14 @@ instance Read FontSlant where
    readsPrec p b =
      case dropWhile (isSpace) b of
         'R':xs -> [(Roman,xs)]
+        'r':xs -> [(Roman,xs)]
+
         'I':xs -> [(Italic,xs)]
+        'i':xs -> [(Italic,xs)]
+
         'O':xs -> [(Oblique,xs)]
+        'o':xs -> [(Oblique,xs)]
+
         _ -> []
 
 instance Show FontSlant where
@@ -250,8 +275,14 @@ instance Read FontWidth where
    readsPrec p b =
      case dropWhile (isSpace) b of
         'N':'o':'r':'m':'a':'l':xs -> [(NormalWidth,xs)]
+        'n':'o':'r':'m':'a':'l':xs -> [(NormalWidth,xs)]
+
         'C':'o':'n':'d':'e':'n':'s':'e':'d':xs -> [(Condensed,xs)]
+        'c':'o':'n':'d':'e':'n':'s':'e':'d':xs -> [(Condensed,xs)]
+
         'N':'a':'r':'r':'o':'w':xs -> [(Narrow,xs)]
+        'n':'a':'r':'r':'o':'w':xs -> [(Narrow,xs)]
+
         _ -> []
 
 instance Show FontWidth where
@@ -276,7 +307,11 @@ instance Read FontSpacing where
    readsPrec p b =
      case dropWhile (isSpace) b of
         'M':xs -> [(MonoSpace,xs)]
+        'm':xs -> [(MonoSpace,xs)]
+
         'P':xs -> [(Proportional,xs)]
+        'p':xs -> [(Proportional,xs)]
+
         _ -> []
 
 instance Show FontSpacing where
