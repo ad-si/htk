@@ -17,7 +17,7 @@ import Maybe
 
 import EntityNames
 
-import LaTeXParser (FileSystem(..))
+import LaTeXPreamble (FileSystem(..))
 
 import Computation
 import ExtendedPrelude
