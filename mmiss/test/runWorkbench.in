@@ -1,4 +1,10 @@
 #!/bin/sh
+
+set -e
+
+# Check that files are here
+TOP=@TOP@ @TOP@/mmiss/test/testfiles
+
 # Test script for running the workbench.
 export UNIEDITOR UNISERVER UNIWORKINGDIR 
 

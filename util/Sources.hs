@@ -111,6 +111,13 @@ module Sources(
    -- in the ParallelExec thread.
    -- The x -> IO () action is guaranteed to be performed before any of the
    -- d -> IO () actions.
+
+   traceSimpleSource,
+      -- :: (a -> String) -> SimpleSource a -> SimpleSource a
+      -- Outputs information about what comes through the source, turning
+      -- it into a String with the supplied function.  (This is done once
+      -- for each active client.)
+
    ) where
 
 import Maybe
@@ -767,3 +774,32 @@ addNewSourceActions (source1 :: Source x d) actionX actionD sinkID parallelX =
          sinkID
       takeMVar mVar
 
+-- -----------------------------------------------------------------
+-- Trace functions
+-- -----------------------------------------------------------------
+
+---
+-- Outputs information about what comes through the source, turning
+-- it into a String with the supplied function.  (This is done once
+-- for each active client.)
+traceSimpleSource :: (a -> String) -> SimpleSource a -> SimpleSource a
+traceSimpleSource toS (SimpleSource source) =
+   SimpleSource (
+      (map1IO 
+         (\ a ->
+            do
+               putStrLn ("Initialising "++toS a)
+               return a
+            )
+         )
+      .
+      (filter2IO 
+         (\ a ->
+            do
+               putStrLn ("Updating "++toS a)
+               return (Just a)
+            )
+         )
+      $
+      source
+      )

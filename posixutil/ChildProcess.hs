@@ -121,6 +121,7 @@ import Thread
 import FileNames
 import WBFiles
 import DeepSeq
+import IOExtras
 
 import Concurrent
 import Maybes
@@ -514,12 +515,16 @@ readChunk :: ByteCount -> Fd -> IO String
 readChunk size fd =
    do
       waitForInputFd fd
-      (input,count) <- Posix.fdRead fd size
-      if count <= 0 
-         then 
-            raise (userError "ChildProcess: input error")
-         else
-            return input
+      fdReadOpt <- catchEOF (Posix.fdRead fd size)
+      case fdReadOpt of
+         Nothing -> 
+            error "ChildProcess : fdRead returned EOF"
+         Just (input,count) ->
+            if count <= 0 
+               then 
+                  raise (userError "ChildProcess: input error")
+               else
+                  return input
 
 readChunkFixed :: ByteCount -> Fd -> IO String
 -- like readChunk except that it tries to read as many characters

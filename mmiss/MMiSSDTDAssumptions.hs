@@ -74,6 +74,10 @@ findLabelledElements (DTD _ _ markups) =
 ---
 -- This contains the output of classifyElement, which describes how the 
 -- supplied Element should be structured and, if necessary, replaced.
+--
+-- Absent links get classified as "Other"; this is because the user is
+-- supposed to explicitly change them to "present" before we attempt to
+-- resolve them.
 data ClassifiedElement =
       Link EntityFullName --  present link to entity with this label
    |  Reference EntityFullName -- present reference to entity with this label
@@ -110,6 +114,7 @@ classifyElement (Elem name attributes content) =
                mapWithError
                   (\ linked -> case getAtt "status" of
                      Just "present" -> constructor linked
+                     Just "absent" -> Other
                      Nothing -> Other
                      )
                   (fromStringWE linkedString)
