@@ -72,6 +72,8 @@
    toolTimeOut   Time-out waiting for responses from a tool when
                  it starts up and we are doing challenge-response
                  verification.
+   windowsTick   (Windows only) time in microseconds we wait between
+                 polling Wish.
 
    The options wish, daVinci, daVinciIcons, top 
    should all be set automatically by the configure procedure.  
@@ -104,7 +106,10 @@ module WBFiles (
 
    getToolTimeOut, -- :: IO Int
       -- gets tool time out.
-
+#if WINDOWS
+   getWindowsTick, -- :: IO Int
+      -- get time to wait between ticks for Windows.
+#endif
    getTOP, -- ditto
    getEditorString, -- :: IO (Maybe String)
       -- returns editor string, if set.
@@ -223,6 +228,11 @@ getGnuClientPath = valOf (getArgString "gnuclient")
 getToolTimeOut :: IO Int
 getToolTimeOut = valOf (getArgInt "toolTimeOut")
 
+#if WINDOWS
+getWindowsTick :: IO Int
+getWindowsTick = valOf (getArgInt "windowsTick")
+#endif
+
 getTOP :: IO String
 getTOP = valOf (getArgString "top")
 
@@ -311,6 +321,14 @@ usualProgramArguments = [
       defaultVal = Just (IntValue 10000),
       argType = INT
       },
+#if WINDOWS
+   ProgramArgument{
+      optionName = "windowsTick",
+      optionHelp = "interval in microseconds between when we poll wish.",
+      defaultVal = Just (IntValue 10000),
+      argType = INT
+      },
+#endif
    ProgramArgument{
       optionName = "editor",
       optionHelp = "text editor cmd; %F => filename; %N => user-visible name",
