@@ -46,7 +46,6 @@ import Maybe
 import Data.FiniteMap
 
 import Computation
-import ExtendedPrelude
 import Dynamics
 import Registry
 import AtomString

@@ -17,7 +17,6 @@ import Maybe
 import Data.FiniteMap
 import Control.Concurrent.MVar
 
-import CompileFlags
 import Dynamics
 import ExtendedPrelude(mapEq,mapOrd)
 import Registry
@@ -32,8 +31,6 @@ import qualified VariableList
 
 import Destructible
 import Events (sync)
-
-import BSem
 
 import GraphDisp
 import GraphConfigure
@@ -102,6 +99,7 @@ data DisplayedObjectType objectType object graph node nodeType arcType =
 type TransmittedAction graph node object =
    (graph -> node (Link object) -> IO ())
 
+displayedObjectTypeTyRep :: TyRep
 displayedObjectTypeTyRep = mkTyRep "DisplayView" "DisplayedObjectType"
 
 instance HasTyRep6_000111 DisplayedObjectType where

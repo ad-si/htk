@@ -244,18 +244,22 @@ mkAttributeTypeKey modName tyName = AttributeTypeKey (modName++('.':tyName))
 class HasAttributeTypeKey value where
    attributeTypeKey :: value -> AttributeTypeKey
 
+integer_attributeTypeKey :: AttributeTypeKey
 integer_attributeTypeKey = mkAttributeTypeKey "AttributesType" "Integer"
 instance HasAttributeTypeKey Integer where
    attributeTypeKey _ = integer_attributeTypeKey
 
+int_attributeTypeKey :: AttributeTypeKey
 int_attributeTypeKey = mkAttributeTypeKey "AttributesType" "Int"
 instance HasAttributeTypeKey Int where
    attributeTypeKey _ = int_attributeTypeKey
 
+string_attributeTypeKey :: AttributeTypeKey
 string_attributeTypeKey = mkAttributeTypeKey "AttributesType" "String"
 instance HasAttributeTypeKey String where
    attributeTypeKey _ = string_attributeTypeKey
 
+bool_attributeTypeKey :: AttributeTypeKey
 bool_attributeTypeKey = mkAttributeTypeKey "AttributesType" "Bool"
 instance HasAttributeTypeKey Bool where
    attributeTypeKey _ = bool_attributeTypeKey

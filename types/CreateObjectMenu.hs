@@ -8,9 +8,6 @@ import Maybe
 
 import Computation
 
-import MenuType
-import HTkMenu
-
 import SimpleForm
 
 import View

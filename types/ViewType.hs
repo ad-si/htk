@@ -21,13 +21,10 @@ module ViewType(
 
 import Control.Concurrent
 
-import Data.IORef
-
 import QuickReadShow
 import Object
 import Dynamics
 import Registry
-import UniqueFile
 import Broadcaster
 import Sources
 import Delayer
@@ -35,8 +32,6 @@ import Store
 import ExtendedPrelude(mapEq,mapOrd)
 
 import VSem
-
-import SimpleGraph
 
 import Imports(ImportsState)
 
@@ -49,9 +44,14 @@ data View = View {
    viewId :: ViewId,
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
+      -- ^ Dictionary of all objects.
+   parentChanges :: Registry Location Location,
+      -- ^ Contains parent information not yet communicated to the server.
+      -- This only needs to be a Registry because transformValue is not
+      -- used.
 
    viewInfoBroadcaster :: SimpleBroadcaster VersionInfo,
-      -- Current extra data for his view.
+      -- ^ Current extra data for his view.
       -- The server part is usually junk, and discarded on commit.
       -- However we keep it, as it needs to be preserved on transmitting
       -- a view from one repository to another.

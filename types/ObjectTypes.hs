@@ -548,13 +548,8 @@ wrapPreFetchLinks view wrappedLinks =
 -- Accessing the GlobalRegistry's
 -- ----------------------------------------------------------------
 
-newtype ShortObjectType objectType = ShortObjectType objectType
-
--- Tycon for it
-shortObjectType_tyRep =  mkTyRep "ObjectTypes" "ShortObjectType"
-
-instance HasTyRep1 ShortObjectType where
-   tyRep1 _ = shortObjectType_tyRep
+newtype ShortObjectType objectType = ShortObjectType objectType 
+   deriving (Typeable)
 
 instance ObjectType objectType object
        => HasBinary (ShortObjectType objectType) CodingMonad where

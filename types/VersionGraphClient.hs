@@ -56,7 +56,6 @@ import Maybe
 import Control.Concurrent.MVar
 
 import AtomString
-import Registry
 import Thread
 import Sources
 import Sink
@@ -74,9 +73,12 @@ import GraphConnection
 import VersionDag hiding (changeIsHidden,getInputGraphBack)
 import qualified VersionDag
 
+import VersionState(VersionState,registerAct)
+import qualified VersionState
+
 import VersionDB hiding (VersionInfo1)
 import ViewType
-import VersionInfo hiding (getVersionInfos)
+import VersionInfo
 import VersionInfoFilter
 
 import VersionInfoService
@@ -95,13 +97,9 @@ data VersionInfo1 = VersionInfo1 {
    viewOpt :: Maybe View
    } deriving (Typeable)
 
-data VersionGraphClient = VersionGraphClient {
-   versionDag :: VersionDag VersionGraphNode VersionInfo1 Bool,
+newtype VersionGraphClient = VersionGraphClient {
+   versionDag :: VersionDag VersionGraphNode VersionInfo1 Bool
       -- ^ the Bool is True for a checked-in version
-   newNodeActions :: Registry ObjectVersion (IO ())
-      -- ^ Actions to be performed after a new node is created by the server.
-      -- (This is used to rewire the parent of a working version after it is
-      -- checked in.)
    }
 
  
@@ -116,6 +114,7 @@ instance Show VersionGraphNode where -- this is mainly used for debugging
    show (WorkingNode _) = "Unknown view" 
 
 
+versionInfo1Map :: VersionInfo1 -> (Full VersionInfo,Maybe View)
 versionInfo1Map versionInfo1 
    = (Full (versionInfo versionInfo1),viewOpt versionInfo1)
 
@@ -171,7 +170,7 @@ connectToServerInternal versionState =
 
       registerAct versionState updateFn
 
-      versionInfos <- getVersionInfos versionState
+      versionInfos <- VersionState.getVersionInfos versionState
       let
          getNextUpdate = takeMVar updateMVar
 
@@ -189,9 +188,6 @@ connectToServer1 ::
 connectToServer1 getNextUpdate closeConnection initialVersionInfos =
    do
       let
-         isHidden0 :: VersionInfo1 -> Bool
-         isHidden0 versionInfo1 = not . isPresent . versionInfo $ versionInfo1
-
          toNodeKey :: VersionInfo1 -> VersionGraphNode
          toNodeKey versionInfo1 = case viewOpt versionInfo1 of
             Just view -> WorkingNode view
@@ -211,8 +207,6 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
          ((mkHidden defaultVersionInfoFilter) . versionInfo) 
          toNodeKey toParents
 
-      newNodeActions <- newRegistry
-
       let
          mkVersionInfoFromServer :: VersionInfo -> VersionInfo1
          mkVersionInfoFromServer versionInfo =
@@ -225,13 +219,9 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
 
       let
          versionGraphClient = VersionGraphClient {
-            versionDag = versionDag,
-            newNodeActions = newNodeActions
+            versionDag = versionDag
             }
 
-      mapM ((newNodeAction versionGraphClient) . version . user) 
-         initialVersionInfos
-         -- OK so this is a waste of time but never mind
 
       let
          newVersionsThread =
@@ -239,13 +229,6 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
                (isChange,versionInfo) <- getNextUpdate
                (if isChange then setNodeInfo else addVersion) versionDag
                   (mkVersionInfoFromServer versionInfo)
-
-               if not isChange 
-                  then
-                     newNodeAction versionGraphClient 
-                        (version . user $ versionInfo)
-                  else
-                     done
 
                newVersionsThread
 
@@ -357,12 +340,6 @@ toVersionGraphConnection versionGraphClient =
    in
       mapGraphConnection mapNode mapArc initialUpdates displayedGraph1  
 
--- | Get the input graph, including all nodes, even deleted ones.
-toInputGraphConnection :: VersionGraphClient 
-   -> VersionTypes GraphConnection 
-toInputGraphConnection versionGraphClient =
-   toInputGraph (versionDag versionGraphClient)
-
 -- | Extract GraphBack structure representing all the nodes in the
 -- graph (including deleted ones).
 getInputGraphBack :: VersionGraphClient 
@@ -400,43 +377,6 @@ getVersionInfos :: VersionGraphClient -> IO [VersionInfo1]
 getVersionInfos versionGraphClient 
    = getNodeInfos (versionDag versionGraphClient)
          
-
--- ------------------------------------------------------------------------
--- Maintaining the newNodeActions
--- ------------------------------------------------------------------------
-   
-newNodeAction :: VersionGraphClient -> ObjectVersion -> IO ()
-newNodeAction versionGraphClient objectVersion =
-    transformValue (newNodeActions versionGraphClient) objectVersion
-       (\ actionOpt ->
-          do
-             case actionOpt of
-                Just action -> action
-                Nothing -> done
-             return (Nothing,())
-          )
-
-doWhenVersionExists :: VersionGraphClient -> ObjectVersion -> IO () -> IO ()
-doWhenVersionExists versionGraphClient objectVersion action1 =
-   do
-      doNow <- transformValue (newNodeActions versionGraphClient) objectVersion
-         (\ actionOpt ->
-            case actionOpt of
-               Just action2 -> return (Just (action2 >> action1), done)
-               Nothing ->
-                  do
-                     nodeAlreadyExists <- nodeKeyExists 
-                        (versionDag versionGraphClient) 
-                        (CheckedInNode objectVersion)
-                     if nodeAlreadyExists
-                        then
-                           return (Nothing,action1)
-                        else
-                           return (Just action1,done)
-               )
-      doNow
-   
-
 -- ------------------------------------------------------------------------
 -- The node and arc types
 -- ------------------------------------------------------------------------

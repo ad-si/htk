@@ -49,13 +49,13 @@ import Control.Exception
 import Control.Monad.State
 import Control.Monad.Trans
 
-import Bytes
 import BinaryAll
 import Dynamics
 import ICStringLen
 import ExtendedPrelude
 
-import VersionDB(dbError)
+import ServerErrors
+
 import ViewType
 
 -- --------------------------------------------------------------------------
@@ -124,7 +124,8 @@ doEncodeIO1 desc (a ::  a) view =
 
       case encodeResult of
          Left excep ->
-            dbError ("Error " ++ show excep ++ " encoding " ++ desc)
+            throwError MiscError 
+               ("Error " ++ show excep ++ " encoding " ++ desc)
          Right result -> return result 
    where
       wb1 :: WriteBinary (ArgMonad View StateBinArea)

@@ -29,7 +29,7 @@ module Link(
    createObject, 
       -- :: HasCodedValue x => View -> Link y -> x 
       -- -> IO (Versioned x) 
-   -- This is used for creating a completely new object.
+   -- This is used for creating a completely new object, given the parent link.
 
    deleteLink, -- :: HasCodedValue x => View -> Link x -> IO ()
    -- This deletes an object from the View.
@@ -45,7 +45,7 @@ module Link(
       -- requires that (a) link1 is not changed in view1; (b) link2 does
       -- not exist in view2.  It creates a copy of link1 in view2, as link2.
 
-   newEmptyObject, -- :: HasCodedValue x => View -> IO (Versioned x)
+   newEmptyObject, -- :: HasCodedValue x => View -> Link y -> IO (Versioned x)
    -- This creates an object with no contents as a stop-gap so you can
    -- create a link to it, EG for constructing circular lists.
    -- WARNING - updateObject must be used to put in an actual value,
@@ -79,13 +79,14 @@ module Link(
    writeLinkIfNe, 
       -- :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
       -- does fetchLink and updateObjectIfNe in one go.
-   createLink, -- :: HasCodedValue x => View -> x -> IO (Link x)
+   createLink, -- :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
    -- Does createObject and makeLink in one go.
-   newEmptyLink, -- :: HasCodedValue x => View -> IO (Link x)
+   newEmptyLink, -- :: HasCodedValue x => View -> Link y -> IO (Link x)
    -- Like newEmptyObject; similar considerations apply.
 
    absolutelyNewLink, -- :: HasCodedValue x => Repository -> IO (Link x)
    -- Allocate a new link but don't put it in any view.
+   -- NB.  It's important to do moveLink afterwards to set a parent.
 
    dirtyLink, -- :: HasCodedValue x => View -> Link x -> IO ()
    -- Does fetchLink and dirtyObject in one go.
@@ -98,6 +99,9 @@ module Link(
    isEmptyLink, -- :: View -> Link x -> IO Bool
       -- returns True if the link is empty (for example, was created
       -- by newEmptyLink and not yet set.
+
+   moveLink, -- :: View -> Link y -> Link x -> IO ()
+      -- Move Link x to be the child of Link y.
 
 
    eqLink, -- :: Link x -> Link x -> Ordering
@@ -133,7 +137,6 @@ import Data.IORef
 
 import Registry
 import Dynamics
-import AtomString(fromString)
 import VariableSet(HasKey(..))
 import Computation
 import Debug
@@ -141,6 +144,8 @@ import Thread
 import BinaryAll
 import Sources
 import Broadcaster
+
+import ServerErrors
 
 import VersionDB
 import ViewType
@@ -229,7 +234,7 @@ fetchOrSetLinkWE
                readObject readObjectArg oldLocation =
                   do
                      (statusOS :: Either String (Status x)) <-
-                        catchDBError (
+                        catchError (
                            do
                               osourceOpt <- case toObjectVersionOpt 
                                     readObjectArg of
@@ -237,9 +242,9 @@ fetchOrSetLinkWE
                                  Just oldVersion ->
                                     catchNotFound (
                                        retrieveObjectSource repository 
-                                       oldLocation oldVersion
+                                       oldVersion oldLocation
                                        )
-                              case osourceOpt of
+                              status <- case osourceOpt of
                                  Just osource ->
                                     do
                                        icsl <- exportICStringLen osource
@@ -250,10 +255,15 @@ fetchOrSetLinkWE
                                        statusOpt <- getNewStatusOpt
                                        case statusOpt of
                                           Nothing -> 
-                                             dbError ("Link " ++ show location
+                                             throwError MiscError (
+                                                "Link " ++ show location
                                                 ++ " not found")
                                           Just status -> return status
+                              return (Right status)
                            )
+                           (\ errorType mess ->
+                              Left (show errorType++": "++mess)
+                              )
                      case statusOS of
                         Left mess -> err mess
                         Right status ->
@@ -273,7 +283,7 @@ fetchOrSetLinkWE
                                        = mkObjectSourceFn view versioned
                                           (fmap
                                              (\ oldVersion ->
-                                                (oldLocation,oldVersion)
+                                                (oldVersion,oldLocation)
                                                 )
                                              (isCloned readObjectArg)
                                              )
@@ -344,17 +354,17 @@ createLink view parentLink x =
       makeLink view versioned
 
 -- | Like 'newEmptyObject'; similar considerations apply.
-newEmptyLink :: HasCodedValue x => View -> IO (Link x)
-newEmptyLink view =
+newEmptyLink :: HasCodedValue x => View -> Link y -> IO (Link x)
+newEmptyLink view parentLink =
    do
-      versioned <- newEmptyObject view
+      versioned <- newEmptyObject view parentLink
       makeLink view versioned
 
 -- | Allocate a new link but don't put it in any view.
-absolutelyNewLink :: HasCodedValue x => Repository -> Link y -> IO (Link x)
-absolutelyNewLink repository (Link parentLocation)  =
+absolutelyNewLink :: HasCodedValue x => Repository -> IO (Link x)
+absolutelyNewLink repository =
    do
-      location <- newLocation repository parentLocation
+      location <- newLocation repository
       return (Link location)
 
 
@@ -439,16 +449,10 @@ data Versioned x = Versioned {
       -- (2) statusBroadcaster really ought to be something that can
       -- be accessed instantly to get out the last value, while sometimes
       -- statusMVar has to be empty while we contact the server.
-   }
-
--- Make Versioned objects typeable (if x is).
-versioned_tyRep = mkTyRep "View" "Versioned"
-
-instance HasTyRep1 Versioned where
-   tyRep1 _ = versioned_tyRep
+   } deriving (Typeable)
 
 mkObjectSourceFn :: HasCodedValue x => View 
-   -> Versioned x -> Maybe (Location,ObjectVersion) -> ObjectVersion 
+   -> Versioned x -> Maybe (ObjectVersion,Location) -> ObjectVersion 
    -> IO (Maybe CommitChange)
 -- This is the action that computes the ObjectSource to be committed to the
 -- repository.
@@ -473,11 +477,11 @@ mkObjectSourceFn (view@View{repository = repository})
          Empty -> error "Attempt to commit Empty object!!!"
          UpToDate x -> return (x,case clonedOpt of
             Nothing -> Nothing
-            Just (oldLocation,oldVersion) 
-               -> Just (Right (oldLocation,oldVersion))
+            Just (oldVersion,oldLocation) 
+               -> Just (Right (oldVersion,oldLocation))
             )
-         Cloned x oldLocation oldVersion 
-            -> return (x,Just (Right (oldLocation,oldVersion)))
+         Cloned x oldVersion oldLocation 
+            -> return (x,Just (Right (oldVersion,oldLocation)))
          Dirty x -> commitX x 
          Virgin x -> commitX x
 
@@ -487,8 +491,8 @@ mkObjectSourceFn (view@View{repository = repository})
 data Status x = 
       Empty -- created by newEmptyObject
    |  UpToDate x -- This object committed and up-to-date
-   |  Cloned x Location ObjectVersion
-         -- This object 
+   |  Cloned x ObjectVersion Location
+         -- This object is cloned (probably during merging) from another.
    |  Dirty x -- This object committed, but since modified
    |  Virgin x -- Object never committed.
 
@@ -525,11 +529,21 @@ setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
 
 -- | This is used for creating a completely new object.
 createObject :: HasCodedValue x => View -> Link y -> x -> IO (Versioned x)
-createObject view (Location parentLink) x =
+createObject view (Link parentLocation) x =
    do
-      location <- newLocation (repository view) parentLink
+      location <- newLocation (repository view)
+      versioned <- createObjectGeneral view (Virgin x) location
+      moveLocation view parentLocation location
+      return versioned
 
-      createObjectGeneral view (Virgin x) location
+-- | Move 'Link' x to be the child of 'Link' y
+moveLink :: View -> Link y -> Link x -> IO ()
+moveLink view (Link newParent) (Link object) =
+   moveLocation view newParent object
+
+moveLocation :: View -> Location -> Location -> IO ()
+moveLocation view newParent object =
+   setValue (parentChanges view) newParent object
 
 -- | This creates an object with no contents as a stop-gap so you can
 -- create a link to it, EG for constructing circular lists.
@@ -539,8 +553,10 @@ createObject view (Location parentLink) x =
 newEmptyObject :: HasCodedValue x => View -> Link y -> IO (Versioned x)
 newEmptyObject view (Link parentLocation) = 
    do
-      location <- newLocation (repository view) parentLocation
-      createObjectGeneral view Empty location
+      location <- newLocation (repository view)
+      versioned <- createObjectGeneral view Empty location
+      moveLocation view parentLocation location
+      return versioned
 
 isEmptyObject :: Versioned x -> IO Bool
 isEmptyObject versioned =
@@ -716,7 +732,7 @@ getLastChange view (Link location :: Link object) =
          repositoryLastChange = 
             do
                (Just parentVersion) <- getParentVersion view
-               lc <- lastChange (repository view) location parentVersion
+               lc <- lastChange (repository view) parentVersion location
                return (Just lc)
 
       case objectData of

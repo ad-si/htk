@@ -115,6 +115,12 @@ module SimpleDB(
    SimpleDBCommand(..),SimpleDBResponse(..),
 
    module ServerErrors,
+
+
+   catchNotFound,
+      -- :: IO a -> IO (Maybe a)
+      -- Detect a NotFound error and replacing it by 'Nothing'.
+
    ) where
 
 import Control.Concurrent.MVar
@@ -435,3 +441,22 @@ unpackError s r =
    in
       throwError errorType ("Expecting " ++ s ++ ": " ++ mess)
 
+----------------------------------------------------------------
+-- Catching errors
+----------------------------------------------------------------
+
+-- | Detect a NotFound error and replacing it by 'Nothing'.
+catchNotFound :: IO a -> IO (Maybe a)
+catchNotFound act =
+   do
+      aOpt <- catchError 
+         (do
+            a <- act
+            return (Just a)
+            )
+         (\ errorType mess -> case errorType of
+            NotFoundError -> Nothing
+            _ -> throwError errorType mess
+            )
+      seq aOpt (return aOpt)
+         -- this now so throwError gets done.

@@ -26,7 +26,7 @@ import ExtendedPrelude
 import Registry
 import Dynamics
 import VariableSet (toKey)
-import Debug(debug,debugString)
+import Debug(debugString)
 import Sources(readContents)
 
 import VisitedSet
@@ -53,18 +53,13 @@ data ObjectNode object key =
          -- existing links which have to correspond to this object.
       links :: IORef (FiniteMap key WrappedObjectNode),
       pathHere :: [String] -- path to this node
-      }
+      } deriving (Typeable)
 
 
 data WrappedObjectNode = forall object key .
    (HasMerging object,Ord key,Typeable key)
    => WrappedObjectNode (ObjectNode object key)
    deriving (Typeable)
-
-objectNode_tyRep = mkTyRep "MergeReAssign" "ObjectNode"
-
-instance HasTyRep2 ObjectNode where
-   tyRep2 _ = objectNode_tyRep
 
 toObjectNode :: (HasMerging object,Typeable key,Ord key) 
    => WrappedObjectNode -> WithError (ObjectNode object key)

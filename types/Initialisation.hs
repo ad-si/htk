@@ -7,20 +7,14 @@ module Initialisation(
    openRepositoryInternal, -- :: VersionState -> IO VersionDB.Repository
    ) where
 
-import Debug(debug)
 import Computation
 
 import HostsPorts
-import CallServer
 
-import Graph
-
-import qualified VersionInfo
+import qualified VersionState
 import qualified VersionDB
 import View
 import Folders
-import Files
-import VersionGraph
 import Registrations
 
 
@@ -42,7 +36,7 @@ openRepository :: (?server :: HostPort) => IO VersionDB.Repository
 openRepository = openRepositoryGeneral (\ view -> done)
 
 
-openRepositoryInternal :: VersionInfo.VersionState -> IO VersionDB.Repository
+openRepositoryInternal :: VersionState.VersionState -> IO VersionDB.Repository
 openRepositoryInternal = openRepositoryGeneralInternal (\ view -> done)
 
 -- | More general initialisation, which provides an extra function
@@ -68,7 +62,7 @@ openRepositoryGeneral initialiseView =
       return repository
 
 openRepositoryGeneralInternal 
-   :: (View -> IO ()) -> VersionInfo.VersionState -> IO VersionDB.Repository
+   :: (View -> IO ()) -> VersionState.VersionState -> IO VersionDB.Repository
 openRepositoryGeneralInternal initialiseView versionState = 
    do
       repository <- VersionDB.initialiseInternal versionState

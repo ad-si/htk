@@ -7,23 +7,16 @@ module GetAttributesType(
    ) where
 
 import Maybe
-import qualified List
-
-import Data.Set
-import Data.FiniteMap
 
 import Computation
-import ExtendedPrelude
-
-import SimpleForm
-import HTkMenu
-import MenuType
 
 import AttributesType
 
 getAttributesType :: IO (Maybe AttributesType)
 getAttributesType = return (Just emptyAttributesType)
 
+
+{-
 -- what we used to do
 getAttributesType1 :: IO (Maybe AttributesType)
 getAttributesType1 =
@@ -150,7 +143,7 @@ getAttributesType1 =
       case attributesOpt of
          Nothing -> return Nothing
          Just list ->  return (Just (mkAttributesType list))     
-      
+-}    
 
 
 

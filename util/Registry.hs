@@ -27,11 +27,10 @@ module Registry(
       -- Untyped's.
    KeyOpsRegistry(..),
       -- These classes describe access operations for registries.
+   ListRegistryContents(..),
+      -- extra block functions for typed registries.
+
    -- other specific operations
-   listRegistryContents,
-      -- :: Registry from to -> IO [(from,to)]
-   listToNewRegistry,
-      -- :: Ord from => [(from,to)] -> IO (Registry from to)
    changeKey,
       -- :: Ord from => Registry from to -> from -> from -> IO ()
 
@@ -40,11 +39,6 @@ module Registry(
       -- :: Ord from => Registry from to -> from -> IO to
       -- (This can be used to get a value without having to put
       -- a type annotation on it.)
-   -- Operations which get and set the Dyn directly from an Untyped
-   setValueAsDyn,
-      -- :: registry -> from -> Dyn -> IO ()
-   getValueAsDyn,
-      -- :: registry -> from -> IO Dyn
 
    getValueDefault, -- :: ... => to -> registry -> from -> IO to
 
@@ -118,6 +112,16 @@ class GetSetRegistry registry from to where
    setValue :: registry -> from -> to -> IO ()
    setValue registry from to =
       transformValue registry from (\ _ -> return (Just to,()))
+
+
+-- | ListRegistryContents will not be implemented for the untyped registries. 
+class ListRegistryContents registry from to where
+   listRegistryContents :: registry from to -> IO [(from,to)]
+
+   listRegistryContentsAndEmptyRegistry :: registry from to -> IO [(from,to)]
+      -- ^ this is atomic.
+
+   listToNewRegistry :: [(from,to)] -> IO (registry from to)
 
 getValueDefault :: GetSetRegistry registry from to 
    => to -> registry -> from -> IO to
@@ -222,18 +226,22 @@ instance Ord from => KeyOpsRegistry (Registry from to) from where
          map <- readMVar mVar
          return (keysFM map)
 
-listRegistryContents :: Ord from => Registry from to -> IO [(from,to)]
-listRegistryContents (Registry mVar) =
-   do
-      map <- readMVar mVar
-      return (fmToList map)
+instance Ord from => ListRegistryContents Registry from to where
+   listRegistryContents (Registry mVar) =
+      do
+         fm <- readMVar mVar
+         return (fmToList fm)
 
-listToNewRegistry :: Ord from => [(from,to)] -> IO (Registry from to)
-listToNewRegistry contents =
-   do
-      let map = listToFM contents
-      mVar <- newMVar map
-      return (Registry mVar)
+   listRegistryContentsAndEmptyRegistry (Registry mVar) =
+      modifyMVar mVar (\ fm ->
+         return (emptyFM,fmToList fm)
+         )
+
+   listToNewRegistry contents =
+      do
+         let map = listToFM contents
+         mVar <- newMVar map
+         return (Registry mVar)
 
 -- | look up the element given by the first key, and if it exists
 -- delete it, replacing it with the element given by the second key.
@@ -461,6 +469,7 @@ instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
          putVal lockedRegistry from Nothing
          return (isJust toOpt)
    listKeys (Locked registry) = listKeys registry
+
 
 -- ----------------------------------------------------------------------
 -- Function to be preferred to getValue when it is not absolutely certain

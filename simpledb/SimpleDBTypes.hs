@@ -84,7 +84,7 @@ data SimpleDBCommand =
              -- NB2. Only the changed links (where a location is new,
              -- or an object is moved) should be supplied.
              -- NB3. The user doing this needs to have Permissions access
-             -- to both the object, and its old parent location (if any).
+             -- to the object in the version it comes from.
    |  ModifyUserInfo VersionInformation
          -- ^ If the version already exists, replace its VersionInfo by
          -- that supplied, assuming the permissions permit it.

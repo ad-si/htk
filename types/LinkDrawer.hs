@@ -26,11 +26,9 @@ module LinkDrawer(
 import Control.Concurrent.MVar
 import Data.IORef
 
-import Object
 import Computation
 import Registry
 import Sink
-import Sources
 import ReferenceCount
 import ExtendedPrelude
 
@@ -383,9 +381,6 @@ newLinkDrawer
 
                               -- Physically remove the arc
                               delPos0 pos
-
-               redraw1 :: IO ()
-               redraw1 = redraw0
             in
                ListDrawer {
                   newPos = newPos1,setPos = setPos1,delPos = delPos1,
@@ -435,7 +430,7 @@ newLinkDrawer
                         case (optionalArcs1,ifDisplayed nodeRecord0) of
                            ([],Nothing) -> -- can forget this node
                               return (Nothing,())
-                           _ -> return (Just nodeRecord0,())
+                           _ -> return (Just nodeRecord1,())
                )   
                       
          addDependentArc :: pos -> ArcData node arc -> node -> IO ()
@@ -495,11 +490,13 @@ newLinkDrawer
                Nothing -> return (Nothing,Nothing)
                )
 
+{-
          getNodeArg :: node -> IO nodeArg
          getNodeArg node =
             do
                (Just nodeArg) <- getNodeArgOpt node
                return nodeArg
+-}
 
          -- getNodeArgOpt returns nodeArg if the node is displayed, otherwise 
          -- Nothing.
@@ -516,6 +513,7 @@ newLinkDrawer
                (Just nodeDisplayed) <- getNodeDisplayedOpt node
                return (referenceCount nodeDisplayed)
 
+{-
          -- getListDrawerOpt gets a node's list drawer, if it has one.
          getListDrawerOpt :: node 
             -> IO (Maybe (ListDrawer (ArcData node arc) pos))
@@ -526,6 +524,7 @@ newLinkDrawer
                   listDrawer 
                   nodeDisplayedOpt
                   )
+-}
 
          -- getInnerListDrawerOpt gets a node's inner list drawer, if it has 
          -- one.

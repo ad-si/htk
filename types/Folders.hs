@@ -45,31 +45,23 @@ module Folders(
 
 import Maybe
 
-import Data.FiniteMap
 import System.IO.Unsafe
 import Data.IORef
 
 import Dynamics
-import Object
-import Registry
 import Computation
-import Sink
 import Sources
 import Broadcaster
 import VariableSet
 import VariableSetBlocker
 import VariableList
-import UniqueString
 import AtomString(fromString,toString)
 import Delayer(toDelayer,delay)
 import ExtendedPrelude
 import Store
 import Messages
 
-import BSem
-
 import SimpleForm
-import DialogWin
 
 import GraphDisp
 import GraphConfigure
@@ -901,7 +893,7 @@ createWithLinkedObjectIO view parentLink name getObject =
       parent <- readLink view parentLink
       let
          insertion = mkInsertion (linkedObject parent) name
-      act <- createViewObject view (\ link ->
+      act <- createViewObject view parentLink (\ link ->
          do
             linkedObjectWE <- newLinkedObject
                view (WrappedLink link) (Just insertion)
@@ -935,7 +927,7 @@ createWithLinkedObjectSplitIO view parentLink name getObject =
                   insertion = mkInsertion (linkedObject parent) name
                moveObject linkedObject1 (Just insertion)
 
-      act <- createViewObject view (\ link ->
+      act <- createViewObject view parentLink (\ link ->
          do
             linkedObjectWE <- newLinkedObject
                view (WrappedLink link) Nothing

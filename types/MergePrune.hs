@@ -21,7 +21,6 @@ import Data.FiniteMap
 
 import FindCommonParents(GraphBack(..))
 import RemoveAncestors
-import Graph(Node)
 
 import VersionDB(ObjectVersion)
 import Link

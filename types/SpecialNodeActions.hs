@@ -10,7 +10,6 @@ module SpecialNodeActions(
 
 import KeyedChanges
 import Sources
-import Broadcaster
 import Dynamics
 import Computation(done)
 
@@ -35,6 +34,8 @@ setArcsHidden :: NodeActionSource -> NodeArcsHidden -> IO ()
 setArcsHidden (NodeActionSource keyedChanges) nodeArcsHidden =
    sendOrDelete nodeArcsHidden 'A' (ArcsHidden nodeArcsHidden) keyedChanges
 
+sendOrDelete :: NodeArcsHidden -> Char -> NodeAction 
+   -> (KeyedChanges Char NodeAction) -> IO ()
 sendOrDelete modification = 
    if isDef modification then deleteKeyedChange else sendKeyedChanges
 

@@ -138,9 +138,7 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
             -- Verify permissions for the parentChanges.
             mapM
                (\ (object,parent) ->
-                  do
-                     verifyLocation object PermissionsActivity
-                     verifyLocation parent PermissionsActivity
+                  verifyLocation object PermissionsActivity
                   )         
                parentChanges
 

@@ -237,20 +237,15 @@ import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Data.FiniteMap
 
-import Debug
 import Computation
 import ExtendedPrelude
 import Sources
 import Broadcaster
-import Sink
 import Dynamics
 import VariableSet
 import VariableList
 import AtomString(fromStringWE,toString)
-import Object
 import Messages
-
-import DialogWin
 
 import FolderStructure
 import Imports
@@ -393,7 +388,8 @@ createLinkedObjectChild view parentLinkedObject name getObject =
 -- actually do the insertion, instead we return an action which does
 -- the insertion (or, possibly, fails).
 createLinkedObjectChildSplit :: ObjectType objectType object
-   => View -> LinkedObject -> EntityName -> (LinkedObject -> IO object) 
+   => View -> LinkedObject -> EntityName -> (LinkedObject 
+   -> IO object) 
    -> IO (Maybe (Link object,IO (WithError ())))
 createLinkedObjectChildSplit view parentLinkedObject name getObject =
    do
@@ -404,7 +400,9 @@ createLinkedObjectChildSplit view parentLinkedObject name getObject =
                   insertion = mkInsertion parentLinkedObject name
                moveObject linkedObject1 (Just insertion)
 
-      act <- createViewObject view (\ link ->
+
+      act <- createWrappedViewObject view (toWrappedLink parentLinkedObject) 
+            (\ link ->
          do
             linkedObjectWE <- newLinkedObject
                view (WrappedLink link) Nothing
@@ -630,6 +628,7 @@ bracketForImportErrors view act =
       bracketForImportErrors2 importsState act
 
 
+{-
 -- | (function not used any longer)
 unpackLinkedObjectPtr :: ObjectType objectType object 
    => BreakFn -> Maybe LinkedObjectPtr -> IO (Maybe (Link object))
@@ -646,6 +645,7 @@ unpackLinkedObjectPtr break (Just linkedObjectPtr) =
             break ("Object exists, but with the wrong type")
 
       seq link (return (Just link))
+-}
 
 -- | Create a new LinkSource
 newLinkSource :: View -> LinkedObject -> [(EntitySearchName,value)] 
@@ -1262,8 +1262,7 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                   mkLinkedObjectPtr newView wrappedLink1
                  
             -- (4) construct Insertions
-            insertions :: [Maybe Insertion]
-            (insertions @ (newInsertion' : restInsertions)) =
+            (newInsertion' : restInsertions) =
                map
                   (\ (view,frozenLinkedObject) ->
                      let

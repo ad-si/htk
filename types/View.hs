@@ -28,9 +28,13 @@ module View(
       -- Perform some action during which no commit should take place.
    createViewObject, 
       -- :: (HasCodedValue object)
-      -- => View -> (Link object -> IO (object,extra))
+      -- => View -> Link y -> (Link object -> IO (object,extra))
       -- -> IO extra
       -- Function for creating an object which requires its own link.  
+   createWrappedViewObject,
+      -- :: (HasCodedValue object)
+      -- => View -> WrappedLink -> (Link object -> IO (Maybe object,extra))
+      -- -> IO extra
 
    parentVersions, -- :: View -> IO [Version]
       -- returns the parent versions of this view.
@@ -42,19 +46,15 @@ module View(
       -- get the VersionInfo for this view.
    ) where
 
-import Directory
 import Maybe
 
-import Data.IORef
 import Control.Concurrent.MVar
 
 
-import Debug(debug)
 import Registry
 import Dynamics
 import AtomString(fromString)
 import Object
-import CopyFile
 import Sources
 import Broadcaster
 import Delayer
@@ -107,6 +107,7 @@ newView repository =
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
       importsState <- newStore
+      parentChanges <- newRegistry
 
       return (View {
          viewId = ViewId viewIdObj,
@@ -118,7 +119,8 @@ newView repository =
          committingVersion = committingVersion,
          graphClient1 = error 
             "Attempt to read version graph during initialisation",
-         importsState = importsState
+         importsState = importsState,
+         parentChanges = parentChanges
          })
 
 listViews :: Repository -> IO [Version]
@@ -129,7 +131,7 @@ getView repository graphClient objectVersion =
    do
       objectId <- newObject
       let viewId = ViewId objectId
-      viewString <- retrieveString repository specialLocation1 objectVersion
+      viewString <- retrieveString repository objectVersion specialLocation1 
       let
          viewCodedValue = fromString viewString
 
@@ -157,6 +159,7 @@ getView repository graphClient objectVersion =
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
       importsState <- newStore
+      parentChanges <- newRegistry
       let
          view = View {
             viewId = viewId,
@@ -167,7 +170,8 @@ getView repository graphClient objectVersion =
             delayer = delayer,
             committingVersion = committingVersion,
             graphClient1 = graphClient,
-            importsState = importsState
+            importsState = importsState,
+            parentChanges = parentChanges
             }
 
       importDisplayTypes displayTypesData view
@@ -201,7 +205,7 @@ commitView1 commitInfo newVersion1
                objectVersion = mkObjectSource objectVersion
             mkCommitChange (ClonedObject {sourceLocation = sourceLocation,
                sourceVersion = sourceVersion}) _
-                  = return (Just (Right (sourceLocation,sourceVersion)))
+                  = return (Just (Right (sourceVersion,sourceLocation)))
 
          (objectsData0 :: [Maybe (Location,CommitChange)]) <-
             -- compute the data for objects to commit.
@@ -248,7 +252,10 @@ commitView1 commitInfo newVersion1
                  OnlyUserInfo -> UserInfo1 user1
                  AllVersionInfo -> VersionInfo1 (viewInfo0 {user = user1})
 
-         commit repository versionInformation [] objectsData2
+         parentChanges1 <- listRegistryContentsAndEmptyRegistry
+            (parentChanges view)
+
+         commit repository versionInformation [] objectsData2 parentChanges1
 
          let
             user2 = user1 {parents = [newVersion1]}
@@ -328,12 +335,15 @@ readVersionInfo view = readContents (viewInfoBroadcaster view)
 -- The function provided returns Nothing if there was an error and the
 -- object should not, after all, be inserted. 
 createViewObject :: (HasCodedValue object) 
-   => View -> (Link object -> IO (Maybe object,extra))
+   => View 
+   -> Link y -- ^ parent link
+   -> (Link object -> IO (Maybe object,extra))
+       -- ^ construct object given link.
    -> IO extra
-createViewObject view getObject =
+createViewObject view parentLink getObject =
    synchronizeView view (
       do
-         versioned <- newEmptyObject view
+         versioned <- newEmptyObject view parentLink
          link <- makeLink view versioned
          (objectOpt,extra) <- getObject link
          case objectOpt of
@@ -341,6 +351,14 @@ createViewObject view getObject =
             Nothing -> deleteLink view link
          return extra
       )
+
+-- | Version of 'createViewObject' where the parent link is wrapped.
+createWrappedViewObject :: (HasCodedValue object)
+   => View -> WrappedLink -> (Link object -> IO (Maybe object,extra))
+   -> IO extra
+createWrappedViewObject view (WrappedLink parentLink) =
+   createViewObject view parentLink
+
 
 -- ----------------------------------------------------------------------
 -- Instance of Destroyable

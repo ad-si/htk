@@ -27,7 +27,6 @@ import Time
 
 import ExtendedPrelude
 import Computation
-import BinaryExtras (initialClockTime)
 
 import HTk (value,height,width)
 import SimpleForm

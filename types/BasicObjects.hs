@@ -40,17 +40,11 @@ module BasicObjects(
 
 import IO
 
-import Control.Concurrent
-
-import Computation(done)
-import Dynamics
 import TempFile
 import Registry
 import ICStringLen
 
 import CopyFile
-
-import VersionDB
 
 import CodedValue
 import Link
@@ -68,15 +62,17 @@ newtype SimpleFile = SimpleFile {
 newSimpleFile :: View -> IO SimpleFile
 newSimpleFile view =
    do
-      let repository = getRepository view
       filePath <- newTempFile
       writeFile filePath ""
       return (SimpleFile {
          filePath = filePath
          })
 
+
+{-
 getSimpleFileName :: SimpleFile -> FilePath
 getSimpleFileName simpleFile = filePath simpleFile
+-}
 
 -- ------------------------------------------------------------------------
 -- HasFilePath

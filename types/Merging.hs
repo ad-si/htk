@@ -21,18 +21,12 @@ import Broadcaster
 import Sources
 import Registry
 import Delayer
-import DeepSeq
 import Thread
-import Debug(debug)
 import Store
-import VariableSet(toKey)
 
 import Destructible
 
 import VSem
-
-import Graph
-import SimpleGraph
 
 import VersionInfo
 import VersionGraphClient
@@ -134,12 +128,15 @@ mergeViews (views @ (firstView:_)) =
 
             importsState <- newStore
 
+            parentChanges1 <- newRegistry
+
             let
                newView = View {
                   viewId = viewId1,
                   repository = repository1,
                   viewInfoBroadcaster = viewInfoBroadcaster1,
                   objects = objects1,
+                  parentChanges = parentChanges1,
                   commitLock = commitLock1,
                   delayer = delayer1,
                   committingVersion = committingVersion,

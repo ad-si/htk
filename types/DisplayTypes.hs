@@ -41,7 +41,6 @@ import System.IO.Unsafe
 import Registry
 import Computation
 import Dynamics
-import Sources
 
 import GraphDisp
 import GraphConfigure

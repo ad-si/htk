@@ -7,6 +7,7 @@ SRCS       = BDBOps.hs ServerErrors.hs VersionInfo.hs VersionInfoService.hs \
    FlushSimpleDB.hs VersionState.hs ModifyUserInfo.hs LastChange.hs \
    GetDiffs.hs SetGetSecurityData.hs Retrieve.hs Commit.hs \
    SimpleDBServer.hs SimpleDBService.hs SimpleDB.hs ObjectSource.hs \
+   VersionInfoFilter.hs \
 
 #   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
 #   VersionInfoFilter.hs Permissions.hs \

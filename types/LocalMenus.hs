@@ -4,7 +4,6 @@ module LocalMenus(
    deleteObject,
    ) where
 
-import Sources
 import Computation
 import Messages
 

@@ -46,7 +46,6 @@ import VersionInfo(ObjectVersion,VersionInfo)
 import CodedValue
 import Link
 import ViewType
-import {-# SOURCE #-} ObjectTypes
 
 -- | This describes all the links which leave an object and which need to
 -- be preserved by the merge.

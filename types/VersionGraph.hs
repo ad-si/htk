@@ -38,12 +38,7 @@ import Control.Concurrent
 import Control.Exception
 
 import Computation
-import WBFiles(getServer)
-import Registry
-import AtomString
-import UniqueString
 import Sources
-import Broadcaster
 import Dynamics
 import ExtendedPrelude(mapEq,mapOrd)
 import Messages
@@ -56,30 +51,23 @@ import Channels
 
 import BSem
 import HostsPorts hiding (user)
-import CallServer
 import Lock
 
-import SimpleForm
 import MenuType
 import SimpleListBox
-import MarkupText hiding (not)
-import DialogWin
 import HTk hiding (Arc,Menu)
 
 import Graph
-import SimpleGraph
 import DisplayGraph
 import GraphDisp
 import GraphConfigure
-import NewNames
 
 import VersionInfo
+import VersionState
 import VersionInfoFilter
 
 import VersionDB
 import View
-import ViewType(viewId,viewInfoBroadcaster,ViewId)
-import DisplayTypes
 import DisplayView
 import VersionGraphClient
 import Folders
@@ -150,9 +138,6 @@ newVersionGraph1
       -- graph which is connected to the server and will (via displayGraph)
       -- be displayed.  We will update the version graph by displaying
       -- this graph.
-      let
-         getVersionInfo1 = getVersionInfo graphClient
-
       -- This MVar will contain the actual version graph, when set up.
       versionGraphMVar <- newEmptyMVar
 
@@ -457,7 +442,7 @@ newVersionGraph1
                      do
                         mergeNode0 <- getNodeValue dispGraph node0
                         let
-                           ((node,versionInfo1) :: (Node,VersionInfo1)) 
+                           ((_,versionInfo1) :: (Node,VersionInfo1)) 
                               = dynCast "VersionGraph.mkMergeCandidate"
                                  mergeNode0
 

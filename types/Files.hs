@@ -30,20 +30,14 @@ import System.IO.Unsafe
 import Dynamics
 import Computation
 import AtomString(fromString,toString)
-import Sink
-import Sources
-import Broadcaster
-import VariableSet
-import UniqueString
 import ICStringLen
 
 import SimpleForm
 
 import CopyFile
 
-import GraphDisp
 import GraphConfigure
-import Graph(ArcType,NodeType)
+import Graph(NodeType)
 
 import View
 import CodedValue
@@ -54,10 +48,7 @@ import ObjectTypes
 import DisplayParms
 import GlobalRegistry
 import CallEditor
-import GetAttributesType
-import Folders hiding (requiredAttributes)
 import LocalMenus
-import EntityNames
 import LinkManager
 import MergeTypes
 import MergePrune
@@ -393,9 +384,13 @@ plainFileNodeTypeParms =
 plainFileKey :: GlobalKey
 plainFileKey =  oneOffKey "Files" ""
 
+
 -- ------------------------------------------------------------------
 -- creating a new file type
+-- (disabled for now).
 -- ------------------------------------------------------------------
+
+{-
 
 createNewFileType :: View -> IO (Maybe FileType)
 createNewFileType view =
@@ -434,3 +429,4 @@ createNewFileType view =
                            canEdit = canEdit
                            }))
 
+-}
