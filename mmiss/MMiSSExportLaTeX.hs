@@ -1,7 +1,8 @@
 {- This module contains functions for exporting an object to a file as
    LaTeX -}
 module MMiSSExportLaTeX(
-   exportMMiSSObjectLaTeX
+   exportMMiSSObjectLaTeX,
+   exportMMiSSObjectXML,
    ) where
 
 import Computation
@@ -23,8 +24,16 @@ import MMiSSObjectExtract
 import MMiSSFormat
 import MMiSSObjectType
 
+
+
 exportMMiSSObjectLaTeX :: View -> Link MMiSSObject -> IO ()
-exportMMiSSObjectLaTeX view link =
+exportMMiSSObjectLaTeX = exportMMiSSObjectGeneral LaTeX
+
+exportMMiSSObjectXML :: View -> Link MMiSSObject -> IO ()
+exportMMiSSObjectXML = exportMMiSSObjectGeneral XML
+
+exportMMiSSObjectGeneral :: Format -> View -> Link MMiSSObject -> IO ()
+exportMMiSSObjectGeneral format view link =
    do
       result <- addFallOut (\ break ->
          do
@@ -34,14 +43,15 @@ exportMMiSSObjectLaTeX view link =
             let
                fullName = unbreakName [top,"mmiss","test","files"]
 
-	    dialogEvent <- fileDialog "Export LaTeX sources" fullName
+	    dialogEvent <- fileDialog 
+               ("Export "++show format++" sources") fullName
 
             filePathOpt <- sync dialogEvent
 	    
             case filePathOpt of
                Just filePath ->
                   do
-                     stringWE <- extractMMiSSObject view link LaTeX
+                     stringWE <- extractMMiSSObject view link format
                      let
                         string = coerceWithErrorOrBreak break stringWE
 

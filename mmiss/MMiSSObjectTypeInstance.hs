@@ -120,6 +120,10 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                         (\ link -> editObjectAttributes view link),
                      Button "Export Object as LaTeX"
                         (\ link -> exportMMiSSObjectLaTeX view link),
+#ifdef DEBUG
+                     Button "Export Object as XML"
+                        (\ link -> exportMMiSSObjectXML view link),
+#endif
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Show Preamble Object"

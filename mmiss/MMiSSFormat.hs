@@ -21,7 +21,7 @@ import XmlTypes
 
 import LaTeXParser
 
-data Format = LaTeX | XML
+data Format = LaTeX | XML deriving Show
 
 formatForm :: Form Format
 formatForm = newFormOptionMenu2 [("LaTeX",LaTeX),("XML",XML)]
