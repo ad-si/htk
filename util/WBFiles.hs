@@ -610,7 +610,7 @@ parseTheseArgumentsRequiring' arguments required =
                      return (newExit ExitSuccess,prevMap)
                "--uni-version" -> 
                      do
-                        putStrLn ("uni's version is "++UNIVERSION)
+                        printToErr ("uni's version is "++UNIVERSION)
                         return (newExit ExitSuccess,prevMap)
                "--uni-parameters" ->
                   do
@@ -670,6 +670,7 @@ parseTheseArgumentsRequiring' arguments required =
          do
             printToErr "Command-line options:"
             printToErr "--uni displays this message"
+            printToErr "--uni-version displays the current version"
             printToErr "--uni-parameters displays option settings"
             sequence_
                (map
