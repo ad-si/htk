@@ -83,8 +83,8 @@ main =
                            str3 = concat (map (++ " ") l)
                          error (unlines ([str1] ++ [str2] ++ [str3]))
          errors -> do if (xmlOutput == True) 
---                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (render (element el))) 
-                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
+                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (render (element el))) 
+--                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
                         else done
                       let  
                          str1 = "Parse: Successfull\n"
@@ -100,7 +100,8 @@ main =
               (p:ps) -> (makeMMiSSLatex (el, True, [((fst p),[emptyPreambleData])]), (toString (fst p)))               
           (EmacsContent l) = coerceWithError emacsCont
       if (xmlOutput == True) 
-        then putStr (render (element el)) 
+        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (render (element el))) 
+--                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
         else if (latexOutput)
                then putStr (concat (map getStrOfEmacsDataItem l))
                else if (latexWithPreOutput) 

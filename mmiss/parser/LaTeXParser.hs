@@ -59,9 +59,10 @@ module LaTeXParser (
    -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
    -- the corresponding includeXXX command.
    mapLabelledTag,
-   MMiSSLatexPreamble, 
-   parsePreamble,
+   MMiSSLatexPreamble,
    emptyMMiSSLatexPreamble,
+   emptyLaTeXPreamble, 
+   parsePreamble,
    Frag(..),
    Params(..)
    )
@@ -280,7 +281,12 @@ data MMiSSLatexPreamble = MMiSSLatexPreamble {
   importCommands :: Maybe ImportCommands
 }
 
+emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, importCommands = Nothing}
+
 data LaTeXPreamble = Preamble DocumentClass [Package] String deriving Show
+
+emptyLaTeXPreamble = Preamble (Package [] "mmiss" "") [] ""
+
 
 {--  These structures should be included in MMiSSLatexPreamble : -}
 
@@ -411,7 +417,7 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
                    [("Ref", "reference"), ("Cite", "cite")]
 
 
-listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate")]
+listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate"), ("List","list")]
 
 itemNames = ["ListItem", "item", "Item"]
 
@@ -1084,10 +1090,6 @@ parsePreamble s =
                   Nothing -> hasError("Strange: makePreamble returns no error and no preamble.")
 	      Left err -> hasError(show err)
       Left err -> hasError (show err)
-
-emptyMMiSSLatexPreamble :: MMiSSLatexPreamble
-emptyMMiSSLatexPreamble = 
-  MMiSSLatexPreamble (Preamble (Package [] "mmiss" "today") [] "") Nothing
 
 {--
    parseImportCommands is used as fromStringWE-method in the instanciation for
@@ -2492,9 +2494,15 @@ cElemListWithError name ps atts c =
           endDelimElem =   case ps of
                              (LParams _ _ _ (Just delimStr)) -> [(CString True delimStr)]
                              otherwise -> []
-      in hasValue([(CElem (Elem name atts (beginDelimElem ++ content)))] ++ endDelimElem)
+          newElemname = if (name == "list")
+                          then if ((getParam "listType" atts) == "")
+                                 then "itemize"
+                                 else attNameToXML (getParam "listType" atts)
+                          else name
+          newAtts = filter (("listType" /=). fst ) atts
+      in hasValue([(CElem (Elem newElemname newAtts (beginDelimElem ++ content)))] ++ endDelimElem)
     Left str -> hasError str
-  
+
 
 -- Maps an Xml tag to its corresponding mini-type if it has one.
 -- (The mini-type is just something that identifies what sort of
