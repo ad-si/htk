@@ -87,6 +87,9 @@ SRCS       = resources/Resources.hs\
              tix/NoteBook.hs\
              tix/LabelFrame.hs\
              tix/PanedWindow.hs\
+	     toolkit/Prompt.hs\
+	     toolkit/InputWin.hs\
+	     toolkit/InputForm.hs\
 
 #            components/Icon.hs\
 #            devices/Printer.hs\

@@ -4,6 +4,8 @@ import HTk
 import ModalDialog
 import DialogWin
 import MarkupText
+import InputWin
+import InputForm
 
 main :: IO ()
 main =
@@ -15,6 +17,7 @@ main =
   but6 <- newButton htk [text "create newErrorWin"] :: IO (Button String)
   but7 <- newButton htk [text "create newWarningWin"] :: IO (Button String)
   but8 <- newButton htk [text "create newConfirmWin"] :: IO (Button String)
+  but9 <- newButton htk [text "create InputWin"] :: IO (Button String)
   but2 <- newButton htk [text " Quit example "] :: IO (Button String)
   
 
@@ -24,6 +27,7 @@ main =
   pack but6 []  
   pack but7 []  
   pack but8 []  
+  pack but9 []  
   pack but2 []
 
   clickedbut1 <- clicked but1
@@ -72,6 +76,16 @@ main =
                                                                      prose "Here the action to be confirmed would be found!"] []  
 					       putStr "done with ConfirmWinWin: "
 					       putStrLn (show res)
+					       )))
+
+  clickedbut9 <- clicked but9
+  spawnEvent (forever (clickedbut9 >> always (do 
+                                               iwin <- newInputWin "HELLO THERE" []
+					       form <- newInputForm (iwin # fForm) []
+					       newEntryField form [text "entry 1"] :: IO (EntryField String String)
+					       newEntryField form [text "entry 2"] :: IO (EntryField String String)
+					       res <- wait iwin True
+                                               putStrLn(show(res))					       
 					       )))
  
   clickedbut2 <- clicked but2
