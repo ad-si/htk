@@ -113,10 +113,18 @@ module GraphDisp(
    mapMMenuPrim,
    mapMMenuPrim',
    
-
+   -- Titles for graphs and objects
    GraphTitle(..),
    ValueTitle(..),
+
+   -- Shapes for nodes
    Shape(..),
+
+   -- Drag and Drop actions.
+   GraphGesture(..),
+   NodeGesture(..),
+   NodeDragAndDrop(..),
+
    ) where
 
 import Dynamics
@@ -404,6 +412,7 @@ mapMMenuPrim' c2dAct (Menu subMenuValue menuButtons) =
       dSubMenuValue <- c2dAct subMenuValue
       return (Menu dSubMenuValue dMenuButtons) 
 mapMMenuPrim' c2dAct Blank = return Blank
+
 ------------------------------------------------------------------------
 -- Titles
 ------------------------------------------------------------------------
@@ -419,6 +428,34 @@ data ValueTitle value = ValueTitle (value -> IO String)
 instance NodeTypeConfig ValueTitle
 
 instance ArcTypeConfig ValueTitle
+
+------------------------------------------------------------------------
+-- Drag and Drop
+-- These are inspired by DaVinci's Drag and Drop functions.
+-- Each configuration gives a corresponding action to perform.
+-- We give DaVinci's suggested applications.
+------------------------------------------------------------------------
+
+data GraphGesture = GraphGesture (IO ())
+-- GraphGesture for a graphical interface is a mouse action
+-- not involving any nodes but somewhere on the graph.
+-- (suggested use: create a new node)
+
+instance GraphConfig GraphGesture
+
+data NodeGesture value = NodeGesture (value -> IO ())
+-- A NodeGesture for a graphical interface is a mouse action
+-- involving one node.  
+-- (suggested use: create a new node, and link it to this one)
+
+instance NodeTypeConfig NodeGesture
+
+data NodeDragAndDrop value = NodeDragAndDrop (Dyn -> value -> IO ())
+-- A NodeDragAndDrop corresponds to dragging some other node
+-- (which could be of any type - hence its value must be encoded by
+-- a Dyn) onto this node (value value).   
+
+instance NodeTypeConfig NodeDragAndDrop
 
 ------------------------------------------------------------------------
 -- Shapes etcetera

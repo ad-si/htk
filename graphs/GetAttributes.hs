@@ -25,7 +25,7 @@ import InputWin
 import qualified GraphDisp
 
 ------------------------------------------------------------------------
--- NodeTypeAttributes
+-- NodeTypes
 ------------------------------------------------------------------------
 
 data ShapeSort = Box | Circle | Ellipse | Rhombus | Triangle | Icon
@@ -155,6 +155,33 @@ getNodeAttributes registry =
                         })
             Nothing -> cancelQuery
       )
+
+------------------------------------------------------------------------
+-- Arc Types
+------------------------------------------------------------------------
+
+data ArcTypeAttributes = ArcTypeAttributes {
+   arcTypeTitle :: String
+   }
+
+getArcTypeAttributes :: IO (Maybe ArcTypeAttributes) 
+getArcTypeAttributes =
+   do
+      let def = ArcTypeAttributes {arcTypeTitle=""}
+      form <- newInputForm [flexible,value def]
+      newEntryField [
+         text "Arc Type title",
+         selector arcTypeTitle,
+         modifier (\ old newTitle -> old {arcTypeTitle = newTitle}),
+         parent form,
+         width 20
+         ]
+      inputWin <- newInputWin "Arc Type Attributes" form Nothing [modal True]
+      sync(triggered inputWin)
+   
+------------------------------------------------------------------------
+-- Arcs
+------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 -- General Routines
