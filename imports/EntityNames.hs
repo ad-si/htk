@@ -37,7 +37,18 @@ module EntityNames(
    entitySearchNameParser, -- :: GenParser Char st EntitySearchName
 
    -- special character used in EntityName's to indicate an extension.
+   -- (Actually ".", now we have rationalised the syntax.)
    specialChar, -- :: Char
+
+   splitFullName, 
+      -- :: EntityFullName -> Maybe (EntityFullName,String)
+      -- If the last component of the EntityFullName contains the specialChar
+      -- but not at the begining, split it off and return the EntityFullName 
+      -- before the dot and what follows the dot.  Otherwise return Nothing.
+  
+   unsplitFullName,
+      -- :: EntityFullName -> String -> WithError EntityFullName
+      -- Add the given separator to the fullName, which should not have one.
    ) where
 
 import Char
@@ -178,6 +189,12 @@ instance Monad m => HasWrapper Directive m where
       Reveal l -> UnWrap 5 l
       Rename n o -> UnWrap 6 (n,o)
       )
+
+instance (Monad m,HasWrapper Directive m) 
+      => HasBinary Directive m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
+
 
 instance Monad m => HasBinary ImportCommand m where
    writeBin = mapWrite (\ ic -> case ic of
@@ -325,6 +342,31 @@ searchNameDirBase (FromAbsolute fname0) = case entityDirBase fname0 of
    Just (fname1,name) -> Just (FromAbsolute fname1,Just name)
    Nothing -> Nothing
 
+
+splitFullName :: EntityFullName -> Maybe (EntityFullName,String)
+splitFullName fullName0 =
+   do
+      (fullName1,EntityName nameStr) <- entityDirBase fullName0
+      (namePreStr,ext) <- splitToChar specialChar nameStr
+      namePre <- case namePreStr of
+         "" -> Nothing
+         _ -> return (EntityName namePreStr)
+ 
+      return (subDir fullName1 namePre,ext)
+
+unsplitFullName :: EntityFullName -> String -> WithError EntityFullName
+unsplitFullName fullName0 ext =
+   do
+      (fullName1,EntityName namePreStr) <- case entityDirBase fullName0 of
+         Nothing -> fail "Attempt to add a file extension to an empty name"
+         Just res -> return res
+      let
+         nameStr = namePreStr ++ [specialChar] ++ ext
+      name <- fromStringWE nameStr
+      return (subDir fullName1 name)
+
+subDir :: EntityFullName -> EntityName -> EntityFullName
+subDir (EntityFullName names) name = EntityFullName (names ++ [name])
 
 -- ----------------------------------------------------------------------
 -- Parser functions for EntityName, EntityFullName and EntitySearchName

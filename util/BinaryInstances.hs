@@ -6,6 +6,7 @@ module BinaryInstances(
 
    HasWrapper(..), -- class for unlimited (well, up to 256) alternatives.
       -- instance this class and you get an instance of HasBinary
+   Wrapped(..),
    UnWrap(..),
    wrap0,wrap1,wrap2,wrap3,wrap4,
       -- used for instancing.
@@ -356,7 +357,7 @@ data Choice5 v1 v2 v3 v4 v5 =
    |  Choice2 v2
    |  Choice3 v3
    |  Choice4 v4
-   |  Choice5 v5
+   |  Choice5 v5 deriving (Eq)
 
 instance (Monad m,
    HasBinary v1 m,HasBinary v2 m,HasBinary v3 m,HasBinary v4 m,HasBinary v5 m)
@@ -421,6 +422,14 @@ class HasWrapper wrapper m where
    unWrap :: wrapper -> UnWrap m
       -- How to deconstruct.
 
+newtype Wrapped a = Wrapped {wrapped :: a} 
+-- Template for turning something which instances HasWrapper into an
+-- instance of HasBinary
+
+-- instance Monad m => HasBinary a m where
+--    writeBin = mapWrite Wrapped
+--    readBin = mapRead wrapped
+
 -- Blame GHC that we can't use labels with existential types.
 data UnWrap m = forall val . HasBinary val m
    => UnWrap 
@@ -454,8 +463,8 @@ wrap4 :: (HasBinary (val1,val2,val3,val4) m)
    => Byte -> (val1 -> val2 -> val3 -> val4 -> wrapper) -> Wrap wrapper m
 wrap4 char con = Wrap char (\ (val1,val2,val3,val4) -> con val1 val2 val3 val4)
 
-instance (Monad m,HasWrapper wrapper m) => HasBinary wrapper m where
-   writeBin wb wrapper = writeBin' (unWrap wrapper)
+instance (Monad m,HasWrapper wrapper m) => HasBinary (Wrapped wrapper) m where
+   writeBin wb (Wrapped wrapper) = writeBin' (unWrap wrapper)
       where
          writeBin' :: UnWrap m -> m ()
          writeBin' (UnWrap label val) =
@@ -467,11 +476,11 @@ instance (Monad m,HasWrapper wrapper m) => HasBinary wrapper m where
       do
          thisLabel <- readBin rb
          let
-            innerWrap :: HasBinary v m => (v -> wrapper) -> m wrapper
+            innerWrap :: HasBinary v m => (v -> wrapper) -> m (Wrapped wrapper)
             innerWrap wrapFn =
                do
                   val <- readBin rb
-                  return (wrapFn val)
+                  return (Wrapped (wrapFn val))
 
          case findJust
             (\ (Wrap label wrapFn :: Wrap wrapper m) -> 
@@ -481,7 +490,7 @@ instance (Monad m,HasWrapper wrapper m) => HasBinary wrapper m where
 
             Nothing -> fail ("BinaryInstances.Wrapper - bad switch "
                ++ show thisLabel)
-            Just (getWrap :: m wrapper) -> getWrap
+            Just (getWrap :: m (Wrapped wrapper)) -> getWrap
 
 findJust :: (a -> Maybe b) -> [a] -> Maybe b
 findJust f [] = Nothing
@@ -503,6 +512,10 @@ instance (Monad m,HasBinary val m) => HasWrapper (Tree val) m where
       Leaf v -> UnWrap 0 v
       Node l -> UnWrap 1 l
       )
+
+instance (Monad m,HasWrapper (Tree val) m) => HasBinary (Tree val) m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
 
 -- ----------------------------------------------------------------------
 -- HasBinary via Strings for things that are instances of Read/Show

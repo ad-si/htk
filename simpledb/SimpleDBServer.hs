@@ -238,6 +238,12 @@ instance MonadIO m => HasWrapper SimpleDBCommand m where
       MultiCommand l -> UnWrap 9 l
       )
 
+instance (MonadIO m,HasWrapper SimpleDBCommand m) 
+      => HasBinary SimpleDBCommand m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
+
+
 instance MonadIO m => HasWrapper VersionInformation m where
    wraps = [
       wrap1 0 UserInfo1,
@@ -251,6 +257,11 @@ instance MonadIO m => HasWrapper VersionInformation m where
       Version1 v -> UnWrap 2 v
       Version1Plus v p -> UnWrap 3 (v,p)
       )
+
+instance (MonadIO m,HasWrapper VersionInformation m) 
+      => HasBinary VersionInformation m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
 
 instance MonadIO m => HasWrapper SimpleDBResponse m where
    wraps = [
@@ -278,6 +289,12 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       IsNotFound s -> UnWrap 9 s
       )
 
+instance (MonadIO m,HasWrapper SimpleDBResponse m) 
+      => HasBinary SimpleDBResponse m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
+
+
 instance MonadIO m => HasWrapper Diff m where
    wraps = [
       wrap0 1 IsOld,
@@ -290,6 +307,12 @@ instance MonadIO m => HasWrapper Diff m where
       IsChanged e c -> UnWrap 2 (e,c)
       IsNew c -> UnWrap 3 c
       )
+
+instance (MonadIO m,HasWrapper Diff m) 
+      => HasBinary Diff m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
+
 
 -- -------------------------------------------------------------------
 -- The SimpleDB type.
@@ -730,6 +753,13 @@ instance Monad m => HasWrapper ServerOp m where
       AllocVersion -> UnWrap 1 ()
       AllocLocation -> UnWrap 2 ()
       )
+
+instance (MonadIO m,HasWrapper ServerOp m) 
+      => HasBinary ServerOp m where
+   writeBin = mapWrite Wrapped
+   readBin = mapRead wrapped
+
+
 
 -- Carry out a ServerOp, also writing it to the log file if successful.
 applyServerOp :: SimpleDB -> ServerOp -> IO (WithError (Maybe Int))
