@@ -37,6 +37,7 @@ parseEmacsContent str =
                      "button" -> Just (EmacsLink s)
                      "container" -> Just (EmacsLink s)
                      _ -> Nothing
+               List [Id "uneditable-extent"] -> Nothing
                _ -> parsingError 2
                )
             list

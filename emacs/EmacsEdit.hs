@@ -151,21 +151,26 @@ openFile emacsFS parentAction name =
                setValue (openFiles state) (key name) emacsFile
 
                let
-                  session = emacsSession state 
+                  session = emacsSession state
+
+                  (headString,endString) = containerTexts name 
 
                -- Insert the button
-               addButton session parent (headName name) (describe name)
+               addButton session parent (headName name) headString
 
                -- Insert the contents
                mapM
                   (\ dataItem -> case dataItem of
                      EmacsLink child -> 
                         addButton session parent (normalName child) 
-                           (describe child)
+                           (buttonText child)
                      EditableText str ->
                         addText session parent str
                      )
                   initialContents
+
+               -- Insert the end text
+               addUneditable session parent endString
 
                -- Insert the boundary
                boundContainer session parent
@@ -280,7 +285,7 @@ handleEvents editorState =
                            [] ->
                               do
                                   collapse session (normalName name) 
-                                     (describe name)
+                                     (buttonText name)
                                   transformValue (openFiles editorState) 
                                          (key name)
                                      (\ stateOpt ->
@@ -367,5 +372,17 @@ key (str,c) = str
 -- How the user sees a TypedName
 describe :: TypedName -> String
 describe (str,c) = str
+
+---
+-- Head button text and end text for a container
+containerTexts :: TypedName -> (String,String)
+containerTexts name =
+   ("["++describe name++":\n","]\n")
+
+---
+-- Button text for a (collapsed) button
+buttonText :: TypedName -> String
+buttonText name =
+   ("["++describe name++"]")
 
      

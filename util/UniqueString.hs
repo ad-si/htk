@@ -39,10 +39,12 @@ import QuickReadShow
 
 -- The list of "printable" characters that may occur in one of these
 -- strings.
+--
+-- 20.9.02.  {} characters eliminated because daVinci doesn't like them.
 printableCharsStr :: String
 printableCharsStr =
    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()"
-   ++ "-_+=|~[{]};:,<>/?"
+   ++ "-_+=|~[];:,<>/?"
 
 -- The same, as an array and length.
 printableCharsLen :: Int

@@ -163,7 +163,7 @@ MISSLATEX=$MMISSLATEXDIR/bin/misslatex
 if test -r "$MISSLATEX"; then
    echo Using MMiSS LaTeX found at $MISSLATEX 
 else
-   MISSLATEX="echo Couldn't find MMiSS LaTeX to run"
+   MISSLATEX="$TOP/mmiss/scripts/notfound MMiSS-LaTeX "
 fi
 AC_SUBST(MISSLATEX)
 #

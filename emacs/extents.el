@@ -140,6 +140,19 @@
       )
    )
 
+; Add uneditable text to the container.  The face of the new text is
+; the same as that a button with the container's name would have.
+(defun uni-add-uneditable (parent-extent-id text)
+   (let* (
+         (parent (gethash parent-extent-id uni-extent-hash-table))
+         (parent-end (extent-end-position parent))
+         )
+      (uni-create-uneditable-extent parent-extent-id parent-end text)
+      )
+   )
+
+        
+
 ; Add editable text to a container
 (defun uni-add-text (parent-extent-id text)
    (let* (
@@ -351,6 +364,29 @@
       (set-extent-property uni-new-extent 'keymap uni-extent-keymap)
       )
    )
+
+; Create an uneditable extent with the given text.  This is very similar
+; to uni-create-button-extent except (1) we do not put the extent in the
+; hash table; (2) there is no special action when the text is clicked.
+(defun uni-create-uneditable-extent (extent-id pos text)
+   (let 
+      ((uni-new-extent (uni-create-extent nil pos 'uneditable-extent)))
+      (set-extent-property uni-new-extent 'start-closed t)
+      (set-extent-property uni-new-extent 'end-closed t)
+      (goto-char pos)
+      (insert text)
+      (set-extent-property uni-new-extent 'start-open t)
+      (set-extent-property uni-new-extent 'end-open t)
+      (set-extent-property uni-new-extent 'face 
+         (if uni-do-colour-hack
+            (MMiSS-retrieve-face (elt extent-id (- (length extent-id) 1)))
+            'highlight
+            )
+         )
+      (set-extent-property uni-new-extent 'atomic t)
+      )
+   )
+
 
 ; Create an extent with the given extent-id, position and type
 (defun uni-create-extent (extent-id pos type)

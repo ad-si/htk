@@ -136,10 +136,6 @@ classifyElement (Elem name attributes content) =
             Just c -> mkInclude c
             Nothing -> Other
 
-
-classifyLabelledTag :: String -> Maybe Char
-classifyLabelledTag str = fromIncludeStrOpt (mapLabelledTag str)
-
 ---
 -- We also use classifyLabelledTag to get the mini-type-letter, used by
 -- EmacsEdit.hs to colour magic buttons appropriately.

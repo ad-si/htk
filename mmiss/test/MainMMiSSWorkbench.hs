@@ -9,6 +9,7 @@ import Posix
 
 import Debug(debug)
 import WBFiles
+import Computation
 
 import Events
 import Destructible
@@ -18,6 +19,7 @@ import SysVars
 #endif
 
 import HTk
+import DialogWin
 
 import DaVinciGraph
 
@@ -38,6 +40,7 @@ main =
 #endif
 
       withdrawWish
+      seq loadHTkImages done 
       repository <- mmissInitialise
       versionGraph <- newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)

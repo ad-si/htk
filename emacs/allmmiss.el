@@ -51,6 +51,7 @@
       (cons ?I  "green")
       (cons ?s  "green")
       (cons ?F  "green")
+      (cons ?E  "green")
 
       (cons ?A  "yellow")
       (cons ?C  "yellow")

@@ -6,6 +6,12 @@ module LaTeXParser (
    makeMMiSSLatex, -- (Element, Bool) -> WithError (EmacsContent TypedName)
    -- Turns an Element into a MMiSSLaTeX source
    -- If the Bool is set, attaches a preamble.
+
+   classifyLabelledTag, -- :: String -> Maybe Char
+   -- Maps an Xml tag to its corresponding mini-type if it has one.
+   -- (The mini-type is just something that identifies what sort of
+   -- include the String needs.)
+
    fromIncludeStr, --  String -> Char
    fromIncludeStrOpt, -- String -> Maybe Char
    toIncludeStr, -- Char -> String
@@ -1011,6 +1017,11 @@ cElemListWithError:: String -> [Attribute] -> WithError [Content] -> WithError [
 cElemListWithError name atts c = concatWithError [(mapWithError CElem (mapWithError (Elem name atts) c))]
   
 
+-- Maps an Xml tag to its corresponding mini-type if it has one.
+-- (The mini-type is just something that identifies what sort of
+-- include the String needs.)
+classifyLabelledTag :: String -> Maybe Char
+classifyLabelledTag str = fromIncludeStrOpt (mapLabelledTag str)
 
 -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
 -- the corresponding includeXXX command.
@@ -1104,7 +1115,7 @@ parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
 parseAndMakeMMiSSLatex name pre = do root <- parseMMiSSLatexFile name
                                      root1 <- return(coerceWithError root)
 				     (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, pre)))
-				     putStrLn (concat (map getStrOfEmacsDataItem l))
+;				     putStrLn (concat (map getStrOfEmacsDataItem l))
 
 
 parseMakeParse :: SourceName -> IO (WithError Element)

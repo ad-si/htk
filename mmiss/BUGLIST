@@ -4,6 +4,24 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+
+50) 20.09.02
+Improve way buttons are displayed in Emacs.
+FIXED
+
+49) 20.09.02
+Importing demo.tex caused daVinci to spend forever redrawing each item
+one by one.
+
+davinci/DaVinciGraph.hs changed to cluster redrawing operations.
+FIXED
+
+48) 20.09.02
+daVinci was reporting a Tcl error about extra braces.
+It turns out daVinci doesn't like names containing braces.  Changing 
+util/UniqueString.hs to avoid braces fixed the problem.
+FIXED
+
 47) 19.09.02
 
 Improved tool output display, so the user is only pestered with it if there's

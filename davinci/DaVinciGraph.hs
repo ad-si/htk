@@ -33,10 +33,14 @@ import Dynamics
 import Registry
 import Computation
 import Debug(debug)
+import Thread
 
 import Channels
 import Events
 import Destructible
+import Synchronized
+
+import BSem
 
 import MenuType
 
@@ -77,6 +81,8 @@ data DaVinciGraph = DaVinciGraph {
       -- Changes to types are not delayed.  Changes to attribute values,
       -- EG setNodeValuePrim, cause this list to be flushed, as does
       -- redrawPrim.
+   pendingChangesLock :: BSem,
+      -- This lock is acquired during the flushPendingChanges action.
 
    globalMenuActions :: Registry MenuId (IO ()),
    otherActions :: Registry DaVinciAnswer (IO ()),
@@ -89,8 +95,13 @@ data DaVinciGraph = DaVinciGraph {
 
    destructionChannel :: Channel (),
 
-   destroyActions :: IO ()
+   destroyActions :: IO (),
    -- Various actions to be done when the graph is closed. 
+
+   redrawChannel :: Channel Bool
+   -- Sending True along this channel indicates that a 
+   -- redraw is desired.
+   -- Sending False along it ends the appropriate thread.
    }
 
 data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
@@ -106,8 +117,9 @@ instance Destroyable DaVinciGraph where
    destroy (daVinciGraph @ DaVinciGraph {
          context = context,nodes = nodes,edges = edges,
          globalMenuActions = globalMenuActions,otherActions = otherActions,
-         destroyActions = destroyActions}) =
+         destroyActions = destroyActions,redrawChannel = redrawChannel}) =
       do
+         sync (noWait (send redrawChannel False))
          destroyActions
          destroy context
          emptyRegistry nodes
@@ -124,16 +136,35 @@ signalDestruct :: DaVinciGraph -> IO ()
 signalDestruct daVinciGraph = 
    sync(noWait(send (destructionChannel daVinciGraph) ()))
 
+---
+-- We run a separate thread for redrawing.  The idea is that when more than
+-- one redraw request arrives while daVinci is already redrawing, we only
+-- send one.  This means it is not too bad when we make a lot of changes,
+-- redrawing each one.
+redrawThread :: DaVinciGraph -> IO ()
+redrawThread (daVinciGraph @ DaVinciGraph{
+      context = context,doImprove = doImprove,redrawChannel = redrawChannel}) =
+   do
+      b1 <- sync (receive redrawChannel)
+      bs <- getAllQueued (receive redrawChannel)
+      if and (b1:bs)
+         then
+            do
+               flushPendingChanges daVinciGraph
+               if doImprove
+                  then
+                     doInContext (DaVinciTypes.Menu(Layout(ImproveAll))) 
+                        context 
+                  else
+                     done
+               redrawThread daVinciGraph
+         else
+            done
+
 instance GraphClass DaVinciGraph where
    redrawPrim (daVinciGraph @ DaVinciGraph{
-         context = context,doImprove = doImprove}) = 
-      do
-         flushPendingChanges daVinciGraph
-         if doImprove
-            then
-               doInContext (DaVinciTypes.Menu(Layout(ImproveAll))) context 
-            else
-               done
+         redrawChannel = redrawChannel}) = 
+      sync(noWait(send redrawChannel True))
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraphPrim (DaVinciGraphParms {graphConfigs = graphConfigs,
@@ -246,6 +277,8 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          context <- newContext handler
          pendingChangesMVar <- newMVar []
          destructionChannel <- newChannel
+         redrawChannel <- newChannel
+         pendingChangesLock <- newBSem
 
          let
             setTitle :: GraphTitle -> IO ()
@@ -275,10 +308,12 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   globalMenuActions = globalMenuActions,
                   otherActions = otherActions,
                   pendingChangesMVar = pendingChangesMVar,
+                  pendingChangesLock = pendingChangesLock,
                   doImprove = configDoImprove,
                   lastSelectionRef = lastSelectionRef,
                   destructionChannel = destructionChannel,
-                  destroyActions = destroySink
+                  destroyActions = destroySink,
+                  redrawChannel = redrawChannel
                   }
 
          setValue otherActions Closed (signalDestruct daVinciGraph)
@@ -297,7 +332,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             else
                done
 
-
+         -- We don't bother to explicitly destroy this thread, because
+         -- when the 
+         forkIOquiet "daVinci redraw thread" (redrawThread daVinciGraph)
 
          return daVinciGraph
 
@@ -978,24 +1015,26 @@ sortPendingChanges pendingChanges =
 
 flushPendingChanges :: DaVinciGraph -> IO ()
 flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
-      edges = edges,pendingChangesMVar = pendingChangesMVar}) =
-   do
-      pendingChanges <- takeMVar pendingChangesMVar
-      case pendingChanges of
-         [] -> done
-         _ -> 
-            doInContext (sortPendingChanges pendingChanges) context
-      putMVar pendingChangesMVar []
-      -- Delete all now-irrelevant node and edge entries.
-      sequence_ (map
-         (\ pendingChange -> case pendingChange of
-            NU (DeleteNode nodeId) -> deleteFromRegistry nodes nodeId
-            EU (DeleteEdge edgeId) -> deleteFromRegistry edges edgeId
-            _ -> done
+      edges = edges,pendingChangesMVar = pendingChangesMVar,
+      pendingChangesLock = pendingChangesLock}) =
+   synchronize pendingChangesLock (
+      do
+         pendingChanges <- takeMVar pendingChangesMVar
+         putMVar pendingChangesMVar []
+         case pendingChanges of
+            [] -> done
+            _ -> 
+               doInContext (sortPendingChanges pendingChanges) context
+         -- Delete all now-irrelevant node and edge entries.
+         sequence_ (map
+            (\ pendingChange -> case pendingChange of
+               NU (DeleteNode nodeId) -> deleteFromRegistry nodes nodeId
+               EU (DeleteEdge edgeId) -> deleteFromRegistry edges edgeId
+               _ -> done
+               )
+            pendingChanges
             )
-         pendingChanges
-         )
-
+      )
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions
 -- -----------------------------------------------------------------------
