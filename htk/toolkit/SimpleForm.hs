@@ -23,6 +23,9 @@ module SimpleForm(
       -- This combines two forms.  They will be displayed with one on top of
       -- the other.
 
+   (\\), -- :: Form value1 -> Form value2 -> Form (value1,value2)
+      -- Like //, but combines two forms side-by-side.
+
    doForm, -- :: String -> Form x -> IO (Maybe x)
       -- This displays a form.  The first string is the title;
       -- the second the form.  As well as the entries in the form,
@@ -119,14 +122,15 @@ mapEnteredForm' f
 -- The Form type and (//)
 -- -------------------------------------------------------------------------
 
-newtype Form value = Form (Toplevel -> IO (EnteredForm value))
+newtype Form value = Form (forall container . Container container 
+   => container -> IO (EnteredForm value))
 
 instance Functor Form where
    fmap f (Form getEnteredForm0) =
       let
-         getEnteredForm1 topLevel =
+         getEnteredForm1 container =
             do
-               enteredForm1 <- getEnteredForm0 topLevel
+               enteredForm1 <- getEnteredForm0 container
                return (mapEnteredForm f enteredForm1)
       in
           Form getEnteredForm1
@@ -135,23 +139,23 @@ instance Functor Form where
 mapForm :: (x -> WithError y) -> Form x -> Form y
 mapForm f (Form getEnteredForm0) =
    let
-      getEnteredForm1 topLevel =
+      getEnteredForm1 container =
          do
-            enteredForm1 <- getEnteredForm0 topLevel
+            enteredForm1 <- getEnteredForm0 container
             return (mapEnteredForm' f enteredForm1)
    in
        Form getEnteredForm1
 
 
-infixr //
+infixr 8 // -- so it binds less tightly than \\
 
 (//) :: Form value1 -> Form value2 -> Form (value1,value2)
 (//) (Form enterForm1) (Form enterForm2) =
    let
-      enterForm topLevel =
+      enterForm container =
          do
-            enteredForm1 <- enterForm1 topLevel
-            enteredForm2 <- enterForm2 topLevel
+            enteredForm1 <- enterForm1 container
+            enteredForm2 <- enterForm2 container
             let
                enteredForm = EnteredForm {
                   packAction = (
@@ -180,7 +184,51 @@ guardForm test mess =
   mapForm (\x -> if test x then Right x else Left mess)
 
 
+-- -------------------------------------------------------------------------
+-- The \\ function
+-- -------------------------------------------------------------------------
 
+(\\) :: Form x -> Form y -> Form (x,y)
+(\\) (Form enterForm1) (Form enterForm2) =
+   let
+      enterForm container =
+         -- This is somewhat clumsy as we can't specify the pack action
+         -- of the internal forms, so have to wrap them in two further forms.
+         do
+            frame <- newFrame container []
+            frame1 <- newFrame frame []
+            enteredForm1 <- enterForm1 frame1
+            frame2 <- newFrame frame []
+            enteredForm2 <- enterForm2 frame2
+            let 
+               enteredForm = EnteredForm {
+                  packAction = (
+                     do
+                        packAction enteredForm1
+                        pack frame1 [Side AtLeft]
+                        packAction enteredForm2
+                        pack frame2 [Side AtLeft]
+                        pack frame []
+                     ),
+                  getFormValue = (
+                     do
+                        valueError1 <- getFormValue enteredForm1
+                        valueError2 <- getFormValue enteredForm2
+                        return (pairWithError valueError1 valueError2)
+                     ),
+                  destroyAction = (
+                     do
+                        destroyAction enteredForm1
+                        destroyAction enteredForm2
+                     )
+                  }
+
+            return enteredForm
+   in
+      Form enterForm
+
+infixr 9 \\ -- so it binds more tightly than //
+      
 -- -------------------------------------------------------------------------
 -- The doForm action 
 -- -------------------------------------------------------------------------
@@ -244,9 +292,9 @@ newFormEntry :: (FormLabel label,FormValue value) => label -> value
    -> Form value
 newFormEntry label value =
    let
-      enterForm topLevel =
+      enterForm container =
          do
-            frame <- newFrame topLevel []
+            frame <- newFrame container []
             packLabel <- formLabel frame label
             enteredForm1 <- makeFormEntry frame value
             let
@@ -272,9 +320,9 @@ newFormEntry label value =
 newFormMenu :: FormLabel label => label -> HTkMenu value -> Form (Maybe value)
 newFormMenu label htkMenu =
    let
-      enterForm topLevel =
+      enterForm container =
          do
-            frame <- newFrame topLevel []
+            frame <- newFrame container []
             packLabel <- formLabel frame label
             enteredForm1 <- makeFormMenuEntry frame htkMenu
             let

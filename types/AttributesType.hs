@@ -8,12 +8,15 @@ module AttributesType(
    emptyAttributesType,
    AttributeValue(..),
    needs,
+   mkAttributesType,
 
    AttributeTypeKey,
    mkAttributeTypeKey,
    HasAttributeTypeKey(..),
 
    registerAttribute,
+   getAllAttributeTypeKeys,
+   registerAttributes,
 
    ExtraFormItem,
    mkExtraFormItem,
@@ -137,6 +140,16 @@ needs keyStr val (AttributesType list) =
       typeKey = attributeTypeKey val 
    in
       AttributesType ((key,typeKey):list)
+
+---
+-- Construct an AttributesType directly given a list of labels and
+-- type keys.
+mkAttributesType :: [(String,AttributeTypeKey)] -> AttributesType
+mkAttributesType attributesList =
+   let
+      mkOne (keyStr,attributeTypeKey) = (mkAttributeKey keyStr,attributeTypeKey)
+   in
+      AttributesType (map mkOne attributesList)
 
 -- -------------------------------------------------------------------
 -- Support for additional form items.  These will go at the top,
@@ -272,6 +285,37 @@ registerAttribute (val :: value) =
                return actForm   
       setValue attributeTypeKeyRegistry key mkForm 
         
+---
+-- Get all AttributeTypeKey's + a suitable key for displaying them.
+getAllAttributeTypeKeys :: IO [(AttributeTypeKey,String)]
+getAllAttributeTypeKeys =
+   do
+      allKeys <- listKeys attributeTypeKeyRegistry
+      let
+         getLastPart [] = []
+         getLastPart ('.':rest) = 
+            case getLastPart rest of
+               [] -> rest
+               s -> s
+         getLastPart (_:rest) = getLastPart rest
+
+         getPair (atk @ (AttributeTypeKey s)) = (atk,getLastPart s)
+      return (map getPair allKeys)
+
+---
+-- registerAttributes registers all instances of AttributeValue declared
+-- in this file, and should be done at the start of the program.
+registerAttributes :: IO ()
+registerAttributes =
+   do
+      let e = error "registerAttributes"
+      registerAttribute (e :: Int)
+      registerAttribute (e :: Integer)
+      registerAttribute (e :: Bool)
+      registerAttribute (e :: String)
+
+
+
 -- -------------------------------------------------------------------
 -- AttributeKey
 -- -------------------------------------------------------------------

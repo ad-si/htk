@@ -3,6 +3,7 @@
    -}
 module Registrations(doRegistrations) where
 
+import AttributesType
 import Folders
 import Files
 
@@ -12,3 +13,4 @@ doRegistrations =
    do
       registerFolders
       registerFiles
+      registerAttributes

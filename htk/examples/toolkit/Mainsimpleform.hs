@@ -63,6 +63,9 @@ main =
                Button "Hungarian" 5
                ])
 
+         short1 = newFormEntry "Key" ""
+         short2 = newFormEntry "Value" ""
+
          form =
             name //
             newFormEntry "Address1" "" //
@@ -70,7 +73,7 @@ main =
             email //
             newFormEntry "Age" (0::Int) //
             colour //
-
+            short1 \\ short2 //
             newFormEntry "British Subject" False //
             newFormMenu EmptyLabel language 
 
