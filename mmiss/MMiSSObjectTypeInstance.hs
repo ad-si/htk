@@ -32,6 +32,7 @@ import MMiSSImportLaTeX
 import MMiSSExportLaTeX
 import MMiSSContent
 import MMiSSPrint
+import MMiSSObjectMerging
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
@@ -191,6 +192,10 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      )
                   })
             )
+
+   getMergeLinks = mmissMergeLinks
+
+   attemptMerge = mmissAttemptMerge
 
 
 -- ------------------------------------------------------------------

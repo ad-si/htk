@@ -16,7 +16,9 @@ module ViewType(
 
    ) where
 
-import Concurrent
+import Control.Concurrent
+
+import Data.IORef
 
 import QuickReadShow
 import Object
@@ -54,12 +56,26 @@ data View = View {
    }
 
 data ObjectData =
-      PresentObject Dyn (IO ObjectVersion)
-         -- Object is checked out.  The Dyn will be a "Versioned x" for it,
-         -- the action commits the latest version, and returns the new
-         -- object version
-   |  AbsentObject ObjectVersion
-         -- Object is not checked out, and this is the current version. 
+      PresentObject {
+         -- Object is checked out.
+         thisVersioned :: Dyn,
+            -- Versioned x for it.
+         commitAct :: ObjectVersion -> IO ObjectVersion,
+            -- commit action returning the new object version
+            -- The supplied ObjectVersion is that belonging to the
+            -- containing view (or top link).
+         lastChange :: IORef (Maybe ObjectVersion)
+            -- ObjectVersion for top link of view in which this object 
+            -- was last changed.  If the object was changed in this view, 
+            -- lastChange is Nothing.
+         }
+   |  AbsentObject {
+         -- Object is not checked out.
+         thisObjectVersion :: ObjectVersion,
+            -- current version of object.
+         lastChange :: IORef (Maybe ObjectVersion)
+            -- see comments for PresentObject
+         }
 
 getRepository :: View -> Repository
 getRepository view = repository view

@@ -16,6 +16,7 @@ import Sources
 import FileSystem
 import Registry
 import Delayer
+import DeepSeq
 
 import Destructible
 
@@ -35,30 +36,40 @@ import MergeReAssign
 
 ---
 -- Do all the work of merging, checking out views before merging as
--- necessary.  
+-- necessary.
+--
+-- For the time being, we permit only ObjectVersion's to be merged.
+-- The reason for this is we cannot guarantee that identical nodes have a 
+-- unique distinguishing originating version (as returned by 
+-- Link.getLastChange)
 mergeNodes :: Repository -> [Either View ObjectVersion] 
    -> IO (WithError View)
 mergeNodes repository nodes =
-   do
-      -- The Bool is True if the view was especially checked-out for this
-      -- merge.
-      (viewData :: [(View,Bool)]) <- mapM
-         (\ node -> case node of
-            Left view -> return (view,False)
-            Right version ->
-               do
-                  view <- getView repository version
-                  return (view,True)
-            )
-         nodes
+   addFallOutWE (\ break ->
+      do
+         -- The Bool is True if the view was especially checked-out for this
+         -- merge.
+         (viewData :: [(View,Bool)]) <- mapM
+            (\ node -> case node of
+               Left view -> 
+                  break "Sorry, we can only merge checked-in versions."
+  
+                  {- return (view,False) -}
+               Right version ->
+                  do
+                     view <- getView repository version
+                     return (view,True)
+               )
+            nodes
 
-      viewWE <- mergeViews (map fst viewData)
+         viewWE <- mergeViews (map fst viewData)
 
-      mapM_ 
-         (\ (view,doDestroy) -> if doDestroy then destroy view else done)
-         viewData
+         mapM_ 
+            (\ (view,doDestroy) -> if doDestroy then destroy view else done)
+            viewData
 
-      return viewWE
+         coerceWithErrorOrBreakIO break viewWE
+      )
 
 
 mergeViews :: [View] -> IO (WithError View)

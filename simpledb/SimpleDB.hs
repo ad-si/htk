@@ -48,6 +48,18 @@ module SimpleDB(
    -- new version.  The version, if supplied, should be a previous version of
    -- this object.  If it is NOT supplied, this MUST be the first time
    -- we store to this object.
+
+
+   -- Two-Stage commit   
+   commitStage1,
+      -- :: Repository -> Location -> Maybe ObjectVersion -> IO ObjectVersion
+   commitStage2, 
+      -- :: Repository -> ObjectSource -> Location -> ObjectVersion -> IO ()
+   -- This divides the work of the commit function into two halves, the first
+   -- of which allocates and returns a new object version, the second of 
+   -- which actually commits.  commitStage2 should be given the ObjectVersion
+   -- returned by commitStage1; of course this should also not be re-used.
+
    retrieveFile, -- :: Repository -> Location -> ObjectVersion -> FilePath ->
                  --       IO ()
    -- retrieveFile retrieves the given version of the object at Location
@@ -61,6 +73,7 @@ module SimpleDB(
    ) where
 
 import Object
+import Computation(done)
 
 import Destructible
 
@@ -126,6 +139,22 @@ commit repository objectSource location parent =
       bdbKey <- writeBDB (bdb repository) objectSource
       response <- queryRepository repository (Commit bdbKey location parent)
       return (toObjectVersion response)
+
+commitStage1 
+   :: Repository -> Location -> Maybe ObjectVersion -> IO ObjectVersion
+commitStage1 repository location parent =
+   do
+      response <- queryRepository repository (CommitStage1 location parent)
+      return (toObjectVersion response)
+
+commitStage2 
+   :: Repository -> ObjectSource -> Location -> ObjectVersion -> IO ()
+commitStage2 repository objectSource location thisVersion =
+   do
+      bdbKey <- writeBDB (bdb repository) objectSource
+      IsNothing <- queryRepository repository 
+         (CommitStage2 bdbKey location thisVersion)
+      done
 
 retrieveObjectSource :: Repository -> Location -> ObjectVersion 
    -> IO ObjectSource

@@ -37,6 +37,8 @@ import EntityNames
 import ObjectTypes
 import DisplayParms
 import SpecialNodeActions
+import MergeTypes
+import MergePrune
 
 import MMiSSObjectType hiding (linkedObject)
 import MMiSSObjectTypeType hiding (displayParms)
@@ -92,6 +94,9 @@ instance HasCodedValue MMiSSPackageFolder where
          (linkedObject,codedValue1) <- decodeIO codedValue0 view
          mmissPackageFolder <- createMMiSSPackageFolder linkedObject
          return (mmissPackageFolder,codedValue1)
+
+instance HasLinkedObject MMiSSPackageFolder where
+   toLinkedObject mmissPackageFolder = linkedObject mmissPackageFolder
 
 -- ------------------------------------------------------------------------
 -- Constructing the MMiSSPackageFolder
@@ -236,6 +241,33 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                in
                   return (Just nodeDisplayData)
 
+   -- Merging
+
+   getMergeLinks = getLinkedObjectMergeLinks
+
+   attemptMerge linkReAssigner newView newLink vlos =
+      addFallOutWE (\ break ->
+         do
+            -- compare with similar code in Folders.  But this is
+            -- simple as we don't have attributes or more than one
+            -- type.
+            vlosPruned <- mergePrune vlos
+
+            newLinkedObjectWE <- attemptLinkedObjectMerge
+               linkReAssigner newView newLink
+                  (map 
+                     (\ (view,link,folder) -> (view,toLinkedObject folder))
+                     vlos
+                     )
+
+            newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
+
+            mmissPackageFolder <- createMMiSSPackageFolder newLinkedObject
+
+            setLink newView mmissPackageFolder newLink
+
+            done
+      )
    
 
 -- ------------------------------------------------------------------------

@@ -67,17 +67,21 @@ firstVersion = ObjectVersion 0
 
 data SimpleDBCommand =
       NewLocation -- returns with IsLocation
-#if (__GLASGOW_HASKELL__ == 504)
-      -- Work around ghc5.04.1 bug
-   |  Commit {bdbKey :: BDBKey,location :: Location,
-         objectVersionOpt :: Maybe ObjectVersion} 
-#else
    |  Commit BDBKey Location (Maybe ObjectVersion)
-#endif
           -- commits a new version to the repository.  To ease storage,
           -- the parent version is supplied UNLESS this is the first time
           -- we commit to the location.  
           -- Responds with IsObjectVersion, giving the version of this file.
+ 
+   -- It turns out we also need a two-stage commit, with the first stage
+   -- allocating an ObjectVersion, and the second actually sending the data.
+   |  CommitStage1 Location (Maybe ObjectVersion)
+      -- Preallocate a new object version for the Location, given the
+      -- parent version, returning it as IsLocation
+   |  CommitStage2 BDBKey Location ObjectVersion
+      -- Commit the data BDBKey for this ObjectVersion, preallocated by
+      -- CommitStage1.  Of course this should only be done once for each
+      -- ObjectVersion.  Return IsNothing
    |  Retrieve Location ObjectVersion
           -- Returns an existing version, which had better exist.
           -- Returns with IsContents 
@@ -91,6 +95,7 @@ data SimpleDBResponse =
    |  IsObjectVersion ObjectVersion
    |  IsObjectVersions [ObjectVersion]
    |  IsContents BDBKey
+   |  IsNothing
       deriving (Read,Show)
 
 -- -------------------------------------------------------------------
@@ -101,17 +106,6 @@ instance StringClass Location where
    toString (Location i) = show i
    fromString s = Location (read s)
 
-#if 0
--- Using a GHC 5 extension we can now derive these, more efficiently.
-
-instance Eq Location where
-   (==) (Location l1) (Location l2) = (==) l1 l2
-   (/=) (Location l1) (Location l2) = (/=) l1 l2
-
-instance Ord Location where
-   compare (Location l1) (Location l2) = compare l1 l2
-#endif
-
 location_tyRep = mkTyRep "SimpleDBServer" "Location"
 instance HasTyRep Location where
    tyRep _ = location_tyRep
@@ -119,16 +113,6 @@ instance HasTyRep Location where
 instance StringClass ObjectVersion where
    toString (ObjectVersion i) = show i
    fromString s = ObjectVersion (read s)
-
-#if 0 
--- Using a GHC 5 extension we can now derive these, more efficiently.
-instance Eq ObjectVersion where
-   (==) (ObjectVersion l1) (ObjectVersion l2) = (==) l1 l2
-   (/=) (ObjectVersion l1) (ObjectVersion l2) = (/=) l1 l2
-
-instance Ord ObjectVersion where
-   compare (ObjectVersion l1) (ObjectVersion l2) = compare l1 l2
-#endif
 
 objectVersion_tyRep = mkTyRep "SimpleDBServer" "ObjectVersion"
 instance HasTyRep ObjectVersion where
@@ -231,12 +215,12 @@ backupSimpleDB simpleDB =
 
 querySimpleDB :: SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB
-      (SimpleDB {
+      (simpleDB @ (SimpleDB {
          objectLocations = objectLocations,
          objectDictionary = objectDictionary,
          nextLocation = nextLocation,
          nextVersions = nextVersions
-         })
+         }))
       command =
    case command of
       NewLocation ->
@@ -244,7 +228,14 @@ querySimpleDB
             loc <- readIORef nextLocation
             writeIORef nextLocation (loc + 1)
             return (IsLocation (Location loc))
-      Commit bdbKey location _ ->
+      Commit bdbKey location parentVersionOpt ->
+         do
+            (response @ (IsObjectVersion nextVersion)) 
+               <- querySimpleDB simpleDB 
+                  (CommitStage1 location parentVersionOpt)
+            querySimpleDB simpleDB (CommitStage2 bdbKey location nextVersion)
+            return response
+      CommitStage1 location _ ->
          do
             nextVersionsVal <- readIORef nextVersions
             -- get version
@@ -253,14 +244,17 @@ querySimpleDB
                nextVersion = ObjectVersion nextVersionInt
             writeIORef nextVersions 
                (addToFM nextVersionsVal location (nextVersionInt+1))
+            -- return version
+            return (IsObjectVersion nextVersion)   
+      CommitStage2 bdbKey location nextVersion ->
+         do
             -- add to dictionary
             objectDictionaryVal <- readIORef objectDictionary
             writeIORef objectDictionary
                (addToFM objectDictionaryVal (location,nextVersion) bdbKey)
             -- write to file
             writeObjectLocations objectLocations location nextVersion bdbKey
-            -- return version
-            return (IsObjectVersion nextVersion)   
+            return IsNothing
       Retrieve location objectVersion ->
          do         
             objectDictionaryVal <- readIORef objectDictionary

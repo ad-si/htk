@@ -203,6 +203,16 @@ class (HasCodedValue objectType,HasCodedValue object)
    nodeTitleSourcePrim :: object -> SimpleSource String
       -- Returns a title, which may change.
 
+   fixedLinksPrim :: View -> objectType -> IO [Link object]
+      -- Returns set of links which must be absolutely fixed for this object
+      -- type during merging.  The merging process starts from these links
+      -- and then uses getMergeLinks to derive other links which need to be
+      -- identified.
+      --
+      -- The length of the list should be independent of the view.  Indeed it
+      -- is envisaged (though not assumed) that this list will be null except
+      -- for the plain folder type, where it will contain just the top folder.
+
    getMergeLinks :: MergeTypes.MergeLinks object
       -- Retuns those links which need to be preserved by merging.
 

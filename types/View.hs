@@ -33,7 +33,8 @@ module View(
 
 import Directory
 
-import Concurrent
+import Data.IORef
+import Control.Concurrent
 
 
 import Debug(debug)
@@ -126,12 +127,17 @@ getView repository objectVersion =
       -- because the registry is a LockedRegistry and doesn't have a direct 
       -- function.
       objects <- newRegistry
-      sequence_ (map
-         (\ (location,objectVersion) -> 
-            setValue objects location (AbsentObject objectVersion)
+      mapM_
+         (\ (location,thisObjectVersion,viewVersion) ->
+            do
+               lastChange <- newIORef (Just viewVersion)
+               setValue objects location 
+                  (AbsentObject {
+                      thisObjectVersion = thisObjectVersion,
+                      lastChange = lastChange
+                      })
             )
          objectsData
-         )
 
       parentsMVar <- newMVar [objectVersion]
       fileSystem <- newFileSystem
@@ -161,20 +167,34 @@ commitView (view @ View {repository = repository,objects = objects,
       do
          parents <- takeMVar parentsMVar
 
+         -- We use a two-stage commit on the top link, so we can commit
+         -- the other objects knowing what the view version will be.
+         newVersion <- commitStage1 repository firstLocation 
+            (case parents of 
+               [] -> Nothing
+               parent : _ -> Just parent
+               )
+
          displayTypesData <- exportDisplayTypes view
 
          objectTypesData <- exportObjectTypes view
 
          locations <- listKeys objects
-         (objectsData :: [(Location,Version)]) <-
+         (objectsData :: [(Location,Version,Version)]) <-
             mapM
                (\ location ->
                   do
                      objectsData <- getValue objects location
                      objectVersion <- case objectsData of 
-                        AbsentObject objectVersion -> return objectVersion
-                        PresentObject _ commitAction -> commitAction
-                     return (location,objectVersion)
+                        AbsentObject {thisObjectVersion = thisObjectVersion}
+                           -> return thisObjectVersion
+                        PresentObject {commitAct = commitAct}
+                           -> commitAct newVersion
+                     (Just viewVersion) <- readIORef (lastChange objectsData)
+                        -- Nothing is impossible, because commitAct is supposed
+                        -- (via commitVersioned) to set lastChange, if the
+                        -- object is new or dirty.
+                     return (location,objectVersion,viewVersion)
                   )
                   locations
                
@@ -190,11 +210,8 @@ commitView (view @ View {repository = repository,objects = objects,
 
          viewCodedValue <- doEncodeIO viewData phantomView
          viewObjectSource <- toObjectSource viewCodedValue 
-         newVersion <- commit repository viewObjectSource firstLocation 
-            (case parents of 
-               [] -> Nothing
-               parent : _ -> Just parent
-               )
+
+         commitStage2 repository viewObjectSource firstLocation newVersion
 
          putMVar parentsMVar [newVersion]
          return newVersion
@@ -211,7 +228,9 @@ parentVersions view = readMVar (parentsMVar view)
 -- ViewData is the information needed to construct a view
 -- which we store in the top file of a version.
 data ViewData = ViewData {
-   objectsData :: [(Location,ObjectVersion)],
+   objectsData :: [(Location,ObjectVersion,ObjectVersion)],
+      -- The location, object version, and the version in which this object
+      -- was last changed.
    displayTypesData :: CodedValue,
    objectTypesData :: CodedValue
    }
@@ -221,7 +240,7 @@ instance HasTyRep ViewData where
    tyRep _ = viewData_tyRep
 
 -- Here's the real primitive type
-type Tuple = ([(Location,ObjectVersion)],CodedValue,CodedValue)
+type Tuple = ([(Location,ObjectVersion,ObjectVersion)],CodedValue,CodedValue)
 
 mkTuple :: ViewData -> Tuple
 mkTuple (ViewData {objectsData = objectsData,displayTypesData = displayTypesData,

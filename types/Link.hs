@@ -84,9 +84,22 @@ module Link(
    compareLink, -- :: Link x -> Link y -> Ordering
       -- Provide an efficient way of testing two links for equality, and
       -- ordering them.
+
+
+   getLastChange, 
+      -- :: View -> Link object -> IO (Maybe ObjectVersion)
+      -- Return the last-change indicator for a link in the view.
+
+   setLink,
+      -- :: HasCodedValue x => View -> x -> Link x -> IO (Versioned x)
+      -- Set the contents of a pre-allocated link to a particular value.
+      -- NB.  This function is only intended for use for merging.  The
+      -- link should not have anything in it before.
+
    ) where
 
-import Concurrent
+import Control.Concurrent
+import Data.IORef
 
 import Registry
 import Dynamics
@@ -140,12 +153,15 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                err mess = return (objectDataOpt,hasError mess) 
             case objectDataOpt of
                Nothing -> err "View.fetchLink: Link to object not in view!!"
-               Just (PresentObject versionedDyn _) ->
+               Just (PresentObject {thisVersioned = versionedDyn}) ->
                   case fromDyn versionedDyn of
                      Just versioned 
                         -> return (objectDataOpt,hasValue versioned)
                      Nothing -> err "View.fetchLink - type error in link"
-               Just (AbsentObject objectVersion) ->
+               Just (AbsentObject {
+                     thisObjectVersion = objectVersion,
+                     lastChange = lastChange
+                     }) ->
                   do
                      -- create a new Versioned object
                      (str :: String) <- 
@@ -158,8 +174,11 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                            statusMVar = statusMVar
                            }
                      return (Just(
-                        PresentObject (toDyn versioned) 
-                           (commitVersioned view versioned)),
+                        PresentObject {
+                           thisVersioned = toDyn versioned,
+                           commitAct = commitVersioned view versioned,
+                           lastChange = lastChange
+                           }),
                         hasValue versioned)
             )                 
 
@@ -227,11 +246,15 @@ versioned_tyRep = mkTyRep "View" "Versioned"
 instance HasTyRep1 Versioned where
    tyRep1 _ = versioned_tyRep
 
-commitVersioned :: HasCodedValue x => View -> Versioned x -> IO ObjectVersion
+commitVersioned :: HasCodedValue x => View -> Versioned x -> ObjectVersion
+   -> IO ObjectVersion
 -- This is the action that gets done when we commit an object to
 -- the repository.
+--
+-- The supplied objectVersion is that of the containing view.
 commitVersioned (view@View{repository = repository})
-      (Versioned{location = location,statusMVar = statusMVar}) =
+      (Versioned{location = location,statusMVar = statusMVar}) 
+      viewVersion =
    do
       status <- takeMVar statusMVar
       let 
@@ -240,7 +263,8 @@ commitVersioned (view@View{repository = repository})
                xCodedValue <- doEncodeIO x view
                xObjectSource <- toObjectSource xCodedValue
                xObjectVersion <- commit repository xObjectSource location 
-                  parentVersionOpt 
+                  parentVersionOpt
+               updateLastChange view location viewVersion
                return (x,xObjectVersion)
       (x,objectVersion) <- case status of
          Empty -> error "Attempt to commit Empty object!!!"
@@ -257,7 +281,10 @@ data Status x =
    |  Virgin x -- Object never committed.
 
 setTopLink :: HasCodedValue x => View -> x -> IO (Versioned x)
-setTopLink view x = createObjectGeneral view (Virgin x) secondLocation
+setTopLink view x = setLink view x (Link secondLocation)
+
+setLink :: HasCodedValue x => View -> x -> Link x -> IO (Versioned x)
+setLink view x (Link location) = createObjectGeneral view (Virgin x) location
 
 ---
 -- setOrGetTopLink is somewhat safer than setTopLink and initialises the
@@ -332,31 +359,42 @@ makeObjectData view (status :: Status x) location =
    do
       statusMVar <- newMVar status
       let versioned = Versioned {location = location,statusMVar = statusMVar}
+      lastChange <- newIORef Nothing
       return (versioned,
-         (PresentObject (toDyn versioned) (commitVersioned view versioned))) 
+         (PresentObject {
+            thisVersioned = toDyn versioned,
+            commitAct = commitVersioned view versioned,
+            lastChange = lastChange
+            })) 
 
 
 updateObject :: HasCodedValue x => View -> x -> Versioned x -> IO ()
 updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
    do
       status <- takeMVar statusMVar
-      let
-         newStatus = case status of
-            Empty -> Virgin x
-            Virgin _ -> Virgin x
-            UpToDate _ objectVersion -> Dirty x objectVersion
-            Dirty _ objectVersion -> Dirty x objectVersion
+
+      newStatus <- case status of
+         Empty -> return (Virgin x)
+         Virgin _ -> return (Virgin x)
+         UpToDate _ objectVersion ->
+            do
+               setLastChange view (location versioned)
+               return (Dirty x objectVersion)
+         Dirty _ objectVersion -> return (Dirty x objectVersion)
       putMVar statusMVar newStatus
 
 dirtyObject :: HasCodedValue x => View -> Versioned x -> IO ()
 dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
    do
       status <- takeMVar statusMVar
-      let
-         newStatus = case status of
-            UpToDate x objectVersion ->
-               Dirty x objectVersion
-            _ -> status
+
+      newStatus <- case status of
+         UpToDate x objectVersion ->
+            do
+               setLastChange view (location versioned)
+               return (Dirty x objectVersion)
+         _ -> return status
+
       putMVar statusMVar newStatus
 
 readObject :: HasCodedValue x => View -> Versioned x -> IO x
@@ -369,3 +407,24 @@ readObject view (versioned@Versioned{statusMVar = statusMVar}) =
          UpToDate x _ -> return x
          Dirty x _ -> return x
 
+-- ----------------------------------------------------------------------
+-- Access to the lastChange
+-- ----------------------------------------------------------------------
+
+setLastChange :: View -> Location -> IO ()
+setLastChange view location =
+   do
+      objectData <- getValue (objects view) location
+      writeIORef (lastChange objectData) Nothing
+
+updateLastChange :: View -> Location -> ObjectVersion -> IO ()
+updateLastChange view location objectVersion =
+   do
+      objectData <- getValue (objects view) location
+      writeIORef (lastChange objectData) (Just objectVersion)
+
+getLastChange :: View -> Link object -> IO (Maybe ObjectVersion)
+getLastChange view (Link location) =
+   do
+      objectData <- getValue (objects view) location
+      readIORef (lastChange objectData)

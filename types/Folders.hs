@@ -38,6 +38,7 @@ import VariableList
 import UniqueString
 import AtomString(fromString,toString)
 import Delayer(toDelayer,delay)
+import ExtendedPrelude
 
 import BSem
 
@@ -65,6 +66,7 @@ import GlobalMenus
 import EntityNames
 import LinkDrawer (toArcData,ArcData)
 import LinkManager
+import MergePrune
 
 ------------------------------------------------
 -- The Display Type
@@ -186,12 +188,20 @@ instance HasCodedValue Folder where
       do
          ((folderTypeId,attributes,linkedObject),codedValue1) <-
             safeDecodeIO codedValue0 view
-         folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
-         hideFolderArcs <- mkArcsHiddenSource
-         openContents <- newOpenContents linkedObject
-         return (Folder {folderType = folderType,attributes = attributes,
-            linkedObject = linkedObject,openContents = openContents,
-            hideFolderArcs = hideFolderArcs},codedValue1)
+         folder <- createFolder view folderTypeId attributes linkedObject
+         return (folder,codedValue1)
+
+---
+-- Thus function is also used during merging.
+createFolder :: View -> GlobalKey -> Attributes -> LinkedObject -> IO Folder
+createFolder view folderTypeId attributes linkedObject =
+   do
+      folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
+      hideFolderArcs <- mkArcsHiddenSource
+      openContents <- newOpenContents linkedObject
+      return (Folder {folderType = folderType,attributes = attributes,
+         linkedObject = linkedObject,openContents = openContents,
+         hideFolderArcs = hideFolderArcs})
 
 -- ------------------------------------------------------------------
 -- The instance of ObjectType
@@ -302,6 +312,75 @@ instance ObjectType FolderType Folder where
             do
                folder <- readLink view link
                broadcast (hideFolderArcs folder) (Just (NodeArcsHidden bool))
+
+
+   -- Merging
+   fixedLinksPrim = 
+      (\ view folderType -> return (
+         case topFolderLinkOpt folderType of
+            Nothing -> []
+            Just link -> [link]
+            )
+         )
+
+   getMergeLinks = getLinkedObjectMergeLinks
+
+   attemptMerge linkReAssigner newView newLink vlos =
+      addFallOutWE (\ break ->
+         do
+            (vlos @ ((vlo1 @ (view1,link1,folder1))  : vlosRest)) 
+               <- mergePrune vlos
+
+            -- (1) check that the folder types match and compute the new
+            -- folder type.
+            let
+               folderType1 = folderType folder1
+               folderType1Id = folderTypeId folderType1
+
+            mapM_ 
+               (\ (_,_,folder) ->
+                  if folderType1Id
+                        == folderTypeId (folderType folder)
+                     then
+                        do
+                           folderTitle <- nodeTitleIOPrim folder
+                           break ("Type mismatch attempting to merge folder "
+                              ++ folderTitle)
+                     else
+                        done
+                  )
+               vlosRest
+
+            let
+               newFolderTypeId = folderType1Id
+
+            -- (2) we just ignore all but the first attributes.
+            let
+               newAttributes = attributes folder1
+
+            -- (3) now for the interesting bit ...
+            newLinkedObjectWE <- attemptLinkedObjectMerge
+               linkReAssigner newView newLink
+                  (map 
+                     (\ (view,link,folder) -> (view,toLinkedObject folder))
+                     vlos
+                     )
+
+            newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
+
+            -- (4) and create ...
+            folder <- createFolder newView newFolderTypeId newAttributes 
+               newLinkedObject
+
+            setLink newView folder newLink
+
+            done
+      )
+
+
+
+
+   
 
 -- ------------------------------------------------------------------
 -- Extra option so that folders can add files.

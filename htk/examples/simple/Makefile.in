@@ -8,6 +8,7 @@ SRCS       = Mainhello1.hs\
 	     Maintexttag.hs\
 	     MainlistEx.hs\
 	     MainmenuEx.hs\
+             MainsimpleButton.hs\
 
 include @TOP@/mk/boilerplate.mk
 

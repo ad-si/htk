@@ -18,8 +18,9 @@ DESCRIPTION   :
 
 module InfoBus (        
    registerTool,
-   deregisterTool,
-   shutdown   
+   deregisterTool,   
+   shutdown,
+   registerDestroyAct,
    ) where
 
 
@@ -85,6 +86,38 @@ shutdown =
       foreach cmds (\cmd -> try cmd)
       IOExts.performGC
 
+-- --------------------------------------------------------------------------
+-- Simple interface allowing us to register something to be done without
+-- having to create special instances for it.
+-- --------------------------------------------------------------------------
+
+
+---
+-- register the given action to be done at shutdown.  The returned action
+-- cancels the registration (without performing the given action).
+registerDestroyAct :: IO () -> IO (IO ())
+registerDestroyAct act =
+   do
+      oID <- newObject
+      let
+         simpleTool = SimpleTool {
+            oID = oID,
+            destroyAct = act
+            }
+
+      registerTool simpleTool
+      return (deregisterTool simpleTool)
+
+data SimpleTool = SimpleTool {
+   oID :: ObjectID,
+   destroyAct :: IO ()
+   }
+
+instance Object SimpleTool where
+   objectID simpleTool = oID simpleTool
+
+instance Destroyable SimpleTool where
+   destroy simpleTool = destroyAct simpleTool
 
 
 

@@ -8,7 +8,8 @@ SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    Initialisation.hs CallEditor.hs CreateObjectMenu.hs Registrations.hs \
    GetAttributesType.hs GlobalMenus.hs \
    SpecialNodeActions.hs EntityNames.hs LinkManager.hs \
-   MergeTypes.hs Merging.hs MergeReAssign.hs \
+   MergeTypes.hs Merging.hs MergeReAssign.hs MergePrune.hs \
+   VersionGraphClient.hs \
 
 SUBDIRS    = test
 

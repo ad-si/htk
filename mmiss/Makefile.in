@@ -7,6 +7,7 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSDTD.hs MMiSSObjectTypeType.hs MMiSSObjectType.hs \
    MMiSSPreamble.hs MMiSSFormat.hs MMiSSLaTeXAssumptions.hs \
    MMiSSEditXml.hs MMiSSEditFormatConverter.hs MMiSSEmacsEdit.hs \
+   MMiSSObjectMerging.hs \
    MMiSSObjectTypeInstance.hs MMiSSObjectExtract.hs \
    MMiSSExportLaTeX.hs MMiSSPrint.hs MMiSSImportLaTeX.hs \
    MMiSSEditAttributes.hs \

@@ -29,6 +29,10 @@ module BasicObjects(
 
    HasAttributes(..), -- a class for things containing a set of attributes
 
+   getMergeLinksSimpleFile, -- :: SimpleFile -> ObjectLinks ()
+   attemptMergeSimpleFile, 
+      -- :: MergeTypes.LinkReAssigner -> View -> SimpleFile -> SimpleFile
+
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -44,6 +48,7 @@ import VersionDB
 import CodedValue
 import CodedValueStore
 import Link
+import MergeTypes
 import ViewType
 
 data SimpleFile = SimpleFile {
@@ -226,4 +231,25 @@ class HasCodedValue object => HasAttributes object where
          object <- readObject view versioned
          return (readPrimAttributes object)
  
+-- ------------------------------------------------------------------------
+-- SimpleFile's and merging.
+-- It is not possible to merge two distinct SimpleFile's.  Furthermore the
+-- data inside a SimpleFile is all inside a containing File.  Thus we 
+-- implement just two trivial functions.
+--
+-- The location inside a SimpleFile is not touched by the merging procedure,
+-- and never changed.
+--
+-- Thus at the moment these functions are basically just stubs, which may
+-- be made less trivial should SimpleFile's be made more useful.
+-- ------------------------------------------------------------------------
+
+getMergeLinksSimpleFile :: SimpleFile -> ObjectLinks ()
+getMergeLinksSimpleFile _ = ObjectLinks []
+
+---
+-- Change the link inside a SimpleFile
+attemptMergeSimpleFile :: MergeTypes.LinkReAssigner -> View -> SimpleFile 
+   -> SimpleFile
+attemptMergeSimpleFile linkReAssigner view simpleFile = simpleFile
 

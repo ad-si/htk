@@ -156,6 +156,21 @@ module LinkManager(
       -- :: LinkSource value -> (value -> ArcType) ->
       -- SimpleSource [(WrappedLink,ArcType)]
       -- Construct a source containing the out-arcs from a LinkSource.
+
+
+   -- The following functions are used during merging.
+
+   getLinkedObjectMergeLinks,
+      -- :: (HasCodedValue object,HasLinkedObject object) 
+      -- => MergeLinks object
+      -- Suitable MergeLinks for a LinkedObject.
+
+   attemptLinkedObjectMerge,
+      -- :: ObjectType objectType object
+      -- => MergeTypes.LinkReAssigner -> View -> 
+      -- Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
+      -- Merge several versions of a LinkedObject.  To be used in conjunction
+      -- with getLinkedObjectMergeLinks.
    ) where
 
 import Maybe
@@ -702,7 +717,8 @@ freezeLinkedObject linkedObject =
 ---
 -- Create a new linked object, given the FrozenLinkedObject.
 -- This can occur in two cases (1) when the linkedObject is absolutely new;
--- (2) when it is being decodeIO'd from the repository.  The Bool indicates
+-- (2) when it is being decodeIO'd from the repository or created by a merge. 
+-- The Bool indicates
 -- which of these applies; if True it means the linkedObject is absolutely new.
 -- In that case, we also attempt to insert it into the parent folder (if
 -- any).  
@@ -1171,7 +1187,43 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                done
             else
                break "Merge failure; inconsistent insertions??"
-         
-         -- (5) Construct contents.
-         error "TBD"
+
+         let         
+            -- (5) Construct contents.  Since we specified that these links
+            -- had to be consistent during getLinkedObjectMergeLinks, we don't
+            -- need to do that now.
+            addContents :: View -> [(EntityName,LinkedObjectPtr)]
+               -> FiniteMap EntityName LinkedObjectPtr
+               -> FiniteMap EntityName LinkedObjectPtr
+            -- add the contents for one FrozenLinkedObject to an existing
+            -- map.
+            addContents view theseContents map0 =
+               foldl
+                  (\ map0 (entityName,linkedObjectPtr) ->
+                     addToFM map0 entityName 
+                        (mapLinkedObjectPtr view linkedObjectPtr)
+                     )
+                  map0
+                  theseContents
+
+            finalMap =
+               foldl
+                  (\ map0 (view,frozenLinkedObject) 
+                     -> addContents view (contents' frozenLinkedObject) map0
+                     )
+                  emptyFM
+                  frozenLinkedObjects
+
+            newContents' = fmToList finalMap
+
+            newFrozenLinkedObject = FrozenLinkedObject {
+               wrappedLink' = newWrappedLink',
+               insertion' = newInsertion',
+               contents' = newContents'
+               }
+
+         linkedObjectWE 
+            <- createLinkedObject newView False newFrozenLinkedObject
+
+         coerceWithErrorOrBreakIO break linkedObjectWE
       )
