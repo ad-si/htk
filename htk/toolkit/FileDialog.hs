@@ -13,9 +13,15 @@
 -- HTk's <strong>file dialog box</strong>.
 module FileDialog (
 
-  fileDialog
+  fileDialog,
+  newFileDialog,
 
 ) where
+
+import Directory (doesFileExist)
+
+import Debug(debug)
+import FileNames
 
 import HTk
 import Directory
@@ -27,7 +33,7 @@ import System
 import Maybe
 import TkVariables
 import ModalDialog
-import DialogWin (createWarningWin)
+import DialogWin (createWarningWin,createConfirmWin)
 
 debugMsg :: String-> IO () 
 debugMsg str = done -- putStr (">>> " ++ str ++ "\n") 
@@ -38,13 +44,13 @@ ioErrorWindow :: IOError-> IO ()
 ioErrorWindow ioe = 
   createWarningWin ("Error while reading directory:\n"++
                     ioeGetErrorString ioe++"\n"++
-	            case ioeGetFileName ioe of 
-		         Just fn -> "with file "++fn++"\n"
-			 Nothing -> "") 
-		   []
+                    case ioeGetFileName ioe of 
+                         Just fn -> "with file "++fn++"\n"
+                         Nothing -> "") 
+                   []
 
 tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either IOError 
-		                                        ([FilePath], [FilePath]))
+                                                        ([FilePath], [FilePath]))
 tryGetFilesAndFolders path showhidden =
   do
     debugMsg ("getting directory contents of " ++ path)
@@ -53,8 +59,8 @@ tryGetFilesAndFolders path showhidden =
        Left exn -> do debugMsg "... error!"
                       return (Left exn)
        Right dcontents -> do debugMsg "...ok\n"
-		             c<- sort dcontents [] [] path
-			     return (Right c)
+                             c<- sort dcontents [] [] path
+                             return (Right c)
   where sort :: [FilePath] -> [FilePath] -> [FilePath] -> FilePath ->
                 IO ([FilePath], [FilePath])
         sort (f : fs) files folders abs =
@@ -74,7 +80,7 @@ tryGetFilesAndFolders path showhidden =
                    else sort fs (f : files) folders abs)
         sort _ files folders _ =
           return (List.sort files, 
-		  if path == "/" then List.sort folders
+                  if path == "/" then List.sort folders
                                  else ".." : (List.sort folders))
         hidden :: FilePath -> Bool
         hidden f = head f == '.'
@@ -85,7 +91,8 @@ getFilesAndFolders path showhidden =
      case dc of
        Left ioe-> do ioErrorWindow ioe
                      return ([], [".."])
-       Right cont-> return cont		 
+       Right cont-> return cont          
+
 
 dropLast :: FilePath -> FilePath
 dropLast [] = []
@@ -94,6 +101,10 @@ dropLast path = dropLast' (tail (reverse path))
         dropLast' (c : cs) =
           if c == '/' then reverse (c : cs) else dropLast' cs
         dropLast' _ = []
+
+-- dropLast path = case FileNames.splitName path of
+--    Just (dirName,_) -> dirName
+--    Nothing -> path
 
 updPathMenu :: MenuButton -> Ref (Maybe Menu) ->
                FilePath -> Ref [FilePath] -> Ref [FilePath] ->
@@ -150,8 +161,8 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
   in  do debugMsg "getting files and folders"         
          st <- tryGetFilesAndFolders path' showhidden
          case st of 
-	   Right (files, folders) ->
-	     do setRef pathref path
+           Right (files, folders) ->
+             do setRef pathref path
                 debugMsg "got files and folders"
                 setRef filesref files
                 setRef foldersref folders
@@ -160,9 +171,9 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
                 setTkVariable file_var ""
                 return True
            Left e-> if isPermissionError e 
-	            then return False 
-		    else do ioErrorWindow e
-		            return False
+                    then return False 
+                    else do ioErrorWindow e
+                            return False
 
 up ::  Ref [FilePath] -> Ref [FilePath] -> Ref FilePath ->
        ListBox FilePath -> ListBox FilePath -> TkVariable String ->
@@ -187,9 +198,14 @@ selectedFolder i foldersref filesref pathref folderslb fileslb file_var
   do
     folders <- getRef foldersref
     path <- getRef pathref
-    nupath <- return (if (folders !! i) == ".." then
-                        dropLast path
-                      else path ++ (folders !! i))
+    let
+       trimmedPath = trimDir path
+    
+       nupath = if (folders !! i) == ".." 
+          then
+             dropLast trimmedPath
+          else 
+             combineNames trimmedPath (folders !! i)
     changeToFolder nupath foldersref filesref pathref folderslb fileslb
       file_var showhidden
 
@@ -311,15 +327,37 @@ confirmDeleteFile par fp childwindow ret =
 
        modalDialog main True listenDialog)
 
+
 ---
--- Opens a file dialog box.
+-- Opens a file dialog box for a file which is to be created.
+-- @param title   - the window title of the file dialog box.
+-- @param fp      - the filepath to browse.
+-- @return result - An event (returning the selected FilePath if
+--                  available) that is invoked when the file dialog is
+--                  finished.
+newFileDialog :: String -> FilePath -> IO (Event (Maybe FilePath))
+newFileDialog = fileDialog' True
+
+---
+-- Opens a file dialog box for a file which should already exist.
 -- @param title   - the window title of the file dialog box.
 -- @param fp      - the filepath to browse.
 -- @return result - An event (returning the selected FilePath if
 --                  available) that is invoked when the file dialog is
 --                  finished.
 fileDialog :: String -> FilePath -> IO (Event (Maybe FilePath))
-fileDialog title fp =
+fileDialog = fileDialog' False
+
+---
+-- Opens a file dialog box.
+-- @param isNew   - True if the file is new, False if it should already exist.
+-- @param title   - the window title of the file dialog box.
+-- @param fp      - the filepath to browse.
+-- @return result - An event (returning the selected FilePath if
+--                  available) that is invoked when the file dialog is
+--                  finished.
+fileDialog' :: Bool -> String -> FilePath -> IO (Event (Maybe FilePath))
+fileDialog' isNew title fp =
   do
     let path = if last fp == '/' then fp else fp ++ "/"
 
@@ -427,6 +465,101 @@ fileDialog title fp =
     let cleanUp :: IO ()
         cleanUp = flpress_ub >> fbpress_ub >> main_destr_ub
 
+        -- What to do when the user presses "OK" or "Return".   Returns True
+        -- if we have successfully selected a file; False if we change
+        -- directory or the user cancels.
+        doFile :: Event ()
+        doFile =
+           always (
+              do
+                 quit <- doFileInner
+                 if quit 
+                    then
+                       do
+                          cleanUp
+                          destroy main
+                    else
+                       sync listenDialog
+              )
+
+        doFileInner :: IO Bool
+        doFileInner =
+           do 
+              file_nm <- readTkVariable file_var
+              path <- getRef pathref
+              let
+                 trimmedPath = trimDir path 
+                    -- probably completely unnecessary, but I can't be
+                    -- bothered to decrypt Andre's logic here. 
+                 fullnm= case file_nm of 
+                   '/':_ -> file_nm
+                   _ -> combineNames trimmedPath file_nm
+
+              est <- try (getFileStatus fullnm)
+
+              let
+                 sendFile = syncNoWait (send msgQ (Just fullnm))
+
+                 reset = setTkVariable file_var ""
+
+              case est of
+                Right st | isDirectory st ->
+                  do 
+                     showhidden <- getRef showhiddenref
+                     status # text "Reading...     "
+                     success <- changeToFolder fullnm foldersref
+                                filesref pathref
+                                folderslb fileslb
+                                file_var showhidden
+                     (if success then
+                        do status # text "Reading...ready"
+                           nupath <- getRef pathref
+                           updPathMenu pathmenubutton
+                                 menuref nupath foldersref
+                                 filesref pathref folderslb
+                                 fileslb file_var status
+                                 showhiddenref
+                           done
+                        else
+                          do status # text "Permission denied!"
+                             done)
+                     return False
+                Right st ->
+                   if isNew 
+                      then
+                         do
+                            proceed <- createConfirmWin
+                               "File exists.  Overwrite?"
+                               []
+                            if proceed then sendFile else reset
+                            return proceed
+                      else
+                         do
+                            sendFile
+                            return True
+                Left e ->
+                   do
+                      fileExists <- doesFileExist fullnm
+                      if fileExists
+                         then
+                            do
+                               ioErrorWindow e
+                               reset
+                               return False
+                         else
+                            if isNew
+                               then
+                                  do
+                                     sendFile
+                                     return True
+                               else
+                                  do
+                                     createWarningWin
+                                        ("No such file or directory: "++ 
+                                           fullnm) []
+                                     reset
+                                     return False
+
         listenDialog :: Event ()
         listenDialog =
              (flpress >> always
@@ -468,13 +601,7 @@ fileDialog title fp =
               listenDialog)
           +> (clickedquit >> always (syncNoWait (send msgQ Nothing) >>
                                      cleanUp >> destroy main))
-          +> (clickedok >> always (do
-                                     fname <- readTkVariable file_var
-                                     path <- getRef pathref
-                                     syncNoWait
-                                       (send msgQ (Just (path ++ fname)))
-                                     cleanUp
-                                     destroy main))
+          +> (clickedok >> doFile)
           +> (clickednewfolderbutton >>
               always
                 (do
@@ -528,7 +655,7 @@ fileDialog title fp =
                               done)) >>
               listenDialog)
           +> (do clickedshowHiddenFiles 
-	         always (do s <- getRef showhiddenref
+                 always (do s <- getRef showhiddenref
                             setRef showhiddenref (not s)
                             status # text "Reading...     "
                             refresh foldersref filesref pathref folderslb
@@ -536,42 +663,10 @@ fileDialog title fp =
                             status # text "Reading...ready"
                             done)
                  listenDialog)
-          +> (do enterName 
-	         always (do file_nm <- readTkVariable file_var
-	                    path <- getRef pathref
- 	                    let fullnm= case file_nm of 
-                                 '/':_ -> file_nm
-		                 _ -> path ++"/"++ file_nm
-		            est<- try (getFileStatus fullnm)
-		            case est of
-			      Right st -> 
-			        if isDirectory st then 
-                                   do showhidden <- getRef showhiddenref
-                                      status # text "Reading...     "
-                                      success <- changeToFolder fullnm foldersref
-                                                 filesref pathref
-                                                 folderslb fileslb
-                                                 file_var showhidden
-                                      (if success then
-                                         do status # text "Reading...ready"
-                                            nupath <- getRef pathref
-                                            updPathMenu pathmenubutton
-                                                  menuref nupath foldersref
-                                                  filesref pathref folderslb
-                                                  fileslb file_var status
-                                                  showhiddenref
-                                            done
-                                       else
-                                         do status # text "Permission denied!"
-                                            done)
-			        else syncNoWait (send msgQ (Just fullnm))
-			      Left e -> do if isDoesNotExistError e then
-			                      createWarningWin
-				                 ("No such file or directory: "++ 
-					          fullnm) []
-				              else ioErrorWindow e
-					   setTkVariable file_var "")
-                 listenDialog)
+          +> (do 
+                 enterName 
+                 doFile
+              )
           +> (clickeddeletefilebutton >>
               always
                 (do
