@@ -5,7 +5,7 @@ SRCSLHS       = Mainsimple1.lhs \
                 Mainsimple2.lhs \
 		Mainlist.lhs \
 		Mainmenu.lhs \
-                MainhsMines.lhs
+                MainHsMines.lhs
 
 XHCDIRS = $(HTKDIRS)
 
