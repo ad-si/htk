@@ -49,6 +49,7 @@ module SimpleDB(
    commit,
       --  :: Repository 
       --  -> Either UserInfo VersionInfo
+      --  -> [(Location,Maybe ObjectVersion)]
       --  -> [(Location,CommitChange)] -> IO ()
       -- Commit a complete new version to the repository.
       --
@@ -56,6 +57,10 @@ module SimpleDB(
       --    contains the additional information for this commit
       --    (the ObjectVersion for the new version, parent versions,
       --       version title, and so on.)
+      -- [(Location,Maybe ObjectVersion)]
+      --    redirects.  I can't be bothered to explain them now, see
+      --    definition of SimpleDBServer.Commit.  For normal (non-session
+      --    management) commits, this list will be empty.
       -- [(Location,Either ObjectSource (Location,ObjectVersion))] 
       --    is the list of updates.  Later updates take priority over
       --    earlier ones. 
@@ -239,8 +244,9 @@ type CommitChange = Either ObjectSource (Location,ObjectVersion)
 
 commit :: Repository 
    -> Either UserInfo VersionInfo
+   -> [(Location,Maybe ObjectVersion)]
    -> [(Location,CommitChange)] -> IO ()
-commit repository versionExtra newStuff0 =
+commit repository versionExtra redirects newStuff0 =
    do
       (newStuff1 
             :: [(Location,Either ICStringLen (Location,ObjectVersion))]) <-
@@ -255,7 +261,8 @@ commit repository versionExtra newStuff0 =
                )
             newStuff0
 
-      response <- queryRepository repository (Commit versionExtra newStuff1)
+      response <- queryRepository repository (
+         Commit versionExtra redirects newStuff1)
 
       case response of
          IsOK -> done

@@ -248,7 +248,7 @@ commitView1 preserveVersion newVersion1
                  else
                     Left user1
 
-         commit repository versionArg objectsData2
+         commit repository versionArg [] objectsData2
 
          let
             user2 = user1 {parents = [newVersion1]}

@@ -5,16 +5,16 @@
    (2) For each element (n,ms) in L,
        the list ms contains precisely those vertices m of G1 such that
        (a) m is in A;
-       (b) there is a path from m to n in G1 which has no common vertices with A except
-           at its endpoints.
+       (b) there is a path from m to n in G1 which has no common vertices with
+           A except at its endpoints.
    (3) Where the list contains two elements (n1,ms1) and (n2,ms2), such that
        ms2 contains n1, then (n1,ms1) comes before (n2,ms2) in the list.
 
    We also 
 
-   The purpose of all this is to provide a list of the nodes to be constructed in G2
-   to extend it by V1 while preserving as much as possible of the path structure in V1.
-   This is used for adding version graph information. -}
+   The purpose of all this is to provide a list of the nodes to be constructed
+   in G2 to extend it by V1 while preserving as much as possible of the path 
+   structure in V1.  This is used for adding version graph information. -}
 module FindCommonParents(
    findCommonParents,
    GraphBack(..),
@@ -41,24 +41,26 @@ data GraphBack node nodeKey = GraphBack {
    getKey :: node -> IO (Maybe nodeKey),
       -- If the node does not exist in the graph return Nothing.  
       -- If it does return Just key where key is a "nodeKey", an ordered key
-      -- uniquely distinguishing the node (and used to detect common elements in
-      -- the two graphs)
+      -- uniquely distinguishing the node (and used to detect common elements 
+      -- in the two graphs)
    getParents :: node -> IO (Maybe [node])
-      -- If node does not exist return Nothing, otherwise return immediate parents of node.
+      -- If node does not exist return Nothing, otherwise return immediate 
+      -- parents of node.
    }
 
 -- ----------------------------------------------------------------------------
 -- The function
 -- ----------------------------------------------------------------------------
 
-findCommonParents :: Ord nodeKey 
+findCommonParents :: (Show node1,Show node2,Show nodeKey,Ord nodeKey) 
    => GraphBack node1 nodeKey -> GraphBack node2 nodeKey -> [node1] 
    -> IO [(node1,[Either node1 node2])]
    -- G1, G2 and V1.
-   -- Note that the nodes are kept distinct, even by type; they can only be compared
-   --    by nodeKey.  In the returned list Left node1 is an element of v1,
-   --    and Right node2 an element of G2.
-findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey) 
+   -- Note that the nodes are kept distinct, even by type; they can only be 
+   --    compared by nodeKey.  In the returned list Left node1 is an element 
+   --    of v1, and Right node2 an element of G2.
+findCommonParents 
+      (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey) 
       (v1 :: [node1]) =
    do
       let
@@ -80,6 +82,7 @@ findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey
             v1
 
       (g2Nodes :: [node2]) <- getAllNodes g2
+
       (g2Dict :: FiniteMap nodeKey node2) <-
          foldM
             (\ map0 g2Node ->
@@ -92,8 +95,8 @@ findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey
            g2Nodes
 
       let
-         -- doNode gets the list for the given node, or Nothing if it is already in
-         -- G2.
+         -- doNode gets the list for the given node, or Nothing if it is 
+         -- already in G2.
          doNode :: node1 -> IO (Maybe [Either node1 node2])
          doNode node =
             do
@@ -130,7 +133,8 @@ findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey
                            do
                               let
                                  visited1 = addToSet visited0 nodeKey
-                              case (lookupFM g2Dict nodeKey,lookupFM v1Dict nodeKey) of
+                              case (lookupFM g2Dict nodeKey,
+                                    lookupFM v1Dict nodeKey) of
                                  (Just node2,_) -> -- found a node in g2
                                     return (visited1,Right node2 : acc0)
                                  (Nothing,Just node1) -> -- found a node in v1
@@ -149,6 +153,7 @@ findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey
                   return (fmap (\ nodes -> (v1Node,nodes)) nodesOpt)
                )
             v1
+
       let
          nodes1 :: [(node1,[Either node1 node2])]
          nodes1 = catMaybes nodes1Opt
@@ -163,9 +168,10 @@ findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey
          emptyFM
          nodes1
 
-      -- (4) transform nodes1 list into an list of relations [(nodeKey,nodeKey)],
-      -- ready to feed to TopSort.topSort.  Hence the key that needs to come first in the 
-      -- final -- the ancestor -- needs to go first in the pair.
+      -- (4) transform nodes1 list into an list of relations 
+      -- [(nodeKey,nodeKey)], ready to feed to TopSort.topSort.  Hence the key
+      -- that needs to come first in the result -- the ancestor -- 
+      -- needs to go first in the pair.
       (relations1 :: [(nodeKey,[nodeKey])]) <-
          mapM
             (\ (node,nodes) ->
@@ -196,9 +202,12 @@ findCommonParents (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey
                 relations1
                 )
 
+         nodeKeys :: [nodeKey]
+         nodeKeys = map (\ (thisNodeKey,_) -> thisNodeKey) relations1
+
          -- (5) do a topological sort.
          nodeKeysInOrder :: [nodeKey]
-         nodeKeysInOrder = topSort relations
+         nodeKeysInOrder = topSort1 relations nodeKeys
 
          -- (6) Put the output together
          nodesOut :: [(node1,[Either node1 node2])]

@@ -23,7 +23,7 @@ module BinaryIO(
    -- for general datatypes.
    HasWrapper(..),
    Wrap(..),UnWrap(..),
-   wrap0,wrap1,wrap2,wrap3,
+   wrap0,wrap1,wrap2,wrap3,wrap4,
       -- used for constructing HasWrapper instances.
 
    HasConverter(..), -- class for converting to and from binary representations
@@ -693,6 +693,10 @@ wrap2 char con = Wrap char (\ (val1,val2) -> con val1 val2)
 wrap3 :: (HasBinaryIO val1,HasBinaryIO val2,HasBinaryIO val3) => Char 
    -> (val1 -> val2 -> val3 -> wrapper) -> Wrap wrapper
 wrap3 char con = Wrap char (\ (val1,val2,val3) -> con val1 val2 val3)
+
+wrap4 :: (HasBinaryIO val1,HasBinaryIO val2,HasBinaryIO val3,HasBinaryIO val4)
+   => Char -> (val1 -> val2 -> val3 -> val4 -> wrapper) -> Wrap wrapper
+wrap4 char con = Wrap char (\ (val1,val2,val3,val4) -> con val1 val2 val3 val4)
 
 instance HasWrapper wrapper => HasBinaryIO wrapper where
    hPut handle wrapper = hPut' (unWrap wrapper)

@@ -103,6 +103,10 @@ data SimpleDBCommand =
              -- allocated by NewVersion, and the parent versions, which
              -- must already exist.  The first parent version we call the
              -- head parent version.
+         [(Location,Maybe ObjectVersion)]
+             -- Redirects.  This has the same format as the redirects'
+             -- field in ServerOp.  For normal commits (not part of
+             -- session management) it will be [].
          [(Location,Either ICStringLen (Location,ObjectVersion))]
              -- ^ The new stuff in this version, as compared with the head
              -- parent version, by Location.
@@ -149,10 +153,15 @@ data Diff =
    -- The "parent versions" are the versions in the second argument of
    --    GetDiffs.
    -- The "parent version" is the first element of this list (if any).
-      IsOld -- Location exists in parent version, and is unchanged.
-   |  IsChanged {changed :: Maybe (Location,ObjectVersion)}
-         -- Location exists in one of the parent versions, but has been
-         -- changed.
+      IsOld
+         -- version exists in the parent version with this location and
+         -- is unchanged.
+   |  IsChanged {
+         existsIn :: ObjectVersion,
+         changed :: Maybe (Location,ObjectVersion)
+         }
+         -- Location exists in one of the parent versions, namely existsIn, 
+         -- but has been changed.
    |  IsNew {changed :: Maybe (Location,ObjectVersion)}
          -- Location exists in none of the parent versions.
    -- If changed is Just (location,objectVersion) then
@@ -179,7 +188,7 @@ instance HasWrapper SimpleDBCommand where
       wrap0 'L' ListVersions,
       wrap2 'R' Retrieve,
       wrap2 'c' LastChange,
-      wrap2 'C' Commit,
+      wrap3 'C' Commit,
       wrap1 'm' ModifyUserInfo,
       wrap2 'd' GetDiffs,
       wrap1 'M' MultiCommand
@@ -190,7 +199,7 @@ instance HasWrapper SimpleDBCommand where
       ListVersions -> UnWrap 'L' ()
       Retrieve l v -> UnWrap 'R' (l,v)
       LastChange l v -> UnWrap 'c' (l,v)
-      Commit v n -> UnWrap 'C' (v,n)
+      Commit v r n -> UnWrap 'C' (v,r,n)
       ModifyUserInfo v -> UnWrap 'm' v
       GetDiffs v vs -> UnWrap 'd' (v,vs)
       MultiCommand l -> UnWrap 'M' l
@@ -221,13 +230,13 @@ instance HasWrapper SimpleDBResponse where
 instance HasWrapper Diff where
    wraps = [
       wrap0 'O' IsOld,
-      wrap1 'C' IsChanged,
+      wrap2 'C' IsChanged,
       wrap1 'N' IsNew
       ]
 
    unWrap = (\ wrapper -> case wrapper of
       IsOld -> UnWrap 'O' ()
-      IsChanged c -> UnWrap 'C' c
+      IsChanged e c -> UnWrap 'C' (e,c)
       IsNew c -> UnWrap 'N' c
       )
 
@@ -257,7 +266,7 @@ instance HasTyRep ObjectVersion where
 
 data SimpleDB = SimpleDB {
    -- objectLocations is a backup file we write all details to.
-   objectLocations :: LogFile FrozenVersionData,
+   objectLocations :: LogFile ServerOp,
    -- details for each version in the db.
    versionDictionary :: IORef (FiniteMap ObjectVersion VersionData),
    -- Next location to allocate
@@ -270,10 +279,22 @@ data SimpleDB = SimpleDB {
    versionState :: VersionState
    }
 
+-- PrimitiveLocation's permit redirection of Locations.  Thus "Location"
+-- is the user-visible Location, the PrimitiveLocation is the "real" one
+-- as indexed by objectDictionary.
+--
+-- The purpose of this system is that the "Location" will remain constant,
+-- even when versions are exported from one repository to another.  However
+-- the repository is free to reassign PrimitiveLocation's behind the
+-- scenes. 
+newtype PrimitiveLocation = PrimitiveLocation Int deriving (Eq,Ord,HasBinaryIO)
+
+
+
 data VersionData = VersionData {
    parent :: Maybe ObjectVersion,
    thisVersion :: ObjectVersion,
-   objectDictionary :: FiniteMap Location BDBKey
+   objectDictionary :: FiniteMap PrimitiveLocation BDBKey,
       -- The dictionary contains every location in the ObjectDictionary,
       -- even those which are identical to those in the parent.  However
       -- we construct the objectDictionary starting with the dictionary
@@ -281,15 +302,40 @@ data VersionData = VersionData {
       -- because of persistence, the actual extra memory occupied on the
       -- server should be small, if there are only a few changes from the
       -- parent.      
+   redirects :: FiniteMap Location PrimitiveLocation
+      -- This maps Location to the corresponding PrimitiveLocation,
+      -- when the integers inside are different.
+      -- As with objectDictionary, we use persistence.
    }
 
--- FrozenVersionData corresponds to the data received by a Commit command,
--- or else to a single entry in the backup file.
-data FrozenVersionData = FrozenVersionData {
-   parent' :: Maybe ObjectVersion,
-   thisVersion' :: ObjectVersion,
-   objectChanges :: [(Location,Either BDBKey (Location,ObjectVersion))]
-   }
+-- ServerOp corresponds to a server operation which changes the state of the
+-- server.  ServerOp's are written to the object locs file, so that they
+-- can be read when the server restarts.
+data ServerOp = 
+   -- a commit operation
+   FrozenVersion { 
+      parent' :: Maybe ObjectVersion,
+      thisVersion' :: ObjectVersion,
+      objectChanges :: [(Location,Either BDBKey (Location,ObjectVersion))],
+         -- a BDBKey means completely new data.
+          -- (Location,ObjectVersion) means it so happens this is exactly the
+          --    contents of this object are the same as those in 
+          --    (Location,ObjectVersion)
+      redirects' :: [(Location,Maybe ObjectVersion)]
+          -- this gives redirects.  Note that this list does not have to 
+          -- contain locations which are the same as the corresponding 
+          -- primitive location, or where a redirect for this location already
+          -- exists in the parent version.  
+          --    The interpretation is as follows.  For (Just objectVersion)
+          --    that means we copy whatever redirect exists, if any, for
+          --    the same location in objectVersion.
+          --    
+          --    For Nothing, that means that this Location does not have an
+          --    assigned PrimitiveLocation.  One should be created anew,
+          --    and this Location mapped to it.
+      }
+   |  AllocVersion -- allocate a new version
+   |  AllocLocation -- allocate a new Location.
 
 -- -------------------------------------------------------------------
 -- The main query function
@@ -299,8 +345,6 @@ querySimpleDB :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB user
       (simpleDB @ (SimpleDB {
          objectLocations = objectLocations,
-         nextLocation = nextLocation,
-         nextVersion = nextVersion,
          versionDictionary = versionDictionary,
          versionState = versionState,
          bdb = bdb
@@ -309,14 +353,15 @@ querySimpleDB user
    case command of
       NewLocation ->
          do
-            loc <- readIORef nextLocation
-            writeIORef nextLocation (loc + 1)
-            return (IsLocation (Location loc))
+            locOptWE <- applyServerOp simpleDB AllocLocation
+            case fromWithError locOptWE of
+               Right (Just loc) -> return (IsLocation (Location loc))
       NewVersion ->
          do
-            version <- readIORef nextVersion
-            writeIORef nextVersion (version + 1)
-            return (IsObjectVersion (ObjectVersion version))
+            versOptWE <- applyServerOp simpleDB AllocVersion
+            case fromWithError versOptWE of
+               Right (Just vers) 
+                  -> return (IsObjectVersion (ObjectVersion vers))
       LastChange location objectVersion ->
          do
             versionWE <- lastChange simpleDB location objectVersion
@@ -342,7 +387,7 @@ querySimpleDB user
                            ++ "\n Perhaps the server crashed half-way "
                            ++ "\n through a commit?"))
                         Just icsl -> return (IsData icsl)
-      Commit versionExtra newStuff0 ->
+      Commit versionExtra redirects newStuff0 ->
          do
             versionInfoWE <- mkVersionInfo user versionExtra
             case fromWithError versionInfoWE of
@@ -374,20 +419,20 @@ querySimpleDB user
                            )
                         newStuff0
 
-                     -- construct a FrozenVersionData
+                     -- construct a ServerOp
                      let
-                        frozenVersionData = FrozenVersionData {
+                        serverOp = FrozenVersion {
                            parent' = parentVersionOpt,
                            thisVersion' = thisVersion,
+                           redirects' = redirects,
                            objectChanges = newStuff1
                            }
 
                       -- apply it
-                     unitWE 
-                        <- applyFrozenVersionData simpleDB frozenVersionData
+                     resWE <- applyServerOp simpleDB serverOp
                      
-                     case fromWithError unitWE of
-                        Right () -> 
+                     case fromWithError resWE of
+                        Right Nothing -> 
                            do
                               endTransaction txn
 
@@ -445,8 +490,15 @@ retrieveKeyOpt simpleDB location objectVersion =
          Nothing -> 
             hasError "Retrieve failed; version does not exist!"
          Just versionData ->
-            hasValue (lookupFM (objectDictionary versionData) location)
+            hasValue (retrieveKey1 versionData location)
          )
+
+retrieveKey1 :: VersionData -> Location -> Maybe BDBKey
+retrieveKey1 versionData location =
+   let
+      primitiveLocation = retrievePrimitiveLocation versionData location
+   in
+      lookupFM (objectDictionary versionData) primitiveLocation
 
 retrieveKey :: SimpleDB -> Location -> ObjectVersion -> IO (WithError BDBKey)
 retrieveKey simpleDB location objectVersion =
@@ -501,153 +553,153 @@ lastChange simpleDB location objectVersion =
       mapWithErrorIO'
          (\ thisKey -> search thisKey objectVersion)
          thisKeyWE
-        
-      
 
 -- -------------------------------------------------------------------
--- Setting the next Location and ObjectVersion.
+-- ServerOp operations
 -- -------------------------------------------------------------------
 
-setNextThings :: SimpleDB -> IO ()
-setNextThings simpleDB =
-   do
-      objectVersions <- allObjectVersions simpleDB
-      let
-         (ObjectVersion ov) = maximum (maxVersion : objectVersions)
-      writeIORef (nextVersion simpleDB) (ov + 1)
+instance HasWrapper ServerOp where
+   wraps = [
+      wrap4 'C' FrozenVersion,
+      wrap0 'V' AllocVersion,
+      wrap0 'L' AllocLocation
+      ]
 
-      locations <- allLocations simpleDB
-      let
-         (Location l) = maximum (maxLocation : locations)
-      writeIORef (nextLocation simpleDB) (l + 1)
-
-
-allObjectVersions :: SimpleDB -> IO [ObjectVersion]
-allObjectVersions simpleDB =
-   do
-      versionMap <- readIORef (versionDictionary simpleDB)
-      return (keysFM versionMap)
-
-allLocations :: SimpleDB -> IO [Location]
-allLocations simpleDB =
-   do
-      versionMap <- readIORef (versionDictionary simpleDB)
-      let
-         versionDatas = eltsFM versionMap
-         locations = concat (
-            map
-               (\ versionData -> keysFM (objectDictionary versionData))
-               versionDatas
-            )
-      return locations
-
-
-
--- -------------------------------------------------------------------
--- FrozenVersionData operations
--- -------------------------------------------------------------------
-
-instance HasBinaryIO FrozenVersionData where
-   hPut = mapHPut (\ (
-      FrozenVersionData {
-         parent' = parent',thisVersion' = thisVersion',
-         objectChanges = objectChanges
-         }
-      ) -> 
-      (parent',thisVersion',objectChanges)
-      )
-   hGetIntWE = mapHGetIntWE (\ (
-      (parent',thisVersion',objectChanges)
-      ) ->
-      FrozenVersionData {
-         parent' = parent',thisVersion' = thisVersion',
-         objectChanges = objectChanges
-         }
+   unWrap = (\ wrapper -> case wrapper of
+      FrozenVersion p t o r -> UnWrap 'C' (p,t,o,r)
+      AllocVersion -> UnWrap 'V' ()
+      AllocLocation -> UnWrap 'L' ()
       )
 
--- Adding new FrozenVersionData to a SimpleDB, without updating the
--- nextLocation/nextVersion.  
-addFrozenVersionData :: SimpleDB -> FrozenVersionData -> IO (WithError ())
-addFrozenVersionData simpleDB frozenVersionData =
+-- Carry out a ServerOp, also writing it to the log file if successful.
+applyServerOp :: SimpleDB -> ServerOp -> IO (WithError (Maybe Int))
+applyServerOp simpleDB serverOp =
+   do
+      -- apply operation
+      resultWE <- doServerOp simpleDB serverOp
+      -- if successful write out
+      case fromWithError resultWE of
+         Left _ -> done
+         Right _ -> writeLog (objectLocations simpleDB) serverOp
+      return resultWE
+
+-- Carry out a ServerOp, without writing anything to the log file.
+-- Return () for a FrozenVersion and an integer for AllocVersion/AllocLocation.
+-- NB.  An unsuccessful operation MUST NOT change the server's state,
+-- as the log will not record it.  
+doServerOp :: SimpleDB -> ServerOp -> IO (WithError (Maybe Int))
+doServerOp simpleDB AllocVersion =
+   do
+      version <- getNextVersion simpleDB
+      return (hasValue (Just version))
+doServerOp simpleDB AllocLocation =
+   do
+      location <- getNextLocation simpleDB
+      return (hasValue (Just location))
+doServerOp simpleDB (
+     FrozenVersion {
+        parent' = parent,thisVersion' = thisVersion,
+        objectChanges = objectChanges,redirects' = redirects'
+        }) =
    addFallOutWE (\ break ->
       do
          let
             vDictRef = versionDictionary simpleDB
          vDict0 <- readIORef vDictRef
 
-         let
-            thisVersion = thisVersion' frozenVersionData
-            parent = parent' frozenVersionData
- 
          case lookupFM vDict0 thisVersion of
             Nothing -> done
             Just _ -> break "Version already exists on server"
 
          let
-            parentDictionary = case parent of
-               Nothing -> emptyFM
-               Just par -> case lookupFM vDict0 par of
-                  Just parentData -> objectDictionary parentData
-                  Nothing -> break "Parent version does not exist on server"
+            ((parentRedirects :: FiniteMap Location PrimitiveLocation),
+             (parentDictionary :: FiniteMap PrimitiveLocation BDBKey)) 
+               = case parent of
+                     Nothing -> (emptyFM,emptyFM)
+                     Just par -> case lookupFM vDict0 par of
+                        Just parentData -> 
+                           (redirects parentData,objectDictionary parentData)
+                        Nothing -> break 
+                           "Parent version does not exist on server"
          seq parentDictionary done
+         
+         oldVersion <- readIORef (nextVersion simpleDB)
+         let
+            break2 mess =
+               do
+                  writeIORef (nextVersion simpleDB) oldVersion
+                  break mess
 
+         -- compute redirects.
+         redirects <- foldM
+            (\ redirects0 (location,objectVersionOpt) ->
+                  case objectVersionOpt of
+                     Nothing ->
+                        do
+                           locNo <- getNextLocation simpleDB
+                           return (addToFM redirects0 location
+                              (PrimitiveLocation locNo))
+                     Just objectVersion ->
+                        case lookupFM vDict0 objectVersion of
+                           Nothing -> break2 "Non-existent version in redirect"
+                           Just versionData ->
+                              let
+                                 primLoc = retrievePrimitiveLocation 
+                                    versionData location
+                              in
+                                 return (addToFM redirects0 location
+                                       primLoc)
+               )
+            parentRedirects
+            redirects'
+
+         -- compute object dictionary
          objectDictionary <-
             foldM
                (\ map0 (location,change) ->
                   do
+                     let 
+                        primLocation 
+                           = retrievePrimitiveLocation1 redirects location
                      bdbKey <- case change of
                         Left bdbKey -> return bdbKey
                         Right (location,objectVersion) ->
                            do
                               bdbKeyWE 
                                  <- retrieveKey simpleDB location objectVersion
-                              bdbKey <- coerceWithErrorOrBreakIO break bdbKeyWE
+                              bdbKey <- case fromWithError bdbKeyWE of
+                                 Right bdbKey -> return bdbKey
+                                 Left mess -> break2 mess
                               return bdbKey
-                     return (addToFM map0 location bdbKey)
+                     return (addToFM map0 primLocation bdbKey)
                   )
                parentDictionary
-               (objectChanges frozenVersionData)
+               objectChanges
 
          let
             versionData = VersionData {
                parent = parent,
                thisVersion = thisVersion,
-               objectDictionary = objectDictionary
+               objectDictionary = objectDictionary,
+               redirects = redirects
                }
 
             vDict1 = addToFM vDict0 thisVersion versionData
 
          writeIORef vDictRef vDict1
+         return Nothing
       )
 
--- Reading FrozenVersionData from a file
-readFrozenVersionDatas :: Handle -> IO [FrozenVersionData]
-readFrozenVersionDatas handle =
-   do
-      pos1 <- hGetPosn handle
-      frozenVersionDataWEOpt <- catchEOF (hGetWE handle)
-      case frozenVersionDataWEOpt of
-         Nothing -> -- EOF
-            do
-               pos2 <- hGetPosn handle
-               unless (pos1 == pos2)
-                  (do 
-                     putStrLn 
-                        "Restarting server: incomplete commit discarded"
-                     hSetPosn pos1
-                  )
-               return [] -- this is how we normally end.
-         Just frozenVersionDataWE -> 
-            case fromWithError frozenVersionDataWE of
-               Left mess ->
-                  error (
-                     "Server could not be restarted due to error reading "
-                     ++ "directory file: " ++ mess)
-               Right frozenVersionData ->
-                  do
-                     frozenVersionDatas <- readFrozenVersionDatas handle
-                     return (frozenVersionData : frozenVersionDatas)
-         
+getNextVersion :: SimpleDB -> IO Int
+getNextVersion simpleDB = 
+   simpleModifyIORef (nextVersion simpleDB)
+      (\ version -> (version+1,version))
+
+getNextLocation :: SimpleDB -> IO Int
+getNextLocation simpleDB = 
+   simpleModifyIORef (nextLocation simpleDB)
+      (\ location -> (location+1,location))
+
 -- -------------------------------------------------------------------
 -- Creating a new SimpleDB
 -- -------------------------------------------------------------------
@@ -659,7 +711,7 @@ openSimpleDB versionState =
       bdb <- openBDB
 
       -- (2) open the object locations file.
-      (objectLocations,frozenVersionDatas) <- openLog "objectLocs"
+      (objectLocations,serverOp) <- openLog "objectLocs"
 
       -- (3) create an empty SimpleDB
       versionDictionary <- newIORef emptyFM
@@ -678,35 +730,14 @@ openSimpleDB versionState =
 
       -- (4) add them to the simpleDB
       mapM_
-         (\ frozenVersionData -> 
+         (\ serverOp -> 
             do
-               unitWE <- addFrozenVersionData simpleDB frozenVersionData
+               unitWE <- doServerOp simpleDB serverOp
                coerceWithErrorIO unitWE
             )
-         frozenVersionDatas
-
-      -- (5) compute the nextLocation and nextVersion
-      setNextThings simpleDB
+         serverOp
 
       return simpleDB
-
--- -------------------------------------------------------------------
--- Apply a particular FrozenVersionData obtained from a client, writing
--- it to a backup file.
--- -------------------------------------------------------------------
-
-applyFrozenVersionData :: SimpleDB -> FrozenVersionData -> IO (WithError ())
-applyFrozenVersionData simpleDB frozenVersionData =
-   do
-      -- (1) add to SimpleDB.
-      unitWE <- addFrozenVersionData simpleDB frozenVersionData
-      -- (2) write out
-      mapWithErrorIO
-         (\ () ->
-            writeLog (objectLocations simpleDB) frozenVersionData
-            )
-         unitWE
-
 
 -- -------------------------------------------------------------------
 -- Extract differences
@@ -727,7 +758,7 @@ getDiffs db version0 versions = addFallOutWE (\ break ->
          [] -> -- we just have to return IsNew for everything
             map 
                (\ location -> (location,IsNew {changed = Nothing}))   
-               (keysFM (objectDictionary vData0))
+               (getLocations vData0)
          (headVData :_) ->
             let
                -- Construct a map back from BDBKey -> (Location,ObjectVersion)
@@ -738,47 +769,93 @@ getDiffs db version0 versions = addFallOutWE (\ break ->
                      let
                         version = thisVersion vData
                      in
-                        foldFM
-                           (\ location bdbKey map0 
-                              -> addToFM map0 bdbKey (location,version)
+                        foldl
+                           (\ map0 location ->
+                              let
+                                 Just bdbKey = retrieveKey1 vData location
+                              in
+                                 addToFM map0 bdbKey (location,version)
                               )
                            map0
-                           (objectDictionary vData)
-                     ) 
+                           (getLocations vData) 
+                     )
                   emptyFM
                   vDatas
 
-               -- Construct the set of all Locations in parent versions.
-               locationSet :: Set Location
-               locationSet = foldl
-                  (\ set0 vData ->
-                     foldFM
-                        (\ location _ set0 -> addToSet set0 location)
-                        set0
-                        (objectDictionary vData)
+               -- Construct a map from locations to their containing parent
+               -- version 
+               locationMap :: FiniteMap Location ObjectVersion
+               locationMap = foldl
+                  (\ map0 vData ->
+                     let
+                        version = thisVersion vData
+                     in
+                        foldl
+                           (\ map0 location -> addToFM map0 location version)
+                           map0
+                           (getLocations vData)
                      )
-                  emptySet
+                  emptyFM
                   vDatas 
 
                -- Function constructing Diff for a particular item in the 
                -- new version's object dictionary
-               mkDiff :: (Location,BDBKey) -> Diff
-               mkDiff (location,key1) =
-                  case lookupFM (objectDictionary headVData) location of
+               mkDiff :: Location -> BDBKey -> Diff
+               mkDiff location key1 =
+                  case retrieveKey1 headVData location of
                      Just key2 | key1 == key2 
                         -> IsOld
                      _ -> 
                         let
                            changed = lookupFM bdbDict key1
                         in
-                           if elementOf location locationSet
-                              then
-                                 IsNew {changed = changed}
-                              else
-                                 IsChanged {changed = changed}
+                           case lookupFM locationMap location of
+                              Nothing -> IsNew {changed = changed}
+                              Just version ->
+                                 IsChanged {existsIn = version,changed = changed}
             in
                map
-                  (\ (lb @ (location,bdbKey)) -> (location,mkDiff lb))
-                  (fmToList (objectDictionary vData0))
+                  (\ location ->
+                     let
+                        Just key = retrieveKey1 vData0 location
+                     in
+                        (location,mkDiff location key)
+                     )
+                  (getLocations vData0)
          )
    )
+      
+-- -------------------------------------------------------------------
+-- Primitive location operations.
+-- -------------------------------------------------------------------
+
+
+getLocations :: VersionData -> [Location]
+getLocations versionData =
+   let
+      redirectLocs = keysFM (redirects versionData)
+      redirectPrimLocs = eltsFM (redirects versionData)
+
+      objectDictMinusRedirects =
+         foldl
+            (\ map0 primLoc -> delFromFM map0 primLoc)
+            (objectDictionary versionData)
+            redirectPrimLocs
+
+      otherPrimLocs = keysFM objectDictMinusRedirects
+      otherLocs = map
+         (\ (PrimitiveLocation locNo) -> Location locNo)
+         otherPrimLocs
+   in
+      redirectLocs ++ otherLocs
+      
+retrievePrimitiveLocation :: VersionData -> Location -> PrimitiveLocation
+retrievePrimitiveLocation versionData =
+   retrievePrimitiveLocation1 (redirects versionData)
+
+retrievePrimitiveLocation1 :: FiniteMap Location PrimitiveLocation 
+    -> Location -> PrimitiveLocation
+retrievePrimitiveLocation1 map (location @ (Location locNo)) =
+   lookupWithDefaultFM map (PrimitiveLocation locNo) location
+
+

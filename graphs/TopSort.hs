@@ -1,5 +1,6 @@
 module TopSort(
-   topSort -- :: Ord a => [(a,a)] -> [a]
+   topSort, -- :: Ord a => [(a,a)] -> [a]
+   topSort1, -- :: Ord a => [(a,a)] -> [a] -> [a]
    ) where
 
 import Data.FiniteMap
@@ -19,16 +20,34 @@ data Ord a => TopSortState a = TopSortState {
    }
 
 topSort :: Ord a => [(a,a)] -> [a]
-topSort relations =
+topSort relations = topSort1 relations []
+
+topSort1 :: Ord a => [(a,a)] -> [a] -> [a]
+topSort1 relations nodes =
    let
-      initTopSortState = initialise relations
-      doWork topSortState =
-         case oneStep topSortState of
+      topSortState0 = initialise relations
+      topSortState1 = ensureNodes topSortState0 nodes
+
+      doWork topSortState0 =
+         case oneStep topSortState0 of
             Left result -> result
-            Right nextTopSortState -> doWork nextTopSortState
+            Right topSortState1 -> doWork topSortState1
    in
-      doWork initTopSortState
-   
+      doWork topSortState1
+
+ensureNodes :: Ord a => TopSortState a -> [a] -> TopSortState a
+ensureNodes = foldl ensureNode
+
+ensureNode :: Ord a => TopSortState a -> a -> TopSortState a
+ensureNode 
+   (state @ (
+      TopSortState {soFar = soFar,maximal = maximal,remaining = remaining})) 
+   node =
+
+   case lookupFM remaining node of
+      Nothing -> -- node not mentioned.  Add it to soFar
+         state {soFar = node : soFar}
+      Just _ -> state
 
 initialise :: Ord a => [(a,a)] -> TopSortState a
 initialise list =

@@ -4,6 +4,15 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+73) 14.05.03
+Workbench run remotely comes to a stop inbetween loading HTk images
+and asking for user/password.  Is it having problems connecting to the
+server?
+
+Unfortunately this has only happened once, and is unreproducible.
+Some debug statements in MainMMiSSWorkbench, if it happens often enough
+again it should be possible to narrow it down.
+
 72) 04.04.03
 Editing objects in a merged view is liable to lead to fetchLink errors.
 FIXED

@@ -40,13 +40,18 @@ main =
       withdrawWish
       seq loadHTkImages done 
 
+      debug "g1"
       server <- getDefaultHostPort
+
+      debug "g2"
 
       repository <- 
          let
             ?server = server
          in
             mmissInitialise
+
+      debug "g3"
 
       versionGraph <- newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)
