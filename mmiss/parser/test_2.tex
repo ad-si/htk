@@ -1,0 +1,100 @@
+\documentclass[landscape, slides, light]{mmiss2}
+
+\usepackage{latexsym}
+\usepackage{casl}
+
+\newcommand{\gram}[1]{{\texttt{#1}}}
+\newcommand{\power}{\hat{\ }}
+\newcommand{\annoimplies}{\%{\bf implies}\ }
+\newcommand{\annodef}{\%{\bf def}\ }
+\newcommand{\annocons}{\%{\bf conservatively}\ }
+\newcommand{\annoprec}{\%{\bf prec}\ }
+\newcommand{\annorassoc}{\%{\bf right\ assoc}\ }
+\newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
+\newcommand{\annobrackets}{{\bf brackets}\ }
+
+
+%\title[Algebraic Specification]{Algebraic Specification --\\[1ex]A
+%  Formalism to Specify\\[1ex] Sequential Programs}
+
+%\author[M.Roggenbach]{Markus Roggenbach} 
+%\date{April 2002}
+\begin{document}
+\begin{Package}[MMISS_Latex2]{pack1}{Algebraic
+Specification}{date=6.09.2002,versionId=4,previousVersion=3,authors={Markus
+Roggenbach, Michael Drouineaud},priorAuthors={Markus
+Roggenbach},versionComment=Test,xml:lang=de,levelOfDetailId=LectureNotes,interactionLevelId=Hyper}
+
+% \maketitle  
+
+\begin{Section}[MMISS_Latex2]{Chapter1}{Introduction}{date=6.09.2002,versionId=4,previousVersion=3,authors={Markus
+Roggenbach, Michael Drouineaud},priorAuthors={Markus Roggenbach}}\begin{Abstract}[]{a1}{Abstract}{}
+  Dies ist der Abstract.
+  \end{Abstract}\begin{Introduction}[]{intro1}{Introduction}{}
+    Dies ist die Einf\"uhrung.
+  \end{Introduction}
+
+  \begin{Section}{Section1.1}{Formal Methods in Software Design}{}
+  Text, direkt am Beginn der Section1.1 
+  ``Use of mathematics in software development''\\
+  \begin{TextFragment}
+  Dies ist ein TextFragment hinter der Einf\"uhrung mit
+  \Emphasis{hervorgehobenem} Text. Ausserdem steht hier noch
+  ein \LaTeX{}-Befehl drin.
+  \end{TextFragment}
+  \begin{Paragraph}[]{para1}{First Paragraph}{authors=Achim Mahnke,date=11.09.2002}
+    \begin{Definition}[]{def1}{First Definition}{}
+      Text innerhalb der Definition (muss zum textFragment werden).
+
+      \begin{Program}[C]{}{First program}{}
+        \begin{ProgramFragment}[]{}{}{}
+          Programtext in C.
+        \end{ProgramFragment}
+        Dieser Text erscheint hinter dem ProgramFragment.
+      \end{Program}
+    \end{Definition}
+  \end{Paragraph}
+\end{Section}
+\begin{Paragraph}[]{para2}{Second Paragraph}{authors=Achim Mahnke,date=11.09.2002}
+\begin{Table}[LaTeX]{Table1.1.1}{Waterfall Model}{}
+{\small
+\begin{center}
+\begin{tabular}{lcl}
+               & Requirement Elicitation & \\ 
+               & and Analysis            &\\
+& $\uparrow$ $\downarrow$ &\\
+Nat.~Lang.   & Non Formal Specification &\\
+& $\uparrow$ $\downarrow$ & Validation \\
+
+\Emphasis{Spec.~Lang.}  & Formal Specification & \\
+& $\uparrow$ $\downarrow$ & ``Inv.~\& Verify'' or\\
+
+Progr.~Lang. & Implementation & Transformation \\
+& $\uparrow$ $\downarrow$ &\\
+
+& Test & \\
+
+& $\uparrow$ $\downarrow$ &\\
+
+& Maintenance& \\
+
+\end{tabular}
+\end{center}
+}
+\end{Table}
+\begin{List}{List1.1.1}{itemize}{}
+\ListItem{}
+{\Emphasis{ writing} formal specifications}
+\ListItem{}
+{\Emphasis{ proving} properties about formal specifications}
+\ListItem{}
+{\Emphasis{ constructing} a program by mathematical \\
+            manipulation of a formal specification}
+\ListItem{}
+{\Emphasis{ verifying} a program by mathematical argument}
+\end{List}
+\end{Paragraph}
+\end{Section}
+\end{Package}
+\end{document}
+
