@@ -7,13 +7,12 @@ DTD2HS = DtdToHaskell
 .dtd.hs: 
 	$(DTD2HS) $< > $@
 
-
 LIBS = $(TOP)/htk/libhtk.a\
        $(TOP)/reactor/libreactor.a\
        $(TOP)/events/libevents.a\
        $(TOP)/util/libutil.a
 
-SRCS = src/XGit.hs
+SRCS = XGitTypes.hs PGIP.hs pgip.hs Prover.hs XGitState.hs XGitSimpleOps.hs XGitConArea.hs XGitMain.hs
 
 XHCDIRS = $(HTKDIRS)
 

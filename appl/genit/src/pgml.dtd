@@ -13,6 +13,8 @@
 <!ATTLIST pgml 
 	    version CDATA #IMPLIED>
 
+<!ENTITY % pgmlmsg "pgml">
+
 <!ELEMENT statedisplay (statepart)*>
 <!ATTLIST statedisplay 
 	   systemid CDATA #IMPLIED
