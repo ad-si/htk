@@ -9,6 +9,9 @@ module MMiSSPackageFolder(
    getMMiSSPackageFolder,  
       -- :: HasLinkedObject object => View -> object 
       -- -> IO (WithError MMiSSPackageFolder)
+   toMMiSSPackageFolder,  
+      -- :: HasLinkedObject object => View -> object 
+      -- -> SimpleSource (WithError MMiSSPackageFolder)
    getMMiSSPackageFolderAndName,
       -- :: HasLinkedObject object => View -> object 
       -- -> IO (WithError (MMiSSPackageFolder,EntityName))
@@ -148,6 +151,33 @@ toMMiSSPackageFolderLinkedObject
    :: MMiSSPackageFolder -> LinkManager.LinkedObject
 toMMiSSPackageFolderLinkedObject = linkedObject
 
+toMMiSSPackageFolder :: HasLinkedObject object => View -> object 
+   -> SimpleSource (WithError MMiSSPackageFolder)
+toMMiSSPackageFolder view object =
+   let
+      insertionOptSource :: SimpleSource (Maybe Insertion)
+      insertionOptSource = toInsertion (toLinkedObject object)
+   in
+      mapIO
+         (\ insertionOpt -> case insertionOpt of
+            Nothing -> return (hasError 
+               "MMiSS object somehow not contained anywhere")
+            Just insertion -> 
+               let
+                  (parentLinkedObject,_) = unmkInsertion insertion
+                  wrappedLink = toWrappedLink parentLinkedObject
+               in
+                  case unpackWrappedLink wrappedLink of
+                     Nothing ->
+                        return (hasError 
+                            "MMiSS object somehow not in an MMiSSPackageFolder"
+                            )
+                     Just packageFolderLink ->
+                        do
+                           packageFolder <- readLink view packageFolderLink
+                           return (hasValue packageFolder)
+            )
+         insertionOptSource
 
 getMMiSSPackageFolder :: HasLinkedObject object 
    => View -> object -> IO (WithError MMiSSPackageFolder)

@@ -57,7 +57,7 @@ import AttributesType
 
 import EntityNames
 
-import LaTeXParser hiding (Other)
+import LaTeXParser(classifyLabelledTag,fromIncludeStr,toIncludeStr)
 
 ---
 -- How to distinguish those elements in the DTD which can be displayed
@@ -293,7 +293,7 @@ delLabel (Elem name attributes0 content) =
 
 getFiles :: Element -> [String]
 getFiles (Elem _ attributes _)
-   = case getAttribute attributes "file" of
+   = case getAttribute attributes "files" of
       Nothing -> []
       Just files -> splitByChar '.' files
 

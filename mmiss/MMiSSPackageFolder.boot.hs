@@ -15,3 +15,10 @@ toMMiSSPreambleLink ::
 
 toMMiSSPackageFolderLinkedObject 
    :: MMiSSPackageFolder -> LinkManager.LinkedObject
+
+toMMiSSPackageFolder :: 
+   LinkManager.HasLinkedObject object 
+   => ViewType.View 
+   -> object 
+   -> Sources.SimpleSource (Computation.WithError MMiSSPackageFolder)
+

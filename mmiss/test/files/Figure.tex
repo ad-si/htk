@@ -1,0 +1,21 @@
+\documentclass[slides]{mmiss}
+\Properties[Title={About Pictures and Links},ShortTitle={About Pictures and Links},Authors={Arne Lindow},ShortAuthor={A. Lindow},Date=28.3.2003]
+\begin{document}
+  \begin{Package}[Label=f1,LevelOfDetail=ANY]
+    \begin{Section}[Title={Once uppon a time ...}]
+      \begin{Paragraph}[Label=slide1,Title={... there was a lonely picture ...}]
+        \begin{Figure}[Label=fig_figure1,Title={}]
+          \centerline{\includegraphics[scale=2]{cxl}}
+        \end{Figure}
+      \end{Paragraph}
+      \begin{Paragraph}[Title={... there was another lonely picture ...}]
+        \begin{Figure}[Caption={Welt},Label=fig_figure2,Title={Title of the figure}]
+          \centerline{\includegraphics[scale=2]{cxl}}
+        \end{Figure}
+      \end{Paragraph}
+      \begin{Paragraph}[Title={... but then there came a nice prince}]
+        Look at the \Link[LinkText={picture without caption}]{fig_figure1}.
+      \end{Paragraph}
+    \end{Section}
+  \end{Package}
+\end{document}

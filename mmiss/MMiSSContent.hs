@@ -7,6 +7,8 @@ module MMiSSContent(
    AccContents(..),
    LinkType(..),
    toTopElement,
+   getAllFiles,
+   getAllElementFiles,
    ) where
 
 import List
@@ -295,3 +297,26 @@ toTopElement content =
       (tag content)
       (attributes content)
       (contents (accContents content))
+
+-- ----------------------------------------------------------------------
+-- getAllFiles and getAllElementFiles
+-- ----------------------------------------------------------------------
+
+-- This gets all files inside a structured content, apart from those
+-- in included children.
+getAllFiles :: StructuredContent -> [String]
+getAllFiles content =
+   files content ++ getContentsFiles (contents (accContents content))
+
+-- This gets all files inside an Element.
+getAllElementFiles :: Element -> [String]
+getAllElementFiles (elem @ (Elem _ _ contents)) =
+   getFiles elem ++ getContentsFiles contents
+
+getContentsFiles :: [Content] -> [String]
+getContentsFiles contents = concat (map getContentFiles contents)
+
+getContentFiles :: Content -> [String]
+getContentFiles content = case content of
+   CElem elem -> getAllElementFiles elem
+   _ -> []   

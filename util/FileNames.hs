@@ -3,6 +3,10 @@
 module FileNames(
    fileSep, -- :: Char
             -- file separator
+   topDir,  -- :: String
+            -- what we call the top directory.
+   thisDir,  -- :: String
+            -- what we call the current directory.
    trimDir, -- :: String -> String
             -- trim file separator from end of name if there.
             -- (intended for directories)
@@ -50,6 +54,12 @@ $(
             fileSep = '/'
          |]
    )
+
+topDir :: String
+topDir = [fileSep]
+
+thisDir :: String
+thisDir = "."
 
 trimDir :: String -> String
 trimDir [] = []

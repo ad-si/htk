@@ -13,6 +13,7 @@ module MMiSSObjectType(
    referencedArcType,
    linkedArcType,
    preambleArcType,
+   fileArcType,
 
    -- Functions for extracting an object's current title.
    objectNameSource,
@@ -253,6 +254,11 @@ linkedArcType = fromString "L"
 -- Link to the preamble arc type.
 preambleArcType :: ArcType
 preambleArcType = fromString "B"
+
+---
+-- Link to the file arc type.
+fileArcType :: ArcType
+fileArcType = fromString "B"
 
 -- ---------------------------------------------------------------------
 -- We make ArcData WrappedLink ArcType 

@@ -73,6 +73,7 @@ module ExtendedPrelude (
    addGeneralFallOut,
    GeneralBreakFn(..),GeneralCatchFn(..),
    catchOurExceps, -- :: IO a -> IO (Either String a) 
+   errorOurExceps, -- :: IO a -> IO a
    ourExcepToMess, -- :: Exception -> Maybe String
 
    EqIO(..),OrdIO(..),
@@ -575,6 +576,14 @@ ourExcepToMess excep = case dynExceptions excep of
 catchOurExceps :: IO a -> IO (Either String a) 
 catchOurExceps act =
    tryJust ourExcepToMess act
+
+errorOurExceps :: IO a -> IO a
+errorOurExceps act =
+   do
+      eOrA <- catchOurExceps act
+      case eOrA of
+         Left mess -> error mess
+         Right a -> return a
 
 -- ------------------------------------------------------------------------
 -- Where equality and comparing requires IO.

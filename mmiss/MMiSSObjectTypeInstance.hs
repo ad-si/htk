@@ -50,12 +50,14 @@ import MMiSSPrint
 import MMiSSCheck
 import MMiSSActiveMath
 import MMiSSEditXml(toExportableXml)
+import MMiSSFileType
 -- import CASLFragments
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
 import {-# SOURCE #-} MMiSSImportLaTeX
 import {-# SOURCE #-} MMiSSExportLaTeX
+import {-# SOURCE #-} MMiSSPackageFolder
 
 -- -------------------------------------------------------------------------
 -- The instance
@@ -112,6 +114,10 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                Head "arrow" $$$
                emptyArcTypeParms
 
+            fileArcParms =
+               Thick $$$
+               emptyArcTypeParms
+
             toArcType :: LinkType -> ArcType
             toArcType IncludeLink = includedArcType
             toArcType LinkLink = linkedArcType
@@ -144,7 +150,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)
---                     Button "Add CASL variant" (\ link -> addCASLVariant view link)
                      ] ++
                      if isDebug then
                         [Button "Export Object as XML"
@@ -172,11 +177,74 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      objectLinks1 :: VariableList (WrappedLink,ArcType)
                      objectLinks1 = newVariableListFromList objectLinks0
 
-                     objectLinks2 :: VariableList (ArcData WrappedLink ArcType)
-                     objectLinks2 = fmap
+                     fileLinks0 :: SimpleSource [String]
+                     fileLinks0 =
+                        do
+                           cache <- toVariantObjectCache 
+                              (variantObject mmissObject)
+                           return (uniqOrd (getAllElementFiles 
+                              (cacheElement cache)))
+
+                     packageFolderLinkWE 
+                        :: SimpleSource (WithError MMiSSPackageFolder)
+                     packageFolderLinkWE 
+                        = toMMiSSPackageFolder view mmissObject
+
+                     fileLinks1 :: SimpleSource [(WrappedLink,ArcType)]
+                     fileLinks1 =
+                        mapIO
+                           (\ (fileLinks,packageFolderWE) ->
+                              case fromWithError packageFolderWE of
+                                 Left mess ->
+                                    do
+                                       putStrLn ("?? " ++ mess)
+                                       return []
+                                 Right packageFolder ->
+                                    do
+                                       let
+                                          packageLinkedObject =
+                                             toMMiSSPackageFolderLinkedObject
+                                                packageFolder
+
+                                       (found :: [[(Link MMiSSFile,String,
+                                             String)]])
+                                          <- mapM
+                                             (\ fileLink ->
+                                                findMMiSSFilesInRepository 
+                                                   packageLinkedObject 
+                                                   fileLink
+                                                )
+                                             fileLinks
+                                       let
+                                          allFound1 :: [Link MMiSSFile]
+                                          allFound1 = map 
+                                             (\ (link,_,_) -> link)
+                                             (concat found)
+
+                                          allFound2 :: [(WrappedLink,ArcType)]
+                                          allFound2 = map 
+                                             (\ link -> 
+                                                (WrappedLink link,fileArcType))
+                                             (uniqOrd allFound1)
+
+                                       return allFound2
+                              )
+                           (pairSimpleSources fileLinks0 packageFolderLinkWE)
+
+
+                     fileLinks2 :: VariableList (WrappedLink,ArcType)
+                     fileLinks2 = newVariableListFromList fileLinks1
+
+                     objectFileLinks1 :: VariableList (WrappedLink,ArcType)
+                     objectFileLinks1 = catVariableLists
+                        objectLinks1 fileLinks2
+
+                     objectFileLinks2 
+                        :: VariableList (ArcData WrappedLink ArcType)
+                     objectFileLinks2 = fmap
                         (\ (wrappedLink,arcType) ->
                            toArcData wrappedLink arcType False)
-                        objectLinks1
+                        objectFileLinks1
 
                   (extraLinks0 :: VariableSetSource
                      (ArcData WrappedLink ArcType))
@@ -186,7 +254,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      extraLinks1 :: VariableList (ArcData WrappedLink ArcType)
                      extraLinks1 = newVariableListFromSet extraLinks0
 
-                     allLinks = catVariableLists objectLinks2 extraLinks1
+                     allLinks = catVariableLists objectFileLinks2 extraLinks1
 
                   return allLinks
 
@@ -199,7 +267,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   arcTypes = [
                      (includedArcType,includedArcParms),
                      (referencedArcType,referencedArcParms),
-                     (linkedArcType,linkedArcParms)
+                     (linkedArcType,linkedArcParms),
+                     (fileArcType,fileArcParms)
                      ],
                   nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
                   getNodeType = (\ object -> theNodeType),
@@ -210,6 +279,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      )
                   })
             )
+
 
 -- ------------------------------------------------------------------
 -- The globalRegistry (currently unused).

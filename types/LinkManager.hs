@@ -50,6 +50,10 @@ module LinkManager(
    getCurrentInsertion,
       -- :: LinkedObject -> IO (Maybe Insertion)
 
+   toInsertion,
+      -- :: LinkedObject -> SimpleSource (Maybe Insertion)
+      -- Get the insertions for an object.
+
    deleteLinkedObject,
       -- :: View -> LinkedObject -> IO ()
       -- Delete an object including its record in the view and the parent
@@ -448,6 +452,10 @@ unmkInsertion :: Insertion -> (LinkedObject,EntityName)
 unmkInsertion (Insertion {parent = parent,name = name}) =
    (fromLinkedObjectPtr parent,name)
       
+
+-- Get the insertions for an object.
+toInsertion :: LinkedObject -> SimpleSource (Maybe Insertion)
+toInsertion = insertion
 
 getCurrentInsertion :: LinkedObject -> IO (Maybe Insertion)
 getCurrentInsertion linkedObject = readContents (insertion linkedObject)

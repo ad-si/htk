@@ -43,24 +43,6 @@ import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSWriteObject
 
 
-looksLikeXml :: String-> Bool
-looksLikeXml str =
-  case splitName str of
-   Just (dir, fname) ->
-     case splitExtension fname of 
-       Just (_, ext) -> let lext = map toLower ext in lext == "xml"  
-				                      || lext == "omdoc"
-       _             -> False
-   _ -> False
-
-parseXml :: String-> String-> IO (WithError (Element, Maybe MMiSSLatexPreamble))
-parseXml fname src = 
-  do putStrLn "Parsing XML..."
-     catch (do let Document _ _ el = xmlParse fname src 
-               putStrLn "Successfully parsed XML"
-	       return (hasValue (el, Just emptyMMiSSLatexPreamble)))
-            (\err-> return (hasError (show err)))
-
 ---
 -- Import a new object from a LaTeX file and attach it to the subdirectory
 -- of a given PackageFolder.
@@ -86,16 +68,24 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                Nothing -> return Nothing
                Just filePath0 ->
                   do
-                     let filePath = trimDir filePath0
+                     let 
+                        filePath = trimDir filePath0
+
+                        dirPath = case splitName filePath of
+                           Nothing -> thisDir
+                           Just (dirPath,_) -> dirPath
 
 	             inputStringWE <- copyFileToStringCheck filePath
                      inputString 
                         <- coerceWithErrorOrBreakIO break inputStringWE
-                     parseResultWE <- if not (looksLikeXml filePath)  then 
-					   do putStrLn "We have LaTeX."
-                                              return (parseMMiSSLatex inputString)
-					else
-					   parseXml filePath inputString
+                     parseResultWE <- 
+                        if not (looksLikeXml filePath) 
+                           then
+                              do 
+                                 putStrLn "We have LaTeX."
+                                 return (parseMMiSSLatex inputString)
+                           else
+                              parseXml filePath inputString
 
                      (element,preambleOpt) 
                         <- coerceWithErrorOrBreakIO break parseResultWE
@@ -166,7 +156,8 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                         insertions3 = concat (
                            map
                               (\ content -> 
-                                 pairList (variantSpec content) (files content)
+                                 pairList (variantSpec content) 
+                                    (getAllFiles content)
                               )
                               insertions2
                            )
@@ -185,7 +176,7 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                            (\ (found0,notFound0) (variantSpec,toFind) ->
                               do
                                  foundPairs <- findMMiSSFilesInDirectory
-                                    filePath toFind
+                                    dirPath toFind
                                  return (case foundPairs of
                                     [] -> (found0,toFind : notFound0)
                                     _ -> 
@@ -223,7 +214,7 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                      resultWEs <- mapM
                         (\ (variantSpec,name,ext) ->
                            importMMiSSFile view (toLinkedObject' packageFolder)
-                              filePath name ext variantSpec
+                              dirPath name ext variantSpec
                            )
                         insertions6  
                      
@@ -244,3 +235,23 @@ importMMiSSLaTeX preambleLink objectType view getPackageFolder =
                return linkOpt
          Right Nothing -> return Nothing 
             -- message has already been displayed by fileDialog.
+
+
+looksLikeXml :: String-> Bool
+looksLikeXml str =
+  case splitName str of
+   Just (dir, fname) ->
+     case splitExtension fname of 
+       Just (_, ext) -> let lext = map toLower ext in lext == "xml"  
+                                                      || lext == "omdoc"
+       _             -> False
+   _ -> False
+
+parseXml :: String-> String-> IO (WithError (Element, Maybe MMiSSLatexPreamble))
+parseXml fname src = 
+  do putStrLn "Parsing XML..."
+     catch (do let Document _ _ el = xmlParse fname src 
+               putStrLn "Successfully parsed XML"
+               return (hasValue (el, Just emptyMMiSSLatexPreamble)))
+            (\err-> return (hasError (show err)))
+

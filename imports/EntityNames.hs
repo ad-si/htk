@@ -277,8 +277,8 @@ instance FormTextFieldIO EntitySearchName where
 -- ----------------------------------------------------------------------
 
 instance Monad m => HasBinary EntityName m where
-   writeBin = mapWrite (\ name -> Str name)
-   readBin = mapRead (\ (Str name) -> name)
+   writeBin = mapWrite (\ (EntityName name) -> name)
+   readBin = mapRead (\ name -> EntityName name)
 
 instance Monad m => HasBinary EntityFullName m where
    writeBin = mapWrite (\ name -> Str name)
