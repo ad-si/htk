@@ -34,6 +34,9 @@ class GetSetRegistry registry from to where
    getValue :: registry -> from -> IO to
       -- should raise an IO error if the value is not defined or- 
       -- (for UntypedRegistry) has the wrong type.
+   getValueOpt :: registry -> from -> IO (Maybe to)
+      -- returns Nothing if the value is not defined or
+      -- has the wrong type.
    setValue :: registry -> from -> to -> IO ()
 
 class KeyOpsRegistry registry from where
@@ -55,13 +58,19 @@ instance Ord from => NewRegistry (Registry from to) where
       putMVar mVar emptyFM
 
 instance Ord from => GetSetRegistry (Registry from to) from to where
-   getValue (Registry mVar) from =
+   getValue registry from =
       do
-         map <- readMVar mVar
-         case lookupFM map from of
+         valueOpt <- getValueOpt registry from
+         case valueOpt of
             Nothing -> 
                ioError(userError "Registry.getValue - value not found")
             Just value -> return value
+
+   getValueOpt (Registry mVar) from =
+      do
+         map <- readMVar mVar
+         return (lookupFM map from)
+
    setValue (Registry mVar) from to =
       do
          map <- takeMVar mVar
@@ -106,6 +115,15 @@ instance (Ord from,Typeable to)
             Nothing ->
                ioError(userError "Registry.getValue - value of wrong type")
             Just value -> return value
+   getValueOpt (UntypedRegistry registry) from =
+      do
+         dynOpt <- getValueOpt registry from
+         case dynOpt of
+            Nothing -> return Nothing
+            Just dyn ->
+               case fromDyn dyn of
+                  Nothing -> return Nothing
+                  Just value -> return value
    setValue (UntypedRegistry registry) from to =
       do
          let
