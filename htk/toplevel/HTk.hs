@@ -235,12 +235,6 @@ import Focus
 import Icon
 
 
-data AbstractWidget = NONE
-instance GUIObject AbstractWidget where
-  toGUIObject _ = ROOT
-instance Container AbstractWidget
-
-
 -- -----------------------------------------------------------------------
 -- type HTk and its instances
 -- -----------------------------------------------------------------------

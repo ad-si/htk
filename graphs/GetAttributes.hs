@@ -66,7 +66,7 @@ getNodeTypeAttributes =
             Ellipse -> return GraphConfigure.Ellipse
             Rhombus -> return GraphConfigure.Rhombus
             Triangle -> return GraphConfigure.Triangle
-            Icon -> 
+            GetAttributes.Icon -> 
                do
                   fname <- getSingleString "Icon filename"
                   return (GraphConfigure.Icon fname)
@@ -80,7 +80,7 @@ getNodeTypeAttributes1 =
       let def = PreAttributes {shapeSort=Box,nodeTypeTitle'=""}
       (iw, form) <- newInputWin "Node Type Attributes" 
                                 (\p-> newInputForm p (Just def) []) []
-      newEnumField form [Box .. Icon] [
+      newEnumField form [Box .. GetAttributes.Icon] [
          -- text "Node Shape",
          selector shapeSort,
          modifier (\ old newShape -> old {shapeSort = newShape})

@@ -39,6 +39,7 @@ import Configuration
 import Destructible
 import Geometry
 import Resources
+import Packer
 
 
 -- -----------------------------------------------------------------------
@@ -49,7 +50,7 @@ class GUIObject w => HasPostscript w where
   postscript :: w -> [Config PostScript] -> IO ()
   postscript target confs =
     do
-      wid <- createGUIObject NONE POSTSCRIPT defMethods
+      wid <- createGUIObject (toGUIObject NONE) POSTSCRIPT defMethods
       configure (PostScript wid) confs
 --      args <- lookupConfigs wid
       catch 

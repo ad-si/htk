@@ -19,7 +19,9 @@ module Packer (
   pack,
 
   --grid packer
-  grid
+  grid,
+
+  AbstractWidget(..)
 
 ) where
 
@@ -98,3 +100,9 @@ pack wid opts =
                                                 [Side AtLeft, Fill Both,
                                                  Expand On]))
             _ -> execTclScript ((packCmd meth) nm opts)
+
+
+data AbstractWidget = NONE
+instance GUIObject AbstractWidget where
+  toGUIObject _ = ROOT
+instance Container AbstractWidget

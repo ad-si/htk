@@ -53,6 +53,7 @@ SRCS       = resources/Resources.hs\
              devices/Bell.hs\
 	     devices/XSelection.hs\
 	     devices/Screen.hs\
+             devices/Printer.hs\
 	     canvasitems/CanvasItem.hs\
 	     canvasitems/CanvasItemAux.hs\
              canvasitems/CanvasTag.hs\
@@ -96,7 +97,6 @@ SRCS       = resources/Resources.hs\
 	     toolkit/InputWin.hs\
 	     toolkit/InputForm.hs\
              toolkit/SimpleForm.hs\
-#            devices/Printer.hs\
 
 
 EXTRA_HC_OPTIONS += -Onot -H30M
