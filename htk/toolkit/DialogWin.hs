@@ -28,6 +28,8 @@ module DialogWin (
         createMessageWin',
         createDialogWin,
         createDialogWin',
+
+        loadHTkImages,
         ) where
 
 import IOExts (unsafePerformIO)
@@ -296,6 +298,9 @@ dialog plain choices def confs tpconfs =
 -- --------------------------------------------------------------------------
 -- Images for the various Dialog Windows
 -- --------------------------------------------------------------------------
+
+loadHTkImages :: ()
+loadHTkImages = foldr seq () [errorImg,warningImg,questionImg,infoImg] 
 
 -- It's important that we create these with unsafePerformIO, this lets
 -- Tk reuse the definition-- otherwise we send the whole image data
