@@ -61,6 +61,11 @@
        InfoBus.shutdown should be called.  For example,
        in the case of the DaVinci instance this is
        required to get rid of the DaVinci and HTk processes.
+   (2) It is more cumbersome writing the Graph Editor than I would
+       like because the menu code doesn't give you
+       direct access to the node or arc type.  Unfortunately doing this
+       would make the classes in this file even more complicated than
+       they are now.
    -}
 module GraphDisp(
    GraphAll(displaySort),
@@ -144,12 +149,12 @@ import SIM(IA,Destructible)
 
 class (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,
-   Node node,NodeType nodeType,
+   Node node,HasTyCon1 node,NodeType nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
    GetFrom graph node arc,GetTo graph node arc,
    GetArcType graph arc arcType,DeleteArc graph arc,
-   Arc arc,ArcType arcType,
+   Arc arc,HasTyCon3 arc,ArcType arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
    GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -228,6 +233,8 @@ class (Graph graph,Node node) =>
       graph -> node value -> IO ()
    getNodeValue :: Typeable value =>
       graph -> node value -> IO value
+   setNodeValue :: Typeable value =>
+      graph -> node value -> value -> IO ()
 
 class HasTyCon1 node => Node node
 
@@ -257,7 +264,6 @@ class (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
    nodeTypeConfig :: Typeable value =>
       nodeTypeConfig value -> nodeTypeParms value -> nodeTypeParms value
 
-class (Node node,NodeTypeConfig nodeTypeConfig,NodeTypeParms node
 ------------------------------------------------------------------------
 -- Arcs
 ------------------------------------------------------------------------
@@ -300,6 +306,9 @@ class (Graph graph,Arc arc) => DeleteArc graph arc where
    getArcValue :: 
       (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
       => graph -> arc value nodeFromValue nodeToValue -> IO value
+   setArcValue :: 
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => graph -> arc value nodeFromValue nodeToValue -> value -> IO ()
 
 class HasTyCon3 arc => Arc arc
 
@@ -407,6 +416,9 @@ data GraphTitle = GraphTitle String
 instance GraphConfig GraphTitle
 
 data ValueTitle value = ValueTitle (value -> IO String)
+-- ValueTitles are computed from the node or arc value using the supplied
+-- computation when the node or arc is created or when 
+-- setNodeValue/setArcValue are called.
 
 instance NodeTypeConfig ValueTitle
 
@@ -445,7 +457,7 @@ instance (HasTyCon3 typeCon,Typeable value1,Typeable value2,Typeable value3)
          mkTypeTag (tyCon3 tC) [typeOf v1,typeOf v2,typeOf v3]
 
 ------------------------------------------------------------------------
--- The Kind1 class and Kind3 classes are a silly hack so that we 
+-- The Kind* classes are a silly hack so that we 
 -- can define empty classes of things which take a fixed number of
 -- type parameters.  
 ------------------------------------------------------------------------

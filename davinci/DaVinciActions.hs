@@ -21,97 +21,77 @@ module DaVinciActions(
 
 import Concurrent
 
-import FiniteMap
+import Registry
 
 import DaVinciGraphTerm
 
-type Register = MVar RegisterData
-
-data RegisterData =
-   RegisterData {
-      nextEvent :: MenuItemId,
-      globalActions :: FiniteMap MenuItemId (IO()),
-      nodeActions :: FiniteMap MenuItemId (NodeId -> IO()),
-      edgeActions :: FiniteMap MenuItemId (EdgeId -> IO())
+data Register =
+   Register {
+      nextEvent :: MVar MenuItemId,
+      globalActions ::  Registry MenuItemId (IO()),
+      nodeActions :: Registry MenuItemId (NodeId -> IO()),
+      edgeActions :: Registry MenuItemId (EdgeId -> IO())
       }
 
 newRegister :: IO Register
 newRegister =
-   newMVar (RegisterData {
-      nextEvent = MenuItemId 0,
-      globalActions = emptyFM,
-      nodeActions = emptyFM,
-      edgeActions = emptyFM
-      })
+   do
+      nextEvent <- newMVar (MenuItemId 0)
+      globalActions <- newRegistry
+      nodeActions <- newRegistry
+      edgeActions <- newRegistry
+      return (Register {
+         nextEvent = nextEvent,
+         globalActions = globalActions,
+         nodeActions = nodeActions,
+         edgeActions = edgeActions
+         })
 
-next :: MenuItemId -> MenuItemId
-next (MenuItemId idNo) = MenuItemId (idNo + 1)
+next :: MVar MenuItemId -> IO MenuItemId
+next mVar =
+   do
+      (menuItemId@(MenuItemId idNo)) <- takeMVar mVar
+      putMVar mVar (MenuItemId (idNo+1))
+      return menuItemId
 
 newGlobalEvent :: Register -> IO () -> IO MenuItemId
-newGlobalEvent mVar action =
+newGlobalEvent register action =
    do
-      registerData <- takeMVar mVar
-      let
-         menuItemId = nextEvent registerData
-         newRegisterData = registerData {
-            nextEvent = next (menuItemId),
-            globalActions = 
-               addToFM (globalActions registerData) menuItemId action
-            }
-      putMVar mVar newRegisterData
+      menuItemId <- next (nextEvent register)
+      setValue (globalActions register) menuItemId action
       return menuItemId
 
 invokeGlobalEvent :: Register -> MenuItemId -> IO ()
-invokeGlobalEvent mVar menuItemId =
+invokeGlobalEvent register menuItemId =
    do
-      registerData <- readMVar mVar
-      let
-         Just action = lookupFM (globalActions registerData) menuItemId
+      action <- getValue (globalActions register) menuItemId
       action
 
 newNodeEvent :: Register -> (NodeId -> IO ()) -> IO MenuItemId
-newNodeEvent mVar actionFn =
+newNodeEvent register actionFn =
    do
-      registerData <- takeMVar mVar
-      let
-         menuItemId = nextEvent registerData
-         newRegisterData = registerData {
-            nextEvent = next (menuItemId),
-            nodeActions = 
-               addToFM (nodeActions registerData) menuItemId actionFn
-            }
-      putMVar mVar newRegisterData
+      menuItemId <- next (nextEvent register)
+      setValue (nodeActions register) menuItemId actionFn
       return menuItemId
 
 invokeNodeEvent :: Register -> NodeId -> MenuItemId -> IO ()
 invokeNodeEvent register nodeId menuItemId =
    do
-      registerData <- readMVar register
-      let
-         Just nodeActionFn = lookupFM (nodeActions registerData) menuItemId
-      nodeActionFn nodeId
+      actionFn <- getValue (nodeActions register) menuItemId
+      actionFn nodeId
 
 newEdgeEvent :: Register -> (EdgeId -> IO ()) -> IO MenuItemId
-newEdgeEvent mVar actionFn =
+newEdgeEvent register actionFn =
    do
-      registerData <- takeMVar mVar
-      let
-         menuItemId = nextEvent registerData
-         newRegisterData = registerData {
-            nextEvent = next (menuItemId),
-            edgeActions = 
-               addToFM (edgeActions registerData) menuItemId actionFn
-            }
-      putMVar mVar newRegisterData
+      menuItemId <- next (nextEvent register)
+      setValue (edgeActions register) menuItemId actionFn
       return menuItemId
          
 invokeEdgeEvent :: Register -> EdgeId -> MenuItemId -> IO ()
 invokeEdgeEvent register edgeId menuItemId =
    do
-      registerData <- readMVar register
-      let
-         Just edgeActionFn = lookupFM (edgeActions registerData) menuItemId
-      edgeActionFn edgeId
+      actionFn <- getValue (edgeActions register) menuItemId
+      actionFn edgeId
 
 
 
