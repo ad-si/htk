@@ -20,14 +20,14 @@ import IORef
 import FiniteMap
 
 import DevGraph
-import AS_Library
+--import AS_Library
 import Graph
 
-type DGraphToAGraphNode = FiniteMap (LIB_NAME,Node) Descr
+{-type DGraphToAGraphNode = FiniteMap (LIB_NAME,Node) Descr
 type DGraphToAGraphEdge = FiniteMap (LIB_NAME,Edge) Descr
 type AGraphToDGraphNode = FiniteMap Descr (LIB_NAME,Node) 
 type AGraphToDGraphEdge = FiniteMap Descr (LIB_NAME,Node) 
-
+-}
 -- Auxiliary stuff for graph display commands
 
 -- lexer and parser
