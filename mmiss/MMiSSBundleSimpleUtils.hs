@@ -43,9 +43,6 @@ module MMiSSBundleSimpleUtils(
       -- :: BundleText -> ICStringLen
       -- this also checks that CharType = Byte.
 
-   fileLocToNameOptWE,
-      -- :: FileLoc -> WithError (Maybe EntityName)
-
    getAllNodes, -- :: Bundle -> [(LocInfo,BundleNode)]
    getAllNodes1, -- :: Bundle -> [(LocInfo,BundleNode)]
       -- getAllNodes guarantees depth-first-search order; getAllNodes1 
@@ -353,14 +350,6 @@ describeBundleTypeEnum bte = case bte of
    MMiSSPreambleEnum -> "MMiSS preamble"
    UnknownType -> "Object of unknown type"
 
-fileLocToNameOptWE :: FileLoc -> WithError (Maybe EntityName)
-fileLocToNameOptWE fileLoc = case name fileLoc of
-   Nothing -> return Nothing
-   Just nameStr ->
-      do
-         name <- fromStringWE nameStr
-         return (Just name)
-
 preambleEntityName :: EntityName
 preambleEntityName = EntityName "#PREAMBLE"
    --  Not used for LinkedObjects but in fileLocs and so on.
@@ -581,11 +570,11 @@ getAllNodes1 bundle = execState (bundleFoldM foldFn toPackageId bundle) []
          do
             -- append name.  We special-case preambles and unparsable name.
             let
-               name1 = case name . fileLoc $ bundleNode of
-                  Nothing -> preambleEntityName
-                  Just nameStr -> case fromWithError (fromStringWE nameStr) of
-                     Left _ -> EntityName "#BADNAME"
-                     Right name1 -> name1
+               name1 = case fromWithError (
+                     nameFileLocOpt . fileLoc $ bundleNode) of
+                  Left _ -> EntityName "#BADNAME"
+                  Right Nothing -> preambleEntityName
+                  Right (Just name1) -> name1
 
                locInfo1 = coerceWithError (subDir0 (Just name1) locInfo0)
             list0 <- get
@@ -632,7 +621,7 @@ lookupNodeInNode bundleNode0 (EntityFullName names0) = case names0 of
 
          bundleNode1 <- findJust
             (\ bundleNode1 -> 
-               if (name . fileLoc $ bundleNode1) == Just (toString name0)
+               if (strFileLoc . fileLoc $ bundleNode1) == Just (toString name0)
                   then
                      Just bundleNode1
                   else

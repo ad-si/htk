@@ -116,13 +116,8 @@ mkPreWriteData view insertionPoint bundleNode =
          bundleFoldFn ancestorInfo0 bundleNode0 =
             do
                let
-                  Just nameStr1 = name . fileLoc $ bundleNode0
-                  -- This pattern will of course fail for preambles.
-                  -- But it won't fail for the top node, because we
-                  -- use bundleFoldM1, which doesn't visit the top node.
-                  name1 :: EntityName
-                  name1 = fromString nameStr1
-        
+                  thisName = alwaysNameFileLoc (fileLoc bundleNode0)
+
                   createEmpty =
                      do
                         thisLink <- newEmptySplitLink view
@@ -153,7 +148,7 @@ mkPreWriteData view insertionPoint bundleNode =
                                     (parent ancestorInfo0)
 
                                  thisLinkedObjectOpt <- lookupNameInFolder 
-                                    parentLinkedObject name1
+                                    parentLinkedObject thisName
                                  case thisLinkedObjectOpt of
                                     Nothing -> createEmpty
                                     Just thisLinkedObject -> 
@@ -175,10 +170,9 @@ mkPreWriteData view insertionPoint bundleNode =
                            then 
                               Nothing
                            else
-                              Just (parent ancestorInfo0,name1) 
+                              Just (parent ancestorInfo0,thisName) 
                      }
 
-                  thisName = alwaysNameFileLoc (fileLoc bundleNode0)
                   names1 = thisName : names ancestorInfo0
 
                preWriteData0 <- get

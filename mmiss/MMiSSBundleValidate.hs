@@ -26,6 +26,7 @@
    UNKNOWN) The bundle contains no UnknownType, NoData or NoText elements.
    DTD) Elements pass the DTD. 
    LINKNAMES) Names in links are valid EntityFullNames.
+   FILENAMES) Files referred to are valid EntityFullNames.
    NONEMPTYOBJECTS) Every Object item contains at least one element.
    CONSISTENTTAGS) The tags in MMiSS objects should all be the same.
    NOUNICODE) No BundleTexts contain a CharType of Unicode.
@@ -71,7 +72,7 @@ validateBundle bundle =
       validateBundle3 bundle -- TOPDIRS
       validateBundle4 bundle -- VARIANTS
       validateBundle5 bundle -- DISTINCT, PREAMBLE1 & ENTITYNAME
-      validateBundle6 bundle -- DTD, LINKNAMES & CONSISTENTTAGS
+      validateBundle6 bundle -- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
       validateBundle7 bundle -- NOUNICODE
 
 validateBundleOut :: Bundle -> WithError ()
@@ -82,7 +83,7 @@ validateBundleOut bundle =
       validateBundle3 bundle -- TOPDIRS
       validateBundle4 bundle -- VARIANTS
       validateBundle5 bundle -- DISTINCT, PREAMBLE1 & ENTITYNAME
-      validateBundle6 bundle -- DTD, LINKNAMES & CONSISTENTTAGS
+      validateBundle6 bundle -- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
 
 
 -- -----------------------------------------------------------------------
@@ -341,7 +342,7 @@ validateBundle5 (bundle @ (Bundle packageBundles)) =
          NoData -> done      
                   
 -- -----------------------------------------------------------------------
--- DTD & LINKNAMES
+-- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
 -- -----------------------------------------------------------------------
 
 validateBundle6 :: Bundle -> WithError ()
@@ -389,6 +390,28 @@ validateBundle6 = checkAllNodes checkDTD
                                                       ++ " link name")
                                           )
                                        links
+
+                                    let
+                                       files :: [String]
+                                       files = getFiles element
+                                          -- Yes this does get all files
+                                          -- from all sub-elements (not just
+                                          -- the head element)
+
+                                    checkList
+                                       (\ file -> 
+                                          case fromWithError 
+                                                (fromStringWE file) of
+                                             Right (_ :: EntityFullName) ->
+                                                done
+                                             Left mess ->
+                                                err bundleNode1
+                                                   (file ++ 
+                                                      " is not a proper"
+                                                      ++ " file name")
+                                          )
+                                       files
+                                   
                         )
                         textsToCheck
 

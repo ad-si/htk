@@ -110,7 +110,7 @@ parseNode locInfo0 bundleNode =
          Dir bundleNodes0 ->
             do
                let
-                  nameOptWE = fileLocToNameOptWE fileLoc1
+                  nameOptWE = nameFileLocOpt fileLoc1
                nameOpt <- coerceImportExportIO nameOptWE
 
                let

@@ -104,8 +104,15 @@ readFiles filePath bundle =
             (\ (packageId,fullName,ext,variantSpec) ->
                do
                   let
+                     completeNameWE = unsplitFullName fullName ext
+                  completeName <- coerceImportExportIO completeNameWE
+                     -- I don't think this should go wrong unless someone
+                     -- has put a tag containing invalid characters in
+                     -- Files.xml.
+
+                  let
                      fullPath = filePath `combineNames`
-                        ((toString fullName) `unsplitExtension` ext)
+                        (toString completeName)
                   icslWE <- copyFileToICStringLenCheck fullPath
                   case fromWithError icslWE of
                      Left mess ->

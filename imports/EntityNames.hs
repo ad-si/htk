@@ -77,7 +77,7 @@ import SimpleForm
 
 ---
 -- Represented as a letter followed by a sequence of characters which may be 
--- letters, digits, '_', ':' or '.'.  Letters and digits do not have to be
+-- letters, digits, '_', '-', ':' or '.'.  Letters and digits do not have to be
 -- ASCII; any Unicode letters or digits are permitted.
 --
 -- "Root", "Parent" or "Current" are forbidden in the written representation.
@@ -392,7 +392,7 @@ simpleNameCharParser :: GenParser Char st Char
 -- Characters allowed after the first character of a simpleName.
 simpleNameCharParser =
    satisfy
-      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == ':') 
+      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == '-') || (ch == ':') 
          || (ch == specialChar))
 
 specialChar :: Char

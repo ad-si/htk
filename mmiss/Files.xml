@@ -4,8 +4,14 @@
 <fileType tag="gif" menu="xvmenu" colour="red"/>
 <fileType tag="jpeg" menu="xvmenu" colour="green"/>
 <fileType tag="png" menu="xvmenu" colour="blue"/>
+<fileType tag="pdf" menu="pdfmenu" colour="yellow"/>
 <menu id="xvmenu">
    <command title="view" command="xv %F"/>
+   <separator/>
+   <subMenu menu="variants"/>
+</menu>
+<menu id="pdfmenu">
+   <command title="view" command="xpdf %F"/>
    <separator/>
    <subMenu menu="variants"/>
 </menu>

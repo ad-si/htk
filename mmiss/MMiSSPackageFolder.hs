@@ -706,11 +706,13 @@ guessName (Bundle packageBundles) packageId =
 
 guessNodeName :: BundleNode -> WithError EntityName
 guessNodeName bundleNode = case bundleNodeData bundleNode of
-   MMiSSBundle.Object _ -> 
-      case name . fileLoc $ bundleNode of
-         Nothing -> fail 
-            "Element has no name, and I don't know where to put it"
-         Just nameStr -> fromStringWE nameStr
+   MMiSSBundle.Object _ ->
+      do
+         nameOpt <- nameFileLocOpt (fileLoc bundleNode)
+         case nameOpt of
+            Nothing -> fail 
+               "Element has no name, and I don't know where to put it"
+            Just name -> return name
    MMiSSBundle.Dir nodes -> 
       let
          nodesNotPreambles = 
