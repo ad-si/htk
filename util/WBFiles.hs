@@ -306,7 +306,15 @@ getServerFile innerName =
       return (combineNames (trimDir serverDir) innerName)
 
 getServerDir :: IO String
-getServerDir = valOf "serverDir" (getArgString "serverDir")
+getServerDir =
+   do
+      serverDirOpt <- getArgString "serverDir"
+      case serverDirOpt of
+         Nothing ->
+            error (
+               "UNISERVERDIR environment variable or --uni-serverDir"
+               ++ " must be set for server programs")
+         Just serverDir -> return serverDir
 
 getServerId :: IO (Maybe String)
 getServerId = getArgString "serverId"
@@ -404,7 +412,7 @@ usualProgramArguments = [
    ProgramArgument{
       optionName = "serverDir",
       optionHelp = "where server stores its files",
-      defaultVal = Just (StringValue "serverDir"),
+      defaultVal = Nothing,
       argType = STRING
       },
    ProgramArgument{
