@@ -64,6 +64,23 @@ $(
    )
 
 -- ------------------------------------------------------------------
+-- Creating a newForeignPtr (602 style)
+-- ------------------------------------------------------------------
+
+$(
+   if ghcShortVersion <= 601
+      then
+         [d|
+            newForeignPtr0 finalizerLen ptr 
+               = $(dynName "newForeignPtr") ptr finalizerLen
+         |]
+      else
+         [d|
+            newForeignPtr0 = $(dynName "newForeignPtr")
+         |]
+   )
+
+-- ------------------------------------------------------------------
 -- Creation and reading
 -- ------------------------------------------------------------------
 
@@ -117,8 +134,9 @@ withICStringLen (ICStringLen foreignPtr len) readFn =
 createICStringLen :: CString -> Int -> IO ICStringLen 
 createICStringLen ptr len =
    do
-      foreignPtr <- newForeignPtr ptr finalizerFree
+      foreignPtr <- newForeignPtr0 finalizerFree ptr
       return (ICStringLen foreignPtr len)
+
 
 -- -------------------------------------------------------------------
 -- Converting ICStringLen directly to its components.
