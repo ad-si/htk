@@ -280,6 +280,9 @@ convertColour col = GraphConfigure.Color (show col)
 data OurShape = Box | Circle | Ellipse | Rhombus | Triangle 
    deriving (Read,Show,Bounded,Enum)
 
+instance HasConfigRadioButton OurShape where
+   configRadioButton value = text (show value)
+
 convertShape :: OurShape -> Shape value 
 convertShape Box = GraphConfigure.Box
 convertShape Circle = GraphConfigure.Circle

@@ -778,8 +778,8 @@ data Radio x = Radio x | NoRadio deriving (Typeable)
 class HasConfigRadioButton value where
    configRadioButton :: value -> Config (RadioButton Int)
 
-instance Show value => HasConfigRadioButton value where
-   configRadioButton value = text (show value)
+-- instance Show value => HasConfigRadioButton value where
+--    configRadioButton value = text (show value)
 
 instance (HasConfigRadioButton value,Bounded value,Enum value) 
    => FormValue (Radio value) where
