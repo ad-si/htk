@@ -12,13 +12,13 @@ runServer :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Server --uni-debug=s.debug &
 
 killServer :
-	(pkill berkeley || echo not running)
-	(pkill Server || echo not running)
+	(pkill "^berkeley_db_svc$$" || echo not running)
+	(pkill "^Server$$" || echo not running)
 	rm -rf VersionGraph.backup storeDir /var/tmp/simpledb
 
 runWorkbench :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Workbench --uni-debug=w.debug
 
 killWorkbench :
-	(pkill Workbench || echo not running)
+	(pkill "^Workbench$$" || echo not running)
 	rm -rf /tmp/#

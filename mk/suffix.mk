@@ -144,7 +144,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere
+.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -304,7 +304,6 @@ doc : dochere
 
 dochere :
 
-
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^
 
@@ -389,6 +388,10 @@ www :
 
 wwwtest : wwwhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) wwwtest && ) echo 
+
+# rename Makefile in current directory
+makefilequick : 
+	$(TOP)/config.status --file=Makefile
 
 
 

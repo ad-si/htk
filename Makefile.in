@@ -39,7 +39,7 @@ findsources :
 	@$(MAKE) displaysrcs -s --no-print-directory
 	@echo @TOP@/mk/boilerplate.mk.in @TOP@/mk/machinedep.mk.in 
 	@echo @TOP@/mk/var.mk @TOP@/mk/suffix.mk @TOP@/mk/local.mk.debug
-	@echo @TOP@/configure.in 
+	@echo @TOP@/configure.ac 
 
 tarball.tar.gz:
 	cd @TOP@;@TAR@ -czf tarball.tar.gz `(($(MAKE) -s --no-print-directory findsources) | sed "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo README ; echo configure`

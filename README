@@ -227,15 +227,23 @@ Makefile.in can also contain variable settings which, for example, specify
    be able to work some of them out by looking at the Makefiles, for example
    htk/Makefile.in.
 
-After you've modified a Makefile, you should run
+After you've modified a Makefile, if you have time on your hands you should run
    ./configure 
 (from the top directory)
 followed by 
    gmake packagesquick
-to reset the package file.  You will also need to run
+to reset the package file.  You may also need to run
    gmake depend
-if the import dependencies between the files you are working on have changed.
+if the import dependencies between the files you are working on have changed
+and you want Make targets "lib" or individual object files to work.
  
+However in many cases it will be possible to get away with
+   gmake makefilequick
+to regenerate the Makefile in the current directory.  (This assumes that
+one is already there.)  This technique assumes you've changed that Makefile, 
+and nothing else relevant to configuration.  (For example, it assumes you
+haven't added any new Makefiles.) 
+
 Making documentation
 -------------------------
 

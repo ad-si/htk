@@ -1,6 +1,16 @@
+
+
 Outstanding Bugs as of 31/5/2002
 --------------------------------
-(3/2002).  HUGE files crash the s'erver
+(3/2002).  HUGE files crash the server
+   FIXED 11/6/2002.  We have moved to using the Berkeley DB for storing
+   files, and this seems not to have a problem with huge files.  This
+   is tested with a 29MB file committed and read back by clients on
+   titania calling bob; it takes several seconds but this is not unbearable.
+   The main problem with this method is that the whole file needs to be
+   put in memory, which increases the virtual set size for the client process.
+   If this turns out to be a problem the best solution would be to modify
+   simpledb to store files in chunks of, say, 1MB each.
 (4/2/2002) Closing a version graph stops other versions responding
    FIXED 3/6/2002
 (1/2/2002) Folders display should display the name of the version
