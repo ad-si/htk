@@ -161,7 +161,6 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
                )],
             getNodeType = const theNodeType,
             getNodeLinks = const (return emptyArcEnds),
-            closeDown = done,
             specialNodeActions = const emptyNodeActions
             }               
       in

@@ -550,7 +550,6 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                      nodeTypes = [(theNodeType,nodeTypeParms1)],
                      getNodeType = const theNodeType,
                      getNodeLinks = getNodeLinks1,
-                     closeDown = done,
                      specialNodeActions =
                         (\ object ->
                            fmap

@@ -320,7 +320,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
                   getNodeType = (\ object -> theNodeType),
                   getNodeLinks = getNodeLinks,
-                  closeDown = done,
                   specialNodeActions= emptySpecialNodeActions
                   })
             )
