@@ -1,4 +1,4 @@
-(in-package :DGRL)
+(in-package :user)
 
 (defun mmiss-checker-reset ()
 
@@ -8,26 +8,33 @@
   ;;; Effect  : 
   ;;; Value   : 
 
-  (handler-case 
-      (multiple-value-bind (filename checks)
-	  (mmiss=parse.command.line.args)
-	(if (and (stringp filename)
-		 checks
-		 (subsetp checks *mmiss-checks*))
-	    (let ((results (mmiss=file.check filename checks)))
-	      (inka::mapcf #'(lambda (check result)
-			       (mmiss-print "~A : ~A.~%" (string-downcase (string check)) (if result "ok" "fail")))
-			   results))
-	  (mmiss-print "~%Usage: mmiss-checker filename {~{~A~^|~}}+~%~%" 
-		       (mapcar #'(lambda (symbol) (string-downcase (string symbol))) *mmiss-checks*))
+  (let ((*GC-VERBOSE* nil)
+	(exitcode 0)
+	(results nil)
+	(actual-checks nil))
+    (handler-case 
+	(multiple-value-bind (filename checks)
+	    (mmiss=parse.command.line.args)
+	  (setq actual-checks checks)
+	  (if (and (stringp filename)
+		   checks
+		   (subsetp checks *mmiss-checks*))
+	      (setq results (mmiss=file.check filename checks))
+	    (mmiss-print "~%Usage: mmiss-checker filename {~{~A~^|~}}+~%~%" 
+			 (mapcar #'(lambda (symbol) (string-downcase (string symbol))) *mmiss-checks*))
+	    )
 	  )
-	)
-    (error (c) nil))
-  (inka::pro-quit)
-  )
+      (error (c) 
+	     (setq exitcode 1)
+	     (unless actual-checks (setq actual-checks *mmiss-checks*))
+	     (setq results (mapcan #'(lambda (check) (list check (list nil))) actual-checks))
+	     ))
+    (when results (mmiss=results2xml results *mmiss-output-stream*))
+    (inka::pro-quit)
+    ))
 
 
-(defvar *mmiss-output-stream* t)
+(defvar *mmiss-output-stream* *standard-output*)
 
 (defvar *mmiss-checks* '(references acyclic-definitions))
 
@@ -56,6 +63,31 @@
       (apply 'error (cons formatstring args))
     nil))
 
+(defun mmiss=results2xml (results output-stream)
+
+  ;;; Edited  : 09. Mar 2004
+  ;;; Authors : serge       
+  ;;; Input   : 
+  ;;; Effect  : 
+  ;;; Value   : 
+
+  (write-line (xml-make.xmldecl 1.0) output-stream)
+  (write-line (xml-make.doctypedecl "checklist" "MMiSSCheck.dtd") output-stream)
+  (xml-entity.print
+   (xml-entity.create 
+    "checklist" 
+    nil
+    (inka::mapcarf #'(lambda (check result)
+		 (let ((ok? (first result))
+		       (errors (second result)))
+		   (xml-entity.create 
+		    "check" 
+		    (list (xml-attribute.create "name" (string-downcase (string check)))
+			  (xml-attribute.create "success" (if ok? "Yes" "No")))
+		    errors)))
+	     results))
+   output-stream))
+
 
 (defun mmiss=parse.command.line.args ()
 
@@ -67,7 +99,7 @@
 
   (let ((com-args (inka::command-line-arguments)))
     (values (first com-args)
-	    (mapcar #'(lambda (string) (intern (string-upcase string) :dgrl)) (rest com-args)))))
+	    (mapcar #'(lambda (string) (intern (string-upcase string) :user)) (rest com-args)))))
 
 
 (defun mmiss=file.check (filename checks)
@@ -85,11 +117,16 @@
 	  (dolist (check (remove-duplicates checks))
 	    (case check 
 	      (references 
-	       (setf (getf results :references) 
-		     (mmiss=check.required.references entity)))
+	       (setf (getf results :references)
+		     (multiple-value-bind (result errors)
+			 (mmiss=check.required.references entity)
+		       (list result errors)
+		       )))
 	      (acyclic-definitions
 	       (setf (getf results :acyclic-definitions)
-		     (mmiss=check.acyclic.definitions entity)))
+		     (multiple-value-bind (result errors)
+			 (mmiss=check.acyclic.definitions entity)
+		       (list result errors))))
 	      (T nil)))
 	  results)
       nil)))
@@ -106,21 +143,22 @@
   ;;; Authors : serge       
   ;;; Input   : a string denoting the file
   ;;; Effect  : reads the xml content of the file and returns
-  ;;;           an omd*entity (dgrl package)
+  ;;;           an xmlentity (user package)
   ;;; Value   : see effect.
 
   (if (probe-file filename)
       (handler-case 
-	  (first 
-	   (omd-xml2struct 
-	    (with-output-to-string 
-	      (outstream)
-	      (with-open-file 
-		  (instream filename :direction :input)
-		(let ((line (read-line instream nil :eof)))
-		  (inka::while (inka::neq line :EOF)
-			       (write-string line outstream)
-			       (setq line (read-line instream nil :eof))))))))
+;	  (first 
+;	   (xml-xml2struct 
+;	    (with-output-to-string 
+;	      (outstream)
+;	      (with-open-file 
+;		  (instream filename :direction :input)
+;		(let ((line (read-line instream nil :eof)))
+;		  (inka::while (inka::neq line :EOF)
+;			       (write-string line outstream)
+;			       (setq line (read-line instream nil :eof))))))))
+	  (xml-parse.file filename)
 	(error (c) 
 	       (mmiss-print "Error parsing XML content of file ~A~%~A~%" filename c)
 	       nil))
@@ -144,27 +182,36 @@
   ;;; Value   : 
 
   (let* ((relevant-entities (mmiss=entity.find.definitions.and.references entity))
-	 )
-    (every #'(lambda (anentity)
-	       (or (mmiss=entity.is.definitorial anentity)
-		   (omd-entity.case
-		    anentity 
-		    (("link" (("status" status) ("linked" link)) content)
-		     (declare (ignore status content))
-		     (if 
-			 (find-if #'(lambda (defentity)
-				      (and (mmiss=entity.is.definitorial defentity)
-					   (omd-entity.case 
-					    defentity 
-					    (("definition" (("label" label)) content)
-					     (declare (ignore content))
-					     (string-equal label link))
-					    (X (declare (ignore X)) nil))))
-				  relevant-entities)
-			 t
-		       (mmiss-print "Could not find definition required by ~A~%" anentity)))
-		    (X (declare (ignore X)) nil))))
-	   relevant-entities)))
+	 (errors nil)
+	 (result 
+	  (every #'(lambda (anentity)
+		     (or (mmiss=entity.is.definitorial anentity)
+			 (xml-entity.case
+			  anentity 
+			  (("link" (("status" status) ("linked" link)) content)
+			   (declare (ignore status content))
+			   (if 
+			       (find-if #'(lambda (defentity)
+					    (and (mmiss=entity.is.definitorial defentity)
+						 (xml-entity.case 
+						  defentity 
+						  (("definition" (("label" label)) content)
+						   (declare (ignore content))
+						   (string-equal label link))
+						  (X (declare (ignore X)) nil))))
+					relevant-entities)
+			       t
+			     (progn 
+			       (setq errors (cons (xml-entity.create
+						   "mmissobject" 
+						   (list (xml-attribute.create "id" link))
+						   nil)
+						  errors))
+			       (mmiss-print "Could not find definition required by ~A~%" anentity))))
+			  (X (declare (ignore X)) nil))))
+		 relevant-entities)))
+    (values result (if errors (cons "Missing definitions of following labels." (reverse errors))
+		     nil))))
 
     
 
@@ -176,15 +223,15 @@
   ;;; Effect  : 
   ;;; Value   : 
 
-  (if (typep entity 'omd*entity)
+  (if (typep entity 'xml*entity)
       (if (funcall closure entity) 
 	  (if top-level (list entity)
 	    (cons entity (mapcan #'(lambda (subentity)
 				     (mmiss=entity.find.entities subentity closure :top-level top-level))
-				 (omd-entity.content entity))))
+				 (xml-entity.content entity))))
 	(mapcan #'(lambda (subentity)
 		    (mmiss=entity.find.entities subentity closure :top-level top-level))
-		(omd-entity.content entity)))
+		(xml-entity.content entity)))
     nil))
 
 
@@ -192,7 +239,7 @@
 
   ;;; Edited  : 27. Aug 2003
   ;;; Authors : serge       
-  ;;; Input   : an omd*entity
+  ;;; Input   : an xml*entity
   ;;; Effect  : /
   ;;; Value   : a list of all ids of objects defined in the entity.
 
@@ -212,7 +259,7 @@
   ;;; Effect  : 
   ;;; Value   : 
 
-  (omd-entity.case 
+  (xml-entity.case 
    entity
    (("definition" attributes content)
     (declare (ignore attributes content))
@@ -228,7 +275,7 @@
   ;;; Effect  : 
   ;;; Value   : 
 
-  (omd-entity.case entity
+  (xml-entity.case entity
 		   (("definition" (("label" label)) content)
 		    (declare (ignore content))
 		    label)
@@ -257,7 +304,7 @@
   ;;; Value   : 
 
   (if required-status-p
-      (omd-entity.case 
+      (xml-entity.case 
        entity
        (("link" (("status" status))  content) 
 	(declare (ignore content))
@@ -265,7 +312,7 @@
 	    T
 	  nil))
        (X (declare (ignore X)) NIL))
-    (omd-entity.case 
+    (xml-entity.case 
      entity
      (("link" attr  content) 
 	(declare (ignore attr content))
@@ -282,7 +329,7 @@
   ;;; Effect  : 
   ;;; Value   : 
 
-  (omd-entity.case entity
+  (xml-entity.case entity
 		   (("link" (("linked" link)) content)
 		    (declare (ignore content))
 		    link)
@@ -326,12 +373,22 @@
 				     (mmiss=defnames+links.find.cycles min-defname.linknames 
 								       defs+links nil))
 				 defs+links)))
-		   nil)))
+		   nil))
+	 (errors nil)
+	 )
     (when cycles 
       (mmiss-print "~%")
       (dolist (cycle cycles)
-	(mmiss-print "Detected cycle ~{~A~^ -> ~}~%" cycle)))
-    (null cycles)
+	(mmiss-print "Detected cycle ~{~A~^ -> ~}~%" cycle))
+      (setq errors (cons "Detected the following cycle" 
+			 (mapcar #'(lambda (defname)
+				     (xml-entity.create 
+				      "mmissobject" 
+				      (list (xml-attribute.create "id" defname))
+				      nil))
+				 (first cycles))))
+      )
+    (values (null cycles) errors)
     ))
 
 
@@ -374,5 +431,7 @@
 					      :test #'string-equal)))
 			     (remove defname.linknames defname.linknames-list)))
 		  defname.linknames-list))
+
+
 
 

@@ -216,14 +216,16 @@
   (let ((result 
 	 (with-output-to-string (stream)
 				(http=html2list-rec content stream))))
-    (read-from-string result)))
+    (read-from-string result)
+    ))
   
 
 (defun http=html2list-rec (content stream &optional (act.pos 0))
   (labels ((getcontent (strng)
 		       (if (string= "" (string-trim '(#\space #\tab #\newline #\return #\linefeed) strng))
 			   ""
-			 (concatenate 'string " \"" (remove #\" strng) "\" "))))
+			 (format nil " ~S" strng)
+			 )))
   (multiple-value-bind (next-tag next-pos)    
       (http~next-tag content act.pos)
     (cond

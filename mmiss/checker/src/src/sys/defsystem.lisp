@@ -985,11 +985,11 @@
 	                    #+(or :cltl2 :lispworks) "COMMON-LISP-USER"))
 #+(OR :CMU :CCL :ALLEGRO :EXCL :lispworks :symbolics)
 (eval-when (compile load eval)
-  (import *exports* #-(or :cltl2 :lispworks) "USER" 
-	            #+(or :cltl2 :lispworks) "COMMON-LISP-USER")
+  (import *exports* #-(or :cltl2 :lispworks :darwin) "USER" 
+	            #+(or :cltl2 :lispworks :darwin) "COMMON-LISP-USER")
   (shadowing-import *special-exports* 
-		    #-(or :cltl2 :lispworks) "USER" 
-		    #+(or :cltl2 :lispworks) "COMMON-LISP-USER"))
+		    #-(or :cltl2 :lispworks :darwin) "USER" 
+		    #+(or :cltl2 :lispworks :darwin) "COMMON-LISP-USER"))
 
 #-(or :PCL :CLOS)
 (when (find-package "PCL") 
@@ -3464,6 +3464,17 @@ D
 	   (format t "~%Compiling source ~A" component)
 	   (with-tell-user ("Compiling source" component :source)
 	     (or *oos-test*
+
+		   (with-compilation-unit
+		    #+CMU (:optimize '(optimize (speed 3) (safety 1) (debug 3))
+				     :optimize-interface '(optimize-interface (safety 3) (debug 3))
+				     :context-declarations
+				     '(((:and :external :global)
+					(declare (optimize-interface (safety 3) (debug 3))))
+				       ((:and :external :macro)
+					(declare (optimize (safety 3))))
+				       (:macro (declare (optimize (speed 0))))))
+		    #-CMU ()
 		 (funcall (compile-function component)
 			  source-pname
 			  :output-file
@@ -3480,7 +3491,9 @@ D
 ;			  :errors-to-terminal
 ;			  #+(and CMU (not :new-compiler))
 ;			  *cmu-errors-to-terminal*
-			  )))
+			  )
+		 )
+		 ))
 	   must-compile)
 	  (must-compile
 	   (tell-user "Source file not found. Not compiling"

@@ -9,7 +9,8 @@
 								*lisp-dependent-binary-pathname*)
 	      :components
 	      ((:file "service")
-	       (:file "http-core")
+	       (:file "http-core"
+		      :depends-on ("socket-interface"))
 	       ;; (:file "process_cmu")
 	       (:file "socket" :language :c-so)
 	       (:file "process"

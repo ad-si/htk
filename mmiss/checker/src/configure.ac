@@ -19,6 +19,7 @@ case `uname` in
    Linux* ) WINDOWS=0 ; OSTITLE=linux ; OSSHORT=Linux ;;
    SunOS* ) WINDOWS=0 ; OSTITLE=solaris ; OSSHORT=SunOS ;;
    FreeBSD* ) WINDOWS=0 ; OSTITLE=freebsd; OSSHORT=FreeBSD  ;;
+   Darwin* ) WINDOWS=0 ; OSTITLE=darwin; OSSHORT=Darwin  ;;
    * ) WINDOWS=0; OSTITLE=unknown ; OSSHORT=Unknown ;;
 esac
 AC_SUBST(WINDOWS)

@@ -47,7 +47,11 @@
   (format nil "~A-~A-~A" 
 	  #+(and LINUX X86)                                     'I486
 	  #+(AND (OR SOLARIS SPARC) SUN)                        'SUN
-	  #-(OR (AND (OR SOLARIS SPARC) SUN) (AND LINUX X86))   'UNKNOWN
+	  #+(AND DARWIN PPC)                                    'PPC
+	  #-(OR (AND (OR SOLARIS SPARC) SUN) 
+		(AND LINUX X86)
+		(AND DARWIN PPC)
+		)                                               'UNKNOWN
 
 	  #+ALLEGRO                                             'ALLEGRO
 	  #+LUCID                                               'LUCID
@@ -66,7 +70,10 @@
           
 	  ))
 
-(defparameter user::*lisp-dependent-binary-pathname* *lisp-dependent-binary-pathname*)
+(defparameter 
+  #-DARWIN user::*lisp-dependent-binary-pathname* 
+  #+DARWIN common-lisp-user::*lisp-dependent-binary-pathname* 
+  *lisp-dependent-binary-pathname*)
 
 (defun load-sys (system-name &optional sources-only?)
   (mk:operate-on-system system-name :load :force :all :load-source-instead-of-binary sources-only?
@@ -312,7 +319,8 @@
     (si::save-system filename)
     #+:cmu
     (progn 
-      (ext:gc :full t)
+      #-darwin (ext:gc :full t)
+      #+darwin (ext:gc :full)
       (ext:save-lisp filename
 		     :init-function init-function :site-init nil :print-herald nil)
       )

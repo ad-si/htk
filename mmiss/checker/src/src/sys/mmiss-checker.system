@@ -1,7 +1,7 @@
 (in-package :user)
 
 (mk:defsystem mmiss-checker
-	      :depends-on (base omdoc-parser)
+	      :depends-on (base xml-parser)
 	      :source-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME") 
 								"src" "mmiss")
 	      :binary-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME") 
@@ -10,7 +10,7 @@
 	      :components
 	      ((:file "mmiss-analyser")
 	       )
-	      :dump-init-function (lambda () (funcall (intern "MMISS-CHECKER-RESET" :DGRL)))
+	      :dump-init-function (lambda () (funcall (intern "MMISS-CHECKER-RESET" :USER)))
 	      )
 
 
