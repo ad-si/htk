@@ -169,8 +169,16 @@ if test "$GOAHEAD" = YES; then
    echo @<:@@:>@ >uni-package.conf
    echo @<:@@:>@ >uni-package.conf.export
    mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
+
+   # Use GHCPKG option with --force if necessary
+   if test "$GhcMajVersion.$GhcMinVersion" = "5.02"
+   then
+      GHCPKGOPTS=
+   else
+      GHCPKGOPTS=--force
+   fi
    
-   $GHCPKG --config-file uni-package.conf.export --add-package <uni-package.options
+   $GHCPKG $GHCPKGOPTS --config-file uni-package.conf.export --add-package <uni-package.options
 
    if test -n "$BDBDIR"; then
       $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
