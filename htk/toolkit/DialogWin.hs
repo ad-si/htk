@@ -24,9 +24,12 @@ module DialogWin (
         useHTk,
         ) where
 
+import Maybe(fromMaybe)
+
 import System.IO.Unsafe
 
 import Messages
+import ExtendedPrelude (newFallOut,mkBreakFn)
 
 import Core
 import HTk
@@ -120,7 +123,10 @@ createAlertWin :: String
    -- ^ the text to be displayed
    -> [Config Toplevel] 
    -> IO ()
-createAlertWin str wol = createFn choices Nothing confs (defs ++ wol)
+createAlertWin str wol = 
+      do 
+         catchDestroyedFallOut (createFn choices Nothing confs (defs ++ wol))
+         done
    where
        choices = [("Continue",())]
        defs = [text "Alert Window"]
@@ -134,8 +140,13 @@ createAlertWin' :: [MarkupText]
    -- ^ the markuptext to be displayed
    -> [Config Toplevel] 
    -> IO ()
-createAlertWin' str wol = 
- createDialogWin' choices Nothing (confs++[photo warningImg]) (defs ++ wol)
+createAlertWin' str wol =
+  do 
+     catchDestroyedFallOut (
+        createDialogWin' choices Nothing (confs++[photo warningImg]) 
+           (defs ++ wol)
+        )
+     done
   where choices = [("Continue",())]
         defs    = [text "Alert Window"]
         confs   = [new str]
@@ -145,7 +156,10 @@ createErrorWin :: String
    -- ^ the text to be displayed
    -> [Config Toplevel] 
    -> IO ()
-createErrorWin str wol = createFn choices Nothing confs (defs++wol)
+createErrorWin str wol = 
+    do
+       catchDestroyedFallOut (createFn choices Nothing confs (defs++wol))
+       done
     where 
        choices = [("Continue",())]
        defs    = [text "Error Message"]
@@ -159,8 +173,12 @@ createErrorWin' :: [MarkupText]
    -- ^ the markuptext to be displayed
    -> [Config Toplevel] 
    -> IO ()
-createErrorWin' str wol = 
- createDialogWin' choices Nothing (confs++[photo errorImg]) (defs++wol)
+createErrorWin' str wol =
+   do 
+      catchDestroyedFallOut (
+         createDialogWin' choices Nothing (confs++[photo errorImg]) (defs++wol)
+         )
+      done
  where choices = [("Continue",())]
        defs = [text "Error Message"]
        confs = [new str]
@@ -187,7 +205,12 @@ createConfirmWin :: String
    -> [Config Toplevel] 
    -> IO Bool
    -- ^ True(Ok) or False(Cancel)
-createConfirmWin str wol = createFn choices (Just 0) confs (defs ++ wol)
+createConfirmWin str wol = 
+    do
+       bOpt <- catchDestroyedFallOut (
+          createFn choices (Just 0) confs (defs ++ wol)
+          )
+       return (fromMaybe False bOpt)
     where 
        choices = [("Ok",True),("Cancel",False)]
        defs    = [text "Confirm Window"]
@@ -203,7 +226,12 @@ createConfirmWin' :: [MarkupText]
    -> IO Bool
    -- ^ True(Ok) or False(Cancel)
 createConfirmWin' str wol = 
- createDialogWin' choices (Just 0) (confs++[photo questionImg]) (defs ++ wol)
+   do
+      bOpt <- catchDestroyedFallOut (
+         createDialogWin' choices (Just 0) (confs++[photo questionImg]) 
+            (defs ++ wol)
+         )
+      return (fromMaybe False bOpt)
  where choices = [("Ok",True),("Cancel",False)]
        defs    = [text "Confirm Window"]
        confs   = [new str]
@@ -215,9 +243,13 @@ createMessageWin' :: [MarkupText]
    -> IO ()
    -- ^ ()
 createMessageWin' str wol =
- createDialogWin' [("Dismiss", ())] Nothing 
-	          [new str, photo infoImg] 
-		  (text "Information": wol)
+   do
+      catchDestroyedFallOut (
+         createDialogWin' [("Dismiss", ())] Nothing 
+	    [new str, photo infoImg] 
+	    (text "Information": wol)
+         )
+      done
 
 
             
@@ -227,8 +259,12 @@ createMessageWin :: String
    -> [Config Toplevel]
    -> IO ()
    -- ^ ()
-createMessageWin str wol = createFn [("Dismiss", ())] Nothing confs
-      (text "Information": wol)
+createMessageWin str wol = 
+   do
+      catchDestroyedFallOut (
+         createFn [("Dismiss", ())] Nothing confs (text "Information": wol)
+         )
+      done
    where
       (scrollConf,complex) = scrollText str
       confs = [scrollConf,photo infoImg]
@@ -328,8 +364,18 @@ dialog plain choices def confs tpconfs =
             sb <- newSelectBox b Nothing []
             pack sb [Expand Off, Fill X, Side AtBottom]
           
-            events <- mapM (createChoice sb) choices
-            let ev = choose events
+            events0 <- mapM (createChoice sb) choices
+            let ev0 = choose events0
+
+            -- Arrange for escape when the user destroys the window
+            (destroyEvent,_)  <- bindSimple tp Destroy
+
+            let
+               ev = 
+                     ev0
+                  +> (destroyEvent >>>= destroyedFallOut)
+
+
             return (tp, emsg, lmsg, lbl,sb,ev)
       dlg <- configure (Dialog tp emsg lmsg lbl sb ev) confs
       return dlg
@@ -340,6 +386,22 @@ dialog plain choices def confs tpconfs =
          clickedbut <- clicked but
          return (clickedbut >> (always (return val)))
 
+
+destroyedFallOutPair :: (ObjectID,IO a -> IO (Either String a))
+destroyedFallOutPair = unsafePerformIO newFallOut
+{-# NOINLINE destroyedFallOutPair #-}
+
+destroyedFallOut :: a
+destroyedFallOut = mkBreakFn (fst destroyedFallOutPair) "DESTROYED"
+
+catchDestroyedFallOut :: IO a -> IO (Maybe a)
+catchDestroyedFallOut act =
+   do
+      strOrA <- (snd destroyedFallOutPair) act
+      return (case strOrA of
+         Left "DESTROYED" -> Nothing
+         Right a -> Just a
+         )
 
 -- --------------------------------------------------------------------------
 -- The useHTk function
