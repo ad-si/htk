@@ -11,6 +11,10 @@ module VariableMap(
    lookupWithDefaultMap,
    mapToList,
    mapToSinkSource,
+
+   addToVariableMap,
+   variableMapToList,
+   lookupVariableMap,
    ) where
 
 import FiniteMap
@@ -142,7 +146,27 @@ instance Ord key => CanAddSinks (VariableMapSet key elt element) [element]
          let elements = map (uncurry mkElement) (fmToList contents)
          return elements
 
-   
+-- --------------------------------------------------------------------
+-- A couple of simple access functions
+-- NB.  We don't follow the Registry interface because, without altering
+-- the design, it would be difficult to implement some Registry functions.
+-- --------------------------------------------------------------------
+
+addToVariableMap :: Ord key => VariableMap key elt -> key -> elt -> IO ()
+addToVariableMap variableMap key elt = 
+   updateMap variableMap (VariableMapUpdate (AddElement (key,elt)))
+
+variableMapToList :: Ord key => VariableMap key elt -> IO [(key,elt)]
+variableMapToList (VariableMap broadcaster) =
+   do
+      contents <- readContents broadcaster
+      return (mapToList contents)
+
+lookupVariableMap :: Ord key => VariableMap key elt -> key -> IO (Maybe elt)
+lookupVariableMap (VariableMap broadcaster) key =
+   do
+      (VariableMapData finiteMap) <- readContents broadcaster
+      return (lookupFM finiteMap key)
 
 -- --------------------------------------------------------------------
 -- Make VariableMap Typeable

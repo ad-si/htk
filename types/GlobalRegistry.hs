@@ -31,12 +31,16 @@ module GlobalRegistry(
    lookupInGlobalRegistry,
    addToGlobalRegistry,
    getAllElements,
+   getAllElementsSinked,
    ) where
 
 import Dynamics
 import Registry
 import AtomString
 import UniqueString
+import Sink
+import VariableSet
+import VariableMap
 
 import ViewType
 import CodedValue
@@ -48,12 +52,11 @@ import CodedValue
 -- of names for keying them.
 data ViewData objectType = ViewData {
    names :: UniqueStringSource, -- source of keys for objectTypes
-   objectTypes :: Registry GlobalKey objectType
+   objectTypes :: VariableMap GlobalKey objectType
    }
 
 newtype GlobalRegistry objectType =  GlobalRegistry 
    (Registry ViewId (ViewData objectType))
-
 
 newtype GlobalKey = GlobalKey AtomString deriving (Ord,Eq)
 
@@ -88,12 +91,7 @@ addViewToGlobalRegistry ((GlobalRegistry globalRegistry)
    do
       ((objectTypesList,names) :: Encoding objectType)
          <- doDecodeIO codedValue view
-      objectTypes <- newRegistry
-      sequence_ (map
-         (\ (globalKey,objectType) ->setValue objectTypes globalKey objectType
-            )
-         objectTypesList
-         )
+      objectTypes <- newVariableMap objectTypesList
       let
          (viewData :: ViewData objectType) = ViewData {  
             names = names,
@@ -127,7 +125,7 @@ exportViewFromGlobalRegistry
                objectTypes = objectTypes
                } :: ViewData objectType) -> 
              do
-               objectTypesList <- listRegistryContents objectTypes
+               objectTypesList <- variableMapToList objectTypes
                codedValue <- doEncodeIO 
                   ((objectTypesList,names) :: Encoding objectType) view 
                return (Just codedValue)
@@ -147,8 +145,25 @@ getAllElements :: GlobalRegistry objectType -> View -> IO [objectType]
 getAllElements globalRegistry view =
    do
       viewData <- lookupViewData globalRegistry view
-      contents <- listRegistryContents (objectTypes viewData)
+      contents <- variableMapToList (objectTypes viewData)
       return (map snd contents)
+
+---
+-- Add a sink which monitors new object types.
+getAllElementsSinked :: GlobalRegistry objectType -> View -> Sink objectType 
+   -> IO [objectType]
+getAllElementsSinked globalRegistry view sink =
+   do
+      viewData <- lookupViewData globalRegistry view
+      let
+         sink' = coMapSink' 
+            (\ newData -> case newData of
+               (VariableMapUpdate (AddElement (_,object))) -> Just object
+               _ -> Nothing
+               )
+            sink
+      contents <- addOldSink (objectTypes viewData) sink'
+      return (map snd (mapToList contents))
 
 -- ---------------------------------------------------------------
 -- What the implementors of object types need to know about them.
@@ -197,7 +212,7 @@ lookupInGlobalRegistry :: GlobalRegistry objectType -> View -> GlobalKey ->
 lookupInGlobalRegistry globalRegistry view key =
    do
       viewData <- lookupViewData globalRegistry view
-      Just objectType <- getValueOpt (objectTypes viewData) key
+      Just objectType <- lookupVariableMap (objectTypes viewData) key
       return objectType
 
 ---
@@ -208,7 +223,7 @@ addToGlobalRegistry :: GlobalRegistry objectType -> View -> GlobalKey ->
 addToGlobalRegistry globalRegistry view key objectType =
    do
       viewData <- lookupViewData globalRegistry view
-      setValue (objectTypes viewData) key objectType
+      addToVariableMap (objectTypes viewData) key objectType
 
 ---
 -- (not exported but used in this section)
@@ -242,7 +257,7 @@ newViewData :: IO (ViewData objectType)
 newViewData =
    do
       names <- newUniqueStringSource
-      objectTypes <- newRegistry
+      objectTypes <- newEmptyVariableMap
       let
          viewData = ViewData {names = names,objectTypes = objectTypes}
       return viewData         

@@ -12,6 +12,7 @@ module Sink(
 
    putSink,
    coMapSink,
+   coMapSink',
 
    CanAddSinks(..),
    SinkSource(..),
@@ -121,6 +122,18 @@ putSink sink x =
 coMapSink :: (y -> x) -> Sink x -> Sink y
 coMapSink fn (Sink {sinkID = sinkID,action = action}) =
    Sink {sinkID = sinkID,action = action . fn}
+
+---
+-- Another version which allows a transformation function to filter
+-- certain elements
+coMapSink' :: (y -> Maybe x) -> Sink x -> Sink y
+coMapSink' fn (Sink {sinkID = sinkID,action = action}) =
+   let
+      action' y = case fn y of
+         Nothing -> done
+         Just x -> action x
+   in
+      Sink {sinkID = sinkID,action = action'}
 
 -- -------------------------------------------------------------------------
 -- The CanAddSinks class.

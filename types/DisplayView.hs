@@ -26,6 +26,8 @@ import Sink
 import VariableSet
 
 import Events
+import Examples
+import Channels
 import Destructible
 
 import BSem
@@ -76,6 +78,7 @@ newtype AllDisplayedObjectTypes =
 ---
 -- Constructs a AllDisplayedObjectTypes for a particular graph, view and
 -- wrapped display type.  Also compute all the top links for that type.
+-- It also takes as argument a sink for all subequently-created object types.
 getAllDisplayedObjectTypes :: 
    GraphAllConfig graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms
@@ -84,21 +87,23 @@ getAllDisplayedObjectTypes ::
    -> View -> WrappedDisplayType 
    -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
+   -> Sink WrappedObjectType
    -> IO (AllDisplayedObjectTypes,[WrappedLink])
 getAllDisplayedObjectTypes 
       (graph :: Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
-      view wrappedDisplayType displayedViewAction =
+      view wrappedDisplayType displayedViewAction sink =
    do  
       -- (1) get all object types
-      objectTypes <- getAllObjectTypes view
+      objectTypes <- getAllObjectTypesSinked view sink
       -- (2) initialise the registry
       (registry :: UnsafeRegistry (Keyed WrappedObjectType)) <- newRegistry
       let
          allDisplayedObjectTypes = AllDisplayedObjectTypes registry
       -- (3) Now compute it.
-      (topLinksList :: [[WrappedLink]]) <- mapM (addNewObjectTypeInner graph view
-         allDisplayedObjectTypes wrappedDisplayType displayedViewAction) 
+      (topLinksList :: [[WrappedLink]]) 
+         <- mapM (addNewObjectTypeInner graph view
+            allDisplayedObjectTypes wrappedDisplayType displayedViewAction) 
          objectTypes
 
       -- And return it.                      
@@ -276,10 +281,19 @@ displayView
       -- (2) construct the nodes registry
       nodes <- newRegistry
 
+      -- (2.5) construct a channel containing new object types,
+      -- and a sink to send objects along it.
+      (objectTypeChannel :: Channel WrappedObjectType) <- newChannel
+      let
+         sendWrappedObjectType wrappedObjectType 
+            = sync(noWait(send objectTypeChannel wrappedObjectType))
+      (objectTypesSink :: Sink WrappedObjectType) 
+         <- newSink sendWrappedObjectType
+
       -- (3) construct allDisplayedObjectTypes and get the top links.
       (allDisplayedObjectTypes,allTopLinks) 
          <- getAllDisplayedObjectTypes graph view wrappedDisplayType
-            (readMVar displayedViewMVar)
+            (readMVar displayedViewMVar) objectTypesSink
 
       -- (4) construct closeDownActions.
       closeDownActions <- newCloseDownActions
@@ -299,8 +313,25 @@ displayView
       -- (5) display the nodes.
       mapM_ (displayNode displayedView) allTopLinks
 
-      -- (6) redraw
+      -- (5.3) redraw
       redraw graph
+
+      -- (5.7) Add thread to handle new object types
+      let
+         newObjectType :: Event ()
+         newObjectType =
+            do
+               wrappedObjectType <- receive objectTypeChannel
+               always (addNewObjectType displayedView wrappedObjectType)
+
+      stopNewObjectTypesThread <- spawnRepeatedEvent newObjectType
+      let
+         stopNewObjectTypes =
+            do
+               invalidate objectTypesSink
+               stopNewObjectTypesThread
+
+      addCloseDownAction displayedView stopNewObjectTypes
 
       -- (6) Handle destruction of the window
       forkIO (

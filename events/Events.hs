@@ -431,6 +431,8 @@ doRequest (Request rqFn) request = rqFn request
 
 ---
 -- Synchronise on an event in a different thread.
+-- The kill action it returns is unsafe since it can cause deadlocks if
+-- it occurs at an awkward moment.  To avoid this use spawnEvent, if possible.
 spawnEvent :: Event () -> IO (IO ())
 spawnEvent reactor = spawn (sync reactor)
 

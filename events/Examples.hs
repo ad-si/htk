@@ -9,6 +9,12 @@ module Examples(
 
    watch, -- :: Event a -> IO (Event a,IO ())
    -- watch is used for events which can be dropped occasionally.
+
+
+   spawnRepeatedEvent, -- :: Event () -> IO (IO ())
+   -- spawnRepeatedEvent concurrently syncs on the event until the
+   -- given action is used; it is somewhat safer than spawnEvent.
+
    ) where
 
 import Object
@@ -82,4 +88,29 @@ watch (event :: Event a) =
       spawnEvent waitForNext
 
       return (receive channel,sync(send dieChannel ()))
+
+
+---
+-- spawnRepeatedEvent concurrently syncs on the event until the
+-- given action is used; it is somewhat safer than spawnEvent.
+-- It also never interrupts the handler event attached to
+-- the event.
+spawnRepeatedEvent :: Event () -> IO (IO ())
+spawnRepeatedEvent event =
+   do
+      dieChannel <- newChannel
+      let
+
+         die = receive dieChannel
+      
+         handleEvent =
+               die
+            +> (do
+                  event
+                  handleEvent
+               )
+      spawnEvent handleEvent
+      return (sync(noWait(send dieChannel ())))
+
+
  

@@ -80,6 +80,11 @@ module ObjectTypes(
    -- getAllObjectTypes returns every object type known to the view.
    getAllObjectTypes, -- :: View -> IO [WrappedObjectType]
 
+   -- Like getAllObjectTypes, but additionally attaches a sink to
+   -- monitor new object types.
+   getAllObjectTypesSinked, 
+      -- :: View -> Sink WrappedObjectType -> IO [WrappedObjectType] 
+
    -- getAllObjectTypeTypes returns every registered sort of object type..
    getAllObjectTypeTypes, -- :: IO [WrappedObjectTypeTypeData]
 
@@ -493,6 +498,28 @@ getAllObjectTypes view =
             )
          allObjectTypeTypes
       return (concat allWrappedObjectTypes)
+
+-- -----------------------------------------------------------------
+-- Extract all ObjectTypes in a view and also get any updates
+-- -----------------------------------------------------------------
+
+getAllObjectTypesSinked :: View -> Sink WrappedObjectType 
+   -> IO [WrappedObjectType] 
+getAllObjectTypesSinked view sink =
+   do
+      allObjectTypeTypes <- getAllObjectTypeTypes
+      allWrappedObjectTypes <- mapM
+         (\ (WrappedObjectTypeTypeData objectType) ->
+            do
+               let 
+                  globalRegistry = objectTypeGlobalRegistry objectType
+                  sink' = coMapSink WrappedObjectType sink
+               objectTypes <- getAllElementsSinked globalRegistry view sink'
+               return (map WrappedObjectType objectTypes)
+            )
+         allObjectTypeTypes
+      return (concat allWrappedObjectTypes)
+
 
 -- -----------------------------------------------------------------
 -- We make WrappedObjectType an instance of HasCodedValue.

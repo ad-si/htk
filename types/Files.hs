@@ -36,6 +36,7 @@ import ObjectTypes
 import DisplayParms
 import GlobalRegistry
 import CallEditor
+import GetAttributesType
 
 -- ------------------------------------------------------------------
 -- FileType and its instance of HasCodedValue
@@ -124,6 +125,10 @@ instance ObjectType FileType File where
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim file = fileType file
    nodeTitlePrim file = name file
+
+
+   createObjectTypeMenuItemNoInsert =
+      Just ("File type",createNewFileType)
 
    createObjectMenuItemPrim fileType =
       fmap
@@ -272,3 +277,44 @@ getPlainFileType view =
 plainFileKey :: GlobalKey
 plainFileKey =  oneOffKey "Files" ""
 
+-- ------------------------------------------------------------------
+-- creating a new file type
+-- ------------------------------------------------------------------
+
+createNewFileType :: View -> IO (Maybe FileType)
+createNewFileType view =
+   do
+      let
+         firstForm :: Form (String,(Bool,NodeTypes (String,Link File))) =
+            titleForm //
+            canEditForm //
+            simpleNodeTypesForm
+
+         titleForm0 :: Form String
+         titleForm0 = newFormEntry "Title" "" 
+
+         titleForm = guardForm (/= "") "Title must be non-empty" titleForm0
+
+         canEditForm :: Form Bool
+         canEditForm = newFormEntry "Editable" False
+
+      typeData1Opt <- doForm "Node Type Appearance" firstForm
+      case typeData1Opt of
+         Nothing -> return Nothing
+         Just (title,(canEdit,displayParms)) ->
+            do
+               requiredAttributesOpt <- getAttributesType 
+               case requiredAttributesOpt of
+                  Nothing -> return Nothing
+                  Just requiredAttributes ->
+                     do
+                        fileTypeId <- newKey globalRegistry view
+                        knownFiles <- newEmptyVariableSet
+                        return (Just(FileType {
+                           fileTypeId = fileTypeId,
+                           fileTypeLabel = Just title,
+                           requiredAttributes = requiredAttributes,
+                           displayParms = displayParms,
+                           knownFiles = knownFiles,
+                           canEdit = canEdit
+                           }))
