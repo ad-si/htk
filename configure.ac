@@ -248,6 +248,11 @@ if test "$GOAHEAD" = YES; then
       echo @<:@@:>@ >uni-package.conf.export
       mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
 
+      # Also add a package corresponding to the extra options we need for the
+      # standard system crypt function on Linux.
+      $GHCPKG --config-file uni-package.conf --add-package <crypt-package.options
+      
+
       if test -n "$HAXML"
       then
          echo Linking to HaXml sources.

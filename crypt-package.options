@@ -1,0 +1,15 @@
+Package {
+   name = "crypt-linux",
+   import_dirs = [],
+   source_dirs = [],
+   library_dirs = [],
+   hs_libraries = [],
+   extra_libraries = ["crypt"],
+   include_dirs = [],
+   c_includes = [],
+   package_deps = [],
+   extra_ghc_opts = [],
+   extra_cc_opts = [],
+   extra_ld_opts = []
+   }
+ 

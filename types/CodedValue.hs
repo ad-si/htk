@@ -120,6 +120,7 @@ import Registry
 import Sources
 import VariableSet
 import VariableMap
+import BinaryIO
 
 import VersionDB
 import ViewType
@@ -240,10 +241,6 @@ doDecodeMultipleIO codedValue view =
             do
               (value,codedValue1) <- wrapFormatError(decodeIO codedValue0 view)
               doDecodeMultipleIO' codedValue1 (value:l)
-
-class HasConverter value1 value2 where
-   encode' :: value1 -> value2
-   decode' :: value2 -> value1
 
 ---------------------------------------------------------------------
 -- Combining instances of HasCodedValue
@@ -599,40 +596,12 @@ instance HasCodedValue ObjectVersion where
 
 ---------------------------------------------------------------------
 -- Integers
+-- NB.  This code takes over from the integer code in util/BinaryIO.hs
 ---------------------------------------------------------------------
-
-bitsInChar :: Int
--- Number of bits easily stored in the Char type.  Thus if Unicode ends
--- up getting stored as UTF8 we may prefer to change this to 7 or 16.
-bitsInChar = 8
-
-bitsPerChar :: Int
--- Number of bits of an integer we will store per char.
--- (The remaining one is used to mark the end of the sequence.)
-bitsPerChar = bitsInChar - 1
-
--- Here are some useful abbreviations in this connection
-topBit :: Bits integral => integral
-topBit = bit bitsPerChar
-
-mask :: (Integral integral,Bits integral) => integral
-mask = topBit - 1
-
-nextBit :: Bits integral => integral
-nextBit = bit (bitsInChar - 2)
-
-newtype CodedList = CodedList [Int32]
--- This is a nonempty list of integers in [0,2^(bitsInChar-1)).
 
 codedList_tyRep = mkTyRep "CodedValue" "CodedList"
 instance HasTyRep CodedList where
    tyRep _ = codedList_tyRep
-
-chrGeneral :: Integral a => a -> Char
-chrGeneral value = chr (fromIntegral value)
-
-ordGeneral :: Integral a => Char -> a
-ordGeneral value = fromIntegral (ord value)
 
 instance HasPureCodedValue CodedList where
    encodePure (CodedList [i]) codedValue =
@@ -653,45 +622,6 @@ instance HasPureCodedValue CodedList where
                   (CodedList (i:xs),rest)
             else
                (CodedList [i `xor` topBit],nextCodedValue)
-
-instance (Integral integral,Bits integral) 
-   => HasConverter integral CodedList 
-      where
-   encode' i =
-      if (i >= nextBit) || (i < -nextBit) 
-         then
-            let
-               lowestPart = i .&. mask
-               highPart = i `shiftR` bitsPerChar
-               CodedList codedHigh = encode' highPart 
-            in
-               CodedList ((fromIntegral lowestPart) : codedHigh)
-         else
-            let
-               wrapped =
-                  if i < 0
-                     then
-                        topBit + i
-                     else
-                        i
-            in
-               CodedList [fromIntegral wrapped]
-   decode' (CodedList [wpped]) =
-      let
-         wrapped = fromIntegral wpped
-      in
-         if wrapped >= nextBit
-            then
-               wrapped - topBit
-            else
-               wrapped
-   decode' (CodedList (lPart : codedHigh)) =
-      let
-         lowestPart = fromIntegral lPart
-         highPart = decode' (CodedList codedHigh) 
-      in
-         lowestPart + (highPart `shiftL` bitsPerChar)
-
 
 instance (Typeable integral,Integral integral,Bits integral) 
    => HasPureCodedValue integral where

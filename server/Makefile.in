@@ -1,7 +1,16 @@
 PACKAGE = uni-server
-PACKAGES = net posix uni-reactor uni-posixutil
+
+ifeq "@OSTITLE@" "linux"
+CRYPTPACKAGES = crypt-linux
+else
+CRYPTPACKAGES = 
+endif
+
+PACKAGES = net posix uni-reactor uni-posixutil $(CRYPTPACKAGES)
+
 
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
+   Crypt.hs
 
 include @TOP@/mk/boilerplate.mk
