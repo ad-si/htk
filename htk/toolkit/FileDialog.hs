@@ -27,17 +27,34 @@ import System
 import Maybe
 import TkVariables
 import ModalDialog
+import DialogWin (createWarningWin)
 
-tlDebug = False
-debugMsg str = if tlDebug then putStr (">>> " ++ str ++ "\n") else done
+debugMsg :: String-> IO () 
+debugMsg str = done -- putStr (">>> " ++ str ++ "\n") 
 
-getFilesAndFolders :: FilePath -> Bool -> IO ([FilePath], [FilePath])
-getFilesAndFolders path showhidden =
+
+-- Display a warning window with a meaningful error message
+ioErrorWindow :: IOError-> IO ()
+ioErrorWindow ioe = 
+  createWarningWin ("Error while reading directory:\n"++
+                    ioeGetErrorString ioe++"\n"++
+	            case ioeGetFileName ioe of 
+		         Just fn -> "with file "++fn++"\n"
+			 Nothing -> "") 
+		   []
+
+tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either IOError 
+		                                        ([FilePath], [FilePath]))
+tryGetFilesAndFolders path showhidden =
   do
     debugMsg ("getting directory contents of " ++ path)
-    dcontents <- getDirectoryContents path
-    debugMsg "...ok\n"
-    sort dcontents [] [] path
+    dc <- try (getDirectoryContents path)
+    case dc of 
+       Left exn -> do debugMsg "... error!"
+                      return (Left exn)
+       Right dcontents -> do debugMsg "...ok\n"
+		             c<- sort dcontents [] [] path
+			     return (Right c)
   where sort :: [FilePath] -> [FilePath] -> [FilePath] -> FilePath ->
                 IO ([FilePath], [FilePath])
         sort (f : fs) files folders abs =
@@ -61,6 +78,14 @@ getFilesAndFolders path showhidden =
                                  else ".." : (List.sort folders))
         hidden :: FilePath -> Bool
         hidden f = head f == '.'
+
+getFilesAndFolders  :: FilePath -> Bool -> IO ([FilePath], [FilePath])
+getFilesAndFolders path showhidden =
+  do dc <- tryGetFilesAndFolders path showhidden 
+     case dc of
+       Left ioe-> do ioErrorWindow ioe
+                     return ([], [".."])
+       Right cont-> return cont		 
 
 dropLast :: FilePath -> FilePath
 dropLast [] = []
@@ -104,7 +129,7 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
             status # text "Reading...     "
             showhidden <- getRef showhiddenref
             success <- changeToFolder fp foldersref filesref
-                         pathref folderslb fileslb file_var showhidden
+                          pathref folderslb fileslb file_var showhidden
             (if success then
                do
                  status # text "Reading...ready"
@@ -123,18 +148,21 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
                file_var showhidden =
   let path' = if path == "" then "/" else path
   in  do debugMsg "getting files and folders"         
-         st <- try (getFilesAndFolders path' showhidden)
+         st <- tryGetFilesAndFolders path' showhidden
          case st of 
-	   Right (files, folders) -> 
+	   Right (files, folders) ->
 	     do setRef pathref path
                 debugMsg "got files and folders"
                 setRef filesref files
                 setRef foldersref folders
-                folderslb # value folders
                 fileslb # value files
+                folderslb # value folders
                 setTkVariable file_var ""
                 return True
-           Left e-> if isPermissionError e then return False else ioError e
+           Left e-> if isPermissionError e 
+	            then return False 
+		    else do ioErrorWindow e
+		            return False
 
 up ::  Ref [FilePath] -> Ref [FilePath] -> Ref FilePath ->
        ListBox FilePath -> ListBox FilePath -> TkVariable String ->
@@ -201,24 +229,22 @@ createFolder par childwindow ret =
        (main_destr, main_destr_ub) <- bindSimple main Destroy
 
        entnlab <- newFrame main []
-       pack entnlab [PadX 10, PadY 5]
 
        lab <- newLabel entnlab [font (Lucida, 12::Int),
                                 text "Enter name:"]
-       pack lab []
 
        ent_var <- createTkVariable ""
        ent <- newEntry entnlab [bg "white", width 40, variable ent_var]
                 :: IO (Entry String)
-       pack ent [PadX 10, PadY 5]
-
        buttons <- newFrame main []
-       pack buttons [PadX 10, PadY 5, Side AtBottom]
-
        ok <- newButton buttons [text "Ok", width 12]
-       pack ok [PadX 5, Side AtLeft]
-
        quit <- newButton buttons [text "Cancel", width 12]
+
+       pack entnlab [PadX 10, PadY 5]
+       pack lab []
+       pack ent [PadX 10, PadY 5]
+       pack buttons [PadX 10, PadY 5, Side AtBottom]
+       pack ok [PadX 5, Side AtLeft]
        pack quit [PadX 5, Side AtLeft]
 
        clickedok <- clicked ok
@@ -317,11 +343,9 @@ fileDialog title fp =
     showhiddenref <- newRef False
 
     actions <- newFrame main []
-    pack actions [PadY 10]
 
     pathmenubutton <- newMenuButton actions [text path, width 50,
                                              relief Raised]
-    pack pathmenubutton [PadX 10, Side AtLeft]
 
     upImg' <- upImg
     refreshImg' <- refreshImg
@@ -329,63 +353,62 @@ fileDialog title fp =
     deleteFileImg' <- deleteFileImg
 
     upbutton <- newButton actions [photo upImg']
-    pack upbutton [PadX 2, Side AtLeft]
-
     refreshbutton <- newButton actions [photo refreshImg']
-    pack refreshbutton [PadX 2, Side AtLeft]
-
     newfolderbutton <- newButton actions [photo newFolderImg']
-    pack newfolderbutton [PadX 2, Side AtLeft]
-
     deletefilebutton <- newButton actions [photo deleteFileImg']
-    pack deletefilebutton [PadX 2, Side AtLeft]
-
     showHiddenFiles <- newCheckButton actions [text "hidden files"]
-    pack showHiddenFiles [PadX 10, Side AtLeft]
-
     menuref <- newRef Nothing
 
     boxesnmsg <- newFrame main []
-    pack boxesnmsg [PadX 10]
 
     boxes <- newFrame boxesnmsg []
-    pack boxes [PadX 10, Fill X, Expand On]
     folderslist <- newFrame boxes []
-    pack folderslist [Side AtLeft]
     folderslb <- newListBox folderslist [value folders, size (35, 15),
                                          bg "white",
                                          font (Lucida, 12::Int)]
-    pack folderslb [Side AtLeft]
     foldersscb <- newScrollBar folderslist []
-    pack foldersscb [Side AtRight, Fill Y]
-    folderslb # scrollbar Vertical foldersscb
     fileslist <- newFrame boxes []
-    pack fileslist [Side AtRight]
     fileslb <- newListBox fileslist [value files, size (35, 15),
                                      bg "white", font (Lucida, 12::Int)]
-    pack fileslb [Side AtLeft]
     filesscb <- newScrollBar fileslist []
-    pack filesscb [Side AtRight, Fill Y]
-    fileslb # scrollbar Vertical filesscb
     status <- newLabel boxesnmsg [text "Welcome", relief Raised,
                                   font (Lucida, 12::Int), anchor Center]
-    pack status [PadX 10, Fill X, Expand On]
-
     file_var <- createTkVariable ""
     fileEntry <- newEntry main [bg "white", variable file_var]
                    :: IO (Entry String)
+    buttons <- newFrame main []
+    ok <- newButton buttons [text "Ok", width 12]
+    quit <- newButton buttons [text "Cancel", width 12]
+    msgQ <- newChannel
+
+    pack actions [PadY 10]
+    pack pathmenubutton [PadX 10, Side AtLeft]
+    pack upbutton [PadX 2, Side AtLeft]
+    pack refreshbutton [PadX 2, Side AtLeft]
+    pack newfolderbutton [PadX 2, Side AtLeft]
+    pack deletefilebutton [PadX 2, Side AtLeft]
+    pack showHiddenFiles [PadX 10, Side AtLeft]
+    pack boxesnmsg [PadX 10, Expand On]
+
+    pack boxes [PadX 10, Fill X, Expand On]
+    pack folderslist [Side AtLeft, Expand Off]
+    pack folderslb [Side AtLeft]
+    pack foldersscb [Side AtRight, Fill Y]
+    pack fileslist [Side AtRight, Expand On]
+
+    folderslb # scrollbar Vertical foldersscb
+    pack fileslb [Side AtLeft]
+    pack filesscb [Side AtRight, Fill Y]
+    fileslb # scrollbar Vertical filesscb
+    pack status [PadX 10, PadY 3, Fill X, Expand On]
+
     pack fileEntry [PadX 50, PadY 5, Fill X, Expand On]
+    pack buttons [PadY 5, PadX 30, Side AtRight]
 
     updPathMenu pathmenubutton menuref path foldersref filesref pathref
       folderslb fileslb file_var status showhiddenref
 
-    buttons <- newFrame main []
-    pack buttons [PadY 5, PadX 30, Side AtRight]
-    msgQ <- newChannel
-    ok <- newButton buttons [text "Ok", width 12]
     pack ok [PadX 5, Side AtLeft]
-
-    quit <- newButton buttons [text "Cancel", width 12]
     pack quit [PadX 5, Side AtRight]
 
 
@@ -397,10 +420,9 @@ fileDialog title fp =
     clickednewfolderbutton <- clicked newfolderbutton
     clickedok <- clicked ok
     clickedquit <- clicked quit
-    (fbpress, fbpress_ub) <- bindSimple folderslb
-                              (ButtonPress (Just 1))
-    (flpress, flpress_ub) <- bindSimple fileslb
-                               (ButtonPress (Just 1))
+    (fbpress, fbpress_ub) <- bindSimple folderslb (ButtonPress (Just 1))
+    (flpress, flpress_ub) <- bindSimple fileslb (ButtonPress (Just 1))
+    (enterName, en_ub) <- bindSimple fileEntry (KeyPress (Just (KeySym "Return")))
 
     let cleanUp :: IO ()
         cleanUp = flpress_ub >> fbpress_ub >> main_destr_ub
@@ -440,9 +462,8 @@ fileDialog title fp =
                                            showhiddenref
                                          done
                                      else
-                                       status #
-                                         text "Permission denied!" >>
-                                       done)
+                                       do status # text "Permission denied!"
+                                          done)
                                 _ -> done) >>
               listenDialog)
           +> (clickedquit >> always (syncNoWait (send msgQ Nothing) >>
@@ -506,16 +527,51 @@ fileDialog title fp =
                          else status # text "Permission denied!" >>
                               done)) >>
               listenDialog)
-          +> (clickedshowHiddenFiles >>
-              always (do
-                        s <- getRef showhiddenref
-                        setRef showhiddenref (not s)
-                        status # text "Reading...     "
-                        refresh foldersref filesref pathref folderslb
-                          fileslb (not s)
-                        status # text "Reading...ready"
-                        done) >>
-              listenDialog)
+          +> (do clickedshowHiddenFiles 
+	         always (do s <- getRef showhiddenref
+                            setRef showhiddenref (not s)
+                            status # text "Reading...     "
+                            refresh foldersref filesref pathref folderslb
+                                    fileslb (not s)
+                            status # text "Reading...ready"
+                            done)
+                 listenDialog)
+          +> (do enterName 
+	         always (do file_nm <- readTkVariable file_var
+	                    path <- getRef pathref
+ 	                    let fullnm= case file_nm of 
+                                 '/':_ -> file_nm
+		                 _ -> path ++"/"++ file_nm
+		            est<- try (getFileStatus fullnm)
+		            case est of
+			      Right st -> 
+			        if isDirectory st then 
+                                   do showhidden <- getRef showhiddenref
+                                      status # text "Reading...     "
+                                      success <- changeToFolder fullnm foldersref
+                                                 filesref pathref
+                                                 folderslb fileslb
+                                                 file_var showhidden
+                                      (if success then
+                                         do status # text "Reading...ready"
+                                            nupath <- getRef pathref
+                                            updPathMenu pathmenubutton
+                                                  menuref nupath foldersref
+                                                  filesref pathref folderslb
+                                                  fileslb file_var status
+                                                  showhiddenref
+                                            done
+                                       else
+                                         do status # text "Permission denied!"
+                                            done)
+			        else syncNoWait (send msgQ (Just fullnm))
+			      Left e -> do if isDoesNotExistError e then
+			                      createWarningWin
+				                 ("No such file or directory: "++ 
+					          fullnm) []
+				              else ioErrorWindow e
+					   setTkVariable file_var "")
+                 listenDialog)
           +> (clickeddeletefilebutton >>
               always
                 (do
@@ -549,7 +605,6 @@ fileDialog title fp =
                               done))) >>
               listenDialog)
     spawnEvent listenDialog
-
     spawnEvent (main_destr >> always (do
                                         mchildwindow <- getRef childwindow
                                         case mchildwindow of
