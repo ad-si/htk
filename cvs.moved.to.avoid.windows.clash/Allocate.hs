@@ -24,6 +24,7 @@ import Char
 
 import FiniteMap
 
+import QuickReadShow
 import FileNames
 
 import CVSTypes
@@ -33,7 +34,7 @@ data AllocateState = AllocateState {
 -- one for generating CVSFiles and one for generating CVSVersions.
    encodedName :: EncodedName, -- next new CVSFile in an encoded form.
    versionMap :: VersionMap -- state for generating new versions.
-   }
+   } deriving (Read,Show)
 
 initialAllocateState :: AllocateState
 initialAllocateState = AllocateState {
@@ -151,6 +152,16 @@ newtype VersionMap = VersionMap(FiniteMap (CVSFile,CVSVersion) Int)
 -- For all versions for which we have already supplied a successor
 -- this provides a number for the next branch to use.  If this isn't
 -- clear look at the next function . . .
+
+type ShowableMap = [((CVSFile,CVSVersion),Int)]
+
+instance QuickRead VersionMap where
+   quickRead = 
+      WrapRead (\ (list :: ShowableMap) -> VersionMap (listToFM list))
+
+instance QuickShow VersionMap where
+   quickShow =
+      WrapShow (\ (VersionMap map) -> (fmToList map) :: ShowableMap)
 
 newCVSVersionPrim :: VersionMap -> CVSFile -> CVSVersion ->
    (VersionMap,CVSVersion)

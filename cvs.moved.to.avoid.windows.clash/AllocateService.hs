@@ -1,8 +1,5 @@
 {- The AllocateService provides an implementation of the 
    ServiceClass type allocating new (CVSFile,CVSVersion) pairs.
-
-   TBD: add backuping server and recovery.
-
    -}
 module AllocateService(
    allocateService,
@@ -52,5 +49,10 @@ instance ServiceClass AllocateRequest AllocateAnswer AllocateState where
                newCVSVersion allocateState cvsFile oldCVSVersion
          return (NewCVSVersion cvsVersion,newState)
 
-   getBackupDelay _ = return BackupNever
+   initialStateFromString _ Nothing = return initialAllocateState
+   initialStateFromString _ (Just allocateStr) = return (read allocateStr)
+
+   backupToString _ state = return (show state)
+
+   getBackupDelay _ = return (BackupEvery 1)
 
