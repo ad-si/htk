@@ -51,6 +51,15 @@ module GraphConfigure(
    -- Edge patterns
    EdgePattern(..),
 
+   -- Edge Label (OBJECT)
+   EdgeObject(..),
+
+   -- Edge Direction (_DIR)
+   EdgeDir(..),
+
+   -- Edge Head (HEAD)
+   Head(..),
+
    NodeArcsHidden(..), -- Setting if a node's arcs are hidden or not.
    Border(..), -- Specifying a node's border.
    FontStyle(..), -- Specifying the font style for a node.
@@ -64,6 +73,10 @@ module GraphConfigure(
 
    -- Double click actions
    DoubleClickAction(..),
+
+   -- A funtion, which is called to set the edge label
+   -- (corresponding to ValueTitle for Nodes
+   TitleFunc(..),
 
    -- Graph Miscellaneous Flags
    OptimiseLayout(..),   
@@ -247,6 +260,8 @@ instance NodeTypeConfig NodeDragAndDrop
 
 newtype DoubleClickAction value = DoubleClickAction (value -> IO ())
 
+newtype TitleFunc value = TitleFunc (value -> String)
+
 ------------------------------------------------------------------------
 -- Shape, colours, and edge patterns
 ------------------------------------------------------------------------
@@ -278,6 +293,33 @@ data EdgePattern value = Solid | Dotted | Dashed | Thick | Double
    deriving (Read,Show)
 
 instance ArcTypeConfig EdgePattern
+
+data EdgeObject value = Object String deriving (Read,Show)
+
+instance ArcTypeConfig EdgeObject
+
+data EdgeDir value = Dir String deriving (Read, Show)
+-- The user is responsible for making sure this String is properly
+-- formatted.  To quote from the daVinci documentation:
+-- > This attribute is used to control the arrow of an edge. In a graph visualization,
+-- > each edge usually has an arrow pointing to the child node. This attribute can be 
+-- > used to let the arrow be drawn inverse (i.e. pointing to the parent), to get an arrow
+-- > at both sides of an edge or to suppress arrows for a particular edge. The supported 
+-- > attribute values are: "last" (1 arrow pointing to the child, default), "first" 
+-- >(1 arrow to the parent), "both" (2 arrows to the parent and to children) and "none" 
+-- >(no arrows).
+
+instance ArcTypeConfig EdgeDir
+
+
+data Head value = Head String deriving (Read, Show)
+-- The user is responsible for making sure this String is properly
+-- formatted.  To quote from the daVinci documentation:
+-- >  With this attribute you can control the shape of the edge's arrows. 
+-- > The possible values are: "farrow" (default), "arrow", "fcircle", and "circle", 
+-- > where a leading 'f' means filled.
+
+instance ArcTypeConfig Head
 
 ------------------------------------------------------------------------
 -- Node miscellaneous flags
@@ -408,7 +450,11 @@ class (
    HasConfigValue LocalMenu arcTypeParms,
    HasConfigValue ValueTitle arcTypeParms,
    HasConfigValue Color arcTypeParms,
-   HasConfigValue EdgePattern arcTypeParms)
+   HasConfigValue EdgePattern arcTypeParms,
+   HasConfigValue EdgeObject arcTypeParms,
+   HasConfigValue EdgeDir arcTypeParms,
+   HasConfigValue Head arcTypeParms
+  )
    => HasArcTypeConfigs arcTypeParms
 
 instance (
@@ -417,7 +463,10 @@ instance (
    HasConfigValue LocalMenu arcTypeParms,
    HasConfigValue ValueTitle arcTypeParms,
    HasConfigValue Color arcTypeParms,
-   HasConfigValue EdgePattern arcTypeParms)
+   HasConfigValue EdgePattern arcTypeParms,
+   HasConfigValue EdgeObject arcTypeParms,
+   HasConfigValue EdgeDir arcTypeParms,
+   HasConfigValue Head arcTypeParms)
    => HasArcTypeConfigs arcTypeParms
 
 class 
