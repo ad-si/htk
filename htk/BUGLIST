@@ -7,6 +7,11 @@ This file contains a list of known and as-yet unfixed HTk bugs, in
 FileDialog hangs [crimson, 17.08.01]
  If the "create folder" button is clicked, the file dialog does not 
  respond to further interaction; you can only quit. 
+
+Text Editors become enabled [mclee, 14.09.01]
+  Inserting markup text into a text editor leaves it enabled. The
+  insert markup function should leave the text editor in its
+  previous state.
   
 Font parsing [ludi, 17.08.01] 
  In resources/Font.hs, in the class instantiation of XFont for Read,
