@@ -14,6 +14,7 @@ module Toggle(
 
 import qualified Concurrent
 import qualified IOExts(unsafePerformIO)
+import Debug(debug,(@:))
 
 data Toggle = Toggle Unique (Concurrent.MVar Bool)
 
@@ -29,7 +30,7 @@ toggle1 :: Toggle -> IO Bool
 toggle1 (Toggle _ switch) =
    do
       oldVal <- Concurrent.takeMVar switch
-      Concurrent.putMVar switch False
+      "50" @: Concurrent.putMVar switch False
       return oldVal
 
 toggle2 :: (Toggle,Toggle) -> IO(Maybe(Bool,Bool))
@@ -74,8 +75,8 @@ toggle2 (Toggle unique1 switch1,Toggle unique2 switch2) =
                            opair = (oldVal1,oldVal2)
                         in
                            (opair,Just opair)
-            Concurrent.putMVar switch1 newVal1
-            Concurrent.putMVar switch2 newVal2
+            "51" @: Concurrent.putMVar switch1 newVal1
+            "52" @: Concurrent.putMVar switch2 newVal2
             return result
  
 
@@ -90,7 +91,7 @@ unique :: IO Int
 unique =
    do
       next <- Concurrent.takeMVar uniqueSource
-      Concurrent.putMVar uniqueSource (next+1)
+      "53" @: Concurrent.putMVar uniqueSource (next+1)
       return next 
 
 

@@ -31,7 +31,7 @@ module Event (
 
         ) where
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 import Computation(Answer)
 

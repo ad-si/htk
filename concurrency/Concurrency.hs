@@ -44,7 +44,7 @@ import BSem
 import SAP
 import Future
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 forkIOnull :: IO() -> IO()

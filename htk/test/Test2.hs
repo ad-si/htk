@@ -69,16 +69,26 @@ main =
       window cnt1 [text "Counter1"]
       
       cnt2 <- newCounter [value 0]
+      debug "A"
       win <- window cnt2 [text "Counter2"]
+      debug "B"
       controller' win (triggered cnt2 >>> done)
       
+      debug "C"
       mkBox
+      debug "D"
       mkLabel
+      debug "E"
       mkCalculator
+      debug "F"
       mkEditor
+      debug "G"
       mkMenu
+      debug "H"
       mkMenu2
+      debug "I"
       mkWidgetSet
+      debug "J"
       
       block
 
@@ -186,19 +196,34 @@ mkLabel = do {
 } 
 
 
-mkCalculator = do {
-        mb <- newMatrixBox [bg "white",orient Vertical];
-        mapM (createRow mb) elems;
-        win <- window mb [text "Calculator"];
-        controller' win inaction;
-        done    
- } where
-        elems = [ ["7","8","9","X"], ["4","5","6","/"],
-                        ["1","2","3","-"], ["0",".","=","+"] ]
-        createRow mb l = do
-                newRow mb
-                lbs <- mapM (\e -> newLabel [value e, parent mb, bg "red", relief Raised, borderwidth (cm 0.1)]) l
-                done
+mkCalculator = 
+   do
+      mb <- newMatrixBox [bg "white",orient Vertical]
+      debug "EA"
+      
+      mapM (createRow mb) elems
+      debug "EB"
+      win <- window mb [text "Calculator"]
+      debug "EC"
+      controller' win inaction
+      debug "ED"
+      done    
+   where
+      elems = [ ["7","8","9","X"], ["4","5","6","/"],
+                      ["1","2","3","-"], ["0",".","=","+"] ]
+      createRow mb l = 
+         do
+            newRow mb
+            lbs <- 
+               mapM (\e -> newLabel [
+                  value e, 
+                  parent mb, 
+                  bg "red", 
+                  relief Raised, 
+                  borderwidth (cm 0.1)
+                  ]) 
+               l
+            done
                         
 
 mkEditor = do 

@@ -30,7 +30,7 @@ module EV (
 import IO(try)
 import Monad(liftM)
 
-import qualified Debug(debug)
+import qualified Debug(debug,(@:))
 import Event
 import BaseEvent
 import IOtoBaseEvent

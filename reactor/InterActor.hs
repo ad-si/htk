@@ -33,7 +33,7 @@ import Concurrency
 import EventStream
 import Interaction
 import Dynamics
-import Debug(debug)
+import Debug(debug,(@:))
 import SIMClasses(Destructible(..))
 
 -- --------------------------------------------------------------------------
@@ -98,7 +98,7 @@ newInterActor f =
                iact = InterActor 
                   {self = tid,eventstream = es,destruction=destruction}
             become iact (f iact) 
-            putMVar mv iact
+            "90" @: putMVar mv iact
             -- this thread is now ready to handle the requests.  Do so
             -- repeatedly.
             dispatch iact

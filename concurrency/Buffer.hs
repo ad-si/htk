@@ -29,7 +29,7 @@ module Buffer (
 import Concurrency
 import Queue
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 -- --------------------------------------------------------------------------

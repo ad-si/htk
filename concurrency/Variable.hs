@@ -34,7 +34,7 @@ module Variable (
 import Thread
 import Concurrent
 import Lock
-import Debug(debug)
+import Debug(debug,(@:))
 
 -- --------------------------------------------------------------------------
 -- Class Mutable Variable
@@ -77,18 +77,18 @@ applyVar v f = updVar' v (\x -> let x' = f x in (x',x'))
 -- --------------------------------------------------------------------------
 
 instance Variable MVar a where
-        setVar mv val = do {takeMVar mv; putMVar mv val;}
+        setVar mv val = do {takeMVar mv; "70" @: putMVar mv val;}
         getVar = readMVar
         updVar mv f = do 
                 v <- takeMVar mv
                 ans <- try (f v)
                 case ans of
-                        (Right (v',r)) -> do {putMVar mv v'; return r}
-                        (Left e) -> do {putMVar mv v; raise e}  
+                        (Right (v',r)) -> do {"71" @: putMVar mv v'; return r}
+                        (Left e) -> do {"72" @: putMVar mv v; raise e}  
         updVar' mvar f = do {
                 v <- takeMVar mvar; 
                 let (v',r) = f v in do {
-                        putMVar mvar v';
+                        "73" @: putMVar mvar v';
                         return r
                         }
                 }
@@ -97,7 +97,7 @@ instance Synchronized (MVar a) where
         synchronize mv c = do
                 v <- takeMVar mv
                 ans <- try c
-                putMVar mv v
+                "74" @: putMVar mv v
                 propagate ans
 
 -- --------------------------------------------------------------------------

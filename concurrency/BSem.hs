@@ -26,7 +26,7 @@ import Thread
 import Variable
 import Lock
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 -- --------------------------------------------------------------------------
 -- Type
@@ -40,14 +40,14 @@ newtype BSem = BSem (MVar ()) deriving Eq
 
 instance Lock BSem where
         acquire (BSem sem) = takeMVar sem
-        release (BSem sem) = putMVar sem ()
+        release (BSem sem) = "1" @: (putMVar sem ())
 
 
 instance Synchronized BSem where
         synchronize (BSem sem) c = do {
                 takeMVar sem;
                 ans <- try c;
-                putMVar sem ();
+                "2" @: (putMVar sem ());
                 propagate ans
                 }
 

@@ -9,7 +9,7 @@ module IOtoBaseEvent(
 import Toggle
 import PrimEvent
 import BaseEvent
-import Debug(debug)
+import Debug(debug,(@:))
 
 ioToBaseEvent :: IO a -> BaseEvent a
 ioToBaseEvent action  = primToBaseEvent (ioToPrimEvent action)

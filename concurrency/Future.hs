@@ -30,7 +30,7 @@ module Future (
 
 import Thread
 import Selective
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 -- --------------------------------------------------------------------------

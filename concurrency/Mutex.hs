@@ -37,7 +37,7 @@ import Variable
 import Lock
 import BSem
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 -- --------------------------------------------------------------------------
@@ -87,13 +87,13 @@ acquireMutex (Mutex mvar) =
       current <- getThreadID
       case st of
          (Nothing,[]) -> 
-            putMVar mvar (Just (current,1),[])
+            "6" @: putMVar mvar (Just (current,1),[])
          (Just (holder,n),pnd) | current == holder -> 
-            putMVar mvar (Just (holder,n+1),pnd)
+            "7" @: putMVar mvar (Just (holder,n+1),pnd)
          (Just (holder,n),pnd) -> 
             do
                bsem <- newLockedBSem
-               putMVar mvar (Just (holder,n),(current,bsem):pnd)
+               "8" @: putMVar mvar (Just (holder,n),(current,bsem):pnd)
                acquire bsem
 
 releaseMutex :: Mutex -> IO ()
@@ -106,15 +106,15 @@ releaseMutex (Mutex mvar) =
             release' mvar holder n pnd
          _ ->
             do
-               putMVar mvar st
+               "9" @: putMVar mvar st
                raise illegalLockRelease
    where 
-      release' mvar _ 1 [] = putMVar mvar (Nothing,[])
+      release' mvar _ 1 [] = "10" @: putMVar mvar (Nothing,[])
       release' mvar _ 1 ((holder',sem):pnd') = 
          do
-            putMVar mvar (Just (holder',1),pnd')
+            "11" @: putMVar mvar (Just (holder',1),pnd')
             release sem
-      release' mvar holder n pnd = putMVar mvar (Just (holder,n-1),pnd)
+      release' mvar holder n pnd = "12" @: putMVar mvar (Just (holder,n-1),pnd)
 
 tryAcquireMutex :: Mutex -> IO Bool
 tryAcquireMutex (Mutex mvar) = 
@@ -124,15 +124,15 @@ tryAcquireMutex (Mutex mvar) =
       case st of
          (Nothing,[]) -> 
             do
-               putMVar mvar (Just (current,1),[])
+               "13" @: putMVar mvar (Just (current,1),[])
                return True
          (Just (holder,n),pnd) | current == holder -> 
             do
-               putMVar mvar (Just (holder,n+1),pnd)
+               "14" @: putMVar mvar (Just (holder,n+1),pnd)
                return True
          _ -> 
             do
-               putMVar mvar st
+               "15" @: putMVar mvar st
                return False
 
 

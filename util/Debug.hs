@@ -15,12 +15,19 @@ DESCRIPTION   : This module provides a uniform interface for debugging
 module Debug(
   debug, -- show something to log file if debugging is turned on.
   newId, -- get a new unique integer from a global variable
+
+  debugAct, 
+  -- If an action fails print out a message before
+  -- propagating message.  
+  (@:)
+  -- inline version of debugAct
   
   ) where
 import IO
 import qualified IOExts(unsafePerformIO)
 import qualified Concurrent
 import Dynamic
+import Exception
 
 #ifdef DEBUG
 debug :: Show a => a -> IO()
@@ -32,16 +39,34 @@ debug s =
 debugFile :: Maybe Handle
 debugFile = 
    IOExts.unsafePerformIO 
-     (catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
+     (IO.catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
             (\_-> return Nothing))
+
+debugAct :: String -> IO a -> IO a
+debugAct mess act =
+   do
+      res <- tryAllIO act
+      case res of
+         Left error ->
+            do
+               debug ("Debug.debug caught "++mess)
+               throw error
+         Right success -> return success
+
+      
 #else
 
 debug :: Show a => a -> IO()
 debug _ = return ()
 
-{-# inline debug #-}
+debugAct :: String -> IO a -> IO a
+debugAct _ act = act
+
+{-# inline debug debugAct #-}
 
 #endif
+
+(@:) = debugAct
 
 newId :: IO Int
 newId =

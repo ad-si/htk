@@ -50,7 +50,7 @@ import qualified Concurrent
 import Queue
 import PrimEvent
 import Toggle
-import Debug(debug,newId)
+import Debug(debug,newId,(@:))
 
 newTwoWayChannel :: IO (TwoWayChannel leftType rightType)
 newTwoWayChannel = 
@@ -84,7 +84,7 @@ leftEvent (TwoWayChannel mVar) valL =
                            return (Right newRQueue,Immediate)
                         NoMatch newLQueue ->
                            return (Left newLQueue,Awaiting)
-            Concurrent.putMVar mVar newChannel
+            "60" @: Concurrent.putMVar mVar newChannel
             return result
    in
       PrimEvent syncFun
@@ -115,7 +115,7 @@ rightEvent (TwoWayChannel mVar) valL =
                            return (Left newRQueue,Immediate)
                         NoMatch newLQueue ->
                            return (Right newLQueue,Awaiting)
-            Concurrent.putMVar mVar newChannel
+            "61" @: Concurrent.putMVar mVar newChannel
             return result
    in
       PrimEvent syncFun

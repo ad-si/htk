@@ -32,7 +32,7 @@ import Socket
 import Channels
 import EV
 import Thread
-import Debug(debug)
+import Debug(debug,(@:))
 
 newtype HostDesc = HostDesc String deriving Show
 

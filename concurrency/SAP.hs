@@ -42,7 +42,7 @@ import Thread
 import Variable
 import Selective
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 -- --------------------------------------------------------------------------
@@ -121,11 +121,11 @@ provide (SAP ch) fun =
             case res of
                (Left excp) -> 
                   do
-                     putMVar var (Left excp) 
+                     "40" @: putMVar var (Left excp) 
                      raise excp
                (Right (cl,sv)) -> 
                   do 
-                     putMVar var (Right cl)
+                     "41" @: putMVar var (Right cl)
                      return sv
 
 

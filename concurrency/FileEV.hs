@@ -15,7 +15,7 @@ import Concurrent
 -- import PosixUtil
 
 import Computation
-import Debug(debug)
+import Debug(debug,(@:))
 
 import Thread
 import Channels

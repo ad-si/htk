@@ -31,7 +31,7 @@ import BSem
 import Variable
 import Lock
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 -- --------------------------------------------------------------------------
@@ -62,10 +62,10 @@ waitQSem (QSem sem) cont | (cont < 1) = raise illegalResourceSize
 waitQSem (QSem sem) cont = do {
         (avail, blocked) <- takeMVar sem;
         if avail > cont then 
-                putMVar sem (avail-cont, [])
+                "20" @: putMVar sem (avail-cont, [])
         else do {
                 block <- newBSem;
-                putMVar sem (avail, blocked ++ [(cont,block)]);
+                "21" @: putMVar sem (avail, blocked ++ [(cont,block)]);
                 acquire block
                 }
 }
@@ -76,7 +76,7 @@ signalQSem (QSem sem) cont | (cont < 1) = raise illegalResourceSize
 signalQSem (QSem sem) cont = do {
         (avail, blocked) <- takeMVar sem;
         (avail', blocked') <- free (avail+cont) blocked;
-        putMVar  sem (avail', blocked')
+        "22" @: putMVar  sem (avail', blocked')
 } where free avail []                    = return (avail, [])
         free avail ((req,block):blocked) | avail > req = do {
                 release block; 

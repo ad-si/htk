@@ -43,7 +43,7 @@ import Concurrency
 import ChildProcess
 import SIMClasses
 import Object
-import Debug(debug)
+import Debug(debug,(@:))
 
 -- --------------------------------------------------------------------------
 -- Semantic Domains
@@ -145,7 +145,7 @@ instance CommandTool Interpreter where
 
 instance ReactiveCommandTool Interpreter where
    sendReply ans (Interpreter _ (ReplyAddr replyMVar)  _ _ _) = 
-      putMVar replyMVar ans 
+      "91" @: putMVar replyMVar ans 
 
 -- --------------------------------------------------------------------------
 -- IOError

@@ -92,7 +92,7 @@ import ExtendedPrelude
 import ThreadWait
 import SIMClasses
 
-import Debug(debug)
+import Debug(debug,(@))
 
 -- --------------------------------------------------------------------------
 --  Posix Tool Parameters
@@ -307,7 +307,7 @@ readMsg (ChildProcess
    do
       buffer <- takeMVar bufferVar 
       (newBuffer,result) <- readWithBuffer readFrom buffer []
-      putMVar bufferVar newBuffer
+      "80" @: putMVar bufferVar newBuffer
       return result
    where
       readWithBuffer readFrom [] acc = 

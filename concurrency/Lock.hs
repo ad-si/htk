@@ -28,7 +28,7 @@ module Lock (
 
 import Computation
 
-import Debug(debug)
+import Debug(debug,(@:))
 import qualified Concurrent
 
 
@@ -72,15 +72,15 @@ newtype SimpleLock = SimpleLock (Concurrent.MVar ())
 newSimpleLock :: IO SimpleLock
 newSimpleLock = 
    do
-      newMVar <- Concurrent.newEmptyMVar
+      newMVar <- Concurrent.newMVar ()
       return(SimpleLock newMVar)
 
 instance Lock SimpleLock where
    release (SimpleLock mv) = 
       do
-         _ <- Concurrent.takeMVar mv
+         _ <- Concurrent.putMVar mv ()
          done
-   acquire (SimpleLock mv) = Concurrent.putMVar mv ()
+   acquire (SimpleLock mv) = Concurrent.takeMVar mv
 
 instance Synchronized SimpleLock where
    synchronize lock action =

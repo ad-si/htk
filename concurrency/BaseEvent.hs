@@ -23,6 +23,7 @@ import Computation(try,tryM,Answer)
 import ExtendedPrelude(monadDot)
 
 import PrimEvent
+import Debug(debug,(@:))
 
 data BaseEvent eventResult =
    forall primEventResult .  
@@ -76,7 +77,7 @@ syncOrPollBaseEvents baseEventList fallback =
                   in
                      PrimEventSelection(primEvent,
                         \ eventResult ->
-                           Concurrent.putMVar continuationHolder 
+                           "3" @: Concurrent.putMVar continuationHolder 
                               (continuation eventResult)
                         )
                   )
@@ -84,7 +85,9 @@ syncOrPollBaseEvents baseEventList fallback =
          pollAction =
             fmap
                (\ defaultResult ->
-                  Concurrent.putMVar continuationHolder (return defaultResult)
+                  "4" @:
+                     Concurrent.putMVar continuationHolder 
+                        (return defaultResult)
                   )
                fallback
 

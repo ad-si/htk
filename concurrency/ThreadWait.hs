@@ -16,7 +16,7 @@ module ThreadWait(waitForInputFd) where
 import IO
 import Concurrent
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 import qualified Posix
 import qualified PosixUtil

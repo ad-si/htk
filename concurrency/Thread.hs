@@ -47,7 +47,7 @@ import Concurrent
 import Computation
 import Exception
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 -- --------------------------------------------------------------------------
 -- Data Types

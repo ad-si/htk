@@ -77,5 +77,10 @@ VERSIONSDIR     = $(UNIDIR)/versions
 VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 
 
+# HTKDIRS and HTKSDIRS contain the HTK .hi files.  HTKSDIR gives the
+# view from the htk directory.
 HTKDIRS = $(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):
+
+HTKSDIRS = resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:
+
 

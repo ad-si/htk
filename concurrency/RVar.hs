@@ -40,7 +40,7 @@ import Variable
 import Mutex
 import Semaphore
 
-import Debug(debug)
+import Debug(debug,(@:))
 
 
 
@@ -76,7 +76,7 @@ instance Variable RVar a where
        do
           acquire mtx 
           takeMVar mvar 
-          putMVar mvar val
+          "30" @: putMVar mvar val
           release mtx
      
     getVar (RVar mtx mvar) = 
@@ -99,7 +99,7 @@ instance Variable RVar a where
              Right (val',res) -> 
                 do
                    takeMVar mvar
-                   putMVar mvar val' 
+                   "31" @: putMVar mvar val' 
                    release mtx 
                    return res
 
@@ -109,7 +109,7 @@ instance Variable RVar a where
           val <- readMVar mvar
           let (val',res) = f val 
           takeMVar mvar
-          putMVar mvar val' 
+          "32" @: putMVar mvar val' 
           release mtx
           return res
 

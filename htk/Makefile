@@ -92,7 +92,7 @@ EXTRA_HC_OPTIONS += -Onot -H30M
 
 SUBDIRS = test examples
 
-XHCDIRS = $(HTKDIRS)
+XHCDIRS = $(HTKSDIRS)
 
 include top/mk/boilerplate.mk
 
