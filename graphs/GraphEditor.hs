@@ -7,9 +7,15 @@
 
 
 module GraphEditor (
-   newGraphEditor,
+   newGraphEditor, -- start a GraphEditor, given a Graph
+
+   GraphEditor, -- a running GraphEditor
+
+   -- Graph types associated with graph editors
    Displayable,
-   GraphEditor,
+   DisplayableUpdate,
+   DisplayableGraphConnection,
+   DisplayableCannedGraph,
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -36,6 +42,18 @@ import GetAttributes
 
 type Displayable graph = 
    graph String (NodeTypeAttributes Node) () ArcTypeAttributes
+
+-- DisplayableUpdate, DisplayableGraphConnection and DisplayableCannedGraph 
+-- are used elsewhere to refer to the types associated with an editable graph.
+type DisplayableUpdate =
+   Update String (NodeTypeAttributes Node) () ArcTypeAttributes
+
+type DisplayableGraphConnection =
+   GraphConnection String (NodeTypeAttributes Node) () ArcTypeAttributes
+
+type DisplayableCannedGraph =
+   CannedGraph String (NodeTypeAttributes Node) () ArcTypeAttributes
+
 
 newGraphEditor :: 
    (GraphDisp.GraphAll dispGraph graphParms node nodeType nodeTypeParms 

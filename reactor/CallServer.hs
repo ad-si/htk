@@ -24,7 +24,10 @@ module CallServer(
       -- (a) a function generating an action for sending inType to the server;
       -- (b) an action which waits for the next outType from the server;
       -- (c) an action for closing the connection.
-      -- (d) the header string sent by sendOnConnect.
+      -- (d) the header string sent by sendOnConnect
+   connectBroadcastOther, -- ::
+      -- Identical to connectBroadcast except it connects to a 
+      -- BroadcastOther-type service.
    ) where
 
 import IO
@@ -88,6 +91,27 @@ connectBroadcast service hostDesc portDesc =
          Broadcast -> done
          _ -> ioError(userError(
            "connectBroadcast handed a non-Broadcast service"))
+      connectBroadcastGeneral service hostDesc portDesc
+
+connectBroadcastOther :: (ServiceClass inType outType stateType,
+      DescribesHost host,DescribesPort port) =>
+      (inType,outType,stateType) -> host -> port ->     
+      IO (inType -> IO (),IO outType,IO (),String)
+connectBroadcastOther service hostDesc portDesc =
+   do
+      case (serviceMode service) of
+         BroadcastOther -> done
+         _ -> ioError(userError(
+           "connectBroadcast handed a non-Broadcast service"))
+      connectBroadcastGeneral service hostDesc portDesc
+
+
+connectBroadcastGeneral :: (ServiceClass inType outType stateType,
+      DescribesHost host,DescribesPort port) =>
+      (inType,outType,stateType) -> host -> port ->     
+      IO (inType -> IO (),IO outType,IO (),String)
+connectBroadcastGeneral service hostDesc portDesc =
+   do
       handle <- connect hostDesc portDesc
       connection <- newConnection handle
       registerTool connection

@@ -93,34 +93,52 @@ runServer portDesc serviceList =
 
                      -- This should not be done unless stateMVar
                      -- is empty.
-                     broadcastAction :: Handle -> String -> IO ()
+                     broadcastAction :: ClientData -> String -> IO ()
+                     -- The first argument is the client who initiated
+                     -- the request; the second is the message
                      broadcastAction =
                         case serviceMode service of
                            Reply ->
-                              (\ handle message -> 
-                                 hPutStrLn handle message
+                              (\ clientData message -> 
+                                 hPutStrLn (handle clientData) message
                                  )
                            Broadcast ->
                               (\ _ message ->
                                  do
                                     clientList <- readMVar clients
-                                    sequence_ (
-                                       map
-                                          (\ clientData ->
-                                             do 
-                                                -- If fail, delete clientData
-                                                success <- IO.try(hPutStrLn 
-                                                   (handle clientData) message
-                                                   )
-                                                case success of
-                                                   Left error ->
-                                                      deleteClient clientData
-                                                   Right () -> done
-                                                debug "Sent message"
-                                             ) 
-                                          clientList
+                                    broadcastToClients clientList message
+                                 )
+                           BroadcastOther ->
+                              (\ clientData message ->
+                                 do
+                                    clientList <- readMVar clients
+                                    let
+                                       otherClients =
+                                          filter (/= clientData) clientList
+                                    broadcastToClients otherClients message
+                                 )
+
+                     -- This should not be done unless stateMVar
+                     -- is empty.
+                     broadcastToClients :: [ClientData] -> String -> IO ()
+                     -- Broadcasts the string to all clients listed
+                     broadcastToClients clientList message =
+                        sequence_ (
+                           map
+                              (\ clientData ->
+                                 do 
+                                    -- If fail, delete clientData
+                                    success <- IO.try(hPutStrLn 
+                                       (handle clientData) message
                                        )
-                                 )          
+                                    case success of
+                                       Left error ->
+                                          deleteClient clientData
+                                       Right () -> done
+                                    debug "Sent message"
+                                 ) 
+                              clientList
+                           )
 
 ------------------------------------------------------------------------
 -- (2) set up backups.
@@ -238,7 +256,8 @@ runServer portDesc serviceList =
                                                    (input,oldState)
                                              let
                                                 outLine = show output
-                                             broadcastAction handle outLine
+                                             broadcastAction clientData 
+                                                outLine
                                              debug "done broadcast"
                                              return newState
                                              )

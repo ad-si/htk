@@ -66,6 +66,8 @@ class (Read inType,Show inType,Read outType,Show outType) =>
 data ServiceMode =
       Reply     -- Send output just to client sending input
    |  Broadcast -- Send output to all clients waiting on this service.
+   |  BroadcastOther -- Send output to all clients waiting on this server,
+                -- except the one which sent the input.
 
 data BackupDelay =
       BackupNever
