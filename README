@@ -35,7 +35,7 @@ The following are required or at least recommended.
 (3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
 (4) A recent version of Glasgow Haskell.  You should try to get the
-    latest binary release, which is currently 5.00.2.
+    latest binary release, which is currently 5.02.1.
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
@@ -94,6 +94,70 @@ it, assuming that you are in the same directory as this README file
 gmake depend
 # Compile Uni
 gmake all
+
+More information about Make targets
+-----------------------------------
+
+Make targets are those names you put after "gmake", like "depend" and "all"
+in the above instructions.
+
+Most Make targets can be used in any directory of the UniForM source
+containing a makefile, not just the top one.  
+"depend" does various necessary setting up.
+"all" does the actual compilation, once depend has been run.
+"lib" is like "all", but just compiles the libraries, not the stand-alone
+   executables.
+"test" makes all the stand-alone executables; thus it does everything
+   "all" does that "lib" doesn't do.
+"clean" deletes all the output of "all".
+
+The following two options fall into this class, but are experimental and
+likely to change in the near future.
+"libfast" is a faster version of "lib", using ghc --make to compile all
+   of the Haskell files in a directory at once.
+"librealfast" is supposed to be even faster, compiling all the Haskell files
+   at once, whatever directory they are in.
+
+Thus if you want to make just the executables in a particular directory,
+you can try
+
+gmake depend 
+gmake librealfast
+cd [the directory you're interested in]
+gmake test
+
+so as to not compile any executables in any other directories.
+
+The following targets are provided by the top-level Makefile:
+
+"tarball.tar.gz" makes a tarball (with that name) of all UniForM sources.
+
+There are some other targets, but you will have to look in mk/suffix.mk
+and Makefile.in to see what they are.
+
+Other Makefile Hacking
+----------------------
+
+The file mk/local.mk (mentioned above) is included in every Makefile if
+present, and can be used to set extra options.
+
+If you use FAST=YES on the Make command line, this makes make IGNORE all 
+Haskell dependencies.  Suppose you have made some small change to A.hs.  You 
+think that the interface to A has no significant changes; for example the 
+inlined functions exported from A have not changed; so that it really 
+shouldn't be necessary to recompile any other module.  Then if you like living
+dangerously or are in a hurry you can use FAST=YES to prevent this, as in
+   cd [directory containing A.hs]
+   gmake FAST=YES A.o
+   gmake FAST=YES lib
+   gmake FAST=YES testProgram
+or whatever to recompile testProgram with the new A.o, without recompiling
+anything else.
+
+If it falls over don't blame me, take out FAST=YES and do it the slow way . . .
+
+Conclusion
+----------
 
 Please report problems to me.  I am George Russell and my e-mail
 address is ger@tzi.de .

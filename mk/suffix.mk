@@ -145,10 +145,13 @@ ifneq "$(strip $(LIBOBJS))" ""
 	$(AR) -r $(LIB) $(LIBOBJS)
 endif
 
+ALLDIRS = `
+
 librealfast : objsc
 	$(TOP)/mk/mkEverything `$(MAKE) displayhs -s --no-print-directory`
-	$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i`$(GFIND) . -type d ! -name CVS -printf "%p:"`
-	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi		
+	$(CP) */*.h .
+	ALLDIRS=`$(GFIND) . -type d ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS
+	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi *.h
 
 
 displaysrcshere :

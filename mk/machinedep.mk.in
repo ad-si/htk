@@ -7,3 +7,4 @@
 HC = @GHC@
 TOP = @TOP@
 GFIND = @GFIND@
+CP = @CP@
