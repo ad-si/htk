@@ -125,5 +125,21 @@ endif
 
 SUBDIRS = test examples
 
+# The doc directory isn't part of the main Make tree, but the following
+# rules make it 
+doc : docdir
+
+.PHONY : docdir displayexportsdoc
+
+docdir :
+	$(MAKE) -C doc doc
+
+displayexports : displayexportsdoc
+
+displayexportsdoc  :
+	$(MAKE) -C doc displayexports
+
+
+
 include @TOP@/mk/boilerplate.mk
 

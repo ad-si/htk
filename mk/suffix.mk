@@ -59,6 +59,9 @@
 # displayhtkhs displays all Haskell source files needed for HTk.
 #
 # libfast  should be like lib but faster, since it uses ghc --make.
+#
+# We also define trivial targets doc and dochere.  The subdirectory
+# Makefiles should implement appropriate dependencies for dochere, if any!!
 
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
 OBJSLHS = $(patsubst %.lhs,%.o,$(SRCSLHS))
@@ -273,6 +276,12 @@ displayhs : displayhshere
 objschere : $(OBJSC)
 objsc : objschere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) objsc && ) echo
+
+doc : dochere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) doc && ) echo 
+
+dochere :
+
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^

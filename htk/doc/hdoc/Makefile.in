@@ -1,3 +1,11 @@
 include @TOP@/mk/boilerplate.mk
 
-doc: ./generatedoc
+dochere : 
+	./generatedoc
+
+.PHONY : displaytheseexports
+
+displayexportshere : displaytheseexports
+
+displaytheseexports :
+	@PWD=`pwd`;echo $$PWD/*.css $$PWD/*.html

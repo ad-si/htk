@@ -10,8 +10,15 @@ SRCSLHS       = Mainsimple1.lhs \
 
 include @TOP@/mk/boilerplate.mk
 
-doc: intro.pdf intro.ps
+dochere : intro.pdf intro.ps
 
 intro.dvi: intro.bbl img/Screenshot01.eps img/Screenshot02.eps img/Screenshot03.eps img/Screenshot04.eps img/Screenshot05.eps 
 
 intro.pdf: intro.bbl img/intro-title.png img/Screenshot01.png img/Screenshot02.png img/Screenshot03.png img/Screenshot04.png img/Screenshot05.png 
+
+.PHONY : displaytheseexports
+
+displayexportshere : displaytheseexports
+
+displaytheseexports :
+	@PWD=`pwd`;echo $$PWD/*.lhs $$PWD/intro.tex $$PWD/intro.bib $$PWD/intro.pdf $$PWD/intro.ps $$PWD/img/Screenshot*.eps $$PWD/img/Screenshot*.png $$PWD/intro-title.png

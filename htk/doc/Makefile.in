@@ -1,0 +1,4 @@
+SUBDIRS = intro internal hdoc
+
+include @TOP@/mk/boilerplate.mk
+
