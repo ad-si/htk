@@ -6,3 +6,4 @@ dont put any sort of comments in, apart from this one.
 #define DEFAULTOPTIONS "@DEFAULTOPTIONS@"
 #define WINDOWS @WINDOWS@
 #define UNIVERSION "@UNIVERSION@"
+
