@@ -85,7 +85,7 @@ OBJSEMACS = $(patsubst %.el,%.elc,$(SRCSEMACS))
 OBJS = $(OBJSALLHS)  $(OBJSC)
 LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
           $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
-EXPORTSRCS = $(filter Test%.hs Main%.hs Test%.lhs Main%.lhs Test%.c Main%.c,$(SRCS) $(SRCSC))
+EXPORTSRCS = $(filter Test%.hs Main%.hs Test%.lhs Main%.lhs Test%.c Main%.c,$(SRCS) $(SRCSC)) $(SRCSEMACS)
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
