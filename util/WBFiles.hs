@@ -49,7 +49,6 @@
    
    wish          The filename of the wish program
    daVinci       The filename of daVinci
-   cvs           The filename of cvs
    editor        A command to execute the text editor.  
                  This uses the CommandStringSub format, with defined
                  substitutions %F => where the file is to be found and
@@ -62,7 +61,6 @@
                  backup files
    workingDir    The directory used for temporary files.
 
-   cvsRoot       The CVS root to be used for cvs
    server        The host name of the server
    port          The port on the server to connect to
    debug         Where Debug.debug messages should go
@@ -74,7 +72,7 @@
                  it starts up and we are doing challenge-response
                  verification.
 
-   The options wish, daVinci, cvs, daVinciIcons, top 
+   The options wish, daVinci, daVinciIcons, top 
    should all be set automatically by the configure procedure.  
    The configure procedure constructs a variable DEFAULTOPTIONS
    and writes it into the file default_options.c.
@@ -98,7 +96,6 @@ module WBFiles (
       -- gets the path for wish
    getTixwishPath, -- :: IO String
       -- gets the path for tixwish
-   getCVSPath, -- ditto cvs
    getDaVinciPath, -- ditto daVinci
 
 
@@ -120,7 +117,6 @@ module WBFiles (
  
    -- values for which we don't are:
    getDaVinciIcons, -- :: IO (Maybe String)
-   getCVSROOT, -- ditto
    getServer, -- ditto
 
    -- Store options.
@@ -212,9 +208,6 @@ getTixwishPath = valOf (getArgString "tixwish")
 getWishPath :: IO String 
 getWishPath = valOf (getArgString "wish")
 
-getCVSPath :: IO String
-getCVSPath = valOf (getArgString "cvs")
-
 getEditorString :: IO (Maybe String)
 getEditorString = getArgString "editor" 
 
@@ -253,9 +246,6 @@ getStoreDir = valOf (getArgString "storeDir")
 
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
-
-getCVSROOT :: IO (Maybe String)
-getCVSROOT = getArgString "cvsRoot"
 
 getServer :: IO (Maybe String)
 getServer = getArgString "server"
@@ -310,20 +300,8 @@ usualProgramArguments = [
       argType = INT
       },
    ProgramArgument{
-      optionName = "cvs",
-      optionHelp = "path to the cvs program",
-      defaultVal = Just (StringValue "/usr/bin/cvs"),
-      argType = STRING
-      },
-   ProgramArgument{
       optionName = "editor",
       optionHelp = "text editor cmd; %F => filename; %N => user-visible name",
-      defaultVal = Nothing,
-      argType = STRING
-      },
-   ProgramArgument{
-      optionName = "cvsRoot",
-      optionHelp = "CVSROOT for CVS",
       defaultVal = Nothing,
       argType = STRING
       },

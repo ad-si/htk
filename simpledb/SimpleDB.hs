@@ -72,6 +72,7 @@ import CopyFile
 
 import SimpleDBServer
 import SimpleDBService
+import BDBClient
 
 
 ----------------------------------------------------------------
@@ -79,6 +80,7 @@ import SimpleDBService
 ----------------------------------------------------------------
 
 data Repository = Repository {
+   bdb :: BDB,
    queryRepository :: SimpleDBCommand -> IO SimpleDBResponse,
    closeDown :: IO (),
    oID :: ObjectID
@@ -88,9 +90,11 @@ initialise :: IO Repository
 initialise =
    do
       (queryRepository,closeDown,"") <- connectReply simpleDBService
+      bdb <- openBDB
       oID <- newObject
       let
          repository = Repository {
+            bdb = bdb,
             queryRepository = queryRepository,
             closeDown = closeDown,
             oID = oID
@@ -106,29 +110,6 @@ instance Destroyable Repository where
    destroy repository = closeDown repository
    
 ----------------------------------------------------------------
--- The ObjectSource type, and functions for it.
-----------------------------------------------------------------
-
-data ObjectSource = 
-      FileObject String
-   |  StringObject String
-
-exportString :: ObjectSource -> IO String
-exportString (StringObject str) = return str
-exportString (FileObject name) = copyFileToString name
-
-exportFile :: ObjectSource -> FilePath -> IO ()
-exportFile (FileObject source) destination = copyFile source destination
-exportFile (StringObject str) destination = copyStringToFile str destination
-
-importString :: String -> IO ObjectSource
-importString str = return (StringObject str)
-
-importFile :: FilePath -> IO ObjectSource
-importFile file = return (FileObject file)
-
-
-----------------------------------------------------------------
 -- Query functions
 ----------------------------------------------------------------
 
@@ -142,23 +123,28 @@ commit :: Repository -> ObjectSource -> Location
    -> Maybe ObjectVersion -> IO ObjectVersion
 commit repository objectSource location parent =
    do
-      str <- exportString objectSource
-      response <- queryRepository repository (Commit str location parent)
+      bdbKey <- writeBDB (bdb repository) objectSource
+      response <- queryRepository repository (Commit bdbKey location parent)
       return (toObjectVersion response)
+
+retrieveObjectSource :: Repository -> Location -> ObjectVersion 
+   -> IO ObjectSource
+retrieveObjectSource repository location objectVersion =
+   do
+      response <- queryRepository repository (Retrieve location objectVersion)
+      readBDB (bdb repository) (toContents response)
 
 retrieveString :: Repository -> Location -> ObjectVersion -> IO String
 retrieveString repository location objectVersion =
    do
-      response <- queryRepository repository (Retrieve location objectVersion)
-      return (toContents response)
+      objectSource <- retrieveObjectSource repository location objectVersion
+      exportString objectSource
 
 retrieveFile :: Repository -> Location -> ObjectVersion -> FilePath -> IO ()
 retrieveFile repository location objectVersion filePath =
    do
-      string <- retrieveString repository location objectVersion
-      -- retrieveFile retrieves the given version of the object at Location
-      -- by copying it to file at FilePath.
-      copyStringToFile string filePath
+      objectSource <- retrieveObjectSource repository location objectVersion
+      exportFile objectSource filePath
 
 listVersions :: Repository -> Location -> IO [ObjectVersion]
 listVersions repository location =
@@ -182,8 +168,8 @@ toObjectVersions :: SimpleDBResponse -> [ObjectVersion]
 toObjectVersions (IsObjectVersions objectVersions) = objectVersions
 toObjectVersions r = unpackError "objectVersions" r
 
-toContents :: SimpleDBResponse -> String
-toContents (IsContents contents) = contents
+toContents :: SimpleDBResponse -> BDBKey
+toContents (IsContents bdbKey) = bdbKey
 toContents r = unpackError "object" r
 
 unpackError s r = error ("Expecting "++s++" in "++show r)

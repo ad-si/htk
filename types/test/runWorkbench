@@ -1,9 +1,8 @@
 #!/usr/local/bin/bash
 # Test script for running the workbench.
-rm -rf storeDir serverStore VersionGraph.backup
 export UNISERVER=`hostname`
 export UNIEDITOR="/usr/local/pub-bkb/xemacs/bin/gnuclient -eval '(setq stored-name \"%beN\")' \"%bF\""
-pkill -x Server
-rm -rf /tmp/#
-./Server --uni-debug=s.debug &
-./Workbench --uni-debug=w.debug
+gmake killServer
+gmake killWorkbench
+gmake runServer
+gmake runWorkbench

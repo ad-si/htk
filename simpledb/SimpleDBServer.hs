@@ -45,7 +45,7 @@ import CacheTable
 import IOExtras
 import WBFiles
 
-import SimpleStore
+import BDBClient
 
 -- -------------------------------------------------------------------
 -- The query types.
@@ -67,7 +67,7 @@ firstVersion = ObjectVersion 0
 
 data SimpleDBCommand =
       NewLocation -- returns with IsLocation
-   |  Commit String Location (Maybe ObjectVersion)
+   |  Commit BDBKey Location (Maybe ObjectVersion)
           -- commits a new version to the repository.  To ease storage,
           -- the parent version is supplied UNLESS this is the first time
           -- we commit to the location.  
@@ -84,7 +84,7 @@ data SimpleDBResponse =
       IsLocation Location
    |  IsObjectVersion ObjectVersion
    |  IsObjectVersions [ObjectVersion]
-   |  IsContents String
+   |  IsContents BDBKey
       deriving (Read,Show)
 
 -- -------------------------------------------------------------------
@@ -126,17 +126,14 @@ instance HasTyRep ObjectVersion where
 -- -------------------------------------------------------------------
 
 data SimpleDB = SimpleDB {
-   -- simpleStore contains the contents of all the objects
-   simpleStore :: CachedTable SimpleStore SimpleStorePtr String,
    -- objectLocations is a handle to a file to which we write
-   -- the locations of all objects, as (Location,ObjectVersion,SimpleStorePtr).
+   -- the locations of all objects, as (Location,ObjectVersion,BDBKey).
    -- The pointer is always at the end of the file, after the initialisation
    -- is over.
-
    objectLocations :: Handle,
    -- Locations of all objects in the DB.
    objectDictionary 
-      :: IORef (FiniteMap (Location,ObjectVersion) SimpleStorePtr),
+      :: IORef (FiniteMap (Location,ObjectVersion) BDBKey),
    -- Next location to allocate
    nextLocation :: IORef Int,
    -- Next version for each allocated location to allocate.
@@ -148,8 +145,7 @@ data SimpleDB = SimpleDB {
 -- -------------------------------------------------------------------
 
 -- Open and read it.
-initObjectLocations 
-   :: IO (Handle,FiniteMap (Location,ObjectVersion) SimpleStorePtr)
+initObjectLocations :: IO (Handle,FiniteMap (Location,ObjectVersion) BDBKey)
 initObjectLocations =
    do
       fpath <- getStoreDir
@@ -160,20 +156,18 @@ initObjectLocations =
                nextOpt <- readObjectLocations handle
                case nextOpt of
                   Nothing -> return map
-                  Just (location,objectVersion,simpleStorePtr) ->
-                     getRest 
-                        (addToFM map (location,objectVersion) simpleStorePtr)
+                  Just (location,objectVersion,bdbKey) ->
+                     getRest (addToFM map (location,objectVersion) bdbKey)
       map <- getRest emptyFM
       return (handle,map)                  
 
-writeObjectLocations :: Handle -> Location -> ObjectVersion -> SimpleStorePtr 
+writeObjectLocations :: Handle -> Location -> ObjectVersion -> BDBKey
    -> IO ()
-writeObjectLocations handle location objectVersion simpleStorePtr =
-   hPutStrLn handle (show (location,objectVersion,simpleStorePtr))
+writeObjectLocations handle location objectVersion bdbKey =
+   hPutStrLn handle (show (location,objectVersion,bdbKey))
 
 -- readObjectLocations returns Nothing when at EOF
-readObjectLocations 
-   :: Handle -> IO (Maybe (Location,ObjectVersion,SimpleStorePtr))
+readObjectLocations :: Handle -> IO (Maybe (Location,ObjectVersion,BDBKey))
 readObjectLocations handle = catchEOF (
    do
       line <- hGetLine handle
@@ -187,7 +181,6 @@ readObjectLocations handle = catchEOF (
 initialiseSimpleDB :: IO SimpleDB
 initialiseSimpleDB =
    do
-      simpleStore <- openTable
       (objectLocations,objectDictionaryVal) <- initObjectLocations
       let
          -- Work out plausible value for nextLocation
@@ -212,7 +205,6 @@ initialiseSimpleDB =
       nextLocation <- newIORef nextLocationVal
       nextVersions <- newIORef nextVersionsVal
       return (SimpleDB {
-         simpleStore = simpleStore,
          objectLocations = objectLocations,
          objectDictionary = objectDictionary,
          nextLocation = nextLocation,
@@ -222,13 +214,11 @@ initialiseSimpleDB =
 backupSimpleDB :: SimpleDB -> IO ()
 backupSimpleDB simpleDB =
    do
-      flushTable (simpleStore simpleDB)
       hFlush (objectLocations simpleDB)
 
 querySimpleDB :: SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB
       (SimpleDB {
-         simpleStore = simpleStore,
          objectLocations = objectLocations,
          objectDictionary = objectDictionary,
          nextLocation = nextLocation,
@@ -241,7 +231,7 @@ querySimpleDB
             loc <- readIORef nextLocation
             writeIORef nextLocation (loc + 1)
             return (IsLocation (Location loc))
-      Commit contents location _ ->
+      Commit bdbKey location _ ->
          do
             nextVersionsVal <- readIORef nextVersions
             -- get version
@@ -250,27 +240,22 @@ querySimpleDB
                nextVersion = ObjectVersion nextVersionInt
             writeIORef nextVersions 
                (addToFM nextVersionsVal location (nextVersionInt+1))
-            -- get pointer
-            simpleStorePtr <- putTable simpleStore contents
             -- add to dictionary
             objectDictionaryVal <- readIORef objectDictionary
             writeIORef objectDictionary
-               (addToFM objectDictionaryVal (location,nextVersion) 
-                  simpleStorePtr)
+               (addToFM objectDictionaryVal (location,nextVersion) bdbKey)
             -- write to file
-            writeObjectLocations objectLocations location nextVersion 
-               simpleStorePtr
+            writeObjectLocations objectLocations location nextVersion bdbKey
             -- return version
             return (IsObjectVersion nextVersion)   
       Retrieve location objectVersion ->
          do         
             objectDictionaryVal <- readIORef objectDictionary
             let
-               simpleStorePtr = lookupWithDefaultFM objectDictionaryVal 
+               bdbKey = lookupWithDefaultFM objectDictionaryVal 
                   (error "In retrieve, object not in dictionary")
                   (location,objectVersion)
-            contents <- getTable simpleStore simpleStorePtr
-            return (IsContents contents)
+            return (IsContents bdbKey)
       ListVersions location ->
          do
             -- This isn't very efficient, but it isn't used very often.

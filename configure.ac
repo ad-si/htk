@@ -84,12 +84,6 @@ if test -z "$DAVINCI"; then
     DAVINCI="/usr/bin/davinci"
 fi
 #
-# Check for cvs
-AC_PATH_PROGS(CVS,cvs)
-if test -z "$CVS"; then
-   echo "Without cvs you cannot run any of UniForM's versioning programs."
-   CVS="/usr/bin/cvs"
-fi
 # 
 # Check for gnu tar and for zip
 AC_PATH_PROGS(TAR,gtar tar)
@@ -111,6 +105,27 @@ AC_PATH_PROGS(GFIND,gfind,find)
 AC_PATH_PROGS(CP,cp)
 AC_PATH_PROGS(LN,ln)
 AC_PATH_PROGS(MKDIR,mkdir)
+#
+# Use Berkeley Data Base if user specifies it or if it's
+# available in the environment variable BDBDIR or in the default location.
+AC_ARG_WITH(
+   bdb,
+   AC_HELP_STRING(
+      [--with-bdb],
+      [Set to pathname where Berkeley DB is installed]
+      ),
+   BDBDIR=$withval,
+   BDBDIR=${BDBDIR:-/usr/local/BerkeleyDB.4.0}
+   )
+if test -r "$BDBDIR/lib/libdb.a"; then
+   echo Using Berkeley DB installed in $BDBDIR
+else
+   echo No Berkeley DB installation found or specified with --with-bdb.
+   echo You will not be able to compile the simpledb or types directories.
+   echo \(But it should still be possible to compile htk.\)
+   BDBDIR=
+fi
+AC_SUBST(BDBDIR)   
 # 
 # Construct the default options, used by 
 # util/default_options.c
@@ -118,7 +133,7 @@ AC_PATH_PROGS(MKDIR,mkdir)
 # and incomplete attempt to escape any funny characters so we can
 # put them into util/default_options.c.  Note that we have to double-double
 # escape \ characters, once for sed and once for sh.
-DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-cvs:$CVS --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
+DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
 s+"+\\\\"+g'`
 AC_SUBST(DEFAULTOPTIONS)
 
@@ -132,15 +147,6 @@ if test "$GOAHEAD" = YES; then
    rm -rf mk/Main.hi
    $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
 
-   echo Setting up packages and export packages file as empty
-   # The echo prints []; the funny things bracketted by @ signs are
-   # "Quadrigraphs" which express this so.  Normal square brackets
-   # won't work since they have a special meaning for autoconf.
-   echo @<:@@:>@ >uni-package.conf
-   echo @<:@@:>@ >uni-package.conf.export
-   mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package 
-   $GHCPKG --config-file uni-package.conf.export --add-package <uni-package.options
-
    # Find out what GHC thinks this directory is (this will not necessarily be 
    # the same as TOP on Windows).  This string is escaped.
    GHCTOP=`echo '#PWD' | mk/FixFileNames`
@@ -149,7 +155,22 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk $MAKEFILES includes/config.h)
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES)
+
+   echo Setting up packages and export packages file as empty
+   # The echo prints []; the funny things bracketted by @ signs are
+   # "Quadrigraphs" which express this so.  Normal square brackets
+   # won't work since they have a special meaning for autoconf.
+   echo @<:@@:>@ >uni-package.conf
+   echo @<:@@:>@ >uni-package.conf.export
+   mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
+   
+   $GHCPKG --config-file uni-package.conf.export --add-package <uni-package.options
+
+   if test -n "$BDBDIR"; then
+      $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
+   fi
+
    echo 'To compile UniForM type "gmake boot" followed by "gmake packages"'
    echo 'If you also want the test programs do "gmake all" instead of "gmake packages"'
 fi

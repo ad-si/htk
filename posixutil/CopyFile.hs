@@ -8,12 +8,15 @@
 {-# OPTIONS -#include "copy_file.h" #-}
 #endif /* NEW_GHC */
 
-{- This contains two functions for copying to a file -}
+{- This contains functions for copying to and from files -}
 module CopyFile(
    copyFile,
    linkFile,
    copyStringToFile,
    copyFileToString,
+
+   copyCStringLenToFile,
+   copyFileToCStringLen,
    ) where
 
 import qualified IO
@@ -23,29 +26,22 @@ import CTypesISO(CSize)
 import ST
 import ByteArray(ByteArray)
 import qualified IOExts
-import qualified CString
-import qualified Ptr
-import qualified MarshalAlloc
-import qualified Posix
-import Exception
+import qualified Exception
+import CString
+import Ptr
+import Foreign
+import Posix
 
 import Computation
+
+import FdRead
 
 #ifdef NEW_GHC
 foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
    :: (ByteArray Int) -> (ByteArray Int) -> IO Int
-
-foreign import ccall unsafe "copy_file.h copy_string_to_file" 
-   copyStringToFilePrim 
-      :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
-
 #else
 foreign import ccall "copy_file" unsafe copyFilePrim
    :: (ByteArray Int) -> (ByteArray Int) -> IO Int
-
-foreign import ccall "copy_string_to_file" unsafe copyStringToFilePrim 
-      :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
-
 #endif
 
 copyFile :: String -> String -> IO ()
@@ -82,31 +78,20 @@ linkFile source destination =
                Left err ->
                   error ("CopyFile.linkFile failed with "++show err)
 
-copyStringToFile string destination = writeFile destination string
-
--- This is a direct encapsulatin of copyStringToFile in C
--- which we turn out not to need, yet.
-copyStringToFileAlternative string destination =
-   do
-      let
-         packedString = PackedString.packString string
-         packedBytes = psToByteArray packedString
-         (sizetLen :: CSize) = fromIntegral (lengthPS packedString)  
-         destinationPrim = CString.packString destination 
-      code <- copyStringToFilePrim sizetLen packedBytes destinationPrim
-      if (code<0)
-         then
-            ioError(userError("CVSDB: Can't copy string to "++
-               destination++" with error "++show code))
-         else
-            return ()
-
 ---
 -- Reads in a file to a String.  NB - differs from readFile in that this
 -- is done instantly, so we don't have to worry about semi-closed handles
 -- hanging around.
 copyFileToString :: FilePath -> IO String
-copyFileToString file =
+copyFileToString filePath =
+   do
+      (cString,len) <- copyFileToCStringLen filePath
+      string <- peekCStringLen (cString,len)
+      free cString
+      return string
+
+copyFileToCStringLen :: FilePath -> IO CStringLen
+copyFileToCStringLen file =
 #if __GLASGOW_HASKELL__ <= 503
 -- We catch ioErrors which don't match certain criteria and return 
 -- the null string.  This is because IOExts.slurpFile fails on files 
@@ -115,7 +100,7 @@ copyFileToString file =
    do
       let
          selector ex =
-            case ioErrors ex of
+            case Exception.ioErrors ex of
                Nothing -> Nothing
                Just (ioError :: IOError) ->
                   let
@@ -133,33 +118,36 @@ copyFileToString file =
                   in
                      if isStandard then Nothing else Just ()
 
-      catchJust selector (copyFileToString' file) (\ () -> return "")
+      Exception.catchJust selector 
+         (copyFileToCStringLen' file) (\ _ -> newCStringLen "")
 
-
-copyFileToString' file =      
+copyFileToCStringLen' :: FilePath -> IO CStringLen
+copyFileToCStringLen' file =      
 #endif
    do
       (ptr,len) <- IOExts.slurpFile file
-      str <- CString.peekCStringLen (Ptr.castPtr ptr,len)
-      MarshalAlloc.free ptr
-      return str
+      return (Ptr.castPtr ptr,len)
 
-{-
-   Another way
+copyStringToFile :: String -> FilePath -> IO ()
+copyStringToFile str filePath =
+   withCStringLen str 
+      (\ cStringLen -> copyCStringLenToFile cStringLen filePath)
 
-
-copyFileToString :: String -> IO String
-copyFileToString file =
+copyCStringLenToFile :: CStringLen -> FilePath -> IO ()
+copyCStringLenToFile (ptr,len) filePath =
    do
-      handle <- openFile file ReadMode
-      contents <- hGetContents handle
-      seq (last contents) (hClose handle)
-      -- The seq hopefully forces everything to be read.
-      -- PS I've tried removing seq on the grounds that
-      -- hClose should make it unnecessary, but it breaks
-      -- the Versions test on Linux.
-      return contents
+      let
+         fileMode = unionFileModes ownerReadMode ownerWriteMode
+         openFileFlags = OpenFileFlags {
+            append = False,
+            exclusive = False,
+            noctty = True,
+            nonBlock = True,
+            trunc = True
+            }
 
--}      
+      fd <- openFd filePath WriteOnly (Just fileMode) openFileFlags 
+      fdWritePrim fd (ptr,len)
+      fdClose fd
 
 

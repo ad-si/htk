@@ -1,6 +1,7 @@
 PACKAGE = uni-simpledb
-PACKAGES = uni-server
-SRCS       = SimpleStore.hs SimpleDBServer.hs SimpleDBService.hs SimpleDB.hs
+PACKAGES = uni-server bdb-package
+SRCS       = BDBClient.hs SimpleDBServer.hs SimpleDBService.hs SimpleDB.hs
 SUBDIRS = test
+SRCSC      = bdbclient.c bdbcommon.c
 
 include @TOP@/mk/boilerplate.mk

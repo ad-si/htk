@@ -3,3 +3,22 @@ PACKAGES = uni-types uni-htk uni-davinci
 SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs
 
 include @TOP@/mk/boilerplate.mk
+
+.PHONY : runServer runWorkbench killServer killWorkbench
+
+runServer :
+	@MKDIR@ -p /var/tmp/simpledb
+	@BDBDIR@/bin/berkeley_db_svc -h /var/tmp/simpledb &
+	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Server --uni-debug=s.debug &
+
+killServer :
+	(pkill berkeley || echo not running)
+	(pkill Server || echo not running)
+	rm -rf VersionGraph.backup storeDir /var/tmp/simpledb
+
+runWorkbench :
+	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Workbench --uni-debug=w.debug
+
+killWorkbench :
+	(pkill Workbench || echo not running)
+	rm -rf /tmp/#

@@ -9,7 +9,11 @@
 ifeq "@WINDOWS@" "1"
    SUBDIRS = util events reactor htk
 else
-   SUBDIRS= util events reactor posixutil htk server simpledb graphs davinci types
+ifeq "@BDBDIR@" ""
+   SUBDIRS = util events reactor posixutil htk server graphs davinci
+else
+   SUBDIRS = util events reactor posixutil htk server graphs davinci simpledb types
+endif
 endif
 
 COMMONEXTRAEXPORTS = uni-package.conf.export includes/*.h

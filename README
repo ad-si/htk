@@ -54,6 +54,18 @@ The following are required or at least recommended.
     are available.  However you will be glad to know that you do NOT need
     a version of GHC which is Cygwin-aware.  We convert filenames into their
     Windows equivalents (well, more or less) before passing them to GHC.
+(8) If you want to compile the repository stuff (not needed for HTk or
+    daVinci) you will need to install the Berkeley Database.  You can get
+    this from 
+       http://www.sleepycat.com
+    It needs to be installed to enable RPC connections.  This means that if
+    you compile it from source for Unix you will need to use the
+    --enable-rpc option when you ./configure for Berkeley Database.  Once
+    you've compiled and installed Berkeley Database, you will probably
+    need to tell uni how to access it.  You can do this by setting the 
+    environment variable BDBDIR when you run ./configure for uni, or else by 
+    adding the option --with-bdb=[directory path] when you run ./configure for
+    uni.
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
