@@ -178,7 +178,7 @@ mmissLaTeX fileName contents =
                         form1 = print // file
                         form2 =
                            guardForm (\ (printer,fPath) ->
-                              not (emptyName printer) || not (emptyName fPath)
+                              emptyName printer || emptyName fPath
                               )
                               "printer and a file cannot both be specified"
                               form1

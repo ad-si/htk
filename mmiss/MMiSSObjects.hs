@@ -57,7 +57,7 @@ import Folders
 import EmacsEdit
 import EmacsContent
 
-import qualified LaTeXParser
+import LaTeXParser
 
 import MMiSSDTDAssumptions(getMiniType,toIncludeStr)
 import MMiSSAttributes
@@ -718,7 +718,7 @@ createMMiSSObject objectType view folder =
             xmlElementWE <- 
                case format of
                   XML ->  xmlParseCheck filePath inputString
-                  LaTeX -> return (LaTeXParser.parseMMiSSLatex inputString)
+                  LaTeX -> return (parseMMiSSLatex Nothing inputString)
             let
                xmlElement = coerceWithErrorOrBreak break xmlElementWE
 
@@ -752,15 +752,19 @@ editMMiSSObjectLaTeX :: View -> Link MMiSSObject -> IO ()
 editMMiSSObjectLaTeX = editMMiSSObjectGeneral LaTeX
 
 editMMiSSObjectGeneral :: Format -> View -> Link MMiSSObject -> IO ()
-editMMiSSObjectGeneral format view link =
+editMMiSSObjectGeneral format
+    = editMMiSSObjectInner (toEditFormatConverter format)
+
+editMMiSSObjectInner :: WrappedEditFormatConverter -> View -> Link MMiSSObject
+      -> IO ()
+editMMiSSObjectInner 
+      (WrappedEditFormatConverter (
+         (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit})
+         ))
+      view link =
    do
       object <- readLink view link
       let
-         (EditFormatConverter {
-            toEdit = toEdit,
-            fromEdit = fromEdit
-            }) = toEditFormatConverter format
-
          parent = parentFolder object
          variants = variantAttributes object
 
@@ -803,14 +807,16 @@ editMMiSSObjectGeneral format view link =
 
                   let
                      contentWE = toEdit name element
-                     content = coerceWithErrorOrBreak break contentWE
+                     (content,formatExtra) 
+                        = coerceWithErrorOrBreak break contentWE
 
                   -- We now have to set up the EditedFile stuff 
                   let
                      writeData emacsContent =
                         addFallOutWE (\ break ->
                           do
-                             elementWE <- fromEdit name emacsContent
+                             elementWE 
+                                <- fromEdit formatExtra name emacsContent
                              let 
                                 element = 
                                    coerceWithErrorOrBreak break elementWE
@@ -1013,28 +1019,42 @@ formatForm = newFormOptionMenu2 [("LaTeX",LaTeX),("XML",XML)]
 ---
 -- For EditFormatConvert, the String's are the file name (made available
 -- for error messages).
-data EditFormatConverter = EditFormatConverter {
-   toEdit :: String -> Element -> WithError (EmacsContent TypedName),
-   fromEdit :: String -> EmacsContent TypedName -> IO (WithError Element)
+--
+-- The extra data formatExtra is available so whoever is managing the format
+-- can stash extra information (in particular, the LaTeX preamble).
+data EditFormatConverter formatExtra = EditFormatConverter {
+   toEdit :: String -> Element 
+      -> WithError (EmacsContent TypedName,formatExtra),
+   fromEdit :: formatExtra -> String -> EmacsContent TypedName 
+      -> IO (WithError Element)
    }
 
-toEditFormatConverter :: Format -> EditFormatConverter
-toEditFormatConverter XML = EditFormatConverter {
-   toEdit = (\ str elem -> hasValue (toEditableXml str elem)),
-   fromEdit = fromEditableXml
-   }
-toEditFormatConverter LaTeX = EditFormatConverter {
-   toEdit = (\ _ element -> LaTeXParser.makeMMiSSLatex (element,False)),
-   fromEdit = (\ string content 
-      ->
-         do
-            let 
-               str = mkLaTeXString content
-            debugString ("START|"++str++"|END")
-            return (LaTeXParser.parseMMiSSLatex str)
-         )
-   }
-      
+data WrappedEditFormatConverter = forall formatExtra .
+   WrappedEditFormatConverter (EditFormatConverter formatExtra)
+
+toEditFormatConverter :: Format -> WrappedEditFormatConverter
+toEditFormatConverter XML = 
+   WrappedEditFormatConverter (
+      EditFormatConverter {
+         -- formatExtra is ()
+      toEdit = (\ str elem -> hasValue (toEditableXml str elem,())),
+      fromEdit = (\ () -> fromEditableXml)
+         }
+      )
+toEditFormatConverter LaTeX =
+   WrappedEditFormatConverter (
+      EditFormatConverter {
+      toEdit = (\ _ element -> makeMMiSSLatex (element,False)),
+      fromEdit = (\ formatExtra string content 
+         ->
+            do
+               let 
+                  str = mkLaTeXString content
+               debugString ("START|"++str++"|END")
+               return (parseMMiSSLatex (Just formatExtra) str)
+            )
+         }
+      )
 
 mkLaTeXString :: EmacsContent TypedName -> String
 mkLaTeXString (EmacsContent dataItems) =
@@ -1056,8 +1076,8 @@ exportElement :: Format -> Element -> WithError String
 exportElement XML element = hasValue (toExportableXml element)
 exportElement LaTeX element =
    mapWithError 
-      mkLaTeXString      
-      (LaTeXParser.makeMMiSSLatex (element,True))
+      (\ (content,_) -> mkLaTeXString content)
+      (makeMMiSSLatex (element,True))
 
 -- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set
