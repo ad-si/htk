@@ -13,8 +13,8 @@ DESCRIPTION   :
 
 
 module Main (
-        main    
-        ) where
+   main    
+   ) where
 
 import SIM
 import Expect
@@ -23,22 +23,30 @@ import qualified IO
 import Concurrency
 import Debug(debug)
 
-main =  do {
-        setLogFile (Just stdout);       
-        exp <- newExpect "cat" [arguments ["TEST1"]];
-        pv <- newPVar 0;
-        interactor (\iact -> 
-                    expect exp (".+") >>> 
-                       do
-                          IO.putStr "line\n"
-                          IO.hFlush stdout 
-                          done
-                +>  matchEOF exp >>> do 
-                          IO.putStr "end\n"
-                          IO.hFlush stdout 
-                          done
-                       
-{-
+main =  
+   do
+      exp <- newExpect "cat" [arguments ["TEST1"]]
+      pv <- newPVar 0
+      inter <- newInterActor 
+         (\iact -> 
+               expect exp (".+") >>>=
+                  (\ line ->
+                     do
+                        IO.putStr "line:"
+                        IO.putStr line
+                        IO.putStr "\n"
+                        IO.hFlush stdout 
+                        done
+                     )
+            +> matchEOF exp >>> 
+                  do 
+                     IO.putStr "end\n"
+                     IO.hFlush stdout 
+                     stop iact
+            )
+      sync(destroyed inter)
+       
+#if 0                       
                     expect exp ("^AWK\n",[Case_Insensitive]) >>> do {
                         changeVar' pv (+ 1);
                         putStr "awk\n";
@@ -55,7 +63,4 @@ main =  do {
                         shutdown;
                         stop iact;
                         }
--}
-                );
-        block
-        } 
+#endif 

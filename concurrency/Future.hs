@@ -20,13 +20,13 @@ DESCRIPTION   : As it says: Futures as they are known from Multi-List,
 
 
 module Future (
-        HasReceiveEV(..),
-        HasReceiveIO(..),
-
-        Future,
-        newFuture
-
-        ) where
+   HasReceiveEV(..),
+   HasReceiveIO(..),
+   
+   Future,
+   newFuture
+   
+   ) where
 
 import Thread
 import Selective
@@ -39,22 +39,25 @@ import Debug(debug)
 
 data Future  a = Future  (Channel (Answer a)) deriving Eq
 
-
 -- --------------------------------------------------------------------------
 -- Instances
 -- --------------------------------------------------------------------------
 
 instance HasReceiveEV Future a where
-        receive (Future ch) = receive ch >>>= propagate
+   receive (Future ch) = receive ch >>>= propagate
 
 -- --------------------------------------------------------------------------
 -- Commands and Events
 -- --------------------------------------------------------------------------
 
 newFuture :: IO a -> IO (Future a)
-newFuture beh = do {
-        ch <- newChannel;
-        forkIO (do { ans <- try beh; forever (sendIO ch ans)});
-        return (Future ch)
-}
+newFuture beh = 
+   do
+      ch <- newChannel
+      forkIO (
+         do 
+            ans <- try beh
+            forever (sendIO ch ans)
+         )
+      return (Future ch)
         

@@ -33,7 +33,7 @@ module Computation (
 
         -- exceptions and handlers
         propagate,
-        try,
+        try, -- in IO
         tryM,
         finally,
         catchall,
@@ -288,10 +288,10 @@ logfile = unsafePerformIO(newMVar (const done))
 -- --------------------------------------------------------------------------
 
 setErrorHandler :: (IOError -> IO ()) -> IO ()
-setErrorHandler cmd = do {
-        swapMVar errhandler cmd;
-        done
-        }       
+setErrorHandler cmd = 
+   do
+      swapMVar errhandler cmd
+      done    
 
 getErrorHandler :: IO (IOError -> IO ())
 getErrorHandler = readMVar errhandler

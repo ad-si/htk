@@ -26,6 +26,7 @@ SRCS       = Listener.hs\
 	     Dispatcher.hs\
 	     Signal.hs\
 	     Collector.hs\
+             RegularExpression.hs\
 	     Expect.hs\
 	     SIM.hs 
 # the following modules don't seem to be used anywhere and
@@ -93,7 +94,9 @@ InterActor.o : ./EventStream.hi
 InterActor.o : ./Interaction.hi
 InterActor.o : top/util/Dynamics.hi
 InterActor.o : top/util/Debug.hi
+InterActor.o : ./SIMClasses.hi
 Controller.o : Controller.hs
+Controller.o : top/util/Computation.hi
 Controller.o : top/concurrency/Concurrency.hi
 Controller.o : ./Interaction.hi
 Controller.o : ./InterActor.hi
@@ -177,18 +180,23 @@ Collector.o : top/util/Object.hi
 Collector.o : ./ChildProcess.hi
 Collector.o : top/util/Debug.hi
 Collector.o : top/concurrency/ThreadWait.hi
+RegularExpression.o : RegularExpression.hs
+RegularExpression.o : top/util/Dynamics.hi
+RegularExpression.o : top/util/Debug.hi
 Expect.o : Expect.hs
+Expect.o : top/util/ExtendedPrelude.hi
+Expect.o : top/util/Object.hi
+Expect.o : top/util/Maybes.hi
+Expect.o : top/util/Dynamics.hi
+Expect.o : top/util/Debug.hi
 Expect.o : top/concurrency/Concurrency.hi
 Expect.o : ./Interaction.hi
 Expect.o : ./Listener.hi
 Expect.o : ./ChildProcess.hi
 Expect.o : ./Interpreter.hi
 Expect.o : ./SIMClasses.hi
-Expect.o : top/util/Object.hi
 Expect.o : ./Collector.hi
-Expect.o : top/util/Dynamics.hi
-Expect.o : top/util/ExtendedPrelude.hi
-Expect.o : top/util/Debug.hi
+Expect.o : ./RegularExpression.hi
 SIM.o : SIM.hs
 SIM.o : top/concurrency/Concurrency.hi
 SIM.o : ./Interaction.hi

@@ -8,28 +8,32 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Dispatcher tool, i.e. a combination of the interpreter
                 tool and the event-reactor tool.
+This is a very loose-coupling indeed, since the interpreter and
+event-reactor don't really talk to each other.  It's just a convenient
+bundling of two separate things together.  See for example 
+htk/kernel/GUIWish.hs for a use.
                 
 
    ######################################################################### -}
 
 
 module Dispatcher (
-        ToolStatus(..),
-
-        Destructible(..),
-        Tool(..),
-        UnixTool(..),
-        CommandTool(..),
-        Adaptor(..),
-
-        Dispatcher,
-        newDispatcher,
-
-        EventDesignator(..),
-        EventID,
-
-        commandFailed
-        ) where
+   ToolStatus,
+   
+   Destructible(..),
+   Tool(..),
+   UnixTool(..),
+   CommandTool(..),
+   Adaptor(..),
+   
+   Dispatcher,
+   newDispatcher,
+   
+   EventDesignator(..),
+   EventID,
+   
+   commandFailed
+   ) where
 
 import Dynamics
 import Concurrency
@@ -43,69 +47,73 @@ import Object
 import Debug(debug)
 
 
--- --------------------------------------------------------------------------
--- Semantic Domains
--- --------------------------------------------------------------------------
-
 data Typeable a => Dispatcher a = Dispatcher Interpreter (EventBroker a)
-
+-- It has to be typeable to make the EventBroker
                 
 -- --------------------------------------------------------------------------
 --  Dispatcher Interpreter
 -- --------------------------------------------------------------------------
 
 newDispatcher :: Typeable a =>  
-        FilePath ->                                     -- toolname
-        [Config PosixProcess] ->
-        (Dispatcher a -> IO ()) ->                      -- finilizer
-        (String -> Dispatcher a -> IO ()) ->            -- dispatcher
-        IO (Dispatcher a)
-newDispatcher tool confs fincmd dispatch = do {
-        reactor <- newEventBroker;
-        intrp <- newInterpreter 
-                tool 
-                confs
-                (\ct -> fincmd (Dispatcher ct reactor))
-                (\s -> \ct -> dispatch s (Dispatcher ct reactor));
-        return (Dispatcher intrp reactor) 
-} where wrap f pv = \ct -> f (Dispatcher ct pv)
-        
+   FilePath ->                  -- toolname
+   [Config PosixProcess] ->     -- configurations
+   (Dispatcher a -> IO ()) ->   -- finalizer
+   (String -> Dispatcher a -> IO ()) ->  
+                                -- dispatcher
+   IO (Dispatcher a)
+newDispatcher toolName confs finaliser dispatch = 
+   do
+      reactor <- newEventBroker
+      interpreter <- 
+         newInterpreter 
+            toolName 
+            confs
+            (\ interpreter -> 
+               finaliser (Dispatcher interpreter reactor))
+            (\ str interpreter -> 
+               dispatch str (Dispatcher interpreter reactor))
+      return (Dispatcher interpreter reactor)   
 
 -- --------------------------------------------------------------------------
---  Tool Instance
+--  Tool Instances.  These all trivially inherit from either the
+--  interpreter or from the event broker.
 -- --------------------------------------------------------------------------
 
 instance Object (Dispatcher a) where
-        objectID (Dispatcher intrp _) = objectID intrp
-
+   objectID (Dispatcher interpreter _) = objectID interpreter
 
 instance Destructible (Dispatcher a) where
-        destroy (Dispatcher intrp _) = destroy intrp
-        destroyed (Dispatcher intrp _) = destroyed intrp
+   destroy (Dispatcher interpreter _) = destroy interpreter
+   destroyed (Dispatcher interpreter _) = destroyed interpreter
         
 
 instance Tool (Dispatcher a) where
-        getToolStatus (Dispatcher intrp _) = getToolStatus intrp
+    getToolStatus (Dispatcher interpreter _) = getToolStatus interpreter
 
 
 instance UnixTool (Dispatcher a) where
-        getUnixProcessID (Dispatcher intrp _) = getUnixProcessID intrp  
+    getUnixProcessID (Dispatcher interpreter _) = 
+       getUnixProcessID interpreter  
         
 
 instance CommandTool (Dispatcher a) where 
-        execCmd cmd (Dispatcher intrp _) = execCmd cmd intrp
-        evalCmd cmd (Dispatcher intrp _) = evalCmd cmd intrp        
-        execOneWayCmd cmd (Dispatcher intrp _) = execOneWayCmd cmd intrp 
+    evalCmd cmd (Dispatcher interpreter _) = evalCmd cmd interpreter        
+    execOneWayCmd cmd (Dispatcher interpreter _) = 
+       execOneWayCmd cmd interpreter 
 
 
 instance ReactiveCommandTool (Dispatcher a) where
-        sendReply ans (Dispatcher intrp _) = sendReply ans intrp
+    sendReply ans (Dispatcher interpreter _) = sendReply ans interpreter
 
 
 instance Adaptor Dispatcher where
-        register (Dispatcher _ reactor) ev dmode cmd iact =
-                register reactor ev dmode cmd iact
-        deregister (Dispatcher _ reactor) ev cmd iact =
-                deregister reactor ev cmd iact
-        dispatch (Dispatcher _ reactor) ev val  = 
-                dispatch reactor ev val 
+    register (Dispatcher _ reactor) ev dmode cmd iact =
+       register reactor ev dmode cmd iact
+    deregister (Dispatcher _ reactor) ev cmd iact =
+       deregister reactor ev cmd iact
+    dispatch (Dispatcher _ reactor) ev val  = 
+       dispatch reactor ev val 
+
+
+
+

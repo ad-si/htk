@@ -18,7 +18,6 @@ module Concurrency (
          module Variable,
          module Lock,
          module BSem,
---       module QSem,
          module Mutex,
          module RVar,
          module Event,

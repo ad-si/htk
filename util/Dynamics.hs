@@ -74,7 +74,11 @@ coerce d =
 coerceIO :: Typeable a => Dyn -> IO a
 coerceIO d = 
    case fromDyn d of
-      Nothing -> ioError typeMismatch
+      Nothing ->
+         do 
+            debug "Dynamics.coerceIO failure"
+            debug d
+            ioError typeMismatch
       (Just x) -> return x
 
 typeMismatch :: IOError

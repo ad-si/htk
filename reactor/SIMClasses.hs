@@ -173,11 +173,19 @@ class SingleInstanceTool t where
 -- --------------------------------------------------------------------------
 
 class Tool t => CommandTool t where
+   -- Tools have two sorts of output.  One is what comes out of their
+   -- stdout channel (and if the appropriate mode in ChildProcess is set
+   -- their stderr channel as well).  
+   -- execOneWayCmd is used when that's all there is.
+   -- execCmd is used when there's also a string from somewhere else as well.
    evalCmd         :: String -> t -> IO String
    execCmd         :: String -> t -> IO ()
    execOneWayCmd   :: String -> t -> IO ()
-   execCmd cmd t   = evalCmd cmd t >> done
-
+   execCmd cmd t   = 
+      do
+         evalCmd cmd t
+         done
+   -- only overrridden by Expect, in which all commands are one-way.
 
 -- --------------------------------------------------------------------------
 --  Reactive Command Tool

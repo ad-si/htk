@@ -19,29 +19,28 @@ int collectorfd;
 
 
 void SetCollectorFD (int fd) {
-	collectorfd = fd;
-};
+   collectorfd = fd;
+   };
 
 
 void SendCollectorFD(address addr) {
-	char buf[255];
-	sprintf(buf,"%d\n",addr);
-	printf("sending object id %d over pipe %d \n",addr,collectorfd);
-	write(collectorfd, buf, strlen(buf));	
-};
+   char buf[255];
+   sprintf(buf,"%d\n",addr);
+   printf("sending object id %d over pipe %d \n",addr,collectorfd);
+   write(collectorfd, buf, strlen(buf));	
+   };
 
-address AddrSendCollectorFD(void) 
-{
-    return ((void *) (SendCollectorFD));
-};
+address AddrSendCollectorFD(void) {
+   return ((void *) (SendCollectorFD));
+   };
 
 
 address NewAddr(void) {
-	return (malloc(1));
-};
+   return (malloc(1));
+   };
 
 
 void FreeAddr(address addr) {
-	free(addr);
-};
+   free(addr);
+   };
 
