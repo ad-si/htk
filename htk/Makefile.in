@@ -18,6 +18,7 @@ SRCS       = \
 	 kernel/GUIBaseClasses.hs\
 	 kernel/GUIInteraction.hs\
 	 kernel/GUICore.hs\
+	 kernel/UserInteraction.hs\
 	 containers/Packer.hs\
 	 containers/Toplevel.hs\
 	 containers/Window.hs\
