@@ -1,8 +1,8 @@
-{-# This module encapsulates calling CVS.  Thus it wraps up the
+{- This module encapsulates calling CVS.  Thus it wraps up the
     arguments nicely; it does not try to do anything with the output.
     It returns an Expect object corresponding to the called 
     CVS command.
-    #-}
+    -}
 module CVSBasic(
    callCVS, -- :: GlobalOptions -> CVSCommand -> IO Expect
 
@@ -20,6 +20,8 @@ import Computation
 import ChildProcess
 import Expect
 
+import CVSTypes
+
 data GlobalOptions =
    GlobalOptionsSimple {
       workingDir :: String,
@@ -36,33 +38,6 @@ compileGlobalOptions(
       cvsRoot   
       ]
    ]
-
-newtype CVSFile = CVSFile String deriving (Eq,Ord)
-instance Show CVSFile where
-   showsPrec prec (CVSFile str) acc = showsPrec prec str acc
-
-instance Read CVSFile where
-   readsPrec prec str =
-      let
-         parses :: [(String,String)] = readsPrec prec str
-      in
-         map
-            (\ (result,rest) -> (CVSFile result,rest))
-            parses
-
-newtype CVSVersion = CVSVersion String deriving (Eq,Ord)
- 
-instance Show CVSVersion where
-   showsPrec prec (CVSVersion str) acc = showsPrec prec str acc
-
-instance Read CVSVersion where
-   readsPrec prec str =
-      let
-         parses :: [(String,String)] = readsPrec prec str
-      in
-         map
-            (\ (result,rest) -> (CVSVersion result,rest))
-            parses
 
 data CVSCommand =
       UpdateSimple {

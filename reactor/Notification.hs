@@ -12,11 +12,12 @@ module Notification(
                 -- when someone sends a notification with this String.
    ) where
 
+import IO
+
 import Object
 
 import Thread
 import Selective
-import FileEV
 import SocketEV
 
 import Listener
@@ -28,7 +29,7 @@ import InfoBus
 data Notifier =
    Notifier {
       oID :: ObjectID,
-      handle :: HandleEV,
+      handle :: Handle,
       eventBroker :: EventBroker () 
          -- we use an EventBroker to handle registrations.
       }
@@ -39,8 +40,8 @@ instance Object Notifier where
 instance Destructible Notifier where
    destroy(Notifier{handle=handle}) =
       do
-         writeFileEV handle "\0"
-         closeFileEV handle
+         hPutStrLn handle "\0"
+         hClose handle
 
 instance EventDesignator (Notifier,String) where
    toEventID (notifier,key) = EventID (objectID notifier) key
@@ -53,22 +54,17 @@ mkNotifier hostDesc =
       eventBroker <- newEventBroker 
       let
          notifier = Notifier{oID = oID,handle=handle,eventBroker=eventBroker}
-         reader = readFileEV handle
          readerThread =
-            sync(
-               reader >>>=
-                  (\ key ->
-                     do
-                        dispatch eventBroker (notifier,key) () done
-                        readerThread
-                     )
-            )
+            do
+               key <- hGetLine handle
+               dispatch eventBroker (notifier,key) () done
+            
       forkIO readerThread
       registerTool notifier
       return notifier
 
 notify :: Notifier -> String -> IO()
-notify (Notifier{handle=handle}) key = writeFileEV handle key
+notify (Notifier{handle=handle}) key = hPutStrLn handle key
 
 isNotified :: Notifier -> String -> IA ()
 isNotified notifier@(Notifier{eventBroker=eventBroker}) key =

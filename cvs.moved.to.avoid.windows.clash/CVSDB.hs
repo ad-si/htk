@@ -49,11 +49,11 @@ module CVSDB(
    -- creates an object with a new initial location, or else
    -- raise an error.  (Used when file system is initialised)
 
-   commit, -- :: Repository -> ObjectSource -> Location -> 
-           --    (Maybe ObjectVersion) -> IO ObjectVersion
+   commit, -- :: Repository -> ObjectSource -> Location -> ObjectVersion -> 
+           --       IO ObjectVersion
    -- commits a new version of the object to the repository, returning its
-   -- new version.  The version if supplied is passed to CVSHigh
-   -- as the parent version.
+   -- new version.  The version supplied should be a previous version of
+   -- this object.
    retrieveFile, -- :: Repository -> Location -> ObjectVersion -> FilePath ->
                  --       IO ()
    -- retrieveFile retrieves the given version of the object at Location
@@ -102,9 +102,10 @@ import ByteArray(ByteArray)
 import Computation(done)
 import FiniteMap
 import Maybes
+import IOExtras
 
+import BSem
 import Event
-import FileEV
 import SocketEV
 
 import ExternalEvent(IA)
@@ -114,6 +115,8 @@ import RegularExpression
 import FileNames
 import CVSHigh
 import LineShow
+
+import qualified Allocate(initialCVSFile)
 
 data Repository = Repository {
    cvsLoc :: CVSLoc, -- CVSHigh location of repository.
@@ -127,9 +130,10 @@ data Repository = Repository {
       -- wDirDirs contains the set of all directories known to
       -- already exist in the working directory.
    notifier :: Notifier,
-   newINodes :: HandleEV 
-      -- HandleEV is the connection to the newInodeServer, see
-      -- cvs/inodeserver
+   allocator :: Handle,
+      -- Handle is the connection to the allocate program
+      -- (code in inodeserver/Mainallocate.hs).
+   allocatorSem :: BSem
    }
 
 data RepositoryParameter =
@@ -141,7 +145,9 @@ data RepositoryParameter =
       -- if CVSROOT is not :pserver:.
    |  WorkingDir String
       -- Does NOT include module name.
-      
+
+type Location = CVSFile
+
 ----------------------------------------------------------------
 -- Initialisation
 ----------------------------------------------------------------
@@ -201,8 +207,9 @@ initialise options =
       cvsLoc <- newCVSLoc hostString workingDir
 
       notifier <- mkNotifier hostName
- 
-      inodeserver <- connect hostName (11394::Int)
+
+      allocator <- connect hostName (11394::Int)
+      allocatorSem <- newBSem
   
       wDirContents <- newMVar emptyFM
       wDirDirs <- newMVar emptySet
@@ -213,7 +220,8 @@ initialise options =
          wDirContents = wDirContents,
          wDirDirs = wDirDirs,
          notifier = notifier,
-         newINodes = inodeserver
+         allocator = allocator,
+         allocatorSem = allocatorSem
          }
    where
       getHost :: String -> Maybe String
@@ -317,13 +325,8 @@ importString str = return (StringObject str)
 importFile :: FilePath -> IO ObjectSource
 importFile file = return (FileObject file)
 
-type Location = CVSFile
-initialCVSFileName :: String
-initialCVSFileName = "a"
-
 initialLocation :: Location
-initialLocation = CVSFile initialCVSFileName
--- This is derived from inodeserver/NewINodes.hs
+initialLocation = Allocate.initialCVSFile
 
 toRealName :: Repository -> CVSFile -> FilePath
 toRealName repository (CVSFile location) =
@@ -348,34 +351,31 @@ attLocation (CVSFile str) = CVSFile (str++"#")
 
 newLocation :: Repository -> ObjectSource ->  
    IO (Location,ObjectVersion,AttributeVersion)
-newLocation (repository@Repository{newINodes=newINodes}) objectSource =
+newLocation repository objectSource =
    do
       -- get a new file name
-      writeFileEV newINodes "" -- \n is automatically appended
-      cvsFileName <- sync(readFileEV newINodes)
-      newGeneralLocation repository objectSource cvsFileName
+      cvsFile <- askAllocator repository ""
+      newGeneralLocation repository objectSource cvsFile
 
 newInitialLocation :: Repository -> ObjectSource -> IO ()
-newInitialLocation (repository@Repository{newINodes=newINodes}) objectSource =
+newInitialLocation (repository@Repository{allocator=allocator}) objectSource =
    do
       -- get a new file name
-      writeFileEV newINodes "" -- \n is automatically appended
-      cvsFileName <- sync(readFileEV newINodes)
-      if(initialCVSFileName /= cvsFileName) 
+      cvsFile <- askAllocator repository ""
+      if(Allocate.initialCVSFile /= cvsFile) 
          then
             ioError(userError 
                 "Attempt to initialise already-initialised database"
                 )
          else
-            newGeneralLocation repository objectSource cvsFileName
+            newGeneralLocation repository objectSource cvsFile
       done
 
-newGeneralLocation :: Repository -> ObjectSource -> String ->
+newGeneralLocation :: Repository -> ObjectSource -> CVSFile ->
    IO (Location,ObjectVersion,AttributeVersion)
 newGeneralLocation (repository@Repository{cvsLoc=cvsLoc}) 
-      objectSource cvsFileName =
+      objectSource cvsFile =
    do
-      let cvsFile = CVSFile cvsFileName
       -- now create object
       ensureDirectories repository cvsFile
       -- now add it to repository
@@ -403,21 +403,38 @@ newGeneralLocation (repository@Repository{cvsLoc=cvsLoc})
 -- commit and retrieveFile/retrieveString
 ----------------------------------------------------------------
 
-commit :: Repository -> ObjectSource -> Location -> (Maybe ObjectVersion) -> 
+commit :: Repository -> ObjectSource -> Location -> ObjectVersion -> 
    IO ObjectVersion
 commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier}) 
       objectSource (cvsFile@(CVSFile cvsFileName)) parentVersion =
--- sadly we must currently throw the parentVersion away, because
--- the cvsCommitCheck version argument takes the (CVS) version number
--- to create, not the one to branch from.  Allocating one to create
--- is tricky since we don't know what's already allocated.
+-- CVS requires that the parent version be in place before we commit.
+-- Hopefully this is normally true anyway.
+-- Three versions are involved:
+-- (1) parentVersion - previous version of file being modified.
+--     We need this for CVS.
+-- (2) newVersion.   This is the eventual new version of the file.
+-- (3) commitVersion.  This is the version to pass to cvsCommit.
+--     It is almost the same as newVersion except that when we
+--     branch we don't put the final ".1" in. 
+-- Example 1.  If we commit a new version to parentVersion 1.1.
+-- and no-one else has, we will have newVersion=commitVersion = 1.2.
+-- Example 2.  If then we want another new version to parentVersion 1.1,
+-- we will have newVersion = 1.1.1.1 and commitVersion = 1.1.1.
    do
-      ensureDirectories repository cvsFile
-      exportFile objectSource (toRealName repository cvsFile)
-      version <- updateDirContents repository cvsFile
-         (\ _ -> cvsCommitCheck cvsLoc cvsFile Nothing)
-      notify notifier cvsFileName
-      return version
+      -- get the new version number
+      (commitVersion :: CVSVersion) <- 
+         askAllocator repository (show(cvsFile,parentVersion))
+      newVersion <- retrieveGeneral repository cvsFile parentVersion 
+         (do
+            exportFile objectSource (toRealName repository cvsFile)
+            newVersion <- 
+               cvsCommitCheck cvsLoc cvsFile (Just commitVersion)
+            notify notifier cvsFileName
+            return newVersion
+            )
+      updateDirContents repository cvsFile
+         (\ _ -> return newVersion)
+      return newVersion
 
 retrieveFile :: Repository -> Location -> ObjectVersion -> FilePath -> 
    IO ()
@@ -436,14 +453,15 @@ retrieveString repository cvsFile version =
             )
       takeMVar resultHere
       
-retrieveGeneral :: Repository -> Location -> ObjectVersion -> (IO()) -> IO ()
+retrieveGeneral :: Repository -> Location -> ObjectVersion -> 
+   (IO result) -> IO result
 -- retrieveGeneral repository cvsFile version action
 -- ensures that the supplied action is executed when the version of the
 -- given file is present.
 retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version 
       action =
    do
-      updateDirContents repository cvsFile
+      (_,result) <- updateDirContentsGeneral repository cvsFile
          (\ oldVersionOpt ->
             do
                let
@@ -455,10 +473,10 @@ retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version
                      do 
                         ensureDirectories repository cvsFile
                         getFile
-               action
-               return version
+               result <- action
+               return (version,result)
             ) 
-      done      
+      return result
 
          
 ----------------------------------------------------------------
@@ -570,9 +588,9 @@ ensureDirectories
 -- wDirContents 
 ----------------------------------------------------------------
 
-
-updateDirContents :: Repository -> Location -> 
-   (Maybe ObjectVersion -> IO ObjectVersion) ->  IO ObjectVersion
+updateDirContentsGeneral :: Repository -> Location -> 
+   (Maybe ObjectVersion -> IO (ObjectVersion,extra)) -> 
+   IO (ObjectVersion,extra)
 -- updateDirContents repository location actionFn 
 -- is used for all accesses to wDirContents in the 
 -- repository.  It updates the version of location according to
@@ -580,7 +598,9 @@ updateDirContents :: Repository -> Location ->
 -- file; actionFn (Just version) means we do and version is its version.
 -- It locks so that if updateDirContents is called concurrently on the
 -- same file, the actions will not overlap.
-updateDirContents (Repository{wDirContents=wDirContents}) 
+-- updateDirContentsGeneral allows the action function to return a bit of
+-- extra state.
+updateDirContentsGeneral (Repository{wDirContents=wDirContents}) 
       location actionFn =
    do
       -- (1) obtain (creating if necessary) the unique MVar corresponding
@@ -596,11 +616,25 @@ updateDirContents (Repository{wDirContents=wDirContents})
       -- (2) read mVar
       oldVersionOpt <- takeMVar mVar
       -- (3) action
-      newVersion <- actionFn oldVersionOpt
+      toReturn@(newVersion,extraReturn) <- actionFn oldVersionOpt
       -- (4) put mVar
       putMVar mVar (Just newVersion)
-      
-      return newVersion
+
+      return toReturn
+
+updateDirContents :: Repository -> Location ->
+   (Maybe ObjectVersion -> IO ObjectVersion) -> IO ObjectVersion
+updateDirContents repository location actionFn =
+   do
+      (toReturn,()) <-
+         updateDirContentsGeneral repository location
+            (\ maybeVersion -> 
+               do
+                  newVersion <- actionFn maybeVersion
+                  return (newVersion,())
+               )
+      return toReturn
+
 
 ----------------------------------------------------------------
 -- Listing versions
@@ -620,6 +654,15 @@ watch (repository@Repository{notifier=notifier})
       (cvsFile@(CVSFile cvsFileName)) =
    isNotified notifier cvsFileName
 
+----------------------------------------------------------------
+-- Accessing the allocator
+----------------------------------------------------------------
 
-
-
+askAllocator :: Read result => Repository -> String -> IO result
+askAllocator (Repository{allocator=allocator,allocatorSem=allocatorSem}) 
+      message = 
+   synchronize(allocatorSem) 
+      (do
+         hPutStrLn allocator message
+         hGetLineR allocator
+         )

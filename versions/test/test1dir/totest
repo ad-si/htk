@@ -1,9 +1,10 @@
 #!/usr/local/bin/bash
 export CVSROOT=/home/uniform/backup/repository
 rm -rf A B
-kill `ps -u ger -o pid,comm | grep server | sed -e s+/home/ger/.*++`
+pkill -x allocate
+pkill -x server
 rm -rf /home/uniform/backup/repository/db
 mkdir /home/uniform/backup/repository/db
 /home/ger/uni/concurrency/server/server &
-/home/ger/uni/cvs/inodeserver/iNodeServer &
+/home/ger/uni/cvs/inodeserver/allocate &
 /home/ger/uni/versions/test/test1

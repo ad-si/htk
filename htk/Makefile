@@ -92,6 +92,7 @@ EXTRA_HC_OPTIONS += -Onot -H30M
 
 SUBDIRS = test examples
 
+XHCDIRS = $(HTKDIRS)
+
 include top/mk/boilerplate.mk
 
-HCDIRS := resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:$(HCDIRS)

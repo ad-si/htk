@@ -569,7 +569,7 @@ commitTree' (fileSys@FileSys{repository=repository}) changeTree =
          do
             objectSource <- importFile filePath
             objectVersion <- 
-               commit repository objectSource location (Just oldObjectVersion)
+               commit repository objectSource location oldObjectVersion
             return (location,objectVersion)
       UpdateFolder (Original original) (ChangeFolder changeFolderMap) ->
          do
@@ -598,7 +598,7 @@ commitTree' (fileSys@FileSys{repository=repository}) changeTree =
                Just (location,oldObjectVersion) ->
                   do
                      objectVersion <- commit repository objectSource location
-                        (Just oldObjectVersion)
+                        oldObjectVersion
                      return (location,objectVersion)
  
          

@@ -49,27 +49,33 @@ CFLAGS           = $(GHCINCDIR)
 # HCDIRS when that gives lots of extra warnings?  The reason
 # is so that mkdependHS uses the local name for files in the
 # same directory, so that gmake properly identifies them.
-HCDIRS =  .:$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(HTKDIR):$(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):$(DAVINCIDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR):$(VERSIONSDIR)
+# NB.  XHCDIRS can be used to add extra directories.  It should
+# end with a colon.
+HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(HTKDIR):$(DAVINCIDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR):$(VERSIONSDIR)
 # $(OMSCDIR):$(OMSNOTIDIR):$(OMSDIR):$(WBDIR):$(TOOLSDIR):$(DEMODIR):$(SCHEMADIR):$(IDLDIR)
 
 UTILDIR    	= $(UNIDIR)/util
 CONCDIR    	= $(UNIDIR)/concurrency
 REACTORDIR 	= $(UNIDIR)/reactor
-HTKDIR           = $(UNIDIR)/htk
-HTKRESOURCEDIR    =  $(HTKDIR)/resources
-HTKCANVASITEMDIR    = $(HTKDIR)/canvasitems
-HTKKERNELDIR     = $(HTKDIR)/kernel
-HTKCONTAINERDIR   = $(HTKDIR)/containers
-HTKMENUITEMDIR   = $(HTKDIR)/menuitems
-HTKTOOLKITDIR    = $(HTKDIR)/toolkit
-HTKCOMPONENTSDIR = $(HTKDIR)/components
-HTKTOPLEVELDIR   = $(HTKDIR)/toplevel
-HTKWIDGETSDIR    = $(HTKDIR)/widgets
-HTKDEVICESDIR    = $(HTKDIR)/devices
-HTKTEXTITEMDIR   = $(HTKDIR)/textitems
-DAVINCIDIR       = $(UNIDIR)/davinci
-WWWDIR           = $(UNIDIR)/www
-TOOLSDIR         = $(UNIDIR)/tools
-CVSDIR           = $(UNIDIR)/cvs
-VERSIONSDIR      = $(UNIDIR)/versions
+HTKDIR          = $(UNIDIR)/htk
+HTKRESOURCEDIR  = $(HTKDIR)/resources
+HTKCANVASITEMDIR= $(HTKDIR)/canvasitems
+HTKKERNELDIR    = $(HTKDIR)/kernel
+HTKCONTAINERDIR = $(HTKDIR)/containers
+HTKMENUITEMDIR  = $(HTKDIR)/menuitems
+HTKTOOLKITDIR   = $(HTKDIR)/toolkit
+HTKCOMPONENTSDIR= $(HTKDIR)/components
+HTKTOPLEVELDIR  = $(HTKDIR)/toplevel
+HTKWIDGETSDIR   = $(HTKDIR)/widgets
+HTKDEVICESDIR   = $(HTKDIR)/devices
+HTKTEXTITEMDIR  = $(HTKDIR)/textitems
+DAVINCIDIR      = $(UNIDIR)/davinci
+WWWDIR          = $(UNIDIR)/www
+TOOLSDIR        = $(UNIDIR)/tools
+CVSDIR          = $(UNIDIR)/cvs
+VERSIONSDIR     = $(UNIDIR)/versions
+VERSIONSINODEDIR= $(CVSDIR)/inodeserver
+
+
+HTKDIRS = $(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):
 

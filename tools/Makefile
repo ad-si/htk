@@ -17,4 +17,6 @@ SRCS       = \
 
 SUBDIRS = test
 
+XHCDIRS = $(HTKDIRS)
+
 include top/mk/boilerplate.mk

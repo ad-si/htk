@@ -6,6 +6,8 @@
    -}
 module Main(main) where
 
+import IO
+
 import Concurrent
 import Posix
 
@@ -36,7 +38,7 @@ data Client =
       handle :: HandleEV
       }
 
-listener :: EV HandleEV -> [Client] -> IO ()
+listener :: EV Handle -> [Client] -> IO ()
 -- First argument is source of new clients
 -- Second argument is current client list.
 -- listener function should never return.
@@ -45,9 +47,10 @@ listener newClient clientList =
          newClient >>>=
             (\ handle ->
                do
+                  handleEV <- makeFileEV handle
                   oID <- newObject
                   listener newClient 
-                     ((Client {oID=oID,handle=handle}):clientList)
+                     ((Client {oID=oID,handle=handleEV}):clientList)
                )  
       +> (choose
             (map

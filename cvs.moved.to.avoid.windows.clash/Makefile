@@ -1,6 +1,6 @@
 LIB        = libcvs.a
 
-SRCS       = CVSBasic.hs CVSHigh.hs CVSDB.hs
+SRCS       = CVSTypes.hs CVSBasic.hs CVSHigh.hs CVSDB.hs Allocate.hs
 SRCSC      = copy_file.c
 SUBDIRS    = test inodeserver
 

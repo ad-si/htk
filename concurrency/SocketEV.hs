@@ -14,21 +14,23 @@ module SocketEV(
 
    -- functions for a server
    listenEV, -- :: DescribesPort port => port 
-             --      -> IO(EV(HostDesc,PortDesc,HandleEV))
+             --      -> IO(EV(HostDesc,PortDesc,Handle))
    -- listenEV should only be called once per port.  It returns
    -- an event which happens when new clients attempt to call,
-   -- giving the clients host, port and a HandleEV for accessing it.
+   -- giving the clients host, port and a Handle for accessing it.
 
    -- functions for a client
    connect -- :: (DescribesHost host,DescribesPort port) => 
-           --    host -> port -> IO HandleEV
+           --    host -> port -> IO Handle
    -- connect attempts to connect to the server
    ) where
 
+import IO
+
 import Socket
+
 import Channels
 import EV
-import FileEV
 import Thread
 import Debug(debug)
 
@@ -56,14 +58,13 @@ instance DescribesPort Int where
 instance DescribesPort PortDesc where
    makePort = return
 
-listenEV :: DescribesPort port => 
-   port -> IO(EV(HostDesc,PortDesc,HandleEV))
+listenEV :: DescribesPort port => port -> IO(EV(HostDesc,PortDesc,Handle))
 listenEV portDesc =
    do
       port <- makePort portDesc
       socket <- listenOn(descToPort port)
       newConnections <- 
-         newChannel :: (IO (Channel (HostDesc,PortDesc,HandleEV)))
+         newChannel :: (IO (Channel (HostDesc,PortDesc,Handle)))
       let
          listenerThread = 
             do
@@ -71,18 +72,16 @@ listenEV portDesc =
                let
                   hostDesc = HostDesc hostName
                   portDesc = PortDesc (fromIntegral portNumber)
-               handleEV <- makeFileEV handle
-               sendIO newConnections (hostDesc,portDesc,handleEV)
+               sendIO newConnections (hostDesc,portDesc,handle)
                listenerThread
       forkIO listenerThread
       return (receive newConnections) 
                
-connect :: (DescribesHost host,DescribesPort port) =>
-   host -> port -> IO HandleEV
+connect :: (DescribesHost host,DescribesPort port) => 
+   host -> port -> IO Handle
 connect host port =
    do
       (HostDesc hostName) <- makeHost host
       portDesc <- makePort port
-      handle <- connectTo hostName (descToPort portDesc)
-      makeFileEV handle
+      connectTo hostName (descToPort portDesc)
 

@@ -5,4 +5,6 @@ SRCS = Test1.hs Test2.hs Test3.hs Test9.hs Test10.hs TestBug3.hs Counter.hs Util
 
 LIB = libhtkTest.a
 
+XHCDIRS = $(HTKDIRS)
+
 include top/mk/boilerplate.mk

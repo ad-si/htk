@@ -95,6 +95,7 @@ display :
 	@echo MAINOBJS = $(MAINOBJS)
 	@echo MAINPROGS = $(MAINPROGS)
 	@echo HIFILES = $(HIFILES)
+	@echo HCDIRS = $(HCDIRS)
 
 depend : $(SRCS) 
 	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS)
