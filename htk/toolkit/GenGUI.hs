@@ -27,6 +27,7 @@ module GenGUI (
   CItem(..),
 
   root,     {- :: CItem c => GenGUI c -> IO (Item c)                    -}
+  openedFolder, {- :: CItem c=> GenGUI c-> IO (Maybe (Item c))          -}
   addItem,  {- :: CItem c => Item c -> NewItem c -> IO (Item c)         -}
   children, {- :: CItem c => Item c -> IO [Item c]                      -}
   content,  {- :: CItem c => (Item c) -> c                              -}
@@ -607,6 +608,9 @@ children (Root chref) =
     items <- getRef chref
     return items
 children _ = error "GenGUI (children) : called for a leaf"
+
+openedFolder :: CItem c=> GenGUI c-> IO (Maybe (Item c))
+openedFolder = getRef . open_obj
 
 addItem :: CItem c => GenGUI c -> Item c -> NewItem c -> IO (Item c)
 addItem gui par@(IntFolderItem _ chref) newitem =
