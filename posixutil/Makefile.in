@@ -1,5 +1,5 @@
 PACKAGE = uni-posixutil
-PACKAGES = posix uni-events
+PACKAGES = uni-events
 
 ifeq "@WORK_AROUND_BDB_LINUX_BUG@" "1"
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \

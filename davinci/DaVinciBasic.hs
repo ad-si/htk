@@ -55,7 +55,7 @@ import qualified IOExts(unsafePerformIO)
 import Concurrent
 import ByteArray
 import CString
-import Posix hiding (version)
+import System.Posix.Env as Posix
 import Data.IORef
 
 import Object

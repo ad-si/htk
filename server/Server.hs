@@ -25,7 +25,7 @@ import Control.Exception hiding (handle)
 import Data.FiniteMap
 import Network hiding (Service)
 
-import Posix
+import System.Posix.Signals
 
 import Computation
 import ExtendedPrelude

@@ -4,7 +4,7 @@ module ExecProcessTest where
 
 import Concurrent
 
-import Posix
+import System.Posix as Posix
 
 runProg :: String -> IO ()
 runProg progName =
@@ -36,7 +36,7 @@ passInput fd =
 passOutput :: Fd -> IO ()
 passOutput fd =
    do
-      threadWaitRead (fdToInt fd)
+      threadWaitRead (fromIntegral fd)
       (output,_) <- fdRead fd 1000
       putStrLn ("Got: "++output)
       passOutput fd

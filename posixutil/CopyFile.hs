@@ -23,7 +23,7 @@ import qualified Exception
 import CString
 import Ptr
 import Foreign
-import Posix
+import System.Posix as Posix
 
 import Computation
 import ICStringLen
@@ -179,6 +179,6 @@ copyCStringLenToFile (ptr,len) filePath =
 
       fd <- openFd filePath WriteOnly (Just fileMode) openFileFlags 
       fdWritePrim fd (ptr,len)
-      fdClose fd
+      Posix.closeFd fd
 
 

@@ -21,7 +21,7 @@ import IO
 import CString
 import CTypesISO
 import Concurrent
-import Posix
+import System.Posix as Posix
 
 import Computation
 
@@ -75,7 +75,7 @@ fdMkReadLn fD =
 refreshBuffer :: FdBuffer -> IO ()
 refreshBuffer (FdBuffer {fD = fD,buffer = buffer}) =
    do
-      threadWaitRead (fdToInt fD)
+      threadWaitRead (fromIntegral fD)
       (str,count) <- fdRead fD 1000
       putMVar buffer str
       done

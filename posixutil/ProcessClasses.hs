@@ -8,7 +8,7 @@ module ProcessClasses(
    CommandTool(..), -- can send commands.
    ) where
 
-import Posix
+import System.Posix
 
 import Computation
 
