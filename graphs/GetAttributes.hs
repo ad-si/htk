@@ -271,7 +271,7 @@ getSingleString :: String -> IO String
 -- provided.
 getSingleString query =
    do
-      (inputWin, form) <- newInputWin "" (\p-> newInputForm p Nothing []) []
+      (inputWin, form) <- newInputWin "" (\p-> newInputForm p (Just "") []) []
       (entryField :: EntryField String String) <-
          newEntryField form [
             text query,
