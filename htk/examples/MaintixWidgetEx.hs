@@ -45,8 +45,8 @@ main =
                         [tooltip "enter your age"] :: IO (Entry String)
          grid e2 [GridPos (1,1), GridPadX 5, GridPadY 5]
 
-         (cb1 :: ComboBox String) <- newComboBox lf_pers
-                                       [value ["male", "female"], editable Off]
+         (cb1 :: ComboBox String) <- newComboBox lf_pers True
+                                       [value ["male", "female"], pick 0]
          grid cb1 [GridPos (0,2), GridPadX 5, GridPadY 5, Columnspan 2]
 
          lf_web <- newLabelFrame page1 [text "WWW"]

@@ -60,7 +60,7 @@ data ObjectKind =
   | LABELFRAME
   | PANEDWINDOW Orientation               -- orientation of panes
   | WINDOWPANE
-  | COMBOBOX
+  | COMBOBOX Bool                         -- editable
   | BOX Orientation Flexibility
 
 data CanvasItemKind = 
@@ -129,6 +129,6 @@ instance Show ObjectKind where
        NOTEBOOKPAGE _ -> ""
        LABELFRAME -> "tixLabelFrame"
        PANEDWINDOW _ -> "tixPanedWindow"
-       COMBOBOX -> "tixComboBox"
+       COMBOBOX _ -> "tixComboBox"
        WINDOWPANE -> ""
        BOX _ _ -> "frame") ++ r

@@ -17,7 +17,7 @@ module ComboBox (
   ComboBox,
   newComboBox,
 
-  editable
+  pick
 
 ) where
 
@@ -42,25 +42,38 @@ newtype GUIValue a => ComboBox a = ComboBox GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
--- paned window creation
+-- combo box creation
 -- -----------------------------------------------------------------------
 
 ---
 -- Constructs a new combo box and returns a handler.
--- @param cnf     - the list of configuration options for this
---                - combo box.
--- @return result - A combo box.
+-- @param cnf      - the list of configuration options for this
+--                 - combo box.
+-- @param editable - true if the user should be allowed to type into the
+--                 - entry of the ComboBox. 
+-- @return result  - A combo box.
 newComboBox :: (GUIValue a, Container par) =>
-               par -> [Config (ComboBox a)] -> IO (ComboBox a)
-newComboBox par cnf =
+               par -> Bool -> [Config (ComboBox a)] -> IO (ComboBox a)
+newComboBox par editable cnf =
   do
-    w <- createGUIObject (toGUIObject par) COMBOBOX
+    w <- createGUIObject (toGUIObject par) (COMBOBOX editable)
                          comboBoxMethods
     configure (ComboBox w) cnf
 
 
 -- -----------------------------------------------------------------------
--- paned window methods
+-- combo box specific commands and options
+-- -----------------------------------------------------------------------
+
+---
+-- Sets the index item in the listbox to be the current value of the
+-- ComboBox.
+pick :: GUIValue a => Int -> Config (ComboBox a)
+pick i cb = execMethod cb (\nm -> tkPick nm i) >> return cb
+
+
+-- -----------------------------------------------------------------------
+-- combo box methods
 -- -----------------------------------------------------------------------
 
 comboBoxMethods :: Methods
@@ -74,15 +87,9 @@ comboBoxMethods = Methods (cgetCmd defMethods)
                           (unbindCmd defMethods)
                           (cleanupCmd defMethods)
 
-tkCreateComboBox :: ObjectName -> ObjectKind -> ObjectName ->
-                    ObjectID -> [ConfigOption] -> TclScript
-tkCreateComboBox _ _ name _ opts =
-  ["tixComboBox " ++ show name ++ " " ++ showConfigs opts]
-{-# INLINE tkCreateComboBox #-}
-
 
 -- -----------------------------------------------------------------------
--- paned window instances
+-- combo box instances
 -- -----------------------------------------------------------------------
 
 ---
@@ -149,18 +156,16 @@ instance HasEnable (ComboBox a)
 
 
 -- -----------------------------------------------------------------------
--- widget specific configuration options
--- -----------------------------------------------------------------------
-
----
--- A combo box can be editable.
-editable :: Toggle -> Config (ComboBox a)
-editable t w = cset w "editable" t
-
-
--- -----------------------------------------------------------------------
 -- Tk commands
 -- -----------------------------------------------------------------------
+
+tkCreateComboBox :: ObjectName -> ObjectKind -> ObjectName ->
+                    ObjectID -> [ConfigOption] -> TclScript
+tkCreateComboBox _ (COMBOBOX editable) name _ opts =
+  ["tixComboBox " ++ show name ++ " -editable " ++ show editable ++
+   showConfigs opts]
+tkCreateComboBox _ _ _ _ _ = []
+{-# INLINE tkCreateComboBox #-}
 
 tkInsert ::  ObjectName -> Int -> [GUIVALUE] -> TclScript
 tkInsert name inx elems = 
@@ -181,3 +186,6 @@ tkGet name = [show name ++ " subwidget listbox get"]
 showElements :: [GUIVALUE] -> String
 showElements = concatMap (++ " ") . (map show) 
 {-# INLINE showElements #-}
+
+tkPick :: ObjectName -> Int -> TclScript
+tkPick name index = [show name ++ " pick " ++ show index]
