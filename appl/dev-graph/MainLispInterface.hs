@@ -256,12 +256,12 @@ hideedges gid [LP edges] graphs =
 hideedges _ _ graphs = do
   return_fail graphs "hideedges: illegal argument format"
 
-show_it gid [AP ev_id] graphs = 
+showIt gid [AP ev_id] graphs = 
   case try_to_read ev_id :: Maybe Int of
-    Just ev_id' -> AbstractGraphView.show_it gid ev_id' graphs 
-    Nothing ->  return_fail graphs ("show_it: illegal event id: "++ev_id)
-show_it _ _ graphs = do
-  return_fail graphs "show_it: illegal argument format"
+    Just ev_id' -> AbstractGraphView.showIt gid ev_id' graphs 
+    Nothing ->  return_fail graphs ("showIt: illegal event id: "++ev_id)
+showIt _ _ graphs = do
+  return_fail graphs "showIt: illegal argument format"
 
 
 command "makegraph" cid args graphs = Main.makegraph cid (parseList args) graphs
@@ -287,7 +287,7 @@ command c cid (gid:args) graphs = do
          ("redisplay",Main.redisplay),
          ("hidenodes",Main.hidenodes),
          ("abstractnodes",Main.abstractnodes),
-         ("show",Main.show_it),
+         ("show",Main.showIt),
          ("hideedges",Main.hideedges)]) of
     (_,Nothing) -> cmd_fails cid ("unknown command: "++c) graphs
     (Nothing,_) -> cmd_fails cid ("illegal graph id: "++gid) graphs
