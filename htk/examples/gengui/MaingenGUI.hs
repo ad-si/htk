@@ -116,7 +116,7 @@ addImg nm mimgpath =
       Just par ->
         case mimgpath of
           Just imgpath -> do
-                            let img = newImage NONE [filename imgpath]
+                            let img = newImage [filename imgpath]
                             pval <- newProp (toDyn img)
                             pname <- newProp (createName nm)
                             picon <- newProp imgImg
@@ -684,59 +684,59 @@ exportState gui =
 -- images --
 ------------
 
-yellowImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAOfkFuTgHOHdId3aJtrXLNbTMdPQNtDNPMzKQcnGRsXDS8LAUb+9Vru5W7i2
+yellowImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAOfkFuTgHOHdId3aJtrXLNbTMdPQNtDNPMzKQcnGRsXDS8LAUb+9Vru5W7i2
 YbSzZrGva62scKqpdqeme6OigKCfhpyci5aWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-greenImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAAD/IQb6Jgz2KxLxMBntNR/pOiXkPyvgQzLcSDjXTT7TUkTOV0vKXFHGYFfB
+greenImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAAD/IQb6Jgz2KxLxMBntNR/pOiXkPyvgQzLcSDjXTT7TUkTOV0vKXFHGYFfB
 ZV29amS4b2q0dHCweXarfX2ngoOjh4mejJaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-blueImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAAA//wZC+gxG9hJJ8RlN7R9R6SVU5CtY4DJc3Dhf1z5j00RmzktqylFuxldx
+blueImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAAA//wZC+gxG9hJJ8RlN7R9R6SVU5CtY4DJc3Dhf1z5j00RmzktqylFuxldx
 wV11vWR5uGp8tHCAsHaDq32Hp4OLo4mOnpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-redImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAP8UAPoaBvYfDPElEu0qGekvH+Q1JeA6K9xAMtdFONNKPs5QRMpVS8ZaUcFg
+redImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAP8UAPoaBvYfDPElEu0qGekvH+Q1JeA6K9xAMtdFONNKPs5QRMpVS8ZaUcFg
 V71lXbhrZLRwarB1cKt7dqeAfaOFg56LiZaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-txtImg = newImage NONE [imgData GIF "R0lGODlhDAAMAKEAAAAAAP///9jY2NjY2CH5BAEKAAIALAAAAAAMAAwAAAIjlIEJduEflgAwxUXh
+txtImg = newImage [imgData GIF "R0lGODlhDAAMAKEAAAAAAP///9jY2NjY2CH5BAEKAAIALAAAAAAMAAwAAAIjlIEJduEflgAwxUXh
 Q/Pa22kORyEemIlk5JWYOErKLE00UgAAOw=="]
 
-numImg = newImage NONE [imgData GIF "R0lGODlhDAAMAKUAAP////v7+/j4+PX19fHx8e7u7uvr6+jo6OXl5eHh4d7e3tvb2/ba2vWgoPOe
+numImg = newImage [imgData GIF "R0lGODlhDAAMAKUAAP////v7+/j4+PX19fHx8e7u7uvr6+jo6OXl5eHh4d7e3tvb2/ba2vWgoPOe
 nvGcnOTIyOWtrfw2Nvs1Nf8AAO21teuWlvRKSv03N/LW1vkzM/vf3/tRUfdNTfNmZumUlPynp/sZ
 GfVLS/e/v/KBge59feKqqv0bG/S8vPOCguqysu5hYfjc3PptbflPT+rOzueSktjY2NjY2NjY2NjY
 2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2CH5BAEKAD8ALAAAAAAMAAwAAAZlQEBA
 MCAUDAdEQrEQChgNxyMJiTSHkomDUkFYLleMJHPUIChgwIbCMRo6HsqnCaIUjwdKyAqo35EUIkx9
 FCNuJBQlg3VtRx2BCiZCFCcoBSkUKiEXK0IsLScuFC9eFDBOf0lLC0EAOw=="]
 
-imgImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAHq86Oz8FP///wAAAHqk/yrMS1XRYP///yH+FUNyZWF0ZWQgd2l0aCBUaGUg
+imgImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAHq86Oz8FP///wAAAHqk/yrMS1XRYP///yH+FUNyZWF0ZWQgd2l0aCBUaGUg
 R0lNUAAh+QQBCgAHACwAAAAADAAMAAADL3i6vPAwKhjimyBoIQ8YBCEI4nUMYCiAZlGgMNEWRl0P
 ra3jiuvqhkHPR3Q1jooEADs="]
 
-folderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAAP///////////////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
+folderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAAP///////////////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
 R0lNUAAh+QQBCgAEACwAAAAADAAMAEADLUi6vCAihDjBIA9qaBWYAtBgkESFF6Cu7OWpI3myXlSW
 3QPueTmZHcJgSCwmAAA7"]
 
-imgfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgHqk/+z8FP///wAAAFXRYP///////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
+imgfolderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgHqk/+z8FP///wAAAFXRYP///////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
 R0lNUAAh+QQBCgAHACwAAAAADAAMAAADMHi63PBtgSACiFPo8eABRBAMw2gRXygOKvgVRByLLlDc
 eFzjPLHzuFpn+EAdZEhZAgA7"]
 
-txtfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAANjY2NjY2NjY2NjY2CH5BAEKAAEALAAAAAAMAAwAAAMo
+txtfolderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAANjY2NjY2NjY2NjY2CH5BAEKAAEALAAAAAAMAAwAAAMo
 GLrc8G0BQUGctD4b5viZAAxdGI7lIHyqSGKmm66sDJvopm9kwP6sBAA7"]
 
-numfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAOMAAICAgP///wAAAP/j4/+Ojv9ycv+qqv/Hx/9VVdjY2NjY2NjY2NjY2NjY2NjY
+numfolderImg = newImage [imgData GIF "R0lGODlhDAAMAOMAAICAgP///wAAAP/j4/+Ojv9ycv+qqv/Hx/9VVdjY2NjY2NjY2NjY2NjY2NjY
 2NjY2CH5BAEKAA8ALAAAAAAMAAwAAAQz8MlJK7h1gsBB3lx3eQ8YhoBQBgNRGEenbogRIOh827i8
 Gi+CLZBanXKlkfKiegie0GgEADs="]
 
-colorfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgP////8AAD3yKQAAAP//AAAz/9jY2CH5BAEKAAcALAAAAAAMAAwAAAMy
+colorfolderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgP////8AAD3yKQAAAP//AAAz/9jY2CH5BAEKAAcALAAAAAAMAAwAAAMy
 eLrc8G2BQEGctD57sPjDEABE9wlBGBSkmYZFYbSTKhtjCcB3pVM9X2dDfJQOhKRymQAAOw=="]
 
-img1 = newImage NONE [imgData GIF "R0lGODlhyACHAOcAAAIGAu32/pyytXqanVFnPgwyDEg/I9Tn8zBSKyIzGAMWBMHe7Fl/gCxLIwIi
+img1 = newImage [imgData GIF "R0lGODlhyACHAOcAAAIGAu32/pyytXqanVFnPgwyDEg/I9Tn8zBSKyIzGAMWBMHe7Fl/gCxLIwIi
 B9TMyjw5IrXX5klVMiAtFSI/GsS7sp+cmnlqTAwyJWNZPRclD4OIdrm4tgcqCiI+MIWjpfLm6WqK
 jHBpSxQyJDU/JVRTNz1VNShLQe3g4RQyD15wWPT2/QgtJh0/J6S0tzM5Ij1MLJGrrvX6/kpVPgIK
 AiM1KAUqFxIlDxw/GAMaBUJiXClEIldiOUJeMgQmG2h1ZKKiofzw82hnSyRDJ0lGLHWDd6i7v22O
@@ -1091,7 +1091,7 @@ o/5kIkNHH3IBGYihBYjhGLrBE66AArbmC1huJ3DCgvgCLeNgL6po76aLRGKteZxnFHShH8zNMgtA
 Ab6AeJqrgr4ARXxBAnaMm+LAJnABLbVpiaghEkhFL9ihUiRAAsRCMJIyD5QBAaTgVFLgXfrqvtDk
 OLCNIwICADs="]
 
-img2 = newImage NONE [imgData GIF "R0lGODlhyACHAOcAAAICApGmqVZ0cjxeXA5CPgkzKtGohtJ7WAUqH6x2WgQiFIpfSYCWlgMaCeKo
+img2 = newImage [imgData GIF "R0lGODlhyACHAOcAAAICApGmqVZ0cjxeXA5CPgkzKtGohtJ7WAUqH6x2WgQiFIpfSYCWlgMaCeKo
 g3FZRIdyVAISBaymmFRJOv65czg8LaqLagIOAlZWSuS2lzstGDpEOXGMjSwyLIeMf662tvzBmWx2
 aM25qgIGAi0tHNWPaVRuaba4tRY1LE1ubuPDryQrISUlGZ6Wg3BsYLNrTa2Ud0tqaN6PaEtJOl5Y
 S/7Oh6W2uerFsKB0W8zAuG98chwsH4aGdOyofBwkF52pqDlKQAIKAsaUb8SqkV5gVLi+vbp2WqRs

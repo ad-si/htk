@@ -8,3 +8,4 @@ Makefile.bak
 generatedoc
 *%
 *.html
+*.css

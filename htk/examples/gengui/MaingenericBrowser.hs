@@ -114,7 +114,7 @@ toFileObject dir nm =
      let ft@(_, img_path) = if obj_is_folder then folder
                             else getFileType nm
      obj_filetype <- newRef ft
-     icon <- newImage NONE [filename ("images/" ++ img_path)]
+     icon <- newImage [filename ("images/" ++ img_path)]
      obj_icon <- newRef icon
      return (FileObject { fid       = obj_fid,
                           fname     = obj_fname,

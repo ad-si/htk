@@ -249,75 +249,6 @@ class \texttt{HasText}, such as \texttt{Button}.
 
 
 
-\subsection{Resources}
-
-\subsubsection{Geometry}
-
-The abstract data type \texttt{Distance}, implemented in the module
-\href{Geometry.html}{\texttt{Geometry}}, represents distances in \HTk.
-Distances can be specified in \texttt{cm}, \texttt{mm}, \texttt{ic}
-(inches) and \texttt{pp} (points), with functions  \texttt{cm:: Int->
-  Distance}. Moreover, \texttt{Distance} is an instance of
-\texttt{Num}, so we can specify the distance 3 (meaning 3 pixels)
-directly. 
-
-\subsubsection{Colours}
-
-The abstract data type \texttt{Colour}, implemented in the module
-\href{Geometry.html}{\texttt{Geometry}}, represents colours in
-HTk. Just like distances, the type itself is abstract, but unlike
-distances, there is a class \texttt{ColourDesignator}, the instances
-of which give ways of describing colours, such as:
-\begin{xcode}
-instance ColourDesignator [Char]
-instance ColourDesignator (Int, Int, Int)
-instance ColourDesignator (Double, Double, Double)  
-\end{xcode}
-The strings are named colours (\texttt{red}, \texttt{white},
-\texttt{black}, etc.), the tuples are RGB values. (The functions of
-the type classes \texttt{Colour} and \texttt{ColourDesignator} are for
-HTk's internal consumption only.)
-
-\subsubsection{Fonts}
-
-Fonts are implemented in the module
-\href{Font.html}{\texttt{Font}}. The datatype \texttt{Font} represents
-the specification of exactly one font in the usual (X-style) way,
-by giving a family, slant, spacing, width and weight. For example, the
-family is given by 
-\begin{xcode}
-data FontFamily = Lucida | Times | Helvetica 
-                | Courier | Symbol | Other String  
-\end{xcode}
-where the five enumerated types are available on most systems. With
-\texttt{Other}, you can directly give a more exotic family such as
-\texttt{clearlyu alternate glyphs}. 
-
-The class
-\href{Font.html#Font.FontDesignator}{\texttt{FontDesignator}} allows
-fonts to be specified in a flexible manner by overloading. This is
-used whenever a font has to be specified, e.g. in a text tag or as a
-configuration for a label widget. Its main instances are the following:
-\begin{xcode}
-instance FontDesignator FontFamily 
-instance FontDesignator (FontFamily,Int) 
-instance FontDesignator (FontFamily,FontWeight,Int) 
-instance FontDesignator (FontFamily,FontSlant,Int) 
-instance FontDesignator String 
-instance FontDesignator XFont 
-\end{xcode}
-The first three allows fonts to be specified by the font family, plus
-the size, plus the weight or the slant, respectively; the second from
-last allows an X-style string
-(e.g.
-\texttt{-adobe-courier-bold-o-normal-*-14-*-*-*-*-*-iso8859-*-}), and
-the last an X-style specification as an abstract datatype. 
-
-Be warned that fonts are, in principle, not very portable under X,
-since the available fonts are determined by the fonts of the X server
-the programm is running on. It is best to stick to well-known font
-families such as the above, and usual sizes. (So, no \texttt{clearlyu
-  alternate glyphs} in 144 pixels.)
 
 \subsection{Packing}
 
@@ -402,6 +333,105 @@ packer.
 Note that within the same container you cannot use different packing
 algorithms. The first widget packed into a container defines the
 packing for this container.
+
+\subsection{Resources}
+
+\subsubsection{Geometry}
+
+The abstract data type \texttt{Distance}, implemented in the module
+\href{Geometry.html}{\texttt{Geometry}}, represents distances in \HTk.
+Distances can be specified in \texttt{cm}, \texttt{mm}, \texttt{ic}
+(inches) and \texttt{pp} (points), with functions  \texttt{cm:: Int->
+  Distance}. Moreover, \texttt{Distance} is an instance of
+\texttt{Num}, so we can specify the distance 3 (meaning 3 pixels)
+directly. 
+
+\subsubsection{Colours}
+
+The abstract data type \texttt{Colour}, implemented in the module
+\href{Geometry.html}{\texttt{Geometry}}, represents colours in
+HTk. Just like distances, the type itself is abstract, but unlike
+distances, there is a class \texttt{ColourDesignator}, the instances
+of which give ways of describing colours, such as:
+\begin{xcode}
+instance ColourDesignator [Char]
+instance ColourDesignator (Int, Int, Int)
+instance ColourDesignator (Double, Double, Double)  
+\end{xcode}
+The strings are named colours (\texttt{red}, \texttt{white},
+\texttt{black}, etc.), the tuples are RGB values. (The functions of
+the type classes \texttt{Colour} and \texttt{ColourDesignator} are for
+HTk's internal consumption only.)
+
+\subsubsection{Fonts}
+
+Fonts are implemented in the module
+\href{Font.html}{\texttt{Font}}. The datatype \texttt{Font} represents
+the specification of exactly one font in the usual (X-style) way,
+by giving a family, slant, spacing, width and weight. For example, the
+family is given by 
+\begin{xcode}
+data FontFamily = Lucida | Times | Helvetica 
+                | Courier | Symbol | Other String  
+\end{xcode}
+where the five enumerated types are available on most systems. With
+\texttt{Other}, you can directly give a more exotic family such as
+\texttt{clearlyu alternate glyphs}. 
+
+The class
+\href{Font.html#Font.FontDesignator}{\texttt{FontDesignator}} allows
+fonts to be specified in a flexible manner by overloading. This is
+used whenever a font has to be specified, e.g. in a text tag or as a
+configuration for a label widget. Its main instances are the following:
+\begin{xcode}
+instance FontDesignator FontFamily 
+instance FontDesignator (FontFamily,Int) 
+instance FontDesignator (FontFamily,FontWeight,Int) 
+instance FontDesignator (FontFamily,FontSlant,Int) 
+instance FontDesignator String 
+instance FontDesignator XFont 
+\end{xcode}
+The first three allows fonts to be specified by the font family, plus
+the size, plus the weight or the slant, respectively; the second from
+last allows an X-style string
+(e.g.
+\texttt{-adobe-courier-bold-o-normal-*-14-*-*-*-*-*-iso8859-*-}), and
+the last an X-style specification as an abstract datatype. 
+
+Be warned that fonts are, in principle, not very portable under X,
+since the available fonts are determined by the fonts of the X server
+the programm is running on. It is best to stick to well-known font
+families such as the above, and usual sizes. (So, no \texttt{clearlyu
+  alternate glyphs} in 144 pixels.)
+
+\subsubsection{Images and Bitmaps}
+
+\href{Images.html}{Images} are representation of pictures, from wee
+icons to screen-filling murals. \HTk's images are what in Tk is called
+a photo. An image is created with the function
+\begin{xcode}
+newImage :: [Config Image] -> IO Image  
+\end{xcode}
+Once created, an image can be used (via the \texttt{photo}
+configuration, class \texttt{HasPhoto}) to attach images to labels,
+buttons, and canvas items. The configuration gives the image's data,
+either via the \texttt{filename} configuration, where a file is given
+which contains the image data, or via the \texttt{imgData}
+configuration, which passes the data directly as Base64 encoded
+string. (You can use e.g. the \texttt{mimencode(1)} utility to produce
+such a string.) As can be seen from the \texttt{Format} datatype,
+\HTk{} supports GIF, PPM and PGM formats. The latter method of giving
+the image data is preferably, since it makes the compiled executable
+independent of image data files; if you pass a filename, you need to
+make sure that the image file is to be found at that path at the
+\emph{runtime} of the program!
+
+\href{BitMap.html}{Bitmaps} have a foreground and a background. The
+difference between images and bitmaps is that bitmaps are more
+versatile, e.g. you can change the foreground and background. There is
+also a number of predefined bitmaps (\texttt{Hourglass, Questhead},
+etc.) Apart from that, they are quite boring.
+
 
 \section{Events}
 
@@ -836,7 +866,6 @@ of canvas items, and how to set up a cheap and cheerful drag-and-drop.
 \subsection{Miscellenea}
 
 \begin{itemize}
-\item images
 \item window managers
 \item focus
 \end{itemize}

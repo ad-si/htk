@@ -50,12 +50,12 @@ main =
                              (\ p -> newEditor p [state Disabled]) []
     pack scrollbox [Fill Both, Expand On]
 
-    item1_img <- newImage NONE [filename "./images/item1.gif"]
-    item2_img <- newImage NONE [filename "./images/item2.gif"]
-    item3_img <- newImage NONE [filename "./images/item3.gif"]
-    item4_img <- newImage NONE [filename "./images/item2.gif"]
-    item5_img <- newImage NONE [filename "./images/item3.gif"]
-    item6_img <- newImage NONE [filename "./images/item1.gif"]
+    item1_img <- newImage [filename "./images/item1.gif"]
+    item2_img <- newImage [filename "./images/item2.gif"]
+    item3_img <- newImage [filename "./images/item3.gif"]
+    item4_img <- newImage [filename "./images/item2.gif"]
+    item5_img <- newImage [filename "./images/item3.gif"]
+    item6_img <- newImage [filename "./images/item1.gif"]
 
     id <- newID
     item1 <- createNotepadItem (MyItem id

@@ -68,15 +68,13 @@ newtype Image = Image GUIOBJECT deriving Eq
 -- Constructs a new image object and returns a handler.<br>
 -- The image object can be packed like a widget, then it is implicitely
 -- displayed inside a label widget.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this image
 --                  object.
 -- @return result - An image object.
-newImage :: Container par => par -> [Config Image] -> IO Image
-newImage par cnf =
+newImage :: [Config Image] -> IO Image
+newImage cnf =
   do
-    w <- createWidget (toGUIObject par) LABEL
+    w <- createWidget ROOT LABEL
     configure (Image w) cnf
 
 ---

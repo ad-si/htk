@@ -60,6 +60,8 @@ module TreeList (
 
 ) where
 
+
+import IOExts(unsafePerformIO)
 import HTk
 import ScrollBox
 import List
@@ -932,8 +934,7 @@ pressed obj =
        (i, isopen, prevopen) <- getObjInfo obj state
        (if isopen then
           do                                              -- *** close ***
-            pho <- plusImg
-            plusminus obj # photo pho
+            plusminus obj # photo plusImg
             (children, opensubobjvals) <- getChildren state obj
             mapM removeObject children
             setRef (internal_state (treelist obj))
@@ -1036,9 +1037,9 @@ mkTreeListObject tl val isnode isopen cnf =
         hline <- createLine (cnv tl) [coord [(-200, -200), (-200, -200)]]
         vline <- createLine (cnv tl) [coord [(-200, -200), (-200, -200)]]
         return (hline, vline)
-    pho <- if isopen then minusImg else plusImg
     plusminus <- createImageItem (cnv tl)
-                   [coord [(-200, -200)], photo pho, canvAnchor NorthWest]
+                   [coord [(-200, -200)], canvAnchor NorthWest, 
+		    photo (if isopen then minusImg else plusImg)]
     img <- newLabel box [background "white"]
     pack img [Side AtLeft]
     txt <- newLabel box [background "white", font (Lucida, 12::Int)]
@@ -1206,7 +1207,10 @@ exportTreeListState tl =
 -- images
 -- -----------------------------------------------------------------------
 
-plusImg = newImage NONE [imgData GIF "R0lGODlhCQAJAJEAAP///9Dc4H6LjwAAACwAAAAACQAJAEACFJSPiTHdYYIcEopKZax1s35NINcV
-ADs="]
+plusImg :: Image
+plusImg = unsafePerformIO (newImage [imgData GIF "R0lGODlhCQAJAJEAAP///9Dc4H6LjwAAACwAAAAACQAJAEACFJSPiTHdYYIcEopKZax1s35NINcVADs="])
+{-# NOINLINE plusImg #-}
 
-minusImg = newImage NONE [imgData GIF "R0lGODlhCQAJAJEAAP///9Dc4H6LjwAAACwAAAAACQAJAEACEZSPiTHdYYKcUNAZb9Vb5ysUADs="]
+minusImg :: Image
+minusImg = unsafePerformIO (newImage [imgData GIF "R0lGODlhCQAJAJEAAP///9Dc4H6LjwAAACwAAAAACQAJAEACEZSPiTHdYYKcUNAZb9Vb5ysUADs="])
+{-# NOINLINE minusImg #-}

@@ -20,9 +20,9 @@ main =
     c <- newCanvas main [size (cm 20, cm 15), background "white"]
     pack c []
 
-    santa <- newImage main [filename "./images/santa.gif"]
-    frosty <- newImage NONE [filename "./images/snowman.gif"]
-    jingle<- newImage main [filename "./images/bells.gif"]
+    santa <- newImage  [filename "./images/santa.gif"]
+    frosty <- newImage [filename "./images/snowman.gif"]
+    jingle<- newImage  [filename "./images/bells.gif"]
 
     createImageItem c [position (cm 3, cm 5), photo santa]
     createImageItem c [position (cm 7, cm 5), photo frosty]

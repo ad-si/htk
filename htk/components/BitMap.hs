@@ -116,15 +116,12 @@ newtype BitMap = BitMapWDG GUIOBJECT deriving Eq
 -- Constructs a new bitmap object and returns a handler.<br>
 -- The bitmap object can be packed like a widget, then it is implicitely
 -- displayed inside a label widget.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this bitmap
---                  object.
+-- @param cnf - the list of configuration options for this bitmap  object.
 -- @return result - A bitmap object.
-newBitMap :: Container par => par -> [Config BitMap] -> IO BitMap
-newBitMap par confs =
+newBitMap :: [Config BitMap] -> IO BitMap
+newBitMap confs =
   do
-    w <- createWidget (toGUIObject par) LABEL 
+    w <- createWidget ROOT LABEL 
     configure (BitMapWDG w) confs
 
 

@@ -564,14 +564,14 @@ fileDialog title fp =
 
     return (receive msgQ)
 
-upImg = newImage NONE [imgData GIF 
+upImg = newImage [imgData GIF 
  "R0lGODlhFAAUAKEAAP//////AAAAAP///yH5BAEAAAMALAAAAAAUABQAAAJAnI+py+0Po1Si2iiC3gLZn21iN4TiWXGdeWqfu7bqW5WyG6RZvbOjyculWkOhTQh6wY7I5I95Q5GSVNChWp0oCgA7"]
 
-refreshImg = newImage NONE [imgData GIF 
+refreshImg = newImage [imgData GIF 
  "R0lGODlhFAAUAIQAAPj4+Pz8/Pv7+/b29gYGBvX19ZiYmPr6+oCAgAgICAcHB/Pz8/n5+QUFBYiIiJaWlv39/f7+/v///wAAAP///////////////////////////////////////////////yH5BAEAAB8ALAAAAAAUABQAAAU74CeOZGmeaKqu4+Q+rOjOLvuSz6TWccuXOlOC9vvMTgoaiXgiFInF1unYkwVRDdNtB4XFqNWweEwWhQAAOw=="]
 
-newFolderImg = newImage NONE [imgData GIF 
+newFolderImg = newImage [imgData GIF 
  "R0lGODlhFAAUAKEAAAAAAP//////AP///yH5BAEAAAMALAAAAAAUABQAAAI5nI+pywjzXlOgzlXlPRHSbG2AQJYaBGblKkgjC6/WG8dzXd84rO9y5GP1gi0gkTQMhlLMJqcJ3TQKADs="]
 
-deleteFileImg = newImage NONE [imgData GIF 
+deleteFileImg = newImage [imgData GIF 
  "R0lGODlhFAAUAKEAAP////8AAP///////yH5BAEAAAAALAAAAAAUABQAAAIyhI+py+0WUnShTmBplVvZi2ShyHSY2WTk84HP6Wrt+8HxaNaLju/rgYIEOZwbcPhKPgoAOw=="]
