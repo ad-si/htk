@@ -1,6 +1,7 @@
 ;; This file is loaded to define the MMiSS-init function (which the
 ;; Saarbrückers strangely didn't want defined in mmisstex.elc.) 
-;; It also does any other necessary initialisations.
+;; It also does any other necessary initialisations and defines how colours
+;; are allocated to magic buttons.
 (require 'tex-site)
 (put 'erase-buffer 'disabled nil)
 (defun MMiSS-init ()
@@ -32,6 +33,36 @@
   (kill-buffer (current-buffer))
   )
 
+; Note on colours.
+; white is bad as it is just like normal text
+; black or dark colours are bad as it makes the text impossible or hard to
+;   read.
+(setq MMiSS-colours 
+   (list
+      (cons ?G  "orange")
+      (cons ?U  "green")
+      (cons ?A  "yellow")
+      (cons ?T  "red")
+      )
+   )
+
+(setq MMiSS-extent-faces
+   (mapcar
+      (lambda (color-item)
+         (let ((face (make-symbol "MMiSS-face")))
+            (copy-face 'highlight face)
+            (set-face-background face (cdr color-item))
+            (cons (car color-item) face)
+            )
+         )
+      MMiSS-colours
+      )
+   )
+
+(defun MMiSS-retrieve-face (key)
+   (cdr (assq key MMiSS-extent-faces))
+   )
+      
 
 
 

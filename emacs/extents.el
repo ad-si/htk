@@ -56,6 +56,10 @@
       (cons 'uni-check-change before-change-functions))
    (make-local-variable 'uni-allow-changes)
    (setq uni-allow-changes nil)
+
+   ; Set variable indicating if we are to have coloured magic buttons
+   ; (No until uni-set-colour-hack is called)
+   (make-local-variable 'uni-do-colour-hack)
    )
 
 
@@ -90,6 +94,13 @@
 ; The buffer is a contiguous sequence of container extents.  It starts out
 ; empty.
 ;
+; If the variable uni-do-colour-hack is set, we assume the
+;   last letter of the extent id of a button is one recognised by the 
+;   function MMiSS-retrieve-face, and use that function to obtain the face 
+;   for the button extent.  This variable is set by the following function:
+(defun uni-set-colour-hack () 
+   (setq uni-do-colour-hack t)
+   )
 
 ;
 ; High-level extent functions (to be used from Haskell)
@@ -301,7 +312,12 @@
       (insert text)
       (set-extent-property uni-new-extent 'start-open t)
       (set-extent-property uni-new-extent 'end-open t)
-      (set-extent-property uni-new-extent 'face 'highlight)
+      (set-extent-property uni-new-extent 'face 
+         (if uni-do-colour-hack
+            (MMiSS-retrieve-face (elt extent-id (- (length extent-id) 1)))
+            'highlight
+            )
+         )
       (set-extent-property uni-new-extent 'atomic t)
       (set-extent-property uni-new-extent 'keymap uni-extent-keymap)
       )

@@ -4,6 +4,10 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+28) 11.09.02
+Modifying frag2 inside example mmiss/dtd/mmiss-paragraph.1.xml and then
+saving produces a parse error.
+
 27) 11.09.02
 MMiSSDTDAssumptions needs to be updated to deal with Achim's latest changes to
 MMiSS.dtd.
@@ -21,6 +25,8 @@ Adapt it to cope with recent changes (several sorts of include and so on).
 
 There is still a bug in this in that Emacs magic buttons don't work.
 
+11.09.02
+FIXED
 
 25) 09.09.02
 Change object types so that only object types with label are shown in

@@ -48,6 +48,7 @@ import Folders
 
 import EmacsEdit
 
+import MMiSSDTDAssumptions(getMiniType)
 import MMiSSAttributes
 import MMiSSPathsSimple
 import MMiSSObjectTypeList
@@ -678,7 +679,7 @@ editMMiSSObject view link =
          parent = parentFolder object
          variants = variantAttributes object
 
-         editFS name =
+         editFS (name,miniType) =
             addFallOutWE (\ break -> 
                do
                   gotObject <- getMMiSSObject view parent name
@@ -687,9 +688,13 @@ editMMiSSObject view link =
                      OtherObject -> break 
                         ("Object "++name++" is not an MMiSS object")
                      Exists mmissLink -> return mmissLink
-
+                  
                   object <- readLink view mmissLink
-
+                  if getObjectMiniType object == miniType
+                     then
+                        done
+                     else
+                        break ("Object "++name++" has wrong type")
                   let
                      lock = editLock object
  
@@ -740,22 +745,33 @@ editMMiSSObject view link =
                   return (content,editedFile)
                )
 
-         existsFS name =   
+         existsFS (name,miniType) =   
             do
                gotObject <- getMMiSSObject view parent name
-               return (case gotObject of
-                  NoObject -> hasError ("Object "++name++" does not exist")
-                  OtherObject -> hasError
-                     ("Object "++name++" is not an MMiSS object")
-                  Exists mmissLink -> hasValue ()
-                  )
+               case gotObject of
+                  NoObject -> return (hasError 
+                     ("Object "++name++" does not exist"))
+                  OtherObject -> return (hasError
+                     ("Object "++name++" is not an MMiSS object"))
+                  Exists mmissLink -> 
+                     do
+                        object <- readLink view mmissLink
+                        if getObjectMiniType object == miniType
+                           then
+                              return (hasValue ())
+                           else
+                              return (hasError 
+                                 ("Object "++name++" has wrong type"))
 
          emacsFS = EmacsFS {
             editFS = editFS,
             existsFS = existsFS
             }
 
-      editEmacs emacsFS (name object)
+      editEmacs emacsFS (name object,getObjectMiniType object)
+
+getObjectMiniType :: MMiSSObject -> Char
+getObjectMiniType object = getMiniType (xmlTag (mmissObjectType object))
 
 -- ------------------------------------------------------------------
 -- Exporting MMiSS objects

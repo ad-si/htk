@@ -10,6 +10,10 @@ module MMiSSDTDAssumptions(
    ClassifiedElement(..),
    classifyElement, -- :: Element -> ClassifiedElement
 
+   getMiniType, -- :: String -> Char
+   toIncludeStr, -- :: Char -> String
+   fromIncludeStr, -- :: String -> Char
+
    getLabel, -- :: Element -> Maybe String
 
    variantAttributes, -- :: [String]
@@ -104,7 +108,8 @@ classifyElement (Elem name attributes content) =
       --             "example"/"exercise"/definition"/"program"/"theory"/
       --                "theorem"/"development"/"proof"/"script"/"list" 
       --                                                    -> "includeUnit"
-      --             "textFragment"/"table"/"figure"/"glossaryEntry"/
+      --             "textFragment"                 -> "includeTextFragment"
+      --             "table"/"figure"/"glossaryEntry"/
       --                 "bibEntry"/"programFragment"/"clause"/"step" 
       --                                                    -> "includeAtom"
       --
@@ -120,10 +125,6 @@ classifyElement (Elem name attributes content) =
                ("status",AttValue [Left "present"])
                ] [])
 
-      ig = mkInclude "includeGroup"
-      iu = mkInclude "includeUnit"
-      ia = mkInclude "includeAtom"
-      it = mkInclude "includeTextFragment"
    in
       case name of
          -- Links
@@ -138,33 +139,79 @@ classifyElement (Elem name attributes content) =
          "includeAtom" -> include
          "includeTextFragment" -> include
 
-         -- Direct includes
-         "package" -> ig
-         "section" -> ig
-         "paragraph" -> ig
-         "view" -> ig
+         _ -> case classifyLabelledTag name of
+            Just GroupTag -> mkInclude "includeGroup"
+            Just UnitTag -> mkInclude "includeUnit"
+            Just AtomTag -> mkInclude "includeAtom"
+            Just TextFragmentTag -> mkInclude "includeTextFragment"
+            Nothing -> Other
 
-         "example" -> iu
-         "exercise" -> iu
-         "definition" -> iu
-         "program" -> iu
-         "theory" -> iu
-         "theorem" -> iu
-         "development" -> iu
-         "proof" -> iu
-         "script" -> iu
-         "list" -> iu
+---
+-- The tags which take labels are divided according to which sort of "include"
+-- they correspond to.
+data LabelledTag =
+      GroupTag
+   |  UnitTag
+   |  AtomTag
+   |  TextFragmentTag
 
-         "textFragment" -> it
+classifyLabelledTag :: String -> Maybe LabelledTag
+classifyLabelledTag str = case str of
+   "package" -> Just GroupTag
+   "section" -> Just GroupTag
+   "paragraph" -> Just GroupTag
+   "view" -> Just GroupTag
 
-         "table" -> ia
-         "figure" -> ia
-         "glossaryEntry" -> ia
-         "bibEntry" -> ia
-         "programFragment" -> ia
-         "clause" -> ia
-         "step" -> ia
-         _ -> Other
+   "example" -> Just UnitTag
+   "exercise" -> Just UnitTag
+   "definition" -> Just UnitTag
+   "program" -> Just UnitTag
+   "theory" -> Just UnitTag
+   "theorem" -> Just UnitTag
+   "development" -> Just UnitTag
+   "proof" -> Just UnitTag
+   "script" -> Just UnitTag
+   "list" -> Just UnitTag
+
+   "textFragment" -> Just TextFragmentTag
+
+   "table" -> Just AtomTag
+   "figure" -> Just AtomTag
+   "glossaryEntry" -> Just AtomTag
+   "bibEntry" -> Just AtomTag
+   "programFragment" -> Just AtomTag
+   "clause" -> Just AtomTag
+   "step" -> Just AtomTag
+   _ -> Nothing
+
+---
+-- We also use classifyLabelledTag to get the mini-type-letter, used by
+-- EmacsEdit.hs to colour magic buttons appropriately.
+getMiniType :: String -> Char
+getMiniType str = case classifyLabelledTag str of
+   Just GroupTag -> 'G'
+   Just UnitTag -> 'U'
+   Just AtomTag -> 'A'
+   Just TextFragmentTag -> 'T'
+   Nothing -> error ("Attempt to edit object with unclassifiable tag "++str)
+
+---
+-- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
+-- the corresponding includeXXX command.
+toIncludeStr :: Char -> String
+toIncludeStr 'G' = "Group"
+toIncludeStr 'U' = "Unit"
+toIncludeStr 'A' = "Atom"
+toIncludeStr 'T' = "TextFragment"
+toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
+
+fromIncludeStr :: String -> Char
+fromIncludeStr "Group" = 'G'
+fromIncludeStr "Unit" = 'U'
+fromIncludeStr "Atom" = 'A'
+fromIncludeStr "TextFragment" = 'T'
+fromIncludeStr _ = error 
+   "MMiSSDTDAssumptions.fromIncludeStr - bad include string"
 
 -- ----------------------------------------------------------------------
 -- Functions for operating on attributes

@@ -1,4 +1,4 @@
-{- Haskell interface to the high-level extent functions in sendmess.el-}
+{- Haskell interface to the high-level extent functions in extents.el-}
 module Extents(
    initBuffer,
    addContainerBuffer,
@@ -12,6 +12,7 @@ module Extents(
    collapse,
    containerContents,
    listContainers,
+   setColourHack,
    ) where
 
 import DeepSeq
@@ -39,6 +40,10 @@ addContainer emacsSession parent new =
 addButton :: EmacsSession -> String -> String -> String -> IO ()
 addButton emacsSession parent new text =
    execEmacs emacsSession ("uni-add-button",[parent,new,text])
+
+setColourHack :: EmacsSession -> IO ()
+setColourHack emacsSession =
+   execEmacs emacsSession "uni-set-colour-hack"
 
 addText :: EmacsSession -> String -> String -> IO ()
 addText emacsSession parent text =
@@ -83,5 +88,7 @@ listContainers emacsSession =
                      sexps
                _ -> bad
       result `deepSeq` (return result)   
+
+
 
 
