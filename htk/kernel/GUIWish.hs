@@ -74,8 +74,13 @@ instance Tool Wish where
 
 
 instance Destructible Wish where
-        destroy (Wish t)                = destroy t
-        destroyed (Wish t)              = destroyed t
+   destroy (Wish t) = 
+      do
+         debug "Wish.destroy 1"
+         destroy t
+         debug "Wish.destroy 2"
+
+   destroyed (Wish t) = destroyed t
 
 
 instance UnixTool Wish where

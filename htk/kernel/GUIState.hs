@@ -429,7 +429,12 @@ callWish w cmd = withVar mon (\ o ->
 
 
 execWish :: (Wish -> IO a) -> IO a
-execWish cmd = getToolInstance >>= \ (GUI wish _ _) -> cmd wish
+execWish cmd = 
+   do
+      debug "execWish1"
+      GUI wish _ _ <- getToolInstance
+      debug "execWish2"
+      cmd wish
 
 execTclScript :: TclScript -> IO ()
 execTclScript scr = (execWish . execScript) scr

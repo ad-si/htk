@@ -100,8 +100,13 @@ instance Object Interpreter where
    objectID (Interpreter oid _ _ _ _) = oid
 
 instance Destructible Interpreter where
-   destroy interpreter @ (Interpreter _ _ _ finaliser _) = 
-      finaliser interpreter
+   destroy interpreter @ (Interpreter _ _ child finaliser _) =
+      do 
+         finaliser interpreter
+         -- to make sure we kill the child as well, if still around.
+         try(destroy child)
+         done
+
    destroyed (Interpreter _ _ child _ _) = destroyed child
 
 instance Tool Interpreter where
