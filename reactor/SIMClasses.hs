@@ -14,7 +14,7 @@ DESCRIPTION   : A couple of Classes Relevant for the
 
 module SIMClasses (
 
-        ToolStatus(..),
+        ToolStatus,
         ProcessStatus(..),
         toolFailed,
 

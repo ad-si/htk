@@ -1,23 +1,17 @@
-
 # Variable Section
 # 
-# Export all variables!
-# export 
-include top/mk/settings.mk # find out location of top directory
--include $(UNIDIR)/mk/local.mk  # If available, include local variable changes
+-include $(TOP)/mk/local.mk  # If available, include local variable changes
 # (This file is not included in the standard CVS distribution and
 # is intended to contain directives for debugging.)
 
 # Includes for local variable changes at the end of this file
 
 # Glasgow Haskell Compiler
-# HCHOME set in machinedep.mk
-HC               = $(HCHOME)/bin/ghc
-DEPEND           = $(HCHOME)/bin/ghc -M -optdep-f -optdep.depend
+# HC is set in machinedep.mk
+DEPEND           = $(HC) -M -optdep-f -optdep.depend
 # Meaning of ghc -M options (extracted from GHC Make files)
 # (1) -optdep.depend makes dependences go into .depend files.
 # (2) -f means .depend doesn't have to exist first for this to work.
-GHCINCDIR        = -I$(HCHOME)/lib/includes 
 
 ifdef DEBUG
    HC_OPTIONS = -recomp -fwarn-deprecations -Onot -DDEBUG
@@ -33,13 +27,12 @@ HCFLAGS = $(HCSYSLIBS) \
           -fallow-overlapping-instances \
           -fallow-undecidable-instances \
 	  -cpp -hi-diffs \
-	  $(GHCINCDIR) \
 	  -H25M -K5M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
 
 # Gnu C compiler.  NB - the GHC installation is hardwired to
 # a particular version of gcc, so don't go changing this unless
 # you change the GHC installation.  
-CC               = gcc
+CC               = $(HC)
 CFLAGS           = $(GHCINCDIR)
 
 # Subdirectories
@@ -53,11 +46,11 @@ CFLAGS           = $(GHCINCDIR)
 HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(SERVERDIR):$(HTKDIR):$(DAVINCIDIR):$(GRAPHSDIR):$(WWWDIR):$(TOOLSDIR):$(CVSDIR):$(VERSIONSDIR)
 # $(OMSCDIR):$(OMSNOTIDIR):$(OMSDIR):$(WBDIR):$(TOOLSDIR):$(DEMODIR):$(SCHEMADIR):$(IDLDIR)
 
-UTILDIR    	= $(UNIDIR)/util
-CONCDIR    	= $(UNIDIR)/concurrency
-REACTORDIR 	= $(UNIDIR)/reactor
-SERVERDIR       = $(UNIDIR)/server
-HTKDIR          = $(UNIDIR)/htk
+UTILDIR    	= $(TOP)/util
+CONCDIR    	= $(TOP)/concurrency
+REACTORDIR 	= $(TOP)/reactor
+SERVERDIR       = $(TOP)/server
+HTKDIR          = $(TOP)/htk
 HTKRESOURCEDIR  = $(HTKDIR)/resources
 HTKCANVASITEMDIR= $(HTKDIR)/canvasitems
 HTKKERNELDIR    = $(HTKDIR)/kernel
@@ -69,12 +62,12 @@ HTKTOPLEVELDIR  = $(HTKDIR)/toplevel
 HTKWIDGETSDIR   = $(HTKDIR)/widgets
 HTKDEVICESDIR   = $(HTKDIR)/devices
 HTKTEXTITEMDIR  = $(HTKDIR)/textitems
-DAVINCIDIR      = $(UNIDIR)/davinci
-GRAPHSDIR       = $(UNIDIR)/graphs
-WWWDIR          = $(UNIDIR)/www
-TOOLSDIR        = $(UNIDIR)/tools
-CVSDIR          = $(UNIDIR)/cvs
-VERSIONSDIR     = $(UNIDIR)/versions
+DAVINCIDIR      = $(TOP)/davinci
+GRAPHSDIR       = $(TOP)/graphs
+WWWDIR          = $(TOP)/www
+TOOLSDIR        = $(TOP)/tools
+CVSDIR          = $(TOP)/cvs
+VERSIONSDIR     = $(TOP)/versions
 VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 
 
@@ -84,6 +77,6 @@ HTKDIRS = $(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDI
 
 HTKSDIRS = resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:
 
-include $(UNIDIR)/mk/machinedep.mk # set variables which depend on the machine
+
 
 

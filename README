@@ -67,51 +67,46 @@ the latest sources for uni.
 
 Type "man cvs" to find out other CVS commands.
 
-Local Configuration
--------------------
-Alter mk/machinedep.mk as appropriate.  This should specify
-where to find ghc.  At the moment the variables
-are set for Sparc/Solaris boxes on the Informatik network. 
+What To Ask Before Compiling
+----------------------------
 
-Uni can be compiled optimised or unoptimised.
-If optimised, the resulting compiled code will run faster.
-If unoptimised, the compilation will be quicker and the compiled code
-will produce a number of debugging messages.  The CVS repository
-code is by default set to compile optimised.  To compile it 
-unoptimised, do
-   cp mk/local.mk.debug mk/local.mk
-The file mk/local.mk may also be used to set things up just for
-your machine - it is included if available by the Makefile
-mk/var.mk and should not appear in the CVS repository.
+1) Do you want a debugging version of Uni?  By default you won't
+   get it.  To compile a debugging version, 
+      cd uni/mk
+      cp local.mk.debug local.mk
+   The file local.mk is included, if present, by every Makefile.
+   Thus it's also a good thing to use for other Makefile hacking.
+2) Do you want to use the Tk-encapsulation (in directory "htk")?  
+   Then you will need to a copy of Wish, which should be provided as 
+   part of your X-system.  It needs to be in your PATH when you
+   run the ./configure step (see the next section).  If, when you
+   type "wish", a square blank window pops up with the title "wish"
+   then you should be alright.
+3) Do you want to draw graphs using Uni's daVinci encapsulation
+   (in directory "davinci")?  Then you need DaVinci.  You can get 
+   this from:
+      http://www.informatik.uni-bremen.de/daVinci/
+   Once you have it, put it in your PATH, with the name "daVinci",
+   for the ./configure step.
+4) Do you want to use our versioning system (in "cvs" and "versions")?
+   Then you need cvs, probably version 10.7 or thereabouts.
+   Again, put it in your PATH for the configure step.
 
 Compiling
 ---------
 
-Once you've got all that, compiling Uni and the test programs that
-come with it should be easy.  The following commands are supposed to do
+Once you've done all that, the following commands are supposed to do
 it, assuming that you are in the same directory as this README file
 (that is, at the top of the Uni distribution).
    
-# Configure file system
-./CONFIG
+# Configure the Makefiles
+./configure
 # Work out what order to do compilation in
 gmake depend
 # Compile Uni
 gmake all
 # Compile test programs
 gmake testprgs
-
-Further Configuration for HTk or DaVinci
-----------------------------------------
-
-If you want to use HTk or the DaVinci encapsulation, you will need to 
-install wish (version 8.0) and of course daVinci.  You should then alter
-the filenames in the scripts in database/bin/{wish,daVinci} to point to
-where you have installed them.  To run programs involving HTk or DaVinci
-you need to set the environment variable WB_ROOT to the full pathname of
-database.  (For example using Bash I use
-  export WB_ROOT=/home/ger/uniform/database
-  )
 
 Please report problems to me.  I am George Russell and my e-mail
 address is ger@tzi.de .

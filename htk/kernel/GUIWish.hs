@@ -15,7 +15,7 @@ DESCRIPTION   : GUI configured Wish Interpreter.
 
 module GUIWish (
         ChildProcess,
-        ToolStatus(..),
+        ToolStatus,
         
         Object(..),
         Destructible(..),
@@ -43,7 +43,7 @@ import Object
 import Resources
 import Posix(signalProcess,sigKILL)
 
-import WBFiles
+import qualified WBFiles
 import Debug(debug)
 
 -- --------------------------------------------------------------------------
@@ -100,8 +100,7 @@ instance CommandTool Wish where
 newWish :: IO Wish
 newWish = do {
         msq <- newMsgQueue;
-        tname <- getWBToolFilePath "wish";      
-        intrp <- newDispatcher tname [] finalizer (dispatch msq);
+        intrp <- newDispatcher WBFiles.wishPath [] finalizer (dispatch msq);
         forkIO (dispatcher msq intrp); 
         execOneWayCmd tkConvertTkValueProc intrp;
         execOneWayCmd tkDeclEvalScript intrp;

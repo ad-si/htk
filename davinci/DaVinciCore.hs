@@ -106,7 +106,7 @@ import qualified IOExts(unsafePerformIO)
 import FiniteMap
 
 import qualified ExtendedPrelude
-import WBFiles
+import qualified WBFiles
 import Object
 import Debug(debug)
 
@@ -262,9 +262,8 @@ startDaVinci =
    do
       contextVar <- newPVar 0 -- passed to the DaVinci dispatcher
       msgQueue <- newMsgQueue
-      toolName <- getWBToolFilePath "daVinci"
       daVinciDispatcher <- 
-         newDispatcher toolName [arguments ["-pipe"]] finaliser 
+         newDispatcher WBFiles.daVinciPath [arguments ["-pipe"]] finaliser 
             (handleEvent msgQueue)
       session <- newAbstractGUIObject
       daVinciState <- newPVar (

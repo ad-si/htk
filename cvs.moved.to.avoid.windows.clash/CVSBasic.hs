@@ -14,7 +14,7 @@ module CVSBasic(
    CVSVersion(..) -- alias for version.  Ditto.
    ) where
 
-import WBFiles
+import qualified WBFiles
 import Computation
 
 import ChildProcess
@@ -107,10 +107,9 @@ compileCVSCommand command =
 callCVS :: GlobalOptions -> CVSCommand -> IO Expect
 callCVS globalOptions command =
    do
-      cvsFilePath <- getWBToolFilePath "cvs"
       expect <-
          newExpect
-            cvsFilePath
+            WBFiles.cvsPath
             (  compileGlobalOptions globalOptions ++
                compileCVSCommand command
                )

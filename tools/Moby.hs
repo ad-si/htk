@@ -14,7 +14,7 @@ DESCRIPTION   : The standard textedit tool for simple plain text editing.
 
 
 module Moby (
-        ToolStatus(..),
+        ToolStatus,
 
         Object(..),
         Tool(..),

@@ -17,7 +17,7 @@ DESCRIPTION   : Generic uncoupled Tool. Similar to the ChildProcess
 
 
 module Observer (
-        ToolStatus(..),
+        ToolStatus,
 
         Destructible(..),
         Tool(..),

@@ -1,0 +1,11 @@
+LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a\
+   $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
+
+SRCS       = Mainblobs.hs MaincanvasEx.hs Mainhello1.hs Mainhello2.hs Mainhello3.hs MainlistEx.hs MainmenuEx.hs MainreliefEx.hs MaintestWidEx.hs MainxmasCanvas.hs MaindragAndDrop.hs
+
+XHCDIRS = $(HTKDIRS)
+
+include @TOP@/mk/boilerplate.mk
+
+
+

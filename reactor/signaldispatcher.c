@@ -11,9 +11,10 @@ DESCRIPTION   : Implementation of signal dispatcher state
 
    ######################################################################### */
 
+#include <stdio.h>
+#include <signal.h>
 
 #include "signaldispatcher.h"
-
 
 int signalfd;
 

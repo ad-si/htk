@@ -1,0 +1,50 @@
+dnl == autoconf source for the UniForM workbench ==
+dnl some details stolen from GHC configure.in file.
+# Check that sources are available
+AC_INIT(reactor/ChildProcess.hs)
+#
+# Set GOAHEAD to NO prevent modifying Makefiles and so on.
+GOAHEAD=YES
+#
+# Get  the top of the build tree
+TOP=`pwd`
+echo ""
+echo "The top of the UniForM build tree is: $TOP"
+AC_SUBST(TOP)
+#
+# Check for ghc
+AC_PATH_PROGS(GHC,ghc)
+if test -z "$GHC"; then
+   echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
+   GOAHEAD=NO
+fi
+#
+# Check for wish
+AC_PATH_PROGS(WISH,wish wish_8.0,NOTFOUND)
+if test -z "$WISH"; then
+    echo "Without wish you can run hardly any of UniForM's graphical programs"
+    WISH="/usr/bin/wish"
+fi
+#
+# Check for daVinci
+AC_PATH_PROGS(DAVINCI,daVinci)
+if test -z "$DAVINCI"; then
+    echo "Without daVinci you cannot run any of UniForM's graph-drawing programs"
+    DAVINCI="/usr/bin/davinci"
+fi
+#
+# Check for cvs
+AC_PATH_PROGS(CVS,cvs)
+if test -z "$CVS"; then
+   echo "Without cvs you cannot run any of UniForM's versioning programs."
+   CVS="/usr/bin/cvs"
+fi
+# Find all files Makefile.in
+MAKEFILES=`find . -name "Makefile.in" | sed -e "s/.in$//"`
+#
+if test "$GOAHEAD" = YES; then
+   echo ''
+   echo '------------------- Configuration Successful ------------------'
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/WBFiles.hs)
+   echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
+fi

@@ -1,6 +1,0 @@
-LIBS = $(UNIDIR)/cvs/libcvs.a $(UNIDIR)/reactor/libreactor.a \
-   $(UNIDIR)/server/libserver.a $(UNIDIR)/concurrency/libconcurrency.a \
-   $(UNIDIR)/util/libutil.a
-SRCS = Test1.hs TestAllocateService.hs
-
-include top/mk/boilerplate.mk

@@ -1,0 +1,101 @@
+LIB        = libhtk.a
+
+SRCS       = \
+         resources/GUIValue.hs\
+	 resources/Geometry.hs\
+	 resources/GUIEvent.hs\
+	 resources/Cursor.hs\
+	 resources/Colour.hs\
+	 resources/Font.hs\
+	 resources/Resources.hs\
+	 kernel/GUIWish.hs\
+	 kernel/GUIObjectKind.hs\
+	 kernel/GUIObjectName.hs\
+	 kernel/GUIMethods.hs\
+	 kernel/GUIObject.hs\
+	 kernel/GUIState.hs\
+	 kernel/GUIRealise.hs\
+	 kernel/GUIBaseClasses.hs\
+	 kernel/GUIInteraction.hs\
+	 kernel/GUICore.hs\
+	 containers/Packer.hs\
+	 containers/Toplevel.hs\
+	 containers/Window.hs\
+	 containers/Frame.hs\
+	 containers/Box.hs\
+	 components/Slider.hs\
+	 components/Index.hs\
+	 components/Selection.hs\
+	 components/ICursor.hs\
+	 components/BitMap.hs\
+	 components/Image.hs\
+	 components/Icon.hs\
+	 devices/Mouse.hs\
+	 devices/Keyboard.hs\
+	 devices/Printer.hs\
+	 devices/Screen.hs\
+	 devices/Bell.hs\
+	 devices/XSelection.hs\
+	 menuitems/Menu.hs\
+	 menuitems/MenuItem.hs\
+	 menuitems/Indicator.hs\
+	 menuitems/Button.hs\
+	 menuitems/RadioButton.hs\
+	 menuitems/CheckButton.hs\
+	 menuitems/MenuButton.hs\
+	 menuitems/PulldownMenu.hs\
+	 menuitems/Separator.hs\
+	 widgets/ScrollBar.hs\
+	 widgets/Canvas.hs\
+	 widgets/Entry.hs\
+	 widgets/Label.hs\
+	 widgets/Message.hs\
+	 widgets/OptionMenu.hs\
+	 widgets/Scale.hs\
+	 widgets/ListBox.hs\
+	 widgets/Editor.hs\
+	 widgets/Space.hs\
+	 canvasitems/CanvasItem.hs\
+	 canvasitems/CanvasItemAux.hs\
+	 canvasitems/CanvasTag.hs\
+	 canvasitems/Arc.hs\
+	 canvasitems/Line.hs\
+	 canvasitems/Oval.hs\
+	 canvasitems/Polygon.hs\
+	 canvasitems/Rectangle.hs\
+	 canvasitems/EmbeddedCanvasWin.hs\
+	 canvasitems/TextItem.hs\
+	 canvasitems/BitMapItem.hs\
+	 canvasitems/ImageItem.hs\
+	 textitems/TextTag.hs\
+	 textitems/EmbeddedTextWin.hs\
+	 textitems/Mark.hs\
+	 toplevel/GUIIntrinsics.hs\
+	 toplevel/HTk.hs\
+	 toolkit/ScrollBox.hs\
+	 toolkit/LabelBox.hs\
+	 toolkit/ComboBox.hs\
+	 toolkit/SelectBox.hs\
+	 toolkit/ModalDialog.hs\
+	 toolkit/DialogWin.hs\
+	 toolkit/IconBar.hs\
+	 toolkit/RadioGroup.hs\
+	 toolkit/Prompt.hs\
+	 toolkit/SpinButton.hs\
+	 toolkit/InputForm.hs\
+	 toolkit/InputWin.hs\
+	 toolkit/PromptWin.hs\
+         toolkit/DragAndDrop.hs\
+	 toolkit/LogWin.hs\
+	 toolkit/MatrixBox.hs\
+	 filebrowser/TreeListPath.hs\
+	 filebrowser/FileActions.hs\
+
+EXTRA_HC_OPTIONS += -Onot -H30M
+
+SUBDIRS = test examples
+
+XHCDIRS = $(HTKSDIRS)
+
+include @TOP@/mk/boilerplate.mk
+

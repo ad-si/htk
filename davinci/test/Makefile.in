@@ -1,0 +1,13 @@
+LIBS = $(TOP)/davinci/libdavinci.a $(TOP)/graphs/test/libtestgraph.a \
+   $(TOP)/graphs/libgraphs.a $(TOP)/htk/libhtk.a \
+   $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
+   $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
+
+SRCS = TestDaVinci.hs MainDepend.hs TestGraphEditor.hs TestGraphEditor2.hs\
+   TestDaVinciDouble.hs TestGraphEditorRemote.hs
+
+XHCDIRS= $(TOP)/graphs/test:$(HTKDIRS)
+
+include @TOP@/mk/boilerplate.mk
+
+

@@ -14,7 +14,7 @@ DESCRIPTION   : The standard textedit tool for simple plain text editing.
 
 
 module TextEdit (
-        ToolStatus(..),
+        ToolStatus,
         Object(..),
         Tool(..),
         UnixTool(..),

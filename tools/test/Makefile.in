@@ -1,0 +1,10 @@
+LIBS = $(TOP)/tools/libtools.a $(TOP)/htk/libhtk.a \
+   $(TOP)/reactor/libreactor.a $(TOP)/concurrency/libconcurrency.a \
+   $(TOP)/util/libutil.a 
+
+SRCS = Test3.hs TestDiff.hs TestGrep.hs TestHolZ.hs TestHugs1.hs TestHugs2.hs TestLatex.hs TestMoby.hs TestTextEdit.hs 
+# TestHolCSP.hs 
+
+XHCDIRS = $(HTKDIRS)
+
+include @TOP@/mk/boilerplate.mk

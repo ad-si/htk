@@ -1,0 +1,13 @@
+LIB        = libversions.a
+SRCS       = VersionDB.hs UniTypes.hs FileSys.hs 
+SUBDIRS    = test
+
+include @TOP@/mk/boilerplate.mk
+
+
+
+
+
+
+
+

@@ -1,0 +1,6 @@
+# This file, included by Make, contains variables you may need to
+# change for different installations of Uni.
+#
+# HC is the location of the GHC command
+HC = @GHC@
+TOP = @TOP@

@@ -1,0 +1,4 @@
+SRCS = TestObject.hs TestDynamics.hs
+LIBS = $(TOP)/util/libutil.a
+
+include @TOP@/mk/boilerplate.mk
