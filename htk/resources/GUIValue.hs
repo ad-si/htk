@@ -19,7 +19,6 @@ module GUIValue (
 
         TkCommand(..),
 
-        fromGUIValueIO,
         creadTk,
 	toTkString,
 	escapeString,
@@ -65,19 +64,10 @@ class (Show a, Read a) => GUIValue a where
         fromGUIValue val = case (maybeGUIValue val) of (Just a) -> a
 
 
-fromGUIValueIO :: GUIValue a => GUIVALUE -> IO a
-fromGUIValueIO v = 
-        case maybeGUIValue v of
-                Nothing  -> do {
-                                print ("NO PARSE: " ++ show v);
-                                ioError illegalGUIValue
-                                }
-                (Just a) -> return a
-
-
 creadTk :: GUIValue a => String -> IO a
 creadTk s = 
         case maybeGUIValue (GUIVALUE Tk (restoreNL s)) of
+--                Nothing -> return cdefault
                 Nothing ->  do {
                         print ("NO PARSE: " ++ s);
                         ioError illegalGUIValue
