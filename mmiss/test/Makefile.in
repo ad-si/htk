@@ -23,6 +23,11 @@ killServer :
 	(pkill "^Server$$" || echo not running)
 	rm -rf $(WORKINGDIR)
 
+killRestartServer :
+	(pkill "^berkeley_db_svc$$" || echo not running)
+	(pkill "^Server$$" || echo not running)
+	rm -rf $(WORKINGDIR)/tmp
+
 runWorkbench :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./MMiSSWorkbench --uni-debug=w.debug
 

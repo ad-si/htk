@@ -25,6 +25,7 @@ newtype EventLock = EventLock (Channel Bool)
 
 instance Lock EventLock where
    acquire (EventLock channel) = sendIO channel True
+{-#   acquire (EventLock channel) = sync (noWait (send channel True)) #-}
    release (EventLock channel) = sendIO channel False
 
 newEventLock :: IO EventLock
@@ -60,6 +61,6 @@ lockEvent :: EventLock -> Event a -> Event a
 lockEvent lock event =
       event
    +> (do
-         theLockEvent lock 1
+         theLockEvent lock 0
          event
       )

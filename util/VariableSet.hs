@@ -133,7 +133,8 @@ setVariableSet (VariableSet broadcaster) newList =
 
         updateFn (VariableSetData oldSet) =
            let
-              toAddList = map unKey (setToList (minusSet newSet oldSet))
+              toAddList 
+                 = filter (\ el -> not (elementOf (Keyed el) oldSet)) newList
               toDeleteList = map unKey (setToList (minusSet oldSet newSet))
               updates = 
                  (map DelElement toDeleteList) ++ (map AddElement toAddList)
