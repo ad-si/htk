@@ -25,7 +25,6 @@ import ModalDialog
 import DialogWin
 import InputWin
 import InputForm
-import MarkupText
 
 import qualified GraphConfigure
 
@@ -79,13 +78,14 @@ getNodeTypeAttributes1 :: IO PreAttributes
 getNodeTypeAttributes1 =
    do
       let def = PreAttributes {shapeSort=Box,nodeTypeTitle'=""}
-      iw <- newInputWin "Node Type Attributes" (Just def) []
-      newEnumField (fForm iw) [Box .. Icon] [
+      (iw, form) <- newInputWin "Node Type Attributes" 
+                                (\p-> newInputForm p (Just def) []) []
+      newEnumField form [Box .. Icon] [
          -- text "Node Shape",
          selector shapeSort,
          modifier (\ old newShape -> old {shapeSort = newShape})
          ]
-      newEntryField (fForm iw) [
+      newEntryField form [
          text "Node Type title",
          selector nodeTypeTitle',
          modifier (\ old newTitle -> old {nodeTypeTitle' = newTitle}),
@@ -134,15 +134,16 @@ getNodeAttributes registry =
                preNodeType=head knownTypeNames,
                preNodeTitle=""
                }
-
-         inputWin <- newInputWin "Node Attributes" (Just def) []
-         newEnumField (fForm inputWin) knownTypeNames [
+            -- iform p = newInputForm p (Just def) []   
+         (inputWin, form) <- newInputWin "Node Attributes" 
+                                         (\p-> newInputForm p (Just def) []) []
+         newEnumField form knownTypeNames [
             -- text "Node Type",
             selector preNodeType,
             modifier (\ old nodeTypeName -> 
                old {preNodeType = nodeTypeName})
             ]
-         newEntryField (fForm inputWin) [
+         newEntryField form [
             text "Node title",
             selector preNodeTitle,
             modifier (\ old newTitle -> old {preNodeTitle = newTitle}),
@@ -180,14 +181,15 @@ getArcTypeAttributes :: IO (Maybe ArcTypeAttributes)
 getArcTypeAttributes =
    do
       let def = ArcTypeAttributes {arcTypeTitle=""}
-      inputWin <- newInputWin "Arc Type Attributes" (Just def) []
-      newEntryField (fForm inputWin) [
+      (iw, form) <- newInputWin "Arc Type Attributes" 
+                                (\p-> newInputForm p (Just def) []) []
+      newEntryField form [
          text "Arc Type title",
          selector arcTypeTitle,
          modifier (\ old newTitle -> old {arcTypeTitle = newTitle}),
          width 20
          ]
-      wait inputWin True
+      wait iw True
    
 ------------------------------------------------------------------------
 -- Arcs
@@ -224,14 +226,15 @@ getArcAttributes registry =
             def = ArcPreAttributes {
                preArcType=head knownTypeNames
                }
-         inputWin <- newInputWin "Arc Attributes" (Just def) []
-         newEnumField (fForm inputWin) knownTypeNames [
+         (iw, form) <- newInputWin "Arc Attributes" 
+	                           (\p-> newInputForm p (Just def) []) []
+         newEnumField form knownTypeNames [
             -- text "Arc Type",
             selector preArcType,
             modifier (\ old arcTypeName -> 
                old {preArcType = arcTypeName})
             ]
-         result <- wait inputWin True
+         result <- wait iw True
          case result of
             Just (ArcPreAttributes {
                preArcType = arcTypeName
@@ -250,7 +253,7 @@ getArcAttributes registry =
 
 displayError :: String -> IO ()
 -- This displays an error message until the user clicks "Try Again".
-displayError message = newErrorWin [bold [prose message], newline] []
+displayError message = newErrorWin message []
 {-
    do
       frame <- newFrame []
@@ -268,9 +271,9 @@ getSingleString :: String -> IO String
 -- provided.
 getSingleString query =
    do
-      inputWin <- newInputWin "" Nothing []
+      (inputWin, form) <- newInputWin "" (\p-> newInputForm p Nothing []) []
       (entryField :: EntryField String String) <-
-         newEntryField (fForm inputWin) [
+         newEntryField form [
             text query,
             selector id,
             modifier (\ oldValue newValue -> newValue),
