@@ -2,5 +2,6 @@
 *.hi
 .depend
 Makefile
-Makefile.bak
 *%
+pgip.hs
+pgml.hs
