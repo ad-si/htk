@@ -9,6 +9,7 @@ import Extents
 main =
    do
       s <- newEmacsSession "TestBuffer"
+      initBuffer s
       addContainerBuffer s "c1"
       addContainer s "c1" "c1.1"
       addText s "c1.1" "Editable1"

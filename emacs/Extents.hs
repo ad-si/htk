@@ -1,5 +1,6 @@
 {- Haskell interface to the high-level extent functions in sendmess.el-}
 module Extents(
+   initBuffer,
    addContainerBuffer,
    prependContainerBuffer,
    addContainer,
@@ -19,6 +20,9 @@ import EmacsBasic
 import EmacsCommands
 import EmacsContent
 import EmacsSExp
+
+initBuffer :: EmacsSession-> IO ()
+initBuffer es = execEmacs es ("uni-initialise-extents")
 
 addContainerBuffer :: EmacsSession -> String -> IO ()
 addContainerBuffer emacsSession str =
