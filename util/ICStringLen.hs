@@ -128,6 +128,9 @@ instance StringClass (UTF8 ICStringLen) where
    fromString str = UTF8 (fromString (toUTF8 str))
    toString (UTF8 icsl) = coerceWithError (fromUTF8WE (toString icsl))
 
+instance Show ICStringLen where
+   show = show . toString
+
 -- -------------------------------------------------------------------
 -- General functions for Creating and reading ICStringLen's.
 -- -------------------------------------------------------------------

@@ -39,16 +39,17 @@ import MMiSSFormat
 
 -- --------------------------------------------------------------------------
 -- Datatypes
+-- We make things instance Show, for purposes of debugging.
 -- --------------------------------------------------------------------------
 
-newtype Bundle = Bundle [(PackageId,BundleNode)]
+newtype Bundle = Bundle [(PackageId,BundleNode)] deriving (Show)
 
 data FileLoc = FileLoc {
    name :: Maybe String, 
       -- Nothing for the preamble and in some other cases, for example
       -- when we haven't worked out the name of a package yet.
    objectType :: BundleType
-   } deriving (Ord,Eq)
+   } deriving (Ord,Eq,Show)
    
 data BundleType = BundleType {
    base :: BundleTypeEnum,
@@ -56,17 +57,17 @@ data BundleType = BundleType {
    extra :: Maybe String
       -- extra is used for cases where the object type cannot be worked out
       -- otherwise; specifically for plain files and plain folders.
-   } deriving (Ord,Eq)
+   } deriving (Ord,Eq,Show)
 
 data BundleTypeEnum = FolderEnum | FileEnum 
    | MMiSSFolderEnum | MMiSSObjectEnum | MMiSSFileEnum | MMiSSPreambleEnum
    | UnknownType
-   deriving (Ord,Eq)
+   deriving (Ord,Eq,Show)
 
 data BundleNode = BundleNode {
    fileLoc :: FileLoc,
    bundleNodeData :: BundleNodeData
-   }
+   } deriving (Show)
 
 data BundleNodeData =
       Object [(Maybe MMiSSVariantSpec,BundleText)]
@@ -75,6 +76,7 @@ data BundleNodeData =
    |  Dir [BundleNode]
    |  NoData
          -- data left out for some reason.
+   deriving (Show)
 
 data BundleText = 
       BundleString {
@@ -91,7 +93,20 @@ data BundleText =
          }
    |  NoText
 
-data CharType = Byte | Unicode deriving (Eq)
+instance Show BundleText where
+   show (BundleString {contents = icsl,charType = charType}) =
+      "BundleString {contents = " 
+      ++ show icsl
+      ++ ",charType = "
+      ++ show charType
+      ++ "}"
+   show (BundleDyn {dyn = dyn}) =
+      "BundleDyn {dyn = "
+       ++ show dyn
+       ++ ",eqFn = ???}"
+   show NoText = "NoText"
+
+data CharType = Byte | Unicode deriving (Eq,Show)
 
 data ExportOpts = ExportOpts {
    getText :: Bool, -- ^ Get the text of everything (not just the locations)

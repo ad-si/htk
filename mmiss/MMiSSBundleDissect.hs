@@ -20,7 +20,6 @@ import MMiSSElementInfo
 import MMiSSElementInstances
 import MMiSSVariant
 
-
 dissectBundle :: Bundle -> WithError Bundle
 dissectBundle bundle0 =
    do

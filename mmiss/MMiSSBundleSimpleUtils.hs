@@ -485,7 +485,7 @@ wrapContainingMMiSSPackage packageNameOpt fullName bundleType bundleNodeData0 =
                }
             bundleNode1 = BundleNode {
                fileLoc = fileLoc1,
-               bundleNodeData = bundleNodeData1
+               bundleNodeData = Dir [bundleNode0]
                }
          in
             bundleNode1

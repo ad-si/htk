@@ -14,7 +14,6 @@ import Text.XML.HaXml.Types
 
 import MMiSSDTDAssumptions
 import MMiSSVariant
-import MMiSSDTD(toExportableXml) -- DEBUG
 import MMiSSElementInfo(changeLabel)
 
 ---
