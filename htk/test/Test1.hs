@@ -16,6 +16,8 @@ module Main (
         ) 
 where
 
+import WBFiles
+
 import HTk
 import Concurrency
 
@@ -35,9 +37,6 @@ import Slider
 import Icon
 import Keyboard
 import Bell
-
-import Posix(getEnvVar)
-
 import Frame
 import Box
 import Label
@@ -759,19 +758,19 @@ vwm win ev = destroyed win +> ev
 
 
 wbbmap :: HasBitMap w => String -> Config w
-wbbmap fnm w = do {
-        prefix <- Posix.getEnvVar "WB_ROOT";
-        configure w [bitmap (prefix ++ "/images/" ++ fnm)];
-        return w
-}
+wbbmap fnm w = 
+   do
+      fname <- getWBImageFilePath fnm
+      configure w [bitmap fname]
+      return w
 
 
 wbfilename :: HasFile w => String -> Config w
-wbfilename fnm w = do {
-        prefix <- Posix.getEnvVar "WB_ROOT";
-        configure w [filename (prefix ++ "/images/" ++ fnm)];
-        return w
-}
+wbfilename fnm w = 
+   do
+      fname <- getWBImageFilePath fnm
+      configure w [filename fname]
+      return w
 
 
 (@>>) :: ( w -> IA a) -> IO () -> (w -> IA ())
