@@ -1,4 +1,7 @@
--- | GraphConfigure contains definitions for the various configuration
+-- |
+-- Description: Extended Interface for Graph Display
+-- 
+-- GraphConfigure contains definitions for the various configuration
 -- options for "GraphDisp" objects.  These should be implemented
 -- using the 'HasConfig', 'HasConfigValue' and 'ModifyHasDef', 
 -- applied to instances of

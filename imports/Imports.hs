@@ -1,4 +1,7 @@
--- | This is the module which has the job of co-ordinating the construction of
+-- |
+-- Description: Lookup 'EntityNames.EntityFullName's from 'EntityNames.ImportCommands'.
+-- 
+-- This is the module which has the job of co-ordinating the construction of
 -- Environment.Env values and their use. 
 module Imports(
    ImportsState(folders),

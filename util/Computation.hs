@@ -1,4 +1,5 @@
--- | Miscellaneous monadic operations, and the WithError type.
+-- | 
+-- Description : Miscellaneous Monads, in particular 'Computation.WithError'.
 module Computation (
         Answer,
 

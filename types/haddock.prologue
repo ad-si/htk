@@ -1,0 +1,4 @@
+This module implements the repository, so everything that isn't MMiSS-specific.
+In particular, the "ObjectTypes" modules defines the general class that
+objects need to instance to be put in the repository.  "Files" and "Folders"
+are two such instances.  "LinkManager" maintains the folder structure.

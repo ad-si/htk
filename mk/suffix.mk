@@ -442,7 +442,7 @@ haddockgenindex:
 ifdef THISISTOP
 	HADDOCKINTERFACES0=`$(GFIND) $(TOP) -name interface.haddock \
            -printf "--read-interface=%P,%p "`; \
-	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s/interface.haddock,/,/g` ;\
+	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s+/interface.haddock,+,+g` ;\
 	$(HADDOCK) -o $(TOP)/www \
 	   $$HADDOCKINTERFACES \
           --gen-index --gen-contents

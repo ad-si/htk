@@ -1,4 +1,7 @@
--- | Functions we need for calling the Berkeley Database 
+-- |
+-- Description: Interface to Berkeley Database
+-- 
+-- Functions we need for calling the Berkeley Database 
 module BDBOps(
    BDB, -- A connection to a Berkeley Database
    openBDB, -- :: IO BDB

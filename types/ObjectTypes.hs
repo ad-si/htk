@@ -1,4 +1,7 @@
--- | Here we define ObjectType's and their factories
+-- |
+-- Description: General class repository objects need to instance.
+-- 
+-- Here we define ObjectType's and their factories
 -- 
 -- For each object we have two Haskell values with
 --    associated types.  These two types are declared to be

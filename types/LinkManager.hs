@@ -1,3 +1,5 @@
+-- |
+-- Description: Folder structure within a 'ViewType.View'
 module LinkManager(
    -- Classes
    HasLinkedObject(..),

@@ -1,3 +1,5 @@
+-- |
+-- Description: Low-Level Tcl\/Tk interface
 module HTk (
 
   requirePackage,

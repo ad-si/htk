@@ -1,5 +1,5 @@
 -- | RegularExpression is the interface between Expect and whatever
--- regular expression engine it uses.  Currently RegexString.
+-- regular expression engine it uses.  Currently Text.Regex.
 -- 
 -- The current implementation (ghc's RegexString, which in turn
 -- calls ghc's Regex, which in turn calls GHC regex version 1.2

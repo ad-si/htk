@@ -1,4 +1,7 @@
--- | EventClasses defines the various classes of events 
+-- |
+-- Description: Higher-order Events
+--
+-- 'Event's and combinators for them.
 module Events(
    Result(..),
    Event(..), 

@@ -55,7 +55,7 @@ data LaTeXPreamble = Preamble DocumentClass [Package] LaTeXPreambleCmds
 type LaTeXPreambleCmds = [LaTeXPreambleCmd]
 
 data LaTeXPreambleCmd = Cmd String |  FileRef FilePath CommandString ContentString ContentType
-data ContentType = Ontology | Latex deriving (Eq, Show, Read)
+data ContentType = Ontology | Latex deriving (Eq, Show, Read,Enum)
 
 type ContentString = String
 type CommandString = String
@@ -730,7 +730,8 @@ instance Monad m => CodedValue.HasBinary LaTeXPreambleCmd m where
   readBin = mapRead fromPackedLatexPreambleCmd
 
 instance  Monad m => CodedValue.HasBinary ContentType m where
-
+  writeBin = mapWrite fromEnum
+  readBin = mapRead toEnum
 
 -- ----------------------------------------------------------------------------------
 -- Instances of HasCodedValue and Eq for Package (added by George)

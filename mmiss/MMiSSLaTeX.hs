@@ -45,7 +45,7 @@ mmissLaTeX view fileName contents exportFiles0 =
             top <- getTOP
 
             let
-               cancel = break ""
+               cancel = break "MMiSSLaTeX cancelled"
 
                -- returns location of script file
                script :: String -> String

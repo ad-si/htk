@@ -1,4 +1,7 @@
--- | This is the user-interface to the SimpleDB.
+-- |
+-- Description: Low-level Repository Functions
+-- 
+-- This is the user-interface to the SimpleDB.
 module SimpleDB(
    Repository,
       -- represents a connection to a particular server.

@@ -1,4 +1,7 @@
--- | In Server we implement a general framework for a server, which
+-- |
+-- Description: Run servers defined by 'ServiceClass.ServiceClass' instances.
+-- 
+-- In Server we implement a general framework for a server, which
 -- is supposed to make it easier to share information between 
 -- computers, in a similar method to inetd.  Unlike inetd however
 -- each client computer maintains a session with the server.  Also

@@ -1,4 +1,7 @@
--- | This module puts together all the bundle-filling-in, validation and
+-- |
+-- Description: Writing Bundles
+-- 
+-- This module puts together all the bundle-filling-in, validation and
 -- writing functions, to present the general function for writing a bundle.
 module MMiSSBundleWrite(
    writeBundle,

@@ -78,7 +78,9 @@ mergeNodes repository versionGraph nodes =
             (\ (view,doDestroy) -> if doDestroy then destroy view else done)
             viewData
 
-         coerceWithErrorOrBreakIO break viewWE
+         view <- coerceWithErrorOrBreakIO break viewWE
+         return view
+
       )
 
 

@@ -1,4 +1,7 @@
--- | Files are simple files together with attributes
+-- |
+-- Description: Simple repository 'Files.File's
+-- 
+-- Files are simple files together with attributes
 -- 
 -- This file is very similar to Folders.hs 
 module Files(

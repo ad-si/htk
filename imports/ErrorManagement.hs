@@ -1,4 +1,7 @@
--- | The code in this module manages errors.  The main task is to reduce the
+-- |
+-- Description: Manage errors for "Imports".
+-- 
+-- The code in this module manages errors.  The main task is to reduce the
 -- huge flood of errors that occur during large updates to those that
 -- actually occur.
 -- 

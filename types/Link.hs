@@ -1,4 +1,7 @@
--- | This module defines links, which are pointers to objects in the repository.
+-- |
+-- Description: Pointers to Repository Objects
+-- 
+-- This module defines links, which are pointers to objects in the repository.
 -- Thus they can be part of other objects. 
 module Link(
    -- Links.

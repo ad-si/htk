@@ -1,4 +1,7 @@
--- | The WBFiles module is in charge of decoding information from the command
+-- | 
+-- Description : Option processing
+-- 
+-- The WBFiles module is in charge of decoding information from the command
 -- line and making it available to the rest of the UniForM workbench.
 --
 -- All UniForM options have names beginning with "--uni".  It is hoped

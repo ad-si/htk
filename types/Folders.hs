@@ -1,4 +1,7 @@
--- | In this module we implement the folder type, and a display type for
+-- |
+-- Description: Simple repository 'Folders.Folder's.
+-- 
+-- In this module we implement the folder type, and a display type for
 -- displaying the directory structure. 
 module Folders(
    registerFolders, -- :: IO ()

@@ -1,4 +1,7 @@
--- | This module edits Emacs content, including \"magic buttons\" to allow
+-- |
+-- Description: Interface to XEmacs
+-- 
+-- This module edits Emacs content, including \"magic buttons\" to allow
 -- the user expand bits of content further. 
 module EmacsEdit(
    editEmacs, -- :: EmacsFS -> String -> IO ()

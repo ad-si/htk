@@ -1,4 +1,7 @@
--- | This module contains the hooks for displaying messages to the user
+-- |
+-- Description: Outputting Messages
+--
+-- This module contains the hooks for displaying messages to the user
 -- (errors, alerts, warnings and the like) and getting yes\/no responses.
 -- 
 -- The idea is that these are by default textual, and go via 

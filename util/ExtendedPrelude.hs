@@ -1,4 +1,7 @@
--- | Basic string-manipulation and other functions they forgot to put in
+-- |
+-- Description : What the Prelude Forgot
+--
+-- Basic string-manipulation and other functions they forgot to put in
 -- the standard prelude.
 module ExtendedPrelude (
    -- * Trimming spaces from Strings.

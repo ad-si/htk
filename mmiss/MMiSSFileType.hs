@@ -1,4 +1,7 @@
--- | This module describes the types required for the MMiSS file type. 
+-- |
+-- Description: Files with Variants
+-- 
+-- This module describes the types required for the MMiSS file type. 
 module MMiSSFileType(
    importMMiSSFile,
       -- :: HasLinkedObject object 

@@ -1,4 +1,7 @@
--- | A Registry is a mapping from ordered values.  For the Registry
+-- |
+-- Description: Store information by key.
+--
+-- A Registry is a mapping from ordered values.  For the Registry
 -- type itself, all target values have the same type.  For the
 -- UntypedRegistry type, the values
 -- can have any Typeable type.

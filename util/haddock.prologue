@@ -1,8 +1,3 @@
 This package contains various miscellaneous utilities which belong nowhere
-in particular in the Workbench.  Highlights include "Computation", which
-implements the 'Computation.WithError' error messages; "ExtendedPrelude",
-which includes functions the Haskell prelude designers left out; "Sources",
-"Sink" and "Broadcaster", which implement a primitive (but useful) event
-mechanism; "WBFiles", which parses command line arguments; and "BinaryAll"
-(and the modules it imports), which implements the conversion of values to
-binary and back.
+in particular in the Workbench.  Highlights include "Computation", 
+"ExtendedPrelude", "Sources" and "BinaryAll".

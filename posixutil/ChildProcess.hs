@@ -1,4 +1,7 @@
--- | Calling other processes.
+-- |
+-- Description: Calling other programs.
+--
+-- Calling other programs.
 --
 -- CAVEAT
 -- When you start up a ChildProcess, sigPIPE is disabled.  This is necessary

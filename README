@@ -142,6 +142,18 @@ What To Ask Before Compiling
 4) Do you want to use our versioning system (in "cvs" and "types")?
    Then you need cvs, probably version 10.7 or thereabouts.
    Again, put it in your PATH for the configure step.
+5) Do you want to run the MMiSSWorkbench?  Then you will need
+   XEmacs.  We use version 21.4 (patch 8), but it seems pretty stable,
+   so it probably shouldn't matter if you haven't got *exactly* that
+   version.  You will also need to install AUCTeX and the Lisp file
+   atomic-extents.elc.  All these should be available from 
+   http://www.xemacs.org.
+
+   You should also have XEmacs when you run the MMiSSWorkbench,
+   and it needs to run the XEmacs server.  For this you need to
+   run the Lisp command "(gnuserv-start)" within XEmacs, or put 
+   it in your .xemacs/init.el file when you start up.
+
 
 Compiling
 ---------
@@ -156,6 +168,14 @@ it, assuming that you are in the same directory as this README file
 gmake boot
 # Compile Uni
 gmake all
+
+Compiling the Emacs Lisp files
+------------------------------
+
+You can compile the Emacs lisp files by starting the XEmacs server
+(see instructions above) and then typing
+gmake objsemacs
+
 
 Other Make targets for UniForM developers
 -----------------------------------------
@@ -271,13 +291,20 @@ and nothing else relevant to configuration.  (For example, it assumes you
 haven't added any new Makefiles.) 
 
 Making documentation
--------------------------
+--------------------
 
+You need to use Haddock, which is available from 
 
-gmake doc should work.
+   http://www.haskell.org/haddock/
 
-However at present no documentation should be in this directory; it
-should all be in the module uni-docs.
+We are using Haddock 0.6 with some extra extensions which will hopefully
+make it into Haddock 0.7.  Haddock 0.6 should however work, but the output
+will not look as good; the "Description" fields will not appear in the
+contents lists as they should.
+
+Make sure Haddock is in your path, then do
+   ./configure
+   gmake haddock
 
 How to Make a Binary Distribution
 ---------------------------------
@@ -298,19 +325,6 @@ This will create .tar.gz and .zip files containing a binary distribution
 You should afterwards re-run ./configure as gmake prepareexports (currently) 
 alters the default_options code in util, to put in generic locations for wish,
 daVinci & co.
-
-For systems where hdoc & LaTeX are not installed you could for example
-find a machine where you CAN build the documentation, do it there,
-and prepare a .tar.gz archive containing the documentation with the
-following:
-# cd to the documentation directory.  This is the only one at present.
-   cd htk/doc
-# Make the exports for just this directory
-   gmake exports
-You will get two archives, one .tar.gz and one .zip.  Pick whichever is
-most convenient and unpack on the machine where you are preparing the binary
-distribution.  You can then gmake exports at the top directory for the
-target directory.
 
 How to copy the documentation and binaries onto the web site
 ------------------------------------------------------------

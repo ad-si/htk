@@ -1,4 +1,7 @@
--- | In UniForM we need ways of displaying typed directed graphs.
+-- |
+-- Description: Basic Interface for Graph Display
+-- 
+-- In UniForM we need ways of displaying typed directed graphs.
 -- In the original UniForM, it was only possible to use the DaVinci
 -- encapsulation for displaying directed graphs.  While this is very good,
 -- in the new UniForM it is intended to factor out this encapsulation

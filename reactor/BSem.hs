@@ -1,4 +1,7 @@
--- | A simple semaphore
+-- |
+-- Description: Simple Lock
+-- 
+-- A simple semaphore
 module BSem (
    module Lock,
    

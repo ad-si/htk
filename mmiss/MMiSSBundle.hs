@@ -1,4 +1,7 @@
--- | A Bundle encodes a collection of MMiSS objects, packages,
+-- |
+-- Description: Bundles
+-- 
+-- A Bundle encodes a collection of MMiSS objects, packages,
 -- package folders and so on to be imported into or exported from the
 -- repository.  A BundleNode encodes a single object. 
 -- 

@@ -10,7 +10,6 @@ import Computation
 
 import CopyFile
 
-import LaTeXParser
 import LaTeXPreamble
 
 -- --------------------------------------------------------------------

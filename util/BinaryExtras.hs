@@ -22,8 +22,10 @@ import ExtendedPrelude
 import IOExtras
 
 -- | Read something, but throw an exception if there is an attempt to
--- read more than the number of characters given by the first argument. 
-hReadLtd :: HasBinary a IO => Int -> Handle -> IO (WithError a)
+-- read too many characters. 
+hReadLtd :: HasBinary a IO => 
+   Int -- ^ the maximum number of characters 
+   -> Handle -> IO (WithError a)
 hReadLtd limit handle =
    addFallOutWE (\ break ->
       do

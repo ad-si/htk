@@ -1,4 +1,7 @@
--- | This is a much simpler reimplementation of Einar's old Mutex semaphores.  
+-- |
+-- Description: Reentrant Lock
+-- 
+-- This is a much simpler reimplementation of Einar's old Mutex semaphores.  
 -- This is a lock which can be required by a thread which is already holding
 -- it.
 -- 

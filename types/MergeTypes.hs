@@ -1,4 +1,7 @@
--- | This describes the various types relevant to the interface between the
+-- |
+-- Description: What objects need to be mergeable.
+-- 
+-- This describes the various types relevant to the interface between the
 -- repository and object implementations and merging. 
 module MergeTypes(
    ObjectLinks(..),
