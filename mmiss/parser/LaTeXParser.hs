@@ -468,6 +468,7 @@ makeContent (f:frags) NoText parentEnv =
 
 makeContent (f:frags) TextAllowed "List" = 
    case f of
+     (Other str) -> hasValue([(CMisc (Comment str))] ++ coerceWithError(makeContent frags TextAllowed "List"))
      (Env name ps fs) -> 
                if (name `elem` (map fst mmiss2EnvIds))
 	         then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a ListItem.")
@@ -485,11 +486,12 @@ makeContent (f:frags) TextAllowed parentEnv =
      (EscapedChar c) -> 
        let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
        in hasValue([content] ++ coerceWithError(makeContent restFrags TextAllowed parentEnv))
-     (Other str) -> 
-       if (str /= "")
-	 then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
-              in hasValue([content] ++ coerceWithError(makeContent restFrags TextAllowed parentEnv))
-	 else makeContent frags TextAllowed parentEnv
+     (Other str) -> if ((length (filter (not . (== '\n')) str) == 0) ||
+			((head str) == '%'))
+                      then hasValue([(CMisc (Comment str))] 
+                           ++ coerceWithError(makeContent frags TextAllowed parentEnv))
+	              else let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+                           in  hasValue([content] ++ coerceWithError(makeContent restFrags TextAllowed parentEnv))
      (Env name ps fs) -> 
        if (name `elem` (map fst plainTextAtoms))
          then
@@ -772,15 +774,16 @@ getEmphasisText (LParams ((SingleParam (Other s) _):ps) _) = s
 {-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
 --}
 
-makeMMiSSLatex :: (Element, Bool) -> WithError (EmacsContent String)
+makeMMiSSLatex :: (Element, Bool) -> WithError (EmacsContent (String, Char))
 makeMMiSSLatex ((Elem "textFragment" atts contents), False) = 
    let s1 = "\\begin{TextFragment}" 
        s2 = "[" ++ (getParam "notationID" atts) ++ "]"
        s3 = "{" ++ (getParam "label" atts) ++ "}"
        s4 = "{" ++ (getAttribs atts "" ["notationID", "label"]) ++ "}\n"
        s5 = "\\end{TextFragment}\n"
-       str = s1 ++ s2 ++ s3 ++ s4 ++ (fillLatex contents "") ++ s5
-   in hasValue(EmacsContent [EditableText str])
+       items = [EditableText (s1 ++ s2 ++ s3 ++ s4)] ++ (fillLatex contents [])
+                ++ [EditableText s5]
+   in hasValue(EmacsContent items)
 
 makeMMiSSLatex ((Elem "list" atts contents), False) = 
    let s1 = "\\begin{List}" 
@@ -789,10 +792,11 @@ makeMMiSSLatex ((Elem "list" atts contents), False) =
        s3 = "{" ++ listtype ++ "}"
        s4 = "{" ++ (getAttribs atts "" ["type", "label"]) ++ "}\n"
        s5 = "\\end{List}\n"
-       str = s1 ++ s2 ++ s3 ++ s4 ++ (fillLatex contents "") ++ s5
+       items = [EditableText (s1 ++ s2 ++ s3 ++ s4)] ++ (fillLatex contents [])
+                ++ [EditableText s5]
    in if (listtype == "") 
         then hasError("Missing listtype attribute for Element " ++ s2 ++ " !")
-	else hasValue(EmacsContent [EditableText str])
+	else hasValue(EmacsContent items)
 
 makeMMiSSLatex ((Elem name atts contents), False) = 
    let s1 = "\\begin{" ++ (toLatexName name) ++ "}" 
@@ -801,8 +805,9 @@ makeMMiSSLatex ((Elem name atts contents), False) =
        s4 = "{" ++ (getParam "title" atts) ++ "}"
        s5 = "{" ++ (getAttribs atts "" ["notationID", "label", "title"]) ++ "}\n"
        s6 = "\\end{" ++ (toLatexName name) ++ "}\n"
-       str = s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ (fillLatex contents "") ++ s6
-   in hasValue(EmacsContent [EditableText str])
+       items = [EditableText (s1 ++ s2 ++ s3 ++ s4 ++ s5)] ++ (fillLatex contents [])
+                ++ [EditableText s6]
+   in hasValue(EmacsContent items)
 
 makeMMiSSLatex ((Elem name atts contents), True) = 
    if (name /= "package") then hasError("Only a package element is allowed as root!")
@@ -819,56 +824,82 @@ makeMMiSSLatex ((Elem name atts contents), True) =
            s7 = "{" ++ (getAttribs atts "" ["notationID", "label", "title"]) ++ "}\n"
            s8 = "\\end{" ++ (toLatexName name) ++ "}\n"
            s9 = "\\end{document}"
-           str = s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ s6 ++ s7 ++ (fillLatex (tail contents) "") ++ s8 ++ s9
+           items = [EditableText (s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ s6 ++ s7)]
+                   ++ (fillLatex (tail contents) [])
+                   ++ [EditableText (s8 ++ s9)]
        in if (s1 /= "") 
-            then hasValue(EmacsContent [EditableText str])
+            then hasValue(EmacsContent items)
             else hasError ("The document contains no preamble!")
 
 
-fillLatex :: [Content] -> String -> String
+fillLatex :: [Content] -> [EmacsDataItem (String, Char)] -> [EmacsDataItem (String, Char)]
 
-fillLatex [] inStr = inStr
+fillLatex [] l = l
 
-fillLatex ((CElem (Elem "textFragment" atts contents)):cs) inStr = 
+fillLatex ((CElem (Elem "textFragment" atts contents)):cs) inList = 
    let s1 = "\\begin{TextFragment}" 
        s2 = "[" ++ (getParam "notationID" atts) ++ "]"
        s3 = "{" ++ (getParam "label" atts) ++ "}"
        s4 = "{" ++ (getAttribs atts "" ["notationID", "label"]) ++ "}\n"
        s5 = "\\end{TextFragment}\n"
-       str = s1 ++ s2 ++ s3 ++ s4 ++ (fillLatex contents "") ++ s5
-   in fillLatex cs (inStr ++ str)
+       items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))] ++ (fillLatex contents []) 
+              ++ [(EditableText s5)]
+   in fillLatex cs (inList ++ items)
 
-fillLatex ((CElem (Elem "list" atts contents)):cs) inStr = 
+fillLatex ((CElem (Elem "list" atts contents)):cs) inList = 
    let s1 = "\\begin{List}" 
        s2 = "{" ++ (getParam "label" atts) ++ "}"
        listtype = getParam "type" atts
        s3 = "{" ++ listtype ++ "}"
        s4 = "{" ++ (getAttribs atts "" ["type", "label"]) ++ "}\n"
        s5 = "\\end{List}\n"
-       str = s1 ++ s2 ++ s3 ++ s4 ++ (fillLatex contents "") ++ s5
-   in fillLatex cs (inStr ++ str)
+       items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))] ++ (fillLatex contents [])
+               ++ [(EditableText s5)]
+   in fillLatex cs (inList ++ items)
 
-fillLatex ((CElem (Elem "listItem" atts contents)):cs) inStr = 
+fillLatex ((CElem (Elem "listItem" atts contents)):cs) inList = 
    let s1 = "\\ListItem" 
        s2 = "{" ++ (getAttribs atts "" []) ++ "} "
-       str = s1 ++ s2 ++ (fillLatex contents "")
-   in fillLatex cs (inStr ++ str)
+       items = [EditableText (s1 ++ s2)] ++ (fillLatex contents [])
+   in fillLatex cs (inList ++ items)
 
-fillLatex ((CElem (Elem "emphasis" _ [CString _ str])):cs) inStr = 
-   fillLatex cs (inStr ++ "\\Emphasis{" ++ str ++ "}\n") 
+fillLatex ((CElem (Elem "emphasis" _ [CString _ str])):cs) inList = 
+   fillLatex cs (inList ++ [EditableText ("\\Emphasis{" ++ str ++ "}\n")]) 
 
-fillLatex ((CString _ str):cs) inStr = fillLatex cs (inStr ++ str)
+fillLatex ((CElem (Elem "includeGroup" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'G')]
+   in fillLatex cs (inList ++ item)
 
-fillLatex ((CMisc (Comment str)):cs) inStr = fillLatex cs (inStr ++ str)
+fillLatex ((CElem (Elem "includeAtom" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'A')]
+   in fillLatex cs (inList ++ item)
 
-fillLatex ((CElem (Elem name atts contents)):cs) inStr = 
+fillLatex ((CElem (Elem "includeUnit" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'U')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeTextFragment" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'T')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CString _ str):cs) inList = fillLatex cs (inList ++ [(EditableText str)])
+
+fillLatex ((CMisc (Comment str)):cs) inList = fillLatex cs (inList ++ [(EditableText str)])
+
+fillLatex ((CElem (Elem name atts contents)):cs) inList = 
   let s1 = "  \\begin{" ++ (toLatexName name) ++ "}" 
       s2 = "[" ++ (getParam "notationID" atts) ++ "]"
       s3 = "{" ++ (getParam "label" atts) ++ "}"
       s4 = "{" ++ (getParam "title" atts) ++ "}"
       s5 = "{" ++ (getAttribs atts "" ["notationID", "label", "title"]) ++ "}" ++ "\n"
       s6 = "  \\end{" ++ (toLatexName name) ++ "}\n"
-  in fillLatex cs (inStr ++ s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ (fillLatex contents "") ++ s6)
+      items = [(EditableText (s1 ++ s2 ++ s3 ++ s4 ++ s5))] ++ (fillLatex contents []) 
+              ++ [(EditableText s6)]
+  in fillLatex cs (inList ++ items)
 
 
 getParam :: String -> [Attribute] -> String
@@ -885,18 +916,21 @@ getAttribs [] str _ = if ((take 2 str) == ", ")
 getAttribs ((name, (AttValue [(Left value)])):as) str excludeList = 
    if (name `elem` excludeList)
      then getAttribs as str excludeList
-     else getAttribs as (str ++ ", " ++ name ++ " = {" ++ value ++ "}") excludeList
-
-                           
+     else getAttribs as (str ++ ", " ++ name ++ " = {" ++ value ++ "}") excludeList                           
                                     
 toLatexName :: String -> String
 toLatexName name = maybe "" fst (find ((name ==) . snd) mmiss2EnvIds)
  
-
+{--
 parseAndMakeMMiSSLatex :: SourceName -> IO ()
 parseAndMakeMMiSSLatex name = do root <- parseMMiSSLatexFile name
                                  root1 <- return(coerceWithError root)
-				 (EmacsContent ((EditableText str):_)) <- return(coerceWithError(makeMMiSSLatex (root1, True)))
-				 putStrLn(str) 
+				 (EmacsContent l) <- return(coerceWithError(makeMMiSSLatex (root1, True)))
+				 map (putStrLn . getStrOfEmacsDataItem) l
+--				 putStrLn(str) 
 
-                                    
+getStrOfEmacsDataItem :: EmacsDataItem String -> String
+
+getStrOfEmacsDataItem (EditableText str) = str
+getStrOfEmacsDataItem (EmacsLink str) = str                                   
+--}
