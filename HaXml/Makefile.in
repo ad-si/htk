@@ -30,11 +30,17 @@ HAXMLSRCS = \
 	Text/XML/HaXml/Xtract/Combinators.hs \
 	Text/XML/HaXml/Xtract/Lex.hs \
 	Text/XML/HaXml/Xtract/Parse.hs \
-	Text/ParserCombinators/HuttonMeijerWallace.hs 
+	Text/XML/HaXml/DtdToHaskell/Convert.hs \
+	Text/XML/HaXml/DtdToHaskell/Instance.hs \
+	Text/XML/HaXml/DtdToHaskell/TypeDef.hs \
+	Text/ParserCombinators/HuttonMeijerWallace.hs \
+
 
 include @TOP@/mk/boilerplate.mk
 
 lnsrcs : 
 	$(foreach file,$(HAXMLSRCS),\
            $(MKDIR) -p `dirname $(file)` \
-           && $(LN) -s $(HAXML)/$(file) $(file) &&) echo "Don't copy again" >lnsrcs
+           && $(LN) -s $(HAXML)/$(file) $(file) &&) \
+        $(LN) -s $(HAXML)/tools/DtdToHaskell.hs tools/MainDtdToHaskell.hs && \
+        echo "Don't copy again" >lnsrcs

@@ -12,6 +12,7 @@ import MMiSSObjectTypeInstance
 import MMiSSDisplay
 import MMiSSPreamble
 import MMiSSPackageFolder
+import MMiSSFileType
 
 doMMiSSRegistrations :: IO ()
 doMMiSSRegistrations =
@@ -27,3 +28,4 @@ registerMMiSSObjects =
          :: MMiSSPreambleType)
       registerObjectType (error "Unknown MMiSSPackageFolderType" 
          :: MMiSSPackageFolderType)
+      registerObjectType (error "Unknown MMiSSFileType" :: MMiSSFileType)

@@ -38,6 +38,10 @@ module ObjectTypes(
    emptyArcEnds,
       -- :: ArcEnds
       -- For the simple case of no arcs.
+   emptySpecialNodeActions, 
+      -- :: HasCodedValue object => object 
+      -- -> SimpleSource (graph -> node (Link object) -> IO ())
+      -- For the simple case of no actions.
 
    ArcType,  -- ArcType and NodeType are labels provided by the object type
       -- implementation for particular arcs and arc types in a display.
@@ -445,6 +449,10 @@ type ArcEnds = VariableList.VariableList (
 
 emptyArcEnds :: ArcEnds
 emptyArcEnds = VariableList.emptyVariableList
+
+emptySpecialNodeActions :: HasCodedValue object => object 
+   -> SimpleSource (graph -> node (Link object) -> IO ())
+emptySpecialNodeActions _ = SimpleSource (staticSource (\ graph node -> done))
 
 -- ----------------------------------------------------------------
 -- Registry of Object Types

@@ -218,9 +218,15 @@ copyVersions versionGraphFrom =
             -- Copy simultaneously all the versions.  We bunch them up in
             -- a single command. 
             --
-            -- NB - the order is important, so that we don't try to add
-            -- a version before its parent.
-            commands <- mapM copyOne commonParents
+            -- NB - this is good, because when we send a version to the 
+            -- destination repository, we don't want to send a version before
+            -- its parents.  
+            --
+            -- When computing the commands to send, we use 
+            -- mapMConcurrentExcep.  This will hopefully have the effect
+            -- of bunching up requests to the source repository into single
+            -- MultiCommands, if it is a long way away.
+            commands <- mapMConcurrentExcep copyOne commonParents
 
             (MultiResponse responses) <- queryRepository repositoryTo 
                (MultiCommand commands)
@@ -234,12 +240,5 @@ copyVersions versionGraphFrom =
                   _ -> error ("Mysterious server error")
                   ) 
                responses
-
-            -- Copy simultaneously all the versions.  This will mean that
-            -- if either server is a long way away and we have a lot of
-            -- versions to copy, the commands will get bunched together 
-            -- using the MultiCommand mechanism.
-            mapMConcurrentExcep copyOne commonParents
-            done
          )
       done

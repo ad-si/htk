@@ -37,7 +37,7 @@ import SimpleForm
 
 import Text.XML.HaXml.Xml2Haskell
 
-import DTD_Hosts
+import Hosts
 import HostsPorts
 
 -- --------------------------------------------------------------------------

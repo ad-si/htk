@@ -1,0 +1,6 @@
+PACKAGES = uni-HaXml
+
+SRCS = MainDtdToHaskell.hs
+
+include @TOP@/mk/boilerplate.mk
+

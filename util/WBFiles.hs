@@ -112,7 +112,10 @@ module WBFiles (
    getWindowsTick, -- :: IO Int
       -- get time to wait between ticks for Windows.
 #endif
-   getTOP, -- ditto
+   getTOP, -- IO String
+   getTOPPath, 
+      -- :: [String] -> IO String
+      -- Get a path within the top directory.  
    getEditorString, -- :: IO (Maybe String)
       -- returns editor string, if set.
    getMMiSSDTD, -- :: IO (Maybe String)
@@ -148,13 +151,6 @@ module WBFiles (
    getArgBool, -- :: String -> IO (Maybe Bool)
    getArgInt, -- :: String -> IO (Maybe Int)
    
-
-   -- getWB* are provided for compatibility only.  DO NOT USE.
-   getWBToolFilePath, -- :: String-> IO String
-      -- gets path for tools, assuming it's TOP/database/bin/++ argument.
-   getWBImageFilePath, -- :: String -> IO String
-      -- gets path for images, assuming its TOP/database/images/++ argument.
-
    -- Functions for initialising WBFiles.  If they detect an error
    -- in the parse, they immediately do System.exitWith (ExitFailure 4).
    -- If the --uni option is used, they do System.exitWith (ExitSuccess)
@@ -235,8 +231,8 @@ getMMiSSDTD =
          Just mmissDTD -> return mmissDTDOpt
          Nothing ->
             do
-               top <- getTOP
-               return (Just (top++"/mmiss/MMiSS.dtd"))
+               path <- getTOPPath ["mmiss","MMiSS.dtd"]
+               return (Just path)
 
 getHosts :: IO String
 getHosts =
@@ -245,9 +241,7 @@ getHosts =
       case hostsOpt of
          Just hosts -> return hosts
          Nothing ->
-            do
-               top <- getTOP
-               return (top++"/server/Hosts.xml")
+            getTOPPath ["server","Hosts.xml"]
    
 
 getDaVinciPath :: IO String
@@ -266,6 +260,13 @@ getWindowsTick = valOf (getArgInt "windowsTick")
 
 getTOP :: IO String
 getTOP = valOf (getArgString "top")
+
+-- | Get a path within the top directory.  
+getTOPPath :: [String] -> IO String
+getTOPPath names =
+   do
+      top <- getTOP
+      return (unbreakName (trimDir top:names))
 
 getPort :: IO Int
 getPort = valOf (getArgInt "port")
@@ -303,18 +304,6 @@ getUser = getArgString "user"
 
 getPassword :: IO (Maybe String)
 getPassword = getArgString "password"
-
-getWBToolFilePath :: String-> IO String
-getWBToolFilePath tool =
-   do
-      top <- getTOP
-      return ((trimDir top)++"/database/bin/"++tool)
-
-getWBImageFilePath :: String -> IO String
-getWBImageFilePath image =
-   do
-      top <- getTOP
-      return ((trimDir top)++"/database/images/"++image)
 
 ------------------------------------------------------------------------
 -- ProgramArgument and usualProgramArguments.

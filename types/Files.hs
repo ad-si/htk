@@ -240,9 +240,7 @@ instance ObjectType FileType File where
                      getNodeType = const theNodeType,
                      getNodeLinks = (\ link -> return emptyArcEnds),
                      closeDown = done,
-                     specialNodeActions = (\ _ ->
-                        SimpleSource (staticSource (\ graph node -> done))
-                        )
+                     specialNodeActions = emptySpecialNodeActions
                      })
                Nothing -> Nothing
          )

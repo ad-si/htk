@@ -1,17 +1,18 @@
-module DTD_Hosts where
+module Hosts where
 
-import Xml2Haskell
+import Text.XML.HaXml.Xml2Haskell
+import Text.XML.HaXml.OneOfN
 
 
 {-Type decls-}
 
-newtype Hosts = Hosts [Host] 		deriving (Eq , Show)
+newtype Hosts = Hosts [Host] 		deriving (Eq,Show)
 data Host = Host
     { hostHostName :: String
     , hostPort :: (Defaultable String)
     , hostDescription :: (Maybe String)
     , hostUser :: (Maybe String)
-    } deriving (Eq , Show)
+    } deriving (Eq,Show)
 
 
 {-Instance decls-}
@@ -21,12 +22,14 @@ instance XmlContent Hosts where
 	(\(a,ca)->
 	   (Just (Hosts a), rest))
 	(many fromElem c0)
+    fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Hosts a) =
 	[CElem (Elem "hosts" [] (concatMap toElem a))]
 instance XmlContent Host where
     fromElem (CElem (Elem "host" as []):rest) =
 	(Just (fromAttrs as), rest)
+    fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem as =
 	[CElem (Elem "host" (toAttrs as) [])]

@@ -1,0 +1,58 @@
+<!--
+   XML Document type definition for Files.xml, which describes the various
+   file-types available to MMiSS documents (excepting the MMiSS object
+   types themselves).
+
+   The root element is "fileTypes"
+   -->
+
+<!ELEMENT fileTypes (fileType|menu)* >
+
+<!ELEMENT fileType EMPTY>
+<!ATTLIST fileType
+   tag CDATA #REQUIRED 
+   menu IDREF #IMPLIED
+   colour CDATA #IMPLIED
+   shape CDATA #IMPLIED
+   >
+
+<!-- A menu to be hung onto one or more file buttons. -->
+<!ELEMENT menu (displayVariants|selectVariants|subMenu|separator|command)* >
+<!ATTLIST menu
+   id ID #REQUIRED
+   title CDATA #IMPLIED
+   >
+
+<!-- A "Display Variants" button -->
+<!ELEMENT displayVariants EMPTY>
+
+<!-- A "Select Variants" button -->
+<!ELEMENT selectVariants EMPTY>
+
+<!-- A submenu -->
+<!ELEMENT subMenu EMPTY>
+<!ATTLIST subMenu 
+   menu IDREF #REQUIRED >
+
+<!-- A separator -->
+<!ELEMENT separator EMPTY>
+
+
+<!-- A command to be performed if a menu selection is clicked. -->
+<!ELEMENT command EMPTY>
+<!-- 
+   If confirm is set, it is used to construct a string with which the
+      user is prompted, to confirm whether the action should go ahead.
+   command is a shell command to execute to perform the action.
+
+   Both the "confirm" and "command" strings are substituted as per 
+   util/CommandStringSub.  The following parameters are available.  
+      %F is the filename of the file in the current directory.  
+      %N is the filename without directory part and without extension 
+   -->
+<!ATTLIST command
+   title CDATA #REQUIRED
+   confirm CDATA #IMPLIED
+   command  CDATA #REQUIRED
+   >
+   

@@ -14,7 +14,8 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSReAssemble.hs MMiSSRunCommand.hs MMiSSLaTeX.hs\
    MMiSSPackageFolder.hs \
    $(if @HAXML@,,XmlValidate.hs) \
-   MMiSSRegistrations.hs MMiSSInitialise.hs 
+   MMiSSRegistrations.hs MMiSSInitialise.hs \
+   MMiSSFiles.hs MMiSSFileType.hs \
 
 BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \
@@ -35,4 +36,7 @@ displayextrasrcs :
 	@echo @TOP@/mmiss/MMiSS.dtd @TOP@/mmiss/scripts/domisslatex.in 
 	@echo @TOP@/mmiss/scripts/doxdvi.in @TOP@/mmiss/scripts/doacroread.in
 	@echo @TOP@/mmiss/scripts/dolp.in
+
+MMiSSFiles.hs : MMiSSFiles.dtd
+	@TOP@/HaXml/tools/DtdToHaskell $< $@
 
