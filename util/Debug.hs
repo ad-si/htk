@@ -11,16 +11,19 @@ DESCRIPTION   : This module provides a uniform interface for debugging
 
    ######################################################################### 
 -}
+
 module Debug(debug) where
    import IO
    import qualified IOExts(unsafePerformIO)
 
    debug :: Show a => a -> IO()
    debug s = 
-      do
-         IO.hPutStrLn debugFile (show s)
-         IO.hFlush debugFile
+      case debugFile of 
+	Just f  -> IO.hPutStrLn f (show s)>> IO.hFlush f
+	Nothing -> return ()
 
-   debugFile :: Handle
+   debugFile :: Maybe Handle
    debugFile = 
-      IOExts.unsafePerformIO(openFile "/tmp/unifDEB" WriteMode)
+      IOExts.unsafePerformIO 
+	(catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
+               (\_-> return Nothing))

@@ -171,6 +171,10 @@ instance Read Distance where
 instance GUIValue Distance where
         cdefault = Distance 0
 
+instance Enum Distance where 
+	fromEnum (Distance d)= d
+	toEnum d = Distance d
+
 instance Num Distance where
         (Distance p1) + (Distance p2) = Distance (p1 + p2)
         (Distance p1) * (Distance p2) = Distance (p1 + p2)
@@ -179,6 +183,13 @@ instance Num Distance where
         signum (Distance p) = Distance (signum p)
         fromInteger i = Distance (fromInteger i)
 
+instance Real Distance where
+	toRational (Distance i) = toRational i
+
+instance Integral Distance where
+	toInteger (Distance i) = toInteger i
+	(Distance d1) `quotRem` (Distance d2) = (Distance q, Distance d) 
+		where (q, d)= d1 `quotRem` d2		
 
 -- --------------------------------------------------------------------------
 --  Distance List
