@@ -31,12 +31,14 @@ import Debug(debug)
 -- --------------------------------------------------------------------------
 
 attach :: (Destructible o1, Destructible o2) => o1 -> o2 -> IO ()
-attach o1 o2 = do 
-   interactor (\iact ->
-         destroyed o1 >>> do {destroy o2; stop iact}
-      +> destroyed o2 >>> stop iact
-      )
-   done
+attach o1 o2 = 
+   do 
+      interactor 
+         (\iact ->
+               destroyed o1 >>> do {destroy o2; stop iact}
+            +> destroyed o2 >>> stop iact
+         )
+      done
 
 
 controller :: Destructible w => w -> (InterActor -> IA a) -> IO InterActor

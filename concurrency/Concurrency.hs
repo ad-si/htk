@@ -18,7 +18,7 @@ module Concurrency (
          module Variable,
          module Lock,
          module BSem,
-         module QSem,
+--       module QSem,
          module Mutex,
          module RVar,
          module Event,
@@ -41,7 +41,7 @@ import Selective
 import Mutex
 import RVar
 import BSem
-import QSem
+-- import QSem
 import SAP
 import Future
 

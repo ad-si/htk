@@ -31,10 +31,9 @@ module Event (
 
         ) where
 
-import Thread
-
 import Debug(debug)
 
+import Computation(Answer)
 
 -- --------------------------------------------------------------------------
 -- Event Class System

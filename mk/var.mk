@@ -11,7 +11,8 @@ include top/mk/machinedep.mk # set variables which depend on the machine
 HC               = $(HCHOME)/bin/ghc
 DEPEND           = $(HCHOME)/bin/ghc -M -optdep
 # GHCINCDIR        = -I$(HCHOME)/lib/includes -I/usr/local/lang/gnu/lib/gcc-lib/sparc-sun-solaris2.6/2.7.2.3/include
-GHCINCDIR        = -I$(HCHOME)/lib/includes 
+GHCINCDIR        = -I$(HCHOME)/lib/ghc-4.06/includes 
+# GHCINCDIR        = -I$(HCHOME)/lib/includes 
 EXTRA_HC_OPTIONS = -recomp -Onot
 
 HCSYSLIBS = -syslib concurrent -syslib data -syslib net -syslib posix -syslib text -syslib util -syslib lang

@@ -40,9 +40,6 @@ data Sensor a =  Sensor (Channel a) (Channel ())
 instance HasReceiveEV Sensor a where
         receive (Sensor ch _) = receive ch
 
-instance HasReceiveIO Sensor a where
-        receiveIO = sync . receive
-
 instance Destructible (Sensor a) where
         destroy (Sensor _ chc) = sendIO chc ()
         destroyed _ = inaction

@@ -11,8 +11,8 @@ import Debug(debug)
 main :: IO ()
 main = do {
         ch <- newMsgQueue;
-        forkIO(consumer ch count);
-        producer ch count;
+        forkIO(producer ch count);
+        consumer ch count;
 } 
   where count = 100000
         producer ch 0 = print "producer done"

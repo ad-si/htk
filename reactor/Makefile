@@ -17,7 +17,6 @@ SRCS       = Listener.hs\
 	     InterActor.hs\
 	     Controller.hs\
 	     EventLoop.hs\
-	     Sensor.hs\
 	     WatchDog.hs\
 	     ChildProcess.hs\
 	     EventBroker.hs\
@@ -28,8 +27,11 @@ SRCS       = Listener.hs\
 	     Signal.hs\
 	     Collector.hs\
 	     Expect.hs\
-	     NameSpace.hs\
 	     SIM.hs 
+# the following modules don't seem to be used anywhere and
+# are now obsolete.
+#	     Sensor.hs\
+#	     NameSpace.hs\
       
 SRCSH      = signaldispatcher.h collector.h
 
@@ -61,6 +63,7 @@ ExternalEvent.o : top/util/Dynamics.hi
 ExternalEvent.o : ./Listener.hi
 ExternalEvent.o : top/util/Debug.hi
 Interaction.o : Interaction.hs
+Interaction.o : top/util/ExtendedPrelude.hi
 Interaction.o : top/concurrency/Concurrency.hi
 Interaction.o : ./Listener.hi
 Interaction.o : ./ExternalEvent.hi
@@ -102,11 +105,6 @@ EventLoop.o : ./Interaction.hi
 EventLoop.o : ./InterActor.hi
 EventLoop.o : ./SIMClasses.hi
 EventLoop.o : top/util/Debug.hi
-Sensor.o : Sensor.hs
-Sensor.o : ./Interaction.hi
-Sensor.o : top/concurrency/Concurrency.hi
-Sensor.o : ./SIMClasses.hi
-Sensor.o : top/util/Debug.hi
 WatchDog.o : WatchDog.hs
 WatchDog.o : top/concurrency/Concurrency.hi
 WatchDog.o : ./Interaction.hi
@@ -191,12 +189,6 @@ Expect.o : ./Collector.hi
 Expect.o : top/util/Dynamics.hi
 Expect.o : top/util/ExtendedPrelude.hi
 Expect.o : top/util/Debug.hi
-NameSpace.o : NameSpace.hs
-NameSpace.o : top/util/Maybes.hi
-NameSpace.o : top/concurrency/Variable.hi
-NameSpace.o : top/util/Dynamics.hi
-NameSpace.o : top/util/Computation.hi
-NameSpace.o : top/util/Debug.hi
 SIM.o : SIM.hs
 SIM.o : top/concurrency/Concurrency.hi
 SIM.o : ./Interaction.hi

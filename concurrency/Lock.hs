@@ -1,12 +1,15 @@
 {- #########################################################################
 
 MODULE        : Lock
-AUTHOR        : Einar W. Karlsen  
+AUTHOR        : Einar W. Karlsen  George
                 University of Bremen
                 email:  ewk@informatik.uni-bremen.de
 DATE          : 1998
 VERSION       : 0.2
 DESCRIPTION   : Lock class definition
+
+Lock is an instance of a typical thing we synchronize with.
+Possible instances are BSem and Mutex.
 
 
    ######################################################################### -}
@@ -15,7 +18,7 @@ DESCRIPTION   : Lock class definition
 module Lock (
         Synchronized(..),
         Lock(..),
-        HasTryAcquire(..),
+        HasTryAcquire(..), -- not used
 
         illegalLockRelease
 
@@ -32,6 +35,7 @@ import Debug(debug)
 -- --------------------------------------------------------------------------
 
 class Synchronized a where
+-- acquire lock on a, and while we've got it do this action.
         synchronize :: a -> IO b -> IO b
 
 
@@ -44,6 +48,7 @@ class Lock l where
         acquire :: l -> IO ()
 
 
+-- HasTryAcquire doesn't actually seem to be used anywhere.
 class Lock l => HasTryAcquire l where
         tryAcquire :: l -> IO Bool
 
@@ -54,4 +59,6 @@ class Lock l => HasTryAcquire l where
 
 illegalLockRelease :: IOError
 illegalLockRelease = userError "Lock: Illegal release operation"
+
+
 

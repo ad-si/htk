@@ -60,26 +60,27 @@ import TestUtil (logout)
 import Debug(debug)
 
 
-main = do
-        htk []
-
-        cnt1 <- newCounter [value 0, cursor "circle"]
-        controller' cnt1 (triggered cnt1 >>> done)
-        window cnt1 [text "Counter1"]
-
-        cnt2 <- newCounter [value 0]
-        win <- window cnt2 [text "Counter2"]
-        controller' win (triggered cnt2 >>> done)
-
-        mkBox
-        mkLabel
-        mkCalculator
-        mkEditor
-        mkMenu
-        mkMenu2
-        mkWidgetSet
-
-        done
+main = 
+   do
+      htk []
+      
+      cnt1 <- newCounter [value 0, cursor "circle"]
+      controller' cnt1 (triggered cnt1 >>> done)
+      window cnt1 [text "Counter1"]
+      
+      cnt2 <- newCounter [value 0]
+      win <- window cnt2 [text "Counter2"]
+      controller' win (triggered cnt2 >>> done)
+      
+      mkBox
+      mkLabel
+      mkCalculator
+      mkEditor
+      mkMenu
+      mkMenu2
+      mkWidgetSet
+      
+      block
 
 
 mkBox = do

@@ -23,7 +23,7 @@ import Interaction()
 import HTk
 import Mouse
 import Debug(debug)
-
+import qualified Selective
 
 
 -- --------------------------------------------------------------------------
@@ -38,31 +38,35 @@ modalDialog win beh = do {
 
 maybeModalDialog :: Bool -> Bool -> Window -> IO a -> IO a
 maybeModalDialog destr True win beh = doModalDialog destr win beh
-maybeModalDialog destr False win beh = do {
-        ans <- try beh;
-        when destr (destroy win);
-        propagate ans
-        }                                                            
+maybeModalDialog destr False win beh = 
+   do
+      debug "mMD1"
+      ans <- try beh
+      debug "mMD2"
+      when destr (destroy win)
+      debug "mMD3"
+      propagate ans                                                            
 
 doModalDialog :: Bool -> Window -> IO a -> IO a
-doModalDialog destr win beh = do {
-        gw <- getCurrentGrab;
-        tp <- getToplevel win;
-        grabLocal tp;
-        ans <- try beh;
-        try(releaseGrab tp);
-        when destr (do {try (destroy win);done});
-        returnGrab gw;
-        propagate ans
-        }
+doModalDialog destr win beh = 
+   do
+      gw <- getCurrentGrab
+      tp <- getToplevel win
+      grabLocal tp
+      ans <- try beh
+      try(releaseGrab tp)
+      when destr (do {try (destroy win);done})
+      returnGrab gw
+      propagate ans
 
 
 -- --------------------------------------------------------------------------
 --  Modals Interaction
 -- --------------------------------------------------------------------------           
 modalInteraction :: Window -> Bool -> IA a -> IO a
-modalInteraction win destr ev = do {
-        modality <- getModal win;
-	interactor (\iact-> ev >>> done);	
-        maybeModalDialog destr modality win (sync ev)
-        }
+modalInteraction win destr ev = 
+   do
+      modality <- getModal win
+      result <- maybeModalDialog destr modality win (sync ev)
+      return result
+

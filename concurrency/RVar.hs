@@ -1,7 +1,7 @@
 {- #########################################################################
 
 MODULE        : RVar
-AUTHOR        : Einar W. Karlsen,  
+AUTHOR        : Einar W. Karlsen,  George
                 University of Bremen
                 email:  ewk@informatik.uni-bremen.de
 DATE          : 1998
@@ -12,7 +12,11 @@ DESCRIPTION   : Simple, reentrant, protected variable. Simple means:
                 The big advantage however is that this kind of mutable
                 variable supports recursion, so once a thread has acquired
                 the variable, it may be allowed to re-enter it again
-                (and again) as many times as it needs.
+                (and again) as many times as it needs.  
+
+                For example calls to updVar on a single RVar
+                may be nested.  If the IO action passed to updVar
+                fails, the original value is left in the RVar.
 
 TO BE DONE    : Implementation should be optimized (if possible)!
 
@@ -52,11 +56,11 @@ data RVar a = RVar Mutex (MVar a)
 -- --------------------------------------------------------------------------
 
 newRVar :: a -> IO (RVar a)
-newRVar val = do { 
-        mtx <- newMutex; 
-        mvar <- newMVar val; 
-        return (RVar mtx mvar)
-        }       
+newRVar val = 
+   do
+      mtx <- newMutex
+      mvar <- newMVar val 
+      return (RVar mtx mvar)
 
 
 -- --------------------------------------------------------------------------
@@ -64,61 +68,75 @@ newRVar val = do {
 -- --------------------------------------------------------------------------
 
 instance Eq (RVar a) where
-        (RVar _ mv1) == (RVar _ mv2) = mv1 == mv2
+   (RVar _ mv1) == (RVar _ mv2) = mv1 == mv2
 
 
 instance Variable RVar a where
-        setVar (RVar mtx mvar) val = do {
-                acquire mtx; 
-                takeMVar mvar; 
-                putMVar mvar val;
-                release mtx
-                }
-        getVar (RVar mtx mvar) = do {
-                acquire mtx; 
-                val <- readMVar mvar; 
-                release mtx;
-                return val
-                }
-        updVar rp @ (RVar mtx mvar) cmd = do {
-                acquire mtx;
-                val <- readMVar mvar;
-                ans <- try (cmd val);
-                case ans of 
-                        Left e -> do {release mtx; raise e}
-                        Right (val',res) -> do {
-                                takeMVar mvar;
-                                putMVar mvar val'; 
-                                release mtx; 
-                                return res
-                                }
-                }
-        updVar' rp @ (RVar mtx mvar) f = do {
-                acquire mtx;
-                val <- readMVar mvar;
-                let (val',res) = f val in do {
-                        takeMVar mvar;
-                        putMVar mvar val'; 
-                        release mtx; 
-                        return res
-                        }
-                }
-        withVar rp@(RVar mtx mvar) f = 
-                updVar rp (\x -> do {
-                        res <- f x;
-                        val <- readMVar mvar;
-                        return (val,res)
-                        })
+    setVar (RVar mtx mvar) val = 
+       do
+          acquire mtx 
+          takeMVar mvar 
+          putMVar mvar val
+          release mtx
+     
+    getVar (RVar mtx mvar) = 
+       do 
+          acquire mtx
+          val <- readMVar mvar
+          release mtx
+          return val
+    
+    updVar rp @ (RVar mtx mvar) cmd = 
+       do
+          acquire mtx
+          val <- readMVar mvar
+          ans <- try (cmd val);
+          case ans of 
+             Left e -> 
+                do 
+                   release mtx
+                   raise e
+             Right (val',res) -> 
+                do
+                   takeMVar mvar
+                   putMVar mvar val' 
+                   release mtx 
+                   return res
+
+    updVar' rp @ (RVar mtx mvar) f = 
+       do
+          acquire mtx
+          val <- readMVar mvar
+          let (val',res) = f val 
+          takeMVar mvar
+          putMVar mvar val' 
+          release mtx
+          return res
+
+    withVar rp@(RVar mtx mvar) f = 
+       updVar 
+          rp 
+          (\x -> 
+             do
+                res <- f x
+                val <- readMVar mvar
+                return (val,res)
+             )
 
 instance Synchronized (RVar a) where
-        synchronize (RVar mtx mvar) c = do
-                acquire mtx
-                ans <- try c
-                release mtx
-                propagate ans
+   synchronize (RVar mtx mvar) c = 
+      do
+         acquire mtx
+         ans <- try c
+         release mtx
+         propagate ans
 
 
 instance Lock (RVar a) where
-        acquire (RVar mtx mvar) = acquire mtx
-        release (RVar mtx mvar) = release mtx
+   acquire (RVar mtx mvar) = acquire mtx
+   release (RVar mtx mvar) = release mtx
+
+
+
+
 

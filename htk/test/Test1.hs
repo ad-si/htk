@@ -79,28 +79,30 @@ import IO(stdout)
 import Debug(debug)
 
 main :: IO ()
-main = 
-        htk []                                                  >>
-        setLogFile (Just stdout)                                >>
-        setErrorHandler errWin                                  >>
-        testLabel                                               >>
-        testMessage                                             >>
-        testEntry                                               >>
-        testScale                                               >>
-        testClickButton                                         >>
-        testCheckButton                                         >>
-        testRadioButton                                         >>
-        testListBox                                             >>
-        testScrollBar                                           >>
-        testMenu                                                >>
-        testPopupMenu                                           >>
-        testEditor                                              >>
-        testCanvas                                              >>
-        done
-        where disp = "hydra:0.0"
-              errWin e = forkIOnull (
-                        newErrorWin ("Haskell-Tk error occured: " ++ show e)[]
-                        )
+main =
+   do
+      htk []                   
+      setLogFile (Just stdout) 
+      setErrorHandler errWin   
+      testLabel                
+      testMessage              
+      testEntry                
+      testScale                
+      testClickButton          
+      testCheckButton          
+      testRadioButton          
+      testListBox              
+      testScrollBar            
+      testMenu                 
+      testPopupMenu            
+      testEditor               
+      testCanvas               
+      block
+   where 
+      disp = "hydra:0.0"
+      errWin e = forkIOnull (
+         newErrorWin ("Haskell-Tk error occured: " ++ show e)[]
+         )
 
 
 

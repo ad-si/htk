@@ -18,7 +18,13 @@ SRCS       = Thread.hs\
 	     SAP.hs\
 	     Future.hs\
 	     Concurrency.hs\
-	     Buffer.hs\
+             Toggle.hs\
+             PrimEvent.hs\
+             BaseEvent.hs\
+             TwoWayChannel.hs\
+             EV.hs\
+             Channels.hs\
+#	     Buffer.hs\
 
 SRCSC      = 
 SRCSH      =
@@ -74,15 +80,14 @@ RVar.o : ./Variable.hi
 RVar.o : ./Mutex.hi
 RVar.o : top/util/Debug.hi
 Event.o : Event.hs
-Event.o : ./Thread.hi
 Event.o : top/util/Debug.hi
+Event.o : top/util/Computation.hi
 Selective.o : Selective.hs
+Selective.o : top/util/Computation.hi
 Selective.o : ./Thread.hi
-Selective.o : ./Variable.hi
-Selective.o : ./BSem.hi
-Selective.o : top/util/Queue.hi
 Selective.o : ./Event.hi
-Selective.o : top/util/Debug.hi
+Selective.o : ./EV.hi
+Selective.o : ./Channels.hi
 SAP.o : SAP.hs
 SAP.o : ./Thread.hi
 SAP.o : ./Variable.hi
@@ -101,12 +106,30 @@ Concurrency.o : ./Selective.hi
 Concurrency.o : ./Mutex.hi
 Concurrency.o : ./RVar.hi
 Concurrency.o : ./BSem.hi
-Concurrency.o : ./QSem.hi
 Concurrency.o : ./SAP.hi
 Concurrency.o : ./Future.hi
 Concurrency.o : top/util/Debug.hi
-Buffer.o : Buffer.hs
-Buffer.o : ./Concurrency.hi
-Buffer.o : top/util/Queue.hi
-Buffer.o : top/util/Debug.hi
+Toggle.o : Toggle.hs
+PrimEvent.o : PrimEvent.hs
+PrimEvent.o : top/util/Computation.hi
+PrimEvent.o : ./Toggle.hi
+BaseEvent.o : BaseEvent.hs
+BaseEvent.o : top/util/Computation.hi
+BaseEvent.o : top/util/ExtendedPrelude.hi
+BaseEvent.o : ./PrimEvent.hi
+TwoWayChannel.o : TwoWayChannel.hs
+TwoWayChannel.o : top/util/Queue.hi
+TwoWayChannel.o : ./PrimEvent.hi
+TwoWayChannel.o : ./Toggle.hi
+TwoWayChannel.o : top/util/Debug.hi
+EV.o : EV.hs
+EV.o : top/util/Debug.hi
+EV.o : ./Event.hi
+EV.o : ./BaseEvent.hi
+Channels.o : Channels.hs
+Channels.o : ./Event.hi
+Channels.o : ./BaseEvent.hi
+Channels.o : ./PrimEvent.hi
+Channels.o : ./TwoWayChannel.hi
+Channels.o : ./EV.hi
 # DO NOT DELETE: End of Haskell dependencies

@@ -65,14 +65,16 @@ import Debug(debug)
 
 
 
-main = do {
-        print ((read "0") :: Double);
-        htk [{- logfile (1::Int), -}];
-        setErrorHandler errWin;
-        testEmitEvent;
-
-        done
-} where errWin e = newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True]
+main = 
+   do 
+      print ((read "0") :: Double)
+      htk [{- logfile (1::Int), -}]
+      setErrorHandler errWin
+      testEmitEvent
+      
+      block
+   where 
+      errWin e = newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True]
 
 
 testEmitEvent = do {

@@ -448,3 +448,4 @@ evalMethod w f = callWish (toGUIObject w) (\nm -> evalScript (f nm)) >>= creadTk
 
 execMethod :: (GUIObject w) => w -> (ObjectName -> TclScript) -> IO ()
 execMethod w f = callWish (toGUIObject w) (\nm -> execScript (f nm)) >> done
+

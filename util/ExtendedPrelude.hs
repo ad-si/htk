@@ -12,13 +12,27 @@ VERSION       : 0.2
 
 
 module ExtendedPrelude (
-        split,
-        insertOrdLt,
-        insertOrdGt,
-        insertOrd
-        ) where
+   monadDot,
+   split,
+   insertOrdLt,
+   insertOrdGt,
+   insertOrd
+   ) where
 
 import Debug(debug)
+
+-- ---------------------------------------------------------------------------
+-- Monad Operations
+-- ---------------------------------------------------------------------------
+
+monadDot :: Monad m =>  (b -> m c) -> (a -> m b) -> (a -> m c)
+-- The "." operator lifted to monads.   So like ., the arguments
+-- are given in the reverse order to that in which they should
+-- be executed. 
+monadDot f g x =
+   do
+      y <- g x
+      f y
 
 -- ---------------------------------------------------------------------------
 -- List Operations

@@ -23,6 +23,7 @@ extern void SetSignalFD (int fd) {
 };
 
 
+/* Signal handler passed by Signal.hs to the standard C "signal" function */ 
 extern void SendSignalFD(int signo) {
 	char buf[255];
 	sprintf(buf,"%d\n",signo);

@@ -19,6 +19,8 @@ DESCRIPTION   : This is SAP (Service Access Points) in OPAL style,
 
                 SAP's of type (SAP a ()) are similar to channels! 
 
+
+An SAP value encodes a remote procedure that can be called.
                 
    ######################################################################### -}
 
@@ -28,6 +30,7 @@ module SAP (
         newSAP,
 
         call,
+        callIO,
         oneWayCall,
 
         accept,
@@ -47,52 +50,82 @@ import Debug(debug)
 -- --------------------------------------------------------------------------
 
 data RPC a b = RPC a (MVar (Answer b))
+-- RPC presumably stands for "remote procedure call".
 
 newtype SAP a b = SAP  (Channel (RPC a b)) deriving Eq
-
+-- An SAP a b is a way of encoding a remote procedure taking a to b.
+-- When you want to call it, you send an 
+--   RPC (argument) (placeholder for result)
 
 -- --------------------------------------------------------------------------
 -- SAP Construction
 -- --------------------------------------------------------------------------
 
 newSAP  :: IO (SAP a b)
-newSAP = newChannel >>= return . SAP
-
+newSAP = 
+   do
+      ch <- newChannel
+      return(SAP ch)
 
 -- --------------------------------------------------------------------------
 -- Service Call
 -- --------------------------------------------------------------------------
 
 call :: SAP a b -> a -> EV b
-call (SAP ch) val = event ( do {
-        var <- newEmptyMVar;
-        return (send ch (RPC val var) >>> (takeMVar var >>= propagate))
-        })
+call (SAP ch) val = 
+-- call procedure
+   event ( 
+      do
+         var <- newEmptyMVar
+         return (
+            send ch (RPC val var) >>> 
+              do 
+                 resultOrError <- takeMVar var
+                 -- the exception is also raised by the service provider
+                 propagate resultOrError
+            )
+      )
+
+callIO :: SAP a b -> a -> IO b
+callIO sap arg = sync(call sap arg)
 
 oneWayCall :: SAP a b -> a -> EV ()
-oneWayCall  (SAP ch)  val = event ( do {
-        var <- newEmptyMVar;
-        return (send ch (RPC val var))
-        })
-
+oneWayCall  (SAP ch)  val = 
+   event ( 
+      do 
+         var <- newEmptyMVar
+         return (send ch (RPC val var))
+      )
 
 -- --------------------------------------------------------------------------
 -- Service Accept
 -- --------------------------------------------------------------------------
 
 accept :: SAP a b -> (a -> IO b) -> EV b
-accept sap fun = provide sap (\a -> fun a >>= \res -> return (res,res))
-
+accept sap fun = 
+   provide sap (\a -> fun a >>= \res -> return (res,res))
+-- See provide.
 
 -- --------------------------------------------------------------------------
 -- Service Provision
 -- --------------------------------------------------------------------------
 
 provide :: SAP a b -> (a -> IO (b,c)) -> EV c
-provide (SAP ch) fun = receive ch >>>= \(RPC val var) -> do {
-        res <- try (fun val);
-        case res of
-                (Left excp) -> do {putMVar var (Left excp); raise excp}
-                (Right (cl,sv)) -> do {putMVar var (Right cl); return sv}
-        }
+-- attaches an event (which must then be repeatedly synced on) to service
+-- the event.
+provide (SAP ch) fun = 
+   receive ch >>>= 
+      \ (RPC val var) -> 
+         do
+            res <- try (fun val)
+            case res of
+               (Left excp) -> 
+                  do
+                     putMVar var (Left excp) 
+                     raise excp
+               (Right (cl,sv)) -> 
+                  do 
+                     putMVar var (Right cl)
+                     return sv
+
 

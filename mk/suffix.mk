@@ -22,7 +22,7 @@ $(LIB) : $(OBJS)
 	@:
 
 .hs.o:
-	if $(MUSTMAKE) $@ $? ; then $(RM) $@ ; $(HC) -c $< $(HCFLAGS) ; fi
+	if $(MUSTMAKE) $@ $? ; then mv $*.hi $*.hi.old ; cp $*.hi.old $*.hi ; $(RM) $@ ; set -e ; $(HC) -c $< $(HCFLAGS) ; set +e ; STATUS=$$? ; if diff $*.hi $*.hi.old ; then rm $*.hi ; mv $*.hi.old $*.hi ; else rm $*.hi.old; fi; exit $$STATUS ; fi
 
 .c.o:
 	if $(MUSTMAKE) $@ $? ; then $(RM) $@ ; $(CC) $(CFLAGS) -c $< -o $@ ; fi

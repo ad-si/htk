@@ -19,6 +19,7 @@ DESCRIPTION   : Signature of signal dispatcher state
 
 void SetSignalFD (int fd);
 
+/* Signal handler passed by Signal.hs to the standard C "signal" function */ 
 void SendSignalFD(int signo);
 
 #endif

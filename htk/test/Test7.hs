@@ -67,15 +67,15 @@ import TestUtil (logout)
 import Debug(debug)
 
 
-main = do {
-        htk [{- logfile (1::Int) -}];
-        setErrorHandler errWin;
-        newTextEditor;
-        mkComboBox;
-        mkOptMenu;
-        mkHaskellForm;
-        done
-} 
+main = 
+   do
+      htk [{- logfile (1::Int) -}]
+      setErrorHandler errWin
+      newTextEditor
+      mkComboBox
+      mkOptMenu
+      mkHaskellForm
+      block
 
 errWin e = 
         newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True]

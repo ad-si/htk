@@ -41,21 +41,31 @@ import Debug(debug)
 -- --------------------------------------------------------------------------
 
 class Variable v a where
-        updVar          :: v a -> (a -> IO (a,b)) -> IO b
-        setVar          :: v a -> a -> IO ()
-        getVar          :: v a -> IO a                  
-        changeVar       :: v a -> (a -> IO a) -> IO ()
-        withVar         :: v a -> (a -> IO b) -> IO b
-        updVar'         :: v a -> (a -> (a,b)) -> IO b  
-        changeVar'      :: v a -> (a -> a) -> IO ()
-        withVar'        :: v a -> (a -> b) -> IO b
-        setVar var val   = changeVar' var (\_ -> val)
-        getVar var       = withVar' var id
-        changeVar var c  = updVar var (\v -> c v >>= \r -> return (r,()))
-        withVar var c    = updVar var (\v -> c v >>= \r -> return (v,r))
-        updVar' var f    = updVar var (return . f)
-        changeVar' var f = updVar' var (\v -> (f v,()))
-        withVar' var f   = updVar' var (\v -> (v,f v))          
+-- the assumption seems to be that unlike MVars, Variables always
+-- have something in them.
+   updVar          :: v a -> (a -> IO (a,b)) -> IO b
+   -- update Var with action
+   setVar          :: v a -> a -> IO ()
+   -- replace value in Var with this value
+   getVar          :: v a -> IO a
+   -- get value in Var, leaving it full
+   changeVar       :: v a -> (a -> IO a) -> IO ()
+   -- like updVar
+   withVar         :: v a -> (a -> IO b) -> IO b
+   -- take action based on contents of Var
+   updVar'         :: v a -> (a -> (a,b)) -> IO b
+   -- like updVar  
+   changeVar'      :: v a -> (a -> a) -> IO ()
+   -- like changeVar
+   withVar'        :: v a -> (a -> b) -> IO b
+   -- like withVar
+   setVar var val   = changeVar' var (\_ -> val)
+   getVar var       = withVar' var id
+   changeVar var c  = updVar var (\v -> c v >>= \r -> return (r,()))
+   withVar var c    = updVar var (\v -> c v >>= \r -> return (v,r))
+   updVar' var f    = updVar var (return . f)
+   changeVar' var f = updVar' var (\v -> (f v,()))
+   withVar' var f   = updVar' var (\v -> (v,f v))          
 
 
 applyVar :: Variable v a => v a -> (a -> a) -> IO a

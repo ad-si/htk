@@ -16,6 +16,17 @@ DESCRIPTION   :
         is called and the FIFO sequence is empty, the LIFO sequence is 
         turned into a FIFO sequence by reversing the order of its elements.
 
+   Note from GER - as far as I know, we only need the values
+      emptyQ :: Queue a -- new empty queue
+      singletonQ :: a -> Queue a -- new singleton queue
+      insertQ :: Queue a -> a -> Queue a -- add to queue
+      removeQ :: Queue a -> Maybe (a,Queue a) -- pop from queue.
+      insertAtEndQ :: Queue a -> a -> Queue a 
+      -- undo the effect of the previous removeQ.
+  
+      headQ,tailQ and isEmptyQ are used very inefficiently in
+      Buffer.hs but this module appears to be obsolete anyway. 
+
    ######################################################################### -}
 
 
@@ -26,11 +37,8 @@ module Queue (
         singletonQ,
         isEmptyQ,
         insertQ,
-        headQ,
-        tailQ,
-        frontQ,
         removeQ,
-        lengthQ 
+        insertAtEndQ
         ) where
 
 import Maybes
@@ -108,7 +116,13 @@ frontQ (Queue fl []) = Just (head (reverse fl))
 frontQ (Queue _ rl) = Just (head rl)
 
 removeQ :: Queue a -> Maybe (a, Queue a)
-removeQ (Queue [] [] ) = error "removeQ: Queue is empty"
+removeQ (Queue [] [] ) = Nothing 
+-- This function used to return 
+-- error "removeQ: Queue is empty" where above we have "Nothing".
+-- Heaven knows why.  Anyway it's only used in Selective.hs and a
+-- test case, so I think I can safely change it.  (GER, 10/2/2000)
 removeQ (Queue fl [] ) = Just (x, Queue [] tl) where (x : tl) = reverse fl
 removeQ (Queue fl rl ) = Just (head rl, Queue fl (tail rl))
 
+insertAtEndQ :: Queue a -> a -> Queue a 
+insertAtEndQ (Queue fl rl) next = Queue fl (next:rl)

@@ -46,7 +46,7 @@ module Computation (
         (@@),
 
         -- selectors
-        when,
+        when,  -- when b y means "if b is true, perform y"
         unless,
         incase,
 

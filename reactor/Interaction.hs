@@ -9,30 +9,39 @@ VERSION       : 1.0
 DESCRIPTION   : Interactions with the environment represented as first class
                 composable event values.
 
+Implements glue on IA type defined in ExternalEvent.hs
+
+Interaction.hs implements IA's as things you sync/poll on.
+EventStream.hs/InterActor.hs implements extra glue around IA's (introducing
+   a finite map) and makes them things you interact on.  There is no
+   real reason I can see why we don't just write an interactor using
+   the code in this file, except efficiency.
 
    ######################################################################### -}
 
 
 module Interaction (
-        EventID(..),
-        ObjectID,
-        EventPatternID(..),
-        EventDesignator(..),
+   EventID(..),
+   ObjectID,
+   EventPatternID,
+   EventDesignator(..),
 
-        EventListener(..),
-        Listener,
-        Register(..),
-        Deregister(..),
+   EventListener(..),
+   Listener,
+   Register,
+   Deregister,
 
-        IA,
-        interaction,
-        (|>>=),
-        (|>>),
-        (\>),
-        lift,
-        ) where
+   IA,
+   interaction,
+   (|>>=),
+   (|>>),
+   (\>),
+   lift,
+   ) where
 
+import List
 
+import ExtendedPrelude(monadDot)
 import Concurrency
 import Listener
 import ExternalEvent
@@ -54,58 +63,49 @@ infixl 0 \>
 -- --------------------------------------------------------------------------
 
 instance Functor IA where
-        fmap f e  = e >>>= return . f
+   fmap f e  = e >>>= return . f
 
 -- --------------------------------------------------------------------------
 -- Instance: Events
 -- --------------------------------------------------------------------------
 
 instance Event.Event ExternalEvent.IA where
-        inaction = IA (const Event.inaction) []
-        (>>>=) (IA e ex) f = 
-                IA (\c -> (e c) >>>= f) (map (mapEE f) ex)
-                where mapEE f (e, (reg,dereg,resp)) = 
-                        (e, (reg,dereg,\v -> resp v >>= f))     
-        (IA e1 ex1) +> (IA e2 ex2) = IA (\f -> e1 f +> e2 f) (ex1 ++ ex2)
-        tryEV (IA e ex) = 
-                IA (\c -> tryEV (e c)) (map tryEE ex)
-                where tryEE (e, (reg,dereg,resp)) = 
-                        (e, (reg,dereg,\v -> try(resp v)))
-        sync (IA e []) = sync (e done)
-        sync (IA e ex) = do
-                lst <- newListener
-                registerEvents ex lst
-                sync (
-                        receive (msgchannel lst) >>>= (\v -> do {
-                                deregisterEvents ex lst;
-                                handleEvent lst ex v
-                                })
-                   +>   (e (deregisterEvents ex lst))
-                   )
-        poll (IA e []) = poll (e done)
-        poll (IA e ex) = do
-                lst <- newListener
-                registerEvents ex lst
-                poll (
-                        receive (msgchannel lst) >>>= (\v -> do {
-                                deregisterEvents ex lst;
-                                handleEvent lst ex v
-                                })
-                   +>   (e (deregisterEvents ex lst))
-                   )
+   inaction = IA (const Event.inaction) []
+        
+   (>>>=) (IA internals externals) continuation = 
+      IA 
+         (\ioact -> (internals ioact) >>>= continuation) 
+         (map (mapEE continuation) externals)
+      where 
+         mapEE 
+            continuation 
+            (EE e (Action register deregister oldContinuation)) =
+            (EE e (Action register deregister 
+               (continuation `monadDot` oldContinuation)))
+   (IA internals1 externals1) +> (IA internals2 externals2) = 
+      IA (\f -> internals1 f +> internals2 f) (externals1 ++ externals2)
+   tryEV (IA internals externals) = 
+      IA (\ioact -> tryEV (internals ioact)) (map tryEE externals)
+      where 
+         tryEE 
+            (EE eventId (Action register deregister resp)) = 
+            (EE eventId (Action register deregister (try . resp)))
 
-
+   sync = pollOrSync Event.sync
+   poll = pollOrSync Event.poll
+   
 
 -- --------------------------------------------------------------------------
 --  External Event
 -- --------------------------------------------------------------------------
 
+-- interaction creates a new interaction given register+deregister functions
+-- plus an event id.
 interaction :: (EventDesignator e, Typeable a) => e -> Register -> Deregister -> IA a
-interaction e reg dereg = 
-   IA (const inaction) [(eid,(reg,dereg,resp))]
-   where eid    = toEventID e
-         resp d = coerceIO d
-
+interaction eventDesignator register deregister = 
+   IA (const inaction) [EE eventId (Action register deregister coerceIO)]
+   where 
+      eventId    = toEventID eventDesignator
 
 -- --------------------------------------------------------------------------
 --  Lifting Channel Events
@@ -115,38 +115,77 @@ interaction e reg dereg =
 e |>>= f = lift e >>>= f
 
 (|>>) :: EV a -> IO b -> IA b
-e |>> c = e |>>= (\ _ -> c)
+e |>> c = e |>>= (const c)
 
-(\>) :: IA a -> IA a -> IA a                    -- restriction
-(IA e ial) \> (IA _ ial') = IA e (filter (notIn ial') ial)
-  where notIn ial' (eid,_) = not (any (\(eid',_) -> eid == eid') ial')
+(\>) :: IA a -> IA a -> IA a 
+-- Remove all external events in second argument from first argument
+(IA internals externals) \> (IA _ externals') = 
+      IA internals (filter (notIn externals') externals)
+   where 
+      notIn externals' (EE eventId _) = 
+         not (any (\ (EE eventId' _ ) -> eventId == eventId') externals' )
 
 
 lift :: EV a -> IA a
-lift e = IA (\c -> tryEV e >>>= \ans -> do {c;propagate ans}) []
+lift internals = 
+   IA (\iact -> 
+      tryEV internals >>>= 
+         \ ans -> 
+            do 
+               iact
+               propagate ans
+      ) []
 
 -- --------------------------------------------------------------------------
 -- External Events and Interactions
 -- --------------------------------------------------------------------------
 
+pollOrSync :: (EV eventOut -> IO result) -> (IA eventOut) -> IO result
+pollOrSync pOrS (IA internals []) = pOrS (internals done)
+pollOrSync pOrS (IA internals externals) = 
+   do
+      listener <- newListener
+      registerEvents externals listener
+      let deregistration = deregisterEvents externals listener
+      pOrS(
+         receive (msgchannel listener) >>>= 
+            (\ message ->
+               do 
+                  deregistration
+                  handleEvent listener externals message 
+               )
+         +>   
+         (internals deregistration)
+         )
+  
+
+
 handleEvent :: Listener -> [EE a] -> Message -> IO a
-handleEvent _ ee (Message Notice eid info) = 
-        execAction ee eid info
-handleEvent lst ee (Message Oneway eid info) = do 
-        sendIO (replychannel lst) ()
-        execAction ee eid info
-handleEvent lst ee (Message Request eid info) = do
-        ans <- try (execAction ee eid info)
-        sendIO (replychannel lst) ()
-        propagate ans
+handleEvent _ externals (Message Notice eventId info) = 
+   execAction externals eventId info
+handleEvent listener externals (Message Oneway eventId info) = 
+   do 
+      sendIO (replychannel listener) ()
+      execAction externals eventId info
+handleEvent listener externals (Message Request eventId info) = 
+   do
+      ans <- try (execAction externals eventId info)
+      sendIO (replychannel listener) ()
+      propagate ans
 
 execAction :: [EE a] -> EventID -> Dyn -> IO a
-execAction eel eid info = 
-        case filter (\(eid',_) -> eid' == eid) eel of
-                [] -> error "Missing Binding in call to sync"
-                (_,(_,_,resp)) : _ -> (resp info)
-
-
+execAction externals eventId info = 
+   case find (\ (EE eventId' _) -> (eventId' == eventId)) externals of
+      Nothing -> error "Missing Binding in call to sync"
+      Just (EE _ (Action _ _ response)) -> response info
 {- Actually, one should make a non-deterministic choice here between one
 of the possible event-action bindings for the event in question 
 -}                      
+
+
+
+
+
+
+
+

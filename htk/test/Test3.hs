@@ -80,17 +80,15 @@ import Debug(debug)
 
 
 main :: IO ()
-main = do {
-        htk [{-logfile (1::Int) -}];
-        mousetracker;
-        testcounter1;
-        testcounter2;   
-        testmenu;
-        testutil;
-        done
-        }
-
-
+main = 
+   do
+      htk [{-logfile (1::Int) -}]
+      mousetracker
+      testcounter1
+      testcounter2  
+      testmenu
+      testutil
+      block
 
 
 -- --------------------------------------------------------------------------

@@ -113,7 +113,7 @@ instance CommandTool Interpreter where
 -- --------------------------------------------------------------------------
 
 instance ReactiveCommandTool Interpreter where
-        sendReply ans (Interpreter _ av _ _ _) = putMVar av ans 
+   sendReply ans (Interpreter _ av _ _ _) = putMVar av ans 
 
 
 -- --------------------------------------------------------------------------

@@ -124,11 +124,14 @@ newConfirmWin str wol = newDialogWin choices (Just 0) confs (defs ++ wol)
        confs = [text str,bitmap question]
 
 newDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Window ] -> IO a
-newDialogWin choices def confs wol = do {
-        dlg <- dialog choices def confs wol;    
-        modalInteraction (fWindow dlg) True (triggered dlg)
-        }
-
+newDialogWin choices def confs wol = 
+   do 
+      debug "nDW1"
+      dlg <- dialog choices def confs wol 
+      debug "nDW2" 
+      result <- modalInteraction (fWindow dlg) True (triggered dlg)
+      debug "nDW3"   
+      return result
 
 -- --------------------------------------------------------------------------
 --  Base Dialog Window 

@@ -46,9 +46,6 @@ data WatchDog a =  WatchDog (Future a) (MVar (Bool,EV ()))
 instance HasReceiveEV WatchDog a where
         receive (WatchDog ft _) = receive ft
 
-instance HasReceiveIO WatchDog a where
-        receiveIO = sync . receive
-
 instance Destructible (WatchDog a) where
         destroy (WatchDog ft mv) = setVar mv (False,always ())
         destroyed (WatchDog ft mv) = event (getVar mv >>= return . snd) |>> done

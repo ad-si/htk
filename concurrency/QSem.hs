@@ -13,7 +13,7 @@ DESCRIPTION   : The Quantity semaphore.
                 
    ######################################################################### -}
 
-
+{- This module doesn't seem to be used anywhere. -}
 module QSem (
         module Lock,
 

@@ -66,6 +66,8 @@ test10:    $(LIBS) $(LIB) TestUtil.o Counter.o Test10.o
 	$(RM) $@
 	$(HC) -o $@ $(HCFLAGS) TestUtil.o Counter.o  Test10.o $(LIB) $(LIBS)
 
-
+bug3:      $(LIBS) $(LIB) Bug3.o
+	$(RM) $@
+	$(HC) -o $@ $(HCFLAGS) Bug3.o $(LIB) $(LIBS)
 # DO NOT DELETE: Beginning of Haskell dependencies
 # DO NOT DELETE: End of Haskell dependencies

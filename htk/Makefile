@@ -692,6 +692,7 @@ toolkit/ModalDialog.o : top/reactor/Interaction.hi
 toolkit/ModalDialog.o : toplevel/HTk.hi
 toolkit/ModalDialog.o : devices/Mouse.hi
 toolkit/ModalDialog.o : top/util/Debug.hi
+toolkit/ModalDialog.o : top/concurrency/Selective.hi
 toolkit/DialogWin.o : toolkit/DialogWin.hs
 toolkit/DialogWin.o : top/concurrency/Concurrency.hi
 toolkit/DialogWin.o : toplevel/HTk.hi

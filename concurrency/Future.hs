@@ -47,10 +47,6 @@ data Future  a = Future  (Channel (Answer a)) deriving Eq
 instance HasReceiveEV Future a where
         receive (Future ch) = receive ch >>>= propagate
 
-instance HasReceiveIO Future a where
-        receiveIO = sync . receive
-
-
 -- --------------------------------------------------------------------------
 -- Commands and Events
 -- --------------------------------------------------------------------------
