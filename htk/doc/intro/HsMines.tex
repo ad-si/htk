@@ -254,7 +254,7 @@ image on each button.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.6]{img/Screenshot03}
+\includegraphics[scale=0.3]{img/Screenshot03}
 \caption{The uninitialised hsMines field}
 \end{center}
 \end{figure}
@@ -312,7 +312,7 @@ a message window.\\
 Finally, at the end of the \texttt{run} function \texttt{start} is
 called and the game is started. Remember? The size of the game field
 is sent via restartCh and something will happen in \texttt{buttons}.
-So let's take a look at
+Let's take a look at
 %This is NO typo but intentionaly done.
 
 \subsection{The buttons function}
@@ -320,7 +320,7 @@ So let's take a look at
 This function has a rather complex signature.
 
 \begin{code}
-buttons :: Container par=> par-> Button-> Event() -> (Int, Int)
+buttons :: Container par=> par-> Button-> Event Int-> (Int, Int)
                            -> IO [((Int, Int), Button)]
 
 \end{code}
@@ -328,63 +328,68 @@ buttons :: Container par=> par-> Button-> Event() -> (Int, Int)
 For comparison lets have another look on how it's called:
 
 \begin{code}
-    allbuttons <- buttons bfr sm (receive restartCh) size   
+    allbuttons <- buttons bfr sm (receive restartCh) size
 \end{code}
 
-We have a class restriction on the first argument, par, which has to
-be a container. par happens to be just that, a Frame. Lucky us. The
-next argument has to be a button as we can happily admit our smiley
-buttons is. The third argument has to be an Event. This Event occurs,
-when some IO() is send via the IO Channel restartCh and is received by
-receive. The last argument is a 2-tuple of Int which is the size of
-the game field. Because size is a function with no arguments (thereby
-it's a constant value), the field's size can not be changed.
-
-%An dieser Stelle könnte man doch eigentlich wunderbar das Menu
-%Preferences ins Spiel bringen und eine Reihe von Auswahlgrößen (aka
-%Schwierigkeitsleveln) einbauen, oder?
+We have a class restriction on the first argument, \emph{par}, which
+has to be a \emph{Container}. \emph{par} happens to be just that, a
+\emph{Frame}. Lucky us. The next argument has to be a \emph{Button} as
+we can happily admit our smiley buttons \emph{sm} is. The third
+argument has to be an Event of Int. This Event occurs, when some IO
+Int is send via the IO Channel \emph{restartCh} and is received by
+\texttt{receive}. The last argument is a 2-tuple of Int which is the
+size of the game field. \emph{size} is an Int read from the TkVariable
+\emph{varSize}. So when something is asigned to \emph{allbuttons}, the
+function \texttt{buttons} is called with a lot of intricate arguments.
 
 When buttons has done it's work, it will return an IO of a list auf
-tuples of tuples of Int an a Button. As you see it is simpler to watch
-the signature yourself than to try to puzzle out what I just told you.
+tuples of tuples of Int and a Button. We can see that it is simpler to
+examine the signature ourselfs than try to puzzle out what was just
+told.
 
-The code of buttons is simple a start.
-
+The code of buttons is simple at start.
 
 \subsubsection{Create an array of buttons,\dots}
 
 \begin{code}
 buttons par sb startEv (size@(xmax, ymax)) =
-  do buttons <- mapM (\xy-> do b<- newButton par [text "?"]
+  do buttons <- mapM (\xy-> do b<- newButton par [photo starImg, relief Raised]
                                return (xy, b)) [(x, y) | x <- [1.. xmax],
                                                          y <- [1.. ymax]]
 \end{code}
 
 This code is executed no matter what startEv might be! It creates all
-the buttons and writes a quotationmark inside so the playfield looks
+the buttons and paints a little star inside so the playfield looks
 the way the Figure above shows it.%Verweis auf Figure?
 But there is more to happen in the buttons function!
-
 
 \subsubsection{bind them\dots}
 
 \begin{code}
      let bArr = array ((1,1), size) buttons
          getButtonClick b n xy = 
-            do (click, _) <- bindSimple b (ButtonPress (Just (BNo n)))
+            do (click, _) <- bindSimple b (ButtonRelease (Just n))
                return (click >> return xy)
-     leCl <- mapM (\(xy, b)-> getButtonClick b 1 xy) buttons
-     riCl <- mapM (\(xy, b)-> getButtonClick b 3 xy) buttons
+     leCl  <- mapM (\(xy, b)-> getButtonClick b 1 xy) buttons
+     riCl  <- mapM (\(xy, b)-> getButtonClick b 3 xy) buttons
+     press <- mapM (\(_, b)-> do (cl, _)<- bindSimple b (ButtonPress Nothing)
+                                 return cl) buttons
+
 \end{code}
 
 This looks rather complicated but does nothing more than what we did,
-when we bound the smiley button to the restart2Click Event. It's just
+when we bound the smiley button to the startClick Event. It's just
 that we bind the whole Array of buttons we created via a slightly
-adjusted Event (\texttt{getButtonClick b 1/3 xy})\footnote{
-  As you could surely guess, 2 would be the modifier to get the center
-  button bound.
-} to two Events.
-
+adjusted Event (\texttt{getButtonClick b 1/3 xy})\footnote{ As you
+  could surely guess, 2 would be the modifier to get the center button
+  bound.  } to two Events. We also bind the Button to the \emph{press}
+Event. This Event occurs whenever a Button is pressed. It's used to
+alter the smiley and because it doesn't matter which Button is
+pressed, we don't keep the coordinates. Know the programm knows,
+whether a Button is clicked and, when it's released, which Button it
+is and if it was clicked with the left or the right mouse button.
+Funny thing is that if you use the middle mouse button to click a
+Button, the smiley will stay worried.
 
 \subsubsection{and start\dots}
 
@@ -394,24 +399,25 @@ adjusted Event (\texttt{getButtonClick b 1/3 xy})\footnote{
 \end{code}
 
 At the end, we spawn an Event called start and wait. But wait what
-for? As you remember an Event is handed over to buttons. And this
-event is used to get the game finaly running.
+for? We need to remember that an Event is handed over to
+\texttt{buttons}. And this event is used to get the game running.
 
 \begin{code}
          start :: Event ()
-         start = startEv >>> do m <- createMines (snd (bounds bArr))
-                                mapM_ (text " ") (elems bArr)
-                                sb # (text ":-)")
-                                sync (play m)
+         start = startEv >>>= \d-> do m <- createMines (snd (bounds bArr)) d
+                                      sb # photo smSmileImg
+                                      mapM_ (\b-> b # photo zeroImg >>= 
+                                                    relief Raised) (elems bArr)
+                                      sync (play m)
+
 \end{code}
 
-This says: If the Event start occurs (by being spawner for example)
-and if startEv is the same kind of Event as start (and occurs at the
-same time, that is), we execute some more code. Have a look on how we
-create mines later, it's of no importance for the GUI. We map over all
-elements in the button array and write `` '' to their text. Then we
-asign a new smiley to the text of sb (mapM\_ does the same to all the
-buttons) and synchronize the start Event to the play Event. No new
+This says: If the Event start occurs (by being spawned for example)
+then startEv, if it occurs, executes some more code. Have a look on
+how we create mines later, it's of no importance for the GUI. We map
+over all elements in the Button Array \emph{bArr} and asign the
+\emph{zeroImg} to their photo. Then we asign a new smiley to the photo
+of \emph{sb} and synchronize the start Event to the play Event. No new
 Event is created, start just changed into play.
 
 \subsubsection{to play\dots}
@@ -420,42 +426,71 @@ Event is created, start just changed into play.
          play :: Mines-> Event ()
          play m = do r <- choose leCl >>>= open bArr m
                      case r of Nothing -> always gameLost >> gameOver
-                               Just nu -> play nu
+                               Just nu -> -- for simplicity, we have won
+                                          -- if no untouched fields are left
+                                          if all (not.untouched)
+                                                           (elems nu) then 
+                                            always gameWon >> gameOver
+                                          else playOn nu
                   +>
                   do r<- choose riCl >>>= flag bArr m
-                     play r
+                     playOn r
+                  +>
+                  -- make smiley frown when we press a mouse button
+                  do choose press 
+                     always (sb # photo smWorriedImg >> done) 
+                     play m
                   +>
                   start 
+
 \end{code}
 
-Playing is easy. To play with a set m of mines means to execute three
-steps over and over again.
+Playing is easy. To play with a set m of mines means to execute these
+steps over and over again:
 
 \begin{enumerate}
-\item If the left mousebutton is pressed, execute open with the
-  button array and the mines. If nothing is left, you loose. If there
-  are mines left, you play on.
-\item If the right mousebutton is pressed, execute glag with the
-  button array and the mines. No evil may occur, just play on.
+\item If the left mousebutton is pressed, execute \texttt{open} with
+  the Button Array and the mines. If Nothing is left, you
+  loose\footnote{ Of course this is the case because \texttt{open}
+    returns Nothing if we try to explore a mine.}  If there are mines
+  left, you play on. And if all fields are explored we won. Great,
+  isn't it?
+\item If the right mousebutton is pressed, execute \texttt{flag} with
+  the Button Array and the mines. No evil may occur, just play on.
+\item If a mouse button is pressed (remember, even the middle button
+  counts), the smiley should look worried. Normaly another Event
+  occurs so the smiley changes within a second but only if we pressed
+  the left or right mouse button. This, of course, is a feature.
 \item If thing go awry, goto start and wait for the startEv Event.
 \end{enumerate}
 
+\begin{code}
+         playOn :: Mines-> Event ()
+         playOn m = do always (sb # photo smCoolImg)
+                       play m       
+\end{code}
+
+\texttt{playOn} takes care of the smiley when we (de)flaged some field
+or explored it.
 
 \subsubsection{until it's over.}
 
-gameLost is just an alert Window to open, to tell you that you've
-lost that also changes your smiley into a freak. You are allowed to
-kill the messenger.
+\texttt{gameLost} and \texttt{gameWon} are just Windows to open,
+to tell you that you've lost or won. That also changes your smiley
+into a freak.
 
 \begin{code}
          gameLost :: IO ()
-         gameLost = do createAlertWin "*** BOOM!***\nYou lost." []
-                       sb # (text "X-(")
-                       done
+         gameLost = do sb # photo smSadImg
+                       createAlertWin "*** BOOM!***\nYou lost." []
+         gameWon :: IO ()
+         gameWon = do  sb # photo smWinImg
+                       createMessageWin "You have won!" []
+
 \end{code}
 
-Only after you finished up the messenger, the game is realy over, the
-\verb§>>§ operator takes care of that.
+Only after you finished up the messenger, the game is realy over and
+can be started again, the \verb§>>§ operator takes care of that.
 
 \begin{code}
          gameOver :: Event ()
@@ -464,19 +499,102 @@ Only after you finished up the messenger, the game is realy over, the
                     (choose (leCl++ riCl) >> gameOver) 
 \end{code}
 
-gameOver is the Event to take over. It leads you back to the start
-event, waiting for the startEv Event to occur. If any of the ingame
-Events occur, because some dumbhead did not understand the "`BOOM! You
-lost."' message or what so ever, the game is still over and nothing
-changes.
+\texttt{gameOver} is the Event to take over. It leads you back to the
+start event, waiting for the \emph{startEv} Event to occur. If any of
+the ingame Events occur, because some dumbhead did not understand the
+"`BOOM! You lost."' message or what so ever, the game is still over
+and nothing changes.
 
 That's it, anything else is just plain haskell. Naugh, you're right,
 there is some tiny tidbits left. Nobody explained how the numbers show
-up when an non mine field is explored, right? Okay, we'll come to that
+up when a non mine field is explored, right? Okay, we'll come to that
 now.
 
 \subsection{Fuzzing around on the play field}
 
+The simple part is leaving and taking flags.
+
+\begin{code}
+flag :: Buttons-> Mines-> (Int, Int)-> IO Mines
+flag b m xy = 
+  case m!xy of
+    Cleared _ -> return m
+    s@(Unexplored{flagged= f})-> 
+        do b!xy # (if not f then photo flagImg else photo zeroImg)
+           return (m // [(xy, s{flagged= not f})])
+\end{code}
+
+The function takes the Button Array, the Mines and the coordinates of
+the selected button. If the the field is Cleared which means it was
+explored more early the Mines are simply returned. If the field is
+Unexplored and flagged we set it unflagged and asign the
+\emph{zeroImg} to its Button and vice versa.
+
+The more complex part is actually exploring the field.
+
+\begin{code}
+open :: Buttons-> Mines-> (Int, Int)-> IO (Maybe Mines)
+open b m xy = 
+  case m!xy of 
+    Cleared _                  -> return (Just m)
+    Unexplored {flagged= True} -> return (Just m)
+    Unexplored {mine= True}    -> return Nothing
+    _ -> peek b m [xy] >>= return. Just
+\end{code}
+
+The function takes the same arguments but it only may return IO Mines.
+If we try to explore an Cleared field, nothing changes. If we try to
+explore an Unexplored field which is flagged, we return the given
+argument and still nothing changes. If we try to open an Unexplored
+field which is a mine the function returns Nothing wich leads to
+\texttt{gameLost} in \texttt{buttons}. And at last, when every other
+case is weeded out, we \texttt{peek} inside an Unexplored, nonflagged
+nomine field.
+
+\begin{code}
+peek :: Buttons-> Mines-> [(Int, Int)]-> IO Mines
+peek b m [] = return m
+peek b m (xy:rest) =
+   let adjMines :: Int
+       adjMines = sum (map (mines. (m !)) (adjacents m xy))
+       nu       = m // [(xy, Cleared adjMines)]
+   in do (b!xy)# photo (getImg adjMines) >>= relief Flat
+         if adjMines == 0 then 
+            peek b nu (rest `union` (filter (untouched. (m !))
+                                            (adjacents m xy)))
+            else peek b nu rest
+\end{code}
+
+\texttt{peek} takes a list of coordinates to check. Initially this
+should be exactly one coordinate respectivly the one we try to explore
+right now. We use \texttt{adjMines} the get the number of mines around
+the field to explore wich is a number from 0 to 8. We asign the
+corresponding Image to the Button's photo and change its relief to
+Flat. In case the number is not 0, this would just be it because now
+the list of coordinates would be empty. But to make life more
+comfortable we will now use the computer for its main purpose: To
+accomplish stupid tasks for us. Because if the number of mines in the
+adjacent fields is 0 we can savely explore any of these. So now
+\emph{rest}, the list of coordinates still to explore (an empty list
+right now) is unified with the coordinates of the adjecent fields
+which are still Unexplored. If we forgot to apply this filter the
+exploration would go on forever exploring the same fields over and
+over again. But if it's done right the programm explores all save
+fields thereby creating number rimmed empty areas on the playfield.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[scale=0.3]{img/Screenshot04}
+\caption{The hsMines field after a single lucky Click}
+\end{center}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[scale=0.3]{img/Screenshot05}
+\caption{The same field a few lucky Clicks later}
+\end{center}
+\end{figure}
 
 
 

@@ -109,12 +109,18 @@ getImg x
 -- returns Nothing, if we click on a hidden mine, the input if we 
 -- click on a flagged field (without a mine), and peeks at the field
 -- otherwise
+
+-- Crimson: I switched the order of Flag and Mine because it sucks to 
+-- accidently click a Flag and get killed... 
+-- I also put the Cleared _ expression on top because I think this saves 
+-- computation time. 
+
 open :: Buttons-> Mines-> (Int, Int)-> IO (Maybe Mines)
 open b m xy = 
   case m!xy of 
-    Unexplored {mine= True}    -> return Nothing
-    Unexplored {flagged= True} -> return (Just m)
     Cleared _                  -> return (Just m)
+    Unexplored {flagged= True} -> return (Just m)
+    Unexplored {mine= True}    -> return Nothing
     _ -> peek b m [xy] >>= return. Just
 
 -- drop or retrieve a flag (mouse right-click) 
@@ -131,8 +137,8 @@ flag b m xy =
 buttons :: Container par=> par-> Button-> Event Int-> (Int, Int)
                            -> IO [((Int, Int), Button)]
 buttons par sb startEv (size@(xmax, ymax)) =
-  do buttons <- mapM (\xy-> do b<- newButton par [photo starImg, relief Raised,
-                                                  width 3, height 3]
+  do buttons <- mapM (\xy-> do b<- newButton par [photo starImg, relief Raised]
+
                                return (xy, b)) [(x, y) | x <- [1.. xmax],
                                                          y <- [1.. ymax]]
      let bArr = array ((1,1), size) buttons
@@ -262,9 +268,9 @@ run htk currentSize =
 
 
     let start :: IO () 
-        start = do diff <- readTkVariable varDiff
+	start = do diff <- readTkVariable varDiff
                    sendIO restartCh diff
-    
+		   
     -- start the menu handler
     stopmh<- spawnEvent (forever (startClick >>> start
                                +> quitClick >>> destroy htk
