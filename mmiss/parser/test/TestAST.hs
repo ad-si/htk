@@ -14,7 +14,8 @@ import AtomString
 
 import CodedValue
 
-import LaTeXParser
+--import LaTeXParser
+import LaTeXParserCore
 import EmacsContent
 
 import Text.XML.HaXml.Types
@@ -31,7 +32,7 @@ import ParsecError
 main =
    do
       doc <- getContents
-      let result = parse (frags []) "" doc
+      let result = parseFrags doc
       str <- case result of
                Left err -> ioError (userError (concat (map messageString (errorMessages(err)))))
                Right fs -> return(show (Env "Root" (LParams [] [] Nothing Nothing) fs))

@@ -79,7 +79,7 @@ type Delimiter = String
 -- (Davon ausgehend ist klar, wie das korrespondierende rechte Klammerzeichen aussehen muss: 
 data SingleParam = SingleParam [Frag] Char    deriving Show
 
-data SpecialFragType = InputStart | InputEnd deriving (Eq,Show)
+data SpecialFragType = InputStart | InputEnd deriving (Eq, Show, Read)
 
 {--------------------------------------------------------------------------------------------
 
@@ -631,13 +631,31 @@ escapedChar = do c <- try (oneOf "\\#$&~_^%{} ")
                  return (EscapedChar c)
 
 
+-- mmissSpecialComment erkennt spezielle Kommentare, die durch das MMiSS repository
+-- bzw. den UnParser eingefügt wurden, um z.B. den Start und das Ende von expandierten
+-- File-Includes zu kennzeichnen. Diese müssen beim Parsen wiedererkannt werden,
+-- damit sie in die XML-Repräsentation einfliessen und nicht als normale Kommentare
+-- behandelt werden.
+
+mmissSpecialComment :: GenParser Char st Frag
+mmissSpecialComment = 
+  try(
+    do string "%%MMiSS:>"
+       specialTypeStr <- many1 (noneOf ">")
+       if ((specialTypeStr == "InputStart") ||
+	   (specialTypeStr == "InputEnd")) 
+	 then do char '>'
+		 s <- manyTill anyChar (try newline)
+		 return(Special (read specialTypeStr) s)           
+	 else return(Other ("%%MMiSS:>Error:Unrecognized specialFragType:" ++ specialTypeStr ++ "\n"))
+  )
 -- comment erkennt Kommentarzeilen. Kommentare werden als Other-Fragment behandelt
 --
 
 comment :: GenParser Char st Frag
-comment = do char '%'
-             s <- manyTill anyChar (try newline)
-             return (Other ("%" ++ s ++ "\n"))
+comment = try(do char '%'
+                 s <- manyTill anyChar (try newline)
+                 return (Other ("%" ++ s ++ "\n")))
 
 
 mathEnv :: GenParser Char st Frag
@@ -693,7 +711,8 @@ plainTextWithoutDollar str =
 
 frag :: GenParser Char st Frag
 frag = 
-    comment
+    mmissSpecialComment 
+    <|> comment
     <|> do backslash
 	   mathEnv <|> beginBlock <|> escapedChar <|> command <|> return (Other "\\")
     <|> adhocEnvironment

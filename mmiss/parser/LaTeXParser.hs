@@ -1,7 +1,7 @@
 module LaTeXParser (
    -- new interface.  For now, just a make-weight bolted on top of the old one.
-   PackageId(..),
 
+   PackageId(..),
    parseMMiSSLatex, 
       -- :: FileSystem -> FilePath -> Bool
       -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
@@ -78,7 +78,7 @@ import LaTeXParserCore
 import LaTeXPreamble
 -- import Dynamics
 import Computation hiding (try)
-import ExtendedPrelude(unsplitByChar,mapEq)
+import ExtendedPrelude(unsplitByChar,splitByChar,mapEq)
 import EmacsContent
 import EntityNames
 import AtomString
@@ -92,7 +92,7 @@ import QuickReadShow
 -- New Interface
 -- ---------------------------------------------------------------------------
 
--- types
+-- Types
 newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
 
 -- Functions
@@ -193,14 +193,7 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
 
 makeMMiSSLatexContent :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)]
    -> WithError (EmacsContent ((String,Char),[Attribute]))
-makeMMiSSLatexContent el b preambleInfos0 =
-   let
-      preambleInfos1 = map
-         (\ (preamble,packageId) 
-            -> (preamble,error "No preamble data supplied"))
-         preambleInfos0
-   in
-      makeMMiSSLatex (el,b,preambleInfos1)
+makeMMiSSLatexContent = makeMMiSSLatex
 
 
 writeMMiSSLatex :: FileSystem -> Element -> Bool ->
@@ -432,7 +425,7 @@ makeContent (f:frags) NoText parentEnv =
                                                                    ++ (lparamsToString ps) ++ delimStr))]))
                                             (makeContent frags NoText parentEnv)
      (Special sType str) ->
-        let piStr = (show sType) ++ " " ++ str
+        let piStr = (show sType) ++ ">" ++ str
         in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags NoText parentEnv)
 
 makeContent (f:frags) TextAllowed parentEnv = 
@@ -476,7 +469,7 @@ makeContent (f:frags) TextAllowed parentEnv =
 								      ++ (lparamsToString ps) ++ delimStr))]))
 					       (makeContent frags TextAllowed parentEnv)
         (Special sType str) ->
-          let piStr = (show sType) ++ " " ++ str
+          let piStr = (show sType) ++ ">" ++ str
           in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags TextAllowed parentEnv)
 
     else   
@@ -564,7 +557,7 @@ makeContent (f:frags) TextAllowed parentEnv =
 								      ++ (lparamsToString ps) ++ delimStr))]))
 					       (makeContent frags TextAllowed parentEnv)
         (Special sType str) ->
-          let piStr = (show sType) ++ " " ++ str
+          let piStr = (show sType) ++ ">" ++ str
           in mapWithError ([(CMisc (PI (piSpecial, piStr)))] ++) (makeContent frags TextAllowed parentEnv)
 
 
@@ -704,7 +697,7 @@ makeTextFragment parentEnv name params (f:frags) content =
              newElem = CMisc (PI (piInsertLaTeX, ("\\" ++ cname ++ (lparamsToString ps) ++ delimStr)))
  	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Special sType str) ->
-          let piStr = (show sType) ++ " " ++ str
+          let piStr = (show sType) ++ ">" ++ str
               newElem = [(CMisc (PI (piSpecial, piStr)))]
           in makeTextFragment parentEnv name params frags (content ++ newElem)
     (Env ename ps fs) -> 
@@ -818,7 +811,7 @@ makeListItem params (f:frags) contentList =
           in makeListItem params restFrags (contentList ++ [content])
 
      (Special sType str) ->
-          let piStr = (show sType) ++ " " ++ str
+          let piStr = (show sType) ++ ">" ++ str
               newElem = [(CMisc (PI (piSpecial, piStr)))]
           in makeListItem params frags (contentList ++ newElem)
 
@@ -975,21 +968,12 @@ getAttribs ((name, (AttValue [(Left value)])):as) str excludeList =
 --}
 
 
-makeMMiSSLatex :: 
-   (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
+makeMMiSSLatex :: Element -> Bool -> [(MMiSSLatexPreamble,PackageId)] 
    -> WithError (EmacsContent ((String, Char), [Attribute]))
-   -- Each distinct preamble occurs once in the list, paired with a list
-   -- for each of its call-sites.
-makeMMiSSLatex (element,preOut,preambles') =
-   -- stub function that doesn't use MMiSSExtraPreambleData for now.
-   makeMMiSSLatex11 (element,preOut,map fst preambles')
 
-
-makeMMiSSLatex11 :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
-
-makeMMiSSLatex11 ((Elem name atts content), preOut, preambles) = 
+makeMMiSSLatex (Elem name atts content) preOut preambles = 
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
-      (p,_) = mergePreambles preambles
+      (p,_) = mergePreambles (map fst (sortPreambles preambles))
       preambleItem = [(EditableText (toString p))]
   in if preOut 
         then 
@@ -997,6 +981,14 @@ makeMMiSSLatex11 ((Elem name atts content), preOut, preambles) =
               endDocument = [EditableText "\n\\end{document}"]
            in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)))
         else hasValue((EmacsContent items))
+  where
+    sortPreambles preambles
+       | name == "Package" = sortP (getParam "label" atts) preambles []
+       | otherwise = sortP (getParam "packageId" atts) preambles []
+    sortP label (p:rest) inList 
+       | label == ((packageIdStr.snd) p) = sortP label rest (p:inList)
+       | otherwise = sortP label rest (inList ++ [p])
+    sortP label [] inList = inList
 
 
 fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), [Attribute])] 
@@ -1095,10 +1087,8 @@ fillLatex out ((CMisc (Comment str)):cs) inList = fillLatex out cs (inList ++ [(
 
 fillLatex out ((CMisc (PI (pi, str))):cs) inList  
   | pi == piInsertLaTeX  =  fillLatex out cs (inList ++ [(EditableText str)])
-  | pi == piSpecial =   if (out == True)
-                          then let newStr = "%% Inserted by MMiSS repository:  " ++ str
-                               in fillLatex out cs (inList ++ [(EditableText newStr)])
-                          else fillLatex out cs inList
+  | pi == piSpecial = let newStr = "%%MMiSS:>" ++ str
+                      in fillLatex out cs (inList ++ [(EditableText newStr)])
   | otherwise =  fillLatex out cs inList
 
 fillLatex out ((CElem (Elem "package" atts contents)):cs) inList = 

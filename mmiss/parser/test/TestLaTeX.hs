@@ -77,14 +77,16 @@ main =
       case verified of
          [] -> case (duplicateLabels el) of
                  [] -> done
-                 l -> do if (xmlOutput == True) then putStr(render (element el)) else done
+                 l -> do if (xmlOutput == True) 
+                           then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el)) 
+                           else done
                          let  
                            str1 = "\nParse: Successfull\nValidating: Successfull"
                            str2 = "The following Labels are duplicated:\n"
                            str3 = concat (map (++ " ") l)
                          error (unlines ([str1] ++ [str2] ++ [str3]))
          errors -> do if (xmlOutput == True) 
-                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (render (element el))) 
+                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
 --                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
                         else done
                       let  
@@ -94,15 +96,21 @@ main =
       --
       -- Reconstruct LaTeX from XML-Element and Preamble 
       --
-      let emptyPreambleData = MMiSSExtraPreambleData {callSite = Nothing}
+      let packageIdContent = deep (iffind "packageId" returnPackageID none) (CElem el)
+          packageId = case packageIdContent of
+                        [] -> PackageId ""
+                        [CString True str] -> PackageId str
+                        otherwise -> PackageId ""
+          -- emptyPreambleData = MMiSSExtraPreambleData {callSite = Nothing}
           (emacsCont, preambleStr) = 
             case preambleList of
-              [] -> (makeMMiSSLatex (el, True, []), "")
-              (p:ps) -> (makeMMiSSLatex (el, True, [((fst p),[emptyPreambleData])]), (toString (fst p)))               
+              [] -> ((makeMMiSSLatex el True []), "")
+              (p:ps) -> ((makeMMiSSLatex el True [((fst p),packageId)]), (toString (fst p)))               
           (EmacsContent l) = coerceWithError emacsCont
       if (xmlOutput == True) 
 --        then putStr( "<?xml version='1.0' encoding='UTF-8'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
-        then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (render (element el))) 
+        then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (toExportableXml el)) 
+-- (render (element el))) 
         else if (latexOutput)
                then putStr (concat (map getStrOfEmacsDataItem l))
                else if (latexWithPreOutput) 
@@ -110,6 +118,8 @@ main =
                            ++ "\n\n************** Preamble:\n" ++ preambleStr)
                       else done 
       hPutStr stderr "Parse: Successfull\nValidate XML: Successfull\n"
+  where
+    returnPackageID value _ = [CString True value]
 
 
 duplicateLabels :: Element -> [String]
