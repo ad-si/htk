@@ -27,6 +27,7 @@ module DialogWin (
         createConfirmWin',
         createMessageWin',
         createDialogWin,
+        createDialogWin',
         ) where
 
 import IOExts (unsafePerformIO)
@@ -51,7 +52,8 @@ type Choice a = (String,a)
 -- The <code>Dialog</code> datatype.
 data Dialog a = Dialog {
                         fWindow    :: Toplevel,
-                        fMessage   :: Editor,
+                        fMsgEd     :: Maybe Editor,
+			fMsgLab    :: Maybe Label, -- we only have one of these
                         fLabel     :: Label,
                         fSelectBox :: SelectBox,
                         fEvents    :: (Event a)
@@ -73,18 +75,26 @@ instance GUIObject (Dialog a) where
 ---
 -- A dialog can have an image
 instance HasPhoto (Dialog a) where
-        photo p dlg = do {
-                configure (fLabel dlg) [photo p];
-                return dlg
-                }
+        photo p dlg = do {fLabel dlg # photo p; return dlg}
 
 ---
 -- The programm message is displayed as <code>MarkupText</code>
 instance HasMarkupText (Dialog a) where
-         new t dlg = do {
-                 configure (fMessage dlg) [new t];
-                 return dlg
-                 }
+  new t dlg = 
+    case fMsgEd dlg of 
+      Just e -> do {e # new t; return dlg} 
+      _      -> return dlg
+
+
+---
+-- The message displayed as plain text.
+instance GUIValue v=> HasText (Dialog a) v where
+  text t dlg = 
+    case fMsgLab dlg of 
+      Just l -> do {l # text t; return dlg} 
+      _      -> return dlg
+
+ 
 
 -- --------------------------------------------------------------------------
 --  Derived Dialog Window 
@@ -93,30 +103,38 @@ instance HasMarkupText (Dialog a) where
 -- Constructs an alert window with the given text
 -- @param str     - the text to be displayed
 createAlertWin :: String -> [Config Toplevel] -> IO ()
-createAlertWin str wol = createAlertWin' (strToMarkup str) wol
+createAlertWin str wol = 
+ createDialogWin choices Nothing (confs++[photo warningImg]) (defs ++ wol)
+  where choices = [("Continue",())]
+        defs = [text "Alert Window"]
+        confs = [text str]
 
 ---
 -- Constructs an alert window with the given markuptext
 -- @param str     - the markuptext to be displayed
 createAlertWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
 createAlertWin' str wol = 
- createDialogWin choices Nothing (confs++[photo warningImg]) (defs ++ wol)
- where choices = [("Continue",())]
-       defs = [text "Alert Window"]
-       confs = [new str]
+ createDialogWin' choices Nothing (confs++[photo warningImg]) (defs ++ wol)
+  where choices = [("Continue",())]
+        defs    = [text "Alert Window"]
+        confs   = [new str]
 
 ---
 -- Constructs an error window with the given text
 -- @param str     - the text to be displayed
 createErrorWin :: String -> [Config Toplevel] -> IO ()
-createErrorWin str wol = createErrorWin' (strToMarkup str) wol
+createErrorWin str wol = 
+ createDialogWin choices Nothing (confs++[photo errorImg]) (defs++wol)
+ where choices = [("Continue",())]
+       defs    = [text "Error Message"]
+       confs   = [text str]
 
 ---
 -- Constructs an error window with the given markuptext
 -- @param str     - the markuptext to be displayed
 createErrorWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
 createErrorWin' str wol = 
- createDialogWin choices Nothing (confs++[photo errorImg]) (defs++wol)
+ createDialogWin' choices Nothing (confs++[photo errorImg]) (defs++wol)
  where choices = [("Continue",())]
        defs = [text "Error Message"]
        confs = [new str]
@@ -141,7 +159,11 @@ createWarningWin' str confs =
 -- @param str     - the text to be displayed
 -- @return result - True(Ok) or False(Cancel)
 createConfirmWin :: String -> [Config Toplevel] -> IO Bool
-createConfirmWin str wol = createConfirmWin' (strToMarkup str) wol
+createConfirmWin str wol = 
+ createDialogWin choices (Just 0) (confs++[photo questionImg]) (defs ++ wol)
+ where choices = [("Ok",True),("Cancel",False)]
+       defs    = [text "Confirm Window"]
+       confs   = [text str]
 
 ---
 -- Constructs an confirm window with the given markuptext
@@ -149,10 +171,10 @@ createConfirmWin str wol = createConfirmWin' (strToMarkup str) wol
 -- @return result - True(Ok) or False(Cancel)
 createConfirmWin' :: [MarkupText] -> [Config Toplevel] -> IO Bool
 createConfirmWin' str wol = 
- createDialogWin choices (Just 0) (confs++[photo questionImg]) (defs ++ wol)
+ createDialogWin' choices (Just 0) (confs++[photo questionImg]) (defs ++ wol)
  where choices = [("Ok",True),("Cancel",False)]
-       defs = [text "Confirm Window"]
-       confs = [new str]
+       defs    = [text "Confirm Window"]
+       confs   = [new str]
 
 ---
 -- Constructs a message (info) window with the given markuptext
@@ -160,20 +182,23 @@ createConfirmWin' str wol =
 -- @return result - ()
 createMessageWin' :: [MarkupText]-> [Config Toplevel]-> IO ()
 createMessageWin' str wol =
- createDialogWin [("Dismiss", ())] Nothing 
-	         [new str, photo infoImg] 
-		 (text "Information": wol)
+ createDialogWin' [("Dismiss", ())] Nothing 
+	          [new str, photo infoImg] 
+		  (text "Information": wol)
             
 ---
 -- Constructs a message (info) window with the given string.
 -- @param str     - the string to be displayed
 -- @return result - ()
 createMessageWin :: String-> [Config Toplevel]-> IO ()
-createMessageWin str = createMessageWin' (strToMarkup str) 
+createMessageWin str wol = 
+  createDialogWin [("Dismiss", ())] Nothing 
+                  [text str, photo infoImg] 
+		  (text "Information": wol)
        
 
 ---
--- Constructs a new dialow window
+-- Constructs a new dialogue window for plain text
 -- @param choices     - the available buttons in this window
 -- @param def         - default button
 -- @param confs       - the list of configuration options for this separator
@@ -182,24 +207,40 @@ createMessageWin str = createMessageWin' (strToMarkup str)
 createDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
 createDialogWin choices def confs wol = 
    do 
-      dlg <- dialog choices def confs wol
+      dlg <- dialog True choices def confs wol
       result <- modalInteraction (fWindow dlg) True True (fEvents dlg)
       return result
+
+---
+-- Constructs a new dialow window for markup text
+-- @param choices     - the available buttons in this window
+-- @param def         - default button
+-- @param confs       - the list of configuration options for this separator
+-- @param wol         - the list of configuration options for the window
+-- @return result     - 
+createDialogWin' :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
+createDialogWin' choices def confs wol = 
+   do 
+      dlg <- dialog False choices def confs wol
+      result <- modalInteraction (fWindow dlg) True True (fEvents dlg)
+      return result
+
 
 -- --------------------------------------------------------------------------
 --  Base Dialog Window 
 -- --------------------------------------------------------------------------
 ---
--- Creates a new dialog with its label, text and buttons.
+-- Creates a new dialogue with its label, text and buttons.
 -- @param choices     - the available button in this window
+-- @param plain       - true if we just want a label to display message, false if we want a fancy read-only text editor
 -- @param def         - default button
 -- @param confs       - the list of configuration options for this separator
 -- @param tpconfs     - the list of configuration options for the window
 -- @return result     - a dialog
-dialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
-dialog choices def confs tpconfs =
+dialog :: Bool-> [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
+dialog plain choices def confs tpconfs =
    do
-      (tp,msg,lbl,sb,ev) <- delayWish (
+      (tp, emsg, lmsg, lbl, sb, ev) <- delayWish $
          do
             tp <- createToplevel tpconfs
             pack tp [Expand On, Fill Both]
@@ -212,10 +253,19 @@ dialog choices def confs tpconfs =
           
             lbl <- newLabel b2 []
             pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
-          
-            msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled,
-		                 wrap WordWrap, HTk.font fmsg]
-            pack msg [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
+
+	    (lmsg, emsg) <-           
+  	      if plain then
+	         do l <- newLabel b2 [borderwidth 0, justify JustCenter,
+		                      HTk.font (Helvetica, Roman, 18::Int)]
+                    pack l [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
+		    return (Just l, Nothing)
+	         else do msg <- newEditor b2 [size (30,5), borderwidth 0,
+					      state Disabled, wrap WordWrap,
+					      HTk.font (Helvetica, Roman, 18::Int)]
+                         pack msg [Expand On, Fill Both, PadX (cm 0.5), 
+		                                         PadY (cm 0.5)]
+                         return (Nothing, Just msg)
           
             sp1 <- newSpace b (cm 0.15) []
             pack sp1 [Expand Off, Fill X, Side AtBottom]
@@ -230,24 +280,16 @@ dialog choices def confs tpconfs =
           
             events <- mapM (createChoice sb) choices
             let ev = choose events
-            return (tp,msg,lbl,sb,ev)
-         )
-      dlg <- configure (Dialog tp msg lbl sb ev) confs
+            return (tp, emsg, lmsg, lbl,sb,ev)
+      dlg <- configure (Dialog tp emsg lmsg lbl sb ev) confs
       return dlg
- where fmsg = xfont { family = Just Courier, weight = Just Bold, points = (Just 18) }
-       createChoice :: SelectBox -> Choice a -> IO (Event a)
+ where createChoice :: SelectBox -> Choice a -> IO (Event a)
        createChoice sb (str,val) = 
         do
          but <- addButton sb [text str] [Expand On, Side AtRight]
          clickedbut <- clicked but
          return (clickedbut >> (always (return val)))
 
--- --------------------------------------------------------------------------
--- String to MarkupText
--- --------------------------------------------------------------------------
-strToMarkup :: String -> [MarkupText]
-strToMarkup str = 
-  [bold [centered [prose str]]]
 
 -- --------------------------------------------------------------------------
 -- Images for the various Dialog Windows
