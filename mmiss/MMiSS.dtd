@@ -193,7 +193,7 @@
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
-<?MMiSSDisplay abstract : Blue box ?>
+<?MMiSSDisplay abstract : Green box ?>
 
 
 <!ELEMENT introduction (%unit;)+>
@@ -201,21 +201,21 @@
                        %title-matter;
                        %formalism-matter;
                        %attributes;>
-<?MMiSSDisplay introduction : Blue box ?>
+<?MMiSSDisplay introduction : Green box ?>
 
 <!ELEMENT summary  (%unit;)+>
 <!ATTLIST summary  %label-matter;
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
-<?MMiSSDisplay summary : Blue box ?>
+<?MMiSSDisplay summary : Green box ?>
 
 <!ELEMENT example  (%unit;)+>
 <!ATTLIST example %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay example : Blue box ?>
+<?MMiSSDisplay example : Green box ?>
 
 
 <!ELEMENT exercise  (%unit;)+>
@@ -223,20 +223,20 @@
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
-<?MMiSSDisplay exercise : Blue box ?>
+<?MMiSSDisplay exercise : Green box ?>
 
 <!ELEMENT definition  (%unit;)+>
 <!ATTLIST definition %label-matter;
                      %title-matter;
                      %formalism-matter;
                      %attributes;>
-<?MMiSSDisplay definition : Blue box ?>
+<?MMiSSDisplay definition : Green box ?>
 
 <!ELEMENT textFragment %text;>
 <!ATTLIST textFragment %label-matter;
                        %formalism-matter;
                        %attributes;>
-<?MMiSSDisplay textFragment : Blue box ?>
+<?MMiSSDisplay textFragment : Green box ?>
 
 <!ELEMENT table %text;>
 <!ATTLIST table %label-matter;

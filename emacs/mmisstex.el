@@ -6,7 +6,6 @@
 ;; put the following progn. body into your .emacs file to be evaluated on startup.
 (progn 
   (put 'erase-buffer 'disabled nil)
-test
   (defun MMiSS-init (string)
     (load-file "./mmisstex.el")
     (setq LaTeX-mode-hook        'mmiss-mode)  
@@ -18,6 +17,7 @@ test
     (display-buffer)
     )
   )
+;; also make sure to start the server with (gnuserv-start)
 
 ;; ********************************************************************************
 ;; 

@@ -46,28 +46,34 @@
 ; by the functions fromIncludeStr(Opt) and toIncludeStr in LaTeXParser.hs.
 (setq MMiSS-colours 
    (list
-      (cons ?G  "orange")
-      (cons ?S  "orange")
+    ;; Note on packages: they should be orange, but there is no includePackage
+    ;; element, only includePackage, hence packages are treated as groups 
+    ;; with a yellow button.
+      (cons ?G  "yellow") ; group
+      (cons ?S  "yellow") ; section
 
-      (cons ?U  "green")
-      (cons ?a  "green")
-      (cons ?I  "green")
-      (cons ?s  "green")
-      (cons ?F  "green")
-      (cons ?E  "green")
+      (cons ?U  "#98ecb2") ; unit
+      (cons ?E  "#98ecb2") ; conceptual unit
+      (cons ?F  "#98ceda") ; formal unit
+      (cons ?a  "#98ecb2") ; abstract
+      (cons ?I  "#98ecb2") ; introduction
+      (cons ?s  "#98ecb2") ; summary 
 
-      (cons ?A  "yellow")
-      (cons ?C  "yellow")
-      (cons ?p  "yellow")
-      (cons ?P  "yellow")
-      (cons ?c  "yellow")
-      (cons ?t  "yellow")
-      (cons ?x  "yellow")
-      (cons ?y  "yellow")
-      (cons ?z  "yellow")
-      (cons ?D  "yellow")
+      (cons ?A  "#98ecb2")  ; atom
+      (cons ?C  "#98ecb2")  ; conceptual atom
+      (cons ?T  "#98ecb2")  ; text fragment
 
-      (cons ?T  "red")
+      (cons ?p  "#98ceda")   ; program fragment
+      (cons ?P  "#98ceda")   ; program
+      (cons ?c  "#98ceda")   ; claus
+      (cons ?t  "#98ceda")   ; theory
+      (cons ?x  "#98ceda")   ; step
+      (cons ?y  "#98ceda")   ; proof
+      (cons ?z  "#98ceda")   ; script
+      (cons ?D  "#98ceda")   ; development
+
+      ;;; #98ceda is light green
+      ;;; #98ecb2 is light blue 
 
       )
    )
