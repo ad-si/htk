@@ -1,5 +1,0 @@
-PACKAGES = uni-cvs
-
-SRCS = Test1.hs TestAllocateService.hs
-
-include @TOP@/mk/boilerplate.mk

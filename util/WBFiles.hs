@@ -30,6 +30,10 @@
    option prints the parameters at the given position on the command
    line.
 
+   The
+      --uni-version
+   option prints the current version of uni.
+
    --uni-<option-name>:<option-value>
    or equivalently
    --uni-<option-name>=<option-value>
@@ -179,6 +183,8 @@ import qualified Addr
 import qualified CString
 
 import FileNames
+
+#include "config.h"
 
 ------------------------------------------------------------------------
 -- Specific access functions.
@@ -602,6 +608,10 @@ parseTheseArgumentsRequiring' arguments required =
                   do
                      displayHelp
                      return (newExit ExitSuccess,prevMap)
+               "--uni-version" -> 
+                     do
+                        putStrLn ("uni's version is "++UNIVERSION)
+                        return (newExit ExitSuccess,prevMap)
                "--uni-parameters" ->
                   do
                      displayState prevMap

@@ -15,16 +15,20 @@ AC_SUBST(TOP)
 #
 # Are we running Windows or Unix?
 case `uname` in
-   CYGWIN* ) WINDOWS=1 ;;
-   *) WINDOWS=0 ;;
+   CYGWIN* ) WINDOWS=1 ; OSTITLE=windows ;;
+   Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
+   SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
+   * ) WINDOWS=0; OSTITLE=unknown ;;
 esac
-if test $WINDOWS -ne 0 
-then
-   echo You are running Windows
-else
-   echo You are running Unix or Linux
-fi
+
+echo You are running $OSTITLE
+
 AC_SUBST(WINDOWS)
+AC_SUBST(OSTITLE)
+#
+# What is our version?
+UNIVERSION=`cat VERSION`
+AC_SUBST(UNIVERSION)
 #
 # Find a C compiler.
 AC_PATH_PROGS(CC,gcc cc,)
@@ -102,9 +106,10 @@ fi
 AC_PATH_PROGS(HDOC,hdoc)
 echo hdoc is used for providing browsable versions of the HTk sources.
 #
-# Check for gfind, cp and mkdir
+# Check for gfind, cp, ln and mkdir
 AC_PATH_PROGS(GFIND,gfind,find)
 AC_PATH_PROGS(CP,cp)
+AC_PATH_PROGS(LN,ln)
 AC_PATH_PROGS(MKDIR,mkdir)
 # 
 # Construct the default options, used by 

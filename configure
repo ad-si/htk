@@ -1120,15 +1120,19 @@ echo "The top of the UniForM build tree is: $TOP"
 #
 # Are we running Windows or Unix?
 case `uname` in
-   CYGWIN* ) WINDOWS=1 ;;
-   *) WINDOWS=0 ;;
+   CYGWIN* ) WINDOWS=1 ; OSTITLE=windows ;;
+   Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
+   SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
+   * ) WINDOWS=0; OSTITLE=unknown ;;
 esac
-if test $WINDOWS -ne 0
-then
-   echo You are running Windows
-else
-   echo You are running Unix or Linux
-fi
+
+echo You are running $OSTITLE
+
+
+
+#
+# What is our version?
+UNIVERSION=`cat VERSION`
 
 #
 # Find a C compiler.
@@ -1713,7 +1717,7 @@ done
 
 echo hdoc is used for providing browsable versions of the HTk sources.
 #
-# Check for gfind, cp, cd and mkdir
+# Check for gfind, cp, ln and mkdir
 for ac_prog in gfind
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -1803,18 +1807,18 @@ fi
   test -n "$CP" && break
 done
 
-for ac_prog in cd
+for ac_prog in ln
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_CD+set}" = set; then
+if test "${ac_cv_path_LN+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $CD in
+  case $LN in
   [\\/]* | ?:[\\/]*)
-  ac_cv_path_CD="$CD" # Let the user override the test with a path.
+  ac_cv_path_LN="$LN" # Let the user override the test with a path.
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -1824,7 +1828,7 @@ do
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_CD="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_path_LN="$as_dir/$ac_word$ac_exec_ext"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -1834,17 +1838,17 @@ done
   ;;
 esac
 fi
-CD=$ac_cv_path_CD
+LN=$ac_cv_path_LN
 
-if test -n "$CD"; then
-  echo "$as_me:$LINENO: result: $CD" >&5
-echo "${ECHO_T}$CD" >&6
+if test -n "$LN"; then
+  echo "$as_me:$LINENO: result: $LN" >&5
+echo "${ECHO_T}$LN" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
-  test -n "$CD" && break
+  test -n "$LN" && break
 done
 
 for ac_prog in mkdir
@@ -2510,6 +2514,8 @@ s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
 s,@TOP@,$TOP,;t t
 s,@WINDOWS@,$WINDOWS,;t t
+s,@OSTITLE@,$OSTITLE,;t t
+s,@UNIVERSION@,$UNIVERSION,;t t
 s,@CC@,$CC,;t t
 s,@SED@,$SED,;t t
 s,@LD@,$LD,;t t
@@ -2527,7 +2533,7 @@ s,@ZIP@,$ZIP,;t t
 s,@HDOC@,$HDOC,;t t
 s,@GFIND@,$GFIND,;t t
 s,@CP@,$CP,;t t
-s,@CD@,$CD,;t t
+s,@LN@,$LN,;t t
 s,@MKDIR@,$MKDIR,;t t
 s,@DEFAULTOPTIONS@,$DEFAULTOPTIONS,;t t
 s,@GHCTOP@,$GHCTOP,;t t

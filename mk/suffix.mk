@@ -366,11 +366,15 @@ endif
 exportnames :
 	($(MAKE) -s --no-print-directory displayexports) | $(SED) "s+^$(TOP)/+uni/+;s+ $(TOP)/+ uni/+g;"
 
+# The name of the export file
+EXPORTPREFIX = uni-$(UNIVERSION)-$(OSTITLE)-ghc-$(GhcVersion)
 exports.tar.gz :
 	DIR=`pwd`;cd $(TOP)/..;$(TAR) -czf $$DIR/exports.tar.gz `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
+	$(LN) -s $@ $(EXPORTPREFIX).tar.gz
 
 exports.zip :
 	DIR=`pwd`;cd $(TOP)/..;$(ZIP) -9 $$DIR/exports.zip `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
+	$(LN) -s $@ $(EXPORTPREFIX).zip
 
 
 

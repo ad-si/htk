@@ -1,9 +1,0 @@
-PACKAGE = uni-cvs
-PACKAGES = uni-server
-
-SRCS       = CVSTypes.hs CVSBasic.hs CVSHigh.hs CVSDB.hs Allocate.hs \
-   AllocateService.hs MainAllocateService.hs
-
-SUBDIRS    = test
-
-include @TOP@/mk/boilerplate.mk
