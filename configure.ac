@@ -233,7 +233,7 @@ if test "$GOAHEAD" = YES; then
    if test -n "$HAXML"
    then
       echo Linking to HaXml sources.
-      ${GMAKE} -C $HaXml -r lnsrcs
+      ${GMAKE} -C $HAXML -r lnsrcs
    fi
 
    # Use GHCPKG option with --force if necessary
