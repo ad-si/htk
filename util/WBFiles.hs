@@ -206,11 +206,10 @@ import Monad
 import qualified System
 import System(exitWith,ExitCode(..))
 
-import Concurrent
-import FiniteMap
-import qualified IOExts(unsafePerformIO)
-import qualified Addr
-import qualified CString
+import Control.Concurrent
+import Data.FiniteMap
+import System.IO.Unsafe
+import Foreign.C.String
 
 import FileNames
 import HostName
@@ -518,7 +517,7 @@ makeParsedArguments =
 
 parsedArguments :: ParsedArguments
 -- the unique set of parsed arguments
-parsedArguments = IOExts.unsafePerformIO makeParsedArguments
+parsedArguments = unsafePerformIO makeParsedArguments
 {-# NOINLINE parsedArguments #-}
 
 getArgValue :: String -> IO (Maybe ArgValue)
@@ -594,7 +593,7 @@ newAlternateArgs :: IO (MVar [String])
 newAlternateArgs = newEmptyMVar
 {-# NOINLINE newAlternateArgs #-}
 
-alternateArgs = IOExts.unsafePerformIO newAlternateArgs
+alternateArgs = unsafePerformIO newAlternateArgs
 
 setAlternateArgs :: [String] -> IO ()
 setAlternateArgs newArgs = 
@@ -677,7 +676,7 @@ parseTheseArgumentsRequiring' arguments required =
 
          (initial :: ParseState) = (Nothing,initialMap)
 
-      defaultOptionsStr <- CString.peekCString defaultOptions
+      defaultOptionsStr <- peekCString defaultOptions
       afterDefault <- foldM (handleParameter False) initial 
          (words defaultOptionsStr)
 
@@ -833,7 +832,7 @@ parseTheseArgumentsRequiring' arguments required =
          Just (ExitFailure (max level1 level2))
 
 foreign import ccall  "default_options.h & default_options" 
-   defaultOptions :: CString.CString
+   defaultOptions :: CString
 
 ------------------------------------------------------------------------
 -- Printing to stderr.

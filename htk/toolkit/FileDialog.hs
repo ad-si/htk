@@ -7,23 +7,24 @@ module FileDialog (
   newFileDialog
 ) where
 
-import Control.Exception(Exception,ioErrors)
 
-import Directory (doesFileExist)
+import Directory
+import IO
+import System
+import Maybe
+import qualified List(sort)
+
+import Control.Exception
+import Data.IORef
+import System.Posix
 
 import Debug(debug)
 import FileNames
+import Messages
 
-import Data.IORef
+import ReferenceVariables
 
 import HTk
-import Directory
-import IO hiding (try)
-import qualified List (sort)
-import Posix
-import ReferenceVariables
-import System
-import Maybe
 import TkVariables
 import ModalDialog
 import DialogWin (createWarningWin,createConfirmWin)
@@ -35,7 +36,7 @@ debugMsg str = done -- putStr (">>> " ++ str ++ "\n")
 -- Display a warning window with a meaningful error message
 ioErrorWindow :: Exception -> IO ()
 ioErrorWindow excep = 
-  createWarningWin ("Error while reading directory:\n"++
+  warningMess ("Error while reading directory:\n"++
      case ioErrors excep of
         Just ioe ->        
            ioeGetErrorString ioe++"\n"++
@@ -44,14 +45,13 @@ ioErrorWindow excep =
                 Nothing -> ""
         Nothing -> "Exception: "++show excep++"\n"
     ) 
-                   []
 
 tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either Exception 
                                                         ([FilePath], [FilePath]))
 tryGetFilesAndFolders path showhidden =
   do
     debugMsg ("getting directory contents of " ++ path)
-    dc <- try (getDirectoryContents path)
+    dc <- Control.Exception.try (getDirectoryContents path)
     case dc of 
        Left exn -> do debugMsg "... error!"
                       return (Left exn)
@@ -66,7 +66,7 @@ tryGetFilesAndFolders path showhidden =
           else
             do
               debugMsg ("trying to get file status of " ++ abs ++ f)
-              st' <- try (getFileStatus (abs ++ f))
+              st' <- Control.Exception.try (getFileStatus (abs ++ f))
               case st' of
                 Left st -> debugMsg "...failed\n" >>
                            sort fs files folders abs
@@ -521,7 +521,7 @@ fileDialog' isNew title pathref =
                    '/':_ -> file_nm
                    _ -> combineNames trimmedPath file_nm
 
-              est <- try (getFileStatus fullnm)
+              est <- Control.Exception.try (getFileStatus fullnm)
 
               let
                  sendFile = syncNoWait (send msgQ (Just fullnm))
@@ -554,9 +554,9 @@ fileDialog' isNew title pathref =
                    if isNew 
                       then
                          do
-                            proceed <- createConfirmWin
+                            proceed <- confirmMess
                                "File exists.  Overwrite?"
-                               []
+
                             if proceed then sendFile else reset
                             return proceed
                       else
@@ -580,9 +580,9 @@ fileDialog' isNew title pathref =
                                      return True
                                else
                                   do
-                                     createWarningWin
+                                     warningMess
                                         ("No such file or directory: "++ 
-                                           fullnm) []
+                                           fullnm)
                                      reset
                                      return False
 
@@ -638,7 +638,7 @@ fileDialog' isNew title pathref =
                      Just nm ->
                        do
                          path <- getRef pathref
-                         ok <- try (Directory.createDirectory
+                         ok <- Control.Exception.try (Directory.createDirectory
                                       (path ++ nm))
                          case ok of
                            Right _ ->
@@ -708,7 +708,7 @@ fileDialog' isNew title pathref =
                         ret' <- getRef ret
                         (if ret' then
                            do
-                             ok <- try (removeFile (path ++ nm))
+                             ok <- Control.Exception.try (removeFile (path ++ nm))
                              case ok of
                                Right _ ->
                                  do

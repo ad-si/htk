@@ -28,7 +28,7 @@ module RefQueue(
    ) where
 
 
-import IOExts(IORef,newIORef,readIORef,writeIORef)
+import Data.IORef
 
 import Computation(done)
 

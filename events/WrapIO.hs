@@ -14,7 +14,7 @@ module WrapIO(
       -- (The action runs to completion though.)
    ) where
 
-import Exception
+import Control.Exception
 
 import Computation
 import Thread
@@ -70,11 +70,11 @@ impatientIO action duration =
       channel <- newChannel
       let
          timeOutThread = after duration (sendIO channel ())
-      resultAct <- wrapIO (Exception.try action)
+      resultAct <- wrapIO (try action)
       forkIO timeOutThread
       
       let 
-         passOn (Left error) = Exception.throw error
+         passOn (Left error) = throw error
          passOn (Right val) = return (Just val)
       sync(
             resultAct >>>= passOn

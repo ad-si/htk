@@ -48,7 +48,7 @@ module RegularExpression(
                 -- that matches that string.
    ) where
 
-import RegexString
+import Text.Regex
 
 import Dynamics
 import Debug(debug)
@@ -68,25 +68,9 @@ data MatchResult = MatchResult String String String [String]
 -- Strings are before,matched portion,after, and the 
 -- list $1,$2,... corresponding to matched subexpressions.
 
--- matchRegexAll0 is like Regex.matchRegexAll for GHC versions > 600.
-$(
-   if ghcShortVersion > 600
-      then
-         [d| 
-            matchRegexAll0 = RegexString.matchRegexAll 
-         |]
-      else
-         [d| 
-            matchRegexAll0 regEx str =
-               fmap
-                  (\ (a,b,c,_,d) -> (a,b,c,d) )
-                  ($(dynName "RegexString.matchRegexAll") regEx str)
-         |]
-   )
-
 matchString :: RegularExpression -> String -> Maybe MatchResult
 matchString (RegularExpression regEx) str =
-   case matchRegexAll0 regEx str of
+   case matchRegexAll regEx str of
       Nothing -> Nothing
       Just (before,matched,after,subStrings) -> 
          Just (MatchResult before matched after subStrings)

@@ -35,9 +35,11 @@ module Channels(
    -- A Channel is an instance of HasSend and HasReceive.
    ) where
 
+import Control.Concurrent
+
 import Computation(done)
 import Queue
-import Concurrent
+
 
 import Toggle
 import Events

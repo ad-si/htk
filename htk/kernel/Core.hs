@@ -104,21 +104,27 @@ module Core (
 
 ) where
 
-import FiniteMap
-import qualified ExtendedPrelude(split)
 import Maybe
-import GUIValue
-import ReferenceVariables
-import Destructible
-import Concurrent
-import IOExts(unsafePerformIO)
+
+import Data.FiniteMap
+import Control.Concurrent
+import System.IO.Unsafe
+
+import Computation
+
 import Channels
 import GuardedEvents
 import EqGuard
-import Computation
 import Events
-import EventInfo
 import Object
+
+import ReferenceVariables
+import Destructible
+
+import qualified ExtendedPrelude(split)
+
+import GUIValue
+import EventInfo
 import GUIObjectName
 import GUIObject
 import GUIObjectKind

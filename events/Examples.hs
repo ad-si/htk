@@ -17,8 +17,9 @@ module Examples(
 
    ) where
 
+import Data.FiniteMap
+
 import Object
-import FiniteMap
 import Spawn
 import Events
 import Channels

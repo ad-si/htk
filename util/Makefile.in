@@ -9,7 +9,7 @@ else
 TEMPLATEHASKELLPACKAGE = haskell-src
 endif
 
-PACKAGES = concurrent lang data network text uni-options $(TEMPLATEHASKELLPACKAGE)
+PACKAGES = uni-options $(TEMPLATEHASKELLPACKAGE) concurrent lang data network text
 
 SRCS       = \
   TemplateHaskellHelps.hs CompileFlags.hs \
@@ -18,7 +18,7 @@ SRCS       = \
   IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs \
   RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs UniqueFile.hs \
   TempFile.hs Sink.hs VariableSet.hs VariableMap.hs \
-  CommandStringSub.hs WaitOnN.hs FileSystem.hs PtrMagic.hs CacheTable.hs \
+  CommandStringSub.hs WaitOnN.hs FileSystem.hs CacheTable.hs \
   DeepSeq.hs NameMangle.hs KeyedChanges.hs \
   Sources.hs Broadcaster.hs ReferenceCount.hs Delayer.hs VariableList.hs \
   Myers.hs VariableSetBlocker.hs IntPlus.hs UnionFind.hs \

@@ -8,7 +8,7 @@ module WaitOnN(
    waitOnN,
    ) where
 
-import Concurrent
+import Control.Concurrent
 
 
 waitOnN :: [IO a] -> IO [a]

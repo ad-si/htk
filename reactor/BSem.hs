@@ -13,7 +13,7 @@ module BSem (
 
 import Maybe
  
-import Concurrent
+import Control.Concurrent.MVar
 
 import Thread
 import Lock

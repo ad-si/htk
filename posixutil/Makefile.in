@@ -1,13 +1,8 @@
 PACKAGE = uni-posixutil
-PACKAGES = uni-events
+PACKAGES = uni-events posix
 
-ifeq "@WORK_AROUND_BDB_LINUX_BUG@" "1"
-SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
-   Expect.hs SafeSystem.hs SysVars.hs
-else
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
    Expect.hs SafeSystem.hs
-endif
 
 
 SRCSC = MainrunCommand.c Mainlog.c

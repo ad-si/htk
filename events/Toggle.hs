@@ -20,7 +20,7 @@ module Toggle(
    ifSimpleToggle, -- like ifToggle
    ) where
 
-import Concurrent
+import Control.Concurrent
 
 import Computation
 import Object
@@ -29,7 +29,7 @@ import Object
 -- Simple Toggles
 -- ----------------------------------------------------------------------
 
-newtype SimpleToggle = SimpleToggle (Concurrent.MVar Bool)
+newtype SimpleToggle = SimpleToggle (MVar Bool)
 
 newSimpleToggle :: IO SimpleToggle
 newSimpleToggle = 

@@ -124,12 +124,12 @@ module SimpleForm(
 
 import Char
 
-import IORef
+import Data.IORef
+import Data.Typeable
 
 import Computation
 import ExtendedPrelude
 import BinaryAll(HasBinary(..),mapWrite,mapRead)
-import Dynamics(Typeable)
 
 import Events
 import Channels

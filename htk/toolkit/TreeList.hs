@@ -50,14 +50,16 @@ module TreeList (
 
 ) where
 
+import Maybe
 
-import IOExts(unsafePerformIO)
+import System.IO.Unsafe
+
+import ReferenceVariables
+
 import HTk
 import ScrollBox
 import List
-import ReferenceVariables
 import Core
-import Maybe
 import CItem
 import Name
 

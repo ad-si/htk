@@ -40,16 +40,19 @@ module Notepad (
 
 ) where
 
+import Maybe
+
+import Data.FiniteMap
+
+import ReferenceVariables
+
 import HTk
 import CanvasItemAux
 import ScrollBox
-import ReferenceVariables
 import Name
 import Examples(watch)
 import Core
-import Maybe
 import CItem
-import FiniteMap
 
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)

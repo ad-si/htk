@@ -9,8 +9,8 @@ module Cache(
    getCached -- :: Ord key => Cache key elt -> key -> IO elt  
    ) where
 
-import FiniteMap
-import Concurrent
+import Data.FiniteMap
+import Control.Concurrent
 
 import Computation
 import Debug(debug)

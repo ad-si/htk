@@ -7,7 +7,7 @@ module LockEvent(
    newEventLock,
    ) where
 
-import Exception
+import Control.Exception
 
 import Events
 import Channels

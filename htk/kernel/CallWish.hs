@@ -11,16 +11,9 @@ module CallWish(
    destroyCalledWish, -- :: CalledWish -> IO ()
    ) where
 
-import MarshalAlloc
-import MarshalArray
-import ByteArray
-import CString
-import CTypesISO
-import CTypes
-import Ptr
-import Storable
-
-import Concurrent
+import Foreign
+import Foreign.C
+import Control.Concurrent
 
 import WBFiles
 import Debug

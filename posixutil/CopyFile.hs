@@ -18,14 +18,11 @@ module CopyFile(
 import qualified IO
 
 import GHC.IO
-import CTypesISO(CSize)
-import ST
-import qualified IOExts
-import qualified Exception
-import CString
-import Ptr
-import Foreign
-import System.Posix as Posix
+import Foreign.C
+import Foreign.Ptr
+import Control.Monad.ST
+import Control.Exception
+import System.Posix
 
 import Computation
 import ICStringLen
@@ -79,7 +76,7 @@ linkFile source destination =
          done
       else
          do
-            success <- Exception.try (Posix.createLink source destination)
+            success <- try (System.Posix.createLink source destination)
             case success of
                Right () -> done
                Left err ->
@@ -103,7 +100,7 @@ copyFileToStringCheck :: FilePath -> IO (WithError String)
 copyFileToStringCheck filePath =
    exceptionToError
       (\ exception ->
-         case Exception.ioErrors exception of
+         case ioErrors exception of
          Nothing -> Nothing
          Just ioError ->
             if IO.isDoesNotExistError ioError
@@ -123,14 +120,14 @@ copyFileToStringCheck filePath =
 copyFileToCStringLen :: FilePath -> IO CStringLen
 copyFileToCStringLen file =
    do
-      (ptr,len) <- IOExts.slurpFile file
-      return (Ptr.castPtr ptr,len)
+      (ptr,len) <- slurpFile file
+      return (castPtr ptr,len)
 
 copyFileToICStringLenCheck :: FilePath -> IO (WithError ICStringLen)
 copyFileToICStringLenCheck filePath =
    exceptionToError
       (\ exception ->
-         case Exception.ioErrors exception of
+         case ioErrors exception of
             Nothing -> Nothing
             Just ioError -> Just (show ioError) 
          )
@@ -170,7 +167,7 @@ copyStringToFileCheck :: String -> FilePath -> IO (WithError ())
 copyStringToFileCheck str filePath =
    exceptionToError
       (\ exception ->
-         case Exception.ioErrors exception of
+         case ioErrors exception of
             Nothing -> Nothing
             Just ioError -> Just (show ioError) 
          )
@@ -196,6 +193,6 @@ copyCStringLenToFile (ptr,len) filePath =
 
       fd <- openFd filePath WriteOnly (Just fileMode) openFileFlags 
       fdWritePrim fd (ptr,len)
-      Posix.closeFd fd
+      System.Posix.closeFd fd
 
 

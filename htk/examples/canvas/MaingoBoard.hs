@@ -12,7 +12,7 @@ module Main (main) where
 
 import HTk
 import Random(randomRIO)
-import Concurrent(threadDelay)
+import Control.Concurrent(threadDelay)
 import System
 
 

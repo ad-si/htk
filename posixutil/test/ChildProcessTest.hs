@@ -2,7 +2,7 @@
 -- and printing the program's stdout. 
 module ChildProcessTest where
 
-import Concurrent
+import Control.Concurrent
 
 import ChildProcess
 

@@ -8,7 +8,8 @@ module SpinButton (
 
 )  where
 
-import IOExts(unsafePerformIO)
+import System.IO.Unsafe
+
 import Core
 import HTk
 

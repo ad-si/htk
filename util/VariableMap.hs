@@ -24,7 +24,7 @@ module VariableMap(
 import Maybe
 
 import Data.FiniteMap
-import Concurrent
+import Control.Concurrent
 
 import Dynamics
 import Sink

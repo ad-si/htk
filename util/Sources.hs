@@ -139,8 +139,8 @@ module Sources(
 
 import Maybe
 
-import Concurrent
-import IOExts
+import Control.Concurrent
+import Data.IORef
 
 import Computation(done)
 import ExtendedPrelude(HasMapIO(..),addGeneralFallOut,GeneralBreakFn(..),

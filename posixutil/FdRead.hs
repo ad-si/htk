@@ -8,16 +8,16 @@ module FdRead(
    ) where
 
 import IO
-import CString
-import CTypesISO
-import Concurrent
-import System.Posix as Posix
+
+import Foreign.C
+import Control.Concurrent
+import System.Posix
 
 import Computation
 
 foreign import ccall unsafe "unistd.h write" writePrim :: Fd -> CString -> CSize -> IO CSize
 
-fdWritePrim :: Posix.Fd -> CStringLen -> IO ()
+fdWritePrim :: System.Posix.Fd -> CStringLen -> IO ()
 fdWritePrim fd (cstring,len) =
    do
       -- copied from source of PosixIO.lhs
@@ -29,7 +29,7 @@ fdWritePrim fd (cstring,len) =
          else
             ioError(userError("Error writing to child process"))
 
-fdWriteLn :: Posix.Fd -> String -> IO ()
+fdWriteLn :: System.Posix.Fd -> String -> IO ()
 fdWriteLn fd str =
    do
       let 

@@ -7,9 +7,7 @@ module Lock (
         ) where
 
 import Computation
-
 import Debug(debug,(@:))
-import qualified Concurrent
 
 import Synchronized
 

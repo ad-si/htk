@@ -30,16 +30,17 @@ module Scale (
 
 ) where
 
+import Computation
+
+import Synchronized
+import Destructible
+import ReferenceVariables
+
 import Core
 import BaseClasses(Widget)
 import Configuration
 import Resources
 import Slider
-import Synchronized
-import Destructible
-import Computation
-import ReferenceVariables
-import Concurrent
 import Packer
 import Tooltip
 

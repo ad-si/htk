@@ -61,8 +61,7 @@ module Events(
    ) where
 
 import Control.Exception
-
-import Concurrent
+import Control.Concurrent
 
 import Computation
 

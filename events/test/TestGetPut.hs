@@ -1,10 +1,10 @@
 {- Test that runs GetPut.hs.  Enter the number of times to test each type. -}
 module Main(main) where
 
-import Concurrent
+import Control.Concurrent
+import Data.IORef
 
 import GetPut
-import IOExts
 import Channels
 import NullGuard
 import EqGuard

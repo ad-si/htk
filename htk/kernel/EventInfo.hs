@@ -25,8 +25,9 @@ module EventInfo(
    defaultEventInfoSet
    ) where
 
-import FiniteMap
-import Set
+import Data.FiniteMap
+import Data.Set
+
 import Geometry(Distance)
 
 

@@ -158,8 +158,8 @@ module HTk (
   getHTk,
 ) where
 
-import Concurrent
-import qualified IOExts(unsafePerformIO)
+import Control.Concurrent
+import System.IO.Unsafe
 
 import Frame
 import Label
@@ -282,7 +282,7 @@ instance Synchronized HTk where
 -- initHTk may not be called again.  So in general, where initHTk is
 -- used, you should use it before any other HTk action.
 theHTkMVar :: MVar (Maybe HTk)
-theHTkMVar = IOExts.unsafePerformIO (newMVar Nothing)
+theHTkMVar = unsafePerformIO (newMVar Nothing)
 {-# NOINLINE theHTkMVar #-} 
 
 -- | Initializes HTk.

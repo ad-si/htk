@@ -83,15 +83,13 @@ import List
 import qualified System
 
 import qualified IO
-import qualified System.Posix.IO as Posix
-import System.Posix.Types as PosixTypes
-import qualified System.Posix.Signals as PosixSignals
-import System.Posix.Process as PosixProcess
-
-import ByteArray
-import qualified CString
-import qualified Exception
-import qualified Select
+import qualified System.Posix.IO 
+import System.Posix.Types 
+import System.Posix.Signals
+import System.Posix.Process
+import Control.Concurrent
+import Foreign.C.String
+import Control.Exception
 
 import Computation
 import Object
@@ -103,8 +101,6 @@ import DeepSeq
 import IOExtras
 import CompileFlags
 import TemplateHaskellHelps
-
-import Concurrent
 import Maybes
 import ExtendedPrelude
 
@@ -174,12 +170,12 @@ data ChildProcess =
       childObjectID :: ObjectID, 
       lineMode :: Bool,-- if True readMsg returns lines, otherwise
                        -- it returns the first input that's available.
-      writeTo :: PosixTypes.Fd,   -- to write to the process
-      readFrom :: PosixTypes.Fd,  -- to read from the process
+      writeTo :: System.Posix.Types.Fd,   -- to write to the process
+      readFrom :: System.Posix.Types.Fd,  -- to read from the process
       
       closeAction :: IO (), -- action when we closeChildProcessFd's.
 
-      processID :: PosixTypes.ProcessID,
+      processID :: System.Posix.Types.ProcessID,
                        -- process id of child
       bufferVar :: (MVar String),
                        -- bufferVar of previous characters (only relevant
@@ -187,7 +183,7 @@ data ChildProcess =
       toolTitle :: String,
                        -- Title of the tool, derived from the file name,
                        -- used in the debugging file.
-      chunkSize :: PosixTypes.ByteCount 
+      chunkSize :: System.Posix.Types.ByteCount 
                        -- max. size of one "chunk" of characters read
                        -- at one time
       }
@@ -260,13 +256,13 @@ newChildProcess path confs  =
       -- Disable sigPIPE.  This means that the whole program
       -- won't crash when the tool exits.  Unfortunately there
       -- doesn't seem to be another way of doing this.
-      PosixSignals.installHandler PosixSignals.sigPIPE 
-		  PosixSignals.Ignore Nothing
+      System.Posix.Signals.installHandler System.Posix.Signals.sigPIPE 
+		  System.Posix.Signals.Ignore Nothing
 
 
-      (readIn,writeIn) <- Posix.createPipe 
+      (readIn,writeIn) <- System.Posix.IO.createPipe 
       -- Pipe to send things to child
-      (readOut,writeOut) <- Posix.createPipe 
+      (readOut,writeOut) <- System.Posix.IO.createPipe 
       -- Pipe to read things back from child.
 
       let
@@ -278,7 +274,7 @@ newChildProcess path confs  =
                return Nothing
             else
                do
-                  (readErr,writeErr) <- Posix.createPipe
+                  (readErr,writeErr) <- System.Posix.IO.createPipe
                   return (Just (readErr,writeErr))
 
       -- precompute various things, to prevent the child and parent both
@@ -296,26 +292,26 @@ newChildProcess path confs  =
          childAct :: IO ()
          childAct =
             do
-               Posix.dupTo readIn Posix.stdInput
-               Posix.closeFd readIn
-               Posix.closeFd writeIn
+               System.Posix.IO.dupTo readIn System.Posix.IO.stdInput
+               System.Posix.IO.closeFd readIn
+               System.Posix.IO.closeFd writeIn
 
-               Posix.dupTo writeOut Posix.stdOutput
-               Posix.closeFd readOut
-               Posix.closeFd writeOut
+               System.Posix.IO.dupTo writeOut System.Posix.IO.stdOutput
+               System.Posix.IO.closeFd readOut
+               System.Posix.IO.closeFd writeOut
 
                case readWriteErr of
                   Nothing -> 
                      do
-                        Posix.dupTo Posix.stdOutput Posix.stdError
+                        System.Posix.IO.dupTo System.Posix.IO.stdOutput System.Posix.IO.stdError
                         done
                   Just (readErr,writeErr) ->
                      do
-                        Posix.dupTo writeErr Posix.stdError
-                        Posix.closeFd readErr
-                        Posix.closeFd writeErr
+                        System.Posix.IO.dupTo writeErr System.Posix.IO.stdError
+                        System.Posix.IO.closeFd readErr
+                        System.Posix.IO.closeFd writeErr
 
-               PosixProcess.executeFile path True arguments1 environment1
+               System.Posix.Process.executeFile path True arguments1 environment1
                putStrLn errorResponse
                System.exitWith (System.ExitFailure 16)
 
@@ -326,18 +322,18 @@ newChildProcess path confs  =
 
 -- Closing these seems to confuse GHCi, when we run wish more than once.
 -- So instead we close all the fds during the destruction action.
---               Posix.closeFd readIn
---               Posix.closeFd writeOut
+--               System.Posix.IO.closeFd readIn
+--               System.Posix.IO.closeFd writeOut
 
       closeAction <-
          case readWriteErr of
             Nothing ->
                return (
                   do
-                     Posix.closeFd readIn
-                     Posix.closeFd writeIn
-                     Posix.closeFd readOut
-                     Posix.closeFd writeOut
+                     System.Posix.IO.closeFd readIn
+                     System.Posix.IO.closeFd writeIn
+                     System.Posix.IO.closeFd readOut
+                     System.Posix.IO.closeFd writeOut
                   )
             Just (readErr,writeErr) ->
                do
@@ -347,12 +343,12 @@ newChildProcess path confs  =
                      do
                         killThread displayProcess
 
-                        Posix.closeFd readIn
-                        Posix.closeFd writeIn
-                        Posix.closeFd readOut
-                        Posix.closeFd writeOut
-                        Posix.closeFd readErr
-                        Posix.closeFd writeErr
+                        System.Posix.IO.closeFd readIn
+                        System.Posix.IO.closeFd writeIn
+                        System.Posix.IO.closeFd readOut
+                        System.Posix.IO.closeFd writeOut
+                        System.Posix.IO.closeFd readErr
+                        System.Posix.IO.closeFd writeErr
                      )
       let
          toolTitle = 
@@ -376,7 +372,7 @@ newChildProcess path confs  =
       case (cresponse parms) of
          Nothing -> done
          Just (challenge,response) ->
-            Exception.catch
+            Control.Exception.catch
                (do
                   howLong <- getToolTimeOut
                   let
@@ -442,7 +438,7 @@ newChildProcess path confs  =
                   do
                      putStrLn ("Attempt to start "++toolTitle++
                         " from path \""++path++"\" failed")
-                     case Exception.errorCalls exception of
+                     case errorCalls exception of
                         Just mess -> 
                            do
                               putStrLn mess
@@ -451,17 +447,17 @@ newChildProcess path confs  =
                            do
                               putStrLn ("Mysterious exception: "
                                  ++show exception)
-                              Exception.throw exception
+                              throw exception
                   ) 
       return newChild
 
-getStatus :: PosixTypes.ProcessID -> IO ToolStatus
+getStatus :: System.Posix.Types.ProcessID -> IO ToolStatus
 -- Immediately return Nothing if tool hasn't yet finished, or if
 -- it finished too long ago and the system has forgotten its
 -- status; otherwise return Just (its exit status).
 getStatus pid = 
    do
-      ans <- try(PosixProcess.getProcessStatus False True pid)
+      ans <- try(System.Posix.Process.getProcessStatus False True pid)
       -- translation: call waitpid on process specifying
       -- (1) set WNOHANG - don't block if status isn't available,
       --     instead return immediately with Nothing.
@@ -483,8 +479,8 @@ instance Object ChildProcess where
 instance Destroyable ChildProcess where
    destroy child = 
       do
-         res <- try(PosixSignals.signalProcess 
-		    PosixSignals.sigKILL (processID child))
+         res <- try(System.Posix.Signals.signalProcess 
+		    System.Posix.Signals.sigKILL (processID child))
          case res of
             Left error -> 
                debug "ChildProcess.destroy failed; destruction anticipated?"
@@ -502,7 +498,7 @@ instance UnixTool ChildProcess where
 -- Commands
 -- -------------------------------------------------------------------------
 
-{- line mode readMsg has been changed so it doesn't do a Posix.fdRead
+{- line mode readMsg has been changed so it doesn't do a System.Posix.IO.fdRead
    on every character. -}
 readMsg :: ChildProcess -> IO String
 readMsg (child@ChildProcess 
@@ -532,12 +528,12 @@ readMsg (child @ ChildProcess {lineMode = False, readFrom = readFrom,
       debugRead child (result++"\n")
       return result
 
-readChunk :: PosixTypes.ByteCount -> PosixTypes.Fd -> IO String
+readChunk :: System.Posix.Types.ByteCount -> System.Posix.Types.Fd -> IO String
 -- read a chunk of characters, waiting until at least one is available.
 readChunk size fd =
    do
       waitForInputFd fd
-      fdReadOpt <- catchEOF (Posix.fdRead fd size)
+      fdReadOpt <- catchEOF (System.Posix.IO.fdRead fd size)
       case fdReadOpt of
          Nothing -> 
             error "ChildProcess : fdRead returned EOF"
@@ -548,7 +544,7 @@ readChunk size fd =
                else
                   return input
 
-readChunkFixed :: PosixTypes.ByteCount -> PosixTypes.Fd -> IO String
+readChunkFixed :: System.Posix.Types.ByteCount -> System.Posix.Types.Fd -> IO String
 -- like readChunk except that it tries to read as many characters
 -- as are asked for.
 readChunkFixed size fd = readChunkInner "" size
@@ -571,7 +567,7 @@ sendMsg (child @ ChildProcess{lineMode = True,writeTo = writeTo}) str  =
 sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  = 
    do 
       debugWrite child (str ++ "\n") 
-      countByteCount <- Posix.fdWrite writeTo str
+      countByteCount <- System.Posix.IO.fdWrite writeTo str
       -- see man -s 2 write for when write() returns 0.
       let
          count = fromIntegral countByteCount
@@ -587,13 +583,13 @@ sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  =
 
 -- sendMsgRaw writes a CStringLen to the child process.  
 -- It does not append a newline.
-sendMsgRaw :: ChildProcess -> CString.CStringLen -> IO ()
+sendMsgRaw :: ChildProcess -> CStringLen -> IO ()
 sendMsgRaw (child@ChildProcess{writeTo = writeTo}) cStringLen =
    do
       if isDebug
          then
                do
-                  str <- CString.peekCStringLen cStringLen
+                  str <- peekCStringLen cStringLen
                   debugWrite child str
          else
             done
@@ -608,7 +604,7 @@ closeChildProcessFds (ChildProcess{closeAction = closeAction}) =
 -- Displaying stdErr output
 -- -------------------------------------------------------------------------
 
-displayStdErr :: FilePath -> PosixTypes.Fd -> IO ()
+displayStdErr :: FilePath -> System.Posix.Types.Fd -> IO ()
 displayStdErr progName stdErrFd =
    do
       errOutput <- readChunk 1000 stdErrFd 
@@ -625,14 +621,14 @@ displayStdErr progName stdErrFd =
 -- Reading and Writing Lines from Channels
 -- -------------------------------------------------------------------------
 
-readLine :: PosixTypes.Fd -> String -> IO String
+readLine :: System.Posix.Types.Fd -> String -> IO String
 -- Read a line from the Fd, and returns it without the final "\n".  
 -- Raises error
 -- if we get to EOF first or there is an IO error.  
 -- The second argument should be "".  (It's an accumulating parameter)
 readLine fd buf =
    do
-      (inp,count) <- Posix.fdRead fd 1 -- at most one char
+      (inp,count) <- System.Posix.IO.fdRead fd 1 -- at most one char
       if count /= 1 
          then 
             raise readLineError
@@ -651,10 +647,10 @@ readLine fd buf =
 
 -- writeLine fd str writes the given string to the Fd adding a newline
 -- char
-writeLine :: PosixTypes.Fd -> String -> IO ()
+writeLine :: System.Posix.Types.Fd -> String -> IO ()
 writeLine fd str =
    do
-      countByteCount <- Posix.fdWrite fd msg
+      countByteCount <- System.Posix.IO.fdWrite fd msg
       let
          count = fromIntegral countByteCount
 
@@ -679,6 +675,6 @@ writeLineError = userError "ChildProcess: write line error"
 -- Waiting for input on an Fd.
 -- -------------------------------------------------------------------------
 
-waitForInputFd :: PosixTypes.Fd -> IO()
+waitForInputFd :: System.Posix.Types.Fd -> IO()
 waitForInputFd fd  = threadWaitRead(fromIntegral fd)
 

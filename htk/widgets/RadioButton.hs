@@ -9,16 +9,16 @@ module RadioButton (
 
 ) where
 
+import Computation
+import Destructible
+import Synchronized
+
 import Core
 import ButtonWidget
 import BaseClasses(Widget)
 import Configuration
 import Image
 import BitMap
-import Concurrent
-import Computation
-import Destructible
-import Synchronized
 import TkVariables
 import Packer
 import Tooltip

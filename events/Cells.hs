@@ -10,7 +10,7 @@ module Cells(
       -- returns the value, or Nothing if the Cell has been cleared.
    ) where
 
-import IOExts(IORef,newIORef,readIORef,writeIORef)
+import Data.IORef
 
 newtype Cell a = Cell (IORef (Maybe a))
 

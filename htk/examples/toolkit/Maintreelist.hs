@@ -6,7 +6,7 @@ import TreeList
 import Directory
 import System
 import Name
-import Concurrent(threadDelay)
+import Control.Concurrent(threadDelay)
 
 hidden :: FilePath -> Bool
 hidden ('.':_) = True

@@ -34,7 +34,8 @@ module UniqueString(
    ) where
 
 import Array
-import Concurrent
+
+import Control.Concurrent
 
 import ExtendedPrelude
 import Dynamics

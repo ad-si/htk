@@ -39,7 +39,7 @@ module UniqueFile(
 import Directory
 import Char
 
-import Concurrent
+import Control.Concurrent
 
 import IOExtras
 import Registry

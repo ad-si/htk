@@ -11,7 +11,7 @@ module ReferenceCount(
       -- returns True if we reach 0.
    ) where
 
-import Concurrent
+import Control.Concurrent.MVar
 
 newtype RefCount = RefCount (MVar Int)
 

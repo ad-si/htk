@@ -7,8 +7,8 @@ module GetPut(
 
 import CPUTime
 
-import IOExts
-import Concurrent
+import Data.IORef
+import Control.Concurrent.MVar
 
 import Debug
 import Computation

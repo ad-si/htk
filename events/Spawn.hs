@@ -6,8 +6,8 @@ module Spawn(
    spawn -- :: IO () -> IO (IO ())
    ) where
 
-import Concurrent
-import Exception
+import Control.Concurrent
+import Control.Exception
 
 -- | Do a fork, returning an action which may attempt to
 -- kill the forked thread.  (Or may not . . .)

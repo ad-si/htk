@@ -67,8 +67,7 @@ mergePreambles :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String])
 mergePreambles [preamble] = (preamble,[])
 mergePreambles (preamble:_) = (preamble,[
    "All preambles but the first thrown away; complain to Achim!!!"])
-mergePreambles [] = error 
-   "mergePreambles given no preambles; complain to George!!!"
+mergePreambles [] = (emptyMMiSSLatexPreamble,[])
 
 
 extractPreamble :: [Frag] -> WithError(Maybe MMiSSLatexPreamble, Frag)

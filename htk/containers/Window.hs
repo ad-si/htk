@@ -20,14 +20,15 @@ module Window (
 
 ) where
 
+import Computation
+
+import ReferenceVariables
+
 import Resources
 import Geometry
 import Configuration
-import ReferenceVariables
 import Core
 import Char
-import Computation
-import IOExts
 
 type Display = String
 

@@ -10,14 +10,17 @@ module GenericBrowser (
 
 ) where
 
+import Monad
+
+import System.IO.Unsafe
+
+import ReferenceVariables
+
 import HTk
 import Core
 import TreeList
 import Notepad
 import CItem
-import Monad
-import ReferenceVariables
-import IOExts(unsafePerformIO)
 
 -- | Browsed data needs to instantiate the class @CItem@.
 class CItem o => GBObject o where

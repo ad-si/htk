@@ -62,10 +62,10 @@ import Maybe
 import Char
 import List(find,union,delete)
 
-import IOExts
-import Concurrent
-import CString
-import Exception
+import Control.Concurrent
+import Foreign.C.String
+import System.IO.Unsafe
+import Control.Exception
 
 import Debug
 import Object
@@ -151,7 +151,7 @@ delayWish :: IO a -> IO a
 delayWish action =
    do
       beginBuffering 
-      tried <- Exception.try action
+      tried <- Control.Exception.try action
       endBuffering
       propagate tried
 
@@ -336,7 +336,7 @@ instance Destroyable Wish where
 -- ----------------------------------------------------------------
 
 wish :: Wish
-wish = IOExts.unsafePerformIO newWish
+wish = unsafePerformIO newWish
 {-# NOINLINE wish #-}
 
 cleanupWish :: IO ()
@@ -464,7 +464,7 @@ readWishEvent calledWish =
       destroy <- spawnEvent(forever(
          do 
             next <- 
-               always (Exception.catch (readCalledWish calledWish)                                    (\_-> return "OK Terminated"))
+               always (Control.Exception.catch (readCalledWish calledWish)                                    (\_-> return "OK Terminated"))
             send wishInChannel (typeWishAnswer next)
          ))
       return (listen wishInChannel,destroy)
@@ -512,7 +512,7 @@ parseError str = error ("Wish: couldn't parse wish response "++ (show str))
 -- -----------------------------------------------------------------------
 
 loadedPackages :: Ref [String]
-loadedPackages = IOExts.unsafePerformIO (newRef [])
+loadedPackages = unsafePerformIO (newRef [])
 {-# NOINLINE loadedPackages #-}
 
 -- Require a package, returning flag for success

@@ -11,9 +11,10 @@ module InfoBus (
    ) where
 
 
-import Concurrent
-import FiniteMap
-import qualified IOExts(unsafePerformIO,performGC)
+import Control.Concurrent.MVar
+import Data.FiniteMap
+import System.IO.Unsafe
+import System.Mem(performGC)
 
 import Computation
 import Dynamics
@@ -36,7 +37,7 @@ type Tools = FiniteMap ObjectID (IO ())
 -- --------------------------------------------------------------------------
 
 toolmanager :: ToolManager
-toolmanager = IOExts.unsafePerformIO (newMVar emptyFM)
+toolmanager = unsafePerformIO (newMVar emptyFM)
 {-# NOINLINE toolmanager #-}
 
 
@@ -85,7 +86,7 @@ shutdown =
                debug ("Shutting down ",oid)
                try cmd
             )
-      IOExts.performGC
+      performGC
 
 -- --------------------------------------------------------------------------
 -- Simple interface allowing us to register something to be done without

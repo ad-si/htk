@@ -16,7 +16,7 @@ module FMQueue(
       -- IO (Maybe (key,contents,FMQueue key contents),FMQueue key contents)
    ) where
 
-import FiniteMap
+import Data.FiniteMap
 
 import DeleteQueue
 

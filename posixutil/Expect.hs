@@ -28,7 +28,7 @@ module Expect(
       -- matches any line.
    ) where
 
-import Concurrent
+import Control.Concurrent
 
 import Object
 import IOExtras

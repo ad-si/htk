@@ -2,7 +2,7 @@
 -- then executes an action.  It only works for GHC.
 module After(after) where
 
-import Concurrent
+import Control.Concurrent
 
 import Computation
 

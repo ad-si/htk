@@ -5,7 +5,7 @@ import HTk
 import Notepad
 import Name
 import ReferenceVariables
-import IOExts(unsafePerformIO)
+import System.IO.Unsafe
 
 idref :: Ref Int
 idref = unsafePerformIO (newRef 0)

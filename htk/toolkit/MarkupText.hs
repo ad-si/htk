@@ -143,6 +143,15 @@ module MarkupText (
   scrollMarkupText,
 ) where
 
+import Char
+
+import Control.Concurrent(threadDelay)
+import System.IO.Unsafe
+
+import Object
+
+import ReferenceVariables
+
 import HTk
 import GUIObject
 import Configuration
@@ -151,12 +160,7 @@ import TextTag
 import Font
 import Editor
 import Object
-import ReferenceVariables
-import Char
-import IOExts(unsafePerformIO)
-import Object
 import Wish
-import Concurrent(threadDelay)
 
 
 -- -----------------------------------------------------------------------

@@ -18,11 +18,12 @@ module ReferenceVariables(
 
 ) where
 
+import Data.IORef
+import Control.Concurrent.MVar
+
 import Computation
 import Synchronized
 import MSem
-import IOExts(IORef,newIORef,readIORef,writeIORef)
-import Concurrent
 
 data Ref a = Ref MSem (MVar (IORef a))
 

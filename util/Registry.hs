@@ -12,6 +12,12 @@ module Registry(
       -- like an "UntypedRegistry from" but with finer locking.
    Untyped, -- Type constructor for registries with untyped contents.
 
+   -- Unsafe/UnsafeRegistry are equivalent to Untyped/UntypedRegistry except 
+   -- for the additional functionality of causing a core-dump if misused,
+   -- and not requiring Typeable.  THIS WILL GO IN GHC6.04
+   Unsafe,
+   UnsafeRegistry,
+
    NewRegistry(..),
    GetSetRegistry(..),
    GetSetRegistryDyn(..), -- direct access to dynamic values in
@@ -45,12 +51,6 @@ module Registry(
       -- operation.
 
 
-   -- Unsafe/UnsafeRegistry are equivalent to Untyped/UntypedRegistry except 
-   -- for the additional functionality of causing a core-dump if misused,
-   -- and not requiring Typeable.
-   Unsafe,
-   UnsafeRegistry,
-
    getValue', 
       -- Function to be used instead of getValue for debugging purposes.
    getValueSafe,
@@ -62,16 +62,16 @@ module Registry(
 
 import IO
 import Maybe
-import Maybes
 
 import Control.Monad.Trans
-import qualified GlaExts(unsafeCoerce#)
 import System.IO.Unsafe
 import Data.IORef
 import Data.FiniteMap
 import Data.Set
 import Control.Concurrent
 import Control.Exception
+import GHC.Prim(unsafeCoerce#)
+   -- Ouch.  Will go with ghc6.04
 
 import Computation(done)
 import ExtendedPrelude(newFallOut,mkBreakFn)
@@ -318,10 +318,10 @@ data Obj = Obj
  -- to hold the value, which may be of any type.
 
 toObj :: a -> Obj
-toObj = GlaExts.unsafeCoerce#
+toObj = unsafeCoerce#
 
 fromObj :: Obj -> a
-fromObj = GlaExts.unsafeCoerce#
+fromObj = unsafeCoerce#
 
 newtype Unsafe registry from = Unsafe (registry from Obj)
 

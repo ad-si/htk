@@ -35,7 +35,7 @@ module GuardedChannels(
 
 import IO
 
-import Concurrent
+import Control.Concurrent
 
 import Computation (done)
 
