@@ -92,11 +92,13 @@ containerChildren emacsSession this =
       let
          List children = doParse str
          result = mapMaybe
-            (\ (DotList [Id objectType] (String childName)) ->
-               case objectType of
-                  "button" -> Just (Button childName)
-                  "container" -> Just (Container childName)
-                  _ -> Nothing
+            (\ child -> case child of
+               (DotList [Id objectType] (String childName)) ->
+                  case objectType of
+                     "button" -> Just (Button childName)
+                     "container" -> Just (Container childName)
+                     _ -> Nothing
+               List [Id "uneditable-extent"] -> Nothing
                )
             children
       return result
