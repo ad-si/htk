@@ -4,12 +4,68 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
-30) 11.09.02
+38) 12.09.02
+The Emacs editing frame is not getting deleted.
+
+37) 12.09.02
+Problems with Emacs having difficulty finding the variable uni-allow-changes.
+
+I think this is an Emacs bug.  Stopping uni-allow-changes being a buffer
+local variable SEEMS to work around it.
+
+FIXED (hopefully)
+
+36) 12.09.02
+Includes in Xml not always converted into magic buttons.
+
+This is because MMiSSEditXml forgot to permit whitespace before "/>".
+
+FIXED
+
+35) 12.09.02
+When restoring mmiss-paragraph.1.xml, the link to the included frag2 is not 
+shown.
+
+This isn't really a bug.  They can't be displayed because we don't know yet
+what variant to show.  Editing and saving the paragraph shows the (current)
+links.
+
+FIXED (or rather explained away)
+
+34) 12.09.02
+Emacs editing caused problems when control characters were introduced.
+
+This turns out to be the module ParsecToken, which doesn't like control 
+characters in its input strings.  Adding EmacsSExp.doControlChars to
+filter these seems to have solved the problem.
+
+FIXED
+
+33) 12.09.02
+Writing to object a second time complains of variant attributes, even when it
+shouldn't.
+
+FIXED.
+
+32) 12.09.02
+"Edit Attributes" menu item doesn't seem to work.
+
+Turns out to be typo in changes listed in 26 (accidental circular definition).
+FIXED
+
+31) 12.09.02
+It's presumably possible to write to an object being edited by importing
+another object which specifies it.  Clearly this needs to blocked in
+some way.
+
+FIXED
+
+30) 12.09.02
 Quitting an MMiSS edit window does not actually tell Emacs to
 delete it.
 FIXED
 
-29) 11.09.02
+29) 12.09.02
 The error produced when you attempt to edit a file which is
 already being edited wasn't handled very well, as the necessary
 Emacs actions (expanding a button or opening an Emacs window) 
@@ -26,7 +82,7 @@ FIXED
 27) 11.09.02
 MMiSSDTDAssumptions needs to be updated to deal with Achim's latest changes to
 MMiSS.dtd.
-
+ar
 Better wait until MMiSS.dtd has stablised a bit.
 
 Some changes have been made to colours in MMiSS.dtd to make the consistent

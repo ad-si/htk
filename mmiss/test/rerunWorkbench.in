@@ -1,0 +1,10 @@
+#!/usr/local/bin/bash
+# Test script for running the workbench.
+export UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
+export UNISERVER=${UNISERVER:-`hostname`}
+export UNIWORKINGDIR=/tmp/uni.temp2.$USER
+if test @WORK_AROUND_BDB_LINUX_BUG@ -ne 0
+  then
+     export MALLOC_CHECK_=1
+  fi
+gmake runWorkbench

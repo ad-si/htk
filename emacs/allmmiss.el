@@ -29,8 +29,8 @@
   )
 
 (defun MMiSS-delete ()
-  (delete-frame MMiSS-frame)
   (kill-buffer (current-buffer))
+  (delete-frame MMiSS-frame)
   )
 
 ; Note on colours.

@@ -348,10 +348,15 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 -- Creates or update an object from an Xml Element.
 -- If it fails it returns a String.
 -- The MMiSSObjectType is the expected type of the object.
--- @param objectType
+--
+-- If the bool checkThisEditLock is set we insist on getting the edit lock
+-- of the top object, if it already exists.  In any case we get the edit lock
+-- of all included objects.
 writeToMMiSSObject :: MMiSSObjectType -> View -> Link Folder -> 
-   Maybe String -> Element -> IO (WithError (Link MMiSSObject))
-writeToMMiSSObject objectType view folderLink expectedLabel element =
+   Maybe String -> Element -> Bool -> IO (WithError (Link MMiSSObject))
+writeToMMiSSObject objectType view folderLink expectedLabel element 
+   checkThisEditLock =
+
    addFallOutWE (\ break ->
       do
          -- (1) validate it.
@@ -506,7 +511,35 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
             ()
             contents
 
-         -- (10) (Finally) add all the objects.  We take them in definedObjects
+         -- (10) Attempt to grab the editLock for every object that is already
+         --     defined, unless (if checkThisEditLock) it is the top object.
+         let
+            objectsToCheck0 = 
+               (map
+                  (\ (_,mmissObject) -> mmissObject)
+                  (eltsFM alreadyExistingMap)
+                  )
+
+            objectsToCheck1 =
+               if checkThisEditLock
+                  then
+                     objectsToCheck0
+                  else
+                     filter 
+                        (\ object -> objectLabel /= name object)
+                        objectsToCheck0
+
+         releaseActWE <- tryAcquireBSemsWithError
+            editLock
+            (\ mmissObject -> "Cannot write to "++name mmissObject
+               ++" as it is already being edited")
+            objectsToCheck1
+
+         let
+            releaseAct = coerceWithErrorOrBreak break releaseActWE
+         seq releaseAct done
+
+         -- (11) Add all the objects.  We take them in definedObjects
          -- order, since that means no parent is added before its children,
          -- so we never add an undefined reference
          newLinks <- mapM
@@ -516,6 +549,9 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
                )
             definedObjects
 
+         -- Release all the edit locks
+         releaseAct
+         
          return (last newLinks)
       )
 
@@ -653,7 +689,7 @@ createMMiSSObject objectType view folder =
                xmlElement = coerceWithErrorOrBreak break xmlElementWE
 
             linkWE <- writeToMMiSSObject objectType view folder Nothing
-               xmlElement
+               xmlElement True
 
             let
                link = coerceWithErrorOrBreak break linkWE
@@ -730,7 +766,7 @@ editMMiSSObject view link =
                              element `seq` done
                              linkWE <- writeToMMiSSObject 
                                 (mmissObjectType object) view parent
-                                (Just name) element
+                                (Just name) element False
                              let
                                 link = coerceWithErrorOrBreak break linkWE
                              link `seq` done

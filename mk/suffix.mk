@@ -148,7 +148,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
+.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -162,7 +162,12 @@ all : packagehere mainhere testhere
 # ghci starts up GHC interactively, with the current package if any
 ghci :
 	$(HC) $(TESTFLAGS)  --interactive -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
- 
+
+# ghcihere starts up GHC and loads the packages this directory depends on,
+# but not the package in this directory. 
+ghcihere:
+	$(HC) $(HCFLAGS)  --interactive -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
+
 test : testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
 

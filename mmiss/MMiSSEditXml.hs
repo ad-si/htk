@@ -61,12 +61,12 @@ parseXmlString str =
          -- or whatever) in this.
 
       include1 = compile
-         "\\`<include(\\w*)( |\t|\n)+included=\"(.*)\"( |\t|\n)+status=\"present\"/>"
+         "\\`<include(\\w*)( |\t|\n)+included=\"(.*)\"( |\t|\n)+status=\"present\"( |\t|\n)*/>"
       include1index = 2 -- position of included attribute in this.
          -- (\\w*) counts as 0 and ( |\n)+ as 1.
       
       include2 = compile
-         "\\`<include(\\w*)( |\t|\n)+status=\"present\"( |\t|\n)+included=\"(.*)\"/>"
+         "\\`<include(\\w*)( |\t|\n)+status=\"present\"( |\t|\n)+included=\"(.*)\"( |\t|\n)*/>"
       include2index = 3
 
       --

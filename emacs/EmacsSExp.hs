@@ -4,6 +4,8 @@ module EmacsSExp (
    doParse,
    ) where
 
+import Char
+
 import Parsec
 import qualified ParsecToken as P
 
@@ -19,10 +21,26 @@ data SExp =
 
 doParse :: String -> SExp
 doParse input =
-   case parse parseSExp "XEmacs output" input of
+   case parse parseSExp "XEmacs output" (doControlChars input) of
       Left errors ->
          error ("Parse errors:\n "++show errors++"\n in "++input)
       Right sexp -> sexp
+
+---
+-- Because the ParsecToken module seems to have a problem with
+-- control characters (with charcode < 32) in strings, we replace them
+-- by their Haskell representation.  However since they don't occur
+-- all that often, we first check if they actually occur.
+doControlChars :: String -> String
+doControlChars str =
+   if any isControl str
+      then
+         foldr
+            (\ ch str -> if isControl ch then showLitChar ch str else ch:str)
+            ""
+            str
+      else
+         str   
 
 parseSExp :: Parser SExp
 parseSExp =

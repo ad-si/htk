@@ -256,7 +256,7 @@ variantAttributesType :: AttributesType
 variantAttributesType =
    foldl
       (\ attType name -> needs (mkAttributeKey name) "" attType)
-      variantAttributesType
+      emptyAttributesType
       variantAttributes
 
 

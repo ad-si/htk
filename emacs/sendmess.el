@@ -89,9 +89,7 @@
 (defun uni-set-buffer (buffer action)
    (save-excursion
       (set-buffer buffer)
-      (setq uni-allow-changes t)
-      (funcall action)
-      (setq uni-allow-changes nil)
+      (let ((uni-allow-changes t)) (funcall action))
       )
    )
 

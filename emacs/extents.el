@@ -54,8 +54,6 @@
    (make-local-variable 'before-change-functions)
    (setq before-change-functions
       (cons 'uni-check-change before-change-functions))
-   (make-local-variable 'uni-allow-changes)
-   (setq uni-allow-changes nil)
 
    ; Set variable indicating if we are to have coloured magic buttons
    ; (No until uni-set-colour-hack is called)
@@ -338,6 +336,8 @@
 ; whether to permit the change or not.
 ;
 ; Setting uni-allow-changes disables the check
+(setq uni-allow-changes nil)
+
 (defun uni-check-change (from to)
    (cond 
       ((null uni-allow-changes)

@@ -110,7 +110,7 @@ queryInsert (MMiSSVariantDict mVar) parent this =
          dict2 = addToPureVariantDict dict this (error "#")
       catchJust 
          errorCalls
-         ( (searchVariantDict dict2 parent) `seq` (return False))
+         ( (fromJust (searchVariantDict dict2 parent)) `seq` (return False))
          (\ str -> if str == "#" then return True else error str)
 
 
