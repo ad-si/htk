@@ -24,12 +24,13 @@ import AttributesType
 import GlobalMenus
 import DisplayView
 
+import MMiSSDTDAssumptions
 import MMiSSVariant
 
 data MMiSSDisplayType = MMiSSDisplayType {
    name :: String,
    key :: GlobalKey,
-   variantAttributes :: Attributes
+   defaultVariantAttributes :: Attributes
    -- current settings of the variant attributes
    }
 
@@ -44,10 +45,11 @@ instance HasTyRep MMiSSDisplayType where
 
 instance HasCodedValue MMiSSDisplayType where
    encodeIO = mapEncodeIO (\ (MMiSSDisplayType {name = name,key = key,
-      variantAttributes = variantAttributes}) -> (name,key,variantAttributes))
-   decodeIO = mapDecodeIO (\ (name,key,variantAttributes) ->
+      defaultVariantAttributes = defaultVariantAttributes}) 
+         -> (name,key,defaultVariantAttributes))
+   decodeIO = mapDecodeIO (\ (name,key,defaultVariantAttributes) ->
        MMiSSDisplayType {name = name,key = key,
-          variantAttributes = variantAttributes})
+          defaultVariantAttributes = defaultVariantAttributes})
 
 instance DisplayType MMiSSDisplayType where
    displayTypeTypeIdPrim _ = "MMiSSDisplay"
@@ -102,7 +104,7 @@ newMMiSSDisplay view =
                return (Just (MMiSSDisplayType {
                   name = name,
                   key = key,
-                  variantAttributes = attributes
+                  defaultVariantAttributes = attributes
                   }))
 -- -----------------------------------------------------------------
 -- Registering the display

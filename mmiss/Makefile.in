@@ -1,7 +1,7 @@
 PACKAGE = uni-mmiss
 PACKAGES = uni-types uni-emacs
 
-SRCS = MMiSSPaths.hs MMiSSRegistrations.hs \
+SRCS = MMiSSPaths.hs MMiSSDTDAssumptions.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
    XmlValidate.hs MMiSSDTD.hs MMiSSObjectTypeList.hs \
    MMiSSPathsSimple.hs MMiSSObjects.hs MMiSSEditXml.hs MMiSSInitialise.hs

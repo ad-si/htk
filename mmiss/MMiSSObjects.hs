@@ -151,6 +151,8 @@ data MMiSSObject = MMiSSObject {
       -- in the content last created (or null at the beginning).
    referencedObjects :: VariableSet EntityName,
       -- Ditto Reference's.
+   linkedObjects :: VariableSet EntityName,
+      -- Ditto Link's.
    parentFolder :: Link Folder,
       -- Folder containing this object.  This is also where we search for
       -- other constituent objects.
@@ -175,6 +177,7 @@ instance HasCodedValue MMiSSObject where
          mmissObjectType <- lookupInGlobalRegistry globalRegistry view tId
          includedObjects <- newEmptyVariableSet
          referencedObjects <- newEmptyVariableSet
+         linkedObjects <- newEmptyVariableSet
          variantAttributes <- newEmptyAttributes view
          mkVariantAttributes variantAttributes
          editLock <- newBSem
@@ -183,6 +186,7 @@ instance HasCodedValue MMiSSObject where
             objectContents = objectContents,
             includedObjects = includedObjects,
             referencedObjects = referencedObjects,
+            linkedObjects = linkedObjects,
             parentFolder = parentFolder,
             editLock = editLock
             },codedValue1)
@@ -221,15 +225,21 @@ instance ObjectType MMiSSObjectType MMiSSObject where
       let
          includedArcParms =
             Color "red" $$$
-            Dotted $$$
+            Thick $$$
             emptyArcTypeParms
          includedArcType = fromString "I"
 
          referencedArcParms =
             Color "red" $$$
-            Dashed $$$
+            Dotted $$$
             emptyArcTypeParms
          referencedArcType = fromString "R"
+
+         linkedArcParms =
+            Color "red" $$$
+            Dashed $$$
+            emptyArcTypeParms
+         linkedArcType = fromString "L"
 
          theNodeType = fromString ""
 
@@ -269,6 +279,9 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   referencedNames :: VariableSetSource EntityName
                   referencedNames = SinkSource (referencedObjects mmissObject)
  
+                  linkedNames :: VariableSetSource EntityName
+                  linkedNames = SinkSource (linkedObjects mmissObject)
+ 
                   arcEntityName :: ArcType -> EntityName 
                      -> IO (Maybe (WrappedLink,ArcType))
                   arcEntityName arcType name = 
@@ -292,10 +305,19 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   referencedLinks = mapVariableSetSourceIO'
                      (arcEntityName referencedArcType)
                      referencedNames
+                  
+                  linkedLinks ::  VariableSetSource (WrappedLink,ArcType) 
+                  linkedLinks = mapVariableSetSourceIO'
+                     (arcEntityName linkedArcType)
+                     linkedNames
 
                   allLinks :: VariableSetSource (WrappedLink,ArcType)
-                  allLinks = concatVariableSetSource includedLinks 
-                     referencedLinks                  
+                  allLinks =
+                     concatVariableSetSource ( 
+                        concatVariableSetSource includedLinks 
+                           referencedLinks
+                        ) linkedLinks
+  
                return (allLinks,staticSinkSource [])
       in
          case getNodeTypeParms wrappedDisplayType (displayParms objectType) of
@@ -305,7 +327,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   topLinks = [],
                   arcTypes = [
                      (includedArcType,includedArcParms),
-                     (referencedArcType,referencedArcParms)
+                     (referencedArcType,referencedArcParms),
+                     (linkedArcType,linkedArcParms)
                      ],
                   nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
                   getNodeType = (\ object -> theNodeType),
@@ -422,7 +445,7 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
                :: FiniteMap String (Link MMiSSObject,MMiSSObject)
             alreadyExistingMap = listToFM (catMaybes alreadyExisting)
 
-         -- (8) Verify that all included or referenced objects exist
+         -- (8) Verify that all included, linked or referenced objects exist
          mapM_
             (\ (_,contents) ->
                mapM_
@@ -444,7 +467,8 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
                            Exists _ -> done
                      )            
                   (includes (accContents contents) ++ 
-                     references (accContents contents))
+                     references (accContents contents) ++
+                     links (accContents contents))
                )
             definedObjects
 
@@ -541,6 +565,8 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                   (includes (accContents structuredContent)))
                setVariableSet (referencedObjects object) (map fromString
                   (references (accContents structuredContent)))
+               setVariableSet (linkedObjects object) (map fromString
+                  (links (accContents structuredContent)))
                return (versioned,objectLink,object)          
          Nothing ->
             do
@@ -553,6 +579,8 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                   (includes (accContents structuredContent)))
                referencedObjects <- newVariableSet (map fromString
                   (references (accContents structuredContent)))
+               linkedObjects <- newVariableSet (map fromString
+                  (links (accContents structuredContent)))
                editLock <- newBSem
                let
                   name = label structuredContent
@@ -564,6 +592,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                      objectContents = objectContents,
                      includedObjects = includedObjects,
                      referencedObjects = referencedObjects,
+                     linkedObjects = linkedObjects,
                      parentFolder = folderLink,
                      editLock = editLock
                      }

@@ -14,7 +14,9 @@ import Computation
 import Dynamics
 
 import CodedValue
+
 import MMiSSAttributes
+import MMiSSDTDAssumptions
 
 -- ------------------------------------------------------------------------
 --
@@ -127,12 +129,14 @@ data AccContents = AccContents {
    includes :: [String], -- included entities (including ones in this document)
    children :: [StructuredContent], 
       -- included entities (in this XML document)
+   links :: [String], -- linked entities
    references :: [String] -- referenced entities
    }
 
 nullAccContents :: AccContents
 nullAccContents = 
-   AccContents {contents = [],includes = [],children = [],references = []}
+   AccContents {contents = [],includes = [],children = [],
+      links = [],references = []}
 
 addAccContents :: AccContents -> AccContents -> AccContents
 addAccContents 
@@ -140,25 +144,21 @@ addAccContents
       contents = contents1,
       includes = includes1,
       children = children1,
+      links = links1,
       references = references1})
    (AccContents {
       contents = contents2,
       includes = includes2,
       children = children2,
+      links = links2,
       references = references2}) =
    AccContents {
       contents = contents1 ++ contents2,
       includes = includes1 ++ includes2,
       children = children1 ++ children2,
+      links = links1 ++ links2,
       references = references1 ++ references2
       }
-
-getAttributes :: String -> [Attribute] -> Maybe String
-getAttributes key attributes =
-   case find (\ (name,attVal) -> (name == key)) attributes of
-      Nothing -> Nothing
-      Just (_,AttValue [Left s]) -> Just s
-      Just _ -> error "MMiSSContent.getAttributes - irregular attribute"
 
 -- ----------------------------------------------------------------------
 -- Structuring Contents
@@ -166,22 +166,38 @@ getAttributes key attributes =
 
 structureContents :: Element -> WithError StructuredContent
 structureContents elem = case structureElement elem of
-   Left structuredContent -> hasValue structuredContent
+   Left (_,_,structuredContent) -> hasValue structuredContent
    Right _ -> hasError "Top-level in Xml does not have a label attribute"
 
 ---
--- If the "label" element is set we create a new StructuredContent item
--- otherwise we return an AccContents.
-structureElement :: Element -> Either StructuredContent AccContents
-structureElement (Elem tag attributes contents0) =
+-- For DirectInclude items, structureElement returns (a) the associated
+-- label; (b) an Element referencing the item; (c) a StructuredContent
+-- corresponding to the item.
+--
+-- For other items, we return AccContents corresponding to the content of
+-- the item.
+structureElement :: Element 
+   -> Either (String,Element,StructuredContent) AccContents
+structureElement (element @ (Elem tag attributes contents0)) =
    let
       accContentsl = map structureContent contents0
       accContents = foldr addAccContents nullAccContents accContentsl
-      labelOpt = getAttributes "label" attributes
+
+      -- code for handling include/link/reference's.
+      newElem = Elem tag attributes (contents accContents)
+
+      wrapContents = Right (nullAccContents {contents = [CElem newElem]})
+
+      addPointer newPtr =
+         Right (addAccContents 
+            newPtr (accContents {contents = [CElem newElem]})
+            )
    in
-      case labelOpt of
-         Just label ->
+      case classifyElement element of
+         DirectInclude label element ->
             Left (
+               label,
+               element,
                StructuredContent {
                   tag = tag,
                   label = label,
@@ -189,62 +205,22 @@ structureElement (Elem tag attributes contents0) =
                   accContents = accContents
                   }
                )
-         Nothing ->
-            let
-               newElem = Elem tag attributes (contents accContents)
-               (includes1,references1) =
-                  case tag of
-                     "include" -> 
-                        case (
-                           getAttributes "included" attributes,
-                           getAttributes "status" attributes) of
-                              (Just s,Just "present") -> ([s],[])
-                              (Just s,_) -> ([],[])
-                              (Nothing,_) -> error "included not specified"
-                     "reference" -> 
-                        case (
-                           getAttributes "referenced" attributes,
-                           getAttributes "status" attributes) of
-                              (Just s,Just "present") -> ([s],[])
-                              (Just s,_) -> ([],[])
-                              (Nothing,_) -> error "referenced not specified"
-                     _ -> ([],[])
-
-               toAdd = AccContents {
-                  contents = [CElem newElem],
-                  includes = includes1,
-                  references = [],
-                  children = []
-                  }
-
-               newAccContents = addAccContents toAdd 
-                  (accContents {contents = []})
-            in
-               Right newAccContents
+         Include label -> addPointer (nullAccContents {includes = [label]})
+         Reference label -> addPointer (nullAccContents {references = [label]})
+         Link label -> addPointer (nullAccContents {links = [label]})
+         Other -> wrapContents
            
 structureContent ::  Content -> AccContents
 structureContent content =
    case content of
       CElem element -> case structureElement element of
-         Left structuredContent -> 
-            let
-               lab = label structuredContent
-            in
+         Left (lab,element,structuredContent) -> 
                nullAccContents {
-                  contents = [mkIncludeLink lab],
+                  contents = [CElem element],
                   children = [structuredContent],
                   includes = [lab],
                   references = []
                   }
          Right contents -> contents
       other -> nullAccContents {contents = [other]}
-
----
--- Make an include reference which already exists
-mkIncludeLink :: String -> Content
-mkIncludeLink label 
-   = CElem (Elem "include" [
-      ("included",AttValue [Left label]),
-      ("status",AttValue [Left "present"])
-      ] [])
  

@@ -19,6 +19,7 @@ import DisplayParms
 import GlobalRegistry
 import Link
 
+import MMiSSDTDAssumptions
 import MMiSSVariant
 import MMiSSDTD
 import {-# SOURCE #-} MMiSSObjects
@@ -42,11 +43,11 @@ mmissObjectTypeMap =
             (xmlTag,MMiSSObjectTypeData {
                xmlTag' = xmlTag,
                typeId' = constructKey xmlTag,
-               attributesType' = allAttributes,
+               attributesType' = variantAttributesType,
                displayParms' = getDisplayInstruction xmlTag
                })
             )
-         labelledElements
+         allLabelledElements
          )
 
 ---
@@ -54,14 +55,3 @@ mmissObjectTypeMap =
 constructKey :: String -> GlobalKey
 constructKey xmlTag = oneOffKey "MMiSSObjectTypeList" xmlTag
 
--- All the attributes we provide are the same.
-extraAttributes :: [String]
-extraAttributes = 
-   ["version","data","comment","previous-version","authors","prior-authors"]
-
-allAttributes :: AttributesType
-allAttributes =
-   foldl
-      (\ attType name -> needs (mkAttributeKey name) "" attType)
-      variantAttributesType
-      extraAttributes

@@ -10,7 +10,7 @@
    -}
 module MMiSSDTD(
    allElements,
-   labelledElements,
+   allLabelledElements,
    validateElement,
    getDisplayInstruction,
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
@@ -36,6 +36,8 @@ import DisplayParms
 
 import XmlValidate
 
+import MMiSSDTDAssumptions
+
 -- -------------------------------------------------------------
 -- The internal representation of a DTD
 -- -------------------------------------------------------------
@@ -43,7 +45,8 @@ import XmlValidate
 data MMiSSDTD = MMiSSDTD {
    simpleDTD :: SimpleDTD,
    displayInstructions :: FiniteMap String String,
-   elements :: [String]
+   elements :: [String],
+   labelledElements :: [String]
    }
 
 -- -------------------------------------------------------------
@@ -91,7 +94,8 @@ readDTD filePath =
          mmissDTD = MMiSSDTD {
             simpleDTD = simpleDTD,
             elements = elements,
-            displayInstructions = listToFM processingInstructions
+            displayInstructions = listToFM processingInstructions,
+            labelledElements = findLabelledElements dtd
             }                            
       return mmissDTD
 
@@ -111,12 +115,8 @@ allElements = elements theDTD
 ---
 -- allElements, filtering just those elements which have a "label"
 -- attribute.
-labelledElements :: [String]
-labelledElements = filter
-   (\ elem -> isJust (lookupAttribute (simpleDTD theDTD) elem "label")
-      )
-   allElements
-
+allLabelledElements :: [String]
+allLabelledElements = labelledElements theDTD
 
 getDisplayInstruction :: String -> NodeTypes a
 getDisplayInstruction str =

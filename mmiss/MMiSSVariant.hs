@@ -26,7 +26,6 @@ module MMiSSVariant(
    toMMiSSSearchObjectFromXml,
    mergeMMiSSSearchObjects,
 
-   variantAttributesType,
    mkVariantAttributes,
    extractVariantAttributes,
    ) where
@@ -50,33 +49,16 @@ import CodedValue
 import BasicObjects
 import AttributesType
 
----
--- variantAttributes is the list of all attributes to be classed as
--- variant.  
---
--- Hopefully this list will eventually be worked out from a DTD rather
--- than hardwired into the source code.
-variantAttributes :: [String]
-variantAttributes = ["language","formalism","level-of-detail",
-   "interaction-level"]
 
+import MMiSSDTDAssumptions
+---
+-- variantAttributes itself is imported from MMiSSDTDAssumptions.
 variantAttributesArray :: Array Int String
 variantAttributesArray = 
    listArray (1,length variantAttributes) variantAttributes
 
 variantAttributesSet :: Set String
 variantAttributesSet = mkSet variantAttributes
-
--- -------------------------------------------------------------------
--- Here are the variantAttributes as an AttributesType.
--- -------------------------------------------------------------------
-
-variantAttributesType :: AttributesType
-variantAttributesType =
-   foldl
-      (\ attType name -> needs (mkAttributeKey name) "" attType)
-      emptyAttributesType
-      variantAttributes
 
 -- -------------------------------------------------------------------
 -- The impure interface

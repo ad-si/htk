@@ -2,12 +2,18 @@
   XML Document Type Definition for MMiSSLatex 2
   Version 0.91
   Initial Version: George Russell (2002-June)
-  Current Version: Achim Mahnke   (2002-09-02)
+  First full version: Achim Mahnke   (2002-09-02)
 
   This DTD is still experimental, it is intended as a basis for discussion.
   Comments are welcome! (send mail to amahnke@tzi.de)
 
+  The Haskell modules which make the most assumptions about the contents of 
+  this file are MMiSSDTDAssumptions, MMiSSEditXml, and (to a lesser extent) 
+  MMiSSContent.
+
   Root element is 'package'.
+
+  
 -->
 
 <!-- ======================== ENTITIES ==================================== -->
