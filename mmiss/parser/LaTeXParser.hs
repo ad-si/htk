@@ -183,46 +183,55 @@ unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
 
 plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
-                 [("Clause", "clause"), ("Step", "step"), ("Authorentry", "authorEntry")]
+                 [("Authorentry", "authorEntry"), ("Rule", "rule"), ("ProofStep", "proofStep")] ++
+                 [("DevelopmentStep","developmentStep"), ("Source", "source"), ("Declaration","declaration")] ++
+                 [ ("Axiom","axiom")] ++ latexAtomFormulaEnvs
 
 
 envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract", "abstract")] ++
                [("Introduction", "introduction"),  ("Summary", "summary"), ("Program","program")] ++
 	       [("Exercise","exercise"), ("Example","example"),  ("Definition","definition")] ++
                [("Theory","theory"), ("Theorem", "theorem"), ("Development","development")] ++
-               [("Proof","proof"), ("Script","script"), ("List", "list"), ("ListItem", "listItem")] ++
+               [("Proof","proof"), ("Script","script"), ("ListItem", "listItem")] ++
                [("Conjecture", "conjecture"), ("Lemma", "lemma"), ("Corollary", "corollary")] ++
-               [("Assertion", "assertion"), ("TextFragment","textFragment")]
+               [("Assertion", "assertion"), ("Text","text"), ("Assignment", "assignment")] ++
+               [("Solution", "solution"),("Itemize", "itemize"), ("Enumerate","enumerate")] ++
+               [("Description", "description"), ("Proposition", "proposition"), ("FalseConjecture", "falseConjecture")] ++
+               [("Item","item"), ("Comment","comment"),("Note","note"),("Warning","warning")] ++
+               [("Error","error"), ("Glossary", "glossary")] ++ listEnvs
 
 envsWithoutText = [("Package", "package")]
 
-includeCommands =  [("IncludeGroup", "includeGroup"), ("IncludeUnit", "includeUnit")] ++
-                   [("IncludeAtom", "includeAtom"), ("IncludeTextFragment","includeTextFragment")] ++
-		   [("IncludeSection", "includeSection"), ("IncludeAbstract","includeAbstract")] ++
-                   [("IncludeIntroduction", "includeIntroduction"), ("IncludeSummary","includeSummary")] ++
-                   [("IncludeFormalUnit", "includeFormalUnit"), ("IncludeAtom","includeAtom")] ++
-                   [("IncludeConceptualUnit", "includeConceptualUnit")] ++
-                   [("IncludeConceptualAtom", "includeConceptualAtom")] ++
-                   [("IncludeProgramFragment","includeProgramFragment")] ++
-                   [("IncludeProgram", "includeProgram"), ("IncludeClause","includeClause")] ++
-                   [("IncludeTheory", "includeTheory"), ("IncludeStep","includeStep")] ++
-                   [("IncludeProof", "includeProof"), ("IncludeScript","includeScript")] ++
-                   [("IncludeDevelopment", "includeDevelopment")]
+includeCommands =  [("IncludeUnit", "includeUnit"), ("IncludeSection", "includeSection")] ++
+                   [("IncludeAtom", "includeAtom"), ("IncludeText","includeText")] ++
+                   [("IncludeProgramComponent","includeProgramComponent")] ++
+                   [("IncludeCompositeUnit", "includeCompositeUnit"), ("IncludeTerm","includeTerm")] ++
+                   [("IncludeProofStep", "includeProofStep"), ("IncludeProof", "includeProof")] ++
+                   [("IncludeDevelopmentStep", "includeDevelopmentStep"), ("IncludeTable","includeTable")] ++
+                   [("IncludeFigure","includeFigure")]
 
-linkAndRefCommands = [("Link", "link"), ("ForwardLink","link"), ("Reference","reference")] ++
-                     [("ForwardReference", "reference")]
+linkCommands = [("Link", "link")]
+refCommands = [("Reference","reference"), ("Ref","reference")]
+linkAndRefCommands = linkCommands ++ refCommands
 
-embeddedElements = [("Emphasis","emphasis"), ("IncludeTextFragment","includeTextFragment")] ++
-		   [("Link","link") , ("Define", "define"), ("Reference", "reference")] ++
-                   [("ForwardLink","link"), ("ForwardReference", "reference")]
+
+embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
+		   [("Link","link") , ("Def", "define"), ("Reference", "reference")] ++
+                   [("Ref", "reference"), ("Cite", "cite")]
+
+
+listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate")]
+
+itemNames = ["ListItem", "Item", "item"]
+
 
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
-mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
+mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands ++ listEnvs
 
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
-latexPlainTextEnvs = ["verbatim", "verbatim*", "math", "displaymath", "equation", "code", "xcode", "scode"]
+latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"]
 
 
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
@@ -230,8 +239,10 @@ latexPlainTextEnvs = ["verbatim", "verbatim*", "math", "displaymath", "equation"
 -- The following list matches the various LaTeX formula enviroments to theses symbolic names recorded in the
 -- boundsType attribute: 
 
-latexFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "shortDisplaymathDollar"), ("\\(", "shortMathParens"), ("displaymath", "displaymath")] ++
-                   [("\\[", "shortDisplaymath"), ("equation", "equation")]
+latexEmbeddedFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "shortDisplaymathDollar")] ++
+                   [("\\(", "shortMathParens")]
+
+latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), ("displaymath", "displaymath")] 
 
 
 -- specialTreatmentInPreamble contains all Commands which are specially treated in the process
@@ -454,36 +465,40 @@ lParams id l
            then return (LParams [(SingleParam [(Other labelId)] '{')] [] Nothing Nothing)
            else return (LParams [(SingleParam [(Other labelId)] '{')] attributes Nothing Nothing)
 
-  | id `elem` (map fst linkAndRefCommands) =
+  | id `elem` (map fst refCommands) =
       do pos <- getPosition
-	 attributes <- try(between (char '[') (char ']') attParser)
-	               <?> (appendSourcePos pos ("[attribute-list] for Command <" ++ id ++ ">"))
+	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
          spaces
 	 labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("[attribute list]{referencedLabelID} for Command <" ++ id ++ ">"))
-	 spaces
-         statusAtt <- if (isPrefixOf "Forward" id) 
-			then return (("status", "absent"))
-			else return (("status", "present"))
-         attributes <- return (attributes ++ [statusAtt])
-         return (LParams [(SingleParam [(Other labelId)] '{')] attributes Nothing Nothing)
+	             <?> (appendSourcePos pos ("[phrase]{referenced LabelID} for Command <" ++ id ++ ">"))
+         linkTextAttrs <- if (phrase == []) then return([]) else return([("LinkText", phrase)])
+         return (LParams [(SingleParam [(Other labelId)] '{')] 
+                         ([("status","absent")] ++ linkTextAttrs) Nothing Nothing)
+
+  | id `elem` (map fst linkCommands) =
+      do pos <- getPosition
+	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
+         spaces
+	 elType <- try(between (char '{') (char '}') idParser)
+	           <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
+         spaces
+	 labelId <-  try(between (char '{') (char '}') idParser)
+	             <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
+         linkTextAttrs <- if (phrase == []) then return([]) else return([("LinkText", phrase)])
+         return (LParams [(SingleParam [(Other labelId)] '{')] 
+                         ([("status","absent"), ("Type", elType)] ++ linkTextAttrs) Nothing Nothing)
  
  | id == "Define" = 
       do pos <- getPosition
-         labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("{labelID}{definedName}{attribute-list} for Command <" ++ id ++ ">"))
+	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
          spaces
-	 str <-  (try (between (char '{') (char '}') (value "")))
-	         <?> (appendSourcePos pos ("{labelID}{definedName}{attribute-list} for Command <" ++ id ++ ">"))
-         definedName <- return ([(Other str)])
-   	 spaces
-	 attributes <- try(between (char '{') (char '}') attParser)
-		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">"))   
-         if (attributes == []) 
-           then return (LParams [(SingleParam [(Other labelId)] '{'), (SingleParam definedName '{')] [] Nothing Nothing)
-           else return (LParams [(SingleParam [(Other labelId)] '{'), (SingleParam definedName '{')] 
-                          attributes Nothing Nothing)
- | id == "ListItem" = 
+         labelId <-  try(between (char '{') (char '}') idParser)
+	             <?> (appendSourcePos pos ("[phrase]{defined LabelID} for Command <" ++ id ++ ">"))
+         optTextAttrs <- if (phrase == []) then return([]) else return([("OptText", phrase)])
+         return (LParams [(SingleParam [(Other labelId)] '{')] 
+                         ([("status","absent")] ++ optTextAttrs) Nothing Nothing)
+
+ | (id `elem` itemNames) =
       do pos <- getPosition
          attributes <- option [] (try(between (char '[') (char ']') attParser))
 		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ "> "))
@@ -1217,13 +1232,13 @@ makeContent (f:frags) NoText parentEnv =
 		      -- TODO: Text, der nur aus Linefeeds besteht, muss erhalten bleiben, da er Einfluss
                       --       auf das von Latex erzeugte Layout haben kann.
      (Env name ps fs) -> 
-       if (name `elem` ((map fst plainTextAtoms) ++ (map fst latexFormulaEnvs)))
+       if (name `elem` ((map fst plainTextAtoms) ++ (map fst latexEmbeddedFormulaEnvs)))
          then hasError("Environment '" ++ name ++ 
                        "' with label '" ++ (getLabelFromParams ps) ++ 
                        "' not allowed inside a " ++ parentEnv ++ "!")
          else
-           if (name == "TextFragment")
-	     then hasError("No Environment 'TextFragment'" ++ 
+           if (name == "Text")
+	     then hasError("No Environment 'Text'" ++ 
                            "' with label '" ++ (getLabelFromParams ps) ++ 
                            "' allowed inside a " ++ parentEnv ++ "!")
              else
@@ -1253,7 +1268,6 @@ makeContent (f:frags) NoText parentEnv =
 	   	       body = (makeContent fs NoText parentEnv)
                        whole = myConcatWithError (myConcatWithError begin body) end
                    in myConcatWithError whole (makeContent frags NoText parentEnv)
---		   myConcatWithError (makeContent fs NoText parentEnv) (makeContent frags NoText parentEnv)
      (Command name ps) -> 
         if (name `elem` (map fst includeCommands))
 	  then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
@@ -1262,7 +1276,6 @@ makeContent (f:frags) NoText parentEnv =
                                 otherwise -> []
 	       in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))] ++ delimElem))
                                     (makeContent frags NoText parentEnv)
---	  else makeContent frags NoText parentEnv
           else let delimStr = case ps of
                                 (LParams _ _ (Just str) _) -> str
                                 otherwise -> ""
@@ -1271,129 +1284,129 @@ makeContent (f:frags) NoText parentEnv =
                                             (makeContent frags NoText parentEnv)
 
 
-
-makeContent (f:frags) TextAllowed "List" = 
-   case f of
-     (EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
-                        in  mapWithError ([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))] ++)
-                                         (makeContent frags TextAllowed "List")
-     (Other str) -> myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) (makeContent frags TextAllowed "List")
-     (Env name ps fs) -> 
-        if (name `elem` (map fst mmiss2EnvIds))
-          then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a ListItem.")
-          else  -- No MMiSS-Env.
-            let beginDelimStr = case ps of
-                                  (LParams _ _ (Just delimStr) _) -> delimStr
-                                  otherwise -> ""
-                endDelimStr = case ps of
-                               (LParams _ _ _ (Just delimStr)) -> delimStr
-                               otherwise -> ""
-                begin = case name of
-                          "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
-                          "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
-                          otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
-                                         ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
-                end =  case name of 
-                          "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
-                          "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
-                          otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
-	        body = (makeContent fs TextAllowed "List")
-                whole = myConcatWithError (myConcatWithError begin body) end
-            in myConcatWithError whole (makeContent frags TextAllowed "List")
---	    myConcatWithError (makeContent fs TextAllowed "List") (makeContent frags TextAllowed "List")
-     (Command name ps) ->
-       if (name == "ListItem")  
-         then let (content, restFrags) = makeListItem ps frags []
-              in myConcatWithError (hasValue([content])) (makeContent restFrags TextAllowed "List")
-         else let delimStr = case ps of
-                                (LParams _ _ (Just str) _) -> str
-                                otherwise -> ""
-              in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
-                                                                   ++ (lparamsToString ps) ++ delimStr))]))
-                                            (makeContent frags TextAllowed "List")
-
 makeContent (f:frags) TextAllowed parentEnv = 
-   case f of
-     (EscapedChar c) ->  let cstr = if (c == '\\') then "\\" else [c]
-                         in myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))])) 
-                                              (makeContent frags TextAllowed parentEnv)
-     (Other str) -> if ((head str) == '%')
-                      then myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX ,str)))])) 
-                                             (makeContent frags TextAllowed parentEnv)
-	              else if (genericLength (filter (not . isSpace) str) > 0)
-                             then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
-                                  in  myConcatWithError (hasValue([content])) 
-				                        (makeContent restFrags TextAllowed parentEnv)
-                             else myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) 
-                                                    (makeContent frags TextAllowed parentEnv)
-     (Env name ps fs) -> 
-       if (name `elem` (map fst plainTextAtoms))
-         then
-           let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
-               text = makeTextElem fs ""
-               content = (hasValue([CString True text]))
-               attribs = (makeAttribs ps name)
-           in myConcatWithError
-                 (cElemListWithError ename ps attribs content)
-                 (makeContent frags TextAllowed parentEnv)
-         else
-           if (name == "TextFragment")
-	     then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
-                  in  myConcatWithError (hasValue([(makeTextFragment parentEnv ename (Just(ps)) fs [])])) 
-                                        (makeContent frags TextAllowed parentEnv)
-             else
-               if (name `elem` (map fst mmiss2EnvIds))
-	         then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
-                      in myConcatWithError (cElemListWithError ename ps (makeAttribs ps name)
-	                                                       (makeContent fs (detectTextMode name) name))
-                                           (makeContent frags TextAllowed parentEnv)
-                 else
-                   if (name `elem` (map fst latexFormulaEnvs))
-                       -- a formula environment -> we make a formlua XML element:
-                     then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
-                          in  myConcatWithError (hasValue([content])) 
-				                (makeContent restFrags TextAllowed parentEnv)
-                     else  -- No MMiSS-Env.
-                       let beginDelimStr = case ps of
-                                             (LParams _ _ (Just delimStr) _) -> delimStr
-                                             otherwise -> ""
-                           endDelimStr = case ps of
-                                             (LParams _ _ _ (Just delimStr)) -> delimStr
-                                             otherwise -> ""
-                           begin = case name of
-                                     "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
-                                     "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
-                                     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
-                                                   ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
-                           end =  case name of 
-                                    "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
-                                    "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
-                                    otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
-	   	           body = (makeContent fs TextAllowed parentEnv)
-                           whole = myConcatWithError (myConcatWithError begin body) end
-                       in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
---		       myConcatWithError (makeContent fs TextAllowed parentEnv) 
---                                       (makeContent frags TextAllowed parentEnv)
-     (Command name ps) -> 
-        if (name `elem` (map fst includeCommands))
-	  then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
-                   delimElem = case ps of
-                                (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
-                                otherwise -> []
-	       in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))]
-                                              ++ delimElem))
-                                    (makeContent frags TextAllowed parentEnv)
-          else if (name `elem` (map fst embeddedElements))
-                 then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
-                      in  myConcatWithError (hasValue([content])) 
-	   	                            (makeContent restFrags TextAllowed parentEnv)
-                 else let delimStr = case ps of
-                                (LParams _ _ (Just str) _) -> str
-                                otherwise -> ""
-                      in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
-                                                                   ++ (lparamsToString ps) ++ delimStr))]))
-                                            (makeContent frags TextAllowed parentEnv)
---                 else makeContent frags TextAllowed parentEnv
+  if (parentEnv `elem` (map fst listEnvs)) 
+    then
+      case f of
+	(EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
+			   in  mapWithError ([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))] ++)
+					    (makeContent frags TextAllowed parentEnv)
+	(Other str) -> myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) (makeContent frags TextAllowed parentEnv)
+	(Env name ps fs) -> 
+	   if (name `elem` (map fst mmiss2EnvIds))
+	     then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a \\Item.")
+	     else  -- No MMiSS-Env.
+	       let beginDelimStr = case ps of
+				     (LParams _ _ (Just delimStr) _) -> delimStr
+				     otherwise -> ""
+		   endDelimStr = case ps of
+				  (LParams _ _ _ (Just delimStr)) -> delimStr
+				  otherwise -> ""
+		   begin = case name of
+			     "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
+			     "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
+			     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
+					    ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
+		   end =  case name of 
+			     "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
+			     "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
+			     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
+		   body = (makeContent fs TextAllowed parentEnv)
+		   whole = myConcatWithError (myConcatWithError begin body) end
+	       in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
+	(Command name ps) ->
+	  if (name `elem` itemNames)  
+	    then let (content, restFrags) = makeListItem ps frags []
+		 in myConcatWithError (hasValue([content])) (makeContent restFrags TextAllowed parentEnv)
+	    else let delimStr = case ps of
+				   (LParams _ _ (Just str) _) -> str
+				   otherwise -> ""
+		 in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
+								      ++ (lparamsToString ps) ++ delimStr))]))
+					       (makeContent frags TextAllowed parentEnv)
+
+    else   
+    ------------------------------------------
+    -- Parent is no List environment
+    ------------------------------------------
+      case f of
+	(EscapedChar c) ->  let cstr = if (c == '\\') then "\\" else [c]
+			    in myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))])) 
+						 (makeContent frags TextAllowed parentEnv)
+	(Other str) -> if ((head str) == '%')
+			 then myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX ,str)))])) 
+						(makeContent frags TextAllowed parentEnv)
+			 else if (genericLength (filter (not . isSpace) str) > 0)
+				then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+				     in  myConcatWithError (hasValue([content])) 
+							   (makeContent restFrags TextAllowed parentEnv)
+				else myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) 
+						       (makeContent frags TextAllowed parentEnv)
+	(Env name ps fs) -> 
+	  if (name `elem` (map fst plainTextAtoms))
+	    then
+	      let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
+		  text = makeTextElem fs ""
+		  content = (hasValue([CString True text]))
+		  attribs = (makeAttribs ps name)
+	      in myConcatWithError
+		    (cElemListWithError ename ps attribs content)
+		    (makeContent frags TextAllowed parentEnv)
+	    else
+	      if (name == "Text")
+		then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
+		     in  myConcatWithError (hasValue([(makeTextFragment parentEnv ename (Just(ps)) fs [])])) 
+					   (makeContent frags TextAllowed parentEnv)
+		else
+		  if (name `elem` (map fst mmiss2EnvIds))
+		    then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
+			 in myConcatWithError (cElemListWithError ename ps (makeAttribs ps name)
+								  (makeContent fs (detectTextMode name) name))
+					      (makeContent frags TextAllowed parentEnv)
+		    else
+		      if (name `elem` (map fst latexEmbeddedFormulaEnvs))
+			  -- a formula environment -> we make a formlua XML element:
+			then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+			     in  myConcatWithError (hasValue([content])) 
+						   (makeContent restFrags TextAllowed parentEnv)
+			else  -- No MMiSS-Env.
+			  let beginDelimStr = case ps of
+						(LParams _ _ (Just delimStr) _) -> delimStr
+						otherwise -> ""
+			      endDelimStr = case ps of
+						(LParams _ _ _ (Just delimStr)) -> delimStr
+						otherwise -> ""
+			      begin = case name of
+					"[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
+					"{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
+					otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
+						      ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
+			      end =  case name of 
+				       "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
+				       "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
+				       otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
+			      body = (makeContent fs TextAllowed parentEnv)
+			      whole = myConcatWithError (myConcatWithError begin body) end
+			  in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
+	(Command name ps) -> 
+	   if (name `elem` (map fst includeCommands))
+	     then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
+		      delimElem = case ps of
+				   (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
+				   otherwise -> []
+		  in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))]
+						 ++ delimElem))
+				       (makeContent frags TextAllowed parentEnv)
+	     else if (name `elem` (map fst embeddedElements))
+		    then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+			 in  myConcatWithError (hasValue([content])) 
+					       (makeContent restFrags TextAllowed parentEnv)
+		    else let delimStr = case ps of
+				   (LParams _ _ (Just str) _) -> str
+				   otherwise -> ""
+			 in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
+								      ++ (lparamsToString ps) ++ delimStr))]))
+					       (makeContent frags TextAllowed parentEnv)
 
 
 -- makeTextElem converts the Frags back into strings and concatenates them into the first
@@ -1470,7 +1483,7 @@ String: Name des Vater-Environments
 Die Funktion bekommt eine Liste mit Fragmenten, von denen das erste ein Fragment sein sollte,
 dass in ein Text-Element ohne Label eingepackt werden muss. Die Funktion geht die Liste
 der Eingangsfragmente durch und sammelt in der Textfragmentliste alle nachfolgenden Fragmente
-zusammen, die ebenfalls in das Text-Element übernommen werden könne. Dies können sein:
+zusammen, die ebenfalls in das Text-Element übernommen werden können. Dies können sein:
 
 - Other str  -> Strings
 - Escaped Chars
@@ -1478,21 +1491,21 @@ zusammen, die ebenfalls in das Text-Element übernommen werden könne. Dies können
 - Formel-Environments
 
 Findet die Funktion ein Fragment, dass nicht mehr in ein Textelement gehört, dann baut es 
-mittels 'makeTextFragment' ein Element vom Typ 'textFragment' zusammen und gibt dieses zusammen
+mittels 'makeTextFragment' ein Element vom Typ 'text' zusammen und gibt dieses zusammen
 mit der Liste der übriggebliebenen Fragmente zurück.
 --}
 
 makeNamelessTextFragment :: String -> [Frag] -> [Frag] -> (Content, [Frag])
 makeNamelessTextFragment parentEnv [] textFrags = 
-  ((makeTextFragment parentEnv "textFragment" Nothing textFrags []), [])
+  ((makeTextFragment parentEnv "text" Nothing textFrags []), [])
 makeNamelessTextFragment parentEnv (f:frags) textFrags = 
   case f of
     (Env name _ fs) -> 
-       if (name `elem` ((map fst embeddedElements) ++ (map fst latexFormulaEnvs)))               
+       if (name `elem` ((map fst embeddedElements) ++ (map fst latexEmbeddedFormulaEnvs)))               
          then makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
          else 
            if (name `elem` (map fst mmiss2EnvIds))
-             then let e1 = (makeTextFragment parentEnv "textFragment" Nothing textFrags [])  
+             then let e1 = (makeTextFragment parentEnv "text" Nothing textFrags [])  
                       c1 = case e1 of
 			      (CElem (Elem "paragraph" _ ((CElem(Elem _ _ c)):[]))) -> c
 			      (CElem (Elem _ _ c)) -> c
@@ -1509,24 +1522,26 @@ makeNamelessTextFragment parentEnv (f:frags) textFrags =
 
 --                             else makeNamelessTextFragment parentEnv (fs ++ frags) textFrags   -- Latex-Env.
              else makeNamelessTextFragment parentEnv frags (textFrags ++ [f])  -- Latex-Env.
-    (Command "ListItem" _ ) -> ((makeTextFragment parentEnv "textFragment" Nothing textFrags []), (f:frags))
-    (Command "IncludeTextFragment" _) -> makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
-    (Command name _) -> if (name `elem` (map fst includeCommands))
-                             then let e1 = (makeTextFragment parentEnv "textFragment" Nothing textFrags [])  
-				      c1 = case e1 of
-					      (CElem (Elem "paragraph" _ ((CElem(Elem _ _ c)):[]))) -> c
-					      (CElem (Elem _ _ c)) -> c
-				  in if ((length c1) > 1) 
-                                       then (e1, ([f] ++ frags))
-				       else let c = head c1
-					    in case c of
-					       (CString _ str) -> 
-						  if ((length (filter (not . (== '\n')) str) == 0) ||
-			                              ((head str) == '%')) 
-						    then ((CMisc (Comment str)), ([f] ++ frags))
-                                                    else (e1, ([f] ++ frags))
-                                               _ -> (e1, ([f] ++ frags))
-                             else  makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
+    (Command "IncludeText" _) -> makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
+    (Command name _) -> 
+      if (name `elem` itemNames)
+        then  ((makeTextFragment parentEnv "text" Nothing textFrags []), (f:frags))
+        else if (name `elem` (map fst includeCommands))
+               then let e1 = (makeTextFragment parentEnv "text" Nothing textFrags [])  
+		        c1 = case e1 of
+			       (CElem (Elem "paragraph" _ ((CElem(Elem _ _ c)):[]))) -> c
+			       (CElem (Elem _ _ c)) -> c
+	            in if ((length c1) > 1) 
+                         then (e1, ([f] ++ frags))
+		         else let c = head c1
+			      in case c of
+				  (CString _ str) -> 
+				      if ((length (filter (not . (== '\n')) str) == 0) ||
+			                 ((head str) == '%')) 
+				        then ((CMisc (Comment str)), ([f] ++ frags))
+                                        else (e1, ([f] ++ frags))
+                                  _ -> (e1, ([f] ++ frags))
+               else  makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
     _ -> makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
 
 
@@ -1556,19 +1571,13 @@ makeTextFragment parentEnv name params (f:frags) content =
                           (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                           otherwise -> []
        in makeTextFragment parentEnv name params frags (content ++ [newElem] ++ delimElem) 
-    (Command "IncludeTextFragment" ps) -> 
-         let newElem = CElem (Elem "includeTextFragment" (makeIncludeAttribs ps) [])
+    (Command "IncludeText" ps) -> 
+         let newElem = CElem (Elem "includeText" (makeIncludeAttribs ps) [])
              delimElem = case ps of
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                            otherwise -> []
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem] ++ delimElem)
     (Command "Link" ps) ->
-         let newElem = CElem (Elem "link" (makeLinkAttribs ps) (getLinkText ps))
-             delimElem = case ps of
-                           (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
-                           otherwise -> []
-	 in  makeTextFragment parentEnv name params frags (content ++ [newElem] ++ delimElem)
-    (Command "ForwardLink" ps) -> 
          let newElem = CElem (Elem "link" (makeLinkAttribs ps) (getLinkText ps))
              delimElem = case ps of
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
@@ -1580,13 +1589,13 @@ makeTextFragment parentEnv name params (f:frags) content =
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                            otherwise -> []
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem] ++ delimElem)
-    (Command "ForwardReference" ps) -> 
+    (Command "Ref" ps) ->
          let newElem = CElem (Elem "reference" (makeRefAttribs ps) (getLinkText ps))
              delimElem = case ps of
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                            otherwise -> []
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem] ++ delimElem)
-    (Command "Define" ps) ->
+    (Command "Def" ps) ->
          let newElem = CElem (Elem "define" (makeDefineAttribs ps) (getDefineText ps))
              delimElem = case ps of
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
@@ -1599,13 +1608,13 @@ makeTextFragment parentEnv name params (f:frags) content =
              newElem = CMisc (PI (piInsertLaTeX, ("\\" ++ cname ++ (lparamsToString ps) ++ delimStr)))
  	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Env ename ps fs) -> 
-      if (ename `elem` (map fst latexFormulaEnvs))
+      if (ename `elem` (map fst latexEmbeddedFormulaEnvs))
         then
               -- Fieser Trick: Um die Fragmente innerhalb der Formel-Umgebung in XML umzuwandeln,
               -- machen wir daraus einfach ein Textfragment mit eben dieser Funktion, in der wir uns gerade befinden
               -- und nehmen uns aus dem resultieren Element einfach den Content und stopfen ihn in das
               -- Formel-Element:
-          let (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
+          let (CElem (Elem _ _ c)) = makeTextFragment "Text" name params fs []
               newElem = CElem (Elem "formula" (makeFormulaAttribs ename) c)
 	  in  makeTextFragment parentEnv name params frags (content ++ [newElem])
 
@@ -1625,8 +1634,9 @@ makeTextFragment parentEnv name params (f:frags) content =
                       "[]" -> [CMisc (PI (piInsertLaTeX ,"]" ++ endDelimStr))]
                       "{}" -> [CMisc (PI (piInsertLaTeX ,"}" ++ endDelimStr))]
                       otherwise -> [CMisc (PI (piInsertLaTeX ,"\\end{" ++ ename ++ "}" ++ endDelimStr))]
-              (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
+              (CElem (Elem _ _ c)) = makeTextFragment "Text" name params fs []
           in makeTextFragment parentEnv name params frags (content ++ begin ++ c ++ end)
+
 
 
 makeListItem :: Params -> [Frag] -> [Content] -> (Content, [Frag])
@@ -1635,15 +1645,15 @@ makeListItem params [] contentList =
   let delimElem = case params of
                      (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                      otherwise -> []
-  in ((CElem (Elem "listItem" (makeListItemAttribs params) (delimElem ++ contentList))), [])
+  in ((CElem (Elem "item" (makeListItemAttribs params) (delimElem ++ contentList))), [])
 
 makeListItem params (f:frags) contentList =
    case f of
-     (EscapedChar c) -> let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+     (EscapedChar c) -> let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
                         in makeListItem params restFrags (contentList ++ [content])
      (Other str) -> 
         if (str /= "")
-	  then let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+	  then let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
                in makeListItem params restFrags (contentList ++ [content]) 
 	  else makeListItem params frags contentList
      (Env name ps fs) -> 
@@ -1656,16 +1666,16 @@ makeListItem params (f:frags) contentList =
                              (contentList ++ [(CElem (Elem ename attribs
                                                           [CString True text]))])
           else
-            if (name == "TextFragment")
+            if (name == "Text")
 	      then makeListItem params frags 
-                                (contentList ++ [(makeTextFragment "ListItem" "textFragment" (Just(ps)) fs [])])
-              else if (name == "List")
+                                (contentList ++ [(makeTextFragment "Item" "text" (Just(ps)) fs [])])
+              else if (name `elem` (map fst listEnvs))
                      then makeListItem params frags 
-                                       (contentList ++ coerceWithError(makeContent [f] TextAllowed "ListItem"))
+                                       (contentList ++ coerceWithError(makeContent [f] TextAllowed "Item"))
                      else 
-                       if (name `elem` (map fst latexFormulaEnvs))
+                       if (name `elem` (map fst latexEmbeddedFormulaEnvs))
                          -- als erstes Env. innerhalb eines ListItems kommt eine Formel-Umgebung -> Textfragment erzeugen
-            	         then let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+            	         then let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
                               in makeListItem params restFrags (contentList ++ [content]) 
                          else
                            if (not (name `elem` (map fst mmiss2EnvIds)))
@@ -1681,8 +1691,8 @@ makeListItem params (f:frags) contentList =
                                    in makeListItem params (beginFrag ++ fs ++ endFrag ++ frags) contentList  
 		                 -- MMiSSLatex-Env. Ignorieren:
                               else makeListItem params frags contentList
-     (Command "IncludeTextFragment" ps) -> 
-        let newElem = CElem (Elem "includeTextFragment" (makeIncludeAttribs ps) [])
+     (Command "IncludeText" ps) -> 
+        let newElem = CElem (Elem "includeText" (makeIncludeAttribs ps) [])
             delimElem = case ps of
                           (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                           otherwise -> []
@@ -1693,13 +1703,17 @@ makeListItem params (f:frags) contentList =
                            (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
                            otherwise -> []
         in makeListItem params frags (contentList ++ [newElem] ++ delimElem)
-     (Command "ListItem" ps) -> 
-        let delimElem = case params of
-                          (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
-                          otherwise -> []
-        in ((CElem (Elem "listItem" (makeListItemAttribs params) (delimElem ++ contentList))), (f:frags))
-     (Command _ _) -> let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
-                      in makeListItem params restFrags (contentList ++ [content])
+
+     (Command name ps) -> 
+       if (name `elem` itemNames)
+         then 
+           let delimElem = case params of
+                             (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
+                             _ -> []
+           in ((CElem (Elem "item" (makeListItemAttribs params) (delimElem ++ contentList))), (f:frags))
+         else 
+          let (content, restFrags) = makeNamelessTextFragment "Item" (f:frags) []
+          in makeListItem params restFrags (contentList ++ [content])
 
 {--
      (Command name ps) -> 
@@ -1763,17 +1777,23 @@ makeAttribs :: Params -> String -> [Attribute]
 makeAttribs ps name = 
   if (name `elem` (map fst includeCommands))
     then makeIncludeAttribs ps
-    else if (name == "TextFragment")
+    else if (name == "Text")
            then makeTextFragmentAttribs (Just(ps))
-	   else if (name `elem` ["Link", "ForwardLink"])
+	   else if (name `elem` ["Link"])
 	          then makeLinkAttribs ps
-		  else if (name `elem` ["Reference", "ForwardReference"]) 
+		  else if (name `elem` ["Reference", "Ref"]) 
 		         then makeRefAttribs ps
-			 else if (name == "Define")
+			 else if (name == "Def")
 			        then makeDefineAttribs ps
-				else case ps of
-				       (LParams _ atts _ _) -> map convertAttrib atts
-  
+				else if (name `elem` (map fst (latexEmbeddedFormulaEnvs ++ latexAtomFormulaEnvs)))
+                                       then let normalAttrs = case ps of
+				                                (LParams _ atts _ _) -> map convertAttrib atts
+                                                                _ -> []
+                                                formulaAttrs = makeFormulaAttribs name
+                                            in normalAttrs ++ formulaAttrs
+                                       else case ps of
+				              (LParams _ atts _ _) -> map convertAttrib atts
+
 
 makeIncludeAttribs :: Params -> [Attribute]
 makeIncludeAttribs (LParams ((SingleParam ((Other labelId):[]) _):[]) atts _ _) =
@@ -1813,7 +1833,7 @@ makeDefineAttribs _ = []
 --}
 makeFormulaAttribs :: String -> [Attribute]
 makeFormulaAttribs name =
-  let latexEnv = maybe "" snd (find ((name ==) . fst) latexFormulaEnvs)
+  let latexEnv = maybe "" snd (find ((name ==) . fst) (latexEmbeddedFormulaEnvs ++ latexAtomFormulaEnvs))
   in  [("latexEnv", (AttValue [Left latexEnv]))]
 
 
@@ -1838,11 +1858,10 @@ getLinkText (LParams _ atts _ _) =
     Nothing -> []
 
 getDefineText :: Params -> [Content]
-getDefineText  (LParams ps _ _ _) = 
-  if (genericLength(ps) > 0) 
-    then let (SingleParam fs _) = genericIndex ps 1
-         in  [(CString True (makeTextElem fs ""))]
-    else []
+getDefineText (LParams _ atts _ _) =
+  case (find ((== "OptText") . fst) atts) of
+    Just((_, linkText)) -> [(CString True linkText)]
+    Nothing -> []
 
 getLabelFromParams :: Params -> String
 getLabelFromParams (LParams _ atts _ _) =
@@ -1927,13 +1946,13 @@ fillLatex :: Bool -> [Content] -> [EmacsDataItem ((String, Char), [Attribute])]
 
 fillLatex out [] l = l
 
-fillLatex out ((CElem (Elem "textFragment" atts contents)):cs) inList = 
+fillLatex out ((CElem (Elem "text" atts contents)):cs) inList = 
   let (b_insert, e_insert) = if (out && ((getParam "priority" atts) == "0"))
                                then ("\\begin{Included}\n", "\n\\end{Included}")
                                else ("","")
-      s1 = "\\begin{TextFragment}" 
+      s1 = "\\begin{Text}" 
       s2 = "[" ++ (getAttribs atts "" []) ++ "]"
-      s3 = "\\end{TextFragment}"
+      s3 = "\\end{Text}"
       items = if (s2 == "[]") 
                 then (fillLatex out contents [])
                 else [(EditableText (b_insert ++ s1 ++ s2))] 
@@ -1967,36 +1986,43 @@ fillLatex out ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts _)):cs) inLi
 -- Translates Link- and Reference-Embedded-Ops:
 --
 fillLatex out ((CElem (Elem name atts contents)):cs) inList
-  | (name `elem` (map snd linkAndRefCommands)) =  
-    let forwardStr = if ((getParam "status" atts) == "absent")
-                       then "Forward"
-                       else ""
-        s1 = "\\" ++ forwardStr ++ (elemNameToLaTeX name) 
-        linkText = if (length(contents) == 0) then "" 
-                     else let c = head contents
+  | (name `elem` (map snd linkCommands)) =  
+    let s1 = "\\" ++ (elemNameToLaTeX name) 
+        phrase = if (length(contents) == 0) 
+                   then "" 
+                   else let c = head contents
                           in case c of
-                              (CString _ body) -> "LinkText={" ++ body ++ "}"
+                              (CString _ body) -> "[" ++ body ++ "]"
                               _ -> ""
-        s2 = "[" ++ (getAttribs atts "" ["linked", "referenced", "status"]) ++
-                     if (linkText == "") then "]" else linkText ++ "]"
-        s3 = "{" ++  if (name == "link") then (getParam "linked" atts) ++ "}" else  (getParam "referenced" atts) ++ "}"
-        items = [(EditableText (s1 ++ s2 ++ s3))]
+        s2 = "{" ++ (getParam "type" atts) ++ "}"
+        s3 = "{" ++ (getParam "linked" atts) ++ "}"
+        items = [(EditableText (s1 ++ phrase ++ s2 ++ s3))]
+    in fillLatex out cs (inList ++ items)
+  | (name `elem` (map snd refCommands)) =  
+    let s1 = "\\" ++ (elemNameToLaTeX name) 
+        phrase = if (length(contents) == 0) 
+                   then "" 
+                   else let c = head contents
+                          in case c of
+                              (CString _ body) -> "[" ++ body ++ "]"
+                              _ -> ""
+        s2 = "{" ++  (getParam "referenced" atts) ++ "}"
+        items = [(EditableText (s1 ++ phrase ++ s2))]
     in fillLatex out cs (inList ++ items)
   | (name == "define") =
     let s1 = "\\" ++ (elemNameToLaTeX name)
-        s2 = "{" ++ (getParam "label" atts) ++ "}"
-        str = if (length(contents) == 0) then "" 
-                 else let c = head contents
+        s2 = "{" ++ (getParam "defined" atts) ++ "}"
+        phrase = if (length(contents) == 0) 
+                   then "" 
+                   else let c = head contents
                       in case c of
-                           (CString _ body) -> body
+                           (CString _ body) -> "[" ++ body ++ "]"
                            _ -> ""
-        s3 = "{" ++ str ++ "}"
-        s4 = "{" ++ (getAttribs atts "" ["label"]) ++ "}"
-        items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
+        items = [(EditableText (s1 ++ phrase ++ s2))]
     in fillLatex out cs (inList ++ items)
   | (name == "formula") =  
     let envType = getParam "latexEnv" atts
-        latexEnv = maybe "" fst (find ((envType ==) . snd) latexFormulaEnvs)
+        latexEnv = maybe "" fst (find ((envType ==) . snd) (latexEmbeddedFormulaEnvs ++ latexAtomFormulaEnvs))
         (s1, s2) = case latexEnv of
                       "$" -> ("$", "$")
                       "$$" -> ("$$", "$$")
@@ -2201,25 +2227,16 @@ classifyLabelledTag str = fromIncludeStrOpt (mapLabelledTag str)
 -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
 -- the corresponding includeXXX command.
 toIncludeStr :: Char -> String
-toIncludeStr 'G' = "Group"
 toIncludeStr 'U' = "Unit"
+toIncludeStr 'E' = "CompositeUnit"
 toIncludeStr 'A' = "Atom"
-toIncludeStr 'T' = "TextFragment"
+toIncludeStr 'T' = "Text"
 toIncludeStr 'S' = "Section"
-toIncludeStr 'a' = "Abstract"
-toIncludeStr 'I' = "Introduction"
-toIncludeStr 's' = "Summary"
-toIncludeStr 'F' = "FormalUnit"
-toIncludeStr 'C' = "ConceptualAtom"
-toIncludeStr 'p' = "ProgramFragment"
-toIncludeStr 'P' = "Program"
-toIncludeStr 'c' = "Clause"
-toIncludeStr 't' = "Theory"
-toIncludeStr 'x' = "Step"
-toIncludeStr 'y' = "Proof"
-toIncludeStr 'z' = "Script"
-toIncludeStr 'D' = "Development"
-toIncludeStr 'E' = "ConceptualUnit"
+toIncludeStr 'c' = "ProgramComponent"
+toIncludeStr 'm' = "Term"
+toIncludeStr 'D' = "DevelopmentStep"
+toIncludeStr 'P' = "Proof"
+toIncludeStr 'o' = "ProofStep"
 toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
 
 
@@ -2227,25 +2244,16 @@ toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
 -- fromIncludeStrOpt
 -- and also handles the case where the first letter is lower-cased.
 fromIncludeStrOpt :: String -> Maybe Char
-fromIncludeStrOpt "Group" = Just 'G'
 fromIncludeStrOpt "Unit" = Just 'U'
 fromIncludeStrOpt "Atom" = Just 'A'
-fromIncludeStrOpt "TextFragment" = Just 'T'
-fromIncludeStrOpt "Section"         = Just 'S'                
-fromIncludeStrOpt "Abstract"        = Just 'a'        
-fromIncludeStrOpt "Introduction"    = Just 'I'        
-fromIncludeStrOpt "Summary"         = Just 's'        
-fromIncludeStrOpt "FormalUnit"      = Just 'F'        
-fromIncludeStrOpt "ConceptualAtom"  = Just 'C'        
-fromIncludeStrOpt "ProgramFragment" = Just 'p'         
-fromIncludeStrOpt "Program"         = Just 'P'        
-fromIncludeStrOpt "Clause"          = Just 'c'        
-fromIncludeStrOpt "Theory"          = Just 't'        
-fromIncludeStrOpt "Step"            = Just 'x'        
-fromIncludeStrOpt "Proof"           = Just 'y'        
-fromIncludeStrOpt "Script"          = Just 'z'        
-fromIncludeStrOpt "Development"     = Just 'D' 
-fromIncludeStrOpt "ConceptualUnit"  = Just 'E' 
+fromIncludeStrOpt "Text" = Just 'T'
+fromIncludeStrOpt "Section"          = Just 'S'                
+fromIncludeStrOpt "CompositeUnit"    = Just 'E'        
+fromIncludeStrOpt "ProgramComponent" = Just 'c'         
+fromIncludeStrOpt "Proof"            = Just 'P'        
+fromIncludeStrOpt "ProofStep"        = Just 'o'        
+fromIncludeStrOpt "DevelopmentStep"  = Just 'D' 
+fromIncludeStrOpt "Term"             = Just 'm' 
 fromIncludeStrOpt (c : cs) | Char.isLower c 
    = fromIncludeStrOpt (toUpper c : cs)
 fromIncludeStrOpt _ = Nothing
@@ -2263,23 +2271,38 @@ fromIncludeStr str = case fromIncludeStrOpt str of
 mapLabelledTag :: String -> String
 mapLabelledTag s = 
    case s of
-      "package" -> "Group"
-      "section" -> "Section"
-      "paragraph" -> "Group"
-      "view" -> "Group"
-      "example" -> "ConceptualUnit"
-      "exercise" -> "ConceptualUnit"
+      "paragraph" -> "Unit"
+      "abstract" -> "Unit"
+      "introduction" -> "Unit"
+      "summary" -> "Unit"
+      "theory" -> "Unit"
+      "program" -> "Unit"
+      "view" -> "Unit"
+      "list" -> "CompositeUnit"
+      "itemize" -> "CompositeUnit"
+      "enumerate" -> "CompositeUnit"
+      "description" -> "CompositeUnit"
+      "example" -> "CompositeUnit"
+      "exercise" -> "CompositeUnit"
+      "assignment" -> "CompositeUnit"
+      "solution" -> "CompositeUnit"
+      "illustration" -> "CompositeUnit"
+      "proposition" -> "CompositeUnit"
       "definition" -> "ConceptualUnit"
-      "theorem" -> "FormalUnit"
-      "conjecture" -> "FormalUnit"
-      "lemma" -> "FormalUnit"
-      "corollary" -> "FormalUnit"
-      "assertion" -> "FormalUnit"
-      "list" -> "ConceptualAtom"
-      "table" -> "ConceptualAtom"
-      "figure" -> "ConceptualAtom"
-      "glossaryEntry" -> "ConceptualAtom"
-      "bibEntry" -> "ConceptualAtom"
+      "theorem" -> "CompositeUnit"
+      "conjecture" -> "CompositeUnit"
+      "falseConjecture" -> "CompositeUnit"
+      "lemma" -> "CompositeUnit"
+      "corollary" -> "CompositeUnit"
+      "assertion" -> "CompositeUnit"
+      "proof" -> "CompositeUnit"
+      "development" -> "CompositeUnit"
+      "comment" -> "Annotation"
+      "note" -> "Annotation"
+      "message" -> "Annotation"
+      "error" -> "Annotation"
+      "glossary" -> "Annotation"
+      "bibEntry" -> "Atom"
       _ -> mapUpper s
    where
       mapUpper [] = []
