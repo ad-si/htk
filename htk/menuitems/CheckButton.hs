@@ -108,7 +108,7 @@ instance SelectButton (CheckButton a) where
                 })
     getSelectionState bt = do {
                 kind <- getObjectKind (toGUIObject bt);
-                case kind of {(RADIOBUTTON st) -> return st}
+                case kind of {(CHECKBUTTON st) -> return st}
                 }
 
 

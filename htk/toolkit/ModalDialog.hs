@@ -63,5 +63,6 @@ doModalDialog destr win beh = do {
 modalInteraction :: Window -> Bool -> IA a -> IO a
 modalInteraction win destr ev = do {
         modality <- getModal win;
+	interactor (\iact-> ev >>> done);	
         maybeModalDialog destr modality win (sync ev)
         }
