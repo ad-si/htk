@@ -54,7 +54,7 @@ newFuture :: IO a -> IO (Future a)
 newFuture beh = 
    do
       ch <- newChannel
-      forkIO (
+      forkIOquiet "newFuture" (
          do 
             ans <- try beh
             forever (sendIO ch ans)

@@ -89,7 +89,7 @@ newInterActor :: (InterActor -> IA ()) -> IO InterActor
 newInterActor f = 
    do
       mv <- newEmptyMVar
-      forkIO ( 
+      forkIOquiet "newInterActor" ( 
          do
             es <- newEventStream
             tid <- getThreadID
@@ -109,7 +109,7 @@ interactor :: (InterActor -> IA ()) -> IO ()
 -- Like newInteractor, but don't bother to return it.
 interactor f =  
    do
-      forkIO( 
+      forkIOquiet "interactor" ( 
          do
             es <- newEventStream
             tid <- getThreadID

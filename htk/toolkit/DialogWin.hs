@@ -97,7 +97,7 @@ instance Synchronized (Dialog a) where
 -- --------------------------------------------------------------------------           
 forkDialog :: Reactive m a => m a -> (a -> IO b) -> IO ()
 forkDialog o h =
-        forkIO (sync (
+        forkIOquiet "HTk.forkDialog" (sync (
                 triggered o >>>= \v -> do {h v; done}
           )) >>= (return . (const ()))
 

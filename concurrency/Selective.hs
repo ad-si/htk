@@ -98,7 +98,7 @@ import Channels
 promise :: IO a -> IO (EV a)
 promise beh = do
    ch <- newChannel
-   forkIO (try beh >>= sync . (send ch))
+   forkIOquiet "Selective.promise" (try beh >>= sync . (send ch))
    return (receive ch >>>= Computation.propagate)
 
 -- --------------------------------------------------------------------------

@@ -4,7 +4,8 @@ LIBS = $(UNIDIR)/graphs/libgraphs.a $(UNIDIR)/htk/libhtk.a \
 
 LIB = libtestgraph.a
 
-SRCS = GraphDispTest.hs TopSort.hs Hasse.hs DrawDepend.hs TestGetAttributes.hs
+SRCS = GraphDispTest.hs TopSort.hs Hasse.hs DrawDepend.hs \
+   TestGetAttributes.hs TestGetAttributes2.hs
 
 XHCDIRS= $(HTKDIRS)
 
