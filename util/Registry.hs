@@ -305,3 +305,17 @@ instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
       "Sorry, can't delete from Locked registries"
    listKeys (Locked registry) = listKeys registry
 
+-- ----------------------------------------------------------------------
+-- Typeable instances
+-- We make Registry and LockedRegistry instances of Typeable.
+-- The others don't need to be since they are type synonyms, not
+-- type constructors.
+-- ----------------------------------------------------------------------
+
+registry_tyCon = mkTyCon "Registry" "Registry"
+instance HasTyCon2 Registry where
+   tyCon2 _ = registry_tyCon
+
+lockedRegistry_tyCon = mkTyCon "Registry" "LockedRegistry"
+instance HasTyCon2 LockedRegistry where
+   tyCon2 _ = lockedRegistry_tyCon

@@ -97,6 +97,7 @@ import Int
 
 import UniqueString
 import AtomString(StringClass(..))
+import Registry
 
 import VersionDB
 import ViewType
@@ -603,6 +604,22 @@ instance (Typeable integral,Integral integral,Bits integral)
           (value' :: CodedList,codedValue1) = decodePure codedValue0
       in
           (decode' value',codedValue1)
+
+---------------------------------------------------------------------
+-- We make Registry's an instance of HasCodedValue
+---------------------------------------------------------------------
+
+instance (HasCodedValue from,HasCodedValue to,Ord from) 
+      => HasCodedValue (Registry from to) where
+   encodeIO value codedValue view =
+      do
+         contents <- listRegistryContents value
+         encodeIO value codedValue view
+   decodeIO codedValue0 view =
+      do
+         (contents,codedValue1) <- decodeIO codedValue0 view
+         registry <- listToNewRegistry contents
+         return (registry,codedValue1)
 
 ---------------------------------------------------------------------
 -- FormatError's
