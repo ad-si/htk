@@ -7,7 +7,6 @@ module Huffman(
 
 import Queue
 
-
 ---
 -- huffmanFold op l
 -- where op is associative, l is a nonempty monotonically increasing list,
@@ -49,6 +48,8 @@ huffmanFold op l =
 -- moved right.  The list should always be in increasing order.
 data PointedList a = PointedList (Queue a)  [a]
 
+instance Show a => Show (PointedList a) where
+   show (PointedList queue l) = show (queueToList queue, l)
 ---
 -- pointList makes a new pointed list with the pointer at the left.
 pointList :: [a] -> PointedList a

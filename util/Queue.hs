@@ -126,7 +126,4 @@ listToQueue xs = foldl insertQ emptyQ xs
 ---
 -- Inverts listToQueue
 queueToList :: Queue a -> [a]
-queueToList (Queue fl rl) = revAppend fl rl
-   where
-      revAppend = flip (foldl (flip (:))) 
-      -- point-free programming at its worst . . .
+queueToList (Queue fl rl) = rl ++ reverse fl
