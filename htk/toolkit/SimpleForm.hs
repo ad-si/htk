@@ -827,7 +827,7 @@ editableTextForm configs =
                   pack editor [Side AtRight]
                   pack scrollBar1 [Side AtRight,Fill Y,Expand On]
                   pack editorFrame []
-                  pack scrollBar2 [Side AtBottom,Fill X,Expand On]
+                  pack scrollBar2 [Side AtTop,Fill X,Expand On]
                ),
             getFormValue = (
                do
