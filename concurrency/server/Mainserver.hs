@@ -60,7 +60,9 @@ listener newClient clientList =
                         if line == "\0"
                            then -- get rid of this client
                               do
+#if 0
                                  debug "server:Kill client"
+#endif
                                  closeFileEV handle
                                  let 
                                     newClientList =
@@ -72,7 +74,9 @@ listener newClient clientList =
                                  listener newClient newClientList
                            else
                               do -- write line to all clients
+#if 0
                                  debug ("server:"++line)
+#endif
                                  sequence_
                                     (map
                                        (\ Client{handle=handle} ->

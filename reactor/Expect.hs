@@ -260,9 +260,7 @@ attemptMatch expect line oldRst =
          Nothing -> 
             -- wait for matching patterns to arrive
             do
-               debug "attemptMatch 1"
                newRst <-  getOneChange (regChannel expect) rst
-               debug "attemptMatch 2"
                attemptMatch expect line newRst
          Just (pattern,matchResult) -> 
             do
@@ -320,7 +318,6 @@ delegateEvent
             registrationChanged regChannel rst >>>=
                (\newRst ->
                   do
-                     debug "delegateEvent loopback"
                      attemptMatch expect line newRst
                   )
          +> (choose (map 
@@ -354,7 +351,6 @@ delegateEOF :: Expect -> RST -> IO ()
 -- to do as attemptMatch has just done it.
 delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
    do 
-      debug "DEOF1"
       rst <- getPendingChanges regChannel oldRst
       let 
          eID = toEventID (expect,EOF)
@@ -365,7 +361,6 @@ delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
             (registrationChanged regChannel rst) >>>=
                (\ newRst -> 
                   do
-                     debug "delegateEOF loopback"
                      delegateEOF expect newRst
                   )
          +> (choose (map
@@ -375,12 +370,9 @@ delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
                ( \ listenerAck ->
                   -- listener has accepted, now wait for acknowledgment
                   do
-                     debug "DEOF3"
                      -- wait for listener acknowledgement
                      ((),rst) <- sagc rst listenerAck
-                     debug "DEOF4"
                      logAck
-                     debug "DEOF5"
                      -- even though we won't be getting any more lines
                      -- from the application, we still need to keep the
                      -- thread going to receive registration changes
@@ -497,7 +489,6 @@ instance CommandTool Expect where
     evalCmd cmd expect = error "Expect.evalCmd not implemented"       
     execOneWayCmd cmd expect  = 
        do
-          debug ("execOneWayCmd "++cmd)
           sendMsg (child expect) cmd 
 
 
@@ -659,14 +650,10 @@ match' expect ptn = interaction eID register unregister
       Expect {regChannel=regChannel} = expect
       register listener = 
          do
-            debug "register1"
             sendIO regChannel (registerPtn pattern eID listener)
-            debug "register2"
       unregister listener = 
          do
-            debug "unregister1"
             sendIO regChannel (deregisterPtn pattern eID listener)
-            debug "unregister2"
 {-# INLINE match' #-}
 
 -- --------------------------------------------------------------------------
@@ -720,7 +707,6 @@ registerPtn pattern eID listener rst =
       logExpect ("registerPtn" ++ show eID)
       (RST patterns eventMap) <- registerListener eID listener rst
       let newPatterns = insertOrd higherPriority pattern patterns
-      debugPatterns newPatterns 
       return (RST newPatterns eventMap)
    where
       higherPriority (Pattern _ priority1 _) (Pattern _ priority2 _) = 
@@ -739,16 +725,8 @@ deregisterPtn (Pattern _ prio patStr) eID listener rst =
                   )
             patterns
 
-      debugPatterns newPatterns
       return (RST newPatterns eventMap)
 
-debugPatterns ptns = debug(mkString ptns)
-   where
-      mkString ptns=
-         concat(map
-            (\ (Pattern _ prio _) -> (show prio))
-            ptns)
-{-# INLINE debugPatterns #-}
 -- --------------------------------------------------------------------------
 --  Logging 
 -- --------------------------------------------------------------------------
