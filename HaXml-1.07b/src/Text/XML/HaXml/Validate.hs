@@ -1,6 +1,7 @@
 -- | Validate a document against a dtd.
 module Text.XML.HaXml.Validate
-  ( validate
+  ( validate,
+    partialValidate,
   ) where
 
 import Text.XML.HaXml.Types
@@ -61,13 +62,18 @@ False `gives` _ = []
 --   then you will gain efficiency by freezing-in the DTD through partial
 --   application, e.g. @checkMyDTD = validate myDTD@.
 validate :: DocTypeDecl -> Element -> [String]
-validate dtd' elem = root dtd' elem ++ valid elem ++ checkIDs elem
+validate dtd' elem = root dtd' elem ++ partialValidate dtd' elem
   where
-    dtd = simplifyDTD dtd'
-
     root (DTD name _ _) (Elem name' _ _) =
         (name/=name') `gives` ("Document type should be <"++name
                                ++"> but appears to be <"++name'++">.")
+
+-- | 'partialValidate' is like validate, except that it does not check that
+--   the element type matches that of the DTD's root element.
+partialValidate :: DocTypeDecl -> Element -> [String]
+partialValidate dtd' elem = valid elem ++ checkIDs elem
+  where
+    dtd = simplifyDTD dtd'
 
     valid (Elem name attrs contents) =
         -- is the element defined in the DTD?
