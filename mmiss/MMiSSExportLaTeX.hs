@@ -43,7 +43,7 @@ exportMMiSSObjectGeneral format view link =
             let
                fullName = unbreakName [top,"mmiss","test","files"]
 
-	    dialogEvent <- fileDialog 
+	    dialogEvent <- newFileDialog 
                ("Export "++show format++" sources") fullName
 
             filePathOpt <- sync dialogEvent

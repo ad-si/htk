@@ -60,6 +60,8 @@ module Events(
 
    ) where
 
+import Control.Exception
+
 import Concurrent
 
 import Computation
@@ -196,11 +198,11 @@ choose nonEmpty = foldr1 (+>) nonEmpty
 
 ---
 -- Catch an error if it occurs during an action attached to an event.
-tryEV :: Event a -> Event (Either IOError a) 
+tryEV :: Event a -> Event (Either Exception a) 
 tryEV (Event registerFn) = Event (
    \ toggle errorOraSink ->
       registerFn toggle (\ aAct ->
-         errorOraSink (try aAct)
+         errorOraSink (Control.Exception.try aAct)
          )
       )
 

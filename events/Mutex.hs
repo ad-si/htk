@@ -90,7 +90,7 @@ release (Mutex mvar) =
          (Just (holder,n),pnd) | current == holder -> 
             release' mvar holder n pnd
          _ -> do putMVar mvar st
-                 throw illegalMutexRelease
+                 Exception.throw illegalMutexRelease
    where 
       release' mvar _ 1 [] = putMVar mvar (Nothing,[])
       release' mvar _ 1 waiting = 
@@ -127,8 +127,8 @@ tryAcquireMutex (Mutex mvar) =
 --  Exceptions
 -- --------------------------------------------------------------------------
 
-illegalMutexRelease :: IOError
-illegalMutexRelease = userError "Mutex: Illegal release operation"
+illegalMutexRelease :: Exception
+illegalMutexRelease = ErrorCall "Mutex: Illegal release operation"
 
 
 

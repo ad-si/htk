@@ -18,6 +18,8 @@ module FileDialog (
 
 ) where
 
+import Control.Exception(Exception,ioErrors)
+
 import Directory (doesFileExist)
 
 import Debug(debug)
@@ -40,16 +42,20 @@ debugMsg str = done -- putStr (">>> " ++ str ++ "\n")
 
 
 -- Display a warning window with a meaningful error message
-ioErrorWindow :: IOError-> IO ()
-ioErrorWindow ioe = 
+ioErrorWindow :: Exception -> IO ()
+ioErrorWindow excep = 
   createWarningWin ("Error while reading directory:\n"++
-                    ioeGetErrorString ioe++"\n"++
-                    case ioeGetFileName ioe of 
-                         Just fn -> "with file "++fn++"\n"
-                         Nothing -> "") 
+     case ioErrors excep of
+        Just ioe ->        
+           ioeGetErrorString ioe++"\n"++
+           case ioeGetFileName ioe of 
+                Just fn -> "with file "++fn++"\n"
+                Nothing -> ""
+        Nothing -> "Exception: "++show excep++"\n"
+    ) 
                    []
 
-tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either IOError 
+tryGetFilesAndFolders :: FilePath -> Bool -> IO (Either Exception 
                                                         ([FilePath], [FilePath]))
 tryGetFilesAndFolders path showhidden =
   do
@@ -170,10 +176,13 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
                 folderslb # value folders
                 setTkVariable file_var ""
                 return True
-           Left e-> if isPermissionError e 
-                    then return False 
-                    else do ioErrorWindow e
-                            return False
+           Left excep -> 
+              case ioErrors excep of
+                 Just error | isPermissionError error -> return False
+                 Nothing -> 
+                    do
+                       ioErrorWindow excep
+                       return False
 
 up ::  Ref [FilePath] -> Ref [FilePath] -> Ref FilePath ->
        ListBox FilePath -> ListBox FilePath -> TkVariable String ->

@@ -106,7 +106,9 @@ import Posix hiding (ByteCount)
 import qualified GHC.Conc
 
 #if (__GLASGOW_HASKELL__ >= 505)
-import qualified System.Posix.Types
+import qualified System.Posix.Types as PosixTypes
+#else
+import qualified Posix as PosixTypes
 #endif
 
 import ByteArray
@@ -198,7 +200,7 @@ data ChildProcess =
       
       closeAction :: IO (), -- action when we closeChildProcessFd's.
 
-      processID :: Posix.ProcessID,
+      processID :: ProcessID,
                        -- process id of child
       bufferVar :: (MVar String),
                        -- bufferVar of previous characters (only relevant
@@ -272,7 +274,10 @@ newChildProcess path confs  =
                fdClose writeOut
 
                case readWriteErr of
-                  Nothing -> done
+                  Nothing -> 
+                     do
+                        dupTo stdOutput stdError
+                        done
                   Just (readErr,writeErr) ->
                      do
                         dupTo writeErr stdError
@@ -330,7 +335,7 @@ newChildProcess path confs  =
                      lineMode = lmode parms,
                      writeTo = writeIn,
                      readFrom = readOut,
-                     processID = processID,
+                     processID = fromIntegral processID,
                      bufferVar = bufferVar,
                      chunkSize = fromIntegral (chksize parms),
 #ifdef DEBUG
@@ -470,7 +475,7 @@ instance UnixTool ChildProcess where
 -- -------------------------------------------------------------------------
 
 #if (__GLASGOW_HASKELL__ >= 505)
-type ByteCount = System.Posix.Types.ByteCount
+type ByteCount = PosixTypes.ByteCount
 #else
 type ByteCount = Int
 #endif

@@ -241,8 +241,8 @@ coerceWithErrorOrBreak breakFn (Error s) = breakFn s
 
 concatWithError :: [WithError a] -> WithError [a]
 concatWithError withErrors =
-   foldl
-      (\ wEsf wE -> mapWithError (uncurry (:)) (pairWithError wE wEsf))  
+   foldr
+      (\ wE wEsf -> mapWithError (uncurry (:)) (pairWithError wE wEsf))  
       (Value [])
       withErrors
 

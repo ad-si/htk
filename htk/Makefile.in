@@ -8,10 +8,7 @@ endif
 
 DOIMPORTS  = YES
 
-# I think the next line shouldn't really be necessary, but it seems to work
-# around a bug in ghc5.02.3
-EXTRA_HC_OPTIONS = -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets
-# EXTRA_HC_OPTIONS = -hidir imports -iimports
+EXTRA_HC_OPTIONS = -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets -H200M
 
 SRCS       = resources/Resources.hs\
              resources/GUIValue.hs\
