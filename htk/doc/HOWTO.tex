@@ -1,0 +1,97 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{t1enc}
+\usepackage[latin1]{inputenc}
+\usepackage[german]{babel}
+\usepackage{epsfig}
+\usepackage{wrapfig}
+\usepackage{graphicx}
+\markboth{}{}
+
+\setlength{\oddsidemargin}{-0.7cm}
+\setlength{\evensidemargin}{-0.7cm}
+\setlength{\textwidth}{17cm}
+\setlength{\topmargin}{-1cm}
+\setlength{\textheight}{23.5cm}
+
+\title{Verkapselung von Tk-Widgets für HTk}
+\author{ludi@tzi.de}
+\date {}
+
+\begin{document}
+
+\maketitle
+
+
+\section*{Grundlegendes}
+
+...
+
+Zentral bei der Verkapselung eines Tk-Widgets in HTk ist der (abstrakt)
+exportierte Datentyp. Dieser dient nach außen hin als Repräsentation
+des jeweiligen Widgets. Darauf können z.B. später verschiedene
+Konfigurationen angewendet werden.
+
+\begin{verbatim}
+newtype Label a = Label GUIOBJECT deriving Eq
+\end{verbatim}
+
+Dieser Typ kann weitere Widget-spezifische Felder haben, dies
+ist eine Frage der individuellen Implementierung. Er enthält jedoch immer
+ein Feld des Typs \verb|GUIOBJECT|
+
+
+\section*{Der Typ GUIOBJECT und die Klasse GUIObject}
+
+Dieser Type \verb|GUIOBJECT| ist die interne Repräsentation der
+verschiedenen Oberflächen-Objekte (im wesentlichen Widgets,
+Canvas-Objekte, Menüelemente, aber auch spezielleres wie z.B. Text-Tags
+oder Canvas-Tags).
+Diese interne Repräsentation durch \emph{einen} Typen ermöglicht z.B.
+Listen verschiedster Objekte im internen Status zu halten oder
+als Funktions-Argumente zu übergeben.
+
+Der \verb|GUIOBJECT|-Wert muß jedoch i.d.R. nicht selbst konstruiert
+werden, hierzu gibt es spezielle Funktionen (z.B. \verb|createGUIObject|
+im Modul \verb|Core|, \verb|createCanvasItem| im Modul
+\verb|CanvasItemAux|). Aussehen tut er wie folgt:
+
+\begin{verbatim}
+data GUIOBJECT = GUIOBJECT ObjectID (Ref OST) | ROOT
+\end{verbatim}
+
+Den \verb|ROOT|-Konstruktor möchte ich hier nicht weiter erläutern. Er hat
+eine spezielle Bedeutung und steht für die Wish-Instanz bzw. das
+Hauptfenster, dies muß man aber jetzt nicht verstehen. Für "normale"
+GUI-Objekte wird ein Wert entsprechend des ersten Konstruktors erzeugt.
+Dieser enthält die \verb|ObjectID|, die dieses spezielle Widget eindeutig 
+identifiziert und eine Referenz auf den zu diesem Objekt gehörende Status.
+
+(GUIObjectKind, GUIObjectName...)
+
+Der (exportierte, s.o.) Widget-Typ muß immer eine Instanz der Klasse
+\verb|GUIObject| sein:
+
+\begin{verbatim}
+instance GUIObject (Label a) where 
+  toGUIObject (Label w) = w
+  cname _ = "Label"
+\end{verbatim}
+
+So kann durch die Klassenmethode \verb|toGUIObject| der externe Typ
+in die interne Repräsentation gewandelt werden.
+
+...
+
+
+
+\section*{Widget-Methoden}
+
+...
+
+
+\section*{Erzeugung}
+
+...
+
+
+\end{document}
