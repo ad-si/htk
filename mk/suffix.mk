@@ -260,7 +260,7 @@ ifneq "$(DOIMPORTS)" ""
 # Copy import files over.
 	$(RM) -rf imports
 	$(MKDIR) imports
-	$(CP) $(HILIBFILES) imports
+	($(CP) $(HILIBFILES) imports || echo ".hi files not yet compiled")
 endif
 	$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --force --add-package --auto-ghci-libs
 endif

@@ -45,8 +45,7 @@ import MMiSSElementInfo
 -- -------------------------------------------------------------------------
 
 parseBundle :: Format -> FileSystem -> FilePath -> IO (Bundle,PackageId)
-parseBundle = parseBundle1 (
-   emptyElementInfo {packageIdOpt = Just defaultPackageId})
+parseBundle = parseBundle1 emptyElementInfo
 
 parseBundle1 :: ElementInfo -> Format -> FileSystem -> FilePath 
    -> IO (Bundle,PackageId)

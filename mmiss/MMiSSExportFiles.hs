@@ -15,6 +15,7 @@ import FileNames
 import Computation
 import ExtendedPrelude
 import Messages
+import AtomString(toString)
 
 import EntityNames
 
@@ -73,7 +74,7 @@ exportFiles view dir0 exportFiles0 =
          [] -> done
          _ -> errorMess
             ("Unable to find files in repository: " 
-               ++ (concat (map (\ file -> "\n   " ++ show file) notFound1))
+               ++ (concat (map (\ file -> "\n   " ++ toString file) notFound1))
                )
 
       -- Check for duplicates and construct map
