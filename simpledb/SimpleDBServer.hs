@@ -78,7 +78,7 @@ data SimpleDBCommand =
    -- allocating an ObjectVersion, and the second actually sending the data.
    |  CommitStage1 Location (Maybe ObjectVersion)
       -- Preallocate a new object version for the Location, given the
-      -- parent version, returning it as IsLocation
+      -- parent version, returning it as IsObjectVersion
    |  CommitStage2 BDBKey Location ObjectVersion
       -- Commit the data BDBKey for this ObjectVersion, preallocated by
       -- CommitStage1.  Of course this should only be done once for each

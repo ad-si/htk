@@ -6,6 +6,9 @@ module BinaryIO(
       --    CStringLen, 
       --    ReadShow a where a instances Read and Show
    ReadShow(..),
+      -- Mixture contains an optional Read/Show instance and an optional
+      -- other instance of HasBinaryIO.
+   Mixture(..),
 
    HasConverter(..), -- class for converting to and from binary representations
    CodedList(..), -- binary representation (basically a list of integers)
@@ -25,6 +28,7 @@ import GHC.IO
 import Foreign.Marshal.Alloc
 
 import Computation
+import ExtendedPrelude
 
 -- ---------------------------------------------------------------------------
 -- The HasBinaryIO class
@@ -74,6 +78,66 @@ instance (Read a,Show a) => HasBinaryIO (ReadShow a) where
                "Extra characters parsing " ++ show str))
             _ -> return (hasError ("Couldn't parse " ++ show str))
 
+-- ---------------------------------------------------------------------------
+-- Something Showable, and something instancing HasBinaryIO
+-- ---------------------------------------------------------------------------
+
+data Mixture text binary = Mixture {
+   textOpt :: Maybe text,
+   binaryOpt :: Maybe binary
+   }
+
+instance (Read text,Show text,HasBinaryIO binary) 
+      => HasBinaryIO (Mixture text binary) where
+   hPut handle (Mixture {textOpt = textOpt,binaryOpt = binaryOpt}) =
+      case (textOpt,binaryOpt) of
+         (Just text,Just binary) ->
+            do
+               hPutChar handle '3'
+               hPut handle (ReadShow text)
+               hPut handle binary
+         (Just text,Nothing) ->
+            do
+               hPutChar handle '2'
+               hPut handle (ReadShow text)
+         (Nothing,Just binary) ->
+            do
+               hPutChar handle '1'
+               hPut handle binary
+         (Nothing,Nothing) ->
+               hPutChar handle '0'
+   hGetIntWE limit handle =
+      addFallOutWE (\ break ->
+         do
+            char <- hGetChar handle
+            case char of
+               '3' ->
+                  do
+                     textWE <- hGetIntWE limit handle
+                     (ReadShow text) <- coerceWithErrorOrBreakIO break textWE
+                     binaryWE <- hGetIntWE limit handle
+                     binary <- coerceWithErrorOrBreakIO break binaryWE
+                     return (Mixture {
+                        textOpt = Just text,binaryOpt = Just binary})  
+               '2' ->
+                  do
+                     textWE <- hGetIntWE limit handle
+                     (ReadShow text) <- coerceWithErrorOrBreakIO break textWE
+                     return (Mixture {
+                        textOpt = Just text,binaryOpt = Nothing})  
+               '1' ->
+                  do
+                     binaryWE <- hGetIntWE limit handle
+                     binary <- coerceWithErrorOrBreakIO break binaryWE
+                     return (Mixture {
+                        textOpt = Nothing,binaryOpt = Just binary})  
+               '0' ->
+                     return (Mixture {
+                        textOpt = Nothing,binaryOpt = Nothing})
+               _ -> break "Unexpected character parsing mixture"
+         )   
+                      
+      
 -- ---------------------------------------------------------------------------
 -- String
 -- ---------------------------------------------------------------------------
