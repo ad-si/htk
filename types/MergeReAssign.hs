@@ -49,8 +49,8 @@ data ObjectNode object key =
       }
 
 
-data WrappedObjectNode = forall objectType object key .
-   (ObjectType objectType object,Ord key,Typeable key)
+data WrappedObjectNode = forall object key .
+   (HasMerging object,Ord key,Typeable key)
    => WrappedObjectNode (ObjectNode object key)
 
 objectNode_tyRep = mkTyRep "MergeReAssign" "ObjectNode"
@@ -62,7 +62,7 @@ wrappedObjectNode_tyRep = mkTyRep "MergeReAssign" "WrappedObjectNode"
 instance HasTyRep WrappedObjectNode where
    tyRep _ = wrappedObjectNode_tyRep
 
-toObjectNode :: (ObjectType objectType object,Typeable key,Ord key) 
+toObjectNode :: (HasMerging object,Typeable key,Ord key) 
    => WrappedObjectNode -> WithError (ObjectNode object key)
 toObjectNode (WrappedObjectNode (objectNode0 :: ObjectNode fromObject key1)) =
    case dynCastOpt objectNode0 of
@@ -127,26 +127,41 @@ mkLinkReAssigner views allRelevantObjectTypes =
                   ((WrappedObjectNode ((ObjectNode {references = referencesA})
                      :: ObjectNode object key))
                      : restObjectNodes)
-                  (LinkReAssigner {linkMap = fmap0,allMerges = allMerges0}) =
+                  (LinkReAssigner {
+                     linkMap = fmap0,
+                     allMergesMap = allMergesMap0}) =
                do
                   (references0 :: [(View,Link object)]) 
                      <- readIORef referencesA
                   let
                      (_,headLink) : _ = references0
-                     headWrappedLink = WrappedLink headLink
+                     headWrappedMergeLink = WrappedMergeLink headLink
 
+                  -- Generate a link in the new view to map to.  We take
+                  -- headLink unless that is already occupied, in which case
+                  -- we take a new link
+                  newWrappedMergeLink 
+                     <- case lookupFM allMergesMap0 headWrappedMergeLink of
+                        Just _ -> return headWrappedMergeLink
+                        Nothing ->
+                           do
+                              (newLink :: Link object) 
+                                 <- absolutelyNewLink repository
+                              return (WrappedMergeLink newLink)
+
+                  let
                      doLinks :: [(View,Link object)] 
-                        -> FiniteMap (ViewId,WrappedLink) WrappedLink
-                        -> FiniteMap (ViewId,WrappedLink) WrappedLink
+                        -> FiniteMap (ViewId,WrappedMergeLink) WrappedMergeLink
+                        -> FiniteMap (ViewId,WrappedMergeLink) WrappedMergeLink
                      doLinks [] fmap0 = fmap0
                      doLinks ((view,link):rest) fmap0 =
                         let
-                           key = (viewId view,WrappedLink link)
+                           key = (viewId view,WrappedMergeLink link)
                         in
                            case lookupFM fmap0 key of
                               Nothing -> 
                                  doLinks rest 
-                                    (addToFM fmap0 key headWrappedLink)
+                                    (addToFM fmap0 key newWrappedMergeLink)
                               Just _ -> break 
                                  "Merge failure: link occurs multiple times!"
 
@@ -155,25 +170,28 @@ mkLinkReAssigner views allRelevantObjectTypes =
                   seq fmap1 done
 
                   let
-                     thisMerge = (headWrappedLink,
+                     thisMerge =
                         map 
-                           (\ (view,link) -> (view,WrappedLink link)) 
+                           (\ (view,link) -> (view,WrappedMergeLink link)) 
                            references0
-                        )
+
+                     allMergesMap1 
+                        = addToFM allMergesMap0 newWrappedMergeLink thisMerge
 
                      linkReAssigner1 = LinkReAssigner {
                         linkMap = fmap1,
-                        allMerges = thisMerge : allMerges0
+                        allMergesMap =  allMergesMap1
                         } 
 
                   mkLinkReAssigner restObjectNodes linkReAssigner1
  
          linkReAssigner <- mkLinkReAssigner allNodesList
-            (LinkReAssigner {linkMap = emptyFM,allMerges = []})
+            (LinkReAssigner {linkMap = emptyFM,allMergesMap = emptyFM})
 
          return linkReAssigner
       )
-
+   where
+      (View {repository = repository} : _ ) = views
 newState :: IO State
 newState =
    do
@@ -216,9 +234,9 @@ assignView view (State {registry = registry,allNodes = allNodes})
          -- The following function has three jobs to do.
          -- (1) create an ObjectNode corresponding to this reference,
          --     if none was supplied in the second argument.
-         -- (2) add this reference (View+WrappedLink) to the references
+         -- (2) add this reference (View+WrappedMergeLink) to the references
          --     Field of the ObjectNode.
-         -- (3) if not already done for this WrappedLink in this view
+         -- (3) if not already done for this WrappedMergeLink in this view
          --     (the third argument keeps track of that), expand the links,
          --     and repeat.
          -- We return the new visited set, and the ObjectNode.
@@ -226,9 +244,9 @@ assignView view (State {registry = registry,allNodes = allNodes})
          -- Thanks to GHC's restrictions on unpacking existential types,
          -- we have to split visitNode into 3 functions, innerVisitNode and
          -- innerInnerVisitNode.
-         visitNode :: WrappedLink -> Maybe WrappedObjectNode 
-            -> Set WrappedLink -> IO (WrappedObjectNode,Set WrappedLink)
-         visitNode (WrappedLink (link0 :: Link object))
+         visitNode :: WrappedMergeLink -> Maybe WrappedObjectNode 
+            -> Set WrappedMergeLink -> IO (WrappedObjectNode,Set WrappedMergeLink)
+         visitNode (WrappedMergeLink (link0 :: Link object))
                wrappedObjectNodeOpt visitedSet0 =
             do
                (wrappedObjectNode1,visitedSet1) 
@@ -240,10 +258,11 @@ assignView view (State {registry = registry,allNodes = allNodes})
          -- need to have identical contexts, innerVisitNode needs to be 
          -- provided with an extra "key" argument, which is ignored.
          innerVisitNode ::
-            (Typeable key,Ord key,ObjectType objectType object) 
+            (Typeable key,Ord key,HasMerging object) 
             => key -> Link object -> Maybe WrappedObjectNode
             -> MergeLinks object
-            -> Set WrappedLink -> IO (WrappedObjectNode,Set WrappedLink)
+            -> Set WrappedMergeLink 
+            -> IO (WrappedObjectNode,Set WrappedMergeLink)
          innerVisitNode _ (link1 :: Link object) wrappedObjectNodeOpt
                (MergeLinks (fn :: View -> Link object 
                   -> IO (ObjectLinks key)))
@@ -272,30 +291,31 @@ assignView view (State {registry = registry,allNodes = allNodes})
                return (WrappedObjectNode objectNode,set)
 
          innerInnerVisitNode :: 
-            (Typeable key,Ord key,ObjectType objectType object) 
+            (Typeable key,Ord key,HasMerging object) 
             => Link object
             -> (View -> Link object -> IO (ObjectLinks key))
             -> ObjectNode object key
-            -> Set WrappedLink -> IO (ObjectNode object key,Set WrappedLink)
+            -> Set WrappedMergeLink 
+            -> IO (ObjectNode object key,Set WrappedMergeLink)
          innerInnerVisitNode (link1 :: Link object)
                (fn :: View -> Link object -> IO (ObjectLinks key)) 
                (objectNode @ (
                   ObjectNode {references = references0,links =links0}))
                visitedSet0 =
             do
-               -- (2) add this reference (View+WrappedLink) to the 
+               -- (2) add this reference (View+WrappedMergeLink) to the 
                --     references Field of the ObjectNode.
                modifyIORef references0 ( (view,link1) : )
 
-               -- (3) if not already done for this WrappedLink in this view
-               --     (the third argument keeps track of that), expand the
+               -- (3) if not already done for this WrappedMergeLink in this 
+               --     view (the third argument keeps track of that), expand the
                --     links, and repeat.
-               if elementOf (WrappedLink link1) visitedSet0
+               if elementOf (WrappedMergeLink link1) visitedSet0
                   then
                      return (objectNode,visitedSet0)
                   else
                      do
-                        (ObjectLinks  (linksOut :: [(WrappedLink,key)]))
+                        (ObjectLinks  (linksOut :: [(WrappedMergeLink,key)]))
                            <- fn view link1
 
                         let
@@ -312,15 +332,15 @@ assignView view (State {registry = registry,allNodes = allNodes})
                         let
                            -- function which processes links1.  The 
                            -- second argument carries the state.
-                           doLinks :: [(WrappedLink,key)] 
+                           doLinks :: [(WrappedMergeLink,key)] 
                               -> (FiniteMap key WrappedObjectNode,
-                                 Set WrappedLink
+                                 Set WrappedMergeLink
                                  )
                               -> IO (FiniteMap key WrappedObjectNode,
-                                 Set WrappedLink)
+                                 Set WrappedMergeLink)
                            doLinks [] state = return state
                            doLinks 
-                                 ((WrappedLink link,key):rest) 
+                                 ((WrappedMergeLink link,key):rest) 
                                  (fMap0,visitedSet0) =
                               do
                                  let
@@ -358,7 +378,7 @@ assignView view (State {registry = registry,allNodes = allNodes})
          -- their fixed links.
          doFixedLinks 
             :: [(WrappedObjectTypeTypeData,GlobalKey,WrappedObjectType)]
-            -> Set WrappedLink
+            -> Set WrappedMergeLink
             -> IO ()
          doFixedLinks [] visitedSet = done
          doFixedLinks 
@@ -378,7 +398,7 @@ assignView view (State {registry = registry,allNodes = allNodes})
 
                -- (3) pair the two together
                let
-                  linksNodes :: [(WrappedLink,Maybe WrappedObjectNode)]
+                  linksNodes :: [(WrappedMergeLink,Maybe WrappedObjectNode)]
                   linksNodes = case oldNodesOpt of
                      Nothing -> [ (fixedLink,Nothing) | 
                         fixedLink <- fixedLinks0 ]
@@ -399,9 +419,9 @@ assignView view (State {registry = registry,allNodes = allNodes})
                   -- It returns the corresponding object nodes, and the
                   -- new visited set.  The former is constructed in
                   -- reversed order in the second argument.
-                  doLinksNodes :: [(WrappedLink,Maybe WrappedObjectNode)]
-                     -> [WrappedObjectNode] -> Set WrappedLink
-                     -> IO ([WrappedObjectNode],Set WrappedLink)
+                  doLinksNodes :: [(WrappedMergeLink,Maybe WrappedObjectNode)]
+                     -> [WrappedObjectNode] -> Set WrappedMergeLink
+                     -> IO ([WrappedObjectNode],Set WrappedMergeLink)
                   doLinksNodes [] wrappedObjectNodes visitedSet =
                      return (reverse wrappedObjectNodes,visitedSet)
                   doLinksNodes ((wrappedLink,wrappedObjectNodeOpt):rest)

@@ -66,6 +66,7 @@ import GlobalMenus
 import EntityNames
 import LinkDrawer (toArcData,ArcData)
 import LinkManager
+import MergeTypes
 import MergePrune
 
 ------------------------------------------------
@@ -204,6 +205,67 @@ createFolder view folderTypeId attributes linkedObject =
          hideFolderArcs = hideFolderArcs})
 
 -- ------------------------------------------------------------------
+-- Merging
+-- ------------------------------------------------------------------
+
+instance HasMerging Folder where
+
+   getMergeLinks = getLinkedObjectMergeLinks
+
+   attemptMerge linkReAssigner newView newLink vlos =
+      addFallOutWE (\ break ->
+         do
+            (vlos @ ((vlo1 @ (view1,link1,folder1))  : vlosRest)) 
+               <- mergePrune vlos
+
+            -- (1) check that the folder types match and compute the new
+            -- folder type.
+            let
+               folderType1 = folderType folder1
+               folderType1Id = folderTypeId folderType1
+
+            mapM_ 
+               (\ (_,_,folder) ->
+                  if folderType1Id
+                        /= folderTypeId (folderType folder)
+                     then
+                        do
+                           folderTitle <- nodeTitleIOPrim folder
+                           break ("Type mismatch attempting to merge folder "
+                              ++ folderTitle)
+                     else
+                        done
+                  )
+               vlosRest
+
+            let
+               newFolderTypeId = folderType1Id
+
+            -- (2) we just ignore all but the first attributes.
+            let
+               newAttributes = attributes folder1
+
+            -- (3) now for the interesting bit ...
+            newLinkedObjectWE <- attemptLinkedObjectMerge
+               linkReAssigner newView newLink
+                  (map 
+                     (\ (view,link,folder) -> (view,toLinkedObject folder))
+                     vlos
+                     )
+
+            newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
+
+            -- (4) and create ...
+            folder <- createFolder newView newFolderTypeId newAttributes 
+               newLinkedObject
+
+            setLink newView folder newLink
+
+            done
+      )
+
+
+-- ------------------------------------------------------------------
 -- The instance of ObjectType
 -- ------------------------------------------------------------------
 
@@ -322,65 +384,6 @@ instance ObjectType FolderType Folder where
             Just link -> [link]
             )
          )
-
-   getMergeLinks = getLinkedObjectMergeLinks
-
-   attemptMerge linkReAssigner newView newLink vlos =
-      addFallOutWE (\ break ->
-         do
-            (vlos @ ((vlo1 @ (view1,link1,folder1))  : vlosRest)) 
-               <- mergePrune vlos
-
-            -- (1) check that the folder types match and compute the new
-            -- folder type.
-            let
-               folderType1 = folderType folder1
-               folderType1Id = folderTypeId folderType1
-
-            mapM_ 
-               (\ (_,_,folder) ->
-                  if folderType1Id
-                        == folderTypeId (folderType folder)
-                     then
-                        do
-                           folderTitle <- nodeTitleIOPrim folder
-                           break ("Type mismatch attempting to merge folder "
-                              ++ folderTitle)
-                     else
-                        done
-                  )
-               vlosRest
-
-            let
-               newFolderTypeId = folderType1Id
-
-            -- (2) we just ignore all but the first attributes.
-            let
-               newAttributes = attributes folder1
-
-            -- (3) now for the interesting bit ...
-            newLinkedObjectWE <- attemptLinkedObjectMerge
-               linkReAssigner newView newLink
-                  (map 
-                     (\ (view,link,folder) -> (view,toLinkedObject folder))
-                     vlos
-                     )
-
-            newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
-
-            -- (4) and create ...
-            folder <- createFolder newView newFolderTypeId newAttributes 
-               newLinkedObject
-
-            setLink newView folder newLink
-
-            done
-      )
-
-
-
-
-   
 
 -- ------------------------------------------------------------------
 -- Extra option so that folders can add files.

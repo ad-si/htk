@@ -92,6 +92,35 @@ instance HasCodedValue MMiSSPreamble where
             codedValue1)
 
 -- -------------------------------------------------------------------
+-- Merging
+-- -------------------------------------------------------------------
+
+instance HasMerging MMiSSPreamble where
+
+   -- We allow only trivial merging, for now.
+   getMergeLinks = emptyMergeLinks
+
+   attemptMerge linkReAssigner newView newLink vlos =
+      do
+         vlosPruned <- mergePrune vlos
+         case vlosPruned of
+            a:b:_ -> return (hasError "Sorry, can't merge preambles")
+            [(view,preambleLink,oldPreamble)] ->
+               do
+                  preambleContents <- readIORef (preamble oldPreamble)
+                  preamble1 <- newIORef preambleContents
+
+                  editLock1 <- newBSem
+                  let
+                     newPreamble = MMiSSPreamble {
+                        preamble = preamble1,
+                        editLock = editLock1
+                        }
+
+                  setLink newView newPreamble newLink
+                  return (hasValue ())
+
+-- -------------------------------------------------------------------
 -- The instance of ObjectType.
 -- -------------------------------------------------------------------
 
@@ -135,32 +164,6 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
             }               
       in
          return (Just nodeDisplayData)
-
-   -- merging
-
-   -- We allow only trivial merging, for now.
-   getMergeLinks = emptyMergeLinks
-
-   attemptMerge linkReAssigner newView newLink vlos =
-      do
-         vlosPruned <- mergePrune vlos
-         case vlosPruned of
-            a:b:_ -> return (hasError "Sorry, can't merge preambles")
-            [(view,preambleLink,oldPreamble)] ->
-               do
-                  preambleContents <- readIORef (preamble oldPreamble)
-                  preamble1 <- newIORef preambleContents
-
-                  editLock1 <- newBSem
-                  let
-                     newPreamble = MMiSSPreamble {
-                        preamble = preamble1,
-                        editLock = editLock1
-                        }
-
-                  setLink newView newPreamble newLink
-                  return (hasValue ())
-      
 
 -- -------------------------------------------------------------------
 -- Editing the Preamble

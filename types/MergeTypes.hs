@@ -5,6 +5,7 @@ module MergeTypes where
 import Data.FiniteMap
 
 import Dynamics
+import Computation
 
 import CodedValue
 import Link
@@ -13,7 +14,7 @@ import {-# SOURCE #-} ObjectTypes
 
 -- | This describes all the links which leave an object and which need to
 -- be preserved by the merge.
-data ObjectLinks key = ObjectLinks [(WrappedLink,key)]
+data ObjectLinks key = ObjectLinks [(WrappedMergeLink,key)]
 
 instance Functor ObjectLinks where
    fmap fn (ObjectLinks l) =
@@ -39,13 +40,13 @@ emptyMergeLinks
    = MergeLinks (\ _ _ -> return ((ObjectLinks []) :: ObjectLinks ()))
 
 singletonMergeLinks 
-   :: HasCodedValue object => (object -> WrappedLink) -> MergeLinks object
-singletonMergeLinks toWrappedLink =
+   :: HasCodedValue object => (object -> WrappedMergeLink) -> MergeLinks object
+singletonMergeLinks toWrappedMergeLink =
    let
       fn view link =
          do
             object <- readLink view link
-            return (ObjectLinks [(toWrappedLink object,())])
+            return (ObjectLinks [(toWrappedMergeLink object,())])
    in
       MergeLinks fn
 
@@ -71,8 +72,47 @@ pairMergeLinks (MergeLinks fn1) (MergeLinks fn2) =
 -- | This contains the reassignments made in merging, mapping each link to
 -- its corresponding link in the final merge.
 data LinkReAssigner = LinkReAssigner {
-   linkMap :: FiniteMap (ViewId,WrappedLink) WrappedLink,
-   allMerges :: [(WrappedLink,[(View,WrappedLink)])]
+   linkMap :: FiniteMap (ViewId,WrappedMergeLink) WrappedMergeLink,
+      -- ^ maps each link to its corresponding link in the final merge
+
+   allMergesMap :: FiniteMap WrappedMergeLink [(View,WrappedMergeLink)]
+      -- ^ allMergesMap is the inverse map, mapping each link in the
+      -- final merge to the corresponding original links.
    } 
 
 
+class HasCodedValue object => HasMerging object where
+   getMergeLinks :: MergeLinks object
+      -- Retuns those links which need to be preserved by merging.
+
+   attemptMerge :: LinkReAssigner -> View -> Link object
+      -> [(View,Link object,object)] -> IO (WithError ())
+      -- Attempt to merge the links supplied in the last argument to produce
+      -- a single object in (View,Link object), or return an error message.
+
+data WrappedMergeLink = forall object .
+   (HasCodedValue object,HasMerging object) => WrappedMergeLink (Link object)
+
+---
+-- Returns Nothing if the types don't match.
+unpackWrappedMergeLink :: HasMerging object =>
+    WrappedMergeLink -> Maybe (Link object)
+unpackWrappedMergeLink (WrappedMergeLink link) = fromDyn (toDyn link) 
+
+
+instance Eq WrappedMergeLink where
+   (==) (WrappedMergeLink link1) (WrappedMergeLink link2) = eqLink link1 link2
+
+instance Ord WrappedMergeLink where
+   compare (WrappedMergeLink link1) (WrappedMergeLink link2) 
+      = compareLink link1 link2
+
+mapLink :: HasMerging object => LinkReAssigner -> View -> Link object 
+   -> Link object
+mapLink linkReAssigner oldView oldLink = 
+   case lookupFM (linkMap linkReAssigner) (viewId oldView,WrappedMergeLink oldLink)
+         of
+      Nothing -> error "MergeTypes.mapLink - unmapped type"
+      Just wrappedMergeLink -> case unpackWrappedMergeLink wrappedMergeLink of
+         Just newLink -> newLink
+         Nothing -> error "MergeTypes.mapLink - unexpected type error"

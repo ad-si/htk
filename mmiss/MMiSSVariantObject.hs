@@ -46,7 +46,7 @@ module MMiSSVariantObject(
       -- This does not always retrieve the current cache unless the search
       -- object is the same as the current one.  Otherwise it looks up the
       -- current object and computes a cache using the cache function.
-
+ 
    lookupVariantObjectExact,
       -- :: VariantObject object cache -> MMiSSVariantSpec
       --    -> IO (Maybe object)
@@ -78,7 +78,19 @@ module MMiSSVariantObject(
    writeVariantObjectAndPoint,
       -- :: VariantObject object cache -> MMiSSVariantSpec 
       -- -> object -> IO ()
-   -- Writing a new object and make it current.
+      -- Writing a new object and make it current.
+
+   -- Merging
+
+   variantObjectObjectLinks, 
+      -- :: (object -> IO (ObjectLinks key)) -> VariantObject object cache 
+      -- -> IO ((ObjectLinks (MMiSSVariants,key)))
+
+   attemptMergeVariantObject,
+      -- :: (View -> object -> IO object) 
+      -- -> [(View,VariantObject object cache)]
+      -- -> IO (VariantObject object cache)
+
    ) where
 
 import Control.Concurrent.MVar
@@ -93,6 +105,8 @@ import DialogWin
 
 import CodedValue
 import AttributesType
+import MergeTypes
+import ViewType
 
 import MMiSSDTDAssumptions
 import MMiSSVariant
@@ -329,7 +343,7 @@ editMMiSSSearchObject objectTitle variantObject =
             -- but who cares?
             attributes <- fromMMiSSVariantSpecToAttributes variantSpec0
             attributesState <- updateAttributesPrim ("Select variant for "
-               ++objectTitle) attributes variantAttributesType Nothing
+               ++objectTitle) attributes variantAttributesType2 Nothing
             case attributesState of
                Cancelled -> return (variantSpec0,False)
                NoForm -> return (variantSpec0,False) 
@@ -369,3 +383,46 @@ getCurrentVariantSearch variantObject =
    do
       variantSpec <- readMVar (currentVariantSpec variantObject)
       return (fromMMiSSSpecToSearch variantSpec)
+
+-- -----------------------------------------------------------------------
+-- Merging
+-- -----------------------------------------------------------------------
+
+variantObjectObjectLinks 
+   :: (object -> IO (ObjectLinks key)) -> VariantObject object cache 
+   -> IO ((ObjectLinks (MMiSSVariants,key)))
+variantObjectObjectLinks getIndividualObjectLinks variantObject =
+    getMMiSSVariantDictObjectLinks getIndividualObjectLinks 
+       (dictionary variantObject)
+
+attemptMergeVariantObject
+   :: (View -> object -> IO object) -> [(View,VariantObject object cache)]
+   -> IO (VariantObject object cache)
+attemptMergeVariantObject convertObject variantObjects =
+   do
+      dictionary1 <- attemptMergeMMiSSVariantDict convertObject
+         (map 
+            (\ (view,variantObject) -> (view,dictionary variantObject))
+            variantObjects
+            )
+      let
+         (_,headVariant):_ = variantObjects
+
+         converter1 = converter headVariant
+
+      currentVariantSpec1 <- readMVar (currentVariantSpec headVariant)
+      (Just object1) <- variantDictSearch dictionary1 
+         (fromMMiSSSpecToSearch currentVariantSpec1)
+      cache1 <- converter1 object1
+
+      let
+         frozenVariantObject = FrozenVariantObject {
+            dictionary' = dictionary1,
+            currentVariantSpec' = currentVariantSpec1,
+            cache' = cache1
+            }
+
+      unfreezeVariantObject converter1 frozenVariantObject
+
+
+      

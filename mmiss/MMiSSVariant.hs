@@ -16,10 +16,8 @@ module MMiSSVariant(
    MMiSSVariantDict,
    newEmptyVariantDict,
    variantDictSearch,
-   variantDictSearchExtra,
    variantDictSearchExact,
    addToVariantDict,
-   delFromVariantDict,
    queryInsert,
 
    -- For the time being, newtype variants of MMiSSSearchObject.
@@ -36,9 +34,12 @@ module MMiSSVariant(
    emptyMMiSSVariantSearch,
    emptyMMiSSVariantSpec,
 
+   variantAttributesType2,
+
    -- Merging
    getMMiSSVariantDictObjectLinks, 
    attemptMergeMMiSSVariantDict,
+   MMiSSVariants,
    ) where
 
 import Maybe
@@ -61,6 +62,7 @@ import VersionGraphClient
 import BasicObjects
 import CodedValue
 import MergeTypes
+import AttributesType
 
 import Text.XML.HaXml.Types(Attribute,AttValue(..))
 
@@ -239,6 +241,12 @@ setVersion (MMiSSVariants list0) value =
    in
       MMiSSVariants ((versionVariant,value) : list1)
 
+getVersionAndUnset :: MMiSSVariants -> Maybe (String,MMiSSVariants)
+getVersionAndUnset (MMiSSVariants list0) = case list0 of
+   ((VariantAttribute {key = key1},value) : list1 )
+      | key1 == key versionVariant  -> Just (value,MMiSSVariants list1)
+   _ -> Nothing
+
 
 -- ------------------------------------------------------------------------
 -- More sophisticated functions for manipulating MMiSSVariantSpec and
@@ -336,6 +344,11 @@ toMMiSSVariantSpecFromAttributes attributes =
       variants <- toMMiSSVariants attributes
       return (MMiSSVariantSpec variants)
 
+-- | Type of variant attributes including also the version attribute
+variantAttributesType2 :: AttributesType
+variantAttributesType2 
+   = needs (mkAttributeKey "version") "" variantAttributesType 
+
 fromMMiSSSpecToSearch :: MMiSSVariantSpec -> MMiSSVariantSearch
 fromMMiSSSpecToSearch (MMiSSVariantSpec variants) =
    MMiSSVariantSearch variants
@@ -396,16 +409,28 @@ variantDictSearch variantDict search =
       resultOpt <- variantDictSearchGeneral variantDict search
       return (fmap (\ (_,_,a) -> a) resultOpt)
 
--- return the MMiSSVariantSpec of the found object as well.  This is useful
--- if we later want to delete it, for example.
-variantDictSearchExtra :: MMiSSVariantDict a -> MMiSSVariantSearch ->
-   IO (Maybe (a,MMiSSVariantSpec))
-variantDictSearchExtra variantDict search =
+
+-- Like variantDictSearch, but also returns an IO action which removes
+-- any Version attribute on the dictionary element.
+-- (unused)
+variantDictSearchWithDirty :: MMiSSVariantDict a -> MMiSSVariantSearch ->
+   IO (Maybe (a,IO ()))
+variantDictSearchWithDirty (variantDict @ (MMiSSVariantDict registry)) search =
    do
       resultOpt <- variantDictSearchGeneral variantDict search
       return (fmap 
-         (\ (_,variants,a) -> (a,MMiSSVariantSpec variants)) resultOpt)
-   
+         (\ (_,variants,a) -> 
+            let
+               dirtyAct =
+                  case getVersionAndUnset variants of
+                     Nothing -> done
+                     Just (_,dirtyVariants) ->
+                        changeKey registry variants dirtyVariants
+            in
+               (a,dirtyAct)
+            )
+        resultOpt
+        )   
 
 variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch 
       -> IO (Maybe (Integer,MMiSSVariants,a))
@@ -597,3 +622,10 @@ attemptMergeMMiSSVariantDict converter
 
       registry <- listToNewRegistry (concat converted)
       return (MMiSSVariantDict registry)
+
+-- ------------------------------------------------------------------------
+-- Instance of Show needed for MMiSSVariants (needed for merging)
+-- ------------------------------------------------------------------------
+
+instance Show MMiSSVariants where
+   show mmissVariants = show (unmkMMiSSVariants mmissVariants)

@@ -119,6 +119,53 @@ instance HasCodedValue File where
              codedValue1)
 
 -- ------------------------------------------------------------------
+-- Merging
+-- ------------------------------------------------------------------
+
+instance HasMerging File where
+   -- Merging information
+   getMergeLinks = MergeLinks (\ view link ->
+      do
+         file <- readLink view link
+         return (getMergeLinksSimpleFile (simpleFile file))
+      )
+
+   attemptMerge = (\ linkReAssigner newView newLink vlos ->
+      -- We don't do any serious merging, just removing obvious prunable
+      -- versions.
+      do
+         vlosPruned <- mergePrune vlos
+         case vlosPruned of
+            [] -> error "Files: strange, empty merge list??"
+            a:b:_ -> return (hasError
+               ("Sorry, can't merge simple files at all"))
+            [(view,fileLink,file)] ->
+               do
+                  let
+                     fileType1 = fileType file
+                     attributes1 = attributes file
+                  linkedObject1WE <- attemptLinkedObjectMerge
+                     linkReAssigner newView newLink [(view,linkedObject file)]
+                  mapWithErrorIO
+                     (\ linkedObject1 ->
+                        do
+                           let
+                              simpleFile1 = attemptMergeSimpleFile 
+                                 linkReAssigner newView (simpleFile file)
+
+                              newFile = File {
+                                 fileType = fileType1,
+                                 attributes = attributes1,
+                                 simpleFile = simpleFile1,
+                                 linkedObject = linkedObject1
+                                 }
+                           setLink newView newFile newLink
+                           done
+                        )
+                     linkedObject1WE
+      )              
+
+-- ------------------------------------------------------------------
 -- The instance of ObjectType
 -- ------------------------------------------------------------------
 
@@ -197,49 +244,6 @@ instance ObjectType FileType File where
                      })
                Nothing -> Nothing
          )
-
-
-   -- Merging information
-   getMergeLinks = MergeLinks (\ view link ->
-      do
-         file <- readLink view link
-         return (getMergeLinksSimpleFile (simpleFile file))
-      )
-
-   attemptMerge = (\ linkReAssigner newView newLink vlos ->
-      -- We don't do any serious merging, just removing obvious prunable
-      -- versions.
-      do
-         vlosPruned <- mergePrune vlos
-         case vlosPruned of
-            [] -> error "Files: strange, empty merge list??"
-            a:b:_ -> return (hasError
-               ("Sorry, can't merge simple files at all"))
-            [(view,fileLink,file)] ->
-               do
-                  let
-                     fileType1 = fileType file
-                     attributes1 = attributes file
-                  linkedObject1WE <- attemptLinkedObjectMerge
-                     linkReAssigner newView newLink [(view,linkedObject file)]
-                  mapWithErrorIO
-                     (\ linkedObject1 ->
-                        do
-                           let
-                              simpleFile1 = attemptMergeSimpleFile 
-                                 linkReAssigner newView (simpleFile file)
-
-                              newFile = File {
-                                 fileType = fileType1,
-                                 attributes = attributes1,
-                                 simpleFile = simpleFile1,
-                                 linkedObject = linkedObject1
-                                 }
-                           setLink newView newFile newLink
-                           done
-                        )
-                     linkedObject1WE
-      )              
 
 instance HasLinkedObject File where
    toLinkedObject object = linkedObject object

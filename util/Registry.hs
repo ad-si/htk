@@ -24,6 +24,8 @@ module Registry(
       -- :: Registry from to -> IO [(from,to)]
    listToNewRegistry,
       -- :: Ord from => [(from,to)] -> IO (Registry from to)
+   changeKey,
+      -- :: Ord from => Registry from to -> from -> from -> IO ()
 
    -- Operation for getting values directly from a Registry
    getRegistryValue,
@@ -204,6 +206,20 @@ listToNewRegistry contents =
       mVar <- newMVar map
       return (Registry mVar)
 
+-- | look up the element given by the first key, and if it exists
+-- delete it, replacing it with the element given by the second key.
+changeKey :: Ord from => Registry from to -> from -> from -> IO ()
+changeKey (Registry mVar) oldKey newKey =
+   modifyMVar_ mVar (\ fmap0 -> return (case lookupFM fmap0 oldKey of
+      Nothing -> fmap0
+      Just elt ->
+         let
+            fmap1 = delFromFM fmap0 oldKey
+            fmap2 = addToFM fmap1 newKey elt
+         in
+            fmap2
+         )
+      )
 
 -- ----------------------------------------------------------------------
 -- Untyped Registries

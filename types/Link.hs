@@ -38,6 +38,9 @@ module Link(
    -- The LinkManager.deleteLinkedObject takes care of this for any links
    -- it stores.
 
+   cloneLink, -- :: HasCodedValue x => View -> Link x -> View -> IO ()
+   -- Copy a link with its contents from the old to the new view.
+
    newEmptyObject, -- :: HasCodedValue x => View -> IO (Versioned x)
    -- This creates an object with no contents as a stop-gap so you can
    -- create a link to it, EG for constructing circular lists.
@@ -69,6 +72,8 @@ module Link(
    newEmptyLink, -- :: HasCodedValue x => View -> IO (Link x)
    -- Like newEmptyObject; similar considerations apply.
 
+   absolutelyNewLink, -- :: HasCodedValue x => Repository -> IO (Link x)
+   -- Allocate a new link but don't put it in any view.
 
    dirtyLink, -- :: HasCodedValue x => View -> Link x -> IO ()
    -- Does fetchLink and dirtyObject in one go.
@@ -206,6 +211,13 @@ newEmptyLink view =
       versioned <- newEmptyObject view
       makeLink view versioned
 
+absolutelyNewLink :: HasCodedValue x => Repository -> IO (Link x)
+absolutelyNewLink repository =
+   do
+      location <- newLocation repository
+      return (Link location)
+
+
 dirtyLink :: HasCodedValue x => View -> Link x -> IO ()
 dirtyLink view link =
    do
@@ -230,6 +242,13 @@ eqLink (Link loc1) (Link loc2) = loc1 == loc2
 
 compareLink :: Link x -> Link y -> Ordering
 compareLink (Link loc1) (Link loc2) = compare loc1 loc2
+
+cloneLink :: HasCodedValue x => View -> Link x -> View -> IO ()
+cloneLink oldView link newView =
+   do
+      oldVersioned <- fetchLink oldView link
+      cloneObject oldVersioned newView
+      done
 
 -- ----------------------------------------------------------------------
 -- Versioned
@@ -406,6 +425,12 @@ readObject view (versioned@Versioned{statusMVar = statusMVar}) =
          Virgin x -> return x
          UpToDate x _ -> return x
          Dirty x _ -> return x
+
+cloneObject :: HasCodedValue x => Versioned x -> View -> IO (Versioned x)
+cloneObject versioned view =
+   do
+      status <- readMVar (statusMVar versioned)
+      createObjectGeneral view status (location versioned)
 
 -- ----------------------------------------------------------------------
 -- Access to the lastChange

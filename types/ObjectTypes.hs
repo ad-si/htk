@@ -61,6 +61,8 @@ module ObjectTypes(
    -- Unpacking wrapped types.
    unpackWrappedLink,  -- :: ObjectType objectType object =>
      -- WrappedLink -> Maybe (Link object)
+   toWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink
+   fromWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink -> WrappedLink
 
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
@@ -146,7 +148,7 @@ import MergeTypes
 -- The ObjectType class
 -- ----------------------------------------------------------------
 
-class (HasCodedValue objectType,HasCodedValue object) 
+class (HasCodedValue objectType,HasCodedValue object,HasMerging object) 
    => ObjectType objectType object
       | objectType -> object, object -> objectType where
    objectTypeTypeIdPrim :: objectType -> String
@@ -212,14 +214,6 @@ class (HasCodedValue objectType,HasCodedValue object)
       -- The length of the list should be independent of the view.  Indeed it
       -- is envisaged (though not assumed) that this list will be null except
       -- for the plain folder type, where it will contain just the top folder.
-
-   getMergeLinks :: MergeTypes.MergeLinks object
-      -- Retuns those links which need to be preserved by merging.
-
-   attemptMerge :: MergeTypes.LinkReAssigner -> View -> Link object
-      -> [(View,Link object,object)] -> IO (WithError ())
-      -- Attempt to merge the links supplied in the last argument to produce
-      -- a single object in (View,Link object), or return an error message.
 
    nodeTitleSourcePrim object = staticSimpleSource (nodeTitlePrim object)
 
@@ -314,6 +308,22 @@ unpackWrappedLink :: ObjectType objectType object =>
     WrappedLink -> Maybe (Link object)
 unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
 
+toWrappedMergeLink :: WrappedLink -> WrappedMergeLink
+toWrappedMergeLink (WrappedLink link) = WrappedMergeLink link
+
+-- This conversion requires an extra WrappedLink.  We use the type of its
+-- its contents to work out what type the new WrappedLink should contain.
+-- Of course that will be the same type as is inside the WrappedMergeLink,
+-- but we have no way of getting at that, or deducing ObjectTypes for it.
+fromWrappedMergeLink :: WrappedLink -> WrappedMergeLink -> WrappedLink
+fromWrappedMergeLink (WrappedLink (_ :: Link object)) (WrappedMergeLink link0)
+      =
+   let
+      link1 :: Link object
+      link1 = dynCast "ObjectTypes.fromWrappedMergeLink error" link0
+   in
+      WrappedLink link1
+
 -- ----------------------------------------------------------------
 -- Some miscellaneous utilities constructed from the primitives.
 -- ----------------------------------------------------------------
@@ -336,11 +346,11 @@ nodeTitleIO :: WrappedObject -> IO String
 nodeTitleIO (WrappedObject object) = nodeTitleIOPrim object
 
 
-fixedLinks :: View -> WrappedObjectType -> IO [WrappedLink]
+fixedLinks :: View -> WrappedObjectType -> IO [WrappedMergeLink]
 fixedLinks view (WrappedObjectType objectType) =
    do
       links <- fixedLinksPrim view objectType
-      return (map WrappedLink links)
+      return (map WrappedMergeLink links)
 
 createObjectMenuItem :: WrappedObjectType 
    -> Maybe (String,View -> LinkedObject -> IO (Maybe WrappedLink))

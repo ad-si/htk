@@ -143,6 +143,38 @@ extractObjectSameName linkedObject =
          Nothing -> return Nothing
          Just entityName -> lookupObjectContents linkedObject entityName
 
+-- ------------------------------------------------------------------------
+-- Merging
+-- ------------------------------------------------------------------------
+
+instance HasMerging MMiSSPackageFolder where
+
+   getMergeLinks = getLinkedObjectMergeLinks
+
+   attemptMerge linkReAssigner newView newLink vlos =
+      addFallOutWE (\ break ->
+         do
+            -- compare with similar code in Folders.  But this is
+            -- simple as we don't have attributes or more than one
+            -- type.
+            vlosPruned <- mergePrune vlos
+
+            newLinkedObjectWE <- attemptLinkedObjectMerge
+               linkReAssigner newView newLink
+                  (map 
+                     (\ (view,link,folder) -> (view,toLinkedObject folder))
+                     vlos
+                     )
+
+            newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
+
+            mmissPackageFolder <- createMMiSSPackageFolder newLinkedObject
+
+            setLink newView mmissPackageFolder newLink
+
+            done
+      )
+
       
 -- ------------------------------------------------------------------------
 -- The instance of ObjectTypes.
@@ -239,36 +271,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                      specialNodeActions = const emptyNodeActions
                      }
                in
-                  return (Just nodeDisplayData)
-
-   -- Merging
-
-   getMergeLinks = getLinkedObjectMergeLinks
-
-   attemptMerge linkReAssigner newView newLink vlos =
-      addFallOutWE (\ break ->
-         do
-            -- compare with similar code in Folders.  But this is
-            -- simple as we don't have attributes or more than one
-            -- type.
-            vlosPruned <- mergePrune vlos
-
-            newLinkedObjectWE <- attemptLinkedObjectMerge
-               linkReAssigner newView newLink
-                  (map 
-                     (\ (view,link,folder) -> (view,toLinkedObject folder))
-                     vlos
-                     )
-
-            newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
-
-            mmissPackageFolder <- createMMiSSPackageFolder newLinkedObject
-
-            setLink newView mmissPackageFolder newLink
-
-            done
-      )
-   
+                  return (Just nodeDisplayData)   
 
 -- ------------------------------------------------------------------------
 -- The global registry (currently unused)

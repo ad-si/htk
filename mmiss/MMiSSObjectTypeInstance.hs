@@ -1,14 +1,22 @@
-{- This is the module that defines the instance of MMiSSObjectType. -}
+{- This is the module that defines the ObjectTypes and HasMerging 
+   instance of MMiSSObjectType. 
+
+   (Really this should be two modules; it is one because GHC's rules of
+   separating recursive modules would make any alternative too tricky.) 
+   -}
 module MMiSSObjectTypeInstance() where
 
 import System.IO.Unsafe
 
-import Computation(done)
+import Computation
+import ExtendedPrelude
 import AtomString(fromString)
 import Sources
 import VariableSet(VariableSetSource)
 import VariableList
 import VariableSetBlocker
+
+import BSem
 
 import MenuType
 
@@ -24,15 +32,20 @@ import ObjectTypes
 import Link
 import DisplayParms
 import SpecialNodeActions
+import MergeTypes
+import MergePrune
+import View
+
+import Text.XML.HaXml.Types
 
 import MMiSSObjectTypeType
 import MMiSSObjectType
+import MMiSSVariant
 import MMiSSVariantObject
 import MMiSSImportLaTeX
 import MMiSSExportLaTeX
 import MMiSSContent
 import MMiSSPrint
-import MMiSSObjectMerging
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
@@ -193,11 +206,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   })
             )
 
-   getMergeLinks = mmissMergeLinks
-
-   attemptMerge = mmissAttemptMerge
-
-
 -- ------------------------------------------------------------------
 -- The globalRegistry (currently unused).
 -- ------------------------------------------------------------------
@@ -206,3 +214,118 @@ globalRegistry :: GlobalRegistry MMiSSObjectType
 globalRegistry = System.IO.Unsafe.unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
 
+-- ------------------------------------------------------------------
+-- Merging
+-- ------------------------------------------------------------------
+
+
+instance HasMerging MMiSSObject where
+
+   getMergeLinks = 
+      let
+         fn :: View -> Link MMiSSObject 
+            -> IO (ObjectLinks (MMiSSVariants,Bool))
+         fn view link =
+            do
+               object <- readLink view link
+               variantObjectObjectLinks
+                  (\ variable -> 
+                     return (ObjectLinks [
+                        (WrappedMergeLink (element variable),False),
+                        (WrappedMergeLink (preamble variable),True)])
+                     )
+                  (variantObject object)
+      in
+         MergeLinks fn
+
+   attemptMerge = (\ linkReAssigner newView newLink vlos0 ->
+      addFallOutWE (\ break ->
+         do
+            -- (0) Prune the objects list
+            vlos1 <- mergePrune vlos0
+
+            -- (1) Get the type of the first object, and check that the
+            -- other objects also have this test.
+            let
+               ((_,_,headObject):vlosRest) = vlos1
+
+               tag = xmlTag . mmissObjectType
+
+               thisTag = tag headObject
+
+            mapM_
+               (\ (_,_,object) ->
+                  if tag object /= thisTag
+                     then
+                        do
+                           objectTitle <- objectName headObject
+                           break ("Type mismatch attempting to merge MMiSS "
+                              ++ "object "++ objectTitle)
+                     else
+                        done
+                  )
+               vlosRest
+
+            let
+               mmissObjectType1 = mmissObjectType headObject
+
+            -- (2) Merge linked objects
+            linkedObject1WE <- attemptLinkedObjectMerge
+               linkReAssigner newView newLink
+                  (map 
+                     (\ (view,link,folder) -> (view,toLinkedObject folder))
+                     vlos1
+                     )
+
+            linkedObject1 <- coerceWithErrorOrBreakIO break linkedObject1WE
+
+            -- (3) Merge dictionaries
+            let
+               -- This is the function passed to 
+               -- MMiSSVariantObject.attemptMergeVariantObject.
+               reAssign :: View -> Variable -> IO Variable
+               reAssign oldView variable =
+                  do
+                     let
+                        element1 
+                           = mapLink linkReAssigner oldView (element variable)
+                        preamble1
+                           = mapLink linkReAssigner oldView (preamble variable)
+                     editLock1 <- newBSem
+                     let
+                        variable1 = Variable {
+                           element = element1,
+                           preamble = preamble1,
+                           editLock = editLock1
+                           }
+                     return variable1
+
+            variantObject1 <- attemptMergeVariantObject reAssign
+               (map (\ (view,_,object) -> (view,variantObject object)) vlos1)
+
+            -- (4) Create the object, and put it in the view.
+            mmissObject1 <- createMMiSSObject 
+               mmissObjectType1 linkedObject1 variantObject1
+
+            setLink newView mmissObject1 newLink
+
+            done
+         )
+      )
+
+-- We also need a (trivial) HasMerging instance for Element
+
+instance HasMerging Element where
+
+   getMergeLinks = emptyMergeLinks
+
+   attemptMerge = (\ linkReAssigner newView newLink viewLinks ->
+      case viewLinks of
+         [(oldView,oldLink,element)] 
+            | oldLink == newLink ->
+               do
+                  cloneLink oldView newLink newView
+                  return (hasValue ())
+         _ -> return (hasError "Unexpected merge required of Element")
+      )
+   

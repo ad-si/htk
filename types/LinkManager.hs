@@ -1109,11 +1109,12 @@ getLinkedObjectMergeLinks =
                contents2 :: [(EntityName,LinkedObjectPtr)]
                contents2 = mapToList contents1
 
-               contents3 :: [(WrappedLink,EntityName)]
+               contents3 :: [(WrappedMergeLink,EntityName)]
                contents3 =
                   map
                      (\ (entityName,linkedObjectPtr) ->
-                        (wrappedLinkInPtr linkedObjectPtr,entityName)
+                        (toWrappedMergeLink (wrappedLinkInPtr linkedObjectPtr),
+                           entityName)
                         )
                      contents2
 
@@ -1150,11 +1151,14 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                let
                   wrappedLink0 = wrappedLinkInPtr linkedObjectPtr
 
-                  wrappedLink1 = lookupWithDefaultFM
+                  wrappedMergeLink1 = lookupWithDefaultFM
                      (linkMap linkReAssigner)
                      (error ("LinkManager.mapLinkedObjectPtr "
                         ++ "- unassigned pointer??"))
-                     (viewId view,wrappedLink0)
+                     (viewId view,toWrappedMergeLink wrappedLink0)
+
+                  wrappedLink1 
+                     = fromWrappedMergeLink wrappedLink0 wrappedMergeLink1
                in
                   mkLinkedObjectPtr newView wrappedLink1
                  

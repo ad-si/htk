@@ -21,6 +21,8 @@ module MMiSSObjectType(
    -- Function to be passed to functions for creating new variant
    -- objects.
    converter,
+
+   createMMiSSObject, -- all MMiSSObjects are created by this function.
   
    ) where
 
@@ -132,34 +134,43 @@ instance HasCodedValue MMiSSObject where
             <- decodeIO codedValue0 view
          variantObject <- unfreezeVariantObject (converter view linkedObject)
             frozenVariantObject
-         let
-            extraNodeSource :: SimpleSource (ArcData WrappedLink ArcType)
-            extraNodeSource =
-               fmap
-                  (\ cache ->
-                     toArcData (WrappedLink (cachePreamble cache))
-                        preambleArcType True
-                     )
-                  (toVariantObjectCache variantObject)
-                     
-         (extraNodes :: Blocker (ArcData WrappedLink ArcType))
-            <- newBlocker (singletonSetSource extraNodeSource)
-
-         nodeActions <- newNodeActionSource
-         editCount <- newRefCount
-
-         let
-            mmissObject = MMiSSObject {
-               mmissObjectType = mmissObjectType,
-               linkedObject = linkedObject,
-               nodeActions = nodeActions,
-               extraNodes = extraNodes,
-               variantObject = variantObject,
-               editCount = editCount
-               }
-
+         mmissObject 
+            <- createMMiSSObject mmissObjectType linkedObject variantObject
          return (mmissObject,codedValue1)
-         
+
+-- Also used during merging.
+createMMiSSObject :: MMiSSObjectType -> LinkedObject 
+   -> VariantObject Variable Cache
+   -> IO MMiSSObject
+createMMiSSObject mmissObjectType linkedObject variantObject =
+   do
+      let
+         extraNodeSource :: SimpleSource (ArcData WrappedLink ArcType)
+         extraNodeSource =
+            fmap
+               (\ cache ->
+                  toArcData (WrappedLink (cachePreamble cache))
+                     preambleArcType True
+                  )
+               (toVariantObjectCache variantObject)
+                  
+      (extraNodes :: Blocker (ArcData WrappedLink ArcType))
+         <- newBlocker (singletonSetSource extraNodeSource)
+
+      nodeActions <- newNodeActionSource
+      editCount <- newRefCount
+
+      let
+         mmissObject = MMiSSObject {
+            mmissObjectType = mmissObjectType,
+            linkedObject = linkedObject,
+            nodeActions = nodeActions,
+            extraNodes = extraNodes,
+            variantObject = variantObject,
+            editCount = editCount
+            }
+
+      return mmissObject
 
 -- ---------------------------------------------------------------------
 -- Instances of HasCodedValue for Variable and Cache.

@@ -6,6 +6,7 @@ module Merging(
 import Maybe
 import List
 
+import Data.FiniteMap
 import Control.Concurrent.MVar
 
 import Computation
@@ -175,15 +176,18 @@ mergeViews (views @ (firstView:_)) =
 
             -- (4) Do merging
             let
-               mergeOne :: (WrappedLink,[(View,WrappedLink)]) -> IO ()
-               mergeOne (WrappedLink (newLink :: Link object),linkViewData0) =
+               mergeOne :: (WrappedMergeLink,[(View,WrappedMergeLink)]) 
+                  -> IO ()
+               mergeOne (WrappedMergeLink (newLink :: Link object),
+                    linkViewData0) =
                   do
                      (linkViewData1 :: [(View,Link object,object)]) <-
                         mapM
                            (\ (view,wrappedLink) ->
                               do 
                                  let
-                                    linkOpt = unpackWrappedLink wrappedLink
+                                    linkOpt 
+                                       = unpackWrappedMergeLink wrappedLink
 
                                     link = fromMaybe
                                        (break ("Merging.mergeOne - "++
@@ -199,7 +203,7 @@ mergeViews (views @ (firstView:_)) =
                         linkViewData1
                      coerceWithErrorOrBreakIO break unitWE
 
-            mapM_ mergeOne (allMerges linkReAssigner)
+            mapM_ mergeOne (fmToList (allMergesMap linkReAssigner))
 
             return newView
          )
