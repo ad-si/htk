@@ -54,6 +54,7 @@ import Concurrent
 import Registry
 import Dynamics
 import AtomString(fromString)
+import VariableSet(HasKey(..))
 
 import VersionDB
 import ViewType
@@ -65,6 +66,9 @@ import CodedValueStore
 -- ----------------------------------------------------------------------
 
 newtype Link x = Link Location
+
+instance HasKey (Link x) Location where
+   toKey (Link location) = location
 
 topLink :: Link x
 topLink = Link secondLocation

@@ -27,10 +27,11 @@ module ObjectTypes(
 
    NodeDisplayData(..), -- how to display a particular node type with
       -- a particular display type.
-   ArcTypeTo(..), -- gives edge information
-   ArcTo(..), -- ditto
-   ArcTypeFrom(..), -- ditto
-   ArcFrom(..), -- ditto
+   ArcType,  -- ArcType and NodeType are labels provided by the object type
+      -- implementation for particular arcs and arc types in a display.
+      -- They correspond to Strings and are instances of StringClass; this is
+      -- how you create and read them.
+   NodeType, 
 
 
    registerObjectType, -- :: ObjectType objectType object 
@@ -63,10 +64,13 @@ import Registry
 import AtomString
 import Computation
 import Dynamics
+import VariableSet
 
 import GraphDisp
 import GraphConfigure
+import Graph(ArcType,NodeType)
 
+import VersionDB(Location)
 import CodedValue
 import DisplayTypes
 import ViewType
@@ -99,15 +103,12 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- this Haskell value.  This function should not look at its argument.
       -- The keys in this registry should be indexed according to
       -- objectTypeIdPrim
-   objectIdPrim :: object -> AtomString
-      -- Returns the unique identifier for this object in this version.
-      -- Like objectTypeId, this may change from version to version
    getObjectTypePrim :: object -> objectType
       -- Extracts the type of an object.
    getNodeDisplayData :: 
       (HasNodeTypeConfigs nodeTypeParms,HasArcTypeConfigs arcTypeParms) 
       => WrappedDisplayType -> objectType ->
-      Maybe(NodeDisplayData nodeTypeParms arcTypeParms objectType object)
+         Maybe (NodeDisplayData nodeTypeParms arcTypeParms objectType object)
       -- Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
@@ -131,57 +132,49 @@ data WrappedLink = forall objectType object .
 
 -- ----------------------------------------------------------------
 -- NodeDisplayData
+-- We make heavy use of VariableSets for these.
 -- ----------------------------------------------------------------
 
-data NodeDisplayData nodeTypeParms arcTypeParms objectType object = 
-      NodeDisplayData {
-   topObjects :: View -> [Link object],
-      -- extract the root objects to scan from for this particular view.
-   nodeTypeParms :: nodeTypeParms (String,object),
-      -- the node type parameters for constructing a node type corresponding
-      -- to this object type
-   displayThis :: object -> Maybe String,
-      -- Return "Just String" if this object should be displayed, with the
-      -- label to be used for the node.
-   arcsTo :: [ArcTypeTo arcTypeParms object],
-      -- Information on arcs to this object we need to construct and follow,
-      -- if object is displayed
-   arcsFrom :: [ArcTypeFrom arcTypeParms object],
-      -- Information on arcs from this object we need to construct and follow.
-   considerThese :: object -> [WrappedObject]
-   }
-   -- Meaning of these pointers.  For each object type we consider for display
-   -- (1) all objects returned by topObjects
-   -- (2) if object is considered for display, all objects in 
-   --     considerThese object
-   -- (3) if object is displayed, all objects at the ends of arcs returned
-   --     by arcsTo or arcFrom. 
-   -- If an object is considered for display, it is displayed if
-   -- (1) getNodeDisplayData for its object type returns something.
-   -- (2) displayThis on the object returns True.
-   -- An arc returned by arcsTo or arcsFrom is displayed only when the objects
-   -- at both ends are displayed.
 
+instance HasKey WrappedLink Location where
+   toKey (WrappedLink link) = toKey link
 
-data ArcTypeTo arcTypeParms object = ArcTypeTo {
-   arcTypeParmsTo :: arcTypeParms (ArcTo object), 
-      -- parameters for this arc type.
-   getArcsTo :: object -> [WrappedObject]
-      -- construct arcs with this arc type.
-   }
+instance HasKey (WrappedLink,ArcType) Location where
+   toKey (wrappedLink,arcType) = toKey wrappedLink
 
-data ArcTypeFrom arcTypeParms object = ArcTypeFrom {
-   -- see ArcTypeTo
-   arcTypeParmsFrom :: arcTypeParms (ArcFrom object),
-      -- parameters
-   getArcFrom :: object -> [WrappedObject]
-       -- construct arcs
-   }
+data NodeDisplayData nodeTypeParms arcTypeParms objectType object =
+   NodeDisplayData {
+      topLinks :: [Link object],
+         -- topLinks displays the links to start display on
 
-data ArcFrom object = ArcFrom object WrappedLink
-   -- arc from object to object indicated by WrappedLink
-data ArcTo object = ArcTo WrappedLink object
-   -- arc from object indicated by WrappedLink to object
+      -- For the time being, we assume that arc and node types are
+      -- constant.
+      -- Note that ArcType, NodeType and Arc all have local scope to
+      -- this NodeDisplayData.
+
+      arcTypes :: [(ArcType,arcTypeParms ())],
+      nodeTypes :: [(NodeType,nodeTypeParms (String,object))],
+
+      -- getNodeType retrieves the node type for a particular node.
+      getNodeType :: objectType -> NodeType,
+
+      -- We maintain a set of objects called the knownSet.  This includes
+      -- all nodes which are either in topLinks or as a result of focus;
+      -- it may also include other nodes (for example, because of other
+      -- displays).
+      knownSet :: VariableSet (Link object),
+
+      -- focus returns variable sets for the arcs from and to a given
+      -- object.  Every arc should appear in exactly one of these sets.
+      focus :: object -> 
+         IO (VariableSet (WrappedLink,ArcType),
+            VariableSet (WrappedLink,ArcType)),
+
+      closeDown :: IO ()
+         -- This tells the display implementation it is OK to stop
+         -- updating the variable set (though it may choose to do so
+         -- anyway, if other people are interested).
+      }
 
 -- ----------------------------------------------------------------
 -- Registry of Object Types
