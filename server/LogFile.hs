@@ -5,6 +5,7 @@ module LogFile(
    openLog,
    openLog1,
    writeLog,
+   readLog,
    ) where
 
 import IO
@@ -31,33 +32,45 @@ openLog1 logFileName =
       handle <- openFile fpath ReadWriteMode
       items <- readLogItems handle []
       return (LogFile handle,items)
-   where
-      -- The second argument is an accumulating parameter.
-      readLogItems :: HasBinaryIO a => Handle -> [a] -> IO [a]
-      readLogItems handle as =
-         do
-            pos1 <- hGetPosn handle
-            aWEOpt <- catchEOF (hGetWE handle)
-            case aWEOpt of
-               Nothing -> -- EOF
+
+-- | Reads the entries in a LogFile, without opening it for writing.
+readLog :: HasBinaryIO a => String -> IO [a]
+readLog logFileName =
+   do
+      fpath <- getServerFile logFileName
+      handle <- openFile fpath ReadMode
+      items <- readLogItems handle []
+      hClose handle
+      return (reverse items)
+
+
+
+-- The second argument is an accumulating parameter.
+readLogItems :: HasBinaryIO a => Handle -> [a] -> IO [a]
+readLogItems handle as =
+   do
+      pos1 <- hGetPosn handle
+      aWEOpt <- catchEOF (hGetWE handle)
+      case aWEOpt of
+         Nothing -> -- EOF
+            do
+               pos2 <- hGetPosn handle
+               unless (pos1 == pos2)
+                  (do 
+                     putStrLn 
+                        "Restarting server: incomplete commit discarded"
+                     hSetPosn pos1
+                  )
+               return as -- this is how we normally end.
+         Just aWE -> 
+            case fromWithError aWE of
+               Left mess ->
+                  error (
+                     "Server could not restarted due to parse error in "
+                     ++ show handle ++ ": " ++ mess)
+               Right a ->
                   do
-                     pos2 <- hGetPosn handle
-                     unless (pos1 == pos2)
-                        (do 
-                           putStrLn 
-                              "Restarting server: incomplete commit discarded"
-                           hSetPosn pos1
-                        )
-                     return as -- this is how we normally end.
-               Just aWE -> 
-                  case fromWithError aWE of
-                     Left mess ->
-                        error (
-                           "Server could not restarted due to parse error in "
-                           ++ logFileName ++ ": " ++ mess)
-                     Right a ->
-                        do
-                           readLogItems handle (a : as)
+                     readLogItems handle (a : as)
 
 
 

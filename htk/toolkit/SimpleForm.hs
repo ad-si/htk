@@ -51,6 +51,17 @@ module SimpleForm(
       -- the second the form.  As well as the entries in the form,
       -- "OK" and "Cancel" buttons are displayed.
 
+   doFormList, 
+      -- :: String -> [(Form x,String)] -> IO (Event (WithError x),IO ())
+      -- Display a sequence of forms, horizontally, one after another.
+      -- To the right of each form is a button, with text given by the
+      -- accompanying String.
+      -- Clicking this button causes an event to be generated, carrying
+      --    the accompanying form's value, or if invalid the error 
+      --    message.
+      -- The first argument is the title of the window.  The
+      -- IO () action returned closes the window.
+
    mapForm, -- :: (x -> WithError y) -> Form x -> Form y
       -- mapForm changes the type of a form.  When we press OK with doForm,
       -- the supplied function is called.  If it returns a y, we return y
@@ -401,6 +412,46 @@ doForm title (Form enterForm) =
       destroy toplevel
 
       return valueOpt
+
+doFormList :: String -> [(Form x,String)] -> IO (Event (WithError x),IO ())
+doFormList title (formList :: [(Form x,String)]) =
+   do
+      let
+         doOneForm :: Toplevel -> (Form x,String) 
+            -> IO (Event (WithError x),IO ())
+         doOneForm toplevel (Form enterForm,buttonName) =
+            do
+               frame <- newFrame toplevel []
+               leftFrame <- newFrame frame []
+
+               enteredForm <- enterForm leftFrame
+               button <- newButton frame [text buttonName,anchor East]
+               clickEvent <- clicked button
+
+               packAction enteredForm
+               pack leftFrame [Side AtLeft,Anchor West]
+               pack button [Side AtRight,Anchor East]
+               pack frame [Side AtTop,Fill X]
+
+               let
+                  handler = clickEvent >>> getFormValue enteredForm
+               return (handler,done)
+      (toplevel,enterResults) <- delayWish (
+         do
+            toplevel <- createToplevel [text title]
+            enterResults <- mapM (doOneForm toplevel) formList
+            return (toplevel,enterResults)
+         )
+      let
+         event = choose (map fst enterResults)
+
+         destroyWindow :: IO ()
+         destroyWindow = 
+            do
+               mapM_ snd enterResults
+               destroy toplevel
+      return (event,destroyWindow)
+
  
 -- -------------------------------------------------------------------------
 -- newFormEntry

@@ -1,8 +1,9 @@
 # PACKAGE = uni-simpledb-test
 PACKAGES = uni-util uni-simpledb
 
+SRCS = MainDumpFiles.hs
+
 # tests disabled for now
-SRCS =
 PACKAGE =
 # SRCS       = SimpleDBServerTest.hs MainSimpleDBServer.hs \
 #    SimpleDBServerTest2.hs

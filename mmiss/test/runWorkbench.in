@@ -6,10 +6,10 @@ set -e
 TOP=@TOP@ @TOP@/mmiss/test/testfiles
 
 # Test script for running the workbench.
-export UNIEDITOR UNISERVER UNIWORKINGDIR 
+export UNIEDITOR UNISERVER UNIWORKINGDIR UNIPORT
 
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
-UNISERVER=`hostname`
+UNISERVER=denebola.informatik.uni-bremen.de
 UNIWORKINGDIR=/tmp/uni.temp.$USER
 
 # The following variables have to be set since in the binary release they
@@ -26,5 +26,12 @@ UNIPASSWORD=${UNIPASSWORD:-dummy0}
 
 gmake killServer
 gmake killWorkbench
+
+# 11393 is used by the local server.
+UNIPORT=11393
 gmake runServer
+
+# 11395 is used by the remote server.
+UNIPORT=11395
+
 gmake runWorkbench

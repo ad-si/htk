@@ -14,6 +14,9 @@ module SimpleDBServer(
    SimpleDBCommand(..),
    SimpleDBResponse(..),
 
+   ChangeData, -- = Either ICStringLen (Location,ObjectVersion)
+
+
    Diff(..),
       -- used in SimpleDBResponse to encode the difference between a version
       -- and (presumably, earlier) versions.
@@ -33,6 +36,8 @@ module SimpleDBServer(
    firstVersion, -- :: Version
 
    querySimpleDB, -- :: SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
+
+   ServerOp, -- exported solely for MainDumpFiles.hs
    ) where
 
 import IO
@@ -107,24 +112,16 @@ data SimpleDBCommand =
              -- Redirects.  This has the same format as the redirects'
              -- field in ServerOp.  For normal commits (not part of
              -- session management) it will be [].
-         [(Location,Either ICStringLen (Location,ObjectVersion))]
-             -- ^ The new stuff in this version, as compared with the head
-             -- parent version, by Location.
-         -- Normally, the list items will be Left ICStringLen, for new data. 
-         -- But because of merges, we also need 
-         -- Right (Location,ObjectVersion), which indicates a pre-existing 
-         -- item in the database given by this location and object version.
-         --
-         -- Returns IsOK.
-         --
-         -- It is in fact legitimate for the same Location to occur more
-         -- than once in the list (this will be necessary when we do security
-         -- properly).  All but the last occurrence is discarded.
+         [(Location,ChangeData)]
+             -- Returns IsOK.
    |  ModifyUserInfo UserInfo
          -- For a version which already exists, replace its VersionInfo
          -- by that given. 
          --    This will not change the head parent version on any account.
          -- Returns IsOK.
+   |  GetVersionInfo ObjectVersion
+         -- For a version which already exists, return its VersionInfo
+         -- (as IsVersionInfo).
    |  GetDiffs ObjectVersion [ObjectVersion]
          -- Produce a list of changes between the given object version
          -- and the parents, in the format IsDiffs.
@@ -141,6 +138,7 @@ data SimpleDBResponse =
    |  IsObjectVersions [ObjectVersion]
    |  IsData ICStringLen
    |  IsDiffs [(Location,Diff)]
+   |  IsVersionInfo VersionInfo
    |  IsError String
    |  IsOK
    |  MultiResponse [SimpleDBResponse]
@@ -158,11 +156,11 @@ data Diff =
          -- is unchanged.
    |  IsChanged {
          existsIn :: ObjectVersion,
-         changed :: Maybe (Location,ObjectVersion)
+         changed :: ChangeData
          }
          -- Location exists in one of the parent versions, namely existsIn, 
          -- but has been changed.
-   |  IsNew {changed :: Maybe (Location,ObjectVersion)}
+   |  IsNew {changed :: ChangeData}
          -- Location exists in none of the parent versions.
    -- If changed is Just (location,objectVersion) then
    -- "objectVersion" is a parentVersion, and the contents in the subject
@@ -177,6 +175,13 @@ data Diff =
    deriving (Show)
 #endif
 
+type ChangeData = Either ICStringLen (Location,ObjectVersion)
+   -- This indicates the contents of a changed item.  
+   -- If (Left ...) this is raw data.
+   -- If (Right ...) this means this item is in fact exactly the
+   --    same as the one in (Location,ObjectVersion), a situation which
+   --    arises, for example, during merging.
+
 -- -----------------------------------------------------------------------
 -- SimpleDBCommand/Response & Diff as instances of HasBinaryIO
 -- -----------------------------------------------------------------------
@@ -190,6 +195,7 @@ instance HasWrapper SimpleDBCommand where
       wrap2 'c' LastChange,
       wrap3 'C' Commit,
       wrap1 'm' ModifyUserInfo,
+      wrap1 'v' GetVersionInfo,
       wrap2 'd' GetDiffs,
       wrap1 'M' MultiCommand
       ]
@@ -201,6 +207,7 @@ instance HasWrapper SimpleDBCommand where
       LastChange l v -> UnWrap 'c' (l,v)
       Commit v r n -> UnWrap 'C' (v,r,n)
       ModifyUserInfo v -> UnWrap 'm' v
+      GetVersionInfo v -> UnWrap 'v' v
       GetDiffs v vs -> UnWrap 'd' (v,vs)
       MultiCommand l -> UnWrap 'M' l
       )
@@ -213,6 +220,7 @@ instance HasWrapper SimpleDBResponse where
       wrap1 'D' IsData,
       wrap1 'E' IsError,
       wrap1 'd' IsDiffs,
+      wrap1 'v' IsVersionInfo,
       wrap0 'K' IsOK,
       wrap1 'M' MultiResponse
       ]
@@ -222,6 +230,7 @@ instance HasWrapper SimpleDBResponse where
       IsObjectVersions vs -> UnWrap 'O' vs
       IsData d -> UnWrap 'D' d
       IsDiffs ds -> UnWrap 'd' ds
+      IsVersionInfo v -> UnWrap 'v' v
       IsError e -> UnWrap 'E' e
       IsOK -> UnWrap 'K' ()
       MultiResponse l -> UnWrap 'M' l
@@ -336,6 +345,7 @@ data ServerOp =
       }
    |  AllocVersion -- allocate a new version
    |  AllocLocation -- allocate a new Location.
+   deriving (Show) -- allows us to dump the objectLocs file
 
 -- -------------------------------------------------------------------
 -- The main query function
@@ -375,18 +385,10 @@ querySimpleDB user
             return (IsObjectVersions (keysFM versionMap))
       Retrieve location objectVersion ->
          do
-            bdbKeyWE <- retrieveKey simpleDB location objectVersion
-            case fromWithError bdbKeyWE of
+            icslOptWE <- retrieveData simpleDB location objectVersion
+            case fromWithError icslOptWE of
                Left mess -> return (IsError mess)
-               Right bdbKey ->
-                  do
-                     icslOpt <- readBDB bdb bdbKey
-                     case icslOpt of
-                        Nothing -> return (IsError (
-                           "Retrieve failed: bdbkey not saved.  "
-                           ++ "\n Perhaps the server crashed half-way "
-                           ++ "\n through a commit?"))
-                        Just icsl -> return (IsData icsl)
+               Right icsl -> return (IsData icsl)
       Commit versionExtra redirects newStuff0 ->
          do
             versionInfoWE <- mkVersionInfo user versionExtra
@@ -465,6 +467,13 @@ querySimpleDB user
                               addVersionInfo versionState (True,versionInfo1)
                               return IsOK
                         Left mess -> return (IsError mess)
+      GetVersionInfo objectVersion ->
+         do
+            versionInfoOpt <- lookupVersionInfo versionState objectVersion
+            return (case versionInfoOpt of
+               Nothing -> IsError "GetVersionInfo: version does not exist"
+               Just versionInfo -> IsVersionInfo versionInfo
+               )
       GetDiffs version versions ->
          do
             diffsWE <- getDiffs simpleDB version versions
@@ -480,6 +489,21 @@ querySimpleDB user
 -- -------------------------------------------------------------------
 -- Functions for retrieving data from the repository
 -- -------------------------------------------------------------------
+
+retrieveData :: SimpleDB -> Location -> ObjectVersion 
+   -> IO (WithError ICStringLen)
+retrieveData simpledb location objectVersion =
+   do
+      bdbKeyOptWE <- retrieveKeyOpt simpledb location objectVersion
+      mapWithErrorIO' (
+         \ bdbKeyOpt -> case bdbKeyOpt of
+            Nothing -> return (hasError "BDB key mysteriously not in database")
+            Just bdbKey ->
+               do
+                  Just icsl <- readBDB (bdb simpledb) bdbKey
+                  return (hasValue icsl)
+            )
+         bdbKeyOptWE
 
 retrieveKeyOpt :: SimpleDB -> Location -> ObjectVersion 
    -> IO (WithError (Maybe BDBKey))
@@ -647,8 +671,13 @@ doServerOp simpleDB (
                                  primLoc = retrievePrimitiveLocation 
                                     versionData location
                               in
-                                 return (addToFM redirects0 location
-                                       primLoc)
+                                 return (
+                                    if locationsSame location primLoc
+                                       then
+                                          redirects0
+                                       else
+                                          addToFM redirects0 location primLoc
+                                    )
                )
             parentRedirects
             redirects'
@@ -754,75 +783,87 @@ getDiffs db version0 versions = addFallOutWE (\ break ->
             Nothing -> break ("Version "++show version++" not found")
       vData0 <- lookup version0
       vDatas <- mapM lookup versions
-      return (case vDatas of
+      case vDatas of
          [] -> -- we just have to return IsNew for everything
-            map 
-               (\ location -> (location,IsNew {changed = Nothing}))   
+            mapM
+               (\ location ->
+                  do
+                     icslWE <- retrieveData db location version0
+                     icsl <- coerceWithErrorOrBreakIO break icslWE
+                     return (location,IsNew {changed = Left icsl})
+                  )
                (getLocations vData0)
          (headVData :_) ->
-            let
-               -- Construct a map back from BDBKey -> (Location,ObjectVersion)
-               -- for the parents.
-               bdbDict :: FiniteMap BDBKey (Location,ObjectVersion)
-               bdbDict = foldl
-                  (\ map0 vData ->
-                     let
-                        version = thisVersion vData
-                     in
-                        foldl
-                           (\ map0 location ->
-                              let
-                                 Just bdbKey = retrieveKey1 vData location
-                              in
-                                 addToFM map0 bdbKey (location,version)
-                              )
-                           map0
-                           (getLocations vData) 
-                     )
-                  emptyFM
-                  vDatas
-
-               -- Construct a map from locations to their containing parent
-               -- version 
-               locationMap :: FiniteMap Location ObjectVersion
-               locationMap = foldl
-                  (\ map0 vData ->
-                     let
-                        version = thisVersion vData
-                     in
-                        foldl
-                           (\ map0 location -> addToFM map0 location version)
-                           map0
-                           (getLocations vData)
-                     )
-                  emptyFM
-                  vDatas 
-
-               -- Function constructing Diff for a particular item in the 
-               -- new version's object dictionary
-               mkDiff :: Location -> BDBKey -> Diff
-               mkDiff location key1 =
-                  case retrieveKey1 headVData location of
-                     Just key2 | key1 == key2 
-                        -> IsOld
-                     _ -> 
+            do
+               let
+                  -- Construct a map back from BDBKey 
+                  -- -> (Location,ObjectVersion) for the parents.
+                  bdbDict :: FiniteMap BDBKey (Location,ObjectVersion)
+                  bdbDict = foldl
+                     (\ map0 vData ->
                         let
-                           changed = lookupFM bdbDict key1
+                           version = thisVersion vData
                         in
-                           case lookupFM locationMap location of
-                              Nothing -> IsNew {changed = changed}
-                              Just version ->
-                                 IsChanged {existsIn = version,changed = changed}
-            in
-               map
+                           foldl
+                              (\ map0 location ->
+                                 let
+                                    Just bdbKey = retrieveKey1 vData location
+                                 in
+                                    addToFM map0 bdbKey (location,version)
+                                 )
+                              map0
+                              (getLocations vData) 
+                        )
+                     emptyFM
+                     vDatas
+
+                  -- Construct a map from locations to their containing parent
+                  -- version 
+                  locationMap :: FiniteMap Location ObjectVersion
+                  locationMap = foldl
+                     (\ map0 vData ->
+                        let
+                           version = thisVersion vData
+                        in
+                           foldl
+                              (\ map0 location 
+                                 -> addToFM map0 location version)
+                              map0
+                              (getLocations vData)
+                        )
+                     emptyFM
+                     vDatas 
+
+                  -- Function constructing Diff for a particular item in the 
+                  -- new version's object dictionary
+                  mkDiff :: Location -> BDBKey -> IO Diff
+                  mkDiff location key1 =
+                     case retrieveKey1 headVData location of
+                        Just key2 | key1 == key2 
+                           -> return IsOld
+                        _ -> 
+                           do
+                              changed <- case lookupFM bdbDict key1 of
+                                 Just locVers -> return (Right locVers)
+                                 Nothing -> 
+                                    do
+                                       (Just icsl) <- readBDB (bdb db) key1
+                                       return (Left icsl)
+                              return (case lookupFM locationMap location of
+                                 Nothing -> IsNew {changed = changed}
+                                 Just version ->
+                                    IsChanged {existsIn = version,
+                                       changed = changed}
+                                 )
+               mapM
                   (\ location ->
-                     let
-                        Just key = retrieveKey1 vData0 location
-                     in
-                        (location,mkDiff location key)
+                     do
+                        let
+                           Just key = retrieveKey1 vData0 location
+                        diff <- mkDiff location key
+                        return (location,diff)
                      )
                   (getLocations vData0)
-         )
    )
       
 -- -------------------------------------------------------------------
@@ -848,6 +889,9 @@ getLocations versionData =
          otherPrimLocs
    in
       redirectLocs ++ otherLocs
+
+locationsSame :: Location -> PrimitiveLocation -> Bool
+locationsSame (Location loc1) (PrimitiveLocation loc2) = loc1 == loc2
       
 retrievePrimitiveLocation :: VersionData -> Location -> PrimitiveLocation
 retrievePrimitiveLocation versionData =

@@ -16,6 +16,21 @@ module VersionGraph(
       -- Converts an object version to its corresponding node.  This is only
       -- used by the Initialisation module; we don't want anyone else mucking
       -- around with the version graph!
+
+
+   toVersionGraphGraph,
+      -- :: VersionGraph -> VersionTypes SimpleGraph
+      -- extract a version graph's actual graph.  
+
+   toVersionGraphRepository,
+      -- :: VersionGraph -> Repository
+      -- extract a version graph's repository.
+
+   selectCheckedInVersions,
+      -- :: VersionGraph -> String -> IO (Maybe [ObjectVersion])
+      -- Provide a list-box interface allowing the user to click on the
+      -- version graph to select checked-in versions in the graph.
+
    ) where
 
 import Control.Concurrent.MVar
@@ -73,7 +88,9 @@ data VersionGraph = VersionGraph {
    displayedGraph :: DisplayGraph,
    graph :: VersionTypes SimpleGraph,
    closeDownAction :: IO (),
-   closedEvent :: Event ()
+   closedEvent :: Event (),
+   repository :: Repository,
+   selectCheckedInVersions :: String -> IO (Maybe [ObjectVersion])
    }
 
 ---
@@ -340,11 +357,11 @@ newVersionGraph
                      else
                         label0
                   )
-                 
-         -- Function to be executed when the user requests a merge.
-         -- We can only merge checked-in versions.
-         doMerge :: IO ()
-         doMerge =
+
+         -- Function to be used to select checked-in versions.
+         -- The first String is used as the window title.
+         selectCheckedInVersions :: String -> IO (Maybe [ObjectVersion])
+         selectCheckedInVersions title =
             do
                -- retrieve the graph.
                dispGraph <- readMVar dispGraphMVar
@@ -352,7 +369,7 @@ newVersionGraph
                -- The difficult part is indicating what is to be
                -- merged.  We do this using a ListBox.
                topLevel <- createToplevel [
-                  text "Versions to Merge"
+                  text title
                   ]
 
                messageWindow <- newLabel topLevel
@@ -395,7 +412,7 @@ newVersionGraph
                            Nothing -> -- not a version, must be a view.
                               do
                                  createErrorWin 
-                                    "You may only merge checked-in versions"
+                                    "You may only select checked-in versions"
                                     []
                                  return Nothing
                            Just version -> 
@@ -472,15 +489,29 @@ newVersionGraph
                terminator
                destroy topLevel
 
-               case nodesToMergeOpt of
+               -- Get object versions out
+               let
+                  objectVersionsOpt = case nodesToMergeOpt of
+                     Nothing -> Nothing
+                     Just nodes -> Just (map mergeVersion nodes)
+               return objectVersionsOpt
+
+                 
+         -- Function to be executed when the user requests a merge.
+         -- We can only merge checked-in versions.
+         doMerge :: IO ()
+         doMerge =
+            do
+               objectVersionsOpt <- selectCheckedInVersions "Versions to Merge"
+               case objectVersionsOpt of
                   Nothing -> done
                   Just [] -> createErrorWin "No versions specified!" []
                   Just [_] -> createErrorWin "Only one version specified" []
-                  Just mergeCandidates ->
+                  Just objectVersions ->
                      do
                         -- Go ahead.
                         viewWE <- mergeNodes repository graph (
-                           map (Right . mergeVersion) mergeCandidates)
+                           map Right objectVersions)
                         case fromWithError viewWE of
                            Left mess -> createErrorWin mess []
                            Right view ->
@@ -564,7 +595,9 @@ newVersionGraph
          displayedGraph = displayedGraph,
          graph = graph,
          closeDownAction = closeDownAction,
-         closedEvent = receive destroyedChannel
+         closedEvent = receive destroyedChannel,
+         repository = repository,
+         selectCheckedInVersions = selectCheckedInVersions
          }) 
 
 
@@ -607,8 +640,15 @@ instance Destructible VersionGraph where
    destroyed versionGraph = closedEvent versionGraph
          
 -- --------------------------------------------------------------------
--- Talking to the server
+-- Getting various things out of a VersionGraph.
 -- --------------------------------------------------------------------
+
+toVersionGraphGraph :: VersionGraph -> VersionTypes SimpleGraph
+toVersionGraphGraph = graph
+
+toVersionGraphRepository :: VersionGraph -> Repository
+toVersionGraphRepository = repository
+
 -- --------------------------------------------------------------------
 -- Get version parameters 
 -- --------------------------------------------------------------------

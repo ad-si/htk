@@ -2,6 +2,7 @@
    and if necessary initialising it with the top item. -}
 module Initialisation(
    initialise, -- :: IO Repository,
+   openRepository, -- :: (?server :: HostPort) => IO VersionDB.Repository
    initialiseGeneral, -- :: (View -> IO ()) -> IO VersionDB.Repository
    ) where
 
@@ -21,10 +22,22 @@ import Files
 import VersionGraph
 import Registrations
 
----
--- Connect to the repository, if necessary initialising it.
+
+--
+-- All four functions connect to the repository, if necessary initialising
+-- the first view in it.
+--
+-- The initialiseXXX functions do the standard (not MMiSS) registrations),
+-- and then connect to the repository.
+--
+-- The xxxGeneral functions allow an additional function to be executed
+-- on the first view.
+--
 initialise :: (?server :: HostPort) => IO VersionDB.Repository
 initialise = initialiseGeneral (\ view -> done)
+
+openRepository :: (?server :: HostPort) => IO VersionDB.Repository
+openRepository = openRepositoryGeneral (\ view -> done)
 
 ---
 -- More general initialisation, which provides an extra function
@@ -34,7 +47,12 @@ initialiseGeneral :: (?server :: HostPort)
 initialiseGeneral initialiseView =
    do
       doRegistrations
+      openRepositoryGeneral initialiseView
 
+openRepositoryGeneral :: (?server :: HostPort) 
+   => (View -> IO ()) -> IO VersionDB.Repository
+openRepositoryGeneral initialiseView = 
+   do
       repository <- VersionDB.initialise
       viewVersions <- listViews repository
       case viewVersions of

@@ -30,7 +30,7 @@ module SimpleDB(
    newLocation, -- :: Repository -> IO Location
    -- allocate a new unique location in the repository.
 
-   newVersion, -- :: Repository -> IO Location
+   newVersion, -- :: Repository -> IO ObjectVersion
    -- allocate a new unique version in the repository.
 
    lastChange, 
@@ -75,6 +75,8 @@ module SimpleDB(
 
    modifyUserInfo,
       -- :: Repository -> UserInfo -> IO ()
+   retrieveVersionInfo,
+      -- :: Repository -> ObjectVersion -> IO VersionInfo 
 
    getDiffs,
       -- :: Repository -> ObjectVersion -> [ObjectVersion] 
@@ -158,7 +160,7 @@ initialise =
             do
                response <- sendCommand multiPlexer command
                case response of
-                  IsError mess -> error mess
+                  IsError mess -> error ("Server error: mess")
                   _ -> return response
 
 
@@ -275,6 +277,14 @@ modifyUserInfo repository userInfo =
       case response of
          IsOK -> done
          _ -> error ("ModifyUserInfo: unexpected response")
+
+retrieveVersionInfo :: Repository -> ObjectVersion -> IO VersionInfo 
+retrieveVersionInfo repository version =
+   do
+      response <- queryRepository repository (GetVersionInfo version)
+      case response of
+         IsVersionInfo v -> return v
+         _ -> error ("GetVersionInfo: unexpected response")
 
 
 getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 

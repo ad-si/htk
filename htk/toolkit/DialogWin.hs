@@ -30,6 +30,8 @@ module DialogWin (
         createDialogWin',
 
         loadHTkImages,
+
+        questionImg,
         ) where
 
 import IOExts (unsafePerformIO)

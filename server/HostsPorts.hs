@@ -1,7 +1,9 @@
 {- HostPorts provides an abstract interface for describing hosts and
    ports. -}
 module HostsPorts(
-   HostPort, -- description of a host and port
+   HostPort, 
+      -- description of a host and port
+      -- instance of Eq,Ord,Show.
 
    DescribesHost, -- class.  Instanced for Strings
    DescribesPort, -- class.  Instanced for Ints
@@ -16,6 +18,10 @@ module HostsPorts(
 
    getDefaultHostPort, -- :: IO HostPort
       -- extract HostPort from WBFiles settings.
+
+   hostPortForm, -- :: Maybe String -> Maybe Int -> Form HostPort
+      -- Form for entering a host and port.
+
    ) where
 
 import IO
@@ -26,6 +32,10 @@ import Control.Exception
 import Debug
 import WBFiles
 import Thread
+import ExtendedPrelude
+import Computation
+
+import SimpleForm
 
 -- -------------------------------------------------------------------
 -- The datatypes
@@ -63,6 +73,25 @@ instance DescribesPort Int where
 instance DescribesPort PortDesc where
    makePort = return
 
+mapHostPort :: HostPort -> (String,PortNumber)
+mapHostPort (HostPort {host = host,port = PortNumber port}) =
+   (host,port)
+   -- we may have to handle the other constructors one day, but not yet,
+   -- since there is no way of constructing a HostPort with them.
+
+instance Eq HostPort where
+   (==) = mapEq mapHostPort
+
+instance Ord HostPort where
+   compare = mapOrd mapHostPort
+
+instance Show HostPort where
+   showsPrec n hostPort acc =
+      let
+         (str,i) = mapHostPort hostPort
+      in    
+         (str ++) . (':' :) . (showsPrec n i) $ acc
+
 -- -------------------------------------------------------------------
 -- The functions
 -- -------------------------------------------------------------------
@@ -89,32 +118,7 @@ getPortNumber portDesc =
       return (PortNumber(fromIntegral portNo))
 
 connect :: (?server :: HostPort) => IO Handle
-connect = repeatConnectTo (host ?server) (port ?server)
-
-repeatConnectTo :: HostName -> PortID -> IO Handle
-repeatConnectTo = innerConnect True
-   where
-      innerConnect :: Bool -> HostName -> PortID -> IO Handle
-      innerConnect firstTime hostName portNumber =
-         do
-            result <- Control.Exception.try (connectTo hostName portNumber)
-            case result of
-               Right handle -> 
-                  do
-                     if firstTime
-                        then
-                           done
-                        else
-                           putStrLn "Attempt to connect to server succeeded!" 
-                     return handle
-               Left excep ->
-                  do
-                     putStrLn ("Attempt to connect to server failed: "
-                        ++ show excep
-                        ++ "\n Retrying in 0.5 seconds")
-                     delay (secs 0.5)
-                     innerConnect False hostName portNumber
-
+connect = connectTo (host ?server) (port ?server)
 
 getDefaultHostPort :: IO HostPort
 getDefaultHostPort =
@@ -125,3 +129,40 @@ getDefaultHostPort =
          Nothing -> error "server not specified!"
          Just host -> return host
       mkHostPort host port
+
+hostPortForm :: Maybe String -> Maybe Int -> Form HostPort
+hostPortForm serverOpt portOpt =
+   let
+      hostForm1 :: Form (Maybe String)
+      hostForm1 = newFormEntry "Host" serverOpt
+
+      hostForm :: Form String
+      hostForm = mapForm
+         (\ serverOpt -> case serverOpt of
+            Nothing -> hasError "Host must be specified"
+            Just server -> hasValue server
+            )
+         hostForm1
+
+      portForm1 :: Form (Maybe Int)
+      portForm1 = newFormEntry "Port" portOpt
+
+      portForm :: Form Int
+      portForm = mapForm
+         (\ portOpt -> case portOpt of
+            Nothing -> hasError "Port must be specified"
+            Just port -> hasValue port
+            )
+         portForm1
+ 
+      form1 = hostForm \\ portForm
+
+      form = mapFormIO
+         (\ (host,port) ->
+            do
+               hostPort <- mkHostPort host port
+               return (hasValue hostPort)
+            )
+         form1
+   in
+      form

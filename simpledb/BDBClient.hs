@@ -104,7 +104,7 @@ readBDBLock = unsafePerformIO newBSem
 newtype DB = DB CChar
 type BDB = Ptr DB
 
-newtype BDBKey = BDBKey Word32 deriving (HasBinaryIO,Eq,Ord)
+newtype BDBKey = BDBKey Word32 deriving (HasBinaryIO,Eq,Ord,Show)
 
 foreign import ccall unsafe "bdbclient.h db_connect" dbConnect
    :: CString -> IO BDB

@@ -6,6 +6,7 @@ SRCS       = Mainfiledialog.hs\
              Mainmarkup.hs\
 	     Maindialog.hs\
              Mainsimpleform.hs\
+             Mainsimpleform2.hs\
              Mainsimplemenu.hs\
              Mainspinbutton.hs\
              Maintreelist.hs\

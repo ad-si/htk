@@ -20,6 +20,8 @@ import Destructible
 
 import HTk
 
+import HostsPorts
+
 import DaVinciGraph
 
 import Initialisation
@@ -33,7 +35,12 @@ main =
          "server"
          ]
       withdrawWish
-      repository <- initialise
+      hostPort <- getDefaultHostPort
+      repository <- 
+         let
+            ?server = hostPort
+         in
+            initialise
       versionGraph <- newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)
       cleanupWish
