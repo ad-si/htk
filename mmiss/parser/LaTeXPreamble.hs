@@ -10,7 +10,7 @@ module LaTeXPreamble (
    mergePreambles,   -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
 
    importCommands, -- :: MMiSSLatexPreamble -> Maybe ImportCommands
-
+   mmissNoParsingPragma -- :: String
   )
 where
 
@@ -76,8 +76,11 @@ newtype MMiSSExtraPreambleData = MMiSSExtraPreambleData {
 -- von MMiSS generierten Input-Preamble markiert. Zum Vergleich wird der gesamte String
 -- verwendet:
 
-startInputPragma = "%% MMiSSLaTeX input preamble"
-endInputPragma = "%% End of MMiSSLaTeX input preamble"
+startImportPragma = "%%MMiSSLaTeX imported preamble START"
+endImportPragma = "%%MMiSSLaTeX imported preamble END"
+
+mmissNoParsingPragma = "%%MMISS: no parse"
+
 
 specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import"]
 
@@ -102,15 +105,15 @@ mergePreambles preambleList =
        Just(p) -> (p,[])
 
 
-extractPreamble :: FileSystem -> FilePath -> [Frag] -> Bool -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
-extractPreamble fileSys filePath frags searchPreamble = 
-  findFirstEnv fileSys filePath frags [] True searchPreamble 
+extractPreamble :: FileSystem -> FilePath -> [Frag] -> IO (WithError(Maybe MMiSSLatexPreamble, Frag))
+extractPreamble fileSys filePath frags = 
+  findFirstEnv fileSys filePath frags [] True 
 
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch, extrahiert die Preamble
-    und gibt das Root-Fragment zurück. Die Funktion sucht innerhalb des Environments 'Root' (vom Parser obligatorisch
-    erzeugte Wurzel jedes AST) nach dem ersten MMiSSLatex-Environment oder dem 'document'
-    Environment (\begin{document}). 
+    und gibt das Root-Fragment zurück. Die Funktion sucht innerhalb des Environments 'Root' 
+    (vom Parser obligatorisch erzeugte Wurzel jedes AST) nach dem ersten MMiSSLatex-Environment oder 
+    dem 'document' Environment (\begin{document}). 
     Findet es zuerst das document-Env., wird die Suche nach einem MMiSSLatex-Env. in dessen
     Kindern fortgesetzt. Gleichzeitig wird das Aufsammeln von Preamble-Fragmenten beendet.
     Findet es innerhalb des document-Envs ein package-Env, dann wird dieses als Wurzel-Fragment
@@ -125,73 +128,66 @@ extractPreamble fileSys filePath frags searchPreamble =
 --}
 
 findFirstEnv :: FileSystem -> FilePath -> [Frag] -> [Frag] 
-                -> Bool -> Bool -> IO (WithError (Maybe MMiSSLatexPreamble, Frag))
+                -> Bool -> IO (WithError (Maybe MMiSSLatexPreamble, Frag))
 
-findFirstEnv fsys fpath ((Env "Root" _ fs):[]) preambleFs _ searchPreamble = 
-   findFirstEnv fsys fpath fs preambleFs True searchPreamble
-findFirstEnv fsys fpath ((Env "document" _ fs):_) preambleFs _ searchPreamble = 
-  findFirstEnv fsys fpath fs preambleFs False searchPreamble
-findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument searchPreamble = 
-  if (searchPreamble == False) 
-    -- we have a package as topmost mmiss environment but there must not be a preamble (because the
-    -- parsed string comes out of an Emacs buffer, in which case it has no preamble).
-    then return (hasValue(Nothing, (Env "Package" ps fs))) 
-    else
-      do
-	(newPreambleFs, atts1) <- return(addPropertiesFrag preambleFs packAtts)
-	latexPre <- makePreamble fsys fpath (filterGeneratedPreambleParts newPreambleFs)
-	importCmds <- return (makeImportCmds newPreambleFs [])
-	case fromWithError latexPre of
-	  Left str -> return(hasError(str))
-	  Right(lp) -> 
-	    case lp of 
-	       Just(p) -> 
-		 case fromWithError(importCmds) of
-		   Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
-							     latexPreamble = p,
-							     importCommands = impCmds
-							   }),
-						     (Env "Package" ps fs)))
-		   Left str -> return (hasError(str))
-	       Nothing -> 
-		 case fromWithError(importCmds) of
-		   Right(_) -> 
-		     return(hasError ("Insufficient preamble: Only found import commands."))
-		   Left(err) -> return (hasError("Insufficient preamble: Only found import commands.\n" ++ err))
+findFirstEnv fsys fpath ((Env "Root" _ fs):[]) preambleFs _ = 
+   findFirstEnv fsys fpath fs preambleFs True
+findFirstEnv fsys fpath ((Env "document" _ fs):_) preambleFs _ = 
+  findFirstEnv fsys fpath fs preambleFs False
+findFirstEnv fsys fpath ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument = 
+   do
+     (newPreambleFs, atts1) <- return(addPropertiesFrag preambleFs packAtts)
+     latexPre <- makePreamble fsys fpath (filterGeneratedPreambleParts newPreambleFs)
+     case fromWithError latexPre of
+       Left str -> return(hasError(str))
+       Right(lp) -> 
+	 case lp of 
+	    Just(p) ->
+              let importCmds = makeImportCmds newPreambleFs []
+              in
+	        case fromWithError(importCmds) of
+		  Right(impCmds) -> return(hasValue (Just(MMiSSLatexPreamble {
+			  				  latexPreamble = p,
+							  importCommands = impCmds
+							}),
+						    (Env "Package" ps fs)))
+		  Left str -> return (hasError(str))
+	    Nothing -> return(hasValue(Nothing, (Env "Package" ps fs)))
+             
 
-findFirstEnv fsys fpath ((Env name ps fs):rest) preambleFs beforeDocument searchPreamble = 
+findFirstEnv fsys fpath ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (mmissPlainTextAtoms ++ envsWithText ++ envsWithoutText))) 
     then return (hasValue(Nothing, (Env name ps fs)))
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
-           then findFirstEnv fsys fpath rest preambleFs beforeDocument searchPreamble
+           then findFirstEnv fsys fpath rest preambleFs beforeDocument
            -- Env ist plain LaTeX:
            else if (not beforeDocument)
 	          -- Env is in document-Env but is not MMiSSLatex: pull out content and search there as well.
                   -- Throws away this env:
-                  then findFirstEnv fsys fpath (fs ++ rest) preambleFs False searchPreamble
+                  then findFirstEnv fsys fpath (fs ++ rest) preambleFs False
                   -- We are before document env and it is no MMiSSLatex: add to preamble-Fragments
-                  else findFirstEnv fsys fpath rest (preambleFs ++ [(Env name ps fs)]) True searchPreamble
+                  else findFirstEnv fsys fpath rest (preambleFs ++ [(Env name ps fs)]) True
 
 -- Frag is no Environment: Must be Command, Other or Escaped Char.
 -- We are before \begin{document}, so add to preamble: 
-findFirstEnv fsys fpath (f:fs) preambleFs True searchPreamble = 
-   findFirstEnv fsys fpath fs (preambleFs ++ [f]) True searchPreamble
+findFirstEnv fsys fpath (f:fs) preambleFs True= 
+   findFirstEnv fsys fpath fs (preambleFs ++ [f]) True
 
 -- We are in the document but before the package env. or some other env. We decided to pull the Fragments
 -- found here out to the Preamble. So they will be listed before the \begin{document} once the user
 -- checks out the MMiSSLaTeX document:
-findFirstEnv fsys fpath (f:fs) preambleFs False searchPreamble = 
-  findFirstEnv fsys fpath fs (preambleFs ++ [f]) False searchPreamble
+findFirstEnv fsys fpath (f:fs) preambleFs False = 
+  findFirstEnv fsys fpath fs (preambleFs ++ [f]) False
 
-findFirstEnv _ _ [] _ _ _ = return(hasError("No root environment ('package' or some other env.) found!"))
+findFirstEnv _ _ [] _ _ = return(hasError("No root environment ('package' or some other env.) found!"))
 
 
 
 -- makePreamble erzeugt aus den Präambel-Fragmenten die LaTeXPreamble-Datenstruktur.
 -- Die von MMiSS erzeugten Input-Kommandos müssen vorher ausgefiltert worden sein.
 -- Erkannt wird der \documentclass sowie die \usepackage-Befehle. Alle anderen in der Fragmentliste
--- befindlichen Kommandos, Strings oder EscapedChars, die der Author später wieder in der Latex-Quell
+-- befindlichen Kommandos, Strings oder EscapedChars, die der Author später wieder in der Latex-Quelle
 -- benötigt,  werden im String 'rest' aufgesammelt.  
 -- Die Funktion ignoriert dabei alle Kommandos, deren Namen in der List 'specialTreatmentInPreamble'
 -- auftauchen, da diese gesondert behandelt werden. Diese Kommandos werden auch nicht in den 
@@ -206,8 +202,11 @@ makePreamble fsys fpath (f:fs) =
          rest <- makePreRest fsys fpath fs []
          documentClass <- return (makePrePackage f)
          return(hasValue(Just(Preamble documentClass packages rest)))
-    (Command _ _) -> return(hasError("LaTeX-Preamble cannot begin with: " 
-                        ++ (makeTextElem [f] "")))
+    -- Wenn als erstes kein documentclass auftaucht, dann wird davon ausgegangen, dass
+    -- das Dokument keine Präambel enthält!
+    (Command _ _) -> return(hasValue(Nothing))
+--    (Command _ _) -> return(hasError("LaTeX-Preamble cannot begin with: " 
+--                        ++ (makeTextElem [f] "")))
     _ -> makePreamble fsys fpath fs
 
 
@@ -238,13 +237,14 @@ makePreRest fsys fpath (f:fs) inList =
        if (name `elem` specialTreatmentInPreamble) 
          then makePreRest fsys fpath fs inList
          else if (name `elem` preambleIncludeCmds) 
-                then do preambleCmd <- expandIncludes fsys fpath name ps
+                then do preambleCmd <- fetchIncludes fsys fpath name ps
                         makePreRest fsys fpath fs (inList ++ [preambleCmd])
                 else makePreRest fsys fpath fs (inList ++ [(Cmd (makeTextElem [f] ""))]) 
     otherwise -> makePreRest fsys fpath fs (inList ++ [(Cmd (makeTextElem [f] ""))]) 
 
   where 
-    expandIncludes fsys fpath name lp@(LParams sps _ _ _) =
+    -- **TODO: Fehlerbehandlung noch mangelhaft
+    fetchIncludes fsys fpath name lp@(LParams sps _ _ _) =
       case name of
         "input" -> 
            do let fstr = singleParamToString(head sps)
@@ -253,7 +253,10 @@ makePreRest fsys fpath (f:fs) inList =
               strWE <- readString fsys (createInputPath fpath filename)
 	      case fromWithError strWE of 
 		Left err -> return(Cmd cmdStr)
-		Right str -> return(FileRef fpath str cmdStr Latex)
+                Right str ->
+                   case findInString str mmissNoParsingPragma of
+                     True ->  return(Cmd cmdStr)
+                     False -> return(FileRef fpath str cmdStr Latex)
         "include" -> 
            do let fstr = singleParamToString(head sps)
                   filename = delete '{' (delete '}' fstr)     
@@ -303,6 +306,23 @@ makePreRest (f1:(f2:fs)) inStr =
      _ -> makePreRest (f2:fs) (inStr ++ (makeTextElem [f1] ""))
 --}
 
+{--
+UnionPreambles vereinigt eine Liste von Präambeln. Die erste Präambel in der Liste wird als
+die 'primäre' angesehen, also als die Präambel, die zu dem gerade bearbeiteten Element gehört.
+Die Inhalte der anderen Präambeln werden in diese primäre eingefügt und durch Kommentare
+am Beginn und Ende dieser Einfügung gekennzeichnet, damit beim späteren Parsen einer
+vereinigten Präambel diese eingefügten Teile erkennbar sind.
+
+UnionPreambles vereinigt die Präambeln indem es die beiden Präambeln am Anfang
+der Liste mittels der Funktion union2Preambles zusammenführt, diese stattdessen 
+an die Spitze der Liste setzt und sich rekursiv aufruft.
+
+
+Die Funktion muss nur die latexPreamble-Teile einer MMiSSLatexPreamble zusammenführen, 
+weil das Ergebnis nicht mehr für das Auflösen von Importen benutzt wird - dies geschieht
+vorher. Die ImportCommands werden einfach von der ersten Präambel der Liste übernommen.
+--}
+
 unionPreambles :: [MMiSSLatexPreamble] -> Maybe MMiSSLatexPreamble
 unionPreambles [] = Nothing
 unionPreambles (p:[]) = Just(p)
@@ -314,9 +334,31 @@ unionPreambles (p1:p2:ps) =
                                         importCommands = (importCommands p1)}
   in unionPreambles (newPreamble:ps)
 
-union2Preambles :: LaTeXPreamble -> LaTeXPreamble -> LaTeXPreamble
-union2Preambles (Preamble (Package classOpt1 className versiondate) packages1 rest1) (Preamble (Package classOpt2 _ _) packages2 rest2) = Preamble (Package (nub (classOpt1 ++ classOpt2)) className versiondate) (unionPackages packages1 packages2) (rest1 ++ rest2)
 
+{--
+union2Preambles vereinigt zwei Präambeln:
+  - Es wird davon ausgegangen, dass die Docmentclass bei beiden gleich ist. Die Options
+    der beiden docclass Kommandos werden zusammengefasst.
+  - Die Package-Referenzen werden zusammengefasst. Vollkommen identische Referenzen
+    (Packagename, Optionen und Versionsangabe stimmen überein) werden nur einmal aufgenommen.
+  - Die restlichen Preämbelanteile werden zu einer neuen Liste zusammengesetzt, wobei
+    die Inhalte der zweiten Präambel mit Start- und End-Kommentaren gekennzeichnet werden.
+--}
+union2Preambles :: LaTeXPreamble -> LaTeXPreamble -> LaTeXPreamble
+union2Preambles (Preamble (Package classOpt1 className versiondate) packages1 rest1) 
+                (Preamble (Package classOpt2 _ _) packages2 rest2) = 
+    Preamble (Package (nub (classOpt1 ++ classOpt2)) className versiondate) 
+             (unionPackages packages1 packages2) rest 
+  where rest = (rest1 ++ [Cmd startImportPragma] ++ rest2 ++ [Cmd endImportPragma])
+
+
+{--
+unionPackages konkateniert die beiden übergebenen Listen mit Package-Referenzen und filtert gleiche Referenzen
+aus.
+**TODO: 
+  - Referenzen auf gleiche Packages mit unterschiedlichen Optionen müssen zusammengefasst werden.
+  - Referenzen auf gleiche Packages mit unterschiedlichen Versionsangaben müssen zusammengefasst werden.
+--}
 unionPackages :: [Package] -> [Package] -> [Package]
 unionPackages ps1 ps2 = nubBy eqPackage (ps1 ++ ps2)
 
@@ -402,8 +444,8 @@ getProperties [] = Nothing
 filterGeneratedPreambleParts :: [Frag] ->[Frag]
 
 filterGeneratedPreambleParts fs = 
-  let firstPart = takeWhile (not . (stringInFrag startInputPragma)) fs
-      secondPart = dropWhile (not . (stringInFrag endInputPragma)) fs
+  let firstPart = takeWhile (not . (stringInFrag startImportPragma)) fs
+      secondPart = dropWhile (not . (stringInFrag endImportPragma)) fs
   in firstPart ++ secondPart
 
 

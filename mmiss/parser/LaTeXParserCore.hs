@@ -6,7 +6,10 @@ module LaTeXParserCore (
    Attributes,
    
    parseFrags,  -- :: String -> Either ParseError [Frag]
-   
+   findInString,  -- :: String -> String -> Bool
+                  -- Searches for the second string in the first string. 
+                  -- Returns True if found, otherwise False.   
+
    piInsertLaTeX,   -- :: String
    piSpecial,      -- :: String
    latexToUnicodeTranslations,  -- :: String
@@ -707,6 +710,19 @@ frags l =
      frags (f:l)
   <|> return(reverse l)
 
+
+-- ----------------------------------------------------------------------------------------
+--
+--  Hilfsfunktionen für das Auffinden von Pragmas
+--
+-- ----------------------------------------------------------------------------------------
+
+findInString :: String -> String -> Bool
+
+findInString [] _ = False
+findInString str search  
+  | isPrefixOf search str = True
+  | otherwise = findInString (drop 1 str) search
 
 
 -- ----------------------------------------------------------------------------------------

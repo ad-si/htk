@@ -65,7 +65,7 @@ main =
       --
       -- Parse LaTeX input
       --
-      elEither <- parseMMiSSLatex standardFileSystem fileName False 
+      elEither <- parseMMiSSLatex standardFileSystem fileName True 
       (el, preambleList) <- case fromWithError elEither of
                           Left message -> let str = "The following errors occured during parsing:\n" 
                                           in error (str ++ message)

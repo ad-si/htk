@@ -18,7 +18,7 @@ module LaTeXParser (
       -- This is used for Emacs and also for other consumers of LaTeX text
       -- expecting a single file, for example the MMiSS checker and the
       -- XML API.
-      -- The bool parameter controls whether 'includeXXX' elements are expanded
+      -- The bool parameter controls whether MMiSS 'includeXXX' elements are expanded
       -- into Emacs-Links (False) or into \includeXXX commands when the output is designated
       -- to be feed into latex (True). In the latter case, the preambles are merged and
       -- included in the output, otherwise, they are left out.
@@ -108,7 +108,7 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
                case result of
 		  Left err -> return (hasError (show err))
 		  Right fs  ->
-                    do preEl <- extractPreamble fileSystem filePath fs searchPreamble  
+                    do preEl <- extractPreamble fileSystem filePath fs
 		       case fromWithError preEl of
 			 Left err -> return(hasError(err))
 			 Right (preambleOpt, rootFrag) -> 
@@ -150,13 +150,19 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
 	      case fromWithError strWE of 
 		Left err -> return (fail (err ++ " File: " ++ (createInputPath filePath filename)))
 		Right str -> 
-		  let result = parseFrags str      
-		  in case result of
-		       Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
-		       Right newfs -> 
-                         let specialFrag1 = Special InputStart (makeTextElem [f] "")
-                             specialFrag2 = Special InputEnd filename
-                         in return (hasValue ([specialFrag1] ++ newfs ++ [specialFrag2]))
+                  case findInString str mmissNoParsingPragma of
+                       -- True means that the file should not be parsed, because the correspondig pragma
+                       -- has been found in the file:
+		     True -> return(hasValue([f]))
+		     False ->
+		       let result = parseFrags str      
+		       in case result of
+			    Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) 
+                                                          ++ " " ++ (show err)))
+			    Right newfs -> 
+			      let specialFrag1 = Special InputStart (makeTextElem [f] "")
+				  specialFrag2 = Special InputEnd (filename ++ "\n")
+			      in return (hasValue ([specialFrag1] ++ newfs ++ [specialFrag2]))
         (Command "include" (LParams sps _ _ _)) -> 
            do let fstr = singleParamToString(head sps)
                   filename = delete '{' (delete '}' fstr)          
@@ -164,13 +170,18 @@ parseMMiSSLatex fileSystem filePath searchPreamble =
 	      case fromWithError strWE of 
 		Left err -> return (fail (err ++ " File: " ++ (createInputPath filePath filename)))
 		Right str -> 
-		  let result = parseFrags str      
-		  in case result of
-		       Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
-		       Right newfs ->
-                         let specialFrag1 = Special InputStart (makeTextElem [f] "")
-                             specialFrag2 = Special InputEnd filename
-                         in return (hasValue ([specialFrag1] ++ newfs ++ [specialFrag2]))
+                  case findInString str mmissNoParsingPragma of
+                       -- True means that the file should not be parsed, because the corresponding pragma
+                       -- has been found in the file:
+		     True -> return(hasValue([f]))
+		     False ->
+		       let result = parseFrags str      
+		       in case result of
+			    Left err -> return (hasError ("in File " ++ (createInputPath filePath filename) ++ " " ++ (show err)))
+			    Right newfs ->
+			      let specialFrag1 = Special InputStart (makeTextElem [f] "")
+				  specialFrag2 = Special InputEnd (filename ++ "\n")
+			      in return (hasValue ([specialFrag1] ++ newfs ++ [specialFrag2]))
         otherwise -> return(hasValue([f]))
 
     createInputPath filePath filename = 
@@ -231,8 +242,6 @@ statusAttribute = ("status",AttValue [Left "present"])
 -- ---------------------------------------------------------------------------
 
 data Textmode = TextAllowed | NoText | TextFragment
-
-
 
 {--
    parseImportCommands is used as fromStringWE-method in the instanciation for
@@ -1084,13 +1093,13 @@ fillLatex out ((CString _ str):cs) inList = fillLatex out cs (inList ++ [(Editab
 
 fillLatex out ((CMisc (Comment str)):cs) inList = fillLatex out cs (inList ++ [(EditableText str)])
 
-fillLatex out ((CMisc (PI (piInsertLaTeX, str))):cs) inList =  fillLatex out cs (inList ++ [(EditableText str)])
-
-fillLatex out ((CMisc (PI (piSpecial, str))):cs) inList =  
-  if (out == True)
-    then let newStr = "%% Inserted by MMiSS repository:\n" ++ "%% " ++ str
-         in fillLatex out cs (inList ++ [(EditableText newStr)])
-    else fillLatex out cs inList
+fillLatex out ((CMisc (PI (pi, str))):cs) inList  
+  | pi == piInsertLaTeX  =  fillLatex out cs (inList ++ [(EditableText str)])
+  | pi == piSpecial =   if (out == True)
+                          then let newStr = "%% Inserted by MMiSS repository:  " ++ str
+                               in fillLatex out cs (inList ++ [(EditableText newStr)])
+                          else fillLatex out cs inList
+  | otherwise =  fillLatex out cs inList
 
 fillLatex out ((CElem (Elem "package" atts contents)):cs) inList = 
   let s1 = "\\begin{Package}" 
