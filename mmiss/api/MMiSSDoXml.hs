@@ -40,6 +40,7 @@ import MMiSSRequest
 import MMiSSSessionState
 import MMiSSMessages
 import MMiSSAPIBlock
+import MMiSSSecurityOps
 
 doXml :: Handle -> User -> IO ()
 doXml handle user =
@@ -101,40 +102,54 @@ doRequests2 state handle user blockIn request =
             RequestConnect command ->
                do
                   response <- connect state command user
-                  pn (OneOf9 response)
+                  pn (OneOf12 response)
             RequestCloseServer command ->
                 do
                   response <- closeServer state command
-                  pn (TwoOf9 response)
+                  pn (TwoOf12 response)
             RequestListVersions command ->
                 do
                   response <- listVersions state command
-                  pn (ThreeOf9 response)               
+                  pn (ThreeOf12 response)               
             RequestCheckOut command ->
                 do
                   response <- checkOut state command
-                  pn (FourOf9 response)               
+                  pn (FourOf12 response)               
             RequestChangeUserInfo command ->
                 do
                   response <- changeUserInfo state command
-                  pn (FiveOf9 response)               
+                  pn (FiveOf12 response)               
             RequestCommitVersion command ->
                 do
                   response <- commitVersion state command
-                  pn (SixOf9 response)               
+                  pn (SixOf12 response)               
             RequestCloseVersion command ->
                 do
                   response <- closeVersion state command
-                  pn (SevenOf9 response)               
+                  pn (SevenOf12 response)               
             RequestGetObject command ->
                 do
                   
                   (response,blockOut) <- getObject state command dummyBlock
-                  return (EightOf9 response,Just blockOut)               
+                  return (EightOf12 response,Just blockOut)               
             RequestPutObject command ->
                 do
                   response <- putObject state command blockIn
-                  pn (NineOf9 response)               
+                  pn (NineOf12 response)
+            RequestGetPermissions command ->
+                do
+                   response <- getPermissions state command
+                   pn (TenOf12 response)
+            RequestSetPermissions command ->
+                do
+                   response <- setPermissions state command
+                   pn (ElevenOf12 response)
+            RequestSetAdminStatus command ->
+                do
+                   response <- setAdminStatus state command
+                   pn (TwelveOf12 response)
+
+            
 
          messages <- getMessages state
          let
@@ -159,8 +174,7 @@ requestLock = unsafePerformIO newBSem
 
 -- catchErrors also catches other Haskell exceptions.
 catchErrors :: IO a -> IO (Either String a)
-catchErrors act = catchImportExportErrors (
-   breakOtherExceps importExportError act)
+catchErrors act = catchImportExportErrors (makeOtherExcepsToOurs act)
 
 -- --------------------------------------------------------------------------
 -- Displaying errors

@@ -15,9 +15,12 @@ data Request = RequestConnect Connect
 	     | RequestCloseVersion CloseVersion
 	     | RequestGetObject GetObject
 	     | RequestPutObject PutObject
+	     | RequestGetPermissions GetPermissions
+	     | RequestSetPermissions SetPermissions
+	     | RequestSetAdminStatus SetAdminStatus
 	     deriving (Eq,Show)
 data Response = Response Messages
-			 (Maybe (OneOf9 ConnectResponse CloseServerResponse ListVersionsResponse CheckOutResponse ChangeUserInfoResponse CommitVersionResponse CloseVersionResponse GetObjectResponse PutObjectResponse))
+			 (Maybe (OneOf12 ConnectResponse CloseServerResponse ListVersionsResponse CheckOutResponse ChangeUserInfoResponse CommitVersionResponse CloseVersionResponse GetObjectResponse PutObjectResponse GetPermissionsResponse SetPermissionsResponse SetAdminStatusResponse))
 	      deriving (Eq,Show)
 data Connect = Connect Connect_Attrs (Maybe ServerRef)
 	     deriving (Eq,Show)
@@ -68,6 +71,20 @@ data PutObject = PutObject VersionRef ObjectFullName
 			   (Maybe PackageId) Bundle
 	       deriving (Eq,Show)
 data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
+newtype GetPermissions = GetPermissions WhichPermissions 		deriving (Eq,Show)
+newtype GetPermissionsResponse = GetPermissionsResponse Permissions 		deriving (Eq,Show)
+data SetPermissions = SetPermissions WhichPermissions Permissions
+		    deriving (Eq,Show)
+data SetPermissionsResponse = SetPermissionsResponse 		deriving (Eq,Show)
+data SetAdminStatus = SetAdminStatus SetAdminStatus_Attrs ServerRef
+		    deriving (Eq,Show)
+data SetAdminStatus_Attrs = SetAdminStatus_Attrs
+    { setAdminStatusAction :: SetAdminStatus_action
+    } deriving (Eq,Show)
+data SetAdminStatus_action = SetAdminStatus_action_claim  | 
+			     SetAdminStatus_action_revoke
+			   deriving (Eq,Show)
+data SetAdminStatusResponse = SetAdminStatusResponse 		deriving (Eq,Show)
 data ServerRef = ServerRef
     { serverRefRef :: String
     } deriving (Eq,Show)
@@ -132,6 +149,10 @@ data ObjectType_baseType = ObjectType_baseType_folder  |
 			    |  ObjectType_baseType_unknownType
 			 deriving (Eq,Show)
 newtype ObjectFullName = ObjectFullName String 		deriving (Eq,Show)
+data WhichPermissions = WhichPermissionsServerRef ServerRef
+		      | WhichPermissionsVersionRef_ObjectFullName (VersionRef,ObjectFullName)
+		      deriving (Eq,Show)
+newtype Permissions = Permissions String 		deriving (Eq,Show)
 data Variant = Variant
     { variantKey :: String
     , variantValue :: String
@@ -192,7 +213,16 @@ instance XmlContent Request where
 									case (fromElem c0) of
 									(Just a,_) -> (Just (RequestPutObject a), rest)
 									(_,_) ->
-									    (Nothing, c0)
+										case (fromElem c0) of
+										(Just a,_) -> (Just (RequestGetPermissions a), rest)
+										(_,_) ->
+											case (fromElem c0) of
+											(Just a,_) -> (Just (RequestSetPermissions a), rest)
+											(_,_) ->
+												case (fromElem c0) of
+												(Just a,_) -> (Just (RequestSetAdminStatus a), rest)
+												(_,_) ->
+												    (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (RequestConnect a) = [CElem (Elem "request" [] (toElem a) )]
@@ -204,6 +234,9 @@ instance XmlContent Request where
     toElem (RequestCloseVersion a) = [CElem (Elem "request" [] (toElem a) )]
     toElem (RequestGetObject a) = [CElem (Elem "request" [] (toElem a) )]
     toElem (RequestPutObject a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestGetPermissions a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestSetPermissions a) = [CElem (Elem "request" [] (toElem a) )]
+    toElem (RequestSetAdminStatus a) = [CElem (Elem "request" [] (toElem a) )]
 instance XmlContent Response where
     fromElem (CElem (Elem "response" [] c0):rest) =
 	(\(a,ca)->
@@ -445,6 +478,75 @@ instance XmlContent PutObjectResponse where
     fromElem rest = (Nothing, rest)
     toElem PutObjectResponse =
 	[CElem (Elem "putObjectResponse" [] [])]
+instance XmlContent GetPermissions where
+    fromElem (CElem (Elem "getPermissions" [] c0):rest) =
+	(\(a,ca)->
+	   (Just (GetPermissions a), rest))
+	(definite fromElem "<whichPermissions>" "getPermissions" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (GetPermissions a) =
+	[CElem (Elem "getPermissions" [] (toElem a))]
+instance XmlContent GetPermissionsResponse where
+    fromElem (CElem (Elem "getPermissionsResponse" [] c0):rest) =
+	(\(a,ca)->
+	   (Just (GetPermissionsResponse a), rest))
+	(definite fromElem "<permissions>" "getPermissionsResponse" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (GetPermissionsResponse a) =
+	[CElem (Elem "getPermissionsResponse" [] (toElem a))]
+instance XmlContent SetPermissions where
+    fromElem (CElem (Elem "setPermissions" [] c0):rest) =
+	(\(a,ca)->
+	   (\(b,cb)->
+	      (Just (SetPermissions a b), rest))
+	   (definite fromElem "<permissions>" "setPermissions" ca))
+	(definite fromElem "<whichPermissions>" "setPermissions" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (SetPermissions a b) =
+	[CElem (Elem "setPermissions" [] (toElem a ++ toElem b))]
+instance XmlContent SetPermissionsResponse where
+    fromElem (CElem (Elem "setPermissionsResponse" [] []):rest) =
+	(Just SetPermissionsResponse, rest)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem SetPermissionsResponse =
+	[CElem (Elem "setPermissionsResponse" [] [])]
+instance XmlContent SetAdminStatus where
+    fromElem (CElem (Elem "setAdminStatus" as c0):rest) =
+	(\(a,ca)->
+	   (Just (SetAdminStatus (fromAttrs as) a), rest))
+	(definite fromElem "<serverRef>" "setAdminStatus" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (SetAdminStatus as a) =
+	[CElem (Elem "setAdminStatus" (toAttrs as) (toElem a))]
+instance XmlAttributes SetAdminStatus_Attrs where
+    fromAttrs as =
+	SetAdminStatus_Attrs
+	  { setAdminStatusAction = definiteA fromAttrToTyp "setAdminStatus" "action" as
+	  }
+    toAttrs v = catMaybes 
+	[ toAttrFrTyp "action" (setAdminStatusAction v)
+	]
+instance XmlAttrType SetAdminStatus_action where
+    fromAttrToTyp n (n',v)
+	| n==n'     = translate (attr2str v)
+	| otherwise = Nothing
+      where translate "claim" = Just SetAdminStatus_action_claim
+	    translate "revoke" = Just SetAdminStatus_action_revoke
+	    translate _ = Nothing
+    toAttrFrTyp n SetAdminStatus_action_claim = Just (n, str2attr "claim")
+    toAttrFrTyp n SetAdminStatus_action_revoke = Just (n, str2attr "revoke")
+instance XmlContent SetAdminStatusResponse where
+    fromElem (CElem (Elem "setAdminStatusResponse" [] []):rest) =
+	(Just SetAdminStatusResponse, rest)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem SetAdminStatusResponse =
+	[CElem (Elem "setAdminStatusResponse" [] [])]
 instance XmlContent ServerRef where
     fromElem (CElem (Elem "serverRef" as []):rest) =
 	(Just (fromAttrs as), rest)
@@ -717,6 +819,28 @@ instance XmlContent ObjectFullName where
     fromElem rest = (Nothing, rest)
     toElem (ObjectFullName a) =
 	[CElem (Elem "objectFullName" [] (toText a))]
+instance XmlContent WhichPermissions where
+    fromElem (CElem (Elem "whichPermissions" [] c0):rest) =
+	case (fromElem c0) of
+	(Just a,_) -> (Just (WhichPermissionsServerRef a), rest)
+	(_,_) ->
+		case (fromElem c0) of
+		(Just a,_) -> (Just (WhichPermissionsVersionRef_ObjectFullName a), rest)
+		(_,_) ->
+		    (Nothing, c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (WhichPermissionsServerRef a) = [CElem (Elem "whichPermissions" [] (toElem a) )]
+    toElem (WhichPermissionsVersionRef_ObjectFullName a) = [CElem (Elem "whichPermissions" [] (toElem a) )]
+instance XmlContent Permissions where
+    fromElem (CElem (Elem "permissions" [] c0):rest) =
+	(\(a,ca)->
+	   (Just (Permissions a), rest))
+	(definite fromText "text" "permissions" c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (Permissions a) =
+	[CElem (Elem "permissions" [] (toText a))]
 instance XmlContent Variant where
     fromElem (CElem (Elem "variant" as []):rest) =
 	(Just (fromAttrs as), rest)

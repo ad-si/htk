@@ -8,8 +8,11 @@ module MMiSSImportExportErrors(
    coerceImportExport, -- :: WithError a -> a
    catchAllErrorsWE, -- :: IO a -> IO (WithError a)
    displayImportExportErrors, -- :: a -> IO a -> IO a
+   makeOtherExcepsToOurs, -- :: IO a -> IO a
+
    ) where
 
+import Control.Exception(catchJust)
 import System.IO.Unsafe
 
 import Messages
@@ -18,12 +21,28 @@ import Object
 import ExtendedPrelude
 import Computation
 
+import ServerErrors
+
 importExportErrorFallOut :: (ObjectID,IO a -> IO (Either String a))
 importExportErrorFallOut = unsafePerformIO newFallOut
 {-# NOINLINE importExportErrorFallOut #-}
 
 importExportError :: BreakFn
 importExportError = mkBreakFn (fst importExportErrorFallOut)
+
+makeOtherExcepsToOurs :: IO a -> IO a
+makeOtherExcepsToOurs act =
+   do
+      let 
+         tryGeneral excep = case isServerError excep of
+            Just (errorType,mess) -> importExportError (
+               show errorType ++ ": " ++ mess)
+            Nothing -> 
+               case isOurFallOut (fst importExportErrorFallOut) excep of
+                  Just _ -> Nothing
+                  Nothing -> importExportError (showException2 excep)
+ 
+      catchJust tryGeneral act (return . id)
 
 catchImportExportErrors :: IO a -> IO (Either String a)
 catchImportExportErrors = snd importExportErrorFallOut

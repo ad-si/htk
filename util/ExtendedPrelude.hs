@@ -71,6 +71,7 @@ module ExtendedPrelude (
    simpleFallOut,
    mkBreakFn,
    newFallOut,
+   isOurFallOut, -- :: ObjectID -> Exception -> Maybe String
 
    addGeneralFallOut,
    GeneralBreakFn(..),GeneralCatchFn(..),
@@ -518,25 +519,26 @@ newFallOut =
    do
       id <- newObject
       let
-         tryFn act =
-            tryJust
-               (\ exception -> case dynExceptions exception of
-                  Nothing -> Nothing 
-                     -- don't handle this as it's not even a dyn.
-                  Just dyn ->
-                     case fromDyn dyn of
-                        Nothing -> Nothing -- not a fallout.
-                        Just fallOutExcep -> if fallOutId fallOutExcep /= id
-                           then
-                              Nothing 
-                              -- don't handle this; it's from another 
-                              -- addFallOut
-                           else
-                              Just (mess fallOutExcep)
-                  )
-               act
+         tryFn act = tryJust (isOurFallOut id) act
 
       return (id,tryFn)
+
+isOurFallOut :: ObjectID -> Exception -> Maybe String
+isOurFallOut oId exception =
+   case dynExceptions exception of
+      Nothing -> Nothing 
+         -- don't handle this as it's not even a dyn.
+      Just dyn ->
+         case fromDyn dyn of
+            Nothing -> Nothing -- not a fallout.
+            Just fallOutExcep -> if fallOutId fallOutExcep /= oId
+               then
+                  Nothing 
+                  -- don't handle this; it's from another 
+                  -- addFallOut
+               else
+                  Just (mess fallOutExcep)
+   
 
 -- ------------------------------------------------------------------------
 -- More general try/catch function.

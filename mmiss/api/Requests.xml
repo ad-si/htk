@@ -21,4 +21,12 @@
 <request><checkOut version="1"><serverRef ref="X"/><versionRef ref="A"/></checkOut></request>
 <request><getObject what="locations" format="LaTeX" recurse="justThis"><versionRef ref="A"/><objectFullName>Root</objectFullName></getObject></request>
 <request><getObject what="locations" format="LaTeX" recurse="allIncluded"><versionRef ref="A"/><objectFullName>Root</objectFullName></getObject></request>
+
+<request><getPermissions><whichPermissions><versionRef ref="A"/><objectFullName>AlgSpec</objectFullName></whichPermissions></getPermissions></request>
+<request><getPermissions><whichPermissions><serverRef ref="B"/></whichPermissions></getPermissions></request>
+<request><setPermissions><whichPermissions><serverRef ref="B"/></whichPermissions><permissions>-#baduser:rwp</permissions></setPermissions></request>
+
+<request><setAdminStatus action="claim"><serverRef ref="C"/></setAdminStatus></request>
+
 </requests>
+

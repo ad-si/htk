@@ -6,7 +6,7 @@ SRCS = MMiSSAPI.hs MMiSSRequest.hs \
    MMiSSMapVersionInfo.hs MMiSSToFromBundle.hs \
    MMiSSCallServer.hs MMiSSCheckOutCommit.hs MMiSSGetPut.hs \
    MMiSSMessages.hs MMiSSDoXml.hs MainMMiSSServer.hs \
-   TestMMiSSServer.hs \
+   TestMMiSSServer.hs MMiSSSecurityOps.hs \
 
 include @TOP@/mk/boilerplate.mk
 

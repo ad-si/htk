@@ -3,9 +3,11 @@ module ServerErrors(
    ErrorType(..),
    throwError,
    catchError,
+   isServerError,
    ) where
 
 import System.IO.Unsafe
+import Control.Exception
 
 import Object
 import ExtendedPrelude
@@ -68,6 +70,12 @@ catchError act wrapError =
             in
                wrapError errorType mess
          )
+
+isServerError :: Exception -> Maybe (ErrorType,String)
+isServerError exception =
+   do
+      str <- isOurFallOut (fst fallOut) exception
+      return (decodeError str)
 
 fallOut :: (ObjectID,IO a -> IO (Either String a))
 fallOut = unsafePerformIO newFallOut

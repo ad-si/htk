@@ -1,6 +1,8 @@
 module MMiSSGetPut(
    getObject,
    putObject,
+
+   getLinkedObject,
    ) where
 
 import Control.Monad.State

@@ -9,7 +9,7 @@
       connect | closeServer | listVersions 
       | checkOut | changeUserInfo | commitVersion 
       | closeVersion | getObject | putObject 
-      | getPermissions | setPermissions
+      | getPermissions | setPermissions | setAdminStatus
       )
    >
 
@@ -21,6 +21,7 @@
       | checkOutResponse | changeUserInfoResponse | commitVersionResponse
       | closeVersionResponse | getObjectResponse | putObjectResponse
       | getPermissionsResponse | setPermissionsResponse
+      | setAdminStatusResponse
       )? )
    >
 
@@ -119,6 +120,12 @@
 
 <!ELEMENT setPermissions (whichPermissions,permissions) >
 <!ELEMENT setPermissionsResponse EMPTY >
+
+<!ELEMENT setAdminStatus (serverRef) >
+<!ATTLIST setAdminStatus 
+   action (claim | revoke) #REQUIRED >
+
+<!ELEMENT setAdminStatusResponse EMPTY >
 
 
 <!--
