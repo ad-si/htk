@@ -66,6 +66,7 @@ dropQuotes :: String -> String
 dropQuotes str =
   drop 1 (take (length str - 1) str)
 
+{-
 toTreeListObjects :: TreeList String -> String -> [FilePath] ->
                      IO [TreeListObject String]
 toTreeListObjects treelist path (f : fs) =
@@ -75,22 +76,40 @@ toTreeListObjects treelist path (f : fs) =
     objs <- toTreeListObjects treelist path fs
     return (obj : objs)
 toTreeListObjects _ _ _ = return []
+-}
+
+toTreeListObjects :: TreeList String -> String -> [FilePath] ->
+                     IO [TreeListObject String]
+toTreeListObjects treelist path (f : fs) =
+  do
+    obj <- return (treelist, path ++ "/" ++ dropQuotes(show f),
+                   dropQuotes (show f))
+    objs <- toTreeListObjects treelist path fs
+    return (obj : objs)
+toTreeListObjects _ _ _ = return []
 
 cfun :: ChildrenFun String
-cfun treelist obj =
-  if gif (getObjValue obj) then
-    return []
-  else
-    do
-      dcontents <- getDirectoryContents (getObjValue obj)
-      matched_files <- getMatchedFiles dcontents (getObjValue obj)
-      objs <- toTreeListObjects treelist (getObjValue obj) matched_files
-      return objs
+cfun (tl, val, nm) =
+  do
+    putStr ("cfun of " ++ val ++ "\n")
+    (if gif val then
+       do
+         putStr "is gif\n\n"
+         return []
+     else
+       do
+         dcontents <- getDirectoryContents val
+         putStr "contents read\n"
+         matched_files <- getMatchedFiles dcontents val
+         putStr "contents sorted\n"
+         objs <- toTreeListObjects tl val matched_files
+         putStr "finished\n\n"
+         return objs)
 
 ifun :: ImageFun String
-ifun obj =
+ifun (tl, val, nm) =
   do
-    b <- getPermissions (getObjValue obj)
+    b <- getPermissions val
     if searchable b then folderImg else fileImg
 
 main =
@@ -101,21 +120,27 @@ main =
     win <- window main [text "Base64 encoding"]
     treelist <- newTreeList cfun ifun [parent box, background "white",
                                        size (cm 9, cm 10)]
-    obj <- newTreeListObject treelist "/" [name "/"]
-    setRoot treelist obj
+    setRoot (treelist, "/", "/")
     show_hidden <- newCheckButton [text "Show hidden files", parent box]
     quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
                        parent box, text "Quit", width 15,
                        command (\ ()-> destroy win)]
     base64out <- newEditor [width 60, height 15, state Disabled] :: IO (Editor String)
     base64_box <- newScrollBox base64out [parent main]
-    interactor (\i -> triggered quit +>
+{-    interactor (\i -> triggered quit +>
                       (selectionEvent treelist >>>=
                          \mobj -> do
                                     objname <- case mobj of
                                                  Just obj -> getName obj
                                                  _ -> return "Nothing"
                                     msg base64out (objname ++ " selected")))
+-}
+    interactor (\i -> triggered quit +>
+                      (selectionEvent treelist >>>=
+                         \mobj -> msg base64out
+                                      ((case mobj of
+                                          Just (_, _, nm) -> nm
+                                          _ -> "Nothing") ++ " selected")))
     sync (destroyed win)
 
 folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
