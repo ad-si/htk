@@ -4,9 +4,11 @@ module Main(main) where
 
 import GraphEditor
 import Graph
-import DaVinciGraphDisp
+import DaVinciGraph
 import SimpleGraph
-import SIM(destroyed,sync,shutdown)
+import InfoBus
+import Destructible
+import Events
 import WBFiles
 
 main =

@@ -9,7 +9,7 @@ import WBFiles
 import InfoBus(shutdown)
 
 import GraphEditorRemote
-import DaVinciGraphDisp
+import DaVinciGraph
 
 main =
    do
