@@ -175,7 +175,10 @@ daVinciVersion = version daVinci
 
 workAroundDaVinciBug1 :: Bool
 workAroundDaVinciBug1 = 
-   (daVinciVersion == Just "daVinci Presenter Professional 3.0.3")
+   case daVinciVersion of
+      Just "daVinci Presenter Professional 3.0.3" -> True
+      Just "daVinci Presenter Professional 3.0.4" -> True
+      _ -> False
 
 daVinciSkip :: IO ()
 daVinciSkip =

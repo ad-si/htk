@@ -1,3 +1,16 @@
+Outstanding Bugs as of 31/5/2002
+--------------------------------
+(3/2002).  HUGE files crash the s'erver
+(4/2/2002) Closing a version graph stops other versions responding
+(1/2/2002) Folders display should display the name of the version
+
+
+It's not exactly clear what fixed what.  The change from cvs alone
+was a major one which seems to have fixed some bugs.
+
+
+Old Bugs
+--------
 (4/2/2002) Closing a version graph stops other versions responding
 (2/2/2002) After committing out an empty version with no changes, unable to
    modify anything.
