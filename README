@@ -113,10 +113,18 @@ containing a makefile, not just the top one.
 
 The following two options fall into this class, but are experimental and
 likely to change in the near future.
-"libfast" is a faster version of "lib", using ghc --make to compile all
-   of the Haskell files in a directory at once.
-"librealfast" is supposed to be even faster, compiling all the Haskell files
+"libfast" is a version of "lib" which uses ghc --make to compile all
+   of the Haskell files needed for the libraries at once.
+"librealfast" compiles all the Haskell files needed for the libraries
    at once, whatever directory they are in.
+The reason for libfast and librealfast is that GHC spends a lot of time
+initialising, in particular reading in interface files; this can be
+especially bad where you are reading interface files in over a network.  If
+you compile all the files in one go, you only have to do this once, so 
+compilation can go several times faster.  The downside is that GHC needs memory
+(perhaps about 200MB for librealfast) to store all those parsed interface 
+files, so unless you have lots of memory, you might find the compilation going
+slower because of swapping in and out.  
 
 Thus if you want to make just the executables in a particular directory,
 you can try
@@ -139,7 +147,7 @@ Other Makefile Hacking
 ----------------------
 
 The file mk/local.mk (mentioned above) is included in every Makefile if
-present, and can be used to set extra options.
+present, and can be used to change the options and provide extra targets.
 
 If you use FAST=YES on the Make command line, this makes make IGNORE all 
 Haskell dependencies.  Suppose you have made some small change to A.hs.  You 
