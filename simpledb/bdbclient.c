@@ -30,7 +30,10 @@ DB * db_connect(const char *database) {
 
 #else
    run_db("db_open",
-      db->open(db,DBNAME,NULL,DB_RECNO,DB_CREATE | DB_AUTO_COMMIT,0664));
+      db->open(db,DBNAME,NULL,DB_RECNO,DB_CREATE,0664));
+   /* From BDB documentation for version 4.0.14  
+      "There is no reason to wrap database opens inside of transactions."
+   */
 #endif
 
 

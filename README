@@ -74,8 +74,8 @@ The following are required or at least recommended.
     This means that BDB is produces static libraries, so you won't need
     to set up LD_LIBRARY_PATH and carry around the BDB dynamic libraries
     to call MMiSS executables. Thus, in BDB's directory 
-    [BDB source]/dist you might use the command
-       ../build_unix/configure --disable-shared
+    [BDB source]/build_unix you might use the command
+       ../dist/configure --disable-shared
     You might also want a "--prefix" option, to specify a directory BDB
     should write its compiled stuff to, if you do not have write access to
     the standard system directories.
