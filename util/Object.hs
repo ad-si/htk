@@ -5,7 +5,7 @@
 #endif
 
 #ifndef NEW_GHC
-{-# OPTIONS -#include "object.h" #-}
+{-# OPTIONS -#include "new_object.h" #-}
 #endif /* NEW_GHC */
 
 {- #########################################################################
@@ -59,7 +59,7 @@ instance Read ObjectID where
 #ifndef NEW_GHC
 foreign import "next_object_id" unsafe newInt :: IO Int
 #else /* NEW_GHC */
-foreign import ccall unsafe "object.h next_object_id" newInt :: IO Int
+foreign import ccall unsafe "new_object.h next_object_id" newInt :: IO Int
 #endif /* NEW_GHC */
 
 newObject :: IO ObjectID

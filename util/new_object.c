@@ -6,7 +6,7 @@
       2) not unique between machines.
       3) could conceivably overflow
    */
-
+#include "new_object.h"
 
 static int object_id_source=0;
 

@@ -9,6 +9,9 @@ FIND=find
 CP=cp
 AR=ar
 
+if [ -z $SKIPCOMPILE ]
+then
+
 if [ -z $SKIPINTRO ]
 then
 
@@ -17,10 +20,8 @@ then
 
 # Do the C files
 $GHC -Iincludes -c util/default_options.c
-$GHC -Iincludes -c util/object.c
+$GHC -Iincludes -c util/new_object.c
 $GHC -Iincludes -c windows/runWish.c
-
-$GCC mk/mkEverything.c -o mk/mkEverything
 
 mk/mkEverything `$MAKE displayhtkhs -s --no-print-directory`
 
@@ -32,5 +33,7 @@ echo $IMPORTS
 $GHC --make EVERYTHING.hs -package concurrent -package data -package text -package lang -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances -cpp -i"$IMPORTS" -Iincludes -O
 
 mkdir -p imports
+fi
+
 $CP `$FIND . -name "*.hi"` imports
-$AR `$FIND . -name "*.o"` -o libhtkwin.a
+$AR -r libhtkwin.a `$FIND . -name "*.o"`

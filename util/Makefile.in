@@ -12,7 +12,7 @@ HTKNOTSRCS = Dynamics.hs LineShow.hs Cache.hs FileNames.hs AtomString.hs \
    Broadcaster.hs VariableSet.hs VariableMap.hs CommandStringSub.hs  \
    WaitOnN.hs FileSystem.hs CopyFile.hs RegularExpression.hs \
 
-SRCSC      = object.c default_options.c copy_file.c
+SRCSC      = new_object.c default_options.c copy_file.c
 
 SUBDIRS = test
 
