@@ -1,6 +1,6 @@
 #!/usr/local/bin/bash
 # Test script for running the workbench once the server is already going.
 export UNISERVER=${UNISERVER:-titania.informatik.uni-bremen.de}
-export UNIEDITOR="/usr/local/pub-bkb/xemacs/bin/gnuclient -eval '(setq stored-name \"%beN\")' \"%bF\""
+export UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 gmake killWorkbench
 gmake runWorkbench

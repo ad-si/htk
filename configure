@@ -1992,7 +1992,7 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   ac_config_files="$ac_config_files mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES"
+   ac_config_files="$ac_config_files mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench $MAKEFILES"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -2493,6 +2493,9 @@ do
   "mk/boilerplate.mk" ) CONFIG_FILES="$CONFIG_FILES mk/boilerplate.mk" ;;
   "includes/config.h" ) CONFIG_FILES="$CONFIG_FILES includes/config.h" ;;
   "bdb-package.options" ) CONFIG_FILES="$CONFIG_FILES bdb-package.options" ;;
+  "types/test/runWorkbench" ) CONFIG_FILES="$CONFIG_FILES types/test/runWorkbench" ;;
+  "types/test/rerunWorkbench" ) CONFIG_FILES="$CONFIG_FILES types/test/rerunWorkbench" ;;
+  "mmiss/test/runWorkbench" ) CONFIG_FILES="$CONFIG_FILES mmiss/test/runWorkbench" ;;
   "$MAKEFILES" ) CONFIG_FILES="$CONFIG_FILES $MAKEFILES" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -2823,6 +2826,7 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
+   chmod +x types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench
 
    echo Setting up packages and export packages file as empty
    # The echo prints []; the funny things bracketted by @ signs are

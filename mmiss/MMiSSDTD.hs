@@ -20,6 +20,7 @@ import Maybe
 
 import FiniteMap
 import qualified IOExts (unsafePerformIO)
+import qualified Exception
 
 import XmlParse
 import XmlTypes
@@ -64,10 +65,20 @@ readTheDTD =
 readDTD :: FilePath -> IO MMiSSDTD
 readDTD filePath =
    do
-      handle <- openFile filePath ReadMode
+      handleEither <- Exception.try (openFile filePath ReadMode)
+      let
+         handle = case handleEither of
+            Left excep ->
+               error ("Error opening MMiSS DTD from "++filePath++":"++
+                  show excep)
+            Right handle -> handle
       dtdString <- hGetContents handle
       let 
-         Just (dtd @ (DTD _ _ markups)) = dtdParse "MMiSSDTD" dtdString
+         (dtd,markups) = case dtdParse ("MMiSSDTD"++filePath) dtdString of
+            Just (dtd @ (DTD _ _ markups)) -> (dtd,markups) 
+            _ -> error ("Error reading MMiSS DTD from "++filePath++
+             ": couldn't parse it")
+
          simpleDTD = simplifyDTD dtd
 
          elements = [element | Element (ElementDecl element _) <- markups]
@@ -106,7 +117,7 @@ validateElement :: String -> Element -> [String]
 validateElement elementName (element @ (Elem name _ _)) =
    if name /= elementName 
       then
-         ["Expected an "++elementName++" but found a "++name]
+         ["Expected a "++elementName++" but found a "++name]
       else
           validate (simpleDTD theDTD) (CElem element)
 

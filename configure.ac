@@ -160,7 +160,8 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES)
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench $MAKEFILES)
+   chmod +x types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench
 
    echo Setting up packages and export packages file as empty
    # The echo prints []; the funny things bracketted by @ signs are

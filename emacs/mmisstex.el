@@ -40,9 +40,8 @@ test
 ;;                                  in the mmisstex file. 
 ;; 
 ;; MMiSSTeX-menu item "Commit" or
-;; (MMiSS-commit)       : sends the content of the buffer to commit it into the 
-;;                        development manager, as an event.  The key is COMMIT;
-;;                        the value is the buffer contents.
+;; (MMiSS-commit)       : sends the event with key COMMIT to Haskell, and no
+;;                        value.
 ;;
 ;; MMiSSTeX-menu item "Quit" or
 ;; (MMiSS-quit)         : sends the event with key QUIT to Haskell, and no
@@ -91,7 +90,7 @@ test
 
 (defun MMiSS-commit ()
   (interactive)
-  (uni-ev "COMMIT" (buffer-string))
+  (uni-ev "COMMIT" "")
   )
 
 (defun MMiSS-quit ()
@@ -469,7 +468,7 @@ Any other reply is used exactly as entered."
          ["Beginning of Environment"     MMiSS-find-matching-begin]
          ["End of Environment"           MMiSS-find-matching-end]
          "-"
-         ["Request Enlarged Environment" MMiSS-request]     
+;        ["Request Enlarged Environment" MMiSS-request]     
          ["Commit" MMiSS-commit]     
          ["Quit" MMiSS-quit]     
          ))

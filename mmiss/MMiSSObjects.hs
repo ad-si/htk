@@ -574,7 +574,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
       -- (2) Construct the new element and insert it in the variant
       --     dictionary
       let
-         element = Elem (label structuredContent) 
+         element = Elem (tag structuredContent) 
             (attributes structuredContent) 
             (contents (accContents structuredContent))
 

@@ -1,8 +1,43 @@
-Buglist for MMiSS Workbench
----------------------------
+Bug and to-do list for MMiSS Workbench
+--------------------------------------
 
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
+
+11) 27.08.02
+For some reason the workbench has started having trouble
+starting daVinci.  If it still happens tomorrow maybe I'll have
+to fix it . . 
+
+Output is as follows:
+
+Attempt to start daVinci from path "/home/ger/bin/daVinci" failed
+Unexpected response was "Tk: can't re"
+
+10) 27.08.02
+Need to alter MMiSSContent/MMiSSObjects to handle both links and references.
+
+9) 27.08.02
+Error "Writing textFrag1: Expected an textFragment but found a textFrag1"
+Clearly confusing names and xml tags.
+
+Seems to be a bug in MMiSSObjects.simpleWriteToMMiSSObject.
+FIXED I hope
+
+8) 27.08.02
+Sometimes it seems to hang and nothing is displayed.  w.debug ends
+by adding the daVinci rules.  This can usually be "fixed" by trying
+again later.  It may only happen when we restart immediately after
+quitting.
+
+7) 27.08.02
+Improved error handling for bad/non-existent. UNIMMISSDTD files.
+FIXED
+
+6) 27.08.02
+Message "Fail: handleEvents: container NtextFrag1 does not exist"
+when quitting after an edit.  Quit does not complete.
+FIXED
 
 5) 27.08.02
 Choosing "Exit daVinci" from the View menu causes a rather untidy exit.
@@ -10,10 +45,12 @@ Choosing "Exit daVinci" from the View menu causes a rather untidy exit.
 4) 27.08.02
 MMiSSContents.structureContents changed to allow an error to be returned;
 MMiSSObjects changed to handle it.
+FIXED
 
 3) 26.08.02.  
 "Fail: Top-level in Xml does not have a label attribute" when importing
 new object.
+FIXED see (4).
 
 2)
 We assume object names match the NAME production, or that HaXml doesn't notice

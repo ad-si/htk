@@ -156,8 +156,13 @@ handleEvents editorState =
             confirm ("Commit?") (always (do
                containers <- listContainers session
                mapM_
-                  (\ container ->
+                  (\ hContainer ->
                      do
+                        let
+                           container = case parseButton hContainer of
+                              Normal container -> container
+                              _ -> error ("EmacsEdit: Mysterious container "++
+                                 hContainer)
                         fileOpt 
                            <- getValueOpt (openFiles editorState) container
                         let
@@ -165,7 +170,7 @@ handleEvents editorState =
                               Just file -> file
                               Nothing -> error ("handleEvents: container "++
                                  container ++" does not exist")
-                        contents0 <- containerContents session container
+                        contents0 <- containerContents session hContainer
                         let
                            contents1list = case contents0 of
                               EmacsContent (EmacsLink headButton : list)
