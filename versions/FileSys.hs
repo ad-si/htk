@@ -104,15 +104,15 @@ data Change =
 -- directory (supplied to commitVersion). 
       NewFile BrokenPath -- File (not folder) with this name has been added
    |  NewFolder BrokenPath -- New folder has been added.
-   |  EditFile BrokenPath -- File (already in FileSys) has been edited.
-   |  EditAttributes BrokenPath Attributes -- set attributes for this path.
+   |  ChangeFile BrokenPath -- File (already in FileSys) has been edited.
+   |  ChangeAttributes BrokenPath Attributes -- set attributes for this path.
    |  RMObject BrokenPath -- remove this file or folder
    |  MVObject BrokenPath BrokenPath -- Move first object to second.
 
 newtype Version = Version ObjectVersion 
 -- inherited from VersionDB.  But Version is only
 -- used for the top object
-data FileObj = FileObj Location ObjectVersion AttributeObj UniType 
+data FileObj = FileObj Location ObjectVersion AttributeVersion UniType 
 
 instance Eq FileObj where
    (==) (FileObj l1 o1 _ _) (FileObj l2 o2 _ _) = (l1,o1) == (l2,o2)
@@ -130,7 +130,7 @@ instance Show FileObj where
 
 data FolderObj = FolderObj (FiniteMap (String,UniType) FileObj)
 
-data AttributesObj = AttributesObj Location AttributeVersion
+data AttributesObj = AttributesObj Location AttributeVersion deriving (Eq,Ord)
 -- only used in the cache
 
 data FileSys = FileSys {
@@ -191,7 +191,7 @@ writePrimitiveFolderObj contentsList =
    do
       let
          contents :: 
-               [(String,String,Location,ObjectVersion,attributeVersion)] =
+               [(String,String,Location,ObjectVersion,AttributeVersion)] =
             map
                (\ ((baseName,uniType),location,objectVersion,
                      attributeVersion) ->
@@ -224,7 +224,7 @@ connectFileSys repositoryParameters =
       typeDataBase <- newUniTypeDataBase
       folderCache <-
          newCache
-            (\ (FileObj location objectVersion _ ) ->
+            (\ (FileObj location objectVersion _ _) ->
                do
                   folderStr <- 
                      retrieveString repository location objectVersion
@@ -354,15 +354,15 @@ commitVersion fileSys version filePath changes =
 data ChangeTree = 
       -- This models the folder structure of the file system.
       -- The idea is to contain only the contents of changed folders.
-      NewObject NewContents Attributes
+      AddObject AddContents Attributes
       -- new file at this path with its attributes
    |  OldObject OldContents (Maybe Attributes) FileObj
       -- already existing object with new contents and attributes if set.
    deriving Show
 
-data NewContents = 
-      NewFile FilePath
-   |  NewFolder ChangeFolder
+data AddContents = 
+      AddFile FilePath
+   |  AddFolder ChangeFolder
    deriving Show
 
 data OldContents =
@@ -385,7 +385,7 @@ encodeAndCheck fileSys version filePath changes =
    do
       (top :: FileObj) <- getTop fileSys version
       let
-         initialChangeTree = ExistingObject top
+         initialChangeTree = OldObject Unchanged Nothing top 
          
          encode :: [Change] -> ChangeTree -> IO ChangeTree
          encode [] changeTree = return changeTree
@@ -397,10 +397,10 @@ encodeAndCheck fileSys version filePath changes =
                         True filePath fileSys changeTree brokenPath
                   NewFolder brokenPath ->
                      encodeNewFolder fileSys changeTree brokenPath
-                  EditFile brokenPath ->
+                  ChangeFile brokenPath ->
                      encodeFileChange 
                         False filePath fileSys changeTree brokenPath
-                  EditAttributes brokenPath attributes ->
+                  ChangeAttributes brokenPath attributes ->
                      encodeAttributes attributes fileSys changeTree brokenPath
                   RMObject brokenPath ->
                      encodeRMObject fileSys changeTree brokenPath
@@ -464,14 +464,14 @@ encodeChangeTreeUpdate updateFn
       getChangeFolder :: FileSys -> ChangeTree ->
          IO (ChangeFolder,ChangeFolder -> ChangeTree)
       getChangeFolder fileSys 
-            (NewObject (NewFolder changeFolder) attributes) =
+            (AddObject (AddFolder changeFolder) attributes) =
          return (
             changeFolder,
             \ newChangeFolder ->
-               (NewObject (NewFolder newChangeFolder) attributes)
+               (AddObject (AddFolder newChangeFolder) attributes)
             )
       getChangeFolder fileSys
-            (NewObject (NewFile changeFolder) attributes) =
+            (AddObject (AddFile changeFolder) attributes) =
          fileSysError("getChangeError: no folder where one expected")
       getChangeFolder fileSys 
             (OldObject Unchanged maybeAttributes fileObj) =
@@ -525,7 +525,7 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
                newChangeTree :: ChangeTree =
                   if isNew
                      then
-                        NewObject (NewFile completeName) emptyAttributes
+                        AddObject (AddFile completeName) emptyAttributes
                      else
                         case lookupFM folderMap strType of
                            Just (OldObject Unchanged attributes fileObj) ->
@@ -545,13 +545,14 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
                                     ++completeName++" does not exist") 
                newMap = addToFM folderMap strType newChangeTree
             in
-               ChangeFolder new
+               ChangeFolder newMap
       encodeChangeTreeUpdate updateFn fileSys changeTree brokenPath
 
 encodeNewFolder :: FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree
 -- encodeNewFolder adds a new folder
 encodeNewFolder fileSys changeTree brokenPath =
-   encodeInsertion (NewObject (NewFolder (ChangeFolder emptyFM)) emptyFolder)
+   encodeInsertion 
+         (AddObject (AddFolder (ChangeFolder emptyFM)) emptyAttributes)
       fileSys changeTree brokenPath
 
 encodeAttributes :: Attributes -> FileSys -> ChangeTree -> BrokenPath -> 
@@ -564,10 +565,10 @@ encodeAttributes attributes fileSys changeTree brokenPath =
          let
             newObj =
                case lookupFM folderMap strType of
-                  Just(NewObject contents _) ->
-                     NewObject contents attributes
+                  Just(AddObject contents _) ->
+                     AddObject contents attributes
                   Just(OldObject contents _ fileObj) ->
-                     OldObject contents attributes fileObj
+                     OldObject contents (Just attributes) fileObj
                   -- match failure means that the object does not exist.
          in
             ChangeFolder(addToFM folderMap strType newObj)
@@ -611,17 +612,18 @@ getLocation fileSys brokenPath (OldObject Unchanged _ fileObj) =
       fileObj <- lookupLocalPath fileSys fileObj brokenPath
       return (OldObject Unchanged Nothing fileObj)
 getLocation fileSys brokenPath 
-      (OldObject (EditFolder (ChangeFolder map)) _ _) = 
-         lookupInFolder brokenPath map
+      (OldObject (EditFolder changeFolder) _ _) = 
+         lookupInChangeFolder fileSys brokenPath changeFolder
 getLocation fileSys brokenPath
-      (NewObject (NewFolder (ChangeFolder map)) _) =
-         lookupInFolder brokenPath map 
-   where
-      lookupInFolder (inHere:rest) map =
-         do
-            strType <- unmakeFileName (typeDataBase fileSys) inHere
-            case lookupFM map strType of
-               Just changeTree -> getLocation fileSys rest changeTree
+      (AddObject (AddFolder changeFolder) _) =
+         lookupInChangeFolder fileSys brokenPath changeFolder 
+ 
+lookupInChangeFolder :: FileSys -> BrokenPath -> ChangeFolder -> IO ChangeTree
+lookupInChangeFolder fileSys (inHere:rest) (ChangeFolder map) =
+   do
+      strType <- unmakeFileName (typeDataBase fileSys) inHere
+      case lookupFM map strType of
+         Just changeTree -> getLocation fileSys rest changeTree
 
 ------------------------------------------------------------------
 -- Committing a ChangeTree
@@ -647,21 +649,21 @@ commitTree' :: FileSys -> ChangeTree ->
    IO (Location,ObjectVersion,AttributeVersion)
 commitTree' (fileSys@FileSys{repository=repository}) changeTree =
    case changeTree of
-      (NewObject (NewFile filePath) attributes) ->
+      (AddObject (AddFile filePath) attributes) ->
          do
             objectSource <- importFile filePath
             newLocation repository objectSource attributes            
-      (NewObject (NewFolder changeFolder) attributes) ->
+      (AddObject (AddFolder changeFolder) attributes) ->
          do
             objectSource <- commitFolder fileSys changeFolder
             newLocation repository objectSource attributes
-      (OldObject contents attributes 
-         (FileObj location objectVersion attributeVersion)
+      (OldObject contents maybeAttributes 
+         (FileObj location objectVersion attributeVersion _)
          ) ->
          do
             newObjectVersion <-
                case contents of
-                  Unchanged -> objectVersion
+                  Unchanged -> return objectVersion
                   EditFile filePath ->
                      do
                         objectSource <- importFile filePath
@@ -672,7 +674,7 @@ commitTree' (fileSys@FileSys{repository=repository}) changeTree =
                         commit repository objectSource location objectVersion
             newAttributeVersion <-
                case maybeAttributes of
-                  Nothing -> attributeVersion
+                  Nothing -> return attributeVersion
                   Just attributes -> commitAttributes repository attributes 
                      location attributeVersion
             return (location,newObjectVersion,newAttributeVersion)
@@ -682,7 +684,7 @@ commitFolder fileSys (ChangeFolder changeMap) =
    do
       let
          folderContents :: [((String,UniType),ChangeTree)] =
-            fmToList changeFolderMap
+            fmToList changeMap
          (folderContents2 :: [IO ((String,UniType),Location,ObjectVersion,
                   AttributeVersion)]) =
             map

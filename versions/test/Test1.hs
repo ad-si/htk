@@ -69,15 +69,15 @@ main =
 
       writeTxt ("foo"+++"bat") "bat2"
       version3 <- commit version2 [
-         EditFile bat
+         ChangeFile bat
          ]
  
       writeTxt "bar" "bar2"
       writeTxt ("foo"+++"baz") "baz2"
 
       version4 <- commit version3 [
-         EditFile bar,
-         EditFile baz,
+         ChangeFile bar,
+         ChangeFile baz,
          MVObject baz boz,
          RMObject foo
          ]
