@@ -15,8 +15,6 @@ DESCRIPTION   : Signature of signal dispatcher state
 #ifndef _SIGNALDISPATCHER_H
 #define _SIGNALDISPATCHER_H
 
-#include "Stg.h"
-
 void SetSignalFD (int fd);
 
 /* Signal handler passed by Signal.hs to the standard C "signal" function */ 

@@ -54,15 +54,28 @@ popupInterActor :: DaVinci
         -> Maybe a                      -- popup selection
         -> (Graph -> IA a)              -- popup event 
         -> IO ()
-popupInterActor dav g mn e popupsel = do
-        mne <- getTrigger mn
-        interactor (events dav g mne e)
- where  events dav g mne e iact = 
-                destroyed dav >>> do{destroy mn; stop iact}
-          +>    destroyed g   >>> do{destroy mn; stop iact}
-          +>    popupsel g    >>>= (\e' -> 
-                    become iact (events dav g mne (Just e') iact))
-          +>    mne           >>>= \f -> (incase e) (\e' -> f g e')
+popupInterActor daVinci graph menu lastMenu popupsel = do
+        menuEvent <- getTrigger menu
+        interactor (events daVinci graph menuEvent lastMenu)
+ where  
+   events daVinci graph menuEvent lastNodeOpt iact = 
+         destroyed daVinci >>> 
+            do
+               destroy menu
+               stop iact
+      +> destroyed graph >>> 
+            do
+               destroy menu
+               stop iact
+      +> popupsel graph >>>= 
+            (\ newNode -> 
+               become iact 
+                  (events daVinci graph menuEvent (Just newNode) iact)
+               )
+      +> menuEvent >>>= 
+            (\ menuAction -> (incase lastNodeOpt) 
+               (\ lastNode -> menuAction graph lastNode)
+               )
 
 
 

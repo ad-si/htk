@@ -124,7 +124,7 @@ instance CommandTool Interpreter where
       synchronize
          lock
          (do
-            debug ("Interpeter:>>" ++ cmd)
+            debug ("Interpreter:>>" ++ cmd)
             sendMsg t cmd
             let ReplyAddr replyMVar = replyLoc
             res <- takeMVar replyMVar

@@ -4,7 +4,7 @@ LIBS = $(UNIDIR)/graphs/libgraphs.a $(UNIDIR)/davinci/libdavinci.a \
 
 LIB = libtestgraph.a
 
-SRCS = GraphDispTest.hs TestDaVinci.hs
+SRCS = GraphDispTest.hs TestDaVinci.hs DrawDepend.hs MainDepend.hs
 
 XHCDIRS= $(HTKDIRS)
 

@@ -208,7 +208,60 @@ delegateRequest mode msg@(Message eId value ack) listenerList
          delegate mode listener eId value >>> 
          return (awaitReply listener)
 
+
+
+{- The old version of delegateNotice was something like this. 
+
 delegateNotice :: Typeable a => Message a -> [Listener] -> EventBrokerLoop a
+delegateNotice
+      msg@(Message eId value ack) listenerList broker registrations 
+      evSetEV evSet =
+   do
+      let
+         -- broadcast sends all the listeners a Notice event
+         -- (ignoring repeats), waiting for new registrations at the
+         -- same time. 
+         broadcast :: [Listener] -> [Listener] -> Registrations -> 
+            IO Registrations
+         broadcast soFar [] registrations =
+            do
+               debug "event broker broadcasted notice"
+               ack
+               return registrations
+         broadcast soFar listenerList registrations =
+            sync(
+                  (choose (map
+                     (\ listener ->
+                        tellListener listener >>>
+                           broadcast (listener:soFar) 
+                              (filter (/= listener) listenerList) 
+                              registrations
+                        )
+                     listenerList
+                     ))
+               +> registrationChanged broker registrations >>>= 
+                     (\ newRegistrations -> 
+                        let 
+                           (_,newListeners') = 
+                              getListeners eId newRegistrations
+                           newListeners = filter 
+                              (\listener -> notElem listener soFar)
+                              newListeners'
+                        in
+                           broadcast soFar newListeners newRegistrations
+                        ) 
+               )
+      debug ("broadcasting to listeners: " ++ 
+          concat (map (\i -> show i ++ " ") listenerList))
+      newRegistrations <- broadcast [] listenerList registrations          
+      eventbroker broker registrations evSetEV evSet
+   where
+      tellListener :: Listener -> EV ()
+      tellListener listener = 
+         delegate Notice listener eId value >>> done
+-}    
+ 
+
 delegateNotice 
       msg@(Message eId value ack) listenerList broker registrations 
       evSetEV evSet = 
@@ -225,6 +278,7 @@ delegateNotice
       -- tellListener sends the message to the listener and returns ()
       tellListener listener = 
          delegate Notice listener eId value >>> done
+
 
 registrationChanged :: EventBroker a -> Registrations -> EV Registrations
 -- Listen for registration changed messages and handle them.

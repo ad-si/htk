@@ -24,11 +24,11 @@ import FiniteMap
 import qualified IOExts(unsafePerformIO)
 
 import Computation
+import Debug(debug)
 
 import Concurrent
 import Selective
 import Dynamics
-import Debug(debug)
 
 import qualified DaVinci
 import qualified HTk

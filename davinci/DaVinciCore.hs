@@ -763,160 +763,149 @@ handleEvent mq str _ = do {
 
 -- ---------------------------------------------------------------------------
 -- EVENT DISPATHER
+-- The MsgQueue in dispatcher comes from DaVinciEvent.
+-- The PVar appears to be the current DaVinci context.
 -- ---------------------------------------------------------------------------
 
+-- dispatcher - delegateDav (which further calls dispatchDav events as
+-- necessary) - dispatcher' is the main loop.
+
 dispatcher :: DaVinci -> MsgQueue DaVinciAnswer -> PVar Int ->  Bool -> IO ()
-dispatcher dav mq pv ignoreOk = do {
-        ans <- sync(receive mq);
-        delegateDav dav mq pv ignoreOk ans;     
-        dispatcher' dav mq pv ans
-        }
+dispatcher daVinci msgQueue contextVar ignoreOk = 
+   do
+      ans <- receiveIO msgQueue
+      delegateDav daVinci msgQueue contextVar ignoreOk ans     
+-- dispatcher' dav mq pv ans
 
-dispatcher' :: DaVinci -> MsgQueue DaVinciAnswer -> PVar Int -> DaVinciAnswer -> IO ()
+dispatcher' :: DaVinci -> MsgQueue DaVinciAnswer -> PVar Int -> DaVinciAnswer
+   -> IO ()
+dispatcher'  daVinci msgQueue contextVar (DaVinciAnswer ComError _ ) = 
+   dispatcher daVinci msgQueue contextVar True
+dispatcher'  daVinci msgQueue contextVar _  = 
+   dispatcher daVinci msgQueue contextVar False
 
-dispatcher'  dav mq pv (DaVinciAnswer ComError _)       = 
-        dispatcher dav mq pv True
-dispatcher'  dav mq pv _                = 
-        dispatcher dav mq pv False
-
-
-delegateDav :: DaVinci -> MsgQueue DaVinciAnswer -> PVar Int ->  
-                        Bool -> DaVinciAnswer -> IO ()
-delegateDav dav mq pv ignoreOk ans@(DaVinciAnswer NodeSelectionLabels nodesel) = do {
-        mans' <- sync(withTimeout (secs 0.25) (receive mq));
-        case mans' of
-                Nothing -> do {
-                        dispatchDav dav pv ignoreOk ans;        
-                        dispatcher' dav mq pv ans
-                        }
-                (Just ans'@(DaVinciAnswer NodeDoubleClick _)) -> do {
-                        dispatchDav dav pv ignoreOk (DaVinciAnswer NodeDoubleClick nodesel);    
-                        dispatcher' dav mq pv ans'
-                        }
-                (Just ans') -> do {
-                        dispatchDav dav pv ignoreOk ans;
-                        dispatchDav dav pv False ans';  
-                        dispatcher' dav mq pv ans'
-                        }
-        }
-delegateDav dav mq pv ignoreOk ans@(DaVinciAnswer EdgeSelectionLabel edgesel) = do {
-        mans' <- sync(withTimeout (secs 0.25) (receive mq));
-        case mans' of
-                Nothing -> do {
-                        dispatchDav dav pv ignoreOk ans;        
-                        dispatcher' dav mq pv ans
-                        }
-                (Just ans'@(DaVinciAnswer EdgeDoubleClick _)) -> do {
-                        dispatchDav dav pv ignoreOk (DaVinciAnswer EdgeDoubleClick  edgesel);   
-                        dispatcher' dav mq pv ans'
-                        }
-                (Just ans') -> do {
-                        dispatchDav dav pv ignoreOk ans;
-                        dispatchDav dav pv False ans';  
-                        dispatcher' dav mq pv ans'
-                        }
-        }
-delegateDav dav mq pv ignoreOk ans = do {
-        dispatchDav dav pv ignoreOk ans;        
-        dispatcher' dav mq pv ans
-        }
-        
+delegateDav :: DaVinci -> MsgQueue DaVinciAnswer -> PVar Int ->  Bool 
+   -> DaVinciAnswer -> IO ()
+delegateDav daVinci msgQueue contextVar ignoreOk 
+      ans@(DaVinciAnswer NodeSelectionLabels nodesel) = 
+   do
+      mans' <- sync(withTimeout (secs 0.25) (receive msgQueue))
+      case mans' of
+         Nothing -> 
+            do 
+               dispatchDav daVinci contextVar ignoreOk ans        
+               dispatcher' daVinci msgQueue contextVar ans      
+         (Just ans'@(DaVinciAnswer NodeDoubleClick _)) -> 
+            do
+               dispatchDav daVinci contextVar ignoreOk 
+                  (DaVinciAnswer NodeDoubleClick nodesel)    
+               dispatcher' daVinci msgQueue contextVar ans' 
+         (Just ans') -> 
+            do
+               dispatchDav daVinci contextVar ignoreOk ans
+               dispatchDav daVinci contextVar False ans'  
+               dispatcher' daVinci msgQueue contextVar ans'
+delegateDav daVinci msgQueue contextVar ignoreOk
+         ans@(DaVinciAnswer EdgeSelectionLabel edgesel) =
+   do
+      mans' <- sync(withTimeout (secs 0.25) (receive msgQueue))
+      case mans' of
+         Nothing -> 
+            do
+               dispatchDav daVinci contextVar ignoreOk ans        
+               dispatcher' daVinci msgQueue contextVar ans
+         (Just ans'@(DaVinciAnswer EdgeDoubleClick _)) -> 
+            do
+               dispatchDav daVinci contextVar ignoreOk 
+                  (DaVinciAnswer EdgeDoubleClick  edgesel)   
+               dispatcher' daVinci msgQueue contextVar ans'
+         (Just ans') -> 
+            do
+               dispatchDav daVinci contextVar ignoreOk ans
+               dispatchDav daVinci contextVar False ans'  
+               dispatcher' daVinci msgQueue contextVar ans'
+         
+delegateDav daVinci msgQueue contextVar ignoreOk ans = 
+   do 
+      dispatchDav daVinci contextVar ignoreOk ans        
+      dispatcher' daVinci msgQueue contextVar ans
 
 dispatchDav :: DaVinci -> PVar Int -> Bool -> DaVinciAnswer -> IO ()
-
-dispatchDav dav pv alreadyReplied (DaVinciAnswer Ok (Reply str)) = do {
-        unless alreadyReplied (sendReply (Right str) disp)
-        } where disp = fDispatcher dav 
-
-dispatchDav dav pv _ (DaVinciAnswer ComError _) = do {
-        sendReply (Left daVinciFailure) disp
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer DisConnect _) = do {
-        debug "DDAV1";
-        dispatch disp (dav, DisConnect) NoDaVinciEventInfo done;
-        debug "DDAV1E";
-        }  where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer Close _) = do {
-        cntx <- getVar pv;
-        setVar pv 0;
-        dispatch disp (ObjectID cntx, Close) NoDaVinciEventInfo done
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv  _ (DaVinciAnswer ContextChanged (Context cntx)) =
-        setVar pv cntx
-
-dispatchDav dav pv _ (DaVinciAnswer NodeSelectionLabels nodesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,NodeSelectionLabels) nodesel done;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer EdgeSelectionLabel edgesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,EdgeSelectionLabel) edgesel done
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer NodeDoubleClick nodesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,NodeDoubleClick) nodesel done;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer EdgeDoubleClick edgesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,EdgeSelectionLabel) edgesel done
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer IconSelection (MenuInvocation iid)) = do {
-        butt <- lookupGUIObject (ObjectID iid);
-        invoke butt;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer MenuSelection (MenuInvocation iid)) = do {
-        butt <- lookupGUIObject (ObjectID iid);
-        invoke butt;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer FileMenuSelection (FileMenuInvocation m)) = do { 
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx, m) NoDaVinciEventInfo done
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer InternalError (Reply str)) = do {
-        debug "DDAV2";
-        debug str;
-        dispatch disp (dav,DisConnect) NoDaVinciEventInfo done;
-        debug "DDAV2E";
-        } where disp = fDispatcher dav
-                
-dispatchDav dav pv _ (DaVinciAnswer PopupSelectionNode inf@(PopupSelectionNodeInf _ iid)) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,PopupSelectionNode) inf done;
-        butt <- lookupGUIObject (ObjectID iid);
-        invoke butt;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer PopupSelectionEdge inf@(PopupSelectionEdgeInf _ iid)) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,PopupSelectionEdge) inf done;
-        butt <- lookupGUIObject (ObjectID iid);
-        invoke butt;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer CreateNode nodesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,CreateNode) nodesel done;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer CreateNodeAndEdge nodesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,CreateNodeAndEdge) nodesel done;
-        } where disp = fDispatcher dav
-
-dispatchDav dav pv _ (DaVinciAnswer CreateEdge nodesel) = do {
-        cntx <- getVar pv;
-        dispatch disp (ObjectID cntx,CreateEdge) nodesel done;
-        } where disp = fDispatcher dav
+dispatchDav daVinci contextVar alreadyReplied answer =
+   case answer of
+      DaVinciAnswer Ok (Reply str) -> 
+         unless alreadyReplied (sendReply (Right str) disp)
+      DaVinciAnswer ComError _ -> 
+         sendReply (Left daVinciFailure) disp
+      DaVinciAnswer DisConnect _ -> 
+         sendEvent (daVinci, DisConnect) NoDaVinciEventInfo
+      DaVinciAnswer Close _ ->
+         do 
+            context <- getVar contextVar
+            setVar contextVar 0
+            sendEvent (ObjectID context, Close) NoDaVinciEventInfo
+      DaVinciAnswer ContextChanged (Context context) ->
+         setVar contextVar context
+      DaVinciAnswer NodeSelectionLabels nodesel ->
+         do 
+            context <- getVar contextVar
+            sendEvent (ObjectID context,NodeSelectionLabels) nodesel
+      DaVinciAnswer EdgeSelectionLabel edgesel -> 
+         do
+            context <- getVar contextVar
+            sendEvent (ObjectID context,EdgeSelectionLabel) edgesel
+      DaVinciAnswer NodeDoubleClick nodesel ->
+         do 
+            context <- getVar contextVar
+            sendEvent (ObjectID context,NodeDoubleClick) nodesel
+      DaVinciAnswer EdgeDoubleClick edgesel -> 
+         do
+            context <- getVar contextVar
+            sendEvent (ObjectID context,EdgeSelectionLabel) edgesel
+      DaVinciAnswer IconSelection (MenuInvocation iid) -> 
+         do
+            butt <- lookupGUIObject (ObjectID iid)
+            invoke butt
+      DaVinciAnswer MenuSelection (MenuInvocation iid) ->
+         do 
+            butt <- lookupGUIObject (ObjectID iid)
+            invoke butt
+      DaVinciAnswer FileMenuSelection (FileMenuInvocation m) ->  
+         do
+            context <- getVar contextVar
+            sendEvent (ObjectID context, m) NoDaVinciEventInfo
+      DaVinciAnswer InternalError (Reply str) -> 
+         do
+            debug "DDAV2"
+            debug str
+            sendEvent (daVinci,DisConnect) NoDaVinciEventInfo
+      DaVinciAnswer PopupSelectionNode inf@(PopupSelectionNodeInf _ iid) ->
+         do 
+            context <- getVar contextVar
+            sendEvent (ObjectID context,PopupSelectionNode) inf
+            butt <- lookupGUIObject (ObjectID iid)
+            invoke butt
+      DaVinciAnswer PopupSelectionEdge inf@(PopupSelectionEdgeInf _ iid) ->
+         do 
+            context <- getVar contextVar
+            sendEvent (ObjectID context,PopupSelectionEdge) inf
+            butt <- lookupGUIObject (ObjectID iid)
+            invoke butt
+      DaVinciAnswer CreateNode nodesel -> 
+         do
+            context <- getVar contextVar
+            sendEvent (ObjectID context,CreateNode) nodesel
+      DaVinciAnswer CreateNodeAndEdge nodesel ->
+         do 
+            context <- getVar contextVar
+            sendEvent (ObjectID context,CreateNodeAndEdge) nodesel
+      DaVinciAnswer CreateEdge nodesel ->
+         do 
+            context <- getVar contextVar
+            sendEvent (ObjectID context,CreateEdge) nodesel
+   where
+      disp = fDispatcher daVinci
+      sendEvent event extraInfo = dispatch disp event extraInfo done
 
 
 -- --------------------------------------------------------------------------
