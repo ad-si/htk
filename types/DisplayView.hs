@@ -49,10 +49,10 @@ data DisplayedObjectType objectType object nodeType arcType =
       closeDown' :: IO ()
       }
 
-displayedObjectTypeTyCon = mkTyCon "DisplayView" "DisplayedObjectType"
+displayedObjectTypeTyRep = mkTyRep "DisplayView" "DisplayedObjectType"
 
-instance HasTyCon40011 DisplayedObjectType where
-   tyCon40011 _ = displayedObjectTypeTyCon
+instance HasTyRep4_0011 DisplayedObjectType where
+   tyRep4_0011 _ = displayedObjectTypeTyRep
 
 ---
 -- Contains DisplayedObjectType for all object types in the view
@@ -100,10 +100,10 @@ getAllDisplayedObjectTypes
                         let 
                            nodeTypesList = nodeTypes nodeDisplayData
                         graphNodeTypes <- mapM
-                           (\ (nodeTypeTag,nodeTypeParms) ->
+                           (\ (nodeTypeRep,nodeTypeParms) ->
                               do
                                  nodeType <- newNodeType graph nodeTypeParms
-                                 return (nodeTypeTag,nodeType)
+                                 return (nodeTypeRep,nodeType)
                               )
                            nodeTypesList
                         let 
@@ -113,10 +113,10 @@ getAllDisplayedObjectTypes
                         let 
                            arcTypesList = arcTypes nodeDisplayData
                         graphArcTypes <- mapM
-                           (\ (arcTypeTag,arcTypeParms) ->
+                           (\ (arcTypeRep,arcTypeParms) ->
                               do
                                  arcType <- newArcType graph arcTypeParms
-                                 return (arcTypeTag,arcType)
+                                 return (arcTypeRep,arcType)
                               )
                            arcTypesList
                         let 
@@ -179,7 +179,7 @@ data DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType
 -- -----------------------------------------------------------------------
 
 data WrappedNode node = 
-   forall object objectType . (HasTyCon1 node,ObjectType objectType object) 
+   forall object objectType . (HasTyRep1 node,ObjectType objectType object) 
    => WrappedNode (node (String,Link object))
                                   
 -- ----------------------------------------------------------------------
@@ -305,9 +305,9 @@ displayNodeUnWrapped
                         Nothing ->
                            do
                               let
-                                 nodeTypeTag = getNodeType' object
+                                 nodeTypeRep = getNodeType' object
                                  nodeType = case 
-                                       lookupFM nodeTypes' nodeTypeTag of
+                                       lookupFM nodeTypes' nodeTypeRep of
                                     Nothing -> error 
                                        "DisplayView: unmatched node type tag"
                                     Just nodeType -> nodeType
@@ -415,7 +415,7 @@ focusLinkInner
                               -> IO ()
                            handleArc (AddElement 
                                  (wrappedLink2 @ (WrappedLink link2),
-                                    arcTypeTag)) =
+                                    arcTypeRep)) =
                               do
                                  node2opt <- displayNodeUnWrapped 
                                     displayedView link2 
@@ -428,10 +428,10 @@ focusLinkInner
                                                 arcTypes'
                                                 (error "DisplayView: \ 
                                                    \undefined ArcType")
-                                                arcTypeTag
+                                                arcTypeRep
                                           graphArc <- addArc graphArcType node2
                                           transformValue arcsRegistry 
-                                             (Keyed wrappedLink2,arcTypeTag)
+                                             (Keyed wrappedLink2,arcTypeRep)
                                              (\ arcOpt -> case arcOpt of
                                                 Nothing -> 
                                                    return (Just graphArc,())
@@ -439,10 +439,10 @@ focusLinkInner
                                                    "DisplayView: \ 
                                                       \duplicate arcs"
                                                 ) 
-                           handleArc (DelElement (wrappedLink2,arcTypeTag)) =
+                           handleArc (DelElement (wrappedLink2,arcTypeRep)) =
                               do
                                  arcOpt <- transformValue arcsRegistry
-                                    (Keyed wrappedLink2,arcTypeTag)
+                                    (Keyed wrappedLink2,arcTypeRep)
                                     (\ arcOpt -> return (Nothing,arcOpt))
                                  case arcOpt of
                                     Nothing -> done

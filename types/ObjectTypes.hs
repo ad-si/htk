@@ -141,6 +141,9 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- This is a menu item (label + creation function) which creates
       -- a link to an object of this type.
 
+   copyObject :: object -> FilePath -> IO ()
+      -- copy object into given file path for the benefit of tools.
+
    getNodeDisplayData :: 
       (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
          arc arcType arcTypeParms)
@@ -322,10 +325,10 @@ wrapReadLink view wrappedLink =
 newtype ShortObjectType objectType = ShortObjectType objectType
 
 -- Tycon for it
-shortObjectType_tyCon =  mkTyCon "ObjectTypes" "ShortObjectType"
+shortObjectType_tyRep =  mkTyRep "ObjectTypes" "ShortObjectType"
 
-instance HasTyCon1 ShortObjectType where
-   tyCon1 _ = shortObjectType_tyCon
+instance HasTyRep1 ShortObjectType where
+   tyRep1 _ = shortObjectType_tyRep
 
 instance ObjectType objectType object
        => HasCodedValue (ShortObjectType objectType) where
@@ -441,9 +444,9 @@ getAllObjectTypes view =
 -- (displayTypeTypeIdPrim,ShortObjectType displayType)
 -- -----------------------------------------------------------------
 
-wrappedObjectType_tyCon = mkTyCon "ObjectTypes" "WrappedObjectType"
-instance HasTyCon WrappedObjectType where
-   tyCon _ = wrappedObjectType_tyCon
+wrappedObjectType_tyRep = mkTyRep "ObjectTypes" "WrappedObjectType"
+instance HasTyRep WrappedObjectType where
+   tyRep _ = wrappedObjectType_tyRep
 
 instance HasCodedValue WrappedObjectType where
    encodeIO (WrappedObjectType objectType) codedValue0 view =
@@ -470,9 +473,9 @@ decodeIO' _ codedValue0 view = safeDecodeIO codedValue0 view
 -- Similarly, we make WrappedLink an instance of HasCodedValue
 -- -----------------------------------------------------------------
 
-wrappedLink_tyCon = mkTyCon "ObjectTypes" "WrappedLink"
-instance HasTyCon WrappedLink where
-   tyCon _ = wrappedLink_tyCon
+wrappedLink_tyRep = mkTyRep "ObjectTypes" "WrappedLink"
+instance HasTyRep WrappedLink where
+   tyRep _ = wrappedLink_tyRep
 
 ---
 -- The only important thing about the value returned by toObjectType is 

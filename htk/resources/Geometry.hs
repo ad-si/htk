@@ -27,7 +27,6 @@ module Geometry (
 
 import GUIValue
 import Char
-import GlaExts -- needed now from fromInt, sigh.
 import Debug(debug)
 
 
@@ -369,9 +368,9 @@ ic i = (Distance . round) (i * 90.0)
 ---
 -- Conversion from <code>Distance</code> to cm.
 tocm :: Distance -> Double
-tocm (Distance p) = (fromInt p) / 35.4  
+tocm (Distance p) = (fromIntegral p) / 35.4  
 
 ---
 -- Conversion from <code>Distance</code> to inch.
 toinch :: Distance -> Double
-toinch (Distance p) = (fromInt p) / 90.0
+toinch (Distance p) = (fromIntegral p) / 90.0

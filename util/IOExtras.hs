@@ -12,16 +12,10 @@ module IOExtras(
 
    hGetLineR, -- :: Read a => Handle -> IO a
    -- hGetLine and then read. 
-   readFileInstant, -- :: FilePath -> IO String
-   -- Like readFile, but closes the file before returning.
    ) where
 
 import IO
 
-import qualified IOExts
-import qualified CString
-import qualified Ptr
-import qualified MarshalAlloc
 import Exception
 import Storable
 
@@ -56,27 +50,3 @@ hGetLineR handle =
       line <- hGetLine handle
       return (read line)
 
-readFileInstant :: FilePath -> IO String
-readFileInstant file =
-   do
-      (ptr,len) <- IOExts.slurpFile file
-      str <- CString.peekCStringLen (Ptr.castPtr ptr,len)
-      MarshalAlloc.free ptr
-      return str
-{-
-   Another way
-
-
-readFileInstant :: String -> IO String
-readFileInstant file =
-   do
-      handle <- openFile file ReadMode
-      contents <- hGetContents handle
-      seq (last contents) (hClose handle)
-      -- The seq hopefully forces everything to be read.
-      -- PS I've tried removing seq on the grounds that
-      -- hClose should make it unnecessary, but it breaks
-      -- the Versions test on Linux.
-      return contents
-
--}      

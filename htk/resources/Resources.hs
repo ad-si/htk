@@ -30,7 +30,6 @@ module Resources (
 
 import GUIValue
 import Char
-import Dynamics
 
 
 -- -----------------------------------------------------------------------
@@ -250,12 +249,13 @@ instance Show Toggle where
     (case p of 
        Off -> "0" 
        On -> "1") ++ r
+{-
+toggleT :: TyRep 
+toggleT = mkTyRep "Resources" "Toggle"
 
-toggleT :: TyCon 
-toggleT = mkTyCon "Resources" "Toggle"
-
-instance HasTyCon Toggle where
-  tyCon _ = toggleT
+instance HasTyRep Toggle where
+  tyRep _ = toggleT
+-}
 
 toggle :: Toggle -> Toggle
 toggle On = Off

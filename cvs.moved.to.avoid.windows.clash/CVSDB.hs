@@ -1,4 +1,3 @@
-{-# OPTIONS -#include "copy_file.h" #-}
 {- CVSDB is the interface to CVS used by the rest of UniForM.
    The interface to this module is supposed to be standardised,
    meaning that other versioning systems can be substituted.
@@ -72,21 +71,19 @@ import IO
 import System
 import Directory
 
-import PackedString
-import CTypesISO(CSize)
 import ST
 
 import Debug(debug)
 import IOExtras
 import WBFiles
 import Registry
+import CopyFile
 
 import Concurrent
 import Set
 import qualified BSD
 import CString
 import Storable
-import ByteArray(ByteArray)
 
 import Computation(done)
 import QuickReadShow
@@ -234,54 +231,8 @@ data ObjectSource =
 
 exportString :: ObjectSource -> IO String
 exportString (StringObject str) = return str
-exportString (FileObject name) = readFileInstant name
+exportString (FileObject name) = copyFileToString name
 exportString DirectAccess = directAccessError
-
-foreign import "copy_file" unsafe copyFilePrim 
-   :: (ByteArray Int) -> (ByteArray Int) -> IO Int
--- "unsafe" means we promise that copy_file won't provoke a garbage 
--- collection while it is running.  We know this because copy_file
--- doesn't call back to Haskell at all.
-
-copyFile :: String -> String -> IO ()
-copyFile source destination =
-   if source == destination 
-      then
-         return ()
-      else
-         do
-            let 
-               sourcePrim = CString.packString source
-               destinationPrim = CString.packString destination 
-            code <- copyFilePrim sourcePrim destinationPrim
-            if (code<0)
-               then
-                  ioError(userError("CVSDB: Can't copy "++source++" to "++
-                     destination++" with error "++show code))
-               else
-                  return ()
-
-foreign import "copy_string_to_file" unsafe copyStringToFilePrim 
-   :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
-
-copyStringToFile string destination = writeFile destination string
-
--- This is a direct encapsulatin of copyStringToFile in C
--- which we turn out not to need, yet.
-copyStringToFileAlternative string destination =
-   do
-      let
-         packedString = PackedString.packString string
-         packedBytes = psToByteArray packedString
-         (sizetLen :: CSize) = fromIntegral (lengthPS packedString)  
-         destinationPrim = CString.packString destination 
-      code <- copyStringToFilePrim sizetLen packedBytes destinationPrim
-      if (code<0)
-         then
-            ioError(userError("CVSDB: Can't copy string to "++
-               destination++" with error "++show code))
-         else
-            return ()
 
 exportFile :: ObjectSource -> FilePath -> IO ()
 exportFile (FileObject source) destination = copyFile source destination
@@ -421,7 +372,7 @@ retrieveString repository cvsFile version =
       resultHere <- newEmptyMVar
       retrieveGeneral repository cvsFile version
          (do
-            contents <- readFileInstant (toRealName repository cvsFile)
+            contents <- copyFileToString (toRealName repository cvsFile)
             putMVar resultHere contents
             )
       takeMVar resultHere

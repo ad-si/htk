@@ -116,10 +116,10 @@ registerDisplayType displayType =
 newtype ShortDisplayType displayType = ShortDisplayType displayType
 
 -- Tycon for it
-shortDisplayType_tyCon =  mkTyCon "DisplayTypes" "ShortDisplayType"
+shortDisplayType_tyRep =  mkTyRep "DisplayTypes" "ShortDisplayType"
 
-instance HasTyCon1 ShortDisplayType where
-   tyCon1 _ = shortDisplayType_tyCon
+instance HasTyRep1 ShortDisplayType where
+   tyRep1 _ = shortDisplayType_tyRep
 
 instance DisplayType displayType => HasCodedValue (ShortDisplayType displayType) where
    encodeIO (ShortDisplayType displayType) codedValue view =
@@ -217,9 +217,9 @@ exportOneDisplayType displayType view =
 -- (displayTypeTypeIdPrim,ShortDisplayType displayType)
 -- -----------------------------------------------------------------
 
-wrappedDisplayType_tyCon = mkTyCon "DisplayTypes" "WrappedDisplayType"
-instance HasTyCon WrappedDisplayType where
-   tyCon _ = wrappedDisplayType_tyCon
+wrappedDisplayType_tyRep = mkTyRep "DisplayTypes" "WrappedDisplayType"
+instance HasTyRep WrappedDisplayType where
+   tyRep _ = wrappedDisplayType_tyRep
 
 instance HasCodedValue WrappedDisplayType where
    encodeIO (WrappedDisplayType displayType) codedValue0 view =

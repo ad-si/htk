@@ -58,6 +58,7 @@ breakName (first : rest)
       case breakName rest of
          firstName : restNames -> (first:firstName) : restNames
 
+
 unbreakName :: [String] -> String
-unbreakName [one] = one
-unbreakName (first:rest) = first ++ (fileSep:(unbreakName rest))
+unbreakName [] = ""
+unbreakName parts = foldr1 combineNames parts

@@ -368,10 +368,10 @@ instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
 -- type constructors.
 -- ----------------------------------------------------------------------
 
-registry_tyCon = mkTyCon "Registry" "Registry"
-instance HasTyCon2 Registry where
-   tyCon2 _ = registry_tyCon
+registry_tyRep = mkTyRep "Registry" "Registry"
+instance HasTyRep2 Registry where
+   tyRep2 _ = registry_tyRep
 
-lockedRegistry_tyCon = mkTyCon "Registry" "LockedRegistry"
-instance HasTyCon2 LockedRegistry where
-   tyCon2 _ = lockedRegistry_tyCon
+lockedRegistry_tyRep = mkTyRep "Registry" "LockedRegistry"
+instance HasTyRep2 LockedRegistry where
+   tyRep2 _ = lockedRegistry_tyRep

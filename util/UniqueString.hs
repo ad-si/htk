@@ -91,9 +91,9 @@ createUniqueStringSource l =
 
 ---
 -- The instance is used by types/CodedValue
-uniqueStringSource_tyCon = mkTyCon "UniqueString" "UniqueStringSource"
-instance HasTyCon UniqueStringSource where
-   tyCon _ = uniqueStringSource_tyCon
+uniqueStringSource_tyRep = mkTyRep "UniqueString" "UniqueStringSource"
+instance HasTyRep UniqueStringSource where
+   tyRep _ = uniqueStringSource_tyRep
 
 -- -------------------------------------------------------------------
 -- The pure interface.

@@ -24,15 +24,13 @@ DESCRIPTION   : A wrapper for the new GHC (and Hugs) Dynamic module,
 -- seem to be used.
 module Dynamics (
         Typeable(..), -- inherited from Dynamic
-        TypeTag, -- equal to Dynamic.TypeRep
+        TypeRep, -- same as Dynamic.TypeRep
+        TyRep, -- pre-form of TypeRep
 
-        mkTyCon, -- :: String -> String -> TyCon
+        mkTyRep, -- :: String -> String -> TyRep
         -- create a type constructor "name".  This should be done once
         -- per constructor, at the top level.  The first string is th
         -- module name, the second the type constructor name.
-        TyCon, -- type constructor name.  Equals Dynamic.TyCon
-        mkTypeTag, -- :: TyConName -> [TypeTag] -> TypeTag
-        -- create a type tag for TyCon (t1,t2,...,tn), n>=0.
 
         Dyn, -- equal to Dynamic.Dynamic
         toDyn, -- inherited from Dynamic.toDyn
@@ -42,52 +40,50 @@ module Dynamics (
         coerceIO, -- read Dyn or fail with typeMismatch
         typeMismatch,
         dynCast, -- Cast to another value of the same type, or
-           -- error (useful for extracting from existential types).
-
-        -- The HasTyCon* classes are abbreviations for constructing
+           -- error (useful for extracting from existential types). 
+        -- The HasTyRep* classes are abbreviations for constructing
         -- instances of Typeable. 
-        HasTyCon(..),
-        HasTyCon1(..),
-        HasTyCon2(..),
-        HasTyCon3(..),
-        HasTyCon4(..),
-        HasTyCon40011(..),
+        HasTyRep(..),
+        HasTyRep1(..),
+        HasTyRep2(..),
+        HasTyRep3(..),
+        HasTyRep4(..),
+        HasTyRep1_1(..),
+        HasTyRep2_11(..),
+        HasTyRep3_011(..),
+        HasTyRep4_0011(..),
         ) 
 where
 
-import qualified GlaExts(unsafeCoerce#)
 import qualified Dynamic
-import Dynamic(Typeable(..))
-import PrelDynamic(Dynamic(..))
+import Dynamic(Typeable(..),TypeRep)
 import Debug(debug)
 
+#if (__GLASGOW_HASKELL__ >= 503)
 
--- -----------------------------------------------------------------------
--- The fromDyn/toDyn hack
--- -----------------------------------------------------------------------
+import GHC.Dynamic(Dynamic(..))
 
-type Dyn = Dynamic
+#else
+import PrelDynamic(Dynamic(..))
+#endif
 
-tyRep = error "Tyrep accessed"
+import qualified GlaExts
+
+type Dyn = Dynamic.Dynamic
+
+badTyRep = error "Tyrep accessed"
 
 fromDyn :: Typeable a => Dyn -> Maybe a
 fromDyn (Dynamic _ o) = Just (GlaExts.unsafeCoerce# o)
 
 toDyn :: Typeable a => a -> Dyn
-toDyn d = Dynamic tyRep (GlaExts.unsafeCoerce# d)
-
--- -----------------------------------------------------------------------
--- End of hack
--- -----------------------------------------------------------------------
+toDyn d = Dynamic badTyRep (GlaExts.unsafeCoerce# d)
 
 type TypeTag = Dynamic.TypeRep
 type TyCon = Dynamic.TyCon
 
-mkTyCon :: String -> String -> TyCon
-mkTyCon mname tname = Dynamic.mkTyCon (mname ++ "." ++ tname)
-
-mkTypeTag :: TyCon -> [TypeTag] -> TypeTag
-mkTypeTag tycon targs = Dynamic.mkAppTy tycon targs
+mkTyRep :: String -> String -> TyRep
+mkTyRep mname tname = TyRep (Dynamic.mkTyCon (mname ++ "." ++ tname)) []
 
 coerce  :: Typeable a => Dyn -> a
 coerce d = 
@@ -113,93 +109,141 @@ dynCast mess value = case fromDyn (toDyn value) of
    Just value2 -> value2
 
 ------------------------------------------------------------------------
--- The HasTyCon* classes are used to indicate that
+-- The HasTyRep* classes are used to indicate that
 -- a type constructor produces typeable values
+-- We organise them in a cunning way to avoid overlapping type classes;
+-- the cunning was Simon Peyton Jones'.
 ------------------------------------------------------------------------
 
-class HasTyCon typeCon where
-   tyCon :: typeCon -> TyCon
+-- ----------------------------------------------------------------------
+-- HasTyRep for constructors of kind 0
+-- ----------------------------------------------------------------------
 
-instance HasTyCon typeCon => Typeable typeCon where
+
+---
+-- A TyCon with arguments.
+data TyRep = TyRep TyCon [TypeRep]
+
+appTyRep :: TyRep -> TypeRep -> TyRep
+appTyRep (TyRep tyCon typeReps) typeRep = TyRep tyCon (typeRep:typeReps)
+
+toTypeRep :: TyRep -> TypeRep
+toTypeRep (TyRep tyCon typeReps) = Dynamic.mkAppTy tyCon (reverse typeReps)
+
+class HasTyRep ty where
+   tyRep :: ty -> TyRep
+
+instance HasTyRep ty => Typeable ty where
    typeOf _ =
       let
-         (tC :: typeCon) = error "Dynamics.1"
+         (tC :: ty) = error "Dynamics.1"
       in
-         mkTypeTag (tyCon tC) []
+         toTypeRep (tyRep tC)
 
-class HasTyCon1 typeCon where
-   tyCon1 :: Typeable value => typeCon value -> TyCon
+-- ----------------------------------------------------------------------
+-- TyRep's for types of kind more than zero with arguments of kind zero.
+-- ----------------------------------------------------------------------
 
-instance (HasTyCon1 typeCon,Typeable value) => Typeable (typeCon value) where
-   typeOf _ =
+class HasTyRep1 ty where
+   tyRep1 :: ty value -> TyRep
+
+instance (HasTyRep1 ty,Typeable value) => HasTyRep (ty value) where
+   tyRep _ =
       let
-         (tC :: typeCon value) = error "Dynamics.2"
+         (tC :: ty value) = error "Dynamics.2"
          (v :: value) = error "Dynamics.3"
       in
-         mkTypeTag (tyCon1 tC) [typeOf v]
- 
-class HasTyCon2 typeCon where
-   tyCon2 :: (Typeable value1,Typeable value2) 
-      => typeCon value1 value2 -> TyCon
+         appTyRep (tyRep tC) (typeOf v)
 
-instance (HasTyCon2 typeCon,Typeable value1,Typeable value2) 
-      => Typeable (typeCon value1 value2) where
-   typeOf _ =
+class HasTyRep2 ty where
+   tyRep2 :: ty value1 value2 -> TyRep
+
+instance (HasTyRep2 ty,Typeable value1) => HasTyRep1 (ty value1) where
+   tyRep1 _ =
       let
-         (tC :: typeCon value1 value2) = error "Dynamics.4"
-         (v1 :: value1) = error "Dynamics.5"
-         (v2 :: value2) = error "Dynamics.6"
+         (tC :: ty value1 ()) = error "Dynamics.4"
+         (v :: value1) = error "Dynamics.3"
       in
-         mkTypeTag (tyCon2 tC) [typeOf v1,typeOf v2]
+         appTyRep (tyRep2 tC) (typeOf v)
 
-class HasTyCon3 typeCon where
-   tyCon3 :: (Typeable value1,Typeable value2,Typeable value3) 
-      => typeCon value1 value2 value3 -> TyCon
+class HasTyRep3 ty where
+   tyRep3 :: ty value1 value2 value3 -> TyRep
 
-instance (HasTyCon3 typeCon,Typeable value1,Typeable value2,Typeable value3) 
-      => Typeable (typeCon value1 value2 value3) where
-   typeOf _ =
+instance (HasTyRep3 ty,Typeable value1) => HasTyRep2 (ty value1) where
+   tyRep2 _ =
       let
-         (tC :: typeCon value1 value2 value3) = error "Dynamics.7"
-         (v1 :: value1) = error "Dynamics.8"
-         (v2 :: value2) = error "Dynamics.9"
-         (v3 :: value3) = error "Dynamics.10"
+         (tC :: ty value1 () ()) = error "Dynamics.4"
+         (v :: value1) = error "Dynamics.5"
       in
-         mkTypeTag (tyCon3 tC) [typeOf v1,typeOf v2,typeOf v3]
+         appTyRep (tyRep3 tC) (typeOf v)
+         
+class HasTyRep4 ty where
+   tyRep4 :: ty value1 value2 value3 value4 -> TyRep
 
-class HasTyCon4 typeCon where
-   tyCon4 :: (Typeable value1,Typeable value2,Typeable value3,Typeable value4) 
-      => typeCon value1 value2 value3 value4 -> TyCon
-
-instance (HasTyCon4 typeCon,Typeable value1,Typeable value2,Typeable value3,
-      Typeable value4) => Typeable (typeCon value1 value2 value3 value4) where
-   typeOf _ =
+instance (HasTyRep4 ty,Typeable value1) => HasTyRep3 (ty value1) where
+   tyRep3 _ =
       let
-         (tC :: typeCon value1 value2 value3 value4) = error "Dynamics.11"
-         (v1 :: value1) = error "Dynamics.12"
-         (v2 :: value2) = error "Dynamics.13"
-         (v3 :: value3) = error "Dynamics.14"
-         (v4 :: value4) = error "Dynamics.15"
+         (tC :: ty value1 () () ()) = error "Dynamics.6"
+         (v :: value1) = error "Dynamics.7"
       in
-         mkTypeTag (tyCon4 tC) [typeOf v1,typeOf v2,typeOf v3,typeOf v4]
+         appTyRep (tyRep4 tC) (typeOf v)
 
-class HasTyCon40011 typeCon where
-   tyCon40011 :: (Typeable value1,Typeable value2,
-      HasTyCon1 con3,HasTyCon1 con4)
-      => typeCon value1 value2 con3 con4 -> TyCon
+-- ------------------------------------------------------------
+-- Some instances of TyRep for type arguments of non-zero kind.
+-- We need a versions of HasTyRep's for different kinds.
+-- ------------------------------------------------------------
 
-instance (HasTyCon40011 typeCon,Typeable value1,Typeable value2,
-      HasTyCon1 con3,HasTyCon1 con4) 
-      => Typeable (typeCon value1 value2 con3 con4) where
-   typeOf _ =
+class HasTyRep1_1 ty where
+   tyRep1_1 :: HasTyRep1 typeArg => ty typeArg -> TyRep
+
+instance (HasTyRep1_1 ty,HasTyRep1 typeArg) => HasTyRep (ty typeArg) where
+   tyRep _ =
       let
-         (tC :: typeCon value1 value2 con3 con4) = tC
-         (v1 :: value1) = v1
-         (v2 :: value2) = v2
-         (v3 :: con3 ()) = v3
-         (v4 :: con4 ()) = v4
-         mk con = mkTypeTag con []
+         (tC :: ty typeArg) = error "Dynamics.30"
+         (v :: typeArg ()) = error "Dynamics.31"
       in
-         mkTypeTag (tyCon40011 tC) [typeOf v1,typeOf v2,
-            mk (tyCon1 v3),mk (tyCon1 v4)]
+          appTyRep (tyRep1_1 tC) (toTypeRep (tyRep1 v))
+
+class HasTyRep2_11 ty where
+   tyRep2_11 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2) =>
+      ty typeArg1 typeArg2 -> TyRep
+
+instance (HasTyRep2_11 ty,HasTyRep1 typeArg) => HasTyRep1_1 (ty typeArg) where
+   tyRep1_1 _ =
+      let
+         (tC :: ty typeArg Dummy) = error "Dynamics.22"
+         (v :: typeArg ()) = error "Dynamics.23"
+      in
+          appTyRep (tyRep2_11 tC) (toTypeRep (tyRep1 v))
+
+
+class HasTyRep3_011 ty where
+   tyRep3_011 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2) =>
+      ty value1 typeArg1 typeArg2 -> TyRep
+
+instance (HasTyRep3_011 ty,Typeable value) => HasTyRep2_11 (ty value) where
+   tyRep2_11 _ =
+      let
+         (tC :: ty value Dummy Dummy) = error "Dynamics.24"
+         (v :: value) = error "Dynamics.25"
+      in
+         appTyRep (tyRep3_011 tC) (typeOf v)
+
+class HasTyRep4_0011 ty where
+   tyRep4_0011 :: (HasTyRep1 typeArg1,HasTyRep1 typeArg2) =>
+      ty value1 value2 typeArg1 typeArg2 -> TyRep
+
+instance (HasTyRep4_0011 ty,Typeable value1) => HasTyRep3_011 (ty value1) where
+   tyRep3_011 _ =
+      let
+         (tC :: ty value1 () Dummy Dummy) = error "Dynamics.26"
+         (v :: value1) = error "Dynamics.27"
+      in
+         appTyRep (tyRep4_0011 tC) (typeOf v)
+
+data Dummy x = Dummy x
+
+dummy_tyRep = mkTyRep "Dynamics" "Dummy"
+instance (HasTyRep1 Dummy) where
+   tyRep1 _ = dummy_tyRep
 

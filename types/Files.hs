@@ -50,9 +50,9 @@ data FileType = FileType {
    canEdit :: Bool
    }
 
-fileType_tyCon = mkTyCon "Files" "FileType"
-instance HasTyCon FileType where
-   tyCon _ = fileType_tyCon
+fileType_tyRep = mkTyRep "Files" "FileType"
+instance HasTyRep FileType where
+   tyRep _ = fileType_tyRep
 
 instance HasCodedValue FileType where
    encodeIO = mapEncodeIO 
@@ -87,9 +87,9 @@ data File = File {
    simpleFile :: SimpleFile
    }
 
-file_tyCon = mkTyCon "Files" "File"
-instance HasTyCon File where
-   tyCon _ = file_tyCon
+file_tyRep = mkTyRep "Files" "File"
+instance HasTyRep File where
+   tyRep _ = file_tyRep
 
 instance HasAttributes File where
    readPrimAttributes object = attributes object
@@ -248,14 +248,14 @@ plainFileNodeTypeParms =
 mkPlainFileType :: View -> IO FileType
 mkPlainFileType view =
    do
-      knownFolders <- newEmptyVariableSet
+      knownFiles <- newEmptyVariableSet
       let
          fileType = FileType {
             fileTypeId = plainFileKey,
             fileTypeLabel = Just "Plain file",
             requiredAttributes = emptyAttributesType,
             displayParms = plainFileNodeTypeParms,
-            knownFiles = knownFolders,
+            knownFiles = knownFiles,
             canEdit = True
             }
 

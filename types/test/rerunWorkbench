@@ -1,7 +1,7 @@
 #!/usr/local/bin/bash
 # Test script for running the workbench once the server is already going.
-export UNICVSROOT=/home/ger/repository
-export UNISERVER=`hostname`
+export UNICVSROOT=:pserver:ger@cvs-agbkb.informatik.uni-bremen.de:/repository
+export UNISERVER=titania.informatik.uni-bremen.de
 export UNIEDITOR="/usr/local/pub-bkb/xemacs/bin/gnuclient -eval '(setq stored-name \"%beN\")' \"%bF\""
 rm -rf /tmp/db /tmp/#
 export UNIDEBUG=/home/ger/uni/types/test/w.debug

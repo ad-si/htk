@@ -72,6 +72,7 @@ connect hostDesc portDesc =
       debug hostName
       portNumber <- getPortNumber portDesc
       handle <- connectTo hostName portNumber
+--      hSetBuffering handle NoBuffering
       return handle
 
 hPutStrLnFlush :: Handle -> String -> IO ()

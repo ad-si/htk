@@ -148,6 +148,6 @@ instance Ord key => CanAddSinks (VariableMapSet key elt element) [element]
 -- Make VariableMap Typeable
 -- --------------------------------------------------------------------
 
-variableMap_tyCon = mkTyCon "VariableMap" "VariableMap"
-instance HasTyCon2 VariableMap where
-   tyCon2 _ = variableMap_tyCon
+variableMap_tyRep = mkTyRep "VariableMap" "VariableMap"
+instance HasTyRep2 VariableMap where
+   tyRep2 _ = variableMap_tyRep

@@ -34,6 +34,8 @@ import Registry
 import Dynamics
 import AtomString(fromString)
 import Object
+import FileSystem
+import CopyFile
 
 import VersionDB
 import ViewType
@@ -64,12 +66,14 @@ newView repository =
       objects <- newRegistry
       parentMVar <- newMVar Nothing
       viewIdObj <- newObject
+      fileSystem <- newFileSystem
 
       return (View {
          viewId = ViewId viewIdObj,
          repository = repository,
          objects = objects,
-         parentMVar = parentMVar
+         parentMVar = parentMVar,
+         fileSystem = fileSystem
          })
 
 listViews :: Repository -> IO [Version]
@@ -107,12 +111,14 @@ getView repository objectVersion =
          )
 
       parentMVar <- newMVar (Just objectVersion)
+      fileSystem <- newFileSystem
       let
          view = View {
             viewId = viewId,
             repository = repository,
             objects = objects,
             parentMVar = parentMVar,
+            fileSystem = fileSystem
             }
 
       importDisplayTypes displayTypesData view
@@ -133,15 +139,17 @@ commitView (view @ View {repository = repository,objects = objects,
 
       locations <- listKeys objects
       (objectsData :: [(Location,Version)]) <-
-         mapM (\ location ->
-            do
-               objectsData <- getValue objects location
-               objectVersion <- case objectsData of 
-                  AbsentObject objectVersion -> return objectVersion
-                  PresentObject _ commitAction -> commitAction
-               return (location,objectVersion)
-            )
-            locations
+         mapM
+            (\ location ->
+               do
+                  objectsData <- getValue objects location
+                  objectVersion <- case objectsData of 
+                     AbsentObject objectVersion -> return objectVersion
+                     PresentObject _ commitAction -> commitAction
+                  return (location,objectVersion)
+               )
+               locations
+            
       let
          viewData =
             ViewData {
@@ -176,9 +184,9 @@ data ViewData = ViewData {
    objectTypesData :: CodedValue
    }
 
-viewData_tyCon = mkTyCon "View" "ViewData"
-instance HasTyCon ViewData where
-   tyCon _ = viewData_tyCon
+viewData_tyRep = mkTyRep "View" "ViewData"
+instance HasTyRep ViewData where
+   tyRep _ = viewData_tyRep
 
 -- Here's the real primitive type
 type Tuple = ([(Location,ObjectVersion)],CodedValue,CodedValue)
@@ -196,4 +204,9 @@ unmkTuple (objectsData,displayTypesData,objectTypesData) =
 instance HasCodedValue ViewData where
    encodeIO = mapEncodeIO mkTuple 
    decodeIO = mapDecodeIO unmkTuple
+
+-- ----------------------------------------------------------------------
+-- Ensure files are present
+-- ----------------------------------------------------------------------
+
 

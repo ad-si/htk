@@ -67,15 +67,10 @@ data MatchResult = MatchResult String String String [String] deriving Show
 -- Strings are before,matched portion,after, and the 
 -- list $1,$2,... corresponding to matched subexpressions.
 
-matchResult_tyCon = mkTyCon "RegularExpression" "MatchResult"
+matchResult_tyRep = mkTyRep "RegularExpression" "MatchResult"
 
-instance HasTyCon MatchResult where
-   tyCon _ = matchResult_tyCon
-
-matchResultTypeTag = 
-   Dynamics.mkTypeTag
-      (Dynamics.mkTyCon "RegularExpression" "MatchResult")
-      []
+instance HasTyRep MatchResult where
+   tyRep _ = matchResult_tyRep
 
 matchString :: RegularExpression -> String -> Maybe MatchResult
 matchString (RegularExpression regEx) str =

@@ -316,9 +316,9 @@ instance HasCodedValue value => HasCodedValue [value] where
    encodeIO = mapEncodeIO (\ l -> List l)
    decodeIO = mapDecodeIO (\ (List l) -> l)
 
-list_tyCon = mkTyCon "CodedValue" "List"
-instance HasTyCon1 List where
-   tyCon1 _ = list_tyCon
+list_tyRep = mkTyRep "CodedValue" "List"
+instance HasTyRep1 List where
+   tyRep1 _ = list_tyRep
 
 instance HasCodedValue value => HasCodedValue (List value)
       where
@@ -380,10 +380,10 @@ instance HasCodedValue value => HasCodedValue (List value)
 newtype ShortList a = ShortList [a]
 
 -- make them Typeable
-shortList_tyCon = mkTyCon "CodedValue" "ShortList"
+shortList_tyRep = mkTyRep "CodedValue" "ShortList"
 
-instance HasTyCon1 ShortList where
-   tyCon1 _ = shortList_tyCon
+instance HasTyRep1 ShortList where
+   tyRep1 _ = shortList_tyRep
 
 instance HasCodedValue value => HasCodedValue (ShortList value)
       where
@@ -480,9 +480,9 @@ instance HasCodedValue String where
 -- up in the Str type to allow alternative instances.
 newtype Str a = Str a
 
-str_tyCon = mkTyCon "CodedValue" "Str"
-instance HasTyCon1 Str where
-   tyCon1 _ = str_tyCon 
+str_tyRep = mkTyRep "CodedValue" "Str"
+instance HasTyRep1 Str where
+   tyRep1 _ = str_tyRep 
 
 instance (Typeable str,StringClass str) => HasCodedValue (Str str) where
    encodeIO = mapEncodeIO (\ (Str str) -> toString str)
@@ -500,9 +500,9 @@ instance HasPureCodedValue Bool where
 
 -- We make CodedValue an instance itself
 
-codedValue_tyCon = mkTyCon "CodedValue" "CodedValue"
-instance HasTyCon CodedValue where
-   tyCon _ = codedValue_tyCon
+codedValue_tyRep = mkTyRep "CodedValue" "CodedValue"
+instance HasTyRep CodedValue where
+   tyRep _ = codedValue_tyRep
 
 instance HasPureCodedValue CodedValue where
    encodePure value codedValue = prefix value codedValue
@@ -562,9 +562,9 @@ nextBit = bit (bitsInChar - 2)
 newtype CodedList = CodedList [Int32]
 -- This is a nonempty list of integers in [0,2^(bitsInChar-1)).
 
-codedList_tyCon = mkTyCon "CodedValue" "CodedList"
-instance HasTyCon CodedList where
-   tyCon _ = codedList_tyCon
+codedList_tyRep = mkTyRep "CodedValue" "CodedList"
+instance HasTyRep CodedList where
+   tyRep _ = codedList_tyRep
 
 chrGeneral :: Integral a => a -> Char
 chrGeneral value = chr (fromIntegral value)
@@ -696,11 +696,11 @@ instance (Ord key,HasCodedValue key,HasCodedValue elt)
 
 newtype FormatError = FormatError String
 
-formatErrorTag :: TyCon
-formatErrorTag = mkTyCon "CodedValue" "FormatError"
+formatErrorTag :: TyRep
+formatErrorTag = mkTyRep "CodedValue" "FormatError"
 
-instance HasTyCon FormatError where
-   tyCon _ = formatErrorTag
+instance HasTyRep FormatError where
+   tyRep _ = formatErrorTag
 
 formatError :: String -> a
 formatError message = throwDyn (FormatError (

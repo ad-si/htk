@@ -61,10 +61,10 @@ newtype GlobalKey = GlobalKey AtomString deriving (Ord,Eq)
 -- Instances for GlobalKey
 -- ---------------------------------------------------------------
 
-globalKey_tyCon = mkTyCon "GlobalRegistry" "GlobalKey"
+globalKey_tyRep = mkTyRep "GlobalRegistry" "GlobalKey"
 
-instance HasTyCon GlobalKey where
-   tyCon _ = globalKey_tyCon
+instance HasTyRep GlobalKey where
+   tyRep _ = globalKey_tyRep
 
 instance HasCodedValue GlobalKey where
    encodeIO = mapEncodeIO (\ (GlobalKey a) -> Str a)
@@ -183,7 +183,7 @@ firstKey = mkGlobalKey firstUniqueString
 -- any generated oneOffKey, provided that the second argument does not contain
 -- a period.
 --
--- We recommend that the format should be similar to that of Dynamics.mkTyCon;
+-- We recommend that the format should be similar to that of Dynamics.mkTyRep;
 -- the first argument should be the module name, the second some module-unique
 -- identifier. 
 oneOffKey :: String -> String -> GlobalKey

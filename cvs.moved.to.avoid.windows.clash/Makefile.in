@@ -6,10 +6,6 @@ LIBS = $(TOP)/cvs/libcvs.a $(TOP)/reactor/libreactor.a \
 SRCS       = CVSTypes.hs CVSBasic.hs CVSHigh.hs CVSDB.hs Allocate.hs \
    AllocateService.hs MainAllocateService.hs
 
-SRCSC      = copy_file.c
 SUBDIRS    = test
 
 include @TOP@/mk/boilerplate.mk
-
-CVSDB.o : copy_file.h
-copy_file.o : copy_file.h

@@ -42,9 +42,9 @@ import BasicObjects
 -- AttributesType is an instance of HasCodedValue
 data AttributesType = AttributesType [(AttributeKey,AttributeTypeKey)]
 
-attributesType_tyCon = mkTyCon "AttributesType" "AttributesType"
-instance HasTyCon AttributesType where
-   tyCon _ = attributesType_tyCon
+attributesType_tyRep = mkTyRep "AttributesType" "AttributesType"
+instance HasTyRep AttributesType where
+   tyRep _ = attributesType_tyRep
 
 instance HasCodedValue AttributesType where
    encodeIO = mapEncodeIO (\ (AttributesType list) -> list)
@@ -190,9 +190,9 @@ extraFormItemToForm (ExtraFormItem form ioRef) =
 -- and display types are. 
 newtype AttributeTypeKey = AttributeTypeKey String deriving (Ord,Eq)
 
-attributeTypeKey_tyCon = mkTyCon "AttributesType" "AttributeTypeKey"
-instance HasTyCon AttributeTypeKey where
-   tyCon _ = attributeTypeKey_tyCon
+attributeTypeKey_tyRep = mkTyRep "AttributesType" "AttributeTypeKey"
+instance HasTyRep AttributeTypeKey where
+   tyRep _ = attributeTypeKey_tyRep
 
 instance HasCodedValue AttributeTypeKey where
    encodeIO = mapEncodeIO (\ (AttributeTypeKey str) -> str)
@@ -201,7 +201,7 @@ instance HasCodedValue AttributeTypeKey where
 
 ---
 -- Construct a new attribute key.  The arguments should be 
--- [module name] [type name], as for mkTyCon, to guarantee uniqueness.
+-- [module name] [type name], as for mkTyRep, to guarantee uniqueness.
 mkAttributeTypeKey :: String -> String -> AttributeTypeKey
 mkAttributeTypeKey modName tyName = AttributeTypeKey (modName++('.':tyName))
 
@@ -286,9 +286,9 @@ data AttributeKey = AttributeKey {
       -- this describes how to refer to the key on a form.
    }
 
-attributeKey_tyCon = mkTyCon "AttributesType" "AttributeKey"
-instance HasTyCon AttributeKey where
-   tyCon _ = attributeKey_tyCon
+attributeKey_tyRep = mkTyRep "AttributesType" "AttributeKey"
+instance HasTyRep AttributeKey where
+   tyRep _ = attributeKey_tyRep
 
 instance HasCodedValue AttributeKey where
    encodeIO = mapEncodeIO 
@@ -361,9 +361,9 @@ instance (HasConfigRadioButton value,Bounded value,Enum value,
 
 ---
 -- At this point we find it useful to define HasCodedValue for Radio.
-radio_tyCon = mkTyCon "AttributesType" "Radio"
-instance HasTyCon1 Radio where
-   tyCon1 _ = radio_tyCon
+radio_tyRep = mkTyRep "AttributesType" "Radio"
+instance HasTyRep1 Radio where
+   tyRep1 _ = radio_tyRep
 
 instance HasCodedValue value => HasCodedValue (Radio value) where
    encodeIO = mapEncodeIO (\ radio ->

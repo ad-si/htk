@@ -7,19 +7,19 @@ data Folder = Folder {
    }
 
 
-folder_tyCon = mkTyCon "Folders" "Folder"
-instance HasTyCon Folder where
-   tyCon _ = folder_tyCon
+folder_tyRep = mkTyRep "Folders" "Folder"
+instance HasTyRep Folder where
+   tyRep _ = folder_tyRep
 
 data Versioned x = Versioned {
    loc :: Bool,
    s :: [x]
    }
 
-versioned_tyCon = mkTyCon "View" "Versioned"
+versioned_tyRep = mkTyRep "View" "Versioned"
 
-instance HasTyCon1 Versioned where
-   tyCon1 _ = versioned_tyCon
+instance HasTyRep1 Versioned where
+   tyRep1 _ = versioned_tyRep
 
 main =
    do

@@ -84,10 +84,10 @@ class HasFilePath fileItem where
 -- Instances
 -- ------------------------------------------------------------------------
 
-simpleFile_tyCon = mkTyCon "BasicObjects" "SimpleFile"
+simpleFile_tyRep = mkTyRep "BasicObjects" "SimpleFile"
 
-instance HasTyCon SimpleFile where
-   tyCon _ = simpleFile_tyCon
+instance HasTyRep SimpleFile where
+   tyRep _ = simpleFile_tyRep
 
 instance HasCodedValue SimpleFile where
    -- We represent the file as a pair (Location,ObjectVersion)
@@ -136,10 +136,10 @@ newEmptyAttributes view =
       registry <- newRegistry
       return (Attributes {view = view,registry = registry,dirtyAction = done})
 
-attributes_tyCon = mkTyCon "BasicObjects" "Attributes"
+attributes_tyRep = mkTyRep "BasicObjects" "Attributes"
 
-instance HasTyCon Attributes where
-   tyCon _ = attributes_tyCon
+instance HasTyRep Attributes where
+   tyRep _ = attributes_tyRep
 
 instance HasCodedValue Attributes where
    encodeIO (Attributes {registry = registry}) codedValue0 view =

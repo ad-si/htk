@@ -19,7 +19,7 @@ module Server(
 import IO
 import List
 
-import Exception
+import Exception hiding (handle)
 import FiniteMap
 import Socket hiding (PortID(..))
 import Posix
@@ -352,6 +352,7 @@ runServer serviceList =
          serverAction =
             do
                (handle,_,_) <- accept socket
+               hSetBuffering handle NoBuffering
                registration <- Exception.try (lookupService handle)
                case registration of
                   Right () -> done

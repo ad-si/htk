@@ -56,10 +56,10 @@ import DisplayView
 data FolderDisplayType = FolderDisplayType
    -- This just holds the key to the folder.
 
-folderDisplayType_tyCon = mkTyCon "Folders" "FolderDisplayType"
+folderDisplayType_tyRep = mkTyRep "Folders" "FolderDisplayType"
 
-instance HasTyCon FolderDisplayType where
-   tyCon _ = folderDisplayType_tyCon
+instance HasTyRep FolderDisplayType where
+   tyRep _ = folderDisplayType_tyRep
 
 instance HasCodedValue FolderDisplayType where
    encodeIO = mapEncodeIO (\ FolderDisplayType -> ())
@@ -96,9 +96,9 @@ data FolderType = FolderType {
    knownFolders :: VariableSet (Link Folder)
    }
 
-folderType_tyCon = mkTyCon "Folders" "FolderType"
-instance HasTyCon FolderType where
-   tyCon _ = folderType_tyCon
+folderType_tyRep = mkTyRep "Folders" "FolderType"
+instance HasTyRep FolderType where
+   tyRep _ = folderType_tyRep
 
 instance HasCodedValue FolderType where
    encodeIO = mapEncodeIO 
@@ -135,9 +135,9 @@ data Folder = Folder {
       -- contents are in the process of being updated.
    }
 
-folder_tyCon = mkTyCon "Folders" "Folder"
-instance HasTyCon Folder where
-   tyCon _ = folder_tyCon
+folder_tyRep = mkTyRep "Folders" "Folder"
+instance HasTyRep Folder where
+   tyRep _ = folder_tyRep
 
 instance HasAttributes Folder where
    readPrimAttributes object = attributes object

@@ -13,7 +13,7 @@ import Directory
 
 import FileNames
 import WBFiles
-import IOExtras
+import CopyFile
 
 import Thread
 
@@ -87,7 +87,7 @@ class (Read inType,Show inType,Read outType,Show outType) =>
             if exists
                then
                   do
-                     contents <- readFileInstant filePath
+                     contents <- copyFileToString filePath
                      return (Just contents)
                else
                   return Nothing

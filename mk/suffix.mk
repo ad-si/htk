@@ -65,8 +65,10 @@ HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
              $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
              $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
 # Can't be bothered to have a special variable for C header files.
+# Instead we decree that all C files must have an associated header
+# file.
 OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC))  \
-            $(patsubst %.h,$$PWD/%.h,$(filter-out *.h,*.h))  \
+            $(patsubst %.c,$(CINCLUDES)/%.h,$(SRCSC)) \
             $$PWD/Makefile.in
 ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
 
@@ -130,7 +132,7 @@ display :
 
 depend : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
 ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
-	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS) $(SRCSLHS)
+	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) -cpp -I$(CINCLUDES) $(SRCS) $(SRCSLHS)
 endif
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
@@ -157,9 +159,9 @@ ALLDIRS = `
 
 librealfast : objsc
 	$(TOP)/mk/mkEverything `$(MAKE) displayhs -s --no-print-directory`
-	$(CP) */*.h .
-	ALLDIRS=`$(GFIND) . -type d ! -path "./appl*" ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS
+	ALLDIRS=`$(GFIND) . -type d ! -path "./appl*" ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS -I$(CINCLUDES)
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi *.h
+	$(MAKE) lib
 
 
 displaysrcshere :
@@ -194,7 +196,7 @@ $(HIFILES) : %.hi : %.o
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) -c $< $(HCFLAGS) -no-recomp -o /dev/null -ohi $@
+	$(HC) -c $< $(HCFLAGS) -no-recomp -fno-code -ohi $@
 
 $(OBJSHS) : %.o : %.hs
 	$(HC) -c $< $(HCFLAGS) 
@@ -202,8 +204,8 @@ $(OBJSHS) : %.o : %.hs
 $(OBJSLHS) : %.o : %.lhs
 	$(HC) -c $< $(HCFLAGS) 
 
-$(OBJSC) : %.o : %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+$(OBJSC) : %.o : %.c $(CINCLUDES)/%.h
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(CINCLUDES)
 
 ifndef FAST
 -include .depend

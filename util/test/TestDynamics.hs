@@ -6,16 +6,16 @@ import Debug(debug)
 data A = A (Int,Int) deriving Show
 data B = B (Bool,Bool) deriving Show
 
-aTc = mkTyCon "TestDynamics" "A"
+aTc = mkTyRep "TestDynamics" "A"
 
-bTc = mkTyCon "TestDynamics" "B"
+bTc = mkTyRep "TestDynamics" "B"
 
-instance Typeable A where
-   typeOf _ = mkTypeTag aTc []
+instance HasTyRep A where
+   tyRep _ = aTc
 
-instance Typeable B where
-   typeOf _ = mkTypeTag bTc []
-   
+instance HasTyRep B where
+   tyRep _ = bTc
+
 main :: IO()
 main =
    let

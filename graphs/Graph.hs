@@ -153,10 +153,10 @@ instance StringClass Node where
    toString (Node atomString) = toString atomString
    fromString atomString = Node (fromString atomString)
 
-node_tag = mkTyCon "Graph" "Node"
+node_tag = mkTyRep "Graph" "Node"
 
-instance HasTyCon Node where
-   tyCon _ = node_tag
+instance HasTyRep Node where
+   tyRep _ = node_tag
 
 newtype NodeType = NodeType AtomString deriving (Eq,Ord)
 
@@ -164,10 +164,10 @@ instance StringClass NodeType where
    toString (NodeType atomString) = toString atomString
    fromString atomString = NodeType (fromString atomString)
 
-nodeType_tag = mkTyCon "Graph" "NodeType"
+nodeType_tag = mkTyRep "Graph" "NodeType"
 
-instance HasTyCon NodeType where
-   tyCon _ = nodeType_tag
+instance HasTyRep NodeType where
+   tyRep _ = nodeType_tag
 
 newtype Arc = Arc AtomString deriving (Eq,Ord)
 
@@ -175,10 +175,10 @@ instance StringClass Arc where
    toString (Arc atomString) = toString atomString
    fromString atomString = Arc (fromString atomString)
 
-arc_tag = mkTyCon "Graph" "Arc"
+arc_tag = mkTyRep "Graph" "Arc"
 
-instance HasTyCon Arc where
-   tyCon _ = arc_tag
+instance HasTyRep Arc where
+   tyRep _ = arc_tag
 
 newtype ArcType = ArcType AtomString deriving (Eq,Ord)
 
@@ -186,10 +186,10 @@ instance StringClass ArcType where
    toString (ArcType atomString) = toString atomString
    fromString atomString = ArcType (fromString atomString)
 
-arcType_tag = mkTyCon "Graph" "ArcType"
+arcType_tag = mkTyRep "Graph" "ArcType"
 
-instance HasTyCon ArcType where
-   tyCon _ = arcType_tag
+instance HasTyRep ArcType where
+   tyRep _ = arcType_tag
 
 ------------------------------------------------------------------------
 -- Update

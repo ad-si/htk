@@ -160,7 +160,6 @@ import Font
 import Editor
 import Object
 import ReferenceVariables
-import PrelBase
 import Char
 import IOExts(unsafePerformIO)
 import Object
@@ -926,7 +925,7 @@ clipact :: Editor -> Mark -> Mark -> Ref Bool -> Ref [TextTag] ->
 clipact ed mark1 mark2 open settags txt tags =
   do
     b <- getRef open
-    setRef open (PrelBase.not b)
+    setRef open (Prelude.not b)
     (if b then
        do
          tags' <- getRef settags

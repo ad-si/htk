@@ -140,10 +140,10 @@ newCVSLoc cvsRoot workingDir =
 
 newtype CVSError = CVSError String
 
-tyCon_CVSError = mkTyCon "CVSHigh" "CVSError"
+tyRep_CVSError = mkTyRep "CVSHigh" "CVSError"
 
-instance HasTyCon CVSError where
-   tyCon _ = tyCon_CVSError
+instance HasTyRep CVSError where
+   tyRep _ = tyRep_CVSError
 
 cvsError :: String -> IO a
 cvsError mess =
@@ -160,6 +160,9 @@ tryCVS :: String -> Expect -> Event a -> IO (Maybe a,CVSReturn)
 tryCVS mess exp event =
    do
       result <- tryJust isCVSError (sync event)
+-- getToolStatus doesn't seem to be returning.  So instead we
+-- just make status ExitSuccess (sigh)
+#if 1
       status1 <- getToolStatus exp
       -- If status isn't here yet (this shouldn't happen very often)
       -- wait 0.2 seconds and try again before giving up.
@@ -172,6 +175,9 @@ tryCVS mess exp event =
                   getToolStatus exp
             _ -> return status1 
       debug status
+#else
+      let status = Just (Exited ExitSuccess)
+#endif
       destroy exp
       case result of
          Left errorMess -> 
@@ -298,7 +304,26 @@ done
                mustEOFHere exp
                return Nothing
       -- (back to main "do" in cvsCommit function)
-      tryCVS "cvs commit" exp (guard exp (event1 +> event2 +> event3))
+{-  (4) For "waiting for lock" messages -}
+         event4 :: Event ()
+         event4 = 
+            do
+               mat "\\`cvs commit: \\[.*\\] waiting for .*'s lock in"
+               always (putStrLn "Waiting for CVS lock in repository...")
+               let
+                  gotLock =
+                     do
+                        mat "\\`[.*\\] obtained lock in"
+                        done
+               gotLock +> event4
+{-  (5) the whole event -}
+         event :: Event (Maybe CVSVersion)
+         event = 
+            guard exp
+               ((event1 +> event2 +> (event4 >> event) +> event3) 
+               )
+
+      tryCVS "cvs commit" exp event
 
 cvsUpdate :: CVSLoc -> CVSFile -> CVSVersion -> IO CVSReturn
 cvsUpdate (CVSLoc globalOptions) file version =

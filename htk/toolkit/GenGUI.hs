@@ -51,7 +51,6 @@ import Name
 import Core
 import List
 import MarkupText
-import PrelBase(not)
 import CItem
 import Maybe
 
@@ -103,7 +102,7 @@ isItemFolder (IntFolderItem _ _) = True
 isItemFolder _ = False
 
 isItemLeaf :: Item c -> Bool
-isItemLeaf = PrelBase.not . isItemFolder
+isItemLeaf = Prelude.not . isItemFolder
 
 toItem :: CItem c => NewItem c -> IO (Item c)
 toItem it@(FolderItem _ ch _) =
@@ -677,7 +676,7 @@ addItem gui par@(IntFolderItem (FolderItem c _ _)  chref) newitem =
             mkNode (treelist gui) par
             nuch <- children item
             let nod = if show_leaves_in_tree gui then
-                        if PrelBase.not (null nuch) then Node else Leaf
+                        if Prelude.not (null nuch) then Node else Leaf
                       else
                         if (any isItemFolder nuch) then Node else Leaf
             case newitem of
@@ -715,7 +714,7 @@ addItem gui (Root chref) newitem =
           do
             ch <- children item
             let nod = if show_leaves_in_tree gui then
-                        if PrelBase.not (null ch) then Node else Leaf
+                        if Prelude.not (null ch) then Node else Leaf
                       else
                         if (any isItemFolder ch) then Node else Leaf
             putStrLn ("as " ++ if nod == Node then "node" else "leaf")
@@ -780,7 +779,7 @@ toTreeListObjects showLeavesInTree (it : items) =
     let nod = if showLeavesInTree then
                  if (any isItemFolder ch) then Node else Leaf
               else
-                 if PrelBase.not (null ch) then Node else Leaf
+                 if Prelude.not (null ch) then Node else Leaf
     return (newTreeListObject it nod : rest)
 toTreeListObjects _ _ = return []
 

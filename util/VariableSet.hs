@@ -137,9 +137,9 @@ instance HasKey x key
 -- Make VariableSet Typeable
 -- --------------------------------------------------------------------
 
-variableSet_tyCon = mkTyCon "VariableSet" "VariableSet"
-instance HasTyCon1 VariableSet where
-   tyCon1 _ = variableSet_tyCon
+variableSet_tyRep = mkTyRep "VariableSet" "VariableSet"
+instance HasTyRep1 VariableSet where
+   tyRep1 _ = variableSet_tyRep
 
 -- --------------------------------------------------------------------
 -- Type with the clients interface to a variable set (but which may be

@@ -57,7 +57,7 @@ debug s =
 debugAct :: String -> IO a -> IO a
 debugAct mess act =
    do
-      res <- tryAllIO act
+      res <- Exception.try act
       case res of
          Left error ->
             do
@@ -90,7 +90,7 @@ alwaysDebug s =
 alwaysDebugAct :: String -> IO a -> IO a
 alwaysDebugAct mess act =
    do
-      res <- tryAllIO act
+      res <- Exception.try act
       case res of
          Left error ->
             do

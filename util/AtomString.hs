@@ -41,9 +41,9 @@ theAtomSource = IOExts.unsafePerformIO emptyAtomSource
 newtype AtomString = AtomString PackedString deriving (Ord,Eq)
 -- in fact Eq could be unsafePtrEq
 
-atomString_tyCon = mkTyCon "AtomString" "AtomString"
-instance HasTyCon AtomString where
-   tyCon _ = atomString_tyCon
+atomString_tyRep = mkTyRep "AtomString" "AtomString"
+instance HasTyRep AtomString where
+   tyRep _ = atomString_tyRep
 
 ------------------------------------------------------------------------
 -- StringClass

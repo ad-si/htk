@@ -20,6 +20,7 @@ import Object
 import Dynamics
 import Registry
 import UniqueFile
+import FileSystem
 
 import BSem
 
@@ -33,7 +34,10 @@ data View = View {
    viewId :: ViewId,
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
-   parentMVar :: MVar (Maybe ObjectVersion)
+   parentMVar :: MVar (Maybe ObjectVersion),
+
+   -- Contains "real" copies of files for the benefit of tools
+   fileSystem :: FileSystem
    }
 
 data ObjectData =

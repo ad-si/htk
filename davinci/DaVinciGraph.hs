@@ -406,17 +406,17 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
 instance NodeClass DaVinciNode where
 
-daVinciNodeTyCon = mkTyCon "DaVinciGraph" "DaVinciNode"
+daVinciNodeTyRep = mkTyRep "DaVinciGraph" "DaVinciNode"
 
-instance HasTyCon1 DaVinciNode where
-   tyCon1 _ = daVinciNodeTyCon
+instance HasTyRep1 DaVinciNode where
+   tyRep1 _ = daVinciNodeTyRep
 
 instance NodeTypeClass DaVinciNodeType where
 
-daVinciNodeTypeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNodeType"
+daVinciNodeTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciNodeType"
 
-instance HasTyCon1 DaVinciNodeType where
-   tyCon1 _ = daVinciNodeTypeTyCon
+instance HasTyRep1 DaVinciNodeType where
+   tyRep1 _ = daVinciNodeTypeTyRep
 
 instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
    newNodeTypePrim 
@@ -591,15 +591,15 @@ instance DeleteArc DaVinciGraph DaVinciArc where
 
 instance ArcClass DaVinciArc where
 
-daVinciArcTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArc"
+daVinciArcTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArc"
 
-instance HasTyCon1 DaVinciArc where
-   tyCon1 _ = daVinciArcTyCon
+instance HasTyRep1 DaVinciArc where
+   tyRep1 _ = daVinciArcTyRep
 
-daVinciArcTypeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArcType"
+daVinciArcTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArcType"
 
-instance HasTyCon1 DaVinciArcType where
-   tyCon1 _ = daVinciArcTypeTyCon
+instance HasTyRep1 DaVinciArcType where
+   tyRep1 _ = daVinciArcTypeTyRep
 
 instance ArcTypeClass DaVinciArcType where
 

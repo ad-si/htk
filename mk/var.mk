@@ -27,11 +27,12 @@ HCSHORTFLAGS = \
    -fallow-overlapping-instances -fallow-undecidable-instances \
    -cpp -ddump-hi-diffs -H25M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
 
-HCFLAGS = -i$(HCDIRS) $(HCSHORTFLAGS)
+HCFLAGS = -i$(HCDIRS) -I$(TOP)/includes $(HCSHORTFLAGS)
 
 # LINKFLAGS contains extra flags to be put at the end of the command line
 # when compiling executables.
-LINKFLAGS = -lreadline
+# LINKFLAGS = -lreadline
+LINKFLAGS =
 
 # Gnu C compiler.  NB - the GHC installation is hardwired to
 # a particular version of gcc, so don't go changing this unless
@@ -75,6 +76,8 @@ TYPESDIR        = $(TOP)/types
 VERSIONSDIR     = $(TOP)/versions
 VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 
+
+CINCLUDES       = $(TOP)/includes
 
 # HTKDIRS and HTKSDIRS contain the HTK .hi files.  HTKSDIR gives the
 # view from the htk directory.

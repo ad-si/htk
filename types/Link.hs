@@ -74,9 +74,9 @@ import CodedValueStore
 
 newtype Link x = Link Location
 
-link_tyCon = mkTyCon "Link" "Link"
-instance HasTyCon1 Link where
-   tyCon1 _ = link_tyCon
+link_tyRep = mkTyRep "Link" "Link"
+instance HasTyRep1 Link where
+   tyRep1 _ = link_tyRep
 
 instance Typeable x => HasCodedValue (Link x) where
    encodeIO = mapEncodeIO (\ (Link location) -> Str location)
@@ -139,10 +139,10 @@ data Versioned x = Versioned {
    }
 
 -- Make Versioned objects typeable (if x is).
-versioned_tyCon = mkTyCon "View" "Versioned"
+versioned_tyRep = mkTyRep "View" "Versioned"
 
-instance HasTyCon1 Versioned where
-   tyCon1 _ = versioned_tyCon
+instance HasTyRep1 Versioned where
+   tyRep1 _ = versioned_tyRep
 
 commitVersioned :: HasCodedValue x => View -> Versioned x -> IO ObjectVersion
 -- This is the action that gets done when we commit an object to

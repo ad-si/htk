@@ -51,7 +51,7 @@
    DaVinci, the type parameter is required to be an instance of Typeable.
 
       node.  A value of this type is an actual node in a graph.
-         (Will be an instance of Typeable via HasTyCon1.)
+         (Will be an instance of Typeable via HasTyRep1.)
       nodeType.  Nodes are created with a particular UniForM "type" which
          is a Haskell value of type nodetype.  In fact a graph might
          conceivably have multiply Haskell types corresponding to node
@@ -331,11 +331,11 @@ class ArcTypeParms arcTypeParms where
 -- 
 class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,
-   NodeClass node,HasTyCon1 node,NodeTypeClass nodeType,
+   NodeClass node,HasTyRep1 node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
    DeleteArc graph arc,
-   ArcClass arc,HasTyCon1 arc,ArcTypeClass arcType,
+   ArcClass arc,HasTyRep1 arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
    GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -394,9 +394,9 @@ class (GraphClass graph,NodeClass node) =>
    setNodeValuePrim :: Typeable value =>
       graph -> node value -> value -> IO ()
 
-class HasTyCon1 node => NodeClass node
+class HasTyRep1 node => NodeClass node
 
-class HasTyCon1 nodeType => NodeTypeClass nodeType
+class HasTyRep1 nodeType => NodeTypeClass nodeType
 
 class (GraphClass graph,NodeTypeClass nodeType,NodeTypeParms nodeTypeParms)
    => NewNodeType graph nodeType nodeTypeParms where
@@ -424,9 +424,9 @@ class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
    deleteArcPrim :: (Typeable value) => graph -> arc value -> IO ()
    setArcValuePrim  :: Typeable value => graph -> arc value -> value -> IO ()
 
-class HasTyCon1 arc => ArcClass arc
+class HasTyRep1 arc => ArcClass arc
 
-class HasTyCon1 arcType => ArcTypeClass arcType
+class HasTyRep1 arcType => ArcTypeClass arcType
 
 class (GraphClass graph,ArcTypeClass arcType,ArcTypeParms arcTypeParms) => 
       NewArcType graph arcType arcTypeParms where

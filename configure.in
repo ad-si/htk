@@ -20,6 +20,17 @@ AC_PATH_PROGS(GHC,ghc)
 if test -z "$GHC"; then
    echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
    GOAHEAD=NO
+else
+   UNI_GHC_VERSION([GhcVersion],[GhcMajVersion],[GhcMinVersion],[GhcPatchLevel])
+  AC_SUBST(GhcVersion)
+  AC_SUBST(GhcMajVersion)
+  AC_SUBST(GhcMinVersion)
+  AC_SUBST(GhcPatchLevel)
+
+  echo GhcVersion=$GhcVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
+
+   
+
 fi
 #
 # Check for wish
@@ -70,9 +81,8 @@ if test "$GOAHEAD" = YES; then
    $CC mk/mkEverything.c -o mk/mkEverything
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c htk/doc/hdoc/generatedoc)
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES htk/doc/hdoc/generatedoc includes/config.h)
    chmod +x htk/doc/hdoc/generatedoc
-   echo The default UniForM options, C-escaped, are in util/default_options.c
    echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
 fi
 

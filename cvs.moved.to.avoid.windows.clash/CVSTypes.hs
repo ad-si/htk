@@ -15,9 +15,9 @@ instance StringClass CVSFile where
    toString (CVSFile str) = str
    fromString str = CVSFile str
 
-cvsFile_tyCon = mkTyCon "CVSTypes" "CVSFile"
-instance HasTyCon CVSFile where
-   tyCon _ = cvsFile_tyCon
+cvsFile_tyRep = mkTyRep "CVSTypes" "CVSFile"
+instance HasTyRep CVSFile where
+   tyRep _ = cvsFile_tyRep
 
 newtype CVSVersion = CVSVersion String deriving (Eq,Ord)
 
@@ -25,9 +25,9 @@ instance StringClass CVSVersion where
    toString (CVSVersion str) = str
    fromString str = CVSVersion str
 
-cvsVersion_tyCon = mkTyCon "CVSTypes" "CVSVersion"
-instance HasTyCon CVSVersion where
-   tyCon _ = cvsVersion_tyCon
+cvsVersion_tyRep = mkTyRep "CVSTypes" "CVSVersion"
+instance HasTyRep CVSVersion where
+   tyRep _ = cvsVersion_tyRep
 
  
 

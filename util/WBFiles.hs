@@ -1,4 +1,12 @@
+#if (__GLASGOW_HASKELL__ >= 503)
+#define NEW_GHC 
+#else
+#undef NEW_GHC
+#endif
+
+#ifdef NEW_GHC 
 {-# OPTIONS -#include "default_options.h" #-}
+#endif /* NEW_GHC */
 {- #########################################################################
 
    The WBFiles module is in charge of decoding information from the command
@@ -534,7 +542,13 @@ parseTheseArgumentsRequiring' arguments required =
 
          (initial :: ParseState) = (Nothing,initialMap)
 
+#ifndef NEW_GHC
       afterDefault <- foldM (handleParameter False) initial defaultOptions
+#else /* NEW_GHC */
+      defaultOptionsStr <- CString.peekCString defaultOptions
+      afterDefault <- foldM (handleParameter False) initial 
+         (words defaultOptionsStr)
+#endif /* NEW_GHC */
 
       parameters <- getArgs
 
@@ -680,11 +694,17 @@ parseTheseArgumentsRequiring' arguments required =
       upgradeError True (ExitFailure level1) (Just (ExitFailure level2)) =
          Just (ExitFailure (max level1 level2))
 
+#ifndef NEW_GHC
 defaultOptions :: [String]
 defaultOptions = words (CString.unpackCString addr_defaultOptions)
+#else /* NEW_GHC */
+foreign import ccall  "default_options.h & default_options" defaultOptions :: CString.CString
+#endif /* NEW_GHC */
 
+#ifndef NEW_GHC
 foreign label "default_options" addr_defaultOptions :: Addr.Addr
 
+#endif /* NEW_GHC */
 ------------------------------------------------------------------------
 -- Printing to stderr.
 ------------------------------------------------------------------------

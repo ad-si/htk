@@ -43,10 +43,10 @@ data NodeTypeAttributes nodeLabel = NodeTypeAttributes {
    nodeTypeTitle :: String
    } deriving (Read,Show)
 
-nodeTypeAttributes_tycon = mkTyCon "GetAttributes" "NodeTypeAttributes"
+nodeTypeAttributes_tycon = mkTyRep "GetAttributes" "NodeTypeAttributes"
 
-instance HasTyCon1 NodeTypeAttributes where
-   tyCon1 _ = nodeTypeAttributes_tycon
+instance HasTyRep1 NodeTypeAttributes where
+   tyRep1 _ = nodeTypeAttributes_tycon
 
 data PreAttributes = PreAttributes {
    shapeSort :: ShapeSort,
@@ -105,10 +105,10 @@ data NodeAttributes nodeType = NodeAttributes {
    nodeTitle :: String
    } deriving (Read,Show)
 
-nodeAttributes_tycon = mkTyCon "GetAttributes" "NodeAttributes"
+nodeAttributes_tycon = mkTyRep "GetAttributes" "NodeAttributes"
 
-instance HasTyCon1 NodeAttributes where
-   tyCon1 _ = nodeAttributes_tycon
+instance HasTyRep1 NodeAttributes where
+   tyRep1 _ = nodeAttributes_tycon
 
 data NodePreAttributes = NodePreAttributes {
    preNodeType :: String,
@@ -172,10 +172,10 @@ data ArcTypeAttributes = ArcTypeAttributes {
    arcTypeTitle :: String
    } deriving (Read,Show)
 
-arcTypeAttributes_tycon = mkTyCon "GetAttributes" "arcTypeAttributes"
+arcTypeAttributes_tycon = mkTyRep "GetAttributes" "arcTypeAttributes"
 
-instance HasTyCon ArcTypeAttributes where
-   tyCon _ = arcTypeAttributes_tycon
+instance HasTyRep ArcTypeAttributes where
+   tyRep _ = arcTypeAttributes_tycon
 
 getArcTypeAttributes :: IO (Maybe ArcTypeAttributes) 
 getArcTypeAttributes =
@@ -199,10 +199,10 @@ data ArcAttributes arcType = ArcAttributes {
    arcType :: arcType
    } deriving (Read,Show)
 
-arcAttributes_tycon = mkTyCon "GetAttributes" "ArcAttributes"
+arcAttributes_tycon = mkTyRep "GetAttributes" "ArcAttributes"
 
-instance HasTyCon1 ArcAttributes where
-   tyCon1 _ = arcAttributes_tycon
+instance HasTyRep1 ArcAttributes where
+   tyRep1 _ = arcAttributes_tycon
 
 data ArcPreAttributes = ArcPreAttributes {
    preArcType :: String
@@ -285,10 +285,10 @@ getSingleString query =
          Nothing -> cancelQuery
 
 newtype CancelException = CancelException ()
-cancelException_tag = mkTyCon "GetAttributes" "CancelException"
+cancelException_tag = mkTyRep "GetAttributes" "CancelException"
 
-instance HasTyCon CancelException where
-   tyCon _ = cancelException_tag
+instance HasTyRep CancelException where
+   tyRep _ = cancelException_tag
 
 cancelQuery :: IO anything
 cancelQuery = throwDyn (CancelException ())

@@ -1,5 +1,3 @@
-{-# OPTIONS -#include "object.h" #-}
- 
 {- #########################################################################
 
 MODULE        : Object
@@ -48,7 +46,7 @@ instance Read ObjectID where
 -- New Object Identifier
 -- --------------------------------------------------------------------------
 
-foreign import "next_object_id" unsafe newInt :: IO Int
+foreign import ccall unsafe "object.h next_object_id" newInt :: IO Int
 
 newObject :: IO ObjectID
 newObject = 
