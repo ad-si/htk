@@ -1,2 +1,4 @@
-# This file is not part of the CVS distribution.
+# This file is included in the source distribution with name 
+# mk/local.mk.debug.  To produce a debugging version of uni, copy it
+# to mk/local.mk before compilation.
 DEBUG = YES

@@ -67,14 +67,23 @@ import qualified Dynamic
 import Dynamic(Typeable(..),TypeRep)
 import Debug(debug)
 
-import qualified GlaExts
-
-type Dyn = Dynamic.Dynamic
-
-badTyRep = error "Tyrep accessed"
+#ifdef NEW_GHC
 
 fromDyn :: Typeable a => Dyn -> Maybe a
 fromDyn = Dynamic.fromDynamic
+
+#else
+-- Here follows the infamous ghc5.02 Dynamics hack
+
+import qualified PrelDynamic(Dynamic(..))
+import qualified GlaExts
+
+fromDyn :: Typeable a => Dyn -> Maybe a
+fromDyn (PrelDynamic.Dynamic _ o) = Just (GlaExts.unsafeCoerce# o)
+
+#endif
+
+type Dyn = Dynamic.Dynamic
 
 toDyn :: Typeable a => a -> Dyn
 toDyn = Dynamic.toDyn

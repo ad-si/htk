@@ -17,6 +17,7 @@ import Computation(done)
 import TempFile
 import FileNames
 import Registry
+import IOExtras
 
 -- ----------------------------------------------------------------------
 -- Types
@@ -50,7 +51,7 @@ newFileSystem =
       existingDirs <- newRegistry
 
       -- insert the top directory
-      createDirectory location
+      catchAlreadyExists (createDirectory location)
       setValue existingDirs "" ()
 
       return (FileSystem {
