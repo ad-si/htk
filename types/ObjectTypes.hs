@@ -24,6 +24,10 @@ module ObjectTypes(
       -- dependencies).
    WrappedObject(..), -- monomorphic object type
    WrappedObjectType(..), -- monomorphic objectType type
+   WrappedObjectTypeTypeData(..), 
+      -- monomorphic objectType type representing a particular class (or
+      -- Haskell type) of object types.
+   
 
    NodeDisplayData(..), -- how to display a particular node type with
       -- a particular display type.
@@ -75,6 +79,9 @@ module ObjectTypes(
 
    -- getAllObjectTypes returns every object type known to the view.
    getAllObjectTypes, -- :: View -> IO [WrappedObjectType]
+
+   -- getAllObjectTypeTypes returns every registered sort of object type..
+   getAllObjectTypeTypes, -- :: IO [WrappedObjectTypeTypeData]
 
 
    -- toObjectValue produces the object value corresponding to a given
@@ -136,6 +143,20 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- Returns a title for the object, to be used to index it in containing
       -- folders.
 
+   createObjectTypeMenuItemPrim :: objectType -> Maybe (String,View -> IO ())
+      -- This is a menu item (label + creation function) which creates a new
+      -- object type and inserts it in the global registry.  We do not
+      -- look at the argument.
+
+      -- This is what the outside actually calls, but the implementation may
+      -- instead choose to provide createObjectTypeMenuItemNoInsert.
+
+   createObjectTypeMenuItemNoInsert :: 
+        Maybe (String,View -> IO (Maybe objectType))
+      -- This is a menu item (label + creation function) which creates a new
+      -- object type but does NOT insert it in the global registry.
+      --      
+
    createObjectMenuItemPrim :: objectType 
       -> Maybe (String,View -> IO (Maybe (Link object)))
       -- This is a menu item (label + creation function) which creates
@@ -167,6 +188,30 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- be executed as part of the actions attached to nodes and edges, when
       -- it will return quickly (provided the displayed view has actually been
       -- set up.
+
+   createObjectTypeMenuItemPrim badObjectType =
+      fmap
+         (\ (label,createAct0) ->
+            let
+               createAct1 view =
+                  do
+                     objectTypeOpt <- createAct0 view
+                     case objectTypeOpt of
+                        Nothing -> done
+                        Just (objectType :: objectType) ->
+                           do
+                              let 
+                                 registry = objectTypeGlobalRegistry objectType
+                              key <- newKey registry view
+                              addToGlobalRegistry registry view key objectType
+            in
+               (label,createAct1)
+            )
+         createObjectTypeMenuItemNoInsert
+
+   createObjectTypeMenuItemNoInsert = Nothing
+      -- Don't provide any way for the user to create new types.
+
 
 toObjectValue :: ObjectType objectType object => objectType -> object
 toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
@@ -422,15 +467,25 @@ exportOneObjectType objectType view =
       exportViewFromGlobalRegistry globalRegistry view
 
 -- -----------------------------------------------------------------
+-- Extract all object type-types.
+-- -----------------------------------------------------------------
+
+getAllObjectTypeTypes :: IO [WrappedObjectTypeTypeData]
+getAllObjectTypeTypes = 
+   do
+      contents <- listRegistryContents objectTypeTypeDataRegistry
+      return (map snd contents)
+
+-- -----------------------------------------------------------------
 -- Extract all ObjectTypes in a view (used for doing displays)
 -- -----------------------------------------------------------------
 
 getAllObjectTypes :: View -> IO [WrappedObjectType]
 getAllObjectTypes view =
    do
-      allObjectTypeTypes <- listRegistryContents objectTypeTypeDataRegistry
+      allObjectTypeTypes <- getAllObjectTypeTypes
       allWrappedObjectTypes <- mapM
-         (\ (_,WrappedObjectTypeTypeData objectType) ->
+         (\ (WrappedObjectTypeTypeData objectType) ->
             do
                let globalRegistry = objectTypeGlobalRegistry objectType
                objectTypes <- getAllElements globalRegistry view

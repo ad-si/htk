@@ -217,8 +217,9 @@ displayView
       -- (0) Where the displayed view will go, when we've got it
       displayedViewMVar <- newEmptyMVar
 
-      -- (1) set up the graph
-      graph <- newGraph displaySort (graphParms wrappedDisplayType)
+      -- (1) get the graph parameters and set up the graph
+      graphPars <- graphParms view wrappedDisplayType
+      graph <- newGraph displaySort graphPars
 
       -- (2) construct the nodes registry
       nodes <- newRegistry

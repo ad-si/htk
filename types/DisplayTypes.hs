@@ -9,7 +9,7 @@ module DisplayTypes(
 
    -- Functions for extracting graph parameters.
    graphParms, -- :: HasGraphConfigs graphParms 
-      -- => WrappedDisplayType -> graphParms
+      -- => View -> WrappedDisplayType -> IO graphParms
 
    -- NB.  Node and arc parameters are supplied by the particular
    -- object type instances.
@@ -59,7 +59,8 @@ class HasCodedValue displayType => DisplayType displayType where
    -- This returns the key for a displayType, used to access it in
    -- the global registry.
 
-   graphParmsPrim :: HasGraphConfigs graphParms => displayType -> graphParms
+   graphParmsPrim :: HasGraphConfigs graphParms 
+      => View -> displayType -> IO graphParms
 
 
 -- ------------------------------------------------------------------
@@ -73,9 +74,10 @@ displayTypeTypeId :: WrappedDisplayType -> String
 displayTypeTypeId (WrappedDisplayType displayType) =
    displayTypeTypeIdPrim displayType
 
-graphParms :: HasGraphConfigs graphParms => WrappedDisplayType -> graphParms
-graphParms (WrappedDisplayType displayType) =
-   graphParmsPrim displayType
+graphParms :: HasGraphConfigs graphParms 
+   => View -> WrappedDisplayType -> IO graphParms
+graphParms view (WrappedDisplayType displayType) 
+   = graphParmsPrim view displayType
 
 
 -- ------------------------------------------------------------------
