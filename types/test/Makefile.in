@@ -18,7 +18,7 @@ displayextrasrcs :
 
 
 
-runServer : berkeley_db_svc
+runServer : 
 	@MKDIR@ -p /var/tmp/simpledb
 	./berkeley_db_svc -h /var/tmp/simpledb &
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Server --uni-debug=s.debug &
@@ -31,10 +31,11 @@ killServer :
 runWorkbench :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./Workbench --uni-debug=w.debug
 
-killWorkbench :
+illWorkbench :
 	(pkill "^Workbench$$" || echo not running)
 	rm -rf /tmp/#
 
-berkeley_db_svc : $(BDBDIR)/bin/berkeley_db_svc
+boot : berkeley_db_svc
+berkeley_db_svc : @BDBDIR@/bin/berkeley_db_svc
 	rm -rf $@
 	ln -sf $< $@

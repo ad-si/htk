@@ -10,6 +10,8 @@ folder we get a "DeleteAndFindFirst" error.
 
 70) 01.04.03
 In merging test, new objects are somehow disappearing.
+FIXED.  Actually the disappearance was occurring whenever they were checked
+in, which isn't exactly good.
 
 69) 01.04.03
 Made the XEmacs buffer's modified flag work in a sensible way, also

@@ -127,22 +127,33 @@ versionVariant = VariantAttribute {
    key = "Version",
    innerIgnored = True,
    score = (\ s1Opt s2Opt ->
-      case (s1Opt,s2Opt) of
-         (Just searchKey,Just thisKey) -> 
-            if searchKey == thisKey
-               then
-                  return 8000
-               else
-                  do
-                     let
-                        searchNode = versionToNode (fromString searchKey)
-                        thisNode = versionToNode (fromString thisKey)
-
-                     is <- isAncestor versionGraph thisNode searchNode
-
-                     return (if is then 4000 else 0)
-         (Just searchKey,Nothing) -> return 0
-         (Nothing,_) -> return 500
+ 
+      let
+         -- Awful temporary hack so we prefer higher version numbers.
+         toNum :: Maybe String -> Maybe Integer
+         toNum (Just s) = case reads s of
+            [(i,_)] -> Just i
+         toNum Nothing = Nothing
+      in
+         return (
+            case toNum s1Opt of
+               Nothing -> 
+                  -- we prefer higher version numbers, but Nothing  better.
+                  case toNum s2Opt of
+                     Just i -> 4096*i
+                     Nothing -> 10000000000000 
+                        -- hopefully bigger than any version number
+               Just searchNumber ->
+                  -- we prefer version numbers <= this.
+                  case toNum s2Opt of
+                     Nothing -> -1000
+                     Just thisNumber -> 
+                        if thisNumber <= searchNumber
+                           then
+                              4096*thisNumber
+                           else
+                              -4096*searchNumber
+            )
       )
    }
            

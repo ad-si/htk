@@ -26,6 +26,10 @@ module LinkManager(
       -- :: View -> WrappedLink -> Maybe Insertion 
       -- -> IO (WithError LinkedObject)
       -- Create a new LinkedObject.
+
+      -- Each LinkedObject contains a WrappedLink which is assumed to point
+      -- to the object containing the LinkedObject.  In particular, when the
+      -- linked object is changed, we dirty the WrappedLink.
    moveObject,
       -- :: LinkedObject -> Maybe Insertion -> IO (WithError ())
       -- Change the location of a LinkedObject
@@ -783,6 +787,7 @@ createLinkedObject view isNew frozenLinkedObject =
                               success <- delFromVariableMap 
                                  (toContents oldInsertion)
                                  (name oldInsertion)
+                              when success (dirtyInsertion oldInsertion) 
                               debugTest success "LinkManager.1"
                case insertion of
                   Nothing -> -- this must be a deletion
@@ -799,6 +804,9 @@ createLinkedObject view isNew frozenLinkedObject =
                         if success 
                            then
                               do
+                                 dirtyInsertion (newInsertion)
+                                 dirtyLinkedObject linkedObject
+
                                  removePrevious
                                  putMVar previousMVar insertion
                                  broadcast insertionBroadcaster insertion
@@ -810,7 +818,21 @@ createLinkedObject view isNew frozenLinkedObject =
                                     "There is already an object "++
                                     show (name newInsertion)++" in the folder"
                                     ))
-            )               
+            )
+
+         dirtyInsertion :: Insertion -> IO ()
+         dirtyInsertion insertion = dirtyLinkedObjectPtr (parent insertion)
+               
+         dirtyLinkedObjectPtr :: LinkedObjectPtr -> IO ()
+         dirtyLinkedObjectPtr linkedObjectPtr = dirtyWrappedLink
+            (wrappedLinkInPtr linkedObjectPtr)
+
+         dirtyLinkedObject :: LinkedObject -> IO ()
+         dirtyLinkedObject linkedObject 
+            = dirtyWrappedLink (toWrappedLink linkedObject)
+
+         dirtyWrappedLink :: WrappedLink -> IO ()
+         dirtyWrappedLink (WrappedLink link) = dirtyLink view link
 
          linkedObject = LinkedObject {
             thisPtr = thisPtr,
@@ -1229,19 +1251,17 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
             -- add the contents for one FrozenLinkedObject to an existing
             -- map.
             addContents view theseContents map0 =
-               foldl
+               foldl 
                   (\ map0 (entityName,linkedObjectPtr) ->
                      addToFM map0 entityName 
                         (mapLinkedObjectPtr view linkedObjectPtr)
                      )
                   map0
                   theseContents
-
             finalMap =
                foldl
                   (\ map0 (view,frozenLinkedObject) 
-                     -> addContents view (contents' frozenLinkedObject) map0
-                     )
+                     -> addContents view (contents' frozenLinkedObject) map0)
                   emptyFM
                   frozenLinkedObjects
 
