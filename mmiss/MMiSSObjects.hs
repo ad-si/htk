@@ -27,6 +27,7 @@ import Computation
 import AtomString
 import ExtendedPrelude
 import Debug
+import qualified Exception
 
 import BSem
 
@@ -559,15 +560,17 @@ writeToMMiSSObject objectType view folderLink expectedLabel element
          -- (11) Add all the objects.  We take them in definedObjects
          -- order, since that means no parent is added before its children,
          -- so we never add an undefined reference
-         newLinks <- mapM
-            (\ (name,structuredContent) ->
-               simpleWriteToMMiSSObject break view folderLink
-                  (lookupFM alreadyExistingMap name) structuredContent
+         newLinks <- 
+            Exception.finally (
+               mapM
+                  (\ (name,structuredContent) ->
+                     simpleWriteToMMiSSObject break view folderLink
+                        (lookupFM alreadyExistingMap name) structuredContent
+                     )
+                  definedObjects
                )
-            definedObjects
-
-         -- Release all the edit locks
-         releaseAct
+               -- Release all the edit locks
+              releaseAct
          
          return (last newLinks)
       )
