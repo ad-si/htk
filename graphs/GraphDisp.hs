@@ -428,7 +428,7 @@ instance ArcTypeConfig ValueTitle
 -- name clashes.  However we omit Textual, add the file argument
 -- to iconic and the shape Triangle.  This datatype may get bigger!
 data Shape nodeLabel = Box | Circle | Ellipse | Rhombus | Triangle | 
-   Icon FilePath
+   Icon FilePath deriving (Read,Show)
 
 instance NodeTypeConfig Shape
 
