@@ -32,16 +32,38 @@ module Graph(
       --                (nodeIn -> IO nodeOut) -> Update nodeIn nodeLabel ->
       -- IO (Update nodeOut nodeLabel)
       -- map updates monadically by node label.
+
+   CannedGraph(..),
+   CannedGraphNode(..),
+      -- contains complete immutable contents of a Graph at some time
+      -- also takes a parameter nodeLabel.  nodeLabel must be 
+      -- an instance of Read/Show and so is CannedGraph
+   emptyCannedGraph, -- :: CannedGraph nodeLabel 
+
+
    ) where
 
 import AtomString
 import SmallSet
+import QuickReadShow
+import Selective(EV)
 
 class Graph graph where
+   -- access functions
    getNodes :: graph nodeLabel -> IO [Node]
    getPredecessors :: graph nodeLabel -> Node -> IO [Node]
    getSuccessors :: graph nodeLabel -> Node -> IO [Node]
    getLabel :: graph nodeLabel -> Node -> IO nodeLabel
+
+   shareGraph :: (Read nodeLabel,Show nodeLabel) => 
+      graph nodeLabel -> IO (CannedGraph nodeLabel,
+      EV(Update Node nodeLabel),IO())
+   -- shareGraph returns (a) a complete frozen copy of the graph
+   -- in the form of a CannedGraph; (b) an event conveying updates
+   -- made to the original graph; (c) an action which you should perform
+   --    when you want the event to stop being generated.
+
+   -- update functions
    updateGraph :: graph nodeLabel -> Update Node nodeLabel -> IO ()
 
 ------------------------------------------------------------------------
@@ -104,4 +126,37 @@ mapMUpdate act (EditNode {
          nodeLabelOpt = nodeLabelOpt
          })  
                       
+------------------------------------------------------------------------
+-- CannedGraph
+------------------------------------------------------------------------
+
+data (Read nodeLabel,Show nodeLabel) => CannedGraph nodeLabel =
+   CannedGraph [CannedGraphNode nodeLabel] deriving (Read,Show)
+
+data (Read nodeLabel,Show nodeLabel) => CannedGraphNode nodeLabel =
+   CannedGraphNode {
+      nodeString :: String,
+      successorStrings :: [String],
+      nodeLabel :: nodeLabel
+      }
+
+instance (Read nodeLabel,Show nodeLabel) => 
+      QuickRead (CannedGraphNode nodeLabel) where
+   quickRead = WrapRead (\ (nodeString,successorStrings,nodeLabel) ->
+      CannedGraphNode {
+         nodeString = nodeString,
+         successorStrings = successorStrings,
+         nodeLabel = nodeLabel
+         }
+      )
+
+instance (Read nodeLabel,Show nodeLabel) => 
+      QuickShow (CannedGraphNode nodeLabel) where
+   quickShow = WrapShow (\ cgn ->
+      (nodeString cgn,successorStrings cgn,nodeLabel cgn)
+      )
+
+emptyCannedGraph :: (Read nodeLabel,Show nodeLabel) => CannedGraph nodeLabel
+emptyCannedGraph = CannedGraph []
+
 

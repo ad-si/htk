@@ -7,20 +7,6 @@ module SharedGraph(
    SharedGraph, 
       -- SharedGraph takes a parameter nodeLabel
    
-   CannedGraph,
-      -- contains complete contents of SharedGraph at some time
-      -- also takes a parameter nodeLabel.  nodeLabel must be 
-      -- an instance of Read/Show and so is CannedGraph
-   emptyCannedGraph, -- :: CannedGraph nodeLabel 
-
-   shareGraph, -- :: (Read nodeLabel,Show nodeLabel) => 
-             --    SharedGraph nodeLabel -> 
-             --       IO (CannedGraph nodeLabel,
-             --          EV(Update Node nodeLabel),IO())
-             --    Returns (a) a canned graph; (b) an event conveying updates
-             --    to that graph; (c) an action which you should perform
-             --    when you want the event to stop being generated.
-
    makeSharedGraph, -- :: (Read nodeLabel,Show nodeLabel) =>
              --    (CannedGraph nodeLabel,EV(Update Node nodeLabel)) ->
              --       IO (SharedGraph nodeLabel)
@@ -43,39 +29,6 @@ import SIM
 import Graph
 
 ------------------------------------------------------------------------
--- CannedGraph
-------------------------------------------------------------------------
-
-data (Read nodeLabel,Show nodeLabel) => CannedGraph nodeLabel =
-   CannedGraph [CannedGraphNode nodeLabel] deriving (Read,Show)
-
-data (Read nodeLabel,Show nodeLabel) => CannedGraphNode nodeLabel =
-   CannedGraphNode {
-      nodeString :: String,
-      successorStrings :: [String],
-      nodeLabel :: nodeLabel
-      }
-
-instance (Read nodeLabel,Show nodeLabel) => 
-      QuickRead (CannedGraphNode nodeLabel) where
-   quickRead = WrapRead (\ (nodeString,successorStrings,nodeLabel) ->
-      CannedGraphNode {
-         nodeString = nodeString,
-         successorStrings = successorStrings,
-         nodeLabel = nodeLabel
-         }
-      )
-
-instance (Read nodeLabel,Show nodeLabel) => 
-      QuickShow (CannedGraphNode nodeLabel) where
-   quickShow = WrapShow (\ cgn ->
-      (nodeString cgn,successorStrings cgn,nodeLabel cgn)
-      )
-
-emptyCannedGraph :: (Read nodeLabel,Show nodeLabel) => CannedGraph nodeLabel
-emptyCannedGraph = CannedGraph []
-
-------------------------------------------------------------------------
 -- SharedGraph
 ------------------------------------------------------------------------
 
@@ -86,14 +39,14 @@ data SharedGraph nodeLabel = SharedGraph {
    updateSource :: EasyBroker (Update Node nodeLabel)
    }
 
--- shareGraph and updateSharedGraph need
+-- shareSharedGraph and updateSharedGraph need
 -- to synchronise carefully to make sure that for example the
--- event returned by shareGraph contains all updates.  So we do this
+-- event returned by shareSharedGraph contains all updates.  So we do this
 -- by locking on nodeLookUp.  
-shareGraph :: (Read nodeLabel,Show nodeLabel) => 
+shareSharedGraph :: (Read nodeLabel,Show nodeLabel) => 
    SharedGraph nodeLabel -> 
    IO (CannedGraph nodeLabel,EV(Update Node nodeLabel),IO())
-shareGraph SharedGraph{
+shareSharedGraph SharedGraph{
    nodeLookUp=nodeLookUp,
    updateSource=updateSource
    } =
@@ -390,6 +343,8 @@ instance Graph SharedGraph where
          nodeData <- getNodeData sharedGraph node
          return (label nodeData)
    
+   shareGraph = shareSharedGraph
+  
    updateGraph = updateSharedGraph
 
 

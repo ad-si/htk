@@ -39,6 +39,7 @@ instance Graph SharedGraphClient where
    getPredecessors graph = getPredecessors (sharedGraph graph)
    getSuccessors graph = getPredecessors (sharedGraph graph)
    getLabel graph = getLabel (sharedGraph graph)
+   shareGraph graph = shareGraph (sharedGraph graph)
    updateGraph graph update = (updateAction graph) update
 
 ------------------------------------------------------------------------
