@@ -73,15 +73,15 @@ data Result = Result GraphInfo                      -- the new graph list
 
 
 data Entry = Entry {newNodes :: [(Descr,(String,DaVinciNode (String,Int)))],
-		    oldNodes :: [(Descr,(String,DaVinciNode (String,Int)))],
+		    oldNodes :: [(Descr,(String,IO (String,Int)))], -- DaVinciNode (String,Int)))],
 		    newEdges :: [(Int,(Int,Int,String,DaVinciArc (String,Int)))],
-		    oldEdges :: [(Int,(Int,Int,String,DaVinciArc (String,Int)))]
+		    oldEdges :: [(Int,(Int,Int,String,IO (String,Int)))] -- DaVinciArc
 		--    counter :: Descr
 		    }
 
 
 -- creates a new entry of the eventTable and fills it with the data contained in its parameters
-createEntry :: [(Descr,(String,DaVinciNode (String,Int)))] -> [(Descr,(String,DaVinciNode (String,Int)))] -> [(Descr,(Int,Int,String,DaVinciArc (String,Int)))] -> [(Descr,(Int,Int,String,DaVinciArc (String,Int)))] -> Descr -> (Int,Entry)
+createEntry :: [(Descr,(String,DaVinciNode (String,Int)))] -> [(Descr,(String,IO (String,Int)))] -> [(Descr,(Int,Int,String,DaVinciArc (String,Int)))] -> [(Descr,(Int,Int,String,IO (String,Int)))] -> Descr -> (Int,Entry)
 createEntry nn on ne oe cnt = (cnt, Entry {newNodes = nn, oldNodes = on, newEdges = ne, oldEdges = oe}) --, counter = cnt}
 
 
@@ -97,7 +97,7 @@ specialzip (x:xs) (y:ys) = (x,y):(specialzip [x] ys)++(specialzip xs (y:ys))
 get :: Descr -> [(Descr,a)] -> (Descr,a)
 get d list = case lookup d list of
                 Just r -> (d,r)
-		Nothing -> error ("get: descriptor unknowm: "++(show d))
+		Nothing -> error ("get: descriptor unknown: "++(show d)++"\n"++(show (map fst list)))
 
 
 -- lookup tables and failure handling
@@ -115,7 +115,7 @@ fetch_graph gid (gs,ev_cnt) delete cmd =
   case lookup gid gs of
     Just g -> do (g',descr,err) <- cmd g
                  let gs'' = if delete then gs' else (gid,g'):gs'
-                 return (Result (gs'',ev_cnt+1) descr err)
+		 return (Result (gs'',ev_cnt+1) descr err)
                  where gs' = remove gid gs
     Nothing -> return (Result (gs,ev_cnt) 0 (Just ("Graph id "++show gid++" not found")))
 
@@ -240,7 +240,7 @@ fetchEdgesOfNode g node = case sequence (map ((flip lookup) (edges g)) (map fst 
 -- sind delEdges wirklich die einzigen zu loeschenden Edges? - ja, denn jede zu loeschende egde ist ja eine in-/outgoing edge eines zu versteckenden Knotens
 
 hidenodes :: Descr -> [Descr] -> GraphInfo -> IO Result
-hidenodes gid node_list (gs,ev_cnt) = 
+hidenodes gid node_list (gs,ev_cnt) =
   fetch_graph gid (gs,ev_cnt) False (\g ->
     case sequence (map (\node -> lookup node (nodes g)) node_list) of
       Just nl -> do -- try to determine the path to add and the edges to remove
@@ -248,28 +248,38 @@ hidenodes gid node_list (gs,ev_cnt) =
 	            -- try to create the paths
 		      Just (newEdges,delEdges) -> do -- descriptor list of the edges to be removed
 		                                     let oeDescr = nub ((concat (map fst delEdges))++(concat (map snd delEdges)))
-		                                     -- list of the complete edges to be removed (with descriptor)
-						         oe = map (flip get (edges g)) oeDescr
+		                                  {-   -- list of the complete edges to be removed (with descriptor)
+						         oe = map (flip get (edges g)) oeDescr -}
 			              	             -- try to remove these edges
-						     deletedEdges@(Result info1 de1 error1) <- hideedgesaux gid oeDescr (gs,ev_cnt)
+						     deletedEdges@(Result info1 de1 error1) <- hideedgesaux gid oeDescr (gs,ev_cnt+1)
 						     case error1 of
 						       Nothing -> do let existingEdges = [(src,tgt,tp)|(descr,(src,tgt,tp,daVinci)) <- (edges (snd (get gid (fst info1))))]
 						                         filteredNewEdges = [path| path@(src,tgt,tp) <- newEdges, notElem (src,tgt,tp) existingEdges]
 						                     paths@(Result info2 de2 error2) <- addpaths gid filteredNewEdges info1
 								     case error2 of
-								       Nothing -> do -- descriptor list of the new edges
+								       Nothing -> do {- -- descriptor list of the new edges
  								                     let neDescr = [ev_cnt..((snd info2) -1)] -- oder de statt ((snd info1) -1)??
 								                     -- list of the complete new edges (with descriptor)
 								                         ne = map (flip get (edges (snd (get gid (fst info2))))) neDescr
 								                     -- list of the complete nodes (with descriptor) to be hidden
-								 	                 on = map (flip get (nodes g)) node_list
+								 	                 on = map (flip get (nodes g)) node_list -}
 										     -- try to remove these nodes
 										     deletedNodes@(Result info3 de3 error3) <- hidenodesaux gid node_list info2
 										     case error3 of
 										       Nothing -> do -- save the changes in an entry
-										                     let newEvent = createEntry [] on ne oe de3
+										                     let -- g is the old graph, g' the new one
 										            	         g' = snd (get gid (fst info3))
-                                                                                                     return (g'{eventTable = newEvent:eventTable g'},ev_cnt+1,Nothing)
+													 oeDescr =  nub ((concat (map fst delEdges))++(concat (map snd delEdges)))
+													 oe = map (\ed -> get ed (edges g)) oeDescr
+													 oldEdges = [(de,(src,tgt,tp,(getArcValue (theGraph g) davinciarc)))| (de,(src,tgt,tp,davinciarc)) <- oe]
+													-- oe = [ed|ed <- (edges g), notElem ed (edges g')]
+													 neDescr = [(snd info1)..((snd info2)-1)]
+													 ne = map (\ed -> get ed (edges g')) neDescr
+										                        -- ne = [ed|ed <- (edges g'), notElem ed (edges g)]
+										                         on = map (\nd -> get nd (nodes g)) node_list
+													 oldNodes = [(de,(tp,(getNodeValue (theGraph g) davincinode)))| (de,(tp,davincinode)) <- on]
+										                         newEvent = createEntry [] oldNodes ne oldEdges ev_cnt -- ev_cnt
+                                                                                                     return (g'{eventTable = newEvent:eventTable g'},(snd info3)+1,Nothing)
 										       Just t -> return (g,0,Just ("hidenodes: error hiding nodes: "++t))
 								       Just text -> return (g,0,Just ("hidenodes: error adding paths: "++text))
 						       Just text -> return (g,0,Just ("hidenodes: error deleting edges: "++text))
@@ -280,11 +290,11 @@ hidenodes gid node_list (gs,ev_cnt) =
 
 -- auxiliary function which does the actual hiding of the nodes
 hidenodesaux :: Descr -> [Descr] -> GraphInfo -> IO Result
-hidenodesaux gid [] (gs,ev_cnt) = return (Result (gs,ev_cnt) ev_cnt Nothing)
+hidenodesaux gid [] (gs,ev_cnt) = return (Result (gs,ev_cnt) (ev_cnt) Nothing)
 hidenodesaux gid (d:delNodes) (gs,ev_cnt) = do deletedNode@(Result info de error) <- delnode gid d (gs,ev_cnt)
                                                case error of
-				                 Nothing -> do let gs' = fst info
-				                               hidenodesaux gid delNodes (gs',ev_cnt+1)
+				                 Nothing -> do -- let gs' = fst info
+				                               hidenodesaux gid delNodes info -- (gs',ev_cnt)
 				                 Just t -> return deletedNode
 
 
@@ -360,10 +370,10 @@ checkpath g node_list path@(src,tgt,ty,ed)
 
 addpaths :: Descr -> [(Descr,Descr,String)] -> GraphInfo -> IO Result -- ([IO Result],Descr)
 addpaths gid [] (gs,ev_cnt) = return (Result (gs,ev_cnt) ev_cnt Nothing) -- richtiger Descriptor?
-addpaths gid ((src,tgt,ty):newEdges) (gs,ev_cnt) = do edge@(Result inf d err) <- addlink gid ty "" src tgt (gs,ev_cnt)
-                                                      case err of
-						        Nothing -> do let gs' = fst inf
-							              addpaths gid newEdges (gs',ev_cnt+1) -- oder (gs', d) ??
+addpaths gid ((src,tgt,ty):newEdges) (gs,ev_cnt) = do edge@(Result info de error) <- addlink gid ty "" src tgt (gs,ev_cnt)
+                                                      case error of
+						        Nothing -> do -- let gs' = fst info
+							              addpaths gid newEdges info -- (gs',ev_cnt+1) -- oder (gs', de) ??
 							Just t -> return edge	   
 
 -- 00000000000000000000000000000000000000000000
@@ -382,6 +392,7 @@ hidenodetype gid nodetype (gs,ev_cnt) = fetch_graph gid (gs,ev_cnt) False (\g ->
 -- 00000000000000000000000000
 -- ##########################
 
+
 -- like hidenodes, but replaces the hidden nodes by a new node
 -- with a menu to unhide the nodes
 abstractnodes :: Descr -> [Descr] -> GraphInfo -> IO Result
@@ -390,21 +401,22 @@ abstractnodes gid node_list (gs,ev_cnt) =
       case sequence (map (\nd -> lookup nd (nodes g)) node_list) of
         Just nl -> case sequence (map (fetchEdgesOfNode g) node_list) of
 	             Just el -> do let oldEdges = nub ((concat (map fst el))++(concat (map snd el)))
-		                   (Result info de err) <- replaceByAbstractNode gid node_list nl oldEdges (gs,ev_cnt)
+		                   (Result info de err) <- replaceByAbstractNode gid node_list nl oldEdges (gs,ev_cnt+1)
 				   case err of
 				     Nothing -> do (Result inf d er) <- hideedgesaux gid oldEdges info
 				                   case er of
 						     Nothing -> do (Result infor des erro) <- hidenodesaux gid node_list inf
 						                   case erro of
 								     Nothing -> do let g' = snd (get gid (fst infor))
-								     
--- @@@ hier am Dienstag nach Ostern weiter machen
+								                   -- g is the old graph, g' the new one
 								                   let nn = [nd| nd <- nodes g', notElem nd (nodes g)]
 										   let on = [nd| nd <- nodes g, notElem nd (nodes g')]
+										       oldNodes = [(de,(tp,(getNodeValue (theGraph g) davincinode)))| (de,(tp,davincinode)) <- on]
 								                   let ne = [ed| ed <- edges g', notElem ed (edges g)]
 										   let oe = [ed| ed <- edges g, notElem ed (edges g')]
-								                   let newEntry = createEntry nn on ne oe (des+1) -- der Deskriptor, der in einem Result zurueckgegeben wird, ist doch der Deskriptor fuer das vorherige Ereignis, oder?
-								                   return (g'{eventTable=newEntry:eventTable g'},des+1,Nothing)
+										       oldEdges = [(de,(src,tgt,tp,(getArcValue (theGraph g) davinciarc)))| (de,(src,tgt,tp,davinciarc)) <- oe]
+								                   let newEntry = createEntry nn oldNodes ne oldEdges (ev_cnt)
+								                   return (g'{eventTable=newEntry:eventTable g'},(snd infor)+1,Nothing)
 								     Just t -> return (g,0,Just ("abstractnodes: error hiding nodes: "++t))
 						     Just t -> return (g,0,Just ("abstractnodes: error hiding edges: " ++ t))
 				     Just t -> return (g,0,Just ("abstractnodes: error making abstract node: "++ t))
@@ -441,13 +453,16 @@ hideedges gid edge_list (gs,ev_cnt) = fetch_graph gid (gs,ev_cnt) False (\g ->
                                         -- check if all of the edges exist
                                         case sequence (map (\edge -> lookup edge (edges g)) edge_list) of
                                            Just el -> do -- try to hide them
-					                 (Result info descr err) <- hideedgesaux gid edge_list (gs,ev_cnt)
+					                 (Result info de err) <- hideedgesaux gid edge_list (gs,ev_cnt)
 					                 case err of
 							   Nothing -> do -- make an entry in the eventTable
 							                 let g' = snd (get gid (fst info))
-							                 let oe = [ed|ed@(descr,_) <- (edges g), notElem descr (map fst (edges g'))]
-							                 let newEntry = createEntry [] [] [] oe (descr+1)
-									 return (g'{eventTable = newEntry:eventTable g'},descr+1,Nothing)
+									     oe = [ed|ed <- edges g, notElem ed (edges g')]
+									     -- g is the old graph, g' the new one
+									     oldEdges = [(de,(src,tgt,tp,(getArcValue (theGraph g) davinciarc)))| (de,(src,tgt,tp,davinciarc)) <- oe]
+							                -- let oe = [ed|ed@(descr,_) <- (edges g), notElem descr (map fst (edges g'))]
+							                 let newEntry = createEntry [] [] [] oldEdges (snd info)
+									 return (g'{eventTable = newEntry:eventTable g'},(snd info)+1,Nothing)
 							   Just text -> return (g,0,Just ("hideedges: error hiding edges: "++text))
                                            Nothing -> return (g,0,Just "hideedges: unknown edges")
                                       )
@@ -457,8 +472,8 @@ hideedgesaux :: Descr -> [Descr] -> GraphInfo -> IO Result
 hideedgesaux gid [] (gs,ev_cnt) = return (Result (gs,ev_cnt) ev_cnt Nothing) -- richtiger Descriptor?
 hideedgesaux gid (d:delEdges) (gs,ev_cnt) = do dle@(Result info descr err) <- dellink gid d (gs,ev_cnt)
                                                case err of
-					         Nothing -> do let gs' = fst info
-						               hideedgesaux gid delEdges (gs',ev_cnt+1) -- oder (gs', descr) ??
+					         Nothing -> do -- let gs' = fst info
+						               hideedgesaux gid delEdges info -- (gs',ev_cnt) -- oder (gs', descr) ??
 						 Just t -> return dle
 {-
                                                       rest <- addpaths gid newEdges (gs',ev_cnt+1) -- oder (gs', d) ??
@@ -498,32 +513,30 @@ showIt gid hide_event (gs,ev_cnt) =
   )
 
 
--- wie kann ich auf den Namen des Knoten zugreifen, der im DaVinciNode steht??
 
-shownodes :: Descr -> [(Descr,(String,DaVinciNode (String,Int)))] -> GraphInfo -> IO Result
+
+shownodes :: Descr -> [(Descr,(String,IO (String,Int)))] -> GraphInfo -> IO Result -- DaVinciNode (String,Int)
 shownodes gid [] (gs,ev_cnt) = return (Result (gs,ev_cnt) ev_cnt Nothing)
 shownodes gid ((node@(d,(tp,davincinode))):list) (gs,ev_cnt) = 
   do let g = snd (get gid gs)
-     value <- (getNodeValue (theGraph g) davincinode)
+     value <- davincinode -- (getNodeValue (theGraph g) davincinode)
      nd@(Result info de error) <- addnode gid tp (fst value) (gs,d)
      case error of
-       Nothing -> do let g' = snd (get gid (fst info)) 
-	             shownodes gid list (gs,ev_cnt)
+       Nothing -> do -- let g' = snd (get gid (fst info)) 
+	             shownodes gid list info -- (gs,ev_cnt)
        Just _ -> return nd
 
-									      
 
--- wie kann ich auf den Namen der Kante zugreifen, der im DaVinciArc steht??
   
-showedges :: Descr -> [(Int,(Int,Int,String,DaVinciArc (String,Int)))] -> GraphInfo -> IO Result
+showedges :: Descr -> [(Int,(Int,Int,String,IO (String,Int)))] -> GraphInfo -> IO Result -- DaVinciArc
 showedges gid [] (gs,ev_cnt) = return (Result (gs,ev_cnt) ev_cnt Nothing)
 showedges gid ((edge@(d,(src,tgt,tp,davinciarc))):list) (gs,ev_cnt) =
   do let g = snd (get gid gs)
-     value <- (getArcValue (theGraph g) davinciarc)
+     value <- davinciarc -- getArcValue (theGraph g) davinciarc
      ed@(Result info de err) <- addlink gid tp (fst value) src tgt (gs,ev_cnt)
      case err of
-       Nothing -> do let g' = snd (get gid (fst info))
-	             showedges gid list (gs,ev_cnt)
+       Nothing -> do -- let g' = snd (get gid (fst info))
+	             showedges gid list info -- (gs,ev_cnt)
        Just _ -> return ed
 
 
@@ -533,3 +546,68 @@ showedges gid ((edge@(d,(src,tgt,tp,davinciarc))):list) (gs,ev_cnt) =
 -- showIt = undefined
 -- hideedges = undefined
 -- abstractnodes = undefined
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
