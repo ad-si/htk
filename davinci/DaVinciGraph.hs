@@ -125,7 +125,8 @@ data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
    surveyView :: Bool,
    configDoImprove :: Bool,
-   configAllowClose :: AllowClose,
+   configFileMenuActions 
+      :: FiniteMap FileMenuOption (DaVinciGraph -> IO ()),
    configGlobalMenu :: Maybe GlobalMenu,
    configActionWrapper :: IO () -> IO (),
    graphTitleSource :: Maybe (SimpleSource GraphTitle),
@@ -200,7 +201,7 @@ instance GraphClass DaVinciGraph where
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraphPrim (DaVinciGraphParms {graphConfigs = graphConfigs,
          configDoImprove = configDoImprove,surveyView = surveyView,
-         configAllowClose = configAllowClose,
+         configFileMenuActions = configFileMenuActions,
          configGlobalMenu = configGlobalMenu,
          configActionWrapper = configActionWrapper,
          configOrientation = configOrientation,
@@ -284,30 +285,29 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   case lastSelection of
                      LastEdge edgeId ->
                         do
-                           ArcData arcType arcValue <- getValueHere edges edgeId
+                           ArcData arcType arcValue 
+                              <- getValueHere edges edgeId
                            (arcDoubleClickAction arcType) arcValue
                      _ -> error "DaVinciGraph: confusing edge double click"
             actGlobalMenu :: MenuId -> IO ()
-            actGlobalMenu (MenuId "#%print") =
-               do
-                  graph <- readMVar graphMVar
-                  doInContext  
-                     (DaVinciTypes.Menu (File (Print Nothing))) (context graph)
-            actGlobalMenu (MenuId "#%close") =
-               case configAllowClose of
-                  AllowClose action ->
-                     do
-                        proceed <- action
-                        if proceed
-                           then
-                              do
-                                 graph <- readMVar graphMVar
-                                 destroy graph
-                           else
-                              done
-            actGlobalMenu (MenuId (menuId @ ('#':'%':_))) =
-               alertMess ("Mysterious daVinci menu selection " ++ menuId 
-                  ++ " ignored")
+            actGlobalMenu (MenuId ('#':'%':fileMenuStr)) =
+               case toFileMenuOption fileMenuStr of
+                  Nothing -> alertMess ("Mysterious daVinci fileMenu " 
+                     ++ fileMenuStr ++ " ignored")
+                  Just reservedMenuOption ->
+                     case lookupFM configFileMenuActions reservedMenuOption of
+                        Nothing -> 
+                           if fileMenuStr == "close"
+                              then
+                                 alertMess ("The application has disabled "
+                                    ++ " the close action for this window.")
+                              else
+                                 alertMess ("Unexpected daVinci fileMenu "
+                                    ++ fileMenuStr ++ " ignored")
+                        Just graphAction ->
+                           do
+                              graph <- readMVar graphMVar
+                              graphAction graph
             actGlobalMenu menuId =
                do
                   action <- getValueHere globalMenuActions menuId
@@ -426,7 +426,10 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          -- Take control of File Menu events.
          doInContext (AppMenu (ControlFileEvents)) context
          let
-            fileMenuIds = [MenuId "#%print",MenuId "#%close"]
+            -- Work out which options to enable.
+            fileMenuIds = map
+               (\ (option,_) -> MenuId ("#%"++(fromFileMenuOption option)))
+               (fmToList configFileMenuActions)
 
          -- Attach globalMenu if necessary and get its menuids as well.
          -- (All global menu-ids need to be activated at once.)
@@ -458,7 +461,7 @@ instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
       graphConfigs = [],configDoImprove = False,surveyView = False,
       graphTitleSource = Nothing,delayerOpt = Nothing,
-      configAllowClose = defaultAllowClose,
+      configFileMenuActions = initialFileMenuActions,
       configActionWrapper = (\ act -> 
          do
             forkIODebug act
@@ -467,6 +470,21 @@ instance GraphParms DaVinciGraphParms where
       configOrientation = Nothing,
       configGlobalMenu = Nothing
       }
+
+initialFileMenuActions :: FiniteMap FileMenuOption (DaVinciGraph -> IO ())
+initialFileMenuActions = listToFM [
+   (PrintMenuOption,
+      (\ graph -> doInContext  
+         (DaVinciTypes.Menu (File (Print Nothing))) (context graph))
+      ),
+   (CloseMenuOption,
+      (\ graph -> 
+         do
+            proceed <- confirmMess "Really close window?"
+            if proceed then destroy graph else done
+         )
+      )
+   ]
 
 addGraphConfigCmd :: DaVinciCmd -> DaVinciGraphParms -> DaVinciGraphParms
 addGraphConfigCmd daVinciCmd daVinciGraphParms =
@@ -503,8 +521,43 @@ instance HasConfig SurveyView DaVinciGraphParms where
 
 instance HasConfig AllowClose DaVinciGraphParms where
    configUsed _ _  = True
-   ($$) allowClose daVinciGraphParms =
-      daVinciGraphParms {configAllowClose = allowClose}
+   ($$) (AllowClose closeDialogue) =
+      let
+         actFn (graph :: DaVinciGraph) =
+            do
+               proceed <- closeDialogue
+               if proceed then destroy graph else done
+      in
+         ($$) (CloseMenuOption,Just actFn)
+
+instance HasConfig FileMenuAct DaVinciGraphParms where
+   configUsed _ _ = True
+   ($$) (FileMenuAct option actFnOpt) =
+      let
+         graphActFnOpt = case actFnOpt of
+            Nothing -> Nothing
+            Just actFn ->
+               let
+                  graphActFn :: DaVinciGraph -> IO ()
+                  graphActFn = const actFn
+               in
+                  Just graphActFn
+      in
+         ($$) (option,graphActFnOpt) 
+
+instance HasConfig (FileMenuOption,(Maybe (DaVinciGraph -> IO ()))) 
+      DaVinciGraphParms where
+
+   configUsed _ _ = True
+   ($$) (option,actFnOpt) daVinciGraphParms =
+      let
+         configFileMenuActions0 = configFileMenuActions daVinciGraphParms
+         configFileMenuActions1 = case actFnOpt of
+            Nothing -> delFromFM configFileMenuActions0 option
+            Just actFn -> addToFM configFileMenuActions0 option actFn
+      in
+         daVinciGraphParms {configFileMenuActions = configFileMenuActions1} 
+    
 
 instance HasConfig Orientation DaVinciGraphParms where
    configUsed _ _  = True
@@ -1701,6 +1754,30 @@ borderAttribute border =
          DoubleBorder -> "double"
    in
       A "BORDER" borderStr
+
+-- -----------------------------------------------------------------------
+-- Turning a FileMenuOption into a String and vice-versa
+-- -----------------------------------------------------------------------
+
+fromFileMenuOption :: FileMenuOption -> String
+fromFileMenuOption option = 
+   case lookup option menuOptionList of
+      Just s -> s
+
+toFileMenuOption :: String -> Maybe FileMenuOption
+toFileMenuOption s =
+   lookup s (map (\ (o,s) -> (s,o)) menuOptionList)
+
+menuOptionList :: [(FileMenuOption,String)]
+menuOptionList = [
+   (NewMenuOption,   "new"),   
+   (OpenMenuOption,  "open"),  
+   (SaveMenuOption,  "save"), 
+   (SaveAsMenuOption,"saveas"), 
+   (PrintMenuOption, "print"),
+   (CloseMenuOption, "close"), 
+   (ExitMenuOption,  "exit")
+   ]
 
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions

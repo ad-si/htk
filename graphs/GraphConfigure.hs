@@ -82,6 +82,7 @@ module GraphConfigure(
    AllowDragging(..),
    AllowClose(..),
    defaultAllowClose,
+   FileMenuAct(..),FileMenuOption(..),
 
    Orientation(..),
    ActionWrapper(..),
@@ -425,6 +426,29 @@ newtype AllowClose = AllowClose (IO Bool)
 defaultAllowClose :: AllowClose
 defaultAllowClose = AllowClose (confirmMess "Really close window?")
 
+
+-- | The following options are provided specially by DaVinci (see, for now,
+-- <http://www.informatik.uni-bremen.de/daVinci/old/docs/reference/api/api_app_menu_cmd.html> 
+-- for the daVinci2.1 documentation.  If a 'FileMenuAct' is used as
+-- a configuration with a specified action, the corresponding option is 
+-- enabled in the daVinci File menu, and the action is performed when the 
+-- option is selected.
+--
+-- The 'AllowClose' configuration and 'CloseMenuOption' both set the action
+-- to be taken when the user selects a close event, and each overrides the
+-- other.
+--
+-- By default the Close and Print options are enabled, however these 
+-- and other options can be disabled by specifing 'Nothing' as the
+-- second argument to FileMenuAct.
+data FileMenuOption = 
+      NewMenuOption | OpenMenuOption | SaveMenuOption | SaveAsMenuOption 
+   |  PrintMenuOption | CloseMenuOption | ExitMenuOption deriving (Ord,Eq)
+
+data FileMenuAct = FileMenuAct FileMenuOption (Maybe (IO ()))
+
+instance GraphConfig FileMenuAct
+
 instance GraphConfig AllowDragging
 
 -- | Allows the user to specify a 'Delayer'.  This will postpone redrawing
@@ -459,7 +483,7 @@ class (
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
    HasConfig AllowClose graphParms,HasConfig Orientation graphParms,
-   HasConfig ActionWrapper graphParms,
+   HasConfig FileMenuAct graphParms,HasConfig ActionWrapper graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )
@@ -471,7 +495,7 @@ instance (
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
    HasConfig AllowClose graphParms,HasConfig Orientation graphParms,
-   HasConfig ActionWrapper graphParms,
+   HasConfig FileMenuAct graphParms,HasConfig ActionWrapper graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )

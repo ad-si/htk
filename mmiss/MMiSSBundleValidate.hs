@@ -70,7 +70,7 @@ validateBundle bundle =
       validateBundle0 bundle -- UNKNOWN NONEMPTYOBJECTS
       validateBundle1 bundle -- DIROBJECT STRUCTURE
       validateBundle2 bundle -- NAMES EXT EXTEXISTS
---      validateBundle3 bundle -- TOPDIRS
+      validateBundle3 bundle -- TOPDIRS
       validateBundle4 bundle -- VARIANTS
       validateBundle5 bundle -- DISTINCT, PREAMBLE1 & ENTITYNAME
       validateBundle6 bundle -- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
@@ -93,7 +93,6 @@ validateBundleOut1 bundle =
    do
       validateBundle1 bundle -- DIROBJECT STRUCTURE
       validateBundle2 bundle -- NAMES EXT EXTEXISTS
---      validateBundle3 bundle -- TOPDIRS
       validateBundle4 bundle -- VARIANTS
       validateBundle5 bundle -- DISTINCT, PREAMBLE1 & ENTITYNAME
       validateBundle6 bundle -- DTD, LINKNAMES, FILENAMES & CONSISTENTTAGS
