@@ -1,10 +1,14 @@
-module LaTeXParser(
+module LaTeXParser (
    parseMMiSSLatex, -- :: String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, -- :: SourceName -> IO (WithError Element)
    -- The same, for a file.
-   ) where
+   makeMMiSSLatex -- Element -> WithError (EmacsContent String)
+   -- Turns an Element into a MMiSSLaTeX source
+   )
+ where
 
+import List
 import Parsec
 import Char
 import XmlTypes
@@ -12,6 +16,7 @@ import Pretty hiding (char, spaces)
 import qualified XmlPP as PP
 import Computation hiding (try)
 import ParsecError
+import EmacsContent
 
 type EnvId = String
 type Command = String
@@ -22,6 +27,8 @@ type Attributes = [(String, String)]
 type Other = String
 
 data SingleParam = SingleParam Frag Char    deriving Show
+
+data Textmode = TextAllowed | NoText | TextFragment
 
 {--------------------------------------------------------------------------------------------
 
@@ -44,11 +51,33 @@ data Params = MParams (Maybe FormId) LabelId Title Attributes   -- Parameter of 
 
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
+{--
 mmiss2EnvIds = ["Package","Section","Paragraph","View","Example","Exercise","Definition"] ++
                ["TextFragment","Table","Figure","GlossaryEntry", "Program","Theory","Theorem"] ++
                ["Conjecture","Lemma","Corollary","Assertion","Development","Proof","Script"] ++
                ["ProgramFragment","Clause","Step","Bibentry","Authorentry","List","Listitem"] ++
                ["Emphasis"]
+--}
+plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
+                 [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
+                 [("Clause", "clause"), ("Step", "step"), ("Authorentry", "authorEntry")]
+
+paragraphs = [("Exercise","exercise"), ("Example","example"),  ("Definition","definition")] ++
+             [ ("Abstract", "abstract"),  ("Introduction", "introduction"),  ("Summary", "summary")]
+
+envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Program","program")] ++
+               [("Theory","theory"), ("Theorem", "theorem"), ("Development","development")] ++
+               [("Proof","proof"), ("Script","script"), ("List", "list"), ("ListItem", "listItem")] ++
+               [("Conjecture", "conjecture"), ("Lemma", "lemma"), ("Corollary", "corollary")] ++
+               [("Assertion", "assertion")]
+
+envsWithoutText = [("Package", "package"), ("IncludeGroup", "includeGroup"), ("IncludeUnit", "includeUnit")] ++
+                  [("IncludeAtom", "includeAtom")]
+
+embeddedElements = [("Emphasis","emphasis"), ("IncludeTextFragment","includeTextFragment")] ++
+		   [("Link","link") , ("Define", "define"), ("Reference", "reference")]
+
+mmiss2EnvIds = plainTextAtoms ++ paragraphs ++ envsWithText ++ envsWithoutText ++ embeddedElements
 
 ---------------------------------------------------------------------------------------------
 --
@@ -167,10 +196,8 @@ beginBlock = do id <- begin
 -- die passende Erkennungsfunktion fuer die Parameter an.
 
 envParams :: String -> GenParser Char st Params
-envParams id =  if (id `elem` mmiss2EnvIds) 
-                    then if (id == "list")
-                           then mListParams id
-			   else mEnvParams id 
+envParams id =  if (id `elem` (map fst mmiss2EnvIds)) 
+		    then mEnvParams id 
                     else lParams [] <?> ("Parameters for LaTeX-Environment <" ++ id ++ ">")
 
 
@@ -179,6 +206,32 @@ envParams id =  if (id `elem` mmiss2EnvIds)
 -- [FormalismID] {LabelID} {Title} {Attributes}
 
 mEnvParams :: String -> GenParser Char st Params
+mEnvParams "List" = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
+		       spaces
+		       labelId <-  try(between (char '{') (char '}') idParser)
+			           <?> "{labelID}{title}{attribute-list} for Environment <List>"   
+		       spaces
+                       listType <- try(between (char '{') (char '}') listTypeParser)
+                                   <?> "listtype 'itemize' or 'enumeration' for Environment <list>"
+	               spaces
+		       attributes <- try(between (char '{') (char '}') attParser)
+				     <?> "{attribute-list} for Environment <List>"   
+		       if formId == "" 
+		         then return(MParams Nothing labelId "" (("type",listType):attributes))
+		         else return(MParams (Just(formId)) labelId "" (("type",listType):attributes))
+
+mEnvParams "ListItem" = 
+  do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
+     spaces
+     labelId <-  try(between (char '{') (char '}') idParser)
+	         <?> "{labelID}{attribute-list} for Environment <ListItem>"   
+     spaces
+     attributes <- try(between (char '{') (char '}') attParser)
+     	           <?> "{attribute-list} for Environment <ListItem>"   
+     if formId == "" 
+       then return(MParams Nothing labelId "" attributes)
+       else return(MParams (Just(formId)) labelId "" attributes)
+
 mEnvParams id = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
 		   spaces
 		   labelId <-  try(between (char '{') (char '}') idParser)
@@ -199,20 +252,6 @@ mEnvParams id = do formId  <-  option "" (try ( between (char '[') (char ']') id
 -- Die Unterscheidung zu mEnvParams ist notwendig, da List-Umgebungen kein Title-
 -- Parameter haben.
 
-mListParams :: String -> GenParser Char st Params
-mListParams id = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
-		    spaces
-		    labelId <-  try(between (char '{') (char '}') idParser)
-			        <?> "{labelID}{title}{attribute-list} for Environment <" ++ id ++ ">"   
-		    spaces
-                    listType <- try(between (char '{') (char '}') listTypeParser)
-                                <?> "listtype 'itemize' or 'enumeration' for Environment <list>"
-	            spaces
-		    attributes <- try(between (char '{') (char '}') attParser)
-				 <?> "{attribute-list} for Environment <" ++ id ++ ">"   
-		    if formId == "" 
-		      then return(MParams Nothing labelId "" (("Type",listType):attributes))
-		      else return(MParams (Just(formId)) labelId "" (("Type",listType):attributes))
 	
 
 -- lParams erkennt Parameter eines Latex-Commands. Diese koennen in normalen, geschweiften
@@ -350,9 +389,9 @@ makeContent :: [Frag] -> [Content]
 makeContent (f:frags) = 
    case f of
      (Env name ps fs) -> 
-       if (name `elem` mmiss2EnvIds) 
-	 then [(CElem (Elem name (makeAttribs ps)
-	    (makeContent fs)))] ++ (makeContent frags)
+       if (name `elem` (map fst mmiss2EnvIds)) 
+	 then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds) 
+              in [(CElem (Elem ename (makeAttribs ps) (makeContent fs)))] ++ (makeContent frags)
          else (makeContent fs) ++ (makeContent frags)
      (Command "Emphasis" ps) -> 
 	(CElem (Elem "emphasis" [] 
@@ -366,16 +405,19 @@ makeContent [] = []
 makeAttribs :: Params -> [Attribute]
 
 makeAttribs 
-  (MParams Nothing label title atts) = [("label", (AttValue [Left label]))] ++
-                                       [("title", (AttValue [Left title]))] ++
-                                       (map convertAttribs atts)
+  (MParams Nothing label title atts) = let p1 = if (label == "") then []
+						  else [("label", (AttValue [Left label]))]
+                                           p2 = if (title == "") then []
+						  else [("title", (AttValue [Left title]))]
+				       in p1 ++ p2 ++ (map convertAttribs atts)
 makeAttribs 
-  (MParams (Just formID) label title atts) = [("notationID", (AttValue [Left formID]))] ++
-			 		     [("label", (AttValue [Left label]))] ++
-                                             [("title", (AttValue [Left title]))] ++
-                                             (map convertAttribs atts)
-makeAttribs 
-  _ = []
+  (MParams (Just formID) label title atts) =  let p1 = [("notationID", (AttValue [Left formID]))]
+					          p2 = if (label == "") then []
+						         else [("label", (AttValue [Left label]))]
+                                                  p3 = if (title == "") then []
+						         else [("title", (AttValue [Left title]))]
+				              in p1 ++ p2 ++ p3 ++ (map convertAttribs atts)
+makeAttribs _ = []
   
 
 convertAttribs :: (String, String) -> Attribute
@@ -387,5 +429,84 @@ getEmphasisText :: Params -> String
 
 getEmphasisText (LParams []) = ""
 getEmphasisText (LParams ((SingleParam (Other s) _):ps)) = s
+
+
+{-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
+--}
+
+makeMMiSSLatex :: Element -> WithError (EmacsContent String)
+makeMMiSSLatex (Elem name atts contents) = 
+   let s1 = "\\begin{" ++ (toLatexName name) ++ "}" 
+       s2 = "[" ++ (getParam "notationID" atts) ++ "]"
+       s3 = "{" ++ (getParam "label" atts) ++ "}"
+       s4 = "{" ++ (getParam "title" atts) ++ "}"
+       s5 = "{" ++ (getAttribs atts "") ++ "}\n"
+       s6 = "\\end{" ++ (toLatexName name) ++ "}\n"
+       str = s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ (fillLatex contents "") ++ s6
+   in hasValue(EmacsContent [EditableText str])
+
+
+fillLatex :: [Content] -> String -> String
+
+fillLatex [] inStr = inStr
+
+fillLatex ((CElem (Elem "emphasis" _ [CString _ str])):cs) inStr = 
+   fillLatex cs (inStr ++ "\\Emphasis{" ++ str ++ "}\n") 
+
+fillLatex ((CElem (Elem "table" atts [CString _ str])):cs) inStr = 
+   let s1 = "  \\begin{Table}" 
+       s2 = "[" ++ (getParam "notationID" atts) ++ "]"
+       s3 = "{" ++ (getParam "label" atts) ++ "}"
+       s4 = "{" ++ (getParam "title" atts) ++ "}"
+       s5 = "{" ++ (getAttribs atts "") ++ "}" ++ "\n"
+       s6 = "  \\end{Table}\n"
+   in fillLatex cs (inStr ++ s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ s6)
+
+fillLatex ((CElem (Elem "list" atts contents)):cs) inStr = 
+   let s1 = "  \\begin{List}" 
+       s2 = "{" ++ (getParam "label" atts) ++ "}"
+       s3 = "{" ++ (getParam "type" atts) ++ "}"
+       s4 = "{" ++ (getAttribs atts "") ++ "}" ++ "\n"
+       s5 = "  \\end{List}\n"
+   in fillLatex cs (inStr ++ s1 ++ s2 ++ s3 ++ s4 ++ (fillLatex contents "") ++ s5)
+
+fillLatex ((CElem (Elem name atts contents)):cs) inStr = 
+   let s1 = "  \\begin{" ++ (toLatexName name) ++ "}" 
+       s2 = "[" ++ (getParam "notationID" atts) ++ "]"
+       s3 = "{" ++ (getParam "label" atts) ++ "}"
+       s4 = "{" ++ (getParam "title" atts) ++ "}"
+       s5 = "{" ++ (getAttribs atts "") ++ "}" ++ "\n"
+       s6 = "  \\end{" ++ (toLatexName name) ++ "}\n"
+   in fillLatex cs (inStr ++ s1 ++ s2 ++ s3 ++ s4 ++ s5 ++ (fillLatex contents "") ++ s6)
+
+
+getParam :: String -> [Attribute] -> String
+getParam name atts = let value = lookup name atts
+                     in case value of
+                          Just(AttValue [(Left str)]) -> str
+                          Nothing -> ""
+
+-- ??? Generell alle Attribute einklammern?
+getAttribs :: [Attribute] -> String -> String
+getAttribs [] str = if ((take 2 str) == ", ") 
+                      then (drop 2 str)
+                      else str  
+getAttribs (a:as) str = 
+  case a of
+    ("notationID", _) -> getAttribs as str
+    ("label", _) -> getAttribs as str
+    ("title", _) -> getAttribs as str
+    (name, (AttValue [(Left value)])) -> getAttribs as (str ++ ", " ++ name ++ " = {" ++ value ++ "}") 
+                                                               
+
+toLatexName :: String -> String
+toLatexName name = maybe "" fst (find ((name ==) . snd) mmiss2EnvIds)
  
 
+parseAndMakeMMiSSLatex :: SourceName -> IO ()
+parseAndMakeMMiSSLatex name = do root <- parseMMiSSLatexFile name
+                                 root1 <- return(coerceWithError root)
+				 (EmacsContent ((EditableText str):_)) <- return(coerceWithError(makeMMiSSLatex root1))
+				 putStrLn(str) 
+
+                                    
