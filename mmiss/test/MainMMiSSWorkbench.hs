@@ -1,8 +1,6 @@
 {- Runs the MMiSS workbench as a client. -}
 module Main(main) where
 
-#include "config.h"
-
 import System
 
 import Posix
@@ -14,10 +12,6 @@ import Computation
 import Events
 import Destructible
 import InfoBus
-
-#if (WORK_AROUND_BDB_LINUX_BUG != 0)
-import SysVars
-#endif
 
 import HTk
 import DialogWin
@@ -37,10 +31,6 @@ main =
          "server",
          "editor"
          ]
-
-#if (WORK_AROUND_BDB_LINUX_BUG != 0)
-      unSetEnv "MALLOC_CHECK_"
-#endif
 
       emacsWorkingWE <- isEmacsWorking
       coerceWithErrorIO emacsWorkingWE

@@ -143,6 +143,7 @@ editEmacs emacsFS printAction ref =
       case editorStateOpt of
          Just editorState ->
             do
+               clearModifiedFlag (emacsSession editorState)
                unlockBuffer (emacsSession editorState)
                -- (5) Handle the Emacs events, until the user quits.
                sync (handleEvents editorState)
@@ -331,7 +332,9 @@ handleEvents (editorState :: EditorState ref) =
                            always (
                               do
                                  lockBuffer session
+                                 wasModified <- getModifiedFlag session
                                  openFile fs parentAction ref mangledName
+                                 unless wasModified (clearModifiedFlag session)
                                  unlockBuffer session
                                  sync iterate
                               )
@@ -345,7 +348,7 @@ handleEvents (editorState :: EditorState ref) =
                         ref <- readMangled mangledName
 
                         lockBuffer session
-
+                        
                         proceed1 <-
                            do
                               modified <- isModified session normal
@@ -385,7 +388,12 @@ handleEvents (editorState :: EditorState ref) =
                         if proceed2
                            then
                               do
+                                 wasModified <- getModifiedFlag session
+
                                  collapse session normal (buttonText fs ref)
+
+                                 unless wasModified (clearModifiedFlag session)
+
                                  transformValue (openFiles editorState) 
                                        ref
                                     (\ (stateOpt :: Maybe (EditedFile ref)) ->

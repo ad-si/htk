@@ -24,9 +24,4 @@ UNITOP=${UNITOP:-@TOP@}
 gmake killServer
 gmake killWorkbench
 gmake runServer
-if test @WORK_AROUND_BDB_LINUX_BUG@ -ne 0
-  then
-     export MALLOC_CHECK_
-     MALLOC_CHECK_=1
-  fi
 gmake runWorkbench

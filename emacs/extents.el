@@ -596,3 +596,18 @@
    )
 
 (define-key uni-extent-keymap [button1] 'uni-button-action)
+
+
+;
+; Special functions for modifying the contents of a container.  These depend on
+; the contents of point, and so need to be executed in the same command.
+
+; set point to after the extent.
+(defun uni-point-after-extent (extent-id)
+   (let ((extent (gethash extent-id uni-extent-hash-table)))
+      (goto-char (extent-end-position extent))
+   ))
+
+; delete n chars from point, WHICH SHOULD NOT CONTAIN ANY OF OUR EXTENTS.
+(defun uni-delete-chars (n))
+   

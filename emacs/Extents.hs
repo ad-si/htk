@@ -24,6 +24,7 @@ module Extents(
    listContainers,
    setColourHack,
    clearModifiedFlag,
+   getModifiedFlag,
    ) where
 
 import Maybe
@@ -174,4 +175,9 @@ unlockBuffer es = execEmacs es ("uni-unlock-buffer")
 clearModifiedFlag :: EmacsSession -> IO ()
 clearModifiedFlag es = execEmacs es (Literal "(set-buffer-modified-p nil)")
 
+getModifiedFlag :: EmacsSession -> IO Bool
+getModifiedFlag emacsSession =
+   do
+      str <- evalEmacsQuick emacsSession (Prin "buffer-modified-p")
+      return (doParseBool str)
 

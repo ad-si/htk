@@ -97,6 +97,9 @@ module MMiSSVariantObject(
       -- -> [(View,VariantObject object cache)]
       -- -> IO (VariantObject object cache)
 
+   displayObjectVariants,
+      -- :: VariantObject object cache -> IO ()
+
    ) where
 
 import Maybe
@@ -379,6 +382,7 @@ editMMiSSSearchObject objectTitle variantObject =
                   do
                      variantSpec1 
                         <- toMMiSSVariantSpecFromAttributes attributes
+
                      let
                         changed = (variantSpec1 /= variantSpec0)
                      if changed 
@@ -451,5 +455,12 @@ attemptMergeVariantObject convertObject variantObjects =
 
       unfreezeVariantObject converter1 frozenVariantObject
 
+-- -----------------------------------------------------------------------
+-- Displaying
+-- -----------------------------------------------------------------------
+
+displayObjectVariants :: VariantObject object cache -> IO ()
+displayObjectVariants variantObject 
+   = displayMMiSSVariantDictKeys (dictionary variantObject)
 
       

@@ -2,6 +2,7 @@
 module EmacsSExp (
    SExp(..),
    doParse,
+   doParseBool,
    ) where
 
 import Char
@@ -25,6 +26,16 @@ doParse input =
       Left errors ->
          error ("Parse errors:\n "++show errors++"\n in "++input)
       Right sexp -> sexp
+
+doParseBool :: String -> Bool
+doParseBool input =
+   let
+      sexp = doParse input
+   in
+      case sexp of
+         List [] -> False
+         Id "t" -> True
+         _ -> error ("EmacsSExp: expecting Bool but found "++input) 
 
 ---
 -- Because the ParsecToken module seems to have a problem with

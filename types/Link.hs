@@ -247,7 +247,7 @@ cloneLink :: HasCodedValue x => View -> Link x -> View -> IO ()
 cloneLink oldView link newView =
    do
       oldVersioned <- fetchLink oldView link
-      cloneObject oldVersioned newView
+      cloneObject oldView oldVersioned newView
       done
 
 -- ----------------------------------------------------------------------
@@ -426,11 +426,23 @@ readObject view (versioned@Versioned{statusMVar = statusMVar}) =
          UpToDate x _ -> return x
          Dirty x _ -> return x
 
-cloneObject :: HasCodedValue x => Versioned x -> View -> IO (Versioned x)
-cloneObject versioned view =
+cloneObject 
+   :: HasCodedValue x => View -> Versioned x -> View -> IO (Versioned x)
+cloneObject oldView oldVersioned newView =
    do
-      status <- readMVar (statusMVar versioned)
-      createObjectGeneral view status (location versioned)
+      status <- readMVar (statusMVar oldVersioned)
+      let
+         loc = location oldVersioned
+      newVersioned <- createObjectGeneral newView status loc
+      -- Make sure lastChanged flag is replicated.
+      case status of
+         UpToDate _ _ ->
+            do
+               objectData <- getValue (objects oldView) loc
+               (Just objectVersion) <- readIORef (lastChange objectData)
+               updateLastChange newView loc objectVersion
+         _ -> done  
+      return newVersioned
 
 -- ----------------------------------------------------------------------
 -- Access to the lastChange

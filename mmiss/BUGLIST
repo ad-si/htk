@@ -4,6 +4,24 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+71) 01.04.03
+If an object is deleted from a package and we then try to close the package
+folder we get a "DeleteAndFindFirst" error.
+
+70) 01.04.03
+In merging test, new objects are somehow disappearing.
+
+69) 01.04.03
+Made the XEmacs buffer's modified flag work in a sensible way, also
+bind the control-X S to commit and control-X K to quit (like as in
+normal XEmacs).
+FIXED
+
+68) 01.04.03
+Various errors reading back from database.  This turns out to be connected
+to the infamous bdb free problem, which I have however now 
+FIXED
+
 67) 27.03.03
 When an object is inserted manually in XEmacs, it does not get converted into
 a magic button when the containing object is saved, meaning that we can't
@@ -83,6 +101,8 @@ The best we can do in the short term (without getting rid of BDB and rolling
 our own, or installing some other no doubt equally dodgy system) may just
 be to isolate the problem, and post the bug report up the chimney to Santa
 Claus, or whoever is responsible for the problem.
+
+FIXED 01.04.03
 
 56) 25.09.02
 Write general links manager.  This would allow (a) renaming of objects and

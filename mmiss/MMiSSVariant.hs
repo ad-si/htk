@@ -40,6 +40,9 @@ module MMiSSVariant(
    getMMiSSVariantDictObjectLinks, 
    attemptMergeMMiSSVariantDict,
    MMiSSVariants,
+
+   displayMMiSSVariantDictKeys, -- :: MMiSSVariantDict object -> IO ()
+      -- put up a window describing the keys in the object.
    ) where
 
 import Maybe
@@ -53,6 +56,8 @@ import AtomString
 import Registry
 import ExtendedPrelude
 import Dynamics
+
+import LogWin
 
 import GraphOps
 
@@ -347,7 +352,7 @@ toMMiSSVariantSpecFromAttributes attributes =
 -- | Type of variant attributes including also the version attribute
 variantAttributesType2 :: AttributesType
 variantAttributesType2 
-   = needs (mkAttributeKey "version") "" variantAttributesType 
+   = needs (mkAttributeKey (key versionVariant)) "" variantAttributesType 
 
 fromMMiSSSpecToSearch :: MMiSSVariantSpec -> MMiSSVariantSearch
 fromMMiSSSpecToSearch (MMiSSVariantSpec variants) =
@@ -361,17 +366,19 @@ fromMMiSSSpecToSearch (MMiSSVariantSpec variants) =
 toMMiSSVariants :: Attributes -> IO MMiSSVariants
 toMMiSSVariants attributes =
   do
+     (attributeKeys :: [String]) <- listKeys attributes
+
      (attributePairs :: [Maybe (String,String)]) <-
         mapM
-           (\ attKey ->
+           (\ key ->
               do
-                 strOpt <- getValueOpt attributes attKey
+                 strOpt <- getValueOpt attributes key
                  case strOpt of
                     Nothing -> return Nothing
                     Just "" -> return Nothing
-                    Just str -> return (Just (attKey,str))
+                    Just str -> return (Just (key,str))
               )
-           variantAttributes
+           attributeKeys
      return (mkMMiSSVariants (catMaybes attributePairs))
 
 ---
@@ -625,8 +632,35 @@ attemptMergeMMiSSVariantDict converter
       return (MMiSSVariantDict registry)
 
 -- ------------------------------------------------------------------------
--- Instance of Show needed for MMiSSVariants (needed for merging)
+-- Converting things to String's.
 -- ------------------------------------------------------------------------
 
 instance Show MMiSSVariants where
-   show mmissVariants = show (unmkMMiSSVariants mmissVariants)
+   show mmissVariants = 
+      let
+         contents :: [(String,String)]
+         contents = unmkMMiSSVariants mmissVariants
+
+         showItem :: (String,String) -> String
+         showItem (key,value) = key ++ "=" ++ value
+
+         showItems :: [String] -> String
+         showItems [] = "Variant with no attributes"
+         showItems items = unsplitByChar ',' items
+      in
+         showItems (map showItem contents)
+
+instance Show MMiSSVariantSpec where
+   show (MMiSSVariantSpec variants) = show variants
+
+displayMMiSSVariantDictKeys :: MMiSSVariantDict object -> IO ()
+displayMMiSSVariantDictKeys (MMiSSVariantDict registry) =
+   do
+      (keys :: [MMiSSVariants]) <- listKeys registry
+      let
+         description = case keys of
+            [] -> "Object contains no variants"
+            _ -> unsplitByChar '\n' (map show keys)
+      win <- createLogWin []
+      writeLogWin win description
+

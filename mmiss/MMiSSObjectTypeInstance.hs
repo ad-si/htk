@@ -10,11 +10,12 @@ import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
-import AtomString(fromString)
+import AtomString(fromString,toString)
 import Sources
-import VariableSet(VariableSetSource)
+import VariableSet(VariableSetSource,toKey)
 import VariableList
 import VariableSetBlocker
+import Dynamics
 
 import BSem
 
@@ -37,7 +38,7 @@ import MergePrune
 import View
 import LocalMenus
 
-import Text.XML.HaXml.Types
+import Text.XML.HaXml.Types hiding (MarkupDecl(Element))
 
 import MMiSSObjectTypeType
 import MMiSSObjectType
@@ -47,6 +48,7 @@ import MMiSSImportLaTeX
 import MMiSSExportLaTeX
 import MMiSSContent
 import MMiSSPrint
+import MMiSSEditXml(toExportableXml)
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
@@ -131,8 +133,14 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   editOptions = [
                      Button "Edit Object as LaTeX"
                         (\ link -> editMMiSSObjectLaTeX view link),
-                     Button "Edit Attributes" 
+                     Button "Select Variants" 
                         (\ link -> editObjectAttributes view link),
+                     Button "Display Variants"
+                        (\ link ->
+                           do
+                              object <- readLink view link
+                              displayObjectVariants (variantObject object)
+                           ),
                      Button "Export Object as LaTeX"
                         (\ link -> exportMMiSSObjectLaTeX view link),
 #ifdef DEBUG
@@ -226,15 +234,15 @@ instance HasMerging MMiSSObject where
    getMergeLinks = 
       let
          fn :: View -> Link MMiSSObject 
-            -> IO (ObjectLinks (MMiSSVariants,Bool))
+            -> IO (ObjectLinks (MMiSSVariants,CacheContentsMergeKey))
          fn view link =
             do
                object <- readLink view link
                variantObjectObjectLinks
                   (\ variable -> 
                      return (ObjectLinks [
-                        (WrappedMergeLink (element variable),False),
-                        (WrappedMergeLink (preamble variable),True)])
+                        (WrappedMergeLink (element variable),Element),
+                        (WrappedMergeLink (preamble variable),Preamble)])
                      )
                   (variantObject object)
       in
@@ -321,13 +329,28 @@ instance HasMerging Element where
 
    getMergeLinks = emptyMergeLinks
 
-   attemptMerge = (\ linkReAssigner newView newLink viewLinks ->
-      case viewLinks of
-         [(oldView,oldLink,element)] 
-            | oldLink == newLink ->
-               do
-                  cloneLink oldView newLink newView
-                  return (hasValue ())
-         _ -> return (hasError "Unexpected merge required of Element")
+   attemptMerge = (\ linkReAssigner newView newLink vlos ->
+      do
+         vlosPruned <- mergePrune vlos
+         case vlosPruned of
+            [(oldView,oldLink,element)] 
+               | oldLink == newLink ->
+                  do
+                     cloneLink oldView newLink newView
+                     return (hasValue ())
+               | True ->
+                  do
+                     setLink newView element newLink
+                     return (hasValue ())
+            _ ->
+               return (hasError "Unexpected merge required of Element")
       )
-   
+
+-- Key for the sake of merging that produces an intelligible backtrace
+-- ("Element" or "Preamble")
+data CacheContentsMergeKey = Element | Preamble deriving (Eq,Ord,Show)
+
+cacheContentsMergeKey_tyRep 
+   = mkTyRep "MMiSSObjectTypeInstance" "CacheContentsMergeKey"
+instance HasTyRep CacheContentsMergeKey where
+   tyRep _ = cacheContentsMergeKey_tyRep

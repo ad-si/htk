@@ -90,6 +90,17 @@ class HasCodedValue object => HasMerging object where
       -- Attempt to merge the links supplied in the last argument to produce
       -- a single object in (View,Link object), or return an error message.
 
+   linkAsData :: Link object -> Bool
+   linkAsData _ = False
+      -- If set this imposes a simplified merging policy that means
+      -- that we never attempt to merge two different links of the same object
+      -- (and create an error if the user attempts to), on the other hand
+      -- we always assume that identical links point to the same object.
+      -- This is useful for objects that can occur multiple times in the
+      -- getMergeLinks tree, for example preambles.
+
+      -- This function should not look at its argument.
+
 data WrappedMergeLink = forall object .
    (HasCodedValue object,HasMerging object) => WrappedMergeLink (Link object)
 

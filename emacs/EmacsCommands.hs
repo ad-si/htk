@@ -7,6 +7,9 @@ module EmacsCommands(
    evalEmacsQuick,
    Prin(..),
    Literal(..),
+
+   Multi,
+   multi,
    ) where
 
 import CommandStringSub(emacsEscape)
@@ -71,3 +74,16 @@ newtype Literal = Literal String
 
 instance HasEmacsCommand Literal where
    toEmacsString (Literal s) = s
+
+-- -------------------------------------------------------------------------
+-- How to group several commands together
+-- -------------------------------------------------------------------------
+
+newtype Multi = Multi String
+
+multi :: HasEmacsCommand emacsCommand => emacsCommand -> Multi
+multi emacsCommand = Multi (toEmacsString emacsCommand)
+
+instance HasEmacsCommand [Multi] where
+   toEmacsString commands = toEmacsString ("progn",
+      map (\ (Multi s) -> s) commands)

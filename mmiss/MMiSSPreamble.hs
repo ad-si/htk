@@ -120,6 +120,8 @@ instance HasMerging MMiSSPreamble where
                   setLink newView newPreamble newLink
                   return (hasValue ())
 
+   linkAsData _ = True
+
 -- -------------------------------------------------------------------
 -- The instance of ObjectType.
 -- -------------------------------------------------------------------
