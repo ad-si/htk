@@ -9,6 +9,8 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- A generic data browser.
 module GenericBrowser (
 
   newGenericBrowser,
@@ -26,6 +28,8 @@ import Monad
 import ReferenceVariables
 import IOExts(unsafePerformIO)
 
+---
+-- Browsed data needs to instantiate the class <code>CItem</code>.
 class CItem o => GBObject o where
   getChildren :: o -> IO [o]
   isObjectNode :: o -> IO Bool
@@ -57,6 +61,8 @@ getPos = do pos@(x,y) <- getRef posRef
 -- datatype
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>GenericBrowser</code> datatype.
 data GBObject o => GenericBrowser o =
   GenericBrowser { container :: Frame,
                    treelist :: TreeList o,
@@ -67,6 +73,14 @@ data GBObject o => GenericBrowser o =
 -- construction
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new generic browser and returns a handler.
+-- @param par        - the parent widget (which has to be a container
+--                   - widget).
+-- @param rootobjs   - the list of top level objects.
+-- @param cnf        - the list of configuration options for this
+--                   - generic browser.
+-- @return result    - A generic browser.
 newGenericBrowser :: (GBObject o, Container par) =>
                      par -> [o] -> [Config (GenericBrowser o)]  ->
                      IO (GenericBrowser o)
@@ -102,6 +116,7 @@ newGenericBrowser par rootobjs cnf =
      initBrowser gb rootobjs'
      return gb
 
+{-
 containsSubNodes :: GBObject o => o -> IO Bool
 containsSubNodes obj =
   let containsSubNodes' (obj : objs) =
@@ -110,7 +125,10 @@ containsSubNodes obj =
       containsSubNodes' _ = return False
   in do ch <- getChildren obj
         containsSubNodes' ch
+-}
 
+---
+-- Initializes the browser.
 initBrowser :: GBObject o => GenericBrowser o -> [o] -> IO ()
 initBrowser gb rootobjs =
   let addObject obj =
@@ -120,6 +138,8 @@ initBrowser gb rootobjs =
                 else done
   in mapM addObject rootobjs >> done
 
+---
+-- Treelist selection event handler.
 tlObjectSelected :: GBObject o => GenericBrowser o ->
                                   Maybe (TreeListObject o) -> IO ()
 tlObjectSelected gb mtlobj =
@@ -145,7 +165,13 @@ tlObjectSelected gb mtlobj =
 -- instantiations
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GBObject o => GUIObject (GenericBrowser o) where
+---
+-- Internal.
   toGUIObject = toGUIObject . container
 
+---
+-- Internal.
 instance GBObject o => Widget (GenericBrowser o)
