@@ -10,6 +10,9 @@ module IOExtras(
    -- If unsuccessful because of an isAlreadyExists error return Nothing
    -- otherwise pass on error.
 
+   catchDoesNotExist,
+      -- :: IO a -> IO (Maybe a)
+
    catchErrorCalls, -- :: IO a -> IO (Either String a)
    -- Catch all calls to the error function.
    
@@ -34,6 +37,9 @@ catchEOF action = catchGeneral isEOFError action
 
 catchAlreadyExists :: IO a -> IO (Maybe a)
 catchAlreadyExists action = catchGeneral isAlreadyExistsError action
+
+catchDoesNotExist :: IO a -> IO (Maybe a)
+catchDoesNotExist action = catchGeneral isDoesNotExistError action
 
 catchGeneral :: (IOError -> Bool) -> IO a -> IO (Maybe a)
 catchGeneral discriminator action =

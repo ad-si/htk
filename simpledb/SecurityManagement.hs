@@ -43,12 +43,12 @@ getPermissions1 simpleDB (PrimitiveLocation key) =
    getObject (securityDB simpleDB) (fromIntegral key) 
 
 getGlobalPermissions :: SimpleDB -> IO Permissions
-getGlobalPermissions simpleDB = getObject (miscDB simpleDB) 2
+getGlobalPermissions simpleDB = getObject (miscDB simpleDB) 3
 
 setGlobalPermissions :: SimpleDB -> Permissions -> IO ()
 setGlobalPermissions simpleDB permissions =
    do
-      setObjectHere (miscDB simpleDB) 2 permissions 
+      setObjectHere (miscDB simpleDB) 3 permissions 
       flushBDB (miscDB simpleDB)
 
 -- ----------------------------------------------------------------------

@@ -27,7 +27,7 @@ import BDBExtras
 initVersions :: BDB -> IO (IORef ObjectVersion)
 initVersions bdb =
    do
-      objectVersion <- getObject bdb 0
+      objectVersion <- getObject bdb 1
       newIORef objectVersion
 
 -- | Allocate a new version, and add it to 'openVersions'.
@@ -88,4 +88,4 @@ flushVersion :: SimpleDB -> TXN -> IO ()
 flushVersion simpleDB txn =
    do
       nextVersion <- readIORef (nextVersion simpleDB)
-      setObjectHere1 (miscDB simpleDB) 0 txn nextVersion
+      setObjectHere1 (miscDB simpleDB) 1 txn nextVersion

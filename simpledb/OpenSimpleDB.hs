@@ -90,12 +90,12 @@ initSimpleDB simpleDB =
                -- Write all special locations
                txn <- beginTransaction
 
-               setObjectHere1 (miscDB simpleDB) 0 txn firstVersion
-               setObjectHere1 (miscDB simpleDB) 1 txn (succ specialLocation2)
-               setObjectHere1 (miscDB simpleDB) 2 txn ([] :: Permissions)
+               setObjectHere1 (miscDB simpleDB) 1 txn firstVersion
+               setObjectHere1 (miscDB simpleDB) 2 txn (succ specialLocation2)
+               setObjectHere1 (miscDB simpleDB) 3 txn ([] :: Permissions)
 
-               setObjectHere1 (securityDB simpleDB) 0 txn ([] :: Permissions)
                setObjectHere1 (securityDB simpleDB) 1 txn ([] :: Permissions)
+               setObjectHere1 (securityDB simpleDB) 2 txn ([] :: Permissions)
                endTransaction txn
                flushBDB (securityDB simpleDB)
                flushBDB (miscDB simpleDB)

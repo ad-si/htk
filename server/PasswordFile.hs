@@ -19,12 +19,16 @@ module PasswordFile(
       -- Claim admin status.
    revokeAdmin, -- :: User -> IO ()
       -- Revoke admin status.
+   alwaysAllowAdmin, -- :: IO ()
+      -- Used for internal servers.
    ) where
 
 import IO
 import Maybe
 
 import Control.Concurrent.MVar
+import Data.IORef
+import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
@@ -125,12 +129,19 @@ getAdminStatus user =
                return (False,False)
          )
 
+
 -- | Returns whether user may claim admin status
 userIsInAdmin :: User -> IO Bool
 userIsInAdmin user =
    do
-       groupFile <- getGroupFile
-       return (userIsInGroup groupFile (userId user) "ADMIN")
+       always <- readIORef alwaysAllowAdminFlag
+       if always
+          then
+             return True
+          else
+             do
+                groupFile <- getGroupFile
+                return (userIsInGroup groupFile (userId user) "ADMIN")
 
 -- | Claim admin status; return True if successful.
 claimAdmin :: User -> IO Bool
@@ -145,3 +156,15 @@ claimAdmin user =
 -- | Revoke admin status.
 revokeAdmin :: User -> IO ()
 revokeAdmin user = modifyMVar_ (adminMVar user) (\ _ -> return False)
+
+-- ------------------------------------------------------------------------
+-- Admin management for the internal server.
+-- ------------------------------------------------------------------------
+
+-- | alwaysAllowAdmin should only be called for the internal server.
+alwaysAllowAdmin :: IO ()
+alwaysAllowAdmin = writeIORef alwaysAllowAdminFlag True
+
+alwaysAllowAdminFlag :: IORef Bool
+alwaysAllowAdminFlag = unsafePerformIO (newIORef False)
+{-# NOINLINE alwaysAllowAdminFlag #-}

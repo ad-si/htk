@@ -22,14 +22,14 @@ import PrimitiveLocation
 -- (The types package uses 'specialLocation1' for general 'ViewType.View'
 -- information, and 'specialLocation2' for the top folder.)
 specialLocation1,specialLocation2 :: Location
-specialLocation1 = Location 0
-specialLocation2 = Location 1
+specialLocation1 = Location 1
+specialLocation2 = Location 2
   
 -- | Read the BDB (the miscDB) to come up with the nextLocation ref.
 initLocations :: BDB -> IO (IORef Location)
 initLocations bdb =
    do
-      location <- getObject bdb 1
+      location <- getObject bdb 2
       newIORef location
 
 -- | Allocate a Location.
@@ -47,5 +47,5 @@ flushLocation :: SimpleDB -> TXN -> IO ()
 flushLocation simpleDB txn =
    do
       nextLocation <- readIORef (nextLocation simpleDB)
-      setObjectHere1 (miscDB simpleDB) 1 txn nextLocation
+      setObjectHere1 (miscDB simpleDB) 2 txn nextLocation
       

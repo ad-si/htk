@@ -78,6 +78,9 @@ openRepositoryGeneralInternal initialiseView versionState =
 createRepository :: (View -> IO ()) -> VersionDB.Repository -> IO ()
 createRepository initialiseView repository =
    do
+      -- (0) Force admin status (which we need to check in the
+      -- initial version).
+      VersionDB.setAdminStatus repository True
       -- (1) create a new view containing just an empty folder
       view <- newView repository
       topFolderLink <- getTopFolder view
@@ -95,3 +98,7 @@ createRepository initialiseView repository =
          else
             -- Someone else has simultaneously initialised the repository!
             done
+
+      -- (4) revoke admin status again.
+      VersionDB.setAdminStatus repository False
+

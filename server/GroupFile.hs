@@ -21,6 +21,7 @@ import System.IO.Unsafe
 import Control.Concurrent.MVar
 import System.Directory
 
+import IOExtras
 import BinaryAll
 import WBFiles
 import Messages
@@ -270,25 +271,39 @@ getGroupFile = modifyMVar groupFileMVar (\ groupFileData0 ->
             return (groupFileData0,groupFile groupFileData0)
          else
             do
-               modificationTime <- getModificationTime groupFileName
-               if modificationTime /= lastModificationTime groupFileData0
-                  then
-                     do
-                        groupFileOpt <- getGroupFile1
-                        let
-                           groupFile1 = fromMaybe
-                              (groupFile groupFileData0)
-                              groupFileOpt
-                        let
-                           groupFileData1 = GroupFileData {
-                              lastChecked = currentClockTime,
-                              lastModificationTime = modificationTime,
-                              groupFile = groupFile1
-                              }
-                        return (groupFileData1,groupFile1)
-                  else
-                     return (groupFileData0 {lastChecked = currentClockTime},
-                        groupFile groupFileData0)
+               modificationTimeOpt 
+                  <- catchDoesNotExist (getModificationTime groupFileName)
+               case modificationTimeOpt of
+                  Just modificationTime 
+                     | modificationTime /= lastModificationTime groupFileData0 
+                     -> do
+                           groupFileOpt <- getGroupFile1
+                           let
+                              groupFile1 = fromMaybe
+                                 (groupFile groupFileData0)
+                                 groupFileOpt
+                           let
+                              groupFileData1 = GroupFileData {
+                                 lastChecked = currentClockTime,
+                                 lastModificationTime = modificationTime,
+                                 groupFile = groupFile1
+                                 }
+                           return (groupFileData1,groupFile1)
+                     | True ->
+                        return (
+                           groupFileData0 {lastChecked = currentClockTime},
+                           groupFile groupFileData0)
+                  Nothing -> 
+                     let
+                        emptyGroupFile = GroupFile emptyFM
+
+                        nullGroupFileData1 = GroupFileData {
+                           lastChecked = currentClockTime,
+                           lastModificationTime = initialClockTime,
+                           groupFile = emptyGroupFile
+                           }
+                     in
+                        return (nullGroupFileData1,emptyGroupFile)
       )
 
 getGroupFile1 :: IO (Maybe GroupFile)

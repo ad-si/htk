@@ -116,7 +116,7 @@ newtype ObjectVersion = ObjectVersion Integer
    -- Type of handle referring to a version.
 
 firstVersion :: ObjectVersion
-firstVersion = ObjectVersion 0
+firstVersion = ObjectVersion 1
 
 -- | The information that must be specified on each commit.
 data UserInfo = UserInfo {

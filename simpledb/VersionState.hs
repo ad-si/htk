@@ -129,7 +129,7 @@ addVersionInfo versionState versionInfo1 txn =
    do
       -- We include a well-ordered check.  This means we can assume the
       -- version numbers are well-ordered for versionIsAncestor.
-      if versionInfoIsWellOrdered versionInfo1
+      if not (versionInfoIsWellOrdered versionInfo1)
          then
             throwError MiscError 
                "Attempt to add VersionInfo whose parents do not precede it"

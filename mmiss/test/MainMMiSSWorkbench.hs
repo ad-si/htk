@@ -21,6 +21,7 @@ import DialogWin
 
 import DaVinciGraph
 
+import PasswordFile
 import HostsPorts
 import HostsList
 
@@ -57,6 +58,8 @@ main1 =
       withdrawWish
       seq loadHTkImages done 
 
+      alwaysAllowAdmin 
+         -- allow admin status to be claimed by the internal server
       doRegistrations
       doMMiSSRegistrations
 

@@ -202,9 +202,9 @@ type ChangeData = Either ICStringLen (ObjectVersion,Location)
 data SimpleDB = SimpleDB {
    miscDB :: BDB,
       -- ^ this contains miscellanous information.
-      -- Location 0 contains the next object version number to allocate.
-      -- Location 1 contains the next location number to allocate.
-      -- Location 2 contains the global Permissions.
+      -- Location 1 contains the next object version number to allocate.
+      -- Location 2 contains the next location number to allocate.
+      -- Location 3 contains the global Permissions.
    versionDB :: BDB,
       -- ^ this maps version information to FrozenVersion.
    securityDB :: BDB,
