@@ -86,7 +86,7 @@ main =
     item6 <- createNotepadItem
                (MyItem id
                   (createName "NotepadItem with a long name") item6_img)
-                  notepad [position (cm 8, cm 5)]
+                  notepad True [position (cm 8, cm 5)]
 
     (np_event, _) <- bindNotepadEv notepad
 

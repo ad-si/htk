@@ -1,7 +1,9 @@
 LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
        $(TOP)/events/libevents.a $(TOP)/util/libutil.a
 
-SUBDIRS = simple canvas tix toolkit gengui
+SRCS       = MaingenGUI.hs\
+	     MaingenericBrowser.hs \
+	     Mainnotepad.hs
 
 XHCDIRS = $(HTKDIRS)
 
