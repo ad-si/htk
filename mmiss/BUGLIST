@@ -4,6 +4,18 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+59) 27.09.02
+See also (5).
+We need to improve things when the user does "Close" or "Quit" from the
+daVinci menus.
+
+The solution is I think to use the daVinci command 
+app_menu(control_file_events) to take control of file menu events from 
+daVinci.  This seems to stop the user closing the window manually, or
+selecting Close or Quit from the File menu (without Haskell intervening).
+Control-X will still bring everything to a halt; I'm not sure if we can or
+if it's worth handling this.
+
 ----------------------------------------------------------------------
 Here follows a list of the outstanding major bug-fixes / improvements which
 the existing workbench needs.  This is excluding completely new features
