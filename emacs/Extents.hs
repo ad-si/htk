@@ -54,7 +54,8 @@ collapse emacsSession this text =
 containerContents :: EmacsSession -> String -> IO (EmacsContents String)
 containerContents emacsSession this =
    do
-      str <- evalEmacs emacsSession (Prin ("uni-container-contents",[this]))
+      str <- evalEmacsQuick emacsSession 
+         (Prin ("uni-container-contents",[this]))
       return (parseEmacsContents str)
 
 

@@ -181,6 +181,17 @@
 ; Send a normal response to a command
 (defun uni-ok (string) (uni-ps (concat "OK " (uni-escape string))))
 
+; Send a response to a command where we are sure that the String doesn't
+; need escaping (has no newlines) and don't escape it.  We also
+; avoid doing any concat operations, to save time.
+(defun uni-ok-quick (string) 
+   (progn
+      (process-send-string uni-process "OK ")
+      (process-send-string uni-process string)
+      (process-send-string uni-process "\n")
+      )
+   )
+
 ; Send an event
 (defun uni-ev (string) (uni-ps (concat "EV " (uni-escape string))))
 
@@ -524,9 +535,14 @@
                      ((null closest-extent) 
                         (error "Can't modify end of buffer"))
                      ((eq extent-type 'container) 
-                        (< from (extent-end-position closest-extent)))
+                        (cond 
+                           ((eq from (extent-start-position closest-extent))
+                              (error "Can't add between containers"))
+                           (t ())
+                           )
+                        )
                      ((eq (extent-start-position closest-extent) from) t)
-                     ;; OK because inserting at the start of a button or
+                     ;; OK because inserting at the start of a button
                      ;; boundary extent 
                      ;; simply inserts the text before the extent
                      (t (error "Cannot insert into a button"))

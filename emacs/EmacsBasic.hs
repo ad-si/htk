@@ -15,6 +15,10 @@ module EmacsBasic(
       -- Evaluate the given Emacs Lisp expression, which should return a 
       -- String.
 
+   evalEmacsStringQuick, -- :: EmacsSession -> String -> IO String
+      -- Evaluate the given Emacs Lisp expression, which should return a 
+      -- String, guaranteed not to contain any newline characters.
+
    execEmacsString, -- :: EmacsSession -> String -> IO ()
       -- Evaluate the given Emacs Lisp expression.  Any result is ignored.
 
@@ -132,27 +136,21 @@ readEmacsOutput emacsSession =
             do
                debugString ("XEmacs<"++line++"\n")
 
-               let
-                  unEscape "" = ""
-                  unEscape ('\\':'n':rest) = '\n':unEscape rest
-                  unEscape ('\\':'\\':rest) = '\\':unEscape rest
-                  unEscape ('\\':_:rest) = parseError line
-                  unEscape (ch:rest) =ch:unEscape rest
                case line of
                   'O':'K':' ':rest ->
                       do
                          written <- tryPutMVar (emacsResponse emacsSession) 
-                            (unEscape rest)
+                            rest
                          if written
                             then
                                done
                             else
                                error "EmacsBasic: emacsResponse not empty"
                   'E':'R':' ':rest -> 
-                     error ("EmacsBasic: XEmacs error: "++unEscape rest)
+                     error ("EmacsBasic: XEmacs error: "++unUniEscape rest)
                   'E':'V':' ':rest ->
                      sync(noWait(send (eventChannel emacsSession) 
-                        (unEscape rest,())))
+                        (unUniEscape rest,())))
                   _ -> parseError line
                readEmacsOutput emacsSession
 
@@ -181,6 +179,18 @@ evalEmacsString emacsSession expression =
          do
             let
                command' = "(uni-ok "++expression++")"
+            writeEmacs emacsSession command'
+            str <- takeMVar (emacsResponse emacsSession)
+            return (unUniEscape str)
+         )
+
+evalEmacsStringQuick :: EmacsSession -> String -> IO String
+evalEmacsStringQuick emacsSession expression =
+   seqList expression `seq`
+      synchronize (emacsLock emacsSession) (
+         do
+            let
+               command' = "(uni-ok-quick "++expression++")"
             writeEmacs emacsSession command'
             takeMVar (emacsResponse emacsSession)
          )
@@ -261,6 +271,19 @@ execGnuClient command =
          challengeResponse ("",okMess++"\n")
          ]
       done
+
+-- ------------------------------------------------------------------------
+-- Undoing escapes
+-- ------------------------------------------------------------------------
+
+---
+-- Undo the effects of sendmess.el's uni-escape function
+unUniEscape :: String -> String
+unUniEscape "" = ""
+unUniEscape ('\\':'n':rest) = '\n':unUniEscape rest
+unUniEscape ('\\':'\\':rest) = '\\':unUniEscape rest
+unUniEscape (str@('\\':_:rest)) = parseError str
+unUniEscape (ch:rest) =ch:unUniEscape rest
       
         
 

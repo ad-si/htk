@@ -4,6 +4,7 @@ module EmacsCommands(
    HasEmacsCommand(..),
    execEmacs,
    evalEmacs,
+   evalEmacsQuick,
    Prin(..),
    ) where
 
@@ -29,6 +30,11 @@ evalEmacs :: HasEmacsCommand emacsCommand
 evalEmacs emacsSession emacsCommand 
    = evalEmacsString emacsSession (toEmacsString emacsCommand)
 
+evalEmacsQuick :: HasEmacsCommand emacsCommand 
+   => EmacsSession -> emacsCommand -> IO String
+evalEmacsQuick emacsSession emacsCommand 
+   = evalEmacsStringQuick emacsSession (toEmacsString emacsCommand)
+
 -- -------------------------------------------------------------------------
 -- Instances of Emacs command
 -- -------------------------------------------------------------------------
@@ -45,6 +51,7 @@ instance HasEmacsCommand (String,[String]) where
             args
 
 -- This wraps a command where we want the output printed.
+-- For these it is safe to use evalEmacsQuick
 data Prin x = Prin x
 
 instance HasEmacsCommand x => HasEmacsCommand (Prin x) where
