@@ -59,7 +59,7 @@ import Events
 import Channels
 
 import BSem
-import HostsPorts
+import HostsPorts hiding (user)
 import CallServer
 import Lock
 

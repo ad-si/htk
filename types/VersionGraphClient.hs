@@ -43,7 +43,7 @@ import Debug
 
 import InfoBus
 
-import HostsPorts
+import HostsPorts hiding (user)
 import CallServer
 
 import Graph
