@@ -584,7 +584,7 @@ getFormat format name =
                recurseDepth = infinity
                }
                
-         extracted0 <- extractMMiSSObject1 view mmissObjectLink
+         extracted0 <- extractMMiSSObject1 view True mmissObjectLink
             (Just variantSearch) exportOpts                
          (fileContents,exportedFiles) <- case fromWithError extracted0 of
             Left mess -> apiError mess
