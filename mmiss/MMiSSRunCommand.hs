@@ -5,7 +5,10 @@
    posixutil because it needs htk, and it can't go in htk because (thanks to
    Windows) htk isn't allowed to assume posixutil.
    -}
-module MMiSSRunCommand(runCommand) where
+module MMiSSRunCommand(
+   runCommand,
+   copyFileBool,
+   ) where
 
 import System
 
@@ -14,6 +17,7 @@ import Concurrent
 import Computation
 
 import SafeSystem
+import CopyFile
 
 import DialogWin
 import TextDisplay
