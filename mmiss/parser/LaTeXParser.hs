@@ -3,15 +3,24 @@ module LaTeXParser (
    -- Turn MMiSSLaTeX into an Element.   
    parseMMiSSLatexFile, -- :: SourceName -> IO (WithError Element)
    -- The same, for a file.
-   makeMMiSSLatex -- (Element, Bool) -> WithError (EmacsContent TypedName)
+   makeMMiSSLatex, -- (Element, Bool) -> WithError (EmacsContent TypedName)
    -- Turns an Element into a MMiSSLaTeX source
    -- If the Bool is set, attaches a preamble.
+   fromIncludeStr, --  String -> Char
+   fromIncludeStrOpt, -- String -> Maybe Char
+   toIncludeStr, -- Char -> String
+   -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
+   -- the corresponding includeXXX command.
+   parseAndMakeMMiSSLatex,  -- SourceName -> Bool -> IO ()
+   -- parseAndMakeMMiSSLatex parses a MMiSSLatex file and converts it back to MMiSSLatex
+   -- combination of parseMMiSSLatexFile and makeMMiSSLatex 
+   showElement -- WithError Element -> String
    )
  where
 
 -- module LaTeXParser where
 
--- import IOExts
+import IOExts
 import List
 import Parsec
 import Char
@@ -412,8 +421,8 @@ parseMMiSSLatex :: String -> WithError Element
 
 parseMMiSSLatex s = let result = parse (latexDoc []) "" s
 		    in case result of
---			 Right ast  -> trace s (makeXML ast)
-			 Right ast  -> makeXML ast
+			 Right ast  -> trace s (makeXML ast)
+--			 Right ast  -> makeXML ast
 			 Left err -> hasError (concat (map messageString (errorMessages(err))))
 
 
@@ -1084,6 +1093,94 @@ cElemListWithError:: String -> [Attribute] -> WithError [Content] -> WithError [
 
 cElemListWithError name atts c = concatWithError [(mapWithError CElem (mapWithError (Elem name atts) c))]
   
+
+
+-- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
+-- the corresponding includeXXX command.
+toIncludeStr :: Char -> String
+toIncludeStr 'G' = "Group"
+toIncludeStr 'U' = "Unit"
+toIncludeStr 'A' = "Atom"
+toIncludeStr 'T' = "TextFragment"
+toIncludeStr 'S' = "Section"
+toIncludeStr 'a' = "Abstract"
+toIncludeStr 'I' = "Introduction"
+toIncludeStr 's' = "Summary"
+toIncludeStr 'F' = "FormalUnit"
+toIncludeStr 'C' = "ConceptualAtom"
+toIncludeStr 'p' = "ProgramFragment"
+toIncludeStr 'P' = "Program"
+toIncludeStr 'c' = "Clause"
+toIncludeStr 't' = "Theory"
+toIncludeStr 'x' = "Step"
+toIncludeStr 'y' = "Proof"
+toIncludeStr 'z' = "Script"
+toIncludeStr 'D' = "Development"
+toIncludeStr 'E' = "ConceptualUnit"
+toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
+
+
+---
+-- fromIncludeStrOpt
+-- and also handles the case where the first letter is lower-cased.
+fromIncludeStrOpt :: String -> Maybe Char
+fromIncludeStrOpt "Group" = Just 'G'
+fromIncludeStrOpt "Unit" = Just 'U'
+fromIncludeStrOpt "Atom" = Just 'A'
+fromIncludeStrOpt "TextFragment" = Just 'T'
+fromIncludeStrOpt "Section"         = Just 'S'                
+fromIncludeStrOpt "Abstract"        = Just 'a'        
+fromIncludeStrOpt "Introduction"    = Just 'I'        
+fromIncludeStrOpt "Summary"         = Just 's'        
+fromIncludeStrOpt "FormalUnit"      = Just 'F'        
+fromIncludeStrOpt "ConceptualAtom"  = Just 'C'        
+fromIncludeStrOpt "ProgramFragment" = Just 'p'         
+fromIncludeStrOpt "Program"         = Just 'P'        
+fromIncludeStrOpt "Clause"          = Just 'c'        
+fromIncludeStrOpt "Theory"          = Just 't'        
+fromIncludeStrOpt "Step"            = Just 'x'        
+fromIncludeStrOpt "Proof"           = Just 'y'        
+fromIncludeStrOpt "Script"          = Just 'z'        
+fromIncludeStrOpt "Development"     = Just 'D' 
+fromIncludeStrOpt "ConceptualUnit"  = Just 'E' 
+fromIncludeStrOpt (c : cs) | Char.isLower c 
+   = fromIncludeStrOpt (toUpper c : cs)
+fromIncludeStrOpt _ = Nothing
+
+
+fromIncludeStr :: String -> Char
+fromIncludeStr str = case fromIncludeStrOpt str of
+   Just c -> c
+   Nothing -> error 
+    ("MMiSSDTDAssumptions.fromIncludeStr - bad include string"++str)
+
+---
+-- Map tags to the name of their corresponding include element (minus
+-- "include")
+mapLabelledTag :: String -> String
+mapLabelledTag s = 
+   case s of
+      "package" -> "Group"
+      "section" -> "Section"
+      "paragraph" -> "Group"
+      "view" -> "Group"
+      "example" -> "ConceptualUnit"
+      "exercise" -> "ConceptualUnit"
+      "definition" -> "ConceptualUnit"
+      "theorem" -> "FormalUnit"
+      "conjecture" -> "FormalUnit"
+      "lemma" -> "FormalUnit"
+      "corollary" -> "FormalUnit"
+      "assertion" -> "FormalUnit"
+      "list" -> "Unit"
+      "table" -> "ConceptualAtom"
+      "figure" -> "ConceptualAtom"
+      "glossaryEntry" -> "ConceptualAtom"
+      "bibEntry" -> "ConceptualAtom"
+      _ -> mapUpper s
+   where
+      mapUpper [] = []
+      mapUpper (c : cs) = toUpper c : cs      
 
 
 parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
