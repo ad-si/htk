@@ -810,13 +810,17 @@ data DaVinciArc value = DaVinciArc EdgeId
 data DaVinciArcType value = DaVinciArcType {
    arcType :: Type,
    arcMenuActions :: Registry MenuId (value -> IO ()),
-   arcDoubleClickAction :: value -> IO ()
+   arcDoubleClickAction :: value -> IO (),
+   arcArcText :: value -> IO (SimpleSource String)
+--   arcTitleFunc :: value -> String
    }
 
 data DaVinciArcTypeParms value = 
       DaVinciArcTypeParms {
          arcAttributes :: Attributes value,
-         configArcDoubleClickAction :: value -> IO ()
+         configArcDoubleClickAction :: value -> IO (),
+         configArcText :: value -> IO (SimpleSource String)
+--         configArcTitleFunc :: value -> String
          }
    |  InvisibleArcTypeParms
 
@@ -833,7 +837,7 @@ instance Ord1 DaVinciArc where
 addArcGeneral :: Typeable value
     => DaVinciGraph -> DaVinciArcType value
     -> DaVinciArc value -> value
-    -> DaVinciNode nodeFromValue -> DaVinciNode nodeToValue 
+    -> DaVinciNode nodeFromValue -> DaVinciNode nodeToValue
     -> IO ()
 addArcGeneral 
       (daVinciGraph @ DaVinciGraph {edges = edges})
@@ -845,9 +849,13 @@ addArcGeneral
             done
          else
             do
+               s <- (arcArcText daVinciArcType) value
+               arcText <- readContents(s)
+--               atts <- return ([A "OBJECT" ((arcArcText daVinciArcType) value)])
+               atts <- return ([A "OBJECT" arcText])
                setValue edges edgeId (ArcData daVinciArcType value)
                addEdgeUpdate daVinciGraph 
-                  (NewEdge edgeId (arcType daVinciArcType) [] nodeFrom nodeTo)
+                  (NewEdge edgeId (arcType daVinciArcType) atts nodeFrom nodeTo)
  
 instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc 
          DaVinciArcType
@@ -856,7 +864,7 @@ instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc
       do
          edgeId <- newEdgeId (context daVinciGraph)
          let
-            newArc = DaVinciArc edgeId
+            newArc = DaVinciArc edgeId            
 
          addArcGeneral daVinciGraph daVinciArcType newArc value 
             nodeFrom nodeTo
@@ -961,7 +969,9 @@ instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
    newArcTypePrim
          (daVinciGraph@DaVinciGraph{context = context})
          (DaVinciArcTypeParms{arcAttributes = arcAttributes,
-            configArcDoubleClickAction = configArcDoubleClickAction
+            configArcDoubleClickAction = configArcDoubleClickAction,
+            configArcText = configArcText
+--            configArcTitleFunc = configArcTitleFunc
             }) =
       do
          arcType <- newType context
@@ -970,16 +980,19 @@ instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
          doInContext (Visual(AddRules [ER arcType attributes])) context 
          let
             arcDoubleClickAction = configArcDoubleClickAction
+            arcArcText = configArcText
          return (DaVinciArcType {
             arcType = arcType,
             arcMenuActions = arcMenuActions,
-            arcDoubleClickAction = arcDoubleClickAction
+            arcDoubleClickAction = arcDoubleClickAction,
+            arcArcText = arcArcText
             })
 
 instance ArcTypeParms DaVinciArcTypeParms where
    emptyArcTypeParms = DaVinciArcTypeParms {
       arcAttributes = emptyAttributes,
-      configArcDoubleClickAction = const done
+      configArcDoubleClickAction = const done,
+      configArcText = const (return (staticSimpleSource "")),
       }
 
    invisibleArcTypeParms = InvisibleArcTypeParms
@@ -987,19 +1000,40 @@ instance ArcTypeParms DaVinciArcTypeParms where
    coMapArcTypeParms coMapFn
       (DaVinciArcTypeParms {
          arcAttributes = arcAttributes,
-         configArcDoubleClickAction = configArcDoubleClickAction
+         configArcDoubleClickAction = configArcDoubleClickAction,
+         configArcText = configArcText
          }) =
       (DaVinciArcTypeParms {
          arcAttributes = coMapAttributes coMapFn arcAttributes,
-         configArcDoubleClickAction = configArcDoubleClickAction . coMapFn
+         configArcDoubleClickAction = configArcDoubleClickAction . coMapFn,
+         configArcText = configArcText . coMapFn
          })
    coMapArcTypeParms coMapFn InvisibleArcTypeParms = InvisibleArcTypeParms
+
 
 instance HasConfigValue Color DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (Color colorName) parms =
       parms {arcAttributes = (Att "EDGECOLOR" colorName) $$$ 
          (arcAttributes parms)}
+
+instance HasConfigValue EdgeObject DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (Object objectStr) parms =
+      parms {arcAttributes = (Att "OBJECT" objectStr) $$$ 
+         (arcAttributes parms)}
+
+instance HasConfigValue EdgeDir DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (Dir dirStr) parms =
+        parms {arcAttributes = (Att "_DIR" dirStr) $$$ 
+           (arcAttributes parms)}
+
+instance HasConfigValue Head DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (Head headStr) parms =
+        parms {arcAttributes = (Att "HEAD" headStr) $$$ 
+           (arcAttributes parms)}
 
 instance HasConfigValue EdgePattern DaVinciArcTypeParms where
    configUsed' _ _ = True
@@ -1031,6 +1065,25 @@ instance HasConfigValue DoubleClickAction DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (DoubleClickAction action) parms =
       parms {configArcDoubleClickAction = action}
+
+{--
+instance HasConfigValue TitleFunc DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (TitleFunc func) parms =
+      parms {configArcTitleFunc = func}
+--}
+
+instance HasConfigValue ValueTitle DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (ValueTitle arcText') parms = 
+      let
+         arcText value =
+            do
+               initial <- arcText' value
+               return (staticSimpleSource initial)
+      in
+         parms { configArcText = arcText }
+
 
 ------------------------------------------------------------------------
 -- Attributes in general
