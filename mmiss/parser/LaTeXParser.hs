@@ -489,12 +489,11 @@ findFirstEnv [] _ _  = hasError("No root environment ('package' or some other en
 
 
 addPreamble :: Content -> Content -> Content
-{--
 addPreamble preambleElem (CElem (Elem name atts content))  = 
-  CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
+  if (name `elem` (map snd includeCommands)) 
+    then CElem (Elem name atts content)
+    else CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
 addPreamble _ e = e
---}
-addPreamble pre c = c
 
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
@@ -874,7 +873,6 @@ makeMMiSSLatex ((Elem name atts content), preOut) =
              endDocument = [EditableText "\\end{document}"]
          in hasValue(EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument))
        else hasValue(EmacsContent items)
-
 
 
 fillLatex :: [Content] -> [EmacsDataItem (String, Char)] -> [EmacsDataItem (String, Char)]
