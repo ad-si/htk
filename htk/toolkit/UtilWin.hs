@@ -78,6 +78,8 @@ module UtilWin (
 
 ) where
 
+import Debug(debug)
+
 import HTk
 import BitMap
 
@@ -92,49 +94,71 @@ center win =
 
 simplestWin :: String -> BitMapHandle -> String -> IO Toplevel
 simplestWin title bm txt =
-  do
-   win <- createToplevel [text title]
-   box <- newHBox win []
-   img <- newLabel box [bitmap bm] :: IO (Label BitMap)
-   pack img [PadX 20]
-   mes <- newMessage box [text txt, width 280] :: IO (Message String)
-   pack mes [PadX 20]
-   pack box [PadY 10]
-   return win
+   delayWish (
+      do
+         win <- createToplevel [text title]
+         box <- newHBox win []
+         img <- newLabel box [bitmap bm] :: IO (Label BitMap)
+         pack img [PadX 20]
+         mes <- newMessage box [text txt, width 280] :: IO (Message String)
+         pack mes [PadX 20]
+         pack box [PadY 10]
+         return win
+      )
 
 simpleWin :: String -> BitMapHandle -> Bool -> String -> IO () -> IO ()
 simpleWin title bm canc txt cc =
- do
-   win <- simplestWin title bm txt
-   box <- newHBox win []
-   ok <- newButton box [text "Ok"] :: IO (Button String)
-   pack ok [PadX 5]
-   mcanc <-
-     (if canc then
-        do
-          cancel <- newButton box [text "Cancel"] :: IO (Button String)
-          pack cancel [PadX 5]
-          clicked_cancel <- clicked cancel
-          return (Just clicked_cancel)
-      else return Nothing)
-   pack box [Side AtBottom, PadY 5]
-   clickedok <- clicked ok
-   death <- newChannel
-   let rest :: Event ()
-       rest = case mcanc of
-                Just clicked_cancel ->
-                  clicked_cancel >> always (destroy win) +>
-                  receive death
-                _ -> receive death
-   spawnEvent ((clickedok >> always ((if canc then cc else done) >>
-                                     (destroy win))) +> rest)
-   (win_destr, _) <- bindSimple win Destroy  -- unbind is not necessary,
-                                             -- because the window is
-                                             -- destroyed anyway
-   center win
-   sync win_destr
-   syncNoWait (send death ())
-   if canc then done else cc
+   do
+      (death,win_destr,handler) <- delayWish (
+         do
+            win <- simplestWin title bm txt
+            box <- newHBox win []
+            ok <- newButton box [text "Ok"] :: IO (Button String)
+            pack ok [PadX 5]
+            mcanc <-
+              (if canc then
+                 do
+                    cancel <- newButton box [text "Cancel"] 
+                       :: IO (Button String)
+                    pack cancel [PadX 5]
+                    clicked_cancel <- clicked cancel
+                    return (Just clicked_cancel)
+               else return Nothing)
+            pack box [Side AtBottom, PadY 5]
+            clickedok <- clicked ok
+            death <- newChannel
+            let rest :: Event ()
+                rest = 
+                   case mcanc of
+                      Just clicked_cancel ->
+                            (do 
+                               clicked_cancel
+                               always (destroy win)
+                            )
+                         +> receive death
+                      Nothing -> receive death
+                handler :: Event ()
+                handler = 
+                      (do
+                         clickedok
+                         always (
+                            do
+                               if canc then cc else done
+                               destroy win
+                            )
+                      )
+                   +> rest
+            (win_destr, _) <- bindSimple win Destroy  
+               -- unbind is not necessary,
+               -- because the window is
+               -- destroyed anyway
+            center win
+            return (death,win_destr,handler)
+         )
+      spawnEvent handler
+      sync win_destr
+      syncNoWait (send death ())
+      if canc then done else cc
 
 error :: String -> IO ()
 error txt = error_cc txt done

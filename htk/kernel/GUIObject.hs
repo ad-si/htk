@@ -29,6 +29,8 @@ module GUIObject(
 
 ) where
 
+
+import Debug(debug)
 import ReferenceVariables
 import Synchronized
 import GUIObjectKind

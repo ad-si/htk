@@ -98,8 +98,8 @@ evalTclScript script =
       -- (1) look at the buffer, execute the contents, and empty it.
       bufferContents <- takeMVar buffer
       case bufferContents of
-         (0,_) -> putMVar buffer (0,[])
-         (n,[]) -> done
+         (0,_) -> putMVar buffer bufferContents
+         (n,[]) -> putMVar buffer bufferContents
          (n,script) ->
             do
                putMVar buffer (n,[])

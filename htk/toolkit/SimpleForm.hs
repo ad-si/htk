@@ -57,7 +57,7 @@ module SimpleForm(
 import Char
 
 import HTk
-import DialogWin
+import qualified UtilWin
 
 -- -------------------------------------------------------------------------
 -- The EnteredForm type
@@ -221,7 +221,7 @@ doForm title (Form enterForm) =
                            Right value -> return (Just value)
                            Left error ->
                               do
-                                 newErrorWin error []
+                                 UtilWin.error error
                                  sync handler
                      )
                )
