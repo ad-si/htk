@@ -20,7 +20,7 @@ import Dynamics
 
 import EntityNames
 
-import LaTeXParser
+import LaTeXPreamble
 
 import MMiSSFormat
 import MMiSSBundle

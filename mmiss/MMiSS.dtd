@@ -84,7 +84,7 @@
 
 <!ENTITY % list-layout-attr  "listLayout  (nested | matrix) #IMPLIED">
 
-<!ENTITY % layout-attr  "shortAuthor      CDATA  #IMPLIED
+<!ENTITY % layout-attr  "shortAuthors     CDATA  #IMPLIED
                          shortTitle       CDATA  #IMPLIED
                          %list-layout-attr;">
 

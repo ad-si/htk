@@ -34,7 +34,7 @@ import LinkManager
 import Folders
 import GlobalRegistry
 
-import LaTeXParser(MMiSSLatexPreamble)
+import LaTeXPreamble(MMiSSLatexPreamble)
 
 import MMiSSVariant
 import MMiSSDTD

@@ -23,7 +23,7 @@ import EntityNames
 
 import Text.XML.HaXml.Types
 
-import LaTeXParser(MMiSSExtraPreambleData(..))
+import LaTeXPreamble(MMiSSExtraPreambleData(..))
 
 import MMiSSVariant
 import MMiSSDTDAssumptions

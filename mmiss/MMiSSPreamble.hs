@@ -52,6 +52,7 @@ import EmacsEdit
 import EmacsContent
 
 import LaTeXParser
+import LaTeXPreamble
 
 import MMiSSImportExportErrors
 import MMiSSBundle

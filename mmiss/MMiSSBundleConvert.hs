@@ -30,6 +30,7 @@ import Text.XML.HaXml.Types
 import EmacsContent
 
 import LaTeXParser
+import LaTeXPreamble
 
 import MMiSSFormat
 import MMiSSBundle

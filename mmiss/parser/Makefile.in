@@ -4,6 +4,6 @@
 PACKAGE = uni-mmiss-parser
 PACKAGES = uni-emacs $(if @HAXML@,uni-HaXml) uni-types
 
-SRCS = LaTeXParserCore.hs LaTeXParser.hs
+SRCS = LaTeXParserCore.hs LaTeXPreamble.hs LaTeXParser.hs
 
 include @TOP@/mk/boilerplate.mk

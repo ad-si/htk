@@ -25,6 +25,7 @@ import EmacsContent
 import Text.XML.HaXml.Types
 
 import LaTeXParser
+import LaTeXPreamble(MMiSSLatexPreamble)
 
 import MMiSSEditXml(TypedName)
 import MMiSSFormat

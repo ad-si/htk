@@ -3,19 +3,32 @@ module LaTeXParserCore (
    Params(..),
    SingleParam(..),
    Attributes,
+   
    parseFrags,  -- :: String -> Either ParseError [Frag]
+   
    piInsertLaTeX,   -- :: String
    latexToUnicodeTranslations,  -- :: String
-   unicodeToLatexTranslations,  -- :: String
+
    parseString,  -- :: Frag -> [Frag]
+   lparamsToString, -- :: Params -> String
+   singleParamToString, -- :: SingleParam -> String
+   makeTextElem, -- :: [Frag] -> String -> String
+   attNameToLatex, -- :: String -> String
+   unicodeToLatex, -- :: String -> String
+   latexToUnicode,  -- :: String -> String
+   elemNameToLaTeX, -- :: String -> String
+   attNameToXML, -- :: String -> String
+
    entityNameParser1,   -- :: GenParser Char st EntityName
    entityFullNameParser1,   -- :: GenParser Char st EntityName
    entitySearchNameParser1,   -- :: GenParser Char st EntityName
    commaSep,
-   plainTextAtoms,   -- :: String
-   envsWithText,     -- :: String,
-   envsWithoutText,  -- :: String
-   mmiss2EnvIds,     -- :: String
+
+   plainTextAtoms,      -- :: String
+   mmissPlainTextAtoms,  -- :: String
+   envsWithText,        -- :: String,
+   envsWithoutText,     -- :: String
+   mmiss2EnvIds,        -- :: String
    latexEmbeddedFormulaEnvs,  -- :: String
    latexAtomFormulaEnvs,      -- :: String
    linkCommands,              -- :: String
@@ -23,7 +36,8 @@ module LaTeXParserCore (
    includeCommands,           -- :: String
    listEnvs,                  -- :: String
    itemNames,                 -- :: String
-   embeddedElements           -- :: String
+   embeddedElements,          -- :: String
+   glAttribsExclude,          -- :: String 
 )
  where
 
@@ -126,12 +140,13 @@ unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
                           ++ [("\x00c4", "\\\"A"), ("\x00dc", "\\\"U"), ("\x00d6", "\\\"O")]
                           ++ [("\x00df","\\ss{}")] 
 
-plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
+mmissPlainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
                  [("Authorentry", "authorEntry"), ("Rule", "rule"), ("ProofStep", "proofStep")] ++
                  [("DevelopmentStep","developmentStep"), ("Source", "source"), ("Declaration","declaration")] ++
-                 [ ("Axiom","axiom")] ++ latexAtomFormulaEnvs
+                 [ ("Axiom","axiom")]
 
+plainTextAtoms =  mmissPlainTextAtoms ++ latexAtomFormulaEnvs
 
 envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract", "abstract")] ++
                [("Introduction", "introduction"),  ("Summary", "summary"), ("Program","program")] ++
@@ -190,6 +205,13 @@ latexEmbeddedFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "
 
 latexAtomFormulaEnvs =  [("\\[", "shortDisplaymath"), ("equation", "equation"), ("displaymath", "displaymath")] 
                      ++ [("eqnarray", "eqnarray"), ("eqnarray*", "eqnarrayStar"), ("equation*", "equation*")]
+
+
+-- glAttribsExclude is a list with attribute names which are omitted in the process of generating MMiSSLaTeX from
+-- XML.
+
+glAttribsExclude = ["files"]
+
 
 
 ---------------------------------------------------------------------------------------------
@@ -667,6 +689,119 @@ frags l =
   do f <-  frag <?> "Fragment"
      frags (f:l)
   <|> return(reverse l)
+
+
+
+-- **********************************************************************************************
+--
+--  Einige Hilfsfunktionen für die Module, die mit Params und Frags umgehen müssen
+--
+-- **********************************************************************************************
+
+-- makeTextElem converts the Frags back into strings.
+
+makeTextElem :: [Frag] -> String -> String
+
+makeTextElem [] inStr = inStr
+makeTextElem (f:fs) inStr = 
+    case f of
+      (EscapedChar c) -> let str1 = "\\" 
+                             str2 = if (c == '\\') then "\\" else [c] 
+                         in (makeTextElem fs (inStr ++ str1 ++ str2))
+      (Other str) -> makeTextElem fs (inStr ++ str)
+      (Command name ps@(LParams singlePs _ d _)) -> 
+         let delimStr = case d of
+                          (Just delimStr) -> delimStr
+                          otherwise -> "" 
+         in makeTextElem fs (inStr ++ "\\" ++ name ++ (lparamsToString ps) ++ delimStr)
+      (Env name ps content) -> 
+         let  beginDelimStr = case ps of
+                                (LParams _ _ (Just delimStr) _) -> delimStr
+                                otherwise -> ""
+              endDelimStr = case ps of
+                               (LParams _ _ _ (Just delimStr)) -> delimStr
+                               otherwise -> ""
+              begin = case name of
+                        "[]" -> "["
+                        "{}" -> "{"
+                        "$" -> "$"
+                        "$$" -> "$$"
+                        "\\(" -> "\\("
+                        "\\[" -> "\\["
+                        otherwise -> "\\begin{" ++ name ++ "}" ++ (lparamsToString ps)
+              end = case name of
+                        "[]" -> "]"
+                        "{}" -> "}"
+                        "$" -> "$"
+                        "$$" -> "$$"
+                        "\\(" -> "\\)"
+                        "\\[" -> "\\]"
+                        otherwise -> "\\end{" ++ name ++ "}"
+              newStr = makeTextElem content ""
+         in makeTextElem fs (inStr ++ begin ++ beginDelimStr ++ newStr ++ end ++ endDelimStr)
+
+
+{-- lparamsToString formatiert Params (Command-Parameter) in die ursprüngliche Latex-Form --}
+
+lparamsToString :: Params -> String
+lparamsToString (LParams singleParams atts _ _) = 
+  let pStr = (concat (map singleParamToString singleParams)) 
+      attStr = attribsToString atts ""
+      resultStr = if (attStr == "") 
+                    then pStr
+                    else pStr ++ "[" ++ attStr ++ "]"  
+  in resultStr 
+
+
+singleParamToString :: SingleParam -> String
+singleParamToString (SingleParam f '{') = "{" ++ (makeTextElem f "") ++ "}"
+singleParamToString (SingleParam f '[') = "[" ++ (makeTextElem f "") ++ "]" 
+singleParamToString (SingleParam f '(') = "(" ++ (makeTextElem f "") ++ ")"
+
+
+attribsToString :: Attributes -> String -> String
+attribsToString [] str = if ((take 1 str) == ",") 
+                           then (drop 1 str)
+                           else str  
+attribsToString ((name, value):as) str =
+   if (name `elem` glAttribsExclude)
+     then attribsToString as str
+     else attribsToString as (str ++ "," ++ attNameToLatex(name) ++ "={" ++ (unicodeToLatex value) ++ "}")
+
+
+unicodeToLatex :: String -> String
+unicodeToLatex inStr = foldl (applyTranslation "") inStr unicodeToLatexTranslations
+
+
+latexToUnicode :: String -> String
+latexToUnicode inStr = foldl (applyTranslation "") inStr latexToUnicodeTranslations
+
+applyTranslation :: String -> String -> (String, String) -> String
+applyTranslation outStr inStr (search, replaceStr) =
+   if lenInStr < lenSearch 
+     then outStr ++ inStr
+     else if (isPrefixOf search inStr)
+            then applyTranslation (outStr ++ replaceStr) (drop lenSearch inStr)  (search, replaceStr)
+            else applyTranslation (outStr ++ (take 1 inStr)) (drop 1 inStr)  (search, replaceStr)
+   where
+   lenInStr = genericLength inStr
+   lenSearch = genericLength search   
+
+
+attNameToLatex :: String -> String
+attNameToLatex "xml:lang" = "Language"
+attNameToLatex name = [(toUpper (head name))] ++ (tail name)
+
+
+attNameToXML :: String -> String
+attNameToXML "Language" = "xml:lang"
+attNameToXML name = [(toLower (head name))] ++ (tail name)
+
+
+elemNameToLaTeX :: String -> String
+elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd) 
+                                          (mmiss2EnvIds ++ embeddedElements ++ includeCommands))
+
 
 
 

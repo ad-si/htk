@@ -43,7 +43,7 @@ import EmacsEdit
 
 import Text.XML.HaXml.Types
 
-import LaTeXParser(MMiSSExtraPreambleData(..))
+import LaTeXPreamble(MMiSSExtraPreambleData(..))
 
 import MMiSSBundleConvert
 import MMiSSImportExportErrors

@@ -17,6 +17,7 @@ import AtomString
 -- import CodedValue
 
 import LaTeXParser
+import LaTeXPreamble
 import MMiSSFileSystemExamples
 import EmacsContent
 import Text.PrettyPrint.HughesPJ

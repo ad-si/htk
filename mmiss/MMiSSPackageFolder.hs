@@ -109,7 +109,7 @@ import SpecialNodeActions
 import MergeTypes
 import MergePrune
 
-import LaTeXParser(emptyMMiSSLatexPreamble)
+import LaTeXPreamble(emptyMMiSSLatexPreamble)
 
 import MMiSSSubFolder
 import MMiSSFormat
