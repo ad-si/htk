@@ -230,7 +230,7 @@ callWish =
       return (CalledWish childProcess)
 
 challengeResponsePair :: (String,String)
-challengeResponsePair = ("puts \"I'm here\"","I'm here\n")
+challengeResponsePair = ("puts [wm focusmodel .]","passive\n")
 
 sendCalledWish :: CalledWish -> CStringLen -> IO ()
 sendCalledWish (CalledWish childProcess) cStringLen =
