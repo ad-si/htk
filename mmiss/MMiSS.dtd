@@ -8,7 +8,7 @@
 <!ENTITY % text         "(#PCDATA|%embeddeditem;)">
 
 <!ELEMENT atom %conceptualatom;>
-<!ATTLIST atom label CDATA #IMPLIED>
+<!ATTLIST atom label ID #IMPLIED>
 <?MMiSSDisplay atom : green box ?>
 
 <!-- <!ELEMENT textfragment (%text;)*> -->
@@ -16,27 +16,27 @@
 <?MMiSSDisplay textfragment : white triangle ?>
 
 <!ELEMENT include EMPTY>
-<!ATTLIST include included    CDATA #REQUIRED
+<!ATTLIST include included    ENTITY #REQUIRED
                   status (present|absent) "absent">
 
 <!ELEMENT reference textfragment>
-<!ATTLIST reference referenced CDATA #REQUIRED
+<!ATTLIST reference referenced ENTITY #REQUIRED
                     status (present|absent) "absent">
 
 <!ENTITY % group  "package|section|paragraph">
 
 <!ELEMENT paragraph (%unit;)+>
-<!ATTLIST paragraph label     CDATA #IMPLIED
+<!ATTLIST paragraph label     ID #IMPLIED
                     paratitle CDATA #IMPLIED>
 <?MMiSSDisplay paragraph : yellow triangle ?>
 
 <!ELEMENT section (%group;)+>
-<!ATTLIST section label        CDATA #IMPLIED
+<!ATTLIST section label        ID #IMPLIED
                   sectiontitle CDATA #REQUIRED>
 <?MMiSSDisplay section : red box ?>
 
 <!ELEMENT package (section)+>
-<!ATTLIST package label        CDATA #IMPLIED
+<!ATTLIST package label        ID #IMPLIED
                   packagetitle CDATA #REQUIRED>
 <?MMiSSDisplay package : blue box ?>
 

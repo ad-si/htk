@@ -1,9 +1,10 @@
 PACKAGE = uni-mmiss
 PACKAGES = uni-types uni-emacs
 
-SRCS = MMiSSPaths.hs MMiSSObjects.hs MMiSSRegistrations.hs \
+SRCS = MMiSSPaths.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
-   MMiSSObjectTypeList.hs VerifyFile.hs XmlValidate.hs MMiSSDTD.hs
+   VerifyFile.hs XmlValidate.hs MMiSSDTD.hs MMiSSObjectTypeList.hs \
+   MMiSSObjects.hs
 
 BOOTSRCS = MMiSSObjects.boot.hs
 

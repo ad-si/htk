@@ -17,8 +17,7 @@ import AtomString
 import CodedValue
 
 import MMiSSContent
-import MMiSSVerify
-import DTD_MMiSS
+import MMiSSDTD
 
 
 main =
@@ -26,11 +25,10 @@ main =
       doc <- getContents
       let 
          (Document _ _ el) = xmlParse "Foo" doc
-         dtdItem = toDTDItem (undefined :: Package)
-      verified <- verifyDTDItem dtdItem el 
+      verified <- validateElement "package" el
       case verified of
-         Nothing -> done
-         Just mess -> error mess
+         [] -> done
+         errors -> error (unlines mess)
       let
          structured = structureContents el
          (contents1 :: [Content]) = contents (accContents structured)

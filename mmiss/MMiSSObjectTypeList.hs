@@ -1,12 +1,11 @@
-{- This file describes all the MMiSSObjectTypes.
-   NB.  It is HIGHLY unsatisfactory that this should be hardcoded
-   into the repository code like this; it should be in the DTD somehow.
-   However for the time being something like this is forced on us anyway
-   because of the MMiSSVeriy.DTDItem mechanism.
+{- This file processes the object type data in MMiSSDTD to extract information
+   about all the required object types.
    -}
 module MMiSSObjectTypeList(
    MMiSSObjectTypeData(..), -- data describing an object type
    mmissObjectTypeMap, -- :: FiniteMap String MMiSSObjectTypeData
+   constructKey, -- :: String -> GlobalKey
+      -- Return the key in the global registry for objects with this tag
    ) where
 
 import Maybe
@@ -42,13 +41,18 @@ mmissObjectTypeMap =
          (\ xmlTag ->
             (xmlTag,MMiSSObjectTypeData {
                xmlTag' = xmlTag,
-               typeId' = oneOffKey "MMiSSObjectTypeList" xmlTag,
+               typeId' = constructKey xmlTag,
                attributesType' = allAttributes,
                displayParms' = getDisplayInstruction xmlTag
                })
             )
          allElements
          )
+
+---
+-- Return the key in the global registry for objects with this tag
+constructKey :: String -> GlobalKey
+constructKey xmlTag = oneOffKey "MMiSSObjectTypeList" xmlTag
 
 -- All the attributes we provide are the same.
 extraAttributes :: [String]

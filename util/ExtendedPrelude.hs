@@ -19,6 +19,7 @@ module ExtendedPrelude (
 
    monadDot,
    split,
+   findJust,
    insertOrdLt,
    insertOrdGt,
    insertOrd,
@@ -31,11 +32,23 @@ module ExtendedPrelude (
    splitByChar,
    unsplitByChar,
    splitToChar,
+
+   treeFold,
+   treeFoldM,
+
+   BreakFn,
+   addFallOut,
    ) where
 
 import Char
+import Monad
 
+import Exception
+
+import Object
 import Debug(debug)
+import Computation
+import Dynamics
 
 -- ---------------------------------------------------------------------------
 -- Character operations
@@ -99,6 +112,12 @@ split p s = case dropWhile p s of
                 [] -> []
                 s' -> w : split p s''
                       where (w,s'') = break p s' 
+
+findJust :: (a -> Maybe b) -> [a] -> Maybe b
+findJust f [] = Nothing
+findJust f (x:xs) = case f x of
+   (y@ (Just _)) -> y
+   Nothing -> findJust f xs
 
 -- ---------------------------------------------------------------------------
 -- Ordered List Operations
@@ -183,3 +202,95 @@ splitToChar c = sTC
             fmap
                (\ (xs1,xs2) -> (x:xs1,xs2))
                (sTC xs)
+
+-- ------------------------------------------------------------------------
+-- Folding a Tree
+-- ------------------------------------------------------------------------
+
+---
+-- node is the tree's node type.
+-- state is folded through every node of the tree (and is the result).
+-- We search the tree in depth-first order, applying visitNode at each
+--   node to update the state.
+-- The ancestorInfo information comes from the ancestors of the node.  EG
+-- if we are visiting node N1 which came from N2 the ancestorInfo given to
+-- visitNode for N1 will be that computed from visitNode for N2. 
+-- For the root node, it will be initialAncestor
+treeFold :: 
+   (ancestorInfo -> state -> node -> (ancestorInfo,state,[node])) 
+   -> ancestorInfo -> state -> node 
+   -> state
+treeFold visitNode initialAncestor initialState node =
+   let
+      (newAncestor,newState,children) 
+         = visitNode initialAncestor initialState node
+   in
+      foldl
+         (\ state node -> treeFold visitNode newAncestor state node)
+         newState
+         children
+
+---
+-- Like treeFold, but using monads.
+treeFoldM :: Monad m =>
+   (ancestorInfo -> state -> node -> m (ancestorInfo,state,[node])) 
+   -> ancestorInfo -> state -> node 
+   -> m state
+treeFoldM visitNode initialAncestor initialState node =
+   do
+      (newAncestor,newState,children) 
+         <- visitNode initialAncestor initialState node
+      foldM
+         (\ state node -> treeFoldM visitNode newAncestor state node)
+         newState
+         children
+
+-- ------------------------------------------------------------------------
+-- Adding fall-out actions to IO actions
+-- ------------------------------------------------------------------------
+
+---
+-- A function indicating we want to escape from the current computation.
+type BreakFn = (forall other . String -> other)
+
+---
+-- Intended use, EG
+--    addFallOut (\ break ->
+--       do
+--          -- blah blah (normal IO a stuff) --
+--          when (break condition)  
+--             (break "You can't do that there ere")
+--          -- more blah blah, not executed if there's an break --
+--          return (value of type a)
+--       )
+addFallOut :: (BreakFn -> IO a) -> IO (Either String a)
+addFallOut getAct =
+   do
+      id <- newObject
+      let
+         break :: BreakFn
+         break mess = throwDyn (FallOutExcep {
+            fallOutId = id,mess = mess})
+      tryJust
+         (\ exception -> case dynExceptions exception of
+            Nothing -> Nothing -- don't handle this as it's not even a dyn.
+            Just dyn ->
+               case fromDyn dyn of
+                  Nothing -> Nothing -- not a fallout.
+                  Just fallOutExcep -> if fallOutId fallOutExcep /= id
+                     then
+                        Nothing 
+                        -- don't handle this; it's from another addFallOut
+                     else
+                        Just (mess fallOutExcep)
+            )
+         (getAct break)
+            
+data FallOutExcep = FallOutExcep {
+   fallOutId :: ObjectID,
+   mess :: String
+   }
+
+fallOutExcep_tyRep = mkTyRep "ExtendedPrelude" "FallOutExcep"
+instance HasTyRep FallOutExcep where
+   tyRep _ = fallOutExcep_tyRep

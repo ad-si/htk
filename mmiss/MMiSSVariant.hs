@@ -16,15 +16,30 @@ module MMiSSVariant(
    MMiSSVariantDict,
    newEmptyVariantDict,
    variantDictSearch,
+   variantDictSearchExact,
    addToVariantDict,
+   queryInsert,
+
+   emptyMMiSSSearchObject,
+   MMiSSSearchObject,
+   toMMiSSSearchObject,
+   toMMiSSSearchObjectFromXml,
+   mergeMMiSSSearchObjects,
+
    variantAttributesType,
    mkVariantAttributes,
+   extractVariantAttributes,
    ) where
 
 import Maybe
+import List
 
 import Array
 import Concurrent
+import FiniteMap
+import Set
+import Exception
+import XmlTypes(Attribute,AttValue(..))
 
 import ExtendedPrelude
 import Dynamics
@@ -49,6 +64,9 @@ variantAttributesArray :: Array Int String
 variantAttributesArray = 
    listArray (1,length variantAttributes) variantAttributes
 
+variantAttributesSet :: Set String
+variantAttributesSet = mkSet variantAttributes
+
 -- -------------------------------------------------------------------
 -- Here are the variantAttributes as an AttributesType.
 -- -------------------------------------------------------------------
@@ -72,27 +90,46 @@ newEmptyVariantDict =
       mVar <- newMVar emptyVariantDict
       return (MMiSSVariantDict mVar)
 
-variantDictSearch :: MMiSSVariantDict a -> Attributes -> 
+variantDictSearch :: MMiSSVariantDict a -> MMiSSSearchObject -> 
    IO (Maybe a)
-variantDictSearch (MMiSSVariantDict mVar) attributes =
+variantDictSearch (MMiSSVariantDict mVar) searchObject =
    do
       dict <- readMVar mVar
-      search dict (getValueOpt attributes)
+      return (searchVariantDict dict searchObject)
 
-addToVariantDict :: MMiSSVariantDict a -> Attributes -> a -> IO ()
-addToVariantDict (MMiSSVariantDict mVar) attributes value =
+variantDictSearchExact :: MMiSSVariantDict a -> MMiSSSearchObject -> 
+   IO (Maybe a)
+variantDictSearchExact (MMiSSVariantDict mVar) searchObject =
    do
-      (keys1 :: [Maybe String]) <- mapM
-         (\ str -> getValueOpt attributes str)
-         variantAttributes
-      let
-         (keys2 :: [(Int,Maybe String)]) =
-            zip [1..] keys1
-         (keys3 :: [(Int,String)]) = mapMaybe
-            (\ (i,sOpt) -> fmap (\ s -> (i,s)) sOpt)
-            keys2
+      dict <- readMVar mVar
+      return (searchVariantDictExact dict searchObject)
+
+addToVariantDict :: MMiSSVariantDict a -> MMiSSSearchObject -> a -> IO ()
+addToVariantDict (MMiSSVariantDict mVar) searchObject value =
+   do
       dict <- takeMVar mVar
-      putMVar mVar (addKey dict keys3 value)
+      putMVar mVar (addToPureVariantDict dict searchObject value)
+
+---
+-- Query if, when were immediately to insert a value with the second
+-- set of attributes (this), and then search with the first set (parent)
+-- we would get the value back.
+-- We use a ghastly exceptions-trick to insert a pseudo-value into the
+--    dictionary.
+-- The method looks inefficient since we have to create a new dictionary;
+--    however I hope that lazy evaluation will prevent too much work being
+--    done. 
+queryInsert :: MMiSSVariantDict a -> MMiSSSearchObject -> MMiSSSearchObject
+   -> IO Bool
+queryInsert (MMiSSVariantDict mVar) parent this =
+   do
+      dict <- readMVar mVar
+      let 
+         dict2 = addToPureVariantDict dict this (error "#")
+      catchJust 
+         errorCalls
+         ( (searchVariantDict dict2 parent) `seq` (return False))
+         (\ str -> if str == "#" then return True else error str)
 
 
 -- -------------------------------------------------------------------
@@ -114,39 +151,128 @@ emptyVariantDict :: VariantDict a
 emptyVariantDict = VariantDict [] Nothing
 
 -- -------------------------------------------------------------------
--- Matching against a value
+-- Searching by a map to strings, and handling inheritance of these values.
 -- -------------------------------------------------------------------
 
-search :: VariantDict a -> (String -> IO (Maybe String)) 
-   -> IO (Maybe a)
-search (VariantDict branches simple) getAttribute =
-   do
-      let
-         doRest [] = return simple
-         doRest ((level,key,dict):rest) =
-            do
-               let
-                  attKey = variantAttributesArray ! level
-               valOpt <- getAttribute attKey
-               let
-                  matched = case valOpt of
-                     Nothing -> True
-                     Just str -> (str == key)
-               if matched
-                  then
-                     do
-                        searched <- search dict getAttribute
-                        case searched of
-                           Nothing -> doRest rest
-                           _ -> return searched
-                  else
-                     doRest rest 
+---
+-- Contains variant attributes
+newtype MMiSSSearchObject = MMiSSSearchObject (FiniteMap String String)
+
+
+---
+-- No settings for variant attributes
+emptyMMiSSSearchObject :: MMiSSSearchObject
+emptyMMiSSSearchObject = MMiSSSearchObject emptyFM
+
+---
+-- Get the variant attributes
+toMMiSSSearchObject :: Attributes -> IO MMiSSSearchObject
+toMMiSSSearchObject attributes =
+  do
+     (attributePairs :: [Maybe (String,String)]) <-
+        mapM
+           (\ attKey ->
+              do
+                 strOpt <- getValueOpt attributes attKey
+                 case strOpt of
+                    Nothing -> return Nothing
+                    Just "" -> return Nothing
+                    Just str -> return (Just (attKey,str))
+              )
+           variantAttributes
+     return (MMiSSSearchObject (listToFM (catMaybes attributePairs)))
+
+---
+-- Get the variant attributes from a set of Xml attributes
+toMMiSSSearchObjectFromXml :: [Attribute] -> MMiSSSearchObject
+toMMiSSSearchObjectFromXml attributes =
+   MMiSSSearchObject (listToFM [ 
+      (key,value) | 
+         (key,AttValue [Left value]) <- attributes,
+         elementOf key variantAttributesSet 
+      ])
+
+---
+-- Search a dictionary by an MMiSSSearchObject
+searchVariantDict :: VariantDict a -> MMiSSSearchObject -> Maybe a
+searchVariantDict (VariantDict branches simple) 
+      (searchObject @ (MMiSSSearchObject attMap)) =
+   let
+      doRest [] = simple
+      doRest ((level,key,dict):rest) =
+         do
+            let
+               attKey = variantAttributesArray ! level
+               valOpt = lookupFM attMap attKey
+            let
+               matched = case valOpt of
+                  Nothing -> True
+                  Just str -> (str == key)
+            if matched
+               then
+                  case searchVariantDict dict searchObject of
+                     Nothing -> doRest rest
+                     searched -> searched
+               else
+                  doRest rest
+   in
       doRest branches
 
+---
+-- Search a dictionary by an MMiSSSearchObject, where we insist that
+-- we only match accept an exact match.
+searchVariantDictExact :: VariantDict a -> MMiSSSearchObject -> Maybe a
+searchVariantDictExact variantDict searchObject =
+   let
+      intKeys = convertMMiSSSearchObject searchObject               
+      doRest [] (VariantDict _ simple) = simple
+      doRest ((index,val) : rest) (VariantDict branches _) =
+         let
+            findFun (index2,val2,dict2) =
+               if (index2,val2) == (index,val) then Just dict2 else Nothing
+         in
+            case findJust findFun branches of
+               Nothing -> Nothing
+               Just dict -> doRest rest dict
+   in
+      doRest intKeys variantDict
+
+---
+-- Merge two search objects.  The settings in the second one take priority.
+mergeMMiSSSearchObjects :: MMiSSSearchObject -> MMiSSSearchObject 
+   -> MMiSSSearchObject
+mergeMMiSSSearchObjects (MMiSSSearchObject map1) (MMiSSSearchObject map2) =
+   (MMiSSSearchObject (plusFM map1 map2))
+
 -- -------------------------------------------------------------------
--- Adding a new key.
+-- Adding to a variant dictionary
 -- -------------------------------------------------------------------
 
+
+---
+-- Add a key, the key data being specified by a set of String options,
+-- in the order of variantAttributes.
+addToPureVariantDict :: VariantDict a -> MMiSSSearchObject -> a 
+   -> VariantDict a
+addToPureVariantDict variantDict mmissSearchObject value =
+   addKey variantDict (convertMMiSSSearchObject mmissSearchObject) value
+
+---
+-- Convert an MMiSSSearchObject into (Int,String) representation, listing
+-- the set attributes by index
+convertMMiSSSearchObject :: MMiSSSearchObject -> [(Int,String)]
+convertMMiSSSearchObject (MMiSSSearchObject attMap) =
+   let
+      (keys1 :: [Maybe String]) 
+         = map (\ str -> lookupFM attMap str) variantAttributes
+      (keys2 :: [(Int,Maybe String)]) =
+         zip [1..] keys1
+      (keys3 :: [(Int,String)]) = mapMaybe
+         (\ (i,sOpt) -> fmap (\ s -> (i,s)) sOpt)
+         keys2
+   in
+      keys3
+  
 ---
 -- Add a key.  The key data is specified by a list of (Int,String) pairs,
 -- where the integers specify the relevant variant attribute and MUST BE
@@ -215,3 +341,13 @@ mkVariantAttributes atts =
                   Just ( _ :: String) -> done
                   Nothing -> setValue atts str ""
       mapM_ fillIn variantAttributes
+
+---
+-- Filter a set of Xml Attributes to extract only the variant attributes
+extractVariantAttributes :: [Attribute] -> [Attribute]
+extractVariantAttributes attributes =
+   filter
+      (\ (name,attVal) -> elementOf name variantAttributesSet
+         )
+      attributes
+   

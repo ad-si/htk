@@ -59,6 +59,8 @@ module Computation (
 
         fromWithError, -- :: WithError a -> Either String a
         -- unpack a WithError
+        toWithError, -- :: Either String a -> WithError a
+        -- pack a WithError
 
         mapWithError, -- :: (a -> b) -> WithError a -> WithError b
         mapWithError', -- :: (a -> WithError b) -> WithError a -> WithError b
@@ -146,6 +148,10 @@ hasError str = Error str
 
 hasValue :: a -> WithError a
 hasValue a = Value a
+
+toWithError :: Either String a -> WithError a
+toWithError (Left s) = Error s
+toWithError (Right a) = Value a
 
 fromWithError :: WithError a -> Either String a
 fromWithError (Error s) = Left s

@@ -124,7 +124,7 @@ data StructuredContent = StructuredContent {
 
 data AccContents = AccContents {
    contents :: [Content], -- what's inside the object
-   includes :: [String], -- included entities (not in this XML document)
+   includes :: [String], -- included entities (including ones in this document)
    children :: [StructuredContent], 
       -- included entities (in this XML document)
    references :: [String] -- referenced entities

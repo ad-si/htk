@@ -1,4 +1,5 @@
-SRCS = TestObject.hs TestDynamics.hs TestDynamics2.hs TestOptions.hs Huffman.hs TestFact.hs
+SRCS = TestObject.hs TestDynamics.hs TestDynamics2.hs TestOptions.hs \
+   Huffman.hs TestFact.hs TestFallOut.hs
 
 PACKAGES = uni-util
 PACKAGE = uni-util-test
