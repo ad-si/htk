@@ -65,15 +65,15 @@ where
 
 import qualified Data.FiniteMap
 
-import qualified Dynamic
-import Dynamic(Typeable(..),TypeRep)
+import qualified Data.Dynamic
+import Data.Dynamic(Typeable(..),TypeRep)
 import Computation
 import Debug(debug)
 import CompileFlags
 import TemplateHaskellHelps
 
 fromDyn :: Typeable a => Dyn -> Maybe a
-fromDyn = Dynamic.fromDynamic
+fromDyn = Data.Dynamic.fromDynamic
 
 fromDynWE :: Typeable a => Dyn -> WithError a
 fromDynWE dyn = 
@@ -86,16 +86,16 @@ fromDynWE dyn =
    where
       typeHack :: Maybe a -> a
       typeHack _ = undefined
-type Dyn = Dynamic.Dynamic
+type Dyn = Data.Dynamic.Dynamic
 
 toDyn :: Typeable a => a -> Dyn
-toDyn = Dynamic.toDyn
+toDyn = Data.Dynamic.toDyn
 
-type TypeTag = Dynamic.TypeRep
-type TyCon = Dynamic.TyCon
+type TypeTag = Data.Dynamic.TypeRep
+type TyCon = Data.Dynamic.TyCon
 
 mkTyRep :: String -> String -> TyRep
-mkTyRep mname tname = TyRep (Dynamic.mkTyCon (mname ++ "." ++ tname)) []
+mkTyRep mname tname = TyRep (Data.Dynamic.mkTyCon (mname ++ "." ++ tname)) []
 
 coerce  :: Typeable a => Dyn -> a
 coerce d = 
@@ -149,9 +149,9 @@ toTypeRep (TyRep tyCon typeReps) =
          $(
             if ghcShortVersion >= 603
                then
-                  dynName "Dynamic.mkTyConApp"
+                  dynName "Data.Dynamic.mkTyConApp"
                else
-                  dynName "Dynamic.mkAppTy"
+                  dynName "Data.Dynamic.mkAppTy"
             )
    in
       mkTyConApp tyCon (reverse typeReps)
