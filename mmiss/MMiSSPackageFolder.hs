@@ -380,7 +380,8 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
             menuOptions = [
                Button "Open Package" (\ link -> openAction link),
                Button "Close Package" (\ link -> closeAction link),
-               Button "Reimport Package" (\ link -> reimportPackage view link)
+               Button "Reimport Package" (\ link 
+                  -> reimportMMiSSPackage view link)
                ]
 
             menu = LocalMenu (Menu Nothing menuOptions)

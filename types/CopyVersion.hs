@@ -11,6 +11,7 @@ import Data.FiniteMap
 import Control.Concurrent.MVar
 
 import Computation
+import ExtendedPrelude(catchOurExceps)
 import Sources
 import Broadcaster
 import FileSystem
@@ -75,14 +76,14 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            Nothing -> error "CopyVersion: unknown parent"
            Just toVersion -> toVersion
 
-     -- (0.5) Get a View for the old version.
+     -- (1) Get a View for the old version.
      view0 <- getView fromRepository fromVersionSimpleGraph fromVersion
 
-     -- (1) get diffs for fromVersion from its parents.
+     -- (2) get diffs for fromVersion from its parents.
      (diffs :: [(Location,Diff)])
          <- getDiffs fromRepository fromVersion (map from parents)
 
-     -- (1.2) construct view for new version.
+     -- (3) construct view for new version.
      let
         viewId1 = viewId view0
         repository1 = toRepository 
@@ -108,7 +109,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            importsState = importsState1
            }
 
-     -- (1.3) Turn the diffs into object versions.
+     -- (4) Turn the diffs into object versions.
 
      -- We need to get at ALL the WrappedMergeLinks for the source view,
      -- so we can know to which links copyObject needs to be applied.  We
@@ -161,7 +162,6 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
                        objectSource1 <- importICStringLen codedValue1
                        return objectSource1
 
-
      (commitChanges0 :: [Maybe (Location,CommitChange)])
         <- mapM
            (\ (location,diff) ->
@@ -197,11 +197,26 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         redirects :: [(Location,Maybe ObjectVersion)]
         redirects = mapMaybe toRedirect diffs
  
-     -- (2) we can now commit.
+     -- (6) we can now commit.
+     let
+        headVersionOpt = case parents of
+           [] -> Nothing
+           parent : _ -> Just (to parent)
+
+        version1 = version (user toVersionInfo)
+
+        versionInformation = case headVersionOpt of
+           Nothing -> Version1 version1
+           Just headVersion -> Version1Plus version1 headVersion
      
-     catchAlreadyExists 
-        (commit toRepository (Version1 (version (user toVersionInfo)))
-           redirects commitChanges)
+
+     sOrUnit <- catchOurExceps
+        (commit toRepository versionInformation redirects commitChanges)
+
+     case sOrUnit of
+        Left mess -> putStrLn mess
+        Right () -> done
+
      -- an already-exists can happen when two people simultaneously try to
      -- copy the same version to the same repository.
      done

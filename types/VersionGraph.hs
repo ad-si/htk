@@ -255,7 +255,7 @@ newVersionGraph1
                         else
                            createErrorWin 
                               ("Version is not checked into this repository\n"
-                              ++ "(It must be a parent version from another "
+                              ++ "(It may be a parent version from another "
                               ++ "repository)") []
 
          reallyCheckOutNode :: UserInfo -> Node -> Version -> IO ()
@@ -416,7 +416,7 @@ newVersionGraph1
                         then
                            identifier1
                         else
-                           "[" ++ identifier1 ++ "]"
+                           "(" ++ identifier1 ++ ")"
                return identifier2
 
          -- Function to be used to select checked-in versions.

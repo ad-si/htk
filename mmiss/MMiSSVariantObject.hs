@@ -109,11 +109,17 @@ module MMiSSVariantObject(
    displayObjectVariants,
       -- :: VariantObject object cache -> IO ()
 
+   copyVariantObject,
+      -- :: (ObjectVersion -> IO VersionInfo) -> VariantObject object cache
+      -- -> IO (VariantObject object cache)
+      -- Used in MergeTypes.copyObject.
+
    ) where
 
 import Maybe
 
 import Control.Concurrent.MVar
+import System.IO.Unsafe(unsafeInterleaveIO)
 
 import Dynamics
 import Computation (done)
@@ -122,6 +128,8 @@ import Broadcaster
 import Sink
 
 import DialogWin
+
+import VersionInfo
 
 import CodedValue
 import AttributesType
@@ -162,8 +170,6 @@ newVariantObject :: (object -> IO cache) -> object -> MMiSSVariantSpec
    -> IO (VariantObject object cache)
 newVariantObject converter object variantSpec =
    do
-      cache <- converter object
-      
       dictionary <- newEmptyVariantDict 
       addToVariantDict dictionary variantSpec object
 
@@ -220,7 +226,10 @@ unfreezeVariantObject converter frozen =
          Just object -> return object
          Nothing -> error "unfreezeVariantObject failed"
 
-      cache1 <- converter object
+      cache1 <- unsafeInterleaveIO (converter object)
+         -- the cache won't be needed for copyVariantObject, for example,
+         -- and as it requires getting the element it would be a pity to
+         -- compute it unnecessarily.
 
       cache <- newSimpleBroadcaster cache1
 
@@ -437,7 +446,7 @@ getCurrentVariantSearch variantObject =
       return (fromMMiSSSpecToSearch variantSpec)
 
 -- -----------------------------------------------------------------------
--- Merging
+-- Merging and copying.
 -- -----------------------------------------------------------------------
 
 variantObjectObjectLinks 
@@ -480,6 +489,19 @@ variantObjectsSame :: (object -> object -> Bool)
 variantObjectsSame testEq variantObject1 variantObject2 =
    variantDictsSame testEq 
       (dictionary variantObject1) (dictionary variantObject2)
+
+
+copyVariantObject 
+   :: (ObjectVersion -> IO VersionInfo) -> VariantObject object cache
+   -> IO (VariantObject object cache)
+copyVariantObject getNewVersionInfo variantObject0 =
+   do
+      let
+         dictionary0 = dictionary variantObject0
+      dictionary1 <- copyVariantDict getNewVersionInfo dictionary0
+      let
+         variantObject1 = variantObject0 {dictionary = dictionary1}
+      return variantObject1
 
 -- -----------------------------------------------------------------------
 -- Displaying

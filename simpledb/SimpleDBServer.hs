@@ -165,6 +165,9 @@ data VersionInformation =
          -- ^ Just the version number.  For Commit, it is expected that
          -- ModifyUserInfo has already been used to set the information.
          -- For ModifyUserInfo, this option is illegal.
+   |  Version1Plus ObjectVersion ObjectVersion
+         -- ^ Just the version number and the head parent version to use
+         -- (in that order)
    deriving (Show)
 
 data Diff = 
@@ -245,12 +248,14 @@ instance MonadIO m => HasWrapper VersionInformation m where
    wraps = [
       wrap1 0 UserInfo1,
       wrap1 1 VersionInfo1,
-      wrap1 2 Version1
+      wrap1 2 Version1,
+      wrap2 3 Version1Plus
       ]
    unWrap = (\ wrapper -> case wrapper of
       UserInfo1 u -> UnWrap 0 u
       VersionInfo1 v -> UnWrap 1 v
       Version1 v -> UnWrap 2 v
+      Version1Plus v p -> UnWrap 3 (v,p)
       )
 
 instance MonadIO m => HasWrapper SimpleDBResponse m where
@@ -441,7 +446,17 @@ querySimpleDB user
                      versionInfoOpt <- lookupVersionInfo versionState
                         version
                      case versionInfoOpt of
-                        Just versionInfo -> commit versionInfo
+                        Just versionInfo -> commit Nothing versionInfo
+                        Nothing -> toError ("Attempt to commit to " ++
+                           toString version ++ " although no VersionInfo"
+                           ++ " is known for this version.")
+               Version1Plus version headVersion ->
+                  do
+                     versionInfoOpt <- lookupVersionInfo versionState
+                        version
+                     case versionInfoOpt of
+                        Just versionInfo 
+                           -> commit (Just headVersion) versionInfo
                         Nothing -> toError ("Attempt to commit to " ++
                            toString version ++ " although no VersionInfo"
                            ++ " is known for this version.")
@@ -455,28 +470,31 @@ querySimpleDB user
             commitVersionInfoWE versionInfoWE =
                case fromWithError versionInfoWE of
                   Left mess -> toError mess
-                  Right versionInfo -> commit versionInfo 
+                  Right versionInfo -> commit Nothing versionInfo 
 
             toError :: String -> IO SimpleDBResponse
             toError mess = return (IsError mess)
 
-            commit :: VersionInfo -> IO SimpleDBResponse
-            commit versionInfo0 =
+            commit :: Maybe ObjectVersion -> VersionInfo -> IO SimpleDBResponse
+            commit headVersionOpt versionInfo0 =
                case commitVersionInfo versionInfo0 of
                   Nothing -> alreadyExists (version 
                      (VersionInfo.user versionInfo0))
-                  Just versionInfo1 -> commit1 versionInfo1
+                  Just versionInfo1 -> commit1 headVersionOpt versionInfo1
 
-            commit1 :: VersionInfo -> IO SimpleDBResponse
-            commit1 versionInfo =
+            commit1 
+               :: Maybe ObjectVersion -> VersionInfo -> IO SimpleDBResponse
+            commit1 headVersionOpt versionInfo =
                do
                   let
                      thisVersion = version (VersionInfo.user versionInfo)
 
                      parentVersionOpt = 
-                        case parents (VersionInfo.user versionInfo) of
-                           [] -> Nothing
-                           head : _ -> Just head
+                        case (headVersionOpt,
+                              parents (VersionInfo.user versionInfo)) of
+                           (Just parentVersion,_) -> headVersionOpt
+                           (Nothing,[]) -> Nothing
+                           (Nothing,head : _) -> Just head
 
                   txn <- beginTransaction
 
@@ -519,7 +537,7 @@ querySimpleDB user
                            -- transmit extra version data if necessary
                            -- (We do this even for Version1, since the
                            -- isPresent flag will have been set.)
-                           addVersionInfo versionState (False,versionInfo)
+                           addVersionInfo versionState versionInfo
                            return IsOK
                      Left mess -> 
                         do
@@ -569,8 +587,7 @@ querySimpleDB user
                               case versionInfoOrError of
                                  Right versionInfo1 -> 
                                     do
-                                       addVersionInfo versionState 
-                                          (False,versionInfo1)
+                                       addVersionInfo versionState versionInfo1
                                        return IsOK
                                  Left mess -> return (IsError mess)
                         Just versionInfo0 ->
@@ -588,8 +605,7 @@ querySimpleDB user
                               case fromWithError versionInfo1WE of
                                  Right versionInfo1 ->
                                     do
-                                       addVersionInfo versionState 
-                                          (True,versionInfo1)
+                                       addVersionInfo versionState versionInfo1
                                        return IsOK
                                  Left mess -> return (IsError mess)
       GetVersionInfo objectVersion ->

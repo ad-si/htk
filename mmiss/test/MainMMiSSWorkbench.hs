@@ -32,7 +32,15 @@ import EmacsBasic
 
 import MMiSSRegistrations
 
+-- We put a catchOurExceps round everything, just in case.
 main =
+   do
+      ourExcep <- catchOurExceps main1
+      case ourExcep of
+         Left mess -> putStrLn mess
+         Right () -> done
+
+main1 =
    do
       parseArgumentsRequiring [
          "top",

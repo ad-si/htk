@@ -21,6 +21,7 @@ import Control.Exception
 
 import Registry
 import Computation(done)
+import ExtendedPrelude(ourExcepToMess)
 
 import Events
 import Destructible
@@ -94,9 +95,12 @@ addVersionGraph displaySort hostPortOpt =
                      case repositoryOrCancelOrError of
                         Left excep ->
                            do
+                              let
+                                 excepStr = fromMaybe (show excep) 
+                                    (ourExcepToMess excep) 
                               createErrorWin (
                                  "Failed to connect to " ++ show hostPort ++
-                                 " with error " ++ show excep
+                                 " with error " ++ excepStr
                                  ) []
                               return (versionGraphOpt,())
                         Right (Left mess) ->

@@ -48,9 +48,8 @@ module VersionInfo(
    mkVersionState, -- :: Bool -> IO VersionState
       -- The Bool should be True for an internal server, False otherwise.
    addVersionInfo, 
-      -- :: VersionState -> (Bool,VersionInfo) -> IO ()
-      -- Modify the VersionInfos.  The Bool should be set if and only if
-      --    the given VersionInfo already exists.
+      -- :: VersionState -> VersionInfo -> IO ()
+      -- Modify the VersionInfos. 
    lookupVersionInfo,
       -- :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
    lookupServerInfo,
@@ -92,6 +91,7 @@ module VersionInfo(
 
 import IO
 import Time
+import Maybe
 
 import System.IO.Unsafe
 import Data.IORef
@@ -305,7 +305,7 @@ mkVersionInfo versionState user (Right versionInfo) =
       in
          if thisUser == PasswordFile.userId user || PasswordFile.isAdmin user 
             then
-               hasValue versionInfo
+               hasValue (versionInfo {isPresent = False})
             else
                hasError ("You cannot copy versions from " 
                   ++ thisUser ++ " into this repository.")
@@ -414,8 +414,8 @@ mkVersionState isInternal =
          thisServerId = thisServerId
          })
 
-addVersionInfo :: VersionState -> (Bool,VersionInfo) -> IO ()
-addVersionInfo versionState (iv @ (isEdit,versionInfo)) =
+addVersionInfo :: VersionState -> VersionInfo -> IO ()
+addVersionInfo versionState versionInfo =
    do
       -- We do everything inside the "External" action, thus ensuring that
       -- we do not conflict with any simultaneous client action.
@@ -425,13 +425,17 @@ addVersionInfo versionState (iv @ (isEdit,versionInfo)) =
       versionInfoAct
          (do
             writeLog (logFile versionState) versionInfo
-            modifyMVar_ (versionInfosRef versionState) 
+            isEdit <- modifyMVar (versionInfosRef versionState) 
                (\ versionInfosMaps0 ->
                   return (
                      let
                         objectVersion = version (user versionInfo)
 
-                        fromVersion1 = addToFM (fromVersion versionInfosMaps0) 
+                        fromVersion0 = fromVersion versionInfosMaps0
+
+                        isEdit = isJust (lookupFM fromVersion0 objectVersion)
+
+                        fromVersion1 = addToFM fromVersion0 
                            objectVersion versionInfo
                         fromServer1 = addToFM (fromServer versionInfosMaps0) 
                            (server versionInfo) objectVersion
@@ -439,10 +443,10 @@ addVersionInfo versionState (iv @ (isEdit,versionInfo)) =
                         versionInfoMaps1 = VersionInfosMaps {
                            fromVersion = fromVersion1,fromServer = fromServer1}
                      in
-                        versionInfoMaps1
+                        (versionInfoMaps1,isEdit)
                      )
                   )
-            return  iv
+            return (isEdit,versionInfo)
             )
 
 lookupVersionInfo :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
@@ -508,7 +512,9 @@ topVersionInfo = VersionInfo {
       timeStamp = initialClockTime,
       userId = ""
       },
-   isPresent = True
+   isPresent = False 
+      -- as indeed it is when the repository is initialised, the only time
+      -- topVersionInfo is used.
    }
    
 

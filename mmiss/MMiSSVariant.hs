@@ -44,6 +44,12 @@ module MMiSSVariant(
 
    displayMMiSSVariantDictKeys, -- :: MMiSSVariantDict object -> IO ()
       -- put up a window describing the keys in the object.
+
+   copyVariantDict 
+      -- :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object 
+      -- -> IO (MMiSSVariantDict object)
+      -- This operation is used to update the version numbers when copying
+      -- a VariantDict object from one repository to another.
    ) where
 
 import Maybe
@@ -52,7 +58,7 @@ import Monad
 import Control.Concurrent.MVar
 import Data.FiniteMap
 
-import Computation (done)
+import Computation (done,fromWithError)
 import AtomString
 import Registry
 import ExtendedPrelude
@@ -61,6 +67,8 @@ import Dynamics
 import LogWin
 
 import GraphOps
+
+import VersionInfo
 
 import ViewType
 import View
@@ -132,8 +140,7 @@ versionVariant = VariantAttribute {
       let
          -- Awful temporary hack so we prefer higher version numbers.
          toNum :: Maybe String -> Maybe Integer
-         toNum (Just s) = case reads s of
-            [(i,_)] -> Just i
+         toNum (Just s) = readCheck s
          toNum Nothing = Nothing
       in
          return (
@@ -696,3 +703,51 @@ displayMMiSSVariantDictKeys (MMiSSVariantDict registry) =
       win <- createLogWin []
       writeLogWin win description
 
+-- ------------------------------------------------------------------------
+-- Copying a VariantDict.
+-- ------------------------------------------------------------------------
+
+-- | This operation is used to update the version numbers when copying
+-- a VariantDict object from one repository to another.
+copyVariantDict 
+   :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object 
+   -> IO (MMiSSVariantDict object)
+copyVariantDict getNewVersionInfo (MMiSSVariantDict registry0) =
+   do
+      contents0 <- listRegistryContents registry0
+      contents1 <- mapM
+         (\ (variants0,object) ->
+            do
+               variants1 <- copyVariants getNewVersionInfo variants0
+               return (variants1,object)
+            )
+         contents0
+      registry1 <- listToNewRegistry contents1
+      return (MMiSSVariantDict registry1)
+      
+
+copyVariants
+   :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariants
+   -> IO MMiSSVariants
+copyVariants getNewVersionInfo variants0 =
+   let
+      versionStringOpt = getVersion variants0
+   in
+      case versionStringOpt of
+         Nothing -> return variants0
+         Just versionString0 -> 
+            case fromWithError (fromStringWE versionString0) of
+               Left _ ->
+                  do
+                     putStrLn ("Mysterious version number " ++ versionString0
+                        ++ "; why?")
+                     return variants0
+               Right (version0 :: ObjectVersion) ->
+                  do
+                     versionInfo1 <- getNewVersionInfo version0
+                     let
+                        version1 = version (user versionInfo1)
+
+                        variants1 = setVersion variants0 (toString version1)
+                     return variants1
+   

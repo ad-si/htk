@@ -70,6 +70,8 @@ module ExtendedPrelude (
 
    addGeneralFallOut,
    GeneralBreakFn(..),GeneralCatchFn(..),
+   catchOurExceps, -- :: IO a -> IO (Either String a) 
+   ourExcepToMess, -- :: Exception -> Maybe String
 
    EqIO(..),OrdIO(..),
 
@@ -549,7 +551,22 @@ newGeneralFallOut =
 
       return (id,GeneralCatchFn tryFn)
 
+-- ------------------------------------------------------------------------
+-- General catch function for our exceptions.
+-- ------------------------------------------------------------------------
 
+ourExcepToMess :: Exception -> Maybe String
+ourExcepToMess excep = case dynExceptions excep of
+   Nothing -> Nothing
+   Just dyn -> 
+      case fromDyn dyn of
+         Just fallOut -> Just ("Fall-out exception " 
+            ++ show (fallOutId fallOut) ++ ": " ++ mess fallOut)
+         Nothing -> Just ("Mysterious dynamic exception " ++ show dyn)
+
+catchOurExceps :: IO a -> IO (Either String a) 
+catchOurExceps act =
+   tryJust ourExcepToMess act
 
 -- ------------------------------------------------------------------------
 -- Where equality and comparing requires IO.

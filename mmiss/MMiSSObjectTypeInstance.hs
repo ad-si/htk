@@ -328,6 +328,15 @@ instance HasMerging MMiSSObject where
          )
       )
 
+   copyObject = Just (\ view0 object0 view1 getNewVersionInfo ->
+      do
+         let
+            variantObject0 = variantObject object0
+         variantObject1 <- copyVariantObject getNewVersionInfo variantObject0
+         let
+            object1 = object0 {variantObject = variantObject1}
+         return object1
+      )
 -- We also need a (trivial) HasMerging instance for Element
 
 instance HasMerging Element where

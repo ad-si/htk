@@ -130,7 +130,7 @@ prepareVersions (FromTo {from = fromGraph,to = toGraph}) versions =
             do
                (protoState1,_) <- prepareOneVersion fromGraph serverInfoDict
                   protoState0 oldVersion
-               return protoState0
+               return protoState1
             )
          protoState0
          versions
@@ -256,7 +256,7 @@ copyProtoStateVersions toGraph protoState =
                          )
                      responses1 protoVersions
                   )
-                   
+
       let
          -- Map from old object versions which have not yet been constructed
          -- to the corresponding new object version.

@@ -9,7 +9,7 @@ import Maybe
 import Computation
 import ExtendedPrelude
 import Registry
-import Thread(mapMConcurrent_)
+import Thread(mapMConcurrentExcep)
 
 import HTk(text,photo)
 import SimpleForm
@@ -18,8 +18,6 @@ import DialogWin
 import Graph
 import SimpleGraph
 import FindCommonParents
-import GetAncestors
-
 
 import HostsPorts(HostPort)
 
@@ -134,13 +132,20 @@ copyVersions versionGraphFrom =
                graphTo = toVersionGraphGraph versionGraphTo
 
                -- Construct GraphBack for purposes of findCommonParents.
-               -- To make sure we only pick up on nodes whose views have
-               -- actually been committed to the repository, we use 
-               -- getAncestors so that getParents misses out on the others.
 
-               mkGraphBack :: VersionTypes SimpleGraph ->
-                  GraphBack ObjectVersion VersionInfoKey
-               mkGraphBack graph = GraphBack {
+               -- We need to assume all nodes which have isPresent = False
+               -- are not equal to any node in the other graph, since they
+               -- are useless for copying.
+               -- We do this by giving mkGraphBack an extra Bool whichGraph
+               -- and giving nodes an extra key which is
+               --    0 if isPresent = True
+               --    1 if isPresent = False and mkGraphBack = False
+               --    2 if isPresent = False and mkGraphBack = True,
+               -- so ensuring that two nodes from different graphs will only 
+               -- compare equal if they both have isPresent = True 
+               mkGraphBack :: Bool -> VersionTypes SimpleGraph ->
+                  GraphBack ObjectVersion (VersionInfoKey,Int)
+               mkGraphBack whichGraph graph = GraphBack {
                   getAllNodes = 
                      (do
                         nodes <- getNodes graph
@@ -152,36 +157,30 @@ copyVersions versionGraphFrom =
                            node = versionToNode version
 
                         versionInfo <- getNodeLabel graph node
-                        return (Just (mapVersionInfo versionInfo))
+                        let
+                           extraKey = 
+                              if isPresent versionInfo
+                                 then
+                                    0
+                                 else
+                                    if whichGraph then 2 else 1
+                        return (Just (mapVersionInfo versionInfo,extraKey))
                      ),
                   getParents = (\ version ->
                      do
-                    
                         let
                            node = versionToNode version
 
-                        ancestors <- getAncestors
-                           graph
-                           (\ versionInfo -> return (isPresent versionInfo))
-                           node
-
-                        let
-                           versions = map
-                              (\ node -> case nodeToVersion node of
-                                 Just version -> version
-                                 -- Nothing is impossible since no version
-                                 -- may have a view as parent.
-                                 )
-                              ancestors
-
-                        return (Just versions)
+                        versionInfo <- getNodeLabel graph node
+                        return (Just (parents (user versionInfo)))
                      )
                   }
 
+
             (commonParents 
                :: [(ObjectVersion,[(ObjectVersion,Maybe ObjectVersion)])])
-               <- findCommonParents (mkGraphBack graphFrom) 
-                  (mkGraphBack graphTo) versions
+               <- findCommonParents (mkGraphBack False graphFrom) 
+                  (mkGraphBack True graphTo) versions
 
             -- Now copy the VersionInfos
             (toNewVersionInfo :: ObjectVersion -> IO VersionInfo)
@@ -216,7 +215,7 @@ copyVersions versionGraphFrom =
             -- if either server is a long way away and we have a lot of
             -- versions to copy, the commands will get bunched together 
             -- using the MultiCommand mechanism.
-            mapMConcurrent_ copyOne commonParents
- 
+            mapMConcurrentExcep copyOne commonParents
+            done
          )
       done
