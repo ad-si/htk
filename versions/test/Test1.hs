@@ -18,6 +18,8 @@ import System
 
 import FileNames
 
+import InfoBus
+
 import UniTypes
 import FileSys
 
