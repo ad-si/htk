@@ -43,7 +43,7 @@ HAXMLSRCS = \
 include @TOP@/mk/boilerplate.mk
 
 lnsrcs : Makefile
-	$(RM) -rf Text
+	$(RM) -rf Text tools/MainDtdToHaskell.hs
 	$(foreach file,$(HAXMLSRCS),\
            $(MKDIR) -p `dirname $(file)` \
            && $(LN) -s $(HAXML)/$(file) $(file) &&) \
