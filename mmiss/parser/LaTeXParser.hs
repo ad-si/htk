@@ -622,17 +622,17 @@ hideRevealDirectiveParser =
   try(do spaces
          string "Hide"
          char '{'
-         nameList <- commaSep identifierParser
+         nameList <- commaSep (entityFullNameParser [])
          char '}'
          spaces
-         return([Hide (map EntityName nameList)]))
+         return([Hide nameList]))
   <|> try(do spaces
              string "Reveal"
              char '{'
-             nameList <- commaSep identifierParser
+             nameList <- commaSep (entityFullNameParser [])
              char '}'
              spaces
-             return([Reveal (map EntityName nameList)]))
+             return([Reveal nameList]))
 
 -- Parst die Liste der Umbenennungen von Namen (Rename-Direktive):
 renameDirectiveParser :: GenParser Char st [Directive]
@@ -652,9 +652,9 @@ namePairParser = try( do spaces
                          spaces
                          char '='
                          spaces
-                         secondName <-identifierParser
+                         secondName <- entityFullNameParser []
                          spaces
-                         return(Rename (EntityName firstName) (EntityName secondName)))
+                         return(Rename (EntityName firstName) secondName))
 
 -- Parst eine einzelne Direktive:
 directiveParser :: GenParser Char st [Directive]
@@ -784,22 +784,22 @@ findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs _ =
       xmlAtts = map convertAttrib (atts1 ++ atts2)
       content = makeContent fs NoText "package"
   in case (fromWithError content) of
-       Right c -> let elem = hasValue(Elem "package" xmlAtts c)
-                      mmissPreamble = 
-                              case fromWithError latexPre of
-                                 Left str -> hasError(str)
-                                 Right(lp) -> 
-                                   case lp of
-                                      Just(p) ->
-                                        let impCmds = case fromWithError(importCmds) of
-                                                         Right(v) -> v
-                                                         Left str -> Nothing
-                                        in  hasValue (Just(MMiSSLatexPreamble {
+       Right c -> pairWithError elem mmissPreamble 
+                  where 
+                  elem = hasValue(Elem "package" xmlAtts c)
+                  mmissPreamble = 
+                      case fromWithError latexPre of
+                        Left str -> hasError(str)
+                        Right(lp) -> case lp of 
+                                       Just(p) -> wE_MMiSSLatexPreamble p
+                                       Nothing -> hasError("MMiSSLatexPreamble is empty!")
+                  wE_MMiSSLatexPreamble p = 
+                      case fromWithError(importCmds) of
+                        Right(impCmds) -> hasValue (Just(MMiSSLatexPreamble {
                                                              latexPreamble = p,
                                                              importCommands = impCmds
                                                            }))
-                                      Nothing -> hasError("MMiSSLatexPreamble is empty!")
-                  in pairWithError elem mmissPreamble 
+                        Left str -> hasError(str)
 
        Left err -> let preEl = fromWithError(pairWithError latexPre importCmds)
                        mmissPreamble = case preEl of 
@@ -910,9 +910,9 @@ makePreRest (f1:f2:fs) inStr =
 
 {-- addPropertiesFrag bekommt die Fragmente der Präambel sowie die Attribute, die am Package-Env.
 definiert wurden übergeben und erzeugt daraus eine geänderte Liste von Präambel-Fragmenten.
-Dazu wird das \Properties-Commando aus der Präambel herausgefiltert und dessen Attributwert mit denen
+Dazu wird das \Properties-Kommando aus der Präambel herausgefiltert und dessen Attributwerte mit denen
 des Packages vereiningt. Diese neuen Attributwerte werden wiederum als \Properties-Fragment codiert
-und in die zurückgegeben Fragement-Liste eingefügt. Im Prinzip werden also die Package-Attributwerte
+und in die zurückgegebene Fragment-Liste eingefügt. Im Prinzip werden also die Package-Attributwerte
 in das \Properties-Fragment, das in der Präambel steht, hineingesetzt.
 --}
 addPropertiesFrag :: [Frag] -> Attributes -> ([Frag], Attributes)
@@ -1715,7 +1715,7 @@ makePreambleText mmissPreamble =
       str2 = case impCmds of
                Just(cmds) -> makeImportsText cmds
                Nothing -> ""
-  in str1 ++ str2
+  in str1 ++ "\n\n" ++ str2 ++ "\n"
 
 makePackageText :: String -> Package -> String
 makePackageText commandName (Package options name versiondate) =
@@ -1734,7 +1734,7 @@ makeImportsText (ImportCommands cmds) =
   in concat (map (++ "\n") impStrs)
 
 makeImportCmdText :: ImportCommand -> String
-makeImportCmdText (Import ds (EntityFullName entityNames)) =
+makeImportCmdText (Import ds packageFullName) =
   let renStr = collectRenames ds ""
       newDs = filter (not.isRename) ds
       dirStr = if ((genericLength newDs) > 0)
@@ -1743,14 +1743,11 @@ makeImportCmdText (Import ds (EntityFullName entityNames)) =
       tmpStr = if ((genericLength renStr) > 1) && ((genericLength dirStr) > 1)
                  then ", "
                  else ""
-      packageName = let namesList = [ str | (EntityName str) <- entityNames]
-                    in if (namesList == [])
-                         then ""
-                         else init (concat (map (++ ".") namesList))
+      packageNameStr = toString packageFullName 
       directivesStr = if (dirStr ++ tmpStr ++ renStr) == "" 
                         then ""
                         else "[" ++ (dirStr ++ tmpStr ++ renStr) ++ "]"
-  in "\\Import" ++ directivesStr ++ "{" ++ packageName ++ "}"    
+  in "\\Import" ++ directivesStr ++ "{" ++ packageNameStr ++ "}"    
 
 makeImportCmdText (PathAlias (EntityName alias) (EntityFullName entityNames)) =
   let namesList = [ str | (EntityName str) <- entityNames]
@@ -1765,18 +1762,22 @@ makeDirectiveText Qualified = ", Qualified"
 makeDirectiveText Unqualified = ", Unqualified"
 makeDirectiveText Global = ", Global"
 makeDirectiveText Local = ", Local"
-makeDirectiveText (Hide names) = 
-  let l = [ n | (EntityName n) <- names]
-      str = if l == [] then "" else init (concat (map (++ ",") l))
+makeDirectiveText (Hide entityFullNames) = 
+  let nameStrList = map toString entityFullNames
+      str = if (nameStrList == []) 
+              then "" 
+              else init (concat (map (++ ",") nameStrList))
   in ", Hide{" ++ str ++ "}"
-makeDirectiveText  (Reveal names) =  
-  let l = [ n | (EntityName n) <- names]
-      str = if (l == []) then "" else init (concat (map (++ ",") l))
+makeDirectiveText  (Reveal entityFullNames) =  
+  let nameStrList = map toString entityFullNames
+      str = if (nameStrList == []) 
+              then "" 
+              else init (concat (map (++ ",") nameStrList))
   in ", Reveal{" ++ str ++ "}"
 
 collectRenames :: [Directive] -> String -> String
-collectRenames ((Rename (EntityName newName) (EntityName oldName)):ds) str = 
-  collectRenames ds (str ++ ", " ++ newName ++ "=" ++ oldName)
+collectRenames ((Rename newName oldName):ds) str = 
+  collectRenames ds (str ++ ", " ++ (toString newName) ++ "=" ++ (toString oldName))
 collectRenames (d:ds) str = collectRenames ds str 
 collectRenames [] str = 
   if ((genericLength str) > 0) 
