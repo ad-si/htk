@@ -122,7 +122,7 @@ tkCreateCanvasItem :: ObjectName -> ObjectKind -> ObjectName ->
                       ObjectID -> [ConfigOption] -> TclScript
 tkCreateCanvasItem _ k@(CANVASITEM _ cds)
                    (cinm @ (CanvasItemName cnm tid)) _ args =
-   [declVar tid, " set " ++ vname ++ " [" ++ cmd ++ "] "]
+   declVar tid ++ [" set " ++ vname ++ " [" ++ cmd ++ "] "]
    where vname = (drop 1 (show tid))
          cmd = show cnm ++ " create " ++ show k ++ " " ++
                show (toGUIValue cds) ++ " " ++ showConfigs args
@@ -132,18 +132,15 @@ tkCreateCanvasItem _ k@(CANVASITEM _ cds)
 -}
 tkCreateCanvasItem _ _ _ _ _ = error "CanvasItemAux (tkCreateCanvasItem)"
 
-declVar :: CanvasTagOrID -> TclCmd
-declVar tid = "global " ++ (drop 1 (show tid))
-
 tkGetCanvasItemConfig :: ObjectName -> ConfigID -> TclScript
 tkGetCanvasItemConfig (CanvasItemName name tid) "coords" =
-  [declVar tid, show name ++ " coords " ++ show tid]
+  declVar tid ++ [show name ++ " coords " ++ show tid]
 tkGetCanvasItemConfig (CanvasItemName name tid) cid =   
-  [declVar tid, show name ++ " itemcget " ++ show tid ++ " -" ++ cid]
+  declVar tid ++ [show name ++ " itemcget " ++ show tid ++ " -" ++ cid]
 tkGetCanvasItemConfig _ _ = []
 
 tkSetCanvasItemConfigs (CanvasItemName name tid) args = 
-  [declVar tid] ++ tagVariables args ++
+  declVar tid ++ tagVariables args ++
   [show name ++ " itemconfigure " ++ show tid ++ " " ++ showConfigs args]
   where tagVariables ((cid, cval) : ol) =
           case cid of
@@ -155,7 +152,7 @@ tkSetCanvasItemConfigs _ _ = []
 
 tkDestroyCanvasItem :: ObjectName -> TclScript
 tkDestroyCanvasItem name@(CanvasItemName _ tid) =
-  [declVar tid, show name ++ " delete " ++ show tid]
+   declVar tid ++ [show name ++ " delete " ++ show tid]
 tkDestroyCanvasItem _ = []
 
 tkBindCanvasItem :: ObjectName -> BindTag -> [WishEvent] ->
@@ -174,5 +171,5 @@ tkUnbindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents _ = []
 
 tkCleanupCanvasItem :: ObjectID -> ObjectName -> TclScript
 tkCleanupCanvasItem _ (CanvasItemName _ tid) =
-  [declVar tid, " unset " ++ (drop 1 (show tid))]
+   declVar tid ++[" unset " ++ (drop 1 (show tid))]
 tkCleanupCanvasItem _ _ = []

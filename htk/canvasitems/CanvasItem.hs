@@ -21,9 +21,14 @@ module CanvasItem (
   putItemOnTop,
   putItemAtBottom,
 
-  itemsNotOnSameCanvas
+  itemsNotOnSameCanvas,
+
+  declVar,
+  declVarList,
 
 ) where
+
+import List (intersperse)
 
 import Core
 import Configuration
@@ -181,52 +186,66 @@ itemsNotOnSameCanvas =
 
 tkMoveItem :: ObjectName -> Distance -> Distance -> TclScript
 tkMoveItem (CanvasItemName nm item) x y =
-  [declVar item, 
-   show nm ++ " move " ++ show item ++ " " ++ show x ++ " " ++ show y {-,
-   show nm ++ " coords " ++ show item-}]
+   declVar item ++ 
+      [show nm ++ " move " ++ show item ++ " " ++ show x ++ " " ++ show y]
+
 tkMoveItem _ _ _ = []
 {-# INLINE tkMoveItem #-}
 
 tkScaleItem :: ObjectName -> Distance -> Distance -> Double -> Double ->
                TclScript
 tkScaleItem (CanvasItemName nm item) x y xs ys =
-  [declVar item,
-   show nm ++ " scale " ++ show item ++ " " ++
-   show x ++ " " ++ show y ++ " " ++
-   show xs ++ " " ++ show ys,
-   show nm ++ " coords " ++ show item]
+   declVar item ++
+     [show nm ++ " scale " ++ show item ++ " " ++
+      show x ++ " " ++ show y ++ " " ++
+      show xs ++ " " ++ show ys,
+      show nm ++ " coords " ++ show item]
 tkScaleItem _ _ _ _ _ = []
 {-# INLINE tkScaleItem #-}
 
 tkCoordItem :: ObjectName -> Coord -> TclScript
 tkCoordItem (CanvasItemName nm item) co =
-  [declVar item,
-   show nm ++ " coords " ++ show item ++ " " ++ show (toGUIValue co)]
+   declVar item ++
+     [show nm ++ " coords " ++ show item ++ " " ++ show (toGUIValue co)]
 tkCoordItem _ _ = []
 {-# INLINE tkCoordItem #-}
 
 tkGetCoordItem :: ObjectName -> TclScript
 tkGetCoordItem (CanvasItemName nm item) =
-  [declVar item,   
-   show nm ++ " coords " ++ show item]
+   declVar item ++  
+     [show nm ++ " coords " ++ show item]
 tkGetCoordItem _ = []
 
 tkRaiseItem :: ObjectName -> Maybe ObjectName -> TclScript
 tkRaiseItem (CanvasItemName nm item) Nothing =
-  [declVar item, show nm ++ " raise " ++ show item]
+   declVar item ++
+     [show nm ++ " raise " ++ show item]
 tkRaiseItem (CanvasItemName nm item1) (Just (CanvasItemName _ item2)) =
-  [declVar item1, declVar item2,    
-   show nm ++ " raise " ++ show item1 ++ " " ++ show item2]
+   declVar item1 ++ declVar item2 ++  
+     [show nm ++ " raise " ++ show item1 ++ " " ++ show item2]
 tkRaiseItem _ _ = []
 {-# INLINE tkRaiseItem #-}
 
 tkLowerItem :: ObjectName -> Maybe ObjectName -> TclScript
-tkLowerItem (CanvasItemName nm item) Nothing  =[
-        declVar item,show nm ++ " lower " ++ show item]
+tkLowerItem (CanvasItemName nm item) Nothing  =
+   declVar item ++ 
+     [show nm ++ " lower " ++ show item]
 tkLowerItem (CanvasItemName nm item1) (Just (CanvasItemName _ item2)) =
-  [declVar item1, declVar item2,  
-   show nm ++ " lower " ++ show item1 ++ " " ++ show item2]
+   declVar item1 ++ declVar item2 ++ 
+     [show nm ++ " lower " ++ show item1 ++ " " ++ show item2]
 tkLowerItem _ _  = []
 {-# INLINE tkLowerItem #-}
 
-declVar tid = "global " ++ (drop 1 (show tid))
+-- | Retrieve all tagnames in a complex tag expression and declare
+-- them global in form of a TclScript
+declVar :: CanvasTagOrID -> TclScript
+declVar tid@(CanvasTagOrID _) = ["global " ++ (drop 1 (show tid))]
+declVar (CanvasTagNot tid)       = declVar tid
+declVar (CanvasTagAnd tid1 tid2) = declVar tid1 ++ declVar tid2
+declVar (CanvasTagOr  tid1 tid2) = declVar tid1 ++ declVar tid2
+declVar (CanvasTagXOr tid1 tid2) = declVar tid1 ++ declVar tid2
+
+-- | Retrieve all tagnames in a complex tag expression and declare
+-- them global in form of a TclCmd
+declVarList :: CanvasTagOrID -> TclCmd
+declVarList = concat . intersperse ";" . declVar

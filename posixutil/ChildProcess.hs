@@ -419,7 +419,7 @@ newChildProcess path confs  =
                            "Timed out waiting for initial output\n" ++
                            "Guess: either it's the wrong tool, " ++
                            "or else you need to set the option \n"
-                           ++ "  --uni-option=" ++
+                           ++ "  --uni-toolTimeOut=" ++
                            "[LARGE NUMBER OF MILLISECONDS]")
                      Just result -> return result
 
@@ -442,7 +442,7 @@ newChildProcess path confs  =
                   do
                      putStrLn ("Attempt to start "++toolTitle++
                         " from path \""++path++"\" failed")
-                     case errorCalls exception of
+                     case Control.Exception.errorCalls exception of
                         Just mess -> 
                            do
                               putStrLn mess
@@ -451,7 +451,7 @@ newChildProcess path confs  =
                            do
                               putStrLn ("Mysterious exception: "
                                  ++show exception)
-                              throw exception
+                              Control.Exception.throw exception
                   ) 
       return newChild
 

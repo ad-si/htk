@@ -31,6 +31,10 @@ data TextItemName =
         | EmbeddedWindowName ObjectName
 
 data CanvasTagOrID = CanvasTagOrID ObjectID
+                   | CanvasTagNot CanvasTagOrID 
+                   | CanvasTagAnd CanvasTagOrID CanvasTagOrID
+                   | CanvasTagOr  CanvasTagOrID CanvasTagOrID
+                   | CanvasTagXOr CanvasTagOrID CanvasTagOrID
 
 toWidgetName :: ObjectName -> WidgetName
 toWidgetName (ObjectName s) = WidgetName s
@@ -67,7 +71,13 @@ instance Show TextItemName where
 
 instance Show CanvasTagOrID where
    showsPrec d (CanvasTagOrID i) r = "$v" ++ show i ++ r
+   showsPrec d (CanvasTagAnd t1 t2) r = abr $ show t1 ++ "&&" ++ show t2 ++ r
+   showsPrec d (CanvasTagOr  t1 t2) r = abr $ show t1 ++ "||" ++ show t2 ++ r
+   showsPrec d (CanvasTagXOr t1 t2) r = abr $ show t1 ++ "^" ++ show t2 ++ r
+   showsPrec d (CanvasTagNot t1)    r = abr $ "!"++ show t1 ++ r
 
+abr :: String -> String
+abr s = "("++s++")"
 
 -- -----------------------------------------------------------------------
 -- widget path names

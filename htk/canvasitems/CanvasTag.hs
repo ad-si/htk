@@ -18,18 +18,29 @@ module CanvasTag (
   createCanvasTag,
 
   addCanvasTag,
-  removeCanvasTag
+  removeCanvasTag,
+
+   (&#&),
+   (|#|),
+   (^#),
+   tagNot,
 
 ) where
 
 import Core
-import Canvas
 import CanvasItem
-import CanvasItemAux
+import CanvasItemAux (canvasitemMethods)
 import Destructible
 import Synchronized
 import Computation
-import Geometry
+import Geometry (Position,Distance)
+import GUIObjectName (CanvasTagOrID (..))
+ 
+
+infixr 3 &#&
+infixr 2 |#|
+infixr 2 ^#
+
 
 
 -- -----------------------------------------------------------------------
@@ -134,11 +145,53 @@ removeCanvasTag item tag =
 
 
 -- -----------------------------------------------------------------------
+-- Logical combinations of canvas tags
+-- -----------------------------------------------------------------------
+
+-- | Forms the conjunction of two canvas tags
+(&#&) :: CanvasTag -> CanvasTag 
+   -> IO CanvasTag -- ^ new canvas tag corresponding to (t1&&t2)
+(&#&)  = complexCanvasTag CanvasTagAnd
+
+-- | Forms the disjunction of two canvas tags
+(|#|) :: CanvasTag -> CanvasTag 
+   -> IO CanvasTag -- ^ new canvas tag corresponding to (t1||t2)
+(|#|)  = complexCanvasTag CanvasTagOr
+
+-- | Forms "either - or" of two canvas tags
+(^#) :: CanvasTag -> CanvasTag 
+   -> IO CanvasTag
+      -- ^ new canvas tag corresponding to (t1^t2)
+      -- equals (!t1&&t2)||(t1&&!t2)
+(^#)  = complexCanvasTag CanvasTagXOr
+
+-- Forms the negation of a canvas tag
+tagNot :: CanvasTag 
+   -> IO CanvasTag -- ^ new canvas tag corresponding to !t
+tagNot t = complexCanvasTag (\ x _ -> CanvasTagNot x) t t
+
+---
+-- auxilliary function for &#&,|#|,^# and tagNot
+complexCanvasTag :: (CanvasTagOrID -> CanvasTagOrID -> CanvasTagOrID)
+                 -> CanvasTag -> CanvasTag -> IO CanvasTag
+complexCanvasTag f t1 t2 
+  = do 
+     CanvasItemName oid tid1 <- getObjectName (toGUIObject t1)
+     tid2 <- getCanvasTagOrID (toGUIObject t2)
+     Just par <- getParentObject (toGUIObject t1)
+     wid <- createGUIObject par
+                            (CANVASITEM CANVASTAG [])
+                            tagMethods
+     setObjectName wid (CanvasItemName oid (f tid1 tid2))
+     ct <- configure (CanvasTag wid) []
+     return ct
+
+-- -----------------------------------------------------------------------
 --  SearchSpec
 -- -----------------------------------------------------------------------
 
 -- | The @SearchSpec@ datatype
--- (see @CanvasTag.addCanvasTag@).
+-- (see 'CanvasTag.addCanvasTag').
 data SearchSpec = SearchSpec (IO String)
 
 -- | Adds all objects in the canvas.
@@ -153,7 +206,7 @@ aboveItem ::  CanvasItem item => item
    -- ^ A @SearchSpec@ object.
 aboveItem item = SearchSpec (do {
         tid <- getCanvasTagOrID (toGUIObject item);
-        return ("above [" ++ declVar tid ++ "; list " ++ show tid ++ "]")
+        return ("above [" ++ declVarList tid ++ "; list " ++ show tid ++ "]")
         })
 
 -- | Adds the item just below in the given item in the display list.
@@ -163,7 +216,7 @@ belowItem ::  CanvasItem item => item
    -- ^ A @SearchSpec@ object.
 belowItem item = SearchSpec (do {
         tid <- getCanvasTagOrID (toGUIObject item);
-        return ("below [" ++ declVar tid ++ "; list " ++ show tid ++ "]")
+        return ("below [" ++ declVarList tid ++ "; list " ++ show tid ++ "]")
         })
 
 -- | Adds the item(s) identified by the given handler (which can also be
@@ -174,7 +227,7 @@ withTag ::  CanvasItem item => item
    -- ^ A @SearchSpec@ object.
 withTag item = SearchSpec (do {
         tid <- getCanvasTagOrID (toGUIObject item);
-        return ("withtag [" ++ declVar tid ++ "; list " ++ show tid ++ "]")
+        return ("withtag [" ++ declVarList tid ++ "; list " ++ show tid ++ "]")
         })
 
 -- | Adds the item closest to the given position.
@@ -193,7 +246,7 @@ enclosed :: Position
    -> SearchSpec
    -- ^ A @SearchSpec@ object.
 enclosed pos1 pos2 =
-  SearchSpec (return ("enclosed " ++ show pos1 ++ " " ++ show pos2))
+   SearchSpec (return ("enclosed " ++ showPos pos1 ++ " " ++ showPos pos2))
 
 -- | Adds the items overpalling the specified region.
 overlapping :: Position 
@@ -203,7 +256,11 @@ overlapping :: Position
    -> SearchSpec
    -- ^ A @SearchSpec@ object.
 overlapping pos1 pos2 = 
-  SearchSpec (return ("overlapping " ++ show pos1 ++ " " ++ show pos2))
+   SearchSpec (return ("overlapping " ++ showPos pos1 ++ " " ++ showPos pos2))
+
+showPos :: (Distance,Distance) -> String
+showPos (x,y) = " "++show x++" "++show y++" "
+
 
 getCanvasTagOrID :: GUIOBJECT -> IO CanvasTagOrID
 getCanvasTagOrID wid =
@@ -228,18 +285,15 @@ tagMethods = canvasitemMethods {createCmd = tkCreateTag}
 tkCreateTag :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
                [ConfigOption] -> TclScript
 tkCreateTag _ (CANVASITEM CANVASTAG []) (CanvasItemName name tid) oid _ =
-  [declVar tid, " set " ++ vname ++ " t" ++ show oid]
-  where vname = (drop 1 (show tid))
+      declVar tid ++ [" set " ++ vname ++ " t" ++ show oid]
+   where vname = (drop 1 (show tid))
 
 tkAddTag :: ObjectName -> String -> TclScript
 tkAddTag (CanvasItemName name tid) spec =
-  [declVar tid, show name ++ " addtag " ++ show tid ++ " " ++ spec]
+   declVar tid ++ [show name ++ " addtag " ++ show tid ++ " " ++ spec]
 
 
 tkDTag :: ObjectName -> ObjectName -> TclScript
 tkDTag (CanvasItemName name cid) (CanvasItemName _ tid) =
-  [declVar tid, declVar cid, 
-   show name ++ " dtag " ++ show cid ++ " " ++ show tid]
-
-declVar :: CanvasTagOrID -> TclCmd
-declVar tid = "global " ++ (drop 1 (show tid))
+   declVar tid ++ declVar cid ++ 
+      [show name ++ " dtag " ++ show cid ++ " " ++ show tid]

@@ -11,7 +11,6 @@ module GUIObject(
   getObjectNo,
   getObjectKind,
   OST(..),
-  Methods(..),
   ConfigID,
   ConfigOption,
   Methods(..)

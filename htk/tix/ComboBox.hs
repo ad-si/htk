@@ -149,7 +149,7 @@ tkDelete name first last =
 {-# INLINE tkDelete #-}
 
 tkGet :: ObjectName -> TclScript
-tkGet name = [show name ++ " subwidget listbox get"]
+tkGet name = [show name ++ " subwidget entry get"]
 {-# INLINE tkGet #-}
 
 showElements :: [GUIVALUE] -> String

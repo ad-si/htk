@@ -350,11 +350,16 @@ listVersions1' :: Server -> IO ()
 listVersions1' (Server {versionGraph = versionGraph}) =
    do
       let
-         simpleGraph :: VersionSimpleGraph 
-         simpleGraph = toVersionGraphGraph versionGraph
+         graphClient :: VersionGraphClient
+         graphClient = toVersionGraphClient versionGraph
 
-      (nodes :: [Node]) <- getNodes simpleGraph
-      (versionInfos :: [VersionInfo]) <- mapM (getNodeLabel simpleGraph) nodes
+      (versionInfo1s :: [VersionInfo1]) 
+         <- VersionGraphClient.getVersionInfos graphClient
+
+      let
+         versionInfos :: [VersionInfo]
+         versionInfos = map toVersionInfo versionInfo1s
+
       format <- getStateValue versionInfoFormat
       (strs :: [String]) <- mapM (evalVersionInfoFormat format) versionInfos
       putStr (concat strs)
@@ -398,10 +403,10 @@ checkOut1' (Server {versionGraph = versionGraph}) v =
          objectVersion = ObjectVersion v
 
          repository = toVersionGraphRepository versionGraph
-         versionSimpleGraph = toVersionGraphGraph versionGraph
+         graphClient = toVersionGraphClient versionGraph
 
       viewOpt <- catchNotFound (
-         getView repository versionSimpleGraph objectVersion)
+         getView repository graphClient objectVersion)
       case viewOpt of
          Nothing -> apiError "Version not found"
          Just view ->
