@@ -30,6 +30,7 @@ tempFileSource = IOExts.unsafePerformIO (
       fileSource <- newMVar initialUniqueFileCounter
       return (TempFileSource {fileStore = fileStore,fileSource = fileSource})
    )
+{-# NOINLINE tempFileSource #-}
 
 newTempFile :: IO FilePath
 newTempFile =

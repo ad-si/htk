@@ -4,6 +4,7 @@ PACKAGES = uni-htk
 SRCS       = Mainhello1.hs\
              Mainhello2.hs\
              Mainhello3.hs\
+             Mainhello4.hs\
 	     Maintexttag.hs\
 	     MainlistEx.hs\
 	     MainmenuEx.hs\
