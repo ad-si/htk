@@ -78,7 +78,9 @@ delete the file ${UNIWORKINGDIR}/wb.pid and restart.
 else
   echo $$ > ${UNIWORKINGDIR}/wb.pid
 fi
-
+  rm -rf ${UNIWORKINGDIR}/\#
 
 # Run the workbench.
 ./MMiSSWorkbench --uni-debug=w.debug
+
+rm  $UNIWORKINGDIR/wb.pid

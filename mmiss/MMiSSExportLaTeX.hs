@@ -63,7 +63,11 @@ exportMMiSSObjectGeneral format view link =
                      coerceWithErrorOrBreakIO break resultWE
 
                      -- Write the attached files.
-                     exportFiles view filePath exportFiles0 
+                     let
+                        writeDir = case splitName filePath of
+                           Nothing -> thisDir
+                           Just (writeDir,_) -> writeDir
+                     exportFiles view writeDir exportFiles0 
                Nothing -> createMessageWin "Export cancelled" []
          )
 
