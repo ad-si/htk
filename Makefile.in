@@ -1,4 +1,4 @@
-# This is the top-level directory for UniForM.  Like all the other
+## This is the top-level directory for UniForM.  Like all the other
 # makefiles in uni its main purpose is to set the variables required by
 # mk/suffix.mk (see that for more details).  We also implement
 # tarball.tar.gz which should gzip all source files to make tarball.tar.gz
@@ -18,7 +18,7 @@ else
 endif
 endif
 
-COMMONEXTRAEXPORTS = uni-package.conf.export includes/*.h includes/config.h.in mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk bdb-package.options.in configure
+COMMONEXTRAEXPORTS = uni-package.conf.export includes/*.h includes/config.h.in mk/boilerplate.mk.in mk/machinedep.mk.in mk/suffix.mk mk/var.mk mk/latex.mk bdb-package.options.in uni-package.options.in configure
 
 ifeq "@WINDOWS@" "1"
 EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 
