@@ -35,6 +35,7 @@ module Dynamics (
         Dyn, -- equal to Dynamic.Dynamic
         toDyn, -- inherited from Dynamic.toDyn
         fromDyn, -- NOT inherited from Dynamic.fromDyn
+        fromDynWE, -- :: Dyn -> WithError a
 
         coerce, -- read Dyn or (match) error
         coerceIO, -- read Dyn or fail with typeMismatch
@@ -66,11 +67,25 @@ import qualified Data.FiniteMap
 
 import qualified Dynamic
 import Dynamic(Typeable(..),TypeRep)
+import Computation
 import Debug(debug)
+import CompileFlags
+import TemplateHaskellHelps
 
 fromDyn :: Typeable a => Dyn -> Maybe a
 fromDyn = Dynamic.fromDynamic
 
+fromDynWE :: Typeable a => Dyn -> WithError a
+fromDynWE dyn = 
+   case fromDyn dyn of
+      Just a -> return a
+      (aOpt @ Nothing) ->
+         fail ("Dynamic type error.  Looking for " 
+            ++ show (typeOf (typeHack aOpt))
+            ++ " but found a " ++ show dyn)
+   where
+      typeHack :: Maybe a -> a
+      typeHack _ = undefined
 type Dyn = Dynamic.Dynamic
 
 toDyn :: Typeable a => a -> Dyn
@@ -128,7 +143,18 @@ appTyRep :: TyRep -> TypeRep -> TyRep
 appTyRep (TyRep tyCon typeReps) typeRep = TyRep tyCon (typeRep:typeReps)
 
 toTypeRep :: TyRep -> TypeRep
-toTypeRep (TyRep tyCon typeReps) = Dynamic.mkAppTy tyCon (reverse typeReps)
+toTypeRep (TyRep tyCon typeReps) = 
+   let
+      mkTyConApp =
+         $(
+            if ghcShortVersion >= 603
+               then
+                  dynName "Dynamic.mkTyConApp"
+               else
+                  dynName "Dynamic.mkAppTy"
+            )
+   in
+      mkTyConApp tyCon (reverse typeReps)
 
 class HasTyRep ty where
    tyRep :: ty -> TyRep
