@@ -315,7 +315,7 @@ addFileGesture view =
             objectCreation <- createObjectMenu view folderLink
             case objectCreation of
                Nothing -> createAlertWin "Object creation cancelled" []
-               Just newLink -> done
+               Just newLink -> dirtyLink view folderLink 
    in
       NodeGesture addFile
 

@@ -492,7 +492,6 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
          (value :: value) =
       do
          thisNodeTextSource <- nodeText value
-     
          nodeId <- newNodeId context
          let
             (daVinciNode :: DaVinciNode value) = DaVinciNode nodeId
@@ -1199,16 +1198,13 @@ setNodeTitle :: Typeable value => DaVinciGraph -> DaVinciNode value -> String
 setNodeTitle daVinciGraph (daVinciNode@(DaVinciNode nodeId)) newTitle =
    do
       flushPendingChanges daVinciGraph
-      synchronize (pendingChangesLock daVinciGraph) (
-         do
-            nodeDataOpt <- getValueOpt (nodes daVinciGraph) nodeId
-            case nodeDataOpt of
-               Nothing -> return False
-               Just (nodeData :: NodeData) ->
-                  do
-                     modify ("OBJECT",newTitle) daVinciGraph daVinciNode
-                     return True
-         )
+      nodeDataOpt <- getValueOpt (nodes daVinciGraph) nodeId
+      case nodeDataOpt of
+         Nothing -> return False
+         Just (nodeData :: NodeData) ->
+            do
+               modify ("OBJECT",newTitle) daVinciGraph daVinciNode
+               return True
 
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions

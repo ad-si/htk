@@ -157,6 +157,7 @@ instance StringClass EntitySearchName where
 
    fromStringWE "" = hasError "\"\" is not a valid search name"
    fromStringWE "." = hasValue (FromHere (EntityFullName []))
+   fromStringWE "../" = hasValue (FromParent (FromHere (EntityFullName [])))
    fromStringWE ('.':'.':'/':rest) =
       mapWithError FromParent (fromStringWE rest)
    fromStringWE other = 

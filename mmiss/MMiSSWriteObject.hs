@@ -347,9 +347,15 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
       -- being that we want to hide the object from inspection by the display
       -- routine until something has been put in its variant dictionary.
       -- Instead we return "afterAct", which does precisely that.
-      (objectLink,object,afterAct :: IO (WithError ())) <- case objectLoc of
-         OldObject objectLink object -> return (objectLink,object,
-            return (hasValue ()))
+      -- We also return an "dirty" action which, for old objects, dirties it
+      -- (indicating it has changed).
+      (objectLink,object,dirtyAct :: IO (),afterAct :: IO (WithError ())) 
+            <- case objectLoc of
+         OldObject objectLink object -> 
+            do
+               versioned <- fetchLink view objectLink
+               return (objectLink,object,dirtyObject view versioned,
+                  return (hasValue ()))
          NewObject parentLinkedObject entityName ->
             do
                let
@@ -386,7 +392,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                seq objectLink done
 
                object <- readLink view objectLink
-               return (objectLink,object,afterAct)
+               return (objectLink,object,done,afterAct)
 
 
       let
@@ -434,6 +440,9 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                               else writeVariantObject
 
                         write varObject (variantSpec content) variable
+
+                        -- Dirty the object
+                        dirtyAct
 
       insertItem True contents1
       mapM (insertItem False) contentsRest

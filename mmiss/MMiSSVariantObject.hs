@@ -58,11 +58,13 @@ module MMiSSVariantObject(
    toVariantObjectCache,
       -- :: VariantObject object cache -> SimpleSource cache
 
-   editMMiSSSearchObject, -- :: String -> VariantObject object cache -> IO ()
+   editMMiSSSearchObject, -- :: String -> VariantObject object cache -> IO Bool
       -- This gives the user a chance to change the current variant object,
       -- updating the cache as necessary.
       --
       -- The String should be the title of the object in question.
+      --
+      -- If we return False, that means no change was made.
 
    getCurrentVariantSearch, 
       -- :: VariantObject object cache -> IO MMiSSVariantSearch
@@ -316,9 +318,11 @@ writeVariantObjectAndPoint variantObject variantSpec object
 -- updating the cache as necessary.
 --
 -- The String should be the title of the object in question.
-editMMiSSSearchObject :: String -> VariantObject object cache -> IO ()
+--
+-- If we return False, that means no change was made.
+editMMiSSSearchObject :: String -> VariantObject object cache -> IO Bool
 editMMiSSSearchObject objectTitle variantObject =
-   modifyMVar_ (currentVariantSpec variantObject) 
+   modifyMVar (currentVariantSpec variantObject) 
       (\ variantSpec0 ->
          do
             -- We go via Attributes, which is probably hopelessly inefficient
@@ -327,21 +331,33 @@ editMMiSSSearchObject objectTitle variantObject =
             attributesState <- updateAttributesPrim ("Select variant for "
                ++objectTitle) attributes variantAttributesType Nothing
             case attributesState of
-               Cancelled -> return variantSpec0
-               NoForm -> return variantSpec0 
+               Cancelled -> return (variantSpec0,False)
+               NoForm -> return (variantSpec0,False) 
                   -- only happens if there are no variant attributes!
                Changed ->
                   do
                      variantSpec1 
                         <- toMMiSSVariantSpecFromAttributes attributes
-                     cacheOpt <- lookupVariantObjectCache variantObject 
-                        (fromMMiSSSpecToSearch variantSpec1)
-                     case cacheOpt of
-                        Just cache1 ->
+                     let
+                        changed = (variantSpec1 /= variantSpec0)
+                     if changed 
+                        then 
                            do
-                              broadcast (cache variantObject) cache1
-                              return variantSpec1
-                        Nothing -> return variantSpec0
+                              cacheOpt <- lookupVariantObjectCache 
+                                 variantObject 
+                                 (fromMMiSSSpecToSearch variantSpec1)
+                              case cacheOpt of
+                                 Just cache1 ->
+                                    do
+                                       broadcast (cache variantObject) cache1
+                                       return (variantSpec1,True)
+                                 Nothing -> 
+                                    do
+                                       createErrorWin 
+                                          "No matching variant found!" []
+                                       return (variantSpec0,False)
+                        else
+                           return (variantSpec0,False) 
          )
             
 

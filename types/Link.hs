@@ -67,6 +67,9 @@ module Link(
    createLink, -- :: HasCodedValue x => View -> x -> IO (Link x)
    -- Does createObject and makeLink in one go.
 
+   dirtyLink, -- :: HasCodedValue x => View -> Link x -> IO ()
+   -- Does fetchLink and dirtyObject in one go.
+
    fetchLinkWE, -- :: HasCodedValue x => View -> Link x 
       -- -> IO (WithError(Versioned x))
       -- Like fetchLink but should not crash for deleted links.
@@ -174,6 +177,12 @@ createLink view x =
    do
       versioned <- createObject view x
       makeLink view versioned
+
+dirtyLink :: HasCodedValue x => View -> Link x -> IO ()
+dirtyLink view link =
+   do
+      versioned <- fetchLink view link
+      dirtyObject view versioned
 
 readLinkWE :: HasCodedValue x => View -> Link x -> IO (WithError x)
 readLinkWE view link =
