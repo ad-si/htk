@@ -6,7 +6,8 @@
    -}
 module GraphEditorService(
    graphEditorService, -- :: pass to connectBroadcastOther to call server
-   FrozenGraph, -- What is sent (Showed) on client connect.
+   graphEditorServiceWrapped, -- pass to server
+   FrozenGraph(..), -- What is sent (Showed) on client connect.
    ) where
 
 import ServiceClass
@@ -22,9 +23,10 @@ data FrozenGraph = FrozenGraph {
    } deriving (Read,Show)
 
 
+graphEditorServiceWrapped = Service graphEditorService
+
 graphEditorService = serviceArg :: (DisplayableUpdate,DisplayableUpdate,
    Displayable SimpleGraph)
-
 
 instance ServiceClass DisplayableUpdate DisplayableUpdate 
    (Displayable SimpleGraph) where

@@ -50,6 +50,10 @@ daVinciSort :: Graph DaVinciGraph
    DaVinciGraphParms DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
    DaVinciArc DaVinciArcType DaVinciArcTypeParms = displaySort
 
+instance GraphAllConfig DaVinciGraph DaVinciGraphParms 
+   DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms 
+
 ------------------------------------------------------------------------
 -- Graphs
 ------------------------------------------------------------------------

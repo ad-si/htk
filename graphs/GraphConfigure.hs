@@ -4,6 +4,8 @@
    GraphParms, NodeTypeParms and ArcTypeParms.
    -}
 module GraphConfigure(
+   GraphAllConfig, -- this is a subclass of GraphAll plus ALL configuration
+                   -- options in this file.
    HasConfig(($$),configUsed), -- from Computation
    HasConfigValue(($$$),configUsed'), 
                    -- HasConfig lifted to options/configurations of kind
@@ -189,7 +191,7 @@ instance NodeTypeConfig NodeDragAndDrop
 -- This datatype is based on DaVinciClasses.hs, including several
 -- name clashes.  However we omit Textual, add the file argument
 -- to iconic and the shape Triangle.  This datatype may get bigger!
-data Shape nodeLabel = Box | Circle | Ellipse | Rhombus | Triangle | 
+data Shape value = Box | Circle | Ellipse | Rhombus | Triangle | 
    Icon FilePath deriving (Read,Show)
 
 instance NodeTypeConfig Shape
@@ -219,3 +221,30 @@ newtype AllowDragging = AllowDragging Bool
 -- If True, allow Drag-and-Drop operators.  
 
 instance GraphConfig AllowDragging
+
+------------------------------------------------------------------------
+-- GraphAllConfig
+------------------------------------------------------------------------
+
+class 
+   (GraphAll graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms,
+   HasConfig GlobalMenu graphParms,
+   HasConfig GraphTitle graphParms,
+   HasConfig GraphGesture graphParms,
+   HasConfig OptimiseLayout graphParms,
+   HasConfig SurveyView graphParms,
+   HasConfig AllowDragging graphParms,
+   
+   HasConfigValue LocalMenu nodeTypeParms,
+   HasConfigValue ValueTitle nodeTypeParms,
+   HasConfigValue NodeGesture nodeTypeParms,
+   HasConfigValue NodeDragAndDrop nodeTypeParms,
+-- HasConfigValue Shape nodeTypeParms,
+
+   HasConfigValue LocalMenu arcTypeParms,
+   HasConfigValue ValueTitle arcTypeParms
+   ) 
+   => GraphAllConfig graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms  
+

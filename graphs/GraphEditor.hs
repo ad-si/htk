@@ -56,19 +56,10 @@ type DisplayableCannedGraph =
 
 
 newGraphEditor :: 
-   (GraphDisp.GraphAll dispGraph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms,
-    HasConfig AllowDragging graphParms,
-    HasConfig SurveyView graphParms,
-    HasConfig GraphGesture graphParms,
-    HasConfig GlobalMenu graphParms,
-    HasConfig GraphTitle graphParms,
-
-    HasConfigValue ValueTitle nodeTypeParms,
-    HasConfigValue NodeGesture nodeTypeParms,
-    HasConfigValue NodeDragAndDrop nodeTypeParms,
+   (GraphConfigure.GraphAllConfig dispGraph graphParms 
+      node nodeType nodeTypeParms arc arcType arcTypeParms,
     HasConfigValue Shape nodeTypeParms,
-    
+
     Graph graph) 
    => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
@@ -107,6 +98,9 @@ newGraphEditor
                            nodeOwnTitle
                         )
                   ) $$$
+               LocalMenu (
+                  Button "Delete" (\ toDelete -> deleteNode graph toDelete)
+                  ) $$$
                NodeGesture (\ source -> makeNewNodeArc graph registry source) 
                                                                          $$$
                NodeDragAndDrop (\ sourceDyn target ->
@@ -120,7 +114,12 @@ newGraphEditor
                )
 
          makeArcTypeParms (arcType,arcTypeAttributes) = 
-            return GraphDisp.emptyArcTypeParms
+            return 
+               (LocalMenu (
+                  Button "Delete" (\ toDelete -> deleteArc graph toDelete)
+                  ) $$$
+                  GraphDisp.emptyArcTypeParms
+                  )
 
       displayGraphInstance <-
          displayGraph displaySort graph graphParms 
@@ -197,7 +196,13 @@ makeNewNode graph registry =
                node <- newNode graph (nodeType attributes) 
                   (nodeTitle attributes)
                return (Just node)
-               
+
+deleteNode :: Graph graph
+   => Displayable graph
+   -> Node -> IO ()
+deleteNode graph node = update graph (DeleteNode node)
+
+
 -- -----------------------------------------------------------------------
 -- Arcs
 -- -----------------------------------------------------------------------
@@ -243,6 +248,11 @@ makeNewNodeArc graph registry source =
       case targetOpt of
          Nothing -> done
          Just target -> makeNewArc graph registry source target
+
+deleteArc :: Graph graph
+   => Displayable graph
+   -> Arc -> IO ()
+deleteArc graph arc = update graph (DeleteArc arc)
 
 -- -----------------------------------------------------------------------
 -- Maintaining the Registries of nodes and arc types.
