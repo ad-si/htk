@@ -171,16 +171,19 @@
 <!ELEMENT abstract (%unit;)+>
 <!ATTLIST abstract %label-matter;
                    %title-matter;
+                   %formalism-matter;
                    %attributes;>
 
 <!ELEMENT introduction (%unit;)+>
 <!ATTLIST introduction %label-matter;
                        %title-matter;
+                       %formalism-matter;
                        %attributes;>
 
 <!ELEMENT summary  (%unit;)+>
 <!ATTLIST summary  %label-matter;
                    %title-matter;
+                   %formalism-matter;
                    %attributes;>
 
 <!ELEMENT example  ((%atom;) | %formalUnit;)+>
@@ -207,6 +210,7 @@
 
 <!ELEMENT textFragment %text;>
 <!ATTLIST textFragment %label-matter;
+                       %formalism-matter;
                        %attributes;>
 <?MMiSSDisplay textFragment : red box ?>
 
@@ -231,12 +235,13 @@
 <?MMiSSDisplay glossaryEntry : yellow rhombus ?>
 
 <!ELEMENT bibEntry  %text;>
-<!ATTLIST package %label-matter;
-                  %attributes;>
+<!ATTLIST bibEntry  %label-matter;
+                    %attributes;>
 <?MMiSSDisplay bibEntry : yellow ellipse ?>
 
 <!ELEMENT list  (listItem)+>
 <!ATTLIST list  %label-matter;
+                %formalism-matter;
                 type  (itemize | enumeration)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
@@ -246,6 +251,7 @@
 <!ELEMENT listItem  (list | %atom;)>
 <!ATTLIST glossaryEntry %label-matter;
                         %title-matter;
+                        %formalism-matter;
                         %attributes;>
 
 
@@ -357,7 +363,7 @@
   ***********************************************************************
  -->
 
-<-- All include elements (includeTextFragment above also) have attributes 
+<!-- All include elements (includeTextFragment above also) have attributes 
     for specifying the referred variant. 'included' gives the label of 
     the referred element. -->
 
