@@ -112,4 +112,4 @@ main =
     sync (win1_destr)
 
 img :: IO Image
-img = newImage NONE [filename "images/notepaditem.gif"]
+img = newImage [filename "images/notepaditem.gif"]
