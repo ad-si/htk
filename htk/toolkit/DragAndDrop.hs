@@ -146,11 +146,6 @@ getName (NotepadItem _ _ _ nm _ _) =
 selectionEvent :: NotepadItem a -> IA (Bool)
 selectionEvent (NotepadItem _ _ _ _ _ msgQ) = lift(receive msgQ)
 
-{-
-selectionEvent (NotepadItem img _ _ _ _ _) =
-  mouseButtonPress img 1 >>>= \ _ -> return ()
--}
-
 
 -------------
 -- Notepad --
@@ -204,8 +199,11 @@ deHighlight (NotepadItem img txt _ _ sel _) =
 
 selectItem :: Notepad a -> NotepadItem a -> IO ()
 selectItem notepad@(Notepad cnv _ _ selecteditemsref _)
-           item@(NotepadItem _ _ _ _ _ msgQ) =
+           item@(NotepadItem img _ _ _ _ msgQ) =
   do
+    Just i <- getPhoto img
+    (x,y) <- getSize i
+    debugMsg ("size of image: (" ++ show x ++ ", " ++ show y ++ ")")
     deselectAll notepad
     highlight cnv item
     selecteditems <- getVar selecteditemsref
@@ -312,8 +310,9 @@ newNotepad scrolled cnf =
                                                                        (x, y)],
                                                                 parent cnv]
                                           debugMsg "rectangle created"
-                                          become iact (selecting notepad rect
-                                                                 x y x y iact)
+                                          become iact (selectingByRectangle
+                                                         notepad rect x y x y
+                                                         iact)
                              Just item@(NotepadItem img _ _ _ _ _) ->
                                do
                                  b <- isSelected notepad item
@@ -341,16 +340,18 @@ newNotepad scrolled cnf =
                                                  debugMsg
                                                    "item added to selection"))
 
-        selecting :: Notepad a -> Rectangle -> Distance -> Distance ->
-                     Distance -> Distance -> InterActor -> IA ()
-        selecting notepad@(Notepad cnv _ _ _ _) rect x0 y0 x1 y1 iact =
+        selectingByRectangle :: Notepad a -> Rectangle -> Distance ->
+                                Distance -> Distance -> Distance ->
+                                InterActor -> IA ()
+        selectingByRectangle notepad@(Notepad cnv _ _ _ _) rect x0 y0 x1 y1
+                             iact =
              (mouseEvent cnv (Button1, Motion) >>>=
               \ ((x, y), _)-> do
                                 rect # coord [(x0,y0),(x,y)]
                                 debugMsg "resize"
 -- leider zu langsam            selectItemsWithin (x0, y0) (x1, y1) notepad
-                                become iact (selecting notepad rect x0 y0 x y
-                                                       iact))
+                                become iact (selectingByRectangle notepad rect
+                                               x0 y0 x y iact))
           +> (mouseEvent cnv (ButtonRelease Nothing) >>>
                 do
                   destroy rect
@@ -386,10 +387,10 @@ newNotepad scrolled cnf =
         moving notepad@(Notepad cnv _ _ _ _) tag x0 y0 iact =
              (mouseEvent cnv (Button1, Motion) >>>=
               \ ((x, y), _) -> do
-                                 debugMsg ("moving:  dx = " ++ show (x - x0) ++
-                                           "   dy = " ++ show (y - y0))
+--                                 debugMsg ("moving:  dx = " ++ show (x - x0) ++
+--                                           "   dy = " ++ show (y - y0))
                                  moveItem tag (x - x0) (y - y0)
-                                 debugMsg "moved"
+--                                 debugMsg "moved"
                                  become iact (moving notepad tag x y iact))
           +> (mouseEvent cnv (ButtonRelease Nothing) >>>
               ( {- destroy tag >>     was stattdessen ??? -}

@@ -19,21 +19,29 @@ import Editor
 import ScrollBox
 import IO(stdout)
 
-printItems :: [NotepadItem a] -> IO String
-printItems (item : items) =
+showText :: Editor String -> String -> IO ()
+showText ed txt =
+  do
+    ed # state Normal
+    appendText ed txt
+    ed # state Disabled
+    done
+
+showItems :: [NotepadItem a] -> IO String
+showItems (item : items) =
   do
     itemname <- getName item
-    rest <- printItems items
+    rest <- showItems items
     return (full itemname ++ (if length items > 0 then ", " else ".")
             ++ rest)
-printItems []             = return "\n\n"
+showItems []             = return "\n\n"
 
-doShow :: Notepad a -> Editor String -> IO ()
-doShow notepad ed =
+showSelectedItems :: Notepad a -> Editor String -> IO ()
+showSelectedItems notepad ed =
   do
     ed # state Normal
     selecteditems <- getSelectedItems notepad
-    str <- printItems selecteditems
+    str <- showItems selecteditems
     appendText ed ("Selected items: \n" ++ str)
     ed # state Disabled
     done
@@ -41,7 +49,7 @@ doShow notepad ed =
 main =
   do
     win <- htk []
-    setLogFile (Just stdout)
+--    setLogFile (Just stdout)
     main <- newVFBox []
     box <- newHFBox [parent main]
     win <- window main [text "Drag and drop example"]
@@ -58,8 +66,9 @@ main =
                               command (\ () -> deselectAll notepad)]
     showselection <- newButton [side AtTop, pad Horizontal 10, pad Vertical 5,
                                 parent buttons, text "Show selection",
-                                width 15, command (\ () -> doShow notepad
-                                                                  output)]
+                                width 15, command (\ () -> showSelectedItems
+                                                             notepad
+                                                             output)]
     quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
                        parent buttons, text "Quit", width 15,
                        command (\ ()-> destroy win)]
@@ -67,6 +76,8 @@ main =
                       triggered deselectall +> triggered showselection)
     scrollbox <- newScrollBox output [parent main]
     item1_img <- newImage [filename "./images/item1.gif"]
+    size <- getSize(item1_img)
+    putStr("image1 size:" ++ showSize size ++ "\n")
     item2_img <- newImage [filename "./images/item2.gif"]
     item3_img <- newImage [filename "./images/item3.gif"]
     item4_img <- newImage [filename "./images/item2.gif"]
@@ -97,16 +108,20 @@ main =
                              name (ItemName { full  = "NotepadItem6",
                                               short = \n -> take n "item6" })]
     interactor
-      (\i -> (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
-                                                                 show b)) +>
-             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
-                                                                 show b)) +>
-             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
-                                                                 show b)) +>
-             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
-                                                                 show b)) +>
-             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
-                                                                 show b)) +>
-             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
-                                                                 show b)))
+      (\i -> (selectionEvent item1 >>>= \b -> showText output ("item 1 " ++
+                                                               showB b)) +>
+             (selectionEvent item2 >>>= \b -> showText output ("item 2 " ++
+                                                               showB b)) +>
+             (selectionEvent item3 >>>= \b -> showText output ("item 3 " ++
+                                                               showB b)) +>
+             (selectionEvent item4 >>>= \b -> showText output ("item 4 " ++
+                                                               showB b)) +>
+             (selectionEvent item5 >>>= \b -> showText output ("item 5 " ++
+                                                               showB b)) +>
+             (selectionEvent item6 >>>= \b -> showText output ("item 6 " ++
+                                                               showB b)))
     sync (destroyed win)
+  where showB :: Bool -> String
+        showB True  = " selected\n"
+        showB False = " deselected\n"
+        showSize (x, y) = "(" ++ show x ++ ", " ++ show y ++ ")"
