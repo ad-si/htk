@@ -218,13 +218,27 @@
    )
 
 ; Search the sequence for the first element equal to ch
+; We use a horrible iterative definition rather than a nice recursive one
+; to avoid Emacs Lisp (which evidently doesn't have tail recursion) 
+; complaining about "(error Variable binding depth exceeds max-specpdl-size)"
 (defun uni-scan (s start end ch)
-   (if (< start end)
-      (if (eq (elt s start) ch)
-         start
-         (uni-scan s (+ start 1) end ch)
+   (let  (
+         (counter start)
+         (result nil)
          )
-      nil
+      (while (and 
+         (< counter end) 
+         (if (eq (elt s counter) ch)
+            (progn
+               (setq result counter)
+               nil
+               )
+            t
+            )
+         )
+         (setq counter (1+ counter))
+         )
+      result
       )
    )
 

@@ -4,6 +4,15 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+41) 16.09.02
+Editing Achim's test file emacs/parser/test_2.tex as XML causes an
+Emacs error.
+
+Turns out to be because Emacs Lisp can't handle deep recursion, particularly
+in the function uni-scan.  Replacing the neat recursion by a horrible 
+iteration seems to fix the problem.
+FIXED.
+
 40) 13.09.02
 The same-host test accepting calls from Emacs in server/MultiServer.hs
 was too strict (because Linux gives "localhost.uni-bremen.de" and not
