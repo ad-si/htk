@@ -62,7 +62,10 @@ module GraphConfigure(
    ) where
 
 import Computation(HasConfig(($$),configUsed))
+import ExtendedPrelude
 import Dynamics(Dyn,Typeable)
+
+import MenuType
 
 import GraphDisp
 

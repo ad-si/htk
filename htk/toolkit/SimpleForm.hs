@@ -289,19 +289,20 @@ newFormEntry label value =
 -- -------------------------------------------------------------------------
 
 newFormMenu :: String -> HTkMenu value -> Form (Maybe value)
-newFormMenu label selections =
+newFormMenu label htkMenu =
    let
       enterForm topLevel =
          do
-            menuButton <- newMenuButton  topLevel [text label]
-            enteredForm1 <- makeFormMenuEntry menuButton selections
-
+            frame <- newFrame topLevel []
+            packLabel <- formLabel frame label
+            enteredForm1 <- makeFormMenuEntry frame htkMenu
             let
                enteredForm = EnteredForm {
                   packAction = (
                      do
+                        packLabel
                         packAction enteredForm1
-                        pack menuButton [Side AtTop,Fill X]
+                        pack frame [Side AtTop,Fill X]
                      ),
                   getFormValue = getFormValue enteredForm1,
                   destroyAction = destroyAction enteredForm1
@@ -310,11 +311,11 @@ newFormMenu label selections =
    in
       Form enterForm
 
-makeFormMenuEntry :: MenuButton -> HTkMenu value 
-   -> IO (EnteredForm (Maybe (value)))
-makeFormMenuEntry menuButton htkMenu =
+
+makeFormMenuEntry :: Frame -> HTkMenu value -> IO (EnteredForm (Maybe (value)))
+makeFormMenuEntry frame htkMenu =
    do
-      (compiledMenu,menuEvent) <- compileHTkMenu menuButton htkMenu
+      (menuButton,menuEvent) <- compileHTkMenu frame htkMenu
       -- Set up things for the thread which watches for menu events so that
       -- it picks up the last one.
       resultRef <- newIORef Nothing -- put the result here!
@@ -328,18 +329,16 @@ makeFormMenuEntry menuButton htkMenu =
                )
             +> receive killChannel
 
+      spawnEvent menuEventThread
+
       return (EnteredForm{
-         packAction = (
-            do
-               menuButton # menu compiledMenu
-               done
-            ),
+         packAction = pack menuButton [],
          getFormValue = ( 
             do
                valueOpt <- readIORef resultRef
                return (Right valueOpt)
             ),
-         destroyAction = sendIO killChannel ()
+         destroyAction = sync (send killChannel ())
          })
 
 -- -------------------------------------------------------------------------

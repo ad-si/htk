@@ -53,7 +53,7 @@ main =
 
          language = HTkMenu(
             Menu
-               (Just "Favorite Language") [
+               "Favorite Language" [
                Button "English" 1,
                Button "German" 2,
                Blank,
