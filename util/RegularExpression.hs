@@ -54,6 +54,7 @@ import RegexString
 
 import Dynamics
 import Debug(debug)
+import CompileFlags
 
 -- Since the regular expression implementation is now changing for the
 -- third time, we provide the following interface.
@@ -72,11 +73,29 @@ matchResult_tyRep = mkTyRep "RegularExpression" "MatchResult"
 instance HasTyRep MatchResult where
    tyRep _ = matchResult_tyRep
 
+-- matchRegexAll0 is like Regex.matchRegexAll for GHC versions > 600.
+$(
+   if ghcShortVersion > 600
+      then
+         [d| 
+            matchRegexAll0 = RegexString.matchRegexAll 
+         |]
+      else
+         [d| 
+            matchRegexAll0 regEx str =
+               fmap
+                  (\ (before,matched,after,_,substrings) ->
+                     (before,matched,after,substrings)
+                     )
+                  (RegexString.matchRegexAll regEx str)
+         |]
+   )
+
 matchString :: RegularExpression -> String -> Maybe MatchResult
 matchString (RegularExpression regEx) str =
-   case matchRegexAll regEx str of
+   case matchRegexAll0 regEx str of
       Nothing -> Nothing
-      Just (before,matched,after,_,subStrings) -> 
+      Just (before,matched,after,subStrings) -> 
          Just (MatchResult before matched after subStrings)
 
 getSubStrings :: MatchResult -> [String]
