@@ -42,7 +42,7 @@ main = do
 
 	putRects cnv
 
-	interactor (\iact-> mouseButtonPress cnv 2
+	interactor (\iact-> mouseButtonPress cnv 3
 			    >>>= \(x, y)-> putRect cnv ("yellow", (x, y)))
         block
 
@@ -56,14 +56,11 @@ putRect cnv (col, pos) = do
 	interactor (notmoving r)
 	where  notmoving :: Rectangle-> InterActor-> IA () 
 	       notmoving r iact =
-	  	   mouseEvent r (Button1, Motion)
-			    >>>= \(pos@(x,y), button)->
-				   if button == 1 then
-					become iact (moving r x y iact)
-				   else if button == 2 then
-					scaleItem r x y 0.99 0.99
-				   else
-					done
+	  	   ((mouseEvent r (Button1, Motion)
+			    >>>= \(pos@(x,y), _)->
+		 		   become iact (moving r x y iact))
+	           +> (mouseEvent r (Button2, Motion) 
+	                    >>>= \((x, y), _)-> scaleItem r x y 0.99 0.99))
 	       moving :: Rectangle -> Distance-> Distance->InterActor-> IA()
 	       moving r x0 y0 iact = 
 		    ((mouseEvent r (Button1, Motion) 
