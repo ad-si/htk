@@ -1,7 +1,8 @@
 PACKAGE = uni-imports
 PACKAGES = uni-util uni-graphs
 
-SRCS = EntityNames.hs Aliases.hs FolderStructure.hs Environment.hs Imports.hs
+SRCS = EntityNames.hs ErrorReporting.hs Aliases.hs FolderStructure.hs \
+   Environment.hs Imports.hs
 
 SUBDIRS = test
 

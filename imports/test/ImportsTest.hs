@@ -71,9 +71,9 @@ nPre = [
        ("b",4)
        ],
       Just [
---         Import [] (fromString "Current")
+         Import [] (fromString "Current"),
          PathAlias (fromString "BB") (fromString "Parent.B"),
-         Import [Global] (fromString "BB")
+         Import [Global,Reveal [fromString "c"]] (fromString "BB")
          ],
       Just ("A",1)
       ),
@@ -82,7 +82,7 @@ nPre = [
        ("d",7)
        ],
       Just [
-         Import [Local] (fromString "Parent.A")
+         Import [] (fromString "Parent.A")
          ],
       Just ("B",1)
       ),
@@ -90,9 +90,10 @@ nPre = [
       [("e",9)
        ],
       Just [
---         Import [] (fromString "Parent.A"),
---         Import [Qualified] (fromString "Parent.B")
-         ],
+         Import [Rename {newName = fromString "BBc",
+            oldName = fromString "BB.c"}] (fromString "Parent.A"),
+         Import [Qualified] (fromString "Parent.B")
+         ], 
       Just ("C",1)
       ),
    (3,
@@ -160,8 +161,10 @@ toN i =
 test1 =
    do
       monitor "A" "a"
---      monitor "B" "a"
---      monitor "C" "b"
+      monitor "B" "a"
+      monitor "C" "b"
+      monitor "C" "Parent.A.BBc"
+      monitor "A" "c"
 
 monitor :: String -> String -> IO ()
 monitor mod name =

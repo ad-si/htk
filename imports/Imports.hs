@@ -30,6 +30,7 @@ import ExtendedPrelude
 import TSem
 
 import EntityNames
+import ErrorReporting
 import Aliases
 import FolderStructure
 import Environment
@@ -212,7 +213,11 @@ mkGlobalNodeData importsState (node :: node) importCommandsSource =
                      case fromWithError (mkAliases importCommands) of
                         Left mess -> 
                            do
-                              reportError importsState mess
+                              if mess /= reported
+                                 then
+                                    reportError importsState mess
+                                 else
+                                    done
                               return (staticSimpleSource reportedError)
                         Right aliases ->
                            do
@@ -264,7 +269,7 @@ mkGlobalNodeData importsState (node :: node) importCommandsSource =
 
       (globalSource,closeDown) <- mirrorSimpleSource globalSource3
 
-      return globalSource3
+      return globalSource
 
 -- ------------------------------------------------------------------------
 -- Constructing the Local Data.
@@ -295,7 +300,6 @@ getLocalNodeData1 (importsState :: ImportsState node) (node :: node) =
             Nothing -> -- we must do some more work.
                do
                   globalNodeDataOpt <- getGlobalNodeData importsState node
-
                   case globalNodeDataOpt of
                      Nothing ->
                         return (sourceOpt,Nothing)
@@ -328,7 +332,11 @@ mkLocalNodeData importsState (node :: node) globalNodeDataSource =
                   case fromWithError globalNodeDataWE of
                      Left mess -> 
                         do
-                           reportError importsState mess
+                           if mess /= reported
+                              then
+                                 reportError importsState mess
+                              else
+                                 done
                            return (staticSimpleSource reportedError)
                      Right globalNodeData ->
                         do
@@ -456,7 +464,7 @@ mkNodeImport importsState (node0 :: node) aliases directives searchName1 =
          applyDirectives1 [] = eSource0
          applyDirectives1 (directive : directives1) =
             let
-               eSource1 = applyDirectives1 directives
+               eSource1 = applyDirectives1 directives1
             in
                case directive of
                   Hide names -> hide folderStructure names eSource1
@@ -509,33 +517,14 @@ reportErrors importsState simpleSource =
          case fromWithError aWE of
             Left mess | mess /= reported ->
                do
-                  reportError importsState mess
+                  -- Remove duplicate lines
+                  let
+                     mess2 = unlines . uniqOrd . lines $ mess
+                  reportError importsState mess2
                   return reportedError
             _ -> return aWE
           )
       simpleSource
-
-
-reportedError :: WithError a
-reportedError = hasError reported
-
-reported :: String
-reported = "REPORTED"
-
-pairWithErrorCheckReported :: WithError a -> WithError b -> WithError (a,b)
-pairWithErrorCheckReported aWE bWE =
-   case (fromWithError aWE,fromWithError bWE) of
-      (Right a,Right b) -> hasValue (a,b)
-      (Left aMess,Right b) -> hasError aMess
-      (Right a,Left bMess) -> hasError bMess
-      (Left aMess,Left bMess) ->
-         hasError (
-            case (aMess == reported,bMess == reported) of
-               (False,False) -> aMess ++ "\n" ++ bMess
-               (False,True) -> aMess
-               (True,False) -> bMess
-               (True,True) -> reported
-               )
 
 mkError :: ImportsState node -> node -> String 
    -> IO (SimpleSource (WithError a))
