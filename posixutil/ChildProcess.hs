@@ -102,8 +102,8 @@ import List
 import qualified System
 
 import qualified IO
-import qualified Posix
-import Posix(ProcessID,ProcessStatus(..),Fd,fdRead,fdWrite)
+import Posix hiding (ByteCount)
+import qualified GHC.Conc
 
 #if (__GLASGOW_HASKELL__ >= 505)
 import qualified System.Posix.Types
@@ -132,7 +132,6 @@ import WrapIO
 
 import ProcessClasses
 import FdRead
-import ForkExec
 
 -- --------------------------------------------------------------------------
 --  Posix Tool Parameters
@@ -221,57 +220,21 @@ data ChildProcess =
 newChildProcess :: FilePath -> [Config PosixProcess] -> IO ChildProcess
 newChildProcess path confs  =
    do                     -- (write,read)
-      --
-      -- Implementation Note
-      --
-      -- Ever since Einar's day up to 2nd September 2002, this function was 
-      -- implemented using the GHC Posix primitives fork and exec.  This caused
-      -- a serious problem when there were worker threads around communicating
-      -- with the outside world (eg servers), since the threads were cloned
-      -- by the fork and so the child would "steal" responses intended for the
-      -- server.  I added an apparently pointless operation which I think 
-      -- worked because it tricked the GHC scheduler into not running such
-      -- threads in the time it took for the thread to run exec.  This worked
-      -- quite well, but for some reason, whether because of changes in 
-      -- ghc5.04, or because of the increased complexity of MMiSSWorkbench,
-      -- it is not working any longer.  The effect with the MMiSSWorkbench was
-      -- that about 50% of the time it would not start up properly at all.
-      -- 
-      -- There is no way I can discover to prevent the child process running
-      -- all other threads until the exec operation has completed.  Therefore
-      -- I have adopted the drastic solution of implementing fork and exec
-      -- as a single operation in C.  GHC does not of course do anything else
-      -- while it is running C functions, so this solves the problem.
-      --
-      -- The change from the old approach explains the somewhat odd 
-      -- arrangement of this function.  There used to be a single "connect"
-      -- function defined in "where" which defined the parent and child actions
-      -- after the fork.  Now only the parent half of connect survives,
-      -- since the child actions are done in C.
-
       parms <- configure defaultPosixProcess confs
 
       debug("newChildProcess:")
       debug(path:(args parms))
 
+      -- Disable sigPIPE.  This means that the whole program
+      -- won't crash when the tool exits.  Unfortunately there
+      -- doesn't seem to be another way of doing this.
+      Posix.installHandler Posix.sigPIPE Posix.Ignore Nothing
+
+
       (readIn,writeIn) <- Posix.createPipe 
       -- Pipe to send things to child
       (readOut,writeOut) <- Posix.createPipe 
       -- Pipe to read things back from child.
-
-      -- Work around Posix EOF problem (see GHC User Guide section
-      -- "GHC FAQ") by writing a character through the output pipe.
-      byteCountOut <- fdWrite writeOut "#"
-      (strIn,byteCountIn) <- fdRead readOut 1
-      case (byteCountOut,byteCountIn,strIn) of
-         (1,1,"#") -> done
-         x -> error ("ChildProcess.999 error"++show x)
-
-      byteCountOut <- fdWrite writeIn "#"
-      (strIn,byteCountIn) <- fdRead readIn 1
-      case (byteCountOut,byteCountIn,strIn) of
-         (1,1,"#") -> done
-         x -> error ("ChildProcess.9998 error"++show x)
 
       let
          passOnStdErrs = stderr parms
@@ -285,159 +248,173 @@ newChildProcess path confs  =
                   (readErr,writeErr) <- Posix.createPipe
                   return (Just (readErr,writeErr))
 
+      -- precompute various things, to prevent the child and parent both
+      -- having to compute them.
+      let
+         arguments1 = args parms
+         environment1 = env parms
 
-      processOpt <- forkExec path (args parms) (env parms)
-         readIn writeOut 
-         (case readWriteErr of
-            Nothing -> writeOut
-            Just (_,writeErr) -> writeErr
-            )
- 
+         errorResponse = "Attempt to start program "++path++" failed: "
+
+      (path,arguments1,environment1,errorResponse) `deepSeq` done
+
+      processOpt <- GHC.Conc.forkProcess
+         -- This version of forkProcess stops any other threads in the child.
       case processOpt of
-         Nothing -> error "Couldn't fork process"
-         Just processID -> -- parent process
-            parentConnect writeIn readIn writeOut readOut 
-               readWriteErr parms processID
-   where
-      parentConnect writeIn readIn writeOut readOut readWriteErr 
-            parms processID =
-         do -- parent process
-            childObjectID <- newObject
-            bufferVar <- newMVar ""
+         Nothing -> -- child process
+            do
+               dupTo readIn stdInput
+               fdClose readIn
+               fdClose writeIn
 
-            Posix.fdClose readIn
-            Posix.fdClose writeOut
-            -- Disable sigPIPE.  This means that the whole program
-            -- won't crash when the tool exits.  Unfortunately there
-            -- doesn't seem to be another way of doing this.
-            Posix.installHandler Posix.sigPIPE Posix.Ignore Nothing
+               dupTo writeOut stdOutput
+               fdClose readOut
+               fdClose writeOut
 
-            closeAction <-
                case readWriteErr of
-                  Nothing ->
-                     return (
-                        do
-                           Posix.fdClose writeIn
-                           Posix.fdClose readOut
-                        )
+                  Nothing -> done
                   Just (readErr,writeErr) ->
                      do
-                        displayProcess <- 
-                           forkIO (goesQuietly(displayStdErr path readErr))
+                        dupTo writeErr stdError
+                        fdClose readErr
+                        fdClose writeErr
+
+               Posix.executeFile path True arguments1 environment1
+               putStrLn errorResponse
+               System.exitWith (System.ExitFailure 16)
+
+         Just processID ->
+            do
+               childObjectID <- newObject
+               bufferVar <- newMVar ""
+
+               Posix.fdClose readIn
+               Posix.fdClose writeOut
+
+               closeAction <-
+                  case readWriteErr of
+                     Nothing ->
                         return (
                            do
-                              killThread displayProcess
-
-                              Posix.fdClose readErr
                               Posix.fdClose writeIn
                               Posix.fdClose readOut
                            )
-            let
-               toolTitle = 
-                  case (toolname parms,splitName path) of
-                     (Just toolTitle,_) -> toolTitle
-                     (Nothing,Just (dir,toolTitle)) -> toolTitle
-                     (Nothing,Nothing) -> path
-
-               newChild = ChildProcess {
-                  childObjectID = childObjectID,
-                  lineMode = lmode parms,
-                  writeTo = writeIn,
-                  readFrom = readOut,
-                  processID = processID,
-                  bufferVar = bufferVar,
-                  chunkSize = fromIntegral (chksize parms),
-#ifdef DEBUG
-                  toolTitle = toolTitle,
-#endif
-                  closeAction = closeAction
-                  }
-
-            -- Do challenge-response
-            case (cresponse parms) of
-               Nothing -> done
-               Just (challenge,response) ->
-                  Exception.catch
-                     (do
-                        howLong <- getToolTimeOut
-                        let
-                           timedOutIO :: IO a -> IO (Maybe a)
-                           timedOutIO act
-                              = impatientIO act (msecs (fromIntegral howLong))
-
-                           -- Used when things go wrong
-                           badResponse :: String -> IO a
-                           badResponse mess =
-                              do
-                                 putStrLn ("Challenge response starting "++
-                                    toolTitle++" failed")
-                                 putStrLn mess
-                                 dumpPending
-                                 error "Challenge-Response failed"
-
-                           -- Print out pending characters, up to a maximum
-                           -- of 1000 characters and waiting up to the time-
-                           -- limit if necessary to do so.
-                           dumpPending :: IO ()
-                           dumpPending =
-                              do
-                                 pendingOpt <- timedOutIO 
-                                    (readChunk 1000 (readFrom newChild))
-                                 putStrLn (case pendingOpt of
-                                    Nothing -> "No more pending output"
-                                    Just pending -> ("Pending: "++show pending)
-                                    )
-
-                        sendMsg newChild challenge
-                        howLong <- getToolTimeOut
-                        resultOpt <- timedOutIO
-                           (readChunkFixed (fromIntegral (length response)) 
-                              (readFrom newChild))
-                        result <- case resultOpt of
-                           Nothing ->
-                              badResponse (
-                                 "Timed out waiting for initial output\n" ++
-                                 "Guess: either it's the wrong tool, " ++
-                                 "or else you need to set the option \n"
-                                 ++ "  --uni-option=" ++
-                                 "[LARGE NUMBER OF MILLISECONDS]")
-                           Just result -> return result
-
-#ifdef DEBUG
-                        debugRead newChild (result++"\n")
-#endif
-                        if response == result
-                           then
-                              done
-                           else
-                              -- Trim common case
-                              if isPrefixOf result errorResponse
-                                 || isPrefixOf errorResponse result
-                              then
-                                 badResponse ("Couldn't execute tool")
-                              else
-                                 badResponse ("Unexpected response was "++
-                                    show result)
-                        )
-                     (\ exception ->  
+                     Just (readErr,writeErr) ->
                         do
-                           putStrLn ("Attempt to start "++toolTitle++
-                              " from path \""++path++"\" failed")
-                           case Exception.errorCalls exception of
-                              Just mess -> 
-                                 do
-                                    putStrLn mess
-                                    error "Tool start failed"
-                              Nothing ->
-                                 do
-                                    putStrLn ("Mysterious exception: "
-                                       ++show exception)
-                                    Exception.throw exception
-                        ) 
-            return newChild
+                           displayProcess <- 
+                              forkIO (goesQuietly(displayStdErr path readErr))
+                           return (
+                              do
+                                 killThread displayProcess
 
-      errorResponse :: String
-      errorResponse = "Attempt to start program "++path++" failed: "
+                                 Posix.fdClose readErr
+                                 Posix.fdClose writeIn
+                                 Posix.fdClose readOut
+                              )
+               let
+                  toolTitle = 
+                     case (toolname parms,splitName path) of
+                        (Just toolTitle,_) -> toolTitle
+                        (Nothing,Just (dir,toolTitle)) -> toolTitle
+                        (Nothing,Nothing) -> path
+
+                  newChild = ChildProcess {
+                     childObjectID = childObjectID,
+                     lineMode = lmode parms,
+                     writeTo = writeIn,
+                     readFrom = readOut,
+                     processID = processID,
+                     bufferVar = bufferVar,
+                     chunkSize = fromIntegral (chksize parms),
+#ifdef DEBUG
+                     toolTitle = toolTitle,
+#endif
+                     closeAction = closeAction
+                     }
+
+               -- Do challenge-response
+               case (cresponse parms) of
+                  Nothing -> done
+                  Just (challenge,response) ->
+                     Exception.catch
+                        (do
+                           howLong <- getToolTimeOut
+                           let
+                              timedOutIO :: IO a -> IO (Maybe a)
+                              timedOutIO act = impatientIO act 
+                                 (msecs (fromIntegral howLong))
+
+                              -- Used when things go wrong
+                              badResponse :: String -> IO a
+                              badResponse mess =
+                                 do
+                                    putStrLn ("Challenge response starting "
+                                       ++toolTitle++" failed")
+                                    putStrLn mess
+                                    dumpPending
+                                    error "Challenge-Response failed"
+
+                              -- Print out pending characters, up to a maximum
+                              -- of 1000 characters and waiting up to the time-
+                              -- limit if necessary to do so.
+                              dumpPending :: IO ()
+                              dumpPending =
+                                 do
+                                    pendingOpt <- timedOutIO 
+                                       (readChunk 1000 (readFrom newChild))
+                                    putStrLn (case pendingOpt of
+                                       Nothing -> "No more pending output"
+                                       Just pending -> ("Pending: "
+                                          ++show pending)
+                                       )
+
+                           sendMsg newChild challenge
+                           howLong <- getToolTimeOut
+                           resultOpt <- timedOutIO
+                              (readChunkFixed (fromIntegral (length response)) 
+                                 (readFrom newChild))
+                           result <- case resultOpt of
+                              Nothing ->
+                                 badResponse (
+                                    "Timed out waiting for initial output\n" ++
+                                    "Guess: either it's the wrong tool, " ++
+                                    "or else you need to set the option \n"
+                                    ++ "  --uni-option=" ++
+                                    "[LARGE NUMBER OF MILLISECONDS]")
+                              Just result -> return result
+
+#ifdef DEBUG
+                           debugRead newChild (result++"\n")
+#endif
+                           if response == result
+                              then
+                                 done
+                              else
+                                 -- Trim common case
+                                 if isPrefixOf result errorResponse
+                                    || isPrefixOf errorResponse result
+                                 then
+                                    badResponse ("Couldn't execute tool")
+                                 else
+                                    badResponse ("Unexpected response was "++
+                                       show result)
+                           )
+                        (\ exception ->  
+                           do
+                              putStrLn ("Attempt to start "++toolTitle++
+                                 " from path \""++path++"\" failed")
+                              case Exception.errorCalls exception of
+                                 Just mess -> 
+                                    do
+                                       putStrLn mess
+                                       error "Tool start failed"
+                                 Nothing ->
+                                    do
+                                       putStrLn ("Mysterious exception: "
+                                          ++show exception)
+                                       Exception.throw exception
+                           ) 
+               return newChild
 
 getStatus :: Posix.ProcessID -> IO ToolStatus
 -- Immediately return Nothing if tool hasn't yet finished, or if
