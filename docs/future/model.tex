@@ -1,0 +1,280 @@
+\documentclass[a4paper]{article}
+%% an environment for bits of the texts which have been changed
+% \newenvironment{changed}{\chgbarbegin}{\chgbarend}
+
+\setlength{\parindent}{0mm}
+\setlength{\parskip}{.5ex}
+
+
+\begin{document}
+
+{\Large{The Proposed UniForM Object Model}}
+
+\rule{\textwidth}{.2pt} 
+
+%% \\[1ex]
+
+\today 
+\hfill
+\begin{tabular}[t]{l}
+George Russell \\
+\end{tabular}\\[3ex]
+NB.  Although we have used ``CVS'' throughout this document for the
+system used to store files in the repository, our only interface to
+CVS is a fairly small one, which only uses a few of its features;
+it should therefore not be difficult to replace CVS by any other
+system for efficiently storing versioned text files.
+\section{Objects}
+An Object is the most basic object in the repository.  There are
+three sorts of objects.  A {\em source} object is an object corresponding
+to a file to be stored in the repository and which is also visible to 
+the tools in the working directory.  A {\em target} object is an object which
+is not stored in the repository but which can nevertheless be
+generated automatically in the working directory, and so be visible to
+tools in the working directory.  A {\em virtual} object is an object which
+has no real existence as a file at all; its only purpose is to contain
+attributes.
+
+All objects are created with an Object Type, which will never be changed.
+
+We should also provide a separate caching mechanism for storing 
+hard-to-regenerate target objects.  However CVS is unsuitable for this
+since they will typically be large and binary.  Hence versioning won't
+work, and we just need a way of blasting binary files in and out of a 
+repository depending on the type, how much space is available, and other
+factors.  This needs more thought.
+
+In fact we also store an object's attributes in a file in the repository.
+Thus each source object is associated with two repository files;
+a file containing its contents, and a file containing its attributes.
+The CVS name of the repository file containing the attributes is a simple
+function of the CVS name of the file containing the contents; thus we can
+refer to each object just by the name of the contents file.  Virtual
+objects are just the same, except that we never actually try to store
+to the contents file.
+
+Attributes of target files may also be stored in the repository.  We
+call an attribute a source attribute if it is stored in the repository
+
+\section{Local Versions, Links, the Top Object, and  Global Versions}
+A local version of something checked in corresponds to a CVS version.
+Thus each object has two local versions, namely the local version of the 
+contents file, and the local version of the attributes file.
+A local version of something checked out only has to indicate that;
+thus the complete type of a Local Version is either a CVS version, or
+unit.  In Haskell terms this corresponds to Maybe(CVS version).
+
+The state of an object at any time can be completely described by the
+quadruple consisting of the object type, the name of the contents file 
+for the objects, the local version of the contents file, and the local 
+version of the attributes file. We call this triple a Link.  Links can be
+put into attributes.
+
+Note that we make no attempt to make links reversible, but the tools
+that create the links can also create lists of links pointing in the
+reverse direction.
+
+There is always a distinguished Top object, which corresponds to a folder.
+
+A Global Version corresponds to the complete set of all objects and their
+attributes accessible from the top object, together with the available object
+tools and types (of which more later).  Thus we can in fact represent
+it by a link to the top object.  It fact we require that all the objects
+can be got at from the top object purely by folder links, thus meaning that
+each object has at least one user-visible name.  In fact, for reasons of
+simplicity, that we require that it has exactly one, so that there is
+a unique path to each object from the top object.
+
+Global Versions are in other systems sometimes called views, sometimes
+configurations, sometimes editions.
+
+\section{Attributes and AttributeTypes}
+Objects, and Global Versions, may have attributes attached to them.
+There will be a Haskell type AttributeType, and a Haskell class
+HasAttributeType.  Instances of HasAttributeType correspond to values
+that can be stored in the attribute of an object.  Examples of
+instances of HasAttributeType will be Int, Bool, String, AttributeType
+and importantly Link.  Using Haskell's class system, we will automatically 
+arrange that the set of instances  of HasAttributeType is closed under 
+tupleisation (up to tuples of size 5), forming lists, and the Either and Maybe 
+constructors.
+
+Glasgow Haskell is being extended with generic instances.  When these
+are working it will be possible to get Glasgow Haskell to define
+new instances of HasAttributeType automatically, just by putting 
+deriving (HasAttributeType) after the type declaration.
+
+The set of attributes available for an object or global version
+is represented by a list of triples.  Each triple contains the String
+name of the attribute, the AttributeType, and a monomorphic representation
+of the attribute.  Thus for a fixed set of attributes we can regard
+this list as a map from the pair (attribute name,attribute type) to the
+attribute value.  But in fact, to avoid confusion, we will not allow
+any attribute name to occur more than once in such a set of attributes,
+allowing us a function from attribute name -> pair (type,value).
+
+\section{Object Types and Object Type Factories}
+Every object has a type.  We have subtyping of objects, and the subtype
+graph is fairly general.  Our only requirements are that there is
+a single unique supertype (called the Object type), and that the graph 
+by acyclic.  It will be possible to view the graph of all object types, the 
+so called object type graph.
+
+The object type defines various things, among others:
+\begin{itemize}
+\item Whether the object is a source, target or virtual object.
+      This may differ from the supertypes.
+\item The names and types of attributes that must be defined for objects
+      with this type (but not for objects with any of the supertypes).
+      This must be disjoint from the attributes that must be defined for
+      the supertypes, and so the object must define the union of all of
+      these.  We should also allow the type to restrict the
+      type of objects referenced in links.  Is it enough to specify
+      that the type must subtype a given list of object types?
+\item The names of attributes which should not be stored in the repository
+      if defined.
+\item Display information.  This is by far the most complex and the most
+      important.
+      For a set of display graph types (see later) indexed
+      strings, we supply information about how the object should
+      be displayed.  This includes, for example, the menu which will be
+      attached to the object, and the actions which will be provoked if
+      the buttons are pressed, as well as what drag-and-drop actions with
+      that object do. It also maps the attribute set to the object to
+      arcs to be added to and from that object (presumably to objects linked
+      to the object).  Finally, this information includes how the object
+      and arcs should look (the shape or icon if any, and so on).
+      Display information is however optional.  Where it is unspecified,
+      we always take it from the first immediate supertype.  (This is
+      not perfect, being asymmetrical, but you can always specify the
+      display information anyway.)
+\item An extension, which is appended to names of objects as seen by
+      tools, or by the user. 
+\end{itemize}
+In addition object types do of course need to have a compact tag which is 
+unique to the object type in this global version.  But we also need a way
+of creating new object types, and storing the set of available object types
+in the repository.  We do this using Object Type Factories.  
+\par
+Object Type
+Factories are -- at least until Glasgow Haskell allows us to load modules
+dynamically -- hardwired.  Each object is associated with a particular
+object type factory.  Each object type factory provides a way of
+allowing the user to create new objects associated with it, typically
+by popping up a series of HTk windows in which the relevant information
+is to be typed.  
+\par
+Each object type factory also provides a way of
+mapping the object types associated with it to and from it into a String, 
+and a way of displaying object types to the user when he clicks on them in
+the object type graph.  (It would also be no bad idea if the display 
+information for each object type included a menu item for the object that
+displayed the object type, but we don't force that.)  The complete set
+of object types in a particular checked-in global version will be stored
+in an additional file in the CVS repository.
+\section{Folders and the Object type}
+The folder type is a particular object type.  It is important because
+it provides a mapping from a user-visible filename (which is a sequence
+of base names separated by slashes, like a Unix file name) to objects.  It is
+virtual, and has a single attribute \texttt{contents} which is a simple list
+of type \texttt{[(String,Link)]}.  The \texttt{String}'s do not all have to
+be unique, but the pairs \texttt{(String,ObjectType)} in a folder must be;
+hence we a folder corresponds to a map \texttt{(String,ObjectType)->Link}.
+\par
+These links always need to be reversible.  For this reason we have 
+universal supertype, the Object type.  This must contain an attribute
+\texttt{parent}, of type \texttt{Maybe Link}.  The \texttt{parent}
+attribute always points to the parent folder, except of course for the
+top object, for which the \texttt{parent} attribute is \texttt{Nothing}.
+\par
+The Object type has another reason for existing, which is that it
+supplies default display rules.
+\par
+It makes sense to create subtypes of the folder type.  For example there
+could be an object type consisting of folders containing Haskell files.
+It could contain additional attributes, for example the name of a library
+file to which they must be compiled.
+\section{Display Graph Types and Display Graph Type Factories}
+Displays of objects are parameterised by a display graph type.
+The display graph type contains
+\begin{itemize}
+\item A user-visible string, identifying it, and also used to
+      extract appropriate parameters for the object.
+\item The type of display system to be used by default for this
+      display graph type.  At the moment there is only one,
+      daVinci, but we have a system of parameterising display systems, 
+      making the construction of others reasonable.  It may for 
+      example make sense to make a 
+      special display system for displaying the folder graph.
+\item Special parameters for the whole display, EG what String to
+      put on the top of the window, additional menus, and what happens
+      if the user clicks in the middle of the window.
+\item A (Haskell) function for extracting a set of root objects to
+      begin graphing.  We get all the objects by repeatedly
+      taking an object, using its type to get the display information,
+      which gives us what arcs to add to what objects, and repeating
+      the process for those new objects (if we haven't already done them).
+      Thus for the folder graph we just need the top object as root object.
+\end{itemize}
+Since we probably want the set of display graph types to be dynamically
+extensible, we also need display graph factories, which will work in the
+same way as object type factories, and will also be fully described in
+a special file in the repository.
+\section{Tools and Tool Factories}
+This is sadly not yet clear, as I have regarded the functionality described
+before this section as quite enough to implement to start with.
+\par
+Tools are seen by the user in several ways.  The easiest sort of tool
+is a {\em single-shot} tool, which is invoked by the user, either directly
+(through an interface which lists the available single-shot tools,
+and then prompts for the arguments), or (in most cases, one hopes) by being 
+called up from one of the actions attached to an object in a particular 
+display.  Thus the tool has two interfaces; the one available directly
+to the user, and the one available to those constructing actions elsewhere
+in UniForM. 
+\par
+Objects with target object type may not occur
+as outputs to such tools, since the application of such tools is
+arbitrary.
+\par
+The situation is more complicated with so-called {\em systematic}
+tools.  These should be applied automatically to generate target
+files, in a similar way to \texttt{make}.  Since it is difficult
+to know exactly how to do this right, I suggest that, corresponding
+to \texttt{make}-file rules, each object type provide functions
+(or rather functions to actions) taking the object link to a list of
+possible object sets it could be created from.  This disadvantage of
+this is that the user must explicitly specify what target files should
+be generated in a particular global version, but it seems better than
+any more complicated scheme I can think of at the moment.  It would
+probably be better to try some simple scheme such as this, and then
+generalise it later on, rather than going for the wrong generalisation
+at the start.
+\par
+A third class of tools is that used for workbench operations.
+Perhaps the only sort of this class consists of merging operations.
+Namely, each source object type needs to specify a tool which trys to
+merge two objects of that type. 
+\par
+In all cases a tool should specify the following things:
+\begin{itemize}
+\item The object types required for the files involved.  Each file
+      is either just input, or just input, or both input and output.
+      For example editing a text file would involve just one file,
+      which must be a subtype of the set of text files, for both
+      input and output.
+\item The procedure for invoking the tool.
+\end{itemize}
+Again, I would like to have tools described by tool-factories, so that
+with a fixed set of tool factories, we can pass tools around the network.
+But we can only do this to a limited extent; it is probably too much
+too expect UniForM to handle the distribution of actual binaries.
+For example, a simple (and probably effective) tool factory would
+generate a tool given (a) a representation for the object types 
+and input/output specification; (b) an fprintf-style format
+which generates a command invoking the tool with specified arguments.
+\end{document}
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
