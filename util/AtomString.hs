@@ -1,11 +1,15 @@
 {- AtomString atomises strings.  Right now this code
    is not very efficient but it shouldn't be too hard
    to improve.
+
+   This code includes no less that 3 uses of unsafePerformIO.  Oh well.
    -}
 module AtomString(
-   AtomString, -- represents a string.  Instance of Ord & Eq
-   mkAtom, -- :: String -> IO AtomString
-   readAtom -- :: AtomString -> IO String
+   AtomString, 
+      -- represents a string.  Instance of Ord, Eq, StringClass, 
+      -- Read and Show.
+   StringClass(..),
+      -- encodes that a type encodes strings in some way.
    ) where               
 
 import Concurrent
@@ -14,6 +18,7 @@ import qualified IOExts(unsafePerformIO)
 import PackedString
 
 import Debug(debug)
+import QuickReadShow
 
 data AtomSource = AtomSource (MVar (FiniteMap PackedString AtomString))
    -- where AtomStrings come from
@@ -33,6 +38,28 @@ theAtomSource = IOExts.unsafePerformIO emptyAtomSource
 
 newtype AtomString = AtomString PackedString deriving (Ord,Eq)
 -- in fact Eq could be unsafePtrEq
+
+------------------------------------------------------------------------
+-- StringClass
+------------------------------------------------------------------------
+
+class StringClass stringClass where
+   toString :: stringClass -> String
+   fromString :: String -> stringClass
+
+instance StringClass AtomString where
+   fromString string = IOExts.unsafePerformIO (mkAtom string)
+   toString atom = IOExts.unsafePerformIO (readAtom atom)
+
+instance StringClass stringClass => QuickRead stringClass where
+   quickRead = WrapRead fromString
+
+instance StringClass stringClass => QuickShow stringClass where
+   quickShow = WrapShow toString
+
+------------------------------------------------------------------------
+-- StringClass instance
+------------------------------------------------------------------------
 
 mkAtom :: String -> IO AtomString
 mkAtom str =
