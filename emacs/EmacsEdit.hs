@@ -22,6 +22,7 @@ import Destructible
 
 import LockEvent
 
+import HTk(text)
 import DialogWin
 
 import EmacsBasic
@@ -257,6 +258,43 @@ handleEvents (editorState :: EditorState ref) =
          do
             containers <- listContainers session
             filterM (isModified session) containers
+
+      -- Action to be taken when a normal button is clicked.  This is
+      -- complex enough to deserve its own function.
+      buttonMenu :: MangledTypedName -> IO ()
+      buttonMenu mangledTypedName =
+         do
+            ref <- readMangled mangledTypedName
+            let
+               buttonId = normalName mangledTypedName
+
+            -- work out what to do.
+            (action :: NormalButtonAction) <- createDialogWin
+               [("Expand",Expand),("Delete",Delete),("Cancel",Cancel)]
+               Nothing
+               [text ("Do what to "++ describe ref ++ "?")]
+               [text "Button action window"]
+
+            case action of
+               Cancel -> done
+               Expand ->
+                  do
+                     let
+                        parentAction =
+                           do
+                              expand session buttonId
+                              return (buttonId,editorState)
+                     lockBuffer session
+                     wasModified <- getModifiedFlag session
+                     openFile fs parentAction ref mangledTypedName
+                     unless wasModified (clearModifiedFlag session)
+                     unlockBuffer session
+               Delete ->
+                  do
+                     goAhead <- createConfirmWin
+                        ("Really delete " ++ describe ref ++ "?") []
+                     when goAhead (deleteExtent session buttonId)
+
    in
          (do
             str <- event "COMMIT"
@@ -337,24 +375,8 @@ handleEvents (editorState :: EditorState ref) =
             case parseButton str of
                Normal mangledName ->
                   do
-                     ref <- always (readMangled mangledName)
-                     confirm ("Expand "++describe ref++"?") (
-                        let
-                           parentAction =
-                              do
-                                 expand session str
-                                 return (str,editorState)
-                        in
-                           always (
-                              do
-                                 lockBuffer session
-                                 wasModified <- getModifiedFlag session
-                                 openFile fs parentAction ref mangledName
-                                 unless wasModified (clearModifiedFlag session)
-                                 unlockBuffer session
-                                 sync iterate
-                              )
-                        )
+                     always (buttonMenu mangledName)
+                     iterate
                Head mangledName ->
                   always (
                      do
@@ -462,6 +484,13 @@ handleEvents (editorState :: EditorState ref) =
                "Sorry, the Enlarge operation is currently not supported")
             iterate            
          )
+
+-- ----------------------------------------------------------------------
+-- Action to be taken when we click on a normal button
+-- ----------------------------------------------------------------------
+
+
+data NormalButtonAction = Expand | Delete | Cancel
 
 -- ----------------------------------------------------------------------
 -- Printing 

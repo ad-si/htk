@@ -186,6 +186,7 @@
          (extent (gethash extent-id uni-extent-hash-table))
          (extent-start (extent-start-position extent))
          (extent-end (extent-end-position extent))
+         (parent-extent (uni-get-containing-extent extent))
          )
       (delete-region extent-start extent-end)
       ;  Because this and all contained extents are detachable this removes 
@@ -193,6 +194,7 @@
       ;  
       ;  Because the hash table is value-weak, this will mean the entries
       ;  can also disappear, when the extents are gc'd.
+      (uni-modify-extent parent-extent)
       )
    )
 
@@ -443,18 +445,8 @@
                       (if (uni-is-head-button closest-extent) 
                         (error "Can't insert before a head button")
 
-                        ; The following extent-at incantation finds the
-                        ; container extent containing this button.  We need
-                        ; to avoid (a) picking a button extent immediately
-                        ; before closest-extent; that is why we specify 'after;
-                        ; (b) picking a container extent which includes the
-                        ; one we actually want; that is why we use extent-at,
-                        ; which returns the smallest matching extent; (c)
-                        ; picking closest-extent itself; that's why we specify
-                        ; it as the 4th argument.
-                        (let ((container-extent
-                                (extent-at from (current-buffer) 
-                                'uni-extent-type closest-extent `after)))
+                        (let ((container-extent 
+                              (uni-get-containing-extent closest-extent)))
                            (uni-modify-extent container-extent)
   
                            ;; we are at the start of a button extent which
@@ -495,6 +487,19 @@
          )
       ()
       )
+   )
+
+; Get the closest containing extent of a given extent
+(defun uni-get-containing-extent (extent)
+   ; We need to avoid (a) picking a button extent immediately
+   ; before extent; that is why we specify 'after;
+   ; (b) picking a container extent which includes the
+   ; one we actually want; that is why we use extent-at,
+   ; which returns the smallest matching extent; (c)
+   ; picking extent itself; that's why we specify
+   ; it as the 4th argument.
+   (extent-at (extent-start-position extent) (current-buffer) 
+      'uni-extent-type extent `after)
    )
 
 ; Give an extent the uni-head-button property.  This means
