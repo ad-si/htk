@@ -9,6 +9,12 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 
+\usepackage[nofancy,today]{rcsinfo}
+
+%%% -- Set rcs info -----------------------------------------------------
+
+\rcsInfo $Id$ 
+
 %%% -- Useful macros ----------------------------------------------------
 
 %% The code environment typesets its contents verbatim.
@@ -73,6 +79,8 @@
 
 \newcommand{\ToBeDone}[1]{\textbf{TBD: #1}}
 
+
+
 \begin{document}
 
 \ifx\pdfoutput\undefined\maketitle
@@ -91,6 +99,10 @@
   with \HTk, and finally to enable them to find further
   information quickly in the reference material.
 \end{abstract}
+
+\vfill{}
+{\scriptsize\raggedleft{Source: \rcsInfoFile, 
+  Revision \rcsInfoRevision{} of \rcsInfoDate}\par{}}
 
 \newpage
 
