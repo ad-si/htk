@@ -288,10 +288,10 @@ listTypeParser :: GenParser Char st String
 listTypeParser = try(string "itemize") <|> try(string "enumerate") <|> return ("")
 
 
-{- attributesOrNot checks if a '[' is the next input character. If so, it exepects an
+{- attributesOrNot checks if a '[' is the next input character. If so, it expects an
    attribute list (found on MMiSS-Environments) which it returns. If the next character 
    is something else, than it succeeds but returns an empty list. In the latter case 
-   it succeeds because, it is valid to have no attribute list at all at a MMiSS-Environment.
+   it succeeds because it is valid to have no attribute list at all at a MMiSS-Environment.
  -}
 
 attributesOrNot :: GenParser Char st Attributes
@@ -317,7 +317,7 @@ attribute = do spaces
                spaces
                char '=' <?> "value for attribute '" ++ key ++ "'"
                spaces
-               v <- choice ((try(string "{}")):((delimitedValue key):((value ",]"):[]))) 
+               v <- choice ((try(string "{}")):((parenthesed False '{' '}'):((oldvalue ",]"):[]))) 
                     <?> "value for attribute '" ++ key ++ "'"
                spaces
                pos <- getPosition
@@ -331,7 +331,7 @@ attribute = do spaces
                return (key, new_v)
 
 delimitedValue :: String -> GenParser Char st String
-delimitedValue key = between (char '{') (char '}') (value "")
+delimitedValue key = try(between (char '{') (char '}') (oldvalue key))
 
 
 {- The value parser accepts any String enclosed by {}. Furthermore it accepts
@@ -339,23 +339,57 @@ delimitedValue key = between (char '{') (char '}') (value "")
    It stops at characters, specified by 'rightClosure'. 
 -}
 
-value :: String -> GenParser Char st String
-value rightClosure = 
+
+oldvalue :: String -> GenParser Char st String
+oldvalue rightClosure = 
   try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
-         s2 <- try(between (char '{') (char '}') (try(value rightClosure)))
-         s3 <- option "" (value rightClosure)
+         s2 <- try(between (char '{') (char '}') (try(oldvalue rightClosure)))
+         s3 <- option "" (oldvalue rightClosure)
          return (s1 ++ "{" ++ s2 ++ "}" ++ s3))
   <|> try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
              s2 <- try(string "{}")
-             s3 <- option "" (value rightClosure)
+             s3 <- option "" (oldvalue rightClosure)
              return (s1 ++ "{}" ++ s3))
   <|> try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
              s2 <- char '\\'
              s3 <- anyChar
-             s4 <- option "" (value rightClosure)
+             s4 <- option "" (oldvalue rightClosure)
              return (s1 ++ [s2] ++ [s3] ++ s4))
   <|> try(do s1 <- try(many1 (noneOf ("{}\\" ++ rightClosure)))
              return s1)
+
+
+anyWithoutThisParens :: String -> String -> GenParser Char st String
+anyWithoutThisParens parSymbols inStr = 
+  do s <- try (escapedBracket)
+     anyWithoutThisParens parSymbols (inStr ++ s) 
+  <|> do char '\\'
+         anyWithoutThisParens parSymbols (inStr ++ "\\")
+  <|> do s <- many1 (noneOf ("\\" ++ parSymbols))
+         anyWithoutThisParens parSymbols (inStr ++ s)
+  <|> return inStr
+
+
+parenthesed :: Bool -> Char -> Char -> GenParser Char st String
+parenthesed printParens opening closing = 
+   do char opening
+      s1 <- anyWithoutThisParens parSymbols ""
+      l <- many ( do str <- parenthesed True opening closing 
+		     str2 <- (anyWithoutThisParens parSymbols "")
+		     return (str ++ str2))
+      s2 <- anyWithoutThisParens parSymbols ""
+      char closing
+      p1 <- if printParens then return [opening] else return ""
+      p2 <- if printParens then return [closing] else return ""
+      return (p1 ++ s1 ++ (concat l) ++ s2 ++ p2)
+   where
+     parSymbols = [opening] ++ [closing]
+
+
+escapedBracket :: GenParser Char st String
+escapedBracket = do try (char '\\')
+                    c <- try (oneOf "([{}])")
+                    return ("\\" ++ [c]) 
 
 
 -- other konsumiert solange Text, bis ein Backslash oder Kommentarzeichen auftaucht und
@@ -467,7 +501,7 @@ mEnvParams id =
 lParams :: String -> [SingleParam] -> GenParser Char st Params
 lParams id l
   | id == "Emphasis" = do spaces
-                          str <- try (between (char '{') (char '}') (value ""))
+                          str <- try (parenthesed False '{' '}')
                           p <- return [(Other str)]
                           return (LParams [(SingleParam p '{')] [] Nothing Nothing)
 
@@ -490,7 +524,7 @@ lParams id l
 
   | id `elem` (map fst refCommands) =
       do pos <- getPosition
-	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
+	 phrase <- option [] (parenthesed False '[' ']')
          spaces
 	 labelId <-  try(between (char '{') (char '}') idParser)
 	             <?> (appendSourcePos pos ("[phrase]{referenced LabelID} for Command <" ++ id ++ ">"))
@@ -500,7 +534,7 @@ lParams id l
 
   | id `elem` (map fst linkCommands) =
       do pos <- getPosition
-	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
+	 phrase <- option [] (try(parenthesed False '[' ']'))
          spaces
 	 param1 <- try(between (char '{') (char '}') idParser)
 	           <?> (appendSourcePos pos ("[phrase]{type}{label} or [phrase]{label} for Command <" ++ id ++ ">"))
@@ -521,7 +555,7 @@ lParams id l
       do pos <- getPosition
 	 phrase <- do try (string "[]")
                       return ("")
-                   <|> (try(between (char '[') (char ']') (value "]")))
+                   <|> (try(parenthesed False '[' ']'))
                    <|> return ""
          spaces
          labelId <- try(between (char '{') (char '}') idParser)
@@ -532,7 +566,7 @@ lParams id l
 
  | (id `elem` itemNames) =
       do pos <- getPosition
-         descItem <- option [] (try(between (char '[') (char ']') (value "]")))
+         descItem <- option [] (try(parenthesed False '[' ']'))
          attributes <- if (descItem == [])
                          then return []
                          else return ([("descItem", descItem)])
@@ -553,7 +587,7 @@ lParams id l
                        in return(optionAtts ++ nameAtts ++ versionAtts)
          return(LParams [] attributes Nothing Nothing)
 
-  | otherwise = do optionStr <- option "" (choice ((try (string "[]")):(try(between (char '[') (char ']') (value "]"))):[]))
+  | otherwise = do optionStr <- option "" (choice ((try (string "[]")):(try(parenthesed False '[' ']')):[]))
                    options <- case optionStr of
                                 "" -> return([])
                                 "[]" -> return([])
@@ -565,10 +599,10 @@ lParams id l
 
 genericParams :: [SingleParam] -> GenParser Char st [SingleParam]
 genericParams l =
-   do str <- try (try (between (char '{') (char '}') (value "")))
+   do str <- try (try (parenthesed False '{' '}'))
       p <- return [(Other str)]
       genericParams ((SingleParam p '{'):l)  
-   <|>  do str <- try (try (between (char '(') (char ')') (value ")")))
+   <|>  do str <- try (try (parenthesed False '(' ')'))
            p <- return [(Other str)]
            genericParams ((SingleParam p '('):l)
    <|>  return (reverse l)
