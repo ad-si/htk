@@ -1,11 +1,10 @@
-{- This module contains MenuType - a general abstract datatype for menus -
-   plus some map-like operations on it.
-
-   NBNBNB.  MenuType is also used by the graphs/daVinci stuff, which is
-   supposed to be independent of HTk.  So before making HTk-specific changes
-   to this datatype, please find some way of harmlessly ignoring them
-   (at best) for daVinci.
-   -}
+-- | This module contains 'MenuType' - a general abstract datatype for menus -
+-- plus some map-like operations on it.
+-- 
+-- NBNBNB.  'MenuType' is also used by the graphs and daVinci stuff, which is
+-- supposed to be independent of HTk.  So before making HTk-specific changes
+-- to this datatype, please find some way of harmlessly ignoring them
+-- (at best) for daVinci.
 module MenuType(
    MenuPrim(..), -- the general type of menus.
 

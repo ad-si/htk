@@ -1,6 +1,5 @@
-{- This module does some error-reporting, allowing errors to be replaced
-   by a null value ("REPORTED") indicating that they have already been reported.
-   -}
+-- | This module does some error-reporting, allowing errors to be replaced
+-- by a null value ("REPORTED") indicating that they have already been reported.
 module ErrorReporting(
    pairWithErrorCheckReported,
       -- :: WithError a -> WithError b -> WithError (a,b)

@@ -1,5 +1,5 @@
-{- This module contains various functions Malcolm forgot to include
-   in HaXml, or which at least I haven't been able to find there. -}
+-- | This module contains various functions Malcolm forgot to include
+-- in HaXml, or which at least I haven't been able to find there. 
 module XmlExtras(
    fromDefaultable,
       -- :: Defaultable a -> a

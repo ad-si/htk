@@ -1,16 +1,15 @@
-{- Module taken from Dean Harington's post to the Haskell mailing list
-   on Fri, 17 Aug 2001.
-
-   URL is currently 
-      http://www.haskell.org/pipermail/haskell/2001-August/007712.html
-
-   This module provides "deepSeq" and "$!!" which correspond to "seq" and "$!"
-   except that they try to evaluate everything in the argument.  For example,
-   if a list is provided, the whole list must be evaluated.
-
-   For purposes of Haddock, empty instance declarations with "where"
-   have had the "where" deleted.
-   -}
+-- | Module taken from Dean Harington's post to the Haskell mailing list
+-- on Fri, 17 Aug 2001.
+-- 
+-- URL is currently
+-- <http://www.haskell.org/pipermail/haskell/2001-August/007712.html>
+-- 
+-- This module provides 'deepSeq' and '$!!' which correspond to 'seq' and '$!'
+-- except that they try to evaluate everything in the argument.  For example,
+-- if a list is provided, the whole list must be evaluated.
+-- 
+-- For purposes of Haddock, empty instance declarations with @where@
+-- have had the @where@ deleted.
 
 module DeepSeq where
  

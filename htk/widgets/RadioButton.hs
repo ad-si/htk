@@ -1,4 +1,3 @@
-
 -- | HTk\'s /radiobutton/ widget.
 -- A simple radiobutton associated with a polymorphic variable.
 module RadioButton (

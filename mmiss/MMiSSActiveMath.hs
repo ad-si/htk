@@ -1,4 +1,4 @@
-{- Calling into ActivMath from the Repository. -}
+-- | Calling into ActivMath from the Repository. 
 module MMiSSActiveMath(
    mmiss2AM,
    ) where

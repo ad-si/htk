@@ -1,4 +1,4 @@
-{- This module contains the function for changing an object's attributes. -}
+-- | This module contains the function for changing an object's attributes. 
 module MMiSSEditAttributes(
    editObjectAttributes
    ) where

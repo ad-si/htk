@@ -1,5 +1,5 @@
-{- Very primitive concurrency, this implements a sink, which passes messages
-   along until the receiver is no longer interested. -}
+-- | Very primitive concurrency, this implements a sink, which passes messages
+-- along until the receiver is no longer interested. 
 module Sink(
    HasInvalidate(..),
 

@@ -1,4 +1,3 @@
-
 -- | A container widget with a preset packing orientation (for simple
 -- packing).
 module Box (

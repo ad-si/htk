@@ -1,7 +1,7 @@
-{- This file turns [XmlTypes.AttDef] lists into AttributesType's, and
-   [XmlTypes.Attribute] lists into Attribute's and back.  Various restrictions
-   are placed on these; for example defaults and non-String types are not
-   permitted. -}
+-- | This file turns [XmlTypes.AttDef] lists into AttributesType's, and
+-- [XmlTypes.Attribute] lists into Attribute's and back.  Various restrictions
+-- are placed on these; for example defaults and non-String types are not
+-- permitted. 
 module MMiSSAttributes(
    fromXmlAttributesDef, -- :: [XmlTypes.AttDef] -> WithError AttributesType
    fromXmlAttributes, 

@@ -1,5 +1,5 @@
-{- DisplayView displays all the objects in a particular view according to a 
-   particular display type. -}
+-- | DisplayView displays all the objects in a particular view according to a 
+-- particular display type. 
 module DisplayView(
    DisplayedView,
    displayView,

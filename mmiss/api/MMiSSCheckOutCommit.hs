@@ -1,5 +1,5 @@
-{- This module contains the functions for checking out a version, committing
-   it, and doing various other things. -}
+-- | This module contains the functions for checking out a version, committing
+-- it, and doing various other things. 
 module MMiSSCheckOutCommit (
    checkOut,
    changeUserInfo,

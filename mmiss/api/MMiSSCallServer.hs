@@ -1,5 +1,5 @@
-{- This module contains the functions for connecting to a server, closing 
-   it, and listing versions. -}
+-- | This module contains the functions for connecting to a server, closing 
+-- it, and listing versions. 
 module MMiSSCallServer(
    connect,
    closeServer,

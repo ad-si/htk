@@ -1,12 +1,11 @@
-{- This file describes the basic untyped objects stored in the 
-   repository.  Since they are versioned, they need to be
-   wrapped in Versioned; EG (Versioned SimpleFile) represents
-   a file (with no attributes.
-
-   Attributes describes a set of variables keyed by Strings.
-   We also implement an AttributesType type which describes the
-   types of the variables in an Attributes.
-   -}
+-- | This file describes the basic untyped objects stored in the 
+-- repository.  Since they are versioned, they need to be
+-- wrapped in Versioned; EG (Versioned SimpleFile) represents
+-- a file (with no attributes.
+-- 
+-- Attributes describes a set of variables keyed by Strings.
+-- We also implement an AttributesType type which describes the
+-- types of the variables in an Attributes.
 module BasicObjects(
    SimpleFile, -- a file with no frills. 
       -- SimpleFile is designed to be used as part of other CodedValues,

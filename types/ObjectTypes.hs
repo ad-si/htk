@@ -1,23 +1,22 @@
-{- Here we define ObjectType's and their factories
-
-   For each object we have two Haskell values with
-      associated types.  These two types are declared to be
-      functionally dependent (in the ObjectType class) so that
-      either determines the other.
-   The object itself has of course a Haskell type.
-   The operations on an object, and various other parameters of it,
-      are defined by the object's objectType.
-   Both objectTypes and objects are instances of HasCodedValue.
-   This is how they can be read in and out.
-
-   We do not fix the available objectTypes in this part of the
-   repository.  Instead, we provide a register function, which
-   is passed a type parameter.
-      
-   Both objectTypes and objects must be instances of HasCodedValue.
-
-   See the file RECURSION
-   -}
+-- | Here we define ObjectType's and their factories
+-- 
+-- For each object we have two Haskell values with
+--    associated types.  These two types are declared to be
+--    functionally dependent (in the ObjectType class) so that
+--    either determines the other.
+-- The object itself has of course a Haskell type.
+-- The operations on an object, and various other parameters of it,
+--    are defined by the object's objectType.
+-- Both objectTypes and objects are instances of HasCodedValue.
+-- This is how they can be read in and out.
+-- 
+-- We do not fix the available objectTypes in this part of the
+-- repository.  Instead, we provide a register function, which
+-- is passed a type parameter.
+--    
+-- Both objectTypes and objects must be instances of HasCodedValue.
+-- 
+-- See the file RECURSION
 module ObjectTypes(
    ObjectType(..), 
       -- the class giving ALL the methods (thank heaven for functional

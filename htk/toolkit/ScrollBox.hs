@@ -1,4 +1,3 @@
-
 -- | A simple scroll pane for a scrolled widget.
 module ScrollBox (
 

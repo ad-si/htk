@@ -1,7 +1,6 @@
-{- This module contains code which (supposedly) extracts the full qualified
-   name of the machine on which it is running.  (At least it does on the
-   Linux and Solaris implementations I tested.)
-   -}
+-- | This module contains code which (supposedly) extracts the full qualified
+-- name of the machine on which it is running.  (At least it does on the
+-- Linux and Solaris implementations I tested.)
 module HostName(
    getFullHostName,
    ) where

@@ -1,4 +1,3 @@
-
 -- | Pack options for the grid geometry manager.
 module GridPackOptions (
 

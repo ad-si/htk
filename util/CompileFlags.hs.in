@@ -1,5 +1,5 @@
-{- This module (which needs to be expanded by ./configure) contains flags
-   which (via Template Haskell) control compilation. -}
+-- | This module (which needs to be expanded by .\/configure) contains flags
+-- which (via Template Haskell) control compilation.
 module CompileFlags where
 
 ghcShortVersion :: Int 
@@ -16,7 +16,3 @@ isDebug = True -- set this manually, until we find a better way.
 
 uniVersion :: String
 uniVersion = "@UNIVERSION@"
-
-idVar = [| id |] 
-   -- This is a useful way of breaking incorrect type-errors
-   -- in unused splices.

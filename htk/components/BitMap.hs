@@ -1,5 +1,3 @@
-
-
 -- | This module provides access to bitmap resources.
 module BitMap (
 

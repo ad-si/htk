@@ -1,6 +1,5 @@
-{- This is a different abstraction to the standard server package, designed 
-   for the Emacs encapsulation.
-   -}
+-- | This is a different abstraction to the standard server package, designed 
+-- for the Emacs encapsulation.
 module MultiServer(
    MultiServer,
    

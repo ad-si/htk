@@ -1,4 +1,3 @@
-
 -- | the inputform
 module InputForm (
         InputForm(..),

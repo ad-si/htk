@@ -1,7 +1,6 @@
-{- This module contains simple utilities for MMiSSBundles, that is to say,
-   those that we can compile without having compiled any particular repository
-   types like MMiSSObjectType or MMiSSFileType. 
-   -}
+-- | This module contains simple utilities for MMiSSBundles, that is to say,
+-- those that we can compile without having compiled any particular repository
+-- types like MMiSSObjectType or MMiSSFileType. 
 module MMiSSBundleSimpleUtils(
    mergeBundles, -- :: [Bundle] -> WithError Bundle
 

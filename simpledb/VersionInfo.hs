@@ -1,6 +1,6 @@
-{- This module maintains the extra information that is maintained by the
-   server about each version, such as parent versions, user-id of
-   creator, and so on. -}
+-- | This module maintains the extra information that is maintained by the
+-- server about each version, such as parent versions, user-id of
+-- creator, and so on. 
 module VersionInfo(
    ObjectVersion(..),
    -- firstVersion points to the first version that will be

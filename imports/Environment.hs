@@ -1,5 +1,5 @@
-{- An (Environment node) represents a mapping from EntityFullName's into
-   node's, as represented by one preamble. -}
+-- | An (Environment node) represents a mapping from EntityFullName's into
+-- node's, as represented by one preamble. 
 module Environment(
    Env(..), -- type of an environment DEBUG
    ESource, -- ESource node = SimpleSource (WithError (Env node))

@@ -1,14 +1,13 @@
-{- A Bundle encodes a collection of MMiSS objects, packages,
-   package folders and so on to be imported into or exported from the
-   repository.  A BundleNode encodes a single object. 
-
-   Thus the types correspond fairly closely to the (files) and (file) 
-   elements, respectively, in api/MMiSSRequest.dtd.  Conversion functions are 
-   in mmiss/api/MMiSSToFromBundle.hs.
-
-   We also define the ExportOpts type, because that parallels the
-   GetObject_Attrs type in api/MMiSSRequest.hs.
-   -}
+-- | A Bundle encodes a collection of MMiSS objects, packages,
+-- package folders and so on to be imported into or exported from the
+-- repository.  A BundleNode encodes a single object. 
+-- 
+-- Thus the types correspond fairly closely to the (files) and (file) 
+-- elements, respectively, in MMiSSRequest.dtd.  Conversion functions are 
+-- "MMiSSToFromBundle".
+-- 
+-- We also define the ExportOpts type, because that parallels the
+-- GetObject_Attrs type in "MMiSSRequest".
 module MMiSSBundle (
    PackageId(..),
    Bundle(..),

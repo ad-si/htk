@@ -1,4 +1,3 @@
-
 -- | HTk\'s /label/ widget.
 -- A label is a simple container for text or images\/bitmaps.
 module Label (

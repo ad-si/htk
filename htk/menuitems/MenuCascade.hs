@@ -1,4 +1,3 @@
-
 -- | HTk\'s /menu cascade item/.
 -- A containers for cascaded menus.
 module MenuCascade (

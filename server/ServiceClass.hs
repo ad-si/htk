@@ -1,5 +1,5 @@
-{- The ServiceClass class needs to be instanced (at least partially)
-   to define a new service. -}
+-- | The ServiceClass class needs to be instanced (at least partially)
+-- to define a new service. 
 module ServiceClass(
    -- all commented in body of module
    Service(..),

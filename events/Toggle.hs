@@ -1,9 +1,8 @@
-{- A toggle is a switch initially True, which can only be made false
-   (when some action is performed, say).  This module implements
-   toggles, allowing atomic switching to false of 1 toggle, or
-   2 toggles together.  To avoid deadlock we use a supply of unique
-   integers.
-   -}
+-- | A toggle is a switch initially True, which can only be made false
+-- (when some action is performed, say).  This module implements
+-- toggles, allowing atomic switching to false of 1 toggle, or
+-- 2 toggles together.  To avoid deadlock we use a supply of unique
+-- integers.
 module Toggle(
    Toggle, -- toggle type
    newToggle, -- create a new toggle

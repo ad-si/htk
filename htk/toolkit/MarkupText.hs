@@ -1,4 +1,3 @@
-
 -- | A simple markup language for convenient writing into an editor widget.
 module MarkupText (
 

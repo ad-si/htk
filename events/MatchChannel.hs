@@ -1,8 +1,7 @@
-{- A MatchChannel is a guarded channel which allows arbitrary match functions
-   to be applied.  The intended application is for regular-expression 
-   channels, where there is no better way of indexing, since
-   regular-expression matching is done by a black-box routine.
-   -}
+-- | A MatchChannel is a guarded channel which allows arbitrary match functions
+-- to be applied.  The intended application is for regular-expression 
+-- channels, where there is no better way of indexing, since
+-- regular-expression matching is done by a black-box routine.
 module MatchChannel(
    Match(..), -- type of a guard.
    MatchChannel, -- type of a channel

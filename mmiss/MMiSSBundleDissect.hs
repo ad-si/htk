@@ -1,5 +1,5 @@
-{- This module is used for splitting up the elements within a bundle. 
-   It is assumed that the bundle has already been validated. -}
+-- | This module is used for splitting up the elements within a bundle. 
+-- It is assumed that the bundle has already been validated. 
 module MMiSSBundleDissect(
    dissectBundle, -- :: Bundle -> WithError Bundle
    reduceElement, -- :: Element -> Maybe Element

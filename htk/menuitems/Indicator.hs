@@ -1,4 +1,3 @@
-
 -- | HTk\'s menuitem /indicators/.
 -- Indicators are displayed with menu checkbuttons, menu buttons and
 -- menu radiobuttons.

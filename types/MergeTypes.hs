@@ -1,5 +1,5 @@
-{- This describes the various types relevant to the interface between the
-   repository and object implementations and merging. -}
+-- | This describes the various types relevant to the interface between the
+-- repository and object implementations and merging. 
 module MergeTypes(
    ObjectLinks(..),
    concatObjectLinks, -- :: [ObjectLinks key] -> ObjectLinks key

@@ -1,4 +1,4 @@
-{- A DelSet a implements a keyed set from which objects can be deleted. -}
+-- | A DelSet a implements a keyed set from which objects can be deleted. 
 module DelSet (
    DelSet,
    DelSetKey, -- type of index

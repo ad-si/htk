@@ -1,5 +1,5 @@
-{- This module is called from VersionGraph when the user asks to
-   copy versions from one repository to another. -}
+-- | This module is called from VersionGraph when the user asks to
+-- copy versions from one repository to another. 
 module CopyVersions (
    copyVersions, -- :: VersionGraph -> IO ()
    ) where

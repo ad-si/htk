@@ -1,4 +1,4 @@
-{- Call the MMiSS checker. -}
+-- | Call the MMiSS checker. 
 module MMiSSCheck(
    mmissCheck,
    ) where

@@ -1,4 +1,4 @@
-{- This module contains basic code for constructing Emacs commands -}
+-- | This module contains basic code for constructing Emacs commands 
 
 module EmacsCommands(
    HasEmacsCommand(..),

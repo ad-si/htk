@@ -1,4 +1,3 @@
-
 -- | Packing of widgets - HTk supports Tk\'s standard packer and grid packer.
 module Packer (
 

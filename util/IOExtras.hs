@@ -1,4 +1,4 @@
-{- Little functions connected with IO -}
+-- | Little functions connected with IO 
 module IOExtras(
    catchEOF, -- :: IO a -> IO (Maybe a)
    -- If successful return result.

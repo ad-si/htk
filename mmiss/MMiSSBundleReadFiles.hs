@@ -1,8 +1,7 @@
-{- This module attempts to read the files referenced in a bundle off the
-   file-system.  (So it is not used when bundles are read from the API.)
-
-   It assumes the bundle has already been dissected (by MMiSSBundleDissect).
-   -}
+-- | This module attempts to read the files referenced in a bundle off the
+-- file-system.  (So it is not used when bundles are read from the API.)
+-- 
+-- It assumes the bundle has already been dissected (by MMiSSBundleDissect).
 module MMiSSBundleReadFiles(
    readFiles, -- :: FilePath -> Bundle -> IO Bundle
    listUnfoundFiles, 

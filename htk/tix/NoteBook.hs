@@ -1,4 +1,3 @@
-
 -- | HTk\'s /notebook/ and
 -- /notebook pages/.
 -- This widget is from the Tix library and therefore only available if

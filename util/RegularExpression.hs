@@ -1,42 +1,40 @@
-{- RegularExpression is the interface between Expect and whatever
-   regular expression engine it uses.  Currently RegexString.
-
-   The current implementation (ghc's RegexString, which in turn
-   calls ghc's Regex, which in turn calls GHC regex version 1.2
-   (source-code included with ghc) uses the following syntax flags:
-
-    (RE_BACKSLASH_ESCAPE_IN_LISTS    | RE_CONTEXT_INDEP_ANCHORS		\
-   | RE_CONTEXT_INDEP_OPS     						\
-   | RE_INTERVALS	      	     | RE_NO_BK_BRACES		  	\
-   | RE_NO_BK_PARENS	             | RE_NO_BK_VBAR)
-
-   Consequences: 
-     "." will NOT match newline or null.
-     "*" preceded by nothing will only match "" (but not give an error)  
-     "+" means "one or more"
-     "?" means "nought or one"
-     "{M,N}" matches between M and N occurrences.  "{M,}" and "{M}" are
-         also defined.
-     "|" means alternation
-     "\" quotes the next character in lists.
-     character classes do NOT work.
-     "(" and ")" represent the grouping operators.
-     "\DIGIT" matches something the same as the regular expressions
-        DIGIT'th group, which should precede where we are now.  
-        (DIGIT should be between 1 and 9.)
-     "^" matches the beginning of the string, or after a newline character. 
-     "$" matches the end of the string, or before a newline character.
-     "\b" matches word boundaries.
-     "\B" matches inside a word.  
-     "\<" matches the start of a word.
-     "\>" matches the end of a word.
-     "\w" matches any word-constituent character.
-     "\W" is the opposite of "\w".
-     "\`" matches the start of the string
-     "\'" ditto, end.
-   Matching is also case-sensitive.
-
-   -}
+-- | RegularExpression is the interface between Expect and whatever
+-- regular expression engine it uses.  Currently RegexString.
+-- 
+-- The current implementation (ghc's RegexString, which in turn
+-- calls ghc's Regex, which in turn calls GHC regex version 1.2
+-- (source-code included with ghc) uses the following syntax flags:
+-- 
+--  (RE_BACKSLASH_ESCAPE_IN_LISTS    | RE_CONTEXT_INDEP_ANCHORS		\
+-- | RE_CONTEXT_INDEP_OPS     						\
+-- | RE_INTERVALS	      	     | RE_NO_BK_BRACES		  	\
+-- | RE_NO_BK_PARENS	             | RE_NO_BK_VBAR)
+-- 
+-- Consequences: 
+--   "." will NOT match newline or null.
+--   "*" preceded by nothing will only match \"\" (but not give an error)  
+--   "+" means "one or more"
+--   "?" means "nought or one"
+--   "{M,N}" matches between M and N occurrences.  "{M,}" and "{M}" are
+--       also defined.
+--   "|" means alternation
+--   "\\" quotes the next character in lists.
+--   character classes do NOT work.
+--   "(" and ")" represent the grouping operators.
+--   "\\DIGIT" matches something the same as the regular expressions
+--      DIGIT'th group, which should precede where we are now.  
+--      (DIGIT should be between 1 and 9.)
+--   "^" matches the beginning of the string, or after a newline character. 
+--   "$" matches the end of the string, or before a newline character.
+--   "\\b" matches word boundaries.
+--   "\B" matches inside a word.  
+--   "\\<" matches the start of a word.
+--   "\\>" matches the end of a word.
+--   "\\w" matches any word-constituent character.
+--   \"\\W\" is the opposite of \"\\w\".
+--   \"\`\" matches the start of the string
+--   "\'" ditto, end.
+-- Matching is also case-sensitive.
 module RegularExpression(
    RegularExpression, -- compiled regular expression
    compile, -- compile regular expression

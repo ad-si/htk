@@ -1,4 +1,4 @@
-{- CallServer does the job of calling up a server.  -}
+-- | CallServer does the job of calling up a server.  
 module CallServer(
    -- The context of all these functions is the same and is omitted from
    -- the following signature declarations.

@@ -1,6 +1,5 @@
-{- NewNames is used for generating new names for Node's, Arc's, 
-   NodeType's and ArcType's in a graph on a globally unique basis.
-   -}
+-- | NewNames is used for generating new names for Node's, Arc's, 
+-- NodeType's and ArcType's in a graph on a globally unique basis.
  module NewNames (
    NameSource,
    NameSourceBranch, -- instance of Show/Read

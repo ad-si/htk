@@ -1,4 +1,3 @@
-
 -- | A simple window to display uneditable, scrollable text (e.g. error logs)
 
 module TextDisplay(

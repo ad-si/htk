@@ -1,7 +1,7 @@
-{- Spawn provides an interface to Concurrent.forkIO which is supposed
-   to be implementable for both Hugs and GHC. 
-
-   This is the GHC implementation. -}
+-- | Spawn provides an interface to Concurrent.forkIO which is supposed
+-- to be implementable for both Hugs and GHC. 
+-- 
+-- This is the GHC implementation. 
 module Spawn(
    spawn -- :: IO () -> IO (IO ())
    ) where

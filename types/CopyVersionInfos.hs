@@ -1,8 +1,7 @@
-{- The code in this module has the job of copying the VersionInfo for a version
-   (such things as the user description and so on, but not the actual 
-   checked-in objects) from one repository to another, unless that has
-   already been done.  It also does the same for all the version's ancestors.
-   -}
+-- | The code in this module has the job of copying the VersionInfo for a version
+-- (such things as the user description and so on, but not the actual 
+-- checked-in objects) from one repository to another, unless that has
+-- already been done.  It also does the same for all the version's ancestors.
 module CopyVersionInfos(
    copyVersionInfos, 
    -- :: FromTo VersionGraph -> [ObjectVersion] 

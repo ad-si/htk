@@ -1,4 +1,4 @@
-{- This module interfaces the strerror function. -}
+-- | This module interfaces the strerror function. 
 module StrError(
    strError, -- :: Int -> IO String
    ) where

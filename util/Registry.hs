@@ -1,8 +1,7 @@
-{- A Registry is a mapping from ordered values.  For the Registry
-   type itself, all target values have the same type.  For the
-   UntypedRegistry type, the values
-   can have any Typeable type.
-   -}
+-- | A Registry is a mapping from ordered values.  For the Registry
+-- type itself, all target values have the same type.  For the
+-- UntypedRegistry type, the values
+-- can have any Typeable type.
 module Registry(
    Registry, -- A "Registry from to" maps from values to to values.
    UntypedRegistry, -- An "UntypedRegistry from" maps from values to

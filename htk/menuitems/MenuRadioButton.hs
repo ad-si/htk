@@ -1,4 +1,3 @@
-
 -- | HTk\'s /menu radiobutton/.
 -- A simple radiobutton inside a menu associated with a polymorphic
 -- variable.

@@ -1,7 +1,6 @@
-{- MMiSSAPIBlock parses and constructs requests/responses containing a
-   XML element / sequence of datablocks (see the document
-   MMiSSProtocol.txt for a specification of the format).
-   -}
+-- | MMiSSAPIBlock parses and constructs requests/responses containing a
+-- XML element / sequence of datablocks (see the document
+-- MMiSSProtocol.txt for a specification of the format).
 module MMiSSAPIBlock(
    Block,
 

@@ -1,30 +1,11 @@
-{- #########################################################################
-
-MODULE        : ChildProcess
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Utility for modelling loosely coupled Posix client/server
-                communication.
-
-CAVEATS       : If a thread is waiting on threadWaitRead fd, and another 
-                another thread closes the fd, the the whole process is
-                terminated (rather than just the waiting thread).
-
-                If a thread attempts to write to a channel that is closed,
-                then it is automatically garbage collected, where we 
-                would have prefereed an exception to be raised. 
-
-                This means that it becomes very difficult for an application
-                like the ChildProcess utility to terminate itself
-                gracefully.
-When you start up a ChildProcess, sigPIPE is disabled.  This is necessary
-as otherwise I know no way of stopping the whole program crashing when
-the tool shuts the pipe.
-
-   ######################################################################### -}
+-- | Calling other processes.
+--
+-- CAVEAT
+-- When you start up a ChildProcess, sigPIPE is disabled.  This is necessary
+-- as otherwise I know no way of stopping the whole program crashing when
+-- the tool shuts the pipe.
+-- 
+-- ######################################################################### 
 
 
 module ChildProcess (

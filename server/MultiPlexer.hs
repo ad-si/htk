@@ -1,5 +1,5 @@
-{- This module provides a general mechanism for bunching up commands to
-   a server and sending them in one go. -}
+-- | This module provides a general mechanism for bunching up commands to
+-- a server and sending them in one go. 
 module MultiPlexer(
    MultiPlexer,
    newMultiPlexer, 

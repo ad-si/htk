@@ -1,16 +1,15 @@
-{- A DeleteQueue is a queue where entries can be deleted by an
-   IO action.  This is a fairly specialised implementation, designed
-   for event handling.
-
-   Queue entries are either active or invalid.  Once invalid,
-   removeQueue will not return them, but they still take up (a little) memory.
-
-   addQueue, removeQueue, isEmptyQueue, cleanQueue all take a delete queue
-   as argument.  We assume that this argument is not used again.
-
-   Either removeQueue or isEmptyQueue or cleanQueue should be run 
-   occasionally, to remove invalid entries.
-   -}
+-- | A DeleteQueue is a queue where entries can be deleted by an
+-- IO action.  This is a fairly specialised implementation, designed
+-- for event handling.
+-- 
+-- Queue entries are either active or invalid.  Once invalid,
+-- removeQueue will not return them, but they still take up (a little) memory.
+-- 
+-- addQueue, removeQueue, isEmptyQueue, cleanQueue all take a delete queue
+-- as argument.  We assume that this argument is not used again.
+-- 
+-- Either removeQueue or isEmptyQueue or cleanQueue should be run 
+-- occasionally, to remove invalid entries.
 module DeleteQueue(
    DeleteQueue,
    emptyQueue, -- :: DeleteQueue v

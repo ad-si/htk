@@ -1,5 +1,5 @@
-{- This module deals with reading and writing a log file containing
-   entries which are instances of HasBinary. -}
+-- | This module deals with reading and writing a log file containing
+-- entries which are instances of HasBinary. 
 module LogFile(
    LogFile,
    openLog,

@@ -1,13 +1,12 @@
-{- Library for converting types to and from binary, so that they can
-   be written to and from files, stored compactly in memory, and so on.
-
-   This is a preliminary version of the library, hence I have decided 
-   *not* to optimise heavily, beyond putting in strictness annotations
-   in where they seem appropriate.
-
-   A good place to start optimising would probably be the separate
-   Bytes libary.
-   -}
+-- | Library for converting types to and from binary, so that they can
+-- be written to and from files, stored compactly in memory, and so on.
+-- 
+-- This is a preliminary version of the library, hence I have decided 
+-- *not* to optimise heavily, beyond putting in strictness annotations
+-- in where they seem appropriate.
+-- 
+-- A good place to start optimising would probably be the separate
+-- Bytes libary.
 module Binary (
 
    hWrite, -- :: HasBinary a IO => Handle -> a -> IO ()

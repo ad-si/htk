@@ -1,5 +1,5 @@
-{- This module contains the code for moving the contents of a version from
-   one repository to another. -} 
+-- | This module contains the code for moving the contents of a version from
+-- one repository to another.  
 module CopyVersion(
    copyVersion,
    FromTo(..),

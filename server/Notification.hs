@@ -1,7 +1,6 @@
-{- Notification is intended for UniForM processes (possibly on
-   different machines) to communicate when files are touched.
-   We use the EchoService of uni/server.
-   -}
+-- | Notification is intended for UniForM processes (possibly on
+-- different machines) to communicate when files are touched.
+-- We use "EchoService".
 module Notification(
    Notifier,
    mkNotifier, -- :: IO Notifier

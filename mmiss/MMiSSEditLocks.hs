@@ -1,15 +1,14 @@
-{- The functions in this module are used for monitoring the edit locks
-   on objects. 
-
-   Each acquireXXXX function attempts to acquire the locks for the
-   given LockLocations.  If unsuccessful, nothing is done; if successful
-   an action is returned to release all the locks; also is returned a LockSet.
-
-   The LockSet contains a set of currently acquired locks.  This can be
-   given again to the acquireMultipleLocks function, which will then succeed
-   even if the LockLocations it is given correspond to an edit lock already
-   locked, provided all such edit locks are in the LockSet.
-   -}
+-- | The functions in this module are used for monitoring the edit locks
+-- on objects. 
+-- 
+-- Each acquireXXXX function attempts to acquire the locks for the
+-- given LockLocations.  If unsuccessful, nothing is done; if successful
+-- an action is returned to release all the locks; also is returned a LockSet.
+-- 
+-- The LockSet contains a set of currently acquired locks.  This can be
+-- given again to the acquireMultipleLocks function, which will then succeed
+-- even if the LockLocations it is given correspond to an edit lock already
+-- locked, provided all such edit locks are in the LockSet.
 module MMiSSEditLocks(
    acquireLock,
       -- :: View -> LockLocation -> IO (WithError (IO (),LockSet))

@@ -1,4 +1,3 @@
-
 -- | Basic types and classes concerning widget configuration.
 module Configuration (
 

@@ -1,5 +1,5 @@
-{- This is a very simple service which rebroadcasts all lines it
-   receives to all currently connected clients. -}
+-- | This is a very simple service which rebroadcasts all lines it
+-- receives to all currently connected clients. 
 module EchoService(
    echoService, -- :: pass to connectBroadcast to call server
    echoServiceWrapped -- :: pass to runServer to run server.

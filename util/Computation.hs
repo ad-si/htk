@@ -1,19 +1,4 @@
-{- #########################################################################
-
-MODULE        : Computation
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1998
-VERSION       : 0.2
-DESCRIPTION   : Various Computations as they are found
-                in Java, Tcl etc. An then. on top, the state and
-                error monad (Hip Hip Hurray).
-
-
-   ######################################################################### -}
-
-
+-- | Miscellaneous monadic operations, and the WithError type.
 module Computation (
         Answer,
 

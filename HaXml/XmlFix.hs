@@ -1,7 +1,6 @@
-{- Fix feature of HaXml output by which close-tags are sometimes
-   preceded by spaces, which causes some tools to complain (even though
-   it's legal XML).
-   -}
+-- | Fix feature of HaXml output by which close-tags are sometimes
+-- preceded by spaces, which causes some tools to complain (even though
+-- it's legal XML).
 module XmlFix(
    xmlFix, -- :: String -> String
    ) where

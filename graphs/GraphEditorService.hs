@@ -1,6 +1,5 @@
-{- This provides a ServiceClass instance allowing our
-   GraphEditor to be run across a network.  
-   -}
+-- | This provides a ServiceClass instance allowing our
+-- GraphEditor to be run across a network.  
 module GraphEditorService(
    graphEditorService, -- :: pass to connectBroadcastOther to call server
    graphEditorServiceWrapped, -- pass to server

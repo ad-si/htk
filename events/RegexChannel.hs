@@ -1,24 +1,23 @@
-{- RegexChannel provides Expect-like pattern matching on
-   a channel.  Regular expression matching is done by GNU regex,
-   via RegexString.
-
-   Problems I will admit to:
-   (1) Since GNU regex is effectively a black box, there is no
-       indexing - we must check every regex against every string.
-       This is theoretically bad, because there ought to be 
-       some way of constructing a finite-state-automaton which
-       selects the right alternative.  
-   (2) Because of the way GuardedChannels work, we can't
-       get out the extra information from the matching
-       (like, the match substrings).  So if we want them,
-       they have to be recomputed.
-   Note the following difference from Einar's Expect:
-      priorities are not available, instead you should put your
-      most important events at the left in +> expressions.
-      If this seems feeble, my excuse is that you had to do this
-      anyway with Einar's expect if you wanted the priorities to
-      work, so the priorities were redundant.
-   -} 
+-- | RegexChannel provides Expect-like pattern matching on
+-- a channel.  Regular expression matching is done by GNU regex,
+-- via RegexString.
+-- 
+-- Problems I will admit to:
+-- (1) Since GNU regex is effectively a black box, there is no
+--     indexing - we must check every regex against every string.
+--     This is theoretically bad, because there ought to be 
+--     some way of constructing a finite-state-automaton which
+--     selects the right alternative.  
+-- (2) Because of the way GuardedChannels work, we can't
+--     get out the extra information from the matching
+--     (like, the match substrings).  So if we want them,
+--     they have to be recomputed.
+-- Note the following difference from Einar's Expect:
+--    priorities are not available, instead you should put your
+--    most important events at the left in +> expressions.
+--    If this seems feeble, my excuse is that you had to do this
+--    anyway with Einar's expect if you wanted the priorities to
+--    work, so the priorities were redundant. 
 module RegexChannel(
    RegexChannel,  -- channel of Strings
    newRegexChannel, -- :: IO RegexChannel

@@ -1,4 +1,3 @@
-
 -- | Objects with a name and an icon (used for several purposes).
 module CItem (
 

@@ -1,5 +1,5 @@
-{- This module implements displaying ClockTime as a String which does NOT
-   depend on the time-zone. -}
+-- | This module implements displaying ClockTime as a String which does NOT
+-- depend on the time-zone. 
 module ClockTimeToString(
    clockTimeToString, -- :: ClockTime -> String
    stringToClockTime, -- :: String -> ClockTime

@@ -1,4 +1,3 @@
-
 -- | A generic graphical user interface.
 module GenGUI (
 

@@ -1,4 +1,3 @@
-
 -- | HTk\'s /checkbutton/ widget.
 -- A simple checkbutton associated with a polymorphic variable.
 module CheckButton (

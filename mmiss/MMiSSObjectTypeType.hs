@@ -1,6 +1,5 @@
-{- This module contains the definition of the MMiSSObjectType type,
-   and its instances of HasCodedValue and HasAttributesType.
-   -}
+-- | This module contains the definition of the MMiSSObjectType type,
+-- and its instances of HasCodedValue and HasAttributesType.
 module MMiSSObjectTypeType(
    MMiSSObjectType(..),
    retrieveObjectType,

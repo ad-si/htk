@@ -1,4 +1,4 @@
-{- This module describes the types required for the MMiSS file type. -}
+-- | This module describes the types required for the MMiSS file type. 
 module MMiSSFileType(
    importMMiSSFile,
       -- :: HasLinkedObject object 

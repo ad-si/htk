@@ -1,10 +1,9 @@
-{- This is the implementation of modules GraphDisp and GraphConfigure for 
-   daVinci.   See those files for explanation of the names. 
-   We encode, for example, the type parameter node as DaVinciNode,
-   and so on for other type parameters, prefixing with "DaVinci" and
-   capitalising the next letter.  But the only variable you should normally
-   need from this module is daVinciSort.
-   -}
+-- | This is the implementation of modules GraphDisp and GraphConfigure for 
+-- daVinci.   See those files for explanation of the names. 
+-- We encode, for example, the type parameter node as DaVinciNode,
+-- and so on for other type parameters, prefixing with "DaVinci" and
+-- capitalising the next letter.  But the only variable you should normally
+-- need from this module is daVinciSort.
 module DaVinciGraph(
    daVinciSort, -- Magic type parameter indicating we want to use daVinci.
 

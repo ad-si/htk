@@ -1,5 +1,5 @@
-{- Examples is meant to contain examples of using events which
-   are too small to go into their own module. -}
+-- | Examples is meant to contain examples of using events which
+-- are too small to go into their own module. 
 module Examples(
    EventSet, -- These encode a set of events
    emptyEventSet, -- :: EventSet a

@@ -1,4 +1,4 @@
-{- Things which instance Destroyable and Destructible can be destroyed. -}
+-- | Things which instance Destroyable and Destructible can be destroyed. 
 module Destructible (
    Destroyable(..),
    Destructible(..),

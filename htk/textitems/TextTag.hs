@@ -1,4 +1,3 @@
-
 -- | This module provides access to text tags inside an editor widget.
 module TextTag (
 

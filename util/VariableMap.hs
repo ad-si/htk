@@ -1,5 +1,5 @@
-{- VariableMap is analagous to VariableSet and provides a mutable map ordered
-   by key whose changes can be tracked. -}
+-- | VariableMap is analagous to VariableSet and provides a mutable map ordered
+-- by key whose changes can be tracked. 
 module VariableMap(
    VariableMapData,
    VariableMapUpdate(..),

@@ -1,13 +1,12 @@
-{- The function in this module prunes a list of links to objects in various
-   views, retaining those whose version is not the ancestor of another version
-   in the same list.   This is useful in merging, since normally direct
-   ancestors of versions being merged can be disregarded.
-
-   NB.  We assume for the time being that all views are recently checked out.
-   This means every object has an originating Version (the value 
-   returned by getVersion).  The module Merging enforces this 
-   restriction, which perhaps will be lifted one day.
-   -}
+-- | The function in this module prunes a list of links to objects in various
+-- views, retaining those whose version is not the ancestor of another version
+-- in the same list.   This is useful in merging, since normally direct
+-- ancestors of versions being merged can be disregarded.
+-- 
+-- NB.  We assume for the time being that all views are recently checked out.
+-- This means every object has an originating Version (the value 
+-- returned by getVersion).  The module Merging enforces this 
+-- restriction, which perhaps will be lifted one day.
 module MergePrune(
    mergePrune, 
       -- :: [(View,Link object,object)] -> IO [(View,Link object,object)]

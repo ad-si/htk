@@ -1,4 +1,4 @@
-{- Union-Find algorithm. -}
+-- | Union-Find algorithm. 
 module UnionFind(
    -- NB.  The functions in this module are not guaranteed thread-safe.
    

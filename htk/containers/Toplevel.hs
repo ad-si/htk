@@ -1,4 +1,3 @@
-
 -- | HTk\'s /toplevel/ widget.
 -- A toplevel widget is a toplevel container for widgets (a window).
 module Toplevel (

@@ -1,4 +1,3 @@
-
 -- | This module provides access to the terminal bell.
 module Bell (
 

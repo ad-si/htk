@@ -1,6 +1,5 @@
-{- This module contains various extra Binary instances, for example ones
-   which are particular GHC or uni-specific.
-   -}
+-- | This module contains various extra Binary instances, for example ones
+-- which are particular GHC or uni-specific.
 module BinaryExtras(
    hReadLtd, -- :: HasBinary a IO => Int -> Handle -> IO (WithError a)
 

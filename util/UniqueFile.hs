@@ -1,6 +1,6 @@
-{- UniqueFile is used for allocating names for temporary files in a directory.
-   To avoid large numbers of files in the same directory, we create sub-
-   directories where necessary. -}
+-- | UniqueFile is used for allocating names for temporary files in a directory.
+-- To avoid large numbers of files in the same directory, we create sub-
+-- directories where necessary. 
 module UniqueFile(
    UniqueFileCounter, 
       -- This represents the state, which needs to be single-threaded.

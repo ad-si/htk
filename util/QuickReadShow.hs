@@ -1,9 +1,8 @@
-{- QuickReadShow is designed for the rapid manufacture of read/show 
-   instances.  To create such an instance you need to (a) instance
-   quickRead; (b) instance Read/Show using a particular template.
-   (Before April 2004 (b) was not part of the code; it now has to
-   be added to deal with tougher GHC restrictions on overlapping instances.)
-   -}
+-- | QuickReadShow is designed for the rapid manufacture of read/show 
+-- instances.  To create such an instance you need to (a) instance
+-- quickRead; (b) instance Read/Show using a particular template.
+-- (Before April 2004 (b) was not part of the code; it now has to
+-- be added to deal with tougher GHC restrictions on overlapping instances.)
 module QuickReadShow(
    WrapRead(WrapRead), 
    QuickRead(quickRead),

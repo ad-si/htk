@@ -1,4 +1,4 @@
-{- Various generic functions to be used with the Binary module. -}
+-- | Various generic functions to be used with the Binary module. 
 module BinaryUtils(
    mapWrite, -- :: HasBinary b m => (a -> b) -> (WriteBinary m -> a -> m ())
    mapRead, -- :: (Monad m,HasBinary b m) => (b -> a) -> (ReadBinary m -> m a)

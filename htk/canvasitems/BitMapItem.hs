@@ -1,4 +1,3 @@
-
 -- | HTk\'s /bitmap/ canvas item.
 -- A bitmap object on a canvas widget.
 module BitMapItem (

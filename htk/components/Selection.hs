@@ -1,4 +1,3 @@
-
 -- | This module provides access to a widgets selection (e.g. inside a
 -- listbox, editor or entry widget).
 module Selection (

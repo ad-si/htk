@@ -1,14 +1,13 @@
-{- Graph defines the Graph class, which defines the basic things a
-   graph must do.  Peculiarities:
-   (1) Graphs are directed with labelled nodes and
-       arcs.  These nodes and arcs have types. 
-   (2) The nodes and arcs are identified by values of type Node and Arc.
-       These values are essentially strings.  The strings are provided by
-       the user; there is no mechanism for generating new unique strings.
-       (This is because this is easy in the applications I have in mind.)
-   (3) A necessary feature of these graphs is that it is supposed to
-       be easy generate copies, both on the same system and on others.
- -}
+-- | Graph defines the Graph class, which defines the basic things a
+-- graph must do.  Peculiarities:
+-- (1) Graphs are directed with labelled nodes and
+--     arcs.  These nodes and arcs have types. 
+-- (2) The nodes and arcs are identified by values of type Node and Arc.
+--     These values are essentially strings.  The strings are provided by
+--     the user; there is no mechanism for generating new unique strings.
+--     (This is because this is easy in the applications I have in mind.)
+-- (3) A necessary feature of these graphs is that it is supposed to
+--     be easy generate copies, both on the same system and on others.
 module Graph(
    Graph(..), -- the Graph class
    -- Instances are parameterised on 

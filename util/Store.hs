@@ -1,7 +1,7 @@
-{- A Store a contains an (a) value which is only to be computed once,
-   when it is first needed. 
-
-   Perhaps we should use laziness and unsafePerformIO? -}
+-- | A Store a contains an (a) value which is only to be computed once,
+-- when it is first needed. 
+-- 
+-- Perhaps we should use laziness and unsafePerformIO? 
 module Store(
    Store,
    newStore, -- :: IO (Store a)

@@ -1,4 +1,4 @@
-{- This is a boot version of DisplayView. -}
+-- | This is a boot version of DisplayView. 
 module DisplayView where
 
 -- We need to at least force the kinds of the type variables to be right.

@@ -1,5 +1,5 @@
-{- This module implements a simple list box to which strings can be
-   added at the end and deleted. -}
+-- | This module implements a simple list box to which strings can be
+-- added at the end and deleted. 
 module SimpleListBox(
    SimpleListBox,
    newSimpleListBox, 

@@ -1,4 +1,4 @@
-{- This module contains basic Haskell code for talking to Emacs. -}
+-- | This module contains basic Haskell code for talking to Emacs. 
 module EmacsBasic(
    EmacsSession, 
       -- A particular Emacs session with its own buffer

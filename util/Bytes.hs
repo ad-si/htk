@@ -1,6 +1,5 @@
-{- This defines primitive byte operations, to be used with binary conversion.
-   For the present we use the FFI.  There are probably lots of better ways.
-   -}
+-- | This defines primitive byte operations, to be used with binary conversion.
+-- For the present we use the FFI.  There are probably lots of better ways.
 
 #if (__GLASGOW_HASKELL__ == 602)
 {- Sigh.  We need to work around the ghc6.02 hGetBuf bug.

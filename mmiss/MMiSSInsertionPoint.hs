@@ -1,4 +1,4 @@
-{- The InsertionPoint denotes where to insert or overwrite an object. -}
+-- | The InsertionPoint denotes where to insert or overwrite an object. 
 module MMiSSInsertionPoint(
    InsertionPoint,
    getInsertionPoint,

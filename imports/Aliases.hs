@@ -1,4 +1,4 @@
-{- This is the module which handles path aliases in imports -}
+-- | This is the module which handles path aliases in imports 
 module Aliases(
    Aliases, 
       -- set of path aliases in a package

@@ -1,4 +1,3 @@
-
 -- | HTk\'s /option menu/ widget.
 -- A simple clip up menu displaying a set of radiobuttons.
 module OptionMenu (

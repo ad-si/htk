@@ -1,12 +1,11 @@
-{- In this module we collect the various assumptions the Haskell code makes
-   about the MMiSS DTD, which are not explicitly read from it. 
-
-   MMiSSElementInfo.hs contains code specific to processing and changing
-      labels, paths, and so on.
-
-   See also MMiSSBundleDissect.hs.  But hopefully that is less dependent on 
-   the DTD itself. 
-   -}
+-- | In this module we collect the various assumptions the Haskell code makes
+-- about the MMiSS DTD, which are not explicitly read from it. 
+-- 
+-- MMiSSElementInfo.hs contains code specific to processing and changing
+--    labels, paths, and so on.
+-- 
+-- See also MMiSSBundleDissect.hs.  But hopefully that is less dependent on 
+-- the DTD itself. 
 module MMiSSDTDAssumptions(
    findLabelledElements, -- :: DocTypeDecl -> [String]
 

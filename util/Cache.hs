@@ -1,8 +1,7 @@
-{- The Cache module allows us to cache results of expensive stateful 
-   computations in memory.  
-   Possible improvements - 
-      (1) use hashing instead
-      -}
+-- | The Cache module allows us to cache results of expensive stateful 
+-- computations in memory.  
+-- Possible improvements - 
+--    (1) use hashing instead
 module Cache(
    Cache,    -- a cache (a stateful object).  Takes parameters key and elt.
              -- key must be an instance of Ord.

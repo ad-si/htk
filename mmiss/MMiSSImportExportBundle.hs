@@ -1,5 +1,5 @@
-{- This module contains the top-level functions for importing and exporting
-   bundles. -}
+-- | This module contains the top-level functions for importing and exporting
+-- bundles. 
 module MMiSSImportExportBundle(
    importBundle,
       -- :: View -> LinkedObject -> Bundle -> IO ()

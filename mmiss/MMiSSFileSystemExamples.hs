@@ -1,4 +1,4 @@
-{- Module which contains various examples of LaTeXParser.FileSystem. -}
+-- | Module which contains various examples of LaTeXParser.FileSystem. 
 module MMiSSFileSystemExamples(
    oneFileFileSystem, -- :: FilePath -> String -> FileSystem
    standardFileSystem, -- :: FileSystem

@@ -1,6 +1,6 @@
-{- This module contains the code which connects to the VersionInfo service
-   (defined in simpledb) and constructs a graph.  It also defines 
-   functions for packing and unpacking Node values. -}
+-- | This module contains the code which connects to the VersionInfo service
+-- (defined in simpledb) and constructs a graph.  It also defines 
+-- functions for packing and unpacking Node values. 
 module VersionGraphClient(
    -- Get the VersionGraph, and arrange for the connection to be closed
    -- when the program ends.

@@ -1,13 +1,12 @@
-{- This module fills in various fields of bundles which might be unset after
-   they have been read in. 
-
-   Specifically it 
-      (1) parses MMiSSEnum objects (stored as MMiSSFiles with extension "tex" 
-          or  "xml").
-      (2) fills in FolderEnum extra fields when these are Nothing by
-          guessing at a plain Folder or an MMiSS SubFolder (depending on
-          whether we are inside a package or not). 
-   -}
+-- | This module fills in various fields of bundles which might be unset after
+-- they have been read in. 
+-- 
+-- Specifically it 
+--    (1) parses MMiSSEnum objects (stored as MMiSSFiles with extension "tex" 
+--        or  "xml").
+--    (2) fills in FolderEnum extra fields when these are Nothing by
+--        guessing at a plain Folder or an MMiSS SubFolder (depending on
+--        whether we are inside a package or not). 
 module MMiSSBundleFillIn(
    fillInBundle, -- :: Maybe EntityName -> Bundle -> IO Bundle
    ) where

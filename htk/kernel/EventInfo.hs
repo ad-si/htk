@@ -1,4 +1,4 @@
-{- Encapsulation of Event parameters used in TkCommands. -}
+-- | Encapsulation of Event parameters used in TkCommands. 
 module EventInfo(
    EventParameter(..), -- Type of wish event information
    -- epToChar/epFromChar convert to and from Wish's 1-character

@@ -1,4 +1,4 @@
-{- We implement the Source type and combinators for it. -}
+-- | We implement the Source type and combinators for it. 
 module Sources(
    Source, 
       -- A Source x d represents something that stores a value of

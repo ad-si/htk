@@ -1,4 +1,4 @@
-{- This module contains various utilities for manipulating MMiSSBundles. -}
+-- | This module contains various utilities for manipulating MMiSSBundles. 
 module MMiSSBundleUtils(
    bundleToICSL, -- :: BundleText -> Maybe (ICStringLen,CharType)
 

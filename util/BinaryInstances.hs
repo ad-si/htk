@@ -1,4 +1,4 @@
-{- Instances of the Binary.HasBinary class -}
+-- | Instances of the Binary.HasBinary class 
 module BinaryInstances(
    -- Methods provided for encoding alternatives
    Choice5(..), 

@@ -1,7 +1,7 @@
-{- The LineShow type is simply a list type except that it has
-   Read and Show instances which put the output line by line,
-   preceded by the number of lines.  This is useful for data 
-   files stored by CVS and similar systems. -}
+-- | The LineShow type is simply a list type except that it has
+-- Read and Show instances which put the output line by line,
+-- preceded by the number of lines.  This is useful for data 
+-- files stored by CVS and similar systems. 
 module LineShow(
    LineShow(..)
    ) where

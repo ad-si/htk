@@ -1,4 +1,4 @@
-{- Initialise MMiSS Repository -}
+-- | Initialise MMiSS Repository 
 module MMiSSInitialise(
    mmissInitialise, -- :: IO Repository,
    ) where

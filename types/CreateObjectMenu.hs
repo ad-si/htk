@@ -1,5 +1,5 @@
-{- CreateObjectMenu.createObjectMenu puts up a menu which selects an object 
-   type and creates it. -}
+-- | CreateObjectMenu.createObjectMenu puts up a menu which selects an object 
+-- type and creates it. 
 module CreateObjectMenu(
    createObjectMenu,
    ) where

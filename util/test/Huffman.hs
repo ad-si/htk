@@ -1,6 +1,6 @@
-{- This code does "Huffman" coding, using the queue implementation.  This
-   can be used for constructing Huffman encodings, or for computing factorials
-   efficiently. -}
+-- | This code does "Huffman" coding, using the queue implementation.  This
+-- can be used for constructing Huffman encodings, or for computing factorials
+-- efficiently. 
 module Huffman(
    huffmanFold
    ) where

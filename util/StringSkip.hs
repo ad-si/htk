@@ -1,6 +1,6 @@
-{- This module implements the StringSkip monad, which is a monad for 
-   going through a String from the start to the end doing various
-   insertions/deletions along the way. -}
+-- | This module implements the StringSkip monad, which is a monad for 
+-- going through a String from the start to the end doing various
+-- insertions\/deletions along the way. 
 module StringSkip (
    StringSkip, -- the monad
 

@@ -1,14 +1,13 @@
-{- updateVariantObject is used for adding a series of new variants to an
-   object (presumably an MMiSS object or MMiSS files).
-
-   This is complicated because
-   (a) we avoid writing a new version when an identical old version exists.
-   (b) we always set the pointer of the variant object to the first new
-       version.  (This is an especially good idea when initialising since it
-       puts something in the cache.)
-   (c) we compute the dirty flags and dirty the parent link if anything is
-       changed.
-   -}
+-- | updateVariantObject is used for adding a series of new variants to an
+-- object (presumably an MMiSS object or MMiSS files).
+-- 
+-- This is complicated because
+-- (a) we avoid writing a new version when an identical old version exists.
+-- (b) we always set the pointer of the variant object to the first new
+--     version.  (This is an especially good idea when initialising since it
+--     puts something in the cache.)
+-- (c) we compute the dirty flags and dirty the parent link if anything is
+--     changed.
 module MMiSSUpdateVariantObject(
    updateVariantObject,
    ) where

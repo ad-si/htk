@@ -1,9 +1,8 @@
-{- This module contains code for turning a LinkedObject or a WrappedLink
-   into one of the types known to us.
-
-   It also contains code for constructing an empty link corresponding
-   to a base type in a bundle.  (This is how all links get started.)
-   -}
+-- | This module contains code for turning a LinkedObject or a WrappedLink
+-- into one of the types known to us.
+-- 
+-- It also contains code for constructing an empty link corresponding
+-- to a base type in a bundle.  (This is how all links get started.)
 module MMiSSSplitLink(
    SplitLink(..),
    splitWrappedLink,

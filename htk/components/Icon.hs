@@ -1,4 +1,3 @@
-
 -- | This module provides access to window icons.
 module Icon (
 

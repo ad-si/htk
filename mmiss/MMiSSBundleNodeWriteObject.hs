@@ -1,4 +1,4 @@
-{- This contains the instance of HasBundleNodeWrite for MMiSS objects. -}
+-- | This contains the instance of HasBundleNodeWrite for MMiSS objects. 
 module MMiSSBundleNodeWriteObject(
    ) where
 

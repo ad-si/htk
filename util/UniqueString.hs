@@ -1,7 +1,7 @@
-{- This module generates short non-empty unique printable strings (IE without 
-   funny characters).  Quotes and backslashes are not included, so printing
-   should not be too hard.  Periods are also not included, for the
-   benefit of NewNames.hs. -}
+-- | This module generates short non-empty unique printable strings (IE without 
+-- funny characters).  Quotes and backslashes are not included, so printing
+-- should not be too hard.  Periods are also not included, for the
+-- benefit of NewNames.hs. 
 module UniqueString(
    UniqueStringSource, -- A source of unique strings.  Instance of Typeable
    newUniqueStringSource, -- :: IO UniqueStringSource

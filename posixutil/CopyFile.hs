@@ -1,4 +1,4 @@
-{- This contains functions for copying to and from files -}
+-- | This contains functions for copying to and from files 
 module CopyFile(
    copyFile,
    copyFileWE,

@@ -1,6 +1,6 @@
-{- A FileSystem is a space on disk (or wherever files are kept) with a 
-   function (ensureFiles) that extracts files via a given action 
-   on demand, creating directories as required. -}
+-- | A FileSystem is a space on disk (or wherever files are kept) with a 
+-- function (ensureFiles) that extracts files via a given action 
+-- on demand, creating directories as required. 
 module FileSystem(
    FileSystem,
    FileSystemName,

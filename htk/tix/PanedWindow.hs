@@ -1,4 +1,3 @@
-
 -- | HTk\'s /PanedWindow/.
 -- A paned window is a container widget, that is divided into scaleable
 -- horizontal or vertical panes.

@@ -1,24 +1,23 @@
-{- The code in this module manages errors.  The main task is to reduce the
-   huge flood of errors that occur during large updates to those that
-   actually occur.
-
-   The strategy is that
-      (1) we bracket large updates with a delayer, and postpone updates until
-          the delayer is finished.
-      (2) since a lot of the imports stuff using the util/Sink.parallelExec
-          mechanism, we acquire a global lock on the parallelExecVSem,
-          before reporting messages, to assure that all such parallel
-          actions are completed before we look for messages (or complete).
-      (3) while we are doing updates, we don't actually display any messages.
-          Instead we record where errors have occurred.  Then when we
-          come to report messages, we look at those places and look to
-          see if there is still a problem.  Only then do we report it.
-
-   ErrorManagement itself uses an MSem.  This prevents conflicting 
-   updates in different threads, but more importantly allows us to
-   use bracketForImportErrors1 generously without worrying about
-   it being at some point used multiple times.
-   -}
+-- | The code in this module manages errors.  The main task is to reduce the
+-- huge flood of errors that occur during large updates to those that
+-- actually occur.
+-- 
+-- The strategy is that
+--    (1) we bracket large updates with a delayer, and postpone updates until
+--        the delayer is finished.
+--    (2) since a lot of the imports stuff using the util/Sink.parallelExec
+--        mechanism, we acquire a global lock on the parallelExecVSem,
+--        before reporting messages, to assure that all such parallel
+--        actions are completed before we look for messages (or complete).
+--    (3) while we are doing updates, we don't actually display any messages.
+--        Instead we record where errors have occurred.  Then when we
+--        come to report messages, we look at those places and look to
+--        see if there is still a problem.  Only then do we report it.
+-- 
+-- ErrorManagement itself uses an MSem.  This prevents conflicting 
+-- updates in different threads, but more importantly allows us to
+-- use bracketForImportErrors1 generously without worrying about
+-- it being at some point used multiple times.
 module ErrorManagement(
    ErrorLocation(..),
    ErrorManagementState,

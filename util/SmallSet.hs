@@ -1,7 +1,6 @@
-{- SmallSets are a set-like type on small numbers of elements.
-   It's being written for SharedGraph where the Set type seems
-   too heavyweight.
-   -}
+-- | SmallSets are a set-like type on small numbers of elements.
+-- It's being written for SharedGraph where the Set type seems
+-- too heavyweight.
 module SmallSet(
    SmallSet, -- instance of Read, Show
    emptySmallSet,

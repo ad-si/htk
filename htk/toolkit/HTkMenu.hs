@@ -1,5 +1,5 @@
-{- HTkMenu is a user-friendly interface to HTk's menu operations, which 
-   compiles a version of MenuType.MenuPrim to an HTk menu. -}
+-- | HTkMenu is a user-friendly interface to HTk's menu operations, which 
+-- compiles a version of MenuType.MenuPrim to an HTk menu. 
 module HTkMenu(
    HTkMenu(..),
    compileHTkMenu,

@@ -1,5 +1,5 @@
-{- This module contains code for generating the specialNodeActions of
-   the ObjectTypes module. -}
+-- | This module contains code for generating the specialNodeActions of
+-- the ObjectTypes module. 
 module SpecialNodeActions(
    NodeActionSource,
    newNodeActionSource,

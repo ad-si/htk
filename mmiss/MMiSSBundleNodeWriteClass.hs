@@ -1,6 +1,6 @@
-{- This module contains the HasBundleNodeWrite class that
-   objects need to implement to be able to be written from
-   a bundle, and some miscellaneous instances of it. -}
+-- | This module contains the HasBundleNodeWrite class that
+-- objects need to implement to be able to be written from
+-- a bundle, and some miscellaneous instances of it. 
 module MMiSSBundleNodeWriteClass(
    HasBundleNodeWrite(..),   
    BundleNodeLocations(..),

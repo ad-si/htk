@@ -1,5 +1,5 @@
-{- Datatype for describing the contents of an extent, and functions for
-   parsing it. -}
+-- | Datatype for describing the contents of an extent, and functions for
+-- parsing it. 
 module EmacsContent(
    EmacsDataItem(..),
    EmacsContent(..),

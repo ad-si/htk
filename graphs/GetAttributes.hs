@@ -1,6 +1,5 @@
-{- GetAttributes is used by the GraphEditor to pop up HTk windows
-   to get information from the user.
-   -}
+-- | GetAttributes is used by the GraphEditor to pop up HTk windows
+-- to get information from the user.
 module GetAttributes(
    NodeTypeAttributes(..), -- instance of Typeable 
    getNodeTypeAttributes, -- :: IO (Maybe NodeTypeAttributes)

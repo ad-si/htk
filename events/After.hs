@@ -1,6 +1,5 @@
-{- After.hs implements the event which waits a given time and
-   then executes an action.  It only works for GHC.
-   -}
+-- | After.hs implements the event which waits a given time and
+-- then executes an action.  It only works for GHC.
 module After(after) where
 
 import Concurrent

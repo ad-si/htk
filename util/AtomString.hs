@@ -1,9 +1,8 @@
-{- AtomString atomises strings.  Right now this code
-   is not very efficient but it shouldn't be too hard
-   to improve.
-
-   This code includes no less that 3 uses of unsafePerformIO.  Oh well.
-   -}
+-- | AtomString atomises strings.  Right now this code
+-- is not very efficient but it shouldn't be too hard
+-- to improve.
+-- 
+-- This code includes no less that 3 uses of unsafePerformIO.  Oh well.
 module AtomString(
    AtomString, 
       -- represents a string.  Instance of Ord, Eq, StringClass, 

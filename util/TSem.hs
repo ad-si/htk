@@ -1,12 +1,12 @@
-{- A TSem is an unusual sort of lock in that it only protects the same thread
-   from acquiring it twice.  Different threads may acquire the same TSem 
-   without problems.
-
-   The purpose of this is to allow computations which potentially would
-   loop forever by calling themselves to instead fail gracefully.  To
-   aid in this process, we also include in each TSem a String.  When we
-   attempt to acquire a TSem which is already acquired, we instead return
-   the String for this TSem and the TSems acquired within this one. -}
+-- | A TSem is an unusual sort of lock in that it only protects the same thread
+-- from acquiring it twice.  Different threads may acquire the same TSem 
+-- without problems.
+-- 
+-- The purpose of this is to allow computations which potentially would
+-- loop forever by calling themselves to instead fail gracefully.  To
+-- aid in this process, we also include in each TSem a String.  When we
+-- attempt to acquire a TSem which is already acquired, we instead return
+-- the String for this TSem and the TSems acquired within this one. 
 module TSem(
    TSem,
    newTSem, -- :: IO String -> IO TSem

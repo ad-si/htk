@@ -1,5 +1,5 @@
-{- WrapIO.wrapIO turns an IO action into an event (which has no
-   non-trivial guards available). -}
+-- | WrapIO.wrapIO turns an IO action into an event (which has no
+-- non-trivial guards available). 
 module WrapIO(
    wrapIO, -- :: IO a -> IO (Event a)
       -- Executes the action and provides an event which will be satisfied

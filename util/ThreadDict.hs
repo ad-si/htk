@@ -1,4 +1,4 @@
-{- This module implements per-thread variables -}
+-- | This module implements per-thread variables 
 module ThreadDict(
    ThreadDict, -- contains all the thread variables
    newThreadDict, -- :: IO (ThreadDict a)

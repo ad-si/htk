@@ -1,5 +1,5 @@
-{- ProcessClasses describes some classes which tools encapsulating
-   processes may instance. -}
+-- | ProcessClasses describes some classes which tools encapsulating
+-- processes may instance. 
 module ProcessClasses(
    ToolStatus, -- encodes status of process
    Tool(..), -- can get tool status

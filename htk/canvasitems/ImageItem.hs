@@ -1,4 +1,3 @@
-
 -- | HTk\'s /image/ canvas item.
 -- An image object on a canvas widget.
 module ImageItem (

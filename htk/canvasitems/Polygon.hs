@@ -1,4 +1,3 @@
-
 -- | HTk\'s /polygon/ canvas item.
 -- A polygon object on a canvas widget.
 module Polygon (

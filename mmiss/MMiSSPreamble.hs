@@ -1,6 +1,6 @@
-{- Code for implementing the MMiSSPreamble type.
-   Possible changes: at the moment there is no support for alternative
-   preambles depending on variant attribute.  Should there be? -}
+-- | Code for implementing the MMiSSPreamble type.
+-- Possible changes: at the moment there is no support for alternative
+-- preambles depending on variant attribute.  Should there be? 
 module MMiSSPreamble(
    MMiSSPreamble,
    MMiSSPreambleType,

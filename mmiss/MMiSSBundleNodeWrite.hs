@@ -1,9 +1,8 @@
-{- This is the module that writes a BundleNode into the repository.
-   It is assumed that the bundle is the output of 
-   MMiSSBundleDissect.dissectBundle and that the bundle has passed
-   the MMiSSBundleValidate.validateBundle function and 
-   MMiSSBundleNodeCheckTypes.checkBundleNodeTypes.
-   -}
+-- | This is the module that writes a BundleNode into the repository.
+-- It is assumed that the bundle is the output of 
+-- MMiSSBundleDissect.dissectBundle and that the bundle has passed
+-- the MMiSSBundleValidate.validateBundle function and 
+-- MMiSSBundleNodeCheckTypes.checkBundleNodeTypes.
 module MMiSSBundleNodeWrite(
       writeBundleNode,
       -- :: View -> InsertionPoint -> BundleNode -> IO ()

@@ -1,4 +1,4 @@
-{- Contains a sample ListDrawer for testing purposes -}
+-- | Contains a sample ListDrawer for testing purposes 
 module VariableListTest where
 
 

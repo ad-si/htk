@@ -1,6 +1,6 @@
-{- This module provides a function for "locking"/"unlocking" an event,
-   so that it is not handled (but delayed).  NB - there is nothing to
-   stop an event being locked several times at once. -}
+-- | This module provides a function for /locking/ and /unlocking/ an event,
+-- so that it is not handled (but delayed).  NB - there is nothing to
+-- stop an event being locked several times at once. 
 module LockEvent(
    EventLock,
    lockEvent,

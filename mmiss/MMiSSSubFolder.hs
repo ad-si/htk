@@ -1,7 +1,6 @@
-{- An MMiSSSubFolder is a folder contained within an MMiSS package.
-   Fortunately we don't need to define these as a new instance of ObjectTypes;
-   instead we can use the bog-standard Folders.
-   -}
+-- | An MMiSSSubFolder is a folder contained within an MMiSS package.
+-- Fortunately we don't need to define these as a new instance of ObjectTypes;
+-- instead we can use the bog-standard Folders.
 module MMiSSSubFolder(
    mmissSubFolderType, 
       -- :: FolderType

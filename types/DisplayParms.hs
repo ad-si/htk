@@ -1,5 +1,5 @@
-{- In this module we develop types for storing node and arc
-   attributes for various DisplayTypes. -}
+-- | In this module we develop types for storing node and arc
+-- attributes for various DisplayTypes. 
 module DisplayParms(
    NodeTypes,
    ArcTypes,

@@ -1,4 +1,3 @@
-
 -- | This module provides general functionality on button widgets.
 module ButtonWidget (
 

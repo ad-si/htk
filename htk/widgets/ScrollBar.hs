@@ -1,4 +1,3 @@
-
 -- | HTk\'s /scrollbar/ widget.
 -- 
 -- A scroll bar is a widget which controls scrolling.

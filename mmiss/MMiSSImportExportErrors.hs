@@ -1,5 +1,5 @@
-{- This module contains try-catch functions for error conditions that are
-   likely to arise during import and export. -}
+-- | This module contains try-catch functions for error conditions that are
+-- likely to arise during import and export. 
 module MMiSSImportExportErrors(
    importExportError, -- :: BreakFn
    catchImportExportErrors, -- :: IO a -> IO (Either String a)

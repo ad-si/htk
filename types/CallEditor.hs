@@ -1,6 +1,5 @@
-{- Parses the editor string and calls the editor, returning when it's
-   finished. 
-   -}
+-- | Parses the editor string and calls the editor, returning when it's
+-- finished. 
 module CallEditor(
    callEditor,
    editObject,

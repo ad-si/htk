@@ -1,4 +1,3 @@
-
 -- | A simple log window.
 module LogWin (
 

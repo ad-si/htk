@@ -1,5 +1,5 @@
-{- This module contains various generic functions to be attached to object
-   menus. -}
+-- | This module contains various generic functions to be attached to object
+-- menus. 
 module LocalMenus(
    deleteObject,
    ) where

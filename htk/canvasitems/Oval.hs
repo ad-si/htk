@@ -1,4 +1,3 @@
-
 -- | HTk\'s /oval/ canvas item.
 -- An oval object on a canvas widget.
 module Oval (

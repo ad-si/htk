@@ -1,4 +1,3 @@
-
 -- | HTk\'s /button widget/.
 -- A simple click button.
 module Button (

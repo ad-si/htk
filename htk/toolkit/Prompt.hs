@@ -1,4 +1,3 @@
-
 -- | A simple prompt (a labelled entry field).
 module Prompt (
 

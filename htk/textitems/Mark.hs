@@ -1,4 +1,3 @@
-
 -- | This module provides access to text marks inside an editor widget.
 module Mark (
 

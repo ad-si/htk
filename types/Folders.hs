@@ -1,5 +1,5 @@
-{- In this module we implement the folder type, and a display type for
-   displaying the directory structure. -}
+-- | In this module we implement the folder type, and a display type for
+-- displaying the directory structure. 
 module Folders(
    registerFolders, -- :: IO ()
       -- to be done at initialisation

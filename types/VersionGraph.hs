@@ -1,9 +1,8 @@
-{- This module is responsible for the Version Graph.  Therefore it has
-   two main tasks:
-      (1) displaying the Version Graph;
-      (2) communicating with the server.  The server uses the 
-          VersionGraphService service.
-   -}
+-- | This module is responsible for the Version Graph.  Therefore it has
+-- two main tasks:
+--    (1) displaying the Version Graph;
+--    (2) communicating with the server.  The server uses the 
+--        VersionGraphService service.
 module VersionGraph(
    VersionGraph, -- a graph being displayed.  Instance of Destructible
       -- A type parameterised on graphParms and nodeTypeParms

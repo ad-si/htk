@@ -1,14 +1,13 @@
-{- DaVinciBasic contains the code to do the following things:
-   (1) get daVinci going (it calls it via a ChildProcess).
-   (2) open new contexts.
-   (3) pass on events and sort answers out for particular
-       contexts.
-   It uses the DaVinciTypes module to parse the different
-   results, but makes minimal attempts to interpret the
-   different datatypes (the main reason for doing so is
-   to interpret DaVinciAnswer to work out what to do
-   with a particular answer).
-   -}
+-- | DaVinciBasic contains the code to do the following things:
+-- (1) get daVinci going (it calls it via a ChildProcess).
+-- (2) open new contexts.
+-- (3) pass on events and sort answers out for particular
+--     contexts.
+-- It uses the DaVinciTypes module to parse the different
+-- results, but makes minimal attempts to interpret the
+-- different datatypes (the main reason for doing so is
+-- to interpret DaVinciAnswer to work out what to do
+-- with a particular answer).
 module DaVinciBasic(
    Context, -- refers to a context, IE a particular (independent) graph.
       -- instance of Eq, Ord.

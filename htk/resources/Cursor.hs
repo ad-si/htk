@@ -1,4 +1,3 @@
-
 -- | Basic types and classes associated with the mouse cursor.
 module Cursor (
 

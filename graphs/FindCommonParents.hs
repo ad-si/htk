@@ -1,18 +1,18 @@
-{- Given two acyclic graphs G1 and G2 sharing some nodes, and a list V1 of nodes in G1,
-   let A be the union of G1 intersect G2 and V1.  The function in this module returns
-   a list L of type [(Node,[Node])] such that 
-   (1) The first elements in each pair in L are precisely those elements of V1 not in G2.
-   (2) For each element (n,ms) in L,
-       the list ms contains precisely those vertices m of G1 such that
-       (a) m is in A;
-       (b) there is a path from m to n in G1 which has no common vertices with
-           A except at its endpoints.
-   (3) Where the list contains two elements (n1,ms1) and (n2,ms2), such that
-       ms2 contains n1, then (n1,ms1) comes before (n2,ms2) in the list.
-
-   The purpose of all this is to provide a list of the nodes to be constructed
-   in G2 to extend it by V1 while preserving as much as possible of the path 
-   structure in V1.  This is used for adding version graph information. -}
+-- | Given two acyclic graphs G1 and G2 sharing some nodes, and a list V1 of nodes in G1,
+-- let A be the union of G1 intersect G2 and V1.  The function in this module returns
+-- a list L of type [(Node,[Node])] such that 
+-- (1) The first elements in each pair in L are precisely those elements of V1 not in G2.
+-- (2) For each element (n,ms) in L,
+--     the list ms contains precisely those vertices m of G1 such that
+--     (a) m is in A;
+--     (b) there is a path from m to n in G1 which has no common vertices with
+--         A except at its endpoints.
+-- (3) Where the list contains two elements (n1,ms1) and (n2,ms2), such that
+--     ms2 contains n1, then (n1,ms1) comes before (n2,ms2) in the list.
+-- 
+-- The purpose of all this is to provide a list of the nodes to be constructed
+-- in G2 to extend it by V1 while preserving as much as possible of the path 
+-- structure in V1.  This is used for adding version graph information. 
 module FindCommonParents(
    findCommonParents,
    GraphBack(..),

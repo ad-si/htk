@@ -1,7 +1,7 @@
-{- In GuardedEvents we extend the notion of PrimEvents to allow Guarded
-   Events, which can be guarded with the new (|>) operator.  GuardedChannels
-   will implement guarded events on channels, which will hopefully be the
-   only guarded event we will ever need. -}
+-- | In GuardedEvents we extend the notion of PrimEvents to allow Guarded
+-- Events, which can be guarded with the new (|>) operator.  GuardedChannels
+-- will implement guarded events on channels, which will hopefully be the
+-- only guarded event we will ever need. 
 module GuardedEvents(
    GuardedEvent(..), 
       -- the datatype of guarded events. Instance of HasGuard,

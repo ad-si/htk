@@ -1,5 +1,5 @@
-{- This module contains the code for exporting an MMiSS object or file
-   with a particular variant. -}
+-- | This module contains the code for exporting an MMiSS object or file
+-- with a particular variant. 
 module MMiSSExportVariantBundle(
    exportLinkedObjectVariant, 
       -- :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch 

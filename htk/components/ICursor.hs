@@ -1,4 +1,3 @@
-
 -- | Basic types and classes concerning insertion cursors in entry and
 -- text fields.
 module ICursor (

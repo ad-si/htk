@@ -1,7 +1,6 @@
-{- This is the bare-bones interface which actually calls the wish program.
-   There are really two implementations; one for Windows and one for
-   everything else.
-   -}
+-- | This is the bare-bones interface which actually calls the wish program.
+-- There are really two implementations; one for Windows and one for
+-- everything else.
 module CallWish(
    CalledWish, -- Type representing wish instance
    callWish, -- :: IO CalledWish

@@ -1,6 +1,6 @@
-{- This module defines SimpleForm.hs, which is intended as a simple interface
-   to filling in forms using HTk.  (Indeed, it is simple enough that it might
-   be ported to some other GUI sometime.) -}
+-- | This module defines SimpleForm.hs, which is intended as a simple interface
+-- to filling in forms using HTk.  (Indeed, it is simple enough that it might
+-- be ported to some other GUI sometime.) 
 module SimpleForm(
    Form, -- This represents a series of input fields.
       -- A (Form x) represents a form yielding a value of type x

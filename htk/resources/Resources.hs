@@ -1,4 +1,3 @@
-
 -- | Basic resources used with object configuration options.
 module Resources (
 

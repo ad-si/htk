@@ -1,5 +1,5 @@
-{- FMQueue handles finite maps of delete queues, so that we
-   can implement EqGuard. -}
+-- | FMQueue handles finite maps of delete queues, so that we
+-- can implement EqGuard. 
 module FMQueue(
    FMQueue,
    emptyFMQueue, 

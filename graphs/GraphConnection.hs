@@ -1,4 +1,4 @@
-{- GraphConnection contains various operations on graph connections -}
+-- | GraphConnection contains various operations on graph connections 
 module GraphConnection(
    SubGraph(..), 
       -- defines a subgraph as a subset of nodes and node types.

@@ -1,5 +1,5 @@
-{- This module constructs a dummy file structure for testing the Imports
-   module. -}
+-- | This module constructs a dummy file structure for testing the Imports
+-- module. 
 module ImportsTest where
 
 import System.IO.Unsafe

@@ -1,4 +1,3 @@
-
 -- | HTk\'s /ComboBox/.
 -- Only available when using tixwish.
 module ComboBox (

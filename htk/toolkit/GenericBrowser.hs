@@ -1,4 +1,3 @@
-
 -- | A generic data browser.
 module GenericBrowser (
 

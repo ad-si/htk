@@ -1,4 +1,3 @@
-
 -- | A simple drag and drop field.
 module Notepad (
 

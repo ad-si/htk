@@ -1,5 +1,5 @@
-{- This module encapsulates the Unix crypt function to provide a means of
-   verifying passwords. -}
+-- | This module encapsulates the Unix crypt function to provide a means of
+-- verifying passwords. 
 module Crypt(
    verifyPassword,
    ) where

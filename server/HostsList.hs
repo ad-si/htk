@@ -1,4 +1,4 @@
-{- This module maintains the list of hosts we know about. -}
+-- | This module maintains the list of hosts we know about. 
 module HostsList (
    getHostPorts, 
       -- :: IO [HostPort]

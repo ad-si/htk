@@ -1,4 +1,3 @@
-
 -- | HTk\'s /editor widget/.
 -- A text container for editing purposes. An editor widget can contain
 -- text tags, to which you can bind events, and also embedded windows.

@@ -1,5 +1,5 @@
-{- This module contains functions for exporting an object to a file as
-   LaTeX -}
+-- | This module contains functions for exporting an object to a file as
+-- LaTeX 
 module MMiSSExportLaTeX(
    exportMMiSSObjectLaTeX,
    exportMMiSSObjectXML,

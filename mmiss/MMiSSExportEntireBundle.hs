@@ -1,6 +1,6 @@
-{- This module handles the Entire export of a BundleNode, that is, the sort
-   you get when you select a folder or a file, so that it includes every
-   variant of a file. -}
+-- | This module handles the Entire export of a BundleNode, that is, the sort
+-- you get when you select a folder or a file, so that it includes every
+-- variant of a file. 
 module MMiSSExportEntireBundle(
    exportEntireLinkedObject,
       -- :: View -> LinkedObject -> ExportOpts -> IO Bundle

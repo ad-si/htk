@@ -1,4 +1,4 @@
-{- Various types we need to know for constructing Bundles. -}
+-- | Various types we need to know for constructing Bundles. 
 module MMiSSBundleTypes(
    mmissPreambleType, 
       -- :: BundleType

@@ -1,4 +1,4 @@
-{- EventClasses defines the various classes of events -}
+-- | EventClasses defines the various classes of events 
 module Events(
    Result(..),
    Event(..), 

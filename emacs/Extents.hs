@@ -1,4 +1,4 @@
-{- Haskell interface to the high-level extent functions in extents.el-}
+-- | Haskell interface to the high-level extent functions in extents.el
 module Extents(
    initBuffer,
    lockBuffer,

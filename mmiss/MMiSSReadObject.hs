@@ -1,5 +1,5 @@
-{- This module contains the basic functions for writing and reading an object
-   from the repository. -}
+-- | This module contains the basic functions for writing and reading an object
+-- from the repository. 
 module MMiSSReadObject(
    simpleReadFromMMiSSObject,
    readMMiSSObject,

@@ -1,7 +1,6 @@
-{- This information controls getting locational info (label, packageId,
-   path and variants) out of an Element (for when we read it in), and
-   putting it back in again (for when we write it out).
-   -}
+-- | This information controls getting locational info (label, packageId,
+-- path and variants) out of an Element (for when we read it in), and
+-- putting it back in again (for when we write it out).
 module MMiSSElementInfo(
    ElementInfo(..),
    emptyElementInfo, -- :: ElementInfo 

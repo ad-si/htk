@@ -1,10 +1,9 @@
-{- This module contains the hooks for displaying messages to the user
-   (errors, alerts, warnings and the like) and getting yes/no responses.
-
-   The idea is that these are by default textual, and go via 
-      stdin/stdout/stderr.  However if the DialogWin function useHTk is 
-   invoked, windows will pop up.
-   -}
+-- | This module contains the hooks for displaying messages to the user
+-- (errors, alerts, warnings and the like) and getting yes\/no responses.
+-- 
+-- The idea is that these are by default textual, and go via 
+-- 'stdin', 'stdout' and 'stderr' .  However if the DialogWin function 
+-- 'useHTk' is invoked, windows will pop up.
 module Messages(
    -- Functions for displaying messages
    alertMess, -- :: String -> IO ()

@@ -1,6 +1,5 @@
-{- This module contains the functions for checking that the
-   bundle types within a bundle are compatible with what's already there.
-   -}
+-- | This module contains the functions for checking that the
+-- bundle types within a bundle are compatible with what's already there.
 module MMiSSBundleNodeCheckTypes(
    checkBundleNodeTypes,
    ) where

@@ -1,5 +1,5 @@
-{- Test graph for RemoveAncestors.  This module is used with ghci. 
-   Also for GraphOps. -}
+-- | Test graph for RemoveAncestors.  This module is used with ghci. 
+-- Also for GraphOps. 
 module RemoveAncestorsTest where
 
 import RemoveAncestors

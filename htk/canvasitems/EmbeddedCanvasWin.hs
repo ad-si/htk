@@ -1,4 +1,3 @@
-
 -- | HTk\'s /embedded canvas windows/.
 -- A container for widgets on a canvas widget.
 module EmbeddedCanvasWin (

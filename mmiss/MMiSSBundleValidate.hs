@@ -1,38 +1,37 @@
-{- This module contains the functions for validating a bundle.
-
-   The following things are checked.  For commentting purposes
-   we also give a name to each check, for example DISTINCT.
-   DISTINCT) PackageId's in a bundle, names (as given by namefileLoc) in a 
-      folder, variants in an object are all distinct. 
-   DIROBJECT) folders and package folders contain BundleNodeData's with Dir,
-      other sorts have Object.
-   TOPSDIRS) All the top-level bundle-nodes have BundleNodeData with Dir.
-   PREAMBLE1) Each package folder contains at most one preamble.
-   STRUCTURE) package folders contain just preambles, MMiSS objects, MMiSS 
-      files and mmiss sub folders.  MMiSS sub folders contain just MMiSS 
-      objects, MMiSS files and MMiSS sub folders
-
-      MMiSS sub folders, MMiSS objects, MMiSS files and preambles do not occur
-      except in MMiSS package folders and MMiSS sub folders.
-   VARIANTS) Plain files and preambles do not specify any variants; MMiSS 
-      objects and MMiSS files always do.
-   ENTITYNAME) The name constructed from the FileLoc (with nameFileLoc) 
-      should always be a valid EntityName.
-   NAMES) Everything except preambles has name = Just [something] in its 
-      fileLoc.  Preambles don't.
-   EXT) ext is only set for MMiSS files.  extra is only set for ordinary files
-      and folders.
-   EXTEXISTS) for MMiSS files, ext is a file type known to MMiSSFileType.
-   UNKNOWN) The bundle contains no UnknownType, NoData or NoText elements.
-   DTD) Elements pass the DTD. 
-   LINKNAMES) Names in links are valid EntityFullNames.
-   FILENAMES) Files referred to are valid EntityFullNames.
-   NONEMPTYOBJECTS) Every Object item contains at least one element.
-   CONSISTENTTAGS) The tags in MMiSS objects should all be the same.
-   NOUNICODE) No BundleTexts contain a CharType of Unicode.
-      (This is currently only useful for MMiSSObjects, and for them the
-      UTF8 will have been converted to an Element anyway.)
-   -}
+-- | This module contains the functions for validating a bundle.
+-- 
+-- The following things are checked.  For commentting purposes
+-- we also give a name to each check, for example DISTINCT.
+-- DISTINCT) PackageId's in a bundle, names (as given by namefileLoc) in a 
+--    folder, variants in an object are all distinct. 
+-- DIROBJECT) folders and package folders contain BundleNodeData's with Dir,
+--    other sorts have Object.
+-- TOPSDIRS) All the top-level bundle-nodes have BundleNodeData with Dir.
+-- PREAMBLE1) Each package folder contains at most one preamble.
+-- STRUCTURE) package folders contain just preambles, MMiSS objects, MMiSS 
+--    files and mmiss sub folders.  MMiSS sub folders contain just MMiSS 
+--    objects, MMiSS files and MMiSS sub folders
+-- 
+--    MMiSS sub folders, MMiSS objects, MMiSS files and preambles do not occur
+--    except in MMiSS package folders and MMiSS sub folders.
+-- VARIANTS) Plain files and preambles do not specify any variants; MMiSS 
+--    objects and MMiSS files always do.
+-- ENTITYNAME) The name constructed from the FileLoc (with nameFileLoc) 
+--    should always be a valid EntityName.
+-- NAMES) Everything except preambles has name = Just [something] in its 
+--    fileLoc.  Preambles don't.
+-- EXT) ext is only set for MMiSS files.  extra is only set for ordinary files
+--    and folders.
+-- EXTEXISTS) for MMiSS files, ext is a file type known to MMiSSFileType.
+-- UNKNOWN) The bundle contains no UnknownType, NoData or NoText elements.
+-- DTD) Elements pass the DTD. 
+-- LINKNAMES) Names in links are valid EntityFullNames.
+-- FILENAMES) Files referred to are valid EntityFullNames.
+-- NONEMPTYOBJECTS) Every Object item contains at least one element.
+-- CONSISTENTTAGS) The tags in MMiSS objects should all be the same.
+-- NOUNICODE) No BundleTexts contain a CharType of Unicode.
+--    (This is currently only useful for MMiSSObjects, and for them the
+--    UTF8 will have been converted to an Element anyway.)
 module MMiSSBundleValidate(
    validateBundle, -- :: Bundle -> WithError ()
    

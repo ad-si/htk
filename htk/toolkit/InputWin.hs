@@ -1,4 +1,3 @@
-
 -- | Basic input window for record values and their fields.
 module InputWin (
         module InputForm,

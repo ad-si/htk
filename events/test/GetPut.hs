@@ -1,5 +1,4 @@
-{- This test takes something where you can get and put, and runs tests on it. 
-   -}
+-- | This test takes something where you can get and put, and runs tests on it. 
 module GetPut(
    GetPut, 
       -- something which can Get and Put.

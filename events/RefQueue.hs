@@ -1,14 +1,14 @@
-{- RefQueue are standard non-functional
-   queues using pointers (aka IORefs).  Events can be deleted asynchronously,
-   but this is done only by nulling the cell they are contained in, otherwise
-   we would need to double-link.   Other operations, IE the push and pop
-   function must not occur on the same queue concurrently.
-
-   Although the queues are impure, we return the new queue to be used
-   in future after push and search operations.
-
-   RefQueue are intended for use for queues of guarded strings,
-   hence the specialised implementation. -}
+-- | RefQueue are standard non-functional
+-- queues using pointers (aka IORefs).  Events can be deleted asynchronously,
+-- but this is done only by nulling the cell they are contained in, otherwise
+-- we would need to double-link.   Other operations, IE the push and pop
+-- function must not occur on the same queue concurrently.
+-- 
+-- Although the queues are impure, we return the new queue to be used
+-- in future after push and search operations.
+-- 
+-- RefQueue are intended for use for queues of guarded strings,
+-- hence the specialised implementation. 
 module RefQueue(
    RefQueue,
    newRefQueue, -- :: IO (RefQueue a)

@@ -1,4 +1,4 @@
-{- This module contains functions for editing Xml -}
+-- | This module contains functions for editing Xml 
 module MMiSSEditXml(
    -- The first argument of each function is the file name.
    toEditableXml, 

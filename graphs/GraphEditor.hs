@@ -1,9 +1,9 @@
-{- #########################################################################
-
-   This Graph Editor is inspired by the one by Einar Karlsen but uses
-   the new graph interface.
-
-   ######################################################################### -}
+-- | #########################################################################
+-- 
+-- This Graph Editor is inspired by the one by Einar Karlsen but uses
+-- the new graph interface.
+-- 
+-- ######################################################################### 
 
 
 module GraphEditor (

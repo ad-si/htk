@@ -1,6 +1,6 @@
-{- This file was taken from Sven Panne's page on 31st July 2001.
-   I have since changed it a little.  The version before these
-   changes may be found in DaVinciTypes.hs.orig. -}
+-- | This file was taken from Sven Panne's page on 31st July 2001.
+-- I have since changed it a little.  The version before these
+-- changes may be found in DaVinciTypes.hs.orig. 
 
 -----------------------------------------------------------------------------------------
 -- Haskell binding for daVinci API

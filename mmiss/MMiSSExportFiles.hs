@@ -1,6 +1,5 @@
-{- This module contains operations on the list of MMiSS files (so, excluding
-   MMiSS objects such as elements and so on) to be exported to some directory.
-   -}
+-- | This module contains operations on the list of MMiSS files (so, excluding
+-- MMiSS objects such as elements and so on) to be exported to some directory.
 module MMiSSExportFiles(
    ExportFiles,
    exportFiles, -- :: View -> FilePath -> ExportFiles -> IO () 

@@ -1,9 +1,8 @@
-{- This is a much simpler reimplementation of Einar's old Mutex semaphores.  
-   This is a lock which can be required by a thread which is already holding
-   it.
-
-   See also util/TSem.hs.
-   -}
+-- | This is a much simpler reimplementation of Einar's old Mutex semaphores.  
+-- This is a lock which can be required by a thread which is already holding
+-- it.
+-- 
+-- See also "TSem".
 module MSem(
    MSem,
    newMSem, -- :: IO MSem

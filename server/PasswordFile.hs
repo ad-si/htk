@@ -1,15 +1,13 @@
-{- This module contains the code for reading the password file and
-   checking users against it.
-
-   The password file is re-read for each authentication request.
-
-   The password file has the following format:
-
-user:encrypted password:status:other data:...
-
-   Current valid values for status are "ADMIN" or "".
-
-   -}
+-- | This module contains the code for reading the password file and
+-- checking users against it.
+-- 
+-- The password file is re-read for each authentication request.
+-- 
+-- The password file has the following format:
+-- 
+-- > user:encrypted password:status:other data:...
+-- 
+-- Current valid values for status are \"ADMIN\" or \"\".
 module PasswordFile(
    User(..), -- information for a particular user
    getUserEntry, -- :: String -> IO (Maybe User)

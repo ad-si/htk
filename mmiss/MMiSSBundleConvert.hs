@@ -1,5 +1,5 @@
-{- This module contains the function for converting files or EmacsContent
-   in LaTeX or XML into bundles. -}
+-- | This module contains the function for converting files or EmacsContent
+-- in LaTeX or XML into bundles. 
 module MMiSSBundleConvert(
    parseBundle, 
       -- :: Format -> FileSystem -> FilePath -> IO (Bundle,PackageId)

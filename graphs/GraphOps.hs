@@ -1,4 +1,4 @@
-{- This module contains various functions for operating on graphs -}
+-- | This module contains various functions for operating on graphs 
 module GraphOps(
    isAncestor, -- :: graph ... -> Node -> Node -> IO Bool
       -- returns True if the first Node is an ancestor, or identical, to

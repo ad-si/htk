@@ -1,22 +1,22 @@
-{- #########################################################################
-
-MODULE        : Dynamics
-AUTHOR        : George Russell
-DATE          : August 1999
-VERSION       : ??
-DESCRIPTION   : A wrapper for the new GHC (and Hugs) Dynamic module,
-                supposed to look like Dynamics in the old
-                Uniform.  In time it might be nice to get rid of
-                this module altogether
-
-                Changes!  The first attempt didn't work.
-                GHC's Dynamic structure compares type constructors
-                by number, and the number is assigned at the time of
-                creation (unsafely).  So we need to create a separate
-                type for type constructors and insist they are
-                created at a specific point of the file.
-
-   ######################################################################### -}
+-- | #########################################################################
+-- 
+-- MODULE        : Dynamics
+-- AUTHOR        : George Russell
+-- DATE          : August 1999
+-- VERSION       : ??
+-- DESCRIPTION   : A wrapper for the new GHC (and Hugs) Dynamic module,
+--              supposed to look like Dynamics in the old
+--              Uniform.  In time it might be nice to get rid of
+--              this module altogether
+-- 
+--              Changes!  The first attempt didn't work.
+--              GHC's Dynamic structure compares type constructors
+--              by number, and the number is assigned at the time of
+--              creation (unsafely).  So we need to create a separate
+--              type for type constructors and insist they are
+--              created at a specific point of the file.
+-- 
+-- ######################################################################### 
 
 -- NB.  Unlike in the original implementation, we cannot Read
 -- TypeTags.  Time will tell if this is a problem.

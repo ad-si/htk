@@ -1,7 +1,6 @@
-{- This module provides immutable CStrings, which additionally have
-   the property that they are automatically freed when the garbage-collector
-   forgets about them.
-   -}
+-- | This module provides immutable CStrings, which additionally have
+-- the property that they are automatically freed when the garbage-collector
+-- forgets about them.
 module ICStringLen(
    ICStringLen, -- instance of AtomString and Eq.
 

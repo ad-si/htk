@@ -1,4 +1,3 @@
-
 -- | The @module MenuItem@ exports general resources for menu
 -- items.
 module MenuItem (

@@ -1,5 +1,5 @@
-{- The function in this module finds a cycle in a given directed graph, if one
-   exists. -}
+-- | The function in this module finds a cycle in a given directed graph, if one
+-- exists. 
 module FindCycle (
    findCycle, 
       -- :: Ord a => [a] -> (a -> [a]) -> Maybe [a]

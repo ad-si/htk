@@ -1,6 +1,5 @@
-{- This file contains the doRegistrations function, which should
-   execute the registration functions of all object and display types.
-   -}
+-- | This file contains the doRegistrations function, which should
+-- execute the registration functions of all object and display types.
 module Registrations(doRegistrations) where
 
 import AttributesType

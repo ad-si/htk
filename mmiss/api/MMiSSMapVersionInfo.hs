@@ -1,5 +1,5 @@
-{- This module contains the functions we need for mapping to and from 
-   MMiSSRequest.VersionInfo and VersionInfo.VersionInfo -}
+-- | This module contains the functions we need for mapping to and from 
+-- MMiSSRequest.VersionInfo and VersionInfo.VersionInfo 
 module MMiSSMapVersionInfo(
    fromOurVersionInfo,
    toOurUserInfo,

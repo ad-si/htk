@@ -1,4 +1,4 @@
-{- Module which maintains the list of external VersionGraphs. -}
+-- | Module which maintains the list of external VersionGraphs. 
 module VersionGraphList(
    addVersionGraph,
       -- :: Maybe HostPort -> IO ()

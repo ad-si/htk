@@ -1,4 +1,4 @@
-{- Test graphs for FindCommonParents -}
+-- | Test graphs for FindCommonParents 
 module FindCommonParentsTest where
 
 import FindCommonParents

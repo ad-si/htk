@@ -1,4 +1,3 @@
-
 -- | A simple /icon bar/ containing buttons and separators.
 module IconBar (
 

@@ -1,13 +1,12 @@
-{- Here we create a simple guarded queue which allows guarding by equality
-   according to an ordered key.  Thus guards have three values,
-   match anything, match nothing, and match this value.  
-
-   To simplify the implementation, we specify that an Eq match has higher
-   priority than a MatchAnything match, and when we must choose between
-   values for MatchAnything, do not necessarily choose the first
-   (more likely the one with the lowest key value).  But we do respect
-   FIFO order when only Eq guards are involved.
-   -}
+-- | Here we create a simple guarded queue which allows guarding by equality
+-- according to an ordered key.  Thus guards have three values,
+-- match anything, match nothing, and match this value.  
+-- 
+-- To simplify the implementation, we specify that an Eq match has higher
+-- priority than a MatchAnything match, and when we must choose between
+-- values for MatchAnything, do not necessarily choose the first
+-- (more likely the one with the lowest key value).  But we do respect
+-- FIFO order when only Eq guards are involved.
 module EqGuard(
    EqGuardedChannel, -- the channel
    EqMatch(..), -- the guard.

@@ -1,5 +1,5 @@
-{- This module defines the state which is preserved for a user during a 
-   session.  It also defines various utilities for manipulating it. -}
+-- | This module defines the state which is preserved for a user during a 
+-- session.  It also defines various utilities for manipulating it. 
 module MMiSSSessionState(
    MMiSSSessionState(..),
    MMiSSSessionStateValue(..),

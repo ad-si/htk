@@ -1,6 +1,6 @@
-{- A Cell is a container for a value.  It is created with the value in it.
-   The only change we can make is to remove the value, and we cannot put
-   it back again. -}
+-- | A Cell is a container for a value.  It is created with the value in it.
+-- The only change we can make is to remove the value, and we cannot put
+-- it back again. 
 module Cells(
    Cell, -- The Cell type
    newCell, -- :: a -> IO (Cell a)

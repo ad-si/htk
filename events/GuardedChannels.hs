@@ -1,4 +1,4 @@
-{- GuardedEvents implements guarded events for channels. -}
+-- | GuardedEvents implements guarded events for channels. 
 module GuardedChannels(
    GuardedChannel,
       -- parameterised on the guard and the value,

@@ -1,10 +1,9 @@
-{- Run a list of actions simultaneously, finishing when each of the
-   actions finishes, and returning their results.  So sort of like
-   a concurrent sequence.
-
-   Obviously it's rather important to be sure that all of the
-   actions actually will finish!!!
-   -}
+-- | Run a list of actions simultaneously, finishing when each of the
+-- actions finishes, and returning their results.  So sort of like
+-- a concurrent sequence.
+-- 
+-- Obviously it's rather important to be sure that all of the
+-- actions actually will finish!!!
 module WaitOnN(
    waitOnN,
    ) where

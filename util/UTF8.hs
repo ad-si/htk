@@ -1,6 +1,5 @@
-{- This module contains functions for converting to and from the UTF8 
-   representations for Strings.
-   -}
+-- | This module contains functions for converting to and from the UTF8 
+-- representations for Strings.
 module UTF8(
    toUTF8, 
       -- :: String -> String

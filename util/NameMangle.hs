@@ -1,5 +1,5 @@
-{- Module for generating unique names which correspond to given names
-   (of type ref). -}
+-- | Module for generating unique names which correspond to given names
+-- (of type ref). 
 module NameMangle(
    NameMangler,
    newNameMangler, -- :: IO (NameMangler ref)

@@ -1,4 +1,3 @@
-
 -- | This module provides access to image resources from files or base64
 -- encoded strings.
 module Image (

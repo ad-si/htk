@@ -1,5 +1,4 @@
-{- GraphEditorRemote sets up a graph editor attached to a remote server. 
-   -}
+-- | GraphEditorRemote sets up a graph editor attached to a remote server. 
 module GraphEditorRemote(graphEditorRemote) where
 
 import Concurrent

@@ -1,4 +1,4 @@
-{- This implements a SinkSource with keyed changes. -}
+-- | This implements a SinkSource with keyed changes. 
 module KeyedChanges(
    KeyedChanges,
 

@@ -1,4 +1,4 @@
-{- Integers augmented with Infinity. -}
+-- | Integers augmented with Infinity. 
 module IntPlus(
    IntPlus,
    infinity

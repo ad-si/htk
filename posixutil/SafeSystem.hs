@@ -1,9 +1,8 @@
-{- SafeSystem.safeSystem executes a command (supplied as a String) and
-   returns its exit code.  It differs from System.system in that it does
-   NOT stop the world while doing this, so that other threads can run.
-   How it works: we use ChildProcess to run the runCommand C program,
-   and feed it the command over stdin.  Ugly, but is there a better way?
-   -}
+-- | SafeSystem.safeSystem executes a command (supplied as a String) and
+-- returns its exit code.  It differs from System.system in that it does
+-- NOT stop the world while doing this, so that other threads can run.
+-- How it works: we use ChildProcess to run the runCommand C program,
+-- and feed it the command over stdin.  Ugly, but is there a better way?
 module SafeSystem(
    safeSystemGeneral,
    safeSystem,

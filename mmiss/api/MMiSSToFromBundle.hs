@@ -1,11 +1,10 @@
-{- This module contains the functions for converting to and from the 
-   bundles described in mmiss/MMiSSBundle.hs into our own Bundle type
-   described in MMiSSRequest.hs.
-
-   It also contains the (much simpler) functions for converting to
-   the ExportOpts required for the <getObject> element,
-   and for converting to and from MMiSSVariantSpec's.
-   -}
+-- | This module contains the functions for converting to and from the 
+-- bundles described in "MMiSSBundle" into our own Bundle type
+-- described in "MMiSSRequest".
+-- 
+-- It also contains the (much simpler) functions for converting to
+-- the ExportOpts required for the \<getObject\> element,
+-- and for converting to and from 'MMiSSVariantSpec' s.
 module MMiSSToFromBundle(
    toBundle, -- :: Block -> MMiSSRequest.Bundle -> WithError MMiSSBundle.Bundle
    fromBundle, -- :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Bundle

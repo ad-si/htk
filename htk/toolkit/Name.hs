@@ -1,4 +1,3 @@
-
 -- | This module exports a common interface for named objects.
 module Name (
 

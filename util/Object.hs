@@ -1,20 +1,4 @@
-{- #########################################################################
-
-MODULE        : Object
-AUTHOR        : Einar Karlsen,  completely rewrittenn by George
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1999
-VERSION       : 0.2
-DESCRIPTION   : Objects, basically entities with a unique ID. Used later on
-                to tag 1) widgets, 2) interactors, 3) graphs etc. 
-
-We now use C (in object.c).  This means it should be faster.  Also it gets
-rid of an unsafePerformIO, which has already caused problems with Linux GHC.
-
-   ######################################################################## -}
-
-
+-- | Module which generates globally unique 'ObjectID's.
 module Object (
    ObjectID(..),
    Object(..),

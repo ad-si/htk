@@ -1,6 +1,6 @@
-{- This module contains the function for constructing the EmacsFS
-   (Emacs Filing System) required by emacs/EmacsEdit.hs, and the
-   PrintAction that EmacsEdit requires. -}
+-- | This module contains the function for constructing the EmacsFS
+-- (Emacs Filing System) required by "EmacsEdit", and the
+-- 'PrintAction' that "EmacsEdit" requires. 
 module MMiSSEmacsEdit(
    editMMiSSObjectXml,
       -- :: View -> Link MMiSSObject -> IO ()

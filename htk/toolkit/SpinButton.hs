@@ -1,4 +1,3 @@
-
 -- | A spin button widget consisting of two button widgets.
 module SpinButton (
 

@@ -1,16 +1,14 @@
-{-
-
-MODULE        : Debug
-AUTHOR        : George Russell
-		University of Bremen
-DATE          : 2000
-DESCRIPTION   : This module provides a uniform interface for debugging
-                purposes.  In final versions of this module it would
-                be best to make the debug function do nothing and
-                force it to be inlined.
-
-   ######################################################################### 
--}
+-- | 
+-- MODULE        : Debug
+-- AUTHOR        : George Russell
+-- University of Bremen
+-- DATE          : 2000
+-- DESCRIPTION   : This module provides a uniform interface for debugging
+--              purposes.  In final versions of this module it would
+--              be best to make the debug function do nothing and
+--              force it to be inlined.
+-- 
+-- ######################################################################### 
 
 module Debug(
   debug, -- show something to log file if debugging is turned on.

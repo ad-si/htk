@@ -1,4 +1,3 @@
-
 -- | HTk\'s /rectangle/ canvas item.
 -- A rectangle object on a canvas widget.
 module Rectangle (

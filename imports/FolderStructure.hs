@@ -1,6 +1,6 @@
-{- This module defines the basic abstract folder structure which will be 
-   defined in the types/ stuff and passed back to the functions in this
-   module for when they process import commands. -}
+-- | This module defines the basic abstract folder structure which will be 
+-- defined in the types/ stuff and passed back to the functions in this
+-- module for when they process import commands. 
 
 module FolderStructure(
    FolderStructure(..),

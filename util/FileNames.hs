@@ -1,5 +1,5 @@
-{- FileNames contain facilities for manipulating filenames
-   in a hopefully OS-independent manner.  -}
+-- | FileNames contain facilities for manipulating filenames
+-- in a hopefully OS-independent manner.  
 module FileNames(
    fileSep, -- :: Char
             -- file separator

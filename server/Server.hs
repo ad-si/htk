@@ -1,14 +1,13 @@
-{- In Server we implement a general framework for a server, which
-   is supposed to make it easier to share information between 
-   computers, in a similar method to inetd.  Unlike inetd however
-   each client computer maintains a session with the server.  Also
-   we only use one port for all services, though an additional
-   integer is sent at the start of opening a connection to specify
-   which service is to be used.
-
-   To specify a new service you need to define an instance of
-   the class ServerClass, defined in the module of that name.
-   -}
+-- | In Server we implement a general framework for a server, which
+-- is supposed to make it easier to share information between 
+-- computers, in a similar method to inetd.  Unlike inetd however
+-- each client computer maintains a session with the server.  Also
+-- we only use one port for all services, though an additional
+-- integer is sent at the start of opening a connection to specify
+-- which service is to be used.
+-- 
+-- To specify a new service you need to define an instance of
+-- the class ServerClass, defined in the module of that name.
 module Server(
    runServer 
    -- :: [Service] -> IO () 

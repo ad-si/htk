@@ -1,4 +1,3 @@
-
 -- | HTk\'s /listbox widget/ .
 -- A scrollable widget that displays a set of text lines with selection
 -- functionality.

@@ -1,17 +1,16 @@
-{- This module controls selection by variant attributes.
-
-   The problem we solve is search a database MMiSSVariantDict a
-   of a-values indexed by partial maps from variantAttributes strings
-   (listed in the variable of the same name) to Strings.
-
-   When searching by a key (such a map), an item in the database
-      indexed by another key (such a map) matches if the two maps
-      agree wherever they are both defined.  Thus the null-value
-      corresponds to a wildcard.
-   Where more than one item in the database is defined, we choose
-      some item in the database for which the domain of its map
-      is maximal.
-  -}
+-- | This module controls selection by variant attributes.
+-- 
+-- The problem we solve is search a database MMiSSVariantDict a
+-- of a-values indexed by partial maps from variantAttributes strings
+-- (listed in the variable of the same name) to Strings.
+-- 
+-- When searching by a key (such a map), an item in the database
+--    indexed by another key (such a map) matches if the two maps
+--    agree wherever they are both defined.  Thus the null-value
+--    corresponds to a wildcard.
+-- Where more than one item in the database is defined, we choose
+--    some item in the database for which the domain of its map
+--    is maximal.
 module MMiSSVariant(
    MMiSSVariantDict,
    newEmptyVariantDict,

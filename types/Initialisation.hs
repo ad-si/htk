@@ -1,5 +1,5 @@
-{- This module contains functions for connecting to the repository,
-   and if necessary initialising it with the top item. -}
+-- | This module contains functions for connecting to the repository,
+-- and if necessary initialising it with the top item. 
 module Initialisation(
    initialise, -- :: IO Repository,
    openRepository, -- :: (?server :: HostPort) => IO VersionDB.Repository

@@ -1,4 +1,3 @@
-
 module CanvasTag (
 
   module CanvasItem,

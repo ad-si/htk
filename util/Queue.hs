@@ -1,33 +1,21 @@
-{- #########################################################################
-
-MODULE        : Queue
-AUTHOR        : Einar Karlsen, 
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1998
-VERSION       : 0.2
-DESCRIPTION   : 
-        This is an implementation of queues inspired by the paper in 
-        Software Practice & Experience, ...
-        The queue is divided into two sequences. The first sequence
-        holds the elements in a LIFO order, the second in a FIFO order.
-        The LIFO sequence is the one where elements are added, the FIFO
-        the one from which elements are removed. When the remove operation
-        is called and the FIFO sequence is empty, the LIFO sequence is 
-        turned into a FIFO sequence by reversing the order of its elements.
-
-   Note from GER - as far as I know, we only need the values
-      emptyQ :: Queue a -- new empty queue
-      singletonQ :: a -> Queue a -- new singleton queue
-      insertQ :: Queue a -> a -> Queue a -- add to queue
-      removeQ :: Queue a -> Maybe (a,Queue a) -- pop from queue.
-      insertAtEndQ :: Queue a -> a -> Queue a 
-      -- undo the effect of the previous removeQ.
-      isEmptyQ :: Queue a -> Bool
-      queueToList :: Queue a -> [a]
-   ######################################################################### -}
-
-
+-- | This is an implementation of queues inspired by the paper in 
+-- Software Practice & Experience, ...
+-- The queue is divided into two sequences. The first sequence
+-- holds the elements in a LIFO order, the second in a FIFO order.
+-- The LIFO sequence is the one where elements are added, the FIFO
+-- the one from which elements are removed. When the remove operation
+-- is called and the FIFO sequence is empty, the LIFO sequence is 
+-- turned into a FIFO sequence by reversing the order of its elements.
+-- 
+-- Note from GER - as far as I know, we only need the values
+--    emptyQ :: Queue a -- new empty queue
+--    singletonQ :: a -> Queue a -- new singleton queue
+--    insertQ :: Queue a -> a -> Queue a -- add to queue
+--    removeQ :: Queue a -> Maybe (a,Queue a) -- pop from queue.
+--    insertAtEndQ :: Queue a -> a -> Queue a 
+--    -- undo the effect of the previous removeQ.
+--    isEmptyQ :: Queue a -> Bool
+--    queueToList :: Queue a -> [a]
 module Queue (
         Queue,
 

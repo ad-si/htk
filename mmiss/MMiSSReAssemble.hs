@@ -1,5 +1,5 @@
-{- This module contains the code for reassembling a document from its
-   constituent elements. -} 
+-- | This module contains the code for reassembling a document from its
+-- constituent elements.  
 module MMiSSReAssemble(
    reAssemble,
    reAssembleNoRecursion,

@@ -1,5 +1,4 @@
-{- This is the user-interface to the SimpleDB.
-   -}
+-- | This is the user-interface to the SimpleDB.
 module SimpleDB(
    Repository,
       -- represents a connection to a particular server.

@@ -1,5 +1,5 @@
-{- We define functions which convert an object into a text form in a format
-   specified by MMiSSFormat.hs -}
+-- | We define functions which convert an object into a text form in a format
+-- specified by MMiSSFormat.hs 
 module MMiSSEditFormatConverter(
    EditFormatConverter(..), -- The functions provided
    toEditFormatConverter, -- :: Format -> EditFormatConverter

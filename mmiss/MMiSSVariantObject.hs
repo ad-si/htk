@@ -1,10 +1,9 @@
-{- A VariantObject object contains a collection of things keyed by 
-   an MMiSSSearchObject.   It also has a "current" MMiSSSearchObject 
-   and a "cache" corresponding to this current object.
-
-   This cache must always contains something.  A consequence of that is that
-   all VariantObject objects contain at least one item.
-   -}
+-- | A VariantObject object contains a collection of things keyed by 
+-- an MMiSSSearchObject.   It also has a "current" MMiSSSearchObject 
+-- and a "cache" corresponding to this current object.
+-- 
+-- This cache must always contains something.  A consequence of that is that
+-- all VariantObject objects contain at least one item.
 module MMiSSVariantObject(
    VariantObject,
 

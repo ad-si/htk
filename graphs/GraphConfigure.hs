@@ -1,8 +1,7 @@
-{- GraphConfigure contains definitions for the various configuration
-   options for GraphDisp objects.  These should be implemented
-   using the Computation.HasConfig interface, applied to instances of
-   GraphParms, NodeTypeParms and ArcTypeParms.
-   -}
+-- | GraphConfigure contains definitions for the various configuration
+-- options for GraphDisp objects.  These should be implemented
+-- using the Computation.HasConfig interface, applied to instances of
+-- GraphParms, NodeTypeParms and ArcTypeParms.
 module GraphConfigure(
    GraphAllConfig, -- this is a subclass of GraphAll plus ALL configuration
                    -- options in this file.

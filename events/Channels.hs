@@ -1,35 +1,34 @@
-{- This is a bare-bones implementation of CML-style channels, IE no
-   guards.  Why not use NullGuardChannel you might ask?  Because all the
-   gunge we add to do guards makes it too inefficient.
-
-   To avoid memory-leaks we need to clean out superannuated registrations
-   occasionally, as otherwise we will gradually run out of memory if the
-   user continually polls a receive channel event, but no-one is sending
-   anything.  (The memory lost is potentially quite big, since it includes
-   all the continuations we will never need.) 
-
-   Although this is not expressed by the type, there are three possible states
-   for the channel
-   (1) we have >=0 queued send events and no queued receive events.
-   (2) we have >=0 queued receive events and no queued send events.
-   (3) we have both send and receive events queued, but they all come
-       from the same synchronisation.
-   When we have a new send event, and there are queued receive events
-   not from the same synchronisation, we can match.  Otherwise the
-   send event must be queued.  For receive events the situation is exactly
-   the same in reverse.   
-
-   Our quick and dirty strategy is to maintain an integer counter for the 
-   channel.  This is initially 0 and on each send or receive registration 
-   changes as follows:
-   1) If we match an event set counter to 0.
-   2) If we try to match an event, but fail because the event was already
-      matched by someone else (Anticipated), leave counter as it is.
-   3) If finally we have to queue an event, look at counter.  If it
-      exceeds 10, clean the queue and set counter to 0, otherwise increment it.
-   "cleaning" means removing all items from the front of the queue which
-   have flipped toggles.
-   -}
+-- | This is a bare-bones implementation of CML-style channels, IE no
+-- guards.  Why not use NullGuardChannel you might ask?  Because all the
+-- gunge we add to do guards makes it too inefficient.
+-- 
+-- To avoid memory-leaks we need to clean out superannuated registrations
+-- occasionally, as otherwise we will gradually run out of memory if the
+-- user continually polls a receive channel event, but no-one is sending
+-- anything.  (The memory lost is potentially quite big, since it includes
+-- all the continuations we will never need.) 
+-- 
+-- Although this is not expressed by the type, there are three possible states
+-- for the channel
+-- (1) we have >=0 queued send events and no queued receive events.
+-- (2) we have >=0 queued receive events and no queued send events.
+-- (3) we have both send and receive events queued, but they all come
+--     from the same synchronisation.
+-- When we have a new send event, and there are queued receive events
+-- not from the same synchronisation, we can match.  Otherwise the
+-- send event must be queued.  For receive events the situation is exactly
+-- the same in reverse.   
+-- 
+-- Our quick and dirty strategy is to maintain an integer counter for the 
+-- channel.  This is initially 0 and on each send or receive registration 
+-- changes as follows:
+-- 1) If we match an event set counter to 0.
+-- 2) If we try to match an event, but fail because the event was already
+--    matched by someone else (Anticipated), leave counter as it is.
+-- 3) If finally we have to queue an event, look at counter.  If it
+--    exceeds 10, clean the queue and set counter to 0, otherwise increment it.
+-- "cleaning" means removing all items from the front of the queue which
+-- have flipped toggles.
 module Channels(
    Channel,
    newChannel, -- :: IO Channel a

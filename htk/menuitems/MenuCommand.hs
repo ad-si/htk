@@ -1,4 +1,3 @@
-
 -- | HTk\'s /menu command/.
 -- A simple command inside a menu.
 module MenuCommand (

@@ -1,4 +1,3 @@
-
 -- | Basic dialog window and a couple of predefined abstractions.
 module DialogWin (
         Dialog,

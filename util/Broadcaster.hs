@@ -1,6 +1,5 @@
-{- A Broadcaster/SimpleBroadcaster is a variable Source/SimpleSource paired 
-   with its update function
-   -}
+-- | A Broadcaster/SimpleBroadcaster is a variable Source/SimpleSource paired 
+-- with its update function
 module Broadcaster(
    -- instances of HasSource (and so CanAddSinks)
    GeneralBroadcaster,

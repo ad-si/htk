@@ -1,4 +1,3 @@
-
 -- | The @module Font@ export basic types and classes concerning
 -- font resources.
 module Font (

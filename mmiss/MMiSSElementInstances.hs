@@ -1,4 +1,4 @@
-{- Instances of various classes for Element. -}
+-- | Instances of various classes for Element. 
 module MMiSSElementInstances(
    ) where
 

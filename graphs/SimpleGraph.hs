@@ -1,24 +1,23 @@
-{- SimpleGraph is, as the name implies, a simple implementation
-   of the Graph interface.  For example, we don't bother to sort
-   the arcs going out of a node, meaning that to find out if two
-   nodes are connected requires searching all the arcs out of one
-   of the nodes, or all the arcs into the other.
-
-   Notes on synchronicity.
-      The Update operations Set*Label are intrinsically unsafe in
-      this implementation since if two communicating SimpleGraphs
-      both execute a Set*Label operation with different label values
-      they may end up with each others values.  It is recommended that
-      Set*Label only be used during the initialisation of the object,
-      as a way of tieing the knot.
-
-      In addition, Update operations which create a value based on a previous
-      value (EG a NewNode creates a Node based on a NodeType), do
-      assume that the previous value has already been created.
-
-      I realise this is somewhat informal.  It may be necessary to
-      replace SimpleGraph by something more complicated later . . .
-   -}
+-- | SimpleGraph is, as the name implies, a simple implementation
+-- of the Graph interface.  For example, we don't bother to sort
+-- the arcs going out of a node, meaning that to find out if two
+-- nodes are connected requires searching all the arcs out of one
+-- of the nodes, or all the arcs into the other.
+-- 
+-- Notes on synchronicity.
+--    The Update operations Set*Label are intrinsically unsafe in
+--    this implementation since if two communicating SimpleGraphs
+--    both execute a Set*Label operation with different label values
+--    they may end up with each others values.  It is recommended that
+--    Set*Label only be used during the initialisation of the object,
+--    as a way of tieing the knot.
+-- 
+--    In addition, Update operations which create a value based on a previous
+--    value (EG a NewNode creates a Node based on a NodeType), do
+--    assume that the previous value has already been created.
+-- 
+--    I realise this is somewhat informal.  It may be necessary to
+--    replace SimpleGraph by something more complicated later . . .
 module SimpleGraph(
    SimpleGraph, -- implements Graph
 

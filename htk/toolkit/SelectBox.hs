@@ -1,4 +1,3 @@
-
 -- | A simple container for a group of button widgets.
 module SelectBox (
 

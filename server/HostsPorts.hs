@@ -1,5 +1,5 @@
-{- HostPorts provides an abstract interface for describing hosts and
-   ports. -}
+-- | HostPorts provides an abstract interface for describing hosts and
+-- ports. 
 module HostsPorts(
    HostPort,host,port,description, 
       -- description of a host and port, and some of its fields.

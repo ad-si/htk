@@ -1,9 +1,9 @@
-{- ViewType defines the actual type of a view.  Note that we don't actually
-   do anything with it in this file; the real work is done in View.
-   However, defining the type here means CodedValue can import it,
-   and View can import CodedValue, without a circularity. 
-
-   However circularities can't be entirely avoided, see RECURSION. -}
+-- | ViewType defines the actual type of a view.  Note that we don't actually
+-- do anything with it in this file; the real work is done in View.
+-- However, defining the type here means CodedValue can import it,
+-- and View can import CodedValue, without a circularity. 
+-- 
+-- However circularities can't be entirely avoided, see RECURSION. 
 module ViewType(
    View(..),
    ObjectData(..),

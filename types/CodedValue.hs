@@ -1,6 +1,6 @@
-{- This module is a (very much trimmed-down) rewrite of the old CodedValue
-   module, which takes advantage of the new Binary modules (in the util
-   directory). -}
+-- | This module is a (very much trimmed-down) rewrite of the old CodedValue
+-- module, which takes advantage of the new Binary modules (in the util
+-- directory). 
 module CodedValue(
    HasCodedValue,
    CodedValue,

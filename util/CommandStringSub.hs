@@ -1,36 +1,35 @@
-{- We provide a format-string-like way of describing how to call particular
-   tools.  Thus the input is
-   (1) a particular format string
-   (2) a partial map from upper-case letters to strings; we call these strings
-       the _insert_ strings.
-   We map the format string to an output string in which combinations
-   of the form
-   %[upper-case-letter]
-   in the format string are replaced by the corresponding insert string; if no
-   such string exists this is an error.
-
-   We also provide a mechanism for "escaping" the insert strings.  
-   Specifically, there is a fixed partial map from lower-case letters to
-   functions :: String -> String; these functions we call the transformers.
-   For a combination of the form
-   %[lower-case-letter-1]...[lower-case-letter-n][upper-case-letter]
-   we take the insert string corresponding to upper-case-letter, and then
-   pass it through the transformers corresponding to lower-case-letter-n,
-   and so on down to the transformer corresponding to lower-case-letter-1.
-   
-   Instead of [upper-case-letter] we may also write "%" in which case the
-   insert string is just "%"; thus "%%" transforms to "%".
-
-   Sections of the input string not containing % are left untouched.
-
-   Defined transformers with their corresponding letters:
-      b  transformer suitable for escaping bash strings quoted with ".
-      e  transformer suitable for escaping emacs lisp strings quoted with ".
-   None of these transformers insert the closing or end quotes, allowing you
-   to use them in the middle of strings.
-
-   Other transformers will be added as the need arises.
-   -} 
+-- | We provide a format-string-like way of describing how to call particular
+-- tools.  Thus the input is
+-- (1) a particular format string
+-- (2) a partial map from upper-case letters to strings; we call these strings
+--     the _insert_ strings.
+-- We map the format string to an output string in which combinations
+-- of the form
+-- %[upper-case-letter]
+-- in the format string are replaced by the corresponding insert string; if no
+-- such string exists this is an error.
+-- 
+-- We also provide a mechanism for "escaping" the insert strings.  
+-- Specifically, there is a fixed partial map from lower-case letters to
+-- functions :: String -> String; these functions we call the transformers.
+-- For a combination of the form
+-- %[lower-case-letter-1]...[lower-case-letter-n][upper-case-letter]
+-- we take the insert string corresponding to upper-case-letter, and then
+-- pass it through the transformers corresponding to lower-case-letter-n,
+-- and so on down to the transformer corresponding to lower-case-letter-1.
+-- 
+-- Instead of [upper-case-letter] we may also write "%" in which case the
+-- insert string is just "%"; thus "%%" transforms to "%".
+-- 
+-- Sections of the input string not containing % are left untouched.
+-- 
+-- Defined transformers with their corresponding letters:
+--    b  transformer suitable for escaping bash strings quoted with ".
+--    e  transformer suitable for escaping emacs lisp strings quoted with ".
+-- None of these transformers insert the closing or end quotes, allowing you
+-- to use them in the middle of strings.
+-- 
+-- Other transformers will be added as the need arises. 
 module CommandStringSub(
    CompiledFormatString,
       -- This represents a format string in which all the transformers and

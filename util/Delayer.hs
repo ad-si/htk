@@ -1,5 +1,5 @@
-{- Delayers handle delaying of actions; the main purpose is to delay 
-   graph redrawing actions during complex updates. -}
+-- | Delayers handle delaying of actions; the main purpose is to delay 
+-- graph redrawing actions during complex updates. 
 module Delayer(
    -- Client side
    Delayer,

@@ -1,16 +1,5 @@
-{- #########################################################################
-
-MODULE        : ExtendedPrelude
-AUTHOR        : Einar Karlsen,  George
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1999
-VERSION       : 0.2
-
-
-   ######################################################################### -}
-
-
+-- | Basic string-manipulation and other functions they forgot to put in
+-- the standard prelude.
 module ExtendedPrelude (
    -- Operations for trimming spaces from Strings.
    trimTrailing,

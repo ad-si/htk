@@ -1,16 +1,15 @@
-{- This module computes the MergeType.LinkReAssigner value for merging a
-   list of view. 
-
-   At the moment we use a fairly simplistic algorithm, assuming that no
-   object occurs more than once as a fixed link in a view.  That is because
-   we expect this to in fact be the case; the only fixed links for now will
-   be top folder links and their children, and the folder structure is a tree.
-   We may in future need to make this more sophisticated by allowing fixed
-   links to form a more general structure.  This could be handled in this 
-   module by some sort of union-find based algorithm.  But the penalty of 
-   doing that would be that merges would potentially fail for reasons the user
-   might find hard to cope with.
-   -}
+-- | This module computes the MergeType.LinkReAssigner value for merging a
+-- list of view. 
+-- 
+-- At the moment we use a fairly simplistic algorithm, assuming that no
+-- object occurs more than once as a fixed link in a view.  That is because
+-- we expect this to in fact be the case; the only fixed links for now will
+-- be top folder links and their children, and the folder structure is a tree.
+-- We may in future need to make this more sophisticated by allowing fixed
+-- links to form a more general structure.  This could be handled in this 
+-- module by some sort of union-find based algorithm.  But the penalty of 
+-- doing that would be that merges would potentially fail for reasons the user
+-- might find hard to cope with.
 module MergeReAssign(
    mkLinkReAssigner,
    ) where

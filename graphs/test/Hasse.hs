@@ -1,5 +1,5 @@
-{- Given a list of poset relations, remove those which can be deduced
-   from others. -}
+-- | Given a list of poset relations, remove those which can be deduced
+-- from others. 
 module Hasse(
    hasse -- Ord a => [(a,a)] -> [(a,a)]
    ) where

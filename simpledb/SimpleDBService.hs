@@ -1,5 +1,5 @@
-{- This module defines the service that implements the SimpleDB for 
-   an external server. -}
+-- | This module defines the service that implements the SimpleDB for 
+-- an external server. 
 module SimpleDBService(
    simpleDBService,
    mkSimpleDBServices,

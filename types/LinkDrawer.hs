@@ -1,6 +1,6 @@
-{- This module contains the code for tracing and drawing objects.
-   The main thing it has to do is keep track of what objects have
-   already been drawn, and which are no longer accessible. -}
+-- | This module contains the code for tracing and drawing objects.
+-- The main thing it has to do is keep track of what objects have
+-- already been drawn, and which are no longer accessible. 
 module LinkDrawer(
    LinkDrawer, -- instance of Destroyable.
 

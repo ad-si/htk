@@ -1,4 +1,4 @@
-{- Module for parsing XEmacs sexps. -}
+-- | Module for parsing XEmacs sexps. 
 module EmacsSExp (
    SExp(..),
    doParse,

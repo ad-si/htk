@@ -1,6 +1,6 @@
-{- This module contains extractMMiSSObject, which extracts an object from
-   the repository, reassembling it with its component objects, and
-   converts it to a given format. -}
+-- | This module contains extractMMiSSObject, which extracts an object from
+-- the repository, reassembling it with its component objects, and
+-- converts it to a given format. 
 module MMiSSObjectExtract(
    extractMMiSSObject,
       -- :: View -> Link MMiSSObject -> Format -> IO (WithError String)

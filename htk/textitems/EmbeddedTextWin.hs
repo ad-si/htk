@@ -1,4 +1,3 @@
-
 -- | HTk\'s /embedded windows/ inside an editor widget.
 module EmbeddedTextWin (
 

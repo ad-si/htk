@@ -1,11 +1,10 @@
-{- 
- - Reentrant, protected references: an IORef in an MVar, protected by
- - a reentrant monitor.
- -
- - The operations which change the value (setRef, changeRef, withRef) 
- - are protected by the monitor, which additionally provides a reentrant
- - synchronize method. 
- -}
+-- | 
+-- - Reentrant, protected references: an IORef in an MVar, protected by
+-- - a reentrant monitor.
+-- -
+-- - The operations which change the value (setRef, changeRef, withRef) 
+-- - are protected by the monitor, which additionally provides a reentrant
+-- - synchronize method. 
  
 
 module ReferenceVariables(

@@ -1,19 +1,18 @@
-{- A GlobalRegistry stores all the ObjectType values for a particular
-   class of ObjectType, giving the map from (View,identifier) to a value
-   of type ObjectType.  Thus we can think of this as a map, for each
-   ObjectType, of type View -> identifier -> IO ObjectType.
-
-   In fact GlobalRegistries are also used for DisplayTypes, but for clarity
-   we ignore that in the rest of this file, since exactly the same interface
-   is used and I don't want to keep having to say "DisplayType or ObjectType".
-
-   The intention of this is that there will be exactly one of these for each
-   Haskell ObjectType.  This scheme may look rather odd; why not store the
-   maps in the View type?  The reason is that the View type doesn't know
-   what the Haskell ObjectType's are.  So we need to set up these maps
-   completely separately.  At the same time, we need to be able to look things
-   up depending on the object type.
-   -}
+-- | A GlobalRegistry stores all the ObjectType values for a particular
+-- class of ObjectType, giving the map from (View,identifier) to a value
+-- of type ObjectType.  Thus we can think of this as a map, for each
+-- ObjectType, of type View -> identifier -> IO ObjectType.
+-- 
+-- In fact GlobalRegistries are also used for DisplayTypes, but for clarity
+-- we ignore that in the rest of this file, since exactly the same interface
+-- is used and I don't want to keep having to say "DisplayType or ObjectType".
+-- 
+-- The intention of this is that there will be exactly one of these for each
+-- Haskell ObjectType.  This scheme may look rather odd; why not store the
+-- maps in the View type?  The reason is that the View type doesn't know
+-- what the Haskell ObjectType's are.  So we need to set up these maps
+-- completely separately.  At the same time, we need to be able to look things
+-- up depending on the object type.
 module GlobalRegistry(
    GlobalRegistry,
    GlobalKey,

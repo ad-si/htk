@@ -1,6 +1,5 @@
-{- This module defines the MMiSSPackageFolder type.  An MMiSSPackageFolder
-   is a special sort of folder containing exactly one package.
-   -}
+-- | This module defines the MMiSSPackageFolder type.  An MMiSSPackageFolder
+-- is a special sort of folder containing exactly one package.
 module MMiSSPackageFolder(
    MMiSSPackageFolder,
    MMiSSPackageFolderType,

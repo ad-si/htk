@@ -1,27 +1,25 @@
-{- Implementation of the Myers algorithm, from "An O(ND) Difference Algorithm
-   and Its Variations", by Eugene Myers page 6 (figure 2). 
-
-   Specification: if   
-
-      f1 (InBoth v) = Just v
-      f1 (InFirst v) = Just v
-      f1 (InSecond v) = Nothing
-
-   and
-
-      f2 (InBoth v) = Just v
-      f2 (InFirst v) = Nothing
-      f2 (InSecond v) = Just v
-
-   then
-
-      mapPartial f1 (diff l1 l2) == l1
-
-   and
-
-      mapPartial f2 (diff l1 l2) == l2
-
-   -}
+-- | Implementation of the Myers algorithm, from "An O(ND) Difference Algorithm
+-- and Its Variations", by Eugene Myers page 6 (figure 2). 
+-- 
+-- Specification: if   
+-- 
+--    f1 (InBoth v) = Just v
+--    f1 (InFirst v) = Just v
+--    f1 (InSecond v) = Nothing
+-- 
+-- and
+-- 
+--    f2 (InBoth v) = Just v
+--    f2 (InFirst v) = Nothing
+--    f2 (InSecond v) = Just v
+-- 
+-- then
+-- 
+--    mapPartial f1 (diff l1 l2) == l1
+-- 
+-- and
+-- 
+--    mapPartial f2 (diff l1 l2) == l2
 module Myers(
    diff,
    diff2,

@@ -1,6 +1,6 @@
-{- Files are simple files together with attributes
-
-   This file is very similar to Folders.hs -}
+-- | Files are simple files together with attributes
+-- 
+-- This file is very similar to Folders.hs 
 module Files(
    registerFiles, -- :: IO ()
       -- to be done at initialisation

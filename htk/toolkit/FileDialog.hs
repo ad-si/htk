@@ -1,4 +1,3 @@
-
 -- | HTk\'s /file dialog box/.
 module FileDialog (
   fileDialogStr,

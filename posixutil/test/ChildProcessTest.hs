@@ -1,5 +1,5 @@
-{- Function which runs a program, given as its argument, passing stdin to it,
-   and printing the program's stdout. -}
+-- | Function which runs a program, given as its argument, passing stdin to it,
+-- and printing the program's stdout. 
 module ChildProcessTest where
 
 import Concurrent

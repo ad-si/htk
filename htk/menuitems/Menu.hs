@@ -1,4 +1,3 @@
-
 -- | HTk\'s /menus/.
 -- A @Menu@ is a container for menu structures.
 module Menu (

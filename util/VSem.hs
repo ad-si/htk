@@ -1,38 +1,37 @@
-{- | Implements locks which can be locked "globally" or "locally".
-     A global lock prevents any other lock; a local lock allows other local
-     locks.  
-
-     There are some subtle decisions to be made about when to give preference
-     to local, and when to global, locks.  There are two important cases:
-     (1) When we free a global lock, and there is another queued global lock,
-         we take that global lock (or the earliest for which someone is 
-         waiting, if there's a choice), irrespective of whether anyone is
-         waiting for a local lock.
-     (2) When at least one local lock is held, we allow people to acquire
-         further local locks, even if there are queued global locks.
-
-     A bad consequence of (2) is that a global lock can be indefinitely not
-     satisfied by a carefully-timed sequence of finite local locks:
-
-     local locks : --- --- --- --- . . .
-                     --- --- ---   . . .
-     no global lock can be acquired at all.
-
-     However the alternative, of not permitting any fresh local locks when
-     a global lock is queued, is worse (in my opinion), since if a thread
-     attempts to acquire two local locks, one inside the other, and another
-     attempts to acquire a global lock, the whole thing can deadlock.
-
-     Thread 1  : acquire local lock                    attempt to acquire second local lock => DEADLOCK.
-     Thread 2  :                   wait for global lock     
-
-     We could deal with this partially by allowing local locks for free
-     to a thread which already holds one, but this is more complicated and
-     I suspect theoretically dodgy.
- 
-     A consequence of this decision is that threads should avoid creating
-     automated repeated sequences of local locks on the same VSem.
-     -}
+-- | | Implements locks which can be locked "globally" or "locally".
+--   A global lock prevents any other lock; a local lock allows other local
+--   locks.  
+-- 
+--   There are some subtle decisions to be made about when to give preference
+--   to local, and when to global, locks.  There are two important cases:
+--   (1) When we free a global lock, and there is another queued global lock,
+--       we take that global lock (or the earliest for which someone is 
+--       waiting, if there's a choice), irrespective of whether anyone is
+--       waiting for a local lock.
+--   (2) When at least one local lock is held, we allow people to acquire
+--       further local locks, even if there are queued global locks.
+-- 
+--   A bad consequence of (2) is that a global lock can be indefinitely not
+--   satisfied by a carefully-timed sequence of finite local locks:
+-- 
+--   local locks : --- --- --- --- . . .
+--                   --- --- ---   . . .
+--   no global lock can be acquired at all.
+-- 
+--   However the alternative, of not permitting any fresh local locks when
+--   a global lock is queued, is worse (in my opinion), since if a thread
+--   attempts to acquire two local locks, one inside the other, and another
+--   attempts to acquire a global lock, the whole thing can deadlock.
+-- 
+--   Thread 1  : acquire local lock                    attempt to acquire second local lock => DEADLOCK.
+--   Thread 2  :                   wait for global lock     
+-- 
+--   We could deal with this partially by allowing local locks for free
+--   to a thread which already holds one, but this is more complicated and
+--   I suspect theoretically dodgy.
+-- 
+--   A consequence of this decision is that threads should avoid creating
+--   automated repeated sequences of local locks on the same VSem.
 module VSem(
    VSem,
    newVSem,

@@ -1,9 +1,8 @@
-{- This module defines the fundamental structure of the (untyped) 
-   objects in a repository. 
-
-   We depend circularly on CodedValue.hs.  This module is compiled
-   first and uses CodedValue.hi-boot.
--}
+-- | This module defines the fundamental structure of the (untyped) 
+-- objects in a repository. 
+-- 
+-- We depend circularly on CodedValue.hs.  This module is compiled
+-- first and uses CodedValue.hi-boot.
 module View(
    View, -- A View represents a particular version being worked on
       -- by the client.

@@ -1,8 +1,7 @@
-{- This file contains the *definition* of the MMiSSObject
-   type, and its instances of HasCodedValue and other trivial types.
-   (Not alas ObjectType, the instance of that will come in 
-   MMiSSObjectTypeInstance.hs).
-   -}
+-- | This file contains the *definition* of the MMiSSObject
+-- type, and its instances of HasCodedValue and other trivial types.
+-- (Not alas ObjectType, the instance of that will come in 
+-- MMiSSObjectTypeInstance.hs).
 module MMiSSObjectType(
    MMiSSObject(..),
    Variable(..),

@@ -1,4 +1,3 @@
-
 -- | HTk\'s /line/ canvas item.
 -- A line object on a canvas widget.
 module Line (

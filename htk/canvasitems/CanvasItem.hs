@@ -1,4 +1,3 @@
-
 -- | The @module CanvasItem@ exports basic classes and
 -- general functionality on canvas items.
 module CanvasItem (

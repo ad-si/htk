@@ -1,6 +1,5 @@
-{- Encodes AttributesType.  The interface to this module is documented with
-   HDoc.
-   -}
+-- | Encodes AttributesType.  The interface to this module is documented with
+-- HDoc.
 module AttributesType(
    AttributesType,
    AttributesState(..),

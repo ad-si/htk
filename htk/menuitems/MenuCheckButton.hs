@@ -1,4 +1,3 @@
-
 -- | HTk\'s /menu checkbutton/.
 -- A simple checkbutton inside a menu associated with a polymorphic
 -- variable.

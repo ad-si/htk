@@ -1,4 +1,3 @@
-
 -- | The @module Screen@ exports general functionality on the
 -- screen\'s properties.
 module Screen (

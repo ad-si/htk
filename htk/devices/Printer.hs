@@ -1,4 +1,3 @@
-
 -- | This module provides funtionality for postscript export of the contents
 -- of canvas widgets.
 module Printer (

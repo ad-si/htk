@@ -1,4 +1,3 @@
-
 -- | Separators for widgets. It is just
 -- a frame with a given relief and borderwidth etc. 
 module Separator (

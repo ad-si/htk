@@ -1,5 +1,5 @@
-{- This module defines links, which are pointers to objects in the repository.
-   Thus they can be part of other objects. -}
+-- | This module defines links, which are pointers to objects in the repository.
+-- Thus they can be part of other objects. 
 module Link(
    -- Links.
    -- A Link x is a pointer to an object of type x.  Links are made

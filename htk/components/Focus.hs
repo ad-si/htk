@@ -1,4 +1,3 @@
-
 -- | This module provides functionality on the current focus.
 module Focus (
 

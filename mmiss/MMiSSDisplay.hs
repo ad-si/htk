@@ -1,4 +1,4 @@
-{- This module describes the display type that is used for MMiSS graphs. -}
+-- | This module describes the display type that is used for MMiSS graphs. 
 module MMiSSDisplay(
    MMiSSDisplayType,
    registerMMiSSDisplay, -- :: IO ()

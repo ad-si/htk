@@ -1,7 +1,7 @@
-{- acquireBundleNodeEditLocks acquires all the edit locks required for a 
-   BundleNode, returning the action to release them if successful. 
-
-   It assumes checkBundleNodeTypes has already successfully returned. -}
+-- | acquireBundleNodeEditLocks acquires all the edit locks required for a 
+-- BundleNode, returning the action to release them if successful. 
+-- 
+-- It assumes checkBundleNodeTypes has already successfully returned. 
 module MMiSSBundleNodeEditLocks(
    acquireBundleNodeEditLocks,
    ) where

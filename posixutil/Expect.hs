@@ -1,15 +1,14 @@
-{- This is a resurrection of the old UniForM Haskell-Expect module,
-   but made rather easier since we have guarded events.
-
-   The format of regular expressions is described in 
-   util/RegularExpression.hs.
-
-   There is one important difference between this Expect implementation
-   and Einar's, namely that we don't allow priorities.  Instead, you
-   must state higher-priority events first in choice operators such as
-   +>.  As a matter of fact you had to do this with Einar's implementation
-   anyway, so this is not really a restriction.
-   -}
+-- | This is a resurrection of the old UniForM Haskell-Expect module,
+-- but made rather easier since we have guarded events.
+-- 
+-- The format of regular expressions is described in 
+-- "RegularExpression".
+-- 
+-- There is one important difference between this Expect implementation
+-- and Einar's, namely that we don't allow priorities.  Instead, you
+-- must state higher-priority events first in choice operators such as
+-- +>.  As a matter of fact you had to do this with Einar's implementation
+-- anyway, so this is not really a restriction.
 module Expect(
    Expect, -- a running tool with Expect.
    newExpect, -- :: FilePath -> [Config PosixProcess] -> IO Expect

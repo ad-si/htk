@@ -1,4 +1,3 @@
-
 -- | HTk\'s /frame/ widget.
 -- A frame is a simple container for widgets.
 module Frame (

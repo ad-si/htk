@@ -1,4 +1,3 @@
-
 -- | HTk\'s /menu separator/.
 -- A simple separator to group menu entries.
 module MenuSeparator (

@@ -1,5 +1,5 @@
-{- We implement in this module a general cache strategy for lookup
-   tables, using weak pointers. -}
+-- | We implement in this module a general cache strategy for lookup
+-- tables, using weak pointers. 
 module CacheTable(
    -- Class describing table lookup operations
    LookupTable(..),

@@ -1,5 +1,5 @@
-{- This module contains the ObjectSource functions.  An ObjectSource
-   refers to either something like a String, or the contents of a file. -}
+-- | This module contains the ObjectSource functions.  An ObjectSource
+-- refers to either something like a String, or the contents of a file. 
 module ObjectSource(
    ObjectSource,
    -- type of data as retrieved from the repository.

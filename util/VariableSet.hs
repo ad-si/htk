@@ -1,7 +1,7 @@
-{- VariableSet allow us to track changes to an unordered mutable set.  
-   The elements of the set are keyed by instancing HasKey with some Ord
-   instance; this allows us to set up a special HasKey instance for this 
-   module without committing us to that Ord instance everywhere. -}
+-- | VariableSet allow us to track changes to an unordered mutable set.  
+-- The elements of the set are keyed by instancing HasKey with some Ord
+-- instance; this allows us to set up a special HasKey instance for this 
+-- module without committing us to that Ord instance everywhere. 
 module VariableSet(
    HasKey(..),
    Keyed(..),

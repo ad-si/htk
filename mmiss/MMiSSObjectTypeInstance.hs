@@ -1,9 +1,8 @@
-{- This is the module that defines the ObjectTypes and HasMerging 
-   instance of MMiSSObjectType. 
-
-   (Really this should be two modules; it is one because GHC's rules of
-   separating recursive modules would make any alternative too tricky.) 
-   -}
+-- | This is the module that defines the ObjectTypes and HasMerging 
+-- instance of MMiSSObjectType. 
+-- 
+-- (Really this should be two modules; it is one because GHC's rules of
+-- separating recursive modules would make any alternative too tricky.) 
 module MMiSSObjectTypeInstance(
    unpackWrappedLinkToMMiSSObject,
    newEmptyLinkMMiSSObject,

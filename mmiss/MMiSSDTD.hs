@@ -1,13 +1,12 @@
-{- This module accesses the MMiSS DTD, which is always done on start-up. 
-
-   The format include "Processing Instructions", with target "MMiSSDisplay".
-   The attached strings should in turn have format
-      element-name : graphic-instructions.
-   (ignoring spaces).
-
-   The graphic instructions are interpreted, for now, by 
-   DisplayParms.readDisplay.
-   -}
+-- | This module accesses the MMiSS DTD, which is always done on start-up. 
+-- 
+-- The format include "Processing Instructions", with target "MMiSSDisplay".
+-- The attached strings should in turn have format
+--    element-name : graphic-instructions.
+-- (ignoring spaces).
+-- 
+-- The graphic instructions are interpreted, for now, by 
+-- DisplayParms.readDisplay.
 module MMiSSDTD(
    allElements,
    allLabelledElements,

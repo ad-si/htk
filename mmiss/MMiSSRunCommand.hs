@@ -1,10 +1,9 @@
-{- This module runs some command in a similar way to posixutil/safeSystem,
-   but displays output in an HTk log window.
-
-   Really this ought to be in the posixutil or htk.  But it can't go in
-   posixutil because it needs htk, and it can't go in htk because (thanks to
-   Windows) htk isn't allowed to assume posixutil.
-   -}
+-- | This module runs some command in a similar way to "SafeSystem",
+-- but displays output in an HTk log window.
+-- 
+-- Really this ought to be in the posixutil or htk.  But it can't go in
+-- posixutil because it needs htk, and it can't go in htk because (thanks to
+-- Windows) htk isn't allowed to assume posixutil.
 module MMiSSRunCommand(
    runTool,
    runCommand,

@@ -1,4 +1,4 @@
-{- DrawDepend.hs parses a .depend file and displays its contents! -}
+-- | DrawDepend.hs parses a .depend file and displays its contents! 
 module DrawDepend(
   drawDepend
   ) where

@@ -1,103 +1,105 @@
-{- In UniForM we need ways of displaying typed directed graphs.
-   In the original UniForM, it was only possible to use the DaVinci
-   encapsulation for displaying directed graphs.  While this is very good,
-   in the new UniForM it is intended to factor out this encapsulation
-   so that it will not be too difficult to replace DaVinci by other
-   graph-drawing package (or variants of DaVinci) for particular graphs.
-   Example alternatives that might be considered:
-   (1) some sort of text-only interface.
-   (2) Windows-style displaying of a tree structure using clickable
-       folders.
-   In this module we present the classes that any such "graph-drawing package"
-   is supposed to implement.
-
-   This module is in two parts.  
-
-   The first part contains the
-   "user-friendly" versions of the functions.  For these, it is assumed
-   (as will usually be the case) that there is only one 
-   node/nodeType/arc/arcType around for a particular graph.  The whole lot
-   is indexed by the GraphAll, which contains ALL the functionality
-   required for accessing the graphs (apart from configuration options).
-   For example, the only daVinci-specific thing you should need to use
-   to write a program which calls daVinci will be the daVinciSort variable.
-   
-   The second part contains the "user-hateful" versions.  All the 
-   user-hateful functions have names ending in "Prim". 
-   Graph display implementations only have to implement the user-hateful
-   versions.  The user-hateful versions should only be of interest to other
-   people if the graph display provides more than one implementation of
-   the NodeClass, NodeTypeClass (or whatever) implementation.  One
-   disadvantage to the user of using the user-hateful versions of the
-   functions is that because of all the overloading, you have to put
-   in lots of explicit types, or else get the most hideous type errors.
-
-   Configuring things like graph titles, shape of node boxes, menus,
-   and so on should also be implemented, where possible, by graph display
-   interfaces.  The various options are documented in GraphConfigure.hs.
-   They should be applied using the Computation.HasConfig interface.
-
-   The types which are supposed in various combinations to be instances
-   of the classes are as follows:
-
-      graph.  This corresponds to one graph display.
-      graphConfig.  This is configuration information for a graph.
-         This might be a window title or size for example.
-      graphParms.  This is a collection of graphConfig's used to
-         construct a graph.  
-
-   Nodes and arcs carry values.  Thus all the following carry
-   a type parameter.  But, for ease of implementation with, for example,
-   DaVinci, the type parameter is required to be an instance of Typeable.
-
-      node.  A value of this type is an actual node in a graph.
-         (Will be an instance of Typeable via HasTyRep1.)
-      nodeType.  Nodes are created with a particular UniForM "type" which
-         is a Haskell value of type nodetype.  In fact a graph might
-         conceivably have multiply Haskell types corresponding to node
-         and nodeType, meaning that nodes, or their UniForM types,
-         will be distinguished additionally by the Haskell type system. 
-      nodeTypeConfig.  Configuration information for a nodeType.
-         This might include how a node with this type is to be displayed
-         graphically.  This also includes information on what to do when the
-         node is clicked.
-      nodeTypeParms.  A collection of nodeTypeConfig's used to construct
-         a nodeType
-
-      Similar constructions for arcs . . .
-      arc.
-      arcType.
-      arcTypeConfig.
-      arcTypeParms.
-
-
-   There are quite a lot of classes.  This is partly because of the need
-   to have a separate class for each subset of the type variables
-   which is actually used in the type of a function.
-
-   This file is fairly repetitive, mainly because of the need to
-   repeat the configuration machinery over and over again.
-
-   The functionality provided in this file is inspired by that
-   provided by DaVinci.  However we extend it by allowing
-   nodes to have labels.
-
-   This file should be read in conjunction with GraphConfigure.hs,
-   which contains various configuration options to be used for
-   graph objects.
-
-   Additional Notes
-   ----------------
-   (1) At the end of a program using a GraphDisp instance,
-       InfoBus.shutdown should be called.  For example,
-       in the case of the DaVinci instance this is
-       required to get rid of the DaVinci and HTk processes.
-   (2) It is more cumbersome writing the Graph Editor than I would
-       like because the menu code doesn't give you
-       direct access to the node or arc type.  Unfortunately doing this
-       would make the classes in this file even more complicated than
-       they are now.
-   -}
+-- | In UniForM we need ways of displaying typed directed graphs.
+-- In the original UniForM, it was only possible to use the DaVinci
+-- encapsulation for displaying directed graphs.  While this is very good,
+-- in the new UniForM it is intended to factor out this encapsulation
+-- so that it will not be too difficult to replace DaVinci by other
+-- graph-drawing package (or variants of DaVinci) for particular graphs.
+-- Example alternatives that might be considered:
+-- (1) some sort of text-only interface.
+-- (2) Windows-style displaying of a tree structure using clickable
+--     folders.
+-- In this module we present the classes that any such "graph-drawing package"
+-- is supposed to implement.
+-- 
+-- This module is in two parts.  
+-- 
+-- The first part contains the
+-- \"user-friendly\" versions of the functions.  For these, it is assumed
+-- (as will usually be the case) that there is only one 
+-- node\/nodeType\/arc\/arcType around for a particular graph.  The whole lot
+-- is indexed by the GraphAll, which contains ALL the functionality
+-- required for accessing the graphs (apart from configuration options).
+-- For example, the only daVinci-specific thing you should need to use
+-- to write a program which calls daVinci will be the daVinciSort variable.
+-- 
+-- The second part contains the \"user-hateful\" versions.  All the 
+-- user-hateful functions have names ending in \"Prim\". 
+-- Graph display implementations only have to implement the user-hateful
+-- versions.  The user-hateful versions should only be of interest to other
+-- people if the graph display provides more than one implementation of
+-- the NodeClass, NodeTypeClass (or whatever) implementation.  One
+-- disadvantage to the user of using the user-hateful versions of the
+-- functions is that because of all the overloading, you have to put
+-- in lots of explicit types, or else get the most hideous type errors.
+-- 
+-- Configuring things like graph titles, shape of node boxes, menus,
+-- and so on should also be implemented, where possible, by graph display
+-- interfaces.  The various options are documented in GraphConfigure.hs.
+-- They should be applied using the Computation.HasConfig interface.
+-- 
+-- The types which are supposed in various combinations to be instances
+-- of the classes are as follows:
+-- 
+--    graph.  This corresponds to one graph display.
+--    graphConfig.  This is configuration information for a graph.
+--       This might be a window title or size for example.
+--    graphParms.  This is a collection of graphConfig's used to
+--       construct a graph.  
+-- 
+-- Nodes and arcs carry values.  Thus all the following carry
+-- a type parameter.  But, for ease of implementation with, for example,
+-- DaVinci, the type parameter is required to be an instance of Typeable.
+-- 
+--    node.  A value of this type is an actual node in a graph.
+--       (Will be an instance of Typeable via HasTyRep1.)
+--    nodeType.  Nodes are created with a particular UniForM "type" which
+--       is a Haskell value of type nodetype.  In fact a graph might
+--       conceivably have multiply Haskell types corresponding to node
+--       and nodeType, meaning that nodes, or their UniForM types,
+--       will be distinguished additionally by the Haskell type system. 
+--    nodeTypeConfig.  Configuration information for a nodeType.
+--       This might include how a node with this type is to be displayed
+--       graphically.  This also includes information on what to do when the
+--       node is clicked.
+--    nodeTypeParms.  A collection of nodeTypeConfig's used to construct
+--       a nodeType
+-- 
+--    Similar constructions for arcs . . .
+--    arc.
+--    arcType.
+--    arcTypeConfig.
+--    arcTypeParms.
+-- 
+-- 
+-- There are quite a lot of classes.  This is partly because of the need
+-- to have a separate class for each subset of the type variables
+-- which is actually used in the type of a function.
+-- 
+-- This file is fairly repetitive, mainly because of the need to
+-- repeat the configuration machinery over and over again.
+-- 
+-- The functionality provided in this file is inspired by that
+-- provided by DaVinci.  However we extend it by allowing
+-- nodes to have labels.
+-- 
+-- This file should be read in conjunction with GraphConfigure.hs,
+-- which contains various configuration options to be used for
+-- graph objects.
+-- 
+-- Additional Notes
+-- ----------------
+--
+-- (1) At the end of a program using a GraphDisp instance,
+--     InfoBus.shutdown should be called.  For example,
+--     in the case of the DaVinci instance this is
+--     required to get rid of the DaVinci and HTk processes.
+--
+-- (2) It is more cumbersome writing the Graph Editor than I would
+--     like because the menu code doesn't give you
+--     direct access to the node or arc type.  Unfortunately doing this
+--     would make the classes in this file even more complicated than
+--     they are now.
+--
 module GraphDisp(
    -- User-friendly interface
    Graph(..), -- (a type)

@@ -1,4 +1,3 @@
-
 -- | HTk\'s /space/ widget.
 -- A simple spacer for special packing purposes.
 module Space (

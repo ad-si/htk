@@ -1,4 +1,3 @@
-
 -- | Basic types and classes concerning toplevel window resources.
 module Window (
 

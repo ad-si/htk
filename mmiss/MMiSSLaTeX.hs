@@ -1,5 +1,5 @@
-{- The functions in this module run a file (given as a String) through
-   LaTeX, and does various things with it. -}
+-- | The functions in this module run a file (given as a String) through
+-- LaTeX, and does various things with it. 
 module MMiSSLaTeX(
    mmissLaTeX,
    ) where

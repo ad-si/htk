@@ -1,4 +1,3 @@
-
 -- | The @module Slider@ implements configuration options for
 -- widgets with sliders (scale widgets and scrollbars).
 module Slider (

@@ -1,7 +1,6 @@
-{- This module defines various global menus (new object types, new
-   display types and so on) which are used in constructing display
-   types.
-   -}
+-- | This module defines various global menus (new object types, new
+-- display types and so on) which are used in constructing display
+-- types.
 module GlobalMenus(
    newDefaultMenu,
    newObjectTypeMenu,
