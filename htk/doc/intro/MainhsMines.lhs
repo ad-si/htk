@@ -55,8 +55,13 @@ mines :: State-> Int
 mines (Unexplored{mine= True}) = 1
 mines _                        = 0
 
+-- Similary, the number of flags
+flags :: State-> Int
+flags (Unexplored{flagged= True}) = 1
+flags _                           = 0
+
 -- Our playing field: an array of states, and the button handlers for 
--- them. (We keep them separate, since the state wil change,
+-- them. (We keep them separate, since the state will change,
 -- and the button handlers don't.)
 type Mines   = Array (Int, Int) State
 type Buttons = Array (Int, Int) Button
@@ -423,6 +428,14 @@ which will be used to reinitialise the game field.
 \begin{code}
     bfr <- newFrame main [width (cm 10)]
     size <- readTkVariable varSize
+-- code for number of flags/mines and counter; commented out as it
+-- will make the screenshots invalid
+--    lf   <- newFrame main []
+--    flags <- newLabel lf [text "00/00", font (Lucida, 12::Int)]
+--    time  <- newLabel lf [text "00:00", font (Lucida, 12::Int)] 
+--    pack lf    [Side AtBottom, Expand On, Fill X]
+--    pack flags [Side AtLeft,  PadX 5, PadY 5]
+--    pack time  [Side AtRight, PadX 5, PadY 5]
 \end{code}
 \end{comment}
 
@@ -786,9 +799,11 @@ flag b m xy =
   case m!xy of
     Cleared _ -> return m
     s@(Unexplored{flagged= f})-> 
-        do b!xy # (if not f then photo flagImg 
-                   else photo zeroImg)
-           return (m // [(xy, s{flagged= not f})])
+        if f || (sum (map flags (elems m)) < sum (map mines (elems m)))
+        then do b!xy # (if not f then photo flagImg 
+                        else photo zeroImg)
+                return (m // [(xy, s{flagged= not f})])
+        else return m 
 \end{code}
 
 The function takes the \texttt{Button Array}, the \texttt{Mines} and

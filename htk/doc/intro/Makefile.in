@@ -13,9 +13,9 @@ include @TOP@/mk/boilerplate.mk
 
 dochere : intro.pdf intro.ps
 
-intro.dvi: intro.bbl img/Screenshot01.eps img/Screenshot02.eps img/Screenshot03.eps img/Screenshot04.eps img/Screenshot05.eps 
+intro.dvi: intro.bbl img/intro-title.eps img/screenshot-tixwidgets.eps 
 
-intro.pdf: intro.bbl img/intro-title.png img/Screenshot01.png img/Screenshot02.png img/Screenshot03.png img/Screenshot04.png img/Screenshot05.png 
+intro.pdf: intro.bbl img/intro-title.png img/screenshot-tixwidgets.eps img/screenshot01.png img/screenshot02.png img/screenshot03.png img/screenshot04.png img/screenshot05.png 
 
 .PHONY : displaytheseexports
 

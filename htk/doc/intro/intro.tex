@@ -94,6 +94,7 @@
 
 \ifx\pdfoutput\undefined\relax\else\pagebreak\fi
 
+\tableofcontents{}
 
 \subsection*{How to Read This Document}
 For maximum benefit, you should read this text in its PDF incarnation,
@@ -121,33 +122,30 @@ In \HTk, these two aspects are modelled by \emph{monads}. The static
 aspect is modelled in the \texttt{IO} monad, where all of Haskell's
 external interactions takes place. The dynamic aspect is modelled by
 \emph{events}. For a more complete description of events, we refer to
-\cite{ger:Events}. For the time being, events are a monad with two
-main operations.
+\cite{ger:Events}. For the time being, events are an abstract datatype
+with three main operations.
 
 The central operation is 
 \begin{verbatim}
 sync :: Event a-> IO a
 \end{verbatim}
-which holds
-the current thread until an event of type \texttt{Event a} occurs.
-The basic events will be user interactions, such as clicking a button.
-The event monad's composition corresponds to event sequencing: we wait
-for one event, then for the next, and so on.
-The other main operation
+which holds the current thread until an event of type \texttt{Event a}
+occurs.  The basic events will be user interactions, such as clicking
+a button. The sequencing operator
+\begin{verbatim}
+(>>>=) :: Event a-> (a-> IO b)-> Event b
+\end{verbatim}
+attaches an IO action to an event; if we synchronize on this event,
+the IO action will be performed after the event occurs. The final
+operator turns an IO action into an event:
 \begin{verbatim}
 always :: IO a-> Event a 
 \end{verbatim}
-makes an \texttt{IO} action into an event which when we \texttt{sync}
-on it performs the \texttt{IO} action. Thus, we can build the
-derived operation 
-\begin{verbatim}
-(>>>=) :: Event a-> (a-> IO b)-> Event b
-e >>>= f = e >>= always. f
-\end{verbatim}
-which takes an event, which when we sync on it
-performs the IO action after successful synchronisation. As with the
-monad composition, \texttt{(>>>)::Event a-> IO b-> Event b} is the
-derived version where the second function throws away its argument.
+Monads form a monad, with monad composition given by \texttt{>>>=} and
+\texttt{sync}. The monad composition corresponds to event sequencing;
+if we synchronise on an event composed from simple events, we wait for
+each of them in turn. By composing events in this way, complex
+behaviours can be modelled in a single event. 
 
 That the dynamic behaviour is not modelled with \texttt{IO} actions
 directly reflects the fact that user interaction in a graphical user
@@ -155,15 +153,14 @@ interface is different from other forms of IO, because it happens
 \emph{asynchronously}.
 
 Further, events allow the user interface to be concurrent in a natural
-and controlled way, which allows for a reasonable degree of
-concurrency which is still tractable; the function
+and controlled way, leading to a reasonable and still tractable degree
+of concurrency; the function
 \begin{verbatim}
 spawnEvent :: Event () -> IO (IO ())
 \end{verbatim}
-spawns a concurrent thread which syncronises on the given event. As we
-will see below, a single event can describe quite complex
-behaviour. The \texttt{IO} action returned kills the concurrent
-thread; most of the time, we will not need this.
+spawns a concurrent thread which syncronises on the given event. The
+\texttt{IO} action returned kills the concurrent thread; most of the
+time, we will not need this.
 
 \input{Mainsimple1.lhs}
 
@@ -251,93 +248,37 @@ Now, all widgets can be configured with a text are instances of the
 class \texttt{HasText}, such as \texttt{Button}.
 
 
+\subsection{The class \texttt{Destructable}}
 
-
-\subsection{Packing}
-
-\label{sec:packing}
-
-As mentioned above, after widgets have been created (with e.g.
-\texttt{newButton}), they will not be displayed yet; this only happens
-after they have been packed. One can use this effect by first creating
-lots of widgets, and then packing them in one go, lessening the
-unpleasant flicker effect occuring when the GUI is built one interface
-at a time. To minimize the flickering further, use the function
+The class \texttt{Destroyable a} has the main class function
 \begin{xcode}
-delayWish :: IO a-> IO a
+  destroy :: a-> IO ()
 \end{xcode}
-which delays all \texttt{Tk} commands in the argument, and performs
-them at once. The argument then consists of a sequence of
-\texttt{pack} commands. Unfortunately, the flickering effect cannot be
-totally eliminated.
+which when called will destroy its argument. All GUI elements are
+instances of this class, and calling the destroy function will remove
+them from the screen. In particular, calling destroy on the return
+value of \texttt{initHTk} will close all windows opened by the program
+(i.e. remove the whole GUI).
 
+\subsection{Concurrency and the class \texttt{Synchronize}}
 
-Packing in particular determines the visual layout of the GUI by the
-order in which the widgets are packed, and by packing options. Tk's
-know different packing algorithms (or \emph{geometry managers}, in Tk
-parlance); of these, \HTk supports the standard packer, and the grid
-packer.
-
-
-\subsubsection{The Standard Packer}
-
-The behaviour of the standard packer is easily explained, and hard to
-understand. Widgets are packed with the function
+The class \texttt{Synchronize a}, with its main and only class
+function
 \begin{xcode}
-pack::Widget w => w -> [PackOption] -> IO ()  
+  synchronize a :: a-> IO b-> IO b
 \end{xcode}
+implements a \emph{monitor}, like the synonymous method in the
+programming language \textsc{Java} \cite{ArnoldGosling}. All GUI
+elements are instances of this class. It allows convenient handling of
+concurrency--- if two IO actions must not interleave, you synchronize
+them on any one GUI element, typically the one generating the event
+which the function calling the two IO actions is bound to.
 
-The datatype
-\href{PackOptions.html#PackOptions.PackOption}{PackOption}
-is defined as 
-\begin{xcode}
-data PackOption = Side SideSpec  | Fill FillSpec 
-                | Expand Toggle  | Anchor Anchor
-                | IPadX Distance | IPadY Distance
-                | PadX Distance  | PadY Distance
-\end{xcode}
-The first two constructors are most important here. The
-\href{PackOptions.html#PackOptions.SideSpec}{SideSpec} specifies where
-the widget is packed (top, bottom, left, right)e, and
-\href{PackOptions.html#PackOptions.FillSpec}{FillSpec} specifies in
-which direction it expands to fill the available space.  Bear in mind
-that widgets are packed as tight as possible, and that once packed,
-they are never repacked, moved or resized. That is, if e.g. a widget
-is packed against the top, it will sit in the middle (if no
-\texttt{Fill X} is specified), and will not move if a widget is packed
-against the right-hand side, although the window may be increased in
-size to make a new widget fit.
-
-\texttt{Expand} just means that the widget expands when the containing
-element is expanded (i.e. the window is resized), and \texttt{Anchor}
-specifies a gravity (a side to which the widgets stick). The rest
-create a padding border around the widget in various directions.
-
-It is quite normal that most of the times the packing will not look
-like intended, and you will need to use frame widgets (see
-\ref{ssec:frames}).
-
-\subsubsection{The Grid Packer}
-
-The grid packer divides the container widget into a grid, and allows
-placement of widgets relative to that grid. To pack a single widget
-use the 
-\href{Packer.html#Packer.grid}
-{following function:}
-\begin{xcode}
-grid :: Widget w => w -> [GridPackOption] -> IO ()
-\end{xcode}
-
-The datatype
-\href{GridPackOptions.html#GridPackOptions.GridPackOption}
-{\texttt{GridPackOptions}} specifies the packing options for the grid
-packer.
-
-Note that within the same container you cannot use different packing
-algorithms. The first widget packed into a container defines the
-packing for this container.
 
 \subsection{Resources}
+
+Resources are auxiliary datatypes modelling distances, colours, fonts,
+pictures and cursor shapes.
 
 \subsubsection{Geometry}
 
@@ -447,6 +388,91 @@ avail yourself of some of the predefined ones (at least under X
 windows), but you can build your own cursor by giving a bitmap, a
 mask, and colours.
 
+
+\subsection{Packing}
+
+\label{sec:packing}
+
+As mentioned above, after widgets have been created (with e.g.
+\texttt{newButton}), they will not be displayed yet; this only happens
+after they have been packed. One can use this effect by first creating
+lots of widgets, and then packing them in one go, lessening the
+unpleasant flicker effect occuring when the GUI is built one interface
+at a time. To minimize the flickering further, use the function
+\begin{xcode}
+delayWish :: IO a-> IO a
+\end{xcode}
+which delays all \texttt{Tk} commands in the argument, and performs
+them at once. The argument then consists of a sequence of
+\texttt{pack} commands. Unfortunately, the flickering effect cannot be
+totally eliminated.
+
+
+Packing in particular determines the visual layout of the GUI by the
+order in which the widgets are packed, and by packing options. Tk's
+know different packing algorithms (or \emph{geometry managers}, in Tk
+parlance); of these, \HTk supports the standard packer, and the grid
+packer.
+
+
+\subsubsection{The Standard Packer}
+
+The behaviour of the standard packer is easily explained, and hard to
+understand. Widgets are packed with the function
+\begin{xcode}
+pack::Widget w => w -> [PackOption] -> IO ()  
+\end{xcode}
+
+The datatype
+\href{PackOptions.html#PackOptions.PackOption}{PackOption}
+is defined as 
+\begin{xcode}
+data PackOption = Side SideSpec  | Fill FillSpec 
+                | Expand Toggle  | Anchor Anchor
+                | IPadX Distance | IPadY Distance
+                | PadX Distance  | PadY Distance
+\end{xcode}
+The first two constructors are most important here. The
+\href{PackOptions.html#PackOptions.SideSpec}{SideSpec} specifies where
+the widget is packed (top, bottom, left, right)e, and
+\href{PackOptions.html#PackOptions.FillSpec}{FillSpec} specifies in
+which direction it expands to fill the available space.  Bear in mind
+that widgets are packed as tight as possible, and that once packed,
+they are never repacked, moved or resized. That is, if e.g. a widget
+is packed against the top, it will sit in the middle (if no
+\texttt{Fill X} is specified), and will not move if a widget is packed
+against the right-hand side, although the window may be increased in
+size to make a new widget fit.
+
+\texttt{Expand} just means that the widget expands when the containing
+element is expanded (i.e. the window is resized), and \texttt{Anchor}
+specifies a gravity (a side to which the widgets stick). The rest
+create a padding border around the widget in various directions.
+
+It is quite normal that most of the times the packing will not look
+like intended, and you will need to use frame widgets (see
+\ref{ssec:frames}).
+
+\subsubsection{The Grid Packer}
+
+The grid packer divides the container widget into a grid, and allows
+placement of widgets relative to that grid. To pack a single widget
+use the 
+\href{Packer.html#Packer.grid}
+{following function:}
+\begin{xcode}
+grid :: Widget w => w -> [GridPackOption] -> IO ()
+\end{xcode}
+
+The datatype
+\href{GridPackOptions.html#GridPackOptions.GridPackOption}
+{\texttt{GridPackOptions}} specifies the packing options for the grid
+packer.
+
+Note that within the same container you cannot use different packing
+algorithms. The first widget packed into a container defines the
+packing for this container.
+
 \section{Events}
 
 \label{sec:events}
@@ -467,7 +493,8 @@ synchronise and thus produce a reaction to the user's action.
 
 One important caveat here is that once you set up a binding, you
 \emph{must} eventually \emph{synchronise} on the resulting events, since
-otherwise the unused events will pile up and result in a memory leak.
+otherwise the unused events will pile up and result in a memory
+leak.
 
 Bindings are generated by calling one of \texttt{clicked},
 \texttt{bindSimple} and \texttt{bind}, where \texttt{bind} is most
@@ -566,13 +593,13 @@ The information here is the x and y component of the mouse position,
 both relative to the window in which the event occurs, and the root
 window (i.e. the screen), and the button being pressed. 
 
-\section{Widgets}
+\section{Basic Widgets}
 
-In the following, we give a brief tour around \HTk's widgets. These are
-essentially Tk's widgets. We have simple widgets which are explained
-in short sentences of words with less than three syllables, menues,
-text widgets, and canvasses, which require a slightly longer
-explanation. 
+In the following sections, we give a brief tour around \HTk's widgets.
+These are essentially Tk's widgets. We have simple widgets which are
+explained in short sentences of words with less than three syllables,
+menues, text widgets, and canvasses, which require a slightly longer
+explanation.
 
 There are more widgets: if you can use Tix (you should anyway, it
 looks slightly less clunky than plain Tcl/Tk), there are the useful
@@ -581,10 +608,7 @@ there are a variety of so-called \emph{mega-widgets} which are
 implemented in Haskell; these can be found in the toolkit
 (Sect.~\ref{sec:toolkit}).
 
-\subsection{Basic Widgets}
-
-  
-\subsubsection{Frames}
+\subsection{Frames}
 
 \label{ssec:frames}
 
@@ -597,7 +621,7 @@ Moreover, when using a frame, we can use a different packer (see
 Sect.~\ref{sec:packing}) than in the parent widget; for example, we
 can use the grid packer inside a window using the standard packer.
 
-\subsubsection{Boxes}
+\subsection{Boxes}
   
   \href{Box.html}{Boxes} are mega-widgets, implemented using frames.
   They allow simple horizontal or vertical packing (widgets are placed
@@ -606,13 +630,13 @@ can use the grid packer inside a window using the standard packer.
   \texttt{newVBox} creates a rigid box with vertical packing, and
   \texttt{newHFBox} creates a flexible box with horizontal packing.
 
-\subsubsection{Buttons}
+\subsection{Buttons}
 
   A \href{Button.html}{button} is a simple widget which can be
   clicked. Buttons can have bitmaps, images (class \texttt{HasPhoto}),
   or text as labels. 
 
-\subsubsection{Labels and Messages}
+\subsection{Labels and Messages}
   
   A \href{Label.html}{label} is a simple widget for text, bitmaps or
   images. \href{Message.html}{Messages} are slightly more
@@ -629,7 +653,7 @@ can use the grid packer inside a window using the standard packer.
 
 
 
-\subsection{The Editor}
+\section{The Editor}
 
 \label{ssec:textwidget}
 
@@ -667,7 +691,7 @@ insertText::(HasIndex Editor i BaseIndex, GUIValue a) =>
 The position where the text is inserted is specified by the class
 \texttt{HasIndex}.
 
-\subsubsection{Indices}
+\subsection{Indices}
 
 \label{ssec:indices}
 
@@ -707,7 +731,7 @@ Index modifiers (only for editors) are modelled by type
 specify things like `three words forward', or a `one line
 back'.
 
-\subsubsection{Selections}
+\subsection{Selections}
 
 \label{ssec:selections}
 
@@ -735,7 +759,7 @@ the X selection (get the current selection, selecting wether widgets
 export their selection etc.)
 
 
-\subsubsection{Text Tags}
+\subsection{Text Tags}
 
 A text tag is a way of marking a specified section of the text. One
 text tag can mark a list of ranges, which are specified by a start and
@@ -756,7 +780,7 @@ When you insert into an editor, the text tags are accommodated
 appropriately; i.e. if you insert into the middle of a text widget,
 then the end of the tag is moved.
 
-\subsubsection{Editing}
+\subsection{Editing}
 
 As mentioned above, the editor's text can be edited, i.e. the user can
 type text into the widget. This feature can be considered as a
@@ -776,7 +800,7 @@ text tags, and how to use them. The module \texttt{MarkupText} allows
 a more abstract approach to displaying text with differents fonts,
 hyperreferences and so on (see below).
 
-\subsubsection{Marks and More}
+\subsection{Marks and More}
 
 To keep track of positions within an editor, you can use marks (type
 \href{Mark.html}{\texttt{Mark}}).\footnote{The first one to send us an
@@ -799,7 +823,7 @@ Further, you can search the text inside an editor (with the
 file, scroll the contents to a specific position, and much more as
 found in the module \href{Editor.html}{\texttt{Editor}}.
 
-\subsection{The Canvas Widget}
+\section{The Canvas Widget}
 
 A canvas is a widget to draw on, i.e. we can put graphical objects on
 it (lines, polygons, circles and ellipses, wee images, and even whole
@@ -811,13 +835,15 @@ like for widgets, the different kinds of canvas items are represented
 by different types. Canvas items can be configured, but of course the
 configurations are mostly different from widget configurations.
 
-\subsubsection{Canvas Item Configurations}
+\subsection{Canvas Item Configurations}
 
 The most important configurations, provided by all canvas items, are: 
 
 \begin{itemize}
 \item \texttt{HasCoords} sets or returns the coordinates of the canvas
-  item on the canvas.
+  item on the canvas. Nearly all canvas items (except for lines) have
+  a position (\texttt{HasPosition}), and many have a size
+  \texttt{HasSize}.
 \item \texttt{FilledCanvasItem} allows to configure the filling
   colour, outline colour, stipple and width of the outline of the
   canvas item. Note that for some canvas item (e.g. lines), setting
@@ -826,7 +852,7 @@ The most important configurations, provided by all canvas items, are:
   to draw the item. 
 \end{itemize}
 
-\subsubsection{Canvas Items} 
+\subsection{Canvas Items} 
 
 The following are the types of canvas items:
 
@@ -841,11 +867,13 @@ The following are the types of canvas items:
   joined in various ways (with the \texttt{joinstyle} configuration),
   you can draw splines (class
   \href{CanvasItem.SegmentedCanvasItem}{\texttt{SegmentedCanvasItem}}), and put arrows on either (or both) ends (configurations \texttt{arrowshape} and \texttt{arrowstyle}). 
-\item \texttt{Oval}: an oval is either given by defining its
-  \emph{bounding box}, i.e. the smallest rectangle enclosing it. If
-  the bounding box is a square, the oval is a circle.\footnote{Except
-    it usually won't \emph{look} like a circle on the screen, because
-    on most screens pixels are rectangularly-shaped.}
+\item \texttt{Oval}: an oval is given by defining its \emph{bounding
+    box}, i.e. the smallest rectangle enclosing it, using the classes
+  \texttt{HasGeometry} or \texttt{HasPosition} and \texttt{HasSize}.
+  If the bounding box is a square, the oval is a
+  circle.\footnote{Except it usually won't \emph{look} like a circle
+    on the screen, because on most screens pixels are
+    rectangularly-shaped.}
 \item \texttt{Polygon}: a polygon is given by a list of
   vertices. Strangely, one cannot configure the join style of the
   polygon, but you can configure splines.
@@ -862,7 +890,7 @@ The following are the types of canvas items:
   canvas window is created.
 \end{itemize}
 
-\subsubsection{Canvas Tags}
+\subsection{Canvas Tags}
 
 A \emph{canvas tag} is a convenient way to refer
 to canvas items. A canvas tag is an instance of the class
@@ -876,14 +904,17 @@ For more on canvasses, see the examples under
 \texttt{examples/canvas}. \texttt{MainxmasCanvas.hs} shows a variety
 of canvas items, and how to set up a cheap and cheerful drag-and-drop.
 
-\subsection{Window Managers and the Focus}
+\section{Windows}
+
+What is commonly known as a window is called a \emph{toplevel} in Tk
+and \HTk.
 
 \begin{itemize}
 \item window managers
 \item focus
 \end{itemize}
 
-\subsection{Tix Widgets}
+\section{Tix and Tix Widgets}
 
 Tix is an enhanced version of Tcl/Tk; in particular, it replaces
 Tcl/Tk's rustic default looks by something a bit more
@@ -949,7 +980,6 @@ immediately useful as the ones above. Feel free to encapsulate more
 widgets, consider using the tree list from the toolkit (see below),
 which is much nicer.
 
-
 \section{The Toolkit}
 
 \label{sec:toolkit}
@@ -1009,7 +1039,6 @@ The examples mentioned below can be found in
   implement a modal dialogue with it. A window is called \emph{modal}
   if it has be answered before the program is allowed to proceed.
 
-
 \item Small mega-widgets: 
   \begin{itemize}
   \item A \texttt{ScrollBox} is a scrollable widget inside a box scroll
@@ -1024,7 +1053,6 @@ The examples mentioned below can be found in
   \end{itemize}
   
 \end{itemize}
-
 
 \bibliography{intro}
 \bibliographystyle{plain}

@@ -1,7 +1,7 @@
 % This file contains a lot of -*- mode: Latex -*-
 %
 
-\subsubsection{Scrollbars}
+\subsection{Scrollbars}
   
   I assume the esteemed reader has already seen a scrollbar. In \HTk
   (and Tk), once you created a scrollbar you will need to connect it
@@ -13,7 +13,7 @@
   scrollbar.
 
 
-\subsubsection{Listboxes}
+\subsection{Listboxes}
   
   A \href{ListBox.html}{listbox} has a list of several items, from
   which you can select one. Listboxes can be scrollable, which is most

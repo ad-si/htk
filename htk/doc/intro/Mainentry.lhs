@@ -1,4 +1,4 @@
-\subsubsection{Entry}
+\subsection{Entry}
 
 An \emph{entry box} is a box which contains one editable line of
 text. If is used to input short texts, such as a name and a credit
