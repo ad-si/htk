@@ -1,5 +1,6 @@
-LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
-       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+include @TOP@/mk/latex.mk
+
+PACKAGES = uni-htk
 
 SRCSLHS       = Mainsimple1.lhs \
                 Mainsimple2.lhs \
@@ -7,7 +8,10 @@ SRCSLHS       = Mainsimple1.lhs \
 		Mainmenu.lhs \
                 MainHsMines.lhs
 
-XHCDIRS = $(HTKDIRS)
-
 include @TOP@/mk/boilerplate.mk
 
+doc: intro.pdf intro.ps
+
+intro.dvi: intro.bbl img/Screenshot01.eps img/Screenshot02.eps img/Screenshot03.eps img/Screenshot04.eps img/Screenshot05.eps 
+
+intro.pdf: intro.bbl img/intro-title.png img/Screenshot01.png img/Screenshot02.png img/Screenshot03.png img/Screenshot04.png img/Screenshot05.png 
