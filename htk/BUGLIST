@@ -1,25 +1,17 @@
-
 HTk Buglist
 -----------
 
 This file contains a list of known and as-yet unfixed HTk bugs, in
 (roughly) descending order of seriousness.
 
-Radio groups do not deselect [cxl/joel]
-  It is possible to have more than one radio button selected in a group.
-  See htk/examples/MainmenuEx.hs
-
-Popup-Menus do not work [joel]
-  They just don't do anything.
-
-Interactors on unpacked canvas objects behave strange [ludi, 25.01.2001]
-  If you set an interactor going on a canvas object which is not yet
-  packed, it will behave strangely and continue to do so even after
-  the canvas object has been packed.
+FileDialog hangs [crimson, 17.08.01]
+ If the "create folder" button is clicked, the file dialog does not 
+ respond to further interaction; you can only quit. 
   
-Button interactors crash [cxl/ludi, 08.02.2001]
-  If you have an interactor which reacts to a triggered event (e.g. a
-  pressed Button), and the button has no Command config option, then 
-  the interactor (and all of HTk) crash, even before the button is
-  pressed.
-  
+Font parsing [ludi, 17.08.01] 
+ In resources/Font.hs, in the class instantiation of XFont for Read,
+ we may have XFonts which are not parsed correctly (if we do not set
+ all fields of the XFont). This is in particular happens in text
+ widgets where the font is not specified explicitly-- 
+ see examples/MainmarkupTextEx.hs
+
