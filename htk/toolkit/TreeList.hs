@@ -96,9 +96,9 @@ data Eq a => TreeList a =
 
 newTreeList :: (Container par, Eq a) =>
                par -> ChildrenFun a -> ImageFun a ->
-               TreeListObject a -> [Config (TreeList a)] ->
+               [TreeListObject a] -> [Config (TreeList a)] ->
                IO (TreeList a)
-newTreeList par cfun ifun rt@(TreeListObject (val, nm, objtype)) cnf =
+newTreeList par cfun ifun objs {-rt@(TreeListObject (val, nm, objtype))-} cnf =
   do
     (scr, cnv) <- newScrollBox par (\p -> newCanvas p []) []
     stateref <- newRef []
@@ -108,18 +108,28 @@ newTreeList par cfun ifun rt@(TreeListObject (val, nm, objtype)) cnf =
     let treelist = TreeList cnv scr stateref cfun ifun selref
                             selectionMsgQ focusMsgQ
     foldl (>>=) (return treelist) cnf
-    root@(TREELISTOBJECT _ _ _ _ drawnstuff img _ emb _) <-
-      mkTreeListObject treelist val
-                       (if objtype == Node then True else False)
-                       False [name nm]
-    setRef stateref [StateEntry root False 0 []]
-    pho <- ifun rt
-    img # photo pho
-    packTreeListObject root True (5, 5)
+    rootobjs <- mapM (\ (TreeListObject (val, nm, objtype)) ->
+                          mkTreeListObject treelist val
+                            (if objtype == Node then True else False)
+                            False [name nm]) objs
+
+    let toStateEntry obj = StateEntry obj False 0 []
+    setRef stateref (map toStateEntry rootobjs)
+    let setImg (obj, (TREELISTOBJECT _ _ _ _ _ img _ _ _)) =
+          do
+            pho <- ifun obj
+            img # photo pho
+
+    mapM setImg (zip objs rootobjs)
+    let packObjs :: Eq a => Position -> [TREELISTOBJECT a] -> IO ()
+        packObjs (x, y) (obj : objs) =
+          packTreeListObject obj False (x, y) >>
+          packObjs (x + Distance lineheight, y) objs
+        packObjs _ _ = done
+    packObjs (5, 5) rootobjs
     updScrollRegion cnv stateref
     (press, _) <- bindSimple cnv (ButtonPress (Just (BNo 1)))
     spawnEvent (forever (press >> always (deselect treelist)))
-    pressed root
     return treelist
 
 recoverTreeList :: (Container par, Eq a) =>

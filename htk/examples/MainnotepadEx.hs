@@ -14,6 +14,7 @@ module Main (main) where
 import HTk
 import Notepad
 import ScrollBox
+import Name
 
 showMsg :: Editor String -> String -> IO ()
 showMsg ed txt =

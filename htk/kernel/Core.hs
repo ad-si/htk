@@ -28,6 +28,7 @@ module Core (
   setTclVariable,
   getTclVariable,
 
+
 -- ** submodules **
 
   module GUIValue,
@@ -390,7 +391,7 @@ class GUIObject w => HasCommand w where
 -- Binds an event for this widget.  The second action returns unbinds
 -- the event.
 bind :: GUIObject wid => wid -> [WishEvent] -> IO (Event EventInfo,IO ())
-bind wid wishEvents {- eventInfoSet -} =
+bind wid wishEvents =
    do
       -- Allocate a bindtag
       let mVar = bindTags wish

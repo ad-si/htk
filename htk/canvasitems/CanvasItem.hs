@@ -97,14 +97,15 @@ class CanvasItem w => SegmentedCanvasItem w where
 -- canvas item operations
 -- -----------------------------------------------------------------------
 
-moveItem ::  CanvasItem w => w -> Distance -> Distance -> IO ()
-moveItem item x y = --        synchronize item (
-  execMethod item (\nm -> tkMoveItem nm x y)
+moveItem :: (Synchronized w, CanvasItem w) =>
+            w -> Distance -> Distance -> IO ()
+moveItem item x y =
+  synchronize item (execMethod item (\nm -> tkMoveItem nm x y))
 
-scaleItem :: CanvasItem w => w -> Distance -> Distance -> Double ->
-                             Double -> IO ()
-scaleItem item x y xs ys = --        synchronize item (
-  execMethod item (\nm -> tkScaleItem nm x y xs ys)
+scaleItem :: (Synchronized w, CanvasItem w) =>
+             w -> Distance -> Distance -> Double -> Double -> IO ()
+scaleItem item x y xs ys =
+  synchronize item (execMethod item (\nm -> tkScaleItem nm x y xs ys))
 
 
 -- -----------------------------------------------------------------------

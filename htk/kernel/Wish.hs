@@ -37,6 +37,7 @@ module Wish (
   showP,
 
   tixAvailable, -- :: Bool.  True if we are using tixwish.
+
 ) where
 
 import Maybe

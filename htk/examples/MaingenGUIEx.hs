@@ -560,7 +560,7 @@ selectedTl foldlab mitem =
                           setRef foldref (Just item)
                       _ -> setRef foldref Nothing
 
-doubleClickNp :: Item Obj -> IO ()
+doubleClickNp :: Obj -> IO ()
 doubleClickNp item = done
 {-
   let newitem = content item

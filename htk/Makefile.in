@@ -64,8 +64,9 @@ SRCS       = resources/Resources.hs\
 	     canvasitems/BitMapItem.hs\
              canvasitems/ImageItem.hs\
 	     canvasitems/TextItem.hs\
-             toolkit/Name.hs\
              toolkit/ScrollBox.hs\
+             toolkit/Name.hs\
+             toolkit/CItem.hs\
              toolkit/TreeList.hs\
              toolkit/Notepad.hs\
              toolkit/GenGUI.hs\
@@ -90,7 +91,6 @@ SRCS       = resources/Resources.hs\
 #            components/Icon.hs\
 #            devices/Printer.hs\
 #            devices/Bell.hs\
-#            widgets/Space.hs\
 
 EXTRA_HC_OPTIONS += -Onot -H30M
 

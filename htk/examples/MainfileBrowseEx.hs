@@ -83,7 +83,7 @@ main =
   do
     main <- initHTk [text "file browse example"]
     treelist <- newTreeList main cfun ifun
-                            (newTreeListObject "/" "/" Node)
+                            [newTreeListObject "/" "/" Node]
                             [background "white", size (cm 9, cm 10)]
     pack treelist []
 

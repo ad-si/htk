@@ -27,7 +27,6 @@ module EventInfo(
 
 import FiniteMap
 import Set
---import Screen(Distance)
 import Geometry(Distance)
 
 

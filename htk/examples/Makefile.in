@@ -9,7 +9,6 @@ SRCS       = Mainex1.hs\
              Mainhello2.hs\
              Mainhello3.hs\
              Mainblobs.hs\
-             MainnotepadEx.hs\
              MainlistEx.hs\
              MainfileBrowseEx.hs\
              MainmenuEx.hs\
@@ -22,10 +21,11 @@ SRCS       = Mainex1.hs\
              MainmarkupTextEx.hs\
              MainutilWinEx.hs\
              MaingenGUIEx.hs\
-             MainnotepadStateEx.hs\
-             MaintreeListStateEx.hs\
-             MaintreeListStateEx2.hs\
 	     MainmodalDialogTest.hs\
+#             MainnotepadEx.hs\
+#             MainnotepadStateEx.hs\
+#             MaintreeListStateEx.hs\
+#             MaintreeListStateEx2.hs\
 
 XHCDIRS = $(HTKDIRS)
 

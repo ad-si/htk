@@ -1,21 +1,13 @@
-{- #######################################################################
-
-MODULE        : CanvasTag
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : CanvasTag
-
-TO BE DONE    : The canvas tag must maintain information on the constituent
-                canvas items. A move of the canvas tag must then in turn
-                imply that the cashed canvas coordinates are updated!!!
-
-                The tags configure option must be implemented.
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module CanvasTag (
 

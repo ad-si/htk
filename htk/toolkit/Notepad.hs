@@ -16,16 +16,12 @@ module Notepad (
 
   newNotepad,
   createNotepadItem,
-
   getItemValue,
 
   ScrollType(..),
 
-  ImageSize,
-
-  Name(..),
-  name,
-  getName,
+  module Name,
+  setName,
 
   selectAll,
   deselectAll,
@@ -34,16 +30,14 @@ module Notepad (
   selectItemsWithin,
   deselectItem,
   getSelectedItems,
-
   deleteItem,
   clearNotepad,
+  undoLastMotion,
 
   npScrollRegion,
 
-  dropEvent,
-  selectionEvent,
-  doubleClickEvent,
-  rightClickEvent,
+  bindNotepadEv, {- :: Notepad a -> IO (Event (NotepadEvent a), IO ())  -}
+  NotepadEvent(..),
 
   NotepadExportItem(..),
   NotepadState,
@@ -60,6 +54,7 @@ import Name
 import Examples(watch)
 import Core
 import Maybe
+import CItem
 
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)
@@ -73,26 +68,29 @@ getCoords eventInfo = return (x eventInfo, y eventInfo)
 
 data NotepadItem a =
   NotepadItem ImageItem                                           -- image
-              ImageSize                                   -- size of image
+              Size                                        -- size of image
               TextItem                                   -- displayed name
               (Ref a)                                             -- value
-              (Ref Name)                                           -- name
               (Ref (Maybe (Rectangle, Rectangle)))       -- bg if selected
 
 
 -- constructor --
 
-createNotepadItem :: a -> Notepad a -> [Config (NotepadItem a)] ->
-                     IO (NotepadItem a)
-createNotepadItem val notepad@(Notepad cnv _ imgsize _ _ entereditemref _ 
-                                       _ _ _ _) cnf =
+createNotepadItem :: CItem c => c -> Notepad c ->
+                                [Config (NotepadItem c)] ->
+                                IO (NotepadItem c)
+createNotepadItem val notepad cnf =
   do
-    img <- createImageItem cnv []
-    txt <- createTextItem cnv [font (Helvetica, 10 :: Int), text "unnamed"]
+    pho <- getIcon val
+    img <- createImageItem (canvas notepad) [photo pho]
+    let (Distance dx, _) = img_size notepad
+        len = div (dx + 80) 5
+    nm <- getName val
+    txt <- createTextItem (canvas notepad) [font (Helvetica, 10 :: Int),
+                                            text (short nm len)]
     itemval <- newRef val
-    itemname <- newRef (newName "unnamed")
     itemsel <- newRef Nothing
-    let item = NotepadItem img imgsize txt itemval itemname itemsel
+    let item = NotepadItem img (img_size notepad) txt itemval itemsel
     foldl (>>=) (return item) cnf
 
     (enter1, _) <- bindSimple img Enter
@@ -102,48 +100,52 @@ createNotepadItem val notepad@(Notepad cnv _ imgsize _ _ entereditemref _
 
     let listenItem :: Event ()
         listenItem =
-             (enter1 >> always (setRef entereditemref (Just item)))
-          +> (leave1 >> always (setRef entereditemref Nothing))
-          +> (enter2 >> always (setRef entereditemref (Just item)))
-          +> (leave2 >> always (setRef entereditemref Nothing))
+             (enter1 >> always
+                          (setRef (entered_item notepad) (Just item)))
+          +> (leave1 >> always (setRef (entered_item notepad) Nothing))
+          +> (enter2 >> always
+                          (setRef (entered_item notepad) (Just item)))
+          +> (leave2 >> always (setRef (entered_item notepad) Nothing))
 
-    spawnEvent (forever listenItem)
+    spawnEvent (forever listenItem)          -- TD: stop threads !!!
 
     addItemToState notepad item
     return item
 
 getItemValue :: NotepadItem a -> IO a
-getItemValue (NotepadItem _ _ _ valref _ _) = getRef valref
+getItemValue (NotepadItem _ _ _ valref _) = getRef valref
 
 
 -- instances --
 
 instance Eq (NotepadItem a) where
-  (NotepadItem img1 _ _ _ _ _) == (NotepadItem img2 _ _ _ _ _) =
+  (NotepadItem img1 _ _ _ _) == (NotepadItem img2 _ _ _ _) =
     img1 == img2
 
 instance GUIObject (NotepadItem a) where
-  toGUIObject (NotepadItem img _ _ _ _ _) = toGUIObject img
+  toGUIObject (NotepadItem img _ _ _ _) = toGUIObject img
   cname _ = "NotepadItem"
 
 instance Synchronized (NotepadItem a) where
   synchronize = synchronize . toGUIObject
 
 instance HasPosition (NotepadItem a) where
-  position p@(x, y) n@(NotepadItem img imgsize txt _ _ _) =
+  position p@(x, y) n@(NotepadItem img imgsize txt _ _) =
     itemPositionD2 p img >>
     let (Distance iwidth, Distance iheight) = imgsize
     in itemPositionD2 (x, y + Distance (div iheight 2 + 7)) txt >>
        return n
-  getPosition (NotepadItem img _ _ _ _ _) = getItemPositionD2 img
+  getPosition (NotepadItem img _ _ _ _) = getItemPositionD2 img
 
+{-
 instance HasPhoto (NotepadItem a) where
-  photo i item@(NotepadItem img _ _ _ _ _) =
+  photo i item@(NotepadItem img _ _ _ _) =
     img # photo i >> return item
-  getPhoto (NotepadItem img _ _ _ _ _) = getPhoto img
+  getPhoto (NotepadItem img _ _ _ _) = getPhoto img
+-}
 
 instance Destroyable (NotepadItem a) where
-  destroy item@(NotepadItem img _ txt _ _ itemsel) =
+  destroy item@(NotepadItem img _ txt _ itemsel) =
     do
       destroy img
       destroy txt
@@ -152,6 +154,14 @@ instance Destroyable (NotepadItem a) where
         Just (rect1, rect2) -> destroy rect1 >> destroy rect2
         _ -> done
 
+setName :: CItem c => NotepadItem c -> Name -> IO ()
+setName item@(NotepadItem _ (Distance dx, _) txt _ _) nm =
+  do
+    let len = div (dx + 80) 5
+    txt # text (short nm len)
+    done
+
+{-
 name :: Name -> Config (NotepadItem a)
 name itname w@(NotepadItem _ (Distance dx, _) txt _ nm _) =
   do
@@ -159,69 +169,94 @@ name itname w@(NotepadItem _ (Distance dx, _) txt _ nm _) =
     let len = div (dx + 80) 5
     txt # text {- (full itname) -} (short itname len)
     return w
+-}
 
+{-
 getName :: NotepadItem a -> (IO Name)
 getName (NotepadItem _ _ _ _ nm _) =
   do
     itemname <- getRef nm
     return itemname
+-}
+
+--------------------------------------------------------------------------
+-- notepad events
+--------------------------------------------------------------------------
+
+bindNotepadEv :: Notepad a -> IO (Event (NotepadEvent a), IO ())
+bindNotepadEv np =
+  do
+    ch <- newChannel
+    setRef (event_queue np) (Just ch)
+    return (receive ch, setRef (event_queue np) Nothing)
+
+data NotepadEvent a =
+    Dropped (NotepadItem a, [NotepadItem a])
+  | Selected (NotepadItem a)
+  | Deselected (NotepadItem a)
+  | Doubleclick (NotepadItem a)
+  | Rightclick [NotepadItem a]
+  | Release EventInfo                -- needed for use with GenGUI
+
+sendEv :: Notepad a -> NotepadEvent a -> IO ()
+sendEv np ev =
+  do
+    mch <- getRef (event_queue np)
+    case mch of
+      Just ch -> syncNoWait (send ch ev)
+      _ -> done
 
 
--- events --
-
-dropEvent :: Notepad a -> Channel (NotepadItem a, [NotepadItem a])
-dropEvent (Notepad _ _ _ _ _ _ _ _ dmsgQ _ _) = dmsgQ
-
-selectionEvent :: Notepad a -> Channel (NotepadItem a, Bool)
-selectionEvent (Notepad _ _ _ _ _ _ _ smsgQ _ _ _) = smsgQ
-
-doubleClickEvent :: Notepad a -> Channel (NotepadItem a)
-doubleClickEvent (Notepad _ _ _ _ _ _ _ _ _ doubleclickmsgQ _) =
-  doubleclickmsgQ
-
-rightClickEvent :: Notepad a -> Channel [NotepadItem a]
-rightClickEvent (Notepad _ _ _ _ _ _ _ _ _ _ rightclickmsgQ) =
-  rightclickmsgQ
-
-
-
--------------
--- Notepad --
--------------
-
--- type --
+--------------------------------------------------------------------------
+-- Notepad type
+--------------------------------------------------------------------------
 
 data Notepad a =
-  Notepad Canvas                                            -- main canvas
-          (Maybe (ScrollBox Canvas))                          -- scrollbox
-          ImageSize                                      -- size of images
-          (Ref ([NotepadItem a]))                       -- contained items
-          (Ref ([NotepadItem a]))                        -- selected items
-          (Ref (Maybe (NotepadItem a)))                    -- entered item
-          (Ref (Maybe (NotepadItem a, Rectangle, Rectangle)))
-                             -- entered item when other items dragged / bg
-          (Channel (NotepadItem a, Bool))         -- selection event queue
-          (Channel (NotepadItem a, [NotepadItem a]))    -- dnd event queue
-          (Channel (NotepadItem a))             -- doubleclick event queue
-          (Channel [NotepadItem a])              -- rightclick event queue
-  deriving Eq
+  Notepad { -- main canvas widget
+            canvas :: Canvas,
+
+            -- scrollbox if scrolled
+            scrollbox :: Maybe (ScrollBox Canvas),
+
+            -- size of item images
+            img_size :: Size,
+
+            -- contained items
+            items :: Ref ([NotepadItem a]),
+
+            -- selected items
+            selected_items :: Ref ([NotepadItem a]),
+
+            -- entered item (mouse over item)
+            entered_item :: Ref (Maybe (NotepadItem a)),
+
+            -- undo last motion action (needed for drag and drop with
+            --                          other widgets)
+            undo_last_motion :: Ref UndoMotion,
+
+            -- entered item when other items dragged /
+            -- rectangles (highlight)
+            drop_item :: (Ref (Maybe (NotepadItem a, Rectangle,
+                                      Rectangle))),
+
+            -- event queue
+            event_queue :: Ref (Maybe (Channel (NotepadEvent a))) }
 
 data ScrollType = Scrolled | NotScrolled deriving Eq
 
-type ImageSize = Size
+data UndoMotion = ToPerform (IO ()) | Performed
 
 
 -- state --
 
 addItemToState :: Notepad a -> NotepadItem a -> IO ()
-addItemToState notepad@(Notepad _ _ _ notepaditemsref _ _ _ _ _ _ _)
-               item =
+addItemToState notepad item =
   do
-    notepaditems <- getRef notepaditemsref
-    setRef notepaditemsref (item : notepaditems)
+    notepaditems <- getRef (items notepad)
+    setRef (items notepad) (item : notepaditems)
 
 highlight :: Canvas -> NotepadItem a -> IO ()
-highlight cnv item@(NotepadItem img imgsize txt _ _ sel) =
+highlight cnv item@(NotepadItem img imgsize txt _ sel) =
   do
     let (Distance iwidth, Distance iheight) = imgsize
     txt # filling "white"
@@ -251,7 +286,7 @@ highlight cnv item@(NotepadItem img imgsize txt _ _ sel) =
       Just _  -> done
 
 deHighlight :: NotepadItem a -> IO ()
-deHighlight item@(NotepadItem img _ txt _ _ sel) =
+deHighlight item@(NotepadItem img _ txt _ sel) =
   do
     txt # filling "black"
     s <- getRef sel
@@ -261,96 +296,88 @@ deHighlight item@(NotepadItem img _ txt _ _ sel) =
         destroy rect1 >> destroy rect2 >> setRef sel Nothing
 
 selectItem :: Notepad a -> NotepadItem a -> IO ()
-selectItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _ _ _) item =
+selectItem np item =
   do
     deselectAll np
-    highlight cnv item
-    selecteditems <- getRef selecteditemsref
-    setRef selecteditemsref (item : selecteditems)
-    spawnEvent (noWait (send smsgQ (item, True)))
-    done
+    highlight (canvas np) item
+    selecteditems <- getRef (selected_items np)
+    setRef (selected_items np) (item : selecteditems)
+    sendEv np (Selected item)
 
 selectAnotherItem :: Notepad a -> NotepadItem a -> IO ()
-selectAnotherItem np@(Notepad cnv _ _ _ selecteditemsref _ _ smsgQ _ _ _)
-                  item =
+selectAnotherItem np item =
   do
-    highlight cnv item
-    selecteditems <- getRef selecteditemsref
-    setRef selecteditemsref (item : selecteditems)
-    spawnEvent (noWait (send smsgQ (item, True)))
-    done
+    highlight (canvas np) item
+    selecteditems <- getRef (selected_items np)
+    setRef (selected_items np) (item : selecteditems)
+    sendEv np (Selected item)
 
 deselectItem :: Notepad a -> NotepadItem a -> IO ()
-deselectItem np@(Notepad _ _ _ _ selecteditemsref _ _ smsgQ _ _ _) item =
+deselectItem np item =
   do
     deHighlight item
-    selecteditems <- getRef selecteditemsref
-    setRef selecteditemsref (filter ((/=) item) selecteditems)
-    spawnEvent (noWait (send smsgQ (item, False)))
-    done
+    selecteditems <- getRef (selected_items np)
+    setRef (selected_items np) (filter ((/=) item) selecteditems)
+    sendEv np (Deselected item)
 
 selectAll :: Notepad a -> IO ()
-selectAll np@(Notepad cnv _ _ notepaditemsref selecteditemsref _ _ smsgQ
-                      _ _ _) =
+selectAll np =
   do
-    notepaditems <- getRef notepaditemsref
-    mapM (highlight cnv) notepaditems
+    notepaditems <- getRef (items np)
+    mapM (highlight (canvas np)) notepaditems
     mapM (\item -> do
                      b <- Notepad.isSelected np item
-                     if b then done
-                       else spawnEvent
-                              (noWait (send smsgQ (item, True))) >> done)
+                     if b then done else sendEv np (Selected item))
          notepaditems
-    setRef selecteditemsref notepaditems
+    setRef (selected_items np) notepaditems
 
 deselectAll :: Notepad a -> IO ()
-deselectAll np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ smsgQ 
-                        _ _ _) =
+deselectAll np =
   do
-    notepaditems <- getRef notepaditemsref
-    selecteditems <- getRef selecteditemsref
+    notepaditems <- getRef (items np)
+    selecteditems <- getRef (selected_items np)
     mapM deHighlight selecteditems
     mapM (\item -> do
                      b <- Notepad.isSelected np item
-                     if b then spawnEvent
-                                 (noWait (send smsgQ (item, False))) >>
-                               done
-                       else done)
+                     if b then sendEv np (Deselected item) else done)
          notepaditems
-    setRef selecteditemsref []
-    done
+    setRef (selected_items np) []
 
 deleteItem :: Notepad a -> NotepadItem a -> IO ()
-deleteItem np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _ _ _)
-           item =
+deleteItem np item =
   do
-    notepaditems <- getRef notepaditemsref
-    selecteditems <- getRef selecteditemsref
-    setRef notepaditemsref (filter ((==) item) notepaditems)
-    setRef selecteditemsref (filter ((==) item) selecteditems)
+    notepaditems <- getRef (items np)
+    selecteditems <- getRef (selected_items np)
+    setRef (items np) (filter ((==) item) notepaditems)
+    setRef (selected_items np) (filter ((==) item) selecteditems)
     destroy item
 
 clearNotepad :: Notepad a -> IO ()
-clearNotepad np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ _ _
-                         _ _) =
+clearNotepad np =
   do
-    notepaditems <- getRef notepaditemsref
+    notepaditems <- getRef (items np)
     mapM destroy notepaditems
-    setRef notepaditemsref []
-    setRef selecteditemsref []
+    setRef (items np) []
+    setRef (selected_items np) []
+
+undoLastMotion :: Notepad a -> IO ()
+undoLastMotion np =
+  synchronize np (do
+                    act <- getRef (undo_last_motion np)
+                    case act of
+                      ToPerform act' -> act'
+                      _ -> done)
 
 isSelected :: Notepad a -> NotepadItem a -> IO Bool
-isSelected np@(Notepad _ _ _ _ selecteditemsref _ _ _ _ _ _) item =
+isSelected np item =
   do
-    selecteditems <- getRef selecteditemsref
+    selecteditems <- getRef (selected_items np)
     return (any ((==) item) selecteditems)
 
 selectItemsWithin :: Position -> Position -> Notepad a -> IO ()
-selectItemsWithin (x0, y0) (x1, y1)
-                  np@(Notepad _ _ _ notepaditemsref selecteditemsref _
-                              _ _ _ _ _) =
+selectItemsWithin (x0, y0) (x1, y1) np =
   do
-    notepaditems <- getRef notepaditemsref
+    notepaditems <- getRef (items np)
     let within :: Position -> Bool
         within (x, y)  =
           ((x0 <= x && x <= x1) || (x1 <= x && x <= x0)) &&
@@ -367,17 +394,19 @@ selectItemsWithin (x0, y0) (x1, y1)
     done
 
 getSelectedItems :: Notepad a -> IO [NotepadItem a]
-getSelectedItems np@(Notepad _ _ _ _ selecteditemsref _ _ _ _ _ _) =
+getSelectedItems np =
   do
-    selecteditems <- getRef selecteditemsref
+    selecteditems <- getRef (selected_items np)
     return selecteditems
 
 
--- constructor --
+--------------------------------------------------------------------------
+-- notepad construction
+--------------------------------------------------------------------------
 
-newNotepad :: Container par => par -> ScrollType -> ImageSize ->
-                               Maybe (NotepadState a) ->
-                               [Config (Notepad a)] -> IO (Notepad a)
+newNotepad :: (CItem c, Container par) =>
+              par -> ScrollType -> Size -> Maybe (NotepadState c) ->
+              [Config (Notepad c)] -> IO (Notepad c)
 newNotepad par scrolltype imgsize mstate cnf =
   do
     let scrolled = (scrolltype == Scrolled)
@@ -385,33 +414,43 @@ newNotepad par scrolltype imgsize mstate cnf =
     selecteditemsref <- newRef []
     entereditemref <- newRef Nothing
     dropref <- newRef Nothing
-    smsgQ <- newChannel
-    dmsgQ <- newChannel
-    doubleclickmsgQ <- newChannel
-    rightclickmsgQ <- newChannel
+    ulm <- newRef Performed
+    evq <- newRef Nothing
     (cnv, notepad) <- if scrolled then
                         do
                           (scrollbox, cnv) <-
-                            newScrollBox par (\ p -> newCanvas p []) []
+                            newScrollBox par (\p -> newCanvas p []) []
                           return (cnv,
-                                  Notepad cnv (Just scrollbox) imgsize
-                                    notepaditemsref selecteditemsref
-                                    entereditemref dropref smsgQ dmsgQ
-                                    doubleclickmsgQ rightclickmsgQ)
+                                  Notepad { canvas = cnv,
+                                            scrollbox = Just scrollbox,
+                                            img_size = imgsize,
+                                            items = notepaditemsref,
+                                            selected_items =
+                                              selecteditemsref,
+                                            entered_item = entereditemref,
+                                            drop_item = dropref,
+                                            event_queue = evq,
+                                            undo_last_motion = ulm })
                       else
                         do
                           cnv <- newCanvas par []
                           return (cnv,
-                                  Notepad cnv Nothing imgsize
-                                    notepaditemsref selecteditemsref
-                                    entereditemref dropref smsgQ dmsgQ
-                                    doubleclickmsgQ rightclickmsgQ)
+                                  Notepad { canvas = cnv,
+                                            scrollbox = Nothing,
+                                            img_size = imgsize,
+                                            items = notepaditemsref,
+                                            selected_items =
+                                              selecteditemsref,
+                                            entered_item = entereditemref,
+                                            drop_item = dropref,
+                                            event_queue = evq,
+                                            undo_last_motion = ulm })
 
     (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just (BNo 1)))]
-    (rightclick, _) <-
-      bind cnv [WishEvent [] (ButtonPress (Just (BNo 2)))]
+    (rightclick, _) <- bind cnv
+                            [WishEvent [] (ButtonPress (Just (BNo 2)))]
     (clickmotion', _) <- bind cnv [WishEvent [Button1] Motion]
-    (clickmotion, _) <- Examples.watch (clickmotion')
+    (clickmotion, _) <- Examples.watch clickmotion'
     (doubleclick, _) <- bind cnv [WishEvent [Double]
                                             (ButtonPress (Just (BNo 1)))]
     (shiftclick, _) <- bind cnv [WishEvent [Shift]
@@ -419,7 +458,7 @@ newNotepad par scrolltype imgsize mstate cnf =
     (release, _) <- bind cnv [WishEvent [] (ButtonRelease (Just (BNo 1)))]
 
     let addToTag :: CanvasTag -> NotepadItem a -> IO ()
-        addToTag tag (NotepadItem img _ txt _ _ rectref) =
+        addToTag tag (NotepadItem img _ txt _ rectref) =
           do
             img # tags [tag]
             txt # tags [tag]
@@ -432,33 +471,28 @@ newNotepad par scrolltype imgsize mstate cnf =
                                       done
 
         createTagFromSelection :: Notepad a -> IO CanvasTag
-        createTagFromSelection notepad@(Notepad cnv _ _ notepaditemsref
-                                                selecteditemsref _ _ _
-                                                _ _ _) =
+        createTagFromSelection notepad =
           do
-            notepaditems <- getRef notepaditemsref
-            selecteditems <- getRef selecteditemsref
-            tag <- createCanvasTag cnv []
-            mapM (addToTag tag) selecteditems >> done
+            notepaditems <- getRef (items notepad)
+            selecteditems <- getRef (selected_items notepad)
+            tag <- createCanvasTag (canvas notepad) []
+            mapM (addToTag tag) selecteditems
             return tag
 
         checkDropZones :: Notepad a -> Distance -> Distance -> IO ()
-        checkDropZones notepad@(Notepad cnv _ _ notepaditemsref
-                                        selecteditemsref _ dropref _ _ _
-                                        _)
-                       x y =
-          let doSet item@(NotepadItem _ imgsize _ _ _ _)=
+        checkDropZones notepad x y =
+          let doSet item@(NotepadItem _ imgsize _ _ _)=
                 do
                   (x, y) <- getPosition item
                   let (Distance iwidth, Distance iheight) = imgsize
-                  rect1 <- createRectangle cnv
+                  rect1 <- createRectangle (canvas notepad)
                              [filling "yellow", outline "yellow",
                               coord [(x - Distance (div iwidth 2 + 1),
                                       y - Distance (div iheight 2 + 1)),
                                      (x + Distance (div iwidth 2 + 1),
                                       y + Distance (div iheight 2 + 1))]]
                   putItemAtBottom rect1
-                  rect2 <- createRectangle cnv
+                  rect2 <- createRectangle (canvas notepad)
                              [filling "yellow", outline "yellow",
                               coord
                                 [(x - Distance
@@ -468,18 +502,18 @@ newNotepad par scrolltype imgsize mstate cnf =
                                         (max (div iwidth 2 + 30) 40),
                                   y + Distance (div iheight 2 + 14))]]
                   putItemAtBottom rect2
-                  setRef dropref (Just (item, rect1, rect2))
+                  setRef (drop_item notepad) (Just (item, rect1, rect2))
 
               setDropRef item =
                 do
-                   drop <- getRef dropref
-                   (case drop of
-                      Nothing -> doSet item
-                      Just (ditem, rect1, rect2) ->
-                        if item == ditem then done
-                        else destroy rect1 >> destroy rect2 >> doSet item)
+                   drop <- getRef (drop_item notepad)
+                   case drop of
+                     Nothing -> doSet item
+                     Just (ditem, rect1, rect2) ->
+                       if item == ditem then done
+                       else destroy rect1 >> destroy rect2 >> doSet item
 
-              inDropZone (NotepadItem img _ _ _ _ _) =
+              inDropZone (NotepadItem img _ _ _ _) =
                 do
                   (x_it, y_it) <- getPosition img
                   return (if x_it - 30 < x && x_it + 30 > x &&
@@ -492,19 +526,19 @@ newNotepad par scrolltype imgsize mstate cnf =
                   (if b then setDropRef item else checkDropZones' items)
               checkDropZones' [] =
                 do
-                  maybeitem <- getRef dropref
+                  maybeitem <- getRef (drop_item notepad)
                   case maybeitem of
                     Just (_, rect1, rect2) ->
                       destroy rect1 >> destroy rect2 >>
-                      setRef dropref Nothing
+                      setRef (drop_item notepad) Nothing
                     Nothing -> done
           in do
-               notepaditems <- getRef notepaditemsref
-               selecteditems <- getRef selecteditemsref
-               (let nonselecteditems =
-                      filter (\item -> not(any ((==) item) selecteditems))
-                             notepaditems
-                in checkDropZones' nonselecteditems)
+               notepaditems <- getRef (items notepad)
+               selecteditems <- getRef (selected_items notepad)
+               let nonselecteditems =
+                     filter (\item -> not(any ((==) item) selecteditems))
+                            notepaditems
+               checkDropZones' nonselecteditems
 
         selectByRectangle :: Position -> Rectangle -> Event ()
         selectByRectangle pos@(x, y) rect =
@@ -512,17 +546,28 @@ newNotepad par scrolltype imgsize mstate cnf =
                 (x1, y1) <- clickmotion >>>= getCoords
                 always (rect # coord [(x, y), (x1, y1)])
 --                always (selectItemsWithin (x, y) (x1, y1) notepad)
+                                                   -- too slow actually
                 selectByRectangle pos rect)
           +> (do
-                (x1, y1) <- release >>>= getCoords
-                always (selectItemsWithin (x, y) (x1, y1) notepad >>
-                        destroy rect))
+                ev_inf <- release
+                always (do
+                          (x1,y1) <- getCoords ev_inf
+                          sendEv notepad (Release ev_inf)
+                          selectItemsWithin (x, y) (x1, y1) notepad
+                          destroy rect))
 
-        moveSelectedItems :: Position -> Position -> CanvasTag -> Event ()
+        -- bug: release für selectByRect wird von anderem noch laufenden
+        --      Thread empfangen ???  Nur eine Idee !
+
+        moveSelectedItems :: Position -> Position -> CanvasTag ->
+                             Event ()
         moveSelectedItems rpos@(rootx, rooty) (x0, y0) t =
              (do
                 (x, y) <- clickmotion >>>= getCoords
                 always (checkDropZones notepad x y >>
+                        setRef (undo_last_motion notepad)
+                               (ToPerform (moveItem t (rootx - x0)
+                                                      (rooty - y0))) >>
                         moveItem t (x - x0) (y - y0))
                 moveSelectedItems rpos (x, y) t)
           +> (release >>
@@ -532,14 +577,16 @@ newNotepad par scrolltype imgsize mstate cnf =
                           Just (item, rect1, rect2) ->
                             do
                               selecteditems <- getRef selecteditemsref
-                              moveItem t (rootx - x0) (rooty - y0)
+                              act <- getRef (undo_last_motion notepad)
+                              case act of
+                                Performed ->
+                                  moveItem t (rootx - x0) (rooty - y0)
+                                _ -> done
                               setRef dropref Nothing
                               destroy rect1 
                               destroy rect2
-                              spawnEvent
-                                (noWait (send dmsgQ
-                                              (item, selecteditems)))
-                              done
+                              sendEv notepad
+                                     (Dropped (item, selecteditems))
                           _ -> done))
 
         listenNotepad :: Event ()
@@ -557,7 +604,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                                      spawnEvent
                                        (selectByRectangle (x, y) rect)
                                      done
-                        Just item@(NotepadItem img _ _ _ _ _) ->
+                        Just item@(NotepadItem img _ _ _ _) ->
                           do
                             b <- Notepad.isSelected notepad item
                             if b then done else selectItem notepad item
@@ -572,7 +619,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                      case entereditem of
                        Nothing -> do
                                     deselectAll notepad
-                                    syncNoWait (send rightclickmsgQ [])
+                                    sendEv notepad (Rightclick [])
                        Just entereditem ->
                          do
                            b <- Notepad.isSelected notepad
@@ -580,21 +627,19 @@ newNotepad par scrolltype imgsize mstate cnf =
                            (if b then
                               do
                                 selecteditems <- getRef selecteditemsref
-                                syncNoWait (send rightclickmsgQ
-                                                 selecteditems)
+                                sendEv notepad (Rightclick selecteditems)
                             else
                               do
                                 selectItem notepad entereditem
-                                syncNoWait (send rightclickmsgQ
-                                                 [entereditem]))))
+                                sendEv notepad
+                                       (Rightclick [entereditem]))))
           +> (doubleclick >> always (do
                                        entereditem <-
                                          getRef entereditemref
                                        case entereditem of
                                          Just item ->
-                                           spawnEvent (noWait
-                                             (send doubleclickmsgQ
-                                                   item)) >> done
+                                           sendEv notepad
+                                                  (Doubleclick item)
                                          _ -> done))
           +> (shiftclick >> always (do
                                       entereditem <- getRef entereditemref
@@ -609,6 +654,8 @@ newNotepad par scrolltype imgsize mstate cnf =
                                                      notepad item
                                         _ -> done)))
 
+    -- TD: >>> statt always
+
     spawnEvent (forever listenNotepad)
     foldl (>>=) (return notepad) cnf
     case mstate of
@@ -620,13 +667,13 @@ newNotepad par scrolltype imgsize mstate cnf =
 -- instances --
 
 instance GUIObject (Notepad a) where
-  toGUIObject (Notepad cnv scr _ _ _ _ _ _ _ _ _) =
-    case scr of Nothing  -> toGUIObject cnv
-                Just box -> toGUIObject box
+  toGUIObject np =
+    case (scrollbox np) of Nothing -> toGUIObject (canvas np)
+                           Just box -> toGUIObject box
   cname _ = "Notepad"
 
 instance Destroyable (Notepad a) where
-  destroy   = destroy . toGUIObject
+  destroy = destroy . toGUIObject          -- TD : clean up !!!
 
 instance Widget (Notepad a)
 
@@ -636,78 +683,65 @@ instance Synchronized (Notepad a) where
 instance HasBorder (Notepad a)
 
 instance HasColour (Notepad a) where
-  legalColourID (Notepad cnv _ _ _ _ _ _ _ _ _ _) =
-    hasBackGroundColour cnv
-  setColour notepad@(Notepad cnv _ _ _ _ _ _ _ _ _ _) cid col =
-    setColour cnv cid col >> return notepad
-  getColour (Notepad cnv _ _ _ _ _ _ _ _ _ _) cid = getColour cnv cid
+  legalColourID np = hasBackGroundColour (canvas np)
+  setColour notepad cid col =
+    setColour (canvas notepad) cid col >> return notepad
+  getColour np cid = getColour (canvas np) cid
 
 instance HasSize (Notepad a) where
-  width s notepad@(Notepad cnv _ _ _ _ _ _ _ _ _ _)  =
-    cnv # width s >> return notepad
-  getWidth (Notepad cnv _ _ _ _ _ _ _ _ _ _) = getWidth cnv
-  height s notepad@(Notepad cnv _ _ _ _ _ _ _ _ _ _) =
-    cnv # height s >> return notepad
-  getHeight (Notepad cnv _ _ _ _ _ _ _ _ _ _) = getHeight cnv
+  width s np = canvas np # width s >> return np
+  getWidth np = getWidth (canvas np)
+  height s np = canvas np # height s >> return np
+  getHeight np = getHeight (canvas np)
 
 
 -- -----------------------------------------------------------------------
--- widget specific configuration options
+-- notepad specific configuration options
 -- -----------------------------------------------------------------------
 
 npScrollRegion :: ScrollRegion -> Config (Notepad a)
-npScrollRegion scr np@(Notepad cnv _ _ _ _ _ _ _ _ _ _) =
-  cnv # scrollRegion scr >> return np
+npScrollRegion scr np = canvas np # scrollRegion scr >> return np
 
 
 -- -----------------------------------------------------------------------
 -- state import / export
 -- -----------------------------------------------------------------------
 
-data NotepadExportItem a = NotepadExportItem { nm :: Name,
-                                               img :: Maybe Image,
-                                               val :: a,
-                                               pos :: Position,
-                                               selected :: Bool }
+data CItem c => NotepadExportItem c =
+  NotepadExportItem { val :: c,
+                      pos :: Position,
+                      selected :: Bool }
 
-type NotepadState a = [NotepadExportItem a]
+type NotepadState c = CItem c => [NotepadExportItem c]
 
-exportNotepadState :: Notepad a -> IO (NotepadState a)
-exportNotepadState np@(Notepad _ _ _ items _ _ _ _ _ _ _) =
+exportNotepadState :: CItem c => Notepad c -> IO (NotepadState c)
+exportNotepadState np =
   synchronize np (do
-                    items' <- getRef items
+                    items' <- getRef (items np)
                     exportNotepadState' np items')
-  where exportNotepadState' :: Notepad a -> [NotepadItem a] ->
-                               IO (NotepadState a)
-        exportNotepadState' np (item@(NotepadItem img _ txt val nm _) :
+  where exportNotepadState' :: CItem c => Notepad c -> [NotepadItem c] ->
+                               IO (NotepadState c)
+        exportNotepadState' np (item@(NotepadItem img _ txt val _) :
                                 items) =
           do
-            nm' <- getRef nm
-            img' <- getPhoto img
             val' <- getRef val
             pos <- getPosition img
             is_selected <- Notepad.isSelected np item
             rest <- exportNotepadState' np items
-            return (NotepadExportItem { nm = nm',
-                                        img = img',
-                                        val = val',
+            return (NotepadExportItem { val = val',
                                         pos = pos,
                                         selected = is_selected } : rest)
         exportNotepadState' _ _ = return []
 
-importNotepadState :: Notepad a -> NotepadState a -> IO ()
+importNotepadState :: CItem c => Notepad c -> NotepadState c -> IO ()
 importNotepadState np st =
   synchronize np (do
                     clearNotepad np
                     addItems np st)
-  where addItems :: Notepad a -> NotepadState a -> IO ()
+  where addItems :: CItem c => Notepad c -> NotepadState c -> IO ()
         addItems np (it : items) =
           do
-            new_it <- createNotepadItem (val it) np
-                        [position (pos it), name (nm it)]
-            (if (isJust (img it)) then
-               new_it # photo (fromJust (img it)) >> done
-             else done)
+            new_it <- createNotepadItem (val it) np [position (pos it)]
             if selected it then selectAnotherItem np new_it else done
             addItems np items
         addItems _ _ = done
