@@ -122,6 +122,8 @@ rm -f ./*.html
     ../../events/Destructible.hs\
     ../../events/ReferenceVariables.hs\
     ../../events/Synchronized.hs\
+    ../../events/GuardedEvents.hs\
+    ../../events/Examples.hs\
     ../../events/Spawn.hs\
     ../../events/Channels.hs\
     ../../events/RegexChannel.hs\
@@ -131,3 +133,4 @@ rm -f ./*.html
 
 #    ../toolkit/MarkupText.hs\
 #    ../toolkit/SimpleForm.hs\
+#    ../../events/GuardedChannels.hs\

@@ -114,6 +114,17 @@ htk/doc/generatedoc
 
 hdoc can take a long time, especially on large files, so be patient.
 
+Other documentation
+-------------------
+
+htk/doc/HOWTO.tex contains a description of the internals of the HTk
+encapsulation; this will be most useful if you want to modify this
+encapsulation in some way.  It is in German, but we may make an English
+version available if there is sufficient demand, so let us know if you
+want one. 
+
+docs/future contains some notes on the future development of UniForM
+(some of which has already happened).
 
 More information about Make targets
 -----------------------------------

@@ -12,11 +12,16 @@ module View(
    listViews, -- :: Repository -> IO [ObjectVersion]
       -- This lists the object versions for all currently checked-in
       -- (global) versions.
-   getView, -- :: Repository -> ObjectVersion -> IO View
+   Version, 
+      -- type of the version of a view
+   getView, -- :: Repository -> Version -> IO View
       -- This checks out a particular view.
-   commitView, -- :: View -> IO ObjectVersion
+   commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
       -- a global version.
+
+   parentVersion, -- :: View -> IO (Maybe Version)
+      -- returns the current parent version of the view.
    ) where
 
 import Directory
@@ -35,6 +40,12 @@ import CodedValue
 import CodedValueStore
 import DisplayTypes
 import ObjectTypes
+
+-- ----------------------------------------------------------------------
+-- The Version type
+-- ----------------------------------------------------------------------
+
+type Version = ObjectVersion
 
 -- ----------------------------------------------------------------------
 -- Views
@@ -60,10 +71,10 @@ newView repository =
          parentMVar = parentMVar
          })
 
-listViews :: Repository -> IO [ObjectVersion]
+listViews :: Repository -> IO [Version]
 listViews repository = listVersions repository firstLocation
 
-getView :: Repository -> ObjectVersion -> IO View
+getView :: Repository -> Version -> IO View
 getView repository objectVersion =
    do
       objectId <- newObject
@@ -108,7 +119,7 @@ getView repository objectVersion =
       importObjectTypes objectTypesData view
       return view
 
-commitView :: View -> IO ObjectVersion
+commitView :: View -> IO Version
 commitView (view @ View {repository = repository,objects = objects,
       parentMVar = parentMVar}) =
    -- NB - this ought to lock against updates, but at the moment doesn't.
@@ -122,7 +133,7 @@ commitView (view @ View {repository = repository,objects = objects,
       objectTypesData <- exportObjectTypes view
 
       locations <- listKeys objects
-      (objectsData :: [(Location,ObjectVersion)]) <-
+      (objectsData :: [(Location,Version)]) <-
          mapM (\ location ->
             do
                objectsData <- getValue objects location
@@ -144,11 +155,15 @@ commitView (view @ View {repository = repository,objects = objects,
 
       viewCodedValue <- doEncodeIO viewData phantomView
       viewObjectSource <- toObjectSource viewCodedValue 
-      newObjectVersion <- commit repository viewObjectSource firstLocation 
+      newVersion <- commit repository viewObjectSource firstLocation 
          parentOpt
-      putMVar parentMVar (Just newObjectVersion)
-      return newObjectVersion
+      putMVar parentMVar (Just newVersion)
+      return newVersion
 
+---
+-- returns the current parent version of the view.
+parentVersion :: View -> IO (Maybe Version)
+parentVersion view = readMVar (parentMVar view)
 
 -- ----------------------------------------------------------------------
 -- Format of view information in the top file

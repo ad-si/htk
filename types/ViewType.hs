@@ -15,6 +15,7 @@ module ViewType(
 
 import Concurrent
 
+import QuickReadShow
 import Object
 import Dynamics
 import Registry
@@ -48,3 +49,5 @@ getRepository view = repository view
 
 newtype ViewId = ViewId ObjectID deriving (Eq,Ord)
 
+instance QuickShow ViewId where
+   quickShow = WrapShow (\ (ViewId oId) -> oId)

@@ -20,7 +20,7 @@ import QuickReadShow
 import Dynamics
 import Registry
 
-import HTk
+import HTk hiding (Icon)
 import ModalDialog
 import DialogWin
 import InputWin

@@ -289,6 +289,8 @@ instance ArcTypeConfig Color
 data EdgePattern value = Solid | Dotted | Dashed | Thick | Double 
    deriving (Read,Show)
 
+instance ArcTypeConfig EdgePattern
+
 ------------------------------------------------------------------------
 -- Graph Miscellaneous Flags.
 -- (Fairly daVinci specific)
