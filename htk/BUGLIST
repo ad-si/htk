@@ -8,10 +8,12 @@ FileDialog hangs [crimson, 17.08.01]
  If the "create folder" button is clicked, the file dialog does not 
  respond to further interaction; you can only quit. 
 
-Text Editors become enabled [mclee, 14.09.01]
-  Inserting markup text into a text editor leaves it enabled. The
-  insert markup function should leave the text editor in its
-  previous state.
+creadTK can't parse Bool? [cxl/crimson, 21.09.01]
+  resources/GUIValue.hs falls over when parsing a Bool. Or it tries to
+  parse Bools as something else: 
+     do v<- (createTkVariable True):: IO (TkVariable Bool)
+        readTkVariable v
+   leads to "NO PARSE: True".
   
 Font parsing [ludi, 17.08.01] 
  In resources/Font.hs, in the class instantiation of XFont for Read,
@@ -20,3 +22,15 @@ Font parsing [ludi, 17.08.01]
  widgets where the font is not specified explicitly-- 
  see examples/MainmarkupTextEx.hs
 
+
+
+
+---------------------------------------------------------------------------
+
+Fixed bugs:
+
+Text Editors become enabled [mclee, 14.09.01]
+  Inserting markup text into a text editor leaves it enabled. The
+  insert markup function should leave the text editor in its
+  previous state.
+Fixed - ludi/cxl, 20.09.01
