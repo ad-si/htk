@@ -5,9 +5,14 @@ import Char
 
 import HTk(withdrawWish)
 import SimpleForm
+import qualified Configuration
 
-data Colour = Red | Orange | Yellow | Green | Blue | Indigo | Violet
+data Colour = Red | Orange | Yellow | Green | Blue | Violet
+-- Indigo not a valid colour name!
    deriving (Bounded,Enum,Show)
+
+instance HasConfigRadioButton Colour where
+   configRadioButton colour = Configuration.background (show colour)
 
 main =
 -- Name/Address/E-mail/Age parser
@@ -39,7 +44,8 @@ main =
             newFormEntry "Address2" "" //
             email //
             newFormEntry "Age" (0::Int) //
-            colour
+            colour //
+            newFormEntry "British Subject" False
 
       valueOpt <- doForm "Simple Form Test 1" form
       putStrLn (show valueOpt)

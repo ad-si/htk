@@ -7,6 +7,7 @@
 module Main(main) where
 
 import IO
+import WBFiles
 
 output :: Handle -> IO ()
 output handle =
@@ -23,5 +24,6 @@ output handle =
 
 main =
    do
-      handle <- openFile "/tmp/uniform.DEBUG" ReadMode
+      debugFileName <- getDebugFileName
+      handle <- openFile debugFileName ReadMode
       output handle

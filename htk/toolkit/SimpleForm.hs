@@ -421,4 +421,24 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
                destroyAction = done
                }
          return enteredForm
- 
+
+-- -------------------------------------------------------------------------
+-- Instance #3 - Check buttons a.k.a. Bools.
+-- -------------------------------------------------------------------------
+
+instance FormValue Bool where
+   makeFormEntry frame b =
+      do
+         boolVar <- createTkVariable b
+         checkButton <- newCheckButton frame [variable boolVar]
+         let
+            enteredForm = EnteredForm {
+               packAction = pack checkButton [Side AtLeft],
+               getFormValue = (
+                  do
+                     bool <- readTkVariable boolVar
+                     return (Right bool)
+                  ),
+               destroyAction = done
+               }
+         return enteredForm

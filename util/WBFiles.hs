@@ -82,6 +82,9 @@ module WBFiles (
    -- from their arguments, if any.
    getBackupDir, -- IO String
    getWorkingDir, -- :: IO String
+
+   -- getDebugFileName returns the name of the debug file.
+   getDebugFileName, -- IO String
  
    -- values for which we don't are:
    getDaVinciIcons, -- :: IO (Maybe String)
@@ -151,7 +154,6 @@ import qualified Addr
 import qualified CString
 
 import FileNames
-import Computation(done)
 
 ------------------------------------------------------------------------
 -- Specific access functions.
@@ -194,6 +196,9 @@ getWorkingDir =
    do
       workingDir' <- valOf (getArgString "workingDir")
       return (trimDir workingDir')
+
+getDebugFileName :: IO String
+getDebugFileName = valOf (getArgString "debug")
 
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
@@ -288,7 +293,14 @@ usualProgramArguments = [
       optionHelp = "port for the server",
       defaultVal = Just (IntValue 11393),
       argType = INT
-      }]
+      },
+   ProgramArgument{
+      optionName = "debug",
+      optionHelp = "file for debug output",
+      defaultVal = Just (StringValue "/tmp/uniform.DEBUG"),
+      argType = STRING
+      }
+   ]
 
 
 ------------------------------------------------------------------------
@@ -478,7 +490,7 @@ parseTheseArgumentsRequiring arguments required =
                   parseTheseArgumentsRequiring' arguments required
                putMVar mVar (Just newMap)
                case result of
-                  Nothing -> done
+                  Nothing -> return ()
                   Just exitCode -> exitWith exitCode
 
 
@@ -551,7 +563,7 @@ parseTheseArgumentsRequiring' arguments required =
                                           printToErr ("Option '"++option++
                                              "' not recognised")
                                     else
-                                       done
+                                       return ()
                                  return (newExit (ExitFailure 4),prevMap)
                            Just arg -> 
                               tryToAddValue (argType arg) option value prev

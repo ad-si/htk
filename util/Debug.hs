@@ -34,11 +34,18 @@ import qualified Concurrent
 import Dynamic
 import Exception
 
-debugFile :: Maybe Handle
-debugFile = 
-   IOExts.unsafePerformIO 
-     (IO.catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
-            (\_-> return Nothing))
+import WBFiles
+
+openDebugFile :: IO (Maybe Handle)
+openDebugFile =
+   do
+      debugFileName <- getDebugFileName
+      IO.catch 
+         (openFile debugFileName WriteMode >>= return . Just)
+         (\ _-> return Nothing)
+
+debugFile = IOExts.unsafePerformIO openDebugFile
+{-# NOINLINE debugFile #-} 
 
 #ifdef DEBUG
 debug :: Show a => a -> IO()
