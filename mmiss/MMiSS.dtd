@@ -240,7 +240,7 @@
                   %attributes;>
 <?MMiSSDisplay bibEntry : yellow ellipse ?>
 
-<!ELEMENT list  (listitem)+>
+<!ELEMENT list  (listItem)+>
 <!ATTLIST list  %label-matter;
                 type  (itemize | enumeration)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
@@ -248,7 +248,7 @@
 <?MMiSSDisplay list : green ellipse ?>
 
 
-<!ELEMENT listitem  (list | %atom;)>
+<!ELEMENT listItem  (list | %atom;)>
 <!ATTLIST glossaryEntry %label-matter;
                         %title-matter;
                         %attributes;>
