@@ -22,7 +22,6 @@ import Keyboard
 
 main = do
         htk<- htk []
-	setLogFile(Just stdout)
 
         f   <- newVBox []        
 	win <- window f [text "My third HTk Program"]

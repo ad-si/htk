@@ -47,11 +47,11 @@ main =
                                 (lab3 # bg "green") >> done)))
     buttons <- newHBox [parent main]
     destr1 <- newButton [width 30, text "destroy label 1", parent buttons,
-                         command (\ () -> destroy lab1)]
+    	                 command (\ ()-> return ())]
     destr2 <- newButton [width 30, text "destroy label 2", parent buttons,
                          command (\ () -> destroy lab2)]
     destr3 <- newButton [width 30, text "destroy label 3", parent buttons,
                          command (\ () -> destroy lab3)]
-    interactor (\i -> triggered destr1 +> triggered destr2 +> triggered destr3)
+    interactor (\i -> triggered destr1 >>> destroy lab1 +> triggered destr2 +> triggered destr3)
     sync(destroyed win)
     shutdown
