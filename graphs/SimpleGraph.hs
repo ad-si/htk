@@ -36,8 +36,8 @@ module SimpleGraph(
 
 import List(delete)
 
-import Concurrent
-import Exception(try)
+import Control.Concurrent
+import Control.Exception(try)
 
 import Debug(debug)
 import Computation (done)
@@ -332,7 +332,7 @@ applyUpdate graph update proceedFn =
                   if proceedFn clientData
                      then
                         do
-                           result <- Exception.try 
+                           result <- Control.Exception.try 
                               (clientSink clientData update) 
                            case result of
                               Left exception ->

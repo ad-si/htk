@@ -11,12 +11,10 @@ module DisplayView(
 
 import Maybe
 
-import Chan
-import IOExts
-import FiniteMap
-import Concurrent
-import CompileFlags
+import Data.FiniteMap
+import Control.Concurrent.MVar
 
+import CompileFlags
 import Dynamics
 import ExtendedPrelude(mapEq,mapOrd)
 import Registry

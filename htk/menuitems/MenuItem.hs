@@ -130,6 +130,7 @@ createMenuItem menu@(Menu _ r) kind wrap ol =
 -- -----------------------------------------------------------------------
 
 -- | Internal.
+menuItemMethods :: Methods
 menuItemMethods = Methods tkGetMenuItemConfig
                           tkSetMenuItemConfigs
                           tkCreateMenuItem

@@ -126,6 +126,7 @@ workerThread multiServer =
 getPortNumber :: MultiServer -> IO PortNumber
 getPortNumber multiServer = Network.Socket.socketPort (socket multiServer)
 
+waitForClient :: MultiServer -> MultiServerKey -> IO () -> IO Handle
 waitForClient multiServer multiServerKey action =
    do
       mVar <- newEmptyMVar

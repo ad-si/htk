@@ -41,10 +41,11 @@ import IO
 
 import qualified Control.Exception
 import Network(PortNumber)
-import Concurrent
-import qualified IOExts(unsafePerformIO)
+import Control.Concurrent.MVar
+import System.IO.Unsafe
 
 import Object
+import Thread(forkIO)
 import Debug(debugString)
 import Computation
 import WBFiles
@@ -248,14 +249,14 @@ quoteEmacsString str = "\""++emacsEscape str++"\""
 -- ------------------------------------------------------------------------
 
 emacsMultiServerPort :: PortNumber
-emacsMultiServerPort = IOExts.unsafePerformIO getEmacsMultiServerPort
+emacsMultiServerPort = unsafePerformIO getEmacsMultiServerPort
 {-# NOINLINE emacsMultiServerPort #-}
 
 getEmacsMultiServerPort :: IO PortNumber
 getEmacsMultiServerPort = getPortNumber emacsMultiServer
 
 emacsMultiServer :: MultiServer
-emacsMultiServer = IOExts.unsafePerformIO initialiseEmacsBasic
+emacsMultiServer = unsafePerformIO initialiseEmacsBasic
 {-# NOINLINE emacsMultiServer #-}
 
 -- Start the multi-server and tell Emacs to load the required library.

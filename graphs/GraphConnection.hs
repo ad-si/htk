@@ -20,8 +20,8 @@ module GraphConnection(
 
 import Monad(filterM)
 
-import Set
-import Concurrent
+import Data.Set
+import Control.Concurrent
 
 import Computation (done)
 

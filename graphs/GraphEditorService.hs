@@ -29,11 +29,12 @@ data FrozenGraph2 = FrozenGraph2 {
    nameSource2 :: FrozenNameSource
    } deriving (Read,Show) -- used for backups.
 
+graphEditorServiceWrapped :: Service
 graphEditorServiceWrapped = Service graphEditorService
 
-graphEditorService = serviceArg :: 
-   (ReadShow DisplayableUpdate,ReadShow DisplayableUpdate,
+graphEditorService :: (ReadShow DisplayableUpdate,ReadShow DisplayableUpdate,
       Displayable SimpleGraph)
+graphEditorService = serviceArg 
 
 instance ServiceClass 
    (ReadShow DisplayableUpdate) (ReadShow DisplayableUpdate) 

@@ -23,8 +23,8 @@ module LinkDrawer(
       -- get an ArcData's destination.
    ) where
 
-import Concurrent
-import IOExts
+import Control.Concurrent.MVar
+import Data.IORef
 
 import Object
 import Computation

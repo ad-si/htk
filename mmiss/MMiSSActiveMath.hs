@@ -7,8 +7,8 @@ import Maybe
 import Directory
 import Char
 
-import IOExts (unsafePerformIO)
-import MVar
+import System.IO.Unsafe
+import Control.Concurrent.MVar
 
 import WBFiles
 import FileNames

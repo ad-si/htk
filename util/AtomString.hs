@@ -118,6 +118,7 @@ fromStringWEHacked str =
          )
       return (toWithError either)
 
+fromStringError :: String -> a
 fromStringError mess = throwDyn (FromStringExcep mess)
             
 newtype FromStringExcep = FromStringExcep String deriving (Typeable)

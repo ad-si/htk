@@ -39,19 +39,19 @@ module FileNames(
 
 import CompileFlags
 
+
 $(
    if isWindows
       then
          [d|
-            fileSep :: Char
             fileSep = '\\'
          |]
       else
          [d|
-            fileSep :: Char
             fileSep = '/'
          |]
    )
+fileSep :: Char
 
 topDir :: String
 topDir = [fileSep]

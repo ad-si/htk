@@ -337,6 +337,8 @@ commit repository versionInformation redirects newStuff0 =
          _ -> dbError ("Commit error: unexpected response")
 
 
+
+modifyUserInfo :: Repository -> UserInfo -> IO ()
 modifyUserInfo repository userInfo =
    do
       response 
@@ -411,6 +413,7 @@ unpackError s r = dbError ("Expecting " ++ s ++ ": " ++
 
 
 -- miscellaneous errors
+catchDBError :: IO a -> IO (Either String a)
 (dbFallOutId,catchDBError) = mkdbFallOut
 
 catchDBErrorWE :: IO a -> IO (WithError a)

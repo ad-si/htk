@@ -27,7 +27,7 @@ import IO
 
 import Computation
 
-import Concurrent
+import Control.Concurrent
 
 data NameSource = NameSource {
    nameSourceId :: [Int],

@@ -102,6 +102,7 @@ coordToGeo _ = raise (userError "illegal geometry specification")
 --  canvas item methods
 -- -----------------------------------------------------------------------
 
+canvasitemMethods :: Methods
 canvasitemMethods = Methods tkGetCanvasItemConfig
                             tkSetCanvasItemConfigs
                             tkCreateCanvasItem

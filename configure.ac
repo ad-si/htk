@@ -158,7 +158,9 @@ AC_ARG_WITH(
 # Try to guess from GHC's installation directory.
 echo $GHCHTML $GHC
 if test -z "$GHCHTML" -a -n "$GHC"; then
-   GHCHTML=`$GHC --print-libdir | sed -e 's+/lib/\([^/]*\)$+/share/\1+g'`/html
+   # The funny things bracketted by @ signs are
+   # "Quadrigraphs" which autoconf translates to square brackets.
+   GHCHTML=`$GHC --print-libdir | sed -e 's+/lib/\(@<:@^/@:>@*\)$+/share/\1+g'`/html
 fi
 
 if test -r $GHCHTML/libraries/base/base.haddock

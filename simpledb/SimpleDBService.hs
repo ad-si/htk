@@ -28,7 +28,10 @@ mkSimpleDBServices =
       return [Service simpleDBService,toVersionInfoServiceWrapped versionState]
 
 
-simpleDBService = serviceArg :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
+simpleDBService :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
+simpleDBService = serviceArg 
+
+simpleDBServiceWrapped :: Service
 simpleDBServiceWrapped = Service simpleDBService 
 
 

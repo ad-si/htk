@@ -160,6 +160,8 @@ newtype PostMerge = PostMerge (IO ()) -- abstract type
 newPostMerge :: IO () -> PostMerge
 newPostMerge action = PostMerge action
 
+
+doPostMerge :: PostMerge -> IO ()
 doPostMerge (PostMerge action) = action
 
 data WrappedMergeLink = forall object .

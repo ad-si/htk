@@ -851,13 +851,12 @@ $(
    if  isWindows
       then
         [d|
-           getWindowsTick :: IO Int
            getWindowsTick = valOf (getArgInt "windowsTick")
         |]
       else
          [d|
-            getWindowsTick :: IO Int
             getWindowsTick = error "getWindowsTick does not exist"
          |]
   )
+getWindowsTick :: IO Int
 

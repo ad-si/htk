@@ -16,6 +16,7 @@ import Folders
 import GlobalRegistry
 import DisplayParms
 
+registerMMiSSSubFolder :: IO ()
 registerMMiSSSubFolder = registerExtraFolderType mmissSubFolderType
    
 

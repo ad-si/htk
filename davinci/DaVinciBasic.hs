@@ -50,13 +50,11 @@ module DaVinciBasic(
    
    ) where
 
-import qualified IOExts(unsafePerformIO)
-import Concurrent
-import ByteArray
-import CString
-import System.Posix.Env as Posix
+import System.IO.Unsafe
+import Control.Concurrent.MVar
+import Foreign.C.String
+import System.Posix.Env
 import Data.IORef
-import Thread(forkIODebug)
 
 import Object
 import Computation
@@ -105,7 +103,7 @@ data DaVinci = DaVinci {
    }
 
 daVinci :: DaVinci
-daVinci = IOExts.unsafePerformIO newDaVinci
+daVinci = unsafePerformIO newDaVinci
 {-# NOINLINE daVinci #-}
 
 challengeResponsePair :: (String,String)
@@ -127,7 +125,7 @@ newDaVinci =
                   return (FileNames.trimDir top ++ "/database/icons")
             Just daVinciIcons -> return daVinciIcons
 
-      existingEnv <- Posix.getEnvironment
+      existingEnv <- System.Posix.Env.getEnvironment
 
       let 
          configs = [

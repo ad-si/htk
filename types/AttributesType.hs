@@ -35,7 +35,9 @@ module AttributesType(
 
 import Maybe
 
-import IOExts
+import System.IO.Unsafe
+import Data.IORef
+
 import ExtendedPrelude
 
 import Dynamics
@@ -270,7 +272,7 @@ instance HasAttributeTypeKey Bool where
 -- of this type.
 attributeTypeKeyRegistry :: Registry AttributeTypeKey 
    (Attributes -> AttributeKey -> IO (Form (IO ())))
-attributeTypeKeyRegistry = IOExts.unsafePerformIO newRegistry
+attributeTypeKeyRegistry = unsafePerformIO newRegistry
 {-# NOINLINE attributeTypeKeyRegistry #-}
 
 -- | This must be done for every attribute value type at the start 
