@@ -1,0 +1,167 @@
+% 
+% This version of the famous AlgSpec test case includes a test for
+% MMiSS sub-folders.
+\documentclass[landscape, slides, light]{mmiss}
+
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{casl}
+
+\newcommand{\gram}[1]{{\texttt{#1}}}
+\newcommand{\power}{\hat{\ }}
+\newcommand{\annoimplies}{\%{\bf implies}\ }
+\newcommand{\annodef}{\%{\bf def}\ }
+\newcommand{\annocons}{\%{\bf conservatively}\ }
+\newcommand{\annoprec}{\%{\bf prec}\ }
+\newcommand{\annorassoc}{\%{\bf right\ assoc}\ }
+\newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
+\newcommand{\annobrackets}{{\bf brackets}\ }
+\newcommand{\Nat}{\mbox{$\mathbb N$}} % this requires amssymb
+\def\ShortAuthor{C.~L\"uth, M.~Roggenbach}
+\def\ShortTitle{Algebraic Specification}
+\def\Title{Formal Program Development with Algebraic Specifications}
+
+
+\begin{document}
+\begin{Package}[Label=AlgSpec, 
+Title={Formal Program Development with Algebraic Specifications},
+Date=12.09.2002,
+Authors={Christoph Lüth, Markus Roggenbach},
+PriorAuthors={Markus Roggenbach, Michael Drouineaud},
+ShortAuthor={C.~Lüth, M.~Roggenbach},
+ShortTitle={Algebraic Specification},
+Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
+
+\begin{Section}[Label={Sec1/IntroAlgSpec}, Title={Signatures, Terms and Algebras}]
+
+\begin{Abstract}[Label={Sec1/Abstract}, Title=Overview]
+This section will introduce the basic mathematics of algebraic
+specifications, namely:
+\begin{Enumerate}
+  \Item \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
+  \Item and \Emphasis{algebras} give us the semantics.
+\end{Enumerate}  
+\end{Abstract}
+
+\begin{Introduction}[Label={Sec1/Intro}, Title={Why Formal Specification?}]
+\begin{Itemize}
+\Item
+formal specifications are \Emphasis{precise}  \\
+(non formal and sometimes even semi formal \\
+specifications are open to re-interpretation)\pause
+\Item
+syntactical and semantical \Emphasis{correctness} \\ 
+independent of tools 
+\pause
+\Item{}
+\Emphasis{mathematical methods} \\
+(consistency, completeness)
+\end{Itemize}
+\end{Introduction}
+
+
+\begin{Paragraph}[Label={Sec1/Signatures}, Title=Signatures]
+Signatures allow us to define operations.
+\vspace{1cm}
+
+\begin{Definition}[Label={Sec1/DefSignature}, Title=Signature]
+A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
+\begin{Itemize}
+    \Item a set $S$ of \Emphasis{sorts}, and 
+    \Item a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
+  \end{Itemize}
+\end{Definition}
+
+An operation $\omega\in\Omega_{w,s}$ with $w=s_1\ldots s_n$ has
+argument sorts $s_1,\ldots,s_n$ and target sort $s$, also written
+$\omega:s_1\ldots s_n\rightarrow s$.
+\end{Paragraph}
+
+\begin{Paragraph}[Label=Algebra, Title=Algebra]
+
+Algebras are models of \Link[signatures]{Definition}{DefSignature}.
+\vspace{1cm}
+\begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
+  An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
+  $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
+  \begin{Itemize}
+    \Item
+    for each sort $s\in S$, a \Emphasis{carrier set} 
+    $A_s\in S_A$;
+    \Item
+    for each operation $\omega:s_1\ldots s_n\rightarrow s$, an
+    operation $\omega_A:A_{s1}\ldots A_{sn}\rightarrow A_s$.
+  \end{Itemize}
+\end{Definition}
+\end{Paragraph}
+
+
+\begin{Paragraph}[Label=Terms, Title={Terms over a Set}]
+Let $\Sigma=(S, \Omega)$ be a \Link[signature]{Definition}{DefSignature}.
+
+An \Emphasis{$S$-sorted set of variables} is given by $X=
+\{X_s\}_{s\in S}$.
+
+Intuitively: terms are the smallest set containing the variables which
+is closed under application of operations.
+\vspace{1cm}
+
+\begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
+Terms form an \Link[algebra]{Definition}{DefAlgebra}.  
+\end{Lemma}
+
+\end{Paragraph}
+
+\begin{Paragraph}[Label=Example, Title=A Simple Example]
+
+An Example (in CASL): the natural numbers.
+
+%% \IncludeProgramFragment{CASL_Nats}{}
+\begin{ProgramFragment}[Formalism=CASL_Spec, Label=CASL_Nats, Title={Natural Numbers}]
+\begin{SpecDefn}{Nat} =
+\I{}
+\begin{Items}
+\I\Free\Types \
+\(\[
+Nat & \ ::= & \ 0 \, |  \, \Sort \ Pos; \\
+Pos & \ ::= & \ suc(pre:Nat)
+\]\)
+\end{Items}
+\I\End
+\end{SpecDefn}
+\end{ProgramFragment}
+
+Note how $(\Nat, 0, +)$ form an \Link[algebra]{Definition}{DefAlgebra}.
+\end{Paragraph}
+
+\begin{Summary}[Label=Summary, Title={Summing Up}]
+In this section, we have encountered the following concepts:
+\begin{Itemize}
+\Item
+\emph{Signatures} allow to declare sorts and operations;
+\Item
+\emph{Terms} are build over signatures;
+\Item
+\emph{Algebras} give a semantics to signatures.
+\Item
+Further, we have seen how to specify natural numbers in the algebraic
+specification language CASL.
+\end{Itemize}
+\end{Summary}
+\end{Section}
+\end{Package}
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

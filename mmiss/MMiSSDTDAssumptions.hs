@@ -1,6 +1,9 @@
 {- In this module we collect the various assumptions the Haskell code makes
    about the MMiSS DTD, which are not explicitly read from it. 
 
+   MMiSSElementInfo.hs contains code specific to processing and changing
+      labels, paths, and so on.
+
    See also MMiSSBundleDissect.hs.  But hopefully that is less dependent on 
    the DTD itself. 
    -}
@@ -31,12 +34,6 @@ module MMiSSDTDAssumptions(
 
    getLabel, -- :: Element -> WithError EntitySearchName
       -- Get an Element's label.
-   setLabel, -- :: Element -> EntitySearchName -> Element
-      -- Set an Element's label. 
-   delLabel, -- :: Element -> Element
-      -- Delete an Element's label.
-   getPackagePath,
-      -- :: Element -> WithError EntityFullName
 
    getPackageId, -- :: Element -> Maybe PackageId
       -- Get an Element's packageId, if any.
@@ -318,6 +315,8 @@ getLabel (elem @ (Elem name _ _)) =
          Just labelStr -> fromStringWE labelStr
 
 -- | Set an Element's label.
+-- NB.  Now obsolete and dangerous.  Use MMiSSElementInfo.changeLabel
+-- to change the label properly, also changing the packagePath.
 setLabel :: Element -> EntitySearchName -> Element
 setLabel elem entitySearchName =
    setAtt "label" elem (toString entitySearchName)
@@ -365,7 +364,7 @@ getFiles1 :: Element -> [String]
 getFiles1 elem
    = case getAtt "files" elem of
       Nothing -> []
-      Just files -> splitByChar '.' files
+      Just files -> splitByChar ',' files
 
 getPriority :: Element -> String
 getPriority (Elem _ attributes _) 

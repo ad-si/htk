@@ -365,8 +365,7 @@ validateBundle6 = checkAllNodes checkDTD
                                        [] -> done
                                        errors ->
                                           err bundleNode1
-                                             ("Variant " 
-                                                ++ describeVariants 
+                                             (  describeVariants 
                                                    variantSpecOpt
                                                 ++ " has errors:\n"
                                                 ++ unlines errors
@@ -483,7 +482,12 @@ describeVariants :: Maybe MMiSSVariantSpec -> String
 describeVariants variantOpt =
    case variantOpt of
       Nothing -> "Text"
-      Just variantSpec -> "Variant " ++ show variantSpec
+      Just variantSpec ->
+         if variantSpec == emptyMMiSSVariantSpec
+            then
+               "Variant with no attributes"
+            else
+               "Variant " ++ show variantSpec
 
 err :: BundleNode -> String -> WithError a
 err node str = fail ("Error for " ++ describeFileLoc (fileLoc node) 

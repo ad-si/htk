@@ -5,6 +5,8 @@
 module MMiSSElementInfo(
    ElementInfo(..),
    emptyElementInfo, -- :: ElementInfo 
+   changeLabel, -- :: Element -> EntitySearchName -> WithError Element
+      -- Change an Element's label.
    getElementInfo, -- :: Element -> WithError (ElementInfo,Element)
       -- extract an Element's ElementInfo, and return the Element without
       -- that ElementInfo.
@@ -118,8 +120,28 @@ setElementInfoStrict element0 elInfo0 =
       elInfo2 <- mergeElementInfoStrict elInfo0 elInfo1
       let
          elInfo3 = stripUnnecessaryPackagePath elInfo2
-      return (prependElementInfo elInfo3 element1)
-   where
+         element4 = prependElementInfo elInfo3 element1
+
+      return element4
+
+changeLabel :: Element -> EntitySearchName -> WithError Element
+changeLabel element0 name =
+   do
+      (elInfo1,element1) <- getElementInfo element0
+
+      let
+         elInfo2 = elInfo1 {
+            packagePathOpt1 = packagePathOpt elInfo1,
+            labelOpt = Just name
+            }
+
+         elInfo3 = stripUnnecessaryPackagePath elInfo2
+
+         element4 = prependElementInfo elInfo3 element1
+
+      return element4
+            
+         
 
 mergeElementInfoStrict :: ElementInfo -> ElementInfo -> WithError ElementInfo
 mergeElementInfoStrict elementInfo1 elementInfo2 =

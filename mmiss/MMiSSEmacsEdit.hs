@@ -64,6 +64,7 @@ import MMiSSReadObject
 import MMiSSReAssemble
 import MMiSSPreamble
 import MMiSSPackageFolder
+import MMiSSElementInfo(changeLabel)
 import {-# SOURCE #-} MMiSSExportFiles
 
 
@@ -330,11 +331,13 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                              Nothing -> return Nothing
                              Just element1 ->
                                 let
-                                   element2 = setLabel element1 searchName0
-
                                    contentWE :: WithError 
                                       (EmacsContent (TypedName,[Attribute]))
-                                   contentWE = toEdit name element2
+                                   contentWE =
+                                      do
+                                         element2 
+                                            <- changeLabel element1 searchName0
+                                         toEdit name element2
                                 in                   
                                    case fromWithError contentWE of
                                       Left mess ->
@@ -343,14 +346,14 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                                ("Commit of " ++ name 
                                                   ++ " successful, but "
                                                   ++ "attempt to recompute "
-                                                  ++ "magic buttons failed:\n"
+                                                  ++ "magic buttons "
+                                                  ++ "failed:\n"
                                                   ++ mess)
                                             return Nothing
                                       Right content0 ->
                                          do
                                             content1 <- mapContent content0
                                             return (Just content1)
-
 
                           
                           setFontStyle (nodeActions object) 

@@ -1,13 +1,13 @@
 \documentclass[slide]{mmiss}
-\Path{WADT02}{Parent.WADT02}
-\Path{AlgSpec}{Parent.AlgSpec}
+\Path{WADT02}{Parent/WADT02}
+\Path{AlgSpec}{Parent/AlgSpec}
 \Import[Qualified]{WADT02}
 \Import[Global,Rename{AlgSpecAbstract=Abstract},Hide{AlgSpec}]{AlgSpec}
-\Import[]{Parent.ImportsTest2}
+\Import[]{Parent/ImportsTest2}
 \begin{document}
 \begin{Package}[Label={ImportsTest}]
-\IncludeSection{WADT02.Abstract}{status=present}  
-% \IncludeSection{AlgSpec.Intro}{status=present}
+\IncludeSection{WADT02/Abstract}{status=present}  
+% \IncludeSection{AlgSpec/Intro}{status=present}
 \end{Package}
 \end{document}
 

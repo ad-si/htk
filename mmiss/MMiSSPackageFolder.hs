@@ -558,21 +558,36 @@ instance HasBundleNodeWrite MMiSSPackageFolder where
    bundleNodeWrite1 view bundleNodeLocations thisLocation node 
          packageFolderLink =
       do
-         linkedObjectWE <- newLinkedPackageObject view 
-            (WrappedLink packageFolderLink) Nothing
-         linkedObject <- coerceImportExportIO linkedObjectWE
+         isNew <- isEmptyLink view packageFolderLink
+         if isNew
+            then
+               do
+                  linkedObjectWE <- newLinkedPackageObject view 
+                     (WrappedLink packageFolderLink) Nothing
+                  linkedObject <- coerceImportExportIO linkedObjectWE
 
-         let
-            preambleLocation = preambleEntityName : thisLocation
-            Just bundleNodeExtraData 
-               = lookupFM (fm bundleNodeLocations) preambleLocation
-            preambleWrappedLink = location bundleNodeExtraData
-            Just preambleLink = unpackWrappedLink preambleWrappedLink
+                  let
+                     preambleLocation = preambleEntityName : thisLocation
 
-         (packageFolder,postMerge) 
-            <- createMMiSSPackageFolder view linkedObject preambleLink
-         writeLink view packageFolderLink packageFolder
-         return (doPostMerge postMerge)
+                  bundleNodeExtraData 
+                     <- case lookupFM (fm bundleNodeLocations) 
+                           preambleLocation of
+                        Just bundleNodeExtraData 
+                           -> return bundleNodeExtraData
+                        Nothing -> 
+                           importExportError
+                              "New package folder has no preamble"
+
+                  let
+                     preambleWrappedLink = location bundleNodeExtraData
+                     Just preambleLink = unpackWrappedLink preambleWrappedLink
+
+                  (packageFolder,postMerge) 
+                     <- createMMiSSPackageFolder view linkedObject preambleLink
+                  writeLink view packageFolderLink packageFolder
+                  return (doPostMerge postMerge)
+            else
+               return done
 
 -- ------------------------------------------------------------------------
 -- The global registry (currently unused)

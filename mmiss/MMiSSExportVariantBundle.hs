@@ -46,23 +46,17 @@ import MMiSSPackageFolder
 exportLinkedObjectVariant 
    :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch -> IO Bundle
 exportLinkedObjectVariant view linkedObject exportOpts variantSearch =
-   do
-      packageId <- mkPackageId view linkedObject
-      let
-         wrapBundleNode bundleNode =
-            do
-               packageId <- mkPackageId view linkedObject
-               return (Bundle [(packageId,bundleNode)])
-      case splitLinkedObject linkedObject of
-         MMiSSFileC fileLink -> 
-            exportMMiSSFileVariant view fileLink exportOpts variantSearch
-         MMiSSObjectC objectLink ->
-            exportMMiSSObjectVariant view objectLink exportOpts variantSearch
-         _ ->     
-            do
-               errorMess ("Unable to extract " ++ packageIdStr packageId)
-               bundleNode <- getUnknownBundleNode view linkedObject
-               wrapBundleNode bundleNode
+   case splitLinkedObject linkedObject of
+      MMiSSFileC fileLink -> 
+         exportMMiSSFileVariant view fileLink exportOpts variantSearch
+      MMiSSObjectC objectLink ->
+         exportMMiSSObjectVariant view objectLink exportOpts variantSearch
+      _ ->     
+         do
+            packageId <- mkPackageId view linkedObject
+            errorMess ("Unable to extract " ++ packageIdStr packageId)
+            bundleNode <- getUnknownBundleNode view linkedObject
+            return (Bundle [(packageId,bundleNode)])
 
 
 -- --------------------------------------------------------------------------

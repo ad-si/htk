@@ -15,6 +15,7 @@ import Text.XML.HaXml.Types
 import MMiSSDTDAssumptions
 import MMiSSVariant
 import MMiSSDTD(toExportableXml) -- DEBUG
+import MMiSSElementInfo(changeLabel)
 
 ---
 -- The first action function is to extract the Element and is allowed to 
@@ -87,7 +88,8 @@ reAssemble
                            FromAbsolute fullName -> FromHere fullName
                            _ -> searchName
 
-                        element1 = setLabel element0 searchName2
+                     element1 <- monadifyWithError (
+                        changeLabel element0 searchName2)
 
                      element2 <- reAssembleElement variantSearch0 
                         searchData1 element1

@@ -26,6 +26,7 @@ import Text.XML.HaXml.Types
 import LaTeXParser(MMiSSExtraPreambleData(..))
 
 import MMiSSVariant
+import MMiSSDTDAssumptions
 import MMiSSPreamble
 import MMiSSVariantObject
 import MMiSSObjectTypeType
@@ -33,6 +34,7 @@ import MMiSSObjectType
 import MMiSSObjectTypeInstance
 import MMiSSReAssemble
 import MMiSSPackageFolder
+import MMiSSBundleUtils
 
 import {-# SOURCE #-} MMiSSExportFiles
 
@@ -106,13 +108,13 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                -> IO (WithError (Maybe (Element,(MMiSSPackageFolder,IntPlus))))
             getElement0 entitySearchName variantSearch (_,0) 
                = return (hasValue Nothing)
-            getElement0 entitySearchName variantSearch (packageFolder,depth) =
+            getElement0 entitySearchName variantSearch (packageFolder0,depth) =
                addFallOutWE (\ break ->
                   do
                      let
                         hackBreak = break . hackMess
 
-                     linkOptWE <- lookupMMiSSObject view packageFolder 
+                     linkOptWE <- lookupMMiSSObject view packageFolder0 
                         entitySearchName
 
                      link <- case fromWithError linkOptWE of
@@ -127,18 +129,23 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                      (cache,object)
                         <- coerceWithErrorOrBreakIO hackBreak objectDataWE
 
-                     packageFolderWE <- getMMiSSPackageFolder view
+                     packageFolder1WE <- getMMiSSPackageFolder view
                         (toLinkedObject object) 
-                     packageFolder 
-                        <- coerceWithErrorOrBreakIO break packageFolderWE
+                     packageFolder1 
+                        <- coerceWithErrorOrBreakIO break packageFolder1WE
 
                      modifyMVar_ packageFoldersMVar 
                         (\ packageFolders 
-                           -> return (packageFolder : packageFolders)
+                           -> return (packageFolder1 : packageFolders)
                            )
 
-                     return (Just (cacheElement cache,
-                        (packageFolder,depth - 1)))
+                     let
+                        element0 = cacheElement cache
+
+                     element1 <- setPackageIdFromFolder 
+                        view (Just packageFolder0) packageFolder1 element0
+
+                     return (Just (element1,(packageFolder1,depth - 1)))
                   )
 
 
@@ -173,7 +180,17 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          elementWE <- reAssembleNoRecursion getElement doFile searchName
             thisVariantSearch (packageFolder,depth0)
 
-         element <- coerceWithErrorOrBreakIO break elementWE
+         element0 <- coerceWithErrorOrBreakIO break elementWE
+
+         -- The top element in element0 won't have a packageId if it
+         -- came from packageFolder, but we put one in anyway, even though
+         -- that may well be unnecessary.
+         element1 <- case getPackageId element0 of
+            Nothing ->
+               do
+                  packageId <- mkPackageId view (toLinkedObject packageFolder)
+                  return (setPackageId element0 packageId)
+            Just _ -> return element0
 
          packageFolders1 <- takeMVar packageFoldersMVar
          let
@@ -183,7 +200,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                   packageFolders1
 
          exportFiles <- takeMVar exportFilesMVar
-         return (element,packageFolders,exportFiles)
+         return (element1,packageFolders,exportFiles)
       )
          
 ---
@@ -208,3 +225,16 @@ hackWithError a enable aWE = case fromWithError aWE of
 
 hackMess :: String -> String
 hackMess = ( '\0' :)
+
+setPackageIdFromFolder 
+   :: View -> Maybe MMiSSPackageFolder -> MMiSSPackageFolder -> Element 
+   -> IO Element
+setPackageIdFromFolder view parentPackageFolderOpt thisPackageFolder element0 =
+   if parentPackageFolderOpt == Just thisPackageFolder
+      then
+         return element0
+      else
+         do
+            thisPackageId 
+               <- mkPackageId view (toLinkedObject thisPackageFolder)
+            return (setPackageId element0 thisPackageId)

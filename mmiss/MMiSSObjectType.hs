@@ -223,13 +223,12 @@ converter view linkedObject variantSpec variable =
          (packageFolder,name) <- coerceWithErrorIO packageFolderAndNameWE
 
          let
-            cacheElement1WE = setElementInfoStrict
-               cacheElement0
+            cacheElement1WE = setElementInfoStrict cacheElement0
                (ElementInfo {
                   packageIdOpt = Nothing,
                   packagePathOpt1 = Just name,
                   packageNameOpt = Nothing,
-                  labelOpt = Nothing,
+                  labelOpt = Just (FromHere name),
                   variants = variantSpec
                   })
          cacheElement1 <- case fromWithError cacheElement1WE of
