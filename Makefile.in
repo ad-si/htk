@@ -80,5 +80,8 @@ wwwhere :
 # This needs to be done for Haddock.
 boothere : mk/RemoveSplices
 
+# This forces haddock to generate an index.
+haddockgenindex : haddockreallygenindex
+
 mk/RemoveSplices : mk/MainRemoveSplices.hs
 	$(HC) $< -o $@

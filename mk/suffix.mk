@@ -146,7 +146,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere
+.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere copyhaddocksources haddockgenindex haddockreallygenindex
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -407,16 +407,54 @@ makefilequick :
 # running Haddock
 haddock : haddockhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) haddock && ) echo
+	$(MAKE) haddockgenindex
 
-haddockhere : preparehaddockhere
+haddockhere : preparehaddockhere copyhaddocksources
+ifneq "$(strip $(LIBOBJS))" ""
+# Here follows some revolting shell hackery to set up the following
+# variables.  Supposing uni is installed in /home/spqr/uni;
+# this Makefile is being run in /home/spqr/uni/foo/bar and
+# there is a haddock.interface file in /home/spqr/uni/baz,
+# then
+# PWD=/home/spqr/uni/foo/bar
+# SUFFIX=foo/bar
+# TOPRELATIVE=../.. (so location of top directory relative to this one)
+# HADDOCKINTERFACES=--read-interface=../../baz,/home/spqr/uni/baz/haddock.interface
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`; \
+	TOPRELATIVE=`echo $$SUFFIX | sed -e 's/[^/][^/]*/../g'`; \
+	rm -f haddock.interface; \
+	HADDOCKINTERFACES0=`find $(TOP) -name haddock.interface \
+           -printf "--read-interface=$$TOPRELATIVE/%P,%p "`; \
+	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s/haddock.interface,/,/g` ;\
+        mkdir -p $(TOP)/www/$$SUFFIX; \
+        cd haddock; \
+	haddock -h --package $(PACKAGE) -o $(TOP)/www/$$SUFFIX \
+           -s sources --dump-interface=../haddock.interface \
+	   $$HADDOCKINTERFACES \
+           $(LIBSRCS)
+endif
+
+haddockgenindex:
+# This generates a complete index of everything, but only when
+# this target is made to depend on haddockreallygenindex, whihc
+# only happens in the top Makefile.
+
+haddockreallygenindex:
+	HADDOCKINTERFACES0=`find $(TOP) -name haddock.interface \
+           -printf "--read-interface=%P,%p "`; \
+	HADDOCKINTERFACES=`echo $$HADDOCKINTERFACES0 | sed -e s/haddock.interface,/,/g` ;\
+	haddock -h -o $(TOP)/www \
+	   $$HADDOCKINTERFACES \
+          --gen-index
+
+copyhaddocksources :
 ifneq "$(strip $(LIBOBJS))" ""
 	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`; \
-           mkdir -p $(TOP)/www/$$SUFFIX; \
-           cd haddock; \
-           haddock -h --package $(PACKAGE) -o $(TOP)/www/$$SUFFIX \
-              -s http://uni/$$SUFFIX \
-              $(LIBSRCS)
+           $(foreach src,$(LIBSRCS), \
+	      mkdir -p `dirname $(TOP)/www/$$SUFFIX/sources/$(src)` && \
+	      ln -f $(src) $(TOP)/www/$$SUFFIX/sources/$(src) &&) echo 
 endif
+
 
 # Preparing file for Haddock
 preparehaddock : preparehaddockhere

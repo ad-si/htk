@@ -5,7 +5,7 @@
 -- The strategy is that
 --    (1) we bracket large updates with a delayer, and postpone updates until
 --        the delayer is finished.
---    (2) since a lot of the imports stuff using the util/Sink.parallelExec
+--    (2) since a lot of the imports stuff using "Sink"s 'parallelExec'
 --        mechanism, we acquire a global lock on the parallelExecVSem,
 --        before reporting messages, to assure that all such parallel
 --        actions are completed before we look for messages (or complete).

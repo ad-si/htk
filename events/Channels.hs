@@ -27,7 +27,7 @@
 --    matched by someone else (Anticipated), leave counter as it is.
 -- 3) If finally we have to queue an event, look at counter.  If it
 --    exceeds 10, clean the queue and set counter to 0, otherwise increment it.
--- "cleaning" means removing all items from the front of the queue which
+-- \"cleaning\" means removing all items from the front of the queue which
 -- have flipped toggles.
 module Channels(
    Channel,
