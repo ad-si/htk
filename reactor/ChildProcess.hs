@@ -92,7 +92,7 @@ import ExtendedPrelude
 import ThreadWait
 import SIMClasses
 
-import Debug(debug,(@))
+import Debug(debug,(@:))
 
 -- --------------------------------------------------------------------------
 --  Posix Tool Parameters
