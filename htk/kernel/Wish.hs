@@ -37,7 +37,12 @@ module Wish (
   showP,
 
   tixAvailable, -- :: Bool.  True if we are using tixwish.
-  cleanupWish
+  cleanupWish,
+
+  delayWish, -- :: IO a -> IO a
+     -- delayWish does an action, with the proviso that wish commands
+     -- executed within the action by this or any other thread 
+     -- may be delayed.  This can (allegedly) be faster.
 
 ) where
 
@@ -50,6 +55,7 @@ import Posix
 import Concurrent
 import ByteArray
 import CString
+import Exception
 
 import Debug
 import Object
@@ -61,9 +67,11 @@ import Channels
 import GuardedEvents
 import EqGuard
 import Destructible
+import Synchronized
 
 import FdRead
 import ChildProcess
+import BSem
 
 import ReferenceVariables
 import EventInfo
@@ -74,66 +82,144 @@ import GUIValue
 -- basic execution of Tcl commands
 -- -----------------------------------------------------------------------
 
+---
+-- evalCmd is used for commands which expect an answer,
+-- and calls evalTclScript.
+evalCmd :: TclCmd -> IO String
+evalCmd cmd = evalTclScript [cmd]
+
+---
+-- Used for commands which expect an answer.
 evalTclScript :: TclScript -> IO String
-evalTclScript cmds =
-  do
-    let cmd = concat (map (\s -> s ++ ";") cmds)
-    res <- execSingle cmd
-    return res
-  where execSingle :: TclCmd -> IO String
-        execSingle cmd = do
-                           resp <- evalCmd cmd
-                           case resp of
-                             ER str -> error str
-                             OK str -> return str
-
-execTclScript :: TclScript -> IO ()
-execTclScript cmds = evalTclScript cmds >> done
-
-execCmd :: TclCmd -> IO ()
-execCmd cmd =
-  do
-    resp <- evalCmd cmd
-    case resp of
-      ER str -> error str
-      _ -> done
-
-evalCmd :: TclCmd -> IO TclResponse
-evalCmd cmd =
+evalTclScript script =
    do
+      let buffer = bufferedCommands wish
+      -- (1) look at the buffer, execute the contents, and empty it.
+      bufferContents <- takeMVar buffer
+      case bufferContents of
+         (0,_) -> putMVar buffer (0,[])
+         (n,[]) -> done
+         (n,script) ->
+            do
+               putMVar buffer (n,[])
+               response <- evalCmdInner (reverse script)
+               doResponse response
+               done
+      -- (2) execute the command
+      response <- evalCmdInner script
+      doResponse response
 
-{-
-      putStrLn ("TCL << " ++ cmd)
--}
 
+---
+-- execCmd is used for commands which don't expect an answer
+-- and calls execTclScript
+execCmd :: TclCmd -> IO ()
+execCmd cmd = execTclScript [cmd]
+
+---
+-- Used for commands which do not expect an answer
+execTclScript :: TclScript -> IO ()
+execTclScript script =
+   do
+      let buffer = bufferedCommands wish
+      bufferContents <- takeMVar buffer
+      case bufferContents of
+         (0,_) -> -- just do it
+            do
+               putMVar buffer (0,[])
+               evalCmdInner script
+               done
+         (n,buffered) -> -- don't do it
+            do
+               let
+                  revAppend [] ys = ys
+                  revAppend (x:xs) ys = revAppend xs (x:ys)
+               putMVar buffer (n,revAppend script buffered)
+
+---
+-- delayWish does an action, with the proviso that wish commands
+-- executed within the action by this or any other thread 
+-- may be delayed.  This can (allegedly) be faster.
+delayWish :: IO a -> IO a
+delayWish action =
+   do
+      beginBuffering 
+      tried <- Exception.try action
+      endBuffering
+      propagate tried
+
+---
+-- beginBuffering begins buffering commands (if we aren't already).
+beginBuffering :: IO ()
+beginBuffering =
+   do
+      let buffer = bufferedCommands wish
+      bufferContents <- takeMVar buffer
+      case bufferContents of
+         (n,script) -> putMVar buffer (n+1,script)
+
+---
+-- unbuffercommands undoes a beginBuffering, and flushes the current buffer.
+endBuffering :: IO ()
+endBuffering =
+   do
+      let buffer = bufferedCommands wish
+      bufferContents <- takeMVar buffer
+      case bufferContents of
+         (n,script) ->
+            do
+               response <- evalCmdInner (reverse script)
+               putMVar buffer (n-1,[])
+               doResponse response 
+               done
+
+---
+-- evalCmdInner takes a (possibly empty) TclScript and executes it,
+-- returning a response.  It does not look at the buffer, so should
+-- not be called from outside.      
+evalCmdInner :: TclScript -> IO TclResponse
+evalCmdInner [] = return (OK "")
+evalCmdInner tclScript =
+   do
+      let bl@(barray,len) = prepareCmd tclScript
+      barray `seq` len `seq` evalCmdPrim bl
+
+-- This prepares a command, or sequence of commands, for evalCmdPrim.
+-- The string must be non-empty
+prepareCmd :: TclScript -> (ByteArray Int,Int)
+prepareCmd [] = error "Wish.prepareCmd with an empty argument!"
+prepareCmd script =
+   let
+      scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) script
+      evsString = "evS " ++ escape scriptString ++"\n"
+      packed = CString.packString evsString
+      len = length evsString
+   in
+      (packed,len)
+
+--
+-- This is the most primitive command evaluator and does not
+-- look at the buffer.  So it shouldn't be called from outside.
+evalCmdPrim :: (ByteArray Int,Int) -> IO TclResponse
+evalCmdPrim (barray,len) =
+   do
       let
-         str = "evS "++ escape cmd ++ "\n"
-         -- We go to some trouble to pack the string first,
-         -- as this has the side-effect of meaning it will
-         -- be fully evaluated, so we are locked for minimum time. 
-         packed = packString str
-         len = length str
          rWish = readWish wish
-         wWishMVar = writeWishMVar wish
-      wWish <- rWish `seq` packed `seq` len `seq` 
-         takeMVar (writeWishMVar wish)
-      wWish packed len
-      result <- sync(
-            toEvent (rWish |> Eq OKType) >>>=
-               (\ (_,okString) -> return (OK okString))
-         +> toEvent (rWish |> Eq ERType) >>>=
-               (\ (_,erString) -> return (ER erString))
+         wWish = writeWish wish
+      synchronize (wishLock wish) (
+         do     
+            wWish barray len  
+            sync(
+                  toEvent (rWish |> Eq OKType) >>>=
+                     (\ (_,okString) -> return (OK okString))
+               +> toEvent (rWish |> Eq ERType) >>>=
+                     (\ (_,erString) -> return (ER erString))
+               )
          )
 
-{-
-      case result of OK str -> putStrLn ("OK >> " ++ str)
-                     ER str -> putStrLn ("ER >> " ++ str)
--}
-
-      putMVar wWishMVar wWish
-      return result
-
-
+doResponse :: TclResponse -> IO String
+doResponse (OK res) = return res
+doResponse (ER err) = error err
 
 -- -----------------------------------------------------------------------
 -- wish datatypes
@@ -146,6 +232,10 @@ data Wish = Wish {
    -- responses.  (But this may change!) 
 
    responses :: Channel TclResponse,
+
+   wishLock :: BSem,
+      -- this locks wish when a command has been sent but not answer
+      -- received, as yet.
 
    eventQueue :: EqGuardedChannel BindTag EventInfo,
    -- Wish puts events here, parameterised by the 
@@ -165,11 +255,19 @@ data Wish = Wish {
       GuardedEvent (EqMatch TclMessageType) (TclMessageType,String),
       -- Wish output sorted by prefix. 
 
-   writeWishMVar :: MVar(ByteArray Int -> Int -> IO ()), 
-      -- Command to execute a Wish command.  This is an MVar
-      -- and locked by emptying it.
+   writeWish :: ByteArray Int -> Int -> IO (), 
+      -- Command to execute a Wish command.
 
-   destroyWish :: IO () -- Command to destroy this Wish instance.
+   destroyWish :: IO (), -- Command to destroy this Wish instance.
+
+
+   bufferedCommands :: MVar (Int,TclScript)
+      -- The integer indicates if buffering is going on.
+      --    If non-zero it is.  When we start new buffering, we
+      --    increment the integer.
+      -- The TclScript contains the current contents of the buffer
+      --    IN REVERSE ORDER.
+      -- If the integer is 0, the TclScript is [].
    }
 
 type TclCmd = String
@@ -258,6 +356,7 @@ newWish =
       -- set up the channels
       commands <- newChannel
       responses <- newChannel
+      wishLock <- newBSem
       eventQueue <- newEqGuardedChannel
       coQueue <- newEqGuardedChannel
       bindTags <- newMVar nullBindTag
@@ -268,17 +367,19 @@ newWish =
                destroy childProcess
                -- Wish reactor will be garbage collected.
       destroyWish <- doOnce destroyWish1
-      writeWishMVar <- newMVar writeWish
+      bufferedCommands <- newMVar (0,[])
       let
          wish = Wish {
             commands = commands,
             responses = responses,
+            wishLock = wishLock,
             eventQueue = eventQueue,
             coQueue = coQueue,
             bindTags = bindTags,
             readWish = readWish,
-            writeWishMVar = writeWishMVar,
-            destroyWish = destroyWish
+            writeWish = writeWish,
+            destroyWish = destroyWish,
+            bufferedCommands = bufferedCommands
             }
       spawnEvent eventForwarder
 
@@ -288,9 +389,7 @@ newWish =
 isTixAvailable :: IO Bool
 isTixAvailable =
    do
-      OK response <- evalCmd "info commands tix"
-      -- Match failure here indicates error in command "info complete tix";
-      -- how can this be??
+      response <- evalCmd "info commands tix"
       case response of
          "tix" -> return True
          "" -> return False
@@ -324,9 +423,11 @@ readWishEvent childProcess =
    do
       wishInChannel <- newEqGuardedChannel
       destroy <- spawnEvent(forever(
-               (do next <- always (catch (readMsg childProcess) (\_-> return "OK Terminated"))
-                   send wishInChannel (typeWishAnswer next))
-               ))
+         do 
+            next <- 
+               always (Exception.catch (readMsg childProcess)                                    (\_-> return "OK Terminated"))
+            send wishInChannel (typeWishAnswer next)
+         ))
       return (listen wishInChannel,destroy)
 
 -- typeWishAnswer parses answers from Wish.

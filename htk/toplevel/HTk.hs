@@ -123,6 +123,7 @@ module HTk (
   bindSimple,
   HasCommand(..),
 
+  delayWish,
 
 -- other basic stuff     // TD: sort out!
 

@@ -170,38 +170,41 @@ newDialogWin choices def confs wol =
 -- @return result     - a dialog
 dialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
 dialog choices def confs tpconfs =
- do
-  tp <- createToplevel tpconfs
-  pack tp [Expand On, Fill Both]
-
-  b <- newVBox tp []
-  pack b [Expand On, Fill Both]
-
-  b2 <- newHBox b []
-  pack b2 [Expand On, Fill Both]
-
-  lbl <- newLabel b2 []
-  pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
-
-  msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg] :: IO (Editor String)
-  pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
-
-  sp1 <- newSpace b (cm 0.15) []
-  pack sp1 [Expand Off, Fill X, Side AtBottom]
-
-  newHSeparator b
-
-  sp2 <- newSpace b (cm 0.15) []
-  pack sp2 [Expand Off, Fill X, Side AtBottom]
-
-  sb <- newSelectBox b Nothing []
-  pack sb [Expand Off, Fill X, Side AtBottom]
-
-  events <- mapM (createChoice sb) choices
-  let ev = choose events
-
-  dlg <- configure (Dialog tp msg lbl sb ev) confs
-  return dlg
+   do
+      (tp,msg,lbl,sb,ev) <- delayWish (
+         do
+            tp <- createToplevel tpconfs
+            pack tp [Expand On, Fill Both]
+          
+            b <- newVBox tp []
+            pack b [Expand On, Fill Both]
+          
+            b2 <- newHBox b []
+            pack b2 [Expand On, Fill Both]
+          
+            lbl <- newLabel b2 []
+            pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
+          
+            msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg] :: IO (Editor String)
+            pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
+          
+            sp1 <- newSpace b (cm 0.15) []
+            pack sp1 [Expand Off, Fill X, Side AtBottom]
+          
+            newHSeparator b
+          
+            sp2 <- newSpace b (cm 0.15) []
+            pack sp2 [Expand Off, Fill X, Side AtBottom]
+          
+            sb <- newSelectBox b Nothing []
+            pack sb [Expand Off, Fill X, Side AtBottom]
+          
+            events <- mapM (createChoice sb) choices
+            let ev = choose events
+            return (tp,msg,lbl,sb,ev)
+         )
+      dlg <- configure (Dialog tp msg lbl sb ev) confs
+      return dlg
  where fmsg = xfont { family = Just Courier, weight = Just Bold, points = (Just 18) }
        createChoice :: SelectBox String -> Choice a -> IO (Event a)
        createChoice sb (str,val) = 

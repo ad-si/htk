@@ -35,7 +35,7 @@ module SimpleForm(
 
 
    FormValue(..), -- This is a class of values which can be read in from a 
-      -- simple form.  Instances include Int, String and Bool.
+     -- simple form.  Instances include Int, String and Bool.
       -- A user friendly way of constructing new instances is to instance
       -- one of the following two classes.
 --   FormRadioButton(..), -- This class is used for types which are suitable
@@ -190,18 +190,22 @@ guardForm test mess =
 doForm :: String -> Form value -> IO (Maybe value)
 doForm title (Form enterForm) =
    do
-      toplevel <- createToplevel [text title]
-      enteredForm <- enterForm toplevel
-      -- create frame for "OK" and "Cancel" buttons.
-      frame <- newFrame toplevel []
-      (okButton :: Button String) <- newButton frame [text "OK"]
-      (cancelButton :: Button String) <- newButton frame [text "Cancel"]
-
-      -- Pack everything
-      packAction enteredForm
-      pack okButton [Side AtLeft]
-      pack cancelButton [Side AtRight]
-      pack frame [Side AtTop]
+      (toplevel,enteredForm,okButton,cancelButton) <- delayWish (
+         do
+            toplevel <- createToplevel [text title]
+            enteredForm <- enterForm toplevel
+            -- create frame for "OK" and "Cancel" buttons.
+            frame <- newFrame toplevel []
+            (okButton :: Button String) <- newButton frame [text "OK"]
+            (cancelButton :: Button String) <- newButton frame [text "Cancel"]
+      
+            -- Pack everything
+            packAction enteredForm
+            pack okButton [Side AtLeft]
+            pack cancelButton [Side AtRight]
+            pack frame [Side AtTop]
+            return (toplevel,enteredForm,okButton,cancelButton)
+         )
 
       -- Monitor ok and cancel buttons
       okEvent <- clicked okButton
@@ -252,7 +256,7 @@ newFormEntry label value =
                      do
                         packLabel
                         packAction enteredForm1
-                        pack frame [Side AtTop]
+                        pack frame [Side AtTop,Fill X]
                      ),
                   getFormValue = getFormValue enteredForm1,
                   destroyAction = destroyAction enteredForm1
@@ -276,8 +280,8 @@ class FormLabel label where
 instance FormLabel String where
    formLabel frame str =
       do
-         label <- newLabel frame [text str]
-         return (pack label [Side AtLeft])
+         label <- newLabel frame [text str,anchor West]
+         return (pack label [Side AtLeft,Fill X])
 
 instance FormLabel Image where
    formLabel frame image =
@@ -341,7 +345,7 @@ instance FormTextField value => FormValue value where
                   return (readFormString contents)
          let
             enteredForm = EnteredForm {
-               packAction = pack entry [Side AtRight],
+               packAction = pack entry [Side AtRight,Fill X],
                getFormValue = getFormValue,
                destroyAction = done
                }
@@ -379,24 +383,19 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
             maxBoundInt :: Int
             maxBoundInt = fromEnum maxB
 
-            minus :: Int -> Int -> Int
---            minus = (-)
-            minus a b = a + (-1) * b
- 
             fromRValue :: Radio value -> Int
             fromRValue NoRadio = -1
-            fromRValue (Radio x) = minus (fromEnum x) minBoundInt
+            fromRValue (Radio x) = fromEnum x - minBoundInt
 
             toRValue :: Int -> Radio value
+            toRValue (-1) = NoRadio
             toRValue i = 
-               if i == -1 then NoRadio
-               else
-                  if i>= 0 && i<= (minus maxBoundInt minBoundInt)
-                  then
-                     Radio (toEnum (i+minBoundInt)) 
-                  else error 
-                     ("SimpleForm.toRValue - radio button with odd number:"++
-                        show i)
+               if i>= 0 && i<= maxBoundInt - minBoundInt
+               then
+                  Radio (toEnum (i+minBoundInt)) 
+               else error 
+                  ("SimpleForm.toRValue - radio button with odd number:"++
+                     show i)
 
          radioVar <- createTkVariable (fromRValue rvalue)
          -- Add the radio buttons and get their packing actions.

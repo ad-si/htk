@@ -49,10 +49,8 @@ createTkVariable val =
 readTkVariable :: GUIValue a => TkVariable a -> IO a
 readTkVariable (TkVariable oid) =
   do
-    resp <- evalCmd ("global v" ++ show oid ++ "; set v" ++ show oid)
-    case resp of
-      OK str -> creadTk str
-      ER str -> error str
+    str <- evalCmd ("global v" ++ show oid ++ "; set v" ++ show oid)
+    creadTk str
 
 setTkVariable :: GUIValue a => TkVariable a -> a -> IO ()
 setTkVariable (TkVariable oid) val =

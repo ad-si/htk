@@ -16,9 +16,15 @@ module CodedValueType(
    -- represents the type,
    HasCodedValueType(..),
    -- Things which have this type.  
+
+   CodedValueTypeNorm,
+   -- Something (a) to which a CodedValueType can be converted;
+   -- (b) an instance of Eq,Ord,HasCodedValue.
+   -- This allows us to read and write CodedValueType's.
    ) where
 
 import Dynamics
+import AtomString
 
 import CodedValue
 
@@ -29,7 +35,25 @@ class HasCodedValueType value where
 
 -- ----------------------------------------------------------------------
 -- Instances
---- ---------------------------------------------------------------------
+-- ---------------------------------------------------------------------
 
 instance Typeable value => HasCodedValueType value where
    codedValueType value = CodedValueType (typeOf value)
+
+-- ----------------------------------------------------------------------
+-- CodedValueTypeNorm
+-- This is made abstract so we can replace it with CodedValueType itself
+-- if we later provide a version of that which can be read and written.
+-- ---------------------------------------------------------------------
+
+newtype CodedValueTypeNorm = CodedValueTypeNorm AtomString deriving (Eq,Ord)
+
+codedValueTypeNorm_tyCon = mkTyCon "CodedValueType" "CodedValueTypeNorm"
+
+instance HasTyCon CodedValueTypeNorm where
+   typeOf _ = codedValueTypeNorm_tyCon
+
+instance HasCodedValue CodedValueTypeNorm where
+   encodeIO = mapEncodeIO (\ (CodedValueTypeNorm a) -> Str a)
+   decodeIO = mapDecodeIO (\ (Str a) -> CodedValueTypeNorm a)
+   

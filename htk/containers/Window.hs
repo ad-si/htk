@@ -249,7 +249,7 @@ instance Read WindowState where
 instance Show WindowState where
   showsPrec d p r = 
     (case p of 
-       Deiconified -> "normal"
+       Deiconified -> "deiconify"
        Iconified -> "iconic"
        Withdrawn -> "withdraw") ++ r
 
