@@ -3,7 +3,7 @@ LIBS = \
    $(TOP)/cvs/libcvs.a $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
    $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
 SRCS       = VersionDB.hs ViewType.hs CodedValue.hs CodedValueType.hs \
-   CodedValueStore.hs View.hs BasicObjects.hs
+   CodedValueStore.hs View.hs BasicObjects.hs DisplayTypes.hs
 SUBDIRS    = test
 
 include @TOP@/mk/boilerplate.mk

@@ -115,7 +115,7 @@ module GraphDisp(
    deleteNode,   -- :: Graph ... -> node value -> IO ()
    setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
    newNodeType,  -- :: Graph ... -> nodeTypeParms value -> IO (nodeType value)
-   NodeTypeParms(emptyNodeTypeParms),
+   NodeTypeParms(..),
 
    newArc,      -- :: Graph ... -> arcType value -> value 
                 --    -> node nodeFromValue -> node nodeToValue
@@ -125,7 +125,7 @@ module GraphDisp(
    setArcValue, -- :: Graph ... -> arc value
                 --    -> value -> IO ()
    newArcType,  -- :: Graph ... -> arcTypeParms value -> IO (arcType value)
-   ArcTypeParms(emptyArcTypeParms),
+   ArcTypeParms(..),
 
    -- User-hateful interface, arranged by classes.
    GraphAll(displaySort),
@@ -264,6 +264,9 @@ class NodeTypeParms nodeTypeParms where
    emptyNodeTypeParms :: Typeable value =>
       nodeTypeParms value
 
+   coMapNodeTypeParms :: (Typeable value1,Typeable value2) => 
+      (value2 -> value1) -> nodeTypeParms value1 -> nodeTypeParms value2
+
 -- Arcs
 
 
@@ -315,6 +318,9 @@ newArcType
 
 class ArcTypeParms arcTypeParms where
    emptyArcTypeParms :: Typeable value => arcTypeParms value
+
+   coMapArcTypeParms :: (Typeable value1,Typeable value2) => 
+      (value2 -> value1) -> arcTypeParms value1 -> arcTypeParms value2
 
 ------------------------------------------------------------------------
 -- This is the start of the user-hateful interface.

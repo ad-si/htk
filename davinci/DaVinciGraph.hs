@@ -456,6 +456,24 @@ instance NodeTypeParms DaVinciNodeTypeParms where
       configCreateEdgeAction = const (const done)
       }
 
+   coMapNodeTypeParms coMapFn 
+      (DaVinciNodeTypeParms {
+         nodeAttributes = nodeAttributes,
+         configNodeText = configNodeText,
+         configNodeDoubleClickAction = configNodeDoubleClickAction,
+         configCreateNodeAndEdgeAction = configCreateNodeAndEdgeAction,
+         configCreateEdgeAction = configCreateEdgeAction
+         }) =
+      DaVinciNodeTypeParms {
+         nodeAttributes = coMapAttributes coMapFn nodeAttributes,
+         configNodeText = configNodeText . coMapFn,
+         configNodeDoubleClickAction = configNodeDoubleClickAction . coMapFn,
+         configCreateNodeAndEdgeAction = 
+            configCreateNodeAndEdgeAction . coMapFn,
+         configCreateEdgeAction = (\ dyn ->
+            (configCreateEdgeAction dyn) . coMapFn)
+         }
+
 instance NodeTypeConfig graphConfig 
    => HasConfigValue graphConfig DaVinciNodeTypeParms where
 
@@ -603,6 +621,16 @@ instance ArcTypeParms DaVinciArcTypeParms where
       configArcDoubleClickAction = const done
       }
 
+   coMapArcTypeParms coMapFn
+      (DaVinciArcTypeParms {
+         arcAttributes = arcAttributes,
+         configArcDoubleClickAction = configArcDoubleClickAction
+         }) =
+      (DaVinciArcTypeParms {
+         arcAttributes = coMapAttributes coMapFn arcAttributes,
+         configArcDoubleClickAction = configArcDoubleClickAction . coMapFn
+         })
+
 instance HasConfigValue Color DaVinciArcTypeParms where
    configUsed' _ _ = True
    ($$$) (Color colorName) parms =
@@ -656,6 +684,21 @@ emptyAttributes = Attributes {
    options = emptyFM,
    menuOpt = Nothing
    }
+
+coMapAttributes :: (value2 -> value1) -> Attributes value1 
+   -> Attributes value2
+coMapAttributes coMapFn (Attributes{options = options,menuOpt = menuOpt0}) =
+   let
+      menuOpt1 =
+         fmap -- deals with Maybe
+            (\ (LocalMenu menu0) ->
+               (LocalMenu (mapMenuPrim (. coMapFn) menu0))
+               )
+            menuOpt0
+   in
+      Attributes{options = options,menuOpt = menuOpt1}
+                                
+
 
 data Att value = Att String String
 -- An attribute
