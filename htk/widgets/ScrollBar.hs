@@ -11,7 +11,9 @@
 
 ---
 -- HTk's <strong>scrollbar</strong> widget.<br>
--- A label is a simple container for text or images/bitmaps.
+-- 
+-- A scroll bar is a widget which controls scrolling.
+--
 module ScrollBar (
 
   HasScroller(..),
