@@ -20,9 +20,12 @@ module AtomString(
    Str(..),
       -- WRAP 
 
+
    mkFromStringWE,
-      --  :: Parser stringClass -> (String -> WithError stringClass)
+      --  :: Parser stringClass -> String -> (String -> WithError stringClass)
       -- Make a fromStringWE function given a parser.
+      -- The error message is of the form "/string/ is not a valid /typename/"
+      -- where /typename/ is the first String argument to mkFromStringWE.
    ) where               
 
 import Control.Concurrent
@@ -158,8 +161,9 @@ readAtom (AtomString packedString) =
 -- How to make a fromStringWE given a Parsec parser.
 ------------------------------------------------------------------------
 
-mkFromStringWE :: Parser stringClass -> (String -> WithError stringClass)
-mkFromStringWE parser0 str =
+mkFromStringWE :: Parser stringClass -> String 
+   -> (String -> WithError stringClass)
+mkFromStringWE (parser0 :: Parser stringClass) typeName str =
    let
       parser1 =
          do
@@ -169,7 +173,7 @@ mkFromStringWE parser0 str =
    in
       case parse parser1 "" str of
          Right stringClass -> hasValue stringClass
-         Left parseError -> hasError (show parseError)
+         Left _ -> hasError (show str ++ " is not a valid " ++ typeName)
 
 ------------------------------------------------------------------------
 -- The Str class.  Wrapping an instance of StringClass in this gives

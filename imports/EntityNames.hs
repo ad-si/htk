@@ -194,14 +194,14 @@ instance Monad m => HasBinary ImportCommands m where
 -- EntityNames are represented with names separated by periods.
 instance StringClass EntityName where
    toString (EntityName name) = name
-   fromStringWE = mkFromStringWE entityNameParser
+   fromStringWE = mkFromStringWE entityNameParser "Entity Name"
 
 instance StringClass EntityFullName where
    toString (EntityFullName []) = "Current"
    toString (EntityFullName entityNames) =
       unsplitByChar '.' (map toString entityNames)
 
-   fromStringWE = mkFromStringWE entityFullNameParser
+   fromStringWE = mkFromStringWE entityFullNameParser "Entity FullName" 
 
 instance StringClass EntitySearchName where
    toString (FromRoot (EntityFullName [])) = "Root"
@@ -212,7 +212,7 @@ instance StringClass EntitySearchName where
    toString (FromParent (FromHere (EntityFullName []))) = "Parent"
    toString (FromParent searchName) = "Parent." ++ toString searchName
 
-   fromStringWE = mkFromStringWE entitySearchNameParser
+   fromStringWE = mkFromStringWE entitySearchNameParser "Entity Search Name" 
           
 -- ----------------------------------------------------------------------
 -- To pick up errors we use DeepSeq to do the necessary seq'ing.

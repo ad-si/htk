@@ -4,7 +4,7 @@ Package {
    source_dirs = [],
    library_dirs = [],
    hs_libraries = [],
-   extra_libraries = [],
+   extra_libraries = ["z"],
    include_dirs = ["#PWD/includes"],
    c_includes = [],
    package_deps = [],

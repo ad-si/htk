@@ -98,7 +98,32 @@ instance GUIValue v=> HasText (Dialog a) v where
       Just l -> do {l # text t; return dlg} 
       _      -> return dlg
 
- 
+
+-- | Returns configuration option for dialogs that displays text using a 
+-- scrollbox if it is bigger than the default size (currently (39,6).
+-- It also returns a Bool which indicates if we are to use createDialogWin
+-- (False) or createDialogWin' (True).
+
+scrollText :: String -> (Config (Dialog a),Bool)
+scrollText = scrollText1 (39,6)
+
+
+-- | Configuration option for dialogs that displays text using a scrollbox
+-- if it is bigger than the given size.
+scrollText1 :: Size -> String -> (Config (Dialog a),Bool)
+scrollText1 size str =
+   if biggerThan size str
+      then
+         (new [scrollMarkupText size [prose str]],True)
+      else
+         (text str,False) 
+   where
+      biggerThan (xMax,yMax) str =
+         let
+            strl = lines str
+         in
+            length strl > fromIntegral yMax 
+               || any (\ line -> length line > fromIntegral xMax) strl
 
 -- --------------------------------------------------------------------------
 --  Derived Dialog Window 
@@ -107,11 +132,14 @@ instance GUIValue v=> HasText (Dialog a) v where
 -- Constructs an alert window with the given text
 -- @param str     - the text to be displayed
 createAlertWin :: String -> [Config Toplevel] -> IO ()
-createAlertWin str wol = 
- createDialogWin choices Nothing (confs++[photo warningImg]) (defs ++ wol)
-  where choices = [("Continue",())]
-        defs = [text "Alert Window"]
-        confs = [text str]
+createAlertWin str wol = createFn choices Nothing confs (defs ++ wol)
+   where
+       choices = [("Continue",())]
+       defs = [text "Alert Window"]
+
+       (scrollConf,complex) = scrollText str
+       confs = [scrollConf,photo warningImg]
+       createFn = if complex then createDialogWin' else createDialogWin
 
 ---
 -- Constructs an alert window with the given markuptext
@@ -127,11 +155,14 @@ createAlertWin' str wol =
 -- Constructs an error window with the given text
 -- @param str     - the text to be displayed
 createErrorWin :: String -> [Config Toplevel] -> IO ()
-createErrorWin str wol = 
- createDialogWin choices Nothing (confs++[photo errorImg]) (defs++wol)
- where choices = [("Continue",())]
+createErrorWin str wol = createFn choices Nothing confs (defs++wol)
+    where 
+       choices = [("Continue",())]
        defs    = [text "Error Message"]
-       confs   = [text str]
+
+       (scrollConf,complex) = scrollText str
+       confs = [scrollConf,photo errorImg]
+       createFn = if complex then createDialogWin' else createDialogWin
 
 ---
 -- Constructs an error window with the given markuptext
@@ -148,8 +179,7 @@ createErrorWin' str wol =
 -- Constructs an warning window with the given text
 -- @param str     - the text to be displayed
 createWarningWin :: String -> [Config Toplevel] -> IO ()
-createWarningWin str confs = 
-  createAlertWin str (text "Warning Message": confs)
+createWarningWin str confs = createAlertWin str (text "Warning Message": confs)
 
 ---
 -- Constructs an warning window with the given markuptext
@@ -163,11 +193,14 @@ createWarningWin' str confs =
 -- @param str     - the text to be displayed
 -- @return result - True(Ok) or False(Cancel)
 createConfirmWin :: String -> [Config Toplevel] -> IO Bool
-createConfirmWin str wol = 
- createDialogWin choices (Just 0) (confs++[photo questionImg]) (defs ++ wol)
- where choices = [("Ok",True),("Cancel",False)]
+createConfirmWin str wol = createFn choices (Just 0) confs (defs ++ wol)
+    where 
+       choices = [("Ok",True),("Cancel",False)]
        defs    = [text "Confirm Window"]
-       confs   = [text str]
+
+       (scrollConf,complex) = scrollText str
+       confs = [scrollConf,photo questionImg]
+       createFn = if complex then createDialogWin' else createDialogWin
 
 ---
 -- Constructs an confirm window with the given markuptext
@@ -189,16 +222,20 @@ createMessageWin' str wol =
  createDialogWin' [("Dismiss", ())] Nothing 
 	          [new str, photo infoImg] 
 		  (text "Information": wol)
+
+
             
 ---
 -- Constructs a message (info) window with the given string.
 -- @param str     - the string to be displayed
 -- @return result - ()
 createMessageWin :: String-> [Config Toplevel]-> IO ()
-createMessageWin str wol = 
-  createDialogWin [("Dismiss", ())] Nothing 
-                  [text str, photo infoImg] 
-		  (text "Information": wol)
+createMessageWin str wol = createFn [("Dismiss", ())] Nothing confs
+      (text "Information": wol)
+   where
+      (scrollConf,complex) = scrollText str
+      confs = [scrollConf,photo infoImg]
+      createFn = if complex then createDialogWin' else createDialogWin
        
 
 ---

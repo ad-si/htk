@@ -34,7 +34,7 @@ serviceArg :: (ServiceClass inType outType stateType) =>
 serviceArg 
    = (error "ServiceClass.1",error "ServiceClass.2",error "ServiceClass.3")
 
-class (HasBinary inType IO,HasBinary outType IO) =>
+class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,HasBinary outType StateBinArea) =>
 -- inType is input to requests
 -- outType is output to requests.
 -- stateType is state.  This is shared between all clients of this

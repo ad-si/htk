@@ -528,7 +528,13 @@ importMMiSSPackage view parentLinkedObject =
 
                      result <- importMMiSSLaTeX preambleLink1 packageType view 
                         getLinkedObject
-                     doPostMerge postMerge
+
+                     if isJust result
+                        then
+                           doPostMerge postMerge
+                        else
+                           done
+
                      return result
                   )          
 

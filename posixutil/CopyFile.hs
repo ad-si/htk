@@ -28,6 +28,7 @@ import System.Posix as Posix
 
 import Computation
 import ICStringLen
+import DeepSeq
 
 import FdRead
 
@@ -91,10 +92,12 @@ linkFile source destination =
 copyFileToString :: FilePath -> IO String
 copyFileToString filePath =
    do
-      (cString,len) <- copyFileToCStringLen filePath
-      string <- peekCStringLen (cString,len)
-      free cString
-      return string
+      s <- IO.readFile filePath
+      
+--      (cString,len) <- copyFileToCStringLen filePath
+--      string <- peekCStringLen (cString,len)
+--      free cString
+      s `deepSeq` (return s)
 
 ---
 -- Read in a file, catching certain errors 
