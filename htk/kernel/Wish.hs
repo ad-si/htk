@@ -33,7 +33,8 @@ module Wish (
   CallBackId(..),
   showP,
 
-  tixAvailable, -- :: Bool.  True if we are using tixwish.
+  isTixAvailable, -- :: IO Bool.  True if we are using tixwish.
+  tixAvailable,   -- ::    Bool.  True if we are using tixwish.
   cleanupWish,
 
   delayWish, -- :: IO a -> IO a

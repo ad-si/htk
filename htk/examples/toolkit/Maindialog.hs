@@ -67,7 +67,7 @@ main =
   clickedbut5 <- clicked but5
 
   spawnEvent (forever (clickedbut5 >>> 
-    createAlertWin "Your printer is on fire!\nLeave the room immediately." []))
+    createAlertWin "Your printer is on fire!" []))
  
   clickedbut6 <- clicked but6
   spawnEvent (forever (clickedbut6 >>>
@@ -75,7 +75,7 @@ main =
  
   clickedbut7 <- clicked but7
   spawnEvent (forever (clickedbut7 >>>
-    createWarningWin "Please extinguish all cigarettes\nand switch off
+    createWarningWin "Please extinguish all cigarettes and switch off
 all mobile phones." []))
  
   clickedbut8 <- clicked but8
@@ -85,7 +85,7 @@ all mobile phones." []))
 					       
   clickedbut8a <- clicked but8a
   spawnEvent (forever (clickedbut8a >>>
-    createMessageWin "This is a message window.\nConsider this some useful information.\n" []))
+    createMessageWin "This message will self-destruct in 10 seconds." []))
 
   clickedbut9 <- clicked but9
   spawnEvent (forever (clickedbut9 >>> 

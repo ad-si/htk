@@ -11,7 +11,7 @@
 
 module HTk (
 
-  tixAvailable,
+  isTixAvailable,
 
 -- basic ressources
 

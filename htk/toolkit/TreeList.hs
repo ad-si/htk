@@ -51,7 +51,7 @@ module TreeList (
   setTreeListObjectName,
 
   TreeListExportItem(..),
-  TreeListState(..),
+  TreeListState,
   exportTreeListState,
   importTreeListState,
   recoverTreeList,
@@ -905,8 +905,7 @@ reopenSubObjects :: CItem a => ChildrenFun a -> [a] ->
 reopenSubObjects c_fun prevopen ((i, tlobj) : objs) =
   if elem (val tlobj) prevopen then
     do
-      minus <- minusImg
-      plusminus tlobj # photo minus
+      plusminus tlobj # photo minusImg
       ch <- c_fun (TreeListObject (val tlobj, if (is_node tlobj) then Node
                                               else Leaf))
       thisobjch <- mkTreeListObjects (treelist tlobj) ch (i + 1) prevopen
@@ -946,8 +945,7 @@ pressed obj =
             done
         else
           do                                               -- *** open ***
-            pho <- minusImg
-            plusminus obj # photo pho
+            plusminus obj # photo minusImg
             ch <- (cfun (treelist obj))
                     (TreeListObject (val obj, if (is_node obj) then Node
                                               else Leaf))

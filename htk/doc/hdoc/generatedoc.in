@@ -34,7 +34,6 @@ rm -f ./*.html
     ${HTKDIR}/components/Focus.hs\
     ${HTKDIR}/components/ICursor.hs\
     ${HTKDIR}/components/Icon.hs\
-    ${HTKDIR}/components/Image.hs\
     ${HTKDIR}/components/Index.hs\
     ${HTKDIR}/components/Selection.hs\
     ${HTKDIR}/components/Slider.hs\
@@ -83,8 +82,6 @@ rm -f ./*.html
     ${HTKDIR}/tix/PanedWindow.hs\
 \
     ${HTKDIR}/toolkit/CItem.hs\
-    ${HTKDIR}/toolkit/DialogWin.hs\
-    ${HTKDIR}/toolkit/FileDialog.hs\
     ${HTKDIR}/toolkit/GenGUI.hs\
     ${HTKDIR}/toolkit/IconBar.hs\
     ${HTKDIR}/toolkit/InputForm.hs\
@@ -97,8 +94,6 @@ rm -f ./*.html
     ${HTKDIR}/toolkit/ScrollBox.hs\
     ${HTKDIR}/toolkit/SelectBox.hs\
     ${HTKDIR}/toolkit/Separator.hs\
-    ${HTKDIR}/toolkit/SpinButton.hs\
-    ${HTKDIR}/toolkit/TreeList.hs\
 \
     ${HTKDIR}/toplevel/HTk.hs\
 \
@@ -138,6 +133,13 @@ rm -f ./*.html
 #    ${TOPDIR}/events/GuardedChannels.hs\
 #    ${TOPDIR}/events/GuardedEvents.hs\
 #    ${TOPDIR}/events/Examples.hs\
+
+# use ghc extensions
+#    ${HTKDIR}/components/Image.hs\
+#    ${HTKDIR}/toolkit/DialogWin.hs\
+#    ${HTKDIR}/toolkit/FileDialog.hs\
+#    ${HTKDIR}/toolkit/SpinButton.hs\
+#    ${HTKDIR}/toolkit/TreeList.hs\
 
 
 #### Internal -- don't show in reference manual

@@ -17,8 +17,9 @@ main:: IO ()
 main =
   do
     main <- initHTk [text "tix widget example!"]
+    tix  <- isTixAvailable
 
-    (if tixAvailable then
+    (if tix then
 
        do
          nb <- newNoteBook main [size (300, 300)]

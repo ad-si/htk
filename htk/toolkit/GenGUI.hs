@@ -311,9 +311,10 @@ newGenGUI mstate showLeavesInTree =
                         tlstate <- constructTreeListState 0 state
                         return (Just tlstate)
         Nothing -> return Nothing
-
+    
+    tix <- isTixAvailable
     (tl, np, edscr, ed) <-
-      (if tixAvailable then
+      (if tix then
          do
            objects_n_editor <- newPanedWindow main Horizontal []
            paneh1 <- createPane objects_n_editor [initsize 430] []
