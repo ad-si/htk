@@ -268,7 +268,7 @@ commitView1 preserveVersion newVersion1
 data ViewData = ViewData {
    displayTypesData :: CodedValue,
    objectTypesData :: CodedValue
-   }
+   } deriving (Typeable)
 
 -- Here's the real primitive type
 type Tuple = (CodedValue,CodedValue)

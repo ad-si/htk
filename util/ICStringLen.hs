@@ -37,12 +37,13 @@ import Binary
 import Computation(done)
 import BinaryInstances
 import ExtendedPrelude
+import Dynamics
 
 -- ------------------------------------------------------------------
 -- The datatype
 -- ------------------------------------------------------------------
 
-data ICStringLen = ICStringLen (ForeignPtr CChar) Int
+data ICStringLen = ICStringLen (ForeignPtr CChar) Int deriving (Typeable)
 
 -- ------------------------------------------------------------------
 -- Creation and reading

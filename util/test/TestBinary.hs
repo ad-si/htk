@@ -8,6 +8,7 @@ import BinaryAll
 
 main =
    do
+      testb ()
       testb 'c'
       testb '\500'
       testb (1 :: Int)

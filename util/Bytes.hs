@@ -142,8 +142,16 @@ bytesMalloc i =
       return (Bytes ptr)
 
 bytesReAlloc :: Bytes -> Int -> IO Bytes
-bytesReAlloc (Bytes ptr1) newLen =
+bytesReAlloc (Bytes ptr1) newLen0 =
    do
+      let
+         newLen =
+         -- work around GHC6 bug
+#if (__GLASGOW_HASKELL__ == 600)
+            max 1 newLen0
+#else
+            newLen
+#endif
       ptr2 <- reallocBytes ptr1 newLen
       return (Bytes ptr2)
 

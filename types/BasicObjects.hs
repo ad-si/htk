@@ -130,7 +130,7 @@ instance HasBinary Attributes CodingMonad where
             return attributes
          )
 
-instance HasBinary to CodingMonad => GetSetRegistry Attributes String to where
+instance HasCodedValue to => GetSetRegistry Attributes String to where
    transformValue (Attributes{view = view,registry = registry}) from
          transformer =
       let

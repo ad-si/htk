@@ -41,6 +41,7 @@ module CodedValue(
 
    ) where
 
+import Control.Exception
 import Control.Monad.State
 import Control.Monad.Trans
 
@@ -89,21 +90,36 @@ type CodedValue = ICStringLen
 -- Reading and writing values of type CodedValue.
 -- --------------------------------------------------------------------------
 
-doEncodeIO :: HasBinary a CodingMonad
-   => a -> View -> IO CodedValue
-doEncodeIO (a ::  a) view =
+
+
+doEncodeIO :: HasCodedValue a => a -> View -> IO CodedValue
+doEncodeIO (a ::  a) view = doEncodeIO1 (show (typeOf a)) a view
+
+doEncodeIO1 :: HasBinary a CodingMonad => String -> a -> View -> IO CodedValue
+doEncodeIO1 desc (a ::  a) view =
    do
-      binArea1 <- mkEmptyBinArea 1024
-      ((),binArea2) <-
-         runStateT 
-            (runArgMonad view 
-               (unCodingMonad
-                  (writeBin wb2 a)
-                  )
-               )
-            binArea1 
-      bl <- closeBinArea binArea2
-      bytesToICStringLen bl
+      encodeResult <- Control.Exception.try (
+         do
+            binArea1 <- mkEmptyBinArea 1024
+            ((),binArea2) <-
+               runStateT 
+                  (runArgMonad view 
+                     (unCodingMonad
+                        (writeBin wb2 a)
+                        )
+                     )
+                  binArea1 
+            bl <- closeBinArea binArea2
+            bytesToICStringLen bl
+         )
+
+      case encodeResult of
+         Left excep ->
+            do
+               putStrLn ("Error " ++ show excep ++ " encoding "
+                  ++ desc)
+               throw excep
+         Right result -> return result 
    where
       wb1 :: WriteBinary (ArgMonad View StateBinArea)
       wb1 = writeBinaryToArgMonad writeBinaryBinArea
@@ -114,25 +130,49 @@ doEncodeIO (a ::  a) view =
          writeBytes = (\ bs l -> CodingMonad (writeBytes wb1 bs l))
          }
 
-doDecodeIO :: HasBinary a CodingMonad => CodedValue -> View -> IO a
-doDecodeIO icsl view =
+
+doDecodeIO :: HasCodedValue a => CodedValue -> View -> IO a
+doDecodeIO codedValue view = 
+   let
+      act = doDecodeIO1 desc codedValue view
+      desc = show (typeOf (undefinedIO act))
+   in
+      act
+
+   where
+       undefinedIO :: IO a -> a
+       undefinedIO _ = error "CodedValue.undefinedIO"
+
+
+doDecodeIO1 :: HasBinary a CodingMonad => String -> CodedValue -> View -> IO a
+doDecodeIO1 desc icsl view =
    do
-      let
-         bl = bytesFromICStringLen icsl
-         binArea1 = mkBinArea bl
+      (decodeResult :: Either Exception a) <- Control.Exception.try (
+         do
+            let
+               bl = bytesFromICStringLen icsl
+               binArea1 = mkBinArea bl
 
-      (a,binArea2) <-
-         runStateT
-            (runArgMonad view
-               (unCodingMonad
-                  (readBin rb2)
-                  )
-               )
-            binArea1
+            (a,binArea2) <-
+               runStateT
+                  (runArgMonad view
+                     (unCodingMonad
+                        (readBin rb2)
+                        )
+                     )
+                  binArea1
 
-      checkFullBinArea binArea2
-      touchICStringLen icsl
-      return a
+            checkFullBinArea binArea2
+            touchICStringLen icsl
+            return a
+         )
+      case decodeResult of
+         Left excep ->
+            do
+               putStrLn ("Error " ++ show excep ++ " decoding "
+                  ++ desc)
+               throw excep
+         Right result -> return result 
    where
       rb1 :: ReadBinary (ArgMonad View StateBinArea)
       rb1 = readBinaryToArgMonad readBinaryBinArea
@@ -143,20 +183,21 @@ doDecodeIO icsl view =
          readBytes = (\ l -> CodingMonad (readBytes rb1 l)) 
          }
 
-equalByEncode :: HasBinary value CodingMonad => (View,value) -> (View,value) 
+equalByEncode :: HasCodedValue value => (View,value) -> (View,value) 
    -> IO Bool
 equalByEncode vv1 vv2 =
    do
       ord <- compareByEncode vv1 vv2
       return (ord == EQ)
 
-compareByEncode :: HasBinary value CodingMonad => (View,value) -> (View,value) 
+compareByEncode :: HasCodedValue value => (View,value) -> (View,value) 
    -> IO Ordering
 compareByEncode (view1,val1) (view2,val2) =
    do
       icsl1 <- doEncodeIO val1 view1
       icsl2 <- doEncodeIO val2 view2
       compareIO icsl1 icsl2
+
 
 -- --------------------------------------------------------------------------
 -- How to construct instances of HasCodedValue, when we've got
