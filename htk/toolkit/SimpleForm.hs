@@ -46,6 +46,10 @@ module SimpleForm(
    FormLabel(..), -- This class represents things which can be used for
       -- labels in the form.  Instances include String and Image.
 
+   Radio(..), -- type for wrapping round something to use radio buttons.
+   HasConfigRadioButton(..), -- for setting fancy configurations for
+      -- radio buttons.
+
    -- Error messages
    WithError, -- type synonym for Either String a
    ) where
@@ -255,10 +259,12 @@ newFormEntry label value =
                   }
             return enteredForm
    in
-      Form enterForm         
+      Form enterForm
 
 -- -------------------------------------------------------------------------
 -- The FormLabel class
+-- This is used for labels of fields in the form, and also for labels
+-- of radio buttons.
 -- -------------------------------------------------------------------------
 
 class FormLabel label where
@@ -268,10 +274,24 @@ class FormLabel label where
    -- returned is the packing action.
 
 instance FormLabel String where
-    formLabel frame str =
-       do
-          label <- newLabel frame [text str,justify JustLeft]
-          return (pack label [Side AtLeft])
+   formLabel frame str =
+      do
+         label <- newLabel frame [text str]
+         return (pack label [Side AtLeft])
+
+instance FormLabel Image where
+   formLabel frame image =
+      do
+         (label :: Label Image) <- newLabel frame [photo image]
+         return (pack label [Side AtLeft])
+
+
+-- We provide a heterogenous version of this too.
+data WrappedFormLabel = forall label . FormLabel label 
+   => WrappedFormLabel label
+
+instance FormLabel WrappedFormLabel where
+   formLabel frame (WrappedFormLabel label) = formLabel frame label
 
 -- -------------------------------------------------------------------------
 -- The FormValue class 
@@ -306,7 +326,7 @@ instance (Num a,Show a,Read a) => FormTextField a where
    makeFormString value = show value
    readFormString str = case reads str of
       [(value,rest)] | allSpaces rest -> Right value
-      _ -> Left "Not a number"
+      _ -> Left (show str ++ " is not a number")
 
 instance FormTextField value => FormValue value where
    makeFormEntry frame defaultVal =
@@ -326,3 +346,79 @@ instance FormTextField value => FormValue value where
                destroyAction = done
                }
          return enteredForm
+
+-- -------------------------------------------------------------------------
+-- Instance #2 - Radio Buttons
+-- If "x" is an instance of "Show", "Bounded" and "Enum", "Radio x" will be an
+-- instance of FormValue, and will display the buttons in order.
+-- But if you don't like this define your own instances of Show or,
+-- for pictures, HasConfigRadioButton.
+--
+-- Radio Int is _not_ recommended.
+-- -------------------------------------------------------------------------
+
+data Radio x = Radio x | NoRadio
+-- The NoRadio indicates that no radio button is selected.
+
+class HasConfigRadioButton value where
+   configRadioButton :: value -> Config (RadioButton Int)
+
+instance Show value => HasConfigRadioButton value where
+   configRadioButton value = text (show value)
+
+instance (HasConfigRadioButton value,Bounded value,Enum value) 
+   => FormValue (Radio value) where
+   makeFormEntry frame rvalue =
+      do
+         let
+            minB :: value = minBound
+            maxB :: value = maxBound
+
+            minBoundInt :: Int
+            minBoundInt = fromEnum minB
+            maxBoundInt :: Int
+            maxBoundInt = fromEnum maxB
+
+            minus :: Int -> Int -> Int
+--            minus = (-)
+            minus a b = a + (-1) * b
+ 
+            fromRValue :: Radio value -> Int
+            fromRValue NoRadio = -1
+            fromRValue (Radio x) = minus (fromEnum x) minBoundInt
+
+            toRValue :: Int -> Radio value
+            toRValue i = 
+               if i == -1 then NoRadio
+               else
+                  if i>= 0 && i<= (minus maxBoundInt minBoundInt)
+                  then
+                     Radio (toEnum (i+minBoundInt)) 
+                  else error 
+                     ("SimpleForm.toRValue - radio button with odd number:"++
+                        show i)
+
+         radioVar <- createTkVariable (fromRValue rvalue)
+         -- Add the radio buttons and get their packing actions.
+         packActions <- mapM
+            (\ val ->
+               do
+                  radioButton <- newRadioButton frame [
+                     configRadioButton val,
+                     variable radioVar,
+                     value (fromRValue (Radio val))
+                     ]
+                  return (pack radioButton [Side AtLeft])
+               )
+            [minB .. maxB]
+         let
+            enteredForm = EnteredForm {
+               packAction = sequence_ packActions,
+               getFormValue = 
+                  do
+                     valInt <- readTkVariable radioVar
+                     return (Right (toRValue valInt)),
+               destroyAction = done
+               }
+         return enteredForm
+ 
