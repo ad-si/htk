@@ -179,18 +179,22 @@
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
+<?MMiSSDisplay abstract : green triangle ?>
+
 
 <!ELEMENT introduction (%unit;)+>
 <!ATTLIST introduction %label-matter;
                        %title-matter;
                        %formalism-matter;
                        %attributes;>
+<?MMiSSDisplay introduction : green rhombus ?>
 
 <!ELEMENT summary  (%unit;)+>
 <!ATTLIST summary  %label-matter;
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
+<?MMiSSDisplay summary : green box ?>
 
 <!ELEMENT example  ((%atom;) | %formalUnit;)+>
 <!ATTLIST example %label-matter;

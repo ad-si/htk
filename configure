@@ -766,6 +766,7 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-bdb              Set to pathname where Berkeley DB is installed
+  --with-MMiSS-LaTeX      Set to pathname where MMiSS-LaTeX is installed
 
 _ACEOF
 fi
@@ -1975,7 +1976,7 @@ fi
 done
 
 #
-# Check for latex, xdvi, dvips, lp
+# Check for latex, xdvi, acroread, lp
 for ac_prog in latex
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
@@ -2064,18 +2065,18 @@ fi
   test -n "$XDVI" && break
 done
 
-for ac_prog in dvips
+for ac_prog in acroread
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_DVIPS+set}" = set; then
+if test "${ac_cv_path_ACROREAD+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  case $DVIPS in
+  case $ACROREAD in
   [\\/]* | ?:[\\/]*)
-  ac_cv_path_DVIPS="$DVIPS" # Let the user override the test with a path.
+  ac_cv_path_ACROREAD="$ACROREAD" # Let the user override the test with a path.
   ;;
   *)
   as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
@@ -2085,7 +2086,7 @@ do
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_DVIPS="$as_dir/$ac_word$ac_exec_ext"
+    ac_cv_path_ACROREAD="$as_dir/$ac_word$ac_exec_ext"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -2095,17 +2096,17 @@ done
   ;;
 esac
 fi
-DVIPS=$ac_cv_path_DVIPS
+ACROREAD=$ac_cv_path_ACROREAD
 
-if test -n "$DVIPS"; then
-  echo "$as_me:$LINENO: result: $DVIPS" >&5
-echo "${ECHO_T}$DVIPS" >&6
+if test -n "$ACROREAD"; then
+  echo "$as_me:$LINENO: result: $ACROREAD" >&5
+echo "${ECHO_T}$ACROREAD" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
 fi
 
-  test -n "$DVIPS" && break
+  test -n "$ACROREAD" && break
 done
 
 for ac_prog in lp
@@ -2153,6 +2154,24 @@ fi
 done
 
 #
+# Find the current installation of MMiSSLaTeX
+
+# Check whether --with-MMiSS-LaTeX or --without-MMiSS-LaTeX was given.
+if test "${with_MMiSS_LaTeX+set}" = set; then
+  withval="$with_MMiSS_LaTeX"
+  MMISSLATEXDIR=$withval
+else
+  MMISSLATEXDIR=${MMISSLATEXDIR:-/usr/local/MMISS/tex}
+
+fi;
+MISSLATEX=$MMISSLATEXDIR/bin/misslatex
+if test -r "$MISSLATEX"; then
+   echo Using MMiSS LaTeX found at $MISSLATEX
+else
+   MISSLATEX="echo Couldn't find MMiSS LaTeX to run"
+fi
+
+#
 # Construct the default options, used by
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
@@ -2181,7 +2200,7 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/dolatex mmiss/scripts/doxdvi mmiss/scripts/dodvips mmiss/scripts/dolp"
+   SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp"
 
    ac_config_files="$ac_config_files mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS"
 cat >confcache <<\_ACEOF
@@ -2794,8 +2813,9 @@ s,@XEMACS@,$XEMACS,;t t
 s,@GNUCLIENT@,$GNUCLIENT,;t t
 s,@LATEX@,$LATEX,;t t
 s,@XDVI@,$XDVI,;t t
-s,@DVIPS@,$DVIPS,;t t
+s,@ACROREAD@,$ACROREAD,;t t
 s,@LP@,$LP,;t t
+s,@MISSLATEX@,$MISSLATEX,;t t
 s,@DEFAULTOPTIONS@,$DEFAULTOPTIONS,;t t
 s,@GHCTOP@,$GHCTOP,;t t
 CEOF

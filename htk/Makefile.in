@@ -91,6 +91,7 @@ SRCS       = resources/Resources.hs\
              toolkit/MarkupText.hs\
 	     toolkit/ModalDialog.hs\
              toolkit/Separator.hs\
+             toolkit/TextDisplay.hs\
 	     toolkit/DialogWin.hs\
              toolkit/SpinButton.hs\
 	     menuitems/Indicator.hs\

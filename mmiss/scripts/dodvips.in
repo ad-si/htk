@@ -1,8 +1,0 @@
-#!/bin/sh
-# dvips a DVI file and sends the result to a file, called from MMiSSLaTeX
-# 
-# Argument 1 = working directory
-# Argument 2 = name of DVI file.
-# Argument 3 = file to send PS to.
-cd $1
-@DVIPS@ $2 -o $3

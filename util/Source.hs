@@ -25,7 +25,7 @@ newtype SimpleSource x = SimpleSource (Broadcaster x x)
 newSimpleSource :: x -> IO (SimpleSource x)
 newSimpleSource x = 
    do
-      broadcaster <- newBroadcaster const x
+      broadcaster <- newBroadcaster (\ old new -> new) x
       return (SimpleSource broadcaster)
 
 sendSimpleSource :: SimpleSource x -> x -> IO ()

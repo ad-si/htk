@@ -4,4 +4,4 @@
 # Argument 1 = working directory
 # Argument 2 = name of DVI file.
 cd $1
-@XDVI@ $2
+exec @XDVI@ $2

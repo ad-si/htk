@@ -61,7 +61,7 @@ reAssemble
                                        element1 <- reAssembleElement 
                                           searchData1 
                                           element0
-                                       return (CElem element0)
+                                       return (CElem element1)
                      _ -> return content
 
             contents1 <- mapM doContent contents0

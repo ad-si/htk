@@ -9,31 +9,52 @@ module MMiSSRunCommand(runCommand) where
 
 import System
 
+import Concurrent
+
 import Computation
 
 import SafeSystem
 
 import DialogWin
-import LogWin
-import HTk(text)
+import TextDisplay
+import HTk
 
 ---
 -- We return True if the command succeeds; IE returns with exit code
 -- ExitSuccess.
 --
--- The first String is the title of the window for command output.
+-- The first String is the title of the tool.
 -- The second String is the command to run.
 runCommand :: String -> String -> IO Bool
 runCommand title command =
    do
-      logWin <- createLogWin [text title]
+      toolOutputMVar <- newMVar []
       let
-         outputSink str = writeLogWin logWin (str ++"\n")
+         outputSink str = 
+            do
+               toolOutput <- takeMVar toolOutputMVar
+               putMVar toolOutputMVar (str : toolOutput)
+
       exitCode <- safeSystemGeneral command outputSink
       case exitCode of
          ExitSuccess -> return True
          ExitFailure code ->
             do
-               createErrorWin (title ++ " returned with error code "
-                  ++show code) []
+               toolOutput <- takeMVar toolOutputMVar
+               errorWin title code (reverse toolOutput)
                return False
+
+
+errorWin :: String -> Int -> [String] -> IO () 
+errorWin title code output =
+   do
+      showOutput <- createDialogWin
+         [("Continue",False),("Show Tool Output",True)]
+         Nothing
+         [text (title ++ " returned with error code "++show code)]
+         [text (title ++ " error")]
+      if showOutput
+         then
+            createTextDisplay (title ++ ": output") (unlines output) []
+         else
+            done

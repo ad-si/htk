@@ -22,6 +22,7 @@ module MMiSSDTDAssumptions(
    ) where
 
 import Maybe
+import Char
 
 import XmlTypes
 
@@ -105,24 +106,16 @@ classifyElement (Elem name attributes content) =
       --    If there is no "label" attribute defined, Other is returned.
       --
       --
-      -- Rules for mapping entity names:
-      --    elements "package"/"section"/"paragraph"/"view" -> "includeGroup"
-      --             "example"/"exercise"/definition"/"program"/"theory"/
-      --                "theorem"/"development"/"proof"/"script"/"list" 
-      --                                                    -> "includeUnit"
-      --             "textFragment"                 -> "includeTextFragment"
-      --             "table"/"figure"/"glossaryEntry"/
-      --                 "bibEntry"/"programFragment"/"clause"/"step" 
-      --                                                    -> "includeAtom"
+      -- Rules for mapping entity names: encoded by mapLabelledTag.
       --
       --    The returned element has an Xml tag taken from the corresponding
       --    RHS, with empty content and two attributes.  First attribute is 
       --    "included" pointing to the value of the supplied label attribute.  
       --    Second attribute is "status=present".
-      mkInclude includeTag = case getAtt "label" of
+      mkInclude includeChar = case getAtt "label" of
          Nothing -> Other
          Just label ->
-            DirectInclude label (Elem includeTag [
+            DirectInclude label (Elem ("include" ++ toIncludeStr includeChar) [
                ("included",AttValue [Left label]),
                ("status",AttValue [Left "present"])
                ] [])
@@ -136,66 +129,45 @@ classifyElement (Elem name attributes content) =
          "reference" -> reference
 
          -- Includes
-         "includeGroup" -> include
-         "includeUnit" -> include
-         "includeAtom" -> include
-         "includeTextFragment" -> include
+         'i':'n':'c':'l':'u':'d':'e':_ -> include
 
          _ -> case classifyLabelledTag name of
-            Just GroupTag -> mkInclude "includeGroup"
-            Just UnitTag -> mkInclude "includeUnit"
-            Just AtomTag -> mkInclude "includeAtom"
-            Just TextFragmentTag -> mkInclude "includeTextFragment"
+            Just c -> mkInclude c
             Nothing -> Other
 
 ---
--- The tags which take labels are divided according to which sort of "include"
--- they correspond to.
-data LabelledTag =
-      GroupTag
-   |  UnitTag
-   |  AtomTag
-   |  TextFragmentTag
-   deriving Eq
+-- Map tags to the name of their corresponding include element (minus
+-- "include")
+mapLabelledTag :: String -> String
+mapLabelledTag s = 
+   case s of
+      "package" -> "Group"
+      "paragraph" -> "Group"
+      "view" -> "Group"
+      "example" -> "Unit"
+      "exercise" -> "Unit"
+      "definition" -> "Unit"
+      "theorem" -> "Unit"
+      "list" -> "Unit"
+      "table" -> "Atom"
+      "figure" -> "Atom"
+      "glossaryEntry" -> "Atom"
+      "bibEntry" -> "Atom"
+      _ -> mapUpper s
+   where
+      mapUpper [] = []
+      mapUpper (c : cs) = toUpper c : cs      
 
-classifyLabelledTag :: String -> Maybe LabelledTag
-classifyLabelledTag str = case str of
-   "package" -> Just GroupTag
-   "section" -> Just GroupTag
-   "paragraph" -> Just GroupTag
-   "view" -> Just GroupTag
 
-   "example" -> Just UnitTag
-   "exercise" -> Just UnitTag
-   "definition" -> Just UnitTag
-   "program" -> Just UnitTag
-   "theory" -> Just UnitTag
-   "theorem" -> Just UnitTag
-   "development" -> Just UnitTag
-   "proof" -> Just UnitTag
-   "script" -> Just UnitTag
-   "list" -> Just UnitTag
-
-   "textFragment" -> Just TextFragmentTag
-
-   "table" -> Just AtomTag
-   "figure" -> Just AtomTag
-   "glossaryEntry" -> Just AtomTag
-   "bibEntry" -> Just AtomTag
-   "programFragment" -> Just AtomTag
-   "clause" -> Just AtomTag
-   "step" -> Just AtomTag
-   _ -> Nothing
+classifyLabelledTag :: String -> Maybe Char
+classifyLabelledTag str = fromIncludeStrOpt (mapLabelledTag str)
 
 ---
 -- We also use classifyLabelledTag to get the mini-type-letter, used by
 -- EmacsEdit.hs to colour magic buttons appropriately.
 getMiniType :: String -> Char
 getMiniType str = case classifyLabelledTag str of
-   Just GroupTag -> 'G'
-   Just UnitTag -> 'U'
-   Just AtomTag -> 'A'
-   Just TextFragmentTag -> 'T'
+   Just c -> c
    Nothing -> error ("Attempt to edit object with unclassifiable tag "++str)
 
 ---
@@ -206,15 +178,54 @@ toIncludeStr 'G' = "Group"
 toIncludeStr 'U' = "Unit"
 toIncludeStr 'A' = "Atom"
 toIncludeStr 'T' = "TextFragment"
+toIncludeStr 'S' = "Section"
+toIncludeStr 'a' = "Abstract"
+toIncludeStr 'I' = "Introduction"
+toIncludeStr 's' = "Summary"
+toIncludeStr 'F' = "FormalUnit"
+toIncludeStr 'C' = "ConceptualAtom"
+toIncludeStr 'p' = "ProgramFragment"
+toIncludeStr 'P' = "Program"
+toIncludeStr 'c' = "Clause"
+toIncludeStr 't' = "Theory"
+toIncludeStr 'x' = "Step"
+toIncludeStr 'y' = "Proof"
+toIncludeStr 'z' = "Script"
+toIncludeStr 'D' = "Development"            
 toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
 
+
+---
+-- fromIncludeStrOpt
+-- and also handles the case where the first letter is lower-cased.
+fromIncludeStrOpt :: String -> Maybe Char
+fromIncludeStrOpt "Group" = Just 'G'
+fromIncludeStrOpt "Unit" = Just 'U'
+fromIncludeStrOpt "Atom" = Just 'A'
+fromIncludeStrOpt "TextFragment" = Just 'T'
+fromIncludeStrOpt "Section"         = Just 'S'                
+fromIncludeStrOpt "Abstract"        = Just 'a'        
+fromIncludeStrOpt "Introduction"    = Just 'I'        
+fromIncludeStrOpt "Summary"         = Just 's'        
+fromIncludeStrOpt "FormalUnit"      = Just 'F'        
+fromIncludeStrOpt "ConceptualAtom"  = Just 'C'        
+fromIncludeStrOpt "ProgramFragment" = Just 'p'         
+fromIncludeStrOpt "Program"         = Just 'P'        
+fromIncludeStrOpt "Clause"          = Just 'c'        
+fromIncludeStrOpt "Theory"          = Just 't'        
+fromIncludeStrOpt "Step"            = Just 'x'        
+fromIncludeStrOpt "Proof"           = Just 'y'        
+fromIncludeStrOpt "Script"          = Just 'z'        
+fromIncludeStrOpt "Development"     = Just 'D' 
+fromIncludeStrOpt (c : cs) | Char.isLower c 
+   = fromIncludeStrOpt (toUpper c : cs)
+fromIncludeStrOpt _ = Nothing
+
 fromIncludeStr :: String -> Char
-fromIncludeStr "Group" = 'G'
-fromIncludeStr "Unit" = 'U'
-fromIncludeStr "Atom" = 'A'
-fromIncludeStr "TextFragment" = 'T'
-fromIncludeStr _ = error 
-   "MMiSSDTDAssumptions.fromIncludeStr - bad include string"
+fromIncludeStr str = case fromIncludeStrOpt str of
+   Just c -> c
+   Nothing -> error 
+    ("MMiSSDTDAssumptions.fromIncludeStr - bad include string"++str)
 
 -- ----------------------------------------------------------------------
 -- Turning a (possible) link back into an element
@@ -227,13 +238,10 @@ fromIncludeStr _ = error
 unclassifyElement :: Element -> Maybe (String,Element -> WithError ())
 unclassifyElement (Elem name attributes _) =
    let
-      includeSort :: Maybe LabelledTag
+      includeSort :: Maybe Char
       includeSort =
          case name of
-            "includeGroup" -> Just GroupTag
-            "includeUnit" -> Just UnitTag
-            "includeAtom" -> Just AtomTag
-            "includeTextFragment" -> Just TextFragmentTag
+            'i':'n':'c':'l':'u':'d':'e': rest -> Just (fromIncludeStr rest)
             _ -> Nothing
    in
       fmap

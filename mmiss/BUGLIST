@@ -4,6 +4,18 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+47) 19.09.02
+
+Improved tool output display, so the user is only pestered with it if there's
+an error.  
+
+Made some very repetitive changes to cope with new finer-grained includes.
+FIXED
+
+46) 19.09.02
+Fixed bug in Source.hs by which titles of windows (or anything else in
+SimpleSource) wasn't getting updated.
+
 45) 19.09.02
 Fixed a bug in MMiSSStructureContents which meant some included content
 was getting lost.
@@ -152,6 +164,9 @@ Better wait until MMiSS.dtd has stablised a bit.
 
 Some changes have been made to colours in MMiSS.dtd to make the consistent
 with Emacs colours we are about to introduce.
+
+19.09.02.  Probably because of change (47):
+FIXED
 
 26) 10.09.02
 Rearrange DTD stuff to collect places where we rely on the DTD as far as

@@ -143,11 +143,29 @@ AC_SUBST(WORK_AROUND_BDB_LINUX_BUG)
 AC_PATH_PROGS(XEMACS,xemacs)
 AC_PATH_PROGS(GNUCLIENT,gnuclient)
 #
-# Check for latex, xdvi, dvips, lp
+# Check for latex, xdvi, acroread, lp
 AC_PATH_PROGS(LATEX,latex)
 AC_PATH_PROGS(XDVI,xdvi)
-AC_PATH_PROGS(DVIPS,dvips)
+AC_PATH_PROGS(ACROREAD,acroread)
 AC_PATH_PROGS(LP,lp)
+# 
+# Find the current installation of MMiSSLaTeX
+AC_ARG_WITH(
+   MMiSS-LaTeX,
+   AC_HELP_STRING(
+      [--with-MMiSS-LaTeX],
+      [Set to pathname where MMiSS-LaTeX is installed]
+      ),
+   MMISSLATEXDIR=$withval,
+   MMISSLATEXDIR=${MMISSLATEXDIR:-/usr/local/MMISS/tex}
+   )
+MISSLATEX=$MMISSLATEXDIR/bin/misslatex
+if test -r "$MISSLATEX"; then
+   echo Using MMiSS LaTeX found at $MISSLATEX 
+else
+   MISSLATEX="echo Couldn't find MMiSS LaTeX to run"
+fi
+AC_SUBST(MISSLATEX)
 #
 # Construct the default options, used by 
 # util/default_options.c
@@ -177,7 +195,7 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/dolatex mmiss/scripts/doxdvi mmiss/scripts/dodvips mmiss/scripts/dolp"
+   SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp"
 
    AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS)
    chmod +x $SCRIPTS

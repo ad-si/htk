@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs a file through misslatex.
+#
+# Argument 1 = working directory
+# Argument 2 = misstex option(s)
+# Argument 3 = TeX file
+cd $1
+exec @MISSLATEX@ --nonstopmode $2 $3

@@ -44,9 +44,27 @@
 (setq MMiSS-colours 
    (list
       (cons ?G  "orange")
+      (cons ?S  "orange")
+
       (cons ?U  "green")
+      (cons ?a  "green")
+      (cons ?I  "green")
+      (cons ?s  "green")
+      (cons ?F  "green")
+
       (cons ?A  "yellow")
+      (cons ?C  "yellow")
+      (cons ?p  "yellow")
+      (cons ?P  "yellow")
+      (cons ?c  "yellow")
+      (cons ?t  "yellow")
+      (cons ?x  "yellow")
+      (cons ?y  "yellow")
+      (cons ?z  "yellow")
+      (cons ?D  "yellow")
+
       (cons ?T  "red")
+
       )
    )
 

@@ -59,7 +59,7 @@ import EmacsContent
 
 import qualified LaTeXParser
 
-import MMiSSDTDAssumptions(getMiniType)
+import MMiSSDTDAssumptions(getMiniType,toIncludeStr)
 import MMiSSAttributes
 import MMiSSPathsSimple
 import MMiSSObjectTypeList
@@ -734,7 +734,10 @@ createMMiSSObject objectType view folder =
             do
                createMessageWin str []
                return Nothing
-         Right link -> return (Just (link,True))
+         Right link -> 
+            do
+               createMessageWin "Import successful!" [] 
+               return (Just (link,True))
             -- True because the object has already been entered
 
 -- ------------------------------------------------------------------
@@ -818,6 +821,8 @@ editMMiSSObjectGeneral format view link =
                              let
                                 link = coerceWithErrorOrBreak break linkWE
                              link `seq` done
+                             createMessageWin 
+                                ("Commit of "++name++ " successful!") []
                           )
 
                      finishEdit = release lock
@@ -1038,13 +1043,7 @@ mkLaTeXString (EmacsContent dataItems) =
          EditableText str -> str
          EmacsLink (included,ch) -> 
             "\\Include"
-            ++(case ch of
-               'G' -> "Group"
-               'A' -> "Atom"
-               'U' -> "Unit"
-               'T' -> "TextFragment"
-               _ -> error ("MMiSSObjects: mysterious minitype letter: "++[ch])
-               )
+            ++ toIncludeStr ch
             ++ "{" ++ included ++ "}{status=present}"
          )     
       dataItems

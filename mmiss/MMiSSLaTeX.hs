@@ -6,6 +6,7 @@ module MMiSSLaTeX(
 
 import Maybe
 import Directory
+import Char
 
 import WBFiles
 import FileNames
@@ -68,66 +69,135 @@ mmissLaTeX fileName contents =
                      runCommand title command
 
                laTeXFile = fileName ++ ".tex"
-               dviFile = fileName ++ ".dvi"
 
                fullLaTeXFile = (trimDir laTeXDir) `combineNames` laTeXFile
 
+            -- Run file through misstex.
+            formatOpt <- doForm ("Format for "++fileName) outputTypeForm
+
+            let
+               format = fromMaybe cancel formatOpt
+            seq format done
+
             -- Write the String to a file.
             copyStringToFile contents fullLaTeXFile
-
-            -- Run it through LaTeX
-            success <- run ("LaTeX "++fileName) "latex" [laTeXFile]
+            let
+               misslatexArg = case format of
+                  DVI -> "-d"
+                  PS -> "-p"
+                  PDF -> "-f"
+            success <- run "MMiSS-LaTeX" "misslatex" [misslatexArg,laTeXFile]
             if success 
                then
                   done
                else
                   cancel
 
+            -- Depending on the target format chosen, we now enter a loop
+            -- allowing the user to do various things with the resulting
+            -- output, until he/she clicks Cancel.
             let
-               -- The following loop is run until the user clicks cancel at the
-               -- start.
-               doOutput :: IO ()
-               doOutput =               
+               emptyName str = all Char.isSpace str
+
+               dviLoop :: IO ()
+               -- Choice is xdvi or send to file
+               dviLoop =
                   do
-                     -- Find out what the user wants to do with the output
-                     outputTypeOpt 
-                        <- doForm ("How to display "++fileName) outputTypeForm
                      let
-                        outputType = fromMaybe cancel outputTypeOpt
-                     case outputType of
-                        Preview -> 
-                           do 
-                              run ("Preview "++fileName) "xdvi" [dviFile]
-                              done
-                        File ->
-                           do
-                              let
-                                 filePathForm = newFormEntry
-                                    "Write PostScript to" ""
-                              filePathOpt 
-                                 <- doForm "Print to File" filePathForm
-                              case filePathOpt of
-                                 Nothing -> done
-                                 Just filePath -> 
-                                    do
-                                       run ("Print "++fileName++" to file")
-                                          "dvips" [dviFile,filePath]
-                                       done
-                        Printer ->
-                           do
-                              let
-                                 printerForm = newFormEntry
-                                    "Printer" ""
-                              printerOpt <- doForm "Print to File" printerForm
-                              case printerOpt of
-                                 Nothing -> 
-                                    run ("Printing "++fileName) "lp"
-                                       [dviFile]
-                                 Just printer -> 
-                                    run ("Printing "++fileName) "lp"
-                                       [dviFile,printer]
-                              done
-            forever doOutput       
+                        xdvi = newFormEntry "Preview" False
+                        file = newFormEntry "Or send to file: " ""
+
+                        form1 = xdvi // file
+                        form2 =
+                           guardForm (\ (xdvi,fPath) ->
+                              not xdvi || emptyName fPath
+                              )
+                              "preview and a file cannot both be specified"
+                              form1
+                        form3 =
+                           guardForm (\ (xdvi,fPath) ->
+                              xdvi || not (emptyName fPath)
+                              )
+                              "neither preview nor a file are specified"
+                              form2
+                 
+                        dviFile = fileName ++ ".dvi"
+
+
+                     dviOpt <- doForm "DVI destination" form3
+                     case dviOpt of
+                        Nothing -> cancel
+                        Just (True,_) ->
+                           run "xdvi" "xdvi" [dviFile]
+                        Just (False,fPath) ->
+                           run "cp" "cp" [dviFile,fPath]
+                     done
+
+               pdfLoop :: IO ()
+               -- Choice is acroread or send to file
+               pdfLoop =
+                  do
+                     let
+                        acroread = newFormEntry "Preview" False
+                        file = newFormEntry "Or send to file: " ""
+                        pdfFile = fileName ++ ".pdf"
+
+                        form1 = acroread // file
+                        form2 =
+                           guardForm (\ (acro,fPath) ->
+                              not acro || emptyName fPath
+                              )
+                              "preview and a file cannot both be specified"
+                              form1
+                        form3 =
+                           guardForm (\ (acro,fPath) ->
+                              acro || not (emptyName fPath)
+                              )
+                              "neither preview nor a file are specified"
+                              form2
+                 
+                     pdfOpt <- doForm "PDF destination" form3
+                     case pdfOpt of
+                        Nothing -> cancel
+                        Just (True,_) ->
+                           run "Acroread" "acroread" [pdfFile]
+                        Just (False,fPath) ->
+                           run "cp" "cp" [pdfFile,fPath]
+                     done
+
+               psLoop :: IO ()
+               -- Choice is acroread or send to file
+               psLoop =
+                  do
+                     let
+                        print = newFormEntry 
+                           "Send to printer (empty for default): " ""
+                        file = newFormEntry "Or to file: " ""
+                        psFile = fileName ++ ".ps"
+
+                        form1 = print // file
+                        form2 =
+                           guardForm (\ (printer,fPath) ->
+                              not (emptyName printer) || not (emptyName fPath)
+                              )
+                              "printer and a file cannot both be specified"
+                              form1
+                 
+                     psOpt <- doForm "PS destination" form2
+                     case psOpt of
+                        Nothing -> cancel
+                        Just (printer,fPath) 
+                              | emptyName fPath ->
+                           run "Printing" "lp" [psFile,printer]
+                        Just (_,fPath) ->
+                           run "cp" "cp" [psFile,fPath]
+                     done
+
+            forever (case format of
+               DVI -> dviLoop
+               PDF -> pdfLoop
+               PS -> psLoop
+               )
          )
       -- Delete the containing directory, using old-fashioned technology
       safeSystem ("rm -rf \""++bashEscape laTeXDir++"\"")
@@ -137,12 +207,12 @@ mmissLaTeX fileName contents =
 -- OutputType and form that reads it
 -- --------------------------------------------------------------------
 
-data OutputType = Preview | File | Printer
+data OutputType = DVI | PS | PDF
 
 outputTypeForm :: Form OutputType
 outputTypeForm = newFormOptionMenu2 [
-   ("Preview",Preview),
-   ("Print to File",File),
-   ("Send to Printer",Printer)
+   ("DVI",DVI),
+   ("PostScript",PS),
+   ("PDF",PDF)
    ]
 
