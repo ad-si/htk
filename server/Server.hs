@@ -201,9 +201,16 @@ runServer portDesc serviceList =
                            -- add client to client list
                            oldClients <- takeMVar clients
                            putMVar clients (clientData:oldClients)
-                           header <- sendOnConnect service state
-                           hPutStrLn handle (show header)
                            putMVar stateMVar state
+                           let
+                              clientStartup = 
+                              -- we delay doing this to the client thread,
+                              -- since it might take some time.
+                                 do
+                                    state <- takeMVar stateMVar
+                                    header <- sendOnConnect service state
+                                    hPutStrLn handle (show header)
+                                    putMVar stateMVar state
 
                            -- clientReadAction is basically thread for 
                            -- reading client output
@@ -244,6 +251,7 @@ runServer portDesc serviceList =
                            -- (EOF) errors don't cause any trouble.
                            forkIO(
                               do
+                                 clientStartup
                                  Left exception <- tryAllIO clientReadAction
                                  -- clientReadAction cannot return otherwise
                                  let

@@ -21,7 +21,7 @@ import ServiceClass
 import SharedGraph
 
 sharedGraphService :: (Typeable nodeLabel,Read nodeLabel,Show nodeLabel) =>
-   (Update nodeLabel,Update nodeLabel,SharedGraph nodeLabel)
+   (Update String nodeLabel,Update String nodeLabel,SharedGraph nodeLabel)
 sharedGraphService = serviceArg 
 
 sharedGraphServiceWrapped 
@@ -29,22 +29,24 @@ sharedGraphServiceWrapped
    nodeLabel -> Service
 sharedGraphServiceWrapped (_ :: nodeLabel) = 
    Service (sharedGraphService :: 
-      (Update nodeLabel,Update nodeLabel,SharedGraph nodeLabel))
+      (Update String nodeLabel,Update String nodeLabel,SharedGraph nodeLabel))
 
 instance (Typeable nodeLabel,Read nodeLabel,Show nodeLabel) =>
-      ServiceClass (Update nodeLabel) (Update nodeLabel) 
+      ServiceClass (Update String nodeLabel) (Update String nodeLabel) 
       (SharedGraph nodeLabel) where
    serviceId _ = "SharedGraph"++
       let
          (nodeLabelTop :: nodeLabel) = nodeLabelTop
       in
-         return(show(typeOf nodeLabelTop))
+         show(typeOf nodeLabelTop)
 
    serviceMode _ = Broadcast
    initialState _ = makeSharedGraph (emptyCannedGraph,inaction)
    handleRequest _ (update,sharedGraph) =
       do
-         updateSharedGraph sharedGraph update
+         (updateWithNodes :: Update Node nodeLabel) <-
+            mapMUpdate (toNode sharedGraph) update
+         updateSharedGraph sharedGraph updateWithNodes
          return (update,sharedGraph)
    sendOnConnect _ sharedGraph =
       do

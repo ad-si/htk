@@ -1,6 +1,8 @@
 {- The SharedGraph module contains code for sharing a labelled
    modifiable directed graph. -}
 module SharedGraph(
+
+   -- Nodes
    Node,
       -- nodes are essentially Strings.  Allocating these nodes in
       -- a unique way is the caller's responsibility
@@ -12,6 +14,7 @@ module SharedGraph(
       -- toNode and fromNode are guaranteed to behave as the identity function
       -- were String to be identified with String. 
 
+   -- Updates
    Update,
       -- datatype encoding update to shared graph
       -- Parameterised on node vertex type and node label.
@@ -26,6 +29,8 @@ module SharedGraph(
       -- IO (Update nodeOut nodeLabel)
       -- map updates monadically by node label.
 
+   -- SharedGraphs (which change) and CannedGraphs (which don't).
+   -- CannedGraphs are used for transferring SharedGraphs around.
    SharedGraph, 
       -- SharedGraph takes a parameter nodeLabel
    
@@ -48,15 +53,26 @@ module SharedGraph(
              --       IO (SharedGraph nodeLabel)
              --    makeSharedGraph creates a shared graph given a 
              --    canned graph plus a source of updates.
-   updateSharedGraph -- :: SharedGraph nodeLabel -> Update Node nodeLabel -> 
+
+   -- Writing to a SharedGraph.
+   updateSharedGraph, -- :: SharedGraph nodeLabel -> Update Node nodeLabel -> 
              --               IO ()
              --    apply a direct update to the shared graph
+
+   -- Interrogating SharedGraphs.
+   getNodes,        -- :: SharedGraph nodeLabel -> IO [Node]
+   getPredecessors, -- :: SharedGraph nodeLabel -> Node -> IO [Node]
+   getSuccessors,   -- :: SharedGraph nodeLabel -> Node -> IO [Node]
+   getLabel,        -- :: SharedGraph nodeLabel -> Node -> IO nodeLabel
+   -- getPredecessors,getSuccessors,getLabel raise errors if they
+   -- can't find a node.
                  
    
    ) where
 
 import FiniteMap
 import Concurrency
+import Concurrent(readMVar)
 
 import ExtendedPrelude
 import SmallSet
@@ -305,7 +321,7 @@ canGraph atomSource nodeMap =
 ------------------------------------------------------------------------
 -- NodeMap's (operations as maps)
 -- We encapsulate the FiniteMap here, so it can possibly be
--- changed later
+-- changed later.  So NodeMap should be abstract to the rest of the code.
 ------------------------------------------------------------------------
 
 newtype NodeMap nodeLabel = NodeMap (FiniteMap Node (NodeData nodeLabel))
@@ -318,6 +334,12 @@ listNodeMap (NodeMap nodeMap) = fmToList nodeMap
 lookupDefault :: NodeMap nodeLabel -> Node -> NodeData nodeLabel
 lookupDefault (NodeMap nodeMap) node = 
    lookupWithDefaultFM nodeMap defaultNodeData node
+
+lookupError :: NodeMap nodeLabel -> Node -> NodeData nodeLabel
+lookupError (NodeMap nodeMap) node =
+   lookupWithDefaultFM nodeMap 
+      (error "SharedGraph.lookupError - node not found")
+      node
 
 addNode :: NodeMap nodeLabel -> Node -> NodeData nodeLabel -> 
    NodeMap nodeLabel
@@ -453,7 +475,43 @@ setNodeSuccessors node successors2 nodeMap1 =
    in
       nodeMap4    
    
+------------------------------------------------------------------------
+-- Interrogating SharedGraphs.
+------------------------------------------------------------------------
 
+getNodes :: SharedGraph nodeLabel -> IO [Node]
+getNodes (SharedGraph {nodeLookUp = nodeLookUp}) =
+   do
+      nodeMap <- readMVar nodeLookUp
+      return (
+         map
+            (\ (node,nodeData) -> node)          
+            (listNodeMap nodeMap)
+         )
+
+getNodeData :: SharedGraph nodeLabel -> Node -> IO (NodeData nodeLabel)
+getNodeData (SharedGraph {nodeLookUp = nodeLookUp}) node =
+   do
+      nodeMap <- readMVar nodeLookUp
+      return(lookupError nodeMap node)
+
+getPredecessors :: SharedGraph nodeLabel -> Node -> IO [Node]
+getPredecessors sharedGraph node =
+   do
+      nodeData <- getNodeData sharedGraph node
+      return (listSmallSet (predecessors nodeData))
+
+getSuccessors :: SharedGraph nodeLabel -> Node -> IO [Node]
+getSuccessors sharedGraph node =
+   do
+      nodeData <- getNodeData sharedGraph node
+      return (listSmallSet (successors nodeData))
+
+getLabel :: SharedGraph nodeLabel -> Node -> IO nodeLabel
+getLabel sharedGraph node =
+   do
+      nodeData <- getNodeData sharedGraph node
+      return (label nodeData)
 
 
 
