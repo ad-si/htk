@@ -1,6 +1,7 @@
 {- This program converts stdin to stdout.  It replaces all occurrences of
    the string "$PWD" in stdin with the current directory in which it is
-   executed.  Everything else is left unchanged.
+   executed, C escaped.  Everything else is left unchanged.
+
 
    The program occupies an unusual place in the UniForM sources; it is not
    part of the main sources, but is only used during building (see suffix.mk)
@@ -23,8 +24,18 @@ main =
       input <- getContents
       currentDirectory  <- getCurrentDirectory
       let
+         escapeString s = 
+            let
+               withQuotes @ ('\"':rest) = show s
+            in
+               take (length rest - 1) rest
+
+         quotedCurrentDirectory = escapeString currentDirectory
+            
          transform [] = []
-         transform ('$':'P':'W':'D':rest) = currentDirectory ++ transform rest
+         transform ('$':'P':'W':'D':rest) = quotedCurrentDirectory ++ transform rest
          transform (c:rest) = c:transform rest
       putStr . transform  $ input
+
+
 
