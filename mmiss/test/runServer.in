@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# Launch a MMiSS server.
+#
+
+help() 
+{
+  echo "MMiSS Workbench server start script.
+Usage: `basename $0` options, where valid options include: 
+  -w <dir>  specify location of server workspace
+  -p <port> specify port for server to listen on
+"
+}
+
+# Process command line options
+while getopts w:p:? OPT; do 
+  case $OPT in
+    w ) SERVER_WORKSPACE=$OPTARG ;;
+    p ) export UNIPORT=$OPTARG ;;
+    \? ) help ; exit 0 ;;
+  esac
+done
+shift `expr $OPTIND - 1`
+
+export UNISERVERDIR=${SERVER_WORKSPACE:-@TOP@/tmp/server-workspace}
+
+if [ ! -d $UNISERVERDIR ]; then 
+  echo Creating server workspace at $UNISERVERDIR
+  mkdir -p $UNISERVERDIR; 
+else
+  echo Using server workspace at $UNISERVERDIR
+fi
+
+if [ ! -f $UNISERVERDIR/passwd ]; then  
+  echo Copying password file from @TOP@/server/passwd.dummy
+  cp @TOP@/server/passwd.dummy $UNISERVERDIR/passwd
+fi
+
+echo Running server on $HOSTNAME, port ${UNIPORT:-(default)}
+cd @TOP@/types/test
+./Server --uni-debug=s.debug --uni-serverDir=$UNISERVERDIR
+
+# TBD: Check if another server is running with this workspace (might
+#      make sense to allow that, though?), and if UNIPORT is bound.
