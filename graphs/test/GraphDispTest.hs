@@ -9,10 +9,20 @@ import Concurrent
 
 import Debug(debug)
 
+import Selective
+
+import SIM(Destructible(..),lift)
+
 import GraphDisp
 
-setUpGraph :: (GraphAll graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms) 
+setUpGraph :: 
+   (GraphAll graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms,
+    GraphConfigParms GraphTitle graphParms,
+    NodeTypeConfigParms MenuButton nodeTypeParms,
+    NodeTypeConfigParms ValueTitle nodeTypeParms,
+    ArcTypeConfigParms MenuButton arcTypeParms
+    ) 
    => (graph,graphParms,
       node Int,nodeType Int,nodeTypeParms Int,
       arc String Int Int,arcType String,arcTypeParms String) 
@@ -23,26 +33,45 @@ setUpGraph (_::
       arc String Int Int,arcType String,arcTypeParms String) 
       )=
    do
-      (graph::graph) <- newGraph (emptyGraphParms :: graphParms)
- 
-      quitMVar <- newEmptyMVar
+      if (graphConfigUsed (GraphTitle "") (emptyGraphParms :: graphParms))
+         then
+            return ()
+         else
+            error "Graph Title config is ignored!"
+      let
+         (graphParms :: graphParms) = graphConfigs [
+            GConfig(GraphTitle "Test Graph Display")
+            ] 
+      (graph::graph) <- newGraph graphParms
+
+      (killChannel :: Channel ()) <- newChannel
 
       let
          disp s tD = debug (s ++ (show tD))
-
          (nullNodeParms :: nodeTypeParms Int) = emptyNodeTypeParms
+
          nodeMenu1 = Button "Type1" (disp "Type1")
-         nodeType1Parms = nodeTypeConfig nodeMenu1 nullNodeParms         
+        
+         nodeType1Parms = 
+            (nodeTypeConfig nodeMenu1) .
+            (nodeTypeConfig (ValueTitle (
+               \ value -> return ("Type 1"++show value)
+               ))) $ nullNodeParms
 
          nodeMenu2 = Menu (Just "Type2") [
             Button "Foo" (disp "Type2Foo"),
             Menu Nothing [
                Button "Bah" (disp "Type2Bah"),
                Button "Baz" (disp "Type2Baz"),
-               Button "Quit" (putMVar quitMVar)
+               Button "Quit" (\ _ -> sendIO killChannel ())
                ]
             ]
-         nodeType2Parms = nodeTypeConfig nodeMenu2 nullNodeParms
+
+         nodeType2Parms =
+            (nodeTypeConfig nodeMenu2) .
+            (nodeTypeConfig (ValueTitle (
+               \ _ -> return "Type 2"
+               ))) $ nullNodeParms
 
       (nodeType1 :: nodeType Int) <- newNodeType graph nodeType1Parms
       (nodeType2 :: nodeType Int) <- newNodeType graph nodeType2Parms
@@ -54,7 +83,10 @@ setUpGraph (_::
       let
          (nullArcParms :: arcTypeParms String) = emptyArcTypeParms
          arcMenu1 = Button "ArcType1" (disp "ArcType1")
-         arcType1Parms = arcTypeConfig arcMenu1 nullArcParms         
+
+         arcType1Parms =
+            (arcTypeConfig arcMenu1) $ nullArcParms
+
       (arcType1 :: arcType String) <- newArcType graph arcType1Parms
 
       (arcA :: arc String Int Int) <- 
@@ -64,8 +96,8 @@ setUpGraph (_::
    
       redraw graph
 
-      quitNo <- takeMVar quitMVar
-
-      debug quitNo
-
+      sync(
+            (lift(receive killChannel) >>> destroy graph)
+         +> (destroyed graph)
+         )
 

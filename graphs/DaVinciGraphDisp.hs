@@ -18,13 +18,15 @@ import FiniteMap
 import qualified IOExts(unsafePerformIO)
 
 import Computation
-import Concurrent
-import Dynamics
 
-import SIM(destroy)
+import Concurrent
+import Selective
+import Dynamics
+import Debug(debug)
 
 import qualified DaVinci
 import qualified HTk
+import qualified SIM
 import qualified Button
 import qualified MenuButton
 import qualified PulldownMenu
@@ -47,65 +49,107 @@ daVinciSort :: (DaVinciGraph,DaVinciGraphParms,
 ------------------------------------------------------------------------
 
 data DaVinciGraph = 
-   DaVinciGraph DaVinci.Graph
+   DaVinciGraph DaVinci.Graph DaVinci.DaVinci
+
+instance SIM.Destructible DaVinciGraph where
+   SIM.destroy (DaVinciGraph graph _ ) = SIM.destroy graph
+   SIM.destroyed (DaVinciGraph graph _ ) = SIM.destroyed graph
 
 newtype DaVinciGraphParms = DaVinciGraphParms [Config DaVinci.Graph]
 
 instance Graph DaVinciGraph where
-   redraw (DaVinciGraph graph) = DaVinci.redrawGraph graph
+   redraw (DaVinciGraph graph _) = DaVinci.redrawGraph graph
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraph (DaVinciGraphParms graphParms) =
       do
-         graph <- DaVinci.newGraph graphParms
-         return (DaVinciGraph graph)
+         daVinci <- DaVinci.davinci []
+         graph <- DaVinci.newGraph (graphParms ++ [
+            DaVinci.gapwidth 4,
+            DaVinci.gapheight 40,
+            DaVinci.dragging DaVinci.On
+            ])
+
+         DaVinci.displayGraph graph
+         DaVinci.newSurveyView graph
+
+         return (DaVinciGraph graph daVinci)
 
 instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms []
+
+instance GraphConfigParms GraphTitle DaVinciGraphParms where
+   graphConfigUsed graphConfig graphParms = True
+   graphConfig (GraphTitle graphTitle) (DaVinciGraphParms graphParms) =
+      DaVinciGraphParms (HTk.text graphTitle : graphParms)
+
+instance GraphConfig graphConfig 
+   => GraphConfigParms graphConfig DaVinciGraphParms where
+
+   graphConfigUsed graphConfig graphParms = False
+   graphConfig graphConfig graphParms = graphParms
 
 ------------------------------------------------------------------------
 -- Nodes
 ------------------------------------------------------------------------
 
-newtype DaVinciNode value = DaVinciNode DaVinci.Node
+data DaVinciNode value = DaVinciNode DaVinci.Node
 
-newtype DaVinciNodeType value = DaVinciNodeType DaVinci.NodeType
+data DaVinciNodeType value = 
+   DaVinciNodeType DaVinci.NodeType (value -> IO String)
+   -- the second argument gives the displayed name of the node.
+
+daVinciNodeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNodeType"
+
+instance Typeable value => Typeable (DaVinciNodeType value) where
+   typeOf _ = daVinciNodeTypeTag
+      where
+         bot :: value
+         bot = bot
+         valueTag = typeOf bot
+         daVinciNodeTypeTag = mkTypeTag daVinciNodeTyCon [valueTag] 
 
 data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
-      nodeTitle :: Maybe String, -- title of the node 
-      nodeMenuConfig :: Maybe (IO (Config DaVinci.NodeType))
+      nodeText :: (value -> IO String),
+      nodeMenuConfig :: Maybe (DaVinciGraph -> IO (Config DaVinci.NodeType))
          -- config option for node type which if present configures a menu
          -- for this node type.
       }
 
 instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
-   newNode (DaVinciNodeType nodeType) (DaVinciGraph graph)
-         value =
+   newNode daVinciNodeType@(DaVinciNodeType nodeType getNodeTitle) 
+         (DaVinciGraph graph _) value =
       do
-         node <- DaVinci.newNode graph Nothing [DaVinci.nodetype nodeType] 
+         nodeText <- getNodeTitle value
+         node <- DaVinci.newNode graph Nothing [DaVinci.nodetype nodeType]
          nodeSet node value
+         nodeTypeSet node daVinciNodeType
+         configure node [
+            HTk.text nodeText,
+            DaVinci.shape DaVinci.cdefault,
+            DaVinci.border DaVinci.cdefault
+            ]
          return (DaVinciNode node)
-   readNode (DaVinciGraph graph) (DaVinciNode node) =
-      do
-         value <- nodeLookup node
-         nodeType <- DaVinci.getNodeType node
-         return (DaVinciNodeType nodeType,value)
+   getNodeType _ (DaVinciNode node) = nodeTypeLookup node
 
 instance DeleteNode DaVinciGraph DaVinciNode where
    deleteNode _ (DaVinciNode node) = 
       do
-         destroy node
+         SIM.destroy node
          nodeDelete node
+         nodeTypeDelete node
+
+   getNodeValue _ (DaVinciNode node) = nodeLookup node
 
 instance Node DaVinciNode where
 
 instance NodeType DaVinciNodeType where
 
 instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
-   newNodeType (DaVinciGraph graph) 
+   newNodeType (daVinciGraph@(DaVinciGraph graph daVinci)) 
          (DaVinciNodeTypeParms {
-            nodeTitle = nodeTitle,
+            nodeText = nodeText,
             nodeMenuConfig = nodeMenuConfig
             }) =
       do
@@ -113,19 +157,32 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
             Nothing -> return []
             Just getConfig ->
                do
-                  config <- getConfig
+                  config <- getConfig daVinciGraph
                   return [config] 
-         nodeType <- DaVinci.newNodeType graph nodeTitle configList
-         return (DaVinciNodeType nodeType)
+         nodeType <- DaVinci.newNodeType graph Nothing configList
+         return (DaVinciNodeType nodeType nodeText)
 
 instance NodeTypeParms DaVinciNodeTypeParms where
    emptyNodeTypeParms = DaVinciNodeTypeParms {
-      nodeTitle = Nothing,
+      nodeText = (\ value -> return ""),
       nodeMenuConfig = Nothing
       }
 
+instance NodeTypeConfig graphConfig 
+   => NodeTypeConfigParms graphConfig DaVinciNodeTypeParms where
+
+   nodeTypeConfigUsed nodeTypeConfig nodeTypeParms = False
+   nodeTypeConfig nodeTypeConfig nodeTypeParms = nodeTypeParms
+
+instance NodeTypeConfigParms ValueTitle DaVinciNodeTypeParms where
+   nodeTypeConfigUsed _ _ = True
+   nodeTypeConfig (ValueTitle nodeText) parms = 
+      parms { nodeText = nodeText }
+
 ------------------------------------------------------------------------
 -- Arcs
+-- These differ from nodes in that they don't have texts, but do
+-- have endnodes.
 ------------------------------------------------------------------------
 
 newtype DaVinciArc value nodeFromValue nodeToValue = DaVinciArc DaVinci.Edge
@@ -134,45 +191,55 @@ newtype DaVinciArcType value = DaVinciArcType DaVinci.EdgeType
 
 data DaVinciArcTypeParms value = 
    DaVinciArcTypeParms {
-      arcTitle :: Maybe String, -- title of the node 
-      arcMenuConfig :: Maybe (IO (Config DaVinci.EdgeType))
-         -- config option for node type which if present configures a menu
-         -- for this node type.
+      arcMenuConfig :: Maybe (DaVinciGraph -> IO (Config DaVinci.EdgeType))
+         -- config option for arc type which if present configures a menu
+         -- for this node type.  
       }
 
 
 instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
       where
-   newArc (DaVinciArcType edgeType) (DaVinciGraph graph)
+   newArc (DaVinciArcType edgeType) _
          value (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
       do
          edge <- DaVinci.newEdge Nothing nodeFrom nodeTo 
             [DaVinci.edgetype edgeType]
          edgeSet edge value
          return (DaVinciArc edge)
-   readArc (DaVinciGraph graph) (DaVinciArc edge) =
+
+instance GetFrom DaVinciGraph DaVinciNode DaVinciArc where
+   getFrom _ (DaVinciArc edge) =
       do
-         value <- edgeLookup edge
-         edgeType <- DaVinci.getEdgeType edge
          nodeFrom <- DaVinci.getSource edge
+         return (DaVinciNode nodeFrom)
+
+instance GetTo DaVinciGraph DaVinciNode DaVinciArc where
+   getTo _ (DaVinciArc edge) =
+      do
          nodeTo <- DaVinci.getTarget edge
-         return (DaVinciArcType edgeType,
-            value,DaVinciNode nodeFrom,DaVinciNode nodeTo)
+         return (DaVinciNode nodeTo)
+
+instance GetArcType DaVinciGraph DaVinciArc DaVinciArcType where
+   getArcType _ (DaVinciArc edge) =
+      do
+         edgeType <- DaVinci.getEdgeType edge
+         return (DaVinciArcType edgeType)
 
 instance DeleteArc DaVinciGraph DaVinciArc where
    deleteArc _ (DaVinciArc edge) =
       do
-         destroy edge
+         SIM.destroy edge
          edgeDelete edge
+
+   getArcValue _ (DaVinciArc edge) = edgeLookup edge
 
 instance Arc DaVinciArc where
 
 instance ArcType DaVinciArcType where
 
 instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
-   newArcType (DaVinciGraph graph) 
+   newArcType (daVinciGraph@(DaVinciGraph graph daVinci)) 
          (DaVinciArcTypeParms {
-            arcTitle = arcTitle,
             arcMenuConfig = arcMenuConfig
             }) =
       do
@@ -180,16 +247,22 @@ instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
             Nothing -> return []
             Just getConfig ->
                do
-                  config <- getConfig
-                  return [config] 
-         edgeType <- DaVinci.newEdgeType graph arcTitle configList
+                  config <- getConfig daVinciGraph
+                  return [config]
+         edgeType <- DaVinci.newEdgeType graph Nothing configList
+
          return (DaVinciArcType edgeType)
 
 instance ArcTypeParms DaVinciArcTypeParms where
    emptyArcTypeParms = DaVinciArcTypeParms {
-      arcTitle = Nothing,
       arcMenuConfig = Nothing
       }
+
+instance ArcTypeConfig arcTypeConfig 
+   => ArcTypeConfigParms arcTypeConfig DaVinciArcTypeParms where
+
+   arcTypeConfigUsed arcTypeConfig arcTypeParms = False
+   arcTypeConfig arcTypeConfig arcTypeParms = arcTypeParms
 
 ------------------------------------------------------------------------
 -- Menus
@@ -202,9 +275,12 @@ instance NodeTypeConfigParms MenuButton DaVinciNodeTypeParms where
       daVinciNodeTypeParms {
          nodeMenuConfig =
             Just(
-               do
-                  newMenu <- convertMenuButton menuButton nodeLookup
-                  return (DaVinci.menu newMenu)
+               \ (DaVinciGraph graph daVinci) ->
+                  do
+                     newMenu <- convertMenuButton menuButton nodeLookup
+                     DaVinci.popupInterActor daVinci graph newMenu 
+                        Nothing DaVinci.popupSelectionNode
+                     return (DaVinci.menu newMenu)
                )
          }
 
@@ -215,9 +291,12 @@ instance ArcTypeConfigParms MenuButton DaVinciArcTypeParms where
       daVinciArcTypeParms {
          arcMenuConfig =
             Just(
-               do
-                  newMenu <- convertMenuButton menuButton edgeLookup
-                  return (DaVinci.menu newMenu)
+               \ (DaVinciGraph graph daVinci) ->
+                  do
+                     newMenu <- convertMenuButton menuButton edgeLookup
+                     DaVinci.popupInterActor daVinci graph newMenu 
+                        Nothing DaVinci.popupSelectionEdge
+                     return (DaVinci.menu newMenu)
                )
          }
 
@@ -322,52 +401,66 @@ makeMenu (Just title) Nothing =
    
       
 ------------------------------------------------------------------------
--- Dynamic data for Nodes and Edges
--- 
--- This isn't in DaVinci (though I think it's a neat idea) so we
--- have - sadly - to keep it in gigantic FiniteMaps kept in global
--- variables. 
+-- Dynamic data
+-- We need to keep dynamic data for the following reasons:
+-- (1) to get from DaVinci.Node's to their associated values.
+-- (2) ditto for DaVinci.Edge's.
+-- (3) to get from DaVinci.Node's to their associated DaVinciNodeType's.
 -----------------------------------------------------------------------
 
 nodeSet :: Typeable value => DaVinci.Node -> value -> IO ()
-nodeSet node value = nodeSetPrim node (toDyn value)
-
 nodeLookup :: Typeable value => DaVinci.Node -> IO value
+nodeDelete :: DaVinci.Node -> IO ()
+
+nodeSet node value = nodeSetPrim node (toDyn value)
 nodeLookup node =
    do
       dyn <- nodeLookupPrim node
       case fromDyn dyn of
          Just value -> return value
-         Nothing -> ioError (userError (
-            "DaVinciGraphDisp.nodeLookup type error!"
+         Nothing -> ioError(userError(
+            "Type failure in DaVinciGraphDisp.nodeLookup"
             ))
-
-nodeSetPrim :: DaVinci.Node -> Dyn -> IO ()
-nodeLookupPrim :: DaVinci.Node -> IO Dyn
-nodeDelete :: DaVinci.Node -> IO ()
+      
 (nodeSetPrim,nodeLookupPrim,nodeDelete) =
-   IOExts.unsafePerformIO makeDynamicMap
+   IOExts.unsafePerformIO makeLookupTable
 
 edgeSet :: Typeable value => DaVinci.Edge -> value -> IO ()
-edgeSet edge value = edgeSetPrim edge (toDyn value)
-
 edgeLookup :: Typeable value => DaVinci.Edge -> IO value
+
+edgeSet edge value = edgeSetPrim edge (toDyn value)
 edgeLookup edge =
    do
       dyn <- edgeLookupPrim edge
       case fromDyn dyn of
          Just value -> return value
-         Nothing -> ioError (userError (
-            "DaVinciGraphDisp.edgeLookup type error!"
+         Nothing -> ioError(userError(
+            "Type failure in DaVinciGraphDisp.edgeLookup"
             ))
 
-edgeSetPrim :: DaVinci.Edge -> Dyn -> IO ()
-edgeLookupPrim :: DaVinci.Edge -> IO Dyn
-edgeDelete :: DaVinci.Edge -> IO ()
 (edgeSetPrim,edgeLookupPrim,edgeDelete) =
-   IOExts.unsafePerformIO makeDynamicMap
+   IOExts.unsafePerformIO makeLookupTable
 
-makeDynamicMap :: Ord key =>
+nodeTypeSet :: Typeable value => DaVinci.Node -> DaVinciNodeType value 
+   -> IO ()
+nodeTypeLookup :: Typeable value => DaVinci.Node 
+   -> IO (DaVinciNodeType value)
+nodeTypeDelete :: DaVinci.Node -> IO ()
+
+nodeTypeSet nodeType value = nodeTypeSetPrim nodeType (toDyn value)
+nodeTypeLookup nodeType =
+   do
+      dyn <- nodeTypeLookupPrim nodeType
+      case fromDyn dyn of
+         Just value -> return value
+         Nothing -> ioError(userError(
+            "Type failure in DaVinciGraphDisp.nodeTypeLookup"
+            ))
+
+(nodeTypeSetPrim,nodeTypeLookupPrim,nodeTypeDelete) =
+   IOExts.unsafePerformIO makeLookupTable
+
+makeLookupTable :: Ord key =>
    IO (
       key -> Dyn -> IO (), -- set function
       key -> IO Dyn, 
@@ -375,7 +468,7 @@ makeDynamicMap :: Ord key =>
       key -> IO ()
          -- function that deletes key from map.
       ) 
-makeDynamicMap =
+makeLookupTable =
    do
       mapMVar <- newMVar emptyFM
       let
@@ -386,13 +479,12 @@ makeDynamicMap =
          lookup key = 
             do
                map <- takeMVar mapMVar
-               result <- case lookupFM map key of
+               dyn <- case lookupFM map key of
                   Just dyn -> return dyn
                putMVar mapMVar map
-               return result
+               return dyn
          delete key =
             do
                map <- takeMVar mapMVar
                putMVar mapMVar (delFromFM map key)
       return (set,lookup,delete)
-   

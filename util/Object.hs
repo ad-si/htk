@@ -20,7 +20,8 @@ rid of an unsafePerformIO, which has already caused problems with Linux GHC.
 module Object (
    ObjectID(..),
    Object(..),
-   newObject
+   newObject, -- generates a unique object
+   newInt -- generates a unique integer.
    ) where
 
 import Debug(debug)
@@ -47,11 +48,11 @@ instance Read ObjectID where
 -- New Object Identifier
 -- --------------------------------------------------------------------------
 
-foreign import "next_object_id" unsafe newObjectPrim :: IO Int
+foreign import "next_object_id" unsafe newInt :: IO Int
 
 newObject :: IO ObjectID
 newObject = 
    do
-      nextInt <- newObjectPrim 
+      nextInt <- newInt
       return(ObjectID nextInt)
 

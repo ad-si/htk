@@ -61,6 +61,8 @@ module GraphDisp(
    GraphConfig,
    GraphParms(..),
    GraphConfigParms(..),
+   GConfig(..),
+   graphConfigs,
 
    NewNode(..),
    DeleteNode(..),
@@ -70,8 +72,12 @@ module GraphDisp(
    NodeTypeConfig,
    NodeTypeParms(..),
    NodeTypeConfigParms(..),
+  
 
    NewArc(..),
+   GetFrom(..),
+   GetTo(..),
+   GetArcType(..),
    DeleteArc(..),
    Arc,
    ArcType,
@@ -80,12 +86,13 @@ module GraphDisp(
    ArcTypeParms(..),
    ArcTypeConfigParms(..),
 
-   MenuButton(..)
+   MenuButton(..),
+   GraphTitle(..),
+   ValueTitle(..)
    ) where
 
 import Dynamics
-import SIM(IA)
-
+import SIM(IA,Destructible)
 
 ------------------------------------------------------------------------
 -- GraphAll
@@ -110,7 +117,9 @@ class (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,
    Node node,NodeType nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
-   NewArc graph node node arc arcType,DeleteArc graph arc,
+   NewArc graph node node arc arcType,
+   GetFrom graph node arc,GetTo graph node arc,
+   GetArcType graph arc arcType,DeleteArc graph arc,
    Arc arc,ArcType arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
@@ -132,7 +141,9 @@ instance (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
    NewNode graph node nodeType,DeleteNode graph node,
    Node node,NodeType nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
-   NewArc graph node node arc arcType,DeleteArc graph arc,
+   NewArc graph node node arc arcType,
+   GetFrom graph node arc,GetTo graph node arc,
+   GetArcType graph arc arcType,DeleteArc graph arc,
    Arc arc,ArcType arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
@@ -148,7 +159,7 @@ instance (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
 -- Graphs
 ------------------------------------------------------------------------
 
-class Graph graph where
+class (Destructible graph) => Graph graph where
    redraw :: graph -> IO ()
    -- done after updates have been added
 
@@ -162,8 +173,8 @@ class GraphConfig graphConfig where
 class GraphParms graphParms where
    emptyGraphParms :: graphParms
 
-class (GraphConfig graphConfig,GraphParms graphParms) =>
-      GraphConfigParms graphConfig graphParms where
+class (GraphConfig graphConfig,GraphParms graphParms) 
+   => GraphConfigParms graphConfig graphParms where
    graphConfigUsed :: graphConfig -> graphParms -> Bool
    -- indicates if this instance actually does anything
    -- with this configuration option, unlike the following
@@ -171,10 +182,16 @@ class (GraphConfig graphConfig,GraphParms graphParms) =>
 
    graphConfig :: graphConfig -> graphParms -> graphParms
 
-instance (GraphConfig graphConfig,GraphParms graphParms) =>
-      GraphConfigParms graphConfig graphParms where
-   graphConfigUsed _ _ = False
-   graphConfig _ parms = parms
+data (GraphParms graphParms) 
+   => GConfig graphParms = 
+      forall graphConfig . GraphConfigParms graphConfig graphParms 
+   => GConfig graphConfig
+
+graphConfigs :: (GraphParms graphParms)
+   => [GConfig graphParms] -> graphParms
+graphConfigs [] = emptyGraphParms
+graphConfigs ((GConfig gConfig):rest) =
+   graphConfig gConfig (graphConfigs rest)
 
 ------------------------------------------------------------------------
 -- Nodes
@@ -184,13 +201,15 @@ class (Graph graph,Node node,NodeType nodeType) =>
       NewNode graph node nodeType where
    newNode :: Typeable value => 
       nodeType value -> graph -> value -> IO (node value)
-   readNode :: Typeable value => 
-      graph -> (node value) -> IO (nodeType value,value)
+   getNodeType :: Typeable value =>
+      graph -> node value -> IO (nodeType value)
 
 class (Graph graph,Node node) =>
       DeleteNode graph node where
    deleteNode :: Typeable value =>
-      graph -> (node value) -> IO ()
+      graph -> node value -> IO ()
+   getNodeValue :: Typeable value =>
+      graph -> node value -> IO value
 
 class KindOne node => Node node
 
@@ -229,20 +248,44 @@ instance (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
 -- Arcs
 ------------------------------------------------------------------------
 
-class (Graph graph,Node nodeFrom,Node nodeTo,Arc arc,ArcType arcType) =>
-      NewArc graph nodeFrom nodeTo arc arcType where
-   newArc :: (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>  
-      arcType value -> graph -> value 
+class (Graph graph,Node nodeFrom,Node nodeTo,Arc arc,ArcType arcType) 
+   => NewArc graph nodeFrom nodeTo arc arcType where
+   newArc :: 
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => arcType value -> graph -> value 
       -> nodeFrom nodeFromValue -> nodeTo nodeToValue
       -> IO (arc value nodeFromValue nodeToValue)
-   readArc :: (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>
-      graph -> arc value nodeFromValue nodeToValue -> 
-      IO (arcType value,value,nodeFrom nodeFromValue,nodeTo nodeToValue)
+
+class (Graph graph,Node nodeFrom,Arc arc) 
+   => GetFrom graph nodeFrom arc where
+   getFrom :: 
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => graph -> arc value nodeFromValue nodeToValue 
+      -> IO (nodeFrom nodeFromValue)
+
+class (Graph graph,Node nodeTo,Arc arc) 
+   => GetTo graph nodeTo arc where
+   getTo :: 
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => graph
+      -> arc value nodeFromValue nodeToValue 
+      -> IO (nodeTo nodeToValue)
+
+class (Graph graph,Arc arc,ArcType arcType) 
+   => GetArcType graph arc arcType where
+   getArcType ::
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => graph
+      -> arc value nodeFromValue nodeToValue
+      -> IO (arcType value)
 
 class (Graph graph,Arc arc) => DeleteArc graph arc where
    deleteArc :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>  
-      graph -> arc value nodeFromValue nodeToValue -> IO ()
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => graph -> arc value nodeFromValue nodeToValue -> IO ()
+   getArcValue :: 
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
+      => graph -> arc value nodeFromValue nodeToValue -> IO value
 
 class KindThree arc => Arc arc
 
@@ -274,12 +317,7 @@ class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
 
    arcTypeConfig :: Typeable value => 
       arcTypeConfig value -> arcTypeParms value -> arcTypeParms value
-
-instance (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
-      ArcTypeConfigParms arcTypeConfig arcTypeParms where
-   arcTypeConfigUsed _ _ = False
-   arcTypeConfig _ parms = parms
-
+      
 ------------------------------------------------------------------------
 -- Menus and buttons
 -- As in DaVinci, a menu is simply considered as a tree of buttons,
@@ -300,6 +338,19 @@ data Typeable value => MenuButton value =
    |  Menu (Maybe String) [MenuButton value]
       -- List of buttons with a possible title..
 
+------------------------------------------------------------------------
+-- Titles
+------------------------------------------------------------------------
+
+data GraphTitle = GraphTitle String
+instance GraphConfig GraphTitle
+
+data ValueTitle value = ValueTitle (value -> IO String)
+
+instance NodeTypeConfig ValueTitle
+
+instance ArcTypeConfig ValueTitle
+ 
 ------------------------------------------------------------------------
 -- The KindOne class and KindThree classes are a silly hack so that we 
 -- can define empty classes of things which take a fixed number of
