@@ -19,13 +19,9 @@ SRCS       = MaincanvasEx.hs\
              MaingenGUIEx.hs\
 	     MainmodalDialogTest.hs\
              MainnotepadEx.hs\
-             MainfileBrowseEx.hs\
+             MaintreeListEx.hs\
              MainsimpleFormEx.hs\
              MainreliefEx.hs\
-
-#             MainnotepadStateEx.hs\
-#             MaintreeListStateEx.hs\
-#             MaintreeListStateEx2.hs\
 
 
 XHCDIRS = $(HTKDIRS)
