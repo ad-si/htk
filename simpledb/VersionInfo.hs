@@ -574,7 +574,7 @@ mkServerId isInternal =
                   then
                      do
                         pID <- getProcessID
-                        return(fullHostName ++ ":" ++ show pID)
+                        return(fullHostName ++ ":#" ++ show pID)
                   else
                      do
                         port <- getPort
