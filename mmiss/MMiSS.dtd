@@ -122,7 +122,7 @@
 
 <!ENTITY % semanticElement "define | reference">
 
-<!ENTITY % embeddedElement "%structuralElement; | %semanticElement; | emphasis">
+<!ENTITY % embeddedElement "%structuralElement; | %semanticElement; | emphasis | formula">
 
 <!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
 
@@ -264,6 +264,10 @@
 <!ELEMENT listItem  (list | %atom;)*>
 <!ATTLIST listItem descItem   CDATA  #IMPLIED
                    %attributes;>
+
+<!ELEMENT formula (#PCDATA)>
+<!ATTLIST formula latexEnv   (math | shortMathDollar | shortMathParens | displaymath | shortDisplaymath | shortDisplaymathDollar | equation) #REQUIRED
+                  %variant-attr;>
 
 
 <!--
