@@ -39,6 +39,7 @@ SRCS       = resources/Resources.hs\
 	     widgets/OptionMenu.hs\
 	     widgets/ListBox.hs\
              widgets/Space.hs\
+             components/Icon.hs\
 	     components/Index.hs\
 	     components/Selection.hs\
 	     components/ICursor.hs\
@@ -94,8 +95,6 @@ SRCS       = resources/Resources.hs\
 	     toolkit/InputWin.hs\
 	     toolkit/InputForm.hs\
              toolkit/SimpleForm.hs\
-
-#            components/Icon.hs\
 #            devices/Printer.hs\
 
 

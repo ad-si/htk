@@ -107,6 +107,7 @@ module HTk (
   module BitMap,
   module Image,
   module Focus,
+  module Icon,
 
 -- widget packing
 
@@ -230,6 +231,7 @@ import LabelFrame
 import PanedWindow
 import Bell
 import Focus
+import Icon
 
 
 data AbstractWidget = NONE

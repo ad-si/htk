@@ -23,15 +23,16 @@ randomColour = do
       
 main:: IO ()
 main =
-  do main <- initHTk []
+  do
+    main <- initHTk []
 
-     l  <- newLabel main [height 5, text "Hello, world!"]
-     pack l []
+    l  <- newLabel main [height 5, text "Hello, world!"]
+    pack l []
 
-     nb <- newButton main [text "New Colour"]
-     pack nb []
-     clickednb <- clicked nb
-     spawnEvent (forever (clickednb >>>
-                          do bunt <- randomColour
-                             l # foreground bunt))
-     finishHTk
+    nb <- newButton main [text "New Colour"]
+    pack nb []
+    clickednb <- clicked nb
+    spawnEvent (forever (clickednb >>>
+                         do bunt <- randomColour
+                            l # foreground bunt))
+    finishHTk

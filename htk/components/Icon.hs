@@ -1,19 +1,17 @@
-{- #######################################################################
-
-MODULE        : Icon
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   :  
-
-
-   #################################################################### -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Icon (
 
-  Window, 
+  module Window,
 
   Icon(..),
   iconMask,
@@ -25,40 +23,43 @@ import Core
 import BitMap
 import Computation
 import Synchronized
+import Window
+import Destructible
+
 
 -- -----------------------------------------------------------------------
 -- type icon's
 -- -----------------------------------------------------------------------
 
-newtype Icon = Icon Window deriving (Eq,Ord)
+data Window w => Icon w = Icon w deriving (Eq,Ord)
 
 
 -- -----------------------------------------------------------------------
 -- instantions 
 -- -----------------------------------------------------------------------
 
-instance GUIObject Icon where
+instance Window w => GUIObject (Icon w) where
   toGUIObject (Icon win) = toGUIObject win
   cname _ = "Icon"
   cset (Icon win) cid val = cset win cid val >> return (Icon win)
   cget (Icon win) cid = cget win cid
 
-instance Destroyable Icon where
-  destroy   = destroy . toGUIObject
+instance Window w => Destroyable (Icon w) where
+  destroy = destroy . toGUIObject
 
-instance HasBitMap Icon where
+instance Window w => HasBitMap (Icon w) where
   bitmap s icon   = setBitMapHandle icon "iconbitmap" (toBitMap s) False
   getBitMap icon  = getBitMapHandle icon "iconbitmap"
 
-instance GUIValue v => HasText Icon v where
+instance (Window w, GUIValue v) => HasText (Icon w) v where
   text s icon  = cset icon "iconname" s
   getText icon = cget icon "iconname"
 
-instance HasPosition Icon where
+instance Window w => HasPosition (Icon w) where
   position p icon = cset icon "iconposition" p
-  getPosition icon = tkcget icon "iconposition"
+  getPosition icon = cget icon "iconposition"
 
-instance Synchronized Icon where
+instance Window w => Synchronized (Icon w) where
   synchronize w = synchronize (toGUIObject w)
                                         
 
@@ -66,8 +67,8 @@ instance Synchronized Icon where
 -- config options
 -- -----------------------------------------------------------------------
 
-iconMask :: BitMapDesignator h => h -> Config Icon
+iconMask :: (Window w, BitMapDesignator h) => h -> Config (Icon w)
 iconMask s icon =  setBitMapHandle icon "iconmask" (toBitMap s) False
 
-getIconMask :: Icon -> IO BitMapHandle
+getIconMask :: Window w => Icon w -> IO BitMapHandle
 getIconMask icon = getBitMapHandle icon "iconmask"
