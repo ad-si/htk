@@ -262,7 +262,7 @@ ifneq "$(DOIMPORTS)" ""
 	$(MKDIR) imports
 	$(CP) $(HILIBFILES) imports
 endif
-	sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --add-package 
+	$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --add-package 
 	if [ -s $(LIB) ]; then $(LD) -r --whole-archive -o $(GHCIOBJ) $(LIB); fi
 endif
 
@@ -273,7 +273,7 @@ packagesquick : packageherequick
 prepareexportshere : 
 ifneq "$(PACKAGE)" ""
 	$(GHCPKG) --config-file $(PACKAGECONF).export --remove-package $(PACKAGE) ; echo ""
-	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --add-package 
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`;$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g;s+#PWD+#PWD/'$$SUFFIX+g <$(TOP)/package.spec.template | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF).export --add-package 
 endif
 
 prepareexports : prepareexportshere

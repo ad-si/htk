@@ -372,14 +372,22 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
       -- routine until something has been put in its variant dictionary.
       -- Instead we return "afterAct", which does precisely that.
       -- We also return an "dirty" action which, for old objects, dirties it
-      -- (indicating it has changed).
-      (objectLink,object,dirtyAct :: IO (),afterAct :: IO (WithError ())) 
+      -- (indicating it has changed), and the object's name in the object.
+      (objectLink,object,dirtyAct :: IO (),afterAct :: IO (WithError ()),
+               entityName :: EntityName) 
             <- case objectLoc of
          OldObject objectLink object -> 
             do
                versioned <- fetchLink view objectLink
+               insertionOpt <- getCurrentInsertion (toLinkedObject object)
+               insertion <- case insertionOpt of
+                  Nothing -> break "Attempt to write to deleted object!!"
+                  Just insertion -> return insertion
+               let
+                  (_,entityName) = unmkInsertion insertion
+
                return (objectLink,object,dirtyObject view versioned,
-                  return (hasValue ()))
+                  return (hasValue ()),entityName)
          NewObject parentLinkedObject entityName ->
             do
                let
@@ -416,7 +424,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                seq objectLink done
 
                object <- readLink view objectLink
-               return (objectLink,object,done,afterAct)
+               return (objectLink,object,done,afterAct,entityName)
 
 
       let
@@ -436,9 +444,11 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
          insertItem doPoint content =
             do
                let
-                  element = Elem (tag content)
+                  element0 = Elem (tag content)
                      (attributes content)
                      (contents (accContents content))
+
+                  element = setLabel element0 (EntityFullName [entityName])
 
                oldVariableOpt <- lookupVariantObjectExact varObject
                   (variantSpec content)

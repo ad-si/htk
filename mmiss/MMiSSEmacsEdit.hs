@@ -78,7 +78,8 @@ import MMiSSPreamble
 -- object, without having to dereference the link.
 data EditRef = 
       EditRef {
-         objectLink :: Link MMiSSObject,
+         linkEnvironment :: LinkEnvironment,
+         description :: EntityFullName,
          outerVariants :: MMiSSVariantSearch,
             -- ^ The outer variants attached to the document containing this 
             -- link.  It is assumed (or at least hoped) that these will not 
@@ -87,19 +88,14 @@ data EditRef =
             -- ^ Variants attached to this particular link.  These may somehow
             -- be edited (though there is no facility for doing that at the 
             -- moment). 
-         miniType :: Char,
-         description :: EntityFullName
-         }
-   |  BadLink {
-         outerVariants :: MMiSSVariantSearch,
-         linkVariants :: MMiSSVariantSpec,
-         miniType :: Char,
-         description :: EntityFullName
+         miniType :: Char
          }
 
-compareOpt :: EditRef -> (EntityFullName,MMiSSVariantSearch,MMiSSVariantSpec)
+compareOpt :: EditRef 
+   -> (EntityFullName,LinkEnvironment,MMiSSVariantSearch,MMiSSVariantSpec)
 compareOpt editRef = 
-   (description editRef,outerVariants editRef,linkVariants editRef)
+   (description editRef,linkEnvironment editRef,
+      outerVariants editRef,linkVariants editRef)
 
 instance Eq EditRef where
    (==) = mapEq compareOpt
@@ -129,23 +125,34 @@ editMMiSSObjectInner formatConverter view link =
       object <- readLink view link
       variantSearch <- getCurrentVariantSearch (variantObject object)
 
-      (objectTitle :: EntityName) <- readContents (
-         getLinkedObjectTitle (linkedObject object) (fromString "UNNAMED")
-         )
+      thisInsertionOpt <- getCurrentInsertion (toLinkedObject object)
 
-      let
-         emacsFS = mkEmacsFS view formatConverter 
-         printAction = mkPrintAction view formatConverter 
+      case thisInsertionOpt of
+         Nothing ->
+            do
+               createErrorWin (
+                  "Object is not current inserted anywhere and cannot be "
+                  ++ "edited!") []
+               done
+         Just insertion ->
+            do
+               let
+                  (parentLinkedObject,name) = unmkInsertion insertion
+               linkEnvironment 
+                  <- newLinkEnvironment parentLinkedObject trivialPath 
+               let
+                  emacsFS = mkEmacsFS view formatConverter 
+                  printAction = mkPrintAction view formatConverter 
 
-         topEditRef = EditRef {
-            objectLink = link,
-            outerVariants = variantSearch,
-            linkVariants = emptyMMiSSVariantSpec,
-            miniType = getObjectMiniType object,
-            description = EntityFullName [objectTitle]
-            }
+                  topEditRef = EditRef {
+                     linkEnvironment = linkEnvironment,
+                     outerVariants = variantSearch,
+                     linkVariants = emptyMMiSSVariantSpec,
+                     miniType = getObjectMiniType object,
+                     description = EntityFullName [name]
+                     }
             
-      editEmacs emacsFS printAction topEditRef
+               editEmacs emacsFS printAction topEditRef
 
 -- ----------------------------------------------------------------------
 -- Making the FS
@@ -162,7 +169,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
       -- Now for the difficult one.
       editFS :: EditRef 
          -> IO (WithError (EmacsContent EditRef,EditedFile EditRef))
-      editFS (editRef @ EditRef {objectLink = objectLink,
+      editFS (editRef @ EditRef {linkEnvironment = linkEnvironment0,
             miniType = miniType0,description = description0}) =
          addFallOutWE (\ break -> 
             do
@@ -170,6 +177,10 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   name = toString description0
 
                   variants = toVariants editRef
+
+               objectLinkWE <- getMMiSSObjectLink linkEnvironment0 description0
+
+               objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
          
                -- retrieve the object data.
                objectDataWE <- simpleReadFromMMiSSObject view objectLink
@@ -216,7 +227,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                -- Extract a LinkEnvironment for the object.
                cache <- converter view thisLinkedObject variable
                let
-                  linkEnvironment = cacheLinkEnvironment cache
+                  linkEnvironment1 = cacheLinkEnvironment cache
                
                -- Create variants used for searching in this object,
                -- We refine the existing variants with the one given by the
@@ -235,39 +246,26 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   <- coerceWithErrorOrBreakIO break2 contentWE
 
                -- convert content0 into EmacsContent EditRef.
-               content <- mapMonadic
+               content1 <- mapMonadic 
                   (\ ((string,miniType),includeAttributes) ->
                      do
                         (fullName :: EntityFullName) 
                            <- coerceWithErrorOrBreakIO break2 
                               (fromStringWE string)
-
-                        objectLinkOptWE 
-                           <- lookupObject linkEnvironment fullName
-                        
-                        objectLinkOpt 
-                           <- coerceWithErrorOrBreakIO break2 objectLinkOptWE
-
                         let
-                           linkVariants1 
-                              = toMMiSSVariantSpecFromXml includeAttributes
-                        return (case objectLinkOpt of
-                           Nothing ->
-                              BadLink {
-                                 outerVariants = outerVariants1,
-                                 linkVariants = linkVariants1,
-                                 miniType = miniType,
-                                 description =  fullName
-                                 }
-                           Just objectLink ->
+                           linkVariants1 = 
+                              toMMiSSVariantSpecFromXml includeAttributes
+
+                           editRef =
                               EditRef {
-                                 objectLink = objectLink,
+                                 linkEnvironment = linkEnvironment1,
                                  outerVariants = outerVariants1,
                                  linkVariants = linkVariants1,
                                  miniType = miniType,
                                  description =  fullName
                                  }
-                           )
+
+                        return editRef 
                      )
                   content0
                
@@ -303,7 +301,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                 ++" has somehow lost its label")
                              Right description1 -> return description1
 
-                          if description1 == description0
+                          if entityBase description1 == entityBase description0
                              then
                                 done
                              else
@@ -339,11 +337,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                addEdit object
 
-               return (content,editedFile)
+               return (content1,editedFile)
             )
-      editFS (editRef @ BadLink {description = description0}) =
-         return (hasError ("Reference to " ++ toString description0
-            ++ " cannot be resolved")) 
 
       emacsFS = EmacsFS {
          editFS = editFS,
@@ -417,13 +412,7 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
                   -> IO (WithError (Maybe (Element,MVar [(Bool,EditRef)])))
                reAssembleArg entityFullName variantSearch0 mVar =
                   do
-                     ((doExpand0,editRef):rest) <- takeMVar mVar
-                     let
-                        doExpand = doExpand0 && (
-                           case editRef of
-                              EditRef _ _ _ _ _ -> True
-                              BadLink _ _ _ _ -> False
-                           )
+                     ((doExpand,editRef):rest) <- takeMVar mVar
 
                      putMVar mVar rest
                      assert (entityFullName == description editRef) done
@@ -463,8 +452,12 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
 
                                  -- Also retrieve the object's preamble.  This
                                  -- requires us to look at the object again.
-                                 preambleLinkWE <- getPreambleLink view 
-                                    (objectLink editRef) (toVariants editRef)
+                                 preambleLinkWE <- 
+                                    getPreambleLink 
+                                       view 
+                                       (linkEnvironment editRef)
+                                       (description editRef)
+                                       (toVariants editRef)
 
                                  preambleLink <- coerceWithErrorOrBreakIO 
                                     break preambleLinkWE
@@ -510,15 +503,18 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
 
 ---
 -- Extract a link to an object's preamble.
-getPreambleLink :: View -> Link MMiSSObject -> MMiSSVariantSearch 
-   -> IO (WithError (Link MMiSSPreamble))
-getPreambleLink view objectLink variantSearch =
-   do
-      objectDataWE <- simpleReadFromMMiSSObject view objectLink variantSearch
-      return (mapWithError
-         (\ (variable,object) -> preamble variable)
+getPreambleLink :: View -> LinkEnvironment -> EntityFullName 
+   -> MMiSSVariantSearch -> IO (WithError (Link MMiSSPreamble))
+getPreambleLink view linkEnvironment fullName variantSearch =
+   addFallOutWE (\ break ->
+      do
+         objectLinkWE <- getMMiSSObjectLink linkEnvironment fullName
+         objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
          objectDataWE
-         )
+            <- simpleReadFromMMiSSObject view objectLink variantSearch
+         (variable,object) <- coerceWithErrorOrBreakIO break objectDataWE
+         return (preamble variable)
+      )
 
 -- ----------------------------------------------------------------------
 -- Other utility functions

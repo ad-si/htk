@@ -95,6 +95,9 @@ data MMiSSObject = MMiSSObject {
 -- This is what varies with the variant attributes.
 data Variable = Variable {
    element :: Link Element,
+      -- For now we adopt the convention that the name of the element as given
+      -- by its label attribute is always the last component of the name of 
+      -- the MMiSS object
    preamble :: Link MMiSSPreamble,
    editLock :: BSem
    }

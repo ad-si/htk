@@ -9,13 +9,13 @@ module LinkManager(
       -- Instance of HasCodedValue, Eq, Ord.
    LinkEnvironment,
       -- This represents some context (a path and an object) in which
-      -- links are to be looked up.
+      -- links are to be looked up.  Instance of Eq, Ord.
    LinkSource,
       -- This represents a set of links (EntityFullName's) to search for.
       -- We also carry (with the LinkSource) values of some type specified
       -- as a parameter to LinkSource.
 
-   Insertion(..),
+   Insertion,
       -- This represents somewhere to put a LinkedObject.
    LinkSourceSet(..),
       -- A LinkEnvironment and list of LinkSource's of the same type.
@@ -34,6 +34,12 @@ module LinkManager(
    mkInsertion,
       -- :: LinkedObject -> EntityName -> Insertion
       -- Make an insertion
+   unmkInsertion,
+      -- :: Insertion -> (LinkedObject,EntityName)
+      -- Inverse of mkInsertion.
+   getCurrentInsertion,
+      -- :: LinkedObject -> IO (Maybe Insertion)
+
    deleteLinkedObject,
       -- :: View -> LinkedObject -> IO ()
       -- Delete an object including its record in the view and the parent
@@ -190,6 +196,7 @@ import VariableMap
 import VariableSet
 import VariableList
 import AtomString(fromStringWE,toString)
+import Object
 
 import DialogWin
 
@@ -355,6 +362,16 @@ mkInsertion linkedObject entityName =
       parent = thisPtr linkedObject,
       name = entityName
       }
+
+---
+-- Get the contents of an insertion
+unmkInsertion :: Insertion -> (LinkedObject,EntityName)
+unmkInsertion (Insertion {parent = parent,name = name}) =
+   (fromLinkedObjectPtr parent,name)
+      
+
+getCurrentInsertion :: LinkedObject -> IO (Maybe Insertion)
+getCurrentInsertion linkedObject = readContents (insertion linkedObject)
 
 ---
 -- Get the WrappedLink in a LinkedObject.
@@ -622,7 +639,10 @@ data LinkEnvironment = LinkEnvironment {
       -- is necessary not to access the corresponding link with readLink 
       -- or fetchLink.
    path :: SimpleSource EntityPath,
-   setPath :: EntityPath -> IO ()
+   setPath :: EntityPath -> IO (),
+   oID :: ObjectID
+      -- the object id only needs to be unique within a view.  It is
+      -- used for ordering LinkEnvironment's, which is used during editing.
    }
 
 data Insertion = Insertion {
@@ -969,6 +989,12 @@ linkEnvironment_tyRep = mkTyRep "LinkManager" "LinkEnvironment"
 instance HasTyRep LinkEnvironment where
    tyRep _ = linkEnvironment_tyRep
 
+instance Eq LinkEnvironment where
+   (==) = mapEq oID
+
+instance Ord LinkEnvironment where
+   compare = mapOrd oID
+
 freezeLinkEnvironment :: LinkEnvironment -> IO FrozenLinkEnvironment 
 freezeLinkEnvironment 
       (LinkEnvironment {linkedObject = linkedObject,path = path}) =
@@ -984,11 +1010,12 @@ createLinkEnvironment (FrozenLinkEnvironment {linkedObject' = linkedObject',
       let
          linkedObject = fromLinkedObjectPtr linkedObject' 
       path0 <- newSimpleBroadcaster path'
+      oID <- newObject
       let
          path = uniqSimpleSource (toSimpleSource path0)
          setPath newPath = broadcast path0 newPath
       return (LinkEnvironment {linkedObject = linkedObject,path = path,
-         setPath = setPath})
+         setPath = setPath,oID = oID})
 
 -- ----------------------------------------------------------------------
 -- FrozenLinkSource's and creating LinkSource's.

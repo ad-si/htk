@@ -29,23 +29,13 @@ import Text.XML.HaXml.Types
 import XmlTypes
 #endif
 
-import qualified LaTeXParser
-import LaTeXParser hiding (makeMMiSSLatex)
+import LaTeXParser
 
 import MMiSSEditXml(TypedName)
 import MMiSSFormat
 import MMiSSEditXml
 import MMiSSLaTeXAssumptions
 import MMiSSPreamble
-
--- temporary fix to get type of makeMMiSSLatex right, until Achim fixes it.
-makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) 
-   -> WithError (EmacsContent (TypedName,[Attribute]))
-makeMMiSSLatex (e,b,p) =
-   mapWithError 
-      (fmap (\ tn -> (tn,[])))
-      (LaTeXParser.makeMMiSSLatex (e,b,p))
-{-# DEPRECATED makeMMiSSLatex "MMiSSEditFormatConverter needs a new makeMMiSSLatex" #-}
 
 -- ----------------------------------------------------------------------
 -- The types

@@ -3,6 +3,8 @@
 module MMiSSReadObject(
    simpleReadFromMMiSSObject,
    readMMiSSObject,
+   getMMiSSObjectLink,
+
    ) where
 #include "config.h"
 
@@ -35,6 +37,19 @@ import MMiSSObjectType
 import MMiSSObjectTypeInstance
 import MMiSSReAssemble
 
+---
+-- Get an object's link.
+getMMiSSObjectLink :: LinkEnvironment -> EntityFullName 
+   -> IO (WithError (Link MMiSSObject))
+getMMiSSObjectLink linkEnvironment fullName =
+   do
+      objectLinkOptWE <- lookupObject linkEnvironment fullName
+      case fromWithError objectLinkOptWE of
+         Left mess -> return (hasError (
+            "Object " ++ toString fullName ++ " is not an MMiSS object"))
+         Right Nothing -> return (hasError (
+            "Object " ++ toString fullName ++ " does not exist"))
+         Right (Just objectLink) -> return (hasValue objectLink)
 
 ---
 -- Retrieve a single MMiSSObject's data (not any of its children)
