@@ -86,9 +86,9 @@ newGraphEditor
             AllowDragging True $$
             GraphDisp.emptyGraphParms
 
-         makeNodeTypeParms :: (NodeType,NodeTypeAttributes Node) ->
-            IO (nodeTypeParms Node)
-         makeNodeTypeParms (nodeType,nodeTypeAttributes) =
+         makeNodeTypeParms :: DisplayGraph -> NodeType 
+            -> NodeTypeAttributes Node -> IO (nodeTypeParms Node)
+         makeNodeTypeParms _ nodeType nodeTypeAttributes =
             return (         
                ValueTitle (\ node -> 
                   do
@@ -113,7 +113,7 @@ newGraphEditor
                GraphDisp.emptyNodeTypeParms
                )
 
-         makeArcTypeParms (arcType,arcTypeAttributes) = 
+         makeArcTypeParms _ arcType arcTypeAttributes = 
             return 
                (LocalMenu (
                   Button "Delete" (\ toDelete -> deleteArc graph toDelete)

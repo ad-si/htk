@@ -49,10 +49,15 @@ module VersionGraph(
       -- version the child of (just) this version.
       -- If the String is unset we take the one from the working version;
       -- otherwise this is used to label the version.
-   getParents,
-      -- :: VersionGraph -> AnyVersion -> IO [Version]
    deleteWorkingVersion,
       -- :: VersionGraph -> WorkingVersionId -> IO ()
+
+   -- reading the version graph
+   anyVersionToNode, -- :: AnyVersion -> Node
+   nodeToAnyVersion, -- :: Node -> AnyVersion
+
+   getParents,
+      -- :: VersionGraph -> AnyVersion -> IO [Version]
 
    -- VersionGraphParms can be configured using HasConfig framework
    -- (see file Computation).  Values of X for which HasConfig 
@@ -183,73 +188,95 @@ nodeToAnyVersion = fromString . toString
 -- ------------------------------------------------------------------------
 
 newtype NodeTypeParms nodeTypeParms => 
-   DelayedParms nodeTypeParms = DelayedParms ((Node -> IO String) 
-      -> nodeTypeParms Node)
+   DelayedParms nodeTypeParms = 
+      DelayedParms (VersionGraph -> nodeTypeParms Node)
 
 emptyDelayedParms :: NodeTypeParms nodeTypeParms => DelayedParms nodeTypeParms
 emptyDelayedParms = DelayedParms (\ _ -> emptyNodeTypeParms)
 
-evaluateDelayedParms :: NodeTypeParms nodeTypeParms =>
-   (Node -> IO String) -> DelayedParms nodeTypeParms -> nodeTypeParms Node
-evaluateDelayedParms nodeReader (DelayedParms getParms) =
-   getParms nodeReader
+evaluateDelayedParms :: NodeTypeParms nodeTypeParms 
+   => VersionGraph -> DelayedParms nodeTypeParms -> nodeTypeParms Node
+evaluateDelayedParms versionGraph (DelayedParms getParms) =
+   getParms versionGraph
 
--- Now for configurations.
+-- If (HasConfigValue option nodeTypeParms,HasMapIO option)
+--    then
+-- HasConfig X (DelayedParms nodeTypeParms)
+-- provided that X is one of the following types:
+--     option Node
+--     option String
+--     option AnyVersion
+--     option (AnyVersion,String)
+--     VersionGraph -> option Node
+--     VersionGraph -> option String
+--     VersionGraph -> option AnyVersion
+--     VersionGraph -> option (AnyVersion,String)
+-- We do this from building up from Node upwards.
+
 instance (NodeTypeParms nodeTypeParms,HasConfigValue option nodeTypeParms)
-   => HasConfig (option Node) (DelayedParms nodeTypeParms)
+   => HasConfig (VersionGraph -> option Node) (DelayedParms nodeTypeParms)
       where
-   configUsed option _ = configUsed' option 
-      (emptyNodeTypeParms :: nodeTypeParms Node)
-   ($$) option (DelayedParms getParms) =
+   configUsed option _ =  
+      configUsed' (bot :: option Node) (bot :: nodeTypeParms Node)
+         where
+            bot = bot
+   ($$) getOption (DelayedParms getParms) =
       (DelayedParms (
-         \ nodeReader -> option $$$ (getParms nodeReader)
+         \ versionGraph -> (getOption versionGraph) $$$ (getParms versionGraph)
          ))
 
-instance (NodeTypeParms nodeTypeParms,HasConfigValue option nodeTypeParms,
-   HasMapIO option) 
-   => HasConfig (option String) (DelayedParms nodeTypeParms)
-      where
-   configUsed option _ = configUsed' option 
-      (emptyNodeTypeParms :: nodeTypeParms String)
-   ($$) option (DelayedParms getParms) =
-       (DelayedParms (
-          \ nodeReader -> (mapIO nodeReader option) $$$ (getParms nodeReader)
-          ))
+class CanGetFromNode nodeData where
+   getFromNode :: VersionGraph -> Node -> IO nodeData
 
-instance (NodeTypeParms nodeTypeParms,HasConfigValue option nodeTypeParms,
-   HasMapIO option)
-   => HasConfig (option (AnyVersion,String)) (DelayedParms nodeTypeParms)
-      where
-   configUsed option _ = configUsed' option 
-      (emptyNodeTypeParms :: nodeTypeParms (AnyVersion,String))
-   ($$) option (DelayedParms getParms) =
-       (DelayedParms (
-          \ nodeReader ->
-             let
-                nodeReader' node =
-                   do
-                      str <- nodeReader node
-                      return (nodeToAnyVersion node,str)
-             in 
-                (mapIO nodeReader' option) $$$ (getParms nodeReader)
-             ))
+instance CanGetFromNode String where
+   getFromNode versionGraph node =
+      getNodeLabel (getGraph versionGraph) node
 
-instance (NodeTypeParms nodeTypeParms,HasConfigValue option nodeTypeParms,
-   HasMapIO option)
-   => HasConfig (option AnyVersion) (DelayedParms nodeTypeParms)
+instance CanGetFromNode AnyVersion where
+   getFromNode versionGraph node =
+      return (nodeToAnyVersion node)
+
+instance CanGetFromNode (AnyVersion,String) where
+   getFromNode versionGraph node =
+      do
+         (anyVersion :: AnyVersion) <- getFromNode versionGraph node
+         (str :: String) <- getFromNode versionGraph node
+         return (anyVersion,str)
+
+mapFromNode :: (CanGetFromNode nodeData,HasMapIO option) 
+   => (VersionGraph -> option nodeData) -> (VersionGraph -> option Node)
+mapFromNode getOption =
+   let
+      newGetOption versionGraph =
+         mapIO
+            (\ node -> getFromNode versionGraph node)
+            (getOption versionGraph)
+   in
+      newGetOption
+
+instance (NodeTypeParms nodeTypeParms,HasMapIO option,CanGetFromNode nodeData,
+   HasConfig (VersionGraph -> option Node) (DelayedParms nodeTypeParms)) 
+   => HasConfig (VersionGraph -> option nodeData) (DelayedParms nodeTypeParms)
       where
-   configUsed option _ = configUsed' option 
-      (emptyNodeTypeParms :: nodeTypeParms AnyVersion)
-   ($$) option (DelayedParms getParms) =
-       (DelayedParms (
-          \ nodeReader ->
-             let
-                nodeReader' node =
-                   do
-                      return (nodeToAnyVersion node)
-             in 
-                (mapIO nodeReader' option) $$$ (getParms nodeReader)
-             ))
+   configUsed option _ =
+      configUsed (mapFromNode option) 
+            (emptyDelayedParms :: DelayedParms nodeTypeParms)
+         where
+            bot = bot
+   ($$) option delayedParms = (mapFromNode option) $$ delayedParms
+
+instance (NodeTypeParms nodeTypeParms,
+   HasConfig (VersionGraph -> option nodeData) (DelayedParms nodeTypeParms))
+   => HasConfig (option nodeData) (DelayedParms nodeTypeParms)
+      where
+
+   configUsed option _ =
+      configUsed (\ (versionGraph :: VersionGraph) -> option) 
+            (emptyDelayedParms :: DelayedParms nodeTypeParms)
+         where
+            bot = bot
+   ($$) option delayedParms = (\ (versionGraph :: VersionGraph) -> option) 
+      $$ delayedParms
 
 -- To DragAndDrop we provide a new sort of configuration.
 
@@ -408,52 +435,60 @@ newVersionGraph displaySort versionGraphOptions =
       -- (4) construct the graph
       graphContents <- newGraph superGraphConnection
 
+      workingVersionIdSource <- newWorkingVersionIdSource
+
       let
-         nodeReader node = getNodeLabel graphContents node
+         mkVersionGraph displayGraph =
+         -- this is used inside DisplayGraph.displayGraph to tie the knot,
+         -- so it is important that it be pure (and since it will be done more
+         -- than once, not excessively slow).
+            let
+               destroyThis =
+                  do
+                     destroy displayGraph
+                     -- destroy this first, as it involves a connection to
+                     -- graphContents
+                     destroy graphContents
+                     -- the deregister action will automatically close the
+                     -- connection to the server.
+            in
+               VersionGraph {
+                  displayGraph = displayGraph,
+                  graphContents = graphContents,
+                  destroyThis = destroyThis,
+                  workingVersionIdSource = workingVersionIdSource
+                  }
 
       -- (5) display the graph
       displayGraph <- DisplayGraph.displayGraph displaySort graphContents 
          (graphParms versionGraphOptions)
-         (\ (nodeType,()) ->
+         (\ displayGraph nodeType () ->
             return (
                if nodeType == checkedInType
                   then
-                     evaluateDelayedParms nodeReader
+                     evaluateDelayedParms (mkVersionGraph displayGraph)
                         (checkedInParms versionGraphOptions)
                   else if nodeType == workingType
                      then
-                        evaluateDelayedParms nodeReader
+                        evaluateDelayedParms (mkVersionGraph displayGraph)
                            (workingParms versionGraphOptions)
                      else
                          error "Unknown node type in VersionGraph.hs"
                ) 
             )
-         (\ (arcType',()) -> 
+         (\ _ arcType' () -> 
             if arcType' == arcType
                then
                   return emptyArcTypeParms
                else
                   error "Unknown arc type encountered in VersionGraph.hs"
             )
-      -- (6) final trival definitions
-      let
-         destroyThis =
-            do
-               destroy displayGraph
-               -- destroy this first, as it involves a connection to
-               -- graphContents
-               destroy graphContents
-               -- the deregister action will automatically close the
-               -- connection to the server.
+      return (mkVersionGraph displayGraph)
 
-      workingVersionIdSource <- newWorkingVersionIdSource
 
-      return (VersionGraph {
-         displayGraph = displayGraph,
-         graphContents = graphContents,
-         destroyThis = destroyThis,
-         workingVersionIdSource = workingVersionIdSource
-         })
+-- ------------------------------------------------------------------------
+-- Registering New Versions
+-- ------------------------------------------------------------------------
 
 newWorkingVersion :: VersionGraph -> [Version] -> String -> IO WorkingVersionId
 newWorkingVersion (VersionGraph {graphContents = graphContents,
@@ -500,6 +535,16 @@ newVersion (VersionGraph {graphContents = graphContents}) workingVersionId
       newArc graphContents arcType "" versionNode workingNode            
       done
 
+deleteWorkingVersion :: VersionGraph -> WorkingVersionId -> IO ()
+deleteWorkingVersion (VersionGraph {graphContents = graphContents})
+      workingVersionId =
+   update graphContents 
+      (DeleteNode (anyVersionToNode (Working workingVersionId)))
+
+-- ------------------------------------------------------------------------
+-- Reading Version Graphs
+-- ------------------------------------------------------------------------
+
 getParents :: VersionGraph -> AnyVersion -> IO [Version]
 getParents (VersionGraph {graphContents = graphContents}) anyVersion =
    do
@@ -517,8 +562,13 @@ getParents (VersionGraph {graphContents = graphContents}) anyVersion =
                parents
       return parentVersions
 
-deleteWorkingVersion :: VersionGraph -> WorkingVersionId -> IO ()
-deleteWorkingVersion (VersionGraph {graphContents = graphContents})
-      workingVersionId =
-   update graphContents 
-      (DeleteNode (anyVersionToNode (Working workingVersionId)))
+getGraph :: VersionGraph -> VersionTypes SimpleGraph
+getGraph versionGraph = graphContents versionGraph
+
+getVersionString :: VersionGraph -> AnyVersion -> IO String
+getVersionString versionGraph anyVersion =  
+   let
+      node = anyVersionToNode anyVersion
+      graphContents = getGraph versionGraph
+   in
+      getNodeLabel graphContents node  

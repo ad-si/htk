@@ -30,13 +30,17 @@ displayGraph ::
           arc arcType arcTypeParms)
    -> (graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
    -> graphParms -- these are the parameters to use setting up the graph
-   -> ((NodeType,nodeTypeLabel) 
+   -> (DisplayGraph -> NodeType -> nodeTypeLabel 
           -> IO (nodeTypeParms Node))
                  -- this gets parameters for setting up a node type.
                  -- NB - we don't (and can't) recompute the parameters
                  -- if we get a SetNodeTypeLabel or SetArcTypeLabel update.
-   -> ((ArcType,arcTypeLabel) 
+                 -- We provide the function with the DisplayGraph
+                 -- this function will return, to make tying the knot easier
+                 -- in versions/VersionGraph.hs
+   -> (DisplayGraph -> ArcType -> arcTypeLabel 
          -> IO (arcTypeParms Arc))
+                 -- see previous argument.
    -> IO DisplayGraph
 displayGraph 
    (displaySort ::
@@ -44,9 +48,9 @@ displayGraph
           arcType arcTypeParms)
    (graph :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
    graphParms 
-   (getNodeParms :: (NodeType,nodeTypeLabel) 
+   (getNodeParms :: DisplayGraph -> NodeType -> nodeTypeLabel 
       -> IO (nodeTypeParms Node))
-   (getArcParms :: (ArcType,arcTypeLabel) 
+   (getArcParms :: DisplayGraph -> ArcType -> arcTypeLabel
       -> IO (arcTypeParms Arc)) =
    do
       msgQueue <- newMsgQueue
@@ -73,12 +77,23 @@ displayGraph
 
       dispGraph <- GraphDisp.newGraph displaySort graphParms
 
+      (destructionChannel :: Channel ()) <- newChannel
+
+      oID <- newObject
+    
       let
+         displayGraph = DisplayGraph {
+            oID = oID,
+            destroyAction = destroy dispGraph,
+            destroyedEvent = lift (receive destructionChannel)
+            }
+
          handleUpdate :: Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel
            -> IO ()
          handleUpdate (NewNodeType nodeType nodeTypeLabel) =
             do
-               nodeTypeParms <- getNodeParms (nodeType,nodeTypeLabel)
+               nodeTypeParms <- 
+                  getNodeParms displayGraph nodeType nodeTypeLabel
                dispNodeType <- GraphDisp.newNodeType dispGraph nodeTypeParms
                setValue nodeTypeRegister nodeType dispNodeType
          handleUpdate (SetNodeTypeLabel _ _ ) = done
@@ -96,7 +111,8 @@ displayGraph
          handleUpdate (SetNodeLabel node nodeLabel) = done
          handleUpdate (NewArcType arcType arcTypeLabel) =
             do
-               arcTypeParms <- getArcParms (arcType,arcTypeLabel)
+               arcTypeParms <- 
+                  getArcParms displayGraph arcType arcTypeLabel
                dispArcType <- GraphDisp.newArcType dispGraph arcTypeParms
                setValue arcTypeRegister arcType dispArcType
          handleUpdate (SetArcTypeLabel _ _) = done
@@ -114,6 +130,7 @@ displayGraph
                deleteArc dispGraph dispArc
                deleteFromRegistry arcRegister arc
          handleUpdate (SetArcLabel arc arcLabel) = done
+
       sequence_ (map handleUpdate updates)
 
       redraw dispGraph
@@ -129,17 +146,7 @@ displayGraph
                         handleUpdate update
                         getAllQueued
 
-      (destructionChannel :: Channel ()) <- newChannel
-
-      oID <- newObject
-    
       let
-         displayGraph = DisplayGraph {
-            oID = oID,
-            destroyAction = destroy dispGraph,
-            destroyedEvent = lift (receive destructionChannel)
-            }
-
          monitorThread =
             sync(
                   (lift (receive msgQueue)) >>>=
