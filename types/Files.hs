@@ -255,6 +255,9 @@ instance HasLinkedObject File where
 instance HasFilePath File where
    toFilePath file = toFilePath (simpleFile file)
 
+instance HasContents File where
+   getAsICSL view file = getAsICSL view (simpleFile file)
+
 -- ------------------------------------------------------------------
 -- The global registry
 -- ------------------------------------------------------------------

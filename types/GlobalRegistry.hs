@@ -73,7 +73,7 @@ data ViewData objectType = ViewData {
 newtype GlobalRegistry objectType =  GlobalRegistry 
    (Registry ViewId (ViewData objectType))
 
-newtype GlobalKey = GlobalKey AtomString deriving (Ord,Eq,Typeable)
+newtype GlobalKey = GlobalKey AtomString deriving (Ord,Eq,Typeable,StringClass)
 
 -- ---------------------------------------------------------------
 -- Instances for GlobalKey

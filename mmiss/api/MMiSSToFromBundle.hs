@@ -29,6 +29,7 @@ import Text.XML.HaXml.OneOfN
 import Computation
 import ExtendedPrelude
 import Bytes(Byte)
+import IntPlus
 
 import XmlExtras
 import MMiSSVariant
@@ -36,6 +37,7 @@ import MMiSSVariant
 import MMiSSRequest
 import MMiSSFormat
 import MMiSSBundle
+import MMiSSBundleUtils
 import MMiSSAPIBlock
 
 -- ---------------------------------------------------------------------------
@@ -70,8 +72,7 @@ toBundleNode :: Block -> MMiSSRequest.File
    -> WithError (MMiSSBundle.BundleNode)
 toBundleNode block (File fileLoc0 oneOfOpt) =
    case oneOfOpt of
-      Nothing -> hasError 
-         "File has neither a <fileVariants> nor <files> element"
+      Nothing -> return (mkBundleNode NoData)
       Just (OneOf2 (FileVariants variants)) ->
          do
             (vList :: [(Maybe MMiSSVariantSpec,BundleText)]) <-
@@ -106,6 +107,7 @@ fromBundleNode :: MMiSSBundle.BundleNode -> BlockM MMiSSRequest.File
 fromBundleNode (BundleNode {
       fileLoc = fileLoc0,bundleNodeData = bundleNodeData0}) =
    case bundleNodeData0 of
+      NoData -> return (mkFile Nothing)
       Object vList ->
          do
             (variants :: [FileVariant]) <- 
@@ -157,44 +159,47 @@ toVariants variantSpec =
 -- it's an Element.
 -- ---------------------------------------------------------------------------
 
-toBundleText :: Block -> MMiSSRequest.FileContents 
+toBundleText :: Block -> Maybe MMiSSRequest.FileContents 
    -> WithError MMiSSBundle.BundleText
-toBundleText block ft =
-   case readCheck dbnStr of
-      Just (blockNo :: Int) ->
-         case lookupBlockData block blockNo of
-            Just blockData | blockType blockData == blockType1
-               -> hasValue (
-                  BundleString {
-                     contents = blockText blockData,
-                     charType = toCharType (fromDefaultable (
-                        fileContentsCharType ft))
-                     }
-                  )
-            Nothing -> fail ("Block " ++ show blockNo ++ " not found")
-      Nothing -> fail ("Can't parse block number " ++ dbnStr)
-   where
-      dbnStr = fileContentsDataBlock ft
+toBundleText block ftOpt =
+   case ftOpt of
+      Just ft ->
+         case readCheck dbnStr of
+            Just (blockNo :: Int) ->
+               case lookupBlockData block blockNo of
+                  Just blockData | blockType blockData == blockType1
+                     -> return (
+                        BundleString {
+                           contents = blockText blockData,
+                           charType = toCharType (fromDefaultable (
+                              fileContentsCharType ft))
+                           }
+                        )
+                  Nothing -> fail ("Block " ++ show blockNo ++ " not found")
+            Nothing -> fail ("Can't parse block number " ++ dbnStr)
+         where
+            dbnStr = fileContentsDataBlock ft
+      Nothing -> return NoText
 
-fromBundleText :: MMiSSBundle.BundleText -> BlockM MMiSSRequest.FileContents
-fromBundleText bt =
-   do
-      let
-         (icsl,ct) = bundleToICSL bt
-
-      block0 <- get
-      let
-         (block1,icslNo) = addBlockData block0 
-            (BlockData {
-               blockType = blockType1,
-               blockText = icsl
-               })
-      put block1      
-      return (FileContents {
-         fileContentsDataBlock = show icslNo,
-         fileContentsCharType = toDefaultable FileContents_charType_unicode
-            (fromCharType ct)
-         })
+fromBundleText :: MMiSSBundle.BundleText 
+   -> BlockM (Maybe MMiSSRequest.FileContents)
+fromBundleText bt = case bundleToICSL bt of
+   Nothing -> return Nothing
+   Just (icsl,ct) ->
+      do
+         block0 <- get
+         let
+            (block1,icslNo) = addBlockData block0 
+               (BlockData {
+                  blockType = blockType1,
+                  blockText = icsl
+                  })
+         put block1      
+         return (Just (FileContents {
+            fileContentsDataBlock = show icslNo,
+            fileContentsCharType = toDefaultable FileContents_charType_unicode
+               (fromCharType ct)
+            }))
 
 blockType1 :: Byte
 blockType1 = 1
@@ -292,9 +297,13 @@ toExportOpts attrs =
          GetObject_format_XML -> XML
 
       recurse0 = fromDefaultable (getObjectRecurse attrs)
-      recurse1 = case recurse0 of
-         GetObject_recurse_justThis -> False
-	 GetObject_recurse_allIncluded -> True
+      recurseDepth1 = case recurse0 of
+         GetObject_recurse_justThis -> 1
+	 GetObject_recurse_allIncluded -> infinity 
    in
-      ExportOpts {getText = getText1,format = format1,recurse = recurse1}
+      ExportOpts {
+         getText = getText1,
+         format = format1,
+         recurseDepth = recurseDepth1
+         }
 

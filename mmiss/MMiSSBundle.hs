@@ -19,36 +19,19 @@ module MMiSSBundle (
    BundleNodeData(..),
    BundleText(..),
    CharType(..),      
-
    ExportOpts(..),
 
-   bundleToICSL, -- :: BundleText -> (ICStringLen,CharType)
-   bundleToElement, -- :: BundleText -> WithError Element
-   nameFileLoc, -- :: FileLoc -> WithError EntityName
-   describeFileLoc, -- :: FileLoc -> String
-
-   getUnknownBundleNode, -- :: LinkedObject -> IO BundleNode
+   HasBundleNodeData(..),
    ) where
-
-import Maybe
-
-import Data.FiniteMap
 
 import Text.XML.HaXml.Types
 
 import ICStringLen
-import AtomString
-import UTF8
-import Computation
+import IntPlus
 
-import EntityNames
-
-import LinkManager
-
-import LaTeXParser(MMiSSLatexPreamble)
+import View
 
 import MMiSSVariant
-import MMiSSDTD
 import MMiSSFormat
 
 -- --------------------------------------------------------------------------
@@ -86,6 +69,8 @@ data BundleNodeData =
          -- For MMiSSObjects it will be possible to work out the variants
          -- from the BundleText; for these the variants are optional.
    |  Dir Bundle
+   |  NoData
+         -- data left out for some reason.
 
 data BundleText = 
       BundleString { 
@@ -93,106 +78,30 @@ data BundleText =
          charType :: CharType
          }
    |  BundleElement Element
+   |  NoText
 
 data CharType = Byte | Unicode
 
 data ExportOpts = ExportOpts {
    getText :: Bool, -- ^ Get the text of everything (not just the locations)
    format :: Format, -- ^ Way text of MMiSS objects should be presented
-   recurse :: Bool
-      -- ^ get sub objects (for MMiSS objects) or subdirectories
-      -- (for folders).
+   recurseDepth :: IntPlus
+      -- ^ Depth to recurse in fetching sub-objects (for MMiSS objects)
+      -- or subdirectories (for folders).
+      -- This type is more general than the corresponding attribute in
+      -- MMiSSRequest.dtd, which just allows the equivalent of 1 and infinity.
    }              
    
-
 -- --------------------------------------------------------------------------
--- BundleText functions
--- --------------------------------------------------------------------------
-
-bundleToICSL :: BundleText -> (ICStringLen,CharType)
-bundleToICSL (BundleString {contents = contents,charType = charType}) =
-   (contents,charType)
-bundleToICSL (BundleElement element) = 
-   (fromString (toExportableXml element),Byte)
- 
-
-bundleToElement :: BundleText -> WithError Element
-bundleToElement (BundleElement element) = return element
-bundleToElement (BundleString {contents = contents,charType = charType}) =
-   do
-      contentsStr <- case charType of
-         Byte -> return (toString contents)
-         Unicode -> fromUTF8WE (toString contents)
-      xmlParseWE "MMiSS Bundle" contentsStr
-
--- --------------------------------------------------------------------------
--- FileLoc functions
+-- Although for many object types, the BundleNodeData is constructed
+-- in MMiSSExportEntireBundleNode, MMiSSFileType and MMiSSObjectType
+-- prefer to do the work themselves by providing instances of
+-- HasBundleNodeData.
 -- --------------------------------------------------------------------------
 
-strFileLoc :: FileLoc -> Maybe String
-strFileLoc fileLoc =
-   case name fileLoc of
-      Nothing -> Nothing
-      Just name0 -> case ext (objectType fileLoc) of
-         Nothing -> Just name0
-         Just ext0 -> Just (name0 ++ [specialChar] ++ ext0)
+class HasBundleNodeData object where
+   getBundleNodeData :: View -> object -> ExportOpts -> IO BundleNodeData
+   getBundleNodeDataForVariant :: View -> object -> ExportOpts 
+      -> MMiSSVariantSearch -> IO BundleNodeData
 
-nameFileLoc :: FileLoc -> WithError EntityName
-nameFileLoc fileLoc = 
-   do
-      str <- case strFileLoc fileLoc of
-         Nothing -> fail "Attempt to write file where no name is specified"
-         Just str -> return str
-      fromStringWE str
 
-describeFileLoc :: FileLoc -> String
-describeFileLoc fileLoc =
-   fromMaybe
-      (fallBack fileLoc)
-      (strFileLoc fileLoc)
-   where
-      fallBack :: FileLoc -> String
-      fallBack fileLoc =
-         case ext (objectType fileLoc) of
-            Just ext1 -> "Unnamed object with extension " ++ ext1
-          
-
-describeBundleTypeEnum :: BundleTypeEnum -> String
-describeBundleTypeEnum bte = case bte of
-   FolderEnum -> "simple folder"
-   FileEnum -> "simple file"
-   MMiSSFolderEnum -> "MMiSS package folder"
-   MMiSSObjectEnum -> "MMiSS object"
-   MMiSSFileEnum -> "MMiSS file"
-   MMiSSPreambleEnum -> "MMiSS preamble"
-   UnknownType -> "Object of unknown type"
-
--- --------------------------------------------------------------------------
--- Miscellaneous functions
--- --------------------------------------------------------------------------
-
--- BundleNode extraction in the case when we can't do the job properly and
--- need a soft fall-out.
-getUnknownBundleNode :: LinkedObject -> IO BundleNode
-getUnknownBundleNode linkedObject =
-   do
-      insertionOpt <- getCurrentInsertion linkedObject
-      let
-         name1 = fmap
-            (toString . snd . unmkInsertion)
-            insertionOpt
-
-         objectType1 = BundleType {
-            base = UnknownType,
-            ext = Nothing,
-            extra = Nothing
-            }
-
-         fileLoc1 = FileLoc {name = name1, objectType = objectType1}
-
-         bundleNode = BundleNode {
-            fileLoc = fileLoc1,
-            bundleNodeData = Object []
-            }
-      return bundleNode
- 

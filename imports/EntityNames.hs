@@ -80,7 +80,7 @@ newtype EntityName = EntityName String deriving (Eq,Ord,Typeable,Show)
 --
 -- Example EntityFullName's: "a", "a/bc", "z9_/q".
 --
--- If the path is empty it is represented by "Current".
+-- If the path is empty it is represented by "Current" or "Root".
 -- 
 newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 
@@ -404,6 +404,8 @@ reservedName _ = False
 
 mkEntityFullName :: [String] -> Maybe EntityFullName
 mkEntityFullName [] = Nothing
+mkEntityFullName ["Current"] = Just (EntityFullName [])
+mkEntityFullName ["Root"] = Just (EntityFullName [])
 mkEntityFullName strs =
    let
       entityNameOpts :: [Maybe EntityName]   

@@ -40,6 +40,11 @@ module MMiSSVariantObject(
       -- :: VariantObject object cache -> MMiSSVariantSearch
       --    -> IO (Maybe object)
 
+    -- Look up the object, and also return, if found, its MMiSSVariantSpec.
+   lookupVariantObjectWithSpec,
+      -- :: VariantObject object cache -> MMiSSVariantSearch
+      --    -> IO (Maybe (object,MMiSSVariantSpec))
+
    lookupVariantObjectCache,
       -- :: VariantObject object cache -> MMiSSVariantSearch
       --    -> IO (Maybe cache)
@@ -290,12 +295,19 @@ instance HasBinary object CodingMonad
 -- We provide one version of each function that uses the standard search 
 -- algorithm, and one that uses exact search, insisting on an object which
 -- exactly matches that given search object.
+-- We also provide lookupVariantObjectWithSpec, which the XML API uses.
+-- (since we tell the user the variants of objects found with getObject).
 -- -----------------------------------------------------------------------
    
 lookupVariantObject:: VariantObject object cache -> MMiSSVariantSearch
    -> IO (Maybe object)
 lookupVariantObject variantObject variantSearch =
    variantDictSearch (dictionary variantObject) variantSearch
+
+lookupVariantObjectWithSpec :: VariantObject object cache 
+   -> MMiSSVariantSearch -> IO (Maybe (object,MMiSSVariantSpec))
+lookupVariantObjectWithSpec variantObject variantSearch =
+   variantDictSearchWithSpec (dictionary variantObject) variantSearch
 
 lookupVariantObjectCache :: VariantObject object cache -> MMiSSVariantSearch
    -> IO (Maybe cache)
@@ -510,4 +522,10 @@ displayObjectVariants :: VariantObject object cache -> IO ()
 displayObjectVariants variantObject 
    = displayMMiSSVariantDictKeys (dictionary variantObject)
 
+-- -----------------------------------------------------------------------
+-- HasGetAllVariants instance
+-- -----------------------------------------------------------------------
       
+instance HasGetAllVariants (VariantObject object cache) object where
+   getAllVariants variantObject =
+      getAllVariants (dictionary variantObject)

@@ -17,6 +17,10 @@ module BasicObjects(
    HasFilePath(toFilePath),
       -- class of things with an associated file path.
 
+   HasContents(..),
+      -- class of things which can be represented by an ICStringLen.
+
+
    Attributes, -- a set of variables keyed by String's.
       -- Attributes is an instance of HasCodedValue (so you can
       -- read and write them).
@@ -44,6 +48,7 @@ import Computation(done)
 import Dynamics
 import TempFile
 import Registry
+import ICStringLen
 
 import CopyFile
 
@@ -83,6 +88,13 @@ class HasFilePath fileItem where
    toFilePath :: fileItem -> FilePath
 
 -- ------------------------------------------------------------------------
+-- HasContents
+-- ------------------------------------------------------------------------
+
+class HasContents fileItem where
+   getAsICSL :: View -> fileItem -> IO ICStringLen
+
+-- ------------------------------------------------------------------------
 -- Instances
 -- ------------------------------------------------------------------------
 
@@ -99,6 +111,10 @@ instance HasBinary SimpleFile CodingMonad where
 
 instance HasFilePath SimpleFile where
    toFilePath simpleFile = filePath simpleFile
+
+instance HasContents SimpleFile where
+   getAsICSL _ simpleFile = copyFileToICStringLen (filePath simpleFile)
+      
 
 -- ------------------------------------------------------------------------
 -- Attributes

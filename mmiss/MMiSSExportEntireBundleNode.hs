@@ -8,6 +8,8 @@ module MMiSSExportEntireBundleNode(
 
 import Messages
 import AtomString
+import Sources
+import ICStringLen
 
 import View
 import Link
@@ -15,13 +17,17 @@ import Link
 import Folders
 import Files
 import LinkManager
+import BasicObjects
 
 import MMiSSPackageFolder
 import MMiSSObjectType
 import MMiSSFileType
 import MMiSSSplitLink
+import MMiSSPreamble
 
 import MMiSSBundle
+import MMiSSBundleUtils
+import MMiSSObjectTypeInstance
 
 
 -- --------------------------------------------------------------------------
@@ -39,11 +45,12 @@ exportEntireLinkedObject view linkedObject exportOpts =
          -> exportEntireMMiSSObject view objectLink exportOpts
       MMiSSFileC mmissFileLink
          -> exportEntireMMiSSFile view mmissFileLink exportOpts
+      -- don't put preambles here since they shouldn't happen
       _ ->
          do
             linkedObjectStr <- describeLinkedObject view linkedObject
             errorMess ("Unable to extract " ++ linkedObjectStr)
-            bundleNode <- getUnknownBundleNode linkedObject
+            bundleNode <- getUnknownBundleNode view linkedObject
             return bundleNode
 
 -- --------------------------------------------------------------------------
@@ -52,32 +59,192 @@ exportEntireLinkedObject view linkedObject exportOpts =
 
 exportEntirePackageFolder 
    :: View -> Link MMiSSPackageFolder -> ExportOpts -> IO BundleNode
-exportEntirePackageFolder = error "TBD"
+exportEntirePackageFolder view packageFolderLink exportOpts =
+   do
+      packageFolder <- readLink view packageFolderLink
+
+      -- add the preamble
+      extraNodes <-
+         if recurseDepth exportOpts > 0
+            then
+               do
+                  preambleNode <- exportMMiSSPreamble view
+                     (toMMiSSPreambleLink packageFolder) (getText exportOpts)
+                  return [preambleNode]
+                  
+            else
+               return []
+
+      exportDirPlus view (toLinkedObject packageFolder) exportOpts extraNodes
+
+-- --------------------------------------------------------------------------
+-- Preambles
+-- --------------------------------------------------------------------------
+
+exportMMiSSPreamble :: View -> Link MMiSSPreamble -> Bool 
+   -> IO BundleNode
+exportMMiSSPreamble view link getText1 = 
+   do
+      bundleText1 <- if getText1
+         then
+            do
+               mmissLaTeXPreamble <- readPreamble view link
+               let
+                  preambleStr :: String
+                  preambleStr = toString mmissLaTeXPreamble
+
+                  preambleICSL :: ICStringLen 
+                  preambleICSL = fromString preambleStr
+
+                  bundleText1 = BundleString {
+                     contents = preambleICSL,
+                     charType = Byte
+                     }
+               return bundleText1
+         else
+            return NoText
+
+      let
+         bundleNodeData1 = Object [(Nothing,bundleText1)]
+
+      return (BundleNode {
+         fileLoc = preambleFileLoc,
+         bundleNodeData = bundleNodeData1
+         })
 
 -- --------------------------------------------------------------------------
 -- Files
 -- --------------------------------------------------------------------------
 
 exportEntireFile :: View -> Link File -> ExportOpts -> IO BundleNode
-exportEntireFile = error "TBD"
+exportEntireFile view fileLink exportOpts =
+   do
+      file <- readLink view fileLink
+      fileLoc1 <- getFileLoc view (toLinkedObject file)
+      bundleText1 <- if getText exportOpts
+         then
+            do
+               icsl <- getAsICSL view file
+               let
+                  bundleText = BundleString {
+                     contents = icsl,
+                     charType = Byte
+                     }
+               return bundleText
+         else
+            return NoText
 
+      let
+         bundleNodeData1 = Object [(Nothing,bundleText1)]
+
+      return (BundleNode {
+         fileLoc = fileLoc1,
+         bundleNodeData = bundleNodeData1
+         })
+
+      
 -- --------------------------------------------------------------------------
 -- Folders
 -- --------------------------------------------------------------------------
 
 exportEntireFolder :: View -> Link Folder -> ExportOpts -> IO BundleNode
-exportEntireFolder = error "TBD"
+exportEntireFolder view link exportOpts = 
+   do
+      folder <- readLink view link
+      exportDir view (toLinkedObject folder) exportOpts
 
 -- --------------------------------------------------------------------------
 -- MMiSSObjects
 -- --------------------------------------------------------------------------
 
-exportEntireMMiSSObject :: View -> Link MMiSSObject -> ExportOpts -> IO BundleNode
-exportEntireMMiSSObject = error "TBD"
+exportEntireMMiSSObject :: View -> Link MMiSSObject -> ExportOpts 
+   -> IO BundleNode
+exportEntireMMiSSObject view link exportOpts =
+   do
+      mmissObject <- readLink view link
+      fileLoc1 <- getFileLoc view (toLinkedObject mmissObject)
+      bundleNodeData1 <- getBundleNodeData1 view mmissObject exportOpts
+
+      return (BundleNode {
+         fileLoc = fileLoc1,
+         bundleNodeData = bundleNodeData1
+         })
 
 -- --------------------------------------------------------------------------
 -- MMiSSFiles
 -- --------------------------------------------------------------------------
 
 exportEntireMMiSSFile :: View -> Link MMiSSFile -> ExportOpts -> IO BundleNode
-exportEntireMMiSSFile = error "TBD"
+exportEntireMMiSSFile view link exportOpts =
+   do
+      mmissFile <- readLink view link
+      fileLoc1 <- getFileLoc view (toLinkedObject mmissFile)
+      bundleNodeData1 <- getBundleNodeData1 view mmissFile exportOpts
+      
+      return (BundleNode {
+         fileLoc = fileLoc1,
+         bundleNodeData = bundleNodeData1
+         })
+
+-- --------------------------------------------------------------------------
+-- Modified version of getBundleNodeData1 which checks for recursion depth.
+-- --------------------------------------------------------------------------
+
+getBundleNodeData1 :: HasBundleNodeData object 
+   => View -> object -> ExportOpts -> IO BundleNodeData
+getBundleNodeData1 view object exportOpts =
+   if recurseDepth exportOpts >= 1
+      then
+         getBundleNodeData view object exportOpts
+      else
+         return NoData
+
+-- --------------------------------------------------------------------------
+-- General Folder-Like objects
+-- --------------------------------------------------------------------------
+
+-- Export the objects within the contents of a linked object and construct
+-- a BundleNode containing them 
+exportDir :: View -> LinkedObject -> ExportOpts -> IO BundleNode
+exportDir view linkedObject exportOpts =
+   exportDirPlus view linkedObject exportOpts []
+
+-- Generalisation of exportDir where we also supply a list of
+-- nodes to be prepended to the contents.
+exportDirPlus :: View -> LinkedObject -> ExportOpts -> [BundleNode] 
+   -> IO BundleNode
+exportDirPlus view linkedObject0 exportOpts0 extraNodes =
+   do
+      fileLoc1 <- getFileLoc view linkedObject0
+
+      let
+         recurseDepth0 = recurseDepth exportOpts0
+
+         recurseDepth1 = recurseDepth0 - 1
+
+         exportOpts1 = exportOpts0 {
+            recurseDepth = recurseDepth0
+            }
+
+      linkedObjects <- if recurseDepth1 >= 0
+         then
+            do
+               objectContents 
+                  <- readContents (listObjectContents linkedObject0)
+               return (map snd objectContents)
+         else
+            return []
+
+      bundleNodes0 <- mapM
+         (\ linkedObject1 
+            -> exportEntireLinkedObject view linkedObject1 exportOpts1
+            )
+         linkedObjects
+      let
+         bundleNodes1 = extraNodes ++ bundleNodes0
+
+      return (BundleNode {
+         fileLoc = fileLoc1,
+         bundleNodeData = Dir (Bundle bundleNodes1)
+         })
+

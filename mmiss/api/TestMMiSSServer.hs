@@ -2,6 +2,7 @@
 module Main(main) where
 
 import IO
+import Maybe
 
 import BinaryAll
 import Messages
@@ -22,7 +23,9 @@ main =
       user <- textQuery "User?"
       password <- textQuery "Password?"
       port <- getXMLPort
-      handle <- connectTo "localhost" (PortNumber (fromIntegral port))
+      serverOpt <- getServer
+      handle <- connectTo (fromMaybe "localhost" serverOpt) 
+         (PortNumber (fromIntegral port))
       hWrite handle "MMiSS-XML"
       hWrite handle user
       hWrite handle password

@@ -16,6 +16,7 @@ module MMiSSVariant(
    MMiSSVariantDict,
    newEmptyVariantDict,
    variantDictSearch,
+   variantDictSearchWithSpec,
    variantDictSearchExact,
    addToVariantDict,
    queryInsert,
@@ -50,11 +51,15 @@ module MMiSSVariant(
    displayMMiSSVariantDictKeys, -- :: MMiSSVariantDict object -> IO ()
       -- describing the keys in the object.
 
-   copyVariantDict 
+   copyVariantDict, 
       -- :: (ObjectVersion -> IO VersionInfo) -> MMiSSVariantDict object 
       -- -> IO (MMiSSVariantDict object)
       -- This operation is used to update the version numbers when copying
       -- a VariantDict object from one repository to another.
+
+   HasGetAllVariants(..),
+      -- Is possible to get all variants of this dictionary.  MMiSSVariantDict
+      -- instances it.
    ) where
 
 import Maybe
@@ -499,6 +504,13 @@ variantDictSearch variantDict search =
       resultOpt <- variantDictSearchGeneral variantDict search
       return (fmap (\ (_,_,a) -> a) resultOpt)
 
+variantDictSearchWithSpec :: MMiSSVariantDict a -> MMiSSVariantSearch ->
+   IO (Maybe (a,MMiSSVariantSpec))
+variantDictSearchWithSpec variantDict search =
+   do
+      resultOpt <- variantDictSearchGeneral variantDict search
+      return 
+         (fmap (\ (_,variants,a) -> (a,MMiSSVariantSpec variants)) resultOpt)
 
 -- Like variantDictSearch, but also returns an IO action which removes
 -- any Version attribute on the dictionary element.
@@ -829,4 +841,22 @@ copyVariants getNewVersionInfo variants0 =
 
                         variants1 = setVersion variants0 (toString version1)
                      return variants1
-   
+
+-- -----------------------------------------------------------------------
+-- Extracting ALL the objects of an MMiSSVariantDict
+-- -----------------------------------------------------------------------
+
+class HasGetAllVariants dict object | dict -> object where
+   getAllVariants :: dict -> IO [(MMiSSVariantSpec,object)]
+
+instance HasGetAllVariants (MMiSSVariantDict object) object where
+   getAllVariants (MMiSSVariantDict registry :: MMiSSVariantDict object) =
+      do
+         (contents0 :: [(MMiSSVariants,object)]) 
+            <- listRegistryContents registry
+         let
+            contents1 =
+               map
+                  (\ (vars,object) -> (MMiSSVariantSpec vars,object))
+                  contents0 
+         return contents1

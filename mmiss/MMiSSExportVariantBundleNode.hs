@@ -18,6 +18,7 @@ import MMiSSBundle
 import MMiSSSplitLink
 import MMiSSObjectType
 import MMiSSFileType
+import MMiSSBundleUtils
 
 -- --------------------------------------------------------------------------
 -- Splitting
@@ -35,7 +36,7 @@ exportLinkedObjectVariant view linkedObject exportOpts variantSearch =
          do
             linkedObjectStr <- describeLinkedObject view linkedObject
             errorMess ("Unable to extract " ++ linkedObjectStr)
-            bundleNode <- getUnknownBundleNode linkedObject
+            bundleNode <- getUnknownBundleNode view linkedObject
             return bundleNode
 
 
@@ -53,4 +54,14 @@ exportMMiSSObjectVariant = error "TBD"
 
 exportMMiSSFileVariant :: View -> Link MMiSSFile -> ExportOpts
    -> MMiSSVariantSearch -> IO BundleNode
-exportMMiSSFileVariant = error "TBD"
+exportMMiSSFileVariant view link exportOpts variantSearch = 
+   do
+      mmissFile <- readLink view link
+      fileLoc1 <- getFileLoc view (toLinkedObject mmissFile)
+      bundleNodeData1 <- getBundleNodeDataForVariant view mmissFile exportOpts
+         variantSearch
+
+      return (BundleNode {
+         fileLoc = fileLoc1,
+         bundleNodeData = bundleNodeData1
+         })

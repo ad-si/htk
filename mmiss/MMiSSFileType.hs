@@ -79,6 +79,8 @@ import MMiSSVariantObject
 import MMiSSVariant
 import MMiSSFiles
 import MMiSSRunCommand
+import MMiSSBundle hiding (contents)
+import qualified MMiSSBundle
 
 -- ----------------------------------------------------------------------
 -- Datatypes
@@ -220,19 +222,32 @@ exportMMiSSFile view dirPath fileLink variantSearch =
          tag = typeTag (mmissFileType mmissFile)
 
          fileName = unsplitExtension title0 tag
+         fullName = combineNames (trimDir dirPath) fileName
 
-      fileVersionLinkOpt 
-         <- lookupVariantObject (contents mmissFile) variantSearch
-      case fileVersionLinkOpt of
+      icslOpt <- lookupMMiSSFileVariantWithSpec view mmissFile variantSearch
+      case icslOpt of
          Nothing -> return (hasError ("No version of " ++ fileName ++
             " matching " ++ show variantSearch ++ " found"))
-         Just fileVersionLink ->
+         Just (icsl,variantSpec) ->
+            do
+               copyICStringLenToFile icsl fullName
+               return (hasValue ())               
+
+
+lookupMMiSSFileVariantWithSpec :: View -> MMiSSFile -> MMiSSVariantSearch ->
+   IO (Maybe (ICStringLen,MMiSSVariantSpec))
+lookupMMiSSFileVariantWithSpec view mmissFile variantSearch =
+   do
+
+      fileVersionLinkOpt 
+         <- lookupVariantObjectWithSpec (contents mmissFile) variantSearch
+      case fileVersionLinkOpt of
+         Nothing -> return Nothing
+         Just (fileVersionLink,variantSpec) ->
             do
                fileVersion <- readLink view fileVersionLink
-               let
-                  fullName = combineNames (trimDir dirPath) fileName
-               copyICStringLenToFile (text fileVersion) fullName
-               return (hasValue ())               
+               return (Just (text fileVersion,variantSpec))
+         
 
 -- ----------------------------------------------------------------------
 -- Scanning for MMiSSFiles in the repository or in an external directory.
@@ -547,6 +562,60 @@ instance HasMerging MMiSSFileVersion where
       )
 
 
+-- ----------------------------------------------------------------------
+-- Instance of HasBundleNodeData
+-- ----------------------------------------------------------------------
+
+instance HasBundleNodeData MMiSSFile where
+   getBundleNodeData view mmissFile exportOpts =
+      do
+         (allFileVariants :: [(MMiSSVariantSpec,Link MMiSSFileVersion)]) 
+            <- getAllVariants (contents mmissFile)
+         (variants :: [(Maybe MMiSSVariantSpec,BundleText)]) <-
+            mapM
+               (\ (variantSpec,versionLink) ->
+                  do
+                     bundleText <- if getText exportOpts
+                        then
+                           do
+                              mmissFileVersion <- readLink view versionLink
+                              return (BundleString {
+                                 MMiSSBundle.contents = text mmissFileVersion,
+                                 charType = Byte
+                                 })
+                        else
+                           return NoText
+                     return (Just variantSpec,bundleText)
+                  )
+               allFileVariants
+         return (MMiSSBundle.Object variants)
+
+   getBundleNodeDataForVariant view mmissFile exportOpts variantSearch =
+      do
+         icslOpt <- lookupMMiSSFileVariantWithSpec view mmissFile variantSearch
+         case icslOpt of
+            Nothing -> 
+               do
+                  errorMess ("No variant matching " ++ show variantSearch 
+                     ++ " found")
+                  return NoData
+            Just (icsl,variantSpec) ->
+               let
+                  bundleText =
+                     if getText exportOpts
+                        then
+                           BundleString {
+                              MMiSSBundle.contents = icsl,
+                              charType = Byte
+                              }
+                        else
+                           NoText -- fairly pointless but consistent
+
+                  bundleNodeData = MMiSSBundle.Object 
+                     [(Just variantSpec,bundleText)]
+               in
+                  return bundleNodeData
+                  
 -- ----------------------------------------------------------------------
 -- ObjectType instance
 -- ----------------------------------------------------------------------

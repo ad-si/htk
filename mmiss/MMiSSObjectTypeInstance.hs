@@ -51,6 +51,7 @@ import MMiSSCheck
 import MMiSSActiveMath
 import MMiSSEditXml(toExportableXml)
 import MMiSSFileType
+import MMiSSBundle
 -- import CASLFragments
 
 import {-# SOURCE #-} MMiSSEmacsEdit
@@ -438,3 +439,28 @@ cacheContentsMergeKey_tyRep
    = mkTyRep "MMiSSObjectTypeInstance" "CacheContentsMergeKey"
 instance HasTyRep CacheContentsMergeKey where
    tyRep _ = cacheContentsMergeKey_tyRep
+
+-- -------------------------------------------------------------------------
+-- Instance of HasBundleNodeData
+-- -------------------------------------------------------------------------
+
+instance HasBundleNodeData MMiSSObject where
+   getBundleNodeData view mmissObject exportOpts =
+      do
+         (allObjectVariants :: [(MMiSSVariantSpec,Variable)])
+            <- getAllVariants (variantObject mmissObject)
+         (variants :: [(Maybe MMiSSVariantSpec,BundleText)]) <-
+            mapM
+               (\ (variantSpec,variable) ->
+                  do
+                     bundleText <- if getText exportOpts
+                        then
+                           do
+                              element1 <- readLink view (element variable)
+                              return (BundleElement element1)
+                        else
+                           return NoText
+                     return (Just variantSpec,bundleText)
+                  )
+               allObjectVariants
+         return (MMiSSBundle.Object variants)

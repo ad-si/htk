@@ -79,7 +79,8 @@ data File = File FileLocation (Maybe (OneOf2 FileVariants Files))
 data FileLocation = FileLocation (Maybe ObjectName) ObjectType
 		  deriving (Eq,Show)
 newtype FileVariants = FileVariants [FileVariant] 		deriving (Eq,Show)
-data FileVariant = FileVariant (Maybe Variants) FileContents
+data FileVariant = FileVariant (Maybe Variants)
+			       (Maybe FileContents)
 		 deriving (Eq,Show)
 data FileContents = FileContents
     { fileContentsDataBlock :: String
@@ -506,12 +507,13 @@ instance XmlContent FileVariant where
 	(\(a,ca)->
 	   (\(b,cb)->
 	      (Just (FileVariant a b), rest))
-	   (definite fromElem "<fileContents>" "fileVariant" ca))
+	   (fromElem ca))
 	(fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (FileVariant a b) =
-	[CElem (Elem "fileVariant" [] (maybe [] toElem a ++ toElem b))]
+	[CElem (Elem "fileVariant" [] (maybe [] toElem a ++
+				       maybe [] toElem b))]
 instance XmlContent FileContents where
     fromElem (CElem (Elem "fileContents" as []):rest) =
 	(Just (fromAttrs as), rest)

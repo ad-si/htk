@@ -85,6 +85,10 @@ module ObjectTypes(
    -- Get the String corresponding to an object type's registry.
    objectTypeTypeId, -- :: WrappedObjectType -> String
 
+   -- Get the GlobalKey for an object type, which identifies
+   -- the object type among others of the same Haskell type.
+   objectTypeId, -- :: WrappedObjectType -> GlobalKey
+
    -- extract the current title of an object.
    nodeTitleIOPrim, -- :: ObjectType objectType object => object -> IO String
    nodeTitleIO, -- :: WrappedObject -> IO String
@@ -366,6 +370,9 @@ wrappedLinkTypeName (WrappedLink (_ :: Link object)) =
 objectTypeTypeId :: WrappedObjectType -> String
 objectTypeTypeId (WrappedObjectType objectType) =
    objectTypeTypeIdPrim objectType
+
+objectTypeId :: WrappedObjectType -> GlobalKey
+objectTypeId (WrappedObjectType objectType) = objectTypeIdPrim objectType
 
 getObjectType :: WrappedObject -> WrappedObjectType
 getObjectType (WrappedObject object) = 
