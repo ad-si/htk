@@ -15,6 +15,30 @@ import HTk
 import Notepad
 import Name
 import ReferenceVariables
+import IOExts(unsafePerformIO)
+
+idref :: Ref Int
+idref = unsafePerformIO (newRef 0)
+
+newID :: IO Int
+newID =
+  do
+    i <- getRef idref
+    setRef idref (i + 1)
+    return i
+
+type Id = Int
+
+data MyItem = MyItem Id Name Image
+
+instance Eq MyItem where
+  MyItem id1 _ _ == MyItem id2 _ _ = id1 == id2
+
+instance CItem MyItem where
+  getName (MyItem _ nm _) = return nm
+  getIcon (MyItem _ _ ic) = return ic
+
+
 
 main :: IO ()
 main =
@@ -60,16 +84,20 @@ main =
     spawnEvent (forever ((clicked_add1 >>>
                             do
                               i <- num
-                              createNotepadItem () notepad1
-                                [position (cm 2, cm 2), photo img,
-                                 name (newName ("item" ++ show i))]
+                              id <- newID
+                              createNotepadItem
+                                (MyItem id (newName ("item" ++ show i))
+                                        img)
+                                notepad1 [position (cm 2, cm 2)]
                               done) +>
                          (clicked_add2 >>>
                             do
                               i <- num
-                              createNotepadItem () notepad2
-                                [position (cm 2, cm 2), photo img,
-                                 name (newName ("item" ++ show i))]
+                              id <- newID
+                              createNotepadItem
+                                (MyItem id (newName ("item" ++ show i))
+                                        img)
+                                notepad2 [position (cm 2, cm 2)]
                               done) +>
                          (clicked_import1 >>>
                             do

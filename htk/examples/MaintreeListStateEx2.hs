@@ -64,7 +64,7 @@ main :: IO ()
 main =
   do
     win <- initHTk [text "treelist"]
-    tl <- newTreeList win cfun ifun (newTreeListObject "/" "/" Node)
+    tl <- newTreeList win cfun ifun [newTreeListObject "/" "/" Node]
                       [background "white", size (cm 8, cm 10)]
     pack tl []
     b <- newButton win [text "export state"] :: IO (Button String)

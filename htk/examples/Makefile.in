@@ -4,13 +4,11 @@ LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
 SRCS       = Mainex1.hs\
              MaincanvasEx.hs\
              MainxmasCanvas.hs\
-             MaintreeListEx.hs\
              Mainhello1.hs\
              Mainhello2.hs\
              Mainhello3.hs\
              Mainblobs.hs\
              MainlistEx.hs\
-             MainfileBrowseEx.hs\
              MainmenuEx.hs\
              MainfileDialogEx.hs\
              MaintextTagEx.hs\
@@ -22,10 +20,14 @@ SRCS       = Mainex1.hs\
              MainutilWinEx.hs\
              MaingenGUIEx.hs\
 	     MainmodalDialogTest.hs\
-#             MainnotepadEx.hs\
-#             MainnotepadStateEx.hs\
+             MainnotepadEx.hs\
+             MainnotepadStateEx.hs\
+
+#             MaintreeListEx.hs\
 #             MaintreeListStateEx.hs\
 #             MaintreeListStateEx2.hs\
+#             MainfileBrowseEx.hs\
+
 
 XHCDIRS = $(HTKDIRS)
 

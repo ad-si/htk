@@ -65,7 +65,7 @@ main =
     win1 <- initHTk [text "treelist1"]
     win2 <- createToplevel [text "treelist2"]
 
-    tl1 <- newTreeList win1 cfun ifun (newTreeListObject "/" "/" Node)
+    tl1 <- newTreeList win1 cfun ifun [newTreeListObject "/" "/" Node]
                        [background "white", size (cm 8, cm 10)]
     pack tl1 []
 
@@ -73,7 +73,7 @@ main =
     pack b1 [Fill X]
     clickedb1 <- clicked b1
 
-    tl2 <- newTreeList win2 cfun ifun (newTreeListObject "/" "/" Node)
+    tl2 <- newTreeList win2 cfun ifun [newTreeListObject "/" "/" Node]
                        [background "white", size (cm 8, cm 10)]
     pack tl2 []
 

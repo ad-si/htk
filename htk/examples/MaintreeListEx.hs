@@ -26,6 +26,8 @@ logMsg ed txt =
 cfun :: ChildrenFun String
 cfun obj =
   case getTreeListObjectValue obj of
+      "/test" -> return [newTreeListObject "/test1" "test1" Leaf]
+
       "/" ->
         return [newTreeListObject "/home" "home" Node,
                 newTreeListObject "/usr" "usr" Node,
@@ -64,9 +66,10 @@ cfun obj =
                 newTreeListObject "/home/ludi/archiv/uni" "uni" Leaf,
                 newTreeListObject "/home/ludi/archiv/haskell" "haskell"
                                   Leaf]
-
+{-
 ifun :: ImageFun String
 ifun obj = folderImg
+-}
 
 main :: IO ()
 main =
@@ -75,7 +78,9 @@ main =
 
     treelist <- newTreeList main cfun ifun
 --                            (newTreeListObject "/" "/" Node)
-                            [(newTreeListObject "/" "/" Node)]
+                            [newTreeListObject "/" "/" Node,
+                             newTreeListObject "/test" "test" Node,
+                             newTreeListObject "/test2" "test2" Leaf]
                             [background "white", size (cm 15, cm 8)]
     pack treelist []
 

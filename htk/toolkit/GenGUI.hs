@@ -36,10 +36,10 @@ module GenGUI (
   bindGenGUIEv, {- :: CItem c => GenGUI c ->                            -}
                 {-               IO (Event (GenGUIEvent c), IO())       -}
 
-  GenGUIExportItem(..),
+--  GenGUIExportItem(..),
   GenGUIState,
-  exportGenGUIState, {- :: CItem c => GenGUI c -> IO (GenGUIState c)    -}
-  importGenGUIState  {- :: CItem c => GenGUI c -> GenGUIState c -> IO ()-}
+--  exportGenGUIState, {- :: CItem c => GenGUI c -> IO (GenGUIState c)    -}
+--  importGenGUIState  {- :: CItem c => GenGUI c -> GenGUIState c -> IO ()-}
 
 ) where
 
@@ -54,6 +54,7 @@ import List(find)
 import MarkupText
 import PrelBase(not)
 import CItem
+import Maybe
 
 
 -----------------------------
@@ -62,89 +63,101 @@ import CItem
 
 data CItem c => NewItem c =
     LeafItem c (Maybe Position)
-  | FolderItem c [NewItem c] (Maybe (Position, Bool))
+  | FolderItem c [NewItem c] (Maybe (Position, Bool))  -- Bool ??
+
+
+{- ich bräuchte:
+
+data CItem c => NewItem c =
+
+    LeafItem c (Maybe (Position,     -- position on notepad
+                       Bool          -- selected in notepad ?
+                      ))
+  | FolderItem c [NewItem c] (Maybe (Bool, -- open in TreeList
+                                           -- (recover only)
+                                     Bool, -- selected in TreeList,
+                                           -- (recover only)
+                                    ))
+
+-}
+
 
 
 -----------------------------------
 -- internal type & functionality --
 -----------------------------------
 
-type Id = String
-
 data CItem c => Item c =
     IntFolderItem (GenGUI c)                                 -- parent gui
-                  Id                                        -- internal id
                   (NewItem c)                   -- external representation
                   (Ref [Item c])                               -- subitems
   | IntLeafItem (GenGUI c)                                   -- parent gui
-                Id                                          -- internal id
                 (NewItem c)                     -- external representation
-  | Root Id (Ref (Maybe (GenGUI c)))
+  | Root (Ref (Maybe (GenGUI c)))
 
+{-
 newID :: (Ref Int) -> IO String
 newID idref =
   do
     n <- getRef idref
     setRef idref (n + 1)
     return ("item" ++ show n)
+-}
 
+{-
 getID :: CItem c => Item c -> Id
 getID (IntFolderItem _ id _ _) = id
 getID (IntLeafItem _ id _) = id
 getID (Root id _) = id
+-}
 
 isItemFolder :: Item c -> Bool
-isItemFolder (IntFolderItem _ _ _ _) = True
+isItemFolder (IntFolderItem _ _ _) = True
 isItemFolder _ = False
 
 isItemLeaf :: Item c -> Bool
 isItemLeaf = PrelBase.not . isItemFolder
 
 isRoot :: Item c -> Bool
-isRoot (Root _ _) = True
+isRoot (Root _) = True
 isRoot _ = False
 
 getGenGUI :: Item c -> IO (GenGUI c)
-getGenGUI (IntFolderItem gui _ _ _) = return gui
-getGenGUI (IntLeafItem gui _ _) = return gui
-getGenGUI (Root _ mguiref) =
+getGenGUI (IntFolderItem gui _ _) = return gui
+getGenGUI (IntLeafItem gui _) = return gui
+getGenGUI (Root mguiref) =
   do
     mgui <- getRef mguiref
     case mgui of Just gui -> return gui
                  _ -> error "GenGUI (getGenGUI) : root empty"
-
-getItemImage :: CItem c => TreeListObject (Item c) -> IO Image
+{-
+getItemImage :: CItem c => TreeListObject c -> IO Image
 getItemImage tlobj =
---  let c = getTreeListObjectValue tlobj in getIcon c
-  case (getTreeListObjectValue tlobj) of
-    IntFolderItem _ _ (FolderItem c _ _) _ -> getIcon c {-do
-                                                ioimg <- get ext
-                                                ioimg-}
-    IntLeafItem _ _ (LeafItem c _) -> getIcon c {-do
-                                        ioimg <- get ext
-                                        ioimg-}
-    Root _ _ -> folderImg
+  getIcon (getTreeListObjectValue tlobj)
+-}
 
 toItem :: CItem c => GenGUI c -> NewItem c -> IO (Item c)
 toItem gui it@(FolderItem _ ch _) =
   do
-    id <- newID (obj_cnt gui)
+--    id <- newID (obj_cnt gui)
     intch <- mapM (toItem gui) ch
     intchref <- newRef intch
-    return (IntFolderItem gui id it intchref)
+    return (IntFolderItem gui it intchref)
 toItem gui it@(LeafItem _ _) =
   do
-    id <- newID (obj_cnt gui)
-    return (IntLeafItem gui id it)
+--    id <- newID (obj_cnt gui)
+    return (IntLeafItem gui it)
 
 instance CItem c => Eq (Item c) where
+  item1 == item2 = content item1 == content item2
+{-
   (IntFolderItem gui1 id1 _ _) == (IntFolderItem gui2 id2 _ _) =
     id1 == id2 && gui1 == gui2
   (IntLeafItem gui1 id1 _) == (IntLeafItem gui2 id2 _) =
     id1 == id2 && gui1 == gui2
   (Root id1 _) == (Root id2 _) = id1 == id2
   _ == _ = False
-
+-}
 
 --------------------
 -- internal state --
@@ -154,7 +167,7 @@ root :: CItem c => GenGUI c -> IO (Item c)
 root gui =
   do
     mguiref <- newRef (Just gui)
-    return (Root (gui_id gui) mguiref)
+    return (Root mguiref)
 
 
 -------------------------
@@ -162,20 +175,16 @@ root gui =
 -------------------------
 
 {-
-data CItem c => NewItem c =
-    LeafItem c (Maybe Position)
-  | FolderItem c [NewItem c] (Maybe (Position, Bool))
+data GenGUIExportItem c =
+    GenGUIExportFolderItem (NewItem c) [GenGUIExportItem c]
+  | GenGUIExportLeafItem (NewItem c)
+  | GenGUIExportRootItem [GenGUIExportItem c]
 -}
 
-data GenGUIExportItem c =
-    GenGUIExportFolderItem Id (NewItem c) [GenGUIExportItem c]
-  | GenGUIExportLeafItem Id (NewItem c)
-  | GenGUIExportRootItem Id [GenGUIExportItem c]
-
 type GenGUIState c =
-  (GenGUIExportItem c, TreeListState (Item c), NotepadState c,
-   [(Id, NotepadState c)], Maybe (Item c), Int)
+  ([NewItem c], TreeListState c, NotepadState c, [(c, NotepadState c)])
 
+{-
 exportGenGUIState :: CItem c => GenGUI c -> IO (GenGUIState c)
 exportGenGUIState gui =
   do
@@ -185,24 +194,28 @@ exportGenGUIState gui =
     tl_state <- exportTreeListState (treelist gui)
     np_state <- exportNotepadState (notepad gui)
     displayed_obj <- getRef (open_obj gui)
-    i <- getRef (obj_cnt gui)
-    return (GenGUIExportRootItem (gui_id gui) items', tl_state, np_state,
+    return (items', tl_state, np_state,
             npstates, displayed_obj, i)
   where subitems :: CItem c => [Item c] -> IO [GenGUIExportItem c]
-        subitems (IntFolderItem _ id newitem subitemsref : items) =
+        subitems (IntFolderItem _ newitem subitemsref : items) =
           do
             sub <- getRef subitemsref
             sub' <- subitems sub
             rest <- subitems items
-            return (GenGUIExportFolderItem id newitem sub' : rest)
-        subitems (IntLeafItem _ id newitem : items) =
+            let (FolderItem c 
+            return (FolderItem newitem sub' : rest)
+        subitems (IntLeafItem _ newitem : items) =
           do
             rest <- subitems items
-            return (GenGUIExportLeafItem id newitem : rest)
+            return (GenGUIExportLeafItem newitem : rest)
         subitems _ = return []
+-}
 
 importGenGUIState :: CItem c => GenGUI c -> GenGUIState c -> IO ()
-importGenGUIState _ _ = done
+importGenGUIState _ _ = done  -- Scheitert leider während das GUI läuft
+                              -- noch an den Treelisten (bug!).
+                              -- GenGUI kann aber bereits mit State
+                              -- erzeugt werden!
 
 
 --------------------------
@@ -212,10 +225,10 @@ importGenGUIState _ _ = done
 data CItem c => GenGUI c =
   GenGUI
     { -- the id of this gui
-      gui_id :: Id,
+--      gui_id :: Id,
 
       -- the treelist
-      treelist :: TreeList (Item c),
+      treelist :: TreeList c,
 
       -- the notepad
       notepad :: Notepad c,
@@ -233,7 +246,7 @@ data CItem c => GenGUI c =
       win :: Toplevel,
 
       -- counter, needed for ids
-      obj_cnt :: Ref Int,
+--      obj_cnt :: Ref Int,
 
       -- item displayed in notepad
       open_obj :: Ref (Maybe (Item c)),
@@ -245,7 +258,7 @@ data CItem c => GenGUI c =
       root_obj :: Ref [Item c],
 
       -- saved positions, selection etc. of the notepad
-      np_states :: Ref [(Id, NotepadState c)],
+      np_states :: Ref [(c, NotepadState c)],
 
       -- events
       event_queue :: Ref (Maybe (Channel (GenGUIEvent c))) }
@@ -263,31 +276,34 @@ newGenGUI mstate =
     -- references (saved state may be recovered)
     intstate <- newRef []
     guiref <- newRef Nothing
-    (id, idref, displayref, npstates) <-
+    ({-id, idref,-} displayref, npstates) <-
       case mstate of
         Nothing ->
           do
             idref <- newRef 0
-            id <- newID idref
+--            id <- newID idref
             displayref <- newRef Nothing
             npstates <- newRef []
-            return (id, idref, displayref, npstates)
-        Just (exportitem@(GenGUIExportRootItem id _), tlstate, npstate,
+            return ({-id, idref,-} displayref, npstates)
+{-
+        Just (exportitem@(GenGUIExportRootItem _), tlstate, npstate,
               npstates, displayed_obj, i) ->
           do
             idref <- newRef i
             displayref <- newRef displayed_obj
             npstates <- newRef npstates
-            return (id, idref, displayref, npstates)
+            return ({-id, idref,-} displayref, npstates)
+-}
 
     -- construct main widgets
+
     let getTreeListState :: Maybe (GenGUIState c) ->
-                            Maybe (TreeListState (Item c))
-        getTreeListState (Just (_, tlstate, _, _, _, _)) = Just tlstate
+                            Maybe (TreeListState c)
+--        getTreeListState (Just (_, tlstate, _, _, _, _)) = Just tlstate
         getTreeListState _ = Nothing
 
         getNotepadState :: Maybe (GenGUIState c) -> Maybe (NotepadState c)
-        getNotepadState (Just (_, _, npstate, _, _, _)) = Just npstate
+--        getNotepadState (Just (_, _, npstate, _, _, _)) = Just npstate
         getNotepadState _ = Nothing
 
     (tl, np, edscr, ed) <-
@@ -303,11 +319,9 @@ newGenGUI mstate =
            pack objects_n_editor [Fill Both, Expand On]
            tl <- case getTreeListState mstate of
                    Just state ->
-                     recoverTreeList panev1 cfun getItemImage state
-                                     [background "white"]
-                   _ -> newTreeList panev1 cfun getItemImage
-                                    [(newTreeListObject (Root id guiref)
-                                        "object root" Node)]
+                     recoverTreeList panev1 (cfun guiref)
+                                     state [background "white"]
+                   _ -> newTreeList panev1 (cfun guiref) []
                                     [background "white"]
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad panev2 Scrolled (12, 12)
@@ -325,12 +339,13 @@ newGenGUI mstate =
            pack objects [Side AtLeft, Fill Both, Expand On]
            tl <- case getTreeListState mstate of
                    Just state ->
-                     recoverTreeList objects cfun getItemImage state
-                       [background "white", size (500, 250)]
-                   _ -> newTreeList objects cfun getItemImage
-                          [(newTreeListObject (Root id guiref)
-                                              "object root" Node)]
+                     recoverTreeList objects (cfun guiref){-getItemImage-}
+                                     state
+                                     [background "white", size (500, 250)]
+                   _ -> newTreeList objects (cfun guiref) {-getItemImage-}
+                                    []
                           [background "white", size (500, 250)]
+
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad objects Scrolled (12, 12)
                             (getNotepadState mstate)
@@ -338,7 +353,8 @@ newGenGUI mstate =
                              npScrollRegion ((0, 0), (800, 800))]
            pack np [PadX 5, PadY 5, Fill Both, Expand On]
            (edscr, ed) <- newScrollBox main
-                            (\par -> newEditor par [width 60]) []
+                            (\par -> newEditor par [width 60]
+                                       :: IO (Editor String)) []
            pack edscr [PadX 5, PadY 5, Fill Both, Expand On]
            return (tl, np, edscr, ed))
 
@@ -357,14 +373,14 @@ newGenGUI mstate =
     evq <- newRef Nothing
 
     -- GenGUI value
-    let gui = GenGUI { gui_id = id,
+    let gui = GenGUI { {-gui_id = id,-}
                        treelist = tl,
                        notepad = np,
                        editor = ed,
                        status = stlab,
                        topmenu = menubar,
                        win = main,
-                       obj_cnt = idref,
+--                       obj_cnt = idref,
                        open_obj = displayref,
                        place = posref,
                        root_obj = intstate,
@@ -372,27 +388,28 @@ newGenGUI mstate =
                        event_queue = evq }
 
     case mstate of
+{-
       Just (exportitem, _, _, _, _, _) ->
         let 
-            recoverState (GenGUIExportRootItem _ items) =
+            recoverState (GenGUIExportRootItem items) =
               recoverSubitems items
 
-            recoverSubitems (GenGUIExportFolderItem id newitem sitems :
+            recoverSubitems (GenGUIExportFolderItem newitem sitems :
                              items) =
               do
                 sub <- recoverSubitems sitems
                 rest <- recoverSubitems items
                 subitemsref <- newRef sub
-                return (IntFolderItem gui id newitem subitemsref : rest)
-            recoverSubitems (GenGUIExportLeafItem id newitem : items) =
+                return (IntFolderItem gui newitem subitemsref : rest)
+            recoverSubitems (GenGUIExportLeafItem newitem : items) =
               do
                 rest <- recoverSubitems items
-                return (IntLeafItem gui id newitem : rest)
+                return (IntLeafItem gui newitem : rest)
             recoverSubitems _ = return []
         in do
              st <- recoverState exportitem
              setRef intstate st
-
+-}
       _ -> done
 
     setRef guiref (Just gui)
@@ -413,7 +430,6 @@ newGenGUI mstate =
                                  Deselected c ->
                                    npItemSelected gui (c, False)
                                  Notepad.Dropped inf ->
-                                   putStrLn "np: drop event" >>
                                    npDropEvent gui inf
                                  Notepad.Doubleclick inf ->
                                    npDoubleClick gui inf
@@ -429,13 +445,22 @@ newGenGUI mstate =
                             ev_inf <- enter_ed
                             always
                               (do
-                                 ((x, y), items) <- getRef clipboard
+                                 ((x, y), cs) <- getRef clipboard
                                  (if x == xRoot ev_inf &&
                                      y == yRoot ev_inf then
-                                    putStrLn "drag and drop action" >>
-                                    sendEv gui
-                                           (DroppedOnTextArea items) >>
-                                    undoLastMotion np
+                                    do
+                                      putStrLn "drag and drop action"
+                                      items <-
+                                        mapM (\c -> do
+                                                      mobj <-
+                                                        getGenGUIObject
+                                                          gui c
+                                                      return
+                                                        (fromJust mobj))
+                                             cs
+                                      sendEv gui
+                                             (DroppedOnTextArea items)
+                                      undoLastMotion np
                                   else done))) +>
                          (do
                             ev_inf <- leave_np
@@ -456,10 +481,10 @@ newGenGUI mstate =
 --------------------
 
 tlObjectSelected :: CItem c => GenGUI c ->
-                               Maybe (TreeListObject (Item c)) -> IO ()
+                               Maybe (TreeListObject c) -> IO ()
 tlObjectSelected gui mobj =
   let addNotepadItem :: CItem c => (Item c) -> IO ()
-      addNotepadItem item@(IntLeafItem gui _ (LeafItem c _)) =
+      addNotepadItem item@(IntLeafItem gui (LeafItem c _)) =
         do
           pos <- getNewItemPosition (place gui)
           createNotepadItem c (notepad gui) [position pos]
@@ -472,37 +497,41 @@ tlObjectSelected gui mobj =
                         syncNoWait (send ch (SelectTreeList Nothing))
                       _ -> done
        Just obj ->
-         let item = getTreeListObjectValue obj
+         let c = getTreeListObjectValue obj
          in do
-              gui <- getGenGUI item
-              (if isRoot item then done
-               else do
-                      mch <- getRef (event_queue gui)
-                      case mch of
-                        Just ch ->
-                          syncNoWait (send ch
-                                        (SelectTreeList (Just item)))
-                        _ -> done)
+--              gui <- getGenGUI item
+--              (if isRoot item then done
+--               else do
+              mch <- getRef (event_queue gui)
+              mobj <- getGenGUIObject gui c
+              case mch of
+                Just ch ->
+                  syncNoWait (send ch (SelectTreeList (Just (fromJust mobj))))
+                _ -> done
               saveNotepadState gui
-              mstate <- revisit gui (getID item)
+              mstate <- revisit gui c
               case mstate of
                 Just notepadstate -> importNotepadState (notepad gui)
                                                         notepadstate
                 _ ->
                   synchronize gui (do
-                                     ch <- children item
+                                     mguiobj <- getGenGUIObject gui c
+                                     let guiobj = fromJust mguiobj
+                                     ch <- children guiobj
                                      clearNotepad (notepad gui)
                                      initItemPosition (place gui)
                                      mapM addNotepadItem
                                           (filter isItemLeaf ch)
                                      done)
+              mitem <- getGenGUIObject gui c
+              let item = fromJust mitem
               setRef (open_obj gui) (Just item)
 
-revisit :: CItem c => GenGUI c -> Id -> IO (Maybe (NotepadState c))
-revisit gui vid =
+revisit :: CItem c => GenGUI c -> c -> IO (Maybe (NotepadState c))
+revisit gui c =
   do
     states <- getRef (np_states gui)
-    let mstate = find (\ (id, _) -> id == vid) states
+    let mstate = find (\ (c', _) -> c == c') states
     case mstate of
       Just (_, state) -> return (Just state)
       _ -> return Nothing
@@ -515,16 +544,16 @@ saveNotepadState gui =
        case mcurrent of
          Just current_item ->
            do
-             let current_id = getID current_item
+             let c = content current_item
              npstate <- exportNotepadState (notepad gui)
              states <- getRef (np_states gui)
-             let states' = filter (\ (id, _) -> id /= current_id)
+             let states' = filter (\ (c', _) -> c' /= c)
                                   states
-             setRef (np_states gui) ((current_id, npstate) : states')
+             setRef (np_states gui) ((c, npstate) : states')
          _ -> done)
 
 tlObjectFocused :: CItem c => GenGUI c ->
-                              Maybe (TreeListObject (Item c)) -> IO ()
+                              Maybe (TreeListObject c) -> IO ()
 tlObjectFocused gui mobj =
   do
     mch <- getRef (event_queue gui)
@@ -532,10 +561,12 @@ tlObjectFocused gui mobj =
       Just obj -> do
                     case mch of
                       Just ch ->
-                        syncNoWait
-                          (send ch
-                             (FocusTreeList
-                                (Just (getTreeListObjectValue obj))))
+                        do
+                          let c = getTreeListObjectValue obj
+                          mobj <- getGenGUIObject gui c
+                          syncNoWait
+                            (send ch
+                               (FocusTreeList (Just (fromJust mobj))))
                       _ -> done
       _ -> case mch of
              Just ch -> syncNoWait (send ch (FocusTreeList Nothing))
@@ -553,8 +584,9 @@ npItemSelected gui (npitem, b) =
     case mch of
       Just ch ->
         do
-          item <- getItemValue npitem
-          syncNoWait (send ch (FocusNotepad (item, b)))
+          c <- getItemValue npitem
+          mitem <- getGenGUIObject gui c
+          syncNoWait (send ch (FocusNotepad (fromJust mitem, b)))
       _ -> done
 
 npDropEvent :: CItem c => GenGUI c -> (NotepadItem c, [NotepadItem c]) ->
@@ -564,9 +596,13 @@ npDropEvent gui (npitem, npitems) =
     mch <- getRef (event_queue gui)
     case mch of
       Just ch -> do
-                  item <- getItemValue npitem
-                  items <- mapM getItemValue npitems
-                  syncNoWait (send ch (GenGUI.Dropped (item, items)))
+                  c <- getItemValue npitem
+                  mitem <- getGenGUIObject gui c
+                  cs <- mapM getItemValue npitems
+                  mitems <- mapM (getGenGUIObject gui) cs
+                  syncNoWait
+                    (send ch (GenGUI.Dropped (fromJust mitem,
+                                              map fromJust mitems)))
       _ -> done
 
 npDoubleClick :: CItem c => GenGUI c -> NotepadItem c -> IO ()
@@ -576,7 +612,9 @@ npDoubleClick gui npitem =
     case mch of
       Just ch -> do
                    c <- getItemValue npitem
-                   syncNoWait (send ch (GenGUI.Doubleclick c))
+                   mobj <- getGenGUIObject gui c
+                   syncNoWait
+                     (send ch (GenGUI.Doubleclick (fromJust mobj)))
       _ -> done
 
 npRightClick :: CItem c => GenGUI c -> [NotepadItem c] -> IO ()
@@ -585,7 +623,11 @@ npRightClick gui npitems =
     mch <- getRef (event_queue gui)
     case mch of
       Just ch -> do
-                   cs <- mapM getItemValue npitems
+                   cs <- mapM (\npitem -> do
+                                            c <- getItemValue npitem
+                                            mobj <- getGenGUIObject gui c
+                                            return (fromJust mobj))
+                              npitems
                    syncNoWait (send ch (GenGUI.Rightclick cs))
       _ -> done
 
@@ -638,8 +680,8 @@ genGUIMainMenu :: CItem c => GenGUI c-> Menu
 genGUIMainMenu gui = topmenu gui
 
 children :: CItem c => Item c -> IO [Item c]
-children (IntFolderItem _ _ _ chref) = getRef chref
-children (Root _ mguiref) =
+children (IntFolderItem _ _ chref) = getRef chref
+children (Root mguiref) =
   do
     mgui <- getRef mguiref
     case mgui of
@@ -651,7 +693,7 @@ children (Root _ mguiref) =
 children _ = error "GenGUI (children) : called for a leaf"
 
 addItem :: CItem c => Item c -> NewItem c -> IO (Item c)
-addItem par@(IntFolderItem gui _ _ chref) newitem =
+addItem par@(IntFolderItem gui _ chref) newitem =
   synchronize gui
     (do
        mditem <- getRef (open_obj gui)
@@ -660,24 +702,22 @@ addItem par@(IntFolderItem gui _ _ chref) newitem =
        setRef chref (ch ++ [item])
        mch <- getRef (event_queue gui)
        case mch of
-         Just ch -> syncNoWait (send ch (Addition item))
+         Just ch -> do
+                      mobj <- getGenGUIObject gui (content item)
+                      syncNoWait (send ch (Addition (fromJust mobj)))
          _ -> done
        (if isItemFolder item then
           do
-            mkNode (treelist gui) par
+            mkNode (treelist gui) (content par)
             nuch <- children item
             let nod = if (any isItemFolder nuch) then Node else Leaf
             case newitem of
               FolderItem c _ _ ->
-                do
-                  nm <- getName c
-                  addTreeListObject (treelist gui) par
-                    (newTreeListObject item (full nm) nod)
+                addTreeListSubObject (treelist gui) (content par)
+                  (newTreeListObject (content item) nod)
               LeafItem c _ ->
-                do
-                  nm <- getName c
-                  addTreeListObject (treelist gui) par
-                    (newTreeListObject item (full nm) nod)
+                addTreeListSubObject (treelist gui) (content par)
+                  (newTreeListObject (content item) nod)
         else done)
        case mditem of
          Just ditem -> if ditem == par then
@@ -692,7 +732,7 @@ addItem par@(IntFolderItem gui _ _ chref) newitem =
                        else done
          _ -> done
        return item)
-addItem par@(Root _ mguiref) newitem =
+addItem par@(Root mguiref) newitem =
   do
     mgui <- getRef mguiref
     case mgui of
@@ -705,7 +745,10 @@ addItem par@(Root _ mguiref) newitem =
              chs <- children item
              mch <- getRef (event_queue gui)
              case mch of
-               Just ch -> syncNoWait (send ch (Addition item))
+               Just ch -> do
+                            mobj <- getGenGUIObject gui (content item)
+                            syncNoWait
+                              (send ch (Addition (fromJust mobj)))
                _ -> done
              (if isItemFolder item then
                 do
@@ -713,15 +756,11 @@ addItem par@(Root _ mguiref) newitem =
                   let nod = if (any isItemFolder ch) then Node else Leaf
                   case newitem of
                     FolderItem c _ _ ->
-                      do
-                        nm <- getName c
-                        addTreeListObject (treelist gui) par (newTreeListObject item
-                                                    (full nm) nod)
+                      addTreeListRootObject (treelist gui)
+                        (newTreeListObject (content item) nod)
                     LeafItem c _ ->
-                      do
-                        nm <- getName c
-                        addTreeListObject (treelist gui) par (newTreeListObject item
-                                                    (full nm) nod)
+                        addTreeListRootObject (treelist gui)
+                          (newTreeListObject (content item) nod)
               else done)
              return item)
       _ -> error "GenGUI (addItem) : root empty"
@@ -729,8 +768,8 @@ addItem _ _ = error "GenGUI (addItem) : called for a leaf"
 
 
 content :: CItem c => (Item c) -> c
-content (IntFolderItem _ _ (FolderItem c _ _) _) = c
-content (IntLeafItem _ _ (LeafItem c _)) = c
+content (IntFolderItem _ (FolderItem c _ _) _) = c
+content (IntLeafItem _ (LeafItem c _)) = c
 content _ = error "GenGUI (content) : called for root"
 
 
@@ -741,12 +780,12 @@ content _ = error "GenGUI (content) : called for root"
 data CItem c => GenGUIEvent c =
     FocusTreeList (Maybe (Item c)) 
   | SelectTreeList (Maybe (Item c))
-  | FocusNotepad (c, Bool) -- what's the Bool?
-  | Dropped (c, [c])
-  | Doubleclick c
-  | Rightclick [c]
+  | FocusNotepad (Item c, Bool) -- what's the Bool?
+  | Dropped (Item c, [Item c])
+  | Doubleclick (Item c)
+  | Rightclick [Item c]
   | Addition (Item c)
-  | DroppedOnTextArea [c]
+  | DroppedOnTextArea [Item c]
 --  | TextEntry (String) -- Text Entry Window  ???
 
 bindGenGUIEv :: CItem c => GenGUI c -> IO (Event (GenGUIEvent c), IO())
@@ -769,35 +808,48 @@ sendEv gui ev =
 -- treelist children function
 --------------------------------------------------------------------------
 
-{-
-toTreeListObjects :: CItem c => [Item c] -> IO [TreeListObject (Item c)]
-toTreeListObjects (it@(IntFolderItem gui id (FolderItem c _ _) chref) :
+toTreeListObjects :: CItem c => [Item c] -> IO [TreeListObject c]
+toTreeListObjects (it@(IntFolderItem gui (FolderItem c _ _) chref) :
                    items) =
   do
     rest <- toTreeListObjects items
-    nm <- getName c
     ch <- children it
     let nod = if (any isItemFolder ch) then Node else Leaf
-    return (newTreeListObject c (full nm) nod : rest)
-toTreeListObjects _ = return []
--}
-
-toTreeListObjects :: CItem c => [Item c] -> IO [TreeListObject (Item c)]
-toTreeListObjects (it@(IntFolderItem gui id (FolderItem c _ _) chref) :
-                   items) =
-  do
-    rest <- toTreeListObjects items
-    nm <- getName c
-    ch <- children it
-    let nod = if (any isItemFolder ch) then Node else Leaf
-    return (newTreeListObject it (full nm) nod : rest)
+    return (newTreeListObject c nod : rest)
 toTreeListObjects _ = return []
 
-cfun :: CItem c => ChildrenFun (Item c)
-cfun obj =
+getGenGUIObject :: CItem c => GenGUI c -> c -> IO (Maybe (Item c))
+getGenGUIObject gui c =
   do
-    ch <- children (getTreeListObjectValue obj)
-    toTreeListObjects (filter isItemFolder ch)
+    items <- getRef (root_obj gui)
+    getObject c items
+  where getObject :: CItem c => c -> [Item c] -> IO (Maybe (Item c))
+        getObject c (item@(IntFolderItem _ _ subitemsref) : items) =
+          if content item == c then return (Just item)
+          else do
+                 subitems <- getRef subitemsref
+                 mobj <- getObject c subitems
+                 case mobj of
+                   Just obj -> return (Just obj)
+                   _ -> getObject c items
+        getObject c (item : items) =
+          if content item == c then return (Just item)
+          else getObject c items
+        getObject _ _ = return Nothing
+
+cfun :: CItem c => Ref (Maybe (GenGUI c)) -> ChildrenFun c
+cfun guiref tlobj =
+  do
+    mgui <- getRef guiref
+    let gui = fromJust mgui
+    let c = getTreeListObjectValue tlobj
+    mguiobj <- getGenGUIObject gui c
+    case mguiobj of
+      Just guiobj ->
+        do
+          ch <- children guiobj
+          toTreeListObjects (filter isItemFolder ch)
+      _ -> error "GenGUI: cfun called for non-existing object"
 
 
 ---------------

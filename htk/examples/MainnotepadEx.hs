@@ -15,33 +15,29 @@ import HTk
 import Notepad
 import ScrollBox
 import Name
+import ReferenceVariables
+import IOExts(unsafePerformIO)
 
-showMsg :: Editor String -> String -> IO ()
-showMsg ed txt =
-  do
-    ed # state Normal
-    appendText ed txt
-    ed # state Disabled
-    done
+idref :: Ref Int
+idref = unsafePerformIO (newRef 0)
 
-showItems :: [NotepadItem a] -> IO String
-showItems (item : items) =
+newID :: IO Int
+newID =
   do
-    itemname <- getName item
-    rest <- showItems items
-    return (full itemname ++ (if length items > 0 then ", " else "")
-            ++ rest)
-showItems []             = return ""
+    i <- getRef idref
+    setRef idref (i + 1)
+    return i
 
-showSelectedItems :: Notepad a -> Editor String -> IO ()
-showSelectedItems notepad ed =
-  do
-    ed # state Normal
-    selecteditems <- getSelectedItems notepad
-    str <- showItems selecteditems
-    appendText ed ("Selected items: \n" ++ str ++ "\n\n")
-    ed # state Disabled
-    done
+type Id = Int
+
+data MyItem = MyItem Id Name Image
+
+instance Eq MyItem where
+  MyItem id1 _ _ == MyItem id2 _ _ = id1 == id2
+
+instance CItem MyItem where
+  getName (MyItem _ nm _) = return nm
+  getIcon (MyItem _ _ ic) = return ic
 
 main :: IO ()
 main =
@@ -101,37 +97,64 @@ main =
     item5_img <- newImage main [filename "./images/item3.gif"]
     item6_img <- newImage main [filename "./images/item1.gif"]
 
-    item1 <- createNotepadItem "item1" notepad
-                               [position (cm 2, cm 2) {-, photo item1_img,
-                                name (Name { full  = "NotepadItem1",
-                                             short = \n ->
-                                                       take n "item1" })-}]
-    item2 <- createNotepadItem "item2" notepad
-                               [position (cm 5, cm 2), photo item2_img,
-                                name (Name { full  = "NotepadItem2",
-                                             short = \n ->
-                                                      take n "item2" })]
-    item3 <- createNotepadItem "item3" notepad
-                               [position (cm 8, cm 2), photo item3_img,
-                                name (Name { full  = "NotepadItem3",
-                                             short = \n ->
-                                                      take n "item3" })]
-    item4 <- createNotepadItem "item4" notepad
-                               [position (cm 2, cm 5), photo item4_img,
-                                name (Name { full  = "NotepadItem4",
-                                             short = \n ->
-                                                      take n "item4" })]
-    item5 <- createNotepadItem "item5" notepad
-                               [position (cm 5, cm 5), photo item5_img,
-                                name (Name { full  = "NotepadItem5",
-                                             short = \n ->
-                                                      take n "item5" })]
-    item6 <- createNotepadItem "item6" notepad
-                               [position (cm 8, cm 5), photo item6_img,
-                                name (Name { full  = "NotepadItem6",
-                                             short = \n ->
-                                                      take n "item6" })]
+    id <- newID
+    item1 <- createNotepadItem (MyItem id
+                                  (newName "NotepadItem1") item1_img)
+                               notepad [position (cm 2, cm 2)]
 
+    id <- newID
+    item2 <- createNotepadItem (MyItem id
+                                  (newName "NotepadItem2") item2_img)
+                               notepad [position (cm 5, cm 2)]
+
+    id <- newID
+    item3 <- createNotepadItem (MyItem id
+                                  (newName "NotepadItem3") item3_img)
+                               notepad [position (cm 8, cm 2)]
+
+    id <- newID
+    item4 <- createNotepadItem (MyItem id
+                                  (newName "NotepadItem4") item4_img)
+                               notepad [position (cm 2, cm 5)]
+
+    id <- newID
+    item5 <- createNotepadItem (MyItem id
+                                  (newName "NotepadItem5") item5_img)
+                               notepad [position (cm 5, cm 5)]
+
+    id <- newID
+    item6 <- createNotepadItem (MyItem id
+                                  (newName "NotepadItem6") item6_img)
+                                notepad [position (cm 8, cm 5)]
+
+    (np_event, _) <- bindNotepadEv notepad
+
+    spawnEvent (forever (do
+                           ev_inf <- np_event
+                           always (case ev_inf of
+                                     Selected item ->
+                                       do
+                                         val <- getItemValue item
+                                         nm <- getName val
+                                         showMsg output ("Selected " ++
+                                                         full nm)
+                                     Deselected item ->
+                                       do
+                                         val <- getItemValue item
+                                         nm <- getName val
+                                         showMsg output ("Deselected " ++
+                                                         full nm)
+                                     Dropped (item, items) ->
+                                       do
+                                         val <- getItemValue item
+                                         nm <- getName val
+                                         str <- showItems items
+                                         showMsg output
+                                             (str ++ " dropped on " ++
+                                              full nm ++ "\n")
+                                     _ -> done)))
+
+{-
     spawnEvent (forever (do
                            (item, b) <- receive (selectionEvent notepad)
                            always (do
@@ -147,6 +170,7 @@ main =
                                      showMsg output
                                              (str ++ " dropped on " ++
                                               val ++ "\n"))))
+-}
 
     (controla, _) <- bind win [WishEvent [Control]
                                          (KeyPress (Just (KeySym "a")))]
@@ -162,3 +186,32 @@ main =
         showB True  = " selected\n"
         showB False = " deselected\n"
         showSize (x, y) = "(" ++ show x ++ ", " ++ show y ++ ")"
+
+        showMsg :: Editor String -> String -> IO ()
+        showMsg ed txt =
+          do
+            ed # state Normal
+            appendText ed (txt ++ "\n")
+            ed # state Disabled
+            done
+
+        showItems :: CItem a => [NotepadItem a] -> IO String
+        showItems (item : items) =
+          do
+            val <- getItemValue item
+            nm <- getName val
+            rest <- showItems items
+            return (full nm ++ (if length items > 0 then ", " else "")
+                    ++ rest)
+        showItems []             = return ""
+
+        showSelectedItems :: CItem a => Notepad a -> Editor String ->
+                                        IO ()
+        showSelectedItems notepad ed =
+          do
+            ed # state Normal
+            selecteditems <- getSelectedItems notepad
+            str <- showItems selecteditems
+            appendText ed ("Selected items: \n" ++ str ++ "\n\n")
+            ed # state Disabled
+            done

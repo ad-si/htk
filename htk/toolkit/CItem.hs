@@ -23,6 +23,6 @@ import Name
 -- class CItem collects all properties items need to have --
 ------------------------------------------------------------
 
-class {- Eq c => -} CItem c where
+class Eq c => CItem c where
   getName :: c -> IO Name
   getIcon :: c -> IO Image

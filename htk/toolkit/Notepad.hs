@@ -42,7 +42,9 @@ module Notepad (
   NotepadExportItem(..),
   NotepadState,
   exportNotepadState,
-  importNotepadState
+  importNotepadState,
+
+  module CItem
 
 ) where
 
@@ -265,15 +267,15 @@ highlight cnv item@(NotepadItem img imgsize txt _ sel) =
       Nothing -> do
                    (x, y) <- getPosition item
                    rect1 <- createRectangle cnv
-                              [filling "grey", outline "grey",
+                              [filling "blue", outline "blue",
                                coord
                                  [(x - Distance (div iwidth 2 + 1),
                                    y - Distance (div iheight 2 + 1)),
-                                  (x + Distance (div iwidth 2 + 1),
+                                  (x + Distance (div iwidth 2),
                                    y + Distance (div iheight 2 + 1))]]
                    putItemAtBottom rect1
                    rect2 <- createRectangle cnv
-                              [filling "grey", outline "grey",
+                              [filling "blue", outline "blue",
                                coord
                                  [(x - Distance
                                          (max (div iwidth 2 + 30) 40),
@@ -491,7 +493,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                              [filling "yellow", outline "yellow",
                               coord [(x - Distance (div iwidth 2 + 1),
                                       y - Distance (div iheight 2 + 1)),
-                                     (x + Distance (div iwidth 2 + 1),
+                                     (x + Distance (div iwidth 2),
                                       y + Distance (div iheight 2 + 1))]]
                   putItemAtBottom rect1
                   rect2 <- createRectangle (canvas notepad)
@@ -582,8 +584,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                               case act of
                                 Performed -> done
                                 _ -> do
-                                       moveItem t (rootx - x0)
-                                                  (rooty - y0)
+                                       undoLastMotion notepad
                                        selecteditems <-
                                          getRef selecteditemsref
                                        sendEv notepad

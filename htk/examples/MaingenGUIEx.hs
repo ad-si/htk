@@ -13,7 +13,6 @@ module Main (main) where
 
 import HTk
 import GenGUI
---import FileDialog
 import Name
 import ReferenceVariables
 import System
@@ -38,14 +37,36 @@ data Col = Red | Green | Blue | Yellow deriving Eq
 
 type Obj = (Name, IO Image, MyObject)
 
+type Id = Int
+
+idref :: Ref Id
+idref = unsafePerformIO (newRef 0)
+
+newID :: IO Id
+newID = do
+          id <- getRef idref
+          setRef idref (id + 1)
+          return id
+
 data MyObject =
-    MyContainer
-  | MyColor Col
-  | MyImage (IO Image)
+    MyContainer Id
+  | MyColor Id Col
+  | MyImage Id (IO Image)
+
+getID :: MyObject -> Id
+getID (MyContainer id) = id
+getID (MyColor id _) = id
+getID (MyImage id _) = id
+
+instance Eq MyObject where
+  myobj1 == myobj2 = getID myobj1 == getID myobj2
 
 instance CItem Obj where
   getIcon (_, ic, _) = ic
   getName (nm, _, _) = return nm
+
+instance Eq Obj where
+  (_, _, myobj1) == (_, _, myobj2) = myobj1 == myobj2
 
 
 ----------------------------------------
@@ -79,15 +100,16 @@ addCol name ent =
     case mpar of
       Just par -> 
         do
+          id <- newID
           let nm = newName name
               ic = case ent of "Red" -> redImg
                                "Blue" -> blueImg
                                "Green" -> greenImg
                                "Yellow" -> yellowImg
-              val = MyColor (case ent of "Red" -> Red
-                                         "Blue" -> Blue
-                                         "Green" -> Green
-                                         "Yellow" -> Yellow)
+              val = MyColor id (case ent of "Red" -> Red
+                                            "Blue" -> Blue
+                                            "Green" -> Green
+                                            "Yellow" -> Yellow)
           addItem par (LeafItem (nm, ic, val) Nothing)
           done
       _ -> done
@@ -183,7 +205,8 @@ addExampleFolders gui =
                    IO (NewItem Obj)
       mkImgItem name (i, (img, ic)) =
         do
-          let val = MyImage img
+          id <- newID
+          let val = MyImage id img
               nm = newName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
@@ -194,14 +217,16 @@ addExampleFolders gui =
           let nm = newName (name ++ show i)
           items <- mapM (mkImgItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (nm, ic, MyContainer) items Nothing)
+          id <- newID
+          addItem par (FolderItem (nm, ic, MyContainer id) items Nothing)
           done
 
       mkColItem :: String -> (Int, (Col, IO Image)) ->
                    IO (NewItem Obj)
       mkColItem name (i, (col, ic)) =
         do
-          let val = MyColor col
+          id <- newID
+          let val = MyColor id col
               nm = newName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
@@ -212,7 +237,8 @@ addExampleFolders gui =
           let nm = newName (name ++ show i)
           items <- mapM (mkColItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (nm, ic, MyContainer) items Nothing)
+          id <- newID
+          addItem par (FolderItem (nm, ic, MyContainer id) items Nothing)
           done
   in do
        guiroot <- root gui
@@ -221,9 +247,11 @@ addExampleFolders gui =
                          [(img1, imgImg), (img2, imgImg)]) [1]
 
        let nm1 = newName ("example_folder.1")
-       exfolder1 <- addItem guiroot
-                      (FolderItem (nm1, folderImg, MyContainer) []
-                                  Nothing)
+       exfolder1 <- do
+                      id <- newID
+                      addItem guiroot
+                        (FolderItem (nm1, folderImg, MyContainer id) []
+                                    Nothing)
 
 {-
        mapM (addTxtFolder guiroot "texts." txtfolderImg "text_item"
@@ -560,7 +588,7 @@ selectedTl foldlab mitem =
                           setRef foldref (Just item)
                       _ -> setRef foldref Nothing
 
-doubleClickNp :: Obj -> IO ()
+doubleClickNp :: Item Obj -> IO ()
 doubleClickNp item = done
 {-
   let newitem = content item
@@ -650,13 +678,14 @@ doubleClickNp item = done
 
 
 exportState :: CItem c => GenGUI c -> IO ()
-exportState gui =
+exportState gui = done
+{-
   do
     st <- exportGenGUIState gui
     putStrLn "state exported"
     gui_clone <- newGenGUI (Just st)
     putStrLn "state imported"
-
+-}
 
 ------------
 -- images --
