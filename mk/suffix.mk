@@ -235,14 +235,8 @@ mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
 ifneq "$(PACKAGE)" ""
-ifeq "$(DOSPLIT)" ""
 	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS)
-	$(AR) -r $(LIB) $(LIBOBJS)
-else
-	for i in $(LIBMODULES) ; do $(MKDIR) -p $$i ; done
-	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(LIBSRCS) -split-objs
-	$(AR) -r $(LIB) $(SPLITOBJS) $(OBJSC)
-endif
+	$(AR) -rs $(LIB) $(LIBOBJS)
 endif
 
 packagehere : libfasthere packageherequick
