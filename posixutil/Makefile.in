@@ -2,7 +2,7 @@ PACKAGE = uni-posixutil
 PACKAGES = posix uni-events
 
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
-   Expect.hs SafeSystem.hs ForkExec.hs
+   Expect.hs SafeSystem.hs ForkExec.hs SysVars.hs
 
 SRCSC = MainrunCommand.c forkExec.c
 

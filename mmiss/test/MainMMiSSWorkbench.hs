@@ -1,6 +1,8 @@
 {- Runs the MMiSS workbench as a client. -}
 module Main(main) where
 
+#include "config.h"
+
 import System
 
 import Posix
@@ -10,6 +12,10 @@ import WBFiles
 
 import Events
 import Destructible
+
+#if (WORK_AROUND_BDB_LINUX_BUG != 0)
+import SysVars
+#endif
 
 import HTk
 
@@ -26,6 +32,11 @@ main =
          "server",
          "editor"
          ]
+
+#if (WORK_AROUND_BDB_LINUX_BUG != 0)
+      unSetEnv "MALLOC_CHECK_"
+#endif
+
       withdrawWish
       repository <- mmissInitialise
       versionGraph <- newVersionGraph daVinciSort repository

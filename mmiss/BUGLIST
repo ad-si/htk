@@ -40,6 +40,24 @@ display version graph.
 Also true when unoptimised, at least after fix for 18 has been applied.
 At least that should make it easier to debug.
 
+06.09.02
+Investigation reveals that this occurs during bdbclient.c's function
+db_retrieve, when it calls the BDB function DB->get.  This then
+(perhaps indirectly) calls the BDB function __dbcl_db_get,
+in rpc_client/gen_client.c, which in turn calls the XDR function xdr_free
+which executes xdr___db_get_reply in rpc_server/db_server_xdr.c.
+This calls xdr_bytes on a pointer to the value returned (to free it presumably,
+though why this should be necessary I don't know), with the function call
+"xdr_bytes(xdrs, (char **)&objp->datadata.datadata_val, (u_int *) &objp->datadata.datadata_len, ~0))".
+It is this which falls over; it looks as if it is attempting to free something
+that wasn't malloc'd, or has already been free'd.
+
+Temporary workaround: for Linux, set the environment variable MALLOC_CHECK_
+when the workbench is running.  In the long term this will have to be reported
+to the maintainers of BDB I suppose.
+
+FIXED temporarily.
+
 16) 04.09.02
 Totally useless puthash commands in emacs/extents.el corrected (as the
 arguments were wrong) and commented out (as puthash should already have
