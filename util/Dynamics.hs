@@ -162,7 +162,7 @@ instance (HasTyRep1 ty,Typeable value) => HasTyRep (ty value) where
          (tC :: ty value) = error "Dynamics.2"
          (v :: value) = error "Dynamics.3"
       in
-         appTyRep (tyRep tC) (typeOf v)
+         appTyRep (tyRep1 tC) (typeOf v)
 
 class HasTyRep2 ty where
    tyRep2 :: ty value1 value2 -> TyRep
