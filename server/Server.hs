@@ -73,8 +73,17 @@ runServer portDesc serviceList =
                      serviceKey = serviceId service
 
                   clients <- newMVar []
+                  initial <- initialState service 
+                  stateMVar <- newMVar initial
+------------------------------------------------------------------------
+-- Note on concurrency.  We have two MVars, stateMVar and clients.
+-- The rule is, don't take from clients unless stateMVar is empty.
+-- Thus we are locking operations on stateMVar.
+------------------------------------------------------------------------
 
                   let
+                     -- This should not be done unless stateMVar
+                     -- is empty.
                      deleteClient :: ClientData -> IO ()
                      deleteClient clientData =
                         do
@@ -82,6 +91,8 @@ runServer portDesc serviceList =
                            putMVar clients 
                               (delete clientData oldClients)
 
+                     -- This should not be done unless stateMVar
+                     -- is empty.
                      broadcastAction :: Handle -> String -> IO ()
                      broadcastAction =
                         case serviceMode service of
@@ -110,9 +121,6 @@ runServer portDesc serviceList =
                                           clientList
                                        )
                                  )          
-
-                  initial <- initialState service 
-                  stateMVar <- newMVar initial
 
 ------------------------------------------------------------------------
 -- (2) set up backups.
@@ -171,6 +179,8 @@ runServer portDesc serviceList =
                            let
                               clientData = ClientData {oid=oid,handle=handle}
 
+                              -- This should not be done unless stateMVar
+                              -- is empty.
                               protect :: IO () -> IO result -> IO result
                               protect cleanUp toDo =
                               -- Execute toDo, returning its result.
@@ -186,9 +196,15 @@ runServer portDesc serviceList =
                                              deleteClient clientData
                                              cleanUp
                                              throw exception
+
+                           state <- takeMVar stateMVar
                            -- add client to client list
                            oldClients <- takeMVar clients
                            putMVar clients (clientData:oldClients)
+                           header <- sendOnConnect service state
+                           hPutStrLn handle (show header)
+                           putMVar stateMVar state
+
                            -- clientReadAction is basically thread for 
                            -- reading client output
                            let
@@ -196,26 +212,33 @@ runServer portDesc serviceList =
                               clientReadAction =
                                  do
                                     debug "Waiting"
-                                    inLine <- protect done (hGetLine handle)
+                                    inLine <- hGetLine handle
+                                    -- An error in this hGetLine will
+                                    -- probably mean the handle is
+                                    -- invalid, but we don't try to pick
+                                    -- that up until we try to write it.
                                     debug ("Server read "++inLine)
                                     let
                                        input = read inLine
                                     oldState <- takeMVar stateMVar
                                     debug ("Got state") 
-                                    (output,newState) <- 
+                                    newState <- 
                                        protect
                                           (putMVar stateMVar oldState)
-                                          (handleRequest service 
-                                             (input,oldState))
+                                          (do
+                                             (output,newState) <-
+                                                handleRequest service 
+                                                   (input,oldState)
+                                             let
+                                                outLine = show output
+                                             broadcastAction handle outLine
+                                             debug "done broadcast"
+                                             return newState
+                                             )
                                     putMVar stateMVar newState
                                     debug ("Updated state")
                                     backupTick
                                     debug "Done backup"
-                                    let
-                                       outLine = show output
-                                    protect done 
-                                       (broadcastAction handle outLine)
-                                    debug "done broadcast"
                                     clientReadAction
                            -- however it needs a wrapper so harmless
                            -- (EOF) errors don't cause any trouble.

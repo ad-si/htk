@@ -57,6 +57,12 @@ class (Read inType,Show inType,Read outType,Show outType) =>
    backupAction :: (inType,outType,stateType) -> stateType -> IO ()
    -- this is the action to be performed for backups.
 
+   sendOnConnect :: (inType,outType,stateType) -> stateType -> IO String
+   -- On connection we send the sendOnConnect string to the client
+   -- before anything else.  Defaults to "".  Computing the string
+   -- requires the whole service to wait, so it shouldn't take too long.
+   sendOnConnect _ _ = return ""
+
 data ServiceMode =
       Reply     -- Send output just to client sending input
    |  Broadcast -- Send output to all clients waiting on this service.
