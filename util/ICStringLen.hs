@@ -38,6 +38,8 @@ import Computation(done)
 import BinaryInstances
 import ExtendedPrelude
 import Dynamics
+import CompileFlags
+import TemplateHaskellHelps
 
 -- ------------------------------------------------------------------
 -- The datatype
@@ -111,7 +113,17 @@ bytesToICStringLen (bytes,i) = createICStringLen (unMkBytes bytes) i
 
 bytesFromICStringLen :: ICStringLen -> (Bytes,Int)
 bytesFromICStringLen (ICStringLen foreignPtr len) 
-   = (mkBytes (foreignPtrToPtr foreignPtr),len)
+   = 
+   (mkBytes (
+      $(
+         if ghcShortVersion <= 601
+            then
+               dynName "foreignPtrToPtr"
+            else
+               dynName "unsafeForeignPtrToPtr"
+         ) foreignPtr)
+      ,len
+      )
 
 touchICStringLen :: ICStringLen -> IO ()
 touchICStringLen (ICStringLen foreignPtr _) = touchForeignPtr foreignPtr
