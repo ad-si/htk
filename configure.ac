@@ -135,7 +135,7 @@ AC_PATH_PROGS(GNUCLIENT,gnuclient)
 # Check for DtdToHaskell
 AC_PATH_PROGS(DTDTOHASKELL,DtdToHaskell)
 if test -z "$DTDTOHASKELL"; then
-   echo DtdToHaskell is needed for compiling MMiSS
+   echo DtdToHaskell is needed for compiling the MMiSS DTD, if you change it.
    echo It '*should*' be included with the GHC distribution
 fi
 #

@@ -40,7 +40,6 @@ import ExtendedPrelude
 import Dynamics
 import Registry
 import Computation
-import XmlValue
 
 import DialogWin
 import SimpleForm
@@ -416,8 +415,8 @@ fromAttributeKey attributeKey = name attributeKey
 
 --- @doc AttributeValue
 -- Class of values which can be attributes.  
-class (HasCodedValue value,HasAttributeTypeKey value,XmlValue value) 
-      => AttributeValue value where
+class (HasCodedValue value,HasAttributeTypeKey value) 
+   => AttributeValue value where
 
 ---
 -- newFormEntry' is identical to SimpleForm.newFormEntry except
@@ -429,7 +428,7 @@ class (HasCodedValue value,HasAttributeTypeKey value,XmlValue value)
 -- Instance 1: instances of FormTextField, where we simply take over
 -- the Maybe instance defined in SimpleForm.  This includes strings
 -- and numbers (provided they instance HasAttributeTypeKey).
-instance (XmlValue value,HasCodedValue value,HasAttributeTypeKey value,
+instance (HasCodedValue value,HasAttributeTypeKey value,
       FormTextField value) => AttributeValue value where
    newFormEntry' = newFormEntry
 
@@ -444,7 +443,6 @@ instance AttributeValue Bool where
 ---
 -- Instance 3 - Radio Buttons.  
 instance (HasConfigRadioButton value,Bounded value,Enum value,
-      XmlValue (Radio value),
       HasCodedValue value,HasAttributeTypeKey (Radio value)) 
       => AttributeValue (Radio value) where
 

@@ -3,6 +3,10 @@ PACKAGES = uni-types uni-emacs
 
 SRCS = MMiSSPaths.hs MMiSSGeneric.hs MMiSSObjects.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
+   DTD_MMiSS.hs MMiSSVerify.hs VerifyFile.hs \
 
 
 include @TOP@/mk/boilerplate.mk
+
+DTD_MMiSS.hs : MMiSS.dtd
+	@DTDTOHASKELL@ $< > $@ 
