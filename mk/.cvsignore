@@ -1,3 +1,4 @@
 machinedep.mk
 boilerplate.mk
 local.mk
+mkEverything
