@@ -62,6 +62,14 @@ graphParms :: HasGraphConfigs graphParms => WrappedDisplayType -> graphParms
 graphParms (WrappedDisplayType displayType) =
    graphParmsPrim displayType
 
+
+-- ------------------------------------------------------------------
+-- Comparing wrapped display types
+-- ------------------------------------------------------------------
+
+instance Eq WrappedDisplayType where
+   (==) wd1 wd2 = (==) (displayTypeTypeId wd1) (displayTypeTypeId wd2)
+
 -- ------------------------------------------------------------------
 -- Registering particular displayTypeTypes
 -- ------------------------------------------------------------------
@@ -118,4 +126,3 @@ instance HasCodedValue WrappedDisplayType where
            Nothing -> error 
               ("DisplayTypes: displayTypeType "++typeTypeId++
               " not registered")
-

@@ -14,6 +14,12 @@ module GraphConfigure(
    HasConfigValue(($$$),configUsed'), 
                    -- HasConfig lifted to options/configurations of kind
                    -- 1 which take a Typeable value.
+   Maybe'(..),
+      -- Multiparameter version of Maybe, used with HasConfigValue
+      -- to indicate maybe-option.  toDash and fromDash convert to and from it.
+   fromDash, -- :: Maybe' option value -> Maybe (option value)
+   toDash, -- :: Maybe (option value) -> Maybe' option value
+
 
    -- LocalMenu describes menus or buttons for objects that carry a value,
    -- IE nodes or arcs.
@@ -84,6 +90,26 @@ instance (Typeable value,HasConfigValue option configuration)
    => HasConfig (option value) (configuration value) where
    ($$) = ($$$)
    configUsed = configUsed'
+
+
+data Maybe' option value = Nothing' | Just' (option value)
+
+instance HasConfigValue option configuration 
+      => HasConfigValue (Maybe' option) configuration where
+   ($$$) (Just' option) configuration = ($$$) option configuration
+   configUsed' optionOpt configuration =
+      let
+         Just' option = asTypeOf (Just' (error "GraphConfigure.1")) optionOpt
+      in
+         configUsed' option configuration
+
+fromDash :: Maybe' option value -> Maybe (option value)
+fromDash (Just' x) = Just x
+fromDash Nothing' = Nothing
+
+toDash :: Maybe (option value) -> Maybe' option value
+toDash (Just x) = Just' x
+toDash Nothing = Nothing'
 
 ------------------------------------------------------------------------
 -- HasMapM

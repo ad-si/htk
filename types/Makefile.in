@@ -5,7 +5,7 @@ LIBS = \
    $(TOP)/util/libutil.a
 SRCS       = VersionDB.hs ViewType.hs CodedValue.hs \
    CodedValueStore.hs Link.hs BasicObjects.hs DisplayTypes.hs ObjectTypes.hs \
-   View.hs AttributesType.hs
+   View.hs AttributesType.hs DisplayParms.hs
 
 SUBDIRS    = test
 

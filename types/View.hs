@@ -174,3 +174,4 @@ unmkTuple (objectsData,displayTypesData,objectTypesData) =
 instance HasCodedValue ViewData where
    encodeIO = mapEncodeIO mkTuple 
    decodeIO = mapDecodeIO unmkTuple
+
