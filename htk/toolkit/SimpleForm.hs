@@ -226,8 +226,7 @@ doForm title (Form enterForm) =
                            Right value -> return (Just value)
                            Left error ->
                               do
-                                 newErrorWin error []
---                                 UtilWin.error error
+                                 createErrorWin error []
                                  sync handler
                      )
                )

@@ -302,7 +302,7 @@ instance InputField EntryField where
                           case ans of
                                   (Left e) -> do {
 	  			          txt <- getText lbl;
-			 	 	  newErrorWin (txt++" legal field value") [];
+			 	 	  createErrorWin (txt++" legal field value") [];
 				          raise illegalGUIValue
 					  }
                                   (Right val) -> return (f r val) 
@@ -394,7 +394,7 @@ instance InputField TextField where
 			  case ans of
 			    Left err -> do {
 			           txt <- getText lbl;
-				   newErrorWin (txt++" legal field value") [];
+				   createErrorWin (txt++" legal field value") [];
 			           raise illegalGUIValue
 				   }
 			    Right val -> return (f r val)

@@ -15,7 +15,7 @@ module InputWin (
         module InputForm,
 
         InputWin,
-        newInputWin,
+        createInputWin,
 
         wait
         ) where
@@ -64,8 +64,8 @@ instance GUIObject (InputWin a) where
 -- @param  str      - message to be displayed in the window
 -- @param  ifun     - the <code>InputForm</code>-function
 -- @return result   - the <code>InputWindow</code> and <code>InputForm</code>
-newInputWin :: String -> (Box -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a, InputForm a)
-newInputWin str ifun tpconfs =
+createInputWin :: String -> (Box -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a, InputForm a)
+createInputWin str ifun tpconfs =
  do
   tp <- createToplevel (tpconfs++[text "Input Form Window"])
   pack tp [Expand On, Fill Both]

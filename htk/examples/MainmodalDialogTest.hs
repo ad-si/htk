@@ -63,25 +63,25 @@ main =
  
   clickedbut5 <- clicked but5
   spawnEvent (forever (clickedbut5 >> always (do 
-                                               newAlertWin "An Alert Window has been triggered.\nThis would be the place to put some warning or so!" []  
+                                               createAlertWin "An Alert Window has been triggered.\nThis would be the place to put some warning or so!" []  
 					       putStrLn "done with AlertWin"
 					       )))
  
   clickedbut6 <- clicked but6
   spawnEvent (forever (clickedbut6 >> always (do 
-                                               newErrorWin "An Error Window has been triggered.\nThis would be the place where to find the error message!" []  
+                                               createErrorWin "An Error Window has been triggered.\nThis would be the place where to find the error message!" []  
 					       putStrLn "done with ErrorWin"
 					       )))
  
   clickedbut7 <- clicked but7
   spawnEvent (forever (clickedbut7 >> always (do 
-                                               newWarningWin "A Warning Window has been triggered.\nThis text here could be a warning!" []
+                                               createWarningWin "A Warning Window has been triggered.\nThis text here could be a warning!" []
 					       putStrLn "done with WarningWin"
 					       )))
  
   clickedbut8 <- clicked but8
   spawnEvent (forever (clickedbut8 >> always (do 
-                                               res <- newConfirmWin "A Confirm Window has been triggered.\nHere the action to be confirmed would be found!" []  
+                                               res <- createConfirmWin "A Confirm Window has been triggered.\nHere the action to be confirmed would be found!" []  
 					       putStr "done with ConfirmWinWin: "
 					       putStrLn (show res)
 					       )))
@@ -95,7 +95,7 @@ main =
 					       let iform p = newInputForm p (Just def) []
 					       -- create the InputWindow with the formfunction
 					       -- returns the InputWindow and the InputForm (which can be filled now)
-                                               (iwin,form) <- newInputWin "HELLO THERE\n try and enter some informations." iform []
+                                               (iwin,form) <- createInputWin "HELLO THERE\n try and enter some informations." iform []
 					       -- add various fields here to the InputForm
 					       newTextField form [size (5,5), selector ent1, text "Editor String",
 					                           modifier (\ old val -> old {ent1=val})] :: IO (TextField Test String)

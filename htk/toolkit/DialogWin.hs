@@ -16,15 +16,15 @@ module DialogWin (
 
         dialog,
 
-        newAlertWin,
-        newErrorWin,
-        newWarningWin,
-        newConfirmWin,
-        newAlertWin',
-        newErrorWin',
-        newWarningWin',
-        newConfirmWin',
-        newDialogWin,
+        createAlertWin,
+        createErrorWin,
+        createWarningWin,
+        createConfirmWin,
+        createAlertWin',
+        createErrorWin',
+        createWarningWin',
+        createConfirmWin',
+        createDialogWin,
         ) where
 
 import Core
@@ -89,17 +89,17 @@ instance HasMarkupText (Dialog a) where
 ---
 -- Constructs an alert window with the given text
 -- @param str     - the text to be displayed
-newAlertWin :: String -> [Config Toplevel] -> IO ()
-newAlertWin str wol = newAlertWin' (strToMarkup str) wol
+createAlertWin :: String -> [Config Toplevel] -> IO ()
+createAlertWin str wol = createAlertWin' (strToMarkup str) wol
 
 ---
 -- Constructs an alert window with the given markuptext
 -- @param str     - the markuptext to be displayed
-newAlertWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
-newAlertWin' str wol = 
+createAlertWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+createAlertWin' str wol = 
  do
   warningImg' <- warningImg
-  newDialogWin choices Nothing (confs++[photo warningImg']) (defs ++ wol)
+  createDialogWin choices Nothing (confs++[photo warningImg']) (defs ++ wol)
  where choices = [("Continue",())]
        defs = [text "Alert Window"]
        confs = [new str]
@@ -107,17 +107,17 @@ newAlertWin' str wol =
 ---
 -- Constructs an error window with the given text
 -- @param str     - the text to be displayed
-newErrorWin :: String -> [Config Toplevel] -> IO ()
-newErrorWin str wol = newErrorWin' (strToMarkup str) wol
+createErrorWin :: String -> [Config Toplevel] -> IO ()
+createErrorWin str wol = createErrorWin' (strToMarkup str) wol
 
 ---
 -- Constructs an error window with the given markuptext
 -- @param str     - the markuptext to be displayed
-newErrorWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
-newErrorWin' str wol = 
+createErrorWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+createErrorWin' str wol = 
  do
   errorImg' <- errorImg
-  newDialogWin choices Nothing (confs++[photo errorImg']) (defs++wol)
+  createDialogWin choices Nothing (confs++[photo errorImg']) (defs++wol)
  where choices = [("Continue",())]
        defs = [text "Error Message"]
        confs = [new str]
@@ -126,31 +126,31 @@ newErrorWin' str wol =
 ---
 -- Constructs an warning window with the given text
 -- @param str     - the text to be displayed
-newWarningWin :: String -> [Config Toplevel] -> IO ()
-newWarningWin str confs = newAlertWin str ([text "Warning Message"] ++ confs)
+createWarningWin :: String -> [Config Toplevel] -> IO ()
+createWarningWin str confs = createAlertWin str ([text "Warning Message"] ++ confs)
 
 ---
 -- Constructs an warning window with the given markuptext
 -- @param str     - the markuptext to be displayed
-newWarningWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
-newWarningWin' str confs = newAlertWin' str ([text "Warning Message"] ++ confs)
+createWarningWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+createWarningWin' str confs = createAlertWin' str ([text "Warning Message"] ++ confs)
 
 ---
 -- Constructs an confirm window with the given text
 -- @param str     - the text to be displayed
 -- @return result - True(Ok) or False(Cancel)
-newConfirmWin :: String -> [Config Toplevel] -> IO Bool
-newConfirmWin str wol = newConfirmWin' (strToMarkup str) wol
+createConfirmWin :: String -> [Config Toplevel] -> IO Bool
+createConfirmWin str wol = createConfirmWin' (strToMarkup str) wol
 
 ---
 -- Constructs an confirm window with the given markuptext
 -- @param str     - the markuptext to be displayed
 -- @return result - True(Ok) or False(Cancel)
-newConfirmWin' :: [MarkupText] -> [Config Toplevel] -> IO Bool
-newConfirmWin' str wol = 
+createConfirmWin' :: [MarkupText] -> [Config Toplevel] -> IO Bool
+createConfirmWin' str wol = 
  do
   questionImg' <- questionImg 
-  newDialogWin choices (Just 0) (confs++[photo questionImg']) (defs ++ wol)
+  createDialogWin choices (Just 0) (confs++[photo questionImg']) (defs ++ wol)
  where choices = [("Ok",True),("Cancel",False)]
        defs = [text "Confirm Window"]
        confs = [new str]
@@ -162,8 +162,8 @@ newConfirmWin' str wol =
 -- @param confs       - the list of configuration options for this separator
 -- @param wol         - the list of configuration options for the window
 -- @return result     - 
-newDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
-newDialogWin choices def confs wol = 
+createDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
+createDialogWin choices def confs wol = 
    do 
       dlg <- dialog choices def confs wol
       result <- modalInteraction (fWindow dlg) True True (fEvents dlg)

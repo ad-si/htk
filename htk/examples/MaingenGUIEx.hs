@@ -341,7 +341,7 @@ main =
     clickedinf <- clicked inf
     spawnEvent
       (forever (clickedinf >>>
-                newAlertWin "This is an example for the GenGUI module."
+                createAlertWin "This is an example for the GenGUI module."
                             []))
 
     createMenuSeparator m []
