@@ -1,2 +1,19 @@
 This directory is for applications built using the UniForM workbench, but 
-which are not part of it.
+which are not part of it. 
+
+It contains the following subdirectories: 
+
+genit	    - The extended generic interface toolkit
+	      A Haskellised version of the ML interface for Isabelle
+              and the transformation system TAS, as seen here:
+	         http://www.informatik.uni-bremen.de/~cxl/tas/home.html	    
+	      [Work in progress]
+  Maintainer: cxl
+	      
+	     
+catsgui	    - A graphical user interface for the CATS tool. 
+  Maintainer: mclee
+
+filebrowser - A graphical filebrowser
+	      [Work in progress]
+  Maintainer: Joel Wright 
