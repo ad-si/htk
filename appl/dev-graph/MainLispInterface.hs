@@ -176,7 +176,7 @@ make_edgeComp x =
 makegraph1 cid [AP title,LP menus,LP nodetypes,LP edgetypes,LP comptable] graphs = do
   let (_,ev_cnt) = graphs
   Result graphs' gid err <- AbstractGraphView.makegraph title  
-                     (map (make_menu (global_action ev_cnt)) menus)
+                     (map (GlobalMenu . (make_menu (global_action ev_cnt))) menus)
                      (map (make_nodeType ev_cnt) nodetypes)
                      (map (make_edgeType ev_cnt) edgetypes)
                      (make_edgeComp comptable)

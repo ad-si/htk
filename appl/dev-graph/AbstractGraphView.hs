@@ -1,5 +1,13 @@
 module AbstractGraphView where
 
+{- Interface for graph viewing and abstraction.
+   It is possible to hide sets of nodes and edges.
+   Using a composition table for edge types,
+   paths through hidden nodes can be displayed.
+   Graphs, nodes, and edges are handled via
+   descriptors (here: integers), while node and
+   edge types are handled by user-supplied strings.
+-}
 
 import DaVinciGraph
 
@@ -9,7 +17,7 @@ import GraphConfigure
 import Destructible
 
 
--- Which graph display tool to be used
+-- Which graph display tool to be used, perhaps make it more tool independent?
 graphtool = daVinciSort
 
 type OurGraph = 
@@ -22,6 +30,10 @@ type OurGraph =
              DaVinciArcType
              DaVinciArcTypeParms
 
+-- Main datastructure for carrying around the graph,
+-- both internally (nodes as integers), and at the daVinci level
+
+type CompTable = [(String,String,String)]
 data AbstractionGraph = AbstractionGraph {
        theGraph :: OurGraph, -- (DaVinciNode,String) () (DaVinciEdge,String) (),
        nodeTypes :: [(String,DaVinciNodeType (String,Int))],
@@ -31,11 +43,13 @@ data AbstractionGraph = AbstractionGraph {
        -- probably, also the abstracted graph needs to be stored,
        -- and a list of hide/abstract events with the hidden nodes/edges (for each event),
        -- which is used to restore things when show_it is called
-       edgeComp :: [(String,String,String)] }
+       edgeComp :: CompTable }
 
-
-data Result = Result ([(Int,AbstractionGraph)],Int) -- the new graph list
-                     Int                            -- graph, node or edge descriptor
+type Descr = Int
+type GraphInfo = ([(Descr,AbstractionGraph)],Descr) -- for each graph the descriptor and the graph,
+                                                    -- plus a global counter for new descriptors
+data Result = Result GraphInfo                      -- the new graph list
+                     Descr                          -- graph, node or edge descriptor
                      (Maybe String)                 -- a possible error message
 
 
@@ -47,6 +61,8 @@ remove x l = filter (\(y,_) -> not (x==y)) l
 return_fail graphs msg =
   return (Result graphs 0 (Just msg))
 
+-- lookup a graph descriptor and execute a command on the graph
+-- the delete flag specifies if the graph should be removed from the graph list afterwards
 fetch_graph gid (gs,ev_cnt) delete cmd =
   case lookup gid gs of
     Just g -> do (g',descr,err) <- cmd g
@@ -55,12 +71,19 @@ fetch_graph gid (gs,ev_cnt) delete cmd =
                  where gs' = remove gid gs
     Nothing -> return (Result (gs,ev_cnt) 0 (Just ("Graph id "++show gid++" not found")))
 
+
+-- These are the operations of the interface
+
+makegraph :: String -> [GlobalMenu] -> 
+             [(String,DaVinciNodeTypeParms (String,Descr))] -> 
+             [(String,DaVinciArcTypeParms (String,Descr))] ->
+             CompTable -> GraphInfo -> IO Result 
 makegraph title menus nodetypeparams edgetypeparams comptable (gs,ev_cnt) = do
   let graphParms  = 
        foldr ($$) (GraphTitle title $$
                    OptimiseLayout True $$ 
 	           emptyGraphParms)
-                   (map GlobalMenu menus) 
+                   menus 
       (nodetypenames,nodetypeparams1) = unzip nodetypeparams
       (edgetypenames,edgetypeparams1) = unzip edgetypeparams
   graph <- GraphDisp.newGraph graphtool graphParms
@@ -75,11 +98,13 @@ makegraph title menus nodetypeparams edgetypeparams comptable (gs,ev_cnt) = do
             edgeComp = comptable }
   return (Result ((ev_cnt,g):gs,ev_cnt+1) ev_cnt Nothing)
 
+delgraph :: Descr -> GraphInfo -> IO Result
 delgraph gid (gs,ev_cnt) =
   fetch_graph gid (gs,ev_cnt) True
    (\g -> do destroy (theGraph g)
              return (g,0,Nothing))
 
+addnode :: Descr -> String -> String -> GraphInfo -> IO Result
 addnode gid nodetype name (gs,ev_cnt) = 
   fetch_graph gid (gs,ev_cnt) False (\g -> 
    do case lookup nodetype (nodeTypes g) of
@@ -88,6 +113,8 @@ addnode gid nodetype name (gs,ev_cnt) =
         node <- newNode (theGraph g) nt (name,ev_cnt)
         return (g{nodes = (ev_cnt,node):nodes g},ev_cnt,Nothing)
    )
+
+delnode :: Descr -> Descr -> GraphInfo -> IO Result
 delnode gid node (gs,ev_cnt) =
   fetch_graph gid (gs,ev_cnt) False (\g ->
       case lookup node (nodes g) of
@@ -100,6 +127,7 @@ changenodetype
 unclear how to implement, ask George
 -}
 
+addlink :: Descr -> String -> String -> Descr -> Descr -> GraphInfo -> IO Result
 addlink gid edgetype name src tar (gs,ev_cnt) = 
   fetch_graph gid (gs,ev_cnt) False (\g ->
     case (lookup edgetype (edgeTypes g),
@@ -114,6 +142,7 @@ addlink gid edgetype name src tar (gs,ev_cnt) =
    )
 
 
+dellink :: Descr -> Descr -> GraphInfo -> IO Result
 dellink gid edge (gs,ev_cnt) =
   fetch_graph gid (gs,ev_cnt) False (\g ->
     case lookup edge (edges g) of
@@ -123,23 +152,26 @@ dellink gid edge (gs,ev_cnt) =
         Nothing -> return (g,0,Just ("dellink: illegal edge: "++show edge))
    )
 
+redisplay :: Descr -> GraphInfo -> IO Result
 redisplay gid (gs,ev_cnt) =
   fetch_graph gid (gs,ev_cnt) False (\g ->
     do redraw (theGraph g)
        return (g,0,Nothing)
     )
 
+hidenodes :: Descr -> [Descr] -> GraphInfo -> IO Result
 hidenodes gid node_list (gs,ev_cnt) =
   undefined
 
-
+abstractnodes :: Descr -> [Descr] -> GraphInfo -> IO Result
 abstractnodes gid node_list (gs,ev_cnt) =
   undefined
 
+hideedges :: Descr -> [Descr] -> GraphInfo -> IO Result
 hideedges gid edge_list (gs,ev_cnt) =
   undefined
 
-
+show_it :: Descr -> Descr -> GraphInfo -> IO Result
 show_it gid hide_event (gs,ev_cnt) =
   undefined
 
