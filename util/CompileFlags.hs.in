@@ -1,0 +1,15 @@
+{- This module (which needs to be expanded by ./configure) contains flags
+   which (via Template Haskell) control compilation. -}
+module CompileFlags where
+
+ghcShortVersion :: Int 
+ghcShortVersion = @GhcShortVersion@
+
+osTitle :: String
+osTitle = "@OSTITLE@"
+
+isWindows :: Bool
+isWindows = (@WINDOWS@ /= 0)
+
+isDebug :: Bool
+isDebug = True -- set this manually, until we find a better way.

@@ -45,6 +45,7 @@ import qualified Concurrent
 import Dynamic
 import Exception
 
+import CompileFlags
 import WBFiles
 
 openDebugFile :: IO (Maybe Handle)
@@ -62,52 +63,59 @@ openDebugFile =
 debugFile = IOExts.unsafePerformIO openDebugFile
 {-# NOINLINE debugFile #-} 
 
-#ifdef DEBUG
-debugString :: String -> IO ()
-debugString s =
-   case debugFile of
-      Just f -> IO.hPutStr f s
-      Nothing -> return ()
+$(
 
-debug :: Show a => a -> IO()
-debug s = 
-   case debugFile of 
-      Just f  -> IO.hPutStrLn f (show s)
-      Nothing -> return ()
+   if isDebug
+      then
+         [d|
 
-debugAct :: String -> IO a -> IO a
-debugAct mess act =
-   do
-      res <- Exception.try act
-      case res of
-         Left error ->
-            do
-               debug ("Debug.debug caught "++mess)
-               throw error
-         Right success -> return success
+            debugString :: String -> IO ()
+            debugString s =
+               case debugFile of
+                  Just f -> IO.hPutStr f s
+                  Nothing -> return ()
 
-debugTest :: Show a => Bool -> a -> IO ()
-debugTest True val = return ()
-debugTest False val = hPutStr stderr ("Debug.debugCond: "++show val)
+            debug :: Show a => a -> IO()
+            debug s = 
+               case debugFile of 
+                  Just f  -> IO.hPutStrLn f (show s)
+                  Nothing -> return ()
 
-#else
-debugString :: String -> IO ()
-debugString _ = return ()
+            debugAct :: String -> IO a -> IO a
+            debugAct mess act =
+               do
+                  res <- Exception.try act
+                  case res of
+                     Left error ->
+                        do
+                           debug ("Debug.debug caught "++mess)
+                           throw error
+                     Right success -> return success
 
-debug :: Show a => a -> IO()
-debug _ = return ()
+            debugTest :: Show a => Bool -> a -> IO ()
+            debugTest True val = return ()
+            debugTest False val = hPutStr stderr ("Debug.debugCond: "++show val)
 
-debugTest :: Show a => Bool -> a -> IO ()
-debugTest _ _ = return ()
+         |]
+      else
+         [d|
+            debugString :: String -> IO ()
+            debugString _ = return ()
 
-debugAct :: String -> IO a -> IO a
-debugAct _ act = act
+            debug :: Show a => a -> IO()
+            debug _ = return ()
 
-{-# inline debug #-}
-{-# inline debugTest #-}
-{-# inline debugAct #-}
+            debugTest :: Show a => Bool -> a -> IO ()
+            debugTest _ _ = return ()
 
-#endif
+            debugAct :: String -> IO a -> IO a
+            debugAct _ act = act
+
+            {-# inline debug #-}
+            {-# inline debugTest #-}
+            {-# inline debugAct #-}
+         |]
+   )
 
 (@:) = debugAct
 
