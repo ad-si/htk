@@ -3,6 +3,7 @@ module Main(main) where
 import HTk
 import ModalDialog
 import DialogWin
+import MarkupText
 
 main :: IO ()
 main =
@@ -25,7 +26,6 @@ main =
   pack but8 []  
   pack but2 []
 
-  
   clickedbut1 <- clicked but1
   spawnEvent (forever (clickedbut1 >> always (do 
                                                tp <- createToplevel [text "ModalDialog"]
@@ -47,25 +47,29 @@ main =
  
   clickedbut5 <- clicked but5
   spawnEvent (forever (clickedbut5 >> always (do 
-                                               newAlertWin "AlertWin test" []  
+                                               newAlertWin [bold [prose "An Alert Window has been triggered."], newline, 
+                                                            prose "This would be the place to put some warning or so!"] []  
 					       putStrLn "done with AlertWin"
 					       )))
  
   clickedbut6 <- clicked but6
   spawnEvent (forever (clickedbut6 >> always (do 
-                                               newErrorWin "ErrorWin test" []  
+                                               newErrorWin [bold [prose "An Error Window has been triggered."], newline,
+                                                            prose "This would be the place where to find the error message!"] []  
 					       putStrLn "done with ErrorWin"
 					       )))
  
   clickedbut7 <- clicked but7
   spawnEvent (forever (clickedbut7 >> always (do 
-                                               newWarningWin "WarningWin test" []  
+                                               newWarningWin [bold [prose "A Warning Window has been triggered."], newline,
+                                                              prose "This text here could be a warning!"] []
 					       putStrLn "done with WarningWin"
 					       )))
  
   clickedbut8 <- clicked but8
   spawnEvent (forever (clickedbut8 >> always (do 
-                                               res <- newConfirmWin "ConfirmWin test" []  
+                                               res <- newConfirmWin [bold [prose "A Confirm Window has been triggered."], newline,
+                                                                     prose "Here the action to be confirmed would be found!"] []  
 					       putStr "done with ConfirmWinWin: "
 					       putStrLn (show res)
 					       )))

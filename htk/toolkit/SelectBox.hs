@@ -51,13 +51,13 @@ newSelectBox :: Container par =>
 newSelectBox par Nothing ol =
   do
     b <- newHBox par []
-    pack b []
+    pack b [Expand On, Fill X]
     em <- newRef []
     configure (SelectBox b Nothing em) ol
 newSelectBox par (Just i) ol =
   do
     b <- newHBox par []
-    pack b []
+    pack b [Expand On, Fill X]
     em <- newRef []
     f <- newFrame b [relief Sunken, borderwidth 1]
     pack f []
@@ -140,7 +140,7 @@ addButton :: SelectBox a -> [Config (Button a)] -> [PackOption] ->
 addButton sb@(SelectBox b Nothing em) cnf pcnf =
   synchronize sb (do
                     bt <- newButton b cnf
-                    pack bt []
+                    pack bt pcnf
                     changeRef em (\el -> el ++ [bt])
                     return bt)
 addButton sb@(SelectBox b (Just (f,i)) em) cnf pcnf =
@@ -167,3 +167,6 @@ addButton sb@(SelectBox b (Just (f,i)) em) cnf pcnf =
                          pack bt (Side AtLeft : pcnf))
                     setRef em (el ++ [bt])
                     return bt)
+
+
+
