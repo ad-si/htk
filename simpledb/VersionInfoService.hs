@@ -19,8 +19,8 @@ toVersionInfoServiceWrapped versionState =
       versionState :: VersionState
       )
 
-versionInfoService = serviceArg :: ((Bool,VersionInfo),(Bool,VersionInfo),
-   VersionState)
+versionInfoService :: ((Bool,VersionInfo),(Bool,VersionInfo),VersionState)
+versionInfoService = serviceArg 
 -- For the meaning of the Bools see addVersionInfo in VersionInfo.
 
 

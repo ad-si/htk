@@ -8,8 +8,8 @@ import Maybe
 import IO
 import System
 
-import Set
-import FiniteMap
+import Data.Set
+import Data.FiniteMap
 
 import Debug
 import Computation

@@ -6,8 +6,8 @@ module Hasse(
 
 import List hiding (intersect,union)
 
-import FiniteMap
-import Set
+import Data.FiniteMap
+import Data.Set
 
 import TopSort
 

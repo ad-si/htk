@@ -48,6 +48,7 @@ data FdBuffer = FdBuffer {
    buffer :: MVar String
    }
 
+fdMkReadLn :: System.Posix.Fd -> IO FdBuffer
 fdMkReadLn fD =
    do
       buffer <- newMVar ""
