@@ -139,4 +139,4 @@ versionInformationToVersion versionInformation = case versionInformation of
    UserInfo1 userInfo -> version userInfo
    VersionInfo1 versionInfo -> version (user versionInfo)
    Version1 objectVersion -> objectVersion
-
+   Version1Plus objectVersion _ -> objectVersion
