@@ -251,6 +251,11 @@ HAXMLINT=1
 AC_SUBST(HAXML)
 AC_SUBST(HAXMLINT)
 
+# Check for mkdtemp in stdlib (used by mmiss/test/MainTempDir.c).  We can get 
+# along without it, and have to on Solaris.
+AC_CHECK_FUNCS(mkdtemp,HAVE_MKDTEMP=1,HAVE_MKDTEMP=0)
+AC_SUBST(HAVE_MKDTEMP)
+
 #
 # Construct the default options, used by 
 # util/default_options.c
