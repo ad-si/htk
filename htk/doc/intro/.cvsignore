@@ -3,7 +3,7 @@
 *.hi
 *.dvi
 *.out
-simple.pdf
+intro.pdf
 *.ps
 .depend
 Makefile
