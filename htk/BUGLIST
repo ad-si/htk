@@ -17,3 +17,9 @@ Interactors on unpacked canvas objects behave strange [ludi, 25.01.2001]
   packed, it will behave strangely and continue to do so even after
   the canvas object has been packed.
   
+Button interactors crash [cxl/ludi, 08.02.2001]
+  If you have an interactor which reacts to a triggered event (e.g. a
+  pressed Button), and the button has no Command config option, then 
+  the interactor (and all of HTk) crash, even before the button is
+  pressed.
+  

@@ -131,7 +131,8 @@ mouseEvent :: (Interactive w,GUIEventDesignator e)
 mouseEvent w e = userinteraction w e Request >>>= return . getMouseEventInfo
     where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
 
-
+-- Experimental code: user interactions (see kernel/UserInteraction.hs)
+-- Don't use this yet.
 mouseEvent' :: (Interactive w,GUIEventDesignator e)  
            => w -> e -> UIA (Position,Int)
 mouseEvent' w e = UIA(userinteraction w e Request, [toGUIObject w]) >>>= return . getMouseEventInfo
