@@ -45,3 +45,6 @@ tarball.tar.gz:
 tarball.objects.tar.gz:
 	@TAR@ -czf tarball.objects.tar.gz `gfind . '(' -name '*.o' -o -name '*.hi' ')' `
 
+wwwhere :
+	$(MKDIR) -p $(WWWPREFIX)/download
+	$(CP) $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip $(WWWPREFIX)/download

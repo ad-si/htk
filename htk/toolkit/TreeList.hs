@@ -77,10 +77,11 @@ lineheight = 20
 cwidth = 15
 
 
-
--- ***********************************************************************
+-- -----------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- tree lists
--- ***********************************************************************
+-- -----------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------
 -- basic types
@@ -665,10 +666,11 @@ instance CItem c => HasSize (TreeList c) where
   getHeight tl = getHeight (cnv tl)
 
 
-
--- ***********************************************************************
+-- -----------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- tree list objects
--- ***********************************************************************
+-- -----------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 -- -----------------------------------------------------------------------
 -- basic types
@@ -683,7 +685,7 @@ data TreeListObjectType = Node | Leaf deriving Eq
 newtype TreeListObject a =
   TreeListObject (a, TreeListObjectType)
 
-data CItem a => TREELISTOBJECT a =        -- ** internal representation **
+data CItem a => TREELISTOBJECT a =        -- internal representation
   TREELISTOBJECT { val :: a,                                      -- value
                    treelist :: TreeList a,                       -- parent
                    is_node :: Bool,                        -- true if node
@@ -932,7 +934,7 @@ pressed obj =
                           state))) + 1)
        (i, isopen, prevopen) <- getObjInfo obj state
        (if isopen then
-          do                                              -- *** close ***
+          do                                              -- close
             plusminus obj # photo plusImg
             (children, opensubobjvals) <- getChildren state obj
             mapM removeObject children
@@ -944,7 +946,7 @@ pressed obj =
                  (drop (index + length children) state)
             done
         else
-          do                                               -- *** open ***
+          do                                               -- open
             plusminus obj # photo minusImg
             ch <- (cfun (treelist obj))
                     (TreeListObject (val obj, if (is_node obj) then Node

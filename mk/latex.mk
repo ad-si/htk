@@ -12,6 +12,7 @@ BIBTEX   = bibtex
 DVIPS    = dvips
 PNGTOPNM = pngtopnm
 PNMTOPS  = pnmtops
+LATEX2HTML = latex2html
 
 .fig.eps:
 	$(FIG2DEV) -L ps $< > $@
@@ -37,6 +38,9 @@ PNMTOPS  = pnmtops
 
 .tex.dvi:
 	$(LATEX) $<; $(LATEX) $<
+
+%/index.html: %.tex %.dvi
+	$(LATEX2HTML) $<
 
 #
 

@@ -67,6 +67,13 @@
 #
 # We also define trivial targets doc and dochere.  The subdirectory
 # Makefiles should implement appropriate dependencies for dochere, if any!!
+# These dependencies should make the documentation
+# 
+# Likewise we define www, wwwtest and wwwhere.  
+# gmake www should copy all the Web pages over onto the web-site.  The location
+#    of the web-site should be specified in the variable WWWPREFIX; if it
+#    is empty gmake www will complain.  The individual Makefiles should
+#    declare dependencies for wwwhere where necessary to do the copying.
 
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
 OBJSLHS = $(patsubst %.lhs,%.o,$(SRCSLHS))
@@ -137,7 +144,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports
+.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -376,6 +383,13 @@ $(EXPORTPREFIX).tar.gz :
 $(EXPORTPREFIX).zip :
 	DIR=`pwd`;cd $(TOP)/..;$(ZIP) -9 $$DIR/$@ `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
 
+
+# www stuff
+www :
+	$(if $(WWWPREFIX),$(MAKE) wwwtest;chmod -R a+rX $(WWWPREFIX),echo WWWPREFIX must be set to make www)
+
+wwwtest : wwwhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) wwwtest && ) echo 
 
 
 

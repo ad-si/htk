@@ -457,8 +457,10 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
    makeFormEntry frame rvalue =
       do
          let
-            minB :: value = minBound
-            maxB :: value = maxBound
+            minB :: value
+            minB = minBound
+            maxB :: value
+            maxB = maxBound
 
             minBoundInt :: Int
             minBoundInt = fromEnum minB

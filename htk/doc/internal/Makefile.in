@@ -2,7 +2,7 @@ include @TOP@/mk/latex.mk
 
 include @TOP@/mk/boilerplate.mk
 
-dochere: HOWTO.ps HOWTO.pdf
+dochere: HOWTO.ps HOWTO.pdf HOWTO/index.html
 
 
 .PHONY : displaytheseexports
@@ -10,5 +10,5 @@ dochere: HOWTO.ps HOWTO.pdf
 displayexportshere : displaytheseexports
 
 displaytheseexports :
-	@PWD=`pwd`;echo $$PWD/HOWTO.ps $$PWD/HOWTO.pdf
+	@PWD=`pwd`;echo $$PWD/HOWTO.ps $$PWD/HOWTO.pdf $$PWD/HOWTO/*
 

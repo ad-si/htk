@@ -197,6 +197,14 @@ SUBDIRS specifies a list of subdirectories of this directory also containing
    Makefiles, into which we should recurse.
 SRCSC is like SRCS, but expects a list of C files.
 
+Some special targets are occasionally optionally defined.  These include
+   dochere
+If a Makefile defines this target it will be executed when gmake doc is
+done; it should compile any documentation in this directory.
+   wwwhere
+If a Makefile defines this target it will be executed when gmake www is done.
+This should copy any appropriate files over to the Web page.
+
 Makefile.in can also contain variable settings which, for example, specify
    special GHC options to use, but I shall not explain this here.  You may
    be able to work some of them out by looking at the Makefiles, for example
@@ -251,10 +259,21 @@ following:
 # cd to the documentation directory.  This is the only one at present.
    cd htk/doc
 # Make the exports for just this directory
-   gmake exports.tar.gz
-Then ungz the exports.tar.gz file for the machine you are compiling on
-(you will need to do this from directory containing the uni distribution),
-instead of doing gmake doc.
+   gmake exports
+You will get two archives, one .tar.gz and one .zip.  Pick whichever is
+most convenient and unpack on the machine where you are preparing the binary
+distribution.  You can then gmake exports at the top directory for the
+target directory.
+
+How to copy the documentation and binaries onto the web site
+------------------------------------------------------------
+
+Assuming that the web site and binaries are mounted on your machine set
+the variable WWWPREFIX to its location as a file path for the directory,
+not including the final slash.  You can do this either as an environment
+variable, on the make command line, or in mk/local.mk.  Then do
+   gmake www
+
 
 Restarting compilation
 ----------------------

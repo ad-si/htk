@@ -28,20 +28,20 @@ module Core (
   getTclVariable,
 
 
--- ** submodules **
+-- * submodules
 
   module GUIValue,
   module GUIObjectName,
   module GUIObjectKind,
 
 
--- ** tool instance **
+-- * tool instance
 
   GUI(..),
   getGUI,
 
 
--- ** Widget configuration **
+-- * Widget configuration
 
   ConfigOption,
   ConfigID,
@@ -50,12 +50,12 @@ module Core (
   showConfig,
 
 
--- ** enabling / disabling of widgets **
+-- * enabling \/ disabling of widgets
 
   HasEnable(..),
 
 
--- ** GUIObjects and methods (internal representation of Tk-Widgets) **
+-- * GUIObjects and methods (internal representation of Tk-Widgets)
 
   GUIOBJECT(..), 
   OST(..),              -- the gui objects state
@@ -87,7 +87,7 @@ module Core (
   setMethods,
 
 
--- ** events **
+-- * events
 
   WishEvent(..),
   WishEventType(..),
@@ -108,7 +108,7 @@ module Core (
   EventInfoSet,
 
 
--- ** Tk variables **
+-- * Tk variables
 
   tkDeclVar,
   tkUndeclVar,
