@@ -8,8 +8,3 @@ for i in `find . -type d ! -name CVS`; do
    if [ -h $i/top ]; then rm -rf $i/top; fi
    ln -s $FULLUNIDIR $i/top
 done
-# This sets up a link to the wish in uni/bin: 
-WISH=`which wish`
-if [ -z "$WISH" ]; then echo "Warning: no wish found." 
-else ln -s $WISH bin/wish
-fi
