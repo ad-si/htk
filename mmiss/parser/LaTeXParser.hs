@@ -222,7 +222,7 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
 
 listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate")]
 
-itemNames = ["ListItem", "item"]
+itemNames = ["ListItem", "item", "Item"]
 
 
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
@@ -231,7 +231,8 @@ mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCo
 
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
-latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"]
+latexPlainTextEnvs = ["verbatim", "verbatim*", "code", "xcode", "scode", "math", "displaymath", "equation"] ++
+                     ["alltt"]
 
 
 -- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
@@ -287,6 +288,23 @@ listTypeParser :: GenParser Char st String
 listTypeParser = try(string "itemize") <|> try(string "enumerate") <|> return ("")
 
 
+{- attributesOrNot checks if a '[' is the next input character. If so, it exepects an
+   attribute list (found on MMiSS-Environments) which it returns. If the next character 
+   is something else, than it succeeds but returns an empty list. In the latter case 
+   it succeeds because, it is valid to have no attribute list at all at a MMiSS-Environment.
+ -}
+
+attributesOrNot :: GenParser Char st Attributes
+attributesOrNot =  (do pos <- getPosition
+                       try(char '[')
+                       result <- (try attParser)
+                                 <?> (appendSourcePos pos "[attribute-list] for MMiSS environment ")
+                       try(char ']')
+                       return result
+                   )
+                   <|> return []
+
+
 {- attParser parses the list of attributes belonging to an MMiSS-Environment -}
 
 attParser :: GenParser Char st Attributes
@@ -295,13 +313,20 @@ attParser = commaSep attribute
 
 attribute :: GenParser Char st (String, String)
 attribute = do spaces
-               key <- try(many1(noneOf " ,=}]")) <?> "attribute name"
+               key <- try(many1(noneOf " ,=}]\n\t\f\r\v")) <?> "attribute name"
                spaces
                char '=' <?> "value for attribute '" ++ key ++ "'"
                spaces
                v <- choice ((try(string "{}")):((delimitedValue key):((value ",]"):[]))) 
                     <?> "value for attribute '" ++ key ++ "'"
                spaces
+               pos <- getPosition
+               case key of
+                 "Label" -> let elEntityName = parse entityNameParser1 "" v
+                            in case elEntityName of
+                                 Left err -> fail (appendSourcePos pos ("Label '" ++ v ++ "' contains illegal characters ")) 
+                                 Right _ -> done
+                 _ -> done
                new_v <- if (v == "{}") then return "" else return v
                return (key, new_v)
 
@@ -431,9 +456,7 @@ mEnvParams :: String -> GenParser Char st Params
 
 mEnvParams id = 
   do pos <- getPosition
-     attributes <- option [] (try(between (char '[') (char ']') attParser))
---                                 <|> unexpected ("[attribute-list] for Environment <" ++ id ++ ">")
-                   <?> (appendSourcePos pos "[attribute-list] for Environment <" ++ id ++ "> ")
+     attributes <- attributesOrNot
      return(LParams [] attributes Nothing Nothing)
 
 
@@ -479,31 +502,41 @@ lParams id l
       do pos <- getPosition
 	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
          spaces
-	 elType <- try(between (char '{') (char '}') idParser)
-	           <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
+	 param1 <- try(between (char '{') (char '}') idParser)
+	           <?> (appendSourcePos pos ("[phrase]{type}{label} or [phrase]{label} for Command <" ++ id ++ ">"))
          spaces
-	 labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
+	 param2 <- try(do id <- between (char '{') (char '}') idParser
+                          return (Just id)
+                      )
+                   <|> return Nothing
+--	            <?> (appendSourcePos pos ("[phrase]{element type}{referenced LabelID} for Command <" ++ id ++ ">"))
          linkTextAttrs <- if (phrase == []) then return([]) else return([("LinkText", phrase)])
+         (elType, labelId) <- case param2 of
+                                (Just id) -> return (param1, id)
+                                _ -> return ("", param1) 
          return (LParams [(SingleParam [(Other labelId)] '{')] 
                          ([("status","absent"), ("Type", elType)] ++ linkTextAttrs) Nothing Nothing)
  
- | id == "Define" = 
+ | (id == "Def") = 
       do pos <- getPosition
-	 phrase <- option [] (try(between (char '[') (char ']') (value "]")))
+	 phrase <- do try (string "[]")
+                      return ("")
+                   <|> (try(between (char '[') (char ']') (value "]")))
+                   <|> return ""
          spaces
-         labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("[phrase]{defined LabelID} for Command <" ++ id ++ ">"))
-         optTextAttrs <- if (phrase == []) then return([]) else return([("OptText", phrase)])
+         labelId <- try(between (char '{') (char '}') idParser)
+	            <?> (appendSourcePos pos ("[phrase]{defined LabelID} for Command <" ++ id ++ ">"))
+         optTextAttrs <- if (phrase == "") then return([]) else return([("OptText", phrase)])
          return (LParams [(SingleParam [(Other labelId)] '{')] 
                          ([("status","absent")] ++ optTextAttrs) Nothing Nothing)
 
  | (id `elem` itemNames) =
       do pos <- getPosition
-         attributes <- option [] (try(between (char '[') (char ']') attParser))
-         if (attributes == []) 
-           then return (LParams [] [] Nothing Nothing)
-           else return (LParams [] attributes Nothing Nothing)
+         descItem <- option [] (try(between (char '[') (char ']') (value "]")))
+         attributes <- if (descItem == [])
+                         then return []
+                         else return ([("descItem", descItem)])
+         return (LParams [] attributes Nothing Nothing)
 
  | (id == "documentclass") || (id == "usepackage") =
       do pos <- getPosition
@@ -892,7 +925,6 @@ getFileCommand c =
                                     then getFileCmdInternal str
                                     else []
     _ -> []
-
   where 
      getFileCmdInternal str =
        let elFrag = parse (frags []) "" str
@@ -1740,7 +1772,7 @@ concatTextElems ((CElem e1):((CMisc e2):rest)) =
   [(CElem e1), (CMisc e2)] ++ (concatTextElems rest)
 concatTextElems ((CMisc e1):e2:rest) = [(CMisc e1)] ++ (concatTextElems (e2:rest))
 concatTextElems (e1:[]) = [e1]
-
+concatTextElems (c:cs) = concatTextElems cs
 
 -- detectTextMode ueberprueft anhand des uebergebenen Environment-Namens, ob darin laut MMiSS-Struktur
 -- direkt Text enthalten sein darf. Es wird nicht ueberprueft, ob der Name ueberhaupt zu einem MMiSS-Env.
@@ -1825,8 +1857,8 @@ makeRefAttribs (LParams [] atts _ _) = map convertAttrib (filter ((not . (== "Li
 
 makeDefineAttribs :: Params -> [Attribute]
 makeDefineAttribs (LParams ((SingleParam ((Other labelId):[]) _):_) atts _ _) =
-   [("label", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
-makeDefineAttribs _ = []
+   [("defined", (AttValue [Left labelId]))] ++ map convertAttrib (filter ((not . (== "OptText")) . fst) atts)
+makeDefineAttribs (LParams [] atts _ _) = map convertAttrib (filter ((not . (== "OptText")) . fst) atts)
 
 
 {-- makeFormulaAttribs weicht vom Schema der anderen makeXXXAttribs-Funktionen ab, da bei Formel-Umgebungen
