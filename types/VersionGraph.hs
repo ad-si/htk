@@ -42,6 +42,7 @@ import MenuType
 import SimpleListBox
 import MarkupText
 import DialogWin
+import HTk hiding (Arc,Menu)
 
 import Graph
 import SimpleGraph
@@ -81,7 +82,7 @@ data VersionGraphNode =
 -- Information we keep about working nodes.
 data ViewedNode = ViewedNode {
    thisView :: View, -- view for this node
-   parent :: Node -- (checked-in) parent version.
+   parent :: [Node] -- (checked-in) parent version.
    }
    
 -- --------------------------------------------------------------------
@@ -262,9 +263,10 @@ newVersionGraph
                      do
                         (Just viewedNode) 
                            <- getValueOpt workingNodeRegistry node
-                        case nodeToVersion (parent viewedNode) of
-                           Just version ->
-                              return ("["++toString version++"]")
+                        case parent viewedNode of
+                           parent1 : _ -> case nodeToVersion parent1 of
+                              Just version -> 
+                                 return ("["++toString version++"]")
 
          checkOutNode :: Node -> IO ()
          checkOutNode node =
@@ -291,7 +293,7 @@ newVersionGraph
                setValue workingNodeRegistry thisNode 
                   (ViewedNode{
                      thisView = view,
-                     parent = parentNode
+                     parent = [parentNode]
                      })
                update graph (NewNode thisNode workingType title)
                update graph (NewArc thisArc workingArcType () 
@@ -325,7 +327,7 @@ newVersionGraph
          reallyCommitNode :: String -> Node -> View -> IO ()
          reallyCommitNode title thisNode view =
             do
-               (nodeDataOpt :: Maybe (Node,SimpleBroadcaster String)) <-
+               (nodeDataOpt :: Maybe ([Node],SimpleBroadcaster String)) <-
                   transformValue workingNodeRegistry thisNode
                   (\ viewedNodeOpt ->
                      let
@@ -342,7 +344,7 @@ newVersionGraph
                -- thisNode, as we are about to do . . .
                case nodeDataOpt of
                   Nothing -> done
-                  Just (parentNode,titleSource) ->
+                  Just (parentNodes,titleSource) ->
                      do
                         update graph (DeleteNode thisNode)
                         newVersion <- commitView view
@@ -352,10 +354,15 @@ newVersionGraph
                            versionGraphNode 
                               = CheckedInNode newVersion
                            newNode = toNode versionGraphNode
-                        newArc1 <- newCheckedInArc graph
                         update graph (NewNode newNode checkedInType title)
-                        update graph (NewArc newArc1 
-                           checkedInArcType () parentNode newNode)
+                        mapM_
+                           (\ parentNode ->
+                              do
+                                 newArc <- newCheckedInArc graph
+                                 update graph (NewArc newArc checkedInArcType
+                                    () parentNode newNode)
+                              )
+                           parentNodes
                   
                         -- Add a new node for the view, and add it
                         -- to this new node.
@@ -364,7 +371,7 @@ newVersionGraph
                         setValue workingNodeRegistry thisNode 
                            (ViewedNode {
                               thisView = view,
-                              parent = newNode
+                              parent = [newNode]
                               }) 
 
                         update graph (NewNode thisNode workingType title)
@@ -382,10 +389,31 @@ newVersionGraph
 
                -- The difficult part is indicating what is to be
                -- merged.  We do this using a ListBox.
-               listBox <- newSimpleListBox
-                  "Versions to Merge"
-                  mergeLabel
-                  (40,6)
+               topLevel <- createToplevel [
+                  text "Versions to Merge"
+                  ]
+
+               messageWindow <- newLabel topLevel
+                  [text (
+                     "Doubleclick versions in graph to add to list;\n"++
+                     "Click versions in list to remove them.")]
+
+               listBox <- newSimpleListBox topLevel mergeLabel []
+
+               confirmFrame <- newFrame topLevel []
+
+               okButton <- newButton confirmFrame [text "OK"]
+               cancelButton <- newButton confirmFrame [text "Cancel"]
+
+               okClicked <- clicked okButton
+               cancelClicked <- clicked cancelButton
+
+               pack okButton [Side AtLeft]
+               pack cancelButton [Side AtRight]
+               pack messageWindow [Side AtTop]
+               pack listBox [Side AtTop]
+               pack confirmFrame [Side AtTop]
+
                -- Construct event for delete actions in this list.
                (deleteEvent :: Event [SimpleListBoxItem MergeCandidate],
                   terminator) <- bindSelection listBox
@@ -428,40 +456,24 @@ newVersionGraph
                      -> IO (Maybe [MergeCandidate])
                   getNodes newVersion =
                      do
-                         -- Construct event for confirm window.
-                         (confirmChannel :: Channel Bool) <- newChannel
                          let
-                            confirmThread =
-                               do
-                                  goAhead <- createConfirmWin' [
-                                     prose (
-                                        "Double-Click Version to Select\n"
-                                        ++"Select in List Box to Remove\n"
-                                        ++"When finished click OK or Cancel"
-                                        )
-                                     ] []
-                                  sendIO confirmChannel goAhead
-                         forkIO confirmThread
-                         let
-                            confirmEvent :: Event Bool
-                            confirmEvent = receive confirmChannel
-
                             -- Now here is the event for the business of
                             -- getNodes 
                             getNodesEvent :: Event (Maybe [MergeCandidate])
                             getNodesEvent =
                                   (do
-                                     confirmed <- confirmEvent
-                                     always (if confirmed 
-                                        then
-                                           do
-                                              mergeCandidates <- getItems
-                                                 listBox
-                                              return (Just mergeCandidates)
-                                        else
-                                           return Nothing
+                                     okClicked
+                                     always (
+                                        do
+                                           mergeCandidates <- getItems
+                                              listBox
+                                           return (Just mergeCandidates)
                                         )
-                                 )
+                                  )
+                               +> (do
+                                     cancelClicked
+                                     return Nothing
+                                  )
                                +> (do
                                      (selection :: WrappedNode node)
                                         <- newVersion
@@ -492,7 +504,7 @@ newVersionGraph
 
                -- Clean up
                terminator
-               destroy listBox
+               destroy topLevel
 
                case nodesToMergeOpt of
                   Nothing -> done
@@ -509,7 +521,43 @@ newVersionGraph
                               do
                                  -- Create a node corresponding to view,
                                  -- and to its parent nodes.
-                                 error "VG" 
+                                 let
+                                    versionGraphNode = WorkingNode view
+                                    thisNode = toNode versionGraphNode
+
+                                 (parents0 :: [ObjectVersion]) 
+                                    <- parentVersions view 
+                                 let
+                                    (parents1 :: [Node]) = map 
+                                       (toNode . CheckedInNode) parents0
+
+                                 setValue workingNodeRegistry thisNode
+                                    (ViewedNode{
+                                       thisView = view,
+                                       parent = parents1
+                                       })
+
+                                 title <- readContents (titleSource view)
+
+                                 update graph (NewNode thisNode workingType 
+                                    title)
+                                 mapM_
+                                    (\ parent -> 
+                                       do
+                                          thisArc 
+                                             <- newWorkingArc arcStringSource
+                                          update graph (NewArc thisArc
+                                             workingArcType () parent thisNode)
+                                       ) 
+                                    parents1
+
+                                 (Just displayedView) <- openGeneralDisplay
+                                    displaySort FolderDisplayType view
+                                 addCloseDownAction displayedView (
+                                    update graph (DeleteNode thisNode)
+                                    )
+                                 done
+                                 
 
       -- Construct the graph
       (displayedGraph,dispGraph) <- displayGraph0 displaySort graph graphParms

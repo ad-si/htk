@@ -690,9 +690,9 @@ instance Eq WrappedObjectType where
 instance Ord WrappedObjectType where
    compare = mapOrd toKey
 
-instance HasKey WrappedObjectTypeTypeData (String,GlobalKey) where
+instance HasKey WrappedObjectTypeTypeData String where
    toKey (WrappedObjectTypeTypeData objectType) =
-      (objectTypeTypeIdPrim objectType,objectTypeIdPrim objectType)
+      objectTypeTypeIdPrim objectType
 
 instance Eq WrappedObjectTypeTypeData where
    (==) = mapEq toKey

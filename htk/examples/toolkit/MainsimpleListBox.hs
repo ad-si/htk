@@ -12,6 +12,7 @@ import Events
 import Focus
 import DialogWin
 import SimpleListBox
+import HTk
 
 handleSelections :: SimpleListBox String -> Event [SimpleListBoxItem String]
    -> Event ()
@@ -33,7 +34,9 @@ handleAdditions simpleListBox =
 
 main = 
    do
-      simpleListBox <- newSimpleListBox "Simple List Box" id (10,15)
+      main <- initHTk [text "Simple List Box"]
+      simpleListBox <- newSimpleListBox main id [size (10,15)]
       (event,terminator) <- bindSelection simpleListBox
       spawnEvent (handleSelections simpleListBox event)
+      pack simpleListBox []
       handleAdditions simpleListBox

@@ -4,6 +4,7 @@ module Merging(
    ) where
 
 import Maybe
+import List
 
 import Control.Concurrent.MVar
 
@@ -89,12 +90,13 @@ mergeViews (views @ (firstView:_)) =
             fileSystem1 <- newFileSystem
             commitLock1 <- newVSem
             delayer1 <- newDelayer
-
-            parentOpts <- mapM parentVersion views
+            parents0 <- mapM parentVersions views
             let
-               parents = catMaybes parentOpts
+               -- parents0 is a list of list of ObjectVersions.  We
+               -- (a) turn this into a list; (b) remove duplicates.
+               parents1 = nub (concat parents0)
 
-            parentsMVar1 <- newMVar parents
+            parentsMVar1 <- newMVar parents1
 
             let
                newView = View {

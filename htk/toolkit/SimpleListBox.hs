@@ -41,6 +41,7 @@ import Destructible
 import Events
 
 import GUIObject(toGUIObject)
+import Core(GUIObject(..))
 import HTk
 
 
@@ -49,7 +50,7 @@ import HTk
 -- -------------------------------------------------------------------------
 
 data SimpleListBox val = SimpleListBox {
-   topLevel :: Toplevel,
+   frame :: Frame, -- contains the list box, and the scroll-bar.
    listBox :: ListBox String,
    mkString :: val -> String,
    contentsMVar :: MVar [SimpleListBoxItem val]
@@ -61,14 +62,14 @@ data SimpleListBoxItem val = SimpleListBoxItem {
    }
 
 -- -------------------------------------------------------------------------
--- Instances
+-- Non-HTk Instances
 -- -------------------------------------------------------------------------
 
 instance Object (SimpleListBox val) where
-   objectID simpleListBox = objectID (toGUIObject (listBox simpleListBox))
+   objectID simpleListBox = objectID (toGUIObject simpleListBox)
 
 instance Destroyable (SimpleListBox val) where
-   destroy simpleListBox = destroy (topLevel simpleListBox)
+   destroy simpleListBox = destroy (frame simpleListBox)
 
 instance Object (SimpleListBoxItem val) where
    objectID simpleListBoxItem = oID simpleListBoxItem
@@ -80,21 +81,35 @@ instance Ord (SimpleListBoxItem val) where
    compare = mapOrd oID
 
 -- -------------------------------------------------------------------------
+-- HTk instances (needed for packing a list box)
+-- -------------------------------------------------------------------------
+
+instance GUIObject (SimpleListBox val) where
+   toGUIObject simpleListBox = toGUIObject (frame simpleListBox)
+
+   cname _ = "SimpleListBox"
+
+instance Widget (SimpleListBox val)
+
+instance HasSize (SimpleListBox val)
+
+
+-- -------------------------------------------------------------------------
 -- Functions
 -- -------------------------------------------------------------------------
 
 newSimpleListBox
-   :: String -> (val -> String) -> (Distance,Distance)
+   :: Container par
+   => par -> (val -> String) -> [Config (SimpleListBox val)]
    -> IO (SimpleListBox val)
-newSimpleListBox title mkString (width,height) =
+newSimpleListBox parent mkString configs =
    do
-      topLevel <- createToplevel [text title]
+      frame <- newFrame parent []
+      listBox <- newListBox frame [value ([] :: [String]),bg "white"]
 
-      listBox <- newListBox topLevel [value ([] :: [String]),
-         bg "white",size (width,height)]
-      pack listBox [Side AtLeft]
+      pack listBox [Side AtLeft,Fill Y]
 
-      scroll <- newScrollBar topLevel []
+      scroll <- newScrollBar frame []
       pack scroll [Side AtRight,Fill Y]
 
       listBox # scrollbar Vertical scroll
@@ -104,11 +119,13 @@ newSimpleListBox title mkString (width,height) =
 
       let 
          simpleListBox = SimpleListBox {
-            topLevel = topLevel,
+            frame = frame,
             listBox = listBox,
             mkString = mkString,
             contentsMVar = contentsMVar
             }
+
+      configure simpleListBox configs
 
       return simpleListBox
 

@@ -27,8 +27,8 @@ module View(
       -- -> IO extra
       -- Function for creating an object which requires its own link.  
 
-   parentVersion, -- :: View -> IO (Maybe Version)
-      -- returns the head parent version of the view, if any.
+   parentVersions, -- :: View -> IO [Version]
+      -- returns the parent versions of this view.
    ) where
 
 import Directory
@@ -201,13 +201,8 @@ commitView (view @ View {repository = repository,objects = objects,
       )
 ---
 -- returns the current parent version of the view.
-parentVersion :: View -> IO (Maybe Version)
-parentVersion view = 
-   do
-      parents <- readMVar (parentsMVar view)
-      case parents of
-         [] -> return Nothing
-         parent : _ -> return (Just parent)
+parentVersions :: View -> IO [Version]
+parentVersions view = readMVar (parentsMVar view)
 
 -- ----------------------------------------------------------------------
 -- Format of view information in the top file
