@@ -51,6 +51,7 @@
    nodes to have labels provided in the form of Dynamic values.
    -}
 module GraphDisp(
+   GraphAll,
    Graph(..),
    NewGraph(..),
    GraphConfig,
@@ -80,6 +81,60 @@ module GraphDisp(
 
 import Dynamics
 import SIM(IA)
+
+
+------------------------------------------------------------------------
+-- GraphAll
+-- This class encapsulates all that you can do with a single graph
+-- implementation with one node and one arc type.
+-- The idea is that a typical user of graphs will have signature something
+-- like
+-- display :: (GraphAll GraphAll graph graphParms node nodeType nodeTypeParms 
+--       arc arcType arcTypeParms) =>
+--    (graph,graphParms,node,nodeType,nodeTypeParms,arc,arcType,arcTypeParms)
+--    -> (other arguments for example the actual structure to display)
+-- Then a call might look like (for daVinci)
+-- display 
+--   (displaySort :: (DaVinciGraph,DaVinciGraphParms,DaVinciNode,
+--    DaVinciNodeType,DaVinciNodeTypeParms,DaVinciArc,DaVinciArcType,
+--    DaVinciArcTypeParms)) -> (actual data)
+-- 
+
+------------------------------------------------------------------------
+
+class (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
+   NewNode graph node nodeType,DeleteNode graph node,
+   Node node,NodeType nodeType,
+   NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
+   NewArc graph node node arc arcType,DeleteArc graph arc,
+   Arc arc,ArcType arc,
+   NewArcType graph arcType arcTypeParms
+   ) => 
+   GraphAll graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms where
+
+   displaySort :: (graph,graphParms,node,nodeType,nodeTypeParms,
+      arc,arcType,arcTypeParms)
+   -- displaySort is a parameter which can be passed to something
+   -- which produces graphs and displays them, to indicate what
+   -- types we are using.  The only definition of it is about to
+   -- be given . . .   
+
+instance (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
+   NewNode graph node nodeType,DeleteNode graph node,
+   Node node,NodeType nodeType,
+   NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
+   NewArc graph node node arc arcType,DeleteArc graph arc,
+   Arc arc,ArcType arc,
+   NewArcType graph arcType arcTypeParms
+   ) => 
+   GraphAll graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms where
+
+   displaySort = (bot,bot,bot,bot,bot,bot,bot,bot)
+      where
+         bot = bot
+   
 
 ------------------------------------------------------------------------
 -- Graphs
