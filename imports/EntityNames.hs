@@ -18,13 +18,18 @@ module EntityNames(
 
    ImportCommands(..),
    ImportCommand(..),
-   Directive(..)
+   Directive(..),
 
+   -- parsers
+   entityNameParser, -- :: GenParser Char st EntityName
+   entityFullNameParser, -- :: GenParser Char st EntityFullName
+   entitySearchNameParser, -- :: GenParser Char st EntitySearchName
    ) where
 
 import Char
-
 import List
+
+import Text.ParserCombinators.Parsec 
 
 import Maybes
 import AtomString
@@ -82,9 +87,6 @@ data EntitySearchName =
    |  FromCurrent EntityFullName
    |  FromRoot EntityFullName
    deriving (Eq,Ord,Show)
-
--- used internally only.
-data EntityName' = Name EntityName | Current | Root | Parent
 
 -- *************************************************************************
 -- Changes for new import facilities:
@@ -175,48 +177,17 @@ instance Monad m => HasBinary ImportCommands m where
 -- We also include checks for validity, using AtomString.fromStringError.
 -- ----------------------------------------------------------------------
 
-instance StringClass EntityName' where
-   toString (Name (EntityName str)) = str 
-   toString Current = "Current"
-   toString Parent = "Parent"
-   toString Root = "Root"
-
-   fromStringWE "" = hasError "Empty entity names are forbidden"
-   fromStringWE "Current" = hasValue Current
-   fromStringWE "Parent" = hasValue Parent
-   fromStringWE "Root" = hasValue Root
-   fromStringWE (name @ (c:cs)) =
-      if (isAlpha c) && (all isAlphaNum cs)
-         then
-            hasValue (Name (EntityName name))
-         else
-            hasError ("Name " ++ show name 
-               ++ " contains inappropriate characters")
-
----
 -- EntityNames are represented with names separated by periods.
 instance StringClass EntityName where
    toString (EntityName name) = name
-   fromStringWE str =
-      mapWithError'
-         (\ name' -> case name' of
-            Name name -> hasValue name
-            _ -> hasError ("Unexpected " ++ str)
-            )
-         (fromStringWE str)
+   fromStringWE = mkFromStringWE entityNameParser
 
 instance StringClass EntityFullName where
    toString (EntityFullName []) = "Current"
    toString (EntityFullName entityNames) =
       unsplitByChar '.' (map toString entityNames)
 
-   fromStringWE "" = hasError ("\"\" is not a valid full name")
-   fromStringWE "Current" = hasValue (EntityFullName [])
-   fromStringWE str =
-      mapWithError EntityFullName
-         (concatWithError
-            (map fromStringWE (splitByChar '.' str))
-            )
+   fromStringWE = mkFromStringWE entityFullNameParser
 
 instance StringClass EntitySearchName where
    toString (FromRoot (EntityFullName [])) = "Root"
@@ -227,51 +198,7 @@ instance StringClass EntitySearchName where
    toString (FromParent (FromHere (EntityFullName []))) = "Parent"
    toString (FromParent searchName) = "Parent." ++ toString searchName
 
-   fromStringWE "" = badSearchStr ""
-   fromStringWE str =
-      let
-         strs1 :: [String]
-         strs1 = splitByChar '.' str
-
-         names1 :: [WithError EntityName']
-         names1 = map fromStringWE strs1
-
-         names2 :: WithError [EntityName']
-         names2 = listWithError names1
-
-         checkRest :: [EntityName'] -> (EntityFullName -> EntitySearchName) 
-            -> WithError EntitySearchName
-         checkRest names wrapper =
-            let
-               nameOpts =
-                  map
-                     (\ name' -> case name' of
-                        Name name -> Just name
-                        _ -> Nothing
-                        )
-                     names
-
-               namesOpt = fromMaybes nameOpts
-            in                
-               case namesOpt of
-                  Nothing -> badSearchStr str
-                  Just names -> hasValue (wrapper (EntityFullName names))
-
-         checkParents :: [EntityName'] -> WithError EntitySearchName
-         checkParents (Parent : list) = 
-            mapWithError FromParent (checkParents list)
-         checkParents list = checkRest list FromHere
-
-         convert :: [EntityName'] -> WithError EntitySearchName
-         convert (Root : list) = checkRest list FromRoot
-         convert (Current : list) = checkRest list FromCurrent
-         convert list = checkParents list
-      in
-         mapWithError' convert names2
-
-badSearchStr :: String -> WithError EntitySearchName
-badSearchStr str = hasError (show str ++ " is not a valid search name")
-
+   fromStringWE = mkFromStringWE entitySearchNameParser
           
 -- ----------------------------------------------------------------------
 -- To pick up errors we use DeepSeq to do the necessary seq'ing.
@@ -333,3 +260,95 @@ entityBase (EntityFullName names) = lastOpt names
 
 trivialFullName :: EntityFullName
 trivialFullName = EntityFullName []
+
+-- ----------------------------------------------------------------------
+-- Parser functions for EntityName, EntityFullName and EntitySearchName
+-- ----------------------------------------------------------------------
+
+simpleNameParser :: GenParser Char st String
+simpleNameParser =
+   do
+     c <- letter
+     cs <- many alphaNum
+     return (c : cs)
+
+simpleNamesParser :: GenParser Char st [String]
+simpleNamesParser =
+   do
+      spaces
+      sepBy simpleNameParser (char '.')
+
+entityNameParser :: GenParser Char st EntityName
+entityNameParser =
+   do
+      spaces
+      str <- simpleNameParser
+      case mkEntityName str of
+         Nothing -> fail (show str ++ " is not a valid entity name")
+         Just name -> return name 
+
+entityFullNameParser :: GenParser Char st EntityFullName
+entityFullNameParser =
+   do
+      spaces
+      strs <- simpleNamesParser
+      case mkEntityFullName strs of
+         Nothing -> fail (show (unsplitByChar0 '.' strs)  ++ " is not a valid entity full name")
+         Just name -> return name 
+
+entitySearchNameParser :: GenParser Char st EntitySearchName
+entitySearchNameParser =
+   do
+      spaces
+      strs <- simpleNamesParser
+      case mkEntitySearchName strs of
+         Nothing -> fail (show (unsplitByChar0 '.' strs)  ++ " is not a valid entity search name")
+         Just name -> return name 
+
+
+
+-- ---------------------------------------------------------------------------------------
+-- Utility functions for parser
+-- ---------------------------------------------------------------------------------------
+
+mkEntityName :: String -> Maybe EntityName
+mkEntityName name =
+   if reservedName name
+      then
+         Nothing
+      else
+         Just (EntityName name)
+
+reservedName :: String -> Bool
+reservedName "Root" = True
+reservedName "Parent" = True
+reservedName "Current" = True
+reservedName _ = False
+
+mkEntityFullName :: [String] -> Maybe EntityFullName
+mkEntityFullName [] = Nothing
+mkEntityFullName strs =
+   let
+      entityNameOpts :: [Maybe EntityName]   
+      entityNameOpts =
+         map 
+            (\ str -> mkEntityName str)
+            strs
+
+      entityNamesOpt :: Maybe [EntityName]
+      entityNamesOpt = fromMaybes entityNameOpts
+   in
+      fmap
+         EntityFullName
+         entityNamesOpt
+
+mkEntitySearchName :: [String] -> Maybe EntitySearchName
+mkEntitySearchName [] = Nothing
+mkEntitySearchName ("Current" : strs) =
+   fmap FromCurrent (mkEntityFullName strs)
+mkEntitySearchName ("Root" : strs) =
+   fmap FromRoot (mkEntityFullName strs)
+mkEntitySearchName ("Parent" : strs) =
+   fmap FromParent (mkEntitySearchName strs)
+mkEntitySearchName strs =
+   fmap FromHere (mkEntityFullName strs)

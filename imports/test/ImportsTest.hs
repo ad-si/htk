@@ -138,7 +138,7 @@ folderStructure = FolderStructure {
          (i (toN i1))
          )
       ),
-   parent = (return . staticSimpleSource . p . toN)
+   getParent = (return . staticSimpleSource . p . toN)
    }
     
 

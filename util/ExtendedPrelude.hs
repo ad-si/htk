@@ -43,6 +43,7 @@ module ExtendedPrelude (
 
    splitByChar,
    unsplitByChar,
+   unsplitByChar0,
    splitToChar,
    splitToElem,
    splitToElemGeneral,
@@ -270,6 +271,7 @@ bottom = error "Attempted to evaluate ExtendedPrelude.bottom"
 --    splitByChar '.' "a.b.." = ["a","b","",""]
 --    splitByChar '.' "" = [""]
 -- unsplitByChar is the inverse function.
+-- unsplitByChar0 allows the empty list.
 -- ---------------------------------------------------------------------------
 
 splitByChar :: Char -> String -> [String]
@@ -288,6 +290,10 @@ splitByChar ch s = split s
 unsplitByChar :: Char -> [String] -> String
 unsplitByChar ch [] = error "unsplitByChar not defined for empty list"
 unsplitByChar ch l = foldr1 (\w s -> w ++ ch:s) l
+
+unsplitByChar0 :: Char -> [String] -> String
+unsplitByChar0 ch [] = ""
+unsplitByChar0 ch l = unsplitByChar ch l
 
 -- ------------------------------------------------------------------------
 -- Splitting to and after a character

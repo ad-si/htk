@@ -639,34 +639,31 @@ latexDoc l =  do f <-  frag <?> "Fragment"
 
 -- **********************************************************************************************
 --
--- Die nachfolgenden Parser werden zum Parsen von Entity-Namen in Path- und Import-Statements.
+-- (EntityName, EntityFullName, EntitySearchName parsers now in EntityNames.hs, and the
+-- old code that used to be here has been deleted.  Note that we are now much stricter,
+-- allowing only letters and digits in names; however we can extend that later if necessary.)
+-- (GER, 18/9/03)
 --
--- entityNameParser erkennt einen EntityName, der aus Buchstaben und anderen Zeichen bestehen
--- darf, ausser: ".\\{}"  Die {}-Klammern und der Backslash sind nicht erlaubt, weil sie 
--- in LaTeX zum Kennzeichnen von Token benutzt werden.
+-- Instead we include versions of the parsers which check that all the input is read.
 -- **********************************************************************************************
 
-entityNameParser :: GenParser Char st String
-entityNameParser = many1 (noneOf ".\\{},= \t\n")
-
-identifierParser :: GenParser Char st String
-identifierParser = try(do spaces 
-                          str <- choice ((try(string "Root"))
-                                         :(try(string "Current"))
-                                         :(try(string "Parent"))
-                                         :(try(entityNameParser)):[])
-                          spaces
-                          return(str))
-
-entityFullNameParser :: [String] -> GenParser Char st EntityFullName
-entityFullNameParser l = 
-  do id <- try (identifierParser) 
-     point <- option "" (string ".")
-     if (point == ".") 
-       then entityFullNameParser (l ++ [id])
-       else return(EntityFullName (map EntityName (l ++ [id])))
+entityNameParser1 :: GenParser Char st EntityName
+entityNameParser1 = isAll entityNameParser
 
 
+entityFullNameParser1 :: GenParser Char st EntityFullName
+entityFullNameParser1 = isAll entityFullNameParser
+
+
+entitySearchNameParser1 :: GenParser Char st EntitySearchName
+entitySearchNameParser1 = isAll entitySearchNameParser
+
+isAll :: GenParser Char st a -> GenParser Char st a
+isAll parser0 =
+   do
+      a <- parser0
+      eof
+      return a
 
 -- ***********************************************************************************************
 --
@@ -695,14 +692,14 @@ hideRevealDirectiveParser =
   try(do spaces
          string "Hide"
          char '{'
-         nameList <- commaSep (entityFullNameParser [])
+         nameList <- commaSep (entityFullNameParser)
          char '}'
          spaces
          return([Hide nameList]))
   <|> try(do spaces
              string "Reveal"
              char '{'
-             nameList <- commaSep (entityFullNameParser [])
+             nameList <- commaSep (entityFullNameParser)
              char '}'
              spaces
              return([Reveal nameList]))
@@ -721,13 +718,13 @@ renameDirectiveParser =
 -- Parst ein name=name-Paar aus der Rename-Liste (siehe renameDirectiveParser):
 namePairParser ::  GenParser Char st Directive
 namePairParser = try( do spaces
-                         firstName <- identifierParser
+                         firstName <- entityNameParser
                          spaces
                          char '='
                          spaces
-                         secondName <- entityFullNameParser []
+                         secondName <- entityFullNameParser
                          spaces
-                         return(Rename (EntityName firstName) secondName))
+                         return(Rename firstName secondName))
 
 -- Parst eine einzelne Direktive:
 directiveParser :: GenParser Char st [Directive]
@@ -1027,12 +1024,12 @@ makeImportCmds :: [Frag] -> [ImportCommand] -> WithError (Maybe ImportCommands)
 makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) importCmds =
   case singleParams of
     (SingleParam ((Other aliasStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
-      -> let aliasEl = parse entityNameParser "" aliasStr
-             packageNameEl = parse (entityFullNameParser []) "" packageNameStr
+      -> let aliasEl = parse entityNameParser1 "" aliasStr
+             packageNameEl = parse entitySearchNameParser1 "" packageNameStr
          in case aliasEl of
                Right alias  -> 
                  case packageNameEl of 
-                   Right packageName -> makeImportCmds fs (importCmds ++ [(PathAlias (EntityName alias) packageName)])
+                   Right packageName -> makeImportCmds fs (importCmds ++ [(PathAlias alias packageName)])
                    Left err -> hasError ("Parse error in second argument of Path-Command:\n"
                                      ++ (makeTextElem [cmd] ++ "\nError:\n")
                                      ++ show err)
@@ -1054,7 +1051,7 @@ makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCm
 
     -- Matcht auf \Import[directives]{packageName}:
     (SingleParam ((Other directivesStr):_) _) : (SingleParam ((Other packageNameStr):_) _)  : _
-      -> let packageNameEl = parse (entityFullNameParser []) "" packageNameStr
+      -> let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
              directivesEl = parse directivesParser "" directivesStr
          in case directivesEl of
                Right directives  -> 
@@ -1072,7 +1069,7 @@ makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCm
     where
        genPackageName :: String -> WithError (Maybe ImportCommands)
        genPackageName packageNameStr = 
-         let packageNameEl = parse (entityFullNameParser []) "" packageNameStr
+         let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
          in case packageNameEl of 
               Right packageName -> makeImportCmds fs (importCmds ++ [(Import [] packageName)])
               Left err -> hasError ("Parse error in Package-name argument of Import-Command:\n"
@@ -1904,12 +1901,8 @@ makeImportCmdText (Import ds packageFullName) =
                         else "[" ++ (dirStr ++ tmpStr ++ renStr) ++ "]"
   in "\\Import" ++ directivesStr ++ "{" ++ packageNameStr ++ "}"    
 
-makeImportCmdText (PathAlias (EntityName alias) (EntityFullName entityNames)) =
-  let namesList = [ str | (EntityName str) <- entityNames]
-      packageName = if (namesList == [])
-                      then ""
-                      else init (concat (map (++ ".") namesList))
-  in "\\Path{" ++ alias ++ "}{" ++ packageName ++ "}"
+makeImportCmdText (PathAlias alias searchName) =
+  "\\Path{" ++ toString alias ++ "}{" ++ toString searchName ++ "}"
 
 
 makeDirectiveText :: Directive -> String

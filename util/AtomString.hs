@@ -19,13 +19,19 @@ module AtomString(
 
    Str(..),
       -- WRAP 
+
+   mkFromStringWE,
+      --  :: Parser stringClass -> (String -> WithError stringClass)
+      -- Make a fromStringWE function given a parser.
    ) where               
 
-import Concurrent
-import FiniteMap
-import qualified IOExts(unsafePerformIO)
+import Control.Concurrent
+import Data.FiniteMap
+import System.IO.Unsafe
 import PackedString
-import Exception
+import Control.Exception
+import Text.ParserCombinators.Parsec 
+
 
 import Debug(debug)
 import QuickReadShow
@@ -48,7 +54,7 @@ emptyAtomSource =
       return (AtomSource mVar)
 
 theAtomSource :: AtomSource
-theAtomSource = IOExts.unsafePerformIO emptyAtomSource
+theAtomSource = unsafePerformIO emptyAtomSource
 {-# NOINLINE theAtomSource #-} 
 -- avoid GHC bug with Linux optimisation which can clone MVars.
 
@@ -79,9 +85,9 @@ class StringClass stringClass where
    fromStringWE s = hasValue (fromString s)
 
 instance StringClass AtomString where
-   fromString string = IOExts.unsafePerformIO (mkAtom string)
+   fromString string = unsafePerformIO (mkAtom string)
 
-   toString atom = IOExts.unsafePerformIO (readAtom atom)
+   toString atom = unsafePerformIO (readAtom atom)
 
 instance StringClass stringClass => QuickRead stringClass where
    quickRead = WrapRead fromString
@@ -147,6 +153,23 @@ mkAtom str =
 readAtom :: AtomString -> IO String
 readAtom (AtomString packedString) =
    return(unpackPS packedString)
+
+------------------------------------------------------------------------
+-- How to make a fromStringWE given a Parsec parser.
+------------------------------------------------------------------------
+
+mkFromStringWE :: Parser stringClass -> (String -> WithError stringClass)
+mkFromStringWE parser0 str =
+   let
+      parser1 =
+         do
+            result <- parser0
+            eof
+            return result
+   in
+      case parse parser1 "" str of
+         Right stringClass -> hasValue stringClass
+         Left parseError -> hasError (show parseError)
 
 ------------------------------------------------------------------------
 -- The Str class.  Wrapping an instance of StringClass in this gives
