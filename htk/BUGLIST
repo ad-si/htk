@@ -1,0 +1,19 @@
+
+HTk Buglist
+-----------
+
+This file contains a list of known and as-yet unfixed HTk bugs, in
+(roughly) descending order of seriousness.
+
+Radio groups do not deselect [cxl/joel]
+  It is possible to have more than one radio button selected in a group.
+  See htk/examples/MainmenuEx.hs
+
+Popup-Menus do not work [joel]
+  They just don't do anything.
+
+Interactors on unpacked canvas objects behave strange [ludi, 25.01.2001]
+  If you set an interactor going on a canvas object which is not yet
+  packed, it will behave strangely and continue to do so even after
+  the canvas object has been packed.
+  
