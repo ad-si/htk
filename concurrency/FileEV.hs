@@ -42,19 +42,14 @@ makeFileEV :: Handle -> IO HandleEV
 makeFileEV handle =
    do
       readChannel <- newChannel  -- read from handle
-
---      fd <- handleToFd handle
-
       let
---         fdInt = fdToInt fd
          toForkRead = -- convert output from the Handle
             do
---               threadWaitRead fdInt
                line <- hGetLine handle
                sendIO readChannel line
                toForkRead
 
-      readThread <- forkIO toForkRead
+      readThread <- forkIO (goesQuietly toForkRead)
 
       return (HandleEV (receive readChannel) handle readThread)
 

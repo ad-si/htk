@@ -348,12 +348,12 @@ encodeAndCheck fileSys version filePath changes =
                case firstChange of
                   NewFile brokenPath ->
                      encodeFileChange 
-                        False filePath fileSys changeTree brokenPath
+                        True filePath fileSys changeTree brokenPath
                   NewFolder brokenPath ->
                      encodeNewFolder fileSys changeTree brokenPath
                   EditFile brokenPath ->
                      encodeFileChange 
-                        True filePath fileSys changeTree brokenPath
+                        False filePath fileSys changeTree brokenPath
                   RMObject brokenPath ->
                      encodeRMObject fileSys changeTree brokenPath
                   MVObject brokenPathFrom brokenPathTo ->
@@ -439,7 +439,7 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
       let
          completeName = unbreakName (filePath : brokenPath)
       exists <- doesFileExist completeName
-      if exists
+      if not exists
          then
             fileSysError("encodeFileChange: file "++completeName++
                " does not exist.")
@@ -461,6 +461,14 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
                            Just (UpdateFile original _) -> original
                            -- match error if file not in folder (so not
                            -- new) or this is a folder instead.
+                           Nothing -> 
+                              let
+                                 (str,uniType) = strType
+                                 fname = makeFileName str uniType
+                              in
+                                 error (
+                                    "FileSys.encodeFileChange: In file edit "
+                                    ++fname++" does not exist") 
                newMap = addToFM folderMap strType  
                   (UpdateFile original completeName)
             in

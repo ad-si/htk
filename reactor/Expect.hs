@@ -189,8 +189,8 @@ newExpect tool confs =
                readerThread=Nothing,
                matcherThread=Nothing
                }
-      readerThread <- forkIO (matcher expect emptyRST)
-      matcherThread <- forkIO (reader expect)
+      readerThread <- forkIO (goesQuietly(matcher expect emptyRST))
+      matcherThread <- forkIO (goesQuietly(reader expect))
       collectable <- newCollectibleObj
       -- specify that when we want to GC this Expect instance
       -- we destroy the childprocess

@@ -14,30 +14,38 @@ DESCRIPTION   : Threads with identity.
 
 
 module Thread (
-        module Computation,
-
-        ThreadID,
-        getThreadID,
-
-        -- thread creation
-        forkIO,
-
-        -- delay thread execution
-        Duration,
-        mins,
-        secs,   
-        msecs,
-        usecs,
-        delay,
-        after,
-        every,
-        
-        ) 
+   module Computation,
+   
+   ThreadID,
+   getThreadID,
+   
+   -- thread creation
+   forkIO, -- identical with standard action.
+   
+   goesQuietly,
+   -- :: IO () -> IO ()
+   -- This wraps an action so that if killed nothing is printed and it
+   -- just returns.  This is useful for Expect and other things which
+   -- get rid of a redundant thread by killing it.   
+   
+   
+   -- delay thread execution
+   Duration,
+   mins,
+   secs,   
+   msecs,
+   usecs,
+   delay,
+   after,
+   every,
+   
+   ) 
 where
 
 import Maybes
 import Concurrent
 import Computation
+import Exception
 
 import Debug(debug)
 
@@ -86,7 +94,24 @@ getThreadID :: IO ThreadID
 getThreadID = myThreadId
 
 
+-- --------------------------------------------------------------------------
+-- goesQuietly
+-- --------------------------------------------------------------------------
 
+goesQuietly :: IO () -> IO ()
+goesQuietly action =
+   do
+      result <-
+         tryIO 
+            (\ exception -> case exception of
+               AsyncException ThreadKilled -> Just ()
+               _ -> Nothing
+               )
+            action
+      case result of
+         Left () -> return ()
+         Right () -> return ()
+               
 
 
 
