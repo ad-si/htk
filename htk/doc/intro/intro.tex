@@ -150,6 +150,101 @@ used frequently in HTk to impose a typing discipline onto Tk's untyped
 GUI element structure, with the benefit that type checking can prevent
 run time errors.
 
+
+\subsection{Configurations and Resources}
+
+Above, the text of the button was set with a \emph{configuration
+  option}. Configuration options determine various attributes of a
+widget. They can be given at the time of creation, or changed later
+on. Not every widget supports all configurations, and this behaviour
+is modelled in HTk by Haskell's type classes: configurations in
+general are polymorphic over all widgets, but particular
+configurations are restricted to certain classes of widgets.
+
+For example, the text configuration is given by this class:
+\begin{xcode}
+class (GUIObject w, GUIValue v) => HasText w v where
+  text :: HasText w v => v -> Config w
+  getText :: HasText w v => w -> IO v
+\end{xcode}
+The class \texttt{GUIObject w} is one of HTk's most basic classes. Its
+instances are widgets, and other interface elements we will encounter
+later (canvas items, text tags). \texttt{GUIValue v} is another basic
+class, the instances of which are all basic datatypes which can be
+communicated to Tk: \texttt{Int}, \texttt{Double}, \texttt{Bool},
+\texttt{String} and \texttt{[String]}. 
+
+Widgets can be configured with a text are instances of the class
+\texttt{HasText}, such as \texttt{Button}. 
+
+The configuration classes can all be found in the module
+\href{Configuration.html}{\texttt{Configuration}}.
+
+The configuration type is just a type synonym\footnote{Type synonyms
+  like that in class confusions confuse Hdoc, which is why they appear
+  expanded at various places of HTk's source code--- just in case you
+  happen to browse it, which you are more than welcome to.}
+\begin{xcode}
+type Config w = w -> IO w
+\end{xcode}
+As seen above, configurations can be given at the time of creation, or
+later on. In the latter case, the helpful \texttt{(#)} operator
+provides useful syntactic sugar:
+\begin{xcode}
+( # ) :: a -> (a -> b) -> b
+o # f = f o  
+\end{xcode}
+
+Note the difference between configuration options, which determine the
+appearance, and behaviour of the widget, and packing options, which
+determine the way it is packed. 
+
+\subsubsection{Geometry}
+
+The abstract data type \texttt{Distance}, implemented in the module
+\href{Geometry.html}{\texttt{Geometry}}, represents distances in HTk.
+Distances can be specified in \texttt{cm}, \texttt{mm}, \texttt{ic}
+(inches) and \texttt{pp} (points), with functions  \texttt{cm:: Int->
+  Distance}. Moreover, \texttt{Distance} is an instance of
+\texttt{Num}, so we can specify the distance 3 (meaning 3 pixels)
+directly. 
+
+\subsubsection{Colours}
+
+The abstract data type \texttt{Colour}, implemented in the module
+\href{Geometry.html}{\texttt{Geometry}}, represents colours in
+HTk. Just like distances, the type itself is abstract, but unlike
+distances, there is a class \texttt{ColourDesignator}, the instances
+of which give ways of describing colours, such as:
+\begin{xcode}
+instance ColourDesignator [Char]
+instance ColourDesignator (Int, Int, Int)
+instance ColourDesignator (Double, Double, Double)  
+\end{xcode}
+The strings are named colours (\texttt{red}, \texttt{white},
+\texttt{black}, etc.), the tuples are RGB values. (The functions of
+the type classes \texttt{Colour} and \texttt{ColourDesignator} are for
+HTk's internal consumption only.)
+
+\subsubsection{Fonts}
+
+Fonts are implemented in the module
+\href{Font.html}{\texttt{Font}}. They are specified in the usual way,
+by giving a family, slant, spacing, width and weight. For example, the
+family is given by 
+\begin{xcode}
+data FontFamily = Lucida | Times | Helvetica 
+                | Courier | Symbol | Other String  
+\end{xcode}
+where the five enumerated types are available on most systems. With
+\texttt{Other}, you can directly give a more exotic family such as
+\texttt{clearlyu alternate glyphs}. 
+
+Be warned that fonts are, in principle, not very portable under X,
+since the available fonts are determined by the fonts of the X server
+the programm is running on. It is best to stick to well-known font
+families such as the above, and usual sizes. 
+
 \subsection{Packing}
 
 As mentioned above, after widgets have been created (with e.g.
@@ -165,6 +260,7 @@ order in which the widgets are packed, and by packing options. Tk's
 know different packing algorithms (or \emph{geometry managers}, in Tk
 parlance); of these, HTk supports the standard packer, and the grid
 packer.
+
 
 \subsubsection{The Standard Packer}
 
@@ -223,18 +319,6 @@ Note that within the same container you cannot use different packing
 algorithms. The first widget packed into a container defines the
 packing for this container.
 
-\subsection{Configurations}
-
-Explain configs here.
-
-\subsection{Resources}
-
-\begin{itemize}
-\item Fonts 
-\item Geometry
-\item Dimensions
-\end{itemize}
-
 \section{Events}
 
 \begin{itemize}
@@ -245,7 +329,6 @@ Explain configs here.
 \section{Widgets}
 
 \subsection{Basic Widgets}
-
 
 \begin{itemize}
 \item Frames
