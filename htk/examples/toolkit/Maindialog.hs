@@ -112,6 +112,8 @@ all mobile phones." []))
 	newTextField form [size (5,5), selector ent1, text "Editor String",
 	                   modifier (\ old val -> old {ent1=val})] 
                                          :: IO (TextField Test String)
+        l<- newLabel form [text "This is some explanatory text."]
+        pack l [PadX (mm 5), Side AtLeft]
         newEntryField form [text "Entry Int", selector ent3, 
                             modifier (\ old val -> (old {ent3=val}))] 
                                          :: IO (EntryField Test Int)

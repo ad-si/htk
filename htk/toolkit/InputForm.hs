@@ -162,6 +162,8 @@ instance Widget (InputForm a) where
                 })
         getCursor form  = getFormConfig form fFormCursor
 
+instance Container (InputForm a)
+
 instance HasSize (InputForm a)
 
 instance HasBorder (InputForm a)
