@@ -38,6 +38,11 @@ import CodedValue
 class HasCodedValue displayType => DisplayType displayType where
    displayTypeTypeIdPrim :: displayType -> String
    -- This function should not look at its argument.
+   -- To preserve uniqueness, the string should begin with the
+   -- module name where the instance is defined.  If there is further 
+   -- information, the module name should be followed by a period.  So
+   -- for a module named "A", "A" and "A.B" are legal values for this
+   -- string, but not "AB" or "C".
 
    graphParmsPrim :: HasGraphConfigs graphParms => displayType -> graphParms
 

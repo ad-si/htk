@@ -143,11 +143,11 @@ $(LIB) : $(LIBOBJS)
 
 $(TESTPROGS) : test% :  Test%.o $(LIBS) $(LIB)
 	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS)
+	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS) $(LINKFLAGS)
 
 $(MAINPROGS) : % :  Main%.o $(LIBS) $(LIB)
 	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS)
+	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS) $(LINKFLAGS)
 
 $(HIFILES) : %.hi : %.o
 	@:

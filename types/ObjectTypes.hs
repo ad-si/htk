@@ -75,6 +75,12 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- This function should not look at its argument but return a
       -- unique identifier for this objectType, which is totally unique
       -- across everything.  
+      -- To preserve uniqueness, the string should begin with the
+      -- module name where the instance is defined.  If there is further 
+      -- information, the module name should be followed by a period.  So
+      -- for a module named "A", "A" and "A.B" are legal values for this
+      -- string, but not "AB" or "C".
+
    objectTypeIdPrim :: objectType -> AtomString
       -- Returns the unique identifier for this objectType in this
       -- version.  NB - this may be changed from version to version
