@@ -15,3 +15,18 @@ echo \#define UNIDIR \"$FULLUNIDIR\" >mk/settings.h
 
 # set up a file mk/settings.mk.  This is used everywhere . . .
 echo UNIDIR = $FULLUNIDIR >mk/settings.mk
+
+# set up the links in bin, if they don't already exist
+set_link ()
+{ if [ ! -x bin/$1 ]; then 
+     BINARY=`which $1`
+     if [ -n $BINARY ]; then ln -s $BINARY bin/$1; echo Linked $UNIDIR/bin/$1 to $BINARY.
+     else echo WARNING: no binary for $1. Set link in bin/$1 manually.
+     fi
+  fi }
+
+set_link wish
+
+
+
+
