@@ -18,6 +18,7 @@ module UserInteraction (
 
 import RVar
 import List
+import EventStream
 import InterActor
 import ExternalEvent
 import GUIObject
@@ -29,6 +30,12 @@ import Computation
 newtype UIA a = UIA (IA a, [GUIOBJECT])
 
 guiObjectEq (GUIOBJECT id1 _) (GUIOBJECT id2 _) = id1 == id2
+
+instance Actor InterActor (UIA ()) where
+   become f (UIA(ia, ws)) = become f ia 
+
+instance Actor (EventStream a) (UIA a) where
+   become f (UIA(ia, ws)) = become f ia
 
 {-                                                 -- TD
 instance Actor InterActor (IA ()) where

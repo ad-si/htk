@@ -23,6 +23,7 @@ module Mouse (
         getCurrentGrab,
 
         mouseEvent,
+        mouseEvent',
         mouseMotion,
         mouseEnter,
         mouseLeave,
@@ -35,7 +36,7 @@ import GUICore
 import Char(isSpace)
 import Debug(debug)
 
---import UserInteraction
+import UserInteraction
 
 -- --------------------------------------------------------------------------
 -- Grab Status 
@@ -130,12 +131,12 @@ mouseEvent :: (Interactive w,GUIEventDesignator e)
 mouseEvent w e = userinteraction w e Request >>>= return . getMouseEventInfo
     where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
 
-{-
-mouseEvent :: (Interactive w,GUIEventDesignator e)  
-           => w -> e -> IA (Position,Int)
-mouseEvent w e = liftIA(userinteraction w e Request) >>>= return . getMouseEventInfo
+
+mouseEvent' :: (Interactive w,GUIEventDesignator e)  
+           => w -> e -> UIA (Position,Int)
+mouseEvent' w e = UIA(userinteraction w e Request, [toGUIObject w]) >>>= return . getMouseEventInfo
     where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
--}
+
 
 mouseMotion :: Interactive w => w -> IA Position
 mouseMotion w = mouseEvent w Motion >>>= return . fst
