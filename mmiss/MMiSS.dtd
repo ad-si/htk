@@ -43,6 +43,7 @@
                          comment          CDATA  #IMPLIED
                          previousVersion  CDATA  #IMPLIED
                          authors          CDATA  #IMPLIED
+                         institute        CDATA  #IMPLIED
                          priorAuthors     CDATA  #IMPLIED">
 
                          
@@ -169,18 +170,18 @@
 <!ELEMENT package (section | includeSection)+>
 <!ATTLIST package %attributes;
           path    CDATA  #IMPLIED>
-<?MMiSSDisplay package : orange box ?>
+<?MMiSSDisplay package : yellow box ?>
 
 <!ELEMENT section ((abstract | includeAbstract)?, 
                    (introduction | includeIntroduction)?, 
-                   (%group;)+, 
+                   (%group;)*, 
                    (summary | includeSummary)?)>
 <!ATTLIST section %attributes;>
 <?MMiSSDisplay section : yellow box ?>
 
 <!ELEMENT paragraph (%unit;)*>
 <!ATTLIST paragraph %attributes;>
-<?MMiSSDisplay paragraph : yellow box ?>
+<?MMiSSDisplay paragraph : Green box ?>
 
 
 <!--
@@ -219,31 +220,31 @@
 
 <!ELEMENT textFragment %text;>
 <!ATTLIST textFragment %attributes;>
-<?MMiSSDisplay textFragment : Green box ?>
+<?MMiSSDisplay textFragment : White box ?>
 
 <!ELEMENT table %text;>
 <!ATTLIST table caption    CDATA  #IMPLIED
                 %attributes;>
-<?MMiSSDisplay table : Green ellipse ?>
+<?MMiSSDisplay table : White box ?>
 
-<!ELEMENT figure  EMPTY>
+<!ELEMENT figure  %text;>
 <!ATTLIST figure  caption    CDATA  #IMPLIED
                   %attributes;>
-<?MMiSSDisplay figure : Green ellipse ?>
+<?MMiSSDisplay figure : White box ?>
 
 <!ELEMENT glossaryEntry  %text;>
 <!ATTLIST glossaryEntry  %attributes;>
-<?MMiSSDisplay glossaryEntry : Green ellipse ?>
+<?MMiSSDisplay glossaryEntry : White box ?>
 
 <!ELEMENT bibEntry  %text;>
 <!ATTLIST bibEntry  %attributes;>
-<?MMiSSDisplay bibEntry : Green ellipse ?>
+<?MMiSSDisplay bibEntry : White box ?>
 
 <!ELEMENT list  (listItem)*>
 <!ATTLIST list  listType  (itemize | enumerate | description)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
-<?MMiSSDisplay list : Green ellipse ?>
+<?MMiSSDisplay list : White box ?>
 
 
 <!ELEMENT listItem  (list | %atom;)*>
@@ -262,61 +263,61 @@
 <!ELEMENT program (%conceptualAtom; | programFragment | program
                   | includeProgramFragment | includeProgram)*>
 <!ATTLIST program %attributes;>
-<?MMiSSDisplay program : Blue box ?>
+<?MMiSSDisplay program : Green box ?>
 
 <!ELEMENT theory (%conceptualAtom; | clause | theory
                   | includeClause | includeTheory)*>
 <!ATTLIST theory %attributes;>
-<?MMiSSDisplay theory : Blue box ?>
+<?MMiSSDisplay theory : Green box ?>
 
 <!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST theorem %attributes;>
-<?MMiSSDisplay theorem : Blue box ?>
+<?MMiSSDisplay theorem : Green box ?>
 
 <!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST conjecture %attributes;>
-<?MMiSSDisplay conjecture : Blue box ?>
+<?MMiSSDisplay conjecture : Green box ?>
 
 <!ELEMENT lemma (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST lemma %attributes;>
-<?MMiSSDisplay lemma : Blue box ?>
+<?MMiSSDisplay lemma : Green box ?>
 
 <!ELEMENT corollary (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST corollary %attributes;>
-<?MMiSSDisplay corollary : Blue box ?>
+<?MMiSSDisplay corollary : Green box ?>
 
 <!ELEMENT assertion (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST assertion %attributes;>
-<?MMiSSDisplay assertion : Blue box ?>
+<?MMiSSDisplay assertion : Green box ?>
 
 <!ELEMENT proof (%conceptualAtom; | step | script | proof
                  | includeStep | includeScript | includeProof)*>
 <!ATTLIST proof %attributes;>
-<?MMiSSDisplay proof : Blue box ?>
+<?MMiSSDisplay proof : Green box ?>
 
 <!ELEMENT development  (%conceptualAtom; | step | script | development
                         | includeStep | includeScript | includeDevelopment)*>
 <!ATTLIST development  %attributes;>
-<?MMiSSDisplay development : Blue box ?>
+<?MMiSSDisplay development : Green box ?>
 
 
 <!ELEMENT script  (%conceptualAtom; | step | script
                    | includeStep | includeScript)*>
 <!ATTLIST script %attributes;>
-<?MMiSSDisplay development : Blue box ?>
+<?MMiSSDisplay development : Green box ?>
 
 <!ELEMENT programFragment  (#PCDATA)>
 <!ATTLIST programFragment  %attributes;>
-<?MMiSSDisplay programFragment : Blue ellipse ?>
+<?MMiSSDisplay programFragment : White box ?>
 
 <!ELEMENT clause  (#PCDATA)>
 <!ATTLIST clause  %attributes;>
-<?MMiSSDisplay clause : Blue ellipse ?>
+<?MMiSSDisplay clause : White box ?>
 
 
 <!ELEMENT step  (#PCDATA)>
 <!ATTLIST step  %attributes;>
-<?MMiSSDisplay step : Blue ellipse ?>
+<?MMiSSDisplay step : White box ?>
 
 
 
