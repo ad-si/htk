@@ -1,11 +1,11 @@
-{- ------------------------------------------------------------------------
+{- --------------------------------------------------------------------
  -
  - HTk Examples: Tree list example
  -
  - Author: ludi
  - $Revision$ from $Date$  
  -
- - ------------------------------------------------------------------------ -}
+ - -------------------------------------------------------------------- -}
 
 module Main (main) where
 
@@ -18,8 +18,6 @@ import Editor
 import ScrollBox
 import Maybe
 
---import Grep
-
 logMsg :: Editor String -> String -> IO ()
 logMsg ed txt =
   do
@@ -29,27 +27,24 @@ logMsg ed txt =
     done
 
 cfun :: ChildrenFun String
-cfun (tl, val, nm) =
+cfun (tl, val, _, _) =
   case val of
-      "/"              -> return [(tl, "/home", "home"),
-                                  (tl, "/usr", "usr"),
-                                  (tl, "/tmp", "tmp")]
-      "/home"          -> return [(tl, "/home/ludi", "ludi")]
-      "/usr"           -> return [(tl, "/usr/bin", "bin"),
-                                  (tl, "/usr/lib", "lib"),
-                                  (tl, "/usr/share", "share")]
+      "/"              -> return [(tl, "/home", "home", True),
+                                  (tl, "/usr", "usr", True),
+                                  (tl, "/tmp", "tmp", True)]
+      "/home"          -> return [(tl, "/home/ludi", "ludi", True)]
+      "/usr"           -> return [(tl, "/usr/bin", "bin", True),
+                                  (tl, "/usr/lib", "lib", True),
+                                  (tl, "/usr/share", "share", True)]
       "/tmp"           -> return []
-      "/home/ludi"     -> return [(tl, "/home/ludi/www", "www")]
+      "/home/ludi"     -> return [(tl, "/home/ludi/www", "www", True)]
       "/usr/bin"       -> return []
       "/usr/lib"       -> return []
       "/usr/share"     -> return []
       "/home/ludi/www" -> return []
 
 ifun :: ImageFun String
-ifun obj =
-  do
-    img <- folderImg
-    return img
+ifun obj = folderImg
 
 main =
   do
@@ -57,9 +52,10 @@ main =
     main <- newVFBox []
     box <- newHBox [parent main]
     win <- window main [text "Tree list example"]
-    treelist <- newTreeList cfun ifun [parent box, background "white",
-                                       size (cm 15, cm 10)]
-    setRoot (treelist, "/", "/")
+    treelist <- newTreeList Fast cfun ifun [parent box,
+                                            background "white",
+                                            size (cm 15, cm 10)]
+    setRoot (treelist, "/", "/", True)
     quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
                        parent box, text "Quit", width 15,
                        command (\ ()-> destroy win)]
@@ -70,8 +66,9 @@ main =
                       (selectionEvent treelist >>>=
                          \mobj -> logMsg output
                                          ((case mobj of
-                                             Just (_, _, nm) -> nm
-                                             _ -> "Nothing") ++ " selected")))
+                                             Just (_, _, nm, _) -> nm
+                                             _ -> "Nothing") ++
+                                          " selected")))
     sync (destroyed win)
 
 folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ

@@ -2,7 +2,7 @@
  -
  - Module FileDialog
  -
- - simple file dialog
+ - simple file dialog using list boxes
  -
  - Author: ludi
  - $Revision$ from $Date$
@@ -32,7 +32,6 @@ import Image
 import Mouse
 import Directory
 import RVar
-import Posix
 import System
 import Channels
 import Maybe
@@ -43,7 +42,9 @@ debugMsg str = if debug then putStr (">>> " ++ str ++ "\n\n") else done
 getFilesAndFolders :: FilePath -> Bool -> IO ([FilePath], [FilePath])
 getFilesAndFolders path showhidden =
   do
+    debugMsg "getting directory contents"
     dcontents <- getDirectoryContents path
+    debugMsg "got directory contents"
     sort dcontents [] [] path
   where sort :: [FilePath] -> [FilePath] -> [FilePath] -> FilePath ->
                 IO ([FilePath], [FilePath])
@@ -52,10 +53,10 @@ getFilesAndFolders path showhidden =
             sort fs files folders abs
           else
             do
-              debugMsg ("getting file status of " ++ f)
-              fstat <- getFileStatus (abs ++ f)
-              debugMsg ("got requested file status")
-              (if isDirectory fstat then
+              debugMsg ("getting permissions of " ++ abs ++ f)
+              p <- getPermissions (abs ++ f)
+              debugMsg ("got permissions of " ++ abs ++ f)
+              (if searchable p && readable p then
                  sort fs files ((f ++ "/") : folders) abs
                else sort fs (f : files) folders abs)
         sort _ files folders _ =
@@ -74,7 +75,7 @@ dropLast path = dropLast' (tail (reverse path))
         dropLast' (c : cs) =
           if c == '/' then reverse (c : cs) else dropLast' cs
 
-updPathMenu :: MenuButton FilePath -> RVar (Maybe (Menu FilePath)) ->
+updPathMenu :: MenuButton () -> RVar (Maybe (Menu ())) ->
                FilePath -> RVar [FilePath] -> RVar [FilePath] ->
                RVar FilePath -> ListBox [FilePath] ->
                ListBox [FilePath] -> Entry FilePath -> Label FilePath ->
@@ -94,11 +95,13 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
   where upperPaths :: FilePath -> [FilePath]
         upperPaths "/" = ["/"]
         upperPaths p = p : upperPaths (dropLast p)
-        createNewMenuItem :: Menu FilePath -> FilePath ->
-                             IO (Button FilePath)
+        createNewMenuItem :: Menu () -> FilePath -> IO ()
         createNewMenuItem pathmenu fp =
-          newMenuItem pathmenu [text fp, command (selected fp)]
-        selected :: FilePath -> () -> IO FilePath
+          do
+            item <- newMenuItem pathmenu [text fp, command (selected fp)]
+            interactor (const (triggered item))
+            done
+        selected :: FilePath -> () -> IO ()
         selected fp () =
           do
             status # value "Reading...     "
@@ -112,9 +115,8 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
                  updPathMenu pathmenubutton menuref nupath foldersref
                    filesref pathref folderslb fileslb fileEntry status
                    showhiddenref
-                 return fp
              else
-               status # value "Permission denied!" >> return fp)
+               status # value "Permission denied!" >> done)
 
 changeToFolder :: FilePath -> RVar [FilePath] -> RVar [FilePath] ->
                   RVar FilePath -> ListBox [FilePath] ->
@@ -122,12 +124,13 @@ changeToFolder :: FilePath -> RVar [FilePath] -> RVar [FilePath] ->
 changeToFolder path foldersref filesref pathref folderslb fileslb
                fileEntry showhidden =
   do
-    fstat <- getFileStatus path
     acc <- system ("access -rx " ++ path)
     (if acc == ExitSuccess then
        do
          setVar pathref path
+         debugMsg "getting files and folders"
          (files, folders) <- getFilesAndFolders path showhidden
+         debugMsg "got files and folders"
          setVar filesref files
          setVar foldersref folders
          folderslb # value folders
