@@ -52,14 +52,15 @@ rndPos p =
         ((lox, loy), (hix, hiy))= bounds p
  
 -- Create all mines
-createMines :: (Int, Int)-> IO Mines
-createMines (w, h) = 
+createMines :: (Int, Int) -> Int 
+                          -> IO Mines
+createMines (w, h) d = 
   do -- We first get the positions for all the mines, and then put
      -- them on an empty pitch.
      minePos <- rndPos mt
      return (mt // zip (take numMines minePos) (repeat mine)) where
          mt= listArray ((1, 1), (w, h)) (repeat nomine)
-         numMines = (w*h) `div` 5 
+         numMines = (w*h) `div` d
          mine   = Unexplored{mine= True, flagged= False}
          nomine = Unexplored{mine= False, flagged= False}
 
@@ -151,7 +152,8 @@ buttons par sb startEv (size@(xmax, ymax)) =
                   +>
                   start 
          start :: Event ()
-         start = startEv >>> do m <- createMines (snd (bounds bArr))
+         start = startEv >>> do d <- detDiff varDiff 
+	                        m <- createMines (snd (bounds bArr)) d
 			        sb # photo smSmileImg
                                 mapM_ (\b-> b # text " " >>= relief Raised) (elems bArr)
                                 sync (play m)
@@ -176,13 +178,58 @@ main =
     b3 <- createMenuCommand fm [text "Quit"]
     quitClick <- clicked b3
 
-    em <- createPulldownMenu menubar [text "Preferences"]
+    pm <- createPulldownMenu menubar [text "Preferences"]
+    
+    pmc1 <- createMenuCascade pm [text "Size"]
+    pmc1m <- createMenu main False []
+    pmc1 # menu pmc1m
+        
+    pmc2 <- createMenuCascade pm [text "Difficulty"]
+    pmc2m <- createMenu main False []
+    pmc2 # menu pmc2m
+
+    varSize <- createTkVariable "size2"
+    sr1 <- createMenuRadioButton pmc1m [text "tiny(6x6)", value "size1",
+                                        variable varSize]
+    sr2 <- createMenuRadioButton pmc1m [text "small(10x10)", value "size2",
+                                        variable varSize]
+    sr3 <- createMenuRadioButton pmc1m [text "normal(15x15)", value "size3",
+                                        variable varSize]
+    sr4 <- createMenuRadioButton pmc1m [text "large(20x20)", value "size4",
+                                        variable varSize]
+    sr5 <- createMenuRadioButton pmc1m [text "huge(25x25)", value "size5",
+                                        variable varSize]
+
+    clickedsr <- clicked sr1
+    clickedsr <- clicked sr2
+    clickedsr <- clicked sr3
+    clickedsr <- clicked sr4
+    clickedsr <- clicked sr5
+
+    varDiff <- createTkVariable "6"
+    dr1 <- createMenuRadioButton pmc2m [text "easy", value "8",
+                                        variable varDiff]
+    dr2 <- createMenuRadioButton pmc2m [text "normal", value "6",
+                                        variable varDiff]
+    dr3 <- createMenuRadioButton pmc2m [text "hard", value "4",
+                                        variable varDiff]
+    dr4 <- createMenuRadioButton pmc2m [text "nuts", value "3",
+                                        variable varDiff]
+
+{-    clickeddr <- clicked dr1
+    clickeddr <- clicked dr2
+    clickeddr <- clicked dr3
+    clickeddr <- clicked dr4
+-}    
+
+{-
     _ <- createMenuCommand em [text "Cut"]
     -- clickedb2 <- clicked b2
     _ <- createMenuCommand em [text "Copy"]
     -- clickedb3 <- clicked b3
     _ <- createMenuCommand em [text "Paste"]
     -- clickedb4 <- clicked b4
+-}
 
     -- create the smiley button on top the mines
     sm <- newButton main [photo smSmileImg]
@@ -190,25 +237,55 @@ main =
 
     restartCh <- newChannel
 
-    let size= (20, 20)
+    size <- detSize varSize
+--    diff <- detDiff varDiff    
 
     bfr <- newFrame main [width (cm 10)]
-    allbuttons <- buttons bfr sm (receive restartCh) size 
+    allbuttons <- buttons bfr sm (receive restartCh) size
 
     pack sm [Side AtTop, PadY 20, PadX 20, Anchor North]
+
     pack bfr [Side AtTop, PadX 15] 
     mapM_ (\(xy, b)-> grid b [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
     
     -- start the menu handler
     spawnEvent (forever (restartClick >>> sendIO restartCh ()
                       +> restart2Click >>> sendIO restartCh ()
-                      +> quitClick >>> destroy main))
-
+                      +> quitClick >>> destroy main
+                      +> clickedsr >>> do size <- detSize varSize
+		                          done
+--                      +> clickeddr >>> do diff <- detDiff varDiff
+--		                          done
+                      ))
     -- start the game
     sendIO restartCh ()
-   
+
     -- wait for game to stop, then clear up the mess
     finishHTk
+
+
+detSize :: GUIValue a => TkVariable a -> IO (Int, Int)
+detSize x =
+	    do varx <- readTkVariable x
+	       if (show varx) == "\"size1\"" then return (6, 6)
+	        else 
+	         if (show varx) == "\"size2\"" then return (10, 10)
+	          else
+	           if (show varx) == "\"size3\"" then return (15, 15)
+	            else
+	             if (show varx) == "\"size4\"" then return (20, 20)
+	              else return (25,25)
+
+detDiff :: GUIValue a => TkVariable a -> IO Int
+detDiff x = 
+	    do varx <- readTkVariable x
+	       if (show varx) == "\"8\"" then return 8
+	        else
+		 if (show varx) == "\"6\"" then return 6
+		  else
+		   if (show varx) == "\"4\"" then return 4
+		    else return 3
+
    
 \end{code}
 
@@ -254,3 +331,5 @@ smWinImg = unsafePerformIO (newImage NONE [imgData GIF "R0lGODdhIAAgAPcAALLA3NjX
 
 
 \end{code}
+
+
