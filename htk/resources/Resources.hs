@@ -249,13 +249,6 @@ instance Show Toggle where
     (case p of 
        Off -> "0" 
        On -> "1") ++ r
-{-
-toggleT :: TyRep 
-toggleT = mkTyRep "Resources" "Toggle"
-
-instance HasTyRep Toggle where
-  tyRep _ = toggleT
--}
 
 toggle :: Toggle -> Toggle
 toggle On = Off

@@ -61,6 +61,7 @@ printableCharsArr = listArray (0,printableCharsLen-1) printableCharsStr
 -- -------------------------------------------------------------------
 
 newtype UniqueStringSource = UniqueStringSource (MVar UniqueStringCounter)
+   deriving (Typeable)
 
 newUniqueStringSource :: IO UniqueStringSource
 newUniqueStringSource = 
@@ -114,12 +115,6 @@ maxUniqueStringSources stringSources =
          maxCounter = foldl max firstUniqueStringCounter stringCounters
       mVar <- newMVar maxCounter
       return (UniqueStringSource mVar)
- 
----
--- The instance is used by types/CodedValue
-uniqueStringSource_tyRep = mkTyRep "UniqueString" "UniqueStringSource"
-instance HasTyRep UniqueStringSource where
-   tyRep _ = uniqueStringSource_tyRep
 
 -- -------------------------------------------------------------------
 -- The pure interface.

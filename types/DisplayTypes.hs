@@ -133,7 +133,7 @@ class HasCodedValue displayType => DisplayType displayType where
 
 data WrappedDisplayType = forall displayType .
    DisplayType displayType => WrappedDisplayType displayType
-
+   deriving (Typeable)
 
 displayTypeTypeId :: WrappedDisplayType -> String
 displayTypeTypeId (WrappedDisplayType displayType) =
@@ -290,10 +290,6 @@ exportOneDisplayType displayType view =
 -- The representation is as 
 -- (displayTypeTypeIdPrim,ShortDisplayType displayType)
 -- -----------------------------------------------------------------
-
-wrappedDisplayType_tyRep = mkTyRep "DisplayTypes" "WrappedDisplayType"
-instance HasTyRep WrappedDisplayType where
-   tyRep _ = wrappedDisplayType_tyRep
 
 instance HasBinary WrappedDisplayType CodingMonad where
    writeBin = mapWrite 

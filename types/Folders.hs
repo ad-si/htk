@@ -93,13 +93,8 @@ import MergePrune
 -- The Display Type
 -- ------------------------------------------------------------------
 
-data FolderDisplayType = FolderDisplayType
+data FolderDisplayType = FolderDisplayType deriving (Typeable)
    -- This just holds the key to the folder.
-
-folderDisplayType_tyRep = mkTyRep "Folders" "FolderDisplayType"
-
-instance HasTyRep FolderDisplayType where
-   tyRep _ = folderDisplayType_tyRep
 
 instance Monad m => HasBinary FolderDisplayType m where
    writeBin = mapWrite (\ FolderDisplayType -> ())
@@ -153,11 +148,7 @@ data FolderType = FolderType {
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (Link Folder),
    topFolderLinkOpt :: Maybe (Link Folder)
-   }
-
-folderType_tyRep = mkTyRep "Folders" "FolderType"
-instance HasTyRep FolderType where
-   tyRep _ = folderType_tyRep
+   } deriving (Typeable)
 
 instance HasBinary FolderType CodingMonad where
    writeBin = mapWrite
@@ -197,11 +188,7 @@ data Folder = Folder {
    hideFolderArcs :: SimpleBroadcaster (Maybe NodeArcsHidden),
    openContents :: Blocker WrappedLink
       -- Contains blocker for contents of linkedObject.
-   }
-
-folder_tyRep = mkTyRep "Folders" "Folder"
-instance HasTyRep Folder where
-   tyRep _ = folder_tyRep
+   } deriving (Typeable)
 
 instance HasAttributes Folder where
    readPrimAttributes object = attributes object

@@ -274,17 +274,18 @@ data SingleParam = SingleParam [Frag] Char    deriving Show
 
 data Textmode = TextAllowed | NoText | TextFragment
 
-data Package = Package Options PackageName Versiondate deriving Show
+data Package = Package Options PackageName Versiondate deriving (Show,Typeable)
 type DocumentClass = Package
 
 data MMiSSLatexPreamble = MMiSSLatexPreamble { 
   latexPreamble :: LaTeXPreamble,
   importCommands :: Maybe ImportCommands
-}
+} deriving (Typeable)
 
 emptyMMiSSLatexPreamble = MMiSSLatexPreamble {latexPreamble = emptyLaTeXPreamble, importCommands = Nothing}
 
-data LaTeXPreamble = Preamble DocumentClass [Package] String deriving Show
+data LaTeXPreamble = Preamble DocumentClass [Package] String 
+   deriving (Show,Typeable)
 
 emptyLaTeXPreamble = Preamble (Package [] "mmiss" "") [] ""
 
@@ -296,19 +297,19 @@ data MMiSSOntology = MMiSSOntology {
   objects :: [ObjectDecl],
   relations :: [RelationDecl],
   objectLinks :: [ObjectLink]
-} deriving(Show)
+} deriving(Show,Typeable)
 
 data ClassDecl = ClassDecl {
   className :: String,
   classText :: String,
   superClass :: Maybe String
-} deriving(Show)
+} deriving(Show,Typeable)
 
 data ObjectDecl = ObjectDecl {
   objectName :: String,
   text :: String,
   instanceOf :: String
-} deriving(Show)
+} deriving(Show,Typeable)
 
 data RelationDecl = RelationDecl {
   multiplicities :: Maybe String,
@@ -316,13 +317,13 @@ data RelationDecl = RelationDecl {
   relationText :: String,
   source:: String,
   target :: String
-} deriving(Show)
+} deriving(Show,Typeable)
 
 data ObjectLink = ObjectLink {
   sourceObj :: String,
   targetObj :: String,
   linkRelation :: String
-} deriving(Show)
+} deriving(Show,Typeable)
 
 
 
@@ -2635,13 +2636,9 @@ instance Show PackageId where
    showsPrec = qShow
 
 -- ----------------------------------------------------------------------------------
--- Instances of Typeable, HasCodedValue and Eq for Package and 
+-- Instances of HasCodedValue and Eq for Package and 
 -- MMiSSLatexPreamble (added by George)
 -- ----------------------------------------------------------------------------------
-
-package_tyRep = Dynamics.mkTyRep "LaTeXParser" "Package"
-instance Dynamics.HasTyRep Package where
-   tyRep _ = package_tyRep
 
 instance Eq Package where
    (==) = mapEq
@@ -2652,10 +2649,6 @@ instance Monad m => CodedValue.HasBinary Package m where
       (\ (Package options packageName versionData) -> (options,packageName,versionData))
    readBin = mapRead
       (\ (options,packageName,versionData) -> Package options packageName versionData)
-
-preamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSLatexPreamble"
-instance Dynamics.HasTyRep MMiSSLatexPreamble where
-   tyRep _ = preamble_tyRep
 
 instance Eq MMiSSLatexPreamble where
    (==) = mapEq 
@@ -2670,10 +2663,6 @@ instance Monad m => CodedValue.HasBinary MMiSSLatexPreamble m where
       (\ (latexPreamble,importCommands) ->
          (MMiSSLatexPreamble latexPreamble importCommands))
 
-latexPreamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "LaTeXPreamble"
-instance Dynamics.HasTyRep LaTeXPreamble where
-   tyRep _ = latexPreamble_tyRep
-
 instance Eq LaTeXPreamble where
    (==) = mapEq 
       (\ (Preamble documentClass packages string) -> 
@@ -2687,11 +2676,6 @@ instance Monad m => CodedValue.HasBinary LaTeXPreamble m where
       (\ (documentClass,packages,string) ->
          (Preamble documentClass packages string))
 
-
-mmissOntology_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSOntology"
-instance HasTyRep MMiSSOntology where
-   tyRep _ = mmissOntology_tyRep
-
 instance Monad m => CodedValue.HasBinary MMiSSOntology m where
    writeBin = mapWrite (
       \ (MMiSSOntology classes objects relations objectLinks) ->
@@ -2701,10 +2685,6 @@ instance Monad m => CodedValue.HasBinary MMiSSOntology m where
       \ (classes,objects,relations,objectLinks) ->
       (MMiSSOntology classes objects relations objectLinks)
       )
-
-classDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "ClassDecl"
-instance HasTyRep ClassDecl where
-   tyRep _ = classDecl_tyRep
 
 instance Monad m => HasBinary ClassDecl m where
    writeBin = mapWrite (
@@ -2716,10 +2696,6 @@ instance Monad m => HasBinary ClassDecl m where
       (ClassDecl className classText super)
       )
 
-objectDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "ObjectDecl"
-instance HasTyRep ObjectDecl where
-   tyRep _ = objectDecl_tyRep
-
 instance Monad m => HasBinary ObjectDecl m where
    writeBin = mapWrite (
       \ (ObjectDecl objName objectText instanceOf) ->
@@ -2729,10 +2705,6 @@ instance Monad m => HasBinary ObjectDecl m where
       \ (objName,objectText,instanceOf) ->
       (ObjectDecl objName objectText instanceOf)
       )
-
-relationDecl_tyRep = Dynamics.mkTyRep "LaTeXParser" "RelationDecl"
-instance HasTyRep RelationDecl where
-   tyRep _ = relationDecl_tyRep
 
 instance Monad m => HasBinary RelationDecl m where
    writeBin = mapWrite (
@@ -2744,10 +2716,6 @@ instance Monad m => HasBinary RelationDecl m where
       (RelationDecl multiplicities relName relationText source target)
       )
 
-objectLink_tyRep = Dynamics.mkTyRep "LaTeXParser" "ObjectLink"
-instance HasTyRep ObjectLink where
-   tyRep _ = objectLink_tyRep
-
 instance Monad m => HasBinary ObjectLink m where
    writeBin = mapWrite (
       \ (ObjectLink sourceObj targetObj linkRelation) ->
@@ -2758,7 +2726,6 @@ instance Monad m => HasBinary ObjectLink m where
       (ObjectLink sourceObj targetObj linkRelation)
       )
 
---}
 
 -- Rubbish: To be deleted
 

@@ -191,11 +191,14 @@ versionVariant = VariantAttribute {
 -- The other datatypes
 -- -----------------------------------------------------------------------
 
-newtype MMiSSVariantSpec = MMiSSVariantSpec MMiSSVariants deriving (Eq,Ord)
+newtype MMiSSVariantSpec = MMiSSVariantSpec MMiSSVariants 
+   deriving (Eq,Ord,Typeable)
 
-newtype MMiSSVariantSearch = MMiSSVariantSearch MMiSSVariants deriving (Eq,Ord)
+newtype MMiSSVariantSearch = MMiSSVariantSearch MMiSSVariants 
+   deriving (Eq,Ord,Typeable)
 
 newtype MMiSSVariants = MMiSSVariants [(VariantAttribute,String)]
+   deriving (Typeable)
    -- The elements of this list are in the same order as the variants list.
 
 -- ------------------------------------------------------------------------
@@ -662,18 +665,6 @@ queryInsert variantDict
 -- ------------------------------------------------------------------------
 -- Instances Typeable and CodedValue for MMiSSVariantSpec/Search
 -- ------------------------------------------------------------------------
-
-mmissVariantSpec_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantSpec"
-instance HasTyRep MMiSSVariantSpec where
-   tyRep _ = mmissVariantSpec_tyRep
-
-mmissVariantSearch_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantSearch"
-instance HasTyRep MMiSSVariantSearch where
-   tyRep _ = mmissVariantSearch_tyRep
-
-mmissVariants_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariants"
-instance HasTyRep MMiSSVariants where
-   tyRep _ = mmissVariants_tyRep
 
 instance Monad m => HasBinary MMiSSVariants m where
    writeBin = mapWrite unmkMMiSSVariants

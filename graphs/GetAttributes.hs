@@ -170,12 +170,7 @@ getNodeAttributes registry =
 
 data ArcTypeAttributes = ArcTypeAttributes {
    arcTypeTitle :: String
-   } deriving (Read,Show)
-
-arcTypeAttributes_tycon = mkTyRep "GetAttributes" "arcTypeAttributes"
-
-instance HasTyRep ArcTypeAttributes where
-   tyRep _ = arcTypeAttributes_tycon
+   } deriving (Read,Show,Typeable)
 
 getArcTypeAttributes :: IO (Maybe ArcTypeAttributes) 
 getArcTypeAttributes =
@@ -284,11 +279,7 @@ getSingleString query =
          Just value -> return value
          Nothing -> cancelQuery
 
-newtype CancelException = CancelException ()
-cancelException_tag = mkTyRep "GetAttributes" "CancelException"
-
-instance HasTyRep CancelException where
-   tyRep _ = cancelException_tag
+newtype CancelException = CancelException () deriving (Typeable)
 
 cancelQuery :: IO anything
 cancelQuery = throwDyn (CancelException ())

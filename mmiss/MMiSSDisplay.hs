@@ -32,16 +32,11 @@ data MMiSSDisplayType = MMiSSDisplayType {
    key :: GlobalKey,
    defaultVariantAttributes :: Attributes
    -- current settings of the variant attributes
-   }
+   } deriving (Typeable)
 
 -- -----------------------------------------------------------------
 -- Instance of DisplayType
 -- -----------------------------------------------------------------
-
-mmissDisplayType_tyRep = mkTyRep "MMiSSDisplay" "MMiSSDisplayType"
-
-instance HasTyRep MMiSSDisplayType where
-   tyRep _ = mmissDisplayType_tyRep
 
 instance HasBinary MMiSSDisplayType CodingMonad where
    writeBin = mapWrite (\ (MMiSSDisplayType {name = name,key = key,

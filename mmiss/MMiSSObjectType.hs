@@ -99,7 +99,7 @@ data MMiSSObject = MMiSSObject {
       -- with a double border or not.
    isEditedBroadcaster :: SimpleBroadcaster Bool
       -- This is Bool if the object is being edited.
-   }
+   } deriving (Typeable)
 
 ---
 -- This is what varies with the variant attributes.
@@ -126,10 +126,6 @@ data Cache = Cache {
 
 instance HasLinkedObject MMiSSObject where
    toLinkedObject mmissObject = linkedObject mmissObject
-
-mmissObject_tyRep = mkTyRep "MMiSSObjectType" "MMiSSObject"
-instance HasTyRep MMiSSObject where
-   tyRep _ = mmissObject_tyRep
 
 instance HasBinary MMiSSObject CodingMonad where
    writeBin = mapWriteIO

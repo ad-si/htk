@@ -322,7 +322,7 @@ toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
 -- ----------------------------------------------------------------
 
 data WrappedObject = forall objectType object . 
-   ObjectType objectType object => WrappedObject object
+   ObjectType objectType object => WrappedObject object deriving (Typeable)
 
 data WrappedObjectType = forall objectType object .
    ObjectType objectType object => WrappedObjectType objectType
@@ -331,7 +331,8 @@ data WrappedVersioned = forall objectType object .
    ObjectType objectType object => WrappedVersioned (Versioned object)
 
 data WrappedLink = forall objectType object .
-   ObjectType objectType object => WrappedLink (Link object)
+   ObjectType objectType object => WrappedLink (Link object) 
+      deriving (Typeable)
 
 instance Eq WrappedLink where
    (==) (WrappedLink link1) (WrappedLink link2) = eqLink link1 link2
@@ -728,10 +729,6 @@ getAllObjectTypesSinked view sink =
 -- (displayTypeTypeIdPrim,ShortObjectType displayType)
 -- -----------------------------------------------------------------
 
-wrappedObjectType_tyRep = mkTyRep "ObjectTypes" "WrappedObjectType"
-instance HasTyRep WrappedObjectType where
-   tyRep _ = wrappedObjectType_tyRep
-
 instance HasBinary WrappedObjectType CodingMonad where
    writeBin = mapWrite 
       (\ (WrappedObjectType objectType) ->
@@ -756,10 +753,6 @@ instance HasBinary WrappedObjectType CodingMonad where
 -- -----------------------------------------------------------------
 -- Similarly, we make WrappedLink an instance of HasCodedValue
 -- -----------------------------------------------------------------
-
-wrappedLink_tyRep = mkTyRep "ObjectTypes" "WrappedLink"
-instance HasTyRep WrappedLink where
-   tyRep _ = wrappedLink_tyRep
 
 ---
 -- The only important thing about the value returned by toObjectType is 

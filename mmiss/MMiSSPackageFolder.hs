@@ -134,7 +134,7 @@ import {-# SOURCE #-} MMiSSBundleWrite
 
 newtype MMiSSPackageFolderType = MMiSSPackageFolderType {
    displayParms :: NodeTypes (Link MMiSSPackageFolder)
-   }
+   } deriving (Typeable)
 
 theMMiSSPackageFolderType = MMiSSPackageFolderType {
    displayParms = readDisplay "white box"
@@ -142,9 +142,6 @@ theMMiSSPackageFolderType = MMiSSPackageFolderType {
 
 mmissPackageFolderType_tyRep
     = mkTyRep "MMiSSPackageFolder" "MMiSSPackageFolderType"
-
-instance HasTyRep MMiSSPackageFolderType where
-   tyRep _ = mmissPackageFolderType_tyRep
 
 instance Monad m => HasBinary MMiSSPackageFolderType m where
    writeBin = mapWrite (\ _ -> ())

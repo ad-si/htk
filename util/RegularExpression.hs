@@ -65,14 +65,10 @@ newtype RegularExpression = RegularExpression Regex
 compile :: String -> RegularExpression
 compile str = RegularExpression(mkRegex str)
 
-data MatchResult = MatchResult String String String [String] deriving Show
+data MatchResult = MatchResult String String String [String] 
+   deriving (Show,Typeable)
 -- Strings are before,matched portion,after, and the 
 -- list $1,$2,... corresponding to matched subexpressions.
-
-matchResult_tyRep = mkTyRep "RegularExpression" "MatchResult"
-
-instance HasTyRep MatchResult where
-   tyRep _ = matchResult_tyRep
 
 -- matchRegexAll0 is like Regex.matchRegexAll for GHC versions > 600.
 $(

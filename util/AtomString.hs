@@ -61,12 +61,8 @@ theAtomSource = unsafePerformIO emptyAtomSource
 {-# NOINLINE theAtomSource #-} 
 -- avoid GHC bug with Linux optimisation which can clone MVars.
 
-newtype AtomString = AtomString PackedString deriving (Ord,Eq)
+newtype AtomString = AtomString PackedString deriving (Ord,Eq,Typeable)
 -- in fact Eq could be unsafePtrEq
-
-atomString_tyRep = mkTyRep "AtomString" "AtomString"
-instance HasTyRep AtomString where
-   tyRep _ = atomString_tyRep
 
 ------------------------------------------------------------------------
 -- StringClass
@@ -125,11 +121,7 @@ fromStringWEHacked str =
 
 fromStringError mess = throwDyn (FromStringExcep mess)
             
-newtype FromStringExcep = FromStringExcep String
-
-fromStringExcep_tyRep = mkTyRep "ExtendedPrelude" "FromStringExcep"
-instance HasTyRep FromStringExcep where
-   tyRep _ = fromStringExcep_tyRep
+newtype FromStringExcep = FromStringExcep String deriving (Typeable)
 
 ------------------------------------------------------------------------
 -- StringClass instance

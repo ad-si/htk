@@ -61,15 +61,12 @@ data ObjectNode object key =
 data WrappedObjectNode = forall object key .
    (HasMerging object,Ord key,Typeable key)
    => WrappedObjectNode (ObjectNode object key)
+   deriving (Typeable)
 
 objectNode_tyRep = mkTyRep "MergeReAssign" "ObjectNode"
 
 instance HasTyRep2 ObjectNode where
    tyRep2 _ = objectNode_tyRep
-
-wrappedObjectNode_tyRep = mkTyRep "MergeReAssign" "WrappedObjectNode"
-instance HasTyRep WrappedObjectNode where
-   tyRep _ = wrappedObjectNode_tyRep
 
 toObjectNode :: (HasMerging object,Typeable key,Ord key) 
    => WrappedObjectNode -> WithError (ObjectNode object key)

@@ -4,12 +4,7 @@ import Dynamics
 
 data Folder = Folder {
    a :: Int
-   }
-
-
-folder_tyRep = mkTyRep "Folders" "Folder"
-instance HasTyRep Folder where
-   tyRep _ = folder_tyRep
+   } deriving (Typeable)
 
 data Versioned x = Versioned {
    loc :: Bool,

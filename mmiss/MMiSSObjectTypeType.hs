@@ -41,7 +41,7 @@ data MMiSSObjectType = MMiSSObjectType {
       -- This describes the attributes peculiar to this MMiSS object type.
    displayParms :: NodeTypes (Link MMiSSObject)
       -- Displays parameters for this object
-   }
+   } deriving (Typeable)
 
 -- ------------------------------------------------------------------------
 -- The instance of HasAttributesType
@@ -57,10 +57,6 @@ instance HasAttributesType MMiSSObjectType where
 -- actually defined by the DTD, we do not need to write out such things to
 -- the AttributesType.  Instead we just represent it by the xmlTag.
 -- ------------------------------------------------------------------------
-
-mmissObjectType_tyRep = mkTyRep "MMiSSObject" "MMiSSObjectType"
-instance HasTyRep MMiSSObjectType where
-   tyRep _ = mmissObjectType_tyRep
 
 instance HasBinary MMiSSObjectType CodingMonad where
    writeBin = mapWrite
