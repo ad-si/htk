@@ -7,7 +7,7 @@
 
 # This rule makes sure that "all" is the default target, regardless of where it appears
 #		THIS RULE MUST REMAIN FIRST!
-default: lib
+default: all
 
 # 		Now follow the pieces of boilerplate
 #		The "-" signs tell make not to complain if they don't exist
@@ -25,7 +25,6 @@ include top/mk/var.mk
 
 
 include top/mk/suffix.mk
-# Suffix rules for Haskell, C and literate 
-
+# suffix.mk includes the rules that actually build things.
 
 

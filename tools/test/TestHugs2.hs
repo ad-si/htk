@@ -20,13 +20,13 @@ module Main (
 import WB
 import Hugs
 import System
+import Debug(debug)
 
 
 main = do {
         args <- getArgs;
         print (head args);
         imports <- getImports (head args);
-import Debug(debug)
         print ("imports: " ++ unlines imports);
         done
 }

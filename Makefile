@@ -12,6 +12,3 @@ include top/mk/boilerplate.mk
 
 tarball.tar.gz:
 	gtar -czf tarball.tar.gz `gfind . '(' -name '*.hs' -o -name '*.c' -o -name '*.h' -o -name '*.mk' -o -name Makefile -o -name 'README' ')' ` 
-
-
-

@@ -18,6 +18,7 @@ module Main (
 
 
 import WB
+import HTk
 import Latex
 import Dvips
 import DialogWin

@@ -18,6 +18,7 @@ module Main (
 
 
 import WB
+import HTk
 import Hugs
 import System
 import IO(stdout)

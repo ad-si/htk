@@ -46,13 +46,10 @@ instance Eq (Buffer a) where
         (Buffer _ ch1) == (Buffer _ ch2) = ch1 == ch2
 
 
-instance HasReceiveEV Buffer a where
+instance HasReceiveEV Buffer messageType where
         receive (Buffer _ getch) = receive getch
-         
-instance HasReceiveIO Buffer a where
-        receiveIO = sync . receive
 
-instance HasSendIO Buffer a where
+instance HasSendIO Buffer messageType where
         sendIO (Buffer putch _) val = sync(send putch val)
 
 

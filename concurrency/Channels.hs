@@ -27,7 +27,7 @@ class HasReceiveEV channel messageType where
 class HasReceiveIO channel messageType where
    receiveIO :: channel messageType -> IO messageType
 
-instance HasReceiveEV channel messageType => HasReceiveIO channel messageType
+instance HasReceiveEV channel messageType => HasReceiveIO channel messageType 
       where
    receiveIO = sync . receive
 
@@ -37,7 +37,7 @@ class  HasSendEV channel messageType where
 class HasSendIO channel messageType where
    sendIO :: channel messageType -> messageType -> IO ()   
 
-instance HasSendEV channel messageType => HasSendIO channel messageType
+instance HasSendEV channel messageType => HasSendIO channel messageType 
       where
    sendIO channel message = sync(send channel message)
 

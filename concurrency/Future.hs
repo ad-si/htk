@@ -43,7 +43,7 @@ data Future  a = Future  (Channel (Answer a)) deriving Eq
 -- Instances
 -- --------------------------------------------------------------------------
 
-instance HasReceiveEV Future a where
+instance HasReceiveEV Future messageType where
    receive (Future ch) = receive ch >>>= propagate
 
 -- --------------------------------------------------------------------------

@@ -19,6 +19,8 @@ module WB(
    ) where
 
 import Object
+import WBFiles
+
 import Selective
 import Computation
 import Debug(debug)
@@ -27,8 +29,5 @@ import InterActor(interactor,newInterActor,stop)
 import ChildProcess(linemode,arguments,environment,workingdir,standarderrors,pollinterval,PosixProcess)
 import InfoBus
 import SIMClasses(toolFailed)
-
 import GUIBaseClasses(HasText(..))
-
-getWBToolFilePath :: String -> IO String
-getWBToolFilePath s = return s
+import HTk(htk,destroyed)

@@ -18,6 +18,8 @@ module Main (
 
 
 import WB
+import HTk
+import SIMClasses
 import Diff
 import System
 import Debug(debug)

@@ -37,7 +37,7 @@ data Sensor a =  Sensor (Channel a) (Channel ())
 -- Instances
 -- --------------------------------------------------------------------------
 
-instance HasReceiveEV Sensor a where
+instance HasReceiveEV Sensor messageType where
         receive (Sensor ch _) = receive ch
 
 instance Destructible (Sensor a) where

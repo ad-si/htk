@@ -46,8 +46,6 @@ HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 #
 # Here are some phony targets
 #
-# Default rule is all
-.DEFAULT : all
 
 # Specify that these targets don't correspond to files.
 .PHONY : depend libhere lib testhere test all clean display
@@ -56,6 +54,20 @@ HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 # object files once it has finished with them, so remakes
 # actually work.
 .SECONDARY : $(OBJS) $(HIFILES)
+
+# all is the default target anyway, by virtual of boilerplate.mk.
+all : testhere libhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
+
+test : testhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
+
+lib : libhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) lib && ) echo Finished make lib
+
+clean:
+	$(RM) -f $(TESTPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
 
 display :
 	@echo SRCS = $(SRCS)
@@ -72,6 +84,7 @@ display :
 
 depend : $(SRCS) 
 	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS)
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
 ifeq ($(LIBOBJS),)
 # no library
@@ -82,25 +95,12 @@ endif
 
 testhere : $(TESTPROGS)
 
-test : testhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
-
-lib : libhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) lib && ) echo Finished make lib
-
-all : testhere libhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
-
-clean:
-	$(RM) -f $(TESTPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
-
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^
 
 $(TESTPROGS) : test% :  Test%.o $(LIBS) $(LIB)
 	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) $< $(LIBS)
+	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS)
 
 $(HIFILES) : %.hi : %.o
 	@:
@@ -111,6 +111,12 @@ $(OBJSHS) : %.o : %.hs
 $(OBJSC) : %.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+ifndef FAST
+-include .depend
+endif
+# The dependencies file from the current directory.
+# (trick stolen from GHC make files - setting FAST will sneakily
+# prevent Make trying to recompile any of the dependent files.)
 
 
 

@@ -98,7 +98,7 @@ instance EventListener (EventStream a) where
          replied <- updVar' mv (\ias -> (ias{fReplied = True},fReplied ias))
          unless replied (reply lst)
 -}
-instance HasReceiveEV EventStream a where
+instance HasReceiveEV EventStream messageType where
    receive eventStream = 
    -- Interactors run by repeatedly synccing on this event. 
       event (

@@ -19,6 +19,7 @@ module Main (
 
 import WB
 import HolCSP
+import HTk
 import System
 import qualified IO
 import Debug(debug)
@@ -35,7 +36,7 @@ main = do {
         done
 } where wdir = "/home/ewk/programs/database/bin"
 
-
+startTas :: String -> [String] -> IO HolCSP
 startTas wdir [tnm,scriptfile] = 
         holCSP tnm scriptfile [workingdir wdir]
 startTas wdir _ = 

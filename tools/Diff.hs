@@ -56,7 +56,10 @@ instance DiffSourceObj FilePath FilePath where
          win <- newLogWin [text "diff"]
          let dtool = Diff exp win
          interactor (\iact ->
-               matchLine exp >>>= (writeLogWin win)
+               matchLine exp >>>= 
+                  (\ line ->
+                     writeLogWin win (line ++ "\n")
+                     )
             +> matchEOF exp  >>> stop iact
                )
          return dtool

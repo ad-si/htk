@@ -12,7 +12,10 @@ include top/mk/machinedep.mk # set variables which depend on the machine
 # Glasgow Haskell Compiler
 # HCHOME set in machinedep.mk
 HC               = $(HCHOME)/bin/ghc
-DEPEND           = $(HCHOME)/bin/ghc -M -optdep
+DEPEND           = $(HCHOME)/bin/ghc -M -optdep-f -optdep.depend
+# Meaning of ghc -M options (extracted from GHC Make files)
+# (1) -optdep.depend makes dependences go into .depend files.
+# (2) -f means .depend doesn't have to exist first for this to work.
 GHCINCDIR        = -I$(HCHOME)/lib/includes 
 
 ifdef DEBUG
@@ -31,11 +34,10 @@ HCFLAGS = $(HCSYSLIBS) \
           -i$(HCDIRS) \
           -fglasgow-exts \
           -fallow-overlapping-instances \
+          -fallow-undecidable-instances \
 	  -cpp -hi-diffs -fvia-C \
 	  $(GHCINCDIR) \
 	  -H25M -K5M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
-# Try to live without:
-# -fallow-undecidable-instances \
 
 # Gnu C compiler.  NB - the GHC installation is hardwired to
 # a particular version of gcc, so don't go changing this unless

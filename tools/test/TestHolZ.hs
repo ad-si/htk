@@ -18,6 +18,7 @@ module Main (
 
 
 import WB
+import HTk
 import HolZ
 import System
 import qualified IO

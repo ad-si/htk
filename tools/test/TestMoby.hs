@@ -18,6 +18,7 @@ module Main (
 
 
 import WB
+import HTk
 import Moby
 import Debug(debug)
 

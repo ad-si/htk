@@ -52,7 +52,7 @@ data WatchDog a =  WatchDog (Future a) (MVar (Bool,EV ()))
 -- Instances
 -- --------------------------------------------------------------------------
 
-instance HasReceiveEV WatchDog a where
+instance HasReceiveEV WatchDog messageType where
    receive (WatchDog future _) = receive future
 
 instance Destructible (WatchDog a) where

@@ -21,7 +21,7 @@ title = text
 
 main :: IO ()
 main = 
-        htk [ logfile (1::Int), text "DAVINCI-TEST"]            >>= \gui ->
+        htk [ {- logfile (1::Int), -} text "DAVINCI-TEST"]            >>= \gui ->
         davinci [accuracy 1]                                    >>= \ gtool ->
         interactor (const (destroyed gtool >>> destroy gui))    >>
         setDefaults                                             >>
