@@ -1872,8 +1872,8 @@ if test -r "$BDBDIR/lib/libdb.a"; then
    if test "$OSTITLE" = "linux"; then
       echo Working around BDB Linux bug.
       echo This means you will get some extra messages from
-      echo MMiSSWorkbench about (1) "malloc: using debugging hooks")
-      echo (2) invalid free pointers.  But hopefully it will work.
+      echo MMiSSWorkbench about '(1)' "malloc: using debugging hooks")
+      echo '(2)' invalid free pointers.  But hopefully it will work.
       WORK_AROUND_BDB_LINUX_BUG=1
    fi
 else
