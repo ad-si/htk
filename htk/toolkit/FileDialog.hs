@@ -19,6 +19,8 @@ module FileDialog (
 
 import HTk
 import Directory
+import IO hiding (try)
+import qualified List (sort)
 import Posix
 import ReferenceVariables
 import System
@@ -54,12 +56,9 @@ getFilesAndFolders path showhidden =
                      sort fs files ((f ++ "/") : folders) abs
                    else sort fs (f : files) folders abs)
         sort _ files folders _ =
-          return (sort' files, if path == "/" then sort' folders
-                                              else ".." : (sort' folders))
-        sort' :: [FilePath] -> [FilePath]
-        sort' (f : fs) = sort'(filter (\f' -> f' < f) fs) ++ [f] ++
-                         sort'(filter (\f' -> f' > f) fs)
-        sort' _ = []
+          return (List.sort files, 
+		  if path == "/" then List.sort folders
+                                 else ".." : (List.sort folders))
         hidden :: FilePath -> Bool
         hidden f = head f == '.'
 
@@ -122,23 +121,20 @@ changeToFolder :: FilePath -> Ref [FilePath] -> Ref [FilePath] ->
                   IO Bool
 changeToFolder path foldersref filesref pathref folderslb fileslb
                file_var showhidden =
-  do
-    let path' = if path == "" then "/" else path
-    acc <- system ("access -rx \"" ++ path' ++ "\"")
---    acc <- queryAccess path' True False True
-    (if acc == ExitSuccess then
-       do
-         setRef pathref path
-         debugMsg "getting files and folders"
-         (files, folders) <- getFilesAndFolders path' showhidden
-         debugMsg "got files and folders"
-         setRef filesref files
-         setRef foldersref folders
-         folderslb # value folders
-         fileslb # value files
-         setTkVariable file_var ""
-         return True
-     else return False)
+  let path' = if path == "" then "/" else path
+  in  do debugMsg "getting files and folders"         
+         st <- try (getFilesAndFolders path' showhidden)
+         case st of 
+	   Right (files, folders) -> 
+	     do setRef pathref path
+                debugMsg "got files and folders"
+                setRef filesref files
+                setRef foldersref folders
+                folderslb # value folders
+                fileslb # value files
+                setTkVariable file_var ""
+                return True
+           Left e-> if isPermissionError e then return False else ioError e
 
 up ::  Ref [FilePath] -> Ref [FilePath] -> Ref FilePath ->
        ListBox FilePath -> ListBox FilePath -> TkVariable String ->
