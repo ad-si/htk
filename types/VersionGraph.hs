@@ -437,6 +437,8 @@ newVersionGraph1
 
                okClicked <- clicked okButton
                cancelClicked <- clicked cancelButton
+               (cancelButtonDestroyed,_) <- bindSimple 
+                  cancelButton Destroy 
 
                pack okButton [Side AtLeft]
                pack cancelButton [Side AtRight]
@@ -499,6 +501,12 @@ newVersionGraph1
                                      cancelClicked
                                      return Nothing
                                   )
+                               +> (do
+                                     cancelButtonDestroyed
+                                        -- This escapes if the user
+                                        -- destroys the selection window.
+                                     return Nothing
+                                     )
                                +> (do
                                      (selection :: WrappedNode node)
                                         <- newVersion
