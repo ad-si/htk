@@ -1,14 +1,15 @@
 PACKAGE = uni-util
 
-ifeq "$(sort 603 @GhcShortVersion@)" "603 @GhcShortVersion@"
+ifeq "$(sort 603A @GhcShortVersion@B)" "603A @GhcShortVersion@B"
 # We are using ghc6.3 or later, which requires the template-haskell
-# package to be specified.
+# package to be specified.  The A and B prevent $(sort) from removing
+# the duplicate element when we are using 6.3.
 TEMPLATEHASKELLPACKAGE = template-haskell
 else
-TEMPLATEHASKELLPACKAGE =
+TEMPLATEHASKELLPACKAGE = haskell-src
 endif
 
-PACKAGES = concurrent lang data network text haskell-src uni-options $(TEMPLATEHASKELLPACKAGE)
+PACKAGES = concurrent lang data network text uni-options $(TEMPLATEHASKELLPACKAGE)
 
 SRCS       = \
   TemplateHaskellHelps.hs CompileFlags.hs \
