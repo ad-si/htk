@@ -26,6 +26,10 @@ module Debug(
   -- itself is causing strange effects . . .
   alwaysDebug,
   alwaysDebugAct,
+
+  debugString, -- Send a string to the debug file.  This differs from
+     -- debug, in that debug will Haskell-escape the string and add
+     -- a newline, while just writes to the file with no interpretation.
   (@@:),
   ) where
 import IO
@@ -48,6 +52,12 @@ debugFile = IOExts.unsafePerformIO openDebugFile
 {-# NOINLINE debugFile #-} 
 
 #ifdef DEBUG
+debugString :: String -> IO ()
+debugString s =
+   case debugFile of
+      Just f -> IO.hPutStr f s
+      Nothing -> return ()
+
 debug :: Show a => a -> IO()
 debug s = 
    case debugFile of 
@@ -67,6 +77,8 @@ debugAct mess act =
 
       
 #else
+debugString :: String -> IO ()
+debugString _ = return ()
 
 debug :: Show a => a -> IO()
 debug _ = return ()

@@ -98,8 +98,9 @@ import qualified CString
 
 import Computation
 import Object
-import Debug(debug)
+import Debug(debug,debugString)
 import Thread
+import FileNames
 
 import Concurrent
 import Maybes
@@ -171,7 +172,12 @@ data ChildProcess =
                        -- process id of child
       bufferVar :: (MVar String),
                        -- bufferVar of previous characters (only relevant
-                       -- for line mode)     
+                       -- for line mode)
+#ifdef DEBUG
+      toolTitle :: String,
+                       -- Title of the tool, derived from the file name,
+                       -- used in the debugging file.
+#endif
       chunkSize :: Int -- max. size of one "chunk" of characters read
                        -- at one time
       }
@@ -251,7 +257,12 @@ newChildProcess path confs  =
                               Posix.fdClose writeIn
                               Posix.fdClose readOut
                            )
-
+#ifdef DEBUG
+            let
+               toolTitle = case splitName path of
+                  Just (dir,toolTitle) -> toolTitle
+                  Nothing -> path
+#endif
             return (ChildProcess {
                childObjectID = childObjectID,
                lineMode = lmode parms,
@@ -260,6 +271,9 @@ newChildProcess path confs  =
                processID = processID,
                bufferVar = bufferVar,
 	       chunkSize = chksize parms,
+#ifdef DEBUG
+               toolTitle = toolTitle,
+#endif
                closeAction = closeAction
                })
       connect writeIn readIn writeOut readOut readWriteErr Nothing parms =
@@ -336,13 +350,16 @@ instance UnixTool ChildProcess where
 {- line mode readMsg has been changed so it doesn't do a Posix.fdRead
    on every character. -}
 readMsg :: ChildProcess -> IO String
-readMsg (ChildProcess 
+readMsg (child@ChildProcess 
       {lineMode = True, chunkSize = chunkSize, 
        readFrom = readFrom, bufferVar = bufferVar}) = 
    do
       buffer <- takeMVar bufferVar 
       (newBuffer,result) <- readWithBuffer readFrom buffer []
       putMVar bufferVar newBuffer
+#ifdef DEBUG
+      debugRead child (result++"\n")
+#endif
       return result
    where
       readWithBuffer readFrom [] acc = 
@@ -355,9 +372,14 @@ readMsg (ChildProcess
          return (rest,reverse acc)
       readWithBuffer readFrom (other : rest) acc =
          readWithBuffer readFrom rest (other : acc)
-readMsg (ChildProcess {lineMode = False, readFrom = readFrom,
-	               chunkSize = chunkSize}) = 
-   readChunk chunkSize readFrom
+readMsg (child @ ChildProcess {lineMode = False, readFrom = readFrom,
+	               chunkSize = chunkSize}) =
+   do
+      result <- readChunk chunkSize readFrom
+#ifdef DEBUG
+      debugRead child (result++"\n")
+#endif
+      return result
 
 readChunk :: Int -> Fd -> IO String
 -- read a chunk of characters, waiting until at least one is available.
@@ -365,7 +387,6 @@ readChunk size fd =
    do
       waitForInputFd fd
       (input,count) <- Posix.fdRead fd size
-      debug ("readChunk read " ++ input)
       if count <= 0 
          then 
             raise (userError "ChildProcess: input error")
@@ -377,7 +398,7 @@ sendMsg (ChildProcess{lineMode = True,writeTo = writeTo}) str  =
    writeLine writeTo str
 sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  = 
    do 
-      debug("ChildProcess>" ++ str ++ "\n")
+      debugWrite child (str ++ "\n") 
       count <- Posix.fdWrite writeTo str
       -- see man -s 2 write for when write() returns 0.
       if count < 0 
@@ -392,8 +413,13 @@ sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  =
 -- sendMsgRaw writes a CStringLen to the child process.  
 -- It does not append a newline.
 sendMsgRaw :: ChildProcess -> CString.CStringLen -> IO ()
-sendMsgRaw (ChildProcess{writeTo = writeTo}) cStringLen =
-   fdWritePrim writeTo cStringLen
+sendMsgRaw (child@ChildProcess{writeTo = writeTo}) cStringLen =
+   do
+#ifdef DEBUG
+      str <- CString.peekCStringLen cStringLen
+      debugWrite child str
+#endif
+      fdWritePrim writeTo cStringLen
 
 closeChildProcessFds  :: ChildProcess -> IO ()
 closeChildProcessFds (ChildProcess{closeAction = closeAction}) = 
@@ -474,3 +500,25 @@ writeLineError = userError "ChildProcess: write line error"
 waitForInputFd :: Posix.Fd -> IO()
 waitForInputFd fd  = threadWaitRead(Posix.fdToInt fd)
 
+-- -------------------------------------------------------------------------
+-- Writing debugging information to a file
+-- -------------------------------------------------------------------------
+
+-- NB - these functions expect a newline to be at the end of the string.
+debugWrite :: ChildProcess -> String -> IO ()
+debugRead :: ChildProcess -> String -> IO ()
+
+#ifdef DEBUG
+
+debugWrite childProcess str =
+   debugString (toolTitle childProcess++">"++str)
+
+debugRead childProcess str =
+   debugString (toolTitle childProcess++"<"++str)
+
+#else
+
+debugWrite _ _ = done
+debugRead _ _ = done
+
+#endif
