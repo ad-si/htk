@@ -65,15 +65,16 @@ type Delimiter = String
 type PackageName = String
 type Options = [String]
 type Versiondate = String
+type MMiSSLatexPreamble = String
 
 data SingleParam = SingleParam [Frag] Char    deriving Show
 
 data Textmode = TextAllowed | NoText | TextFragment
 
-data Package = Package Options PackageName Versiondate deriving Show
-type DocumentClass = Package
+-- data Package = Package Options PackageName Versiondate deriving Show
+-- type DocumentClass = Package
 
-data MMiSSLatexPreamble = Preamble DocumentClass [Package] String deriving Show
+-- data MMiSSLatexPreamble = Preamble DocumentClass [Package] String deriving Show
 
 
 {--------------------------------------------------------------------------------------------
@@ -523,21 +524,24 @@ mparse fname = do result <- parseFromFile (latexDoc []) fname
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
     XML-structure.  --}
 
-parseMMiSSLatex :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
+-- old: String -> WithError (Element, Maybe MMiSSLatexPreamble)
 
-parseMMiSSLatex s = 
+parseMMiSSLatex :: Maybe MMiSSLatexPreamble -> String -> WithError Element
+
+parseMMiSSLatex preamble s = 
   let result = parse (latexDoc []) "" s
   in case result of
 --     Right ast  -> trace s (makeXML peamble ast)
-       Right ast  -> makeXML ast
+       Right ast  -> makeXML preamble ast
        Left err -> hasError (concat (map messageString (errorMessages(err))))
 
 
-parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
-parseMMiSSLatexFile s = do result <- parseFromFile (latexDoc []) s
- 		           case result of
-			     Right ast  -> return(makeXML ast)
- 		             Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
+-- parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
+parseMMiSSLatexFile :: Maybe MMiSSLatexPreamble -> SourceName -> IO (WithError Element)
+parseMMiSSLatexFile p s = do result <- parseFromFile (latexDoc []) s
+ 		             case result of
+			       Right ast  -> return(makeXML p ast)
+ 		               Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
 
 parseAndShow :: SourceName -> IO ()
 parseAndShow s = do result <- parseFromFile (latexDoc []) s
@@ -553,8 +557,13 @@ showElement1 :: Content -> String
 showElement1 (CElem e) = (render . PP.element) e
 
 
-makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
-makeXML frag = findFirstEnv [frag] [] False
+-- makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
+-- makeXML  frag = findFirstEnv [frag] [] False
+
+makeXML :: Maybe MMiSSLatexPreamble -> Frag -> WithError Element
+makeXML preamble frag = case preamble of
+                          Nothing -> findFirstEnv [frag] [] False
+                          Just(str) -> findFirstEnv [frag] [(Other str)] False
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch und erzeugt einen
     XML-Baum. Die Funktion sucht innerhalb des Environments 'Root' (vom Parser obligatorisch
@@ -574,37 +583,36 @@ makeXML frag = findFirstEnv [frag] [] False
     das mit Praeambel ausgecheckt wurde.
 --}
     
-
-findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble)
+findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError Element
+-- findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatexPreamble)
 
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
 findFirstEnv ((Env "Package" ps fs):_) preambleFs _ = 
   let atts = makeAttribs ps "Package"
       content = makeContent fs NoText "package"
-      preamble = makePreamble preambleFs
---      preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
---      newContent = mapWithError (map (addPreamble preamblePI)) content
-  in case (fromWithError content) of
-       Right c -> pairWithError (hasValue(Elem "package" atts c)) preamble
-       Left err -> pairWithError (hasError(err)) preamble
+--      preamble = makePreamble preambleFs
+      preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
+      newContent = mapWithError (map (addPreamble preamblePI)) content
+  in mapWithError (Elem "package" atts) (mapWithError (append preamblePI) newContent)
+--  in case (fromWithError content) of
+--       Right c -> pairWithError (hasValue(Elem "package" atts c)) preamble
+--       Left err -> pairWithError (hasError(err)) preamble
 
 findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
-    let content = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
-        preamble = makePreamble preambleFs
---        preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
---	c1 = mapWithError (map (addPreamble preamblePI)) c
-    in case (fromWithError content) of
-         (Left str) -> pairWithError (hasError(str)) preamble
+    let c1 = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
+--        preamble = makePreamble preambleFs
+        preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
+	c2 = mapWithError (map (addPreamble preamblePI)) c1
+    in case (fromWithError c2) of
+         (Left str) -> hasError(str)
          (Right cs) -> if ((genericLength cs) == 0) 
-		         then pairWithError (hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")) 
-                              preamble
+		         then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
                          else let ce = head cs
                               in case ce of 
-			           (CElem e) -> pairWithError (hasValue(e)) preamble
-			           _ -> pairWithError (hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'"))
-                                                      preamble
+			           (CElem e) ->  hasValue(e) 
+			           _ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
            then findFirstEnv rest preambleFs beforeDocument
@@ -624,6 +632,14 @@ findFirstEnv (f:fs) preambleFs False = findFirstEnv fs preambleFs False
 findFirstEnv [] _ _  = hasError("No root environment ('package' or some other env.) found!")           
 
 
+addPreamble :: Content -> Content -> Content
+addPreamble preambleElem (CElem (Elem name atts content))  = 
+  if ((name `elem` (map snd includeCommands)) || (name == "figure")) 
+    then CElem (Elem name atts content)
+    else CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
+addPreamble _ e = e
+
+{--
 makePreamble :: [Frag] -> WithError(Maybe MMiSSLatexPreamble)
 makePreamble [] = hasValue(Nothing)
 makePreamble (f:fs) =
@@ -676,17 +692,7 @@ makePreRest (f1:f2:fs) inStr =
                  _ -> makePreRest (f2:fs) inStr
           else makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
      _ -> makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
-
-
-{--
-addPreamble :: Content -> Content -> Content
-addPreamble preambleElem (CElem (Elem name atts content))  = 
-  if ((name `elem` (map snd includeCommands)) || (name == "figure")) 
-    then CElem (Elem name atts content)
-    else CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
-addPreamble _ e = e
 --}
-
 
 
 makeContent :: [Frag] -> Textmode -> String -> WithError [Content]
@@ -1214,21 +1220,23 @@ getEmphasisText (LParams ((SingleParam ((Other s):[]) _):ps) _ _ _) = s
     ob eine Praeambel erzeugt werden soll (True) oder nicht (False).
 --}
 
--- makeMMiSSLatex :: (Element, Bool) -> WithError ((EmacsContent (String, Char)),  MMiSSLatexPreamble)
-makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent (String, Char))
+makeMMiSSLatex :: (Element, Bool) -> WithError ((EmacsContent (String, Char)),  MMiSSLatexPreamble)
+-- makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent (String, Char))
+-- makeMMiSSLatex ((Elem name atts content), preOut, preambles) = 
 
-makeMMiSSLatex ((Elem name atts content), preOut, preambles) = 
+makeMMiSSLatex ((Elem name atts content), preOut) =
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
-      p = unionPreambles preambles
-      preambleItem = case p of
-                       Nothing -> []
-                       (Just(pre)) -> [(EditableText (makePreambleText pre))]
+      lastElem = last content
+      preambleText = case lastElem of
+                        (CMisc (PI (_ ,str))) -> str
+                        _ -> ""
+      preambleItem = [(EditableText preambleText)]
    in if preOut 
        then 
          let beginDocument = [EditableText "\\begin{document}\n"]
              endDocument = [EditableText "\n\\end{document}"]
-         in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)))
-       else hasValue((EmacsContent items))
+         in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)), preambleText)
+       else hasValue((EmacsContent items), preambleText)
 
 
 fillLatex :: Bool -> [Content] -> [EmacsDataItem (String, Char)] -> [EmacsDataItem (String, Char)]
@@ -1320,7 +1328,7 @@ type DocumentClass = Package
 
 data MMiSSLatexPreamble = Preamble DocumentClass [Package] String
 -}
-
+{--
 unionPreambles :: [MMiSSLatexPreamble] -> Maybe MMiSSLatexPreamble
 unionPreambles [] = Nothing
 unionPreambles (p:[]) = Just(p)
@@ -1354,7 +1362,7 @@ makePackageText commandName (Package options name versiondate) =
       optStr = if (opts == "[]") then "" else opts
       versionStr = if (versiondate == "") then "" else ("[" ++ versiondate ++ "]")
   in "\\" ++ commandName ++ optStr ++ "{" ++ name ++ "}" ++ versionStr ++ "\n"
-
+--}
 
 getParam :: String -> [Attribute] -> String
 getParam name atts = let value = lookup name atts
