@@ -344,7 +344,7 @@ boot : boothere
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
 # The only thing we do here is preprocess the file.
-	$(HC) -E -cpp $< -o $@ -I$(CINCLUDES)
+	$(CPP) $< -o $@
    
 
 $(LIBOBJSHS) : %.o : %.hs

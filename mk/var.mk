@@ -45,11 +45,11 @@ LINKFLAGS =
 CCH              = $(HC)
 CFLAGS           = -package-conf $(PACKAGECONF) $(PACKAGESARGS)
 
-# C preprocessor
-CPP              = $(CC) -E -P -x c -traditional -D__GLASGOW_HASKELL__=$(GhcMajVersion)$(GhcMinVersion) 
-
 # The package configuration directory
 PACKAGECONF = $(GHCTOP)/uni-package.conf
+
+# How to run cpp.  We do this via GHC.
+CPP = $(HC) -E -cpp -I$(CINCLUDES) $(EXTRA_HC_OPTIONS)
 
 # The directory containing C includes
 CINCLUDES       = $(TOP)/includes
