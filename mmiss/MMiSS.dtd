@@ -1,6 +1,6 @@
 <!-- 
   XML Document Type Definition for MMiSSLatex 2
-  Version 0.92
+  Version 0.93
   Initial Version: George Russell (2002-June)
   Current Version: Achim Mahnke   (2002-09-17)
 
@@ -122,8 +122,8 @@
 
 <!ENTITY % group  "package | section | paragraph | view | includeGroup">
 
-<!ENTITY % conceptualAtom  "textFragment | includeTextFragment | table 
-                            | figure | glossaryEntry | bibentry">
+<!ENTITY % conceptualAtom  "textFragment | table | figure 
+                            | glossaryEntry | bibentry | includeConceptualAtom">
 
 <!ENTITY % formalAtom  "programFragment | clause | step">
 
@@ -133,19 +133,22 @@
 
 <!ENTITY % formalUnit  "program | theory | theorem | conjecture | lemma 
                         | corollary | assertion | development | proof 
-                        | script">
+                        | script | includeFormalUnit">
 
 <!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom; | includeUnit">
 
 
-<!ELEMENT package (section)+>
+<!ELEMENT package (section | includeSection)+>
 <!ATTLIST package %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
 <?MMiSSDisplay package : orange box ?>
 
-<!ELEMENT section (abstract?, introduction?, (%group;)+, summary?)>
+<!ELEMENT section ((abstract | includeAbstract)?, 
+                   (introduction | includeIntroduction)?, 
+                   (%group;)+, 
+                   (summary | includeSummary)?)>
 <!ATTLIST section %label-matter;
                   %title-matter;
                   %formalism-matter;
@@ -264,72 +267,75 @@
   ***********************************************************************
  -->
 
-<!ELEMENT program (%conceptualAtom; | programFragment | program)+>
+<!ELEMENT program (%conceptualAtom; | programFragment | program
+                  | includeProgramFragment | includeProgram)+>
 <!ATTLIST program %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
 <?MMiSSDisplay program : green circle ?>
 
-<!ELEMENT theory (%conceptualAtom; | clause | theory)+>
+<!ELEMENT theory (%conceptualAtom; | clause | theory
+                  | includeClause | includeTheory)+>
 <!ATTLIST theory %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
 <?MMiSSDisplay theory : green box ?>
 
-<!ELEMENT theorem  (%conceptualAtom; | clause)+>
+<!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST theorem %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
 <?MMiSSDisplay theorem : green circle ?>
 
-<!ELEMENT conjecture (%conceptualAtom; | clause)+>
+<!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST conjecture %label-matter;
                      %title-matter;
                      %formalism-matter;
                      %attributes;>
 
-
-<!ELEMENT lemma (%conceptualAtom; | clause)+>
+<!ELEMENT lemma (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST lemma %label-matter;
                 %title-matter;
                 %formalism-matter;
                 %attributes;>
 
-<!ELEMENT corollary (%conceptualAtom; | clause)+>
+<!ELEMENT corollary (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST corollary %label-matter;
                     %title-matter;
                     %formalism-matter;
                     %attributes;>
 
-<!ELEMENT assertion (%conceptualAtom; | clause)+>
+<!ELEMENT assertion (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST assertion %label-matter;
                     %title-matter;
                     %formalism-matter;
                     %attributes;>
 
-<!ELEMENT proof (%conceptualAtom; | step | script | proof)+>
+<!ELEMENT proof (%conceptualAtom; | step | script | proof
+                 | includeStep | includeScript | includeProof)+>
 <!ATTLIST proof %label-matter;
                 %title-matter;
                 %formalism-matter;
                 %attributes;>
 
-<!ELEMENT development  (%conceptualAtom; | step | script | development)+>
+<!ELEMENT development  (%conceptualAtom; | step | script | development
+                        | includeStep | includeScript | includeDevelopment)+>
 <!ATTLIST development %label-matter;
                       %title-matter;
                       %formalism-matter;
                       %attributes;>
 <?MMiSSDisplay development : green rhombus ?>
 
-<!ELEMENT script  (%conceptualAtom; | step | script)+>
+<!ELEMENT script  (%conceptualAtom; | step | script
+                   | includeStep | includeScript)+>
 <!ATTLIST script %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
 <?MMiSSDisplay script : yellow circle ?>
-
 
 
 <!ELEMENT programFragment  (#PCDATA)>
@@ -373,16 +379,84 @@
                        status  (present | absent) "absent"
                        %attributes;>
 
+<!ELEMENT includeSection  EMPTY>
+<!ATTLIST includeSection included    CDATA #REQUIRED
+                         status  (present | absent) "absent"
+                         %attributes;>
+
+<!ELEMENT includeAbstract EMPTY>
+<!ATTLIST includeAbstract included    CDATA #REQUIRED
+                          status  (present | absent) "absent"
+                          %attributes;>
+
+<!ELEMENT includeIntroduction EMPTY>
+<!ATTLIST includeIntroduction included    CDATA #REQUIRED
+                              status  (present | absent) "absent"
+                              %attributes;>
+
+<!ELEMENT includeSummary EMPTY>
+<!ATTLIST includeSummary included    CDATA #REQUIRED
+                         status  (present | absent) "absent"
+                         %attributes;>
+
 <!ELEMENT includeUnit EMPTY>
 <!ATTLIST includeUnit included    CDATA #REQUIRED
                       status  (present | absent) "absent"
                       %attributes;>
+
+<!ELEMENT includeFormalUnit EMPTY>
+<!ATTLIST includeFormalUnit included    CDATA #REQUIRED
+                            status  (present | absent) "absent"
+                            %attributes;>
 
 <!ELEMENT includeAtom EMPTY>
 <!ATTLIST includeAtom included    CDATA #REQUIRED
                       status  (present | absent) "absent"
                       %attributes;>
 
+<!ELEMENT includeConceptualAtom EMPTY>
+<!ATTLIST includeConceptualAtom included    CDATA #REQUIRED
+                                status  (present | absent) "absent"
+                                %attributes;>
 
+<!ELEMENT includeProgramFragment EMPTY>
+<!ATTLIST includeProgramFragment included    CDATA #REQUIRED
+                                 status  (present | absent) "absent"
+                                 %attributes;>
+
+<!ELEMENT includeProgram EMPTY>
+<!ATTLIST includeProgram included    CDATA #REQUIRED
+                         status  (present | absent) "absent"
+                         %attributes;>
+
+<!ELEMENT includeClause EMPTY>
+<!ATTLIST includeClause included    CDATA #REQUIRED
+                        status  (present | absent) "absent"
+                        %attributes;>
+
+<!ELEMENT includeTheory EMPTY>
+<!ATTLIST includeTheory included    CDATA #REQUIRED
+                        status  (present | absent) "absent"
+                        %attributes;>
+
+<!ELEMENT includeStep EMPTY>
+<!ATTLIST includeStep included    CDATA #REQUIRED
+                      status  (present | absent) "absent"
+                      %attributes;>
+
+<!ELEMENT includeProof EMPTY>
+<!ATTLIST includeProof included    CDATA #REQUIRED
+                       status  (present | absent) "absent"
+                       %attributes;>
+
+<!ELEMENT includeScript EMPTY>
+<!ATTLIST includeScript included    CDATA #REQUIRED
+                        status  (present | absent) "absent"
+                        %attributes;>
+
+<!ELEMENT includeDevelopment EMPTY>
+<!ATTLIST includeDevelopment included    CDATA #REQUIRED
+                             status  (present | absent) "absent"
+                             %attributes;>
 
 
