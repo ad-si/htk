@@ -18,7 +18,7 @@ module FileSys(
    connectFileSys,
       -- :: [RepositoryParameter] -> IO FileSys
       -- Establish a connection to a FileSys
-   Version, -- Type of a version of the file system
+   Version, -- Type of a version of the file system.  Instance of Read/Show
    FileObj, -- Object in the file system.  
    FolderObj, -- A folder in the file system
 
@@ -114,9 +114,16 @@ data Change =
    |  RMObject BrokenPath -- remove this file or folder
    |  MVObject BrokenPath BrokenPath -- Move first object to second.
 
-newtype Version = Version ObjectVersion 
+newtype Version = Version ObjectVersion
 -- inherited from VersionDB.  But Version is only
 -- used for the top object
+
+instance QuickShow Version where
+   quickShow = WrapShow (\ (Version objectVersion) -> objectVersion)
+
+instance QuickRead Version where
+   quickRead = WrapRead (\ objectVersion -> Version objectVersion)
+
 data FileObj = FileObj Location ObjectVersion AttributeVersion UniType 
 
 instance Eq FileObj where
