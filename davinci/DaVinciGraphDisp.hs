@@ -37,6 +37,7 @@ import qualified SIM
 import Event
 
 import GraphDisp
+import GraphConfigure
 
 
 -- We follow the order of the GraphDisp file, mostly.
@@ -62,49 +63,68 @@ data DaVinciGraph =
       nodeValues :: UntypedRegistry DaVinci.Node,
       edgeValues :: UntypedRegistry DaVinci.Edge,
       nodeTypes :: Registry DaVinci.Node DaVinciNodeTypePrim,
-      dragAndDropper :: SIM.InterActor
-         -- interactor to handle dragging and dropping 
+      dragAndDropper :: SIM.InterActor,
+         -- interactor to handle dragging and dropping
+      doImprove :: Bool
+         -- improveAll on redrawing graph.
       }
 
 instance SIM.Destructible DaVinciGraph where
-   SIM.destroy (DaVinciGraph {graph = graph,nodeValues = nodeValues,
-         edgeValues = edgeValues,nodeTypes = nodeTypes,
-         dragAndDropper = dragAndDropper}) = 
+   SIM.destroy (daVinciGraph@DaVinciGraph {graph = graph,
+         nodeValues = nodeValues,dragAndDropper = dragAndDropper}) =
       do
-         SIM.destroy dragAndDropper
          SIM.destroy graph
-         emptyRegistry nodeValues
-         emptyRegistry edgeValues
-         emptyRegistry nodeTypes
+         destroyData daVinciGraph
 
-   SIM.destroyed (DaVinciGraph {graph=graph,daVinci=daVinci} ) = (
-         SIM.destroyed graph 
-      +> DaVinci.lastGraphClosed daVinci
-      +> SIM.destroyed daVinci
-      )
+   SIM.destroyed (daVinciGraph@DaVinciGraph {graph=graph,daVinci=daVinci}) =
+         SIM.destroyed graph
+      +> (SIM.destroyed daVinci >>> destroyData daVinciGraph)
+     
+ 
+destroyData :: DaVinciGraph -> IO ()
+destroyData (DaVinciGraph {nodeValues = nodeValues,edgeValues = edgeValues,
+      nodeTypes = nodeTypes,dragAndDropper = dragAndDropper}) =
+   do
+      SIM.destroy dragAndDropper
+      emptyRegistry nodeValues
+      emptyRegistry edgeValues
+      emptyRegistry nodeTypes
 
 
 data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [Config DaVinci.Graph],
-   graphConfigGesture :: IO ()
+   graphConfigGesture :: IO (),
+   surveyView :: Bool,
+   configDoImprove :: Bool
    }
 
 instance Graph DaVinciGraph where
-   redraw (DaVinciGraph{graph=graph}) = DaVinci.redrawGraph graph
+   redraw (DaVinciGraph{graph=graph,doImprove = doImprove}) = 
+      do
+         if doImprove
+            then
+               DaVinci.improveAll graph
+            else
+               done
+         DaVinci.redrawGraph graph
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraph (DaVinciGraphParms {
-         graphConfigs=graphConfigs,graphConfigGesture=graphGesture}) =
+         graphConfigs=graphConfigs,graphConfigGesture=graphGesture,
+         configDoImprove=configDoImprove,surveyView=surveyView}) =
       do
          (daVinci :: DaVinci.DaVinci) <- DaVinci.davinci []
          graph <- DaVinci.newGraph ([
             DaVinci.gapwidth 4,
-            DaVinci.gapheight 40,
-            DaVinci.dragging DaVinci.On
+            DaVinci.gapheight 40
             ] ++ (reverse graphConfigs))
 
          DaVinci.displayGraph graph
-         DaVinci.newSurveyView graph
+         if surveyView
+            then
+               DaVinci.newSurveyView graph
+            else
+               done
 
          nodeValues <- newRegistry
          edgeValues <- newRegistry
@@ -129,7 +149,6 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                         (onNodeDragAndDrop nodeTypePrim) fromDyn toDyn 
                   )
             )   
-                 
 
          return (DaVinciGraph{
             graph = graph,
@@ -137,26 +156,51 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             nodeValues = nodeValues,
             edgeValues = edgeValues,
             nodeTypes = nodeTypes,
-            dragAndDropper = dragAndDropper
+            dragAndDropper = dragAndDropper,
+            doImprove = configDoImprove
             })
 
 instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
-      graphConfigs = [],graphConfigGesture = done}
+      graphConfigs = [],graphConfigGesture = done,
+      configDoImprove = False,surveyView = False
+      }
 
-instance GraphConfigParms GraphTitle DaVinciGraphParms where
-   graphConfigUsed _ _  = True
-   graphConfig (GraphTitle graphTitle) daVinciGraphParms =
+instance HasConfig GraphTitle DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) (GraphTitle graphTitle) daVinciGraphParms =
       daVinciGraphParms {
          graphConfigs = HTk.text graphTitle : 
             (graphConfigs daVinciGraphParms)
             }
 
-instance GraphConfig graphConfig 
-   => GraphConfigParms graphConfig DaVinciGraphParms where
+instance HasConfig OptimiseLayout DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) (OptimiseLayout configDoImprove) daVinciGraphParms =
+      daVinciGraphParms {configDoImprove = configDoImprove}
 
-   graphConfigUsed graphConfig graphParms = False
-   graphConfig graphConfig graphParms = graphParms
+instance HasConfig SurveyView DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) (SurveyView surveyView) daVinciGraphParms =
+      daVinciGraphParms {surveyView = surveyView}
+
+instance HasConfig AllowDragging DaVinciGraphParms where
+   configUsed _ _  = True
+
+   ($$) (AllowDragging allowDragging) daVinciGraphParms =
+      let
+         onOrOff = if allowDragging then DaVinci.On else DaVinci.Off
+      in
+         daVinciGraphParms {
+            graphConfigs = DaVinci.dragging onOrOff : 
+            (graphConfigs daVinciGraphParms)
+            }
+
+instance GraphConfig graphConfig 
+   => HasConfig graphConfig DaVinciGraphParms where
+
+   configUsed graphConfig graphParms = False
+   ($$) graphConfig graphParms = graphParms
 
 ------------------------------------------------------------------------
 -- Nodes
@@ -296,23 +340,23 @@ instance NodeTypeParms DaVinciNodeTypeParms where
       }
 
 instance NodeTypeConfig graphConfig 
-   => NodeTypeConfigParms graphConfig DaVinciNodeTypeParms where
+   => HasConfigValue graphConfig DaVinciNodeTypeParms where
 
-   nodeTypeConfigUsed nodeTypeConfig nodeTypeParms = False
-   nodeTypeConfig nodeTypeConfig nodeTypeParms = nodeTypeParms
+   configUsed' nodeTypeConfig nodeTypeParms = False
+   ($$$) nodeTypeConfig nodeTypeParms = nodeTypeParms
 
 ------------------------------------------------------------------------
 -- Node type configs for titles and shapes.
 ------------------------------------------------------------------------
 
-instance NodeTypeConfigParms ValueTitle DaVinciNodeTypeParms where
-   nodeTypeConfigUsed _ _ = True
-   nodeTypeConfig (ValueTitle nodeText) parms = 
+instance HasConfigValue ValueTitle DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (ValueTitle nodeText) parms = 
       parms { configNodeText = nodeText }
 
-instance NodeTypeConfigParms Shape DaVinciNodeTypeParms where
-   nodeTypeConfigUsed _ _ = True
-   nodeTypeConfig shape parms =
+instance HasConfigValue Shape DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) shape parms =
       let
          oldConfigs = nodeTypeConfigs parms
          mkConfig :: String -> String -> (DaVinciGraph ->
@@ -425,27 +469,26 @@ instance ArcTypeParms DaVinciArcTypeParms where
       }
 
 instance ArcTypeConfig arcTypeConfig 
-   => ArcTypeConfigParms arcTypeConfig DaVinciArcTypeParms where
+   => HasConfigValue arcTypeConfig DaVinciArcTypeParms where
 
-   arcTypeConfigUsed arcTypeConfig arcTypeParms = False
-   arcTypeConfig arcTypeConfig arcTypeParms = arcTypeParms
+   configUsed' arcTypeConfig arcTypeParms = False
+   ($$$) arcTypeConfig arcTypeParms = arcTypeParms
 
 ------------------------------------------------------------------------
 -- Menus
 ------------------------------------------------------------------------
 
-instance GraphConfigParms GlobalMenu DaVinciGraphParms where
-   graphConfigUsed _ _ = True
-   graphConfig globalMenu daVinciGraphParms =
+instance HasConfig GlobalMenu DaVinciGraphParms where
+   configUsed _ _ = True
+   ($$) globalMenu daVinciGraphParms =
       daVinciGraphParms {
          graphConfigs = (DaVinci.configGraphMenu globalMenu) :
             (graphConfigs daVinciGraphParms)
          }
 
-instance NodeTypeConfigParms LocalMenu DaVinciNodeTypeParms where
-   nodeTypeConfigUsed _ _ = True
-
-   nodeTypeConfig localMenu daVinciNodeTypeParms =
+instance HasConfigValue LocalMenu DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) localMenu daVinciNodeTypeParms =
       daVinciNodeTypeParms {
          nodeTypeConfigs =
             (\ daVinciGraph -> 
@@ -454,10 +497,9 @@ instance NodeTypeConfigParms LocalMenu DaVinciNodeTypeParms where
                   ) : (nodeTypeConfigs daVinciNodeTypeParms)
             }
 
-instance ArcTypeConfigParms LocalMenu DaVinciArcTypeParms where
-   arcTypeConfigUsed _ _ = True
-
-   arcTypeConfig localMenu daVinciArcTypeParms =
+instance HasConfigValue LocalMenu DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) localMenu daVinciArcTypeParms =
       daVinciArcTypeParms {
          arcTypeConfigs =
             (\ daVinciGraph ->
@@ -507,23 +549,23 @@ convertEdgeButton (LocalMenu menuPrim)
 -- Drag And Drop
 ------------------------------------------------------------------------
 
-instance GraphConfigParms GraphGesture DaVinciGraphParms where
-   graphConfigUsed _ _ = True
+instance HasConfig GraphGesture DaVinciGraphParms where
+   configUsed _ _ = True
    
-   graphConfig (GraphGesture action) graphParms =
+   ($$) (GraphGesture action) graphParms =
       graphParms {graphConfigGesture = action}
 
 
-instance NodeTypeConfigParms NodeGesture DaVinciNodeTypeParms where
-   nodeTypeConfigUsed _ _ = True
+instance HasConfigValue NodeGesture DaVinciNodeTypeParms where
+   configUsed' _ _ = True
 
-   nodeTypeConfig (NodeGesture onNodeGesture) nodeTypeParms =
+   ($$$) (NodeGesture onNodeGesture) nodeTypeParms =
       nodeTypeParms {configNodeGesture = onNodeGesture}
 
+instance HasConfigValue NodeDragAndDrop DaVinciNodeTypeParms where
+   configUsed' _ _ = True
 
-instance NodeTypeConfigParms NodeDragAndDrop DaVinciNodeTypeParms where
-   nodeTypeConfigUsed _ _ = True
-
-   nodeTypeConfig (NodeDragAndDrop onNodeDragAndDrop) nodeTypeParms =
+   ($$$) (NodeDragAndDrop onNodeDragAndDrop) nodeTypeParms =
       nodeTypeParms {configNodeDragAndDrop = onNodeDragAndDrop}
+
 

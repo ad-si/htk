@@ -33,7 +33,7 @@ import IO
 import Computation(done)
 import Debug(debug)
 
-import GraphDisp(MenuPrim(..),mapMMenuPrim,mapMMenuPrim',
+import GraphConfigure(MenuPrim(..),mapMMenuPrim,mapMMenuPrim',
    GlobalMenu(..),LocalMenu(..))
 
 import DaVinciGraphTerm

@@ -13,15 +13,17 @@ import Selective
 import SIM(Destructible(..),lift)
 
 import GraphDisp
+import GraphConfigure
 
 setUpGraph :: 
    (GraphAll graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms,
-    GraphConfigParms GraphTitle graphParms,
-    NodeTypeConfigParms LocalMenu nodeTypeParms,
-    NodeTypeConfigParms Shape nodeTypeParms,
-    NodeTypeConfigParms ValueTitle nodeTypeParms,
-    ArcTypeConfigParms LocalMenu arcTypeParms
+    HasConfig GraphTitle graphParms,
+    HasConfig OptimiseLayout graphParms,
+    HasConfigValue LocalMenu nodeTypeParms,
+    HasConfigValue Shape nodeTypeParms,
+    HasConfigValue ValueTitle nodeTypeParms,
+    HasConfigValue LocalMenu arcTypeParms
     ) 
    => (graph,graphParms,
       node Int,nodeType Int,nodeTypeParms Int,
@@ -35,15 +37,16 @@ setUpGraph (_::
    do
       let
          nullGraphParms = emptyGraphParms :: graphParms
-      if (graphConfigUsed (GraphTitle "") nullGraphParms)
+      if (configUsed (GraphTitle "") nullGraphParms)
          then
             return ()
          else
             error "Graph Title config is ignored!"
       let
          (graphParms :: graphParms) = 
-            (graphConfig (GraphTitle "Test Graph Display")) 
-               $ nullGraphParms 
+            GraphTitle "Test Graph Display" $$
+            OptimiseLayout True $$ 
+            nullGraphParms 
       (graph::graph) <- newGraph graphParms
 
       (killChannel :: Channel ()) <- newChannel
@@ -56,11 +59,10 @@ setUpGraph (_::
 
          nodeMenu1 = LocalMenu(Button "Type1" (disp "Type1"))   
          nodeType1Parms = 
-            (nodeTypeConfig nodeMenu1) .
-            (nodeTypeConfig Rhombus) .
-            (nodeTypeConfig (ValueTitle (
-               \ value -> return ("Type 1"++show value)
-               ))) $ nullNodeParms
+            nodeMenu1 $$$ 
+            Rhombus $$$
+            ValueTitle (\ value -> return ("Type 1"++show value)) $$$ 
+            nullNodeParms
 
          nodeMenu2 = LocalMenu(Menu(Just "Type2") [
             Button "Foo" (disp "Type2Foo"),
@@ -72,11 +74,10 @@ setUpGraph (_::
             ])
 
          nodeType2Parms =
-            (nodeTypeConfig nodeMenu2) .
-            (nodeTypeConfig (Icon "mawe.xbm")) .
-            (nodeTypeConfig (ValueTitle (
-               \ _ -> return "Type 2"
-               ))) $ nullNodeParms
+            nodeMenu2 $$$
+            Icon "mawe.xbm" $$$
+            ValueTitle (\ _ -> return "Type 2") $$$ 
+            nullNodeParms
 
          buttonChar =
             LocalMenu(Button "In" 
@@ -86,11 +87,11 @@ setUpGraph (_::
                   ))
 
          (nodeTypeCharParms :: nodeTypeParms Char) =
-            (nodeTypeConfig buttonChar) .
-            (nodeTypeConfig Triangle) .
-            (nodeTypeConfig (ValueTitle (
+            buttonChar $$$
+            Triangle $$$
+            ValueTitle (
                \ char -> return [char]
-               ))) $ emptyNodeTypeParms
+               ) $$$ emptyNodeTypeParms
 
          buttonWrite =
             LocalMenu(Button "Write"
@@ -101,14 +102,12 @@ setUpGraph (_::
                   ))
 
          (nodeTypeWriteParms :: nodeTypeParms ()) =
-            (nodeTypeConfig buttonWrite) .
-            (nodeTypeConfig Ellipse) .
-            (nodeTypeConfig (ValueTitle (\ _ -> return "Write"))) 
-              $ emptyNodeTypeParms
+            buttonWrite $$$
+            Ellipse $$$
+            ValueTitle (\ _ -> return "Write") $$$ emptyNodeTypeParms
 
          (nodeTypeSmallParms :: nodeTypeParms ()) =
-            (nodeTypeConfig (LocalMenu(Menu Nothing []))) 
-               $ emptyNodeTypeParms
+            LocalMenu (Menu Nothing []) $$$ emptyNodeTypeParms
 
       (nodeType1 :: nodeType Int) <- newNodeType graph nodeType1Parms
       (nodeType2 :: nodeType Int) <- newNodeType graph nodeType2Parms
@@ -128,8 +127,7 @@ setUpGraph (_::
          (nullArcParms :: arcTypeParms String) = emptyArcTypeParms
          arcMenu1 = LocalMenu(Button "ArcType1" (disp "ArcType1"))
 
-         arcType1Parms =
-            (arcTypeConfig arcMenu1) $ nullArcParms
+         arcType1Parms = arcMenu1 $$$ nullArcParms
 
       (arcType1 :: arcType String) <- newArcType graph arcType1Parms
 
@@ -147,6 +145,10 @@ setUpGraph (_::
       redraw graph
 
       sync(
-            (lift(receive killChannel) >>> destroy graph)
+            (lift(receive killChannel) >>> 
+               do
+                  putStrLn "Destroy graph"
+                  destroy graph
+               )
          +> (destroyed graph)
          )

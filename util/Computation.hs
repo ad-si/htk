@@ -270,6 +270,13 @@ config f w = f >> return w
 class HasConfig option configuration where
    ($$) :: option -> configuration -> configuration
 
+   configUsed :: option -> configuration -> Bool
+   -- In some implementations (EG a text-only 
+   -- implementation of the GraphDisp interface)
+   -- we may create default configurations in which $$ simply
+   -- ignores the option.  In such cases configUsed should return
+   -- False.
+
 infixr 0 $$
 -- This makes $$ have fixity like $. 
 

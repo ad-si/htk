@@ -340,14 +340,14 @@ copyStringToFileAlternative string destination =
          else
             return ()
 
--- readFile by itself won't do as it works lazily.
+-- readFile by itself won't do as it works lazily.  hClose should
+-- force the file to be explicitly closed afterwards.
 copyFileToString :: String -> IO String
 copyFileToString file =
    do
       handle <- openFile file ReadMode
       contents <- hGetContents handle
-      seq (last contents) (hClose handle)
-      -- The seq hopefully forces everything to be read.
+      hClose handle
       return contents
       
 exportFile :: ObjectSource -> FilePath -> IO ()

@@ -44,7 +44,7 @@ data InterActor =
    InterActor {
       self::ThreadID, 
       eventstream::EventStream (),
-      destruction::Channel ()
+      destruction::MsgQueue ()
       }
 -- self comes from a special thread which is forked for the purpose.
 -- This provides a unique identifier.  But
@@ -93,12 +93,12 @@ newInterActor f =
          do
             es <- newEventStream
             tid <- getThreadID
-            destruction <- newChannel
+            destruction <- newMsgQueue
             let 
                iact = InterActor 
                   {self = tid,eventstream = es,destruction=destruction}
             become iact (f iact) 
-            "90" @: putMVar mv iact
+            putMVar mv iact
             -- this thread is now ready to handle the requests.  Do so
             -- repeatedly.
             dispatch iact
@@ -113,7 +113,7 @@ interactor f =
          do
             es <- newEventStream
             tid <- getThreadID
-            destruction <- newChannel
+            destruction <- newMsgQueue
             let
                iact = InterActor 
                   {self = tid,eventstream = es,destruction = destruction}
@@ -129,23 +129,26 @@ interactor f =
 stop :: InterActor -> IO a
 stop iact = 
    do 
-      -- this also deadlocks.
-      debug "stop 1"
-      become iact (inaction :: IA ())
-      -- that should deregister everything.
-      debug "stop 2"
-      reply iact
-      debug "stop 3"
-      sendIO (destruction iact) ()
-      debug "stop 4"
+      destroy iact
       deadlock
+      -- this also deadlocks.
 
 -- --------------------------------------------------------------------------
 --  Destructor for Interactor
 -- --------------------------------------------------------------------------
 
 instance Destructible InterActor where
-   destroy = stop
+   destroy iact =
+      do
+         debug "stop 1"
+         become iact (inaction :: IA ())
+         -- that should deregister everything.
+         debug "stop 2"
+         reply iact
+         debug "stop 3"
+         sendIO (destruction iact) ()
+         debug "stop 4"
+         
    destroyed interactor = lift (receive (destruction interactor)) 
 
 -- --------------------------------------------------------------------------

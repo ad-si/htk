@@ -37,7 +37,7 @@ import GUICore
 import Font
 import BitMap
 
-import qualified GraphDisp
+import qualified GraphConfigure
 
 import Line(ArrowHead(..))
 
@@ -153,12 +153,12 @@ instance HasBitMap NodeType where
 -- Install Menus
 -- ---------------------------------------------------------------------------
 
-configNodeTypeMenu :: GraphDisp.LocalMenu Node -> NodeType -> IO NodeType
-configNodeTypeMenu (GraphDisp.LocalMenu menuPrim) 
+configNodeTypeMenu :: GraphConfigure.LocalMenu Node -> NodeType -> IO NodeType
+configNodeTypeMenu (GraphConfigure.LocalMenu menuPrim) 
       nodeType@(NodeType graph _ typeId) =
    let
       menuPrimId = -- menu with NodeId -> IO() rather than Node -> IO ().
-         GraphDisp.mapMenuPrim
+         GraphConfigure.mapMenuPrim
             (\ action ->
                let
                   actionId nodeId =
@@ -169,7 +169,7 @@ configNodeTypeMenu (GraphDisp.LocalMenu menuPrim)
                   actionId
                )
             menuPrim
-      localId = GraphDisp.LocalMenu menuPrimId
+      localId = GraphConfigure.LocalMenu menuPrimId
    in
       synchronize nodeType (
          do

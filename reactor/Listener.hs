@@ -20,7 +20,7 @@ DESCRIPTION   :
 
 module Listener (
    EventID(..),
-   EventPatternID(..),
+   EventPatternID,
    EventDesignator(..),
    
    EventListener(..),
@@ -34,12 +34,13 @@ module Listener (
 
    ) where
 
-
-import Concurrency
+import Computation(done)
 import Object
 import Dynamics
-import Event
 import Debug(debug)
+
+import Concurrency
+import Event
 
 -- --------------------------------------------------------------------------
 --  Event Designators
@@ -89,6 +90,9 @@ class EventListener o where
      -- This has to be part of the interface so that it can
      -- get overridden.  (For example EventStream uses it to
      -- block certain replies.)
+     replyPending :: o -> IO ()
+     -- replyPending sends a reply, if one is being waited for.
+
      awaitReply :: o -> EV ()
      -- get reply event (for when listener consumer acknowledges reply).
      -- Used for example by eventBroker.      
@@ -96,7 +100,10 @@ class EventListener o where
              where msg = Message md (toEventID e) (toDyn a)
      reply  o     = sendIO (replychannel (toListener o)) ()
      awaitReply o = receive (replychannel (toListener o))
-
+     replyPending o = 
+        do
+           poll (send (replychannel (toListener o)) ())
+           done
 
 request :: (EventListener o, EventDesignator e, Typeable a) 
                 => o -> e -> a -> EV (EV ())

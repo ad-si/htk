@@ -21,6 +21,7 @@ import InfoBus
 import SIM(Destructible(..),sync)
 
 import GraphDisp
+import GraphConfigure
 
 import Hasse
 
@@ -126,12 +127,14 @@ finishParseDepend (SemiParsedDepend dependencies) =
 drawDepend :: 
    (GraphAll graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms,
-    GraphConfigParms GraphTitle graphParms,
-    GraphConfigParms GraphGesture graphParms,
-    NodeTypeConfigParms ValueTitle nodeTypeParms,
-    NodeTypeConfigParms LocalMenu nodeTypeParms,
-    NodeTypeConfigParms NodeGesture nodeTypeParms,
-    NodeTypeConfigParms NodeDragAndDrop nodeTypeParms
+    HasConfig GraphTitle graphParms,
+    HasConfig GraphGesture graphParms,
+    HasConfig AllowDragging graphParms,
+    HasConfig SurveyView graphParms,
+    HasConfigValue ValueTitle nodeTypeParms,
+    HasConfigValue LocalMenu nodeTypeParms,
+    HasConfigValue NodeGesture nodeTypeParms,
+    HasConfigValue NodeDragAndDrop nodeTypeParms
     ) 
    => (graph,graphParms,
       node Int,nodeType Int,nodeTypeParms Int,
@@ -150,23 +153,25 @@ drawDepend (_::
       let
          nullGraphParms = emptyGraphParms :: graphParms
          graphParms =
-            (graphConfig (GraphGesture (putStrLn "New Node Gesture"))) .
-            (graphConfig (GraphTitle "Haskell Dependencies")) $
+            GraphGesture (putStrLn "New Node Gesture") $$
+            AllowDragging True $$
+            SurveyView True $$
+            GraphTitle "Haskell Dependencies" $$
                nullGraphParms
 
          (nullNodeParms :: nodeTypeParms String) = emptyNodeTypeParms
          nodeTypeParms =
-            (nodeTypeConfig (NodeGesture (\ title ->
-               putStrLn ("New Node-And-Edge gesture on "++title)))) .
-            (nodeTypeConfig (NodeDragAndDrop (\ otherDyn this ->
+            NodeGesture (\ title ->
+               putStrLn ("New Node-And-Edge gesture on "++title)) $$$
+            NodeDragAndDrop (\ otherDyn this ->
                do
                   let Just other = fromDyn otherDyn
                   putStrLn ("Dragged "++other++" to "++this)
-               ))) .
-            (nodeTypeConfig (ValueTitle (\ title -> return title ))) .
-            (nodeTypeConfig (LocalMenu (Button "Type1" 
-                  (\ title -> putStrLn title))))
-               $ nullNodeParms
+               ) $$$
+            ValueTitle (\ title -> return title ) $$$
+            LocalMenu (Button "Type1" 
+                  (\ title -> putStrLn title)) $$$
+               nullNodeParms
    
          (nullArcParms :: arcTypeParms ()) = emptyArcTypeParms
 

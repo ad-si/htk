@@ -6,6 +6,10 @@ module GetAttributes(
    getNodeTypeAttributes, -- :: IO (Maybe NodeTypeAttributes)
    NodeAttributes(..),
    getNodeAttributes, -- :: IO (Maybe NodeAttributes)
+   ArcTypeAttributes, 
+   getArcTypeAttributes, -- :: IO (Maybe ArcTypeAttributes)
+   ArcAttributes, 
+   getArcAttributes, -- :: IO (Maybe ArcAttributes)
    ) where
 
 import Exception
@@ -22,7 +26,7 @@ import Label
 import DialogWin
 import InputWin
 
-import qualified GraphDisp
+import qualified GraphConfigure
 
 ------------------------------------------------------------------------
 -- NodeTypes
@@ -35,9 +39,9 @@ instance GUIValue ShapeSort where
    cdefault = Box
 
 data NodeTypeAttributes nodeLabel = NodeTypeAttributes {
-   shape :: GraphDisp.Shape nodeLabel,
+   shape :: GraphConfigure.Shape nodeLabel,
    nodeTypeTitle :: String
-   } deriving Show
+   } deriving (Read,Show)
 
 data PreAttributes = PreAttributes {
    shapeSort :: ShapeSort,
@@ -52,15 +56,15 @@ getNodeTypeAttributes =
             getNodeTypeAttributes1
          
          shape <- case shapeSort of
-            Box -> return GraphDisp.Box
-            Circle -> return GraphDisp.Circle
-            Ellipse -> return GraphDisp.Ellipse
-            Rhombus -> return GraphDisp.Rhombus
-            Triangle -> return GraphDisp.Triangle
+            Box -> return GraphConfigure.Box
+            Circle -> return GraphConfigure.Circle
+            Ellipse -> return GraphConfigure.Ellipse
+            Rhombus -> return GraphConfigure.Rhombus
+            Triangle -> return GraphConfigure.Triangle
             Icon -> 
                do
                   fname <- getSingleString "Icon filename"
-                  return (GraphDisp.Icon fname)
+                  return (GraphConfigure.Icon fname)
    
          return NodeTypeAttributes {shape=shape,nodeTypeTitle=nodeTypeTitle}        )
 
@@ -96,7 +100,7 @@ getNodeTypeAttributes1 =
 data NodeAttributes nodeType = NodeAttributes {
    nodeType :: nodeType,
    nodeTitle :: String
-   } deriving Show
+   } deriving (Read,Show)
 
 data NodePreAttributes = NodePreAttributes {
    preNodeType :: String,
@@ -162,7 +166,7 @@ getNodeAttributes registry =
 
 data ArcTypeAttributes = ArcTypeAttributes {
    arcTypeTitle :: String
-   }
+   } deriving (Read,Show)
 
 getArcTypeAttributes :: IO (Maybe ArcTypeAttributes) 
 getArcTypeAttributes =
@@ -182,6 +186,57 @@ getArcTypeAttributes =
 ------------------------------------------------------------------------
 -- Arcs
 ------------------------------------------------------------------------
+
+data ArcAttributes arcType = ArcAttributes {
+   arcType :: arcType
+   } deriving (Read,Show)
+
+data ArcPreAttributes = ArcPreAttributes {
+   preArcType :: String
+   }
+
+getArcAttributes :: (Registry String arcType) -> 
+   IO (Maybe (ArcAttributes arcType))
+-- getArcAttributes gets the required attributes of an arc given
+-- its possible types (with their titles).
+getArcAttributes registry =
+   allowCancel (
+      do
+         knownTypeNames <- listKeys registry
+         case knownTypeNames of
+            [] -> 
+               do
+                  displayError "You must first define some arc types"
+                  cancelQuery
+            _ -> done
+         let
+            def = ArcPreAttributes {
+               preArcType=head knownTypeNames
+               }
+
+
+         (form :: InputForm ArcPreAttributes)
+            <- newInputForm [flexible,value def]
+         newEnumField knownTypeNames [
+            text "Arc Type",
+            selector preArcType,
+            modifier (\ old arcTypeName -> 
+               old {preArcType = arcTypeName}),
+            parent form
+            ]
+         inputWin <- newInputWin "Arc Attributes" form Nothing [modal True]
+         result <- sync(triggered inputWin)
+         case result of
+            Just (ArcPreAttributes {
+               preArcType = arcTypeName
+               }) ->
+                  do
+                     arcType <- Registry.getValue registry arcTypeName 
+                     return (ArcAttributes {
+                        arcType = arcType
+                        })
+            Nothing -> cancelQuery
+      )
 
 ------------------------------------------------------------------------
 -- General Routines

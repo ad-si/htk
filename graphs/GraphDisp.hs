@@ -55,6 +55,10 @@
    provided by DaVinci.  However we extend it by allowing
    nodes to have labels.
 
+   This file should be read in conjunction with GraphConfigure.hs,
+   which contains various configuration options to be used for
+   graph objects.
+
    Additional Notes
    ----------------
    (1) At the end of a program using a GraphDisp instance,
@@ -73,7 +77,6 @@ module GraphDisp(
    NewGraph(..),
    GraphConfig,
    GraphParms(..),
-   GraphConfigParms(..),
 
    NewNode(..),
    DeleteNode(..),
@@ -82,8 +85,6 @@ module GraphDisp(
    NewNodeType(..),
    NodeTypeConfig,
    NodeTypeParms(..),
-   NodeTypeConfigParms(..),
-  
 
    NewArc(..),
    GetFrom(..),
@@ -95,35 +96,6 @@ module GraphDisp(
    NewArcType(..),
    ArcTypeConfig,
    ArcTypeParms(..),
-   ArcTypeConfigParms(..),
-
-   -- LocalMenu describes menus or buttons for objects that carry a value,
-   -- IE nodes or arcs.
-   LocalMenu(..),
-
-   -- GlobalMenu describes menus or buttons for objects that don't carry a
-   -- value, IE graphs.
-   GlobalMenu(..),
-
-   -- MenuPrim is supposed to be the generalised Menu/Button type.
-   MenuPrim(..), -- a type with TWO parameters.  We provide maps
-                       -- and monadic methods for both.
-   mapMenuPrim,
-   mapMenuPrim',
-   mapMMenuPrim,
-   mapMMenuPrim',
-   
-   -- Titles for graphs and objects
-   GraphTitle(..),
-   ValueTitle(..),
-
-   -- Shapes for nodes
-   Shape(..),
-
-   -- Drag and Drop actions.
-   GraphGesture(..),
-   NodeGesture(..),
-   NodeDragAndDrop(..),
 
    ) where
 
@@ -212,18 +184,7 @@ class GraphConfig graphConfig where
 class GraphParms graphParms where
    emptyGraphParms :: graphParms
 
-class (GraphConfig graphConfig,GraphParms graphParms) 
-   => GraphConfigParms graphConfig graphParms where
-   graphConfigUsed :: graphConfig -> graphParms -> Bool
-   -- indicates if this instance actually does anything
-   -- with this configuration option, unlike the following
-   -- instance.
-
-   graphConfig :: graphConfig -> graphParms -> graphParms
-
-instance GraphConfigParms graphConfig graphParms
-   => HasConfig graphConfig graphParms where
-   ($$) = graphConfig
+-- HasConfig should be used to set graphParms
 
 ------------------------------------------------------------------------
 -- Nodes
@@ -261,22 +222,6 @@ class Kind1 nodeTypeConfig => NodeTypeConfig nodeTypeConfig
 class NodeTypeParms nodeTypeParms where
    emptyNodeTypeParms :: Typeable value =>
       nodeTypeParms value
-
-class (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
-      NodeTypeConfigParms nodeTypeConfig nodeTypeParms where
-   nodeTypeConfigUsed :: Typeable value =>
-      nodeTypeConfig value -> nodeTypeParms value -> Bool
-   -- indicates if this instance actually does anything
-   -- with this configuration option, unlike the following
-   -- instance.
-
-   nodeTypeConfig :: Typeable value =>
-      nodeTypeConfig value -> nodeTypeParms value -> nodeTypeParms value
-
-instance (NodeTypeConfigParms nodeTypeConfig nodeTypeParms,Typeable value)
-      => HasConfig (nodeTypeConfig value) (nodeTypeParms value) where
-   ($$) = nodeTypeConfig
-
 
 ------------------------------------------------------------------------
 -- Arcs
@@ -343,146 +288,6 @@ class ArcTypeConfig arcTypeConfig where
 
 class ArcTypeParms arcTypeParms where
    emptyArcTypeParms :: Typeable value => arcTypeParms value
-
-class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
-      ArcTypeConfigParms arcTypeConfig arcTypeParms where
-   arcTypeConfigUsed :: Typeable value =>
-      arcTypeConfig value -> arcTypeParms value -> Bool
-   -- indicates if this instance actually does anything
-   -- with this configuration option, unlike the following
-   -- instance.
-
-   arcTypeConfig :: Typeable value => 
-      arcTypeConfig value -> arcTypeParms value -> arcTypeParms value
-  
--- The following instance doesn't seem to work under GHC.    
--- instance (ArcTypeConfigParms arcTypeConfig arcTypeParms,Typeable value)
---       => HasConfig (arcTypeConfig value) (arcTypeParms value) where
---   ($$) = arcTypeConfig
-
-------------------------------------------------------------------------
--- Menus and buttons
--- As in DaVinci, a menu is simply considered as a tree of buttons,
--- allowing an elegant recursive definition.
--- We define MenuPrim as it may be useful for
--- implementations, so they don't have to define their own datatypes
--- for menus.
-------------------------------------------------------------------------276
-
-instance GraphConfig GlobalMenu
-
-newtype GlobalMenu = GlobalMenu(MenuPrim (Maybe String) (IO ()))
-
-instance NodeTypeConfig LocalMenu
-
-instance ArcTypeConfig LocalMenu
-
-newtype LocalMenu value = 
-   LocalMenu(MenuPrim (Maybe String) (value -> IO()))
-
-data MenuPrim subMenuValue value =
-      Button String value
-      -- first argument is text to put on button.
-      -- second argument generates an action to be performed when the
-      -- button is pressed.
-      -- The dynamic value is that supplied to the node/arc when it
-      -- was created.
-   |  Menu subMenuValue [MenuPrim subMenuValue value]
-      -- List of buttons with a possible title.
-   |  Blank
-      -- A Blank can be used to separate groups of menu buttons in the
-      -- same menu.     
-
-mapMenuPrim :: (a -> b) -> MenuPrim c a -> MenuPrim c b
-mapMenuPrim a2b (Button label a) = Button label (a2b a)
-mapMenuPrim a2b (Menu subMenuValue menuButtons) =
-   Menu subMenuValue (map (mapMenuPrim a2b) menuButtons)
-mapMenuPrim a2b Blank = Blank
-
-mapMenuPrim' :: (c -> d) -> MenuPrim c a -> MenuPrim d a
-mapMenuPrim' c2d (Button title action) = Button title action
-mapMenuPrim' c2d (Menu subMenuValue menuButtons) =
-   Menu (c2d subMenuValue) (map (mapMenuPrim' c2d) menuButtons)
-mapMenuPrim' c2d Blank = Blank
-
-mapMMenuPrim :: (Monad m) => (a -> m b) -> MenuPrim c a 
-   -> m (MenuPrim c b)
-mapMMenuPrim a2bAct (Button label a) =
-   do
-      b <- a2bAct a
-      return (Button label b)
-mapMMenuPrim a2bAct (Menu subMenuValue menuButtons) =
-   do
-      bMenuButtons <- mapM (mapMMenuPrim a2bAct) menuButtons
-      return (Menu subMenuValue bMenuButtons)
-mapMMenuPrim a2bAct Blank = return Blank
-
-mapMMenuPrim' :: (Monad m) => (c -> m d) -> MenuPrim c a 
-   -> m (MenuPrim d a)
-mapMMenuPrim' c2dAct (Button title action) = 
-   return (Button title action)
-mapMMenuPrim' c2dAct (Menu subMenuValue menuButtons) =
-   do
-      dMenuButtons <- mapM (mapMMenuPrim' c2dAct) menuButtons
-      dSubMenuValue <- c2dAct subMenuValue
-      return (Menu dSubMenuValue dMenuButtons) 
-mapMMenuPrim' c2dAct Blank = return Blank
-
-------------------------------------------------------------------------
--- Titles
-------------------------------------------------------------------------
-
-data GraphTitle = GraphTitle String
-instance GraphConfig GraphTitle
-
-data ValueTitle value = ValueTitle (value -> IO String)
--- ValueTitles are computed from the node or arc value using the supplied
--- computation when the node or arc is created or when 
--- setNodeValue/setArcValue are called.
-
-instance NodeTypeConfig ValueTitle
-
-instance ArcTypeConfig ValueTitle
-
-------------------------------------------------------------------------
--- Drag and Drop
--- These are inspired by DaVinci's Drag and Drop functions.
--- Each configuration gives a corresponding action to perform.
--- We give DaVinci's suggested applications.
-------------------------------------------------------------------------
-
-data GraphGesture = GraphGesture (IO ())
--- GraphGesture for a graphical interface is a mouse action
--- not involving any nodes but somewhere on the graph.
--- (suggested use: create a new node)
-
-instance GraphConfig GraphGesture
-
-data NodeGesture value = NodeGesture (value -> IO ())
--- A NodeGesture for a graphical interface is a mouse action
--- involving one node.  
--- (suggested use: create a new node, and link it to this one)
-
-instance NodeTypeConfig NodeGesture
-
-data NodeDragAndDrop value = NodeDragAndDrop (Dyn -> value -> IO ())
--- A NodeDragAndDrop corresponds to dragging some other node
--- (which could be of any type - hence its value must be encoded by
--- a Dyn) onto this node (value value).   
-
-instance NodeTypeConfig NodeDragAndDrop
-
-------------------------------------------------------------------------
--- Shapes etcetera
-------------------------------------------------------------------------
-
--- This datatype is based on DaVinciClasses.hs, including several
--- name clashes.  However we omit Textual, add the file argument
--- to iconic and the shape Triangle.  This datatype may get bigger!
-data Shape nodeLabel = Box | Circle | Ellipse | Rhombus | Triangle | 
-   Icon FilePath deriving (Read,Show)
-
-instance NodeTypeConfig Shape
 
 ------------------------------------------------------------------------
 -- The Kind* classes are a silly hack so that we 

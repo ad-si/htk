@@ -93,11 +93,11 @@ type InterActions a = FiniteMap EventID (Action a)
 
 instance EventListener (EventStream a) where
    toListener (EventStream listener _) = listener
-{-   reply (EventStream lst mv) = 
+   reply (EventStream lst mv) = 
       do
          replied <- updVar' mv (\ias -> (ias{fReplied = True},fReplied ias))
-         unless replied (reply lst)
--}
+         unless replied (replyPending lst)
+
 instance HasReceiveEV EventStream messageType where
    receive eventStream = 
    -- Interactors run by repeatedly synccing on this event. 

@@ -22,4 +22,18 @@ main =
 
       nodeAttributes2 <- getNodeAttributes nodeTypeRegistry
       putStrLn (show (nodeAttributes2 :: (Maybe (NodeAttributes String))))
+
+      arcTypeAttributes <- getArcTypeAttributes
+      putStrLn (show (arcTypeAttributes :: (Maybe (ArcTypeAttributes))))
+
+      arcTypeRegistry <- newRegistry
+
+      setValue arcTypeRegistry "Woo" "woo type"
+      setValue arcTypeRegistry "Waz" "waz type"
+
+      arcAttributes1 <- getArcAttributes arcTypeRegistry
+      putStrLn (show (arcAttributes1 :: (Maybe (ArcAttributes String))))
+
       shutdown
+
+

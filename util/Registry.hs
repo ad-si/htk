@@ -65,7 +65,9 @@ instance Ord from => NewRegistry (Registry from to) where
          mVar <- newMVar emptyFM
          return (Registry mVar)
    emptyRegistry (Registry mVar) =
-      putMVar mVar emptyFM
+      do
+         takeMVar mVar
+         putMVar mVar emptyFM
 
 instance Ord from => GetSetRegistry (Registry from to) from to where
    getValue registry from =

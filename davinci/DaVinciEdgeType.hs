@@ -22,7 +22,7 @@ module DaVinciEdgeType (
    EdgeType,
    newEdgeType,
    configEdgeTypeMenu, 
-       -- :: GraphDisp.LocalMenu Edge -> EdgeType -> IO EdgeType
+       -- :: GraphConfigure.LocalMenu Edge -> EdgeType -> IO EdgeType
    
    edgetype,
    getEdgeType
@@ -35,7 +35,7 @@ import HTk
 import Font
 import GUICore
 
-import qualified GraphDisp
+import qualified GraphConfigure
 
 import DaVinciCore
 import DaVinciGraphTerm
@@ -132,12 +132,12 @@ instance HasColour EdgeType where
 -- Install Menus
 -- ---------------------------------------------------------------------------
 
-configEdgeTypeMenu :: GraphDisp.LocalMenu Edge -> EdgeType -> IO EdgeType
-configEdgeTypeMenu (GraphDisp.LocalMenu menuPrim) 
+configEdgeTypeMenu :: GraphConfigure.LocalMenu Edge -> EdgeType -> IO EdgeType
+configEdgeTypeMenu (GraphConfigure.LocalMenu menuPrim) 
       edgeType@(EdgeType graph _ typeId) =
    let
       menuPrimId = -- menu with EdgeId -> IO() rather than Edge -> IO ().
-         GraphDisp.mapMenuPrim
+         GraphConfigure.mapMenuPrim
             (\ action ->
                let
                   actionId edgeId =
@@ -148,7 +148,7 @@ configEdgeTypeMenu (GraphDisp.LocalMenu menuPrim)
                   actionId
                )
             menuPrim
-      localId = GraphDisp.LocalMenu menuPrimId
+      localId = GraphConfigure.LocalMenu menuPrimId
    in
       synchronize edgeType (
          do
