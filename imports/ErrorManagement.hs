@@ -13,6 +13,11 @@
           Instead we record where errors have occurred.  Then when we
           come to report messages, we look at those places and look to
           see if there is still a problem.  Only then do we report it.
+
+   ErrorManagement itself uses an MSem.  This prevents conflicting 
+   updates in different threads, but more importantly allows us to
+   use bracketForImportErrors1 generously without worrying about
+   it being at some point used multiple times.
    -}
 module ErrorManagement(
    ErrorLocation(..),
@@ -38,6 +43,7 @@ import ExtendedPrelude
 import Delayer
 import Sink
 import VSem
+import MSem
 
 import EntityNames
 
@@ -48,7 +54,8 @@ import EntityNames
 data ErrorManagementState node = ErrorManagementState {
    currentErrors :: Registry (ErrorLocation node) (),
    confirmError :: ErrorLocation node -> IO (Maybe String),
-   delayer :: Delayer
+   delayer :: Delayer,
+   managementLock :: MSem
    }
 
 data ErrorLocation node = 
@@ -74,11 +81,13 @@ newErrorManagementState
 newErrorManagementState delayer1 confirmError1 =
    do
       currentErrors1 <- newRegistry
+      managementLock <- newMSem
       let
          errorManagementState = ErrorManagementState {
             currentErrors = currentErrors1,
             confirmError = confirmError1,
-            delayer = delayer1
+            delayer = delayer1,
+            managementLock = managementLock
             }
       return errorManagementState
 
@@ -95,9 +104,22 @@ recordError errorManagementState errorLocation =
 -- Doing the bracketting
 -- -----------------------------------------------------------------------
 
-bracketForImportErrors1 
+bracketForImportErrors1
    :: Ord node => ErrorManagementState node -> IO a -> IO a
-bracketForImportErrors1 
+bracketForImportErrors1 errorManagementState act =
+   synchronizeWithChoice (managementLock errorManagementState)
+      (\ isAlreadyBracketted ->
+         if isAlreadyBracketted 
+            then
+               act -- don't bother bracketting again
+            else
+               bracketForImportErrors1inner errorManagementState act
+         )
+
+
+bracketForImportErrors1inner
+   :: Ord node => ErrorManagementState node -> IO a -> IO a
+bracketForImportErrors1inner
       (errorManagementState :: ErrorManagementState node) act =
    do
       let currentErrors1 = currentErrors errorManagementState

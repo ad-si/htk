@@ -7,6 +7,10 @@
 module MSem(
    MSem,
    newMSem, -- :: IO MSem
+   synchronizeWithChoice,
+      -- :: MSem -> (Bool -> IO a) -> IO a
+      -- Lock on the MSem.  The action is given True iff this thread
+      -- already holds the lock on the MSem.
    ) where
 
 import Data.IORef
@@ -31,24 +35,27 @@ newMSem =
       holdingThreadRef <- newIORef Nothing
       return (MSem {lock = lock,holdingThreadRef = holdingThreadRef})
 
+synchronizeWithChoice :: MSem -> (Bool -> IO a) -> IO a
+synchronizeWithChoice mSem toAct =
+   do
+      holdingThreadOpt <- readIORef (holdingThreadRef mSem)
+      thisThread <- myThreadId
+      let
+         heldByUs = case holdingThreadOpt of
+            Nothing -> False
+            Just holdingThread -> holdingThread == thisThread
+      if heldByUs
+         then
+            (toAct True)
+         else
+            do
+               acquire (lock mSem)
+               writeIORef (holdingThreadRef mSem) (Just thisThread)
+               actOut <- try (toAct False)
+               writeIORef (holdingThreadRef mSem) Nothing
+               release (lock mSem)
+               propagate actOut
+
 instance Synchronized MSem where
-   synchronize mSem act =
-      do
-         holdingThreadOpt <- readIORef (holdingThreadRef mSem)
-         thisThread <- myThreadId
-         let
-            heldByUs = case holdingThreadOpt of
-               Nothing -> False
-               Just holdingThread -> holdingThread == thisThread
-         if heldByUs
-            then
-               act
-            else
-               do
-                  acquire (lock mSem)
-                  writeIORef (holdingThreadRef mSem) (Just thisThread)
-                  actOut <- try act
-                  writeIORef (holdingThreadRef mSem) Nothing
-                  release (lock mSem)
-                  propagate actOut
+   synchronize mSem act = synchronizeWithChoice mSem (const act)
                   

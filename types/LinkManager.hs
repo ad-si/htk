@@ -595,13 +595,16 @@ lookupLinkedObject :: View -> LinkedObject -> EntitySearchName
 lookupLinkedObject view linkedObject searchName =
    do
       importsState <- getImportsState view
-      source <- lookupNode importsState linkedObject searchName
-      lookupResult <- readContents source 
-      return (case lookupResult of
-         NotFound -> hasValue Nothing
-         Error -> hasError (toString searchName 
-            ++ " cannot be found because of errors") 
-         Found linkedObject -> hasValue (Just linkedObject)
+      bracketForImportErrors2 importsState (
+         do
+            source <- lookupNode importsState linkedObject searchName
+            lookupResult <- readContents source 
+            return (case lookupResult of
+               NotFound -> hasValue Nothing
+               Error -> hasError (toString searchName 
+                  ++ " cannot be found because of errors") 
+               Found linkedObject -> hasValue (Just linkedObject)
+               )
          )
 
 
