@@ -1882,7 +1882,7 @@ else
    echo \(But it should still be possible to compile htk.\)
    BDBDIR=
 fi
-BDBDIR=WORK_AROUND_BDB_LINUX_BUG
+
 
 #
 # Check for xemacs and gnuclient
@@ -2611,6 +2611,7 @@ s,@CP@,$CP,;t t
 s,@LN@,$LN,;t t
 s,@MKDIR@,$MKDIR,;t t
 s,@BDBDIR@,$BDBDIR,;t t
+s,@WORK_AROUND_BDB_LINUX_BUG@,$WORK_AROUND_BDB_LINUX_BUG,;t t
 s,@XEMACS@,$XEMACS,;t t
 s,@GNUCLIENT@,$GNUCLIENT,;t t
 s,@DEFAULTOPTIONS@,$DEFAULTOPTIONS,;t t

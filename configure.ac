@@ -136,7 +136,8 @@ else
    echo \(But it should still be possible to compile htk.\)
    BDBDIR=
 fi
-AC_SUBST(BDBDIR,WORK_AROUND_BDB_LINUX_BUG)
+AC_SUBST(BDBDIR)
+AC_SUBST(WORK_AROUND_BDB_LINUX_BUG)
 #
 # Check for xemacs and gnuclient
 AC_PATH_PROGS(XEMACS,xemacs)
