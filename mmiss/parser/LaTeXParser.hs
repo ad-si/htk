@@ -338,19 +338,17 @@ lParams id l
 
   | id `elem` (map fst linkAndRefCommands) =
       do pos <- getPosition
-         str <-  option "" (try (between (char '[') (char ']') (value "]")))
-         optFrag <- return [(Other str)]
+	 attributes <- try(between (char '[') (char ']') attParser)
+	               <?> (appendSourcePos pos ("[attribute-list] for Command <" ++ id ++ ">"))
          spaces
 	 labelId <-  try(between (char '{') (char '}') idParser)
-	             <?> (appendSourcePos pos ("[text]{referencedLabelID}{attribute-list} for Command <" ++ id ++ ">"))
+	             <?> (appendSourcePos pos ("[attribute list]{referencedLabelID} for Command <" ++ id ++ ">"))
 	 spaces
-	 attributes <- try(between (char '{') (char '}') attParser)
-	               <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">"))
          statusAtt <- if (isPrefixOf "Forward" id) 
 			then return (("status", "absent"))
 			else return (("status", "present"))
          attributes <- return (attributes ++ [statusAtt])
-         return (LParams [(SingleParam optFrag '['), (SingleParam [(Other labelId)] '{')] attributes Nothing Nothing)
+         return (LParams [(SingleParam [(Other labelId)] '{')] attributes Nothing Nothing)
  
  | id == "Define" = 
       do pos <- getPosition
@@ -1175,21 +1173,15 @@ makeListItemAttribs (LParams _ atts _ _) = (map convertAttrib atts)
 
 
 makeLinkAttribs :: Params -> [Attribute]
-makeLinkAttribs (LParams ps atts _ _) =
-  if (genericLength(ps) > 0)
-    then let (SingleParam ((Other labelId):[]) _) = genericIndex ps 1
-         in [("linked", (AttValue [Left labelId]))] 
-              ++ map convertAttrib atts
-    else []
+makeLinkAttribs (LParams ((SingleParam ((Other labelId):[]) _):ps) atts _ _) =
+  [("linked", (AttValue [Left labelId]))] ++ map convertAttrib (filter ((not . (== "LinkText")) . fst) atts)
+makeLinkAttribs (LParams [] atts _ _) = map convertAttrib (filter ((not . (== "LinkText")) . fst) atts)
 
 
 makeRefAttribs :: Params -> [Attribute]
-makeRefAttribs (LParams ps atts _ _) =
-  if (genericLength(ps) > 0)
-    then let (SingleParam ((Other labelId):[]) _) = genericIndex ps 1
-         in [("referenced", (AttValue [Left labelId]))] 
-            ++ map convertAttrib atts
-    else []
+makeRefAttribs  (LParams ((SingleParam ((Other labelId):[]) _):ps) atts _ _) =
+  [("referenced", (AttValue [Left labelId]))] ++ map convertAttrib (filter ((not . (== "LinkText")) . fst) atts)
+makeRefAttribs (LParams [] atts _ _) = map convertAttrib (filter ((not . (== "LinkText")) . fst) atts)
 
 
 makeDefineAttribs :: Params -> [Attribute]
@@ -1207,11 +1199,10 @@ eqAttPair a b = (fst a) == (fst b)
 -- den LinkText, der im ersten SingleParam steht und leer sein kann.
 
 getLinkText :: Params -> [Content]
-getLinkText (LParams ((SingleParam f '['):_) _ _ _) =
-  let str = makeTextElem f
-  in if (str == "") then []
-       else [(CString True str)]
-getLinkText _ = []
+getLinkText (LParams _ atts _ _) =
+  case (find ((== "LinkText") . fst) atts) of
+    Just((_, linkText)) -> [(CString True linkText)]
+    Nothing -> []
 
 getDefineText :: Params -> [Content]
 getDefineText  (LParams ps _ _ _) = 
@@ -1294,15 +1285,15 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
                        then "Forward"
                        else ""
         s1 = "\\" ++ forwardStr ++ (elemNameToLaTeX name) 
-        str = if (length(contents) == 0) then "" 
-                 else let c = head contents
-                      in case c of
-                           (CString _ body) -> body
-                           _ -> ""
-        s2 = if (str == "") then "" else "[" ++ str ++ "]"
+        linkText = if (length(contents) == 0) then "" 
+                     else let c = head contents
+                          in case c of
+                              (CString _ body) -> "LinkText={" ++ body ++ "}"
+                              _ -> ""
+        s2 = "[" ++ (getAttribs atts "" ["linked", "referenced", "status"]) ++
+                     if (linkText == "") then "]" else linkText ++ "]"
         s3 = "{" ++  if (name == "link") then (getParam "linked" atts) ++ "}" else  (getParam "referenced" atts) ++ "}"
-        s4 = "{" ++ (getAttribs atts "" ["linked", "referenced", "status"]) ++ "}"
-        items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
+        items = [(EditableText (s1 ++ s2 ++ s3))]
     in fillLatex out cs (inList ++ items)
   | (name == "define") =
     let s1 = "\\" ++ (elemNameToLaTeX name)
@@ -1325,7 +1316,9 @@ fillLatex out ((CMisc (PI ("mmiss:InsertLaTeX", str))):cs) inList =  fillLatex o
 
 fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
   let s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
-      attrStr = (getAttribs atts "" [])
+      attrStr = if (name == "package") 
+                  then (getAttribs atts "" ["path"])
+                  else (getAttribs atts "" [])
       s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
       s3 = "\\end{" ++ (elemNameToLaTeX name) ++ "}"
       items = [(EditableText (s1 ++ s2))] ++ (fillLatex out contents []) 
