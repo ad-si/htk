@@ -255,6 +255,13 @@ instance (HasCodedValue value1,HasCodedValue value2,HasCodedValue value3,
    encodeIO = mapEncodeIO (\ (v1,v2,v3,v4) -> (v1,(v2,(v3,v4)))) 
    decodeIO = mapDecodeIO (\ (v1,(v2,(v3,v4))) -> (v1,v2,v3,v4))
 
+instance (HasCodedValue value1,HasCodedValue value2,HasCodedValue value3,
+      HasCodedValue value4,HasCodedValue value5) 
+   => HasCodedValue (value1,value2,value3,value4,value5)
+      where
+   encodeIO = mapEncodeIO (\ (v1,v2,v3,v4,v5) -> (v1,(v2,(v3,(v4,v5))))) 
+   decodeIO = mapDecodeIO (\ (v1,(v2,(v3,(v4,v5)))) -> (v1,v2,v3,v4,v5))
+
 
 
 instance (HasCodedValue value1,HasCodedValue value2) 

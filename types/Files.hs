@@ -19,6 +19,8 @@ import Sink
 import VariableSet
 import UniqueString
 
+import SimpleForm
+
 import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
@@ -37,7 +39,8 @@ import GlobalRegistry
 -- ------------------------------------------------------------------
 
 data FileType = FileType {
-   fileTypeId :: AtomString,   
+   fileTypeId :: AtomString,
+   fileTypeLabel :: Maybe String,
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (String,Link File),
    knownFiles :: VariableSet (Link File)
@@ -49,17 +52,18 @@ instance HasTyCon FileType where
 
 instance HasCodedValue FileType where
    encodeIO = mapEncodeIO 
-      (\ (FileType {fileTypeId = fileTypeId,
+      (\ (FileType {fileTypeId = fileTypeId,fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms})
-         -> (Str fileTypeId,requiredAttributes,displayParms)
+         -> (Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms)
          )
    decodeIO codedValue0 view =
       do
-         ((Str fileTypeId,requiredAttributes,displayParms),
+         ((Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms),
             codedValue1) <- decodeIO codedValue0 view
          knownFiles <- newEmptyVariableSet
          return (FileType {fileTypeId = fileTypeId,
+            fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,
             knownFiles = knownFiles},codedValue1)
@@ -111,6 +115,11 @@ instance ObjectType FileType File where
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim file = fileType file
    nodeTitlePrim file = name file
+
+   createObjectMenuItem fileType =
+      fmap
+         (\ label -> (label,newEmptyFile fileType))
+         (fileTypeLabel fileType)
 
    getNodeDisplayData view wrappedDisplayType fileType =
       return (
@@ -165,14 +174,18 @@ emptyVariableSet = IOExts.unsafePerformIO newEmptyVariableSet
 -- Creating a new empty file with the given name
 -- We use the inputAttributes method to get the attributes, and
 -- return Nothing if the user cancels.
-newEmptyFile :: View -> FileType -> String -> IO (Maybe (Link File))
-newEmptyFile view fileType name =
+newEmptyFile :: FileType -> View -> IO (Maybe (Link File))
+newEmptyFile fileType view =
    do
+      -- Construct an extraFormItem for the name.
+      extraFormItem <- mkExtraFormItem (newFormEntry "Name" "")
       attributesOpt <- inputAttributes view (requiredAttributes fileType)
+         (Just extraFormItem)
       case attributesOpt of
          Nothing -> return Nothing
          Just attributes ->
             do
+               name <- readExtraFormItem extraFormItem
                simpleFile <- newSimpleFile view
                let
                   file = File {

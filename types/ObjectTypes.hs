@@ -130,6 +130,12 @@ class (HasCodedValue objectType,HasCodedValue object) =>
    nodeTitlePrim :: object -> String
       -- Returns a title for the object, to be used to index it in containing
       -- folders.
+
+   createObjectMenuItem :: objectType 
+      -> Maybe (String,View -> IO (Maybe (Link object)))
+      -- This is a menu item (label + creation function) which creates
+      -- a link to an object of this type.
+
    getNodeDisplayData :: 
       (HasNodeTypeConfigs nodeTypeParms,HasArcTypeConfigs arcTypeParms) 
       => View -> WrappedDisplayType -> objectType ->

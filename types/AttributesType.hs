@@ -16,11 +16,15 @@ module AttributesType(
    HasAttributeTypeKey(..),
 
    registerAttribute,
+
+   ExtraFormItem,
+   mkExtraFormItem,
+   readExtraFormItem,
    ) where
 
 import Maybe
 
-import qualified IOExts(unsafePerformIO)
+import IOExts
 
 import Dynamics
 import Registry
@@ -49,31 +53,37 @@ instance HasCodedValue AttributesType where
    decodeIO = mapDecodeIO (\ list -> AttributesType list)
 
 ---
--- inputAttributes attributesType
+-- inputAttributes 
 -- returns an Attributes value corresponding to this attributesType,
 -- or Nothing if the user pressed Cancel.
-inputAttributes :: View -> AttributesType -> IO (Maybe Attributes)
-inputAttributes view attributesType =
+inputAttributes :: View -> AttributesType -> Maybe (ExtraFormItem x) 
+   -> IO (Maybe Attributes)
+inputAttributes view attributesType extraFormItemOpt =
    do
       -- the values will go here.
       attributes <- newEmptyAttributes view
-      success <- 
-         updateAttributesPrim "New Attributes" attributes attributesType
+      success <- updateAttributesPrim "New Attributes" attributes 
+         attributesType extraFormItemOpt
       return (if success then Just attributes else Nothing)
 
 ---
 -- updateAttributes attributes attributesType
 -- puts up a form allowing the user to update the attributes,
 -- which should have type attributesType
-updateAttributes :: Attributes -> AttributesType -> IO Bool
-updateAttributes = updateAttributesPrim "Update Attributes"
+updateAttributes :: Attributes -> AttributesType -> Maybe (ExtraFormItem x) 
+   -> IO Bool
+updateAttributes attributes attributesType extraFormItemOpt = 
+   updateAttributesPrim "Update Attributes" attributes attributesType 
+      extraFormItemOpt
 
 ---
 -- updateAttributesPrim is like updateAttributes except it takes
 -- as argument the String to be used as the title window, allowing
 -- it also to be used for inputAttributes
-updateAttributesPrim :: String -> Attributes -> AttributesType -> IO Bool
-updateAttributesPrim title attributes (AttributesType attributesList) =
+updateAttributesPrim :: String -> Attributes -> AttributesType 
+   -> Maybe (ExtraFormItem x) -> IO Bool
+updateAttributesPrim title attributes (AttributesType attributesList) 
+      extraFormItemOpt =
    do
       let
          -- Make a form item which generates a form returning the
@@ -85,16 +95,25 @@ updateAttributesPrim title attributes (AttributesType attributesList) =
                getForm <- getValue attributeTypeKeyRegistry typeKey
                getForm attributes key
 
+      -- Form of IO actions which set the attributes
+      (forms1 :: [Form (IO ())]) <- mapM mkFormItem attributesList 
+
+      let
+         -- Form which constructs this, and the extraFormItem if present.
+         forms = case extraFormItemOpt of
+            Nothing -> forms1
+            Just extraFormItem -> 
+               (extraFormItemToForm extraFormItem) : forms1  
+
          -- combine two forms generating actions, generating
          -- one that does one action after the other.
          (///) :: Form (IO ()) -> Form (IO ()) -> Form (IO ())
          (///) form1 form2 = fmap (uncurry (>>)) (form1 // form2)
 
-      case attributesList of 
+      case forms of 
          [] -> return True
          _ ->
             do 
-               (forms :: [Form (IO ())]) <- mapM mkFormItem attributesList
                let form = foldr1 (///) forms
                -- Now open the window. 
                actOpt <- doForm title form
@@ -120,6 +139,47 @@ needs keyStr val (AttributesType list) =
       typeKey = attributeTypeKey val 
    in
       AttributesType ((key,typeKey):list)
+
+-- -------------------------------------------------------------------
+-- Support for additional form items.  These will go at the top,
+-- if supplied.
+-- -------------------------------------------------------------------
+
+---
+-- An ExtraFormItem indicates an extra bit of data to be
+-- read by inputAttributes.
+data ExtraFormItem x = ExtraFormItem (Form x) (IORef (Maybe x))
+
+---
+-- Constructs an ExtraFormItem from a form to be added on before
+-- the attributes.
+mkExtraFormItem :: Form x -> IO (ExtraFormItem x)
+mkExtraFormItem form =
+   do
+      ioRef <- newIORef Nothing
+      return (ExtraFormItem form ioRef)
+
+---
+-- Read the value read from an extra form item by mkExtraFormItem.  
+-- This must be used after inputAttributes, but before inputAttributes
+-- is used again on the same ExtraFormItem.
+readExtraFormItem :: ExtraFormItem x -> IO x
+readExtraFormItem (ExtraFormItem _ ioRef) =
+   do
+      xOpt <- readIORef ioRef
+      case xOpt of
+         Nothing -> error 
+            "AttributesType.readExtraFormItem used before inputAttributes"
+         Just x -> return x
+
+---
+-- Turns the ExtraFormItem into a form which returns an IO action which
+-- make the value accessible for readExtraFormItem
+extraFormItemToForm :: ExtraFormItem x -> Form (IO ())
+extraFormItemToForm (ExtraFormItem form ioRef) =
+   fmap
+      (\ x -> writeIORef ioRef (Just x))
+      form
 
 -- -------------------------------------------------------------------
 -- AttributeTypeKey and some instances.

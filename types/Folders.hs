@@ -25,6 +25,8 @@ import UniqueString
 
 import BSem
 
+import SimpleForm
+
 import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
@@ -76,7 +78,9 @@ displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
 -- ------------------------------------------------------------------
 
 data FolderType = FolderType {
-   folderTypeId :: AtomString,   
+   folderTypeId :: AtomString,
+   folderTypeLabel :: Maybe String,
+      -- Menu label to be used for creating objects of this type.
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (String,Link Folder),
    topFolderLinkOpt :: Maybe (Link Folder),
@@ -90,16 +94,19 @@ instance HasTyCon FolderType where
 instance HasCodedValue FolderType where
    encodeIO = mapEncodeIO 
       (\ (FolderType {folderTypeId = folderTypeId,
+            folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt})
-         -> (Str folderTypeId,requiredAttributes,displayParms,
+         -> (Str folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
                topFolderLinkOpt))
    decodeIO codedValue0 view =
       do
-         ((Str folderTypeId,requiredAttributes,displayParms,topFolderLinkOpt),
+         ((Str folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
+            topFolderLinkOpt),
             codedValue1) <- decodeIO codedValue0 view
          knownFolders <- newEmptyVariableSet
          return (FolderType {folderTypeId = folderTypeId,
+            folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt,
             knownFolders = knownFolders},codedValue1)
@@ -158,6 +165,11 @@ instance ObjectType FolderType Folder where
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim folder = folderType folder
    nodeTitlePrim folder = name folder 
+
+   createObjectMenuItem folderType =
+      fmap
+         (\ label -> (label,newEmptyFolder folderType))
+         (folderTypeLabel folderType)
 
    getNodeDisplayData view wrappedDisplayType folderType =
       return (
@@ -243,6 +255,7 @@ getPlainFolderType view =
       let
          folderType = FolderType {
             folderTypeId = key,
+            folderTypeLabel = Just "Plain",
             requiredAttributes = emptyAttributesType,
             displayParms = emptyNodeTypes,
             topFolderLinkOpt = Just topLink,
@@ -330,17 +343,21 @@ lookupFileName view (first:rest) =
 -- ------------------------------------------------------------------
 
 ---
--- Create a new empty folder in the view with the given name.
+-- Create a new empty folder in the view.
 -- We use the inputAttributes method to get the attributes, and
 -- return Nothing if the user cancels.
-newEmptyFolder :: View -> FolderType -> String -> IO (Maybe (Link Folder))
-newEmptyFolder view folderType name =
+newEmptyFolder :: FolderType -> View -> IO (Maybe (Link Folder))
+newEmptyFolder folderType view =
    do
+      -- Construct an extraFormItem for the name.
+      extraFormItem <- mkExtraFormItem (newFormEntry "Name" "")
       attributesOpt <- inputAttributes view (requiredAttributes folderType)
+         (Just extraFormItem)
       case attributesOpt of
          Nothing -> return Nothing
          Just attributes ->
             do
+               name <- readExtraFormItem extraFormItem
                contents <- newEmptyVariableMap
                contentsLock <- newBSem
                let
