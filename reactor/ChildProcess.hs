@@ -47,6 +47,9 @@ module ChildProcess (
    appendArguments,-- :: [String] -> Config PosixProcess
    environment,    -- :: [(String,String)] -> Config PosixProcess  
    workingdir,     -- :: FilePath -> Config PosixProcess           
+   chunksize,      -- :: Int-> Config PosixProcess
+   -- the maximal size of one "chunk" of characters read from the 
+   -- child process when reading in non-linemode (default 1000).
    standarderrors, -- :: Bool -> Config PosixProcess
    -- if standarderrors is true, we send stderr to the childprocesses
    -- out channel (of which there is only one).  Otherwise we
@@ -116,6 +119,7 @@ data PosixProcess =
       args            :: [String], 
       env             :: Maybe [(String, String)],
       wdir            :: Maybe FilePath,
+      chksize         :: Int, 
       lmode           :: Bool, -- line mode
       stderr          :: Bool -- include stderr
      }
@@ -126,6 +130,7 @@ defaultPosixProcess =
       args = [], 
       env = Nothing, 
       wdir = Nothing, 
+      chksize = 1000,
       lmode = True,
       stderr = True
       }
@@ -136,12 +141,14 @@ arguments       :: [String] -> Config PosixProcess
 appendArguments :: [String] -> Config PosixProcess
 environment     :: [(String,String)] -> Config PosixProcess
 workingdir      :: FilePath -> Config PosixProcess
+chunksize       :: Int-> Config PosixProcess
 standarderrors  :: Bool -> Config PosixProcess
 
 linemode lm' parms = return parms{lmode = lm'}
 arguments args' parms = return parms{args = args'}
 environment env' parms = return parms{env = Just env'}
 workingdir wdir' parms = return parms{wdir = Just wdir'}
+chunksize size' parms = return parms{chksize= size' }
 standarderrors err' parms = return parms{stderr = err'}
 
 appendArguments args' parms = return parms{args = (args parms) ++ args'}
@@ -162,9 +169,11 @@ data ChildProcess =
 
       processID :: Posix.ProcessID,
                        -- process id of child
-      bufferVar :: (MVar String) 
+      bufferVar :: (MVar String),
                        -- bufferVar of previous characters (only relevant
                        -- for line mode)     
+      chunkSize :: Int -- max. size of one "chunk" of characters read
+                       -- in non-line mode
       }
 
 -- -------------------------------------------------------------------------
@@ -250,6 +259,7 @@ newChildProcess path confs  =
                readFrom = readOut,
                processID = processID,
                bufferVar = bufferVar,
+	       chunkSize = chksize parms,
                closeAction = closeAction
                })
       connect writeIn readIn writeOut readOut readWriteErr Nothing parms =
@@ -327,7 +337,8 @@ instance UnixTool ChildProcess where
    on every character. -}
 readMsg :: ChildProcess -> IO String
 readMsg (ChildProcess 
-      {lineMode = True, readFrom = readFrom, bufferVar = bufferVar}) = 
+      {lineMode = True, chunkSize= chunkSize, 
+       readFrom = readFrom, bufferVar = bufferVar}) = 
    do
       buffer <- takeMVar bufferVar 
       (newBuffer,result) <- readWithBuffer readFrom buffer []
@@ -338,21 +349,22 @@ readMsg (ChildProcess
       -- we use an accumulating parameter since I don't want a
       -- non-tail-recursive action.
          do
-            nextChunk <- readChunk readFrom
+            nextChunk <- readChunk chunkSize readFrom
             readWithBuffer readFrom nextChunk acc
       readWithBuffer readFrom ('\n' : rest) acc =
          return (rest,reverse acc)
       readWithBuffer readFrom (other : rest) acc =
          readWithBuffer readFrom rest (other : acc)
-readMsg (ChildProcess {lineMode = False,readFrom = readFrom}) = 
-   readChunk readFrom
+readMsg (ChildProcess {lineMode = False, readFrom = readFrom,
+	               chunkSize= size}) = 
+   readChunk size readFrom
 
-readChunk :: Fd -> IO String
+readChunk :: Int-> Fd -> IO String
 -- read a chunk of characters, waiting until at least one is available.
-readChunk fd =
+readChunk size fd =
    do
       waitForInputFd fd
-      (input,count) <- Posix.fdRead fd 1000
+      (input,count) <- Posix.fdRead fd size
       debug ("readChunk read " ++ input)
       if count <= 0 
          then 
@@ -402,7 +414,7 @@ closeChildProcessFds (ChildProcess{closeAction = closeAction}) =
 displayStdErr :: FilePath -> Posix.Fd -> IO ()
 displayStdErr progName stdErrFd =
    do
-      errOutput <- readChunk stdErrFd
+      errOutput <- readChunk 1000 stdErrFd 
       let
          errHead = progName++" error:"
          -- Put errHead at the start of every line of output.
