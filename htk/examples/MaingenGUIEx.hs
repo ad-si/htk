@@ -4,7 +4,7 @@
 --
 -- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
 --
--- $Revision$ from $Date$  
+-- $Revision$ from $Date$
 -- Last modification by $Author$
 --
 -- -----------------------------------------------------------------------
@@ -12,7 +12,6 @@
 module Main (main) where
 
 import HTk
---import Property
 import GenGUI
 --import FileDialog
 import Name
@@ -35,52 +34,6 @@ lastactiveref = unsafePerformIO (newRef (unsafePerformIO
 imgref :: Ref (IO Image)
 imgref = unsafePerformIO (newRef folderImg)
 
-instance Typeable Image where
-  typeOf i = typeOf ()
-
-
--------------
--- folders --
--------------
-{-
-data MyContainer = MyContainer (Prop Name) (Prop ItemIcon) (Prop Value)
-
-instance HasProp MyContainer Name where
-  getProp (MyContainer p _ _) = p
-
-instance HasProp MyContainer ItemIcon where
-  getProp (MyContainer _ p _) = p
-
-instance HasProp MyContainer Value where
-  getProp (MyContainer _ _ p) = p
-
-instance CItem MyContainer
--}
-{-
------------------
--- object type --
------------------
-
-data MyColor = Red | Green | Blue | Yellow deriving Eq
-
-instance Typeable MyColor where
-  typeOf i = typeOf ()
-
-data MyObject =
-  MyObject (Prop Name) (Prop ItemIcon) (Prop Value)
-
-instance HasProp MyObject Name where
-  getProp (MyObject p _ _) = p
-
-instance HasProp MyObject ItemIcon where
-  getProp (MyObject _ p _) = p
-
-instance HasProp MyObject Value where
-  getProp (MyObject _ _ p) = p
-
-instance CItem MyObject
--}
-
 data Col = Red | Green | Blue | Yellow deriving Eq
 
 type Obj = (Name, IO Image, MyObject)
@@ -88,6 +41,7 @@ type Obj = (Name, IO Image, MyObject)
 data MyObject =
     MyContainer
   | MyColor Col
+  | MyImage (IO Image)
 
 instance CItem Obj where
   getIcon (_, ic, _) = ic
@@ -137,6 +91,7 @@ addCol name ent =
           addItem par (LeafItem (nm, ic, val) Nothing)
           done
       _ -> done
+
 {-
 addImg :: String -> Maybe FilePath -> IO ()
 addImg nm mimgpath =
@@ -183,29 +138,6 @@ addExampleFolders :: GenGUI Obj -> IO ()
 addExampleFolders gui =
   let 
 {-
-      mkImgItem :: String -> (Int, (IO Image, ItemIcon)) ->
-                   IO (NewItem MyObject)
-      mkImgItem nm (i, (val, icon)) =
-        do
-          
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn val)
-          return (LeafItem (MyObject pname picon pval))
-
-      addImgFolder :: Item -> String -> ItemIcon -> String ->
-                      [(IO Image, ItemIcon)] -> Int -> IO ()
-      addImgFolder par nm icon subnm vals_icons i =
-        do
-          pval <- newProp (toDyn ())
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          items <- mapM (mkImgItem subnm) (zip [1..(length vals_icons)]
-                                               vals_icons)
-          addItem par (FolderItem (MyContainer pname picon pval) items)
-          done
--}
-{-
       mkTxtItem :: String -> (Int, (String, ItemIcon)) -> IO NewItem
       mkTxtItem nm (i, (val, icon)) =
         do
@@ -247,6 +179,23 @@ addExampleFolders gui =
           addItem par (FolderItem (MyContainer pname picon pval) items)
           done
 -}
+      mkImgItem :: String -> (Int, (IO Image, IO Image)) ->
+                   IO (NewItem Obj)
+      mkImgItem name (i, (img, ic)) =
+        do
+          let val = MyImage img
+              nm = newName (name ++ show i)
+          return (LeafItem (nm, ic, val) Nothing)
+
+      addImgFolder :: Item Obj -> String -> IO Image -> String ->
+                      [(IO Image, IO Image)] -> Int -> IO ()
+      addImgFolder par name ic subnm vals_icons i =
+        do
+          let nm = newName (name ++ show i)
+          items <- mapM (mkImgItem subnm) (zip [1..(length vals_icons)]
+                                               vals_icons)
+          addItem par (FolderItem (nm, ic, MyContainer) items Nothing)
+          done
 
       mkColItem :: String -> (Int, (Col, IO Image)) ->
                    IO (NewItem Obj)
@@ -267,10 +216,10 @@ addExampleFolders gui =
           done
   in do
        guiroot <- root gui
-{-
+
        mapM (addImgFolder guiroot "images." imgfolderImg "image_item."
                          [(img1, imgImg), (img2, imgImg)]) [1]
--}
+
        let nm1 = newName ("example_folder.1")
        exfolder1 <- addItem guiroot
                       (FolderItem (nm1, folderImg, MyContainer) []
@@ -337,18 +286,27 @@ main =
   do
     main <- initHTk [text "GenGUI example"]
 
-    gui <- newGenGUI :: IO (GenGUI Obj)
+    -- construct gui
+    gui <- newGenGUI Nothing :: IO (GenGUI Obj)
+
+    -- create menu content
+    m <- createMenu main True []
+    pulldown1 <- createMenuCascade (genGUIMainMenu gui)
+                                   [text "Info", menu m]
+    createMenuCommand m [text "GenGUI Info"]
+    createMenuSeparator m []
+    createMenuCommand m [text "Quit"]
 
     top <- newVFBox main []
     pack top [PadX 5, PadY 5, Fill X, Expand On]
 
     l <- newLabel top [text "add items to selected folder:",
-                       font (Helvetica, 12 :: Int)]
-    pack l [Fill X, Expand On]
+                       font (Helvetica, 12 :: Int), bg "green"]
+    pack l [PadX 100, Fill X, Expand On]
 
     foldlab <- newLabel top [text "no folder selected", relief Sunken,
-                             fg "blue"]
-    pack foldlab [PadX 10, Fill X, Expand On]
+                             fg "blue", bg "green"]
+    pack foldlab [PadX 100, Fill X, Expand On]
 
 {-
     boximg <- newHFBox main []
@@ -504,10 +462,30 @@ main =
                              command (\ () -> return ())]
                     :: IO (Button String)
 -}
+    export <- newButton main [text "Export state"] :: IO (Button String)
+    pack export [PadX 10, PadY 5, Fill X, Expand On]
+    clickedexport <- clicked export
     quit <- newButton main [text "Quit"]  :: IO (Button String)
     pack quit [PadX 10, PadY 5, Fill X, Expand On]
     clickedquit <- clicked quit
-    spawnEvent (forever (clickedquit >> always (destroy main)))
+
+
+    (gui_ev, _) <- bindGenGUIEv gui
+
+    let --react :: GenGUIEvent c -> IO ()
+        react (SelectTreeList mitem) = selectedTl foldlab mitem
+        react (Doubleclick item) = doubleClickNp item
+        react _ = done
+
+    spawnEvent (forever (clickedexport >>> exportState gui +>
+                         clickedquit >>> destroy main +>
+                         gui_ev >>>= react))
+{-
+                         selectedItemInTreeList gui >>>=
+                           selectedTl foldlab +>
+                         doubleClickInNotepad gui >>>= doubleClickNp))
+-}
+
 {-
     interactor (\i -> (triggered addimg >>> do
                                               nm <- getText imgnm
@@ -549,10 +527,12 @@ main =
                          selectedTl foldlab) +>
                       (doubleClickInNotepad gui >>>= doubleClickNp))
 -}
+{-
     spawnEvent (forever ((selectedItemInTreeList gui >>>=
                             selectedTl foldlab) +>
                          (doubleClickInNotepad gui >>>=
                             doubleClickNp)))
+-}
     addExampleFolders gui
     (htk_destr, _) <- bindSimple main Destroy
     sync (htk_destr)
@@ -667,6 +647,16 @@ doubleClickNp item = done
              _ -> done
        _ -> done
 -}
+
+
+exportState :: CItem c => GenGUI c -> IO ()
+exportState gui =
+  do
+    st <- exportGenGUIState gui
+    putStrLn "state exported"
+    gui_clone <- newGenGUI (Just st)
+    putStrLn "state imported"
+
 
 ------------
 -- images --

@@ -65,11 +65,6 @@ instance Show ObjectName where
          LabelFrameName _ oid ->
            "[global v" ++ show oid ++ ";set dummy $v" ++ show oid ++
            "]"
-{-
-         PanedWindowName _ oid ->
-           "[global v" ++ show oid ++ ";set dummy $v" ++ show oid ++
-           "]"
--}
          PaneName oid ->
            "[global v" ++ show oid ++ ";set dummy $v" ++ show oid ++ "]") ++ r
 

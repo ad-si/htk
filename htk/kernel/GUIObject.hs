@@ -135,16 +135,6 @@ newGUIObject par@(GUIOBJECT parId parostref) kind meths =
                           ost <- newRef (OST kind (NoteBookPageName oid)
                                              parId meths)
                           return (GUIOBJECT oid ost)
-{-
-      PANEDWINDOW -> do
-                      let nm = show parnm ++
-                               (if show parnm == "." then "" else ".") ++ 
-                               show oid
-                      ost <- newRef (OST kind (LabelFrameName
-                                                 (ObjectName nm) oid)
-                                         parId meths)
-                      return (GUIOBJECT oid ost)
--}
       WINDOWPANE -> do
                       ost <- newRef (OST kind (PaneName oid)
                                          parId meths)
@@ -157,7 +147,6 @@ newGUIObject par@(GUIOBJECT parId parostref) kind meths =
                                                  (ObjectName nm) oid)
                                          parId meths)
                       return (GUIOBJECT oid ost)
-      -- TD: clean this mess up
       _ -> do
              let nm = show parnm ++
                       (if show parnm == "." then "" else ".") ++ show oid

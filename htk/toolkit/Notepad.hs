@@ -9,7 +9,7 @@
 --
 -- -----------------------------------------------------------------------
 
-module DragAndDrop (
+module Notepad (
 
   Notepad,
   NotepadItem,
@@ -38,15 +38,17 @@ module DragAndDrop (
   deleteItem,
   clearNotepad,
 
+  npScrollRegion,
+
   dropEvent,
   selectionEvent,
   doubleClickEvent,
   rightClickEvent,
 
-  ExportItem(..),
+  NotepadExportItem(..),
   NotepadState,
-  exportState,
-  importState
+  exportNotepadState,
+  importNotepadState
 
 ) where
 
@@ -294,7 +296,7 @@ selectAll np@(Notepad cnv _ _ notepaditemsref selecteditemsref _ _ smsgQ
     notepaditems <- getRef notepaditemsref
     mapM (highlight cnv) notepaditems
     mapM (\item -> do
-                     b <- DragAndDrop.isSelected np item
+                     b <- Notepad.isSelected np item
                      if b then done
                        else spawnEvent
                               (noWait (send smsgQ (item, True))) >> done)
@@ -309,7 +311,7 @@ deselectAll np@(Notepad _ _ _ notepaditemsref selecteditemsref _ _ smsgQ
     selecteditems <- getRef selecteditemsref
     mapM deHighlight selecteditems
     mapM (\item -> do
-                     b <- DragAndDrop.isSelected np item
+                     b <- Notepad.isSelected np item
                      if b then spawnEvent
                                  (noWait (send smsgQ (item, False))) >>
                                done
@@ -358,7 +360,7 @@ selectItemsWithin (x0, y0) (x1, y1)
                       if within pos then
                         selectAnotherItem np item
                         else do
-                               b <- DragAndDrop.isSelected np item
+                               b <- Notepad.isSelected np item
                                if b then done
                                  else deselectItem np item)
          notepaditems
@@ -374,8 +376,9 @@ getSelectedItems np@(Notepad _ _ _ _ selecteditemsref _ _ _ _ _ _) =
 -- constructor --
 
 newNotepad :: Container par => par -> ScrollType -> ImageSize ->
+                               Maybe (NotepadState a) ->
                                [Config (Notepad a)] -> IO (Notepad a)
-newNotepad par scrolltype imgsize cnf =
+newNotepad par scrolltype imgsize mstate cnf =
   do
     let scrolled = (scrolltype == Scrolled)
     notepaditemsref <- newRef []
@@ -556,7 +559,7 @@ newNotepad par scrolltype imgsize cnf =
                                      done
                         Just item@(NotepadItem img _ _ _ _ _) ->
                           do
-                            b <- DragAndDrop.isSelected notepad item
+                            b <- Notepad.isSelected notepad item
                             if b then done else selectItem notepad item
                             t <- createTagFromSelection notepad
                             spawnEvent (moveSelectedItems (x, y) (x, y) t)
@@ -572,7 +575,7 @@ newNotepad par scrolltype imgsize cnf =
                                     syncNoWait (send rightclickmsgQ [])
                        Just entereditem ->
                          do
-                           b <- DragAndDrop.isSelected notepad
+                           b <- Notepad.isSelected notepad
                                                        entereditem
                            (if b then
                               do
@@ -598,7 +601,7 @@ newNotepad par scrolltype imgsize cnf =
                                       case entereditem of
                                         Just item ->
                                           do
-                                            b <- DragAndDrop.isSelected
+                                            b <- Notepad.isSelected
                                                    notepad item
                                             if b then deselectItem notepad
                                                         item
@@ -608,6 +611,9 @@ newNotepad par scrolltype imgsize cnf =
 
     spawnEvent (forever listenNotepad)
     foldl (>>=) (return notepad) cnf
+    case mstate of
+      Just state -> importNotepadState notepad state
+      _ -> done
     return notepad
 
 
@@ -646,46 +652,54 @@ instance HasSize (Notepad a) where
 
 
 -- -----------------------------------------------------------------------
+-- widget specific configuration options
+-- -----------------------------------------------------------------------
+
+npScrollRegion :: ScrollRegion -> Config (Notepad a)
+npScrollRegion scr np@(Notepad cnv _ _ _ _ _ _ _ _ _ _) =
+  cnv # scrollRegion scr >> return np
+
+
+-- -----------------------------------------------------------------------
 -- state import / export
 -- -----------------------------------------------------------------------
 
-data ExportItem a = ExportItem { nm :: Name,
-                                 img :: Maybe Image,
-                                 val :: a,
-                                 pos :: Position,
-                                 selected :: Bool }
+data NotepadExportItem a = NotepadExportItem { nm :: Name,
+                                               img :: Maybe Image,
+                                               val :: a,
+                                               pos :: Position,
+                                               selected :: Bool }
 
-type NotepadState a = [ExportItem a]
+type NotepadState a = [NotepadExportItem a]
 
-exportState :: Notepad a -> IO (NotepadState a)
-exportState np@(Notepad _ _ _ items _ _ _ _ _ _ _) =
-  do
-    items' <- getRef items
-    exportState' np items'
-  where exportState' :: Notepad a -> [NotepadItem a] ->
-                        IO (NotepadState a)
-        exportState' np (item@(NotepadItem img _ txt val nm _) : items) =
+exportNotepadState :: Notepad a -> IO (NotepadState a)
+exportNotepadState np@(Notepad _ _ _ items _ _ _ _ _ _ _) =
+  synchronize np (do
+                    items' <- getRef items
+                    exportNotepadState' np items')
+  where exportNotepadState' :: Notepad a -> [NotepadItem a] ->
+                               IO (NotepadState a)
+        exportNotepadState' np (item@(NotepadItem img _ txt val nm _) :
+                                items) =
           do
             nm' <- getRef nm
-            putStr "getting photo ... "
             img' <- getPhoto img
-            putStrLn "got the photo"
             val' <- getRef val
             pos <- getPosition img
-            is_selected <- DragAndDrop.isSelected np item
-            rest <- exportState' np items
-            return (ExportItem { nm = nm',
-                                 img = img',
-                                 val = val',
-                                 pos = pos,
-                                 selected = is_selected } : rest)
-        exportState' _ _ = return []
+            is_selected <- Notepad.isSelected np item
+            rest <- exportNotepadState' np items
+            return (NotepadExportItem { nm = nm',
+                                        img = img',
+                                        val = val',
+                                        pos = pos,
+                                        selected = is_selected } : rest)
+        exportNotepadState' _ _ = return []
 
-importState :: Notepad a -> NotepadState a -> IO ()
-importState np st =
-  do
-    clearNotepad np
-    addItems np st
+importNotepadState :: Notepad a -> NotepadState a -> IO ()
+importNotepadState np st =
+  synchronize np (do
+                    clearNotepad np
+                    addItems np st)
   where addItems :: Notepad a -> NotepadState a -> IO ()
         addItems np (it : items) =
           do
@@ -697,6 +711,3 @@ importState np st =
             if selected it then selectAnotherItem np new_it else done
             addItems np items
         addItems _ _ = done
-
--- geht so nicht, wg. Typ (Config a) :
--- getItems :: Notepad a -> IO [Config (NotepadItem a)]

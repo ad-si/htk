@@ -12,7 +12,7 @@
 module Main (main) where
 
 import HTk
-import DragAndDrop
+import Notepad
 import ScrollBox
 
 showMsg :: Editor String -> String -> IO ()
@@ -53,7 +53,7 @@ main =
     box <- newHFBox main []
     pack box []
 
-    notepad <- newNotepad box Scrolled (48, 48)
+    notepad <- newNotepad box Scrolled (48, 48) Nothing
                           [size (cm 15, cm 10), background "white"]
     pack notepad []
 

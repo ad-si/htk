@@ -12,7 +12,7 @@
 module Main (main) where
 
 import HTk
-import DragAndDrop
+import Notepad
 import Name
 import ReferenceVariables
 
@@ -24,7 +24,7 @@ main =
     win1 <- initHTk [text "Notepad 1"]
     win2 <- createToplevel [text "Notepad 2"]
 
-    notepad1 <- newNotepad win1 Scrolled (48, 48)
+    notepad1 <- newNotepad win1 Scrolled (48, 48) Nothing
                           [size (cm 15, cm 10), background "white"]
     pack notepad1 []
 
@@ -37,7 +37,7 @@ main =
     pack import1 [Fill X]
     clicked_import1 <- clicked import1
 
-    notepad2 <- newNotepad win2 Scrolled (48, 48)
+    notepad2 <- newNotepad win2 Scrolled (48, 48) Nothing
                           [size (cm 15, cm 10), background "white"]
     pack notepad2 []
 
@@ -73,12 +73,12 @@ main =
                               done) +>
                          (clicked_import1 >>>
                             do
-                              st <- exportState notepad2
-                              importState notepad1 st) +>
+                              st <- exportNotepadState notepad2
+                              importNotepadState notepad1 st) +>
                          (clicked_import2 >>>
                             do
-                              st <- exportState notepad1
-                              importState notepad2 st)))
+                              st <- exportNotepadState notepad1
+                              importNotepadState notepad2 st)))
 
     (win1_destr, _) <- bindSimple win1 Destroy
     (win2_destr, _) <- bindSimple win2 Destroy

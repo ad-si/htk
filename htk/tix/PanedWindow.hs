@@ -94,12 +94,6 @@ tkCreatePanedWindow _ _ _ _ _ = []
 
 
 -- -----------------------------------------------------------------------
--- widget specific configuration options
--- -----------------------------------------------------------------------
-
-
-
--- -----------------------------------------------------------------------
 -- paned window instances
 -- -----------------------------------------------------------------------
 
@@ -135,14 +129,6 @@ instance Synchronized PanedWindow where
 -- Synchronizes on a paned window object.
   synchronize = synchronize . toGUIObject
 
-{-
----
--- The panes orientation can be vertical or horizontal.
-instance HasOrientation PanedWindow where
-  orient o win = cset win "orientation" o
-  getOrient win = cget win "orientation"
--}
-
 
 -- -----------------------------------------------------------------------
 -- type Pane
@@ -167,7 +153,6 @@ createPane :: PanedWindow -> [CreationConfig Pane]  -> [Config Pane] ->
               IO Pane
 createPane nb ccnf cnf =
   do
---    cconf' <- mapM id ccnf
     ccnfstr <- showCreationConfigs ccnf
     w <- createGUIObject (toGUIObject nb) WINDOWPANE
                          (windowPaneMethods ccnfstr)

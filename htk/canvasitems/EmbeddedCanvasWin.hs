@@ -1,14 +1,13 @@
-{- #######################################################################
-
-MODULE        : EmbeddedCanvasWin
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Canvas Embedded Windows
-
-   #################################################################### -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 
 module EmbeddedCanvasWin (
@@ -50,9 +49,12 @@ createEmbeddedCanvasWin cnv w ol =
   do
     cit <- createCanvasItem cnv EMBEDDEDCANVASWIN EmbeddedCanvasWin ol
                             [(0,0)]
-    let (GUIOBJECT _ ostref) = toGUIObject w
-    nm <- withRef ostref objectname
-    cset cit "window" (show nm)
+    sub_nm <- getObjectName (toGUIObject w)
+    CanvasItemName nm tid <- getObjectName (toGUIObject cit)
+    execTclScript ["global " ++ (drop 1 (show tid)),
+                   show nm ++ " itemconfigure " ++ show tid ++
+                   " -window " ++ show sub_nm]
+    return cit
 
 
 -- -----------------------------------------------------------------------

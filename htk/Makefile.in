@@ -67,7 +67,7 @@ SRCS       = resources/Resources.hs\
              toolkit/Name.hs\
              toolkit/ScrollBox.hs\
              toolkit/TreeList.hs\
-             toolkit/DragAndDrop.hs\
+             toolkit/Notepad.hs\
              toolkit/GenGUI.hs\
              toolkit/FileDialog.hs\
              toolkit/IconBar.hs\

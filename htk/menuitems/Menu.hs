@@ -1,21 +1,13 @@
-{- #######################################################################
-
-MODULE        : Menu
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Menu. 
-
-TO BE DONE    : For the time being, tearoff must be set at creation time 
-                and no later. The problem with tk is that the tearoff
-                option changes the identities of the menu items. The
-                implementation with variable tearoffs is therefore
-                much more complicated as one would like!
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Menu (
 

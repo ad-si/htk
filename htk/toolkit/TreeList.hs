@@ -122,19 +122,6 @@ newTreeList par cfun ifun rt@(TreeListObject (val, nm, objtype)) cnf =
     pressed root
     return treelist
 
-{-
-data Eq a => TREELISTOBJECT a =           -- ** internal representation **
-  TREELISTOBJECT a                                                -- value
-                 (TreeList a)                                    -- parent
-                 Bool                                      -- true if node
-                 ImageItem                                    -- plusminus
-                 (Line, Line)                           -- lines if pretty
-                 (Label Image)                             -- object image
-                 (Label String)                             -- object name
-                 EmbeddedCanvasWin                           -- main frame
-                 (Ref [IO ()])                           -- unbind actions
--}
-
 recoverTreeList :: (Container par, Eq a) =>
                    par -> ChildrenFun a -> ImageFun a ->
                    TreeListState a -> [Config (TreeList a)] ->

@@ -123,12 +123,10 @@ evalCmd cmd =
                (\ (_,erString) -> return (ER erString))
          )
 
-
 {-
       case result of OK str -> putStrLn ("OK >> " ++ str)
                      ER str -> putStrLn ("ER >> " ++ str)
 -}
-
 
       putMVar wWishMVar wWish
       return result

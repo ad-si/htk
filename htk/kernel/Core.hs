@@ -281,12 +281,14 @@ getParentObjectID (GUIOBJECT _ ostref) = withRef ostref parentobj
 -- instances (Show)
 -- -----------------------------------------------------------------------
 
+showConfig :: (ConfigID, GUIVALUE) -> String
 showConfig (cid, cval) =
   "-" ++ cid ++ " " ++
   case cid of
     "tag" -> "\"" ++ (drop 2 (show cval))
     _     -> show cval
 
+showConfigs :: [(ConfigID, GUIVALUE)] -> String
 showConfigs [] = " "
 showConfigs (x : ol) = (showConfig x) ++ " " ++ (showConfigs ol)
 
