@@ -21,6 +21,9 @@ module InputForm (
         EntryField,
         newEntryField,
 
+        CheckboxField,
+        newCheckboxField,
+
         EnumField,
         newEnumField,
 
@@ -216,6 +219,7 @@ getFormConfig form@(InputForm b e) fetch = do {
 undefinedFormValue :: IOError
 undefinedFormValue = userError "form value is not defined"
 
+
 -- --------------------------------------------------------------------------
 --  Entry Fields  
 -- --------------------------------------------------------------------------
@@ -310,6 +314,101 @@ instance InputField EntryField where
 
 
 -- --------------------------------------------------------------------------
+--  Checkbox Fields  
+-- --------------------------------------------------------------------------
+---
+-- The <code>CheckboxField</code> datatype.
+data CheckboxField a b = CheckboxField (CheckButton b) Label (TkVariable b) (Ref (FieldInf a))
+
+---
+-- Add a new <code>CheckboxField</code> to the form
+-- @param form        - the form to which the field is added
+-- @param init        - initial value
+-- @param confs       - a list of configuration options for this field
+-- @return result     - a <code>CheckbuttonField</code>
+newCheckboxField :: GUIValue b=> InputForm a -> b-> [Config (CheckboxField a b)] -> IO (CheckboxField a b)
+newCheckboxField form@(InputForm box field) init confs = do {
+        b <- newHBox box [];
+	pack b [Expand On, Fill X];
+        lbl <- newLabel b []; 
+	pack lbl [Expand Off, Fill X];
+        cbvar <- createTkVariable init;
+        pr <- newCheckButton b [variable cbvar];
+        pack pr [Expand Off]; -- , Side AtRight];
+        pv <- newFieldInf
+                (\c -> do {bg (toColour c) pr; done})
+                (\c -> do {fg (toColour c) pr; done})
+                (\f -> do {HTk.font (toFont f) pr; done})
+                (\c -> do {cursor (toCursor c) pr; done})
+                (\s -> do {state s pr; done});
+        configure (CheckboxField pr lbl cbvar pv) confs;
+        addNewField form pr pv;
+        return (CheckboxField pr lbl cbvar pv)
+    }
+
+instance Eq (CheckboxField a b) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (CheckboxField a b) where 
+        toGUIObject (CheckboxField pr _ _ _) = toGUIObject pr
+        cname _ = "CheckboxField"
+
+instance Widget (CheckboxField a b) where
+        cursor c fe@(CheckboxField pr _ _ _) = do {cursor c pr; return fe}
+        getCursor (CheckboxField pr _ _ _) = getCursor pr 
+
+instance HasColour (CheckboxField a b) where
+        legalColourID _ _ = True
+        setColour fe@(CheckboxField pr lbl _ _) cid c = do {
+                setColour pr cid c; setColour lbl cid c; return fe}
+        getColour (CheckboxField pr _ _ _) cid = getColour pr cid
+
+instance HasBorder (CheckboxField a b)
+
+instance HasSize (CheckboxField a b)  where
+        width w fe @ (CheckboxField pr _ _ _)  = do {width w pr; return fe}
+        getWidth (CheckboxField pr _ _ _)      = getWidth pr
+        height h fe @ (CheckboxField pr _ _ _) = do {height h pr; return fe}
+        getHeight fe @ (CheckboxField pr _ _ _)= getHeight pr
+        
+instance HasFont (CheckboxField a b) 
+
+instance HasEnable (CheckboxField a b) where 
+        state v f@(CheckboxField pr _ _ _) = do {state v pr; return f}
+        getState (CheckboxField pr _ _ _) = getState pr
+
+instance (GUIValue b, GUIValue c) => HasText (CheckboxField a b) c where
+        text v f@(CheckboxField pr lbl _ _) = do {text v lbl; return f}
+        getText (CheckboxField pr lbl _ _) = getText lbl
+
+instance Synchronized (CheckboxField a b) where
+        synchronize fe = synchronize (toGUIObject fe)
+
+instance GUIValue b=> Variable (CheckboxField a b) b where
+        setVar f@(CheckboxField pr _ cbv _) val = setTkVariable cbv val
+        getVar (CheckboxField pr _ cbv _) = readTkVariable cbv
+
+instance InputField CheckboxField where
+        selector f fe@(CheckboxField pr lbl cbv pv) = synchronize fe (do {
+                setSelectorCmd pv cmd;
+                return fe
+                }) where cmd r = do {setTkVariable cbv (f r)}
+        modifier f fe@(CheckboxField pr lbl cbv pv) = synchronize fe (do {
+                setReplacorCmd pv cmd;
+                return fe
+                }) where cmd r = do {
+                          ans <- try (getVar fe);
+                          case ans of
+                                  (Left e) -> do {
+	  			          txt <- getText lbl;
+			 	 	  createErrorWin (txt++" legal field value") [];
+				          raise illegalGUIValue
+					  }
+                                  (Right val) -> return (f r val) 
+                          }
+
+
+-- --------------------------------------------------------------------------
 --  Text Fields  
 -- --------------------------------------------------------------------------           
 ---
@@ -324,11 +423,11 @@ data TextField a b = TextField Editor Label (Ref (FieldInf a))
 newTextField :: GUIValue b => InputForm a -> [Config (TextField a b)] -> IO (TextField a b)
 newTextField form@(InputForm box field) confs = 
  do
-  b <- newHBox box []
+  b <- newVBox box []
   pack b [Expand On, Fill Both, PadX (cm 0.1), PadY (cm 0.1)]
-  lbl <- newLabel b []
+  lbl <- newLabel b [anchor West]
   pack lbl [Expand Off, Fill Both]
-  let edit p = newEditor p [bg "white"]
+  let edit p = newEditor p []
   (sb, tp) <- newScrollBox b edit []
   pack sb [Expand On, Fill Both]
   pv <- newFieldInf
