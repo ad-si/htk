@@ -214,7 +214,8 @@ initialise options =
 
       notifier <- mkNotifier hostName
 
-      (allocator,_) <- connectReply allocateService hostName (11393::Int)
+      (allocator,closeAction,header) <- 
+         connectReply allocateService hostName (11393::Int)
 
       wDirContents <- newMVar emptyFM
       wDirDirs <- newMVar emptySet

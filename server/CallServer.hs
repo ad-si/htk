@@ -49,6 +49,7 @@ connectReply service hostDesc portDesc =
       let
          serviceKey = serviceId service
       hPutStrLn handle serviceKey
+
       headerLine <- hGetLine handle
       let
          header = read headerLine
@@ -80,12 +81,15 @@ connectBroadcast service hostDesc portDesc =
          _ -> ioError(userError(
            "connectBroadcast handed a non-Broadcast service"))
       handle <- connect hostDesc portDesc
-      headerLine <- hGetLine handle
 
       let
-         header = read headerLine
          serviceKey = serviceId service
       hPutStrLn handle serviceKey
+
+      headerLine <- hGetLine handle
+      let
+         header = read headerLine
+
       readBSem <- newBSem
       writeBSem <- newBSem      
 

@@ -24,6 +24,10 @@ module SharedGraph(
       -- an instance of Read/Show and so is CannedGraph
    emptyCannedGraph, -- :: CannedGraph nodeLabel 
 
+   canGraph, -- :: (Read nodeLabel,Show nodeLabel) => 
+             --    AtomSource -> NodeMap nodeLabel -> 
+             --    IO (CannedGraph nodeLabel)
+             -- retrieves the current contents of the graph
    shareGraph, -- :: (Read nodeLabel,Show nodeLabel) => 
              --    SharedGraph nodeLabel -> 
              --       IO (CannedGraph nodeLabel,EV(Update nodeLabel),IO())

@@ -51,7 +51,7 @@ mkNotifier :: DescribesHost a => a -> IO Notifier
 mkNotifier hostDesc =
    do
       oID <- newObject
-      (writeAction,receiveAction,closeAction) <-
+      (writeAction,receiveAction,closeAction,header) <-
          connectBroadcast echoService hostDesc (11393::Int)
       eventBroker <- newEventBroker 
       let
