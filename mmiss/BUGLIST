@@ -4,9 +4,24 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+30) 11.09.02
+Quitting an MMiSS edit window does not actually tell Emacs to
+delete it.
+FIXED
+
+29) 11.09.02
+The error produced when you attempt to edit a file which is
+already being edited wasn't handled very well, as the necessary
+Emacs actions (expanding a button or opening an Emacs window) 
+were already done.
+FIXED
+
 28) 11.09.02
 Modifying frag2 inside example mmiss/dtd/mmiss-paragraph.1.xml and then
 saving produces a parse error.
+
+12.09.02
+FIXED
 
 27) 11.09.02
 MMiSSDTDAssumptions needs to be updated to deal with Achim's latest changes to

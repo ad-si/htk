@@ -28,6 +28,11 @@ module EmacsBasic(
 
    unUniEscape, -- :: String -> String
    -- Undo the effects of sendmess.el's uni-escape function
+
+   diyDestroy, -- :: EmacsSession -> IO ()
+   -- destroys the EmacsSession itself, but assume any necessary
+   -- destruction on the Emacs side has been done.
+
    ) where
 
 import IO
@@ -88,6 +93,12 @@ instance Destroyable EmacsSession where
       do
          execEmacsString emacsSession "(kill-buffer (current-buffer))"
          closeAction emacsSession
+
+---
+-- destroys the EmacsSession itself, but assume any necessary
+-- destruction on the Emacs side has been done.
+diyDestroy :: EmacsSession -> IO ()
+diyDestroy emacsSession = closeAction emacsSession
 
 -- ------------------------------------------------------------------------
 -- Opening a new session

@@ -14,6 +14,7 @@ import Pretty
 import Computation
 import ExtendedPrelude
 import RegularExpression
+import Debug(debug)
 
 import EmacsContent
 import EmacsEdit (TypedName)
@@ -32,7 +33,7 @@ fromEditableXml fName (EmacsContent dataItems) =
                   EmacsLink (link,miniType) ->
                         "<include"++toIncludeStr miniType
                            ++" included=\"" ++ link
-                           ++"\" status=present/>"
+                           ++"\" status=\"present\"/>"
                   )
                dataItems
             )

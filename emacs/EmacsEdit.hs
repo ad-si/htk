@@ -79,52 +79,69 @@ data EditorState = EditorState {
 -- editEmacs edits a particular file, with the specified file system. 
 -- This function terminates when the user finishes editing.
 editEmacs :: EmacsFS -> TypedName -> IO ()
-editEmacs (emacsFS @ (EmacsFS {editFS = editFS,existsFS = existsFS})) name =
+editEmacs emacsFS name =
    do
-      -- (1) Initialise Emacs and MMiSS-TeX.
-      emacsSession <- newEmacsSession (describe name)
-      execEmacs emacsSession "MMiSS-init"
-      setColourHack emacsSession
-
-      -- (2) Construct the container.
-      addContainerBuffer emacsSession (normalName name) 
-
-      -- (3) Construct the EditorState structure
-      openFiles <- newRegistry
       let
-         editorState = EditorState {
-            emacsSession = emacsSession,
-            emacsFS = emacsFS,
-            openFiles = openFiles
-            }
+         -- action for opening the Emacs window, after openFile has managed
+         -- to open the file.
+         parentAction =
+            do
+               -- (1) Initialise Emacs and MMiSS-TeX.
+               emacsSession <- newEmacsSession (describe name)
+               execEmacs emacsSession "MMiSS-init"
+               setColourHack emacsSession
 
-      -- (4) Open the file
-      success <- openFile editorState (normalName name) name
+               -- (2) Construct the container.
+               let
+                  parent = normalName name
 
-      if success 
-         then
-            -- (5) Handle the Emacs events, until the user quits.
+               addContainerBuffer emacsSession parent
+
+               -- (3) Construct the EditorState structure
+               openFiles <- newRegistry
+               let
+                  editorState = EditorState {
+                     emacsSession = emacsSession,
+                     emacsFS = emacsFS,
+                     openFiles = openFiles
+                     }
+               return (parent,editorState)
+
+      editorStateOpt <- openFile emacsFS parentAction name
+
+      case editorStateOpt of
+         Just editorState -> 
+             -- (5) Handle the Emacs events, until the user quits.
             sync (handleEvents editorState)
-         else
-            destroy emacsSession
+         Nothing -> done
 
 -- ----------------------------------------------------------------------
 -- Open a new file and insert it in a container
 -- ----------------------------------------------------------------------
 
 ---
--- Returns True if successful.
-openFile :: EditorState -> String -> TypedName -> IO Bool
-openFile state parent name =
+-- openFile attempts to open the file "name".
+--
+-- The parentAction should return the identifier of the parent window
+-- and is executed after we have successed in getting the file
+-- from the repository.  It also returns the EditorState to use,
+-- which openFile in turn returns.
+--
+-- If we do not succeed, openFile returns Nothing.
+openFile :: EmacsFS -> IO (String,EditorState) -> TypedName 
+   -> IO (Maybe EditorState)
+openFile emacsFS parentAction name =
    do
-      emacsFileWE <- editFS (emacsFS state) name
+      emacsFileWE <- editFS emacsFS name
       case fromWithError emacsFileWE of
          Left message -> 
             do
                createErrorWin message []
-               return False
+               return Nothing
          Right (EmacsContent initialContents,emacsFile) ->
             do
+               (parent,state) <- parentAction
+
                -- Add a new entry to the registry
                setValue (openFiles state) (key name) emacsFile
 
@@ -147,7 +164,7 @@ openFile state parent name =
 
                -- Insert the boundary
                boundContainer session parent
-               return True
+               return (Just state)
 
 -- ----------------------------------------------------------------------
 -- The event handler
@@ -226,18 +243,17 @@ handleEvents editorState =
             case parseButton str of
                Normal name ->
                   confirm ("Expand "++describe name++"?") (
-                     always (do
-                        expand session str
-                        success <- openFile editorState str name
-                        if success
-                           then
-                              done
-                           else
-                              do
-                                 collapse session str (describe name)
-                                 done
-                        sync iterate                        
-                        )
+                     let
+                        parentAction =
+                           do
+                              expand session str
+                              return (str,editorState)
+                     in
+                        always (
+                           do
+                              openFile (emacsFS editorState) parentAction name
+                              sync iterate
+                           )
                      )
                Head name ->
                   confirm ("Collapse "++describe name++" without saving?") (
@@ -259,7 +275,8 @@ handleEvents editorState =
       +> (do
             str <- event "QUIT"
             confirm "Exit without saving anything?" (always (do
-               destroy session
+               execEmacs session "MMiSS-delete"
+               diyDestroy session
                openFilesContents
                   <- listRegistryContents (openFiles editorState)
                mapM_
