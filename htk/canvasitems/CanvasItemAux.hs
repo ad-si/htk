@@ -4,7 +4,7 @@ MODULE        : CanvasItemAux
 AUTHOR        : Einar Karlsen,  
                 University of Bremen
                 email:  ewk@informatik.uni-bremen.de
-DATE          : 1996 - modified 2000 (Joel Wright)
+DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Canvas Items - Auxiliary functions
 
