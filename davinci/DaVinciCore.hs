@@ -261,7 +261,7 @@ startDaVinci =
    do
       contextVar <- newPVar 0 -- passed to the DaVinci dispatcher
       msgQueue <- newMsgQueue
-      toolName <- getWBToolFilePath "daVinci"   
+      toolName <- getWBToolFilePath "daVinci"
       daVinciDispatcher <- 
          newDispatcher toolName [arguments ["-pipe"]] finaliser 
             (handleEvent msgQueue)

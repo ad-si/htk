@@ -84,7 +84,7 @@ instance Show EdgeId where
    showsPrec d (EdgeId p) r = showsPrec d p r
 
 instance Show MenuItemId where
-   showsPrec d (MenuItemId p) r = showsPrec d p r
+   showsPrec d (MenuItemId p) r = showsPrec d (show p) r
 
 instance Show AttrUpd where
    showsPrec _ (NodeAttrUpd nid ats) = 

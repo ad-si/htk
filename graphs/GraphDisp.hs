@@ -23,7 +23,8 @@
    a type parameter.  But, for ease of implementation with, for example,
    DaVinci, the type parameter is required to be an instance of Typeable.
 
-      node.  A value of this type is an actual node in a graph. 
+      node.  A value of this type is an actual node in a graph.
+         (Will be an instance of Typeable.)
       nodeType.  Nodes are created with a particular UniForM "type" which
          is a Haskell value of type nodetype.  In fact a graph might
          conceivably have multiply Haskell types corresponding to node
@@ -90,6 +91,11 @@ module GraphDisp(
    ArcTypeConfig,
    ArcTypeParms(..),
    ArcTypeConfigParms(..),
+
+   -- HasTyCon1 and HasTyCon3 must be implemented for nodes and arcs.
+   -- Doing this makes them typeable.
+   HasTyCon1 (..),
+   HasTyCon3 (..),
 
    -- LocalMenu describes menus or buttons for objects that carry a value,
    -- IE nodes or arcs.
@@ -223,16 +229,16 @@ class (Graph graph,Node node) =>
    getNodeValue :: Typeable value =>
       graph -> node value -> IO value
 
-class KindOne node => Node node
+class HasTyCon1 node => Node node
 
-class KindOne nodeType => NodeType nodeType
+class Kind1 nodeType => NodeType nodeType
 
 class (Graph graph,NodeType nodeType,NodeTypeParms nodeTypeParms) => 
       NewNodeType graph nodeType nodeTypeParms where
    newNodeType :: Typeable value =>
       graph -> nodeTypeParms value -> IO (nodeType value)   
 
-class KindOne nodeTypeConfig => NodeTypeConfig nodeTypeConfig
+class Kind1 nodeTypeConfig => NodeTypeConfig nodeTypeConfig
 -- empty to prevent just anything being usable for the nodeTypeConfig 
 -- function.
 
@@ -251,6 +257,7 @@ class (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
    nodeTypeConfig :: Typeable value =>
       nodeTypeConfig value -> nodeTypeParms value -> nodeTypeParms value
 
+class (Node node,NodeTypeConfig nodeTypeConfig,NodeTypeParms node
 ------------------------------------------------------------------------
 -- Arcs
 ------------------------------------------------------------------------
@@ -294,9 +301,9 @@ class (Graph graph,Arc arc) => DeleteArc graph arc where
       (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
       => graph -> arc value nodeFromValue nodeToValue -> IO value
 
-class KindThree arc => Arc arc
+class HasTyCon3 arc => Arc arc
 
-class KindOne arcType => ArcType arcType
+class Kind1 arcType => ArcType arcType
 
 class (Graph graph,ArcType arcType,ArcTypeParms arcTypeParms) => 
       NewArcType graph arcType arcTypeParms where
@@ -405,22 +412,60 @@ instance NodeTypeConfig ValueTitle
 
 instance ArcTypeConfig ValueTitle
  
+
 ------------------------------------------------------------------------
--- The KindOne class and KindThree classes are a silly hack so that we 
+-- The HasTyCon1 and HasTyCon3 classes are used to indicate that
+-- a type constructor produces typeable values
+------------------------------------------------------------------------
+
+class HasTyCon1 typeCon where
+   tyCon1 :: Typeable value => typeCon value -> TyCon
+
+instance (HasTyCon1 typeCon,Typeable value) => Typeable (typeCon value) where
+   typeOf _ =
+      let
+         (tC :: typeCon value) = tC
+         (v :: value) = v
+      in
+         mkTypeTag (tyCon1 tC) [typeOf v]
+ 
+class HasTyCon3 typeCon where
+   tyCon3 :: (Typeable value1,Typeable value2,Typeable value3) 
+      => typeCon value1 value2 value3 -> TyCon
+
+instance (HasTyCon3 typeCon,Typeable value1,Typeable value2,Typeable value3) 
+      => Typeable (typeCon value1 value2 value3) where
+   typeOf _ =
+      let
+         (tC :: typeCon value1 value2 value3) = tC
+         (v1 :: value1) = v1
+         (v2 :: value2) = v2
+         (v3 :: value3) = v3
+      in
+         mkTypeTag (tyCon3 tC) [typeOf v1,typeOf v2,typeOf v3]
+
+------------------------------------------------------------------------
+-- The Kind1 class and Kind3 classes are a silly hack so that we 
 -- can define empty classes of things which take a fixed number of
 -- type parameters.  
 ------------------------------------------------------------------------
 
-class KindOne takesParm where
+class Kind1 takesParm where
    kindOne :: takesParm value -> ()
 
-instance KindOne takesParm where
+instance Kind1 takesParm where
    kindOne _ = ()
 
-class KindThree takes3Parms where
+class Kind2 takes2Parms where
+   kindTwo :: takes2Parms value1 value2-> ()
+
+instance Kind2 takesParms where
+   kindTwo _ = ()
+
+class Kind3 takes3Parms where
    kindThree :: takes3Parms value1 value2 value3 -> ()
 
-instance KindThree takesParms where
+instance Kind3 takesParms where
    kindThree _ = ()
 
 

@@ -145,7 +145,7 @@ instance CommandTool Interpreter where
 
 instance ReactiveCommandTool Interpreter where
    sendReply ans (Interpreter _ (ReplyAddr replyMVar)  _ _ _) = 
-      "91" @: putMVar replyMVar ans 
+      putMVar replyMVar ans 
 
 -- --------------------------------------------------------------------------
 -- IOError

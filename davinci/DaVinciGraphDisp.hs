@@ -33,14 +33,11 @@ import Dynamics
 import qualified DaVinci
 import qualified HTk
 import qualified SIM
-import qualified Button
-import qualified MenuButton
-import qualified PulldownMenu
 
 import GraphDisp
 
 
--- We follow the order of the GraphDisp file.
+-- We follow the order of the GraphDisp file, mostly.
 
 ------------------------------------------------------------------------
 -- How you refer to everything
@@ -115,16 +112,6 @@ data DaVinciNodeType value =
    DaVinciNodeType DaVinci.NodeType (value -> IO String)
    -- the second argument gives the displayed name of the node.
 
-daVinciNodeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNodeType"
-
-instance Typeable value => Typeable (DaVinciNodeType value) where
-   typeOf _ = daVinciNodeTypeTag
-      where
-         bot :: value
-         bot = bot
-         valueTag = typeOf bot
-         daVinciNodeTypeTag = mkTypeTag daVinciNodeTyCon [valueTag] 
-
 data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
       nodeText :: (value -> IO String),
@@ -160,7 +147,19 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
 instance Node DaVinciNode where
 
+daVinciNodeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNode"
+
+instance HasTyCon1 DaVinciNode where
+   tyCon1 _ = daVinciNodeTyCon
+
 instance NodeType DaVinciNodeType where
+
+-- Although it isn't obligatory, we make DaVinciNodeType things
+-- Typeable so that we can save them dynamically.
+daVinciNodeTypeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNodeType"
+
+instance HasTyCon1 DaVinciNodeType where
+   tyCon1 _ = daVinciNodeTypeTyCon
 
 instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
    newNodeType (daVinciGraph@(DaVinciGraph graph daVinci)) 
@@ -244,6 +243,11 @@ instance DeleteArc DaVinciGraph DaVinciArc where
    getArcValue _ (DaVinciArc edge) = edgeLookup edge
 
 instance Arc DaVinciArc where
+
+daVinciArcTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArc"
+
+instance HasTyCon3 DaVinciArc where
+   tyCon3 _ = daVinciArcTyCon
 
 instance ArcType DaVinciArcType where
 

@@ -20,6 +20,9 @@ CAVEATS       : If a thread is waiting on threadWaitRead fd, and another
                 This means that it becomes very difficult for an application
                 like the ChildProcess utility to terminate itself
                 gracefully.
+When you start up a ChildProcess, sigPIPE is disabled.  This is necessary
+as otherwise I know no way of stopping the whole program crashing when
+the tool shuts the pipe.
 
    ######################################################################### -}
 
@@ -200,6 +203,10 @@ newChildProcess path confs  =
 
             Posix.fdClose readIn
             Posix.fdClose writeOut
+            -- Disable sigPIPE.  This means that the whole program
+            -- won't crash when the tool exits.  Unfortunately there
+            -- doesn't seem to be another way of doing this.
+            Posix.installHandler Posix.sigPIPE Posix.Ignore Nothing
             return (ChildProcess {
                childObjectID = childObjectID,
                lineMode = lmode parms,
@@ -307,7 +314,7 @@ readMsg (ChildProcess
    do
       buffer <- takeMVar bufferVar 
       (newBuffer,result) <- readWithBuffer readFrom buffer []
-      "80" @: putMVar bufferVar newBuffer
+      putMVar bufferVar newBuffer
       return result
    where
       readWithBuffer readFrom [] acc = 
@@ -335,7 +342,6 @@ readChunk fd =
             raise (userError "ChildProcess: input error")
          else
             return input
-
 
 sendMsg :: ChildProcess -> String -> IO ()
 sendMsg (ChildProcess{lineMode = True,writeTo = writeTo}) str  = 
