@@ -21,49 +21,39 @@
 %\date{April 2002}
 \begin{document}
 \begin{Package}[MMISS_Latex2]{pack1}{Algebraic
-Specification}{Date=6.09.2002,Version=4,PreviousVersion=3,Authors={Markus
-Roggenbach, Michael Drouineaud},PriorAuthors={Markus
-Roggenbach},Comment=Test,Language=Schwitzer
-D\"utsch,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
+Specification}{date=6.09.2002,versionId=4,previousVersion=3,authors={Markus
+Roggenbach, Michael Drouineaud},priorAuthors={Markus
+Roggenbach},versionComment=Test,xml:lang=de,levelOfDetailId=LectureNotes,interactionLevelId=Hyper}
 
 % \maketitle  
 
-\begin{Section}[MMISS_Latex2]{Chapter1}{Introduction}{Date=6.09.2002,Version=4,PreviousVersion=3,Authors={Markus
-Roggenbach, Michael Drouineaud},PriorAuthors={Markus Roggenbach},Comment=Test,Language=English,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
+\begin{Section}[MMISS_Latex2]{Chapter1}{Introduction}{date=6.09.2002,versionId=4,previousVersion=3,authors={Markus
+Roggenbach, Michael Drouineaud},priorAuthors={Markus Roggenbach}}\begin{Abstract}[]{a1}{Abstract}{}
+  Dies ist der Abstract.
+  \end{Abstract}\begin{Introduction}[]{intro1}{Introduction}{}
+    Dies ist die Einf\"uhrung.
+  \end{Introduction}
 
-Text, direkt am Beginn der Section1
+  \begin{Section}{Section1.1}{Formal Methods in Software Design}{}
+  Text, direkt am Beginn der Section1.1 
+  ``Use of mathematics in software development''\\
+  \begin{TextFragment}
+  Dies ist ein TextFragment hinter der Einf\"uhrung mit
+  \Emphasis{hervorgehobenem} Text. Ausserdem steht hier noch
+  ein \LaTeX{}-Befehl drin.
+  \end{TextFragment}
+  \begin{Paragraph}[]{para1}{First Paragraph}{authors=Achim Mahnke,date=11.09.2002}
+    \begin{Definition}[]{def1}{First Definition}{}
+      Text innerhalb der Definition (muss zum textFragment werden).
 
- 
-\begin{Section}{Section1.1}{Formal Methods in Software Design}{}
-Text, direkt am Beginn der Section1.1 
-``Use of mathematics in software development''\\
-
-\begin{Abstract}[]{a1}{Abstract}{}
-Dies ist der Abstract.
-\end{Abstract}
-
-Text zwischen Abstract und Introduction
-
-\begin{Introduction}[]{intro1}{Introduction}{}
-Dies ist die Einf\"uhrung.
-\end{Introduction}
-\begin{TextFragment}
-Dies ist ein TextFragment hinter der Einf\"uhrung mit
-\Emphasis{hervorgehobenem} Text. Ausserdem steht hier noch
-ein \LaTeX{}-Befehl drin.
-\end{TextFragment}
-\begin{Paragraph}[]{para1}{First Paragraph}{author=Achim Mahnke,Date=11.09.2002}
-\begin{Definition}[]{def1}{First Definition}{}
-Text innerhalb der Definition (muss zum textFragment werden).
-
-\begin{Program}[C]{}{First program}{}
-\begin{ProgramFragment}[]{}{}{}
-  Programtext in C.
-\end{ProgramFragment}
-Dieser Text erscheint hinter dem ProgramFragment.
-\end{Program}
-\end{Definition}
-\end{Paragraph}
+      \begin{Program}[C]{}{First program}{}
+        \begin{ProgramFragment}[]{}{}{}
+          Programtext in C.
+        \end{ProgramFragment}
+        Dieser Text erscheint hinter dem ProgramFragment.
+      \end{Program}
+    \end{Definition}
+  \end{Paragraph}
 \end{Section}
 
 \begin{Table}[LaTeX]{Table1.1.1}{Waterfall Model}{}
