@@ -79,7 +79,7 @@ module DaVinci (
 
         Tool(..),
         SingleInstanceTool(..),
-        ToolStatus(..),
+        ToolStatus,
 
         davinci,
 

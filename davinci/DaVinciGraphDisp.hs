@@ -113,23 +113,18 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          graphConfigs=graphConfigs,graphConfigGesture=graphGesture,
          configDoImprove=configDoImprove,surveyView=surveyView}) =
       do
-         debug "ngP1"
          (daVinci :: DaVinci.DaVinci) <- DaVinci.davinci [] 
-         debug "ngP2"
          graph <- DaVinci.newGraph ([
             DaVinci.gapwidth 4,
             DaVinci.gapheight 40
             ] ++ (reverse graphConfigs))
-         debug "ngP3"
 
          DaVinci.displayGraph graph
-         debug "ngP4"
          if surveyView
             then
                DaVinci.newSurveyView graph
             else
                done
-         debug "ngP5"
 
          nodeValues <- newRegistry
          edgeValues <- newRegistry

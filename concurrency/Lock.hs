@@ -9,9 +9,7 @@ VERSION       : 0.2
 DESCRIPTION   : Lock class definition
 
 Lock is an instance of a typical thing we synchronize with.
-Possible instances are BSem and Mutex.  We also provide a trivial
-implementation called SimpleLock.
-
+Possible instances are BSem and Mutex.
 
    ######################################################################### -}
 
@@ -21,9 +19,6 @@ module Lock (
         Lock(..),
         HasTryAcquire(..), -- not used
         illegalLockRelease,
-
-        SimpleLock,
-        newSimpleLock -- returns an unlocked SimpleLock
         ) where
 
 import Computation
@@ -62,32 +57,5 @@ class Lock l => HasTryAcquire l where
 illegalLockRelease :: IOError
 illegalLockRelease = userError "Lock: Illegal release operation"
 
--- --------------------------------------------------------------------------
---  Simple Locks
--- --------------------------------------------------------------------------
-
-newtype SimpleLock = SimpleLock (Concurrent.MVar ())
--- empty == unlocked.
-
-newSimpleLock :: IO SimpleLock
-newSimpleLock = 
-   do
-      newMVar <- Concurrent.newMVar ()
-      return(SimpleLock newMVar)
-
-instance Lock SimpleLock where
-   release (SimpleLock mv) = 
-      do
-         _ <- Concurrent.putMVar mv ()
-         done
-   acquire (SimpleLock mv) = Concurrent.takeMVar mv
-
-instance Synchronized SimpleLock where
-   synchronize lock action =
-      do
-         acquire lock
-         result<-try(action)
-         release lock
-         propagate result
 
 

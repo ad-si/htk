@@ -95,6 +95,7 @@ newGraph opts = do
         grp <- createGraph
         configure grp graphdefaults
         configure grp opts
+        return grp
  where graphdefaults = [
                 graphorientation TopDown,
                 fontsize 12,

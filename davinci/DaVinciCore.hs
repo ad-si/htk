@@ -100,6 +100,7 @@ module DaVinciCore (
 import List
 import IO
 
+import qualified Exception
 import qualified Posix
 import qualified IOExts(unsafePerformIO)
 import FiniteMap
@@ -314,8 +315,9 @@ withDaVinci commandAct =
          (\ _ -> 
             do 
                command <- commandAct
-               evalCmd command daVinci
-            )            
+               result <- evalCmd command daVinci
+               return result
+            )
       done
 
 withDaVinciOneWay :: IO String -> IO ()
@@ -903,9 +905,9 @@ dispatchDav :: DaVinci -> PVar Int -> Bool -> DaVinciAnswer -> IO ()
 dispatchDav daVinci contextVar alreadyReplied answer =
    case answer of
       DaVinciAnswer Ok (Reply str) -> 
-         unless alreadyReplied (sendReply (Right str) disp)
+         unless alreadyReplied (sR "dd1" (Right str) disp)
       DaVinciAnswer ComError _ -> 
-         sendReply (Left daVinciFailure) disp
+         sR "dd2" (Left daVinciFailure) disp
       DaVinciAnswer DisConnect _ -> 
          sendEvent (daVinci, DisConnect) NoDaVinciEventInfo
       DaVinciAnswer Close _ ->
@@ -980,6 +982,16 @@ dispatchDav daVinci contextVar alreadyReplied answer =
       disp = fDispatcher daVinci
       sendEvent event extraInfo = dispatch disp event extraInfo done
 
+      sR label message disp =
+         do
+            res <- Exception.tryAllIO (sendReply message disp)
+            case res of 
+               Left error ->
+                  do
+                     debug ("Had to discard reply in "++label)
+                     debug message
+                     debug error
+               Right _ -> done
 
 -- --------------------------------------------------------------------------
 --  DaVinci State

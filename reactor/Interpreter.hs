@@ -55,7 +55,7 @@ data Interpreter        =
       ReplyAddr
       ChildProcess
       (Interpreter -> IO ())  -- finalizer command
-      SimpleLock -- used to synchronize on
+      BSem -- used to synchronize on
 
 newtype ReplyAddr  = ReplyAddr(MVar (Answer String))  
 -- Place where answers to commands are put by sendReply.
@@ -76,7 +76,7 @@ newInterpreter ::
 newInterpreter toolName confs finaliser handler = 
    do
       oid <- newObject
-      lock <- newSimpleLock
+      lock <- newBSem
       child <- newChildProcess toolName confs
       replyMVar <- newEmptyMVar     
       let replyLoc = ReplyAddr replyMVar
@@ -145,7 +145,7 @@ instance CommandTool Interpreter where
 
 instance ReactiveCommandTool Interpreter where
    sendReply ans (Interpreter _ (ReplyAddr replyMVar)  _ _ _) = 
-      putMVar replyMVar ans 
+      putMVar replyMVar ans
 
 -- --------------------------------------------------------------------------
 -- IOError
