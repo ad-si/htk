@@ -222,20 +222,6 @@ instance GUIValue Double where
 -- Tk String Conversion
 -- --------------------------------------------------------------------------
 
-{-
-toTKS []                = []
--- toTKS ('\n':str)     = "\\n" ++ toTKS str
--- toTKS ('\t':str)     = "\\t" ++ toTKS str
-toTKS ('[':str)         = "\\[" ++ toTKS str
-toTKS (']':str)         = "\\]" ++ toTKS str
-toTKS ('{':str)         = "\\{" ++ toTKS str
-toTKS ('}':str)         = "\\}" ++ toTKS str
--- toTKS ('\\':str)     = "\\\\" ++ toTKS str
--- toTKS ('\"':str)     = "\\\"" ++ toTKS str
-toTKS ('$':str)         = "\\$" ++ toTKS str
-toTKS (x:str)           = x : toTKS str
-
--}
 
 toTkString :: String -> String
 toTkString = delimitString . escapeString
