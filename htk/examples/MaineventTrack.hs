@@ -43,17 +43,17 @@ main = do
 	
 	shutdown
 
-
 	where  moving :: Canvas-> InterActor-> IA()
 	       moving c i = 
-		    (mouseEvent c (Button1, Motion) 
+		     (mouseEvent c Motion
 		      >>>= \ ((x, y), _) -> do let msg= "*** Mouse @"++"X"++
 	                                              show x++ " Y"++ show y
  			 		       debug msg
-					       putStrLn msg
-					       putStrLn (show (fib 10)))
+					       putStrLn msg)
+		  +> (mouseButtonPress c 1
+		      >>>= \ (x, y) -> do let msg= "*** Button @"++"X"++
+	                                           show x++ " Y"++ show y
+ 			 		  debug msg
+					  putStrLn msg)
+
 		     
-fib :: Integer-> Integer
-fib 0 = 1
-fib 1 = 1
-fib n = fib (n-1) + fib (n-2)
