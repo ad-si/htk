@@ -21,21 +21,22 @@
 \hfill
 \begin{tabular}[t]{l}
 George Russell \\
-Christoph L\"uth
+Christoph L\"uth \\
+Till Mossakowski
 \end{tabular}\\[3ex]
 
+
 This paper explores the future development of the UniForM workbench.
-
-
-This is done in two stages: first from the prospective user's point of
+We do this in two stages: first from the prospective user's point of
 view, describing how the workbench is to be used, and secondly from
 the prospective tool integrator's point of view, describing how the
-workbench would be instantiated to a particular setting: since the
-UniForM workbench is a generic tool integration framework, in order to
-apply it to a particular setting (e.g. developing Haskell programs or
-formal program development in CASL), one has to make changes and
-adaptions at compile time; this gives a particular \emph{instance} of
-the workbench.
+workbench would be \emph{instantiated} to a particular setting.
+
+Since the UniForM workbench is a generic tool integration framework,
+in order to apply it to a particular setting (e.g. developing Haskell
+programs or formal program development in CASL), one has to make
+changes and adaptions at compile time; this gives a particular
+instance of the workbench.
 
 
 \section{The User's Perspective}
@@ -83,7 +84,8 @@ highlighted depending on their status:
 The user can now:
 \begin{itemize}
 \item Select a working version. The workbench will close the version
-  graph and open the development window (\ref{sec:development-graph}).
+  graph and open the development graph
+  (Sect.~\ref{sec:development-graph}).
 \item Select one version to be checked out into his local workspace.
 \item Select a working version to be merged with updates the
   repository. This may cause \emph{merge conflicts}, if the merge
@@ -177,7 +179,7 @@ a set of object types and link types visible in this view, plus a
 display method.
 
 From one view, the user can always change to another view by an
-appropriate operation, or even use more then one view concurrently.
+appropriate operation, or even use more than one view concurrently.
 
 \subsection{Specific Instances}
 
@@ -194,8 +196,8 @@ another. This
 
 \emph{Remark:} Since there is only type of link between objects, which
 moreover does not suitably organize the display of the
-objects.\footnote{For example, the corresponding graph for HTk would
-  not be very helpful.} Thus, the actual Hugs development graph might
+objects,\footnote{For example, the corresponding graph for HTk would
+  not be very helpful.} the actual Hugs development graph might
 more appropriately be viewed as the objects in the usual folder
 hierarchie and no import links; and the view with all import links is
 called the \emph{import} or \emph{dependency graph}.
@@ -203,8 +205,8 @@ called the \emph{import} or \emph{dependency graph}.
 \subsubsection{The Isabelle workbench}
 
 Proving with Isabelle, or one if its many instances. This subsumes the
-HOL-Z workbench, the HOL-CSP workbench, the transformation system TAS
-in its present incarnation, but not CASL.
+HOL-Z workbench, the HOL-CSP workbench and the transformation system
+TAS in its present incarnation, but not CASL.
 
 The \emph{object types} and the operations on them are:
 \begin{description}
@@ -238,9 +240,11 @@ The \emph{object types} and the operations on them are:
   if it aborts, it may leave the session file untouched.
 
   A session can be created from scratch. Initially, it does not
-  contain anything at all. The user will be able to load theories and
-  proof scripts into the session, and create new proofs and theorems.
-  All of this will be initiated from within Isabelle.
+  contain anything at all. 
+  
+  The user will be able to load theories and proof scripts into the
+  session, and create new proofs and theorems.  All of this will be
+  initiated from within Isabelle.
 \end{description}
 
 
@@ -249,12 +253,12 @@ Between objects, we have links as follows:
 \item[Extension links] from a theory to another theory denote
   conservative extensions --- the basic way in which Isabelle builds
   theories.
-\item[Loads-theory links] from a session or proof scrpt to a theory
+\item[Loads-theory links] from a session or proof script to a theory
   indicate that the  session or proof script loads the theory. 
 \item[Lives-in] links from a proof script to a theory indicate the
   theory which the theorem(s) proved in the proof script inhabit. (All 
   Isabelle theorems live in a particular theory.) 
-\item[Loads-script links]  from a session or proof script to a theory
+\item[Loads-script links] from a session or proof script to a theory
   indicate that the session or proof script reads the proof
   script. (So proof scripts can depend on other proof scripts.)
 \end{description}
@@ -264,7 +268,115 @@ them.)
 
 \subsubsection{The CASL workbench}
 
---- to be done ---
+Development of CASL specifications, and theorem proving
+of proof obligations and goals using different theorem
+provers. A future extension should also cover
+heterogeneous specifications. i.e. specifications 
+consisting of parts written in different  logics
+like higher-order CASL, HasCASL, CSP-CASL
+(MULTIPLE project),
+and Haskell program development (HasCASL project). 
+
+The {\em object types} and the operations on them are:
+
+\begin{description}
+\item[CASL library file]
+Text file, ending .casl. They can be edited with a text editor
+and are read in with CATS.
+
+\item[CASL library folder]
+contains all files associated to a CASL library
+
+\item[CASL specification text] 
+Ending .spec.
+Text file, derived from a CASL library file
+(just by splitting it up into pieces). Can be
+displayed, and edited only as part of the library
+(i.e. any changes have to be propagated to the library file).
+
+\item[CASL view text] 
+Ending .view.
+Text file, derived from a CASL library file. Can be
+displayed, and edited only as part of the library
+(i.e. any changes have to be propagated to the library file).
+
+\item[CASL specification code]
+Ending .spec.xml.
+Derived from CASL specification text. Cannoted be edited.
+Read in by CATS and the development graph manager.
+
+\item[CASL view code]
+Ending .view.xml.
+Derived from CASL view text. Cannoted be edited.
+Read in by CATS and the development graph manager.
+
+
+\item[Development graph state]
+The development graph manager constructs a development graph
+(not to be confused with the workbench development graph,
+since it contains as nodes the CASL specifications
+and as links the CASL views, and some more internal
+nodes and links, but not e.g. CASL libraries)
+out of the specificattions and views contained in a CASL
+library. Note that it does not suffice to supply just
+the library to the development graph manager, since
+it has to display textual information for individual
+nodes of the development graph.
+
+A development graph contains proof obligations
+and proof goals that can be solved using different
+theorem provers, e.g. Isabelle or Inka.
+
+\item[Isabelle]
+The first prover to be connected with the development
+graph manager is Isabelle. Should therefore the
+Isabelle instantiation of the workbench included here?
+A difference is of course that Isabelle is called
+from the (and with input supplied by the)
+development graph manager.
+\end{description}
+
+MBase stores objects at a more fine-grained level,
+e.g. theorems, proofs etc. Should we support this level
+as well?
+
+Between objects, we have the following links:
+
+\begin{description}
+\item[Import links]
+between CASL libraries.
+
+\item[Contains links] between a CASL library
+and the specifications and views (the text files,
+or code files, or both?)
+contained in it.
+
+\item[Uses links] between a CASL specification
+and the CASL specifications and views used by it
+(the text files, or code files, or both?).
+
+\item[Source links] from a CASL view to its
+source specification (the text files,
+or code files, or both?).
+
+\item[Target links] from a CASL view to its
+target specification (the text files,
+or code files, or both?).
+
+\item[``is code of'' links] from a CASL
+specification (or view) code file to the
+corresponding text file.
+
+\item[loads links] from a development
+graph state to CASL library, specifications
+and views used by it.
+
+\item[calls links] between a development
+graph state and the Isabelle session(s) called
+by it.
+
+\end{description}
+
 
 \section{The Implementor's Point of View}
 
@@ -367,9 +479,9 @@ Adding types can be done
 
 Links are implemented as particular attributes of type
 \texttt{Location}, which uniquely identifies an object regardless of
-its particular location (i.e. file path). I think since links are
-often used there should be a library of functions which implement
-particular often-used functions on links, such as:
+its particular location (i.e. file path). I think since links are user
+often there should be a library of functions which implement functions
+on links, such as:
 \begin{itemize}
 \item get the source object 
 \item get the target object
