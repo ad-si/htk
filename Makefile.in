@@ -15,7 +15,7 @@ endif
 COMMONEXTRAEXPORTS = uni-package.conf.export includes/*.h
 
 ifeq "@WINDOWS@" "1"
-EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 
+EXTRAEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export mk/FixFileNames.exe $(COMMONEXTRAEXPORTS) 
 else
 EXTRAEXPORTS = install ghchtk.export ghcihtk.export mk/FixFileNames $(COMMONEXTRAEXPORTS)
 endif
