@@ -67,34 +67,34 @@ module MarkupText (
   xi,
   psi,
   zeta,
-  _Alpha,
-  _Beta,
-  _Chi,
-  _Delta,
-  _Eps,
-  _Phi,
-  _Gamma,
-  _Eta,
-  _Iota,
-  _Kappa,
-  _Lambda,
-  _Mu,
-  _Nu,
-  _Omikron,
-  _Pi,
-  _Theta,
-  _Rho,
-  _Sigma,
-  _Tau,
-  _Upsilon,
-  _Omega,
-  _Xi,
-  _Psi,
-  _Zeta,
-  forall,
+  aalpha,
+  bbeta,
+  cchi,
+  ddelta,
+  eeps,
+  pphi,
+  ggamma,
+  eeta,
+  iiota,
+  kkappa,
+  llambda,
+  mmu,
+  nnu,
+  oomikron,
+  ppi,
+  ttheta,
+  rrho,
+  ssigma,
+  ttau,
+  uupsilon,
+  oomega,
+  xxi,
+  ppsi,
+  zzeta,
+  forallsmall,
   exists,
-  _Forall,
-  _Exists,
+  forallbig,
+  eexists,
   existsone,
   MarkupText.not,
   MarkupText.and,
@@ -109,20 +109,20 @@ module MarkupText (
   oplus,
   bot,
   rightarrow,
-  _Rightarrow,
+  rrightarrow,
   longrightarrow,
-  _Longrightarrow,
+  llongrightarrow,
   leftrightarrow,
-  _Leftrightarrow,
-  _Downarrow,
-  _Uparrow,
+  lleftrightarrow,
+  ddownarrow,
+  uuparrow,
   vline,
   hline,
   rbrace1,
   rbrace2,
   rbrace3,
   emptyset,
-  _in,
+  inset,
   notin,
   intersect,
   union,
@@ -131,8 +131,8 @@ module MarkupText (
   setminus,
   powerset,
   inf,
-  _Intersect,
-  _Union,
+  iintersect,
+  uunion,
   equiv,
   neq,
   leq,
@@ -484,123 +484,123 @@ zeta = symbchr 122
 
 ---
 -- Special character (uppercase).
-_Alpha :: MarkupText
-_Alpha = symbchr 65
+aalpha :: MarkupText
+aalpha = symbchr 65
 
 ---
 -- Special character (uppercase).
-_Beta :: MarkupText
-_Beta = symbchr 66
+bbeta :: MarkupText
+bbeta = symbchr 66
 
 ---
 -- Special character (uppercase).
-_Chi :: MarkupText
-_Chi = symbchr 67
+cchi :: MarkupText
+cchi = symbchr 67
 
 ---
 -- Special character (uppercase).
-_Delta :: MarkupText
-_Delta = symbchr 68
+ddelta :: MarkupText
+ddelta = symbchr 68
 
 ---
 -- Special character (uppercase).
-_Eps :: MarkupText
-_Eps = symbchr 69
+eeps :: MarkupText
+eeps = symbchr 69
 
 ---
 -- Special character (uppercase).
-_Phi :: MarkupText
-_Phi = symbchr 70
+pphi :: MarkupText
+pphi = symbchr 70
 
 ---
 -- Special character (uppercase).
-_Gamma :: MarkupText
-_Gamma = symbchr 71 
+ggamma :: MarkupText
+ggamma = symbchr 71 
 
 ---
 -- Special character (uppercase).
-_Eta :: MarkupText
-_Eta = symbchr 72
+eeta :: MarkupText
+eeta = symbchr 72
 
 ---
 -- Special character (uppercase).
-_Iota :: MarkupText
-_Iota = symbchr 73 
+iiota :: MarkupText
+iiota = symbchr 73 
 
 ---
 -- Special character (uppercase).
-_Kappa :: MarkupText
-_Kappa = symbchr 75 
+kkappa :: MarkupText
+kkappa = symbchr 75 
 
 ---
 -- Special character (uppercase).
-_Lambda :: MarkupText
-_Lambda = symbchr 76
+llambda :: MarkupText
+llambda = symbchr 76
 
 ---
 -- Special character (uppercase).
-_Mu :: MarkupText
-_Mu = symbchr 77
+mmu :: MarkupText
+mmu = symbchr 77
 
 ---
 -- Special character (uppercase).
-_Nu :: MarkupText
-_Nu = symbchr 78
+nnu :: MarkupText
+nnu = symbchr 78
 
 ---
 -- Special character (uppercase).
-_Omikron :: MarkupText
-_Omikron = symbchr 79
+oomikron :: MarkupText
+oomikron = symbchr 79
 
 ---
 -- Special character (uppercase).
-_Pi :: MarkupText
-_Pi = symbchr 80
+ppi :: MarkupText
+ppi = symbchr 80
 
 ---
 -- Special character (uppercase).
-_Theta :: MarkupText
-_Theta = symbchr 81
+ttheta :: MarkupText
+ttheta = symbchr 81
 
 ---
 -- Special character (uppercase).
-_Rho :: MarkupText
-_Rho = symbchr 82
+rrho :: MarkupText
+rrho = symbchr 82
 
 ---
 -- Special character (uppercase).
-_Sigma :: MarkupText
-_Sigma = symbchr 83
+ssigma :: MarkupText
+ssigma = symbchr 83
 
 ---
 -- Special character (uppercase).
-_Tau :: MarkupText
-_Tau = symbchr 84
+ttau :: MarkupText
+ttau = symbchr 84
 
 ---
 -- Special character (uppercase).
-_Upsilon :: MarkupText
-_Upsilon = symbchr 85 
+uupsilon :: MarkupText
+uupsilon = symbchr 85 
 
 ---
 -- Special character (uppercase).
-_Omega :: MarkupText
-_Omega = symbchr 87
+oomega :: MarkupText
+oomega = symbchr 87
 
 ---
 -- Special character (uppercase).
-_Xi :: MarkupText
-_Xi = symbchr 88
+xxi :: MarkupText
+xxi = symbchr 88
 
 ---
 -- Special character (uppercase).
-_Psi :: MarkupText
-_Psi = symbchr 89
+ppsi :: MarkupText
+ppsi = symbchr 89
 
 ---
 -- Special character (uppercase).
-_Zeta :: MarkupText
-_Zeta = symbchr 90
+zzeta :: MarkupText
+zzeta = symbchr 90
 
 
 
@@ -608,8 +608,8 @@ _Zeta = symbchr 90
 
 ---
 -- Special character.
-forall :: MarkupText
-forall = symbchr 34
+forallsmall :: MarkupText
+forallsmall = symbchr 34
 
 ---
 -- Special character.
@@ -618,13 +618,13 @@ exists = symbchr 36
 
 ---
 -- Special character.
-_Forall :: MarkupText
-_Forall = bigsymbchr 34
+forallbig :: MarkupText
+forallbig = bigsymbchr 34
 
 ---
 -- Special character.
-_Exists :: MarkupText
-_Exists = bigsymbchr 36
+eexists :: MarkupText
+eexists = bigsymbchr 36
 
 ---
 -- Special character.
@@ -704,8 +704,8 @@ rightarrow = symbchr 174
 
 ---
 -- Special character.
-_Rightarrow :: MarkupText
-_Rightarrow = symbchr 222
+rrightarrow :: MarkupText
+rrightarrow = symbchr 222
 
 ---
 -- Special character.
@@ -714,8 +714,8 @@ longrightarrow = symbstr [190, 174]
 
 ---
 -- Special character.
-_Longrightarrow :: MarkupText
-_Longrightarrow = symbstr [61, 222]
+llongrightarrow :: MarkupText
+llongrightarrow = symbstr [61, 222]
 
 ---
 -- Special character.
@@ -724,18 +724,18 @@ leftrightarrow = symbchr 171
 
 ---
 -- Special character.
-_Leftrightarrow :: MarkupText
-_Leftrightarrow = symbchr 219
+lleftrightarrow :: MarkupText
+lleftrightarrow = symbchr 219
 
 ---
 -- Special character.
-_Downarrow :: MarkupText
-_Downarrow = symbchr 223
+ddownarrow :: MarkupText
+ddownarrow = symbchr 223
 
 ---
 -- Special character.
-_Uparrow :: MarkupText
-_Uparrow = symbchr 221
+uuparrow :: MarkupText
+uuparrow = symbchr 221
 
 ---
 -- Special character.
@@ -772,8 +772,8 @@ emptyset = symbchr 198
 
 ---
 -- Special character.
-_in :: MarkupText
-_in = symbchr 206
+inset :: MarkupText
+inset = symbchr 206
 
 ---
 -- Special character.
@@ -817,13 +817,13 @@ inf = symbchr 165
 
 ---
 -- Special character.
-_Intersect :: MarkupText
-_Intersect = bigsymbchr 199
+iintersect :: MarkupText
+iintersect = bigsymbchr 199
 
 ---
 -- Special character.
-_Union :: MarkupText
-_Union = bigsymbchr 200
+uunion :: MarkupText
+uunion = bigsymbchr 200
 
 
 -- relations

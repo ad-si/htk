@@ -95,7 +95,6 @@ rm -f ./*.html
     ../toolkit/ScrollBox.hs\
     ../toolkit/SelectBox.hs\
     ../toolkit/Separator.hs\
-    ../toolkit/SimpleForm.hs\
     ../toolkit/SpinButton.hs\
     ../toolkit/TreeList.hs\
 \
@@ -129,3 +128,6 @@ rm -f ./*.html
 \
     ../../util/Computation.hs\
     ../../util/Thread.hs\
+
+#    ../toolkit/MarkupText.hs\
+#    ../toolkit/SimpleForm.hs\

@@ -52,7 +52,7 @@ type Elements = [Button]
 ---
 -- Constructs a new select box and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget.
--- @param         - the optional index of a default button.
+-- @param def     - the optional index of a default button.
 -- @param cnf     - the list of configuration options for this select box.
 -- @return result - A select box.
 newSelectBox :: Container par =>
