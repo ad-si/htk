@@ -153,8 +153,9 @@ instance HasCommand (CheckButton a)
 
 ---
 -- A checkbutton has a value, that corresponds to a polymorphic
--- <code>TkVariable</code>.
-instance GUIValue a => HasValue (CheckButton a) a
+-- <code>TkVariable</code>.  
+-- instance GUIValue a => HasValue (CheckButton a) a
+-- No, it doesn't.
 
 ---
 -- The polymorphic variable the checkbutton's value is associated with.

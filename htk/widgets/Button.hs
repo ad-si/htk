@@ -150,5 +150,5 @@ instance HasCommand Button
 instance HasTooltip Button
 
 ---
--- A label has a text anchor.
+-- A button has a text anchor.
 instance HasAnchor Button
