@@ -1,5 +1,5 @@
 {- This program converts stdin to stdout.  It replaces all occurrences of
-   the string "$PWD" in stdin with the current directory in which it is
+   the string "#PWD" in stdin with the current directory in which it is
    executed, C escaped.  Everything else is left unchanged.
 
 
@@ -33,7 +33,7 @@ main =
          quotedCurrentDirectory = escapeString currentDirectory
             
          transform [] = []
-         transform ('$':'P':'W':'D':rest) = quotedCurrentDirectory ++ transform rest
+         transform ('#':'P':'W':'D':rest) = quotedCurrentDirectory ++ transform rest
          transform (c:rest) = c:transform rest
       putStr . transform  $ input
 

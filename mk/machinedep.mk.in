@@ -22,3 +22,5 @@ WINDOWS = @WINDOWS@
 GhcVersion = @GhcVersion@
 GhcMajVersion = @GhcMajVersion@
 GhcMinVersion = @GhcMinVersion@
+TAR = @TAR@
+ZIP = @ZIP@

@@ -1,8 +1,8 @@
 Package {
    name = "PACKAGE",
-   import_dirs = ["$PWDIMPORTS"],
+   import_dirs = ["#PWDIMPORTS"],
    source_dirs = [],
-   library_dirs = ["$PWD"],
+   library_dirs = ["#PWD"],
    hs_libraries = ["PACKAGE"],
    extra_libraries = [],
    include_dirs = [],

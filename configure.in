@@ -87,6 +87,17 @@ if test -z "$CVS"; then
    CVS="/usr/bin/cvs"
 fi
 # 
+# Check for gnu tar and for zip
+AC_PATH_PROGS(TAR,gtar tar)
+if test -z "$TAR"; then
+   echo "Without GNU tar you cannot build tarballs."
+fi
+#
+AC_PATH_PROGS(ZIP,zip)
+if test -z "$ZIP"; then
+   echo "Without zip you cannot build zip archives."
+fi
+#
 # Check for hdoc
 AC_PATH_PROGS(HDOC,hdoc)
 echo hdoc is used for providing browsable versions of the HTk sources.
@@ -124,7 +135,7 @@ if test "$GOAHEAD" = YES; then
 
    # Find out what GHC thinks this directory is (this will not necessarily be 
    # the same as TOP on Windows).  This string is escaped.
-   GHCTOP=`echo '$PWD' | mk/FixFileNames`
+   GHCTOP=`echo '#PWD' | mk/FixFileNames`
    echo GHC calls this directory $GHCTOP
    AC_SUBST(GHCTOP)
 
