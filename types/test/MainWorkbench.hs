@@ -36,12 +36,13 @@ main =
          ]
       withdrawWish
       hostPort <- getDefaultHostPort
-      repository <- 
+      versionGraph <- 
          let
             ?server = hostPort
          in
-            initialise
-      versionGraph <- newVersionGraph daVinciSort repository
+            do
+               repository <- initialise
+               newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)
       cleanupWish
       exitImmediately ExitSuccess
