@@ -3,7 +3,7 @@ PACKAGES = posix uni-events
 
 ifeq "@WORK_AROUND_BDB_LINUX_BUG@" "1"
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
-   Expect.hs SafeSystem.hs ForkExec.hs SysVars.hs
+   Expect.hs SafeSystem.hs SysVars.hs
 else
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
    Expect.hs SafeSystem.hs
