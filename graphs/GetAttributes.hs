@@ -78,7 +78,7 @@ getNodeTypeAttributes1 :: IO PreAttributes
 getNodeTypeAttributes1 =
    do
       let def = PreAttributes {shapeSort=Box,nodeTypeTitle'=""}
-      (iw, form) <- newInputWin "Node Type Attributes" 
+      (iw, form) <- createInputWin "Node Type Attributes" 
                                 (\p-> newInputForm p (Just def) []) []
       newEnumField form [Box .. GetAttributes.Icon] [
          -- text "Node Shape",
@@ -135,7 +135,7 @@ getNodeAttributes registry =
                preNodeTitle=""
                }
             -- iform p = newInputForm p (Just def) []   
-         (inputWin, form) <- newInputWin "Node Attributes" 
+         (inputWin, form) <- createInputWin "Node Attributes" 
                                          (\p-> newInputForm p (Just def) []) []
          newEnumField form knownTypeNames [
             -- text "Node Type",
@@ -181,7 +181,7 @@ getArcTypeAttributes :: IO (Maybe ArcTypeAttributes)
 getArcTypeAttributes =
    do
       let def = ArcTypeAttributes {arcTypeTitle=""}
-      (iw, form) <- newInputWin "Arc Type Attributes" 
+      (iw, form) <- createInputWin "Arc Type Attributes" 
                                 (\p-> newInputForm p (Just def) []) []
       newEntryField form [
          text "Arc Type title",
@@ -226,7 +226,7 @@ getArcAttributes registry =
             def = ArcPreAttributes {
                preArcType=head knownTypeNames
                }
-         (iw, form) <- newInputWin "Arc Attributes" 
+         (iw, form) <- createInputWin "Arc Attributes" 
 	                           (\p-> newInputForm p (Just def) []) []
          newEnumField form knownTypeNames [
             -- text "Arc Type",
@@ -253,7 +253,7 @@ getArcAttributes registry =
 
 displayError :: String -> IO ()
 -- This displays an error message until the user clicks "Try Again".
-displayError message = newErrorWin message []
+displayError message = createErrorWin message []
 {-
    do
       frame <- newFrame []
@@ -271,7 +271,7 @@ getSingleString :: String -> IO String
 -- provided.
 getSingleString query =
    do
-      (inputWin, form) <- newInputWin "" (\p-> newInputForm p (Just "") []) []
+      (inputWin, form) <- createInputWin "" (\p-> newInputForm p (Just "") []) []
       (entryField :: EntryField String String) <-
          newEntryField form [
             text query,

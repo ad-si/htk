@@ -367,7 +367,7 @@ main =
     addimg <- newButton boximg [pad Vertical 5, pad Horizontal 5,
                                 height 3, text "add image item", width 28]
                 :: IO (Button String)
-    pack addimg
+    pack addimg [PadX 5, PadY 5, Fill X, Expand On]
 
     imgentries <- newVBox boximg []
     pack imgentries []
