@@ -275,9 +275,11 @@ startDaVinci =
                   return (FileNames.trimDir top ++ "/database/icons")
             Just daVinciIcons -> return daVinciIcons
 
+      existingEnv <- Posix.getEnvironment
+
       let 
          configs = [
---            environment [("DAVINCI_ICONDIR",daVinciIcons)],
+            environment (("DAVINCI_ICONDIR",daVinciIcons):existingEnv),
             arguments ["-pipe"],
             standarderrors False
             ] 

@@ -19,6 +19,7 @@ import Dynamics(fromDyn)
 import RegularExpression
 import InfoBus
 import SIM(Destructible(..),sync)
+import WBFiles
 
 import GraphDisp
 import GraphConfigure
@@ -44,14 +45,24 @@ data SemiParsedDepend = SemiParsedDepend [(String,String)]
 parseDepend :: IO ParsedDepend
 parseDepend =
    do
-      args <- getArgs
-   
+      let
+         programArguments =
+            ProgramArgument {
+               optionName = "prune",
+               optionHelp = "Only show minimal dependencies",
+               defaultVal = Just (BoolValue False),
+               argType = BOOL
+               } : usualProgramArguments
+
+      parseTheseArguments programArguments
+ 
+      (Just doPrune) <- getArgBool "prune"
+
       depend <- openFile ".depend" ReadMode
       semiParsedDepend <- semiParseDepend depend
       let
-         doFilter = isJust(find (== "h") args)
          filteredDepend =
-            if doFilter
+            if doPrune
                then
                   filterDepend semiParsedDepend
                else
