@@ -57,6 +57,10 @@ import GraphConfigure
 import DaVinciTypes
 import DaVinciBasic
 
+#ifdef DEBUG
+#define getValue (getValueSafe (__FILE__ ++ show (__LINE__)))
+#endif
+
 ------------------------------------------------------------------------
 -- How you refer to everything
 ------------------------------------------------------------------------

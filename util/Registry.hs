@@ -49,6 +49,11 @@ module Registry(
 
    getValue', 
       -- Function to be used instead of getValue for debugging purposes.
+   getValueSafe,
+      -- alias for that (useful in combination with CPP).
+   getRegistryValueSafe,
+      -- :: Ord from => String -> Registry from to -> from -> IO to
+      -- corresponds to getValueSafe and getRegistryValue
    ) where
 
 import IO
@@ -174,6 +179,10 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
 
 getRegistryValue :: Ord from => Registry from to -> from -> IO to
 getRegistryValue registry from = getValue registry from
+
+
+getRegistryValueSafe :: Ord from => String -> Registry from to -> from -> IO to
+getRegistryValueSafe label registry from = getValueSafe label registry from
 
 instance Ord from => KeyOpsRegistry (Registry from to) from where
    deleteFromRegistryBool (Registry mVar) from =
@@ -407,6 +416,11 @@ instance HasTyRep2 LockedRegistry where
 -- Function to be preferred to getValue when it is not absolutely certain
 -- if a value is there, since it prints the label if things go wrong.
 -- ----------------------------------------------------------------------
+
+
+getValueSafe :: GetSetRegistry registry from to 
+   => String -> registry -> from -> IO to
+getValueSafe = getValue'
 
 getValue' :: GetSetRegistry registry from to 
    => String -> registry -> from -> IO to

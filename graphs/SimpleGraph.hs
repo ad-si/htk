@@ -322,26 +322,29 @@ applyUpdate ::
 --    updates graph with update.  It then broadcasts to all listeners
 --    of the graph with classData such that proceedFn classData == True.
 applyUpdate graph update proceedFn =
-   do
-      -- (1) Update graph, and get list of current clients.
-      clients <- synchronize graph (innerApplyUpdate graph update)
-      -- (2) Tell the clients
-      sequence_
-         (map
-            (\ clientData ->
-               if proceedFn clientData
-                  then
-                     do
-                        result <- Exception.try (clientSink clientData update) 
-                        case result of
-                           Left exception ->
-                              putStrLn ("Client error "++(show exception))
-                           Right () -> done
-                  else
-                     done
+   synchronize graph (
+      do
+         -- (1) Update graph, and get list of current clients.
+         clients <- innerApplyUpdate graph update
+         -- (2) Tell the clients
+         sequence_
+            (map
+               (\ clientData ->
+                  if proceedFn clientData
+                     then
+                        do
+                           result <- Exception.try 
+                              (clientSink clientData update) 
+                           case result of
+                              Left exception ->
+                                 putStrLn ("Client error "++(show exception))
+                              Right () -> done
+                     else
+                        done
+                  )
+               clients
                )
-            clients
-            )
+      )
 
 innerApplyUpdate ::
    SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
@@ -355,6 +358,7 @@ innerApplyUpdate
       killUpdate = return []
       arcRegistry = arcData graph
       nodeRegistry = nodeData graph
+
    in
       -- The following cases need special treatment, in case
       -- someone else has deleted a relevant Node or Arc before
@@ -627,7 +631,7 @@ delayedAction
                               | node1 == node
                               ->
                                  do
-                                    action
+                                    forkIO action
                                     modifyMVar_ clients 
                                        (return . delete clientData)
                            _ -> done

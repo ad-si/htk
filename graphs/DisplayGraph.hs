@@ -24,6 +24,10 @@ import Destructible
 import GraphDisp
 import Graph
 
+#ifdef DEBUG
+#define getRegistryValue (getRegistryValueSafe (__FILE__ ++ show (__LINE__)))
+#endif
+
 displayGraph ::
       (GraphAll dispGraph graphParms node nodeType nodeTypeParms 
             arc arcType arcTypeParms,
