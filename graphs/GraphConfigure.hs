@@ -44,6 +44,8 @@ module GraphConfigure(
    SurveyView(..),
    AllowDragging(..),
 
+   -- HasMapM is used for mapping node and arc options.
+   HasMapIO(..),
    ) where
 
 import Computation(HasConfig(($$),configUsed))
@@ -69,6 +71,16 @@ instance (Typeable value,HasConfigValue option configuration)
    => HasConfig (option value) (configuration value) where
    ($$) = ($$$)
    configUsed = configUsed'
+
+------------------------------------------------------------------------
+-- HasMapM
+-- Various options node and arc options implement HasMapM, 
+-- allowing them to be mapped between types given a converter function.
+------------------------------------------------------------------------
+
+class HasMapIO option where
+   mapIO :: (a -> IO b) -> option b -> option a
+
 
 ------------------------------------------------------------------------
 -- Menus and buttons
@@ -108,6 +120,20 @@ mapMenuPrim a2b (Button label a) = Button label (a2b a)
 mapMenuPrim a2b (Menu subMenuValue menuButtons) =
    Menu subMenuValue (map (mapMenuPrim a2b) menuButtons)
 mapMenuPrim a2b Blank = Blank
+
+instance HasMapIO LocalMenu where
+   mapIO a2bAct (LocalMenu menuPrim) =
+      LocalMenu
+         (mapMenuPrim
+            (\ b2Act ->
+               (\ aValue ->
+                  do
+                     bValue <- a2bAct aValue
+                     b2Act bValue
+                  )
+               )
+            menuPrim
+            )
 
 mapMenuPrim' :: (c -> d) -> MenuPrim c a -> MenuPrim d a
 mapMenuPrim' c2d (Button title action) = Button title action
@@ -154,6 +180,15 @@ instance NodeTypeConfig ValueTitle
 
 instance ArcTypeConfig ValueTitle
 
+instance HasMapIO ValueTitle where
+   mapIO a2bAct (ValueTitle b2StringAct) =
+      ValueTitle (
+         \ aValue -> 
+            do
+               bValue <- a2bAct aValue
+               b2StringAct bValue
+            )
+
 ------------------------------------------------------------------------
 -- Drag and Drop
 -- These are inspired by DaVinci's Drag and Drop functions.
@@ -176,6 +211,15 @@ data NodeGesture value = NodeGesture (value -> IO ())
 -- (suggested use: create a new node, and link it to this one)
 
 instance NodeTypeConfig NodeGesture
+
+instance HasMapIO NodeGesture where
+   mapIO a2bAct (NodeGesture b2StringAct) =
+      NodeGesture (
+         \ aValue -> 
+            do
+               bValue <- a2bAct aValue
+               b2StringAct bValue
+            )
 
 data NodeDragAndDrop value = NodeDragAndDrop (Dyn -> value -> IO ())
 -- A NodeDragAndDrop corresponds to dragging some other node

@@ -18,9 +18,55 @@ module GraphConnection(
       -- which lie in the original graph.
    ) where
 
+import Monad(filterM)
+
+import Set
+import Concurrent
+
 import Computation (done)
 
 import Graph
+
+-----------------------------------------------------------------------------
+-- Connection State
+-----------------------------------------------------------------------------
+
+-- We keep track of the arcs currently not in the subgraph; this
+-- allows us to filter out attempts to delete from the subgraph.
+-- (Attempts to delete non-existent arcs is normally harmless but,
+-- apart from wasting time, could get passed onto other clients of the
+-- server, which might have themselves constructed identical arcs
+-- in their subgraphs.)
+newtype ConnectionState = ConnectionState (MVar (Set Arc))
+-- This contains the arcs NOT in the subgraph, because for our planned
+-- application 
+
+newConnectionState :: IO ConnectionState
+newConnectionState = 
+   do
+      mVar <- newMVar emptySet
+      return (ConnectionState mVar) 
+
+arcIsInSubGraph :: ConnectionState -> Arc -> IO Bool
+arcIsInSubGraph (ConnectionState mVar) arc =
+   do
+      set <- takeMVar mVar
+      let
+         result = not (elementOf arc set)
+      putMVar mVar set 
+      return result
+
+arcAdd :: ConnectionState -> Arc -> IO ()
+arcAdd (ConnectionState mVar) arc =
+   do
+      set <- takeMVar mVar
+      putMVar mVar (union set (unitSet arc))
+
+arcDelete :: ConnectionState -> Arc -> IO ()
+arcDelete (ConnectionState mVar) arc =
+   do
+      set <- takeMVar mVar
+      putMVar mVar (minusSet set (unitSet arc))
 
 -----------------------------------------------------------------------------
 -- SubGraph
@@ -31,22 +77,39 @@ data SubGraph = SubGraph {
    nodeTypeIn :: NodeType -> Bool
    }
 
-updateIsInSubGraph :: SubGraph 
-   -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> Bool
-updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn}) update =
--- NB: we can't prevent arc operations with nodes that aren't in the subgraph
--- getting passed on.  But, at any rate if the parent is a SimpleGraph, the
--- operations will not get passed on further.
--- (With the applications I have in mind, SetArcLabel and DeleteArc won't
--- be very common anyway, so this probably won't be too much of a problem.)
+updateIsInSubGraph :: SubGraph -> ConnectionState 
+   -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> IO Bool
+updateIsInSubGraph (SubGraph{nodeIn = nodeIn,nodeTypeIn = nodeTypeIn}) 
+      connectionState update =
    case update of
-      NewNodeType nodeType _ -> nodeTypeIn nodeType
-      SetNodeTypeLabel nodeType _ -> nodeTypeIn nodeType
-      NewNode node _ _ -> nodeIn node
-      DeleteNode node -> nodeIn node
-      SetNodeLabel node _ -> nodeIn node
-      NewArc _ _ _ node1 node2 -> nodeIn node1 && nodeIn node2
-      _ -> True
+      NewNodeType nodeType _ -> return (nodeTypeIn nodeType)
+      SetNodeTypeLabel nodeType _ -> return (nodeTypeIn nodeType)
+      NewNode node _ _ -> return (nodeIn node)
+      DeleteNode node -> return (nodeIn node)
+      SetNodeLabel node _ -> return (nodeIn node)
+      NewArc arc _ _ node1 node2 -> 
+         do
+            let
+               inSubGraph = nodeIn node1 && nodeIn node2
+            if inSubGraph 
+               then
+                  return True
+               else
+                  do
+                     arcAdd connectionState arc
+                     return False
+      DeleteArc arc ->
+         do
+            inSubGraph <- arcIsInSubGraph connectionState arc
+            if inSubGraph
+               then
+                  return True
+               else
+                  do
+                     arcDelete connectionState arc
+                     return False
+      SetArcLabel arc _ -> arcIsInSubGraph connectionState arc      
+      _ -> return True
 
 -----------------------------------------------------------------------------
 -- GraphConnection operations
@@ -59,16 +122,21 @@ attachSuperGraph subGraph graphConnection parentChanges =
    do
       graphConnectionData <- graphConnection parentChanges
       -- all changes to the parent get passed on
+
+      connectionState <- newConnectionState
       let 
          oldGraphUpdate = graphUpdate graphConnectionData
 
          newGraphUpdate update =
             -- updates to the child only get passed on if in the subgraph.
-            if updateIsInSubGraph subGraph update
-               then
-                  oldGraphUpdate update
-               else
-                  done 
+            do
+               isInSubGraph 
+                  <- updateIsInSubGraph subGraph connectionState update
+               if isInSubGraph
+                  then
+                     oldGraphUpdate update
+                  else
+                     done 
       return (graphConnectionData {graphUpdate = newGraphUpdate})
 
 attachSubGraph :: SubGraph
@@ -76,21 +144,25 @@ attachSubGraph :: SubGraph
    -> GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel
 attachSubGraph subGraph graphConnection parentChanges =
    do
+      connectionState <- newConnectionState
       let
          newParentChanges update =
          -- Changes from the parent only get passed on if in the subgraph.
-            if updateIsInSubGraph subGraph update
-               then
-                  parentChanges update
-               else
-                  done 
+            do
+               isInSubGraph 
+                  <- updateIsInSubGraph subGraph connectionState update  
+               if isInSubGraph
+                  then
+                     parentChanges update
+                  else
+                     done 
       graphConnectionData <- graphConnection newParentChanges
       -- We have to filter the graph state.
       let
          oldGraphState = graphState graphConnectionData
-         newGraphState =
-            CannedGraph {
-               updates = filter (updateIsInSubGraph subGraph)
-                  (updates oldGraphState)
-               }
+         oldUpdates = updates oldGraphState
+      newUpdates <- filterM (updateIsInSubGraph subGraph connectionState)
+         oldUpdates
+      let
+         newGraphState = CannedGraph {updates = newUpdates}
       return (graphConnectionData {graphState = newGraphState})

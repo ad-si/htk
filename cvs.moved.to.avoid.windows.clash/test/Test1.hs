@@ -17,6 +17,12 @@ module Main(main) where
 import System
 import Directory
 
+-- importing AtomString and CVSTypes shouldn't really be necessary, but
+-- seem to be necessary to persuade GHC 4.08 that CVSVersion is an instance
+-- of Show.
+import AtomString 
+
+import CVSTypes
 import CVSHigh
 
 main :: IO ()

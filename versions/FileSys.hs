@@ -18,7 +18,8 @@ module FileSys(
    connectFileSys,
       -- :: [RepositoryParameter] -> IO FileSys
       -- Establish a connection to a FileSys
-   Version, -- Type of a version of the file system.  Instance of Read/Show
+   Version, -- Type of a version of the file system.  
+            -- Instance of Read/Show/StringClass
    FileObj, -- Object in the file system.  
    FolderObj, -- A folder in the file system
 
@@ -83,6 +84,7 @@ import FiniteMap
 import Concurrent
 
 import Computation
+import AtomString
 import QuickReadShow
 import LineShow
 import Cache
@@ -118,11 +120,10 @@ newtype Version = Version ObjectVersion
 -- inherited from VersionDB.  But Version is only
 -- used for the top object
 
-instance QuickShow Version where
-   quickShow = WrapShow (\ (Version objectVersion) -> objectVersion)
-
-instance QuickRead Version where
-   quickRead = WrapRead (\ objectVersion -> Version objectVersion)
+instance StringClass Version where
+   toString (Version objectVersion) = toString objectVersion
+   fromString str = Version (fromString str)
+-- This also gives us Read/Show.
 
 data FileObj = FileObj Location ObjectVersion AttributeVersion UniType 
 

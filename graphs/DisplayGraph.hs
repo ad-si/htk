@@ -2,7 +2,8 @@
    Graph interface with something implementing with GraphDisp interface.
    -}
 module DisplayGraph(
-   displayGraph
+   displayGraph,
+   DisplayGraph
    ) where
 
 import Concurrent(forkIO,killThread)

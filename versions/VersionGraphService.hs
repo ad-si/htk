@@ -11,8 +11,18 @@ module VersionGraphService(
    versionGraphService, -- :: pass to connectBroadcastOther to call server
    versionGraphServiceWrapped, -- pass to server
    FrozenGraph(..), -- What is sent (Showed) on client connect.
+   VersionTypes, -- abbreviations for the type of things.
+
+   checkedInType,workingType, -- :: NodeType
+      -- These are types of nodes in the graph.  As a matter of fact,
+      -- all the nodes the server sees will have type "checkedInType",
+      -- but we provide workingType as well, and both types are part of the
+      -- graph.
+   arcType, -- :: ArcType
+      -- we provide only one arc type, for now.
    ) where
 
+import AtomString
 import Computation(done)
 
 import Thread(secs)
@@ -53,9 +63,22 @@ versionGraphService = serviceArg :: (VersionUpdate,VersionUpdate,VersionGraph)
 
 
 ------------------------------------------------------------------------------
--- The instance
+-- The pre-defined types.  Clients aren't supposed to define any others,
+-- at least not yet.
 ------------------------------------------------------------------------------
 
+checkedInType :: NodeType
+checkedInType = fromString "C"
+
+workingType :: NodeType
+workingType = fromString "W"
+
+arcType :: ArcType
+arcType = fromString "A"
+
+------------------------------------------------------------------------------
+-- The instance
+------------------------------------------------------------------------------
 
 instance ServiceClass VersionUpdate VersionUpdate VersionGraph where
 
@@ -68,7 +91,7 @@ instance ServiceClass VersionUpdate VersionUpdate VersionGraph where
          update simpleGraph newUpdate
          return (newUpdate,simpleGraph)
 
-   getBackupDelay _ = return (BackupAfter (secs 2.0))
+   getBackupDelay _ = return (BackupEvery 1)
 
    sendOnConnect _ simpleGraph =
       do
@@ -89,7 +112,13 @@ instance ServiceClass VersionUpdate VersionUpdate VersionGraph where
             nameSourceBranch' = nameSourceBranch'
             }))
    
-   initialStateFromString _ Nothing = newEmptyGraph
+   initialStateFromString _ Nothing = 
+      do
+         graph <- newEmptyGraph
+         update graph (NewNodeType checkedInType ())
+         update graph (NewNodeType workingType ())
+         return graph
+
    initialStateFromString _ (Just frozenGraphString) =
       do
          let

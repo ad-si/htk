@@ -14,7 +14,7 @@ module CVSDB(
 
    ObjectVersion, 
    -- type of versions of objects in the repository
-   -- instance of Read and Show
+   -- instance of Read/Show/StringClass
 
    AttributeVersion,
    -- type of versions of attributes in the repository.
@@ -257,7 +257,7 @@ initialise options =
 ----------------------------------------------------------------
 
 type ObjectVersion = CVSVersion 
--- Read and Show also inherited.  This is made
+-- Read/Show/StringClass also inherited.  This is made
 -- deliberately concise.
 
 type AttributeVersion = CVSVersion
