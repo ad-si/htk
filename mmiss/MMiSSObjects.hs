@@ -148,7 +148,7 @@ data MMiSSObject = MMiSSObject {
    name :: String, -- the user name for this.  NB - although this is
       -- currently fixed, we will probably change this.
    mmissObjectType :: MMiSSObjectType,
-   variantAttributes :: Attributes, 
+   variantAttributes :: BasicObjects.Attributes, 
       -- Current variant attributes for this object, IE those according to
       -- which it is opened by default, or those taken from current contents.
    objectContents :: MMiSSVariantDict (Link Element),
