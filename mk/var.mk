@@ -71,5 +71,5 @@ DAVINCIDIR       = $(UNIDIR)/davinci
 WWWDIR           = $(UNIDIR)/www
 TOOLSDIR         = $(UNIDIR)/tools
 CVSDIR           = $(UNIDIR)/cvs
-
+VERSIONSDIR      = $(UNIDIR)/versions
 

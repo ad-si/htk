@@ -71,9 +71,13 @@ module CVSDB(
    listVersions, -- :: Repository -> Location -> IO [ObjectVersion]
    -- listVersion lists all versions of the object with the given location.
 
-   watch -- :: Repository -> Location -> IA ()
+   watch, -- :: Repository -> Location -> IA ()
    -- watch returns an event which occurs whenever a commit occurs to the
    -- object with the given location.
+
+   initialLocation :: Location
+   -- location we always start with.
+  
    ) where
 
 import IO
@@ -297,6 +301,8 @@ importFile :: FilePath -> IO ObjectSource
 importFile file = return (FileObject file)
 
 type Location = CVSFile
+initialLocation = CVSFile "a"
+-- This is derived from inodeserver/NewINodes.hs
 
 toRealName :: Repository -> CVSFile -> FilePath
 toRealName repository (CVSFile location) =

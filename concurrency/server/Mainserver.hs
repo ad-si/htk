@@ -15,6 +15,7 @@ import EV
 import Event
 import FileEV
 import SocketEV
+import Debug(debug)
 
 
 
@@ -56,6 +57,7 @@ listener newClient clientList =
                         if line == "\0"
                            then -- get rid of this client
                               do
+                                 debug "server:Kill client"
                                  closeFileEV handle
                                  let 
                                     newClientList =
@@ -67,6 +69,7 @@ listener newClient clientList =
                                  listener newClient newClientList
                            else
                               do -- write line to all clients
+                                 debug ("server:"++line)
                                  sequence_
                                     (map
                                        (\ Client{handle=handle} ->

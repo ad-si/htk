@@ -1,3 +1,4 @@
+{- This test case is obsolete!! -}
 module Main (
         main 
         ) 
@@ -21,115 +22,125 @@ title = text
 
 main :: IO ()
 main = 
-        htk [ {- logfile (1::Int), -} text "DAVINCI-TEST"]            >>= \gui ->
-        davinci [accuracy 1]                                    >>= \ gtool ->
-        interactor (const (destroyed gtool >>> destroy gui))    >>
-        setDefaults                                             >>
-        dragAndDrop                                             >>
-        createGraphM1                                           >>
-        createGraph0                                            >>
-        createGraph1                                            >>= \(g0,r0) ->
-        createGraph2                                            >>
-        createGraph3                                            >>= \(g,r2,mv) ->
-        next "install icon bar" 
-                (makeIconBar >>= \ ib -> iconbar ib g)  >>
-        try(next "install application menu" 
-                (makeMenu >>= \ mn -> do {
-                        configure g [applicationmenu mn];
-                        done
-                        }))                                     >>
-        next "hide subgraph" (hideSubgraph [r2])                >>
-        next "show subgraph" (showSubgraph [r2])                >>
-        next "select children" (selectChildren r2)              >>
-        next "color red-green" (colorRedGreen r2 >> redrawGraph g)      >>
-        next "color red-yellow-green" (colorRedBlueGreen g0 r0) >>
-        next "delete tree" (destroy r2 >> redrawGraph g )       >>
-        next "iconify" (iconify mv)                             >>
-        next "deiconify" (deiconify mv)                         >>
-        next "close graph" (destroy g)                          >>
-        next "end session" (done)                               >>
-        destroy gui                                             >> 
-        done
-        where next :: String -> IO a -> IO ()
-              next str cmd =
-                newAlertWin ("press button to " ++ str ++ "\n") [] >>
-                putStr ("starting command" ++ str ++ "\n")      >>
-                try cmd                                           >>
-                putStr ("finished command" ++ str ++ "\n")      >>
-                done
+   do
+      gui <- htk [ {- logfile (1::Int), -} text "DAVINCI-TEST"]
+      gtool <- davinci [accuracy 1]
+      interactor (const (destroyed gtool >>> destroy gui))
+      setDefaults                                             
+      dragAndDrop                                            
+      createGraphM1                                          
+      createGraph0                                            
+      (g0,r0) <- createGraph1                          
+      createGraph2                                            
+      (g,r2,mv)<- createGraph3                                         
+      next "install icon bar" (makeIconBar >>= \ ib -> iconbar ib g)
+      try(next "install application menu" 
+         (do
+            mn <- makeMenu
+            configure g [applicationmenu mn]
+            done
+            ))                                     
+      next "hide subgraph" (hideSubgraph [r2])                
+      next "show subgraph" (showSubgraph [r2])                
+      next "select children" (selectChildren r2)              
+      next "color red-green" (colorRedGreen r2 >> redrawGraph g)      
+      next "color red-yellow-green" (colorRedBlueGreen g0 r0) 
+      next "delete tree" (destroy r2 >> redrawGraph g )       
+      next "iconify" (iconify mv)                          
+      next "deiconify" (deiconify mv)                      
+      next "close graph" (destroy g)                       
+      next "end session" (done)                            
+      destroy gui                                           
+      done
+   where 
+      next :: String -> IO a -> IO ()
+      next str cmd =
+         do
+            newAlertWin ("press button to " ++ str ++ "\n") [] 
+            putStr ("starting command" ++ str ++ "\n")      
+            try cmd                                           
+            putStr ("finished command" ++ str ++ "\n")      
+            done
 
 
 setDefaults :: IO ()
-setDefaults = do {
-        mn <- makeMenu;
-        g <- newGraph [fontsize 14, title "Testing Default"];
-        nt <- getDefaultNodeType g;
-        configure nt [
-                bg "green", 
-                border DoubleBorder, 
-                shape Circle, 
-                applicationmenu mn
-                ];
-        et <- getDefaultEdgeType g;
-        configure et [
-                bg "pink", 
-                pattern ThickLine,
-                applicationmenu mn
-                ];
-        rulesTakePrecedence True g;
-
-        r <- newNode g Nothing [text "root"];
-        createTree r 1 4;
-        displayGraph g;
-        done                            
-        }
+setDefaults = 
+  do
+     mn <- makeMenu
+     g <- newGraph [fontsize 14, title "Testing Default"]
+     nt <- getDefaultNodeType g
+     configure nt [
+             bg "green", 
+             border DoubleBorder, 
+             shape Circle, 
+             applicationmenu mn
+             ]
+     et <- getDefaultEdgeType g
+     configure et [
+             bg "pink", 
+             pattern ThickLine,
+             applicationmenu mn
+             ]
+     rulesTakePrecedence True g
+     
+     r <- newNode g Nothing [text "root"]
+     createTree r 1 4
+     displayGraph g
+     done                            
+     
 
 dragAndDrop :: IO ()
-dragAndDrop = do {
-        mn <- makeMenu;
-        g <- newGraph [fontsize 14, title "Drag N Drop",dragging On];
-        nt <- getDefaultNodeType g;
-        configure nt [
-                bg "green", 
-                border DoubleBorder, 
-                shape Circle, 
-                applicationmenu mn
-                ];
-        et <- getDefaultEdgeType g;
-        configure et [
-                bg "pink", 
-                pattern ThickLine,
-                applicationmenu mn
-                ];
-
-        r <- newNode g Nothing [text "root"];
-        createTree r 1 4;
-        displayGraph g;
-        interactor (\iact -> 
-                destroyed g >>> stop iact
-          +>    nodeSelected g >>> done
-          +>    edgeSelected g >>> done
-          +>    nodeDoubleClicked g >>> done
-          +>    edgeDoubleClicked g >>> done
-          +>    popupSelectionNode g >>> done
-          +>    popupSelectionEdge g >>> done
-          +>    createNodeGesture g >>> do {
-                        newNode g Nothing [bg "red"];
-                        redrawGraph g; 
-                        done}
-          +>    createChildGesture g >>>= (\src ->  do {
-                        trg <- newNode g Nothing [bg "blue"]; 
-                        redrawGraph g;
-                        newEdge Nothing src trg [bg "blue"];
-                        redrawGraph g; 
-                        done})
-          +>    createEdgeGesture g >>>= (\(src,trg) ->  do {
-                        newEdge Nothing src trg [bg "red"]; 
-                        redrawGraph g; 
-                        done})
-          );
-        done                            
-        }
+dragAndDrop = 
+   do
+      mn <- makeMenu
+      g <- newGraph [fontsize 14, title "Drag N Drop",dragging On]
+      nt <- getDefaultNodeType g
+      configure nt [
+         bg "green", 
+         border DoubleBorder, 
+         shape Circle, 
+         applicationmenu mn
+         ]
+      et <- getDefaultEdgeType g
+      configure et [
+         bg "pink", 
+         pattern ThickLine,
+         applicationmenu mn
+         ]
+      
+      r <- newNode g Nothing [text "root"]
+      createTree r 1 4
+      displayGraph g
+      interactor (\iact -> 
+            destroyed g >>> stop iact
+         +> nodeSelected g >>> done
+         +> edgeSelected g >>> done
+         +> nodeDoubleClicked g >>> done
+         +> edgeDoubleClicked g >>> done
+         +> popupSelectionNode g >>> done
+         +> popupSelectionEdge g >>> done
+         +> createNodeGesture g >>> 
+               do
+                  newNode g Nothing [bg "red"]
+                  redrawGraph g 
+                  done
+         +> createChildGesture g >>>= (\src ->  
+               do
+                  trg <- newNode g Nothing [bg "blue"] 
+                  redrawGraph g
+                  newEdge Nothing src trg [bg "blue"]
+                  redrawGraph g 
+                  done
+               )
+         +> createEdgeGesture g >>>= (\(src,trg) -> 
+               do
+                  newEdge Nothing src trg [bg "red"] 
+                  redrawGraph g 
+                  done
+               )
+         )
+      done                            
+      
 
 createGraphM1 :: IO ()
 createGraphM1 = do {
