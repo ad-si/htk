@@ -1398,6 +1398,7 @@ if test -z "$GHC"; then
       echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
       GOAHEAD=NO
    fi
+  GhcShortVersion=000
 else
    echo "$as_me:$LINENO: checking version of ghc" >&5
 echo $ECHO_N "checking version of ghc... $ECHO_C" >&6
@@ -1439,9 +1440,10 @@ echo "${ECHO_T}$uni_version_of_ghc" >&6
 
 GhcShortVersion=$GhcMajVersion$GhcMinVersion
 
-
   echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
 fi
+
+
 
 # Check for ghc-pkg
 for ac_prog in ghc-pkg
@@ -3132,16 +3134,16 @@ fi
 
    chmod +x $SCRIPTS
 
-   echo Setting up packages and export packages file as empty
-   # The echo prints []; the funny things bracketted by @ signs are
-   # "Quadrigraphs" which express this so.  Normal square brackets
-   # won't work since they have a special meaning for autoconf.
-   echo [] >uni-package.conf
-   echo [] >uni-package.conf.export
-   mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
-
    if test "$BINARY" = NO
    then
+      echo Setting up packages and export packages file as empty
+      # The echo prints []; the funny things bracketted by @ signs are
+      # "Quadrigraphs" which express this so.  Normal square brackets
+      # won't work since they have a special meaning for autoconf.
+      echo [] >uni-package.conf
+      echo [] >uni-package.conf.export
+      mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
+
       if test -n "$HAXML"
       then
          echo Linking to HaXml sources.

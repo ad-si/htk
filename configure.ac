@@ -71,6 +71,7 @@ if test -z "$GHC"; then
       echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
       GOAHEAD=NO
    fi
+  GhcShortVersion=000
 else
    UNI_GHC_VERSION([GhcVersion],[GhcMajVersion],[GhcMinVersion],[GhcPatchLevel])
   AC_SUBST(GhcVersion)
@@ -79,10 +80,11 @@ else
   AC_SUBST(GhcPatchLevel)
 
 GhcShortVersion=$GhcMajVersion$GhcMinVersion
-  AC_SUBST(GhcShortVersion)
 
   echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
 fi
+
+AC_SUBST(GhcShortVersion)
 
 # Check for ghc-pkg
 AC_PATH_PROGS(GHCPKG,ghc-pkg)
