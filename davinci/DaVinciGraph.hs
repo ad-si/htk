@@ -26,6 +26,8 @@ import IOExts
 import Set
 import FiniteMap
 import Concurrent
+import Source
+import Sink
 
 import Dynamics
 import Registry
@@ -85,7 +87,10 @@ data DaVinciGraph = DaVinciGraph {
    doImprove :: Bool,
    -- improveAll on redrawing graph.
 
-   destructionChannel :: Channel ()
+   destructionChannel :: Channel (),
+
+   destroyActions :: IO ()
+   -- Various actions to be done when the graph is closed. 
    }
 
 data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
@@ -93,19 +98,22 @@ data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
 data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
    surveyView :: Bool,
-   configDoImprove :: Bool
+   configDoImprove :: Bool,
+   graphTitleSource :: Maybe (Source GraphTitle)
    }
 
 instance Destroyable DaVinciGraph where
    destroy (daVinciGraph @ DaVinciGraph {
          context = context,nodes = nodes,edges = edges,
-         globalMenuActions = globalMenuActions,otherActions = otherActions}) =
+         globalMenuActions = globalMenuActions,otherActions = otherActions,
+         destroyActions = destroyActions}) =
       do
          destroy context
          emptyRegistry nodes
          emptyRegistry edges
          emptyRegistry globalMenuActions
          emptyRegistry otherActions
+         destroyActions
          signalDestruct daVinciGraph
 
 instance Destructible DaVinciGraph where
@@ -128,8 +136,9 @@ instance GraphClass DaVinciGraph where
                done
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
-   newGraphPrim (DaVinciGraphParms {graphConfigs=graphConfigs,
-         configDoImprove=configDoImprove,surveyView=surveyView}) =
+   newGraphPrim (DaVinciGraphParms {graphConfigs = graphConfigs,
+         configDoImprove = configDoImprove,surveyView = surveyView,
+         graphTitleSource = graphTitleSource}) =
       do
          nodes <- newRegistry
          edges <- newRegistry
@@ -239,6 +248,25 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          destructionChannel <- newChannel
 
          let
+            setTitle :: GraphTitle -> IO ()
+            setTitle (GraphTitle graphTitle) 
+               = doInContext (Window (Title graphTitle)) context
+
+         -- Sink for changing the title
+         (addSink,destroySink) <-  
+            case graphTitleSource of
+               Nothing -> return (done,done)
+               Just graphTitleSource ->
+                  do
+                     sink <- newSink setTitle
+                     let
+                        addSink =
+                           do
+                              currentTitle <- addOldSink graphTitleSource sink
+                              setTitle currentTitle
+                     return (addSink,invalidate sink)
+
+         let
             daVinciGraph =
                DaVinciGraph {
                   context = context,
@@ -249,13 +277,16 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   pendingChangesMVar = pendingChangesMVar,
                   doImprove = configDoImprove,
                   lastSelectionRef = lastSelectionRef,
-                  destructionChannel = destructionChannel
+                  destructionChannel = destructionChannel,
+                  destroyActions = destroySink
                   }
 
          setValue otherActions Closed (signalDestruct daVinciGraph)
          setValue otherActions Quit (signalDestruct daVinciGraph)
 
          sequence_ (map ($ daVinciGraph) (reverse graphConfigs))
+
+         addSink
 
          -- Do some initial commands.
          doInContext (DVSet(GapWidth 4)) context
@@ -266,11 +297,14 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             else
                done
 
+
+
          return daVinciGraph
 
 instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
-      graphConfigs = [],configDoImprove = False,surveyView = False
+      graphConfigs = [],configDoImprove = False,surveyView = False,
+      graphTitleSource = Nothing     
       }
 
 addGraphConfigCmd :: DaVinciCmd -> DaVinciGraphParms -> DaVinciGraphParms
@@ -285,6 +319,11 @@ instance HasConfig GraphTitle DaVinciGraphParms where
    configUsed _ _  = True
    ($$) (GraphTitle graphTitle) =
       addGraphConfigCmd (Window(Title graphTitle))
+
+instance HasConfig (Source GraphTitle) DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) graphTitleSource graphParms 
+      = graphParms {graphTitleSource = Just graphTitleSource}
 
 instance HasConfig OptimiseLayout DaVinciGraphParms where
    configUsed _ _  = True

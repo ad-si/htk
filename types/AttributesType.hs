@@ -36,6 +36,7 @@ import Dynamics
 import Registry
 import Computation
 
+import DialogWin
 import SimpleForm
 
 import ViewType
@@ -485,4 +486,6 @@ editObjectAttributes view link =
          (getObjectTypePrim object)) Nothing
       case success of
          Changed -> dirtyObject view versioned
-         _ -> done
+         NoForm -> 
+            createWarningWin "No attributes defined for this object type" []
+         Cancelled -> done

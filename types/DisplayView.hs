@@ -23,6 +23,7 @@ import Registry
 import Thread
 import Computation
 import Sink
+import Source
 import VariableSet
 
 import Events
@@ -264,18 +265,19 @@ displayView ::
    => (Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
    -> WrappedDisplayType -> View 
+   -> Source String
    -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms 
          arc arcType arcTypeParms)
 displayView 
       (displaySort :: Graph 
       graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms) 
-      wrappedDisplayType view =
+      wrappedDisplayType view source =
    do
       -- (0) Where the displayed view will go, when we've got it
       displayedViewMVar <- newEmptyMVar
 
       -- (1) get the graph parameters and set up the graph
-      graphPars <- graphParms view wrappedDisplayType
+      graphPars <- graphParms view wrappedDisplayType source
       graph <- newGraph displaySort graphPars
 
       -- (2) construct the nodes registry

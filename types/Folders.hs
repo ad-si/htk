@@ -25,6 +25,7 @@ import qualified IOExts(unsafePerformIO)
 import Dynamics
 import Computation
 import Sink
+import Source
 import VariableSet
 import VariableMap
 import UniqueString
@@ -71,13 +72,21 @@ instance HasCodedValue FolderDisplayType where
 instance DisplayType FolderDisplayType where
    displayTypeTypeIdPrim _  = "Folders"
 
-   graphParmsPrim view FolderDisplayType =
+   graphParmsPrim view FolderDisplayType titleSource =
       do
+         let
+            graphTitleSource =
+               fmap
+                  (\ versionTitle -> GraphTitle (versionTitle++
+                     ": directory listing")
+                     ) 
+                  titleSource
+ 
          globalMenu <- newObjectTypeMenu view
          return (
             globalMenu $$
             AllowDragging True $$
-            GraphTitle "Directory Listing" $$
+            graphTitleSource $$
             -- We will need to add more options later for menus.
             emptyGraphParms
             )

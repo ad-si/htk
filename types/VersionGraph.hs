@@ -23,6 +23,7 @@ import WBFiles(getServer)
 import Registry
 import AtomString
 import UniqueString
+import Source
 
 import Spawn
 import Destructible
@@ -70,7 +71,8 @@ data VersionGraphNode =
 -- Information we keep about working nodes.
 data ViewedNode = ViewedNode {
    thisView :: View, -- view for this node
-   parent :: Node -- (checked-in) parent version.
+   parent :: Node, -- (checked-in) parent version.
+   titleSource :: SimpleSource String -- The current title for the node.
    }
    
 -- --------------------------------------------------------------------
@@ -272,16 +274,19 @@ newVersionGraph
                let versionGraphNode = WorkingNode view
                let thisNode = toNode versionGraphNode
                thisArc <- newWorkingArc arcStringSource
+               titleSource <- newSimpleSource title
                setValue workingNodeRegistry thisNode 
                   (ViewedNode{
                      thisView = view,
-                     parent = parentNode
+                     parent = parentNode,
+                     titleSource = titleSource
                      })
                update graph (NewNode thisNode workingType title)
                update graph (NewArc thisArc workingArcType () 
                   parentNode thisNode) 
                displayedView <- displayView displaySort 
-                  (WrappedDisplayType FolderDisplayType) view
+                  (WrappedDisplayType FolderDisplayType) view 
+                  (mkSource titleSource)
                addCloseDownAction displayedView (
                   update graph (DeleteNode thisNode)
                   )
@@ -309,9 +314,14 @@ newVersionGraph
          reallyCommitNode :: String -> Node -> View -> IO ()
          reallyCommitNode title thisNode view =
             do
-               parentNodeOpt <- 
+               (nodeDataOpt :: Maybe (Node,SimpleSource String)) <-
                   transformValue workingNodeRegistry thisNode
-                  (\ viewedNodeOpt ->return (Nothing,fmap parent viewedNodeOpt)
+                  (\ viewedNodeOpt ->
+                     let
+                        getNodeData viewedNode
+                           = (parent viewedNode,titleSource viewedNode)
+                     in
+                        return (Nothing,fmap getNodeData viewedNodeOpt)
                      )
                -- This atomically empties the working node data for 
                -- thisNode,
@@ -319,9 +329,9 @@ newVersionGraph
                -- has already managed to commit this view.
                -- This makes it slightly safer to reconnect
                -- thisNode, as we are about to do . . .
-               case parentNodeOpt of
+               case nodeDataOpt of
                   Nothing -> done
-                  Just parentNode ->
+                  Just (parentNode,titleSource) ->
                      do
                         update graph (DeleteNode thisNode)
                         newVersion <- commitView view
@@ -343,12 +353,15 @@ newVersionGraph
                         setValue workingNodeRegistry thisNode 
                            (ViewedNode {
                               thisView = view,
-                              parent = newNode
+                              parent = newNode,
+                              titleSource = titleSource
                               }) 
 
                         update graph (NewNode thisNode workingType title)
                         update graph (NewArc newArc2 workingArcType ()
                            newNode thisNode)
+
+                        sendSimpleSource titleSource title
 
       -- Construct the graph
       displayedGraph <- displayGraph displaySort graph graphParms

@@ -64,6 +64,7 @@ module GraphConfigure(
 import Computation(HasConfig(($$),configUsed))
 import ExtendedPrelude
 import Dynamics(Dyn,Typeable)
+import Source
 
 import MenuType
 
@@ -138,6 +139,8 @@ instance HasMapIO LocalMenu where
 
 data GraphTitle = GraphTitle String
 instance GraphConfig GraphTitle
+
+instance GraphConfig (Source GraphTitle)
 
 data ValueTitle value = ValueTitle (value -> IO String)
 -- ValueTitles are computed from the node or arc value using the supplied
@@ -269,14 +272,20 @@ class (
    GraphParms graphParms,
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
-   HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms)
+   HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
+
+   HasConfig (Source GraphTitle) graphParms
+   )
    => HasGraphConfigs graphParms
 
 instance (
    GraphParms graphParms,
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
-   HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms)
+   HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
+
+   HasConfig (Source GraphTitle) graphParms
+   )
    => HasGraphConfigs graphParms
 
 class (
