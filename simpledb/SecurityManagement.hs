@@ -5,7 +5,8 @@ module SecurityManagement(
    getPermissions1,
    setGlobalPermissions,
    getGlobalPermissions,
-   verifyAccess,   
+   verifyAccess,
+   verifyMultiAccess,
    verifyGetPermissionsAccess,
    verifyGlobalAccess,
    verifyGlobalGetPermissionsAccess,
@@ -61,25 +62,38 @@ setGlobalPermissions simpleDB permissions =
 verifyAccess :: SimpleDB -> User -> ObjectVersion -> Maybe Location 
    -> Activity -> IO ()
 verifyAccess simpleDB user objectVersion locationOpt activity =
-   verifyMultiAccess simpleDB user objectVersion locationOpt [activity]
+   do
+      vLocationOpt <- getVLocation simpleDB objectVersion locationOpt
+      verifyMultiAccess simpleDB user objectVersion vLocationOpt [activity]
 
 verifyGetPermissionsAccess :: SimpleDB -> User -> ObjectVersion 
    -> Maybe Location -> IO ()
 verifyGetPermissionsAccess simpleDB user objectVersion locationOpt =
-   verifyMultiAccess simpleDB user objectVersion locationOpt
-      [ReadActivity,PermissionsActivity]
+   do
+      vLocationOpt <- getVLocation simpleDB objectVersion locationOpt
+      verifyMultiAccess simpleDB user objectVersion vLocationOpt
+         [ReadActivity,PermissionsActivity]
 
-verifyMultiAccess :: SimpleDB -> User -> ObjectVersion -> Maybe Location 
-   -> [Activity] -> IO ()
-verifyMultiAccess simpleDB user version locationOpt activities =
+getVLocation :: SimpleDB -> ObjectVersion -> Maybe Location 
+   -> IO (Maybe (VersionData,Location))
+getVLocation simpleDB version Nothing = return Nothing
+getVLocation simpleDB version (Just location ) =
+   do
+      versionData <- getVersionData simpleDB version
+      return (Just (versionData,location))
+
+-- | Verify if /any/ of the given activities are permissable.
+verifyMultiAccess :: SimpleDB -> User -> ObjectVersion 
+   -> Maybe (VersionData,Location) -> [Activity] -> IO ()
+verifyMultiAccess simpleDB user version vLocationOpt activities =
    do
       groupFile <- getGroupFile
       verifyMultiAccess1 simpleDB groupFile user 
-         version locationOpt activities
+         version vLocationOpt activities
 
 verifyMultiAccess1 :: SimpleDB -> GroupFile -> User -> ObjectVersion 
-   -> Maybe Location -> [Activity] -> IO ()
-verifyMultiAccess1 simpleDB groupFile user objectVersion locationOpt 
+   -> Maybe (VersionData,Location) -> [Activity] -> IO ()
+verifyMultiAccess1 simpleDB groupFile user objectVersion vLocationOpt 
       activities =
    case activities of
       [] ->
@@ -97,25 +111,23 @@ verifyMultiAccess1 simpleDB groupFile user objectVersion locationOpt
          do
             access0 <- 
                verifyAccess0 simpleDB groupFile (PasswordFile.userId user) 
-                  objectVersion locationOpt activity
+                  objectVersion vLocationOpt activity
             if access0
                then
                   done
                else
                   verifyMultiAccess1 simpleDB groupFile user objectVersion 
-                     locationOpt activities1
+                     vLocationOpt activities1
 
 verifyAccess0 :: SimpleDB -> GroupFile -> String -> ObjectVersion 
-   -> Maybe Location -> Activity -> IO Bool
-verifyAccess0 simpleDB groupFile userId0 objectVersion locationOpt activity =
+   -> Maybe (VersionData,Location) -> Activity -> IO Bool
+verifyAccess0 simpleDB groupFile userId0 objectVersion vLocationOpt activity =
    do
-      allowedOpt <- case locationOpt of
+      allowedOpt <- case vLocationOpt of
          Nothing -> return Nothing
-         Just location ->
-            do
-               versionData <- getVersionData simpleDB objectVersion
-               verifyAccess1 simpleDB groupFile userId0 objectVersion 
-                  versionData location activity
+         Just (versionData,location) ->
+            verifyAccess1 simpleDB groupFile userId0 objectVersion 
+               versionData location activity
       case allowedOpt of
          Just allowed -> return allowed
          Nothing ->

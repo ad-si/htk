@@ -62,7 +62,7 @@ createVersionData bdb =
                         let
                            objectVersion1 = ObjectVersion
                               (fromIntegral bdbKey)
-                        fm1 <- updateVersionData fm0 objectVersion1 
+                        (_,fm1) <- updateVersionData fm0 objectVersion1 
                            frozenVersion
                         getVersionData fm1
       fm <- getVersionData emptyFM
@@ -72,10 +72,12 @@ createVersionData bdb =
 -- --------------------------------------------------------------------  
 -- --------------------------------------------------------------------  
 
--- | Update VersionData, and simultaneously update the database.
--- NB.  Once this function returns it is assumed the commit will succeed.
+-- | Update VersionData.
+-- This function returns 
+-- (1) the computed VersionData; (2) an action to complete the modification
+-- when we are sure the commit will be successful.
 modifyVersionData :: SimpleDB -> ObjectVersion -> FrozenVersion -> TXN 
-   -> IO ()
+   -> IO (VersionData,IO ())
 modifyVersionData simpleDB (objectVersion @ (ObjectVersion ovN)) 
       frozenVersion txn =
    do
@@ -83,8 +85,9 @@ modifyVersionData simpleDB (objectVersion @ (ObjectVersion ovN))
          bdbKey = fromIntegral ovN
       setObjectHere1 (versionDB simpleDB) bdbKey txn frozenVersion
       versionFM0 <- readIORef (versionData simpleDB)
-      versionFM1 <- updateVersionData versionFM0 objectVersion frozenVersion
-      writeIORef (versionData simpleDB) versionFM1
+      (versionData1,versionFM1) 
+         <- updateVersionData versionFM0 objectVersion frozenVersion
+      return (versionData1,writeIORef (versionData simpleDB) versionFM1)
 
 
 -- -------------------------------------------------------------------
@@ -95,7 +98,7 @@ updateVersionData ::
    FiniteMap ObjectVersion VersionData
    -> ObjectVersion 
    -> FrozenVersion
-   -> IO (FiniteMap ObjectVersion VersionData)
+   -> IO (VersionData,FiniteMap ObjectVersion VersionData)
 updateVersionData fm thisObjectVersion frozenVersion =
    do
       let
@@ -222,5 +225,5 @@ updateVersionData fm thisObjectVersion frozenVersion =
             )
          (parentChanges frozenVersion)
 
-      return (addToFM fm thisObjectVersion thisVersionData)
+      return (thisVersionData,addToFM fm thisObjectVersion thisVersionData)
 

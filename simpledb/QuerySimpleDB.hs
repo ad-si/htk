@@ -38,7 +38,7 @@ querySimpleDB1 user simpleDB command = case command of
       do
          permissions <- getGlobalPermissions simpleDB
          verifyGlobalAccess user permissions WriteActivity
-         location <- getNextLocation simpleDB
+         location <- getNextLocation simpleDB user
          return (IsLocation location)
    NewVersion ->
       do

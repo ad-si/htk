@@ -15,6 +15,7 @@ import SimpleDBServer
 import VersionInfoService
 import VersionState
 import VersionAllocation(forgetUsersVersions)
+import LocationAllocation(forgetUsersLocations)
 
 mkSimpleDBServices :: IO [Service]
 mkSimpleDBServices =
@@ -51,6 +52,7 @@ instance ServiceClass SimpleDBCommand SimpleDBResponse SimpleDB where
    handleClientDisconnect _ user simpleDB =
       do
          forgetUsersVersions simpleDB user
+         forgetUsersLocations simpleDB user
          return simpleDB
    -- For sendOnConnect we use the default action of sending ""
 

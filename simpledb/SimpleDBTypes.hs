@@ -226,6 +226,13 @@ data SimpleDB = SimpleDB {
       -- This allows us to block attempts to hijack a version number
       -- allocated to someone else, or to commit to a version already
       -- committed to.
+   openLocations :: IORef (FiniteMap PrimitiveLocation User),
+      -- ^ This map contains current location numbers allocated by
+      -- NewLocation (by user) or created in a redirect, which have
+      -- not yet appeared in a commit.
+      -- 
+      -- This allows the user to specify a parent location for this location,
+      -- without having permissions access to it.
    versionState :: VersionState,
       -- ^ This contains the VersionInfo.VersionState information,
       -- which manages the VersionInfos.

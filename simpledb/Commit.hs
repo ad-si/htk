@@ -4,7 +4,6 @@ module Commit(
    ) where
 
 import Control.Exception
-import Data.FiniteMap
 
 import Monad
 import Maybe
@@ -83,24 +82,6 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                      getVersionInfo objectVersion
                      return (Just parentVersion,objectVersion)
 
-            let
-               -- This maps locations to the version from which they
-               -- come from.
-               redirectsMap :: FiniteMap Location (Maybe ObjectVersion)
-               redirectsMap = listToFM redirects0
-
-               locationSource :: Location -> Maybe ObjectVersion
-               locationSource location = case lookupFM redirectsMap location of
-                  Just versionOpt -> versionOpt
-                  _ -> parentOpt1
-
-               verifyLocation :: Location -> Activity -> IO ()
-               verifyLocation location activity =
-                  case locationSource location of
-                     Nothing -> done
-                     Just version -> verifyAccess simpleDB user
-                        version (Just location) activity
-
             -- enter the new stuff in the BDB repository; also check
             -- permissions.
             (objectChanges1 :: [(Location,
@@ -110,14 +91,9 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                   case newItem of
                      Left icsl ->
                         do
-                           verifyLocation location WriteActivity
                            bdbKey <- writeBDB (dataDB simpleDB) txn icsl
                            return (location,Left bdbKey)
-                     Right (objectLoc@(oldVersion,oldLocation)) ->
-                        do
-                           verifyAccess simpleDB user oldVersion 
-                              (Just oldLocation) ReadActivity
-                           return (location,Right objectLoc)
+                     Right objectLoc -> return (location,Right objectLoc)
                   )
                changeData0
 
@@ -129,34 +105,94 @@ commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
                            Just version -> return (Left version)
                            Nothing -> 
                               do
-                                 location1 <- getNextLocation simpleDB
+                                 location1 <- getNextLocation simpleDB user
                                  return (Right (toPrimitiveLocation location1))
                         return (location,redirect')
                      )
                   redirects0
 
+            let
+               frozenVersion = FrozenVersion {
+                  parent' = parentOpt1,
+                  thisVersion' = thisVersion1,
+                  objectChanges = objectChanges1,
+                  redirects' = redirects',
+                  parentChanges = parentChanges
+                  }
+            (thisVersionData,commitVersionData) 
+               <- modifyVersionData simpleDB thisVersion1 
+                  frozenVersion txn
+    
+
+            -- do access checks.
+            let
+               verifyLocation :: Location -> Activity -> IO ()
+               verifyLocation location activity = 
+                  verifyMultiAccess simpleDB user thisVersion1 
+                     (Just (thisVersionData,location)) [activity]
+
+            mapM_
+               (\ (location,item) ->
+                  case item of
+                     Left _ -> verifyLocation location WriteActivity
+                     Right (oldVersion,oldLocation) -> 
+                        verifyAccess simpleDB user oldVersion 
+                           (Just oldLocation) ReadActivity
+                  )
+               objectChanges1
+
+            mapM_
+               (\ (location,redirect) ->
+                  case redirect of
+                     Left oldVersion -> verifyAccess simpleDB user oldVersion
+                        (Just location) ReadActivity
+                     Right _ -> done
+                  )
+               redirects'
+
             -- Verify permissions for the parentChanges.
+            -- We specify that either an object be open (so it belongs to the
+            -- user), or else the user must have Permissions access to it.
             mapM
                (\ (object,parent) ->
-                  verifyLocation object PermissionsActivity
-                  )         
+                  do
+                     let
+                        pLocation = retrievePrimitiveLocation1
+                           (redirects thisVersionData) object
+
+                     isOpen <- isOpenLocation simpleDB user pLocation
+                     if isOpen
+                        then
+                           done
+                        else
+                           verifyLocation object PermissionsActivity
+                  )
                parentChanges
+
+
+            let
+               usedLocations1 :: [PrimitiveLocation]
+               usedLocations1 =
+                  map
+                     (\ (location,_) -> retrievePrimitiveLocation1
+                        (redirects thisVersionData) location)
+                     objectChanges1
+                  
+               usedLocations2 :: [PrimitiveLocation]
+               usedLocations2 =
+                  map
+                     (\ (object,_) -> retrievePrimitiveLocation1
+                        (redirects thisVersionData) object
+                        )
+                     parentChanges
+
+            closeLocations simpleDB user (usedLocations1 ++ usedLocations2)
 
             versionOpt 
                <- modifyUserInfo1 simpleDB user versionInformation txn True
             if not (isJust versionOpt) 
                then
-                  do
-                     let
-                        frozenVersion = FrozenVersion {
-                           parent' = parentOpt1,
-                           thisVersion' = thisVersion1,
-                           objectChanges = objectChanges1,
-                           redirects' = redirects',
-                           parentChanges = parentChanges
-                           }
-                     modifyVersionData simpleDB thisVersion1 
-                        frozenVersion txn
+                  commitVersionData
                else
                   done
             return versionOpt

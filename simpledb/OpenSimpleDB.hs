@@ -47,6 +47,7 @@ openSimpleDB versionState =
             -- fill in extra fields to avoid irritating GHC warning.
             versionData = error "1",
             openVersions = error "2",
+            openLocations = error "2A",
             versionState = error "3",
             nextLocation = error "4",
             nextVersion = error "5"
@@ -64,13 +65,15 @@ openSimpleDB versionState =
       nextLocation <- initLocations miscDB
       nextVersion <- initVersions miscDB
 
-      -- (5) create list of open versions
+      -- (5) create lists of open versions and open locations
       openVersions <- newIORef emptyFM
+      openLocations <- newIORef emptyFM
 
       let
          simpleDB = simpleDB1 {
             versionData = versionData,
             openVersions = openVersions,
+            openLocations = openLocations,
             versionState = versionState,
             nextLocation = nextLocation,
             nextVersion = nextVersion

@@ -238,19 +238,10 @@ initialise1 :: (SimpleDBCommand -> IO SimpleDBResponse) -> IO ()
    -> IO Repository
 initialise1 queryRepository1 closeDown =
    do
-      let
-         queryRepository2 :: SimpleDBCommand -> IO SimpleDBResponse
-         queryRepository2 command =
-            do
-               response <- queryRepository1 command
-               case response of
-                  IsError errorType mess -> throwError errorType mess
-                  _ -> return response
-
       oID <- newObject
       let
          repository = Repository {
-            queryRepository = queryRepository2,
+            queryRepository = queryRepository1,
             closeDown = closeDown,
             oID = oID
             }
