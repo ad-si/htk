@@ -1,18 +1,5 @@
-{- #########################################################################
-
-MODULE        : DialogWin
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Basic dialog window and a couple of predefined 
-                abstractions!
-
-
-   ######################################################################### -}
-
-
+---
+-- Basic dialog window and a couple of predefined abstractions!
 module DialogWin (
         Dialog,
 
@@ -22,32 +9,32 @@ module DialogWin (
         newErrorWin,
         newWarningWin,
         newConfirmWin,
+        newAlertWin',
+        newErrorWin',
+        newWarningWin',
+        newConfirmWin',
         newDialogWin,
-
---        forkDialog
-
-
         ) where
 
+import Core
 import HTk
-import Message
-import Label
-import BitMap
-import Keyboard
-import Button
-import Font
 import Space
 import SelectBox
 import ModalDialog
-import Toplevel
 import MarkupText
+import Separator
 
-import Core
 -- --------------------------------------------------------------------------
 --  Types 
--- --------------------------------------------------------------------------            
+-- --------------------------------------------------------------------------
+
+---
+-- A <code>Choice</code> represents the name of a button (<code>String</code>) and the
+-- value returned when this button is pressed.
 type Choice a = (String,a)
 
+---
+-- The <code>Dialog</code> datatype.
 data Dialog a = Dialog {
                         fWindow    :: Toplevel,
                         fMessage   :: (Editor String),
@@ -59,16 +46,26 @@ data Dialog a = Dialog {
 -- --------------------------------------------------------------------------
 --  Instances 
 -- --------------------------------------------------------------------------            
+---
+-- Internal.
 instance GUIObject (Dialog a) where
+---
+-- Internal.
         toGUIObject dlg = toGUIObject (fWindow dlg)
+---
+-- Internal.
         cname dlg = cname (fWindow dlg)
 
+---
+-- A dialog can have an image
 instance HasPhoto (Dialog a) where
         photo p dlg = do {
                 configure (fLabel dlg) [photo p];
                 return dlg
                 }
 
+---
+-- The programm message is displayed as <code>MarkupText</code>
 instance HasMarkupText (Dialog a) where
          new t dlg = do {
                  configure (fMessage dlg) [new t];
@@ -78,41 +75,82 @@ instance HasMarkupText (Dialog a) where
 -- --------------------------------------------------------------------------
 --  Derived Dialog Window 
 -- --------------------------------------------------------------------------
+---
+-- Constructs an alert window with the given text
+-- @param str     - the text to be displayed
 newAlertWin :: String -> [Config Toplevel] -> IO ()
-newAlertWin str wol = 
+newAlertWin str wol = newAlertWin' (strToMarkup str) wol
+
+---
+-- Constructs an alert window with the given markuptext
+-- @param str     - the markuptext to be displayed
+newAlertWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+newAlertWin' str wol = 
  do
   warningImg' <- warningImg
   newDialogWin choices Nothing (confs++[photo warningImg']) (defs ++ wol)
-  where choices = [("Continue",())]
-        defs = [text "Alert Window"]
-        confs = [new str']
-	str' = strToMarkup str 
+ where choices = [("Continue",())]
+       defs = [text "Alert Window"]
+       confs = [new str]
 
-
+---
+-- Constructs an error window with the given text
+-- @param str     - the text to be displayed
 newErrorWin :: String -> [Config Toplevel] -> IO ()
-newErrorWin str wol = 
+newErrorWin str wol = newErrorWin' (strToMarkup str) wol
+
+---
+-- Constructs an error window with the given markuptext
+-- @param str     - the markuptext to be displayed
+newErrorWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+newErrorWin' str wol = 
  do
   errorImg' <- errorImg
   newDialogWin choices Nothing (confs++[photo errorImg']) (defs++wol)
-  where choices = [("Continue",())]
-        defs = [text "Error Message"]
-        confs = [new str']
-	str' = strToMarkup str 
+ where choices = [("Continue",())]
+       defs = [text "Error Message"]
+       confs = [new str]
        
 
+---
+-- Constructs an warning window with the given text
+-- @param str     - the text to be displayed
 newWarningWin :: String -> [Config Toplevel] -> IO ()
 newWarningWin str confs = newAlertWin str ([text "Warning Message"] ++ confs)
 
+---
+-- Constructs an warning window with the given markuptext
+-- @param str     - the markuptext to be displayed
+newWarningWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+newWarningWin' str confs = newAlertWin' str ([text "Warning Message"] ++ confs)
+
+---
+-- Constructs an confirm window with the given text
+-- @param str     - the text to be displayed
+-- @return result - True(Ok) or False(Cancel)
 newConfirmWin :: String -> [Config Toplevel] -> IO Bool
-newConfirmWin str wol = 
+newConfirmWin str wol = newConfirmWin' (strToMarkup str) wol
+
+---
+-- Constructs an confirm window with the given markuptext
+-- @param str     - the markuptext to be displayed
+-- @return result - True(Ok) or False(Cancel)
+newConfirmWin' :: [MarkupText] -> [Config Toplevel] -> IO Bool
+newConfirmWin' str wol = 
  do
   questionImg' <- questionImg 
   newDialogWin choices (Just 0) (confs++[photo questionImg']) (defs ++ wol)
-  where choices = [("Ok",True),("Cancel",False)]
-        defs = [text "Confirm Window"]
-        confs = [new str']
-	str' = strToMarkup str 
+ where choices = [("Ok",True),("Cancel",False)]
+       defs = [text "Confirm Window"]
+       confs = [new str]
 
+---
+-- Constructs a new dialow window
+-- @param choices     - the available button in this window
+-- @param def         - default button
+-- @param confs       - the list of configuration options for this separator
+-- @param wol         - the list of configuration options for the window
+-- @return result     - 
 newDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
 newDialogWin choices def confs wol = 
    do 
@@ -123,13 +161,20 @@ newDialogWin choices def confs wol =
 -- --------------------------------------------------------------------------
 --  Base Dialog Window 
 -- --------------------------------------------------------------------------
+---
+-- Creates a new dialog with its label, text and buttons.
+-- @param choices     - the available button in this window
+-- @param def         - default button
+-- @param confs       - the list of configuration options for this separator
+-- @param tpconfs     - the list of configuration options for the window
+-- @return result     - a dialog
 dialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
 dialog choices def confs tpconfs =
  do
   tp <- createToplevel tpconfs
   pack tp [Expand On, Fill Both]
 
-  b <- newVBox tp [relief Groove, borderwidth (cm 0.05)]
+  b <- newVBox tp []
   pack b [Expand On, Fill Both]
 
   b2 <- newHBox b []
@@ -138,24 +183,32 @@ dialog choices def confs tpconfs =
   lbl <- newLabel b2 []
   pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
 
-  msg <- newEditor b2[size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg] :: IO (Editor String)
+  msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg] :: IO (Editor String)
   pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
 
-  sb <- newSelectBox b Nothing [relief Ridge, borderwidth (cm 0.05)]
+  sp1 <- newSpace b (cm 0.15) []
+  pack sp1 [Expand Off, Fill X, Side AtBottom]
+
+  newHSeparator b
+
+  sp2 <- newSpace b (cm 0.15) []
+  pack sp2 [Expand Off, Fill X, Side AtBottom]
+
+  sb <- newSelectBox b Nothing []
   pack sb [Expand Off, Fill X, Side AtBottom]
 
   events <- mapM (createChoice sb) choices
   let ev = choose events
 
-  dlg <- configure (Dialog tp msg lbl sb ev) confs;
+  dlg <- configure (Dialog tp msg lbl sb ev) confs
   return dlg
-  where fmsg = xfont { family = Just Courier, weight = Just Bold, points = (Just 18) }
-	createChoice :: SelectBox String -> Choice a -> IO (Event a)
-        createChoice sb (str,val) = 
-         do
-          but <- addButton sb [text str] [Expand On, Side AtRight] :: IO (Button String)
-          clickedbut <- clicked but
-          return (clickedbut >> (always (return val)))
+ where fmsg = xfont { family = Just Courier, weight = Just Bold, points = (Just 18) }
+       createChoice :: SelectBox String -> Choice a -> IO (Event a)
+       createChoice sb (str,val) = 
+        do
+         but <- addButton sb [text str] [Expand On, Side AtRight] :: IO (Button String)
+         clickedbut <- clicked but
+         return (clickedbut >> (always (return val)))
 
 -- --------------------------------------------------------------------------
 -- String to MarkupText

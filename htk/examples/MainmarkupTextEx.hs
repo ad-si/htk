@@ -19,7 +19,7 @@ main =
   do
     htk <- initHTk [text "markup text example"]
 
-    ed <- newEditor htk [size (80,25), state Disabled] ::
+    ed <- newEditor htk [size (80,5), state Disabled] ::
             IO (Editor String)
     pack ed [Fill Both, Expand On]
 
@@ -146,3 +146,9 @@ main =
 
     (htk_destr, _) <- bindSimple htk Destroy
     sync (htk_destr)
+
+
+
+
+
+

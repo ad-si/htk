@@ -20,19 +20,14 @@ TO BE DONE    : The handling of Returns within a form must be considered.
 
    ######################################################################### -}
 
-
+---
+-- Basic input window for record values and their fields.
 module InputWin (
---        module InputForm,
---        forkDialog,
+        module InputForm,
 
-        InputWin(..),
+        InputWin,
         newInputWin,
---        newInputDialog,
 
---      addEntryField,
---	addTextField,
---	addEnumField,
-	
         wait
         ) where
 
@@ -44,11 +39,14 @@ import ModalDialog
 import DialogWin
 import InputForm
 import ReferenceVariables
+import Separator
 
 -- ---------------------------------------------------------------------------
 -- Data Type
 -- ---------------------------------------------------------------------------
 
+---
+-- The <code>InputWin</code> datatype.
 data InputWin a = InputWin {
                             fWindow :: Toplevel,
 		  	    fForm   :: InputForm a,
@@ -59,52 +57,58 @@ data InputWin a = InputWin {
 -- Instantiations
 -- ---------------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject (InputWin a) where
+---
+-- Internal.
         toGUIObject iwin = toGUIObject (fWindow iwin)
+---
+-- Internal.
         cname iwin = cname (fWindow iwin)
-
--- ---------------------------------------------------------------------------
--- Dialog
--- ---------------------------------------------------------------------------
-
---newInputDialog :: String -> (Container a -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a)
---newInputDialog  str val tpconf = do
---        newInputWin str val tpconf
 
 -- ---------------------------------------------------------------------------
 -- Constructor
 -- ---------------------------------------------------------------------------
-
+---
+-- Create an <code>InputWindow</code>.
+-- @param  str      - message to be displayed in the window
+-- @param  ifun     - the <code>InputForm</code>-function
+-- @return result   - the <code>InputWindow</code> and <code>InputForm</code>
 newInputWin :: String -> (Box -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a, InputForm a)
 newInputWin str ifun tpconfs =
  do
   tp <- createToplevel (tpconfs++[text "Input Form Window"])
   pack tp [Expand On, Fill Both]
  
-  b <- newVBox tp [relief Raised, borderwidth (cm 0.05)]
+  b <- newVBox tp []
   pack b [Expand On, Fill Both]
  
-  msg <- newMessage b [text str, font fmsg] :: IO (Message String)
-  pack msg [Expand Off, Fill X, PadX (cm 0.5), Side AtTop]
+  msg <- newEditor b [value str, size (30,5), borderwidth 0, state Disabled, wrap WordWrap, font fmsg] :: IO (Editor String)
+  pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
 
-  sp1 <- newSpace b (cm 0.3) []
-  pack sp1 [Expand Off, Fill X]
+  sp1 <- newSpace b (cm 0.15) []
+  pack sp1 [Expand Off, Fill X, Side AtTop]
  
-  sp2 <- newSpace b (cm 0.3) []
-  pack sp2 [Expand Off, Fill X]
+  newHSeparator b
+  
+  sp2 <- newSpace b (cm 0.15) []
+  pack sp2 [Expand Off, Fill X, Side AtTop]
 
   formbox <- newVBox b []
   pack formbox [Expand On, Fill Both, PadX (cm 0.5)]
 
   form <- ifun formbox
   
-  sp3 <- newSpace b (cm 0.3) []
-  pack sp3 [Expand Off, Fill X]
+  sp3 <- newSpace b (cm 0.15) []
+  pack sp3 [Expand Off, Fill X, Side AtBottom]
  
-  sp4 <- newSpace b (cm 0.3) []
-  pack sp4 [Expand Off, Fill X]
+  newHSeparator b
+  
+  sp4 <- newSpace b (cm 0.15) []
+  pack sp4 [Expand Off, Fill X, Side AtBottom]
 
-  sb <- newSelectBox b Nothing [relief Ridge, borderwidth (cm 0.05)]
+  sb <- newSelectBox b Nothing []
   pack sb [Expand Off, Fill X, Side AtBottom]
 
   but1 <- addButton sb [text "Ok"] [Expand On, Side AtRight] :: IO (Button String)
@@ -124,15 +128,16 @@ newInputWin str ifun tpconfs =
   -- Nothing -> return (InputWin tp form ev)
   -- Just val' -> do
   return ((InputWin tp form ev), form)
-  where fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
-
---
--- Fields
---
+ where fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
 
 -- ---------------------------------------------------------------------------
 -- Additional Funcitons
 -- ---------------------------------------------------------------------------
+---
+-- Wait for the user to end the dialog.
+-- @param win       - the <code>InputWindow</code> to wait for
+-- @param modality  - grep focus
+-- @return result   - Nothing or Just (the data stored in the <code>IputForm</code>)
 wait :: InputWin a -> Bool -> IO (Maybe a)
 wait win@(InputWin tp form@(InputForm b e) ev) modality = do
  -- before we can question a user we should fill all the fields with

@@ -10,7 +10,8 @@ DESCRIPTION   :
 
  ###################################################################### -}
 
-
+---
+-- A simple line to visually separate the GUI into several parts.
 module Message (
 
   Message,
@@ -55,10 +56,18 @@ newMessage par ol =
 -- instantiations
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject (Message a) where 
+---
+-- Internal.
   toGUIObject (Message w) = w
+---
+-- Internal.
   cname _ = "Message"
 
+---
+-- A separator can be destroyed.
 instance Destroyable (Message a) where
   destroy   = destroy . toGUIObject
 
@@ -78,10 +87,8 @@ instance HasSize (Message a) where
   getHeight _ = return 1
 
 instance GUIValue b => HasText (Message String) b where
-{-
   text t w   = cset w "text" t
   getText w  = cget w "text"
--}
 
 instance Synchronized (Message a) where
   synchronize = synchronize . toGUIObject

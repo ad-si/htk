@@ -11,7 +11,8 @@ DESCRIPTION   : InputForm Abstraction
 
    ######################################################################### -}
 
-
+---
+-- the inputform
 module InputForm (
         InputForm(..),
         newInputForm,
@@ -41,16 +42,10 @@ where
 
 import Core
 import HTk
-import Prompt
-import Box
-import Label
 import DialogWin
-import OptionMenu
 import ScrollBox
-import Editor
-import Keyboard
 import Space
-import Debug(debug)
+import Separator
 import ReferenceVariables
 import MarkupText
 
@@ -69,6 +64,8 @@ class Variable a b where
 -- --------------------------------------------------------------------------
 -- InputForm Type 
 -- --------------------------------------------------------------------------           
+---
+-- The <code>InputForm</code> datatype.
 data InputForm a = InputForm Box (Ref (FormState a))
 
 data FormState a = FormState {
@@ -93,7 +90,13 @@ data FieldInf a  = FieldInf {
 	
 -- --------------------------------------------------------------------------
 -- Commands 
--- --------------------------------------------------------------------------           
+-- --------------------------------------------------------------------------
+---
+-- Creates a new <code>InputForm</code> 
+-- @param par       - parent container in which the form is embedded
+-- @param val       - the datatype which contains the initial field values and the results
+-- @param ol        - list of configuration options for this form
+-- @return result   - a <code>InputForm</code>
 newInputForm :: Box -> Maybe a -> [Config (InputForm a)] -> IO (InputForm a)
 newInputForm par val ol = do {
         em <- newRef (FormState val Nothing Nothing Nothing Nothing Nothing []);
@@ -102,25 +105,37 @@ newInputForm par val ol = do {
 
 -- --------------------------------------------------------------------------
 -- InputForm Instances 
--- --------------------------------------------------------------------------           
+-- --------------------------------------------------------------------------
+---
+-- Internal.
 instance Eq (InputForm a) where 
+---
+-- Internal.
         w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
+---
+-- Internal.
 instance GUIObject (InputForm a) where 
+---
+-- Internal.
         toGUIObject (InputForm b e) = toGUIObject b
+---
+-- Internal.
         cname _ = "InputForm"
+
 
 instance HasColour (InputForm a) where
         legalColourID _ "foreground" = True
         legalColourID _ "background" = True
         legalColourID _ _ = False
-        setColour form@(InputForm b e) "background" c = synchronize form (do {
+        setColour form@(InputForm b e) "background" c = synchronize form (do
+	       {
                 configure b [bg c]; 
-                setFormConfig (\fst -> fst{fFormBg = Just c}) form;
-                })
+                setFormConfig (\fst -> fst{fFormBg = Just c}) form
+               })
         setColour form@(InputForm b e) "foreground" c = synchronize form (do {
                 configure b [fg c]; 
-                setFormConfig (\fst -> fst{fFormFg = Just c}) form;
+                setFormConfig (\fst -> fst{fFormFg = Just c}) form
                 })
         setColour form _ _ = return form
         getColour form "background" = getFormConfig form fFormBg
@@ -132,7 +147,6 @@ instance HasFont (InputForm a) where
                 setFormConfig (\fst -> fst{fFormFont = Just (toFont f)}) form
                 )
         getFont form    = getFormConfig form fFormFont
-
 
 instance HasEnable (InputForm a) where
         state s form@(InputForm b e) = synchronize form (
@@ -160,7 +174,7 @@ instance Variable (InputForm a) a where
 
 -- --------------------------------------------------------------------------
 --  Auxiliary
--- --------------------------------------------------------------------------           
+-- --------------------------------------------------------------------------
 getFormValue :: InputForm a -> IO a
 getFormValue form@(InputForm b e) = synchronize form (do {
         fst <- getRef e;
@@ -179,7 +193,7 @@ setFormValue :: InputForm a -> a -> IO ()
 setFormValue form @ (InputForm b e) val = synchronize form (do {
         fst <- getRef e;
         setRef e (fst{fFormValue = Just val});
-        foreach (fRecordFields fst) (\fei -> (fSetField fei) val);
+        foreach (fRecordFields fst) (\fei -> (fSetField fei) val)
         })
 
 setFormConfig :: (FormState a -> FormState a) -> Config (InputForm a)
@@ -206,9 +220,16 @@ undefinedFormValue = userError "form value is not defined"
 
 -- --------------------------------------------------------------------------
 --  Entry Fields  
--- --------------------------------------------------------------------------           
+-- --------------------------------------------------------------------------
+---
+-- The <code>EntryField</code> datatype.
 data GUIValue b => EntryField a b = EntryField (Entry b) (Label b) (Ref (FieldInf a))
 
+---
+-- Add a new <code>EntryField</code> to the form
+-- @param form        - the form to which the field is added
+-- @param confs       - a list of configuration options for this field
+-- @return result     - a <code>EntryField</code>
 newEntryField :: GUIValue b => InputForm a -> [Config (EntryField a b)] -> IO (EntryField a b)
 newEntryField form@(InputForm box field) confs = do {
         b <- newHBox box [];
@@ -226,7 +247,7 @@ newEntryField form@(InputForm box field) confs = do {
         configure (EntryField pr lbl pv) confs;
         addNewField form pr pv;
         return (EntryField pr lbl pv)
-}
+    }
 
 instance Eq (EntryField a b) where 
         w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
@@ -279,22 +300,29 @@ instance InputField EntryField where
                 setReplacorCmd pv cmd;
                 return fe
                 }) where cmd r = do {
-                        ans <- try (getVar fe);
-                        case ans of
-                                (Left e) -> do {
-				        txt <- getText lbl;
-					newErrorWin (txt++" legal field value") [];
-				        raise illegalGUIValue
-					}
-                                (Right val) -> return (f r val) 
-                        }
+                          ans <- try (getVar fe);
+                          case ans of
+                                  (Left e) -> do {
+	  			          txt <- getText lbl;
+			 	 	  newErrorWin (txt++" legal field value") [];
+				          raise illegalGUIValue
+					  }
+                                  (Right val) -> return (f r val) 
+                          }
 
 
 -- --------------------------------------------------------------------------
 --  Text Fields  
 -- --------------------------------------------------------------------------           
+---
+-- The <code>TextField</code> datatype.
 data GUIValue b => TextField a b = TextField (Editor b) (Label b) (Ref (FieldInf a))
 
+---
+-- Add a new <code>TextField</code> to the form
+-- @param form        - the form to which the field is added
+-- @param confs       - a list of configuration options for this field
+-- @return result     - a <code>TextField</code>
 newTextField :: GUIValue b => InputForm a -> [Config (TextField a b)] -> IO (TextField a b)
 newTextField form@(InputForm box field) confs = 
  do
@@ -302,7 +330,7 @@ newTextField form@(InputForm box field) confs =
   pack b [Expand On, Fill Both, PadX (cm 0.1), PadY (cm 0.1)]
   lbl <- newLabel b []
   pack lbl [Expand Off, Fill Both]
-  let edit p = newEditor p [bg "white"]
+  let edit p = newEditor p [bg "white"]
   (sb, tp) <- newScrollBox b edit []
   pack sb [Expand On, Fill Both]
   pv <- newFieldInf
@@ -364,23 +392,30 @@ instance InputField TextField where
 		setReplacorCmd pv cmd;
                 return fe
                 }) where cmd r = do {
-			ans <- try (getVar fe);
-			case ans of
-			 Left err -> do {
-			         txt <- getText lbl;
-				 newErrorWin (txt++" legal field value") [];
-			         raise illegalGUIValue
-				 }
-			 Right val -> return (f r val)
-                        }
+	  		  ans <- try (getVar fe);
+			  case ans of
+			    Left err -> do {
+			           txt <- getText lbl;
+				   newErrorWin (txt++" legal field value") [];
+			           raise illegalGUIValue
+				   }
+			    Right val -> return (f r val)
+                          }
 
 
 -- --------------------------------------------------------------------------
 --  Enumeration Fields  
 -- --------------------------------------------------------------------------           
+---
+-- The <code>EntryField</code> datatype.
 data GUIValue b => EnumField a b = EnumField (OptionMenu b) (Label b) (Ref (FieldInf a))
 
-
+---
+-- Add a new <code>EnumField</code> to the form
+-- @param form        - the form to which the field is added
+-- @param choices     - the list of choices in this field
+-- @param confs       - a list of configuration options for this field
+-- @return result     - a <code>EnumField</code>
 newEnumField :: GUIValue b => InputForm a -> [b] -> [Config (EnumField a b)] -> IO (EnumField a b)
 newEnumField form@(InputForm box field) choices confs =
  do
@@ -469,7 +504,7 @@ newRecordField form@(InputForm box e) newform confs =
           (\c -> do {fg (toColour c) cf; fg (toColour c) lbl; done})
           (\f -> do {HTk.font (toFont f) cf; HTk.font (toFont f) lbl; done})
           (\c -> do {cursor (toCursor c) cf; cursor (toCursor c) lbl;  done})
-          (\s -> do {state s cf; done});
+          (\s -> do {state s cf; done})
   configure (RecordField cf lbl pv) confs
   addNewField form cf pv
   return (RecordField cf lbl pv, cf)

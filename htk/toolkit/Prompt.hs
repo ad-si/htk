@@ -29,12 +29,13 @@ import Debug(debug)
 -- --------------------------------------------------------------------------
 -- Definition 
 -- --------------------------------------------------------------------------           
-data GUIValue a => Prompt a = Prompt Box (Label String) (Entry String)
+data GUIValue a => Prompt a = Prompt Box (Label String) (Entry a)
 
 
 -- --------------------------------------------------------------------------
 -- Commands 
 -- --------------------------------------------------------------------------           
+-- i had problems creating a TkVariable of any kind here?!?
 newPrompt :: GUIValue a => Box -> [Config (Prompt a)] -> IO (Prompt a)
 newPrompt par ol =  do {
         b <- newHBox par [];
@@ -73,7 +74,7 @@ instance HasSize (Prompt a) where
 
 instance HasColour (Prompt a) where
         legalColourID _ _ = True
-        setColour pr @ (Prompt bx lbl ent) cid c = 
+        setColour pr @ (Prompt bx lbl en_) cid c = 
                 synchronize pr (do {
                         setColour bx cid c; 
                         setColour lbl cid c; 
@@ -93,27 +94,15 @@ instance HasEnable (Prompt a) where
         state s pr @ (Prompt bx lbl ent) = do {state s ent; return pr}
         getState (Prompt bx lbl ent) = getState ent
 
-instance HasVariable (Prompt a) where
-        variable v pr @ (Prompt bx lbl ent) = 
-                 synchronize pr (do {variable v ent; return pr})
-
---instance GUIValue a => Variable (Prompt a) a where
---        setVar pr@(Prompt _ _ ent) v = do {value v ent; done}
---        getVar (Prompt _ _ ent) = getValue ent
---        withVar w f = synchronize w (do {v <- getVar w; f v}) 
---        updVar w f = synchronize w (do {
---                v <- getVar w;
---                (v',r) <- f v;
---                setVar w v';
---                return r
---                })
-
 instance Synchronized (Prompt a) where
         synchronize w = synchronize (toGUIObject w)
         
+instance GUIValue a => HasValue (Prompt a) a where
+    value val p@(Prompt bx lbl ent) = value val p
+    getValue (Prompt bx lbl ent) = getValue ent
 
 -- --------------------------------------------------------------------------
 -- Entry Components 
 -- --------------------------------------------------------------------------           
-getPromptEntry :: Prompt a -> Entry String
+getPromptEntry :: Prompt a -> Entry a
 getPromptEntry (Prompt _ _ ent) = ent

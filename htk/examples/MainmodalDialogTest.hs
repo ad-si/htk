@@ -85,7 +85,7 @@ main =
 					       let iform p = newInputForm p (Just def) []
 					       -- create the InputWindow with the formfunction
 					       -- returns the InputWindow and the InputForm (which can be filled now)
-                                               (iwin,form) <- newInputWin "HELLO THERE" iform []
+                                               (iwin,form) <- newInputWin "HELLO THERE\n try and enter some informations." iform []
 					       -- add various fields here to the InputForm
 					       newTextField form [size (5,5), selector ent1, text "Editor String",
 					                           modifier (\ old val -> old {ent1=val})] :: IO (TextField Test String)

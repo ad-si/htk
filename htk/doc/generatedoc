@@ -1,0 +1,12 @@
+#!/bin/sh
+rm -f ./*.html
+# set path to hdoc executable here:
+HDOC=hdoc
+$HDOC -e -d . -t "HTk documentation" -i ../../events -i ../widgets -i ../resources -i ../canvasitems -i ../kernel -i ../containers -i ../menuitems -i ../toolkit -i ../components -i ../toplevel -i ../widgets -i ../devices -i ../textitems ../toplevel/HTk.hs ../resources/Colour.hs ../resources/Cursor.hs ../resources/Font.hs ../resources/GUIValue.hs ../resources/Geometry.hs ../resources/Resources.hs ../widgets/Button.hs ../widgets/Canvas.hs ../widgets/CheckButton.hs ../widgets/Editor.hs ../widgets/Entry.hs ../widgets/Label.hs ../widgets/ListBox.hs ../widgets/MenuButton.hs ../widgets/Message.hs ../widgets/OptionMenu.hs ../widgets/RadioButton.hs ../widgets/Scale.hs ../widgets/ScrollBar.hs ../containers/Frame.hs ../containers/Toplevel.hs ../containers/Box.hs ../canvasitems/Arc.hs ../canvasitems/BitMapItem.hs ../canvasitems/CanvasItem.hs ../canvasitems/CanvasTag.hs ../canvasitems/EmbeddedCanvasWin.hs ../canvasitems/ImageItem.hs ../canvasitems/Line.hs ../canvasitems/Oval.hs ../canvasitems/Polygon.hs ../canvasitems/Rectangle.hs ../canvasitems/TextItem.hs ../menuitems/Menu.hs ../menuitems/MenuCascade.hs ../menuitems/MenuCheckButton.hs ../menuitems/MenuCommand.hs ../menuitems/MenuRadioButton.hs ../menuitems/MenuSeparator.hs ../components/Image.hs ../components/BitMap.hs ../components/Selection.hs ../kernel/BaseClasses.hs ../kernel/ButtonWidget.hs ../kernel/Configuration.hs ../devices/Screen.hs ../devices/Mouse.hs ../devices/Keyboard.hs ../devices/XSelection.hs ../containers/Window.hs ../packer/Packer.hs ../packer/PackOptions.hs ../packer/GridPackOptions.hs ../tix/NoteBook.hs ../tix/LabelFrame.hs ../../events/Events.hs ../../events/Destructible.hs ../../events/ReferenceVariables.hs ../../events/Synchronized.hs ../../events/Spawn.hs ../../events/Channels.hs ../../util/Computation.hs ../toolkit/Separator.hs ../toolkit/DialogWin.hs ../toolkit/InputForm.hs ../toolkit/InputWin.hs 
+
+
+
+
+
+
+
