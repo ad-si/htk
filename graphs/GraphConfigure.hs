@@ -85,6 +85,7 @@ module GraphConfigure(
    SurveyView(..),
    AllowDragging(..),
    AllowClose(..),
+   Orientation(..),
 
    -- ($$$?) is used for Maybe (option), where Nothing means
    -- "No change".
@@ -411,6 +412,12 @@ instance GraphConfig Delayer
 
 instance GraphConfig AllowClose
 
+-- We copy the DaVinciTypes constructors, though of course this will
+-- mean we have to painfully convert one to the other.
+data Orientation = TopDown | BottomUp | LeftRight | RightLeft 
+
+instance GraphConfig Orientation
+
 ------------------------------------------------------------------------
 -- Grouping options
 -- GraphAllConfig
@@ -421,7 +428,7 @@ class (
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
-   HasConfig AllowClose graphParms,
+   HasConfig AllowClose graphParms,HasConfig Orientation graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )
@@ -432,7 +439,7 @@ instance (
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
-   HasConfig AllowClose graphParms,
+   HasConfig AllowClose graphParms,HasConfig Orientation graphParms,
    HasConfig (SimpleSource GraphTitle) graphParms,
    HasConfig Delayer graphParms
    )

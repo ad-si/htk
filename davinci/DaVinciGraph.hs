@@ -129,7 +129,8 @@ data DaVinciGraphParms = DaVinciGraphParms {
    configAllowClose :: AllowClose,
    configGlobalMenu :: Maybe GlobalMenu,
    graphTitleSource :: Maybe (SimpleSource GraphTitle),
-   delayerOpt :: Maybe Delayer
+   delayerOpt :: Maybe Delayer,
+   configOrientation :: Maybe GraphConfigure.Orientation
    }
 
 instance Eq DaVinciGraph where
@@ -202,6 +203,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          configDoImprove = configDoImprove,surveyView = surveyView,
          configAllowClose = configAllowClose,
          configGlobalMenu = configGlobalMenu,
+         configOrientation = configOrientation,
          graphTitleSource = graphTitleSource,delayerOpt = delayerOpt}) =
       do
          nodes <- newRegistry
@@ -363,6 +365,23 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                               currentTitle <- addOldSink graphTitleSource sink
                               setTitle currentTitle
                      return (addSink,invalidate sink)
+         let
+            setOrientation :: GraphConfigure.Orientation -> IO ()
+            setOrientation orientation0 = 
+               let
+                  orientation1 = case orientation0 of
+                     GraphConfigure.TopDown -> DaVinciTypes.TopDown
+                     GraphConfigure.BottomUp -> DaVinciTypes.BottomUp
+                     GraphConfigure.LeftRight -> DaVinciTypes.LeftRight
+                     GraphConfigure.RightLeft -> DaVinciTypes.RightLeft
+               in
+                  doInContext (DaVinciTypes.Menu (Layout (
+                        Orientation orientation1))) 
+                     context
+
+         case configOrientation of
+            Nothing -> done
+            Just orientation -> setOrientation orientation
 
          -- Set up a delayer and a redraw action which uses it.
          delayer <- case delayerOpt of
@@ -432,7 +451,7 @@ instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
       graphConfigs = [],configDoImprove = False,surveyView = False,
       graphTitleSource = Nothing,delayerOpt = Nothing,
-      configAllowClose = AllowClose Nothing,
+      configAllowClose = AllowClose Nothing,configOrientation = Nothing,
       configGlobalMenu = Nothing
       }
 
@@ -473,6 +492,11 @@ instance HasConfig AllowClose DaVinciGraphParms where
    configUsed _ _  = True
    ($$) allowClose daVinciGraphParms =
       daVinciGraphParms {configAllowClose = allowClose}
+
+instance HasConfig Orientation DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) orientation daVinciGraphParms =
+      daVinciGraphParms {configOrientation = Just orientation}
 
 instance HasConfig AllowDragging DaVinciGraphParms where
    configUsed _ _  = True

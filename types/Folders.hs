@@ -117,8 +117,8 @@ instance DisplayType FolderDisplayType where
             (toDelayer view) $$
             globalMenu $$
             AllowDragging True $$
+            LeftRight $$            
             graphTitleSource $$
-            -- We will need to add more options later for menus.
             emptyGraphParms
             )
 

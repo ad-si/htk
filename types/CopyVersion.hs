@@ -34,6 +34,7 @@ import ObjectTypes
 import GlobalRegistry
 import MergeTypes
 import MergeReAssign
+import Merging
 import VersionGraph
 
 -- | Denote corresponding elements for the source and destination.
@@ -197,6 +198,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         redirects :: [(Location,Maybe ObjectVersion)]
         redirects = mapMaybe toRedirect diffs
 
+
      (commitChanges2 
         :: [(Location,Either ICStringLen (Location,ObjectVersion))])
         <- mapM
@@ -243,33 +245,13 @@ getAllWrappedMergeLinks view =
       (allObjectTypeTypes :: [WrappedObjectTypeTypeData]) 
          <- getAllObjectTypeTypes
 
-      let
-         mergeObjectTypeTypeData :: WrappedObjectTypeTypeData 
-            -> IO [(GlobalKey,[(View,WrappedObjectType)])]
-         mergeObjectTypeTypeData (WrappedObjectTypeTypeData objectType)
-               =
-            do
-               allTypesWE <- mergeViewsInGlobalRegistry 
-                  (objectTypeGlobalRegistry objectType) [view] view
-               allTypes <- coerceWithErrorStringIO "CopyVersion.A" allTypesWE
-               return (map 
-                  (\ (key,viewTypes) ->
-                     (key,map
-                        (\ (view,objectType) 
-                           -> (view,WrappedObjectType objectType))
-                        viewTypes
-                        )
-                     )
-                  allTypes
-                  )
-
-
       (allTypes :: [(WrappedObjectTypeTypeData,
          [(GlobalKey,[(View,WrappedObjectType)])])])
          <- mapM 
             (\ wrappedObjectTypeTypeData ->
                do
-                  theseTypes <- mergeObjectTypeTypeData
+                  theseTypes <- mergeObjectTypeTypeData 
+                     (error "CopyVersion.A") [view] view
                      wrappedObjectTypeTypeData
                   return (wrappedObjectTypeTypeData,theseTypes)
                )
