@@ -638,6 +638,9 @@ newVersionGraph1
                                           parents1
                                     )
 
+
+                                 versionGraph <- readMVar versionGraphMVar
+                                 recordViewVersionGraph view versionGraph
                                  (Just displayedView) <- openGeneralDisplay
                                     displaySort FolderDisplayType view
                                  addCloseDownAction displayedView (
@@ -775,7 +778,8 @@ commitViewInGraph view =
    do
       versionGraphOpt <- getViewVersionGraph view
       case versionGraphOpt of
-         Nothing -> done
+         Nothing -> errorMess 
+            "Unable to commit as view has mysteriously vanished"
          Just versionGraph -> commitViewInGraph1 versionGraph view
 
 -- --------------------------------------------------------------------
