@@ -98,7 +98,7 @@ drawChildrenTrees (Node a b tp tlps) can (x,y) tlpstatic canstatic =
 -- This function draws the child list of Trees
 drawChildrenTrees2 (Node a b tp tlps) can (x,y) tlpstatic canstatic =
 	if (tlps == []) then (putStr "")
-	else ( do l <- newLine [coord [(x,y),(x,(y+(cm 0.5))),((x+(cm 0.5)),(y+(cm 0.5)))],outlinewidth (mm 0.25),filling "black",parent can]
+	else ( do l <- newLine [coord [((x+(cm 0.5)),(y+(mm 2))),((x+(cm 0.5)),(y+(mm 5)))],outlinewidth (mm 0.25),filling "black",parent can]
 		  drawSiblingTrees tlps can ((x+(cm 0.5)),(y+(cm 0.5))) tlpstatic canstatic
 		  interactor (\i -> mouseButtonPress l 2 >>> 
 		  	do putStr "line clicked\n"))
