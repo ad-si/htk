@@ -39,7 +39,7 @@ newtype BundleNodeLocations = BundleNodeLocations {
    }
 
 newtype BundleNodeExtraData = BundleNodeExtraData {
-   location :: WrappedLink  -- ^ where the BundleNode is to be put
+   location :: WrappedLink  -- ^ where the BundleNode is to be put
    }
 
 -- ------------------------------------------------------------------------

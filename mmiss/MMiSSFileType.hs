@@ -117,8 +117,8 @@ newtype MMiSSFileVersion = MMiSSFileVersion {
    text :: ICStringLen
    } deriving (Typeable,Eq)
 
+-- | the result of reading the Files.xml file.
 data MMiSSFilesState = MMiSSFilesState {
-   -- ^ the result of reading the Files.xml file.
    fileTypes :: FiniteMap String MMiSSFileType,
    menus :: FiniteMap String Menu
    }

@@ -32,7 +32,7 @@ import MMiSSImportExportErrors
 -- Importing
 -- --------------------------------------------------------------------------
 
--- | This corresponds to mmiss/MMiSSRequest.dtd's putObject element.
+-- | This corresponds to mmiss\/MMiSSRequest.dtd\'s putObject element.
 importBundle :: View -> EntityFullName -> Maybe PackageId -> Bundle -> IO ()
 importBundle view fullName packageIdOpt bundle =
    do
@@ -44,7 +44,7 @@ importBundle view fullName packageIdOpt bundle =
 -- Exporting
 -- --------------------------------------------------------------------------
 
--- | This corresponds to mmiss/MMiSSRequest.dtd's getObject element.
+-- | This corresponds to mmiss\/MMiSSRequest.dtd\'s getObject element.
 exportBundle :: View -> LinkedObject -> ExportOpts 
    -> Maybe MMiSSVariantSearch -> IO Bundle
 exportBundle view linkedObject exportOpts variantSearchOpt =

@@ -72,4 +72,4 @@ standardFileSystem :: FileSystem
 standardFileSystem = FileSystem {
    readString = copyFileToStringCheck,
    writeString = copyStringToFileCheck
-   } 
+   }

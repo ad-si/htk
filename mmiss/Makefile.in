@@ -53,3 +53,5 @@ displayextrasrcs :
 MMiSSFiles.hs : MMiSSFiles.dtd
 	@TOP@/HaXml/tools/DtdToHaskell $< $@
 
+MMiSSCheck_DTD.hs : checker/MMiSSCheck.DTD
+	@TOP@/HaXml/tools/DtdToHaskell $< $@

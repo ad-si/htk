@@ -1,11 +1,5 @@
 module MMiSSCheck_DTD where
 
-{- This file defines the format of the responses from the MMiSS Consistency
-   Checker. It is generated from checker/MMiSSCheck.dtd, but we don't do
-   this by Make, because then we need Dtd2Haskell to compile, and 
-   (hopefully) the DTD will not change.
--}
-
 import Text.XML.HaXml.Xml2Haskell
 import Text.XML.HaXml.OneOfN
 
