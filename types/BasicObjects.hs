@@ -7,22 +7,34 @@ module BasicObjects(
    SimpleFile, -- a file with no frills. 
       -- SimpleFile is designed to be used as part of other CodedValues,
       -- EG [(String,SimpleFile)] would be a simple directory listing.
-      -- SimpleFile is an instance of HasCodedValue.
+      -- SimpleFile is an instance of HasCodedValue and HasFilePath
    newSimpleFile, -- :: View -> IO SimpleFile
-   getSimpleFileName, -- :: SimpleFile -> FilePath
-      -- This gets the real file name here corresponding to the simple file
-      -- (NB - this will be different for different running instances of
-      -- the repository!)
+
+   HasFilePath(toFilePath),
+      -- class of things with an associated file path.
+
+   Attributes, -- a set of variables keyed by String's.
+      -- Attributes is an instance of HasCodedValue (so you can
+      -- read and write them).
+      -- To access them, we have
+      --    instance KeyOpsRegistry Attributes String
+      -- and
+      --    instance HasCodedValue to => GetSetRegistry Attributes String to
+
+   newEmptyAttributes, -- :: View -> IO Attributes
+
    ) where
 
 import Concurrent
 
 import Dynamics
 import TempFile
+import Registry
 
 import VersionDB
 
 import CodedValue
+import CodedValueStore
 import View
 
 data SimpleFile = SimpleFile {
@@ -51,6 +63,12 @@ newSimpleFile view =
 getSimpleFileName :: SimpleFile -> FilePath
 getSimpleFileName simpleFile = filePath simpleFile
 
+-- ------------------------------------------------------------------------
+-- HasFilePath
+-- ------------------------------------------------------------------------
+
+class HasFilePath fileItem where
+   toFilePath :: fileItem -> FilePath
 
 -- ------------------------------------------------------------------------
 -- Instances
@@ -85,3 +103,87 @@ instance HasCodedValue SimpleFile where
             filePath = filePath,
             parentVersionMVar = parentVersionMVar
             },codedValue1)
+
+instance HasFilePath SimpleFile where
+   toFilePath simpleFile = filePath simpleFile
+
+-- ------------------------------------------------------------------------
+-- Attributes
+-- ------------------------------------------------------------------------
+
+data Attributes = Attributes {
+   view :: View,
+   registry :: Registry String CodedValue
+   }
+
+newEmptyAttributes :: View -> IO Attributes
+newEmptyAttributes view =
+   do
+      registry <- newRegistry
+      return (Attributes {view = view,registry = registry})
+
+attributes_tyCon = mkTyCon "BasicObjects" "Attributes"
+
+instance HasTyCon Attributes where
+   tyCon _ = attributes_tyCon
+
+instance HasCodedValue Attributes where
+   encodeIO (Attributes {registry = registry}) codedValue0 view =
+      do
+         contents <- listRegistryContents registry
+         codedValue1 <- encodeIO contents codedValue0 view
+         return codedValue1
+
+   decodeIO codedValue0 view =
+      do
+         (contents,codedValue1) <- decodeIO codedValue0 view
+         registry <- listToNewRegistry contents
+         let attributes = Attributes {view = view,registry = registry}
+         return (attributes,codedValue1)
+
+instance HasCodedValue to => GetSetRegistry Attributes String to where
+   transformValue (Attributes{view = view,registry = registry}) from
+         transformer =
+      let
+         transformIn Nothing = return Nothing
+         transformIn (Just codedValue) =
+            do
+               toVal <- doDecodeIO codedValue view
+               return (Just toVal)
+         transformOut Nothing = return Nothing
+         transformOut (Just toVal) =
+            do
+               codedVal <- doEncodeIO toVal view
+               return (Just codedVal)
+      in
+         transformValue registry from (\ codedValueInOpt ->
+            do
+               toValInOpt <- transformIn codedValueInOpt
+               (toValOutOpt,extra) <- transformer toValInOpt
+               codedValueOutOpt <- transformOut toValOutOpt
+               return (codedValueOutOpt,extra)
+            )
+
+   getValueOpt (Attributes{view = view,registry = registry}) from =
+      do
+         codedValueOpt <- getValueOpt registry from
+         case codedValueOpt of
+            Nothing -> return Nothing
+            Just codedValue ->
+               do
+                  toVal <- doDecodeIO codedValue view
+                  return (Just toVal)
+            
+   setValue (Attributes{view = view,registry = registry}) from to =
+      do
+         codedValue <- doEncodeIO to view
+         setValue registry from codedValue
+
+instance KeyOpsRegistry Attributes String where
+   deleteFromRegistryBool (Attributes {registry = registry}) from =
+      deleteFromRegistryBool registry from
+
+   deleteFromRegistry (Attributes {registry = registry}) from =
+      deleteFromRegistry registry from
+
+   listKeys (Attributes {registry = registry}) = listKeys registry

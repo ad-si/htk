@@ -22,6 +22,8 @@ module Registry(
    -- other specific operations
    listRegistryContents,
       -- :: Registry from to -> IO [(from,to)]
+   listToNewRegistry,
+      -- :: Ord from => [(from,to)] -> IO (Registry from to)
 
    -- Operation for getting values directly from a Registry
    getRegistryValue,
@@ -182,6 +184,13 @@ listRegistryContents (Registry mVar) =
    do
       map <- readMVar mVar
       return (fmToList map)
+
+listToNewRegistry :: Ord from => [(from,to)] -> IO (Registry from to)
+listToNewRegistry contents =
+   do
+      let map = listToFM contents
+      mVar <- newMVar map
+      return (Registry mVar)
 
 
 -- ----------------------------------------------------------------------

@@ -422,8 +422,6 @@ instance HasCodedValue ObjectVersion where
    encodeIO = mapEncodeIO (\ objectVersion -> Str objectVersion)
    decodeIO = mapDecodeIO (\ (Str objectVersion) -> objectVersion)
 
-
-
 ---------------------------------------------------------------------
 -- Integers
 ---------------------------------------------------------------------

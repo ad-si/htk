@@ -1,5 +1,11 @@
 {- CodedValueStore controls the actual storage and retrieval
-   of coded values for storage in the repository. -}
+   of coded values for storage in the repository. 
+
+   In this file we also provide
+      instance StringClass CodedValue
+   and
+      instance HasCodedValue CodedValue
+   -}
 module CodedValueStore(
    toObjectSource, -- :: CodedValue -> IO ObjectSource
    -- CodedValue is also made an instance of StringClass
@@ -7,6 +13,7 @@ module CodedValueStore(
    ) where
 
 import AtomString(StringClass(..))
+import Dynamics
 
 import VersionDB
 import CodedValue
@@ -48,3 +55,17 @@ fromObjectSource objectSource =
    do
       str <- exportString objectSource
       return (fromString str)
+
+---------------------------------------------------------------------
+-- CodedValue is an instance of HasCodedValue
+---------------------------------------------------------------------
+
+codedValue_tyCon = mkTyCon "CodedValue" "CodedValue"
+
+instance HasTyCon CodedValue where
+   tyCon _ = codedValue_tyCon
+
+instance HasCodedValue CodedValue where
+   encodeIO = mapEncodeIO (\ codedValue -> Str codedValue)
+   decodeIO = mapDecodeIO (\ (Str codedValue) -> codedValue)
+
