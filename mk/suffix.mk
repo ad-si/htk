@@ -128,7 +128,7 @@ DEPS = $(DEPS':COMMA=,)
 .SECONDARY : $(OBJS) $(HIFILES)
 
 # all is the default target anyway, by virtual of boilerplate.mk.
-all : testhere libhere mainhere
+all : packagehere mainhere testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
 
 # ghci starts up GHC interactively.

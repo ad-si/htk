@@ -36,7 +36,7 @@ The following are required or at least recommended.
 (3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
 (4) A recent version of Glasgow Haskell.  You should try to get the
-    latest binary release, which is currently 5.02.1.
+    latest binary release, which is currently 5.02.3.
 (5) If you want to compile the HTk documentation, you will need hdoc
     whose homepage is
        http://www.fmi.uni-passau.de/~groessli/hdoc/
@@ -136,37 +136,17 @@ Most Make targets can be used in any directory of the UniForM source
 containing a makefile, not just the top one.  
 "depend" does various necessary setting up.
 "all" does the actual compilation, once depend has been run.
-"lib" is like "all", but just compiles the libraries, not the stand-alone
+"packages" is like "all", but just compiles the packages, not the stand-alone
    executables.
-"test" makes all the stand-alone executables; thus it does everything
-   "all" does that "lib" doesn't do.
+"test" makes all the test programs, that is stand-alone executables compiled
+   from Haskell modules beginning with "Test".
+"main" makes all the main programs, that is stand-alone executables compiled
+   from Haskell modules beginning with "Main".  (The prefix "Main" is removed)
+
 "clean" deletes all the output of "all".
 
 The following two options fall into this class, but are experimental and
 likely to change in the near future.
-"libfast" is a version of "lib" which uses ghc --make to compile all
-   of the Haskell files needed for the libraries at once.
-"librealfast" compiles all the Haskell files needed for the libraries
-   at once, whatever directory they are in.
-The reason for libfast and librealfast is that GHC spends a lot of time
-initialising, in particular reading in interface files; this can be
-especially bad where you are reading interface files in over a network.  If
-you compile all the files in one go, you only have to do this once, so 
-compilation can go several times faster.  The downside is that GHC needs memory
-(perhaps about 200MB for librealfast) to store all those parsed interface 
-files, so unless you have lots of memory, you might find the compilation going
-slower because of swapping in and out.  
-
-Thus if you want to make just the executables in a particular directory,
-you can try
-
-gmake depend 
-gmake librealfast
-cd [the directory you're interested in]
-gmake test
-
-so as to not compile any executables in any other directories.
-
 The following targets are provided by the top-level Makefile:
 
 "tarball.tar.gz" makes a tarball (with that name) of all UniForM sources.
