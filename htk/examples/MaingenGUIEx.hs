@@ -265,7 +265,7 @@ addExampleFolders newID gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
-{-
+
        mapM (addTxtFolder guiroot "texts." txtfolderImg
                           "text_item_width_long_name"
                           [("content of text item 1", txtImg),
@@ -276,7 +276,7 @@ addExampleFolders newID gui =
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
--}
+
        mapM (addNumFolder newID gui exfolder1 "numbers." numfolderImg
                           "number_item."
                           [(25 :: Int, numImg), (17, numImg), (8, numImg),
