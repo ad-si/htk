@@ -9,13 +9,6 @@
 --
 -- -----------------------------------------------------------------------
 
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
-
 ---
 -- This module provides access to image resources from files or base64
 -- encoded strings.
@@ -30,17 +23,7 @@ module Image (
 
   Format(..),
   imgData,
-  imgData#,
-
 ) where
-
-#ifdef NEW_GHC
-import GHC.Ptr(Ptr(Ptr))
-#else
-import PrelPtr(Ptr(Ptr))
-#endif
-import GlaExts(Addr#)
-import CString
 
 import Core
 import BaseClasses(Widget)
@@ -102,24 +85,6 @@ imgData :: Format -> String  -> Config Image
 imgData f str w =
     execTclScript [tkImageCreateFromData no f str] >> cset w "image" no
   where no = getObjectNo (toGUIObject w)
-
----
--- Like imgData, but takes an Addr#.  
---
--- An Addr# can be written like a string constant, except you add an extra
--- "#" character after the closing quotation.
--- The Addr# MUST be null terminated (or chaos could result).  So
--- instead of writing 
--- "ThisIsAnImageEncodedInBase64Notation" you must write
--- "ThisIsAnImageEncodedInBase64Notation\0"#
--- The advantage of this is that the string is written directly into the
--- object file, without GHC's optimiser bringing the compilation to a halt 
--- while it spends ages optimising constructing the string.
-imgData# :: Format -> Addr#  -> Config Image
-imgData# f addr w =
-   do
-      str <- peekCString (Ptr addr)
-      imgData f str w
 
 ---
 -- The <code>Format</code> datatype - represents the format of a base64

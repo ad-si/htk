@@ -6,7 +6,7 @@ SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs \
   RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs UniqueFile.hs \
   TempFile.hs Sink.hs Broadcaster.hs VariableSet.hs VariableMap.hs \
-  CommandStringSub.hs WaitOnN.hs FileSystem.hs  
+  CommandStringSub.hs WaitOnN.hs FileSystem.hs PtrMagic.hs \
 
 SRCSC      = new_object.c default_options.c copy_file.c
 
@@ -14,5 +14,12 @@ SUBDIRS = test
 
 include @TOP@/mk/boilerplate.mk
 
+# We include special handling for defaultoptions when exporting.
+prepareexportshere : changedefaultoptions
 
+.PHONY : changedefaultoptions
 
+changedefaultoptions : 
+	$(CCH) $(CFLAGS) -c default_options.default.c -o default_options.o
+	$(AR) -r $(LIB) default_options.o  
+	$(MAKE) packageherequick

@@ -21,4 +21,4 @@ intro.pdf: intro.bbl img/intro-title.png img/Screenshot01.png img/Screenshot02.p
 displayexportshere : displaytheseexports
 
 displaytheseexports :
-	@PWD=`pwd`;echo $$PWD/*.lhs $$PWD/intro.tex $$PWD/intro.bib $$PWD/intro.pdf $$PWD/intro.ps $$PWD/img/Screenshot*.eps $$PWD/img/Screenshot*.png $$PWD/intro-title.png
+	@PWD=`pwd`;echo $$PWD/*.lhs $$PWD/intro.tex $$PWD/intro.bib $$PWD/intro.pdf $$PWD/intro.ps $$PWD/img/Screenshot*.eps $$PWD/img/Screenshot*.png $$PWD/img/intro-title.png

@@ -125,6 +125,8 @@ endif
 
 SUBDIRS = test examples
 
+include @TOP@/mk/boilerplate.mk
+
 # The doc directory isn't part of the main Make tree, but the following
 # rules make it 
 doc : docdir
@@ -141,5 +143,4 @@ displayexportsdoc  :
 
 
 
-include @TOP@/mk/boilerplate.mk
 
