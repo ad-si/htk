@@ -49,9 +49,7 @@ mkNotifier :: DescribesHost a => a -> IO Notifier
 mkNotifier hostDesc =
    do
       oID <- newObject
-      echoHost <- makeHost hostDesc
-      echoPort <- makePort (11393::Int)
-      handle <- connect echoHost echoPort
+      handle <- connect hostDesc (11393::Int)
       eventBroker <- newEventBroker 
       let
          notifier = Notifier{oID = oID,handle=handle,eventBroker=eventBroker}

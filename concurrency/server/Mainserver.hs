@@ -23,8 +23,7 @@ main :: IO ()
 main = 
    do
       installHandler sigPIPE Ignore Nothing
-      echoPort <- makePort (11393::Int)
-      newClientEv <- listenEV echoPort
+      newClientEv <- listenEV (11393::Int)
       let 
          newClient = newClientEv >>>=
             (\ (_,_,handleEV) -> return handleEV)
