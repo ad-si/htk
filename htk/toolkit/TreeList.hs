@@ -156,14 +156,17 @@ newTreeList par cfun objs cnf =
             pho <- getIcon val
             img # photo pho
     mapM setImg rootobjs
-    packTreeListObject (head rootobjs) True (5, 5)
-    let packObjs :: CItem a => Position -> [TREELISTOBJECT a] -> IO ()
-        packObjs (x, y) (obj : objs) =
-          packTreeListObject obj False (x, y) >>
-          packObjs (x,  y + Distance lineheight) objs
-        packObjs _ _ = done
-    packObjs (5, 5 + Distance lineheight) (tail rootobjs)
-    updScrollRegion cnv stateref
+    (if not(null rootobjs) then
+       do
+         packTreeListObject (head rootobjs) True (5, 5)
+         let packObjs :: CItem a => Position -> [TREELISTOBJECT a] -> IO ()
+             packObjs (x, y) (obj : objs) =
+               packTreeListObject obj False (x, y) >>
+               packObjs (x,  y + Distance lineheight) objs
+             packObjs _ _ = done
+         packObjs (5, 5 + Distance lineheight) (tail rootobjs)
+         updScrollRegion cnv stateref
+     else done)
     (press, ub) <- bindSimple cnv (ButtonPress (Just (BNo 1)))
     death <- newChannel
     let listenCnv :: Event ()
