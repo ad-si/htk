@@ -4,9 +4,19 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+26) 10.09.02
+Rearrange DTD stuff to collect places where we rely on the DTD as far as
+possible in MMiSSDTDAssumptions module.
+
+Adapt it to cope with recent changes (several sorts of include and so on).
+
+There is still a bug in this in that Emacs magic buttons don't work.
+
+
 25) 09.09.02
 Change object types so that only object types with label are shown in
 create-object menu.
+FIXED
 
 24) 09.09.02
 Links to imported documents aren't shown.
