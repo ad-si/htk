@@ -1,0 +1,11 @@
+*.o
+*.hi
+.depend
+Makefile
+*%
+hsMines
+menu
+entry
+simple1
+simple2
+list
