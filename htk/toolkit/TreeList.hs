@@ -542,7 +542,8 @@ addTreeListRootObject tl obj@(TreeListObject (val, objtype)) =
        objs <- getRef (internal_state tl)
        setRef (internal_state tl) (objs ++ [StateEntry tlobj False 0 []])
        packTreeListObject tlobj (length objs == 0)
-                          (5, 5 + Distance (length objs * lineheight)))
+                          (5, 5 + Distance (length objs * lineheight))
+       updScrollRegion (cnv tl) (internal_state tl))
 
 startObjectInteractor ::  CItem a => TREELISTOBJECT a -> IO ()
 startObjectInteractor obj =
