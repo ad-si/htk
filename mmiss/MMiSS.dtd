@@ -1,8 +1,8 @@
 <!-- 
   XML Document Type Definition for MMiSSLatex 2
-  Version 0.91
+  Version 0.92
   Initial Version: George Russell (2002-June)
-  Current Version: Achim Mahnke   (2002-09-02)
+  Current Version: Achim Mahnke   (2002-09-17)
 
   This DTD is still experimental, it is intended as a basis for discussion.
   Comments are welcome! (send mail to amahnke@tzi.de)
@@ -23,9 +23,9 @@
 
 <!-- ======================== ENTITIES ==================================== -->
 
-<!ENTITY % version-attr "versionId        CDATA  #IMPLIED
+<!ENTITY % version-attr "version          CDATA  #IMPLIED
                          date             CDATA  #IMPLIED
-                         versionComment   CDATA  #IMPLIED
+                         comment          CDATA  #IMPLIED
                          previousVersion  CDATA  #IMPLIED
                          authors          CDATA  #IMPLIED
                          priorAuthors     CDATA  #IMPLIED">
@@ -43,22 +43,17 @@
                      sn|so|sq|sr|ss|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|
                      tr|ts|tt|tw|ug|uk|ur|uz|vi|vo|wo|xh|yi|yo|za|zh|zu)">
 
-<!ENTITY % notation-matter "notationId  CDATA  #IMPLIED">
-
 
 <!-- level-of-detail and interaction-level attributes will be enumeration
      types in the final version. -->
 
-<!ENTITY % level-of-detail-matter  "levelOfDetailId  CDATA #IMPLIED">
+<!ENTITY % level-of-detail-matter  "levelOfDetail  CDATA #IMPLIED">
 
-<!ENTITY % interaction-level-matter  "interactionLevelId  CDATA #IMPLIED">
-
+<!ENTITY % interaction-level-matter  "interactionLevel  CDATA #IMPLIED">
 
 <!ENTITY % variant-attr "xml:lang  %RFC1766; 'en-GB'
-                         %notation-matter;
                          %level-of-detail-matter;
                          %interaction-level-matter;">
-
 
 <!-- Layout and paedagogic attributes still have to be defined. Will be
      enumerations.  -->
@@ -73,7 +68,7 @@
 
 <!ENTITY % label-matter "label  CDATA  #IMPLIED">
 <!ENTITY % title-matter "title  CDATA  #IMPLIED">
-<!ENTITY % formalism-matter  "notationID  CDATA  #IMPLIED">  
+<!ENTITY % formalism-matter  "notation  CDATA  #IMPLIED">  
 
 
 <!--
