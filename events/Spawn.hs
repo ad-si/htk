@@ -4,13 +4,14 @@
    This is the GHC implementation. -}
 module Spawn(
    spawn -- :: IO () -> IO (IO ())
-   -- Do a fork, returning an action which may attempt to
-   -- kill the forked thread.  (Or may not . . .)
    ) where
 
 import Concurrent
 import Exception
 
+---
+-- Do a fork, returning an action which may attempt to
+-- kill the forked thread.  (Or may not . . .)
 spawn :: IO () -> IO (IO ())
 spawn action =
    do

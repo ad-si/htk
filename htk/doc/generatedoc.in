@@ -102,14 +102,23 @@ rm -f ./*.html
     ../toolkit/SelectBox.hs\
     ../toolkit/TreeList.hs\
 \
+    ../../reactor/BSem.hs\
+    ../../reactor/Lock.hs\
+\
     ../../events/Events.hs\
     ../../events/Destructible.hs\
     ../../events/ReferenceVariables.hs\
     ../../events/Synchronized.hs\
     ../../events/Spawn.hs\
     ../../events/Channels.hs\
+    ../../events/RegexChannel.hs\
 \
-    ../../util/Computation.hs
+    ../../util/Computation.hs\
+    ../../util/Thread.hs\
+
+
+#    ../../events/Examples.hs\
+#    ../../events/GuardedEvents.hs\
 
 #    ../toolkit/SimpleForm.hs\
 #    ../toolkit/MarkupText.hs\

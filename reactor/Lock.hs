@@ -33,7 +33,11 @@ import Synchronized
 -- --------------------------------------------------------------------------
 
 class Lock l where
+---
+-- release a lock
    release :: l -> IO ()
+---
+-- acquire a lock
    acquire :: l -> IO ()
 
 

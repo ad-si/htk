@@ -88,7 +88,13 @@ newtype Event a = Event (Toggle -> (IO a -> IO ()) -> IO Result)
 --    synchronisation has succeeded.
 -- AwaitingAlways action means that the event must be done after the
 --    synchronisation whether or not the action succeeds.
+
+---
+-- HasEvent represents those event-like things which can be converted to
+-- an event.
 class HasEvent eventType where
+   ---
+   -- converts to an event.
    toEvent :: eventType a -> Event a
 
 instance HasEvent Event where
@@ -99,9 +105,13 @@ instance HasEvent Event where
 -- ----------------------------------------------------------------------
 
 
+---
+-- The event that never happens
 never :: Event a 
 never = Event (\ toggle aActSink -> return (Awaiting done))
 
+---
+-- The event that always happens, immediately
 always :: IO a -> Event a
 always aAction = Event (
    \ toggle aActSink ->
@@ -114,6 +124,8 @@ always aAction = Event (
 -- Continuations
 -- ----------------------------------------------------------------------
 
+---
+-- Attach an action to be done after the event occurs.
 (>>>=) :: Event a -> (a -> IO b) -> Event b
 (>>>=) (Event registerFn) continuation = Event (
    \ toggle bActionSink ->
@@ -128,6 +140,8 @@ always aAction = Event (
    )
 infixl 2 >>>=
 
+---
+-- Attach an action to be done after the event occurs.
 (>>>) :: Event a -> IO b -> Event b
 (>>>) event continuation = event >>>= (const continuation)
 infixl 2 >>>
@@ -138,6 +152,8 @@ infixl 2 >>>
 -- Choice
 -- ----------------------------------------------------------------------
 
+---
+-- Choose between two events.  The first one takes priority.
 (+>) :: Event a -> Event a -> Event a
 (+>) (Event registerFn1) (Event registerFn2) = Event (
    \ toggle aActSink ->
@@ -168,6 +184,8 @@ infixl 2 >>>
 
 infixl 1 +>
 
+---
+-- Choose between a list of events.
 choose :: [Event a] -> Event a
 choose [] = never
 choose nonEmpty = foldr1 (+>) nonEmpty
@@ -176,6 +194,8 @@ choose nonEmpty = foldr1 (+>) nonEmpty
 -- Catching Errors
 -- ----------------------------------------------------------------------
 
+---
+-- Catch an error if it occurs during an action attached to an event.
 tryEV :: Event a -> Event (Either IOError a) 
 tryEV (Event registerFn) = Event (
    \ toggle errorOraSink ->
@@ -188,6 +208,9 @@ tryEV (Event registerFn) = Event (
 -- Allowing an event to vary
 -- ---------------------------------------------------------------------
 
+---
+-- Construct a new event using an action which is called at each 
+-- synchronisation
 computeEvent :: IO (Event a) -> Event a
 computeEvent getEvent = Event (
    \ toggle aActSink ->
@@ -200,7 +223,7 @@ computeEvent getEvent = Event (
 -- Getting information about when an event is aborted.
 -- ---------------------------------------------------------------------
 
-wrapAbort :: IO (Event a,IO ()) -> Event a
+---
 -- When we synchronise on wrapAbort preAction 
 -- preAction is evaluated to yield (event,postAction).
 -- Then exactly one of the following:
@@ -208,6 +231,7 @@ wrapAbort :: IO (Event a,IO ()) -> Event a
 -- (2) some other event in this synchronisation is satisfied
 --     (so this one isn't), and postAction is done.
 -- (3) no event is satisfied (and so we will deadlock).
+wrapAbort :: IO (Event a,IO ()) -> Event a
 wrapAbort preAction  =
    computeEvent (
       do
@@ -240,6 +264,9 @@ wrapAbort preAction  =
 -- asynchronous exception is raised.
 -- ---------------------------------------------------------------------
 
+---
+-- Synchronise on an event, waiting on it until it happens, then returning
+-- the attached value.
 sync :: Event a -> IO a
 sync (Event registerFn) =
    do
@@ -252,6 +279,9 @@ sync (Event registerFn) =
          _ -> done
       aAct
 
+---
+-- Synchronise on an event, but return immediately with Nothing if it
+-- can't be satisfied at once.
 poll :: Event a -> IO (Maybe a)
 poll event = 
    sync (
@@ -263,6 +293,12 @@ poll event =
 -- The noWait combinator
 -- ----------------------------------------------------------------------
 
+---
+-- Turns an event into one which is always satisfied at once but registers
+-- the value to be done later.  WARNING - only to be used with events without
+-- actions attached, as any actions will not get done.  noWait is typically
+-- used with send events, where we don't want to wait for someone to pick up
+-- the value.
 noWait :: Event a -> Event ()
 noWait (Event registerFn) = Event (
    \ toggle unitActSink ->
@@ -277,6 +313,12 @@ noWait (Event registerFn) = Event (
          return Immediate
    )
 
+---
+-- Register an event as synchronised but don't wait for it to complete.
+-- WARNING - only to be used with events without
+-- actions attached, as any actions will not get done.  noWait is typically
+-- used with send events, where we don't want to wait for someone to pick up
+-- the value.
 -- synchronise on something without waiting
 syncNoWait :: Event a -> IO ()
 syncNoWait (Event registerFn) =
@@ -297,16 +339,31 @@ syncNoWait (Event registerFn) =
 -- The HasSend and HasReceive classes
 -- ----------------------------------------------------------------------
 
+---
+-- HasSend represents things like channels on which we can send values
 class HasSend chan where
+   ---
+   -- Returns an event which corresponds to sending something on a channel.
+   -- For a synchronous channel (most channels are synchronous) this event
+   -- is not satisfied until someone accepts the value.
    send :: chan a -> a -> Event ()
 
+---
+-- HasReceive represents things like channels from which we can take values.
 class HasReceive chan where
+   ---
+   -- Returns an event which corresponds to something arriving on a channel.
    receive :: chan a -> Event a
 
 -- Two handy abbreviations
+
+---
+-- Send a value along a channel (as an IO action)
 sendIO :: HasSend chan => chan a -> a -> IO ()
 sendIO chan msg = sync (send chan  msg)
 
+---
+-- Get a value from a channel (as an IO action)
 receiveIO :: HasReceive chan => chan a -> IO a
 receiveIO chan = sync (receive chan)
 
@@ -347,8 +404,9 @@ doneEvent val = always (return val)
 -- Other miscellaneous event functions.
 -- ----------------------------------------------------------------------
 
-allowWhile :: Event () -> Event a -> Event a
+---
 -- allowWhile event1 event2 waits for event2, while handling event1.
+allowWhile :: Event () -> Event a -> Event a
 allowWhile event1 event2 =
       event2 
    +>(do
@@ -371,11 +429,14 @@ request rq a =
 doRequest :: Request a b -> a -> IO (Event b,IO ())
 doRequest (Request rqFn) request = rqFn request
 
+---
+-- Synchronise on an event in a different thread.
 spawnEvent :: Event () -> IO (IO ())
 spawnEvent reactor = spawn (sync reactor)
 
-getAllQueued :: Event a -> IO [a]
+---
 -- get all we can get from the event without waiting.
+getAllQueued :: Event a -> IO [a]
 getAllQueued event = gAQ event []
    where
       gAQ event acc =

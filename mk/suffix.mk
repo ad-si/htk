@@ -47,18 +47,22 @@
 # libfast  should be like lib but faster, since it uses ghc --make.
 
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
+OBJSLHS = $(patsubst %.lhs,%.o,$(SRCSLHS))
+OBJSALLHS = $(OBJSHS) $(OBJSLHS)
 OBJSC = $(patsubst %.c,%.o,$(SRCSC))
-OBJS = $(OBJSHS) $(OBJSC)
-LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS))
+OBJS = $(OBJSALLHS)  $(OBJSC)
+LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
+          $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
 MAINOBJS = $(filter Main%.o,$(OBJS))
 MAINPROGS = $(patsubst Main%.o,%,$(MAINOBJS))
-HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
+HIFILES = $(patsubst %.o,%.hi,$(OBJSALLHS))
 HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
 
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
+             $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
              $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
 OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC)) \
             $$PWD/Makefile.in
@@ -103,11 +107,13 @@ clean:
 
 display :
 	@echo SRCS = $(SRCS)
+	@echo SRCSLHS = $(SRCSLHS)
 	@echo BOOTSRCS = $(BOOTSRCS)
 	@echo SRCSC = $(SRCSC)
 	@echo LIB = $(LIB)
 	@echo LIBS = $(LIBS)
 	@echo OBJSHS = $(OBJSHS)
+	@echo OBJSLHS = $(OBJSLHS)
 	@echo OBJSC = $(OBJSC)
 	@echo OBJS = $(OBJS)
 	@echo LIBOBJS = $(LIBOBJS)
@@ -120,9 +126,9 @@ display :
 	@echo HCDIRS = $(HCDIRS)
 
 
-depend : $(SRCS) $(HIBOOTFILES)
-ifneq "$(strip $(SRCS))" ""
-	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS)
+depend : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
+ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
+	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS) $(SRCSLHS)
 endif
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
@@ -150,7 +156,7 @@ ALLDIRS = `
 librealfast : objsc
 	$(TOP)/mk/mkEverything `$(MAKE) displayhs -s --no-print-directory`
 	$(CP) */*.h .
-	ALLDIRS=`$(GFIND) . -type d ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS
+	ALLDIRS=`$(GFIND) . -type d ! -path "./appl*" ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi *.h
 
 
@@ -189,6 +195,9 @@ $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(HC) -c $< $(HCFLAGS) -no-recomp -o /dev/null -ohi $@
 
 $(OBJSHS) : %.o : %.hs
+	$(HC) -c $< $(HCFLAGS) 
+
+$(OBJSLHS) : %.o : %.lhs
 	$(HC) -c $< $(HCFLAGS) 
 
 $(OBJSC) : %.o : %.c

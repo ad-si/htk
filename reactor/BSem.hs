@@ -24,6 +24,8 @@ import Debug(debug)
 -- Type
 -- --------------------------------------------------------------------------
 
+---
+-- A simple lock.
 newtype BSem = BSem (MVar ()) deriving Eq
 
 -- --------------------------------------------------------------------------
@@ -46,9 +48,13 @@ instance Synchronized BSem where
 -- Commands
 -- --------------------------------------------------------------------------
 
+---
+-- Create a new unlocked BSem
 newBSem :: IO BSem
 newBSem = newMVar () >>= return . BSem
 
+---
+-- Create a new locked BSem
 newLockedBSem   :: IO BSem
 newLockedBSem = newEmptyMVar >>= return . BSem
 

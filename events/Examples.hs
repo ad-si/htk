@@ -50,9 +50,13 @@ isEmptyEventSet (EventSet _ fmap) = isEmptyFM fmap
 -- Watchers
 -- ------------------------------------------------------------------
 
-watch :: Event a -> IO (Event a,IO ())
+---
 -- watch is used for events like mouse motion events where
 -- if we can't find time we don't want them queued.
+-- The event returned waits until the original event next happens and
+-- returns it.  A worker thread is needed to run this; the attached action
+-- should be used to stop that thread when we are no longer interested.
+watch :: Event a -> IO (Event a,IO ())
 watch (event :: Event a) =
    do
       channel <- newChannel
