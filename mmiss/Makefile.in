@@ -3,8 +3,9 @@ PACKAGES = uni-types uni-emacs
 
 SRCS = MMiSSPaths.hs MMiSSGeneric.hs MMiSSObjects.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
-   DTD_MMiSS.hs MMiSSVerify.hs VerifyFile.hs \
+   DTD_MMiSS.hs MMiSSVerify.hs MMiSSObjectTypeList.hs VerifyFile.hs \
 
+BOOTSRCS = MMiSSObjects.boot.hs
 
 include @TOP@/mk/boilerplate.mk
 

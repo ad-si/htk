@@ -1,10 +1,14 @@
 {- This module defines an object in MMiSS as part of the ObjectTypes framework.
    -}
 module MMiSSObjects(
+   initialiseObjectTypes, -- :: View -> IO ()
+
+
    ) where
 
 import Maybe
 
+import FiniteMap
 import Concurrent
 import qualified IOExts(unsafePerformIO)
 
@@ -33,6 +37,8 @@ import EmacsContent
 
 import MMiSSPaths
 import MMiSSGeneric
+import MMiSSVerify
+import MMiSSObjectTypeList
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObjectType type, and its instance of HasCodedValue and 
@@ -43,12 +49,11 @@ data MMiSSObjectType = MMiSSObjectType {
    xmlTag :: String, 
       -- Describes the type.  This String should be identical with 
       -- corresponding XML Tag, eg "atom".
+   dtdItem :: DTDItem,
+      -- Describes the XML format of objects of this type.
    typeId :: GlobalKey,
-   extraAttributes :: AttributesType,
+   attributesType :: AttributesType,
       -- This describes the attributes peculiar to this MMiSS object type.
-      -- All MMiSS objects additionally have the attributes
-      -- (pathNameKey,EntityPath) and (autoExpandKey,Bool)
-      -- which should not be included here.
    displayParms :: NodeTypes (String,Link MMiSSObject),
       -- Displays parameters for this object
    knownObjects :: VariableSet (Link MMiSSObject)
@@ -61,26 +66,46 @@ mmissObjectType_tyRep = mkTyRep "MMiSSObject" "MMiSSObjectType"
 instance HasTyRep MMiSSObjectType where
    tyRep _ = mmissObjectType_tyRep
 
+---
+-- Because for now all the information is in MMiSSObjectTypeList,
+-- we just represent the type by the xml tag.
 instance HasCodedValue MMiSSObjectType where
    encodeIO = mapEncodeIO
-      (\ (MMiSSObjectType {xmlTag = xmlTag,typeId = typeId,
-         extraAttributes = extraAttributes,displayParms = displayParms}) -> 
-         (xmlTag,typeId,extraAttributes,displayParms)
-         )
+      (\ (MMiSSObjectType {xmlTag = xmlTag}) -> xmlTag)
    decodeIO codedValue0 view =
       do
-         ((xmlTag,typeId,extraAttributes,displayParms),codedValue1) 
-            <- safeDecodeIO codedValue0 view
-         knownObjects <- newEmptyVariableSet
-         return (MMiSSObjectType {xmlTag = xmlTag,typeId = typeId,
-            extraAttributes = extraAttributes,displayParms = displayParms,
-            knownObjects = knownObjects},codedValue1)
+         (xmlTag,codedValue1) <- safeDecodeIO codedValue0 view
+         let (Just mmissObjectTypeData) = lookupFM mmissObjectTypeMap xmlTag
+         objectType <- createObjectType mmissObjectTypeData
+         return (objectType,codedValue1)
 
 instance HasAttributesType MMiSSObjectType where
-   toAttributesType objectType =
-      (needs pathNameKey (error "MMiSSObjects.1" :: EntityPath)) .
-      (needs autoExpandKey (error "MMiSSObjects.2" :: Bool)) $
-      extraAttributes objectType
+   toAttributesType objectType = attributesType objectType
+
+-- ------------------------------------------------------------------------
+-- Creating object types
+-- ------------------------------------------------------------------------
+
+initialiseObjectTypes :: View -> IO ()
+initialiseObjectTypes view =
+   do
+      let
+         typeDataList = eltsFM mmissObjectTypeMap
+      mapM_
+         (\ typeData -> addToGlobalRegistryOpt globalRegistry view 
+            (typeId' typeData) (createObjectType typeData))
+         typeDataList
+
+createObjectType :: MMiSSObjectTypeData -> IO MMiSSObjectType
+createObjectType (MMiSSObjectTypeData {xmlTag' = xmlTag',typeId' = typeId',
+      dtdItem' = dtdItem',attributesType' = attributesType',
+      displayParms' = displayParms'}) = 
+   do
+      knownObjects <- newEmptyVariableSet
+      return (MMiSSObjectType {xmlTag = xmlTag',typeId = typeId',
+         dtdItem = dtdItem',attributesType = attributesType',
+         displayParms = displayParms',knownObjects = knownObjects})
+         
          
 -- ------------------------------------------------------------------------
 -- The MMiSSObject type, and its instance of HasCodedValue
