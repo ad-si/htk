@@ -91,7 +91,6 @@ enteredItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 enteredItem notepad item =
   synchronize item
     (do
-       putStr "entered... "
        v <- getRef (it_val item)
        nm <- getName v
        let fullnm = full nm
@@ -118,7 +117,6 @@ enteredItem notepad item =
                       putItemOnTop (it_txt item)
                       setRef (it_long_name_bg item) (Just rect)
          _ -> done
-       putStrLn "ok"
        done)
 
 -- handler for leave events
@@ -126,7 +124,6 @@ leftItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 leftItem notepad item =
   synchronize item
     (do
-       putStr "left... "
        (x, y) <- getPosition item
        let (Distance iwidth, Distance iheight) = img_size notepad
        it_txt item # position (x, y + Distance (div iheight 2 + 7))
@@ -141,7 +138,6 @@ leftItem notepad item =
          Just last_bg -> destroy last_bg >>
                          setRef (it_long_name_bg item) Nothing
          _ -> done
-       putStrLn "ok"
        done)
 
 

@@ -70,6 +70,10 @@ data CItem c => NewItem c =
                                      Bool  -- displayed in notepad
                                     ))
 
+getNameFromNewItem :: CItem c => NewItem c -> IO Name
+getNameFromNewItem (LeafItem c _) = getName c
+getNameFromNewItem (FolderItem c _ _) = getName c
+
 isNewItemFolder :: CItem c => NewItem c -> Bool
 isNewItemFolder (FolderItem _ _ _) = True
 isNewItemFolder _ = False
@@ -200,10 +204,12 @@ data CItem c => GenGUI c =
       root_obj :: Ref [Item c],
 
       -- events
-      event_queue :: Ref (Maybe (Channel (GenGUIEvent c))) }
+      event_queue :: Ref (Maybe (Channel (GenGUIEvent c))),
 
-newGenGUI :: CItem c => Maybe (GenGUIState c) -> IO (GenGUI c)
-newGenGUI mstate =
+      show_leaves_in_tree :: Bool }
+
+newGenGUI :: CItem c => Maybe (GenGUIState c) -> Bool -> IO (GenGUI c)
+newGenGUI mstate showLeavesInTree =
   do
     -- main window
     main <- createToplevel [text "GenGUI"]
@@ -275,9 +281,10 @@ newGenGUI mstate =
            pack objects_n_editor [Fill Both, Expand On]
            tl <- case treeliststate of
                    Just state ->
-                     recoverTreeList panev1 cfun state
+                     recoverTreeList panev1 (cfun showLeavesInTree) state
                                      [background "white"]
-                   _ -> newTreeList panev1 cfun [] [background "white"]
+                   _ -> newTreeList panev1 (cfun showLeavesInTree) []
+                                    [background "white"]
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad panev2 Scrolled (12, 12) Nothing
                             [background "white", size (800, 800)]
@@ -291,9 +298,10 @@ newGenGUI mstate =
            objects <- newFrame main []
            pack objects [Side AtLeft, Fill Both, Expand On]
            tl <- case treeliststate of
-                   Just state -> recoverTreeList objects cfun state
+                   Just state -> recoverTreeList objects
+                                   (cfun showLeavesInTree) state
                                    [background "white", size (380, 200)]
-                   _ -> newTreeList objects cfun []
+                   _ -> newTreeList objects (cfun showLeavesInTree) []
                           [background "white", size (380, 200)]
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad objects Scrolled (12, 12) Nothing
@@ -322,7 +330,8 @@ newGenGUI mstate =
                        open_obj = displayref,
                        place = posref,
                        root_obj = intstate,
-                       event_queue = evq }
+                       event_queue = evq,
+                       show_leaves_in_tree = showLeavesInTree }
 
     -- listening events
     clipboard_dnd <- newRef ((-1,-1), [])   -- drop on editor
@@ -356,7 +365,6 @@ newGenGUI mstate =
                                         (if x1 == xRoot ev_inf &&
                                             y1 == yRoot ev_inf then
                                            do
-                                             putStrLn "drag and drop action (rel)"
                                              sendEv gui
                                                (DroppedOnTextArea items1)
                                              undoLastMotion np
@@ -366,7 +374,6 @@ newGenGUI mstate =
                                               isJust mitem then
                                              do
                                                let item = fromJust mitem
-                                               putStrLn "moving items (rel)"
                                                undoLastMotion (notepad gui)
                                                selected_notepaditems <-
                                                  getSelectedItems
@@ -409,7 +416,6 @@ newGenGUI mstate =
                                  (if x == xRoot ev_inf &&
                                      y == yRoot ev_inf then
                                     do
-                                      putStrLn "drag and drop action (enter)"
                                       sendEv gui (DroppedOnTextArea items)
                                       undoLastMotion np
                                   else
@@ -508,14 +514,12 @@ tlObjectFocused gui clipboard (mobj, ev_inf) =
                         y == yRoot ev_inf &&
                         isNothing mitem then
                        do
-                         putStr "moving items..."
                          undoLastMotion (notepad gui)
                          selected_notepaditems <-
                            getSelectedItems (notepad gui)
                          mapM (saveNotepadItemState gui)
                               selected_notepaditems
                          moveItems gui items item
-                         putStrLn "ok"
                      else do
                             case mch of
                               Just ch ->
@@ -646,15 +650,19 @@ children (Root chref) =
   do
     items <- getRef chref
     return items
-children _ = error "GenGUI (children) : called for a leaf"
+children _ = return []
 
 openedFolder :: CItem c=> GenGUI c-> IO (Maybe (Item c))
 openedFolder = getRef . open_obj
 
 addItem :: CItem c => GenGUI c -> Item c -> NewItem c -> IO (Item c)
-addItem gui par@(IntFolderItem _ chref) newitem =
+addItem gui par@(IntFolderItem (FolderItem c _ _)  chref) newitem =
   synchronize gui
     (do
+       nm <- getName c
+       nm1 <- getNameFromNewItem newitem
+       putStrLn ("add to parent: " ++ full nm ++ " child: " ++ full nm1)
+
        mditem <- getRef (open_obj gui)
        ch <- getRef chref
        item <- toItem newitem
@@ -663,11 +671,15 @@ addItem gui par@(IntFolderItem _ chref) newitem =
        case mch of
          Just ch -> syncNoWait (send ch (Addition item))
          _ -> done
-       (if isItemFolder item then
+       (if (isItemFolder item || show_leaves_in_tree gui) then
           do
+            putStrLn "making node"
             mkNode (treelist gui) par
             nuch <- children item
-            let nod = if (any isItemFolder nuch) then Node else Leaf
+            let nod = if show_leaves_in_tree gui then
+                        if PrelBase.not (null nuch) then Node else Leaf
+                      else
+                        if (any isItemFolder nuch) then Node else Leaf
             case newitem of
               FolderItem c _ _ ->
                 addTreeListSubObject (treelist gui) par
@@ -690,6 +702,8 @@ addItem gui par@(IntFolderItem _ chref) newitem =
 addItem gui (Root chref) newitem =
   synchronize gui
     (do
+       nm <- getNameFromNewItem newitem
+       putStrLn ("adding to root: " ++ full nm)
        items <- getRef chref
        item <- toItem newitem
        setRef chref (items ++ [item])
@@ -697,10 +711,14 @@ addItem gui (Root chref) newitem =
        case mch of
          Just ch -> syncNoWait (send ch (Addition item))
          _ -> done
-       (if isItemFolder item then
+       (if (isItemFolder item || show_leaves_in_tree gui) then
           do
             ch <- children item
-            let nod = if (any isItemFolder ch) then Node else Leaf
+            let nod = if show_leaves_in_tree gui then
+                        if PrelBase.not (null ch) then Node else Leaf
+                      else
+                        if (any isItemFolder ch) then Node else Leaf
+            putStrLn ("as " ++ if nod == Node then "node" else "leaf")
             case newitem of
               FolderItem c _ _ ->
                 addTreeListRootObject (treelist gui)
@@ -753,21 +771,26 @@ sendEv gui ev =
 -- treelist children function
 --------------------------------------------------------------------------
 
-toTreeListObjects :: CItem c => [Item c] -> IO [TreeListObject (Item c)]
-toTreeListObjects (it : items) =
+toTreeListObjects :: CItem c => Bool -> [Item c] ->
+                                IO [TreeListObject (Item c)]
+toTreeListObjects showLeavesInTree (it : items) =
   do
-    rest <- toTreeListObjects items
+    rest <- toTreeListObjects showLeavesInTree items
     ch <- children it
-    let nod = if (any isItemFolder ch) then Node else Leaf
+    let nod = if showLeavesInTree then
+                 if (any isItemFolder ch) then Node else Leaf
+              else
+                 if PrelBase.not (null ch) then Node else Leaf
     return (newTreeListObject it nod : rest)
-toTreeListObjects _ = return []
+toTreeListObjects _ _ = return []
 
-cfun :: CItem c => ChildrenFun (Item c)
-cfun tlobj =
+cfun :: CItem c => Bool -> ChildrenFun (Item c)
+cfun showLeavesInTree tlobj =
   do
     let item = getTreeListObjectValue tlobj
     ch <- children item
-    toTreeListObjects (filter isItemFolder ch)
+    toTreeListObjects showLeavesInTree (if showLeavesInTree then ch
+                                        else filter isItemFolder ch)
 
 
 --------------------------------------------------------------------------

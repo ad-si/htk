@@ -331,7 +331,7 @@ main =
     main <- initHTk [text "GenGUI example"]
 
     -- construct gui
-    gui <- newGenGUI Nothing :: IO (GenGUI Obj)
+    gui <- newGenGUI Nothing True :: IO (GenGUI Obj)
 
     -- create menu content
     m <- createMenu main False []
@@ -676,7 +676,7 @@ exportState gui =
   do
     st <- exportGenGUIState gui
     putStrLn "state exported"
-    gui_clone <- newGenGUI (Just st)
+    gui_clone <- newGenGUI (Just st) True
     putStrLn "state imported"
 
 
