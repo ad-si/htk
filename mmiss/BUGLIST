@@ -4,6 +4,15 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+27) 11.09.02
+MMiSSDTDAssumptions needs to be updated to deal with Achim's latest changes to
+MMiSS.dtd.
+
+Better wait until MMiSS.dtd has stablised a bit.
+
+Some changes have been made to colours in MMiSS.dtd to make the consistent
+with Emacs colours we are about to introduce.
+
 26) 10.09.02
 Rearrange DTD stuff to collect places where we rely on the DTD as far as
 possible in MMiSSDTDAssumptions module.

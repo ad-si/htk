@@ -11,7 +11,7 @@
 
   Rules for colours.  We supply colours for all things which can have a label.
      These are for now
-        white for groups
+        orange for groups
         green for units
         yellow for atoms
         red for text fragments.
@@ -147,14 +147,14 @@
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay package : blue box ?>
+<?MMiSSDisplay package : orange box ?>
 
 <!ELEMENT section (abstract?, introduction?, (%group;)+, summary?)>
 <!ATTLIST section %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay section : red box ?>
+<?MMiSSDisplay section : orange circle ?>
 
 
 <!ELEMENT paragraph (%unit;)+>
@@ -162,7 +162,7 @@
                     %title-matter;
                     %formalism-matter;
                     %attributes;>
-<?MMiSSDisplay paragraph : yellow triangle ?>
+<?MMiSSDisplay paragraph : orange triangle ?>
 
 
 <!--
@@ -193,54 +193,60 @@
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
+<?MMiSSDisplay example : green circle ?>
+
 
 <!ELEMENT exercise  ((%atom;) | %formalUnit;)+>
 <!ATTLIST exercise %label-matter;
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
+<?MMiSSDisplay exercise : green box ?>
 
 <!ELEMENT definition  ((%atom;) | %formalUnit;)+>
 <!ATTLIST definition %label-matter;
                      %title-matter;
                      %formalism-matter;
                      %attributes;>
+<?MMiSSDisplay definition : green triangle ?>
 
 <!ELEMENT textFragment %text;>
 <!ATTLIST textFragment %label-matter;
                        %attributes;>
-<?MMiSSDisplay textFragment : green box ?>
+<?MMiSSDisplay textFragment : red box ?>
 
 <!ELEMENT table %text;>
 <!ATTLIST table %label-matter;
                 %title-matter;
                 %formalism-matter;
                 %attributes;>
-<?MMiSSDisplay table : green box ?>
+<?MMiSSDisplay table : yellow box ?>
 
 <!ELEMENT figure  EMPTY>
 <!ATTLIST figure %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
-<?MMiSSDisplay figure : green box ?>
+<?MMiSSDisplay figure : yellow circle ?>
 
 <!ELEMENT glossaryEntry  %text;>
 <!ATTLIST glossaryEntry %label-matter;
                         %title-matter;
                         %attributes;>
-<?MMiSSDisplay glossaryEntry : green box ?>
+<?MMiSSDisplay glossaryEntry : yellow rhombus ?>
 
 <!ELEMENT bibEntry  %text;>
 <!ATTLIST package %label-matter;
                   %attributes;>
-<?MMiSSDisplay bibEntry : green box ?>
+<?MMiSSDisplay bibEntry : yellow ellipse ?>
 
 <!ELEMENT list  (listitem)+>
 <!ATTLIST list  %label-matter;
                 type  (itemize | enumeration)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
+<?MMiSSDisplay list : green ellipse ?>
+
 
 <!ELEMENT listitem  (list | %atom;)>
 <!ATTLIST glossaryEntry %label-matter;
@@ -261,24 +267,28 @@
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
+<?MMiSSDisplay program : green circle ?>
 
 <!ELEMENT theory (%conceptualAtom; | clause | theory)+>
 <!ATTLIST theory %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
+<?MMiSSDisplay theory : green box ?>
 
 <!ELEMENT theorem  (%conceptualAtom; | clause)+>
 <!ATTLIST theorem %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
+<?MMiSSDisplay theorem : green circle ?>
 
 <!ELEMENT conjecture (%conceptualAtom; | clause)+>
 <!ATTLIST conjecture %label-matter;
                      %title-matter;
                      %formalism-matter;
                      %attributes;>
+
 
 <!ELEMENT lemma (%conceptualAtom; | clause)+>
 <!ATTLIST lemma %label-matter;
@@ -309,12 +319,15 @@
                       %title-matter;
                       %formalism-matter;
                       %attributes;>
+<?MMiSSDisplay development : green rhombus ?>
 
 <!ELEMENT script  (%conceptualAtom; | step | script)+>
 <!ATTLIST script %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
+<?MMiSSDisplay script : yellow circle ?>
+
 
 
 <!ELEMENT programFragment  (#PCDATA)>
@@ -322,18 +335,23 @@
                           %title-matter;
                           %formalism-matter;
                           %attributes;>
+<?MMiSSDisplay programFragment : yellow ellipse ?>
 
 <!ELEMENT clause  (#PCDATA)>
 <!ATTLIST clause %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
+<?MMiSSDisplay clause : yellow triangle ?>
+
 
 <!ELEMENT step  (#PCDATA)>
 <!ATTLIST step %label-matter;
                %title-matter;
                %formalism-matter;
                %attributes;>
+<?MMiSSDisplay theory : yellow ellipse ?>
+
 
 
 <!--
