@@ -36,6 +36,8 @@ import Channels
 import Events
 import Destructible
 
+import MenuType
+
 import GraphDisp
 import GraphConfigure
 

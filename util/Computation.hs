@@ -46,6 +46,17 @@ module Computation (
 
         -- The new-style configuration command
         HasConfig(..),
+
+        -- Results with error messages attached.
+        -- Error messages
+        WithError, -- type synonym for Either String a
+        mapWithError, -- :: (a -> b) -> WithError a -> WithError b
+        mapWithError', -- :: (a -> WithError b) -> WithError a -> WithError b
+        pairWithError, -- :: WithError a -> WithError b -> WithError (a,b)
+        -- we concatenate the errors, inserting a newline between them if 
+        -- there are two.
+        coerceWithError, -- :: WithError a -> a
+        -- get out result or throw error.
         ) 
 where
 
@@ -104,6 +115,32 @@ catchall c1 c2 = Exception.catch c1 (\ _ -> c2)
 
 tryUntilOK :: IO a -> IO a 
 tryUntilOK c = catchall c (tryUntilOK c)
+
+-- --------------------------------------------------------------------------
+-- Values paired with error messages
+-- --------------------------------------------------------------------------
+
+type WithError a = Either String a -- error or result
+
+mapWithError :: (a -> b) -> WithError a -> WithError b
+mapWithError f (Left e) = Left e
+mapWithError f (Right x) = Right (f x)
+
+mapWithError' :: (a -> WithError b) -> WithError a -> WithError b
+mapWithError' f (Left e) = Left e
+mapWithError' f (Right a) = f a
+
+pairWithError :: WithError a -> WithError b -> WithError (a,b)
+-- we concatenate the errors, inserting a newline between them if there are two.
+pairWithError (Right a) (Right b) = Right (a,b)
+pairWithError (Left e) (Right b) = Left e
+pairWithError (Right a) (Left f) = Left f
+pairWithError (Left e) (Left f) = Left (e++"\n"++f)
+
+-- coerce or raise error
+coerceWithError :: WithError a -> a
+coerceWithError (Right a) = a
+coerceWithError (Left err) = error err
 
 -- --------------------------------------------------------------------------
 -- Derived Control Abstractions: Iteration

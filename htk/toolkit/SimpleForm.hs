@@ -58,14 +58,13 @@ module SimpleForm(
    Radio(..), -- type for wrapping round something to use radio buttons.
    HasConfigRadioButton(..), -- for setting fancy configurations for
       -- radio buttons.
-
-   -- Error messages
-   WithError, -- type synonym for Either String a
    ) where
 
 import Char
 
 import IORef
+
+import Computation
 
 import Events
 import Channels
@@ -115,27 +114,6 @@ mapEnteredForm' f
          we1 <- getFormValue
          return (mapWithError' f we1)
       }
-
--- -------------------------------------------------------------------------
--- Error messages
--- -------------------------------------------------------------------------
-
-type WithError a = Either String a -- error or result
-
-mapWithError :: (a -> b) -> WithError a -> WithError b
-mapWithError f (Left e) = Left e
-mapWithError f (Right x) = Right (f x)
-
-mapWithError' :: (a -> WithError b) -> WithError a -> WithError b
-mapWithError' f (Left e) = Left e
-mapWithError' f (Right a) = f a
-
-pairWithError :: WithError a -> WithError b -> WithError (a,b)
--- we concatenate the errors, inserting a newline between them if there are two.
-pairWithError (Right a) (Right b) = Right (a,b)
-pairWithError (Left e) (Right b) = Left e
-pairWithError (Right a) (Left f) = Left f
-pairWithError (Left e) (Left f) = Left (e++"\n"++f)
 
 -- -------------------------------------------------------------------------
 -- The Form type and (//)

@@ -5,5 +5,7 @@ LIB        = libdavinci.a
 SRCS       = DaVinciTypes.hs DaVinciBasic.hs DaVinciGraph.hs
 SUBDIRS    = test
 
+XHCDIRS = $(HTKDIRS)
+
 include @TOP@/mk/boilerplate.mk
 
