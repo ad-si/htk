@@ -1,4 +1,4 @@
-{--
+
 module LaTeXParser (
    parseMMiSSLatex, -- :: String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
@@ -9,9 +9,10 @@ module LaTeXParser (
    -- If the Bool is set, attaches a preamble.
    )
  where
---}
-module LaTeXParser where
 
+-- module LaTeXParser where
+
+-- import IOExts
 import List
 import Parsec
 import Char
@@ -408,6 +409,7 @@ parseMMiSSLatex :: String -> WithError Element
 
 parseMMiSSLatex s = let result = parse (latexDoc []) "" s
 		    in case result of
+--			 Right ast  -> trace s (makeXML ast)
 			 Right ast  -> makeXML ast
 			 Left err -> hasError (concat (map messageString (errorMessages(err))))
 
@@ -545,16 +547,17 @@ makeContent (f:frags) TextAllowed "List" =
 
 makeContent (f:frags) TextAllowed parentEnv = 
    case f of
-     (EscapedChar _) -> 
-       let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
-       in myConcatWithError (hasValue([content])) (makeContent restFrags TextAllowed parentEnv)
-     (Other str) -> if ((length (filter (not . (== '\n')) str) == 0) ||
-			((head str) == '%'))
+     (EscapedChar c) ->  myConcatWithError (hasValue([(CMisc (Comment [c]))])) 
+                                           (makeContent frags TextAllowed parentEnv)
+     (Other str) -> if ((head str) == '%')
                       then myConcatWithError (hasValue([(CMisc (Comment str))])) 
                                              (makeContent frags TextAllowed parentEnv)
-	              else let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
-                           in  myConcatWithError (hasValue([content])) 
-				                 (makeContent restFrags TextAllowed parentEnv)
+	              else if (genericLength (filter (not . isSpace) str) > 0)
+                             then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+                                  in  myConcatWithError (hasValue([content])) 
+				                        (makeContent restFrags TextAllowed parentEnv)
+                             else makeContent frags TextAllowed parentEnv
+
      (Env name ps fs) -> 
        if (name `elem` (map fst plainTextAtoms))
          then
@@ -740,7 +743,7 @@ addText (xs:x:[]) =
 -- direkt Text enthalten sein darf. Es wird nicht ueberprueft, ob der Name ueberhaupt zu einem MMiSS-Env.
 -- gehoert.
 detectTextMode :: String -> Textmode
-detectTextMode name = if (name `elem` (map fst envsWithText)) then TextAllowed
+detectTextMode name = if (name `elem` (map fst (envsWithText ++ plainTextAtoms))) then TextAllowed
                        else NoText
 
 
@@ -883,10 +886,12 @@ fillLatex ((CElem (Elem "textFragment" atts contents)):cs) inList =
    let s1 = "\\begin{TextFragment}" 
        s2 = "[" ++ (getParam "notation" atts) ++ "]"
        s3 = "{" ++ (getParam "label" atts) ++ "}"
-       s4 = "{" ++ (getAttribs atts "" ["notation", "label"]) ++ "}\n"
+       s4 = "{" ++ (getAttribs atts "" ["notation", "label"]) ++ "}"
        s5 = "\\end{TextFragment}\n"
-       items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))] ++ (fillLatex contents []) 
-              ++ [(EditableText s5)]
+       items = if ((s2 ++ s3 ++ s4) == "[]{}{}") 
+                 then (fillLatex contents [])
+                 else [(EditableText (s1 ++ s2 ++ s3 ++ s4))] ++ (fillLatex contents []) 
+                      ++ [(EditableText s5)]
    in fillLatex cs (inList ++ items)
 
 fillLatex ((CElem (Elem "list" atts contents)):cs) inList = 
@@ -907,7 +912,7 @@ fillLatex ((CElem (Elem "listItem" atts contents)):cs) inList =
    in fillLatex cs (inList ++ items)
 
 fillLatex ((CElem (Elem "emphasis" _ ((CString _ str):_))):cs) inList = 
-   fillLatex cs (inList ++ [EditableText ("\\Emphasis{" ++ str ++ "}\n")]) 
+   fillLatex cs (inList ++ [EditableText ("\\Emphasis{" ++ str ++ "}")]) 
 
 fillLatex ((CElem (Elem "includeGroup" atts _)):cs) inList = 
    let labelId = getParam "included" atts
@@ -952,12 +957,12 @@ fillLatex ((CString _ str):cs) inList = fillLatex cs (inList ++ [(EditableText s
 fillLatex ((CMisc (Comment str)):cs) inList = fillLatex cs (inList ++ [(EditableText str)])
 
 fillLatex ((CElem (Elem name atts contents)):cs) inList = 
-  let s1 = "  \\begin{" ++ (elemNameToLaTeX name) ++ "}" 
+  let s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
       s2 = "[" ++ (getParam "notation" atts) ++ "]"
       s3 = "{" ++ (getParam "label" atts) ++ "}"
       s4 = "{" ++ (getParam "title" atts) ++ "}"
-      s5 = "{" ++ (getAttribs atts "" ["notation", "label", "title"]) ++ "}" ++ "\n"
-      s6 = "  \\end{" ++ (elemNameToLaTeX name) ++ "}\n"
+      s5 = "{" ++ (getAttribs atts "" ["notation", "label", "title"]) ++ "}\n"
+      s6 = "\\end{" ++ (elemNameToLaTeX name) ++ "}\n"
       items = [(EditableText (s1 ++ s2 ++ s3 ++ s4 ++ s5))] ++ (fillLatex contents []) 
               ++ [(EditableText s6)]
   in fillLatex cs (inList ++ items)
