@@ -1,0 +1,67 @@
+\documentclass[landscape, slides, light]{mmiss}
+
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{casl}
+
+\newcommand{\gram}[1]{{\texttt{#1}}}
+\newcommand{\power}{\hat{\ }}
+\newcommand{\annoimplies}{\%{\bf implies}\ }
+\newcommand{\annodef}{\%{\bf def}\ }
+\newcommand{\annocons}{\%{\bf conservatively}\ }
+\newcommand{\annoprec}{\%{\bf prec}\ }
+\newcommand{\annorassoc}{\%{\bf right\ assoc}\ }
+\newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
+\newcommand{\annobrackets}{{\bf brackets}\ }
+\newcommand{\Nat}{\mbox{$\mathbb N$}} % this requires amssymb
+\def\ShortAuthor{C.~L\"uth, M.~Roggenbach}
+\def\ShortTitle{Algebraic Specification}
+\def\Title{Formal Program Development with Algebraic Specifications}
+
+
+\begin{document}
+\begin{Package}[Label=AlgSpec, 
+Title={Formale Programmentwicklung mit algebraischen Spezifikationen},
+Date=12.09.2002,
+Authors={Christoph Lüth, Markus Roggenbach},
+ShortAuthor={C.~Lüth, M.~Roggenbach},
+ShortTitle={Algebraischer Unsinn},
+Language=de,LevelOfDetail=Lecture,InteractionLevel=Hyper]
+
+\begin{Section}
+[Label=IntroAlgSpec,
+ Title={Signaturen, Terme und Algebren}]
+
+\begin{Paragraph}[Label=Signatures, Title=Signaturen]
+Signaturen erlauben die Definition von Operationen.
+\vspace{1cm}
+
+\begin{Definition}[Label=DefSignature, Title=Signaturen]
+Eine \Emphasis{Signatur} $\Sigma=(S, \Omega)$ sei gegeben durch
+\begin{List}[Label=SignatureComponents, ListType=itemize]
+    \ListItem eine Menge $S$ von \Emphasis{Sorten}, und
+    \ListItem eine Familie $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ von Operationen.
+  \end{List}
+\end{Definition}
+
+Eine Operation $\omega\in\Omega_{w,s}$ mit $w=s_1\ldots s_n$ hat
+Argumentsorten $s_1,\ldots,s_n$ und die Zielsorte $s$, auch
+geschrieben als $\omega:s_1\ldots s_n\rightarrow s$.
+\end{Paragraph}
+\end{Section}
+\end{Package}
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
