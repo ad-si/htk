@@ -26,7 +26,9 @@ module Link(
    -- HasCodedValue.
    Versioned,
 
-   createObject, -- :: HasCodedValue x => View -> x -> IO (Versioned x) 
+   createObject, 
+      -- :: HasCodedValue x => View -> Link y -> x 
+      -- -> IO (Versioned x) 
    -- This is used for creating a completely new object.
 
    deleteLink, -- :: HasCodedValue x => View -> Link x -> IO ()
@@ -335,10 +337,10 @@ writeLinkIfNe view link x =
       updateObjectIfNe view x versioned
 
 -- | Does 'createObject' and 'makeLink' in one go.
-createLink :: HasCodedValue x => View -> x -> IO (Link x)
-createLink view x =
+createLink :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
+createLink view parentLink x =
    do
-      versioned <- createObject view x
+      versioned <- createObject view parentLink x
       makeLink view versioned
 
 -- | Like 'newEmptyObject'; similar considerations apply.
@@ -349,10 +351,10 @@ newEmptyLink view =
       makeLink view versioned
 
 -- | Allocate a new link but don't put it in any view.
-absolutelyNewLink :: HasCodedValue x => Repository -> IO (Link x)
-absolutelyNewLink repository =
+absolutelyNewLink :: HasCodedValue x => Repository -> Link y -> IO (Link x)
+absolutelyNewLink repository (Link parentLocation)  =
    do
-      location <- newLocation repository
+      location <- newLocation repository parentLocation
       return (Link location)
 
 
@@ -522,10 +524,10 @@ setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
       coerceWithErrorIO versionedWE
 
 -- | This is used for creating a completely new object.
-createObject :: HasCodedValue x => View -> x -> IO (Versioned x)
-createObject view x =
+createObject :: HasCodedValue x => View -> Link y -> x -> IO (Versioned x)
+createObject view (Location parentLink) x =
    do
-      location <- newLocation (repository view)
+      location <- newLocation (repository view) parentLink
 
       createObjectGeneral view (Virgin x) location
 
@@ -534,10 +536,10 @@ createObject view x =
 -- WARNING - updateObject must be used to put in an actual value,
 -- before readObject is done on this Versioned value.  This must also be
 -- done before any commitView, unless the object is deleted via deleteLink.
-newEmptyObject :: HasCodedValue x => View -> IO (Versioned x)
-newEmptyObject view = 
+newEmptyObject :: HasCodedValue x => View -> Link y -> IO (Versioned x)
+newEmptyObject view (Link parentLocation) = 
    do
-      location <- newLocation (repository view)
+      location <- newLocation (repository view) parentLocation
       createObjectGeneral view Empty location
 
 isEmptyObject :: Versioned x -> IO Bool
@@ -731,3 +733,7 @@ getLastChange view (Link location :: Link object) =
                         Cloned _ _ _ -> return Nothing
                         UpToDate _ -> repositoryLastChange
          Just (ClonedObject _ _) -> return Nothing
+
+-- ----------------------------------------------------------------------
+-- Get the head version of a view.
+-- ----------------------------------------------------------------------

@@ -9,6 +9,7 @@ import System.IO.Unsafe
 
 import Object
 import ExtendedPrelude
+import BinaryAll
 
 -- ------------------------------------------------------------------
 -- Error types
@@ -18,7 +19,15 @@ data ErrorType =
       AccessError
    |  NotFoundError
    |  InternalError
-   |  MiscError
+   |  MiscError deriving (Enum,Show)
+
+-- ------------------------------------------------------------------
+-- HasBinary instance
+-- ------------------------------------------------------------------
+
+instance Monad m => HasBinary ErrorType m where
+   writeBin = mapWrite ViaEnum
+   readBin = mapRead enum
 
 -- ------------------------------------------------------------------
 -- User interface

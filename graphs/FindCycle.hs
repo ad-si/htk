@@ -1,5 +1,5 @@
--- | The function in this module finds a cycle in a given directed graph, if one
--- exists. 
+-- | The function in this module finds a cycle in a given directed graph, if
+-- one exists. 
 module FindCycle (
    findCycle, 
       -- :: Ord a => [a] -> (a -> [a]) -> Maybe [a]
@@ -13,26 +13,28 @@ data DFSOut a =
    |  Cycle [a]
    |  PartialCycle [a] a
 
+-- | Find a cycle in a graph.  We are given a list of nodes to start
+-- from, and a successor function.
 findCycle :: Ord a => [a] -> (a -> [a]) -> Maybe [a]
 findCycle (nodes :: [a]) (sFn :: a -> [a]) = 
    let
-      notVisited0 = mkSet nodes
-
-      findCycle1 :: Set a -> Maybe [a]
-      findCycle1 notVisited0 =
-         case setToList notVisited0 of
-            a : _ ->
-               case findCycle2 emptySet notVisited0 a of
-                  NoCycle notVisited1 -> findCycle1 notVisited1
+      findCycle1 :: [a] -> Set a -> Maybe [a]
+      findCycle1 nodes0 visited0 =
+         case nodes0 of
+            a : nodes1 ->
+               case findCycle2 emptySet visited0 a of
+                  NoCycle visited1 -> findCycle1 nodes1 visited1
                   Cycle cycle -> Just cycle
                   _ -> error "findCycle - unexpected PartialCycle"
             [] -> Nothing
 
 
       findCycle2 :: Set a -> Set a -> a -> DFSOut a
-      findCycle2 aboveThis0 notVisited0 this =
-         if elementOf this notVisited0
+      findCycle2 aboveThis0 visited0 this =
+         if elementOf this visited0
             then
+               NoCycle visited0
+            else
                if elementOf this aboveThis0
                   then
                      PartialCycle [] this
@@ -42,11 +44,11 @@ findCycle (nodes :: [a]) (sFn :: a -> [a]) =
                         aboveThis1 = addToSet aboveThis0 this
                      
                         doSuccs :: [a] -> Set a -> DFSOut a
-                        doSuccs [] notVisited 
-                           = NoCycle (delFromSet notVisited this) 
-                        doSuccs (succ:succs) notVisited0 =
-                           case findCycle2 aboveThis1 notVisited0 succ of
-                              NoCycle notVisited1 -> doSuccs succs notVisited1
+                        doSuccs [] visited 
+                           = NoCycle (addToSet visited this) 
+                        doSuccs (succ:succs) visited0 =
+                           case findCycle2 aboveThis1 visited0 succ of
+                              NoCycle visited1 -> doSuccs succs visited1
                               PartialCycle arc node ->
                                  if node == this
                                     then
@@ -55,8 +57,6 @@ findCycle (nodes :: [a]) (sFn :: a -> [a]) =
                                        PartialCycle (this : arc) node
                               cycle -> cycle
                      in
-                        doSuccs succs notVisited0
-            else
-               NoCycle notVisited0
+                        doSuccs succs visited0
    in
-      findCycle1 notVisited0
+      findCycle1 nodes emptySet

@@ -12,7 +12,6 @@ module SimpleDBTypes(
    SimpleDB(..),
    FrozenVersion(..),
    VersionData(..),
-   SecurityData(..),
    PrimitiveLocation(..),
    ) where
 
@@ -31,6 +30,7 @@ import PasswordFile (User)
 import Permissions
 import VersionInfo
 import BDBOps
+import ServerErrors
 import {-# SOURCE #-} VersionState
 
 -- -------------------------------------------------------------------
@@ -43,13 +43,8 @@ newtype Location = Location Integer
 data SimpleDBCommand =
    -- All commands may additionally return IsError or IsAccess except
    -- where stated.
-      NewLocation (Maybe (ObjectVersion,Location)) 
+      NewLocation
          -- ^ returns a new location (IsLocation),
-         -- If a (location,objectVersion) is supplied, that means this
-         -- location should have a parent, given by the location.
-         -- The location needs to be understood as interpreted according
-         -- to (objectVersion), which will be important if objectVersion
-         -- contains redirects.
    |  NewVersion -- ^ a new object version (IsObjectVersion).
    |  ListVersions -- ^ returns list of all known objects
          -- ^ return with IsObjectVersions
@@ -66,25 +61,30 @@ data SimpleDBCommand =
              -- allocated by NewVersion, and the parent versions, which
              -- must already exist.  The first parent version we call the
              -- head parent version.
-         [(Location,Either ObjectVersion (Maybe Location))]
+         [(Location,Maybe ObjectVersion)]
              -- Redirects.  This list can be non-null when versions are copied 
              -- between different repositories, so that Locations are 
              -- preserved, while still being unambiguous for this version.
              -- The meaning of the (Either ObjectVersion (Maybe Location)) 
              -- is as follows. 
              --
-             -- If (Left objectVersion), that means this location should have
+             -- If (Just objectVersion), that means this location should have
              -- exactly the same meaning as in (objectVersion).  
-             -- 
-             -- If (Right locationOpt),
-             -- that means that this location is not in a previous version
-             -- and should be created anew.  The argument specifies a parent
-             -- version to use.
+             --
+             -- If (Nothing), that means this location is new.
          [(Location,ChangeData)]
              -- Returns IsOK, or if the operation could not
              -- be carried out because a version with the corresponding
              -- ServerInfo has already been checked in, returns 
              -- IsObjectVersion with the objectVersion of the old version.
+         [(Location,Location)]
+             -- Returns a list of parent links for this commit (used for
+             -- security data.
+             -- NB.  The elements of the tuples are (object,parent)
+             -- NB2. Only the changed links (where a location is new,
+             -- or an object is moved) should be supplied.
+             -- NB3. The user doing this needs to have Permissions access
+             -- to both the object, and its old parent location (if any).
    |  ModifyUserInfo VersionInformation
          -- ^ If the version already exists, replace its VersionInfo by
          -- that supplied, assuming the permissions permit it.
@@ -133,9 +133,7 @@ data SimpleDBResponse =
    |  IsDiffs [(Location,Diff)]
    |  IsVersionInfo VersionInfo
    |  IsPermissions Permissions
-   |  IsError String -- ^ indicates a normal error
-   |  IsAccess String -- ^ indicates an access error
-   |  IsNotFound String
+   |  IsError ErrorType String
    |  IsOK
    |  MultiResponse [SimpleDBResponse]
   deriving (Show)
@@ -213,7 +211,7 @@ data SimpleDB = SimpleDB {
    versionDB :: BDB,
       -- ^ this maps version information to FrozenVersion.
    securityDB :: BDB,
-      -- ^ this maps PrimitiveLocation to SecurityData.
+      -- ^ this maps PrimitiveLocation to Permissions.
    keyDB :: BDB,
       -- ^ this maps PrimitiveLocation to the corresponding BDB key
       -- in dataDB.
@@ -247,13 +245,6 @@ data SimpleDB = SimpleDB {
       -- ^ Next ObjectVersion to allocate, ditto.
    }
 
--- | The SecurityData contains the security information we keep about
--- a primitive location
-data SecurityData = SecurityData {
-   parentOpt :: Maybe PrimitiveLocation,
-   permissions :: Permissions
-   } 
-
 data FrozenVersion =
    FrozenVersion { 
       parent' :: Maybe ObjectVersion,
@@ -263,7 +254,7 @@ data FrozenVersion =
           -- (ObjectVersion,Location) means it so happens this is exactly the
           --    contents of this object are the same as those in 
           --    (ObjectVersion,Location)
-      redirects' :: [(Location,Either ObjectVersion PrimitiveLocation)]
+      redirects' :: [(Location,Either ObjectVersion PrimitiveLocation)],
           -- this gives redirects.  Note that this list does not have to 
           -- contain locations which are the same as the corresponding 
           -- primitive location, or where a redirect for this location already
@@ -274,6 +265,8 @@ data FrozenVersion =
           --    
           --    For (Right primitiveLocation) that means this location is
           --    new, and associated with this primitive location.
+      parentChanges :: [(Location,Location)]
+         -- parent changes (in same order as for commit).
       }
 
 data VersionData = VersionData {
@@ -287,10 +280,12 @@ data VersionData = VersionData {
       -- because of persistence, the actual extra memory occupied on the
       -- server should be small, if there are only a few changes from the
       -- parent.      
-   redirects :: FiniteMap Location PrimitiveLocation
+   redirects :: FiniteMap Location PrimitiveLocation,
       -- ^ This maps Location to the corresponding PrimitiveLocation,
       -- when the integers inside are different.
       -- As with objectDictionary, we use persistence.
+   parentsMap :: FiniteMap Location Location
+      -- ^ Map from an object to its parent, if any.
    }
 
 -- PrimitiveLocation's permit redirection of Locations.  Thus "Location"
@@ -317,12 +312,12 @@ instance Monad m => HasBinary PrimitiveLocation m where
 
 instance MonadIO m => HasWrapper SimpleDBCommand m where
    wraps = [
-      wrap1 0 NewLocation,
+      wrap0 0 NewLocation,
       wrap0 1 NewVersion,
       wrap0 2 ListVersions,
       wrap2 3 Retrieve,
       wrap2 4 LastChange,
-      wrap3 5 Commit,
+      wrap4 5 Commit,
       wrap1 6 ModifyUserInfo,
       wrap2 8 GetDiffs,
       wrap1 9 MultiCommand,
@@ -332,12 +327,12 @@ instance MonadIO m => HasWrapper SimpleDBCommand m where
       wrap1 13 GetParentLocation
       ]
    unWrap = (\ wrapper -> case wrapper of
-      NewLocation lOpt -> UnWrap 0 lOpt
+      NewLocation -> UnWrap 0 ()
       NewVersion -> UnWrap 1 ()
       ListVersions -> UnWrap 2 ()
       Retrieve l v -> UnWrap 3 (l,v)
       LastChange l v -> UnWrap 4 (l,v)
-      Commit v r n -> UnWrap 5 (v,r,n)
+      Commit v r n p -> UnWrap 5 (v,r,n,p)
       ModifyUserInfo v -> UnWrap 6 v
       GetDiffs v vs -> UnWrap 8 (v,vs)
       MultiCommand l -> UnWrap 9 l
@@ -378,27 +373,24 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       wrap1 1 IsObjectVersion,
       wrap1 2 IsObjectVersions,
       wrap1 3 IsData,
-      wrap1 4 IsError,
+      wrap2 4 IsError,
       wrap1 5 IsDiffs,
       wrap1 6 IsVersionInfo,
       wrap0 7 IsOK,
       wrap1 8 MultiResponse,
-      wrap1 9 IsNotFound,
-      wrap1 10 IsAccess,
       wrap1 11 IsPermissions
+
       ]
    unWrap = (\ wrapper -> case wrapper of
       IsLocation l -> UnWrap 0 l
       IsObjectVersion v -> UnWrap 1 v
       IsObjectVersions vs -> UnWrap 2 vs
       IsData d -> UnWrap 3 d
-      IsError e -> UnWrap 4 e
+      IsError t e -> UnWrap 4 (t,e)
       IsDiffs ds -> UnWrap 5 ds
       IsVersionInfo v -> UnWrap 6 v
       IsOK -> UnWrap 7 ()
       MultiResponse l -> UnWrap 8 l
-      IsNotFound s -> UnWrap 9 s
-      IsAccess s -> UnWrap 10 s
       IsPermissions p -> UnWrap 11 p
       )
 
@@ -426,33 +418,25 @@ instance (MonadIO m,HasWrapper Diff m)
    writeBin = mapWrite Wrapped
    readBin = mapRead wrapped
 
-instance Monad m => HasBinary SecurityData m where
-   writeBin = mapWrite (\ --
-      SecurityData {parentOpt = parentOpt,permissions = permissions}
-      -> (parentOpt,permissions)
-      )
-   readBin = mapRead (\ --
-      (parentOpt,permissions)
-      -> SecurityData {parentOpt = parentOpt,permissions = permissions}
-      )
-
 instance Monad m => HasBinary FrozenVersion m where
    writeBin = mapWrite (\ --
       FrozenVersion {
          parent' = parent',
          thisVersion' = thisVersion',
          objectChanges = objectChanges,
-         redirects' = redirects'
+         redirects' = redirects',
+         parentChanges = parentChanges
          }
-      -> (parent',thisVersion',objectChanges,redirects')
+      -> (parent',thisVersion',objectChanges,redirects',parentChanges)
       )
    readBin = mapRead (\ --
-      (parent',thisVersion',objectChanges,redirects')
+      (parent',thisVersion',objectChanges,redirects',parentChanges)
       -> FrozenVersion {
          parent' = parent',
          thisVersion' = thisVersion',
          objectChanges = objectChanges,
-         redirects' = redirects'
+         redirects' = redirects',
+         parentChanges = parentChanges
          }
       )
 

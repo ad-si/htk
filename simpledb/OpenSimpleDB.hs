@@ -14,7 +14,6 @@ import BDBOps
 import BDBExtras
 import VersionInfo
 import Permissions
-import SecurityManagement
 import LocationAllocation
 import VersionAllocation
 import VersionState
@@ -95,10 +94,8 @@ initSimpleDB simpleDB =
                setObjectHere1 (miscDB simpleDB) 1 txn (succ specialLocation2)
                setObjectHere1 (miscDB simpleDB) 2 txn ([] :: Permissions)
 
-               setObjectHere1 (securityDB simpleDB) 0 txn 
-                  (trivialSecurityData Nothing)
-               setObjectHere1 (securityDB simpleDB) 1 txn
-                  (trivialSecurityData Nothing)
+               setObjectHere1 (securityDB simpleDB) 0 txn ([] :: Permissions)
+               setObjectHere1 (securityDB simpleDB) 1 txn ([] :: Permissions)
                endTransaction txn
                flushBDB (securityDB simpleDB)
                flushBDB (miscDB simpleDB)

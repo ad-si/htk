@@ -61,7 +61,6 @@ module SimpleDB(
       --    contains the additional information for this commit
       --    (the ObjectVersion for the new version, parent versions,
       --       version title, and so on.)
-      -- [(Location,Either ObjectVersion (Maybe Location))]
       -- [(Location,Maybe ObjectVersion)]
       --    redirects.  I can't be bothered to explain them now, see
       --    definition of SimpleDBServer.Commit.  For normal (non-session
@@ -75,6 +74,8 @@ module SimpleDB(
       --       NB.  The locations list ONLY has to contain what's different
       --       from the parent version, if any.  The Right .. option is
       --       normally only used during merging.
+      -- [(Location,Location)]
+      --    Changes to parents.  Again, see SimpleDBServer.Commit.
 
    CommitChange, -- = Either ObjectSource (Location,ObjectVersion)
    VersionInformation(..),
@@ -89,6 +90,22 @@ module SimpleDB(
       -- -> IO [(Location,Diff)]
       -- Compare the given object version with the (presumably parent)
       -- object versions.
+
+   Permissions,Permission(..),
+   getPermissions,
+      -- :: Repository -> Maybe (ObjectVersion,Location) -> IO Permissions
+      -- get the permissions for the given location, or if none is given
+      -- the global permissions.
+
+   setPermissions,
+      -- :: Repository -> Maybe (ObjectVersion,Location) -> Permissions
+      -- -> IO ()
+      -- set permissions.
+
+   getParentLocation,
+      -- :: Repository -> (ObjectVersion,Location) -> IO (Maybe Location)
+      -- Get the object's parent location.
+
    Diff(..),
    ChangeData,
 
@@ -97,33 +114,13 @@ module SimpleDB(
       -- General query.
    SimpleDBCommand(..),SimpleDBResponse(..),
 
-   catchNotFound, 
-      -- :: IO a -> IO (Maybe a)
-      -- Catch the exception provoked by the retrieveXXX functions and
-      -- getVersionInfo when a version is not found.
-   notFoundError, -- :: String -> a
-      -- Throw a notFound error (as caught by catchNotFound).
-
-   catchAlreadyExists,
-      -- :: IO a -> IO (Either ObjectVersion a)
-      -- Catch the exception provoked by commit and modifyVersionInfo
-      -- when we attempt to check in an VersionInfo which already exists
-      -- in the repository, but with a different version number, or when
-      -- we check in to an ObjectVersion which has already been checked in.
-
-   catchDBError, -- :: IO a -> IO (Either String a)
-   catchDBErrorWE, -- :: IO a -> IO (WithError a)
-      -- These functions may be used to catch errors, when the server 
-      -- returns something unexpected.
-   dbError, -- :: String -> a
-      -- Throw error to be caught by catchDBError.
+   module ServerErrors,
    ) where
 
-import System.IO.Unsafe(unsafePerformIO)
 import Control.Concurrent.MVar
 
 import Object
-import Computation(done,WithError,toWithError,fromWithError)
+import Computation(done)
 import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
@@ -149,6 +146,8 @@ import VersionState
 import ObjectSource
    -- that prevents those two functions being exported
 import qualified ObjectSource
+import Permissions
+import ServerErrors
 
 
 ----------------------------------------------------------------
@@ -210,7 +209,7 @@ initialiseInternal versionState =
       let
          userId1 = defaultUser
 
-         user = User {
+         user = PasswordFile.User {
             PasswordFile.userId = userId1,
             encryptedPassword = "",
             adminMVar = adminMVar,
@@ -233,7 +232,7 @@ initialise1 queryRepository1 closeDown =
             do
                response <- queryRepository1 command
                case response of
-                  IsError mess -> dbError ("Server error: " ++ mess)
+                  IsError errorType mess -> throwError errorType mess
                   _ -> return response
 
       oID <- newObject
@@ -263,10 +262,10 @@ instance Ord Repository where
 -- Query functions
 ----------------------------------------------------------------
 
-newLocation :: Repository -> Maybe (ObjectVersion,Location) -> IO Location
-newLocation repository parentOpt =
+newLocation :: Repository -> IO Location
+newLocation repository =
    do
-      response <- queryRepository repository (NewLocation parentOpt)
+      response <- queryRepository repository NewLocation
       return (toLocation response)
 
 newVersion :: Repository -> IO ObjectVersion
@@ -315,9 +314,11 @@ type CommitChange = Either ObjectSource (ObjectVersion,Location)
 
 commit :: Repository 
    -> VersionInformation
-   -> [(Location,Either ObjectVersion (Maybe Location))]
-   -> [(Location,CommitChange)] -> IO ()
-commit repository versionInformation redirects newStuff0 =
+   -> [(Location,Maybe ObjectVersion)]
+   -> [(Location,CommitChange)] 
+   -> [(Location,Location)]
+   -> IO ()
+commit repository versionInformation redirects newStuff0 parentChanges =
    do
       (newStuff1 
             :: [(Location,Either ICStringLen (ObjectVersion,Location))]) <-
@@ -333,12 +334,14 @@ commit repository versionInformation redirects newStuff0 =
             newStuff0
 
       response <- queryRepository repository (
-         Commit versionInformation redirects newStuff1)
+         Commit versionInformation redirects newStuff1 parentChanges)
 
       case response of
          IsOK -> done
-         IsObjectVersion objectVersion -> alreadyExistsError objectVersion
-         _ -> dbError ("Commit error: unexpected response")
+         IsObjectVersion objectVersion -> 
+            throwError MiscError ("ObjectVersion " ++ show objectVersion
+               ++ " cannot be committed as it already exists")
+         _ -> unpackError "commit" response
 
 
 
@@ -351,7 +354,7 @@ modifyUserInfo repository userInfo =
          IsOK -> done
          IsObjectVersion objectVersion -> 
             error ("modifyUserInfo: " ++ toString objectVersion)
-         _ -> dbError ("ModifyUserInfo: unexpected response")
+         _ -> unpackError "modifyUserInfo" response
 
 modifyVersionInfo :: Repository -> VersionInfo -> IO ()
 modifyVersionInfo repository versionInfo =
@@ -361,8 +364,10 @@ modifyVersionInfo repository versionInfo =
             (ModifyUserInfo (VersionInfo1 versionInfo))
       case response of
          IsOK -> done
-         IsObjectVersion objectVersion -> alreadyExistsError objectVersion
-         _ -> dbError ("ModifyVersionInfo: unexpected response")
+         IsObjectVersion objectVersion -> 
+            throwError MiscError ("ObjectVersion " ++ show objectVersion
+               ++ " cannot be modified as it already exists")
+         _ -> unpackError "modifyVersionInfo" response
 
 getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 
    -> IO [(Location,Diff)]
@@ -371,7 +376,35 @@ getDiffs repository version versions =
       response <- queryRepository repository (GetDiffs version versions)
       case response of
          IsDiffs diffs -> return diffs
-         _ -> dbError ("GetDiffs: unexpected response")
+         _ -> unpackError "getDiffs" response
+
+getPermissions :: Repository -> Maybe (ObjectVersion,Location) 
+   -> IO Permissions
+getPermissions repository ovOpt =
+   do
+      response <- queryRepository repository (GetPermissions ovOpt)
+      case response of
+         IsPermissions permissions -> return permissions
+         _ -> unpackError "getPermissions" response
+
+setPermissions :: Repository -> Maybe (ObjectVersion,Location)
+   -> Permissions -> IO ()
+setPermissions repository ovOpt permissions =
+   do
+      response <- queryRepository repository (SetPermissions ovOpt permissions)
+      case response of
+         IsOK -> done
+         _ -> unpackError "setPermissions" response
+
+getParentLocation :: Repository -> (ObjectVersion,Location) 
+   -> IO (Maybe Location)
+getParentLocation repository ov =
+   do
+      response <- queryRepository repository (GetParentLocation ov)
+      case response of
+         IsLocation location -> return (Just location)
+         IsOK -> return Nothing
+         _ -> unpackError "getParentLocation" response
 
 ----------------------------------------------------------------
 -- Unpacking SimpleDBResponse
@@ -391,72 +424,14 @@ toObjectVersions r = unpackError "objectVersions" r
 
 toData :: SimpleDBResponse -> ICStringLen
 toData (IsData icsl) = icsl
-toData (IsNotFound s) = notFoundError s
 toData r = unpackError "object" r
 
-unpackError s r = dbError ("Expecting " ++ s ++ ": " ++ 
-   case r of
-      IsError mess -> mess
-      _ -> " but found something else"
-   ) 
-
-----------------------------------------------------------------
--- Handling errors
-----------------------------------------------------------------
-
-
--- miscellaneous errors
-catchDBError :: IO a -> IO (Either String a)
-(dbFallOutId,catchDBError) = mkdbFallOut
-
-catchDBErrorWE :: IO a -> IO (WithError a)
-catchDBErrorWE act =
-   do 
-      result <- catchDBError act
-      return (toWithError result)
-
-dbError :: String -> a
-dbError = mkBreakFn dbFallOutId
-
-mkdbFallOut = unsafePerformIO newFallOut
-{-# NOINLINE mkdbFallOut #-}
-
--- not found exceptions
-(notFoundId,catchNotFound') = mkNotFoundFallOut
-
-catchNotFound :: IO a -> IO (Maybe a)
-catchNotFound act =
-   do 
-      result <- catchNotFound' act
-      return (case result of
-         Left _ -> Nothing
-         Right a -> Just a
-         )
-
-notFoundError :: String -> a
-notFoundError s = mkBreakFn notFoundId ("Not found error: " ++ s)
-
-mkNotFoundFallOut = unsafePerformIO newFallOut
-{-# NOINLINE mkNotFoundFallOut #-}
-
--- alreadyExists exceptions
--- we use a horrible hack, and encode the version number in
--- the String using toString 
-(alreadyExistsId,catchAlreadyExists') = mkAlreadyExistsFallOut
-
-catchAlreadyExists :: IO a -> IO (Either ObjectVersion a)
-catchAlreadyExists act =
-   do
-      result <- catchAlreadyExists' act
-      case result of
-         Left mess -> case fromWithError (fromStringWE mess) of
-            Right objectVersion -> return (Left objectVersion)
-         Right a -> return (Right a) 
-
-alreadyExistsError :: ObjectVersion -> a
-alreadyExistsError objectVersion 
-   = mkBreakFn alreadyExistsId (toString objectVersion)
-
-mkAlreadyExistsFallOut = unsafePerformIO newFallOut
-{-# NOINLINE mkAlreadyExistsFallOut #-}
+unpackError :: String -> SimpleDBResponse -> a
+unpackError s r = 
+   let
+      (errorType,mess) = case r of
+         IsError errorType mess -> (errorType,mess)
+         _ -> (MiscError,"but found " ++ show r)
+   in
+      throwError errorType ("Expecting " ++ s ++ ": " ++ mess)
 

@@ -4,6 +4,7 @@ module Commit(
    ) where
 
 import Control.Exception
+import Data.FiniteMap
 
 import Monad
 import Maybe
@@ -20,16 +21,18 @@ import VersionInfo(ObjectVersion)
 import SimpleDBTypes
 import Permissions
 import SecurityManagement
+import PrimitiveLocation
 import LocationAllocation
 import ModifyUserInfo
 import VersionData
 import FlushSimpleDB
 
 commit :: SimpleDB -> User -> VersionInformation 
-   -> [(Location,Either ObjectVersion (Maybe Location))] 
+   -> [(Location,Maybe ObjectVersion)] 
    -> [(Location,ChangeData)] 
+   -> [(Location,Location)]
    -> IO (Maybe ObjectVersion)
-commit simpleDB user versionInformation redirects0 changeData0 =
+commit simpleDB user versionInformation redirects0 changeData0 parentChanges =
    do
       permissions <- getGlobalPermissions simpleDB
       verifyGlobalAccess user permissions WriteActivity
@@ -80,6 +83,24 @@ commit simpleDB user versionInformation redirects0 changeData0 =
                      getVersionInfo objectVersion
                      return (Just parentVersion,objectVersion)
 
+            let
+               -- This maps locations to the version from which they
+               -- come from.
+               redirectsMap :: FiniteMap Location (Maybe ObjectVersion)
+               redirectsMap = listToFM redirects0
+
+               locationSource :: Location -> Maybe ObjectVersion
+               locationSource location = case lookupFM redirectsMap location of
+                  Just versionOpt -> versionOpt
+                  _ -> parentOpt1
+
+               verifyLocation :: Location -> Activity -> IO ()
+               verifyLocation location activity =
+                  case locationSource location of
+                     Nothing -> done
+                     Just version -> verifyAccess simpleDB user
+                        version (Just location) activity
+
             -- enter the new stuff in the BDB repository; also check
             -- permissions.
             (objectChanges1 :: [(Location,
@@ -89,11 +110,7 @@ commit simpleDB user versionInformation redirects0 changeData0 =
                   case newItem of
                      Left icsl ->
                         do
-                           case parentOpt1 of
-                              Just parentVersion -> 
-                                 verifyAccess simpleDB user 
-                                    parentVersion (Just location) WriteActivity
-                              Nothing -> done
+                           verifyLocation location WriteActivity
                            bdbKey <- writeBDB (dataDB simpleDB) txn icsl
                            return (location,Left bdbKey)
                      Right (objectLoc@(oldVersion,oldLocation)) ->
@@ -104,40 +121,28 @@ commit simpleDB user versionInformation redirects0 changeData0 =
                   )
                changeData0
 
-            let
-               -- redirects which involve Left version
-               redirectsA :: 
-                  [(Location,Either ObjectVersion PrimitiveLocation)]
-               redirectsA = mapMaybe
-                  (\ (location,redirect) -> case redirect of
-                     Left version -> Just (location,Left version)
-                     Right _ -> Nothing
+            (redirects' :: [(Location,Either ObjectVersion PrimitiveLocation)])
+               <- mapM
+                  (\ (location,redirect) ->
+                     do
+                        redirect' <- case redirect of
+                           Just version -> return (Left version)
+                           Nothing -> 
+                              do
+                                 location1 <- getNextLocation simpleDB
+                                 return (Right (toPrimitiveLocation location1))
+                        return (location,redirect')
                      )
                   redirects0
-            
-               -- redirects which involve Right (PrimitiveLocation),
-               -- to be fed to LocationAllocation.getRedirectLocations
-               redirectsB1 :: [(Location,Maybe Location)]
-               redirectsB1 = mapMaybe
-                  (\ (location,redirect) -> case redirect of
-                    Right parentLocationOpt 
-                       -> Just (location,parentLocationOpt)
-                    Left _ -> Nothing
-                    )
-                  redirects0
 
-            (redirectsB2 :: [(Location,PrimitiveLocation)])
-               <- getRedirectLocations simpleDB parentOpt1 redirectsB1
-
-            let
-               redirectsB 
-                  :: [(Location,Either ObjectVersion PrimitiveLocation)]
-               redirectsB =
-                  map
-                     (\ (location,primitiveLocation) ->
-                        (location,Right primitiveLocation)
-                        )
-                     redirectsB2
+            -- Verify permissions for the parentChanges.
+            mapM
+               (\ (object,parent) ->
+                  do
+                     verifyLocation object PermissionsActivity
+                     verifyLocation parent PermissionsActivity
+                  )         
+               parentChanges
 
             versionOpt <- modifyUserInfo1 simpleDB user versionInformation txn
             if isJust versionOpt 
@@ -148,7 +153,8 @@ commit simpleDB user versionInformation redirects0 changeData0 =
                            parent' = parentOpt1,
                            thisVersion' = thisVersion1,
                            objectChanges = objectChanges1,
-                           redirects' = redirectsA ++ redirectsB
+                           redirects' = redirects',
+                           parentChanges = parentChanges
                            }
                      modifyVersionData simpleDB thisVersion1 
                         frozenVersion txn

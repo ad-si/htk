@@ -1,16 +1,17 @@
 -- | The functions in this module manage and verify access to the 
 -- database.
 module SecurityManagement(
-   setSecurityData,
-   getSecurityData,
+   setPermissions1,
+   getPermissions1,
    setGlobalPermissions,
    getGlobalPermissions,
-   trivialSecurityData,
    verifyAccess,   
    verifyGetPermissionsAccess,
    verifyGlobalAccess,
    verifyGlobalGetPermissionsAccess,
    ) where
+
+import Data.FiniteMap
 
 import Computation(done)
 
@@ -31,14 +32,14 @@ import VersionData
 -- Accessing and retrieving permissions
 -- ----------------------------------------------------------------------
 
-setSecurityData :: SimpleDB -> PrimitiveLocation -> SecurityData -> IO ()
-setSecurityData simpleDB (PrimitiveLocation key) securityData =
+setPermissions1 :: SimpleDB -> PrimitiveLocation -> Permissions -> IO ()
+setPermissions1 simpleDB (PrimitiveLocation key) permissions =
    do
-      setObjectHere (securityDB simpleDB) (fromIntegral key) securityData
+      setObjectHere (securityDB simpleDB) (fromIntegral key) permissions
       flushBDB (securityDB simpleDB)
 
-getSecurityData :: SimpleDB -> PrimitiveLocation -> IO SecurityData
-getSecurityData simpleDB (PrimitiveLocation key) =
+getPermissions1 :: SimpleDB -> PrimitiveLocation -> IO Permissions
+getPermissions1 simpleDB (PrimitiveLocation key) =
    getObject (securityDB simpleDB) (fromIntegral key) 
 
 getGlobalPermissions :: SimpleDB -> IO Permissions
@@ -49,14 +50,6 @@ setGlobalPermissions simpleDB permissions =
    do
       setObjectHere (miscDB simpleDB) 2 permissions 
       flushBDB (miscDB simpleDB)
-
-
-trivialSecurityData :: Maybe PrimitiveLocation -> SecurityData
-trivialSecurityData parentPrimitiveLocOpt =
-   SecurityData {
-      parentOpt = parentPrimitiveLocOpt,
-      permissions = []
-      }
 
 -- ----------------------------------------------------------------------
 -- Verifying Access
@@ -127,29 +120,29 @@ verifyAccess0 simpleDB groupFile userId0 objectVersion locationOpt activity =
                Just location ->
                   do
                      versionData <- getVersionData simpleDB objectVersion
-                     let
-                        plocation = retrievePrimitiveLocation versionData
-                           location
                      verifyAccess1 simpleDB groupFile userId0 objectVersion 
-                        versionData plocation activity
+                        versionData location activity
          else
             return False 
 
 verifyAccess1 :: SimpleDB -> GroupFile -> String -> ObjectVersion 
-   -> VersionData -> PrimitiveLocation -> Activity -> IO Bool
-verifyAccess1 simpleDB groupFile userId0 version versionData plocation1 
+   -> VersionData -> Location -> Activity -> IO Bool
+verifyAccess1 simpleDB groupFile userId0 version versionData location1 
       activity =
    do
-      securityData <- getSecurityData simpleDB plocation1
+      let
+         plocation1 = retrievePrimitiveLocation versionData location1
+
+      permissions <- getPermissions1 simpleDB plocation1
       allowed <- examinePermissions (versionState simpleDB)
-         groupFile userId0 version activity (permissions securityData)
+         groupFile userId0 version activity permissions
       if allowed
          then
-            case parentOpt securityData of
+            case lookupFM (parentsMap versionData) location1 of
                Nothing -> return True
-               Just plocation2 ->
+               Just location2 ->   
                   verifyAccess1 simpleDB groupFile userId0 version versionData
-                     plocation2 activity
+                     location2 activity
          else
             return False
 

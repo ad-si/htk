@@ -11,6 +11,10 @@ import Monad
 import Data.IORef
 import Data.FiniteMap
 
+import Computation(done)
+
+import FindCycle
+
 import VersionInfo
 import SimpleDBTypes
 import ServerErrors
@@ -110,11 +114,12 @@ updateVersionData fm thisObjectVersion frozenVersion =
       let
          parentObjectDictionary :: FiniteMap PrimitiveLocation BDBKey
          parentRedirects :: FiniteMap Location PrimitiveLocation
-         (parentObjectDictionary,parentRedirects) = 
+         (parentObjectDictionary,parentRedirects,parentParentsMap) = 
             case parentVersionDataOpt of
                Just versionData -> 
-                  (objectDictionary versionData,redirects versionData)
-               Nothing -> (emptyFM,emptyFM)
+                  (objectDictionary versionData,redirects versionData,
+                     SimpleDBTypes.parentsMap versionData)
+               Nothing -> (emptyFM,emptyFM,emptyFM)
 
          addRedirect ::
             FiniteMap Location PrimitiveLocation
@@ -163,12 +168,59 @@ updateVersionData fm thisObjectVersion frozenVersion =
       (thisObjectDictionary :: FiniteMap PrimitiveLocation BDBKey)
          <- foldM addObjectKey parentObjectDictionary 
             (objectChanges frozenVersion)
+
+      (parentChangesMap :: FiniteMap Location Location) 
+         <- foldM
+            (\ parentChangesMap0 (object,parent) 
+               -> case lookupFM parentChangesMap0 object of
+                  Just _ ->
+                     throwError MiscError ("Parent changes include " 
+                        ++ show object ++ " twice")
+                  Nothing -> return (addToFM parentChangesMap0 object parent)
+               )
+            emptyFM
+            (parentChanges frozenVersion)
+
+      -- Check for cycles in the parent changes
       let
+         newParentFn :: Location -> [Location]
+         newParentFn object = 
+            let
+               parent :: Maybe Location
+               parent =
+                  case lookupFM parentChangesMap object of
+                     Nothing -> lookupFM parentParentsMap object
+                     parent1 -> parent1
+            in
+               maybeToList parent
+
+      case findCycle (map fst (parentChanges frozenVersion)) newParentFn of
+         Nothing -> done
+         Just cycle ->
+            throwError MiscError ("Cycle " ++ show cycle ++ 
+               " detected in parent locations")
+
+      let
+         thisParentsMap = plusFM parentParentsMap parentChangesMap
+
          thisVersionData = VersionData {
             parent = parent' frozenVersion,
             objectDictionary = thisObjectDictionary,
-            redirects = thisRedirects
+            redirects = thisRedirects,
+            parentsMap = thisParentsMap
             }
+
+      -- Check that all the parents and objects in the parent changes exist.
+      mapM_
+         (\ (parent,object) ->
+            case (retrieveLocationKeyOpt thisVersionData parent,
+                  retrieveLocationKeyOpt thisVersionData object) of
+               (Just _,Just _) -> done
+               _ -> throwError MiscError (
+                  "Parent specification " ++ show (parent,object) ++
+                     " contains non-existent object")
+            )
+         (parentChanges frozenVersion)
 
       return (addToFM fm thisObjectVersion thisVersionData)
 

@@ -7,6 +7,8 @@ module SetGetSecurityData(
    getParentLocation,
    ) where
 
+import Data.FiniteMap
+
 import PasswordFile(User)
 
 import Permissions
@@ -31,8 +33,7 @@ getPermissions simpleDB user ovLocOpt = case ovLocOpt of
          versionData <- getVersionData simpleDB version
          let
             primitiveLocation = retrievePrimitiveLocation versionData location
-         securityData <- getSecurityData simpleDB primitiveLocation
-         return (permissions securityData)
+         getPermissions1 simpleDB primitiveLocation
 
 setPermissions :: SimpleDB -> User -> Maybe (ObjectVersion,Location) 
    -> Permissions -> IO ()
@@ -53,10 +54,7 @@ setPermissions simpleDB user ovLocOpt permissions =
             let
                primitiveLocation 
                   = retrievePrimitiveLocation versionData location
-            securityData0 <- getSecurityData simpleDB primitiveLocation
-            let
-               securityData1 = securityData0 {permissions = permissions}
-            setSecurityData simpleDB primitiveLocation securityData1
+            setPermissions1 simpleDB primitiveLocation permissions
 
 
 -- *** NB.  Do not allow the user to SET a parent location without checking
@@ -67,9 +65,5 @@ getParentLocation simpleDB user (version,location) =
    do
       verifyGetPermissionsAccess simpleDB user version (Just location)
       versionData <- getVersionData simpleDB version
-      let
-         pLocation = retrievePrimitiveLocation versionData location
-
-      securityData <- getSecurityData simpleDB pLocation
-      return (fmap (retrieveLocation versionData) (parentOpt securityData))
+      return (lookupFM (parentsMap versionData) location)
  

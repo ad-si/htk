@@ -16,6 +16,7 @@ module PrimitiveLocation(
    locationsSame,
    retrievePrimitiveLocation,
    retrievePrimitiveLocation1,
+   retrieveLocationKeyOpt,
    toPrimitiveLocation,
    retrieveKey,
    retrieveKey1,
@@ -54,6 +55,14 @@ retrievePrimitiveLocation1 :: FiniteMap Location PrimitiveLocation
     -> Location -> PrimitiveLocation
 retrievePrimitiveLocation1 map location =
    lookupWithDefaultFM map (toPrimitiveLocation location) location
+
+-- | Get the 'BDBKey' for a 'Location' in a particular version.
+retrieveLocationKeyOpt :: VersionData -> Location -> Maybe BDBKey
+retrieveLocationKeyOpt versionData location =
+   let
+      pLocation = retrievePrimitiveLocation versionData location
+   in
+      retrieveKeyOpt versionData pLocation
 
 -- | Get the 'BDBKey' for a 'PrimitiveLocation' in a particular version.
 retrieveKey :: VersionData -> PrimitiveLocation -> IO BDBKey

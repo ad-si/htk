@@ -30,20 +30,15 @@ import Commit
 querySimpleDB :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB user simpleDB simpleDBCommand =
    catchError (querySimpleDB1 user simpleDB simpleDBCommand)
-      (\ errorType mess -> case errorType of
-         AccessError -> IsAccess mess
-         NotFoundError -> IsNotFound mess
-         InternalError -> IsError ("Server Internal Error!!!\n" ++ mess)
-         MiscError -> IsError mess
-         ) 
+      (\ errorType mess -> IsError errorType mess)
 
 querySimpleDB1 :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB1 user simpleDB command = case command of
-   NewLocation parentOpt ->
+   NewLocation ->
       do
          permissions <- getGlobalPermissions simpleDB
          verifyGlobalAccess user permissions WriteActivity
-         location <- getNextLocation simpleDB parentOpt
+         location <- getNextLocation simpleDB
          return (IsLocation location)
    NewVersion ->
       do
@@ -65,10 +60,10 @@ querySimpleDB1 user simpleDB command = case command of
             ReadActivity
          lastChangeVersion <- lastChange simpleDB version location
          return (IsObjectVersion lastChangeVersion)
-   Commit versionInformation redirects changeData ->
+   Commit versionInformation redirects changeData parentChanges ->
       do
          objectVersionOpt <- commit simpleDB user versionInformation redirects
-            changeData
+            changeData parentChanges
          return (case objectVersionOpt of
             Nothing -> IsOK
             Just objectVersion -> IsObjectVersion objectVersion
