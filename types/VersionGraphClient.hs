@@ -27,6 +27,7 @@ import UniqueString
 import Computation
 import Spawn
 import NewNames
+import BinaryIO
 
 import InfoBus
 
@@ -93,14 +94,14 @@ connectToServer =
                let
                   updateThread =
                      do
-                        nextUpdate <- getNextUpdate
+                        (ReadShow nextUpdate) <- getNextUpdate
                         updateSink nextUpdate
                         updateThread
                    
                   graphUpdate update = 
                      if filterUpdate update 
                         then
-                           updateServer update
+                           updateServer (ReadShow update)
                         else
                            done
 

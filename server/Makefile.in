@@ -6,11 +6,11 @@ else
 CRYPTPACKAGES = 
 endif
 
-PACKAGES = net posix uni-reactor uni-posixutil $(CRYPTPACKAGES)
+PACKAGES = net posix uni-reactor uni-posixutil uni-htk $(CRYPTPACKAGES)
 
 
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
-   Crypt.hs
+   Crypt.hs PasswordFile.hs 
 
 include @TOP@/mk/boilerplate.mk

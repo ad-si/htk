@@ -66,11 +66,13 @@
    workingDir    The directory used for temporary files.
 
    server        The host name of the server
+   user          The user-id to use connecting to the server
+   password      The password to use connecting to the server
    port          The port on the server to connect to
+
    debug         Where Debug.debug messages should go
 
-   simpleStore   Storage on disk of SimpleStore
-   storeDir      Where Store stores its files
+   serverDir      Where Server stores its files
 
    MMiSSDTD      Location of DTD file for MMiSS.
 
@@ -131,10 +133,12 @@ module WBFiles (
    -- values for which we don't are:
    getDaVinciIcons, -- :: IO (Maybe String)
    getServer, -- ditto
+   getUser, -- ditto
+   getPassword, -- ditto
 
    -- Store options.
-   getSimpleStore, -- :: IO String
-   getStoreDir, -- :: IO String
+   getServerFile, -- :: String -> IO String
+      -- Get a file for the use of the server.
 
    -- Access to other options.
    getArgString, -- :: String -> IO (Maybe String)
@@ -265,17 +269,26 @@ getWorkingDir =
 getDebugFileName :: IO String
 getDebugFileName = valOf (getArgString "debug")
 
-getSimpleStore :: IO String
-getSimpleStore = valOf (getArgString "simpleStore")
+getServerFile :: String -> IO String
+getServerFile innerName =
+   do
+      serverDir <- getServerDir
+      return (combineNames (trimDir serverDir) innerName)
 
-getStoreDir :: IO String
-getStoreDir = valOf (getArgString "storeDir")
+getServerDir :: IO String
+getServerDir = valOf (getArgString "serverDir")
 
 getDaVinciIcons :: IO (Maybe String)
 getDaVinciIcons = getArgString "daVinciIcons"
 
 getServer :: IO (Maybe String)
 getServer = getArgString "server"
+
+getUser :: IO (Maybe String)
+getUser = getArgString "user"
+
+getPassword :: IO (Maybe String)
+getPassword = getArgString "password"
 
 getWBToolFilePath :: String-> IO String
 getWBToolFilePath tool =
@@ -368,15 +381,9 @@ usualProgramArguments = [
       argType = STRING
       },
    ProgramArgument{
-      optionName = "simpleStore",
-      optionHelp = "where server store goes",
-      defaultVal = Just (StringValue "serverStore"),
-      argType = STRING
-      },
-   ProgramArgument{
-      optionName = "storeDir",
-      optionHelp = "where server store directory goes",
-      defaultVal = Just (StringValue "storeDir"),
+      optionName = "serverDir",
+      optionHelp = "where server stores its files",
+      defaultVal = Just (StringValue "serverDir"),
       argType = STRING
       },
    ProgramArgument{
@@ -388,6 +395,18 @@ usualProgramArguments = [
    ProgramArgument{
       optionName = "server",
       optionHelp = "machine where the server runs",
+      defaultVal = Nothing,
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "user",
+      optionHelp = "Your identifier on the server",
+      defaultVal = Nothing,
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "password",
+      optionHelp = "Your password on the server",
       defaultVal = Nothing,
       argType = STRING
       },

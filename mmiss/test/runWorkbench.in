@@ -14,12 +14,15 @@ UNIWORKINGDIR=/tmp/uni.temp.$USER
 
 # The following variables have to be set since in the binary release they
 # cannot (at the moment) be hardwired into the binaries.
-export UNIWISH UNIDAVINCI UNIDAVINCIICONS UNIGNUCLIENT UNITOP
+export UNIWISH UNIDAVINCI UNIDAVINCIICONS UNIGNUCLIENT UNITOP UNIUSER UNIPASSWORD
 UNIWISH=${UNIWISH:-@WISH@}
 UNIDAVINCI=${UNIDAVINCI:-@DAVINCI@}
 UNIDAVINCIICONS=${UNIDAVINCIICONS:-@TOP@/database/icons}
 UNIGNUCLIENT=${UNIGNUCLIENT:-@GNUCLIENT@}
 UNITOP=${UNITOP:-@TOP@}
+UNIUSER=${UNIUSER:-dummyUser}
+UNIPASSWORD=${UNIPASSWORD:-dummy0}
+
 
 gmake killServer
 gmake killWorkbench

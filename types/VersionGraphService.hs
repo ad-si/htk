@@ -28,6 +28,7 @@ module VersionGraphService(
 
 import AtomString
 import Computation(done)
+import BinaryIO
 
 import Thread(secs)
 
@@ -68,7 +69,8 @@ data FrozenGraph2 = FrozenGraph2 {
 
 versionGraphServiceWrapped = Service versionGraphService
 
-versionGraphService = serviceArg :: (VersionUpdate,VersionUpdate,VersionGraph)
+versionGraphService 
+   = serviceArg :: (ReadShow VersionUpdate,ReadShow VersionUpdate,VersionGraph)
 
 
 ------------------------------------------------------------------------------
@@ -97,20 +99,21 @@ workingArcType = fromString "W"
 -- The instance
 ------------------------------------------------------------------------------
 
-instance ServiceClass VersionUpdate VersionUpdate VersionGraph where
+instance ServiceClass (ReadShow VersionUpdate) (ReadShow VersionUpdate) 
+      VersionGraph where
 
    serviceId _ = "VersionGraph"
 
    serviceMode _ = BroadcastOther
 
-   handleRequest _ (newUpdate,simpleGraph) =
+   handleRequest _ _ (ReadShow newUpdate,simpleGraph) =
       do
          update simpleGraph newUpdate
-         return (newUpdate,simpleGraph)
+         return (ReadShow newUpdate,simpleGraph)
 
    getBackupDelay _ = return (BackupEvery 1)
 
-   sendOnConnect _ simpleGraph =
+   sendOnConnect _ _ simpleGraph =
       do
          let
              graphConnection = shareGraph simpleGraph

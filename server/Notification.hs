@@ -16,6 +16,7 @@ import IO
 
 import Debug
 import Object
+import BinaryIO
 
 import Events
 import GuardedEvents
@@ -49,31 +50,25 @@ mkNotifier :: IO Notifier
 mkNotifier =
    do
       oID <- newObject
-      debug "n1"
       (writeAction,receiveAction,closeAction,header) <-
          connectBroadcast echoService
-      debug "n2"
       eventChannel <- newEqGuardedChannel
-      debug "n3"
       let
          notifier = Notifier{
             oID = oID,
-            writeAction=writeAction,
+            writeAction=(\ str -> writeAction (ReadShow str)),
             closeAction=closeAction,
             eventChannel=eventChannel
             }
 
          readerThread =
             do
-               key <- receiveAction
+               (ReadShow key) <- receiveAction
                sync (send eventChannel (key,()))
                readerThread            
-      debug "n4"
 
       forkIO readerThread
-      debug "n5"
       registerTool notifier
-      debug "n6"
       return notifier
 
 notify :: Notifier -> String -> IO()

@@ -14,8 +14,11 @@ import Directory
 import FileNames
 import WBFiles
 import CopyFile
+import BinaryIO
 
 import Thread
+
+import PasswordFile
 
 data Service = forall inType outType stateType . 
    ServiceClass inType outType stateType => 
@@ -28,7 +31,7 @@ serviceArg :: (ServiceClass inType outType stateType) =>
       (inType,outType,stateType)
 serviceArg = serviceArg
 
-class (Read inType,Show inType,Read outType,Show outType) =>
+class (HasBinaryIO inType,HasBinaryIO outType) =>
 -- inType is input to requests
 -- outType is output to requests.
 -- stateType is state.  This is shared between all clients of this
@@ -52,9 +55,10 @@ class (Read inType,Show inType,Read outType,Show outType) =>
    -- called when the server is initialised.  May for example
    -- read backups, if there are any.
 
-   handleRequest :: (inType,outType,stateType) -> 
-      (inType,stateType) -> IO (outType,stateType)
-   -- This handles a particular request from a client.
+   handleRequest :: (inType,outType,stateType) 
+      -> User -> (inType,stateType) -> IO (outType,stateType)
+   -- This handles a particular request from a client, identified by
+   -- the given User item.
 
    getBackupDelay :: (inType,outType,stateType) -> IO BackupDelay
    -- how often to backup - see type definition.  Read when
@@ -63,11 +67,12 @@ class (Read inType,Show inType,Read outType,Show outType) =>
    backupAction :: (inType,outType,stateType) -> stateType -> IO ()
    -- this is the action to be performed for backups.
 
-   sendOnConnect :: (inType,outType,stateType) -> stateType -> IO String
+   sendOnConnect :: (inType,outType,stateType) -> User -> stateType 
+      -> IO String
    -- On connection we send the sendOnConnect string to the client
    -- before anything else.  Defaults to "".  Computing the string
    -- requires the whole service to wait, so it shouldn't take too long.
-   sendOnConnect _ _ = return ""
+   sendOnConnect _ _ _ = return ""
 
    -- If the following functions are defined, the initialState and
    -- backupAction are automatically defined, to restore and save the

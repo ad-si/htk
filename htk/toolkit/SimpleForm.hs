@@ -87,6 +87,11 @@ module SimpleForm(
    FormTextField(..), -- This class is used for types which can be
       -- read in using a text field.
    FormTextFieldIO(..), -- Slightly more general version allowing IO actions.
+
+   Password(..),
+      -- newtype alias which specifies that the given FormTextField(IO)
+      -- instance should not be displayed on the screen, but replaced by
+      -- '.' characters.
    FormLabel(..), -- This class represents things which can be used for
       -- labels in the form.  Instances include String and Image.
    EmptyLabel(EmptyLabel),
@@ -623,6 +628,34 @@ instance FormTextFieldIO value => FormValue value where
                do
                   (contents :: String) <- readTkVariable contentsVariable
                   readFormStringIO contents
+         let
+            enteredForm = EnteredForm {
+               packAction = pack entry [Side AtRight,Fill X],
+               getFormValue = getFormValue,
+               destroyAction = done
+               }
+         return enteredForm
+
+-- -------------------------------------------------------------------------
+-- Instance #1B - A variation of the former, for a text field where the
+-- characters are not displayed as typed in, but replaced by '.'
+-- -------------------------------------------------------------------------
+
+newtype Password value = Password value
+
+instance FormTextFieldIO value => FormValue (Password value) where
+   makeFormEntry frame (Password defaultVal) =
+      do
+         defaultString <- makeFormStringIO defaultVal
+         contentsVariable <- createTkVariable defaultString
+         (entry :: Entry String) 
+            <- newEntry frame [showText '.',variable contentsVariable]
+         let 
+            getFormValue =
+               do
+                  (contents :: String) <- readTkVariable contentsVariable
+                  valueWE <- readFormStringIO contents
+                  return (mapWithError Password valueWE)
          let
             enteredForm = EnteredForm {
                packAction = pack entry [Side AtRight,Fill X],

@@ -74,6 +74,7 @@ module SimpleDB(
 
 import Object
 import Computation(done)
+import BinaryIO
 
 import Destructible
 
@@ -102,7 +103,14 @@ data Repository = Repository {
 initialise :: IO Repository
 initialise =
    do
-      (queryRepository,closeDown,"") <- connectReply simpleDBService
+      (queryRepository0,closeDown,"") <- connectReply simpleDBService
+
+      let
+         queryRepository command =
+            do
+               (ReadShow response) <- queryRepository0 (ReadShow command)
+               return response
+
       bdb <- openBDB
       oID <- newObject
       let

@@ -17,6 +17,7 @@ import NewNames
 import Graph
 import SimpleGraph
 import GraphEditor
+import BinaryIO
 import Debug(debug)
 
 data FrozenGraph = FrozenGraph {
@@ -31,24 +32,26 @@ data FrozenGraph2 = FrozenGraph2 {
 
 graphEditorServiceWrapped = Service graphEditorService
 
-graphEditorService = serviceArg :: (DisplayableUpdate,DisplayableUpdate,
-   Displayable SimpleGraph)
+graphEditorService = serviceArg :: 
+   (ReadShow DisplayableUpdate,ReadShow DisplayableUpdate,
+      Displayable SimpleGraph)
 
-instance ServiceClass DisplayableUpdate DisplayableUpdate 
+instance ServiceClass 
+   (ReadShow DisplayableUpdate) (ReadShow DisplayableUpdate) 
    (Displayable SimpleGraph) where
 
    serviceId _ = "GraphEditor"
 
    serviceMode _ = BroadcastOther
 
-   handleRequest _ (newUpdate,simpleGraph) =
+   handleRequest _ _ (ReadShow newUpdate,simpleGraph) =
       do
          update simpleGraph newUpdate
-         return (newUpdate,simpleGraph)
+         return (ReadShow newUpdate,simpleGraph)
 
    getBackupDelay _ = return (BackupAfter (secs 2.0))
 
-   sendOnConnect _ simpleGraph =
+   sendOnConnect _ _ simpleGraph =
       do
          let
              graphConnection = shareGraph simpleGraph

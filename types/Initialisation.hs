@@ -7,6 +7,7 @@ module Initialisation(
 
 import Debug(debug)
 import Computation
+import BinaryIO
 
 import CallServer
 
@@ -66,8 +67,11 @@ createRepository initialiseView repository =
          else
             do
                -- (2) connect to the server.
-               (updateServer,getUpdate,disconnect,stateString) <-
+               (updateServer0,getUpdate,disconnect,stateString) <-
                   connectBroadcastOther versionGraphService
+
+               let
+                  updateServer = updateServer0 . ReadShow
 
                -- (3) Put the node and arc types into the server.
                updateServer (NewNodeType checkedInType ())

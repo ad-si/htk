@@ -1,0 +1,8 @@
+#!/bin/sh
+cd @TOP@/server
+export UNISERVERDIR
+UNISERVERDIR=/tmp/server.$USER
+rm -rf $UNISERVERDIR
+mkdir $UNISERVERDIR
+cp passwd.dummy $UNISERVERDIR/passwd
+exec ./testserver

@@ -5,6 +5,7 @@ module GraphEditorRemote(graphEditorRemote) where
 import Concurrent
 
 import Computation(done)
+import BinaryIO
 
 import Thread
 import HostsPorts
@@ -45,12 +46,12 @@ graphEditorRemote displaySort =
                   graphConnectionData = GraphConnectionData {
                      graphState = graphState,
                      deRegister = done,
-                     graphUpdate = updateServer,
+                     graphUpdate = updateServer . ReadShow ,
                      nameSourceBranch = nameSourceBranch
                      }
                   listenToServer =
                      do
-                        newUpdate <- getUpdate
+                        (ReadShow newUpdate) <- getUpdate
                         updateSink newUpdate
                         listenToServer
                updateThread <- forkIO(goesQuietly listenToServer)

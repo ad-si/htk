@@ -40,6 +40,7 @@ import FiniteMap
 import AtomString
 import IOExts
 import Dynamics
+import FileNames
 
 import CacheTable
 import IOExtras
@@ -145,7 +146,7 @@ data SimpleDB = SimpleDB {
 initObjectLocations :: IO (Handle,FiniteMap (Location,ObjectVersion) BDBKey)
 initObjectLocations =
    do
-      fpath <- getStoreDir
+      fpath <- getServerFile "objectLocs"
       handle <- openFile fpath ReadWriteMode
       let
          getRest map =

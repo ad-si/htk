@@ -18,7 +18,6 @@ displayextrasrcs :
 
 WORKINGDIR = $${UNIWORKINGDIR:-/tmp/@}
 DBDIR = $(WORKINGDIR)/simpledb
-STOREDIR = $(WORKINGDIR)/storeDir
 BACKUPDIR = $(WORKINGDIR)/backup
 UNITEMPFILES = $(WORKINGDIR)/\#
 

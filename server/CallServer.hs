@@ -30,12 +30,20 @@ module CallServer(
 
 import IO
 
+import Control.Concurrent.MVar
+import System.IO.Unsafe
+import Foreign.C.String
+
 import Computation
 import Debug(debug)
 import Object
 import WBFiles
+import BinaryIO
 
 import Destructible
+
+import SimpleForm
+import DialogWin
 
 import HostsPorts
 
@@ -53,15 +61,7 @@ connectReply service =
          Reply -> done
          _ -> ioError(userError("connectReply handed a non-Reply service"))
 
-      hostDesc <- getHost
-      portDesc <- getPort
-      handle <- connect hostDesc portDesc
-      connection <- newConnection handle
-      registerTool connection
-
-      let
-         serviceKey = serviceId service
-      hPutStrLnFlush handle serviceKey
+      (connection@ Connection {handle = handle}) <- connectBasic service
 
       headerLine <- hGetLine handle
       let
@@ -70,16 +70,11 @@ connectReply service =
       bSem <- newBSem 
       let
          sendMessage inData =
-            do
-               let 
-                  inLine = show inData
-               outLine <-
-                  synchronize bSem (
-                     do
-                        hPutStrLnFlush handle inLine
-                        hGetLine handle
-                     )
-               return (read outLine)
+            synchronize bSem (
+               do
+                  hPut handle inData
+                  hGet handle
+               )
          closeAct = destroy connection
       return (sendMessage,closeAct,header)
    
@@ -110,15 +105,7 @@ connectBroadcastGeneral :: (ServiceClass inType outType stateType) =>
       IO (inType -> IO (),IO outType,IO (),String)
 connectBroadcastGeneral service =
    do
-      hostDesc <- getHost
-      portDesc <- getPort
-      handle <- connect hostDesc portDesc
-      connection <- newConnection handle
-      registerTool connection
-
-      let
-         serviceKey = serviceId service
-      hPutStrLnFlush handle serviceKey
+      (connection@ Connection {handle = handle}) <- connectBasic service
 
       headerLine <- hGetLine handle
       let
@@ -129,16 +116,8 @@ connectBroadcastGeneral service =
 
       let
          sendMessage inData =
-            do
-               let
-                  inLine = show inData
-               synchronize readBSem (hPutStrLnFlush handle inLine)
-               debug ("Sent "++inLine)
-         getMessage =
-            do
-               outLine <- synchronize writeBSem (hGetLine handle)
-               debug ("Received "++outLine)
-               return (read outLine)
+            synchronize readBSem (hPut handle inData)
+         getMessage = synchronize writeBSem (hGet handle)
          closeAct = destroy connection
 
       return (sendMessage,getMessage,closeAct,header)
@@ -183,4 +162,126 @@ getHost =
          Nothing -> error "CallServer: server unset"
          Just host -> return host
 
+------------------------------------------------------------------------
+-- This function does the work of opening a connection, sending the userId
+-- and password, and so on.
+------------------------------------------------------------------------
 
+connectBasic :: (ServiceClass inType outType stateType) 
+   => (inType,outType,stateType) -> IO Connection
+connectBasic service =
+   do
+      hostDesc <- getHost
+      portDesc <- getPort
+      let
+         serviceKey = serviceId service
+
+         -- This function iterates attempting to get a connection.
+         -- The Bool is True the first time it is called.
+         connectBasic :: CStringLen -> Bool -> IO Connection
+         connectBasic serviceKeyCSL firstTime =
+            do    
+               handle <- connect hostDesc portDesc
+               hSetBuffering handle NoBuffering
+                              
+               (user,password) <- getUserPasswordGeneral firstTime
+               withCStringLen user (\ userCSL ->
+                  withCStringLen password (\ passwordCSL ->
+                     do
+                        hPut handle serviceKeyCSL
+                        hPut handle userCSL
+                        hPut handle passwordCSL
+                     )
+                   )
+               response <- hGetLine handle 
+               case response of
+                  "OK" -> 
+                     do
+                        connection <- newConnection handle
+                        registerTool connection
+                        return connection
+                  errorMess ->
+                     do
+                        hClose handle
+                        createErrorWin
+                           ("Server rejected connection: " ++ errorMess) []
+                        connectBasic serviceKeyCSL False
+              
+      withCStringLen serviceKey 
+         (\ serviceKeyCSL -> connectBasic serviceKeyCSL True)
+
+------------------------------------------------------------------------
+-- Code for maintaining the user and password.
+-- We keep a current user-id and password, initialised from WBFiles,
+-- and only prompt for a new one if either is not yet specified, or a 
+-- connection fails.
+------------------------------------------------------------------------
+
+-- Get the user and password.
+getUserPassword :: IO (String,String)
+getUserPassword = getUserPasswordGeneral True
+
+-- Get the user and password, but do not accept the current values whatever
+-- they are.
+getNewUserPassword :: IO (String,String)
+getNewUserPassword = getUserPasswordGeneral False
+
+currentUserPasswordMVar :: MVar (Maybe String,Maybe String)
+currentUserPasswordMVar = unsafePerformIO (getCurrentUserPasswordMVar)
+{-# NOINLINE currentUserPasswordMVar #-}
+
+getCurrentUserPasswordMVar :: IO (MVar (Maybe String,Maybe String))
+getCurrentUserPasswordMVar =
+   do
+      userOpt <- getUser
+      passwordOpt <- getPassword
+      newMVar (userOpt,passwordOpt)
+
+getUserPasswordGeneral  :: Bool -> IO (String,String)
+getUserPasswordGeneral acceptOld = modifyMVar currentUserPasswordMVar
+   (\ up -> case up of 
+      (Just user,Just password) | acceptOld -> return (up,(user,password))
+      (user0,password0) -> 
+         do
+            (user,password) <- getUserPassword0 user0 password0
+            return ((Just user,Just password),(user,password))
+      )
+      
+
+getUserPassword0 :: Maybe String -> Maybe String -> IO (String,String)
+getUserPassword0 user0 password0 =
+   do
+      let
+         userEntry1 :: Form (Maybe String)
+         userEntry1 = newFormEntry "User" user0 
+
+         userEntry2 :: Form String
+         userEntry2 = mapForm
+            (\ userOpt -> case userOpt of
+               Just user -> hasValue user
+               Nothing -> hasError "User must be specified"
+               ) 
+            userEntry1
+
+         passwordEntry1 :: Form (Password (Maybe String))
+         passwordEntry1 = newFormEntry "Password" (Password password0)
+
+         passwordEntry2 :: Form String
+         passwordEntry2 = mapForm
+            (\ (Password passwordOpt) -> case passwordOpt of
+               Just password -> hasValue password
+               Nothing -> hasError "Password must be specified"
+               )
+            passwordEntry1
+
+         form :: Form (String,String)
+         form = userEntry2 // passwordEntry2
+
+      resultOpt <- doForm "Connecting to Server" form
+      case resultOpt of
+         Just result -> return result
+         Nothing ->
+            do
+               createErrorWin 
+                  "Sorry, without a server connection we cannot proceed" []
+               getUserPassword0 user0 password0     

@@ -1,13 +1,3 @@
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
-#ifndef NEW_GHC 
-{-# OPTIONS -#include "default_options.h" #-}
-#endif /* NEW_GHC */
-
 {- In Server we implement a general framework for a server, which
    is supposed to make it easier to share information between 
    computers, in a similar method to inetd.  Unlike inetd however
@@ -29,30 +19,33 @@ module Server(
 import IO
 import List
 
-#ifdef NEW_GHC
-import Exception hiding (handle)
-#else
-import Exception
-#endif
+import Foreign.C.String
+import Foreign.Marshal.Alloc
 
-import FiniteMap
-import Socket hiding (PortID(..))
+import Control.Exception hiding (handle)
+
+import Data.FiniteMap
+import Network hiding (PortID(..))
+
 import Posix
 
-import Computation(done)
+import Computation
+import ExtendedPrelude
+import BinaryIO
 import WBFiles(getPort)
-import Debug
-
 import Concurrent
 import Thread
 import Object
 import HostsPorts
 
 import ServiceClass
+import Crypt
+import PasswordFile
 
 data ClientData = ClientData {
    oid :: ObjectID,
-   handle :: Handle
+   handle :: Handle,
+   user :: User
    }
 
 instance Object ClientData where
@@ -66,7 +59,7 @@ instance Eq ClientData where
 
 data ServiceData = ServiceData {
 --   clients :: MVar [ClientData],
-   newClientAction :: Handle -> IO (), 
+   newClientAction :: Handle -> User -> IO (), 
    disconnect :: IO ()
    }
 
@@ -110,43 +103,47 @@ runServer serviceList =
 
                      -- This should not be done unless stateMVar
                      -- is empty.
-                     broadcastAction :: ClientData -> String -> IO ()
+                     broadcastAction 
+                        :: ClientData -> (Handle -> IO ()) -> IO ()
                      -- The first argument is the client who initiated
-                     -- the request; the second is the message
+                     -- the request; the second is an action sending the 
+                     -- message
                      broadcastAction =
                         case serviceMode service of
                            Reply ->
-                              (\ clientData message -> 
-                                 hPutStrLnFlush (handle clientData) message
+                              (\ clientData outputAction -> 
+                                 outputAction (handle clientData)
                                  )
                            Broadcast ->
-                              (\ _ message ->
+                              (\ _ outputAction ->
                                  do
                                     clientList <- readMVar clients
-                                    broadcastToClients clientList message
+                                    broadcastToClients clientList outputAction
                                  )
                            BroadcastOther ->
-                              (\ clientData message ->
+                              (\ clientData outputAction ->
                                  do
                                     clientList <- readMVar clients
                                     let
                                        otherClients =
                                           filter (/= clientData) clientList
-                                    broadcastToClients otherClients message
+                                    broadcastToClients otherClients 
+                                       outputAction
                                  )
 
                      -- This should not be done unless stateMVar
                      -- is empty.
-                     broadcastToClients :: [ClientData] -> String -> IO ()
+                     broadcastToClients :: [ClientData] -> (Handle -> IO ()) 
+                        -> IO ()
                      -- Broadcasts the string to all clients listed
-                     broadcastToClients clientList message =
+                     broadcastToClients clientList outputAction =
                         sequence_ (
                            map
                               (\ clientData ->
                                  do 
                                     -- If fail, delete clientData
-                                    success <- IO.try(hPutStrLnFlush
-                                       (handle clientData) message
+                                    success <- IO.try(
+                                       outputAction (handle clientData)
                                        )
                                     case success of
                                        Left error ->
@@ -206,11 +203,12 @@ runServer serviceList =
 -- (3) Define newClientAction to be done for each new client
 ------------------------------------------------------------------------
                   let
-                     newClientAction handle =
+                     newClientAction handle user =
                         do
                            oid <- newObject
                            let
-                              clientData = ClientData {oid=oid,handle=handle}
+                              clientData = ClientData {
+                                 oid=oid,handle=handle,user=user}
 
                               -- This should not be done unless stateMVar
                               -- is empty.
@@ -221,7 +219,7 @@ runServer serviceList =
                               -- deleteClient, then do cleanUp, then pass
                               -- on the exception
                                  do
-                                    result <- Exception.try toDo
+                                    result <- Control.Exception.try toDo
                                     case result of
                                        Right correct -> return correct
                                        Left exception ->
@@ -236,7 +234,7 @@ runServer serviceList =
                                     -- Send initial stuff and add client to 
                                     -- client list
 
-                                    header <- sendOnConnect service state
+                                    header <- sendOnConnect service user state
                                     hPutStrLnFlush handle (show header)
                                     oldClients <- takeMVar clients
                                     putMVar clients (clientData:oldClients)
@@ -247,15 +245,7 @@ runServer serviceList =
                               clientReadAction :: IO ()
                               clientReadAction =
                                  do
-                                    inLine <- hGetLine handle
-                                    -- An error in this hGetLine will
-                                    -- probably mean the handle is
-                                    -- invalid, but we don't try to pick
-                                    -- that up until we try to write it.
-                                    debugRead service inLine
-
-                                    let
-                                       input = read inLine
+                                    input <- hGet handle
                                     oldState <- takeMVar stateMVar
                                     newState <- 
                                        protect
@@ -263,12 +253,13 @@ runServer serviceList =
                                           (do
                                              (output,newState) <-
                                                 handleRequest service 
-                                                   (input,oldState)
+                                                   user (input,oldState)
                                              let
-                                                outLine = show output
-                                             debugWrite service outLine
+                                                outputAction handle =
+                                                   hPut handle output
+
                                              broadcastAction clientData 
-                                                outLine
+                                                outputAction
                                              return newState
                                              )
                                     putMVar stateMVar newState
@@ -281,7 +272,7 @@ runServer serviceList =
                               do
                                  clientStartup
                                  Left exception 
-                                    <- Exception.try clientReadAction
+                                    <- Control.Exception.try clientReadAction
                                  -- clientReadAction cannot return otherwise
                                  let
                                     isHarmless exception = 
@@ -292,11 +283,11 @@ runServer serviceList =
                                     then
                                        done
                                     else
-                                       do
-                                          debug("Server error on "++
-                                             (show serviceKey)
-                                             )
-                                          debug exception
+                                       putStrLn (
+                                          "Server error on "
+                                          ++ show serviceKey ++ ": "
+                                          ++ show exception
+                                          )
                               ) -- end of forkIO
                            done    
                      -- end of definition of newClientAction
@@ -345,29 +336,18 @@ runServer serviceList =
       portNumber <- getPortNumber portDesc
       socket <- listenOn portNumber
       let
-         lookupService handle =
-         -- lookup service number and call appropriate
-         -- newClientAction or possibly raise an error.
-            do
-               serviceKey <- hGetLine handle
-               case lookupFM serviceMap serviceKey of
-                  Just(ServiceData{newClientAction = newClientAction}) ->
-                     newClientAction handle
-                  Nothing -> error ("Service "++serviceKey++" not known")
          serverAction =
             do
                (handle,_,_) <- accept socket
                hSetBuffering handle NoBuffering
-               registration <- Exception.try (lookupService handle)
-               case registration of
-                  Right () -> done
-                  Left exception ->
-                     do
-                        debug "Failed service registration:"
-                        debug exception   
+               connectionOpt <- initialConnect serviceMap handle
+               case connectionOpt of
+                  Nothing -> done
+                  Just (serviceData,user) 
+                     -> newClientAction serviceData handle user
                serverAction  
 
-      Exception.try serverAction
+      Control.Exception.try serverAction
       -- disconnect everything
 ------------------------------------------------------------------------
 -- (6) serverAction ended mysteriously, perhaps someone has interrupted
@@ -379,20 +359,93 @@ runServer serviceList =
             (fmToList serviceMap)
             )
 
-
 ------------------------------------------------------------------------
--- Debugging functions
+-- Function for doing the initial service lookup-up and authentication.
 ------------------------------------------------------------------------
 
-debugWrite :: ServiceClass inType outType stateType => 
-   (inType,outType,stateType) -> String -> IO ()
-debugRead :: ServiceClass inType outType stateType => 
-   (inType,outType,stateType) -> String -> IO ()
+initialConnect :: FiniteMap String ServiceData -> Handle 
+   -> IO (Maybe (ServiceData,User))
+initialConnect serviceMap handle =
+   do
+      -- wrap everything so EOF's can't cause trouble here.  This means
+      -- we have three levels of exception handlers, is that a record?
+      resultOrExcep <- Control.Exception.try (
+         do
+            resultOrString <- addFallOut (\ break ->
+               do
+                  -- We don't use PackedString's here, as the GHC 
+                  -- implementation of reading PackedString's from Handles (
+                  -- for 5.04.3) seems to be broken.
+                  (keyCStringWE :: WithError CStringLen) <- hGetIntWE 1 handle
+                  (userIdCStringWE :: WithError CStringLen) 
+                     <- hGetIntWE 1 handle
+                  (passwordCStringWE :: WithError CStringLen) 
+                     <- hGetIntWE 1 handle
+                  finally (
+                     do
+                        keyCString 
+                           <- coerceWithErrorOrBreakIO break keyCStringWE
+                        userIdCString 
+                           <- coerceWithErrorOrBreakIO break userIdCStringWE
+                        passwordCString
+                           <- coerceWithErrorOrBreakIO break passwordCStringWE
 
-#ifdef DEBUG
-debugWrite service mess = debugString (serviceId service++"]"++mess++"\n")
-debugRead service mess = debugString (serviceId service++"["++mess++"\n")
-#else
-debugWrite _ _ = done
-debugRead _ _ = done
-#endif
+                        key <- peekCStringLen keyCString
+                        userId <- peekCStringLen userIdCString
+                        password <- peekCStringLen passwordCString
+
+                        -- (1) find the service
+                        serviceData <- case lookupFM serviceMap key of
+                           Nothing -> break ("Service " ++ show key 
+                              ++ " not recognised")
+                           Just serviceData -> return serviceData
+
+                        -- (2) find the user
+
+                        let
+                           authError = break "Unable to authenticate user"
+
+                        userOpt <- getUserEntry userId
+                        user <- case userOpt of
+                           Nothing -> authError
+                           Just user -> return user
+
+                        passwordOK <- verifyPassword password 
+                           (encryptedPassword user)
+                        if passwordOK 
+                           then
+                              return (serviceData,user)
+                           else
+                              authError
+                     )
+                     (do
+                        let
+                           freeCSLWE cslWE = case fromWithError cslWE of
+                              Left _ -> done
+                              Right (cString,_) -> free cString 
+                        freeCSLWE keyCStringWE
+                        freeCSLWE userIdCStringWE
+                        freeCSLWE passwordCStringWE
+                     )
+               )
+
+            case resultOrString of
+               Right result -> 
+                 do
+                     hPutStrLn handle "OK"
+                     return (Just result)
+               Left mess -> 
+                  do
+                     hPutStrLn handle mess
+                     hClose handle
+                     return Nothing
+         )
+
+      case resultOrExcep of
+         Left excep -> 
+            do
+               putStrLn ("IO error in initial connect " ++ show excep)
+               hClose handle
+               return Nothing
+         Right result -> return result
+

@@ -5,26 +5,29 @@ module SimpleDBService(
    ) where
 
 import Thread
+import BinaryIO
 
 import ServiceClass
 
 import SimpleDBServer
 
-simpleDBService = serviceArg :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
+simpleDBService = serviceArg 
+   :: (ReadShow SimpleDBCommand,ReadShow SimpleDBResponse,SimpleDB)
 simpleDBServiceWrapped = Service simpleDBService 
 
 
 
-instance ServiceClass SimpleDBCommand SimpleDBResponse SimpleDB where
+instance ServiceClass 
+      (ReadShow SimpleDBCommand) (ReadShow SimpleDBResponse) SimpleDB where
    serviceId _ = "SimpleDB"
    serviceMode _ = Reply
    getBackupDelay _ = return (BackupAfter (secs 2.0))
    initialState _ = initialiseSimpleDB
    backupAction _ simpleDB = backupSimpleDB simpleDB
-   handleRequest _ (command,simpleDB) = 
+   handleRequest _ _ (ReadShow command,simpleDB) = 
       do
          response <- querySimpleDB simpleDB command
-         return (response,simpleDB)
+         return (ReadShow response,simpleDB)
    -- For sendOnConnect we use the default action of sending ""
 
 
