@@ -11,11 +11,11 @@ module EmacsBasic(
       -- There can be several EmacsSession's at the same time, but 
       -- they will all be using the same Emacs (courtesy of gnuclient).
 
-   evalEmacs, -- :: EmacsSession -> String -> IO String
+   evalEmacsString, -- :: EmacsSession -> String -> IO String
       -- Evaluate the given Emacs Lisp expression, which should return a 
       -- String.
 
-   execEmacs, -- :: EmacsSession -> String -> IO ()
+   execEmacsString, -- :: EmacsSession -> String -> IO ()
       -- Evaluate the given Emacs Lisp expression.  Any result is ignored.
 
    emacsEvent, -- :: EmacsSession -> String -> EV ()
@@ -56,7 +56,7 @@ import MultiServer
 data EmacsSession = EmacsSession {
    handle :: Handle,
 
-   -- emacsLock and emacsResponse handle responses to evalEmacs commands
+   -- emacsLock and emacsResponse handle responses to evalEmacsString commands
    emacsLock :: BSem,
    emacsResponse :: MVar String,
 
@@ -79,7 +79,7 @@ instance Object EmacsSession where
 instance Destroyable EmacsSession where
    destroy emacsSession = 
       do
-         execEmacs emacsSession "(kill-buffer (current-buffer))"
+         execEmacsString emacsSession "(kill-buffer (current-buffer))"
          closeAction emacsSession
 
 -- ------------------------------------------------------------------------
@@ -164,17 +164,18 @@ parseError line =
 -- Communicating with Emacs
 -- ------------------------------------------------------------------------
 
--- We need to lock execEmacs calls because otherwise two calls to execEmacs
--- running simultaneously could interleave their output to Emacs.
-execEmacs :: EmacsSession -> String -> IO ()
-execEmacs emacsSession command =
+-- We need to lock execEmacsString calls because otherwise two calls to 
+-- execEmacsString running simultaneously could interleave their output to 
+---Emacs.
+execEmacsString :: EmacsSession -> String -> IO ()
+execEmacsString emacsSession command =
    seqList command `seq` 
       synchronize (emacsLock emacsSession) 
          (writeEmacs emacsSession command)
         
 
-evalEmacs :: EmacsSession -> String -> IO String
-evalEmacs emacsSession expression =
+evalEmacsString :: EmacsSession -> String -> IO String
+evalEmacsString emacsSession expression =
    seqList expression `seq`
       synchronize (emacsLock emacsSession) (
          do
