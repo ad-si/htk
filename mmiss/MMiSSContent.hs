@@ -6,14 +6,20 @@ module MMiSSContent(
    AccContents(..),
    ) where
 
-import List
+#include "config.h"
 
-import XmlTypes
+import List
 
 import Computation
 import Dynamics
 
 import CodedValue
+
+#if HAXMLINT
+import Text.XML.HaXml.Types
+#else
+import XmlTypes
+#endif
 
 import MMiSSAttributes
 import MMiSSDTDAssumptions

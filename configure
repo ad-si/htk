@@ -1288,6 +1288,56 @@ echo
 echo "If that message didn't indicate a GNU linker, it won't be possible to use ghci on packages constructed with this build."
 
 #
+# Check for gmake
+for ac_prog in gmake
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_GMAKE+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $GMAKE in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_GMAKE="$GMAKE" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_GMAKE="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+GMAKE=$ac_cv_path_GMAKE
+
+if test -n "$GMAKE"; then
+  echo "$as_me:$LINENO: result: $GMAKE" >&5
+echo "${ECHO_T}$GMAKE" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$GMAKE" && break
+done
+test -n "$GMAKE" || GMAKE="make"
+
+$GMAKE --version
+#
+echo "You need GNU make to compile uni".
+#
 # Check for ghc
 for ac_prog in ghc
 do
@@ -1375,7 +1425,10 @@ echo "${ECHO_T}$uni_version_of_ghc" >&6
 
 
 
-  echo GhcVersion=$GhcVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
+GhcShortVersion=$GhcMajVersion$GhcMinVersion
+
+
+  echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
 fi
 
 # Check for ghc-pkg
@@ -1854,7 +1907,6 @@ fi
 done
 
 #
-#
 WORK_AROUND_BDB_LINUX_BUG=0
 # Use Berkeley Data Base if user specifies it or if it's
 # available in the environment variable BDBDIR or in the default location.
@@ -2170,6 +2222,19 @@ if test -r "$MISSLATEX"; then
 else
    MISSLATEX="$TOP/mmiss/scripts/notfound MMiSS-LaTeX "
 fi
+
+#
+# Decide whether to compile in HaXml or not.
+if test $GhcShortVersion -gt 504
+then
+   HAXML=HaXml
+   HAXMLINT=1
+else
+   HAXML=""
+   HAXMLINT=0
+fi
+
+
 
 #
 # Construct the default options, used by
@@ -2792,11 +2857,13 @@ s,@UNIVERSION@,$UNIVERSION,;t t
 s,@CC@,$CC,;t t
 s,@SED@,$SED,;t t
 s,@LD@,$LD,;t t
+s,@GMAKE@,$GMAKE,;t t
 s,@GHC@,$GHC,;t t
 s,@GhcVersion@,$GhcVersion,;t t
 s,@GhcMajVersion@,$GhcMajVersion,;t t
 s,@GhcMinVersion@,$GhcMinVersion,;t t
 s,@GhcPatchLevel@,$GhcPatchLevel,;t t
+s,@GhcShortVersion@,$GhcShortVersion,;t t
 s,@GHCPKG@,$GHCPKG,;t t
 s,@WISH@,$WISH,;t t
 s,@DAVINCI@,$DAVINCI,;t t
@@ -2816,6 +2883,8 @@ s,@XDVI@,$XDVI,;t t
 s,@ACROREAD@,$ACROREAD,;t t
 s,@LP@,$LP,;t t
 s,@MISSLATEX@,$MISSLATEX,;t t
+s,@HAXML@,$HAXML,;t t
+s,@HAXMLINT@,$HAXMLINT,;t t
 s,@DEFAULTOPTIONS@,$DEFAULTOPTIONS,;t t
 s,@GHCTOP@,$GHCTOP,;t t
 CEOF
@@ -3050,6 +3119,13 @@ fi
    echo [] >uni-package.conf.export
    mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
 
+
+   if test -n "$HAXML"
+   then
+      echo Linking to HaXml sources.
+      ${GMAKE} -f $HAXML/Makefile lnsrcs
+   fi
+
    # Use GHCPKG option with --force if necessary
    if test "$GhcMajVersion.$GhcMinVersion" = "5.02"
    then
@@ -3064,8 +3140,10 @@ fi
       $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
    fi
 
-   echo 'To compile UniForM type "gmake boot" followed by "gmake packages"'
-   echo 'If you also want the test programs do "gmake all" instead of "gmake packages"'
+   GMAKESHORT=`basename $GMAKE`
+
+   echo To compile UniForM type \"${GMAKESHORT} boot\" followed by \"${GMAKESHORT} packages\"
+   echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
 fi
 
 

@@ -30,6 +30,8 @@ module MMiSSVariant(
    extractVariantAttributes,
    ) where
 
+#include "config.h"
+
 import Maybe
 import List
 
@@ -38,12 +40,18 @@ import Concurrent
 import FiniteMap
 import Set
 import Exception
-import XmlTypes(Attribute,AttValue(..))
 
 import ExtendedPrelude
 import Dynamics
 import Registry
 import Computation(done)
+
+
+#if HAXMLINT
+import Text.XML.HaXml.Types(Attribute,AttValue(..))
+#else
+import XmlTypes(Attribute,AttValue(..))
+#endif
 
 import CodedValue
 import BasicObjects

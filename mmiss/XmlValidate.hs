@@ -5,10 +5,7 @@
    in XmlValidate.original.
    -}
 module XmlValidate( 
-  simplifyDTD,
-  SimpleDTD,
   validate,
-  lookupAttribute,
   ) where
 
 import XmlTypes
@@ -53,9 +50,11 @@ False `gives` _ = []
 
 -- 'validate' takes a DTD and a content element, and returns a list of
 -- errors in the document with respect to its DTD.
-validate :: SimpleDTD -> Content -> [String]
-validate dtd content = walk content
+validate :: DocTypeDecl -> Element -> [String]
+validate dtd' elem = walk (CElem elem)
   where
+    dtd = simplifyDTD dtd'
+
     walk (CElem (Elem name attrs contents)) =
         let spec = lookupFM (elements dtd) name in 
         (isNothing spec) `gives` ("Element <"++name++"> not known.")

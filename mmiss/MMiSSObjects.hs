@@ -9,16 +9,14 @@ module MMiSSObjects(
    -- mkLaTeXString is exported solely for testing purposes.
    ) where
 
+#include "config.h"
+
 import Maybe
 import List
 
 import FiniteMap
 import Concurrent
 import qualified IOExts(unsafePerformIO)
-
-import XmlTypes
-import XmlValidate
-import XmlParse
 
 import Dynamics
 import Sink
@@ -45,6 +43,17 @@ import CopyFile
 import GraphDisp
 import GraphConfigure
 import Graph(NodeType,ArcType)
+
+#if HAXMLINT
+import Text.XML.HaXml.Types
+import Text.XML.HaXml.Parse
+import Text.XML.HaXml.Validate
+#else
+import XmlParse
+import XmlTypes
+
+import XmlValidate
+#endif
 
 import CodedValue
 import Link

@@ -1,0 +1,29 @@
+#! This directory exists merely to be a pointer to the
+#  current sources for HaXml.  We need to make an additional target,
+#  lnsrcs, called from ./configure, which creates symbolic links to the
+#  srcs in the HaXml directory. 
+
+
+PACKAGE = uni-HaXml
+PACKAGES = text data uni-options
+
+HAXML = @TOP@/HaXml-1.07b/src
+
+# Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in
+SRCS = \
+	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs Text/XML/HaXml/Lex.hs \
+	Text/XML/HaXml/Parse.hs Text/XML/HaXml/Pretty.hs \
+	Text/XML/HaXml/Types.hs Text/XML/HaXml/Validate.hs \
+	Text/XML/HaXml/Wrappers.hs Text/XML/HaXml/OneOfN.hs \
+	Text/XML/HaXml/Xml2Haskell.hs Text/XML/HaXml/Haskell2Xml.hs \
+	Text/XML/HaXml/Html/Generate.hs Text/XML/HaXml/Html/Parse.hs \
+	Text/XML/HaXml/Html/Pretty.hs \
+	Text/ParserCombinators/HuttonMeijerWallace.hs \
+	Text/PrettyPrint/HughesPJ.hs
+
+include @TOP@/mk/boilerplate.mk
+
+lnsrcs : 
+	$(foreach file,$(SRCS),\
+           $(MKDIR) -p `dirname $(file)` \
+           && $(LN) -s $(HAXML)/$(file) $(file) &&) echo "Don't copy again" >lnsrcs

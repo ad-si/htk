@@ -2,7 +2,7 @@
 # be compiled before it; this is done by getting the main uni Makefile
 # to refer to it directly.
 PACKAGE = uni-mmiss-parser
-PACKAGES = uni-emacs
+PACKAGES = uni-emacs $(if @HAXML@,uni-HaXml)
 
 SRCS = LaTeXParser.hs
 

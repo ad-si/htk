@@ -1,13 +1,3 @@
-#if (__GLASGOW_HASKELL__ >= 503)
-#define NEW_GHC 
-#else
-#undef NEW_GHC
-#endif
-
-#ifndef NEW_GHC 
-{-# OPTIONS -#include "copy_file.h" #-}
-#endif /* NEW_GHC */
-
 {- This contains functions for copying to and from files -}
 module CopyFile(
    copyFile,
@@ -38,13 +28,8 @@ import Computation
 
 import FdRead
 
-#ifdef NEW_GHC
 foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
-   :: (ByteArray Int) -> (ByteArray Int) -> IO Int
-#else
-foreign import ccall "copy_file" unsafe copyFilePrim
-   :: (ByteArray Int) -> (ByteArray Int) -> IO Int
-#endif
+   :: CString -> CString -> IO Int
 
 copyFile :: String -> String -> IO ()
 copyFile source destination =
@@ -53,10 +38,12 @@ copyFile source destination =
          done
       else
          do
-            let 
-               sourcePrim = CString.packString source
-               destinationPrim = CString.packString destination 
-            code <- copyFilePrim sourcePrim destinationPrim
+            code <-
+               withCString source (\ sourcePrim ->
+                  withCString destination (\ destinationPrim ->
+                     copyFilePrim sourcePrim destinationPrim
+                     )
+                  )
             if (code<0)
                then
                   ioError(userError("CVSDB: Can't copy "++source++" to "++

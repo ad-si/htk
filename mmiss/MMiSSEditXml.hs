@@ -10,8 +10,8 @@ module MMiSSEditXml(
 
    ) where
 
-import XmlPP
-import XmlTypes
+#include "config.h"
+
 import Pretty
 
 import Computation
@@ -21,6 +21,14 @@ import Debug(debug)
 
 import EmacsContent
 import EmacsEdit (TypedName)
+
+#if HAXMLINT
+import Text.XML.HaXml.Types
+import Text.Xml.HaXml.Pretty
+#else
+import XmlTypes
+import XmlPP
+#endif
 
 import MMiSSDTD
 import MMiSSDTDAssumptions

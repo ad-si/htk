@@ -16,7 +16,7 @@ import CTypes
 
 
 foreign import ccall unsafe "forkExec.h fork_exec" innerForkExec
-   :: CString -> Ptr CString -> Ptr CString  -> Ptr Int -> IO Int
+   :: CString -> Ptr CString -> Ptr CString  -> Ptr Int -> IO ProcessID
 -- Even if GHC should in future allow "threadsafe" 
 -- DO NOT use it here.  See the "Implementation Note" in 
 -- ChildProcess.newChildProcess to see why.

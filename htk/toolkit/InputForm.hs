@@ -141,7 +141,7 @@ instance HasColour (InputForm a) where
         getColour _ _ = return cdefault
 
 instance HasFont (InputForm a) where
-        HTk.font f form@(InputForm b e) = synchronize form (
+        font f form@(InputForm b e) = synchronize form (
                 setFormConfig (\fst -> fst{fFormFont = Just (toFont f)}) form
                 )
         getFont form    = getFormConfig form fFormFont
@@ -366,7 +366,7 @@ instance HasSize (TextField a b) where
         getHeight fe @ (TextField ed _ _)= getHeight ed
 
 instance HasFont (TextField a b) where 
-        HTk.font f fe@(TextField ed _ _) = do {HTk.font f ed; return fe}
+        font f fe@(TextField ed _ _) = do {HTk.font f ed; return fe}
         getFont (TextField ed _ _) = getFont ed
 
 instance HasEnable (TextField a b) where 
@@ -455,7 +455,7 @@ instance HasBorder (EnumField a b)
 instance HasSize (EnumField a b)
         
 instance HasFont (EnumField a b) where 
-        HTk.font f fe@(EnumField mn _ _) = do {HTk.font f mn; return fe}
+        font f fe@(EnumField mn _ _) = do {HTk.font f mn; return fe}
         getFont (EnumField mn _ _) = getFont mn
 
 instance HasEnable (EnumField a b) where 
@@ -537,7 +537,7 @@ instance HasBorder (RecordField a b)
 instance HasSize (RecordField a b)
         
 instance HasFont (RecordField a b) where 
-        HTk.font f fe@(RecordField cf lb _) = synchronize fe (do {
+        font f fe@(RecordField cf lb _) = synchronize fe (do {
                 HTk.font f cf; 
                 HTk.font f lb; 
                 return fe

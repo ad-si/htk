@@ -16,15 +16,14 @@ module MMiSSDTD(
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
    ) where
 
+#include "config.h"
+
 import IO
 import Maybe
 
 import FiniteMap
 import qualified IOExts (unsafePerformIO)
 import qualified Exception
-
-import XmlParse
-import XmlTypes
 
 import WBFiles
 import IOExtras
@@ -34,7 +33,16 @@ import Computation
 
 import DisplayParms
 
+#if HAXMLINT
+import Text.XML.HaXml.Types
+import Text.XML.HaXml.Parse
+import Text.XML.HaXml.Validate
+#else
+import XmlParse
+import XmlTypes
+
 import XmlValidate
+#endif
 
 import MMiSSDTDAssumptions
 
@@ -43,7 +51,7 @@ import MMiSSDTDAssumptions
 -- -------------------------------------------------------------
 
 data MMiSSDTD = MMiSSDTD {
-   simpleDTD :: SimpleDTD,
+   simpleDTD :: Element -> [String],
    displayInstructions :: FiniteMap String String,
    elements :: [String],
    labelledElements :: [String]
@@ -83,7 +91,7 @@ readDTD filePath =
             _ -> error ("Error reading MMiSS DTD from "++filePath++
              ": couldn't parse it")
 
-         simpleDTD = simplifyDTD dtd
+         simpleDTD = validate dtd
 
          elements = [element | Element (ElementDecl element _) <- markups]
     
@@ -130,7 +138,7 @@ validateElement elementName (element @ (Elem name _ _)) =
       then
          ["Expected a "++elementName++" but found a "++name]
       else
-          validate (simpleDTD theDTD) (CElem element)
+          (simpleDTD theDTD) element
 
 -- -------------------------------------------------------------
 -- Parsing a String containing Xml, with error control.

@@ -104,6 +104,11 @@ import qualified System
 import qualified IO
 import qualified Posix
 import Posix(ProcessID,ProcessStatus(..),Fd,fdRead,fdWrite)
+
+#if (__GLASGOW_HASKELL__ >= 505)
+import qualified System.Posix.Types
+#endif
+
 import ByteArray
 import qualified CString
 import qualified Exception
@@ -203,7 +208,8 @@ data ChildProcess =
                        -- Title of the tool, derived from the file name,
                        -- used in the debugging file.
 #endif
-      chunkSize :: Int -- max. size of one "chunk" of characters read
+      chunkSize :: ByteCount 
+                       -- max. size of one "chunk" of characters read
                        -- at one time
       }
 
@@ -324,7 +330,7 @@ newChildProcess path confs  =
                   readFrom = readOut,
                   processID = processID,
                   bufferVar = bufferVar,
-                  chunkSize = chksize parms,
+                  chunkSize = fromIntegral (chksize parms),
 #ifdef DEBUG
                   toolTitle = toolTitle,
 #endif
@@ -369,7 +375,7 @@ newChildProcess path confs  =
                         sendMsg newChild challenge
                         howLong <- getToolTimeOut
                         resultOpt <- timedOutIO
-                           (readChunkFixed (length response) 
+                           (readChunkFixed (fromIntegral (length response)) 
                               (readFrom newChild))
                         result <- case resultOpt of
                            Nothing ->
@@ -463,6 +469,12 @@ instance UnixTool ChildProcess where
 -- Commands
 -- -------------------------------------------------------------------------
 
+#if (__GLASGOW_HASKELL__ >= 505)
+type ByteCount = System.Posix.Types.ByteCount
+#else
+type ByteCount = Int
+#endif
+
 {- line mode readMsg has been changed so it doesn't do a Posix.fdRead
    on every character. -}
 readMsg :: ChildProcess -> IO String
@@ -497,7 +509,7 @@ readMsg (child @ ChildProcess {lineMode = False, readFrom = readFrom,
 #endif
       return result
 
-readChunk :: Int -> Fd -> IO String
+readChunk :: ByteCount -> Fd -> IO String
 -- read a chunk of characters, waiting until at least one is available.
 readChunk size fd =
    do
@@ -509,7 +521,7 @@ readChunk size fd =
          else
             return input
 
-readChunkFixed :: Int -> Fd -> IO String
+readChunkFixed :: ByteCount -> Fd -> IO String
 -- like readChunk except that it tries to read as many characters
 -- as are asked for.
 readChunkFixed size fd = readChunkInner "" size
@@ -521,7 +533,8 @@ readChunkFixed size fd = readChunkInner "" size
          else
             do               
                next <- readChunk toRead fd
-               readChunkInner (s ++ next) (toRead - (length next))
+               readChunkInner (s ++ next) (toRead 
+                  - (fromIntegral (length next)))
          
 sendMsg :: ChildProcess -> String -> IO ()
 sendMsg (child @ ChildProcess{lineMode = True,writeTo = writeTo}) str  = 
@@ -531,8 +544,11 @@ sendMsg (child @ ChildProcess{lineMode = True,writeTo = writeTo}) str  =
 sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  = 
    do 
       debugWrite child (str ++ "\n") 
-      count <- Posix.fdWrite writeTo str
+      countByteCount <- Posix.fdWrite writeTo str
       -- see man -s 2 write for when write() returns 0.
+      let
+         count = fromIntegral countByteCount
+
       if count < 0 
          then
             raise writeLineError
@@ -607,12 +623,15 @@ readLine fd buf =
 writeLine :: Posix.Fd -> String -> IO ()
 writeLine fd str =
    do
-      count <- Posix.fdWrite fd msg
+      countByteCount <- Posix.fdWrite fd msg
+      let
+         count = fromIntegral countByteCount
+
       if count < 0
       -- see man -s 2 write for when write() returns 0.
          then
             raise writeLineError
-         else if count /= (length msg) 
+         else if count /= length msg 
          then
             writeLine fd (drop count str)
          else

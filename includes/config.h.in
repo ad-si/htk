@@ -10,5 +10,6 @@ dont put any sort of comments in, apart from this one.
 #define WINDOWS @WINDOWS@
 #define UNIVERSION "@UNIVERSION@"
 #define WORK_AROUND_BDB_LINUX_BUG @WORK_AROUND_BDB_LINUX_BUG@
+#define HAXMLINT @HAXMLINT@
 
 #endif

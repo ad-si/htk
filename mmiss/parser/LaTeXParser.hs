@@ -32,13 +32,22 @@ module LaTeXParser (
 
 -- module LaTeXParser where
 
+#include "config.h"
+
 import IOExts
 import List
 import Parsec
 import Char
+
+#if HAXMLINT
+import Text.XML.HaXml.Types
+import qualified Text.Xml.HaXml.Pretty as PP
+#else
 import XmlTypes
-import Pretty hiding (char, spaces)
 import qualified XmlPP as PP
+#endif
+
+import Pretty hiding (char, spaces)
 import Computation hiding (try)
 import ParsecError
 import EmacsContent

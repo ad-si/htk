@@ -6,14 +6,15 @@
 # SUBDIRS is a list of all directories containing code to be compiled to
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
+
 ifeq "@WINDOWS@" "1"
    SUBDIRS = util events reactor htk
 else
 ifeq "@BDBDIR@" ""
-   SUBDIRS = util events reactor posixutil htk server graphs davinci
+   SUBDIRS = util events reactor posixutil htk server graphs davinci 
 else
    SUBDIRS = util events reactor posixutil htk server graphs davinci simpledb \
-             types emacs mmiss/parser mmiss
+             types emacs @HAXML@ mmiss/parser mmiss 
 endif
 endif
 

@@ -5,10 +5,16 @@ module MMiSSReAssemble(
    reAssembleNoRecursion,
    ) where
 
-import XmlTypes
+#include "config.h"
 
 import Computation
 import AtomString
+
+#if HAXMLINT
+import Text.XML.HaXml.Types
+#else
+import XmlTypes
+#endif
 
 import MMiSSDTDAssumptions
 import MMiSSPathsSimple

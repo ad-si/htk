@@ -48,6 +48,12 @@ echo
 echo "If that message didn't indicate a GNU linker, it won't be possible to use ghci on packages constructed with this build."
 
 #
+# Check for gmake
+AC_PATH_PROGS(GMAKE,gmake,make)
+$GMAKE --version
+#
+echo "You need GNU make to compile uni".
+#
 # Check for ghc
 AC_PATH_PROGS(GHC,ghc)
 if test -z "$GHC"; then
@@ -60,7 +66,10 @@ else
   AC_SUBST(GhcMinVersion)
   AC_SUBST(GhcPatchLevel)
 
-  echo GhcVersion=$GhcVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
+GhcShortVersion=$GhcMajVersion$GhcMinVersion
+  AC_SUBST(GhcShortVersion)
+
+  echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
 fi
 
 # Check for ghc-pkg
@@ -106,7 +115,6 @@ AC_PATH_PROGS(GFIND,gfind,find)
 AC_PATH_PROGS(CP,cp)
 AC_PATH_PROGS(LN,ln)
 AC_PATH_PROGS(MKDIR,mkdir)
-#
 #
 WORK_AROUND_BDB_LINUX_BUG=0
 # Use Berkeley Data Base if user specifies it or if it's
@@ -167,6 +175,19 @@ else
 fi
 AC_SUBST(MISSLATEX)
 #
+# Decide whether to compile in HaXml or not.
+if test $GhcShortVersion -gt 504
+then
+   HAXML=HaXml
+   HAXMLINT=1
+else
+   HAXML=""
+   HAXMLINT=0
+fi
+AC_SUBST(HAXML)
+AC_SUBST(HAXMLINT)
+
+#
 # Construct the default options, used by 
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
@@ -208,6 +229,13 @@ if test "$GOAHEAD" = YES; then
    echo @<:@@:>@ >uni-package.conf.export
    mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package
 
+   
+   if test -n "$HAXML"
+   then
+      echo Linking to HaXml sources.
+      ${GMAKE} -f $HAXML/Makefile lnsrcs
+   fi
+
    # Use GHCPKG option with --force if necessary
    if test "$GhcMajVersion.$GhcMinVersion" = "5.02"
    then
@@ -222,8 +250,10 @@ if test "$GOAHEAD" = YES; then
       $GHCPKG --config-file uni-package.conf --add-package <bdb-package.options
    fi
 
-   echo 'To compile UniForM type "gmake boot" followed by "gmake packages"'
-   echo 'If you also want the test programs do "gmake all" instead of "gmake packages"'
+   GMAKESHORT=`basename $GMAKE`
+
+   echo To compile UniForM type \"${GMAKESHORT} boot\" followed by \"${GMAKESHORT} packages\"
+   echo If you also want the test programs do \"${GMAKESHORT} all\" instead of \"${GMAKESHORT} packages\"
 fi
 
 
