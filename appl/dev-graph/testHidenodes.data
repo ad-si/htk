@@ -1,0 +1,159 @@
+(MAKEGRAPH 0 "MAYA" NIL ((NODETYPE D BOX "SteelBlue" (MENU "Theory" ((BUTTON "Show" VIEW-THEORY)))) (NODETYPE U CIRCLE "SteelBlue" (MENU "Theory" ((BUTTON "Show" VIEW-THEORY))))) ((EDGETYPE AG SOLID "Blue" (BUTTON "Show" SHOW)) (EDGETYPE AXL DASHED "Blue" (BUTTON "Show" SHOW))) ((AG AG AG)(AG AXL AG)(AXL AG AXL)(AXL AXL AXL))
+
+(addnode 1 0 U node1)
+
+(addnode 2 0 U node2)
+
+(addnode 3 0 U node3)
+
+(addnode 4 0 D node4)
+
+(addnode 5 0 U node5)
+
+(addnode 6 0 D node6)
+
+(addnode 7 0 D node7)
+
+(addnode 8 0 U node8)
+
+(addnode 9 0 U node9)
+
+(addnode 10 0 D node10)
+
+(addnode 11 0 D node11)
+
+(addnode 12 0 U node12)
+
+(addnode 13 0 D node13)
+
+(addnode 14 0 D node14)
+
+(addnode 15 0 U node15)
+
+(addnode 16 0 U node16)
+
+(addnode 17 0 D node17)
+
+(addnode 18 0 D node18)
+
+(addnode 19 0 D node19)
+
+(addnode 20 0 U node20)
+
+(addnode 21 0 U node21)
+
+(addnode 22 0 D node22)
+
+(addnode 23 0 D node23)
+
+(addnode 24 0 U node24)
+
+(addnode 25 0 U node25)
+
+(addnode 26 0 D node26)
+
+(addnode 27 0 D node27)
+
+(addnode 28 0 U node28)
+
+(addnode 29 0 U node29)
+
+(addnode 30 0 D node30)
+
+(addlink 31 0 AXL Kante1nach2 1 2)
+
+(addlink 32 0 AG Kante2nach2 2 2)
+
+(addlink 33 0 AG Kante2nach3 2 3)
+
+(addlink 34 0 AG Kante5nach6 5 6)
+
+(addlink 35 0 AXL Kante8nach7 8 7)
+
+(addlink 36 0 AG Kante10nach9 10 9)
+
+(addlink 37 0 AXL Kante11nach12 11 12)
+
+(addlink 38 0 AG Kante13nach14 13 14)
+
+(addlink 39 0 AG Kante14nach15 14 15)
+
+(addlink 40 0 AG Kante15nach13 15 13)
+
+(addlink 41 0 AG Kante16nach17 16 17)
+
+(addlink 42 0 AG Kante17nach18 17 18)
+
+(addlink 43 0 AG Kante17nach19 17 19)
+
+(addlink 44 0 AG Kante18nach20 18 20)
+
+(addlink 45 0 AG Kante19nach20 19 20)
+
+(addlink 46 0 AG Kante21nach22 21 22)
+
+(addlink 47 0 AG Kante21nach24 21 24)
+
+(addlink 48 0 AG Kante22nach23 22 23)
+
+(addlink 49 0 AG Kante23nach24 23 24)
+
+(addlink 50 0 AG Kante25nach26 25 26)
+
+(addlink 51 0 AXL Kante25nach26b 25 26)
+
+(addlink 52 0 AG Kante26nach27 26 27)
+
+(addlink 53 0 AXL Kante26nach29 26 29)
+
+(addlink 54 0 AG Kante27nach28 27 28)
+
+(redisplay 55 0)
+
+(hidenodes 56 0 (1 2 3 4))
+
+(redisplay 57 0)
+
+(hidenodes 58 0 (6 7))
+
+(redisplay 59 0)
+
+(hidenodes 60 0 (10 11))
+
+(redisplay 61 0)
+
+(hidenodes 62 0 (13 14))
+
+(redisplay 63 0)
+
+(hidenodes 64 0 (17 18 19))
+
+(redisplay 65 0)
+
+(hidenodes 66 0 (22 23))
+
+(redisplay 67 0)
+
+(hidenodes 68 0 (26 27))
+
+(redisplay 69 0)
+
+(hidenodes 70 0 ())
+
+(redisplay 71 0)
+
+(hidenodes 72 0 (27 30))
+
+(redisplay 73 0)
+
+(hidenodes 74 0 (30 27))
+
+(redisplay 75 0)
+
+(hidenodes 76 0 (30 0))
+
+(redisplay 77 0)
+
+(hidenodes 78 0 (0 30))
+
+(redisplay 79 0)

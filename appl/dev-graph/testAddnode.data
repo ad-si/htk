@@ -1,0 +1,27 @@
+(MAKEGRAPH 0 "MAYA" NIL ((NODETYPE D BOX "SteelBlue" (MENU "Theory" ((BUTTON "Show" VIEW-THEORY)))) (NODETYPE U CIRCLE "SteelBlue" (MENU "Theory" ((BUTTON "Show" VIEW-THEORY))))) ((EDGETYPE AG SOLID "Blue" (BUTTON "Show" SHOW)) (EDGETYPE AXL DASHED "Blue" (BUTTON "Show" SHOW))) ((AG AG AG)(AG AXL AXL))
+
+(addnode 1 0 D node1)   
+
+(redisplay 2 0)
+
+(addnode 3 0 U node1)
+
+(redisplay 4 0)
+
+(addnode 5 0 D node1)
+
+(redisplay 6 0)
+
+(addnode 7 0 D node2)
+
+(redisplay 8 0)
+
+(addnode 9 0 U node3)
+
+(redisplay 10 0)
+
+(addnode 11 0 UNKNOWN node4)
+
+(redisplay 12 0)
+
+(quit 13)
