@@ -127,6 +127,7 @@ parseMMiSSLatex fileSystem filePath =
 			 Right newFrags  -> 
 			   let xmlWE = makeXML (Env "Root" (LParams [] [] Nothing Nothing) (concat newFrags))
 			   in case fromWithError xmlWE of
+			     Left err -> return (fail err)
 			     Right (el @ (Elem _ atts _),preambleOpt) ->
 				do
 				   let
