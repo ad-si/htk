@@ -57,6 +57,7 @@ import Control.Concurrent.MVar
 
 import AtomString
 import Computation(done)
+import QuickReadShow
 import Dynamics
 import NewNames
 
@@ -149,49 +150,53 @@ data GraphConnectionData nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
 -- Nodes, Arcs, NodeTypes, ArcTypes.
 ------------------------------------------------------------------------
 
-newtype Node = Node AtomString deriving (Eq,Ord)
+newtype Node = Node AtomString deriving (Eq,Ord,Typeable)
 
 instance StringClass Node where
    toString (Node atomString) = toString atomString
    fromString atomString = Node (fromString atomString)
 
-node_tag = mkTyRep "Graph" "Node"
+instance Show Node where
+   showsPrec = qShow
 
-instance HasTyRep Node where
-   tyRep _ = node_tag
+instance Read Node where
+   readsPrec = qRead
 
-newtype NodeType = NodeType AtomString deriving (Eq,Ord)
+newtype NodeType = NodeType AtomString deriving (Eq,Ord,Typeable)
 
 instance StringClass NodeType where
    toString (NodeType atomString) = toString atomString
    fromString atomString = NodeType (fromString atomString)
 
-nodeType_tag = mkTyRep "Graph" "NodeType"
+instance Show NodeType where
+   showsPrec = qShow
 
-instance HasTyRep NodeType where
-   tyRep _ = nodeType_tag
+instance Read NodeType where
+   readsPrec = qRead
 
-newtype Arc = Arc AtomString deriving (Eq,Ord)
+newtype Arc = Arc AtomString deriving (Eq,Ord,Typeable)
 
 instance StringClass Arc where
    toString (Arc atomString) = toString atomString
    fromString atomString = Arc (fromString atomString)
 
-arc_tag = mkTyRep "Graph" "Arc"
+instance Show Arc where
+   showsPrec = qShow
 
-instance HasTyRep Arc where
-   tyRep _ = arc_tag
+instance Read Arc where
+   readsPrec = qRead
 
-newtype ArcType = ArcType AtomString deriving (Eq,Ord)
+newtype ArcType = ArcType AtomString deriving (Eq,Ord,Typeable)
 
 instance StringClass ArcType where
    toString (ArcType atomString) = toString atomString
    fromString atomString = ArcType (fromString atomString)
 
-arcType_tag = mkTyRep "Graph" "ArcType"
+instance Show ArcType where
+   showsPrec = qShow
 
-instance HasTyRep ArcType where
-   tyRep _ = arcType_tag
+instance Read ArcType where
+   readsPrec = qRead
 
 ------------------------------------------------------------------------
 -- Update

@@ -1,12 +1,17 @@
 {- QuickReadShow is designed for the rapid manufacture of read/show 
-   instances where the instance is created simply by mapping from/to
-   another type for which a Read/Show instance already exists 
-   For examples see cvs/CVSTypes.hs -}
+   instances.  To create such an instance you need to (a) instance
+   quickRead; (b) instance Read/Show using a particular template.
+   (Before April 2004 (b) was not part of the code; it now has to
+   be added to deal with tougher GHC restrictions on overlapping instances.)
+   -}
 module QuickReadShow(
    WrapRead(WrapRead), 
-   QuickRead(quickRead), -- instance this and you get Read
+   QuickRead(quickRead),
+   qRead,
+
    WrapShow(WrapShow),
-   QuickShow(quickShow) -- instance this and you get Show
+   QuickShow(quickShow),
+   qShow
    ) where
    
 data WrapRead toRead = forall read . Read read => WrapRead (read -> toRead)
@@ -23,8 +28,14 @@ mkReadsPrec (WrapRead convFn) prec str =
          (\ (result,rest) -> (convFn result,rest))
          parses
 
-instance QuickRead toRead => Read toRead where
-   readsPrec = mkReadsPrec quickRead
+qRead :: QuickRead toRead => Int -> String -> [(toRead, String)]
+qRead = mkReadsPrec quickRead
+
+{- Example instance
+
+instance Read ExampleType where
+   readsPrec = qRead
+   -}
 
 data WrapShow toShow = forall show . Show show => WrapShow (toShow -> show)
 
@@ -35,5 +46,11 @@ mkShowsPrec :: WrapShow toShow -> Int -> toShow -> ShowS
 mkShowsPrec (WrapShow convFn) prec value acc =
    showsPrec prec (convFn value) acc 
 
-instance QuickShow toShow => Show toShow where
-   showsPrec = mkShowsPrec quickShow
+qShow :: QuickShow toShow => Int -> toShow -> String -> String
+qShow = mkShowsPrec quickShow
+
+{- Example instance
+
+instance Show ExampleType where
+   showsPrec = qShow
+   -}

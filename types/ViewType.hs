@@ -101,6 +101,9 @@ newtype ViewId = ViewId ObjectID deriving (Eq,Ord)
 instance QuickShow ViewId where
    quickShow = WrapShow (\ (ViewId oId) -> oId)
 
+instance Show ViewId where
+   showsPrec = qShow
+
 instance Eq View where
    (==) = mapEq viewId
 

@@ -48,6 +48,12 @@ instance (Ord elt,Show elt) => QuickShow (SmallSet elt) where
       \ (SmallSet list) -> list
       )
 
+instance QuickRead (SmallSet elt) => Read (SmallSet elt) where
+   readsPrec = qRead
+
+instance QuickShow (SmallSet elt) => Show (SmallSet elt) where
+   showsPrec = qShow
+
 emptySmallSet :: Ord elt => SmallSet elt
 emptySmallSet = SmallSet []
 

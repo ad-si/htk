@@ -92,6 +92,7 @@ import EntityNames
 import AtomString
 import CodedValue
 import FileNames
+import QuickReadShow
 -- import EmacsEdit(TypedName)
 
 
@@ -2629,6 +2630,9 @@ instance StringClass MMiSSLatexPreamble where
 instance StringClass PackageId where
    fromString = PackageId
    toString (PackageId str) = str
+
+instance Show PackageId where
+   showsPrec = qShow
 
 -- ----------------------------------------------------------------------------------
 -- Instances of Typeable, HasCodedValue and Eq for Package and 
