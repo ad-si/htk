@@ -298,14 +298,19 @@ lParams id l
          if (attributes == []) 
            then return (LParams [(SingleParam (Other labelId) '{'), (SingleParam definedName '{')] Nothing)
            else return (LParams [(SingleParam (Other labelId) '{'), (SingleParam definedName '{')] (Just(attributes)))
-
-  | otherwise = do p <- try ( genParam '{' '}' )
-                   lParams id ((SingleParam p '{'):l)  
-                <|>  do p <- try ( genParam '[' ']' )
-                        lParams id ((SingleParam p '['):l)
-                <|>  do p <- try ( genParam '(' ')' )
-                        lParams id ((SingleParam p '('):l)
-                <|>  return (LParams (reverse l) Nothing)
+ | id == "ListItem" = 
+      do attributes <- try(between (char '{') (char '}') attParser)
+		       <?> "{attribute-list} for Environment <" ++ id ++ ">"   
+         if (attributes == []) 
+           then return (LParams [] Nothing)
+           else return (LParams [] (Just(attributes)))
+ | otherwise = do p <- try ( genParam '{' '}' )
+                  lParams id ((SingleParam p '{'):l)  
+               <|>  do p <- try ( genParam '[' ']' )
+                       lParams id ((SingleParam p '['):l)
+               <|>  do p <- try ( genParam '(' ')' )
+                       lParams id ((SingleParam p '('):l)
+               <|>  return (LParams (reverse l) Nothing)
 
 {--
 continueAdhocEnv l = do try (char '}')
@@ -326,7 +331,7 @@ adhocEnvironment = do char '{'
 -- nicht erkannt, sondern von escapedChar geparst.
 
 command :: GenParser Char st Frag
-command = do c <- many1 (noneOf "\\\v\f\t\r\n{[( \"")
+command = do c <- many1 (noneOf "\\\v\f\t\r\n{[(}]} \"")
              skipMany (oneOf " \t")
              l <- lParams c [] 
 	     return (Command c l)
@@ -461,6 +466,20 @@ makeContent (f:frags) NoText parentEnv =
 			    else makeContent frags NoText parentEnv
      _ -> makeContent frags NoText parentEnv
 
+makeContent (f:frags) TextAllowed "List" = 
+   case f of
+     (Env name ps fs) -> 
+               if (name `elem` (map fst mmiss2EnvIds))
+	         then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a ListItem.")
+                 else  -- No MMiSS-Env.
+		   hasValue(coerceWithError(makeContent fs TextAllowed "List") 
+                            ++ coerceWithError(makeContent frags TextAllowed "List"))
+
+     (Command "ListItem" ps) -> 
+         let (content, restFrags) = makeListItem ps frags []
+         in hasValue([content] ++ coerceWithError(makeContent restFrags TextAllowed "List"))
+     _ -> makeContent frags TextAllowed "List"
+
 makeContent (f:frags) TextAllowed parentEnv = 
    case f of
      (EscapedChar c) -> 
@@ -550,16 +569,17 @@ makeNamelessTextFragment parentEnv (f:frags) textFrags =
                                                _ -> (e1, ([f] ++ frags))
 
                              else makeNamelessTextFragment parentEnv (fs ++ frags) textFrags   -- Latex-Env.
+    (Command "ListItem" _) -> ((makeTextFragment parentEnv "textFragment" Nothing textFrags []), (f:frags))
     _ -> makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
 
 
 makeTextFragment :: String -> String -> Maybe Params -> [Frag] -> [Content] -> Content
 
-makeTextFragment parentEnv name params [] contentList = 
+makeTextFragment parentEnv name params [] content = 
   if (parentEnv == "Section") 
     then (CElem (Elem "paragraph" [] 
-                      [(CElem (Elem name (makeTextFragmentAttribs params) (concatTextElems(contentList))))]))
-    else (CElem (Elem name (makeTextFragmentAttribs params) (concatTextElems(contentList))))
+                      [(CElem (Elem name (makeTextFragmentAttribs params) (concatTextElems(content))))]))
+    else (CElem (Elem name (makeTextFragmentAttribs params) (concatTextElems(content))))
 
 makeTextFragment parentEnv name params (f:frags) content =
   case f of
@@ -587,6 +607,48 @@ makeTextFragment parentEnv name params (f:frags) content =
 	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Env _ _ fs) -> makeTextFragment parentEnv name params (fs ++ frags) content
     _ -> makeTextFragment parentEnv name params frags content                         
+
+
+
+makeListItem :: Params -> [Frag] -> [Content] -> (Content, [Frag])
+
+makeListItem params [] contentList = 
+   ((CElem (Elem "listItem" (makeAttribs params) contentList)), [])
+
+makeListItem params (f:frags) contentList =
+   case f of
+     (Other str) -> 
+        if (str /= "")
+	  then let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+               in makeListItem params restFrags (contentList ++ [content]) 
+	  else makeListItem params frags contentList
+     (Env name ps fs) -> 
+        if (name `elem` (map fst plainTextAtoms))
+          then
+            let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
+            in  makeListItem params frags 
+                             (contentList ++ [(CElem (Elem ename (makeAttribs ps)
+                                                          [CString True (makeTextElem fs)]))])
+          else
+            if (name == "TextFragment")
+	      then makeListItem params frags 
+                                (contentList ++ [(makeTextFragment "ListItem" "textFragment" (Just(ps)) fs [])])
+              else if (name == "List")
+                     then makeListItem params frags 
+                                       (contentList ++ coerceWithError(makeContent [f] TextAllowed "ListItem"))
+                     else if (not (name `elem` (map fst mmiss2EnvIds)))
+                                 -- Latex-Env. Inhalt auf diese Ebene ziehen:
+                            then makeListItem params (fs ++ frags) contentList  
+		                 -- MMiSSLatex-Env. Ignorieren:
+                            else makeListItem params frags contentList
+     (Command "IncludeTextFragment" ps) -> 
+       let newElem = CElem (Elem "includeTextFragment" (makeIncludeAttribs ps) [])
+       in makeListItem params frags (contentList ++ [newElem])
+     (Command "IncludeAtom" ps) ->
+       let newElem = (CElem (Elem "includeAtom" (makeIncludeAttribs ps) []))
+       in makeListItem params frags (contentList ++ [newElem])
+     (Command "ListItem" ps) -> ((CElem (Elem "listItem" (makeAttribs params) contentList)), (f:frags))
+     _ -> makeListItem params frags contentList
 
 
 concatTextElems :: [Content] -> [Content]
@@ -786,6 +848,12 @@ fillLatex ((CElem (Elem "list" atts contents)):cs) inStr =
        str = s1 ++ s2 ++ s3 ++ s4 ++ (fillLatex contents "") ++ s5
    in fillLatex cs (inStr ++ str)
 
+fillLatex ((CElem (Elem "listItem" atts contents)):cs) inStr = 
+   let s1 = "\\ListItem" 
+       s2 = "{" ++ (getAttribs atts "" []) ++ "} "
+       str = s1 ++ s2 ++ (fillLatex contents "")
+   in fillLatex cs (inStr ++ str)
+
 fillLatex ((CElem (Elem "emphasis" _ [CString _ str])):cs) inStr = 
    fillLatex cs (inStr ++ "\\Emphasis{" ++ str ++ "}\n") 
 
@@ -814,9 +882,8 @@ getAttribs :: [Attribute] -> String -> [String] -> String
 getAttribs [] str _ = if ((take 2 str) == ", ") 
                        then (drop 2 str)
                        else str  
-
 getAttribs ((name, (AttValue [(Left value)])):as) str excludeList = 
-   if (str `elem` excludeList)
+   if (name `elem` excludeList)
      then getAttribs as str excludeList
      else getAttribs as (str ++ ", " ++ name ++ " = {" ++ value ++ "}") excludeList
 
