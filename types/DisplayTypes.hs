@@ -34,7 +34,6 @@ module DisplayTypes(
 
 import qualified IOExts(unsafePerformIO)
 
-import AtomString
 import Registry
 import Computation
 import Dynamics
@@ -56,7 +55,7 @@ class HasCodedValue displayType => DisplayType displayType where
 
    displayTypeGlobalRegistry :: displayType -> GlobalRegistry displayType
    -- This returns the registry of all display types.
-   displayTypeIdPrim :: displayType -> AtomString
+   displayTypeIdPrim :: displayType -> GlobalKey
    -- This returns the key for a displayType, used to access it in
    -- the global registry.
 
@@ -130,11 +129,11 @@ instance DisplayType displayType => HasCodedValue (ShortDisplayType displayType)
             key = displayTypeIdPrim displayType
 
          addToGlobalRegistry globalRegistry view key displayType
-         encodeIO (Str key) codedValue view
+         encodeIO key codedValue view
 
    decodeIO codedValue0 view =
       do
-         (Str key,codedValue1) <- decodeIO codedValue0 view
+         (key,codedValue1) <- safeDecodeIO codedValue0 view
          let 
             globalRegistry = displayTypeGlobalRegistry 
                (error "Don't look at me" :: displayType)
@@ -155,7 +154,8 @@ type DisplayTypeData = [(String,CodedValue)]
 importDisplayTypes :: CodedValue -> View -> IO ()
 importDisplayTypes codedValue view =
    do
-      (displayTypeData :: DisplayTypeData) <- doDecodeIO codedValue view
+      (displayTypeData :: DisplayTypeData) 
+         <- doDecodeMultipleIO codedValue view
       sequence_ (
          map
             (\ (typeKey,codedValue) ->
@@ -240,7 +240,7 @@ instance HasCodedValue WrappedDisplayType where
 
    decodeIO codedValue0 view =
       do
-         (typeKey :: String,codedValue1) <- decodeIO codedValue0 view
+         (typeKey :: String,codedValue1) <- safeDecodeIO codedValue0 view
          Just (WrappedDisplayType displayType') <-
             getValueOpt displayTypeDataRegistry typeKey
          (displayType,codedValue2) <- decodeIO' displayType' codedValue1 view
@@ -248,4 +248,4 @@ instance HasCodedValue WrappedDisplayType where
 
 decodeIO' :: DisplayType displayType => displayType -> CodedValue -> View ->
    IO (displayType,CodedValue)
-decodeIO' _ codedValue0 view = decodeIO codedValue0 view
+decodeIO' _ codedValue0 view = safeDecodeIO codedValue0 view

@@ -315,8 +315,7 @@ doInContextVeryGeneral daVinciCmd contextOpt =
                   do
                      sendMsg childProcess 
                         (show(Multi(SetContext newContextId)))
-                     changed@(gotContextId,result) 
-                        <- getMultiAnswer childProcess
+                     (gotContextId,result) <- takeMVar responseMVar
                      if gotContextId /= newContextId
                         then
                            error "set_context returned wrong context"
@@ -435,7 +434,8 @@ getMultiAnswer childProcess =
             do
                answer2 <- getNextAnswer childProcess
                return (contextId,answer2)
-         _ -> error "Unexpected daVinci answer expecting contextId"
+         _ -> error ("Unexpected daVinci answer expecting contextId: "
+            ++ show answer1)
 
 getNextAnswer :: ChildProcess -> IO DaVinciAnswer
 getNextAnswer childProcess =

@@ -29,6 +29,7 @@ main =
          "top",
          "server"
          ]
+      withdrawWish
       repository <- initialise
       versionGraph <- newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)

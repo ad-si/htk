@@ -10,6 +10,12 @@ module CodedValue(
       -- This represents values in a uniform (and not too inefficient)
       -- way.  A CodedValue is essentially a String, only with record
       -- boundaries.
+      -- (actually defined in CodedValueStore)
+
+   safeDecodeIO,
+      -- This is recommended instead of the class method decodeIO since in
+      -- DEBUG mode it catches format errors and handles them.  In non-DEBUG
+      -- it is exactly the same as decodeIO, and should cost nothing more.
 
    HasCodedValue(..),
       -- class of things that can be converted to and from a CodedValue
@@ -36,7 +42,7 @@ module CodedValue(
    emptyCodedValue,
    isEmptyCodedValue, -- :: CodedValue -> Bool
    addBoundary, -- :: CodedValue -> CodedValue
-   removeBoundary, -- :: CodedValue -> CodedValue
+   removeBoundary, -- :: CodedValue -> Maybe CodedValue
 
    -- errors on decoding:
    formatError, -- :: String -> a
@@ -104,17 +110,11 @@ import VariableMap
 
 import VersionDB
 import ViewType
+import CodedValueStore
 
 ---------------------------------------------------------------------
 -- CodedValue's and operations on them.
 ---------------------------------------------------------------------
-
-newtype CodedValue = CodedValue [Maybe Char] deriving (Eq)
--- Why not just String?  Because CVS does versioning better when data
--- is considered in a record-based way.  Thus we try to represent each
--- "large" bit of data, IE more than 2 or 3 characters or so,
--- on a separate record.  In this list, Nothing
--- represents the record boundaries. 
 
 emptyCodedValue :: CodedValue
 emptyCodedValue = CodedValue []
@@ -126,10 +126,9 @@ isEmptyCodedValue _ = False
 addBoundary :: CodedValue -> CodedValue
 addBoundary (CodedValue l) = CodedValue (Nothing : l)
 
-removeBoundary :: CodedValue -> CodedValue
-removeBoundary (CodedValue (Nothing : rest)) = CodedValue rest
-removeBoundary _ = formatError "Record does not end where expected"
-
+removeBoundary :: CodedValue -> Maybe CodedValue
+removeBoundary (CodedValue (Nothing : rest)) = Just (CodedValue rest)
+removeBoundary _ = Nothing
 
 ---
 -- prefix combines two codedValues into one codedValue.
@@ -173,7 +172,7 @@ mapDecodeIO :: HasCodedValue value2 => (value2 -> value1)
    -> (CodedValue -> View -> IO (value1,CodedValue))
 mapDecodeIO decoder codedValue0 repository =
    do
-      (value2,codedValue1) <- decodeIO codedValue0 repository
+      (value2,codedValue1) <- safeDecodeIO codedValue0 repository
       return (decoder value2,codedValue1)
 
 encode2IO :: (HasCodedValue value1,HasCodedValue value2) 
@@ -188,8 +187,8 @@ decode2IO :: (HasCodedValue value1,HasCodedValue value2)
    => CodedValue -> View -> IO ((value1,value2),CodedValue)
 decode2IO codedValue0 repository =
    do
-      (value1,codedValue1) <- decodeIO codedValue0 repository
-      (value2,codedValue2) <- decodeIO codedValue1 repository
+      (value1,codedValue1) <- safeDecodeIO codedValue0 repository
+      (value2,codedValue2) <- safeDecodeIO codedValue1 repository
       return ((value1,value2),codedValue2)
 
 doEncodeIO :: HasCodedValue value => value -> View -> IO CodedValue
@@ -197,13 +196,15 @@ doEncodeIO value repository = encodeIO value emptyCodedValue repository
 
 doDecodeIO :: HasCodedValue value => CodedValue -> View -> IO value
 doDecodeIO codedValue repository =
-   do
-      (value,rest) <- decodeIO codedValue repository
-      if isEmptyCodedValue rest
-         then
-            return value
-         else
-            formatError "Extra trailing junk"
+   wrapFormatError(   
+      do
+         (value,rest) <- safeDecodeIO codedValue repository
+         if isEmptyCodedValue rest
+            then
+               return value
+            else
+               formatError "Extra trailing junk"
+      )
 
 doEncodeMultipleIO :: HasCodedValue value => [value] -> View -> IO CodedValue
 doEncodeMultipleIO values view = doEncodeMultipleIO' values emptyCodedValue
@@ -215,7 +216,8 @@ doEncodeMultipleIO values view = doEncodeMultipleIO' values emptyCodedValue
             doEncodeMultipleIO' t codedValue1
 
 doDecodeMultipleIO :: HasCodedValue value => CodedValue -> View -> IO [value]
-doDecodeMultipleIO codedValue view = doDecodeMultipleIO' codedValue []
+doDecodeMultipleIO codedValue view = 
+      doDecodeMultipleIO' codedValue []
    where
       doDecodeMultipleIO' codedValue0 l =
          if isEmptyCodedValue codedValue0 
@@ -223,7 +225,7 @@ doDecodeMultipleIO codedValue view = doDecodeMultipleIO' codedValue []
             return l
          else
             do
-              (value,codedValue1) <- decodeIO codedValue0 view
+              (value,codedValue1) <- wrapFormatError(decodeIO codedValue0 view)
               doDecodeMultipleIO' codedValue1 (value:l)
 
 class HasConverter value1 value2 where
@@ -273,15 +275,15 @@ instance (HasCodedValue value1,HasCodedValue value2)
       encode2IO 'R' value2 codedValue repository
    decodeIO codedValue0 repository =
       do
-         (letter,codedValue1) <- decodeIO codedValue0 repository
+         (letter,codedValue1) <- safeDecodeIO codedValue0 repository
          case letter of
             'L' ->
                do
-                  (value1,codedValue2) <- decodeIO codedValue1 repository
+                  (value1,codedValue2) <- safeDecodeIO codedValue1 repository
                   return (Left value1,codedValue2)
             'R' ->
                do
-                  (value2,codedValue2) <- decodeIO codedValue1 repository
+                  (value2,codedValue2) <- safeDecodeIO codedValue1 repository
                   return (Right value2,codedValue2)
             _ -> formatError "Unexpected character decoding Either"
 
@@ -325,7 +327,7 @@ instance HasCodedValue value => HasCodedValue [value]
          return codedValue2
    decodeIO codedValue0 repository =
       do
-         (l :: Int,codedValue1) <- decodeIO codedValue0 repository
+         (l :: Int,codedValue1) <- safeDecodeIO codedValue0 repository
          let
             decodeNValues :: Int -> CodedValue -> IO ([value],CodedValue)
             decodeNValues n codedValue0 =
@@ -339,8 +341,13 @@ instance HasCodedValue value => HasCodedValue [value]
                            return ([],codedValue0)
                   else
                      do
-                        let codedValue1 = removeBoundary codedValue0
-                        (value1,codedValue2) <- decodeIO codedValue1 repository
+                        codedValue1 <-
+                           case removeBoundary codedValue0 of
+                              Just codedValue -> return codedValue
+                              Nothing -> 
+                                 formatError "List element boundary missing"
+                        (value1,codedValue2) 
+                           <- safeDecodeIO codedValue1 repository
                         (values,codedValue3) <- decodeNValues (n-1) codedValue2
                         return (value1:values,codedValue3)
          list <- decodeNValues l codedValue1
@@ -382,7 +389,7 @@ instance HasCodedValue value => HasCodedValue (ShortList value)
          return codedValue2
    decodeIO codedValue0 repository =
       do
-         (l :: Int,codedValue1) <- decodeIO codedValue0 repository
+         (l :: Int,codedValue1) <- safeDecodeIO codedValue0 repository
          let
             decodeNValues :: Int -> CodedValue -> IO ([value],CodedValue)
             decodeNValues n codedValue0 =
@@ -396,7 +403,8 @@ instance HasCodedValue value => HasCodedValue (ShortList value)
                            return ([],codedValue0)
                   else
                      do
-                        (value1,codedValue1) <- decodeIO codedValue0 repository
+                        (value1,codedValue1) 
+                           <- safeDecodeIO codedValue0 repository
                         (values,codedValue2) <- decodeNValues (n-1) codedValue1
                         return (value1:values,codedValue2)
          (list,codedValue2) <- decodeNValues l codedValue1
@@ -414,7 +422,8 @@ instance HasPureCodedValue value => HasCodedValue value where
     encodeIO value codedValue repository =
        return (encodePure value codedValue)
     decodeIO codedValue repository =
-       return (decodePure codedValue)
+       -- force an error to be raised here if there is one.
+       codedValue `seq` (return (decodePure codedValue))
 
 mapEncodePure :: HasPureCodedValue value2 => (value1 -> value2) 
    -> (value1 -> CodedValue -> CodedValue)
@@ -493,7 +502,7 @@ instance HasCodedValue UniqueStringSource where
          encodeIO l codedValue view
    decodeIO codedValue0 view =
       do
-         (l,codedValue1) <- decodeIO codedValue0 view
+         (l,codedValue1) <- safeDecodeIO codedValue0 view
          v <- createUniqueStringSource l
          return (v,codedValue1)
 
@@ -627,7 +636,7 @@ instance (HasCodedValue from,HasCodedValue to,Ord from)
          encodeIO value codedValue view
    decodeIO codedValue0 view =
       do
-         (contents,codedValue1) <- decodeIO codedValue0 view
+         (contents,codedValue1) <- safeDecodeIO codedValue0 view
          registry <- listToNewRegistry contents
          return (registry,codedValue1)
 
@@ -644,7 +653,7 @@ instance (Typeable x,HasCodedValue [x],HasKey x key)
 
    decodeIO codedValue0 view =
       do
-         (list,codedValue1) <- decodeIO codedValue0 view
+         (list,codedValue1) <- safeDecodeIO codedValue0 view
          variableSet <- newVariableSet list
          return (variableSet,codedValue1)
 
@@ -659,7 +668,7 @@ instance (Ord key,HasCodedValue key,HasCodedValue elt)
 
    decodeIO codedValue0 view =
       do
-         (list,codedValue1) <- decodeIO codedValue0 view
+         (list,codedValue1) <- safeDecodeIO codedValue0 view
          variableMap <- newVariableMap list
          return (variableMap,codedValue1)
          
@@ -678,7 +687,7 @@ instance HasTyCon FormatError where
 
 formatError :: String -> a
 formatError message = throwDyn (FormatError (
-   "Attribute format error: "++message))
+   "format error: "++message))
 
 catchFormatError :: IO a -> (String -> IO a) -> IO a
 catchFormatError =
@@ -693,3 +702,49 @@ catchFormatError =
             Nothing -> Nothing
          )
 
+-- -------------------------------------------------------------------
+-- Functions for tracking down format errors in input.
+-- -------------------------------------------------------------------
+
+---
+-- Used in this file to protect functions which may raise a format error
+-- on reading something.  wrapFormatError should be put round functions 
+-- used at the interface to the user.
+wrapFormatError :: HasCodedValue a => IO a -> IO a
+#ifdef DEBUG
+wrapFormatError (action :: IO a) =
+   catchFormatError action
+      (\ str ->
+         let
+            tyPar = undefined :: a
+         in 
+            error ("CodedValue: "++str++" reading value of type "++
+               show (typeOf tyPar))
+         )
+#else 
+wrapFormatError action = action
+{-# INLINE wrapFormatError #-}
+#endif
+
+---
+-- Used in this file instead of decodeIO.
+safeDecodeIO :: HasCodedValue value 
+   => CodedValue -> View -> IO (value,CodedValue)
+#ifdef DEBUG
+safeDecodeIO codedValue view =
+      wrapFormatError2 (decodeIO codedValue view)
+   where
+      wrapFormatError2 (action :: IO (a,CodedValue)) =
+         catchFormatError action
+            (\ str ->
+               let
+                  tyPar = undefined :: a
+                  CodedValue l = codedValue
+               in 
+                  formatError ("CodedValue: "++str++" reading value of type "++
+                     show (typeOf tyPar) ++ " from "++show (take 10 l)++"...")
+               )
+
+#else
+safeDecodeIO = decodeIO
+#endif

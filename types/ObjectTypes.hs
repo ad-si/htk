@@ -85,7 +85,6 @@ module ObjectTypes(
 import qualified IOExts(unsafePerformIO)
 
 import Registry
-import AtomString
 import Computation
 import Dynamics
 import Sink
@@ -97,6 +96,7 @@ import Graph(ArcType,NodeType)
 
 import VersionDB(Location)
 import CodedValue
+
 import DisplayTypes
 import ViewType
 import Link
@@ -119,7 +119,7 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- for a module named "A", "A" and "A.B" are legal values for this
       -- string, but not "AB" or "C".
 
-   objectTypeIdPrim :: objectType -> AtomString
+   objectTypeIdPrim :: objectType -> GlobalKey
       -- Returns the unique identifier for this objectType in this
       -- version.  NB - this may be changed from version to version
       -- unlike objectTypeTypeIdPrim
@@ -325,11 +325,11 @@ instance ObjectType objectType object
             key = objectTypeIdPrim objectType
 
          addToGlobalRegistry globalRegistry view key objectType
-         encodeIO (Str key) codedValue view
+         encodeIO key codedValue view
 
    decodeIO codedValue0 view =
       do
-         (Str key,codedValue1) <- decodeIO codedValue0 view
+         (key,codedValue1) <- safeDecodeIO codedValue0 view
          let 
             globalRegistry = objectTypeGlobalRegistry 
                (error "Don't look at me" :: objectType)
@@ -350,7 +350,7 @@ type ObjectTypeData = [(String,CodedValue)]
 importObjectTypes :: CodedValue -> View -> IO ()
 importObjectTypes codedValue view =
    do
-      (objectTypeData :: ObjectTypeData) <- doDecodeIO codedValue view
+      (objectTypeData :: ObjectTypeData) <- doDecodeMultipleIO codedValue view
       sequence_ (
          map
             (\ (typeKey,codedValue) ->
@@ -453,7 +453,7 @@ instance HasCodedValue WrappedObjectType where
 
    decodeIO codedValue0 view =
       do
-         (typeKey :: String,codedValue1) <- decodeIO codedValue0 view
+         (typeKey :: String,codedValue1) <- safeDecodeIO codedValue0 view
          Just (WrappedObjectTypeTypeData objectType') <-
             getValueOpt objectTypeTypeDataRegistry typeKey
          (objectType,codedValue2) <- decodeIO' objectType' codedValue1 view
@@ -461,7 +461,7 @@ instance HasCodedValue WrappedObjectType where
 
 decodeIO' :: ObjectType objectType object 
    => objectType -> CodedValue -> View -> IO (objectType,CodedValue)
-decodeIO' _ codedValue0 view = decodeIO codedValue0 view
+decodeIO' _ codedValue0 view = safeDecodeIO codedValue0 view
 
 -- -----------------------------------------------------------------
 -- Similarly, we make WrappedLink an instance of HasCodedValue
@@ -481,7 +481,7 @@ toObjectType link = error "toLinkType"
 -- toLinkType is similar but returns a decodeIO action for the link type.
 toLinkType :: ObjectType objectType object => objectType -> 
    (CodedValue -> View -> IO (Link object,CodedValue))
-toLinkType objectType = decodeIO
+toLinkType objectType = safeDecodeIO
 
 instance HasCodedValue WrappedLink where
    encodeIO (WrappedLink link) codedValue0 view =
@@ -494,7 +494,7 @@ instance HasCodedValue WrappedLink where
 
    decodeIO codedValue0 view =
       do
-         (typeKey :: String,codedValue1) <- decodeIO codedValue0 view
+         (typeKey :: String,codedValue1) <- safeDecodeIO codedValue0 view
          Just (WrappedObjectTypeTypeData objectType) <-
             getValueOpt objectTypeTypeDataRegistry typeKey
          (link,codedValue2) <- toLinkType objectType codedValue1 view
@@ -504,7 +504,7 @@ instance HasCodedValue WrappedLink where
 -- We make WrappedObjectType an instance of HasKey
 -- -----------------------------------------------------------------
 
-instance HasKey WrappedObjectType (String,AtomString) where
+instance HasKey WrappedObjectType (String,GlobalKey) where
    toKey (WrappedObjectType objectType) =
       (objectTypeTypeIdPrim objectType,objectTypeIdPrim objectType)
 

@@ -5,9 +5,11 @@ import IO
 import Int
 import Exception
 
+import AtomString
 import Computation
 
 import CodedValue
+import VersionDB
 
 import CodedValueStore
 
@@ -87,7 +89,12 @@ main =
       message "T13"
       testValue ([] :: [Int])
       message "T14"
-      testValue "Fooo\nBar\\\n\n"
+      testValue "Fooo\nBar\\\n\n" 
+      message "T15"
+      testValue ((fromString "FooBar") :: Location)
+      message "T16"
+      testValue ([(fromString "b",fromString "1.1")] 
+         :: [(Location,ObjectVersion)])
       message "Test Completed"
 
 message :: String -> IO ()

@@ -63,7 +63,7 @@ s+"+\\\\"+g'`
 AC_SUBST(DEFAULTOPTIONS)
 
 # Find all files Makefile.in
-MAKEFILES=`find . -name "Makefile.in" | sed -e "s/.in$//"`
+MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
 # Compiling mkEverything.c, used for libfasthere.

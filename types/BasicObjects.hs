@@ -102,7 +102,8 @@ instance HasCodedValue SimpleFile where
          encodeIO (location,objectVersion) codedValue0 view
    decodeIO codedValue0 view =
       do
-         ((location,objectVersion),codedValue1) <- decodeIO codedValue0 view
+         ((location,objectVersion),codedValue1) 
+            <- safeDecodeIO codedValue0 view
          filePath <- newTempFile
          let repository = getRepository view
          retrieveFile repository location objectVersion filePath
@@ -142,13 +143,14 @@ instance HasTyCon Attributes where
 instance HasCodedValue Attributes where
    encodeIO (Attributes {registry = registry}) codedValue0 view =
       do
-         contents <- listRegistryContents registry
+         (contents::[([Char],CodedValue)]) <- listRegistryContents registry
          codedValue1 <- encodeIO contents codedValue0 view
          return codedValue1
 
    decodeIO codedValue0 view =
       do
-         (contents,codedValue1) <- decodeIO codedValue0 view
+         (contents::[([Char],CodedValue)],codedValue1) 
+            <- safeDecodeIO codedValue0 view
          registry <- listToNewRegistry contents
          let 
             attributes = Attributes {

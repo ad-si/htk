@@ -16,7 +16,7 @@ import qualified IOExts(unsafePerformIO)
 
 import Dynamics
 import Computation
-import AtomString
+import AtomString(fromString)
 import Sink
 import VariableSet
 import UniqueString
@@ -42,7 +42,7 @@ import CallEditor
 -- ------------------------------------------------------------------
 
 data FileType = FileType {
-   fileTypeId :: AtomString,
+   fileTypeId :: GlobalKey,
    fileTypeLabel :: Maybe String,
    requiredAttributes :: AttributesType,
    displayParms :: NodeTypes (String,Link File),
@@ -59,14 +59,14 @@ instance HasCodedValue FileType where
       (\ (FileType {fileTypeId = fileTypeId,fileTypeLabel = fileTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,canEdit = canEdit})
-         -> (Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
+         -> (fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
             canEdit)
          )
    decodeIO codedValue0 view =
       do
-         ((Str fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
+         ((fileTypeId,fileTypeLabel,requiredAttributes,displayParms,
                canEdit),
-            codedValue1) <- decodeIO codedValue0 view
+            codedValue1) <- safeDecodeIO codedValue0 view
          knownFiles <- newEmptyVariableSet
          return (FileType {fileTypeId = fileTypeId,
             fileTypeLabel = fileTypeLabel,
@@ -98,12 +98,13 @@ instance HasCodedValue File where
    encodeIO = mapEncodeIO 
       (\ (File {fileType = fileType,attributes = attributes,
              name = name,simpleFile = simpleFile}) ->
-         (fileType,attributes,name,simpleFile)
+         (fileTypeId fileType,attributes,name,simpleFile)
          )
    decodeIO codedValue0 view =
       do
-         ((fileType,attributes,name,simpleFile),codedValue1) <-
-            decodeIO codedValue0 view
+         ((fileTypeId,attributes,name,simpleFile),codedValue1) <-
+            safeDecodeIO codedValue0 view
+         fileType <- lookupInGlobalRegistry globalRegistry view fileTypeId
          return (File {fileType = fileType,attributes = attributes,
              name = name,simpleFile = simpleFile},
              codedValue1)
@@ -258,6 +259,6 @@ getPlainFileType :: View -> IO FileType
 getPlainFileType view =
    lookupInGlobalRegistry globalRegistry view plainFileKey
 
-plainFileKey :: AtomString
+plainFileKey :: GlobalKey
 plainFileKey =  oneOffKey "Files" ""
 

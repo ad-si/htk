@@ -64,7 +64,9 @@ HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
 HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
              $(patsubst %.lhs,$$PWD/%.lhs,$(SRCSLHS)) \
              $(patsubst %.boot.hs,$$PWD/%.boot.hs,$(BOOTSRCS))
-OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC)) \
+# Can't be bothered to have a special variable for C header files.
+OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC))  \
+            $(patsubst %.h,$$PWD/%.h,$(filter-out *.h,*.h))  \
             $$PWD/Makefile.in
 ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
 

@@ -22,11 +22,12 @@ include @TOP@/mk/boilerplate.mk
 
 findsources :
 	@$(MAKE) displaysrcs -s --no-print-directory
-	@echo mk/boilerplate.mk.in mk/machinedep.mk.in mk/var.mk mk/suffix.mk
-	@echo mk/mkEverything.c configure.in 
+	@echo @TOP@/mk/boilerplate.mk.in @TOP@/mk/machinedep.mk.in 
+	@echo @TOP@/mk/var.mk @TOP@/mk/suffix.mk @TOP@/mk/local.mk.debug
+	@echo @TOP@/mk/mkEverything.c @TOP@/configure.in 
 
 tarball.tar.gz:
-	gtar -czf tarball.tar.gz `$(MAKE) -s --no-print-directory findsources ; echo README ; echo configure`
+	cd @TOP@;gtar -czf tarball.tar.gz `(($(MAKE) -s --no-print-directory findsources) | sed "s+^@TOP@/++;s+ @TOP@/+ +g;") ; echo README ; echo configure`
 
 # tar of all object and .hi files (but not .depend/library/exec files which 
 # are cheaper to regenerate)

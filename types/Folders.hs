@@ -22,11 +22,11 @@ import qualified IOExts(unsafePerformIO)
 
 import Dynamics
 import Computation
-import AtomString
 import Sink
 import VariableSet
 import VariableMap
 import UniqueString
+import AtomString(fromString)
 
 import BSem
 
@@ -85,7 +85,7 @@ displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
 -- ------------------------------------------------------------------
 
 data FolderType = FolderType {
-   folderTypeId :: AtomString,
+   folderTypeId :: GlobalKey,
    folderTypeLabel :: Maybe String,
       -- Menu label to be used for creating objects of this type.
    requiredAttributes :: AttributesType,
@@ -104,13 +104,13 @@ instance HasCodedValue FolderType where
             folderTypeLabel = folderTypeLabel,
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt})
-         -> (Str folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
+         -> (folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
                topFolderLinkOpt))
    decodeIO codedValue0 view =
       do
-         ((Str folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
+         ((folderTypeId,folderTypeLabel,requiredAttributes,displayParms,
             topFolderLinkOpt),
-            codedValue1) <- decodeIO codedValue0 view
+            codedValue1) <- safeDecodeIO codedValue0 view
          knownFolders <- newEmptyVariableSet
          return (FolderType {folderTypeId = folderTypeId,
             folderTypeLabel = folderTypeLabel,
@@ -144,12 +144,13 @@ instance HasCodedValue Folder where
    encodeIO = mapEncodeIO 
       (\ (Folder {folderType = folderType,attributes = attributes,
              name = name,contents = contents}) ->
-         (folderType,attributes,name,contents)
+         (folderTypeId folderType,attributes,name,contents)
          )
    decodeIO codedValue0 view =
       do
-         ((folderType,attributes,name,contents),codedValue1) <-
-            decodeIO codedValue0 view
+         ((folderTypeId,attributes,name,contents),codedValue1) <-
+            safeDecodeIO codedValue0 view
+         folderType <- lookupInGlobalRegistry globalRegistry view folderTypeId
          contentsLock <- newBSem
          return (Folder {folderType = folderType,attributes = attributes,
              name = name,contents = contents,contentsLock = contentsLock},
@@ -305,10 +306,10 @@ getPlainFolderType :: View -> IO FolderType
 getPlainFolderType view =
    lookupInGlobalRegistry globalRegistry view plainFolderKey
 
-plainFolderKey :: AtomString
+plainFolderKey :: GlobalKey
 plainFolderKey = oneOffKey "Folders" ""
 
-folderDisplayKey :: AtomString
+folderDisplayKey :: GlobalKey
 folderDisplayKey = oneOffKey "Folders" "Display"
 
 

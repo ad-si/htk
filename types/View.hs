@@ -29,6 +29,7 @@ import Directory
 import Concurrent
 
 
+import Debug(debug)
 import Registry
 import Dynamics
 import AtomString(fromString)
@@ -79,7 +80,6 @@ getView repository objectVersion =
    do
       objectId <- newObject
       let viewId = ViewId objectId
-
       viewString <- retrieveString repository firstLocation objectVersion
       let
          viewCodedValue = fromString viewString

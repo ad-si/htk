@@ -1,5 +1,3 @@
-{- work round GHC bug -}
-#define label labxyz 
 {- Encodes AttributesType.  The interface to this module is documented with
    HDoc.
    -}
