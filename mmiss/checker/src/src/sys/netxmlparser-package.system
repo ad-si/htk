@@ -1,0 +1,17 @@
+(in-package :cl-user)
+
+(mk:defsystem netxmlparser-package
+	:initially-do 
+	(progn 
+	  (eval-when (:compile-toplevel :load-toplevel :execute)
+	    (unless (find-package 'net.xml.parser)
+	      (defpackage net.xml.parser
+		#+(and cmu (not scl))
+		(:use :lisp :ext)
+		#-(and cmu (not scl))
+		(:use :lisp :clos ;; :ext
+		      )
+		(:export #:parse-xml)))
+	    (proclaim '(optimize (speed 3) (safety 1) (compilation-speed 0))))
+	  ))
+

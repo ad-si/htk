@@ -1,0 +1,28 @@
+(in-package :cl-user)
+
+(mk:defsystem xmlutils
+	      :depends-on (netxmlparser-package)
+	      :source-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME")
+								"src" "share" "parser" "xmlparser" 
+								#+CMU "xmlutils-cmucl"
+								#-CMU "xmlutils-franz"
+								)	
+	      :binary-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME")
+								"binaries" "share" "parser" "xmlparser" 
+								#+CMU "xmlutils-cmucl"
+								#-CMU "xmlutils-franz"
+								mk::*lisp-dependent-binary-pathname*)
+	      :components
+	      (
+	       (:file "configure")
+               #+CMU (:file "if-star"
+			    :depends-on ("configure"))
+	       (:file "pxml0"
+		      :depends-on ("configure"))
+	       (:file "pxml1"
+		      :depends-on ("pxml0"))
+	       (:file "pxml2"
+		      :depends-on ("pxml1"))
+	       (:file "pxml3"
+		      :depends-on ("pxml2"))
+	       ))

@@ -1,0 +1,12 @@
+(in-package :user)
+
+(mk:defsystem xml-parser
+	      :depends-on (xmlutils)
+	      :source-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME")
+								"src" "share" "parser" "xmlparser")	
+	      :binary-pathname (mk::append-multiple-directories (mk::getenv "BIGSYSHOME")
+								"binaries" "share" "parser" "xmlparser"
+								mk::*lisp-dependent-binary-pathname*)
+	      :components
+	      ((:file "xml-parser")
+	       ))
