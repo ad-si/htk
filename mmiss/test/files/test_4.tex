@@ -1,0 +1,601 @@
+\documentclass[landscape, slides, light]{mmiss2}[19.02.2002]
+
+\usepackage{latexsym}
+\usepackage{casl}
+
+\newcommand{\gram}[1]{{\texttt{#1}}}
+\newcommand{\power}{\hat{\ }}
+\newcommand{\annoimplies}{\%{\bf implies}\ }
+\newcommand{\annodef}{\%{\bf def}\ }
+\newcommand{\annocons}{\%{\bf conservatively}\ }
+\newcommand{\annoprec}{\%{\bf prec}\ }
+\newcommand{\annorassoc}{\%{\bf right\ assoc}\ }
+\newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
+\newcommand{\annobrackets}{{\bf brackets}\ }
+\def\ShortTitle{Algebraic Specification}
+\def\ShortAuthor{M. Roggenbach}
+
+%\def\Title{Algebraic Specification -- \\ adapted as example of ML2\\ by M. D.}
+\def\Title{}
+\begin{document}
+\begin{Package}[Notation=MMISS_Latex2,Label=pack1,Title={Algebraic Specification -- \\ adapted as example of ML2\\ by M. D.},Date=12.09.2002,Version=5,PreviousVersion=4,Authors={Markus
+Roggenbach},PriorAuthors={Markus
+Roggenbach},ShortAuthor={M. Roggenbach},ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper]
+
+\begin{Section}[Notation=MMISS_Latex2,Title=Introduction,Label=Chapter1,Date=12.09.2002,Version=5,PreviousVersion=4,Authors={Markus
+Roggenbach},PriorAuthors={Markus Roggenbach},ShortAuthor={M. Roggenbach},ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper]
+\begin{Introduction}[Label=Introduction1.1,Title=Overview]
+The following text has the purpose to explain the utility of formal
+specifications to the reader. It also provides some simple examples
+and descriptions of formal specifications. At the end of this text some
+basic mathematical concepts as semigroups
+\ForwardLink{Definition1.4.1}{}, monoids
+\ForwardLink{Definition1.4.2}{} and groups
+\ForwardLink{Definition1.4.3}{} are given.
+\end{Introduction}
+\begin{Section}[Title={Formal Methods in Software Design},Label=Section1.1]
+\begin{Paragraph}[Label=para11]
+\begin{center}
+``Use of mathematics in software development''\\
+\end{center}
+main activities:
+\begin{List}[Label=List1.1.1,ListType=itemize]
+\ListItem
+\Emphasis{ writing} formal specifications  \pause
+\ListItem
+\Emphasis{ proving} properties about formal specifications \pause
+\ListItem
+\Emphasis{ constructing} a program by mathematical \\
+           manipulation of a formal specification \pause
+\ListItem
+\Emphasis{ verifying} a program by mathematical argument
+\end{List}
+\end{Paragraph}
+
+\begin{Paragraph}[Title={Non Formal, Semi Formal, Formal},Label=Paragraph1.1.1]
+
+\begin{TextFragment}[Label=TextFragment1.1.1]
+``It has been widely accepted that \Emphasis{ syntax} can be mathematically
+defined for quite some time, but there has been more resistance to the
+mathematical definition of \Emphasis{ semantics}.''
+\end{TextFragment}
+
+(quoted freely from \cite{bowen99})
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph1.1.2]
+\Emphasis{ non formal}:\\
+in natural languague \\
+(open to arbitrary new symbols)\\
+\newline
+\Emphasis{ formal}: \\
+in a (fixed) language with \\
+mathematically defined {\bf Syntax} and {\bf Semantics}\\
+
+\Emphasis{ semi formal}: \\
+in a language with
+\begin{List}[Label=List1.1.2,ListType=itemize]
+\ListItem
+ {{\bf Syntax} definition by mathematical methods}
+\ListItem 
+{{\bf Semantics} definition in natural language or by tool}
+\end{List}
+\end{Paragraph}
+
+\begin{Paragraph}[Title=Specifications,Label=Paragraph1.1.3]
+Specification: ``description by properties''\\
+
+Main question on specifications:\\
+``What happens if \dots'' \\ \\
+
+Specifications should be \pause
+\begin{List}[Label=List1.1.3,ListType=itemize]
+\ListItem
+{complete \pause}
+\ListItem
+{precise \pause}
+\ListItem
+{consistent (no contradictions)}
+\end{List}
+\end{Paragraph}
+\begin{Paragraph}[Title={Why formal Specifications?},Label=Paragraph1.1.4]
+\begin{List}[Label=List1.1.4,ListType=itemize]
+\ListItem
+{formal specifications are \Emphasis{precise}  \\
+          (non formal and sometimes even semi formal \\
+          specifications are open to re-interpretation)\pause}
+
+
+\ListItem
+{syntactical and semantical \Emphasis{correctness} \\
+          independent of tools \pause}
+
+\ListItem
+{\Emphasis{mathematical methods} \\
+          (consistency, completeness)}
+\end{List}
+\end{Paragraph}
+\begin{Paragraph}[Title={Limitations of Formal Methods},Label=Paragraph1.1.5]
+\begin{center}
+``The world is not a formal system.''
+\end{center}
+\hfill \\
+I. Modelling means Abstraction \\
+(only ``essentials'' are considered)\\
+\hfill \\
+II. Errors within Formalisms.
+\end{Paragraph}
+\begin{Paragraph}[Label=Paragraph1.1.6]
+
+III. Behaviour of a Program depends on\\
+\begin{List}[Label=List1.1.5,ListType=itemize]
+\ListItem
+{Compiler}
+\ListItem
+{Operating System}
+\ListItem
+{Computer Hardware}
+\ListItem
+{Embedding in a Technical Process}
+\ListItem
+{Human Operator}
+\end{List}
+\end{Paragraph}
+
+\begin{Paragraph}[Title={Waterfall Model},Label=Paragraph1.1.7]
+
+\begin{Table}[Label=Table1.1.1,Title={Waterfall Model}]
+{\small
+\begin{center}
+\begin{tabular}{lcl}
+
+               & Requirement Elicitation & \\ 
+               & and Analysis            &\\
+& $\uparrow$ $\downarrow$ &\\
+Nat.~Lang.   & Non Formal Specification &\\
+& $\uparrow$ $\downarrow$ & Validation \\
+
+\Emphasis{Spec.~Lang.}  & Formal Specification & \\
+& $\uparrow$ $\downarrow$ & ``Inv.~\& Verify'' or\\
+
+Progr.~Lang. & Implementation & Transformation \\
+& $\uparrow$ $\downarrow$ &\\
+
+& Test & \\
+
+& $\uparrow$ $\downarrow$ &\\
+
+& Maintenance& \\
+
+\end{tabular}
+\end{center}
+}
+\end{Table}
+
+\end{Paragraph}
+\begin{Paragraph}[Title={Specification Languages},Label=Paragraph1.1.8]
+
+\begin{TextFragment}[Label=TextFragment1.1.2]
+\begin{center}
+  ``No single technique is adequate to address \\
+  all issues of complex system development.''
+\end{center}
+\end{TextFragment}
+\hfill \\
+Classification of Specification Languages:\\
+
+\begin{List}[Label=List1.1.6,ListType=itemize]
+\ListItem
+{Model-oriented: Z, VDM}
+\ListItem
+{Property-oriented: Larch, OBJ, \Emphasis{CASL}}
+\ListItem
+{Process algebras:
+\begin{Table}[Label=Table1.1.6.1,Title={Process algebras}]
+\begin{tabular}[t]{l}
+CCS, \Emphasis{CSP}, $\pi$-calculus
+\end{tabular}
+\end{Table}}
+\end{List}
+\end{Paragraph}
+
+\bibliographystyle{abbrv}
+\bibliography{lecture.bib}
+
+\end{Section}
+
+\begin{Section}[Title={Elements of Formal Specifications},Label=Section1.2]
+\begin{Paragraph}[Label=para12]
+\begin{center}
+\Emphasis{ Aim of Formal Specifications}
+\end{center}
+\vspace{1cm}
+\begin{center}
+\begin{Table}[Label=Table1.2.1,Title=Specification]
+\begin{tabular}{c}
+Non Formal Specification \\
+$\uparrow$ $\downarrow$ \\
+\Emphasis{Formal Specification}  \\
+$\uparrow$ $\downarrow$ \\
+Implementation \\
+\end{tabular}\\
+\end{Table}
+
+\end{center}
+\vspace{1cm}
+extract the ``essentials'' of
+\begin{List}[Label=List1.2.1,ListType=itemize]
+\ListItem
+{a non formal specification}
+\ListItem
+{all desirable implementations}
+\end{List}
+\end{Paragraph}
+
+\begin{Paragraph}[Title={Running Example: Database},Label=Paragraph1.2.1]
+Non Formal Specification:
+\\ \\
+Write a Java program that implements a database with \\
+$\bullet$ ``Name'' and \\
+$\bullet$ ``Telephone Number'' \\
+as entries.
+\end{Paragraph}
+
+\begin{Section}[Title={Example for Program},Label=Section1.2.1]
+\begin{Paragraph}[Label=para1b]
+The following example demonstrates the Java implementation of a
+database.
+\end{Paragraph}
+\begin{Paragraph}[Title={How to begin?},Label=Paragraph1.2.1.1]
+A Java program usually starts with some declarations of classes and
+subroutines.
+\newline
+\hfill \\
+\hfill \\
+\hfill \\
+\IncludeProgramFragment{ProgramFragment1.2.1.1.1}{}
+\end{Paragraph}
+\begin{Paragraph}[Title={How to proceed?},Label=Paragraph1.2.1.2]
+Having completed the list of declarations one usually continues with
+the source code of some auxiliary functions.
+\newline
+\hfill \\
+\hfill \\
+\hfill \\
+\IncludeProgramFragment{ProgramFragment1.2.1.1.2}{}
+\end{Paragraph}
+\begin{Paragraph}[Title={The complete program},Label=Paragraph1.2.1.3]
+The source code would then look as follows.
+\newline
+\hfill \\
+\hfill \\
+\hfill \\
+\begin{Program}[Notation=Java_Prog,Label=Program1.2.1.1,Title={(Useless) Database}]
+\begin{ProgramFragment}[Notation=Java_Prog,Label=ProgramFragment1.2.1.1.1]
+\tiny
+\normalsize
+\end{ProgramFragment}
+\begin{ProgramFragment}[Notation=Java_Prog,Label=ProgramFragment1.2.1.1.2]
+\tiny
+\normalsize
+\end{ProgramFragment}
+\begin{ProgramFragment}[Notation=Java_Prog,Label=ProgramFragment1.2.1.1.3]
+\tiny
+\normalsize
+\end{ProgramFragment}
+\end{Program}
+\end{Paragraph}
+\end{Section}
+
+\begin{Paragraph}[Label=Paragraph1.2.2]
+\begin{center}
+{\Large Essential for Programs}
+\end{center}
+distinguish between functions of the
+\begin{List}[Label=List1.2.2,ListType=itemize]
+\ListItem
+{\Emphasis{interface} \\ (functions that can be used
+``safely'')}
+\ListItem
+{\Emphasis{implementation} \\ (functions that make sense \\
+           only in a particular realization)}
+\end{List}
+\end{Paragraph}
+
+\begin{Paragraph}[Title={Formal Specification -- First Element},Label=Paragraph1.2.3]
+Formal Specifications describe an \Emphasis{Interface} -- \\
+written down as \Emphasis{Signature}, i.e.~a list consisting of the\\
+\begin{List}[Label=List1.2.3,ListType=itemize]
+\ListItem
+{Name and}
+\ListItem
+{Profile}
+\end{List}
+of all functions.
+\end{Paragraph}
+
+\begin{Paragraph}[Title={Interfaces and Programming Languages},Label=Paragraph1.2.4]
+PL supporting Interfaces: \\
+C++, Modula, ML, Haskell, Java, Eiffel, \dots \\ 
+PL not supporting Interfaces: \\
+Fortran, Pascal, C, Lisp, \dots
+\end{Paragraph}
+
+\begin{Paragraph}[Title={Specifying the Interface in CASL},Label=Paragraph1.2.5]
+
+\vspace{1cm}
+
+\begin{ProgramFragment}[Notation=CASL_Spec,Label=CASL_Spec 2.1,Title=Database]
+
+\begin{SpecDefn}{Database} =
+\I{}
+\begin{Items}                 
+\I\Sorts \(\[ Database; String; Nat\] \)
+\I\Ops
+\( \[
+   initial  & ~:~ & Database;\\
+   look\_up & ~:~ & Database \* String \tfun Nat;\\
+   update   & ~:~ & Database \* String \* Nat \tfun Database\\
+\] \)
+\end{Items}
+\I\End
+\end{SpecDefn}
+
+\end{ProgramFragment}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Label=Paragraph1.2.6]
+\begin{center}
+{\Large Formal Specifications -- Second Element}
+\end{center}
+\hfill \\
+A formal specification includes beside the \\
+\begin{Table}[Label=Table1.2.2,Title={Formal Specification}]
+\begin{tabular}{rl}
+(i)  & signature \\
+(ii) & a description of the functions' properties. \\
+\end{tabular}
+\end{Table}
+\\
+Programming Languages fail for (ii): \\
+Expressing properties of a function involves implementation details.
+\end{Paragraph}
+
+\begin{Paragraph}[Label=Paragraph1.2.7]
+\begin{center}
+{\Large Interface and Properties in CASL}
+\end{center}
+
+\begin{ProgramFragment}[Notation=CASL_Spec,Label=CASL_Spec 2.2,Title=Database]
+
+\begin{SpecDefn}{Database} =
+\I{}
+\begin{Items}
+\I\Sort
+\( \[
+   Database; String; Nat\\
+\] \)
+
+\I\Ops
+
+\( \[
+   initial  & ~:~ & Database;\\
+   0        & ~:~ & Nat; \\
+   look\_up & ~:~ & Database \* String \tfun Nat;\\
+   update   & ~:~ & Database \* String \* Nat \tfun Database\\
+\] \)
+
+\I{}
+
+\I\Vars
+
+\( 
+   s    : Database;
+   n    :Nat;
+   v, w : String
+\)
+
+\I\. \%[initial] \( look\_up( initial, v ) ~=~ 0 \)
+
+\I\. \%[look\_up\_1]
+\( \[
+v ~=~ w ~\imp~ \\
+look\_up( update( s, v, n ), w ) ~=~ n 
+\]\)
+
+\I\. \%[look\_up\_2]
+\(\[ 
+\neg~ v ~=~ w ~\imp~ \\
+look\_up( update( s, v, n ), w ) ~=~ look\_up( s, w ) 
+\]\)
+
+\end{Items}                  
+\I\End
+\end{SpecDefn}
+
+\end{ProgramFragment}
+\end{Paragraph}
+
+\begin{Paragraph}[Label=Paragraph1.2.8]
+\vfill
+\begin{center}
+{\Large Useless Database}
+\end{center}
+
+\vspace{1cm}
+\begin{center}
+\MMstartApplication{Start Database}{Applications/MBandt/imp2/start_xterm.sh}
+\end{center}
+
+\vfill
+\end{Paragraph}
+
+
+\begin{Paragraph}[Label=Paragraph1.2.9]
+\begin{center}
+{\Large Formal Specifications =}\\
+{\Large Abstract Datatypes} (see also \cite{ehrich96})
+\end{center}
+\hfill \\
+An Abstract Datatype consists of a \\
+\begin{Table}[Label=Table1.2.3,Title={Abstract Datatype}]
+\begin{tabular}{rl}
+(i)   & Signature,\\
+(ii)  & a description of the functions' properties, \\
+(iii) & a description of the domains.
+\end{tabular}
+\end{Table}
+\end{Paragraph}
+
+\begin{Paragraph}[Label=Paragraph1.2.10]
+\begin{center}
+{\Large A Domain Description in CASL}
+\end{center}
+
+\vspace{1cm}
+
+\begin{ProgramFragment}[Notation=CASL_Spec,Label=CASL_Spec 2.3,Title=Natural Numbers]
+
+\begin{SpecDefn}{Nat} =
+\I{}
+\begin{Items}
+\I\Free\Types \
+\(\[
+Nat & \ ::= & \ 0 \, |  \, \Sort \ Pos; \\
+Pos & \ ::= & \ suc(pre:Nat)
+\]\)
+\end{Items}
+\I\End
+\end{SpecDefn}
+
+\end{ProgramFragment}
+
+\end{Paragraph}
+
+\end{Section}
+
+\begin{Section}[Title={Bibliographic Remarks},Label=Section1.3]
+\begin{Paragraph}[Label=para13]
+\begin{List}[Label=List1.3.1,ListType=itemize]
+\ListItem
+Formal Methods: \\
+
+\begin{TextFragment}[Label=TextFragment1.3.1]
+J.P.~Bowen, M.G.~Hinchey: {\it High-Integrity System Specification and Design,}
+Springer, 1999.
+\end{TextFragment}
+
+\ListItem
+Algebraic Specification: Loeckx, Ehrich, Wolf: {\it
+Specification of Abstract Data Types,} Wiley \& Teubner, 1996.
+\ListItem
+CASL und CoFI: 
+\begin{verbatim}
+http://www.brics.dk/Projects/CoFI/
+\end{verbatim}
+\end{List}
+\end{Paragraph}
+
+\end{Section}
+
+\begin{Section}[Title={Mathematical Background},Label=Section1.4]
+\begin{Paragraph}[Label=para14]
+\begin{Definition}[Notation=Algebra,Label=Definition1.4.1,Title=Semigroup]
+Let $S$ be  set of elements together with a given binary operation. If $S$
+is closed under the given operation and the given operation is
+associative, then we call $S$ a semigroup under the given operation.
+\end{Definition}
+\newline
+\begin{Definition}[Notation=Algebra,Label=Definition1.4.2,Title=Monoid]
+Let $M$ be a semigroup. If there is an element $e \in M$ with
+$em=me=m$ for all $m \in M$, then $e \in M$ is said to be an identity
+element in relation to the operation. We call such a semigroup $M$ a
+monoid and $e \in M$ the identity element of the monoid.
+\end{Definition}
+\newline
+\begin{Definition}[Notation=Algebra,Label=Definition1.4.3,Title=Group]
+Let $G$ be a monoid in which one finds a $\hat{g} \in G$ with
+$\hat{g}g=g\hat{g}=e$ ($e \in G$ is the identity element of $G$) for
+every $g \in G$. We call $\hat{g} \in G$ the
+\Define{Define1.4.3.1}{inverse}{} element of $g \in G$ in relation to
+the operation. The inverse element of a given
+element $g \in G$ is denoted by $g^{-1}$. We call such a monoid $G$ a
+group. Thus a group is a monoid in which every element has an inverse.
+\end{Definition}
+\newline
+\begin{Theorem}[Notation=Algebra,Label=Theorem1.4.1,Title={Uniqueness 1a}]
+The identity element of a monoid $M$ is unique.
+\end{Theorem}
+
+\begin{Proof}[Notation=Algebra,Label=Proof1.4.1.1,Title=Contradiction]
+Suppose there is a monoid $M$ with two different identity elements $e_{1}
+\in M$ and $e_{2} \in M$. Then the following equation holds:
+\begin{displaymath}
+e_{1}=e_{1}e_{2}=e_{1}e_{2}=e_{2}
+\end{displaymath}
+So we conclude $e_{1}=e_{2}$. This is a contradiction to the
+assumption. This means, that our assumption must be false. Therefore
+the identity element of a monoid is unique.
+\end{Proof}
+
+\begin{Corollary}[Notation=Algebra,Label=Corollary1.4.1.1,Title={Uniqueness 1b}]
+The identity element of a group is unique.
+\end{Corollary}
+\newline
+\begin{Theorem}[Notation=Algebra,Label=Theorem1.4.2,Title={Uniqueness 2}]
+The inverse element of a given element $g$ of a group $G$ is unique.
+\end{Theorem}
+
+\begin{Proof}[Notation=Algebra,Label=Proof1.4.2.1,Title=Contradiction]
+Suppose there is a group $G$ and a $g \in G$  with two different
+inverse elements $g_{1} \in G$ and $g_{2} \in G$ for $g \in G$. Then
+the following equation holds:
+\begin{displaymath}
+g_{1}=g_{1}gg_{2}=g_{1}gg_{2}=g_{2}
+\end{displaymath}
+So we conclude $g_{1}=g_{2}$. This is a contradiction to the
+assumption. This means, that our assumption must be false. This holds
+for any $g \in G$ of any group $G$. Therefore the inverse element of a
+given $g \in G$ in an arbitrary group G is always unique.
+\end{Proof}
+\newline
+\begin{Assertion}[Notation=Algebra,Label=Assertion1.4.1,Title={Finite Groups}]
+Finite groups can be categorized. 
+\end{Assertion}
+
+\begin{Conjecture}[Notation=Specifications,Label=Conjecture1.4.1,Title={Mathematics of Specifications}]
+Group-like objects are of the utmost significance for the
+mathematical description of specifications.
+\end{Conjecture}
+\newline
+\hfill \\
+This is of course only a first glimpse at the subject. There is much
+more to say, but that would definitely exceed the scope of this text.
+\end{Paragraph}
+\begin{Paragraph}[Title=Remark,Label=para15]
+Group-like objects as monoids and semigroups are less restrictive than
+groups, because they do not require the existence of an
+\Reference[inverse]{Define1.4.3.1}{}. But they are also more difficult
+\Link{Assertion1.4.1}{} to handle.
+\end{Paragraph}
+\end{Section}
+
+\end{Section}
+
+\end{Package}
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
