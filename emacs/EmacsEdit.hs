@@ -52,7 +52,12 @@ data EmacsFS ref = EmacsFS {
    toMiniType :: ref -> Char,
    -- | toDescription returns a user-friendly name for the reference (used in
    -- error messages and for button names).
-   toDescription :: ref -> String
+   toDescription :: ref -> String,
+   -- | createRef is called when the user indicates that he wants to
+   -- create a new import reference.  The argument is the reference that
+   -- will contain the new ref.  The result is an error, or Nothing if the
+   -- user cancelled, or the new ref.
+   createRef :: ref -> IO (WithError (Maybe ref))
    }
 
 ---
@@ -205,9 +210,7 @@ openFile emacsFS parentAction ref mangledName =
                   (\ dataItem -> case dataItem of
                      EmacsLink child -> 
                         do
-                           mangledChild <- newMangledTypedName 
-                              (typedNameMangler state) child 
-                              (toMiniType emacsFS child)
+                           mangledChild <- newMangled state child
                            addButton session parent (normalName mangledChild) 
                               (buttonText emacsFS child)
                      EditableText str ->
@@ -486,6 +489,38 @@ handleEvents (editorState :: EditorState ref) =
                )
             )
       +> (do
+            str <- event "IMPORT"
+            always (do
+               lockBuffer session
+               point <- currentPoint session 
+                  -- we need to get hold of this because the user might
+                  -- otherwise move it during the following interactions,
+                  -- even though the Haskell buffer is locked.
+               containerWE <- checkInsertion session point
+               case fromWithError containerWE of
+                  Left error -> createErrorWin error []
+                  Right containerStr ->
+                     do
+                        let
+                           Normal mangledTypedName = parseButton containerStr
+                        container <- readMangled mangledTypedName
+                        newRefOptWE <- createRef fs container
+                        case fromWithError newRefOptWE of
+                           Left error -> createErrorWin error []
+                           Right Nothing -> done
+                           Right (Just ref) ->
+                              do
+                                 mangledTypedName 
+                                    <- newMangled editorState ref
+                                 let
+                                    extentId = normalName mangledTypedName
+                                    text = buttonText fs ref
+                                 insertButtonAt session point extentId text
+               unlockBuffer session 
+               )
+            iterate
+         )
+      +> (do
             str <- event "ENLARGE"
             always (showError 
                "Sorry, the Enlarge operation is currently not supported")
@@ -669,9 +704,7 @@ modifyFile (state :: EditorState ref) headMTN
                         case dataItem of
                            EmacsLink child ->
                               do
-                                 mangledChild <- newMangledTypedName 
-                                    (typedNameMangler state) child 
-                                    (toMiniType (emacsFS state) child)
+                                 mangledChild <- newMangled state child
                                  return (insertButtonBeforePoint 
                                     (normalName mangledChild) 
                                     (buttonText (emacsFS state) child))
@@ -804,6 +837,17 @@ containerTexts fs ref = ("["++toDescription fs ref++":\n","]\n")
 -- Button text for a (collapsed) button
 buttonText :: EmacsFS ref -> ref -> String
 buttonText fs ref = "["++toDescription fs ref++"]"
+
+-- ----------------------------------------------------------------------
+-- Higher-level interface to newMangledTypedName
+-- ----------------------------------------------------------------------
+
+newMangled :: Ord ref => EditorState ref -> ref -> IO MangledTypedName
+newMangled state ref =
+   newMangledTypedName 
+      (typedNameMangler state)
+      ref
+      (toMiniType (emacsFS state) ref)
 
 -- ----------------------------------------------------------------------
 -- The NameGenerator.  This has to map the "ref's" in an EmacsFS into

@@ -32,11 +32,15 @@ module Extents(
    insertBeforePoint,
    insertButtonBeforePoint,
 
+   currentPoint,
+   checkInsertion,
+   insertButtonAt,
    ) where
 
 import Maybe
 
 import DeepSeq
+import Computation
 
 import EmacsBasic
 import EmacsCommands
@@ -194,6 +198,37 @@ extentExists emacsSession extentId =
       str <- evalEmacsQuick emacsSession (Prin ("uni-extent-exists",extentId))
       return (doParseBool str)
 
+
+currentPoint :: EmacsSession -> IO Int
+currentPoint emacsSession =
+   do
+      str <- evalEmacsQuick emacsSession (Prin ("point"))
+      return (doParseInt str)
+
+--
+-- Check whether it is safe to insert a button at this point.
+-- If Yes, return the containing container.
+checkInsertion :: EmacsSession -> Int -> IO (WithError String)
+checkInsertion emacsSession i =
+   do
+      str <- evalEmacsQuick emacsSession (Prin 
+         ("uni-check-insertion-dottedpair",i))
+      return (case doParse str of
+         DotList [isOKsexp] (String result)
+            | Just isOK <- sexpToBool isOKsexp
+               -- that's a GHC extension, by the way.
+               -> if isOK then hasValue result else hasError result
+         _ -> error ("Extents.checkInsertion - can't parse "++str)
+         )
+
+insertButtonAt :: EmacsSession -> Int -> String -> String -> IO ()
+insertButtonAt emacsSession i extentId text =
+   execEmacs emacsSession [gotoChar i,insertButtonBeforePoint extentId text]
+
+gotoChar :: Int -> Multi
+gotoChar i = multi ("goto-char",i)
+
+
 --
 -- The following operations are used for modifying the contents of a container.
 -- They return a value of type "Multi" since they indicate the operation
@@ -211,4 +246,5 @@ insertBeforePoint text = multi ("insert",text)
 insertButtonBeforePoint :: String -> String -> Multi
 insertButtonBeforePoint extentId text 
    = multi ("uni-add-button-point",[extentId,text])
+
 

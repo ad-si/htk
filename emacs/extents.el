@@ -443,33 +443,10 @@
             (error "Buffer is locked by Haskell"))
          ((eq from 1) (error "Cannot modify start of a buffer"))
          ((eq from to) ;; this is an insertion
-            (let ((closest-extent (extent-at from nil 'uni-extent-type)))
-               (cond
-                  ((null closest-extent) 
-                     (error "Can't modify end of buffer"))
-                  ((eq (uni-get-extent-type closest-extent) 'container) 
-                     (cond 
-                        ((eq from (extent-start-position closest-extent))
-                           (error "Can't add between containers"))
-                        (t (uni-modify-extent closest-extent))
-                        )
-                     )
-                  ((eq (extent-start-position closest-extent) from) 
-                      (if (uni-is-head-button closest-extent) 
-                        (error "Can't insert before a head button")
-
-                        (let ((container-extent 
-                              (uni-get-containing-extent closest-extent)))
-                           (uni-modify-extent container-extent)
-  
-                           ;; we are at the start of a button extent which
-                           ;; does not have the uni-head-button property
-                           ;; set.  Text inserted here will go before the
-                           ;; start of the button.
-                           )
-                        )
-                     )
-                  (t (error "Cannot insert into a button"))
+            (let ((checked (uni-check-insertion from)))
+               (cond 
+                  ((stringp checked) (error checked))
+                  (t (uni-modify-extent checked))
                   )
                )
             )
@@ -499,6 +476,51 @@
             )
          )
       ()
+      )
+   )
+
+; Check that an insertion is possible, returning either a String
+; (an error message), or the containing container (if the insertion is valid).
+(defun uni-check-insertion (from)
+   (if 
+      (eq from 1) 
+      "Cannot modify start of a buffer"
+      (let ((closest-extent (extent-at from nil 'uni-extent-type)))
+         (cond
+            ((null closest-extent) "Can't modify end of buffer")
+            ((eq (uni-get-extent-type closest-extent) 'container) 
+               (if 
+                  (eq from (extent-start-position closest-extent))
+                  "Can't add between containers"
+                  closest-extent
+                  )
+               )
+            ((eq (extent-start-position closest-extent) from)
+               (if 
+                  (uni-is-head-button closest-extent) 
+                  "Can't insert before a head button"
+                  (uni-get-containing-extent closest-extent)
+                     ;; we are at the start of a button extent which
+                     ;; does not have the uni-head-button property
+                     ;; set.  Things inserted here will go before the
+                     ;; start of the button.
+                  )
+               )
+            (t "Cannot insert into a button")
+            )
+         )
+      )
+   )
+
+; Return results of check-insertion as a dotted pair (Bool,String)
+(defun uni-check-insertion-dottedpair (from)
+   (let ((checked (uni-check-insertion from)))
+      (if (stringp checked)
+         (cons nil checked)
+         (let ((extent-id (uni-get-extent-id checked)))
+            (cons t extent-id)
+            )
+         )
       )
    )
 

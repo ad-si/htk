@@ -28,14 +28,6 @@
   (set-window-buffer (frame-root-window MMiSS-frame) (current-buffer))
   )
 
-(defun MMiSS-delete ()
-  ; The local variable MMiSS-frame will get stomped on by the kill-buffer.
-  (let ((MMiSS-frame-saved MMiSS-frame))
-     (kill-buffer (current-buffer))
-     (delete-frame MMiSS-frame-saved)
-     )
-  )
-
 ; Note on colours.
 ; white is bad as it is just like normal text
 ; black or dark colours are bad as it makes the text impossible or hard to

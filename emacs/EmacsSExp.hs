@@ -3,9 +3,12 @@ module EmacsSExp (
    SExp(..),
    doParse,
    doParseBool,
+   sexpToBool,
+   doParseInt,
    ) where
 
 import Char
+import Maybe
 
 import Parsec
 import qualified ParsecToken as P
@@ -32,10 +35,25 @@ doParseBool input =
    let
       sexp = doParse input
    in
+      fromMaybe
+         (error ("EmacsSExp: expecting Bool but found "++input))
+         (sexpToBool sexp)
+
+sexpToBool :: SExp -> Maybe Bool
+sexpToBool sexp =
+   case sexp of
+      List [] -> Just False
+      Id "t" -> Just True
+      _ -> Nothing
+
+doParseInt :: String -> Int
+doParseInt input =
+   let
+      sexp = doParse input
+   in
       case sexp of
-         List [] -> False
-         Id "t" -> True
-         _ -> error ("EmacsSExp: expecting Bool but found "++input) 
+         Integer i -> fromIntegral i
+         _ -> error ("EmacsSExp: expecting Integer but found "++input) 
 
 ---
 -- Because the ParsecToken module seems to have a problem with

@@ -210,9 +210,10 @@ preambleFS =
 
       toMiniType _ = 'B'
       toDescription _ = "Preamble"
+      createRef _ = return (hasError "You can't import into a preamble!")
    in
       EmacsFS {editFS = editFS,toMiniType = toMiniType,
-         toDescription = toDescription}       
+         toDescription = toDescription,createRef = createRef}       
 
 printAction :: PrintAction MMiSSPreamble
 printAction = PrintAction 

@@ -92,6 +92,12 @@
       id)
     ))
 
+
+(defun MMiSS-import ()
+  (interactive)
+  (uni-ev "IMPORT" "")
+  )
+
 (defun MMiSS-commit ()
   (interactive)
   (uni-ev "COMMIT" "")
@@ -107,6 +113,14 @@
   (uni-ev "QUIT" "")
   )
 
+(defun MMiSS-delete ()
+  (interactive)
+  ; The local variable MMiSS-frame will get stomped on by the kill-buffer.
+  (let ((MMiSS-frame-saved MMiSS-frame))
+     (kill-buffer (current-buffer))
+     (delete-frame MMiSS-frame-saved)
+     )
+  )
 
 (defun MMiSS-environment (environment)
 "Define a MMiSSTeX environment in a (full) generic format.  
@@ -424,6 +438,7 @@ Any other reply is used exactly as entered."
    
    (define-key LaTeX-mode-map [(control x) (control s)] 'MMiSS-commit)
    (define-key LaTeX-mode-map [(control x) k]    'MMiSS-quit)
+   (define-key LaTeX-mode-map [(control x) ! k]  'MMiSS-delete)
    (make-mmiss-menu)
 )
 ;//
@@ -471,6 +486,8 @@ Any other reply is used exactly as entered."
          ["Close Environment"            MMiSS-close-environment]
          ["Beginning of Environment"     MMiSS-find-matching-begin]
          ["End of Environment"           MMiSS-find-matching-end]
+         "-"
+         ["Import Object" MMiSS-import]
          "-"
 ;        ["Request Enlarged Environment" MMiSS-request]     
          ["Commit" MMiSS-commit]

@@ -27,7 +27,9 @@ import Sources
 
 import Lock
 
+import SimpleForm
 import DialogWin
+import MenuType
 
 import GraphConfigure
 
@@ -36,6 +38,7 @@ import Link
 import EntityNames
 import LinkManager
 import SpecialNodeActions
+import AttributesType
 
 import EmacsContent
 import EmacsEdit
@@ -178,6 +181,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                   variants = toVariants editRef
 
+               -- a censored version of the following occurs in the createRef
+               -- function.
                objectLinkWE <- getMMiSSObjectLink linkEnvironment0 description0
 
                objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
@@ -371,15 +376,79 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                      finishEdit = finishEdit
                      }
 
-               addEdit object
-
                return (content1,editedFile)
+            )
+
+      createRef :: EditRef -> IO (WithError (Maybe EditRef))
+      createRef (editRef @ EditRef {
+            linkEnvironment = linkEnvironment0,description = description0}) =
+         addFallOutWE (\ break ->
+            do
+               let
+                  outerVariants1 = toVariants editRef
+
+               -- Prompt for the variant, description and type.  We get the
+               -- description via an ExtraFormItem
+               let
+                  form0 :: Form String
+                  form0 = newFormEntry "Name" ""
+
+                  form1 :: Form EntityFullName
+                  form1 = mapForm fromStringWE form0
+
+                  form2 :: Form String
+                  form2 = newFormOptionMenu (map xmlTag allObjectTypes)
+
+                  form3 :: Form Char
+                  form3 = fmap getMiniType form2
+
+                  extraForm :: Form (EntityFullName,Char)
+                  extraForm = form1 // form3
+
+               extraFormItem <- mkExtraFormItem extraForm
+               
+               attributesOpt <- inputAttributes view variantAttributesType2
+                  (Just extraFormItem)
+               case attributesOpt of
+                  Nothing -> return Nothing
+                  Just attributes ->
+                     do
+                        linkVariants1 
+                           <- toMMiSSVariantSpecFromAttributes attributes
+                        (description1,miniType1) 
+                           <- readExtraFormItem extraFormItem
+
+                        -- construct the inner link environment.  This code is 
+                        -- censored from the functions in the editFS function.
+                        objectLinkWE <- getMMiSSObjectLink linkEnvironment0 
+                           description0
+                        objectLink 
+                           <- coerceWithErrorOrBreakIO break objectLinkWE
+                        objectDataWE <- simpleReadFromMMiSSObject view 
+                           objectLink outerVariants1
+                        (variable,object) 
+                           <- coerceWithErrorOrBreakIO break objectDataWE
+                        cache 
+                           <- converter view (toLinkedObject object) variable
+                        let
+                           linkEnvironment1 = cacheLinkEnvironment cache
+
+                           editRef = EditRef {
+                              linkEnvironment = linkEnvironment1,
+                              description = description1,
+                              outerVariants = outerVariants1,
+                              linkVariants = linkVariants1,
+                              miniType = miniType1
+                              }
+
+                        return (Just editRef)
             )
 
       emacsFS = EmacsFS {
          editFS = editFS,
          toMiniType = miniType,
-         toDescription = toDescription
+         toDescription = toDescription,
+         createRef = createRef
          }
    in
       emacsFS
