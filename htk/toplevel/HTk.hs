@@ -139,6 +139,9 @@ module HTk (
   withdrawMainWin, -- :: Config HTk
   -- withDraw as a configuration
 
+  resourceFile, -- :: String-> Config HTk
+  -- loads resource file 
+
   finishHTk, -- :: IO ()
   -- waits for all wish to finish and then terminates
 
@@ -313,9 +316,11 @@ initHTk cnf =
     htkOpt <- takeMVar theHTkMVar
     htk <- case htkOpt of
        Nothing -> newHTk cnf
-       Just htk -> error "HTk.initHTk called when HTk is already initialised!"
+       Just htk -> return htk -- should we configure again?
     putMVar theHTkMVar (Just htk)
     return htk
+
+
 
 --- @doc getHTk
 -- getHTk retrieves the current HTk (initialising if necessary).
@@ -354,6 +359,16 @@ withdrawMainWin htk =
   do
     withdraw htk
     return htk
+
+--- @doc readResourceFile
+-- Load a resource file 
+-- A resource files specifies the default options for fonts, colours, &c.
+resourceFile :: String-> Config HTk
+resourceFile file htk =
+  do execCmd ("option readfile "++ file++ " startup")
+		    -- "startup" is the priority; we could make this user-
+		    -- configurable if wished?
+     return htk
 
 --- @doc finishHTk
 -- waits for HTk to finish, and calls cleanupWish to clean up. 
