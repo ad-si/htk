@@ -35,7 +35,8 @@
 <!-- ======================== ENTITIES ==================================== -->
 
 <!ENTITY % structure-attr "label        CDATA  #IMPLIED
-                           title        CDATA  #IMPLIED">
+                           title        CDATA  #IMPLIED
+                           priority     CDATA  #IMPLIED">
 
 
 <!ENTITY % version-attr "version          CDATA  #IMPLIED
@@ -73,7 +74,8 @@
 <!-- notation should be a union of formalismIds and formatIds which have
      to be defined. -->
 
-<!ENTITY % notation-matter  "notation    CDATA  #IMPLIED">
+<!ENTITY % notation-matter  "format      CDATA  #IMPLIED
+                             formalism   CDATA  #IMPLIED">
 
 <!ENTITY % variant-attr "xml:lang  %RFC1766; 'en-GB'
                          %notation-matter;
