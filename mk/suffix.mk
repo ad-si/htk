@@ -251,7 +251,7 @@ packages : packagehere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packages && ) echo Finished make packages
 
 # Option to be given to ld for producing GHCi object files.
-WHOLEARCHIVE = $(if $(findstring,MacOS,$(OSTITLE)),-all_load,--whole-archive)
+WHOLEARCHIVE = $(if $(findstring MacOS,$(OSTITLE)),-all_load,--whole-archive)
 
 packageherequick :
 # The "echo" after the --remove-package means we keep going even if
