@@ -17,12 +17,15 @@ import Folders
 import Files
 import VersionGraphService
 import VersionGraph
+import Registrations
 
 ---
 -- Connect to the repository, if necessary initialising it.
 initialise :: IO VersionDB.Repository
 initialise =
    do
+      doRegistrations
+
       repository <- VersionDB.initialise
       viewVersions <- listViews repository
       case viewVersions of

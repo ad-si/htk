@@ -155,7 +155,7 @@ importDisplayTypes :: CodedValue -> View -> IO ()
 importDisplayTypes codedValue view =
    do
       (displayTypeData :: DisplayTypeData) 
-         <- doDecodeMultipleIO codedValue view
+         <- doDecodeIO codedValue view
       sequence_ (
          map
             (\ (typeKey,codedValue) ->
@@ -170,21 +170,13 @@ importDisplayTypes codedValue view =
 ---
 -- This decodes all the display types associated with a particular
 -- Haskell type displayType, which is not looked at.  The codedValue represents
---  a list of type [displayType], encoded as for CodedValue.doEncodeMultipleIO.
+--  a list of type [displayType].
 importOneDisplayType :: DisplayType displayType
    => displayType -> CodedValue -> View -> IO ()
 importOneDisplayType displayType codedValue view =
    do
       let globalRegistry = displayTypeGlobalRegistry displayType
- 
-      (displayTypes :: [displayType]) <- doDecodeMultipleIO codedValue view
-      sequence_ (
-         map
-            (\ displayType -> addToGlobalRegistry globalRegistry view 
-                  (displayTypeIdPrim displayType) displayType
-               )     
-            displayTypes
-         )
+      addViewToGlobalRegistry globalRegistry view codedValue
 
 ---
 -- Inverse to importDisplayTypes, producing a CodedValue for all types
@@ -208,7 +200,7 @@ exportDisplayTypes view =
                   )
       (displayTypeData :: DisplayTypeData) 
          <- processDisplayTypes allDisplayTypes []
-      doEncodeMultipleIO displayTypeData view
+      doEncodeIO displayTypeData view
 
 ---
 -- This is the inverse to importOneDisplayType

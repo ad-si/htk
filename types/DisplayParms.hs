@@ -15,6 +15,9 @@ module DisplayParms(
 
    getNodeTypeParms,
    getArcTypeParms,
+
+   SimpleNodeAttributes(..),
+   SimpleArcAttributes(..),
    ) where
 
 import Computation

@@ -231,6 +231,15 @@ registerFiles =
 -- The plain file type
 -- ------------------------------------------------------------------
 
+
+plainFileNodeTypeParms :: NodeTypes value
+plainFileNodeTypeParms =
+   addNodeRule 
+      AllDisplays
+      (SimpleNodeAttributes { shape = Nothing, 
+         nodeColor = Just (Color "green")}) 
+      emptyNodeTypes
+
 ---
 -- mkPlainFileType is used to construct the file type
 -- when the repository is initialised (in createRepository),
@@ -245,7 +254,7 @@ mkPlainFileType view =
             fileTypeId = plainFileKey,
             fileTypeLabel = Just "Plain file",
             requiredAttributes = emptyAttributesType,
-            displayParms = emptyNodeTypes,
+            displayParms = plainFileNodeTypeParms,
             knownFiles = knownFolders,
             canEdit = True
             }

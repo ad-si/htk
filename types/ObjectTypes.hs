@@ -350,7 +350,7 @@ type ObjectTypeData = [(String,CodedValue)]
 importObjectTypes :: CodedValue -> View -> IO ()
 importObjectTypes codedValue view =
    do
-      (objectTypeData :: ObjectTypeData) <- doDecodeMultipleIO codedValue view
+      (objectTypeData :: ObjectTypeData) <- doDecodeIO codedValue view
       sequence_ (
          map
             (\ (typeKey,codedValue) ->
@@ -365,21 +365,13 @@ importObjectTypes codedValue view =
 ---
 -- This decodes all the object types associated with a particular
 -- Haskell type objectType, which is not looked at.  The codedValue represents
---  a list of type [objectType], encoded as for CodedValue.doEncodeMultipleIO.
+--  a list of type [objectType].
 importOneObjectType :: ObjectType objectType object 
    => objectType -> CodedValue -> View -> IO ()
 importOneObjectType objectType codedValue view =
    do
       let globalRegistry = objectTypeGlobalRegistry objectType
- 
-      (objectTypes :: [objectType]) <- doDecodeMultipleIO codedValue view
-      sequence_ (
-         map
-            (\ objectType -> addToGlobalRegistry globalRegistry view 
-                  (objectTypeIdPrim objectType) objectType
-               )     
-            objectTypes
-         )
+      addViewToGlobalRegistry globalRegistry view codedValue 
 
 ---
 -- Inverse to importObjectTypes, producing a CodedValue for all types
@@ -403,7 +395,7 @@ exportObjectTypes view =
                   )
       (objectTypeData :: ObjectTypeData) 
          <- processObjectTypes allObjectTypes []
-      doEncodeMultipleIO objectTypeData view
+      doEncodeIO objectTypeData view
 
 ---
 -- This is the inverse to importOneObjectType

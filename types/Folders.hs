@@ -65,7 +65,7 @@ instance HasCodedValue FolderDisplayType where
    decodeIO = mapDecodeIO (\ () -> FolderDisplayType)
 
 instance DisplayType FolderDisplayType where
-   displayTypeTypeIdPrim FolderDisplayType = "Folders"
+   displayTypeTypeIdPrim _  = "Folders"
 
    graphParmsPrim FolderDisplayType = 
       GraphTitle "Directory Listing" $$
@@ -276,6 +276,14 @@ registerFolders =
 -- The plain folder type
 -- ------------------------------------------------------------------
 
+plainFolderNodeTypeParms :: NodeTypes value
+plainFolderNodeTypeParms =
+   addNodeRule 
+      AllDisplays
+      (SimpleNodeAttributes { shape = Nothing, 
+         nodeColor = Just (Color "green")}) 
+      emptyNodeTypes
+
 ---
 -- mkPlainFolderType is used to construct the folder type
 -- when the repository is initialised (in getTopFolder),
@@ -290,13 +298,12 @@ mkPlainFolderType view =
             folderTypeId = plainFolderKey,
             folderTypeLabel = Just "Plain",
             requiredAttributes = emptyAttributesType,
-            displayParms = emptyNodeTypes,
+            displayParms = plainFolderNodeTypeParms,
             topFolderLinkOpt = Just topLink,
             knownFolders = knownFolders
             }
 
       addToGlobalRegistry globalRegistry view plainFolderKey folderType
-
       addToGlobalRegistry displayTypeRegistry view folderDisplayKey 
          FolderDisplayType
 

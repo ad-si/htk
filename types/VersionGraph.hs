@@ -194,7 +194,6 @@ newVersionGraph
             return (
                if nodeType == checkedInType
                then
-                  (Color "black") $$$
                   Box $$$
                   (DoubleClickAction checkOutNode) $$$
                   (ValueTitle nodeTitle) $$$
@@ -272,7 +271,7 @@ newVersionGraph
                      })
                update graph (NewNode thisNode workingType title)
                update graph (NewArc thisArc workingArcType () 
-                  parentNode thisNode)
+                  parentNode thisNode) 
                displayView displaySort (WrappedDisplayType FolderDisplayType) 
                   view
 

@@ -130,6 +130,7 @@ commitView (view @ View {repository = repository,objects = objects,
 
 
       displayTypesData <- exportDisplayTypes view
+
       objectTypesData <- exportObjectTypes view
 
       locations <- listKeys objects

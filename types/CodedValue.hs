@@ -31,6 +31,9 @@ module CodedValue(
       -- a record boundary between each element, making them more suitable
       -- where the elements, or the lists, are long enough to make 
       -- CVS-style diff'ing important. 
+   List(..),
+      -- a synonym for lists.  This is used to evade certain tiresome features
+      -- of ghc5.02.1's type system.
    Str(..),
       -- A type Str X where X is an instance of StringClass,
       -- will inherit HasCodedValue according to String.
@@ -67,6 +70,8 @@ module CodedValue(
    -- encoding and decoding multiple values
    -- (This is different from encoding a list directly since we
    -- don't use an accumulating list.)
+   -- NB.  These assume that encoding is a 1-1 function.  They should therefore
+   -- not be used for something with a null encoding (such as the () type).
    doEncodeMultipleIO, 
       -- :: HasCodedValue value => [value] -> View -> IO CodedValue
    doDecodeMultipleIO,
@@ -303,11 +308,23 @@ instance HasCodedValue value => HasCodedValue (Maybe value) where
 -- Lists
 ---------------------------------------------------------------------
 
-instance HasCodedValue value => HasCodedValue [value]
+---
+-- We go via an explicit list constructor.  
+newtype List value = List [value]
+
+instance HasCodedValue value => HasCodedValue [value] where
+   encodeIO = mapEncodeIO (\ l -> List l)
+   decodeIO = mapDecodeIO (\ (List l) -> l)
+
+list_tyCon = mkTyCon "CodedValue" "List"
+instance HasTyCon1 List where
+   tyCon1 _ = list_tyCon
+
+instance HasCodedValue value => HasCodedValue (List value)
       where
    -- Lists being large items, we put a "Nothing" before
    -- each entry.
-   encodeIO values codedValue0 repository =
+   encodeIO (List values) codedValue0 repository =
       do
          let
             l = length values
@@ -350,8 +367,8 @@ instance HasCodedValue value => HasCodedValue [value]
                            <- safeDecodeIO codedValue1 repository
                         (values,codedValue3) <- decodeNValues (n-1) codedValue2
                         return (value1:values,codedValue3)
-         list <- decodeNValues l codedValue1
-         return list
+         (list,codedValue) <- decodeNValues l codedValue1
+         return (List list,codedValue)
 
 ---------------------------------------------------------------------
 -- ShortLists
