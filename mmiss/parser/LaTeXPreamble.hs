@@ -195,7 +195,8 @@ makePreamble fsys fpath (f:fs) =
          rest <- makePreRest fsys fpath fs []
          documentClass <- return (makePrePackage f)
          return(hasValue(Just(Preamble documentClass packages rest)))
-    (Command _ _) -> return(hasError("LaTeX-Preamble must begin with \\documentclass!"))
+    (Command _ _) -> return(hasError("LaTeX-Preamble cannot begin with: " 
+                        ++ (makeTextElem [f] "")))
     _ -> makePreamble fsys fpath fs
 
 
