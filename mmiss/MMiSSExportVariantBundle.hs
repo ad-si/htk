@@ -1,9 +1,9 @@
 {- This module contains the code for exporting an MMiSS object or file
    with a particular variant. -}
-module MMiSSExportVariantBundleNode(
+module MMiSSExportVariantBundle(
    exportLinkedObjectVariant, 
       -- :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch 
-      -- -> IO BundleNode
+      -- -> IO Bundle
    ) where
 
 import Messages
@@ -25,19 +25,22 @@ import MMiSSBundleUtils
 -- --------------------------------------------------------------------------
 
 exportLinkedObjectVariant 
-   :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch -> IO BundleNode
+   :: View -> LinkedObject -> ExportOpts -> MMiSSVariantSearch -> IO Bundle
 exportLinkedObjectVariant view linkedObject exportOpts variantSearch =
-   case splitLinkedObject linkedObject of
-      MMiSSObjectC objectLink
-         -> exportMMiSSObjectVariant view objectLink exportOpts variantSearch
-      MMiSSFileC fileLink
-         -> exportMMiSSFileVariant view fileLink exportOpts variantSearch
-      _ ->
-         do
-            linkedObjectStr <- describeLinkedObject view linkedObject
-            errorMess ("Unable to extract " ++ linkedObjectStr)
-            bundleNode <- getUnknownBundleNode view linkedObject
-            return bundleNode
+   do
+      packageId <- mkPackageId view linkedObject
+      bundleNode <-
+         case splitLinkedObject linkedObject of
+            MMiSSObjectC objectLink
+               -> exportMMiSSObjectVariant view objectLink exportOpts variantSearch
+            MMiSSFileC fileLink
+               -> exportMMiSSFileVariant view fileLink exportOpts variantSearch
+            _ ->
+               do
+                  errorMess ("Unable to extract " ++ packageIdStr packageId)
+                  getUnknownBundleNode view linkedObject
+      return (Bundle [(packageId,bundleNode) ])
+      
 
 
 -- --------------------------------------------------------------------------

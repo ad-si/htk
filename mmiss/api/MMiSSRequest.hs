@@ -63,8 +63,8 @@ data GetObject_format = GetObject_format_LaTeX  |
 data GetObject_recurse = GetObject_recurse_justThis  | 
 			 GetObject_recurse_allIncluded
 		       deriving (Eq,Show)
-newtype GetObjectResponse = GetObjectResponse File 		deriving (Eq,Show)
-data PutObject = PutObject VersionRef ObjectFullName File
+newtype GetObjectResponse = GetObjectResponse Bundle 		deriving (Eq,Show)
+data PutObject = PutObject VersionRef ObjectFullName Bundle
 	       deriving (Eq,Show)
 data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
 data ServerRef = ServerRef
@@ -73,11 +73,17 @@ data ServerRef = ServerRef
 data VersionRef = VersionRef
     { versionRefRef :: String
     } deriving (Eq,Show)
-newtype Files = Files [File] 		deriving (Eq,Show)
+newtype Bundle = Bundle [Bundle_] 		deriving (Eq,Show)
+data Bundle_ = Bundle_ PackageId File
+	     deriving (Eq,Show)
+data PackageId = PackageId
+    { packageIdId :: String
+    } deriving (Eq,Show)
 data File = File FileLocation (Maybe (OneOf2 FileVariants Files))
 	  deriving (Eq,Show)
 data FileLocation = FileLocation (Maybe ObjectName) ObjectType
 		  deriving (Eq,Show)
+newtype Files = Files [File] 		deriving (Eq,Show)
 newtype FileVariants = FileVariants [FileVariant] 		deriving (Eq,Show)
 data FileVariant = FileVariant (Maybe Variants)
 			       (Maybe FileContents)
@@ -407,7 +413,7 @@ instance XmlContent GetObjectResponse where
     fromElem (CElem (Elem "getObjectResponse" [] c0):rest) =
 	(\(a,ca)->
 	   (Just (GetObjectResponse a), rest))
-	(definite fromElem "<file>" "getObjectResponse" c0)
+	(definite fromElem "<bundle>" "getObjectResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetObjectResponse a) =
@@ -418,7 +424,7 @@ instance XmlContent PutObject where
 	   (\(b,cb)->
 	      (\(c,cc)->
 		 (Just (PutObject a b c), rest))
-	      (definite fromElem "<file>" "putObject" cb))
+	      (definite fromElem "<bundle>" "putObject" cb))
 	   (definite fromElem "<objectFullName>" "putObject" ca))
 	(definite fromElem "<versionRef>" "putObject" c0)
     fromElem (CMisc _:rest) = fromElem rest
@@ -462,15 +468,42 @@ instance XmlAttributes VersionRef where
     toAttrs v = catMaybes 
 	[ toAttrFrStr "ref" (versionRefRef v)
 	]
-instance XmlContent Files where
-    fromElem (CElem (Elem "files" [] c0):rest) =
+instance XmlContent Bundle where
+    fromElem (CElem (Elem "bundle" [] c0):rest) =
 	(\(a,ca)->
-	   (Just (Files a), rest))
+	   (Just (Bundle a), rest))
 	(many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (Files a) =
-	[CElem (Elem "files" [] (concatMap toElem a))]
+    toElem (Bundle a) =
+	[CElem (Elem "bundle" [] (concatMap toElem a))]
+instance XmlContent Bundle_ where
+    fromElem c0 =
+	case (\(a,ca)->
+		(\(b,cb)->
+		   (a,b,cb))
+		(fromElem ca))
+	     (fromElem c0) of
+	(Just a,Just b,rest) -> (Just (Bundle_ a b), rest)
+	(_,_,_) ->
+	    (Nothing, c0)
+    toElem (Bundle_ a b) =
+	[CElem (Elem "bundle" [] (toElem a ++ toElem b))]
+instance XmlContent PackageId where
+    fromElem (CElem (Elem "packageId" as []):rest) =
+	(Just (fromAttrs as), rest)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem as =
+	[CElem (Elem "packageId" (toAttrs as) [])]
+instance XmlAttributes PackageId where
+    fromAttrs as =
+	PackageId
+	  { packageIdId = definiteA fromAttrToStr "packageId" "id" as
+	  }
+    toAttrs v = catMaybes 
+	[ toAttrFrStr "id" (packageIdId v)
+	]
 instance XmlContent File where
     fromElem (CElem (Elem "file" [] c0):rest) =
 	(\(a,ca)->
@@ -493,6 +526,15 @@ instance XmlContent FileLocation where
     fromElem rest = (Nothing, rest)
     toElem (FileLocation a b) =
 	[CElem (Elem "fileLocation" [] (maybe [] toElem a ++ toElem b))]
+instance XmlContent Files where
+    fromElem (CElem (Elem "files" [] c0):rest) =
+	(\(a,ca)->
+	   (Just (Files a), rest))
+	(many fromElem c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (Files a) =
+	[CElem (Elem "files" [] (concatMap toElem a))]
 instance XmlContent FileVariants where
     fromElem (CElem (Elem "fileVariants" [] c0):rest) =
 	(\(a,ca)->

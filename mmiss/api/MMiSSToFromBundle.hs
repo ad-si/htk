@@ -1,5 +1,5 @@
 {- This module contains the functions for converting to and from the 
-   bundles described in mmiss/MMiSSBundle.hs into our own Files type
+   bundles described in mmiss/MMiSSBundle.hs into our own Bundle type
    described in MMiSSRequest.hs.
 
    It also contains the (much simpler) functions for converting to
@@ -7,12 +7,8 @@
    and for converting to and from MMiSSVariantSpec's.
    -}
 module MMiSSToFromBundle(
-   toBundleNode, 
-      -- :: Block -> MMiSSRequest.File 
-      -- -> WithError (MMiSSBundle.FileLoc,MMiSSBundle.BundleNode)
-   fromBundleNode,
-      -- :: (MMiSSBundle.FileLoc,MMiSSBundle.BundleNode)
-      -- -> BlockM MMiSSRequest.File
+   toBundle, -- :: Block -> MMiSSRequest.Bundle -> WithError MMiSSBundle.Bundle
+   fromBundle, -- :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Bundle
 
    toExportOpts, -- :: MMiSSRequest.GetObject_Attrs -> MMiSSBundle.ExportOpts
 
@@ -52,16 +48,51 @@ type BlockM = State Block
 -- Converting to and from Bundle's.
 -- ---------------------------------------------------------------------------
 
-toBundle :: Block -> MMiSSRequest.Files -> WithError MMiSSBundle.Bundle
-toBundle block (Files files) =
+toBundle :: Block -> MMiSSRequest.Bundle -> WithError MMiSSBundle.Bundle
+toBundle block (MMiSSRequest.Bundle (l0 :: [Bundle_])) =
+   do
+      (l1 :: [(MMiSSBundle.PackageId,BundleNode)]) <- mapM
+         (\ (Bundle_ packageId file) ->
+            do
+               bundleNode <- toBundleNode block file
+               return (MMiSSBundle.PackageId (packageIdId packageId),
+                  bundleNode)
+            )
+         l0
+      return (MMiSSBundle.Bundle l1)
+           
+
+fromBundle :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Bundle
+fromBundle (MMiSSBundle.Bundle (l0 :: [(MMiSSBundle.PackageId,BundleNode)])) =
+   do
+      (l1 :: [Bundle_]) <- mapM
+         (\ (packageId,bundleNode) ->
+            do
+               file <- fromBundleNode bundleNode
+               return (Bundle_ 
+                  (MMiSSRequest.PackageId (packageIdStr packageId))
+                  file
+                  )
+            ) 
+         l0
+      return (MMiSSRequest.Bundle l1)
+
+
+-- ---------------------------------------------------------------------------
+-- Converting to and from lists of BundleNode's.
+-- ---------------------------------------------------------------------------
+
+toBundleNodes :: Block -> MMiSSRequest.Files 
+   -> WithError [MMiSSBundle.BundleNode]
+toBundleNodes block (Files files) =
    do
       (nodes :: [BundleNode]) <- mapM (toBundleNode block) files
-      return (Bundle nodes)
+      return nodes
 
-fromBundle :: MMiSSBundle.Bundle -> BlockM MMiSSRequest.Files
-fromBundle (Bundle (bundles :: [BundleNode])) =
+fromBundleNodes :: [MMiSSBundle.BundleNode] -> BlockM MMiSSRequest.Files
+fromBundleNodes (bundleNodes :: [BundleNode]) =
    do
-      files <- mapM fromBundleNode bundles
+      files <- mapM fromBundleNode bundleNodes
       return (Files files) 
 
 -- ---------------------------------------------------------------------------
@@ -92,8 +123,8 @@ toBundleNode block (File fileLoc0 oneOfOpt) =
             return (mkBundleNode (Object vList))
       Just (TwoOf2 files) ->
          do
-            bundle <- toBundle block files 
-            return (mkBundleNode (Dir bundle))      
+            bundleNodes <- toBundleNodes block files 
+            return (mkBundleNode (Dir bundleNodes))      
    where
       fileLoc1 = toFileLoc fileLoc0
 
@@ -121,9 +152,9 @@ fromBundleNode (BundleNode {
                      )
                   vList
             return (mkFile (Just (OneOf2 (FileVariants variants))))
-      Dir bundle ->
+      Dir bundleNodes ->
          do
-            files <- fromBundle bundle
+            files <- fromBundleNodes bundleNodes
             return (mkFile (Just (TwoOf2 files))) 
    where
       fileLoc1 = fromFileLoc fileLoc0

@@ -1,9 +1,9 @@
 {- This module handles the Entire export of a BundleNode, that is, the sort
    you get when you select a folder or a file, so that it includes every
    variant of a file. -}
-module MMiSSExportEntireBundleNode(
+module MMiSSExportEntireBundle(
    exportEntireLinkedObject,
-      -- :: View -> LinkedObject -> ExportOpts -> IO BundleNode
+      -- :: View -> LinkedObject -> ExportOpts -> IO Bundle
    ) where
 
 import Messages
@@ -30,12 +30,26 @@ import MMiSSBundleUtils
 import MMiSSObjectTypeInstance
 
 
+
+-- --------------------------------------------------------------------------
+-- exportEntireLinkedObject
+-- --------------------------------------------------------------------------
+
+
+exportEntireLinkedObject :: View -> LinkedObject -> ExportOpts -> IO Bundle
+exportEntireLinkedObject view linkedObject exportOpts =
+   do
+      bundleNode <- exportEntireLinkedObject1 view linkedObject exportOpts
+      packageId <- mkPackageId view linkedObject
+      return (Bundle [(packageId,bundleNode)])
+
 -- --------------------------------------------------------------------------
 -- Splitting
 -- --------------------------------------------------------------------------
 
-exportEntireLinkedObject :: View -> LinkedObject -> ExportOpts -> IO BundleNode
-exportEntireLinkedObject view linkedObject exportOpts =
+exportEntireLinkedObject1 :: View -> LinkedObject -> ExportOpts 
+   -> IO BundleNode
+exportEntireLinkedObject1 view linkedObject exportOpts =
    case splitLinkedObject linkedObject of
       FileC fileLink -> exportEntireFile view fileLink exportOpts
       FolderC folderLink -> exportEntireFolder view folderLink exportOpts
@@ -237,7 +251,7 @@ exportDirPlus view linkedObject0 exportOpts0 extraNodes =
 
       bundleNodes0 <- mapM
          (\ linkedObject1 
-            -> exportEntireLinkedObject view linkedObject1 exportOpts1
+            -> exportEntireLinkedObject1 view linkedObject1 exportOpts1
             )
          linkedObjects
       let
@@ -245,6 +259,6 @@ exportDirPlus view linkedObject0 exportOpts0 extraNodes =
 
       return (BundleNode {
          fileLoc = fileLoc1,
-         bundleNodeData = Dir (Bundle bundleNodes1)
+         bundleNodeData = Dir bundleNodes1
          })
 

@@ -38,9 +38,9 @@ import MMiSSFormat
 -- Datatypes
 -- --------------------------------------------------------------------------
 
-newtype PackageId = PackageId String deriving (Eq,Ord)
+newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
 
-newtype Bundle = Bundle [BundleNode]
+newtype Bundle = Bundle [(PackageId,BundleNode)]
 
 data FileLoc = FileLoc {
    name :: Maybe String, 
@@ -68,7 +68,7 @@ data BundleNodeData =
       Object [(Maybe MMiSSVariantSpec,BundleText)]
          -- For MMiSSObjects it will be possible to work out the variants
          -- from the BundleText; for these the variants are optional.
-   |  Dir Bundle
+   |  Dir [BundleNode]
    |  NoData
          -- data left out for some reason.
 

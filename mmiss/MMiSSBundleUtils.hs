@@ -5,6 +5,8 @@ module MMiSSBundleUtils(
    nameFileLoc, -- :: FileLoc -> WithError EntityName
    describeFileLoc, -- :: FileLoc -> String
 
+   mkPackageId, -- :: View -> LinkedObject -> IO PackageId
+
    getFileLoc, -- :: View -> LinkedObject -> I0 FileLoc
    getUnknownBundleNode, -- :: LinkedObject -> IO BundleNode
    preambleFileLoc, -- :: FileLoc
@@ -28,6 +30,7 @@ import ObjectTypes
 import View
 import Link
 import LinkManager
+import Folders
 import GlobalRegistry
 
 import LaTeXParser(MMiSSLatexPreamble)
@@ -59,6 +62,16 @@ bundleToElement (BundleString {contents = contents,charType = charType}) =
          Unicode -> fromUTF8WE (toString contents)
       xmlParseWE "MMiSS Bundle" contentsStr
 bundleToElement NoText = fail "No text supplied for file"
+
+-- --------------------------------------------------------------------------
+-- Constructing PackageId's
+-- --------------------------------------------------------------------------
+
+mkPackageId :: View -> LinkedObject -> IO PackageId
+mkPackageId view linkedObject =
+   do
+      packageIdStr <- describeLinkedObject view linkedObject
+      return (PackageId packageIdStr)
 
 -- --------------------------------------------------------------------------
 -- FileLoc functions

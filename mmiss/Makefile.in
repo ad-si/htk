@@ -17,9 +17,9 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSRegistrations.hs MMiSSInitialise.hs \
    MMiSSFiles.hs MMiSSFileType.hs \
    MMiSSExportFiles.hs MMiSSCheck.hs MMiSSActiveMath.hs MMiSSCheck_DTD.hs \
-   MMiSSBundle.hs MMiSSImportExportBundleNode.hs MMiSSSubFolder.hs \
-   MMiSSSplitLink.hs MMiSSExportEntireBundleNode.hs MMiSSBundleUtils.hs \
-   MMiSSExportVariantBundleNode.hs \
+   MMiSSBundle.hs MMiSSImportExportBundle.hs MMiSSSubFolder.hs \
+   MMiSSSplitLink.hs MMiSSExportEntireBundle.hs MMiSSBundleUtils.hs \
+   MMiSSExportVariantBundle.hs \
 
 BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \

@@ -96,12 +96,12 @@
     baseType=mmissFile, and extType=tex or xml.
     -->
 
-<!ELEMENT getObjectResponse (file) >
+<!ELEMENT getObjectResponse (bundle) >
  
 
 <!-- Attempt to import the given object(s) into the specified object in the
      repository. -->
-<!ELEMENT putObject (versionRef,objectFullName,file) >
+<!ELEMENT putObject (versionRef,objectFullName,bundle) >
 <!ELEMENT putObjectResponse EMPTY >
 
 <!--
@@ -121,8 +121,12 @@
 <!ELEMENT versionRef EMPTY >
 <!ATTLIST versionRef %ref; >
 
-<!-- A collection of files. -->
-<!ELEMENT files (file)* >
+<!-- A collection of files, each of which has a packageId attached to it. -->
+<!ELEMENT bundle (packageId,file)* >
+
+<!-- A packageId -->
+<!ELEMENT packageId EMPTY>
+<!ATTLIST packageId id CDATA #REQUIRED>
 
 <!-- A file. 
      Either a fileVariants or a files element must be present, in input
@@ -131,6 +135,10 @@
 <!ELEMENT fileLocation (objectName?,objectType)>
    <!-- The objectName? needs to be optional because of objects, such as
         preambles, which don't have them. -->
+
+<!-- A collection of files, representing some subdirectory. -->
+<!ELEMENT files (file)* >
+
 
 <!-- A collection of variants. -->
 <!ELEMENT fileVariants (fileVariant)* >

@@ -14,7 +14,7 @@ import LinkManager
 import View
 
 import MMiSSVariant
-import MMiSSImportExportBundleNode
+import MMiSSImportExportBundle
 import MMiSSBundle
 
 import MMiSSRequest
@@ -46,10 +46,9 @@ getObject state (GetObject attrs versionRef fullName variantsOpt)
                variantSpec <- coerceWithErrorOrBreakIO ourError variantSpecWE
                return (Just (fromMMiSSSpecToSearch variantSpec))
 
-      bundleNode 
-         <- exportBundleNode view linkedObject exportOpts variantSearchOpt
+      bundle <- exportBundle view linkedObject exportOpts variantSearchOpt
       let 
-         (file,block1) = runState (fromBundleNode bundleNode) block0
+         (file,block1) = runState (fromBundle bundle) block0
       return (GetObjectResponse file,block1)
 
 -- ----------------------------------------------------------------------------
@@ -60,12 +59,12 @@ putObject :: MMiSSSessionState -> PutObject -> Block -> IO PutObjectResponse
 putObject state (PutObject versionRef fullName files) block =
    do
       let
-         bundleNodeWE = toBundleNode block files 
-      bundleNode <- coerceWithErrorOrBreakIO ourError bundleNodeWE
+         bundleWE = toBundle block files 
+      bundle <- coerceWithErrorOrBreakIO ourError bundleWE
 
       view <- lookupView state versionRef
       linkedObject <- getLinkedObject view fullName
-      importBundleNode view linkedObject bundleNode
+      importBundle view linkedObject bundle
       return PutObjectResponse
 
 -- ----------------------------------------------------------------------------
