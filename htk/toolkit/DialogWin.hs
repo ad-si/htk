@@ -10,7 +10,7 @@
 -- -----------------------------------------------------------------------
 
 ---
--- Basic dialog window and a couple of predefined abstractions!
+-- Basic dialog window and a couple of predefined abstractions.
 module DialogWin (
         Dialog,
 
@@ -20,10 +20,12 @@ module DialogWin (
         createErrorWin,
         createWarningWin,
         createConfirmWin,
+	createMessageWin,
         createAlertWin',
         createErrorWin',
         createWarningWin',
         createConfirmWin',
+        createMessageWin',
         createDialogWin,
         ) where
 
@@ -127,13 +129,15 @@ createErrorWin' str wol =
 -- Constructs an warning window with the given text
 -- @param str     - the text to be displayed
 createWarningWin :: String -> [Config Toplevel] -> IO ()
-createWarningWin str confs = createAlertWin str ([text "Warning Message"] ++ confs)
+createWarningWin str confs = 
+  createAlertWin str (text "Warning Message": confs)
 
 ---
 -- Constructs an warning window with the given markuptext
 -- @param str     - the markuptext to be displayed
 createWarningWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
-createWarningWin' str confs = createAlertWin' str ([text "Warning Message"] ++ confs)
+createWarningWin' str confs = 
+  createAlertWin' str (text "Warning Message": confs)
 
 ---
 -- Constructs an confirm window with the given text
@@ -156,8 +160,27 @@ createConfirmWin' str wol =
        confs = [new str]
 
 ---
+-- Constructs a message (info) window with the given markuptext
+-- @param str     - the markup text to be displayed
+-- @return result - ()
+createMessageWin' :: [MarkupText]-> [Config Toplevel]-> IO ()
+createMessageWin' str wol =
+ do infoImg' <- questionImg -- nicer icon to come here!
+    createDialogWin [("Dismiss", ())] Nothing 
+		    [new str, photo infoImg'] 
+		    (text "Information": wol)
+            
+---
+-- Constructs a message (info) window with the given string.
+-- @param str     - the string to be displayed
+-- @return result - ()
+createMessageWin :: String-> [Config Toplevel]-> IO ()
+createMessageWin str = createMessageWin' (strToMarkup str) 
+       
+
+---
 -- Constructs a new dialow window
--- @param choices     - the available button in this window
+-- @param choices     - the available buttons in this window
 -- @param def         - default button
 -- @param confs       - the list of configuration options for this separator
 -- @param wol         - the list of configuration options for the window
@@ -196,8 +219,9 @@ dialog choices def confs tpconfs =
             lbl <- newLabel b2 []
             pack lbl [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
           
-            msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled, wrap WordWrap, HTk.font fmsg]
-            pack msg[Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
+            msg <- newEditor b2 [size (30,5), borderwidth 0, state Disabled,
+		                 wrap WordWrap, HTk.font fmsg]
+            pack msg [Expand On, Fill Both, PadX (cm 0.5), PadY (cm 0.5)]
           
             sp1 <- newSpace b (cm 0.15) []
             pack sp1 [Expand Off, Fill X, Side AtBottom]
