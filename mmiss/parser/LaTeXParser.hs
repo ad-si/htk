@@ -987,8 +987,10 @@ getAttribs [] str _ = if ((take 1 str) == ",")
 getAttribs ((name, (AttValue [(Left value)])):as) str excludeList = 
    if (name `elem` (excludeList ++ glAttribsExclude))
      then getAttribs as str excludeList
-     else getAttribs as (str ++ "," ++ attNameToLatex(name) ++ "={" ++ (unicodeToLatex value) ++ "}") excludeList                
-
+     else if (value == "")
+            then getAttribs as str excludeList
+            else getAttribs as (str ++ "," ++ attNameToLatex(name) 
+                                    ++ "={" ++ (unicodeToLatex value) ++ "}") excludeList 
 
 
 {-- makeMMiSSLatex1 erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.

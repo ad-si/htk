@@ -269,10 +269,15 @@ attribute = do spaces
                spaces
                pos <- getPosition
                case key of
-                 "Label" -> let elEntityName = parse entityFullNameParser "" v
-                            in case elEntityName of
-                                 Left err -> fail (appendSourcePos pos ("Label '" ++ v ++ "' contains illegal characters ")) 
-                                 Right _ -> done
+                 "Label" -> 
+                    case v of
+                      "{}" -> done
+                      otherwise -> 
+                        let elEntityName = parse entityFullNameParser "" v
+                        in case elEntityName of
+                              Left err -> fail (appendSourcePos pos 
+                                               ("Label '" ++ v ++ "' contains illegal characters ")) 
+                              Right _ -> done
                  _ -> done
                new_v <- if (v == "{}") then return "" else return v
                return (key, new_v)
