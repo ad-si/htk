@@ -78,7 +78,7 @@ lib : libhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) lib && ) echo Finished make lib
 
 clean:
-	$(RM) -f $(TESTPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
+	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
 
 display :
@@ -92,6 +92,8 @@ display :
 	@echo LIBOBJS = $(LIBOBJS)
 	@echo TESTOBJS = $(TESTOBJS)
 	@echo TESTPROGS = $(TESTPROGS)
+	@echo MAINOBJS = $(MAINOBJS)
+	@echo MAINPROGS = $(MAINPROGS)
 	@echo HIFILES = $(HIFILES)
 
 depend : $(SRCS) 

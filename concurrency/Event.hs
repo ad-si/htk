@@ -52,7 +52,20 @@ class Functor e => Event e where
         (+>)     :: e a -> e a -> e a
         tryEV    :: e a -> e (Answer a)
         e >>> c = e >>>= (\ _ -> c)
+        trivial  :: a -> e a
+        -- trivial is the event which always (and immediately) returns
+        -- with the given value.
 
+instance Event e => Monad e where
+   -- This is to allow us to use the "do" notation.  This means we
+   -- need sensible definitions for just ">>=".  ("fail" is already
+   -- defined to be "error" which is OK; ">>" is defined in terms of
+   -- ">>=")
+        (>>=) ev1 ev2fun =
+           ev1 >>>=
+              ( \ ev1res -> sync(ev2fun ev1res)
+                 )
+        return = trivial
 
 -- --------------------------------------------------------------------------
 --  Synchronization

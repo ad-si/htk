@@ -6,8 +6,12 @@
 module CVSBasic(
    callCVS, -- :: GlobalOptions -> CVSCommand -> IO Expect
 
-   GlobalOptions(..),
-   
+   CVSCommand(..),
+   GlobalOptions(..), 
+      -- things common to a sequence of CVS commands,
+      -- such as the working directory and the repository.
+   CVSFile(..), -- alias for file.  A newtype for String
+   CVSVersion(..) -- alias for version.  Ditto.
    ) where
 
 import WBFiles
@@ -32,18 +36,25 @@ compileGlobalOptions(
       cvsRoot   
       ]
    ]
+
+newtype CVSFile = CVSFile String
+
+newtype CVSVersion = CVSVersion String
  
 data CVSCommand =
       UpdateSimple {
-         revision :: String,
-         files :: [String]
+         revision :: CVSVersion,
+         files :: [CVSFile]
          }
    |  CommitSimple {
-         revision' :: Maybe String,
-         files :: [String]
+         revision' :: Maybe CVSVersion,
+         files :: [CVSFile]
          } -- we set a log message "X"
    |  LogSimple {
-         file :: String
+         file :: CVSFile
+         }
+   |  Add { -- this needs to be done for all new files.
+         file :: CVSFile
          }
 
 compileCVSCommand :: CVSCommand -> [Config PosixProcess]
@@ -51,11 +62,11 @@ compileCVSCommand command =
       [appendArguments (compile command)]
    where
       compile :: CVSCommand -> [String]
-      compile(UpdateSimple{revision=revision,files=files}) = [
+      compile(UpdateSimple{revision=CVSVersion version,files=files}) = [
          "update",
          "-r",
-         revision
-         ] ++ files
+         version
+         ] ++ castFiles files
       compile(CommitSimple{revision'=revision',files=files}) = [
          "commit", 
          "-m",
@@ -63,15 +74,23 @@ compileCVSCommand command =
          ] ++ 
          (case revision' of
             Nothing -> []
-            Just revision -> [
+            Just(CVSVersion version) -> [
                "-r",
-               revision
+               version
                ]
-            ) ++ files
-      compile(LogSimple{file=file}) = [
+            ) ++ (castFiles files)
+      compile(LogSimple{file=CVSFile file}) = [
          "log",
          file
          ]
+      compile(Add{file=CVSFile file}) = [
+         "add",
+         file
+         ]
+
+      castFiles :: [CVSFile] -> [String]
+      castFiles files =
+         map (\ (CVSFile file) -> file) files
 
 callCVS :: GlobalOptions -> CVSCommand -> IO Expect
 callCVS globalOptions command =
@@ -86,3 +105,4 @@ callCVS globalOptions command =
       return expect 
          
          
+

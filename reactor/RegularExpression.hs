@@ -43,6 +43,7 @@ module RegularExpression(
    MatchResult, -- result of a successful match
    matchString, -- match a regular expression
    getSubStrings, -- substrings in regular expression
+   getSubString, -- get one substring.
    getAfter, -- get remaining unmatched string
    getMatched, -- get matched string.
    escapeString -- given a string, return string for regular expression
@@ -83,6 +84,9 @@ matchString (RegularExpression regEx) str =
 getSubStrings :: MatchResult -> [String]
 getSubStrings (MatchResult _ _ _ subStrings) = subStrings
 
+getSubString :: MatchResult -> Int -> String
+getSubString result i = (getSubStrings result) !! i
+
 getAfter :: MatchResult -> String
 getAfter (MatchResult _ _ after _ ) = after
 
@@ -97,3 +101,8 @@ escapeString (c:rest) =
       else c:(escapeString rest)
    where
       special c = elem c ".*+?{}|\\[]()^$"
+
+
+
+
+

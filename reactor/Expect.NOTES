@@ -104,6 +104,16 @@ readWholeLine is used in non line mode when you need to read a whole
 line anyway.  It waits until one is available and returns the whole line.
 It does not advance to the next chunk.
 
+Examples of Use
+---------------
+
+Some simple examples are in uni/reactor/test.  Do a grep
+for "Expect" in the .hs files in this directory.
+
+A more complicated example is an encapsulation of
+some cvs commands in uni/cvs/CVSHigh.hs.  This uses
+a monadic style (because events are now monads) to combine
+events.
 
 
 

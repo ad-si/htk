@@ -33,6 +33,7 @@ import Monad(liftM)
 import qualified Debug(debug)
 import Event
 import BaseEvent
+import TrivEvent
 import Dynamics
 
 data EV eventResult = EV [BaseEvent eventResult] [IO (EV eventResult)]
@@ -90,6 +91,8 @@ instance Event EV where
       do
          baseEvents <- resolveEV event
          syncBaseEvents baseEvents        
+
+   trivial value = EV [trivEvent value] []   
 
 deadlock :: IO eventResult
 deadlock =

@@ -17,6 +17,7 @@ SRCS       = Thread.hs\
              PrimEvent.hs\
              BaseEvent.hs\
              TwoWayChannel.hs\
+             TrivEvent.hs\
              EV.hs\
              Channels.hs\
              FileEV.hs\

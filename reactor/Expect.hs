@@ -83,6 +83,7 @@ module Expect (
    Expect,
    newExpect,
    
+   Pattern,
    PatternDesignator(..),
    
    match,
@@ -571,7 +572,9 @@ matchLongLine exp =
 -}             
 
 matchLine:: Expect -> IA String
-matchLine exp = expect exp "^.*$" 
+matchLine exp = expect exp anyLine 
+   where
+      anyLine = toPattern "^.*$"
 
 
 -- --------------------------------------------------------------------------
@@ -606,6 +609,10 @@ match expect ptn  =
             sync(nextLine True)
             return matchResult
          )
+{-# INLINE match #-}
+-- We inline match, matchStay, match' since the pattern will often
+-- be a constant and we want the conversion of it to a pattern to
+-- be lifted out completely.
 
 matchStay :: PatternDesignator ptn => Expect -> ptn -> IA MatchResult 
 matchStay expect ptn  =
@@ -614,7 +621,9 @@ matchStay expect ptn  =
          do
             sync(nextLine False)
             return matchResult
-         )
+            )
+
+{-# INLINE matchStay #-}
 
 match' :: PatternDesignator ptn => Expect -> ptn -> 
    IA (MatchResult,Bool -> EV()) 
@@ -635,6 +644,7 @@ match' expect ptn = interaction eID register unregister
             debug "unregister1"
             sendIO regChannel (deregisterPtn pattern eID listener)
             debug "unregister2"
+{-# INLINE match' #-}
 
 -- --------------------------------------------------------------------------
 --  RST - registration/deregistration and lookup

@@ -94,6 +94,11 @@ instance Event.Event ExternalEvent.IA where
    sync = pollOrSync Event.sync
    poll = pollOrSync Event.poll
    
+   trivial (value::a) = 
+      let
+         triv = (trivial value) :: EV a
+      in
+         lift triv
 
 -- --------------------------------------------------------------------------
 --  External Event
