@@ -70,12 +70,12 @@ class (HasBinary inType IO,HasBinary outType IO,HasBinary inType StateBinArea,Ha
    -- server is initialised
 
    backupAction :: (inType,outType,stateType) -> stateType -> IO ()
-   -- this is the action to be performed for backups.
+   -- ^ this is the action to be performed for backups.
 
    sendOnConnect :: (inType,outType,stateType) -> User -> stateType 
       -> IO String
    -- ^ On connection we send the sendOnConnect string to the client
-   -- before anything else.  Defaults to "".  Computing the string
+   -- before anything else.  Defaults to \"\".  Computing the string
    -- requires the whole service to wait, so it shouldn't take too long.
    sendOnConnect _ _ _ = return ""
 
