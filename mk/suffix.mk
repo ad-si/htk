@@ -266,7 +266,7 @@ ifneq "$(DOIMPORTS)" ""
 	$(CP) $(HILIBFILES) imports
 endif
 	$(SED) -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) $(GHCPKGOPTS) --config-file $(PACKAGECONF) --add-package 
-	if [ -s $(LIB) ]; then $(LD) -r $(WHOLEARCHIVE) -o $(GHCIOBJ) $(LIB); fi
+	if [ -s $(LIB) -a -z "$(NOGHCI)" ]; then $(LD) -r $(WHOLEARCHIVE) -o $(GHCIOBJ) $(LIB); fi
 endif
 
 packagesquick : packageherequick
