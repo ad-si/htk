@@ -21,6 +21,9 @@ module InputForm (
         EntryField,
         newEntryField,
 
+        NumEntryField,
+        newNumEntryField,
+
         CheckboxField,
         newCheckboxField,
 
@@ -44,6 +47,7 @@ where
 import Core
 import HTk
 import DialogWin
+import SpinButton
 import ScrollBox
 import Space
 import Separator
@@ -314,6 +318,118 @@ instance InputField EntryField where
                                   (Right val) -> return (f r val) 
                           }
 
+-- --------------------------------------------------------------------------
+--  Numeric Entry Fields  
+-- --------------------------------------------------------------------------
+---
+-- The <code>NumEntryField</code> datatype.
+data NumEntryField a b = NumEntryField (Entry b) Label SpinButton 
+                                       (Ref (FieldInf a))
+
+---
+-- Add a new <code>NumEntryField</code> to the form
+-- @param form        - the form to which the field is added
+-- @param bounds      - upper and lower bound (for the spin only)
+-- @param delta       - increment/decrement for the spin button
+-- @param confs       - a list of configuration options for this field
+-- @return result     - a <code>NumEntryField</code>
+newNumEntryField :: (Ord b, Num b, GUIValue b) => InputForm a -> (b, b)-> b-> [Config (NumEntryField a b)] -> IO (NumEntryField a b)
+newNumEntryField form@(InputForm box field) (min, max) delta confs = 
+     do let spin Up v   = if v+ delta <= max then v+delta else v
+            spin Down v = if v- delta >= min then v-delta else v
+        b <- newHBox box []
+	pack b [Expand On, Fill X]
+        lbl <- newLabel b []
+	pack lbl [Expand Off, Fill X]
+        pr <- newEntry b []
+        pack pr [Fill X, Expand Off]
+        sp <- newSpinButton b (\sp-> do tv<- try (getValue pr);
+			                case tv of
+			                  Right v -> pr # value (spin sp v)
+                                          Left _  -> return pr) []
+        pack sp [Expand Off]
+        pv <- newFieldInf
+                (\c -> do {bg (toColour c) pr; done})
+                (\c -> do {fg (toColour c) pr; done})
+                (\f -> do {HTk.font (toFont f) pr; done})
+                (\c -> do {cursor (toCursor c) pr; done})
+                (\s -> do {state s pr; done})
+        configure (NumEntryField pr lbl sp pv) confs
+        addNewField form pr pv
+        return (NumEntryField pr lbl sp pv) 
+
+instance Eq (NumEntryField a b) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (NumEntryField a b) where 
+        toGUIObject (NumEntryField pr _ _ _) = toGUIObject pr
+        cname _ = "NumEntryField"
+
+instance Widget (NumEntryField a b) where
+        cursor c fe@(NumEntryField pr _ _ _) = do {cursor c pr; return fe}
+        getCursor (NumEntryField pr _ _ _) = getCursor pr 
+
+instance HasColour (NumEntryField a b) where
+        legalColourID _ _ = True
+        setColour fe@(NumEntryField pr lbl sp _) cid c = do {
+                setColour pr cid c; setColour lbl cid c; setColour sp cid c;
+		return fe}
+        getColour (NumEntryField pr _ _ _) cid = getColour pr cid
+
+instance HasBorder (NumEntryField a b)
+
+instance HasSize (NumEntryField a b)  where
+        width w fe @ (NumEntryField pr _ _ _)  = do {width w pr; return fe}
+        getWidth (NumEntryField pr _ _ _)      = getWidth pr
+        height h fe @ (NumEntryField pr _ _ _) = do {height h pr; return fe}
+        getHeight fe @ (NumEntryField pr _ _ _)= getHeight pr
+        
+instance HasFont (NumEntryField a b) 
+
+instance HasEnable (NumEntryField a b) where 
+        state v f@(NumEntryField pr _ sp _) = do {state v pr; state v sp; return f}
+        getState (NumEntryField pr _ _ _) = getState pr
+
+instance (GUIValue b,GUIValue c) => HasText (NumEntryField a b) c where
+        text v f@(NumEntryField pr lbl _ _) = do {text v lbl; return f}
+        getText (NumEntryField pr lbl _ _) = getText lbl
+
+instance Synchronized (NumEntryField a b) where
+        synchronize fe = synchronize (toGUIObject fe)
+
+instance GUIValue b => Variable (NumEntryField a b) b where
+        setVar f@(NumEntryField pr _ _ _) val = do {value val pr; done}
+        getVar (NumEntryField pr _ _ _) = getValue pr
+
+instance InputField NumEntryField where
+        selector f fe@(NumEntryField pr lbl _ pv) = synchronize fe (do {
+                setSelectorCmd pv cmd;
+                return fe
+                }) where cmd r = do {value (f r) pr; done}
+        modifier f fe@(NumEntryField pr lbl _ pv :: NumEntryField a b) = 
+	        synchronize fe $ do {
+                setReplacorCmd pv cmd;
+                return fe
+                } where cmd r = do {
+                          ans <- try (getVar fe);
+                          case ans of
+                                  (Left e) -> do {
+	  			          txt <- getText lbl;
+			 	 	  createErrorWin ("Illegal field value for "++ txt) [];
+				          raise illegalGUIValue
+					  }
+                                  (Right val) -> return (f r val) {- do 
+                                          num <- try ((readIO val) :: IO b)
+					  case num of 
+					    Left _ -> do txt <- getText lbl
+					                 createErrorWin  
+					                   ("Not a numeric \
+							    \value for field "
+							    ++ txt) []
+					    Right _ -> return (f r val) -}
+                          }
+
+
 
 -- --------------------------------------------------------------------------
 --  Checkbox Fields  
@@ -506,7 +622,7 @@ instance InputField TextField where
 --  Enumeration Fields  
 -- --------------------------------------------------------------------------           
 ---
--- The <code>EntryField</code> datatype.
+-- The <code>EnumField</code> datatype.
 data EnumField a b = EnumField (OptionMenu b) Label (Ref (FieldInf a))
 
 ---
