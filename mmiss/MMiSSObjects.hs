@@ -33,6 +33,10 @@ import BSem
 import DialogWin
 import SimpleForm
 
+import WBFiles (getTOP)
+import FileDialog
+import Events
+
 import CopyFile
 
 import GraphDisp
@@ -683,6 +687,7 @@ createMMiSSObject objectType view folder =
    do
       result <- addFallOut (\ break ->
          do
+{-
             let
                createMMiSSForm :: Form (Format,String)
                createMMiSSForm =
@@ -697,10 +702,14 @@ createMMiSSObject objectType view folder =
             detailsOpt <- doForm
                ("Creating new "++xmlTag objectType)
                createMMiSSForm
+-}
+	    top <- getTOP >>= return . (++ "/mmiss/test/files")
+	    fpc <- fileDialog "Import LaTeX sources." top >>= sync
+	    
             let
-               (format,filePath) = case detailsOpt of
+               (format,filePath) = case fpc of
                   Nothing -> break "Creation cancelled"
-                  Just details -> details
+                  Just fp -> (LaTeX, fp)
 
             inputStringWE <- copyFileToStringCheck filePath
             let
@@ -858,7 +867,7 @@ exportMMiSSObject view link =
       result <- addFallOut (\ break ->
          do
             object <- readLink view link
-
+{-
             let
                exportMMiSSForm :: Form (Format,String)
                exportMMiSSForm =
@@ -872,11 +881,14 @@ exportMMiSSObject view link =
                         ))
             detailsOpt <- doForm
                ("Exporting "++name object)
-               exportMMiSSForm
-            let
-               (format,filePath) = case detailsOpt of
+               exportMMiSSForm 
+-}
+            top <- getTOP >>= return . (++ "/mmiss/test/files")
+	    fpc <- fileDialog "Export LaTeX sources." top >>= sync
+	    
+            let (format,filePath) = case fpc of
                   Nothing -> break "Export cancelled"
-                  Just details -> details
+                  Just fp -> (LaTeX, fp)
 
                -- getElement is the function to be passed to
                -- MMiSSReAssemble.reAssembleNoRecursion.
