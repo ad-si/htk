@@ -120,13 +120,15 @@ cvsError mess =
 
 -- tryCVS is wrapped around the entire processing of a CVS process
 -- represented by Expect and returns the result or CVS error as
--- appropriate. 
+-- appropriate.   It is also responsible for destroying the
+-- Expect object.
 -- The first argument is a name to be added to error messages.
 tryCVS :: String -> Expect -> IA a -> IO (Maybe a,CVSReturn)
 tryCVS mess exp event =
    do
       result <- tryIO isCVSError (sync event)
       status <- getToolStatus exp
+      destroy exp
       case result of
          Left errorMess -> 
             return (Nothing,toCVSReturn (Just (mess++": "++errorMess)) status)
@@ -164,24 +166,14 @@ low ptn = toPattern (ptn,0::Int)
 noLineHere :: Expect -> IA a
 noLineHere exp =    
    (matchLine exp >>>=
-      (\ line -> 
-         do
-            debug "destroying cvs expect"
-            destroy exp
-            debug "destroyed cvs expect"
-            cvsError("Couldn't parse: "++(show line))
+      (\ line -> cvsError("Couldn't parse: "++(show line))
          )
       )
 
 -- This matches EOF and raises an error
 noEOFHere :: Expect -> IA a
 noEOFHere exp =
-   (matchEOF exp >>>
-      do
-         debug "destroying cvs expect (EOF) "
-         destroy exp
-         debug "destroyed cvs expect"
-         cvsError "Unexpected EOF"
+   (matchEOF exp >>> cvsError "Unexpected EOF"
       )
 
 -- A common idiom to guard against both unparsed lines and EOF
@@ -331,7 +323,10 @@ cvsListVersions (CVSLoc globalOptions) file =
                   (mat "\\`X\\'") +>
                   (do
                      mat "\\`branches:  "
-                     guard exp (mat "\\`X\\'")
+                     guard exp (
+                           mat "\\`X\\'"
+                        +> mat "\\`file .* was initially added on branch"
+                        )
                      )
                   )
                return (CVSVersion revision)

@@ -102,6 +102,7 @@ import qualified IOExts(unsafePerformIO)
 
 import FiniteMap
 import Posix(signalProcess,sigKILL)
+import Concurrent
 
 import ExtendedPrelude(insertOrd)
 import Object
@@ -141,7 +142,12 @@ data Expect =
       -- changes are properly sequenced.  In other words, when an
       -- application (namely Interaction.sync) has finished registering
       -- it can be sure that Expect knows about it.
-      collectable     :: Maybe CollectibleObj
+      collectable     :: Maybe CollectibleObj,
+      -- Ids of the readerThread and matcherThread.  These are
+      -- passed back to the caller so that the reader and matcher
+      -- threads can be destroyed when we are finished.
+      readerThread :: Maybe ThreadId,
+      matcherThread :: Maybe ThreadId
       }
 
 data Pattern = Pattern RegularExpression Int String  
@@ -179,15 +185,23 @@ newExpect tool confs =
                childOutput=childOutput,
                eofChannel=eofChannel,
                regChannel=regChannel,
-               collectable=Nothing
+               collectable=Nothing,
+               readerThread=Nothing,
+               matcherThread=Nothing
                }
-      forkIO (matcher expect emptyRST)
-      forkIO (reader expect)
-      cobj <- newCollectibleObj
+      readerThread <- forkIO (matcher expect emptyRST)
+      matcherThread <- forkIO (reader expect)
+      collectable <- newCollectibleObj
       -- specify that when we want to GC this Expect instance
       -- we destroy the childprocess
-      destructor (destroy child) cobj
-      return (expect {collectable = Just cobj}) 
+      let
+         finalExpect = expect {
+            collectable=Just collectable,
+            readerThread=Just readerThread,
+            matcherThread=Just matcherThread
+            }
+      destructor (destroy finalExpect) collectable
+      return finalExpect
 
 -- --------------------------------------------------------------------------
 --  Reader Thread.  This reads messages from the child and passes them
@@ -454,7 +468,16 @@ instance Object Expect where
    objectID expect = objectID (child expect)
 
 instance Destructible Expect where
-   destroy expect     = destroy (child expect)
+   destroy expect     = 
+      do
+         destroy (child expect)
+         let
+            Just rThread = readerThread expect
+            Just mThread = matcherThread expect
+         killThread rThread
+         killThread mThread
+         
+         
    destroyed expect   = destroyed (child expect)    
 
 instance Collectible Expect where
