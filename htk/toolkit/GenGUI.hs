@@ -309,7 +309,6 @@ newGenGUI mstate =
 
     -- temporary (placement of objects in notepad / TD)
     posref <- newRef (0, 0)
---    initItemPosition posref
 
     -- event queue
     evq <- newRef Nothing
@@ -327,10 +326,9 @@ newGenGUI mstate =
                        event_queue = evq }
 
     -- listening events
-    clipboard <- newRef ((0,0), [])   -- drop on editor or treelist
+    clipboard_dnd <- newRef ((-1,-1), [])   -- drop on editor
+    clipboard_mov <- newRef ((-1,-1), [], Nothing)   -- drop on treelist
     (enter_ed, _) <- bind ed [WishEvent [] Enter]
---    (leave_np, _) <- bind np [WishEvent [] Leave]
---    (leave_np, _) <- bind np [WishEvent [] (ButtonRelease (Just (BNo 1)))]
 
     (np_ev, _) <- bindNotepadEv np
     (tl_ev, _) <- bindTreeListEv tl
@@ -349,16 +347,49 @@ newGenGUI mstate =
                                    npDoubleClick gui inf
                                  Notepad.Rightclick inf ->
                                    npRightClick gui inf
-                                 Notepad.Release ev_inf ->
+                                 Notepad.ReleaseMovement ev_inf ->
                                    do
-                                     selected_notepaditems <-
-                                       getSelectedItems np
-                                     selected_items <-
-                                       mapM getItemValue
-                                            selected_notepaditems
-                                     setRef clipboard
-                                       ((xRoot ev_inf, yRoot ev_inf),
-                                        selected_items)
+                                     ((x1, y1), items1) <-
+                                       getRef clipboard_dnd
+                                     ((x2, y2), items2, mitem) <-
+                                       getRef clipboard_mov
+                                     (if x1 == xRoot ev_inf &&
+                                         y1 == yRoot ev_inf then
+                                        do
+                                          putStrLn "drag and drop action (rel)"
+                                          sendEv gui
+                                            (DroppedOnTextArea items1)
+                                          undoLastMotion np
+                                      else
+                                        if x2 == xRoot ev_inf &&
+                                           y2 == yRoot ev_inf && 
+                                           isJust mitem then
+                                          do
+                                            let item = fromJust mitem
+                                            putStrLn "moving items (rel)"
+                                            undoLastMotion (notepad gui)
+                                            selected_notepaditems <-
+                                              getSelectedItems
+                                                (notepad gui)
+                                            mapM
+                                              (saveNotepadItemState gui)
+                                              selected_notepaditems
+                                            moveItems gui items2 item
+                                        else
+                                          do
+                                            selected_notepaditems <-
+                                              getSelectedItems np
+                                            selected_items <-
+                                              mapM getItemValue
+                                                   selected_notepaditems
+                                            setRef clipboard_dnd
+                                              ((xRoot ev_inf,
+                                                yRoot ev_inf),
+                                               selected_items)
+                                            setRef clipboard_mov
+                                              ((xRoot ev_inf,
+                                                yRoot ev_inf),
+                                               selected_items, Nothing))
                                  _ -> done)) +>
                          (do
                             ev <- tl_ev
@@ -367,34 +398,30 @@ newGenGUI mstate =
                                  TreeList.Selected mobj ->
                                    tlObjectSelected gui mobj
                                  Focused mobjninf ->
-                                   tlObjectFocused gui clipboard mobjninf
+                                   tlObjectFocused gui clipboard_mov
+                                                   mobjninf
                                  _ -> done)) +>
                          (do
                             ev_inf <- enter_ed
                             always
                               (do
-                                 putStrLn "editor entered"
-                                 ((x, y), items) <- getRef clipboard
+                                 ((x, y), items) <- getRef clipboard_dnd
                                  (if x == xRoot ev_inf &&
                                      y == yRoot ev_inf then
                                     do
-                                      putStrLn "drag and drop action"
+                                      putStrLn "drag and drop action (enter)"
                                       sendEv gui (DroppedOnTextArea items)
                                       undoLastMotion np
-                                  else done)))))
-{-
-                         (do
-                            ev_inf <- leave_np
-                            always
-                              (do
-                                 selected_notepaditems <-
-                                   getSelectedItems np
-                                 selected_items <-
-                                   mapM getItemValue selected_notepaditems
-                                 setRef clipboard
-                                   ((xRoot ev_inf, yRoot ev_inf),
-                                    selected_items)))))
--}
+                                  else
+                                    do
+                                      selected_notepaditems <-
+                                        getSelectedItems np
+                                      selected_items <-
+                                        mapM getItemValue
+                                             selected_notepaditems
+                                      setRef clipboard_dnd
+                                        ((xRoot ev_inf, yRoot ev_inf),
+                                         selected_items))))))
     ditem <- getRef displayref
     case ditem of
       Just item ->
@@ -465,7 +492,8 @@ tlObjectSelected gui mobj =
                               done)
            setRef (open_obj gui) (Just (getTreeListObjectValue obj))
 
-tlObjectFocused :: CItem c => GenGUI c -> Ref (Position, [Item c]) ->
+tlObjectFocused :: CItem c => GenGUI c ->
+                              Ref (Position, [Item c], Maybe (Item c)) ->
                               (Maybe (TreeListObject (Item c)),
                                      EventInfo) ->
                               IO ()
@@ -474,26 +502,35 @@ tlObjectFocused gui clipboard (mobj, ev_inf) =
     mch <- getRef (event_queue gui)
     case mobj of
       Just obj -> do
-                    ((x, y), items) <- getRef clipboard
+                    let item = getTreeListObjectValue obj
+                    ((x, y), items, mitem) <- getRef clipboard
                     (if x == xRoot ev_inf &&
-                        y == yRoot ev_inf then
+                        y == yRoot ev_inf &&
+                        isNothing mitem then
                        do
                          putStrLn "moving items"
-                         let item = getTreeListObjectValue obj
                          undoLastMotion (notepad gui)
                          selected_notepaditems <-
                            getSelectedItems (notepad gui)
                          mapM (saveNotepadItemState gui)
                               selected_notepaditems
                          moveItems gui items item
-                     else case mch of
-                            Just ch ->
-                              do
-                                let item = getTreeListObjectValue obj
-                                syncNoWait
-                                  (send ch
-                                     (FocusTreeList (Just item)))
-                            _ -> done)
+                     else do
+                            case mch of
+                              Just ch ->
+                                do
+                                  let item = getTreeListObjectValue obj
+                                  syncNoWait
+                                    (send ch
+                                       (FocusTreeList (Just item)))
+                              _ -> done
+                            selected_notepaditems <-
+                              getSelectedItems (notepad gui)
+                            selected_items <-
+                              mapM getItemValue selected_notepaditems
+                            setRef clipboard
+                                   ((xRoot ev_inf, yRoot ev_inf),
+                                     selected_items, Just item))
       _ -> case mch of
              Just ch -> syncNoWait (send ch (FocusTreeList Nothing))
              _ -> done

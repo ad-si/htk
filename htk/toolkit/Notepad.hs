@@ -255,7 +255,8 @@ data NotepadEvent a =
   | Deselected (NotepadItem a)
   | Doubleclick (NotepadItem a)
   | Rightclick [NotepadItem a]
-  | Release EventInfo                -- needed for use with GenGUI
+  | ReleaseSelection
+  | ReleaseMovement EventInfo           -- needed for use with GenGUI
 
 sendEv :: Notepad a -> NotepadEvent a -> IO ()
 sendEv np ev =
@@ -428,10 +429,6 @@ clearNotepad np =
 
 scrollTo :: CItem c => Notepad c -> NotepadItem c -> IO ()
 scrollTo notepad item = done
-{-
-  do
-    (dx, dy) <- 
--}
 
 undoLastMotion :: Notepad a -> IO ()
 undoLastMotion np =
@@ -534,6 +531,7 @@ newNotepad par scrolltype imgsize mstate cnf =
     (shiftclick, _) <- bind cnv [WishEvent [Shift]
                                            (ButtonPress (Just (BNo 1)))]
     (release, _) <- bind cnv [WishEvent [] (ButtonRelease (Just (BNo 1)))]
+    (leave, _) <- bindSimple cnv Leave
 
     stopListening <- newChannel
 
@@ -646,10 +644,9 @@ newNotepad par scrolltype imgsize mstate cnf =
                 (do
                    ev_inf <- release
                    always (do
-                             putStrLn "Notepad: buttonrelease (selection by rectangle)"
                              (dx, dy) <- getD
                              (x1,y1) <- getCoords ev_inf
-                             sendEv notepad (Release ev_inf)
+                             sendEv notepad ReleaseSelection
                              selectItemsWithin (x + dx, y + dy)
                                                (x1 + dx, y1 + dy) notepad
                              destroy rect))
@@ -704,8 +701,7 @@ newNotepad par scrolltype imgsize mstate cnf =
           +> (do
                 ev_inf <- release
                 always (do
-                          putStrLn "Notepad: buttonrelease (items movement)"
-                          sendEv notepad (Release ev_inf)
+                          sendEv notepad (ReleaseMovement ev_inf)
                           drop <- getRef dropref
                           case drop of
                             Just (item, rect1, rect2) ->
@@ -724,8 +720,10 @@ newNotepad par scrolltype imgsize mstate cnf =
                                 destroy rect1 
                                 destroy rect2
                             _ -> do
-                                   selecteditems <- getRef selecteditemsref
-                                   (dx, dy) <- checkPositions selecteditems
+                                   selecteditems <-
+                                     getRef selecteditemsref
+                                   (dx, dy) <-
+                                     checkPositions selecteditems
                                    moveItem t (-dx) (-dy)))
 
         checkEnteredItem (x, y) =
@@ -763,7 +761,15 @@ newNotepad par scrolltype imgsize mstate cnf =
 
         listenNotepad :: Event ()
         listenNotepad =
-             (do
+             (leave >> always (do
+                                 mentereditem <- getRef entereditemref
+                                 (if isJust mentereditem then
+                                    leftItem notepad
+                                             (fromJust mentereditem) >>
+                                    setRef entereditemref Nothing
+                                  else done)) >>
+                       listenNotepad)
+          +> (do
                 (x, y) <- motion >>>= getCoords
                 always (checkEnteredItem (x, y))
                 listenNotepad)
@@ -785,8 +791,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                                     done
                        Just item ->
                          do
-                           Just entereditem <- getRef entereditemref
-                           leftItem notepad entereditem
+                           leftItem notepad item
                            b <- isNotepadItemSelected notepad item
                            if b then done else selectItem notepad item
                            t <- createTagFromSelection notepad
