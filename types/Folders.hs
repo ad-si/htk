@@ -5,6 +5,7 @@ module Folders(
       -- to be done at initialisation
    getTopFolder, 
    getInFolder,
+   lookupFileName,
    ) where
 
 import FiniteMap
@@ -268,3 +269,29 @@ getInFolder view link str =
       folder <- readLink view link
       map <- readContents (contents folder)
       return (lookupMap map str)
+
+---
+-- lookupLink looks up a link by file name, given by components, with
+-- the name in the highest directory first.
+lookupFileName :: View -> [String] -> IO (Maybe WrappedLink)
+lookupFileName view [] = return (Just (WrappedLink (topLink :: Link Folder)))
+lookupFileName view (first:rest) =
+   do
+      topFolderLink <- getTopFolder view
+      doLookup topFolderLink first rest
+   where
+      doLookup :: Link Folder -> String -> [String] -> IO (Maybe WrappedLink)
+      doLookup link first rest =
+         do
+            wrappedLinkOpt <- getInFolder view link first
+            case rest of
+               [] -> return wrappedLinkOpt
+               (first2 : rest2)  ->
+                  case wrappedLinkOpt of
+                     Nothing -> return Nothing
+                     Just wrappedLink ->
+                        case unpackWrappedLink wrappedLink of
+                           Nothing -> return Nothing
+                           Just link -> doLookup link first2 rest2
+                     
+      

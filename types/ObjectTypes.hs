@@ -45,6 +45,11 @@ module ObjectTypes(
    WrappedLink(..),
    WrappedVersioned(..),
 
+
+   -- Unpacking wrapped types.
+   unpackWrappedLink,  -- :: ObjectType objectType object =>
+     -- WrappedLink -> Maybe (Link object)
+
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
 
@@ -134,6 +139,16 @@ data WrappedVersioned = forall objectType object .
 
 data WrappedLink = forall objectType object .
    ObjectType objectType object => WrappedLink (Link object)
+
+-- ----------------------------------------------------------------
+-- Unpacking wrapped types
+-- ----------------------------------------------------------------
+
+---
+-- Returns Nothing if the types don't match.
+unpackWrappedLink :: ObjectType objectType object =>
+    WrappedLink -> Maybe (Link object)
+unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
 
 -- ----------------------------------------------------------------
 -- NodeDisplayData
