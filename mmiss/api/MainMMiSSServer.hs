@@ -101,13 +101,14 @@ mainHandle handle hostName  =
 
                   putStrLn (userId user ++ "@" ++ hostName ++ ":"
                      ++ calendarTimeToString calendarTime) 
-                  hFlush stdin
+                  hFlush stdout
                   hFlush handle         
 
                   doXml handle user
             Left mess ->
                do
                   putStrLn (hostName ++ ": Connection failed")
+                  hFlush stdout
                   writeString handle ("ERROR: " ++ mess)
                   hClose handle
          )

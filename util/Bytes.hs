@@ -3,7 +3,9 @@
    -}
 
 #if (__GLASGOW_HASKELL__ == 602)
-{- Sigh.  We need to work around the ghc6.02 hGetBuf bug. -}
+{- Sigh.  We need to work around the ghc6.02 hGetBuf bug.
+   Actually we don't probably need to for ghc6.02.1, but at the moment I can't
+   be bothered to distinguish the two versions. -}
 #define FIX_hGetBuf 1
 #endif
 
