@@ -3,7 +3,10 @@
    -}
 module MMiSSBundleWrite(
    writeBundle,
+   writeBundle1,
    ) where
+
+import Control.Exception
 
 import IO
 import List
@@ -24,7 +27,8 @@ import MMiSSBundleValidate
 import MMiSSBundleReadFiles
 import MMiSSBundleNodeCheckTypes
 import MMiSSBundleNodeWrite
-
+import MMiSSEditLocks
+import MMiSSBundleNodeEditLocks
 
 -- | Errors are provoked by importExportError, and can be caught that way.
 writeBundle :: 
@@ -38,10 +42,28 @@ writeBundle ::
       -- ^ which view to write the node to
    -> InsertionPoint 
    -> IO ()
-writeBundle (Bundle []) _ _ _ _ = 
+writeBundle bundle packageIdOpt filePathOpt view insertionPoint =
+   writeBundle1 bundle packageIdOpt filePathOpt view emptyLockSet 
+      insertionPoint
+
+-- | Errors are provoked by importExportError, and can be caught that way.
+writeBundle1 :: 
+   Bundle 
+      -- ^ the bundle
+   -> Maybe PackageId 
+      -- ^ which node in the bundle to write.  If unset we take the first one.
+   -> Maybe FilePath
+      -- ^ where to look for additional files.  If unspecified, we don't. 
+   -> View  
+      -- ^ which view to write the node to
+   -> LockSet
+      -- ^ Locks we have already acquired for variants we can write again.
+   -> InsertionPoint 
+   -> IO ()
+writeBundle1 (Bundle []) _ _ _ _ _ = 
    importExportError "Attempt to write empty bundle"
-writeBundle (bundle0 @ (Bundle ((packageId0,_):_)))
-      packageIdOpt filePathOpt view insertionPoint =
+writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
+      packageIdOpt filePathOpt view lockSet insertionPoint =
    do
       let
          packageId = fromMaybe packageId0 packageIdOpt
@@ -67,8 +89,13 @@ writeBundle (bundle0 @ (Bundle ((packageId0,_):_)))
       checkTypesWE <- checkBundleNodeTypes view insertionPoint bundleNode
       coerceImportExportIO checkTypesWE
 
-      writeBundleNode view insertionPoint bundleNode
+      releaseActWE 
+         <- acquireBundleNodeEditLocks view lockSet insertionPoint bundleNode
+      releaseAct <- coerceImportExportIO releaseActWE
 
+      finally
+         (writeBundleNode view insertionPoint bundleNode)
+         releaseAct
 
        
             

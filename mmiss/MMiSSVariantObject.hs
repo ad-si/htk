@@ -66,6 +66,10 @@ module MMiSSVariantObject(
       -- This does not always retrieve the current cache unless the search
       -- object is the same as the current one.  Otherwise it looks up the
       -- current object and computes a cache using the cache function.
+   lookupVariantObjectCacheWithSpec, 
+      -- :: VariantObject object cache -> MMiSSVariantSearch
+      -- -> IO (Maybe (cache,MMiSSVariantSpec))
+      -- This also returns the actual variantSpec of the variant found.
  
    lookupVariantObjectExact,
       -- :: VariantObject object cache -> MMiSSVariantSpec
@@ -341,13 +345,25 @@ lookupVariantObjectCache :: VariantObject object cache -> MMiSSVariantSearch
    -> IO (Maybe cache)
 lookupVariantObjectCache variantObject variantSearch =
    do
+      cacheSpecOpt 
+         <- lookupVariantObjectCacheWithSpec variantObject variantSearch
+      return (fmap
+         (\ (cache,_) -> cache)
+         cacheSpecOpt
+         )
+
+lookupVariantObjectCacheWithSpec 
+   :: VariantObject object cache -> MMiSSVariantSearch
+   -> IO (Maybe (cache,MMiSSVariantSpec))
+lookupVariantObjectCacheWithSpec variantObject variantSearch =
+   do
       objectOpt <- lookupVariantObjectWithSpec variantObject variantSearch
       case objectOpt of
          Nothing -> return Nothing
          Just (object,spec) -> 
             do
                cache <- converter variantObject spec object
-               return (Just cache)
+               return (Just (cache,spec))
 
 lookupVariantObjectExact :: VariantObject object cache -> MMiSSVariantSpec 
    -> IO (Maybe object)

@@ -64,7 +64,9 @@ import MMiSSReadObject
 import MMiSSReAssemble
 import MMiSSPreamble
 import MMiSSPackageFolder
+import MMiSSVariantObject
 import MMiSSElementInfo(changeLabel)
+import MMiSSEditLocks
 import {-# SOURCE #-} MMiSSExportFiles
 
 
@@ -195,10 +197,13 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                
                -- retrieve the object data.
-               objectDataWE <- simpleReadFromMMiSSObject view objectLink
-                  variants
+               object <- readLink view objectLink
+               cacheSpecOpt <- lookupVariantObjectCacheWithSpec
+                  (variantObject object) variants
 
-               (cache,object) <- coerceWithErrorOrBreakIO break objectDataWE
+               (cache,variantSpec) <- case cacheSpecOpt of
+                  Nothing -> break ("No matching variant found for " ++ name)
+                  Just cacheSpec -> return cacheSpec
 
                let
                   thisElement = cacheElement cache
@@ -210,26 +215,15 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                      done
                   else
                      break ("Object "++name++" has wrong type")
-               let
-                  lock = cacheEditLock cache
- 
-               isAvailable <- tryAcquire lock
-               if isAvailable
-                  then
-                     done
-                  else 
-                     break ("Attempt to edit a variant of "++name
-                        ++ " when it is already being edited")
+
+               lockedWE <- acquireLock view (object,variantSpec)
+               (releaseAct,lockSet) <- coerceWithErrorOrBreakIO break lockedWE
 
                let
                   -- redefine break so that it releases the lock, if something
                   -- goes wrong.  We use a horrible trick to do this when the
                   -- break is evaluated.
-                  break2 mess =
-                     seq (unsafePerformIO (release lock)) (break mess)
-
-               let
-                  Elem _ attributes _ = thisElement
+                  break2 mess = seq (unsafePerformIO releaseAct) (break mess)
 
                
                -- Extract a parent MMiSSPackageFolder and name for the object,
@@ -243,11 +237,9 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   <- coerceWithErrorOrBreakIO break2 packageAndName1WE
                
                -- Create variants used for searching in this object,
-               -- We refine the existing variants with the one given by the
-               -- object's attributes.
+               -- We refine the existing variants with the one in the
+               -- object's spec.
                let
-                  variantSpec = toMMiSSVariantSpecFromXml attributes
-
                   -- outerVariants1 will become the outerVariants for contained
                   -- links.
                   outerVariants1 = refineVariantSearch variants variantSpec
@@ -324,8 +316,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                                 
                           (bundle,packageId) <- parseBundle2 elInfo element0 []
-                          writeBundle bundle (Just packageId) Nothing view 
-                             (Left (toLinkedObject package1))
+                          writeBundle1 bundle (Just packageId) Nothing view 
+                             lockSet (Left (toLinkedObject package1))
 
                           emacsContentOpt <- case reduceElement element0 of
                              Nothing -> return Nothing
@@ -367,7 +359,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                   finishEdit =
                      do
-                        release lock
+                        releaseAct
                         remEdit object
 
                   (editedFile :: EditedFile EditRef) = EditedFile {

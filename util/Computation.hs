@@ -284,6 +284,11 @@ exceptionToError testFn action =
       )
       (\ str -> return (hasError str))
 
+instance Functor WithError where
+   fmap aToB aWE = case aWE of
+      Value a -> Value (aToB a)
+      Error e -> Error e      
+
 instance Monad WithError where
    return v = hasValue v
    (>>=) aWE toBWe =

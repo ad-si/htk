@@ -25,7 +25,8 @@ SRCS = MMiSSDTDAssumptions.hs \
    MMiSSBundleDissect.hs MMiSSBundleValidate.hs MMiSSBundleReadFiles.hs \
    MMiSSBundleNodeWriteClass.hs MMiSSBundleNodeCheckTypes.hs \
    MMiSSBundleNodeWrite.hs MMiSSBundleNodeWriteObject.hs \
-   MMiSSBundleWrite.hs MMiSSInsertionPoint.hs
+   MMiSSBundleWrite.hs MMiSSInsertionPoint.hs MMiSSEditLocks.hs \
+   MMiSSBundleNodeEditLocks.hs
 
 BOOTSRCS = MMiSSReadObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \

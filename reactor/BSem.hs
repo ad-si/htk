@@ -14,6 +14,7 @@ module BSem (
 
    tryAcquireBSems,
    tryAcquireBSemsWithError,
+   tryAcquireBSemsWithError1,
    ) where
 
 import Maybe
@@ -78,27 +79,16 @@ newLockedBSem = newEmptyMVar >>= return . BSem
 -- returns the action to release them all again.  If unsuccessful it
 -- returns Nothing, and leaves all the BSems released.
 tryAcquireBSems :: [BSem] -> IO (Maybe (IO ()))
-tryAcquireBSems [] = return (Just done)
-tryAcquireBSems (bsem:bsems) =
+tryAcquireBSems bSems =
    do
-      acquire1 <- tryAcquire bsem
-      if acquire1
-         then
-            do
-               acquires <- tryAcquireBSems bsems
-               case acquires of
-                  Just releaseAct ->
-                     return (Just (
-                        do
-                           releaseAct
-                           release bsem
-                        ))
-                  Nothing ->
-                     do
-                        release bsem
-                        return Nothing
-         else
-            return Nothing   
+      let
+         toMess _ = return ""
+      actWithError <- tryAcquireBSemsWithError id toMess bSems
+      return (case fromWithError actWithError of
+         Left _ -> Nothing
+         Right act -> Just act
+         )
+
 ---
 -- tryAcquireBSemsWithError is a generalisation of tryAcquireBSems, which
 -- produces an error message
@@ -107,29 +97,55 @@ tryAcquireBSems (bsem:bsems) =
 -- be used as a message if we can't get the object's lock.
 tryAcquireBSemsWithError :: (object -> BSem) -> (object -> IO String) 
    -> [object] -> IO (WithError (IO ()))
-tryAcquireBSemsWithError _ _ [] = return (hasValue done)
-tryAcquireBSemsWithError toBSem toMess (object:objects) =
+tryAcquireBSemsWithError toBSem toMess objects =
+   let
+      getBSem object = return (toBSem object)
+      getMessIfError object =
+         do
+            mess <- toMess object
+            return (Just mess)
+   in
+      tryAcquireBSemsWithError1 getBSem getMessIfError objects
+
+-- | tryAcquireBSemsWithError1 toBSem getMessIfError objects 
+-- attempts to acquire the BSems in (map toBSem objects).  In
+-- the event of a (toBSem object) already being acquired, it looks at
+-- the result of getMessIfError object.  If this is (Just mess)
+-- it returns an error condition with message (mess), first
+-- releasing all BSems it has already acquired; if it is (Nothing)
+-- it goes on to attempt to acquire the BSems for the remaining objects.
+-- If it gets to the end of the list it returns an action which can be
+-- used to release all the BSems it has acquired.
+tryAcquireBSemsWithError1 :: 
+   (object -> IO BSem) -> (object -> IO (Maybe String)) -> [object]
+   -> IO (WithError (IO ()))
+tryAcquireBSemsWithError1 _ _ [] = return . return $ done
+tryAcquireBSemsWithError1 getBSem getMessIfError (object:objects) =
    do
-      let
-         bsem = toBSem object
-      acquire1 <- tryAcquire bsem
+      bSem <- getBSem object
+      acquire1 <- tryAcquire bSem
       if acquire1
          then
             do
-               acquires <- tryAcquireBSemsWithError toBSem toMess objects
+               acquires 
+                  <- tryAcquireBSemsWithError1 getBSem getMessIfError objects
                case fromWithError acquires of
                   Right releaseAct ->
-                     return (hasValue (
+                     return (return (
                         do
                            releaseAct
-                           release bsem
+                           release bSem
                         ))
                   Left _ ->
                      do
-                        release bsem
+                        release bSem
                         return acquires
          else
             do
-               errorMess <- toMess object
-               return (hasError errorMess)
-   
+               errorMessIfError <- getMessIfError object
+               case errorMessIfError of
+                  Just errorMess -> return (fail errorMess)
+                  Nothing ->
+                     tryAcquireBSemsWithError1 getBSem getMessIfError objects
+ 
+
