@@ -27,7 +27,9 @@ main =
          stop = read stoppingNo :: Int
       notifier <- mkNotifier host
       forkIO(action notifier start stop)
-      deadlock
+      quitMessage <- getLine
+      done
+      
 
 action :: Notifier -> Int -> Int -> IO ()
 action notifier loop stop =

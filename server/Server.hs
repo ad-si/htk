@@ -73,6 +73,28 @@ runServer portDesc serviceList =
 
                   clients <- newMVar []
 
+                  let
+                     broadcastAction :: Handle -> String -> IO ()
+                     broadcastAction =
+                        case serviceMode service of
+                           Reply ->
+                              (\ handle message -> 
+                                 hPutStrLn handle message
+                                 )
+                           Broadcast ->
+                              (\ _ message ->
+                                 do
+                                    clientList <- readMVar clients
+                                    sequence_ (
+                                       map
+                                          (\ clientData -> 
+                                             hPutStrLn 
+                                                (handle clientData) message
+                                             ) 
+                                          clientList
+                                       )
+                                 )          
+
                   initial <- initialState service 
                   stateMVar <- newMVar initial
 
@@ -179,7 +201,8 @@ runServer portDesc serviceList =
                                     backupTick
                                     let
                                        outLine = show output
-                                    protect done (hPutStrLn handle outLine)
+                                    protect done 
+                                       (broadcastAction handle outLine)
                                     clientReadAction
                            -- however it needs a wrapper so harmless
                            -- (EOF) errors don't cause any trouble.
