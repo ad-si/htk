@@ -1,15 +1,27 @@
-Buglist for MMiSS objects
--------------------------
+Buglist for MMiSS Workbench
+---------------------------
 
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
+
+5) 27.08.02
+Choosing "Exit daVinci" from the View menu causes a rather untidy exit.
+
+4) 27.08.02
+MMiSSContents.structureContents changed to allow an error to be returned;
+MMiSSObjects changed to handle it.
+
+3) 26.08.02.  
+"Fail: Top-level in Xml does not have a label attribute" when importing
+new object.
+
+2)
+We assume object names match the NAME production, or that HaXml doesn't notice
+if they don't, EG in MMiSSEditXml.hs.  (Compare with sections 3.3.1 and 2.3
+of Xml standard).
 
 1)
 When editing and we enlarge an object, we always take the variant attributes
 of the top object (being edited), not those of any sub-object.  
 (7th August 2002)
 
-2)
-We assume object names match the NAME production, or that HaXml doesn't notice
-if they don't, EG in MMiSSEditXml.hs.  (Compare with sections 3.3.1 and 2.3
-of Xml standard).

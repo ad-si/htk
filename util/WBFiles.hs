@@ -220,7 +220,15 @@ getEditorString :: IO (Maybe String)
 getEditorString = getArgString "editor" 
 
 getMMiSSDTD :: IO (Maybe String)
-getMMiSSDTD = getArgString "MMiSSDTD"
+getMMiSSDTD = 
+   do
+      mmissDTDOpt <- getArgString "MMiSSDTD"
+      case mmissDTDOpt of
+         Just mmissDTD -> return mmissDTDOpt
+         Nothing ->
+            do
+               top <- getTOP
+               return (Just (top++"/mmiss/MMiSS.dtd"))
 
 getDaVinciPath :: IO String
 getDaVinciPath = valOf (getArgString "daVinci")
@@ -339,11 +347,14 @@ usualProgramArguments = [
       argType = STRING
       },
    ProgramArgument{
+      -- We make getMMiSSDTD return a default of TOP/mmiss/MMiSS.dtd if
+      -- nothing is set.
       optionName = "MMiSSDTD",
       optionHelp = "Filename for MMiSS's DTD",
       defaultVal = Nothing,
       argType = STRING
       },
+
    ProgramArgument{
       optionName = "top",
       optionHelp = "path where UniForM was installed",

@@ -164,10 +164,10 @@ getAttributes key attributes =
 -- Structuring Contents
 -- ----------------------------------------------------------------------
 
-structureContents :: Element -> StructuredContent
+structureContents :: Element -> WithError StructuredContent
 structureContents elem = case structureElement elem of
-   Left structuredContent -> structuredContent
-   Right _ -> error "Top-level in Xml does not have a label attribute"
+   Left structuredContent -> hasValue structuredContent
+   Right _ -> hasError "Top-level in Xml does not have a label attribute"
 
 ---
 -- If the "label" element is set we create a new StructuredContent item

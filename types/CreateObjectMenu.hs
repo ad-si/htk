@@ -34,22 +34,14 @@ createObjectMenu view folderLink =
             mapMaybe
                createObjectMenuItem
                allObjectTypes
-         (menu :: HTkMenu (View -> Link Folder 
-            -> IO (Maybe (WrappedLink,Bool)))) =
-            HTkMenu (
-               Menu "Object Types available"
-                  (map (\ (str,fn) -> Button str fn) allObjectTypeMenuItems)
-               )
-         (form1 :: Form (Maybe (View -> Link Folder 
-            -> IO (Maybe (WrappedLink,Bool))))) =
-            newFormMenu EmptyLabel menu
-         (form2 :: Form (View -> Link Folder 
-            -> IO (Maybe (WrappedLink,Bool)))) =
-            mapForm (\ createFnOpt -> case createFnOpt of
-               Nothing -> hasError "Object type must be specified"
-               Just createFn -> hasValue createFn
-               ) form1
-      createFnOpt <- doForm "Object Type selection" form2
+
+         (form :: Form (View -> Link Folder 
+            -> IO (Maybe (WrappedLink,Bool)))) = 
+            case allObjectTypes of 
+               [] -> error "No available object types" 
+                  -- unlikely, Folder should be available at least.
+               _ -> newFormOptionMenu2 allObjectTypeMenuItems
+      createFnOpt <- doForm "Object Type selection" form
       case createFnOpt of
          Nothing -> return Nothing
          Just createFn -> createFn view folderLink

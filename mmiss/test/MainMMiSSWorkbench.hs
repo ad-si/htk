@@ -23,8 +23,7 @@ main =
    do
       parseArgumentsRequiring [
          "top",
-         "server",
-         "MMiSSDTD"
+         "server"
          ]
       withdrawWish
       repository <- mmissInitialise

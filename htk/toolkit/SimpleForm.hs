@@ -22,10 +22,14 @@ module SimpleForm(
       -- click this menu.
       -- The String is used to label the menu button containing the menu.
 
-   newFormOptionMenu, -- :: (GuiValue a) => [a] -> Form a
+   newFormOptionMenu, -- :: (GUIValue a) => [a] -> Form a
       -- This creates an "option menu" button.  The 
       -- advantage this has over a normal menu is that the value is shown.
       -- The first value in the list functions as a default value.
+
+   newFormOptionMenu2, -- :: (GUIValue a) => [(a,b)] -> Form b
+      -- Like newFormOptionMenu2 but returns the corresponding b value.
+
 
    (//), -- :: Form value1 -> Form value2 -> Form (value1,value2)
       -- This combines two forms.  They will be displayed with one on top of
@@ -93,6 +97,7 @@ import Char
 import IORef
 
 import Computation
+import ExtendedPrelude
 
 import Events
 import Channels
@@ -476,7 +481,24 @@ newFormOptionMenu options =
                }) 
    in
       Form enterForm            
-      
+
+
+newFormOptionMenu2 :: (Eq a,GUIValue a) => [(a,b)] -> Form b
+newFormOptionMenu2 options =
+   let
+      form1 = newFormOptionMenu (map fst options)
+   in
+      fmap
+         (\ a0 -> case findJust 
+               (\ (a1,b1) -> if a1 == a0 then Just b1 else Nothing) 
+               options
+            of
+               Nothing -> error (
+                  "SimpleForm.newFormOptionMenu2: HTk returned strange value")
+               Just b -> b
+            )
+         form1      
+
 -- -------------------------------------------------------------------------
 -- The FormLabel class
 -- This is used for labels of fields in the form, and also for labels

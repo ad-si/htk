@@ -329,12 +329,14 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
       do
          -- (1) validate it.
          case validateElement (xmlTag objectType) element of
-            (s@[_,_]) -> break (unlines s)
+            (s@ (_:_)) -> break (unlines s)
             _ -> done
 
          -- (2) structure it
          let
-            contents = structureContents element
+            contentsWE = structureContents element
+
+            contents = coerceWithErrorOrBreak break contentsWE
 
             -- This is the function we use for getting the children of
             -- a StructuredContent object.

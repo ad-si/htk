@@ -1,0 +1,7 @@
+#!/usr/local/bin/bash
+# Test script for running the workbench.
+export UNISERVER=`hostname`
+gmake killServer
+gmake killWorkbench
+gmake runServer
+gmake runWorkbench
