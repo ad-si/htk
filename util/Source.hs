@@ -46,7 +46,7 @@ data Source x = Source {
    readC :: IO x
    }
 
-mkSource :: SimpleSource x -> Source x
+mkSource :: CanAddSinks sinkSource x x => sinkSource -> Source x
 mkSource simpleSource =
    Source {
       addOldS = (\ sink -> addOldSink simpleSource sink),

@@ -651,6 +651,18 @@ instance HasModifyValue Border DaVinciGraph DaVinciNode where
       in
          modify ("BORDER",borderStr)
 
+instance HasModifyValue FontStyle DaVinciGraph DaVinciNode where
+   modify fontStyle =
+      let
+         fontStyleStr = case fontStyle of
+            NormalFontStyle -> "normal"
+            BoldFontStyle -> "bold"
+            ItalicFontStyle -> "italic"
+            BoldItalicFontStyle -> "bold_italic"
+      in
+         modify ("FONTSTYLE",fontStyleStr)
+
+
 ------------------------------------------------------------------------
 -- Node type configs for drag and drop
 ------------------------------------------------------------------------

@@ -10,6 +10,7 @@ module EmacsEdit(
    ) where
 
 import Maybe
+import Monad
 
 import Computation
 import Registry
@@ -238,12 +239,16 @@ handleEvents editorState =
       showError :: String -> IO ()
       showError str = createErrorWin str []
 
+      getModified =
+         do
+            containers <- listContainers session
+            filterM (isModified session) containers
    in
          (do
             str <- event "COMMIT"
             confirm ("Commit?") (always (do
                lockBuffer session
-               containers <- listContainers session
+               containers <- getModified
                mapM_
                   (\ hContainer ->
                      do
@@ -272,9 +277,16 @@ handleEvents editorState =
                         case fromWithError written of
                            Left mess -> showError ("Writing "
                               ++describe container++": "++mess)
-                           Right () -> done
+                           Right () -> 
+                              -- clear modified flag for container.
+                              unmodify session hContainer
                      )
                   containers
+
+               case containers of
+                  [] -> createWarningWin "Nothing to commit!" []
+                  _ -> done
+
                unlockBuffer session
                sync iterate
                ))
@@ -309,60 +321,100 @@ handleEvents editorState =
                               )
                         )
                Head mangledName ->
-                  do
-                     name <- always (readMangled mangledName)
-                     confirm ("Collapse "++describe name++" without saving?") 
-                        (always (do
-                           lockBuffer session 
-                           children <- containerChildren session 
-                              (normalName mangledName)
-                           let
-                              childContainers = mapMaybe
-                                 (\ child -> case child of
-                                    Button _ -> Nothing
-                                    Container str -> Just str
-                                    ) 
-                                 children
-                           case childContainers of
-                              [] ->
+                  always (
+                     do
+                        let
+                           normal = normalName mangledName
+
+                        name <- readMangled mangledName
+
+                        lockBuffer session
+
+                        proceed1 <-
+                           do
+                              modified <- isModified session normal
+                              if modified
+                                 then
+                                    createConfirmWin ("Collapse "
+                                       ++describe name++" without saving?") []
+                                 else
+                                    return True
+
+                        proceed2 <-
+                           if proceed1
+                              then
                                  do
-                                     collapse session (normalName mangledName) 
-                                        (buttonText name)
-                                     transformValue (openFiles editorState) 
-                                            (key name)
-                                        (\ stateOpt ->
-                                           do
-                                              case stateOpt of
-                                                 Just state -> finishEdit state
-                                                 Nothing -> putStrLn ("Odd - "
-                                                    ++describe name
-                                                    ++" already collapsed")
-                                              return (Nothing,())
-                                           ) 
-                              (str:_) -> case parseButton str of
-                                 Normal mangledName2 ->
-                                    do
-                                       name2 <- readMangled mangledName2 
-                                       createErrorWin ("Collapse " 
-                                          ++ describe name2
-                                          ++ " first!") []
-                           unlockBuffer session
-                           sync iterate
-                           )
+                                    children <- containerChildren session 
+                                       normal
+                                    let
+                                       childContainers = mapMaybe
+                                          (\ child -> case child of
+                                             Button _ -> Nothing
+                                             Container str -> Just str
+                                             ) 
+                                          children
+                                    case childContainers of
+                                       [] -> return True
+                                       (str:_) -> case parseButton str of
+                                          Normal mangledName2 ->
+                                             do
+                                                name2 
+                                                   <- readMangled mangledName2 
+                                                createErrorWin ("Collapse " 
+                                                   ++ describe name2
+                                                   ++ " first!") []
+                                                return False
+                              else
+                                 return False
+                        if proceed2
+                           then
+                              do
+                                 collapse session normal (buttonText name)
+                                 transformValue (openFiles editorState) 
+                                       (key name)
+                                    (\ stateOpt ->
+                                       do
+                                          case stateOpt of
+                                             Just state -> finishEdit state
+                                             Nothing -> putStrLn ("Odd - "
+                                                ++ describe name
+                                                ++ " already collapsed")
+                                          return (Nothing,())
+                                       ) 
+                           else
+                              done
+
+                        unlockBuffer session
+                        sync iterate
                         )
          )
       +> (do
             str <- event "QUIT"
-            confirm "Exit without saving anything?" (always (do
-               execEmacs session "MMiSS-delete"
-               diyDestroy session
-               openFilesContents
-                  <- listRegistryContents (openFiles editorState)
-               mapM_
-                  (\ (_,editedFile) -> finishEdit editedFile)
-                  openFilesContents
-               ))
-         )
+            always (do
+               lockBuffer session
+               proceed <-
+                  do
+                     modified <- getModified
+                     case modified of
+                        [] -> return True
+                        _ ->
+                          createConfirmWin "Exit without saving anything?" []
+               if proceed 
+                  then
+                     do
+                        execEmacs session "MMiSS-delete"
+                        diyDestroy session
+                        openFilesContents
+                           <- listRegistryContents (openFiles editorState)
+                        mapM_
+                           (\ (_,editedFile) -> finishEdit editedFile)
+                           openFilesContents
+                  else
+                     do
+                        unlockBuffer session
+                        sync iterate
+               )
+            )
       +> (do
             str <- event "ENLARGE"
             always (showError 

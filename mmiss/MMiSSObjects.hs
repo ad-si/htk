@@ -65,6 +65,7 @@ import DisplayParms
 import GlobalRegistry
 import DisplayView
 import Folders
+import SpecialNodeActions
 
 import EmacsEdit
 import EmacsContent
@@ -184,7 +185,7 @@ data MMiSSObject = MMiSSObject {
       -- other constituent objects.
    editLock :: BSem,
       -- Set when we are editing this object.
-   objectBorder :: SimpleSource (Maybe Border)
+   nodeActions :: NodeActionSource
    }
  
 mmissObject_tyRep = mkTyRep "MMiSSObject" "MMiSSObject"
@@ -192,11 +193,27 @@ instance HasTyRep MMiSSObject where
    tyRep _ = mmissObject_tyRep
 
 instance HasCodedValue MMiSSObject where
-   encodeIO = mapEncodeIO 
-      (\ (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
-         objectContents = objectContents,parentFolder = parentFolder}) ->
-         (name,typeId mmissObjectType,objectContents,parentFolder)
-         )
+   encodeIO = 
+      -- We put some magic here to stop the MMiSS object's text display being
+      -- italicised when we commit.  This assumes that encodeIO only happens
+      -- on a commit.
+      let
+         encodeIO0 =
+            mapEncodeIO 
+               (\ (MMiSSObject {name = name,
+                  mmissObjectType = mmissObjectType,
+                  objectContents = objectContents,
+                  parentFolder = parentFolder}) ->
+                  (name,typeId mmissObjectType,objectContents,parentFolder)
+                  )
+            
+         encodeIO1 mmissObject codedValue view =
+            do
+               setFontStyle (nodeActions mmissObject) def
+               encodeIO0 mmissObject codedValue view
+      in
+         encodeIO1
+              
    decodeIO codedValue0 view =
       do
          ((name,tId,objectContents,parentFolder),codedValue1) 
@@ -208,7 +225,7 @@ instance HasCodedValue MMiSSObject where
          variantAttributes <- newEmptyAttributes view
          mkVariantAttributes variantAttributes
          editLock <- newBSem
-         objectBorder <- mkObjectBorder
+         nodeActions <- newNodeActionSource
          return (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
             variantAttributes = variantAttributes,
             objectContents = objectContents,
@@ -217,7 +234,7 @@ instance HasCodedValue MMiSSObject where
             linkedObjects = linkedObjects,
             parentFolder = parentFolder,
             editLock = editLock,
-            objectBorder = objectBorder
+            nodeActions = nodeActions
             },codedValue1)
 
 -- ------------------------------------------------------------------
@@ -369,16 +386,9 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   mustFocus = (\ _ -> return True),
                   focus = focus,
                   closeDown = done,
-                  specialNodeActions =
-                     (\ object ->
-                        fmap
-                           (\ border ->
-                              (\ graph node ->
-                                 modify border graph node
-                              ))
-                           (mkSource (objectBorder object))
-                        )
-
+                  specialNodeActions= (\ object
+                     -> getNodeActions (nodeActions object)
+                     )
                   })
       )  
 
@@ -663,7 +673,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                linkedObjects <- newVariableSet (map fromString
                   (links (accContents structuredContent)))
                editLock <- newBSem
-               objectBorder <- mkObjectBorder
+               nodeActions <- newNodeActionSource
                let
                   name = label structuredContent
 
@@ -677,7 +687,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                      linkedObjects = linkedObjects,
                      parentFolder = folderLink,
                      editLock = editLock,
-                     objectBorder = objectBorder
+                     nodeActions = nodeActions
                      }
                objectVersioned <- createObject view object
                objectLink <- makeLink view objectVersioned
@@ -803,9 +813,6 @@ editMMiSSObjectInner
          parent = parentFolder object
          variants = variantAttributes object
 
-         setBorder object border 
-            = sendSimpleSource (objectBorder object) (Just border)
-
          editFS (name,miniType) =
             addFallOutWE (\ break -> 
                do
@@ -831,7 +838,7 @@ editMMiSSObjectInner
                         done
                      else 
                         break ("Object "++name++" is already being edited")
-                  setBorder object DoubleBorder
+                  setBorder (nodeActions object) DoubleBorder
 
                   let
                      contents = objectContents object
@@ -869,6 +876,8 @@ editMMiSSObjectInner
                              let
                                 link = coerceWithErrorOrBreak break linkWE
                              link `seq` done
+                             setFontStyle (nodeActions object) 
+                                BoldItalicFontStyle
                              createMessageWin 
                                 ("Commit of "++name++ " successful!") []
                           )
@@ -876,7 +885,7 @@ editMMiSSObjectInner
                      finishEdit =
                         do
                            release lock
-                           setBorder object SingleBorder
+                           setBorder (nodeActions object) def
                            deleteFromRegistry formatExtraStash name
 
                      editedFile = EditedFile {
@@ -1202,14 +1211,6 @@ exportElement LaTeX element =
 globalRegistry :: GlobalRegistry MMiSSObjectType
 globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
-
-
--- ------------------------------------------------------------------
--- Object Border source
--- ------------------------------------------------------------------
-
-mkObjectBorder :: IO (SimpleSource (Maybe Border))
-mkObjectBorder = newSimpleSource Nothing
 
 -- ------------------------------------------------------------------
 -- Error messages

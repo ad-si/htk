@@ -8,8 +8,6 @@ module Main(main) where
 import IO
 import System
 
-import Pretty
-
 import Computation
 import AtomString
 
@@ -19,10 +17,12 @@ import CodedValue
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Pretty
+import Text.PrettyPrint.HughesPJ
 #else
 import XmlTypes
 import XmlParse
 import XmlPP
+import Pretty
 #endif
 
 import MMiSSContent

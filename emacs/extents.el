@@ -422,64 +422,78 @@
 (setq uni-allow-changes nil)
 
 (defun uni-check-change (from to)
-   (cond 
-      ((null uni-allow-changes)
-         (cond
-            ((> uni-buffer-lock-counter 0) 
-               (error "Buffer is locked by Haskell"))
-            ((eq from 1) (error "Cannot modify start of a buffer"))
-            ((eq from to) ;; this is an insertion
-               (let* (
-                     (closest-extent (extent-at from nil 'uni-extent-type))
-                     (extent-type (uni-get-extent-type closest-extent))
+   (if (null uni-allow-changes)
+      (cond
+         ((> uni-buffer-lock-counter 0) 
+            (error "Buffer is locked by Haskell"))
+         ((eq from 1) (error "Cannot modify start of a buffer"))
+         ((eq from to) ;; this is an insertion
+            (let ((closest-extent (extent-at from nil 'uni-extent-type)))
+               (cond
+                  ((null closest-extent) 
+                     (error "Can't modify end of buffer"))
+                  ((eq (uni-get-extent-type closest-extent) 'container) 
+                     (cond 
+                        ((eq from (extent-start-position closest-extent))
+                           (error "Can't add between containers"))
+                        (t (uni-modify-extent closest-extent))
+                        )
                      )
-                  (cond
-                     ((null closest-extent) 
-                        (error "Can't modify end of buffer"))
-                     ((eq extent-type 'container) 
-                        (cond 
-                           ((eq from (extent-start-position closest-extent))
-                              (error "Can't add between containers"))
-                           (t ())
+                  ((eq (extent-start-position closest-extent) from) 
+                      (if (uni-is-head-button closest-extent) 
+                        (error "Can't insert before a head button")
+
+                        ; The following extent-at incantation finds the
+                        ; container extent containing this button.  We need
+                        ; to avoid (a) picking a button extent immediately
+                        ; before closest-extent; that is why we specify 'after;
+                        ; (b) picking a container extent which includes the
+                        ; one we actually want; that is why we use extent-at,
+                        ; which returns the smallest matching extent; (c)
+                        ; picking closest-extent itself; that's why we specify
+                        ; it as the 4th argument.
+                        (let ((container-extent
+                                (extent-at from (current-buffer) 
+                                'uni-extent-type closest-extent `after)))
+                           (uni-modify-extent container-extent)
+  
+                           ;; we are at the start of a button extent which
+                           ;; does not have the uni-head-button property
+                           ;; set.  Text inserted here will go before the
+                           ;; start of the button.
                            )
                         )
-                     ((eq (extent-start-position closest-extent) from) 
-                         (if (uni-is-head-button closest-extent) 
-                           (error "Can't insert before a head button")
-                           t ;; we are at the start of a button extent which
-                              ;; does not have the uni-head-button property
-                              ;; set.  Text inserted here will go before the
-                              ;; start of the button.
-                           )
-                        )
-                     (t (error "Cannot insert into a button"))
                      )
+                  (t (error "Cannot insert into a button"))
                   )
                )
-            (t ;; this is a query-replace or deletion.
-               (let* (
-                     (extent-from (extent-at from nil 'uni-extent-type))
-                     (extent-to 
-                        (extent-at to nil 'uni-extent-type nil 'before))
-                     )
-                  (cond 
-                     (  (and (eq extent-from extent-to) 
-                        (eq (uni-get-extent-type extent-from) 'container)
-                        ) 
+            )
+         (t ;; this is a query-replace or deletion.
+            (let* (
+                  (extent-from (extent-at from nil 'uni-extent-type))
+                  (extent-to 
+                     (extent-at to nil 'uni-extent-type nil 'before))
+                  )
+               (cond 
+                  (  (and (eq extent-from extent-to) 
+                     (eq (uni-get-extent-type extent-from) 'container)
+                     ) 
+                     (progn 
                         (map-extents 
                            (lambda (extent arg) 
                               (error "Change includes extents"))
                            nil from to nil 'start-and-end-in-region 
                            'uni-extent-type
                            )
+                        (uni-modify-extent extent-from)
                         )
-                     (t (error "Change crosses extent boundary"))
                      )
+                  (t (error "Change crosses extent boundary"))
                   )
                )
             )
          )
-      (t ())
+      ()
       )
    )
 
@@ -492,7 +506,41 @@
    )
 
 (defun uni-is-head-button (extent)
-   (plist-get (object-plist extent) 'uni-head-button)
+   (extent-property extent 'uni-head-button)
+   )
+
+
+; Mark an extent as modified.
+(defun uni-modify-extent (extent)
+   (set-extent-property extent 'uni-edited t)
+   )
+
+; Determine if the container extent is modified (by extent-id).
+(defun uni-container-modified (extent-id)
+   (let* (
+         (container (gethash extent-id uni-extent-hash-table))
+         )
+      (uni-extent-modified container)
+      )
+   )
+
+; Mark an extent as unmodified
+(defun uni-unmodify-extent (extent)
+   (set-extent-property extent 'uni-edited nil)
+   )
+
+; Mark a (container) as unmodified (by extent-id).
+(defun uni-unmodify-container (extent-id)
+   (let* (
+         (container (gethash extent-id uni-extent-hash-table))
+         )
+      (uni-unmodify-extent container)
+      )
+   )
+
+; Determine if an extent is modified
+(defun uni-extent-modified (extent)
+   (extent-property extent 'uni-edited)
    )
 
 
@@ -509,12 +557,12 @@
 
 ; Get an extent's id
 (defun uni-get-extent-id (extent)
-   (plist-get (object-plist extent) 'uni-extent-id)
+   (extent-property extent 'uni-extent-id)
    )
 
 ; Get an extent's type
 (defun uni-get-extent-type (extent)
-   (plist-get (object-plist extent) 'uni-extent-type)
+   (extent-property extent 'uni-extent-type)
    ) 
 
 ;;;

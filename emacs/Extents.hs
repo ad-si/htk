@@ -19,6 +19,8 @@ module Extents(
    containerFullContents,
    ContainerChild(..),
    containerChildren,
+   isModified,
+   unmodify,
    listContainers,
    setColourHack,
    ) where
@@ -103,6 +105,25 @@ containerFullContents emacsSession this =
       str <- evalEmacsQuick emacsSession 
          (Prin ("uni-container-contents",[this]))
       return (parseEmacsContentGeneral str)
+
+---
+-- Returns True if a container is modified
+isModified :: EmacsSession -> String -> IO Bool
+isModified emacsSession this =
+   do
+      str <- evalEmacsQuick emacsSession 
+         (Prin ("uni-container-modified",[this]))
+      return (case str of
+         "nil" -> False
+         "t" -> True
+         _ -> error ("Extents.isModified: unexpected Emacs return "++str)
+         )
+
+---
+-- Unmodify a container
+unmodify :: EmacsSession -> String -> IO ()
+unmodify emacsSession this =
+   execEmacs emacsSession ("uni-unmodify-container",[this])
 
 
 data ContainerChild = Button String | Container String

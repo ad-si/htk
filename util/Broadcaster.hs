@@ -8,6 +8,8 @@ module Broadcaster(
    newGeneralBroadcaster,
    updateBroadcaster,
    anyUpdateBroadcaster,
+
+   processClients,
    ) where
 
 import Monad

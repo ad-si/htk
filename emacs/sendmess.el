@@ -137,7 +137,7 @@
 ; process a new bit of line
 (defun uni-passon-command (command) 
    (let* (
-         (command-parts0 (uni-split command ?\n))
+         (command-parts0 (split-string command "\n"))
          (command-parts1 (cons 
             (concat uni-half-line (car command-parts0))
             (cdr command-parts0)

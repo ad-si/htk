@@ -52,6 +52,9 @@ module GraphConfigure(
 
    NodeArcsHidden(..), -- Setting if a node's arcs are hidden or not.
    Border(..), -- Specifying a node's border.
+   FontStyle(..), -- Specifying the font style for a node.
+   ModifyHasDef(..),
+      -- specifies default values for these options.
 
    -- Drag and Drop actions.
    GraphGesture(..),
@@ -273,10 +276,31 @@ instance ArcTypeConfig EdgePattern
 -- Node miscellaneous flags
 ------------------------------------------------------------------------
 
+class ModifyHasDef modification where
+   def :: modification 
+   isDef :: modification -> Bool
+
 -- If True, arcs from the node are not displayed.
 newtype NodeArcsHidden = NodeArcsHidden Bool
 
+instance ModifyHasDef NodeArcsHidden where
+   def = NodeArcsHidden False
+   isDef (NodeArcsHidden b) = not b
+
 data Border = NoBorder | SingleBorder | DoubleBorder
+
+instance ModifyHasDef Border where
+   def = SingleBorder
+   isDef SingleBorder = True
+   isDef _ = False
+
+data FontStyle = NormalFontStyle | BoldFontStyle | ItalicFontStyle 
+   | BoldItalicFontStyle 
+
+instance ModifyHasDef FontStyle where
+   def = BoldFontStyle
+   isDef BoldFontStyle = True
+   isDef _ = False
 
 ------------------------------------------------------------------------
 -- Graph Miscellaneous Flags.
@@ -356,12 +380,14 @@ instance (
 
 class (
    HasModifyValue NodeArcsHidden graph node,
-   HasModifyValue Border graph node
+   HasModifyValue Border graph node,
+   HasModifyValue FontStyle graph node
    ) => HasNodeModifies graph node
 
 instance (
    HasModifyValue NodeArcsHidden graph node,
-   HasModifyValue Border graph node
+   HasModifyValue Border graph node,
+   HasModifyValue FontStyle graph node
    ) => HasNodeModifies graph node
 
 class (

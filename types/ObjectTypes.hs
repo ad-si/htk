@@ -338,6 +338,7 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
          Source (graph -> node (String,Link object) -> IO ())
          -- The specialNodeActions allow the object to make dynamic
          -- modifications to graph nodes representing it.
+         -- The module SpecialNodeActions can be used to generate this type.
       }
 
 -- ----------------------------------------------------------------
