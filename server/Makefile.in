@@ -13,7 +13,7 @@ PACKAGES = uni-reactor uni-posixutil uni-htk \
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
    Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs DTD_Hosts.hs \
-   HostsList.hs ZLib.hs
+   HostsList.hs
 
 EXTRAEXPORTS = Hosts.xml
 

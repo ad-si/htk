@@ -65,10 +65,6 @@ import InfoBus
 import ServiceClass
 import HostsList
 
-import ZLib
-import Foreign.Marshal.Alloc
-import Bytes
-
 connectReply :: 
    (?server :: HostPort,
       ServiceClass inType outType stateType,HasBinary header IO)
