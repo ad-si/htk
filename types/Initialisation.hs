@@ -4,6 +4,7 @@ module Initialisation(
    initialise, -- :: IO Repository,
    ) where
 
+import Debug(debug)
 import Computation
 
 import CallServer
@@ -41,7 +42,7 @@ createRepository repository =
       topFolderLink <- getTopFolder view
 
       -- (2) initialise plain file type
-      getPlainFileType view
+      mkPlainFileType view
 
       version <- commitView view
 

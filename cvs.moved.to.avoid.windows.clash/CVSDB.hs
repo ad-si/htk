@@ -148,20 +148,15 @@ initialise =
 
       catchAlreadyExists (createDirectory workingDir')
       setCurrentDirectory workingDir'  
- 
       cvsCheckoutCheck cvsLoc' (CVSFile cvsModuleName)
 
       let 
          workingDir = workingDir' ++ [fileSep] ++ cvsModuleName 
 
       cvsLoc <- newCVSLoc cvsRoot workingDir
-
       notifier <- mkNotifier
-
       (allocator,closeAction,header) <- connectReply allocateService
-
       wDirContents <- newRegistry
-
       uniqueFileStore <- newUniqueFileStore workingDir
          (\ subDir ->
             do

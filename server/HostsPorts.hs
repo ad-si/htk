@@ -19,11 +19,15 @@ module HostsPorts(
    connect, -- :: (DescribesHost host,DescribesPort port) => 
    -- host -> port -> IO Handle
 
+   -- write and then flush 
+   hPutStrLnFlush, -- :: Handle -> String -> IO ()
+
    ) where
 
 import IO
 import Socket
 
+import Debug
 
 newtype HostDesc = HostDesc String deriving Show
 
@@ -57,6 +61,7 @@ getPortNumber :: DescribesPort port => port -> IO PortID
 getPortNumber portDesc =
    do
       PortDesc portNo <- makePort portDesc
+      debug portNo
       return (PortNumber(fromIntegral portNo))
 
 connect :: (DescribesHost host,DescribesPort port) => 
@@ -64,5 +69,13 @@ connect :: (DescribesHost host,DescribesPort port) =>
 connect hostDesc portDesc =
    do
       hostName <- getHostString hostDesc
+      debug hostName
       portNumber <- getPortNumber portDesc
-      connectTo hostName portNumber
+      handle <- connectTo hostName portNumber
+      return handle
+
+hPutStrLnFlush :: Handle -> String -> IO ()
+hPutStrLnFlush handle string =
+   do
+      hPutStrLn handle string
+      hFlush handle

@@ -10,7 +10,11 @@ module Folders(
    lookupFileName,
    newEmptyFolder,
    insertInFolder,
-   thePlainFolderType,
+   getPlainFolderType,
+   plainFolderKey,
+
+   FolderDisplayType(FolderDisplayType),
+   folderDisplayKey,
    ) where
 
 import FiniteMap
@@ -48,7 +52,7 @@ import CreateObjectMenu
 -- The Display Type
 -- ------------------------------------------------------------------
 
-newtype FolderDisplayType = FolderDisplayType AtomString
+data FolderDisplayType = FolderDisplayType
    -- This just holds the key to the folder.
 
 folderDisplayType_tyCon = mkTyCon "Folders" "FolderDisplayType"
@@ -57,20 +61,20 @@ instance HasTyCon FolderDisplayType where
    tyCon _ = folderDisplayType_tyCon
 
 instance HasCodedValue FolderDisplayType where
-   encodeIO = mapEncodeIO (\ (FolderDisplayType str) -> Str str)
-   decodeIO = mapDecodeIO (\ (Str str) -> FolderDisplayType str)
+   encodeIO = mapEncodeIO (\ FolderDisplayType -> ())
+   decodeIO = mapDecodeIO (\ () -> FolderDisplayType)
 
 instance DisplayType FolderDisplayType where
-   displayTypeTypeIdPrim (FolderDisplayType _) = "Folders"
+   displayTypeTypeIdPrim FolderDisplayType = "Folders"
 
-   graphParmsPrim (FolderDisplayType _) = 
+   graphParmsPrim FolderDisplayType = 
       GraphTitle "Directory Listing" $$
       -- We will need to add more options later for menus.
       emptyGraphParms
 
    displayTypeGlobalRegistry _ = displayTypeRegistry
 
-   displayTypeIdPrim (FolderDisplayType as) = as
+   displayTypeIdPrim FolderDisplayType = folderDisplayKey
 
 displayTypeRegistry :: GlobalRegistry FolderDisplayType
 displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
@@ -272,18 +276,17 @@ registerFolders =
 -- ------------------------------------------------------------------
 
 ---
--- getPlainFolderType is used to construct the folder type
+-- mkPlainFolderType is used to construct the folder type
 -- when the repository is initialised (in getTopFolder),
 -- and add it to the global registry.  It also adds the
 -- folder display type to the display type registry.
-getPlainFolderType :: View -> IO FolderType
-getPlainFolderType view = 
+mkPlainFolderType :: View -> IO FolderType
+mkPlainFolderType view = 
    do
       knownFolders <- newEmptyVariableSet
-      key <- newKey globalRegistry view
       let
          folderType = FolderType {
-            folderTypeId = key,
+            folderTypeId = plainFolderKey,
             folderTypeLabel = Just "Plain",
             requiredAttributes = emptyAttributesType,
             displayParms = emptyNodeTypes,
@@ -291,18 +294,22 @@ getPlainFolderType view =
             knownFolders = knownFolders
             }
 
-      addToGlobalRegistry globalRegistry view key folderType
+      addToGlobalRegistry globalRegistry view plainFolderKey folderType
 
-      displayTypeKey <- newKey displayTypeRegistry view
-      let
-         displayType = FolderDisplayType displayTypeKey
-      addToGlobalRegistry displayTypeRegistry view key displayType
+      addToGlobalRegistry displayTypeRegistry view folderDisplayKey 
+         FolderDisplayType
 
       return folderType
 
-thePlainFolderType :: View -> IO FolderType
-thePlainFolderType view =
-   lookupInGlobalRegistry globalRegistry view firstKey
+getPlainFolderType :: View -> IO FolderType
+getPlainFolderType view =
+   lookupInGlobalRegistry globalRegistry view plainFolderKey
+
+plainFolderKey :: AtomString
+plainFolderKey = oneOffKey "Folders" ""
+
+folderDisplayKey :: AtomString
+folderDisplayKey = oneOffKey "Folders" "Display"
 
 
 -- ------------------------------------------------------------------
@@ -318,7 +325,7 @@ getTopFolder view =
       versioned <- setOrGetTopLink view (
          do
             -- Create the topFolder.
-            folderType <- getPlainFolderType view
+            folderType <- mkPlainFolderType view
             attributes <- newEmptyAttributes view
             contents <- newEmptyVariableMap
             contentsLock <- newBSem

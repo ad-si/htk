@@ -52,6 +52,7 @@
    cvsRoot       The CVS root to be used for cvs
    server        The host name of the server
    port          The port on the server to connect to
+   debug         Where Debug.debug messages should go
 
    The options wish, daVinci, cvs, daVinciIcons, top 
    should all be set automatically by the configure procedure.  

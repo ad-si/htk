@@ -14,6 +14,7 @@ module Notification(
 
 import IO
 
+import Debug
 import Object
 
 import Events
@@ -48,9 +49,12 @@ mkNotifier :: IO Notifier
 mkNotifier =
    do
       oID <- newObject
+      debug "n1"
       (writeAction,receiveAction,closeAction,header) <-
          connectBroadcast echoService
+      debug "n2"
       eventChannel <- newEqGuardedChannel
+      debug "n3"
       let
          notifier = Notifier{
             oID = oID,
@@ -64,9 +68,12 @@ mkNotifier =
                key <- receiveAction
                sync (send eventChannel (key,()))
                readerThread            
+      debug "n4"
 
       forkIO readerThread
+      debug "n5"
       registerTool notifier
+      debug "n6"
       return notifier
 
 notify :: Notifier -> String -> IO()

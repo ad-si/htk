@@ -61,7 +61,7 @@ connectReply service =
 
       let
          serviceKey = serviceId service
-      hPutStrLn handle serviceKey
+      hPutStrLnFlush handle serviceKey
 
       headerLine <- hGetLine handle
       let
@@ -76,7 +76,7 @@ connectReply service =
                outLine <-
                   synchronize bSem (
                      do
-                        hPutStrLn handle inLine
+                        hPutStrLnFlush handle inLine
                         hGetLine handle
                      )
                return (read outLine)
@@ -118,7 +118,7 @@ connectBroadcastGeneral service =
 
       let
          serviceKey = serviceId service
-      hPutStrLn handle serviceKey
+      hPutStrLnFlush handle serviceKey
 
       headerLine <- hGetLine handle
       let
@@ -132,7 +132,7 @@ connectBroadcastGeneral service =
             do
                let
                   inLine = show inData
-               synchronize readBSem (hPutStrLn handle inLine)
+               synchronize readBSem (hPutStrLnFlush handle inLine)
                debug ("Sent "++inLine)
          getMessage =
             do

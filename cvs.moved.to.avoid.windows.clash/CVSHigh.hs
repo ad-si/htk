@@ -384,7 +384,7 @@ cvsListVersions (CVSLoc globalOptions) file =
          knowNothing :: Event [CVSVersion]
          knowNothing =
             do
-               mat "cvs server: nothing known about .*"
+               mat "cvs .*: nothing known about .*"
                mustEOFHere exp
                return []
 

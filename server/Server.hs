@@ -104,7 +104,7 @@ runServer serviceList =
                         case serviceMode service of
                            Reply ->
                               (\ clientData message -> 
-                                 hPutStrLn (handle clientData) message
+                                 hPutStrLnFlush (handle clientData) message
                                  )
                            Broadcast ->
                               (\ _ message ->
@@ -132,7 +132,7 @@ runServer serviceList =
                               (\ clientData ->
                                  do 
                                     -- If fail, delete clientData
-                                    success <- IO.try(hPutStrLn 
+                                    success <- IO.try(hPutStrLnFlush
                                        (handle clientData) message
                                        )
                                     case success of
@@ -231,7 +231,7 @@ runServer serviceList =
                                  do
                                     state <- takeMVar stateMVar
                                     header <- sendOnConnect service state
-                                    hPutStrLn handle (show header)
+                                    hPutStrLnFlush handle (show header)
                                     putMVar stateMVar state
 
                            -- clientReadAction is basically thread for 

@@ -23,7 +23,6 @@ import WBFiles(getServer)
 import Registry
 import AtomString
 import UniqueString
-import Registry
 
 import Spawn
 import Destructible
@@ -45,6 +44,9 @@ import VersionDB
 import View
 import ViewType(viewId)
 import VersionGraphService
+import DisplayTypes
+import DisplayView
+import Folders
 
 -- --------------------------------------------------------------------
 -- The datatypes
@@ -64,6 +66,13 @@ data VersionGraphNode =
       CheckedInNode Version
    |  WorkingNode View
 
+---
+-- Information we keep about working nodes.
+data ViewedNode = ViewedNode {
+   thisView :: View, -- view for this node
+   parent :: Node -- (checked-in) parent version.
+   }
+   
 -- --------------------------------------------------------------------
 -- The relationship between Node/Arc values and the corresponding
 -- versions/values
@@ -162,11 +171,8 @@ newVersionGraph
          :: GraphDisp.Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) repository =
    do
-      -- All nodes currently shown.
-      (nodeRegistry :: Registry Node VersionGraphNode) <- newRegistry
-
-      -- Registry from each view node to its (checked in) parent.
-      (parentRegistry :: Registry Node Node) <- newRegistry
+      -- All working nodes.
+      (workingNodeRegistry :: Registry Node ViewedNode) <- newRegistry
 
       -- Source of unique strings for working-version arcs.
       arcStringSource <- newUniqueStringSource
@@ -232,27 +238,25 @@ newVersionGraph
                   ("",Just version) -> return (toString version)
                   ("",Nothing) ->
                      do
-                        (Just parentNode) 
-                           <- getValueOpt parentRegistry node
-                        case nodeToVersion parentNode of
+                        (Just viewedNode) 
+                           <- getValueOpt workingNodeRegistry node
+                        case nodeToVersion (parent viewedNode) of
                            Just version ->
                               return ("["++toString version++"]")
 
          checkOutNode :: Node -> IO ()
          checkOutNode node =
-            do
-               nodeData <- getValueOpt nodeRegistry node
-               case nodeData of
-                  Just (CheckedInNode version) ->
-                     do
-                        parentString <- nodeTitle node
-                        parentUserString <- getNodeLabel graph node
-                        titleOpt <- getVersionParsCheckOut 
-                           parentUserString parentString
-                        case titleOpt of
-                           Nothing -> done
-                           Just title ->
-                              reallyCheckOutNode title node version
+            case nodeToVersion node of
+               Just version ->
+                  do
+                     parentString <- nodeTitle node
+                     parentUserString <- getNodeLabel graph node
+                     titleOpt <- getVersionParsCheckOut 
+                        parentUserString parentString
+                     case titleOpt of
+                        Nothing -> done
+                        Just title ->
+                           reallyCheckOutNode title node version
 
          reallyCheckOutNode :: String -> Node -> Version -> IO ()
          reallyCheckOutNode title parentNode version =
@@ -261,18 +265,26 @@ newVersionGraph
                let versionGraphNode = WorkingNode view
                let thisNode = toNode versionGraphNode
                thisArc <- newWorkingArc arcStringSource
-               setValue nodeRegistry thisNode versionGraphNode
-               setValue parentRegistry thisNode parentNode
+               setValue workingNodeRegistry thisNode 
+                  (ViewedNode{
+                     thisView = view,
+                     parent = parentNode
+                     })
                update graph (NewNode thisNode workingType title)
                update graph (NewArc thisArc workingArcType () 
                   parentNode thisNode)
+               displayView displaySort (WrappedDisplayType FolderDisplayType) 
+                  view
 
          commitNode :: Node -> IO ()
          commitNode node =
             do
-               nodeData <- getValueOpt nodeRegistry node
-               case nodeData of
-                  Just (WorkingNode view) ->
+               viewedNodeOpt <- getValueOpt workingNodeRegistry node
+               case viewedNodeOpt of
+                  Nothing -> done
+                  -- this happens if you try to commit the same node twice
+                  -- simultaneously
+                  Just viewedNode -> 
                      do
                         parentString <- nodeTitle node
                         parentUserString <- getNodeLabel graph node
@@ -281,18 +293,16 @@ newVersionGraph
                         case titleOpt of
                            Nothing -> done
                            Just title ->
-                              reallyCommitNode title node view
+                              reallyCommitNode title node (thisView viewedNode)
 
          reallyCommitNode :: String -> Node -> View -> IO ()
          reallyCommitNode title thisNode view =
             do
                parentNodeOpt <- 
-                  transformValue parentRegistry thisNode
-                  (\ parentNodeOpt ->
-                     do
-                        return (Nothing,parentNodeOpt)
+                  transformValue workingNodeRegistry thisNode
+                  (\ viewedNodeOpt ->return (Nothing,fmap parent viewedNodeOpt)
                      )
-               -- This atomically empties the parent node for 
+               -- This atomically empties the working node data for 
                -- thisNode,
                -- returning Nothing if for some reason someone else
                -- has already managed to commit this view.
@@ -311,9 +321,6 @@ newVersionGraph
                               = CheckedInNode newVersion
                            newNode = toNode versionGraphNode
                         newArc1 <- newCheckedInArc graph
-
-                        setValue nodeRegistry newNode 
-                           versionGraphNode
                         update graph (NewNode newNode 
                            checkedInType title)
                         update graph (NewArc newArc1 
@@ -322,7 +329,12 @@ newVersionGraph
                         -- to this new node.
                         newArc2 <- newWorkingArc arcStringSource
 
-                        setValue parentRegistry parentNode newNode
+                        setValue workingNodeRegistry thisNode 
+                           (ViewedNode {
+                              thisView = view,
+                              parent = newNode
+                              }) 
+
                         update graph (NewNode thisNode 
                            workingType title)
                         update graph (NewArc newArc2 workingArcType ()

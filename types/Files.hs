@@ -9,6 +9,7 @@ module Files(
    FileType,
    newEmptyFile,
    getPlainFileType,
+   mkPlainFileType,   
    ) where
 
 import qualified IOExts(unsafePerformIO)
@@ -230,18 +231,17 @@ registerFiles =
 -- ------------------------------------------------------------------
 
 ---
--- getPlainFileType is used to construct the file type
+-- mkPlainFileType is used to construct the file type
 -- when the repository is initialised (in createRepository),
 -- and add it to the global registry.  It also adds the
 -- file display type to the display type registry.
-getPlainFileType :: View -> IO FileType
-getPlainFileType view =
+mkPlainFileType :: View -> IO FileType
+mkPlainFileType view =
    do
       knownFolders <- newEmptyVariableSet
-      key <- newKey globalRegistry view
       let
          fileType = FileType {
-            fileTypeId = key,
+            fileTypeId = plainFileKey,
             fileTypeLabel = Just "Plain file",
             requiredAttributes = emptyAttributesType,
             displayParms = emptyNodeTypes,
@@ -249,12 +249,15 @@ getPlainFileType view =
             canEdit = True
             }
 
-      addToGlobalRegistry globalRegistry view key fileType
+      addToGlobalRegistry globalRegistry view plainFileKey fileType
 
       return fileType
 
 
-thePlainFileType :: View -> IO FileType
-thePlainFileType view =
-   lookupInGlobalRegistry globalRegistry view firstKey
+getPlainFileType :: View -> IO FileType
+getPlainFileType view =
+   lookupInGlobalRegistry globalRegistry view plainFileKey
+
+plainFileKey :: AtomString
+plainFileKey =  oneOffKey "Files" ""
 
