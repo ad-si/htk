@@ -23,11 +23,8 @@ import Maybe
 
 import AtomString
 import Computation
-import Messages
 
 import Text.XML.HaXml.Types
-
-import EmacsContent
 
 import LaTeXParser
 import LaTeXPreamble
@@ -35,7 +32,6 @@ import LaTeXPreamble
 import MMiSSFormat
 import MMiSSBundle
 import MMiSSDTD
-import MMiSSDTDAssumptions
 import MMiSSBundleSimpleUtils
 import MMiSSBundleTypes
 import MMiSSImportExportErrors

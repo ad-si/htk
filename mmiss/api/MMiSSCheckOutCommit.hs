@@ -9,7 +9,6 @@ module MMiSSCheckOutCommit (
 
 import AtomString
 import Computation
-import ExtendedPrelude
 import Broadcaster
 import Sources
 

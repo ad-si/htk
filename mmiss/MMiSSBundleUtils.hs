@@ -16,29 +16,16 @@ module MMiSSBundleUtils(
 
 import Maybe
 
-import Text.XML.HaXml.Types
-
 import ICStringLen
 import AtomString
-import UTF8
 import Computation
 import FileNames
-import IntPlus
-
-import EntityNames
 
 import ObjectTypes
 import View
-import Link
 import LinkManager
 import Folders
-import GlobalRegistry
 
-import LaTeXPreamble(MMiSSLatexPreamble)
-
-import MMiSSVariant
-import MMiSSDTD
-import MMiSSFormat
 import MMiSSSplitLink
 import MMiSSBundle
 import MMiSSBundleTypes

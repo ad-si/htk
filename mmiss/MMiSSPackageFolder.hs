@@ -64,7 +64,6 @@ import Maybe
 import List
 
 import System.IO.Unsafe
-import Control.Concurrent.MVar
 import Data.FiniteMap
 
 import Computation
@@ -74,17 +73,14 @@ import Dynamics
 import Broadcaster
 import Sink
 import Sources
-import AtomString(fromString,toString,fromStringWE)
 import VariableSet
 import VariableSetBlocker
 import VariableList
 import Delayer(delay)
 import Messages
-import WBFiles
+import AtomString(fromString,toString)
 
 import Events(sync)
-
-import WithDir
 
 import MenuType
 import SimpleForm
@@ -104,7 +100,6 @@ import CodedValue
 import EntityNames
 import ObjectTypes
 import DisplayParms
-import SpecialNodeActions
 import MergeTypes
 import MergePrune
 
@@ -115,16 +110,15 @@ import MMiSSFormat
 import MMiSSSplitLink
 import MMiSSFileSystemExamples
 import MMiSSObjectType hiding (linkedObject)
-import MMiSSObjectTypeType hiding (displayParms)
 import MMiSSPreamble
 import MMiSSImportExportErrors
 import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
+import MMiSSInsertionPoint
 
 import {-# SOURCE #-} MMiSSExportLaTeX(pathRef)
-import {-# SOURCE #-} MMiSSPackageFolder -- needed for boot file.
 import {-# SOURCE #-} MMiSSObjectTypeInstance
 import {-# SOURCE #-} MMiSSBundleWrite
 
@@ -136,12 +130,10 @@ newtype MMiSSPackageFolderType = MMiSSPackageFolderType {
    displayParms :: NodeTypes (Link MMiSSPackageFolder)
    } deriving (Typeable)
 
+theMMiSSPackageFolderType :: MMiSSPackageFolderType
 theMMiSSPackageFolderType = MMiSSPackageFolderType {
    displayParms = readDisplay "white box"
    }
-
-mmissPackageFolderType_tyRep
-    = mkTyRep "MMiSSPackageFolder" "MMiSSPackageFolderType"
 
 instance Monad m => HasBinary MMiSSPackageFolderType m where
    writeBin = mapWrite (\ _ -> ())
@@ -197,13 +189,6 @@ instance HasLinkedObject MMiSSPackageFolder where
 
 toMMiSSPreambleLink :: MMiSSPackageFolder -> Link MMiSSPreamble
 toMMiSSPreambleLink = preambleLink
-
-linkToMMiSSPreambleLink 
-   :: View -> Link MMiSSPackageFolder -> IO (Link MMiSSPreamble)
-linkToMMiSSPreambleLink view link =
-   do
-      packageFolder <- readLink view link
-      return (preambleLink packageFolder)
 
 
 toMMiSSPackageFolderLinkedObject 
@@ -605,7 +590,8 @@ instance HasBundleNodeWrite MMiSSPackageFolder where
                         do
                            warningMess 
                               "No preamble found; inserting an empty one"
-                           createPreamble view emptyMMiSSLatexPreamble
+                           createPreamble view (WrappedLink packageFolderLink) 
+                              emptyMMiSSLatexPreamble
 
 
                   (packageFolder,postMerge) 
@@ -651,9 +637,6 @@ theArcType = fromString "T"
 
 thePackageHeadArcType :: ArcType
 thePackageHeadArcType = fromString "H"
-
-theInvisibleArcType :: ArcType
-theInvisibleArcType = fromString ""
 
 thePreambleArcType :: ArcType
 thePreambleArcType = fromString "B"

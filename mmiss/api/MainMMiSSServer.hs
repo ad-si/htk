@@ -17,7 +17,6 @@ import Network
 import Computation
 import ExtendedPrelude
 import BinaryAll
-import IOExtras
 import WBFiles(getXMLPort,parseArgumentsRequiring)
 
 

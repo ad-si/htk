@@ -19,7 +19,6 @@ import Link
 import MMiSSObjectType
 import MMiSSFormat
 import MMiSSVariant
-import MMiSSReAssemble
 import MMiSSEditFormatConverter
 import MMiSSImportExportErrors
 import MMiSSBundle

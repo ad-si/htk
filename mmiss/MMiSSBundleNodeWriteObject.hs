@@ -10,12 +10,10 @@ import Thread
 import BSem
 
 import Link
-import ObjectTypes
 import LinkManager
 
 import MMiSSImportExportErrors
 import MMiSSBundleNodeWriteClass
-import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSObjectType
 import MMiSSVariant

@@ -16,7 +16,6 @@ import View
 import MMiSSVariant
 import MMiSSImportExportBundle
 import MMiSSImportExportErrors
-import MMiSSBundle
 
 import MMiSSRequest
 import MMiSSSessionState

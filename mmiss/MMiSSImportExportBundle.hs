@@ -10,18 +10,13 @@ module MMiSSImportExportBundle(
       -- This corresponds to mmiss/MMiSSRequest.dtd's getObject element.
    ) where
 
-import Debug.Trace
-
-import Messages
 import Computation
 
 import EntityNames
 
 import View
 import LinkManager
-import Folders
 
-import MMiSSSplitLink
 import MMiSSBundle
 import MMiSSVariant
 import MMiSSExportVariantBundle

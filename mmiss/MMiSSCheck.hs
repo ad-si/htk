@@ -22,8 +22,6 @@ import CopyFile
 import TempFile
 import Computation
 
-import SimpleForm
-
 import View
 import Link
 
@@ -35,8 +33,6 @@ import MMiSSFormat
 import MMiSSObjectType
 import MMiSSObjectExtract
 import MMiSSRunCommand
-import MMiSSVariant
-import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSExportFiles
 
 import qualified MMiSSCheck_DTD as DTD

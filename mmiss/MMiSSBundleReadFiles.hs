@@ -17,8 +17,6 @@ import Maybe
 
 import EntityNames
 
-import LaTeXPreamble (FileSystem(..))
-
 import Computation
 import ExtendedPrelude
 import AtomString

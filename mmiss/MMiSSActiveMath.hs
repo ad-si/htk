@@ -3,7 +3,6 @@ module MMiSSActiveMath(
    mmiss2AM,
    ) where
 
-import Maybe
 import Directory
 import Char
 
@@ -23,8 +22,6 @@ import CopyFile
 import TempFile
 import Computation
 
-import SimpleForm
-
 import View
 import Link
 
@@ -32,8 +29,6 @@ import MMiSSFormat
 import MMiSSObjectType
 import MMiSSObjectExtract
 import MMiSSRunCommand
-import MMiSSVariant
-import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSExportFiles
 
 

@@ -14,8 +14,6 @@ import IO
 import List
 import Maybe
 
-import EntityNames
-
 import View
 import LinkManager
 

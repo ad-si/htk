@@ -18,7 +18,6 @@ import Maybe
 
 import Computation
 import ExtendedPrelude
-import Debug(debug)
 import CompileFlags
 
 import EmacsContent

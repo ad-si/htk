@@ -6,20 +6,13 @@ module MMiSSCallServer(
    listVersions,
    ) where
 
-import Messages
 import Computation
-import ExtendedPrelude
-
-import Destructible
 
 import qualified PasswordFile
 import qualified HostsPorts
 import CallServer(tryConnect)
 
-import Graph
 import EmptyGraphSort
-
-import Text.XML.HaXml.Xml2Haskell
 
 import qualified VersionInfo
 import qualified VersionDB

@@ -8,7 +8,6 @@ import IO
 import List
 
 import System.IO.Unsafe
-import Control.Concurrent.MVar
 
 import Text.XML.HaXml.Xml2Haskell
 import Text.XML.HaXml.OneOfN
@@ -19,10 +18,7 @@ import Text.XML.HaXml.Types
 
 import Computation
 import ExtendedPrelude
-import IOExtras
 import Messages
-import Object
-import BinaryAll
 import WBFiles
 import AtomString
 

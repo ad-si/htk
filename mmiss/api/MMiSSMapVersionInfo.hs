@@ -17,8 +17,6 @@ import DeepSeq
 
 import qualified VersionInfo
 
-import XmlExtras
-
 import MMiSSImportExportErrors
 
 import MMiSSRequest

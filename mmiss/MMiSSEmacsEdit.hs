@@ -14,23 +14,16 @@ module MMiSSEmacsEdit(
 import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Control.Exception(assert)
-import Data.Set
 
 import Computation
 import Thread
 import ExtendedPrelude
-import AtomString(toString,fromString,fromStringWE)
+import AtomString(toString,fromStringWE)
 import ReferenceCount
-import Sources
 import Messages
 import Broadcaster(broadcast)
 
-import Lock
-
 import SimpleForm
-import MenuType
-
-import GraphConfigure
 
 import ViewType
 import Link
@@ -42,8 +35,6 @@ import EmacsContent
 import EmacsEdit
 
 import Text.XML.HaXml.Types
-
-import LaTeXPreamble(MMiSSExtraPreambleData(..))
 
 import MMiSSBundleConvert
 import MMiSSImportExportErrors
@@ -57,12 +48,10 @@ import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSVariant
 import MMiSSVariantObject(getCurrentVariantSearch)
-import MMiSSEditXml(TypedName,toExportableXml)
+import MMiSSEditXml(TypedName)
 import MMiSSLaTeX
 import MMiSSObjectTypeInstance
-import MMiSSReadObject
 import MMiSSReAssemble
-import MMiSSPreamble
 import MMiSSPackageFolder
 import MMiSSVariantObject
 import MMiSSElementInfo(changeLabel)

@@ -19,7 +19,6 @@ import Events
 import CopyFile
 
 import FileDialog
-import DialogWin
 
 import View
 import Link

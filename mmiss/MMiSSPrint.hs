@@ -5,7 +5,6 @@ module MMiSSPrint(
 
 import Computation
 import ExtendedPrelude
-import Sources
 import Messages
 
 import View

@@ -6,8 +6,6 @@ module MMiSSExportVariantBundle(
       -- -> IO Bundle
    ) where
 
-import Text.XML.HaXml.Types
-
 import Messages
 import Computation
 import AtomString
@@ -19,11 +17,9 @@ import EntityNames(EntityFullName)
 import View
 import LinkManager
 import Link
-import Folders
 
 import LaTeXParser
 
-import MMiSSPreamble
 import MMiSSImportExportErrors
 import MMiSSObjectExtract
 import MMiSSVariant
@@ -37,7 +33,6 @@ import MMiSSBundleSimpleUtils
 import MMiSSBundleValidate
 
 import {-# SOURCE #-} MMiSSExportFiles
-import {-# SOURCE #-} MMiSSReadObject
 import MMiSSPackageFolder
 
 -- --------------------------------------------------------------------------

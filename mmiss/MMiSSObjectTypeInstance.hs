@@ -21,13 +21,12 @@ import System.IO.Unsafe
 import Computation
 import Thread
 import ExtendedPrelude
-import AtomString(fromString,toString,fromStringWE)
+import AtomString(fromString,fromStringWE)
 import Sources
-import VariableSet(VariableSetSource,toKey)
+import VariableSet(VariableSetSource)
 import VariableList
 import VariableSetBlocker
 import Dynamics
-import CompileFlags
 
 import BSem
 
@@ -44,7 +43,6 @@ import LinkManager
 import ObjectTypes
 import Link
 import DisplayParms
-import SpecialNodeActions
 import MergeTypes
 import MergePrune
 import View
@@ -63,11 +61,9 @@ import MMiSSPrint
 import MMiSSCheck
 import MMiSSActiveMath
 import MMiSSEditFormatConverter(exportElement1)
-import MMiSSEditXml(toExportableXml)
 import MMiSSFileType
 import MMiSSBundle
 import MMiSSPackageFolder
-import MMiSSBundleSimpleUtils
 import MMiSSImportExportErrors
 
 import {-# SOURCE #-} MMiSSEmacsEdit
@@ -98,6 +94,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
          blockID <- newBlockID
 
          let
+{- currently not used
             openAction link = 
                do
                   object <- readLink view link
@@ -107,7 +104,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                do
                   object <- readLink view link
                   closeBlocker (extraNodes object) blockID
-
+-}
             includedArcParms =
                Color "red" $$$
                Head "arrow" $$$
@@ -482,12 +479,7 @@ instance HasMerging Element where
 -- Key for the sake of merging that produces an intelligible backtrace
 -- "Element".  (Now trivial, since the choice of Preamble has been
 -- removed.)
-data CacheContentsMergeKey = Element deriving (Eq,Ord,Show)
-
-cacheContentsMergeKey_tyRep 
-   = mkTyRep "MMiSSObjectTypeInstance" "CacheContentsMergeKey"
-instance HasTyRep CacheContentsMergeKey where
-   tyRep _ = cacheContentsMergeKey_tyRep
+data CacheContentsMergeKey = Element deriving (Eq,Ord,Show,Typeable)
 
 -- -------------------------------------------------------------------------
 -- Exporting objects to bundles

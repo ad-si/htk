@@ -13,32 +13,24 @@ import Control.Monad.State
 import Control.Monad.Trans
 
 import Computation
-import AtomString
 import Thread
 
 import EntityNames
 
 import View
 import Link
-import Files
-import Folders
 import LinkManager
 import ObjectTypes
-import AttributesType
 
 import MMiSSInsertionPoint
 import MMiSSBundle
 import MMiSSSplitLink
-import MMiSSObjectTypeType
-import MMiSSFileType
 import MMiSSBundleSimpleUtils
 import MMiSSImportExportErrors
-import MMiSSBundleNodeCheckTypes
 import MMiSSBundleNodeWriteClass
 import MMiSSFileType
-import MMiSSPreamble
-import MMiSSBundleNodeWriteObject
 import MMiSSPackageFolder
+import MMiSSBundleNodeWriteObject
 import {-# SOURCE #-} MMiSSObjectTypeInstance 
 
 -- -------------------------------------------------------------------------
@@ -73,7 +65,7 @@ mkPreWriteData view insertionPoint bundleNode =
          Right (folderLink,name) ->
             do
                -- This object is new and should be written to this folder.
-               thisLink <- newEmptySplitLink view (
+               thisLink <- newEmptySplitLink view (WrappedLink folderLink) (
                   base . objectType . fileLoc $ bundleNode)
 
                let
@@ -119,7 +111,8 @@ mkPreWriteData view insertionPoint bundleNode =
 
                   createEmpty =
                      do
-                        thisLink <- newEmptySplitLink view
+                        thisLink <- newEmptySplitLink view 
+                           (wrapSplitLink (parent ancestorInfo0))
                            (base . objectType . fileLoc $ bundleNode0)
                         return (thisLink,False)
 

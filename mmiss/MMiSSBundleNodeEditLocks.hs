@@ -14,7 +14,6 @@ import View
 import Link
 
 import LinkManager
-import ObjectTypes
 
 import MMiSSEditLocks
 import MMiSSInsertionPoint

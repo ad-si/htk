@@ -44,7 +44,6 @@ import List
 import Monad
 import Maybe
 
-import Text.XML.HaXml.Types
 import XmlExtras
 
 import Messages

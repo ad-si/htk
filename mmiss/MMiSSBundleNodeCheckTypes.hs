@@ -7,10 +7,7 @@ module MMiSSBundleNodeCheckTypes(
 import Computation
 import AtomString
 
-import EntityNames
-
 import View
-import Link
 import Files
 import Folders
 import LinkManager
@@ -23,7 +20,6 @@ import MMiSSSplitLink
 import MMiSSObjectTypeType
 import MMiSSFileType
 import MMiSSBundleSimpleUtils
-import MMiSSImportExportErrors
 
 -- -------------------------------------------------------------------------
 -- checkBundleNodeTypes

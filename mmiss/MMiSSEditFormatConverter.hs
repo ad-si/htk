@@ -15,17 +15,11 @@ module MMiSSEditFormatConverter(
       -- -> [MMiSSPackageFolder] -> Element  -> IO (WithError String)
    ) where
 
-import Maybe
-
-import Data.FiniteMap
-
 import Computation 
-import Debug(debugString)
 import Messages
 import AtomString(toString)
 
 import ViewType
-import Link
 import LinkManager
 
 import EmacsContent

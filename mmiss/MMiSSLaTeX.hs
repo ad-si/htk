@@ -28,6 +28,7 @@ import SimpleForm
 import View(View)
 
 import MMiSSRunCommand
+import MMiSSVariant
 import {-# SOURCE #-} MMiSSExportFiles
 import {-# SOURCE #-} MMiSSPackageFolder
 

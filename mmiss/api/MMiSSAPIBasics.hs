@@ -3,9 +3,6 @@
 module MMiSSAPIBasics(
    ) where
 
-import Data.FiniteMap
-import Control.Concurrent.MVar
-
 import ExtendedPrelude
 
 import MMiSSRequest

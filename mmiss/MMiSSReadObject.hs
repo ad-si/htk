@@ -17,19 +17,14 @@ import Messages
 
 import View
 import Link
-import ObjectTypes
 import LinkManager
 import EntityNames
 
 import Text.XML.HaXml.Types
 
-import LaTeXPreamble(MMiSSExtraPreambleData(..))
-
 import MMiSSVariant
 import MMiSSDTDAssumptions
-import MMiSSPreamble
 import MMiSSVariantObject
-import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSObjectTypeInstance
 import MMiSSReAssemble

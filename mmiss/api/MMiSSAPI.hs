@@ -141,7 +141,6 @@ import Control.Concurrent.MVar
 import Data.FiniteMap
 import qualified Control.Exception
 
-import Dynamics
 import Object
 import Computation
 import ExtendedPrelude
@@ -150,16 +149,12 @@ import Sources
 import AtomString
 import Messages
 import FileNames
-import VariableSet(HasKey(..))
 import IntPlus
 
 import HostsPorts
 
 import CopyFile
 
-import Graph
-import GraphDisp
-import GraphConfigure
 import EmptyGraphSort
 
 import VersionInfo hiding (changeVersionInfo)
@@ -383,7 +378,7 @@ setVersionFormat formatStr =
 
 -- | check out a version from the current server and make it current,
 -- with the current directory the top object.
-checkOut :: Int -> IO Version
+checkOut :: Integer -> IO Version
 checkOut v =
    printError (
       do
@@ -393,10 +388,10 @@ checkOut v =
 
 -- | check out a version and make it current, with the current directory
 -- the top object.
-checkOut1 :: Server -> Int -> IO Version
+checkOut1 :: Server -> Integer -> IO Version
 checkOut1 server v = printError (checkOut1' server v)
 
-checkOut1' :: Server -> Int -> IO Version
+checkOut1' :: Server -> Integer -> IO Version
 checkOut1' (Server {versionGraph = versionGraph}) v =
    do
       let
