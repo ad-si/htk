@@ -28,7 +28,9 @@
                          comment          CDATA  #IMPLIED
                          previousVersion  CDATA  #IMPLIED
                          authors          CDATA  #IMPLIED
-                         priorAuthors     CDATA  #IMPLIED">
+                         priorAuthors     CDATA  #IMPLIED
+                         shortAuthor      CDATA  #IMPLIED
+                         shortTitle       CDATA  #IMPLIED">
 
 <!-- The special xml:lang-Attribute holds values defined by IETF RFC 1766
     which are constructed from the two-letter codes of ISO 639 and the
