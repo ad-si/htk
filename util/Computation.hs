@@ -73,6 +73,7 @@ module Computation (
         pairWithError, -- :: WithError a -> WithError b -> WithError (a,b)
         -- we concatenate the errors, inserting a newline between them if 
         -- there are two.
+        listWithError, -- :: [WithError a] -> WithError [a]
         coerceWithError, -- :: WithError a -> a
         coerceWithErrorIO, -- :: WithError a -> IO a
         -- get out result or throw error.
@@ -213,6 +214,17 @@ pairWithError (Value a) (Value b) = Value (a,b)
 pairWithError (Error e) (Value b) = Error e
 pairWithError (Value a) (Error f) = Error f
 pairWithError (Error e) (Error f) = Error (e++"\n"++f)
+
+listWithError :: [WithError a] -> WithError [a]
+listWithError awes =
+   foldr
+      (\ awe awes ->
+         mapWithError
+            (\ (a,as) -> a:as)
+            (pairWithError awe awes) 
+         )
+      (hasValue [])
+      awes
 
 -- coerce or raise error
 coerceWithError :: WithError a -> a

@@ -7,6 +7,9 @@ module Maybes (
                 -- same as isJust
    fromJustError, -- :: String -> Maybe a -> a
       -- from a Maybe, with an error message if it fails.
+
+   fromMaybes, -- :: [Maybe a] -> Maybe [a]
+      -- check that all the Maybes are really Just's.
    ) where
 
 import Maybe -- renamer will tell us if there are any conflicts
@@ -24,3 +27,8 @@ maybeToBool = isJust
 fromJustError :: String -> Maybe a -> a
 fromJustError _ (Just x) = x
 fromJustError mess Nothing = error mess
+
+fromMaybes :: [Maybe a] -> Maybe [a]
+fromMaybes [] = Just []
+fromMaybes (Nothing : _) = Nothing
+fromMaybes (Just a : rest) = fmap (a :) (fromMaybes rest)

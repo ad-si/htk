@@ -26,8 +26,22 @@ module Broadcaster(
       -- function, which temporarily blocks further updates.
       -- The action returned by the switch-off function switches the source 
       -- again.
+
+   mirrorSimpleSource,
+      -- :: SimpleSource a -> IO (SimpleSource a,IO ())
+      -- Replace a SimpleSource by another which mirrors it, but only copies
+      -- from it once, hopefully saving CPU time.
+      -- The IO action stops the mirroring.
+      -- We use unsafeInterleaveIO to prevent the mirroring beginning before it
+      -- is actually needed.  However we don't provide any means to stop the
+      -- mirroring when it is no longer needed, yet.
+
    ) where
 
+import System.IO.Unsafe as Unsafe
+import qualified Control.Concurrent.MVar as MVar
+
+import Sink
 import Sources
 
 -- -----------------------------------------------------------------
@@ -148,3 +162,38 @@ switchOffSimpleSource simpleSource =
                source <- toSimpleSource broadcaster
                source
       return (newSource,switchOff)
+
+-- -----------------------------------------------------------------
+-- mirrorSimpleSource
+-- -----------------------------------------------------------------
+
+-- | Replace a SimpleSource by another which mirrors it, but only copies
+-- from it once, hopefully saving CPU time.
+-- The IO action stops the mirroring.
+-- We use unsafeInterleaveIO to prevent the mirroring beginning before it
+-- is actually needed.  However we don't provide any means to stop the
+-- mirroring when it is no longer needed, yet.
+mirrorSimpleSource :: SimpleSource a -> IO (SimpleSource a,IO ())
+mirrorSimpleSource simpleSource =
+   Unsafe.unsafeInterleaveIO (
+      do
+         sinkId <- newSinkID
+         parallelX <- newParallelExec
+         broadcaster <- newSimpleBroadcaster (error "mirrorSimpleSource: 1")
+         initialised <- MVar.newEmptyMVar 
+
+         let
+            writeX a =
+               do
+                  broadcast broadcaster a
+                  MVar.putMVar initialised ()
+            writeD a =
+               do
+                  broadcast broadcaster a
+
+         addNewSourceActions (toSource simpleSource) writeX writeD sinkId 
+            parallelX
+         MVar.takeMVar initialised
+
+         return (toSimpleSource broadcaster,invalidate sinkId)
+      )

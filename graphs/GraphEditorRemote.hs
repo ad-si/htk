@@ -39,7 +39,7 @@ graphEditorRemote displaySort =
             nameSourceBranch' = nameSourceBranch
             } = read initialState
 
-      (updateThreadMVar :: MVar ThreadID) <- newEmptyMVar
+      (updateThreadMVar :: MVar ThreadId) <- newEmptyMVar
       let
          graphConnection updateSink =
             do

@@ -16,9 +16,10 @@ DESCRIPTION   : Threads with identity.
 module Thread (
    module Computation,
    
-   ThreadID,
-   getThreadID,
-   
+   ThreadId,
+
+   hashThreadId, -- :: ThreadId -> Int32
+
    -- thread creation
    forkIO, -- identical with standard action.
 
@@ -55,19 +56,18 @@ module Thread (
    ) 
 where
 
+import qualified GHC.Conc
+import qualified GHC.Base
+
 import Control.Exception
 import Control.Concurrent
+import Data.HashTable
+import Data.Int
 
 import Maybes
 import Computation
 
 import Debug(debug,(@:))
-
--- --------------------------------------------------------------------------
--- Data Types
--- --------------------------------------------------------------------------
-
-type ThreadID = ThreadId
 
 -- --------------------------------------------------------------------------
 -- Delay Thread Execution
@@ -99,14 +99,6 @@ usecs x = round(x)
 msecs x = round(x*1000.0)
 secs x  = round(x*1000000.0)
 mins x  = round(x*60000000.0)
-
--- --------------------------------------------------------------------------
---  Thread Id
--- --------------------------------------------------------------------------
-
-getThreadID :: IO ThreadID
-getThreadID = myThreadId
-
 
 -- --------------------------------------------------------------------------
 -- goesQuietly
@@ -214,3 +206,13 @@ mapMConcurrent_ :: (a -> IO ()) -> [a] -> IO ()
 mapMConcurrent_ mapFn as = mapM_ (\ a -> forkIO (mapFn a)) as
 
 
+-- --------------------------------------------------------------------------
+-- hashThreadId
+-- --------------------------------------------------------------------------
+
+hashThreadId :: ThreadId -> Int32
+-- Currently implemented by a horrible hack requiring access to GHC internals.
+hashThreadId (GHC.Conc.ThreadId ti) = hashInt (getThreadId ti)
+
+foreign import ccall unsafe "rts_getThreadId" getThreadId 
+   :: GHC.Base.ThreadId# -> Int

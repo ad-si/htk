@@ -1,5 +1,5 @@
 PACKAGE = uni-types
-PACKAGES = uni-simpledb uni-graphs
+PACKAGES = uni-simpledb uni-graphs uni-imports
 
 SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    Link.hs BasicObjects.hs DisplayTypes.hs ObjectTypes.hs \
@@ -7,7 +7,7 @@ SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    DisplayView.hs Files.hs VersionGraph.hs \
    Initialisation.hs CallEditor.hs CreateObjectMenu.hs Registrations.hs \
    GetAttributesType.hs GlobalMenus.hs \
-   SpecialNodeActions.hs EntityNames.hs LinkManager.hs \
+   SpecialNodeActions.hs LinkManager.hs \
    MergeTypes.hs Merging.hs MergeReAssign.hs MergePrune.hs \
    VersionGraphClient.hs LocalMenus.hs CopyVersion.hs VersionGraphList.hs \
    CopyVersions.hs

@@ -40,6 +40,11 @@ module Registry(
 
    getValueDefault, -- :: ... => to -> registry -> from -> IO to
 
+   lockedRegistryCheck, -- :: IO a -> IO (Either String a)
+      -- For operations involving LockedRegistry's, catches the exception
+      -- raised when we attempt to access a value inside a transformValue
+      -- operation.
+
 
    -- Unsafe/UnsafeRegistry are equivalent to Untyped/UntypedRegistry except 
    -- for the additional functionality of causing a core-dump if misused,
@@ -62,13 +67,18 @@ import Maybes
 
 import Control.Monad.Trans
 import qualified GlaExts(unsafeCoerce#)
-import IOExts(newIORef,readIORef,writeIORef)
-import FiniteMap
-import Concurrent
+import System.IO.Unsafe
+import Data.IORef
+import Data.FiniteMap
+import Data.Set
+import Control.Concurrent
+import Control.Exception
 
 import Computation(done)
+import ExtendedPrelude(newFallOut,mkBreakFn)
 import Dynamics
 import BinaryAll
+import Thread
 
 
 -- ----------------------------------------------------------------------
@@ -162,14 +172,15 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
          return (lookupFM map from)
 
    transformValue (Registry mVar) from transformer =
-      do
-         map <- takeMVar mVar
-         (newSetting,extra) <- transformer (lookupFM map from)
-         newMap <- case newSetting of
-            Just newTo -> return (addToFM map from newTo)
-            Nothing -> return (delFromFM map from)
-         putMVar mVar newMap
-         return extra
+      modifyMVar mVar
+         (\ map ->
+            do
+               (newSetting,extra) <- transformer (lookupFM map from)
+               newMap <- case newSetting of
+                  Just newTo -> return (addToFM map from newTo)
+                  Nothing -> return (delFromFM map from)
+               return (newMap,extra)
+            )
 
    setValue (Registry mVar) from to =
       do
@@ -347,13 +358,14 @@ instance KeyOpsRegistry (registry from Obj) from
 -- Locked registries.  These improve on the previous model in
 -- that transformValue actions do not lock the whole registry,
 -- but only the key whose value is being transformed.
--- NB - there is a subtle concurrency problem with deleting from a locked
--- registry.  If this happens at the same time as we attempt to transform a
--- value, the delete action can return, while the transform action is still
--- going on.
+--
+-- They also catch cases where an locked registry function is used
+-- inside a transformValue, and throw an appropriate exception, which
+-- can be caught using lockedRegistryCheck.
 -- ----------------------------------------------------------------------
 
-newtype LockedRegistry from to = Locked (Registry from (MVar to))
+newtype LockedRegistry from to 
+   = Locked (Registry from (MVar (Maybe to),Set ThreadId))
 
 type UntypedLockedRegistry from = Untyped LockedRegistry from
 
@@ -364,38 +376,84 @@ instance Ord from => NewRegistry (LockedRegistry from to) where
          return (Locked registry)
    emptyRegistry (Locked registry) = emptyRegistry registry
 
-instance Ord from => GetSetRegistry (LockedRegistry from to) from to where
-   transformValue (Locked registry) from transformer =
-      do
-         (mVar,isNew) <-
-            transformValue registry from
-               (\ mVarOpt -> case mVarOpt of
-                  Nothing -> 
-                     do
-                        mVar <- newEmptyMVar
-                        return (Just mVar,(mVar,True))
-                  Just mVar -> return (Just mVar,(mVar,False))
-                  )
-         valInOpt <- if isNew then return Nothing else 
-            do
-               valIn <- takeMVar mVar
-               return (Just valIn)
-         (valOutOpt,extra) <- transformer valInOpt
-         case valOutOpt of
-            Just valOut -> putMVar mVar valOut
-            Nothing ->
+-- utility functions transformValue will need
+takeVal :: Ord from => LockedRegistry from to -> from -> IO (Maybe to)
+takeVal (Locked registry) from =
+   do
+      mVar <- 
+         transformValue registry from
+            (\ dataOpt ->
                do
-                  case valInOpt of
-                     Just valIn -> putMVar mVar valIn
-                     Nothing -> done
-                  deleteFromRegistry registry from 
-         return extra 
+                  threadId <- myThreadId
+                  case dataOpt  of
+                     Nothing ->
+                        do
+                           mVar <- newMVar Nothing
+                           return (Just (mVar,unitSet threadId),mVar)
+                     Just (mVar,set0) ->
+                        if elementOf threadId set0
+                           then -- error
+                              mkBreakFn lockedFallOutId 
+                                 ("Circular transformValue detected in "
+                                    ++ "Registry.LockedRegistry")
+                           else
+                              return (Just (mVar,addToSet set0 threadId),mVar)
+               )
+      takeMVar mVar
+
+
+putVal :: Ord from => LockedRegistry from to -> from -> Maybe to -> IO ()
+putVal (Locked registry) from toOpt =
+   transformValue registry from
+      (\ dataOpt ->
+         do
+            threadId <- myThreadId
+            case dataOpt of
+               Nothing -> error "Registry: unmatched putVal"
+               Just (mVar,set0) ->
+                  do
+                     let
+                        set1 = delFromSet set0 threadId
+                     if isEmptySet set1 && not (isJust toOpt)
+                        then
+                           return (Nothing,())
+                        else
+                           do
+                              putMVar mVar toOpt
+                              return (Just (mVar,set1),())
+         )
+
+      
+
+lockedRegistryCheck :: IO a -> IO (Either String a)
+(lockedFallOutId,lockedRegistryCheck) = lockedCheckBreak
+
+lockedCheckBreak = unsafePerformIO newFallOut
+{-# NOINLINE lockedCheckBreak #-}
+
+instance Ord from => GetSetRegistry (LockedRegistry from to) from to where
+   transformValue lockedRegistry from transformer =
+      do
+         valInOpt <- takeVal lockedRegistry from
+         resultOrError <- Control.Exception.try (transformer valInOpt)
+         case resultOrError of
+            Left error ->
+               do
+                  putVal lockedRegistry from valInOpt
+                  Control.Exception.throw error
+            Right (valOutOpt,extra) ->
+               do
+                  putVal lockedRegistry from valOutOpt
+                  return extra
 
 instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
-   deleteFromRegistryBool (Locked registry) from =
-      transformValue registry from
-         (\ (mVarOpt :: Maybe (MVar to)) -> return (Nothing,isJust mVarOpt))
+   deleteFromRegistryBool lockedRegistry from =
+      do
+         toOpt <- takeVal lockedRegistry from
+         putVal lockedRegistry from Nothing
+         return (isJust toOpt)
    listKeys (Locked registry) = listKeys registry
+
 
 -- ----------------------------------------------------------------------
 -- Typeable instances

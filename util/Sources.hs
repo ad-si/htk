@@ -63,7 +63,7 @@ module Sources(
    choose,
       -- :: Source x1 d1 -> Source x2 d2 -> Source (x1,x2) (Either d1 d2)
    seqSource,
-      -- :: Source x1 x1 -> (x1 -> Source x2 d2) -> Source x2 d2   
+      -- :: Source x1 x1 -> (x1 -> Source x2 x2) -> Source x2 x2   
    flattenSource,
       -- :: Source x [d] -> Source x d
       -- A Source combinator which "flattens" lists of updates.
@@ -104,6 +104,11 @@ module Sources(
    change1, -- :: SimpleSource x -> x -> SimpleSource x
    -- replaces the first value of the SimpleSource.
 
+   mapIOSeq,
+      -- :: SimpleSource a -> (a -> IO (SimpleSource b)) -> SimpleSource b
+      -- allow us to sequence a SimpleSource where the continuation function
+      -- uses an IO action.
+
    addNewSourceActions, 
       -- :: Source x d -> (x -> IO ()) -> (d -> IO ()) 
       -- -> SinkID -> ParallelExec -> IO x
@@ -118,6 +123,18 @@ module Sources(
       -- it into a String with the supplied function.  (This is done once
       -- for each active client.)
 
+
+   noLoopSimpleSource,
+      -- :: TSem -> ([String] -> a) -> SimpleSource a -> SimpleSource a
+      -- Used when we are worried that a SimpleSource recursively constructed
+      -- by mapIOSeq, >>= and friends may actually try to call itself, and
+      -- so loop forever.   The Strings identify the SimpleSource,
+      -- and so the [String] is effectively a backtrace of the TSems, 
+      -- revealing what chain of simple sources might have caused the loop.
+
+   mkIOSimpleSource,
+      -- :: IO (SimpleSource a) -> SimpleSource a
+
    ) where
 
 import Maybe
@@ -126,7 +143,11 @@ import Concurrent
 import IOExts
 
 import Computation(done)
+import ExtendedPrelude(HasMapIO(..),addGeneralFallOut,GeneralBreakFn(..),
+   GeneralCatchFn(..))
 import Sink
+import TSem
+import Debug(debug)
 
 -- -----------------------------------------------------------------
 -- Datatypes
@@ -503,11 +524,10 @@ stepSource fromX fromD (Source addClient1) =
    let
       addClient2 (Client clientFn2) =
          do
-            let
-               computeClient x = clientFn2 (fromX x)
-            (computedClient,setX) <- mkComputedClientIO computeClient
+            (computedClient,writeClientOpt) <- mkComputedClientIO return
             x <- addClient1 ((coMapClient fromD) computedClient)
-            setX x
+            clientOpt <- clientFn2 (fromX x)
+            writeClientOpt clientOpt
             return x
    in
       Source addClient2 
@@ -565,8 +585,12 @@ choose ((Source addClient1) :: Source x1 d1)
             return (x1,x2)
    in
       Source addClient
-         
-seqSource (source1 :: Source x1 x1) (getSource2 :: x1 -> Source x2 d2) =
+
+seqSource :: Source x1 x1 -> (x1 -> Source x2 x2) -> Source x2 x2   
+seqSource source getSource = seqSourceIO source (\ x1 -> return (getSource x1))
+
+seqSourceIO :: Source x1 x1 -> (x1 -> (IO (Source x2 x2))) -> Source x2 x2   
+seqSourceIO (source1 :: Source x1 x1) (getSource2 :: x1 -> IO (Source x2 x2)) =
    let
       addClient client2 =
          do
@@ -577,14 +601,11 @@ seqSource (source1 :: Source x1 x1) (getSource2 :: x1 -> Source x2 d2) =
                getClient1 :: (IO (),x1) -> Client x1
                getClient1 (oldTerminator,x1) =
                   let
---                     source2 = getSource2 x1
-
                      client1 terminator = Client (clientFn1 terminator)
 
                      clientFn1 oldTerminator x1 =
                         do
-                           let
-                              source2 = getSource2 x1
+                           source2 <- getSource2 x1
 
                            oldTerminator
                            continue <- clientRunning
@@ -608,8 +629,9 @@ seqSource (source1 :: Source x1 x1) (getSource2 :: x1 -> Source x2 d2) =
 
             (client1',write) <- mkComputedClient getClient1
             x1 <- attachClient client1' source1
-            let
-               source2 = getSource2 x1
+
+            source2 <- getSource2 x1
+
             (x2,firstTerminator) <- attachClientTemporary staticClient2 source2
             write (firstTerminator,x1)
             return x2
@@ -631,6 +653,36 @@ staticSimpleSourceIO act = SimpleSource (staticSourceIO act)
 instance Functor SimpleSource where
    fmap mapFn (SimpleSource source) = 
       SimpleSource ( (map1 mapFn) . (map2 mapFn) $ source)
+
+instance HasMapIO SimpleSource where
+   mapIO mapFn (SimpleSource source) =
+      SimpleSource (
+         (map1IO mapFn) 
+         . (filter2IO 
+            (\ x -> 
+               do
+                  y <- mapFn x
+                  return (Just y)
+               )
+            )
+         $ source
+         )
+
+
+mapIOSeq :: SimpleSource a -> (a -> IO (SimpleSource b)) -> SimpleSource b
+mapIOSeq (SimpleSource (source1 :: Source a a)) 
+      (getSimpleSource :: (a -> IO (SimpleSource b))) =
+   let
+      getSource :: a -> IO (Source b b)
+      getSource a =
+         do
+            (SimpleSource source) <- getSimpleSource a
+            return source
+
+      source2 :: Source b b
+      source2 = seqSourceIO source1 getSource
+   in
+      SimpleSource source2
 
 instance Monad SimpleSource where
    return x = SimpleSource (staticSource x)
@@ -813,3 +865,75 @@ traceSimpleSource toS (SimpleSource source) =
       $
       source
       )
+
+-- -----------------------------------------------------------------
+-- noLoop functions.  (Only noLoopSimpleSource is exported, for now.)
+-- -----------------------------------------------------------------
+
+noLoopSource :: TSem -> ([String] -> x) -> ([String] -> d)  
+   -> Source x d -> Source x d
+noLoopSource tSem toX toD (Source addClient0 :: Source x d) =
+   let
+      mkClient :: Client d -> Client d
+      mkClient client = Client (mkClientFn client)
+
+      mkClientFn :: Client d -> d -> IO (Maybe (Client d))
+      mkClientFn (client @ (Client clientFn0)) d =
+         do
+            (looped :: Either [String] (Maybe (Client d))) 
+               <- synchronizeTSem tSem (clientFn0 d)
+            case looped of
+               Left strings ->
+                  do
+                     debug ("mkClientFn loop caught " ++ show strings) 
+                     -- repeat with the artificial d (which had better
+                     -- not cause a loop).
+                     mkClientFn client (toD strings)
+               Right clientOpt -> return (fmap mkClient clientOpt)
+
+      addClient1 :: Client d -> IO x
+      addClient1 client =
+         do
+            stringsOrX <- synchronizeTSem tSem 
+               (addClient0 (mkClient client))
+            case stringsOrX of
+               Left strings -> return (toX strings)
+               Right x -> return x
+   in
+      Source addClient1
+
+---
+-- Used when we are worried that a SimpleSource recursively constructed
+-- by mapIOSeq, >>= and friends may actually try to call itself, and
+-- so loop forever.   The Strings identify the SimpleSource,
+-- and so the [String] is effectively a backtrace of the TSems, revealing what
+-- chain of simple sources might have caused the loop.
+noLoopSimpleSource :: TSem -> ([String] -> a) -> SimpleSource a 
+   -> SimpleSource a
+noLoopSimpleSource tSem toA (SimpleSource source0) =
+   let
+      source1 = noLoopSource tSem toA toA source0
+   in 
+      SimpleSource source1
+
+-- ---------------------------------------------------------------------------
+-- mkIOSource and mkIOSimpleSource
+-- ---------------------------------------------------------------------------
+
+mkIOSource :: IO (Source x d) -> Source x d
+mkIOSource act =
+   let
+      addClient client =
+         do
+            (Source addClient1) <- act
+            addClient1 client
+   in
+      Source addClient
+
+mkIOSimpleSource :: IO (SimpleSource a) -> SimpleSource a
+mkIOSimpleSource act =
+   SimpleSource (mkIOSource (
+      do
+         simpleSource <- act
+         return (toSource simpleSource)
+      ))

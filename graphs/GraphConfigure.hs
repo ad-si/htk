@@ -160,8 +160,8 @@ instance ArcTypeConfig LocalMenu
 newtype LocalMenu value = 
    LocalMenu(MenuPrim (Maybe String) (value -> IO()))
 
-instance HasMapIO LocalMenu where
-   mapIO a2bAct (LocalMenu menuPrim) =
+instance HasCoMapIO LocalMenu where
+   coMapIO a2bAct (LocalMenu menuPrim) =
       LocalMenu
          (mapMenuPrim
             (\ b2Act ->
@@ -206,8 +206,8 @@ instance NodeTypeConfig ValueTitle
 
 instance ArcTypeConfig ValueTitle
 
-instance HasMapIO ValueTitle where
-   mapIO a2bAct (ValueTitle b2StringAct) =
+instance HasCoMapIO ValueTitle where
+   coMapIO a2bAct (ValueTitle b2StringAct) =
       ValueTitle (
          \ aValue -> 
             do
@@ -238,8 +238,8 @@ data NodeGesture value = NodeGesture (value -> IO ())
 
 instance NodeTypeConfig NodeGesture
 
-instance HasMapIO NodeGesture where
-   mapIO a2bAct (NodeGesture b2StringAct) =
+instance HasCoMapIO NodeGesture where
+   coMapIO a2bAct (NodeGesture b2StringAct) =
       NodeGesture (
          \ aValue -> 
             do

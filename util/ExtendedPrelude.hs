@@ -36,6 +36,7 @@ module ExtendedPrelude (
       -- gets the last element of a list, safely.
 
    -- Indicates that this type allows an IO-style map.
+   HasCoMapIO(..),
    HasMapIO(..),
    HasMapMonadic(..),
    mapPartialM,
@@ -65,6 +66,9 @@ module ExtendedPrelude (
    simpleFallOut,
    mkBreakFn,
    newFallOut,
+
+   addGeneralFallOut,
+   GeneralBreakFn(..),GeneralCatchFn(..),
 
    EqIO(..),OrdIO(..),
 
@@ -142,9 +146,11 @@ monadDot f g x =
 -- Things to do with maps
 -- ---------------------------------------------------------------------------
 
--- NB.  HasMapIO should really be called HasCoMapIO or something.
 class HasMapIO option where
-   mapIO :: (a -> IO b) -> option b -> option a
+   mapIO :: (a -> IO b) -> option a -> option b
+
+class HasCoMapIO option where
+   coMapIO :: (a -> IO b) -> option b -> option a
 
 class HasMapMonadic h where
    mapMonadic :: Monad m => (a -> m b) -> h a -> m (h b)
@@ -450,12 +456,7 @@ mkSimpleFallOut = unsafePerformIO newFallOut
 data FallOutExcep = FallOutExcep {
    fallOutId :: ObjectID,
    mess :: String
-   }
-
-fallOutExcep_tyRep = mkTyRep "ExtendedPrelude" "FallOutExcep"
-instance HasTyRep FallOutExcep where
-   tyRep _ = fallOutExcep_tyRep
-
+   } deriving (Typeable)
 
 mkBreakFn :: ObjectID -> BreakFn
 mkBreakFn id mess = throwDyn (FallOutExcep {fallOutId = id,mess = mess})
@@ -485,6 +486,57 @@ newFallOut =
                act
 
       return (id,tryFn)
+
+-- ------------------------------------------------------------------------
+-- More general try/catch function.
+-- ------------------------------------------------------------------------
+
+data GeneralBreakFn a = GeneralBreakFn (forall b . a -> b)
+data GeneralCatchFn a = GeneralCatchFn (forall c . IO c -> IO (Either a c))
+
+addGeneralFallOut :: Typeable a => IO (GeneralBreakFn a,GeneralCatchFn a)
+addGeneralFallOut =
+   do
+      (objectId,catchFn) <- newGeneralFallOut
+      let
+         breakFn a = throwDyn (GeneralFallOutExcep {
+            generalFallOutId = objectId,a=a})
+      return (GeneralBreakFn breakFn,catchFn)
+
+
+data GeneralFallOutExcep a = GeneralFallOutExcep {
+   generalFallOutId :: ObjectID,
+   a :: a
+   } deriving (Typeable)
+
+newGeneralFallOut :: Typeable a => IO (ObjectID,GeneralCatchFn a)
+newGeneralFallOut =
+   do
+      id <- newObject
+      let
+         tryFn act =
+            tryJust
+               (\ exception -> case dynExceptions exception of
+                  Nothing -> Nothing 
+                     -- don't handle this as it's not even a dyn.
+                  Just dyn ->
+                     case fromDyn dyn of
+                        Nothing -> Nothing 
+                           -- not a fallout, or not the right type of a.
+                        Just generalFallOutExcep -> 
+                              if generalFallOutId generalFallOutExcep /= id
+                           then
+                              Nothing 
+                              -- don't handle this; it's from another 
+                              -- addGeneralFallOut
+                           else
+                              Just (a generalFallOutExcep)
+                  )
+               act
+
+      return (id,GeneralCatchFn tryFn)
+
+
 
 -- ------------------------------------------------------------------------
 -- Where equality and comparing requires IO.
