@@ -15,30 +15,37 @@ module VersionDag(
    addVersions,
    setNodeInfo,
    changeIsHidden,
+   toDisplayedGraph,
    ) where
 
 import Data.FiniteMap
 import Control.Concurrent.MVar
 
+import Sources
+import Broadcaster
+
 import Graph
 import PureGraph
 import SimpleGraph(ClientData(..))
+import NewNames
+import PureGraphPrune
+import PureGraphToGraph
 
 -- --------------------------------------------------------------------------
 -- Data types
 -- --------------------------------------------------------------------------
 
-newtype VersionDag nodeKey nodeInfo arcInfo 
-   = VersionDag (MVar (VersionDagState nodeKey nodeInfo arcInfo))
+data VersionDag nodeKey nodeInfo arcInfo = VersionDag {
+   stateBroadcaster :: SimpleBroadcaster (
+      VersionDagState nodeKey nodeInfo arcInfo),
+   toNodeKey :: nodeInfo -> nodeKey,
+   toParents :: nodeInfo -> [(arcInfo,nodeKey)]
+   }
 
 data VersionDagState nodeKey nodeInfo arcInfo = VersionDagState {
    inPureGraph :: PureGraph nodeKey arcInfo,
-   outPureGraph :: PureGraph nodeKey (Maybe arcInfo),
    nodeInfoDict :: FiniteMap nodeKey nodeInfo,
-   isHidden :: nodeInfo -> Bool,
-   toNodeKey :: nodeInfo -> nodeKey,
-   toParents :: nodeInfo -> [(arcInfo,nodeKey)],
-   clients :: [ClientData nodeInfo () (Maybe arcInfo) ()]
+   isHidden :: nodeInfo -> Bool
    }
 
 -- --------------------------------------------------------------------------
@@ -53,23 +60,23 @@ newVersionDag :: (Ord nodeKey,Ord arcInfo)
 newVersionDag isHidden0 toNodeKey0 toParents0 =
    do
       let
-         versionDagState = VersionDagState {
+         state = VersionDagState {
             inPureGraph = emptyPureGraph,
-            outPureGraph = emptyPureGraph,
             nodeInfoDict = emptyFM,
-            isHidden = isHidden0,
-            toNodeKey = toNodeKey0,
-            toParents = toParents0,
-            clients = []
+            isHidden = isHidden0
             }
 
-      mVar <- newMVar versionDagState
-      return (VersionDag mVar)
+      stateBroadcaster <- newSimpleBroadcaster state
+
+      return (VersionDag {
+         stateBroadcaster = stateBroadcaster,
+         toNodeKey = toNodeKey0,
+         toParents = toParents0
+         })
 
 -- --------------------------------------------------------------------------
 -- Modifications
 -- --------------------------------------------------------------------------
-
 
 addVersion :: (Ord nodeKey,Ord arcInfo)
    => VersionDag nodeKey nodeInfo arcInfo -> nodeInfo -> IO ()
@@ -77,35 +84,35 @@ addVersion versionDag nodeInfo = addVersions versionDag [nodeInfo]
 
 addVersions :: (Ord nodeKey,Ord arcInfo)
    => VersionDag nodeKey nodeInfo arcInfo -> [nodeInfo] -> IO ()
-addVersions 
-      (VersionDag mVar :: VersionDag nodeKey nodeInfo arcInfo) 
-      nodeInfos =
-   modifyMVar_ mVar (\ state0 ->
-      let
-         inPureGraph0 = inPureGraph state0
-         inPureGraph1 = foldl
-            (\ pg0 nodeInfo -> 
-               addNode pg0 (toNodeKey state0 nodeInfo) 
-                  (toParents state0 nodeInfo)
-               )
-            inPureGraph0 
-            nodeInfos
-
-         nodeInfoDict0 = nodeInfoDict state0
-         nodeInfoDict1 = 
-            addListToFM
-               nodeInfoDict0
-               (map
-                  (\ nodeInfo -> (toNodeKey state0 nodeInfo,nodeInfo))
-                  nodeInfos
+addVersions versionDag nodeInfos =
+   applySimpleUpdate (stateBroadcaster versionDag) 
+      (\ state0 ->
+         let
+            inPureGraph0 = inPureGraph state0
+            inPureGraph1 = foldl
+               (\ pg0 nodeInfo -> 
+                  addNode pg0 (toNodeKey versionDag nodeInfo) 
+                     (toParents versionDag nodeInfo)
                   )
-         state1 = state0 {
-            inPureGraph = inPureGraph1,
-            nodeInfoDict = nodeInfoDict1
-            }
-      in
-         recomputeGraph state1
-      )
+               inPureGraph0 
+               nodeInfos
+          
+            nodeInfoDict0 = nodeInfoDict state0
+
+            nodeInfoDict1 = 
+               addListToFM
+                  nodeInfoDict0
+                  (map
+                     (\ nodeInfo -> (toNodeKey versionDag nodeInfo,nodeInfo))
+                     nodeInfos
+                     )
+            state1 = state0 {
+               inPureGraph = inPureGraph1,
+               nodeInfoDict = nodeInfoDict1
+               }
+         in
+            state1
+         )
 
 -- | Change the nodeInfo of something already added.
 setNodeInfo :: (Ord nodeKey,Ord arcInfo) 
@@ -117,32 +124,47 @@ setNodeInfo = addVersion
 changeIsHidden :: (Ord nodeKey,Ord arcInfo)
    => VersionDag nodeKey nodeInfo arcInfo 
    -> (nodeInfo -> Bool) -> IO ()
-changeIsHidden (VersionDag mVar) isHidden1 =
-   modifyMVar_ mVar (\ state0 ->
-      let
-         state1 = state0 {isHidden = isHidden1}
-      in
-         recomputeGraph state1
-      )
+changeIsHidden versionDag isHidden1 =
+   applySimpleUpdate (stateBroadcaster versionDag)
+      (\ state0 -> state0 {isHidden = isHidden1})
 
 -- --------------------------------------------------------------------------
--- Broadcasting
+-- Getting the pruned graph out
 -- --------------------------------------------------------------------------
 
--- | Send the complete contents of a graph to a new client and
--- update the clients field.
-addNewClient :: Ord nodeKey
-   => VersionDagState nodeKey nodeInfo arcInfo
-   -> ClientData nodeInfo () (Maybe arcInfo) ()
-   -> IO (VersionDagState nodeKey nodeInfo arcInfo)
-addNewClient = error "aNC"
+toDisplayedGraph :: (Ord nodeKey,Ord arcInfo)
+   => VersionDag nodeKey nodeInfo arcInfo 
+   -> GraphConnection (nodeInfo,Bool) () (Maybe arcInfo) ()
+toDisplayedGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
+   let
+      transform :: VersionDagState nodeKey nodeInfo arcInfo 
+         -> (PureGraph nodeKey (Maybe arcInfo),nodeKey -> (nodeInfo,Bool))
+      transform state =
+         let
+            toNodeInfo :: nodeKey -> nodeInfo
+            toNodeInfo nodeKey = 
+               lookupWithDefaultFM
+                  (nodeInfoDict state)
+                  (error "VersionDag: nodeKey encountered with no nodeInfo")
+                  nodeKey
 
--- | Given an old VersionDagState in which either inPureGraph, nodeInfoDict
--- or isHidden has changed, broadcast the changes
--- to the clients, update the fields, and return the new VersionDagState.
-recomputeGraph :: (Ord nodeKey,Ord arcInfo)
-   => VersionDagState nodeKey nodeInfo arcInfo 
-   -> IO (VersionDagState nodeKey nodeInfo arcInfo)
-recomputeGraph = error "RR"
+            isHidden0 :: nodeInfo -> Bool
+            isHidden0 = isHidden state
 
+            isHidden1 :: nodeKey -> Bool
+            isHidden1 = isHidden0 . toNodeInfo
 
+            toNodeInfo1 :: nodeKey -> (nodeInfo,Bool)
+            toNodeInfo1 nodeKey =
+               let
+                  nodeInfo = toNodeInfo nodeKey
+               in
+                  (nodeInfo,isHidden0 nodeInfo)
+
+            outPureGraph :: PureGraph nodeKey (Maybe arcInfo)
+            outPureGraph = pureGraphPrune isHidden1 (inPureGraph state)
+         in
+            (outPureGraph,toNodeInfo1)
+   in
+      pureGraphToGraph
+         (fmap transform (toSimpleSource (stateBroadcaster versionDag)))

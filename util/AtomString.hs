@@ -8,6 +8,10 @@ module AtomString(
       -- represents a string.  Instance of Ord, Eq, StringClass, 
       -- Read and Show.  There is no guarantee that Ord on AtomString
       -- corresponds to Ord on the corresponding String.
+   firstAtomString, 
+      -- :: AtomString
+      -- However firstAtomString is guaranteed to be the first AtomString
+      -- in the ordering.
 
    StringClass(..),
       -- encodes that a type encodes strings in some way.
@@ -62,6 +66,9 @@ theAtomSource = unsafePerformIO emptyAtomSource
 
 newtype AtomString = AtomString PackedString deriving (Ord,Eq,Typeable)
 -- in fact Eq could be unsafePtrEq
+
+firstAtomString :: AtomString
+firstAtomString = AtomString (packString "")
 
 ------------------------------------------------------------------------
 -- StringClass

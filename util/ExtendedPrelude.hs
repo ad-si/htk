@@ -94,6 +94,8 @@ module ExtendedPrelude (
    fmToList_GE_1,
    maxFM_1,
    keysFM_GE_1,
+
+   generalisedMerge,
    ) where
 
 import Char
@@ -730,3 +732,40 @@ maxFM_1 map =
 keysFM_GE_1 fm key  = map fst (fmToList_GE_1 fm key)
 #endif
 
+-- ------------------------------------------------------------------------
+-- Generalised Merge
+-- ------------------------------------------------------------------------
+
+-- | A merge function for combining an input list with some new data,
+-- where both are pre-sorted.
+generalisedMerge :: (Monad m)
+   => [a] -- ^ input list
+   -> [b] -- ^ list to combine with input list
+   -> (a -> b -> Ordering)
+          -- ^ comparison function.  a and b should be already sorted
+          -- consistently with this comparison function, and it is assumed
+          -- that each list is EQ to at most one of the other.
+   -> (Maybe a -> Maybe b -> m (Maybe a,Maybe c))
+          -- ^ Merge function applied to each element of a and b, where
+          -- we pair EQ elements together.
+   -> m ([a],[c])
+          -- ^ Output of merge function concatenated.
+generalisedMerge as bs (compareFn :: a -> b -> Ordering) 
+      (mergeFn :: Maybe a -> Maybe b -> m (Maybe a,Maybe c)) =
+   let
+      mkAC :: [m (Maybe a,Maybe c)] -> m ([a],[c])
+      mkAC mList = 
+        do
+           (results :: [(Maybe a,Maybe c)]) <- sequence mList
+           return (mapMaybe fst results,mapMaybe snd results)
+
+      gm :: [a] -> [b] -> [m (Maybe a,Maybe c)]
+      gm as [] = map (\ a -> mergeFn (Just a) Nothing) as
+      gm [] bs = map (\ b -> mergeFn Nothing (Just b)) bs
+      gm (as0 @ (a:as1)) (bs0 @ (b:bs1)) = case compareFn a b of
+         LT -> mergeFn (Just a) Nothing : gm as1 bs0
+         GT -> mergeFn Nothing (Just b) : gm as0 bs1
+         EQ -> mergeFn (Just a) (Just b) : gm as1 bs1
+   in
+      mkAC (gm as bs)
+      

@@ -295,7 +295,7 @@ listToSetSource (simpleSource :: SimpleSource [x]) =
       source1 :: Source [x] [x]
       source1 = toSource simpleSource
 
-      source2 :: Source ([x],Set x) [VariableSetUpdate x]
+      source2 :: Source (Set x,[x]) [VariableSetUpdate x]
       source2 = foldSource
          (\ list -> mkSet list)
          (\ oldSet newList ->
@@ -313,7 +313,7 @@ listToSetSource (simpleSource :: SimpleSource [x]) =
          source1
 
       source3 :: Source [x] [VariableSetUpdate x]
-      source3 = map1 fst source2
+      source3 = map1 snd source2
 
       source4 :: Source [x] (VariableSetUpdate x)
       source4 = flattenSource source3

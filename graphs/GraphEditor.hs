@@ -288,6 +288,8 @@ newNodeArcTypeRegistry graph =
             setValue nodeTypes (nodeTypeTitle attributes) nodeType
          handleUpdate (NewArcType arcType attributes) =
             setValue arcTypes (arcTypeTitle attributes) arcType
+         handleUpdate (MultiUpdate updates) = mapM_ handleUpdate updates
+
          handleUpdate _ = done
 
          monitorThread =

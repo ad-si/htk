@@ -21,6 +21,9 @@ module Graph(
    -- They are also all instances of Eq and Ord.  However there
    -- is no guarantee that the ordering will be the same as for the
    -- corresponding strings.
+   firstNode, 
+   -- :: Node
+   -- first Node in the node ordering.
 
    -- They are also instances of Typeable.
 
@@ -161,6 +164,9 @@ instance Show Node where
 instance Read Node where
    readsPrec = qRead
 
+firstNode :: Node
+firstNode = Node firstAtomString
+
 newtype NodeType = NodeType AtomString deriving (Eq,Ord,Typeable)
 
 instance StringClass NodeType where
@@ -214,6 +220,9 @@ data Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
    |  NewArc Arc ArcType arcLabel Node Node
    |  DeleteArc Arc
    |  SetArcLabel Arc arcLabel
+   |  MultiUpdate [Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel]
+      -- can be used to present unnecessary redrawing when making big
+      -- updates.
    deriving (Read,Show)
 
 ------------------------------------------------------------------------
@@ -223,11 +232,9 @@ data Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
 data CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
    CannedGraph {
       updates :: [Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel]
-      -- This list should have the following structure:
-      -- (a) a sequence of NewNodeType's
-      -- (b) a sequence of NewNode's
-      -- (c) a sequence of NewArcType's
-      -- (d) a sequence of NewArc's.
+      -- This list may only contain NewNodeType, NewNode, NewArcType and
+      -- NewArc definitions.  The updates are processed in list order, so
+      -- for example the endpoints of an Arc should be created before the Arc.
       } deriving (Read,Show)
 
 emptyCannedGraph :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel

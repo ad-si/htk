@@ -81,6 +81,8 @@ module GraphConfigure(
    SurveyView(..),
    AllowDragging(..),
    AllowClose(..),
+   defaultAllowClose,
+
    Orientation(..),
 
    -- ($$$?) is used for Maybe (option), where Nothing means
@@ -91,6 +93,7 @@ module GraphConfigure(
 import Computation(HasConfig(($$),configUsed),done)
 import ExtendedPrelude
 import Dynamics(Dyn,Typeable)
+import Messages
 import Sources
 import Delayer
 
@@ -410,9 +413,16 @@ instance GraphConfig SurveyView
 -- | If True, allow Drag-and-Drop operators.  
 newtype AllowDragging = AllowDragging Bool
 
--- | If set, make this daVinci window unclosable, with the given error message
--- if the user tries.
-newtype AllowClose = AllowClose (Maybe String)
+-- | If set, action which is invoked if the user attempts to close the 
+-- window.  If the action returns True, we close it.
+-- 
+-- WARNING.  This action is performed in the middle of the event loop,
+-- so please don't attempt to do any further graph interactions during it.
+-- (But HTk interactions should be fine.)
+newtype AllowClose = AllowClose (IO Bool)
+
+defaultAllowClose :: AllowClose
+defaultAllowClose = AllowClose (confirmMess "Really close window?")
 
 instance GraphConfig AllowDragging
 

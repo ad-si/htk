@@ -166,3 +166,6 @@ attachSubGraph subGraph graphConnection parentChanges =
       let
          newGraphState = CannedGraph {updates = newUpdates}
       return (graphConnectionData {graphState = newGraphState})
+
+{-# DEPRECATED attachSuperGraph,attachSubGraph
+   "Functions need to be updated to cope with MultiUpdate" #-}

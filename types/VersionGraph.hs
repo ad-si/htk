@@ -191,13 +191,15 @@ newVersionGraph1
                Button "Merge" doMerge,
                Button "Copy Versions To ..." copyVersions1
                ])) $$
-            (AllowClose
-               (if isInternal
-                  then
-                     Just "Internal Version Graph cannot be closed"
-                  else
-                     Nothing
-                  )
+            (if isInternal
+               then
+                  AllowClose (
+                     do
+                        error "Internal Version Graph cannot be closed"
+                        return False
+                     )
+               else
+                  defaultAllowClose
                ) $$
             emptyGraphParms
          

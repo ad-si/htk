@@ -54,7 +54,11 @@ module Sources(
 
    foldSource,
       -- :: (x -> state) -> (state -> d1 -> (state,d2)) 
-      --    -> Source x d1 -> Source (x,state) d2
+      --    -> Source x d1 -> Source (state,x) d2
+
+   foldSourceIO,
+      -- :: (x1 -> IO (state,x2)) -> (state -> d1 -> IO (state,d2)) 
+      -- -> Source x1 d1 -> Source (state,x2) d2
 
    stepSource,
       -- :: (x -> d2) -> (d1 -> d2) -> Source x d1 -> Source x d2
@@ -137,6 +141,10 @@ module Sources(
 
    mkIOSimpleSource,
       -- :: IO (SimpleSource a) -> SimpleSource a
+
+   foldSimpleSourceIO,
+      -- :: (x1 -> IO (state,x2)) -> (state -> x1 -> IO (state,x2))
+      -- -> SimpleSource x1 -> SimpleSource x2
 
    ) where
 
@@ -482,35 +490,46 @@ filterClientIO filterFn (Client clientFn2) =
       client1
 
 foldSource :: (x -> state) -> (state -> d1 -> (state,d2)) 
-   -> Source x d1 -> Source (x,state) d2
-foldSource (xFn :: x -> state) (foldFn :: state -> d1 -> (state,d2))
-      ((Source addClient1) :: Source x d1) =
+   -> Source x d1 -> Source (state,x) d2
+foldSource xFn foldFn =
    let
-      addClient2 :: Client d2 -> IO (x,state)
+      xFnIO x = return (xFn x,x)
+      foldFnIO state d = return (foldFn state d)
+   in
+      foldSourceIO xFnIO foldFnIO
+
+-- | Fold a Source so that it can carry state around.
+foldSourceIO :: (x1 -> IO (state,x2)) -> (state -> d1 -> IO (state,d2)) 
+   -> Source x1 d1 -> Source (state,x2) d2
+foldSourceIO (xFnIO :: x1 -> IO (state,x2)) 
+      (foldFnIO :: state -> d1 -> IO (state,d2))
+      ((Source addClient1) :: Source x1 d1) =
+   let
+      addClient2 :: Client d2 -> IO (state,x2)
       addClient2 client2 =
          do
             let
                createClient :: state -> Client d1  
-               createClient state = foldClient state foldFn client2
+               createClient state = foldClientIO state foldFnIO client2
             (computedClient,writeState) <- mkComputedClient createClient
-            x <- addClient1 computedClient
-            let
-               state = xFn x
+            x1 <- addClient1 computedClient
+            
+            (state,x2) <- xFnIO x1
             writeState state
-            return (x,state)
+            return (state,x2)
    in
       Source addClient2
 
-foldClient :: state -> (state -> d1 -> (state,d2)) -> Client d2 -> Client d1
-foldClient state1 foldFn (Client clientFn2) =
+foldClientIO 
+   :: state -> (state -> d1 -> IO (state,d2)) -> Client d2 -> Client d1
+foldClientIO state1 foldFnIO (Client clientFn2) =
    let
       clientFn1 d1 =
          do
-            let
-               (state2,d2) = foldFn state1 d1
+            (state2,d2) <- foldFnIO state1 d1
             (newClient2Opt) <- clientFn2 d2
             return (fmap
-               (foldClient state2 foldFn)
+               (foldClientIO state2 foldFnIO)
                newClient2Opt
                )
    in
@@ -782,7 +801,7 @@ sequenceSimpleSource (first:rest) =
 -- mapped by the given function.
 mkHistorySource :: (x -> d) -> Source x d -> Source x (d,d)
 mkHistorySource getD source =
-   map1 (\ (x,d) -> x) (foldSource getD (\ lastD d -> (d,(lastD,d))) source)
+   map1 (\ (d,x) -> x) (foldSource getD (\ lastD d -> (d,(lastD,d))) source)
 
 -- | Like mkHistorySource but for SimpleSource\'s; the x returns the initial
 -- value to compare with.
@@ -800,6 +819,18 @@ uniqSimpleSource (SimpleSource source0) =
    in
       SimpleSource source2
 
+
+-- | Fold a Simple Source, so that it carries state.
+-- The state is recomputed for each client.
+foldSimpleSourceIO :: (x1 -> IO (state,x2)) -> (state -> x1 -> IO (state,x2))
+   -> SimpleSource x1 -> SimpleSource x2
+foldSimpleSourceIO (getStateIO :: x1 -> IO (state,x2)) updateStateIO 
+      (SimpleSource (source :: Source x1 x1)) =
+   let
+      source1 :: Source (state,x2) x2 
+      source1 = foldSourceIO getStateIO updateStateIO source
+   in
+      SimpleSource (map1 snd source1)
 
 -- | replaces the first value of the SimpleSource.
 change1 :: SimpleSource x -> x -> SimpleSource x

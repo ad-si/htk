@@ -170,6 +170,7 @@ displayGraph0
                deleteArc dispGraph dispArc
                deleteFromRegistry arcRegister arc
          handleUpdate (SetArcLabel arc arcLabel) = done
+         handleUpdate (MultiUpdate updates) = mapM_ handleUpdate updates
 
       sequence_ (map handleUpdate updates)
 

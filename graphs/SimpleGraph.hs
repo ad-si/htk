@@ -502,6 +502,10 @@ innerApplyUpdate
                            (arcData {arcLabel = arcLabel})
                         passOnUpdate
                   Nothing -> killUpdate
+         MultiUpdate updates -> 
+            do
+               mapM_ (innerApplyUpdate graph) updates
+               passOnUpdate
 
 ------------------------------------------------------------------------
 -- Canning, Uncanning, and graph creation.

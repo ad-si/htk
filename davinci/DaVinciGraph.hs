@@ -288,20 +288,17 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   doInContext  
                      (DaVinciTypes.Menu (File (Print Nothing))) (context graph)
             actGlobalMenu (MenuId "#%close") =
-               do
-                  case configAllowClose of
-                     AllowClose Nothing ->
-                        do
-                           proceed 
-                              <- confirmMess "Really close window?"
-                           if proceed
-                              then
-                                 do
-                                    graph <- readMVar graphMVar
-                                    destroy graph
-                              else
-                                 done
-                     AllowClose (Just mess) -> errorMess mess 
+               case configAllowClose of
+                  AllowClose action ->
+                     do
+                        proceed <- action
+                        if proceed
+                           then
+                              do
+                                 graph <- readMVar graphMVar
+                                 destroy graph
+                           else
+                              done
             actGlobalMenu (MenuId (menuId @ ('#':'%':_))) =
                alertMess ("Mysterious daVinci menu selection " ++ menuId 
                   ++ " ignored")
@@ -450,7 +447,8 @@ instance GraphParms DaVinciGraphParms where
    emptyGraphParms = DaVinciGraphParms {
       graphConfigs = [],configDoImprove = False,surveyView = False,
       graphTitleSource = Nothing,delayerOpt = Nothing,
-      configAllowClose = AllowClose Nothing,configOrientation = Nothing,
+      configAllowClose = defaultAllowClose,
+      configOrientation = Nothing,
       configGlobalMenu = Nothing
       }
 
