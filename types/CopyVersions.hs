@@ -9,6 +9,7 @@ import Maybe
 import Computation
 import ExtendedPrelude
 import Registry
+import Thread(mapMConcurrent_)
 
 import HTk(text,photo)
 import SimpleForm
@@ -17,6 +18,7 @@ import DialogWin
 import Graph
 import SimpleGraph
 import FindCommonParents
+import GetAncestors
 
 
 import HostsPorts(HostPort)
@@ -27,6 +29,7 @@ import VersionGraphClient
 import VersionGraph
 import VersionGraphList
 import CopyVersion
+import CopyVersionInfos
 
 
 
@@ -122,10 +125,18 @@ copyVersions versionGraphFrom =
 
             -- now ready to go. 
             let
+               versionGraphFromTo = FromTo {
+                  from = versionGraphFrom,
+                  to = versionGraphTo
+                  } 
+
                graphFrom = toVersionGraphGraph versionGraphFrom
                graphTo = toVersionGraphGraph versionGraphTo
 
                -- Construct GraphBack for purposes of findCommonParents.
+               -- To make sure we only pick up on nodes whose views have
+               -- actually been committed to the repository, we use 
+               -- getAncestors so that getParents misses out on the others.
 
                mkGraphBack :: VersionTypes SimpleGraph ->
                   GraphBack ObjectVersion VersionInfoKey
@@ -139,15 +150,31 @@ copyVersions versionGraphFrom =
                      do
                         let
                            node = versionToNode version
+
                         versionInfo <- getNodeLabel graph node
                         return (Just (mapVersionInfo versionInfo))
                      ),
                   getParents = (\ version ->
                      do
+                    
                         let
                            node = versionToNode version
-                        versionInfo <- getNodeLabel graph node
-                        return (Just (parents (user versionInfo)))
+
+                        ancestors <- getAncestors
+                           graph
+                           (\ versionInfo -> return (isPresent versionInfo))
+                           node
+
+                        let
+                           versions = map
+                              (\ node -> case nodeToVersion node of
+                                 Just version -> version
+                                 -- Nothing is impossible since no version
+                                 -- may have a view as parent.
+                                 )
+                              ancestors
+
+                        return (Just versions)
                      )
                   }
 
@@ -156,45 +183,40 @@ copyVersions versionGraphFrom =
                <- findCommonParents (mkGraphBack graphFrom) 
                   (mkGraphBack graphTo) versions
 
-               -- List of versions to be copied, with their new parent
-               -- versions either in the from repository (Left) or
-               -- to repository (Right).  They are given in order, so
-               -- we don't copy a version before we've copied its parent.
+            -- Now copy the VersionInfos
+            (toNewVersionInfo :: ObjectVersion -> IO VersionInfo)
+               <- copyVersionInfos versionGraphFromTo versions
 
-            (oldToNew :: Registry ObjectVersion ObjectVersion) <- newRegistry
-               -- contains map from versions in the old repository to
-               -- versions in the new one.
             let
-               getParent :: (ObjectVersion,Maybe ObjectVersion) 
-                  -> IO (FromTo ObjectVersion)
-               getParent (fromVersion,toVersionOpt) =
-                  do
-                     toVersion <- case toVersionOpt of
-                        Just toVersion -> return toVersion
-                        Nothing ->
-                           do
-                              Just toVersion <- getValueOpt oldToNew fromVersion
-                              return toVersion
-                     let
-                        fromTo = FromTo {from = fromVersion,to = toVersion}
+               -- Do one element of commonParents
+               copyOne :: (ObjectVersion,[(ObjectVersion,Maybe ObjectVersion)])
+                  -> IO ()
+               copyOne (fromVersion,parents) =
+                   do
+                      parentsFromTo <- mapM
+                         (\ (parentFrom,parentToOpt) ->
+                            do
+                               parentTo <- case parentToOpt of
+                                  Just parentTo -> return parentTo
+                                  Nothing -> 
+                                     do
+                                        versionInfo 
+                                           <- toNewVersionInfo parentFrom
+                                        return (version (user versionInfo))
+                               return 
+                                  (FromTo {from = parentFrom,to = parentTo})
+                            )
+                         parents
 
-                     return fromTo
+                      toVersionInfo <- toNewVersionInfo fromVersion
+                      copyVersion versionGraphFromTo fromVersion toVersionInfo
+                         parentsFromTo toNewVersionInfo
 
-            -- Now copy.
-            let
-               repositoryFrom = toVersionGraphRepository versionGraphFrom
-               repositoryTo = toVersionGraphRepository versionGraphTo
-
-               repositories = FromTo {from = repositoryFrom,to = repositoryTo}
-
-            mapM_ 
-               (\ (versionFrom,parentDatas) ->
-                  do
-                     parents <- mapM getParent parentDatas
-                     versionTo <- copyVersion repositories parents versionFrom
-                     setValue oldToNew versionFrom versionTo
-                   )
-               commonParents
+            -- Copy simultaneously all the versions.  This will mean that
+            -- if either server is a long way away and we have a lot of
+            -- versions to copy, the commands will get bunched together 
+            -- using the MultiCommand mechanism.
+            mapMConcurrent_ copyOne commonParents
  
          )
       done

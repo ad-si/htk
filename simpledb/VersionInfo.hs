@@ -29,6 +29,16 @@ module VersionInfo(
       -- Modify the UserInfo for a VersionInfo, checking that the user is
       -- allowed to do this.
 
+   commitVersionInfo,
+      -- :: VersionInfo -> Maybe VersionInfo
+      -- Mark VersionInfo as committed, or return Nothing if it already is.
+
+   changeVersionInfo,
+      -- :: PasswordFile.User -> VersionInfo -> VersionInfo 
+      -- -> WithError VersionInfo
+      -- Modify a VersionInfo, checking that the user is
+      -- allowed to do this.  (We do not allow system data to be changed.)
+
    cleanVersionInfo, 
       -- :: VersionInfo -> VersionInfo
       -- Clear settable fields (used on checkout).
@@ -43,6 +53,8 @@ module VersionInfo(
       --    the given VersionInfo already exists.
    lookupVersionInfo,
       -- :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
+   lookupServerInfo,
+      -- :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion) 
 
    getVersionInfos, -- :: VersionState -> IO [VersionInfo]
       -- get all the version infos, in undefined order.
@@ -146,11 +158,18 @@ data ServerInfo = ServerInfo {
    timeStamp :: ClockTime,
       -- ^ When this version was first checked in.
    userId :: String -- identifier of the committing user.
-   } deriving Show
+   } deriving (Show,Eq,Ord)
 
 data VersionInfo = VersionInfo {
    user :: UserInfo,
-   server :: ServerInfo
+   server :: ServerInfo,
+   isPresent :: Bool
+      -- If True, means that an attempt to retrieve this version will
+      -- succeed.
+      -- 
+      -- This field is under the control of the SimpleDB server.  Its setting
+      -- when sent to the server (in a VersionInfo1 constructor, for example)
+      -- will be ignored.
    } deriving (Show,Typeable)
 
 -- ----------------------------------------------------------------------
@@ -205,14 +224,14 @@ instance Monad m => HasBinary ServerInfo m where
 
 instance Monad m => HasBinary VersionInfo m where
    writeBin = mapWrite
-      (\ (VersionInfo {user = user,server = server})
+      (\ (VersionInfo {user = user,server = server,isPresent = isPresent})
          ->
-         (user,server)
+         (user,server,isPresent)
          )
    readBin = mapRead 
-      (\ (user,server)
+      (\ (user,server,isPresent)
          ->
-         (VersionInfo {user = user,server = server})
+         (VersionInfo {user = user,server = server,isPresent = isPresent})
          )
 
 -- ----------------------------------------------------------------------
@@ -220,19 +239,15 @@ instance Monad m => HasBinary VersionInfo m where
 -- client doesn't rig the VersionInfos.
 -- ----------------------------------------------------------------------
 
-type VersionInfoKey = (Int,String,String,ClockTime) -- must be instance of Ord
+type VersionInfoKey = ServerInfo -- must be instance of Ord
 
 mapVersionInfo :: VersionInfo -> VersionInfoKey
-mapVersionInfo versionInfo =
-   let
-      server1 = server versionInfo
-   in
-      (serialNo server1,serverId server1,userId server1,timeStamp server1)
-      -- The userId is necessary as a security measure, since otherwise
-      --    a user could create a version with whatever id he liked and
-      --    then effectively overwrite someone else's version.  The timeStamp
-      --    guards against the possibility of a server being restarted and
-      --    new serial-numbers generated.
+mapVersionInfo versionInfo = server versionInfo
+   -- The userId is necessary as a security measure, since otherwise
+   --    a user could create a version with whatever id he liked and
+   --    then effectively overwrite someone else's version.  The timeStamp
+   --    guards against the possibility of a server being restarted and
+   --    new serial-numbers generated.
 
 
 -- ----------------------------------------------------------------------
@@ -256,6 +271,8 @@ instance Ord VersionInfo where
 -- ----------------------------------------------------------------------
 -- Code for filling in the ServerInfo, if necessary, also checking
 -- that the user meets the appropriate criteria.
+-- We set isPresent to be False if necessary.  To set this to True,
+-- the caller (SimpleDBServer) needs to use commitVersionInfo on commit.
 -- ----------------------------------------------------------------------
 
 mkVersionInfo :: VersionState -> PasswordFile.User 
@@ -276,7 +293,8 @@ mkVersionInfo versionState user (Left versionUser) =
 
          versionInfo = VersionInfo {
             user = versionUser,
-            server = versionServer
+            server = versionServer,
+            isPresent = False
             }
 
       return (hasValue versionInfo)
@@ -293,6 +311,15 @@ mkVersionInfo versionState user (Right versionInfo) =
                   ++ thisUser ++ " into this repository.")
       )
 
+-- Returns Nothing if the version is already committed.
+commitVersionInfo :: VersionInfo -> Maybe VersionInfo
+commitVersionInfo versionInfo0 =
+   if isPresent versionInfo0
+      then
+         Nothing
+      else 
+         Just (versionInfo0 {isPresent = True})
+
 changeUserInfo :: PasswordFile.User -> VersionInfo -> UserInfo 
    -> WithError VersionInfo
 changeUserInfo user1 versionInfo userInfo =
@@ -306,17 +333,38 @@ changeUserInfo user1 versionInfo userInfo =
             hasError ("You cannot modify the version information for "
                ++ thisUser ++ ".")
 
+
+-- | Modify a VersionInfo, checking that the user is
+-- allowed to do this.  (We do not allow system data to be changed.)
+changeVersionInfo :: PasswordFile.User -> VersionInfo -> VersionInfo 
+   -> WithError VersionInfo
+changeVersionInfo user1 versionInfo0 versionInfo1 =
+   let
+      server0 = server versionInfo0
+      server1 = server versionInfo1
+   in
+      if server0 /= server1 
+         then
+            hasError ("Cannot change fundamental system parameters of version")
+         else
+            changeUserInfo user1 versionInfo0 (user versionInfo1)
+
 -- ----------------------------------------------------------------------
 -- Accessing the version data
 -- ----------------------------------------------------------------------
 
 data VersionState = VersionState {
-   versionInfosRef :: MVar (FiniteMap ObjectVersion VersionInfo),
+   versionInfosRef :: MVar VersionInfosMaps,
       -- all VersionInfos so far.
       -- also used as a lock on various operations.
    versionInfoActRef :: IORef ( IO (Bool,VersionInfo) -> IO ()),
    logFile :: LogFile VersionInfo,
    thisServerId :: String
+   }
+
+data VersionInfosMaps = VersionInfosMaps {
+   fromVersion :: FiniteMap ObjectVersion VersionInfo,
+   fromServer :: FiniteMap ServerInfo ObjectVersion
    }
 
 objectVersion :: VersionInfo -> ObjectVersion 
@@ -329,15 +377,28 @@ mkVersionState isInternal =
       let
          -- we have to be careful here that later elements of the list override
          -- earlier ones.
-         versionInfos = foldl
-            (\ versionInfos0 versionInfo 
-               -> addToFM versionInfos0 (objectVersion versionInfo) 
+         fromVersion1 = foldl
+            (\ fromVersion0 versionInfo 
+               -> addToFM fromVersion0 (objectVersion versionInfo) 
                   versionInfo
                )
             emptyFM
             versionInfosList
 
-      versionInfosRef <- newMVar versionInfos
+         fromServer1 = foldl
+            (\ fromVersion0 versionInfo
+               -> addToFM fromVersion0 (server versionInfo) 
+                  (version (user versionInfo))
+               )
+            emptyFM
+            versionInfosList
+
+         versionInfosMaps = VersionInfosMaps {
+            fromVersion = fromVersion1,
+            fromServer = fromServer1
+            }
+
+      versionInfosRef <- newMVar versionInfosMaps
       versionInfoActRef <- newIORef (\ act 
          -> do
                act
@@ -365,41 +426,61 @@ addVersionInfo versionState (iv @ (isEdit,versionInfo)) =
          (do
             writeLog (logFile versionState) versionInfo
             modifyMVar_ (versionInfosRef versionState) 
-               (\ map0 -> return (
-                  addToFM map0 (objectVersion versionInfo) versionInfo
-                  ))
+               (\ versionInfosMaps0 ->
+                  return (
+                     let
+                        objectVersion = version (user versionInfo)
+
+                        fromVersion1 = addToFM (fromVersion versionInfosMaps0) 
+                           objectVersion versionInfo
+                        fromServer1 = addToFM (fromServer versionInfosMaps0) 
+                           (server versionInfo) objectVersion
+
+                        versionInfoMaps1 = VersionInfosMaps {
+                           fromVersion = fromVersion1,fromServer = fromServer1}
+                     in
+                        versionInfoMaps1
+                     )
+                  )
             return  iv
             )
 
 lookupVersionInfo :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
 lookupVersionInfo versionState objectVersion =
    do
-      map <- readMVar (versionInfosRef versionState)
-      return (lookupFM map objectVersion)   
+      versionInfosMaps <- readMVar (versionInfosRef versionState)
+      return (lookupFM (fromVersion versionInfosMaps) objectVersion)   
+
+lookupServerInfo :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion) 
+lookupServerInfo versionState serverInfo =
+   do
+      versionInfosMaps <- readMVar (versionInfosRef versionState)
+      return (lookupFM (fromServer versionInfosMaps) serverInfo)   
+
 
 getVersionInfos :: VersionState -> IO [VersionInfo]
 getVersionInfos versionState = 
    do
-      map <- readMVar (versionInfosRef versionState)
-      return (eltsFM map)
+      versionInfosMaps <- readMVar (versionInfosRef versionState)
+      return (eltsFM (fromVersion versionInfosMaps))
 
 registerAct :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
 registerAct versionState actFn =
    modifyMVar_ (versionInfosRef versionState) 
-      (\ map0 ->
+      (\ versionInfosMaps0 ->
          do
             writeIORef (versionInfoActRef versionState) actFn
-            return map0
+            return versionInfosMaps0
          )
 
 registerAndGet :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> 
    IO [VersionInfo]
 registerAndGet versionState actFn =
    modifyMVar (versionInfosRef versionState) 
-      (\ map0 ->
+      (\ versionInfosMaps0 ->
          do
             writeIORef (versionInfoActRef versionState) actFn
-            return (map0,eltsFM map0)
+            return (versionInfosMaps0,eltsFM (fromVersion versionInfosMaps0))
          )
 
 
@@ -426,7 +507,8 @@ topVersionInfo = VersionInfo {
       serialNo = 0,
       timeStamp = initialClockTime,
       userId = ""
-      }
+      },
+   isPresent = True
    }
    
 

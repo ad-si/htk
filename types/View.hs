@@ -14,18 +14,16 @@ module View(
       -- (global) versions.
    Version, 
       -- type of the version of a view
-   getView, -- :: Repository -> Version -> IO View
+   getView, -- :: Repository -> VersionSimpleGraph -> Version -> IO View
       -- This checks out a particular view.
    commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
       -- a global version.
-   commitView1, -- :: Bool -> ObjectVersion -> View -> IO Version
+   commitView1, -- :: CommitInfo -> ObjectVersion -> View -> IO Version
       -- Slightly more general version where the object version is
       -- pre-allocated.
-      -- If the Bool is True (it isn't except when copying the view during
-      -- session management) we preserve the system information (such
-      -- as serverId and so on), and everything else in the View's 
-      -- viewInfoBroadcaster except for the objectVersion.
+   CommitInfo(..),
+      -- describes information preserved on commit.
 
    synchronizeView, -- :: View -> IO b -> IO b
       -- Perform some action during which no commit should take place.
@@ -81,10 +79,15 @@ import GlobalRegistry
 
 
 -- ----------------------------------------------------------------------
--- The Version type
+-- Datatypes
 -- ----------------------------------------------------------------------
 
 type Version = ObjectVersion
+
+data CommitInfo = 
+      OnlyVersionNumber
+   |  OnlyUserInfo
+   |  AllVersionInfo
 
 -- ----------------------------------------------------------------------
 -- Views
@@ -181,10 +184,10 @@ commitView :: View -> IO Version
 commitView view =
    do
       newVersion1 <- newVersion (repository view)
-      commitView1 False newVersion1 view
+      commitView1 OnlyUserInfo newVersion1 view
 
-commitView1 :: Bool -> ObjectVersion -> View -> IO Version
-commitView1 preserveVersion newVersion1 
+commitView1 :: CommitInfo -> ObjectVersion -> View -> IO Version
+commitView1 commitInfo newVersion1 
    (view @ View {repository = repository,objects = objects,
       commitLock = commitLock}) =
    synchronizeGlobal commitLock (
@@ -245,14 +248,13 @@ commitView1 preserveVersion newVersion1
             user0 = user viewInfo0
             user1 = user0 {version = newVersion1}
 
-            versionArg = 
-              if preserveVersion
-                 then
-                    Right (viewInfo0 {user = user1})
-                 else
-                    Left user1
+            versionInformation = 
+              case commitInfo of
+                 OnlyVersionNumber -> Version1 newVersion1
+                 OnlyUserInfo -> UserInfo1 user1
+                 AllVersionInfo -> VersionInfo1 (viewInfo0 {user = user1})
 
-         commit repository versionArg [] objectsData2
+         commit repository versionInformation [] objectsData2
 
          let
             user2 = user1 {parents = [newVersion1]}

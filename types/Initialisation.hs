@@ -99,7 +99,7 @@ createRepository initialiseView repository =
       if version == VersionDB.firstVersion
          then
             do
-               commitView1 True version view
+               commitView1 AllVersionInfo version view
                done
          else
             -- Someone else has simultaneously initialised the repository!

@@ -338,7 +338,7 @@ usualProgramArguments = [
    ProgramArgument{
       optionName = "daVinci",
       optionHelp = "path to the daVinci program",
-      defaultVal = Just (StringValue "/usr/bin/daVinci"),
+      defaultVal = Nothing,
       argType = STRING
       },
    ProgramArgument{

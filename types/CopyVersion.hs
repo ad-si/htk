@@ -8,60 +8,184 @@ module CopyVersion(
 import Maybe
 
 import Data.FiniteMap
+import Control.Concurrent.MVar
+
+import Computation
+import Sources
+import Broadcaster
+import FileSystem
+import Store
+import VariableSet(HasKey(..))
+import ICStringLen(ICStringLen)
+import Registry(newRegistry)
+import Delayer(newDelayer)
+
+import VSem
 
 import VersionDB
 import VersionInfo
 
+import Link
+import View
+import ViewType
+import CodedValue
+import ObjectTypes
+import GlobalRegistry
+import MergeTypes
+import MergeReAssign
+import VersionGraph
+
 -- | Denote corresponding elements for the source and destination.
 data FromTo a = FromTo {from :: a,to :: a}
 
--- In the arguments t
 copyVersion :: 
-   FromTo Repository 
-      -- ^ Source and target repositories.
-   -> [FromTo ObjectVersion] 
-      -- ^ The closest common ancestors (which had better match)
+   FromTo VersionGraph
+      -- ^ Source and target version graphs.
    -> ObjectVersion
-      -- ^ The object version to copy.
-   -> IO ObjectVersion
-      -- ^ The copied object version
-copyVersion (FromTo {from = fromRepository,to = toRepository}) parents 
-     fromVersion =
+      -- ^ The object version to copy (original version).
+   -> VersionInfo
+      -- ^ The version info of the version in the new repository
+      -- (which will already have been copied by the function in
+      -- the CopyVersionInfos module)
+   -> [FromTo ObjectVersion]
+      -- ^ the version of the known committed parents known to both
+      -- the source and destination repository.
+   -> (ObjectVersion -> IO VersionInfo)
+      -- ^ a map which will goes from an object version in the source 
+      -- repository, to the corresponding VersionInfo in the destination graph.
+   -> IO ()
+copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
+     fromVersion toVersionInfo parents toNewVersionInfo =
   do
-     -- (0) compute a map from old parent versions to new parent versions
      let
+        fromRepository = toVersionGraphRepository fromVersionGraph
+        toRepository = toVersionGraphRepository toVersionGraph
+
+        fromVersionSimpleGraph = toVersionGraphGraph fromVersionGraph
+        toVersionSimpleGraph = toVersionGraphGraph toVersionGraph
+
         parentsMap :: FiniteMap ObjectVersion ObjectVersion
-        parentsMap =
-           foldl
-              (\ map0 (FromTo {from = fromParent,to = toParent})
-                 -> addToFM map0 fromParent toParent
-                 )
-              emptyFM
-              parents
+        parentsMap = listToFM (map
+           (\ parent -> (from parent,to parent))
+           parents
+           )
 
         mapParent :: ObjectVersion -> ObjectVersion
-        mapParent fromParent = lookupWithDefaultFM parentsMap
-           (error "copyVersion: given a parent version that does not exist")
-           fromParent
+        mapParent fromVersion = case lookupFM parentsMap fromVersion of
+           Nothing -> error "CopyVersion: unknown parent"
+           Just toVersion -> toVersion
+
+     -- (0.5) Get a View for the old version.
+     view0 <- getView fromRepository fromVersionSimpleGraph fromVersion
 
      -- (1) get diffs for fromVersion from its parents.
-     diffs <- getDiffs fromRepository fromVersion (map from parents)
+     (diffs :: [(Location,Diff)])
+         <- getDiffs fromRepository fromVersion (map from parents)
+
+     -- (1.2) construct view for new version.
      let
-        -- compute commit-changes for commit.
-        toCommitChange :: (Location,Diff) -> Maybe (Location,CommitChange)
-        toCommitChange (_,IsOld) = Nothing
-        toCommitChange (location,IsChanged {changed = changed}) 
-           = Just (mapChanged location changed)
-        toCommitChange (location,IsNew {changed = changed}) 
-           = Just (mapChanged location changed)
+        viewId1 = viewId view0
+        repository1 = toRepository 
+     objects1 <- newRegistry
 
-        mapChanged location (Left icsl) 
-           = (location,Left (importICStringLenPure icsl))
-        mapChanged location (Right (location1,fromVersion)) 
-           = (location,Right (location1,mapParent fromVersion))
+     viewInfoBroadcaster1 <- newSimpleBroadcaster toVersionInfo
+     fileSystem1 <- newFileSystem
+     commitLock1 <- newVSem
+     delayer1 <- newDelayer
+     committingVersion1 <- newMVar Nothing
+     importsState1 <- newStore
+     let
+        view1 = View {
+           repository = toRepository,
+           viewId = viewId1,
+           objects = objects1,
+           viewInfoBroadcaster = viewInfoBroadcaster1,
+           fileSystem = fileSystem1,
+           commitLock = commitLock1,
+           delayer = delayer1,
+           committingVersion = committingVersion1,
+           versionGraph1 = toVersionSimpleGraph,
+           importsState = importsState1
+           }
 
+     -- (1.3) Turn the diffs into object versions.
+
+     -- We need to get at ALL the WrappedMergeLinks for the source view,
+     -- so we can know to which links copyObject needs to be applied.  We
+     -- also use this to discard any inaccessible links.
+     wrappedMergeLinks <- getAllWrappedMergeLinks view0
+
+     let
+        wmlMap :: FiniteMap Location WrappedMergeLink
+        wmlMap = listToFM
+           (map
+              (\ wml -> (toKey wml,wml))
+              wrappedMergeLinks
+              )
+
+        -- now we can process the diffs.
+
+        mapChanged :: Location -> ChangeData -> IO (Maybe CommitChange)
+        mapChanged location changeData = 
+           case lookupFM wmlMap location of
+              Nothing -> return Nothing 
+                 -- This location is inaccessible, and so the change can
+                 -- be discarded. 
+              Just (WrappedMergeLink link) ->
+                 case changeData of
+                    Right (location1,fromVersion) ->
+                       return (Just (Right (location1,mapParent fromVersion)))
+                    Left icsl ->
+                       do
+                          objectSource <- mapLink icsl link
+                          return (Just (Left objectSource))
+
+        mapLink :: HasMerging object 
+           => ICStringLen -> Link object -> IO ObjectSource
+        mapLink icsl (link :: Link object) =
+           let
+              copyObject1 
+                 :: Maybe (View -> object -> View -> (ObjectVersion 
+                    -> IO VersionInfo) -> IO object)
+              copyObject1 = copyObject
+           in
+              case copyObject1 of
+                 Nothing -> -- easy case, no transformation necessary
+                    return (importICStringLenPure icsl)
+                 Just copyObject2 ->
+                    do
+                       object0 <- doDecodeIO icsl view0
+                       object1 
+                          <- copyObject2 view0 object0 view1 toNewVersionInfo
+                       codedValue1 <- doEncodeIO object1 view1
+                       objectSource1 <- importICStringLen codedValue1
+                       return objectSource1
+
+
+     (commitChanges0 :: [Maybe (Location,CommitChange)])
+        <- mapM
+           (\ (location,diff) ->
+              let
+                 mkCommitChange :: ChangeData 
+                    -> IO (Maybe (Location,CommitChange))
+                 mkCommitChange changed0 =
+                    do
+                       commitChangedOpt <- mapChanged location changed0
+                       return (fmap
+                          (\ commitChanged -> (location,commitChanged))
+                          commitChangedOpt
+                          )
+              in
+                 case diff of
+                    IsOld -> return Nothing
+                    IsNew {changed = changed0} -> mkCommitChange changed0
+                    IsChanged {changed = changed0} -> mkCommitChange changed0
+              )
+           diffs
+
+     let         
         commitChanges :: [(Location,CommitChange)]
-        commitChanges = mapMaybe toCommitChange diffs
+        commitChanges = catMaybes commitChanges0    
 
         -- compute redirects for commit.
         toRedirect :: (Location,Diff) -> Maybe (Location,Maybe ObjectVersion)
@@ -73,22 +197,72 @@ copyVersion (FromTo {from = fromRepository,to = toRepository}) parents
         redirects :: [(Location,Maybe ObjectVersion)]
         redirects = mapMaybe toRedirect diffs
  
-     -- (2) get version info for fromVersion
-     versionInfo0 <- retrieveVersionInfo fromRepository fromVersion
+     -- (2) we can now commit.
+     
+     catchAlreadyExists 
+        (commit toRepository (Version1 (version (user toVersionInfo)))
+           redirects commitChanges)
+     -- an already-exists can happen when two people simultaneously try to
+     -- copy the same version to the same repository.
+     done
 
-     -- (3) Allocate the new version
-     toVersion <- newVersion toRepository
- 
-     -- (4) Modify the versionInfo.
-     let
-        user0 = user versionInfo0
-        user1 = user0 {
-           version = toVersion,
-           parents = map to parents
-           }
-        versionInfo1 = versionInfo0 {user = user1}
+-- ------------------------------------------------------------------------
+-- Computing a dictionary of the accessible links within a view.
+-- We will use this (a) to filter out those links which do not need to
+-- be copied (since they are inaccessible); (b) to find out which ones
+-- need special treatment.  (MergeTypes.copyObject)
+-- ------------------------------------------------------------------------
 
-     -- (5) Commit
-     commit toRepository (Right versionInfo1) redirects commitChanges
+getAllWrappedMergeLinks :: View -> IO [WrappedMergeLink]
+getAllWrappedMergeLinks view =
+   do
+      -- This carries out a stripped-down version of Merging.mergeViews
+      -- to call mkLinkReAssigner.  Instead we could probably strip down
+      -- mkLinkReAssigner, but it doesn't seem worthwhile.
 
-     return toVersion 
+      (allObjectTypeTypes :: [WrappedObjectTypeTypeData]) 
+         <- getAllObjectTypeTypes
+
+      let
+         mergeObjectTypeTypeData :: WrappedObjectTypeTypeData 
+            -> IO [(GlobalKey,[(View,WrappedObjectType)])]
+         mergeObjectTypeTypeData (WrappedObjectTypeTypeData objectType)
+               =
+            do
+               allTypesWE <- mergeViewsInGlobalRegistry 
+                  (objectTypeGlobalRegistry objectType) [view] view
+               allTypes <- coerceWithErrorStringIO "CopyVersion.A" allTypesWE
+               return (map 
+                  (\ (key,viewTypes) ->
+                     (key,map
+                        (\ (view,objectType) 
+                           -> (view,WrappedObjectType objectType))
+                        viewTypes
+                        )
+                     )
+                  allTypes
+                  )
+
+
+      (allTypes :: [(WrappedObjectTypeTypeData,
+         [(GlobalKey,[(View,WrappedObjectType)])])])
+         <- mapM 
+            (\ wrappedObjectTypeTypeData ->
+               do
+                  theseTypes <- mergeObjectTypeTypeData
+                     wrappedObjectTypeTypeData
+                  return (wrappedObjectTypeTypeData,theseTypes)
+               )
+            allObjectTypeTypes
+
+
+      linkReAssignerWE <- mkLinkReAssigner [view] allTypes
+
+      linkReAssigner 
+         <- coerceWithErrorStringIO "CopyVersion.B" linkReAssignerWE
+
+      let
+         wmls :: [WrappedMergeLink]
+         wmls = (map snd) . keysFM . linkMap $ linkReAssigner            
+
+      return wmls

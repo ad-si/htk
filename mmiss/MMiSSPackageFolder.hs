@@ -379,7 +379,8 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
 
             menuOptions = [
                Button "Open Package" (\ link -> openAction link),
-               Button "Close Package" (\ link -> closeAction link)
+               Button "Close Package" (\ link -> closeAction link),
+               Button "Reimport Package" (\ link -> reimportPackage view link)
                ]
 
             menu = LocalMenu (Menu Nothing menuOptions)
@@ -546,6 +547,50 @@ importMMiSSPackage view parentLinkedObject =
                   Right Nothing -> error2
                   Right result -> return (Just link)
             )
+
+-- Import a new version into an existing MMiSS package.
+-- This function is implemented like a (very) stripped-down version of
+-- importMMiSSPackage.
+reimportMMiSSPackage :: View -> Link MMiSSPackageFolder -> IO ()
+reimportMMiSSPackage view packageFolderLink =
+   do
+      resultWE <- addFallOutWE (\ break ->
+         do
+            packageFolder <- readLink view packageFolderLink
+            
+            (nameOpt :: Maybe EntityName) 
+               <- readContents (getLinkedObjectTitleOpt 
+                  (toLinkedObject packageFolder))
+            name <- case nameOpt of
+               Nothing -> break 
+                  "Can't import to package which hasn't been inserted"
+               Just name -> return name
+            let
+               -- function for importMMiSSLaTeX
+               getLinkedObject :: EntityName 
+                  -> IO (WithError MMiSSPackageFolder)
+               getLinkedObject name1 =
+                  return (if name == name1 
+                     then
+                        hasValue packageFolder
+                     else
+                        hasError ("File contains wrong package: "
+                           ++ toString name1 ++ ", not "
+                           ++ toString name)
+                     )
+
+               packageType = retrieveObjectType "package"
+
+            result <- importMMiSSLaTeX (preambleLink packageFolder)
+               packageType view getLinkedObject
+            -- don't care if errors, as any errors will already have been
+            -- shown.
+            done
+         )
+
+      case fromWithError resultWE of
+         Right () -> done
+         Left mess -> createErrorWin mess []
 
 -- ------------------------------------------------------------------------
 -- Miscellaneous Functions

@@ -50,12 +50,12 @@ module SimpleDB(
 
    commit,
       --  :: Repository 
-      --  -> Either UserInfo VersionInfo
+      --  -> VersionInformation
       --  -> [(Location,Maybe ObjectVersion)]
       --  -> [(Location,CommitChange)] -> IO ()
       -- Commit a complete new version to the repository.
       --
-      -- Either UserInfo VersionInfo
+      -- VersionInformation
       --    contains the additional information for this commit
       --    (the ObjectVersion for the new version, parent versions,
       --       version title, and so on.)
@@ -74,9 +74,12 @@ module SimpleDB(
       --       normally only used during merging.
 
    CommitChange, -- = Either ObjectSource (Location,ObjectVersion)
+   VersionInformation(..),
 
    modifyUserInfo,
       -- :: Repository -> UserInfo -> IO ()
+   modifyVersionInfo,
+      -- :: Repository -> VersionInfo -> IO ()
    retrieveVersionInfo,
       -- :: Repository -> ObjectVersion -> IO VersionInfo 
 
@@ -86,6 +89,23 @@ module SimpleDB(
       -- Compare the given object version with the (presumably parent)
       -- object versions.
    Diff(..),
+   ChangeData,
+
+   queryRepository,
+      -- :: Repository -> SimpleDBCommand -> IO SimpleDBResponse,
+      -- General query.
+   SimpleDBCommand(..),SimpleDBResponse(..),
+
+   catchNotFound, 
+      -- :: IO a -> IO (Maybe a)
+      -- Catch the exception provoked by the retrieveXXX functions and
+      -- getVersionInfo when a version is not found.
+   catchAlreadyExists,
+      -- :: IO a -> IO (Either ObjectVersion a)
+      -- Catch the exception provoked by commit and modifyVersionInfo
+      -- when we attempt to check in an VersionInfo which already exists
+      -- in the repository, but with a different version number, or when
+      -- we check in to an ObjectVersion which has already been checked in.
 
    catchDBError, -- :: IO a -> IO (Either String a)
    catchDBErrorWE, -- :: IO a -> IO (WithError a)
@@ -99,10 +119,11 @@ module SimpleDB(
 import System.IO.Unsafe(unsafePerformIO)
 
 import Object
-import Computation(done,WithError,toWithError)
+import Computation(done,WithError,toWithError,fromWithError)
 import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
+import AtomString
 
 import Destructible
 import BSem
@@ -285,10 +306,10 @@ retrieveFile repository location objectVersion filePath =
 type CommitChange = Either ObjectSource (Location,ObjectVersion)
 
 commit :: Repository 
-   -> Either UserInfo VersionInfo
+   -> VersionInformation
    -> [(Location,Maybe ObjectVersion)]
    -> [(Location,CommitChange)] -> IO ()
-commit repository versionExtra redirects newStuff0 =
+commit repository versionInformation redirects newStuff0 =
    do
       (newStuff1 
             :: [(Location,Either ICStringLen (Location,ObjectVersion))]) <-
@@ -304,19 +325,35 @@ commit repository versionExtra redirects newStuff0 =
             newStuff0
 
       response <- queryRepository repository (
-         Commit versionExtra redirects newStuff1)
+         Commit versionInformation redirects newStuff1)
 
       case response of
          IsOK -> done
+         IsObjectVersion objectVersion -> alreadyExistsError objectVersion
          _ -> dbError ("Commit error: unexpected response")
 
 
 modifyUserInfo repository userInfo =
    do
-      response <- queryRepository repository (ModifyUserInfo userInfo)
+      response 
+         <- queryRepository repository (ModifyUserInfo (UserInfo1 userInfo))
       case response of
          IsOK -> done
+         IsObjectVersion objectVersion -> 
+            error ("modifyUserInfo: " ++ toString objectVersion)
          _ -> dbError ("ModifyUserInfo: unexpected response")
+
+modifyVersionInfo :: Repository -> VersionInfo -> IO ()
+modifyVersionInfo repository versionInfo =
+   do
+      response 
+         <- queryRepository repository 
+            (ModifyUserInfo (VersionInfo1 versionInfo))
+      case response of
+         IsOK -> done
+         IsObjectVersion objectVersion -> alreadyExistsError objectVersion
+         _ -> dbError ("ModifyVersionInfo: unexpected response")
+
 
 retrieveVersionInfo :: Repository -> ObjectVersion -> IO VersionInfo 
 retrieveVersionInfo repository version =
@@ -324,6 +361,7 @@ retrieveVersionInfo repository version =
       response <- queryRepository repository (GetVersionInfo version)
       case response of
          IsVersionInfo v -> return v
+         IsNotFound -> notFoundError
          _ -> dbError ("GetVersionInfo: unexpected response")
 
 
@@ -354,6 +392,7 @@ toObjectVersions r = unpackError "objectVersions" r
 
 toData :: SimpleDBResponse -> ICStringLen
 toData (IsData icsl) = icsl
+toData IsNotFound = notFoundError
 toData r = unpackError "object" r
 
 unpackError s r = dbError ("Expecting " ++ s ++ ": " ++ 
@@ -366,6 +405,8 @@ unpackError s r = dbError ("Expecting " ++ s ++ ": " ++
 -- Handling errors
 ----------------------------------------------------------------
 
+
+-- miscellaneous errors
 (dbFallOutId,catchDBError) = mkdbFallOut
 
 catchDBErrorWE :: IO a -> IO (WithError a)
@@ -379,4 +420,43 @@ dbError = mkBreakFn dbFallOutId
 
 mkdbFallOut = unsafePerformIO newFallOut
 {-# NOINLINE mkdbFallOut #-}
+
+-- not found exceptions
+(notFoundId,catchNotFound') = mkNotFoundFallOut
+
+catchNotFound :: IO a -> IO (Maybe a)
+catchNotFound act =
+   do 
+      result <- catchNotFound' act
+      return (case result of
+         Left "" -> Nothing
+         Right a -> Just a
+         )
+
+notFoundError :: a
+notFoundError = mkBreakFn notFoundId ""
+
+mkNotFoundFallOut = unsafePerformIO newFallOut
+{-# NOINLINE mkNotFoundFallOut #-}
+
+-- alreadyExists exceptions
+-- we use a horrible hack, and encode the version number in
+-- the String using toString 
+(alreadyExistsId,catchAlreadyExists') = mkAlreadyExistsFallOut
+
+catchAlreadyExists :: IO a -> IO (Either ObjectVersion a)
+catchAlreadyExists act =
+   do
+      result <- catchAlreadyExists' act
+      case result of
+         Left mess -> case fromWithError (fromStringWE mess) of
+            Right objectVersion -> return (Left objectVersion)
+         Right a -> return (Right a) 
+
+alreadyExistsError :: ObjectVersion -> a
+alreadyExistsError objectVersion 
+   = mkBreakFn alreadyExistsId (toString objectVersion)
+
+mkAlreadyExistsFallOut = unsafePerformIO newFallOut
+{-# NOINLINE mkAlreadyExistsFallOut #-}
 

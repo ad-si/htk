@@ -15,7 +15,7 @@ module MergeTypes(
 
    LinkReAssigner(..),
    HasMerging(..),
-   WrappedMergeLink(..),
+   WrappedMergeLink(..), -- instance HasKey _ Location
    unpackWrappedMergeLink,
       -- :: HasMerging object => WrappedMergeLink -> Maybe (Link object)
    
@@ -35,6 +35,10 @@ import Data.FiniteMap
 
 import Dynamics
 import Computation
+import VariableSet(HasKey(..))
+
+import SimpleDB(Location)
+import VersionInfo(ObjectVersion,VersionInfo)
 
 import CodedValue
 import Link
@@ -133,6 +137,25 @@ class HasCodedValue object => HasMerging object where
             unitWE
             )
 
+   copyObject :: Maybe (View -> object -> View 
+      -> (ObjectVersion -> IO VersionInfo) -> IO object)
+      -- Operation performed during session management, when we need to
+      -- recreate an object.  We take the original view, old object,
+      -- new view as arguments and lookup function, and return a new version 
+      -- of the object.
+      --
+      -- The lookup function passed in maps from an object version in the
+      -- source repository to the corresponding VersionInfo (which may not
+      -- yet have actually been committed) in the new repository.
+      -- 
+      -- When Nothing this means that the new copy can just be exactly the
+      -- same (byte-identical) as the old one, which saves the
+      -- session-management code a bit of work.  However we envisage this
+      -- as being necessary for versioned objects which include an
+      -- ObjectVersion, since the ObjectVersion needs to be renumbered.
+   copyObject = Nothing
+
+
 newtype PostMerge = PostMerge (IO ()) -- abstract type
 
 newPostMerge :: IO () -> PostMerge
@@ -156,6 +179,9 @@ instance Eq WrappedMergeLink where
 instance Ord WrappedMergeLink where
    compare (WrappedMergeLink link1) (WrappedMergeLink link2) 
       = compareLink link1 link2
+
+instance HasKey WrappedMergeLink Location where
+   toKey (WrappedMergeLink link) = toKey link
 
 mapLink :: HasMerging object => LinkReAssigner -> View -> Link object 
    -> Link object

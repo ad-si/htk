@@ -13,6 +13,7 @@ module SimpleDBServer(
    -- Each is an instance of Show.
    SimpleDBCommand(..),
    SimpleDBResponse(..),
+   VersionInformation(..),
 
    ChangeData, -- = Either ICStringLen (Location,ObjectVersion)
 
@@ -87,7 +88,7 @@ data SimpleDBCommand =
    |  ListVersions -- returns list of all known objects
          -- return with IsObjectVersions
    |  Retrieve Location ObjectVersion
-         -- returns IsData .
+         -- returns IsData or IsNotFound.
    |  LastChange Location ObjectVersion
          -- Return the ObjectVersion (IsObjectVersion) in which this
          -- object (Location inside ObjectVersion) was last changed,
@@ -95,7 +96,7 @@ data SimpleDBCommand =
          -- retrieve version ObjectVersion from the repository
          -- return IsData.
    |  Commit 
-         (Either UserInfo VersionInfo) 
+         VersionInformation
              -- ^ extra data about this version.
              -- This includes a version number, which must be uniquely
              -- allocated by NewVersion, and the parent versions, which
@@ -106,15 +107,28 @@ data SimpleDBCommand =
              -- field in ServerOp.  For normal commits (not part of
              -- session management) it will be [].
          [(Location,ChangeData)]
-             -- Returns IsOK.
-   |  ModifyUserInfo UserInfo
-         -- For a version which already exists, replace its VersionInfo
-         -- by that given. 
+             -- Returns IsOK, or if the operation could not
+             -- be carried out because a version with the corresponding
+             -- ServerInfo has already been checked in, returns 
+             -- IsObjectVersion with the objectVersion of the old version.
+   |  ModifyUserInfo VersionInformation
+         -- If the version already exists, replace its VersionInfo by
+         -- that supplied, assuming the permissions permit it.
+         -- (to replace VersionInfo requires ADMIN permission or ownership
+         -- of the version).
+         -- If the version does not exist create it.  But the ObjectVersion
+         -- should have been allocated by NewVersion.
          --    This will not change the head parent version on any account.
+         --
+         -- Additional restriction: If VersionInfo1 is used but the supplied 
+         -- ServerInfo is already present in the database with a different
+         -- versionNumber, we do nothing and return IsObjectVersion with
+         -- the old version number. 
          -- Returns IsOK.
    |  GetVersionInfo ObjectVersion
          -- For a version which already exists, return its VersionInfo
          -- (as IsVersionInfo).
+         -- If not found, return IsNotFound.
    |  GetDiffs ObjectVersion [ObjectVersion]
          -- Produce a list of changes between the given object version
          -- and the parents, in the format IsDiffs.
@@ -133,11 +147,25 @@ data SimpleDBResponse =
    |  IsDiffs [(Location,Diff)]
    |  IsVersionInfo VersionInfo
    |  IsError String
+   |  IsNotFound 
    |  IsOK
    |  MultiResponse [SimpleDBResponse]
 #ifdef DEBUG
    deriving (Show)
 #endif
+
+-- | Information about a Version sent on commit or ModifyUserInfo
+data VersionInformation =
+      UserInfo1 UserInfo 
+         -- ^ information accessible to the user, such as the text description,
+         -- plus the Version number.
+   |  VersionInfo1 VersionInfo
+         -- ^ everything we know about the version, including its timestamp.
+   |  Version1 ObjectVersion
+         -- ^ Just the version number.  For Commit, it is expected that
+         -- ModifyUserInfo has already been used to set the information.
+         -- For ModifyUserInfo, this option is illegal.
+   deriving (Show)
 
 data Diff = 
    -- returned from GetDiffs command.  
@@ -213,6 +241,18 @@ instance MonadIO m => HasWrapper SimpleDBCommand m where
       MultiCommand l -> UnWrap 9 l
       )
 
+instance MonadIO m => HasWrapper VersionInformation m where
+   wraps = [
+      wrap1 0 UserInfo1,
+      wrap1 1 VersionInfo1,
+      wrap1 2 Version1
+      ]
+   unWrap = (\ wrapper -> case wrapper of
+      UserInfo1 u -> UnWrap 0 u
+      VersionInfo1 v -> UnWrap 1 v
+      Version1 v -> UnWrap 2 v
+      )
+
 instance MonadIO m => HasWrapper SimpleDBResponse m where
    wraps = [
       wrap1 0 IsLocation,
@@ -223,7 +263,8 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       wrap1 5 IsDiffs,
       wrap1 6 IsVersionInfo,
       wrap0 7 IsOK,
-      wrap1 8 MultiResponse
+      wrap1 8 MultiResponse,
+      wrap0 9 IsNotFound
       ]
    unWrap = (\ wrapper -> case wrapper of
       IsLocation l -> UnWrap 0 l
@@ -235,6 +276,7 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       IsVersionInfo v -> UnWrap 6 v
       IsOK -> UnWrap 7 ()
       MultiResponse l -> UnWrap 8 l
+      IsNotFound -> UnWrap 9 ()
       )
 
 instance MonadIO m => HasWrapper Diff m where
@@ -368,91 +410,193 @@ querySimpleDB user
          do
             icslOptWE <- retrieveData simpleDB location objectVersion
             case fromWithError icslOptWE of
-               Left mess -> return (IsError mess)
+               Left mess 
+                  | mess == versionNotFoundMess 
+                     -> return IsNotFound
+                  | True 
+                     -> return (IsError mess)
                Right icsl -> return (IsData icsl)
-      Commit versionExtra redirects newStuff0 ->
-         do
-            versionInfoWE <- mkVersionInfo versionState user versionExtra
-            case fromWithError versionInfoWE of
-               Left mess -> return (IsError mess)
-               Right versionInfo ->
+      Commit versionInformation redirects newStuff0 ->
+         let
+            unpickVersionInformation :: IO SimpleDBResponse
+            unpickVersionInformation = case versionInformation of
+               UserInfo1 userInfo ->
                   do
-                     let
-                        thisVersion = version (VersionInfo.user versionInfo)
-
-                        parentVersionOpt = 
-                           case parents (VersionInfo.user versionInfo) of
-                              [] -> Nothing
-                              head : _ -> Just head
-
-                     txn <- beginTransaction
-
-                     -- enter the new stuff in the BDB repository 
-                     (newStuff1 :: [(Location,
-                              Either BDBKey (Location,ObjectVersion))])
-                           <- mapM
-                        (\ (location,newItem) ->
-                           case newItem of
-                              Left icsl ->
-                                 do
-                                    bdbKey <- writeBDB bdb txn icsl
-                                    return (location,Left bdbKey)
-                              Right objectLoc 
-                                 -> return (location,Right objectLoc)
-                           )
-                        newStuff0
-
-                     -- construct a ServerOp
-                     let
-                        serverOp = FrozenVersion {
-                           parent' = parentVersionOpt,
-                           thisVersion' = thisVersion,
-                           redirects' = redirects,
-                           objectChanges = newStuff1
-                           }
-
-                      -- apply it
-                     resWE <- applyServerOp simpleDB serverOp
-                     
-                     case fromWithError resWE of
-                        Right Nothing -> 
-                           do
-                              endTransaction txn
-
-                              flushBDB bdb
-                                 -- not sure if this is necessary, but it won't
-                                 -- hurt.
-
-                              -- transmit extra version data
-                              addVersionInfo versionState (False,versionInfo)
-                              return IsOK
-                        Left mess -> 
-                           do
-                              abortTransaction txn
-                              return (IsError mess)
-      ModifyUserInfo userInfo ->
-         do
-            oldVersionInfoOpt 
-               <- lookupVersionInfo versionState (version userInfo)
-            case oldVersionInfoOpt of
-               Nothing -> return (IsError 
-                  "ModifyUserInfo: Version does not exist")
-               Just versionInfo0 ->
+                     versionInfoWE <- mkVersionInfo versionState user
+                        (Left userInfo)
+                     commitVersionInfoWE versionInfoWE
+               VersionInfo1 versionInfo ->
                   do
-                     let
-                        versionInfo1WE 
-                           = changeUserInfo user versionInfo0 userInfo
-                     case fromWithError versionInfo1WE of
-                        Right versionInfo1 ->
+                     objectVersionOpt <- lookupServerInfo versionState
+                        (server versionInfo)
+                     case objectVersionOpt of
+                        Just objectVersion -> alreadyExists objectVersion
+                        Nothing ->
                            do
-                              addVersionInfo versionState (True,versionInfo1)
-                              return IsOK
-                        Left mess -> return (IsError mess)
+                              versionInfoWE <- mkVersionInfo versionState user
+                                (Right versionInfo)
+                              commitVersionInfoWE versionInfoWE
+               Version1 version ->
+                  do
+                     versionInfoOpt <- lookupVersionInfo versionState
+                        version
+                     case versionInfoOpt of
+                        Just versionInfo -> commit versionInfo
+                        Nothing -> toError ("Attempt to commit to " ++
+                           toString version ++ " although no VersionInfo"
+                           ++ " is known for this version.")
+
+            alreadyExists :: ObjectVersion -> IO SimpleDBResponse
+            alreadyExists objectVersion =
+               return (IsObjectVersion objectVersion)
+
+            commitVersionInfoWE 
+               :: WithError VersionInfo -> IO SimpleDBResponse
+            commitVersionInfoWE versionInfoWE =
+               case fromWithError versionInfoWE of
+                  Left mess -> toError mess
+                  Right versionInfo -> commit versionInfo 
+
+            toError :: String -> IO SimpleDBResponse
+            toError mess = return (IsError mess)
+
+            commit :: VersionInfo -> IO SimpleDBResponse
+            commit versionInfo0 =
+               case commitVersionInfo versionInfo0 of
+                  Nothing -> alreadyExists (version 
+                     (VersionInfo.user versionInfo0))
+                  Just versionInfo1 -> commit1 versionInfo1
+
+            commit1 :: VersionInfo -> IO SimpleDBResponse
+            commit1 versionInfo =
+               do
+                  let
+                     thisVersion = version (VersionInfo.user versionInfo)
+
+                     parentVersionOpt = 
+                        case parents (VersionInfo.user versionInfo) of
+                           [] -> Nothing
+                           head : _ -> Just head
+
+                  txn <- beginTransaction
+
+                  -- enter the new stuff in the BDB repository 
+                  (newStuff1 :: [(Location,
+                           Either BDBKey (Location,ObjectVersion))])
+                        <- mapM
+                     (\ (location,newItem) ->
+                        case newItem of
+                           Left icsl ->
+                              do
+                                 bdbKey <- writeBDB bdb txn icsl
+                                 return (location,Left bdbKey)
+                           Right objectLoc 
+                              -> return (location,Right objectLoc)
+                        )
+                     newStuff0
+
+                  -- construct a ServerOp
+                  let
+                     serverOp = FrozenVersion {
+                        parent' = parentVersionOpt,
+                        thisVersion' = thisVersion,
+                        redirects' = redirects,
+                        objectChanges = newStuff1
+                        }
+
+                   -- apply it
+                  resWE <- applyServerOp simpleDB serverOp
+                  
+                  case fromWithError resWE of
+                     Right Nothing -> 
+                        do
+                           endTransaction txn
+
+                           flushBDB bdb
+                              -- not sure if this is necessary, but it won't
+                              -- hurt.
+
+                           -- transmit extra version data if necessary
+                           -- (We do this even for Version1, since the
+                           -- isPresent flag will have been set.)
+                           addVersionInfo versionState (False,versionInfo)
+                           return IsOK
+                     Left mess -> 
+                        do
+                           abortTransaction txn
+                           return (IsError mess)
+         in
+            unpickVersionInformation
+      ModifyUserInfo versionInformation ->  
+         do
+            let
+               objectVersion = versionInformationToVersion versionInformation
+
+            -- check whether the version is already known with a different
+            -- version
+            oldVersionOpt <- case versionInformation of
+               VersionInfo1 versionInfo -> lookupServerInfo versionState 
+                  (server versionInfo)
+               _ -> return Nothing
+
+            case oldVersionOpt of
+               Just oldVersion | oldVersion /= objectVersion ->
+                  return (IsObjectVersion oldVersion)
+               Nothing ->
+                  do
+                     oldVersionInfoOpt 
+                        <- lookupVersionInfo versionState objectVersion
+                     let
+                        versionErrorMess = "ModifyUserInfo: given Version1 "
+                           ++ "argument, which is illegal"
+                        versionError = Left versionErrorMess
+
+                     case oldVersionInfoOpt of
+                        Nothing -> 
+                           do
+                              versionInfoOrError <- case versionInformation of
+                                 UserInfo1 userInfo ->
+                                    do
+                                       versionInfoWE <- mkVersionInfo 
+                                          versionState user (Left userInfo)
+                                       return (fromWithError versionInfoWE)
+                                 VersionInfo1 versionInfo ->
+                                    do
+                                       versionInfoWE <- mkVersionInfo 
+                                          versionState user (Right versionInfo)
+                                       return (fromWithError versionInfoWE)
+                                 Version1 version -> return versionError
+                              case versionInfoOrError of
+                                 Right versionInfo1 -> 
+                                    do
+                                       addVersionInfo versionState 
+                                          (False,versionInfo1)
+                                       return IsOK
+                                 Left mess -> return (IsError mess)
+                        Just versionInfo0 ->
+                           do
+                              let
+                                 versionInfo1WE = case versionInformation of
+                                    UserInfo1 userInfo -> 
+                                       changeUserInfo user versionInfo0 
+                                          userInfo
+                                    VersionInfo1 versionInfo -> 
+                                       changeVersionInfo user versionInfo0 
+                                          versionInfo
+                                    Version1 version -> 
+                                       hasError versionErrorMess
+                              case fromWithError versionInfo1WE of
+                                 Right versionInfo1 ->
+                                    do
+                                       addVersionInfo versionState 
+                                          (True,versionInfo1)
+                                       return IsOK
+                                 Left mess -> return (IsError mess)
       GetVersionInfo objectVersion ->
          do
             versionInfoOpt <- lookupVersionInfo versionState objectVersion
             return (case versionInfoOpt of
-               Nothing -> IsError "GetVersionInfo: version does not exist"
+               Nothing -> IsNotFound 
                Just versionInfo -> IsVersionInfo versionInfo
                )
       GetDiffs version versions ->
@@ -495,10 +639,13 @@ retrieveKeyOpt simpleDB location objectVersion =
       versionMap <- readIORef (versionDictionary simpleDB)
       return (case lookupFM versionMap objectVersion of
          Nothing -> 
-            hasError "Retrieve failed; version does not exist!"
+            hasError versionNotFoundMess
          Just versionData ->
             hasValue (retrieveKey1 versionData location)
          )
+
+versionNotFoundMess :: String
+versionNotFoundMess = "Retrieve failed; version does not exist!"
 
 retrieveKey1 :: VersionData -> Location -> Maybe BDBKey
 retrieveKey1 versionData location =
@@ -848,7 +995,17 @@ getDiffs db version0 versions = addFallOutWE (\ break ->
                      )
                   (getLocations vData0)
    )
-      
+
+-- -------------------------------------------------------------------
+-- VersionInformation operations
+-- -------------------------------------------------------------------
+
+versionInformationToVersion :: VersionInformation -> ObjectVersion
+versionInformationToVersion versionInformation = case versionInformation of
+   UserInfo1 userInfo -> version userInfo
+   VersionInfo1 versionInfo -> version (user versionInfo)
+   Version1 objectVersion -> objectVersion
+
 -- -------------------------------------------------------------------
 -- Primitive location operations.
 -- -------------------------------------------------------------------

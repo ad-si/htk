@@ -240,15 +240,23 @@ newVersionGraph1
                Just version ->
                   do
                      versionInfo0 <- getVersionInfo1 node
-                     let
-                        versionInfo1 = cleanVersionInfo versionInfo0
+                     if isPresent versionInfo0
+                        then
+                           do
+                              let
+                                 versionInfo1 = cleanVersionInfo versionInfo0
 
-                     userInfo1Opt <- editVersionInfo
-                        "Checkout version" versionInfo1
-                     case userInfo1Opt of
-                        Nothing -> done
-                        Just userInfo1 -> 
-                           reallyCheckOutNode userInfo1 node version
+                              userInfo1Opt <- editVersionInfo
+                                 "Checkout version" versionInfo1
+                              case userInfo1Opt of
+                                 Nothing -> done
+                                 Just userInfo1 -> 
+                                    reallyCheckOutNode userInfo1 node version
+                        else
+                           createErrorWin 
+                              ("Version is not checked into this repository\n"
+                              ++ "(It must be a parent version from another "
+                              ++ "repository)") []
 
          reallyCheckOutNode :: UserInfo -> Node -> Version -> IO ()
          reallyCheckOutNode userInfo parentNode version =
@@ -395,13 +403,21 @@ newVersionGraph1
                let
                   user0 = user versionInfo0
                   label0 = label user0
-               return (
-                  if label0 == ""
-                     then 
-                        show (version user0)
-                     else
-                        label0
-                  )
+               
+                  identifier1 =
+                     if label0 == ""
+                        then 
+                           show (version user0)
+                        else
+                           label0
+
+                  identifier2 = 
+                     if isPresent versionInfo0
+                        then
+                           identifier1
+                        else
+                           "[" ++ identifier1 ++ "]"
+               return identifier2
 
          -- Function to be used to select checked-in versions.
          -- The first String is used as the window title.

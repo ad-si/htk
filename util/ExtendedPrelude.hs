@@ -76,11 +76,16 @@ module ExtendedPrelude (
    uniqOrd,
    uniqOrdOrder,
    allSame,
+
+   fmToList_GE_1,
+   maxFM_1,
+   keysFM_GE_1,
    ) where
 
 import Char
 import Monad
 import Maybe
+import qualified Data.FiniteMap
 
 import Data.Set
 import Control.Exception
@@ -597,3 +602,34 @@ allSame fn (a : as) =
                Nothing
             else
                Just False  
+
+-- ------------------------------------------------------------------------
+-- Operations on FiniteMaps
+-- These will hopefully be in GHC6.1 onwards anyway.
+-- ------------------------------------------------------------------------
+
+fmToList_GE_1 :: Ord key 
+   => Data.FiniteMap.FiniteMap key elt -> key ->  [(key,elt)]
+maxFM_1 :: Ord key => Data.FiniteMap.FiniteMap key elt -> Maybe key
+keysFM_GE_1 :: Ord key => Data.FiniteMap.FiniteMap key elt -> key -> [key]
+
+
+#if (__GLASGOW_HASKELL__ >= 610)
+fmToList_GE_1 = Data.FiniteMap.fmToList_GE
+maxFM_1 = Data.FiniteMap.maxFM
+keysFM_GE_1 = Data.FiniteMap.keysFM_GE
+#else
+-- stopgap solutions
+fmToList_GE_1 map key =
+   filter
+      (\ (key1,_) -> key1 >= key)
+      (Data.FiniteMap.fmToList map)
+
+maxFM_1 map =
+   case Data.FiniteMap.keysFM map of
+      [] -> Nothing
+      keys -> Just (last keys)
+
+keysFM_GE_1 fm key  = map fst (fmToList_GE_1 fm key)
+#endif
+

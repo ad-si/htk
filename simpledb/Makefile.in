@@ -1,7 +1,8 @@
 PACKAGE = uni-simpledb
 PACKAGES = uni-server bdb-package
 SRCS       = BDBClient.hs VersionInfo.hs VersionInfoService.hs \
-   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs
+   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
+
 
 SUBDIRS = test
 SRCSC      = bdbclient.c bdbcommon.c

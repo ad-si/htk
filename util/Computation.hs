@@ -78,6 +78,9 @@ module Computation (
         coerceWithErrorIO, -- :: WithError a -> IO a
         -- get out result or throw error.
         -- The second throws the error immediately.
+        coerceWithErrorStringIO, -- :: String -> WithError a -> IO a
+        -- Like coerceWithErrorIO but also takes a String, which will
+        -- be included in the eventual error message.
 
         MonadWithError(..),
         -- newtype which wraps a monadic action returning a WithError a.
@@ -234,6 +237,11 @@ coerceWithError (Error err) = error err
 coerceWithErrorIO :: WithError a -> IO a
 coerceWithErrorIO (Value a) = return a
 coerceWithErrorIO (Error err) = error err
+
+coerceWithErrorStringIO :: String -> WithError a -> IO a
+coerceWithErrorStringIO _ (Value a) = return a
+coerceWithErrorStringIO mess (Error err) = 
+   error ("coerceWithErrorString " ++ mess ++ ": " ++ err)
 
 -- | coerce or use the supplied break function (to be used with 
 -- ExtendedPrelude.addFallOut)
