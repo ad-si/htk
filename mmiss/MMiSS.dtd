@@ -10,7 +10,7 @@
   Root element is 'package'.
 -->
 
-<!-- ====================== ENTITIES ======================= -->
+<!-- ======================== ENTITIES ==================================== -->
 
 <!ENTITY % version-attr "versionId        CDATA  #IMPLIED
                          date             CDATA  #IMPLIED
@@ -43,10 +43,10 @@
 <!ENTITY % interaction-level-matter  "interactionLevelId  CDATA #IMPLIED">
 
 
-<!ENTITY % variant-attr "languageId   xml:lang %RFC1766;
+<!ENTITY % variant-attr "xml:lang  %RFC1766; 'en-GB'
                          %notation-matter;
                          %level-of-detail-matter;
-                         %interaction-level-matter">
+                         %interaction-level-matter;">
 
 
 <!-- Layout and paedagogic attributes still have to be defined. Will be
@@ -123,20 +123,23 @@
 <!ELEMENT package (section)+>
 <!ATTLIST package %label-matter;
                   %title-matter;
-                  %formalism-matter;>
+                  %formalism-matter;
+                  %attributes;>
 <?MMiSSDisplay package : blue box ?>
 
 <!ELEMENT section (abstract?, introduction?, (%group;)+, summary?)>
 <!ATTLIST section %label-matter;
                   %title-matter;
-                  %formalism-matter;>
+                  %formalism-matter;
+                  %attributes;>
 <?MMiSSDisplay section : red box ?>
 
 
 <!ELEMENT paragraph (%unit;)+>
 <!ATTLIST paragraph %label-matter;
                     %title-matter;
-                    %formalism-matter;>
+                    %formalism-matter;
+                    %attributes;>
 <?MMiSSDisplay paragraph : yellow triangle ?>
 
 
@@ -150,65 +153,79 @@
 
 <!ELEMENT abstract (paragraph)>
 <!ATTLIST abstract %label-matter;
-                   %title-matter;>
+                   %title-matter;
+                   %attributes;>
 
 <!ELEMENT introduction (paragraph)>
 <!ATTLIST introduction %label-matter;
-                       %title-matter;>
+                       %title-matter;
+                       %attributes;>
 
 <!ELEMENT summary  (paragraph)>
 <!ATTLIST summary  %label-matter;
-                   %title-matter;>
+                   %title-matter;
+                   %attributes;>
 
 <!ELEMENT example  ((%atom;) | %formalUnit;)+>
 <!ATTLIST example %label-matter;
                   %title-matter;
-                  %formalism-matter;>
+                  %formalism-matter;
+                  %attributes;>
 
 <!ELEMENT exercise  ((%atom;) | %formalUnit;)+>
 <!ATTLIST exercise %label-matter;
                    %title-matter;
-                   %formalism-matter;>
+                   %formalism-matter;
+                   %attributes;>
 
 <!ELEMENT definition  ((%atom;) | %formalUnit;)+>
 <!ATTLIST definition %label-matter;
                      %title-matter;
-                     %formalism-matter;>
+                     %formalism-matter;
+                     %attributes;>
 
 <!ELEMENT textFragment %text;>
-<!ATTLIST textFragment %label-matter;>
+<!ATTLIST textFragment %label-matter;
+                       %attributes;>
 <?MMiSSDisplay textFragment : green box ?>
 
 <!ELEMENT table %text;>
 <!ATTLIST table %label-matter;
                 %title-matter;
-                %formalism-matter;>
+                %formalism-matter;
+                %attributes;>
 <?MMiSSDisplay table : green box ?>
 
 
 <!ELEMENT figure  EMPTY>
 <!ATTLIST figure %label-matter;
                  %title-matter;
-                 %formalism-matter;>
+                 %formalism-matter;
+                 %attributes;>
 <?MMiSSDisplay figure : green box ?>
 
 <!ELEMENT glossaryEntry  %text;>
 <!ATTLIST glossaryEntry %label-matter;
-                        %title-matter;>
+                        %title-matter;
+                        %attributes;>
 <?MMiSSDisplay glossaryEntry : green box ?>
 
 <!ELEMENT bibEntry  %text;>
-<!ATTLIST package %label-matter;>
+<!ATTLIST package %label-matter;
+                  %attributes;>
 <?MMiSSDisplay bibEntry : green box ?>
 
 <!ELEMENT list  (listitem)+>
 <!ATTLIST list  %label-matter;
                 type  (itemize | enumeration)  #IMPLIED
-                numeringPattern   CDATA  #IMPLIED>
+                numeringPattern   CDATA  #IMPLIED
+                %attributes;>
 
 <!ELEMENT listitem  (list | %atom;)>
 <!ATTLIST glossaryEntry %label-matter;
-                        %title-matter;>
+                        %title-matter;
+                        %attributes;>
+
 
 <!--
   ***********************************************************************
@@ -221,50 +238,61 @@
 <!ELEMENT program  (%conceptualAtom; | programFragment | program)+>
 <!ATTLIST program %label-matter;
                   %title-matter;
-                  %formalism-matter;>
+                  %formalism-matter;
+                  %attributes;>
 
 <!ELEMENT theory  (%conceptualAtom; | clause | theory)+>
 <!ATTLIST theory %label-matter;
                  %title-matter;
-                 %formalism-matter;>
+                 %formalism-matter;
+                 %attributes;>
 
 <!ELEMENT theorem  (%conceptualAtom; | clause)+>
 <!ATTLIST theorem %label-matter;
                   %title-matter;
-                  %formalism-matter;>
+                  %formalism-matter;
+                  %attributes;>
 
 <!ELEMENT proof  (%conceptualAtom; | step | script | proof)+>
 <!ATTLIST proof %label-matter;
                 %title-matter;
-                %formalism-matter;>
+                %formalism-matter;
+                %attributes;>
 
 <!ELEMENT development  (%conceptualAtom; | step | script | development)+>
 <!ATTLIST development %label-matter;
                       %title-matter;
-                      %formalism-matter;>
+                      %formalism-matter;
+                      %attributes;>
 
 <!ELEMENT script  (%conceptualAtom; | step | script)+>
 <!ATTLIST script %label-matter;
                  %title-matter;
-                 %formalism-matter;>
+                 %formalism-matter;
+                 %attributes;>
 
 <!ELEMENT formalAtom  (programFragment | clause | step)+>
+<!ATTLIST script %formalism-matter;
+                 %attributes;>
 <?MMiSSDisplay formalAtom : green box ?>
 
 <!ELEMENT programFragment  (#PCDATA)>
 <!ATTLIST programFragment %label-matter;
                           %title-matter;
-                          %formalism-matter;>
+                          %formalism-matter;
+                          %attributes;>
 
 <!ELEMENT clause  (#PCDATA)>
 <!ATTLIST clause %label-matter;
                  %title-matter;
-                 %formalism-matter;>
+                 %formalism-matter;
+                 %attributes;>
 
 <!ELEMENT step  (#PCDATA)>
 <!ATTLIST step %label-matter;
                %title-matter;
-               %formalism-matter;>
+               %formalism-matter;
+               %attributes;>
 
 
 
