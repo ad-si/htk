@@ -18,6 +18,9 @@ module View(
    commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
       -- a global version.
+   createView,
+      --  :: Repository -> VersionGraphClient -> VersionInfo -> IO View
+      -- Primitive function for creating a view.
    commitView1, -- :: CommitInfo -> ObjectVersion -> View -> IO Version
       -- Slightly more general version where the object version is
       -- pre-allocated.
@@ -99,29 +102,8 @@ newView :: Repository -> IO View
 -- newView creates a wholly new view without respect to version.
 -- This should be used for initialising the repository, and never again.
 newView repository =
-   do
-      objects <- newRegistry
-      viewInfoBroadcaster <- newSimpleBroadcaster topVersionInfo
-      viewIdObj <- newObject
-      commitLock <- newVSem
-      delayer <- newDelayer
-      committingVersion <- newMVar Nothing
-      importsState <- newStore
-      parentChanges <- newRegistry
-
-      return (View {
-         viewId = ViewId viewIdObj,
-         repository = repository,
-         objects = objects,
-         viewInfoBroadcaster = viewInfoBroadcaster,
-         commitLock = commitLock,
-         delayer = delayer,
-         committingVersion = committingVersion,
-         graphClient1 = error 
-            "Attempt to read version graph during initialisation",
-         importsState = importsState,
-         parentChanges = parentChanges
-         })
+   createView repository (error 
+      "Attempt to read version graph during initialisation") topVersionInfo
 
 listViews :: Repository -> IO [Version]
 listViews repository = listVersions repository
@@ -129,8 +111,6 @@ listViews repository = listVersions repository
 getView :: Repository -> VersionGraphClient -> Version -> IO View
 getView repository graphClient objectVersion =
    do
-      objectId <- newObject
-      let viewId = ViewId objectId
       viewString <- retrieveString repository objectVersion specialLocation1 
       let
          viewCodedValue = fromString viewString
@@ -152,27 +132,8 @@ getView repository graphClient objectVersion =
          -- set appropriate fields of viewInfo.
          user1 = user0 {parents = [objectVersion]}
          viewInfo1 = viewInfo0 {user = user1}
-      
-      objects <- newRegistry
-      viewInfoBroadcaster <- newSimpleBroadcaster viewInfo1
-      commitLock <- newVSem
-      delayer <- newDelayer
-      committingVersion <- newMVar Nothing
-      importsState <- newStore
-      parentChanges <- newRegistry
-      let
-         view = View {
-            viewId = viewId,
-            repository = repository,
-            objects = objects,
-            viewInfoBroadcaster = viewInfoBroadcaster,
-            commitLock = commitLock,
-            delayer = delayer,
-            committingVersion = committingVersion,
-            graphClient1 = graphClient,
-            importsState = importsState,
-            parentChanges = parentChanges
-            }
+
+      view <- createView repository graphClient viewInfo1
 
       importDisplayTypes displayTypesData view
       importObjectTypes objectTypesData view
@@ -266,6 +227,37 @@ commitView1 commitInfo newVersion1
          swapMVar (committingVersion view) Nothing
          return newVersion1
       )
+
+-- ----------------------------------------------------------------------
+-- Creating a View.
+-- ----------------------------------------------------------------------
+
+-- | Create a view.  All values of the View type should ultimately be
+-- made by this function.
+createView :: Repository -> VersionGraphClient -> VersionInfo -> IO View
+createView repository graphClient versionInfo =
+   do
+      objects <- newRegistry
+      viewInfoBroadcaster <- newSimpleBroadcaster versionInfo
+      viewIdObj <- newObject
+      commitLock <- newVSem
+      delayer <- newDelayer
+      committingVersion <- newMVar Nothing
+      importsState <- newStore
+      parentChanges <- newRegistry
+
+      return (View {
+         viewId = ViewId viewIdObj,
+         repository = repository,
+         objects = objects,
+         viewInfoBroadcaster = viewInfoBroadcaster,
+         commitLock = commitLock,
+         delayer = delayer,
+         committingVersion = committingVersion,
+         graphClient1 = graphClient,
+         importsState = importsState,
+         parentChanges = parentChanges
+         })
 
 -- ----------------------------------------------------------------------
 -- Format of view information in the top file

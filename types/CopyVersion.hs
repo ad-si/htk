@@ -8,17 +8,10 @@ module CopyVersion(
 import Maybe
 
 import Data.FiniteMap
-import Control.Concurrent.MVar
 
 import Computation
-import Broadcaster
-import Store
 import VariableSet(HasKey(..))
 import ICStringLen(ICStringLen)
-import Registry(newRegistry)
-import Delayer(newDelayer)
-
-import VSem
 
 import VersionDB
 import qualified ObjectSource
@@ -87,29 +80,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
          <- getDiffs fromRepository fromVersion (map from parents)
 
      -- (3) construct view for new version.
-     let
-        viewId1 = viewId view0
-     objects1 <- newRegistry
-
-     viewInfoBroadcaster1 <- newSimpleBroadcaster toVersionInfo
-     commitLock1 <- newVSem
-     delayer1 <- newDelayer
-     committingVersion1 <- newMVar Nothing
-     importsState1 <- newStore
-     parentChanges1 <- newRegistry
-     let
-        view1 = View {
-           repository = toRepository,
-           viewId = viewId1,
-           objects = objects1,
-           viewInfoBroadcaster = viewInfoBroadcaster1,
-           commitLock = commitLock1,
-           delayer = delayer1,
-           committingVersion = committingVersion1,
-           graphClient1 = toVersionGraphClient,
-           importsState = importsState1,
-           parentChanges = parentChanges1
-           }
+     view1 <- createView toRepository toVersionGraphClient toVersionInfo
 
      -- (4) Turn diffs1 into object versions.
 

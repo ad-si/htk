@@ -10,23 +10,16 @@ import Maybe
 import List
 
 import Data.FiniteMap
-import Control.Concurrent.MVar
 import Control.Exception
 import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
 import Object
-import Broadcaster
 import Sources
-import Registry
-import Delayer
 import Thread
-import Store
 
 import Destructible
-
-import VSem
 
 import VersionInfo
 import VersionGraphClient
@@ -99,14 +92,11 @@ mergeViews (views @ (firstView:_)) =
 
       resultWE <- addFallOutWE (\ break ->
          do
-            -- (1) generate the easy things.
+            -- (1) make the new view.
             let
                repository1 = repository firstView
                graphClient = graphClient1 firstView
 
-            objects1 <- newRegistry
-            commitLock1 <- newVSem
-            delayer1 <- newDelayer
 
             viewInfo0 <- readContents (viewInfoBroadcaster firstView)
             parents0 <- mapM parentVersions views
@@ -120,30 +110,7 @@ mergeViews (views @ (firstView:_)) =
                user1 = user0 {parents = parents1}
                viewInfo1 = viewInfo0 {user = user1}
 
-            viewInfoBroadcaster1 <- newSimpleBroadcaster viewInfo1
-
-            parentsMVar1 <- newMVar parents1
-
-            committingVersion <- newMVar Nothing
-
-            importsState <- newStore
-
-            parentChanges1 <- newRegistry
-
-            let
-               newView = View {
-                  viewId = viewId1,
-                  repository = repository1,
-                  viewInfoBroadcaster = viewInfoBroadcaster1,
-                  objects = objects1,
-                  parentChanges = parentChanges1,
-                  commitLock = commitLock1,
-                  delayer = delayer1,
-                  committingVersion = committingVersion,
-                  graphClient1 = graphClient,
-                  importsState = importsState
-                  }
-
+            newView <- createView repository1 graphClient viewInfo1
 
             -- (2) Merge the global-registry data for object types and
             -- display types.
