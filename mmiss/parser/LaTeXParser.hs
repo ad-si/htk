@@ -71,6 +71,10 @@ type PackageName = String
 type Options = [String]
 type Versiondate = String
 
+-- SingleParam nimmt die Daten für einen einfachen (also keine Attributlisten-Parameter)
+-- Paramter eines Latex-Kommandos oder einer Umgebung auf. Die Komponente 'Char'
+-- nimmt das konkrete Klammerzeichen, mit dem der Parameter links abgegrenzt wird, auf.
+-- (Davon ausgehend ist klar, wie das korrespondierende rechte Klammerzeichen aussehen muss: 
 data SingleParam = SingleParam [Frag] Char    deriving Show
 
 data Textmode = TextAllowed | NoText | TextFragment
@@ -132,20 +136,32 @@ data ObjectLink = ObjectLink {
 
 ---------------------------------------------------------------------------------------------}
 
+-- Ein Fragment ist ein vom Parser erkanntes Konstrukt. Der abstrakte Syntaxbaum eines
+-- Latex-Dokumentes besteht aus diesen Fragmenten:
+
 data Frag = Env EnvId Params [Frag]               -- Environments e.g. \begin{document}..
           | Command Command Params                 -- \name params
           | EscapedChar Char                       -- Sonderzeichen: #$&~_^%{} 
           | Other Other deriving Show
 
-data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimiter) -- Parameter of LateX-Envs and Commands
+-- Parameter of LateX-Envs and Commands. Der erste der beiden Maybe Delimiter-Komponenten
+-- wird benutzt, um bei Commands den String aufzunehmen, der das Command vom nachfolgenden
+-- Text trennt, also entweder ein {} oder Leerzeichen (inclusive Tabs und Newlines).
+-- Die rechte Delimiter-Komponente 
+
+data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimiter) 
               deriving Show
---MParams Attributes (Maybe Delimiter) (Maybe Delimiter)      -- Parameter of MMiSS-Envs
 
 
+
+-- piInsertLaTeX enthält den String, der zur Kennzeichnung der Processing-Instructions dienst,
+-- die in den resultierenden XML-Baum eingefügt werden, um Latex-Anteile zu bewahren, die nicht
+-- zur Struktur und nicht zu den Textbestandteilen gehören.
+
+piInsertLaTeX = "mmissInsertLaTeX"
 
 -- The search/replace strings listed in latexToUnicodeTranslations are applied to attribute values when
 -- they are stored in XML-attribute instances:
-
 
 latexToUnicodeTranslations = [("\\\"a", "\x00e4"), ("\\\"u", "\x00fc"), ("\\\"o", "\x00f6")]
                           ++ [("\\\"A", "\x00c4"), ("\\\"U", "\x00dc"), ("\\\"O", "\x00d6")] 
@@ -167,6 +183,7 @@ unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
 plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
                  [("Clause", "clause"), ("Step", "step"), ("Authorentry", "authorEntry")]
+
 
 envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract", "abstract")] ++
                [("Introduction", "introduction"),  ("Summary", "summary"), ("Program","program")] ++
@@ -204,7 +221,16 @@ mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCo
 
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
-latexPlainTextEnvs = ["verbatim", "verbatim*"]
+latexPlainTextEnvs = ["verbatim", "verbatim*", "math", "displaymath", "equation"]
+
+
+-- LaTeX-Environments for formulas are translated to the XML-Element 'formula' which has an attribute 'boundsType'
+-- which takes an symbol that indicates the concrete LaTeX-Environment the user chose for a particular formula item.
+-- The following list matches the various LaTeX formula enviroments to theses symbolic names recorded in the
+-- boundsType attribute: 
+
+latexFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("\\(", "shortMathParens"), ("displaymath", "displaymath")] ++
+                   [("\\[", "shortDisplaymath"), ("equation", "equation")]
 
 
 -- specialTreatmentInPreamble contains all Commands which are specially treated in the process
@@ -292,7 +318,7 @@ value rightClosure =
 -- generiert ein Other-Fragment mit diesem Text.
 
 other :: GenParser Char st Frag
-other = fmap Other (many1 (noneOf "\\%[]{}"))
+other = fmap Other (many1 (noneOf "\\%[]{}$"))
 
 
 -- optionParser erkennt die Optionen fuer \documentclass[xx,yy,...]{classname}
@@ -344,10 +370,10 @@ continuePlain l id = (try (do endId id
                               return ([(Other l)])))
                      <|> do bs <- backslash
                             continuePlain (l ++ [bs]) id
-                     <|> do str <- plainText
+                     <|> do str <- plainText "\\"
                             continuePlain (l ++ str) id
 
-plainText = many1 (noneOf "\\")
+plainText stopChars = many1 (noneOf stopChars)
 
 
 -- beginBlock erkennt den Start einer Umgebung (\begin{id}) und parst mittels
@@ -358,14 +384,9 @@ beginBlock :: GenParser Char st Frag
 beginBlock = do id <- begin
                 spaces
                 p <- envParams id
---                beginDelim <-  option "" (try (many1 space))
---                l <- continue [] id
                 l <- if (id `elem` ((map fst plainTextAtoms) ++ latexPlainTextEnvs))
                        then continuePlain "" id
                        else continue [] id
---                endDelim <-  option "" (try (many1 space))
---                params <- return (insertDelims p (Just(beginDelim)) (Just(endDelim)))
---                return (Env id params (reverse l))
                 return (Env id p (reverse l))
 
 
@@ -375,7 +396,8 @@ beginBlock = do id <- begin
 envParams :: String -> GenParser Char st Params
 envParams id =  if (id `elem` (map fst mmiss2EnvIds)) 
 		    then mEnvParams id 
-                    else lParams id [] <|> unexpected ("Parameters for LaTeX-Environment <" ++ id ++ ">")
+                    else lParams id [] 
+                         <|> unexpected ("Parameters for LaTeX-Environment <" ++ id ++ ">")
 
 
 -- mListParams erkennt die Parameter, die zu einer MMiSSLatex-Umgebung gehoeren 
@@ -470,12 +492,7 @@ lParams id l
                            versionAtts = [("versiondate", versionDate)]
                        in return(optionAtts ++ nameAtts ++ versionAtts)
          return(LParams [] attributes Nothing Nothing)
-{--
- | (id == "Import") = 
-      do p <- try(between (char '{') (char '}') idParser)
-                <?> ("Missing Argument for \\ImportPath.")
-         return (LParams [(SingleParam [(Other p)] '{')] [] Nothing Nothing)
---} 
+
   | otherwise = do optionStr <- option "" (choice ((try (string "[]")):(try(between (char '[') (char ']') (value "]"))):[]))
                    options <- case optionStr of
                                 "" -> return([])
@@ -564,14 +581,43 @@ comment = do char '%'
              return (Other ("%" ++ s ++ "\n"))
 
 
+mathEnv :: GenParser Char st Frag
+mathEnv = try( do c <- oneOf "([" 
+                  rightDelim <- if (c == '(') then (return ")") else return("]")
+                  fs <- continuePlainFormula "" ("\\" ++ rightDelim) "\\"
+                  return (Env ("\\" ++ [c]) (LParams [] [] Nothing Nothing) fs))
+
+simpleMathEnv :: GenParser Char st Frag
+simpleMathEnv = 
+  try( do char '$'
+          str <- plainText "$"
+          char '$'
+          return (Env ("$") (LParams [] [] Nothing Nothing) [(Other str)])
+  )
+
+continuePlainFormula ::  String -> String -> [Char] -> GenParser Char st [Frag]
+-- 1. String : The accumulation of characters, parsed so far
+-- 2. String : The delimiter to stop at
+-- 3. String : The list of characters which could be the start of the delimiter or the delimiter itself
+
+continuePlainFormula l delimiter stopChars = 
+  (try (do string delimiter
+           return ([(Other l)])))
+  <|> do sc <- oneOf stopChars
+         continuePlainFormula (l ++ [sc]) delimiter stopChars
+  <|> do str <- plainText stopChars
+         continuePlainFormula (l ++ str) delimiter stopChars
+
+
 -- frag erkennt Latex-Fragmente: Kommentare, Environments, Commands und Escaped Chars. 
 -- Alle anderen Zeichenfolgen werden in das Fragment 'other' verpackt.
 
 frag :: GenParser Char st Frag
 frag = comment
 	 <|> do backslash
-		beginBlock <|> escapedChar <|> command  <|> return (Other "\\")
+		beginBlock <|> mathEnv <|> escapedChar <|> command  <|> return (Other "\\")
          <|> adhocEnvironment
+         <|> simpleMathEnv
 	 <|> other
 		
 
@@ -1044,11 +1090,11 @@ makeContent (f:frags) NoText parentEnv =
      (Other str) -> if ((length (filter (not . (`elem` "\n ")) str) == 0) ||
 			((head str) == '%'))
                       then mapWithError ([(CMisc (PI (piInsertLaTeX ,str)))] ++) (makeContent frags NoText parentEnv)
-		      else hasError("No text allowed inside a " ++ parentEnv ++ "!")
+		      else hasError("No text allowed inside a " ++ parentEnv ++ "!\nString found: " ++ str)
 		      -- TODO: Text, der nur aus Linefeeds besteht, muss erhalten bleiben, da er Einfluss
                       --       auf das von Latex erzeugte Layout haben kann.
      (Env name ps fs) -> 
-       if (name `elem` (map fst plainTextAtoms))
+       if (name `elem` ((map fst plainTextAtoms) ++ (map fst latexFormulaEnvs)))
          then hasError("No Environment '" ++ name ++ "' allowed inside a " ++ parentEnv ++ "!")
          else
            if (name == "TextFragment")
@@ -1060,7 +1106,8 @@ makeContent (f:frags) NoText parentEnv =
                              (cElemListWithError ename ps (makeAttribs ps name)
 	                                         (makeContent fs (detectTextMode name) name))
                              (makeContent frags NoText parentEnv)
-                 else  -- No MMiSS-Env.
+                 else  -- No MMiSS-Env. -> Put the starting and closing Kommands in a processing instruction.
+                       -- Look into the environment because MMiSS-Envs could be in there: 
                    let beginDelimStr = case ps of
                                          (LParams _ _ (Just delimStr) _) -> delimStr
                                          otherwise -> ""
@@ -1135,7 +1182,6 @@ makeContent (f:frags) TextAllowed parentEnv =
 				                        (makeContent restFrags TextAllowed parentEnv)
                              else myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) 
                                                     (makeContent frags TextAllowed parentEnv)
-
      (Env name ps fs) -> 
        if (name `elem` (map fst plainTextAtoms))
          then
@@ -1154,27 +1200,33 @@ makeContent (f:frags) TextAllowed parentEnv =
                       in myConcatWithError (cElemListWithError ename ps (makeAttribs ps name)
 	                                                       (makeContent fs (detectTextMode name) name))
                                            (makeContent frags TextAllowed parentEnv)
-                 else  -- No MMiSS-Env.
-                   let beginDelimStr = case ps of
-                                         (LParams _ _ (Just delimStr) _) -> delimStr
-                                         otherwise -> ""
-                       endDelimStr = case ps of
-                                         (LParams _ _ _ (Just delimStr)) -> delimStr
-                                         otherwise -> ""
-                       begin = case name of
-                                 "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
-                                 "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
-                                 otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
-                                               ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
-                       end =  case name of 
-                                "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
-                                "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
-                                otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
-	   	       body = (makeContent fs TextAllowed parentEnv)
-                       whole = myConcatWithError (myConcatWithError begin body) end
-                   in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
---		   myConcatWithError (makeContent fs TextAllowed parentEnv) 
---                                     (makeContent frags TextAllowed parentEnv)
+                 else
+                   if (name `elem` (map fst latexFormulaEnvs))
+                       -- a formula environment -> we make a formlua XML element:
+                     then let (content, restFrags) = makeNamelessTextFragment parentEnv (f:frags) []
+                          in  myConcatWithError (hasValue([content])) 
+				                (makeContent restFrags TextAllowed parentEnv)
+                     else  -- No MMiSS-Env.
+                       let beginDelimStr = case ps of
+                                             (LParams _ _ (Just delimStr) _) -> delimStr
+                                             otherwise -> ""
+                           endDelimStr = case ps of
+                                             (LParams _ _ _ (Just delimStr)) -> delimStr
+                                             otherwise -> ""
+                           begin = case name of
+                                     "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "[")))])
+                                     "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "{")))])
+                                     otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, 
+                                                   ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ beginDelimStr))))])
+                           end =  case name of 
+                                    "[]" -> hasValue([(CMisc (PI (piInsertLaTeX, "]")))])
+                                    "{}" -> hasValue([(CMisc (PI (piInsertLaTeX, "}")))])
+                                    otherwise -> hasValue([(CMisc (PI (piInsertLaTeX, ("\\end{" ++ name ++ "}" ++ endDelimStr))))])
+	   	           body = (makeContent fs TextAllowed parentEnv)
+                           whole = myConcatWithError (myConcatWithError begin body) end
+                       in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
+--		       myConcatWithError (makeContent fs TextAllowed parentEnv) 
+--                                       (makeContent frags TextAllowed parentEnv)
      (Command name ps) -> 
         if (name `elem` (map fst includeCommands))
 	  then let ename = maybe "" snd (find ((name ==) . fst) includeCommands)
@@ -1242,32 +1294,56 @@ singleParamToString (SingleParam f '[') = "[" ++ (makeTextElem f) ++ "]"
 singleParamToString (SingleParam f '(') = "(" ++ (makeTextElem f) ++ ")"
 
 
+
+{-- makeNamelessTextFragment:
+String: Name des Vater-Environments
+1. [Frag] : Eingangsliste: Liste der noch abzuarbeitenden Fragmente auf dieser Ebene
+2. [Frag] : Textfragmente: Liste der Fragmente, die in dasselbe Textfragment eingehen
+3. (Content, [Frag]): Das zusammengesetzt Textfragment-XML-Element sowie die restlichen Fragmente,
+                      die nicht aufgenommen wurden.
+
+Die Funktion bekommt eine Liste mit Fragmenten, von denen das erste ein Fragment sein sollte,
+dass in ein Text-Element ohne Label eingepackt werden muss. Die Funktion geht die Liste
+der Eingangsfragmente durch und sammelt in der Textfragmentliste alle nachfolgenden Fragmente
+zusammen, die ebenfalls in das Text-Element übernommen werden könne. Dies können sein:
+
+- Other str  -> Strings
+- Escaped Chars
+- Embedded-Elemente (link, reference, define etc.)
+- Formel-Environments
+
+Findet die Funktion ein Fragment, dass nicht mehr in ein Textelement gehört, dann baut es 
+mittels 'makeTextFragment' ein Element vom Typ 'textFragment' zusammen und gibt dieses zusammen
+mit der Liste der übriggebliebenen Fragmente zurück.
+--}
+
 makeNamelessTextFragment :: String -> [Frag] -> [Frag] -> (Content, [Frag])
 makeNamelessTextFragment parentEnv [] textFrags = 
   ((makeTextFragment parentEnv "textFragment" Nothing textFrags []), [])
 makeNamelessTextFragment parentEnv (f:frags) textFrags = 
   case f of
-    (Env name _ fs) -> if (name `elem` (map fst embeddedElements))              
-		         then makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
-		         else 
-                           if (name `elem` (map fst mmiss2EnvIds))
-                             then let e1 = (makeTextFragment parentEnv "textFragment" Nothing textFrags [])  
-				      c1 = case e1 of
-					      (CElem (Elem "paragraph" _ ((CElem(Elem _ _ c)):[]))) -> c
-					      (CElem (Elem _ _ c)) -> c
-				  in if ((length c1) > 1) 
-                                       then (e1, ([f] ++ frags))
-				       else let c = head c1
-					    in case c of
-					       (CString _ str) -> 
-						  if ((length (filter (not . (== '\n')) str) == 0) ||
-			                              ((head str) == '%')) 
-						    then ((CMisc (Comment str)), ([f] ++ frags))
-                                                    else (e1, ([f] ++ frags))
-                                               _ -> (e1, ([f] ++ frags))
+    (Env name _ fs) -> 
+       if (name `elem` ((map fst embeddedElements) ++ (map fst latexFormulaEnvs)))               
+         then makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
+         else 
+           if (name `elem` (map fst mmiss2EnvIds))
+             then let e1 = (makeTextFragment parentEnv "textFragment" Nothing textFrags [])  
+                      c1 = case e1 of
+			      (CElem (Elem "paragraph" _ ((CElem(Elem _ _ c)):[]))) -> c
+			      (CElem (Elem _ _ c)) -> c
+	          in if ((length c1) > 1) 
+                       then (e1, ([f] ++ frags))
+                       else let c = head c1
+		            in case c of
+			         (CString _ str) -> 
+				   if ((length (filter (not . (== '\n')) str) == 0) ||
+			               ((head str) == '%')) 
+				     then ((CMisc (Comment str)), ([f] ++ frags))
+                                     else (e1, ([f] ++ frags))
+                                 _ -> (e1, ([f] ++ frags))
 
 --                             else makeNamelessTextFragment parentEnv (fs ++ frags) textFrags   -- Latex-Env.
-                             else makeNamelessTextFragment parentEnv frags (textFrags ++ [f])  -- Latex-Env.
+             else makeNamelessTextFragment parentEnv frags (textFrags ++ [f])  -- Latex-Env.
     (Command "ListItem" _ ) -> ((makeTextFragment parentEnv "textFragment" Nothing textFrags []), (f:frags))
     (Command "IncludeTextFragment" _) -> makeNamelessTextFragment parentEnv frags (textFrags ++ [f])
     (Command name _) -> if (name `elem` (map fst includeCommands))
@@ -1358,23 +1434,34 @@ makeTextFragment parentEnv name params (f:frags) content =
              newElem = CMisc (PI (piInsertLaTeX, ("\\" ++ cname ++ (lparamsToString ps) ++ delimStr)))
  	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Env ename ps fs) -> 
-         let beginDelimStr = case ps of
+      if (ename `elem` (map fst latexFormulaEnvs))
+        then
+              -- Fieser Trick: Um die Fragmente innerhalb der Formal-Umgebung in XML umzuwandeln,
+              -- machen wir daraus einfach ein Textfragment mit eben dieser Funktion, in der wir uns gerade befinden
+              -- und nehmen uns aus dem resultieren Element einfach den Content und stopfen ihn in das
+              -- Formel-Element:
+          let (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
+              newElem = CElem (Elem "formula" (makeFormulaAttribs ename) c)
+	  in  makeTextFragment parentEnv name params frags (content ++ [newElem])
+
+        else
+          let beginDelimStr = case ps of
                                 (LParams _ _ (Just delimStr) _) -> delimStr
                                 otherwise -> ""
-             endDelimStr = case ps of
-                              (LParams _ _ _ (Just delimStr)) -> delimStr
-                              otherwise -> ""
-             begin = case ename of
-                       "[]" -> [CMisc (PI (piInsertLaTeX ,"[" ++ beginDelimStr))]
-                       "{}" -> [CMisc (PI (piInsertLaTeX ,"{" ++ beginDelimStr))]
-                       otherwise -> [CMisc (PI (piInsertLaTeX ,"\\begin{" ++ ename ++ "}" 
+              endDelimStr = case ps of
+                               (LParams _ _ _ (Just delimStr)) -> delimStr
+                               otherwise -> ""
+              begin = case ename of
+                        "[]" -> [CMisc (PI (piInsertLaTeX ,"[" ++ beginDelimStr))]
+                        "{}" -> [CMisc (PI (piInsertLaTeX ,"{" ++ beginDelimStr))]
+                        otherwise -> [CMisc (PI (piInsertLaTeX ,"\\begin{" ++ ename ++ "}" 
                                        ++ (lparamsToString ps) ++ beginDelimStr))]
-             end = case ename of
+              end = case ename of
                       "[]" -> [CMisc (PI (piInsertLaTeX ,"]" ++ endDelimStr))]
                       "{}" -> [CMisc (PI (piInsertLaTeX ,"}" ++ endDelimStr))]
                       otherwise -> [CMisc (PI (piInsertLaTeX ,"\\end{" ++ ename ++ "}" ++ endDelimStr))]
-             (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
-         in makeTextFragment parentEnv name params frags (content ++ begin ++ c ++ end)
+              (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
+          in makeTextFragment parentEnv name params frags (content ++ begin ++ c ++ end)
 
 
 makeListItem :: Params -> [Frag] -> [Content] -> (Content, [Frag])
@@ -1408,19 +1495,25 @@ makeListItem params (f:frags) contentList =
               else if (name == "List")
                      then makeListItem params frags 
                                        (contentList ++ coerceWithError(makeContent [f] TextAllowed "ListItem"))
-                     else if (not (name `elem` (map fst mmiss2EnvIds)))
-                                 -- Latex-Env. Inhalt auf diese Ebene ziehen:
-                            then let beginFrag = case name of
-                                                    "{}" -> [(Other "{")]
-                                                    "[]" -> [(Other "[")]
-						    otherwise -> [(Other ("\\begin{" ++ name ++ "}"))]	    
-                                     endFrag = case name of
+                     else 
+                       if (name `elem` (map fst latexFormulaEnvs))
+                         -- als erstes Env. innerhalb eines ListItems kommt eine Formel-Umgebung -> Textfragment erzeugen
+            	         then let (content, restFrags) = makeNamelessTextFragment "ListItem" (f:frags) []
+                              in makeListItem params restFrags (contentList ++ [content]) 
+                         else
+                           if (not (name `elem` (map fst mmiss2EnvIds)))
+                              -- Latex-Env. Inhalt auf diese Ebene ziehen:
+                              then let beginFrag = case name of
+                                                      "{}" -> [(Other "{")]
+                                                      "[]" -> [(Other "[")]
+		  				      otherwise -> [(Other ("\\begin{" ++ name ++ "}"))]	    
+                                       endFrag = case name of
                                                     "{}" -> [(Other "}")]
                                                     "[]" -> [(Other "]")]
 						    otherwise -> [(Other ("\\end{" ++ name ++ "}"))]	    
-                                 in makeListItem params (beginFrag ++ fs ++ endFrag ++ frags) contentList  
+                                   in makeListItem params (beginFrag ++ fs ++ endFrag ++ frags) contentList  
 		                 -- MMiSSLatex-Env. Ignorieren:
-                            else makeListItem params frags contentList
+                              else makeListItem params frags contentList
      (Command "IncludeTextFragment" ps) -> 
         let newElem = CElem (Elem "includeTextFragment" (makeIncludeAttribs ps) [])
             delimElem = case ps of
@@ -1545,6 +1638,17 @@ makeDefineAttribs :: Params -> [Attribute]
 makeDefineAttribs (LParams ((SingleParam ((Other labelId):[]) _):_) atts _ _) =
    [("label", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
 makeDefineAttribs _ = []
+
+
+{-- makeFormulaAttribs weicht vom Schema der anderen makeXXXAttribs-Funktionen ab, da bei Formel-Umgebungen
+    die nötigen Infos zum Befüllen der XML-Attribute nicht in den Parametern stecken, sondern im Namen
+    des Environments, das als String übergeben wird:
+--}
+makeFormulaAttribs :: String -> [Attribute]
+makeFormulaAttribs name =
+  let latexEnv = maybe "" snd (find ((name ==) . fst) latexFormulaEnvs)
+  in  [("latexEnv", (AttValue [Left latexEnv]))]
+
 
 {--
 unionAttributes :: [Attribute] -> [Attribute] -> [Attribute]
@@ -1687,12 +1791,21 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
         s4 = "{" ++ (getAttribs atts "" ["label"]) ++ "}"
         items = [(EditableText (s1 ++ s2 ++ s3 ++ s4))]
     in fillLatex out cs (inList ++ items)
+  | (name == "formula") =  
+    let envType = getParam "latexEnv" atts
+        latexEnv = maybe "" fst (find ((envType ==) . snd) latexFormulaEnvs)
+        (s1, s2) = case latexEnv of
+                      "$" -> ("$", "$")
+                      "\\(" -> ("\\(", "\\)")
+                      "\\[" -> ("\\[", "\\]")
+                      otherwise -> ("\\begin{" ++ latexEnv ++ "}", "\\end{" ++ latexEnv ++ "}")
+    in fillLatex out cs (inList ++ [(EditableText s1)] ++ (fillLatex out contents []) ++ [(EditableText s2)])     
         
 fillLatex out ((CString _ str):cs) inList = fillLatex out cs (inList ++ [(EditableText str)])
 
 fillLatex out ((CMisc (Comment str)):cs) inList = fillLatex out cs (inList ++ [(EditableText str)])
 
-fillLatex out ((CMisc (PI ("mmiss:InsertLaTeX", str))):cs) inList =  fillLatex out cs (inList ++ [(EditableText str)])
+fillLatex out ((CMisc (PI (piInsertLaTeX, str))):cs) inList =  fillLatex out cs (inList ++ [(EditableText str)])
 
 fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
   let s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
@@ -1867,10 +1980,10 @@ cElemListWithError name ps atts c =
   case fromWithError c of
     Right content -> 
       let beginDelimElem = case ps of
-                             (LParams _ _ (Just delimStr) _) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
+                             (LParams _ _ (Just delimStr) _) -> [(CString True delimStr)]
                              otherwise -> []
           endDelimElem =   case ps of
-                             (LParams _ _ _ (Just delimStr)) -> [(CMisc (PI (piInsertLaTeX, delimStr)))]
+                             (LParams _ _ _ (Just delimStr)) -> [(CString True delimStr)]
                              otherwise -> []
       in hasValue([(CElem (Elem name atts (beginDelimElem ++ content)))] ++ endDelimElem)
     Left str -> hasError str
@@ -1968,9 +2081,6 @@ mapLabelledTag s =
    where
       mapUpper [] = []
       mapUpper (c : cs) = toUpper c : cs      
-
-
-piInsertLaTeX = "mmiss:InsertLaTeX"
 
 
 parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
