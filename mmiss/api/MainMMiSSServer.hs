@@ -18,7 +18,8 @@ import Computation
 import ExtendedPrelude
 import BinaryAll
 import IOExtras
-import WBFiles(getXMLPort)
+import WBFiles(getXMLPort,parseArgumentsRequiring)
+
 
 import Crypt
 import PasswordFile
@@ -33,6 +34,10 @@ import MMiSSDoXml
 main :: IO ()
 main =
    do
+      parseArgumentsRequiring [
+         "top",
+         "xmlPort"
+         ]
       installHandler sigPIPE Ignore Nothing
 
       doRegistrations

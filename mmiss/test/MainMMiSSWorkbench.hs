@@ -45,7 +45,10 @@ main1 =
    do
       parseArgumentsRequiring [
          "top",
-         "editor"
+         "editor",
+         "daVinci",
+         "gnuclient",
+         "toolTimeOut"
          ]
 
       emacsWorkingWE <- isEmacsWorking
