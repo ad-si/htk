@@ -118,7 +118,7 @@ main =
          newline, newline,
          href [link "A link to another MarkupText"] txt2,
          newline, newline,
---         window but,
+         window but,
          newline, newline,
          clipup
            [link "This is a clipup"]
@@ -143,10 +143,42 @@ main =
          newline,
          prose "When you go back the inserted text will not be there anymore!",
          newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
+         prose "When you go back the inserted text will not be there anymore!",
+         newline,
          newline,
          href [link "Back"] txt]
 
     ed # new txt
     ed # insertAt add_txt (4,5)
-
-    finishHTk
+    sync(never)
+--    finishHTk

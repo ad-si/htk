@@ -175,7 +175,7 @@ instance Enum Distance where
 
 instance Num Distance where
         (Distance p1) + (Distance p2) = Distance (p1 + p2)
-        (Distance p1) * (Distance p2) = Distance (p1 + p2)
+        (Distance p1) * (Distance p2) = Distance (p1 * p2)  -- bugfix: ludi
         negate (Distance p) = Distance (negate p)
         abs (Distance p) = Distance (abs p)
         signum (Distance p) = Distance (signum p)

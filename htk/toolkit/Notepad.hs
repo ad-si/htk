@@ -16,6 +16,8 @@ module Notepad (
 
   newNotepad,
   createNotepadItem,
+  getFreeItemPosition,
+  scrollTo,
   getItemValue,
 
   ScrollType(..),
@@ -57,6 +59,8 @@ import Examples(watch)
 import Core
 import Maybe
 import CItem
+
+import IOExts(unsafePerformIO)
 
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)
@@ -151,6 +155,36 @@ createNotepadItem val notepad cnf =
     foldl (>>=) (return item) cnf
     addItemToState notepad item
     return item
+
+getFreeItemPosition :: CItem c => Notepad c -> IO Position
+getFreeItemPosition notepad =
+   let num_cols = 4
+       (Distance iwidth, Distance iheight) = img_size notepad
+       dy_n = Distance (div iheight 2)
+       dy_s = Distance (div iheight 2 + 14)
+       dx = Distance (max (div iwidth 2) 40)
+
+       overlaps (x, y) (item : items) =
+         do
+           (ix, iy) <- getPosition item
+           (if (( (x - dx   >= ix - dx   && x - dx   <= ix + dx)   ||
+                  (x + dx   >  ix - dx   && x + dx   <  ix + dx)     ) &&
+                ( (y - dy_n >= iy - dy_n && y - dy_n <= iy + dy_s) ||
+                  (y + dy_s >  iy - dy_n && y + dy_s <  iy + dy_s)   )) then
+              return True
+            else overlaps (x, y) items)
+       overlaps _ _ = return False
+   in do
+        items <- getRef (items notepad)
+        let getPos pos@(x, y) =
+              do
+                b <- overlaps pos items
+                (if b then
+                   getPos (if x + 2 * dx + 10 > 10 + dx + (num_cols * 2 * dx)
+                             then (10 + dx, y + dy_s + dy_n + 10)
+                             else (x + 2 * dx + 10, y))
+                 else return pos)
+        getPos (10 + dx, 10 + dy_n)
 
 getItemValue :: NotepadItem a -> IO a
 getItemValue item = getRef (it_val item)
@@ -378,6 +412,18 @@ clearNotepad np =
     mapM destroy notepaditems
     setRef (items np) []
     setRef (selected_items np) []
+
+scrollTo :: CItem c => Notepad c -> NotepadItem c -> IO ()
+scrollTo notepad item =
+  do
+    (w, h) <- getSize (canvas notepad)
+    putStrLn ("height = " ++ show h ++ ", width = " ++ show w)
+    putStrLn "scrolling"
+{-
+    (x, y) <- getPosition item
+    cnm <- getObjectName (toGUIObject (canvas notepad))
+    execTclScript [show cnm ++ " scan dragto " ++ show x ++ " " ++ show y]
+-}
 
 undoLastMotion :: Notepad a -> IO ()
 undoLastMotion np =

@@ -309,7 +309,7 @@ newGenGUI mstate =
 
     -- temporary (placement of objects in notepad / TD)
     posref <- newRef (0, 0)
-    initItemPosition posref
+--    initItemPosition posref
 
     -- event queue
     evq <- newRef Nothing
@@ -420,7 +420,7 @@ tlObjectSelected gui mobj =
           lastpos <- getRef posref
           pos <- case lastpos of
                    (-1, -1) -> do
-                                 pos <- getNewItemPosition (place gui)
+                                 pos <- getNewItemPosition gui
                                  setItemPosition item pos
                                  return pos
                    _ -> return lastpos
@@ -447,7 +447,6 @@ tlObjectSelected gui mobj =
                               saveNotepadItemStates gui
                               ch <- children (getTreeListObjectValue obj)
                               clearNotepad (notepad gui)
-                              initItemPosition (place gui)
                               mapM addNotepadItem
                                    (filter isItemLeaf ch)
                               done)
@@ -488,21 +487,26 @@ tlObjectFocused gui clipboard (mobj, ev_inf) =
 
 moveItems :: CItem c => GenGUI c -> [Item c] -> Item c -> IO ()
 moveItems gui items target@(IntFolderItem _ subitemsref) =
-  do
-    Just ditem@(IntFolderItem _ dsubitemsref) <- getRef (open_obj gui)
-    (if (ditem == target) then done
-     else do
-            dsubitems <- getRef dsubitemsref
-            setRef dsubitemsref (dsubitems \\ items)
-            subitems <- getRef subitemsref
-            setRef subitemsref (subitems ++ items)
-            npitems <- getItems (notepad gui)
-            mapM (\npitem -> do
-                               item <- getItemValue npitem
-                               let b = any (\item' -> item == item') items
-                               (if b then deleteItem (notepad gui) npitem
-                                else done)) npitems
-            done)
+  let initItem (IntLeafItem _ posref selref) =
+        setRef posref (-1, -1) >> setRef selref False
+  in do
+       Just ditem@(IntFolderItem _ dsubitemsref) <- getRef (open_obj gui)
+       (if (ditem == target) then done
+        else do
+               dsubitems <- getRef dsubitemsref
+               setRef dsubitemsref (dsubitems \\ items)
+               subitems <- getRef subitemsref
+               mapM initItem items
+               setRef subitemsref (subitems ++ items)
+               npitems <- getItems (notepad gui)
+               mapM (\npitem -> do
+                                  item <- getItemValue npitem
+                                  let b = any (\item' -> item == item')
+                                              items
+                                  (if b then
+                                     deleteItem (notepad gui) npitem
+                                   else done)) npitems
+               done)
 
 
 --------------------------------------------------------------------------
@@ -559,28 +563,8 @@ npRightClick gui npitems =
 -- notepad item placement (temporary)
 --------------------------------------------------------------------------
 
-notepaddx :: Int
-notepaddx = 95
-
-notepaddy :: Int
-notepaddy = 40
-
-num_cols :: Int
-num_cols = 4
-
-initItemPosition :: Ref Position -> IO ()
-initItemPosition posref = setRef posref (Distance (10 + div notepaddx 2),
-                                         Distance (10 + div notepaddy 2))
-
-getNewItemPosition :: Ref Position -> IO Position
-getNewItemPosition posref =
-  do
-    (x, y) <- getRef posref
-    (if x < Distance (5 + (num_cols - 1) * notepaddx) then
-       setRef posref (x + Distance notepaddx, y)
-     else setRef posref (Distance (5 + div notepaddx 2),
-                         y + Distance notepaddy))
-    return (x, y)
+getNewItemPosition :: CItem c => GenGUI c -> IO Position
+getNewItemPosition gui = getFreeItemPosition (notepad gui)
 
 setItemPosition :: CItem c => Item c -> Position -> IO ()
 setItemPosition (IntLeafItem _ posref _) pos = setRef posref pos
@@ -644,10 +628,13 @@ addItem gui par@(IntFolderItem _ chref) newitem =
        case mditem of
          Just ditem -> if ditem == par then
                          do
-                           pos <- getNewItemPosition (place gui)
+                           pos <- getNewItemPosition gui
                            setItemPosition item pos
-                           createNotepadItem item (notepad gui)
-                                             [position pos]
+                           it <- createNotepadItem item (notepad gui)
+                                                   [position pos]
+
+                           scrollTo (notepad gui) it
+
                            done
                        else done
          _ -> done

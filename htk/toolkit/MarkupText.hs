@@ -160,6 +160,7 @@ import Char
 import IOExts(unsafePerformIO)
 import Object
 import Wish
+import Concurrent(threadDelay)
 
 
 -- -----------------------------------------------------------------------
@@ -961,7 +962,9 @@ parseMarkupText m f =
                                listenTag =
                                     (click >>
                                      always (ed # clear >>
-                                             ed # new linktext) >>
+                                             putStrLn "editor cleared" >>
+                                             ed # new linktext >>
+                                             putStrLn "linktext set") >>
                                      listenTag)
                                  +> receive death
                            spawnEvent listenTag
@@ -976,7 +979,7 @@ parseMarkupText m f =
           let win = ((line, char),
                      \ed pos -> do
                                   w <- createEmbeddedTextWin ed pos wid []
-                                  addToState ed [destroy w]
+--                                  addToState ed [destroy w >> putStrLn "embedded text win destroyed"]
                                   return w)
           in parseMarkupText' ms txt tags (win : wins) (line, char)
                               bold italics current_font
@@ -1001,7 +1004,10 @@ instance HasMarkupText (Editor String) where
       if st == Disabled then ed # state Normal >> done else done
       f <- getFont ed
       (txt, wins, tags) <- parseMarkupText m f
+      putStrLn "Hallo1"
+      threadDelay(5000000)
       ed # value txt
+      putStrLn "Hallo2"
       mapM (\ (pos1, pos2, f) -> do
                                    pos1' <- getBaseIndex ed pos1
                                    pos2' <- getBaseIndex ed pos2
@@ -1056,10 +1062,23 @@ instance HasMarkupText (Editor String) where
                                (mapM (\ act -> act) ubs) >> done
                              else done)
            unbinds'
+      setRef unbinds []
+      return ed
+{-
+    do
+      let obj@(GUIOBJECT oid _) = toGUIObject ed
+      unbinds' <- getRef unbinds
+      mapM (\ (oid', ubs) -> if oid == oid' then
+                               (mapM (\ act -> act) ubs) >> done
+                             else done)
+           unbinds'
+      setRef unbinds []
+      putStrLn "unbinds performed"
       deleteTextRange ed (IndexPos (1,0)) EndOfText
       nm <- getObjectName obj
       execCmd (show nm ++ " tag delete [" ++ show nm ++ " tag names]")
       return ed
+-}
 
 fromDistance :: Distance -> Int
 fromDistance (Distance i) = i
