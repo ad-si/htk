@@ -85,6 +85,7 @@ SRCS       = \
 	 toolkit/InputForm.hs\
 	 toolkit/InputWin.hs\
 	 toolkit/PromptWin.hs\
+         toolkit/DragAndDrop.hs\
 	 toolkit/LogWin.hs\
 	 toolkit/MatrixBox.hs\
 	 filebrowser/TreeListPath.hs\

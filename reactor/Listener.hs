@@ -124,7 +124,7 @@ data Listener =
    Listener {
       objectid :: ObjectID,
       msgchannel :: (Channel Message),
-      replychannel ::  (MsgQueue ())
+      replychannel ::  (Channel ())
       }
 
 
@@ -170,7 +170,7 @@ newListener :: IO Listener
 newListener = do
    oid <- newObject
    ch <- newChannel
-   chr <- newMsgQueue
+   chr <- newChannel
    return (Listener oid ch chr)
 
                         

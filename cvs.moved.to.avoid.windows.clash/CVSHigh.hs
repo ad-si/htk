@@ -219,7 +219,7 @@ cvsAdd (CVSLoc globalOptions) file =
       return result
    where
       fileAdded = high
-         "commit' to add this file permanently\\'"
+         ".* commit' to add this file permanently\\'"
          -- forget "cvs add: use 'cvs " part of message,
          -- because cvs replaces "cvs" by whatever pathname it
          -- thinks it was called by, mangled somewhat.
