@@ -13,14 +13,15 @@ module UniTypes(
    UniType, -- represents a type
    newUniTypeDataBase, -- :: IO UniTypeDataBase
    registerType, -- :: UniTypeDataBase -> UniTypeData -> IO UniType
-   lookupByExtension, -- :: UniTypeDataBase -> String -> IO (Maybe UniType)
-   
-   splitFileName, -- :: String -> (String,String)
-   unsplitFileName, -- :: String -> String -> String
-   -- splitFileName and unsplitFileName make and split file extensions
-   makeFileName -- :: String -> UniType -> String
-   -- makeFileName makes a file name from the base name and the
-   -- UniType.
+   lookupByExtension, -- :: UniTypeDataBase -> String -> IO UniType
+   -- lookupByExtension raises an error if it doesn't recognise the
+   -- type.
+   getExtension, -- :: UniType -> String
+
+   makeFileName, -- :: String -> UniType -> String
+   -- makeFileName makes a file name from the base name and type
+   unmakeFileName -- :: UniTypeDataBase -> String -> IO (String,UniType)
+   -- unmakeFileName reverses makeFileName
    ) where
 
 import Concurrent
@@ -42,7 +43,8 @@ data UniTypeData =
 
 newtype UniTypeDataBase = UniTypeDataBase (MVar (FiniteMap Extension UniType))
 
-data UniType = UniType Name Extension derives (Eq,Ord)
+data UniType = UniType {typeName::Name,typeExtension::Extension} 
+   deriving (Eq,Ord,Show)
 
 newUniTypeDataBase :: IO UniTypeDataBase
 newUniTypeDataBase = 
@@ -60,7 +62,7 @@ registerType (UniTypeDataBase mVar)
             case lookupFM map extension of
                Nothing ->
                   let
-                     uniType = UniType name extension
+                     uniType = UniType{typeName=name,typeExtension=extension}
                   in
                      (addToFM map extension uniType,return uniType)
                Just _ -> 
@@ -74,11 +76,18 @@ registerType (UniTypeDataBase mVar)
       putMVar mVar newMap
       endAction
 
-lookupByExtension :: UniTypeDataBase -> Extension -> IO (Maybe UniType)
+lookupByExtension :: UniTypeDataBase -> Extension -> IO UniType
 lookupByExtension(UniTypeDataBase mVar) extension =
    do
       map <- readMVar mVar
-      return(lookupFM map extension)
+      case lookupFM map extension of
+         Just uniType -> return uniType
+         Nothing -> ioError(userError(
+            "lookupByExtension: unrecognised type "++extension
+            ))
+
+getExtension :: UniType -> String
+getExtension = typeExtension
 
 splitFileName :: String -> (Name,Extension)
 splitFileName "" = ("","")
@@ -94,6 +103,14 @@ unsplitFileName name "" = name
 unsplitFileName name extension = name ++ ('.':extension)
 
 makeFileName :: Name -> UniType -> String
-makeFileName name (UniType {extension=extension}) = 
+makeFileName name (UniType {typeExtension=extension}) = 
    unsplitFileName name extension
+
+unmakeFileName :: UniTypeDataBase -> String -> IO (String,UniType)
+unmakeFileName db fileName =
+   do
+      let
+         (base,extension) = splitFileName fileName
+      uniType <- lookupByExtension db extension
+      return (base,uniType)  
 

@@ -90,13 +90,13 @@ import System
 import Directory
 
 import Concurrent
-import FiniteMap
 import Set
 import qualified BSD
 import PackedString
 import Addr(Addr)
 
 import Computation(done)
+import FiniteMap
 import Maybes
 
 import Event
@@ -116,7 +116,7 @@ data Repository = Repository {
    workingDir :: String, 
       -- Working directory.  Includes terminal file separator.
       -- Also includes module name.
-   wDirContents :: MVar (FiniteMap Location (MVar (Maybe ObjectVersion))),
+   wDirContents :: MVar(FiniteMap Location (MVar(Maybe ObjectVersion))),
       -- wDirContents contains all versions of objects (including
       -- attribute files) currently in the working directory.
    wDirDirs :: MVar (Set Location),
