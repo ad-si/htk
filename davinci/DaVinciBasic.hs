@@ -501,7 +501,13 @@ getNextAnswer :: ChildProcess -> IO DaVinciAnswer
 getNextAnswer childProcess =
    do
       line <- readMsg childProcess
-      return (read line)
+      if (line == "program error: \"hd []\"")
+         then
+            do
+               putStrLn "************ DAvINCI BUG IGNORED ***************"
+               getNextAnswer childProcess
+         else
+            return (read line)
 
 -- ---------------------------------------------------------------------
 -- Generating new identifiers.
