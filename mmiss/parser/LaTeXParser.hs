@@ -1,12 +1,33 @@
 module LaTeXParser (
-   frags,
+   -- new interface.  For now, just a make-weight bolted on top of the old one.
+   FileSystem(..),
+   PackageId(..),
+
    parseMMiSSLatex, 
+      -- :: FileSystem -> FilePath 
+      -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+   makeMMiSSLatexContent,
+      -- :: Element -> Bool 
+      -- -> (MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+      -- -> WithError (EmacsContent ((String,Char),[Attribute])) 
+      -- needed for Emacs
+   writeMMiSSLatex, 
+      -- :: FileSystem -> Element -> Bool
+      -- -> [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+      -- -> IO (WithError ()) -- needed for export
+   mergePreambles, -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
+
+
+   -- OLD INTERFACE
+   frags,
+
+   parseMMiSSLatex1, 
    -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- Turn MMiSSLaTeX into an Element.   
-   parseMMiSSLatexFile, 
+   parseMMiSSLatex1File, 
    -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- The same, for a file.
-   makeMMiSSLatex,
+   makeMMiSSLatex1,
    -- :: (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
    --   -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Turns an Element into a MMiSSLaTeX source
@@ -17,7 +38,7 @@ module LaTeXParser (
    MMiSSExtraPreambleData(..),
    -- 
    importCommands,
-   -- :: MMiSSLaTeXPreamble -> Maybe ImportCommands
+   -- :: MMiSSLatexPreamble -> Maybe ImportCommands
 
    classifyLabelledTag, -- :: String -> Maybe Char
    -- Maps an Xml tag to its corresponding mini-type if it has one.
@@ -40,6 +61,8 @@ module LaTeXParser (
 
 -- module LaTeXParser where
 
+import IO(FilePath)
+
 import IOExts
 import List
 import Parsec
@@ -52,12 +75,120 @@ import Text.XML.HaXml.Combinators hiding (find)
 
 import Dynamics
 import Computation hiding (try)
+import ExtendedPrelude(unsplitByChar)
 import ParsecError
 import EmacsContent
 import EntityNames
 import AtomString
 import CodedValue
 -- import EmacsEdit(TypedName)
+
+
+-- ---------------------------------------------------------------------------
+-- New Interface
+-- ---------------------------------------------------------------------------
+
+-- types
+newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
+
+data FileSystem = FileSystem {
+   readString :: FilePath -> IO (WithError String),
+   writeString :: String -> FilePath -> IO (WithError ())
+   } 
+
+-- Functions
+parseMMiSSLatex :: FileSystem -> FilePath 
+   -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+parseMMiSSLatex fileSystem filePath =
+   do
+      strWE <- readString fileSystem filePath 
+      case fromWithError strWE of
+         Left err -> return (fail err)
+         Right str ->
+            do
+               let
+                  parsedWE = parseMMiSSLatex1 str
+               case fromWithError parsedWE of
+                  Left err -> return (fail err)
+                  Right (el @ (Elem _ atts _),preambleOpt) ->
+                     do
+                        let
+                           packageId = PackageId (getParam "packageId" atts)
+
+                           preambleList = case preambleOpt of
+                              Nothing -> []
+                              Just preamble -> [(preamble,packageId)]
+                        return (hasValue (el,preambleList))
+                         
+makeMMiSSLatexContent :: Element -> Bool ->
+   [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+   -> WithError (EmacsContent ((String,Char),[Attribute]))
+makeMMiSSLatexContent el b preambleInfos0 =
+   let
+      preambleInfos1 = map
+         (\ (preamble,packageId,datas) -> (preamble,datas))
+         preambleInfos0
+   in
+      makeMMiSSLatex1 (el,b,preambleInfos1)
+
+
+writeMMiSSLatex :: FileSystem -> Element -> Bool ->
+   [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
+   -> IO (WithError ())
+writeMMiSSLatex fileSystem (el @ (Elem _ atts _)) b preambleInfos0 =
+   do
+      let
+         contentWE = makeMMiSSLatexContent el b preambleInfos0
+      case fromWithError contentWE of
+         Left err -> return (fail err)
+         Right content ->
+            do
+               let
+                  result = mkLaTeXString content
+                  label = getParam "label" atts
+               writeString fileSystem result label  
+ 
+
+mkLaTeXString :: EmacsContent ((String,Char),[Attribute]) -> String
+mkLaTeXString (EmacsContent dataItems) =
+   concatMap
+      (\ dataItem -> case dataItem of
+         EditableText str -> str
+         EmacsLink ((included,ch),attributes) -> 
+            "\\Include"
+            ++ toIncludeStr ch
+            ++ "{" ++ included ++ "}"
+            ++ toLaTeXAttributes (attributes ++ [statusAttribute])
+         )     
+      dataItems
+
+toLaTeXAttributes :: [Attribute] -> String
+toLaTeXAttributes [] = ""
+toLaTeXAttributes attributes =
+   "{"
+   ++ unsplitByChar ',' (map
+      (\ (name,attValue) ->
+         case attValue of
+            AttValue [Left value] -> name ++ "=" ++ value
+         )
+      attributes   
+      )
+   ++
+   "}"
+
+statusAttribute :: Attribute
+statusAttribute = ("status",AttValue [Left "present"])
+
+mergePreambles :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String])
+mergePreambles [preamble] = (preamble,[])
+mergePreambles (preamble:_) = (preamble,[
+   "All preambles but the first thrown away; complain to Achim!!!"])
+mergePreambles [] = error 
+   "mergePreambles given no preambles; complain to George!!!"
+
+-- ---------------------------------------------------------------------------
+-- Old Interface
+-- ---------------------------------------------------------------------------
 
 
 type EnvId = String
@@ -839,9 +970,9 @@ directivesParser ds =
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
     XML-structure.  --}
 
-parseMMiSSLatex :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
+parseMMiSSLatex1 :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
 
-parseMMiSSLatex s = 
+parseMMiSSLatex1 s = 
   let result = parse (frags []) "" s
   in case result of
 --     Right ast  -> trace s (makeXML peamble ast)
@@ -849,11 +980,11 @@ parseMMiSSLatex s =
        Left err -> hasError (show err)
 
 
-parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
-parseMMiSSLatexFile s = do result <- parseFromFile (frags []) s
- 		           case result of
-			     Right fs  -> return(makeXML (Env "Root" (LParams [] [] Nothing Nothing) fs))
- 		             Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
+parseMMiSSLatex1File :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
+parseMMiSSLatex1File s = do result <- parseFromFile (frags []) s
+ 		            case result of
+			       Right fs  -> return(makeXML (Env "Root" (LParams [] [] Nothing Nothing) fs))
+ 		               Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
 
 
 {--
@@ -1966,7 +2097,7 @@ applyTranslation outStr inStr (search, replaceStr) =
    lenSearch = genericLength search   
 
 
-{-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
+{-- makeMMiSSLatex1 erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
     Element ist das Root-Element des auszugebenden Dokumentbaumes, der Bool-Wert legt fest,
     ob das erzeugte LaTeX-Fragment ein komplettes File sein soll, dass ohne Änderungen
     geteXt werden kann (True), oder nicht (False). Wenn es komplett sein soll, dann wird 
@@ -1983,19 +2114,19 @@ newtype MMiSSExtraPreambleData = MMiSSExtraPreambleData {
       -- Nothing means that this is the head element.
    }
 
-makeMMiSSLatex :: 
+makeMMiSSLatex1 :: 
    (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
    -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Each distinct preamble occurs once in the list, paired with a list
    -- for each of its call-sites.
-makeMMiSSLatex (element,preOut,preambles') =
+makeMMiSSLatex1 (element,preOut,preambles') =
    -- stub function that doesn't use MMiSSExtraPreambleData for now.
-   makeMMiSSLatex1 (element,preOut,map fst preambles')
+   makeMMiSSLatex11 (element,preOut,map fst preambles')
 
 
-makeMMiSSLatex1 :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
+makeMMiSSLatex11 :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
 
-makeMMiSSLatex1 ((Elem name atts content), preOut, preambles) = 
+makeMMiSSLatex11 ((Elem name atts content), preOut, preambles) = 
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
       p = unionPreambles preambles
       preambleItem = case p of
