@@ -5,7 +5,8 @@ module LaTeXParser (
 
    parseMMiSSLatex, 
       -- :: FileSystem -> FilePath 
-      -- -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+      -- -> IO (WithError ((Element,PackageId),
+      --    [(MMiSSLatexPreamble,PackageId)]))
    makeMMiSSLatexContent,
       -- :: Element -> Bool 
       -- -> (MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
@@ -98,7 +99,7 @@ data FileSystem = FileSystem {
 
 -- Functions
 parseMMiSSLatex :: FileSystem -> FilePath 
-   -> IO (WithError (Element,[(MMiSSLatexPreamble,PackageId)]))
+   -> IO (WithError ((Element,PackageId),[(MMiSSLatexPreamble,PackageId)]))
 parseMMiSSLatex fileSystem filePath =
    do
       strWE <- readString fileSystem filePath 
@@ -118,7 +119,7 @@ parseMMiSSLatex fileSystem filePath =
                            preambleList = case preambleOpt of
                               Nothing -> []
                               Just preamble -> [(preamble,packageId)]
-                        return (hasValue (el,preambleList))
+                        return (hasValue ((el,packageId),preambleList))
                          
 makeMMiSSLatexContent :: Element -> Bool ->
    [(MMiSSLatexPreamble,PackageId,[MMiSSExtraPreambleData])]
