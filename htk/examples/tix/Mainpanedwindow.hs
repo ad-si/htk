@@ -17,6 +17,7 @@ main:: IO ()
 main =
   do
     main <- initHTk [text "paned window example!"]
+    requirePackage "Tix"
 
     pwh <- newPanedWindow main Horizontal []
     paneh1 <- createPane pwh [initsize 300, minsize 100, maxsize 400] []

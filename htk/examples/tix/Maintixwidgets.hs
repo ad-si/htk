@@ -17,6 +17,7 @@ main:: IO ()
 main =
   do
     main <- initHTk [text "tix widget example!"]
+    requirePackage "Tix"
     tix  <- isTixAvailable
 
     (if tix then
