@@ -2,7 +2,7 @@
 
 \usepackage{latexsym}
 \usepackage{amssymb}
-% \usepackage{casl}
+\usepackage{casl}
 
 \newcommand{\gram}[1]{{\texttt{#1}}}
 \newcommand{\power}{\hat{\ }}
@@ -16,8 +16,9 @@
 \newcommand{\Nat}{\mbox{$\mathbb N$}} % this requires amssymb
 \def\ShortAuthor{C.~L\"uth, M.~Roggenbach}
 \def\ShortTitle{Algebraic Specification}
+\def\Title{Formal Program Development with Algebraic Specifications}
 
-
+\Import
 
 \begin{document}
 \begin{Package}[Label=AlgSpec, 
@@ -56,8 +57,10 @@ independent of tools
 \end{List}
 \end{Introduction}
 
+
 \begin{Paragraph}[Label=Signatures, Title=Signatures]
 Signatures allow us to define operations.
+\vspace{1cm}
 
 \begin{Definition}[Label=DefSignature, Title=Signature]
 A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
@@ -75,7 +78,7 @@ $\omega:s_1\ldots s_n\rightarrow s$.
 \begin{Paragraph}[Label=Algebra, Title=Algebra]
 
 Algebras are models of \Link[signatures]{DefSignature}{}.
-\vfill{}
+\vspace{1cm}
 \begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
   An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
   $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
@@ -99,6 +102,7 @@ An \Emphasis{$S$-sorted set of variables} is given by $X=
 
 Intuitively: terms are the smallest set containing the variables which
 is closed under application of operations.
+\vspace{1cm}
 
 \begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
 Terms form an \Link[algebra]{DefAlgebra}{}.  

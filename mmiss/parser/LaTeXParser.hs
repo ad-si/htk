@@ -419,6 +419,11 @@ lParams id l
                        in return(optionAtts ++ nameAtts ++ versionAtts)
          return(LParams [] attributes Nothing Nothing)
 
+ | (id == "Import") = 
+      do p <- try(between (char '{') (char '}') idParser)
+                <?> ("Missing Argument for \\ImportPath.")
+         return (LParams [(SingleParam [(Other p)] '{')] [] Nothing Nothing)
+
  | otherwise = do p <- try ( genParam '{' '}' )
                   lParams id ((SingleParam p '{'):l)  
                <|>  do p <- try ( genParam '[' ']' )
@@ -533,7 +538,7 @@ parseMMiSSLatex s =
   in case result of
 --     Right ast  -> trace s (makeXML peamble ast)
        Right ast  -> makeXML ast
-       Left err -> hasError (concat (map messageString (errorMessages(err))))
+       Left err -> hasError (show err)
 
 
 parseMMiSSLatexFile :: SourceName -> IO (WithError (Element, Maybe MMiSSLatexPreamble))
@@ -586,7 +591,11 @@ findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatex
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
 findFirstEnv ((Env "Package" ps fs):_) preambleFs _ = 
-  let atts = makeAttribs ps "Package"
+  let atts1 = makeAttribs ps "Package" 
+      atts2 = case (getPathAttrib preambleFs) of
+                (Just a) -> [a]
+                Nothing -> []
+      atts = atts1 ++ atts2
       content = makeContent fs NoText "package"
       preamble = makePreamble preambleFs
 --      preamblePI = (CMisc (PI ("mmiss:LaTeX-Preamble", makeTextElem preambleFs)))
@@ -1131,6 +1140,19 @@ detectTextMode name = if (name `elem` (map fst (envsWithText ++ plainTextAtoms))
                        else NoText
 
 
+-- getPathAttrib bekommt die in der Preamble aufgesammelten Fragmente und sucht darin
+-- das \Import-Kommando, mit dem der Searchpath für importierte Elemente angebenen wird:
+
+getPathAttrib :: [Frag] -> Maybe Attribute
+
+getPathAttrib ((Command "Import" ps):fs) = 
+  case ps of
+    (LParams ((SingleParam ((Other str):[]) _):sps) _ _ _) -> Just(("path", (AttValue [Left str])))
+    otherwise -> Nothing
+getPathAttrib (f:fs) = getPathAttrib fs
+getPathAttrib [] = Nothing 
+
+
 makeAttribs :: Params -> String -> [Attribute]
 
 makeAttribs ps name = 
@@ -1199,10 +1221,8 @@ getLinkText _ = []
 getDefineText :: Params -> [Content]
 getDefineText  (LParams ps _ _ _) = 
   if (genericLength(ps) > 0) 
-    then let (SingleParam ((Other text):[]) _) = genericIndex ps 1
-         in if (text == "") 
-             then []
-             else [(CString True text)]
+    then let (SingleParam fs _) = genericIndex ps 1
+         in  [(CString True (makeTextElem fs))]
     else []
 
 convertAttrib :: (String, String) -> Attribute

@@ -165,7 +165,8 @@
 
 
 <!ELEMENT package (section | includeSection)+>
-<!ATTLIST package %attributes;>
+<!ATTLIST package %attributes;
+          path    CDATA  #IMPLIED>
 <?MMiSSDisplay package : orange box ?>
 
 <!ELEMENT section ((abstract | includeAbstract)?, 
@@ -175,7 +176,7 @@
 <!ATTLIST section %attributes;>
 <?MMiSSDisplay section : yellow box ?>
 
-<!ELEMENT paragraph (%unit;)+>
+<!ELEMENT paragraph (%unit;)*>
 <!ATTLIST paragraph %attributes;>
 <?MMiSSDisplay paragraph : yellow box ?>
 
@@ -188,29 +189,29 @@
   ***********************************************************************
  -->
 
-<!ELEMENT abstract (%unit;)+>
+<!ELEMENT abstract (%unit;)*>
 <!ATTLIST abstract %attributes;>
 <?MMiSSDisplay abstract : Green box ?>
 
 
-<!ELEMENT introduction (%unit;)+>
+<!ELEMENT introduction (%unit;)*>
 <!ATTLIST introduction %attributes;>
 <?MMiSSDisplay introduction : Green box ?>
 
-<!ELEMENT summary (%unit;)+>
+<!ELEMENT summary (%unit;)*>
 <!ATTLIST summary %attributes;>
 <?MMiSSDisplay summary : Green box ?>
 
-<!ELEMENT example (%unit;)+>
+<!ELEMENT example (%unit;)*>
 <!ATTLIST example %attributes;>
 <?MMiSSDisplay example : Green box ?>
 
 
-<!ELEMENT exercise (%unit;)+>
+<!ELEMENT exercise (%unit;)*>
 <!ATTLIST exercise %attributes;>
 <?MMiSSDisplay exercise : Green box ?>
 
-<!ELEMENT definition (%unit;)+>
+<!ELEMENT definition (%unit;)*>
 <!ATTLIST definition %attributes;>
 <?MMiSSDisplay definition : Green box ?>
 
@@ -234,15 +235,16 @@
 <!ATTLIST bibEntry  %attributes;>
 <?MMiSSDisplay bibEntry : Green ellipse ?>
 
-<!ELEMENT list  (listItem)+>
+<!ELEMENT list  (listItem)*>
 <!ATTLIST list  listType  (itemize | enumeration | description)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
 <?MMiSSDisplay list : Green ellipse ?>
 
 
-<!ELEMENT listItem  (list | %atom;)+>
-<!ATTLIST listItem %attributes;>
+<!ELEMENT listItem  (list | %atom;)*>
+<!ATTLIST listItem descItem   CDATA  #IMPLIED
+                   %attributes;>
 
 
 <!--
@@ -254,48 +256,48 @@
  -->
 
 <!ELEMENT program (%conceptualAtom; | programFragment | program
-                  | includeProgramFragment | includeProgram)+>
+                  | includeProgramFragment | includeProgram)*>
 <!ATTLIST program %attributes;>
 <?MMiSSDisplay program : Blue box ?>
 
 <!ELEMENT theory (%conceptualAtom; | clause | theory
-                  | includeClause | includeTheory)+>
+                  | includeClause | includeTheory)*>
 <!ATTLIST theory %attributes;>
 <?MMiSSDisplay theory : Blue box ?>
 
-<!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)+>
+<!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST theorem %attributes;>
 <?MMiSSDisplay theorem : Blue box ?>
 
-<!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)+>
+<!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST conjecture %attributes;>
 <?MMiSSDisplay conjecture : Blue box ?>
 
-<!ELEMENT lemma (%conceptualAtom; | clause | includeClause)+>
+<!ELEMENT lemma (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST lemma %attributes;>
 <?MMiSSDisplay lemma : Blue box ?>
 
-<!ELEMENT corollary (%conceptualAtom; | clause | includeClause)+>
+<!ELEMENT corollary (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST corollary %attributes;>
 <?MMiSSDisplay corollary : Blue box ?>
 
-<!ELEMENT assertion (%conceptualAtom; | clause | includeClause)+>
+<!ELEMENT assertion (%conceptualAtom; | clause | includeClause)*>
 <!ATTLIST assertion %attributes;>
 <?MMiSSDisplay assertion : Blue box ?>
 
 <!ELEMENT proof (%conceptualAtom; | step | script | proof
-                 | includeStep | includeScript | includeProof)+>
+                 | includeStep | includeScript | includeProof)*>
 <!ATTLIST proof %attributes;>
 <?MMiSSDisplay proof : Blue box ?>
 
 <!ELEMENT development  (%conceptualAtom; | step | script | development
-                        | includeStep | includeScript | includeDevelopment)+>
+                        | includeStep | includeScript | includeDevelopment)*>
 <!ATTLIST development  %attributes;>
 <?MMiSSDisplay development : Blue box ?>
 
 
 <!ELEMENT script  (%conceptualAtom; | step | script
-                   | includeStep | includeScript)+>
+                   | includeStep | includeScript)*>
 <!ATTLIST script %attributes;>
 <?MMiSSDisplay development : Blue box ?>
 
