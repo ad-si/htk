@@ -24,7 +24,8 @@ import Dynamics
 import Registry
 import UniqueFile
 import FileSystem
-import Source
+import Broadcaster
+import Sources
 
 import BSem
 
@@ -36,7 +37,7 @@ data View = View {
    objects :: LockedRegistry Location ObjectData,
    parentMVar :: MVar (Maybe ObjectVersion),
 
-   titleSource :: SimpleSource String, -- current title of this view.
+   titleSource :: SimpleBroadcaster String, -- current title of this view.
 
    -- Contains "real" copies of files for the benefit of tools
    fileSystem :: FileSystem
@@ -59,8 +60,8 @@ instance QuickShow ViewId where
    quickShow = WrapShow (\ (ViewId oId) -> oId)
 
 -- -----------------------------------------------------------------
--- Function for extracting the title of a View as a Source
+-- Function for extracting the title of a View as a SimpleSource
 -- -----------------------------------------------------------------
 
-getViewTitleSource :: View -> Source String
-getViewTitleSource view = mkSource (titleSource view)
+getViewTitleSource :: View -> SimpleSource String
+getViewTitleSource view = toSimpleSource (titleSource view)

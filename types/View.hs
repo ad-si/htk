@@ -36,7 +36,8 @@ import AtomString(fromString)
 import Object
 import FileSystem
 import CopyFile
-import Source
+import Sources
+import Broadcaster
 
 import VersionDB
 import ViewType
@@ -68,7 +69,7 @@ newView repository =
       parentMVar <- newMVar Nothing
       viewIdObj <- newObject
       fileSystem <- newFileSystem
-      titleSource <- newSimpleSource ""
+      titleSource <- newSimpleBroadcaster ""
 
       return (View {
          viewId = ViewId viewIdObj,
@@ -115,7 +116,7 @@ getView repository objectVersion =
 
       parentMVar <- newMVar (Just objectVersion)
       fileSystem <- newFileSystem
-      titleSource <- newSimpleSource ""
+      titleSource <- newSimpleBroadcaster ""
       let
          view = View {
             viewId = viewId,

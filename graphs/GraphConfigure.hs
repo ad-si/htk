@@ -77,7 +77,7 @@ module GraphConfigure(
 import Computation(HasConfig(($$),configUsed),done)
 import ExtendedPrelude
 import Dynamics(Dyn,Typeable)
-import Source
+import Sources
 
 import MenuType
 
@@ -175,7 +175,7 @@ combineGlobalMenus globalMenus =
 data GraphTitle = GraphTitle String
 instance GraphConfig GraphTitle
 
-instance GraphConfig (Source GraphTitle)
+instance GraphConfig (SimpleSource GraphTitle)
 
 data ValueTitle value = ValueTitle (value -> IO String)
 -- ValueTitles are computed from the node or arc value using the supplied
@@ -339,7 +339,7 @@ class (
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
 
-   HasConfig (Source GraphTitle) graphParms
+   HasConfig (SimpleSource GraphTitle) graphParms
    )
    => HasGraphConfigs graphParms
 
@@ -349,7 +349,7 @@ instance (
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms,
 
-   HasConfig (Source GraphTitle) graphParms
+   HasConfig (SimpleSource GraphTitle) graphParms
    )
    => HasGraphConfigs graphParms
 

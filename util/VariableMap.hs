@@ -10,7 +10,7 @@ module VariableMap(
    lookupMap,
    lookupWithDefaultMap,
    mapToList,
-   mapToSinkSource,
+   mapToVariableSetSource,
 
    addToVariableMap,
    variableMapToList,
@@ -24,6 +24,7 @@ import Dynamics
 import Sink
 import Broadcaster
 import VariableSet
+import Sources
 
 -- --------------------------------------------------------------------
 -- The datatype
@@ -37,12 +38,14 @@ newtype VariableMapUpdate key elt =
    VariableMapUpdate (VariableSetUpdate (key,elt))
 
 update :: Ord key 
-   => VariableMapData key elt -> VariableMapUpdate key elt 
-   -> VariableMapData key elt
-update (VariableMapData map) (VariableMapUpdate update) =
-   case update of
+   => VariableMapUpdate key elt -> VariableMapData key elt 
+   -> (VariableMapData key elt,[VariableMapUpdate key elt])
+update (variableUpdate @ (VariableMapUpdate update)) (VariableMapData map) =
+   (case update of
       AddElement (key,elt) -> VariableMapData (addToFM map key elt)
       DelElement (key,elt) -> VariableMapData (delFromFM map key)
+   , [variableUpdate]
+   )
 
 newtype VariableMap key elt = 
    VariableMap (Broadcaster (VariableMapData key elt) 
@@ -57,7 +60,7 @@ newtype VariableMap key elt =
 newEmptyVariableMap :: Ord key => IO (VariableMap key elt)
 newEmptyVariableMap = 
    do
-      broadcaster <- newBroadcaster update (VariableMapData emptyFM)
+      broadcaster <- newBroadcaster (VariableMapData emptyFM)
       return (VariableMap broadcaster)
 
 ---
@@ -65,16 +68,15 @@ newEmptyVariableMap =
 newVariableMap :: Ord key => [(key,elt)] -> IO (VariableMap key elt)
 newVariableMap contents =
    do
-      broadcaster <- 
-         newBroadcaster update (VariableMapData (listToFM contents))
+      broadcaster <- newBroadcaster (VariableMapData (listToFM contents))
       return (VariableMap broadcaster)
 
 ---
 -- Update a variable map in some way.
 updateMap :: Ord key => VariableMap key elt -> VariableMapUpdate key elt 
    -> IO ()
-updateMap (VariableMap broadcaster) update = 
-   updateBroadcaster broadcaster update
+updateMap (VariableMap broadcaster) mapUpdate = 
+   applyUpdate broadcaster (update mapUpdate)
 
 
 -- --------------------------------------------------------------------
@@ -86,13 +88,10 @@ updateMap (VariableMap broadcaster) update =
 -- Unlike VariableSet, the contents of a variable map are not returned in
 -- concrete form but as the abstract data type VariableMapData.  We provide
 -- functions for querying this.
-instance Ord key 
-   => CanAddSinks (VariableMap key elt) (VariableMapData key elt) 
-         (VariableMapUpdate key elt) where
-   addOldSink (VariableMap broadcaster) sink = addOldSink broadcaster sink
-
-   readContents (VariableMap broadcaster) = readContents broadcaster
-
+instance Ord key => HasSource (VariableMap key elt) 
+      (VariableMapData key elt) (VariableMapUpdate key elt)
+      where
+   toSource (VariableMap broadcaster) = toSource broadcaster
 
 lookupMap :: Ord key => VariableMapData key elt -> key -> Maybe elt
 lookupMap (VariableMapData map) key = lookupFM map key
@@ -116,35 +115,31 @@ data VariableMapSet key elt element = VariableMapSet {
 
 ---
 -- Given a variable map and conversion function, produce a VariableSetSource
-mapToSinkSource :: Ord key => (key -> elt -> element) -> VariableMap key elt 
-   -> VariableSetSource element
-mapToSinkSource mkElement variableMap = SinkSource (VariableMapSet 
+mapToVariableSetSource :: Ord key => (key -> elt -> element) 
+   -> VariableMap key elt -> VariableSetSource element
+mapToVariableSetSource mkElement variableMap = toSource (VariableMapSet 
       {variableMap = variableMap,mkElement = mkElement})
 
-instance Ord key => CanAddSinks (VariableMapSet key elt element) [element] 
-      (VariableSetUpdate element) where
-   addOldSink 
-         (VariableMapSet {variableMap = variableMap,
-            mkElement = mkElement}) sink =
-      do
-         let
-            sink2 = coMapSink
+instance Ord key => HasSource (VariableMapSet key elt element) [element] 
+     (VariableSetUpdate element)
+   where
+      toSource (VariableMapSet 
+         {variableMap = variableMap,mkElement = mkElement}) =
+            (map1
+               (\ (VariableMapData contents) -> 
+                  map (uncurry mkElement) (fmToList contents)
+                  )
+               )
+            .
+            (map2
                (\ (VariableMapUpdate update) ->
                   case update of
                      AddElement (key,elt) -> AddElement (mkElement key elt)
                      DelElement (key,elt) -> DelElement (mkElement key elt)
                   )
-               sink
-         VariableMapData contents <- addOldSink variableMap sink2
-         let elements = map (uncurry mkElement) (fmToList contents)
-         return elements
-   readContents 
-         (VariableMapSet {variableMap = variableMap,
-            mkElement = mkElement}) =
-      do
-         VariableMapData contents <- readContents variableMap
-         let elements = map (uncurry mkElement) (fmToList contents)
-         return elements
+               )
+            $
+            (toSource variableMap)   
 
 -- --------------------------------------------------------------------
 -- A couple of simple access functions

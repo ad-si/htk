@@ -10,8 +10,8 @@ module SpecialNodeActions(
    ) where
 
 import KeyedChanges
-import Source
-import Sink
+import Sources
+import Broadcaster
 import Dynamics
 
 import GraphConfigure
@@ -53,10 +53,10 @@ sendOrDelete modification =
 -- ------------------------------------------------------------------
 
 getNodeActions :: (HasNodeModifies graph node,Typeable value) 
-   => NodeActionSource -> Source (graph -> node value -> IO ())
+   => NodeActionSource -> SimpleSource (graph -> node value -> IO ())
 getNodeActions (NodeActionSource keyedChanges) =
    let
-      sinkSource = SinkSource keyedChanges
+      source = toSource keyedChanges
 
       apply :: (HasNodeModifies graph node,Typeable value) 
          => NodeAction -> graph -> node value -> IO ()
@@ -71,9 +71,10 @@ getNodeActions (NodeActionSource keyedChanges) =
             (\ action -> apply action graph node)
             list
 
-      actionSinkSource :: (HasNodeModifies graph node,Typeable value) 
-         => SinkSource (graph -> node value -> IO ()) 
-            (graph -> node value -> IO ())
-      actionSinkSource = mapSinkSource applyMultiple apply sinkSource
+      actionSimpleSource :: (HasNodeModifies graph node,Typeable value) 
+         => SimpleSource (graph -> node value -> IO ()) 
+      actionSimpleSource = SimpleSource ( 
+         (map1 applyMultiple) . (map2 apply) $ source
+         )
    in
-      mkSource actionSinkSource      
+      actionSimpleSource

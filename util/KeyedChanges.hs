@@ -19,18 +19,19 @@ module KeyedChanges(
       -- :: Ord key => key -> delta -> KeyedChanges key delta -> IO ()
 
    -- Consumer's interface
-   -- instance Ord key => CanAddSinks (KeyedChanges key delta) [delta] delta
+   -- instance Ord key => HasSource (KeyedChanges key delta) [delta] delta
    ) where
 
 import Concurrent
 import FiniteMap
 
 import Computation(done)
-import qualified Broadcaster (processClients)
-import Sink
 
-newtype KeyedChanges key delta = 
-   KeyedChanges (MVar (FiniteMap key delta,[Sink delta]))
+import Sources
+import Broadcaster
+
+newtype KeyedChanges key delta 
+   = KeyedChanges (Broadcaster (FiniteMap key delta) delta)
 
 -- ------------------------------------------------------------------------
 -- Producer's interface
@@ -39,47 +40,23 @@ newtype KeyedChanges key delta =
 newKeyedChanges :: Ord key => IO (KeyedChanges key delta)
 newKeyedChanges =
    do
-      mVar <- newMVar (emptyFM,[])
-      return (KeyedChanges mVar)
+      broadcaster <- newBroadcaster emptyFM
+      return (KeyedChanges broadcaster)
 
 sendKeyedChanges :: Ord key => key -> delta -> KeyedChanges key delta -> IO ()
-sendKeyedChanges key delta (KeyedChanges mVar) =
-   do
-      (map0,sinks0) <- takeMVar mVar
-      let
-         map1 = addToFM map0 key delta
-      sinks1 <- Broadcaster.processClients sinks0 delta
-      putMVar mVar (map1,sinks1)
-
-      -- the seq hopefully avoids a long list of unevaluated thunks at the 
-      -- front of the map.
-      seq (sizeFM map1) done 
+sendKeyedChanges key delta (KeyedChanges broadcaster) =
+   applyUpdate broadcaster (\ map -> (addToFM map key delta,[delta]))
 
 deleteKeyedChange :: Ord key => key -> delta -> KeyedChanges key delta -> IO ()
-deleteKeyedChange key delta (KeyedChanges mVar) =
-   do
-      (contents @ (map0,sinks0)) <- takeMVar mVar
-      case lookupFM map0 key of
-         Nothing -> putMVar mVar contents
-         Just _ ->
-            do
-               sinks1 <- Broadcaster.processClients sinks0 delta
-               let
-                  map1 = delFromFM map0 key
-               putMVar mVar (map1,sinks1)
-               seq (sizeFM map1) done
+deleteKeyedChange key delta (KeyedChanges broadcaster) =
+   applyUpdate broadcaster (\ map -> case lookupFM map key of
+      Nothing -> (map,[])
+      Just _ -> (delFromFM map key,[delta])
+      )
 
 -- ------------------------------------------------------------------------
 -- Consumer's interface
 -- ------------------------------------------------------------------------
 
-instance Ord key => CanAddSinks (KeyedChanges key delta) [delta] delta where
-   addOldSink (KeyedChanges mVar) sink =
-      do
-         (map0,sinks0) <- takeMVar mVar         
-         putMVar mVar (map0,sink:sinks0)
-         return (eltsFM map0)
-   readContents (KeyedChanges mVar) =
-      do
-         (map0,_) <- readMVar mVar
-         return (eltsFM map0)
+instance Ord key => HasSource (KeyedChanges key delta) [delta] delta where
+   toSource (KeyedChanges broadcaster) = map1 eltsFM (toSource broadcaster)

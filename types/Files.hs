@@ -18,7 +18,8 @@ import Dynamics
 import Computation
 import AtomString(fromString)
 import Sink
-import Source
+import Sources
+import Broadcaster
 import VariableSet
 import UniqueString
 
@@ -186,15 +187,13 @@ instance ObjectType FileType File where
                         in
                            [(theNodeType,parms2)],
                      getNodeType = const theNodeType,
-                     knownSet = SinkSource (knownFiles fileType),
+                     knownSet = toSource (knownFiles fileType),
                      mustFocus = (\ _ -> return False),
-                     focus = (\ link ->
-                        return (SinkSource emptyVariableSet,
-                           SinkSource emptyVariableSet)
-                        ),
+                     focus = (\ link -> return
+                        (emptyVariableSetSource,emptyVariableSetSource)),
                      closeDown = done,
                      specialNodeActions = (\ _ ->
-                        mkStaticSource (\ graph node -> done)
+                        SimpleSource (staticSource (\ graph node -> done))
                         )
                      })
                Nothing -> Nothing
@@ -214,11 +213,6 @@ instance HasFilePath File where
 globalRegistry :: GlobalRegistry FileType
 globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
-
-
-emptyVariableSet :: VariableSet (WrappedLink,ArcType)
-emptyVariableSet = IOExts.unsafePerformIO newEmptyVariableSet
-{-# NOINLINE emptyVariableSet #-}
          
 -- ------------------------------------------------------------------
 -- newEmptyFile

@@ -28,7 +28,8 @@ import qualified IOExts(unsafePerformIO)
 import Dynamics
 import Computation
 import Sink
-import Source
+import Sources
+import Broadcaster
 import VariableSet
 import VariableMap
 import UniqueString
@@ -161,7 +162,7 @@ data Folder = Folder {
    contents :: VariableMap String WrappedLink,
    contentsLock :: BSem, -- The contentsLock should be set whenever the
       -- contents are in the process of being updated.
-   hideFolderArcs :: SimpleSource (Maybe NodeArcsHidden)
+   hideFolderArcs :: SimpleBroadcaster (Maybe NodeArcsHidden)
    }
 
 folder_tyRep = mkTyRep "Folders" "Folder"
@@ -255,15 +256,14 @@ instance ObjectType FolderType Folder where
                            nodeTypeParms
                            )],
                      getNodeType = const theNodeType,
-                     knownSet = SinkSource (knownFolders folderType),
+                     knownSet = toSource (knownFolders folderType),
                      mustFocus = (\ _ -> return False),
                      focus = (\ link ->
                         do
                            updateSet (knownFolders folderType) 
                               (AddElement link)
                            folder <- readLink view link
-                           return (mkArcs (contents folder),
-                              staticSinkSource [])
+                           return (mkArcs (contents folder),staticSource [])
                         ),
                      closeDown = done,
                      specialNodeActions = 
@@ -273,7 +273,7 @@ instance ObjectType FolderType Folder where
                                  (\ graph node ->
                                     modify arcsHidden graph node
                                  ))
-                              (mkSource (hideFolderArcs object))
+                              (toSimpleSource (hideFolderArcs object))
                            )
                      })
                Nothing -> Nothing
@@ -283,8 +283,7 @@ instance ObjectType FolderType Folder where
          hideAction link bool =
             do
                folder <- readLink view link
-               sendSimpleSource (hideFolderArcs folder) 
-                  (Just (NodeArcsHidden bool))
+               broadcast (hideFolderArcs folder) (Just (NodeArcsHidden bool))
 
 -- ------------------------------------------------------------------
 -- Extra option so that folders can add files.
@@ -316,7 +315,7 @@ addFileGesture view =
 
 mkArcs :: VariableMap String WrappedLink ->
     VariableSetSource (WrappedLink,ArcType)
-mkArcs variableMap = mapToSinkSource 
+mkArcs variableMap = mapToVariableSetSource 
    (\ str wrappedLink -> (wrappedLink,theArcType)) variableMap
 
 
@@ -581,8 +580,8 @@ createNewFolderType view =
 -- Creating the folder actions
 -- ------------------------------------------------------------------
 
-mkArcsHiddenSource :: IO (SimpleSource (Maybe NodeArcsHidden))
-mkArcsHiddenSource = newSimpleSource Nothing
+mkArcsHiddenSource :: IO (SimpleBroadcaster (Maybe NodeArcsHidden))
+mkArcsHiddenSource = newSimpleBroadcaster Nothing
 
 -- ------------------------------------------------------------------
 -- The HasParent class

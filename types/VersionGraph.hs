@@ -23,7 +23,8 @@ import WBFiles(getServer)
 import Registry
 import AtomString
 import UniqueString
-import Source
+import Sources
+import Broadcaster
 
 import Spawn
 import Destructible
@@ -270,7 +271,7 @@ newVersionGraph
          reallyCheckOutNode title parentNode version =
             do
                view <- getView repository version
-               sendSimpleSource (titleSource view) title
+               broadcast (titleSource view) title
                let versionGraphNode = WorkingNode view
                let thisNode = toNode versionGraphNode
                thisArc <- newWorkingArc arcStringSource
@@ -311,7 +312,7 @@ newVersionGraph
          reallyCommitNode :: String -> Node -> View -> IO ()
          reallyCommitNode title thisNode view =
             do
-               (nodeDataOpt :: Maybe (Node,SimpleSource String)) <-
+               (nodeDataOpt :: Maybe (Node,SimpleBroadcaster String)) <-
                   transformValue workingNodeRegistry thisNode
                   (\ viewedNodeOpt ->
                      let
@@ -357,7 +358,7 @@ newVersionGraph
                         update graph (NewArc newArc2 workingArcType ()
                            newNode thisNode)
 
-                        sendSimpleSource titleSource title
+                        broadcast titleSource title
 
       -- Construct the graph
       displayedGraph <- displayGraph displaySort graph graphParms

@@ -14,6 +14,7 @@ module VariableSet(
    setVariableSet,
 
    VariableSetSource,
+   emptyVariableSetSource,
 
    mapVariableSetSourceIO',
    concatVariableSetSource,
@@ -27,6 +28,7 @@ import Concurrent
 import Computation
 import Dynamics
 import Sink
+import Sources
 import Broadcaster
 
 -- --------------------------------------------------------------------
@@ -74,26 +76,30 @@ data VariableSetUpdate x =
    |  DelElement x
 
 update :: HasKey x key 
-   => VariableSetData x -> VariableSetUpdate x -> Maybe (VariableSetData x)
-update (VariableSetData set) update =
-   case update of
-      AddElement x -> 
-         let
-            kx = Keyed x
-            isElement = elementOf kx set
-         in
-            if isElement then Nothing else 
-               Just (VariableSetData (addToSet set kx))
-      DelElement x ->
-         let
-            kx = Keyed x
-            isElement = elementOf kx set
-         in
-            if isElement then Just(VariableSetData (delFromSet set kx))
-               else Nothing
+   => VariableSetUpdate x -> VariableSetData x 
+   -> (VariableSetData x,[VariableSetUpdate x])
+update setUpdate (variableSet @ (VariableSetData set)) =
+   let
+      noop = (variableSet,[])
+      oneop newSet = (VariableSetData newSet,[setUpdate])
+   in
+      case setUpdate of
+         AddElement x -> 
+            let
+               kx = Keyed x
+               isElement = elementOf kx set
+            in
+               if isElement then noop else oneop (addToSet set kx)
+         DelElement x ->
+            let
+               kx = Keyed x
+               isElement = elementOf kx set
+            in
+               if isElement then oneop (delFromSet set kx)
+                  else noop
 
-newtype VariableSet x = 
-   VariableSet (Broadcaster (VariableSetData x) (VariableSetUpdate x))
+newtype VariableSet x 
+   = VariableSet (Broadcaster (VariableSetData x) (VariableSetUpdate x))
 
 -- --------------------------------------------------------------------
 -- The provider's interface
@@ -104,7 +110,7 @@ newtype VariableSet x =
 newEmptyVariableSet :: HasKey x key => IO (VariableSet x)
 newEmptyVariableSet = 
    do
-      broadcaster <- newGeneralBroadcaster update (VariableSetData emptySet)
+      broadcaster <- newBroadcaster (VariableSetData emptySet)
       return (VariableSet broadcaster)
 
 ---
@@ -112,16 +118,15 @@ newEmptyVariableSet =
 newVariableSet :: HasKey x key => [x] -> IO (VariableSet x)
 newVariableSet contents =
    do
-      broadcaster <- newGeneralBroadcaster update 
-         (VariableSetData (mkSet (map Keyed contents)))
+      broadcaster 
+         <- newBroadcaster (VariableSetData (mkSet (map Keyed contents)))
       return (VariableSet broadcaster)
-
 
 ---
 -- Update a variable set in some way.
 updateSet :: HasKey x key => VariableSet x -> VariableSetUpdate x -> IO ()
-updateSet (VariableSet broadcaster) update = 
-   updateBroadcaster broadcaster update
+updateSet (VariableSet broadcaster) setUpdate 
+   = applyUpdate broadcaster (update setUpdate)
 
 ---
 -- Set the elements of the variable set.
@@ -141,25 +146,18 @@ setVariableSet (VariableSet broadcaster) newList =
            in
               (VariableSetData newSet,updates)
 
-     -- try to avoid lengthy evaluations of newSet while broadcaster is
-     -- locked.
-     seq (cardinality newSet) (anyUpdateBroadcaster broadcaster updateFn)
+     applyUpdate broadcaster updateFn
 
 -- --------------------------------------------------------------------
 -- The client's interface
 -- --------------------------------------------------------------------
 
-instance HasKey x key 
-   => CanAddSinks (VariableSet x) [x] (VariableSetUpdate x) where
-   addOldSink (VariableSet broadcaster) sink =
-      do
-         (VariableSetData set) <- addOldSink broadcaster sink
-         return (map unKey (setToList set))
-
-   readContents (VariableSet broadcaster) =
-      do
-         (VariableSetData set) <- readContents broadcaster
-         return (map unKey (setToList set))
+instance HasKey x key => HasSource (VariableSet x) [x] (VariableSetUpdate x) 
+      where
+   toSource (VariableSet broadcaster) =
+      map1
+         (\ (VariableSetData set) -> map unKey (setToList set))
+         (toSource broadcaster)
 
 -- --------------------------------------------------------------------
 -- Make VariableSet Typeable
@@ -174,7 +172,10 @@ instance HasTyRep1 VariableSet where
 -- otherwise implemented)
 -- --------------------------------------------------------------------
 
-type VariableSetSource x = SinkSource [x] (VariableSetUpdate x)
+type VariableSetSource x = Source [x] (VariableSetUpdate x)
+
+emptyVariableSetSource :: VariableSetSource x
+emptyVariableSetSource = staticSource []
 
 -- --------------------------------------------------------------------
 -- Combinators for VariableSetSource
@@ -182,13 +183,16 @@ type VariableSetSource x = SinkSource [x] (VariableSetUpdate x)
 
 mapVariableSetSourceIO' :: (x -> IO (Maybe y)) -> VariableSetSource x 
    -> VariableSetSource y
-mapVariableSetSourceIO' mapFn variableSetSource =
-   mapSinkSourceIO
+mapVariableSetSourceIO' mapFn=
+   (map1IO
       (\ currentEls ->
          do
             newEls <- mapM mapFn currentEls
             return (catMaybes newEls)
          )
+      )
+   .
+   (filter2IO
       (\ change ->
          case change of
             AddElement x ->
@@ -204,22 +208,27 @@ mapVariableSetSourceIO' mapFn variableSetSource =
                      Nothing -> return Nothing
                      Just y -> return (Just (DelElement y))
          )
-      variableSetSource
+      )
 
 concatVariableSetSource :: VariableSetSource x -> VariableSetSource x 
    -> VariableSetSource x
 concatVariableSetSource (source1 :: VariableSetSource x) source2 =
    let
-      pair :: SinkSource ([x],[x]) 
+      pair :: Source ([x],[x]) 
          (Either (VariableSetUpdate x) (VariableSetUpdate x))
-      pair = pairSinkSource source1 source2
+      pair = choose source1 source2
 
-      res :: SinkSource [x] (VariableSetUpdate x)
-      res = mapSinkSource (\ (x1,x2) -> x1 ++ x2)
-         (\ xlr -> case xlr of 
-            Left x -> x 
-            Right x -> x
+      res :: Source [x] (VariableSetUpdate x)
+      res = 
+         (map1 (\ (x1,x2) -> x1 ++ x2))
+         .
+         (map2 
+            (\ xlr -> case xlr of 
+               Left x -> x 
+               Right x -> x
+               )
             )
+         $
          pair
    in
       res

@@ -26,7 +26,7 @@ import IOExts
 import Set
 import FiniteMap
 import Concurrent
-import Source
+import Sources
 import Sink
 
 import Dynamics
@@ -110,7 +110,7 @@ data DaVinciGraphParms = DaVinciGraphParms {
    graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
    surveyView :: Bool,
    configDoImprove :: Bool,
-   graphTitleSource :: Maybe (Source GraphTitle)
+   graphTitleSource :: Maybe (SimpleSource GraphTitle)
    }
 
 instance Destroyable DaVinciGraph where
@@ -357,7 +357,7 @@ instance HasConfig GraphTitle DaVinciGraphParms where
    ($$) (GraphTitle graphTitle) =
       addGraphConfigCmd (Window(Title graphTitle))
 
-instance HasConfig (Source GraphTitle) DaVinciGraphParms where
+instance HasConfig (SimpleSource GraphTitle) DaVinciGraphParms where
    configUsed _ _  = True
    ($$) graphTitleSource graphParms 
       = graphParms {graphTitleSource = Just graphTitleSource}

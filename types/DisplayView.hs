@@ -25,7 +25,7 @@ import Registry
 import Thread
 import Computation
 import Sink
-import Source
+import Sources
 import VariableSet
 
 import Events
@@ -61,7 +61,7 @@ data DisplayedObjectType objectType object graph node nodeType arcType =
          VariableSetSource (WrappedLink,ArcType)),
       closeDown' :: IO (),
       specialNodeActions' :: object 
-         -> Source (graph -> node (String,Link object) -> IO ())
+         -> SimpleSource (graph -> node (String,Link object) -> IO ())
       }
 
 type TransmittedAction graph node object =
@@ -437,7 +437,7 @@ displayNodeUnWrapped
                               -- Arrange to have the special node actions
                               -- performed.
                               let
-                                 thisNodeActions :: Source (
+                                 thisNodeActions :: SimpleSource (
                                     TransmittedAction graph node object)
                                  thisNodeActions = specialNodeActions' object
 

@@ -3,6 +3,9 @@ module Sources(
    Source, 
       -- A Source x d represents something that stores a value of
       -- type x and sends change messages of type d.
+
+      -- We instance CanAddSinks (Source x d) x d
+
    Client,
       -- A Client d is something that consumes change messages of type d.
 
@@ -10,7 +13,7 @@ module Sources(
    staticSource, -- :: x -> Source x d
       -- returns a source which never changes
 
-   variableSource, -- :: x -> IO (Source x d,(x -> (x,d)) -> IO ())
+   variableSource, -- :: x -> IO (Source x d,(x -> (x,[d])) -> IO ())
       -- returns a source which can change.  The supplied action
       -- changes it.
 
@@ -20,10 +23,19 @@ module Sources(
    -- Transformers
    map1,
       -- :: (x1 -> x2) -> Source x1 d -> Source x2 d
+
+   map1IO,
+      -- :: (x1 -> IO x2) -> Source x1 d -> Source x2 d
+
    map2,
       -- :: (d1 -> d2) -> Source x d1 -> Source x d2
    filter2,
       -- :: (d1 -> Maybe d2) -> Source x d1 -> Source x d2
+
+   filter2IO,
+      -- :: (d1 -> IO (Maybe d2)) -> Source x d1 -> Source x d2
+      -- To be used with care, since the IO action ties up the source.
+
    foldSource,
       -- :: (x -> state) -> (state -> d1 -> (state,d2)) 
       --    -> Source x d1 -> Source (x,state) d2
@@ -39,12 +51,19 @@ module Sources(
       -- newtype for Source x x
       -- Instance of Functor and Monad
 
+   -- We also instance CanAddSinks (SimpleSource x) x x.
+   -- This is done via the following class
+   HasSource(..),
+   HasSimpleSource(..),
+
    ) where
 
 import Maybe
 
 import Concurrent
 import IOExts
+
+import Sink
 
 -- -----------------------------------------------------------------
 -- Datatypes
@@ -66,7 +85,7 @@ data SourceData x d = SourceData {
 staticSource :: x -> Source x d
 staticSource x = Source (\ _ -> return x)
 
-variableSource :: x -> IO (Source x d,(x -> (x,d)) -> IO ())
+variableSource :: x -> IO (Source x d,(x -> (x,[d])) -> IO ())
 variableSource x =
    do
       mVar <- newMVar (SourceData {
@@ -76,14 +95,18 @@ variableSource x =
       let
          update updateFn =
             do
-               (SourceData {x = x1,client = client1}) <- takeMVar mVar
+               (SourceData {x = x1,client = clientOpt}) <- takeMVar mVar
                let
-                  (x2,d) = updateFn x1
+                  (x2,ds) = updateFn x1
 
-               client2 <- case client1 of
-                  Nothing -> return client1
-                  Just (Client clientFn) -> clientFn d
-               putMVar mVar (SourceData {x = x2,client = client2})
+                  sendUpdates (Just (Client clientFn)) (d:ds) =
+                     do
+                        newClientOpt <- clientFn d
+                        sendUpdates newClientOpt ds
+                  sendUpdates clientOpt _ = return clientOpt
+
+               newClientOpt <- sendUpdates clientOpt ds
+               putMVar mVar (SourceData {x = x2,client = newClientOpt})
          addClient newClient =
             do
                (SourceData {x = x,client = oldClientOpt}) <- takeMVar mVar
@@ -222,6 +245,16 @@ map1 mapFn (Source addClient1) =
    in
       Source addClient2
 
+map1IO :: (x1 -> IO x2) -> Source x1 d -> Source x2 d
+map1IO mapFn (Source addClient1) =
+   let
+      addClient2 d =
+         do
+            x1 <- addClient1 d
+            mapFn x1
+   in
+      Source addClient2
+
 map2 :: (d1 -> d2) -> Source x d1 -> Source x d2
 map2 mapFn (Source addClient1) =
    let
@@ -269,6 +302,33 @@ filterClient filterFn (Client clientFn2) =
                      newClient2Opt <- clientFn2 d2
                      return (fmap
                         (filterClient filterFn)
+                        newClient2Opt
+                        )
+   in
+      client1
+
+filter2IO :: (d1 -> IO (Maybe d2)) -> Source x d1 -> Source x d2
+filter2IO filterFn (Source addClient1) =
+   let
+      addClient2 newClient1 = addClient1 (filterClientIO filterFn newClient1)
+   in
+      Source addClient2
+
+filterClientIO :: (d1 -> IO (Maybe d2)) -> Client d2 -> Client d1
+filterClientIO filterFn (Client clientFn2) =
+   let
+      client1 = Client clientFn1
+
+      clientFn1 d1 =
+         do
+            d2Opt <- filterFn d1
+            case d2Opt of
+               Nothing -> return (Just client1)
+               Just d2 -> 
+                  do
+                     newClient2Opt <- clientFn2 d2
+                     return (fmap
+                        (filterClientIO filterFn)
                         newClient2Opt
                         )
    in
@@ -403,4 +463,52 @@ instance Monad SimpleSource where
                source2
       in
          SimpleSource (seqSource source1 getSource2)
-      
+
+-- -----------------------------------------------------------------
+-- The HasSource and HasSimpleSource classes and their instances
+-- -----------------------------------------------------------------
+
+class HasSource hasSource x d | hasSource -> x,hasSource -> d where
+   toSource :: hasSource -> Source x d
+
+class HasSimpleSource hasSource x | hasSource -> x where
+   toSimpleSource :: hasSource -> SimpleSource x
+
+instance HasSource (Source x d) x d where
+   toSource source = source
+
+instance HasSimpleSource (SimpleSource x) x where
+   toSimpleSource simpleSource = simpleSource
+
+instance HasSource (SimpleSource x) x x where
+   toSource (SimpleSource source) = source
+
+
+-- -----------------------------------------------------------------
+-- Instance of CanAddSinks
+-- -----------------------------------------------------------------
+
+instance HasSource hasSource x d => CanAddSinks hasSource x d where
+   addOldSink hasSource sink =
+      do
+         let
+            client = Client clientFn
+
+            clientFn d = 
+               do
+                  continue <- putSink sink d
+                  return (if continue
+                     then
+                        Just client
+                     else
+                        Nothing
+                     )
+         attachClient client (toSource hasSource)
+
+   readContents hasSource =
+      do
+         let
+            client = Client clientFn
+
+            clientFn _ = return Nothing
+         attachClient client (toSource hasSource)

@@ -42,7 +42,7 @@ import qualified IOExts(unsafePerformIO)
 import Registry
 import Computation
 import Dynamics
-import Source
+import Sources
 
 import GraphDisp
 import GraphConfigure

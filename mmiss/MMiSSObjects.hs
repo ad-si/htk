@@ -20,7 +20,7 @@ import qualified IOExts(unsafePerformIO)
 
 import Dynamics
 import Sink
-import Source
+import Sources
 import VariableSet
 import Computation
 import AtomString
@@ -324,13 +324,13 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   folder = parentFolder mmissObject
                let
                   includedNames :: VariableSetSource EntityName
-                  includedNames = SinkSource (includedObjects mmissObject)
+                  includedNames = toSource (includedObjects mmissObject)
 
                   referencedNames :: VariableSetSource EntityName
-                  referencedNames = SinkSource (referencedObjects mmissObject)
+                  referencedNames = toSource (referencedObjects mmissObject)
  
                   linkedNames :: VariableSetSource EntityName
-                  linkedNames = SinkSource (linkedObjects mmissObject)
+                  linkedNames = toSource (linkedObjects mmissObject)
  
                   arcEntityName :: ArcType -> EntityName 
                      -> IO (Maybe (WrappedLink,ArcType))
@@ -368,7 +368,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                            referencedLinks
                         ) linkedLinks
   
-               return (allLinks,staticSinkSource [])
+               return (allLinks,emptyVariableSetSource)
       in
          case getNodeTypeParms wrappedDisplayType (displayParms objectType) of
             Nothing -> Nothing
@@ -382,7 +382,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      ],
                   nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
                   getNodeType = (\ object -> theNodeType),
-                  knownSet = SinkSource (knownObjects objectType),
+                  knownSet = toSource (knownObjects objectType),
                   mustFocus = (\ _ -> return True),
                   focus = focus,
                   closeDown = done,

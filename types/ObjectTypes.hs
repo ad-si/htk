@@ -104,7 +104,7 @@ import Computation
 import Dynamics
 import Sink
 import VariableSet
-import Source
+import Sources
 
 import GraphDisp
 import GraphConfigure
@@ -335,7 +335,7 @@ data NodeDisplayData graph node nodeTypeParms arcTypeParms objectType object =
          -- anyway, if other people are interested).
 
       specialNodeActions :: object -> 
-         Source (graph -> node (String,Link object) -> IO ())
+         SimpleSource (graph -> node (String,Link object) -> IO ())
          -- The specialNodeActions allow the object to make dynamic
          -- modifications to graph nodes representing it.
          -- The module SpecialNodeActions can be used to generate this type.
