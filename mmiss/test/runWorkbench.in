@@ -42,7 +42,7 @@ UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
 
 # Set local workspace for internal server.
 UNIWORKINGDIR=${UNIWORKINGDIR:-`./TempDir /tmp/uni.$USER.working.`}
-UNISERVERDIR=${UNISERVERDIR:-`./TempDir /tmp/uni.$USER.server.`}
+UNISERVERDIR=${LOCAL_WORKSPACE:-@TOP@/tmp/local-workspace}
 if [ -d $UNISERVERDIR ]; then
   if [ $CLEAR_WORKSPACE = true ]; then
     echo Clearing local workspace. 
