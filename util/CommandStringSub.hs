@@ -47,6 +47,11 @@ module CommandStringSub(
    -- doFormatString does everything at once, throwing an error if necessary.
    doFormatString,
       -- :: String -> (Char -> Maybe String) -> String
+
+
+   -- Some transformers we export for use as simple Haskell functions
+   -- NB - these do not delimit the input strings.
+   emacsEscape, -- :: String -> String
    ) where
 
 import Char

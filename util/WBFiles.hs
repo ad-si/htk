@@ -49,6 +49,7 @@
    
    wish          The filename of the wish program
    daVinci       The filename of daVinci
+   gnuclient     The filename of gnuclient
    editor        A command to execute the text editor.  
                  This uses the CommandStringSub format, with defined
                  substitutions %F => where the file is to be found and
@@ -96,8 +97,10 @@ module WBFiles (
       -- gets the path for wish
    getTixwishPath, -- :: IO String
       -- gets the path for tixwish
-   getDaVinciPath, -- ditto daVinci
-
+   getDaVinciPath, 
+      -- ditto daVinci
+   getGnuClientPath,
+      -- ditto gnuclient.
 
    getToolTimeOut, -- :: IO Int
       -- gets tool time out.
@@ -214,6 +217,9 @@ getEditorString = getArgString "editor"
 getDaVinciPath :: IO String
 getDaVinciPath = valOf (getArgString "daVinci")
 
+getGnuClientPath :: IO String
+getGnuClientPath = valOf (getArgString "gnuclient")
+
 getToolTimeOut :: IO Int
 getToolTimeOut = valOf (getArgInt "toolTimeOut")
 
@@ -291,6 +297,12 @@ usualProgramArguments = [
       optionName = "daVinciIcons",
       optionHelp = "directory containing daVinci icons",
       defaultVal = Nothing,
+      argType = STRING
+      },
+   ProgramArgument{
+      optionName = "gnuclient",
+      optionHelp = "path to the gnuclient program",
+      defaultVal = Just (StringValue "gnuclient"),
       argType = STRING
       },
    ProgramArgument{

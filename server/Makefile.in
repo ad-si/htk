@@ -2,6 +2,6 @@ PACKAGE = uni-server
 PACKAGES = net posix uni-reactor uni-posixutil
 
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
-   EchoService.hs CallServer.hs Notification.hs
+   EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
 
 include @TOP@/mk/boilerplate.mk

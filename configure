@@ -1128,6 +1128,7 @@ case `uname` in
    CYGWIN* ) WINDOWS=1 ; OSTITLE=windows ;;
    Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
    SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
+   FreeBSD* ) WINDOWS=0 ; OSTITLE=freebsd ;;
    * ) WINDOWS=0; OSTITLE=unknown ;;
 esac
 
@@ -1873,13 +1874,103 @@ else
 fi
 
 #
+# Check for xemacs and gnuclient
+for ac_prog in xemacs
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_XEMACS+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $XEMACS in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_XEMACS="$XEMACS" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_XEMACS="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+XEMACS=$ac_cv_path_XEMACS
+
+if test -n "$XEMACS"; then
+  echo "$as_me:$LINENO: result: $XEMACS" >&5
+echo "${ECHO_T}$XEMACS" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$XEMACS" && break
+done
+
+for ac_prog in gnuclient
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_GNUCLIENT+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $GNUCLIENT in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_GNUCLIENT="$GNUCLIENT" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_GNUCLIENT="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+GNUCLIENT=$ac_cv_path_GNUCLIENT
+
+if test -n "$GNUCLIENT"; then
+  echo "$as_me:$LINENO: result: $GNUCLIENT" >&5
+echo "${ECHO_T}$GNUCLIENT" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+  test -n "$GNUCLIENT" && break
+done
+
+#
 # Construct the default options, used by
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
 # and incomplete attempt to escape any funny characters so we can
 # put them into util/default_options.c.  Note that we have to double-double
 # escape \ characters, once for sed and once for sh.
-DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
+DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
 s+"+\\\\"+g'`
 
 
@@ -2506,6 +2597,8 @@ s,@CP@,$CP,;t t
 s,@LN@,$LN,;t t
 s,@MKDIR@,$MKDIR,;t t
 s,@BDBDIR@,$BDBDIR,;t t
+s,@XEMACS@,$XEMACS,;t t
+s,@GNUCLIENT@,$GNUCLIENT,;t t
 s,@DEFAULTOPTIONS@,$DEFAULTOPTIONS,;t t
 s,@GHCTOP@,$GHCTOP,;t t
 CEOF

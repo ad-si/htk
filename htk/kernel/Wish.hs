@@ -261,11 +261,6 @@ doResponse (ER err) = error err
 -- -----------------------------------------------------------------------
 
 data Wish = Wish {
-   commands :: Channel TclScript,
-   -- commands contains the commands to execute.  Since all commands
-   -- are of necessity single-threaded, we provide a single answer queue
-   -- responses.  (But this may change!) 
-
    wishLock :: BSem,
       -- this locks wish when a command has been sent but not answer
       -- received, as yet.
@@ -397,7 +392,6 @@ newWish =
       -- get readWish reactor going.
       (readWish,destroyReadWish) <- readWishEvent calledWish
       -- set up the channels
-      commands <- newChannel
       wishLock <- newBSem
       eventQueue <- newEqGuardedChannel
       coQueue <- newEqGuardedChannel
@@ -413,7 +407,6 @@ newWish =
       oID <- newObject 
       let
          wish = Wish {
-            commands = commands,
             wishLock = wishLock,
             eventQueue = eventQueue,
             coQueue = coQueue,

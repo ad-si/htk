@@ -18,6 +18,7 @@ case `uname` in
    CYGWIN* ) WINDOWS=1 ; OSTITLE=windows ;;
    Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
    SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
+   FreeBSD* ) WINDOWS=0 ; OSTITLE=freebsd ;;
    * ) WINDOWS=0; OSTITLE=unknown ;;
 esac
 
@@ -126,6 +127,10 @@ else
    BDBDIR=
 fi
 AC_SUBST(BDBDIR)   
+#
+# Check for xemacs and gnuclient
+AC_PATH_PROGS(XEMACS,xemacs)
+AC_PATH_PROGS(GNUCLIENT,gnuclient)
 # 
 # Construct the default options, used by 
 # util/default_options.c
@@ -133,7 +138,7 @@ AC_SUBST(BDBDIR)
 # and incomplete attempt to escape any funny characters so we can
 # put them into util/default_options.c.  Note that we have to double-double
 # escape \ characters, once for sed and once for sh.
-DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
+DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-gnuclient:$GNUCLIENT --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
 s+"+\\\\"+g'`
 AC_SUBST(DEFAULTOPTIONS)
 

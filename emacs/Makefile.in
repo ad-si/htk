@@ -1,0 +1,11 @@
+PACKAGE = uni-emacs
+PACKAGES = uni-server
+
+SRCS = EmacsBasic.hs
+
+SRCSC = 
+
+include @TOP@/mk/boilerplate.mk
+
+sendmess.elc : sendmess.el
+	@GNUCLIENT@ -batch -eval '(byte-compile-file "@TOP@/emacs/sendmess.el")'
