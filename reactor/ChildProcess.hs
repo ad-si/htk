@@ -49,7 +49,7 @@ module ChildProcess (
    workingdir,     -- :: FilePath -> Config PosixProcess           
    chunksize,      -- :: Int-> Config PosixProcess
    -- the maximal size of one "chunk" of characters read from the 
-   -- child process when reading in non-linemode (default 1000).
+   -- child process at one time (default 1000).
    standarderrors, -- :: Bool -> Config PosixProcess
    -- if standarderrors is true, we send stderr to the childprocesses
    -- out channel (of which there is only one).  Otherwise we
@@ -173,7 +173,7 @@ data ChildProcess =
                        -- bufferVar of previous characters (only relevant
                        -- for line mode)     
       chunkSize :: Int -- max. size of one "chunk" of characters read
-                       -- in non-line mode
+                       -- at one time
       }
 
 -- -------------------------------------------------------------------------
@@ -337,7 +337,7 @@ instance UnixTool ChildProcess where
    on every character. -}
 readMsg :: ChildProcess -> IO String
 readMsg (ChildProcess 
-      {lineMode = True, chunkSize= chunkSize, 
+      {lineMode = True, chunkSize = chunkSize, 
        readFrom = readFrom, bufferVar = bufferVar}) = 
    do
       buffer <- takeMVar bufferVar 
@@ -356,10 +356,10 @@ readMsg (ChildProcess
       readWithBuffer readFrom (other : rest) acc =
          readWithBuffer readFrom rest (other : acc)
 readMsg (ChildProcess {lineMode = False, readFrom = readFrom,
-	               chunkSize= size}) = 
-   readChunk size readFrom
+	               chunkSize = chunkSize}) = 
+   readChunk chunkSize readFrom
 
-readChunk :: Int-> Fd -> IO String
+readChunk :: Int -> Fd -> IO String
 -- read a chunk of characters, waiting until at least one is available.
 readChunk size fd =
    do
