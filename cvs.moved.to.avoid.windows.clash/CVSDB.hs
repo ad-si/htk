@@ -39,11 +39,16 @@ module CVSDB(
    -- importFile makes an object from the given file.
 
    Location,
-   -- represents Location of object in the repository.  Instance of Read/Show.
+   -- represents Location of object in the repository.  Instance of 
+   -- Read/Show/Eq.
    newLocation, -- :: Repository -> ObjectSource -> 
                 --   IO (Location,ObjectVersion,AttributeVersion)
    -- creates new object in the repository, returning its initial version
    -- and the version of the associated attributes.
+   newInitialLocation, -- :: Repository -> ObjectSource -> IO ()
+   -- creates an object with a new initial location, or else
+   -- raise an error.  (Used when file system is initialised)
+
    commit, -- :: Repository -> ObjectSource -> Location -> IO ObjectVersion
    -- commits a new version of the object to the repository, returning its
    -- new version.
@@ -77,7 +82,7 @@ module CVSDB(
 
    initialLocation -- :: Location
    -- location we always start with.
-  
+
    ) where
 
 import IO
@@ -302,7 +307,11 @@ importFile :: FilePath -> IO ObjectSource
 importFile file = return (FileObject file)
 
 type Location = CVSFile
-initialLocation = CVSFile "a"
+initialCVSFileName :: String
+initialCVSFileName = "a"
+
+initialLocation :: Location
+initialLocation = CVSFile initialCVSFileName
 -- This is derived from inodeserver/NewINodes.hs
 
 toRealName :: Repository -> CVSFile -> FilePath
@@ -323,16 +332,38 @@ attLocation (CVSFile str) = CVSFile (str++"#")
 #endif
 
 ----------------------------------------------------------------
--- newLocation
+-- newLocation and newInitialLocation
 ----------------------------------------------------------------
 
-newLocation :: Repository -> ObjectSource -> 
+newLocation :: Repository -> ObjectSource ->  
    IO (Location,ObjectVersion,AttributeVersion)
-newLocation (repository@Repository{cvsLoc=cvsLoc,newINodes=newINodes}) 
-      objectSource =
+newLocation (repository@Repository{newINodes=newINodes}) objectSource =
    do
+      -- get a new file name
       writeFileEV newINodes "" -- \n is automatically appended
       cvsFileName <- sync(readFileEV newINodes)
+      newGeneralLocation repository objectSource cvsFileName
+
+newInitialLocation :: Repository -> ObjectSource -> IO ()
+newInitialLocation (repository@Repository{newINodes=newINodes}) objectSource =
+   do
+      -- get a new file name
+      writeFileEV newINodes "" -- \n is automatically appended
+      cvsFileName <- sync(readFileEV newINodes)
+      if(initialCVSFileName /= cvsFileName) 
+         then
+            ioError(userError 
+                "Attempt to initialise already-initialised database"
+                )
+         else
+            newGeneralLocation repository objectSource cvsFileName
+      done
+
+newGeneralLocation :: Repository -> ObjectSource -> String ->
+   IO (Location,ObjectVersion,AttributeVersion)
+newGeneralLocation (repository@Repository{cvsLoc=cvsLoc}) 
+      objectSource cvsFileName =
+   do
       let cvsFile = CVSFile cvsFileName
       -- now create object
       ensureDirectories repository cvsFile
