@@ -93,6 +93,8 @@ SRCS       = \
 	 toolkit/FileDialog.hs\
 	 filebrowser/TreeListPath.hs\
 	 filebrowser/FileActions.hs\
+         toolkit/Property.hs\
+         toolkit/GenGUI.hs\
 
 EXTRA_HC_OPTIONS += -Onot -H30M
 

@@ -5,7 +5,7 @@ SRCS       = Mainblobs.hs MaincanvasEx.hs MainfileDialogEx.hs MaineventTrack.hs\
              Mainhello1.hs Mainhello2.hs Mainhello3.hs \
              MainlistEx.hs MainmenuEx.hs MainreliefEx.hs MaintestWidEx.hs \
              MainxmasCanvas.hs MaindragAndDrop.hs MaintreeListEx.hs \
-             MainuserInteractionTest.hs
+             MainuserInteractionTest.hs MaingenGUIEx.hs
 
 XHCDIRS = $(HTKDIRS)
 

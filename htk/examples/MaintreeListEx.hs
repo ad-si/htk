@@ -27,7 +27,7 @@ logMsg ed txt =
 
 cfun :: ChildrenFun String
 cfun obj =
-  case getObjectID obj of
+  case getObjectValue obj of
       "/" ->
         return [newTreeListObject "/home" "home" Node,
                 newTreeListObject "/usr" "usr" Node,

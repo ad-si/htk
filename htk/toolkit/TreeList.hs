@@ -14,12 +14,15 @@ module TreeList (
   newTreeList,
   newTreeListObject,
 
+  updateTreeList,
+
+  TreeList,
   TreeListObject,
   Style(..),
   ObjectType(..),
   ObjectName,
 
-  getObjectID,
+  getObjectValue,
   getObjectName,
   getObjectType,
 
@@ -117,6 +120,13 @@ newTreeList style cfun ifun rt@(TreeListObject (val, nm, objtype)) cnf =
     updScrollRegion cnv stateref
     pressed root
     return treelist
+
+updateTreeList :: Eq a => TreeList a -> IO ()
+updateTreeList (TreeList _ _ _ stateref _ _ _ _ _) =
+  do
+    state <- getVar stateref
+    (StateEntry root isopen _ _) <- return (head state)
+    if isopen then pressed root >> pressed root else done
 
 startObjectInteractor ::  Eq a => Style -> TREELISTOBJECT a -> IO ()
 startObjectInteractor style obj@(TREELISTOBJECT _ treelist _ arrow
@@ -249,8 +259,8 @@ type ObjectName = String
 
 newtype TreeListObject a = TreeListObject (a, ObjectName, ObjectType)
 
-getObjectID :: TreeListObject a -> a
-getObjectID (TreeListObject (val, _, _)) = val
+getObjectValue :: TreeListObject a -> a
+getObjectValue (TreeListObject (val, _, _)) = val
 
 getObjectName :: TreeListObject a -> ObjectName
 getObjectName (TreeListObject (_, nm, _)) = nm
