@@ -11,6 +11,8 @@ module MMiSSEmacsEdit(
 
    ) where
 
+import Maybe
+
 import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Control.Exception(assert)
@@ -177,6 +179,13 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   name = toDescription editRef
                   variants = toVariants editRef
 
+                  -- this function is put in to catch some cases where we
+                  -- are refused read acccess to an object.
+                  readLink' view link =
+                     do
+                        objectWE <- catchAllErrorsWE (readLink view link)
+                        coerceWithErrorOrBreakIO break objectWE
+
                -- Get the object data
                objectLinkWE <- getEditRef view editRef
                objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
@@ -184,7 +193,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                
                -- retrieve the object data.
-               object <- readLink view objectLink
+               object <- readLink' view objectLink
                cacheSpecOpt <- lookupVariantObjectCacheWithSpec
                   (variantObject object) variants
 
@@ -528,9 +537,19 @@ mkPrintAction view editFormatConverter =
                               packageFolders element
                            case fromWithError stringWE of
                               Left error -> errorMess error
-                              Right str -> mmissLaTeX view
-                                 (toString (searchName topRef)) str
-                                 exportFiles
+                              Right str -> 
+                                 let
+                                    nameOpt :: Maybe String
+                                    nameOpt =
+                                       do
+                                          (_,nameOpt) <- searchNameDirBase (
+                                             searchName topRef)
+                                          name <- nameOpt
+                                          return (toString name)
+                                 in
+                                     mmissLaTeX view 
+                                        (fromMaybe "BogusFile" nameOpt) 
+                                        str exportFiles
                         )
                      done
    in
