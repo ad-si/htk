@@ -18,6 +18,7 @@ module GenGUI (
 
   Name(..),
   ItemIcon,
+  Value,
 
   CItem,
   HasProp(..),
@@ -29,7 +30,7 @@ module GenGUI (
   addItem,
   children,
   content,
-  contentD,
+--  contentD,
 
   addedItem,
   selectedItemInTreeList,
@@ -63,8 +64,10 @@ import Dynamic
    - has external representation -}
 
 type ItemIcon = IO Image
+type Value = Dynamic
 
-class (HasProperty i ItemIcon, HasProperty i Name) => CItem i
+class (HasProperty i ItemIcon, HasProperty i Name,
+       HasProperty i Value) => CItem i
 
 
 -----------------------------
@@ -72,8 +75,8 @@ class (HasProperty i ItemIcon, HasProperty i Name) => CItem i
 -----------------------------
 
 data NewItem =
-    forall i . (CItem i, Typeable i) => FolderItem i [NewItem]
-  | forall i . (CItem i, Typeable i) => LeafItem i
+    forall i . CItem i => FolderItem i [NewItem]
+  | forall i . CItem i => LeafItem i
 
 
 -----------------------------------
@@ -423,13 +426,14 @@ content (IntFolderItem _ _ newitem _) = newitem
 content (IntLeafItem _ _ newitem) = newitem
 content _ = error "GenGUI (content) : called for root"
 
+{-
 contentD :: Item -> Dynamic
 contentD (IntFolderItem _ _ (FolderItem i _) _) = toDyn i
 contentD (IntFolderItem _ _ (LeafItem i) _) = toDyn i
 contentD (IntLeafItem _ _ (FolderItem i _)) = toDyn i
 contentD (IntLeafItem _ _ (LeafItem i)) = toDyn i
 contentD _ = error "GenGUI (content) : called for root"
-
+-}
 
 ------------
 -- events --
