@@ -463,7 +463,7 @@ tkInsert name inx elems =
 {-# INLINE tkInsert #-}
 
 tkGet :: ObjectName -> TclScript
-tkGet name = [show name ++ " get"]
+tkGet name = [show name ++ " get 0 end"]
 {-# INLINE tkGet #-}
 
 tkSelectionAnchor :: ObjectName -> Int -> TclScript

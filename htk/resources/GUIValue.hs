@@ -146,8 +146,19 @@ instance GUIValue [Char] where
 instance GUIValue [[Char]] where
         cdefault = []
         toGUIValue l = GUIVALUE HaskellTk (toTkString (unlines l))
-        maybeGUIValue (GUIVALUE HaskellTk str) = Just (lines (read (fromTkString str)))
-        maybeGUIValue (GUIVALUE Tk str) = Just (lines str)
+        maybeGUIValue (GUIVALUE HaskellTk str) = Just (breakStr (read (fromTkString str)))
+        maybeGUIValue (GUIVALUE Tk str) = Just (breakStr str)
+
+
+-- Tk's lists lists of strings separated by blanks, but strings containing
+-- blanks are enclosed by braces. Hence this:
+breakStr :: String-> [String]
+breakStr str = brk (dropWhile (' ' ==) str) where
+  brk []     = [[]]
+  brk (x:xs) = if x == '{' then let (c, r) = break ('}' ==) xs
+                                in  c:brk (dropWhile ('}' ==) r)
+                           else let (c, r) = break (' ' ==) xs
+                                in  (x:c):brk (dropWhile (' ' ==) r)
 
 
 -- --------------------------------------------------------------------------
