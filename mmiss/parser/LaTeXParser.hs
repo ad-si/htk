@@ -23,11 +23,11 @@ module LaTeXParser (
    toIncludeStr, -- Char -> String
    -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
    -- the corresponding includeXXX command.
-   showElement, -- WithError Element -> String
+--   showElement, -- WithError Element -> String
    mapLabelledTag,
    MMiSSLatexPreamble, 
-   parseAndShow,
-   parseAndMakeMMiSSLatex,
+--   parseAndShow,
+--   parseAndMakeMMiSSLatex,
    parsePreamble
    )
  where
@@ -45,6 +45,7 @@ import Char
 import Text.XML.HaXml.Types
 import qualified Text.XML.HaXml.Pretty as PP
 import Text.PrettyPrint.HughesPJ hiding (char,space)
+import Text.XML.HaXml.Combinators hiding (find)
 #else
 import XmlTypes
 import qualified XmlPP as PP
@@ -241,6 +242,12 @@ latexFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "shortDis
 specialTreatmentInPreamble = ["documentclass", "usepackage", "Path", "Import"]
 
 
+-- glAttribsExclude is a list with attribute names which are omitted in the process of generating MMiSSLaTeX from
+-- XML.
+
+glAttribsExclude = ["files"]
+
+
 -- Die beiden folgenden Funktionen legen den String fest, der den Anfang und das Ende der
 -- von MMiSS generierten Input-Preamble markiert. Zum Vergleich wird der gesamte String
 -- verwendet:
@@ -393,7 +400,7 @@ beginBlock = do id <- begin
                 frags <- if (spaceStr == "") then return([]) else return([(Other spaceStr)])
 --                spaces
                 p <- envParams id
-                l <- if (id `elem` ((map fst plainTextAtoms) ++ latexPlainTextEnvs))
+                l <- if (id `elem` latexPlainTextEnvs)
                        then continuePlain "" id
                        else continue [] id
                 return (Env id p (frags ++ (reverse l)))
@@ -645,6 +652,13 @@ latexDoc l =  do f <-  frag <?> "Fragment"
 	      <|> return (Env "Root" (LParams [] [] Nothing Nothing) (reverse l))
 
 
+
+filenameFromCommand :: GenParser Char st Frag
+filenameFromCommand = 
+  do backslash
+     command
+
+
 -- **********************************************************************************************
 --
 -- (EntityName, EntityFullName, EntitySearchName parsers now in EntityNames.hs, and the
@@ -817,7 +831,7 @@ parseImportCommands s =
        Left err -> hasError (show err)
 --}
 
-
+{--
 parseAndShow :: SourceName -> IO ()
 parseAndShow s = do result <- parseFromFile (latexDoc []) s
  		    case result of
@@ -833,10 +847,82 @@ showElement e = coerceWithError (mapWithError (render . PP.element) e)
 
 showElement1 :: Content -> String
 showElement1 (CElem e) = (render . PP.element) e
+--}
 
 
 makeXML :: Frag -> WithError (Element, Maybe MMiSSLatexPreamble)
-makeXML frag = findFirstEnv [frag] [] False
+makeXML frag = 
+  case fromWithError (findFirstEnv [frag] [] False) of
+    Left err -> hasError(err)
+    Right (e, preamble) ->
+      let clist = (foldXml insertFileAttributes) (CElem e)
+      in case (last clist) of
+           (CElem e) -> hasValue(e, preamble)
+           otherwise -> hasError("Internal Error in function 'makeXML': XML filter delivered a non-element content.")
+
+
+{----------------------------------------------------------------------------------------------------------------
+
+  The functions in this section are used for extracting the information, which external files are addressed by the
+  latex file from which the XML tree was built. The repository expects Attributes named 'files' at the elements
+  containing references to external files (via the latex commands \includegraphics or \externalFile, the
+  latter one is mmisslatex.
+  This extraction is done by filtering the XML tree with help of the HaXml-Combinator library.
+  
+--}
+
+
+{-- getFileCommand examines a XML content portion. If it is a processing instruction, containing a latex command
+    \includegraphics or \externalFile, then it gives back the referenced filename, otherwise it
+      returns nothing.
+--}
+
+getFileCommand :: Content -> (Maybe String)
+
+getFileCommand c@(CMisc (PI (target, str))) = 
+  if (target == piInsertLaTeX)
+    then 
+      let elFrag = parse (filenameFromCommand) "" str
+      in case elFrag of
+	    Right (Command name (LParams singlePs _ _ _)) ->
+              if ((isPrefixOf "includegraphics" name) 
+                 || (isSuffixOf "includegraphics" name)
+                 || (name == "externalFile")
+                 && ((length singlePs) > 0)) 
+                 then 
+                    let param = singleParamToString(last singlePs)
+                        fileStr = genericTake ((length param) - 2) (genericDrop 1 param)
+                    in Just(fileStr)
+                 else Nothing
+            Left err -> Nothing
+    else Nothing
+
+getFileCommand _ = Nothing    
+
+
+{-- insertFileAttributes is a cfilter which collects the filenames from the _direct_ children of
+    the given Content element and adds a 'files'-Attribute with a list of filenames referenced.
+--}
+
+insertFileAttributes :: CFilter
+
+insertFileAttributes c@(CElem(Elem name attribs clist)) =
+  let rlist = map getFileCommand clist 
+      filesStr = concatFilenames rlist
+      fileAttr = if (filesStr == "") 
+                   then []
+                   else [("files", AttValue [(Left (drop 1 filesStr))])]
+  in [(CElem(Elem name (attribs ++ fileAttr) clist))]
+
+insertFileAttributes c = [c]
+ 
+
+concatFilenames :: [(Maybe String)] -> String
+
+concatFilenames [] = ""
+concatFilenames ((Just a):rest) = "," ++ a ++ concatFilenames rest
+concatFilenames ((Nothing):rest) = concatFilenames rest
+
 
 {-- findFirstEnv geht den vom Parser erzeugten abstrakten Syntaxbaum (AST) durch und erzeugt einen
     XML-Baum. Die Funktion sucht innerhalb des Environments 'Root' (vom Parser obligatorisch
@@ -978,14 +1064,14 @@ makePreRest [] inStr = inStr
 makePreRest (f@(Command name _):[]) inStr =
   if (name `elem` specialTreatmentInPreamble) 
      then inStr
-     else inStr ++ (makeTextElem [f])
+     else inStr ++ (fst (makeTextElem [f]))
 
-makePreRest (f1:f2:fs) inStr =
+makePreRest (f1:(f2:fs)) inStr =
   case f1 of
      (Command name _) -> 
         if (name == "documentclass") || (name == "usepackage") 
           then case f2 of
-                 (Other str) -> if (length (filter (not . (`elem` "\n\t ")) str) == 0)  
+                 (Other str) -> if (length (filter (not . (`elem` "\n\t ")) str) == 0)
                                   then makePreRest fs inStr
                                   else makePreRest fs (inStr ++ str)
                  (EscapedChar c) -> makePreRest fs inStr
@@ -993,8 +1079,8 @@ makePreRest (f1:f2:fs) inStr =
           else 
             if (name `elem` specialTreatmentInPreamble) 
               then makePreRest (f2:fs) inStr
-	      else makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
-     _ -> makePreRest (f2:fs) (inStr ++ (makeTextElem [f1]))
+	      else makePreRest (f2:fs) (inStr ++ (fst (makeTextElem [f1])))
+     _ -> makePreRest (f2:fs) (inStr ++ (fst (makeTextElem [f1])))
 
 
 {-- addPropertiesFrag bekommt die Fragmente der Präambel sowie die Attribute, die am Package-Env.
@@ -1051,12 +1137,12 @@ makeImportCmds (cmd@(Command "Path" (LParams singleParams _ _ _)):fs) importCmds
                  case packageNameEl of 
                    Right packageName -> makeImportCmds fs (importCmds ++ [(PathAlias alias packageName)])
                    Left err -> hasError ("Parse error in second argument of Path-Command:\n"
-                                     ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                     ++ ((show cmd) ++ "\nError:\n")
                                      ++ show err)
                Left err -> hasError ("Parse error in first argument of Path-Command:\n"
-                                   ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                   ++ ((show cmd) ++ "\nError:\n")
                                    ++ show err)
-    otherwise -> hasError("The following Path-Command in the Import-preamble has to few or wrong arguments:\n"                      ++ (makeTextElem [cmd]))
+    otherwise -> hasError("The following Path-Command in the Import-preamble has to few or wrong arguments:\n"                      ++ (show cmd))
 
 makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCmds =
   case singleParams of
@@ -1078,22 +1164,22 @@ makeImportCmds (cmd@(Command "Import" (LParams singleParams _ _ _)):fs) importCm
                  case packageNameEl of 
                    Right packageName -> makeImportCmds fs (importCmds ++ [(Import directives packageName)])
                    Left err -> hasError ("Parse error in second argument of Import-Command:\n"
-                                     ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                     ++ ((show cmd) ++ "\nError:\n")
                                      ++ show err)
                Left err -> hasError ("Parse error in directives of Import-Command:\n"
-                                   ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                   ++ ((show cmd) ++ "\nError:\n")
                                    ++ show err)
     otherwise -> hasError("The following Import-Command in the Import-preamble has to few or wrong arguments:\n"
---                          ++ (makeTextElem [cmd]))
                           ++ (show cmd))
     where
        genPackageName :: String -> WithError (Maybe ImportCommands)
        genPackageName packageNameStr = 
          let packageNameEl = parse entitySearchNameParser1 "" packageNameStr
+             (cmdStr, _) = makeTextElem [cmd]
          in case packageNameEl of 
               Right packageName -> makeImportCmds fs (importCmds ++ [(Import [] packageName)])
               Left err -> hasError ("Parse error in Package-name argument of Import-Command:\n"
-                                     ++ (makeTextElem [cmd] ++ "\nError:\n")
+                                     ++ cmdStr ++ "\nError:\n"
                                      ++ show err)
 
 makeImportCmds (f:fs) importCmds = makeImportCmds fs importCmds
@@ -1113,6 +1199,7 @@ makeContent (f:frags) NoText parentEnv =
                                          (makeContent frags NoText parentEnv)
      (Other str) -> if ((length (filter (not . (`elem` "\n ")) str) == 0) ||
 			((head str) == '%'))
+                      -- String besteht nur aus Leerzeichen oder Zeilenenden
                       then mapWithError ([(CMisc (PI (piInsertLaTeX ,str)))] ++) (makeContent frags NoText parentEnv)
 		      else hasError("No text allowed inside a " ++ parentEnv ++ "!\nString found: " ++ str)
 		      -- TODO: Text, der nur aus Linefeeds besteht, muss erhalten bleiben, da er Einfluss
@@ -1159,11 +1246,22 @@ makeContent (f:frags) NoText parentEnv =
                                 otherwise -> []
 	       in myConcatWithError (hasValue([(CElem (Elem ename (makeIncludeAttribs ps) []))] ++ delimElem))
                                     (makeContent frags NoText parentEnv)
-	  else makeContent frags NoText parentEnv
+--	  else makeContent frags NoText parentEnv
+          else let delimStr = case ps of
+                                (LParams _ _ (Just str) _) -> str
+                                otherwise -> ""
+              in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
+                                                                   ++ (lparamsToString ps) ++ delimStr))]))
+                                            (makeContent frags NoText parentEnv)
+
+
 
 makeContent (f:frags) TextAllowed "List" = 
    case f of
-     (Other str) -> myConcatWithError (hasValue([(CMisc (Comment str))])) (makeContent frags TextAllowed "List")
+     (EscapedChar c) -> let cstr = if (c == '\\') then "\\" else [c]
+                        in  mapWithError ([(CMisc (PI (piInsertLaTeX , "\\" ++ cstr)))] ++)
+                                         (makeContent frags TextAllowed "List")
+     (Other str) -> myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) (makeContent frags TextAllowed "List")
      (Env name ps fs) -> 
         if (name `elem` (map fst mmiss2EnvIds))
           then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a ListItem.")
@@ -1187,10 +1285,16 @@ makeContent (f:frags) TextAllowed "List" =
                 whole = myConcatWithError (myConcatWithError begin body) end
             in myConcatWithError whole (makeContent frags TextAllowed "List")
 --	    myConcatWithError (makeContent fs TextAllowed "List") (makeContent frags TextAllowed "List")
-     (Command "ListItem" ps) -> 
-         let (content, restFrags) = makeListItem ps frags []
-         in myConcatWithError (hasValue([content])) (makeContent restFrags TextAllowed "List")
-     _ -> makeContent frags TextAllowed "List"
+     (Command name ps) ->
+       if (name == "ListItem")  
+         then let (content, restFrags) = makeListItem ps frags []
+              in myConcatWithError (hasValue([content])) (makeContent restFrags TextAllowed "List")
+         else let delimStr = case ps of
+                                (LParams _ _ (Just str) _) -> str
+                                otherwise -> ""
+              in  myConcatWithError (hasValue([CMisc (PI (piInsertLaTeX ,"\\" ++ name 
+                                                                   ++ (lparamsToString ps) ++ delimStr))]))
+                                            (makeContent frags TextAllowed "List")
 
 makeContent (f:frags) TextAllowed parentEnv = 
    case f of
@@ -1210,9 +1314,12 @@ makeContent (f:frags) TextAllowed parentEnv =
        if (name `elem` (map fst plainTextAtoms))
          then
            let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
-           in  myConcatWithError
-                  (cElemListWithError ename ps (makeAttribs ps name) (hasValue([CString True (makeTextElem fs)])))
-                  (makeContent frags TextAllowed parentEnv)
+               (text, files) = (makeTextElem fs)
+               content = (hasValue([CString True text]))
+               attribs = (makeAttribs ps name) ++ [("files", (AttValue [Left files]))]
+           in myConcatWithError
+                 (cElemListWithError ename ps attribs content)
+                 (makeContent frags TextAllowed parentEnv)
          else
            if (name == "TextFragment")
 	     then let ename = maybe "" snd (find ((name ==) . fst) mmiss2EnvIds)
@@ -1273,33 +1380,68 @@ makeContent (f:frags) TextAllowed parentEnv =
 --                 else makeContent frags TextAllowed parentEnv
 
 
-makeTextElem :: [Frag] -> String 
+-- makeTextElem converts the Frags back into strings and concatenates them into the first
+-- tuple component. The second string is a comma separated list of filename referenced by
+-- includeGraphics or externalFile-Commands.
+--
 
-makeTextElem [] = ""
-makeTextElem (f:fs) = 
-  case f of
-    (EscapedChar c) -> "\\" ++ (if (c == '\\') then "\\" else [c]) ++ (makeTextElem fs)
-    (Other str) -> str ++ (makeTextElem fs)
-    (Command name ps) -> let delimStr = case ps of
-                                           (LParams _ _ (Just delimStr) _) -> delimStr
-                                           otherwise -> "" 
-                         in "\\" ++ name ++ (lparamsToString ps) ++ delimStr ++ (makeTextElem fs) 
-    (Env name ps content) -> 
-       let  beginDelimStr = case ps of
-                              (LParams _ _ (Just delimStr) _) -> delimStr
-                              otherwise -> ""
-            endDelimStr = case ps of
-                             (LParams _ _ _ (Just delimStr)) -> delimStr
-                             otherwise -> ""
-            begin = case name of
-                      "[]" -> "["
-                      "{}" -> "{"
-                      otherwise -> "\\begin{" ++ name ++ "}" ++ (lparamsToString ps)
-            end = case name of
-                      "[]" -> "]"
-                      "{}" -> "}"
-                      otherwise -> "\\end{" ++ name ++ "}"
-      in begin ++ beginDelimStr ++ (makeTextElem content) ++ end ++ endDelimStr ++ (makeTextElem fs) 
+makeTextElem :: [Frag] -> (String, String)
+
+makeTextElem fs = makeTextElem2 fs ("","")
+ where  
+  makeTextElem2 [] (inStr, fileStr) = if ((take 1 fileStr) == ",") 
+                                        then (inStr, (drop 1 fileStr))
+                                        else (inStr, fileStr)
+  makeTextElem2 (f:fs) (inStr, fileStr) = 
+    case f of
+      (EscapedChar c) -> let str1 = "\\" 
+                             str2 = if (c == '\\') then "\\" else [c] 
+                         in (makeTextElem2 fs (inStr ++ str1 ++ str2, fileStr))
+      (Other str) -> makeTextElem2 fs (inStr ++ str, fileStr)
+      (Command name ps@(LParams singlePs _ d _)) -> 
+         let delimStr = case d of
+                          (Just delimStr) -> delimStr
+                          otherwise -> "" 
+             newFile = if ((isPrefixOf "includegraphics" name) 
+                            || (isSuffixOf "includegraphics" name)
+                            && ((length singlePs) > 0))
+                         then let fileParam = singleParamToString(last singlePs)
+                              in genericTake ((length fileParam) - 2) (genericDrop 1 fileParam)
+                         else if (name == "externalFile") && ((length singlePs) > 0)
+                                then let fileParam = singleParamToString(last singlePs)
+                                     in take ((length fileParam) - 2) (drop 1 fileParam)
+                                else ""
+             sep = if (newFile == "") then "" else "," 
+         in makeTextElem2 fs (inStr ++ "\\" ++ name ++ (lparamsToString ps) ++ delimStr
+                             ,fileStr ++ sep ++ newFile)
+      (Env name ps content) -> 
+         let  beginDelimStr = case ps of
+                                (LParams _ _ (Just delimStr) _) -> delimStr
+                                otherwise -> ""
+              endDelimStr = case ps of
+                               (LParams _ _ _ (Just delimStr)) -> delimStr
+                               otherwise -> ""
+              begin = case name of
+                        "[]" -> "["
+                        "{}" -> "{"
+                        "$" -> "$"
+                        "$$" -> "$$"
+                        "\\(" -> "\\("
+                        "\\[" -> "\\["
+                        otherwise -> "\\begin{" ++ name ++ "}" ++ (lparamsToString ps)
+              end = case name of
+                        "[]" -> "]"
+                        "{}" -> "}"
+                        "$" -> "$"
+                        "$$" -> "$$"
+                        "\\(" -> "\\)"
+                        "\\[" -> "\\]"
+                        otherwise -> "\\end{" ++ name ++ "}"
+              (newStr, newFileStr) = makeTextElem2 content ("", "")
+              sep = if (newFileStr == "") then "" else "," 
+         in makeTextElem2 fs (inStr ++ begin ++ beginDelimStr ++ newStr ++ end ++ endDelimStr
+                            , fileStr ++ sep ++ newFileStr)
+
 
 
 {-- lparamsToString formatiert Params (Command-Parameter) in die ursprüngliche Latex-Form --}
@@ -1313,9 +1455,9 @@ lparamsToString (LParams singleParams atts _ _) =
   in resultStr 
 
 singleParamToString :: SingleParam -> String
-singleParamToString (SingleParam f '{') = "{" ++ (makeTextElem f) ++ "}"
-singleParamToString (SingleParam f '[') = "[" ++ (makeTextElem f) ++ "]" 
-singleParamToString (SingleParam f '(') = "(" ++ (makeTextElem f) ++ ")"
+singleParamToString (SingleParam f '{') = "{" ++ (fst (makeTextElem f)) ++ "}"
+singleParamToString (SingleParam f '[') = "[" ++ (fst (makeTextElem f)) ++ "]" 
+singleParamToString (SingleParam f '(') = "(" ++ (fst (makeTextElem f)) ++ ")"
 
 
 
@@ -1460,7 +1602,7 @@ makeTextFragment parentEnv name params (f:frags) content =
     (Env ename ps fs) -> 
       if (ename `elem` (map fst latexFormulaEnvs))
         then
-              -- Fieser Trick: Um die Fragmente innerhalb der Formal-Umgebung in XML umzuwandeln,
+              -- Fieser Trick: Um die Fragmente innerhalb der Formel-Umgebung in XML umzuwandeln,
               -- machen wir daraus einfach ein Textfragment mit eben dieser Funktion, in der wir uns gerade befinden
               -- und nehmen uns aus dem resultieren Element einfach den Content und stopfen ihn in das
               -- Formel-Element:
@@ -1509,9 +1651,11 @@ makeListItem params (f:frags) contentList =
         if (name `elem` (map fst plainTextAtoms))
           then
             let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
+                (text, fileStr) = (makeTextElem fs)
+                attribs = (makeAttribs ps name) ++ [("files", (AttValue [Left fileStr]))]
             in  makeListItem params frags 
-                             (contentList ++ [(CElem (Elem ename (makeAttribs ps name)
-                                                          [CString True (makeTextElem fs)]))])
+                             (contentList ++ [(CElem (Elem ename attribs
+                                                          [CString True text]))])
           else
             if (name == "TextFragment")
 	      then makeListItem params frags 
@@ -1698,7 +1842,7 @@ getDefineText :: Params -> [Content]
 getDefineText  (LParams ps _ _ _) = 
   if (genericLength(ps) > 0) 
     then let (SingleParam fs _) = genericIndex ps 1
-         in  [(CString True (makeTextElem fs))]
+         in  [(CString True (fst (makeTextElem fs)))]
     else []
 
 convertAttrib :: (String, String) -> Attribute
@@ -1972,7 +2116,7 @@ getAttribs [] str _ = if ((take 1 str) == ",")
                        then (drop 1 str)
                        else str  
 getAttribs ((name, (AttValue [(Left value)])):as) str excludeList = 
-   if (name `elem` excludeList)
+   if (name `elem` (excludeList ++ glAttribsExclude))
      then getAttribs as str excludeList
      else getAttribs as (str ++ "," ++ attNameToLatex(name) ++ "={" ++ (unicodeToLatex value) ++ "}") excludeList                
 
@@ -2103,7 +2247,7 @@ mapLabelledTag s =
       mapUpper [] = []
       mapUpper (c : cs) = toUpper c : cs      
 
-
+{--
 parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
 parseAndMakeMMiSSLatex name _ = 
   do result <- parseMMiSSLatexFile name
@@ -2113,13 +2257,14 @@ parseAndMakeMMiSSLatex name _ =
          case (fromWithError (makeMMiSSLatex (e, True, []))) of
            Left err -> print err
            Right (EmacsContent l) ->  putStrLn (concat (map getStrOfEmacsDataItem l))
+--}
 
-
+{--
 getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
 
 getStrOfEmacsDataItem (EditableText str) = str
 getStrOfEmacsDataItem (EmacsLink ((str,c), _)) = str ++ [c]                                   
-
+--}
 
 append :: a -> [a] -> [a]
 append x xs = xs ++ [x]
