@@ -16,8 +16,10 @@ module MMiSSVariant(
    MMiSSVariantDict,
    newEmptyVariantDict,
    variantDictSearch,
+   variantDictSearchExtra,
    variantDictSearchExact,
    addToVariantDict,
+   delFromVariantDict,
    queryInsert,
 
    -- For the time being, newtype variants of MMiSSSearchObject.
@@ -36,6 +38,7 @@ module MMiSSVariant(
 
    -- Merging
    getMMiSSVariantDictObjectLinks, 
+   attemptMergeMMiSSVariantDict,
    ) where
 
 import Maybe
@@ -393,6 +396,17 @@ variantDictSearch variantDict search =
       resultOpt <- variantDictSearchGeneral variantDict search
       return (fmap (\ (_,_,a) -> a) resultOpt)
 
+-- return the MMiSSVariantSpec of the found object as well.  This is useful
+-- if we later want to delete it, for example.
+variantDictSearchExtra :: MMiSSVariantDict a -> MMiSSVariantSearch ->
+   IO (Maybe (a,MMiSSVariantSpec))
+variantDictSearchExtra variantDict search =
+   do
+      resultOpt <- variantDictSearchGeneral variantDict search
+      return (fmap 
+         (\ (_,variants,a) -> (a,MMiSSVariantSpec variants)) resultOpt)
+   
+
 variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch 
       -> IO (Maybe (Integer,MMiSSVariants,a))
 variantDictSearchGeneral 
@@ -431,6 +445,10 @@ variantDictSearchExact (MMiSSVariantDict registry) (MMiSSVariantSpec variants)
 addToVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> a -> IO ()
 addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a 
   = setValue registry variants a
+
+delFromVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> IO ()
+delFromVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) =
+   deleteFromRegistry registry variants
 
 queryInsert :: MMiSSVariantDict a -> MMiSSVariantSpec -> MMiSSVariantSearch
    -> IO Bool
@@ -555,5 +573,27 @@ getMMiSSVariantDictObjectLinks
       return (concatObjectLinks result)
 
 attemptMergeMMiSSVariantDict
-   :: ((View,a) -> a) -> [(View,MMiSSVariantDict a)] -> IO (MMiSSVariantDict a)
-attemptMergeMMiSSVariantDict = error "TBD"
+   :: (View -> a -> IO a) -> [(View,MMiSSVariantDict a)] 
+   -> IO (MMiSSVariantDict a)
+attemptMergeMMiSSVariantDict converter 
+      (variantDicts :: [(View,MMiSSVariantDict a)]) =
+   -- We assume, because of the versions, that there are no clashes.
+   -- Thus our only job is to get each list and converted.
+   do
+      (converted :: [[(MMiSSVariants,a)]]) <- mapM
+         (\ (view,MMiSSVariantDict registry) ->
+            do
+               (list1 :: [(MMiSSVariants,a)]) <- listRegistryContents registry
+               list2 <- mapM
+                  (\ (variant,a0) ->
+                     do
+                        a1 <- converter view a0
+                        return (variant,a1)
+                     )
+                  list1
+               return list2
+            )
+         variantDicts
+
+      registry <- listToNewRegistry (concat converted)
+      return (MMiSSVariantDict registry)
