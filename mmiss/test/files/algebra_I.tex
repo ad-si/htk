@@ -1,0 +1,537 @@
+\documentclass[landscape, slides, light]{mmiss}
+
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{casl}
+
+\Properties[
+Title={Algebra I},
+Authors={Markus Roggenbach, Till Mossakowski, Lutz Schröder},
+ShortAuthor={M.Roggenbach, T.Mossakowski, L.Schröder},
+Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
+
+
+\begin{document}
+\begin{Package}[Label={Algebra I}, LevelOfDetail=Lecture]
+\begin{Section}[Label={CASL Module Section}, LevelOfDetail=LectureNotes]
+\begin{Paragraph}[Label={CASL Module Paragraph}, LevelOfDetail=Lecture]
+\begin{Program}[Label={Algebra I Module}, LevelOfDetail=Lecture]
+\begin{ProgramFragment}[Label=Header, LevelOfDetail=Lecture]
+library Basic/Algebra_I version 0.7
+%% authors: M.Roggenbach, T.Mossakowski, L.Schröder
+
+%% date: 23.3.01
+
+%prec( {__*__} < {__^__})%
+%prec( {__+__, __-__, -__} < {__/__, __*__})%
+%left_assoc( __+__, __*__, __^__)%
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=Imports, LevelOfDetail=Lecture]
+from Basic/RelationsAndOrders version 0.7 get
+    TotalOrder, ExtTotalOrder, RichTotalOrder, PreOrder, 
+    EquivalenceRelation
+from Basic/Numbers version 0.7 get Nat, Int, Rat
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=BinAlg, LevelOfDetail=Lecture]
+spec BinAlg =
+    sort Elem;
+    op __*__ : Elem * Elem -> Elem;
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=Semigroup, LevelOfDetail=Lecture]
+spec Semigroup =
+    BinAlg
+then
+    op __*__ : Elem * Elem -> Elem, assoc;
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=SigPowerBinAlg, LevelOfDetail=Lecture]
+spec SigPowerBinAlg [sort Exponent;] =
+    BinAlg
+then
+    op __^__ : Elem * Exponent -> Elem;
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=PowerTheorems, LevelOfDetail=Lecture]
+spec PowerTheorems [sort Exponent;
+                    ops __+__, __*__ : Exponent * Exponent -> Exponent;] =
+    SigPowerBinAlg [sort Exponent;]
+then
+    %% miss_program_fragment_begin Power_Axioms
+    forall x:Elem; n, m:Exponent
+    . x ^ (n + m) = (x ^ n) * (x ^ m) %(add_Power)%
+    . x ^ (n * m) = (x ^ n) ^ m %(mult_Power)%
+    %% miss_program_fragment_end Power_Axioms
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=CommutativeSemigroup, LevelOfDetail=Lecture]
+spec CommutativeSemigroup =
+    Semigroup
+then
+    op __*__ : Elem * Elem -> Elem, comm;
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=PowerTheoremsComm, LevelOfDetail=Lecture]
+spec PowerTheoremsComm [sort Exponent;
+                        ops __+__, __*__ : Exponent * Exponent -> Exponent;] =
+    SigPowerBinAlg [sort Exponent;]
+then
+    forall x, y:Elem; n:Exponent
+    %miss_program_fragment_begin mult_base_Power
+    . (x ^ n) * (y ^ n) = (x * y) ^ n %(mult_base_Power)%
+    %miss_program_fragment_end mult_base_Power
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=CommutativeSemigroup_views, LevelOfDetail=Lecture]
+view CommutativeSemigroup_in_ExtTotalOrder_max [TotalOrder]
+        : CommutativeSemigroup to ExtTotalOrder [TotalOrder] =
+    op __*__ |-> max
+end
+
+view CommutativeSemigroup_in_ExtTotalorder_min [TotalOrder]
+        : CommutativeSemigroup to ExtTotalOrder [TotalOrder] =
+    op __*__ |-> min
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=Monoid, LevelOfDetail=Lecture]
+spec Monoid =
+    Semigroup
+then
+    ops e : Elem;
+        __*__ : Elem * Elem -> Elem, unit e;
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=CommutativeMonoid, LevelOfDetail=Lecture]
+spec CommutativeMonoid =
+    Monoid and CommutativeSemigroup
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=CommutativeMonoid_views, LevelOfDetail=Lecture]
+view CommutativeMonoid_in_Nat_Add : CommutativeMonoid to Nat =
+    sort Elem |-> Nat, ops e |-> 0, __*__ |-> __+__
+end
+
+view CommutativeMonoid_in_Nat_Mult : CommutativeMonoid to Nat =
+    sort Elem |-> Nat, ops e |-> 1, __*__ |-> __*__
+end
+
+view CommutativeMonoid_in_Int_Mult : CommutativeMonoid to Int =
+    sort Elem |-> Int, ops e |-> 1, __*__ |-> __*__
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=Group, LevelOfDetail=Lecture]
+spec Group =
+    Monoid
+then
+    forall x:Elem
+    . exists x':Elem . x' * x = e
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=AbelianGroup, LevelOfDetail=Lecture]
+spec AbelianGroup =
+    Group and CommutativeSemigroup
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=AbelianGroup_views, LevelOfDetail=Lecture]
+view AbelianGroup_in_Int_Add : AbelianGroup to Int =
+    sort Elem |-> Int, ops __*__ |-> __+__, e |-> 0
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=MonoidAction, LevelOfDetail=Lecture]
+spec MonoidAction [Monoid] =
+    sort Space;
+    op __*__ : Elem * Space -> Space;
+    forall x:Space; a, b:Elem
+    . e * x = x %(unit_MAction)%
+    . (a * b) * x = a * (b * x) %(assoc_MAction)%
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=GroupAction, LevelOfDetail=Lecture]
+spec GroupAction [Group] =
+    MonoidAction [Group]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=Ring, LevelOfDetail=Lecture]
+spec Ring =
+    AbelianGroup with sort Elem, ops __*__ |-> __+__, e |-> 0
+and Monoid with ops e, __*__
+then
+    forall x, y, z:Elem
+    . (x + y) * z = (x * z) + (y * z) %(distr1_Ring)%
+    . z * (x + y) = (z * x) + (z * y) %(distr2_Ring)%
+end
+
+view AbelianGroup_in_Ring_add : AbelianGroup to Ring =
+    ops e |-> 0, __*__ |-> __+__
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=CommutativeRing, LevelOfDetail=Lecture]
+spec CommutativeRing =
+    Ring with ops 0, __+__, e, __*__
+and CommutativeMonoid with ops e, __*__
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=IntegralDomain, LevelOfDetail=Lecture]
+spec IntegralDomain =
+    CommutativeRing
+then
+    forall x, y:Elem
+    . (x * y = 0) => (x = 0) \/ (y = 0) %(noZeroDiv)%
+    . not e = 0 %(zeroNeqOne)%
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=EuclidianRing, LevelOfDetail=Lecture]
+spec EuclidianRing =
+    IntegralDomain
+and
+{
+    Nat reveal pred __<__
+}
+then
+    op delta : Elem ->? Nat;
+    forall a, b:Elem
+    . not a = 0 => (def delta(a)) %(delta_dom_ER)%
+    . not b = 0 =>
+          (exists q, r:Elem
+               . (a = (q * b) + r)
+                 /\ ((r = 0) \/ (delta(r)) < (delta(b)))) %(div_ER)%
+end
+
+view EuclidianRing_in_Int : EuclidianRing to Int =
+    sort Elem |-> Int, ops delta |-> abs, e |-> 1
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ConstructField, LevelOfDetail=Lecture]
+spec ConstructField =
+    CommutativeRing
+then
+    . not e = 0
+    sort NonZeroElem = {x : Elem . not x = 0};
+and
+{
+    Group with sort Elem |-> NonZeroElem, ops e, __*__
+}
+end
+
+view AbelianGroup_in_ConstructField
+        : AbelianGroup to ConstructField =
+    sort Elem |-> NonZeroElem
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=Field, LevelOfDetail=Lecture]
+spec Field =
+    ConstructField hide sort NonZeroElem
+end
+
+view Field_in_Rat : Field to Rat = sort Elem |-> Rat, op e |-> 1
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtSemigroup, LevelOfDetail=Lecture]
+spec ExtSemigroup [Semigroup] given Nat =
+%def
+    SigPowerBinAlg [sort Pos;]
+then
+    forall x:Elem; n:Pos
+    . x ^ 1 = x %(pow_1_SGroup)%
+    . x ^ (suc(n)) = x * (x ^ n) %(pow_suc_SGroup)%
+then %implies
+    PowerTheorems [Nat fit sort Exponent |-> Pos]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtCommutativeSemigroup, LevelOfDetail=Lecture]
+spec ExtCommutativeSemigroup [CommutativeSemigroup] given Nat =
+%def
+    ExtSemigroup [Semigroup]
+then %implies
+    PowerTheoremsComm [Nat fit sort Exponent |-> Pos]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtMonoid, LevelOfDetail=Lecture]
+spec ExtMonoid [Monoid] given Nat =
+%def
+    ExtSemigroup [Semigroup]
+then
+    SigPowerBinAlg [sort Nat;]
+then
+    forall x:Elem
+    . x ^ 0 = e %(pow_0_EMonoid)%
+then %implies
+    forall n:Nat
+    . e ^ n = e %(pow_unit_EMonoid)%
+and PowerTheorems [Nat fit sort Exponent |-> Nat]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtCommutativeMonoid, LevelOfDetail=Lecture]
+spec ExtCommutativeMonoid [CommutativeMonoid] given Nat =
+%def
+    ExtMonoid [Monoid]
+and ExtCommutativeSemigroup [CommutativeSemigroup]
+then %implies
+    PowerTheoremsComm [Nat fit sort Exponent |-> Nat]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtGroup, LevelOfDetail=Lecture]
+spec ExtGroup [Group] given Int =
+%def
+    ExtMonoid [Monoid]
+then
+    ops inv : Elem -> Elem;
+        __/__ : Elem * Elem -> Elem;
+    forall x, y:Elem
+    . (inv(x)) * x = e %(inv_def_Group)%
+    . x / y = x * (inv(y)) %(div_def_Group)%
+then
+    SigPowerBinAlg [sort Int;]
+then
+    forall x:Elem; p:Pos
+    . x ^ (- p) = inv(x ^ p) %(pow_neg_Group)%
+then %implies
+    forall x, y, z:Elem; n, m:Int
+    . x * (inv(x)) = e %(rightInv_Group)%
+    . (z * x = z * y) => (x = y) %(leftCancel_Group)%
+    . (x * z = y * z) => (x = y) %(rightCancel_Group)%
+    . inv(inv(x)) = x %(invInv_Group)%
+    . inv(e) = e %(invUnit_Group)%
+    . inv(x * y) = (inv(y)) * (inv(x)) %(invMult_Group)%
+and PowerTheorems [Int fit sort Exponent |-> Int]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtAbelianGroup, LevelOfDetail=Lecture]
+spec ExtAbelianGroup [AbelianGroup] given Int =
+%def
+    ExtGroup [AbelianGroup] and ExtCommutativeMonoid [AbelianGroup]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtMonoidAction, LevelOfDetail=Lecture]
+spec ExtMonoidAction [MonoidAction [Monoid]] given Nat =
+%def
+    ExtMonoid [Monoid]
+then
+    pred connected : Space * Space;
+    forall x, y:Space
+    . connected(x, y) <=>
+          exists a:Elem . a * x = y %(connected_def_EMAction)%
+end
+
+view PreOrder_in_ExtMonoidAction [MonoidAction [Monoid]] given Nat
+        : PreOrder to ExtMonoidAction [MonoidAction [Monoid]] =
+    sort Elem |-> Space, pred __<=__ |-> connected
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtGroupAction, LevelOfDetail=Lecture]
+spec ExtGroupAction [GroupAction [Group]] given Int =
+%def
+    ExtMonoidAction [GroupAction [Group]] and ExtGroup [Group]
+then %implies
+    forall a, b:Elem; x, y:Space
+    . (a * x = a * y) => (x = y) %(inj_EGAction)%
+    . exists z:Space . a * z = x %(surj_EGAction)%
+end
+
+view EqRel_in_ExtGroupAction [GroupAction [Group]] given Int
+        : EquivalenceRelation to ExtGroupAction [GroupAction [Group]] =
+    sort Elem |-> Space, pred __~__ |-> connected
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtRing, LevelOfDetail=Lecture]
+spec ExtRing [Ring] given Int =
+%%mono
+
+    ExtAbelianGroup [view AbelianGroup_in_Ring_add]
+with ops inv |-> -__, __/__ |-> __-__, __^__ |-> __times__
+and ExtMonoid [Monoid] with op __^__
+and preds isIrred, isUnit : Elem;
+    sorts NonZero[Elem] = {x : Elem . not x = 0};
+          RUnit[Elem] = {x : Elem . isUnit(x)};
+          Irred[Elem] = {x : Elem . isIrred(x)};
+    forall x, y:Elem
+    . isUnit(x) <=>
+          exists y:Elem . (x * y = e) /\ (y * x = e) %(isUnit_def_Ring)%
+    . isIrred(x) <=>
+          not isUnit(x)
+          /\ (forall y, z:Elem
+                  . (x = y * z) => isUnit(y) \/ isUnit(z)) %(isIrred_def_Ring)%
+then %def
+    ops e : RUnit[Elem];
+        -__ : RUnit[Elem] -> RUnit[Elem];
+        __*__ : RUnit[Elem] * RUnit[Elem] -> RUnit[Elem];
+end
+
+view Group_in_ExtRing [Ring] given Int : Group to ExtRing [Ring] =
+    sort Elem |-> RUnit[Elem]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtCommutativeRing, LevelOfDetail=Lecture]
+spec ExtCommutativeRing [CommutativeRing] given Int =
+%%mono
+
+    ExtRing [Ring]
+then
+    preds hasNoZeroDivisors : ();
+          __divides__ : Elem * Elem;
+          associated : Elem * Elem;
+    forall x, y:Elem
+    . hasNoZeroDivisors <=>
+          forall x, y:Elem
+              . (x * y = 0) => (x = 0) \/ (y = 0) %(hasNoZeroDivisors_def)%
+    . x divides y <=> exists z:Elem . x * z = y %(divides_def)%
+    . associated(x, y) <=>
+          exists u:RUnit[Elem] . x = u * y %(associated_def)%
+then %implies
+    forall x, y:Elem
+    . associated(x, y) <=> x divides y /\ y divides x
+end
+
+view PreOrder_in_ExtCRing [CommutativeRing] given Int
+        : PreOrder to ExtCommutativeRing [CommutativeRing] =
+    pred __<=__ |-> __divides__
+end
+
+view AbelianGroup_in_ExtCRing [CommutativeRing] given Int
+        : AbelianGroup to ExtCommutativeRing [CommutativeRing] =
+    sort Elem |-> RUnit[Elem]
+end
+
+view EqRel_in_ExtCRing [CommutativeRing] given Int
+        : EquivalenceRelation to ExtCommutativeRing [CommutativeRing] =
+    pred __~__ |-> associated
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtIntegralDomain, LevelOfDetail=Lecture]
+spec ExtIntegralDomain [IntegralDomain] given Int =
+%%mono
+
+    ExtCommutativeRing [CommutativeRing]
+then
+    op __*__ : NonZero[Elem] * NonZero[Elem] -> NonZero[Elem];
+then %implies
+    . hasNoZeroDivisors
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtEuclidianRing, LevelOfDetail=Lecture]
+spec ExtEuclidianRing [EuclidianRing] given Int =
+%%mono
+
+    ExtIntegralDomain [IntegralDomain]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=ExtField, LevelOfDetail=Lecture]
+spec ExtField [Field] given Int =
+%%mono 
+
+    ExtRing [Ring]
+then
+closed
+    {
+        ExtAbelianGroup [view AbelianGroup_in_ConstructField]
+    with sort NonZeroElem |-> NonZero[Elem], ops inv, __/__, __^__
+    }
+then
+    op __/__ : Elem * Elem ->? Elem;
+    forall x:Elem; n:NonZero[Elem]
+    . 0 / n = 0 %(div_def1_Field)%
+    . not def x / 0 %(div_def2_Field)%
+then %implies
+    forall x, y:Elem
+    . (def x / y) <=> not y = 0 %(div_dom_Field)%
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichSemigroup, LevelOfDetail=Lecture]
+spec RichSemigroup =
+    ExtSemigroup [Semigroup]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichCommutativeSemigroup, LevelOfDetail=Lecture]
+spec RichCommutativeSemigroup =
+    ExtCommutativeSemigroup [CommutativeSemigroup]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichMonoid, LevelOfDetail=Lecture]
+spec RichMonoid =
+    ExtMonoid [Monoid]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichCommutativeMonoid, LevelOfDetail=Lecture]
+spec RichCommutativeMonoid =
+    ExtCommutativeMonoid [CommutativeMonoid]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichGroup, LevelOfDetail=Lecture]
+spec RichGroup =
+    ExtGroup [Group]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichAbelianGroup, LevelOfDetail=Lecture]
+spec RichAbelianGroup =
+    ExtAbelianGroup [AbelianGroup]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichMonoidAction, LevelOfDetail=Lecture]
+spec RichMonoidAction [Monoid] =
+    ExtMonoidAction [MonoidAction [Monoid]]
+end
+
+view PreOrder_in_RichMonoidAction [Monoid]
+        : PreOrder to RichMonoidAction [Monoid] =
+    sort Elem |-> Space, pred __<=__ |-> connected
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichGroupAction, LevelOfDetail=Lecture]
+spec RichGroupAction [Group] =
+    ExtGroupAction [GroupAction [Group]]
+end
+
+view EqRel_in_RichGroupAction [Group]
+        : EquivalenceRelation to RichGroupAction [Group] =
+    sort Elem |-> Space, pred __~__ |-> connected
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichRing, LevelOfDetail=Lecture]
+spec RichRing =
+    ExtRing [Ring]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichCommutativeRing, LevelOfDetail=Lecture]
+spec RichCommutativeRing =
+    ExtCommutativeRing [CommutativeRing]
+end
+
+view PreOrder_in_RichCRing : PreOrder to RichCommutativeRing =
+    pred __<=__ |-> __divides__
+end
+
+view EqRel_in_RichCRing
+        : EquivalenceRelation to RichCommutativeRing =
+    pred __~__ |-> associated
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichIntegralDomain, LevelOfDetail=Lecture]
+spec RichIntegralDomain =
+    ExtIntegralDomain [IntegralDomain]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichEuclidianRing, LevelOfDetail=Lecture]
+spec RichEuclidianRing =
+    ExtEuclidianRing [EuclidianRing]
+end
+\end{ProgramFragment}
+\begin{ProgramFragment}[Label=RichField, LevelOfDetail=Lecture]
+spec RichField =
+    ExtField [Field]
+end
+
+view CommutativeSemigroup_in_RichTotalOrder
+        : CommutativeSemigroup to RichTotalOrder =
+    op __*__ |-> max
+end
+
+view CommutativeSemigroup_in_RichTotalOrder
+        : CommutativeSemigroup to RichTotalOrder =
+    op __*__ |-> min
+end
+\end{ProgramFragment}
+\end{Program}
+\end{Paragraph}
+\end{Section}
+\end{Package}
+\end{document}
