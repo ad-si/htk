@@ -66,58 +66,111 @@ listViews repository = listVersions repository firstLocation
 getView :: Repository -> ObjectVersion -> IO View
 getView repository objectVersion =
    do
-      objectsString <- retrieveString repository firstLocation objectVersion
+      viewString <- retrieveString repository firstLocation objectVersion
       let
-         objectsCodedValue = fromString objectsString
-         phantomView = error "CodedValue for links and version needs View!"
+         viewCodedValue = fromString viewString
+
+         phantomView = error "CodedValue for view needs View!"
          -- It shouldn't, it goes via HasCodedValuePure.  But we need
          -- HasCodedValue for technical reasons since lists and tuples
          -- can't be defined for HasPureCodedValue to avoid a nasty instance
          -- overlap.
-      (objectsList :: [(Location,ObjectVersion)]) 
-         <- doDecodeIO objectsCodedValue phantomView
+      (ViewData {
+         objectsData = objectsData,
+         displayTypesData = displayTypesData,
+         objectTypesData = objectTypesData
+         }) <- doDecodeIO viewCodedValue phantomView
+
+      -- Convert lists to registries.  objectsData requires special handling because
+      -- the registry is a LockedRegistry and doesn't have a direct function.
       objects <- newRegistry
       sequence_ (map
          (\ (location,objectVersion) -> 
             setValue objects location (AbsentObject objectVersion)
             )
-         objectsList
+         objectsData
          )
+
+      displayTypes <- listToNewRegistry displayTypesData
+      objectTypes <- listToNewRegistry objectTypesData
+
       parentMVar <- newMVar (Just objectVersion)
       
       return (View {
          repository = repository,
          objects = objects,
-         parentMVar = parentMVar
+         parentMVar = parentMVar,
+         displayTypes = displayTypes,
+         objectTypes = objectTypes
          })
 
 commitView :: View -> IO ObjectVersion
 commitView (View {repository = repository,objects = objects,
-      parentMVar = parentMVar}) =
+      parentMVar = parentMVar,displayTypes = displayTypes,objectTypes = objectTypes}) =
    -- NB - this ought to lock against updates, but at the moment doesn't.
    -- But we do lock against other commits using parentMVar.
    do
       parentOpt <- takeMVar parentMVar
       locations <- listKeys objects
-      (objectsList :: [(Location,ObjectVersion)]) <-
+      (objectsData :: [(Location,ObjectVersion)]) <-
          mapM (\ location ->
             do
-               objectData <- getValue objects location
-               objectVersion <- case objectData of 
+               objectsData <- getValue objects location
+               objectVersion <- case objectsData of 
                   AbsentObject objectVersion -> return objectVersion
                   PresentObject _ commitAction -> commitAction
                return (location,objectVersion)
             )
             locations
+      displayTypesData <- listRegistryContents displayTypes
+      objectTypesData <- listRegistryContents objectTypes
       let
-         phantomView = error "CodedValue for links and version needs View (2)!"
-      objectsCodedValue <- doEncodeIO objectsList phantomView
-      objectsObjectSource <- toObjectSource objectsCodedValue 
-      newObjectVersion <- commit repository objectsObjectSource firstLocation 
+         viewData =
+            ViewData {
+               objectsData = objectsData,
+               displayTypesData = displayTypesData,
+               objectTypesData = objectTypesData
+               }
+
+         phantomView = error "CodedValue for view needs View (2)!"
+
+      viewCodedValue <- doEncodeIO viewData phantomView
+      viewObjectSource <- toObjectSource viewCodedValue 
+      newObjectVersion <- commit repository viewObjectSource firstLocation 
          parentOpt
       putMVar parentMVar (Just newObjectVersion)
       return newObjectVersion
 
 
+-- ----------------------------------------------------------------------
+-- Format of view information in the top file
+-- ----------------------------------------------------------------------
 
-   
+-- ViewData is the information needed to construct a view
+-- which we store in the top file of a version.
+data ViewData = ViewData {
+   objectsData :: [(Location,ObjectVersion)],
+   displayTypesData :: [(String,WrappedDisplayType)],
+   objectTypesData :: [(String,WrappedObjectType)]
+   }
+
+viewData_tyCon = mkTyCon "View" "ViewData"
+instance HasTyCon ViewData where
+   tyCon _ = viewData_tyCon
+
+-- Here's the real primitive type
+type Tuple = ([(Location,ObjectVersion)],[(String,WrappedDisplayType)],[(String,WrappedObjectType)])
+
+mkTuple :: ViewData -> Tuple
+mkTuple (ViewData {objectsData = objectsData,displayTypesData = displayTypesData,
+   objectTypesData = objectTypesData}) =
+      (objectsData,displayTypesData,objectTypesData)
+
+unmkTuple :: Tuple -> ViewData
+unmkTuple (objectsData,displayTypesData,objectTypesData) =
+   ViewData {objectsData = objectsData,displayTypesData = displayTypesData,
+   objectTypesData = objectTypesData}
+
+instance HasCodedValue ViewData where
+   encodeIO = mapEncodeIO mkTuple 
+   decodeIO = mapDecodeIO unmkTuple
