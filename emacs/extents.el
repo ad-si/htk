@@ -290,9 +290,19 @@
       )
    )
 
+
 ; Used to construct dotted pair for uni-container-contents
 (defun uni-get-extent-descriptor (extent) 
    (cons (uni-get-extent-type extent) (uni-get-extent-id extent))
+   )
+
+; Retrieves the type of an extent
+(defun uni-get-extent-id-type (extent-id)
+   (let* (
+         (extent (gethash extent-id uni-extent-hash-table))
+         )
+      (uni-get-extent-type extent)
+      )
    )
 
 ;

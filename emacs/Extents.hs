@@ -11,9 +11,11 @@ module Extents(
    addText,
    boundContainer,
    deleteExtent,
+   getExtentType,
    expand,
    collapse,
    containerContents,
+   containerFullContents,
    ContainerChild(..),
    containerChildren,
    listContainers,
@@ -82,6 +84,22 @@ containerContents emacsSession this =
          (Prin ("uni-container-contents",[this]))
       return (parseEmacsContent str)
 
+getExtentType :: EmacsSession -> String -> IO String
+getExtentType emacsSession this =
+   evalEmacsQuick emacsSession (Prin ("uni-get-extent-id-type",[this]))
+
+---
+-- Like containerContents, but also returns a Bool for each link indicating 
+-- True if the object is expanded here.
+containerFullContents :: EmacsSession -> String 
+   -> IO (EmacsContent (Bool,String))
+containerFullContents emacsSession this =
+   do
+      str <- evalEmacsQuick emacsSession 
+         (Prin ("uni-container-contents",[this]))
+      return (parseEmacsContentGeneral str)
+
+
 data ContainerChild = Button String | Container String
 
 containerChildren :: EmacsSession -> String -> IO [ContainerChild]
@@ -90,17 +108,14 @@ containerChildren emacsSession this =
       str <- evalEmacsQuick emacsSession 
          (Prin ("uni-container-children",[this]))
       let
-         List children = doParse str
-         result = mapMaybe
-            (\ child -> case child of
-               (DotList [Id objectType] (String childName)) ->
-                  case objectType of
-                     "button" -> Just (Button childName)
-                     "container" -> Just (Container childName)
-                     _ -> Nothing
-               List [Id "uneditable-extent"] -> Nothing
+         (EmacsContent dataItems) = parseEmacsContentGeneral str
+         result = map
+            (\ dataItem -> case dataItem of
+               EmacsLink (b,str) -> 
+                  if b then Container str else Button str
+               EditableText _ -> error "uni-container-children returned text"
                )
-            children
+            dataItems
       return result
 
 listContainers :: EmacsSession -> IO [String]

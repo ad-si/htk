@@ -4,6 +4,7 @@ module EmacsEdit(
    editEmacs, -- :: EmacsFS -> String -> IO ()
    EmacsFS(..),
    EditedFile(..),
+   PrintAction(..),
 
    TypedName,
    ) where
@@ -13,6 +14,7 @@ import Maybe
 import Computation
 import Registry
 import NameMangle
+import ExtendedPrelude
 
 import Events
 import Channels
@@ -40,6 +42,9 @@ import Extents
 -- allmmiss.el's variable MMiSS-colours, so currently one of G/U/A/T.
 -- NB.  We assume that no two TypedName's exist with the same String but
 -- different Chars.
+--
+-- It is also assumed that editFS will stop the same file being opened if
+-- it is already open (without it being closed by finishEdit).
 type TypedName = (String,Char)
 
 data EmacsFS = EmacsFS {
@@ -64,6 +69,19 @@ data EditedFile = EditedFile {
       -- this file).
    }
 
+---
+-- The PrintAction, supplied by the caller, prints the given TypedName 
+-- as displayed in the buffer, which should be included in the buffer.  To 
+-- do this it in turn is provided with a function which given a particular 
+-- String returns what the Emacs buffer
+-- currently contains for that String.  Included items are given as 
+-- EmacsLink; the Bool indicates whether the included item is expanded (True)
+-- or not.  
+newtype PrintAction = PrintAction 
+   (String -> (String -> IO (WithError (EmacsContent (Bool,TypedName))))
+      -> IO ()
+      )
+
 -- ----------------------------------------------------------------------
 -- Other datatypes
 -- ----------------------------------------------------------------------
@@ -73,8 +91,10 @@ data EditorState = EditorState {
    emacsFS :: EmacsFS,
    openFiles :: Registry String EditedFile, -- ^ currently edited files
       -- (the names are not mangled)
-   typedNameMangler :: TypedNameMangler
+   typedNameMangler :: TypedNameMangler,
       -- This makes all names seen by Emacs unique.
+   printAction :: PrintAction,
+   topMangledName :: MangledTypedName
    }      
 
 -- ----------------------------------------------------------------------
@@ -84,8 +104,8 @@ data EditorState = EditorState {
 ---
 -- editEmacs edits a particular file, with the specified file system. 
 -- This function terminates when the user finishes editing.
-editEmacs :: EmacsFS -> TypedName -> IO ()
-editEmacs emacsFS name =
+editEmacs :: EmacsFS -> PrintAction -> TypedName -> IO ()
+editEmacs emacsFS printAction name =
    do
       typedNameMangler <- newTypedNameMangler
       mangledName <- newMangledTypedName typedNameMangler name
@@ -114,7 +134,9 @@ editEmacs emacsFS name =
                      emacsSession = emacsSession,
                      emacsFS = emacsFS,
                      openFiles = openFiles,
-                     typedNameMangler = typedNameMangler
+                     typedNameMangler = typedNameMangler,
+                     printAction = printAction,
+                     topMangledName = mangledName
                      }
                return (parent,editorState)
 
@@ -238,31 +260,15 @@ handleEvents editorState =
                               Just file -> file
                               Nothing -> error ("handleEvents: container "++
                                  describe container ++" does not exist")
-                        contents0 <- containerContents session hContainer
-                        let
-                           contents1list = case contents0 of
-                              EmacsContent (EmacsLink headButton : list)
-                                 | headButton == headName mangledContainer
-                                 -> list
-                              _ -> error ("Couldn't find head button for "++
-                                  describe container)
-
-                        contents2list <- 
-                           mapM
-                              (\ dataItem -> case dataItem of
-                                 EmacsLink button -> 
-                                    case parseButton button of
-                                       Normal mangledName -> 
-                                          do
-                                             name <- readMangled mangledName 
-                                             return (EmacsLink name)
-                                       Head mangledName -> error (
-                                          "Unexpected head "++button)
-                                 EditableText text -> 
-                                    return (EditableText text)
-                                 )
-                              contents1list
-                        written <- writeData file (EmacsContent contents2list)
+                        mangledContents 
+                           <- extractContents editorState mangledContainer 
+                        (unmangledContents,_) 
+                           <- unmangleContents editorState mangledContents 
+                        written <- writeData file 
+                           (fmap 
+                              (\ (b,typedName) -> typedName) 
+                              unmangledContents
+                              )
                         case fromWithError written of
                            Left mess -> showError ("Writing "
                               ++describe container++": "++mess)
@@ -273,6 +279,13 @@ handleEvents editorState =
                sync iterate
                ))
          )
+      +> (do
+            str <- event "PRINT"
+            -- we don't CONFIRM here as it is assumed the Print operation
+            -- provided by the caller provides some way of cancelling.
+            always (doPrint editorState (topMangledName editorState))
+            iterate
+            )
       +> (do
             str <- event "BUTTON"
             case parseButton str of
@@ -356,6 +369,128 @@ handleEvents editorState =
                "Sorry, the Enlarge operation is currently not supported")
             iterate            
          )
+
+-- ----------------------------------------------------------------------
+-- Printing 
+-- ----------------------------------------------------------------------
+
+doPrint :: EditorState -> MangledTypedName -> IO ()
+doPrint editorState mangledToEdit =
+   do
+      -- The main problem here is writing the function to be passed to the
+      -- print action.
+
+      -- Since the print action only supplies TypedNames we create a registry
+      -- mapping the String part of the TypedNames to their corresponding
+      -- MangledTypedName (which should currently be open).  Since files are
+      -- only supposed to be open once (see comments to EditFS) this is not
+      -- a problem.
+      (openMangledNames :: Registry String MangledTypedName) <- newRegistry
+
+      let
+         session = emacsSession editorState
+
+         readMangled = readMangledTypedName (typedNameMangler editorState)
+
+         printFunction :: String 
+            -> IO (WithError (EmacsContent (Bool,TypedName)))
+         printFunction toGetStr =
+            addFallOutWE (\ break ->
+               do
+                  mangledToGetOpt <- getValueOpt openMangledNames toGetStr
+                  let
+                     mangledToGet = case mangledToGetOpt of
+                        Just mangledToGet -> mangledToGet
+                        Nothing -> break ("EmacsEdit: couldn't find "
+                           ++toGetStr)
+                  seq mangledToGet done
+
+                  mangledContents <- extractContents editorState mangledToGet
+                  (unmangledContents,associations) 
+                     <- unmangleContents editorState mangledContents  
+                  mapM_
+                     (\ (typedName,mangledTypedName) -> setValue 
+                        openMangledNames (key typedName) mangledTypedName
+                        )
+                     associations
+                  return unmangledContents
+               )
+
+         (PrintAction mkPrint) = printAction editorState
+
+      toEdit <- readMangled mangledToEdit
+      setValue openMangledNames (key toEdit) mangledToEdit
+
+      lockBuffer session
+      toEditType <- getExtentType session (normalName mangledToEdit)
+      if toEditType == "container"
+         then
+            mkPrint (key toEdit) printFunction
+         else
+            createErrorWin ("Extent "++describe toEdit
+               ++" is not currently open") []
+      unlockBuffer session
+
+-- ----------------------------------------------------------------------
+-- Extracting the contents of a buffer
+-- The head button is removed (and checked for).
+-- Bools indicate that the corresponding extent is further expanded.
+-- ----------------------------------------------------------------------
+
+extractContents :: EditorState -> MangledTypedName 
+   -> IO (EmacsContent (Bool,MangledTypedName))
+extractContents editorState mangledToGet =
+   do
+      let
+         extentName = normalName mangledToGet
+      contents0 
+         <- containerFullContents (emacsSession editorState) extentName
+      let
+         list = case contents0 of
+            EmacsContent (EmacsLink (False,headButton) : list)
+               | headButton == headName mangledToGet
+               -> list                
+            _ -> error ("Couldn't find head button for "++extentName)
+         list2 = map
+            (\ dataItem -> case dataItem of
+               EditableText text -> EditableText text
+               EmacsLink (b,str) ->
+                  case parseButton str of
+                     Head _ -> error ("Unexpected head button "++str)
+                     Normal mangledName -> EmacsLink (b,mangledName)
+               ) 
+            list
+
+      return (EmacsContent list2)
+
+---
+-- Unmangled the MangledTypedNames in an EmacsContent and return a list
+-- of the associations where the Bool is True.
+unmangleContents :: EditorState -> EmacsContent (Bool,MangledTypedName)
+   -> IO (EmacsContent (Bool,TypedName),[(TypedName,MangledTypedName)])
+unmangleContents editorState (EmacsContent list0) =
+   do
+      let
+         readMangled = readMangledTypedName (typedNameMangler editorState)
+
+         doList :: [EmacsDataItem (Bool,MangledTypedName)] ->
+            IO ([EmacsDataItem (Bool,TypedName)],
+               [(TypedName,MangledTypedName)])
+         doList [] = return ([],[])
+         doList (EditableText text : rest) =
+            do
+               (l1,l2) <- doList rest
+               return (EditableText text : l1,l2)
+         doList (EmacsLink (b,mangledTypedName) : rest) =
+            do
+               (l1,l2) <- doList rest
+               typedName <- readMangled mangledTypedName
+               let
+                  l2' = if b then (typedName,mangledTypedName):l2 else l2
+               return (EmacsLink (b,typedName) : l1,l2')
+       
+      (list1,associations) <- doList list0
+      return (EmacsContent list1,associations)
 
 -- ----------------------------------------------------------------------
 -- Button names

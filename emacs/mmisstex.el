@@ -43,6 +43,10 @@
 ;; (MMiSS-commit)       : sends the event with key COMMIT to Haskell, and no
 ;;                        value.
 ;;
+;; MMiSSTeX-menu item "Print" or
+;; (MMiSS-print)        : sends the event with key PRINT to Haskell, and no
+;;                        value.
+;;
 ;; MMiSSTeX-menu item "Quit" or
 ;; (MMiSS-quit)         : sends the event with key QUIT to Haskell, and no
 ;;                        value.
@@ -91,6 +95,11 @@
 (defun MMiSS-commit ()
   (interactive)
   (uni-ev "COMMIT" "")
+  )
+
+(defun MMiSS-print ()
+  (interactive)
+  (uni-ev "PRINT" "")
   )
 
 (defun MMiSS-quit ()
@@ -462,7 +471,8 @@ Any other reply is used exactly as entered."
          ["End of Environment"           MMiSS-find-matching-end]
          "-"
 ;        ["Request Enlarged Environment" MMiSS-request]     
-         ["Commit" MMiSS-commit]     
+         ["Commit" MMiSS-commit]
+         ["Print" MMiSS-print]     
          ["Quit" MMiSS-quit]     
          ))
   (easy-menu-add MMiSS-menu-symbol LaTeX-mode-map)

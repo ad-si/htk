@@ -28,6 +28,7 @@ import AtomString
 import ExtendedPrelude
 import Debug
 import qualified Exception
+import Registry
 
 import BSem
 
@@ -762,11 +763,17 @@ editMMiSSObjectInner :: WrappedEditFormatConverter -> View -> Link MMiSSObject
       -> IO ()
 editMMiSSObjectInner 
       (WrappedEditFormatConverter (
-         (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit})
+         (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}
+            :: EditFormatConverter formatExtra)
          ))
       view link =
    do
       object <- readLink view link
+
+      -- We store the formatExtra information so it can be got at during
+      -- printing.
+      (formatExtraStash :: Registry String formatExtra) <- newRegistry
+ 
       let
          parent = parentFolder object
          variants = variantAttributes object
@@ -813,6 +820,8 @@ editMMiSSObjectInner
                      (content,formatExtra) 
                         = coerceWithErrorOrBreak break contentWE
 
+                  setValue formatExtraStash name formatExtra
+
                   -- We now have to set up the EditedFile stuff 
                   let
                      writeData emacsContent =
@@ -834,7 +843,10 @@ editMMiSSObjectInner
                                 ("Commit of "++name++ " successful!") []
                           )
 
-                     finishEdit = release lock
+                     finishEdit =
+                        do
+                           release lock
+                           deleteFromRegistry formatExtraStash name
 
                      editedFile = EditedFile {
                         writeData = writeData,
@@ -866,7 +878,77 @@ editMMiSSObjectInner
             existsFS = existsFS
             }
 
-      editEmacs emacsFS (name object,getObjectMiniType object)
+         printAction topStr getContent =
+            do
+               let
+                  -- Untidily, we pass down the information about whether to
+                  -- expand particular children as a list of MVars.
+                  reAssembleArg :: EntityName -> MVar [Bool] 
+                     -> IO (WithError (Maybe (Element,MVar [Bool])))
+                  reAssembleArg entityName mVar =
+                     do
+                        (doExpand:rest) <- takeMVar mVar
+                        putMVar mVar rest
+                        if doExpand
+                           then
+                              addFallOutWE (\ break ->
+                                 do
+                                    let
+                                       name = toString entityName
+                                    content0WE <- getContent name
+                                    let
+                                       content0 = coerceWithErrorOrBreak break 
+                                          content0WE
+                                    seq content0 done
+                                    let
+                                       content1 = fmap 
+                                          (\ (b,typedName) -> typedName) 
+                                          content0
+
+                                       (EmacsContent dataItems) = content0
+                                       expandList = mapMaybe
+                                          (\ dataItem -> case dataItem of
+                                             EmacsLink (b,typedName) -> Just b
+                                             _ -> Nothing
+                                             )
+                                          dataItems
+
+                                    (Just formatExtra) <- getValueOpt
+                                       formatExtraStash name
+                                    elementWE
+                                       <- fromEdit formatExtra name content1
+                                    let
+                                       element = coerceWithErrorOrBreak break 
+                                          elementWE
+                                    seq element done
+
+                                    nextMVar <- newMVar expandList   
+                                    return (Just (element,nextMVar))
+                                 )                                  
+                           else
+                              return (hasValue Nothing)
+
+               topMVar <- newMVar [True]
+               elementWE 
+                  <- reAssemble reAssembleArg (fromString topStr) topMVar
+               case fromWithError elementWE of
+                  Left error -> createErrorWin error []
+                  Right element ->
+                     do
+                        -- We do the actual printing in a separate thread,
+                        -- so the user can continue editing.
+                        forkIO (
+                           do
+                              let
+                                 stringWE = exportElement LaTeX element
+                              case fromWithError stringWE of
+                                 Left error -> createErrorWin error []
+                                 Right str -> mmissLaTeX topStr str
+                           )
+                        done
+
+      editEmacs emacsFS (PrintAction printAction) 
+         (name object,getObjectMiniType object)
 
 getObjectMiniType :: MMiSSObject -> Char
 getObjectMiniType object = getMiniType (xmlTag (mmissObjectType object))

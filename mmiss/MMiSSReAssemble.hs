@@ -21,6 +21,9 @@ import MMiSSPathsSimple
 -- The search data is threaded down through containing elements.
 -- So for example if getElement name1 search1 generates (element2,search2),
 -- we apply getElement again on names contained in element2 with search2.
+--
+-- MMiSSObjects.printAction uses a horrible trick which assumes that the
+-- children of an Element are visited in the order supplied.
 reAssemble :: 
    (EntityName -> searchData -> IO (WithError (Maybe (Element,searchData)))) 
    -> EntityName -> searchData

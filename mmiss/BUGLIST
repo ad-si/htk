@@ -4,6 +4,14 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+53) 25.09.02
+It seems to be possible to insert text before a head button in some
+circumstances.
+
+52) 25.09.02
+Print from XEmacs now works.
+FIXED
+
 51) 24.09.02
 The Emacs code used to have a bug in that if the same object was included in
 more than one place in the same file (directly or indirectly) it couldn't
