@@ -16,15 +16,17 @@
 
 \begin{document}
 \begin{Package}[MMISS_Latex2]{pack1}{Algebraic
-Specification -- \\ adapted as example of ML2\\ by M. D.}{Date=12.09.2002,Version=5,PreviousVersion=4,Authors={Markus
-Roggenbach},PriorAuthors={Markus
-Roggenbach},ShortAuthor={M. Roggenbach},ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
+Specification}{Date=12.09.2002,Version=5,PreviousVersion=4,
+Authors={Markus Roggenbach, Micheal Drouineaoud},
+PriorAuthors={Markus Roggenbach, Micheal Drouineaud},
+ShortAuthor={M. Roggenbach, M. Drouineaud},
+ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
 
 \begin{Section}[MMISS_Latex2]{Chapter1}{Introduction}{Date=12.09.2002,Version=5,PreviousVersion=4,Authors={Markus
 Roggenbach},PriorAuthors={Markus
 Roggenbach},ShortAuthor={M. Roggenbach},ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
 \begin{Introduction}{Introduction1.1}{Overview}{}
-The following text has the purpose to explain formal
+The following text has the purpose to explain the utility of formal
 specifications to the reader. It also provides some simple examples
 and descriptions of formal specifications. At the end of this text some
 basic mathematical concepts as semigroups
@@ -750,14 +752,14 @@ Let $S$ be  set of elements together with a given binary operation. If $S$
 is closed under the given operation and the given operation is
 associative, then we call $S$ a semigroup under the given operation.
 \end{Definition}
-\newline
+%\newline
 \begin{Definition}[Algebra]{Definition1.4.2}{Monoid}{}
 Let $M$ be a semigroup. If there is an element $e \in M$ with
 $em=me=m$ for all $m \in M$, then $e \in M$ is said to be an identity
 element in relation to the operation. We call such a semigroup $M$ a
 monoid and $e \in M$ the identity element of the monoid.
 \end{Definition}
-\newline
+%\newline
 \begin{Definition}[Algebra]{Definition1.4.3}{Group}{}
 Let $G$ be a monoid in which one finds a $\hat{g} \in G$ with
 $\hat{g}g=g\hat{g}=e$ ($e \in G$ is the identity element of $G$) for
@@ -767,7 +769,7 @@ the operation. The inverse element of a given
 element $g \in G$ is denoted by $g^{-1}$. We call such a monoid $G$ a
 group. Thus a group is a monoid in which every element has an inverse.
 \end{Definition}
-\newline
+%\newline
 \begin{Theorem}[Algebra]{Theorem1.4.1}{Uniqueness 1a}{}
 The identity element of a monoid $M$ is unique.
 \end{Theorem}
@@ -786,7 +788,7 @@ the identity element of a monoid is unique.
 \begin{Corollary}[Algebra]{Corollary1.4.1.1}{Uniqueness 1b}{}
 The identity element of a group is unique.
 \end{Corollary}
-\newline
+%\newline
 \begin{Theorem}[Algebra]{Theorem1.4.2}{Uniqueness 2}{}
 The inverse element of a given element $g$ of a group $G$ is unique.
 \end{Theorem}
@@ -803,7 +805,7 @@ assumption. This means, that our assumption must be false. This holds
 for any $g \in G$ of any group $G$. Therefore the inverse element of a
 given $g \in G$ in an arbitrary group G is always unique.
 \end{Proof}
-\newline
+% \newline
 \begin{Assertion}[Algebra]{Assertion1.4.1}{Finite Groups}{}
 Finite groups can be categorized. 
 \end{Assertion}
@@ -813,15 +815,15 @@ Specifications}{}
 Group-like objects are of the utmost significance for the mathematical
 description of specifications.
 \end{Conjecture}
-\newline
-\hfill \\
+%\newline
+\hfill  % \\
 This is of course only a first glimpse at the subject. There is much
 more to say, but that would definitely exceed the scope of this text.
 \end{Paragraph}
 \begin{Paragraph}{para15}{Remark}{}
 Group-like objects as monoids and semigroups are less restrictive than
 groups, because they do not require the existence of an
-\Reference{Define1.4.3.1}{inverse}. But they are also more difficult
+inverse. But they are also more difficult
 \Link{Assertion1.4.1}{} to handle.
 \end{Paragraph}
 \end{Section}
