@@ -146,10 +146,21 @@ data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimite
 -- The search/replace strings listed in latexToUnicodeTranslations are applied to attribute values when
 -- they are stored in XML-attribute instances:
 
+{--
 latexToUnicodeTranslations = [("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("'", "&apos;"), ("\"", "&quot;")]
                           ++ [("\\\"a", "&#xE4;"), ("\\\"u", "&#xFC;"), ("\\\"o", "&#xF6;")]
                           ++ [("\\\"A", "&#xC4;"), ("\\\"U", "&#xDC;"), ("\\\"O", "&#xD6;")] 
                           ++ [("\\ss", "&#xDF;")]
+--}
+
+latexToUnicodeTranslations = [("\\\"a", "ä"), ("\\\"u", "ü"), ("\\\"o", "ö")]
+                          ++ [("\\\"A", "Ä"), ("\\\"U", "Ü"), ("\\\"O", "Ö")] 
+                          ++ [("\\ss{}", "ß"), ("\\ss", "ß")]
+
+unicodeToLatexTranslations = [("ä", "\\\"a"), ("ü", "\\\"u"), ("ö","\\\"o")]
+                          ++ [("Ä", "\\\"A"), ("Ü", "\\\"U"), ("Ö", "\\\"O")] 
+                          ++ [("ß", "\\ss{}")]
+
 
 plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
@@ -1569,6 +1580,9 @@ getEmphasisText (LParams [] _ _ _) = ""
 getEmphasisText (LParams ((SingleParam ((Other s):[]) _):ps) _ _ _) = s
 
 
+unicodeToLatex :: String -> String
+unicodeToLatex inStr = foldl (applyTranslation "") inStr unicodeToLatexTranslations
+
 
 latexToUnicode :: String -> String
 latexToUnicode inStr = foldl (applyTranslation "") inStr latexToUnicodeTranslations
@@ -1680,9 +1694,7 @@ fillLatex out ((CMisc (PI ("mmiss:InsertLaTeX", str))):cs) inList =  fillLatex o
 
 fillLatex out ((CElem (Elem name atts contents)):cs) inList = 
   let s1 = "\\begin{" ++ (elemNameToLaTeX name) ++ "}" 
-      attrStr = if (name == "package") 
-                  then (getAttribs atts "" ["path"])
-                  else (getAttribs atts "" [])
+      attrStr = getAttribs atts "" []
       s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "]"
       s3 = "\\end{" ++ (elemNameToLaTeX name) ++ "}"
       items = [(EditableText (s1 ++ s2))] ++ (fillLatex out contents []) 
@@ -1826,8 +1838,7 @@ getAttribs [] str _ = if ((take 1 str) == ",")
 getAttribs ((name, (AttValue [(Left value)])):as) str excludeList = 
    if (name `elem` excludeList)
      then getAttribs as str excludeList
-     else getAttribs as (str ++ "," ++ attNameToLatex(name) ++ "={" ++ value ++ "}") excludeList                
-
+     else getAttribs as (str ++ "," ++ attNameToLatex(name) ++ "={" ++ (unicodeToLatex value) ++ "}") excludeList                
 
 attNameToLatex :: String -> String
 attNameToLatex "xml:lang" = "Language"
