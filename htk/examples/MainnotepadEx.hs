@@ -39,31 +39,24 @@ main =
                   setRef idref (i + 1)
                   return i
 
-    win <- initHTk [text "notepad example", size (500, 500)]
+    win <- initHTk [text "notepad example", size (500, 400)]
     logwin <- createToplevel [text "log", size (500, 200)]
 
-    main <- newVFBox win []
-    pack main []
-
-    box <- newHFBox main []
-    pack box []
-
-    notepad <- newNotepad box Scrolled (48, 48) Nothing
-                 [size (2000, 2000), background "white",
-                  npScrollRegion ((0, 0), (2000, 2000))]
-    pack notepad []
+    notepad <- newNotepad win Scrolled (48, 48) Nothing
+                 [size (1000, 1000), background "white"]
+    pack notepad [Fill Both, Expand On]
 
     (scrollbox, output) <- newScrollBox logwin
                              (\ p -> newEditor p [state Disabled] ::
                                      IO (Editor String)) []
     pack scrollbox [Fill Both, Expand On]
 
-    item1_img <- newImage main [filename "./images/item1.gif"]
-    item2_img <- newImage main [filename "./images/item2.gif"]
-    item3_img <- newImage main [filename "./images/item3.gif"]
-    item4_img <- newImage main [filename "./images/item2.gif"]
-    item5_img <- newImage main [filename "./images/item3.gif"]
-    item6_img <- newImage main [filename "./images/item1.gif"]
+    item1_img <- newImage NONE [filename "./images/item1.gif"]
+    item2_img <- newImage NONE [filename "./images/item2.gif"]
+    item3_img <- newImage NONE [filename "./images/item3.gif"]
+    item4_img <- newImage NONE [filename "./images/item2.gif"]
+    item5_img <- newImage NONE [filename "./images/item3.gif"]
+    item6_img <- newImage NONE [filename "./images/item1.gif"]
 
     id <- newID
     item1 <- createNotepadItem (MyItem id

@@ -36,8 +36,6 @@ module Notepad (
   clearNotepad,
   undoLastMotion,
 
-  npScrollRegion,
-
   bindNotepadEv, {- :: Notepad a -> IO (Event (NotepadEvent a), IO ())  -}
   NotepadEvent(..),
 
@@ -447,7 +445,8 @@ newNotepad par scrolltype imgsize mstate cnf =
         getD = do
                  (dx_norm, dx_displ_norm) <- view Horizontal cnv
                  (dy_norm, _) <- view Vertical cnv
-                 (Distance sizex, Distance sizey) <- getSize cnv
+--                 (Distance sizex, Distance sizey) <- getSize cnv
+                 (_, (Distance sizex, Distance sizey)) <- getScrollRegion cnv
                  return (Distance (round (dx_norm *
                                           fromInteger (toInteger sizex))),
                          Distance (round (dy_norm *
@@ -568,7 +567,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                 max_x = x + Distance (max (div iwidth 2 + 30) 40)
                 min_y = y - Distance (div iheight 2 + 1)
                 max_y = y + Distance (div iheight 2 + 14)
-            (sizex, sizey) <- getSize (canvas notepad)
+            (_, (sizex, sizey)) <- getScrollRegion (canvas notepad)
             (if (min_x < 0 || max_x > sizex ||
                  min_y < 0 || max_y > sizey) then return False
              else checkPositions items)
@@ -724,18 +723,20 @@ instance HasColour (Notepad a) where
   getColour np cid = getColour (canvas np) cid
 
 instance HasSize (Notepad a) where
-  width s np = canvas np # width s >> return np
+  width s np =
+    do
+      (_, (_, sizey)) <- getScrollRegion (canvas np)
+      (canvas np) # scrollRegion ((0, 0), (s, sizey))
+      if isJust (scrollbox np) then done else canvas np # width s >> done
+      return np
   getWidth np = getWidth (canvas np)
-  height s np = canvas np # height s >> return np
+  height s np =
+    do
+      (_, (sizex, _)) <- getScrollRegion (canvas np)
+      (canvas np) # scrollRegion ((0, 0), (sizex, s))
+      if (isJust (scrollbox np)) then done else canvas np # height s >> done
+      return np
   getHeight np = getHeight (canvas np)
-
-
--- -----------------------------------------------------------------------
--- notepad specific configuration options
--- -----------------------------------------------------------------------
-
-npScrollRegion :: ScrollRegion -> Config (Notepad a)
-npScrollRegion scr np = canvas np # scrollRegion scr >> return np
 
 
 -- -----------------------------------------------------------------------
@@ -748,7 +749,6 @@ data CItem c => NotepadExportItem c =
                       selected :: Bool }
 
 type NotepadState c = [NotepadExportItem c]
--- type NotepadState c = CItem c => [NotepadExportItem c]
 
 exportNotepadState :: CItem c => Notepad c -> IO (NotepadState c)
 exportNotepadState np =

@@ -237,7 +237,10 @@ scrollRegion reg@((x1, y1), (x2, y2)) cnv =
 -- @return result - The requested scroll region.
 getScrollRegion :: Canvas -> IO ScrollRegion
 getScrollRegion cnv =
-   cget cnv "scrollregion" >>= \[p1,p2] -> return (p1,p2)
+   cget cnv "scrollregion" >>= \reg ->
+                                  case reg of
+                                    [p1,p2] -> return (p1,p2)
+                                    _ -> return ((0,0), (0,0))
 
 ---
 -- Sets the minimum scrolling distance

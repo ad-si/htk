@@ -238,7 +238,7 @@ newGenGUI mstate =
             -- side effect: set reference for item displayed in notepad
 
             return ([TreeListExportItem
-                       { TreeList.val = item,
+                       { TreeList.obj_val = item,
                          obj_type =
                            if (any isNewItemFolder subnewitems) then Node
                            else Leaf,
@@ -249,6 +249,11 @@ newGenGUI mstate =
         constructTreeListState intend (_ : newitems) =
           constructTreeListState intend newitems
         constructTreeListState _ _ = return []
+
+    stlab <- newLabel main [text "Welcome", relief Sunken,
+                            HTk.font (Lucida, 12::Int)]
+    pack stlab [Side AtBottom, PadX 5, PadY 2, Fill X]
+
 
     treeliststate <-
       case mstate of
@@ -262,10 +267,10 @@ newGenGUI mstate =
          do
            objects_n_editor <- newPanedWindow main Horizontal []
            paneh1 <- createPane objects_n_editor [initsize 400] []
-           paneh2 <- createPane objects_n_editor [initsize 500] []
+           paneh2 <- createPane objects_n_editor [initsize 400] []
            objects <- newPanedWindow paneh1 Vertical []
-           panev1 <- createPane objects [initsize 250] []
-           panev2 <- createPane objects [initsize 300] []
+           panev1 <- createPane objects [initsize 220] []
+           panev2 <- createPane objects [initsize 220] []
            pack objects [Fill Both, Expand On]
            pack objects_n_editor [Fill Both, Expand On]
            tl <- case treeliststate of
@@ -275,8 +280,7 @@ newGenGUI mstate =
                    _ -> newTreeList panev1 cfun [] [background "white"]
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad panev2 Scrolled (12, 12) Nothing
-                            [background "white", size (800, 800),
-                             npScrollRegion ((0, 0), (800, 800))]
+                            [background "white", size (800, 800)]
            pack np [PadX 5, PadY 5, Fill Both, Expand On]
            (edscr, ed) <- newScrollBox paneh2
                             (\par -> newEditor par [width 60]) []
@@ -288,24 +292,18 @@ newGenGUI mstate =
            pack objects [Side AtLeft, Fill Both, Expand On]
            tl <- case treeliststate of
                    Just state -> recoverTreeList objects cfun state
-                                   [background "white", size (500, 250)]
+                                   [background "white", size (380, 200)]
                    _ -> newTreeList objects cfun []
-                          [background "white", size (500, 250)]
-
+                          [background "white", size (380, 200)]
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad objects Scrolled (12, 12) Nothing
-                            [size (500, 280), background "white",
-                             npScrollRegion ((0, 0), (800, 800))]
+                            [size (800, 800), background "white"]
            pack np [PadX 5, PadY 5, Fill Both, Expand On]
            (edscr, ed) <- newScrollBox main
                             (\par -> newEditor par [width 60]
                                        :: IO (Editor String)) []
            pack edscr [PadX 5, PadY 5, Fill Both, Expand On]
            return (tl, np, edscr, ed))
-
-    stlab <- newLabel main [text "Welcome", relief Ridge,
-                            HTk.font (Lucida, 12::Int)]
-    pack stlab [Side AtBottom, PadX 5, PadY 2, Fill X]
 
     ed # state Disabled
 
