@@ -162,6 +162,7 @@ import Maybe
 
 import IOExts
 import Control.Concurrent.MVar
+import Data.FiniteMap
 
 import Debug
 import Computation
@@ -182,7 +183,9 @@ import CodedValue
 import ObjectTypes
 import EntityNames
 import Link
+import ViewType
 import View
+import MergeTypes
 
 -- ----------------------------------------------------------------------
 -- User interface
@@ -610,7 +613,7 @@ data LinkEnvironment = LinkEnvironment {
 data Insertion = Insertion {
    parent :: LinkedObjectPtr, -- folder to contain this object
    name :: EntityName -- name it shall have
-   }
+   } deriving (Eq)
 
 data LinkSourceSet value = LinkSourceSet LinkEnvironment [LinkSource value]
 
@@ -881,6 +884,19 @@ data LinkedObjectPtr = LinkedObjectPtr {
 fromLinkedObjectPtr :: LinkedObjectPtr -> LinkedObject
 fromLinkedObjectPtr = linkedObjectInPtr
 
+mkLinkedObjectPtr :: View -> WrappedLink -> LinkedObjectPtr
+mkLinkedObjectPtr view wrappedLink =
+   let
+      action = extractLinkedObject wrappedLink view
+
+      linkedObjectPtr = LinkedObjectPtr {
+         linkedObjectInPtr = unsafePerformIO action,
+         wrappedLinkInPtr = wrappedLink
+         }
+   in
+      linkedObjectPtr
+
+
 linkedObjectPtr_tyRep = mkTyRep "LinkManager" "LinkedObjectPtr"
 instance HasTyRep LinkedObjectPtr where
    tyRep _ = linkedObjectPtr_tyRep
@@ -892,13 +908,10 @@ instance HasCodedValue LinkedObjectPtr where
       do
          (wrappedLink,codedValue1) <- decodeIO codedValue0 view
          let
-            action = extractLinkedObject wrappedLink view
-
-            linkedObjectPtr = LinkedObjectPtr {
-               linkedObjectInPtr = unsafePerformIO action,
-               wrappedLinkInPtr = wrappedLink
-               }
+            linkedObjectPtr = mkLinkedObjectPtr view wrappedLink
          return (linkedObjectPtr,codedValue1)
+
+
 
 instance Eq LinkedObjectPtr where
    (==) ptr1 ptr2 = wrappedLinkInPtr ptr1 == wrappedLinkInPtr ptr2
@@ -1048,3 +1061,117 @@ instance HasCodedValue value => HasCodedValue (LinkSourceSet value) where
          linkSources <- mapM (createLinkSource linkEnvironment)
             frozenLinkSources
          return (LinkSourceSet linkEnvironment linkSources,codedValue1)
+
+
+-- ----------------------------------------------------------------------
+-- Functions for Merging
+-- ----------------------------------------------------------------------
+
+getLinkedObjectMergeLinks :: 
+   (HasCodedValue object,HasLinkedObject object) 
+   => MergeLinks object
+getLinkedObjectMergeLinks = 
+   let
+      fn :: 
+        (HasCodedValue object,HasLinkedObject object) 
+        => View -> Link object -> IO (ObjectLinks EntityName)
+      -- We use the Nothing key to indicate the object in which this object
+      -- is inserted (if any).
+
+      fn view objectLink =
+         do
+            object <- readLink view objectLink
+            let
+               linkedObject = toLinkedObject object
+               
+               contents0 :: VariableMap EntityName LinkedObjectPtr
+               contents0 = contents linkedObject
+
+            contents1 <- readContents contents0
+
+            let
+               contents2 :: [(EntityName,LinkedObjectPtr)]
+               contents2 = mapToList contents1
+
+               contents3 :: [(WrappedLink,EntityName)]
+               contents3 =
+                  map
+                     (\ (entityName,linkedObjectPtr) ->
+                        (wrappedLinkInPtr linkedObjectPtr,entityName)
+                        )
+                     contents2
+
+            return (ObjectLinks contents3)
+   in
+      MergeLinks fn
+               
+---
+-- The Link object gives the link where the LinkedObject is to be.
+attemptLinkedObjectMerge :: ObjectType objectType object
+   => MergeTypes.LinkReAssigner -> View -> 
+   Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
+attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
+   = addFallOutWE (\ break ->
+      do
+         -- (1) freeze each of the source linked objects.
+         (frozenLinkedObjects :: [(View,FrozenLinkedObject)]) 
+            <- mapM
+               (\ (view,linkedObject) ->
+                  do
+                     frozenLinkedObject <- freezeLinkedObject linkedObject
+                     return (view,frozenLinkedObject)
+                  )
+               sourceLinkedObjects
+ 
+         let
+            -- (2) wrappedLink' field of new FrozenLinkedObject
+            newWrappedLink' = WrappedLink targetLink
+
+            -- (3) function for mapping a LinkedObjectPtr in a view to
+            --     one in the target.
+            mapLinkedObjectPtr :: View -> LinkedObjectPtr -> LinkedObjectPtr
+            mapLinkedObjectPtr view linkedObjectPtr =
+               let
+                  wrappedLink0 = wrappedLinkInPtr linkedObjectPtr
+
+                  wrappedLink1 = lookupWithDefaultFM
+                     (linkMap linkReAssigner)
+                     (error ("LinkManager.mapLinkedObjectPtr "
+                        ++ "- unassigned pointer??"))
+                     (viewId view,wrappedLink0)
+               in
+                  mkLinkedObjectPtr newView wrappedLink1
+                 
+            -- (4) construct Insertions
+            insertions :: [Maybe Insertion]
+            (insertions @ (newInsertion' : restInsertions)) =
+               map
+                  (\ (view,frozenLinkedObject) ->
+                     let
+                        thisInsertionOpt = insertion' frozenLinkedObject
+                     in
+                        fmap
+                           (\ insertion ->
+                              let
+                                 newParent = mapLinkedObjectPtr view 
+                                   (parent insertion)
+                              in
+                                 Insertion {
+                                    parent = newParent,
+                                    name = name insertion
+                                    }
+                              )
+
+                        thisInsertionOpt
+                     )
+                  frozenLinkedObjects
+
+         if all (== newInsertion') restInsertions 
+            then
+               done
+            else
+               break "Merge failure; inconsistent insertions??"
+         
+         -- (5) Construct contents.
+         error "TBD"
+      )

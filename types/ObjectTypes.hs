@@ -203,11 +203,6 @@ class (HasCodedValue objectType,HasCodedValue object)
    nodeTitleSourcePrim :: object -> SimpleSource String
       -- Returns a title, which may change.
 
-   fixedLinksPrim :: View -> objectType -> IO [Link object]
-      -- Returns links which need to be fixed by merging.  The length of
-      -- this list should be the same for all views which use this
-      -- object type.
-
    getMergeLinks :: MergeTypes.MergeLinks object
       -- Retuns those links which need to be preserved by merging.
 
