@@ -32,7 +32,7 @@ import Dynamics
 
 import GraphConfigure
 
-import View
+import ViewType
 import CodedValue
 
 class HasCodedValue displayType => DisplayType displayType where

@@ -35,7 +35,8 @@ import VersionDB
 
 import CodedValue
 import CodedValueStore
-import View
+import Link
+import ViewType
 
 data SimpleFile = SimpleFile {
    location :: Location, -- where the real file is stored in CVS

@@ -61,7 +61,8 @@ import GraphConfigure
 
 import CodedValue
 import DisplayTypes
-import View
+import ViewType
+import Link
 
 -- ----------------------------------------------------------------
 -- The ObjectType class

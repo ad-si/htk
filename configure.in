@@ -17,12 +17,6 @@ AC_SUBST(TOP)
 # one somewhere).
 AC_PATH_PROGS(CC,gcc,cc)
 #
-# Find the "mv" command.
-AC_PATH_PROGS(MV,mv)
-if test -z "$MV"; then
-   echo "Without mv parts of UniForM using recursive modules won't compile."
-fi
-#
 # Check for ghc
 AC_PATH_PROGS(GHC,ghc)
 if test -z "$GHC"; then

@@ -5,4 +5,3 @@
 # MV is the location of the "mv" command.
 HC = @GHC@
 TOP = @TOP@
-MV = @MV@

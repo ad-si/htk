@@ -7,6 +7,8 @@
 module ViewType(
    View(..),
    ObjectData(..),
+
+   getRepository, -- :: View -> Repository
    ) where
 
 import Concurrent
@@ -39,3 +41,7 @@ data ObjectData =
          -- object version
    |  AbsentObject ObjectVersion
          -- Object is not checked out, and this is the current version. 
+
+getRepository :: View -> Repository
+getRepository view = repository view
+

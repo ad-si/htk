@@ -154,8 +154,7 @@ $(HIFILES) : %.hi : %.o
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) -c $< $(HCFLAGS) -no-recomp -o /dev/null  
-	$(MV) $*.hi $*.hi-boot
+	$(HC) -c $< $(HCFLAGS) -no-recomp -o /dev/null -ohi $@
 
 $(OBJSHS) : %.o : %.hs
 	$(HC) -c $< $(HCFLAGS) 
