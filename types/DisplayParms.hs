@@ -276,8 +276,9 @@ colorForm =
    mapForm
       (\ radColour ->
          case radColour of
-            NoRadio -> Left "No colour specified"
-            Radio (col :: OurColour) -> Right (GraphConfigure.Color (show col))
+            NoRadio -> hasError "No colour specified"
+            Radio (col :: OurColour) 
+               -> hasValue (GraphConfigure.Color (show col))
          )
       (newFormEntry EmptyLabel NoRadio)
 
@@ -299,7 +300,7 @@ shapeForm =
    mapForm
       (\ radShape ->
          case radShape of
-            NoRadio -> Left "No shape specified"
-            Radio (shape :: OurShape) -> Right (convertShape shape)
+            NoRadio -> hasError "No shape specified"
+            Radio (shape :: OurShape) -> hasValue (convertShape shape)
          )
       (newFormEntry EmptyLabel NoRadio)

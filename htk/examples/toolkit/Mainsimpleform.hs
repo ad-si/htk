@@ -16,6 +16,8 @@ import Char
 
 import qualified Configuration
 
+import Computation
+
 import HTk(withdrawWish)
 import SimpleForm
 import MenuType
@@ -46,8 +48,8 @@ main =
             mapForm
                (\ radColour ->
                   case radColour of
-                     NoRadio -> Left "No colour specified"
-                     Radio (col :: Colour) -> Right col
+                     NoRadio -> hasError "No colour specified"
+                     Radio (col :: Colour) -> hasValue col
                   )
                (newFormEntry "Favorite Colour" NoRadio)
 

@@ -49,14 +49,32 @@ module Computation (
 
         -- Results with error messages attached.
         -- Error messages
-        WithError, -- type synonym for Either String a
+        WithError,
+
+        hasError, -- :: String -> WithError a
+        -- pass on an error
+
+        hasValue, -- :: a -> WithError a
+        -- pass on a value
+
+        fromWithError, -- :: WithError a -> Either String a
+        -- unpack a WithError
+
         mapWithError, -- :: (a -> b) -> WithError a -> WithError b
         mapWithError', -- :: (a -> WithError b) -> WithError a -> WithError b
+        mapWithErrorIO',
+        -- :: (a -> IO (WithError b)) -> WithError a -> IO (WithError b)
         pairWithError, -- :: WithError a -> WithError b -> WithError (a,b)
         -- we concatenate the errors, inserting a newline between them if 
         -- there are two.
         coerceWithError, -- :: WithError a -> a
         -- get out result or throw error.
+
+        concatWithError, -- :: [WithError a] -> WithError [a]
+        -- like pair but using lists.
+
+        swapIOWithError, -- :: WithError (IO a) -> IO (WithError a)
+        -- Intended for use on result of mapWithError, for example.
         ) 
 where
 
@@ -119,27 +137,57 @@ tryUntilOK c = catchall c (tryUntilOK c)
 -- Values paired with error messages
 -- --------------------------------------------------------------------------
 
-type WithError a = Either String a -- error or result
+data WithError a = 
+      Error String 
+   |  Value a -- error or result
+
+hasError :: String -> WithError a
+hasError str = Error str
+
+hasValue :: a -> WithError a
+hasValue a = Value a
+
+fromWithError :: WithError a -> Either String a
+fromWithError (Error s) = Left s
+fromWithError (Value a) = Right a
 
 mapWithError :: (a -> b) -> WithError a -> WithError b
-mapWithError f (Left e) = Left e
-mapWithError f (Right x) = Right (f x)
+mapWithError f (Error e) = Error e
+mapWithError f (Value x) = Value (f x)
 
 mapWithError' :: (a -> WithError b) -> WithError a -> WithError b
-mapWithError' f (Left e) = Left e
-mapWithError' f (Right a) = f a
+mapWithError' f (Error e) = Error e
+mapWithError' f (Value a) = f a
+
+mapWithErrorIO' :: (a -> IO (WithError b)) -> WithError a -> IO (WithError b)
+mapWithErrorIO' f (Error e) = return (Error e)
+mapWithErrorIO' f (Value a) = f a
 
 pairWithError :: WithError a -> WithError b -> WithError (a,b)
 -- we concatenate the errors, inserting a newline between them if there are two.
-pairWithError (Right a) (Right b) = Right (a,b)
-pairWithError (Left e) (Right b) = Left e
-pairWithError (Right a) (Left f) = Left f
-pairWithError (Left e) (Left f) = Left (e++"\n"++f)
+pairWithError (Value a) (Value b) = Value (a,b)
+pairWithError (Error e) (Value b) = Error e
+pairWithError (Value a) (Error f) = Error f
+pairWithError (Error e) (Error f) = Error (e++"\n"++f)
 
 -- coerce or raise error
 coerceWithError :: WithError a -> a
-coerceWithError (Right a) = a
-coerceWithError (Left err) = error err
+coerceWithError (Value a) = a
+coerceWithError (Error err) = error err
+
+concatWithError :: [WithError a] -> WithError [a]
+concatWithError withErrors =
+   foldl
+      (\ wEsf wE -> mapWithError (uncurry (:)) (pairWithError wE wEsf))  
+      (Value [])
+      withErrors
+
+swapIOWithError :: WithError (IO a) -> IO (WithError a)
+swapIOWithError (Error e) = return (Error e)
+swapIOWithError (Value act) =
+   do
+      v <- act
+      return (Value v)
 
 -- --------------------------------------------------------------------------
 -- Derived Control Abstractions: Iteration

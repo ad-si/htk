@@ -311,9 +311,9 @@ registerAttribute (val :: value) =
                      newFormEntry' (descriptor attributeKey) lastValOpt
                   valueForm = mapForm 
                      (\ valueOpt -> case valueOpt of
-                        Nothing -> Left ("Field "++descriptor attributeKey++
-                           " isn't set")
-                        Just x -> Right x
+                        Nothing -> hasError ("Field "++
+                           descriptor attributeKey++" isn't set")
+                        Just x -> hasValue x
                         )  
                      valueOptForm
                   actForm = fmap

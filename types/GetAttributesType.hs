@@ -115,11 +115,11 @@ getAttributesType =
          checkForm set (list,more) = cF set list more []
             where
                cF set [] more acc = 
-                  Right (list,if more then Just set else Nothing)
+                  hasValue (list,if more then Just set else Nothing)
                cF set ((ktk@(key,_)):rest) more acc =
                   if elementOf key set 
                      then 
-                        Left ("Attribute "++show key++
+                        hasError ("Attribute "++show key++
                            " is multiply defined")
                      else
                         cF (addToSet set key) rest more (ktk:acc)

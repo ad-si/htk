@@ -54,6 +54,7 @@ module Dynamics (
         HasTyRep2(..),
         HasTyRep3(..),
         HasTyRep4(..),
+        HasTyRep5(..),
 #ifdef NEW_GHC
         HasTyRep1_1(..),
         HasTyRep2_11(..),
@@ -196,6 +197,17 @@ instance (HasTyRep4 ty,Typeable value1) => HasTyRep3 (ty value1) where
          (v :: value1) = error "Dynamics.7"
       in
          appTyRep (tyRep4 tC) (typeOf v)
+
+class HasTyRep5 ty where
+   tyRep5 :: ty value1 value2 value3 value4 value5 -> TyRep
+
+instance (HasTyRep5 ty,Typeable value1) => HasTyRep4 (ty value1) where
+   tyRep4 _ =
+      let
+         (tC :: ty value1 () () () ()) = error "Dynamics.8"
+         (v :: value1) = error "Dynamics.9"
+      in
+         appTyRep (tyRep5 tC) (typeOf v)
 
 -- ------------------------------------------------------------
 -- Some instances of TyRep for type arguments of non-zero kind.

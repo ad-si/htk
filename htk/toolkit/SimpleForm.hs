@@ -43,12 +43,13 @@ module SimpleForm(
       -- the second the form.  As well as the entries in the form,
       -- "OK" and "Cancel" buttons are displayed.
 
-   mapForm, -- :: (x -> Either String y) -> Form x -> Form y
+   mapForm, -- :: (x -> WithError y) -> Form x -> Form y
       -- mapForm changes the type of a form.  When we press OK with doForm,
-      -- the supplied function is called.  If it returns Right y, we return y
-      -- and close the window; if it returns Left error, the error message is 
+      -- the supplied function is called.  If it returns a y, we return y
+      -- and close the window; if it returns an error message, 
+      -- the error message is 
       -- displayed, and we continue.
-   mapFormIO, -- :: (x -> IO (Either String y)) -> Form x -> Form y
+   mapFormIO, -- :: (x -> IO (WithError y)) -> Form x -> Form y
       -- IO'based version of mapForm.
 
    guardForm, -- :: (x -> Bool) -> String -> Form x -> Form x
@@ -150,9 +151,7 @@ mapEnteredFormIO' f
    EnteredForm {packAction = packAction,destroyAction = destroyAction,
       getFormValue = do
          we1 <- getFormValue
-         case we1 of
-            Right a -> f a
-            Left err -> return (Left err)
+         mapWithErrorIO' f we1
       }
 
 -- -------------------------------------------------------------------------
@@ -228,14 +227,14 @@ infixr 8 // -- so it binds less tightly than \\
 
 guardForm :: (x -> Bool) -> String -> Form x -> Form x
 guardForm test mess =
-  mapForm (\x -> if test x then Right x else Left mess)
+  mapForm (\x -> if test x then hasValue x else hasError mess)
 
 guardFormIO :: (x -> IO Bool) -> String -> Form x -> Form x
 guardFormIO test mess =
   mapFormIO (\ x -> 
      do
         res <- test x
-        return (if res then Right x else Left mess)
+        return (if res then hasValue x else hasError mess)
      )
 
 
@@ -293,7 +292,7 @@ emptyForm :: Form ()
 emptyForm = Form (\ container ->
    return (EnteredForm {
       packAction = done,
-      getFormValue = return (Right ()),
+      getFormValue = return (hasValue ()),
       destroyAction = done
       })
    )
@@ -349,7 +348,7 @@ doForm title (Form enterForm) =
                   always (
                      do
                         valueError <- getFormValue enteredForm
-                        case valueError of
+                        case fromWithError valueError of
                            Right value -> return (Just value)
                            Left error ->
                               do
@@ -451,7 +450,7 @@ makeFormMenuEntry frame htkMenu =
          getFormValue = ( 
             do
                valueOpt <- readIORef resultRef
-               return (Right valueOpt)
+               return (hasValue valueOpt)
             ),
          destroyAction = sync (send killChannel ())
          })
@@ -471,7 +470,7 @@ newFormOptionMenu options =
                getFormValue = (
                   do
                      val <- getValue optionMenu
-                     return (Right val)
+                     return (hasValue val)
                   ),
                destroyAction = done
                }) 
@@ -548,7 +547,7 @@ class FormTextField value where
 -- strings
 instance FormTextField String where
    makeFormString str = str
-   readFormString str = Right str
+   readFormString str = hasValue str
 
 allSpaces :: String -> Bool
 allSpaces = all isSpace
@@ -557,8 +556,8 @@ allSpaces = all isSpace
 instance (Num a,Show a,Read a) => FormTextField a where
    makeFormString value = show value
    readFormString str = case reads str of
-      [(value,rest)] | allSpaces rest -> Right value
-      _ -> Left (show str ++ " is not a number")
+      [(value,rest)] | allSpaces rest -> hasValue value
+      _ -> hasError (show str ++ " is not a number")
 
 instance FormTextField value => FormValue value where
    makeFormEntry frame defaultVal =
@@ -592,9 +591,9 @@ instance FormTextField value => FormTextField (Maybe value) where
    makeFormString Nothing = ""
    makeFormString (Just value) = makeFormString value
 
-   readFormString "" = case readFormString "" of
-      Left _ -> Right Nothing
-      Right x -> Right (Just x)
+   readFormString "" = case fromWithError (readFormString "") of
+      Left _ -> hasValue Nothing
+      Right x -> hasValue (Just x)
    readFormString str = mapWithError Just (readFormString str)
 
 -- -------------------------------------------------------------------------
@@ -664,7 +663,7 @@ instance (HasConfigRadioButton value,Bounded value,Enum value)
                getFormValue = 
                   do
                      valInt <- readTkVariable radioVar
-                     return (Right (toRValue valInt)),
+                     return (hasValue (toRValue valInt)),
                destroyAction = done
                }
          return enteredForm
@@ -684,7 +683,7 @@ instance FormValue Bool where
                getFormValue = (
                   do
                      bool <- readTkVariable boolVar
-                     return (Right bool)
+                     return (hasValue bool)
                   ),
                destroyAction = done
                }

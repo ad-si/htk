@@ -76,7 +76,7 @@ newtype CompiledFormatString = CompiledFormatString [FormatItem]
 compileFormatString :: String -> WithError CompiledFormatString
 compileFormatString str =
    case splitToDollar str of
-      Nothing -> Right (prependLiteral str (CompiledFormatString []))
+      Nothing -> hasValue (prependLiteral str (CompiledFormatString []))
       Just (s1,s2) -> 
          mapWithError'
             (\ (ch,transformer,withError) ->
@@ -103,9 +103,9 @@ prependLiteral s (CompiledFormatString l) =
 
 compileFromEscape :: String 
    -> WithError (Char,String -> String,WithError CompiledFormatString)
-compileFromEscape "" = Left "Format string ends unexpectedly"
+compileFromEscape "" = hasError "Format string ends unexpectedly"
 compileFromEscape (c:rest) =
-   if isUpper c || c == '%' then Right (c,id,compileFormatString rest)
+   if isUpper c || c == '%' then hasValue (c,id,compileFormatString rest)
    else case c of
       'e' -> mapEscapeFunction emacsEscape rest
       'b' -> mapEscapeFunction bashEscape rest
@@ -113,12 +113,12 @@ compileFromEscape (c:rest) =
          let
             compiledRest = compileFormatString rest
             e = error "Attempt to run bad format string"
-            restFaked = Right (e,e,compiledRest)
+            restFaked = hasValue (e,e,compiledRest)
             message = if isLower c then 
                "Transformer character " ++ [c] ++ " not recognised."
                else "Unexpected character "++ show c ++ " in format string." 
          in      
-            mapWithError snd (pairWithError (Left message) restFaked)
+            mapWithError snd (pairWithError (hasError message) restFaked)
            
 mapEscapeFunction :: (String -> String) -> String -> 
    WithError (Char,String -> String,WithError CompiledFormatString)
@@ -205,17 +205,17 @@ runFormatString (CompiledFormatString l) lookup =
       withErrors =
          map
            (\ formatItem -> case formatItem of
-              Unescaped str -> Right str
-              Escaped transformer '%' -> Right "%"
+              Unescaped str -> hasValue str
+              Escaped transformer '%' -> hasValue "%"
               Escaped transformer ch -> case lookup ch of
-                 Nothing -> Left ("%"++[ch]++" not defined")
-                 Just str -> Right (transformer str)
+                 Nothing -> hasError ("%"++[ch]++" not defined")
+                 Just str -> hasValue (transformer str)
               ) 
            l
       appendWithError we1 we2 = mapWithError (uncurry (++))
          (pairWithError we1 we2)
    in
-      foldr appendWithError (Right "") withErrors
+      foldr appendWithError (hasValue "") withErrors
 
 
 -- --------------------------------------------------------------------------

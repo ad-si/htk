@@ -37,6 +37,9 @@ module CodedValue(
    Str(..),
       -- A type Str X where X is an instance of StringClass,
       -- will inherit HasCodedValue according to String.
+   Choice5(..),
+      -- like Either but between 5 types.  Hopefully this will allow
+      -- efficient encoding of most cases where we have 3 or more constructors.
 
    -- We also provide the following mechanisms for providing instances
    -- of HasCodedValue:
@@ -303,6 +306,64 @@ instance HasCodedValue value => HasCodedValue (Maybe value) where
          Left value -> Just value
          Right () -> Nothing
          )
+
+---
+-- When you want to encode larger choices, Choice5 is recommended.
+-- If the choice is between fewer than 5 items, just set the unused
+-- type variables to ().
+data Choice5 v1 v2 v3 v4 v5 =
+      Choice1 v1
+   |  Choice2 v2
+   |  Choice3 v3
+   |  Choice4 v4
+   |  Choice5 v5
+
+choice_tyRep = mkTyRep "CodedValue" "Choice"
+instance HasTyRep5 Choice5 where
+   tyRep5 _ = choice_tyRep
+
+instance (HasCodedValue v1,HasCodedValue v2,HasCodedValue v3,HasCodedValue v4,
+      HasCodedValue v5) => HasCodedValue (Choice5 v1 v2 v3 v4 v5) where
+   encodeIO (Choice1 v) codedValue repository =
+      encode2IO '1' v codedValue repository
+   encodeIO (Choice2 v) codedValue repository =
+      encode2IO '2' v codedValue repository
+   encodeIO (Choice3 v) codedValue repository =
+      encode2IO '3' v codedValue repository
+   encodeIO (Choice4 v) codedValue repository =
+      encode2IO '4' v codedValue repository
+   encodeIO (Choice5 v) codedValue repository =
+      encode2IO '5' v codedValue repository
+   decodeIO codedValue0 repository =
+      do
+         (char,codedValue1) <- safeDecodeIO codedValue0 repository
+         case char of
+            '1' ->
+               do
+                  (v :: v1,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Choice1 v,codedValue2)
+         case char of
+            '2' ->
+               do
+                  (v :: v2,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Choice2 v,codedValue2)
+         case char of
+            '3' ->
+               do
+                  (v :: v3,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Choice3 v,codedValue2)
+         case char of
+            '4' ->
+               do
+                  (v :: v4,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Choice4 v,codedValue2)
+         case char of
+            '5' ->
+               do
+                  (v :: v5,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Choice5 v,codedValue2)
+            _ -> formatError "Unexpected character decoding Either"
+
 
 ---------------------------------------------------------------------
 -- Lists

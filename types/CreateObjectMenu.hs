@@ -6,6 +6,8 @@ module CreateObjectMenu(
 
 import Maybe
 
+import Computation
+
 import MenuType
 import HTkMenu
 
@@ -35,8 +37,8 @@ createObjectMenu view =
             newFormMenu EmptyLabel menu
          (form2 :: Form (View -> IO (Maybe WrappedLink))) =
             mapForm (\ createFnOpt -> case createFnOpt of
-               Nothing -> Left "Object type must be specified"
-               Just createFn -> Right createFn
+               Nothing -> hasError "Object type must be specified"
+               Just createFn -> hasValue createFn
                ) form1
       createFnOpt <- doForm "Object Type selection" form2
       case createFnOpt of

@@ -86,7 +86,7 @@ verifyPath view (entityPath @ (EntityPath pathComponents)) =
                we <- verifyPathComponent view pathComponent
                verifyList (mapWithError (const ()) (pairWithError acc we)) 
                   pathComponents
-      verified <- verifyList (Right ()) pathComponents
+      verified <- verifyList (hasValue ()) pathComponents
       return (mapWithError (const entityPath) verified)
 
 -- Verify that a path component is indeed a folder
@@ -97,15 +97,15 @@ verifyPathComponent view (component @ (EntityPathComponent names)) =
       lookedUp <- lookupFileName view names
       return (case lookedUp of
          Nothing -> 
-            Left ("Path component "++toString component
+            hasError ("Path component "++toString component
                ++" does not exist")
          Just wrappedLink ->
             if linkTypeTypeId wrappedLink == objectTypeTypeIdPrim 
                   (error "MMiSSPaths.2" :: FolderType)
                then 
-                  Right ()
+                  hasValue ()
                else
-                  Left ("Path component "++toString component
+                  hasError ("Path component "++toString component
                      ++" is not a folder")
          )
 
@@ -151,11 +151,11 @@ instance StringClass EntityPath where
 
 instance FormTextField EntityName where
    makeFormString path = toString path
-   readFormString str = Right (fromString str)
+   readFormString str = hasValue (fromString str)
 
 instance FormTextField EntityPath where
    makeFormString path = toString path
-   readFormString str = Right (fromString str)
+   readFormString str = hasValue (fromString str)
 
 -- ---------------------------------------------------------------------
 -- EntityName and EntityPath as instances of Dynamic
