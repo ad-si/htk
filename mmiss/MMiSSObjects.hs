@@ -64,6 +64,7 @@ import MMiSSContent
 import MMiSSDTD
 import MMiSSEditXml
 import MMiSSReAssemble
+import MMiSSLaTeX
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObjectType type, and its instance of HasCodedValue and 
@@ -267,8 +268,10 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      (\ (_,link) -> editMMiSSObjectXml view link),
                   Button "Edit Attributes" 
                      (\ (_,link) -> editObjectAttributes view link),
-                  Button "Export Object"
-                     (\ (_,link) -> exportMMiSSObject view link)
+                  Button "Export Object To File"
+                     (\ (_,link) -> exportMMiSSObject view link),
+                  Button "Print or Preview Object"
+                     (\ (_,link) -> printMMiSSObject view link)
                   ]
                menu = LocalMenu (Menu Nothing editOptions)
             in
@@ -877,50 +880,10 @@ exportMMiSSObject view link =
 
                -- getElement is the function to be passed to
                -- MMiSSReAssemble.reAssembleNoRecursion.
-               getElement :: EntityName -> MMiSSSearchObject
-                  -> IO (WithError (Maybe (Element,MMiSSSearchObject)))
-               getElement entityName searchObject = 
-                  addFallOutWE (\ break ->
-                     do
-                        wrappedLinkWE
-                           <- lookupByObjectWithError view object entityName
-                        let
-                           wrappedLink = coerceWithErrorOrBreak break wrappedLinkWE
-                           link = case unpackWrappedLink wrappedLink of
-                              Nothing -> break ("Object "++toString entityName
-                                 ++ " is not an MMiSS object")
-                              Just link -> link
-                        object <- readLink view link
-                        elementLinkOpt <- variantDictSearch 
-                           (objectContents object) searchObject
-                        let
-                           elementLink = case elementLinkOpt of
-                              Nothing -> break ("Object "++toString entityName
-                                 ++ " has no version with matching attributes")
-                              Just elementLink -> elementLink
-                        (element @ (Elem _ attributes _)) <- readLink view elementLink
-                        let
-                           searchObject2 =
-                              mergeMMiSSSearchObjects
-                                 searchObject 
-                                 (toMMiSSSearchObjectFromXml attributes) 
-                        return (Just (element,searchObject2))
-                     )
 
-            initialSearchObject 
-               <- toMMiSSSearchObject (variantAttributes object)
-
-            completeElementWE <- reAssembleNoRecursion getElement 
-               (fromString (name object)) initialSearchObject
-
+            stringWE <- extractMMiSSObject view link format
             let
-               completeElement = coerceWithErrorOrBreak break completeElementWE
-
-               stringWE = exportElement format completeElement
                string = coerceWithErrorOrBreak break stringWE
-
-            -- Catch any errors so far
-            seq string done
 
             -- Write to the file
             resultWE <- copyStringToFileCheck string filePath
@@ -930,6 +893,91 @@ exportMMiSSObject view link =
       case result of
          Right () -> done
          Left mess -> createErrorWin mess []
+
+-- ------------------------------------------------------------------
+-- Sending an MMiSS object through LaTeX, and then doing things with the
+-- DVI file. 
+-- ------------------------------------------------------------------
+
+printMMiSSObject :: View -> Link MMiSSObject -> IO ()
+printMMiSSObject view link =
+   do
+      result <- addFallOut (\ break ->
+         do
+            stringWE <- extractMMiSSObject view link LaTeX
+            let
+               string = coerceWithErrorOrBreak break stringWE
+            seq string done
+
+            object <- readLink view link
+
+            mmissLaTeX (name object) string
+         )
+      case result of
+         Right () -> done
+         Left mess -> createErrorWin mess []
+        
+-- ------------------------------------------------------------------
+-- Extracting an object in a given format.
+-- ------------------------------------------------------------------
+
+extractMMiSSObject :: View -> Link MMiSSObject -> Format 
+   -> IO (WithError String)
+extractMMiSSObject view link format =
+   addFallOutWE (\ break ->
+      do
+         object <- readLink view link
+
+         let
+            -- getElement is the function to be passed to
+            -- MMiSSReAssemble.reAssembleNoRecursion.
+            getElement :: EntityName -> MMiSSSearchObject
+               -> IO (WithError (Maybe (Element,MMiSSSearchObject)))
+            getElement entityName searchObject = 
+               addFallOutWE (\ break ->
+                  do
+                     wrappedLinkWE
+                        <- lookupByObjectWithError view object entityName
+                     let
+                        wrappedLink 
+                           = coerceWithErrorOrBreak break wrappedLinkWE
+                        link = case unpackWrappedLink wrappedLink of
+                           Nothing -> break ("Object "++toString entityName
+                              ++ " is not an MMiSS object")
+                           Just link -> link
+                     object <- readLink view link
+                     elementLinkOpt <- variantDictSearch 
+                        (objectContents object) searchObject
+                     let
+                        elementLink = case elementLinkOpt of
+                           Nothing -> break ("Object "++toString entityName
+                              ++ " has no version with matching attributes")
+                           Just elementLink -> elementLink
+                     (element @ (Elem _ attributes _)) 
+                        <- readLink view elementLink
+                     let
+                        searchObject2 =
+                           mergeMMiSSSearchObjects
+                              searchObject 
+                              (toMMiSSSearchObjectFromXml attributes) 
+                     return (Just (element,searchObject2))
+                  )
+
+         initialSearchObject 
+            <- toMMiSSSearchObject (variantAttributes object)
+
+         completeElementWE <- reAssembleNoRecursion getElement 
+            (fromString (name object)) initialSearchObject
+
+         let
+            completeElement = coerceWithErrorOrBreak break completeElementWE
+
+            stringWE = exportElement format completeElement
+            string = coerceWithErrorOrBreak break stringWE
+
+         -- Catch any errors in the string, then return it.
+         seq string (return string)
+      )
           
 -- ------------------------------------------------------------------
 -- Selecting the format of files

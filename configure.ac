@@ -143,6 +143,12 @@ AC_SUBST(WORK_AROUND_BDB_LINUX_BUG)
 AC_PATH_PROGS(XEMACS,xemacs)
 AC_PATH_PROGS(GNUCLIENT,gnuclient)
 #
+# Check for latex, xdvi, dvips, lp
+AC_PATH_PROGS(LATEX,latex)
+AC_PATH_PROGS(XDVI,xdvi)
+AC_PATH_PROGS(DVIPS,dvips)
+AC_PATH_PROGS(LP,lp)
+#
 # Construct the default options, used by 
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
@@ -171,8 +177,10 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench $MAKEFILES posixutil/daVinci.debug posixutil/wish.debug)
-   chmod +x types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug
+   SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/dolatex mmiss/scripts/doxdvi mmiss/scripts/dodvips mmiss/scripts/dolp"
+
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS)
+   chmod +x $SCRIPTS
 
    echo Setting up packages and export packages file as empty
    # The echo prints []; the funny things bracketted by @ signs are

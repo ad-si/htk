@@ -1,0 +1,13 @@
+#!/bin/sh
+# lp a DVI file and sends the result to a printer.
+# 
+# Argument 1 = working directory
+# Argument 2 = name of DVI file.
+# Argument 3 = if set, name of the printer.
+cd $1
+if test "$3"
+then
+   @DVIPS@ $2 -P $3
+else
+   @DVIPS@ $2
+fi

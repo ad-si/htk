@@ -1,0 +1,7 @@
+#!/bin/sh
+# xdvi's a DVI file, called from MMiSSLaTeX
+# 
+# Argument 1 = working directory
+# Argument 2 = name of DVI file.
+cd $1
+@XDVI@ $2

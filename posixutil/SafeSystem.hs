@@ -5,18 +5,36 @@
    and feed it the command over stdin.  Ugly, but is there a better way?
    -}
 module SafeSystem(
-   safeSystem
+   safeSystemGeneral,
+   safeSystem,
    ) where
 
 import System
 
+
 import WBFiles
 import FileNames
+import Computation
 
 import ChildProcess
 
 safeSystem :: String -> IO ExitCode
-safeSystem command =
+safeSystem command = 
+   let
+      -- We ignore blank output lines.
+      outputSink "" = done
+      outputSink str = putStrLn ("SafeSystem output: "++str)
+   in
+      safeSystemGeneral command outputSink
+
+---
+-- Run "command", displaying any output using the supplied
+-- outputSink function.  (This output had better not include
+-- "EXITCODE [number]".)
+--
+-- outputSink is fed output line by line, and without the newlines.
+safeSystemGeneral :: String -> (String -> IO ()) -> IO ExitCode
+safeSystemGeneral command outputSink =
    do
       -- Get location of runCommand
       top <- getTOP
@@ -33,10 +51,9 @@ safeSystem command =
             do
                let
                   -- we ignore blank input lines.
-                  notExit "" = readOutput
                   notExit str =
                      do
-                        putStrLn ("SafeSystem: "++command++": "++str)
+                        outputSink str
                         readOutput
                nextLine <- readMsg childProcess
                case nextLine of

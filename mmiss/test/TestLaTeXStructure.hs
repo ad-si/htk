@@ -21,6 +21,7 @@ import LaTeXParser
 import MMiSSContent
 import MMiSSDTD
 import MMiSSObjects
+import MMiSSEditXml
 
 main =
    do
@@ -30,6 +31,8 @@ main =
       el <- case  fromWithError elEither of
          Left str -> ioError (userError str)
          Right str -> return str
+      putStr (toExportableXml el)
+{-
       let verified = validateElement "package" el
       case verified of
          [] -> done
@@ -39,3 +42,4 @@ main =
          unparsed = coerceWithError unparsedWE
 
       putStrLn (mkLaTeXString unparsed)         
+      -}

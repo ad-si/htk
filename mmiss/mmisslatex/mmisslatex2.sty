@@ -1,0 +1,300 @@
+\NeedsTeXFormat{LaTeX2e}[1995/12/01]
+%\usepackage{hyperref}
+\usepackage{keyval}
+\usepackage{attr-env}
+\usepackage{attribute}
+
+
+%\makeglossary
+%\makeindex
+
+\newcommand{\initDefault}{% Definition VersionAttr
+			  \def\Version{1.0}%
+			  \def\Date{\today}%
+			  \def\Comment{No comment.}%
+			  \def\PreviousVersion{No previous version.}%
+			  \def\Authors{MMISS}%
+			  \def\PriorAuthors{No prior authors.}%
+			  % Definition VariantAttr
+			  \def\Language{german}%
+			  \def\Formalism{}%
+			  \def\LevelOfDetail{}%
+			  \def\InteractionLevel{}}
+
+\initDefault
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GROUPS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% Package %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Package}[4] % number of parameters
+				[]  % FormalismID
+				{\label{#2}}
+				{}
+	
+
+%%%%%%%%%%%% Section %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Section}[4][]%
+        	{\section{#3}\label{#2}%
+	   	\renewenvironment{Section}[4][]%
+         		{\subsection{##3}\label{##2}%
+                	 \renewenvironment{Section}[4][]%
+                        {\subsubsection{####3}\label{####2}
+				}{}%
+	  		}{}%
+	  	}{}
+
+
+
+%%%%%%%%%%%% Paragraph %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Paragraph}[4][]{\paragraph{#3}\label{#2}}{}
+
+
+%%%%%%%%%%%% View %%%%%%%%%%%%
+
+\newenvironment{View}[4][]{\label{#2}}{}
+ 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CONCEPTUAL UNITS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% Example %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Example}[4][]{\textbf{Beispiel: #3}\\\label{#2}}{}
+
+
+%%%%%%%%%%%% Exercise %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Exercise}[4][]{{\textbf{\"Ubung: #3}\\}\label{#2}}{}
+
+
+%%%%%%%%%%%% Definition %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Definition}[4][]{{\textbf{Definition: #3}}\\\label{#2}}{}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CONCEPTUAL ATOMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% Text Fragment %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{TextFragment}[4][]{#3\\\label{#2}}{}
+
+
+%%%%%%%%%%%% Table %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Tabelle}[5][]{\textbf{Tabelle: #3}\\%
+					\label{#2}%
+			      	\begin{tabular}{#4}}
+					{\end{tabular}}
+
+
+%%%%%%%%%%%% Figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Figure}[4][]{\textbf{Abbildung: #3}\\
+					\label{#2}%
+			     		\begin{figure}}
+				    {\end{figure}}
+
+
+%%%%%%%%%%%% Glossary Entry %%%%%%%%%%%%%%%%%%%%%%%%%%
+% see Define
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FORMAL UNITS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% Program %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Program}[4][]{\textbf{#3:}\\%
+					\label{#2}%
+					\begin{verbatim}}
+					{\end{verbatim}}  
+	           
+ 
+%%%%%%%%%%%% Theory %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Theory}[4][]{\textbf{#3:}\\%
+					\label{#2}}{} 
+
+
+%%%%%%%%%%%% Theorem %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Theorem}[4][]{\textbf{#3:}%
+					\label{#2}\\}{}  
+ 
+
+%%%%%%%%%%%% Conjecture %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Conjecture}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+		
+
+%%%%%%%%%%%% Lemma %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Lemma}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+%%%%%%%%%%%% Corollary %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Corollary}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+ 
+
+%%%%%%%%%%%% Assertion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Assertion}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+
+%%%%%%%%%%%% Development %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Development}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+
+%%%%%%%%%%%% Proof %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Proof}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+
+%%%%%%%%%%%% Script %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Script}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FORMAL ATOMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% ProgramFragment %%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{ProgramFragment}[4][]{\textbf{#3:}\\%
+					   	  \label{#2}}{}        
+
+
+%%%%%%%%%%%% Clause %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Clause}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+
+%%%%%%%%%%%% Step %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Step}[4][]{\textbf{#3:}\\%
+					   \label{#2}}{}
+
+
+%%%%%%%%%%%% Bibliography Entry %%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% Author Entry %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FURTHER STRUCTURE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% List: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+%%%%% Itemization, Enumeration, Description %%%%%%%%%%
+
+\newenvironment{List}[3]%
+		{\def\ListType{#2}%
+		 \label{#1}%
+	   	 \begin{\ListType}}
+	  	{\end{\ListType}}
+
+
+
+%%%%%%%%%%%% List Item %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{ListItem}[3]{\label{#1}%
+					\item[#2]}{}
+
+
+%%%%%%%%%%%% Text, Chars %%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+
+\newenvironment{Text}[2]{\label{#1}}{}
+\newenvironment{Chars}[2]{\label{#1}}{}
+
+
+%%%%%%%%%%%% Emphasis %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+
+\newcommand{\Emphasis}[3]{\label{#1}%
+				  \emph{#2}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SHARING AND LINKING STRUCTURAL ELEMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% Include %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% will be processed by the compiler
+
+
+%%%%%%%%%%%% Link %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newenvironment{Link}[3]{\ifthenelse{true}% if InteractionLevelID=PAPER
+				  	{\pageref{#2}}% then return page number
+				  	{}		  % else return type and title	
+				  }{}
+
+
+%%%%%%%%%%%% Forward Link %%%%%%%%%%%%%%%%%%%%%%%%%%%%	
+
+\newenvironment{ForwardLink}[3]{\ifthenelse{true}% if InteractionLevelID=PAPER
+				  		{\pageref{#2}}% then return page number
+				  		{}		  % else return type and title	
+				  	   }{}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DEFINING SEMANTIC ELEMENTS, REFERENCES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%% Define %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\Define}[4]{\label{#1}%
+				\emph{#2}%
+				\hypertarget{#1}{#2}%
+				\ifthenelse{}{}{}} % check GlossaryEntry
+
+
+%%%%%%%%%%%% Reference %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\Reference}[3]{\label{#1}%
+				  \hyperlink{#1}{#2}}
+
+
+%%%%%%%%%%%% Forward Reference %%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\ForwardReference}[3]{\label{#1}%
+					   \hyperlink{#1}{#2}}
+
+
+
+

@@ -9,6 +9,9 @@ TODO: (1) Export LaTeX and pass it through a filter so it can be displayed on sc
 (2) Add a menu option for the editor which displays exactly what can be seen on the
 screen.
 
+18.09.02
+(1) FIXED.
+
 43) 17.09.02
 Add an option to export LaTeX/XML to a file.
 FIXED
