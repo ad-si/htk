@@ -179,20 +179,18 @@ evalCmdInner :: TclScript -> IO TclResponse
 evalCmdInner [] = return (OK "")
 evalCmdInner tclScript =
    do
-      cStringLen <- prepareCmd tclScript
-      evalCmdPrim cStringLen
+      let cmdString = prepareCmd tclScript
+      withCStringLen cmdString evalCmdPrim
 
 -- This prepares a command, or sequence of commands, for evalCmdPrim.
--- The string must be non-empty
-prepareCmd :: TclScript -> IO CStringLen
+-- The sequence must be non-empty
+prepareCmd :: TclScript -> String
 prepareCmd [] = error "Wish.prepareCmd with an empty argument!"
 prepareCmd script =
-   do
       let
          scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) script
-         evsString = "evS " ++ escape scriptString ++"\n"
-      newCStringLen evsString
-
+      in
+         "evS " ++ escape scriptString ++"\n"
 --
 -- This is the most primitive command evaluator and does not
 -- look at the buffer.  So it shouldn't be called from outside.
@@ -342,8 +340,7 @@ newWish =
             "proc rmtag {widget tag} {" ++
                "bindtags $widget [ldelete [bindtags $widget] $tag]}\n"  
 
-      wishHeaderCStringLen <- newCStringLen wishHeader
-      writeWish wishHeaderCStringLen
+      withCStringLen wishHeader writeWish
 
       -- get readWish reactor going.
       (readWish,destroyReadWish) <- readWishEvent calledWish

@@ -5,7 +5,7 @@
 #endif
 
 #ifndef NEW_GHC
-{-# OPTIONS -#include "callWish.h" #-}
+{-# OPTIONS -#include "runWish.h" #-}
 #endif /* NEW_GHC */
 
 {- This is the bare-bones interface which actually calls the wish program.
@@ -14,6 +14,14 @@
    NB.  The Windows interface relies on callWish only ever being used once in
    a program, because it relies on storing crucial information in static data.
    -}
+
+
+{- POLLWISH is the number of microseconds we wait between polling the wish
+   output.  We set the default to 10000, so 100 times a second. -}
+#ifndef POLLWISH
+#define POLLWISH 10000
+#endif
+
 module CallWish(
    CalledWish, -- Type representing wish instance
    callWish, -- :: IO CalledWish
@@ -44,7 +52,7 @@ import WBFiles
 #ifndef NEW_GHC
 foreign import "initialise_wish" unsafe initialiseWishPrim :: CString -> IO () 
 #else /* NEW_GHC */
-foreign import ccall unsafe "callWish.h initialise_wish" initialiseWishPrim :: CString -> IO ()
+foreign import ccall unsafe "runWish.h initialise_wish" initialiseWishPrim :: CString -> IO ()
 #endif /* NEW_GHC */
 
 initialiseWish :: String -> IO ()
@@ -56,13 +64,13 @@ initialiseWish wishPath =
 #ifndef NEW_GHC
 foreign import "write_to_wish" unsafe writeToWishPrim :: CString -> CSize -> IO ()
 #else /* NEW_GHC */
-foreign import ccall unsafe "callWish.h write_to_wish" writeToWishPrim :: CString -> CSize -> IO ()
+foreign import ccall unsafe "runWish.h write_to_wish" writeToWishPrim :: CString -> CSize -> IO ()
 #endif /* NEW_GHC */
 
 #ifndef NEW_GHC
 foreign import "get_readwish_fd" unsafe getReadWishFdPrim :: IO CInt
 #else
-foreign import ccall unsafe "callwish.h get_readwish_fd" getReadWishFdPrim 
+foreign import ccall unsafe "runWish.h get_readwish_fd" getReadWishFdPrim 
    :: IO CInt
 #endif
 
@@ -76,15 +84,15 @@ getReadWishFd =
 foreign import "read_from_wish" unsafe readFromWishPrim 
    :: CString -> CSize -> IO CSize
 #else /* NEW_GHC */
-foreign import ccall unsafe "callWish.h read_from_wish" readFromWishPrim 
+foreign import ccall unsafe "runWish.h read_from_wish" readFromWishPrim 
    :: CString -> CSize -> IO CSize
 #endif /* NEW_GHC */
 
 #ifndef NEW_GHC
 foreign import "read_from_wish_avail" unsafe readFromWishAvail :: IO CSize
 #else
-foreign import ccall unsafe "callWish.h readFromWishAvail" readFromWishAvail :: 
-IO CSize
+foreign import ccall unsafe "runWish.h readFromWishAvail" readFromWishAvail 
+   :: IO CSize
 #endif
 
 readFromWish :: IO String
@@ -121,7 +129,7 @@ readFromWish =
          bufferSize = 100 
          -- absurdly large for most answers from Wish we will need, in fact
 
-         waitTick = Concurrent.threadDelay 100000
+         waitTick = Concurrent.threadDelay POLLWISH
 
          readToBuffer (buffer :: Ptr CChar) =
             do

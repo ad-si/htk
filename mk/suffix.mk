@@ -166,7 +166,7 @@ ALLDIRS = `
 
 librealfast : objsc
 	$(TOP)/mk/mkEverything `$(MAKE) displayhs -s --no-print-directory`
-	ALLDIRS=`$(GFIND) . -type d ! -path "./appl*" ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS -I$(CINCLUDES)
+	ALLDIRS=`$(GFIND) . -type d ! -path "./appl*" ! -path "./windows/*" ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS -I$(CINCLUDES)
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi *.h
 	$(MAKE) lib
 
