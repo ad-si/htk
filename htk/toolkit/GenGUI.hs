@@ -689,7 +689,7 @@ getNewItemPosition :: CItem c => GenGUI c -> IO Position
 getNewItemPosition gui = getFreeItemPosition (notepad gui)
 
 ---
-- Sets the items position reference.
+-- Sets the items position reference.
 setItemPosition :: CItem c => Item c -> Position -> IO ()
 setItemPosition (IntLeafItem _ posref _) pos = setRef posref pos
 

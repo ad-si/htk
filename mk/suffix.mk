@@ -106,7 +106,7 @@ libfast : libfasthere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) libfast && ) echo Finished make libfast
 
 clean:
-	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(HIBOOTFILES) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
+	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(HIBOOTFILES) $(HIFILES) $(LIB)
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
 
 display :
@@ -196,7 +196,7 @@ $(HIFILES) : %.hi : %.o
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) -c $< $(HCFLAGS) -no-recomp -fno-code -ohi $@
+	$(HC) $< $(HCFLAGS) -no-recomp -fno-code -ohi $@
 
 $(OBJSHS) : %.o : %.hs
 	$(HC) -c $< $(HCFLAGS) 

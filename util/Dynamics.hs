@@ -1,3 +1,9 @@
+#if (__GLASGOW_HASKELL__ >= 503)
+#define NEW_GHC 
+#else
+#undef NEW_GHC
+#endif
+
 {- #########################################################################
 
 MODULE        : Dynamics
@@ -48,10 +54,12 @@ module Dynamics (
         HasTyRep2(..),
         HasTyRep3(..),
         HasTyRep4(..),
+#ifdef NEW_GHC
         HasTyRep1_1(..),
         HasTyRep2_11(..),
         HasTyRep3_011(..),
         HasTyRep4_0011(..),
+#endif
         ) 
 where
 
@@ -191,7 +199,11 @@ instance (HasTyRep4 ty,Typeable value1) => HasTyRep3 (ty value1) where
 -- ------------------------------------------------------------
 -- Some instances of TyRep for type arguments of non-zero kind.
 -- We need a versions of HasTyRep's for different kinds.
+-- We only define these for ghc5.03 or more; they are only used
+-- in the types stuff.
 -- ------------------------------------------------------------
+
+#ifdef NEW_GHC
 
 class HasTyRep1_1 ty where
    tyRep1_1 :: HasTyRep1 typeArg => ty typeArg -> TyRep
@@ -246,4 +258,6 @@ data Dummy x = Dummy x
 dummy_tyRep = mkTyRep "Dynamics" "Dummy"
 instance (HasTyRep1 Dummy) where
    tyRep1 _ = dummy_tyRep
+
+#endif
 

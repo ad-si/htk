@@ -1,3 +1,13 @@
+#if (__GLASGOW_HASKELL__ >= 503)
+#define NEW_GHC 
+#else
+#undef NEW_GHC
+#endif
+
+#ifndef NEW_GHC
+{-# OPTIONS -#include "object.h" #-}
+#endif /* NEW_GHC */
+
 {- #########################################################################
 
 MODULE        : Object
@@ -46,7 +56,11 @@ instance Read ObjectID where
 -- New Object Identifier
 -- --------------------------------------------------------------------------
 
+#ifndef NEW_GHC
+foreign import "next_object_id" unsafe newInt :: IO Int
+#else /* NEW_GHC */
 foreign import ccall unsafe "object.h next_object_id" newInt :: IO Int
+#endif /* NEW_GHC */
 
 newObject :: IO ObjectID
 newObject = 

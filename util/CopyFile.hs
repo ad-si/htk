@@ -1,3 +1,13 @@
+#if (__GLASGOW_HASKELL__ >= 503)
+#define NEW_GHC 
+#else
+#undef NEW_GHC
+#endif
+
+#ifndef NEW_GHC 
+{-# OPTIONS -#include "copy_file.h" #-}
+#endif /* NEW_GHC */
+
 {- This contains two functions for copying to a file -}
 module CopyFile(
    copyFile,
@@ -19,12 +29,22 @@ import Exception
 
 import Computation
 
-
+#ifdef NEW_GHC
 foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim 
    :: (ByteArray Int) -> (ByteArray Int) -> IO Int
--- "unsafe" means we promise that copy_file won't provoke a garbage 
--- collection while it is running.  We know this because copy_file
--- doesn't call back to Haskell at all.
+
+foreign import ccall unsafe "copy_file.h copy_string_to_file" 
+   copyStringToFilePrim 
+      :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
+
+#else
+foreign import ccall "copy_file" unsafe copyFilePrim
+   :: (ByteArray Int) -> (ByteArray Int) -> IO Int
+
+foreign import ccall "copy_string_to_file" unsafe copyStringToFilePrim 
+      :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
+
+#endif
 
 copyFile :: String -> String -> IO ()
 copyFile source destination =
@@ -59,10 +79,6 @@ linkFile source destination =
                Right () -> done
                Left err ->
                   error ("CopyFile.linkFile failed with "++show err)
-
-foreign import ccall unsafe "copy_file.h copy_string_to_file" 
-   copyStringToFilePrim 
-      :: CSize -> (ByteArray Int) -> (ByteArray Int) -> IO Int
 
 copyStringToFile string destination = writeFile destination string
 

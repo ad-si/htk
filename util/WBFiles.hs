@@ -4,9 +4,10 @@
 #undef NEW_GHC
 #endif
 
-#ifdef NEW_GHC 
+#ifndef NEW_GHC 
 {-# OPTIONS -#include "default_options.h" #-}
 #endif /* NEW_GHC */
+
 {- #########################################################################
 
    The WBFiles module is in charge of decoding information from the command

@@ -1,3 +1,13 @@
+#if (__GLASGOW_HASKELL__ >= 503)
+#define NEW_GHC 
+#else
+#undef NEW_GHC
+#endif
+
+#ifndef NEW_GHC 
+{-# OPTIONS -#include "default_options.h" #-}
+#endif /* NEW_GHC */
+
 {- In Server we implement a general framework for a server, which
    is supposed to make it easier to share information between 
    computers, in a similar method to inetd.  Unlike inetd however
@@ -19,7 +29,12 @@ module Server(
 import IO
 import List
 
+#ifdef NEW_GHC
 import Exception hiding (handle)
+#else
+import Exception
+#endif
+
 import FiniteMap
 import Socket hiding (PortID(..))
 import Posix
