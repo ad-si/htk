@@ -20,7 +20,12 @@ include @TOP@/mk/boilerplate.mk
 # We include special handling for defaultoptions when exporting.
 prepareexportshere : changedefaultoptions
 
-.PHONY : changedefaultoptions
+displaysrcshere : displayextrasrcs
+
+displayextrasrcs :
+	@echo @TOP@/util/default_options.default.c
+
+.PHONY : changedefaultoptions displayextrasrcs
 
 changedefaultoptions : 
 	$(CCH) $(CFLAGS) -c default_options.default.c -o default_options.o

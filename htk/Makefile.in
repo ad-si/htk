@@ -113,6 +113,7 @@ SRCS       = resources/Resources.hs\
              toolkit/HTkMenu.hs\
              toolkit/SimpleForm.hs\
              toolkit/GenericBrowser.hs\
+             toolkit/SimpleListBox.hs\
              $(UNIXSRCS)
 
 ifeq "@WINDOWS@" "1"

@@ -34,6 +34,7 @@ import Channels
 import CallServer
 
 import SimpleForm
+import MenuType
 
 import Graph
 import SimpleGraph
@@ -49,6 +50,7 @@ import VersionGraphService
 import DisplayTypes
 import DisplayView
 import Folders
+import Merging
 
 -- --------------------------------------------------------------------
 -- The datatypes
@@ -196,6 +198,7 @@ newVersionGraph
          -- Parameters for displayGraph
          graphParms = 
             (GraphTitle "Versions") $$
+            (GlobalMenu (Menu Nothing [Button "Merge" doMerge])) $$
             emptyGraphParms
          
          -- getNodeTypeParms constructs the parameters for a node
@@ -359,6 +362,14 @@ newVersionGraph
                            newNode thisNode)
 
                         broadcast titleSource title
+
+         -- Function to be executed when the user requests a merge.
+         doMerge :: IO ()
+         doMerge =
+            do
+               -- The difficult part is indicating what is to be
+               -- merged.
+               error "TBD"
 
       -- Construct the graph
       displayedGraph <- displayGraph displaySort graph graphParms

@@ -289,6 +289,7 @@ newChildProcess path confs  =
                bufferVar <- newMVar ""
 
 -- Closing these seems to confuse GHCi, when we run wish more than once.
+-- So instead we close all the fds during the destruction action.
 --               Posix.fdClose readIn
 --               Posix.fdClose writeOut
 
@@ -297,8 +298,10 @@ newChildProcess path confs  =
                      Nothing ->
                         return (
                            do
+                              Posix.fdClose readIn
                               Posix.fdClose writeIn
                               Posix.fdClose readOut
+                              Posix.fdClose writeOut
                            )
                      Just (readErr,writeErr) ->
                         do
@@ -308,9 +311,12 @@ newChildProcess path confs  =
                               do
                                  killThread displayProcess
 
-                                 Posix.fdClose readErr
+                                 Posix.fdClose readIn
                                  Posix.fdClose writeIn
                                  Posix.fdClose readOut
+                                 Posix.fdClose writeOut
+                                 Posix.fdClose readErr
+                                 Posix.fdClose writeErr
                               )
                let
                   toolTitle = 

@@ -15,8 +15,13 @@ import FileSystem
 import Registry
 import Delayer
 
+import Destructible
+
 import VSem
 
+import Graph
+
+import VersionDB
 import ObjectTypes
 import DisplayTypes
 import GlobalRegistry
@@ -25,6 +30,34 @@ import ViewType
 import View
 import MergeTypes
 import MergeReAssign
+
+---
+-- Do all the work of merging, checking out views before merging as
+-- necessary.  
+mergeNodes :: Repository -> [Either View ObjectVersion] 
+   -> IO (WithError View)
+mergeNodes repository nodes =
+   do
+      -- The Bool is True if the view was especially checked-out for this
+      -- merge.
+      (viewData :: [(View,Bool)]) <- mapM
+         (\ node -> case node of
+            Left view -> return (view,False)
+            Right version ->
+               do
+                  view <- getView repository version
+                  return (view,True)
+            )
+         nodes
+
+      viewWE <- mergeViews (map fst viewData)
+
+      mapM_ 
+         (\ (view,doDestroy) -> if doDestroy then destroy view else done)
+         viewData
+
+      return viewWE
+
 
 mergeViews :: [View] -> IO (WithError View)
 mergeViews [] = return (hasError "No views selected")

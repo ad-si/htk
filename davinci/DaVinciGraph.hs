@@ -45,6 +45,8 @@ import Events
 import Destructible
 import Synchronized
 
+import DialogWin
+
 import BSem
 
 import MenuType
@@ -189,6 +191,7 @@ instance GraphClass DaVinciGraph where
    redrawPrim (daVinciGraph @ DaVinciGraph{
          delayer = delayer,redrawAction = redrawAction}) =
       delayedAct delayer redrawAction
+
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraphPrim (DaVinciGraphParms {graphConfigs = graphConfigs,
@@ -519,6 +522,62 @@ instance DeleteNode DaVinciGraph DaVinciNode where
       do
          (Just (NodeData _ nodeValue)) <- getValueOpt nodes nodeId
          return (coDyn nodeValue)
+
+   getMultipleNodesPrim daVinciGraph mkAct =
+      do
+         channel <- newChannel
+
+         lastSel <- newIORef Nothing
+
+         let
+            mapNode :: NodeId -> DaVinciNodeType value -> DaVinciNode value
+            mapNode nodeId _ = DaVinciNode nodeId
+
+            closeAct =
+               do
+                  createErrorWin 
+                     "Unexpected close interrupting multiple node selection!"
+                     []
+                  signalDestruct daVinciGraph
+
+            newHandler :: DaVinciAnswer -> IO ()
+            newHandler answer = case answer of
+               NodeSelectionsLabels [nodeId] 
+                  -> writeIORef lastSel (Just nodeId)
+               NodeSelectionsLabels _ -> done -- not a double click
+               NodeDoubleClick ->
+                  do
+                     nodeIdOpt <- readIORef lastSel
+                     case nodeIdOpt of
+                        Nothing -> createErrorWin 
+                           "Confusing node selection ignored" []
+                        Just nodeId ->
+                           do
+                              nodeDataOpt 
+                                 <- getValueOpt (nodes daVinciGraph) nodeId
+                              case nodeDataOpt of
+                                 Nothing -> createErrorWin
+                                    "Confusing node selection ignored (2)" []
+                                 Just (NodeData nodeType _) ->
+                                    do
+                                       let
+                                          wrappedNode = WrappedNode 
+                                             (mapNode nodeId nodeType)
+                                       sync(noWait(send channel wrappedNode))
+
+               EdgeSelectionLabel _ -> done
+               EdgeSelectionLabels _ _ -> done
+               Closed -> closeAct
+               Quit -> closeAct
+               _ ->  createErrorWin
+                  ("Other user input ignored during multiple node selection")
+                  []
+
+
+            act = mkAct (receive channel)
+            
+         withHandler newHandler (context daVinciGraph) act
+
 
 instance NodeClass DaVinciNode where
 

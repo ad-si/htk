@@ -220,7 +220,7 @@ data DaVinciAnswer =                      -- Answers from the API
   | CreateNode				  -- Dragging answer (V2.1 API)
   | CreateNodeAndEdge NodeId		  -- Parent ID of new edge (V2.1 API)
   | CreateEdge NodeId NodeId		  -- Node IDs of new edge (V2.1 API)
-  | DropNode ContextId WindowId NodeId ContextId WindowId NodeId
+  | DropNode NodeId ContextId WindowId NodeId
                                           -- Node A dropped on B (V2.1 API)
   | ContextWindow ContextId WindowId      -- Context ID + window ID (V2.1 API)
   | OpenWindow				  -- New window opened (V2.1 API)
@@ -486,7 +486,7 @@ instance Show DaVinciAnswer where
    showsPrec _ CreateNode			    = showString "create_node"
    showsPrec _ (CreateNodeAndEdge nId)		    = showFunc1	 "create_node_and_edge" nId
    showsPrec _ (CreateEdge nId1 nId2)		    = showFunc2	 "create_edge" nId1 nId2
-   showsPrec _ (DropNode cId1 wId1 nId1 cId2 wId2 nId2) = showFunc6 "drop_node" cId1 wId1 nId1 cId2 wId2 nId2
+   showsPrec _ (DropNode nId1 cId2 wId2 nId2)       = showFunc4 "drop_node" nId1 cId2 wId2 nId2
    showsPrec _ (ContextWindow cId wId)		    = showFunc2	 "context_window" cId wId
    showsPrec _ OpenWindow			    = showString "open_window"
    showsPrec _ (CloseWindow wId)		    = showFunc1	 "close_window" wId
@@ -528,9 +528,9 @@ instance Read DaVinciAnswer where
 							 ([n],			    t) <- readArgs s ] ++
       [ (CreateEdge (NodeId n1) (NodeId n2),	    t) | ("create_edge",	    s) <- lexR ,
 							 ([n1, n2],		    t) <- readArgs s ] ++
-      [ (DropNode (ContextId c1) (WindowId w1) (NodeId n1) (ContextId c2) (WindowId w2) (NodeId n2), t) 
+      [ (DropNode (NodeId n1) (ContextId c2) (WindowId w2) (NodeId n2), t) 
 						       | ("drop_node",		    s) <- lexR ,
-							 ([c1,w1,n1,c2,w2,n2],	    t) <- readArgs s ] ++
+							 ([n1,c2,w2,n2],	    t) <- readArgs s ] ++
       [ (ContextWindow (ContextId c) (WindowId w), t)| ("context_window",	    s) <- lexR ,
 							 ([c,w],		    t) <- readArgs s ] ++
       [ (OpenWindow,				    s) | ("open_window",	    s) <- lexR       ] ++

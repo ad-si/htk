@@ -28,6 +28,11 @@ module DaVinciBasic(
       -- do a context-specific command in the context.  If the answer
       -- isn't OK, complain vigorously, and throw an exception.
 
+   withHandler, -- :: (DaVinciAnswer -> IO ()) -> Context -> IO a -> IO a
+      -- temporarily change the handler of this context.
+      -- If withHandler is used twice simultaneously on the same context, the 
+      -- second invocation will block, until the first one terminates.
+
    -- Generating unique identifiers.
 
    newType, -- :: Context -> IO Type
@@ -51,6 +56,7 @@ import Concurrent
 import ByteArray
 import CString
 import Posix hiding (version)
+import Data.IORef
 
 import Object
 import Computation
@@ -66,6 +72,8 @@ import Events
 import Channels
 import Destructible
 
+import Lock
+import BSem
 import ChildProcess
 import InfoBus
 
@@ -209,13 +217,17 @@ instance Object DaVinci where
 
 data Context = Context {
    contextId :: ContextId,
-   handler :: DaVinciAnswer -> IO (),
    destructChannel :: Channel (),
    typeSource :: UniqueStringSource,
    idSource :: UniqueStringSource,
    -- source for node and edge ids (which we keep distinct).
-   menuIdSource :: UniqueStringSource
+   menuIdSource :: UniqueStringSource,
    -- source for menu ids.
+
+   handlerIORef :: IORef (DaVinciAnswer -> IO ()),
+   -- contains current handler
+   withHandlerLock :: BSem
+   -- locks withHandler operations
    }
 
 newContext :: (DaVinciAnswer -> IO ()) -> IO Context
@@ -231,15 +243,18 @@ newContext handler =
       typeSource <- newUniqueStringSource
       idSource <- newUniqueStringSource
       menuIdSource <- newUniqueStringSource
+      handlerIORef <- newIORef handler
+      withHandlerLock <- newBSem
 
       let 
          newContext = Context {
             contextId = newContextId,
-            handler = handler,
             destructChannel = destructChannel,
             typeSource = typeSource,
             idSource = idSource,
-            menuIdSource = menuIdSource
+            menuIdSource = menuIdSource,
+            handlerIORef = handlerIORef,
+            withHandlerLock = withHandlerLock
             }
       setValue (contextRegistry daVinci) newContextId newContext
       return newContext  
@@ -371,6 +386,23 @@ invalidContextId :: ContextId
 -- context ids.
 invalidContextId = ContextId ""
 
+
+withHandler :: (DaVinciAnswer -> IO ()) -> Context -> IO a -> IO a
+withHandler newHandler context act =
+   do
+      result <- synchronize (withHandlerLock context) (
+         do
+            let
+               ioRef = handlerIORef context
+
+            oldHandler <- readIORef ioRef
+            writeIORef ioRef newHandler
+            result <- Computation.try act
+            writeIORef ioRef oldHandler
+            return result
+         )
+      Computation.propagate result
+
 -- ---------------------------------------------------------------------
 -- Answer dispatcher
 -- This has two jobs: 
@@ -418,7 +450,8 @@ answerDispatcher (daVinci@DaVinci{
       forward :: DaVinciAnswer -> Context -> IO ()
       forward daVinciAnswer context =
          do
-            forkIO ((handler context) daVinciAnswer)
+            handler <- readIORef (handlerIORef context)
+            forkIO (handler daVinciAnswer)
             case destroysContext daVinciAnswer of
                Yes -> 
                   do

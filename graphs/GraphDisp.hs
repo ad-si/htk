@@ -109,6 +109,10 @@ module GraphDisp(
       -- one to start off with; for daVinci it is daVinciSort. 
                 --    -> IO (Graph ...)
    redraw,      -- :: Graph ... -> IO ()
+
+   getMultipleNodes, 
+      -- :: Graph ... ->  (Event (WrappedNode node) -> IO a) -> IO a
+
    GraphParms(emptyGraphParms),
 
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
@@ -166,6 +170,8 @@ import ExtendedPrelude(monadDot)
 import Computation(HasConfig(..))
 import VariableList hiding (redraw)
 import Delayer(HasDelayer(..))
+
+import Events(Event)
 
 import Destructible
 
@@ -231,6 +237,13 @@ redraw :: (GraphAll graph graphParms node nodeType nodeTypeParms arc
       arcTypeParms)
    -> IO ()
 redraw (Graph graph) = redrawPrim graph
+
+getMultipleNodes :: (GraphAll graph graphParms node nodeType nodeTypeParms arc 
+   arcType arcTypeParms) =>
+   (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
+      arcTypeParms)
+   -> (Event (WrappedNode node) -> IO a) -> IO a
+getMultipleNodes (Graph graph) = getMultipleNodesPrim graph
 
 class GraphParms graphParms where
    emptyGraphParms :: graphParms
@@ -444,6 +457,15 @@ class (GraphClass graph,NodeClass node) =>
       graph -> node value -> IO ()
    getNodeValuePrim :: Typeable value =>
       graph -> node value -> IO value
+
+   getMultipleNodesPrim :: graph -> (Event (WrappedNode node) -> IO a) -> IO a
+   -- Running this function disables all other user interaction on
+   -- the graph and creates
+   -- a new event which occurs each time the node is double-clicked,
+   -- assuming this graph was created with drag-and-drop enabled.
+   -- Using this event we execute the given action, until it terminates,
+   -- when we restore normal user interaction.
+   -- NB.  This function must not be nested, or it will block.
 
 class (HasTyRep1 node,Ord1 node) => NodeClass node
 

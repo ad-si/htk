@@ -49,6 +49,8 @@ import Delayer
 
 import VSem
 
+import Destructible
+
 import VersionDB
 import ViewType
 import CodedValue
@@ -56,6 +58,7 @@ import CodedValueStore
 import DisplayTypes
 import ObjectTypes
 import Link
+import GlobalRegistry
 
 
 -- ----------------------------------------------------------------------
@@ -271,7 +274,30 @@ createViewObject view getObject =
       )
 
 -- ----------------------------------------------------------------------
--- Ensure files are present
+-- Instance of Destroyable
 -- ----------------------------------------------------------------------
 
+instance Object View where
+   objectID (View {viewId = ViewId oID}) = oID
 
+instance Destroyable View where
+   destroy view =
+      do
+         allObjectTypeTypes <- getAllObjectTypeTypes
+         mapM_ 
+            (\ (WrappedObjectTypeTypeData objectType) ->
+               deleteViewFromGlobalRegistry 
+                  (objectTypeGlobalRegistry objectType)
+                  view
+               )
+            allObjectTypeTypes 
+
+         allDisplayTypes <- getAllDisplayTypeTypes
+         mapM_
+            (\ (WrappedDisplayType displayType) ->
+               deleteViewFromGlobalRegistry
+                  (displayTypeGlobalRegistry displayType)
+                  view
+               )
+            allDisplayTypes
+ 
