@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>scrollbar</strong> widget.<br>
+-- A label is a simple container for text or images/bitmaps.
 module ScrollBar (
 
   HasScroller(..),
@@ -28,7 +31,7 @@ module ScrollBar (
   fraction,
   identify,
   setView
-        
+
 ) where
 
 import Core
@@ -53,15 +56,30 @@ import Char(isSpace)
 -- fraction type
 -- -----------------------------------------------------------------------
 
+---
+-- Fractions are floating point values between 0 and 1 representing
+-- relative positions within the scrolled range.
 type Fraction = Double
 
+---
+-- Internal.
 instance GUIValue (Fraction, Fraction) where
+---
+-- Internal.
   cdefault = (0.0, 0.0)
 
+---
+-- Internal.
 instance Show (Fraction, Fraction) where
+---
+-- Internal.
   showsPrec d (f1, f2) r = show f1 ++ " " ++ show f2 ++ r
 
+---
+-- Internal.
 instance Read (Fraction, Fraction) where
+---
+-- Internal.
    readsPrec p b = 
      case readsPrec p b of
        [(x,xs)] -> case readsPrec p xs of
@@ -74,12 +92,29 @@ instance Read (Fraction, Fraction) where
 -- classes
 -- -----------------------------------------------------------------------
 
+---
+-- Scrollable widgets instantiate <code>class HasScroller</code>.
 class Widget w => HasScroller w where
+---
+-- <code>True</code> for widgets that are scrollable in the given
+-- orientation.
   isWfOrientation :: w -> Orientation -> Bool
+---
+-- Associates a scrollbar with a scrollable widget.
   scrollbar       :: Orientation -> ScrollBar -> Config w
+---
+-- Positions the scrolled widget so the give <code>Fraction</code> is
+-- off-screen to the left.
   moveto          :: Orientation -> w -> Fraction -> IO ()
+---
+-- Scrolls the associated widget by n pages or units (depending on the
+-- given <code>ScrollUnit</code>).
   scroll          :: Orientation -> w -> Int -> ScrollUnit -> IO ()
+---
+-- Returns two fractions between 0 and 1 that describe the amount of
+-- the widget off-screen to the left and the amount of the widget visible.
   view            :: Orientation -> w -> IO (Fraction, Fraction)
+
 
   isWfOrientation _ _ = True
 
@@ -107,56 +142,97 @@ class Widget w => HasScroller w where
     execMethod w (\nm -> [tkScroll ax nm num what])
   scroll ax w num what = done
 
-  -- added Oct. '01, still experimental (ludi)
   view ax w = evalMethod w (tkView ax)
 
 
 -- -----------------------------------------------------------------------
--- ScrollBar type
+-- datatype
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>ScrollBar</code> datatype.
 newtype ScrollBar = ScrollBar GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
--- ScrollBar creation
+-- constructor
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new scrollbar widget and returns a handler.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param cnf     - the list of configuration options for this scrollbar.
+-- @return result - A scrollbar widget.
 newScrollBar :: Container par => par -> [Config ScrollBar] -> IO ScrollBar
-newScrollBar par ol =
+newScrollBar par cnf =
   do
     w <- createGUIObject (toGUIObject par) SCROLLBAR scrollbarMethods 
-    configure (ScrollBar w) ol
+    configure (ScrollBar w) cnf
 
 
 -- -----------------------------------------------------------------------
 -- ScrollBar configuration options
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject ScrollBar where 
+---
+-- Internal.
   toGUIObject (ScrollBar w) = w
+---
+-- Internal.
   cname _ = "ScrollBar"
 
+---
+-- A scrollbar widget can be destroyed.
 instance Destroyable ScrollBar where
-  destroy   = destroy . toGUIObject
+---
+-- Destroys a scrollbar widget.
+  destroy = destroy . toGUIObject
 
+---
+-- A scrollbar widget has standard widget properties
+-- (concerning focus, cursor).
 instance Widget ScrollBar 
 
+---
+-- A scrollbar widget has a configureable border.
 instance HasBorder ScrollBar
 
+---
+-- A scrollbar widget has a background and activebackground
+-- (regarding slider) colour.
 instance HasColour ScrollBar where
+---
+-- Internal.
   legalColourID w "bg" = True
   legalColourID w "activebackground" = True -- regards slider actually
   legalColourID w _ = False
 
+---
+-- A scrollbar widget is a stateful widget, it can be enabled or
+-- disabled.
 instance HasEnable ScrollBar
 
+---
+-- You can specify the width of a scrollbar.
 instance HasSize ScrollBar where
+---
+-- Dummy.
   height _ w = return w
+---
+-- Dummy.
   getHeight w = return cdefault
 
+---
+-- The scrollbar has a configureable slider component.
 instance HasSlider ScrollBar
 
+---
+-- The scrollbars orientation can be <code>Horizontal</code> or
+-- <code>Vertical</code>.
 instance HasOrientation ScrollBar
 
 ---
@@ -165,13 +241,23 @@ instance HasTooltip ScrollBar
 
 
 -- -----------------------------------------------------------------------
---  ScrollBar commands
+-- ScrollBar commands
 -- -----------------------------------------------------------------------
 
+---
+-- Sets the active element (which can be arrow1, arrow2 or slider).
+-- @param sc      - the concerned scrollbar.
+-- @param elem    - the element to activate.
+-- @return result - None.
 activateScrollBarElem :: ScrollBar -> ScrollBarElem -> IO ()
 activateScrollBarElem sc elem =
   execMethod sc (\nm -> [tkActivate nm elem])
 
+---
+-- Gets the active element (arrow1, arrow2 or slider).
+-- @param sc      - the concerned scrollbar.
+-- @return result - <code>Just [elem]</code> if an element is active,
+--                  otherwise <code>Nothing</code>.
 getActivatedElem :: ScrollBar -> IO (Maybe ScrollBarElem)
 getActivatedElem sc =
   do
@@ -180,37 +266,71 @@ getActivatedElem sc =
       "" -> return Nothing
       x -> return (Just (read x))
 
-fraction :: ScrollBar -> Distance -> Distance -> IO Fraction
-fraction sc x y = evalMethod sc (\nm -> [tkFraction nm x y])
+---
+-- Returns a fraction between 0 and 1 indicating the relative location
+-- of the given position in the through.
+-- @param sc      - the concerned scrollbar.
+-- @param pos     - the conderned position.
+-- @return result - The fraction indicating the relative location in the
+--                  through.
+fraction :: ScrollBar -> Position -> IO Fraction
+fraction sc pos@(x, y) = evalMethod sc (\nm -> [tkFraction nm x y])
 
-identify :: ScrollBar -> Distance -> Distance -> IO (Maybe ScrollBarElem)
-identify sc x y =
+---
+-- Returns the <code>ScrollBarElem</code> to indicate what is under
+-- the given position.
+-- @param sc      - the concerned scrollbar.
+-- @param pos     - the concerned position.
+-- @return result - <code>Just [elem]</code> if <code>[elem]</code> is
+--                  under the given position, otherwise
+--                  <code>Nothing</code>.
+identify :: ScrollBar -> Position -> IO (Maybe ScrollBarElem)
+identify sc pos@(x, y) =
   do
     e <- evalMethod sc (\nm -> [tkIdentify nm x y])
     case dropWhile (isSpace) e of
       "" -> return Nothing
       x -> return (Just (read x))
 
+---
+-- Sets the scrollbar parameters.
+-- @param sc      - the concerned scrollbar.
+-- @param first   - fraction between 0 and 1 representing the relative
+--                  position of the top left of the display.
+-- @param last    - fraction between 0 and 1 representing the relative
+--                  position of the bottom right of the display.
+-- @return result - None.
 setView :: ScrollBar -> Fraction -> Fraction -> IO ()
-setView sc f l = execMethod sc (\nm -> [tkSet nm f l])
+setView sc first last = execMethod sc (\nm -> [tkSet nm first last])
 
 
 -- -----------------------------------------------------------------------
 -- ScrollBar elem
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>ScrollBarElem</code> datatype - representing the elements
+-- of the scrollbar.
 data ScrollBarElem = 
-    Arrow1 
-  | Trough1 
-  | ScrollBarSlider 
-  | Trough2 
+    Arrow1
+  | Trough1
+  | ScrollBarSlider
+  | Trough2
   | Arrow2
   deriving (Eq,Ord,Enum)
 
+---
+-- Internal.
 instance GUIValue ScrollBarElem where
+---
+-- Internal.
   cdefault = ScrollBarSlider
 
+---
+-- Internal.
 instance Read ScrollBarElem where
+---
+-- Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
        'a':'r':'r':'o':'w':'1':xs -> [(Arrow1,xs)]
@@ -220,7 +340,11 @@ instance Read ScrollBarElem where
        'a':'r':'r':'o':'w':'2':xs -> [(Arrow2,xs)]
        _ -> []
 
+---
+-- Internal.
 instance Show ScrollBarElem where
+---
+-- Internal.
   showsPrec d p r = 
      (case p of 
          Arrow1 -> "arrow1"
@@ -235,19 +359,33 @@ instance Show ScrollBarElem where
 -- scroll unit
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>ScrollUnit</code> datatype - units for scrolling operations.
 data ScrollUnit = Units | Pages
 
+---
+-- Internal.
 instance GUIValue ScrollUnit where
-        cdefault = Units
+---
+-- Internal.
+  cdefault = Units
 
+---
+-- Internal.
 instance Read ScrollUnit where
+---
+-- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'u':'n':'i':'t':'s':xs -> [(Units,xs)]
         'p':'a':'g':'e':'s':xs -> [(Pages,xs)]
         _ -> []
 
+---
+-- Internal.
 instance Show ScrollUnit where
+---
+-- Internal.
    showsPrec d p r = 
       (case p of 
           Units -> "units"

@@ -1,15 +1,13 @@
-{- #######################################################################
-
-MODULE        : BitMap
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Bitmap Item
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module BitMap (
 
@@ -70,9 +68,11 @@ instance BitMapDesignator [Char] where
 
 
 -- -----------------------------------------------------------------------
--- BitMap'ed widgets  
+-- BitMap'ed widgets
 -- -----------------------------------------------------------------------
 
+---
+-- Containers for bitmaps instantiate the <code>class HasBitMap</code>.
 class GUIObject w => HasBitMap w where
   bitmap          :: BitMapDesignator d => d -> Config w
   getBitMap       :: w -> IO BitMapHandle
@@ -83,6 +83,7 @@ class GUIObject w => HasBitMap w where
 -- -----------------------------------------------------------------------
 -- type BitMap 
 -- -----------------------------------------------------------------------
+
 
 newtype BitMap = BitMapWDG GUIOBJECT deriving Eq
 

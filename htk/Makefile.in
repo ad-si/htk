@@ -96,6 +96,7 @@ SRCS       = resources/Resources.hs\
 #            devices/Printer.hs\
 #            devices/Bell.hs\
 
+
 EXTRA_HC_OPTIONS += -Onot -H30M
 
 SUBDIRS = test examples

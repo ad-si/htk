@@ -10,7 +10,7 @@
 -- -----------------------------------------------------------------------
 
 ---
--- HTk's <strong>label widget</strong>.<br>
+-- HTk's <strong>label</strong> widget.<br>
 -- A label is a simple container for text or images/bitmaps.
 module Label (
 
@@ -32,7 +32,7 @@ import Tooltip
 
 
 -- -----------------------------------------------------------------------
--- type Label 
+-- datatype
 -- -----------------------------------------------------------------------
 
 ---
@@ -130,7 +130,7 @@ instance GUIValue b => HasText (Label a) b
 instance HasTooltip (Label a)
 
 ---
--- You can synchronize on a label object (in JAVA style).
+-- You can synchronize on a label object.
 instance Synchronized (Label a) where
 ---
 -- Synchronizes on a label object.

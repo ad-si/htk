@@ -87,6 +87,7 @@ enteredItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 enteredItem notepad item =
   synchronize item
     (do
+       putStr "entered... "
        v <- getRef (it_val item)
        nm <- getName v
        let fullnm = full nm
@@ -113,6 +114,7 @@ enteredItem notepad item =
                       putItemOnTop (it_txt item)
                       setRef (it_long_name_bg item) (Just rect)
          _ -> done
+       putStrLn "ok"
        done)
 
 -- handler for leave events
@@ -120,6 +122,7 @@ leftItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 leftItem notepad item =
   synchronize item
     (do
+       putStr "left... "
        (x, y) <- getPosition item
        let (Distance iwidth, Distance iheight) = img_size notepad
        it_txt item # position (x, y + Distance (div iheight 2 + 7))
@@ -134,6 +137,7 @@ leftItem notepad item =
          Just last_bg -> destroy last_bg >>
                          setRef (it_long_name_bg item) Nothing
          _ -> done
+       putStrLn "ok"
        done)
 
 -- constructor
@@ -740,24 +744,25 @@ newNotepad par scrolltype imgsize mstate cnf =
                   (if b then setRef entereditemref (Just item)
                    else checkItems items)
               checkItems _  = setRef entereditemref Nothing
-          in do
-               last <- getRef entereditemref
-               items <- getRef notepaditemsref
-               checkItems items
-               new <- getRef entereditemref
-               (if isJust last then
-                  if isJust new then
-                    if fromJust last == fromJust new then done
-                    else
-                      leftItem notepad (fromJust last) >>
-                      enteredItem notepad (fromJust new)
-                  else
-                    leftItem notepad (fromJust last)
-                else
-                  if isJust new then
-                    enteredItem notepad (fromJust new)
-                  else
-                    done)
+          in synchronize notepad
+               (do
+                  last <- getRef entereditemref
+                  items <- getRef notepaditemsref
+                  checkItems items
+                  new <- getRef entereditemref
+                  (if isJust last then
+                     if isJust new then
+                       if fromJust last == fromJust new then done
+                       else
+                         leftItem notepad (fromJust last) >>
+                         enteredItem notepad (fromJust new)
+                     else
+                       leftItem notepad (fromJust last)
+                   else
+                     if isJust new then
+                       enteredItem notepad (fromJust new)
+                     else
+                       done))
 
         listenNotepad :: Event ()
         listenNotepad =

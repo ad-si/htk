@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>toplevel</strong> widget.<br>
+-- A toplevel widget is a toplevel container for widgets (a window).
 module Toplevel (
 
   Toplevel(..),
@@ -35,6 +38,8 @@ import Packer
 -- Toplevel widget
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>Toplevel</code> datatype.
 newtype Toplevel = Toplevel GUIOBJECT deriving Eq
 
 
@@ -42,31 +47,61 @@ newtype Toplevel = Toplevel GUIOBJECT deriving Eq
 -- creation commands
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new toplevel widget and returns a handler.
+-- @param cnf     - the list of configuration options for this toplevel
+--                  widget.
+-- @return result - A toplevel widget.
 createToplevel :: [Config Toplevel] -> IO Toplevel
-createToplevel confs =
+createToplevel cnf =
   do
     wid <- createGUIObject ROOT TOPLEVEL toplevelMethods
-    configure (Toplevel wid) confs
+    configure (Toplevel wid) cnf
 
 
 -- -----------------------------------------------------------------------
 -- instances
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject Toplevel where 
+---
+-- Internal.
   toGUIObject (Toplevel f) = f
+---
+-- Internal.
   cname _ = "Toplevel"
 
+---
+-- A toplevel widget can be destroyed.
 instance Destroyable Toplevel where
+---
+-- Destroys a toplevel widget.
   destroy = destroy . toGUIObject
 
+---
+-- A toplevel widget has standard widget properties
+-- (concerning focus, cursor).
 instance Widget Toplevel
 
+---
+-- A frame widget is a container for widgets. You can pack widgets to
+-- a frame widget via pack or grid command in the
+-- <code>module Packer</code>.
 instance Container Toplevel
 
+---
+-- You can synchronize on a toplevel object.
 instance Synchronized Toplevel where
+---
+-- Synchronizes on a toplevel object.
   synchronize = synchronize . toGUIObject
 
+---
+-- A toplevel widget is a window (with various configurations and actions
+-- concerning its stacking order, display status, screen, aspect ratio
+-- etc.).
 instance Window Toplevel
 
 
@@ -125,4 +160,3 @@ wmSetConfigs name ((cid,val) : args) =
 wmSet :: ObjectName -> ConfigID -> GUIVALUE -> TclCmd
 wmSet name "state" val = "wm " ++ show val ++ " " ++ show name
 wmSet name cid val = "wm " ++ cid ++ " " ++ show name ++  " " ++ show val
-

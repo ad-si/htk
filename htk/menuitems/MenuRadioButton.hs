@@ -1,14 +1,13 @@
-{- #######################################################################
-
-MODULE        : MenuButton
-AUTHOR        : Einar Karlsen,
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 2001
-DESCRIPTION   : menu checkbutton
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module MenuRadioButton (
 

@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>radiobutton</strong> widget.<br>
+-- A simple radiobutton associated with a polymorphic variable.
 module RadioButton (
 
   ButtonWidget(..),
@@ -34,71 +37,135 @@ import Tooltip
 
 
 -- -----------------------------------------------------------------------
--- type
+-- datatype
 -- -----------------------------------------------------------------------
 
-data RadioButton a = RadioButton GUIOBJECT
+---
+-- The <code>RadioButton</code> datatpe - it is associated with a
+-- polymorphic <code>TkVariable</code> (first type parameter); a
+-- <code>RadioButton a String</code> contains text, a
+-- <code>RadioButton a Image</code> contains an image,
+-- <code>RadioButton a BitMap</code> contains a bitmap.
+newtype RadioButton a b = RadioButton GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
 -- creation
 -- -----------------------------------------------------------------------
 
-newRadioButton :: Container par => par -> [Config (RadioButton a)] -> IO (RadioButton a)
-newRadioButton par ol =
+---
+-- Constructs a new radiobutton widget and returns a handler.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param cnf     - the list of configuration options for this
+--                  radiobutton.
+-- @return result - A radiobutton widget.
+newRadioButton :: Container par => par -> [Config (RadioButton a b)] ->
+                                   IO (RadioButton a b)
+newRadioButton par cnf =
   do
     b <- createGUIObject (toGUIObject par) RADIOBUTTON defMethods
-    configure (RadioButton b) ol
+    configure (RadioButton b) cnf
 
 
 -- -----------------------------------------------------------------------
 -- instances
 -- -----------------------------------------------------------------------
 
-instance Eq (RadioButton a) where 
-  w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
-
-instance GUIObject (RadioButton a) where 
+---
+-- Internal.
+instance GUIObject (RadioButton a b) where 
+---
+-- Internal.
   toGUIObject (RadioButton w) = w
+---
+-- Internal.
   cname _ = "RadioButton"
 
-instance Destroyable (RadioButton a) where
-  destroy   = destroy . toGUIObject
-
-instance Widget (RadioButton a)
- 
-instance ButtonWidget (RadioButton a)
-
-instance HasBitMap (RadioButton a)
-
-instance HasBorder (RadioButton a)
-
-instance HasColour (RadioButton a) where 
-  legalColourID = buttonColours
-
-instance HasEnable (RadioButton a)
-
-instance HasFont (RadioButton a)
-
-instance HasJustify (RadioButton a)
-
-instance HasPhoto (RadioButton a)
-
-instance HasSize (RadioButton a)
-
-instance GUIValue v => HasText (RadioButton a) v
-
-instance HasUnderline (RadioButton a)
-
-instance Synchronized (RadioButton a) where
-  synchronize = synchronize . toGUIObject
-
-instance HasCommand (RadioButton a)
-
-instance GUIValue b => HasValue (RadioButton a) b
-
-instance HasVariable (RadioButton a)
+---
+-- A radiobutton widget can be destroyed.
+instance Destroyable (RadioButton a b) where
+---
+-- Destroys a radiobutton widget.
+  destroy = destroy . toGUIObject
 
 ---
--- A radio button can have a tooltip.
-instance HasTooltip (RadioButton a)
+-- A radiobutton widget has standard widget properties
+-- (concerning focus, cursor).
+instance Widget (RadioButton a b)
+ 
+---
+-- A radiobutton widget can be flashed (redisplayed several times in
+-- alternate colours) and invoked (the associated event) as any button
+-- widget.
+instance ButtonWidget (RadioButton a b)
+
+---
+-- A radiobutton widget can contain a bitmap.
+instance HasBitMap (RadioButton a BitMap)
+
+---
+-- A radiobutton widget has a configureable border.
+instance HasBorder (RadioButton a b)
+
+---
+-- A radiobutton widget has a normal foreground and background colour and
+-- an active/disabled foreground and background colour.
+instance HasColour (RadioButton a b) where 
+---
+-- Internal.
+  legalColourID = buttonColours
+
+---
+-- A radiobutton widget is a stateful widget, it can be enabled or
+-- disabled.
+instance HasEnable (RadioButton a b)
+
+---
+-- You can specify the font of a check button.
+instance HasFont (RadioButton a String)
+
+---
+-- A radiobutton has a configureable text justification.
+instance HasJustify (RadioButton a String)
+
+---
+-- A radiobutton can contain an image.
+instance HasPhoto (RadioButton a Image)
+
+---
+-- You can specify the size of a radiobutton.
+instance HasSize (RadioButton a b)
+
+---
+-- A radiobutton can contain text.
+instance GUIValue v => HasText (RadioButton a String) v
+
+---
+-- You can set the index of a text character to underline.
+instance HasUnderline (RadioButton a String)
+
+---
+-- You can synchronize on a radiobutton object.
+instance Synchronized (RadioButton a b) where
+---
+-- Synchronizes on a radiobutton object.
+  synchronize = synchronize . toGUIObject
+
+---
+-- When a radiobutton is clicked, a corresponding event is invoked.
+instance HasCommand (RadioButton a b)
+
+---
+-- A radiobutton has a value, that corresponds to a polymorphic
+-- <code>TkVariable</code>.
+instance GUIValue c => HasValue (RadioButton a b) c
+
+---
+-- The radiobutton's value is associated with a polymorphic
+-- <code>TkVariable</code>.
+instance HasVariable (RadioButton a b)
+
+---
+-- A radiobutton can have a tooltip.
+instance HasTooltip (RadioButton a b)

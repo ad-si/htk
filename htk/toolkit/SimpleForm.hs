@@ -389,7 +389,7 @@ data Radio x = Radio x | NoRadio
 -- The NoRadio indicates that no radio button is selected.
 
 class HasConfigRadioButton value where
-   configRadioButton :: value -> Config (RadioButton Int)
+   configRadioButton :: value -> Config (RadioButton Int String)
 
 instance Show value => HasConfigRadioButton value where
    configRadioButton value = text (show value)

@@ -11,7 +11,7 @@
 
 ---
 -- HTk's <strong>option menu</strong> widget.<br>
--- A simple clip up menu displaying radiobuttons to 
+-- A simple clip up menu displaying a set of radiobuttons.
 module OptionMenu (
 
   OptionMenu,
@@ -36,7 +36,8 @@ import Tooltip
 -- datatype
 -- -----------------------------------------------------------------------
 
-
+---
+-- The <code>OptionMenu</code> datatype.
 newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 
 
@@ -44,14 +45,20 @@ newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new option menu and returns a handler.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param el      - the list of selectable elements.
+-- @return result - An option menu.
 newOptionMenu :: (Container par, GUIValue a) =>
                  par -> [a] -> [Config (OptionMenu a)] ->
                  IO (OptionMenu a)
-newOptionMenu par el confs =
+newOptionMenu par el cnf =
   do
     wid <- createGUIObject (toGUIObject par) (OPTIONMENU el')
                            optionMenuMethods
-    configure (OptionMenu wid) confs
+    configure (OptionMenu wid) cnf
   where el' = map toGUIValue el
 
 
@@ -59,29 +66,62 @@ newOptionMenu par el confs =
 -- instances
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject (OptionMenu a) where 
+---
+-- Internal.
   toGUIObject (OptionMenu  w) = w
+---
+-- Internal.
   cname _ = "OptionMenu"
 
+---
+-- An option menu can be destroyed.
 instance Destroyable (OptionMenu a) where
-  destroy   = destroy . toGUIObject
- 
+---
+-- Destroys an option menu.
+  destroy = destroy . toGUIObject
+
+---
+-- An option menu has standard widget properties
+-- (concerning focus, cursor).
 instance Widget (OptionMenu a)
 
+---
+-- An option menu has a configureable border.
 instance HasBorder (OptionMenu a)
 
+---
+-- An option menu has a normal foreground and background colour and an
+-- active/disabled foreground and background colour.
 instance HasColour (OptionMenu a) where
+---
+-- Internal.
   legalColourID = buttonColours
 
+---
+-- An option menu is a stateful widget, it can be enabled or disabled.
 instance HasEnable (OptionMenu a)
 
+---
+-- You can specify the font of an option menu.
 instance HasFont (OptionMenu a) 
 
+---
+-- You can specify the size of an option menu.
 instance HasSize (OptionMenu a)
 
+---
+-- An option menu has a value (the selected element), that corresponds to
+-- a polymorphic <code>TkVariable</code>.
 instance GUIValue a => HasValue (OptionMenu a) a where
+---
+-- Sets the option menu's value (the selected element).
   value v w =
     setTclVariable ((tvarname . objectID . toGUIObject) w) v >> return w
+---
+-- Gets the option menu's value.
   getValue w = getTclVariable ((tvarname . objectID . toGUIObject) w)
 
 ---

@@ -33,6 +33,7 @@ import GridPackOptions
 import Wish
 import Core
 
+
 -- -----------------------------------------------------------------------
 -- abstract class Container
 -- -----------------------------------------------------------------------
@@ -47,43 +48,53 @@ class GUIObject a => Container a
 -- grid packer
 -- -----------------------------------------------------------------------
 
+---
+-- Packs a widget via the grid geometry manager.
+-- @param wid     - the widget to pack.
+-- @param opts    - the grid pack options.
+-- @return result - None.
 grid :: Widget w => w -> [GridPackOption] -> IO ()
-grid w gridpackopts =
+grid wid opts =
   do
-    let (GUIOBJECT _ ostref) = toGUIObject w
+    let (GUIOBJECT _ ostref) = toGUIObject wid
     ost <- getRef ostref
     meth <- withRef ostref methods
-    execTclScript ((gridCmd meth) (objectname ost) gridpackopts)
+    execTclScript ((gridCmd meth) (objectname ost) opts)
 
 
 -- -----------------------------------------------------------------------
 -- standard packer
 -- -----------------------------------------------------------------------
 
+---
+-- Packs a widget via the pack geometry manager.
+-- @param wid     - the widget to pack.
+-- @param opts    - the pack options.
+-- @return result - None.
 pack :: Widget w => w -> [PackOption] -> IO ()
-pack w packopts =
+pack wid opts =
   do
-    let obj = toGUIObject w
+    let obj = toGUIObject wid
     meth <- getMethods obj
     nm <- getObjectName obj
-    pobj' <- getParentObject w
+    pobj' <- getParentObject wid
     case pobj' of
-      Nothing -> execTclScript ((packCmd meth) nm packopts)
+      Nothing -> execTclScript ((packCmd meth) nm opts)
       Just pobj ->
         do
           kind <- getObjectKind pobj
           case kind of
             BOX Vertical Rigid ->
-              execTclScript ((packCmd meth) nm (packopts ++ [Side AtTop]))
+              execTclScript ((packCmd meth) nm (opts ++ [Side AtTop]))
             BOX Horizontal Rigid ->
-              execTclScript ((packCmd meth) nm (packopts ++
+              execTclScript ((packCmd meth) nm (opts ++
                                                 [Side AtLeft]))
             BOX Vertical Flexible ->
-              execTclScript ((packCmd meth) nm (packopts ++
+              execTclScript ((packCmd meth) nm (opts ++
                                                 [Side AtTop, Fill Both,
                                                  Expand On]))
             BOX Horizontal Flexible ->
-              execTclScript ((packCmd meth) nm (packopts ++
+              execTclScript ((packCmd meth) nm (opts ++
                                                 [Side AtLeft, Fill Both,
                                                  Expand On]))
-            _ -> execTclScript ((packCmd meth) nm packopts)
+            _ -> execTclScript ((packCmd meth) nm opts)

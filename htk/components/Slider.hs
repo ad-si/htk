@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>module Slider</code> implements configuration options for
+-- widgets with sliders (scale widgets and scrollbars).
 module Slider (
 
   Slider(..),
@@ -24,44 +27,70 @@ import Colour(toColour)
 
 
 -- -----------------------------------------------------------------------
---  Classes
+-- class HasSlider
 -- -----------------------------------------------------------------------
 
-class Widget w => HasSlider w where             -- for sliders
-        repeatInterval     :: Int -> Config (Slider w)
-        getRepeatInterval  :: (Slider w) -> IO Int
-        repeatDelay        :: Int -> Config (Slider w)
-        getRepeatDelay     :: (Slider w) -> IO Int    
-        repeatInterval c w  = cset w "repeatinterval" c
-        getRepeatInterval w = cget w "repeatinterval" 
-        repeatDelay c w     = cset w "repeatdelay" c
-        getRepeatDelay w    = cget w "repeatdelay"    
--- TD:
--- this is from Einar's implementation
--- I dont't think this makes sense for all widgets
+---
+-- Widgets with sliders (scale widget, scrollbar) instantiate the
+-- <code>class HasSlider</code>.
+class Widget w => HasSlider w where
+---
+-- Sets the time period between auto-repeat events.
+  repeatInterval     :: Int -> Config (Slider w)
+---
+-- Gets the time period between auto-repeat events.
+  getRepeatInterval  :: (Slider w) -> IO Int
+---
+-- Sets the delay before auto-repeat starts (e.g. when mouse button is
+-- pressed).
+  repeatDelay        :: Int -> Config (Slider w)
+---
+-- Gets the delay before auto-repeat starts.
+  getRepeatDelay     :: (Slider w) -> IO Int
+
+  repeatInterval c w  = cset w "repeatinterval" c
+  getRepeatInterval w = cget w "repeatinterval" 
+  repeatDelay c w     = cset w "repeatdelay" c
+  getRepeatDelay w    = cget w "repeatdelay"    
 
 
 -- -----------------------------------------------------------------------
---  Handle
+-- datatype
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>Slider</code> datatype.
 newtype HasSlider w => Slider w = Slider w
 
 
 -- -----------------------------------------------------------------------
---  Instantiations
+-- instances
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject w => GUIObject (Slider w) where
-        toGUIObject (Slider w)  = toGUIObject w
-        cname (Slider w)        = cname w
+---
+-- Internal.
+  toGUIObject (Slider w)  = toGUIObject w
+---
+-- Internal.
+  cname (Slider w)        = cname w
 
+---
+-- The slider component has a configureable foreground and background
+-- colour.
 instance (HasSlider w,GUIObject w) => HasColour (Slider w) where
-        legalColourID             = hasForeGroundColour
-        setColour w "foreground" c = cset w "troughcolor" (toColour c)
-        setColour w "background" c =
-          cset w "activebackground" (toColour c)
-        setColour w _ _            = return w
-        getColour w "background"   = cget w "troughcolor"
-        getColour w "foreground"   = cget w "activebackground"
-        getColour _ _             = return cdefault
+---
+-- Internal.
+  legalColourID              = hasForeGroundColour
+---
+-- Internal.
+  setColour w "foreground" c = cset w "troughcolor" (toColour c)
+  setColour w "background" c = cset w "activebackground" (toColour c)
+  setColour w _ _            = return w
+---
+-- Internal.
+  getColour w "background"   = cget w "troughcolor"
+  getColour w "foreground"   = cget w "activebackground"
+  getColour _ _              = return cdefault

@@ -9,42 +9,66 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>module Geometry</code> exports basic geometric types and
+-- functionality.
 module Geometry (
-        Distance(..),
 
-        Size, 
-        Coord, 
-        Position,
-        Geometry, 
+  Distance(..),
 
-        cm, pp, mm, ic, tocm, toinch    
-        ) where
+  Size, 
+  Coord, 
+  Position,
+  Geometry, 
+
+  cm, pp, mm, ic, tocm, toinch    
+
+) where
 
 import GUIValue
 import Char
-
 import GlaExts -- needed now from fromInt, sigh.
 import Debug(debug)
 
--- --------------------------------------------------------------------------
---  Position/Size
--- --------------------------------------------------------------------------
 
+-- -----------------------------------------------------------------------
+-- Position/Size
+-- -----------------------------------------------------------------------
+
+---
+-- The <code>Position</code> - a pair of two <code>Distance</code> values.
 type Position = (Distance, Distance) 
 
+---
+-- The <code>Size</code> datatype - a pair of two <code>Distance</code>
+-- values.
 type Size = (Distance, Distance) 
 
+---
+-- The <code>Point</code> datatype.
 data Point = Point (Distance, Distance) 
 
+---
+-- Internal.
 instance GUIValue (Distance,Distance) where
-        cdefault = (cdefault,cdefault)
-        toGUIValue v  = GUIVALUE HaskellTk (show (Point v))
-        maybeGUIValue (GUIVALUE _ s)     = 
-                case [x | (Point x,t) <- reads s, ("","") <- lex t] of
-                        [x] -> Just x
-                        _   -> Nothing  
+---
+-- Internal.
+  cdefault = (cdefault,cdefault)
+---
+-- Internal.
+  toGUIValue v  = GUIVALUE HaskellTk (show (Point v))
+---
+-- Internal.
+  maybeGUIValue (GUIVALUE _ s)     = 
+    case [x | (Point x,t) <- reads s, ("","") <- lex t] of
+      [x] -> Just x
+      _  -> Nothing
 
+---
+-- Internal.
 instance Read Point where
+---
+-- Internal.
    readsPrec p b = 
         case (readsPrec p b) of
                 [(x,xs)] -> (case (readsPrec p xs) of
@@ -53,32 +77,54 @@ instance Read Point where
                             )
                 _        -> []
 
-        
+---
+-- Internal.
 instance Show Point where
+---
+-- Internal.
    showsPrec d (Point (x,y)) r = show x ++ " " ++ show y ++  r
 
 
--- --------------------------------------------------------------------------
---  Geometry
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Geometry
+-- -----------------------------------------------------------------------
 
+---
+-- The Geometry datatype - normally representing position, width and
+-- height.
 type Geometry = (Distance, Distance, Distance, Distance)
 
 data Geometry' = Geometry' Geometry
 
+---
+-- Internal.
 instance GUIValue (Distance, Distance, Distance, Distance) where
-        cdefault = (cdefault, cdefault, cdefault, cdefault)
-        toGUIValue v  = GUIVALUE HaskellTk (show (Geometry' v))
-        maybeGUIValue (GUIVALUE _ s)     = 
-                case [x | (Geometry' x,t) <- reads s, ("","") <- lex t] of
-                        [x] -> Just x
-                        _   -> Nothing  
+---
+-- Internal.
+  cdefault = (cdefault, cdefault, cdefault, cdefault)
+---
+-- Internal.
+  toGUIValue v = GUIVALUE HaskellTk (show (Geometry' v))
+---
+-- Internal.
+  maybeGUIValue (GUIVALUE _ s) =
+    case [x | (Geometry' x,t) <- reads s, ("","") <- lex t] of
+      [x] -> Just x
+      _ -> Nothing
 
+---
+-- Internal.
 instance Show Geometry' where
+---
+-- Internal.
    showsPrec d (Geometry' (w, h, x, y)) r =             
         show w ++ "x" ++ show h ++ "+" ++ show x ++ "+" ++ show y ++ r
 
+---
+-- Internal.
 instance Read Geometry' where
+---
+-- Internal.
    readsPrec p str = 
          case readsPrec p str of
                 [(w,s')] -> readsPrecX1 p s' w
@@ -110,30 +156,50 @@ instance Read Geometry' where
                    _        -> []
         
 
--- --------------------------------------------------------------------------
---  Coordinates
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Coordinates
+-- -----------------------------------------------------------------------
 
+---
+-- The <code>Coord</code> datatype - e.g. representing the coords of
+-- a canvas item.
 type Coord = [Position]
 
+---
+-- Internal.
 data Coord' = Coord' Coord
 
+---
+-- Internal.
 instance GUIValue [(Distance,Distance)] where
-        cdefault = []
-        toGUIValue v  = GUIVALUE HaskellTk (show (Coord' v))
-        maybeGUIValue (GUIVALUE _ s)     = 
-                case [x | (Coord' x,t) <- reads s, ("","") <- lex t] of
-                        [x] -> Just x
-                        _   -> Nothing  
+---
+-- Internal.
+  cdefault = []
+---
+-- Internal.
+  toGUIValue v = GUIVALUE HaskellTk (show (Coord' v))
+---
+-- Internal.
+  maybeGUIValue (GUIVALUE _ s) =
+    case [x | (Coord' x,t) <- reads s, ("","") <- lex t] of
+      [x] -> Just x
+      _ -> Nothing
 
+---
+-- Internal.
 instance Show Coord' where
+---
+-- Internal.
    showsPrec d (Coord' []) r = 
         r
    showsPrec d (Coord' (x:l)) r = 
         show (toGUIValue x) ++ " " ++ showsPrec d (Coord' l) r
 
-
+---
+-- Internal.
 instance Read Coord' where
+---
+-- Internal.
   readsPrec p s = 
         case (dropWhile isSpace s) of
                 [] -> [(Coord' [],[])]
@@ -149,59 +215,110 @@ instance Read Coord' where
                         _        -> []
 
 
--- --------------------------------------------------------------------------
---  Distance 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Distance
+-- -----------------------------------------------------------------------
 
+---
+-- The <code>Distance</code> datatype - general representation of
+-- distances in HTk.
 newtype Distance = Distance Int deriving (Eq, Ord)
 
-
+---
+-- Internal.
 instance Show Distance where
+---
+-- Internal.
    showsPrec d (Distance i) r = showsPrec d i r
 
+---
+-- Internal.
 instance Read Distance where
+---
+-- Internal.
    readsPrec p b =
      case (readsPrec p b) of
         [(i,xs)] -> [(Distance (round (i::Double)),xs)]
         _ -> []
 
-
+---
+-- Internal.
 instance GUIValue Distance where
-        cdefault = Distance (-100)
+---
+-- Internal.
+  cdefault = Distance (-100)
 
+---
+-- Internal.
 instance Enum Distance where 
-	fromEnum (Distance d)= d
-	toEnum d = Distance d
+---
+-- Internal.
+  fromEnum (Distance d)= d
+---
+-- Internal.
+  toEnum d = Distance d
 
+---
+-- Internal.
 instance Num Distance where
-        (Distance p1) + (Distance p2) = Distance (p1 + p2)
-        (Distance p1) * (Distance p2) = Distance (p1 * p2)  -- bugfix: ludi
-        negate (Distance p) = Distance (negate p)
-        abs (Distance p) = Distance (abs p)
-        signum (Distance p) = Distance (signum p)
-        fromInteger i = Distance (fromInteger i)
+---
+-- Internal.
+  (Distance p1) + (Distance p2) = Distance (p1 + p2)
+---
+-- Internal.
+  (Distance p1) * (Distance p2) = Distance (p1 * p2)
+---
+-- Internal.
+  negate (Distance p) = Distance (negate p)
+---
+-- Internal.
+  abs (Distance p) = Distance (abs p)
+---
+-- Internal.
+  signum (Distance p) = Distance (signum p)
+---
+-- Internal.
+  fromInteger i = Distance (fromInteger i)
 
+---
+-- Internal.
 instance Real Distance where
-	toRational (Distance i) = toRational i
+---
+-- Internal.
+  toRational (Distance i) = toRational i
 
+---
+-- Internal.
 instance Integral Distance where
-	toInteger (Distance i) = toInteger i
-	(Distance d1) `quotRem` (Distance d2) = (Distance q, Distance d) 
-		where (q, d)= d1 `quotRem` d2		
+---
+-- Internal.
+  toInteger (Distance i) = toInteger i
+---
+-- Internal.
+  (Distance d1) `quotRem` (Distance d2) = (Distance q, Distance d)
+    where (q, d)= d1 `quotRem` d2
 
--- --------------------------------------------------------------------------
---  Distance List
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Distance List
+-- -----------------------------------------------------------------------
 
 data Distances = Distances [Distance]
  
+---
+-- Internal.
 instance GUIValue [Distance] where
-        cdefault = []
-        toGUIValue v  = GUIVALUE HaskellTk (show (Distances v))
-        maybeGUIValue (GUIVALUE _ s)     = 
-                case [x | (Distances x,t) <- reads s, ("","") <- lex t] of
-                        [x] -> Just x
-                        _   -> Nothing  
+---
+-- Internal.
+  cdefault = []
+---
+-- Internal.
+  toGUIValue v  = GUIVALUE HaskellTk (show (Distances v))
+---
+-- Internal.
+  maybeGUIValue (GUIVALUE _ s) =
+    case [x | (Distances x,t) <- reads s, ("","") <- lex t] of
+      [x] -> Just x
+      _ -> Nothing
 
 instance Show Distances where
    showsPrec d (Distances []) r = 
@@ -225,21 +342,36 @@ instance Read Distances where
                         _        -> []
 
 
--- --------------------------------------------------------------------------
---  Conversion 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Conversion
+-- -----------------------------------------------------------------------
 
+---
+-- Conversion from cm to <code>Distance</code>.
 cm :: Double -> Distance
+cm c = (Distance . round) (c * 35.4)
+
+---
+-- Conversion from points to <code>Distance</code>.
 pp :: Double -> Distance
-mm :: Double -> Distance
-ic :: Double -> Distance
-
-tocm :: Distance -> Double
-
-cm c = (Distance . round) (c * 35.4)    -- TBD: exact figures
 pp i = ic (i / 72)
+
+---
+-- Conversion from mm to <code>Distance</code>.
+mm :: Double -> Distance
 mm i = cm (i / 10)
+
+---
+-- Conversion from inch to <code>Distance</code>.
+ic :: Double -> Distance
 ic i = (Distance . round) (i * 90.0)
 
+---
+-- Conversion from <code>Distance</code> to cm.
+tocm :: Distance -> Double
 tocm (Distance p) = (fromInt p) / 35.4  
+
+---
+-- Conversion from <code>Distance</code> to inch.
+toinch :: Distance -> Double
 toinch (Distance p) = (fromInt p) / 90.0

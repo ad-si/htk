@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>scale</strong> widget.<br>
+-- A simple slider in a through representing a range of numeric values.
 module Scale (
 
   ScaleValue(..),

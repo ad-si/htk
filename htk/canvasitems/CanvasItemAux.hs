@@ -56,7 +56,7 @@ itemGeo (w,h,x,y) = coord [(x,y),(x+w,y+h)]
 
 getGeo :: CanvasItem w => w -> IO Geometry
 getGeo wd = getCoord wd >>= coordToGeo 
-        
+
 setGeo :: CanvasItem w => w -> Geometry -> IO w
 setGeo wd g = configure wd [itemGeo g]
 

@@ -1,16 +1,17 @@
-{- #######################################################################
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
-MODULE        : ICursor
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : . 
-
-   #################################################################### -}
-
-
+---
+-- Basic types and classes concerning insertion cursors in entry and
+-- text fields.
 module ICursor (
 
   module Index,
@@ -41,10 +42,13 @@ import Computation
 -- classes for insertion cursor
 -- -----------------------------------------------------------------------
 
+---
+-- Widgets with an insertion cursor instantiate the
+-- <code>class HasInsertionCursor</code>.
 class Widget w => HasInsertionCursor w
 
 class HasInsertionCursor w => HasInsertionCursorIndexSet w i where
-  insertionCursor  :: i -> Config w
+  insertionCursor :: i -> Config w
 
 class HasInsertionCursor w => HasInsertionCursorIndexGet w i where
   getInsertionCursor :: w -> IO i

@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- A container widget with a preset packing orientation (for simple
+-- packing).
 module Box (
 
   Flexibility(..),
@@ -18,7 +21,7 @@ module Box (
   newHBox,
   newVBox,
   newHFBox,
-  newVFBox        
+  newVFBox
 
 ) where
 
@@ -38,6 +41,8 @@ import Packer
 -- horizontal/vertical box 
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>Box</code> datatype.
 data Box = Box GUIOBJECT
 
 
@@ -45,11 +50,18 @@ data Box = Box GUIOBJECT
 -- commands
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new box and returns a handler.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param fl      - the flexibility of the box.
+-- @param cnf     - the list of configuration options for this box.
+-- @return result - A box.
 newBox :: Container par => par -> Flexibility -> [Config Box] -> IO Box
-newBox par fl confs =
+newBox par fl cnf =
   do
     w <- createWidget (toGUIObject par) (BOX cdefault fl)
-    configure (Box  w) confs
+    configure (Box  w) cnf
 
 newHBox :: Container par => par -> [Config Box] -> IO Box
 newHBox par ol = newBox par Rigid ((orient Horizontal) : ol)

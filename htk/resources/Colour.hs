@@ -1,74 +1,109 @@
-{- #########################################################################
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
-MODULE        : Colour
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Colour specifications
-
-
-   ######################################################################### -}
-
-
+---
+-- Basic types and classes for coloured resources.
 module Colour (
-        ColourDesignator(..),
-        Colour(..)      
-        ) where
+
+  ColourDesignator(..),
+  Colour(..)      
+
+) where
 
 import GUIValue
 import Char
 import Debug(debug)
 
--- --------------------------------------------------------------------------
---  Colour Designator 
--- --------------------------------------------------------------------------
 
+-- -----------------------------------------------------------------------
+-- Colour Designator
+-- -----------------------------------------------------------------------
+
+---
+-- Datatypes that describe a colour instantiate the
+-- <code>class ColourDesignator</code>.
 class ColourDesignator c where
-        toColour :: c -> Colour
+  toColour :: c -> Colour
 
 
--- --------------------------------------------------------------------------
---  Instances 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances 
+-- -----------------------------------------------------------------------
 
+---
+-- A colour itself describes a colour.
 instance ColourDesignator Colour where
-        toColour = id
+---
+-- Internal.
+  toColour = id
 
+---
+-- Strings like "red", "blue" etc. decribe colours.
 instance ColourDesignator [Char] where
-        toColour = Colour
+---
+-- Internal.
+  toColour = Colour
 
+---
+-- A tuple of rgb values describes a colour.
 instance ColourDesignator (Int,Int,Int) where
-        toColour (r,g,b) = Colour (rgb r g b)
+---
+-- Internal.
+  toColour (r,g,b) = Colour (rgb r g b)
 
+---
+-- A tuple of rgb values describes a colour.
 instance ColourDesignator (Double,Double,Double) where
-        toColour (r,g,b) = Colour (rgb (iround r) (iround g) (iround b))
-                                where iround :: Double -> Int
-                                      iround x = round x
+---
+-- Internal.
+  toColour (r,g,b) = Colour (rgb (iround r) (iround g) (iround b))
+                     where iround :: Double -> Int
+                           iround x = round x
 
 
--- --------------------------------------------------------------------------
---  Colour 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- datatype
+-- -----------------------------------------------------------------------
 
+---
+-- The <code>Colour</code> datatype.
 newtype Colour = Colour String 
 
+---
+-- Internal.
 instance GUIValue Colour where
-        cdefault = Colour "grey"
+---
+-- Internal.
+  cdefault = Colour "grey"
         
+---
+-- Internal.
 instance Read Colour where
+---
+-- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         xs -> [(Colour (takeWhile (/= ' ') xs),"")]
 
+---
+-- Internal.
 instance Show Colour where
+---
+-- Internal.
    showsPrec d (Colour p) r = p ++ r
 
 
--- --------------------------------------------------------------------------
---  Colour Codes
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Colour Codes
+-- -----------------------------------------------------------------------
 
 rgb :: Int -> Int -> Int -> String
 rgb r g b = "#" ++ concat (map (hex 2 "") [r,g,b]) where

@@ -10,8 +10,8 @@
 -- -----------------------------------------------------------------------
 
 ---
--- HTk's <strong>check button widget</strong>.<br>
--- A simple check button associated with a polymorphic variable.
+-- HTk's <strong>checkbutton</strong> widget.<br>
+-- A simple checkbutton associated with a polymorphic variable.
 module CheckButton (
 
   CheckButton,
@@ -43,7 +43,7 @@ import Tooltip
 -- polymorphic <code>TkVariable</code> (first type parameter); a
 -- <code>CheckButton a String</code> contains text, a
 -- <code>CheckButton a Image</code> contains an image,
--- <code>CheckButton a Bitmap</code> contains a bitmap.
+-- <code>CheckButton a BitMap</code> contains a bitmap.
 newtype CheckButton a b = CheckButton GUIOBJECT deriving Eq
 
 
@@ -52,12 +52,12 @@ newtype CheckButton a b = CheckButton GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 ---
--- Constructs a new check button widget and returns a handler.
+-- Constructs a new checkbutton widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this check
 --                  button.
--- @return result - A check button widget.
+-- @return result - A checkbutton widget.
 newCheckButton :: Container par => par -> [Config (CheckButton a b)] ->
                                    IO (CheckButton a b)
 newCheckButton par cnf =
@@ -81,62 +81,62 @@ instance GUIObject (CheckButton a b) where
   cname _ = "CheckButton"
 
 ---
--- A check button widget can be destroyed.
+-- A checkbutton widget can be destroyed.
 instance Destroyable (CheckButton a b) where
 ---
--- Destroys a check button widget.
+-- Destroys a checkbutton widget.
   destroy   = destroy . toGUIObject
 
 ---
--- A check button widget has standard widget properties
+-- A checkbutton widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget (CheckButton a b)
 
 ---
--- A check button widget can be flashed (redisplayed several times in
+-- A checkbutton widget can be flashed (redisplayed several times in
 -- alternate colours) and invoked (the associated event) as any button
 -- widget.
 instance ButtonWidget (CheckButton a b)
 
 ---
--- A check button widget can contain a bitmap.
+-- A checkbutton widget can contain a bitmap.
 instance HasBitMap (CheckButton a BitMap)
 
 ---
--- A check button widget has a configureable border.
+-- A checkbutton widget has a configureable border.
 instance HasBorder (CheckButton a b)
 
 ---
--- A button widget has a normal foreground and background colour and an
--- active/disabled foreground and background colour.
+-- A checkbutton widget has a normal foreground and background colour and
+-- an active/disabled foreground and background colour.
 instance HasColour (CheckButton a b) where 
 ---
 -- Internal.
   legalColourID = buttonColours
 
 ---
--- A check button widget is a stateful widget, it can be enabled or
+-- A checkbutton widget is a stateful widget, it can be enabled or
 -- disabled.
 instance HasEnable (CheckButton a b)
 
 ---
--- You can specify the font of a check button.
+-- You can specify the font of a checkbutton.
 instance HasFont (CheckButton a String)
 
 ---
--- A check button has a text justification configuration.
+-- A checkbutton has a text justification configuration.
 instance HasJustify (CheckButton a String)
 
 ---
--- A check button can contain an image.
+-- A checkbutton can contain an image.
 instance HasPhoto (CheckButton a Image)
 
 ---
--- You can specify the size of a check button.
+-- You can specify the size of a checkbutton.
 instance HasSize (CheckButton a b)
 
 ---
--- A check button can contain text.
+-- A checkbutton can contain text.
 instance GUIValue v => HasText (CheckButton a String) v
 
 ---
@@ -144,12 +144,14 @@ instance GUIValue v => HasText (CheckButton a String) v
 instance HasUnderline (CheckButton a String)
 
 ---
--- You can synchronize on a check button object (in JAVA style).
+-- You can synchronize on a checkbutton object.
 instance Synchronized (CheckButton a b) where
+---
+-- Synchronizes on a checkbutton object.
   synchronize = synchronize . toGUIObject
 
 ---
--- When a check button is clicked, a corresponding event is invoked.
+-- When a checkbutton is clicked, a corresponding event is invoked.
 instance HasCommand (CheckButton a b)
 
 ---
@@ -158,7 +160,7 @@ instance HasCommand (CheckButton a b)
 instance GUIValue a => HasValue (CheckButton a b) a
 
 ---
--- The polymorphic variable the check button's value is associated with.
+-- The polymorphic variable the checkbutton's value is associated with.
 instance HasVariable (CheckButton a b)
 
 ---

@@ -10,7 +10,7 @@
 -- -----------------------------------------------------------------------
 
 ---
--- HTk's <strong>frame widget</strong>.<br>
+-- HTk's <strong>frame</strong> widget.<br>
 -- A frame is a simple container for widgets.
 module Frame (
 
@@ -42,7 +42,7 @@ data Frame = Frame GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 ---
--- Constructs a new frame widget and returns a handler as a value.
+-- Constructs a new frame widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this frame.
@@ -102,7 +102,7 @@ instance HasColour Frame where
 instance HasSize Frame
 
 ---
--- You can synchronize on a frame object (in JAVA style).
+-- You can synchronize on a frame object.
 instance Synchronized Frame where
 ---
 -- Synchronizes on a frame object.

@@ -187,11 +187,21 @@ confine b cnv = cset cnv "confine" b
 getConfine :: Canvas -> IO Bool
 getConfine w = cget w "confine"
 
+
 -- -----------------------------------------------------------------------
 -- bounding boxes
 -- -----------------------------------------------------------------------
 
+---
+-- You can request the bounding box size of a canvas item (use a canvas
+-- tag for the bounding box of a set of items).
 instance GUIObject c => HasBBox Canvas c where
+---
+-- Gets the bounding box of a canvas item.
+-- @param cnv     - the concerned canvas.
+-- @param item    - the concerned canvas item.
+-- @return result - The requested bounding box (upper left position,
+--                  lower right position).
   bbox cnv item =
     do
       objnm <- getObjectName (toGUIObject item)

@@ -348,48 +348,49 @@ newGenGUI mstate =
                                  Notepad.Rightclick inf ->
                                    npRightClick gui inf
                                  Notepad.ReleaseMovement ev_inf ->
-                                   do
-                                     ((x1, y1), items1) <-
-                                       getRef clipboard_dnd
-                                     ((x2, y2), items2, mitem) <-
-                                       getRef clipboard_mov
-                                     (if x1 == xRoot ev_inf &&
-                                         y1 == yRoot ev_inf then
-                                        do
-                                          putStrLn "drag and drop action (rel)"
-                                          sendEv gui
-                                            (DroppedOnTextArea items1)
-                                          undoLastMotion np
-                                      else
-                                        if x2 == xRoot ev_inf &&
-                                           y2 == yRoot ev_inf && 
-                                           isJust mitem then
-                                          do
-                                            let item = fromJust mitem
-                                            putStrLn "moving items (rel)"
-                                            undoLastMotion (notepad gui)
-                                            selected_notepaditems <-
-                                              getSelectedItems
-                                                (notepad gui)
-                                            mapM
-                                              (saveNotepadItemState gui)
-                                              selected_notepaditems
-                                            moveItems gui items2 item
-                                        else
-                                          do
-                                            selected_notepaditems <-
-                                              getSelectedItems np
-                                            selected_items <-
-                                              mapM getItemValue
-                                                   selected_notepaditems
-                                            setRef clipboard_dnd
-                                              ((xRoot ev_inf,
-                                                yRoot ev_inf),
-                                               selected_items)
-                                            setRef clipboard_mov
-                                              ((xRoot ev_inf,
-                                                yRoot ev_inf),
-                                               selected_items, Nothing))
+                                   synchronize (notepad gui)
+                                     (do
+                                        ((x1, y1), items1) <-
+                                          getRef clipboard_dnd
+                                        ((x2, y2), items2, mitem) <-
+                                          getRef clipboard_mov
+                                        (if x1 == xRoot ev_inf &&
+                                            y1 == yRoot ev_inf then
+                                           do
+                                             putStrLn "drag and drop action (rel)"
+                                             sendEv gui
+                                               (DroppedOnTextArea items1)
+                                             undoLastMotion np
+                                         else
+                                           if x2 == xRoot ev_inf &&
+                                              y2 == yRoot ev_inf && 
+                                              isJust mitem then
+                                             do
+                                               let item = fromJust mitem
+                                               putStrLn "moving items (rel)"
+                                               undoLastMotion (notepad gui)
+                                               selected_notepaditems <-
+                                                 getSelectedItems
+                                                   (notepad gui)
+                                               mapM
+                                                 (saveNotepadItemState gui)
+                                                 selected_notepaditems
+                                               moveItems gui items2 item
+                                           else
+                                             do
+                                               selected_notepaditems <-
+                                                 getSelectedItems np
+                                               selected_items <-
+                                                 mapM getItemValue
+                                                      selected_notepaditems
+                                               setRef clipboard_dnd
+                                                 ((xRoot ev_inf,
+                                                   yRoot ev_inf),
+                                                  selected_items)
+                                               setRef clipboard_mov
+                                                 ((xRoot ev_inf,
+                                                   yRoot ev_inf),
+                                                  selected_items, Nothing)))
                                  _ -> done)) +>
                          (do
                             ev <- tl_ev
@@ -508,13 +509,14 @@ tlObjectFocused gui clipboard (mobj, ev_inf) =
                         y == yRoot ev_inf &&
                         isNothing mitem then
                        do
-                         putStrLn "moving items"
+                         putStr "moving items..."
                          undoLastMotion (notepad gui)
                          selected_notepaditems <-
                            getSelectedItems (notepad gui)
                          mapM (saveNotepadItemState gui)
                               selected_notepaditems
                          moveItems gui items item
+                         putStrLn "ok"
                      else do
                             case mch of
                               Just ch ->
