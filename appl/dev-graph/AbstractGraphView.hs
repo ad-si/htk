@@ -421,8 +421,8 @@ abstractnodes gid node_list gv =
 		                   let on = map (\node -> get node (nodes g)) node_list
                  		   oldNodes <- saveOldNodes g on
 				   -- try to create the new abstract node and add its in- and outgoing paths
-				   (gs,_) <- readIORef gv
-				   writeIORef gv (gs,ev_cnt+1)
+				--   (gs,_) <- readIORef gv
+				--   writeIORef gv (gs,ev_cnt+1)
 		                   (Result de1 error1) <- replaceByAbstractNode gid node_list nl oeDescr gv --(gs,ev_cnt+1)
 				   case error1 of
 				     Nothing -> do -- try to remove the in- and outgoing edges of the nodes to be hidden

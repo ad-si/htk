@@ -1,0 +1,5 @@
+Knoten-1 DEFINED
+Knoten-2 DEFINED
+Knoten-A INTERN
+Knoten-1 DEFINED  -> Knoten-A INTERN [AXIOM,LOCAL]
+Knoten-A INTERN  -> Knoten-2 DEFINED [THEOREM,LOCAL]
