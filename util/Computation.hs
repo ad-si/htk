@@ -101,8 +101,8 @@ import Maybes -- load this from util if Hugs, in GHC it's part of the
               -- standard library
 import Monad
 
-import Concurrent
-import Exception
+import Control.Concurrent
+import Control.Exception
 
 import Debug(debug)
 
@@ -146,7 +146,7 @@ propagate (Left e) = throw e
 propagate (Right v) = return v
 
 catchall :: IO a -> IO a -> IO a
-catchall c1 c2 = Exception.catch c1 (\ _ -> c2)
+catchall c1 c2 = Control.Exception.catch c1 (\ _ -> c2)
 
 tryUntilOK :: IO a -> IO a 
 tryUntilOK c = catchall c (tryUntilOK c)

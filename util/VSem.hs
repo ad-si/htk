@@ -43,8 +43,8 @@ module VSem(
    releaseLocal, -- :: VSem -> IO ()
    ) where
      
-import Concurrent
-import Exception
+import Control.Concurrent
+import Control.Exception
 
 import Computation
 import Queue

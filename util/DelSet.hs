@@ -14,7 +14,7 @@ module DelSet (
    fromDelSetKey, -- :: DelSetKey -> Int
    ) where
 
-import FiniteMap
+import Data.FiniteMap
 
 import Object -- we get our keys from here.
 

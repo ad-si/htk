@@ -30,7 +30,7 @@ module AtomString(
 import Control.Concurrent
 import Data.FiniteMap
 import System.IO.Unsafe
-import PackedString
+import Data.PackedString
 import Control.Exception
 import Text.ParserCombinators.Parsec 
 

@@ -22,8 +22,8 @@ module KeyedChanges(
    -- instance Ord key => HasSource (KeyedChanges key delta) [delta] delta
    ) where
 
-import Concurrent
-import FiniteMap
+import Control.Concurrent
+import Data.FiniteMap
 
 import Computation(done)
 

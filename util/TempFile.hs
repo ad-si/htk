@@ -6,8 +6,8 @@ module TempFile(
 
 import Directory
 
-import Concurrent
-import qualified IOExts(unsafePerformIO)
+import Control.Concurrent
+import System.IO.Unsafe
 
 import IOExtras
 import WBFiles
@@ -20,7 +20,7 @@ data TempFileSource = TempFileSource {
    }
 
 tempFileSource :: TempFileSource
-tempFileSource = IOExts.unsafePerformIO (
+tempFileSource = unsafePerformIO (
    do
       workingDir <- getWorkingDir
       let directory = combineNames workingDir "#"

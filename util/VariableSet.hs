@@ -26,8 +26,8 @@ module VariableSet(
 
 import Maybe
 
-import Set
-import Concurrent
+import Data.Set
+import Control.Concurrent
 
 import Computation
 import Registry

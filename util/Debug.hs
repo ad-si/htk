@@ -38,10 +38,9 @@ module Debug(
      -- to the evaluation.
   ) where
 import IO
-import qualified IOExts(unsafePerformIO)
-import qualified Concurrent
-import Dynamic
-import Exception
+import System.IO.Unsafe
+import Data.Dynamic
+import Control.Exception
 
 import CompileFlags
 import WBFiles
@@ -58,7 +57,7 @@ openDebugFile =
          ) 
          (\ _-> return Nothing)
 
-debugFile = IOExts.unsafePerformIO openDebugFile
+debugFile = unsafePerformIO openDebugFile
 {-# NOINLINE debugFile #-} 
 
 $(
@@ -82,7 +81,7 @@ $(
             debugAct :: String -> IO a -> IO a
             debugAct mess act =
                do
-                  res <- Exception.try act
+                  res <- Control.Exception.try act
                   case res of
                      Left error ->
                         do
@@ -126,7 +125,7 @@ alwaysDebug s =
 alwaysDebugAct :: String -> IO a -> IO a
 alwaysDebugAct mess act =
    do
-      res <- Exception.try act
+      res <- Control.Exception.try act
       case res of
          Left error ->
             do
@@ -138,14 +137,14 @@ alwaysDebugAct mess act =
 
 wrapError :: String -> a -> a
 #ifdef DEBUG
-wrapError str value = IOExts.unsafePerformIO (wrapErrorIO str value)
+wrapError str value = unsafePerformIO (wrapErrorIO str value)
 #else 
 wrapError str value = value
 #endif
 
 wrapErrorIO :: String -> a -> IO a
 wrapErrorIO str value =
-   Exception.catchJust errorCalls (value `seq` return value)
+   Control.Exception.catchJust errorCalls (value `seq` return value)
       (\ mess -> error (str++":"++mess)) 
       
       

@@ -11,7 +11,7 @@ import ExtendedPrelude
 
 -- | Convert a ClockTime to a String.
 -- This has the format
---    <optional sign><digits>+<digits>
+--    \<optional sign\>\<digits\>+\<digits\>
 -- where the digits encode two integers N1 and N2 (in order) representing
 -- the time elapsed since 00:00:00 UTC on 1 Jan 1970.  This will be
 -- N1 + (N2 \/ 10^12) seconds.  0<=N2<10^12.

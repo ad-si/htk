@@ -38,6 +38,8 @@ else
 EXTRAEXPORTS = install ghchtk.export ghcihtk.export mk/FixFileNames $(COMMONEXTRAEXPORTS)
 endif
 
+THISISTOP = YES
+
 include @TOP@/mk/boilerplate.mk 
 
 # Tarballs:
@@ -79,9 +81,6 @@ wwwhere :
 
 # This needs to be done for Haddock.
 boothere : mk/RemoveSplices
-
-# This forces haddock to generate an index.
-haddockgenindex : haddockreallygenindex
 
 mk/RemoveSplices : mk/MainRemoveSplices.hs
 	$(HC) $< -o $@

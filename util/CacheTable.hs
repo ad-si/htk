@@ -8,9 +8,9 @@ module CacheTable(
  
    ) where
 
-import Weak
-import FiniteMap
-import Concurrent
+import System.Mem.Weak
+import Data.FiniteMap
+import Control.Concurrent
 
 import Computation(done)
 

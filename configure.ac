@@ -114,24 +114,24 @@ if test -z "$GHC"; then
       echo "Without a recent version of Glasgow Haskell you cannot compile UniForm"
       GOAHEAD=NO
    fi
-  GhcShortVersion=000
+   GhcShortVersion=000
 else
    UNI_GHC_VERSION([GhcVersion],[GhcMajVersion],[GhcMinVersion],[GhcPatchLevel])
-  AC_SUBST(GhcVersion)
-  AC_SUBST(GhcMajVersion)
-  AC_SUBST(GhcMinVersion)
-  AC_SUBST(GhcPatchLevel)
+   AC_SUBST(GhcVersion)
+   AC_SUBST(GhcMajVersion)
+   AC_SUBST(GhcMinVersion)
+   AC_SUBST(GhcPatchLevel)
 
-# Turn GhcMajVersion & GhcMinVersion into a single three-digit number we
-# can compare against.
-if test $GhcMinVersion -lt 10
-then
-   GhcShortVersion=${GhcMajVersion}0$GhcMinVersion
-else
-   GhcShortVersion=${GhcMajVersion}$GhcMinVersion
-fi
+   # Turn GhcMajVersion & GhcMinVersion into a single three-digit number we
+   # can compare against.
+   if test $GhcMinVersion -lt 10
+   then
+      GhcShortVersion=${GhcMajVersion}0$GhcMinVersion
+   else
+      GhcShortVersion=${GhcMajVersion}$GhcMinVersion
+   fi
 
-  echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
+   echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
 fi
 
 AC_SUBST(GhcShortVersion)
@@ -144,6 +144,34 @@ if test -z "$GHCPKG"; then
       GOAHEAD=NO
    fi
 fi
+
+# Try to find GHC's documents.
+AC_ARG_WITH(
+   ghc-docs,
+   AC_HELP_STRING(
+      [--with-ghc-html],
+      [Set to pathname of Glasgow Haskell's html directory]
+      ),
+   GHCHTML=$withval,
+   GHCHTML=${GHCHTML}
+   )
+# Try to guess from GHC's installation directory.
+echo $GHCHTML $GHC
+if test -z "$GHCHTML" -a -n "$GHC"; then
+   GHCHTML=`$GHC --print-libdir | sed -e 's+/lib/\([^/]*\)$+/share/\1+g'`/html
+fi
+
+if test -r $GHCHTML/libraries/base/base.haddock
+then
+   echo Glasgow Haskell HTML documents found in $GHCHTML
+else
+   GHCHTML=
+   echo No HTML documents or Haddock files found for GHC.
+   echo This will mean ./runhaddock.sh cannot insert links within
+   echo Haddocked versions of our modules to GHC modules.
+fi 
+
+AC_SUBST(GHCHTML)
 
 #
 # Check for wish
@@ -179,9 +207,9 @@ if test -z "$ZIP"; then
    echo "Without zip you cannot build zip archives."
 fi
 #
-# Check for hdoc
-AC_PATH_PROGS(HDOC,hdoc)
-echo hdoc is used for providing browsable versions of the HTk sources.
+# Check for haddock
+AC_PATH_PROGS(HADDOCK,haddock)
+echo haddock is used for providing browsable versions of the HTk sources.
 #
 # Check for gfind, cp, ln and mkdir
 AC_PATH_PROGS(GFIND,gfind,find)
@@ -296,7 +324,7 @@ if test "$GOAHEAD" = YES; then
    echo ''
    echo '------------------- Configuration Successful ------------------'
    if test "$BINARY" = NO; then
-      SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs"
+      SCRIPTS="mmiss/test/runWorkbench mmiss/test/runServer posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer util/CompileFlags.hs runhaddock.sh"
    else
       SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp posixutil/daVinci.debug posixutil/wish.debug"
    fi
