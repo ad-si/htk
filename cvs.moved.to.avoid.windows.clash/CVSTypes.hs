@@ -6,32 +6,22 @@ module CVSTypes(
    CVSVersion(..) -- alias for version.  Ditto.
    ) where
 
+import QuickReadShow
 
 newtype CVSFile = CVSFile String deriving (Eq,Ord)
-instance Show CVSFile where
-   showsPrec prec (CVSFile str) acc = showsPrec prec str acc
+instance QuickRead CVSFile where
+   quickRead = WrapRead (\ str -> CVSFile str)
 
-instance Read CVSFile where
-   readsPrec prec str =
-      let
-         parses = readsPrec prec str :: [(String,String)] 
-      in
-         map
-            (\ (result,rest) -> (CVSFile result,rest))
-            parses
+instance QuickShow CVSFile where
+   quickShow = WrapShow (\ (CVSFile str) -> str)
 
 newtype CVSVersion = CVSVersion String deriving (Eq,Ord)
- 
-instance Show CVSVersion where
-   showsPrec prec (CVSVersion str) acc = showsPrec prec str acc
+instance QuickRead CVSVersion where
+   quickRead = WrapRead (\ str -> CVSVersion str)
 
-instance Read CVSVersion where
-   readsPrec prec str =
-      let
-         parses = readsPrec prec str :: [(String,String)] 
-      in
-         map
-            (\ (result,rest) -> (CVSVersion result,rest))
-            parses
+instance QuickShow CVSVersion where
+   quickShow = WrapShow (\ (CVSVersion str) -> str)
+
+ 
 
 

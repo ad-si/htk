@@ -101,9 +101,11 @@ import Concurrent
 import Set
 import qualified BSD
 import CString
+import Storable
 import ByteArray(ByteArray)
 
 import Computation(done)
+import QuickReadShow
 import FiniteMap
 import Maybes
 import IOExtras
@@ -305,13 +307,6 @@ copyFile source destination =
             let 
                sourcePrim = CString.packString source
                destinationPrim = CString.packString destination 
-#if 0
-            let
-               sourcePrim = psToCString(packString source)
-               destinationPrim = psToCString(packString destination)
-            debug ("CVSDB.copyFile: "++source++"->"++destination)
-            debug (sourcePrim,destinationPrim)
-#endif
             code <- copyFilePrim sourcePrim destinationPrim
             if (code<0)
                then
@@ -509,17 +504,11 @@ getAttributeKeys :: Attributes -> [String]
 getAttributeKeys (Attributes(LineShow list)) =
    map (\ (key,_) -> key) list
 
-instance Show Attributes where
-   showsPrec prec (Attributes list) acc = showsPrec prec list acc
- 
-instance Read Attributes where
-   readsPrec prec toRead =   
-      let
-         result :: [(LineShow (String,String),String)] = readsPrec prec toRead
-      in
-         map
-           (\ (res,rest) -> (Attributes res,rest))
-           result
+instance QuickRead Attributes where
+   quickRead = WrapRead (\ str -> Attributes str)
+
+instance QuickShow Attributes where
+   quickShow = WrapShow (\ (Attributes str) -> str)
 
 commitAttributes :: Repository -> Attributes -> Location -> 
    AttributeVersion -> IO ObjectVersion

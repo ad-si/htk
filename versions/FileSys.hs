@@ -83,6 +83,7 @@ import FiniteMap
 import Concurrent
 
 import Computation
+import QuickReadShow
 import LineShow
 import Cache
 import FileNames
@@ -129,8 +130,13 @@ instance Ord FileObj where
    (<)     (FileObj l1 o1 _ _) (FileObj l2 o2 _ _) = (<)     (l1,o1) (l2,o2)
    (>)     (FileObj l1 o1 _ _) (FileObj l2 o2 _ _) = (>)     (l1,o1) (l2,o2)
 
+
 instance Show FileObj where
    showsPrec prec (FileObj l o a _) acc = showsPrec prec (l,o,a) acc
+
+instance QuickShow FileObj where
+   quickShow = WrapShow (\ (FileObj l o a _) -> (l,o,a))
+
 
 data FolderObj = FolderObj (FiniteMap (String,UniType) FileObj)
 
@@ -379,9 +385,9 @@ data OldContents =
    deriving Show
 
 newtype ChangeFolder = ChangeFolder (FiniteMap (String,UniType) ChangeTree)
-   
-instance Show ChangeFolder where
-   showsPrec prec (ChangeFolder map) acc = showsPrec prec (fmToList map) acc
+ 
+instance QuickShow ChangeFolder where
+   quickShow = WrapShow (\ (ChangeFolder map) -> fmToList map)
 
 ------------------------------------------------------------------
 -- Turning sequences of changes into change trees.

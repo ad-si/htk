@@ -4,6 +4,7 @@
    Limitations: 
       1) not thread-safe
       2) not unique between machines.
+      3) could conceivably overflow.
    */
 
 int next_object_id();
