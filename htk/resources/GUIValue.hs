@@ -28,9 +28,8 @@ module GUIValue (
         illegalGUIValue
         ) where
 
-import Computation(raise)
+import IO(ioError)
 import Char
-import Debug(debug)
 import Maybe(isJust)
 import List (find)
 
@@ -70,8 +69,8 @@ fromGUIValueIO :: GUIValue a => GUIVALUE -> IO a
 fromGUIValueIO v = 
         case maybeGUIValue v of
                 Nothing  -> do {
-                                debug ("NO PARSE: " ++ show v);
-                                raise illegalGUIValue
+                                print ("NO PARSE: " ++ show v);
+                                ioError illegalGUIValue
                                 }
                 (Just a) -> return a
 
@@ -81,7 +80,7 @@ creadTk s =
         case maybeGUIValue (GUIVALUE Tk (restoreNL s)) of
                 Nothing ->  do {
                         print ("NO PARSE: " ++ s);
-                        raise illegalGUIValue
+                        ioError illegalGUIValue
                         }
                 (Just v) -> return v
         where   restoreNL [] = []

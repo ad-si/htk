@@ -1,0 +1,17 @@
+Package {
+   name = "uni-options",
+   import_dirs = [],
+   source_dirs = [],
+   library_dirs = [],
+   hs_libraries = [],
+   extra_libraries = [],
+   include_dirs = ["$PWD/includes"],
+   c_includes = [],
+   package_deps = [],
+   extra_ghc_opts = ["-fglasgow-exts","-fallow-overlapping-instances", 
+      "-fallow-undecidable-instances"],
+   extra_cc_opts = [],
+   extra_ld_opts = []
+   }
+     
+ 

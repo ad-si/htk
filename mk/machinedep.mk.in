@@ -10,3 +10,7 @@ CC = @CC@
 TOP = @TOP@
 GFIND = @GFIND@
 CP = @CP@
+MKDIR = @MKDIR@
+LD = @LD@
+GHCPKG = @GHCPKG@
+SED = @SED@

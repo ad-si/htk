@@ -20,7 +20,6 @@ module Colour (
 
 import GUIValue
 import Char
-import Debug(debug)
 
 
 -- -----------------------------------------------------------------------

@@ -1,0 +1,14 @@
+PACKAGE = uni-posixutil
+PACKAGES = posix uni-events
+
+SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
+   Expect.hs SafeSystem.hs
+
+SRCSC = MainrunCommand.c
+
+# For runCommand we link with -no-hs-main since it's not actually a Haskell
+# program.
+EXTRA_HC_OPTIONS += $($*_HC_OPTIONS)
+runCommand_HC_OPTIONS = -no-hs-main
+
+include @TOP@/mk/boilerplate.mk

@@ -1,4 +1,11 @@
-LIB        = libhtk.a
+PACKAGE    = uni-htk
+PACKAGES   = uni-posixutil uni-reactor
+DOIMPORTS  = YES
+
+# I think the next line shouldn't really be necessary, but it seems to work
+# around a bug in ghc5.02.3
+EXTRA_HC_OPTIONS = -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets
+# EXTRA_HC_OPTIONS = -hidir imports -iimports
 
 SRCS       = resources/Resources.hs\
              resources/GUIValue.hs\
@@ -101,14 +108,12 @@ SRCS       = resources/Resources.hs\
              toolkit/HTkMenu.hs\
              toolkit/SimpleForm.hs\
              toolkit/GenericBrowser.hs\
-
-HTKNOTSRCS = kernel/CallWish.hs toolkit/FileDialog.hs toolkit/LogWin.hs
-
-EXTRA_HC_OPTIONS += -H40M
+ifneq "$(WINDOWS)" "1"
+             toolkit/FileDialog.hs\
+             toolkit/LogWin.hs
+endif
 
 SUBDIRS = test examples
-
-XHCDIRS = $(HTKSDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

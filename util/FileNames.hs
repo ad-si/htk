@@ -1,6 +1,5 @@
 {- FileNames contain facilities for manipulating filenames
-   in a hopefully OS-independent manner.  At the moment it
-   assumes Unix -}
+   in a hopefully OS-independent manner.  -}
 module FileNames(
    fileSep, -- :: Char
             -- file separator
@@ -28,8 +27,15 @@ module FileNames(
             
    ) where
 
+#include "config.h"
+
 fileSep :: Char
+
+#if WINDOWS
+fileSep = '\\`
+#else
 fileSep = '/'
+#endif
 
 trimDir :: String -> String
 trimDir [] = []

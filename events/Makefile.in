@@ -1,4 +1,5 @@
-LIB        = libevents.a
+PACKAGE = uni-events
+PACKAGES = uni-util
 
 SRCS       = Toggle.hs\
              Events.hs\
@@ -22,17 +23,6 @@ SRCS       = Toggle.hs\
 	     Mutex.hs\
 	     ReferenceVariables.hs\
 
-HTKNOTSRCS = RefQueue.hs MatchChannel.hs RegexChannel.hs
-
 SUBDIRS = test
-
-# Hackery to insert file-specific flags, in this case to stop
-# GuardedChannel.hi file containing existential type unfoldings
-# which ghc4.08.2 can't handle.  (Bug reported 22/2/2001.)
-EXTRA_HC_OPTIONS += $($*_HC_OPTIONS)
-
-# -- this option unknown in ghc5.00.1
-# GuardedChannels_HC_OPTIONS = -funfolding-interface-threshold0 
-
 
 include @TOP@/mk/boilerplate.mk

@@ -4,3 +4,4 @@ dont put any sort of comments in, apart from this one.
 #endif
 
 #define DEFAULTOPTIONS "@DEFAULTOPTIONS@"
+#define WINDOWS @WINDOWS@

@@ -290,8 +290,6 @@ doInContextVeryGeneral daVinciCmd contextOpt =
       -- locked period.)
       let
          cmdString = (show daVinciCmd) ++ "\n"
-         packed = packString cmdString
-         len = length cmdString 
          cIdOpt = (fmap contextId) contextOpt
 
          DaVinci {
@@ -299,43 +297,47 @@ doInContextVeryGeneral daVinciCmd contextOpt =
             responseMVar = responseMVar,
             currentContextIdMVar = currentContextIdMVar
             } = daVinci 
-      
-      currentContextId <- 
-         cIdOpt `seq` packed `seq` len `seq`
-            takeMVar currentContextIdMVar 
-            -- Here is where daVinci actually gets created.
-      -- Change context id, if necessary.
-      case cIdOpt of
-         Nothing -> done
-         Just newContextId ->
-            if currentContextId == newContextId
-               then
-                  done
-               else
-                  do
-                     sendMsg childProcess 
-                        (show(Multi(SetContext newContextId)))
-                     (gotContextId,result) <- takeMVar responseMVar
-                     if gotContextId /= newContextId
-                        then
-                           error "set_context returned wrong context"
-                        else
-                           done
-                     case result of
-                        Ok -> done
-                        _ -> error ("set_context returned "++(show result)) 
-      sendMsgRaw childProcess packed len
-      result@(gotContextId,daVinciAnswer) <- takeMVar responseMVar
-      putMVar currentContextIdMVar gotContextId
-      case cIdOpt of
-         Nothing -> done
-         Just newContextId -> 
-            if gotContextId == newContextId
-               then
-                  done
-            else
-               error "DaVinciBasic: Mismatch in returned context"
-      return result
+
+      withCStringLen cmdString (\ cStringLen ->
+         -- packing the command string this early has the advantage of forcing
+         -- it to be fully evaluated before we lock daVinci.
+         do
+            currentContextId <- takeMVar currentContextIdMVar 
+            -- Here is where daVinci actually gets created, if necessary.
+            -- Change context id, if necessary.
+            case cIdOpt of
+               Nothing -> done
+               Just newContextId ->
+                  if currentContextId == newContextId
+                     then
+                        done
+                     else
+                        do
+                           sendMsg childProcess 
+                              (show(Multi(SetContext newContextId)))
+                           (gotContextId,result) <- takeMVar responseMVar
+                           if gotContextId /= newContextId
+                              then
+                                 error "set_context returned wrong context"
+                              else
+                                 done
+                           case result of
+                              Ok -> done
+                              _ -> error ("set_context returned "++
+                                 (show result)) 
+            sendMsgRaw childProcess cStringLen
+            result@(gotContextId,daVinciAnswer) <- takeMVar responseMVar
+            putMVar currentContextIdMVar gotContextId
+            case cIdOpt of
+               Nothing -> done
+               Just newContextId -> 
+                  if gotContextId == newContextId
+                     then
+                        done
+                  else
+                     error "DaVinciBasic: Mismatch in returned context"
+            return result
+         )
 
 forAllContexts :: (Context -> IO ()) -> IO ()
 forAllContexts contextAct =

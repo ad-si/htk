@@ -13,21 +13,27 @@ DEPEND           = $(HC) -M -optdep-f -optdep.depend
 # (1) -optdep.depend makes dependences go into .depend files.
 # (2) -f means .depend doesn't have to exist first for this to work.
 
+# Options that are required when someone USES the libraries we've compiled
+# should go into uni-package.options.
 ifdef DEBUG
-   HC_OPTIONS = -recomp -fwarn-deprecations -Onot -DDEBUG
+   HC_OPTIONS = -Onot -DDEBUG
 else
-#    HC_OPTIONS = -recomp -fwarn-deprecations -O -fasm
-    HC_OPTIONS = -recomp -fwarn-deprecations -O
+    HC_OPTIONS = -O
 endif
 
-HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
-
 HCSHORTFLAGS = \
-   $(HCSYSLIBS) -fglasgow-exts \
-   -fallow-overlapping-instances -fallow-undecidable-instances \
-   -cpp -ddump-hi-diffs -H25M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
+   -cpp -recomp -fwarn-deprecations \
+   -package-conf $(PACKAGECONF) $(PACKAGESARGS) \
+   $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
 
-HCFLAGS = -i$(HCDIRS) -I$(TOP)/includes $(HCSHORTFLAGS)
+PACKAGESARGS = $(PACKAGES:%=-package %)
+
+HCFLAGS = $(HCSHORTFLAGS)
+
+THISPACKAGE = $(if $(PACKAGE),-package $(PACKAGE))
+
+FIXFILENAMES = $(TOP)/mk/FixFileNames
+
 
 # LINKFLAGS contains extra flags to be put at the end of the command line
 # when compiling executables.
@@ -39,6 +45,9 @@ LINKFLAGS =
 # you change the GHC installation.  
 CC               = $(HC)
 CFLAGS           = $(GHCINCDIR)
+
+# The package configuration directory
+PACKAGECONF = $(TOP)/uni-package.conf
 
 # Subdirectories
 # . is automatically included by mkdependHS anyway (I don't

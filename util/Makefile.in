@@ -1,16 +1,12 @@
-LIB        = libutil.a
+PACKAGE = uni-util
+PACKAGES = concurrent lang data text uni-options
 
 SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs \
   WBFiles.hs Object.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \
   IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs \
   RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs UniqueFile.hs \
   TempFile.hs Sink.hs Broadcaster.hs VariableSet.hs VariableMap.hs \
-  CommandStringSub.hs WaitOnN.hs FileSystem.hs CopyFile.hs
-
-HTKNOTSRCS = Dynamics.hs LineShow.hs Cache.hs FileNames.hs AtomString.hs \
-   Registry.hs DelSet.hs UniqueString.hs UniqueFile.hs TempFile.hs Sink.hs \
-   Broadcaster.hs VariableSet.hs VariableMap.hs CommandStringSub.hs  \
-   WaitOnN.hs FileSystem.hs CopyFile.hs RegularExpression.hs \
+  CommandStringSub.hs WaitOnN.hs FileSystem.hs  
 
 SRCSC      = new_object.c default_options.c copy_file.c
 
@@ -18,5 +14,5 @@ SUBDIRS = test
 
 include @TOP@/mk/boilerplate.mk
 
-# WBFiles_HC_OPTIONS = -Onot
+
 

@@ -1,7 +1,7 @@
 dnl == autoconf source for the UniForM workbench ==
 dnl some details stolen from GHC configure.in file.
 # Check that sources are available
-AC_INIT(reactor/ChildProcess.hs)
+AC_INIT(util/Debug.hs)
 #
 # Set GOAHEAD to NO prevent modifying Makefiles and so on.
 GOAHEAD=YES
@@ -12,8 +12,35 @@ echo ""
 echo "The top of the UniForM build tree is: $TOP"
 AC_SUBST(TOP)
 #
+# Are we running Windows or Unix?
+case `uname` in
+   CYGWIN* ) WINDOWS=1 ;;
+   *) WINDOWS=0 ;;
+esac
+if test $WINDOWS -ne 0 
+then
+   echo You are running Windows
+else
+   echo You are running Unix or Linux
+fi
+AC_SUBST(WINDOWS)
+#
 # Find a C compiler.
-AC_PATH_PROGS(CC,gcc,cc)
+AC_PATH_PROGS(CC,gcc cc,)
+#
+# Find sed
+AC_PATH_PROGS(SED,sed)
+if test -z "$SED"; then
+   echo "Without sed we won't be able to finish this configuration"
+   GOAHEAD=NO
+fi
+#
+# Find a GNU linker
+AC_PATH_PROGS(LD,gnu-ld gld ld,)
+$LD --version
+echo
+echo "If that message didn't indicate a GNU linker, it won't be possible to use ghci on packages constructed with this build."
+
 #
 # Check for ghc
 AC_PATH_PROGS(GHC,ghc)
@@ -28,10 +55,15 @@ else
   AC_SUBST(GhcPatchLevel)
 
   echo GhcVersion=$GhcVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
-
-   
-
 fi
+
+# Check for ghc-pkg
+AC_PATH_PROGS(GHCPKG,ghc-pkg)
+if test -z "$GHCPKG"; then
+   echo Without ghc-pkg you cannot compile UniForM.
+   GOAHEAD = NO
+fi
+
 #
 # Check for wish
 AC_PATH_PROGS(WISH,wish wish_8.0,NOTFOUND)
@@ -58,10 +90,10 @@ fi
 AC_PATH_PROGS(HDOC,hdoc)
 echo hdoc is used for providing browsable versions of the HTk sources.
 #
-# Check for gfind and cp
+# Check for gfind, cp and mkdir
 AC_PATH_PROGS(GFIND,gfind,find)
 AC_PATH_PROGS(CP,cp)
-echo If you don't have cp and GNU find, gmake librealfast won't work.
+AC_PATH_PROGS(MKDIR,mkdir)
 # 
 # Construct the default options, used by 
 # util/default_options.c
@@ -77,11 +109,20 @@ AC_SUBST(DEFAULTOPTIONS)
 MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
-# Compiling mkEverything.c, used for libfasthere.
-   $CC mk/mkEverything.c -o mk/mkEverything
+   echo Compiling MainFixFileNames
+   $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
+
+   echo Setting up packages file as empty
+   # The echo prints []; the funny things bracketted by @ signs are
+   # "Quadrigraphs" which express this so.  Normal square brackets
+   # won't work since they have a special meaning for autoconf.
+   echo @<:@@:>@ >uni-package.conf
+
+   mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package 
+#
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES htk/doc/hdoc/generatedoc includes/config.h)
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk $MAKEFILES htk/doc/hdoc/generatedoc includes/config.h)
    chmod +x htk/doc/hdoc/generatedoc
    echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
 fi

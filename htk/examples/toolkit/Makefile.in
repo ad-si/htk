@@ -1,5 +1,4 @@
-LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
-       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+PACKAGES = uni-htk
 
 SRCS       = Mainfiledialog.hs\
              Mainlogwin.hs\
@@ -9,8 +8,6 @@ SRCS       = Mainfiledialog.hs\
              Mainsimplemenu.hs\
              Mainspinbutton.hs\
              Maintreelist.hs\
-
-XHCDIRS = $(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

@@ -1,9 +1,7 @@
-LIBS = $(TOP)/util/libutil.a
-
-LIB = libserver.a
+PACKAGE = uni-server
+PACKAGES = net posix uni-reactor uni-posixutil
 
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
-   EchoService.hs
-# CallServer.hs is now part of the reactor.
+   EchoService.hs CallServer.hs Notification.hs
 
 include @TOP@/mk/boilerplate.mk

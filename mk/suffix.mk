@@ -1,5 +1,5 @@
 # We establish the following conventions.
-# Haskell files end with ".hs", c with ".c".
+# Haskell files end with ".hs" or ".lhs", c with ".c".
 # Source files are distinguished by prefix.
 # Source files with names beginning "Test" are test files.
 #    These are assumed to be linkable to complete executables
@@ -13,7 +13,7 @@
 #    and the ".hs" file.  So "Mainserver.hs" goes to "server".
 #
 # All other files go into the library for the directory,
-#    $(LIB).
+#    $(LIB), constructed out of the package name $(PACKAGE).
 # The variables the Makefiles in the individual subdirectories
 # need to set, if non-null, are
 # SUBDIRS  the list of subdirectories to recurse to, which should
@@ -21,8 +21,15 @@
 #             can be compiled.
 # SRCS     all Haskell source files
 # SRCSC    all C source files
-# LIB      the name of the desired library
-# LIBS     libraries required by the test programs (if any).
+# PACKAGE  the name of this package
+# PACKAGES the name of packages we depend on (we only need direct
+#          dependencies here).
+# DOIMPORTS if set causes all .hi files to be copied to a subdirectory,
+#          which should exist,
+#          called imports, and entered in the package as being in that
+#          directory.  This is necessary for all packages, like htk,
+#          where the source files are not all in the head directory of
+#          the package.
 #
 # BOOTSRCS Haskell source files which are sources for .hi-boot files.
 #
@@ -65,6 +72,16 @@ TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
 MAINOBJS = $(filter Main%.o,$(OBJS))
 MAINPROGS = $(patsubst Main%.o,%,$(MAINOBJS))
+
+LIBOBJSHS = $(filter-out Test%.o Main%.o,$(OBJSHS))
+TESTOBJSHS = $(filter Test%.o,$(OBJSHS))
+MAINOBJSHS = $(filter Main%.o,$(OBJSHS))
+
+LIBOBJSLHS = $(filter-out Test%.o Main%.o,$(OBJSLHS))
+TESTOBJSLHS = $(filter Test%.o,$(OBJSLHS))
+MAINOBJSLHS = $(filter Main%.o,$(OBJSLHS))
+
+HILIBFILES = $(patsubst %.o,%.hi,$(LIBOBJSLHS) $(LIBOBJSHS))
 HIFILES = $(patsubst %.o,%.hi,$(OBJSALLHS))
 HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
 
@@ -78,6 +95,24 @@ OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC))  \
             $(patsubst %.c,$(CINCLUDES)/%.h,$(SRCSC)) \
             $$PWD/Makefile.in
 ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
+#
+#
+# Constructing names for target files
+# PACKAGE is the package name for this part of uni.  Normally it will
+# begin with "uni-".
+#
+# LIB is the name of the containing library
+LIB = lib$(PACKAGE).a
+# GHCIOBJ is an object containing the whole library (needed for ghci).
+GHCIOBJ = $(PACKAGE).o
+
+# Handling the dependencies list
+# This should be specified as PACKAGES, giving the PACKAGES we need.
+# We only need direct dependencies.
+# Is there any less horrible way of getting gmake to comma-separate
+# a list?
+DEPS' = $(filter-out BEGINCOMMA BEGIN,BEGIN$(PACKAGES:%=COMMA "%"))
+DEPS = $(DEPS':COMMA=,)
 
 #
 #
@@ -85,7 +120,7 @@ ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean ghci libfast libfasthere librealfast displaysrcshere displayhshere displaysrcs displayhs displayhtkhshere displayhtkhs objsc objschere preparehtkwin
+.PHONY : depend libhere lib testhere test all clean ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs displayhtkhshere displayhtkhs objsc objschere preparehtkwin packageherequick packagehere packages packagesquick
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -98,7 +133,7 @@ all : testhere libhere mainhere
 
 # ghci starts up GHC interactively.
 ghci :
-	$(HC) $(HCFLAGS) $(COBJS) --interactive
+	$(HC) $(HCFLAGS)  --interactive
  
 test : testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
@@ -135,11 +170,12 @@ display :
 	@echo HIFILES = $(HIFILES)
 	@echo HIBOOTFILES = $(HIBOOTFILES)
 	@echo HCDIRS = $(HCDIRS)
-
+	@echo DEPS = '$(DEPS)'
+	@echo PACKAGES = $(PACKAGES)
 
 depend : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
 ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
-	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) -cpp -I$(CINCLUDES) $(SRCS) $(SRCSLHS)
+	$(DEPEND) $(HCFLAGS) $(SRCS) $(SRCSLHS)
 endif
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
@@ -155,26 +191,39 @@ testhere : $(TESTPROGS)
 mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
-ifneq "$(strip $(LIBOBJS))" ""
-	$(TOP)/mk/mkEverything $(LIBSRCS)
-	$(HC) --make EVERYTHING.hs $(HCFLAGS)
-	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi
+ifneq "$(strip $(PACKAGE))" ""
+	$(HC) --make -package-name $(PACKAGE) $(HCFLAGS) $(HCLIBFLAGS) $(LIBSRCS)
 	$(AR) -r $(LIB) $(LIBOBJS)
 endif
 
-ALLDIRS = `
+$(GHCIOBJ) : $(LIB)
+	$(LD) -r --whole-archive -o $@ $<
 
-librealfast : objsc
-	$(TOP)/mk/mkEverything `$(MAKE) displayhs -s --no-print-directory`
-	ALLDIRS=`$(GFIND) . -type d ! -path "./appl*" ! -path "./windows/*" ! -name CVS -printf "%p:"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i$$ALLDIRS -I$(CINCLUDES)
-	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi *.h
-	$(MAKE) lib
 
-preparehtk :
-	$(TOP)/mk/mkEverything `$(MAKE) displayhtkhs -s --no-print-directory`
+packagehere : libfasthere
+	$(MAKE) packageherequick
 
-libhtk : preparehtk
-	HTKDIRS=`$(GFIND) htk -type d ! -name CVS -printf ":%p"`;$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -iutil:events:reactor$$HTKDIRS -I$(CINCLUDES)
+packages : packagehere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packages && ) echo Finished make packages
+
+packageherequick :
+# The "echo" after the --remove-package means we keep going even if
+# remove-package complains about the package not being there (which it won't
+# be, the first time we use this).
+ifneq "$(strip $(PACKAGE))" ""
+	$(GHCPKG) --config-file $(PACKAGECONF) --remove-package $(PACKAGE) ; echo ""
+ifneq "$(DOIMPORTS)" ""
+# Copy import files over.
+	$(RM) -rf imports
+	$(MKDIR) imports
+	$(CP) $(HILIBFILES) imports
+endif
+	sed -e 's+PACKAGE+$(PACKAGE)+g;s+IMPORTS+$(if $(DOIMPORTS),/imports)+g;s+DEPS+$(DEPS)+g' <$(TOP)/package.spec.template | $(FIXFILENAMES) | $(GHCPKG) --config-file $(PACKAGECONF) --add-package 
+	$(MAKE) $(GHCIOBJ)
+endif
+
+packagesquick : packageherequick
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) packagesquick && ) echo Finished make packagesquick
 
 
 displaysrcshere :
@@ -203,26 +252,32 @@ objsc : objschere
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^
 
-$(TESTPROGS) : test% :  Test%.o $(LIBS) $(LIB)
+$(TESTPROGS) : test% :  Test%.o 
 	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS) $(LINKFLAGS)
+	$(HC) -o $@ $(HCFLAGS) $< $(LINKFLAGS) $(THISPACKAGE)
 
-$(MAINPROGS) : % :  Main%.o $(LIBS) $(LIB)
+$(MAINPROGS) : % :  Main%.o 
 	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS) $(LINKFLAGS)
+	$(HC) -o $@ $(HCFLAGS) $< $(LINKFLAGS) $(THISPACKAGE)
 
 $(HIFILES) : %.hi : %.o
 	@:
 
 $(HIBOOTFILES) : %.hi-boot : %.boot.hs
 	$(RM) $@
-	$(HC) $< $(HCFLAGS) -no-recomp -c -o /dev/null -ohi $@
+	$(HC) $< $(HCFLAGS) $(HCLIBFLAGS) -no-recomp -c -o /dev/null -ohi $@
 
-$(OBJSHS) : %.o : %.hs
-	$(HC) -c $< $(HCFLAGS) 
+$(LIBOBJSHS) : %.o : %.hs
+	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) $(HCLIBFLAGS)
 
-$(OBJSLHS) : %.o : %.lhs
-	$(HC) -c $< $(HCFLAGS) 
+$(LIBOBJSLHS) : %.o : %.lhs
+	$(HC) -c -package-name $(PACKAGE) $< $(HCFLAGS) 
+
+$(TESTOBJSHS) $(MAINOBJSHS) : %.o : %.hs
+	$(HC) -c $< $(HCFLAGS) $(THISPACKAGE)
+
+$(TESTOBJSLHS) $(MAINOBJSLHS) : %.o : %.lhs
+	$(HC) -c $< $(HCFLAGS) $(THISPACKAGE)
 
 $(OBJSC) : %.o : %.c $(CINCLUDES)/%.h
 	$(CC) $(CFLAGS) -c $< -o $@ -I$(CINCLUDES)

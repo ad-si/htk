@@ -1,19 +1,6 @@
-LIB        = libreactor.a
-LIBS = $(TOP)/util/libutil.a
-# LIBS is used just for ParseDebug.
+PACKAGE = uni-reactor
+PACKAGES = uni-events
 
-SRCS = Lock.hs BSem.hs InfoBus.hs CallServer.hs ProcessClasses.hs \
-    FdRead.hs ChildProcess.hs Notification.hs MainParseDebug.hs Expect.hs \
-    SafeSystem.hs
-
-HTKNOTSRCS = CallServer.hs Expect.hs SafeSystem.hs Notification.hs \
-    ProcessClasses.hs ChildProcess.hs FdRead.hs
-
-SRCSC = MainrunCommand.c
-
-# For runCommand we link with -no-hs-main since it's not actually a Haskell
-# program.
-EXTRA_HC_OPTIONS += $($*_HC_OPTIONS)
-runCommand_HC_OPTIONS = -no-hs-main
+SRCS = Lock.hs BSem.hs InfoBus.hs MainParseDebug.hs 
 
 include @TOP@/mk/boilerplate.mk

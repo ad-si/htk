@@ -1,10 +1,7 @@
-LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
-       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
+PACKAGES = uni-htk
 
 SRCS       = Maintixwidgets.hs\
              Mainpanedwindow.hs
-
-XHCDIRS = $(HTKDIRS)
 
 include @TOP@/mk/boilerplate.mk
 

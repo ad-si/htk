@@ -1,6 +1,6 @@
-LIBS = $(TOP)/events/libevents.a $(TOP)/util/libutil.a
 
-LIB = libtestevents.a
+PACKAGE = uni-events-test
+PACKAGES = uni-events
 
 SRCS = TestAlwaysRules.hs GetPut.hs TestGetPut.hs TestRegexChannel.hs TestSyncRec.hs
 include @TOP@/mk/boilerplate.mk

@@ -1,5 +1,8 @@
 SRCS = TestObject.hs TestDynamics.hs TestDynamics2.hs TestOptions.hs Huffman.hs TestFact.hs
-LIB = libtestutil.a
+
+PACKAGES = uni-util
+PACKAGE = uni-util-test
+
 LIBS = $(TOP)/util/libutil.a
 
 include @TOP@/mk/boilerplate.mk
