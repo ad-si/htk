@@ -56,6 +56,7 @@ type OurGraph =
 type CompTable = [(String,String,String)]
 data AbstractionGraph = AbstractionGraph {
        ontoGraph :: T.Gr (String,String,OntoObjectType) String,
+       relViewSpecs :: [RelationViewSpec],
        nodeMap :: NodeMapping,
        theGraph :: OurGraph,
        nodeTypes :: [(String,DaVinciNodeType (String,Int,Int))],
@@ -82,6 +83,8 @@ data Entry = Entry {newNodes :: [(Descr,(String,DaVinciNode (String,Int,Int)))],
 		    newEdges :: [(Int,(Int,Int,String,DaVinciArc (String,Int)))],
 		    oldEdges :: [(Int,(Int,Int,String,String))]
 		    }
+
+data RelationViewSpec = RelViewSpec String Bool Bool
 
 
 -- creates a new entry of the eventTable and fills it with the data contained in its parameters
@@ -164,10 +167,12 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
       (edgetypenames,edgetypeparams1) = unzip edgetypeparams
   graph <- GraphDisp.newGraph graphtool graphParms
   ontoGr <- return(I.empty)
+  relViewSpecList <- return([])
   nodetypes <- sequence (map (newNodeType graph) nodetypeparams1)
   edgetypes <- sequence (map (newArcType graph) edgetypeparams1)
   let g = AbstractionGraph {
             ontoGraph = ontoGr,
+            relViewSpecs = relViewSpecList,
             nodeMap = emptyFM,
             theGraph = graph,
             nodeTypes = zip nodetypenames nodetypes,
@@ -217,6 +222,13 @@ writeOntoGraph gid graph gv =
   fetch_graph gid gv False (\(g,ev_cnt) ->
     return (g{ontoGraph = graph},0,ev_cnt+1,Nothing)
   )
+
+writeRelViewSpecs :: Descr -> [RelationViewSpec] -> GraphInfo -> IO Result
+writeRelViewSpecs gid specs gv =
+  fetch_graph gid gv False (\(g,ev_cnt) ->
+    return (g{relViewSpecs = specs},0,ev_cnt+1,Nothing)
+  )
+
 
 writeNodeMap :: Descr -> NodeMapping -> GraphInfo -> IO Result
 writeNodeMap gid nMap gv =
