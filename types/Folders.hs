@@ -95,7 +95,7 @@ instance DisplayType FolderDisplayType where
             graphTitleSource =  
                fmap
                   (\ versionTitle -> 
-                     GraphTitle (versionTitle++": directory listing")
+                     GraphTitle (versionTitle++": structure graph")
                      )
                   (getViewTitleSource view)
          return (

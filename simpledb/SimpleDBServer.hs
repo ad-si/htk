@@ -77,15 +77,6 @@ specialLocation1 = Location 0
 specialLocation2 :: Location
 specialLocation2 = Location 1
 
-maxLocation :: Location 
-maxLocation = specialLocation2 
-   -- this should be the highest initially allocated location.
-
-maxVersion :: ObjectVersion 
-maxVersion = ObjectVersion (-1)
-   -- this should be the highest initially allocated version.
-   -- Currently no version is initially allocated.
-
 data SimpleDBCommand =
    -- All commands may additionally return IsError.
 
@@ -744,7 +735,7 @@ openSimpleDB versionState =
 
       -- (3) create an empty SimpleDB
       versionDictionary <- newIORef emptyFM
-      nextLocation <- newIORef 0
+      nextLocation <- newIORef 2
       nextVersion <- newIORef 0
 
       let

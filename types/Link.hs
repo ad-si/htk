@@ -169,7 +169,7 @@ preFetchLinks view links =
 fetchLinkWE :: HasCodedValue x => View -> Link x 
    -> IO (WithError (Versioned x))
 fetchLinkWE (view@View{repository = repository,objects = objects}) 
-      (Link location) =
+      ((Link location) :: Link x) =
    do
       transformValue objects location 
          (\ objectDataOpt ->
@@ -205,7 +205,14 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                   case fromDyn versionedDyn of
                      Just versioned 
                         -> return (objectDataOpt,hasValue versioned)
-                     Nothing -> err "View.fetchLink - type error in link"
+                     Nothing ->
+                        let
+                           xName = show (typeOf (undefined :: x))
+                           yName = show versionedDyn
+                        in
+                           err ("View.fetchLink - type error in link: "
+                              ++ "expecting " ++ xName ++ " in " ++ yName
+                              ++ " from " ++ show location)
                Just (ClonedObject {
                   sourceLocation = oldLocation,sourceVersion = oldVersion}) ->
                      do
@@ -404,6 +411,7 @@ createObject :: HasCodedValue x => View -> x -> IO (Versioned x)
 createObject view x =
    do
       location <- newLocation (repository view)
+
       createObjectGeneral view (Virgin x) location
 
 newEmptyObject :: HasCodedValue x => View -> IO (Versioned x)
