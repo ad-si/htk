@@ -15,7 +15,10 @@ module GenericBrowser (
 
   newGenericBrowser,
   GenericBrowser,
-  GBObject(..)
+  GBObject(..),
+
+  GenericBrowserEvent(..),
+  bindGenericBrowserEv
 
 ) where
 
@@ -66,7 +69,11 @@ getPos = do pos@(x,y) <- getRef posRef
 data GBObject o => GenericBrowser o =
   GenericBrowser { container :: Frame,
                    treelist :: TreeList o,
-                   notepad  :: Notepad o }
+                   notepad  :: Notepad o,
+
+                   -- event queue
+                   event_queue ::
+                     Ref (Maybe (Channel (GenericBrowserEvent o))) }
 
 
 -- -----------------------------------------------------------------------
@@ -101,16 +108,36 @@ newGenericBrowser par rootobjs cnf =
      np <- newNotepad fr Scrolled (12, 12) Nothing [bg "white" {-,
                                                     size (500, 2000)-}]
      pack np [Side AtRight, Fill Both, Expand On]
+     evq <- newRef Nothing
      let gb = GenericBrowser { container = fr,
                                treelist = tl,
-                               notepad = np }
+                               notepad = np,
+                               event_queue = evq }
      foldl (>>=) (return gb) cnf
      (tl_ev, _) <- bindTreeListEv tl
-     let listenComponents = do ev <- tl_ev
-                               always (case ev of
-                                         TreeList.Selected mobj ->
-                                           tlObjectSelected gb mobj
-                                         _ -> done)
+     (np_ev, _) <- bindNotepadEv np
+     let listenComponents = (do ev <- tl_ev
+                                always (case ev of
+                                          TreeList.Selected mobj ->
+                                            tlObjectSelected gb mobj
+                                          TreeList.Focused (mobj, _) ->
+                                            tlObjectFocused gb mobj
+                                          _ -> done)) +>
+                            (do ev <- np_ev
+                                always (case ev of
+                                          Notepad.Dropped
+                                            (npobj, npobjs) ->
+                                            npItemsDropped gb
+                                              (npobj, npobjs)
+                                          Notepad.Selected npobj ->
+                                            npItemSelected gb npobj
+                                          Notepad.Deselected npobj ->
+                                            npItemDeselected gb npobj
+                                          Notepad.Doubleclick npobj ->
+                                            npItemDoubleclick gb npobj
+                                          Notepad.Rightclick npobjs ->
+                                            npItemsRightclick gb npobjs
+                                          _ -> done))
      spawnEvent (forever listenComponents)
      rootobjs' <- filterM isObjectNode rootobjs
      initBrowser gb rootobjs'
@@ -127,7 +154,6 @@ containsSubNodes obj =
         containsSubNodes' ch
 -}
 
----
 -- Initializes the browser.
 initBrowser :: GBObject o => GenericBrowser o -> [o] -> IO ()
 initBrowser gb rootobjs =
@@ -138,7 +164,6 @@ initBrowser gb rootobjs =
                 else done
   in mapM addObject rootobjs >> done
 
----
 -- Treelist selection event handler.
 tlObjectSelected :: GBObject o => GenericBrowser o ->
                                   Maybe (TreeListObject o) -> IO ()
@@ -151,6 +176,7 @@ tlObjectSelected gb mtlobj =
           Just tlobj -> let obj = getTreeListObjectValue tlobj
                         in do clearNotepad (notepad gb)
                               resetPos
+                              sendEv gb (SelectedInTreeList (Just obj))
                               ch <- getChildren obj
                               ch' <- filterM
                                        (\obj -> do b <- isObjectNode obj
@@ -158,7 +184,85 @@ tlObjectSelected gb mtlobj =
                               mapM addObject ch'
                               updNotepadScrollRegion (notepad gb)
                               done
-          _ -> done
+          _ -> sendEv gb (SelectedInTreeList Nothing)
+
+-- Treelist focus event handler.
+tlObjectFocused :: GBObject o => GenericBrowser o ->
+                                 Maybe (TreeListObject o) -> IO ()
+tlObjectFocused gb mtlobj =
+  case mtlobj of
+    Just tlobj -> let obj = getTreeListObjectValue tlobj
+                  in sendEv gb (FocusedInTreeList (Just obj))
+    _ -> sendEv gb (FocusedInTreeList Nothing)
+
+-- Notepad drop event handler.
+npItemsDropped :: GBObject o => GenericBrowser o ->
+                                (NotepadItem o, [NotepadItem o]) -> IO ()
+npItemsDropped gb (npobj, npobjs) =
+  do obj <- getItemValue npobj
+     objs <- mapM getItemValue npobjs
+     sendEv gb (GenericBrowser.Dropped (obj, objs))
+
+-- Notepad selection event handler.
+npItemSelected :: GBObject o => GenericBrowser o -> NotepadItem o -> IO ()
+npItemSelected gb npobj = do obj <- getItemValue npobj
+                             sendEv gb (SelectedInNotepad obj)
+
+-- Notepad deselection event handler.
+npItemDeselected :: GBObject o => GenericBrowser o -> NotepadItem o ->
+                                  IO ()
+npItemDeselected gb npobj = do obj <- getItemValue npobj
+                               sendEv gb (DeselectedInNotepad obj)
+
+-- Notepad doubleclick event handler.
+npItemDoubleclick :: GBObject o => GenericBrowser o -> NotepadItem o ->
+                                   IO ()
+npItemDoubleclick gb npobj = do obj <- getItemValue npobj
+                                sendEv gb (GenericBrowser.Doubleclick obj)
+
+-- Notepad rightclick event handler.
+npItemsRightclick :: GBObject o => GenericBrowser o -> [NotepadItem o] ->
+                                   IO ()
+npItemsRightclick gb npobjs = do objs <- mapM getItemValue npobjs
+                                 sendEv gb
+                                   (GenericBrowser.Rightclick objs)
+
+
+-- -----------------------------------------------------------------------
+-- events
+-- -----------------------------------------------------------------------
+
+data GBObject o => GenericBrowserEvent o =
+    SelectedInTreeList (Maybe o)
+  | FocusedInTreeList (Maybe o)
+  | Dropped (o, [o])
+  | SelectedInNotepad o
+  | DeselectedInNotepad o
+  | Doubleclick o
+  | Rightclick [o]
+
+-- send an event if bound
+sendEv :: GBObject o => GenericBrowser o -> GenericBrowserEvent o -> IO ()
+sendEv gb ev =
+  do
+    mch <- getRef (event_queue gb)
+    case mch of
+      Just ch -> syncNoWait (send ch ev)
+      _ -> done
+
+---
+-- Binds a listener for generic browser events to the tree list and
+-- returns a corresponding event and an unbind action.
+-- @param np      - the concerned generic browser.
+-- @return result - A pair of (event, unbind action).
+bindGenericBrowserEv :: GBObject o => GenericBrowser o ->
+                                      IO (Event (GenericBrowserEvent o),
+                                          IO ())
+bindGenericBrowserEv gb =
+  do
+    ch <- newChannel
+    setRef (event_queue gb) (Just ch)
+    return (receive ch, setRef (event_queue gb) Nothing)
 
 
 -- -----------------------------------------------------------------------

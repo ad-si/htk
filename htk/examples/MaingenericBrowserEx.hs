@@ -195,6 +195,9 @@ main = do htk <- initHTk [size(800, 500), text "GenericBrowser example"]
           root_objs <- getRootObjects
           (gb :: GenericBrowser FileObject) <-
             newGenericBrowser htk root_objs []
+          (action, _) <- bindGenericBrowserEv gb
+          spawnEvent (forever (do ev <- action
+                                  always (printEv ev)))
           pack gb [Fill Both, Expand On]
           bottom <- newFrame htk []
           quit <- newButton bottom [text "Quit"]
@@ -203,3 +206,15 @@ main = do htk <- initHTk [size(800, 500), text "GenericBrowser example"]
           pack quit [Side AtBottom, Fill X, PadY 5, PadX 50]
           pack bottom [Side AtBottom, Fill X]
           finishHTk
+
+printEv :: GenericBrowserEvent FileObject -> IO ()
+printEv ev = case ev of
+               SelectedInTreeList Nothing -> putStrLn "no selection (treelist)"
+               SelectedInTreeList _ -> putStrLn "selection (treelist)"
+               FocusedInTreeList _ -> putStrLn "focus (treelist)"
+               Dropped _ -> putStrLn "drop (notepad)"
+               SelectedInNotepad _ -> putStrLn "selection (notepad)"
+               DeselectedInNotepad _ -> putStrLn "deselection (notepad)"
+               Doubleclick _ -> putStrLn "doubleclick (notepad)"
+               Rightclick _ -> putStrLn "rightclick (notepad)"
+               _ -> done
