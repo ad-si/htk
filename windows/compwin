@@ -1,6 +1,0 @@
-#!/bin/bash
-TOP=/home/ger/uni
-LIB=`cygpath -w $TOP/libhtkwin.a`
-IMPORTS=`cygpath -w $TOP/imports`
-
-ghc -o $1 $1.hs "$LIB" "-i$IMPORTS" -package lang -package data -package concurrent -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances -cpp 

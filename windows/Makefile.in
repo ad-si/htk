@@ -1,5 +1,0 @@
-# This Makefile (and directory) is not used by the regular Unix Make, but only for compiling
-# for Windows.
-SRCS = CallWish.hs
-
-include @TOP@/mk/boilerplate.mk
