@@ -681,6 +681,7 @@ instance (Ord key,HasCodedValue key,HasCodedValue elt)
       do
          mapData <- readContents variableMap
          let list = mapToList mapData
+         putStrLn ("Folder list "++show (length list))
          encodeIO list codedValue view
 
    decodeIO codedValue0 view =

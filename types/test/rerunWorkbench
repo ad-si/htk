@@ -1,12 +1,8 @@
 #!/usr/local/bin/bash
-# Test script for running the workbench.
-rm -rf /home/ger/repository/db/*,v GraphEditor.backup VersionGraph.backup Allocate.backup
+# Test script for running the workbench once the server is already going.
 export UNICVSROOT=/home/ger/repository
 export UNISERVER=`hostname`
 export UNIEDITOR="/usr/local/pub-bkb/xemacs/bin/gnuclient -eval '(setq stored-name \"%beN\")' \"%bF\""
-pkill -x Server
 rm -rf /tmp/db /tmp/#
-export UNIDEBUG=/home/ger/uni/types/test/s.debug
-./Server &
 export UNIDEBUG=/home/ger/uni/types/test/w.debug
 ./Workbench

@@ -1,0 +1,19 @@
+(1) The following lines need to be executed by xemacs before the workbench
+starts up, for example in your initialisation file:
+
+;
+; Start XEmacs server
+(gnuserv-start)
+
+(defun find-file-with-stored-name (filename)
+   (find-file filename)
+   (if (boundp 'stored-name) 
+          (progn (rename-buffer stored-name t) (makunbound 'stored-name)))
+           
+   )
+
+(setq gnuserv-find-file-function 'find-file-with-stored-name)
+
+(2) To start a new buffer with name WALLOP say, do
+
+gnuclient -eval '(setq stored-name "WALLOP")' OVERNIGHT.YES

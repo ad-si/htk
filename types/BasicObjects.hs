@@ -61,6 +61,7 @@ newSimpleFile view =
    do
       let repository = getRepository view
       filePath <- newTempFile
+      writeFile filePath ""
       location <- newLocation repository
       parentVersionMVar <- newMVar Nothing
       return (SimpleFile {

@@ -8,6 +8,10 @@
    -}
 module Main(main) where
 
+import System
+
+import Posix
+
 import Debug(debug)
 import WBFiles
 
@@ -33,4 +37,5 @@ main =
       repository <- initialise
       versionGraph <- newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)
-      finishHTk      
+      cleanupWish
+      exitImmediately ExitSuccess

@@ -180,7 +180,8 @@ newVersionGraph
       -- graph which is connected to the server and will (via displayGraph)
       -- be displayed.  We will update the version graph by displaying
       -- this graph.
-      (graph :: VersionTypes SimpleGraph) <- connectToServer
+      (graph :: VersionTypes SimpleGraph,closeConnection :: IO ()) 
+         <- connectToServer
 
       let
          -- Parameters for displayGraph
@@ -354,7 +355,9 @@ newVersionGraph
             do
                sync (destroyed displayedGraph)
                destroy graph
+               closeConnection 
                sendIO destroyedChannel ()
+               
 
       spawn destructorThread
 
@@ -386,7 +389,8 @@ instance Destructible VersionGraph where
 -- connectToServer generates a new graph connected to the version
 -- graph in the server.  However only nodes corresponding to 
 -- checked-in versions get passed on.
-connectToServer :: IO (VersionTypes SimpleGraph)
+-- The returned action closes the server connection.
+connectToServer :: IO (VersionTypes SimpleGraph,IO ())
 connectToServer =
    do
       (updateServer,getNextUpdate,closeConnection,initialiser) 
@@ -426,8 +430,8 @@ connectToServer =
                   nameSourceBranch = nameSourceBranch 
                   })
 
-      Graph.newGraph graphConnection  
-
+      graph <- Graph.newGraph graphConnection  
+      return (graph,closeConnection)
       
  
 -- --------------------------------------------------------------------

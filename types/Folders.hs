@@ -288,7 +288,7 @@ plainFolderNodeTypeParms :: NodeTypes value
 plainFolderNodeTypeParms =
    addNodeRule 
       AllDisplays
-      (SimpleNodeAttributes { shape = Nothing, 
+      (SimpleNodeAttributes { shape = Just Triangle, 
          nodeColor = Just (Color "green")}) 
       emptyNodeTypes
 
