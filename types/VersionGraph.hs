@@ -134,7 +134,7 @@ newVersionGraphInternal ::
 newVersionGraphInternal displaySort repository versionState =
    do
       graph <- mkVersionSimpleGraphInternal versionState
-      newVersionGraph1 displaySort repository graph "(Internal)" True
+      newVersionGraph1 displaySort repository graph "(Local)" True
 
 newVersionGraph1 :: 
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms

@@ -397,7 +397,7 @@ mkLinkReAssigner views allRelevantObjectTypes =
          linkReAssigner2
             <- addRemainingIdentifications identifications1 linkReAssigner1
 
---         debugString (debugLinkReAssigner linkReAssigner2)
+         debugString (debugLinkReAssigner linkReAssigner2)
          return linkReAssigner2
       )
    where
@@ -679,8 +679,20 @@ debugLinkReAssigner linkReAssign =
       linkMap3 = map
          (\ ((vi,wml1),wml2) -> ((vi,debugWML wml1),debugWML wml2))
          linkMap2
+
+      allMergesMap1 :: FiniteMap WrappedMergeLink [(View,WrappedMergeLink)]
+      allMergesMap1 = allMergesMap linkReAssign
+
+      allMergesMap2 :: [(WrappedMergeLink,[(View,WrappedMergeLink)])]
+      allMergesMap2 = fmToList allMergesMap1
+
+      allMergesMap3 :: [(String,[(ViewId,String)])]
+      allMergesMap3 = map
+         (\ (wml,vwmls) -> (debugWML wml,
+            (map (\ (v,wml2) -> (viewId v,debugWML wml2)) vwmls)))
+         allMergesMap2
    in
-      show linkMap3
+      show (linkMap3,allMergesMap3)
 
 
 debugWML :: WrappedMergeLink -> String

@@ -177,9 +177,9 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                err mess = return (objectDataOpt,hasError (
                   "fetchLink " ++ xName ++ ": " ++ mess))
 
-               readObject :: ObjectVersion -> Location 
+               readObject :: Bool -> ObjectVersion -> Location 
                   -> IO (Maybe ObjectData,WithError (Versioned x))
-               readObject oldVersion oldLocation =
+               readObject isCloned oldVersion oldLocation =
                   do
                      (xOS :: Either String x) <-
                         catchDBError (
@@ -204,6 +204,12 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                                     thisVersioned = toDyn versioned,
                                     mkObjectSource 
                                        = mkObjectSourceFn view versioned
+                                          (if isCloned 
+                                             then
+                                                Just (oldLocation,oldVersion)
+                                             else
+                                                Nothing
+                                            )           
                                     }),
                                  hasValue versioned
                                  )
@@ -217,7 +223,7 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                            ++ "link in uncommitted view.")
                         Just parentVersion -> return parentVersion
 
-                     readObject parentVersion location
+                     readObject False parentVersion location
                Just (PresentObject {thisVersioned = versionedDyn}) ->
                   case fromDyn versionedDyn of
                      Just versioned 
@@ -231,7 +237,7 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                               ++ " from " ++ show location)
                Just (ClonedObject {
                   sourceLocation = oldLocation,sourceVersion = oldVersion}) ->
-                     readObject oldVersion oldLocation
+                     readObject True oldVersion oldLocation
             )
 
 readLink :: HasCodedValue x => View -> Link x -> IO x
@@ -337,15 +343,19 @@ versioned_tyRep = mkTyRep "View" "Versioned"
 instance HasTyRep1 Versioned where
    tyRep1 _ = versioned_tyRep
 
-mkObjectSourceFn :: HasCodedValue x => View -> Versioned x -> ObjectVersion
+mkObjectSourceFn :: HasCodedValue x => View 
+   -> Versioned x -> Maybe (Location,ObjectVersion) -> ObjectVersion 
    -> IO (Maybe CommitChange)
 -- This is the action that computes the ObjectSource to be committed to the
 -- repository.
 --
 -- The supplied objectVersion is that of the containing view.
+-- The Maybe (Location,ObjectVersion) indicates, if set, that this is
+-- a cloned object, and so this should be used if the object is marked
+-- as UpToDate.
 mkObjectSourceFn (view@View{repository = repository})
       (Versioned {location = location,statusMVar = statusMVar}) 
-      viewVersion =
+      clonedOpt viewVersion =
    do
       status <- takeMVar statusMVar
       let 
@@ -357,7 +367,11 @@ mkObjectSourceFn (view@View{repository = repository})
 
       (x,objectSourceOpt) <- case status of
          Empty -> error "Attempt to commit Empty object!!!"
-         UpToDate x -> return (x,Nothing)
+         UpToDate x -> return (x,case clonedOpt of
+            Nothing -> Nothing
+            Just (oldLocation,oldVersion) 
+               -> Just (Right (oldLocation,oldVersion))
+            )
          Cloned x oldLocation oldVersion 
             -> return (x,Just (Right (oldLocation,oldVersion)))
          Dirty x -> commitX x 
@@ -459,7 +473,7 @@ makeObjectData view (status :: Status x) location =
       return (versioned,
          (PresentObject {
             thisVersioned = toDyn versioned,
-            mkObjectSource = mkObjectSourceFn view versioned
+            mkObjectSource = mkObjectSourceFn view versioned Nothing
             })) 
 
 

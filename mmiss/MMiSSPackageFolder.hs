@@ -336,7 +336,7 @@ instance HasMerging MMiSSPackageFolder where
 
             isSame 
                <- linkedObjectsSame newLinkedObject (toLinkedObject folder1)
-            if isSame 
+            if (isSame && preambleLink1 == preambleLink2)
                then
                   do
                      cloneLink view1 link1 newView newLink

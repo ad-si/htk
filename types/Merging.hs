@@ -23,6 +23,7 @@ import DeepSeq
 import Thread
 import Debug(debug)
 import Store
+import VariableSet(toKey)
 
 import Destructible
 

@@ -150,12 +150,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)
-                     ] ++
-                     if isDebug then
-                        [Button "Export Object as XML"
-                            (\ link -> exportMMiSSObjectXML view link)] 
-                        else []
-
+                     ] 
                   menu = LocalMenu (Menu Nothing editOptions)
                in
                   menu $$$
