@@ -1,7 +1,7 @@
 {- This module defines the types EntityNames (and so on), as used by
    the LinkManager. -}
 module EntityNames(
-   EntityName, 
+   EntityName(..), 
       -- a name identifying a single item in a folder
    EntityFullName(..), 
       -- identifies a sequence of names, the first one being
@@ -24,8 +24,7 @@ module EntityNames(
 
    ImportCommands(..),
    ImportCommand(..),
-   Directive(..),
-   
+   Directive(..)
 
    ) where
 
@@ -48,7 +47,7 @@ import CodedValue
 ---
 -- Example EntityName's "a", "bc".  In general a non-empty sequence of
 -- characters none of which may be ".", "/" or ":".
-newtype EntityName = EntityName String deriving (Eq,Ord,Show)
+newtype EntityName = EntityName String deriving (Eq,Ord)
 ---
 -- An EntityFullName is a name for some object, relative to some other
 -- object.  "." represents that other object.
@@ -88,6 +87,30 @@ data EntitySearchName =
 newtype EntityPath = EntityPath [EntitySearchName] deriving (Ord,Eq)
 
 
+-- *************************************************************************
+-- Changes for new import facilities:
+-- *************************************************************************
+
+-- A PackageName for a path alias is defined as follows:
+-- 
+-- PackageName ::= Identifier | Alias | PackageName.Identifier
+--
+-- where an Alias is an Identifier which was defined through a path alias statement.
+-- Furthermore, an Identifier can be one these special values: "Root", "Current", "Parent" 
+--
+-- So, we translate this into EntityNames:
+--
+-- alias ::= <name>       (names defined by path alias statements)
+-- specialName ::= "Current" | "Parent" | "Root"
+-- identifier ::= <specialName> | <alias> | <name>     (identifier and alias are disjoint)
+-- <fullname> ::= <identifier>  ("." <fullname>)*
+-- 
+-- where: <name> is meant as defined by George above, but cannot be a specialName
+--
+-- So, we code identifier with the datatype 'EntityName' and the fullnames with
+-- 'EntityFullName'. The individual parts of a PackageName, devided by "." are
+-- translated into list members of the corresponding EntityFullName-value.
+
 
 newtype ImportCommands = ImportCommands [ImportCommand]
 
@@ -98,12 +121,14 @@ data ImportCommand =
 data Directive = 
       Qualified
    |  Unqualified
-   |  Hide EntityName
+   |  Global
+   |  Local
+   |  Hide [EntityName]
    |  Reveal [EntityName]
    |  Rename {
-         newName :: EntityName,
-         oldName :: EntityName
-         }
+               newName :: EntityName,
+               oldName :: EntityName
+             }
 
 
 -- ----------------------------------------------------------------------
