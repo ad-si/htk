@@ -737,7 +737,6 @@ getFilesNodeDisplayData view displayType mmissFileType
             nodeTypes = [(theNodeType,nodeTypeParms)],
             getNodeType = (\ _ -> theNodeType),
             getNodeLinks = (\ _ -> return emptyArcEnds),
-            closeDown = done,
             specialNodeActions = emptySpecialNodeActions
             }
 
