@@ -1,6 +1,9 @@
 #!/bin/sh
-chmod -R u+w @TOP@/www/ghc/html
-rm -rf @TOP@/www/ghc/html
+if test -d @TOP@/www/ghc/html
+then
+   chmod -R u+w @TOP@/www/ghc/html
+   rm -rf @TOP@/www/ghc/html
+fi
 if test -n "@GHCHTML@"
 then
 @MKDIR@ -p @TOP@/www/ghc
