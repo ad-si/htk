@@ -55,6 +55,10 @@ module ChildProcess (
    -- out channel (of which there is only one).  Otherwise we
    -- display them, with the name of the responsible process,
    -- on our stderr.
+   challengeResponse, -- :: (String,String) -> Config PosixProcess
+   -- Set a "challenge" and "response".  Each is given as a String.
+   -- The challenge (first String) will have newline appended if in line-mode.
+   -- However the response will always be expected exactly as is.
 
    -- the settings encoded in (parms::[Config PosixProcess]) can be
    -- decoded, with a standard set of defaults, using
@@ -90,23 +94,29 @@ module ChildProcess (
    ) 
 where
 
+import List
+
 import qualified IO
 import qualified Posix
 import Posix(ProcessID,ProcessStatus(..),Fd,fdRead,fdWrite)
 import ByteArray
 import qualified CString
+import qualified Exception
+import qualified Select
 
 import Computation
 import Object
-import Debug(debug,debugString)
+import Debug(debug,debugString,alwaysDebug)
 import Thread
 import FileNames
+import WBFiles
 
 import Concurrent
 import Maybes
 import ExtendedPrelude
 
 import Destructible
+import WrapIO
 
 import ProcessClasses
 import FdRead
@@ -122,7 +132,8 @@ data PosixProcess =
       wdir            :: Maybe FilePath,
       chksize         :: Int, 
       lmode           :: Bool, -- line mode
-      stderr          :: Bool -- include stderr
+      stderr          :: Bool, -- include stderr
+      cresponse       :: Maybe (String,String)
      }
 
 defaultPosixProcess :: PosixProcess
@@ -133,7 +144,8 @@ defaultPosixProcess =
       wdir = Nothing, 
       chksize = 1000,
       lmode = True,
-      stderr = True
+      stderr = True,
+      cresponse = Nothing 
       }
 
 
@@ -151,6 +163,7 @@ environment env' parms = return parms{env = Just env'}
 workingdir wdir' parms = return parms{wdir = Just wdir'}
 chunksize size' parms = return parms{chksize= size' }
 standarderrors err' parms = return parms{stderr = err'}
+challengeResponse cr parms = return parms {cresponse = Just cr}
 
 appendArguments args' parms = return parms{args = (args parms) ++ args'}
 
@@ -257,25 +270,73 @@ newChildProcess path confs  =
                               Posix.fdClose writeIn
                               Posix.fdClose readOut
                            )
-#ifdef DEBUG
             let
                toolTitle = case splitName path of
                   Just (dir,toolTitle) -> toolTitle
                   Nothing -> path
-#endif
-            return (ChildProcess {
-               childObjectID = childObjectID,
-               lineMode = lmode parms,
-               writeTo = writeIn,
-               readFrom = readOut,
-               processID = processID,
-               bufferVar = bufferVar,
-	       chunkSize = chksize parms,
+
+               newChild = ChildProcess {
+                  childObjectID = childObjectID,
+                  lineMode = lmode parms,
+                  writeTo = writeIn,
+                  readFrom = readOut,
+                  processID = processID,
+                  bufferVar = bufferVar,
+                  chunkSize = chksize parms,
 #ifdef DEBUG
-               toolTitle = toolTitle,
+                  toolTitle = toolTitle,
 #endif
-               closeAction = closeAction
-               })
+                  closeAction = closeAction
+                  }
+
+            -- Do challenge-response
+            case (cresponse parms) of
+               Nothing -> done
+               Just (challenge,response) ->
+                  Exception.catch
+                     (do
+                        sendMsg newChild challenge
+                        howLong <- getToolTimeOut
+                        resultOpt <- impatientIO
+                           (readChunkFixed (length response) 
+                              (readFrom newChild))
+                           (msecs (fromIntegral howLong))
+                        result <- case resultOpt of
+                           Nothing ->
+                              do
+                                 putStrLn (
+                                    "Timed out reading output from tool " ++
+                                    path ++ "\n" ++
+                                    "Guess: either it's the wrong tool, " ++
+                                    "or else you need to set the option \n"
+                                    ++ "--uni-option=" ++
+                                    "[LARGE NUMBER OF MILLISECONDS]")
+                                 error "Timed out"
+                           Just result -> return result
+
+#ifdef DEBUG
+                        debugRead newChild (result++"\n")
+#endif
+                        if response == result
+                           then
+                              done
+                           else
+                              -- Trim common case
+                              if isPrefixOf result errorResponse
+                                 || isPrefixOf errorResponse result
+                              then
+                                 error ("Couldn't execute "++path)
+                              else
+                                 error ("Unexpected response was "++
+                                    show result)
+                        )
+                     (\ error ->  
+                        do
+                           putStrLn ("Attempt to start "++path++" failed")
+                           alwaysDebug ("GHC error"++show error)
+                           Exception.throw error
+                        ) 
+            return newChild
       connect writeIn readIn writeOut readOut readWriteErr Nothing parms =
          do -- child process
             Posix.dupTo readIn Posix.stdInput
@@ -294,9 +355,18 @@ newChildProcess path confs  =
                   done
 
             maybeChangeWd (wdir parms)
-            Posix.executeFile path True (args parms) (env parms)
-            raise (userError ("could not establish client: " ++ path))  
-            
+            Exception.catch 
+               (Posix.executeFile path True (args parms) (env parms))
+               (\ error ->
+                  do
+                     putStrLn (errorResponse++show error)
+                     Exception.throw error
+                  ) 
+            error "This can't happen"
+
+      errorResponse :: String 
+      errorResponse = "Attempt to start program: "++path++
+         "\n failed with GHC error: "
       
       maybeChangeWd Nothing = done
       maybeChangeWd (Just wd) = Posix.changeWorkingDirectory wd
@@ -393,6 +463,20 @@ readChunk size fd =
          else
             return input
 
+readChunkFixed :: Int -> Fd -> IO String
+-- like readChunk except that it tries to read as many characters
+-- as are asked for.
+readChunkFixed size fd = readChunkInner "" size
+   where
+      readChunkInner s toRead = 
+         if toRead == 0 
+         then 
+            return s
+         else
+            do               
+               next <- readChunk toRead fd
+               readChunkInner (s ++ next) (toRead - (length next))
+         
 sendMsg :: ChildProcess -> String -> IO ()
 sendMsg (child @ ChildProcess{lineMode = True,writeTo = writeTo}) str  = 
    do

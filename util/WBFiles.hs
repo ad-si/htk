@@ -70,6 +70,10 @@
    simpleStore   Storage on disk of SimpleStore
    storeDir      Where Store stores its files
 
+   toolTimeOut   Time-out waiting for responses from a tool when
+                 it starts up and we are doing challenge-response
+                 verification.
+
    The options wish, daVinci, cvs, daVinciIcons, top 
    should all be set automatically by the configure procedure.  
    The configure procedure constructs a variable DEFAULTOPTIONS
@@ -96,6 +100,10 @@ module WBFiles (
       -- gets the path for tixwish
    getCVSPath, -- ditto cvs
    getDaVinciPath, -- ditto daVinci
+
+
+   getToolTimeOut, -- :: IO Int
+      -- gets tool time out.
 
    getTOP, -- ditto
    getEditorString, -- :: IO (Maybe String)
@@ -213,6 +221,9 @@ getEditorString = getArgString "editor"
 getDaVinciPath :: IO String
 getDaVinciPath = valOf (getArgString "daVinci")
 
+getToolTimeOut :: IO Int
+getToolTimeOut = valOf (getArgInt "toolTimeOut")
+
 getTOP :: IO String
 getTOP = valOf (getArgString "top")
 
@@ -291,6 +302,12 @@ usualProgramArguments = [
       optionHelp = "directory containing daVinci icons",
       defaultVal = Nothing,
       argType = STRING
+      },
+   ProgramArgument{
+      optionName = "toolTimeOut",
+      optionHelp = "time-out when tools start up in milliseconds",
+      defaultVal = Just (IntValue 10000),
+      argType = INT
       },
    ProgramArgument{
       optionName = "cvs",

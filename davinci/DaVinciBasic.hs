@@ -98,6 +98,12 @@ daVinci :: DaVinci
 daVinci = IOExts.unsafePerformIO newDaVinci
 {-# NOINLINE daVinci #-}
 
+challengeResponsePair :: (String,String)
+challengeResponsePair =
+  ("nothing\nnothing\nnothing","ok\nok\nok\nok\n")
+-- 3 nothings and 4 oks, because daVinci also outputs an extra "ok"
+-- right at the beginning.
+
 newDaVinci :: IO DaVinci
 newDaVinci =
    do
@@ -117,7 +123,8 @@ newDaVinci =
          configs = [
             environment (("DAVINCI_ICONDIR",daVinciIcons):existingEnv),
             arguments ["-pipe"],
-            standarderrors False
+            standarderrors False,
+            challengeResponse challengeResponsePair
             ]
       childProcess <- newChildProcess daVinciPath configs
 -- Send initial command.
@@ -132,10 +139,6 @@ newDaVinci =
       oID <- newObject
 
 -- Collect initial answers from daVinci.
-      firstOK <- getNextAnswer childProcess
-      case firstOK of
-         Ok -> done
-         _ -> error "DaVinci did not start properly"
       versionAnswer <- getNextAnswer childProcess
       -- All commands in future will be channelled through
       -- doInContextVeryGeneral, and all answers through

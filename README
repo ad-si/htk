@@ -16,12 +16,17 @@ The source of Uni is in the following directories:
    graphs       |  General framework for shared graphs.
    davinci      |  This is an encapsulation of DaVinci in Haskell
    (from here on, things aren't known to work yet)
-   cvsdb        |  encapsulation of cvs
+   simpledb     |  A very simple database system.
    types        |  Repository (UNDER CONSTRUCTION)
    appl         |  Stand-alone UniForM applications
 
 Only the Haskell code in util, events, reactor and htk is known to work under
 Windows.  Everything else requires Posix, and so, Unix/Linux.
+
+This module does not contain uni or HTk documentation.  For that you need
+the uni-docs module.  This can be obtained (in binary form) from
+the HTk homepage, 
+   http://www.informatik.uni-bremen.de/htk
 
 Requirements for compiling UniForM
 ----------------------------------
@@ -225,12 +230,8 @@ Making documentation
 
 gmake doc should work.
 
-In HTk this uses hdoc.   hdoc is a system for annotating Haskell source 
-files with comments in a special format so that documentation can in HTML 
-format can be generated automatically.  Not all source files in UniForM are 
-annotated in this way; however the ones you need for the HTk interface are.  
-
-hdoc can take a long time, especially on large files, so be patient.
+However at present no documentation should be in this directory; it
+should all be in the module uni-docs.
 
 How to Make a Binary Distribution
 ---------------------------------

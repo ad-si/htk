@@ -42,7 +42,7 @@ fdWritePrim fd (cstring,len) =
          then 
             done
          else
-            ioError(userError("Error writing to wish"))
+            ioError(userError("Error writing to child process"))
 
 fdWriteLn :: Posix.Fd -> String -> IO ()
 fdWriteLn fd str =
