@@ -1,0 +1,7 @@
+./configure
+gmake boot
+gmake packages
+
+gmake doc
+gmake prepareexports
+gmake exports
