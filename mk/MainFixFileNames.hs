@@ -2,6 +2,9 @@
    the string "#PWD" in stdin with the current directory in which it is
    executed, C escaped.  Everything else is left unchanged.
 
+   If an argument is supplied, this is used instead of the current
+   directory.  
+
 
    The program occupies an unusual place in the UniForM sources; it is not
    part of the main sources, but is only used during building (see suffix.mk)
@@ -17,12 +20,16 @@
 module Main (main) where
 
 import Directory
+import System
 
 main :: IO ()
 main = 
    do
       input <- getContents
-      currentDirectory  <- getCurrentDirectory
+      args <- getArgs
+      toInsert <- case args of
+        [arg] -> return arg
+        [] -> getCurrentDirectory   
       let
          escapeString s = 
             let
@@ -30,10 +37,10 @@ main =
             in
                take (length rest - 1) rest
 
-         quotedCurrentDirectory = escapeString currentDirectory
+         quoted = escapeString toInsert
             
          transform [] = []
-         transform ('#':'P':'W':'D':rest) = quotedCurrentDirectory ++ transform rest
+         transform ('#':'P':'W':'D':rest) = quoted ++ transform rest
          transform (c:rest) = c:transform rest
       putStr . transform  $ input
 

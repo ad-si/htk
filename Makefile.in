@@ -9,7 +9,7 @@
 ifeq "@WINDOWS@" "1"
    SUBDIRS = util events reactor htk
 else
-   SUBDIRS= util events reactor posixutil htk server graphs davinci cvs types
+   SUBDIRS= util events reactor posixutil htk server graphs davinci cvsdb types
 endif
 
 include @TOP@/mk/boilerplate.mk 
@@ -33,7 +33,7 @@ findsources :
 COMMONTOPEXPORTS = uni-package.conf.export mk/FixFileNames includes/*.h
 
 ifeq "@WINDOWS" "1"
-TOPEXPORTS = INSTALL.BAT GHCHTK.BAT.export GHCIHTK.BAT.export $(COMMONTOPEXPORTS) 
+TOPEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export $(COMMONTOPEXPORTS) 
 else
 TOPEXPORTS = install ghchtk.export ghcihtk.export $(COMMONTOPEXPORTS)
 endif

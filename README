@@ -16,7 +16,7 @@ The source of Uni is in the following directories:
    graphs       |  General framework for shared graphs.
    davinci      |  This is an encapsulation of DaVinci in Haskell
    (from here on, things aren't known to work yet)
-   cvs          |  encapsulation of cvs
+   cvsdb        |  encapsulation of cvs
    types        |  Repository (UNDER CONSTRUCTION)
    appl         |  Stand-alone UniForM applications
 
