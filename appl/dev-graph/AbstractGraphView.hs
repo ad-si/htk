@@ -126,7 +126,7 @@ fetch_graph gid gv delete cmd =
 -- These are the operations of the interface
 
 
-initgraphs :: IO (MVar GraphInfo)
+initgraphs :: IO GraphInfo
 initgraphs = do newvar <- newMVar ([],0)
                 return newvar
 
