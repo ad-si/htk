@@ -14,14 +14,19 @@ DESCRIPTION   : This module provides a uniform interface for debugging
 
 module Debug(
   debug, -- show something to log file if debugging is turned on.
-  newId, -- get a new unique integer from a global variable
 
   debugAct, 
   -- If an action fails print out a message before
   -- propagating message.  
-  (@:)
+  (@:),
   -- inline version of debugAct
-  
+
+  -- The following functions work whether debugging is turned on or
+  -- not, and are intended to be used when the debugging facility
+  -- itself is causing strange effects . . .
+  alwaysDebug,
+  alwaysDebugAct,
+  (@@:),
   ) where
 import IO
 import qualified IOExts(unsafePerformIO)
@@ -29,18 +34,18 @@ import qualified Concurrent
 import Dynamic
 import Exception
 
+debugFile :: Maybe Handle
+debugFile = 
+   IOExts.unsafePerformIO 
+     (IO.catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
+            (\_-> return Nothing))
+
 #ifdef DEBUG
 debug :: Show a => a -> IO()
 debug s = 
    case debugFile of 
      Just f  -> IO.hPutStrLn f (show s)>> IO.hFlush f
      Nothing -> return ()
-
-debugFile :: Maybe Handle
-debugFile = 
-   IOExts.unsafePerformIO 
-     (IO.catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
-            (\_-> return Nothing))
 
 debugAct :: String -> IO a -> IO a
 debugAct mess act =
@@ -69,13 +74,25 @@ debugAct _ act = act
 
 (@:) = debugAct
 
-newId :: IO Int
-newId =
+alwaysDebug :: Show a => a -> IO()
+alwaysDebug s = 
+   case debugFile of 
+     Just f  -> IO.hPutStrLn f (show s)>> IO.hFlush f
+     Nothing -> return ()
+
+alwaysDebugAct :: String -> IO a -> IO a
+alwaysDebugAct mess act =
    do
-      next <- Concurrent.takeMVar idSource
-      Concurrent.putMVar idSource (next+1)
-      return next
+      res <- tryAllIO act
+      case res of
+         Left error ->
+            do
+               alwaysDebug ("AlwaysDebug.debug caught "++mess)
+               throw error
+         Right success -> return success
 
-idSource :: Concurrent.MVar Int
-idSource = IOExts.unsafePerformIO(Concurrent.newMVar 0)
+(@@:) = alwaysDebugAct
 
+
+
+      

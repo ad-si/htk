@@ -119,9 +119,10 @@ main =
 
       batObj22 <- lookupLocalFilePath fileSys top22 "foo/bat.txt"
       batAtts <- extractFileAttributes fileSys batObj22
-      putStr(show (barAtts,batAtts))
-
-               
+      putStrLn(show (barAtts,batAtts))
+      putStrLn "Test completed"
+      shutdown
+      putStrLn "Shutdown completed"
                    
       
    

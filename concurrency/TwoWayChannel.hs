@@ -50,7 +50,7 @@ import qualified Concurrent
 import Queue
 import PrimEvent
 import Toggle
-import Debug(debug,newId,(@:))
+import Debug(debug)
 
 newTwoWayChannel :: IO (TwoWayChannel leftType rightType)
 newTwoWayChannel = 

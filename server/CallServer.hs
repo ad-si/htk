@@ -30,9 +30,13 @@ import IO
 
 import Computation
 import Debug(debug)
+import Object
 
 import BSem
 import SocketEV
+
+import SIM (Destructible(..))
+import InfoBus
 
 import ServiceClass
 
@@ -46,6 +50,9 @@ connectReply service hostDesc portDesc =
          Reply -> done
          _ -> ioError(userError("connectReply handed a non-Reply service"))
       handle <- connect hostDesc portDesc
+      connection <- newConnection handle
+      registerTool connection
+
       let
          serviceKey = serviceId service
       hPutStrLn handle serviceKey
@@ -67,7 +74,7 @@ connectReply service hostDesc portDesc =
                         hGetLine handle
                      )
                return (read outLine)
-         closeAct = hClose handle
+         closeAct = destroy connection
       return (sendMessage,closeAct,header)
    
 connectBroadcast :: (ServiceClass inType outType stateType,DescribesHost host,
@@ -81,6 +88,8 @@ connectBroadcast service hostDesc portDesc =
          _ -> ioError(userError(
            "connectBroadcast handed a non-Broadcast service"))
       handle <- connect hostDesc portDesc
+      connection <- newConnection handle
+      registerTool connection
 
       let
          serviceKey = serviceId service
@@ -102,9 +111,39 @@ connectBroadcast service hostDesc portDesc =
                debug ("Sent "++inLine)
          getMessage =
             do
-
                outLine <- synchronize writeBSem (hGetLine handle)
                debug ("Received "++outLine)
                return (read outLine)
-         closeAct = hClose handle
+         closeAct = destroy connection
+
       return (sendMessage,getMessage,closeAct,header)
+
+------------------------------------------------------------------------
+-- A Connection is what we register so that shutdown closes the
+-- connection.
+------------------------------------------------------------------------
+
+data Connection = Connection {
+   handle :: Handle,
+   oId :: ObjectID
+   }
+
+newConnection :: Handle -> IO Connection
+newConnection handle =
+   do
+      oId <- newObject
+      return (Connection {
+         handle = handle,
+         oId = oId
+         })
+
+instance Object Connection where
+   objectID (Connection {oId = oId}) = oId
+   
+instance Destructible Connection where
+   destroy (connection@Connection {handle = handle}) =
+      do
+         deregisterTool connection
+         hClose handle
+
+
