@@ -200,7 +200,7 @@ else
    echo \(But it should still be possible to compile htk.\)
    BDBDIR=
 
-   if [ $BUILDAMOUNT -gt 70 ]
+   if test $BUILDAMOUNT -gt 70
    then
       BUILDAMOUNT=70
    fi
@@ -288,8 +288,15 @@ if test "$GOAHEAD" = YES; then
       SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp posixutil/daVinci.debug posixutil/wish.debug "
    fi
 
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS)
-   chmod +x $SCRIPTS
+   # Not all SCRIPTS exist in some binary releases.  Filter out those that
+   # don't.
+   SCRIPTS1=`for i in $SCRIPTS;do if test -e $i.in ; then echo $i; fi;done`
+
+   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options" 
+
+
+   AC_OUTPUT($MAKEFILES $SCRIPTS1 $OTHERFILES)
+   chmod +x $SCRIPTS1
 
    if test "$BINARY" = NO
    then   

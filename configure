@@ -2335,7 +2335,14 @@ if test "$GOAHEAD" = YES; then
       SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp posixutil/daVinci.debug posixutil/wish.debug "
    fi
 
-   ac_config_files="$ac_config_files mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS"
+   # Not all SCRIPTS exist in some binary releases.  Filter out those that
+   # don't.
+   SCRIPTS1=`for i in $SCRIPTS;do if test -e $i.in ; then echo $i; fi;done`
+
+   OTHERFILES="mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options"
+
+
+   ac_config_files="$ac_config_files $MAKEFILES $SCRIPTS1 $OTHERFILES"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -2832,12 +2839,9 @@ for ac_config_target in $ac_config_targets
 do
   case "$ac_config_target" in
   # Handling of arguments.
-  "mk/machinedep.mk" ) CONFIG_FILES="$CONFIG_FILES mk/machinedep.mk" ;;
-  "mk/boilerplate.mk" ) CONFIG_FILES="$CONFIG_FILES mk/boilerplate.mk" ;;
-  "includes/config.h" ) CONFIG_FILES="$CONFIG_FILES includes/config.h" ;;
-  "bdb-package.options" ) CONFIG_FILES="$CONFIG_FILES bdb-package.options" ;;
   "$MAKEFILES" ) CONFIG_FILES="$CONFIG_FILES $MAKEFILES" ;;
-  "$SCRIPTS" ) CONFIG_FILES="$CONFIG_FILES $SCRIPTS" ;;
+  "$SCRIPTS1" ) CONFIG_FILES="$CONFIG_FILES $SCRIPTS1" ;;
+  "$OTHERFILES" ) CONFIG_FILES="$CONFIG_FILES $OTHERFILES" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
@@ -3179,7 +3183,7 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
-   chmod +x $SCRIPTS
+   chmod +x $SCRIPTS1
 
    if test "$BINARY" = NO
    then
