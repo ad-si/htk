@@ -83,8 +83,8 @@ newGenericBrowser par rootobjs cnf =
                          mapM toTreeListObject ch'
      tl <- newTreeList fr cfun [] [bg "white"]
      pack tl [Side AtLeft, Fill Both, Expand On]
-     np <- newNotepad fr Scrolled (12, 12) Nothing [bg "white",
-                                                    size (500, 2000)]
+     np <- newNotepad fr Scrolled (12, 12) Nothing [bg "white" {-,
+                                                    size (500, 2000)-}]
      pack np [Side AtRight, Fill Both, Expand On]
      let gb = GenericBrowser { container = fr,
                                treelist = tl,
@@ -136,6 +136,7 @@ tlObjectSelected gb mtlobj =
                                                    return (not b)) ch
                               putStrLn ("contains " ++ show(length ch') ++ " elements")
                               mapM addObject ch'
+                              updNotepadScrollRegion (notepad gb)
                               done
           _ -> done
 

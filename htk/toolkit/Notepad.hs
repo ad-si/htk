@@ -26,6 +26,7 @@ module Notepad (
   module Name,
   setName,
 
+  updNotepadScrollRegion,
   selectAll,
   deselectAll,
   selectItem,
@@ -60,6 +61,7 @@ import Examples(watch)
 import Core
 import Maybe
 import CItem
+import FiniteMap
 
 import IOExts(unsafePerformIO)
 
@@ -685,67 +687,6 @@ newNotepad par scrolltype imgsize mstate cnf =
             mapM (addToTag tag) selecteditems
             return tag
 
-        checkDropZones :: Notepad a -> Distance -> Distance -> IO ()
-        checkDropZones notepad x y =
-          let doSet item =
-                do
-                  (x, y) <- getPosition item
-                  let (Distance iwidth, Distance iheight) =
-                        it_img_size item
-                  rect1 <- createRectangle (canvas notepad)
-                             [coord [(x - Distance (div iwidth 2 + 1),
-                                      y - Distance (div iheight 2 + 1)),
-                                     (x + Distance (div iwidth 2),
-                                      y + Distance (div iheight 2))],
-                              filling "yellow", outline "yellow"]
-                  putItemAtBottom rect1
-                  rect2 <- createRectangle (canvas notepad)
-                             [coord [(x - Distance
-                                            (max (div iwidth 2 + 40) 40),
-                                      y + Distance (div iheight 2)),
-                                     (x + Distance
-                                            (max (div iwidth 2 + 40) 40),
-                                      y + Distance (div iheight 2 + 14))],
-                              filling "yellow", outline "yellow"]
-                  putItemAtBottom rect2
-                  setRef (drop_item notepad) (Just (item, rect1, rect2))
-
-              setDropRef item =
-                do
-                   drop <- getRef (drop_item notepad)
-                   case drop of
-                     Nothing -> doSet item
-                     Just (ditem, rect1, rect2) ->
-                       if item == ditem then done
-                       else destroy rect1 >> destroy rect2 >> doSet item
-
-              inDropZone item =
-                do
-                  (x_it, y_it) <- getPosition (it_img item)
-                  return (if x_it - 30 < x && x_it + 30 > x &&
-                             y_it - 10 < y && y_it + 30 > y then True
-                          else False)
-
-              checkDropZones' (item : items) =
-                do
-                  b <- inDropZone item
-                  (if b then setDropRef item else checkDropZones' items)
-              checkDropZones' [] =
-                do
-                  maybeitem <- getRef (drop_item notepad)
-                  case maybeitem of
-                    Just (_, rect1, rect2) ->
-                      destroy rect1 >> destroy rect2 >>
-                      setRef (drop_item notepad) Nothing
-                    Nothing -> done
-          in do
-               notepaditems <- getRef (items notepad)
-               selecteditems <- getRef (selected_items notepad)
-               let nonselecteditems =
-                     filter (\item -> not(any ((==) item) selecteditems))
-                            notepaditems
-               checkDropZones' nonselecteditems
-
         selectByRectangle :: Distance -> Distance -> Position ->
                              Rectangle -> Event ()
         selectByRectangle dx dy pos rect =
@@ -802,6 +743,159 @@ newNotepad par scrolltype imgsize mstate cnf =
             return (Distance dx', Distance dy')
         checkPositions [] = return (Distance 0, Distance 0)
 
+
+
+
+-- -----------------------------------------------------------------------
+        grid_x :: Int
+        grid_x = 15
+        grid_y :: Int
+        grid_y = 15
+
+        checkDropZones :: FiniteMap (Int, Int) [NotepadItem a] ->
+                          Notepad a -> Distance -> Distance -> IO ()
+        checkDropZones it_map notepad x@(Distance ix) y@(Distance iy) =
+          let doSet item =
+                do
+                  (x, y) <- getPosition item
+                  let (Distance iwidth, Distance iheight) =
+                        it_img_size item
+                  rect1 <- createRectangle (canvas notepad)
+                             [coord [(x - Distance (div iwidth 2 + 1),
+                                      y - Distance (div iheight 2 + 1)),
+                                     (x + Distance (div iwidth 2),
+                                      y + Distance (div iheight 2))],
+                              filling "yellow", outline "yellow"]
+                  putItemAtBottom rect1
+                  rect2 <- createRectangle (canvas notepad)
+                             [coord [(x - Distance
+                                            (max (div iwidth 2 + 40) 40),
+                                      y + Distance (div iheight 2)),
+                                     (x + Distance
+                                            (max (div iwidth 2 + 40) 40),
+                                      y + Distance (div iheight 2 + 14))],
+                              filling "yellow", outline "yellow"]
+                  putItemAtBottom rect2
+                  setRef (drop_item notepad) (Just (item, rect1, rect2))
+
+              setDropRef item =
+                do
+                   drop <- getRef (drop_item notepad)
+                   case drop of
+                     Nothing -> doSet item
+                     Just (ditem, rect1, rect2) ->
+                       if item == ditem then done
+                       else destroy rect1 >> destroy rect2 >> doSet item
+
+              inDropZone item =
+                do
+                  (x_it, y_it) <- getPosition (it_img item)
+                  return (if x_it - 30 < x && x_it + 30 > x &&
+                             y_it - 10 < y && y_it + 30 > y then True
+                          else False)
+
+              checkDropZones' (item : items) =
+                do
+                  b <- inDropZone item
+                  (if b then setDropRef item else checkDropZones' items)
+              checkDropZones' [] =
+                do
+                  maybeitem <- getRef (drop_item notepad)
+                  case maybeitem of
+                    Just (_, rect1, rect2) ->
+                      destroy rect1 >> destroy rect2 >>
+                      setRef (drop_item notepad) Nothing
+                    Nothing -> done
+
+          in do (_, (Distance sizex, Distance sizey)) <-
+                  getScrollRegion (canvas notepad)
+                let idx@(idx_x, idx_y) = (div ix (div sizex grid_x), div iy (div sizey grid_y))
+                checkDropZones' (lookupWithDefaultFM it_map [] idx)
+
+        buildMap :: Notepad a -> IO (FiniteMap (Int, Int) [NotepadItem a])
+        buildMap notepad =
+          do notepaditems <- getRef (items notepad)
+             selecteditems <- getRef (selected_items notepad)
+             let nonselecteditems =
+                   filter (\item -> not(any ((==) item) selecteditems))
+                          notepaditems
+             fmref <- newRef emptyFM
+             let add (idx_x, idx_y) notepaditem =
+                   if idx_x >= 0 && idx_x < 10 &&
+                      idx_y >= 0 && idx_y < 10 then
+                     do fm <- getRef fmref
+                        let mnotepaditems = lookupFM fm (idx_x, idx_y)
+                        let nufm = case mnotepaditems of
+                                     Just notepaditems ->
+                                       addToFM fm (idx_x, idx_y)
+                                         (notepaditem : notepaditems)
+                                     _ -> addToFM fm (idx_x, idx_y)
+                                                  [notepaditem]
+                        setRef fmref nufm
+                   else done
+                 getCenterIndex notepaditem =
+                   do (_, (Distance sizex, Distance sizey)) <-
+                        getScrollRegion (canvas notepad)
+                      (Distance x, Distance y) <- getPosition notepaditem
+                      return (div x (div sizex grid_x),
+                              div y (div sizey grid_y))
+                 addNotepadItem notepaditem =
+                   do idx@(idx_x, idx_y) <- getCenterIndex notepaditem
+                      add idx notepaditem
+                      add (idx_x - 1, idx_y    ) notepaditem
+                      add (idx_x - 1, idx_y - 1) notepaditem
+                      add (idx_x    , idx_y - 1) notepaditem
+                      add (idx_x + 1, idx_y - 1) notepaditem
+                      add (idx_x + 1, idx_y    ) notepaditem
+                      add (idx_x + 1, idx_y + 1) notepaditem
+                      add (idx_x    , idx_y + 1) notepaditem
+                      add (idx_x - 1, idx_y + 1) notepaditem
+             mapM addNotepadItem nonselecteditems
+             getRef fmref
+
+--        moveSelectedItems :: FiniteMap (Int, Int) [NotepadItem a] ->
+--                             Position -> Position -> CanvasTag -> Event ()
+        moveSelectedItems it_map rpos@(rootx, rooty) (x0, y0) t =
+             (do
+                (x, y) <- clickmotion >>>= getCoords
+                always (do
+                          (dx, dy) <- getD
+                          checkDropZones it_map notepad (x + dx) (y + dy)
+                          setRef (undo_last_motion notepad)
+                                 (ToPerform (moveItem t (rootx - x0)
+                                                        (rooty - y0)))
+                          moveItem t (x - x0) (y - y0))
+                moveSelectedItems it_map rpos (x, y) t)
+          +> (do
+                ev_inf <- release
+                always (do
+                          sendEv notepad (ReleaseMovement ev_inf)
+                          drop <- getRef dropref
+                          case drop of
+                            Just (item, rect1, rect2) ->
+                              do
+                                act <- getRef (undo_last_motion notepad)
+                                case act of
+                                  Performed -> done
+                                  _ -> do
+                                         undoLastMotion notepad
+                                         selecteditems <-
+                                           getRef selecteditemsref
+                                         sendEv notepad
+                                                (Dropped (item,
+                                                          selecteditems))
+                                setRef dropref Nothing
+                                destroy rect1 
+                                destroy rect2
+                            _ -> do
+                                   selecteditems <-
+                                     getRef selecteditemsref
+                                   (dx, dy) <-
+                                     checkPositions selecteditems
+                                   moveItem t (-dx) (-dy)))
+
+
+{-
         moveSelectedItems :: Position -> Position -> CanvasTag ->
                              Event ()
         moveSelectedItems rpos@(rootx, rooty) (x0, y0) t =
@@ -842,6 +936,12 @@ newNotepad par scrolltype imgsize mstate cnf =
                                    (dx, dy) <-
                                      checkPositions selecteditems
                                    moveItem t (-dx) (-dy)))
+-}
+
+
+
+-- -----------------------------------------------------------------------
+
 
         checkEnteredItem (x, y) =
           let overItem item =
@@ -913,7 +1013,8 @@ newNotepad par scrolltype imgsize mstate cnf =
                            b <- isNotepadItemSelected notepad item
                            if b then done else selectItem notepad item
                            t <- createTagFromSelection notepad
-                           sync (moveSelectedItems (x, y) (x, y) t)
+                           sync (do mp <- always (buildMap notepad)
+                                    moveSelectedItems mp (x, y) (x, y) t)
                            done)
                 listenNotepad)
           +> (do
@@ -976,6 +1077,18 @@ newNotepad par scrolltype imgsize mstate cnf =
       _ -> done
     return notepad
 
+updNotepadScrollRegion :: Notepad a -> IO ()
+updNotepadScrollRegion np =
+  let getMax (item : items) mx my =
+        do (x, y) <- getPosition item
+           let nux = max x mx
+               nuy = max y my
+           getMax items nux nuy
+      getMax _ mx my = return (mx, my)
+  in do items <- getItems np
+        (x, y) <- getMax items 0 0
+        np # size (x + 80, y + 40)
+        done
 
 -- instances --
 
