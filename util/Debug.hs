@@ -13,7 +13,7 @@ DESCRIPTION   : This module provides a uniform interface for debugging
 -}
 
 module Debug(
-  debug, -- show something to log file
+  debug, -- show something to log file if debugging is turned on.
   newId, -- get a new unique integer from a global variable
   
   ) where
@@ -22,6 +22,7 @@ import qualified IOExts(unsafePerformIO)
 import qualified Concurrent
 import Dynamic
 
+#ifdef DEBUG
 debug :: Show a => a -> IO()
 debug s = 
    case debugFile of 
@@ -33,6 +34,14 @@ debugFile =
    IOExts.unsafePerformIO 
      (catch (openFile "/tmp/uniform.DEBUG" WriteMode >>= return . Just)
             (\_-> return Nothing))
+#else
+
+debug :: Show a => a -> IO()
+debug _ = return ()
+
+{-# inline debug #-}
+
+#endif
 
 newId :: IO Int
 newId =

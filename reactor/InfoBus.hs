@@ -13,20 +13,24 @@ DESCRIPTION   : The InfoBus provides services for registering
                 execution manager which will be invoked when the tool
                 unregisters.
 
-
+                Communication is done using a single global 
+                EventBroker called "infobus".  This is not exported to
+                anywhere.
    ######################################################################### -}
 
 
 module InfoBus (        
-        InfoBus,
-        interactionIB,
-        dispatchIB,     
-
-        registerTool,
-        deregisterTool,
-        shutdown
-
-        ) where
+   registerTool,
+   deregisterTool,
+   shutdown
+  
+-- The following names don't seem to be used anywhere by anything outside
+-- this file. 
+--   InfoBus,
+--   interactionIB,
+--   dispatchIB,     
+   
+   ) where
 
 
 import Concurrency
@@ -39,50 +43,60 @@ import Interaction(EventID(..),interaction,EventDesignator(..),IA,EventListener(
 import qualified IOExts(unsafePerformIO,performGC)
 import Debug(debug)
 
+#if 0
+
 -- --------------------------------------------------------------------------
 --  InfoBus
 -- --------------------------------------------------------------------------
 
 data InfoBus = InfoBus (EventBroker Dyn) ObjectID
 
-
 interactionIB :: (EventDesignator e, Typeable a) => e -> DispatchMode -> IA a
-interactionIB e m = interaction eid registerIB deregisterIB >>>= coerce
-        where   eid = toEventID e
-                registerIB   = register infobroker eid m done 
-                deregisterIB = deregister infobroker eid done
+interactionIB eventId mode = 
+   interaction eId registerIB deregisterIB >>>= coerce
+   -- Create an IA for some type of event going into the infobus. 
+   where   
+      eId = toEventID eventId
+      registerIB   = register infobroker eventId mode done 
+      deregisterIB = deregister infobroker eventId done
 
 
 dispatchIB :: (EventDesignator e, Typeable a) => e -> a -> IO ()
-dispatchIB e v = dispatch infobroker e (toDyn v) done   
-                
+dispatchIB eventId value = dispatch infobroker eventId (toDyn value) done   
+   -- feed something into the infobus.                
 
 infobroker :: EventBroker Dyn
 infobroker = let (InfoBus brk _) = infobus in brk
+   -- the EventBroker in the global InfoBus
 
 infobus :: InfoBus
-infobus =  IOExts.unsafePerformIO (do {  
-                brk <- newEventBroker;
-                oid <- newObject;
-                bus <- return (InfoBus brk oid);
-                registerTool bus;
-                return bus
-                })
+   -- the global infobus.
+infobus =  
+   IOExts.unsafePerformIO (
+      do  
+         broker <- newEventBroker
+         oid <- newObject
+         bus <- return (InfoBus broker oid)
+         registerTool bus
+         return bus
+      )
 
 
 instance SingleInstanceTool InfoBus where
-        getToolInstance = return infobus
+   -- as far as I can discover, this isn't used anywhere.
+   getToolInstance = return infobus
 
 instance Object InfoBus where
-        objectID (InfoBus _ oid) = oid
+   objectID (InfoBus _ oid) = oid
 
 instance EventDesignator (InfoBus,String) where
-        toEventID (ib,str) = EventID (objectID ib) str
+   toEventID (ib,str) = EventID (objectID ib) str
 
 instance Destructible InfoBus where
-        destroy ib   = dispatchIB (ib,"DESTROY") ()
-        destroyed ib = interactionIB (ib,"DESTROY") Notice
+   destroy ib   = dispatchIB (ib,"DESTROY") ()
+   destroyed ib = interactionIB (ib,"DESTROY") Notice
 
+#endif
 
 -- --------------------------------------------------------------------------
 --  Tool Manager State
@@ -125,4 +139,10 @@ shutdown = do
         cmds <- updVar' toolmanager (\ts -> (emptyFM, eltsFM ts))
         foreach cmds (\cmd -> try cmd)
         IOExts.performGC
+
+
+
+
+
+
 

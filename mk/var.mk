@@ -5,6 +5,9 @@
 # export 
 
 include top/mk/machinedep.mk # set variables which depend on the machine
+-include top/mk/local.mk  # If available, include local variable changes
+# (This file is not included in the standard CVS distribution and
+# is intended to contain directives for debugging.)
 
 # Glasgow Haskell Compiler
 # HCHOME set in machinedep.mk
@@ -13,7 +16,12 @@ DEPEND           = $(HCHOME)/bin/ghc -M -optdep
 # GHCINCDIR        = -I$(HCHOME)/lib/includes -I/usr/local/lang/gnu/lib/gcc-lib/sparc-sun-solaris2.6/2.7.2.3/include
 GHCINCDIR        = -I$(HCHOME)/lib/ghc-4.06/includes 
 # GHCINCDIR        = -I$(HCHOME)/lib/includes 
-EXTRA_HC_OPTIONS = -recomp -Onot
+
+#ifdef DEBUG
+   EXTRA_HC_OPTIONS = -recomp -Onot -DDEBUG
+#else
+   EXTRA_HC_OPTIONS = -recomp -O -O2-for-C
+#endif
 
 HCSYSLIBS = -syslib concurrent -syslib data -syslib net -syslib posix -syslib text -syslib util -syslib lang
 # Version as it used to be before the GHC library names all changed

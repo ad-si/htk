@@ -1,4 +1,3 @@
-#define DEBUG 1
 {- A TwoWayChannel is a generalisation of Einar Karlsen's
    channels.  We now define channels in terms of TwoWayChannels; this
    is because TwoWayChannels are themselves symmetric, and so easier
