@@ -178,6 +178,8 @@ unpackWrappedMergeLink (WrappedMergeLink link) = fromDyn (toDyn link)
 instance Eq WrappedMergeLink where
    (==) (WrappedMergeLink link1) (WrappedMergeLink link2) = eqLink link1 link2
 
+-- | NB NB.  MergeComputeParents uses a hack which assumes that the
+-- ordering only depends on the link location.
 instance Ord WrappedMergeLink where
    compare (WrappedMergeLink link1) (WrappedMergeLink link2) 
       = compareLink link1 link2

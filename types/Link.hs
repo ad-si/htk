@@ -113,6 +113,8 @@ module Link(
       -- ordering them.
    coerceLink, -- :: (HasCodedValue x,HasCodedValue y) => Link x -> Link y
       -- to be used with care (only for NoAccessObject hackery I hope) 
+   mkHackedLink, -- :: HasCodedValue x => Location -> Link x
+      -- used as a hack in MergeComputeParents.
 
 
    getLastChange, 
@@ -346,6 +348,11 @@ writeLink view link x =
 coerceLink :: (HasCodedValue x,HasCodedValue y) => Link x -> Link y
 coerceLink (Link location) = Link location
 
+-- | used as a hack in MergeComputeParents.
+mkHackedLink :: HasCodedValue x => Location -> Link x
+mkHackedLink = Link
+
+
 -- | Writes a value into the view's object dictionary at the given
 -- link, MARKING IT AS UP-TO-DATE.  This is used for the NoAccessObject.
 pokeLink :: HasCodedValue x => View -> Link y -> x -> IO (Link x)
@@ -424,6 +431,9 @@ eqLink :: Link x -> Link y -> Bool
 eqLink (Link loc1) (Link loc2) = loc1 == loc2
 
 -- | Provide an efficient way of comparing two links.
+-- 
+-- NB NB.  MergeComputeParents uses a hack which assumes that the
+-- ordering only depends on the link location.
 compareLink :: Link x -> Link y -> Ordering
 compareLink (Link loc1) (Link loc2) = compare loc1 loc2
 
