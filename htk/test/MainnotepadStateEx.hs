@@ -86,7 +86,7 @@ main =
                               createNotepadItem
                                 (MyItem id (createName ("item" ++ show i))
                                         img)
-                                notepad1 [position (cm 2, cm 2)]
+                                notepad1 True [position (cm 2, cm 2)]
                               done) +>
                          (clicked_add2 >>>
                             do
@@ -95,7 +95,7 @@ main =
                               createNotepadItem
                                 (MyItem id (createName ("item" ++ show i))
                                         img)
-                                notepad2 [position (cm 2, cm 2)]
+                                notepad2 True [position (cm 2, cm 2)]
                               done) +>
                          (clicked_import1 >>>
                             do
