@@ -131,8 +131,9 @@
 
 <!ENTITY % conceptualUnit  "example | exercise | definition">
 
-<!ENTITY % formalUnit  "program | theory | theorem | development | proof 
-                      | script">
+<!ENTITY % formalUnit  "program | theory | theorem | conjecture | lemma 
+                        | corollary | assertion | development | proof 
+                        | script">
 
 <!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom; | includeUnit">
 
@@ -248,11 +249,11 @@
 <?MMiSSDisplay list : green ellipse ?>
 
 
-<!ELEMENT listItem  (list | %atom;)>
-<!ATTLIST glossaryEntry %label-matter;
-                        %title-matter;
-                        %formalism-matter;
-                        %attributes;>
+<!ELEMENT listItem  (list | %atom;)+>
+<!ATTLIST listItem %label-matter;
+                   %title-matter;
+                   %formalism-matter;
+                   %attributes;>
 
 
 <!--
