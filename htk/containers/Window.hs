@@ -38,6 +38,7 @@ module Window (
         getToplevel,
 
         closed,
+	saveYourself,
 
         modal,
         getModal,
@@ -231,10 +232,10 @@ getTransient (Window _ _ pv) = withVar' pv (\(_,t) -> t)
 -- Events 
 -- --------------------------------------------------------------------------           
 closed :: Window -> IA ()
-closed win = userinteraction win WindowDestroyed Notice >>> done
+closed win = userinteraction win WindowDestroyed Request >>> done
 
 saveYourself :: Window -> IA ()
-saveYourself win = userinteraction win SaveYourself Notice >>> done
+saveYourself win = userinteraction win SaveYourself Request >>> done
 
 
 -- --------------------------------------------------------------------------
