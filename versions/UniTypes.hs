@@ -16,8 +16,11 @@ module UniTypes(
    lookupByExtension, -- :: UniTypeDataBase -> String -> IO (Maybe UniType)
    
    splitFileName, -- :: String -> (String,String)
-   makeFileName -- :: String -> String -> String
-   -- splitFileName and makeFileName make and split file extensions
+   unsplitFileName, -- :: String -> String -> String
+   -- splitFileName and unsplitFileName make and split file extensions
+   makeFileName -- :: String -> UniType -> String
+   -- makeFileName makes a file name from the base name and the
+   -- UniType.
    ) where
 
 import Concurrent
@@ -39,7 +42,7 @@ data UniTypeData =
 
 newtype UniTypeDataBase = UniTypeDataBase (MVar (FiniteMap Extension UniType))
 
-data UniType = UniType Name Extension 
+data UniType = UniType Name Extension derives (Eq,Ord)
 
 newUniTypeDataBase :: IO UniTypeDataBase
 newUniTypeDataBase = 
@@ -86,7 +89,11 @@ splitFileName (c:rest) =
    in
       (c:name',extension)
 
-makeFileName :: Name -> Extension -> String
-makeFileName name extension = name ++ ('.':extension)
+unsplitFileName :: Name -> Extension -> String
+unsplitFileName name "" = name
+unsplitFileName name extension = name ++ ('.':extension)
 
+makeFileName :: Name -> UniType -> String
+makeFileName name (UniType {extension=extension}) = 
+   unsplitFileName name extension
 
