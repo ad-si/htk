@@ -45,5 +45,8 @@ DB_TXN *db_begin_trans();
 /* Commit a transaction */
 void db_end_trans(DB_TXN *trans);
 
+/* Abort a transaction */
+void db_abort_trans(DB_TXN *trans);
+
 #endif
 

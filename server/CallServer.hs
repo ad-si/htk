@@ -2,9 +2,9 @@
    to be in the server/ directory, except that it uses InfoBus. -}
 module CallServer(
    connectReply, -- :: 
-      -- (ServiceClass inType outType stateType) =>
+      -- (ServiceClass inType outType stateType,HasBinaryIO header) =>
       --    (inType,outType,stateType) ->     
-      --       IO (inType -> IO outType,IO (),String)
+      --       IO (inType -> IO outType,IO (),header)
       -- connectReply should be used for Reply-type services.  It
       -- attempts to connect to the server.
       -- If successful it returns a tuple consisting
@@ -13,9 +13,9 @@ module CallServer(
       -- (b) an action which will break the connection.
       -- (c) the header string sent by sendOnConnect.
    connectBroadcast, -- ::
-      -- (ServiceClass inType outType stateType) =>
+      -- (ServiceClass inType outType stateType,HasBinaryIO header) =>
       --    (inType,outType,stateType) ->    
-      --       IO (inType -> IO (),IO outType,IO (),String)
+      --       IO (inType -> IO (),IO outType,IO (),header)
       -- connectBroadcast should be used for Broadcast-type services.
       -- It attempts to connect to the server.
       -- If successful it returns a tuple containing
@@ -26,6 +26,11 @@ module CallServer(
    connectBroadcastOther, -- ::
       -- Identical to connectBroadcast except it connects to a 
       -- BroadcastOther-type service.
+   connectExternal, -- ::
+      -- (ServiceClass inType outType stateType,HasBinaryIO header) =>
+      --    (inType,outType,stateType) ->
+      --       IO (IO outType,IO (),header)
+      -- Connect to an External service.
    ) where
 
 import IO
@@ -51,9 +56,9 @@ import InfoBus
 
 import ServiceClass
 
-connectReply :: (ServiceClass inType outType stateType) =>
+connectReply :: (ServiceClass inType outType stateType,HasBinaryIO header) =>
     (inType,outType,stateType) ->  
-    IO (inType -> IO outType,IO (),String)
+    IO (inType -> IO outType,IO (),header)
 connectReply service =
    do
       case (serviceMode service) of
@@ -61,9 +66,7 @@ connectReply service =
          _ -> ioError(userError("connectReply handed a non-Reply service"))
       (connection@ Connection {handle = handle}) <- connectBasic service
 
-      headerLine <- hGetLine handle
-      let
-         header = read headerLine
+      header <- hGet handle
 
       bSem <- newBSem 
       let
@@ -77,9 +80,9 @@ connectReply service =
          closeAct = destroy connection
       return (sendMessage,closeAct,header)
    
-connectBroadcast :: (ServiceClass inType outType stateType) =>
-      (inType,outType,stateType) ->     
-      IO (inType -> IO (),IO outType,IO (),String)
+connectBroadcast :: (ServiceClass inType outType stateType,HasBinaryIO header)
+      => (inType,outType,stateType) ->     
+      IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcast service =
    do
       case (serviceMode service) of
@@ -88,9 +91,10 @@ connectBroadcast service =
            "connectBroadcast handed a non-Broadcast service"))
       connectBroadcastGeneral service
 
-connectBroadcastOther :: (ServiceClass inType outType stateType) =>
+connectBroadcastOther :: (ServiceClass inType outType stateType,
+         HasBinaryIO header) =>
       (inType,outType,stateType) ->     
-      IO (inType -> IO (),IO outType,IO (),String)
+      IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastOther service =
    do
       case (serviceMode service) of
@@ -99,16 +103,27 @@ connectBroadcastOther service =
            "connectBroadcast handed a non-Broadcast service"))
       connectBroadcastGeneral service
 
-connectBroadcastGeneral :: (ServiceClass inType outType stateType) =>
+connectExternal :: (ServiceClass inType outType stateType,HasBinaryIO header) 
+      => (inType,outType,stateType) ->     
+      IO (IO outType,IO (),header)
+connectExternal service =
+   do
+      case (serviceMode service) of
+         External _ -> done
+         _ -> ioError(userError(
+           "connectBroadcast handed a non-Broadcast service"))
+      (_,getNext,closeDown,header) <- connectBroadcastGeneral service
+      return (getNext,closeDown,header)
+
+connectBroadcastGeneral :: (ServiceClass inType outType stateType,
+         HasBinaryIO header) =>
       (inType,outType,stateType) ->     
-      IO (inType -> IO (),IO outType,IO (),String)
+      IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastGeneral service =
    do
       (connection@ Connection {handle = handle}) <- connectBasic service
 
-      headerLine <- hGetLine handle
-      let
-         header = read headerLine
+      header <- hGet handle
 
       readBSem <- newBSem
       writeBSem <- newBSem      

@@ -11,6 +11,6 @@ PACKAGES = net posix uni-reactor uni-posixutil uni-htk $(CRYPTPACKAGES)
 
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
-   Crypt.hs PasswordFile.hs MultiPlexer.hs \
+   Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs \
 
 include @TOP@/mk/boilerplate.mk

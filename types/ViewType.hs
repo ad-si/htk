@@ -14,6 +14,7 @@ module ViewType(
 
    getViewTitleSource, -- :: View -> Source String
 
+   parentVersions, -- :: View -> IO [ObjectVersion]
    getParentVersion, -- :: View -> Maybe ObjectVersion
 
    ) where
@@ -34,6 +35,7 @@ import Delayer
 
 import VSem
 
+import VersionInfo
 import VersionDB
 
 data View = View {
@@ -41,15 +43,11 @@ data View = View {
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
 
-   parentsMVar :: MVar [ObjectVersion],
-   -- parents of this view.  (None for the first version, multiple for
-   -- merged versions.)
-   --
-   -- The first element of this list, if any, is special in that it is
-   -- used as the version sent to the server when requesting links not
-   -- already in the view, by the getParentVersion function.
- 
-   titleSource :: SimpleBroadcaster String, -- current title of this view.
+   viewInfoBroadcaster :: SimpleBroadcaster VersionInfo,
+      -- Current extra data for his view.
+      -- The server part is usually junk, and discarded on commit.
+      -- However we keep it, as it needs to be preserved on transmitting
+      -- a view from one repository to another.
 
    -- Contains "real" copies of files for the benefit of tools
    fileSystem :: FileSystem,
@@ -95,15 +93,21 @@ instance QuickShow ViewId where
    quickShow = WrapShow (\ (ViewId oId) -> oId)
 
 -- -----------------------------------------------------------------
--- getParentVersion
+-- Extracting the parents
 -- -----------------------------------------------------------------
+
+parentVersions :: View -> IO [ObjectVersion]
+parentVersions view =
+   do
+      versionInfo <- readContents (viewInfoBroadcaster view)
+      return (parents (user versionInfo))
 
 -- getParentVersion retrieves the version number sent to the server
 -- on requesting items not already in the view.
 getParentVersion :: View -> IO (Maybe ObjectVersion)
 getParentVersion view =
    do
-      parents <- readMVar (parentsMVar view)
+      parents <- parentVersions view
       return (case parents of
          parent : _ -> Just parent
          [] -> Nothing
@@ -114,8 +118,8 @@ getParentVersion view =
 -- -----------------------------------------------------------------
 
 getViewTitleSource :: View -> SimpleSource String
-getViewTitleSource view = toSimpleSource (titleSource view)
-
+getViewTitleSource view = 
+   fmap (label . user) (toSimpleSource . viewInfoBroadcaster $ view)
 
 -- -----------------------------------------------------------------
 -- Instance of HasDelayer

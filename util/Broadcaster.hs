@@ -14,6 +14,8 @@ module Broadcaster(
    BroadcasterClass(broadcast),
       -- sends an update to a broadcaster.
 
+   applySimpleUpdate, -- :: SimpleBroadcaster x -> (x -> x) -> IO ()
+
    applyUpdate, -- :: Broadcaster x d -> (x -> (x,[d])) -> IO ()
 
    applyGeneralUpdate, -- :: GeneralBroadcaster x d -> (x -> (x,[d],extra)) -> IO extra
@@ -91,6 +93,10 @@ instance BroadcasterClass (Broadcaster x d) (x,[d]) where
 instance BroadcasterClass (SimpleBroadcaster x) x where
    broadcast (SimpleBroadcaster {updateAct2 = updateAct2}) x = 
       updateAct2 (\ _ -> x)
+
+applySimpleUpdate :: SimpleBroadcaster x -> (x -> x) -> IO ()
+applySimpleUpdate simpleBroadcaster updateFn =
+   updateAct2 simpleBroadcaster updateFn
 
 applyUpdate :: Broadcaster x d -> (x -> (x,[d])) -> IO ()
 applyUpdate (Broadcaster {updateAct = updateAct}) updateFn =

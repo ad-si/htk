@@ -19,6 +19,10 @@ module View(
    commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
       -- a global version.
+   commitView1, -- :: ObjectVersion -> View -> IO Version
+      -- Slightly more general version where the object version is
+      -- pre-allocated.
+
    synchronizeView, -- :: View -> IO b -> IO b
       -- Perform some action during which no commit should take place.
    createViewObject, 
@@ -29,6 +33,12 @@ module View(
 
    parentVersions, -- :: View -> IO [Version]
       -- returns the parent versions of this view.
+
+   setUserInfo, -- :: View -> UserInfo -> IO VersionInfo
+      -- set the user info for the view, returning the new VersionInfo.
+
+   readVersionInfo, -- :: View -> IO VersionInfo
+      -- get the VersionInfo for this view.
    ) where
 
 import Directory
@@ -53,7 +63,10 @@ import VSem
 
 import Destructible
 
+import VersionInfo
+
 import VersionDB
+import VersionGraphClient
 import ViewType
 import CodedValue
 import CodedValueStore
@@ -83,10 +96,9 @@ newView :: Repository -> IO View
 newView repository =
    do
       objects <- newRegistry
-      parentsMVar <- newMVar []
+      viewInfoBroadcaster <- newSimpleBroadcaster topVersionInfo
       viewIdObj <- newObject
       fileSystem <- newFileSystem
-      titleSource <- newSimpleBroadcaster ""
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
@@ -95,8 +107,7 @@ newView repository =
          viewId = ViewId viewIdObj,
          repository = repository,
          objects = objects,
-         parentsMVar = parentsMVar,
-         titleSource = titleSource,
+         viewInfoBroadcaster = viewInfoBroadcaster,
          fileSystem = fileSystem,
          commitLock = commitLock,
          delayer = delayer,
@@ -121,15 +132,21 @@ getView repository objectVersion =
          -- can't be defined for HasPureCodedValue to avoid a nasty instance
          -- overlap.
       (ViewData {
-         title = title,
          displayTypesData = displayTypesData,
          objectTypesData = objectTypesData
          }) <- doDecodeIO viewCodedValue phantomView
 
+      viewInfo0 <- getVersionInfo (versionToNode objectVersion)
+      let
+         user0 = user viewInfo0
+
+         -- set appropriate fields of viewInfo.
+         user1 = user0 {parents = [objectVersion]}
+         viewInfo1 = viewInfo0 {user = user1}
+      
       objects <- newRegistry
-      parentsMVar <- newMVar [objectVersion]
+      viewInfoBroadcaster <- newSimpleBroadcaster viewInfo1
       fileSystem <- newFileSystem
-      titleSource <- newSimpleBroadcaster title
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
@@ -138,8 +155,7 @@ getView repository objectVersion =
             viewId = viewId,
             repository = repository,
             objects = objects,
-            titleSource = titleSource,
-            parentsMVar = parentsMVar,
+            viewInfoBroadcaster = viewInfoBroadcaster,
             fileSystem = fileSystem,
             commitLock = commitLock,
             delayer = delayer,
@@ -151,12 +167,17 @@ getView repository objectVersion =
       return view
 
 commitView :: View -> IO Version
-commitView (view @ View {repository = repository,objects = objects,
+commitView view =
+   do
+      newVersion1 <- newVersion (repository view)
+      commitView1 newVersion1 view
+
+commitView1 :: ObjectVersion -> View -> IO Version
+commitView1 newVersion1 
+   (view @ View {repository = repository,objects = objects,
       commitLock = commitLock}) =
    synchronizeGlobal commitLock (
       do
-         newVersion1 <- newVersion repository 
-
          swapMVar (committingVersion view) (Just newVersion1)
 
          displayTypesData <- exportDisplayTypes view
@@ -191,12 +212,14 @@ commitView (view @ View {repository = repository,objects = objects,
             objectsData1 :: [(Location,CommitChange)]
             objectsData1 = catMaybes objectsData0
 
-         title <- readContents (titleSource view)
+         viewInfo0 <- readContents (viewInfoBroadcaster view)
                
          let
+            user0 = user viewInfo0
+            user1 = user0 {version = newVersion1}
+
             viewData =
                ViewData {
-                  title = title,
                   displayTypesData = displayTypesData,
                   objectTypesData = objectTypesData
                   }
@@ -211,17 +234,17 @@ commitView (view @ View {repository = repository,objects = objects,
             objectsData2 = (specialLocation1,Left viewObjectSource) 
                : objectsData1
 
-         parentOpt <- getParentVersion view 
+         commit repository (Left user1) objectsData2
 
-         commit repository parentOpt newVersion1 objectsData2
+         let
+            user2 = user1 {parents = [newVersion1]}
+            viewInfo1 = viewInfo0 {user = user2}
+
+         broadcast (viewInfoBroadcaster view) viewInfo1
 
          swapMVar (committingVersion view) Nothing
          return newVersion1
       )
----
--- returns the current parent version of the view.
-parentVersions :: View -> IO [Version]
-parentVersions view = readMVar (parentsMVar view)
 
 -- ----------------------------------------------------------------------
 -- Format of view information in the top file
@@ -230,7 +253,6 @@ parentVersions view = readMVar (parentsMVar view)
 -- ViewData is the information needed to construct a view
 -- which we store in the top file of a version.
 data ViewData = ViewData {
-   title :: String,
    displayTypesData :: CodedValue,
    objectTypesData :: CodedValue
    }
@@ -240,17 +262,17 @@ instance HasTyRep ViewData where
    tyRep _ = viewData_tyRep
 
 -- Here's the real primitive type
-type Tuple = (String,CodedValue,CodedValue)
+type Tuple = (CodedValue,CodedValue)
 
 mkTuple :: ViewData -> Tuple
-mkTuple (ViewData {title = title,
+mkTuple (ViewData {
    displayTypesData = displayTypesData,
    objectTypesData = objectTypesData}) =
-      (title,displayTypesData,objectTypesData)
+      (displayTypesData,objectTypesData)
 
 unmkTuple :: Tuple -> ViewData
-unmkTuple (title,displayTypesData,objectTypesData) =
-   ViewData {title = title,
+unmkTuple (displayTypesData,objectTypesData) =
+   ViewData {
       displayTypesData = displayTypesData,objectTypesData = objectTypesData}
 
 instance HasCodedValue ViewData where
@@ -264,6 +286,30 @@ instance HasCodedValue ViewData where
 -- Perform some action during which no commit should take place.
 synchronizeView :: View -> IO b -> IO b
 synchronizeView view action = synchronizeLocal (commitLock view) action
+
+-- ---------------------------------------------------------------------
+-- Accessing the UserInfo for a view.
+-- ---------------------------------------------------------------------
+
+setUserInfo :: View -> UserInfo -> IO ()
+setUserInfo view userInfo =
+   applySimpleUpdate (viewInfoBroadcaster view)
+      (\ versionInfo0 ->
+         let
+            user0 = user versionInfo0
+            user1 = user0 {
+               label = label userInfo,
+               contents = contents userInfo,
+               private = private userInfo
+               }
+            versionInfo1 = versionInfo0 {user = user1}
+         in
+            versionInfo1
+  
+         )        
+   
+readVersionInfo :: View -> IO VersionInfo
+readVersionInfo view = readContents (viewInfoBroadcaster view)
 
 -- ----------------------------------------------------------------------
 -- createViewObject

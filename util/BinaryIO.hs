@@ -7,6 +7,7 @@ module BinaryIO(
       --    integers,
       --    Strings,
       --    Bool,
+      --    ClockTime,
       --    tuples and lists,
       --    Choice5, 
       --    ReadShow a where a instances Read and Show
@@ -41,6 +42,16 @@ module BinaryIO(
    mapHGetIntWE,
       -- :: HasBinaryIO value2 => (value2 -> value1) -> Int -> Handle
       -- -> IO (WithError value1)
+
+
+   WrappedBinaryIO(..),
+      -- Wraps a type that instances HasBinaryIO.
+   hPutWrapped, -- :: Handle -> WrappedBinaryIO -> IO ()
+
+   initialClockTime, -- :: ClockTime
+      -- This is the clock time at the time of writing.  We define this in
+      -- this module because we have to import System.Time to make ClockTime
+      -- instance HasBinaryIO.
    ) where
 
 import IO hiding (hGetChar)
@@ -54,6 +65,7 @@ import GHC.Int(Int32)
 import GHC.IO hiding (hGetChar)
 import System.IO.Error
 import Control.Exception
+import System.Time(ClockTime(..))
 
 import Computation
 import ExtendedPrelude
@@ -89,9 +101,18 @@ class HasBinaryIO value where
          value <- hGetIntWE i handle
          coerceWithErrorIO value
 
-   hGetWE = hGetIntWE 4
+   hGetWE = hGetIntWE 10000
 
    hGetIntWE _ = hGetWE
+
+-- ---------------------------------------------------------------------------
+-- A useful existential type
+-- ---------------------------------------------------------------------------
+
+data WrappedBinaryIO = forall a . HasBinaryIO a => WrappedBinaryIO a
+
+hPutWrapped :: Handle -> WrappedBinaryIO -> IO ()
+hPutWrapped handle (WrappedBinaryIO a) = hPut handle a
 
 -- ---------------------------------------------------------------------------
 -- Instances of Read/Show
@@ -201,7 +222,7 @@ instance HasBinaryIO ICStringLen where
                )
             lenWE
 
-   hGetWE = hGetIntWE 4 -- allow a higher default
+   hGetWE = hGetIntWE 4 
 
 
 -- ---------------------------------------------------------------------------
@@ -354,6 +375,18 @@ instance (Integral integral,Bits integral)
       in
          lowestPart + (highPart `shiftL` bitsPerChar)
 
+
+-- ---------------------------------------------------------------------------
+-- ClockTime
+-- ---------------------------------------------------------------------------
+
+instance HasBinaryIO ClockTime where
+   hPut = mapHPut (\ (TOD i j) -> (i,j))
+   hGetIntWE = mapHGetIntWE (\ (i,j) -> TOD i j)
+
+initialClockTime :: ClockTime
+initialClockTime = TOD 1052391874 190946000000
+   -- Time this was written.
 
 -- ---------------------------------------------------------------------------
 --

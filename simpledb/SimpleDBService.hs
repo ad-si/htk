@@ -1,7 +1,7 @@
 {- This module defines the service that implements the SimpleDB -}
 module SimpleDBService(
    simpleDBService,
-   simpleDBServiceWrapped,
+   mkSimpleDBServices,
    ) where
 
 import Thread
@@ -9,6 +9,23 @@ import Thread
 import ServiceClass
 
 import SimpleDBServer
+
+import VersionInfo
+import VersionInfoService
+
+mkSimpleDBServices :: IO [Service]
+mkSimpleDBServices =
+   do
+      versionState <- mkVersionState
+
+      simpleDB <- openSimpleDB versionState
+      let
+         simpleDBService :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
+         simpleDBService = 
+            (error "SimpleDBService.1",error "SimpleDBService.2",simpleDB)
+
+      return [Service simpleDBService,toVersionInfoServiceWrapped versionState]
+
 
 simpleDBService = serviceArg :: (SimpleDBCommand,SimpleDBResponse,SimpleDB)
 simpleDBServiceWrapped = Service simpleDBService 
@@ -20,10 +37,10 @@ instance ServiceClass SimpleDBCommand SimpleDBResponse SimpleDB where
    serviceMode _ = Reply
    getBackupDelay _ = return BackupNever
       -- SimpleDB backups up automatically after every commit anyway.
-   initialState _ = openSimpleDB
-   handleRequest _ _ (command,simpleDB) = 
+   initialState (_,_,simpleDB) = return simpleDB
+   handleRequest _ user (command,simpleDB) = 
       do
-         response <- querySimpleDB simpleDB command
+         response <- querySimpleDB user simpleDB command
          return (response,simpleDB)
    -- For sendOnConnect we use the default action of sending ""
 

@@ -46,9 +46,11 @@ import FileNames
 import ICStringLen
 import BinaryIO
 
-import CacheTable
 import IOExtras
 import WBFiles
+
+import PasswordFile
+import LogFile
 
 import BDBClient
 import VersionInfo
@@ -68,9 +70,6 @@ specialLocation2 = Location 1
 maxLocation :: Location 
 maxLocation = specialLocation2 
    -- this should be the highest initially allocated location.
-
-firstVersion :: ObjectVersion
-firstVersion = ObjectVersion 0
 
 maxVersion :: ObjectVersion 
 maxVersion = ObjectVersion (-1)
@@ -92,14 +91,16 @@ data SimpleDBCommand =
          -- or IsResponse with an error message.
          -- retrieve version ObjectVersion from the repository
          -- return IsData.
-   |  Commit (Maybe ObjectVersion) ObjectVersion [(Location,
-            Either ICStringLen (Location,ObjectVersion))]
-         -- The first argument is a parent version, if any, which should
-         -- be something already committed.  The second is the ObjectVersion
-         -- which should be uniquely allocated for this ObjectVersion;
-         -- this can be firstVersion (when we are initialising the
-         -- repository) or else something allocated by NewVersion.
-         -- The third contains the new stuff in the version, by Location.
+   |  Commit 
+         (Either UserInfo VersionInfo) 
+             -- ^ extra data about this version.
+             -- This includes a version number, which must be uniquely
+             -- allocated by NewVersion, and the parent versions, which
+             -- must already exist.  The first parent version we call the
+             -- head parent version.
+         [(Location,Either ICStringLen (Location,ObjectVersion))]
+             -- ^ The new stuff in this version, as compared with the head
+             -- parent version, by Location.
          -- Normally, the list items will be Left ICStringLen, for new data. 
          -- But because of merges, we also need 
          -- Right (Location,ObjectVersion), which indicates a pre-existing 
@@ -110,6 +111,11 @@ data SimpleDBCommand =
          -- It is in fact legitimate for the same Location to occur more
          -- than once in the list (this will be necessary when we do security
          -- properly).  All but the last occurrence is discarded.
+   |  ModifyUserInfo UserInfo
+         -- For a version which already exists, replace its VersionInfo
+         -- by that given. 
+         --    This will not change the head parent version on any account.
+         -- Returns IsOK.
    |  MultiCommand [SimpleDBCommand]
          -- A group of commands to be executed one after another.
          -- Returns MultiResponse with the corresponding responses.
@@ -140,7 +146,8 @@ instance HasWrapper SimpleDBCommand where
       wrap0 'L' ListVersions,
       wrap2 'R' Retrieve,
       wrap2 'c' LastChange,
-      wrap3 'C' Commit,
+      wrap2 'C' Commit,
+      wrap1 'm' ModifyUserInfo,
       wrap1 'M' MultiCommand
       ]
    unWrap = (\ wrapper -> case wrapper of
@@ -149,7 +156,8 @@ instance HasWrapper SimpleDBCommand where
       ListVersions -> UnWrap 'L' ()
       Retrieve l v -> UnWrap 'R' (l,v)
       LastChange l v -> UnWrap 'c' (l,v)
-      Commit p v n -> UnWrap 'C' (p,v,n)
+      Commit v n -> UnWrap 'C' (v,n)
+      ModifyUserInfo v -> UnWrap 'm' v
       MultiCommand l -> UnWrap 'M' l
       )
 
@@ -199,7 +207,7 @@ instance HasTyRep ObjectVersion where
 
 data SimpleDB = SimpleDB {
    -- objectLocations is a backup file we write all details to.
-   objectLocations :: Handle,
+   objectLocations :: LogFile FrozenVersionData,
    -- details for each version in the db.
    versionDictionary :: IORef (FiniteMap ObjectVersion VersionData),
    -- Next location to allocate
@@ -207,7 +215,9 @@ data SimpleDB = SimpleDB {
    -- Next version to allocate.
    nextVersion :: IORef Int,
    -- The BDB Database
-   bdb :: BDB
+   bdb :: BDB,
+   -- The additional version information
+   versionState :: VersionState
    }
 
 data VersionData = VersionData {
@@ -235,13 +245,14 @@ data FrozenVersionData = FrozenVersionData {
 -- The main query function
 -- -------------------------------------------------------------------
 
-querySimpleDB :: SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
-querySimpleDB
+querySimpleDB :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
+querySimpleDB user
       (simpleDB @ (SimpleDB {
          objectLocations = objectLocations,
          nextLocation = nextLocation,
          nextVersion = nextVersion,
          versionDictionary = versionDictionary,
+         versionState = versionState,
          bdb = bdb
          }))
       command =
@@ -281,45 +292,87 @@ querySimpleDB
                            ++ "\n Perhaps the server crashed half-way "
                            ++ "\n through a commit?"))
                         Just icsl -> return (IsData icsl)
-      Commit parentVersionOpt thisVersion newStuff0 ->
+      Commit versionExtra newStuff0 ->
          do
-            txn <- beginTransaction
+            versionInfoWE <- mkVersionInfo user versionExtra
+            case fromWithError versionInfoWE of
+               Left mess -> return (IsError mess)
+               Right versionInfo ->
+                  do
+                     let
+                        thisVersion = version (VersionInfo.user versionInfo)
 
-            -- enter the new stuff in the BDB repository 
-            (newStuff1 :: [(Location,Either BDBKey (Location,ObjectVersion))])
-                  <- mapM
-               (\ (location,newItem) ->
-                  case newItem of
-                     Left icsl ->
-                        do
-                           bdbKey <- writeBDB bdb txn icsl
-                           return (location,Left bdbKey)
-                     Right objectLoc -> return (location,Right objectLoc)
-                  )
-               newStuff0
+                        parentVersionOpt = 
+                           case parents (VersionInfo.user versionInfo) of
+                              [] -> Nothing
+                              head : _ -> Just head
 
-            endTransaction txn
+                     txn <- beginTransaction
 
-            flushBDB bdb
+                     -- enter the new stuff in the BDB repository 
+                     (newStuff1 :: [(Location,
+                              Either BDBKey (Location,ObjectVersion))])
+                           <- mapM
+                        (\ (location,newItem) ->
+                           case newItem of
+                              Left icsl ->
+                                 do
+                                    bdbKey <- writeBDB bdb txn icsl
+                                    return (location,Left bdbKey)
+                              Right objectLoc 
+                                 -> return (location,Right objectLoc)
+                           )
+                        newStuff0
 
-            -- construct a FrozenVersionData
-            let
-               frozenVersionData = FrozenVersionData {
-                  parent' = parentVersionOpt,
-                  thisVersion' = thisVersion,
-                  objectChanges = newStuff1
-                  }
+                     -- construct a FrozenVersionData
+                     let
+                        frozenVersionData = FrozenVersionData {
+                           parent' = parentVersionOpt,
+                           thisVersion' = thisVersion,
+                           objectChanges = newStuff1
+                           }
 
-             -- apply it
-            unitWE <- applyFrozenVersionData simpleDB frozenVersionData
-            return (
-               case fromWithError unitWE of
-                  Right () -> IsOK
-                  Left mess -> IsError mess
-               )
+                      -- apply it
+                     unitWE 
+                        <- applyFrozenVersionData simpleDB frozenVersionData
+                     
+                     case fromWithError unitWE of
+                        Right () -> 
+                           do
+                              endTransaction txn
+
+                              flushBDB bdb
+                                 -- not sure if this is necessary, but it won't
+                                 -- hurt.
+
+                              -- transmit extra version data
+                              addVersionInfo versionState (False,versionInfo)
+                              return IsOK
+                        Left mess -> 
+                           do
+                              abortTransaction txn
+                              return (IsError mess)
+      ModifyUserInfo userInfo ->
+         do
+            oldVersionInfoOpt 
+               <- lookupVersionInfo versionState (version userInfo)
+            case oldVersionInfoOpt of
+               Nothing -> return (IsError 
+                  "ModifyUserInfo: Version does not exist")
+               Just versionInfo0 ->
+                  do
+                     let
+                        versionInfo1WE 
+                           = changeUserInfo user versionInfo0 userInfo
+                     case fromWithError versionInfo1WE of
+                        Right versionInfo1 ->
+                           do
+                              addVersionInfo versionState (True,versionInfo1)
+                              return IsOK
+                        Left mess -> return (IsError mess)
       MultiCommand commands ->
          do
-            responses <- mapM (querySimpleDB simpleDB) commands
+            responses <- mapM (querySimpleDB user simpleDB) commands
             return (MultiResponse responses)
 
 -- -------------------------------------------------------------------
@@ -542,15 +595,14 @@ readFrozenVersionDatas handle =
 -- Creating a new SimpleDB
 -- -------------------------------------------------------------------
 
-openSimpleDB :: IO SimpleDB
-openSimpleDB =
+openSimpleDB :: VersionState -> IO SimpleDB
+openSimpleDB versionState =
    do
       -- (1) connect to BDB database
       bdb <- openBDB
 
       -- (2) open the object locations file.
-      fpath <- getServerFile "objectLocs"
-      handle <- openFile fpath ReadWriteMode
+      (objectLocations,frozenVersionDatas) <- openLog "objectLocs"
 
       -- (3) create an empty SimpleDB
       versionDictionary <- newIORef emptyFM
@@ -559,17 +611,15 @@ openSimpleDB =
 
       let
          simpleDB = SimpleDB {
-            objectLocations = handle,
+            objectLocations = objectLocations,
             versionDictionary = versionDictionary,
             nextLocation = nextLocation,
             nextVersion = nextVersion,
-            bdb = bdb
+            bdb = bdb,
+            versionState = versionState
             }
 
-      -- (4) get the frozenVersionDatas
-      frozenVersionDatas <- readFrozenVersionDatas handle
-
-      -- (5) add them to the simpleDB
+      -- (4) add them to the simpleDB
       mapM_
          (\ frozenVersionData -> 
             do
@@ -578,7 +628,7 @@ openSimpleDB =
             )
          frozenVersionDatas
 
-      -- (6) compute the nextLocation and nextVersion
+      -- (5) compute the nextLocation and nextVersion
       setNextThings simpleDB
 
       return simpleDB
@@ -596,11 +646,7 @@ applyFrozenVersionData simpleDB frozenVersionData =
       -- (2) write out
       mapWithErrorIO
          (\ () ->
-            do
-               let
-                  handle = objectLocations simpleDB
-               hPut handle frozenVersionData
-               hFlush handle
+            writeLog (objectLocations simpleDB) frozenVersionData
             )
          unitWE
 

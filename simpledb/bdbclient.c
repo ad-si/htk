@@ -129,3 +129,8 @@ void db_end_trans(DB_TXN *trans) {
       trans->commit(trans,0));
    }
 
+void db_abort_trans(DB_TXN *trans) {
+   run_db("DB_TXN->abort",
+      trans->abort(trans));
+   }
+

@@ -50,7 +50,7 @@ mkNotifier :: IO Notifier
 mkNotifier =
    do
       oID <- newObject
-      (writeAction,receiveAction,closeAction,header) <-
+      (writeAction,receiveAction,closeAction,header :: String) <-
          connectBroadcast echoService
       eventChannel <- newEqGuardedChannel
       let

@@ -53,6 +53,8 @@ module Graph(
 
    ) where
 
+import Control.Concurrent.MVar
+
 import AtomString
 import Computation(done)
 import Dynamics
@@ -228,5 +230,3 @@ emptyCannedGraph :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
 emptyCannedGraph = CannedGraph {
    updates = []
    }
-
-

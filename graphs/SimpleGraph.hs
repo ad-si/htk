@@ -25,6 +25,14 @@ module SimpleGraph(
    getNameSource, 
    -- :: SimpleGraph -> NameSource
    -- We need to hack the name source as part of the backup process.
+
+
+   delayedAction,
+      -- :: Graph graph 
+      -- => graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
+      -- -> Node -- node
+      -- -> IO () -- action to perform when the node is created in the graph.
+      -- -> IO ()
    ) where
 
 import List(delete)
@@ -126,7 +134,8 @@ instance Graph SimpleGraph where
    getNodeType = getNodeInfo nodeType
 
    getNodeTypeLabel graph nodeType =
-      synchronize graph (getValue (nodeTypeData graph) nodeType)
+      synchronize graph (
+         getValue' "NodeTypeLabel" (nodeTypeData graph) nodeType)
 
    getSource = getArcInfo source
    getTarget = getArcInfo target
@@ -134,7 +143,8 @@ instance Graph SimpleGraph where
    getArcType = getArcInfo arcType
 
    getArcTypeLabel graph arcType =
-      synchronize graph (getValue (arcTypeData graph) arcType)
+      synchronize graph (
+         getValue' "ArcTypeLabel" (arcTypeData graph) arcType)
 
    shareGraph graph =
       (\ clientSink ->
@@ -248,7 +258,7 @@ getNodeInfo ::
 getNodeInfo converter graph node =
    synchronize graph (
       do
-         nodeData <- getValue (nodeData graph) node
+         (Just nodeData) <- getValueOpt (nodeData graph) node
          return (converter nodeData)
       )
 
@@ -260,7 +270,7 @@ getArcInfo ::
 getArcInfo converter graph arc =
    synchronize graph (
       do
-         arcData <- getValue (arcData graph) arc
+         (Just arcData) <- getValueOpt (arcData graph) arc
          return (converter arcData)
       )
 
@@ -469,7 +479,7 @@ innerApplyUpdate
                         setValue nodeRegistry source newNodeSourceData
                
                         (nodeTargetData :: NodeData nodeLabel)
-                           <- getValue nodeRegistry target
+                           <- getValue' "DeleteArc" nodeRegistry target
                         let
                            newNodeTargetData = nodeTargetData {
                               arcsIn = delete arc (arcsIn nodeTargetData)
@@ -579,5 +589,52 @@ newEmptyGraphWithSource nameSourceBranch =
          graphID = graphID
          })
 
+
+
+------------------------------------------------------------------------
+-- delayedAction is used to delay an action until a node is present.
+-- It assumes that the node is not already present.
+-- Typical use: register that an arc shall be added when a given node
+-- at one end of the arc is created.
+------------------------------------------------------------------------
+
+delayedAction :: 
+   SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
+   -> Node -- node
+   -> IO () -- action to perform when the node is created in the graph.
+   -> IO ()
+delayedAction 
+      (graph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
+      node action =
+   do
+      doNow <- transformValue (nodeData graph) node
+         (\ (nodeDataOpt :: Maybe (NodeData nodeLabel)) ->
+            case nodeDataOpt of
+               Just nodeData -> return (nodeDataOpt,True)
+               Nothing ->
+                  do
+                     -- we create a new client for the purpose.
+                     clientID <- newObject
+                     let
+                        clients = clientsMVar graph
+
+                        clientData = ClientData {
+                           clientID = clientID,clientSink = clientSink
+                           }
+
+                        clientSink update = case update of
+                           NewNode node1 _ _ 
+                              | node1 == node
+                              ->
+                                 do
+                                    action
+                                    modifyMVar_ clients 
+                                       (return . delete clientData)
+                           _ -> done
+
+                     modifyMVar_ clients (return . (clientData :))
+                     return (nodeDataOpt,False)
+            )
+      if doNow then action else done
 
 

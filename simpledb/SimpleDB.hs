@@ -43,17 +43,15 @@ module SimpleDB(
    -- listVersion lists all versions in the repository.
 
    commit,
-      --  :: Repository -> Maybe ObjectVersion -> ObjectVersion
-      -- -> [(Location,CommitChange)] -> IO ()
+      --  :: Repository 
+      --  -> Either UserInfo VersionInfo
+      --  -> [(Location,CommitChange)] -> IO ()
       -- Commit a complete new version to the repository.
       --
-      -- Maybe ObjectVersion
-      --    is the parent version
-      --    (or Nothing for the very first version)
-      -- ObjectVersion
-      --    is the version for this commit.  This must be unique and
-      --    either firstVersion, for the very first version, or else
-      --    allocated by newVersion
+      -- Either UserInfo VersionInfo
+      --    contains the additional information for this commit
+      --    (the ObjectVersion for the new version, parent versions,
+      --       version title, and so on.)
       -- [(Location,Either ObjectSource (Location,ObjectVersion))] 
       --    is the list of updates.  Later updates take priority over
       --    earlier ones. 
@@ -65,6 +63,9 @@ module SimpleDB(
       --       normally only used during merging.
 
    CommitChange, -- = Either ObjectSource (Location,ObjectVersion)
+
+   modifyUserInfo,
+      -- :: Repository -> UserInfo -> IO ()
 
    ) where
 
@@ -85,6 +86,7 @@ import CopyFile
 
 import SimpleDBServer
 import SimpleDBService
+import VersionInfo
 import ObjectSource hiding (getICSL,fromICSL)
    -- that prevents those two functions being exported
 import qualified ObjectSource
@@ -212,9 +214,10 @@ retrieveFile repository location objectVersion filePath =
 
 type CommitChange = Either ObjectSource (Location,ObjectVersion)
 
-commit :: Repository -> Maybe ObjectVersion -> ObjectVersion
+commit :: Repository 
+   -> Either UserInfo VersionInfo
    -> [(Location,CommitChange)] -> IO ()
-commit repository parentVersionOpt thisVersion newStuff0 =
+commit repository versionExtra newStuff0 =
    do
       (newStuff1 
             :: [(Location,Either ICStringLen (Location,ObjectVersion))]) <-
@@ -229,12 +232,19 @@ commit repository parentVersionOpt thisVersion newStuff0 =
                )
             newStuff0
 
-      response <- queryRepository repository
-         (Commit parentVersionOpt thisVersion newStuff1)
+      response <- queryRepository repository (Commit versionExtra newStuff1)
 
       case response of
          IsOK -> done
          _ -> error ("Commit error: unexpected response")
+
+
+modifyUserInfo repository userInfo =
+   do
+      response <- queryRepository repository (ModifyUserInfo userInfo)
+      case response of
+         IsOK -> done
+         _ -> error ("ModifyUserInfo: unexpected response")
 
 ----------------------------------------------------------------
 -- Unpacking SimpleDBResponse

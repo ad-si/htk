@@ -88,68 +88,6 @@ runServer serviceList =
 -- Thus we are locking operations on stateMVar.
 ------------------------------------------------------------------------
 
-                  let
-                     -- This should not be done unless stateMVar
-                     -- is empty.
-                     deleteClient :: ClientData -> IO ()
-                     deleteClient clientData =
-                        do
-                           oldClients <- takeMVar clients
-                           putMVar clients 
-                              (delete clientData oldClients)
-
-                     -- This should not be done unless stateMVar
-                     -- is empty.
-                     broadcastAction 
-                        :: ClientData -> (Handle -> IO ()) -> IO ()
-                     -- The first argument is the client who initiated
-                     -- the request; the second is an action sending the 
-                     -- message
-                     broadcastAction =
-                        case serviceMode service of
-                           Reply ->
-                              (\ clientData outputAction -> 
-                                 outputAction (handle clientData)
-                                 )
-                           Broadcast ->
-                              (\ _ outputAction ->
-                                 do
-                                    clientList <- readMVar clients
-                                    broadcastToClients clientList outputAction
-                                 )
-                           BroadcastOther ->
-                              (\ clientData outputAction ->
-                                 do
-                                    clientList <- readMVar clients
-                                    let
-                                       otherClients =
-                                          filter (/= clientData) clientList
-                                    broadcastToClients otherClients 
-                                       outputAction
-                                 )
-
-                     -- This should not be done unless stateMVar
-                     -- is empty.
-                     broadcastToClients :: [ClientData] -> (Handle -> IO ()) 
-                        -> IO ()
-                     -- Broadcasts the string to all clients listed
-                     broadcastToClients clientList outputAction =
-                        sequence_ (
-                           map
-                              (\ clientData ->
-                                 do 
-                                    -- If fail, delete clientData
-                                    success <- IO.try(
-                                       outputAction (handle clientData)
-                                       )
-                                    case success of
-                                       Left error ->
-                                          deleteClient clientData
-                                       Right () -> done
-                                 ) 
-                              clientList
-                           )
-
 ------------------------------------------------------------------------
 -- (2) set up backups.
 ------------------------------------------------------------------------
@@ -196,6 +134,103 @@ runServer serviceList =
                               done
                      _ -> done
 
+                  let
+                     -- This should not be done unless stateMVar
+                     -- is empty.
+                     deleteClient :: ClientData -> IO ()
+                     deleteClient clientData =
+                        do
+                           oldClients <- takeMVar clients
+                           putMVar clients 
+                              (delete clientData oldClients)
+
+                     -- This should not be done unless stateMVar
+                     -- is empty.
+                     broadcastAction 
+                        :: ClientData -> (Handle -> IO ()) -> IO ()
+                     -- The first argument is the client who initiated
+                     -- the request; the second is an action sending the 
+                     -- message
+                     broadcastAction =
+                        case serviceMode service of
+                           Reply ->
+                              (\ clientData outputAction -> 
+                                 outputAction (handle clientData)
+                                 )
+                           BroadcastOther ->
+                              (\ clientData outputAction ->
+                                 do
+                                    clientList <- readMVar clients
+                                    let
+                                       otherClients =
+                                          filter (/= clientData) clientList
+                                    broadcastToClients otherClients 
+                                       outputAction
+                                 )
+                           _ ->
+                              (\ _ outputAction ->
+                                 do
+                                    clientList <- readMVar clients
+                                    broadcastToClients clientList outputAction
+                                 )
+
+                     -- This should not be done unless stateMVar
+                     -- is empty.
+                     broadcastToClients :: [ClientData] -> (Handle -> IO ()) 
+                        -> IO ()
+                     -- Broadcasts the string to all clients listed
+                     broadcastToClients clientList outputAction =
+                        sequence_ (
+                           map
+                              (\ clientData ->
+                                 do 
+                                    -- If fail, delete clientData
+                                    success <- IO.try(
+                                       outputAction (handle clientData)
+                                       )
+                                    case success of
+                                       Left error ->
+                                          deleteClient clientData
+                                       Right () -> done
+                                 ) 
+                              clientList
+                           )
+
+                     -- This is the function that handles a new bit of
+                     -- input.  The clientData may be undefined for an
+                     -- External service mode (as, indeed, it will be).
+                     -- The inputAction returns the input (it will just be
+                     -- a "return" except for External, where it is a
+                     -- user-supplied action which needs to be performed
+                     -- inside the stateMVar lock).
+                     handleInput clientData inputAction =
+                        do
+                           oldState <- takeMVar stateMVar
+                           input <- inputAction
+                           newStateEither <- 
+                              Control.Exception.try
+                                 (do
+                                    (output,newState) <- handleRequest 
+                                       service (user clientData) 
+                                       (input,oldState)
+                                    let
+                                       outputAction handle =
+                                          do
+                                             hPut handle output
+                                             hFlush handle
+                                    broadcastAction clientData outputAction
+                                    return newState
+                                    )
+                           case newStateEither of
+                              Right newState ->
+                                 do
+                                    putMVar stateMVar newState
+                                    backupTick
+                              Left excep ->
+                                 do
+                                    putMVar stateMVar oldState
+                                    throw excep
+
 ------------------------------------------------------------------------
 -- (3) Define newClientAction to be done for each new client
 ------------------------------------------------------------------------
@@ -207,32 +242,15 @@ runServer serviceList =
                               clientData = ClientData {
                                  oid=oid,handle=handle,user=user}
 
-                              -- This should not be done unless stateMVar
-                              -- is empty.
-                              protect :: IO () -> IO result -> IO result
-                              protect cleanUp toDo =
-                              -- Execute toDo, returning its result.
-                              -- if toDo raises an exception, first 
-                              -- deleteClient, then do cleanUp, then pass
-                              -- on the exception
-                                 do
-                                    result <- Control.Exception.try toDo
-                                    case result of
-                                       Right correct -> return correct
-                                       Left exception ->
-                                          do
-                                             deleteClient clientData
-                                             cleanUp
-                                             throw exception
-
                               clientStartup =
                                  do
                                     state <- takeMVar stateMVar
                                     -- Send initial stuff and add client to 
                                     -- client list
 
-                                    header <- sendOnConnect service user state
-                                    hPutStrLn handle (show header)
+                                    wrappedHeader <- sendOnConnectWrapped 
+                                       service user state
+                                    hPutWrapped handle wrappedHeader
                                     hFlush handle
                                     oldClients <- takeMVar clients
                                     putMVar clients (clientData:oldClients)
@@ -244,51 +262,39 @@ runServer serviceList =
                               clientReadAction =
                                  do
                                     input <- hGet handle
-                                    oldState <- takeMVar stateMVar
-                                    newState <- 
-                                       protect
-                                          (putMVar stateMVar oldState)
-                                          (do
-                                             (output,newState) <-
-                                                handleRequest service 
-                                                   user (input,oldState)
-                                             let
-                                                outputAction handle =
-                                                   do
-                                                      hPut handle output
-                                                      hFlush handle
-                                             broadcastAction clientData 
-                                                outputAction
-                                             return newState
-                                             )
-                                    putMVar stateMVar newState
-                                    backupTick
+                                    handleInput clientData (return input)
                                     clientReadAction
 
-                           -- however it needs a wrapper so harmless
-                           -- (EOF) errors don't cause any trouble.
-                           forkIO(
-                              do
-                                 clientStartup
-                                 Left exception 
-                                    <- Control.Exception.try clientReadAction
-                                 -- clientReadAction cannot return otherwise
-                                 let
-                                    isHarmless exception = 
-                                       case ioErrors exception of
-                                          Nothing -> False
-                                          Just ioError -> isEOFError ioError
-                                 if isHarmless exception
-                                    then
-                                       done
-                                    else
-                                       putStrLn (
-                                          "Server error on "
-                                          ++ show serviceKey ++ ": "
-                                          ++ show exception
-                                          )
-                              ) -- end of forkIO
-                           done    
+                           case serviceMode service of
+                              External _ ->
+                                 do
+                                    forkIO clientStartup
+                                    done
+                              _ ->
+                                 do
+                                    -- clientReadAction needs a wrapper so 
+                                    -- harmless (EOF) errors don't cause any 
+                                    -- trouble.
+                                    forkIO(
+                                       do
+                                          clientStartup
+                                          Left exception 
+                                             <- Control.Exception.try
+                                             clientReadAction
+                                          -- clientReadAction cannot return 
+                                          -- otherwise
+                                          if isEOFError exception
+                                             then
+                                                done
+                                             else
+                                                putStrLn (
+                                                   "Server error on "
+                                                   ++ show serviceKey ++ ": "
+                                                   ++ show exception
+                                                   )
+                                       ) -- end of forkIO
+                                    done
+
                      -- end of definition of newClientAction
 ------------------------------------------------------------------------
 -- (4) Define action to be done at end of server.
@@ -314,6 +320,17 @@ runServer serviceList =
                                     )
                                  oldClients
                                  )
+
+                  -- Create a function
+                  case serviceMode service of
+                     External register ->
+                        let
+                           handleValue inputAction =
+                              handleInput (error "Server.1") inputAction
+                        in
+                           register handleValue
+                     _ -> done
+
                   -- Now construct (key,new service data) 
                   return (serviceKey,
                      ServiceData{

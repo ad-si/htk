@@ -6,9 +6,8 @@ import IO
 import Server
 
 import SimpleDBService
-import VersionGraphService
 
-main = runServer [
-   simpleDBServiceWrapped,
-   versionGraphServiceWrapped
-   ]
+main = 
+   do
+      services <- mkSimpleDBServices 
+      runServer services

@@ -28,6 +28,7 @@ import VSem
 
 import Graph
 
+import VersionInfo
 import VersionDB
 import ObjectTypes
 import DisplayTypes
@@ -100,16 +101,23 @@ mergeViews (views @ (firstView:_)) =
                repository1 = repository firstView
 
             objects1 <- newRegistry
-            title <- readContents (titleSource firstView)
-            titleSource1 <- newSimpleBroadcaster title
             fileSystem1 <- newFileSystem
             commitLock1 <- newVSem
             delayer1 <- newDelayer
+
+            viewInfo0 <- readContents (viewInfoBroadcaster firstView)
             parents0 <- mapM parentVersions views
             let
                -- parents0 is a list of list of ObjectVersions.  We
-               -- (a) turn this into a list; (b) remove duplicates.
+               -- (a) turn this into a list; (b) remove duplicates;
+               -- (c) modify viewInfo appropriately.
                parents1 = nub (concat parents0)
+
+               user0 = user viewInfo0
+               user1 = user0 {parents = parents1}
+               viewInfo1 = viewInfo0 {user = user1}
+
+            viewInfoBroadcaster1 <- newSimpleBroadcaster viewInfo1
 
             parentsMVar1 <- newMVar parents1
 
@@ -119,12 +127,11 @@ mergeViews (views @ (firstView:_)) =
                newView = View {
                   viewId = viewId1,
                   repository = repository1,
+                  viewInfoBroadcaster = viewInfoBroadcaster1,
                   objects = objects1,
-                  titleSource = titleSource1,
                   fileSystem = fileSystem1,
                   commitLock = commitLock1,
                   delayer = delayer1,
-                  parentsMVar = parentsMVar1,
                   committingVersion = committingVersion
                   }
 

@@ -13,6 +13,7 @@ module BDBClient(
 
    beginTransaction, -- :: IO TXN
    endTransaction, -- :: TXN -> IO ()
+   abortTransaction, -- :: TXN -> IO ()
    ) where
 
 import System.IO.Unsafe
@@ -125,4 +126,7 @@ foreign import ccall unsafe "bdbclient.h db_begin_trans" beginTransaction
    :: IO TXN
 
 foreign import ccall unsafe "bdbclient.h db_end_trans" endTransaction
+   :: TXN -> IO ()
+
+foreign import ccall unsafe "bdbclient.h db_abort_trans" abortTransaction
    :: TXN -> IO ()

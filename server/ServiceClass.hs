@@ -29,7 +29,8 @@ data Service = forall inType outType stateType .
 
 serviceArg :: (ServiceClass inType outType stateType) => 
       (inType,outType,stateType)
-serviceArg = serviceArg
+serviceArg 
+   = (error "ServiceClass.1",error "ServiceClass.2",error "ServiceClass.3")
 
 class (HasBinaryIO inType,HasBinaryIO outType) =>
 -- inType is input to requests
@@ -48,7 +49,7 @@ class (HasBinaryIO inType,HasBinaryIO outType) =>
    -- socket is opened.  The String should be unique to the
    -- service and should not contain a newline.
 
-   serviceMode :: (inType,outType,stateType) -> ServiceMode 
+   serviceMode :: (inType,outType,stateType) -> ServiceMode inType 
       -- see type definition
   
    initialState :: (inType,outType,stateType) -> IO stateType
@@ -103,17 +104,41 @@ class (HasBinaryIO inType,HasBinaryIO outType) =>
          contents <- backupToString service state
          filePath <- getBackupFile service
          copyStringToFile contents filePath
+
+   -- This is the function we actually use on connect.
+   sendOnConnectWrapped :: (inType,outType,stateType) -> User -> stateType 
+       -> IO WrappedBinaryIO
+   sendOnConnectWrapped service user state =
+       do
+          str <- sendOnConnect service user state
+          return (WrappedBinaryIO str)
           
 getBackupFile :: ServiceClass inType outType stateType =>
    (inType,outType,stateType) -> IO FilePath
 getBackupFile service = getServerFile (serviceId service ++ ".backup")
  
-data ServiceMode =
+data ServiceMode inType =
       Reply     -- Send output just to client sending input
    |  Broadcast -- Send output to all clients waiting on this service.
    |  BroadcastOther -- Send output to all clients waiting on this server,
                 -- except the one which sent the input.
+   |  External ( (IO inType -> IO ()) -> IO ())
+         -- apologies for the obscenely long type.
 
+         -- The service provider is basically providing a source of "inType"
+         --    values.
+         -- The server functions make use of this source by registering
+         --    a function of type (IO inType -> IO ()); incidentally this 
+         --    function is only ever registered once.
+         -- When a new "inType" value is about to occur, the service provider
+         --    calls the function with the action of type "IO inType" as
+         --    argument.  This action will then be invoked before we return.
+         -- It is guaranteed that this action of type "IO inType" will not
+         --    run simultaneously with sendOnConnect(Wrapped) or handleRequest.
+         --    Indeed the function of type "IO inType -> IO ()" will if
+         --    necessary block until sendOnConnect(Wrapped) or handleRequest
+         --    terminates, before invoking the IO inType action.
+                 
 data BackupDelay =
       BackupNever
    |  BackupAfter Duration -- wait this long (after previous backup)

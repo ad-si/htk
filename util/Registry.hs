@@ -46,6 +46,9 @@ module Registry(
    -- and not requiring Typeable.
    Unsafe,
    UnsafeRegistry,
+
+   getValue', 
+      -- Function to be used instead of getValue for debugging purposes.
    ) where
 
 import IO
@@ -397,3 +400,26 @@ instance HasTyRep2 Registry where
 lockedRegistry_tyRep = mkTyRep "Registry" "LockedRegistry"
 instance HasTyRep2 LockedRegistry where
    tyRep2 _ = lockedRegistry_tyRep
+
+-- ----------------------------------------------------------------------
+-- Function to be preferred to getValue when it is not absolutely certain
+-- if a value is there, since it prints the label if things go wrong.
+-- ----------------------------------------------------------------------
+
+getValue' :: GetSetRegistry registry from to 
+   => String -> registry -> from -> IO to
+
+#ifdef DEBUG
+
+getValue' label registry from =
+   do
+      toOpt <- getValueOpt registry from
+      case toOpt of
+         Nothing -> error ("Registry.getValue' - failed with "++label)
+         Just to -> return to
+
+#else
+
+getValue' label = getValue
+
+#endif

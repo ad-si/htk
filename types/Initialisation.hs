@@ -17,7 +17,6 @@ import qualified VersionDB
 import View
 import Folders
 import Files
-import VersionGraphService
 import VersionGraph
 import Registrations
 
@@ -56,31 +55,13 @@ createRepository initialiseView repository =
       mkPlainFileType view
       initialiseView view
 
-      version <- commitView view
-
-      if version /= VersionDB.firstVersion
+      -- (3) Create the version
+      version <- VersionDB.newVersion repository
+      if version == VersionDB.firstVersion
          then
-            -- OK, it looks as if two clients are running initialise 
-            -- simultaneously.  We let the other one take priority, and
-            -- do nothing with this version (so it will become dead).
-            done
-         else
             do
-               -- (2) connect to the server.
-               (updateServer0,getUpdate,disconnect,stateString) <-
-                  connectBroadcastOther versionGraphService
-
-               let
-                  updateServer = updateServer0 . ReadShow
-
-               -- (3) Put the node and arc types into the server.
-               updateServer (NewNodeType checkedInType ())
-               updateServer (NewNodeType workingType ())
-               updateServer (NewArcType checkedInArcType ())
-               updateServer (NewArcType workingArcType ())
-
-               -- (4) Put the version into the server.
-               updateServer (NewNode (versionToNode version) checkedInType "")
-
-               -- (5) disconnect from the server
-               disconnect
+               commitView view
+               done
+         else
+            -- Someone else has simultaneously initialised the repository!
+            done

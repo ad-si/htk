@@ -35,7 +35,9 @@ import Destructible
 import Events
 import Channels
 
+import BSem
 import CallServer
+import Lock
 
 import SimpleForm
 import MenuType
@@ -51,10 +53,11 @@ import GraphDisp
 import GraphConfigure
 import NewNames
 
+import VersionInfo
+
 import VersionDB
 import View
-import ViewType(viewId,titleSource)
-import VersionGraphService
+import ViewType(viewId,viewInfoBroadcaster)
 import DisplayTypes
 import DisplayView
 import VersionGraphClient
@@ -75,8 +78,8 @@ data VersionGraph = VersionGraph {
 ---
 -- Information we keep about working nodes.
 data ViewedNode = ViewedNode {
-   thisView :: View, -- view for this node
-   parent :: [Node] -- (checked-in) parent version.
+   thisView :: View, -- view for this node 
+   bSem :: BSem -- locks commit operations.
    }
    
 -- --------------------------------------------------------------------
@@ -100,9 +103,6 @@ newVersionGraph
    do
       -- All working nodes.
       (workingNodeRegistry :: Registry Node ViewedNode) <- newRegistry
-
-      -- Source of unique strings for working-version arcs.
-      arcStringSource <- newUniqueStringSource
 
       -- graph which is connected to the server and will (via displayGraph)
       -- be displayed.  We will update the version graph by displaying
@@ -137,17 +137,22 @@ newVersionGraph
                   (DoubleClickAction checkOutNode) $$$
                   (ValueTitle nodeTitle) $$$
                   (LocalMenu (Menu Nothing [
-                     Button "Checkout" checkOutNode])) $$$
+                     Button "Checkout" checkOutNode,
+                     Button "View Info" viewCheckedInNode,
+                     Button "Edit Info" editCheckedInNode
+                     ])) $$$
                   emptyNodeTypeParms                                 
                else if nodeType == workingType
                then
                   (Color "red") $$$
-                  Circle $$$
+                  Box $$$
                   (DoubleClickAction commitNode) $$$ 
                   (ValueTitle nodeTitle) $$$
                   (LocalMenu (Menu Nothing [
                      Button "Commit" commitNode,
-                     Button "Rename" renameNode])) $$$
+                     Button "View Info" viewWorkingNode,
+                     Button "Edit Info" editWorkingNode
+                     ])) $$$
                   emptyNodeTypeParms
                else
                   error "VersionGraph: unrecognised NodeType" 
@@ -169,160 +174,167 @@ newVersionGraph
                   error "VersionGraph: unrecognised ArcType"
                )
 
-         nodeTitle :: Node -> IO String
-         nodeTitle node =
-            do
-               nodeLabel1 <- getNodeLabel graph node
-               -- We accept nodeLabel1 unless it is empty.
-               -- If it's empty, we display the version string,
-               -- or that of the parent in brackets.
-               case (nodeLabel1,nodeToVersion node) of
-                  (_:_,_) -> return nodeLabel1
-                  ("",Just version) -> return (toString version)
-                  ("",Nothing) ->
-                     do
-                        (Just viewedNode) 
-                           <- getValueOpt workingNodeRegistry node
-                        case parent viewedNode of
-                           parent1 : _ -> case nodeToVersion parent1 of
-                              Just version -> 
-                                 return ("["++toString version++"]")
-
          checkOutNode :: Node -> IO ()
          checkOutNode node =
             case nodeToVersion node of
                Just version ->
                   do
-                     parentString <- nodeTitle node
-                     parentUserString <- getNodeLabel graph node
-                     titleOpt <- getVersionParsCheckOut 
-                        parentUserString parentString
-                     case titleOpt of
-                        Nothing -> done
-                        Just title ->
-                           reallyCheckOutNode title node version
+                     versionInfo0 <- getVersionInfo node
+                     let
+                        versionInfo1 = cleanVersionInfo versionInfo0
 
-         reallyCheckOutNode :: String -> Node -> Version -> IO ()
-         reallyCheckOutNode title parentNode version =
+                     userInfo1Opt <- editVersionInfo
+                        "Checkout version" versionInfo1
+                     case userInfo1Opt of
+                        Nothing -> done
+                        Just userInfo1 -> 
+                           reallyCheckOutNode userInfo1 node version
+
+         reallyCheckOutNode :: UserInfo -> Node -> Version -> IO ()
+         reallyCheckOutNode userInfo parentNode version =
             do
                view <- getView repository version
-               broadcast (titleSource view) title
-               let versionGraphNode = WorkingNode view
-               let thisNode = toNode versionGraphNode
-               thisArc <- newWorkingArc arcStringSource
+               setUserInfo view userInfo
+               let 
+                  versionGraphNode = WorkingNode view
+                  thisNode = toNode versionGraphNode
+
+               bSem <- newBSem
                setValue workingNodeRegistry thisNode 
                   (ViewedNode{
                      thisView = view,
-                     parent = [parentNode]
+                     bSem = bSem
                      })
-               update graph (NewNode thisNode workingType title)
-               update graph (NewArc thisArc workingArcType () 
-                  parentNode thisNode) 
+
+               viewInfo <- readVersionInfo view
+               update graph (NewNode thisNode workingType viewInfo)
+               Graph.newArc graph workingArcType () parentNode thisNode
+
                (Just displayedView) <- openGeneralDisplay
                   displaySort FolderDisplayType view
                addCloseDownAction displayedView (
                   update graph (DeleteNode thisNode)
                   )
                done
-
+                      
          commitNode :: Node -> IO ()
          commitNode node =
             do
                viewedNodeOpt <- getValueOpt workingNodeRegistry node
-               case viewedNodeOpt of
-                  Nothing -> done
-                  -- this happens if you try to commit the same node twice
-                  -- simultaneously
-                  Just viewedNode -> 
+               viewedNodeOp viewedNodeOpt
+                  (\ view ->
                      do
-                        parentString <- nodeTitle node
-                        parentUserString <- getNodeLabel graph node
-                        titleOpt <- getVersionParsCommit 
-                           parentUserString parentString
-                        case titleOpt of
+                        viewInfo0 <- getVersionInfo node
+                        userInfo1Opt <- editVersionInfo
+                           "Commit Version" viewInfo0
+                        case userInfo1Opt of
                            Nothing -> done
-                           Just title ->
-                              reallyCommitNode title node (thisView viewedNode)
-
-         reallyCommitNode :: String -> Node -> View -> IO ()
-         reallyCommitNode title thisNode view =
-            do
-               (nodeDataOpt :: Maybe ([Node],SimpleBroadcaster String)) <-
-                  transformValue workingNodeRegistry thisNode
-                  (\ viewedNodeOpt ->
-                     let
-                        getNodeData viewedNode = (parent viewedNode,
-                           titleSource (thisView viewedNode))
-                     in
-                        return (Nothing,fmap getNodeData viewedNodeOpt)
+                           Just userInfo1 ->
+                              reallyCommitNode userInfo1 node view
                      )
-               -- This atomically empties the working node data for 
-               -- thisNode,
-               -- returning Nothing if for some reason someone else
-               -- has already managed to commit this view.
-               -- This makes it slightly safer to reconnect
-               -- thisNode, as we are about to do . . .
-               case nodeDataOpt of
-                  Nothing -> done
-                  Just (parentNodes,titleSource) ->
-                     do
-                        update graph (DeleteNode thisNode)
-                        newVersion <- commitView view
-                        -- Create a new checked-in node for this
-                        -- version
-                        let 
-                           versionGraphNode 
-                              = CheckedInNode newVersion
-                           newNode = toNode versionGraphNode
-                        update graph (NewNode newNode checkedInType title)
-                        mapM_
-                           (\ parentNode ->
-                              do
-                                 newArc <- newCheckedInArc graph
-                                 update graph (NewArc newArc checkedInArcType
-                                    () parentNode newNode)
-                              )
-                           parentNodes
-                  
-                        -- Add a new node for the view, and add it
-                        -- to this new node.
-                        newArc2 <- newWorkingArc arcStringSource
 
+         reallyCommitNode :: UserInfo -> Node -> View -> IO ()
+         reallyCommitNode userInfo thisNode view =
+            do
+               update graph (DeleteNode thisNode)
+
+               setUserInfo view userInfo
+
+               newVersion <- commitView view
+
+               -- The VersionInfoServer/VersionGraphClient will create a
+               -- node corresponding to the new view.
+               -- 
+               -- Register an action to add arcs from it to the view node.
+               let 
+                  versionGraphNode = CheckedInNode newVersion
+                  newNode = toNode versionGraphNode
+
+                  delayedAct =
+                     do 
+                        versionInfo <- readVersionInfo view
+                        update graph (NewNode thisNode workingType versionInfo)
+                        Graph.newArc graph checkedInArcType () newNode thisNode
+                        bSem <- newBSem
                         setValue workingNodeRegistry thisNode 
                            (ViewedNode {
                               thisView = view,
-                              parent = [newNode]
+                              bSem = bSem
                               }) 
 
-                        update graph (NewNode thisNode workingType title)
-                        update graph (NewArc newArc2 workingArcType ()
-                           newNode thisNode)
+               delayedAction graph newNode delayedAct
 
-                        broadcast titleSource title
 
-         -- rename a working version
-         renameNode :: Node -> IO ()
-         renameNode node =
+
+         -- Edit the view information for a working version
+         editWorkingNode :: Node -> IO ()
+         editWorkingNode node =
             do
                viewedNodeOpt <- getValueOpt workingNodeRegistry node
-               case viewedNodeOpt of
-                  Nothing -> done -- could happen with committed nodes.
-                  Just viewedNode ->
+               viewedNodeOp viewedNodeOpt
+                  (\ view ->
                      do
-                        let
-                           titleSource0 = titleSource (thisView viewedNode)
-                        title0 <- readContents titleSource0
-                        let
-                           titleForm = newFormEntry "New Title" title0
-                        title1Opt <- doForm "Change View Title" titleForm
-                        case title1Opt of
+                        viewInfo0 <- getVersionInfo node
+                        userInfo1Opt <- editVersionInfo  "Edit Info" viewInfo0
+                        case userInfo1Opt of
                            Nothing -> done
-                           Just title1 -> 
+                           Just userInfo1 ->
                               do
-                                 broadcast titleSource0 title1
-                                 update graph (SetNodeLabel node title1)
+                                 setUserInfo view userInfo1
+                                 viewInfo1 <- readVersionInfo view
+                                 update graph (SetNodeLabel node viewInfo1)
+                     )
 
+         -- View the view information for a working version
+         viewWorkingNode :: Node -> IO ()
+         viewWorkingNode node =
+            do
+               viewedNodeOpt <- getValueOpt workingNodeRegistry node
+               viewedNodeOp viewedNodeOpt
+                  (\ view ->
+                     do
+                        viewInfo <- getVersionInfo node
+                        -- don't occupy the node lock while doing the display.
+                        forkIO (displayVersionInfo False viewInfo)
+                        done
+                     )
+
+         -- Edit the view information for a checked-in version
+         editCheckedInNode :: Node -> IO ()
+         editCheckedInNode node =
+            do
+               versionInfo0 <- getVersionInfo node
+               userInfo1Opt <- editVersionInfo "Edit Info" 
+                  versionInfo0
+               case userInfo1Opt of
+                  Nothing -> done
+                  Just userInfo1 -> modifyUserInfo repository userInfo1
+
+         -- Display the view information for a checked-in version
+         viewCheckedInNode :: Node -> IO ()
+         viewCheckedInNode node =
+            do       
+               versionInfo0 <- getVersionInfo node
+               displayVersionInfo True versionInfo0
+
+         -- Extract the title for a node
+         nodeTitle :: Node -> IO String
+         nodeTitle node =
+            do
+               versionInfo0 <- getVersionInfo node
+               let
+                  user0 = user versionInfo0
+                  label0 = label user0
+               return (
+                  if label0 == ""
+                     then 
+                        show (version user0)
+                     else
+                        label0
+                  )
+                 
          -- Function to be executed when the user requests a merge.
+         -- We can only merge checked-in versions.
          doMerge :: IO ()
          doMerge =
             do
@@ -361,7 +373,8 @@ newVersionGraph
                   terminator) <- bindSelection listBox
 
                let
-                  mkMergeCandidate :: WrappedNode node -> IO MergeCandidate
+                  mkMergeCandidate :: WrappedNode node 
+                     -> IO (Maybe MergeCandidate)
                   mkMergeCandidate (WrappedNode node0) =
                      do
                         mergeNode0 <- getNodeValue dispGraph node0
@@ -370,26 +383,24 @@ newVersionGraph
                               = dynCast "VersionGraph.mkMergeCandidate"
                                  mergeNode0
 
-                        (mergeLabel :: String) <- nodeTitle mergeNode
-
-                        contents <- case nodeToVersion mergeNode of
+                        case nodeToVersion mergeNode of
                            Nothing -> -- not a version, must be a view.
                               do
-                                 workingNodeOpt <- getValueOpt
-                                    workingNodeRegistry mergeNode
-                                 case workingNodeOpt of
-                                    Just viewNode 
-                                       -> return (Left (thisView viewNode))
-                           Just version -> return (Right version)
+                                 createErrorWin 
+                                    "You may only merge checked-in versions"
+                                    []
+                                 return Nothing
+                           Just version -> 
+                              do
+                                 (mergeLabel :: String) <- nodeTitle mergeNode
 
-                        let 
-                           mergeCandidate = MergeCandidate {
-                              mergeNode = mergeNode,
-                              mergeLabel = mergeLabel,
-                              contents = contents
-                              }
-
-                        return mergeCandidate
+                                 let
+                                    mergeCandidate = MergeCandidate {
+                                       mergeNode = mergeNode,
+                                       mergeLabel = mergeLabel,
+                                       mergeVersion = version
+                                       }
+                                 return (Just mergeCandidate)
 
                   -- This function is passed to getMultipleNodes for the
                   -- graph and returns the nodes to merge, or Nothing
@@ -421,10 +432,15 @@ newVersionGraph
                                         <- newVersion
                                      always (
                                         do
-                                           mergeCandidate <- 
+                                           mergeCandidateOpt <- 
                                               mkMergeCandidate selection
-                                           addItemAtEnd listBox 
-                                              mergeCandidate
+                                           case mergeCandidateOpt of
+                                              Just mergeCandidate ->
+                                                 do
+                                                    addItemAtEnd listBox 
+                                                       mergeCandidate
+                                                    done
+                                              Nothing -> done
                                         )
                                      getNodesEvent
                                  )
@@ -456,7 +472,7 @@ newVersionGraph
                      do
                         -- Go ahead.
                         viewWE <- mergeNodes repository (
-                           map contents mergeCandidates)
+                           map (Right . mergeVersion) mergeCandidates)
                         case fromWithError viewWE of
                            Left mess -> createErrorWin mess []
                            Right view ->
@@ -473,25 +489,36 @@ newVersionGraph
                                     (parents1 :: [Node]) = map 
                                        (toNode . CheckedInNode) parents0
 
+                                 bSem <- newBSem 
                                  setValue workingNodeRegistry thisNode
                                     (ViewedNode{
                                        thisView = view,
-                                       parent = parents1
+                                       bSem = bSem
                                        })
 
-                                 title <- readContents (titleSource view)
+                                 viewInfo0 <- readVersionInfo view
+                                 userInfo1Opt <- editVersionInfo
+                                    "Alter Merge Info" viewInfo0
 
-                                 update graph (NewNode thisNode workingType 
-                                    title)
-                                 mapM_
-                                    (\ parent -> 
+                                 viewInfo1 <- case userInfo1Opt of
+                                    Nothing -> return viewInfo0
+                                    Just userInfo1 ->
                                        do
-                                          thisArc 
-                                             <- newWorkingArc arcStringSource
-                                          update graph (NewArc thisArc
-                                             workingArcType () parent thisNode)
-                                       ) 
-                                    parents1
+                                          setUserInfo view userInfo1
+                                          readVersionInfo view
+
+                                 synchronize bSem (
+                                    do
+                                       update graph (NewNode thisNode 
+                                          workingType viewInfo1)
+                                       mapM_
+                                          (\ parent -> 
+                                             Graph.newArc graph 
+                                                workingArcType
+                                                () parent thisNode
+                                             )
+                                          parents1
+                                    )
 
                                  (Just displayedView) <- openGeneralDisplay
                                     displaySort FolderDisplayType view
@@ -532,12 +559,33 @@ newVersionGraph
          closedEvent = receive destroyedChannel
          }) 
 
+
+-- Operation on a viewed node, protected so that it is a no-op
+-- if tried when such an operation is already going on.  This
+-- protects us, hopefully, against double-clicks on nodes.
+viewedNodeOp :: Maybe ViewedNode -> (View -> IO ()) -> IO ()
+viewedNodeOp Nothing _ = done
+viewedNodeOp (Just viewedNode) act =
+   do
+      let
+         bs = bSem viewedNode
+
+      proceed <- tryAcquire bs
+      if proceed
+         then
+            do
+               act (thisView viewedNode)
+               release bs
+         else
+            done
+
+
 -- Type used exclusively by the doMerge function to indicate a node being
 -- merged
 data MergeCandidate = MergeCandidate {
    mergeNode :: Node,
    mergeLabel :: String,
-   contents :: Either View ObjectVersion
+   mergeVersion :: ObjectVersion
    }
 
 -- --------------------------------------------------------------------

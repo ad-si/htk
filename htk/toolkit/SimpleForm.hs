@@ -104,6 +104,9 @@ module SimpleForm(
    HasConfigRadioButton(..), -- for setting fancy configurations for
       -- radio buttons.
 
+   editableTextForm, -- :: [Config Editor] -> Form String
+      -- A form for typing (possibly several lines of) editable text.
+
    ) where
 
 import Char
@@ -795,3 +798,42 @@ instance FormValue () where
             destroyAction = done
             }
          )
+
+
+-- -------------------------------------------------------------------------
+-- An editable text window as a form entry.
+-- -------------------------------------------------------------------------
+
+-- Useful config options: 
+--   (value String) to set initial contents
+--   (height i), (width i) to set the height and width in characters.
+--   (background s) to set the background colour to s.
+editableTextForm :: [Config Editor] -> Form String
+editableTextForm configs =
+   Form (\ container ->
+      do
+         editorFrame <- newFrame container []
+
+         editor <- newEditor editorFrame (configs ++ [wrap NoWrap])
+         scrollBar1 <- newScrollBar editorFrame [orient Vertical]
+         scrollBar2 <- newScrollBar container [orient Horizontal]
+
+         editor # scrollbar Vertical scrollBar1
+         editor # scrollbar Horizontal scrollBar2
+         
+         return (EnteredForm {
+            packAction = 
+               (do
+                  pack editor [Side AtRight]
+                  pack scrollBar1 [Side AtRight,Fill Y,Expand On]
+                  pack editorFrame []
+                  pack scrollBar2 [Side AtBottom,Fill X,Expand On]
+               ),
+            getFormValue = (
+               do
+                  value <- getValue editor
+                  return (hasValue value)
+               ),
+            destroyAction = done
+            })
+     )
