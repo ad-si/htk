@@ -22,6 +22,7 @@ import List
 import Exception
 import FiniteMap
 import Socket hiding (PortID(..))
+import Posix
 
 import Computation(done)
 import Debug(debug)
@@ -40,8 +41,7 @@ data ClientData = ClientData {
 
 instance Object ClientData where
    objectID (ClientData{oid=oid}) = oid
--- Actually that instance is probably unnecessary; I only put it in
--- in the hope that it would make ClientData an instance of Eq, but
+-- Actually that instance is probably unnecessary; I only put it in-- in the hope that it would make ClientData an instance of Eq, but
 -- it doesn't.
 
 instance Eq ClientData where
@@ -57,6 +57,7 @@ data ServiceData = ServiceData {
 runServer :: DescribesPort port => port -> [Service] -> IO ()
 runServer portDesc serviceList =
    do
+      installHandler sigPIPE Ignore Nothing
 ------------------------------------------------------------------------
 -- This obscenely long function is divided as follows:
 ------------------------------------------------------------------------
@@ -74,6 +75,13 @@ runServer portDesc serviceList =
                   clients <- newMVar []
 
                   let
+                     deleteClient :: ClientData -> IO ()
+                     deleteClient clientData =
+                        do
+                           oldClients <- takeMVar clients
+                           putMVar clients 
+                              (delete clientData oldClients)
+
                      broadcastAction :: Handle -> String -> IO ()
                      broadcastAction =
                         case serviceMode service of
@@ -89,8 +97,14 @@ runServer portDesc serviceList =
                                        map
                                           (\ clientData ->
                                              do 
-                                                hPutStrLn 
+                                                -- If fail, delete clientData
+                                                success <- IO.try(hPutStrLn 
                                                    (handle clientData) message
+                                                   )
+                                                case success of
+                                                   Left error ->
+                                                      deleteClient clientData
+                                                   Right () -> done
                                                 debug "Sent message"
                                              ) 
                                           clientList
@@ -157,13 +171,6 @@ runServer portDesc serviceList =
                            let
                               clientData = ClientData {oid=oid,handle=handle}
 
-                              deleteClient :: IO ()
-                              deleteClient =
-                                 do
-                                    oldClients <- takeMVar clients
-                                    putMVar clients 
-                                       (delete clientData oldClients)
-
                               protect :: IO () -> IO result -> IO result
                               protect cleanUp toDo =
                               -- Execute toDo, returning its result.
@@ -176,7 +183,7 @@ runServer portDesc serviceList =
                                        Right correct -> return correct
                                        Left exception ->
                                           do
-                                             deleteClient
+                                             deleteClient clientData
                                              cleanUp
                                              throw exception
                            -- add client to client list
