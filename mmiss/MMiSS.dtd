@@ -2,18 +2,12 @@
   XML Document Type Definition for MMiSSLatex 2
   Version 0.91
   Initial Version: George Russell (2002-June)
-  First full version: Achim Mahnke   (2002-09-02)
+  Current Version: Achim Mahnke   (2002-09-02)
 
   This DTD is still experimental, it is intended as a basis for discussion.
   Comments are welcome! (send mail to amahnke@tzi.de)
 
-  The Haskell modules which make the most assumptions about the contents of 
-  this file are MMiSSDTDAssumptions, MMiSSEditXml, and (to a lesser extent) 
-  MMiSSContent.
-
   Root element is 'package'.
-
-  
 -->
 
 <!-- ======================== ENTITIES ==================================== -->
@@ -90,18 +84,22 @@
 
 <!ELEMENT includeTextFragment EMPTY>
 <!ATTLIST includeTextFragment included    CDATA #REQUIRED
-                              status  (present | absent) "absent">
+                              status  (present | absent) "absent"
+                              %attributes;>
 
 <!ELEMENT link (#PCDATA)>
 <!ATTLIST link linked    CDATA #REQUIRED
-               status  (present | absent) "absent">
+               status  (present | absent) "absent"
+               %attributes;>
 
 <!ELEMENT define (#PCDATA)>
-<!ATTLIST define %label-matter;>
+<!ATTLIST define %label-matter;
+                 %attributes;>
                
 <!ELEMENT reference (#PCDATA)>
 <!ATTLIST reference referenced  CDATA #REQUIRED
-                    status  (present | absent) "absent">
+                    status  (present | absent) "absent"
+                    %attributes;>
 
 <!ELEMENT emphasis (#PCDATA)>
 
@@ -118,8 +116,8 @@
 
 <!ENTITY % group  "package | section | paragraph | view | includeGroup">
 
-<!ENTITY % conceptualAtom  "textFragment | table | figure | glossaryEntry
-                           | bibentry">
+<!ENTITY % conceptualAtom  "textFragment | includeTextFragment | table 
+                            | figure | glossaryEntry | bibentry">
 
 <!ENTITY % formalAtom  "programFragment | clause | step">
 
@@ -164,17 +162,17 @@
   ***********************************************************************
  -->
 
-<!ELEMENT abstract (paragraph)>
+<!ELEMENT abstract (%unit;)+>
 <!ATTLIST abstract %label-matter;
                    %title-matter;
                    %attributes;>
 
-<!ELEMENT introduction (paragraph)>
+<!ELEMENT introduction (%unit;)+>
 <!ATTLIST introduction %label-matter;
                        %title-matter;
                        %attributes;>
 
-<!ELEMENT summary  (paragraph)>
+<!ELEMENT summary  (%unit;)+>
 <!ATTLIST summary  %label-matter;
                    %title-matter;
                    %attributes;>
@@ -208,7 +206,6 @@
                 %formalism-matter;
                 %attributes;>
 <?MMiSSDisplay table : green box ?>
-
 
 <!ELEMENT figure  EMPTY>
 <!ATTLIST figure %label-matter;
@@ -248,13 +245,13 @@
   ***********************************************************************
  -->
 
-<!ELEMENT program  (%conceptualAtom; | programFragment | program)+>
+<!ELEMENT program (%conceptualAtom; | programFragment | program)+>
 <!ATTLIST program %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
 
-<!ELEMENT theory  (%conceptualAtom; | clause | theory)+>
+<!ELEMENT theory (%conceptualAtom; | clause | theory)+>
 <!ATTLIST theory %label-matter;
                  %title-matter;
                  %formalism-matter;
@@ -266,7 +263,31 @@
                   %formalism-matter;
                   %attributes;>
 
-<!ELEMENT proof  (%conceptualAtom; | step | script | proof)+>
+<!ELEMENT conjecture (%conceptualAtom; | clause)+>
+<!ATTLIST conjecture %label-matter;
+                     %title-matter;
+                     %formalism-matter;
+                     %attributes;>
+
+<!ELEMENT lemma (%conceptualAtom; | clause)+>
+<!ATTLIST lemma %label-matter;
+                %title-matter;
+                %formalism-matter;
+                %attributes;>
+
+<!ELEMENT corollary (%conceptualAtom; | clause)+>
+<!ATTLIST corollary %label-matter;
+                    %title-matter;
+                    %formalism-matter;
+                    %attributes;>
+
+<!ELEMENT assertion (%conceptualAtom; | clause)+>
+<!ATTLIST assertion %label-matter;
+                    %title-matter;
+                    %formalism-matter;
+                    %attributes;>
+
+<!ELEMENT proof (%conceptualAtom; | step | script | proof)+>
 <!ATTLIST proof %label-matter;
                 %title-matter;
                 %formalism-matter;
@@ -312,17 +333,24 @@
   ***********************************************************************
  -->
 
+<-- All include elements (includeTextFragment above also) have attributes 
+    for specifying the referred variant. 'included' gives the label of 
+    the referred element. -->
+
 <!ELEMENT includeGroup EMPTY>
 <!ATTLIST includeGroup included    CDATA #REQUIRED
-                       status  (present | absent) "absent">
+                       status  (present | absent) "absent"
+                       %attributes;>
 
 <!ELEMENT includeUnit EMPTY>
 <!ATTLIST includeUnit included    CDATA #REQUIRED
-                      status  (present | absent) "absent">
+                      status  (present | absent) "absent"
+                      %attributes;>
 
 <!ELEMENT includeAtom EMPTY>
 <!ATTLIST includeAtom included    CDATA #REQUIRED
-                      status  (present | absent) "absent">
+                      status  (present | absent) "absent"
+                      %attributes;>
 
 
 
