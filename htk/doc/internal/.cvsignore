@@ -2,8 +2,7 @@
 *.hi
 *.aux
 *.dvi
-.depend
-Makefile
-Makefile.bak
+*.log
+*.toc
 *%
 *.html

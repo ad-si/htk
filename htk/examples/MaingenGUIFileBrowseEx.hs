@@ -185,7 +185,7 @@ main =
   do
     htk <- initHTk [withdrawMainWin]
     (gui :: GenGUI FileObject) <- newGenGUI Nothing False
-    initGUI gui "/home/ludi/hdoc-0.8.1"
+    initGUI gui "/home/cxl/opt/hdoc-0.8.0"
     (destr, _) <- bindSimple gui Destroy
     spawnEvent (destr >>> destroy htk)
     finishHTk

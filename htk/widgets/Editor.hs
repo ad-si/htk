@@ -491,8 +491,7 @@ getIndexPosition ed i = do {
 ---
 -- Compares two indizes.
 -- @param ed      - the concerned editor widget.
--- @param op      - an operation given as a string ("==", "<=", ">=", "<",
---                - ">", "!=").
+-- @param op      - an operation given as a string 
 -- @param i1      - the first index.
 -- @param i2      - the second index.
 -- @return result - <code>True</code> or <code>False</code>, depending on 

@@ -14,9 +14,8 @@
 module TreeList (
 
   newTreeList, {- :: (Container par, Eq a) =>
-                     par -> ChildrenFun a -> ImageFun a ->
-                     [TreeListObject a] -> [Config (TreeList a)] ->
-                     IO (TreeList a)                                    -}
+                     par -> ChildrenFun a -> [TreeListObject a] -> 
+		     [Config (TreeList a)] -> IO (TreeList a)           -}
   TreeList,
 
   bindTreeListEv, {-  :: TreeList c ->
@@ -29,7 +28,7 @@ module TreeList (
   addTreeListSubObject,  {- :: Eq a => TreeList a -> a ->
                                        TreeListObject a -> IO ()        -}
 
-  newTreeListObject, {- :: Eq a => a -> String -> TreeListObjectType ->
+  newTreeListObject, {- :: Eq a => a -> TreeListObjectType ->
                                    TreeListObject a -}
 
   TreeListObject,
@@ -45,7 +44,8 @@ module TreeList (
 
   isTreeListObjectOpen,
 
-  ChildrenFun,
+  ChildrenFun, 
+     {- type ChildrenFun a = TreeListObject a -> IO [TreeListObject a]  -}
 
   setImage,
   setTreeListObjectName,

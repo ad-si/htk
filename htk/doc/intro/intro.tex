@@ -1,0 +1,282 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage{isolatin1}
+\usepackage{verbatim}
+\usepackage{palatino}
+\usepackage{color}
+\usepackage{hyperref}
+
+%%% -- Configuration ----------------------------------------------------
+
+\hyperbaseurl{file:///home/cxl/src/uni/htk/doc/}
+
+%
+% Colour setup (to come?)
+%
+
+\definecolor{linkcol}{rgb}{0.1,0.1,0.4} % dark blue
+
+\ifx\hypersetup\undefined\relax\else
+ \hypersetup{%
+    %breaklinks=true,
+    colorlinks=true,
+    %hyperindex=true,
+    pdfpagemode=None,
+    linkcolor=linkcol,
+    citecolor=linkcol,
+    %plainpages=false,
+    hypertexnames=false
+ }
+\fi
+
+
+%%% -- Useful macros ----------------------------------------------------
+
+%% The code environment typesets its contents verbatim.
+\def\code{\verbatim}
+\def\endcode{\endverbatim}
+%% Same typesetting as code, but different name; this is
+%% for code you do not want to show up in literal scripts. 
+%% (i.e. the code with syntax errors in it :-)
+\def\xcode{\verbatim}
+\def\endxcode{\endverbatim}
+%% Code snippets in the text:
+% \def\codetxt{\textcolor{codecol}\verb} %% hmm...
+% \let\MMTextTT=\texttt{}
+% \renewcommand{\texttt}[1]{\textcolor{codecol}{\MMTextTT{#1}}}
+
+
+\title{An Introduction to \HTk{} \\
+  Graphical User Interfaces for Functional Programs}
+
+\author{Christoph Lüth \\ FB 3 -- Mathematik und Informatik,
+  Universität Bremen}
+
+
+\newcommand{\HTk}{\textsc{HTk}}
+
+
+\begin{document}
+
+\maketitle{}
+
+\section{Getting Started}
+
+This article is an introduction to the basics of \HTk, a toolkit to
+build graphical user interfaces (GUIs) in Haskell. \HTk{} is based on
+an encapsulation of Tcl/Tk \cite{Ousterhout,Welsh}, but we will not
+assume any previous knowledge of Tcl/Tk. The article is meant as a
+rough guide and introduction to the structure of HTk; it is not meant
+as a complete reference manual. Rather, it should give readers enough
+information and background to get them started on their first HTk
+programs, to know which parts of HTk might be potentially useful in
+the applications they have in mind, what is feasible to build with HTk
+and what not, and finally to enable them to find further information
+quickly in the online reference material.
+
+\subsection{Basics}
+
+When we design and implement a graphical user interface, we have to
+take two aspects into account: the \emph{static} aspect, 
+which is to specify its appearance (which buttons to place where, what
+menues to display, etc.), and the \emph{dynamic} aspect, which
+specifies its behaviour in reaction to the user's actions. 
+
+In \HTk, these two aspects are modelled by \emph{monads}. The dynamic
+aspect is modelled in the \texttt{IO} monad, where all of Haskell's
+external interactions takes place. The dynamic aspect is modelled by
+\emph{events}. For a more complete description of events, we refer to
+\cite{ger:Events}. For the time being, events are an abstract datatype
+with two main operations.
+
+The central operation is \texttt{sync :: Event a-> IO a} which holds
+the current thread until an event of type \texttt{Event a} occurs.
+Further, \texttt{(>>>=) :: Event a-> (a-> IO b)-> Event b} takes an
+event and an IO action, and returns an event, which when we sync on it
+performs the IO action after successful synchronisation. As with the
+monad composition, \texttt{(>>>)::Event a-> IO b-> Event b} is the
+derived version where the second function throws away its argument.
+
+Moreover, events form a monad, which allows us to build complex
+behaviour from basic behaviours in a compositional way by the monad's
+composition.
+
+Events are always embedded in the \texttt{IO} monad with the
+\texttt{sync} operation. That the dynamic behaviour is not modelled
+with \texttt{IO} actions directly reflects the fact that user
+interaction in a graphical user interface is different from other
+forms of IO, because it happens \emph{asynchronously}.
+
+Further, events allow the user interface to be concurrent in a natural
+and controlled way, which allows for a reasonable degree of
+concurrency which is still tractable.
+
+\input{simple1}
+
+\input{simple2}
+
+The rest of this short paper is organized as follows: we will first
+explain the organization of the datatypes modelling the static
+behaviour of the graphical user interface. In
+section~\ref{sec:events}, we will describe events and in particular
+how to generate them from user input. After this, we will describe
+every widget in detail.
+
+\section{Elements of \HTk{}}
+
+In general, \HTk{} has a couple of abstract datatypes used to model
+elements of the graphical user interface, such as buttons, menues,
+short text fields, longer text fields and so on. Let us examine the
+buttons used in Section~\ref{ssec:ex1} above. There is an abstract
+datatype \texttt{Button}, created with the following function
+\begin{xcode}
+newButton :: Container par=> par-> [Config Button]-> IO Button
+\end{xcode}
+
+Let us first examine the class \texttt{Container}. 
+
+\subsection{The GUI element hierarchy and the \texttt{Container} class.}
+
+The class \href{Packer.html#Container}{\texttt{Container}} designates
+GUI elements into which other GUI elements may be packed.
+
+Instances of \texttt{Container} include \texttt{Toplevel} (windows),
+\texttt{HTk} (Tk's root window), and \texttt{Frame}; furthermore
+\texttt{Canvas}, and and \texttt{Editor} (and a few Tix widgets).
+
+The class \texttt{Container} is \emph{abstract} --- it has no class
+functions, and only serves to structure the code. Abstract classes are
+used frequently in HTk to impose a typing discipline onto Tk's untyped
+GUI element structure, with the benefit that type checking can prevent
+run time errors.
+
+\subsection{Packing}
+
+As mentioned above, after widgets have been created (with e.g.
+\texttt{newButton}), they will not be displayed yet; this only happens
+after they have been packed. One can use this effect by first creating
+lots of widgets, and then packing them in one go, lessening the
+unpleasant flicker effect occuring when the GUI is built one interface
+at a time.\footnote{Unfortunately, this effect cannot be totally
+  eliminated.}
+
+Packing in particular determines the visual layout of the GUI by the
+order in which the widgets are packed, and by packing options. Tk's
+know different packing algorithms (or \emph{geometry managers}, in Tk
+parlance); of these, HTk supports the standard packer, and the grid
+packer.
+
+\subsubsection{The Standard Packer}
+
+The behaviour of the standard packer is easily explained, and hard to
+understand. Widgets are packed with the function
+\begin{xcode}
+pack::Widget w => w -> [PackOption] -> IO ()  
+\end{xcode}
+
+The datatype
+\href{PackOptions.html#PackOptions.PackOption}{PackOption}
+is defined as 
+\begin{xcode}
+  data PackOption = Side SideSpec  | Fill FillSpec 
+                  | Expand Toggle  | Anchor Anchor
+                  | IPadX Distance | IPadY Distance
+                  | PadX Distance  | PadY Distance
+\end{xcode}
+The first two constructors are most important here. The
+\href{PackOptions.html#PackOptions.SideSpec}{SideSpec}
+specifies where the widget is packed (top, bottom, left, right)e, and
+\href{PackOptions.html#PackOptions.FillSpec}{FillSpec}
+specifies in which direction it expands to fill the available space.
+Bear in mind that widgets are packed as tight as possible (in
+particular into windows), and that once packed, they are never
+repacked. That is, if e.g. a widget is packed against the top, it will
+sit in the middle (if no \texttt{Fill X} is specified), and will not
+move if a widget is packed against the right-hand side.
+
+\texttt{Expand} just means that the widget expands when the containing
+element is expanded (i.e. the window is resized), and \texttt{Anchor}
+specifies a gravity (a side to which the widgets stick). The rest
+create a padding border around the widget in various directions.
+
+It is quite normal that most of the times the packing will not look
+like intended, and you will need to use frame widgets (see
+\ref{ssec:frames}).
+
+\subsubsection{The Grid Packer}
+
+The grid packer divides the container widget into a grid, and allows
+placement of widgets relative to that grid. To pack a single widget
+use the 
+\href{Packer.html#Packer.grid}
+{following function:}
+\begin{xcode}
+grid :: Widget w => w -> [GridPackOption] -> IO ()
+\end{xcode}
+
+The datatype
+\href{GridPackOptions.html#GridPackOptions.GridPackOption}
+{\texttt{GridPackOptions}} specifies the packing options for the grid
+packer.
+
+Note that within the same container you cannot use different packing
+algorithms. The first widget packed into a container defines the
+packing for this container.
+
+\subsection{Configurations}
+
+Explain configs here.
+
+\subsection{Resources}
+
+\begin{itemize}
+\item Fonts 
+\item Geometry
+\item Dimensions
+\end{itemize}
+
+\section{Events}
+
+\begin{itemize}
+\item Binding
+\item Tk-Events
+\end{itemize}
+
+\section{Widgets}
+
+\subsection{Basic Widgets}
+
+
+\begin{itemize}
+\item Frames
+\label{ssec:frames}
+\item Buttons
+\item Labels
+\item Message Boxes
+\item Scrollbars
+\end{itemize}
+
+\subsection{Menues}
+
+\subsection{The Textwidget}
+
+\subsection{The Canvas Widget}
+
+\section{The Toolkit}
+
+\section{Larger Examples}
+
+The Minesweeper game
+
+
+
+\bibliography{intro}
+\bibliographystyle{plain}
+
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

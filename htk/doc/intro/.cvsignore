@@ -1,9 +1,13 @@
+*.aux
 *.o
 *.hi
-*.aux
 *.dvi
+simple.pdf
+*.ps
 .depend
 Makefile
 Makefile.bak
+simple1
+simple2
+hsMines
 *%
-*.html

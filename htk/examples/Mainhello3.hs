@@ -30,14 +30,15 @@ main =
      v1 <- createTkVariable ""
      l <- newLabel f [text "Rename: "]
      e <- (newEntry f [variable v1])::IO (Entry String)
+
+     (entered, _) <-
+       bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
 	
      pack f []
      pack l [PadX 10, Side AtLeft]
      pack e [PadX 10, Side AtRight]
 
      clickedqb <- clicked qb
-     (entered, _) <-
-       bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
      spawnEvent (forever ((clickedqb >>> destroy main) +>
                           (entered >>> do txt <- readTkVariable v1
 				          main # text txt >> done)))
