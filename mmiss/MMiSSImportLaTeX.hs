@@ -86,7 +86,7 @@ importMMiSSLaTeX objectType view getLinkedObject =
                      linkWE <- writeToMMiSSObject mmissPreamble objectType view
                         linkedObject Nothing element True
 
-                     link <- coerceWithErrorOrBreakIO break linkWE
+                     (link,_) <- coerceWithErrorOrBreakIO break linkWE
                      return (Just link)
          )
       case result of

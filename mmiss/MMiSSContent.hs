@@ -5,6 +5,7 @@ module MMiSSContent(
    StructuredContent(..),
    AccContents(..),
    LinkType(..),
+   toTopElement,
    ) where
 
 #include "config.h"
@@ -275,3 +276,14 @@ structureContent content =
                )
       other -> hasValue (nullAccContents {contents = [other]})
  
+-- ----------------------------------------------------------------------
+-- Function for getting an Element back from the Content (but only the
+-- top element. 
+-- ----------------------------------------------------------------------
+
+toTopElement :: StructuredContent -> Element
+toTopElement content =
+   Elem 
+      (tag content)
+      (attributes content)
+      (contents (accContents content))

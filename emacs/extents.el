@@ -601,6 +601,10 @@
 ;
 ; Special functions for modifying the contents of a container.  These depend on
 ; the contents of point, and so need to be executed in the same command.
+;
+; We will also use the XEmacs delete-char function (to delete the next n
+; characters) and the insert function (which inserts its argument and points
+; after).
 
 ; set point to after the extent.
 (defun uni-point-after-extent (extent-id)
@@ -608,6 +612,8 @@
       (goto-char (extent-end-position extent))
    ))
 
-; delete n chars from point, WHICH SHOULD NOT CONTAIN ANY OF OUR EXTENTS.
-(defun uni-delete-chars (n))
-   
+; add button at point and point after.
+(defun uni-add-button-point (extent-id text)
+   (uni-create-button-extent extent-id (point) text)
+   )
+

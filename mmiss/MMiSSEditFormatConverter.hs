@@ -71,7 +71,7 @@ toEditFormatConverter LaTeX =
                let 
                   str = mkLaTeXString content
 
-               debugString ("START|"++str++"|END")
+--             debugString ("START|"++str++"|END")
 
                return (mapWithError fst (parseMMiSSLatex str))
             )

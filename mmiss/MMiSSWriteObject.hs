@@ -77,9 +77,14 @@ import MMiSSPackageFolder (MMiSSPackageFolder)
 --
 -- We support the following hack: if the Element's name is "." then
 -- we write directly to the linked object itself.
+--
+-- writeToMMiSSObject returns two things if successful. 
+-- (1) a link to the new object; (2) if we split up the input element into
+-- multiple (more than one) output elements, we return the top element,
+-- namely the one that actually got written to the object.
 writeToMMiSSObject :: Link MMiSSPreamble -> MMiSSObjectType -> View 
    -> LinkedObject -> Maybe EntityFullName -> Element -> Bool 
-   -> IO (WithError (Link MMiSSObject))
+   -> IO (WithError (Link MMiSSObject,Maybe Element))
 writeToMMiSSObject preambleLink objectType view startLinkedObject 
    expectedLabel element checkThisEditLock =
 
@@ -354,8 +359,15 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
                   releaseAct
                   )
 
+         -- Compute the value to return
+         let
+            link = head newLinks
+            newElementOpt = case children (accContents contents) of
+               [] -> Nothing
+               _ -> Just (toTopElement contents)
+
          -- (8) return a link to the head object
-         return (head newLinks)
+         return (link,newElementOpt)
       ))
 
 
@@ -428,7 +440,6 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
 
 
       let
-
          -- (2) Insert the variants in the object
          ---
          -- Split the contents.  contents1 is distinguished because we make it
@@ -444,10 +455,7 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
          insertItem doPoint content =
             do
                let
-                  element0 = Elem (tag content)
-                     (attributes content)
-                     (contents (accContents content))
-
+                  element0 = toTopElement content 
                   element = setLabel element0 (EntityFullName [entityName])
 
                oldVariableOpt <- lookupVariantObjectExact varObject

@@ -42,6 +42,7 @@ module ExtendedPrelude (
    splitToElem,
    splitToElemGeneral,
    deleteFirst,
+   deleteFirstOpt,
    deleteAndFindFirst,
    deleteAndFindFirstOpt,
    divideList,
@@ -159,6 +160,11 @@ deleteFirst :: (a -> Bool) -> [a] -> [a]
 deleteFirst fn [] = error "ExtendedPrelude.deleteFirst - not found"
 deleteFirst fn (a:as) = 
    if fn a then as else a:deleteFirst fn as
+
+deleteFirstOpt :: (a -> Bool) -> [a] -> [a]
+deleteFirstOpt fn as = case deleteAndFindFirstOpt fn as of
+   Nothing -> as
+   Just (_,as) -> as
 
 deleteAndFindFirst :: (a -> Bool) -> [a] -> (a,[a])
 deleteAndFindFirst fn [] 

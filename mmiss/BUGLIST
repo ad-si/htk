@@ -29,6 +29,7 @@ FIXED
 When an object is inserted manually in XEmacs, it does not get converted into
 a magic button when the containing object is saved, meaning that we can't
 write to it a second time.
+FIXED
 
 66) 27.03.03
 Also, EditRef should probably not contain the object link, but instead 

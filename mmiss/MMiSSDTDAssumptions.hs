@@ -270,7 +270,7 @@ getLabel element =
 setLabel :: Element -> EntityFullName -> Element
 setLabel (Elem name attributes0 content) entityFullName =
    let
-      attributes1 = deleteFirst (\ (key,_) -> key == "label") attributes0
+      attributes1 = deleteFirstOpt (\ (key,_) -> key == "label") attributes0
       attributes2 = ("label",AttValue [Left (toString entityFullName)])
          : attributes1
    in

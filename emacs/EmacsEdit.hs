@@ -58,9 +58,17 @@ data EmacsFS ref = EmacsFS {
 -- EditedFile (provided by the caller) describes a file as it is edited by
 -- this module
 data EditedFile ref = EditedFile {
-   writeData :: EmacsContent ref -> IO (WithError ()),
+   writeData :: EmacsContent ref -> IO (WithError (Maybe (EmacsContent ref))),
       -- ^ Attempt to write back the edited content (this may be done more than
       --   once)
+      --
+      -- writeData may return Just (EmacsContent ref).  This should correspond
+      -- to the new text of the corresponding container, which is to replace
+      -- the old text.  
+      -- RESTRICTION - the ref's in such a new text must be a supersequence of
+      -- the refs in the old text.  That is, every ref in the old text must
+      -- occur in the new text, and in the same order, though other refs,
+      -- and different texts, may also be inserted.
    finishEdit :: IO ()
       -- ^ action to be called at the end (when we no longer want to edit
       -- this file).
@@ -287,8 +295,16 @@ handleEvents (editorState :: EditorState ref) =
                                  showError ("Writing "
                                     ++describe container++": "++mess)
                                  return False
-                           Right () -> 
+                           Right newContentsOpt -> 
                               do
+                                 -- Alter contents if necessary.
+                                 case newContentsOpt of
+                                    Nothing -> done
+                                    Just newContents ->
+                                       modifyFile editorState mangledContainer
+                                          (fmap snd mangledContents)
+                                          (fmap snd unmangledContents)
+                                          newContents
                                  -- clear modified flag for container.
                                  unmodify session hContainer
                                  return True
@@ -509,6 +525,135 @@ doPrint (editorState :: EditorState ref) mangledToEdit =
            createErrorWin ("Extent "++describe toEdit
               ++" is not currently open") []
       unlockBuffer session
+
+
+-- ----------------------------------------------------------------------
+-- Modifying a particular opened file.
+-- ----------------------------------------------------------------------
+
+--
+-- Replace the old content of a container by new content.
+--
+-- We don't lock the buffer during this, since we assume that is already done.
+--
+-- MAJOR RESTRICTION - it is assumed that all the references in the old
+-- content are also contained in the new content, in the same order.
+modifyFile :: Ord ref
+   => EditorState ref -- ^ editor state
+   -> MangledTypedName -- ^ MTN for the container.
+   -> EmacsContent MangledTypedName 
+      -- ^ old contents for the container as MTNs.
+   -> EmacsContent ref -- ^ old contents, translated into refs.
+   -> EmacsContent ref -- ^ new contents.
+   -> IO ()
+modifyFile (state :: EditorState ref) headMTN 
+      (EmacsContent oMTNs) oContent nContent =
+   let
+      -- (1) extract the mtns for the old contents.
+      mtns :: [MangledTypedName]
+      mtns = mapMaybe 
+         (\ dataItem -> case dataItem of
+            EditableText _ -> Nothing
+            EmacsLink mtn -> Just mtn
+            )
+         oMTNs
+
+      -- (2) get the dataitems for the contents, collapsing both contents first
+      -- just in case no-one else has.
+      oItems :: [EmacsDataItem ref]
+      EmacsContent oItems = collapseEmacsContent oContent
+
+      nItems :: [EmacsDataItem ref]
+      EmacsContent nItems = collapseEmacsContent nContent
+
+      -- (3) zip everything together.
+      zippedItems :: [(String,String,[EmacsDataItem ref])]
+      -- 1st String: extent-id for the preceding extent.
+      -- 2nd String: text following (or possibly "") up to next ref in old 
+      --    contents
+      -- List: stuff up to the same ref in the new contents.
+      zippedItems = zipItems (headName headMTN) mtns oItems nItems
+
+      zipItems :: String -> [MangledTypedName] 
+         -> [EmacsDataItem ref] -> [EmacsDataItem ref]
+         -> [(String,String,[EmacsDataItem ref])]
+      zipItems extentId mtns0 oDataItems [] = []
+      zipItems extentId mtns0 oDataItems0 nDataItems0 =
+         let
+            (oFollowingText,followingRefOpt,oDataItems1) = case oDataItems0 of
+               [] -> ("",Nothing,[])
+               [EditableText text] -> (text,Nothing,[])
+               EditableText text : EmacsLink ref : oDataItems1 ->
+                  (text,Just ref,oDataItems1)
+               EmacsLink ref : oDataItems1 -> ("",Just ref,oDataItems1)
+               -- EditableText : EditableText is impossible because of the
+               -- call to collapseEmacsContent
+         in
+            case followingRefOpt of
+               Nothing -> [(extentId,oFollowingText,nDataItems0)]
+               Just followingRef ->
+                  let
+                     splitNDataItems = splitToElem
+                        (\ dataItem -> case dataItem of
+                           EmacsLink ref | ref == followingRef
+                              -> True
+                           _ -> False
+                           )
+                        nDataItems0
+
+
+                     (theseDataItems,nDataItems1) =
+                         fromMaybe (error 
+                              ("EmacsEdit.modifyFile given new contents not a"
+                                 ++ "supersequence of the old one."))
+                              splitNDataItems
+                   
+                     thisItem = (extentId,oFollowingText,theseDataItems)
+
+                     (nextMTN : mtns1) = mtns0
+
+                     restItems = zipItems (normalName nextMTN) mtns1 
+                        oDataItems1 nDataItems1
+                  in
+                     thisItem : restItems
+
+      mapItem :: (String,String,[EmacsDataItem ref]) -> IO (Maybe [Multi])
+      mapItem (extentId,oldText,dataItems) =
+         case (oldText,dataItems) of
+            (text1,[EditableText text2]) | text1 == text2
+               -> return Nothing
+            ("",[]) -> return Nothing
+            _ ->
+               do
+                  let
+                     headCommand = pointAfterExtent extentId
+                     delCommand = deleteFromPoint (length oldText)
+                  insertItems <- mapM
+                     (\ dataItem ->
+                        case dataItem of
+                           EmacsLink child ->
+                              do
+                                 mangledChild <- newMangledTypedName 
+                                    (typedNameMangler state) child 
+                                    (toMiniType (emacsFS state) child)
+                                 return (insertButtonBeforePoint 
+                                    (normalName mangledChild) 
+                                    (buttonText (emacsFS state) child))
+                           EditableText str -> return (insertBeforePoint str)
+                        )        
+                     dataItems
+
+                  return (Just (headCommand:delCommand:insertItems))
+   in 
+      mapM_
+         (\ zippedItem ->
+            do
+               multisOpt <- mapItem zippedItem
+               case multisOpt of
+                  Nothing -> done
+                  Just multis -> execEmacs (emacsSession state) multis
+            )
+         zippedItems
 
 -- ----------------------------------------------------------------------
 -- Extracting the contents of a buffer

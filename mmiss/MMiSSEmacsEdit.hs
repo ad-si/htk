@@ -245,29 +245,33 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                (content0 :: EmacsContent (TypedName,[Attribute]))
                   <- coerceWithErrorOrBreakIO break2 contentWE
 
+               let
+                  mapContent :: EmacsContent (TypedName,[Attribute]) 
+                     -> IO (EmacsContent EditRef)
+                  mapContent = mapMonadic
+                     (\ ((string,miniType),includeAttributes) ->
+                        do
+                           (fullName :: EntityFullName) 
+                              <- coerceWithErrorOrBreakIO break2 
+                                 (fromStringWE string)
+                           let
+                              linkVariants1 = 
+                                 toMMiSSVariantSpecFromXml includeAttributes
+
+                              editRef =
+                                 EditRef {
+                                    linkEnvironment = linkEnvironment1,
+                                    outerVariants = outerVariants1,
+                                    linkVariants = linkVariants1,
+                                    miniType = miniType,
+                                    description =  fullName
+                                    }
+
+                           return editRef 
+                        )
+
                -- convert content0 into EmacsContent EditRef.
-               content1 <- mapMonadic 
-                  (\ ((string,miniType),includeAttributes) ->
-                     do
-                        (fullName :: EntityFullName) 
-                           <- coerceWithErrorOrBreakIO break2 
-                              (fromStringWE string)
-                        let
-                           linkVariants1 = 
-                              toMMiSSVariantSpecFromXml includeAttributes
-
-                           editRef =
-                              EditRef {
-                                 linkEnvironment = linkEnvironment1,
-                                 outerVariants = outerVariants1,
-                                 linkVariants = linkVariants1,
-                                 miniType = miniType,
-                                 description =  fullName
-                                 }
-
-                        return editRef 
-                     )
-                  content0
+               content1 <- mapContent content0 
                
                -- We now have to set up the EditedFile stuff 
                let
@@ -313,16 +317,44 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                           let
                              element1 = setLabel element0 trivialFullName
 
-                          linkWE <- writeToMMiSSObject (preamble variable)
+                          writeOutWE <- writeToMMiSSObject (preamble variable)
                              thisObjectType view thisLinkedObject Nothing
                              element1 False
-                          let
-                             link = coerceWithErrorOrBreak break linkWE
-                          link `seq` done
+                          (link,elementOpt) 
+                             <- coerceWithErrorOrBreakIO break writeOutWE
                           setFontStyle (nodeActions object) 
                              BoldItalicFontStyle
+
+                          emacsContentOpt <- case elementOpt of
+                             Nothing -> return Nothing
+                             Just newElement0 ->
+                                do
+                                   let
+                                      newElement1 
+                                         = setLabel newElement0 description1
+
+                                      contentWE :: WithError 
+                                         (EmacsContent (TypedName,[Attribute]))
+                                      contentWE = toEdit name newElement1
+                                   
+                                   case fromWithError contentWE of
+                                      Left mess ->
+                                         do
+                                            createWarningWin
+                                               ("Commit of " ++ name 
+                                                  ++ " successful, but "
+                                                  ++ "attempt to recompute "
+                                                  ++ "magic buttons failed:\n"
+                                                  ++ mess) []
+                                            return Nothing
+                                      Right content0 ->
+                                         do
+                                            content1 <- mapContent content0
+                                            return (Just content1)
+                               
                           createMessageWin 
                              ("Commit of "++name++ " successful!") []
+                          return emacsContentOpt
                        )
 
                   finishEdit =

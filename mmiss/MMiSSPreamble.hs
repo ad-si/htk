@@ -196,7 +196,9 @@ preambleFS =
                            latexPreambleWE = fromStringWE latexPreambleStr
                         mapWithErrorIO
                            (\ latexPreamble -> 
-                              writeIORef preamble latexPreamble
+                              do
+                                 writeIORef preamble latexPreamble
+                                 return Nothing
                               )
                            latexPreambleWE
                   writeData _ = error "MMiSSPreamble.bug 1"

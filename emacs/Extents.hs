@@ -25,6 +25,12 @@ module Extents(
    setColourHack,
    clearModifiedFlag,
    getModifiedFlag,
+
+   pointAfterExtent,
+   deleteFromPoint,
+   insertBeforePoint,
+   insertButtonBeforePoint,
+
    ) where
 
 import Maybe
@@ -77,10 +83,10 @@ boundContainer emacsSession parent =
 
 deleteExtent :: EmacsSession -> String -> IO ()
 deleteExtent emacsSession this =
-   execEmacs emacsSession ("uni-delete-extent",[this])
+   execEmacs emacsSession ("uni-delete-extent",this)
 
 expand :: EmacsSession -> String -> IO ()
-expand emacsSession this = execEmacs emacsSession ("uni-expand",[this])
+expand emacsSession this = execEmacs emacsSession ("uni-expand",this)
 
 collapse :: EmacsSession -> String -> String -> IO ()
 collapse emacsSession this text =
@@ -90,12 +96,12 @@ containerContents :: EmacsSession -> String -> IO (EmacsContent String)
 containerContents emacsSession this =
    do
       str <- evalEmacsQuick emacsSession 
-         (Prin ("uni-container-contents",[this]))
+         (Prin ("uni-container-contents",this))
       return (parseEmacsContent str)
 
 getExtentType :: EmacsSession -> String -> IO String
 getExtentType emacsSession this =
-   evalEmacsQuick emacsSession (Prin ("uni-get-extent-id-type",[this]))
+   evalEmacsQuick emacsSession (Prin ("uni-get-extent-id-type",this))
 
 ---
 -- Like containerContents, but also returns a Bool for each link indicating 
@@ -105,7 +111,7 @@ containerFullContents :: EmacsSession -> String
 containerFullContents emacsSession this =
    do
       str <- evalEmacsQuick emacsSession 
-         (Prin ("uni-container-contents",[this]))
+         (Prin ("uni-container-contents",this))
       return (parseEmacsContentGeneral str)
 
 ---
@@ -114,7 +120,7 @@ isModified :: EmacsSession -> String -> IO Bool
 isModified emacsSession this =
    do
       str <- evalEmacsQuick emacsSession 
-         (Prin ("uni-container-modified",[this]))
+         (Prin ("uni-container-modified",this))
       return (case str of
          "nil" -> False
          "t" -> True
@@ -125,7 +131,7 @@ isModified emacsSession this =
 -- Unmodify a container
 unmodify :: EmacsSession -> String -> IO ()
 unmodify emacsSession this =
-   execEmacs emacsSession ("uni-unmodify-container",[this])
+   execEmacs emacsSession ("uni-unmodify-container",this)
 
 
 data ContainerChild = Button String | Container String
@@ -134,7 +140,7 @@ containerChildren :: EmacsSession -> String -> IO [ContainerChild]
 containerChildren emacsSession this =
    do
       str <- evalEmacsQuick emacsSession 
-         (Prin ("uni-container-children",[this]))
+         (Prin ("uni-container-children",this))
       let
          (EmacsContent dataItems) = parseEmacsContentGeneral str
          result = map
@@ -180,4 +186,22 @@ getModifiedFlag emacsSession =
    do
       str <- evalEmacsQuick emacsSession (Prin "buffer-modified-p")
       return (doParseBool str)
+
+--
+-- The following operations are used for modifying the contents of a container.
+-- They return a value of type "Multi" since they indicate the operation
+-- to be performed; the caller then needs to perform them all at once as
+-- a list.
+pointAfterExtent :: String -> Multi
+pointAfterExtent extentId = multi ("uni-point-after-extent",extentId)
+
+deleteFromPoint :: Int -> Multi
+deleteFromPoint nchars = multi ("delete-char",nchars)
+
+insertBeforePoint :: String -> Multi
+insertBeforePoint text = multi ("insert",text)
+
+insertButtonBeforePoint :: String -> String -> Multi
+insertButtonBeforePoint extentId text 
+   = multi ("uni-add-button-point",[extentId,text])
 
