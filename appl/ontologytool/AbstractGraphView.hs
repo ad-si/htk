@@ -18,8 +18,11 @@ import GraphConfigure
 import Destructible
 
 import List(nub)
+import Data.FiniteMap
 
 import IORef
+
+import MMiSSOntology
 
 import qualified Data.Graph.Inductive as I
 import qualified Data.Graph.Inductive.Tree as T
@@ -52,7 +55,8 @@ type OurGraph =
 
 type CompTable = [(String,String,String)]
 data AbstractionGraph = AbstractionGraph {
-       ontoGraph :: T.Gr String String,
+       ontoGraph :: T.Gr (String,String,OntoObjectType) String,
+       nodeMap :: NodeMapping,
        theGraph :: OurGraph,
        nodeTypes :: [(String,DaVinciNodeType (String,Int,Int))],
        edgeTypes :: [(String,DaVinciArcType (String,Int))],
@@ -63,6 +67,8 @@ data AbstractionGraph = AbstractionGraph {
        -- which is used to restore things when showIt is called
        edgeComp :: CompTable,
        eventTable :: [(Int,Entry)]}
+
+type NodeMapping = FiniteMap I.Node Descr
 
 type Descr = Int
 type GraphInfo = IORef ([(Descr,AbstractionGraph)],Descr) -- for each graph the descriptor and the graph,
@@ -162,6 +168,7 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
   edgetypes <- sequence (map (newArcType graph) edgetypeparams1)
   let g = AbstractionGraph {
             ontoGraph = ontoGr,
+            nodeMap = emptyFM,
             theGraph = graph,
             nodeTypes = zip nodetypenames nodetypes,
             edgeTypes = zip edgetypenames edgetypes,
@@ -205,11 +212,18 @@ addnode gid nodetype name gv =
    )
 
 
-writeOntoGraph :: Descr -> T.Gr String String -> GraphInfo -> IO Result
+writeOntoGraph :: Descr -> T.Gr (String,String,OntoObjectType) String -> GraphInfo -> IO Result
 writeOntoGraph gid graph gv =
   fetch_graph gid gv False (\(g,ev_cnt) ->
     return (g{ontoGraph = graph},0,ev_cnt+1,Nothing)
   )
+
+writeNodeMap :: Descr -> NodeMapping -> GraphInfo -> IO Result
+writeNodeMap gid nMap gv =
+  fetch_graph gid gv False (\(g,ev_cnt) ->
+    return (g{nodeMap = nMap},0,ev_cnt+1,Nothing)
+  )
+
 
 delnode :: Descr -> Descr -> GraphInfo -> IO Result
 delnode gid node gv =

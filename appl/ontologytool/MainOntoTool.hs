@@ -28,17 +28,23 @@ main =
    do args <- System.getArgs
       if ((length (elemIndices "--help" args)) > 0)
         then do putStr "Tool for checking and converting MMiSS ontologies"
-		putStr "usage:\n  ontotool [OPTIONS] INPUTFILE [> OUTFILE]\n"
+		putStr "usage:\n  ontotool [OPTIONS] [STARTNODENAME] INPUTFILE\n"
 		putStr "Options are:\n"
+		putStr " -owl     : print out OWL representation\n"
+		putStr " -daVinci : start daVinci and show ontology as graph\n"
 		exitWith ExitSuccess
         else done
       filename <- if ((length args) == 0) 
                     then do putStr "Tool for checking and converting MMiSS ontologies"
-		            putStr "usage:\n  ontotool [OPTIONS] INPUTFILE [> OUTFILE]\n"
+		            putStr "usage:\n  ontotool [OPTIONS] [STARTNODENAME] INPUTFILE\n"
 		            putStr "Options are:\n"
+		            putStr " -owl     : print out OWL representation\n"
+		            putStr " -daVinci : start daVinci and show ontology as graph\n"
                             exitWith (ExitFailure 1)
                     else return (last args)
-
+      startNodeName <- if ((length args) > 2)
+                         then return(Just(head (drop 1 (reverse args))))
+                         else return(Nothing)
       weOntology <- parseMMiSSOntologyFile filename
 
       onto <- case fromWithError weOntology of
@@ -62,7 +68,7 @@ main =
                           done
         else done
       if ((length (elemIndices "-daVinci" args)) > 0)
-        then do displayClassGraph onto
+        then do displayClassGraph onto startNodeName
                 getLine
                 done
         else done

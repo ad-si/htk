@@ -17,7 +17,8 @@ module MMiSSOntology (
   -- data RelationProperty = InversOf String
   --                       | Functional 
   InsertMode(..),
-  --  data OntoInsertionMode = AutoInsert | ThrowError
+  OntoObjectType(..),
+
   {-- 
    AutoInsert: When a new class is to be inserted and the given SuperClass is not
                present in the ontology, it is automatically inserted with just it's name.
@@ -84,10 +85,10 @@ module MMiSSOntology (
   -- :: MMiSSOntology -> [String]
 
   getClassGraph,
-  -- :: MMiSSOntology -> Gr String String
+  -- :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
 
   getObjectGraph,
-  -- :: MMiSSOntology -> Gr String String
+  -- :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
 
   getRelationGraph,
   -- :: MMiSSOntology -> Gr String String
@@ -122,6 +123,8 @@ data RelationProperty = InversOf String | Functional
 data InsertMode = AutoInsert | ThrowError
                   deriving (Eq, Read, Show)
 
+data OntoObjectType = OntoClass | OntoObject deriving (Show, Eq)
+
 data MMiSSOntology = MMiSSOntology {
   name :: String,
   classes :: FiniteMap String ClassDecl,
@@ -129,10 +132,12 @@ data MMiSSOntology = MMiSSOntology {
   relations :: FiniteMap String RelationDecl,
   objectLinks :: [ObjectLink],
   mode :: InsertMode,
-  classGraph :: Gr String String,
-  objectGraph :: Gr String String,
+  classGraph :: Gr (String, String, OntoObjectType) String,
+  objectGraph :: Gr (String, String, OntoObjectType) String,
   relationGraph :: Gr String String
 }
+
+
 
 data ClassDecl = ClassDecl ClassName 
                            DefaultText 
@@ -179,10 +184,10 @@ getRelationNames onto = keysFM (relations onto)
 getOntologyName :: MMiSSOntology -> String
 getOntologyName o = name o
 
-getClassGraph :: MMiSSOntology -> Gr String String
+getClassGraph :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
 getClassGraph o = classGraph o
 
-getObjectGraph :: MMiSSOntology -> Gr String String
+getObjectGraph :: MMiSSOntology -> Gr (String,String,OntoObjectType) String
 getObjectGraph o = objectGraph o
 
 getRelationGraph :: MMiSSOntology -> Gr String String
@@ -223,7 +228,7 @@ insertClass onto className optText maybeSuper =
                         1 -> let (className, _) =  head cList 
                                  (g1, node1) =  case (findLNode g className) of
                                                   Nothing -> let n = head (newNodes 1 g)
-                                                             in ((insNode (n, className) g), n)
+                                                             in ((insNode (n, (className,"",OntoClass)) g), n)
                                                   Just(node) -> (g, node)
                                  g2 = case super of
                                         Nothing -> g1
@@ -235,11 +240,11 @@ insertClass onto className optText maybeSuper =
                                  (superClass, _) = head (drop 1 cList) 
                                  (g1, node1) = case (findLNode g subClass) of
                                                   Nothing -> let n = head (newNodes 1 g)
-                                                             in ((insNode (n, subClass) g), n)
+                                                             in ((insNode (n, (subClass,"",OntoClass)) g), n)
                                                   Just(node) -> (g, node)
                                  (g2, node2) = case (findLNode g1 superClass) of
                                                   Nothing -> let n = head (newNodes 1 g1)
-                                                             in ((insNode (n, superClass) g1), n)
+                                                             in ((insNode (n, (superClass,"",OntoClass)) g1), n)
                                                   Just(node) -> (g1, node)
                              in  insEdge (node1, node2, "isa") g2
        in
@@ -324,7 +329,7 @@ insertRelationType onto relName source target =
 			        relations = relations o,
 			        objectLinks = objectLinks o,
 			        mode = mode o,
-                                classGraph = foldl addClassNode (classGraph o) cList ,
+                                classGraph = foldl addClassNodeWithoutDecl (classGraph o) cList ,
                                 objectGraph = objectGraph onto,
                                 relationGraph = relationGraph onto}
 
@@ -354,14 +359,6 @@ insertRelationType onto relName source target =
                       newTypeList = (deleteBy isEqualTypelist (relName, []) typeList) ++ [(relName, newClassList)]
                   in return (addClasses o [(className, (ClassDecl cn defT sup newTypeList ai))])
              else  return o
-
-    -- Insert a class-node into the graph. The ClassDecl doesn't have to be considered, because
-    -- classes added here have no Superclass (they are inserted in AutoInsert-Mode). 
-    addClassNode :: Gr String String -> (String, ClassDecl) -> Gr String String
-    addClassNode g (cn, _) = case findLNode g cn of
-                                Just(_) -> g
-                                Nothing -> let node = head (newNodes 1 g)
-                                           in  insNode (node, cn) g
 
     addEdge onto g rel source target = 
       case findLNode g source of
@@ -400,7 +397,7 @@ insertObject onto objectName defText className =
 			    objectLinks = objectLinks onto,
 			    mode = mode onto,
                             classGraph = classGraph onto,
-                            objectGraph = addObjectToGraph objectName (objectGraph onto),
+                            objectGraph = addObjectToGraph objectName className (objectGraph onto), 
                             relationGraph = relationGraph onto} )
   where
     addClasses o cList = 
@@ -410,7 +407,7 @@ insertObject onto objectName defText className =
 			        relations = relations o,
 			        objectLinks = objectLinks o,
 			        mode = mode o,
-                                classGraph = classGraph onto,
+                                classGraph = foldl addClassNodeWithoutDecl (classGraph onto) cList,
                                 objectGraph = objectGraph onto,
                                 relationGraph = relationGraph onto}
     lookupClass o className =
@@ -421,10 +418,12 @@ insertObject onto objectName defText className =
                                         ++ " doesn't exist in the Ontology.\n")
          Just(_) -> return o
 
-    addObjectToGraph name g = case (findLNode g name) of
-                                Nothing -> let n = head (newNodes 1 g)
-                                           in (insNode (n, ("_" ++ name ++ "_")) g)
-                                Just(node) -> g
+    addObjectToGraph name className og = 
+       case (findLNode og name) of
+         Nothing -> let n = head (newNodes 1 og)
+                        newOG = (insNode (n, (("_" ++ name ++ "_"), className, OntoObject)) og)
+                    in newOG
+         Just(node) -> og
 
 
 insertLink onto source target relName =
@@ -577,7 +576,6 @@ owlStart name = "<?xml version=\"1.0\"?>\n" ++
     "<rdfs:comment>OWL ontology created by MMiSS OntoTool v0.2. For more information about the MMiSS project please visit http://www.mmiss.de</rdfs:comment>" ++
     "</owl:Ontology>\n"
 
-
 latexToEntityList = [("<", "&#38;#60;"), (">", "&#62;"), ("&", "&#38;#38;")]
                     ++ [("'", "&#39;"), ("\"", "&#34;")]
 
@@ -598,8 +596,20 @@ applyTranslation outStr inStr (search, replaceStr) =
    lenSearch = genericLength search   
 
 
-findLNode :: Gr String String -> String -> Maybe Node
-
-findLNode gr label = case (gsel (\(p,v,l,s) -> l == label) gr) of
+findLNode :: Gr (String, String, OntoObjectType) String -> String -> Maybe Node
+findLNode gr label = case (gsel (\(p,v,(l, _, _),s) -> l == label) gr) of
                       [] -> Nothing
                       conList -> Just(node' (head conList))               
+
+
+-- Insert a class-node into the graph. The ClassDecl doesn't have to be considered, because
+-- classes added here have no Superclass (they are inserted in AutoInsert-Mode). 
+addClassNodeWithoutDecl :: Gr (String, String, OntoObjectType) String -> (String, ClassDecl) 
+                           -> Gr (String, String, OntoObjectType) String
+addClassNodeWithoutDecl g (cn, _) = 
+  case findLNode g cn of
+    Just(_) -> g
+    Nothing -> 
+      let node = head (newNodes 1 g)
+      in  insNode (node, (cn, "", OntoClass)) g
+
