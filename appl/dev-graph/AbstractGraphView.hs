@@ -21,11 +21,12 @@ import List(nub)
 
 import IORef
 
+
 {- methods using fetch_graph return a quadruple containing the modified graph, a descriptor of the last modification (e.g. a new node), the descriptor that can be used for the next modification and a possible error message-}
 
 -- Which graph display tool to be used, perhaps make it more tool independent?
 
-instance Eq (DaVinciNode (String, Int)) where
+instance Eq (DaVinciNode (String, Int, Int)) where
     (==) = eq1
     
 instance Eq (DaVinciArc (String, Int)) where
@@ -50,9 +51,9 @@ type OurGraph =
 type CompTable = [(String,String,String)]
 data AbstractionGraph = AbstractionGraph {
        theGraph :: OurGraph,
-       nodeTypes :: [(String,DaVinciNodeType (String,Int))],
+       nodeTypes :: [(String,DaVinciNodeType (String,Int,Int))],
        edgeTypes :: [(String,DaVinciArcType (String,Int))],
-       nodes :: [(Int,(String,DaVinciNode (String,Int)))],
+       nodes :: [(Int,(String,DaVinciNode (String,Int,Int)))],
        edges :: [(Int,(Int,Int,String,DaVinciArc (String,Int)))],
        -- probably, also the abstracted graph needs to be stored,
        -- and a list of hide/abstract events with the hidden nodes/edges (for each event),
@@ -67,7 +68,7 @@ data Result = Result Descr                          -- graph, node or edge descr
                      (Maybe String)                 -- a possible error message
 
 
-data Entry = Entry {newNodes :: [(Descr,(String,DaVinciNode (String,Int)))],
+data Entry = Entry {newNodes :: [(Descr,(String,DaVinciNode (String,Int,Int)))],
 		    oldNodes :: [(Descr,(String,String))],
 		    newEdges :: [(Int,(Int,Int,String,DaVinciArc (String,Int)))],
 		    oldEdges :: [(Int,(Int,Int,String,String))]
@@ -75,7 +76,7 @@ data Entry = Entry {newNodes :: [(Descr,(String,DaVinciNode (String,Int)))],
 
 
 -- creates a new entry of the eventTable and fills it with the data contained in its parameters
-createEntry :: [(Descr,(String,DaVinciNode (String,Int)))] -> [(Descr,(String,String))] -> [(Descr,(Int,Int,String,DaVinciArc (String,Int)))] -> [(Descr,(Int,Int,String,String))] -> Descr -> (Int,Entry)
+createEntry :: [(Descr,(String,DaVinciNode (String,Int,Int)))] -> [(Descr,(String,String))] -> [(Descr,(Int,Int,String,DaVinciArc (String,Int)))] -> [(Descr,(Int,Int,String,String))] -> Descr -> (Int,Entry)
 createEntry nn on ne oe cnt = (cnt, Entry {newNodes = nn, oldNodes = on, newEdges = ne, oldEdges = oe})
 
 
@@ -125,7 +126,7 @@ initgraphs = do newRef <- newIORef ([],0)
                 return newRef
 
 makegraph :: String -> [GlobalMenu] -> 
-             [(String,DaVinciNodeTypeParms (String,Descr))] -> 
+             [(String,DaVinciNodeTypeParms (String,Descr,Descr))] -> 
              [(String,DaVinciArcTypeParms (String,Descr))] ->
              CompTable -> GraphInfo -> IO Result 
 makegraph title menus nodetypeparams edgetypeparams comptable gv = do
@@ -135,10 +136,23 @@ makegraph title menus nodetypeparams edgetypeparams comptable gv = do
                    OptimiseLayout True $$ 
 	           emptyGraphParms)
                    menus 
-      abstractNodetypeparams = LocalMenu (Menu Nothing []) $$$            
+      abstractNodetypeparams = LocalMenu
+                                  (Menu (Just "View") [
+                                      Button "Unhide abstracted nodes" (
+				        \ (name, descr, gid) -> do oldGv <- readIORef gv
+					                           (Result descr error) <- showIt gid descr gv
+								                          -- command_loop gv
+					                           case error of
+								     Just _ -> do writeIORef gv oldGv
+								                  return ()
+								     Nothing -> do addnode gid "ABSTRACT" "unhide wurde gewaehlt" gv
+								                   redisplay gid gv
+								                   return () 
+				         )
+				      ]) $$$            
 	                       Rhombus  $$$
-                               ValueTitle ( \ (s,i) -> return s) $$$
-                               emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int)
+                               ValueTitle ( \ (name,descr,gid) -> return name) $$$
+                               emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int)
       (nodetypenames,nodetypeparams1) = unzip (("ABSTRACT",abstractNodetypeparams):nodetypeparams)
       (edgetypenames,edgetypeparams1) = unzip edgetypeparams
   graph <- GraphDisp.newGraph graphtool graphParms
@@ -180,7 +194,7 @@ addnode gid nodetype name gv =
       do case lookup nodetype (nodeTypes g) of
           Nothing -> return (g,0,ev_cnt,Just ("addnode: illegal node type: "++nodetype))
           Just nt -> do
-           node <- newNode (theGraph g) nt (name,ev_cnt)
+           node <- newNode (theGraph g) nt (name,ev_cnt,gid)
            return (g{nodes = (ev_cnt,(nodetype,node)):nodes g},ev_cnt,ev_cnt+1,Nothing)
    )
 
@@ -433,7 +447,7 @@ abstractnodes gid node_list gv =
 
     
 -- adds an abstract node, determines and adds its in- and outgoing paths
-replaceByAbstractNode :: Descr -> [Descr] -> [(String,DaVinciNode(String,Int))] -> [Descr] -> GraphInfo -> IO Result
+replaceByAbstractNode :: Descr -> [Descr] -> [(String,DaVinciNode(String,Int,Int))] -> [Descr] -> GraphInfo -> IO Result
 replaceByAbstractNode gid node_list nl edge_list gv =
   fetch_graph gid gv False (\(g,ev_cnt) ->
     -- try to lookup the in- and outgoing edges of the nodes that are to be hidden
@@ -565,11 +579,11 @@ showedges gid ((edge@(d,(src,tgt,tp,davinciarc))):list) gv =
 
 
 -- creates a list of the nodes that will be hidden (ie descriptor,type and name)
-saveOldNodes :: AbstractionGraph -> [(Int,(String,DaVinciNode(String,Int)))] -> IO [(Int,(String,String))]
+saveOldNodes :: AbstractionGraph -> [(Int,(String,DaVinciNode(String,Int,Int)))] -> IO [(Int,(String,String))]
 saveOldNodes g [] = return []
-saveOldNodes g ((node@(de,(tp,davincinode))):list) = do value <- getNodeValue (theGraph g) davincinode
+saveOldNodes g ((node@(de,(tp,davincinode))):list) = do (name,descr,gid) <- getNodeValue (theGraph g) davincinode
                                                         restOfList <- saveOldNodes g list
-                                                        return ((de,(tp,(fst value))):restOfList)
+                                                        return ((de,(tp,name)):restOfList)
 
 
 -- creates a list of the edges that will be hidden (ie descriptor,source,target,type and name)

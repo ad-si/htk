@@ -1,4 +1,4 @@
-module Main (main) where
+module Main (main, command_loop) where
 
 {-
   todo:
@@ -17,7 +17,6 @@ import GraphConfigure
 import AbstractGraphView
 import IORef
 
-       
 
 -- Auxiliary stuff for graph display commands
 
@@ -119,7 +118,9 @@ send_request gid name =
 
 -- The graph display commands
 
-local_action (gid::Int) action = (\(_,nid) -> send_request gid (show nid++" "++action))
+
+local_action_node (gid::Int) action = (\(_,nid,_) -> send_request gid (show nid++" "++action))
+local_action_edge (gid::Int) action = (\(_,eid) -> send_request gid (show eid++" "++action))
 global_action (gid::Int) (action::String) = send_request gid action
 
 make_menu act (LP [AP "BUTTON", AP name, AP action]) =
@@ -143,9 +144,9 @@ make_nodeType gid (LP [AP "NODETYPE",AP name,AP shape,AP color,menu]) =
   (name,
    get_node_shape (map toLower shape) $$$
    Color color $$$
-   ValueTitle (\(s,_) -> return s) $$$
-   LocalMenu (make_menu (local_action gid) menu) $$$
-   emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int))
+   ValueTitle (\(s,_,_) -> return s) $$$
+   LocalMenu (make_menu (local_action_node gid) menu) $$$
+   emptyNodeTypeParms :: DaVinciNodeTypeParms (String,Int,Int))
 --make_nodeType graph _ _ _ = error
 
 get_edge_shape "solid" = Solid
@@ -159,7 +160,7 @@ make_edgeType gid (LP [AP "EDGETYPE",AP name,AP shape,AP color,menu]) =
    (name,
     get_edge_shape (map toLower shape) $$$
     Color color $$$
-    LocalMenu (make_menu (local_action gid) menu) $$$
+    LocalMenu (make_menu (local_action_edge gid) menu) $$$
     emptyArcTypeParms :: DaVinciArcTypeParms (String,Int))
 --make_edgeType graph _ _ _ = error
 
@@ -300,6 +301,7 @@ command c cid (gid:args) gv = do
          Nothing -> cmd_succeeds cid (show descr)
          Just e -> cmd_fails cid e
 
+
 command_loop gv =
   do s <- getLine
      let lexres = lexer s
@@ -316,8 +318,15 @@ main = do
   hSetBuffering stdout LineBuffering
   putStrLn "(ANSWER T \"This is the abstraction viewer for daVinci\")"
   gv <- initgraphs
+  s <- readFile "test.data"
+  sequence (map (process_command gv) (lines s))
   command_loop gv
-
+  where
+  process_command gv s =
+    do let lexres = lexer s
+       case lexres of
+          "(":c:cid:args -> command (map toLower c) cid args gv
+  	  otherwise -> return ()
 
 
 -- LispActions send to DaVinci:
