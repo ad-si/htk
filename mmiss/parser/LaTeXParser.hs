@@ -1960,8 +1960,8 @@ fillLatex out ((CElem (Elem "text" atts contents)):cs) inList =
                      ++ [(EditableText (s3 ++ e_insert))]
   in fillLatex out cs (inList ++ items)
 
-fillLatex out ((CElem (Elem "listItem" atts contents)):cs) inList = 
-   let s1 = "\\ListItem" 
+fillLatex out ((CElem (Elem "item" atts contents)):cs) inList = 
+   let s1 = "\\Item" 
        attrStr = (getAttribs atts "" [])
        s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "] "
        items = [EditableText (s1 ++ s2)] ++ (fillLatex out contents [])
@@ -2227,6 +2227,7 @@ classifyLabelledTag str = fromIncludeStrOpt (mapLabelledTag str)
 -- toIncludeStr and fromIncludeStr convert the mini-type to and from XXX in
 -- the corresponding includeXXX command.
 toIncludeStr :: Char -> String
+toIncludeStr 'G' = "Package"
 toIncludeStr 'U' = "Unit"
 toIncludeStr 'E' = "CompositeUnit"
 toIncludeStr 'A' = "Atom"
@@ -2244,6 +2245,7 @@ toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
 -- fromIncludeStrOpt
 -- and also handles the case where the first letter is lower-cased.
 fromIncludeStrOpt :: String -> Maybe Char
+fromIncludeStrOpt "Package" = Just 'G'
 fromIncludeStrOpt "Unit" = Just 'U'
 fromIncludeStrOpt "Atom" = Just 'A'
 fromIncludeStrOpt "Text" = Just 'T'
@@ -2271,6 +2273,7 @@ fromIncludeStr str = case fromIncludeStrOpt str of
 mapLabelledTag :: String -> String
 mapLabelledTag s = 
    case s of
+      "package" -> "Package"
       "paragraph" -> "Unit"
       "abstract" -> "Unit"
       "introduction" -> "Unit"
