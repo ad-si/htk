@@ -26,6 +26,12 @@ module Folders(
 
    writeEmptyFolder,
       -- :: View -> Link Folder -> GlobalKey -> IO ()
+
+   toArcEndsGeneral,
+      -- :: (Ord a,HasKey a key)
+      -- -> Blocker a -> BlockID -> (a -> ArcData WrappedLink ArcType) 
+      -- -> IO ArcEnds
+
    ) where
 
 import Maybe
@@ -881,18 +887,23 @@ createWithLinkedObjectSplitIO view parentLink name getObject =
 
 toArcEnds :: Blocker WrappedLink -> BlockID -> IO ArcEnds
 toArcEnds blocker blockID = 
+   toArcEndsGeneral blocker blockID 
+      (\ wrappedLink -> toArcData wrappedLink theArcType True)
+
+toArcEndsGeneral 
+   :: (Ord a,HasKey a key)
+   => Blocker a -> BlockID -> (a -> ArcData WrappedLink ArcType) -> IO ArcEnds
+toArcEndsGeneral (blocker :: Blocker a) blockId mkArcData =
    do
-      (setSource1 :: VariableSetSource WrappedLink) 
-         <- blockVariableSet blocker blockID
+      (setSource1 :: VariableSetSource a) 
+         <- blockVariableSet blocker blockId
 
       let
-         variableSet1 :: VariableList WrappedLink
+         variableSet1 :: VariableList a
          variableSet1 = newVariableListFromSet setSource1
 
          variableSet2 :: VariableList (ArcData WrappedLink ArcType)
-         variableSet2 = fmap
-            (\ wrappedLink -> toArcData wrappedLink theArcType True)
-            variableSet1
+         variableSet2 = fmap mkArcData variableSet1
 
       return variableSet2
 

@@ -82,6 +82,9 @@ module LinkManager(
       -- :: LinkedObject -> VariableSetSource WrappedLink
       -- Get the contents of a LinkedObject (those objects contained in it,
       -- like elements in a folder)
+   objectContentsWithName,
+      -- :: LinkedObject -> VariableSetSource (EntityName,WrappedLink)
+      -- Like objectContents, but also gets the name.
 
    listObjectContents,
       -- :: LinkedObject -> SimpleSource [(EntityName,LinkedObject)]
@@ -310,6 +313,20 @@ objectContents linkedObject =
             map 
                (\ linkedObjectPtr -> wrappedLinkInPtr linkedObjectPtr)
                (eltsFM fm)
+            )
+         (toSimpleSource (contents linkedObject))
+         )
+
+objectContentsWithName 
+   :: LinkedObject -> VariableSetSource (EntityName,WrappedLink)
+objectContentsWithName linkedObject =
+   listToSetSource
+      (fmap
+         (\ fm ->
+            map 
+               (\ (name,linkedObjectPtr) 
+                  -> (name,wrappedLinkInPtr linkedObjectPtr))
+               (fmToList fm)
             )
          (toSimpleSource (contents linkedObject))
          )

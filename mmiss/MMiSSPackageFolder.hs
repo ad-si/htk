@@ -94,6 +94,7 @@ import FileDialog
 import GraphDisp
 import GraphConfigure
 
+import VersionDB(Location)
 import View
 import Folders
 import Link
@@ -155,7 +156,7 @@ instance Monad m => HasBinary MMiSSPackageFolderType m where
 
 data MMiSSPackageFolder = MMiSSPackageFolder {
    linkedObject :: LinkedObject,
-   blocker2 :: Blocker WrappedLink,
+   blocker2 :: Blocker (EntityName,WrappedLink),
       -- blocker for package contents.
    blocker3 :: Blocker WrappedLink,
       -- blocker for preamble link.
@@ -326,81 +327,58 @@ createMMiSSPackageFolder :: View -> LinkedObject -> Link MMiSSPreamble
    -> IO (MMiSSPackageFolder,PostMerge)
 createMMiSSPackageFolder view linkedObject preambleLink =
    do
-     let
-        -- Create blocker for link to head package
-        packageLink :: SimpleSource (Maybe WrappedLink)
-        packageLink = extractObjectSameName linkedObject
+      let
+         -- Create blocker for links to contents.
+         contentsSet :: VariableSetSource (EntityName,WrappedLink)
+         contentsSet = objectContentsWithName linkedObject
 
-        packageLinks :: SimpleSource [WrappedLink]
-        packageLinks  = fmap maybeToList packageLink
+      blocker2 <- newBlocker contentsSet
 
-        packageLinkSet :: VariableSetSource WrappedLink
-        packageLinkSet = listToSetSource packageLinks
+      let
+         postMergeAct :: IO ()
+         -- Create an action which is only to be done after the view has been
+         -- fully initialised.  This will monitor changes to the preamble,
+         -- and make corresponding changes to the import commands of the 
+         -- linkedObject
+         postMergeAct =
+            do
+               mmissPreamble <- readLink view preambleLink
+               let
+                  importCommands :: SimpleSource ImportCommands
+                  importCommands = toImportCommands mmissPreamble              
 
-     let
-        -- Create blocker for links to contents.
-        contentsSet :: VariableSetSource WrappedLink
-        contentsSet = objectContents linkedObject
+                  setCommands' commands =
+                     setCommands linkedObject commands
 
-     blocker2 <- newBlocker contentsSet
+               sinkID <- newSinkID
+               parallelX <- newParallelExec
 
-     let
-        postMergeAct :: IO ()
-        -- Create an action which is only to be done after the view has been
-        -- fully initialised.  This will monitor changes to the preamble,
-        -- and make corresponding changes to the import commands of the 
-        -- linkedObject
-        postMergeAct =
-           do
-              mmissPreamble <- readLink view preambleLink
-              let
-                 importCommands :: SimpleSource ImportCommands
-                 importCommands = toImportCommands mmissPreamble              
+               addNewSourceActions (toSource importCommands)
+                  setCommands' setCommands' sinkID parallelX
 
-                 setCommands' commands =
-                    setCommands linkedObject commands
-
-              sinkID <- newSinkID
-              parallelX <- newParallelExec
-
-              addNewSourceActions (toSource importCommands)
-                 setCommands' setCommands' sinkID parallelX
-
-              done
+               done
 
 
-        preambleSet :: VariableSetSource WrappedLink
-        preambleSet = singletonSetSource
-           (staticSimpleSource (WrappedLink preambleLink))
+         preambleSet :: VariableSetSource WrappedLink
+         preambleSet = singletonSetSource
+            (staticSimpleSource (WrappedLink preambleLink))
 
-     blocker3 <- newBlocker preambleSet
+      blocker3 <- newBlocker preambleSet
 
-     let
-        mkArcsHiddenSource :: IO (SimpleBroadcaster (Maybe NodeArcsHidden))
-        mkArcsHiddenSource = newSimpleBroadcaster Nothing
+      let
+         mkArcsHiddenSource :: IO (SimpleBroadcaster (Maybe NodeArcsHidden))
+         mkArcsHiddenSource = newSimpleBroadcaster Nothing
 
-     hideFolderArcs <- mkArcsHiddenSource
+      hideFolderArcs <- mkArcsHiddenSource
 
-     return (MMiSSPackageFolder {
-        linkedObject = linkedObject,
-        blocker2 = blocker2,
-        blocker3 = blocker3,
-        hideFolderArcs = hideFolderArcs,
-        preambleLink = preambleLink
-        }, newPostMerge postMergeAct
-        )
-
----
--- Extract from a LinkedObject the wrappedLink for the sub-object with the
--- same name, if any, so for an MMiSSPackageFolder the corresponding package
--- object
-extractObjectSameName :: LinkedObject -> SimpleSource (Maybe WrappedLink)
-extractObjectSameName linkedObject =
-   do
-      entityNameOpt <- getLinkedObjectTitleOpt linkedObject
-      case entityNameOpt of
-         Nothing -> return Nothing
-         Just entityName -> lookupObjectContents linkedObject entityName
+      return (MMiSSPackageFolder {
+         linkedObject = linkedObject,
+         blocker2 = blocker2,
+         blocker3 = blocker3,
+         hideFolderArcs = hideFolderArcs,
+         preambleLink = preambleLink
+         }, newPostMerge postMergeAct
+         )
 
 -- ------------------------------------------------------------------------
 -- Merging
@@ -525,8 +503,22 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
             getNodeLinks1 link =
                do 
                   folder <- readLink view link
-                  arcs2 
-                     <- toArcEnds (blocker2 folder) blockID theArcType
+
+                  entityNameOpt <- readContents (
+                     getLinkedObjectTitleOpt (toLinkedObject folder))
+
+                  entityName0 <- case entityNameOpt of
+                     -- objects with this name, in particular the head object,
+                     -- will be displayed with a different sort of edge.
+                     Nothing -> -- this shouldn't really happen
+                        do
+                           putStrLn "Displaying folder with no name??"
+                           return (EntityName "#BADNAME")
+                     Just entityName0 -> return entityName0
+                    
+
+                  arcs2 <- toArcEndsForContents entityName0 (blocker2 folder) 
+                     blockID 
                   arcs3 
                      <- toArcEnds (blocker3 folder) blockID thePreambleArcType
                   let
@@ -548,12 +540,16 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   preambleArcTypeParms =
                      Color "blue" $$$
                      emptyArcTypeParms
- 
+
+                  headPackageArcTypeParms =
+                     Double $$$
+                     emptyArcTypeParms
 
                   nodeDisplayData = NodeDisplayData {
                      topLinks = [],
                      arcTypes = [
                         (theArcType,emptyArcTypeParms),
+                        (thePackageHeadArcType,headPackageArcTypeParms),
                         (thePreambleArcType,preambleArcTypeParms)],
                      nodeTypes = [(theNodeType,nodeTypeParms1)],
                      getNodeType = const theNodeType,
@@ -636,24 +632,28 @@ globalRegistry = System.IO.Unsafe.unsafePerformIO createGlobalRegistry
 -- ------------------------------------------------------------------------
 
 toArcEnds :: Blocker WrappedLink -> BlockID -> ArcType -> IO ArcEnds
-toArcEnds blocker blockID arcType = 
-   do
-      (setSource1 :: VariableSetSource WrappedLink) 
-         <- blockVariableSet blocker blockID
- 
-      let
-         variableSet1 :: VariableList WrappedLink
-         variableSet1 = newVariableListFromSet setSource1
+toArcEnds blocker blockID arcType =
+   toArcEndsGeneral blocker blockID 
+      (\ wrappedLink -> toArcData wrappedLink arcType True)
 
-         variableSet2 :: VariableList (ArcData WrappedLink ArcType)
-         variableSet2 = fmap
-            (\ wrappedLink -> toArcData wrappedLink arcType True)
-            variableSet1
+toArcEndsForContents 
+   :: EntityName -> Blocker (EntityName,WrappedLink) -> BlockID -> IO ArcEnds
+toArcEndsForContents name0 blocker blockID =
+   toArcEndsGeneral blocker blockID
+      (\ (name1,wrappedLink) ->
+         toArcData wrappedLink 
+            (if name1 == name0 then thePackageHeadArcType else theArcType)
+            True
+         )
 
-      return variableSet2
-
+instance HasKey (EntityName,WrappedLink) (EntityName,Location) where
+   toKey (name,wrappedLink) = (name,toKey wrappedLink)
+    
 theArcType :: ArcType
 theArcType = fromString "T"
+
+thePackageHeadArcType :: ArcType
+thePackageHeadArcType = fromString "H"
 
 theInvisibleArcType :: ArcType
 theInvisibleArcType = fromString ""
