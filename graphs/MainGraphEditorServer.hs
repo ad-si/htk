@@ -9,6 +9,7 @@ import WBFiles
 import Server
 import GraphEditorService
 
+main :: IO ()
 main = 
    do
       parseArgumentsRequiring ["port"]

@@ -2,8 +2,6 @@
    name is expected to be the (only) argument. -}
 module Main(main) where
 
-import System
-
 import WBFiles
 
 import InfoBus(shutdown)
@@ -13,6 +11,7 @@ import HostsPorts
 import GraphEditorRemote
 import DaVinciGraph
 
+main :: IO ()
 main =
    do
       parseArgumentsRequiring ["wish","daVinci","server","port"]

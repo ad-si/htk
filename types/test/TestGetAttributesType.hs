@@ -8,6 +8,7 @@ import GetAttributesType
 import AttributesType
 import Registrations
 
+main :: IO ()
 main = 
    do
       withdrawWish

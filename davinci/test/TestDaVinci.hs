@@ -6,6 +6,7 @@ import DaVinciGraph
 import InfoBus(shutdown)
 import WBFiles(parseArguments)
 
+main :: IO ()
 main = 
    do
       parseArguments

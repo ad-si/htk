@@ -6,6 +6,7 @@ import Destructible
 import EmacsBasic
 import Extents
 
+main :: IO ()
 main =
    do
       s <- newEmacsSession "TestBuffer"

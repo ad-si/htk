@@ -11,6 +11,7 @@ import Destructible
 import Events
 import WBFiles
 
+main :: IO ()
 main =
    do
       parseArguments

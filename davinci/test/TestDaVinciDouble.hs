@@ -11,6 +11,7 @@ import GraphDispTest
 
 import DaVinciGraph
 
+main :: IO ()
 main = 
    do
       parseArguments

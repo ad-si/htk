@@ -9,16 +9,16 @@ import Registry
 
 import System.Mem
 
-import InfoBus
-
 import GetAttributes
 
+main :: IO ()
 main =
    do
       get1round
-      IOExts.performGC
+      performGC
       main
 
+get1round :: IO ()
 get1round =
    do
       nodeTypeRegistry <- newRegistry

@@ -6,23 +6,15 @@ module Main(main) where
 import IO
 import System
 
-import Pretty
-
 import Computation
-import AtomString
-
-import CodedValue
 
 import LaTeXParser
-
-import Text.XML.HaXml.Types
-import Text.XML.HaXml.Parse
-import Text.XML.HaXml.Pretty
 
 import MMiSSDTD
 import MMiSSEditXml
 import MMiSSFileSystemExamples
 
+main :: IO ()
 main =
    do
       args <- getArgs

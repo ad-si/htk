@@ -4,4 +4,5 @@ module Main(main) where
 import DrawDepend
 import DaVinciGraph
 
+main :: IO ()
 main = drawDepend daVinciSort

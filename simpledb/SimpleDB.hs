@@ -105,6 +105,8 @@ module SimpleDB(
    getParentLocation,
       -- :: Repository -> (ObjectVersion,Location) -> IO (Maybe Location)
       -- Get the object's parent location.
+   setAdminStatus, 
+      -- :: Repository -> Bool -> IO ()
 
    Diff(..),
    ChangeData,
@@ -115,8 +117,7 @@ module SimpleDB(
    SimpleDBCommand(..),SimpleDBResponse(..),
 
    module ServerErrors,
-
-
+ 
    catchNotFound,
       -- :: IO a -> IO (Maybe a)
       -- Detect a NotFound error and replacing it by 'Nothing'.
@@ -384,8 +385,14 @@ getDiffs repository version versions =
          IsDiffs diffs1 diffs2 -> return (diffs1,diffs2)
          _ -> unpackError "getDiffs" response
 
-getPermissions :: Repository -> Maybe (ObjectVersion,Location) 
-   -> IO Permissions
+----------------------------------------------------------------
+-- Permissions operations.
+----------------------------------------------------------------
+
+-- | Retrieve the permissions for the object with given object version
+-- and location.
+getPermissions 
+   :: Repository -> Maybe (ObjectVersion,Location) -> IO Permissions
 getPermissions repository ovOpt =
    do
       response <- queryRepository repository (GetPermissions ovOpt)
@@ -393,8 +400,10 @@ getPermissions repository ovOpt =
          IsPermissions permissions -> return permissions
          _ -> unpackError "getPermissions" response
 
-setPermissions :: Repository -> Maybe (ObjectVersion,Location)
-   -> Permissions -> IO ()
+-- | Set the permissions for the object with given object version and
+-- location.
+setPermissions 
+   :: Repository -> Maybe (ObjectVersion,Location) -> Permissions -> IO ()
 setPermissions repository ovOpt permissions =
    do
       response <- queryRepository repository (SetPermissions ovOpt permissions)
@@ -402,15 +411,27 @@ setPermissions repository ovOpt permissions =
          IsOK -> done
          _ -> unpackError "setPermissions" response
 
-getParentLocation :: Repository -> (ObjectVersion,Location) 
-   -> IO (Maybe Location)
-getParentLocation repository ov =
+-- | Get the parent location of the object with given object version and
+-- location.
+getParentLocation 
+   :: Repository -> ObjectVersion -> Location -> IO (Maybe Location)
+getParentLocation repository version location =
    do
-      response <- queryRepository repository (GetParentLocation ov)
+      response <- queryRepository repository 
+         (GetParentLocation (version,location))
       case response of
          IsLocation location -> return (Just location)
          IsOK -> return Nothing
          _ -> unpackError "getParentLocation" response
+
+-- | Claim admin status (if the bool is 'True') or revoke it if 'False'.
+setAdminStatus :: Repository -> Bool -> IO ()
+setAdminStatus repository isClaim =
+   do
+      response <- queryRepository repository (ClaimAdmin isClaim)
+      case response of
+         IsOK -> done
+         _ -> unpackError "setAdminStatus" response
 
 ----------------------------------------------------------------
 -- Unpacking SimpleDBResponse

@@ -1,19 +1,16 @@
 module Main where
 
 import AtomString
-import Dynamics
 import CodedValue
 import ICStringLen
 import ExtendedPrelude
 
+main :: IO ()
 main = 
    do
       let
          icsl :: ICStringLen
          icsl = fromString "foo"
-
-         i :: Int
-         i = 1
 
          s :: String
          s = "bar"
@@ -24,7 +21,7 @@ main =
       testb [(icsl,s)]
       testb [(s,icsl)]
       testb ([] :: [(String,ICStringLen)])
-
+      return ()
          
 
 testb :: (HasCodedValue a) => a -> IO a

@@ -7,18 +7,11 @@ import IO
 import System
 
 import Computation
-import AtomString
-
-import CodedValue
-
-import Text.XML.HaXml.Types
-import Text.XML.HaXml.Parse
-import Text.XML.HaXml.Pretty
-import Text.PrettyPrint.HughesPJ
 
 import MMiSSDTD
 
 
+main :: IO ()
 main =
    do
       args <- System.getArgs
