@@ -94,7 +94,7 @@ mainHandle handle hostName  =
 
                   putStrLn (userId user ++ "@" ++ hostName ++ ":"
                      ++ calendarTimeToString calendarTime) 
-                  hFlush stdout         
+                  hFlush handle         
 
                   doXml handle user
             Left mess ->
@@ -115,16 +115,7 @@ readString :: Handle -> IO (WithError String)
 readString = hReadLtd (maxLen + 1)
 
 writeString :: Handle -> String -> IO ()
-writeString handle str =
-   let
-      str2 =
-         if length str > maxLen
-            then 
-               (take (maxLen - 3) str) ++ "..."
-            else
-               str
-   in
-      hWrite handle str2 
+writeString handle str = hWrite handle str
 
 maxLen :: Int
 maxLen = 127

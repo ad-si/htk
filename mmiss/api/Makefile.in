@@ -2,10 +2,10 @@ PACKAGE = uni-mmiss-api
 PACKAGES = uni-mmiss
 
 SRCS = MMiSSAPI.hs MMiSSRequest.hs \
-   MMiSSAPIBasics.hs MMiSSSessionState.hs \
+   MMiSSAPIBasics.hs MMiSSSessionState.hs MMiSSAPIBlock.hs \
    MMiSSCallServer.hs MMiSSCheckOutCommit.hs MMiSSGetPut.hs \
    MMiSSMessages.hs MMiSSDoXml.hs MainMMiSSServer.hs \
-   MaintestMMiSSServer.hs \
+   TestMMiSSServer.hs \
 
 include @TOP@/mk/boilerplate.mk
 

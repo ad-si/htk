@@ -64,11 +64,23 @@ apiMessFns (state @ (MMiSSSessionState mVar)) =
 -- Accessing the messages in the MMiSSSessionState
 -- --------------------------------------------------------------------------
 
+-- | Get and clear messages.
 getMessages :: MMiSSSessionState -> IO Messages
-getMessages sessionState =
-   do
-      (Messages atts mess0) <- readState sessionState messages
-      return (Messages atts (reverse mess0))
+getMessages (MMiSSSessionState mVar) =
+   modifyMVar mVar
+      (\ state0 ->
+         let
+            (Messages atts mess0) = messages state0
+     
+            messages1 = Messages (Messages_Attrs {
+               messagesStatus = Default Messages_status_success}) []
+
+            state1 = state0 {messages = messages1}
+
+            messagesToReturn = Messages atts (reverse mess0)
+         in
+            return (state1,messagesToReturn)
+         )
       
 signalPanic :: MMiSSSessionState -> IO ()
 signalPanic = setStatus Messages_status_panic

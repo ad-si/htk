@@ -4,12 +4,6 @@ How to connect to the MMiSS server
 Initial Login
 -------------
 
-The client and server both use a primitive string format during authentication.
-Namely, a single byte containing the length of the string, which must be
-at most 127, followed by the bytes of the string itself.  (This means that
-when prompting for the user's user-id and password, the client should fault
-any that are too long.)
-
 (1) The client should connect to the server on whatever port the user 
 specifies; the default should be 11396.
 
@@ -26,16 +20,85 @@ or
 
 If login does not succeed the server will close the connection.
 
-Processing XML instructions
+
+Request and Response Format
 ---------------------------
 
-If login succeeded, we are ready to process MMiSS requests, formatted according
-to MMiSSRequest.dtd.  The client should repeatedly send <request> elements.
-Each time it does this, the server should respond with a <response> element.
+If login succeeded, we are ready to process MMiSS requests.  The client
+repeated sends a request, and gets a response.
 
-The client should parse the <response> element.  In particular the <messages>
-element should be communicated to the user, if non-empty.   If it contains
-status=panic, the client should not send any more requests to the server,
-and the server may drop the connection.
+Both request and response consist of 
+(1) a single XML element, matching MMiSSRequest.dtd.
+For requests, the element must be <request>; for response, <response>.
+(2) 0 or more data blocks.  These contain the contents of files referenced
+by the XML element.
 
-When the client has finished, it should drop the connection.
+Both XML element and datablocks are encoded by a single byte, followed by
+a String.  The byte indicates whether what follows is an element or a
+datablock; the String contains the data.
+
+(1) For an XML element the byte is 0 (corresponding to character '\0').
+The String contains the XML.
+(2) for a data block, the byte is 1 (corresponding to character '\x1').
+The String is the data in the block.  (Which will normally be
+a file being written or read.)
+
+Thus each request and response is encoded as a sequence of pairs (byte,string).
+To encode this sequence, we output first the total number of these pairs,
+then the pairs themselves one after another.
+
+It will in fact be the case that the pair corresponding to the XML element
+comes first, followed by datablocks.  At least, for now.
+
+Referencing and Interpreting Datablocks
+---------------------------------------
+
+Datablocks are referenced by the <fileContents> element, in the attribute
+dataBlock.  This is a number.  The request components are numbered from 0 
+upwards, so in the above scheme the XML element will be 0, the datablocks will
+be numbered 1,2,....
+
+The interpretation of the datablock depends on the charType attribute of the
+fileContents element.  For "byte" the datablock contains simply the bytes
+in a file containing 8-bit bytes.  For "unicode" the datablock contains
+Unicode character data, encoded using UTF8.
+
+Termination
+-----------
+
+Each response contains a <messages> element which should be communicated
+to the user.  If this <messages> element has status=panic, the client should
+not attempt send any more requests to the server.
+
+When the client is finished, it should simply close the connection.
+
+String Format
+-------------
+
+The client and server communicate along a socket by sending each other
+strings of characters.  For this we use the following format.
+First the number of characters is written out (the format of this
+is described in the last section of this protocol); then the characters
+themselves.
+
+
+Non-negative Integer Format
+---------------------------
+
+We write non-negative integers by 
+(1) encoding them into a list of one or more 7-bit integers (so, between 0 and
+127).  We do this by splitting it up starting with the lowest 7 bits.
+
+Example.  1000 = 0x3e8 (in hexadecimal) = 1111101000 (in binary).
+So we split this up into the bottom 7 bits (1101000 = 0x68) and the
+remaining bits (111 = 0x7) meaning we produce the list of integers
+
+0x68,0x7
+
+(2) writing out the list of 7-bit integers as bytes.
+We signal the end of the list by setting the top bit of all BUT the last
+integer.
+
+So 0x68,0x7 is written out as the characters 0xe8,0x7
+
+Altogether then, 1000 should be written out as the C string "\xe8\x7"

@@ -81,10 +81,9 @@ data FileLocation = FileLocation (Maybe ObjectName) ObjectType
 newtype FileVariants = FileVariants [FileVariant] 		deriving (Eq,Show)
 data FileVariant = FileVariant (Maybe Variants) FileContents
 		 deriving (Eq,Show)
-data FileContents = FileContents FileContents_Attrs String
-		  deriving (Eq,Show)
-data FileContents_Attrs = FileContents_Attrs
-    { fileContentsCharType :: (Defaultable FileContents_charType)
+data FileContents = FileContents
+    { fileContentsDataBlock :: String
+    , fileContentsCharType :: (Defaultable FileContents_charType)
     } deriving (Eq,Show)
 data FileContents_charType = FileContents_charType_byte  | 
 			     FileContents_charType_unicode
@@ -512,21 +511,21 @@ instance XmlContent FileVariant where
     toElem (FileVariant a b) =
 	[CElem (Elem "fileVariant" [] (maybe [] toElem a ++ toElem b))]
 instance XmlContent FileContents where
-    fromElem (CElem (Elem "fileContents" as c0):rest) =
-	(\(a,ca)->
-	   (Just (FileContents (fromAttrs as) a), rest))
-	(definite fromText "text" "fileContents" c0)
+    fromElem (CElem (Elem "fileContents" as []):rest) =
+	(Just (fromAttrs as), rest)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (FileContents as a) =
-	[CElem (Elem "fileContents" (toAttrs as) (toText a))]
-instance XmlAttributes FileContents_Attrs where
+    toElem as =
+	[CElem (Elem "fileContents" (toAttrs as) [])]
+instance XmlAttributes FileContents where
     fromAttrs as =
-	FileContents_Attrs
-	  { fileContentsCharType = defaultA fromAttrToTyp FileContents_charType_unicode "charType" as
+	FileContents
+	  { fileContentsDataBlock = definiteA fromAttrToStr "fileContents" "dataBlock" as
+	  , fileContentsCharType = defaultA fromAttrToTyp FileContents_charType_unicode "charType" as
 	  }
     toAttrs v = catMaybes 
-	[ defaultToAttr toAttrFrTyp "charType" (fileContentsCharType v)
+	[ toAttrFrStr "dataBlock" (fileContentsDataBlock v)
+	, defaultToAttr toAttrFrTyp "charType" (fileContentsCharType v)
 	]
 instance XmlAttrType FileContents_charType where
     fromAttrToTyp n (n',v)

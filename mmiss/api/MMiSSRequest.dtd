@@ -124,16 +124,16 @@
 <!ELEMENT files (file)* >
 
 <!-- A file. -->
-<!ELEMENT file (fileLocation, ( fileVariants | files ) ? ) >
+<!ELEMENT file (fileLocation, (fileVariants | files)? ) >
 <!ELEMENT fileLocation (objectName?,objectType)>
    <!-- The objectName? needs to be optional because of objects, such as
         preambles, which don't have them. -->
 
 <!-- A collection of variants. -->
 <!ELEMENT fileVariants (fileVariant)* >
-<!ELEMENT fileVariant ( variants? , fileContents ) >
-<!ELEMENT fileContents ( #PCDATA ) >
-<!ATTLIST fileContents 
+<!ELEMENT fileVariant ( variants?,fileContents ) >
+<!ATTLIST fileContents
+   dataBlock NMTOKEN #REQUIRED
    charType (byte | unicode) "unicode"
    >
 

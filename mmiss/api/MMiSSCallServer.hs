@@ -6,6 +6,10 @@ module MMiSSCallServer(
    listVersions,
    ) where
 
+import Messages
+
+import qualified PasswordFile
+
 import MMiSSRequest
 import MMiSSSessionState
 
@@ -13,8 +17,30 @@ import MMiSSSessionState
 -- Connecting
 -- --------------------------------------------------------------------------
 
-connect :: MMiSSSessionState -> Connect -> IO ConnectResponse
-connect = error "TBD"
+connect :: MMiSSSessionState -> Connect -> PasswordFile.User 
+   -> IO ConnectResponse
+connect state (Connect attrs serverRefOpt) user = 
+   case (connectServer attrs,connectPassword attrs) of
+      (Just serverStr,Just password) ->
+         do
+            let
+               userId = case connectUser attrs of
+                  Nothing -> PasswordFile.userId user
+                  Just userId -> userId
+
+      
+    
+            error "TBD"
+      _ ->
+         connectFailed "Server and password must both be specified!"
+            -- this may change if allow no server (for the internal server)
+            -- or no password (if inherited from this session or internal)
+
+connectFailed :: String -> IO ConnectResponse
+connectFailed mess =
+   do 
+      errorMess mess
+      return (ConnectResponse Nothing)
 
 -- --------------------------------------------------------------------------
 -- Closing
