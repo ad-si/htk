@@ -1,10 +1,10 @@
 <!-- 
   XML Document Type Definition for MMiSSLatex 2
-  Version 0.93
+  Version 0.95
   Initial Version: George Russell (2002-June)
-  Current Version: Achim Mahnke   (2002-09-17)
+  Current Version: Achim Mahnke   (2003-12-10)
 
-  This DTD is still experimental, it is intended as a basis for discussion.
+  This DTD is still work in progress.
   Comments are welcome! (send mail to amahnke@tzi.de)
 
   Root element is 'package'.
@@ -31,6 +31,9 @@
   buttons in Emacs have the same colour as their corresponding element.   
 
 -->
+
+<!-- ======================== ONTOLOGIES ================================== -->
+<!ENTITY % MMiSS.ontology.dtd SYSTEM 'MMiSSOntology.dtd' >
 
 <!-- ======================== ENTITIES ==================================== -->
 
@@ -174,7 +177,7 @@
 
 <!ENTITY % atom  "%conceptualAtom; | %formalAtom; | includeAtom">
 
-<!ENTITY % conceptualUnit  "example | exercise | definition | includeConceptualUnit">
+<!ENTITY % conceptualUnit  "example | exercise | definition | paragraph | includeConceptualUnit">
 
 <!ENTITY % formalUnit  "program | theory | theorem | conjecture | lemma 
                         | corollary | assertion | development | proof 
@@ -189,10 +192,12 @@
           path    CDATA  #IMPLIED>
 <?MMiSSDisplay package : yellow box ?>
 
-<!ELEMENT section ((abstract | includeAbstract)?, 
-                   (introduction | includeIntroduction)?, 
-                   (%group;)*, 
-                   (summary | includeSummary)?)>
+<!ELEMENT section ((%unit;)*,
+                  (abstract |includeAbstract)?,
+                  (introduction | includeIntroduction)?,
+                  (%group; | %unit;)*, 
+                  (summary | includeSummary)?,
+                  (%unit;)*)>
 <!ATTLIST section %attributes;>
 <?MMiSSDisplay section : yellow box ?>
 
