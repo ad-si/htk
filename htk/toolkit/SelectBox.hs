@@ -51,13 +51,16 @@ newSelectBox :: Container par =>
 newSelectBox par Nothing ol =
   do
     b <- newHBox par []
+    pack b []
     em <- newRef []
     configure (SelectBox b Nothing em) ol
 newSelectBox par (Just i) ol =
   do
     b <- newHBox par []
+    pack b []
     em <- newRef []
     f <- newFrame b [relief Sunken, borderwidth 1]
+    pack f []
     configure (SelectBox b (Just (f,i)) em) ol
 
 

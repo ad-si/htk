@@ -75,6 +75,7 @@ SRCS       = resources/Resources.hs\
              toolkit/MarkupText.hs\
              toolkit/UtilWin.hs\
 	     toolkit/ModalDialog.hs\
+	     toolkit/DialogWin.hs\
 	     menuitems/MenuItem.hs\
              menuitems/Menu.hs\
              menuitems/MenuCascade.hs\

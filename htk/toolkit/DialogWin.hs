@@ -24,38 +24,36 @@ module DialogWin (
         newConfirmWin,
         newDialogWin,
 
-        forkDialog
+--        forkDialog
 
 
         ) where
 
-import Concurrency
 import HTk
 import Message
 import Label
 import BitMap
-import Separator
 import Keyboard
 import Button
 import Font
 import Space
 import SelectBox
 import ModalDialog
+import Toplevel
 
-
+import Core
 -- --------------------------------------------------------------------------
 --  Types 
 -- --------------------------------------------------------------------------            
 type Choice a = (String,a)
 
 data Dialog a = Dialog {
-                        fWindow    :: Window,
+                        fWindow    :: Toplevel,
                         fMessage   :: (Message String),
                         fLabel     :: (Label BitMap),
                         fSelectBox :: (SelectBox a),
-                        fEvents    :: (IA a)
-                        }
-
+                        fEvents    :: (Event a)
+                        } deriving Eq
 
 -- --------------------------------------------------------------------------
 --  Instances 
@@ -66,76 +64,109 @@ instance GUIObject (Dialog a) where
 
 instance HasText (Dialog a) String where
         text t dlg = do {
-                configure (fMessage dlg) [value t];
+                configure (fMessage dlg) [text t];
                 return dlg
                 }
-        getText dlg = getValue (fMessage dlg)
+        getText dlg = getText (fMessage dlg)
 
 instance HasBitMap (Dialog a) where
         bitmap bm dlg = do {
                 configure (fLabel dlg) [bitmap bm];
-                try(configure (fLabel dlg) [
-                        pad Horizontal (cm 0.5), pad Vertical (cm 0.5)]);
+                try(configure (fLabel dlg) []);
+--                        pad Horizontal (cm 0.5), pad Vertical (cm 0.5)]);
                 return dlg
                 }
         getBitMap dlg = getBitMap (fLabel dlg)
 
-instance Reactive Dialog a where
-        triggered dlg = (fEvents dlg)
+---
+-- out
+--instance Reactive Dialog a where
+--       triggered dlg = (fEvents dlg)
 
-instance HasTrigger Dialog a where
-        getTrigger = return . triggered
+--instance HasTrigger Dialog a where
+--        getTrigger = return . triggered
 
-instance Synchronized (Dialog a) where
-        synchronize dlg = synchronize (toGUIObject dlg)
+--instance Synchronized (Dialog a) where
+--        synchronize dlg = synchronize (toGUIObject dlg)
 
-
-
--- --------------------------------------------------------------------------
---  Derived Dialog Window 
--- --------------------------------------------------------------------------           
-forkDialog :: Reactive m a => m a -> (a -> IO b) -> IO ()
-forkDialog o h =
-        forkIOquiet "HTk.forkDialog" (sync (
-                triggered o >>>= \v -> do {h v; done}
-          )) >>= (return . (const ()))
 
 
 -- --------------------------------------------------------------------------
 --  Derived Dialog Window 
 -- --------------------------------------------------------------------------           
-newAlertWin :: String -> [Config Window] -> IO ()
+--forkDialog :: Reactive m a => m a -> (a -> IO b) -> IO ()
+--forkDialog o h =
+--        forkIOquiet "HTk.forkDialog" (sync (
+--                triggered o >>>= \v -> do {h v; done}
+--          )) >>= (return . (const ()))
+
+
+-- --------------------------------------------------------------------------
+--  Derived Dialog Window 
+-- --------------------------------------------------------------------------           
+newAlertWin :: String -> [Config Toplevel] -> IO ()
 newAlertWin str wol = newDialogWin choices Nothing [text str] (defs ++ wol)
  where choices = [("Continue",())]
        defs = [text "Alert Window"]
 
 
-newErrorWin :: String -> [Config Window] -> IO ()
+newErrorWin :: String -> [Config Toplevel] -> IO ()
 newErrorWin str confs = newAlertWin str ([text "Error Message"] ++ confs)
 
-newWarningWin :: String -> [Config Window] -> IO ()
+newWarningWin :: String -> [Config Toplevel] -> IO ()
 newWarningWin str confs = newAlertWin str ([text "Warning Message"] ++ confs)
 
-newConfirmWin :: String -> [Config Window] -> IO Bool
+newConfirmWin :: String -> [Config Toplevel] -> IO Bool
 newConfirmWin str wol = newDialogWin choices (Just 0) confs (defs ++ wol)
  where choices = [("Ok",True),("Cancel",False)]
        defs = [text "Confirm Window"]
        confs = [text str,bitmap question]
 
-newDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Window ] -> IO a
+newDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
 newDialogWin choices def confs wol = 
    do 
-      debug "nDW1"
       dlg <- dialog choices def confs wol 
-      debug "nDW2" 
-      result <- modalInteraction (fWindow dlg) True (triggered dlg)
-      debug "nDW3"   
+      result <- modalInteraction (fWindow dlg) True True (fEvents dlg)
       return result
 
 -- --------------------------------------------------------------------------
 --  Base Dialog Window 
--- --------------------------------------------------------------------------           
-dialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Window] -> IO (Dialog a)
+-- --------------------------------------------------------------------------
+dialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
+dialog choices def confs tpconfs =
+ do
+  tp <- createToplevel tpconfs
+  b <- newVBox tp []
+  pack b []
+  b2 <- newHBox b []
+  pack b2 []
+  lbl <- newLabel b2 []
+  pack lbl []
+  msg <- newMessage b2[]
+  pack msg[]
+  --sep <- newSeparator b []
+  --pack sep
+  ---
+  -- SelectBox replacement until i figured out how it really works
+  sb <- newSelectBox b Nothing []
+  b3 <- newHBox b []
+  pack b3 []  
+  events <- mapM (createChoice b3) choices;
+  let ev = choose events
+  dlg <- configure (Dialog tp msg lbl sb ev) confs;
+  return dlg
+  where l = length choices
+        fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
+        createChoice :: Box -> Choice a -> IO (Event a)
+        createChoice b (str,val) = 
+	 do
+          but <- newButton b [text str] :: IO (Button String)
+	  pack but []
+	  clickedbut <- clicked but
+          return (clickedbut >> (always (return val)))	  
+
+{-
+dialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
 dialog choices def confs wol = do {
         b <- newVBox [fill Horizontal, relief Groove, borderwidth (cm 0.05) ];
         b2 <- newHBox [flexible, parent b];
@@ -178,4 +209,8 @@ dialog choices def confs wol = do {
                         pad Vertical (cm 0.5),
                         parent sb 
                         ];
+-}
+
+
+
 
