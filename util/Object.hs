@@ -29,7 +29,7 @@ import Debug(debug)
 -- Class Object
 -- --------------------------------------------------------------------------
 
-newtype ObjectID = ObjectID Double deriving (Eq,Ord)
+newtype ObjectID = ObjectID Int deriving (Eq,Ord)
 
 class Object o where
    objectID :: o -> ObjectID
@@ -47,11 +47,11 @@ instance Read ObjectID where
 -- New Object Identifier
 -- --------------------------------------------------------------------------
 
-foreign import "next_object_id" unsafe newObjectPrim :: IO Double
+foreign import "next_object_id" unsafe newObjectPrim :: IO Int
 
 newObject :: IO ObjectID
 newObject = 
    do
-      nextDouble <- newObjectPrim 
-      return(ObjectID nextDouble)
+      nextInt <- newObjectPrim 
+      return(ObjectID nextInt)
 
