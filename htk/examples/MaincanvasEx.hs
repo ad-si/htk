@@ -28,8 +28,6 @@ main =
                               always (do
                                         putRect cnv ("yellow", (x, y)))
     spawnEvent (forever listenMouseClicks)
-    (htk_destr, _) <- bindSimple main Destroy
-    sync htk_destr
     finishHTk main
 
 putRects cnv = mapM (putRect cnv) [("red", (cm 0.2, cm 4)),

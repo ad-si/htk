@@ -42,8 +42,6 @@ main = do
                              borderwidth (mm 1), font bigfont]
          pack l4 [PadX 10]
 
-         (htk_destr, _) <- bindSimple main Destroy
-         sync htk_destr
          finishHTk main
 
        where bigfont=  xfont {family = Just Lucida, weight = Just Bold, 

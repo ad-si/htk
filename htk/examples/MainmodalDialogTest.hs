@@ -110,8 +110,5 @@ main =
 					       )))
  
   clickedbut2 <- clicked but2
-  spawnEvent (forever (clickedbut2 >> always (destroy htk)))
- 
-  (htk_destr, _) <- bindSimple htk Destroy
-  sync htk_destr
+  spawnEvent (forever (clickedbut2 >> always (destroy htk))) 
   finishHTk htk

@@ -38,6 +38,4 @@ main =
     but3 <- newButton panev2 [text "pane3"] :: IO (Button String)
     pack but3 [Fill Both, Expand On]
 
-    (htk_destr, _) <- bindSimple main Destroy
-    sync htk_destr
     finishHTk main

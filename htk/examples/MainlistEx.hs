@@ -30,8 +30,6 @@ main =
 				      putStrLn ("Selected "++ 
 					        show (sel::
                                                         Maybe [Int])))))
-    (htk_destr, _) <- bindSimple main Destroy
-    sync htk_destr
     finishHTk main
 
   where numbers =

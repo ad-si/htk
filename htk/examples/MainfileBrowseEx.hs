@@ -104,7 +104,6 @@ main =
 
     clickedquit <- clicked quit
     spawnEvent (clickedquit >> always (cleanUp tl >> destroy main))
-
     finishHTk main
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ

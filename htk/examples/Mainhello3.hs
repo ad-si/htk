@@ -42,6 +42,4 @@ main =
                           (entered >>> do txt <- readTkVariable v1
 				          main # text txt >> done)))
 
-     (main_destr, _) <- bindSimple main Destroy
-     sync main_destr
      finishHTk main

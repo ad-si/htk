@@ -167,9 +167,6 @@ main =
                                             yRoot eventInfo)
                                            (Nothing :: Maybe HTk)
 				 putStrLn "We've popped up")))
-
-    (htk_destr, _) <- bindSimple main Destroy
-    sync htk_destr
     finishHTk main
 
   where selected :: GUIValue a => String -> TkVariable a -> IO ()

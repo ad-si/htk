@@ -56,6 +56,4 @@ main =
             :: IO (Entry String)
     grid e4 [GridPos (1,1), GridPadX 5, GridPadY 5]
 
-    (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
     finishHTk main

@@ -75,7 +75,4 @@ main =
                       info_cc "This is a temporary informative message."
                     threadDelay 3000000
                     destr))
-
-    (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
     finishHTk main

@@ -51,8 +51,6 @@ main =
                                      col <- randomColour
 			             c <- colourDot cnv x y col
 			             spawn (sparkle c (x,y) col 0 255))))
-    (htk_destr, _) <- bindSimple main Destroy
-    sync htk_destr
     finishHTk main
 
    where colourDot cnv x y col = createOval cnv [filling col, size (2, 2),

@@ -125,9 +125,6 @@ main =
                                               full nm ++ "\n")
                                      _ -> done)) +>
                          (controla >> always (selectAll notepad))))
-
-    (htk_destr, _) <- bindSimple win Destroy
-    sync htk_destr
     finishHTk win
 
   where showMsg :: Editor String -> String -> IO ()

@@ -144,6 +144,4 @@ main =
     ed # new txt
     ed # insertAt add_txt (4,5)
 
-    (htk_destr, _) <- bindSimple htk Destroy
-    sync htk_destr
     finishHTk htk

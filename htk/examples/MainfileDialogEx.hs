@@ -40,7 +40,6 @@ main =
 			       case file of
                                  Just fp ->
                                    msg # text ("selected " ++ fp) >> done
-                                 _ -> msg # text "dialog canceled" >> done)))
-    (win_destr, _) <- bindSimple main Destroy
-    sync win_destr
+                                 _ -> msg #
+                                        text "dialog canceled" >> done)))
     finishHTk main

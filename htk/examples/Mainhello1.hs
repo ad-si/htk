@@ -34,7 +34,4 @@ main =
      spawnEvent (forever (clickednb >>>
                           do bunt <- randomColour
                              l # foreground bunt))
-
-     (htk_destr, _) <- bindSimple main Destroy
-     sync htk_destr
      finishHTk main

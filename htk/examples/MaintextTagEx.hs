@@ -69,6 +69,4 @@ main =
              :: IO (Button String)
     createEmbeddedTextWin ed (IndexPos (9,0)) but []
 
-    (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
     finishHTk main
