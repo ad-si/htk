@@ -718,7 +718,8 @@ data CItem c => NotepadExportItem c =
                       pos :: Position,
                       selected :: Bool }
 
-type NotepadState c = CItem c => [NotepadExportItem c]
+type NotepadState c = [NotepadExportItem c]
+-- type NotepadState c = CItem c => [NotepadExportItem c]
 
 exportNotepadState :: CItem c => Notepad c -> IO (NotepadState c)
 exportNotepadState np =
