@@ -258,6 +258,15 @@ newChildProcess path confs  =
       -- Pipe to send things to child
       (readOut,writeOut) <- Posix.createPipe 
       -- Pipe to read things back from child.
+
+      -- Work around Posix EOF problem (see GHC User Guide section
+      -- "GHC FAQ") by writing a character through the output pipe.
+      byteCountOut <- fdWrite writeOut "#"
+      (strIn,byteCountIn) <- fdRead readOut 1
+      case (byteCountOut,byteCountIn,strIn) of
+         (1,1,"#") -> done
+         x -> error ("ChildProcess.999 error"++show x)
+
       let
          passOnStdErrs = stderr parms
 
