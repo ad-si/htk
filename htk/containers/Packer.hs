@@ -18,7 +18,7 @@ module Packer (
         Both(..),
 
         Side(..), 
-        Anchor(..),
+--        Anchor(..),
 
         Widget(..), 
         side,
@@ -183,53 +183,6 @@ highlightThickness s w = cset w "highlightthickness" s
 getHighlightThickness :: Widget w => w -> IO Distance
 getHighlightThickness w = cget w "highlightthickness" 
 
-
--- --------------------------------------------------------------------------
---  Anchor 
--- --------------------------------------------------------------------------
-
-data Anchor = SouthEast 
-        | South 
-        | SouthWest  
-        | East 
-        | Center 
-        | West
-        | NorthEast 
-        | North 
-        | NorthWest
-        deriving (Eq,Ord,Enum)
-
-
-instance GUIValue Anchor where
-        cdefault = Center
-
-instance Read Anchor where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        's':'e':xs -> [(SouthEast,xs)]
-        's':'w':xs -> [(SouthWest,xs)]
-        'c':'e':'n':'t':'e':'r':xs -> [(Center,xs)]
-        'n':'e':xs -> [(NorthEast,xs)]
-        'n':'w':xs -> [(NorthWest,xs)]
-        'e':xs -> [(East,xs)]
-        'n':xs -> [(North,xs)]
-        'w':xs -> [(West,xs)]
-        's': xs -> [(South,xs)]
-        _ -> []
-
-instance Show Anchor where
-   showsPrec d p r = 
-      (case p of 
-         SouthEast -> "se"
-         South -> "s" 
-         SouthWest -> "sw"
-         East -> "e"
-         Center -> "center" 
-         West -> "w" 
-         NorthEast -> "ne" 
-         North -> "n" 
-         NorthWest -> "nw"
-        ) ++ r
 
 
 -- --------------------------------------------------------------------------

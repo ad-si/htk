@@ -66,7 +66,9 @@ instance HasPosition BitMapItem where
         position        = itemPositionD2
         getPosition     = getItemPositionD2
 
--- TBD: instance HasAnchor BitMapItem
+instance HasCanvAnchor BitMapItem where
+	canvAnchor a w = cset w "anchor" a
+	getCanvAnchor w = cget w "anchor"
 
 instance FilledCanvasItem BitMapItem where
         filling c w       = cset w "foreground" (toColour c)

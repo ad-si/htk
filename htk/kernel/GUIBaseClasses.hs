@@ -56,6 +56,7 @@ module GUIBaseClasses (
         HasSize(..),
         HasPosition(..),
         HasGeometry(..),
+        HasCanvAnchor(..),
 
         Font,
         FontDesignator(..),
@@ -198,6 +199,10 @@ class GUIObject w => HasPosition w where
 class (HasSize w, HasPosition w) => HasGeometry w where
         geometry    :: Geometry -> Config w
         getGeometry :: w -> IO Geometry
+        
+class GUIObject w => HasCanvAnchor w where
+	canvAnchor	:: Anchor -> Config w
+	getCanvAnchor   :: w -> IO Anchor
 
 
 -- --------------------------------------------------------------------------

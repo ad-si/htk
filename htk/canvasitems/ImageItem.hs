@@ -69,7 +69,9 @@ instance HasPosition ImageItem where
         position    = itemPositionD2
         getPosition = getItemPositionD2
 
--- TBD: instance HasAnchor ImageItem
+instance HasCanvAnchor ImageItem where
+	canvAnchor a w = cset w "anchor" a
+	getCanvAnchor w = cget w "anchor"
 
 instance HasPhoto ImageItem
 

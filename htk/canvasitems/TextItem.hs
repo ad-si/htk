@@ -77,7 +77,9 @@ instance GUIValue a => HasJustify (TextItem a)
 
 instance HasFont (TextItem a)
 
--- TBD: instance HasAnchor (TextItem a) 
+instance HasCanvAnchor (TextItem a) where
+	canvAnchor a w = cset w "anchor" a
+	getCanvAnchor w = cget w "anchor"
 
 instance Synchronized (TextItem a) where
         synchronize w = synchronize (toGUIObject w)
