@@ -45,7 +45,6 @@ import AtomString
 import ExtendedPrelude
 import TSem
 import Delayer
-import Sink
 
 import EntityNames
 import ErrorReporting
@@ -537,13 +536,6 @@ mkLocalNodeData importsState (node :: node) globalNodeDataSource =
       let
          folderStructure = folders importsState
 
-         titleAct :: IO String
-         titleAct =
-            do
-               fullName <- getName folderStructure node
-               return (toString fullName)
-
-      let
          localSource1 :: SimpleSource (WithError (LocalNodeData node))
          localSource1 = 
             mapIOSeq globalNodeDataSource

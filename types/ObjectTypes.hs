@@ -76,6 +76,11 @@ module ObjectTypes(
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
    wrapReadLink, -- :: View -> WrappedLink -> IO WrappedObject
+   wrapCreateLink, 
+      -- :: HasCodedValue x => View -> WrappedLink -> x -> IO (Link x)
+   wrapNewEmptyLink,
+      -- :: HasCodedValue x => View -> WrappedLink -> IO (Link x)
+
 
    wrapPreFetchLinks, -- :: View -> [WrappedLink] -> IO ()
    
@@ -531,6 +536,16 @@ wrapReadLink view wrappedLink =
    do
       versioned <- wrapFetchLink view wrappedLink
       wrapReadObject view versioned 
+
+-- | Create a child for a 'WrappedLink', like 'createLink'.
+wrapCreateLink :: HasCodedValue x => View -> WrappedLink -> x -> IO (Link x)
+wrapCreateLink view (WrappedLink parentLink) x =
+   createLink view parentLink x
+
+
+-- | Create a child for a 'WrappedLink', like 'newEmptyLink'
+wrapNewEmptyLink :: HasCodedValue x => View -> WrappedLink -> IO (Link x)
+wrapNewEmptyLink view (WrappedLink parentLink) = newEmptyLink view parentLink
 
 
 -- | Get on with fetching the given 'WrappedLink's concurrently.

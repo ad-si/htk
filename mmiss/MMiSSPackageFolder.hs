@@ -36,7 +36,7 @@ module MMiSSPackageFolder(
       -- :: WrappedLink -> Maybe (Link MMiSSPackageFolder)
       -- version of unpackWrappedLink for the .hi-boot file.
    newEmptyLinkMMiSSPackageFolder,
-      -- :: View -> IO (Link MMiSSPackageFolder)
+      -- :: View -> WrappedLink -> IO (Link MMiSSPackageFolder)
       -- version of newEmptyLink for the .hi-boot file.
    wrapMMiSSPackageFolderLink,
       -- :: Link MMiSSPackageFolder -> WrappedLink
@@ -124,6 +124,7 @@ import MMiSSBundleNodeWriteClass
 import MMiSSBundleConvert
 
 import {-# SOURCE #-} MMiSSExportLaTeX(pathRef)
+import {-# SOURCE #-} MMiSSPackageFolder -- needed for boot file.
 import {-# SOURCE #-} MMiSSObjectTypeInstance
 import {-# SOURCE #-} MMiSSBundleWrite
 
@@ -304,8 +305,9 @@ unpackWrappedLinkToMMiSSPackageFolder = unpackWrappedLink
 wrapMMiSSPackageFolderLink :: Link MMiSSPackageFolder -> WrappedLink
 wrapMMiSSPackageFolderLink = WrappedLink
 
-newEmptyLinkMMiSSPackageFolder :: View -> IO (Link MMiSSPackageFolder)
-newEmptyLinkMMiSSPackageFolder = newEmptyLink
+newEmptyLinkMMiSSPackageFolder 
+   :: View -> WrappedLink -> IO (Link MMiSSPackageFolder)
+newEmptyLinkMMiSSPackageFolder = wrapNewEmptyLink
 
 linkToLinkedObjectMMiSSPackageFolder
    :: View -> Link MMiSSPackageFolder -> IO LinkedObject

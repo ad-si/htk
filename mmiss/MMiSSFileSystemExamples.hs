@@ -4,8 +4,6 @@ module MMiSSFileSystemExamples(
    standardFileSystem, -- :: FileSystem
    ) where
 
-import Control.Concurrent.MVar
-
 import Computation
 
 import CopyFile
@@ -33,6 +31,8 @@ oneFileFileSystem fPath contents =
 -- --------------------------------------------------------------------
 -- oneWritableFileFileSystem
 -- --------------------------------------------------------------------
+
+{- 
 
 oneWritableFileFileSystem :: FilePath -> IO FileSystem
 oneWritableFileFileSystem filePath0 =
@@ -64,6 +64,7 @@ oneWritableFileFileSystem filePath0 =
 
       return (FileSystem {readString = readString1,writeString = writeString1})
 
+-}
 -- --------------------------------------------------------------------
 -- The standard file system
 -- --------------------------------------------------------------------

@@ -28,9 +28,8 @@ import SimpleForm
 import View(View)
 
 import MMiSSRunCommand
-import MMiSSVariant
-import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSExportFiles
+import {-# SOURCE #-} MMiSSPackageFolder
 
 -- | The first String is the name of the file; the second its contents.
 mmissLaTeX :: View -> String -> String -> ExportFiles -> IO ()

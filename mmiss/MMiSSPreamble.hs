@@ -5,9 +5,12 @@ module MMiSSPreamble(
    MMiSSPreamble,
    MMiSSPreambleType,
 
-   createPreamble, -- :: View -> MMiSSLatexPreamble -> IO (Link MMiSSPreamble)
+   createPreamble, 
+      -- :: View -> WrappedLink -> MMiSSLatexPreamble 
+      -- -> IO (Link MMiSSPreamble)
    readPreamble, -- :: View -> Link MMiSSPreamble -> IO MMiSSLaTeXPreamble
-   writePreamble, -- :: Link Preamble -> View -> MMiSSLaTeXPreamble -> IO ()
+   writePreamble, 
+      -- :: Link Preamble -> View -> MMiSSLaTeXPreamble -> IO ()
 
 
    toImportCommands, -- :: MMiSSPreamble -> SimpleSource ImportCommands
@@ -16,14 +19,12 @@ module MMiSSPreamble(
 
 import Maybe
 
-import Control.Concurrent
 import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
 import Dynamics
 import AtomString
-import VariableSet
 import Sources
 import Broadcaster
 import Messages
@@ -51,7 +52,6 @@ import LinkManager (bracketForImportErrors)
 import EmacsEdit
 import EmacsContent
 
-import LaTeXParser
 import LaTeXPreamble
 
 import MMiSSImportExportErrors
@@ -98,7 +98,7 @@ instance HasMerging MMiSSPreamble where
       do
          vlosPruned <- mergePrune vlos
          let 
-            (headView,headLink,headObject):vlosRest = vlosPruned
+            (headView,headLink,_):_ = vlosPruned
 
          (preambles :: [MMiSSLatexPreamble]) <-
             mapM
@@ -260,11 +260,12 @@ writePreamble preambleLink view latexPreamble =
                   else
                      done
 
-createPreamble :: View -> MMiSSLatexPreamble -> IO (Link MMiSSPreamble)
-createPreamble view latexPreamble =
+createPreamble :: View -> WrappedLink -> MMiSSLatexPreamble 
+   -> IO (Link MMiSSPreamble)
+createPreamble view (WrappedLink parentLink) latexPreamble =
    do
       mmissPreamble <- createPreamble1 latexPreamble
-      preambleVers <- createObject view mmissPreamble
+      preambleVers <- createObject view parentLink mmissPreamble
       link <- makeLink view preambleVers
       return link
 

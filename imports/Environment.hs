@@ -74,7 +74,6 @@ import TSem
 
 import EntityNames
 import FolderStructure
-import Aliases
 import ErrorReporting
 
 -- --------------------------------------------------------------

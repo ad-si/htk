@@ -5,7 +5,9 @@ unpackWrappedLinkToMMiSSObject
    -> Data.Maybe.Maybe (Link.Link MMiSSObjectType.MMiSSObject)
 
 newEmptyLinkMMiSSObject 
-   :: ViewType.View -> GHC.IOBase.IO (Link.Link MMiSSObjectType.MMiSSObject)
+   :: ViewType.View 
+   -> ObjectTypes.WrappedLink 
+   -> GHC.IOBase.IO (Link.Link MMiSSObjectType.MMiSSObject)
 
 
 wrapMMiSSObjectLink

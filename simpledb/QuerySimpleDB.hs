@@ -80,8 +80,8 @@ querySimpleDB1 user simpleDB command = case command of
             _ -> modifyUserInfo simpleDB user versionInformation
    GetDiffs objectVersion parentVersions ->
       do
-         diffs <- getDiffs simpleDB user objectVersion parentVersions
-         return (IsDiffs diffs)
+         (diffs1,diffs2) <- getDiffs simpleDB user objectVersion parentVersions
+         return (IsDiffs diffs1 diffs2)
    GetPermissions ovLocOpt ->
       do
          permissions <- getPermissions simpleDB user ovLocOpt

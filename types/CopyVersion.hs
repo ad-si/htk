@@ -11,8 +11,6 @@ import Data.FiniteMap
 import Control.Concurrent.MVar
 
 import Computation
-import ExtendedPrelude(catchOurExceps)
-import Sources
 import Broadcaster
 import Store
 import VariableSet(HasKey(..))
@@ -85,13 +83,12 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
      view0 <- getView fromRepository fromVersionGraphClient fromVersion
 
      -- (2) get diffs for fromVersion from its parents.
-     (diffs :: [(Location,Diff)])
+     (diffs1 :: [(Location,Diff)],diffs2 :: [(Location,Location)])
          <- getDiffs fromRepository fromVersion (map from parents)
 
      -- (3) construct view for new version.
      let
         viewId1 = viewId view0
-        repository1 = toRepository 
      objects1 <- newRegistry
 
      viewInfoBroadcaster1 <- newSimpleBroadcaster toVersionInfo
@@ -99,6 +96,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
      delayer1 <- newDelayer
      committingVersion1 <- newMVar Nothing
      importsState1 <- newStore
+     parentChanges1 <- newRegistry
      let
         view1 = View {
            repository = toRepository,
@@ -109,10 +107,11 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            delayer = delayer1,
            committingVersion = committingVersion1,
            graphClient1 = toVersionGraphClient,
-           importsState = importsState1
+           importsState = importsState1,
+           parentChanges = parentChanges1
            }
 
-     -- (4) Turn the diffs into object versions.
+     -- (4) Turn diffs1 into object versions.
 
      -- We need to get at ALL the WrappedMergeLinks for the source view,
      -- so we can know to which links copyObject needs to be applied.  We
@@ -137,8 +136,8 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
                  -- be discarded. 
               Just (WrappedMergeLink link) ->
                  case changeData of
-                    Right (location1,fromVersion) ->
-                       return (Just (Right (location1,mapParent fromVersion)))
+                    Right (fromVersion,location1) ->
+                       return (Just (Right (mapParent fromVersion,location1)))
                     Left icsl ->
                        do
                           objectSource <- mapLink icsl link
@@ -184,7 +183,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
                     IsNew {changed = changed0} -> mkCommitChange changed0
                     IsChanged {changed = changed0} -> mkCommitChange changed0
               )
-           diffs
+           diffs1
 
      let         
         commitChanges1 :: [(Location,CommitChange)]
@@ -198,11 +197,11 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         toRedirect (location,IsNew _ ) = Just (location,Nothing)
       
         redirects :: [(Location,Maybe ObjectVersion)]
-        redirects = mapMaybe toRedirect diffs
+        redirects = mapMaybe toRedirect diffs1
 
 
      (commitChanges2 
-        :: [(Location,Either ICStringLen (Location,ObjectVersion))])
+        :: [(Location,Either ICStringLen (ObjectVersion,Location))])
         <- mapM
             (\ (location,newItem) ->
                case newItem of
@@ -227,7 +226,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            Just headVersion -> Version1Plus version1 headVersion
      
      let
-        command = Commit versionInformation redirects commitChanges2
+        command = Commit versionInformation redirects commitChanges2 diffs2
 
      return command
 -- ------------------------------------------------------------------------

@@ -15,7 +15,6 @@ module MMiSSUpdateVariantObject(
 import Thread
 import Computation
 
-import ObjectTypes
 import Link
 import View
 import CodedValue
@@ -54,7 +53,7 @@ updateVariantObject view
                let
                   createNewVariant =
                      do
-                        elementLink <- createLink view element1
+                        elementLink <- createLink view parentLink element1
                         object <- mkObject elementLink
                         writeVariantObject variantObject variantSpec object
                         return True

@@ -130,7 +130,7 @@ data SimpleDBResponse =
    |  IsObjectVersion ObjectVersion
    |  IsObjectVersions [ObjectVersion]
    |  IsData ICStringLen
-   |  IsDiffs [(Location,Diff)]
+   |  IsDiffs [(Location,Diff)] [(Location,Location)]
    |  IsVersionInfo VersionInfo
    |  IsPermissions Permissions
    |  IsError ErrorType String
@@ -169,10 +169,7 @@ data Diff =
          -- Location exists in one of the parent versions, namely existsIn, 
          -- but has been changed.
    |  IsNew {
-         changed :: ChangeData,
-         newParentOpt :: Maybe Location
-            -- ^ If set, gives the parent of this location (for security 
-            -- purposes).  
+         changed :: ChangeData
          }
          -- Location exists in none of the parent versions.
    -- If changed is Just (location,objectVersion) then
@@ -374,7 +371,7 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       wrap1 2 IsObjectVersions,
       wrap1 3 IsData,
       wrap2 4 IsError,
-      wrap1 5 IsDiffs,
+      wrap2 5 IsDiffs,
       wrap1 6 IsVersionInfo,
       wrap0 7 IsOK,
       wrap1 8 MultiResponse,
@@ -387,7 +384,7 @@ instance MonadIO m => HasWrapper SimpleDBResponse m where
       IsObjectVersions vs -> UnWrap 2 vs
       IsData d -> UnWrap 3 d
       IsError t e -> UnWrap 4 (t,e)
-      IsDiffs ds -> UnWrap 5 ds
+      IsDiffs ds ps -> UnWrap 5 (ds,ps)
       IsVersionInfo v -> UnWrap 6 v
       IsOK -> UnWrap 7 ()
       MultiResponse l -> UnWrap 8 l
@@ -404,13 +401,13 @@ instance MonadIO m => HasWrapper Diff m where
    wraps = [
       wrap0 1 IsOld,
       wrap2 2 IsChanged,
-      wrap2 3 IsNew
+      wrap1 3 IsNew
       ]
 
    unWrap = (\ wrapper -> case wrapper of
       IsOld -> UnWrap 1 ()
       IsChanged e c -> UnWrap 2 (e,c)
-      IsNew c p -> UnWrap 3 (c,p)
+      IsNew c -> UnWrap 3 c
       )
 
 instance (MonadIO m,HasWrapper Diff m) 

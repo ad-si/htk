@@ -12,7 +12,6 @@ module MMiSSImportExportErrors(
 
 import System.IO.Unsafe
 
-import Computation(done)
 import Messages
 
 import Object

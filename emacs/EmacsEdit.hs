@@ -20,11 +20,6 @@ import ExtendedPrelude
 import Messages
 
 import Events
-import Channels
-import Synchronized
-import Destructible
-
-import LockEvent
 
 import HTk(text)
 import DialogWin

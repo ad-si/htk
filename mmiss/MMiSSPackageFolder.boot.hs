@@ -38,7 +38,9 @@ wrapMMiSSPackageFolderLink :: Link.Link MMiSSPackageFolder -> ObjectTypes.Wrappe
 
 
 newEmptyLinkMMiSSPackageFolder
-   :: ViewType.View -> GHC.IOBase.IO (Link.Link MMiSSPackageFolder)
+   :: ViewType.View 
+   -> ObjectTypes.WrappedLink 
+   -> GHC.IOBase.IO (Link.Link MMiSSPackageFolder)
 
 linkToLinkedObjectMMiSSPackageFolder
    :: ViewType.View -> Link.Link MMiSSPackageFolder 

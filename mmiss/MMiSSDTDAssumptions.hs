@@ -307,6 +307,7 @@ getLabel (elem @ (Elem name _ _)) =
          Nothing -> hasError ("Element " ++ name ++ " has no label!")
          Just labelStr -> fromStringWE labelStr
 
+{-
 -- | Set an Element's label.
 -- NB.  Now obsolete and dangerous.  Use MMiSSElementInfo.changeLabel
 -- to change the label properly, also changing the packagePath.
@@ -317,6 +318,7 @@ setLabel elem entitySearchName =
 -- | Delete an Element's label.
 delLabel :: Element -> Element
 delLabel = delAtt "label"
+-}
 
 getPackageId :: Element -> Maybe PackageId
 getPackageId elem =
@@ -324,6 +326,7 @@ getPackageId elem =
       PackageId 
       (getAtt "packageId" elem)
 
+{-
 getPackagePath :: Element -> WithError EntityFullName
 getPackagePath elem =
    case (getAtt "packagePath" elem,getLabel elem) of
@@ -335,6 +338,8 @@ getPackagePath elem =
                   FromHere fullName -> return fullName
                   _ -> fail ("No package path or valid label found for " ++
                     toString entitySearchName)
+
+-}
 
 setPackageId :: Element -> PackageId -> Element
 setPackageId elem (PackageId packageIdStr) =

@@ -12,7 +12,6 @@ module FolderStructure(
 import Data.FiniteMap
 
 import Sources
-import VariableMap
 
 import EntityNames
 

@@ -9,7 +9,6 @@ import List
 
 import Computation
 import ExtendedPrelude
-import Registry
 import Thread(mapMConcurrentExcep)
 import Messages
 
@@ -17,8 +16,6 @@ import HTk(text,photo)
 import SimpleForm
 import DialogWin
 
-import Graph
-import SimpleGraph
 import FindCommonParents
 
 import HostsPorts(HostPort)
@@ -243,7 +240,8 @@ copyVersions versionGraphFrom =
                   IsObjectVersion _ -> done 
                      -- means this version already committed.  Can happen
                      -- with a race condition.
-                  IsError mess -> error ("Server error: " ++ mess)
+                  IsError errorType mess -> error ( 
+                     show errorType ++ ": " ++ mess)
                   _ -> error ("Mysterious server error")
                   ) 
                responses

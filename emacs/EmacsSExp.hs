@@ -118,8 +118,10 @@ parseList =
 -- We use the ParsecToken module (imported as P).
 -- -------------------------------------------------------------
 
+lexer :: P.TokenParser st
 lexer = P.makeTokenParser lispLanguageDef
 
+lispLanguageDef :: P.LanguageDef st
 lispLanguageDef =
    P.LanguageDef {
       P.commentStart = "",

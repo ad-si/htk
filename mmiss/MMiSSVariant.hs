@@ -76,7 +76,6 @@ import Maybe
 import Monad
 
 import Control.Concurrent.MVar
-import Data.FiniteMap
 
 import Computation(done,fromWithError,WithError,hasValue,hasError,mapWithError)
 import AtomString
@@ -87,13 +86,10 @@ import Messages
 
 import LogWin
 
-import GraphOps
-
 import VersionInfo
 
 import ViewType
 import View
-import VersionGraphClient
 import BasicObjects
 import CodedValue
 import MergeTypes
@@ -505,6 +501,7 @@ fromMMiSSVariants mmissVariants =
 -- ------------------------------------------------------------------------
 
 newtype MMiSSVariantDict a = MMiSSVariantDict (Registry MMiSSVariants a)
+   deriving (Typeable)
 
 
 newEmptyVariantDict :: IO (MMiSSVariantDict a)
@@ -512,6 +509,7 @@ newEmptyVariantDict =
    do
       registry <- newRegistry
       return (MMiSSVariantDict registry)
+
 
 variantDictSearch :: MMiSSVariantDict a -> MMiSSVariantSearch -> IO (Maybe a)
 variantDictSearch variantDict search =
@@ -527,6 +525,7 @@ variantDictSearchWithSpec variantDict search =
       return 
          (fmap (\ (_,variants,a) -> (a,MMiSSVariantSpec variants)) resultOpt)
 
+{-
 -- Like variantDictSearch, but also returns an IO action which removes
 -- any Version attribute on the dictionary element.
 -- (unused)
@@ -548,6 +547,7 @@ variantDictSearchWithDirty (variantDict @ (MMiSSVariantDict registry)) search =
             )
         resultOpt
         )   
+-}
 
 variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch 
       -> IO (Maybe (Integer,MMiSSVariants,a))
@@ -633,9 +633,11 @@ addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a
   = 
     setValue registry variants a
 
+{-
 delFromVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> IO ()
 delFromVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) =
    deleteFromRegistry registry variants
+-}
 
 queryInsert :: MMiSSVariantDict a -> MMiSSVariantSpec -> MMiSSVariantSearch
    -> IO Bool
@@ -679,12 +681,8 @@ instance Monad m => HasBinary MMiSSVariantSearch m where
       (\ list -> MMiSSVariantSearch (mkMMiSSVariants list))
 
 -- ------------------------------------------------------------------------
--- Instances of Typeable and CodedValue for MMiSSVariantDict.
+-- Instances of CodedValue for MMiSSVariantDict.
 -- ------------------------------------------------------------------------
-
-mmissVariantDict_tyRep = mkTyRep "MMiSSVariant" "MMiSSVariantDict"
-instance HasTyRep1 MMiSSVariantDict where
-   tyRep1 _ = mmissVariantDict_tyRep
 
 -- The CodedValue instance also has the job of reassigning the variant values
 -- in the dictionary which are previously Nothing to the version of the

@@ -22,10 +22,9 @@ import Data.FiniteMap
 import Computation(done)
 import AtomString(toString)
 
-import Graph
-
+import ServerErrors
 import VersionDB
-import VersionInfo hiding (lookupServerInfo)
+import VersionInfo
 import SimpleDBServer (SimpleDBCommand(..),SimpleDBResponse(..))
 
 import VersionGraph
@@ -343,8 +342,9 @@ copyProtoStateVersions toGraph protoState =
                      failedNewVersion = version (user (newVersionInfo)),
                      actualNewVersion = actualNewVersion
                      }))
-               IsError mess ->
-                  dbError ("Copying failed: " ++ mess)
+               IsError errorType mess ->
+                  throwError ClientError ("Copying failed: " ++ show errorType
+                     ++ ": " ++ mess)
                )
             responses2 newVersionInfos          
 
@@ -436,14 +436,15 @@ copyProtoStateVersions toGraph protoState =
                   (responseErrors :: [String]) = map
                      (\ response -> case response of
                         IsOK -> ""
-                        IsError mess -> mess ++ "\n"
+                        IsError errorType mess -> show errorType ++ ": " 
+                          ++ mess ++ "\n"
                         _ -> "CopyVersionInfo: mysterious error\n"
                         )
                      responses3
 
                case concat responseErrors of
                   "" -> done 
-                  errorMess -> dbError errorMess
+                  errorMess -> throwError ClientError errorMess
                return newVersionInfosFM2
 
 -- Record for a version which needs to be fixed in Pass 3 (see above).

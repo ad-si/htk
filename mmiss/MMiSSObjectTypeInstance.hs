@@ -532,8 +532,8 @@ instance HasBundleNodeData MMiSSObject where
 unpackWrappedLinkToMMiSSObject :: WrappedLink -> Maybe (Link MMiSSObject)
 unpackWrappedLinkToMMiSSObject = unpackWrappedLink
 
-newEmptyLinkMMiSSObject :: View -> IO (Link MMiSSObject)
-newEmptyLinkMMiSSObject = newEmptyLink
+newEmptyLinkMMiSSObject :: View -> WrappedLink -> IO (Link MMiSSObject)
+newEmptyLinkMMiSSObject = wrapNewEmptyLink
 
 wrapMMiSSObjectLink :: Link MMiSSObject -> WrappedLink
 wrapMMiSSObjectLink = WrappedLink

@@ -25,7 +25,6 @@ import GlobalMenus
 import DisplayView
 
 import MMiSSDTDAssumptions
-import MMiSSVariant
 
 data MMiSSDisplayType = MMiSSDisplayType {
    name :: String,

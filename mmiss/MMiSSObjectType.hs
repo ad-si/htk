@@ -34,7 +34,7 @@ import Maybe
 
 import System.IO.Unsafe(unsafeInterleaveIO)
 
-import Computation(WithError,coerceWithErrorIO,fromWithError,mapWithError)
+import Computation(coerceWithErrorIO,fromWithError)
 import Sources
 import VariableSet
 import VariableSetBlocker
@@ -45,8 +45,6 @@ import Messages
 import Broadcaster
 
 import BSem
-
-import DialogWin
 
 import Graph(ArcType)
 
@@ -67,10 +65,9 @@ import EntityNames
 import MMiSSDTDAssumptions
 import MMiSSVariant
 import MMiSSVariantObject
-import MMiSSPreamble
 import MMiSSObjectTypeType
-import MMiSSElementInstances
 import MMiSSElementInfo
+import MMiSSElementInstances
 import {-# SOURCE #-} MMiSSPackageFolder
 
 -- ---------------------------------------------------------------------
@@ -109,7 +106,7 @@ data Variable = Variable {
       -- by its label attribute is always the last component of the name of 
       -- the MMiSS object
    editLock :: BSem
-   }
+   } deriving (Typeable)
 
 -- | This is what is cached, and is needed to display the node\'s links with
 -- the current set of attributes.
@@ -171,10 +168,6 @@ createMMiSSObject mmissObjectType linkedObject variantObject =
 -- ---------------------------------------------------------------------
 -- Instances of HasCodedValue for Variable.
 -- ---------------------------------------------------------------------
-
-variable_tyRep = mkTyRep "MMiSSObjects" "Variable"
-instance HasTyRep Variable where
-   tyRep _ = variable_tyRep
 
 instance HasBinary Variable CodingMonad where
    writeBin = mapWrite

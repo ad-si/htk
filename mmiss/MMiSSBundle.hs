@@ -26,8 +26,6 @@ module MMiSSBundle (
    HasBundleNodeData(..),
    ) where
 
-import Text.XML.HaXml.Types
-
 import ICStringLen
 import IntPlus
 import Dynamics

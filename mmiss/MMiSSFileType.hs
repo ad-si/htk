@@ -67,7 +67,6 @@ import WithDir
 import CopyFile
 
 import MenuType
-import DialogWin
 
 import GraphConfigure hiding (Menu)
 import GraphDisp(emptyNodeTypeParms)
@@ -159,7 +158,9 @@ importMMiSSFile view folder dirPath0 name0 ext variantSpec =
          let
             fileVersion = MMiSSFileVersion {text = icsl}
 
-         fileVersionLink <- createLink view fileVersion
+            folderWrappedLink = toWrappedLink (toLinkedObject folder)
+
+         fileVersionLink <- wrapCreateLink view folderWrappedLink fileVersion
          let
             -- Function which deletes the fileVersionLink before aborting.
             break2 :: String -> IO a
@@ -829,8 +830,6 @@ instance HasBundleNodeWrite MMiSSFile where
                   (toVariants node)
 
          file <- readLink view fileLink
-         let
-            contents0 = contents file
 
          updateVariantObject view fileLink (contents file) id (return . id) 
             newVersions

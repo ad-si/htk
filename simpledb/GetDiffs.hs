@@ -19,7 +19,6 @@ import ServerErrors
 import PrimitiveLocation
 import VersionData
 import Retrieve
-import SetGetSecurityData
 
 -- | Implement 'SimpleDBTypes.GetDiffs'.
 -- Security Note.  We enforce the following checks:
@@ -30,7 +29,7 @@ import SetGetSecurityData
 -- changed since an older ancestor version, even without read access
 -- to the ancestor version. 
 getDiffs :: SimpleDB -> User -> ObjectVersion -> [ObjectVersion] 
-   -> IO [(Location,Diff)]
+   -> IO ([(Location,Diff)],[(Location,Location)])
 getDiffs simpleDB user thisVersion parentVersions =
    do
       mapM_
@@ -58,18 +57,16 @@ getDiffs simpleDB user thisVersion parentVersions =
                )
             parentVersions
 
-      case parentData of
+      
+      (diffs1 :: [(Location,Diff)]) <- case parentData of
          [] -> -- we just have to return IsNew for everything
             mapM
                (\ location ->
                   do
                      icsl <- retrieve simpleDB user thisVersion location
-                     newParentOpt <- getParentLocation simpleDB user 
-                        (thisVersion,location)
                      let
                         diff = IsNew {
-                           changed = Left icsl,
-                           newParentOpt = newParentOpt
+                           changed = Left icsl
                            }
                      return (location,diff)
                   )
@@ -136,16 +133,9 @@ getDiffs simpleDB user thisVersion parentVersions =
                                           return (Left icsl)
                                  case lookupFM locationMap location of
                                     Nothing -> 
-                                       do
-                                          newParentOpt <- getParentLocation
-                                             simpleDB user 
-                                             (thisVersion,location)
-                                          let
-                                             diff = IsNew { 
-                                                changed = changed,
-                                                newParentOpt = newParentOpt
-                                                }
-                                          return diff
+                                       return (IsNew { 
+                                          changed = changed
+                                          })
                                     Just parentVersion ->
                                        return (
                                           IsChanged {
@@ -164,4 +154,23 @@ getDiffs simpleDB user thisVersion parentVersions =
                         return (location,diff)
                      )
                   (getLocations thisVersionData)
- 
+
+      let
+         diffFM :: FiniteMap Location Location -> FiniteMap Location Location 
+            -> [(Location,Location)]
+         diffFM thisFM parentFM =
+            filter
+               (\ (location,parent1) -> 
+                  (lookupFM parentFM location == Just parent1)
+                  )
+               (fmToList thisFM)
+
+         parentParentsMap = case parentData of
+            [] -> emptyFM
+            ((_,headParentVersionData):_) -> parentsMap headParentVersionData
+           
+
+         diffs2 :: [(Location,Location)]
+         diffs2 = diffFM (parentsMap thisVersionData) parentParentsMap
+               
+      return (diffs1,diffs2)

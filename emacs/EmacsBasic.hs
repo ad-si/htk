@@ -40,7 +40,6 @@ module EmacsBasic(
 import IO
 
 import qualified Control.Exception
-import Network(PortNumber)
 import Control.Concurrent.MVar
 import System.IO.Unsafe
 
@@ -57,11 +56,9 @@ import ExtendedPrelude
 import GuardedEvents
 import EqGuard
 import Events
-import Channels
 import Destructible
 
 import BSem
-import InfoBus
 
 import ChildProcess
 
@@ -247,13 +244,6 @@ quoteEmacsString str = "\""++emacsEscape str++"\""
 -- ------------------------------------------------------------------------
 -- The Emacs MultiServer
 -- ------------------------------------------------------------------------
-
-emacsMultiServerPort :: PortNumber
-emacsMultiServerPort = unsafePerformIO getEmacsMultiServerPort
-{-# NOINLINE emacsMultiServerPort #-}
-
-getEmacsMultiServerPort :: IO PortNumber
-getEmacsMultiServerPort = getPortNumber emacsMultiServer
 
 emacsMultiServer :: MultiServer
 emacsMultiServer = unsafePerformIO initialiseEmacsBasic

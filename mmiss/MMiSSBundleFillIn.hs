@@ -16,7 +16,6 @@ import IO
 
 import Computation
 import AtomString
-import Dynamics
 
 import EntityNames
 
@@ -27,7 +26,6 @@ import MMiSSBundle
 import MMiSSBundleSimpleUtils
 import MMiSSBundleConvert
 import MMiSSBundleTypes
-import MMiSSElementInfo
 import MMiSSImportExportErrors
 import MMiSSFileSystemExamples
 import MMiSSVariant

@@ -19,7 +19,9 @@ data ErrorType =
       AccessError
    |  NotFoundError
    |  InternalError
-   |  MiscError deriving (Enum,Show)
+   |  MiscError 
+   |  ClientError -- ^ an error thrown on the client side.
+   deriving (Enum,Show)
 
 -- ------------------------------------------------------------------
 -- HasBinary instance
@@ -70,6 +72,7 @@ encodeError errorType mess =
          NotFoundError -> 'N'
          InternalError -> 'I'
          MiscError -> 'M'
+         ClientError -> 'C'
    in
       c:mess
 
@@ -82,6 +85,7 @@ decodeError (c:mess) =
          'N' -> NotFoundError
          'I' -> InternalError
          'M' -> MiscError
+         'C' -> ClientError
          _ -> error "Unknown error type"
    in
       (errorType,mess)         

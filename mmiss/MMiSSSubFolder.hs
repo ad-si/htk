@@ -10,8 +10,6 @@ module MMiSSSubFolder(
       -- MUST be done on initialisation.
    ) where
 
-import GraphConfigure
-
 import Folders
 import GlobalRegistry
 import DisplayParms

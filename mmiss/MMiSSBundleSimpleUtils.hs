@@ -85,8 +85,6 @@ module MMiSSBundleSimpleUtils(
 
 import Data.FiniteMap
 
-import Debug.Trace
-
 import Monad
 import Maybe
 import IO
@@ -187,7 +185,7 @@ mergeBundleNodesAsOne backtrace bundleNodes =
          -- on BundleTypes all being identical, but allow some names to be
          -- Nothing.
 
-         fileLocs @ (fileLoc0 : _) = map fileLoc bundleNodes
+         fileLocs = map fileLoc bundleNodes
 
          (nameOpts :: [Maybe String]) = map name fileLocs
          (names :: [String]) = catMaybes nameOpts
@@ -275,10 +273,6 @@ mergeBundleNodesAsOne backtrace bundleNodes =
                      map
                         (\ bundleNode -> (fileLoc bundleNode,bundleNode))
                         bundleNodes
-
-                  strFileLoc2 :: FileLoc -> String
-                  strFileLoc2 fileLoc = fromMaybe "(Unknown)" 
-                     (strFileLoc fileLoc)
 
                (keyedNodes1 :: [(FileLoc,BundleNode)])
                     <- mergeKeyedBundleNodes (==) describeFileLoc backtrace

@@ -165,7 +165,6 @@ import Dynamics
 import Computation (done)
 import Sources
 import Broadcaster
-import Sink
 import Messages
 
 import VersionInfo
@@ -175,7 +174,6 @@ import AttributesType
 import MergeTypes
 import ViewType
 
-import MMiSSDTDAssumptions
 import MMiSSVariant
 
 -- -----------------------------------------------------------------------
@@ -196,7 +194,7 @@ data VariantObject object cache = VariantObject {
 data FrozenVariantObject object cache = FrozenVariantObject {
    dictionary' :: MMiSSVariantDict object,
    currentVariantSpec' :: MMiSSVariantSpec
-   }
+   } deriving (Typeable)
 
 -- -----------------------------------------------------------------------
 -- Creating VariantObject's
@@ -310,10 +308,6 @@ freezeVariantObject variantObject =
 -- -----------------------------------------------------------------------
 -- FrozenVariantObject's instance of HasCodedValue
 -- -----------------------------------------------------------------------
-
-frozenVariantObject_tyRep = mkTyRep "MMiSSVariantObject" "FrozenVariantObject"
-instance HasTyRep2 FrozenVariantObject where
-   tyRep2 _ = frozenVariantObject_tyRep
 
 instance HasBinary object CodingMonad 
    => HasBinary (FrozenVariantObject object cache) CodingMonad where

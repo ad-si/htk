@@ -15,12 +15,10 @@ import Maybe
 import Monad
 
 import System.IO.Unsafe
-import Data.FiniteMap
 import Control.Concurrent
 import Control.Exception
 
 import Registry
-import Computation(done)
 import ExtendedPrelude(ourExcepToMess)
 import Messages
 
@@ -33,9 +31,8 @@ import GraphConfigure
 import HostsPorts
 import CallServer (tryConnect)
 
-import VersionInfo
+import VersionState
 
-import VersionDB
 import Initialisation
 import VersionGraph
 

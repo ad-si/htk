@@ -255,7 +255,7 @@ fetchOrSetLinkWE
                                        statusOpt <- getNewStatusOpt
                                        case statusOpt of
                                           Nothing -> 
-                                             throwError MiscError (
+                                             throwError ClientError (
                                                 "Link " ++ show location
                                                 ++ " not found")
                                           Just status -> return status

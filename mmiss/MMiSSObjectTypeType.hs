@@ -13,17 +13,13 @@ import Data.FiniteMap
 
 import Dynamics
 
-import GraphConfigure
-
 import CodedValue
 import AttributesType
 import DisplayParms
-import ObjectTypes
 import GlobalRegistry
 import Link
 
 import MMiSSDTDAssumptions
-import MMiSSVariant
 import MMiSSDTD
 import {-# SOURCE #-} MMiSSObjectType
 

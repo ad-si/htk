@@ -6,8 +6,6 @@ module MMiSSFormat(
    toExtension, -- :: Format -> String
    ) where
 
-import Computation
-
 import SimpleForm
 
 data Format = LaTeX | XML deriving Show

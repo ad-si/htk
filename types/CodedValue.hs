@@ -124,7 +124,7 @@ doEncodeIO1 desc (a ::  a) view =
 
       case encodeResult of
          Left excep ->
-            throwError MiscError 
+            throwError ClientError 
                ("Error " ++ show excep ++ " encoding " ++ desc)
          Right result -> return result 
    where

@@ -87,7 +87,7 @@ module SimpleDB(
 
    getDiffs,
       -- :: Repository -> ObjectVersion -> [ObjectVersion] 
-      -- -> IO [(Location,Diff)]
+      -- -> IO ([(Location,Diff)],[(Location,Location)])
       -- Compare the given object version with the (presumably parent)
       -- object versions.
 
@@ -376,12 +376,12 @@ modifyVersionInfo repository versionInfo =
          _ -> unpackError "modifyVersionInfo" response
 
 getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 
-   -> IO [(Location,Diff)]
+   -> IO ([(Location,Diff)],[(Location,Location)])
 getDiffs repository version versions =
    do
       response <- queryRepository repository (GetDiffs version versions)
       case response of
-         IsDiffs diffs -> return diffs
+         IsDiffs diffs1 diffs2 -> return (diffs1,diffs2)
          _ -> unpackError "getDiffs" response
 
 getPermissions :: Repository -> Maybe (ObjectVersion,Location) 

@@ -79,32 +79,32 @@ wrapSplitLink link = case link of
 -- Creating empty links
 -- ------------------------------------------------------------------------
 
-newEmptySplitLink :: View -> BundleTypeEnum -> IO SplitLink
-newEmptySplitLink view enum =
+newEmptySplitLink :: View -> WrappedLink -> BundleTypeEnum -> IO SplitLink
+newEmptySplitLink view parentLink enum =
    case enum of
       FolderEnum ->
          do
-            link <- newEmptyLink view
+            link <- wrapNewEmptyLink view parentLink
             return (FolderC link)
       FileEnum -> 
          do
-            link <- newEmptyLink view
+            link <- wrapNewEmptyLink view parentLink
             return (FileC link)
       MMiSSFolderEnum -> 
          do
-            link <- newEmptyLinkMMiSSPackageFolder view
+            link <- newEmptyLinkMMiSSPackageFolder view parentLink
             return (MMiSSPackageFolderC link)
       MMiSSObjectEnum -> 
          do
-            link <- newEmptyLinkMMiSSObject view
+            link <- newEmptyLinkMMiSSObject view parentLink
             return (MMiSSObjectC link)
       MMiSSFileEnum -> 
          do
-            link <- newEmptyLink view
+            link <- wrapNewEmptyLink view parentLink
             return (MMiSSFileC link)
       MMiSSPreambleEnum -> 
          do
-            link <- newEmptyLink view
+            link <- wrapNewEmptyLink view parentLink
             return (MMiSSPreambleC link)
       UnknownType ->
          importExportError "Unable to create UnknownType in bundle"
