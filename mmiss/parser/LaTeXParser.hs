@@ -231,7 +231,7 @@ latexPlainTextEnvs = ["verbatim", "verbatim*", "math", "displaymath", "equation"
 -- The following list matches the various LaTeX formula enviroments to theses symbolic names recorded in the
 -- boundsType attribute: 
 
-latexFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("\\(", "shortMathParens"), ("displaymath", "displaymath")] ++
+latexFormulaEnvs = [("math", "math"), ("$", "shortMathDollar"), ("$$", "shortDisplaymathDollar"), ("\\(", "shortMathParens"), ("displaymath", "displaymath")] ++
                    [("\\[", "shortDisplaymath"), ("equation", "equation")]
 
 
@@ -598,11 +598,17 @@ mathEnv = try( do c <- oneOf "(["
 
 simpleMathEnv :: GenParser Char st Frag
 simpleMathEnv = 
-  try( do char '$'
+  try (do string "$$"
           str <- plainText "$"
-          char '$'
-          return (Env ("$") (LParams [] [] Nothing Nothing) [(Other str)])
+          string "$$"
+          return (Env ("$$") (LParams [] [] Nothing Nothing) [(Other str)])
   )
+  <|>
+    try( do char '$'
+            str <- plainText "$"
+            char '$'
+            return (Env ("$") (LParams [] [] Nothing Nothing) [(Other str)])
+    )
 
 continuePlainFormula ::  String -> String -> [Char] -> GenParser Char st [Frag]
 -- 1. String : The accumulation of characters, parsed so far
