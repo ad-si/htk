@@ -188,10 +188,10 @@ run htk currentSize =
     main # menu menubar
 
     fm <- createPulldownMenu menubar [text "File"]
-    b2 <- createMenuCommand fm [text "Restart"]
-    restartClick <- clicked b2
-    b3 <- createMenuCommand fm [text "Quit"]
-    quitClick <- clicked b3
+    restb <- createMenuCommand fm [text "Restart"]
+    restartClick <- clicked restb
+    quitb <- createMenuCommand fm [text "Quit"]
+    quitClick <- clicked quitb
 
     pm <- createPulldownMenu menubar [text "Preferences"]
     
@@ -231,6 +231,7 @@ run htk currentSize =
     dr4 <- createMenuRadioButton pmc2m [text "nuts", value (3::Int),
                                         variable varDiff]
 
+{-
     -- create the smiley button on top the mines
     sm <- newButton main [photo smSmileImg]
     startClick <- clicked sm
@@ -266,7 +267,7 @@ run htk currentSize =
 
     -- start the game
     start
-
+-}
     -- wait for game to stop, then clear up the mess
     finishHTk
 

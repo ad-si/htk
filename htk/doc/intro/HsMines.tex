@@ -25,30 +25,36 @@ heart of this section, the hsMines GUI.
 
 \subsection{In the beginning\dots}
 \dots, as you should have read, is the window. And for we are running
-compiled code here, it's created in the main function.
+compiled code here, it's created in the \texttt{main} function.
 \begin{code}
-main :: IO ()
 main = 
- do main <- initHTk [text "hsMines"]
-    finishHTk
+ do htk<- initHTk [withdrawMainWin]
+    run htk normalSize 
+
+run :: HTk-> (Int, Int)-> IO ()
+run htk currentSize = 
+ do main <- createToplevel [text "hsMines"]
+
+finishHTk
 \end{code}
 
 Having only this, the GUI would look rather boring, but it's not bad
-for just four lines of code, isn't it?
+for just a few lines of code, isn't it? It looks a bit bent in a loop
+but we will see later that this is needed to make the field
+resizeable.\\
+The last line is necessary to clean up all the events we've kicked
+loose so far.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.6]{Screenshot1}
+\includegraphics[scale=0.6]{img/Screenshot01}
 \caption{The hsMines window}
 \end{center}
 \end{figure}
 
-The last line is necessary to clean up all the events we've kicked
-loose so far.
-
 \subsection{Menus}
 
-What wolud a GUI be without them? Somewhat empty as it seems. So let's
+What would a GUI be without them? Somewhat empty as it seems. So let's
 create some menus.
 
 \begin{code}
@@ -56,37 +62,126 @@ create some menus.
     main # menu menubar
 
     fm <- createPulldownMenu menubar [text "File"]
-    b2 <- createMenuCommand fm [text "Restart"]
-    restartClick <- clicked b2
-    b3 <- createMenuCommand fm [text "Quit"]
-    quitClick <- clicked b3
 
-    em <- createPulldownMenu menubar [text "Preferences"]
-    _ <- createMenuCommand em [text "Cut"]
-    _ <- createMenuCommand em [text "Copy"]
-    _ <- createMenuCommand em [text "Paste"]
+    restb <- createMenuCommand fm [text "Restart"]
+    qutib <- createMenuCommand fm [text "Quit"]
+
+    pm <- createPulldownMenu menubar [text "Preferences"]
+   
+    pmc1 <- createMenuCascade pm [text "Size"]
+    pmc1m <- createMenu main False []
+    pmc1 # menu pmc1m
+        
+    pmc2 <- createMenuCascade pm [text "Difficulty"]
+    pmc2m <- createMenu main False []
+    pmc2 # menu pmc2m
 \end{code}
-  
-First, we create an Menu called menubar inside main, which is our
-window. Then we asign menubar as main's menu. That would leave us with
-a still rather boring empty menubar.\\
-So we create two pulldown menus, called fm an em. Inside these
-pulldowns we create a couple of menu commands. The commands in em are
-by now just there for the fun of it an not bound to any
-variable\footnote{ Don't ask me why commands called Cut, Copy and
-  Paste are in a menu called Preferneces. First of all I'm just
-  writing the text, not the source. Second is, that these commands are
-  not bound to a variable eitherway so you could call them Huey,
-  Dewey, and Louie if you prefer that.}.
-So let's switch our focus to menu fm. There we create two commands
-bound to b2 and b3. And for later use these variables are bound via an
-Event to some other Event. We will come to this later. By now the GUI
-looks like this:
+
+To this point we create a number of menus and pulldowns. Let's go
+through this step by step.
+In line 1 we create an menu inside \emph{main} (our window) that was
+created in \texttt{run}. In line 2 we tell \HTk to asign this new menu
+we call \emph{menubar} to be the menu of \emph{main}.\\
+In line 3 (we will not count the empty lines), we create our first
+pulldown menu -- that is what actually is normaly called a menu. This
+pulldown menu is created inside \emph{menubar}, is called \emph{fm}
+and has the charming text "`File"'. For not leaving this menu (or
+pulldown menu) empty, we create menu entrys so called menu commands
+inside \emph{fm}. So by now we have \emph{restb} and \emph{quitb}
+inside \emph{fm} inside \emph{menubar} inside \emph{main}.\\
+This is quit nice but we will try to put some more functionality into
+our menu besides restarting and quiting the game. And as we read
+above, the game grid will be resizeable so we will need another menu
+to have these commands in.\\
+We create a second pulldown menu in \emph{menubar} called
+\emph{pm}. In this menu we nest to submenus called menu
+cascades. Each of the cascades has a name, \emph{pmc1} and
+\emph{pmc2}, and a String set to it's text. The next step is a bit
+tricky. One would expect now to fill the cascades directly with some
+commands. But the menu cascades are only containers fit to hold a
+menu. So we have to create another two menus inside main and asign
+them to the two cascades. These two menus are called \emph{pmc1m} and
+\emph{pmc2m} which should be an abreviation "`Prefernce Menu Cascade
+1's Menu"' respectivly 2.\\
+By now we have a menu which holds two pulldown menus. The
+first contains two commands, the second contains two cascades which in
+turn each contain a menu again. To make sense of these menus we have
+to fill them of course. And finally we have to put some functions
+behind those commands and what so ever or this would all be for
+naught.
+
+\begin{code}
+    varSize <- createTkVariable currentSize
+    sr1 <- createMenuRadioButton pmc1m [text "tiny (6x6)", value tinySize,
+                                        variable varSize]
+    sr2 <- createMenuRadioButton pmc1m [text "small (10x10)", value weeSize,
+                                        variable varSize]
+    sr3 <- createMenuRadioButton pmc1m [text "normal (15x15)", value normalSize,
+                                        variable varSize]
+    sr4 <- createMenuRadioButton pmc1m [text "large (20x20)", value bigSize,
+                                        variable varSize]
+    sr5 <- createMenuRadioButton pmc1m [text "huge (25x25)", value hugeSize,
+                                        variable varSize]
+
+    varDiff <- createTkVariable (6:: Int)
+    dr1 <- createMenuRadioButton pmc2m [text "easy", value (8::Int),
+                                        variable varDiff]
+    dr2 <- createMenuRadioButton pmc2m [text "normal", value (6::Int),
+                                        variable varDiff]
+    dr3 <- createMenuRadioButton pmc2m [text "hard", value (4::Int),
+                                        variable varDiff]
+    dr4 <- createMenuRadioButton pmc2m [text "nuts", value (3::Int),
+                                        variable varDiff]
+\end{code}
+In the code above we do several new things. First we create a new Tk
+variable named \emph{varSize} and a few lines later one called
+\emph{varDiff}. These are necessary to remember things we do to our
+GUI like in this case switching a button.
+Our next step is to create a menu radio button\footnote{
+  A radio button is a button with several instances. Each of the
+  instances is shown, can be selected and is bound to a different value
+  but to the same variable. By selecting one of the instances the
+  according value is asign to the variable. Because a variable can
+  only have one value at a given time, only one of the instances can
+  be selected.}
+in each of the two submenus. The first radio button asigns tuples of
+Int to the Variable \emph{varSize}, the actual values are given in a
+couple of functions above in the code which can be fully seen in the
+appendix.
+% Hier beachten! Code muss in Appendix!
+% Evtl. können die Funktionen auch wieder gelöscht und hier die
+% konkreten Zahlen eingesetzt werden. Eigentlich müssten andernfalls
+% die anderen Zahlen (für die Schwierigkeit) auch in Funktionen
+% ausgelagert werden. So ist das inkonsequent.
+As you we can see in the code above (in \texttt{main} and
+\texttt{run}), currentSize holds the value of normalSize and so by
+default the radio button is set to normalSize. Nearly the same happens
+to \emph{varDiff} and it's radiobutton just without the hiding
+functions.\\
+The values of varDiff have to be explicitly casted because by default
+TkVariables contain Strings. But still nothing happens besides setting
+two varaibles.
+
+\begin{code}
+    restartClick <- clicked restb
+    quitClick <- clicked quitb
+
+    csr1 <- clicked sr1
+    csr2 <- clicked sr2
+    csr3 <- clicked sr3
+    csr4 <- clicked sr4
+    csr5 <- clicked sr5
+
+\end{code}
+
+This rather cryptic peace of codes allows us to bind the commands and
+the size radio button(s) to a couple of events. These will occure now
+whenever one of the buttons is selected -- "`clicked"'.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.6]{Screenshot2}
-\caption{The hsMines main window with an open File menu}
+\includegraphics[scale=0.6]{img/Screenshot02}
+\caption{The hsMines main window with an open Prefs/Size menu}
 \end{center}
 \end{figure}
 
@@ -106,12 +201,12 @@ and when to place the button we have to tell it to \texttt{pack sm at
   the top of the main window, pad it 20 pixels wide in any direction
   and keep it align to the upperside} (which is North on most maps).
 
-\begin{figure}[h]
-\begin{center}
-\includegraphics[scale=0.6]{Screenshot3}
-\caption{The hsMines main window with smiley}
-\end{center}
-\end{figure}
+% \begin{figure}[h]
+% \begin{center}
+% \includegraphics[scale=0.6]{Screenshot3}
+% \caption{The hsMines main window with smiley}
+% \end{center}
+% \end{figure}
 
 I also opened the second menu so you could see Huey, Dewey and
 Louie\dots
@@ -158,12 +253,12 @@ collection can free all used RAM. But if we don't press one of the
 restart buttons, nothing will happen with the many buttons we created
 and they all just show a question mark.
 
-\begin{figure}[h]
-\begin{center}
-\includegraphics[scale=0.2]{Screenshot4}
-\caption{The uninitialised playfield of hsMines}
-\end{center}
-\end{figure}
+% \begin{figure}[h]
+% \begin{center}
+% \includegraphics[scale=0.2]{Screenshot4}
+% \caption{The uninitialised playfield of hsMines}
+% \end{center}
+% \end{figure}
 
 So all that is left to do in the main function is to initiate the game
 for the first time.
