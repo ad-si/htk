@@ -34,6 +34,16 @@ mines _                        = 0
 type Mines   = Array (Int, Int) State
 type Buttons = Array (Int, Int) Button
 
+-- The field sizes. We need to type them explicitly, so we might as
+-- well write them all down here
+tinySize, weeSize, normalSize, bigSize, hugeSize :: (Int, Int)
+tinySize = (6, 6)
+weeSize  = (10, 10)
+normalSize = (15, 15)
+bigSize    = (20, 20)
+hugeSize   = (25, 25)
+
+
 -- get list of all adjacents to a given position
 adjacents :: Mines-> (Int, Int)-> [(Int, Int)]
 adjacents p (x, y) = 
@@ -106,7 +116,7 @@ flag b m xy =
                                  
 -- create all buttons, and set up the handlers for them.
 -- Returns a list of pairs of buttons, and their position.
-buttons :: Container par=> par-> Button-> Event() -> (Int, Int)
+buttons :: Container par=> par-> Button-> Event Int-> (Int, Int)
                            -> IO [((Int, Int), Button)]
 buttons par sb startEv (size@(xmax, ymax)) =
   do buttons <- mapM (\xy-> do b<- newButton par [text "?", relief Raised,
@@ -152,11 +162,11 @@ buttons par sb startEv (size@(xmax, ymax)) =
                   +>
                   start 
          start :: Event ()
-         start = startEv >>> do d <- detDiff varDiff 
-	                        m <- createMines (snd (bounds bArr)) d
-			        sb # photo smSmileImg
-                                mapM_ (\b-> b # text " " >>= relief Raised) (elems bArr)
-                                sync (play m)
+         start = startEv >>>= \d-> do m <- createMines (snd (bounds bArr)) d
+  			              sb # photo smSmileImg
+                                      mapM_ (\b-> b # text " " >>= 
+                                                    relief Raised) (elems bArr)
+                                      sync (play m)
          gameOver :: Event ()
          gameOver = start 
                     +> 
@@ -167,7 +177,12 @@ buttons par sb startEv (size@(xmax, ymax)) =
 
 main :: IO ()
 main = 
- do main <- initHTk [text "hsMines"]
+ do htk<- initHTk [withdrawMainWin]
+    run htk normalSize 
+
+run :: HTk-> (Int, Int)-> IO ()
+run htk currentSize = 
+ do main <- createToplevel [text "hsMines"]
     -- Main window menu 
     menubar <- createMenu main False []
     main # menu menubar
@@ -188,77 +203,69 @@ main =
     pmc2m <- createMenu main False []
     pmc2 # menu pmc2m
 
-    varSize <- createTkVariable "size2"
-    sr1 <- createMenuRadioButton pmc1m [text "tiny(6x6)", value "size1",
+    varSize <- createTkVariable currentSize
+    sr1 <- createMenuRadioButton pmc1m [text "tiny (6x6)", value tinySize,
                                         variable varSize]
-    sr2 <- createMenuRadioButton pmc1m [text "small(10x10)", value "size2",
+    sr2 <- createMenuRadioButton pmc1m [text "small (10x10)", value weeSize,
                                         variable varSize]
-    sr3 <- createMenuRadioButton pmc1m [text "normal(15x15)", value "size3",
+    sr3 <- createMenuRadioButton pmc1m [text "normal (15x15)", value normalSize,
                                         variable varSize]
-    sr4 <- createMenuRadioButton pmc1m [text "large(20x20)", value "size4",
+    sr4 <- createMenuRadioButton pmc1m [text "large (20x20)", value bigSize,
                                         variable varSize]
-    sr5 <- createMenuRadioButton pmc1m [text "huge(25x25)", value "size5",
+    sr5 <- createMenuRadioButton pmc1m [text "huge (25x25)", value hugeSize,
                                         variable varSize]
 
-    clickedsr <- clicked sr1
-    clickedsr <- clicked sr2
-    clickedsr <- clicked sr3
-    clickedsr <- clicked sr4
-    clickedsr <- clicked sr5
+    csr1 <- clicked sr1
+    csr2 <- clicked sr2
+    csr3 <- clicked sr3
+    csr4 <- clicked sr4
+    csr5 <- clicked sr5
 
-    varDiff <- createTkVariable "6"
-    dr1 <- createMenuRadioButton pmc2m [text "easy", value "8",
+    varDiff <- createTkVariable (6:: Int)
+    dr1 <- createMenuRadioButton pmc2m [text "easy", value (8::Int),
                                         variable varDiff]
-    dr2 <- createMenuRadioButton pmc2m [text "normal", value "6",
+    dr2 <- createMenuRadioButton pmc2m [text "normal", value (6::Int),
                                         variable varDiff]
-    dr3 <- createMenuRadioButton pmc2m [text "hard", value "4",
+    dr3 <- createMenuRadioButton pmc2m [text "hard", value (4::Int),
                                         variable varDiff]
-    dr4 <- createMenuRadioButton pmc2m [text "nuts", value "3",
+    dr4 <- createMenuRadioButton pmc2m [text "nuts", value (3::Int),
                                         variable varDiff]
-
-{-    clickeddr <- clicked dr1
-    clickeddr <- clicked dr2
-    clickeddr <- clicked dr3
-    clickeddr <- clicked dr4
--}    
-
-{-
-    _ <- createMenuCommand em [text "Cut"]
-    -- clickedb2 <- clicked b2
-    _ <- createMenuCommand em [text "Copy"]
-    -- clickedb3 <- clicked b3
-    _ <- createMenuCommand em [text "Paste"]
-    -- clickedb4 <- clicked b4
--}
 
     -- create the smiley button on top the mines
     sm <- newButton main [photo smSmileImg]
-    restart2Click <- clicked sm
+    startClick <- clicked sm
 
     restartCh <- newChannel
 
-    size <- detSize varSize
---    diff <- detDiff varDiff    
-
     bfr <- newFrame main [width (cm 10)]
+   
+    size <- readTkVariable varSize
     allbuttons <- buttons bfr sm (receive restartCh) size
 
     pack sm [Side AtTop, PadY 20, PadX 20, Anchor North]
 
     pack bfr [Side AtTop, PadX 15] 
     mapM_ (\(xy, b)-> grid b [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
+
+    let start :: IO () 
+        start = do diff <- readTkVariable varDiff
+                   sendIO restartCh diff
     
     -- start the menu handler
-    spawnEvent (forever (restartClick >>> sendIO restartCh ()
-                      +> restart2Click >>> sendIO restartCh ()
-                      +> quitClick >>> destroy main
-                      +> clickedsr >>> do size <- detSize varSize
-		                          done
---                      +> clickeddr >>> do diff <- detDiff varDiff
---		                          done
-                      ))
+    stopmh<- spawnEvent (forever (startClick >>> start
+                               +> quitClick >>> destroy htk
+                               +> choose [csr1, csr2, csr3, csr4, csr5] >>> 
+                                           createMessageWin "Changes come into effect after \"Restart\"." []
+                        ))
+
+    -- the restart handler (note no forever!)
+    spawnEvent (restartClick >>> do stopmh
+                                    destroy main
+                                    nuSize <- readTkVariable varSize
+                                    run htk nuSize)
+
     -- start the game
-    sendIO restartCh ()
+    start
 
     -- wait for game to stop, then clear up the mess
     finishHTk
