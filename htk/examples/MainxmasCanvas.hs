@@ -1,13 +1,13 @@
-{- ----------------------------------------------------------------------
- -
- - HTk Examples: Canvas #2
- -
- - This show the other canvas items, and how to use tags.
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -28,8 +28,8 @@ main =
     createImageItem c [position (cm 7, cm 5), photo frosty]
     createImageItem c [position (cm 10, cm 5), photo jingle]
 
-    createTextItem  c [position (cm 4, cm 2), text "Merry Xmas!",
-                       font (Helvetica, Bold, 24::Int)]
+    createTextItem c [position (cm 4, cm 2), text "Merry Xmas!",
+                      font (Helvetica, Bold, 24::Int)]
 
     createLine c [coord [(cm 2, cm 8), (cm 3, cm 9), 
                          (cm 3, cm 8), (cm 2, cm 9), (cm 4, cm 8.5)],
@@ -66,4 +66,4 @@ main =
 
     spawnEvent (forever notmoving)
 
-    finishHTk main
+    finishHTk

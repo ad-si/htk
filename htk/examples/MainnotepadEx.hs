@@ -119,7 +119,7 @@ main =
                                               full nm ++ "\n")
                                      _ -> done)) +>
                          (controla >> always (selectAll notepad))))
-    finishHTk win
+    finishHTk
 
   where showMsg :: Editor String -> String -> IO ()
         showMsg ed txt =

@@ -33,4 +33,4 @@ main =
      clickedqb <- clicked qb
      spawnEvent (clickedqb >>> destroy main)
 
-     finishHTk main
+     finishHTk

@@ -26,7 +26,7 @@ import CanvasItemAux
 import Destructible
 import Computation
 import Synchronized
-        
+
 
 -- -----------------------------------------------------------------------
 -- Rectangle
@@ -41,7 +41,7 @@ data Rectangle = Rectangle GUIOBJECT
 
 createRectangle :: Canvas -> [Config Rectangle] -> IO Rectangle
 createRectangle cnv ol =
-  createCanvasItem cnv RECTANGLE Rectangle ol [(0,0),(0,0)]
+  createCanvasItem cnv RECTANGLE Rectangle ol [(-1,-1),(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

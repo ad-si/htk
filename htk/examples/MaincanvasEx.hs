@@ -1,14 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - HTk Examples: Canvas #1
- -
- - This example demonstrates canvasses.
- -
- - Author: cxl 
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -28,7 +27,7 @@ main =
                               always (do
                                         putRect cnv ("yellow", (x, y)))
     spawnEvent (forever listenMouseClicks)
-    finishHTk main
+    finishHTk
 
 putRects cnv = mapM (putRect cnv) [("red", (cm 0.2, cm 4)),
 			           ("green", (cm 2.2, cm 4)),

@@ -315,9 +315,10 @@ withdrawMainWin htk =
 -- This rebinds the Destroy event of the main window, so 
 -- do not call this function if you have bound anything to that.
 -- In that case, call cleanupWish after you have finished with wish.
-finishHTk :: HTk-> IO ()
-finishHTk main =
-   do (htk_destr, _) <- bindSimple main Destroy
+finishHTk :: IO ()
+finishHTk =
+   do htk <- getHTk
+      (htk_destr, _) <- bindSimple htk Destroy
       sync htk_destr
       cleanupWish
 

@@ -42,7 +42,7 @@ main = do
                              borderwidth (mm 1), font bigfont]
          pack l4 [PadX 10]
 
-         finishHTk main
+         finishHTk
 
        where bigfont=  xfont {family = Just Lucida, weight = Just Bold, 
 	        	      pixels = (Just 18)}

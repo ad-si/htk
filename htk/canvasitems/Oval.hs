@@ -1,24 +1,22 @@
-{- #######################################################################
-
-MODULE        : Oval
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Canvas Widget & Canvas Tags & Embedded Windows
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Oval (
 
-        module CanvasItem,
+  module CanvasItem,
 
-        Oval,
-        createOval
+  Oval,
+  createOval
 
-        ) where
+) where
 
 import Core
 import Configuration
@@ -42,7 +40,8 @@ newtype Oval = Oval GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 createOval :: Canvas -> [Config Oval] -> IO Oval
-createOval cnv ol = createCanvasItem cnv OVAL Oval ol [(0,0),(0,0)]
+createOval cnv ol =
+  createCanvasItem cnv OVAL Oval ol [(-1,-1),(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

@@ -30,7 +30,7 @@ main =
 				      putStrLn ("Selected "++ 
 					        show (sel::
                                                         Maybe [Int])))))
-    finishHTk main
+    finishHTk
 
   where numbers =
           ["One", "Two", "Three", "Four", "Five", "Six", "Seven",

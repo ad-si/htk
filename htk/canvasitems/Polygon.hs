@@ -1,22 +1,22 @@
-{- #######################################################################
-
-MODULE        : Polygon
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : 
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Polygon (
-        module CanvasItem,
 
-        Polygon,
-        createPolygon
-        ) where
+  module CanvasItem,
+
+  Polygon,
+  createPolygon
+
+) where
 
 import Core
 import CanvasItem
@@ -40,7 +40,7 @@ newtype Polygon = Polygon GUIOBJECT deriving Eq
 
 createPolygon :: Canvas -> [Config Polygon] -> IO Polygon
 createPolygon cnv ol =
-  createCanvasItem cnv POLYGON Polygon ol [(0,0),(0,0),(0,0)]
+  createCanvasItem cnv POLYGON Polygon ol [(-1,-1),(-1,-1),(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

@@ -10,6 +10,7 @@
 -- -----------------------------------------------------------------------
 
 module Arc (
+
   module CanvasItem,
 
   Arc,
@@ -45,7 +46,8 @@ data Arc = Arc GUIOBJECT
 -- -----------------------------------------------------------------------
 
 createArc :: Canvas -> [Config Arc] -> IO Arc
-createArc cnv ol = createCanvasItem cnv ARC Arc ol [(0,0),(0,0)]
+createArc cnv ol =
+  createCanvasItem cnv ARC Arc ol [(-1,-1),(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

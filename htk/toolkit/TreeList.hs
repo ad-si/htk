@@ -953,18 +953,18 @@ mkTreeListObject tl val isnode isopen cnf =
     box <- newHBox (cnv tl) [background "white"]
     drawnstuff <-
       do
-        hline <- createLine (cnv tl) [coord [(-50, -50), (-50, -50)]]
-        vline <- createLine (cnv tl) [coord [(-50, -50), (-50, -50)]]
+        hline <- createLine (cnv tl) [coord [(-200, -200), (-200, -200)]]
+        vline <- createLine (cnv tl) [coord [(-200, -200), (-200, -200)]]
         return (hline, vline)
     pho <- if isopen then minusImg else plusImg
-    plusminus <- createImageItem (cnv tl) [coord [(-50, -50)], photo pho,
-                                           canvAnchor NorthWest]
+    plusminus <- createImageItem (cnv tl)
+                   [coord [(-200, -200)], photo pho, canvAnchor NorthWest]
     img <- newLabel box [background "white"]
     pack img [Side AtLeft]
     txt <- newLabel box [background "white", font (Lucida, 12::Int)]
     pack txt [Side AtRight]
-    emb <- createEmbeddedCanvasWin (cnv tl) box [canvAnchor NorthWest,
-                                                 coord [(-50, -50)]]
+    emb <- createEmbeddedCanvasWin (cnv tl) box [coord [(-200, -200)],
+                                                 canvAnchor NorthWest]
     unbind_actions <- newRef []
     let obj = TREELISTOBJECT { val = val,
                                treelist = tl,

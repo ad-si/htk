@@ -42,4 +42,4 @@ main =
                           (entered >>> do txt <- readTkVariable v1
 				          main # text txt >> done)))
 
-     finishHTk main
+     finishHTk

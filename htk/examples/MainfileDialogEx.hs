@@ -42,4 +42,4 @@ main =
                                    msg # text ("selected " ++ fp) >> done
                                  _ -> msg #
                                         text "dialog canceled" >> done)))
-    finishHTk main
+    finishHTk

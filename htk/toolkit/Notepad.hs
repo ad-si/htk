@@ -93,12 +93,13 @@ enteredItem notepad item =
                       Just (x1, y1, x2, y2) <-
                         bbox (canvas notepad) (it_txt item)
                       b <- isNotepadItemSelected notepad item
-                      let colconf =
-                            if b then [filling "blue", outline "blue"]
-                            else [filling "white", outline "black"]
                       rect <- createRectangle (canvas notepad)
                                 (coord [(x1 - 5, y1 - 1),
-                                        (x2 + 5, y2 + 1)] : colconf)
+                                        (x2 + 5, y2 + 1)] :
+                                 (if b then [filling "blue",
+                                             outline "blue"]
+                                  else [filling "white",
+                                        outline "black"]))
                       putItemOnTop rect
                       putItemOnTop (it_txt item)
                       setRef (it_long_name_bg item) (Just rect)
@@ -130,11 +131,13 @@ createNotepadItem :: CItem c => c -> Notepad c ->
 createNotepadItem val notepad cnf =
   do
     pho <- getIcon val
-    img <- createImageItem (canvas notepad) [photo pho]
+    img <- createImageItem (canvas notepad) [coord [(-200, -200)],
+                                             photo pho]
     let (Distance dx, _) = img_size notepad
         len = div (dx + 80) char_px
     nm <- getName val
-    txt <- createTextItem (canvas notepad) [font (Helvetica, 10 :: Int),
+    txt <- createTextItem (canvas notepad) [coord [(-200, -200)],
+                                            font (Helvetica, 10 :: Int),
                                             text (short nm len)]
     itemval <- newRef val
     itemsel <- newRef Nothing
@@ -146,23 +149,6 @@ createNotepadItem val notepad cnf =
                              it_long_name_bg = lnbg,
                              it_bg = itemsel }
     foldl (>>=) (return item) cnf
-
-{-
-    (enter1, _) <- bindSimple img Enter
-    (leave1, _) <- bindSimple img Leave
-    (enter2, _) <- bindSimple txt Enter
-    (leave2, _) <- bindSimple txt Leave
-
-    let listenItem :: Event ()
-        listenItem =
-             (enter1 >>> enteredItem notepad item)
-          +> (leave1 >>> leftItem notepad item)
-          +> (enter2 >>> enteredItem notepad item)
-          +> (leave2 >>> leftItem notepad item)
-
-    spawnEvent (forever listenItem)
--}
-
     addItemToState notepad item
     return item
 
@@ -186,7 +172,7 @@ instance HasPosition (NotepadItem a) where
   position p@(x, y) item =
     itemPositionD2 p (it_img item) >>
     let (Distance iwidth, Distance iheight) = it_img_size item
-    in itemPositionD2 (x, y + Distance (div iheight 2 + 10))
+    in itemPositionD2 (x, y + Distance (div iheight 2 + 7))
                       (it_txt item) >>
        return item
   getPosition item = getItemPositionD2 (it_img item)
@@ -299,22 +285,21 @@ highlight cnv item =
       Nothing -> do
                    (x, y) <- getPosition item
                    rect1 <- createRectangle cnv
-                              [filling "blue", outline "blue",
-                               coord
-                                 [(x - Distance (div iwidth 2 + 1),
-                                   y - Distance (div iheight 2 + 1)),
-                                  (x + Distance (div iwidth 2),
-                                   y + Distance (div iheight 2 + 4))]]
+                              [coord [(x - Distance (div iwidth 2 + 1),
+                                       y - Distance (div iheight 2 + 1)),
+                                      (x + Distance (div iwidth 2),
+                                       y + Distance (div iheight 2))],
+                               filling "blue", outline "blue"]
                    putItemAtBottom rect1
                    rect2 <- createRectangle cnv
-                              [filling "blue", outline "blue",
-                               coord
-                                 [(x - Distance
-                                         (max (div iwidth 2 + 40) 40),
-                                   y + Distance (div iheight 2 + 4)),
-                                  (x + Distance
-                                         (max (div iwidth 2 + 40) 40),
-                                   y + Distance (div iheight 2 + 17))]]
+                              [coord [(x - Distance
+                                             (max (div iwidth 2 + 40) 40),
+                                       y + Distance (div iheight 2)),
+                                      (x + Distance
+                                             (max (div iwidth 2 + 40) 40),
+                                       y + Distance
+                                             (div iheight 2 + 14))],
+                               filling "blue", outline "blue"]
                    putItemAtBottom rect2
                    setRef (it_bg item) (Just (rect1, rect2))
       Just _  -> done
@@ -539,21 +524,20 @@ newNotepad par scrolltype imgsize mstate cnf =
                   let (Distance iwidth, Distance iheight) =
                         it_img_size item
                   rect1 <- createRectangle (canvas notepad)
-                             [filling "yellow", outline "yellow",
-                              coord [(x - Distance (div iwidth 2 + 1),
+                             [coord [(x - Distance (div iwidth 2 + 1),
                                       y - Distance (div iheight 2 + 1)),
                                      (x + Distance (div iwidth 2),
-                                      y + Distance (div iheight 2 + 4))]]
+                                      y + Distance (div iheight 2))],
+                              filling "yellow", outline "yellow"]
                   putItemAtBottom rect1
                   rect2 <- createRectangle (canvas notepad)
-                             [filling "yellow", outline "yellow",
-                              coord
-                                [(x - Distance
-                                        (max (div iwidth 2 + 40) 40),
-                                  y + Distance (div iheight 2 + 4)),
-                                 (x + Distance
-                                        (max (div iwidth 2 + 40) 40),
-                                  y + Distance (div iheight 2 + 17))]]
+                             [coord [(x - Distance
+                                            (max (div iwidth 2 + 40) 40),
+                                      y + Distance (div iheight 2)),
+                                     (x + Distance
+                                            (max (div iwidth 2 + 40) 40),
+                                      y + Distance (div iheight 2 + 14))],
+                              filling "yellow", outline "yellow"]
                   putItemAtBottom rect2
                   setRef (drop_item notepad) (Just (item, rect1, rect2))
 
@@ -700,20 +684,6 @@ newNotepad par scrolltype imgsize mstate cnf =
                     enteredItem notepad (fromJust new)
                   else
                     done)
-
-{-
-               case last of
-                 Just item -> if isJust new then
-                                let newitem = fromJust new
-                                in if item /= fromJust new then
-                                     leftItem notepad item >>
-                                     enteredItem notepad newitem
-                                   else leftItem notepad item
-                              else done
-                 _ -> if isJust new then enteredItem notepad
-                                                     (fromJust new)
-                      else done
--}
 
         listenNotepad :: Event ()
         listenNotepad =

@@ -1,19 +1,16 @@
-{- #######################################################################
-
-MODULE        : BitMapItem
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : BitMap Item
-
-TO BE DONE    : anchor config option
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module BitMapItem (
+
   module CanvasItem,
 
   BitMapItem,
@@ -45,7 +42,7 @@ newtype BitMapItem = BitMapItem GUIOBJECT deriving Eq
 
 createBitMapItem :: Canvas -> [Config BitMapItem] -> IO BitMapItem
 createBitMapItem cnv ol =
-  createCanvasItem cnv BITMAPITEM BitMapItem ol [(0,0)]
+  createCanvasItem cnv BITMAPITEM BitMapItem ol [(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

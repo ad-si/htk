@@ -1,15 +1,13 @@
-{- #######################################################################
-
-MODULE        : TextItem
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Text items
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module TextItem (
 
@@ -42,7 +40,8 @@ newtype TextItem = TextItem GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 createTextItem :: Canvas -> [Config TextItem] -> IO TextItem
-createTextItem cnv ol = createCanvasItem cnv TEXTITEM TextItem ol [(0,0)]
+createTextItem cnv ol =
+  createCanvasItem cnv TEXTITEM TextItem ol [(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

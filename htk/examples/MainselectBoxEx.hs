@@ -36,4 +36,4 @@ main =
     b3_2 <- addButton sb2 [text "Button3.2"] [] :: IO (Button String)
     b4_2 <- addButton sb2 [text "Button4.2"] [] :: IO (Button String)
 
-    finishHTk main
+    finishHTk

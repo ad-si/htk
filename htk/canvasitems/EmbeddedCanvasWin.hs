@@ -48,7 +48,7 @@ createEmbeddedCanvasWin :: Widget w => Canvas -> w ->
 createEmbeddedCanvasWin cnv w ol =
   do
     cit <- createCanvasItem cnv EMBEDDEDCANVASWIN EmbeddedCanvasWin ol
-                            [(0,0)]
+                            [(-1,-1)]
     sub_nm <- getObjectName (toGUIObject w)
     CanvasItemName nm tid <- getObjectName (toGUIObject cit)
     execTclScript ["global " ++ (drop 1 (show tid)),

@@ -149,4 +149,4 @@ main =
     ed # new txt
     ed # insertAt add_txt (4,5)
 
-    finishHTk htk
+    finishHTk

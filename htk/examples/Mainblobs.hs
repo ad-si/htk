@@ -51,7 +51,7 @@ main =
                                      col <- randomColour
 			             c <- colourDot cnv x y col
 			             spawn (sparkle c (x,y) col 0 255))))
-    finishHTk main
+    finishHTk
 
    where colourDot cnv x y col = createOval cnv [filling col, size (2, 2),
                                                  position (x - 1, y - 1)]

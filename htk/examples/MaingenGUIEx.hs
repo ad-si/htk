@@ -353,11 +353,11 @@ main =
     pack top [PadX 5, PadY 5, Fill X, Expand On]
 
     l <- newLabel top [text "add items to selected folder:",
-                       font (Helvetica, 12 :: Int), bg "green"]
+                       anchor Center, font (Helvetica, 12 :: Int)]
     pack l [PadX 100, Fill X, Expand On]
 
     foldlab <- newLabel top [text "no folder selected", relief Sunken,
-                             fg "blue", bg "green"]
+                             anchor Center, fg "blue"]
     pack foldlab [PadX 100, Fill X, Expand On]
 
 {-
@@ -586,7 +586,7 @@ main =
                             doubleClickNp)))
 -}
     addExampleFolders newID gui
-    finishHTk main
+    finishHTk
 
 imgSelected :: Button () -> IO Image -> IO ()
 imgSelected but img =

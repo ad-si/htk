@@ -1,17 +1,13 @@
-{- #######################################################################
-
-MODULE        : ImageItem
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : 
-
-TO BE DONE    : anchor config option
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module ImageItem (
 
@@ -46,7 +42,7 @@ newtype ImageItem = ImageItem GUIOBJECT deriving Eq
 
 createImageItem :: Canvas -> [Config ImageItem] -> IO ImageItem
 createImageItem cnv ol =
-  createCanvasItem cnv IMAGEITEM ImageItem ol [(0,0)]
+  createCanvasItem cnv IMAGEITEM ImageItem ol [(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

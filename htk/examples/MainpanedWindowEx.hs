@@ -38,4 +38,4 @@ main =
     but3 <- newButton panev2 [text "pane3"] :: IO (Button String)
     pack but3 [Fill Both, Expand On]
 
-    finishHTk main
+    finishHTk

@@ -167,7 +167,7 @@ main =
                                             yRoot eventInfo)
                                            (Nothing :: Maybe HTk)
 				 putStrLn "We've popped up")))
-    finishHTk main
+    finishHTk
 
   where selected :: GUIValue a => String -> TkVariable a -> IO ()
         selected nm var =

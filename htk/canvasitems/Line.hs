@@ -60,7 +60,8 @@ type ArrowShape = (Distance,Distance,Distance)
 -- -----------------------------------------------------------------------
 
 createLine :: Canvas -> [Config Line] -> IO Line
-createLine cnv ol = createCanvasItem cnv LINE Line ol [(0,0),(0,0)]
+createLine cnv ol =
+  createCanvasItem cnv LINE Line ol [(-1,-1),(-1,-1)]
 
 
 -- -----------------------------------------------------------------------

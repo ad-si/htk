@@ -34,4 +34,4 @@ main =
      spawnEvent (forever (clickednb >>>
                           do bunt <- randomColour
                              l # foreground bunt))
-     finishHTk main
+     finishHTk

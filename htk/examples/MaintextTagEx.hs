@@ -69,4 +69,4 @@ main =
              :: IO (Button String)
     createEmbeddedTextWin ed (IndexPos (9,0)) but []
 
-    finishHTk main
+    finishHTk

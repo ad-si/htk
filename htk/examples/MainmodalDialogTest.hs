@@ -18,7 +18,7 @@ import MarkupText
 import InputWin
 import InputForm
 
-data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int}  
+data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int}
 
 main :: IO ()
 main =
@@ -111,4 +111,4 @@ main =
  
   clickedbut2 <- clicked but2
   spawnEvent (forever (clickedbut2 >> always (destroy htk))) 
-  finishHTk htk
+  finishHTk
