@@ -35,17 +35,17 @@
 <!-- ======================== ENTITIES ==================================== -->
 
 <!ENTITY % structure-attr "label        CDATA  #IMPLIED
-                           title        CDATA  #IMPLIED
-                           formalisms   CDATA  #IMPLIED">
+                           title        CDATA  #IMPLIED">
+
 
 <!ENTITY % version-attr "version          CDATA  #IMPLIED
                          date             CDATA  #IMPLIED
                          comment          CDATA  #IMPLIED
                          previousVersion  CDATA  #IMPLIED
                          authors          CDATA  #IMPLIED
-                         priorAuthors     CDATA  #IMPLIED
-                         shortAuthor      CDATA  #IMPLIED
-                         shortTitle       CDATA  #IMPLIED">
+                         priorAuthors     CDATA  #IMPLIED">
+
+                         
 
 <!-- The special xml:lang-Attribute holds values defined by IETF RFC 1766
     which are constructed from the two-letter codes of ISO 639 and the
@@ -83,7 +83,9 @@
 <!-- Layout and paedagogic attributes still have to be defined. Will be
      enumerations.  -->
 
-<!ENTITY % layout-attr " ">
+<!ENTITY % layout-attr "shortAuthor      CDATA  #IMPLIED
+                        shortTitle       CDATA  #IMPLIED">
+
 <!ENTITY % paedagogic-attr " ">
 
 <!ENTITY % attributes "%structure-attr;
@@ -220,11 +222,13 @@
 <?MMiSSDisplay textFragment : Green box ?>
 
 <!ELEMENT table %text;>
-<!ATTLIST table %attributes;>
+<!ATTLIST table caption    CDATA  #IMPLIED
+                %attributes;>
 <?MMiSSDisplay table : Green ellipse ?>
 
 <!ELEMENT figure  EMPTY>
-<!ATTLIST figure  %attributes;>
+<!ATTLIST figure  caption    CDATA  #IMPLIED
+                  %attributes;>
 <?MMiSSDisplay figure : Green ellipse ?>
 
 <!ELEMENT glossaryEntry  %text;>
