@@ -14,7 +14,6 @@ import Computation
 import ExtendedPrelude(catchOurExceps)
 import Sources
 import Broadcaster
-import FileSystem
 import Store
 import VariableSet(HasKey(..))
 import ICStringLen(ICStringLen)
@@ -93,7 +92,6 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
      objects1 <- newRegistry
 
      viewInfoBroadcaster1 <- newSimpleBroadcaster toVersionInfo
-     fileSystem1 <- newFileSystem
      commitLock1 <- newVSem
      delayer1 <- newDelayer
      committingVersion1 <- newMVar Nothing
@@ -104,7 +102,6 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            viewId = viewId1,
            objects = objects1,
            viewInfoBroadcaster = viewInfoBroadcaster1,
-           fileSystem = fileSystem1,
            commitLock = commitLock1,
            delayer = delayer1,
            committingVersion = committingVersion1,

@@ -55,7 +55,6 @@ import Registry
 import Dynamics
 import AtomString(fromString)
 import Object
-import FileSystem
 import CopyFile
 import Sources
 import Broadcaster
@@ -105,7 +104,6 @@ newView repository =
       objects <- newRegistry
       viewInfoBroadcaster <- newSimpleBroadcaster topVersionInfo
       viewIdObj <- newObject
-      fileSystem <- newFileSystem
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
@@ -116,7 +114,6 @@ newView repository =
          repository = repository,
          objects = objects,
          viewInfoBroadcaster = viewInfoBroadcaster,
-         fileSystem = fileSystem,
          commitLock = commitLock,
          delayer = delayer,
          committingVersion = committingVersion,
@@ -157,7 +154,6 @@ getView repository versionGraph objectVersion =
       
       objects <- newRegistry
       viewInfoBroadcaster <- newSimpleBroadcaster viewInfo1
-      fileSystem <- newFileSystem
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
@@ -168,7 +164,6 @@ getView repository versionGraph objectVersion =
             repository = repository,
             objects = objects,
             viewInfoBroadcaster = viewInfoBroadcaster,
-            fileSystem = fileSystem,
             commitLock = commitLock,
             delayer = delayer,
             committingVersion = committingVersion,

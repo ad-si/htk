@@ -16,7 +16,6 @@ import ExtendedPrelude
 import Object
 import Broadcaster
 import Sources
-import FileSystem
 import Registry
 import Delayer
 import DeepSeq
@@ -106,7 +105,6 @@ mergeViews (views @ (firstView:_)) =
                versionGraph1a = versionGraph1 firstView
 
             objects1 <- newRegistry
-            fileSystem1 <- newFileSystem
             commitLock1 <- newVSem
             delayer1 <- newDelayer
 
@@ -136,7 +134,6 @@ mergeViews (views @ (firstView:_)) =
                   repository = repository1,
                   viewInfoBroadcaster = viewInfoBroadcaster1,
                   objects = objects1,
-                  fileSystem = fileSystem1,
                   commitLock = commitLock1,
                   delayer = delayer1,
                   committingVersion = committingVersion,

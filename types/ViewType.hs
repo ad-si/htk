@@ -28,7 +28,6 @@ import Object
 import Dynamics
 import Registry
 import UniqueFile
-import FileSystem
 import Broadcaster
 import Sources
 import Delayer
@@ -55,9 +54,6 @@ data View = View {
       -- The server part is usually junk, and discarded on commit.
       -- However we keep it, as it needs to be preserved on transmitting
       -- a view from one repository to another.
-
-   -- Contains "real" copies of files for the benefit of tools
-   fileSystem :: FileSystem,
 
    -- locally locked while some update operations are going on;
    -- globally locked during commits.
