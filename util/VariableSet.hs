@@ -11,6 +11,7 @@ module VariableSet(
    newEmptyVariableSet,
    newVariableSet,
    updateSet,
+   setVariableSet,
 
    VariableSetSource,
 
@@ -23,6 +24,7 @@ import Maybe
 import Set
 import Concurrent
 
+import Computation
 import Dynamics
 import Sink
 import Broadcaster
@@ -121,6 +123,26 @@ updateSet :: HasKey x key => VariableSet x -> VariableSetUpdate x -> IO ()
 updateSet (VariableSet broadcaster) update = 
    updateBroadcaster broadcaster update
 
+---
+-- Set the elements of the variable set.
+setVariableSet :: HasKey x key => VariableSet x -> [x] -> IO ()
+setVariableSet (VariableSet broadcaster) newList =
+   do
+     let
+        newSet = mkSet (map Keyed newList)
+
+        updateFn (VariableSetData oldSet) =
+           let
+              toAddList = map unKey (setToList (minusSet newSet oldSet))
+              toDeleteList = map unKey (setToList (minusSet oldSet newSet))
+              updates = 
+                 (map DelElement toDeleteList) ++ (map AddElement toAddList)
+           in
+              (VariableSetData newSet,updates)
+
+     -- try to avoid lengthy evaluations of newSet while broadcaster is
+     -- locked.
+     seq (cardinality newSet) (anyUpdateBroadcaster broadcaster updateFn)
 
 -- --------------------------------------------------------------------
 -- The client's interface

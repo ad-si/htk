@@ -11,6 +11,7 @@ module Sink(
    newSinkGeneral,
 
    putSink,
+   putSinkMultiple,
    coMapSink,
    coMapSink',
    coMapIOSink',
@@ -23,6 +24,8 @@ module Sink(
    mapSinkSourceIO,
    pairSinkSource,
    ) where
+
+import Monad
 
 import Concurrent
 import IOExts
@@ -122,6 +125,19 @@ putSink sink x =
       interested <- isInterested (sinkID sink)
       if interested then (action sink x) else done
       return interested
+---
+-- Put a list of values into the sink, returning False if the sink id has been 
+-- invalidated
+putSinkMultiple :: Sink x -> [x] -> IO Bool
+putSinkMultiple sink [] = return True
+putSinkMultiple sink (x:xs) =
+   do
+      interested <- putSink sink x
+      if interested
+         then 
+            putSinkMultiple sink xs
+         else
+            return interested
 
 ---
 -- Convert a sink from one type to another
