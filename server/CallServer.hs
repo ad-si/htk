@@ -49,7 +49,6 @@ import Object
 import ExtendedPrelude
 import BinaryAll
 import Messages
-import WBFiles(getServer)
 
 import Destructible
 
@@ -191,17 +190,6 @@ destroySimple (connection@Connection {handle = handle}) =
 
 instance Destroyable Connection where
    destroy = destroyAct 
-------------------------------------------------------------------------
--- getHost is used by all of them
-------------------------------------------------------------------------
-
-getHost :: IO String
-getHost =
-   do
-      hostOpt <- getServer
-      case hostOpt of
-         Nothing -> error "CallServer: server unset"
-         Just host -> return host
 
 ------------------------------------------------------------------------
 -- This function does the work of opening a connection, sending the userId
@@ -268,9 +256,11 @@ connectBasic service =
 -- -------------------------------------------------------------------
 
 tryConnect :: IO a -> IO (Either String a)
+connectFailure :: String -> a
+connectFailureId :: ObjectID
+mkConnectFallOut :: (ObjectID,IO a -> IO (Either String a))
 
 connectFailure = mkBreakFn connectFailureId
-
 (connectFailureId,tryConnect) = mkConnectFallOut
 
 mkConnectFallOut = unsafePerformIO newFallOut

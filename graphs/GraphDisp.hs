@@ -185,9 +185,8 @@ module GraphDisp(
 
    ) where
 
+import Data.Typeable
 import Dynamics
-import ExtendedPrelude(monadDot)
-import Computation(HasConfig(..))
 import VariableList hiding (redraw)
 import Delayer(HasDelayer(..))
 

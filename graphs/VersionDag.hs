@@ -29,7 +29,6 @@ module VersionDag(
 import Maybe
 
 import Data.FiniteMap
-import Control.Concurrent.MVar
 
 import Sources
 import Broadcaster
@@ -37,7 +36,6 @@ import Broadcaster
 import Graph
 import PureGraph 
 import FindCommonParents
-import NewNames
 import PureGraphPrune
 import PureGraphToGraph
 import PureGraphMakeConsistent

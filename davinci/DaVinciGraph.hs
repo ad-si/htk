@@ -37,7 +37,6 @@ import Dynamics
 import Registry
 import Computation
 import ExtendedPrelude
-import Debug(debug)
 import Thread
 import CompileFlags
 import Messages
@@ -842,6 +841,7 @@ instance DeleteNode DaVinciGraph DaVinciNode where
 
 instance NodeClass DaVinciNode
 
+daVinciNodeTyRep :: TyRep
 daVinciNodeTyRep = mkTyRep "DaVinciGraph" "DaVinciNode"
 
 instance HasTyRep1 DaVinciNode where
@@ -849,6 +849,7 @@ instance HasTyRep1 DaVinciNode where
 
 instance NodeTypeClass DaVinciNodeType
 
+daVinciNodeTypeTyRep :: TyRep
 daVinciNodeTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciNodeType"
 
 instance HasTyRep1 DaVinciNodeType where
@@ -1186,11 +1187,13 @@ instance DeleteArc DaVinciGraph DaVinciArc where
 
 instance ArcClass DaVinciArc
 
+daVinciArcTyRep :: TyRep
 daVinciArcTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArc"
 
 instance HasTyRep1 DaVinciArc where
    tyRep1 _ = daVinciArcTyRep
 
+daVinciArcTypeTyRep :: TyRep
 daVinciArcTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArcType"
 
 instance HasTyRep1 DaVinciArcType where
@@ -1204,7 +1207,10 @@ instance Ord1 DaVinciArcType where
 
 instance ArcTypeClass DaVinciArcType where
    invisibleArcType = DaVinciArcType {
-      arcType = Type (UniqueString.newNonUnique "Invisible")
+      arcType = Type (UniqueString.newNonUnique "Invisible"),
+      arcMenuActions = error "daVinciGraph.invisible1",
+      arcDoubleClickAction = error "daVinciGraph.invisible2",
+      arcArcText = error "daVinciGraph.invisible3"
       }
 
 instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where

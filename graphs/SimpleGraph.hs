@@ -42,7 +42,6 @@ import List(delete)
 import Control.Concurrent
 import Control.Exception(try)
 
-import Debug(debug)
 import Computation (done)
 import Object
 import Registry

@@ -5,7 +5,7 @@
 
 
 PACKAGE = uni-HaXml
-PACKAGES = text data uni-util
+PACKAGES = uni-util
 
 HAXML = @TOP@/HaXml-1.11/src
 

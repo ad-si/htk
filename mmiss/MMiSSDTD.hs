@@ -42,7 +42,7 @@ import Computation
 
 import DisplayParms
 
-import Pretty
+import Text.PrettyPrint
 import Text.XML.HaXml.Pretty
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse

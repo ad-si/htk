@@ -23,7 +23,6 @@ import Control.Concurrent(forkIO,killThread)
 import Registry
 import Computation(done)
 import Object
-import Debug(debug)
 import Dynamics
 
 import InfoBus

@@ -17,7 +17,6 @@ import Graph
 import SimpleGraph
 import GraphEditor
 import BinaryAll
-import Debug(debug)
 
 data FrozenGraph = FrozenGraph {
    graphState' :: DisplayableCannedGraph,

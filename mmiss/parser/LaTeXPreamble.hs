@@ -14,6 +14,9 @@ module LaTeXPreamble (
   )
 where
 
+
+import Text.ParserCombinators.Parsec
+
 import ExtendedPrelude(mapEq)
 import List
 import Computation hiding (try)
@@ -22,8 +25,6 @@ import AtomString
 import BinaryAll(Choice5(..))
 
 import LaTeXParserCore
-import Parsec
-import ParsecError
 import EntityNames
 import CodedValue
 import FileNames

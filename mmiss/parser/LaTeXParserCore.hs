@@ -57,7 +57,6 @@ import Text.ParserCombinators.Parsec
 import Dynamics
 import Computation hiding (try)
 import ExtendedPrelude(unsplitByChar,mapEq)
-import ParsecError
 import EmacsContent
 import EntityNames
 import AtomString

@@ -10,9 +10,8 @@ module Main(main) where
 
 import System
 
-import Posix
+import System.Posix
 
-import Debug(debug)
 import WBFiles
 
 import Events
@@ -27,6 +26,7 @@ import DaVinciGraph
 import Initialisation
 import VersionGraph
 
+main :: IO ()
 main =
    do
       parseArgumentsRequiring [

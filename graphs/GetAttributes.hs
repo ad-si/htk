@@ -12,16 +12,14 @@ module GetAttributes(
    displayError, -- :: String -> IO ()
    ) where
 
-import Exception
+import Control.Exception
 
 import Computation (done)
-import QuickReadShow
 import Dynamics
 import Registry
+import Messages
 
 import HTk hiding (Icon)
-import ModalDialog
-import DialogWin
 import InputWin
 import InputForm
 
@@ -40,12 +38,7 @@ instance GUIValue ShapeSort where
 data NodeTypeAttributes nodeLabel = NodeTypeAttributes {
    shape :: GraphConfigure.Shape nodeLabel,
    nodeTypeTitle :: String
-   } deriving (Read,Show)
-
-nodeTypeAttributes_tycon = mkTyRep "GetAttributes" "NodeTypeAttributes"
-
-instance HasTyRep1 NodeTypeAttributes where
-   tyRep1 _ = nodeTypeAttributes_tycon
+   } deriving (Read,Show,Typeable)
 
 data PreAttributes = PreAttributes {
    shapeSort :: ShapeSort,
@@ -102,12 +95,7 @@ getNodeTypeAttributes1 =
 data NodeAttributes nodeType = NodeAttributes {
    nodeType :: nodeType,
    nodeTitle :: String
-   } deriving (Read,Show)
-
-nodeAttributes_tycon = mkTyRep "GetAttributes" "NodeAttributes"
-
-instance HasTyRep1 NodeAttributes where
-   tyRep1 _ = nodeAttributes_tycon
+   } deriving (Read,Show,Typeable)
 
 data NodePreAttributes = NodePreAttributes {
    preNodeType :: String,
@@ -191,12 +179,7 @@ getArcTypeAttributes =
 
 data ArcAttributes arcType = ArcAttributes {
    arcType :: arcType
-   } deriving (Read,Show)
-
-arcAttributes_tycon = mkTyRep "GetAttributes" "ArcAttributes"
-
-instance HasTyRep1 ArcAttributes where
-   tyRep1 _ = arcAttributes_tycon
+   } deriving (Read,Show,Typeable)
 
 data ArcPreAttributes = ArcPreAttributes {
    preArcType :: String
@@ -246,19 +229,8 @@ getArcAttributes registry =
 ------------------------------------------------------------------------
 
 displayError :: String -> IO ()
--- This displays an error message until the user clicks "Try Again".
-displayError message = createErrorWin message []
-{-
-   do
-      frame <- newFrame []
-      win <- window frame [text "Error"]
-      newLabel [value message,parent frame]
-      ackButton <- newButton [text "Try Again",parent frame,
-         command (\ () -> destroy win)]
-      interactor (\iact -> triggered ackButton >>> stop iact)
-      sync(destroyed win)
- -} 
-
+-- This displays an error message.
+displayError = errorMess 
 
 getSingleString :: String -> IO String
 -- This gets a single string from the user, prompting with the argument

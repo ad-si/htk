@@ -8,12 +8,10 @@ import Maybe
 import List
 
 import Data.FiniteMap
-import Control.Concurrent.MVar
 import Data.IORef
 
 import Computation(done)
 import Sources
-import Broadcaster
 import Sink
 import AtomString
 import ExtendedPrelude
@@ -46,13 +44,6 @@ pureGraphToGraph :: (Ord nodeKey,Ord arcInfo,Eq nodeInfo)
 pureGraphToGraph (simpleSource 
       :: SimpleSource (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)) =
    let
-      debugSource :: Show (PartialShow a) 
-         => String -> SimpleSource a -> SimpleSource a
-      debugSource t = traceSimpleSource (\ a -> t ++ ":" 
-         ++ show (PartialShow a))
-
-
-
       source1 :: 
          Source (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo) 
                 (PureGraph nodeKey arcInfo,nodeKey -> nodeInfo)

@@ -48,11 +48,6 @@ module Graph(
    -- Like instances of Graph, parameterised on 
    -- nodeLabel, nodeTypeLabel, arcLabel, arcTypeLabel.
 
-   -- Utility functions.
-   newEmptyGraph, 
-   -- :: Graph graph =>
-   --    IO (graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
-
    PartialShow(..),
       -- newtype alias for showing updates.
       -- NB.  This type might get moved into ExtendedPrelude if it proves
@@ -60,10 +55,7 @@ module Graph(
 
    ) where
 
-import Control.Concurrent.MVar
-
 import AtomString
-import Computation(done)
 import QuickReadShow
 import Dynamics
 import NewNames
@@ -288,8 +280,3 @@ data CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
       -- NewArc definitions.  The updates are processed in list order, so
       -- for example the endpoints of an Arc should be created before the Arc.
       } deriving (Read,Show)
-
-emptyCannedGraph :: CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
-emptyCannedGraph = CannedGraph {
-   updates = []
-   }

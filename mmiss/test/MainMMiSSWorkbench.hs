@@ -4,9 +4,8 @@ module Main(main) where
 import Maybe
 import System
 
-import Posix hiding (Quit)
+import System.Posix hiding (Quit)
 
-import Debug(debug)
 import WBFiles
 import Computation
 import ExtendedPrelude
@@ -25,7 +24,6 @@ import DaVinciGraph
 import HostsPorts
 import HostsList
 
-import VersionGraph
 import VersionGraphList
 import Registrations
 
@@ -34,6 +32,7 @@ import EmacsBasic
 import MMiSSRegistrations
 
 -- We put a catchOurExceps round everything, just in case.
+main :: IO ()
 main =
    do
       ourExcep <- catchOurExceps main1
@@ -41,6 +40,7 @@ main =
          Left mess -> putStrLn mess
          Right () -> done
 
+main1 :: IO ()
 main1 =
    do
       parseArgumentsRequiring [

@@ -1,7 +1,11 @@
 # PACKAGE = uni-simpledb-test
 PACKAGES = uni-util uni-simpledb
 
-SRCS = MainDumpFiles.hs
+# MainDumpFiles doesn't currently work since it hasn't been adapted to
+# the new server format.
+
+# SRCS = MainDumpFiles.hs
+SRCS =
 
 # tests disabled for now
 PACKAGE =
