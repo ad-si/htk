@@ -126,6 +126,7 @@ EV.o : EV.hs
 EV.o : top/util/Debug.hi
 EV.o : ./Event.hi
 EV.o : ./BaseEvent.hi
+EV.o : top/util/Dynamics.hi
 Channels.o : Channels.hs
 Channels.o : ./Event.hi
 Channels.o : ./BaseEvent.hi

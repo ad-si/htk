@@ -6,14 +6,16 @@ import qualified IOExts(performGC)
 
 import SIM
 import Expect
+import RegularExpression
 import Debug(debug)
 
 main :: IO ()
 main =  
    do
       hugs <- newHugs
-      a <- evalCmd "[1..100]\n" hugs
-      debug (map succ (read a::[Int]))
+      answer <- evalCmd "[1..3000]\n" hugs
+      let resultList = (read answer) :: [Int]
+      putStr (show resultList) 
    
       IOExts.performGC
       newCollectibleObj     
@@ -34,24 +36,25 @@ newHugs =
       exp <- newExpect "hugs" [linemode False]
       mtx <- newBSem
       while ( sync (
-            match exp ("(.*\n)*Prelude>",1::Int) >>> return False
-         +> match exp ".*\n" >>> return True
-         +> match exp ".*" >>> return True
+            match exp ("\\`(.*\n)*Prelude> \\'",1::Int) >>> return False
+         +> match exp ""      >>> return True
          +> destroyed exp     >>> raise (toolFailed "hugs")
          )) id
-      return (Hugs exp mtx)
+      let hugs = Hugs exp mtx
+      registerTool hugs
+      return hugs
 
 instance CommandTool Hugs where
-   evalCmd cmd (Hugs exp mtx) = synchronize mtx (do {
-      exp # execCmd cmd;
-      r <- sync(
-               matchLine exp 
-            +> matchEOF exp >>> raise (toolFailed "Hugs")
-            );
-      sync (match exp "^.*> ");
-      return r
-      })
+   evalCmd cmd (Hugs exp mtx) = synchronize mtx (
+      do
+         execCmd cmd exp
+         result <- readWholeLine exp  ( \ _ -> raise (toolFailed "hugs"))
+         return result
+         )
    execOneWayCmd = execCmd
+
+instance Object Hugs where
+   objectID (Hugs exp _) = objectID exp
 
 instance Destructible Hugs where
    destroy (Hugs exp _)   = destroy exp

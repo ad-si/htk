@@ -29,7 +29,7 @@ toggle1 :: Toggle -> IO Bool
 toggle1 (Toggle _ switch) =
    do
       oldVal <- Concurrent.takeMVar switch
-      Concurrent.putMVar switch True
+      Concurrent.putMVar switch False
       return oldVal
 
 toggle2 :: (Toggle,Toggle) -> IO(Maybe(Bool,Bool))

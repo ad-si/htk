@@ -33,6 +33,7 @@ import Monad(liftM)
 import qualified Debug(debug)
 import Event
 import BaseEvent
+import Dynamics
 
 data EV eventResult = EV [BaseEvent eventResult] [IO (EV eventResult)]
 -- Structure containing base events.  The IO'things make this
@@ -117,4 +118,12 @@ unlessGuard guard toGuard =
          return(unlessEV condition toGuard)
       )
 
-
+-- So we can send EV values over IA channels.
+instance Typeable val => Typeable (EV val) where
+   typeOf _ =
+      let
+         sampleValue  = error "EV.pleasedon'tevaluate" :: val
+      in
+         mkTypeTag tagfor_EV [typeOf sampleValue]
+   
+tagfor_EV = mkTyCon "EV" "EV"

@@ -21,6 +21,7 @@ PGMS       = pgm\
 	     test7\
 	     test8\
 	     test9\
+             test10\
 
 
 PGM_OBJS   = Main.o\
@@ -45,8 +46,8 @@ EXTRA_DEPS = Main.hs\
 	     Test6.hs\
 	     Test7.hs\
 	     Test8.hs\
-	     Test9.hs
-
+	     Test9.hs\
+             Test10.hs\
 
 
 include top/mk/boilerplate.mk
@@ -65,7 +66,7 @@ all:	$(LIBS) $(LIB) $(PGM_OBJS)
 	$(MAKE) test7
 	$(MAKE) test8
 	$(MAKE) test9
-
+	$(MAKE) test10
 
 # pgm:    $(LIBS) $(LIB) Main.o 
 #	$(RM) $@

@@ -2,7 +2,7 @@
 # change for different installations of Uni.
 #
 # HCHOME needs to be set to Glasgow Haskell's installation directory. 
-HCHOME = /usr/local/pub-bkb/ghc/ghc-supported
+HCHOME = /usr/local/pub-bkb/ghc/ghc-latest
 # SOCKETLIB is the Unix library for the networking primitives.
 #
 # At the moment Sparc-Solaris requires 

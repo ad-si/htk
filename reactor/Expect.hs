@@ -86,7 +86,8 @@ module Expect (
    match,
    expect,
    matchEOF,
-   matchLongLine,
+   matchLongLine, -- do not use !
+   readWholeLine,
    matchLine,
    
    commandFailed
@@ -343,6 +344,12 @@ delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
 getOneChange :: MsgQueue (RST -> IO RST) -> RST -> IO RST
 getOneChange regChannel rst = sync (registrationChanged regChannel rst)
 
+registrationChanged :: MsgQueue (RST -> IO RST) -> RST -> EV RST
+registrationChanged regChannel rst = 
+   receive regChannel >>>= 
+      (\ registrationChange -> registrationChange rst )
+
+
 -- getPendingChanges gets all pending changes.
 getPendingChanges :: MsgQueue (RST -> IO RST) -> RST -> IO RST 
 getPendingChanges regChannel rst =
@@ -355,11 +362,6 @@ getPendingChanges regChannel rst =
                newRst <- registrationChange rst 
                getPendingChanges regChannel newRst 
 
-
-registrationChanged :: MsgQueue (RST -> IO RST) -> RST -> EV RST
-registrationChanged regChannel rst = 
-   receive regChannel >>>= 
-      (\ registrationChange -> registrationChange rst )
 
 -- --------------------------------------------------------------------------
 -- We now come to code which enables the user to set up patterns
@@ -438,7 +440,38 @@ expect' exp ptn =
          return (getMatched matchResult,nextLine)
          )
 
--- this function should now not be used.
+
+readWholeLine :: Expect -> (String -> IO String) -> IO String
+-- readWholeLine should only be used when Expect is being used
+-- in non-line mode and we need a complete line from it
+-- (which may mean taking several blocks and joining them
+-- together.)  The second argument is an action to
+-- call (with the string so far) if EOF occurs.
+readWholeLine expect eofAct = readWholeLineAcc [] 
+   where
+      readWholeLineAcc :: [String] -> IO String
+      -- the accumulating parameter contains the strings
+      -- so far read, in reverse order.
+      readWholeLineAcc soFar =
+         sync(
+               match' expect "\\`(.*)\n" >>>=
+                  ( \ (matchResult,nextLine) ->
+                     do
+                        sync(nextLine False)
+                        let head : _ = getSubStrings matchResult
+                        let result = concat(reverse(head:soFar))
+                        debug result
+                        return result
+                     )
+            +> match' expect "\\`.*\\'" >>>=
+                  ( \ (matchResult,nextLine) ->
+                     do
+                        sync(nextLine True)
+                        readWholeLineAcc ((getMatched matchResult):soFar)
+                     )
+            +> matchEOF expect >>> eofAct (concat(reverse soFar))
+            )
+
 matchLongLine = error "Expect.matchLongLine used"
 {- 
 matchLongLine:: Expect -> IA String
