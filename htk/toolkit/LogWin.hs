@@ -22,6 +22,8 @@ module LogWin (
 
 ) where
 
+import System.IO.Unsafe
+import ReferenceVariables
 import HTk
 import Core
 import ScrollBox
@@ -72,15 +74,17 @@ createLogWin cnf =
     return (LogWin win ed (syncNoWait (send death ())))
 
 
+pathRef :: Ref String
+pathRef = unsafePerformIO $ getEnv "HOME" >>= newRef
+{-# NOINLINE pathRef #-}
+
 saveLog :: Editor -> IO ()
 saveLog ed =
-  do
-    homedir <- getEnv "HOME"
-    selev <- fileDialog "Open file" homedir
-    file  <- sync selev
-    case file of
-      Just fp -> try (writeTextToFile ed fp) >> done
-      _ -> done
+  do selev <- fileDialog "Open file" pathRef
+     file  <- sync selev
+     case file of
+       Just fp -> try (writeTextToFile ed fp) >> done
+       _ -> done
 
 
 -- -----------------------------------------------------------------------

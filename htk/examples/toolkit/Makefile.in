@@ -1,7 +1,6 @@
 PACKAGES = uni-htk
 
 SRCS       = Mainfiledialog.hs\
-             Mainnewfiledialog.hs\
              Mainlogwin.hs\
              Mainmarkup.hs\
 	     Maindialog.hs\
