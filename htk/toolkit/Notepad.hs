@@ -121,6 +121,9 @@ enteredItem notepad item =
          _ -> done
        done)
 
+text_gap :: Int
+text_gap = 11
+
 -- handler for leave events
 leftItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 leftItem notepad item =
@@ -128,7 +131,7 @@ leftItem notepad item =
     (do
        (x, y) <- getPosition item
        let (Distance iwidth, Distance iheight) = img_size notepad
-       it_txt item # position (x, y + Distance (div iheight 2 + 7))
+       it_txt item # position (x, y + Distance (div iheight 2 + text_gap))
        let (Distance dx, _) = img_size notepad
            len = div (dx + 80) char_px
        v <- getRef (it_val item)
@@ -181,27 +184,34 @@ createNotepadItem val notepad cnf =
     (entered, _) <- bindSimple item Enter
     (left, _) <- bindSimple item Leave
     spawnEvent (forever ((entered >>>
-                            (do putStrLn "entered"
-                                last <- getRef (entered_item notepad)
-                                if not (isJust last)
-                                  then do setRef (entered_item notepad)
-                                                 (Just item)
-                                          enteredItem notepad item
-                                  else if fromJust last /= item
-                                         then do leftItem notepad
-                                                          (fromJust last)
-                                                 setRef
-                                                   (entered_item notepad)
-                                                   (Just item)
-                                                 enteredItem notepad item
-                                         else done)) +>
+                            (do st <- getIntState notepad
+                                (if st /= Mov then
+                                   do putStrLn "entered"
+                                      last <- getRef (entered_item notepad)
+                                      if not (isJust last)
+                                        then do setRef (entered_item notepad)
+                                                       (Just item)
+                                                enteredItem notepad item
+                                        else if fromJust last /= item
+                                               then do leftItem notepad
+                                                                (fromJust last)
+                                                       setRef
+                                                         (entered_item notepad)
+                                                         (Just item)
+                                                       enteredItem notepad item
+                                               else done
+                                 else done)) ) +>
                          (left >>>
-                            (do putStrLn "left"
-                                last <- getRef (entered_item notepad)
-                                setRef (entered_item notepad) Nothing
-                                if isJust last
-                                  then leftItem notepad (fromJust last)
-                                  else done))))
+                            (do st <- getIntState notepad
+                                (if st /= Mov then
+                                   do putStrLn "left"
+                                      last <- getRef (entered_item notepad)
+                                      setRef (entered_item notepad) Nothing
+                                      if isJust last
+                                        then leftItem notepad (fromJust last)
+                                        else done
+                                 else done)))))
+
     addItemToState notepad item
     return item
 
@@ -214,7 +224,7 @@ getFreeItemPosition notepad =
    let num_cols = 4
        (Distance iwidth, Distance iheight) = img_size notepad
        dy_n = Distance (div iheight 2)
-       dy_s = Distance (div iheight 2 + 14)
+       dy_s = Distance (div iheight 2 + 18)
        dx = Distance (max (div iwidth 2) 40)
 
        overlaps (x, y) (item : items) =
@@ -279,7 +289,7 @@ instance HasPosition (NotepadItem a) where
   position p@(x, y) item =
     itemPositionD2 p (it_img item) >>
     let (Distance iwidth, Distance iheight) = it_img_size item
-    in itemPositionD2 (x, y + Distance (div iheight 2 + 7))
+    in itemPositionD2 (x, y + Distance (div iheight 2 + text_gap))
                       (it_txt item) >>
        return item
 ---
@@ -385,7 +395,18 @@ data Notepad a =
             event_queue :: Ref (Maybe (Channel (NotepadEvent a))),
 
             -- clean up when destroyed
-            clean_up :: [IO ()] }
+            clean_up :: [IO ()],
+             
+            -- notepad state
+            npstate :: Ref IntState }
+
+data IntState = Norm | Mov deriving Eq
+
+setIntState :: Notepad a -> IntState -> IO ()
+setIntState np st = setRef (npstate np) st
+
+getIntState :: Notepad a -> IO IntState
+getIntState np = getRef (npstate np)
 
 ---
 -- The <code>ScrollType</code> datatype.
@@ -421,11 +442,11 @@ highlight cnv item =
                    rect2 <- createRectangle cnv
                               [coord [(x - Distance
                                              (max (div iwidth 2 + 40) 40),
-                                       y + Distance (div iheight 2)),
+                                       y + Distance (div iheight 2 + 4)),
                                       (x + Distance
                                              (max (div iwidth 2 + 40) 40),
                                        y + Distance
-                                             (div iheight 2 + 14))],
+                                             (div iheight 2 + 18))],
                                filling "blue", outline "blue"]
                    putItemAtBottom rect2
                    setRef (it_bg item) (Just (rect1, rect2))
@@ -605,6 +626,19 @@ getItems np = getRef (items np)
 getSelectedItems :: Notepad a -> IO [NotepadItem a]
 getSelectedItems np = getRef (selected_items np)
 
+getView :: Notepad a -> IO (Distance, Distance, Distance, Distance)
+getView np =
+  do (dx_norm, dx_displ_norm) <- view Horizontal (canvas np)
+     (dy_norm, dy_displ_norm) <- view Vertical (canvas np)
+     (_, (Distance sizex, Distance sizey)) <- getScrollRegion (canvas np)
+     let p1_x = Distance (round (dx_norm * fromInteger (toInteger sizex)))
+         p1_y = Distance (round (dy_norm * fromInteger (toInteger sizey)))
+         p2_x = p1_x + Distance (round (dx_displ_norm *
+                                        fromInteger (toInteger sizex)))
+         p2_y = p1_y + Distance (round (dy_displ_norm *
+                                        fromInteger (toInteger sizey)))
+     return (p1_x, p1_y, p2_x, p2_y)
+
 
 --------------------------------------------------------------------------
 -- notepad construction
@@ -632,6 +666,7 @@ newNotepad par scrolltype imgsize mstate cnf =
     dropref <- newRef Nothing
     ulm <- newRef Performed
     evq <- newRef Nothing
+    nps <- newRef Norm
     (cnv, notepad) <- if scrolled then
                         do
                           (scrollbox, cnv) <-
@@ -647,7 +682,8 @@ newNotepad par scrolltype imgsize mstate cnf =
                                             drop_item = dropref,
                                             event_queue = evq,
                                             undo_last_motion = ulm,
-                                            clean_up = [] })
+                                            clean_up = [],
+                                            npstate = nps  })
                       else
                         do
                           cnv <- newCanvas par []
@@ -662,7 +698,8 @@ newNotepad par scrolltype imgsize mstate cnf =
                                             drop_item = dropref,
                                             event_queue = evq,
                                             undo_last_motion = ulm,
-                                            clean_up = [] })
+                                            clean_up = [],
+                                            npstate = nps })
 
     (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just 1))]
     (rightclick, _) <- bind cnv
@@ -747,7 +784,7 @@ newNotepad par scrolltype imgsize mstate cnf =
             let min_x = x - (max (div iwidth 2 + 30) 40)
                 max_x = x + (max (div iwidth 2 + 30) 40)
                 min_y = y - (div iheight 2 + 1)
-                max_y = y + (div iheight 2 + 14)
+                max_y = y + (div iheight 2 + 18)
                 dx' = if dx < 0 then min min_x dx
                       else if dx == 0 then
                              if min_x < 0 then min_x
@@ -774,11 +811,12 @@ newNotepad par scrolltype imgsize mstate cnf =
 
 -- -----------------------------------------------------------------------
         grid_x :: Int
-        grid_x = 15
+        grid_x = 10
         grid_y :: Int
-        grid_y = 15
+        grid_y = 10
 
-        checkDropZones :: FiniteMap (Int, Int) [NotepadItem a] ->
+        checkDropZones :: CItem a =>
+                          FiniteMap (Int, Int) [NotepadItem a] ->
                           Notepad a -> Distance -> Distance -> IO ()
         checkDropZones it_map notepad x@(Distance ix) y@(Distance iy) =
           let doSet item =
@@ -799,7 +837,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                                       y + Distance (div iheight 2)),
                                      (x + Distance
                                             (max (div iwidth 2 + 40) 40),
-                                      y + Distance (div iheight 2 + 14))],
+                                      y + Distance (div iheight 2 + 18))],
                               filling "yellow", outline "yellow"]
                   putItemAtBottom rect2
                   setRef (drop_item notepad) (Just (item, rect1, rect2))
@@ -836,9 +874,10 @@ newNotepad par scrolltype imgsize mstate cnf =
           in do (_, (Distance sizex, Distance sizey)) <-
                   getScrollRegion (canvas notepad)
                 let idx@(idx_x, idx_y) = (div ix (div sizex grid_x), div iy (div sizey grid_y))
+                    items = (lookupWithDefaultFM it_map [] idx)
                 checkDropZones' (lookupWithDefaultFM it_map [] idx)
 
-        buildMap :: Notepad a -> IO (FiniteMap (Int, Int) [NotepadItem a])
+        buildMap :: CItem a => Notepad a -> IO (FiniteMap (Int, Int) [NotepadItem a])
         buildMap notepad =
           do notepaditems <- getRef (items notepad)
              selecteditems <- getRef (selected_items notepad)
@@ -847,8 +886,8 @@ newNotepad par scrolltype imgsize mstate cnf =
                           notepaditems
              fmref <- newRef emptyFM
              let add (idx_x, idx_y) notepaditem =
-                   if idx_x >= 0 && idx_x < 10 &&
-                      idx_y >= 0 && idx_y < 10 then
+                   if idx_x >= 0 && idx_x < grid_x &&
+                      idx_y >= 0 && idx_y < grid_y then
                      do fm <- getRef fmref
                         let mnotepaditems = lookupFM fm (idx_x, idx_y)
                         let nufm = case mnotepaditems of
@@ -1013,10 +1052,15 @@ newNotepad par scrolltype imgsize mstate cnf =
                                     setRef entereditemref Nothing
                                   else done)) >>
                        listenNotepad)
-{-          +> (do
+-- -----
+{-
+          +> (do
                 (x, y) <- motion >>>= getCoords
                 always (checkEnteredItem (x, y))
-                listenNotepad)-}
+                listenNotepad)
+-}
+-- -------
+
           +> (do
                 (x, y) <- click >>>= getCoords
                 always
@@ -1040,7 +1084,9 @@ newNotepad par scrolltype imgsize mstate cnf =
                            if b then done else selectItem notepad item
                            t <- createTagFromSelection notepad
                            sync (do mp <- always (buildMap notepad)
-                                    moveSelectedItems mp (x, y) (x, y) t)
+                                    always (setIntState notepad Mov)
+                                    moveSelectedItems mp (x, y) (x, y) t
+                                    always (setIntState notepad Norm))
                            done)
                 listenNotepad)
           +> (do
@@ -1111,7 +1157,8 @@ updNotepadScrollRegion np =
                nuy = max y my
            getMax items nux nuy
       getMax _ mx my = return (mx, my)
-  in do items <- getItems np
+  in do (x1, y1, x2, y2) <- getView np
+        items <- getItems np
         (x, y) <- getMax items 0 0
         np # size (x + 80, y + 40)
         done
@@ -1175,7 +1222,7 @@ instance HasSize (Notepad a) where
   width s np =
     do
       (_, (_, sizey)) <- getScrollRegion (canvas np)
-      (canvas np) # scrollRegion ((0, 0), (s, sizey))
+      canvas np # scrollRegion ((0, 0), (s, sizey))
       if isJust (scrollbox np) then done else canvas np # width s >> done
       return np
 ---
@@ -1186,7 +1233,7 @@ instance HasSize (Notepad a) where
   height s np =
     do
       (_, (sizex, _)) <- getScrollRegion (canvas np)
-      (canvas np) # scrollRegion ((0, 0), (sizex, s))
+      canvas np # scrollRegion ((0, 0), (sizex, s))
       (if (isJust (scrollbox np)) then done
        else canvas np # height s >> done)
       return np
@@ -1246,3 +1293,8 @@ importNotepadState np st =
             if selected it then selectAnotherItem np new_it else done
             addItems np items
         addItems _ _ = done
+
+printName :: CItem a => NotepadItem a -> IO ()
+printName it = do v <- getRef (it_val it)
+                  nm <- getName v
+                  putStrLn (full nm)

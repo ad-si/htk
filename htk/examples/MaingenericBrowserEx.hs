@@ -197,10 +197,6 @@ main = do htk <- initHTk [size(800, 500), text "GenericBrowser example"]
             newGenericBrowser htk root_objs []
           pack gb [Fill Both, Expand On]
           bottom <- newFrame htk []
-          status <- newLabel bottom
-                      [relief Sunken, font (Helvetica, 10::Int),
-                       text "Welcome"]
-          pack status [Side AtTop, Fill X]
           quit <- newButton bottom [text "Quit"]
           clicked_quit <- clicked quit
           spawnEvent (clicked_quit >>> destroy htk)
