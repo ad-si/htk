@@ -6,6 +6,8 @@ module Folders(
    getTopFolder, 
    getInFolder,
    lookupFileName,
+   newEmptyFolder,
+   insertInFolder,
    ) where
 
 import FiniteMap
@@ -18,6 +20,8 @@ import Sink
 import VariableSet
 import VariableMap
 import UniqueString
+
+import BSem
 
 import GraphDisp
 import GraphConfigure
@@ -108,7 +112,9 @@ data Folder = Folder {
    folderType :: FolderType,
    attributes :: Attributes,
    name :: String,
-   contents :: VariableMap String WrappedLink
+   contents :: VariableMap String WrappedLink,
+   contentsLock :: BSem -- The contentsLock should be set whenever the
+      -- contents are in the process of being updated.
    }
 
 folder_tyCon = mkTyCon "Folders" "Folder"
@@ -121,12 +127,14 @@ instance HasCodedValue Folder where
              name = name,contents = contents}) ->
          (folderType,attributes,name,contents)
          )
-   decodeIO = mapDecodeIO
-      (\ (folderType,attributes,name,contents) ->
-         Folder {folderType = folderType,attributes = attributes,
-             name = name,contents = contents})
-
-
+   decodeIO codedValue0 view =
+      do
+         ((folderType,attributes,name,contents),codedValue1) <-
+            decodeIO codedValue0 view
+         contentsLock <- newBSem
+         return (Folder {folderType = folderType,attributes = attributes,
+             name = name,contents = contents,contentsLock = contentsLock},
+             codedValue1)
 
 -- ------------------------------------------------------------------
 -- The instance of ObjectType
@@ -144,7 +152,7 @@ instance ObjectType FolderType Folder where
    objectTypeIdPrim objectType = folderTypeId objectType
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim folder = folderType folder
-   nodeTitle folder = name folder 
+   nodeTitlePrim folder = name folder 
 
    getNodeDisplayData view wrappedDisplayType folderType =
       let
@@ -247,11 +255,13 @@ getTopFolder view =
             folderType <- getPlainFolderType view
             attributes <- newEmptyAttributes view
             contents <- newEmptyVariableMap
+            contentsLock <- newBSem
             return (Folder {
                folderType = folderType,
                attributes = attributes,
                name = "TOP",
-               contents = contents
+               contents = contents,
+               contentsLock = contentsLock
                })               
          )
       makeLink view versioned
@@ -294,4 +304,57 @@ lookupFileName view (first:rest) =
                            Nothing -> return Nothing
                            Just link -> doLookup link first2 rest2
                      
-      
+
+
+-- ------------------------------------------------------------------
+-- Updating the folder network.
+-- ------------------------------------------------------------------
+
+---
+-- Create a new empty folder in the view with the given name.
+-- We use the inputAttributes method to get the attributes, and
+-- return Nothing if the user cancels.
+newEmptyFolder :: View -> FolderType -> String -> IO (Maybe (Link Folder))
+newEmptyFolder view folderType name =
+   do
+      attributesOpt <- inputAttributes view (requiredAttributes folderType)
+      case attributesOpt of
+         Nothing -> return Nothing
+         Just attributes ->
+            do
+               contents <- newEmptyVariableMap
+               contentsLock <- newBSem
+               let
+                  folder = Folder {
+                     folderType = folderType,
+                     attributes = attributes,
+                     name = name,
+                     contents = contents,
+                     contentsLock = contentsLock
+                     }
+               versioned <- createObject view folder
+               link <- makeLink view versioned
+               return (Just link)
+
+---
+-- insertInFolder attempts to insert an object into a folder.  It
+-- fails and returns False if the attempt fails because an object 
+-- with that name is already in the folder.
+insertInFolder :: View -> Link Folder -> WrappedLink -> IO Bool
+insertInFolder view folderLink wrappedLink =
+   do
+      folder <- readLink view folderLink
+      wrappedObject <- wrapReadLink view wrappedLink
+      let
+         name = nodeTitle wrappedObject
+      synchronize (contentsLock folder) (
+         do
+            map <- readContents (contents folder)
+            case lookupMap map name of
+               Just _ -> return False
+               Nothing ->
+                  do
+                     updateMap (contents folder) 
+                        (VariableMapUpdate (AddElement (name,wrappedLink)))
+                     return True
+         )

@@ -52,6 +52,13 @@ module ObjectTypes(
 
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
+   wrapReadLink, -- :: View -> WrappedLink -> IO WrappedObject
+   
+   -- Extract the object type of an object, wrapped.
+   getObjectType, -- :: WrappedObject -> WrappedObjectType
+   -- Extract the title of an object (the name used to describe it
+   -- in daVinci) wrapped.
+   nodeTitle, -- :: WrappedObject -> String
 
    -- How to save references to object types
    ShortObjectType(..),
@@ -112,7 +119,7 @@ class (HasCodedValue objectType,HasCodedValue object) =>
    getObjectTypePrim :: object -> objectType
       -- Extracts the type of an object.
 
-   nodeTitle :: object -> String
+   nodeTitlePrim :: object -> String
       -- Returns a title for the object, to be used to index it in containing
       -- folders.
    getNodeDisplayData :: 
@@ -149,6 +156,17 @@ data WrappedLink = forall objectType object .
 unpackWrappedLink :: ObjectType objectType object =>
     WrappedLink -> Maybe (Link object)
 unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
+
+-- ----------------------------------------------------------------
+-- Some non-prim functions on WrappedObject's.
+-- ----------------------------------------------------------------
+
+getObjectType :: WrappedObject -> WrappedObjectType
+getObjectType (WrappedObject object) = 
+   WrappedObjectType (getObjectTypePrim object)
+
+nodeTitle :: WrappedObject -> String
+nodeTitle (WrappedObject object) = nodeTitlePrim object
 
 -- ----------------------------------------------------------------
 -- NodeDisplayData
@@ -236,6 +254,12 @@ wrapReadObject view (WrappedVersioned versioned) =
    do
       object <- readObject view versioned
       return (WrappedObject object)
+
+wrapReadLink :: View -> WrappedLink -> IO WrappedObject
+wrapReadLink view wrappedLink =
+   do
+      versioned <- wrapFetchLink view wrappedLink
+      wrapReadObject view versioned 
 
 -- ----------------------------------------------------------------
 -- Accessing the GlobalRegistry's
