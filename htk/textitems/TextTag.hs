@@ -402,7 +402,7 @@ tkBindTextTag (TextPaneItemName name tnm) bindTag wishEvents
   let doBind = show name ++ " tag bind " ++ show tnm ++ " " ++
                delimitString (foldr (\ event soFar -> showP event soFar)
                                     "" wishEvents) ++ " " ++
-               mkBoundCmdArg bindTag eventInfoSet
+               mkBoundCmdArg bindTag eventInfoSet False
   in [doBind]
 {-# INLINE tkBindTextTag #-}
 

@@ -339,13 +339,12 @@ tkGrid name opts =
 tkBindWidget :: ObjectName -> BindTag -> [WishEvent] ->
                 EventInfoSet -> Bool -> TclScript
 tkBindWidget nm bindTag wishEvents eventInfoSet bindToTag =
-  let evStr = delimitString (foldr (\ event soFar -> showP event
-                                                                soFar)
+  let evStr flag = delimitString (foldr (\ event soFar -> showP event soFar)
                                    "" wishEvents) ++ " " ++
-              mkBoundCmdArg bindTag eventInfoSet
+                   mkBoundCmdArg bindTag eventInfoSet flag
   in if bindToTag then ["addtag " ++ show nm ++ " " ++ bindTagS bindTag,
-                        "bind " ++ bindTagS bindTag ++ " " ++ evStr]
-     else ["bind " ++ show nm ++ " " ++ evStr]
+                        "bind " ++ bindTagS bindTag ++ " " ++ evStr False]
+     else ["bind " ++ show nm ++ " " ++ evStr True]
 
 tkUnbindWidget :: ObjectName -> BindTag -> [WishEvent] -> Bool ->
                   TclScript

@@ -131,6 +131,8 @@ module HTk (
   KeySym(..),
   bind,
   bindSimple,
+  bindPath,
+  bindPathSimple,
   HasCommand(..),
 
   delayWish,

@@ -577,15 +577,18 @@ succBindTag (BindTag n) = BindTag (n+1)
 -- contain any spaces funny escape characters.  This can be deduced from
 -- page 298 and the fact that bindTags are in fact just going to
 -- be lists of numbers separated by period.
-mkBoundCmdArg :: BindTag -> EventInfoSet -> String
+mkBoundCmdArg :: BindTag -> EventInfoSet -> Bool-> String
 -- Make the command to be passed as ?bindstr? for "bi".
 -- (See notes at the head of this section.)
-mkBoundCmdArg bindTag eventInfoSet =
+-- Adding a "break" statement behind the puts prevents the binding from being
+-- processed further. That means we override earlier/default bindings.
+mkBoundCmdArg bindTag eventInfoSet break =
   let bindStr = "EV " ++ bindTagS bindTag ++
                 foldr (\ par soFar -> let tag = epToChar par
                                       in ' ':tag:'%':tag:soFar)
                       "" (listEventInfoSet eventInfoSet)
-  in "{puts " ++ (delimitString bindStr) ++ "}"
+  in "{puts " ++ (delimitString bindStr) ++ 
+       if break then "; break}" else "}"
 
 parseEVString :: String -> (BindTag,EventInfo)
 -- parseEVString parses the resulting String, EXCEPT for the

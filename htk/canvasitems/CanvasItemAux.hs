@@ -176,7 +176,7 @@ tkBindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents
    show cnvnm ++ " bind " ++ show cid ++ " " ++
    delimitString (foldr (\ event soFar -> showP event soFar)
                         "" wishEvents) ++ " " ++
-   mkBoundCmdArg bindTag eventInfoSet]
+   mkBoundCmdArg bindTag eventInfoSet False]
 
 tkUnbindCanvasItem :: ObjectName -> BindTag -> [WishEvent] -> Bool ->
                       TclScript
