@@ -12,6 +12,7 @@ import Maybe
 
 import Computation
 import Registry
+import NameMangle
 
 import Events
 import Channels
@@ -70,7 +71,10 @@ data EditedFile = EditedFile {
 data EditorState = EditorState {
    emacsSession :: EmacsSession,
    emacsFS :: EmacsFS,
-   openFiles :: Registry String EditedFile -- ^ currently edited files
+   openFiles :: Registry String EditedFile, -- ^ currently edited files
+      -- (the names are not mangled)
+   typedNameMangler :: TypedNameMangler
+      -- This makes all names seen by Emacs unique.
    }      
 
 -- ----------------------------------------------------------------------
@@ -83,6 +87,9 @@ data EditorState = EditorState {
 editEmacs :: EmacsFS -> TypedName -> IO ()
 editEmacs emacsFS name =
    do
+      typedNameMangler <- newTypedNameMangler
+      mangledName <- newMangledTypedName typedNameMangler name
+
       let
          -- action for opening the Emacs window, after openFile has managed
          -- to open the file.
@@ -96,7 +103,7 @@ editEmacs emacsFS name =
 
                -- (2) Construct the container.
                let
-                  parent = normalName name
+                  parent = normalName mangledName
 
                addContainerBuffer emacsSession parent
 
@@ -106,11 +113,12 @@ editEmacs emacsFS name =
                   editorState = EditorState {
                      emacsSession = emacsSession,
                      emacsFS = emacsFS,
-                     openFiles = openFiles
+                     openFiles = openFiles,
+                     typedNameMangler = typedNameMangler
                      }
                return (parent,editorState)
 
-      editorStateOpt <- openFile emacsFS parentAction name
+      editorStateOpt <- openFile emacsFS parentAction name mangledName
 
       case editorStateOpt of
          Just editorState ->
@@ -133,9 +141,9 @@ editEmacs emacsFS name =
 -- which openFile in turn returns.
 --
 -- If we do not succeed, openFile returns Nothing.
-openFile :: EmacsFS -> IO (String,EditorState) -> TypedName 
+openFile :: EmacsFS -> IO (String,EditorState) -> TypedName -> MangledTypedName
    -> IO (Maybe EditorState)
-openFile emacsFS parentAction name =
+openFile emacsFS parentAction name mangledName =
    do
       emacsFileWE <- editFS emacsFS name
       case fromWithError emacsFileWE of
@@ -143,8 +151,11 @@ openFile emacsFS parentAction name =
             do
                createErrorWin message []
                return Nothing
-         Right (EmacsContent initialContents,emacsFile) ->
+         Right (emacsContent,emacsFile) ->
             do
+               let
+                  (EmacsContent initialContents) 
+                     = collapseEmacsContent emacsContent
                (parent,state) <- parentAction
 
                -- Add a new entry to the registry
@@ -156,14 +167,17 @@ openFile emacsFS parentAction name =
                   (headString,endString) = containerTexts name 
 
                -- Insert the button
-               addButton session parent (headName name) headString
+               addButton session parent (headName mangledName) headString
 
                -- Insert the contents
                mapM
                   (\ dataItem -> case dataItem of
                      EmacsLink child -> 
-                        addButton session parent (normalName child) 
-                           (buttonText child)
+                        do
+                           mangledChild <- newMangledTypedName 
+                              (typedNameMangler state) child
+                           addButton session parent (normalName mangledChild) 
+                              (buttonText child)
                      EditableText str ->
                         addText session parent str
                      )
@@ -184,6 +198,9 @@ handleEvents :: EditorState -> Event ()
 handleEvents editorState =
    let
       session = emacsSession editorState
+
+      nameMangler = typedNameMangler editorState
+      readMangled = readMangledTypedName nameMangler
 
       event :: String -> Event String 
       event key = emacsEvent session key
@@ -209,10 +226,11 @@ handleEvents editorState =
                   (\ hContainer ->
                      do
                         let
-                           container = case parseButton hContainer of
-                              Normal container -> container
+                           mangledContainer = case parseButton hContainer of
+                              Normal mangledContainer -> mangledContainer
                               _ -> error ("EmacsEdit: Mysterious container "++
                                  hContainer)
+                        container <- readMangled mangledContainer
                         fileOpt <- getValueOpt (openFiles editorState) 
                            (key container)
                         let
@@ -224,21 +242,26 @@ handleEvents editorState =
                         let
                            contents1list = case contents0 of
                               EmacsContent (EmacsLink headButton : list)
-                                 | headButton == headName container
+                                 | headButton == headName mangledContainer
                                  -> list
                               _ -> error ("Couldn't find head button for "++
                                   describe container)
-                           contents2list = 
-                              map
-                                 (\ dataItem -> case dataItem of
-                                    EmacsLink button -> 
-                                       case parseButton button of
-                                          Normal name -> EmacsLink name
-                                          Head name -> error (
-                                             "Unexpected head "++describe name)
-                                    EditableText text -> EditableText text
-                                    )
-                                 contents1list
+
+                        contents2list <- 
+                           mapM
+                              (\ dataItem -> case dataItem of
+                                 EmacsLink button -> 
+                                    case parseButton button of
+                                       Normal mangledName -> 
+                                          do
+                                             name <- readMangled mangledName 
+                                             return (EmacsLink name)
+                                       Head mangledName -> error (
+                                          "Unexpected head "++button)
+                                 EditableText text -> 
+                                    return (EditableText text)
+                                 )
+                              contents1list
                         written <- writeData file (EmacsContent contents2list)
                         case fromWithError written of
                            Left mess -> showError ("Writing "
@@ -253,58 +276,67 @@ handleEvents editorState =
       +> (do
             str <- event "BUTTON"
             case parseButton str of
-               Normal name ->
-                  confirm ("Expand "++describe name++"?") (
-                     let
-                        parentAction =
-                           do
-                              expand session str
-                              return (str,editorState)
-                     in
-                        always (
-                           do
-                              lockBuffer session
-                              openFile (emacsFS editorState) parentAction name
-                              unlockBuffer session
-                              sync iterate
-                           )
-                     )
-               Head name ->
-                  confirm ("Collapse "++describe name++" without saving?") (
-                     always (do
-                        lockBuffer session 
-                        children <- containerChildren session (normalName name)
+               Normal mangledName ->
+                  do
+                     name <- always (readMangled mangledName)
+                     confirm ("Expand "++describe name++"?") (
                         let
-                           childContainers = mapMaybe
-                              (\ child -> case child of
-                                 Button _ -> Nothing
-                                 Container str -> Just str
-                                 ) 
-                              children
-                        case childContainers of
-                           [] ->
+                           parentAction =
                               do
-                                  collapse session (normalName name) 
-                                     (buttonText name)
-                                  transformValue (openFiles editorState) 
-                                         (key name)
-                                     (\ stateOpt ->
-                                        do
-                                           case stateOpt of
-                                              Just state -> finishEdit state
-                                              Nothing -> putStrLn ("Odd - "
-                                                 ++describe name
-                                                 ++" already collapsed")
-                                           return (Nothing,())
-                                        ) 
-                           (str:_) -> case parseButton str of
-                              Normal name2 -> 
-                                 createErrorWin ("Collapse " ++ describe name2
-                                    ++ " first!") []
-                        unlockBuffer session
-                        sync iterate
+                                 expand session str
+                                 return (str,editorState)
+                        in
+                           always (
+                              do
+                                 lockBuffer session
+                                 openFile (emacsFS editorState) parentAction 
+                                    name mangledName
+                                 unlockBuffer session
+                                 sync iterate
+                              )
                         )
-                     )
+               Head mangledName ->
+                  do
+                     name <- always (readMangled mangledName)
+                     confirm ("Collapse "++describe name++" without saving?") 
+                        (always (do
+                           lockBuffer session 
+                           children <- containerChildren session 
+                              (normalName mangledName)
+                           let
+                              childContainers = mapMaybe
+                                 (\ child -> case child of
+                                    Button _ -> Nothing
+                                    Container str -> Just str
+                                    ) 
+                                 children
+                           case childContainers of
+                              [] ->
+                                 do
+                                     collapse session (normalName mangledName) 
+                                        (buttonText name)
+                                     transformValue (openFiles editorState) 
+                                            (key name)
+                                        (\ stateOpt ->
+                                           do
+                                              case stateOpt of
+                                                 Just state -> finishEdit state
+                                                 Nothing -> putStrLn ("Odd - "
+                                                    ++describe name
+                                                    ++" already collapsed")
+                                              return (Nothing,())
+                                           ) 
+                              (str:_) -> case parseButton str of
+                                 Normal mangledName2 ->
+                                    do
+                                       name2 <- readMangled mangledName2 
+                                       createErrorWin ("Collapse " 
+                                          ++ describe name2
+                                          ++ " first!") []
+                           unlockBuffer session
+                           sync iterate
+                           )
+                        )
          )
       +> (do
             str <- event "QUIT"
@@ -333,35 +365,40 @@ handleEvents editorState =
 -- Other buttons/containers have names 'N'+area name.
 -- ----------------------------------------------------------------------
 
-headName :: TypedName -> String
-headName tn = 'H' : (unparseTypedName tn)
+headName :: MangledTypedName -> String
+headName tn = 'H' : (unparseMangledTypedName tn)
 
-normalName :: TypedName -> String
-normalName tn = 'N' : (unparseTypedName tn)
+normalName :: MangledTypedName -> String
+normalName tn = 'N' : (unparseMangledTypedName tn)
 
-data ButtonName = Head TypedName | Normal TypedName
+data ButtonName = Head MangledTypedName | Normal MangledTypedName
 
 parseButton :: String -> ButtonName
-parseButton ('H':str) = Head (parseTypedName str)
-parseButton ('N':str) = Normal (parseTypedName str)
+parseButton ('H':str) = Head (parseMangledTypedName str)
+parseButton ('N':str) = Normal (parseMangledTypedName str)
 parseButton (badName) = error ("Bad name "++badName)
+
+
+-- ----------------------------------------------------------------------
+-- MangledTypedName utilities
+-- ----------------------------------------------------------------------
+
+unparseMangledTypedName :: MangledTypedName -> String
+unparseMangledTypedName (MangledTypedName str t) = str ++ [t] 
+
+parseMangledTypedName :: String -> MangledTypedName
+parseMangledTypedName [] = error "parseMangledTypedName given empty String"
+parseMangledTypedName [t] = MangledTypedName "" t
+parseMangledTypedName (c:cs) = 
+   let 
+      (MangledTypedName str t) = parseMangledTypedName cs
+   in
+      MangledTypedName (c:str) t
 
 
 -- ----------------------------------------------------------------------
 -- TypedName utilities
 -- ----------------------------------------------------------------------
-
-unparseTypedName :: TypedName -> String
-unparseTypedName (str,t) = str ++ [t] 
-
-parseTypedName :: String -> TypedName
-parseTypedName [] = error "parseTypedName given empty String"
-parseTypedName [t] = ("",t)
-parseTypedName (c:cs) = 
-   let 
-      (str,t) = parseTypedName cs
-   in
-      (c:str,t)
 
 ---
 -- Unique key for TypedName's.
@@ -385,4 +422,42 @@ buttonText :: TypedName -> String
 buttonText name =
    ("["++describe name++"]")
 
-     
+-- ----------------------------------------------------------------------
+-- The Typed Name Mangler.
+-- We actually need a number of Name Manglers, one for each letter.
+-- (It is somewhat anomalous that we preserve the letters, but Emacs needs
+-- to know them to know what colour to make buttons.
+-- ----------------------------------------------------------------------
+
+data TypedNameMangler = TypedNameMangler (Registry Char NameMangler)
+
+data MangledTypedName = MangledTypedName String Char
+
+newTypedNameMangler :: IO TypedNameMangler 
+newTypedNameMangler = 
+   do
+      registry <- newRegistry
+      return (TypedNameMangler registry)
+
+newMangledTypedName :: TypedNameMangler -> TypedName -> IO MangledTypedName
+newMangledTypedName (TypedNameMangler registry) (str,c) =
+   transformValue registry c 
+      (\ nameManglerOpt -> 
+         do
+            nameMangler <- case nameManglerOpt of
+               Nothing -> newNameMangler
+               Just nameMangler -> return nameMangler
+            mangledName <- newMangledName nameMangler str
+            return (Just nameMangler,MangledTypedName mangledName c)
+         )
+
+readMangledTypedName :: TypedNameMangler -> MangledTypedName -> IO TypedName
+readMangledTypedName (TypedNameMangler registry) (MangledTypedName name c) =
+   do
+      nameManglerOpt <- getValueOpt registry c
+      case nameManglerOpt of
+         Nothing -> error "EmacsEdit: unknown letter"
+         Just nameMangler ->
+            do
+               str <- readMangledName nameMangler name
+               return (str,c)   

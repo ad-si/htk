@@ -4,6 +4,17 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+51) 24.09.02
+The Emacs code used to have a bug in that if the same object was included in
+more than one place in the same file (directly or indirectly) it couldn't
+distinguish between the corresponding buttons, as the same name was used
+for each of them.  
+
+This has been fixed by mangling the names before they get to Emacs.
+
+I have also made a very minor efficiency change, by collapsing EmacsContent
+sent to Emacs (so that long sequences of text will be sent all at once.)
+FIXED
 
 50) 20.09.02
 Improve way buttons are displayed in Emacs.

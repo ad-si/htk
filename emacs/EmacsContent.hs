@@ -4,6 +4,7 @@ module EmacsContent(
    EmacsDataItem(..),
    EmacsContent(..),
    parseEmacsContent,
+   collapseEmacsContent,
    ) where
 
 import Maybe
@@ -42,8 +43,31 @@ parseEmacsContent str =
                )
             list
    in
-      EmacsContent dataItems      
+      EmacsContent dataItems
 
+---
+-- Collapse adjacent EditableText parts together.
+collapseEmacsContent :: EmacsContent linkType -> EmacsContent linkType
+collapseEmacsContent (EmacsContent list :: EmacsContent linkType) =
+   let
+      collapse :: [String] -> [EmacsDataItem linkType] 
+         -> [EmacsDataItem linkType] 
+      collapse inhand (remaining@(first:rest)) =
+         case (inhand,first) of
+            (strs,EmacsLink l) 
+               -> addText strs (EmacsLink l : collapse [] rest)
+            (strs,EditableText t) -> collapse (t:strs) rest
+      collapse strs [] = addText strs []
+
+      addText :: [String] -> [EmacsDataItem linkType] 
+         -> [EmacsDataItem linkType]
+      addText strs dataItems =
+         case concat (reverse strs) of
+            [] -> dataItems
+            str -> EditableText str : dataItems
+   in
+      EmacsContent (collapse [] list)
+ 
 parsingError :: Int -> a
 parsingError i = error ("EmacsContent error "++show i)
       
