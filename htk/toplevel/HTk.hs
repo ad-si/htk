@@ -126,7 +126,12 @@ module HTk (
 
 -- other basic stuff     // TD: sort out!
 
-  initHTk,
+  initHTk, -- :: [Config HTk] -> IO HTk
+  -- initHTk initialises HTk.
+
+  withdrawWish, -- :: IO ()
+  -- withdrawWish withdraws the wish window.
+
   HTk,
   AbstractWidget(..),    -- TD: needed ?
 
@@ -138,6 +143,9 @@ module HTk (
 
   done,
 ) where
+
+import Concurrent
+import qualified IOExts(unsafePerformIO)
 
 import Frame
 import Label
@@ -239,12 +247,54 @@ instance Container HTk
 -- commands
 -- -----------------------------------------------------------------------
 
+--- @doc initHTk
+-- Only one HTk is allowed to exist, of course.  It is initialised
+-- by whichever of getHTk and initHTk is called first; once initialised
+-- initHTk may not be called again.  So in general, where initHTk is
+-- used, you should use it before any other HTk action.
+theHTkMVar :: MVar (Maybe HTk)
+theHTkMVar = IOExts.unsafePerformIO (newMVar Nothing)
+{-# NOINLINE theHTkMVar #-} 
+
 initHTk :: [Config HTk] -> IO HTk
 initHTk opts =                            -- config (TD)
   do
-    obj <- createHTkObject htkMethods
-    configure (HTk obj) opts
-    return (HTk obj)
+    htkOpt <- takeMVar theHTkMVar
+    htk <- case htkOpt of
+       Nothing -> newHTk opts
+       Just htk -> error "HTk.initHTk called when HTk is already initialised!"
+    putMVar theHTkMVar (Just htk)
+    return htk
+
+--- @doc getHTk
+-- getHTk retrieves the current HTk (initialising if necessary).
+getHTk :: IO HTk
+getHTk =
+   do
+      htkOpt <- takeMVar theHTkMVar
+      htk <- case htkOpt of
+         Nothing -> newHTk []
+         Just htk -> return htk
+      putMVar theHTkMVar (Just htk)
+      return htk
+
+--- @doc newHTk
+-- newHTk actually creates a new HTk.  DO NOT call this except
+-- by initHTk or getHTk!
+newHTk :: [Config HTk] -> IO HTk
+newHTk opts =
+   do
+      obj <- createHTkObject htkMethods
+      configure (HTk obj) opts
+      return (HTk obj)
+
+--- @doc withdrawWish
+-- withdrawWish withdraws the wish window.
+withdrawWish :: IO ()
+withdrawWish =
+   do
+      htk <- getHTk
+      withdraw htk
 
 -- -----------------------------------------------------------------------
 -- HTk methods

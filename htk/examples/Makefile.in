@@ -22,6 +22,7 @@ SRCS       = Mainex1.hs\
 	     MainmodalDialogTest.hs\
              MainnotepadEx.hs\
              MainnotepadStateEx.hs\
+             MainsimpleFormEx.hs\
 
 #             MaintreeListEx.hs\
 #             MaintreeListStateEx.hs\

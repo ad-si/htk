@@ -76,6 +76,7 @@ SRCS       = resources/Resources.hs\
              toolkit/MarkupText.hs\
              toolkit/UtilWin.hs\
 	     toolkit/ModalDialog.hs\
+             toolkit/Separator.hs\
 	     toolkit/DialogWin.hs\
 	     menuitems/MenuItem.hs\
              menuitems/Menu.hs\
@@ -90,6 +91,7 @@ SRCS       = resources/Resources.hs\
 	     toolkit/Prompt.hs\
 	     toolkit/InputWin.hs\
 	     toolkit/InputForm.hs\
+             toolkit/SimpleForm.hs\
 
 #            components/Icon.hs\
 #            devices/Printer.hs\
