@@ -171,12 +171,18 @@ instance HugsSourceObj [FilePath] where
             promptPattern = toPattern
                ("\\`(.*)"++(escapeString promptKey)++"\\'",4::Int)
    
+          
+            matchPrompt :: IA ()
             matchPrompt = 
                match exp promptPattern >>>=
                   ( \ matchResult ->
                      do
                         let head : _ = getSubStrings matchResult
                         appendText tp head
+#ifdef DEBUG
+                        debug "Prompt"
+#endif
+                        done 
                      )
             -- (2) Parsing.  Ignore any lines
             --     beginning "Parsing"
@@ -208,16 +214,17 @@ instance HugsSourceObj [FilePath] where
             -- raises an exception if the window is terminated first. 
                   sync(
                         matchPrompt
-                     +> notPrompt >>> matchUntilPrompt
+                     +> preamble >>> matchUntilPrompt
+                     +> terminated >>> ioError(toolFailed "hugs")
                      )
                where
-                  notPrompt = 
-                        ((matchParsing +> matchBackspaces +> matchCopy) >>> 
-                           matchUntilPrompt) 
-                     +> terminated >>> ioError(toolFailed "hugs")
+                  preamble = matchParsing +> matchBackspaces +> matchCopy
+     
 
          matchUntilPrompt
-
+    
+         debug "First prompt"
+     
          when (files /= []) (hugs # loadDefinitions files)
 
          interactor (\iact ->
@@ -232,7 +239,7 @@ instance HugsSourceObj [FilePath] where
             +> keyPressed tp "Return" >>> 
                   do
                      cmd <- getCommand tp
-                     execCmd (cmd ++ "\n") exp
+                     execCmd (cmd) exp
             )
          return hugs
       where 
@@ -248,6 +255,7 @@ getCommand :: Editor String -> IO String
 getCommand tp = 
    do 
       str <- getTextLine tp (EndOfText,BackwardLines 2)
+      debug str
       case dropWhile (/= '>') str of
          []    -> return []
          (x:l) -> return l
@@ -271,7 +279,7 @@ getImports fname =
    where 
       importLinePattern =
          toPattern
-           ("\\` *import +((A-Z)(A-Z|a-z|0-9)*)",1::Int)
+           ("\\` *import +([a-zA-Z][a-zA-Z0-9]*)",1::Int)
       importLine exp =
          match exp importLinePattern >>>=
             (\ matchResult ->
@@ -282,13 +290,13 @@ getImports fname =
                   return moduleName
                ) 
       chaser exp ch imports iact = 
-            matchLine exp >>> done 
-         +> importLine exp >>>= 
+            importLine exp >>>= 
                (\ moduleName ->
                   do
                      debug "moduleName"
                      become iact (chaser exp ch (moduleName:imports) iact)
                   )
+         +> matchLine exp >>> done 
          +> matchEOF exp >>> 
                do
                   sendIO ch (reverse imports)
@@ -414,7 +422,7 @@ execHugsCmd cmd (Hugs exp _ tp _) =
    do
       insertText tp EndOfText cmd
       insertNewline tp
-      execOneWayCmd (cmd ++ "\n") exp
+      execOneWayCmd cmd exp
 
 
 -- --------------------------------------------------------------------------

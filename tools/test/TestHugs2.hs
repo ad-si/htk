@@ -27,6 +27,6 @@ main = do {
         args <- getArgs;
         print (head args);
         imports <- getImports (head args);
-        print ("imports: " ++ unlines imports);
+        putStr ("imports: " ++ unlines imports);
         done
 }

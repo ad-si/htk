@@ -252,7 +252,7 @@ attemptMatch expect line oldRst =
          Just (pattern,matchResult) -> 
             do
                logMatch line pattern matchResult
-               delegateEvent expect pattern matchResult rst
+               delegateEvent expect pattern matchResult rst line
 
 -- matchPattern patterns str 
 -- searches for the first matching pattern in the list of patterns.
@@ -287,10 +287,13 @@ matchOnePattern string pattern @ (Pattern regularExpression _ patString) =
 {- delegateEvent handles a successful match.
    delegateEvent expect pattern matchResult est
    pattern is the successful match.
+   If delegateEvent receives a registration event before it
+   finds a listener it loops back to attemptMatch.  Perhaps the
+   match was with an outdated listener?
    -}
-delegateEvent :: Expect -> Pattern -> MatchResult -> RST -> IO ()
+delegateEvent :: Expect -> Pattern -> MatchResult -> RST -> String -> IO ()
 delegateEvent 
-      expect @ (Expect{regChannel=regChannel}) pattern matchResult rst =
+      expect @ (Expect{regChannel=regChannel}) pattern matchResult rst line =
    do
       nextLineQueue <- newMsgQueue
       let
@@ -298,24 +301,32 @@ delegateEvent
          toSend bool = send nextLineQueue bool
          sagc = syncAndGetChanges regChannel
 
-      (listenerAck,rst) <- sagc rst (  
-      -- broadcast event.
-         choose 
-            (map
+      sync(
+            registrationChanged regChannel rst >>>=
+               (\newRst ->
+                  do
+                     debug "delegateEvent loopback"
+                     attemptMatch expect line newRst
+                  )
+         +> (choose (map 
                (\ listener -> oneway listener eID (matchResult,toSend))
                listeners
-               )
-         )
-      -- wait for listener acknowledgement
-      ((),rst) <- sagc rst listenerAck
-      -- find out if listener wants us to go to the next chunk
-      (nextLine,rst) <- sagc rst toWaitFor
-      logAck
-      if nextLine
-         then
-            matcher expect rst
-         else
-            attemptMatch expect restLine rst              
+               )) >>>= 
+               ( \ listenerAck ->
+                  -- OK, we now have a listener, which is not outdated.
+                  do
+                     -- wait for listener acknowledgement
+                     ((),rst) <- sagc rst listenerAck
+                     -- find out if listener wants us to go to the next chunk
+                     (nextLine,rst) <- sagc rst toWaitFor
+                     logAck
+                     if nextLine
+                        then
+                           matcher expect rst
+                        else
+                           attemptMatch expect restLine rst
+                  )
+         )    
   where 
      eID = toEventID (expect,pattern)
      listeners = getListeners eID rst
@@ -335,24 +346,33 @@ delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
          listeners = getListeners eID rst
          sagc = syncAndGetChanges regChannel
 
-      debug "DEOF2"
-      (listenerAck,rst) <- sagc rst (  
-      -- broadcast event.
-         choose 
-            (map
+      sync (
+            (registrationChanged regChannel rst) >>>=
+               (\ newRst -> 
+                  do
+                     debug "delegateEOF loopback"
+                     delegateEOF expect newRst
+                  )
+         +> (choose (map
                (\ listener -> oneway listener eID ())
                listeners
-               )
+               )) >>>=
+               ( \ listenerAck ->
+                  -- listener has accepted, now wait for acknowledgment
+                  do
+                     debug "DEOF3"
+                     -- wait for listener acknowledgement
+                     ((),rst) <- sagc rst listenerAck
+                     debug "DEOF4"
+                     logAck
+                     debug "DEOF5"
+                     -- even though we won't be getting any more lines
+                     -- from the application, we still need to keep the
+                     -- thread going to receive registration changes
+                     matcher expect rst      
+                  )
          )
-      debug "DEOF3"
-
-      -- wait for listener acknowledgement
-      ((),rst) <- sagc rst listenerAck
-      debug "DEOF4"
-      logAck
-      debug "DEOF5"
-      matcher expect rst      
-
+  
 -- --------------------------------------------------------------------------
 -- Actions which receive and process registration events
 -- --------------------------------------------------------------------------
