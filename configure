@@ -1418,7 +1418,7 @@ done
 
 if test -z "$GHCPKG"; then
    echo Without ghc-pkg you cannot compile UniForM.
-   GOAHEAD = NO
+   GOAHEAD=NO
 fi
 
 #
