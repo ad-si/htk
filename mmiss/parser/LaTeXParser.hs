@@ -84,7 +84,9 @@ includeCommands =  [("IncludeGroup", "includeGroup"), ("IncludeUnit", "includeUn
 		   [("IncludeSection", "includeSection"), ("IncludeAbstract","includeAbstract")] ++
                    [("IncludeIntroduction", "includeIntroduction"), ("IncludeSummary","includeSummary")] ++
                    [("IncludeFormalUnit", "includeFormalUnit"), ("IncludeAtom","includeAtom")] ++
-                   [("IncludeConceptualAtom", "includeConceptualAtom"), ("IncludeProgramFragment","includeProgramFragment")] ++
+                   [("IncludeConceptualUnit", "includeConceptualUnit")] ++
+                   [("IncludeConceptualAtom", "includeConceptualAtom")] ++
+                   [("IncludeProgramFragment","includeProgramFragment")] ++
                    [("IncludeProgram", "includeProgram"), ("IncludeClause","includeClause")] ++
                    [("IncludeTheory", "includeTheory"), ("IncludeStep","includeStep")] ++
                    [("IncludeProof", "includeProof"), ("IncludeScript","includeScript")] ++
@@ -926,94 +928,9 @@ fillLatex ((CElem (Elem "listItem" atts contents)):cs) inList =
 fillLatex ((CElem (Elem "emphasis" _ ((CString _ str):_))):cs) inList = 
    fillLatex cs (inList ++ [EditableText ("\\Emphasis{" ++ str ++ "}")]) 
 
-fillLatex ((CElem (Elem "includeGroup" atts _)):cs) inList = 
+fillLatex ((CElem (Elem ('i':'n':'c':'l':'u':'d':'e':unit) atts _)):cs) inList = 
    let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'G')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeAtom" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'A')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeUnit" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'U')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeTextFragment" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'T')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeSection" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'S')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeAbstract" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'a')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeIntroduction" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'I')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeTextSummary" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 's')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeFormalUnit" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'F')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeConceptualAtom" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'C')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeProgramFragment" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'p')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeProgram" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'P')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeClause" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'c')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeTheory" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 't')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeStep" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'x')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeProof" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'y')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeScript" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'z')]
-   in fillLatex cs (inList ++ item)
-
-fillLatex ((CElem (Elem "includeDevelopment" atts _)):cs) inList = 
-   let labelId = getParam "included" atts
-       item = [EmacsLink (labelId, 'D')]
+       item = [EmacsLink (labelId, (fromIncludeStr unit))]
    in fillLatex cs (inList ++ item)
 
 fillLatex ((CElem (Elem name atts contents)):cs) inList
