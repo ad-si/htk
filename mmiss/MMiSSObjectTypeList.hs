@@ -46,7 +46,7 @@ mmissObjectTypeMap =
                displayParms' = getDisplayInstruction xmlTag
                })
             )
-         allElements
+         labelledElements
          )
 
 ---

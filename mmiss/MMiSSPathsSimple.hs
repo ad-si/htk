@@ -8,6 +8,7 @@ module MMiSSPathsSimple(
    EntityName, -- Instance of HasCodedValue, StringClass
    lookupByObject, -- look up an entity for an object
    checkLookup, -- check a lookup.
+   registerMMiSSPaths, -- registration function.
    ) where
 
 import Maybe

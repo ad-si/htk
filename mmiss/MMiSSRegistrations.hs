@@ -3,7 +3,7 @@
    -}
 module MMiSSRegistrations(doMMiSSRegistrations) where
 
-import MMiSSPaths
+import MMiSSPathsSimple
 import MMiSSObjects
 import MMiSSDisplay
 

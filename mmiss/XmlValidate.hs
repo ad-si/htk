@@ -8,6 +8,7 @@ module XmlValidate(
   simplifyDTD,
   SimpleDTD,
   validate,
+  lookupAttribute,
   ) where
 
 import XmlTypes
@@ -22,6 +23,14 @@ data SimpleDTD = SimpleDTD
     , attributes :: FiniteMap (Name,Name) AttType
     , required   :: FiniteMap Name [Name]	-- required attributes
     }
+
+
+---
+-- lookupAttribute simpleDTD obj attName
+-- returns the attribute type for that attName on obj, if it exists
+lookupAttribute :: SimpleDTD -> String -> String -> Maybe AttType
+lookupAttribute simpleDTD obj attName 
+   = lookupFM (attributes simpleDTD) (obj,attName)
 
 simplifyDTD :: DocTypeDecl -> SimpleDTD
 simplifyDTD (DTD _ _ decls) =

@@ -49,7 +49,7 @@ import Folders
 import EmacsEdit
 
 import MMiSSAttributes
-import MMiSSPaths
+import MMiSSPathsSimple
 import MMiSSObjectTypeList
 import MMiSSVariant
 import MMiSSContent
@@ -275,11 +275,14 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      do
                         linkOpt <- checkLookup 
                            (lookupByObject view mmissObject) name
+{-
+                     do
+                        linkOpt <- getInFolder view folder (toString name)
+-}
                         return (fmap
                            (\ link -> (link,arcType))
                            linkOpt
                            )
-
                   includedLinks ::  VariableSetSource (WrappedLink,ArcType) 
                   includedLinks = mapVariableSetSourceIO'
                      (arcEntityName includedArcType)
@@ -307,7 +310,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
                   getNodeType = (\ object -> theNodeType),
                   knownSet = SinkSource (knownObjects objectType),
-                  mustFocus = (\ _ -> return False),
+                  mustFocus = (\ _ -> return True),
                   focus = focus,
                   closeDown = done
                   })
@@ -533,6 +536,11 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                versioned <- case linkOpt of
                   Just link -> fetchLink view link
                   Nothing -> newEmptyObject view
+               -- Set the included and referenced objects.
+               setVariableSet (includedObjects object) (map fromString
+                  (includes (accContents structuredContent)))
+               setVariableSet (referencedObjects object) (map fromString
+                  (references (accContents structuredContent)))
                return (versioned,objectLink,object)          
          Nothing ->
             do

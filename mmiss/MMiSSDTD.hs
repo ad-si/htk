@@ -10,6 +10,7 @@
    -}
 module MMiSSDTD(
    allElements,
+   labelledElements,
    validateElement,
    getDisplayInstruction,
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
@@ -106,6 +107,16 @@ parseProcessingInstruction str =
 
 allElements :: [String]
 allElements = elements theDTD
+
+---
+-- allElements, filtering just those elements which have a "label"
+-- attribute.
+labelledElements :: [String]
+labelledElements = filter
+   (\ elem -> isJust (lookupAttribute (simpleDTD theDTD) elem "label")
+      )
+   allElements
+
 
 getDisplayInstruction :: String -> NodeTypes a
 getDisplayInstruction str =

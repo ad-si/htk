@@ -4,6 +4,14 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+25) 09.09.02
+Change object types so that only object types with label are shown in
+create-object menu.
+
+24) 09.09.02
+Links to imported documents aren't shown.
+FIXED
+
 23) 06.09.02
 Alter mmiss/test/runWorkbench and Makefile.in so that all the users temporary 
 files go in the current directory or in /tmp/uni.temp.[USERNAME], thus making
