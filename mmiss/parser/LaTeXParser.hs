@@ -118,7 +118,7 @@ attParser = commaSep attribute
 
 attribute :: GenParser Char st (String, String)
 attribute = do spaces
-               key <- try(many1(noneOf ",=}")) <?> "attribute name"
+               key <- try(many1(noneOf " ,=}")) <?> "attribute name"
                spaces
                try(char '=') <?> "value for attribute '" ++ key ++ "'"
                spaces
