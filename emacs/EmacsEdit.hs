@@ -189,7 +189,7 @@ openFile emacsFS parentAction name mangledName =
                   (headString,endString) = containerTexts name 
 
                -- Insert the button
-               addButton session parent (headName mangledName) headString
+               addHeadButton session parent (headName mangledName) headString
 
                -- Insert the contents
                mapM

@@ -140,6 +140,12 @@
       )
    )
 
+; Append a head button to a container
+(defun uni-add-head-button (parent-extent-id extent-id text)
+   (uni-add-button parent-extent-id extent-id text)
+   (uni-mk-head-button extent-id)
+   )
+
 ; Add uneditable text to the container.  The face of the new text is
 ; the same as that a button with the container's name would have.
 (defun uni-add-uneditable (parent-extent-id text)
@@ -437,10 +443,15 @@
                            (t ())
                            )
                         )
-                     ((eq (extent-start-position closest-extent) from) t)
-                     ;; OK because inserting at the start of a button
-                     ;; boundary extent 
-                     ;; simply inserts the text before the extent
+                     ((eq (extent-start-position closest-extent) from) 
+                         (if (uni-is-head-button closest-extent) 
+                           (error "Can't insert before a head button")
+                           t ;; we are at the start of a button extent which
+                              ;; does not have the uni-head-button property
+                              ;; set.  Text inserted here will go before the
+                              ;; start of the button.
+                           )
+                        )
                      (t (error "Cannot insert into a button"))
                      )
                   )
@@ -470,6 +481,18 @@
          )
       (t ())
       )
+   )
+
+; Give an extent the uni-head-button property.  This means
+; uni-check-changes stops insertions just before the extent.
+(defun uni-mk-head-button (extent-id)
+   (let ((extent (gethash extent-id uni-extent-hash-table)))
+      (set-extent-property extent 'uni-head-button t)
+      )
+   )
+
+(defun uni-is-head-button (extent)
+   (plist-get (object-plist extent) 'uni-head-button)
    )
 
 

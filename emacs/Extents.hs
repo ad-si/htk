@@ -7,6 +7,7 @@ module Extents(
    prependContainerBuffer,
    addContainer,
    addButton,
+   addHeadButton,
    addUneditable,
    addText,
    boundContainer,
@@ -49,6 +50,10 @@ addContainer emacsSession parent new =
 addButton :: EmacsSession -> String -> String -> String -> IO ()
 addButton emacsSession parent new text =
    execEmacs emacsSession ("uni-add-button",[parent,new,text])
+
+addHeadButton :: EmacsSession -> String -> String -> String -> IO ()
+addHeadButton emacsSession parent new text =
+   execEmacs emacsSession ("uni-add-head-button",[parent,new,text])
 
 setColourHack :: EmacsSession -> IO ()
 setColourHack emacsSession =

@@ -4,9 +4,85 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+----------------------------------------------------------------------
+Here follows a list of the outstanding major bug-fixes / improvements which
+the existing workbench needs.  This is excluding completely new features
+(such as incorporating theorem provers).
+----------------------------------------------------------------------
+
+58) 25.09.02
+Upgrade in preparation for ghc6.  The major incompatible change is going to
+be making all libraries use the new hierarchy.  I am not sure
+whether this has been entirely specified yet; for example some of the Posix
+stuff we need is not yet in the new hierarchy.
+
+At the same time we should finally fishify everything and switch over to
+Haddock as our main documentation tool.
+
+57) 25.09.02
+Sort out exactly what is going on with BDB on Linux (see bug 17) and stop it.
+The best we can do in the short term (without getting rid of BDB and rolling
+our own, or installing some other no doubt equally dodgy system) may just
+be to isolate the problem, and post the bug report up the chimney to Santa
+Claus, or whoever is responsible for the problem.
+
+56) 25.09.02
+Write general links manager.  This would allow (a) renaming of objects and
+moving them between folders; (b) changing paths for objects; (c) changing
+name lists of links from particular objects.  Out of these it would produce
+VariableOrderedSet's or something like that which would produce concrete
+daVinci changes, so that (for example) these would automatically get updated
+whenever (say) a target object moved.
+
+This would be part of uni/types, and manage folder contents as well.
+
+At the same time it would be nice if we could persuade daVinci to generate
+edges in the right order.  Unfortunately this seems to be in general not
+possible; eg if documents A and B include items 1 and 2 but in different 
+orders.
+
+55) 25.09.02
+Extend daVinci interface to allow things (like colours and so on) to be
+changed more easily.  We need (a) to be able to change them for a particular
+node/edge; (b) to be able to change them for all the nodes and edges in a
+particular type.  (a) would be useful if we want, say, to change the border
+of a node to indicate it is being edited.  (b) if we want to hide all 
+folders.
+
+54) 25.09.02
+Sort out LaTeX preambles.  At the moment the current hack is to attach
+the preamble to every single sub-object.  This is bad because (a) it is
+inefficient; (b) it won't work when an object is included by some other 
+document with an incompatible preamble (since only the preamble of the
+topmost object counts).  In general this is going to be tricky.  Here are
+some typical problems:
+(a) Documents will typically be composed of atoms with several different
+preambles.  We need to merge these preambles somehow.  This requires
+possibly name-changing if the name-spaces conflict.  We have to work out
+what packages to import; worse we have to work out what order to import them 
+in.  (Idea: concatenate all the usepackage lists, then remove all but the
+first mention of each package.  If two packages conflict we're sunk, but then
+we are anyway.)
+(b) If we export to OM-Doc (as the brass hats would like), play around with
+the result, and then import back into LaTeX, how on earth are we to preserve
+the user's fine-tuned style preferences in the preamble?
+
+At the same time we shouldn't despair here.  I don't think we have to solve the
+halting problem if all we have to do is deal with preambles containing
+just \usepackage, \(re)newcommand and \def.  And of course
+\documentclass[blah blah]{mmiss2}.
+
+----------------------------------------------------------------------
+End of list
+----------------------------------------------------------------------
+
 53) 25.09.02
 It seems to be possible to insert text before a head button in some
 circumstances.
+
+This is because we didn't tell Emacs there's anything special about a 
+head button.
+FIXED
 
 52) 25.09.02
 Print from XEmacs now works.
