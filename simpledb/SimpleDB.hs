@@ -210,20 +210,17 @@ initialiseInternal versionState =
 
       bSem <- newBSem
 
+   
+
       adminMVar <- newMVar False
 
       seq defaultUser done
       let
          userId1 = defaultUser
 
-         user = PasswordFile.User {
-            PasswordFile.userId = userId1,
-            encryptedPassword = "",
-            adminMVar = adminMVar,
-            other = ""
-            }
+      user <- createUser userId1
 
-           
+      let
          queryRepository command = 
             synchronize bSem (querySimpleDB user simpleDB command)
 

@@ -10,9 +10,11 @@
 -- This module also contains the code for permitting users to claim
 -- "ADMIN" status.  To do this they must belong to the group "ADMIN".
 module PasswordFile(
-   User(..), -- information for a particular user
+   User(userId,encryptedPassword,other), -- information for a particular user
    getUserEntry, -- :: String -> IO (Maybe User)
       -- get that information, given the user id.
+   createUser, -- :: String -> IO User
+      -- create a user id.
    getAdminStatus, -- :: User -> IO Bool
       -- Returns True if user currently has admin status
    claimAdmin, -- :: User -> IO Bool
@@ -31,6 +33,7 @@ import Data.IORef
 import System.IO.Unsafe
 
 import Computation
+import Object
 import ExtendedPrelude
 import WBFiles
 
@@ -48,7 +51,8 @@ data User = User {
    userId :: String,
    encryptedPassword :: String,
    adminMVar :: MVar Bool,
-   other :: String
+   other :: String,
+   oID :: ObjectID
    }
 
 -- ------------------------------------------------------------------------
@@ -56,7 +60,7 @@ data User = User {
 -- ------------------------------------------------------------------------
 
 instance Eq User where
-   (==) = mapEq adminMVar
+   (==) = mapEq oID
 
 -- ------------------------------------------------------------------------
 -- Accessing the data for a particular user
@@ -66,11 +70,15 @@ getUserEntry :: String -> IO (Maybe User)
 getUserEntry uId =
    do
       users <- getUserEntrys
-      return (findJust
-         (\ user -> if userId user == uId then Just user else Nothing) 
-         users
-         )
-   
+      case (findJust
+            (\ user -> if userId user == uId then Just user else Nothing) 
+            users
+            ) of
+         Just user0 ->
+            do
+               oID <- newObject
+               return (Just (user0 {oID = oID}))
+         Nothing -> return Nothing
 
 getUserEntrys :: IO [User]
 getUserEntrys =
@@ -109,7 +117,8 @@ parseLine userLine =
                   userId = userId,
                   encryptedPassword = encryptedPassword,
                   adminMVar = adminMVar,
-                  other = other
+                  other = other,
+                  oID = error "PasswordFile.oID1"
                   })
              )
       _ -> hasError (
@@ -156,6 +165,20 @@ claimAdmin user =
 -- | Revoke admin status.
 revokeAdmin :: User -> IO ()
 revokeAdmin user = modifyMVar_ (adminMVar user) (\ _ -> return False)
+
+-- | Create a 'User' (this is used for the internal server)
+createUser :: String -> IO User
+createUser userId =
+   do
+      adminMVar <- newMVar False
+      oID <- newObject
+      return (User {
+         userId = userId,
+         encryptedPassword = "",
+         adminMVar = adminMVar,
+         other = "",
+         oID = oID
+         })
 
 -- ------------------------------------------------------------------------
 -- Admin management for the internal server.

@@ -6,9 +6,12 @@ module VersionAllocation(
    useVersion,
    reuseVersion,
    flushVersion,
+   forgetUsersVersions,
+
    ) where
 
-import GHC.Weak
+import Maybe
+
 import Data.FiniteMap
 import Data.IORef
 
@@ -44,45 +47,59 @@ allocVersion simpleDB user =
 useVersion :: SimpleDB -> User -> ObjectVersion -> IO ()
 useVersion simpleDB user version =
    do
-      userWeakRefOpt <- atomicModifyIORef (openVersions simpleDB)
+      userOpt <- atomicModifyIORef (openVersions simpleDB)
          (\ fm0 -> (delFromFM fm0 version,lookupFM fm0 version))
       let
          notAllowed = throwError AccessError
             "Attempt to commit version which is not allocated"
 
-      case userWeakRefOpt of
+      case userOpt of
          Nothing -> notAllowed
-         Just userWeakRef ->
-            do
-               userOpt <- deRefWeak userWeakRef
-               case userOpt of
-                  Nothing -> notAllowed
-                  Just user2 
-                     | user == user2 -> done
-                     | True -> 
-                         do
-                            reuseVersion simpleDB user2 version
-                            notAllowed
+         Just user2 
+            | user == user2 -> done
+            | True -> 
+                do
+                   reuseVersion simpleDB user2 version
+                   notAllowed
                                                   
 
 -- | Put a version back into 'openVersions'
 -- (used when a commit fails).
 reuseVersion :: SimpleDB -> User -> ObjectVersion -> IO ()
 reuseVersion simpleDB user version = 
+   atomicModifyIORef (openVersions simpleDB)
+      (\ fm0 -> (addToFM fm0 version user,()))
+
+-- | Forget all versions belonging to a user and free their memory.
+forgetUsersVersions :: SimpleDB -> User -> IO ()
+forgetUsersVersions simpleDB user0 =
    do
-      userRef <- mkWeak user user 
-         (Just (deleteVersion (openVersions simpleDB) version))
-      atomicModifyIORef (openVersions simpleDB)
-         (\ fm0 -> (addToFM fm0 version userRef,()))
+      l <- atomicModifyIORef (openVersions simpleDB)
+         (\ fm0 ->
+            let
+               old :: [(ObjectVersion,User)]
+               old = fmToList fm0
+              
+               toDelete :: [ObjectVersion]
+               toDelete = mapMaybe
+                  (\ (ov,user1) -> 
+                     if user1 == user0
+                        then
+                           Just ov
+                        else
+                           Nothing
+                     )
+                  old
 
--- | deleteVersion is only used internally.  It is possible (because
--- of the rules on finalizers) that it will be used when the
--- version is already deleted.
-deleteVersion :: IORef (FiniteMap ObjectVersion a) -> ObjectVersion 
-   -> IO ()
-deleteVersion mapRef version =
-   atomicModifyIORef mapRef (\ fm -> (delFromFM fm version,()))
-
+               fm1 = foldl
+                  (\ fm ov -> delFromFM fm ov)
+                  fm0
+                  toDelete
+            in
+               (fm1,sizeFM fm1)
+            )
+      
+      seq l done
 
 flushVersion :: SimpleDB -> TXN -> IO ()
 flushVersion simpleDB txn =

@@ -14,6 +14,7 @@ import SimpleDBServer
 
 import VersionInfoService
 import VersionState
+import VersionAllocation(forgetUsersVersions)
 
 mkSimpleDBServices :: IO [Service]
 mkSimpleDBServices =
@@ -47,6 +48,10 @@ instance ServiceClass SimpleDBCommand SimpleDBResponse SimpleDB where
       do
          response <- querySimpleDB user simpleDB command
          return (response,simpleDB)
+   handleClientDisconnect _ user simpleDB =
+      do
+         forgetUsersVersions simpleDB user
+         return simpleDB
    -- For sendOnConnect we use the default action of sending ""
 
 

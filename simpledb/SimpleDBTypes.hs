@@ -19,7 +19,6 @@ import Control.Monad.Trans
 import Data.Typeable
 import Data.IORef
 import Data.FiniteMap
-import GHC.Weak
 
 import DeepSeq
 import ICStringLen
@@ -219,7 +218,7 @@ data SimpleDB = SimpleDB {
       -- ^ This contains the version data, for example the map from
       -- the PrimitiveLocation to the corresponding BDBKey (in this
       -- version).
-   openVersions :: IORef (FiniteMap ObjectVersion (Weak User)),
+   openVersions :: IORef (FiniteMap ObjectVersion User),
       -- ^ This map contains current version numbers allocated by
       -- NewVersion (by user) which have not yet had UserInfo
       -- assigned to them by Commit or ModifyUserInfo.
@@ -227,11 +226,6 @@ data SimpleDB = SimpleDB {
       -- This allows us to block attempts to hijack a version number
       -- allocated to someone else, or to commit to a version already
       -- committed to.
-      -- 
-      -- We use a weak pointer to the User.  This will have a finalizer
-      -- attached to it which deletes the entry should the User disappear.
-      -- This should hopefully prevent openVersions accumulating 
-      -- allocated but never-used versions.
    versionState :: VersionState,
       -- ^ This contains the VersionInfo.VersionState information,
       -- which manages the VersionInfos.
