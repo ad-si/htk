@@ -139,7 +139,7 @@
             (concat uni-half-line (car command-parts0))
             (cdr command-parts0)
             ))
-         (last-index (- (length command-parts1) 1))
+         (last-index (1- (length command-parts1)))
          (new-half-line (nth last-index command-parts1))
          )
       (progn
@@ -212,7 +212,7 @@
    (if (> n 0) 
       (progn
          (funcall f (car l))
-         (uni-appn f (cdr l) (- n 1))
+         (uni-appn f (cdr l) (1- n))
          )
       )
    )
@@ -252,7 +252,7 @@
       (if next
           (cons
              (substring s start next)
-             (uni-split-general s (+ next 1) end ch)
+             (uni-split-general s (1+ next) end ch)
              )
           (list (substring s start end))
           )
