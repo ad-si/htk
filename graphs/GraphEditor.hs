@@ -31,6 +31,7 @@ import Dynamics
 
 import InfoBus
 import Events
+import Channels
 import Destructible
 
 import DisplayGraph
@@ -279,7 +280,7 @@ newNodeArcTypeRegistry graph =
       (nodeTypes :: NodeTypeRegistry) <- newRegistry
       (arcTypes :: ArcTypeRegistry) <- newRegistry
 
-      updateQueue <- newMsgQueue 
+      updateQueue <- newChannel
       GraphConnectionData {
          graphState = CannedGraph { updates = oldUpdates },
          deRegister = deRegister

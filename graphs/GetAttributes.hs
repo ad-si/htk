@@ -21,11 +21,11 @@ import Dynamics
 import Registry
 
 import HTk
-import Button
-import Frame
-import Label
+import ModalDialog
 import DialogWin
 import InputWin
+import InputForm
+import MarkupText
 
 import qualified GraphConfigure
 
@@ -79,22 +79,19 @@ getNodeTypeAttributes1 :: IO PreAttributes
 getNodeTypeAttributes1 =
    do
       let def = PreAttributes {shapeSort=Box,nodeTypeTitle'=""}
-      form <- newInputForm [flexible,value def]
-      newEnumField [Box .. Icon] [
-         text "Node Shape",
+      iw <- newInputWin "Node Type Attributes" (Just def) []
+      newEnumField (fForm iw) [Box .. Icon] [
+         -- text "Node Shape",
          selector shapeSort,
-         modifier (\ old newShape -> old {shapeSort = newShape}),
-         parent form
+         modifier (\ old newShape -> old {shapeSort = newShape})
          ]
-      newEntryField [
+      newEntryField (fForm iw) [
          text "Node Type title",
          selector nodeTypeTitle',
          modifier (\ old newTitle -> old {nodeTypeTitle' = newTitle}),
-         parent form,
          width 20
          ]
-      inputWin <- newInputWin "Node Type Attributes" form Nothing [modal True]
-      result <- sync(triggered inputWin)
+      result <- wait iw True
       case result of
          Just value -> return value
          Nothing -> cancelQuery
@@ -116,7 +113,7 @@ instance HasTyCon1 NodeAttributes where
 data NodePreAttributes = NodePreAttributes {
    preNodeType :: String,
    preNodeTitle :: String
-   }
+   } deriving Show
 
 getNodeAttributes :: (Registry String nodeType) -> 
    IO (Maybe (NodeAttributes nodeType))
@@ -138,25 +135,20 @@ getNodeAttributes registry =
                preNodeTitle=""
                }
 
-
-         (form :: InputForm NodePreAttributes)
-            <- newInputForm [flexible,value def]
-         newEnumField knownTypeNames [
-            text "Node Type",
+         inputWin <- newInputWin "Node Attributes" (Just def) []
+         newEnumField (fForm inputWin) knownTypeNames [
+            -- text "Node Type",
             selector preNodeType,
             modifier (\ old nodeTypeName -> 
-               old {preNodeType = nodeTypeName}),
-            parent form
+               old {preNodeType = nodeTypeName})
             ]
-         newEntryField [
+         newEntryField (fForm inputWin) [
             text "Node title",
             selector preNodeTitle,
             modifier (\ old newTitle -> old {preNodeTitle = newTitle}),
-            parent form,
             width 20
             ]
-         inputWin <- newInputWin "Node Attributes" form Nothing [modal True]
-         result <- sync(triggered inputWin)
+         result <- wait inputWin True
          case result of
             Just (NodePreAttributes {
                preNodeTitle = nodeTitle,
@@ -188,16 +180,14 @@ getArcTypeAttributes :: IO (Maybe ArcTypeAttributes)
 getArcTypeAttributes =
    do
       let def = ArcTypeAttributes {arcTypeTitle=""}
-      form <- newInputForm [flexible,value def]
-      newEntryField [
+      inputWin <- newInputWin "Arc Type Attributes" (Just def) []
+      newEntryField (fForm inputWin) [
          text "Arc Type title",
          selector arcTypeTitle,
          modifier (\ old newTitle -> old {arcTypeTitle = newTitle}),
-         parent form,
          width 20
          ]
-      inputWin <- newInputWin "Arc Type Attributes" form Nothing [modal True]
-      sync(triggered inputWin)
+      wait inputWin True
    
 ------------------------------------------------------------------------
 -- Arcs
@@ -234,19 +224,14 @@ getArcAttributes registry =
             def = ArcPreAttributes {
                preArcType=head knownTypeNames
                }
-
-
-         (form :: InputForm ArcPreAttributes)
-            <- newInputForm [flexible,value def]
-         newEnumField knownTypeNames [
-            text "Arc Type",
+         inputWin <- newInputWin "Arc Attributes" (Just def) []
+         newEnumField (fForm inputWin) knownTypeNames [
+            -- text "Arc Type",
             selector preArcType,
             modifier (\ old arcTypeName -> 
-               old {preArcType = arcTypeName}),
-            parent form
+               old {preArcType = arcTypeName})
             ]
-         inputWin <- newInputWin "Arc Attributes" form Nothing [modal True]
-         result <- sync(triggered inputWin)
+         result <- wait inputWin True
          case result of
             Just (ArcPreAttributes {
                preArcType = arcTypeName
@@ -265,7 +250,8 @@ getArcAttributes registry =
 
 displayError :: String -> IO ()
 -- This displays an error message until the user clicks "Try Again".
-displayError message =
+displayError message = newErrorWin [bold [prose message], newline] []
+{-
    do
       frame <- newFrame []
       win <- window frame [text "Error"]
@@ -274,23 +260,23 @@ displayError message =
          command (\ () -> destroy win)]
       interactor (\iact -> triggered ackButton >>> stop iact)
       sync(destroyed win)
+ -} 
+
 
 getSingleString :: String -> IO String
 -- This gets a single string from the user, prompting with the argument
 -- provided.
 getSingleString query =
    do
-      form <- newInputForm [flexible,value ""]
+      inputWin <- newInputWin "" Nothing []
       (entryField :: EntryField String String) <-
-         newEntryField [
+         newEntryField (fForm inputWin) [
             text query,
             selector id,
             modifier (\ oldValue newValue -> newValue),
-            parent form,
             width 20
             ]
-      inputWin <- newInputWin "" form Nothing [modal True]
-      result <- sync(triggered inputWin)
+      result <- wait inputWin True
       case result of
          Just value -> return value
          Nothing -> cancelQuery

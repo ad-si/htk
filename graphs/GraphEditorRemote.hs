@@ -2,7 +2,7 @@
    -}
 module GraphEditorRemote(graphEditorRemote) where
 
-import Concurrent(killThread)
+import Concurrent
 
 import Computation(done)
 
