@@ -15,6 +15,12 @@ module MMiSSDTD(
    getDisplayInstruction,
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
    toExportableXml, -- :: Element -> String
+
+   -- General interface for reading in and validating against a DTD.
+   MMiSSDTD,
+   readDTD, -- :: FilePath -> IO MMiSSDTD
+   simpleDTD, -- :: MMiSSDTD -> Element -> [String]
+      -- return list of errors for Element (hopefully empty)
    ) where
 
 import IO
