@@ -7,7 +7,7 @@ include top/mk/boilerplate.mk
 # SUBDIRS is a list of all directories containing code to be compiled to
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
-SUBDIRS=$(UTILDIR) $(CONCDIR) $(REACTORDIR) $(HTKDIR) $(DAVINCIDIR) $(WWWDIR)
+SUBDIRS=$(UTILDIR) $(CONCDIR) $(REACTORDIR) $(HTKDIR) $(DAVINCIDIR) $(WWWDIR) $(TOOLSDIR)
 
 unexport SUBDIRS
 
