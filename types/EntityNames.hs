@@ -9,7 +9,22 @@ module EntityNames(
    EntitySearchName(..),
       -- An EntityFullName but possibly 
    EntityPath(..), -- Specifies a list of full paths to search; may also 
-      -- specify relative paths.
+      -- specify relative paths. 
+   raiseEntityPath, -- :: EntityPath -> EntityPath
+      -- raise an entityPath replacing each path by a reference from its
+      -- parent (so a/b -> ../a/b)
+   entityDir, -- :: EntityFullName -> Maybe EntityFullName
+      -- Find the parent of the object, if there is one.
+   entityBase, -- :: EntityFullName -> Maybe EntityName
+      -- Find the name of the object within its parent.
+   trivialPath, -- :: EntityPath
+      -- Path just searching in this object.
+
+   ImportCommands(..),
+   ImportCommand(..),
+   Directive(..),
+   
+
    ) where
 
 import List
@@ -17,6 +32,8 @@ import List
 import AtomString
 import ExtendedPrelude
 import DeepSeq
+import Dynamics
+import Computation
 
 import SimpleForm
 
@@ -34,7 +51,7 @@ newtype EntityName = EntityName String deriving (Eq,Ord,Show)
 -- An EntityFullName is a name for some object, relative to some other
 -- object.  "." represents that other object.
 -- Example EntityFullName's: "a", "a/bc".
-newtype EntityFullName = EntityFullName [EntityName]
+newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord)
 
 ---
 -- EntitySearchName's represent search paths starting from some particular
@@ -53,20 +70,39 @@ newtype EntityFullName = EntityFullName [EntityName]
 -- <fullName> :: = <subdirs>
 --
 -- <searchName> ::= "."
--- <searchName> ::= <parents> <subdirs>
--- <searchName> ::= <parents> "../"
+-- <searchName> ::= <parents> <fullName>
 --
 -- Then <fullName> is a legal EntityFullName and <searchName> a legal 
 -- EntitySearchName.
 data EntitySearchName = 
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
+   deriving (Eq,Ord)
 
 ---
 -- An EntityPath is a non-empty sequence of EntitySearchNames.  Thus we
 -- can define the syntax as follows:
 -- <path> ::= <searchName> ( ":" <searchName> )*
-newtype EntityPath = EntityPath [EntitySearchName]
+newtype EntityPath = EntityPath [EntitySearchName] deriving (Ord,Eq)
+
+
+
+newtype ImportCommands = ImportCommands [ImportCommand]
+
+data ImportCommand = 
+      Import [Directive] EntityFullName
+   |  PathAlias EntityName EntityFullName
+
+data Directive = 
+      Qualified
+   |  Unqualified
+   |  Hide EntityName
+   |  Reveal [EntityName]
+   |  Rename {
+         newName :: EntityName,
+         oldName :: EntityName
+         }
+
 
 -- ----------------------------------------------------------------------
 -- Instances of StringClass
@@ -87,23 +123,27 @@ badChar _ = False
 -- EntityNames are represented with names separated by periods.
 instance StringClass EntityName where
    toString (EntityName name) = name
-   fromString "" = fromStringError "Empty entity names are forbidden"
-   fromString name =
+   fromStringWE "" = hasError "Empty entity names are forbidden"
+   fromStringWE name =
       if any badChar name
          then
-            fromStringError (show name ++ " contains illegal characters")
+            hasError (show name ++ " contains illegal characters")
          else
-            EntityName name
+            hasValue (EntityName name)
 
 instance StringClass EntityFullName where
    toString (EntityFullName []) = "."
    toString (EntityFullName entityNames) =
       unsplitByChar '/' (map toString entityNames)
 
-   fromString "" = fromStringError ("\"\" is not a valid full name")
-   fromString "." = EntityFullName []
-   fromString str =
-      EntityFullName (map fromString (splitByChar '/' str))
+   fromStringWE "" = hasError ("\"\" is not a valid full name")
+   fromStringWE "." = hasValue (EntityFullName [])
+   fromStringWE str =
+      mapWithError EntityFullName
+         (concatWithError
+            (map fromStringWE (splitByChar '/' str))
+            )
+
 
 instance StringClass EntitySearchName where
    toString (FromHere (EntityFullName [])) = "."
@@ -113,21 +153,24 @@ instance StringClass EntitySearchName where
          toStringInner (FromHere (EntityFullName [])) = ""
          toStringInner (FromHere entityFullName) = toString entityFullName
 
-   fromString "" = fromStringError "\"\" is not a valid search name"
-   fromString "." = FromHere (EntityFullName [])
-   fromString other = fromStringInner (splitByChar '/' other)
-      where
-         fromStringInner ("..":rest) = FromParent (fromStringInner rest)
-         fromStringInner names 
-            = FromHere (EntityFullName (map fromString names))
+   fromStringWE "" = hasError "\"\" is not a valid search name"
+   fromStringWE "." = hasValue (FromHere (EntityFullName []))
+   fromStringWE ('.':'.':'/':rest) =
+      mapWithError FromParent (fromStringWE rest)
+   fromStringWE other = 
+      mapWithError FromHere (fromStringWE other)
 
 ---
 -- EntityPaths are represented as EntityPathComponents separated by colons.
 instance StringClass EntityPath where
    toString (EntityPath components) 
       = unsplitByChar ':' (map toString components)
-   fromString "" = fromStringError "Empty paths are not allowed"
-   fromString str =  EntityPath (map fromString (splitByChar ':' str))
+   fromStringWE "" = hasError "Empty paths are not allowed"
+   fromStringWE str = 
+     mapWithError EntityPath
+         (concatWithError
+            (map fromStringWE (splitByChar ':' str))
+            )
 
 -- ----------------------------------------------------------------------
 -- To pick up errors we use DeepSeq to do the necessary seq'ing.
@@ -152,20 +195,79 @@ instance DeepSeq EntityPath where
 
 instance FormTextFieldIO EntityName where
    makeFormStringIO = return . toString
-   readFormStringIO = fromStringWE
+   readFormStringIO = return . fromStringWE
 
 instance FormTextFieldIO EntityFullName where
    makeFormStringIO = return . toString
-   readFormStringIO = fromStringWE
+   readFormStringIO = return . fromStringWE
 
 instance FormTextFieldIO EntitySearchName where
    makeFormStringIO = return . toString
-   readFormStringIO = fromStringWE
+   readFormStringIO = return . fromStringWE
 
 instance FormTextFieldIO EntityPath where
    makeFormStringIO = return . toString
-   readFormStringIO = fromStringWE
+   readFormStringIO = return . fromStringWE
 
+-- ----------------------------------------------------------------------
+-- Instances of Typeable and HasCodedValue
+-- ----------------------------------------------------------------------
 
+entityName_tyRep = mkTyRep "EntityNames" "EntityName"
+instance HasTyRep EntityName where
+   tyRep _ = entityName_tyRep
 
+instance HasCodedValue EntityName where
+   encodeIO = mapEncodeIO (\ name -> Str name)
+   decodeIO = mapDecodeIO (\ (Str name) -> name)
 
+--
+
+entityFullName_tyRep = mkTyRep "EntityNames" "EntityFullName"
+instance HasTyRep EntityFullName where
+   tyRep _ = entityFullName_tyRep
+
+instance HasCodedValue EntityFullName where
+   encodeIO = mapEncodeIO (\ name -> Str name)
+   decodeIO = mapDecodeIO (\ (Str name) -> name)
+
+--
+
+entitySearchName_tyRep = mkTyRep "EntityNames" "EntitySearchName"
+instance HasTyRep EntitySearchName where
+   tyRep _ = entitySearchName_tyRep
+
+instance HasCodedValue EntitySearchName where
+   encodeIO = mapEncodeIO (\ name -> Str name)
+   decodeIO = mapDecodeIO (\ (Str name) -> name)
+
+--
+
+entityPath_tyRep = mkTyRep "EntityNames" "EntityPath"
+instance HasTyRep EntityPath where
+   tyRep _ = entityPath_tyRep
+
+instance HasCodedValue EntityPath where
+   encodeIO = mapEncodeIO (\ name -> Str name)
+   decodeIO = mapDecodeIO (\ (Str name) -> name)
+
+-- ----------------------------------------------------------------------
+-- raiseEntityPath
+-- ----------------------------------------------------------------------
+
+raiseEntityPath :: EntityPath -> EntityPath
+raiseEntityPath (EntityPath entitySearchNames) =
+   EntityPath (map FromParent entitySearchNames)
+
+-- ----------------------------------------------------------------------
+-- Miscellaneous functions.
+-- ----------------------------------------------------------------------
+
+entityDir :: EntityFullName -> Maybe EntityFullName
+entityDir (EntityFullName names) = fmap EntityFullName (chop 1 names)
+
+entityBase :: EntityFullName -> Maybe EntityName
+entityBase (EntityFullName names) = lastOpt names
+
+trivialPath :: EntityPath
+trivialPath = EntityPath [FromHere (EntityFullName [])]
