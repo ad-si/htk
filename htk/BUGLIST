@@ -4,10 +4,6 @@ HTk Buglist
 This file contains a list of known and as-yet unfixed HTk bugs, in
 (roughly) descending order of seriousness.
 
-FileDialog hangs [crimson, 17.08.01]
- If the "create folder" button is clicked, the file dialog does not 
- respond to further interaction; you can only quit. 
-
 TkVariables [cxl, 17.09.01]
  MenuCheckButtons can have TkVariables of any type. Using e.g. list of
  string leads to 
@@ -41,3 +37,9 @@ creadTK can't parse Bool? [cxl/crimson, 21.09.01]
    leads to "NO PARSE: True".
 
 Fixed - ludi/cxl, 28.09.01
+
+
+FileDialog hangs [crimson, 17.08.01]
+ If the "create folder" button is clicked, the file dialog does not 
+ respond to further interaction; you can only quit. 
+Fixed - ludi
