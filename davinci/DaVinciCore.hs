@@ -32,76 +32,76 @@ cirtical section of daVinci.
 
 
 module DaVinciCore (
-        Object(..),
-        Tool(..),
-        ToolStatus(..),
-
-        DaVinci(..),
-        withDaVinci,
-        withDaVinciOneWay,
-
-        getGraphs,
-
-        Dispatcher,
-
-        Graph,
-        createGraph,
-        withGraph,
-        withGraphOneWay,
-        redrawGraph,
-        closeGraph,
-        cleanupGraph,
-        fDaVinci,
-        fGraphObj,
-
-        newType,
-        delType,
-        getType,
-        typeNotFound,
-
-        getNodeSelection,
-        setNodeSelection,
-        getEdgeSelection,
-        setEdgeSelection,
-        
-        EventID,
-        EventDesignator(..),
-
-        module DaVinciEvent,
-
-        listenDaVinci,
-
-        Node(..),
-        EdgeId(..),
-        Edge(..),
-        NodeId(..),
-        newNodeId,
-        newEdgeId,
-
-        createNode,
-        createEdge,
-        getNode,
-        getEdge,
-        setNodeAttr,
-        getNodeAttr,
-        setEdgeAttr,
-        getEdgeAttr,
-        delNode,
-        delEdge,
-
-        existNode, 
-        existEdge,
-        getIncoming,
-        getOutgoing,
-        getSource,
-        getTarget,
-        getNodes,
-        getEdges,
-
-        nodeNotFound,
-        edgeNotFound
-
-        ) where
+   Object(..),
+   Tool(..),
+   ToolStatus(..),
+   
+   DaVinci(..),
+   withDaVinci,
+   withDaVinciOneWay,
+   
+   getGraphs,
+   
+   Dispatcher,
+   
+   Graph,
+   createGraph,
+   withGraph,
+   withGraphOneWay,
+   redrawGraph,
+   closeGraph,
+   cleanupGraph,
+   fDaVinci,
+   fGraphObj,
+   
+   newType,
+   delType,
+   getType,
+   typeNotFound,
+   
+   getNodeSelection,
+   setNodeSelection,
+   getEdgeSelection,
+   setEdgeSelection,
+   
+   EventID,
+   EventDesignator(..),
+   
+   module DaVinciEvent,
+   
+   listenDaVinci,
+   
+   Node(..),
+   EdgeId(..),
+   Edge(..),
+   NodeId(..),
+   newNodeId,
+   newEdgeId,
+   
+   createNode,
+   createEdge,
+   getNode,
+   getEdge,
+   setNodeAttr,
+   getNodeAttr,
+   setEdgeAttr,
+   getEdgeAttr,
+   delNode,
+   delEdge,
+   
+   existNode, 
+   existEdge,
+   getIncoming,
+   getOutgoing,
+   getSource,
+   getTarget,
+   getNodes,
+   getEdges,
+   
+   nodeNotFound,
+   edgeNotFound
+   
+   ) where
 
 import SIM
 import qualified ExtendedPrelude
@@ -126,13 +126,13 @@ import Debug(debug)
 -- ---------------------------------------------------------------------------
 
 data DaVinci = 
-        DaVinci {
-                fDispatcher     :: (Dispatcher DaVinciEventInfo),
-                fSession        :: GUIOBJECT,
-                fDaVinciState   :: (PVar DST)
-                }
+   DaVinci {
+      fDispatcher     :: (Dispatcher DaVinciEventInfo),
+      fSession        :: GUIOBJECT,
+      fDaVinciState   :: (PVar DaVinciState)
+      }
 
-data DST = DST {
+data DaVinciState = DaVinciState {
                 fContextID :: (Maybe ContextID),
                 fGraphs    :: [Graph]
                 }
@@ -264,7 +264,7 @@ startDaVinci = do {
         mq <- newMsgQueue;
         tname <- getWBToolFilePath "daVinci";   
         dist <- newDispatcher tname [arguments ["-pipe"]] fin (handleEvent mq);
-        mtx <- newPVar (DST Nothing []);
+        mtx <- newPVar (DaVinciState Nothing []);
         dav <- return (DaVinci dist gobj mtx);
         forkIO(dispatcher dav mq cntx True);
         return dav
@@ -281,7 +281,7 @@ shutdownDaVinci dav = do {
         graphs <- updVar (fDaVinciState dav) (\dst -> do {
                 destroy (fDispatcher dav); 
                 destroy (fSession dav);
-                return (DST Nothing [],fGraphs dst)
+                return (DaVinciState Nothing [],fGraphs dst)
                 });
         foreach graphs cleanupGraph;
         done
