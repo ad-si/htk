@@ -20,7 +20,7 @@ tarball.tar.gz:
 	gtar -czf tarball.tar.gz `gfind . '(' -name '*.hs' -o -name '*.c' -o -name '*.h' -o -name '*.mk' -o -name Makefile -o -name 'README' ')' ` 
 
 # tar of all object and .hi files (but not .depend/library/exec files which 
-# are cheaper to regenerated)
+# are cheaper to regenerate)
 tarball.objects.tar.gz:
 	gtar -czf tarball.objects.tar.gz `gfind . '(' -name '*.o' -o -name '*.hi' ')' `
 

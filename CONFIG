@@ -1,7 +1,6 @@
 #!/bin/sh
 # This script needs to be run before any of the make files, to
 # set up the links.
-# 
 UNIDIR=`dirname $0`
 cd $UNIDIR
 FULLUNIDIR=$PWD
