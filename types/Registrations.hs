@@ -5,6 +5,7 @@ module Registrations(doRegistrations) where
 import AttributesType
 import Folders
 import Files
+import NoAccessObject
 
 
 doRegistrations :: IO ()
@@ -13,3 +14,4 @@ doRegistrations =
       registerFolders
       registerFiles
       registerAttributes
+      registerNoAccessObjectType

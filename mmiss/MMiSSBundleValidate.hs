@@ -284,14 +284,17 @@ validateBundle4 = checkAllNodes checkVariants
          where
             variants0 = toVariants bundleNode1
 
-            mustHaveVariants = checkList
-               (\ (variantSpecOpt,_) -> case variantSpecOpt of
-                  Nothing -> err bundleNode1 
-                     "Object text does not specify any variants"
-                     -- In fact I think this should never happen.
-                  Just _ -> done
-                  )
-               variants0
+            mustHaveVariants = case variants0 of
+               _:_:_ -> checkList
+                  (\ (variantSpecOpt,_) -> case variantSpecOpt of
+                     Nothing -> err bundleNode1 
+                        "Object text does not specify any variants"
+                        -- this should not occur for MMiSS documents,
+                        -- but can occur for MMiSS files.
+                     Just _ -> done
+                     )     
+                  variants0
+               _ -> done
             mustNotHaveVariants = checkList
                (\ (variantSpecOpt,_) -> case variantSpecOpt of
                   Just _ -> err bundleNode1 

@@ -8,6 +8,7 @@ module NoAccessObject(
       -- Create a new NoAccessObject.  This will have a LinkedObject with
       -- no parent or name; these should be set if possible by the
       -- caller.
+   registerNoAccessObjectType, -- :: IO ()
    ) where
 
 import Maybe
@@ -118,7 +119,15 @@ createNoAccessObject view wrappedLink =
 
       return noAccessObject
 
-             
+-- -------------------------------------------------------------------
+-- Registering
+-- -------------------------------------------------------------------
+   
+
+registerNoAccessObjectType :: IO ()
+registerNoAccessObjectType = 
+   registerObjectType (error "Unknown FolderType" :: NoAccessObjectType)
+          
 -- -------------------------------------------------------------------
 -- The Global Registry.  This will in fact be empty.
 -- -------------------------------------------------------------------

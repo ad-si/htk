@@ -806,8 +806,11 @@ instance HasBundleNodeWrite MMiSSFile where
                done
 
          (newVersions :: [(MMiSSVariantSpec,MMiSSFileVersion)]) <- mapM
-            (\ (Just variantSpec,bundleText) ->
+            (\ (variantSpecOpt,bundleText) ->
                do
+                  let
+                     variantSpec 
+                        = fromMaybe emptyMMiSSVariantSpec variantSpecOpt
                   text <- case MMiSSBundle.charType bundleText of
                      Byte -> return (MMiSSBundle.contents bundleText)
                      Unicode ->
