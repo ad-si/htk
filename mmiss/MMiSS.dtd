@@ -34,6 +34,10 @@
 
 <!-- ======================== ENTITIES ==================================== -->
 
+<!ENTITY % structure-attr "label        CDATA  #IMPLIED
+                           title        CDATA  #IMPLIED
+                           formalisms   CDATA  #IMPLIED">
+
 <!ENTITY % version-attr "version          CDATA  #IMPLIED
                          date             CDATA  #IMPLIED
                          comment          CDATA  #IMPLIED
@@ -64,9 +68,17 @@
 
 <!ENTITY % interaction-level-matter  "interactionLevel  CDATA #IMPLIED">
 
+
+<!-- notation should be a union of formalismIds and formatIds which have
+     to be defined. -->
+
+<!ENTITY % notation-matter  "notation    CDATA  #IMPLIED">
+
 <!ENTITY % variant-attr "xml:lang  %RFC1766; 'en-GB'
+                         %notation-matter;
                          %level-of-detail-matter;
                          %interaction-level-matter;">
+
 
 <!-- Layout and paedagogic attributes still have to be defined. Will be
      enumerations.  -->
@@ -74,14 +86,11 @@
 <!ENTITY % layout-attr " ">
 <!ENTITY % paedagogic-attr " ">
 
-<!ENTITY % attributes "%version-attr; 
+<!ENTITY % attributes "%structure-attr;
+                       %version-attr; 
                        %variant-attr; 
                        %layout-attr;
                        %paedagogic-attr;">
-
-<!ENTITY % label-matter "label  CDATA  #IMPLIED">
-<!ENTITY % title-matter "title  CDATA  #IMPLIED">
-<!ENTITY % formalism-matter  "notation  CDATA  #IMPLIED">  
 
 
 <!--
@@ -104,21 +113,20 @@
 <!ELEMENT includeTextFragment EMPTY>
 <!ATTLIST includeTextFragment included    CDATA #REQUIRED
                               status  (present | absent) "absent"
-                              %attributes;>
+                              %variant-attr;>
 
 <!ELEMENT link (#PCDATA)>
 <!ATTLIST link linked    CDATA #REQUIRED
                status  (present | absent) "absent"
-               %attributes;>
+               %variant-attr;>
 
 <!ELEMENT define (#PCDATA)>
-<!ATTLIST define %label-matter;
-                 %attributes;>
+<!ATTLIST define %attributes;>
                
 <!ELEMENT reference (#PCDATA)>
 <!ATTLIST reference referenced  CDATA #REQUIRED
                     status  (present | absent) "absent"
-                    %attributes;>
+                    %variant-attr;>
 
 <!ELEMENT emphasis (#PCDATA)>
 
@@ -133,11 +141,13 @@
 
 <!-- Views are not defined yet. -->
 
-<!ENTITY % group  "package | section | paragraph | view | includeGroup 
+<!ENTITY % group  "package | section | paragraph | includeGroup 
                    | includeSection">
 
-<!ENTITY % conceptualAtom  "textFragment | table | figure | includeTextFragment
-                            | glossaryEntry | bibentry | includeConceptualAtom">
+<!ENTITY % conceptualAtom  "textFragment | list | table | figure 
+                            | includeTextFragment
+                            | glossaryEntry | bibEntry 
+                            | includeConceptualAtom">
 
 <!ENTITY % formalAtom  "programFragment | clause | step | includeProgramFragment
                         | includeClause | includeStep">
@@ -151,32 +161,22 @@
                         | script | includeProgram | includeTheory | includeScript
                         | includeDevelopment | includeProof | includeFormalUnit">
 
-<!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom; | includeUnit">
+<!ENTITY % unit   "%conceptualUnit; | %formalUnit; | %atom; | includeUnit">
 
 
 <!ELEMENT package (section | includeSection)+>
-<!ATTLIST package %label-matter;
-                  %title-matter;
-                  %formalism-matter;
-                  %attributes;>
+<!ATTLIST package %attributes;>
 <?MMiSSDisplay package : orange box ?>
 
 <!ELEMENT section ((abstract | includeAbstract)?, 
                    (introduction | includeIntroduction)?, 
                    (%group;)+, 
                    (summary | includeSummary)?)>
-<!ATTLIST section %label-matter;
-                  %title-matter;
-                  %formalism-matter;
-                  %attributes;>
+<!ATTLIST section %attributes;>
 <?MMiSSDisplay section : yellow box ?>
 
-
 <!ELEMENT paragraph (%unit;)+>
-<!ATTLIST paragraph %label-matter;
-                    %title-matter;
-                    %formalism-matter;
-                    %attributes;>
+<!ATTLIST paragraph %attributes;>
 <?MMiSSDisplay paragraph : yellow box ?>
 
 
@@ -189,94 +189,60 @@
  -->
 
 <!ELEMENT abstract (%unit;)+>
-<!ATTLIST abstract %label-matter;
-                   %title-matter;
-                   %formalism-matter;
-                   %attributes;>
+<!ATTLIST abstract %attributes;>
 <?MMiSSDisplay abstract : Green box ?>
 
 
 <!ELEMENT introduction (%unit;)+>
-<!ATTLIST introduction %label-matter;
-                       %title-matter;
-                       %formalism-matter;
-                       %attributes;>
+<!ATTLIST introduction %attributes;>
 <?MMiSSDisplay introduction : Green box ?>
 
-<!ELEMENT summary  (%unit;)+>
-<!ATTLIST summary  %label-matter;
-                   %title-matter;
-                   %formalism-matter;
-                   %attributes;>
+<!ELEMENT summary (%unit;)+>
+<!ATTLIST summary %attributes;>
 <?MMiSSDisplay summary : Green box ?>
 
-<!ELEMENT example  (%unit;)+>
-<!ATTLIST example %label-matter;
-                  %title-matter;
-                  %formalism-matter;
-                  %attributes;>
+<!ELEMENT example (%unit;)+>
+<!ATTLIST example %attributes;>
 <?MMiSSDisplay example : Green box ?>
 
 
-<!ELEMENT exercise  (%unit;)+>
-<!ATTLIST exercise %label-matter;
-                   %title-matter;
-                   %formalism-matter;
-                   %attributes;>
+<!ELEMENT exercise (%unit;)+>
+<!ATTLIST exercise %attributes;>
 <?MMiSSDisplay exercise : Green box ?>
 
-<!ELEMENT definition  (%unit;)+>
-<!ATTLIST definition %label-matter;
-                     %title-matter;
-                     %formalism-matter;
-                     %attributes;>
+<!ELEMENT definition (%unit;)+>
+<!ATTLIST definition %attributes;>
 <?MMiSSDisplay definition : Green box ?>
 
 <!ELEMENT textFragment %text;>
-<!ATTLIST textFragment %label-matter;
-                       %formalism-matter;
-                       %attributes;>
+<!ATTLIST textFragment %attributes;>
 <?MMiSSDisplay textFragment : Green box ?>
 
 <!ELEMENT table %text;>
-<!ATTLIST table %label-matter;
-                %title-matter;
-                %formalism-matter;
-                %attributes;>
+<!ATTLIST table %attributes;>
 <?MMiSSDisplay table : Green ellipse ?>
 
 <!ELEMENT figure  EMPTY>
-<!ATTLIST figure %label-matter;
-                 %title-matter;
-                 %formalism-matter;
-                 %attributes;>
+<!ATTLIST figure  %attributes;>
 <?MMiSSDisplay figure : Green ellipse ?>
 
 <!ELEMENT glossaryEntry  %text;>
-<!ATTLIST glossaryEntry %label-matter;
-                        %title-matter;
-                        %attributes;>
+<!ATTLIST glossaryEntry  %attributes;>
 <?MMiSSDisplay glossaryEntry : Green ellipse ?>
 
 <!ELEMENT bibEntry  %text;>
-<!ATTLIST bibEntry  %label-matter;
-                    %attributes;>
+<!ATTLIST bibEntry  %attributes;>
 <?MMiSSDisplay bibEntry : Green ellipse ?>
 
 <!ELEMENT list  (listItem)+>
-<!ATTLIST list  %label-matter;
-                %formalism-matter;
-                type  (itemize | enumeration)  #IMPLIED
+<!ATTLIST list  listType  (itemize | enumeration | description)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
 <?MMiSSDisplay list : Green ellipse ?>
 
 
 <!ELEMENT listItem  (list | %atom;)+>
-<!ATTLIST listItem %label-matter;
-                   %title-matter;
-                   %formalism-matter;
-                   %attributes;>
+<!ATTLIST listItem %attributes;>
 
 
 <!--
@@ -289,100 +255,61 @@
 
 <!ELEMENT program (%conceptualAtom; | programFragment | program
                   | includeProgramFragment | includeProgram)+>
-<!ATTLIST program %label-matter;
-                  %title-matter;
-                  %formalism-matter;
-                  %attributes;>
+<!ATTLIST program %attributes;>
 <?MMiSSDisplay program : Blue box ?>
 
 <!ELEMENT theory (%conceptualAtom; | clause | theory
                   | includeClause | includeTheory)+>
-<!ATTLIST theory %label-matter;
-                 %title-matter;
-                 %formalism-matter;
-                 %attributes;>
+<!ATTLIST theory %attributes;>
 <?MMiSSDisplay theory : Blue box ?>
 
 <!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)+>
-<!ATTLIST theorem %label-matter;
-                  %title-matter;
-                  %formalism-matter;
-                  %attributes;>
+<!ATTLIST theorem %attributes;>
 <?MMiSSDisplay theorem : Blue box ?>
 
 <!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)+>
-<!ATTLIST conjecture %label-matter;
-                     %title-matter;
-                     %formalism-matter;
-                     %attributes;>
+<!ATTLIST conjecture %attributes;>
 <?MMiSSDisplay conjecture : Blue box ?>
 
 <!ELEMENT lemma (%conceptualAtom; | clause | includeClause)+>
-<!ATTLIST lemma %label-matter;
-                %title-matter;
-                %formalism-matter;
-                %attributes;>
+<!ATTLIST lemma %attributes;>
 <?MMiSSDisplay lemma : Blue box ?>
 
 <!ELEMENT corollary (%conceptualAtom; | clause | includeClause)+>
-<!ATTLIST corollary %label-matter;
-                    %title-matter;
-                    %formalism-matter;
-                    %attributes;>
+<!ATTLIST corollary %attributes;>
 <?MMiSSDisplay corollary : Blue box ?>
 
 <!ELEMENT assertion (%conceptualAtom; | clause | includeClause)+>
-<!ATTLIST assertion %label-matter;
-                    %title-matter;
-                    %formalism-matter;
-                    %attributes;>
+<!ATTLIST assertion %attributes;>
 <?MMiSSDisplay assertion : Blue box ?>
 
 <!ELEMENT proof (%conceptualAtom; | step | script | proof
                  | includeStep | includeScript | includeProof)+>
-<!ATTLIST proof %label-matter;
-                %title-matter;
-                %formalism-matter;
-                %attributes;>
+<!ATTLIST proof %attributes;>
 <?MMiSSDisplay proof : Blue box ?>
 
 <!ELEMENT development  (%conceptualAtom; | step | script | development
                         | includeStep | includeScript | includeDevelopment)+>
-<!ATTLIST development %label-matter;
-                      %title-matter;
-                      %formalism-matter;
-                      %attributes;>
+<!ATTLIST development  %attributes;>
 <?MMiSSDisplay development : Blue box ?>
 
 
 <!ELEMENT script  (%conceptualAtom; | step | script
                    | includeStep | includeScript)+>
-<!ATTLIST script %label-matter;
-                 %title-matter;
-                 %formalism-matter;
-                 %attributes;>
+<!ATTLIST script %attributes;>
 <?MMiSSDisplay development : Blue box ?>
 
 <!ELEMENT programFragment  (#PCDATA)>
-<!ATTLIST programFragment %label-matter;
-                          %title-matter;
-                          %formalism-matter;
-                          %attributes;>
+<!ATTLIST programFragment  %attributes;>
 <?MMiSSDisplay programFragment : Blue ellipse ?>
 
 <!ELEMENT clause  (#PCDATA)>
-<!ATTLIST clause %label-matter;
-                 %title-matter;
-                 %formalism-matter;
-                 %attributes;>
+<!ATTLIST clause  %attributes;>
 <?MMiSSDisplay clause : Blue ellipse ?>
 
 
 <!ELEMENT step  (#PCDATA)>
-<!ATTLIST step %label-matter;
-               %title-matter;
-               %formalism-matter;
-               %attributes;>
+<!ATTLIST step  %attributes;>
 <?MMiSSDisplay step : Blue ellipse ?>
 
 
@@ -402,91 +329,91 @@
 <!ELEMENT includeGroup EMPTY>
 <!ATTLIST includeGroup included    CDATA #REQUIRED
                        status  (present | absent) "absent"
-                       %attributes;>
+                       %variant-attr;>
 
 <!ELEMENT includeSection  EMPTY>
 <!ATTLIST includeSection included    CDATA #REQUIRED
                          status  (present | absent) "absent"
-                         %attributes;>
+                         %variant-attr;>
 
 <!ELEMENT includeAbstract EMPTY>
 <!ATTLIST includeAbstract included    CDATA #REQUIRED
                           status  (present | absent) "absent"
-                          %attributes;>
+                          %variant-attr;>
 
 <!ELEMENT includeIntroduction EMPTY>
 <!ATTLIST includeIntroduction included    CDATA #REQUIRED
                               status  (present | absent) "absent"
-                              %attributes;>
+                              %variant-attr;>
 
 <!ELEMENT includeSummary EMPTY>
 <!ATTLIST includeSummary included    CDATA #REQUIRED
                          status  (present | absent) "absent"
-                         %attributes;>
+                         %variant-attr;>
 
 <!ELEMENT includeUnit EMPTY>
 <!ATTLIST includeUnit included    CDATA #REQUIRED
                       status  (present | absent) "absent"
-                      %attributes;>
+                      %variant-attr;>
 
 <!ELEMENT includeFormalUnit EMPTY>
 <!ATTLIST includeFormalUnit included    CDATA #REQUIRED
                             status  (present | absent) "absent"
-                            %attributes;>
+                            %variant-attr;>
 
 <!ELEMENT includeConceptualUnit EMPTY>
 <!ATTLIST includeConceptualUnit included    CDATA #REQUIRED
                                 status  (present | absent) "absent"
-                                %attributes;>
+                                %variant-attr;>
 
 <!ELEMENT includeAtom EMPTY>
 <!ATTLIST includeAtom included    CDATA #REQUIRED
                       status  (present | absent) "absent"
-                      %attributes;>
+                      %variant-attr;>
 
 <!ELEMENT includeConceptualAtom EMPTY>
 <!ATTLIST includeConceptualAtom included    CDATA #REQUIRED
                                 status  (present | absent) "absent"
-                                %attributes;>
+                                %variant-attr;>
 
 <!ELEMENT includeProgramFragment EMPTY>
 <!ATTLIST includeProgramFragment included    CDATA #REQUIRED
                                  status  (present | absent) "absent"
-                                 %attributes;>
+                                 %variant-attr;>
 
 <!ELEMENT includeProgram EMPTY>
 <!ATTLIST includeProgram included    CDATA #REQUIRED
                          status  (present | absent) "absent"
-                         %attributes;>
+                         %variant-attr;>
 
 <!ELEMENT includeClause EMPTY>
 <!ATTLIST includeClause included    CDATA #REQUIRED
                         status  (present | absent) "absent"
-                        %attributes;>
+                        %variant-attr;>
 
 <!ELEMENT includeTheory EMPTY>
 <!ATTLIST includeTheory included    CDATA #REQUIRED
                         status  (present | absent) "absent"
-                        %attributes;>
+                        %variant-attr;>
 
 <!ELEMENT includeStep EMPTY>
 <!ATTLIST includeStep included    CDATA #REQUIRED
                       status  (present | absent) "absent"
-                      %attributes;>
+                      %variant-attr;>
 
 <!ELEMENT includeProof EMPTY>
 <!ATTLIST includeProof included    CDATA #REQUIRED
                        status  (present | absent) "absent"
-                       %attributes;>
+                       %variant-attr;>
 
 <!ELEMENT includeScript EMPTY>
 <!ATTLIST includeScript included    CDATA #REQUIRED
                         status  (present | absent) "absent"
-                        %attributes;>
+                        %variant-attr;>
 
 <!ELEMENT includeDevelopment EMPTY>
 <!ATTLIST includeDevelopment included    CDATA #REQUIRED
                              status  (present | absent) "absent"
-                             %attributes;>
+                             %variant-attr;> 
 
 
