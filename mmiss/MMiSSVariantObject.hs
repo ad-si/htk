@@ -78,6 +78,18 @@ module MMiSSVariantObject(
    lookupVariantObjectCacheExact,
       -- :: VariantObject object cache -> MMiSSVariantSpec
       --    -> IO (Maybe cache)
+
+   lookupVariantObjectAlmostExactWithSpec,
+      -- :: VariantObject object cache 
+      -- -> MMiSSVariantSpec 
+      -- -> IO (Maybe (object,MMiSSVariantSpec))
+      -- This does a search where it requires all but the version to
+      -- be identical with that in the argument MMiSSVariantSpec.
+
+   lookupVariantObjectAlmostExact,
+      -- :: VariantObject object cache 
+      -- -> MMiSSVariantSpec 
+      -- -> IO (Maybe object)
    
    toVariantObjectCache,
       -- :: VariantObject object cache -> SimpleSource cache
@@ -100,10 +112,15 @@ module MMiSSVariantObject(
       -- Writing a new object
 
    pointVariantObject,
-      -- :: VariantObject object cache -> MMiSSVariantSpec -> IO ()
+      -- :: VariantObject object cache -> MMiSSVariantSpec -> IO Bool
       -- Set the pointer of the variant object to the given MMiSSVariantSpec,
-      -- which had better exist in the dictionary.  We always run the 
-      -- converter function.
+      -- which had better exist in the dictionary.  We return True if
+      -- the pointer was in fact changed.
+
+
+   pointVariantObjectAlwaysConvert,
+      -- :: VariantObject object cache -> MMiSSVariantSpec -> IO ()
+      -- Like pointVariantObject, but always run the converter.
 
    writeVariantObjectAndPoint,
       -- :: VariantObject object cache -> MMiSSVariantSpec 
@@ -171,7 +188,8 @@ data VariantObject object cache = VariantObject {
    converter :: MMiSSVariantSpec -> object -> IO cache,
    currentVariantSpec :: MVar MMiSSVariantSpec,
       -- This is also used as a lock on editMMiSSSearchObject
-   cache :: SimpleBroadcaster cache
+   cache :: SimpleBroadcaster (Maybe cache)
+      -- This has to be Nothing during initialisation
    }
 
 ---
@@ -230,7 +248,7 @@ newEmptyVariantObject1 converter1 =
       dictionary1 <- newEmptyVariantDict 
 
       currentVariantSpec1 <- newMVar emptyMMiSSVariantSpec
-      cache1 <- newSimpleBroadcaster (error "MMiSSVariantObject.2")
+      cache1 <- newSimpleBroadcaster Nothing
 
       let
          variantObject = VariantObject {
@@ -267,7 +285,7 @@ unfreezeVariantObject converter frozen =
          -- and as it requires getting the element it would be a pity to
          -- compute it unnecessarily.
 
-      cache <- newSimpleBroadcaster cache1
+      cache <- newSimpleBroadcaster (Just cache1)
 
       
       let
@@ -370,6 +388,18 @@ lookupVariantObjectExact :: VariantObject object cache -> MMiSSVariantSpec
 lookupVariantObjectExact variantObject variantSpec =
    variantDictSearchExact (dictionary variantObject) variantSpec
 
+lookupVariantObjectAlmostExact :: VariantObject object cache 
+   -> MMiSSVariantSpec 
+   -> IO (Maybe object)
+lookupVariantObjectAlmostExact variantObject variantSpec =
+   variantDictSearchAlmostExact (dictionary variantObject) variantSpec
+
+lookupVariantObjectAlmostExactWithSpec :: VariantObject object cache 
+   -> MMiSSVariantSpec 
+   -> IO (Maybe (object,MMiSSVariantSpec))
+lookupVariantObjectAlmostExactWithSpec variantObject variantSpec =
+   variantDictSearchAlmostExactWithSpec (dictionary variantObject) variantSpec
+
 lookupVariantObjectCacheExact :: VariantObject object cache 
    -> MMiSSVariantSpec
    -> IO (Maybe cache)
@@ -384,7 +414,18 @@ lookupVariantObjectCacheExact variantObject variantSpec =
                return (Just cache)
 
 toVariantObjectCache :: VariantObject object cache -> SimpleSource cache
-toVariantObjectCache variantObject = toSimpleSource (cache variantObject)
+toVariantObjectCache (variantObject :: VariantObject object cache) = 
+   let
+      source1 :: SimpleSource (Maybe cache)
+      source1 = toSimpleSource (cache variantObject)
+
+      source2 :: SimpleSource cache
+      source2 = fmap
+         (fromMaybe (error 
+            "MMiSSVariantObject: attempt to read unitialised variant object"))
+         source1
+   in
+      source2
 
 
 -- -----------------------------------------------------------------------
@@ -404,7 +445,7 @@ writeVariantObject variantObject variantSpec object =
              then
                 do
                    cache1 <- converter variantObject variantSpec object
-                   broadcast (cache variantObject) cache1
+                   broadcast (cache variantObject) (Just cache1)
              else
                 done
           return variantSpec1
@@ -412,21 +453,51 @@ writeVariantObject variantObject variantSpec object =
 
 ---
 -- Set the pointer of the variant object to the given MMiSSVariantSpec,
--- which had better exist in the dictionary.  We always run the converter 
--- function.
-pointVariantObject :: VariantObject object cache -> MMiSSVariantSpec -> IO ()
+-- which had better exist in the dictionary.
+pointVariantObject :: VariantObject object cache -> MMiSSVariantSpec -> IO Bool
 pointVariantObject variantObject newVariantSpec =
+   modifyMVar (currentVariantSpec variantObject) (\ oldVariantSpec ->     
+      if oldVariantSpec == newVariantSpec
+         then
+            do
+               cacheOpt <- readContents (cache variantObject)
+               case cacheOpt of
+                  Nothing -> runConverter
+                     -- Cache needs to be initialised anyway.
+                  Just _ -> return (oldVariantSpec,False)
+         else
+            runConverter
+      )
+   where
+      runConverter =
+         do
+            object <- getObject variantObject newVariantSpec
+            newCache <- converter variantObject newVariantSpec object
+            broadcast (cache variantObject) (Just newCache)
+            return (newVariantSpec,True)
+
+-- | Like pointVariantObject, but always run the converter.
+pointVariantObjectAlwaysConvert 
+   :: VariantObject object cache -> MMiSSVariantSpec -> IO ()
+pointVariantObjectAlwaysConvert variantObject newVariantSpec =
    modifyMVar_ (currentVariantSpec variantObject) (\ oldVariantSpec ->
       do
-         objectOpt <- variantDictSearchExact (dictionary variantObject) 
-            newVariantSpec
-         let
-            object = fromMaybe (error ("MMiSSVariantObject.pointVariant object"
-               ++ " - point to non-existent variant.")) objectOpt
+         object <- getObject variantObject newVariantSpec
          newCache <- converter variantObject newVariantSpec object
-         broadcast (cache variantObject) newCache
+         broadcast (cache variantObject) (Just newCache)
          return newVariantSpec
       )
+
+getObject :: VariantObject object cache -> MMiSSVariantSpec -> IO object
+getObject variantObject variantSpec =
+   do
+      objectOpt <- variantDictSearchExact (dictionary variantObject) 
+         variantSpec
+      let
+         object = fromMaybe (error (
+            "MMiSSVariantObject.getObject object"
+            ++ " - point to non-existent variant.")) objectOpt
+      return object
 
 ---
 -- Writing a new object and make it current.
@@ -438,7 +509,7 @@ writeVariantObjectAndPoint variantObject variantSpec object
        do
           addToVariantDict (dictionary variantObject) variantSpec object
           cache1 <- converter variantObject variantSpec object
-          broadcast (cache variantObject) cache1
+          broadcast (cache variantObject) (Just cache1)
           return variantSpec
        )         
 
@@ -479,7 +550,8 @@ editMMiSSSearchObject objectTitle variantObject =
                               case cacheOpt of
                                  Just cache1 ->
                                     do
-                                       broadcast (cache variantObject) cache1
+                                       broadcast (cache variantObject) 
+                                          (Just cache1)
                                        return (variantSpec1,True)
                                  Nothing -> 
                                     do

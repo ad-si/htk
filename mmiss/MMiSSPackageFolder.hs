@@ -756,7 +756,7 @@ reimportMMiSSPackage1 view packageFolderLink filePathOpt0 =
                   writeBundle bundle (Just packageId) (Just dirPath) view 
                      (Left (toLinkedObject packageFolder))
                   fullName <- getFullName view packageFolder
-                  messageMess ("Reimport of " ++ fullName ++ "successful")
+                  messageMess ("Reimport of " ++ fullName ++ " successful")
       )
 
 findData :: Maybe FilePath -> IO (Maybe (FilePath,Format))

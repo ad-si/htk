@@ -5,6 +5,7 @@ module MMiSSBundleNodeWriteObject(
 import Text.XML.HaXml.Types
 
 import Computation
+import Thread
 
 import BSem
 
@@ -19,6 +20,7 @@ import MMiSSBundleSimpleUtils
 import MMiSSObjectType
 import MMiSSVariant
 import MMiSSVariantObject
+import MMiSSUpdateVariantObject
 import MMiSSObjectTypeType
 
 import {-# SOURCE #-} MMiSSObjectTypeInstance
@@ -62,33 +64,15 @@ instance HasBundleNodeWrite MMiSSObject where
                         coerceWithError (fromBundleTextWE bundleText))
                      )
                   (toVariants node)
- 
-            variantObject1 = variantObject object
 
-         mapM_
-            (\ (variantSpec,element1) ->
+         updateVariantObject view objectLink (variantObject object)
+            element 
+            (\ elementLink ->
                do
-                  (variableOpt :: Maybe Variable)
-                     <- lookupVariantObjectExact variantObject1 variantSpec
-                  case variableOpt of
-                     Nothing ->
-                        do
-                           elementLink <- createLink view element1
-                           editLock <- newBSem
-                           let
-                              variable = Variable {
-                                 element = elementLink,
-                                 editLock = editLock
-                                 }
-                           writeVariantObject variantObject1 variantSpec
-                              variable
-                     Just variable ->
-                        writeLink view (element variable) element1
-               )             
+                  editLock <- newBSem
+                  return (Variable {
+                     element = elementLink,
+                     editLock = editLock
+                     })
+               )
             newVersions
-
-         let
-            (firstVersionSpec,_) : _ = newVersions
-
-         pointVariantObject variantObject1 firstVersionSpec
-         dirtyLink view objectLink

@@ -18,6 +18,9 @@ module MMiSSVariant(
    variantDictSearch,
    variantDictSearchWithSpec,
    variantDictSearchExact,
+   variantDictSearchAlmostExact,
+   variantDictSearchAlmostExactWithSpec,
+
    addToVariantDict,
    queryInsert,
 
@@ -549,11 +552,22 @@ variantDictSearchWithDirty (variantDict @ (MMiSSVariantDict registry)) search =
 
 variantDictSearchGeneral :: MMiSSVariantDict a -> MMiSSVariantSearch 
       -> IO (Maybe (Integer,MMiSSVariants,a))
-variantDictSearchGeneral 
-      ((MMiSSVariantDict registry) :: MMiSSVariantDict a) 
-      (MMiSSVariantSearch searchVariants) =
+variantDictSearchGeneral dict (MMiSSVariantSearch variants) =
+   variantDictSearchVeryGeneral (const True) dict variants
+
+variantDictSearchVeryGeneral 
+   :: (MMiSSVariants -> Bool) -> MMiSSVariantDict a -> MMiSSVariants 
+   -> IO (Maybe (Integer,MMiSSVariants,a))
+variantDictSearchVeryGeneral 
+      filterFn ((MMiSSVariantDict registry) :: MMiSSVariantDict a) 
+      searchVariants =
    do
-      (contents :: [(MMiSSVariants,a)]) <- listRegistryContents registry
+      (contents0 :: [(MMiSSVariants,a)]) <- listRegistryContents registry
+
+      let
+         contents1 = filter
+            (\ (variants,_) -> filterFn variants)
+            contents0
 
       (scored :: [(Integer,MMiSSVariants,a)]) <- mapM
          (\ (thisVariants,a) -> 
@@ -561,7 +575,7 @@ variantDictSearchGeneral
                thisScore <- scoreMMiSSVariants searchVariants thisVariants
                return (thisScore,thisVariants,a)
             ) 
-         contents
+         contents1
 
       case scored of
          [] -> return Nothing
@@ -576,11 +590,44 @@ variantDictSearchGeneral
                return (Just mr)
 
 
+-- | variantDictSearchExact looks for a variant with exactly the same spec.
 variantDictSearchExact :: MMiSSVariantDict a -> MMiSSVariantSpec -> 
    IO (Maybe a)
 variantDictSearchExact (MMiSSVariantDict registry) (MMiSSVariantSpec variants)
    = getValueOpt registry variants
 
+-- | variantDictSearchAlmostExact looks for the most closely matching variant
+-- whose spec is exactly the same as the argument, EXCEPT for the
+-- version.
+variantDictSearchAlmostExact :: MMiSSVariantDict a -> MMiSSVariantSpec ->
+   IO (Maybe a)
+variantDictSearchAlmostExact variantDict variantSpec =
+   do
+      resultOpt <- variantDictSearchAlmostExactWithSpec variantDict variantSpec
+      return (fmap
+         fst
+         resultOpt
+         )
+
+variantDictSearchAlmostExactWithSpec 
+   :: MMiSSVariantDict a -> MMiSSVariantSpec -> IO (Maybe (a,MMiSSVariantSpec))
+variantDictSearchAlmostExactWithSpec variantDict (MMiSSVariantSpec variants) =
+   do
+      let
+         removeVersion :: MMiSSVariants -> MMiSSVariants
+         removeVersion variants0 =
+            fromMaybe variants0 (fmap snd (getVersionAndUnset variants0))
+
+         variantsWithoutVersion = removeVersion variants
+
+         filterFn variants0 = removeVersion variants0 == variantsWithoutVersion
+
+      resultOpt <- variantDictSearchVeryGeneral filterFn variantDict 
+            variantsWithoutVersion
+         -- not a very efficient way of doing, but better to have as
+         -- few search functions as possible.
+      return (fmap (\ (_,variants,a) -> (a,MMiSSVariantSpec variants))
+         resultOpt)
 
 addToVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> a -> IO ()
 addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a 

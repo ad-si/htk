@@ -55,6 +55,7 @@ import FileNames
 import CommandStringSub
 import Sources
 import Messages
+import Thread
 
 import WithDir
 
@@ -86,6 +87,7 @@ import XmlExtras
 
 import MMiSSVariantObject
 import MMiSSVariant
+import MMiSSUpdateVariantObject
 import MMiSSFiles
 import MMiSSRunCommand
 import MMiSSBundle hiding (contents)
@@ -113,7 +115,7 @@ data MMiSSFile = MMiSSFile {
 
 newtype MMiSSFileVersion = MMiSSFileVersion {
    text :: ICStringLen
-   } deriving (Typeable)
+   } deriving (Typeable,Eq)
 
 data MMiSSFilesState = MMiSSFilesState {
    -- ^ the result of reading the Files.xml file.
@@ -807,27 +809,8 @@ instance HasBundleNodeWrite MMiSSFile where
          let
             contents0 = contents file
 
-         mapM_
-            (\ (variantSpec,fileVersion) ->
-               do
-                  (existingLinkOpt :: Maybe (Link MMiSSFileVersion))
-                     <- lookupVariantObjectExact contents0 variantSpec 
-                  case existingLinkOpt of
-                     Nothing ->
-                        do
-                           fileVersionedLink <- createLink view fileVersion
-                           writeVariantObject contents0 variantSpec 
-                              fileVersionedLink
-                     Just fileVersionedLink ->
-                        writeLink view fileVersionedLink fileVersion
-                  ) 
+         updateVariantObject view fileLink (contents file) id (return . id) 
             newVersions
-
-         let
-            (firstVersionSpec,_) : _ = newVersions
-
-         pointVariantObject contents0 firstVersionSpec
-         dirtyLink view fileLink
 
 -- ------------------------------------------------------------------
 -- Executing commands

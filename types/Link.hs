@@ -50,6 +50,11 @@ module Link(
    updateObject, -- :: HasCodedValue x => View -> x -> Versioned x -> IO ()
    -- This replaces the x value inside an object by a new value, and
    -- marks it to be stored anew.
+   updateObjectIfNe,
+      -- :: (HasCodedValue x,Eq x) => View -> x -> Versioned x -> IO Bool
+      -- Like updateObject, except that it does nothing if x is no change
+      -- from the previous value.
+
    dirtyObject, -- :: HasCodedValue x => View -> Versioned x -> IO ()
    -- This marks the x value to be stored anew, even though it hasn't
    -- been changed.  This is needed, for example, when x points to a file,
@@ -66,6 +71,9 @@ module Link(
    -- Does fetchLink and readObject in one go.
    writeLink, -- :: HasCodedValue x => View -> Link x -> x -> IO ()
    -- Does fetchLink and updateObject in one go.
+   writeLinkIfNe, 
+      -- :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
+      -- does fetchLink and updateObjectIfNe in one go.
    createLink, -- :: HasCodedValue x => View -> x -> IO (Link x)
    -- Does createObject and makeLink in one go.
    newEmptyLink, -- :: HasCodedValue x => View -> IO (Link x)
@@ -305,6 +313,12 @@ writeLink view link x =
    do
       versioned <- fetchLink view link
       updateObject view x versioned
+
+writeLinkIfNe :: (HasCodedValue x,Eq x) => View -> Link x -> x -> IO Bool
+writeLinkIfNe view link x =
+   do
+      versioned <- fetchLink view link
+      updateObjectIfNe view x versioned
 
 createLink :: HasCodedValue x => View -> x -> IO (Link x)
 createLink view x =
@@ -559,14 +573,30 @@ updateObject :: HasCodedValue x => View -> x -> Versioned x -> IO ()
 updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
    do
       status <- takeMVar statusMVar
+      putNewStatus versioned (updateStatus x status)
 
-      newStatus <- case status of
-         Empty -> return (Virgin x)
-         Virgin _ -> return (Virgin x)
-         Cloned _ _ _ -> return (Virgin x)
-         UpToDate _ -> return (Dirty x)
-         Dirty _ -> return (Dirty x)
-      putNewStatus versioned newStatus
+updateObjectIfNe :: (HasCodedValue x,Eq x) => View -> x -> Versioned x 
+   -> IO Bool
+updateObjectIfNe view x (versioned@Versioned{statusMVar = statusMVar}) =
+   do
+      status <- takeMVar statusMVar
+      if statusToX status == Just x
+         then
+            do
+               putMVar statusMVar status
+               return False
+         else
+            do
+               putNewStatus versioned (updateStatus x status)
+               return True
+
+updateStatus :: x -> Status x -> Status x
+updateStatus x status = case status of
+   Empty -> Virgin x
+   Virgin _ -> Virgin x
+   Cloned _ _ _ -> Virgin x
+   UpToDate _ -> Dirty x
+   Dirty _ -> Dirty x
 
 dirtyObject :: HasCodedValue x => View -> Versioned x -> IO ()
 dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
@@ -583,14 +613,18 @@ readObject :: HasCodedValue x => View -> Versioned x -> IO x
 readObject view (versioned@Versioned{statusMVar = statusMVar} :: Versioned x) =
    do
       status <- readMVar statusMVar
-      case status of
-         Empty -> 
-            error ("View.readObject on uninitialised object of type: "
+      case statusToX status of
+         Nothing -> error ("View.readObject on uninitialised object of type: "
                ++ show (typeOf (undefined :: x)))
-         Virgin x -> return x
-         Cloned x _ _ -> return x
-         UpToDate x -> return x
-         Dirty x -> return x
+         Just x -> return x
+
+statusToX :: Status x -> Maybe x
+statusToX status = case status of
+   Empty -> Nothing
+   Virgin x -> Just x
+   Cloned x _ _ -> Just x
+   UpToDate x -> Just x
+   Dirty x -> Just x
 
 putNewStatus :: Versioned x -> Status x -> IO ()
 putNewStatus versioned status =

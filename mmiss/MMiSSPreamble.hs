@@ -229,13 +229,27 @@ instance Ord MMiSSPreamble where
 writePreamble :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> IO ()
 writePreamble preambleLink view latexPreamble =
    do
-      preamble <- newSimpleBroadcaster latexPreamble
-      editLock <- newBSem
-      let
-         mmissPreamble 
-            = MMiSSPreamble {preamble = preamble,editLock = editLock}
-
-      writeLink view preambleLink mmissPreamble
+      isNew <- isEmptyLink view preambleLink
+      if isNew 
+         then
+            do   
+               preamble <- newSimpleBroadcaster latexPreamble
+               editLock <- newBSem
+               let
+                  mmissPreamble 
+                     = MMiSSPreamble {preamble = preamble,editLock = editLock}
+               writeLink view preambleLink mmissPreamble
+         else
+            do
+               oldPreamble <- readLink view preambleLink
+               oldLaTeXPreamble <- readContents (preamble oldPreamble)
+               if oldLaTeXPreamble /= latexPreamble
+                  then
+                     do
+                        broadcast (preamble oldPreamble) latexPreamble
+                        dirtyLink view preambleLink
+                  else
+                     done
 
 createPreamble :: View -> MMiSSLatexPreamble -> IO (Link MMiSSPreamble)
 createPreamble view latexPreamble =
