@@ -72,8 +72,9 @@ newGenericBrowser :: (GBObject o, Container par) =>
                      IO (GenericBrowser o)
 newGenericBrowser par rootobjs cnf =
   do fr <- newFrame par []
-     let toTreeListObject obj = do ch <- getChildren obj
-                                   let is_node = not (null ch)
+     let toTreeListObject obj = do --ch <- getChildren obj
+                                   --let is_node = not (null ch)
+                                   is_node <- isObjectNode obj
                                    return (newTreeListObject obj
                                              (if is_node then Node
                                               else Leaf))
@@ -97,7 +98,8 @@ newGenericBrowser par rootobjs cnf =
                                            tlObjectSelected gb mobj
                                          _ -> done)
      spawnEvent (forever listenComponents)
-     initBrowser gb rootobjs
+     rootobjs' <- filterM isObjectNode rootobjs
+     initBrowser gb rootobjs'
      return gb
 
 containsSubNodes :: GBObject o => o -> IO Bool
@@ -113,10 +115,8 @@ initBrowser :: GBObject o => GenericBrowser o -> [o] -> IO ()
 initBrowser gb rootobjs =
   let addObject obj =
         do b <- isObjectNode obj
-           if b then do b <- containsSubNodes obj
-                        addTreeListRootObject (treelist gb)
-                          (newTreeListObject obj
-                             (if b then Node else Leaf))
+           if b then addTreeListRootObject (treelist gb)
+                       (newTreeListObject obj Node)
                 else done
   in mapM addObject rootobjs >> done
 

@@ -37,7 +37,7 @@ fileTypes = [(["hs", "lhs"], ("Haskell source file", "haskell.gif")),
              (["png"], ("PNG image", "image.gif")),
              (["tif", "tiff"], ("TIFF image", "image.gif")),
              (["bmp"], ("BMP image", "image.gif")),
-             (["tex"], ("TeX source file", "tex.gif")),
+             (["tex"], ("TeX file", "tex.gif")),
              (["bib"], ("BibTeX file", "bib.gif")),
              (["ps"], ("PostScript", "postscript.gif")),
              (["tar"], ("TAR archive", "archive.gif")),
@@ -144,7 +144,8 @@ instance CItem FileObject where
 
 instance GBObject FileObject where
   isObjectNode = return . is_folder
-  getChildren obj = do path <- getFileObjectFullPath obj
+  getChildren obj = do putStrLn "getChildren"
+                       path <- getFileObjectFullPath obj
                        readDir path
 
 
