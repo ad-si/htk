@@ -35,7 +35,6 @@ getSelectedItems,  {- Notepad a -> NotepadItem a -> IO () -}
 
 --dropEvent,          {- NotepadItem a -> IA [(NotepadItem a)] -}
 selectionEvent,    {- NotepadItem a -> IA () -}
-
 ) where
 
 import Concurrency
@@ -84,7 +83,7 @@ newNotepadItem val notepad@(Notepad cnv _ _ _ _) cnf =
     itemval <- newRVar val
     itemname <- newRVar (ItemName { short = \_ -> "", full = "" })
     itemsel <- newRVar Nothing
-    msgQ <- newMsgQueue
+    msgQ <- newMsgQueue :: IO (MsgQueue (NotepadItem a))
     item <- return(NotepadItem img txt itemval itemname itemsel msgQ)
     foldl (>>=) (return item) cnf
     interactor(inside img notepad item)
@@ -204,13 +203,14 @@ deHighlight (NotepadItem img txt _ _ sel _) =
         destroy rect1 >> destroy rect2 >> setVar sel Nothing
 
 selectItem :: Notepad a -> NotepadItem a -> IO ()
-selectItem notepad@(Notepad cnv _ _ selecteditemsref msgQ) item =
+selectItem notepad@(Notepad cnv _ _ selecteditemsref _)
+           item@(NotepadItem _ _ _ _ _ msgQ) =
   do
     deselectAll notepad
     highlight cnv item
     selecteditems <- getVar selecteditemsref
     setVar selecteditemsref (item : selecteditems)
---    send msgQ
+    sendIO msgQ item
 
 selectAnotherItem :: Notepad a -> NotepadItem a -> IO ()
 selectAnotherItem (Notepad cnv _ _ selecteditemsref msgQ) item =
