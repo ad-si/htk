@@ -60,7 +60,7 @@ importMMiSSLaTeX objectType view getLinkedObject =
                      let
                         parseResultWE = parseMMiSSLatex inputString
 
-                     (element,preambleOpt) 
+                     (element,preambleOpt,importCommandsOpt) 
                         <- coerceWithErrorOrBreakIO break parseResultWE
 
                      fullLabel 
