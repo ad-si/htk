@@ -190,85 +190,130 @@ whenever one of the buttons is selected -- "`clicked"'.
 To make all the decoration perfect, wie need the little smiley atop
 the playfield which can be used to restart the game.
 \begin{code}
-    sm <- newButton main [text ":-)"]
-    restart2Click <- clicked sm
+    sm <- newButton main [photo smSmileImg]
+    startClick <- clicked sm
 
     pack sm [Side AtTop, PadY 20, PadX 20, Anchor North] 
 \end{code}
 So we create a Button called sm (from \textbf{sm}iley btw) and bind it
 to another Event. And because the GUI does not automaticaly know where
 and when to place the button we have to tell it to \texttt{pack sm at
-  the top of the main window, pad it 20 pixels wide in any direction
-  and keep it align to the upperside} (which is North on most maps).
-
-% \begin{figure}[h]
-% \begin{center}
-% \includegraphics[scale=0.6]{Screenshot3}
-% \caption{The hsMines main window with smiley}
-% \end{center}
-% \end{figure}
-
-I also opened the second menu so you could see Huey, Dewey and
-Louie\dots
+the top of the main window, pad it 20 pixels wide in any direction
+and keep it align to the upperside} (which is North on most maps). The
+photo-Command assigns an Image to a Container that is fit to contain
+an Image e.g. a button widget. In this case we have a collection of
+base64 encoded GIFs pasted into the code. This is definitivly not the
+best way to use graphics, but it works. As we will we later, there are
+also tiny Images for the empty field and the numbers and not only the
+flag. The reason for that is, that you can't overwrite a photo with
+some text. We may do it internaly but it will not be shown. The
+workaround is to have Images for all the numbers. On the other hand
+we have a wide selection of colours for the numbers. Just try to find
+out wich colour the '8' has\dots But back to the smiley.\\
+Same as the menu commands, the buttons is useless by itself. To get
+things started we create an IO-channel named restartCh. We can later
+at any given time send some IO-signal over this channel to trigger an
+event which will be used to reinitialise the game field.
 
 \begin{code}
     restartCh <- newChannel
-
-    let size= (20, 20)
-
-    bfr <- newFrame main [width (cm 10)]
-    allbuttons <- buttons bfr sm (receive restartCh) size 
-
-    pack sm [Side AtTop, PadY 20, PadX 20, Anchor North]
-
-    pack bfr [Side AtTop, PadX 15] 
-    mapM_ (\(xy, b)-> grid b [GridPos xy]) allbuttons
-    
-    -- start the menu handler
-    spawnEvent (forever (restartClick >>> sendIO restartCh ()
-                      +> restart2Click >>> sendIO restartCh ()
-                      +> quitClick >>> destroy main))
-
+    allbuttons <- buttons bfr sm (receive restartCh) size
 \end{code}
-To get it realy started we create an IO-channel named restartCh. Then
-we create a new Frame (a container widget) with a fixed width and do
-somethin strange about allbuttons. Of course this is not that strange.
-A function (buttons) is called with some complex arguments and the
-result is asigned to allbuttons. We will cover this just some lines
-later.
 
+But before we can initialise any game field, we of course have to
+create it. To contain the field we create a new Frame (a container
+widget) with a given width. The width is just to have something to
+start with and will be adjusted by the packer as needed. 
 The Frame is packed below the smiley button. They both are told to be
 at the top of main, but because only one of them can be there they're
-placed below each other in packing order.
-
-To have something to happen with the buttons an Event is spawned. This
-single Event listens to some GUI Events we bound some of our buttons
-to. Whenever (the Events last until the destruction of the main
-thread) one of these three Events occurs, a function is called. The
-smiley button and the restart command in the File menu both send an IO
-command via the initialised IO channel, the quit command initiates the
-destruction of the window and thereby the main thread. If this
-happens, finishHTk at the end of the source is reached and the garbage
-collection can free all used RAM. But if we don't press one of the
-restart buttons, nothing will happen with the many buttons we created
-and they all just show a question mark.
-
-% \begin{figure}[h]
-% \begin{center}
-% \includegraphics[scale=0.2]{Screenshot4}
-% \caption{The uninitialised playfield of hsMines}
-% \end{center}
-% \end{figure}
-
-So all that is left to do in the main function is to initiate the game
-for the first time.
+placed below each other in packing order. 
 
 \begin{code}
-    sendIO restartCh ()
+    bfr <- newFrame main [width (cm 10)]
+    pack bfr [Side AtTop, PadX 15] 
 \end{code}
 
-That's all so far. But as you allready know, something happens to
-allbuttons in between.
+Until now this was all very plain and straight. The buttons for the
+field are created in a more complex way. The function
+\texttt{buttons}, the one called with the IOChannel, is responsible to
+create a number of buttons and asigns them to \emph{allbuttons}. To
+pack them, we have to iterate through the whole list of buttons.
+
+\begin{code}
+    mapM_ (\(xy, b)-> grid b [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
+\end{code}
+
+In this case a grid packer is used that puts all the buttons at
+exactly stated positions in a grid. So let's for now assume,
+\texttt{buttons} returns a list of buttons that can be packed by the
+grid packer. If the code compilation does not reach any point where
+the game is started, the packed but uninitialised game field including
+the smiley and all thing looks like this. To make a distinction
+between uninitialised and initialised fields, we put a little star
+image on each button.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[scale=0.6]{img/Screenshot03}
+\caption{The uninitialised hsMines field}
+\end{center}
+\end{figure}
+
+All that is left to do now in \texttt{run} is to initiate the game for
+the first time. 
+
+\begin{code}
+    let start :: IO () 
+        start = do diff <- readTkVariable varDiff
+                   sendIO restartCh diff
+                   
+    -- start the menu handler
+    stopmh<- spawnEvent (forever (startClick >>> start
+                               +> quitClick >>> destroy htk
+                               +> choose [csr1, csr2, csr3, csr4, csr5] >>> 
+                                           createMessageWin "Changes come into effect after \"Restart\"." []
+                        ))
+
+    -- the restart handler (note no forever!)
+    spawnEvent (restartClick >>> do stopmh
+                                    destroy main
+                                    nuSize <- readTkVariable varSize
+                                    run htk nuSize)
+
+    -- start the game
+    start
+
+    -- wait for game to stop, then clear up the mess
+    finishHTk
+
+\end{code}
+
+There is a bit more to clean up the window and such. We will see to
+this now. Let us go through this step by step. \texttt{start} is a
+function that returns an empty IO operation. Inside the functions, the
+variable \emph{varDiff} which holds the games difficulty is read and
+sent via the IOChannel \emph{restartCh}. This will take effect in
+\texttt{buttons} and we'll come to this later. But \texttt{start} is
+not the first thing to happen. First, an event is bound to
+\emph{stopmh} but is not spawned instantly because haskell is
+evaluated lazyly and so the evalutation will take place when
+\emph{stopmh} is realy needed - which happens to be just in the next
+line. There another event is spawned. This one immediately performes 4
+functions. Now stopmh is evaluated and the event is spawned. The
+second action is to destroy the \emph{main} window. Step 3 and 4
+create a new window with the actual field size. This is the reason fpr
+the intervined function calls of \texttt{run} and \texttt{main}.\\
+The second event thread, that is spawned in step 1 now waits for a
+number of things to happen. Either the startClick event occurs and
+start is executed or the quitClick event occurs and the whole htk is
+destroyed or on of the size selecting radiobuttons is clicked meaning
+that one of the five csr events occurs which leads to the creation of
+a message window.\\
+Finally, at the end of the \texttt{run} function \texttt{start} is
+called and the game is started. Remember? The size of the game field
+is sent via restartCh and something will happen in \texttt{buttons}.
+So let's take a look at
+%This is NO typo but intentionaly done.
 
 \subsection{The buttons function}
 
