@@ -262,11 +262,11 @@ getAttribute attributes key =
 ---
 -- Get an Element's label, assuming it was of DirectInclude type.
 getLabel :: Element -> WithError EntitySearchName
-getLabel element = 
+getLabel element@(Elem name _ _) = 
    mapWithError' 
       (\ classified -> case classified of
          (DirectInclude label _) -> hasValue label
-         _ -> hasError "Element has no label!"
+         _ -> hasError ("Element " ++ name ++ " has no label!")
          )
       (classifyElement element)
 
@@ -328,7 +328,7 @@ setPriorityAttributes' attributes priority =
 -- All the attributes we provide are the same.
 variantAttributes :: [String]
 variantAttributes = 
-   ["xml:lang","levelOfDetail","interactionLevel"]
+   ["xml:lang","levelOfDetail","interactionLevel","formalism","format"]
 
 variantAttributesType :: AttributesType
 variantAttributesType =

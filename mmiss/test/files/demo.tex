@@ -20,7 +20,7 @@
 
 
 \begin{document}
-\begin{Package}    [Label=AlgSpec, 
+\begin{Package}[Label=AlgSpec, 
 Title={Formal Program Development with Algebraic Specifications},
 Date=12.09.2002,
 Authors={Christoph Lüth, Markus Roggenbach},
@@ -35,26 +35,26 @@ Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
 \begin{Abstract}[Label=Abstract, Title=Overview]
 This section will introduce the basic mathematics of algebraic
 specifications, namely:
-\begin{List}[ListType=enumerate]
-  \ListItem \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
-  \ListItem and \Emphasis{algebras} give us the semantics.
-\end{List}  
+\begin{Enumerate}
+  \Item \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
+  \Item and \Emphasis{algebras} give us the semantics.
+\end{Enumerate}  
 \end{Abstract}
 
 \begin{Introduction}[Label=Intro, Title={Why Formal Specification?}]
-\begin{List}[Label=Reasons, ListType=itemize]
-\ListItem
+\begin{Itemize}
+\Item
 formal specifications are \Emphasis{precise}  \\
 (non formal and sometimes even semi formal \\
 specifications are open to re-interpretation)\pause
-\ListItem
+\Item
 syntactical and semantical \Emphasis{correctness} \\ 
 independent of tools 
 \pause
-\ListItem{}
+\Item{}
 \Emphasis{mathematical methods} \\
 (consistency, completeness)
-\end{List}
+\end{Itemize}
 \end{Introduction}
 
 
@@ -64,10 +64,10 @@ Signatures allow us to define operations.
 
 \begin{Definition}[Label=DefSignature, Title=Signature]
 A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
-\begin{List}[Label=SignatureComponents, ListType=itemize]
-    \ListItem a set $S$ of \Emphasis{sorts}, and 
-    \ListItem a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
-  \end{List}
+\begin{Itemize}
+    \Item a set $S$ of \Emphasis{sorts}, and 
+    \Item a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
+  \end{Itemize}
 \end{Definition}
 
 An operation $\omega\in\Omega_{w,s}$ with $w=s_1\ldots s_n$ has
@@ -77,25 +77,25 @@ $\omega:s_1\ldots s_n\rightarrow s$.
 
 \begin{Paragraph}[Label=Algebra, Title=Algebra]
 
-Algebras are models of \Link[LinkText=signatures]{DefSignature}.
+Algebras are models of \Link[signatures]{Definition}{DefSignature}.
 \vspace{1cm}
 \begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
   An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
   $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
-  \begin{List}[Label=AlgebraComponents, ListType=itemize]
-    \ListItem
+  \begin{Itemize}
+    \Item
     for each sort $s\in S$, a \Emphasis{carrier set} 
     $A_s\in S_A$;
-    \ListItem
+    \Item
     for each operation $\omega:s_1\ldots s_n\rightarrow s$, an
     operation $\omega_A:A_{s1}\ldots A_{sn}\rightarrow A_s$.
-  \end{List}
+  \end{Itemize}
 \end{Definition}
 \end{Paragraph}
 
 
 \begin{Paragraph}[Label=Terms, Title={Terms over a Set}]
-Let $\Sigma=(S, \Omega)$ be a \Link[LinkText={signature}]{DefSignature}.
+Let $\Sigma=(S, \Omega)$ be a \Link[signature]{Definition}{DefSignature}.
 
 An \Emphasis{$S$-sorted set of variables} is given by $X=
 \{X_s\}_{s\in S}$.
@@ -105,7 +105,7 @@ is closed under application of operations.
 \vspace{1cm}
 
 \begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
-Terms form an \Link[LinkText=algebra]{DefAlgebra}.  
+Terms form an \Link[algebra]{Definition}{DefAlgebra}.  
 \end{Lemma}
 
 \end{Paragraph}
@@ -129,22 +129,22 @@ Pos & \ ::= & \ suc(pre:Nat)
 \end{SpecDefn}
 \end{ProgramFragment}
 
-Note how $(\Nat, 0, +)$ form an \Link[LinkText=algebra]{DefAlgebra}.
+Note how $(\Nat, 0, +)$ form an \Link[algebra]{Definition}{DefAlgebra}.
 \end{Paragraph}
 
 \begin{Summary}[Label=Summary, Title={Summing Up}]
 In this section, we have encountered the following concepts:
-\begin{List}[Label=Concepts, ListType=itemize]
-\ListItem
+\begin{Itemize}
+\Item
 \emph{Signatures} allow to declare sorts and operations;
-\ListItem
+\Item
 \emph{Terms} are build over signatures;
-\ListItem
+\Item
 \emph{Algebras} give a semantics to signatures.
-\ListItem
+\Item
 Further, we have seen how to specify natural numbers in the algebraic
 specification language CASL.
-\end{List}
+\end{Itemize}
 \end{Summary}
 \end{Section}
 \end{Package}

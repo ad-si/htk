@@ -97,13 +97,13 @@
      \DeclClass{ACTION}{Aktionen}{EVAL}
 
 
-\Declare{sieve-finite}{Sieb des Erathostenes}
+\Declare{sieve_finite}{Sieb des Erathostenes}
 \Declare{def:striktheit}{Funktion \texttt{f} ist \emph{strikt}}
-\Declare{ref:fib-stream}{Damit ergibt sich:}
-\Declare{expr-grammar-alt}{Grammatik:}
+\Declare{ref:fib_stream}{Damit ergibt sich:}
+\Declare{expr_grammar_alt}{Grammatik:}
 \Declare{ref:draw}{Zeichenfunktion}
-\Declare{ref:st-monad}{Ausführlicher}
-\Declare{pexpr-alt}{Parsierung von \texttt{Expr}}
+\Declare{ref:st_monad}{Ausführlicher}
+\Declare{pexpr_alt}{Parsierung von \texttt{Expr}}
 
 
 
@@ -2696,7 +2696,7 @@ ins' x xs = lessx ++ [x] ++ grteqx where
 \begin{Paragraph}[Title={Beispiel: Primzahlen}, Label=para5_2_2_bsp_primz]
 
 \begin{List}[ListType=itemize]
-\ListItem \Def{sieve-finite}{Sieb des Erathostenes}
+\ListItem \Def{sieve_finite}{Sieb des Erathostenes}
   \begin{List}[ListType=itemize]
   \ListItem Für jede gefundene Primzahl \texttt{p} alle Vielfachen
     heraussieben
@@ -5403,7 +5403,7 @@ sieve (p:ps) =
 \end{ProgramFragment}
 \ListItem \emph{Keine} Rekursionsverankerung
 % `)' muß in den LinkText, sonst Leerraum davor! - CK
-   (vgl. \Link[LinkText={alte Version)}]{sieve-finite}
+   (vgl. \Link[LinkText={alte Version)}]{sieve_finite}
 \begin{ProgramFragment}[Title={}, Formalism=\Haskell, Label=prgfrag_erste_primz2]
 \begin{code}
 primes :: Int-> [Integer]
@@ -5443,7 +5443,7 @@ fib n = fib (n-1)+ fib (n-2)
 tail (tail fibs)  2  3  5  8 13 21 34 55
 \end{xcode}
 \end{ProgramFragment}
-\ListItem \Declare{ref:fib-stream} \pause{} 
+\ListItem \Declare{ref:fib_stream} \pause{} 
 \begin{ProgramFragment}[Title={}, Formalism=\Haskell, Label=prgfrag_fibonacciz3]
 \begin{code}
 fibs :: [Integer]
@@ -5512,7 +5512,7 @@ ffib = (fibs !!)
     Label=para8_3_2_arith_ausdr]
 
 \begin{List}[ListType=itemize]
-\ListItem \Def{expr-grammar-alt}
+\ListItem \Def{expr_grammar_alt}
 \begin{verbatim}
 Expr   ::= Term + Term 
          | Term - Term 
@@ -5756,7 +5756,7 @@ data Expr   = Plus  Expr Expr
 \begin{Paragraph}[Title={Der Kern des Parsers}, Label=para8_3_3_1_pars_kern]
 
 \begin{List}[ListType=itemize]
-\ListItem \Def{pexpr-alt}
+\ListItem \Def{pexpr_alt}
 \begin{ProgramFragment}[Title={}, Formalism=\Haskell, Label=prgfrag_pars_kern1]
 \begin{code}
 pExpr :: Parse Char Expr
@@ -5854,7 +5854,7 @@ Number ::= Digit  | Digit Number
 Digit  ::= 0 |...| 9
 \end{verbatim}
   \begin{List}[ListType=itemize]
-    \ListItem \Link[LinkText={(vergleiche alt)}]{expr-grammar-alt}
+    \ListItem \Link[LinkText={(vergleiche alt)}]{expr_grammar_alt}
   \end{List}
 
 \ListItem Abstrakte Syntax bleibt \ldots{}
@@ -5888,7 +5888,7 @@ pExpr = pTerm >* token '+' >*> pExpr
 \end{code}
 \end{ProgramFragment}
   \begin{List}[ListType=itemize]
-  \ListItem \Link[LinkText={(vergleiche alt)}]{pexpr-alt}
+  \ListItem \Link[LinkText={(vergleiche alt)}]{pexpr_alt}
   \end{List}
 
 \newpage
@@ -9357,7 +9357,7 @@ x + x where x = (trace "Bar" (3+2))
 
 \begin{List}[ListType=itemize]
 \ListItem \emph{Kleine Änderung} der \Link[LinkText={Fibonacci-Zahlen
-    als Strom:}]{ref:fib-stream}
+    als Strom:}]{ref:fib_stream}
 \begin{ProgramFragment}[Title={}, Formalism=\Haskell, Label=prgfrag_memois1]
 \begin{code}
 fibsFn :: () -> [Integer]
@@ -9821,7 +9821,7 @@ instance Monad (ST s) where
 
 \newpage
 
-\ListItem \Def{ref:st-monad}:
+\ListItem \Def{ref:st_monad}:
 \begin{ProgramFragment}[Title={}, Formalism=\Haskell, Label=prgfrag_zus_ueb_mon5]
 \begin{code}
 instance Monad (ST s) where
@@ -10012,7 +10012,7 @@ data Robot a
 \newpage
 
 \ListItem Damit \texttt{Robot} als Instanz von \texttt{Monad} (vergleiche
-  \Link[LinkText={\texttt{ST}):}]{ref:st-monad}
+  \Link[LinkText={\texttt{ST}):}]{ref:st_monad}
 \begin{ProgramFragment}[Title={}, Formalism=\Haskell, Label=prgfrag_rob_impl5]
 \begin{code}
 instance Monad Robot where

@@ -493,8 +493,7 @@
 <?MMiSSDisplay axiom : White box ?>
 
 <!ELEMENT formula  %m.formula.mix;>
-<!ATTLIST formula  %structure-attr;
-                   %system-attr;
+<!ATTLIST formula  %system-attr;
                    %variant-attr;
                    latexEnv   (math | shortMathDollar | shortMathParens | displaymath 
                                | shortDisplaymath | shortDisplaymathDollar 
@@ -557,6 +556,9 @@
 
 
 <!-- **********************  Inclusion elements  ************************* --> 
+
+<!ELEMENT includePackage  EMPTY>
+<!ATTLIST includePackage %include-attributes;>
 
 <!ELEMENT includeSection  EMPTY>
 <!ATTLIST includeSection %include-attributes;>
