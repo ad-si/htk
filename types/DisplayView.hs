@@ -10,6 +10,7 @@ module DisplayView(
    DisplayedView,
    displayView,
    focusLink,
+   addCloseDownAction,
    ) where
 
 import IOExts

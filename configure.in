@@ -127,6 +127,9 @@ MAKEFILES=`$GFIND . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
    echo Compiling MainFixFileNames
+   # We need to remove the interface file as otherwise strange things
+   # happen if the format changes.
+   rm -rf mk/Main.hi
    $GHC mk/MainFixFileNames.hs -o mk/FixFileNames
 
    echo Setting up packages and export packages file as empty

@@ -407,6 +407,7 @@ answerDispatcher :: DaVinci -> IO ()
 answerDispatcher (daVinci@DaVinci{
    childProcess = childProcess,
    contextRegistry = contextRegistry,
+   currentContextIdMVar = currentContextIdMVar,
    responseMVar = responseMVar
    }) =
    do
@@ -417,7 +418,12 @@ answerDispatcher (daVinci@DaVinci{
          do
             forkIO ((handler context) daVinciAnswer)
             case destroysContext daVinciAnswer of
-               Yes -> sendIO (destructChannel context) ()
+               Yes -> 
+                  do
+                     -- Invalidate current context.
+                     takeMVar currentContextIdMVar
+                     putMVar currentContextIdMVar (ContextId "")
+                     sync (noWait (send (destructChannel context) ()))
                No -> done
 
       answerDispatcher' = 

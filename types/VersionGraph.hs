@@ -183,6 +183,13 @@ newVersionGraph
       (graph :: VersionTypes SimpleGraph,closeConnection :: IO ()) 
          <- connectToServer
 
+      -- Checked-out versions are associated with two elements of the
+      -- Node type.  The most important one is the current one, with
+      -- which the version is currently displayed in the graph.  However
+      -- there is also the original one, which is that with which the
+      -- version was originally displayed.  Thus the original Node does not
+      -- change. 
+
       let
          -- Parameters for displayGraph
          graphParms = 
@@ -273,8 +280,11 @@ newVersionGraph
                update graph (NewNode thisNode workingType title)
                update graph (NewArc thisArc workingArcType () 
                   parentNode thisNode) 
-               displayView displaySort (WrappedDisplayType FolderDisplayType) 
-                  view
+               displayedView <- displayView displaySort 
+                  (WrappedDisplayType FolderDisplayType) view
+               addCloseDownAction displayedView (
+                  update graph (DeleteNode thisNode)
+                  )
                done
 
          commitNode :: Node -> IO ()
@@ -322,10 +332,10 @@ newVersionGraph
                               = CheckedInNode newVersion
                            newNode = toNode versionGraphNode
                         newArc1 <- newCheckedInArc graph
-                        update graph (NewNode newNode 
-                           checkedInType title)
+                        update graph (NewNode newNode checkedInType title)
                         update graph (NewArc newArc1 
                            checkedInArcType () parentNode newNode)
+                  
                         -- Add a new node for the view, and add it
                         -- to this new node.
                         newArc2 <- newWorkingArc arcStringSource
@@ -336,10 +346,10 @@ newVersionGraph
                               parent = newNode
                               }) 
 
-                        update graph (NewNode thisNode 
-                           workingType title)
+                        update graph (NewNode thisNode workingType title)
                         update graph (NewArc newArc2 workingArcType ()
                            newNode thisNode)
+
       -- Construct the graph
       displayedGraph <- displayGraph displaySort graph graphParms
          getNodeTypeParms getArcTypeParms

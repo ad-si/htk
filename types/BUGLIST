@@ -2,6 +2,7 @@ Outstanding Bugs as of 31/5/2002
 --------------------------------
 (3/2002).  HUGE files crash the s'erver
 (4/2/2002) Closing a version graph stops other versions responding
+   FIXED 3/6/2002
 (1/2/2002) Folders display should display the name of the version
 
 
