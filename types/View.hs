@@ -28,7 +28,7 @@ module View(
       -- Function for creating an object which requires its own link.  
 
    parentVersion, -- :: View -> IO (Maybe Version)
-      -- returns the current parent version of the view.
+      -- returns the head parent version of the view, if any.
    ) where
 
 import Directory
@@ -78,7 +78,7 @@ newView :: Repository -> IO View
 newView repository =
    do
       objects <- newRegistry
-      parentMVar <- newMVar Nothing
+      parentsMVar <- newMVar []
       viewIdObj <- newObject
       fileSystem <- newFileSystem
       titleSource <- newSimpleBroadcaster ""
@@ -89,7 +89,7 @@ newView repository =
          viewId = ViewId viewIdObj,
          repository = repository,
          objects = objects,
-         parentMVar = parentMVar,
+         parentsMVar = parentsMVar,
          titleSource = titleSource,
          fileSystem = fileSystem,
          commitLock = commitLock,
@@ -130,7 +130,7 @@ getView repository objectVersion =
          objectsData
          )
 
-      parentMVar <- newMVar (Just objectVersion)
+      parentsMVar <- newMVar [objectVersion]
       fileSystem <- newFileSystem
       titleSource <- newSimpleBroadcaster ""
       commitLock <- newVSem
@@ -141,7 +141,7 @@ getView repository objectVersion =
             repository = repository,
             objects = objects,
             titleSource = titleSource,
-            parentMVar = parentMVar,
+            parentsMVar = parentsMVar,
             fileSystem = fileSystem,
             commitLock = commitLock,
             delayer = delayer
@@ -153,10 +153,10 @@ getView repository objectVersion =
 
 commitView :: View -> IO Version
 commitView (view @ View {repository = repository,objects = objects,
-      parentMVar = parentMVar,commitLock = commitLock}) =
+      parentsMVar = parentsMVar,commitLock = commitLock}) =
    synchronizeGlobal commitLock (
       do
-         parentOpt <- takeMVar parentMVar
+         parents <- takeMVar parentsMVar
 
          displayTypesData <- exportDisplayTypes view
 
@@ -188,14 +188,23 @@ commitView (view @ View {repository = repository,objects = objects,
          viewCodedValue <- doEncodeIO viewData phantomView
          viewObjectSource <- toObjectSource viewCodedValue 
          newVersion <- commit repository viewObjectSource firstLocation 
-            parentOpt
-         putMVar parentMVar (Just newVersion)
+            (case parents of 
+               [] -> Nothing
+               parent : _ -> Just parent
+               )
+
+         putMVar parentsMVar [newVersion]
          return newVersion
       )
 ---
 -- returns the current parent version of the view.
 parentVersion :: View -> IO (Maybe Version)
-parentVersion view = readMVar (parentMVar view)
+parentVersion view = 
+   do
+      parents <- readMVar (parentsMVar view)
+      case parents of
+         [] -> return Nothing
+         parent : _ -> return (Just parent)
 
 -- ----------------------------------------------------------------------
 -- Format of view information in the top file

@@ -2,6 +2,8 @@
 module Merging(
    ) where
 
+import Maybe
+
 import Control.Concurrent.MVar
 
 import Computation
@@ -18,8 +20,11 @@ import VSem
 import ObjectTypes
 import DisplayTypes
 import GlobalRegistry
+import Link
 import ViewType
 import View
+import MergeTypes
+import MergeReAssign
 
 mergeViews :: [View] -> IO (WithError View)
 mergeViews [] = return (hasError "No views selected")
@@ -50,8 +55,12 @@ mergeViews (views @ (firstView:_)) =
             fileSystem1 <- newFileSystem
             commitLock1 <- newVSem
             delayer1 <- newDelayer
-            parentData <- readMVar (parentMVar firstView)
-            parentMVar1 <- newMVar parentData
+
+            parentOpts <- mapM parentVersion views
+            let
+               parents = catMaybes parentOpts
+
+            parentsMVar1 <- newMVar parents
 
             let
                newView = View {
@@ -62,34 +71,87 @@ mergeViews (views @ (firstView:_)) =
                   fileSystem = fileSystem1,
                   commitLock = commitLock1,
                   delayer = delayer1,
-                  parentMVar = parentMVar1
+                  parentsMVar = parentsMVar1
                   }
 
 
             -- (2) Merge the global-registry data for object types and
             -- display types.
             let
-               mergeObjectTypeTypeData :: WrappedObjectTypeTypeData -> IO ()
+               mergeObjectTypeTypeData :: WrappedObjectTypeTypeData 
+                  -> IO [(GlobalKey,[(View,WrappedObjectType)])]
                mergeObjectTypeTypeData (WrappedObjectTypeTypeData objectType)
                      =
                   do
-                     unitWE <- mergeViewsInGlobalRegistry 
+                     allTypesWE <- mergeViewsInGlobalRegistry 
                         (objectTypeGlobalRegistry objectType) views newView
-                     coerceWithErrorOrBreakIO break unitWE
+                     allTypes <- coerceWithErrorOrBreakIO break allTypesWE
+                     return (map 
+                        (\ (key,viewTypes) ->
+                           (key,map
+                              (\ (view,objectType) 
+                                 -> (view,WrappedObjectType objectType))
+                              viewTypes
+                              )
+                           )
+                        allTypes
+                        )
 
                mergeDisplayTypeTypeData :: WrappedDisplayType -> IO ()
                mergeDisplayTypeTypeData (WrappedDisplayType displayType)
                      =
                   do
-                     unitWE <- mergeViewsInGlobalRegistry
+                     resultWE <- mergeViewsInGlobalRegistry
                         (displayTypeGlobalRegistry displayType) views newView
-                     coerceWithErrorOrBreakIO break unitWE
+                     coerceWithErrorOrBreakIO break resultWE
+                     done
 
-            mapM_ mergeObjectTypeTypeData allObjectTypeTypes
+            (allTypes :: [(WrappedObjectTypeTypeData,
+               [(GlobalKey,[(View,WrappedObjectType)])])])
+               <- mapM 
+                  (\ wrappedObjectTypeTypeData ->
+                     do
+                        theseTypes <- mergeObjectTypeTypeData
+                           wrappedObjectTypeTypeData
+                        return (wrappedObjectTypeTypeData,theseTypes)
+                     )
+                  allObjectTypeTypes
+
             mapM_ mergeDisplayTypeTypeData allDisplayTypeTypes
 
             -- (3) Compute reassignments.
-            error "Not done"
+            linkReAssignerWE <- mkLinkReAssigner views allTypes
+            linkReAssigner <- coerceWithErrorOrBreakIO break linkReAssignerWE
+
+            -- (4) Do merging
+            let
+               mergeOne :: (WrappedLink,[(View,WrappedLink)]) -> IO ()
+               mergeOne (WrappedLink (newLink :: Link object),linkViewData0) =
+                  do
+                     (linkViewData1 :: [(View,Link object,object)]) <-
+                        mapM
+                           (\ (view,wrappedLink) ->
+                              do 
+                                 let
+                                    linkOpt = unpackWrappedLink wrappedLink
+
+                                    link = fromMaybe
+                                       (break ("Merging.mergeOne - "++
+                                          "unexpected type clash"))
+                                       linkOpt
+                                 seq link done
+                                 object <- readLink view link
+                                 return (view,link,object)
+                              )      
+                           linkViewData0
+
+                     unitWE <- attemptMerge linkReAssigner newView newLink 
+                        linkViewData1
+                     coerceWithErrorOrBreakIO break unitWE
+
+            mapM_ mergeOne (allMerges linkReAssigner)
+
+            return newView
          )
 
       if isError resultWE

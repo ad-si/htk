@@ -47,6 +47,8 @@ module Dynamics (
         typeMismatch,
         dynCast, -- Cast to another value of the same type, or
            -- error (useful for extracting from existential types). 
+        dynCastOpt,
+        
         -- The HasTyRep* classes are abbreviations for constructing
         -- instances of Typeable. 
         HasTyRep(..),
@@ -67,6 +69,8 @@ module Dynamics (
 #endif
         ) 
 where
+
+import qualified Data.FiniteMap
 
 import qualified Dynamic
 import Dynamic(Typeable(..),TypeRep)
@@ -118,9 +122,12 @@ typeMismatch =
         userError "internal type of dynamics does not match expected type"
 
 dynCast :: (Typeable a,Typeable b) => String -> a -> b
-dynCast mess value = case fromDyn (toDyn value) of
+dynCast mess value = case dynCastOpt value of
    Nothing -> error ("Dynamics.dynCast failure in "++mess)
    Just value2 -> value2
+
+dynCastOpt :: (Typeable a,Typeable b) => a -> Maybe b
+dynCastOpt value = fromDyn (toDyn value)
 
 ------------------------------------------------------------------------
 -- The HasTyRep* classes are used to indicate that
@@ -329,3 +336,13 @@ instance (HasTyRep1 Dummy) where
 
 #endif
 
+-- ------------------------------------------------------------
+-- Instances of HasTyRep* for GHC-defined types which don't provide
+-- Dynamic already.
+-- ------------------------------------------------------------
+
+
+finiteMap_tyRep = mkTyRep "Dynamics" "FiniteMap"
+
+instance HasTyRep2 Data.FiniteMap.FiniteMap where
+   tyRep2 _ = finiteMap_tyRep

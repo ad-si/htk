@@ -79,6 +79,10 @@ module ObjectTypes(
    nodeTitleIOPrim, -- :: ObjectType objectType object => object -> IO String
    nodeTitleIO, -- :: WrappedObject -> IO String
 
+   -- get the links which need to be preserved for this object type during
+   -- merging.
+   fixedLinks, -- :: View -> WrappedObjectType -> IO [WrappedLink]
+
    -- Get the object type's entry in the object creation menu.
    -- The object creation function is returned.  The object should be inserted
    -- in the folder.
@@ -115,6 +119,7 @@ import qualified IOExts(unsafePerformIO)
 
 import Registry
 import Computation
+import ExtendedPrelude
 import Dynamics
 import Sink
 import qualified VariableList
@@ -141,8 +146,8 @@ import MergeTypes
 -- The ObjectType class
 -- ----------------------------------------------------------------
 
-class (HasCodedValue objectType,HasCodedValue object) =>
-   ObjectType objectType object
+class (HasCodedValue objectType,HasCodedValue object) 
+   => ObjectType objectType object
       | objectType -> object, object -> objectType where
    objectTypeTypeIdPrim :: objectType -> String
       -- This function should not look at its argument but return a
@@ -198,9 +203,13 @@ class (HasCodedValue objectType,HasCodedValue object) =>
    nodeTitleSourcePrim :: object -> SimpleSource String
       -- Returns a title, which may change.
 
-   mergeLinks :: View -> object -> MergeTypes.ObjectLinks
-      -- Returns all links which need to be preserved by merging, for
-      -- this object.
+   fixedLinksPrim :: View -> objectType -> IO [Link object]
+      -- Returns links which need to be fixed by merging.  The length of
+      -- this list should be the same for all views which use this
+      -- object type.
+
+   getMergeLinks :: MergeTypes.MergeLinks object
+      -- Retuns those links which need to be preserved by merging.
 
    attemptMerge :: MergeTypes.LinkReAssigner -> View -> Link object
       -> [(View,Link object,object)] -> IO (WithError ())
@@ -263,6 +272,8 @@ class (HasCodedValue objectType,HasCodedValue object) =>
 
    createObjectMenuItemPrim objectType = Nothing
 
+   fixedLinksPrim _ _ = return [] 
+
 toObjectValue :: ObjectType objectType object => objectType -> object
 toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
 
@@ -318,6 +329,13 @@ nodeTitleIOPrim object = readContents (nodeTitleSourcePrim object)
 
 nodeTitleIO :: WrappedObject -> IO String
 nodeTitleIO (WrappedObject object) = nodeTitleIOPrim object
+
+
+fixedLinks :: View -> WrappedObjectType -> IO [WrappedLink]
+fixedLinks view (WrappedObjectType objectType) =
+   do
+      links <- fixedLinksPrim view objectType
+      return (map WrappedLink links)
 
 createObjectMenuItem :: WrappedObjectType 
    -> Maybe (String,View -> LinkedObject -> IO (Maybe WrappedLink))
@@ -658,10 +676,27 @@ instance HasCodedValue WrappedLink where
          return (WrappedLink link,codedValue2)
 
 -- -----------------------------------------------------------------
--- We make WrappedObjectType an instance of HasKey
+-- We make WrappedObjectType and WrappedObjectTypeTypeData instance 
+-- HasKey, Eq and Ord
 -- -----------------------------------------------------------------
 
 instance HasKey WrappedObjectType (String,GlobalKey) where
    toKey (WrappedObjectType objectType) =
       (objectTypeTypeIdPrim objectType,objectTypeIdPrim objectType)
+
+instance Eq WrappedObjectType where
+   (==) = mapEq toKey
+
+instance Ord WrappedObjectType where
+   compare = mapOrd toKey
+
+instance HasKey WrappedObjectTypeTypeData (String,GlobalKey) where
+   toKey (WrappedObjectTypeTypeData objectType) =
+      (objectTypeTypeIdPrim objectType,objectTypeIdPrim objectType)
+
+instance Eq WrappedObjectTypeTypeData where
+   (==) = mapEq toKey
+
+instance Ord WrappedObjectTypeTypeData where
+   compare = mapOrd toKey
 

@@ -2,21 +2,34 @@
    repository and object implementations and merging. -}
 module MergeTypes where
 
-import FiniteMap
+import Data.FiniteMap
 
+import Dynamics
+
+import Link
 import ViewType
 import {-# SOURCE #-} ObjectTypes
 
 -- | This describes all the links which leave an object and which need to
 -- be preserved by the merge.
+data ObjectLinks key = ObjectLinks [(WrappedLink,key)]
+
+
+---
+-- This is the function objects need to provide.
 --
--- The "Show" instance is used in error messages.
-data ObjectLinks =
-   forall key . (Ord key,Show key) => ObjectLinks [(WrappedLink,key)]
+-- The "Show" instance is used in error messages.  The Typeable instance
+-- is needed to get the key out and compare it with other keys for the
+-- same object type in other views.
+data MergeLinks object = forall key . (Ord key,Show key,Typeable key) 
+   => MergeLinks (View -> Link object -> IO (ObjectLinks key))
 
 
 -- | This contains the reassignments made in merging, mapping each link to
 -- its corresponding link in the final merge.
 data LinkReAssigner = LinkReAssigner {
-   linkMap :: FiniteMap (ViewId,WrappedLink) View
+   linkMap :: FiniteMap (ViewId,WrappedLink) WrappedLink,
+   allMerges :: [(WrappedLink,[(View,WrappedLink)])]
    } 
+
+

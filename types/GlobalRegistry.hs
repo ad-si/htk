@@ -315,8 +315,12 @@ newViewData =
 ---
 -- Take the information for the supplied list of views and merge it for the
 -- corresponding view (or return an error message).
+--
+-- We return a list of all types in the final view, indexed by their global
+-- key, and giving the corresponding views and types.
 mergeViewsInGlobalRegistry :: HasCodedValue objectType 
-   => GlobalRegistry objectType -> [View] -> View -> IO (WithError ())
+   => GlobalRegistry objectType -> [View] -> View -> IO (WithError 
+      [(GlobalKey,[(View,objectType)])])
 mergeViewsInGlobalRegistry 
       ((GlobalRegistry registry) :: GlobalRegistry objectType) views newView =
    do
@@ -334,15 +338,17 @@ mergeViewsInGlobalRegistry
       viewDataWE <- mergeViewDatas viewDatas
 
       mapWithErrorIO
-         (\ viewData ->
+         (\ (viewData,allTypes) ->
             do
                setValue registry (viewId newView) viewData
-               return ()
+               return allTypes
             )
          viewDataWE
 
 mergeViewDatas :: HasCodedValue objectType
-   => [(View,ViewData objectType)] -> IO (WithError (ViewData objectType))
+   => [(View,ViewData objectType)] 
+   -> IO (WithError (ViewData objectType,
+         [(GlobalKey,[(View,objectType)])]))
 mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
    do
       -- (1) merge the UniqueStringSource's. 
@@ -365,9 +371,9 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
       let
          -- (3) function for constructing the map.  We pair each element
          -- with its originating view.
-         constructMap :: FiniteMap GlobalKey (View,objectType) 
+         constructMap :: FiniteMap GlobalKey [(View,objectType)] 
             -> [(View,FiniteMap GlobalKey objectType)] 
-            -> IO (WithError (FiniteMap GlobalKey (View,objectType)))
+            -> IO (WithError (FiniteMap GlobalKey [(View,objectType)]))
          constructMap map [] = return (hasValue map)
          constructMap map ((view,newMap):rest) =
             do
@@ -375,21 +381,26 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
                   (elts :: [(GlobalKey,objectType)]) = fmToList newMap
 
                   -- function for appending these elements to the map
-                  addItems :: FiniteMap GlobalKey (View,objectType)
+                  addItems :: FiniteMap GlobalKey [(View,objectType)]
                      -> [(GlobalKey,objectType)]
-                     -> IO (WithError (FiniteMap GlobalKey (View,objectType)))
+                     -> IO (WithError (
+                        FiniteMap GlobalKey [(View,objectType)]))
                   addItems map [] = return (hasValue map)
                   addItems map ((key,newType):rest) =
                      case lookupFM map key of
                         Nothing ->
-                           addItems (addToFM map key (view,newType)) rest
-                        Just (oldView,oldType) ->
+                           addItems (addToFM map key [(view,newType)]) rest
+                        Just (oldTypes @ ((oldView,oldType):_)) ->
                            do 
                               equal <- equalByEncode (oldView,oldType) 
                                  (view,newType)
                               if equal 
                                  then
-                                    addItems map rest
+                                    let
+                                       newMap = addToFM map key
+                                          ((view,newType) : oldTypes)
+                                    in
+                                       addItems newMap rest
                                  else
                                     return (hasError (
                                        "Clash attempting to reserve types "
@@ -403,21 +414,23 @@ mergeViewDatas (viewDatas :: [(View,ViewData objectType)]) =
 
       mapWE <- constructMap emptyFM objectTypeData
       mapWithErrorIO
-         (\ (map1 :: FiniteMap GlobalKey (View,objectType)) ->
+         (\ (map1 :: FiniteMap GlobalKey [(View,objectType)]) ->
             do
+              -- construct the new viewData
               let
                  (map2 :: FiniteMap GlobalKey objectType) = 
-                    mapFM (\ key (view,objectType) -> objectType) map1
+                    mapFM (\ key ((view,objectType):rest) -> objectType) map1
 
               (map3 :: VariableMap GlobalKey objectType) <-
                  newVariableMapFromFM map2
+
               let
                  viewData = ViewData {
                     names = names,
                     objectTypes = map3
                     }
 
-              return viewData  
+              return (viewData,fmToList map1)  
             )
          mapWE
  

@@ -36,8 +36,10 @@ data View = View {
    viewId :: ViewId,
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
-   parentMVar :: MVar (Maybe ObjectVersion),
-
+   parentsMVar :: MVar [ObjectVersion],
+   -- parents of this view.  (None for the first version, multiple for
+   -- merged versions.)
+ 
    titleSource :: SimpleBroadcaster String, -- current title of this view.
 
    -- Contains "real" copies of files for the benefit of tools
