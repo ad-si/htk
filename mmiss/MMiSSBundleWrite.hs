@@ -77,6 +77,9 @@ writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
          let
             bundle2WE = dissectBundle bundle1
          bundle2 <- coerceImportExportIO bundle2WE
+
+         putStrLn "Dissect"
+         hFlush stdout
          bundle3 <- case filePathOpt of
             Nothing -> return bundle2
             Just filePath -> readFiles filePath bundle2

@@ -47,7 +47,7 @@ data ElementInfo = ElementInfo {
       -- the name of the containing package object.
    labelOpt :: Maybe EntitySearchName,
    variants :: MMiSSVariantSpec
-   }
+   } deriving (Show) -- for debugging.
 
 -- ----------------------------------------------------------------------
 -- Functions

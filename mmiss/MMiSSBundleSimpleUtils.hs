@@ -85,8 +85,12 @@ module MMiSSBundleSimpleUtils(
 
 import Data.FiniteMap
 
+import Debug.Trace
+
 import Monad
 import Maybe
+import IO
+import List
 
 import Control.Monad.State
 import Text.XML.HaXml.Types
@@ -121,6 +125,7 @@ mergeBundles bundles =
                 (\ (Bundle keyedBundleNodes0) -> keyedBundleNodes0)
                 bundles
                 )
+
       keyedBundleNodes2 <- mergeKeyedBundleNodes (==) packageIdStr
          [] keyedBundleNodes1
       return (Bundle keyedBundleNodes2)
@@ -148,13 +153,13 @@ mergeKeyedBundleNodes eqFn (describeFn :: key -> String) backtrace inputList =
             inputList
 
       checkKeyEq :: [(key,BundleNode)] -> WithError key
-      checkKeyEq ((k1,_):kns) =
+      checkKeyEq (ks @ ((k1,_):kns)) =
          if all (\ (k,_) -> k `eqFn` k1) kns
             then
                return k1
             else
                mergeFailure (describeFn k1 : backtrace) 
-                  "two elements with same location but different type"
+                  "two elements with same location but different type: "
 
       mergeOne :: [(key,BundleNode)] -> WithError (key,BundleNode)
       mergeOne bundleNodes =
@@ -165,6 +170,7 @@ mergeKeyedBundleNodes eqFn (describeFn :: key -> String) backtrace inputList =
             return (key,bundleNode)
  
       (keyedBundleNodes :: [[(key,BundleNode)]]) = eltsFM fmap1
+
    in
       mapM
          mergeOne
@@ -189,27 +195,60 @@ mergeBundleNodesAsOne backtrace bundleNodes =
             [] -> Nothing
             name0 : _ -> Just name0
 
-         objectType1 = objectType fileLoc0
+         -- We promote mmissFolderType's to mmissPackageType's, when
+         -- at least one of the input types is a package type.  This
+         -- is a stop-gap solution; really the client should send
+         -- the right type in the first place.
+         objectTypes :: [BundleType]
+         objectTypes = map objectType fileLocs
 
+         doPromotion :: Bool
+         doPromotion = any (== mmissPackageType) objectTypes
+
+         promotedTypes :: [BundleType]
+         promotedTypes = 
+            if doPromotion 
+               then 
+                  map
+                     (\ objectType -> 
+                        if objectType == mmissFolderType
+                           then
+                              mmissPackageType
+                           else
+                              objectType
+                        )
+                     objectTypes
+               else
+                  objectTypes
+
+         (promotedType1 : restPromotedTypes) = promotedTypes
+
+      if all (== promotedType1) restPromotedTypes
+         then
+            done
+         else
+            mergeFailure backtrace
+               "two elements with same location but different type (2)"
+          
+      let
          fileLoc1 = FileLoc {
             name = nameOpt1,
-            objectType = objectType1
+            objectType = promotedType1
             }
 
          isCompatible :: FileLoc -> Bool
-         isCompatible (FileLoc {name = nameOpt2,objectType = objectType2}) =
-            (case (nameOpt1,nameOpt2) of
+         isCompatible (FileLoc {name = nameOpt2}) =
+            case (nameOpt1,nameOpt2) of
                (Just name,Just name2)
                   | name /= name2 -> False
                _ -> True
-            ) && (objectType1 == objectType2)
- 
+   
       if all isCompatible fileLocs
          then
             done
          else
             mergeFailure backtrace 
-               "two elements with same location but different type"
+               "Mysterious name clash encountered during merge"
 
       let
          bundleNodeDatas = map bundleNodeData bundleNodes
@@ -240,9 +279,9 @@ mergeBundleNodesAsOne backtrace bundleNodes =
                   strFileLoc2 :: FileLoc -> String
                   strFileLoc2 fileLoc = fromMaybe "(Unknown)" 
                      (strFileLoc fileLoc)
-          
+
                (keyedNodes1 :: [(FileLoc,BundleNode)])
-                  <- mergeKeyedBundleNodes (==) strFileLoc2 backtrace 
+                    <- mergeKeyedBundleNodes (==) describeFileLoc backtrace
                      keyedNodes0
                return (Dir (map snd keyedNodes1))
          ([],bundleVariants) ->

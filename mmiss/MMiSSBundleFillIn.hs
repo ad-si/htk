@@ -12,6 +12,7 @@ module MMiSSBundleFillIn(
    ) where
 
 import Maybe
+import IO
 
 import Computation
 import AtomString
@@ -153,6 +154,17 @@ parseNode locInfo0 bundleNode =
       isEmbeddedObject :: Format -> IO ParseNodeOut
       isEmbeddedObject format =
          do
+            let
+               nameStrOpt = name fileLoc1
+
+            nameStr <- case nameStrOpt of
+               Nothing -> importExportError "MMiSS object has no name"
+               Just nameStr -> return nameStr
+ 
+            let
+               locInfo1WE = subDir (Just (EntityName nameStr)) False locInfo0
+            locInfo1 <- coerceImportExportIO locInfo1WE
+
             variants0 <- getVariants
             (bundles :: [Bundle]) <- mapM
                (\ (variantSpecOpt,bundleText0) ->
@@ -160,15 +172,15 @@ parseNode locInfo0 bundleNode =
                      let
                         objectStr = bundleTextToString bundleText0
 
-                     locInfo1 <- case variantSpecOpt of
-                        Nothing -> return locInfo0
+                     locInfo2 <- case variantSpecOpt of
+                        Nothing -> return locInfo1
                         Just variantSpec ->
                            do
                               let
-                                 locInfoWE = setVariants variantSpec locInfo0
+                                 locInfoWE = setVariants variantSpec locInfo1
                               coerceImportExportIO locInfoWE
 
-                     parseObject locInfo1 format objectStr
+                     parseObject locInfo2 format objectStr
                   )
                variants0
             return (Nothing,bundles)

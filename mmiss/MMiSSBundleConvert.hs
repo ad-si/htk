@@ -111,8 +111,15 @@ parseBundle2 elInfo0 element0 preambleList =
                         }
                       
                      node2 = mkOneMMiSSPackage node1
+
+                     packageId2 = 
+                        if packageId1 == defaultPackageId 
+                           then
+                              packageId
+                           else
+                              packageId1
                   in
-                     (packageId1,node2)
+                     (packageId2,node2)
                   )
                preambleList
 
