@@ -73,6 +73,8 @@ module ExtendedPrelude (
    EqIO(..),OrdIO(..),
 
    uniqOrd,
+   uniqOrdOrder,
+   allSame,
    ) where
 
 import Char
@@ -552,7 +554,40 @@ class EqIO v => OrdIO v where
 -- Eq/Ord operations
 -- ------------------------------------------------------------------------
 
----
--- Remove duplicate elements from a list.
+-- ¦ Remove duplicate elements from a list.
 uniqOrd :: Ord a => [a] -> [a]
 uniqOrd = setToList . mkSet
+
+-- ¦ Like uniqOrd, except that we specify the output order of the list.
+-- The resulting list is that obtained by deleting all duplicate elements
+-- in the list, except the first, for example [1,2,3,2,1,4] will go to
+-- [1,2,3,4].
+uniqOrdOrder :: Ord a => [a] -> [a]
+uniqOrdOrder list = mkList emptySet list
+   where
+      mkList _ [] = []
+      mkList set (a : as) =
+         if elementOf a set
+            then
+               mkList set as
+            else
+               a : mkList (addToSet set a) as
+
+-- | Return Just True if all the elements give True, Just False if all False,
+-- Nothing otherwise (or list is empty).
+allSame :: (a -> Bool) -> [a] -> Maybe Bool
+allSame fn [] = Nothing
+allSame fn (a : as) =
+   if fn a
+      then
+         if all fn as
+            then
+               Just True
+            else
+               Nothing
+      else
+         if any fn as
+            then
+               Nothing
+            else
+               Just False  

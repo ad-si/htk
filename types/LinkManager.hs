@@ -7,11 +7,8 @@ module LinkManager(
    LinkedObject, 
       -- This corresponds to some object in the repository.
       -- Instance of HasCodedValue, Eq, Ord.
-   LinkEnvironment,
-      -- This represents some context (a path and an object) in which
-      -- links are to be looked up.  Instance of Eq, Ord, HasCodedValue.
    LinkSource,
-      -- This represents a set of links (EntityFullName's) to search for.
+      -- This represents a set of links (EntitySearchName's) to search for.
       -- We also carry (with the LinkSource) values of some type specified
       -- as a parameter to LinkSource.
    FrozenLinkSource,
@@ -20,9 +17,6 @@ module LinkManager(
 
    Insertion,
       -- This represents somewhere to put a LinkedObject.
-   LinkSourceSet(..),
-      -- A LinkEnvironment and list of LinkSource's of the same type.
-      -- Instance of HasCodedValue, provided the LinkSource type is.
 
    -- LinkedObject Functions
    newLinkedObject, 
@@ -33,6 +27,11 @@ module LinkManager(
       -- Each LinkedObject contains a WrappedLink which is assumed to point
       -- to the object containing the LinkedObject.  In particular, when the
       -- linked object is changed, we dirty the WrappedLink.
+   newLinkedPackageObject,
+      -- :: View -> WrappedLink -> Maybe Insertion -> ImportCommands
+      -- -> IO (WithError LinkedObject)
+      -- Similar to newLinkedObject, but for a LinkedObject which will
+      -- represent a package object, for example an MMiSS package folder.
    moveObject,
       -- :: LinkedObject -> Maybe Insertion -> IO (WithError ())
       -- Change the location of a LinkedObject
@@ -114,62 +113,46 @@ module LinkManager(
       -- If the parent exists but has the wrong type we return an error, via
       -- WithError.
 
-   -- LinkEnvironment functions
-   newLinkEnvironment,
-      -- :: LinkedObject -> EntityPath -> IO LinkEnvironment
-      -- Create a new LinkEnvironment
-   newParentLinkEnvironment,
-      -- :: LinkedObject -> EntityPath -> IO LinkEnvironment
-      -- Create a LinkEnvironment, where paths are relative to the objects
-      -- parent.
-   setPath,
-      -- :: LinkEnvironment -> EntityPath -> IO ()
-      -- Set a LinkEnvironment's path.
-   lookupName,
-      -- :: LinkEnvironment -> EntityFullName -> IO (Maybe LinkedObject)
-      -- Return the LinkedObject corresponding to a LinkEnvironment, if it
-      -- exists.
-
+   -- Functions which can be used only on LinkedObject's created by
+   -- newLinkedPackageObject.
+   setCommands,
+      -- :: LinkedObject -> ImportCommands -> IO ()
+      -- Set the ImportCommands.  If this linked object was not created
+      -- by newLinkedPackageObject, the result will be an error.
    lookupObject,
-      -- :: ObjectType objectType object => LinkEnvironment 
-      -- -> EntityFullName -> IO (WithError (Maybe (Link object)))
+      -- :: ObjectType objectType object 
+      -- => View -> LinkedObject -> EntitySearchName 
+      -- -> IO (WithError (Maybe (Link object)))
       -- Looks up an object, returning the actual link if possible.
       -- We return Nothing if the object does not exist but cause an error if 
       -- the object has the wrong type.
 
-   lookupObjectByPath,
-      -- :: ObjectType objectType object => LinkedObject -> EntityPath 
-      -- -> EntityFullName -> IO (WithError (Maybe (Link object)))
-      -- Looks up an object, returning the actual link if possible,
-      -- starting with an EntityPath rather than a LinkEnvironment.
-      -- We return Nothing if the object does not exist but cause an error if 
-      -- the object has the wrong type.
+   -- FolderStructure functions.
+   toFolderStructure,
+      -- :: LinkedObject -> FolderStructure LinkedObject
+      -- The first argument is the root.
 
    -- LinkSource functions
    newLinkSource, 
-      -- :: LinkEnvironment -> [(EntityFullName,value)] 
+      -- :: View -> LinkedObject -> [(EntityFullName,value)] 
       -- -> IO (LinkSource value)
-      -- Create a new LinkSource
+      -- Create a new LinkSource.  The LinkedObject must be one
+      -- created by newLinkedPackageObject.
    setLinks,
-      -- :: LinkSource value -> [(EntityFullName,value)] -> IO ()
+      -- :: LinkSource value -> [(EntitySearchName,value)] -> IO ()
       -- Set the links for the LinkSource.
    listFromLinkSource,
       -- :: LinkSource value -> SimpleSource [(LinkedObject,value)]
       -- Obtain the pointed-to elements for a LinkSource.
-   verifyLinkSource,
-      -- :: LinkSource value -> IO [(EntityFullName,value)]
-      -- Return the EntityFullName's which cannot be matched for the 
-      -- LinkSource.
-
-
 
    freezeLinkSource,
       -- :: LinkSource value -> IO (FrozenLinkSource value)
       -- Freeze a LinkSource (used on encoding).
 
    createLinkSource,
-      -- :: LinkEnvironment -> FrozenLinkSource value -> IO (LinkSource value)
-      -- Create a LinkSource given a FrozenLinkSource (used on decoding)
+      -- :: Linked -> FrozenLinkSource value -> IO (LinkSource value)
+      -- Create a LinkSource given a newLinkedPackageObject object and a
+      -- FrozenLinkSource (used on decoding)
 
    mkArcEnds,
       -- :: Bool -> LinkSource value -> (value -> ArcType) -> ArcEnds
@@ -215,13 +198,15 @@ import Sources
 import Broadcaster
 import Sink
 import Dynamics
-import VariableMap
 import VariableSet
 import VariableList
 import AtomString(fromStringWE,toString)
 import Object
 
 import DialogWin
+
+import FolderStructure
+import Imports
 
 import LinkDrawer
 import CodedValue
@@ -231,6 +216,7 @@ import Link
 import ViewType
 import View
 import MergeTypes
+import {-# SOURCE #-} Folders
 
 -- ----------------------------------------------------------------------
 -- User interface
@@ -253,7 +239,21 @@ newLinkedObject view wrappedLink insertionOpt =
          frozenLinkedObject = FrozenLinkedObject {
             wrappedLink' = wrappedLink,
             insertion' = insertionOpt,
-            contents' = []
+            contents' = [],
+            importCommands' = Nothing
+            }
+      createLinkedObject view True frozenLinkedObject
+
+newLinkedPackageObject :: View -> WrappedLink -> Maybe Insertion 
+   -> ImportCommands -> IO (WithError LinkedObject)
+newLinkedPackageObject view wrappedLink insertionOpt importCommands =
+   do
+      let
+         frozenLinkedObject = FrozenLinkedObject {
+            wrappedLink' = wrappedLink,
+            insertion' = insertionOpt,
+            contents' = [],
+            importCommands' = Just importCommands
             }
       createLinkedObject view True frozenLinkedObject
 
@@ -262,9 +262,15 @@ newLinkedObject view wrappedLink insertionOpt =
 -- like elements in a folder).
 objectContents :: LinkedObject -> VariableSetSource WrappedLink
 objectContents linkedObject =
-   mapToVariableSetSource 
-      (\ _ linkedObjectPtr -> wrappedLinkInPtr linkedObjectPtr)
-      (contents linkedObject) 
+   listToSetSource
+      (fmap
+         (\ fm ->
+            map 
+               (\ linkedObjectPtr -> wrappedLinkInPtr linkedObjectPtr)
+               (eltsFM fm)
+            )
+         (toSimpleSource (contents linkedObject))
+         )
 
 --
 -- Get a SimpleSource item corresponding to the EntityName element of
@@ -274,15 +280,12 @@ lookupObjectContents :: LinkedObject -> EntityName
 lookupObjectContents linkedObject entityName =
    fmap
       (fmap wrappedLinkInPtr)
-      (getVariableMapByKey (contents linkedObject) entityName)
-
-
+      (lookupEntityName linkedObject entityName)
 
 ---
 -- Delete an object including its record in the view and the parent
 -- folder and anywhere else (currently nowhere) where the Link is
--- stored by the LinkManager, EXCEPT in LinkEnvironments, which should
--- be disposed of by the caller. 
+-- stored by the LinkManager. 
 deleteLinkedObject :: View -> LinkedObject -> IO ()
 deleteLinkedObject view linkedObject =
    do
@@ -351,7 +354,14 @@ createLinkedObjectChildSplit view parentLinkedObject name getObject =
          )
       act
 
-
+setCommands :: LinkedObject -> ImportCommands -> IO ()
+setCommands linkedObject importCommands1 =
+   case importCommands linkedObject of
+      Nothing -> 
+         putStrLn ("LinkManager.setCommands bug  "
+            ++ "-- attempt to set import commands for non-package object")
+      Just broadcaster -> broadcast broadcaster importCommands1
+         
 
 ---
 -- Extract a single element in a linkedObject's contents by name.
@@ -364,20 +374,26 @@ lookupNameSimple linkedObject str =
          Left _ -> return Nothing
          Right entityName ->
             do
-               conts <- readContents (contents linkedObject)
-               let
-                  linkedObjectPtrOpt = lookupMap conts entityName
+               linkedObjectPtrOpt <- readContents (
+                  lookupEntityName linkedObject entityName)
                return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
-
 ---
 -- Extract a full name as a sub object of a given object.
 lookupFullNameInFolder :: LinkedObject -> EntityFullName 
    -> IO (Maybe LinkedObject)
-lookupFullNameInFolder linkedObject entityFullName =
-   do
-      let
-         source = mapOneName linkedObject trivialPath entityFullName
-      readContents source
+lookupFullNameInFolder linkedObject (EntityFullName names) 
+      = lookup1 linkedObject names
+   where
+      lookup1 :: LinkedObject -> [EntityName] -> IO (Maybe LinkedObject)
+      lookup1 linkedObject [] = return (Just linkedObject) 
+      lookup1 linkedObject (name : names) =
+         do
+            linkedObjectPtrOpt 
+               <- readContents (lookupEntityName linkedObject name)
+            case linkedObjectPtrOpt of
+               Nothing -> return Nothing
+               Just linkedObjectPtr 
+                  -> lookup1 (fromLinkedObjectPtr linkedObjectPtr) names
 
 ---
 -- Make an insertion
@@ -455,90 +471,35 @@ getLinkedObjectTitleOpt linkedObject =
    fmap (fmap name) (insertion linkedObject)
 
 ---
--- Create a new LinkEnvironment
-newLinkEnvironment :: LinkedObject -> EntityPath -> IO LinkEnvironment
-newLinkEnvironment linkedObject path = 
-   createLinkEnvironment (FrozenLinkEnvironment {
-      linkedObject' = thisPtr linkedObject,path' = path})
-
----
--- Create a LinkEnvironment, where paths are relative to the objects
--- parent.
-newParentLinkEnvironment :: LinkedObject -> EntityPath -> IO LinkEnvironment
-newParentLinkEnvironment linkedObject entityPath =
-   do
-      linkEnvironment <- newLinkEnvironment linkedObject entityPath
-      return (linkEnvironment {
-         path = fmap raiseEntityPath (path linkEnvironment)
-         })
-
----
--- Return the LinkedObject corresponding to a LinkEnvironment, if it
--- exists.
-lookupName :: LinkEnvironment -> EntityFullName -> IO (Maybe LinkedObject)
-lookupName linkEnvironment entityFullName =
-   do
-      entityPath <- readContents (path linkEnvironment)
-      let
-         source = mapOneName (linkedObject linkEnvironment) entityPath 
-            entityFullName
-      readContents source
-
----
--- Return the LinkedObjectPtr corresponding to a LinkEnvironment, if it
--- exists.
-lookupNamePtr :: LinkEnvironment -> EntityFullName 
-   -> IO (Maybe LinkedObjectPtr)
-lookupNamePtr linkEnvironment entityFullName =
-   do
-      entityPath <- readContents (path linkEnvironment)
-      let
-         source = mapOneNamePtr 
-            (thisPtr (linkedObject linkEnvironment)) entityPath entityFullName
-      readContents source
-
----
 -- Looks up an object, returning the actual link if possible.
 -- We return Nothing if the object does not exist but cause an error if the
 -- object has the wrong type.
 lookupObject :: ObjectType objectType object 
-   => LinkEnvironment -> EntityFullName -> IO (WithError (Maybe (Link object)))
-lookupObject linkEnvironment entityFullName =
-   addFallOutWE (\ break ->
-      do
-         linkedObjectPtrOpt <- lookupNamePtr linkEnvironment entityFullName
-         unpackLinkedObjectPtr break linkedObjectPtrOpt
-      )
+   => View -> LinkedObject -> EntitySearchName 
+   -> IO (WithError (Maybe (Link object)))
+lookupObject view linkedObject searchName =
+   do
+      importsState <- getImportsState view
+      source <- lookupNode importsState linkedObject searchName
+      lookupResult <- readContents source 
+      return (case lookupResult of
+         NotFound -> hasValue Nothing
+         Error -> hasError (toString searchName 
+            ++ " cannot be found because of errors") 
+         Found linkedObject -> 
+            let
+               wrappedLink = wrappedLinkInPtr (thisPtr linkedObject)
+               linkOpt = unpackWrappedLink wrappedLink
+            in
+               case linkOpt of
+                  Nothing -> hasError (toString searchName 
+                     ++ " has wrong type")
+                  Just link -> hasValue (Just link)
+         )
 
----
--- Looks up an object, returning the actual link if possible,
--- starting with an EntityPath rather than a LinkEnvironment.
--- We return Nothing if the object does not exist but cause an error if 
--- the object has the wrong type.
-lookupObjectByPath :: ObjectType objectType object 
-   => LinkedObject -> EntityPath 
-   -> EntityFullName -> IO (WithError (Maybe (Link object)))
-lookupObjectByPath linkedObject entityPath entityFullName =
-   addFallOutWE (\ break ->
-      do
-         linkedObjectPtrOpt 
-            <- lookupNamePtrByPath linkedObject entityPath entityFullName
-         unpackLinkedObjectPtr break linkedObjectPtrOpt
-      )
         
 ---
--- Return the LinkedObjectPtr.
-lookupNamePtrByPath :: LinkedObject -> EntityPath -> EntityFullName 
-   -> IO (Maybe LinkedObjectPtr)
-lookupNamePtrByPath linkedObject entityPath entityFullName =
-   do
-      let
-         source = mapOneNamePtr 
-            (thisPtr linkedObject) entityPath entityFullName
-      readContents source
-
----
--- Used by lookupObject and lookupObjectByPath
+-- (function not used any longer)
 unpackLinkedObjectPtr :: ObjectType objectType object 
    => BreakFn -> Maybe LinkedObjectPtr -> IO (Maybe (Link object))
 unpackLinkedObjectPtr break Nothing = return Nothing
@@ -557,7 +518,7 @@ unpackLinkedObjectPtr break (Just linkedObjectPtr) =
 
 ---
 -- Create a new LinkSource
-newLinkSource :: LinkEnvironment -> [(EntityFullName,value)] 
+newLinkSource :: View -> LinkedObject -> [(EntitySearchName,value)] 
   -> IO (LinkSource value)
 newLinkSource = createLinkSourceGeneral
 
@@ -566,40 +527,6 @@ newLinkSource = createLinkSourceGeneral
 listFromLinkSource :: LinkSource value -> SimpleSource [(LinkedObject,value)]
 listFromLinkSource linkSource = 
    fmap catMaybes (targetsSource linkSource)
-
----
--- Return the EntityFullName's which cannot be matched for the LinkSource.
-verifyLinkSource :: LinkSource value -> IO [EntityFullName]
-verifyLinkSource (linkSource :: LinkSource value) =
-   do
-      (targets :: [Maybe (LinkedObject,value)])
-         <- readContents (targetsSource linkSource)
-      if any isNothing targets
-         then
-            do
-               -- since targets doesn't tell us what the names are, we go
-               -- through them one by one.   
-               namePairs <- readContents (linksSource linkSource)
-               let
-                  names = map fst namePairs
-               path <- readContents (path (environment linkSource))
-               namesOpts <- mapM
-                  (\ name ->
-                     do
-                        linkedOpt <- readContents 
-                           (mapOneName 
-                              (linkedObject (environment linkSource)) 
-                              path name
-                              )
-                        return (case linkedOpt of
-                           Nothing -> Just name
-                           _ -> Nothing
-                           )
-                     ) 
-                  names
-               return (catMaybes namesOpts)
-         else
-            return []
 
 -- | Construct a source containing the out-arcs from a LinkSource.
 mkArcEndsSource :: LinkSource value -> (value -> ArcType) ->
@@ -653,95 +580,58 @@ instance Ord LinkedObject where
 data LinkedObject = LinkedObject {
    thisPtr :: LinkedObjectPtr,
    insertion :: SimpleSource (Maybe Insertion),
-   contents :: VariableMap EntityName LinkedObjectPtr,
-   moveObject :: Maybe Insertion -> IO (WithError ())
+   contents :: SimpleBroadcaster (FiniteMap EntityName LinkedObjectPtr),
+   moveObject :: Maybe Insertion -> IO (WithError ()),
+   importCommands :: Maybe (SimpleBroadcaster ImportCommands)
    }
 
-data LinkEnvironment = LinkEnvironment {
-   linkedObject :: LinkedObject,
-      -- ^ We do NOT delete the WrappedLink inside a LinkEnvironment when
-      -- we do deleteLinkedObject for the corresponding object.  Thus it
-      -- is necessary not to access the corresponding link with readLink 
-      -- or fetchLink.
-   path :: SimpleSource EntityPath,
-   setPath :: EntityPath -> IO (),
-   oID :: ObjectID
-      -- the object id only needs to be unique within a view.  It is
-      -- used for ordering LinkEnvironment's, which is used during editing.
-   }
 
 data Insertion = Insertion {
    parent :: LinkedObjectPtr, -- folder to contain this object
    name :: EntityName -- name it shall have
    } deriving (Eq)
 
-data LinkSourceSet value = LinkSourceSet LinkEnvironment [LinkSource value]
-
 data LinkSource value = LinkSource {
-   environment :: LinkEnvironment,
-   linksSource :: SimpleSource [(EntityFullName,value)],
+   object :: LinkedObject,
+   linksSource :: SimpleSource [(EntitySearchName,value)],
    targetsSource :: SimpleSource [Maybe (LinkedObject,value)],
-   setLinks :: [(EntityFullName,value)] -> IO ()
+   setLinks :: [(EntitySearchName,value)] -> IO ()
    }
 
 -- ----------------------------------------------------------------------
--- Looking up names
+-- Defining the FolderStructure
 -- ----------------------------------------------------------------------
 
-mapOneName :: LinkedObject -> EntityPath -> EntityFullName 
-   -> SimpleSource (Maybe LinkedObject)
-mapOneName linkedObject path fullName =
-   fmap
-      (fmap linkedObjectInPtr)
-      (mapOneNamePtr (thisPtr linkedObject) path fullName)
+toFolderStructure :: LinkedObject -> FolderStructure LinkedObject
+toFolderStructure root =
+   let
+      getContentsSource linkedObject =
+         return .
+            (fmap
+               (mapFM (\ _ -> fromLinkedObjectPtr))
+               )
+            . toSimpleSource . contents $ linkedObject
 
-mapOneNamePtr :: LinkedObjectPtr -> EntityPath -> EntityFullName
-   -> SimpleSource (Maybe LinkedObjectPtr)
-mapOneNamePtr linkedObjectPtr (EntityPath []) fullName = return Nothing
-mapOneNamePtr linkedObjectPtr (EntityPath (firstSearch:rest)) fullName =
-   do
-      linkedObjectPtrOpt 
-         <- mapSearchNamePtr linkedObjectPtr firstSearch fullName
-      case linkedObjectPtrOpt of
-         Nothing -> mapOneNamePtr linkedObjectPtr (EntityPath rest) fullName
-         _ -> return linkedObjectPtrOpt
+      getImportCommands linkedObject = 
+         return . (fmap toSimpleSource) . importCommands $ linkedObject
 
-mapSearchNamePtr :: LinkedObjectPtr -> EntitySearchName -> EntityFullName 
-   -> SimpleSource (Maybe LinkedObjectPtr)
-mapSearchNamePtr linkedObjectPtr (FromHere entityFullName) toSearch =
-   mapFullNameFullNamePtr linkedObjectPtr entityFullName toSearch
-mapSearchNamePtr linkedObjectPtr (FromParent entitySearchName) toSearch =
-   do
-      insertionOpt 
-         <- toSimpleSource (insertion (linkedObjectInPtr linkedObjectPtr))
-      case insertionOpt of
-         Nothing -> return Nothing
-         Just insertion ->
-            mapSearchNamePtr (parent insertion) entitySearchName toSearch      
-
----
--- Search for the second EntityFullName down the path given by the first
--- EntityFullName
-mapFullNameFullNamePtr :: LinkedObjectPtr -> EntityFullName -> EntityFullName 
-   -> SimpleSource (Maybe LinkedObjectPtr)
-mapFullNameFullNamePtr linkedObjectPtr (EntityFullName n1) (EntityFullName n2)
-   = mapFullNamePtr linkedObjectPtr (EntityFullName (n1 ++ n2))
-
----
--- Search for the EntityFullName searching from the given object
-mapFullNamePtr :: LinkedObjectPtr -> EntityFullName 
-   -> SimpleSource (Maybe LinkedObjectPtr)
-mapFullNamePtr linkedObjectPtr (EntityFullName []) 
-   = return (Just linkedObjectPtr)
-mapFullNamePtr linkedObjectPtr (EntityFullName (first:rest)) =
-   do
-      linkedObjectPtrOpt <- getVariableMapByKey 
-         (contents (linkedObjectInPtr linkedObjectPtr)) 
-         first
-      case linkedObjectPtrOpt of
-         Nothing -> return Nothing
-         Just linkedObjectPtr -> 
-            mapFullNamePtr linkedObjectPtr (EntityFullName rest)
+      getParent linkedObject =
+         return 
+         . (fmap 
+            (fmap 
+               (\ insert -> 
+                  (fromLinkedObjectPtr . parent $ insert,name insert)
+                  )
+               )
+            ) 
+         . insertion $ linkedObject
+   in
+      FolderStructure {
+         root = root,
+         getContentsSource = getContentsSource,
+         getImportCommands = getImportCommands,
+         getParent = getParent
+         }         
 
 -- ----------------------------------------------------------------------
 -- Freezing and defrosting/creating. a LinkedObject
@@ -755,9 +645,17 @@ freezeLinkedObject linkedObject =
       insertion' <- readContents (insertion linkedObject)
       contentsData <- readContents (contents linkedObject)
       let
-         (contents' :: [(EntityName,LinkedObjectPtr)]) = mapToList contentsData
+         (contents' :: [(EntityName,LinkedObjectPtr)]) = fmToList contentsData
+      importCommands' <- case importCommands linkedObject of
+         Nothing -> return Nothing
+         Just broadcaster -> 
+            do
+               importCommands1 <- readContents broadcaster
+               return (Just importCommands1)
+
       return (FrozenLinkedObject {wrappedLink' = wrappedLink',
-         insertion' = insertion',contents' = contents'})
+         insertion' = insertion',contents' = contents',
+         importCommands' = importCommands'})
 
 ---
 -- Create a new linked object, given the FrozenLinkedObject.
@@ -782,13 +680,21 @@ createLinkedObject view isNew frozenLinkedObject =
       let
          insertion = toSimpleSource insertionBroadcaster
 
-      contents1 <- newVariableMap (contents' frozenLinkedObject)
+      contents1 
+         <- newSimpleBroadcaster (listToFM (contents' frozenLinkedObject))
 
       -- previousMVar contains the last insertion (or initially Nothing);
       -- it is also used as a lock to prevent moveObject being used 
       -- twice simultaneously on the same LinkedObject.
       previousMVar <- newMVar (if isNew then Nothing else insertion0)
 
+      importCommands <- case importCommands' frozenLinkedObject of
+         Nothing -> return Nothing
+         Just commands -> 
+            do
+               broadcaster <- newSimpleBroadcaster commands
+               return (Just broadcaster)
+      
       let
          moveObject insertion = synchronizeView view (
             do
@@ -805,11 +711,13 @@ createLinkedObject view isNew frozenLinkedObject =
                            done
                         Just oldInsertion ->
                            do
-                              success <- delFromVariableMap 
+                              let
+                                 oldName = name oldInsertion
+                              success <- applySimpleUpdate'
                                  (toContents oldInsertion)
-                                 (name oldInsertion)
+                                 (\ map -> (delFromFM map oldName,
+                                    elemFM oldName map))
                               when success (dirtyInsertion oldInsertion) 
-                              debugTest success "LinkManager.1"
                case insertion of
                   Nothing -> -- this must be a deletion
                      do
@@ -818,10 +726,18 @@ createLinkedObject view isNew frozenLinkedObject =
                         return (hasValue ())
                   Just newInsertion ->
                      do
-                        success <- addToVariableMap
+                        let
+                           newName = name newInsertion
+
+                        success <- applySimpleUpdate'
                            (toContents newInsertion)
-                           (name newInsertion)
-                           thisPtr
+                           (\ map -> 
+                              if elemFM newName map
+                                 then
+                                    (map,False)
+                                 else
+                                    (addToFM map newName thisPtr,True)
+                              )
                         if success 
                            then
                               do
@@ -859,7 +775,8 @@ createLinkedObject view isNew frozenLinkedObject =
             thisPtr = thisPtr,
             insertion = insertion,
             contents = contents1,
-            moveObject = moveObject
+            moveObject = moveObject,
+            importCommands = importCommands
             }
 
          thisPtr = LinkedObjectPtr {
@@ -886,16 +803,18 @@ createLinkedObject view isNew frozenLinkedObject =
 data FrozenLinkedObject = FrozenLinkedObject {
    wrappedLink' :: WrappedLink,
    insertion' :: Maybe Insertion,
-   contents' :: [(EntityName,LinkedObjectPtr)]
+   contents' :: [(EntityName,LinkedObjectPtr)],
+   importCommands' :: Maybe ImportCommands
    } deriving (Eq,Typeable)
 
 instance HasBinary FrozenLinkedObject CodingMonad where
    writeBin = mapWrite (\ (FrozenLinkedObject {wrappedLink' = wrappedLink,
-      insertion' = insertion,contents' = contents})
-      -> (wrappedLink,insertion,contents))
-   readBin = mapRead (\ (wrappedLink,insertion,contents) ->
+      insertion' = insertion,contents' = contents,
+      importCommands' = importCommands})
+      -> (wrappedLink,insertion,contents,importCommands))
+   readBin = mapRead (\ (wrappedLink,insertion,contents,importCommands) ->
       (FrozenLinkedObject {wrappedLink' = wrappedLink,insertion' = insertion,
-         contents' = contents}))
+         contents' = contents,importCommands' = importCommands}))
 
 -- ----------------------------------------------------------------------
 -- Instances of HasCodedValue via a FrozenLinkedObject
@@ -983,71 +902,23 @@ extractLinkedObject (WrappedLink link) view =
       object <- readLink view link
       return (fromMaybe (error "LinkManager.99") (toLinkedObjectOpt object))
 
--- ----------------------------------------------------------------------
--- FrozenLinkEnvironment's and LinkEnvironment's.
--- ----------------------------------------------------------------------
 
-data FrozenLinkEnvironment = FrozenLinkEnvironment {
-   linkedObject' ::  LinkedObjectPtr,
-   path' :: EntityPath
-   }
+lookupEntityName 
+   :: LinkedObject -> EntityName -> SimpleSource (Maybe LinkedObjectPtr)
+lookupEntityName linkedObject entityName =
+   fmap
+      (\ fm -> lookupFM fm entityName)
+      (toSimpleSource (contents linkedObject))
 
-instance HasBinary FrozenLinkEnvironment CodingMonad where
-   writeBin = mapWrite (
-      \ (FrozenLinkEnvironment {linkedObject' = linkedObject',path' = path'})
-      -> (linkedObject',path')
-      )
-   readBin = mapRead (\ (linkedObject',path') ->
-      (FrozenLinkEnvironment {linkedObject' = linkedObject',path' = path'})
-      )
-
-instance Eq LinkEnvironment where
-   (==) = mapEq oID
-
-instance Ord LinkEnvironment where
-   compare = mapOrd oID
-
-freezeLinkEnvironment :: LinkEnvironment -> IO FrozenLinkEnvironment 
-freezeLinkEnvironment 
-      (LinkEnvironment {linkedObject = linkedObject,path = path}) =
-   do
-      path' <- readContents path
-      return (FrozenLinkEnvironment {
-         linkedObject' = thisPtr linkedObject,path' = path'})
-
-createLinkEnvironment :: FrozenLinkEnvironment -> IO LinkEnvironment
-createLinkEnvironment (FrozenLinkEnvironment {linkedObject' = linkedObject',
-      path' = path'}) =
-   do
-      let
-         linkedObject = fromLinkedObjectPtr linkedObject' 
-      path0 <- newSimpleBroadcaster path'
-      oID <- newObject
-      let
-         path = uniqSimpleSource (toSimpleSource path0)
-         setPath newPath = broadcast path0 newPath
-      return (LinkEnvironment {linkedObject = linkedObject,path = path,
-         setPath = setPath,oID = oID})
-
-instance HasBinary LinkEnvironment CodingMonad where
-
-   writeBin = mapWriteIO freezeLinkEnvironment
-
-   readBin = mapReadIO createLinkEnvironment
 
 -- ----------------------------------------------------------------------
 -- FrozenLinkSource's and creating LinkSource's.
--- These do not (to avoid repetition) contain the LinkEnvironment.
+-- These do not (to avoid repetition) avoid the LinkedObject.
 -- ----------------------------------------------------------------------
 
 newtype FrozenLinkSource value = FrozenLinkSource {
-   linksSource' :: [(EntityFullName,value)]
-   } 
-
-frozenLinkSource_tyRep = mkTyRep "LinkManager" "FrozenLinkSource"
-
-instance HasTyRep1 FrozenLinkSource where
-   tyRep1 _ = frozenLinkSource_tyRep
+   linksSource' :: [(EntitySearchName,value)]
+   } deriving (Typeable)
 
 instance HasBinary value CodingMonad 
    => HasBinary (FrozenLinkSource value) CodingMonad where
@@ -1065,70 +936,52 @@ freezeLinkSource linkSource =
       linksSource' <- readContents (linksSource linkSource)
       return (FrozenLinkSource {linksSource' = linksSource'})
 
-createLinkSource :: LinkEnvironment -> FrozenLinkSource value 
+createLinkSource :: View -> LinkedObject -> FrozenLinkSource value 
    -> IO (LinkSource value)
-createLinkSource linkEnvironment (FrozenLinkSource {
+createLinkSource view linkedObject (FrozenLinkSource {
       linksSource' = linksSource'}) =
-   createLinkSourceGeneral linkEnvironment linksSource'
+   createLinkSourceGeneral view linkedObject linksSource'
     
  
-createLinkSourceGeneral :: LinkEnvironment -> [(EntityFullName,value)] 
+createLinkSourceGeneral :: View -> LinkedObject -> [(EntitySearchName,value)] 
    -> IO (LinkSource value)
-createLinkSourceGeneral linkEnvironment initialPairs =
+createLinkSourceGeneral view linkedObject 
+      (initialPairs :: [(EntitySearchName,value)]) =
    do
-      let
-         pathSource = path linkEnvironment
       linksBroadcaster <- newSimpleBroadcaster initialPairs
+
+      (importsState :: ImportsState LinkedObject) <- getImportsState view
+
       let
+         linksSource :: SimpleSource [(EntitySearchName,value)]
          linksSource = toSimpleSource linksBroadcaster
 
          setLinks newPairs = broadcast linksBroadcaster newPairs
 
+         linksSource2 :: SimpleSource  [(LookupResult LinkedObject,value)]
+         linksSource2 = mapIOSeq
+            linksSource
+            (\ searchData -> lookupNodes importsState linkedObject searchData)
+
+         targetsSource :: SimpleSource [Maybe (LinkedObject,value)]
          targetsSource =
-            do
-               (path,links) <- pairSimpleSources pathSource linksSource
-               sequenceSimpleSource (map 
-                  (\ (name,value) ->
-                     fmap
-                        (fmap (\ link -> (link,value)))
-                        (mapOneName (linkedObject linkEnvironment) path name)
-                     )
-                  links
+            fmap
+               (\ (list :: [(LookupResult linkedObject,value)]) ->
+                  map
+                     (\ (lr,value) -> case lr of
+                        Found linkedObject -> Just (linkedObject,value)
+                        _ -> Nothing
+                        )
+                     list
                   )
+               linksSource2
       return (
          LinkSource {
-            environment = linkEnvironment,
+            object = linkedObject,
             linksSource = linksSource,
             targetsSource = targetsSource,
             setLinks = setLinks
             })
-
--- ----------------------------------------------------------------------
--- A LinkSourceSet contains a LinkEnvironment plus a number of LinkSource's,
--- and is a group of things that can be encoded and decoded together.
--- ----------------------------------------------------------------------
-
-linkSourceSet_tyRep = mkTyRep "LinkManager" "LinkSourceSet"
-instance HasTyRep1 LinkSourceSet where
-   tyRep1 _ = linkSourceSet_tyRep
-
-instance HasBinary value CodingMonad 
-   => HasBinary (LinkSourceSet value) CodingMonad where
-
-   writeBin = mapWriteIO (\ (LinkSourceSet linkEnvironment linkSources) ->
-      do
-         frozenLinkEnvironment <- freezeLinkEnvironment linkEnvironment
-         frozenLinkSources <- mapM freezeLinkSource linkSources
-         return (frozenLinkEnvironment,frozenLinkSources)
-      )
-   readBin = mapReadIO (\ (frozenLinkEnvironment,frozenLinkSources) ->
-      do
-         linkEnvironment <- createLinkEnvironment frozenLinkEnvironment
-         linkSources <- mapM (createLinkSource linkEnvironment)
-            frozenLinkSources
-         return (LinkSourceSet linkEnvironment linkSources)
-      )
-
 
 -- ----------------------------------------------------------------------
 -- Functions for Merging
@@ -1150,15 +1003,12 @@ getLinkedObjectMergeLinks =
             object <- readLink view objectLink
             let
                linkedObject = toLinkedObject object
-               
-               contents0 :: VariableMap EntityName LinkedObjectPtr
-               contents0 = contents linkedObject
 
-            contents1 <- readContents contents0
-
+            (contents1 :: FiniteMap EntityName LinkedObjectPtr)
+               <- readContents (contents linkedObject)
             let
                contents2 :: [(EntityName,LinkedObjectPtr)]
-               contents2 = mapToList contents1
+               contents2 = fmToList contents1
 
                contents3 :: [(WrappedMergeLink,EntityName)]
                contents3 =
@@ -1245,6 +1095,36 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
             else
                break "Merge failure; inconsistent insertions??"
 
+         let
+            -- (5) construct ImportCommands.
+            importCommandsList :: [Maybe ImportCommands]
+            importCommandsList =
+               map
+                  (\ (_,frozen) -> importCommands' frozen)
+                  frozenLinkedObjects
+
+         importCommands' <- case allSame isJust importCommandsList of
+            Nothing -> break
+               "LinkManager: importCommand status could not be determined"
+            Just False -> return Nothing
+            Just True ->
+               let
+                  importCommandsList2 :: [ImportCommands]
+                  importCommandsList2 = catMaybes importCommandsList
+
+
+                  importCommands :: [ImportCommand]
+                  importCommands =
+                     (concat
+                        (map
+                           (\ (ImportCommands l) -> l) 
+                           importCommandsList2
+                           )
+                        )
+
+               in
+                  return (Just (ImportCommands (uniqOrdOrder importCommands)))
+
          let         
             -- (5) Construct contents.  Since we specified that these links
             -- had to be consistent during getLinkedObjectMergeLinks, we don't
@@ -1274,7 +1154,8 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
             newFrozenLinkedObject = FrozenLinkedObject {
                wrappedLink' = newWrappedLink',
                insertion' = newInsertion',
-               contents' = newContents'
+               contents' = newContents',
+               importCommands' = importCommands'
                }
 
          linkedObjectWE 

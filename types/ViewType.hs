@@ -32,13 +32,17 @@ import FileSystem
 import Broadcaster
 import Sources
 import Delayer
+import Store
 
 import VSem
 
 import SimpleGraph
 
+import Imports(ImportsState)
+
 import VersionInfo
 import VersionDB
+import {-# SOURCE #-} LinkManager
 
 data View = View {
    viewId :: ViewId,
@@ -66,7 +70,10 @@ data View = View {
    committingVersion :: MVar (Maybe ObjectVersion),
 
    -- This is a version graph for the repository.
-   versionGraph1 :: SimpleGraph VersionInfo () () ()
+   versionGraph1 :: SimpleGraph VersionInfo () () (),
+
+   -- This is an imports state, or will be when it's initialised.
+   importsState :: Store (ImportsState LinkedObject)
    }
 
 data ObjectData =

@@ -62,6 +62,7 @@ import CopyFile
 import Sources
 import Broadcaster
 import Delayer
+import Store
 
 import VSem
 
@@ -105,6 +106,7 @@ newView repository =
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
+      importsState <- newStore
 
       return (View {
          viewId = ViewId viewIdObj,
@@ -116,7 +118,8 @@ newView repository =
          delayer = delayer,
          committingVersion = committingVersion,
          versionGraph1 = error 
-            "Attempt to read version graph during initialisation"
+            "Attempt to read version graph during initialisation",
+         importsState = importsState
          })
 
 listViews :: Repository -> IO [Version]
@@ -155,6 +158,7 @@ getView repository versionGraph objectVersion =
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
+      importsState <- newStore
       let
          view = View {
             viewId = viewId,
@@ -165,7 +169,8 @@ getView repository versionGraph objectVersion =
             commitLock = commitLock,
             delayer = delayer,
             committingVersion = committingVersion,
-            versionGraph1 = versionGraph
+            versionGraph1 = versionGraph,
+            importsState = importsState
             }
 
       importDisplayTypes displayTypesData view

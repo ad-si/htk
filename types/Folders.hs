@@ -5,7 +5,8 @@ module Folders(
       -- to be done at initialisation
    Folder,
    FolderType,
-   getTopFolder, 
+   getTopFolder,
+   getImportsState,
    getInFolder,
    mkFolderInsertion,
    lookupFileName,
@@ -39,6 +40,7 @@ import UniqueString
 import AtomString(fromString,toString)
 import Delayer(toDelayer,delay)
 import ExtendedPrelude
+import Store
 
 import BSem
 
@@ -49,7 +51,9 @@ import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
 
-import ViewType(getViewTitleSource)
+import Imports
+
+import ViewType(getViewTitleSource,importsState)
 import View
 import CodedValue
 import Link
@@ -505,6 +509,22 @@ getTopFolder view =
                })               
          )
       makeLink view versioned
+
+-- ------------------------------------------------------------------
+-- Getting the FolderStructure for a view.
+-- ------------------------------------------------------------------
+
+getImportsState :: View -> IO (ImportsState LinkedObject)
+getImportsState view =
+   takeStore
+      (do
+         folderLink <- getTopFolder view
+         folder <- readLink view folderLink
+         let
+            folderStructure = toFolderStructure (linkedObject folder)
+         newImportsState folderStructure (\ mess -> createErrorWin mess [])
+         )
+      (importsState view)
 
 -- ------------------------------------------------------------------
 -- Indexing in a folder

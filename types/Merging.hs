@@ -22,6 +22,7 @@ import Delayer
 import DeepSeq
 import Thread
 import Debug(debug)
+import Store
 
 import Destructible
 
@@ -126,6 +127,8 @@ mergeViews (views @ (firstView:_)) =
 
             committingVersion <- newMVar Nothing
 
+            importsState <- newStore
+
             let
                newView = View {
                   viewId = viewId1,
@@ -136,7 +139,8 @@ mergeViews (views @ (firstView:_)) =
                   commitLock = commitLock1,
                   delayer = delayer1,
                   committingVersion = committingVersion,
-                  versionGraph1 = versionGraph1a
+                  versionGraph1 = versionGraph1a,
+                  importsState = importsState
                   }
 
 

@@ -10,13 +10,19 @@ module Imports(
 
    LookupResult(..),
 
+
+   lookupNodes,
+      -- :: Ord node => ImportsState node -> node 
+      -- -> [(EntitySearchName,value)] 
+      -- -> IO (SimpleSource [(LookupResult node,value)])
+
    lookupNode,
       -- :: ImportsState node -> node -> EntitySearchName 
       -- -> IO (SimpleSource (LookupResult node))
 
 
-   getGlobalNodeData,GlobalNodeData(..), -- DEBUG
-   getLocalNodeData,LocalNodeData(..), -- DEBUG
+--   getGlobalNodeData,GlobalNodeData(..), -- DEBUG
+--   getLocalNodeData,LocalNodeData(..), -- DEBUG
    ) where
 
 import Maybe
@@ -87,7 +93,83 @@ newImportsState folders reportError =
          localState = localState,
          reportError = reportError
          })         
-               
+
+lookupNodes :: Ord node => ImportsState node -> node 
+   -> [(EntitySearchName,value)] 
+   -> IO (SimpleSource [(LookupResult node,value)])
+lookupNodes importsState (node :: node) 
+      (searchData :: [(EntitySearchName,value)]) =
+   do
+      sourceOpt <- getLocalNodeData importsState node
+      let
+         folderStructure = folders importsState
+
+         globalError = staticSimpleSource (
+            map
+               (\ (searchName,value) -> (Error,value))
+               searchData
+            )
+
+      case sourceOpt of
+         Nothing -> 
+            do
+               name <- getName (folders importsState) node
+               reportError importsState
+                  (toString name ++ " is not an MMiSS package")
+               return globalError
+         Just (source :: SimpleSource (WithError (LocalNodeData node))) ->
+            return (mapIOSeq
+               source
+               (\ localNodeDataWE -> case fromWithError localNodeDataWE of
+                  Left mess -> 
+                     do
+                        if mess /= reported
+                           then
+                              reportError importsState mess
+                           else
+                              done
+                        return globalError
+                  Right localNodeData ->
+                     do
+                        let
+                           localEnv0 = localEnv localNodeData
+                        (lookupSources0 
+                           :: [SimpleSource (LookupResult node,value)])
+                           <- mapM
+                              (\ (searchName,value) -> 
+                                 do
+                                    (source1 
+                                       :: SimpleSource (Maybe (Env node))) 
+                                       <- lookupEnv folderStructure
+                                          localEnv0 (mkNames searchName)
+                                    let
+                                       source2 
+                                          :: SimpleSource (LookupResult node,
+                                             value)
+                                       source2 =
+                                          mapIO
+                                             (\ envOpt ->
+                                                do
+                                                   lookupResult <- 
+                                                      mkLookupResult 
+                                                         importsState node
+                                                         searchName envOpt
+                                                   return (lookupResult,value)
+                                                )
+                                             source1
+                                    
+                                    return source2
+                                 )
+                              searchData
+                        let
+                           lookupSources1 
+                              :: SimpleSource [(LookupResult node,value)]
+                           lookupSources1 = sequenceSimpleSource
+                              lookupSources0
+
+                        return lookupSources1
+                  )
+               )             
 
 lookupNode :: Ord node => ImportsState node -> node -> EntitySearchName 
    -> IO (SimpleSource (LookupResult node))
@@ -120,28 +202,30 @@ lookupNode importsState (node :: node) searchName =
                                  (localEnv localNodeData) names)
 
                            source2 = mapIO
-                              (\ envOpt -> case envOpt of
-                                 Just env -> 
-                                    case thisOpt env of
-                                       Just node -> return (Found node)
-                                       Nothing ->
-                                          do
-                                             name <- getName 
-                                                (folders importsState) node
-                                             reportError importsState
-                                                (toString name
-                                                   ++ ": Name " 
-                                                   ++ toString searchName
-                                                   ++ " is incomplete"
-                                                   )
-                                             return Error
-                                 Nothing -> return NotFound
+                              (\ envOpt -> mkLookupResult importsState
+                                    node searchName envOpt
                                  )
                               source1
                         in
                            source2
                )
             
+mkLookupResult :: Ord node => ImportsState node -> node -> EntitySearchName 
+   -> Maybe (Env node) -> IO (LookupResult node)
+mkLookupResult importsState (parentNode :: node) searchName envOpt =
+   case envOpt of
+      Nothing -> return NotFound
+      Just env ->
+         case thisOpt env of
+            Just node -> return (Found node)
+            Nothing ->
+               do
+                  name <- getName (folders importsState) parentNode
+                  reportError importsState
+                     (toString name ++ ": Name " 
+                        ++ toString searchName ++ " is incomplete"
+                        )
+                  return Error
 
 -- ------------------------------------------------------------------------
 -- Constructing the Global Data.
@@ -526,7 +610,7 @@ reportErrors importsState simpleSource =
           )
       simpleSource
 
-mkError :: ImportsState node -> node -> String 
+mkError :: Ord node => ImportsState node -> node -> String 
    -> IO (SimpleSource (WithError a))
 mkError importsState node mess =
    do

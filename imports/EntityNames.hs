@@ -111,11 +111,11 @@ data EntityName' = Name EntityName | Current | Root | Parent
 -- translated into list members of the corresponding EntityFullName-value.
 
 
-newtype ImportCommands = ImportCommands [ImportCommand]
+newtype ImportCommands = ImportCommands [ImportCommand] deriving (Eq)
 
 data ImportCommand = 
       Import [Directive] EntitySearchName
-   |  PathAlias EntityName EntitySearchName
+   |  PathAlias EntityName EntitySearchName deriving (Eq,Ord)
 
 data Directive = 
       Qualified
@@ -128,6 +128,7 @@ data Directive =
                newName :: EntityName,
                oldName :: EntityFullName
              }
+   deriving (Eq,Ord)
 
 -- ----------------------------------------------------------------------
 -- Instances of HasBinary

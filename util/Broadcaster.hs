@@ -15,6 +15,8 @@ module Broadcaster(
       -- sends an update to a broadcaster.
 
    applySimpleUpdate, -- :: SimpleBroadcaster x -> (x -> x) -> IO ()
+   applySimpleUpdate', -- :: SimpleBroadcaster x -> (x -> (x,y)) -> IO y
+
 
    applyUpdate, -- :: Broadcaster x d -> (x -> (x,[d])) -> IO ()
 
@@ -59,8 +61,13 @@ data Broadcaster x d = Broadcaster {
 
 data SimpleBroadcaster x = SimpleBroadcaster {
    simpleSource :: SimpleSource x,
-   updateAct2 :: (x -> x) -> IO ()
+   updateAct3 :: (forall y . (x -> (x,y)) -> IO y)
    }
+
+-- | old field name, preserved here for compatibility.
+updateAct2 :: SimpleBroadcaster x -> (x -> x) -> IO ()
+updateAct2 broadcaster fn =
+   updateAct3 broadcaster (\ x -> (fn x,()))
 
 -- -----------------------------------------------------------------
 -- Creation
@@ -73,18 +80,20 @@ newBroadcaster x =
       return (Broadcaster {source = source,updateAct = updateAct})
 
 newSimpleBroadcaster :: x -> IO (SimpleBroadcaster x)
-newSimpleBroadcaster x =
+newSimpleBroadcaster (x :: x) =
    do
-      (source,updateAct') <- variableSource x
+      (source,updater :: Updater x x) <- variableGeneralSource x
       let
-         apply updateFn oldX =
-           let
-              newX = updateFn oldX
-           in
-              (newX,[newX])
-
+         updateAct3 :: (x -> (x,y)) -> IO y
+         updateAct3 fn = applyToUpdater updater
+            (\ x0 ->
+               let
+                  (x1,y) = fn x0
+               in
+                  (x1,[x1],y)
+               )
       return (SimpleBroadcaster {simpleSource = SimpleSource source,
-         updateAct2 = updateAct' . apply})
+         updateAct3 = updateAct3})
 
 newGeneralBroadcaster :: x -> IO (GeneralBroadcaster x d)
 newGeneralBroadcaster x =
@@ -104,12 +113,16 @@ instance BroadcasterClass (Broadcaster x d) (x,[d]) where
       updateAct (\ _ -> (x,ds))
 
 instance BroadcasterClass (SimpleBroadcaster x) x where
-   broadcast (SimpleBroadcaster {updateAct2 = updateAct2}) x = 
-      updateAct2 (\ _ -> x)
+   broadcast broadcaster x = 
+      updateAct2 broadcaster (\ _ -> x)
 
 applySimpleUpdate :: SimpleBroadcaster x -> (x -> x) -> IO ()
 applySimpleUpdate simpleBroadcaster updateFn =
    updateAct2 simpleBroadcaster updateFn
+
+applySimpleUpdate' :: SimpleBroadcaster x -> (x -> (x,y)) -> IO y
+applySimpleUpdate' simpleBroadcaster updateFn =
+   updateAct3 simpleBroadcaster updateFn
 
 applyUpdate :: Broadcaster x d -> (x -> (x,[d])) -> IO ()
 applyUpdate (Broadcaster {updateAct = updateAct}) updateFn =

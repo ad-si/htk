@@ -27,7 +27,7 @@ data FolderStructure node = FolderStructure {
    getContentsSource :: node -> IO (SimpleSource (FiniteMap EntityName node)),
    getImportCommands :: node -> IO (Maybe (SimpleSource ImportCommands)),
       -- when Nothing means that this node is of inappropriate type for import.
-   parent :: node -> IO (SimpleSource (Maybe (node,EntityName)))
+   getParent :: node -> IO (SimpleSource (Maybe (node,EntityName)))
       -- returns Nothing for the parent, but also if for some reason the
       -- node has been detached.
    } 
@@ -53,7 +53,7 @@ lookupSearchName folderStructure (node :: node) entitySearchName =
          lookupFullName folderStructure (root folderStructure) fullName
       lookupSearchName1 node0 (FromParent searchName1) =
          do
-            parentSource <- parent folderStructure node0
+            parentSource <- getParent folderStructure node0
             return (mapIOSeq
                parentSource
                (\ parentOpt -> case parentOpt of
@@ -81,9 +81,10 @@ lookupFullName  folderStructure (node :: node) (EntityFullName names) =
                    )
                 )
 
-getName :: FolderStructure node -> node -> IO EntityFullName
--- mostly used for error messagse
-getName (FolderStructure {parent = parent1}) (node :: node) =
+getName :: Ord node => FolderStructure node -> node -> IO EntityFullName
+-- only used for error messages.  For detached nodes we generate
+-- an (illegal) name of the form #DETACHED.[blah]
+getName (FolderStructure {getParent = getParent1,root = root1}) (node :: node) =
    do
       names <- getName1 [] node
       return (EntityFullName (reverse names))
@@ -91,8 +92,15 @@ getName (FolderStructure {parent = parent1}) (node :: node) =
       getName1 :: [EntityName] -> node -> IO [EntityName]
       getName1 names1 node0 =
          do
-            parentSource <- parent1 node0
+            parentSource <- getParent1 node0
             parentOpt <- readContents parentSource
             case parentOpt of
-               Nothing -> return names1
+               Nothing -> 
+                  return (
+                     if node0 == root1
+                        then
+                           names1
+                        else
+                           EntityName "#DETACHED" : names1
+                     )
                Just (node1,name) -> getName1 (name : names1) node1
