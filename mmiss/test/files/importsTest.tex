@@ -1,9 +1,11 @@
 \documentclass[lncs]{mmiss}
 \Path{WADT02}{Parent.WADT02}
-\Path{AlgS02}{Parent.AlgSpec}
+\Path{AlgSpec}{Parent.AlgSpec}
 \Import[Qualified]{WADT02}
-\Import[Qualified]{AlgS02}
+\Import[Global,Rename{AlgSpecAbstract=Abstract},Hide{AlgSpec}]{AlgSpec}
+\Import[]{Parent.ImportsTest2}
 \begin{Package}[Label={ImportsTest}]
 \IncludeSection{WADT02.Abstract}{status=present}  
+% \IncludeSection{AlgSpec.Intro}{status=present}
 \end{Package}
 

@@ -110,11 +110,15 @@ scrollText = scrollText1 (60,6)
 
 -- | Configuration option for dialogs that displays text using a scrollbox
 -- if it is bigger than the given size.
+--
+-- NB.  The argument (39,6) to scrollMarkupText cannot be increased without
+-- increasing the size of the message window, which is hardcoded into this
+-- module.
 scrollText1 :: Size -> String -> (Config (Dialog a),Bool)
 scrollText1 size str =
    if biggerThan size str
       then
-         (new [scrollMarkupText size [prose str]],True)
+         (new [scrollMarkupText (39,6) [prose str]],True)
       else
          (text str,False) 
    where

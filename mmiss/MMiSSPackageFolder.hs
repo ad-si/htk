@@ -344,7 +344,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
    nodeTitleSourcePrim object = 
       fmap toString (
          getLinkedObjectTitle (linkedObject object) 
-            (fromString "Undefined MMiSSPackageFolder")
+            (fromString "UndefinedMMiSSPackageFolder")
          )
 
    getNodeDisplayData view wrappedDisplayType mmissPackageFolderType _ =
