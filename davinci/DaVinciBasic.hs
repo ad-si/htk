@@ -188,6 +188,7 @@ workAroundDaVinciBug1 =
    case daVinciVersion of
       Just "daVinci Presenter Professional 3.0.3" -> True
       Just "daVinci Presenter Professional 3.0.4" -> True
+      Just "daVinci Presenter Professional 3.0.5" -> True
       _ -> False
 
 daVinciSkip :: IO ()
