@@ -89,7 +89,7 @@ evalCmd :: TclCmd -> IO TclResponse
 evalCmd cmd =
    do
       let
-         str = "evS "++ toTkString cmd ++ "\n"
+         str = "evS "++ escape cmd ++ "\n"
          -- We go to some trouble to pack the string first,
          -- as this has the side-effect of meaning it will
          -- be fully evaluated, so we are locked for minimum time. 
@@ -496,6 +496,10 @@ showCallBackId (CallBackId nm) = show nm
 -- -----------------------------------------------------------------------
 -- General abbreviations
 -- -----------------------------------------------------------------------
+
+-- Like toTkString, except it only places quotes if necessary
+escape :: String-> String
+escape = delimitString . escapeString
 
 -- Convenient abbreviation
 showP :: Show a => a -> String -> String

@@ -64,7 +64,7 @@ class (Show a, Read a) => GUIValue a where
         toGUIValue v                     = 
                 GUIVALUE HaskellTk (toTkString (show v))
         maybeGUIValue (GUIVALUE HaskellTk s)     = 
-                case [x | (x,t) <- reads (read (fromTkString s)), ("","") <- lex t] of
+                case [x | (x,t) <- reads (fromTkString s), ("","") <- lex t] of
                         [x] -> Just x
                         _   -> Nothing  
         maybeGUIValue (GUIVALUE Tk s)    = 
@@ -222,13 +222,17 @@ instance GUIValue Double where
 -- Tk String Conversion
 -- --------------------------------------------------------------------------
 
-
+-- Conversion to Tk: escape and quote
 toTkString :: String -> String
-toTkString = delimitString . escapeString
+toTkString = quoteString . escapeString
 
 -- escapeString quotes the special characters inside String.
 escapeString :: String -> String
 escapeString = concat . (map quoteChar)
+
+-- quote places quotes around a String
+quoteString :: String -> String
+quoteString str = '\"':(str++"\"")
 
 -- delimitString places quotes around a String, if it contains
 -- spaces, making it possible to use it as a single argument.
@@ -236,10 +240,9 @@ delimitString :: String -> String
 delimitString "" = "\"\""
 delimitString str =
    if isJust (find isSpace str)
-   then
-      '\"':(str++"\"")
-   else
-      str
+   then quoteString str else str
+
+
 
 -- quoteChar quotes characters special to Tcl, but not %.
 quoteChar :: Char -> String
@@ -276,14 +279,15 @@ fromTkString :: String-> String
 
 fromTkString [] = []
 -- fromTkString ('\"':str)   = fromTkString str
--- fromTkString ('\\':'\\':str)      = '\\' : fromTkString str
--- fromTkString ('\\':'n':str)       = '\n' : fromTkString str
--- fromTkString ('\\':'t':str)       = '\t' : fromTkString str
+fromTkString ('\\':'\\':str) = '\\' : fromTkString str
+fromTkString ('\\':'n':str)  = '\n' : fromTkString str
+fromTkString ('\\':'t':str)  = '\t' : fromTkString str
 fromTkString ('\\':'[':str)  = '[' : fromTkString str
 fromTkString ('\\':']':str)  = ']' : fromTkString str
 fromTkString ('\\':'{':str)  = '{' : fromTkString str
 fromTkString ('\\':'}':str)  = '}' : fromTkString str
 fromTkString ('\\':'$':str)  = '$' : fromTkString str
--- fromTkString ('\\':'\"':str)      = '\"' : fromTkString str
+fromTkString ('\\':';':str)  = ';' : fromTkString str
+fromTkString ('\\':'\"':str) = '\"' : fromTkString str
 fromTkString (x:str)         = x : fromTkString str
 
