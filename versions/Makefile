@@ -1,5 +1,5 @@
 LIB        = libversions.a
 
-SRCS       = VersionDB.hs
+SRCS       = VersionDB.hs UniTypes.hs
 
 include top/mk/boilerplate.mk

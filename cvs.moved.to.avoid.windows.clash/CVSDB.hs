@@ -75,7 +75,7 @@ module CVSDB(
    -- watch returns an event which occurs whenever a commit occurs to the
    -- object with the given location.
 
-   initialLocation :: Location
+   initialLocation -- :: Location
    -- location we always start with.
   
    ) where
@@ -104,6 +104,7 @@ import RegularExpression
 
 import FileNames
 import CVSHigh
+import LineShow
 
 data Repository = Repository {
    cvsLoc :: CVSLoc, -- CVSHigh location of repository.
@@ -417,13 +418,13 @@ retrieveGeneral (repository@Repository{cvsLoc=cvsLoc}) cvsFile version
 -- Attributes
 ----------------------------------------------------------------
 
-newtype Attributes = Attributes [(String,String)]
+newtype Attributes = Attributes(LineShow (String,String))
 
 emptyAttributes :: Attributes
-emptyAttributes = Attributes []
+emptyAttributes = Attributes(LineShow [])
 
 getAttribute :: Read a => Attributes -> String -> Maybe a
-getAttribute (Attributes list) key =
+getAttribute (Attributes(LineShow list)) key =
       searchAttribute list
    where
       searchAttribute [] = Nothing
@@ -432,46 +433,35 @@ getAttribute (Attributes list) key =
          | True = searchAttribute tail
 
 setAttribute :: Show a => Attributes -> String -> Maybe a -> Attributes
-setAttribute (attributes@(Attributes list)) key valopt =
+setAttribute (attributes@(Attributes(LineShow list))) key valopt =
    case (split [] list,valopt) of
       (Nothing,Nothing) -> attributes
-      (Just (before,after),Nothing) -> Attributes(before++after)
-      (Nothing,Just val) -> Attributes((key,show val):list)
+      (Just (before,after),Nothing) -> al(before++after)
+      (Nothing,Just val) -> al((key,show val):list)
       (Just (before,after),Just val) -> 
-         Attributes((key,show val):(before++after))
+         al((key,show val):(before++after))
    where
       split acc [] = Nothing
       split acc ((kv@(key',val')):rest)
          | (key' == key) = Just(acc,rest)
-         | True = split (kv:acc) rest   
+         | True = split (kv:acc) rest
+      al = Attributes . LineShow
                  
 getAttributeKeys :: Attributes -> [String]
-getAttributeKeys (Attributes list) =
+getAttributeKeys (Attributes(LineShow list)) =
    map (\ (key,_) -> key) list
 
--- Read and Show must output a newline between each item.
--- This is so that cvs diff files for attribute files don't
--- get too massive.  At the end we add a character "E".
 instance Show Attributes where
-   showsPrec prec (Attributes list) acc =
-      let
-         acc' = '1':acc
-         showAtts [] acc = acc
-         showAtts (h:t) acc = showAtts t (showsPrec prec h ('\n':acc))
-      in
-         showAtts list []
+   showsPrec prec (Attributes list) acc = showsPrec prec list acc
  
 instance Read Attributes where
    readsPrec prec toRead =   
       let
-         readAtts :: [(String,String)] -> String -> [(Attributes,String)]
-         readAtts acc toRead =
-            case readsPrec prec toRead of
-               [(next,'\n':remainder)] -> readAtts (next:acc) remainder
-               [] -> case toRead of
-                  '1':remainder -> [(Attributes acc,remainder)]
+         result :: [(LineShow (String,String),String)] = readsPrec prec toRead
       in
-         readAtts [] toRead
+         map
+           (\ (res,rest) -> (Attributes res,rest))
+           result
 
 ----------------------------------------------------------------
 -- ensureDirectories
