@@ -1,6 +1,8 @@
 uni/htk/examples
 
-This directory contains a few very short examples, 
+This directory contains a few very short examples, aimed to introduce
+a newcomer to HTk and/or Tk to the concept of programming graphical
+user interfaces in Haskell using HTk.
 
 Hello{1,2,3}.hs should give you a very first impression of HTk, and in
 particular of the way interactors are used to handle user events. They
@@ -20,7 +22,6 @@ executable named wish which is (the Tcl/Tk shell) wish (or a link
 to it). The standard configuration script sets a link in uni/bin to
 this effect; the scrip SET_WB_ROOT sets the environment variable
 accordingly.
-
 
 These programs were first conceived for a course at Uni Bremen introducing
 (amongst others) HTk-- if you read German, you can look at the corresponding

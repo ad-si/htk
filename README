@@ -11,6 +11,7 @@ following directories:
    concurrency  |  Concurrency functions
    reactor      |  The Reactor, for gluings processes together
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
+                   See htk/examples for a couple of short introductory examples.
    davinci      |  This is an encapsulation of DaVinci in Haskell
    www          |  Functions for manipulating HTML in Haskell
 
@@ -21,6 +22,10 @@ However the repository manager is currently in a very unsatisfactory
 state and needs a great deal more work before this can be done.  However
 we hope this fragment will be of interest to show what the guts of a
 real Haskell program look like.
+
+(The rest of this README is specific to the local Bremen
+ installation in places -- adopt to your specific site needs as 
+ appropriate.)
 
 Requirements
 ------------
