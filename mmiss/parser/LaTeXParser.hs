@@ -854,41 +854,47 @@ findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatex
 
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
-findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs _ = 
-  let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
-      latexPre = makePreamble (filterGeneratedPreambleParts newPreambleFs)
-      importCmds = makeImportCmds newPreambleFs []
-      xmlAtts = map convertAttrib atts1
-      content = makeContent fs NoText "package"
-  in case (fromWithError content) of
-       Right c -> pairWithError elem mmissPreamble 
-                  where 
-                  elem = hasValue(Elem "package" xmlAtts c)
-                  mmissPreamble = 
-                      case fromWithError latexPre of
-                        Left str -> hasError(str)
-                        Right(lp) -> case lp of 
-                                       Just(p) -> wE_MMiSSLatexPreamble p
-                                       Nothing -> hasError("MMiSSLatexPreamble is empty!")
-                  wE_MMiSSLatexPreamble p = 
-                      case fromWithError(importCmds) of
-                        Right(impCmds) -> hasValue (Just(MMiSSLatexPreamble {
+findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs beforeDocument = 
+  if beforeDocument 
+    then
+      let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
+          xmlAtts = map convertAttrib atts1
+          content = makeContent fs NoText "package"
+      in case (fromWithError content) of
+            Right c -> hasValue((Elem "package" xmlAtts c), Nothing)
+            Left err -> hasError(err)
+    else
+      let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
+          latexPre = makePreamble (filterGeneratedPreambleParts newPreambleFs)
+          importCmds = makeImportCmds newPreambleFs []
+          xmlAtts = map convertAttrib atts1
+          content = makeContent fs NoText "package"
+      in case (fromWithError content) of
+            Right c -> pairWithError elem mmissPreamble 
+                       where 
+                         elem = hasValue(Elem "package" xmlAtts c)
+                         mmissPreamble = 
+                           case fromWithError latexPre of
+                             Left str -> hasError(str)
+                             Right(lp) -> case lp of 
+                                            Just(p) -> wE_MMiSSLatexPreamble p
+                                            Nothing -> hasError("MMiSSLatexPreamble is empty!")
+                         wE_MMiSSLatexPreamble p = 
+                           case fromWithError(importCmds) of
+                             Right(impCmds) -> hasValue (Just(MMiSSLatexPreamble {
                                                              latexPreamble = p,
                                                              importCommands = impCmds
-                                                           }))
-                        Left str -> hasError(str)
-
-       Left err -> let preEl = fromWithError(pairWithError latexPre importCmds)
-                       mmissPreamble = case preEl of 
-                                          Right _ -> hasValue(Nothing)
-                                          Left str -> hasError(str)
-                   in pairWithError (hasError(err)) mmissPreamble
-
+                                                         }))
+                             Left str -> hasError(str)
+            Left err -> let preEl = fromWithError(pairWithError latexPre importCmds)
+                            mmissPreamble = case preEl of 
+                                              Right _ -> hasValue(Nothing)
+                                              Left str -> hasError(str)
+                        in pairWithError (hasError(err)) mmissPreamble
 
 findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
     let content = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
-        preambleDummy = Nothing
     in case (fromWithError content) of
          (Left str) -> hasError(str)
          (Right cs) -> 
@@ -896,7 +902,7 @@ findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument =
               then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
               else let ce = head cs
                    in case ce of 
-			(CElem e) -> hasValue(e, preambleDummy)
+			(CElem e) -> hasValue(e, Nothing)
 			_ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
     else if (name `elem` (map fst mmiss2EnvIds)) 
            -- Env must be a link or Reference-Element: ignore it
