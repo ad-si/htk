@@ -7,19 +7,24 @@ include @TOP@/mk/boilerplate.mk
 
 .PHONY : runServer runWorkbench killServer killWorkbench
 
+WORKINGDIR = $${UNIWORKINGDIR:-/tmp/@}
+DBDIR = $(WORKINGDIR)/simpledb
+STOREDIR = $(WORKINGDIR)/storeDir
+BACKUPDIR = $(WORKINGDIR)/backup
+
 runServer :
-	@MKDIR@ -p /var/tmp/simpledb
-	@BDBDIR@/bin/berkeley_db_svc -h /var/tmp/simpledb &
-	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ../../types/test/Server --uni-debug=s.debug &
+	@MKDIR@ -p $(DBDIR)
+	@MKDIR@ -p $(BACKUPDIR)
+	@BDBDIR@/bin/berkeley_db_svc -h $(DBDIR) &
+	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ../../types/test/Server --uni-debug=s.debug --uni-backupDir=$(BACKUPDIR) --uni-storeDir=$(STOREDIR) &
 
 killServer :
 	(pkill "^berkeley_db_svc$$" || echo not running)
 	(pkill "^Server$$" || echo not running)
-	rm -rf VersionGraph.backup storeDir /var/tmp/simpledb
+	rm -rf $(WORKINGDIR)
 
 runWorkbench :
 	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ./MMiSSWorkbench --uni-debug=w.debug
 
 killWorkbench :
 	(pkill "^MMiSSWorkbench$$" || echo not running)
-	rm -rf $${UNIWORKINGDIR:-/tmp/#}

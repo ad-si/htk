@@ -1,0 +1,5 @@
+#!/usr/local/bin/bash
+# Intended as a replacement for wish when we are debugging.
+LOG=@TOP@/posixutil/log
+(echo $*;set) > wish.env 
+$LOG wish.in | @WISH@ $* | $LOG wish.out

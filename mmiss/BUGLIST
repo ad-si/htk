@@ -4,6 +4,13 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+23) 06.09.02
+Alter mmiss/test/runWorkbench and Makefile.in so that all the users temporary 
+files go in the current directory or in /tmp/uni.temp.[USERNAME], thus making
+it less likely that different people using the same machine will get into
+trouble because their files get in each other way.
+FIXED
+
 22) 04.09.02
 Incorporate mmiss/parser into the source-file hierarchy, and add an
 interface specification for it.

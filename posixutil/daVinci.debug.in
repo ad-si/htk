@@ -1,0 +1,5 @@
+#!/usr/local/bin/bash
+# Intended as a replacement for daVinci when we are debugging.
+LOG=@TOP@/posixutil/log
+(echo $*;set) > daVinci.env 
+$LOG daVinci.in | @DAVINCI@ $* | $LOG daVinci.out

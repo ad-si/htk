@@ -171,8 +171,8 @@ if test "$GOAHEAD" = YES; then
 
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench $MAKEFILES)
-   chmod +x types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench $MAKEFILES posixutil/daVinci.debug posixutil/wish.debug)
+   chmod +x types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench posixutil/daVinci.debug posixutil/wish.debug
 
    echo Setting up packages and export packages file as empty
    # The echo prints []; the funny things bracketted by @ signs are
