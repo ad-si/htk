@@ -1,5 +1,6 @@
 {- Here we fit DaVinci into the GraphDisp framework. -}
 module DaVinciGraphDisp(
+   daVinciSort,
    DaVinciGraph,
    DaVinciGraphParms,
    DaVinciNode,
@@ -9,6 +10,8 @@ module DaVinciGraphDisp(
    DaVinciArcType,
    DaVinciArcTypeParms
    ) where
+
+import IO
 
 import FiniteMap
 
@@ -30,6 +33,14 @@ import GraphDisp
 
 
 -- We follow the order of the GraphDisp file.
+
+------------------------------------------------------------------------
+-- How you refer to everything
+------------------------------------------------------------------------
+
+daVinciSort :: (DaVinciGraph,DaVinciGraphParms,
+   DaVinciNode a,DaVinciNodeType b,DaVinciNodeTypeParms c,
+   DaVinciArc p d e,DaVinciArcType q,DaVinciArcTypeParms r) = displaySort
 
 ------------------------------------------------------------------------
 -- Graphs
@@ -56,11 +67,11 @@ instance GraphParms DaVinciGraphParms where
 -- Nodes
 ------------------------------------------------------------------------
 
-newtype DaVinciNode = DaVinciNode DaVinci.Node
+newtype DaVinciNode value = DaVinciNode DaVinci.Node
 
-newtype DaVinciNodeType = DaVinciNodeType DaVinci.NodeType
+newtype DaVinciNodeType value = DaVinciNodeType DaVinci.NodeType
 
-data DaVinciNodeTypeParms = 
+data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
       nodeTitle :: Maybe String, -- title of the node 
       nodeMenuConfig :: Maybe (IO (Config DaVinci.NodeType))
@@ -69,17 +80,17 @@ data DaVinciNodeTypeParms =
       }
 
 instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
-   newNodePrim (DaVinciNodeType nodeType) (DaVinciGraph graph)
-         dyn =
+   newNode (DaVinciNodeType nodeType) (DaVinciGraph graph)
+         value =
       do
          node <- DaVinci.newNode graph Nothing [DaVinci.nodetype nodeType] 
-         nodeSet node dyn
+         nodeSet node value
          return (DaVinciNode node)
-   readNodePrim (DaVinciGraph graph) (DaVinciNode node) =
+   readNode (DaVinciGraph graph) (DaVinciNode node) =
       do
-         dyn <- nodeLookup node
+         value <- nodeLookup node
          nodeType <- DaVinci.getNodeType node
-         return (DaVinciNodeType nodeType,dyn)
+         return (DaVinciNodeType nodeType,value)
 
 instance DeleteNode DaVinciGraph DaVinciNode where
    deleteNode _ (DaVinciNode node) = 
@@ -117,11 +128,11 @@ instance NodeTypeParms DaVinciNodeTypeParms where
 -- Arcs
 ------------------------------------------------------------------------
 
-newtype DaVinciArc = DaVinciArc DaVinci.Edge
+newtype DaVinciArc value nodeFromValue nodeToValue = DaVinciArc DaVinci.Edge
 
-newtype DaVinciArcType = DaVinciArcType DaVinci.EdgeType
+newtype DaVinciArcType value = DaVinciArcType DaVinci.EdgeType
 
-data DaVinciArcTypeParms = 
+data DaVinciArcTypeParms value = 
    DaVinciArcTypeParms {
       arcTitle :: Maybe String, -- title of the node 
       arcMenuConfig :: Maybe (IO (Config DaVinci.EdgeType))
@@ -132,21 +143,21 @@ data DaVinciArcTypeParms =
 
 instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
       where
-   newArcPrim (DaVinciArcType edgeType) (DaVinciGraph graph)
-         (DaVinciNode nodeFrom) (DaVinciNode nodeTo) dyn =
+   newArc (DaVinciArcType edgeType) (DaVinciGraph graph)
+         value (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
       do
          edge <- DaVinci.newEdge Nothing nodeFrom nodeTo 
             [DaVinci.edgetype edgeType]
-         edgeSet edge dyn
+         edgeSet edge value
          return (DaVinciArc edge)
-   readArcPrim (DaVinciGraph graph) (DaVinciArc edge) =
+   readArc (DaVinciGraph graph) (DaVinciArc edge) =
       do
-         dyn <- edgeLookup edge
+         value <- edgeLookup edge
          edgeType <- DaVinci.getEdgeType edge
          nodeFrom <- DaVinci.getSource edge
          nodeTo <- DaVinci.getTarget edge
          return (DaVinciArcType edgeType,
-            DaVinciNode nodeFrom,DaVinciNode nodeTo,dyn)
+            value,DaVinciNode nodeFrom,DaVinciNode nodeTo)
 
 instance DeleteArc DaVinciGraph DaVinciArc where
    deleteArc _ (DaVinciArc edge) =
@@ -211,40 +222,41 @@ instance ArcTypeConfigParms MenuButton DaVinciArcTypeParms where
          }
 
 
-convertMenuButton :: MenuButton -> (object -> IO Dyn) -> 
-      IO (DaVinci.AppMenu object)
+convertMenuButton :: Typeable value 
+   => MenuButton value -> (object -> IO value) 
+   -> IO (DaVinci.AppMenu object)
    -- object is either DaVinci.Node or DaVinci.Edge and the function
    -- will be nodeLookup or edgeLookup.
-convertMenuButton (Button label dynSink) objectToDyn =
+convertMenuButton (Button label valueSink) objectToValue =
 -- We special-case just one button by making it a menu with no
 -- name and just one button.  This is because NodeType and EdgeType
 -- are instances of HasMenu but nothing else useful that I can see.
    do
       menu <- makeMenu Nothing Nothing
-      attachButton menu objectToDyn label dynSink
+      attachButton menu objectToValue label valueSink
       return menu
-convertMenuButton (Menu textOpt menuButtons) objectToDyn =
+convertMenuButton (Menu textOpt menuButtons) objectToValue =
    do
       menu <- makeMenu textOpt Nothing
-      attachMenuButtons menu objectToDyn menuButtons
+      attachMenuButtons menu objectToValue menuButtons
       return menu
 
 attachButton :: 
       (PulldownMenu.Menu (DaVinci.Graph -> object -> IO ())) -> 
-      (object -> IO Dyn) -> String -> (Dyn -> IO ()) -> IO ()
--- attachButton menu objectToDyn label dynSink
+      (object -> IO value) -> String -> (value -> IO ()) -> IO ()
+-- attachButton menu objectToValue label valueSink
 -- attaches a new button to the menu to be attached to the
 -- think of type "object".  The button is to have label "label".
 -- When the button is clicked on the object, we get the corresponding
--- dyn value using objectToDyn and then execute the action obtained from
--- dynSink.
-attachButton menu objectToDyn label dynSink =
+-- value using objectToValue and then execute the action obtained from
+-- valueSink.
+attachButton menu objectToValue label valueSink =
    do
       let
          objectSink object =
             do
-               dyn <- objectToDyn object
-               dynSink dyn
+               value <- objectToValue object
+               valueSink value
       Button.newButton [
          HTk.text label,
          makeCommand objectSink,
@@ -254,21 +266,22 @@ attachButton menu objectToDyn label dynSink =
 
 attachMenuButtons :: 
       (PulldownMenu.Menu (DaVinci.Graph -> object -> IO ())) -> 
-      (object -> IO Dyn) -> [MenuButton] -> IO ()
--- attachMenuButtons menu objectToDyn menuButtons
+      (object -> IO value) -> [MenuButton value] -> IO ()
+-- attachMenuButtons menu objectToValue menuButtons
 -- converts a list of MenuButton objects to the enclosing menu, passing the
--- objectToDyn function to the attachButton function when it converts a
+-- objectToValue function to the attachButton function when it converts a
 -- button.
-attachMenuButtons menu objectToDyn [] = done
-attachMenuButtons menu objectToDyn (menuButton : rest) =
+attachMenuButtons menu objectToValue [] = done
+attachMenuButtons menu objectToValue (menuButton : rest) =
    do
       case menuButton of
-         Button label dynSink -> attachButton menu objectToDyn label dynSink
+         Button label valueSink -> 
+            attachButton menu objectToValue label valueSink
          Menu textOpt menuButtons ->
             do
                innerMenu <- makeMenu textOpt (Just menu)
-               attachMenuButtons innerMenu objectToDyn menuButtons
-      attachMenuButtons menu objectToDyn rest
+               attachMenuButtons innerMenu objectToValue menuButtons
+      attachMenuButtons menu objectToValue rest
 
 makeCommand :: (object -> IO ()) -> 
       Config (DaVinci.Button (DaVinci.Graph -> object -> IO ()))
@@ -316,16 +329,42 @@ makeMenu (Just title) Nothing =
 -- variables. 
 -----------------------------------------------------------------------
 
-nodeSet :: DaVinci.Node -> Dyn -> IO ()
-nodeLookup :: DaVinci.Node -> IO Dyn
+nodeSet :: Typeable value => DaVinci.Node -> value -> IO ()
+nodeSet node value = nodeSetPrim node (toDyn value)
+
+nodeLookup :: Typeable value => DaVinci.Node -> IO value
+nodeLookup node =
+   do
+      dyn <- nodeLookupPrim node
+      case fromDyn dyn of
+         Just value -> return value
+         Nothing -> ioError (userError (
+            "DaVinciGraphDisp.nodeLookup type error!"
+            ))
+
+nodeSetPrim :: DaVinci.Node -> Dyn -> IO ()
+nodeLookupPrim :: DaVinci.Node -> IO Dyn
 nodeDelete :: DaVinci.Node -> IO ()
-(nodeSet,nodeLookup,nodeDelete) =
+(nodeSetPrim,nodeLookupPrim,nodeDelete) =
    IOExts.unsafePerformIO makeDynamicMap
 
-edgeSet :: DaVinci.Edge -> Dyn -> IO ()
-edgeLookup :: DaVinci.Edge -> IO Dyn
+edgeSet :: Typeable value => DaVinci.Edge -> value -> IO ()
+edgeSet edge value = edgeSetPrim edge (toDyn value)
+
+edgeLookup :: Typeable value => DaVinci.Edge -> IO value
+edgeLookup edge =
+   do
+      dyn <- edgeLookupPrim edge
+      case fromDyn dyn of
+         Just value -> return value
+         Nothing -> ioError (userError (
+            "DaVinciGraphDisp.edgeLookup type error!"
+            ))
+
+edgeSetPrim :: DaVinci.Edge -> Dyn -> IO ()
+edgeLookupPrim :: DaVinci.Edge -> IO Dyn
 edgeDelete :: DaVinci.Edge -> IO ()
-(edgeSet,edgeLookup,edgeDelete) =
+(edgeSetPrim,edgeLookupPrim,edgeDelete) =
    IOExts.unsafePerformIO makeDynamicMap
 
 makeDynamicMap :: Ord key =>

@@ -1,7 +1,7 @@
 LIB        = libgraphs.a
 SRCS       = Graph.hs SharedGraph.hs SharedGraphService.hs \
    SharedGraphClient.hs GraphDisp.hs DaVinciGraphDisp.hs
-SUBDIRS    = 
+SUBDIRS    = test
 
 XHCDIRS = $(HTKDIRS)
 

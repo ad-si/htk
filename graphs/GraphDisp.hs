@@ -19,6 +19,10 @@
       graphParms.  This is a collection of graphConfig's used to
          construct a graph.
 
+   Nodes and arcs carry values.  Thus all the following carry
+   a type parameter.  But, for ease of implementation with, for example,
+   DaVinci, the type parameter is required to be an instance of Typeable.
+
       node.  A value of this type is an actual node in a graph. 
       nodeType.  Nodes are created with a particular UniForM "type" which
          is a Haskell value of type nodetype.  In fact a graph might
@@ -51,7 +55,7 @@
    nodes to have labels provided in the form of Dynamic values.
    -}
 module GraphDisp(
-   GraphAll,
+   GraphAll(displaySort),
    Graph(..),
    NewGraph(..),
    GraphConfig,
@@ -107,14 +111,18 @@ class (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
    Node node,NodeType nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,DeleteArc graph arc,
-   Arc arc,ArcType arc,
+   Arc arc,ArcType arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
    GraphAll graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms where
 
-   displaySort :: (graph,graphParms,node,nodeType,nodeTypeParms,
-      arc,arcType,arcTypeParms)
+   displaySort :: 
+          (Typeable a,Typeable b,Typeable c,Typeable d,Typeable e,
+          Typeable p,Typeable q,Typeable r) 
+      => (graph,graphParms,
+      node a,nodeType b,nodeTypeParms c,
+      arc p d e,arcType q,arcTypeParms r)
    -- displaySort is a parameter which can be passed to something
    -- which produces graphs and displays them, to indicate what
    -- types we are using.  The only definition of it is about to
@@ -125,7 +133,7 @@ instance (Graph graph,NewGraph graph graphParms,GraphParms graphParms,
    Node node,NodeType nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,DeleteArc graph arc,
-   Arc arc,ArcType arc,
+   Arc arc,ArcType arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
    GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -174,49 +182,43 @@ instance (GraphConfig graphConfig,GraphParms graphParms) =>
 
 class (Graph graph,Node node,NodeType nodeType) =>
       NewNode graph node nodeType where
-   newNodePrim :: nodeType -> graph -> Dyn -> IO node
-   readNodePrim :: graph -> node -> IO (nodeType,Dyn)
-
-newNode :: (NewNode graph node nodeType,Typeable val) =>
-   nodeType -> graph -> val -> IO node
-newNode nodeType graph val =
-   newNodePrim nodeType graph (toDyn val)
-
-readNode :: (NewNode graph node nodeType,Typeable val) =>
-   graph -> node -> IO (nodeType,val)
-readNode graph node =
-   do
-      (nodeType,dyn) <- readNodePrim graph node
-      val <- coerceIO dyn
-      return (nodeType,val)
+   newNode :: Typeable value => 
+      nodeType value -> graph -> value -> IO (node value)
+   readNode :: Typeable value => 
+      graph -> (node value) -> IO (nodeType value,value)
 
 class (Graph graph,Node node) =>
       DeleteNode graph node where
-   deleteNode :: graph -> node -> IO ()
+   deleteNode :: Typeable value =>
+      graph -> (node value) -> IO ()
 
-class Node node where
+class KindOne node => Node node
 
-class NodeType nodeType where
+class KindOne nodeType => NodeType nodeType
 
 class (Graph graph,NodeType nodeType,NodeTypeParms nodeTypeParms) => 
       NewNodeType graph nodeType nodeTypeParms where
-   newNodeType :: graph -> nodeTypeParms -> IO nodeType   
+   newNodeType :: Typeable value =>
+      graph -> nodeTypeParms value -> IO (nodeType value)   
 
-class NodeTypeConfig nodeTypeConfig where
+class KindOne nodeTypeConfig => NodeTypeConfig nodeTypeConfig
 -- empty to prevent just anything being usable for the nodeTypeConfig 
 -- function.
 
 class NodeTypeParms nodeTypeParms where
-   emptyNodeTypeParms :: nodeTypeParms
+   emptyNodeTypeParms :: Typeable value =>
+      nodeTypeParms value
 
 class (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
       NodeTypeConfigParms nodeTypeConfig nodeTypeParms where
-   nodeTypeConfigUsed :: nodeTypeConfig -> nodeTypeParms -> Bool
+   nodeTypeConfigUsed :: Typeable value =>
+      nodeTypeConfig value -> nodeTypeParms value -> Bool
    -- indicates if this instance actually does anything
    -- with this configuration option, unlike the following
    -- instance.
 
-   nodeTypeConfig :: nodeTypeConfig -> nodeTypeParms -> nodeTypeParms
+   nodeTypeConfig :: Typeable value =>
+      nodeTypeConfig value -> nodeTypeParms value -> nodeTypeParms value
 
 instance (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
       NodeTypeConfigParms nodeTypeConfig nodeTypeParms where
@@ -229,48 +231,49 @@ instance (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
 
 class (Graph graph,Node nodeFrom,Node nodeTo,Arc arc,ArcType arcType) =>
       NewArc graph nodeFrom nodeTo arc arcType where
-   newArcPrim :: arcType -> graph -> nodeFrom -> nodeTo -> Dyn -> IO arc
-   readArcPrim :: graph -> arc -> IO (arcType,nodeFrom,nodeTo,Dyn)
-
-newArc :: (NewArc graph nodeFrom nodeTo arc arcType,Typeable val) =>
-   arcType -> graph -> nodeFrom -> nodeTo -> val -> IO arc
-newArc arcType graph nodeFrom nodeTo val =
-   newArcPrim arcType graph nodeFrom nodeTo (toDyn val)
-
-readArc :: (NewArc graph nodeFrom nodeTo arc arcType,Typeable val) =>
-   graph -> arc -> IO (arcType,nodeFrom,nodeTo,val)
-readArc graph arc =
-   do
-      (nodeType,nodeFrom,nodeTo,dyn) <- readArcPrim graph arc
-      val <- coerceIO dyn
-      return (nodeType,nodeFrom,nodeTo,val)
+   newArc :: (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>  
+      arcType value -> graph -> value 
+      -> nodeFrom nodeFromValue -> nodeTo nodeToValue
+      -> IO (arc value nodeFromValue nodeToValue)
+   readArc :: (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>
+      graph -> arc value nodeFromValue nodeToValue -> 
+      IO (arcType value,value,nodeFrom nodeFromValue,nodeTo nodeToValue)
 
 class (Graph graph,Arc arc) => DeleteArc graph arc where
-   deleteArc :: graph -> arc -> IO ()
+   deleteArc :: 
+      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) =>  
+      graph -> arc value nodeFromValue nodeToValue -> IO ()
 
-class Arc arc where
+class KindThree arc => Arc arc
 
-class ArcType arcType where
+class KindOne arcType => ArcType arcType
 
 class (Graph graph,ArcType arcType,ArcTypeParms arcTypeParms) => 
       NewArcType graph arcType arcTypeParms where
-   newArcType :: graph -> arcTypeParms -> IO arcType   
+   newArcType :: Typeable value =>
+      graph -> arcTypeParms value -> IO (arcType value)  
 
 class ArcTypeConfig arcTypeConfig where
 -- empty to prevent just anything being usable for the arcTypeConfig 
--- function.
+-- function.  However we include a totally useless function so Haskell
+-- can work out what the kind of nodeTypeConfig is.
+   nullArcTypeConfig :: Typeable value =>
+      arcTypeConfig value -> ()
+   nullArcTypeConfig _ = ()
 
 class ArcTypeParms arcTypeParms where
-   emptyArcTypeParms :: arcTypeParms
+   emptyArcTypeParms :: Typeable value => arcTypeParms value
 
 class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
       ArcTypeConfigParms arcTypeConfig arcTypeParms where
-   arcTypeConfigUsed :: arcTypeConfig -> arcTypeParms -> Bool
+   arcTypeConfigUsed :: Typeable value =>
+      arcTypeConfig value -> arcTypeParms value -> Bool
    -- indicates if this instance actually does anything
    -- with this configuration option, unlike the following
    -- instance.
 
-   arcTypeConfig :: arcTypeConfig -> arcTypeParms -> arcTypeParms
+   arcTypeConfig :: Typeable value => 
+      arcTypeConfig value -> arcTypeParms value -> arcTypeParms value
 
 instance (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
       ArcTypeConfigParms arcTypeConfig arcTypeParms where
@@ -283,20 +286,37 @@ instance (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
 -- allowing an elegant recursive definition.
 ------------------------------------------------------------------------
 
-instance NodeTypeConfig MenuButton where
+instance NodeTypeConfig MenuButton
 
-instance ArcTypeConfig MenuButton where
+instance ArcTypeConfig MenuButton
 
-data MenuButton =
-      Button String (Dyn -> IO ())
+data Typeable value => MenuButton value =
+      Button String (value -> IO ())
       -- first argument is text to put on button.
       -- second argument generates an action to be performed when the
       -- button is pressed.
       -- The dynamic value is that supplied to the node/arc when it
       -- was created.
-   |  Menu (Maybe String) [MenuButton]
+   |  Menu (Maybe String) [MenuButton value]
       -- List of buttons with a possible title..
 
+------------------------------------------------------------------------
+-- The KindOne class and KindThree classes are a silly hack so that we 
+-- can define empty classes of things which take a fixed number of
+-- type parameters.  
+------------------------------------------------------------------------
+
+class KindOne takesParm where
+   kindOne :: takesParm value -> ()
+
+instance KindOne takesParm where
+   kindOne _ = ()
+
+class KindThree takes3Parms where
+   kindThree :: takes3Parms value1 value2 value3 -> ()
+
+instance KindThree takesParms where
+   kindThree _ = ()
 
 
 
