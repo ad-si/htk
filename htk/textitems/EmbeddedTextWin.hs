@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>embedded windows</strong> inside an editor widget.
+-- | HTk\'s /embedded windows/ inside an editor widget.
 module EmbeddedTextWin (
 
   EmbeddedTextWin,
@@ -38,8 +27,7 @@ import Wish
 -- type EmbeddedTextWin
 -- -----------------------------------------------------------------------
 
----
--- The <code>EmbeddedTextWin</code> datatype.
+-- | The @EmbeddedTextWin@ datatype.
 newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 
 
@@ -47,18 +35,21 @@ newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new embedded window inside an editor widget and returns 
+-- | Constructs a new embedded window inside an editor widget and returns 
 -- a handler.
--- @param ed      - the parent editor widget.
--- @param i       - the editor's index to place the embedded window.
--- @param w       - the contained widget.
--- @param cnf     - the list of configuration options for this embedded
---                  text window.
--- @return result - An embedded window inside an editor widget.
 createEmbeddedTextWin :: (HasIndex Editor i BaseIndex, Widget w) =>
-                         Editor -> i -> w ->
-                         [Config EmbeddedTextWin] -> IO EmbeddedTextWin
+   Editor 
+   -- ^ the parent editor widget.
+   -> i 
+   -- ^ the editor\'s index to place the embedded window.
+   -> w 
+   -- ^ the contained widget.
+   ->
+   [Config EmbeddedTextWin] 
+   -- ^ the list of configuration options for this embedded
+   -- text window.
+   -> IO EmbeddedTextWin
+   -- ^ An embedded window inside an editor widget.
 createEmbeddedTextWin ed i w cnf =
   do
     binx <- getBaseIndex ed i
@@ -75,28 +66,21 @@ createEmbeddedTextWin ed i w cnf =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject EmbeddedTextWin where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (EmbeddedTextWin w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "EmbeddedTextWin"
 
----
--- An embedded text window can be destroyed.
+-- | An embedded text window can be destroyed.
 instance Destroyable EmbeddedTextWin where
----
--- Destroys an embedded text window.
+  -- | Destroys an embedded text window.
   destroy = destroy . toGUIObject
 
----
--- You can synchronize on an embedded text window object.
+-- | You can synchronize on an embedded text window object.
 instance Synchronized EmbeddedTextWin where
----
--- Synchronizes on an embedded text window object.
+  -- | Synchronizes on an embedded text window object.
   synchronize = synchronize . toGUIObject
 
 
@@ -104,14 +88,12 @@ instance Synchronized EmbeddedTextWin where
 -- widget specific configuration options
 -- -----------------------------------------------------------------------
 
----
--- If set the contained widget is stretched vertically to match the
+-- | If set the contained widget is stretched vertically to match the
 -- spacing of the line.
 stretch :: Toggle -> Config EmbeddedTextWin
 stretch t w = cset w "stretch" t
 
----
--- Gets the current stretch setting.
+-- | Gets the current stretch setting.
 getStretch :: EmbeddedTextWin -> IO Toggle
 getStretch ew = cget ew "stretch"
 
@@ -120,11 +102,9 @@ getStretch ew = cget ew "stretch"
 -- index
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance HasIndex Editor EmbeddedTextWin BaseIndex where
----
--- Internal.
+  -- | Internal.
   getBaseIndex tp win =
     synchronize win
       (do

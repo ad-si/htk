@@ -226,8 +226,7 @@ printAction :: PrintAction MMiSSPreamble
 printAction = PrintAction 
    (\ _ _ -> errorMess "Cannot print a preamble!")
 
----
--- We need to define an ordering on MMiSSPreamble's for EditFS, but since
+-- | We need to define an ordering on MMiSSPreamble\'s for EditFS, but since
 -- that only ever sees one preamble at a time we can afford to make it trivial.
 instance Eq MMiSSPreamble where
    (==) = mapEq editLock

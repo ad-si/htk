@@ -1236,8 +1236,7 @@ toIncludeStr 'o' = "ProofStep"
 toIncludeStr _ = error "MMiSSDTDAssumptions.toIncludeStr - bad mini-type"
 
 
----
--- fromIncludeStrOpt
+-- | fromIncludeStrOpt
 -- and also handles the case where the first letter is lower-cased.
 fromIncludeStrOpt :: String -> Maybe Char
 fromIncludeStrOpt "Package" = Just 'G'
@@ -1262,9 +1261,8 @@ fromIncludeStr str = case fromIncludeStrOpt str of
    Nothing -> error 
     ("MMiSSDTDAssumptions.fromIncludeStr - bad include string"++str)
 
----
--- Map tags to the name of their corresponding include element (minus
--- "include")
+-- | Map tags to the name of their corresponding include element (minus
+-- \"include\")
 mapLabelledTag :: String -> String
 mapLabelledTag s = 
    case s of

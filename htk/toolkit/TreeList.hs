@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>TreeList</strong> module.
+-- | HTk\'s /TreeList/ module.
 module TreeList (
 
   newTreeList, {- :: (Container par, Eq a) =>
@@ -96,12 +85,10 @@ data StateEntry a =
              [a]           -- ids of previously open subobjects for reopen
     deriving Eq
 
----
--- The <code>ChildrenFun</code> type.
+-- | The @ChildrenFun@ type.
 type ChildrenFun a = TreeListObject a -> IO [TreeListObject a]
 
----
--- The <code>TreeList</code> datatype.
+-- | The @TreeList@ datatype.
 data CItem c => TreeList c =
   TreeList { -- main canvas
              cnv :: Canvas,
@@ -129,16 +116,19 @@ data CItem c => TreeList c =
 -- tree list construction
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new tree list.
--- @param par     - the parent widget, which has to be a container widget.
--- @param cfun    - the tree list's children function.
--- @param objs    - the initial list of tree list objects.
--- @param cnf     - the list of configuration options for this tree list.
--- @return result - A tree list.
+-- | Constructs a new tree list.
 newTreeList :: (Container par, CItem a) =>
-               par -> ChildrenFun a -> [TreeListObject a] ->
-               [Config (TreeList a)] -> IO (TreeList a)
+   par 
+   -- ^ the parent widget, which has to be a container widget.
+   -> ChildrenFun a 
+   -- ^ the tree list\'s children function.
+   -> [TreeListObject a] 
+   -- ^ the initial list of tree list objects.
+   ->
+   [Config (TreeList a)] 
+   -- ^ the list of configuration options for this tree list.
+   -> IO (TreeList a)
+   -- ^ A tree list.
 newTreeList par cfun objs cnf =
   do
     (scr, cnv) <- newScrollBox par (\p -> newCanvas p []) []
@@ -189,21 +179,20 @@ newTreeList par cfun objs cnf =
     setRef cleanup [ub, syncNoWait (send death ())]
     return treelist
 
----
--- Binds a listener for tree list events to the tree list and returns
+-- | Binds a listener for tree list events to the tree list and returns
 -- a corresponding event and an unbind action.
--- @param np      - the concerned tree list.
--- @return result - A pair of (event, unbind action).
-bindTreeListEv :: CItem c => TreeList c ->
-                             IO (Event (TreeListEvent c), IO ())
+bindTreeListEv :: CItem c => TreeList c 
+   -- ^ the concerned tree list.
+   ->
+   IO (Event (TreeListEvent c), IO ())
+   -- ^ A pair of (event, unbind action).
 bindTreeListEv tl =
   do
     ch <- newChannel
     setRef (event_queue tl) (Just ch)
     return (receive ch, setRef (event_queue tl) Nothing)
 
----
--- The <code>TreeListEvent</code> datatype.
+-- | The @TreeListEvent@ datatype.
 data TreeListEvent c =
     Selected (Maybe (TreeListObject c))
   | Focused (Maybe (TreeListObject c), EventInfo)
@@ -219,17 +208,20 @@ sendEv tl ev =
       _ -> done
 
 
----
--- Constructs a new tree list recovering a previously saved state.
--- @param par     - the parent widget, which has to be a container widget.
--- @param cfun    - the tree list's children function.
--- @param st      - the state to recover.
--- @param cnf     - the list of configuration options for this tree list.
--- @return result - A tree list.
+-- | Constructs a new tree list recovering a previously saved state.
 recoverTreeList :: (Container par, CItem a) =>
-                   par -> ChildrenFun a -> TreeListState a ->
-                   [Config (TreeList a)] ->
-                   IO (TreeList a)
+   par 
+   -- ^ the parent widget, which has to be a container widget.
+   -> ChildrenFun a 
+   -- ^ the tree list\'s children function.
+   -> TreeListState a 
+   -- ^ the state to recover.
+   ->
+   [Config (TreeList a)] 
+   -- ^ the list of configuration options for this tree list.
+   ->
+   IO (TreeList a)
+   -- ^ A tree list.
 recoverTreeList par cfun st cnf =
   do
     (scr, cnv) <- newScrollBox par (\p -> newCanvas p []) []
@@ -272,11 +264,11 @@ recoverTreeList par cfun st cnf =
     setRef cleanup [ub, syncNoWait (send death ())]
     return tl
 
----
--- Deletes all objects from the tree list.
--- @param tl      - the concerned tree list.
--- @return result - None.
-clearTreeList :: CItem c => TreeList c -> IO ()
+-- | Deletes all objects from the tree list.
+clearTreeList :: CItem c => TreeList c 
+   -- ^ the concerned tree list.
+   -> IO ()
+   -- ^ None.
 clearTreeList tl =
   do
     state <- getRef (internal_state tl)
@@ -297,16 +289,17 @@ getObjectFromTreeList tl objval =
         entryEqualsObject objval (StateEntry obj _ _ _) =
           objval == val obj
 
----
--- Checks for a given tree list object value if the corresponding
+-- | Checks for a given tree list object value if the corresponding
 -- object is a node.
--- @param tl      - the concerned tree list.
--- @param val     - the concerned tree list object value.
--- @return result - <code>Nothing</code> if no corresponding object is
---                - found, otherwise <code>Just True</code> if
---                - the corresponding object is a node, otherwise
---                - <code>Just False</code>.
-isNode :: CItem a => TreeList a -> a -> IO (Maybe Bool)
+isNode :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned tree list object value.
+   -> IO (Maybe Bool)
+   -- ^ @Nothing@ if no corresponding object is
+   -- found, otherwise @Just True@ if
+   -- the corresponding object is a node, otherwise
+   -- @Just False@.
 isNode tl val =
   do
     mobj <- getObjectFromTreeList tl val
@@ -314,16 +307,17 @@ isNode tl val =
               Just (obj, _) -> Just (is_node obj)
               _ -> Nothing)
 
----
--- Checks for a given tree list object value if the corresponding
+-- | Checks for a given tree list object value if the corresponding
 -- object is a leaf.
--- @param tl      - the concerned tree list.
--- @param val     - the concerned tree list object value.
--- @return result - <code>Nothing</code> if no corresponding object is
---                - found, otherwise <code>Just True</code> if
---                - the corresponding object is a leaf, otherwise
---                - <code>Just False</code>.
-isLeaf :: CItem a => TreeList a -> a -> IO (Maybe Bool)
+isLeaf :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned tree list object value.
+   -> IO (Maybe Bool)
+   -- ^ @Nothing@ if no corresponding object is
+   -- found, otherwise @Just True@ if
+   -- the corresponding object is a leaf, otherwise
+   -- @Just False@.
 isLeaf tl val =
   do
     mnode <- isNode tl val
@@ -331,13 +325,14 @@ isLeaf tl val =
       Just b -> return (Just (not b))
       _ -> return Nothing
 
----
--- Converts the corresponding object to a given tree list object value
+-- | Converts the corresponding object to a given tree list object value
 -- to a node.
--- @param tl      - the concerned tree list.
--- @param val     - the concerned treelist object's value.
--- @return result - None.
-mkNode :: CItem a => TreeList a -> a -> IO ()
+mkNode :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned treelist object\'s value.
+   -> IO ()
+   -- ^ None.
 mkNode tl val =
   do
     mleaf <- isLeaf tl val
@@ -355,13 +350,14 @@ mkNode tl val =
           packTreeListObject nuobj isroot (x - 15, y)
       _ -> done
 
----
--- Converts the corresponding object to a given tree list object value
+-- | Converts the corresponding object to a given tree list object value
 -- to a leaf.
--- @param tl      - the concerned tree list.
--- @param val     - the concerned tree list object's value.
--- @return result - None.
-mkLeaf :: CItem a => TreeList a -> a -> IO ()
+mkLeaf :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned tree list object\'s value.
+   -> IO ()
+   -- ^ None.
 mkLeaf tl val =
   do
     mnode <- isNode tl val
@@ -382,13 +378,14 @@ mkLeaf tl val =
           packTreeListObject nuobj isroot (x - 15, y)
       _ -> done
 
----
--- Removes the corresponding objects to a given tree list object value
+-- | Removes the corresponding objects to a given tree list object value
 -- from the tree list.
--- @param tl      - the concerned tree list.
--- @param val     - the concerned tree list object's value.
--- @return result - None.
-removeTreeListObject :: CItem a => TreeList a -> a -> IO ()
+removeTreeListObject :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned tree list object\'s value.
+   -> IO ()
+   -- ^ None.
 removeTreeListObject tl val =
   do
     mobj <- getObjectFromTreeList tl val
@@ -440,12 +437,12 @@ objectChanged tl obj nuobj =
        state <- getRef (internal_state tl)
        setRef (internal_state tl) (objectChanged' state)
 
----
--- Updates the tree list by recalling the children function for all opened
+-- | Updates the tree list by recalling the children function for all opened
 -- objects.
--- @param tl      - the concerned tree list.
--- @return result - None.
-updateTreeList :: CItem a => TreeList a -> IO ()
+updateTreeList :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> IO ()
+   -- ^ None.
 updateTreeList tl =
   synchronize tl
     (do
@@ -458,14 +455,16 @@ updateTreeList tl =
 -- adding of objects (while running)
 -- -----------------------------------------------------------------------
 
----
--- Adds a subobject to a tree list object.
--- @param tl      - the concerned tree list.
--- @param parval  - the parent object's value.
--- @param obj     - the new tree list object to add.
--- @return result - None.
-addTreeListSubObject :: CItem a => TreeList a -> a ->
-                                   TreeListObject a -> IO ()
+-- | Adds a subobject to a tree list object.
+addTreeListSubObject :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the parent object\'s value.
+   ->
+   TreeListObject a 
+   -- ^ the new tree list object to add.
+   -> IO ()
+   -- ^ None.
 addTreeListSubObject tl parval obj@(TreeListObject (objval, objtype)) =
   synchronize tl
     (do
@@ -532,13 +531,14 @@ addTreeListSubObject tl parval obj@(TreeListObject (objval, objtype)) =
         sep2 _ intend lower y =
           return (lower, [], intend, y)
 
----
--- Adds a toplevel tree list object.
--- @param tl      - the concerned tree list.
--- @param obj     - the tree list object to add.
--- @return result - None.
-addTreeListRootObject :: CItem a => TreeList a -> TreeListObject a ->
-                                    IO ()
+-- | Adds a toplevel tree list object.
+addTreeListRootObject :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> TreeListObject a 
+   -- ^ the tree list object to add.
+   ->
+   IO ()
+   -- ^ None.
 addTreeListRootObject tl obj@(TreeListObject (val, objtype)) =
   synchronize tl
     (do
@@ -621,48 +621,37 @@ packTreeListObject obj isroot pos@(x, y) =
 -- TreeList instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance CItem c => GUIObject (TreeList c) where
----
--- Internal.
+  -- | Internal.
   toGUIObject tl = toGUIObject (scrollbox tl)
----
--- Internal.
+  -- | Internal.
   cname _ = "TreeList"
 
----
--- A tree list can be destroyed.
+-- | A tree list can be destroyed.
 instance CItem c => Destroyable (TreeList c) where
----
--- Destroys a tree list.
+  -- | Destroys a tree list.
   destroy = destroy . toGUIObject
 
----
--- A tree list has standard widget properties
+-- | A tree list has standard widget properties
 -- (concerning focus, cursor).
 instance CItem c => Widget (TreeList c)
 
----
--- You can synchronize on a tree list.
+-- | You can synchronize on a tree list.
 instance CItem c => Synchronized (TreeList c) where
----
--- Synchronizes on a tree list.
+  -- | Synchronizes on a tree list.
   synchronize = synchronize . toGUIObject
 
----
--- A tree list has a configureable border.
+-- | A tree list has a configureable border.
 instance CItem c => HasBorder (TreeList c)
 
----
--- A tree list has a configureale background colour.
+-- | A tree list has a configureale background colour.
 instance CItem c => HasColour (TreeList c) where
   legalColourID tl = hasBackGroundColour (cnv tl)
   setColour tl cid col = setColour (cnv tl) cid col >> return tl
   getColour tl cid = getColour (cnv tl) cid
 
----
--- A tree list has a configureable size.
+-- | A tree list has a configureable size.
 instance CItem c => HasSize (TreeList c) where
   width s tl = (cnv tl) # width s >> return tl
   getWidth tl = getWidth (cnv tl)
@@ -680,12 +669,10 @@ instance CItem c => HasSize (TreeList c) where
 -- basic types
 -- -----------------------------------------------------------------------
 
----
--- The <code>TreeListObjectType</code> datatype.
+-- | The @TreeListObjectType@ datatype.
 data TreeListObjectType = Node | Leaf deriving Eq
 
----
--- The <code>TreeListObject</code> datatype.
+-- | The @TreeListObject@ datatype.
 newtype TreeListObject a =
   TreeListObject (a, TreeListObjectType)
 
@@ -705,13 +692,14 @@ data CItem a => TREELISTOBJECT a =        -- internal representation
 -- construction of tree list objects
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new tree list object.
--- @param val     - the object's value.
--- @param objtype - the object's type (node or leaf).
--- @return result - A tree list object.
-newTreeListObject :: CItem a => a -> TreeListObjectType ->
-                                     TreeListObject a
+-- | Constructs a new tree list object.
+newTreeListObject :: CItem a => a 
+   -- ^ the object\'s value.
+   -> TreeListObjectType 
+   -- ^ the object\'s type (node or leaf).
+   ->
+   TreeListObject a
+   -- ^ A tree list object.
 newTreeListObject val objtype = TreeListObject (val, objtype)
 
 
@@ -719,29 +707,30 @@ newTreeListObject val objtype = TreeListObject (val, objtype)
 -- exported functionality on tree list objects
 -- -----------------------------------------------------------------------
 
----
--- Selector for the value of a tree list object.
--- @param obj     - the concerned tree list object.
--- @return result - The given object's value.
-getTreeListObjectValue :: TreeListObject a -> a
+-- | Selector for the value of a tree list object.
+getTreeListObjectValue :: TreeListObject a 
+   -- ^ the concerned tree list object.
+   -> a
+   -- ^ The given object\'s value.
 getTreeListObjectValue obj@(TreeListObject (val, _)) = val
 
----
--- Selector for the type of a tree list object (node or leaf).
--- @param obj     - the concerned tree list object.
--- @return result - The object's type (node or leaf).
-getTreeListObjectType :: TreeListObject a -> TreeListObjectType
+-- | Selector for the type of a tree list object (node or leaf).
+getTreeListObjectType :: TreeListObject a 
+   -- ^ the concerned tree list object.
+   -> TreeListObjectType
+   -- ^ The object\'s type (node or leaf).
 getTreeListObjectType obj@(TreeListObject (_, objtype)) = objtype
 
----
--- True, if the object with the given value is currently opened in the
+-- | True, if the object with the given value is currently opened in the
 -- tree list.
--- @param tl      - the concerned tree list.
--- @param v       - the concerned object's value.
--- @return result - <code>True</code>, if the object with the given value
---                - is currently opened in the tree list, otherwise
---                - <code>False</code>.
-isTreeListObjectOpen :: CItem c => TreeList c -> c -> IO Bool
+isTreeListObjectOpen :: CItem c => TreeList c 
+   -- ^ the concerned tree list.
+   -> c 
+   -- ^ the concerned object\'s value.
+   -> IO Bool
+   -- ^ @True@, if the object with the given value
+   -- is currently opened in the tree list, otherwise
+   -- @False@.
 isTreeListObjectOpen tl v =
   synchronize tl
     (do
@@ -751,13 +740,15 @@ isTreeListObjectOpen tl v =
          Just (StateEntry _ b _ _) -> return b
          Nothing -> return False)
 
----
--- (Re-)sets the image of a tree list object.
--- @param tl      - the concerned tree list.
--- @param objval  - the concerned object's value.
--- @param img     - the image to set.
--- @return result - None.
-setImage :: CItem a => TreeList a -> a -> Image -> IO ()
+-- | (Re-)sets the image of a tree list object.
+setImage :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned object\'s value.
+   -> Image 
+   -- ^ the image to set.
+   -> IO ()
+   -- ^ None.
 setImage tl objval img =
   do
     state <- getRef (internal_state tl)
@@ -768,13 +759,15 @@ setImage tl objval img =
           else setImage' ents val' img
         setImage' _ _ _ = done
 
----
--- (Re-)sets the name of a tree list object.
--- @param tl      - the concerned tree list.
--- @param objval  - the concerned object's value.
--- @param nm      - the name to set.
--- @return result - None.
-setTreeListObjectName :: CItem a => TreeList a -> a -> Name -> IO ()
+-- | (Re-)sets the name of a tree list object.
+setTreeListObjectName :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> a 
+   -- ^ the concerned object\'s value.
+   -> Name 
+   -- ^ the name to set.
+   -> IO ()
+   -- ^ None.
 setTreeListObjectName tl objval nm =
   do
     state <- getRef (internal_state tl)
@@ -1134,12 +1127,13 @@ getTreeListObjectName obj =
 -- state import / export
 -- -----------------------------------------------------------------------
 
----
--- Imports a previously saved tree list state.
--- @param tl      - the concerned tree list.
--- @param st      - the state to import.
--- @return result - None.
-importTreeListState :: CItem a => TreeList a -> TreeListState a -> IO ()
+-- | Imports a previously saved tree list state.
+importTreeListState :: CItem a => TreeList a 
+   -- ^ the concerned tree list.
+   -> TreeListState a 
+   -- ^ the state to import.
+   -> IO ()
+   -- ^ None.
 importTreeListState tl st =
   synchronize tl
     (do
@@ -1180,11 +1174,11 @@ data TreeListExportItem a =
 
 type TreeListState a = [TreeListExportItem a]
 
----
--- Exports the tree list's state.
--- @param tl      - the concerned tree list.
--- @return result - The tree list's state.
-exportTreeListState :: CItem c => TreeList c -> IO (TreeListState c)
+-- | Exports the tree list\'s state.
+exportTreeListState :: CItem c => TreeList c 
+   -- ^ the concerned tree list.
+   -> IO (TreeListState c)
+   -- ^ The tree list\'s state.
 exportTreeListState tl =
   synchronize tl
     (do

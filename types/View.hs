@@ -326,8 +326,7 @@ readVersionInfo view = readContents (viewInfoBroadcaster view)
 -- createViewObject
 -- ----------------------------------------------------------------------
 
----
--- Function for creating an object which requires its own link. 
+-- | Function for creating an object which requires its own link. 
 -- The function provided returns Nothing if there was an error and the
 -- object should not, after all, be inserted. 
 createViewObject :: (HasCodedValue object) 

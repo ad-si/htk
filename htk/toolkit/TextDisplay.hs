@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- A simple window to display uneditable, scrollable text (e.g. error logs)
+-- | A simple window to display uneditable, scrollable text (e.g. error logs)
 
 module TextDisplay(
 
@@ -25,15 +14,18 @@ import ScrollBox
 import MarkupText 
 
 
----
--- Display some (longish) text in an uneditable, scrollable editor.
+-- | Display some (longish) text in an uneditable, scrollable editor.
 -- Returns immediately-- the display is forked off to separate thread.
--- @param title   - the title of the window
--- @param txt     - the text to be displayed
--- @param conf    - configuration options for the text editor
--- @param unpost  - action to be executed when the window is closed
--- @return result - the window in which the text is displayed
-createTextDisplayExt :: String-> String-> [Config Editor]-> IO()-> IO (Toplevel,
+createTextDisplayExt :: String
+   -- ^ the title of the window
+   -> String
+   -- ^ the text to be displayed
+   -> [Config Editor]
+   -- ^ configuration options for the text editor
+   -> IO()
+   -- ^ action to be executed when the window is closed
+   -> IO (Toplevel,
+   -- ^ the window in which the text is displayed
 								       Editor)
 createTextDisplayExt title txt conf unpost =
   do win <- createToplevel [text title]
@@ -54,11 +46,13 @@ createTextDisplayExt title txt conf unpost =
      spawnEvent (quit >>> do destroy win; unpost)
      return (win, ed)
 
----
--- Display some (longish) text in an uneditable, scrollable editor.
+-- | Display some (longish) text in an uneditable, scrollable editor.
 -- Simplified version of createTextDisplayExt
--- @param title   - the title of the window
--- @param txt     - the text to be displayed
--- @param conf    - configuration options for the text editor
-createTextDisplay :: String-> String-> [Config Editor]-> IO()
+createTextDisplay :: String
+   -- ^ the title of the window
+   -> String
+   -- ^ the text to be displayed
+   -> [Config Editor]
+   -- ^ configuration options for the text editor
+   -> IO()
 createTextDisplay t txt conf = do createTextDisplayExt t txt conf done; done

@@ -35,10 +35,9 @@ import Extents
 -- What the caller needs to provide
 -- ----------------------------------------------------------------------
 
----
--- EmacsFS describes the interface this module needs to the file system.
+-- | EmacsFS describes the interface this module needs to the file system.
 -- The file system is allowed its own handle, a ref.  For the functions,
--- it is required that "ref" instances Eq and Ord.
+-- it is required that \"ref\" instances Eq and Ord.
 -- 
 -- It is also assumed that editFS will stop the same file being opened if
 -- it is already open (without it being closed by finishEdit).
@@ -61,8 +60,7 @@ data EmacsFS ref = EmacsFS {
    createRef :: ref -> IO (WithError (Maybe ref))
    }
 
----
--- EditedFile (provided by the caller) describes a file as it is edited by
+-- | EditedFile (provided by the caller) describes a file as it is edited by
 -- this module
 data EditedFile ref = EditedFile {
    writeData :: EmacsContent ref -> IO (WithError (Maybe (EmacsContent ref))),
@@ -81,8 +79,7 @@ data EditedFile ref = EditedFile {
       -- this file).
    }
 
----
--- The PrintAction, supplied by the caller, prints the given ref 
+-- | The PrintAction, supplied by the caller, prints the given ref 
 -- as displayed in the buffer, which should be included in the buffer.  To 
 -- do this it in turn is provided with a function which given a particular 
 -- String returns what the Emacs buffer
@@ -113,8 +110,7 @@ data EditorState ref = EditorState {
 -- Functions
 -- ----------------------------------------------------------------------
 
----
--- editEmacs edits a particular file, with the specified file system. 
+-- | editEmacs edits a particular file, with the specified file system. 
 -- This function terminates when the user finishes editing.
 editEmacs :: Ord ref => EmacsFS ref -> PrintAction ref -> ref -> IO ()
 editEmacs emacsFS printAction ref =
@@ -168,14 +164,13 @@ editEmacs emacsFS printAction ref =
 -- Open a new file and insert it in a container
 -- ----------------------------------------------------------------------
 
----
--- openFile attempts to open the file "name".
---
+-- | openFile attempts to open the file \"name\".
+-- 
 -- The parentAction should return the identifier of the parent window
 -- and is executed after we have successed in getting the file
 -- from the repository.  It also returns the EditorState to use,
 -- which openFile in turn returns.
---
+-- 
 -- If we do not succeed, openFile returns Nothing.
 openFile :: Ord ref 
    => EmacsFS ref -> IO (String,EditorState ref) -> ref -> MangledTypedName
@@ -757,8 +752,7 @@ extractContents editorState mangledToGet =
 
       return (EmacsContent list2)
 
----
--- Unmangled the MangledTypedNames in an EmacsContent and return a list
+-- | Unmangled the MangledTypedNames in an EmacsContent and return a list
 -- of the associations where the Bool is True.
 unmangleContents :: EditorState ref -> EmacsContent (Bool,MangledTypedName)
    -> IO (EmacsContent (Bool,ref),[(ref,MangledTypedName)])
@@ -830,13 +824,11 @@ parseMangledTypedName (c:cs) =
 -- Extracting texts from refs.
 -- ----------------------------------------------------------------------
 
----
--- Head button text and end text for a container
+-- | Head button text and end text for a container
 containerTexts :: EmacsFS ref -> ref -> (String,String)
 containerTexts fs ref = ("["++toDescription fs ref++":\n","]\n")
 
----
--- Button text for a (collapsed) button
+-- | Button text for a (collapsed) button
 buttonText :: EmacsFS ref -> ref -> String
 buttonText fs ref = "["++toDescription fs ref++"]"
 
@@ -866,8 +858,7 @@ newTypedNameMangler =
       registry <- newRegistry
       return (TypedNameMangler registry)
 
----
--- newMangledTypedName expects in addition to the thing to be mangled, its
+-- | newMangledTypedName expects in addition to the thing to be mangled, its
 -- minitype.
 newMangledTypedName :: TypedNameMangler ref -> ref -> Char 
    -> IO MangledTypedName

@@ -75,15 +75,14 @@ import {-# SOURCE #-} MMiSSPackageFolder
 -- The types
 -- ---------------------------------------------------------------------
 
----
--- There are three sorts of things stored in an MMiSSObject.
--- (1) Things which don't depend on the variant under consideration
+-- | There are three sorts of things stored in an MMiSSObject.
+-- (1) Things which don\'t depend on the variant under consideration
 -- (mmissObjectType,linkedObject,nodeActions,extraNodes).
--- (2) Things which *do* depend on the variant under consideration, and are
+-- (2) Things which \*do\* depend on the variant under consideration, and are
 -- therefore stored via the Variable type as part of an VariantObject
 -- (everything in a Variable).
 -- (3) A cached version of a Variable, which is stored in a VariantObject
--- as the "current object".
+-- as the \"current object\".
 -- (everything in an Object). 
 data MMiSSObject = MMiSSObject {
    mmissObjectType :: MMiSSObjectType,
@@ -101,8 +100,7 @@ data MMiSSObject = MMiSSObject {
       -- This is Bool if the object is being edited.
    } deriving (Typeable)
 
----
--- This is what varies with the variant attributes.
+-- | This is what varies with the variant attributes.
 data Variable = Variable {
    element :: Link Element,
       -- For now we adopt the convention that the name of the element as given
@@ -111,8 +109,7 @@ data Variable = Variable {
    editLock :: BSem
    }
 
----
--- This is what is cached, and is needed to display the node's links with
+-- | This is what is cached, and is needed to display the node\'s links with
 -- the current set of attributes.
 data Cache = Cache {
    cacheElement :: Element,
@@ -201,8 +198,7 @@ instance HasBinary Variable CodingMonad where
 -- Converting a Variable to a Cache
 -- ---------------------------------------------------------------------
 
----
--- Converter function.  This also needs to know the view and LinkedObject
+-- | Converter function.  This also needs to know the view and LinkedObject
 -- for the containing object.
 converter :: View -> LinkedObject -> MMiSSVariantSpec -> Variable -> IO Cache
 converter view linkedObject variantSpec variable =
@@ -270,8 +266,7 @@ converter view linkedObject variantSpec variable =
 -- The ArcType values for the arcs out of an MMiSSObject.
 -- ---------------------------------------------------------------------
 
----
--- The first three correspond to the various LinkType constructors in
+-- | The first three correspond to the various LinkType constructors in
 -- MMiSSContent.
 includedArcType :: ArcType
 includedArcType = fromString "I"
@@ -282,13 +277,11 @@ referencedArcType = fromString "R"
 linkedArcType :: ArcType
 linkedArcType = fromString "L"
 
----
--- Link to the preamble arc type.
+-- | Link to the preamble arc type.
 preambleArcType :: ArcType
 preambleArcType = fromString "B"
 
----
--- Link to the file arc type.
+-- | Link to the file arc type.
 fileArcType :: ArcType
 fileArcType = fromString "B"
 
@@ -308,13 +301,11 @@ objectNameSource :: MMiSSObject -> SimpleSource String
 objectNameSource mmissObject =
    fmap toString (getLinkedObjectTitle (linkedObject mmissObject)
       (fromString "Untitled MMiSSObject"))
----
--- Extract an object's current name.  (Mainly needed for error messages.)
+-- | Extract an object\'s current name.  (Mainly needed for error messages.)
 objectName :: MMiSSObject -> IO String
 objectName mmissObject = readContents (objectNameSource mmissObject)
 
----
--- Compare if two Variables are the same for the purposes of merging.
+-- | Compare if two Variables are the same for the purposes of merging.
 variablesSame :: Variable -> Variable -> Bool
 variablesSame variable1 variable2 =
    (element variable1 == element variable2)

@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- The <code>module Font</code> export basic types and classes concerning
+-- | The @module Font@ export basic types and classes concerning
 -- font resources.
 module Font (
 
@@ -39,12 +28,10 @@ import Debug(debug)
 -- Font
 -- -----------------------------------------------------------------------
 
----
--- The general <code>Font</code> datatype.
+-- | The general @Font@ datatype.
 newtype Font = Font String
 
----
--- The <code>XFont</code> datatype - representing the elements of an
+-- | The @XFont@ datatype - representing the elements of an
 -- X font string.
 data XFont =
     XFont { foundry   :: String,
@@ -66,64 +53,49 @@ data XFont =
 -- Font
 -- -----------------------------------------------------------------------
 
----
--- Datatypes that describe a font instantiate the
--- <code>class FontDesignator</code>.
+-- | Datatypes that describe a font instantiate the
+-- @class FontDesignator@.
 class FontDesignator fh where
   toFont :: fh -> Font
 
----
--- A <code>Font</code> object itself represents a font.
+-- | A @Font@ object itself represents a font.
 instance FontDesignator Font where
----
--- Internal.
+  -- | Internal.
   toFont = id
 
----
--- An X font string represents a font.
+-- | An X font string represents a font.
 instance FontDesignator String where
----
--- Internal.
+  -- | Internal.
   toFont = Font
 
----
--- An <code>XFont</code> object (see type) represents a font.
+-- | An @XFont@ object (see type) represents a font.
 instance FontDesignator XFont where
----
--- Internal.
+  -- | Internal.
   toFont = Font . show
 
----
--- A <code>FontFamily</code> object describes a font (default values
+-- | A @FontFamily@ object describes a font (default values
 -- set for other parameters).
 instance FontDesignator FontFamily where
----
--- Internal.
+  -- | Internal.
   toFont ch = toFont (xfont {family = Just ch})
 
----
--- A tuple of <code>(FontFamily,Int)</code> describes a font with
+-- | A tuple of @(FontFamily,Int)@ describes a font with
 -- its font family and points.
 instance FontDesignator (FontFamily,Int) where
----
--- Internal.
+  -- | Internal.
   toFont (ch,s) = toFont (xfont {family = Just ch, points = (Just s)})
 
----
--- A tuple of <code>(FontFamily,FontWeight,Int)</code> describes a font
+-- | A tuple of @(FontFamily,FontWeight,Int)@ describes a font
 -- with its font family, font weight and points.
 instance FontDesignator (FontFamily,FontWeight,Int) where
----
--- Internal.
+  -- | Internal.
   toFont (ch, w, po) =
     toFont (xfont {family = Just ch, weight = Just w, points = (Just po)})
 
----
--- A tuple of <code>(FontFamily,FontSlant,Int)</code> describes a font
+-- | A tuple of @(FontFamily,FontSlant,Int)@ describes a font
 -- with its font family, font slant and points.
 instance FontDesignator (FontFamily,FontSlant,Int) where
----
--- Internal.
+  -- | Internal.
   toFont (ch, sl, po) =
     toFont (xfont {family = Just ch, slant = Just sl, points = (Just po)})
 
@@ -132,8 +104,7 @@ instance FontDesignator (FontFamily,FontSlant,Int) where
 -- X Font Construction
 -- -----------------------------------------------------------------------
 
----
--- Standard font.
+-- | Standard font.
 xfont :: XFont
 xfont = XFont {
                 foundry = "Adobe",
@@ -155,25 +126,19 @@ xfont = XFont {
 -- Font Instantations
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Font where
----
--- Internal.
+  -- | Internal.
   cdefault = toFont xfont
 
----
--- Internal.
+-- | Internal.
 instance Show Font where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Font c) r = c ++ r
 
----
--- Internal.
+-- | Internal.
 instance Read Font where
----
--- Internal.
+   -- | Internal.
    readsPrec p str = [(Font str,[])] 
 
 
@@ -181,18 +146,14 @@ instance Read Font where
 -- XFont Instantations
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIValue XFont where
----
--- Internal.
+  -- | Internal.
   cdefault = read "-Adobe-Helvetica-Normal-R-Normal-*-*-120-*-*-*-*-*-*"
 
----
--- Internal.
+-- | Internal.
 instance Show XFont where
----
--- Internal.
+   -- | Internal.
    showsPrec d c r = cshow c ++ r
      where
         cshow (XFont fo fa we sl sw pi po xr yr sp cw cs) = 
@@ -203,11 +164,9 @@ instance Show XFont where
                where hy = "-"
         cshow (XFontAlias str) = str
 
----
--- Internal.
+-- | Internal.
 instance Read XFont where
----
--- Internal.
+   -- | Internal.
    readsPrec p str = [(cread (dropWhile isSpace str),[])] 
      where
         cread s@('-':str) = toXFont (split (== '-') str)
@@ -231,15 +190,12 @@ mread str = Just (read str)
 -- FontWeight
 -- -----------------------------------------------------------------------
 
----
--- The <code>FontWeight</code> datatype.
+-- | The @FontWeight@ datatype.
 data FontWeight = NormalWeight | Medium | Bold
 
----
--- Internal.
+-- | Internal.
 instance Read FontWeight where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) (map toLower b) of
         'n':'o':'r':'m':'a':'l':xs -> [(NormalWeight,xs)]
@@ -247,11 +203,9 @@ instance Read FontWeight where
         'b':'o':'l':'d':xs -> [(Bold,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show FontWeight where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
         NormalWeight -> "Normal" 
@@ -259,11 +213,9 @@ instance Show FontWeight where
         Bold -> "Bold"
         ) ++ r
 
----
--- Internal.
+-- | Internal.
 instance GUIValue FontWeight where
----
--- Internal.
+  -- | Internal.
   cdefault = NormalWeight
 
 
@@ -271,8 +223,7 @@ instance GUIValue FontWeight where
 --  FontFamily
 -- -----------------------------------------------------------------------
 
----
--- The <code>FontFamily</code> datatype.
+-- | The @FontFamily@ datatype.
 data FontFamily =
     Lucida
   | Times
@@ -281,11 +232,9 @@ data FontFamily =
   | Symbol
   | Other String
 
----
--- Internal.
+-- | Internal.
 instance Read FontFamily where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) (map toLower b) of
         'l':'u':'c':'i':'d':'a':xs -> [(Lucida,xs)]
@@ -295,11 +244,9 @@ instance Read FontFamily where
         's':'y':'m':'b':'o':'l':xs -> [(Symbol,xs)]
         fstr -> [(Other fstr, [])]
 
----
--- Internal.
+-- | Internal.
 instance Show FontFamily where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
         Lucida -> "Lucida" 
@@ -310,11 +257,9 @@ instance Show FontFamily where
         Other fstr -> fstr
         ) ++ r
 
----
--- Internal.
+-- | Internal.
 instance GUIValue FontFamily where
----
--- Internal.
+  -- | Internal.
   cdefault = Courier
 
 
@@ -322,15 +267,12 @@ instance GUIValue FontFamily where
 -- FontSlant
 -- -----------------------------------------------------------------------
 
----
--- The <code>FontSlant</code> datatype.
+-- | The @FontSlant@ datatype.
 data FontSlant = Roman | Italic | Oblique
 
----
--- Internal.
+-- | Internal.
 instance Read FontSlant where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) (map toLower b) of
         'r':xs -> [(Roman,xs)]
@@ -338,11 +280,9 @@ instance Read FontSlant where
         'o':xs -> [(Oblique,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show FontSlant where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
         Roman -> "R" 
@@ -350,11 +290,9 @@ instance Show FontSlant where
         Oblique -> "O"
         ) ++ r
 
----
--- Internal.
+-- | Internal.
 instance GUIValue FontSlant where
----
--- Internal.
+  -- | Internal.
   cdefault = Roman
 
 
@@ -362,15 +300,12 @@ instance GUIValue FontSlant where
 -- FontWidth
 -- -----------------------------------------------------------------------
 
----
--- The <code>FontWidth</code> datatype.
+-- | The @FontWidth@ datatype.
 data FontWidth = NormalWidth | Condensed | Narrow
 
----
--- Internal.
+-- | Internal.
 instance Read FontWidth where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) (map toLower b) of
         'n':'o':'r':'m':'a':'l':xs -> [(NormalWidth,xs)]
@@ -378,11 +313,9 @@ instance Read FontWidth where
         'n':'a':'r':'r':'o':'w':xs -> [(Narrow,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show FontWidth where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
         NormalWidth -> "Normal" 
@@ -390,11 +323,9 @@ instance Show FontWidth where
         Narrow -> "Narrow"
         ) ++ r
 
----
--- Internal.
+-- | Internal.
 instance GUIValue FontWidth where
----
--- Internal.
+  -- | Internal.
   cdefault = NormalWidth
 
 
@@ -402,35 +333,28 @@ instance GUIValue FontWidth where
 -- FontSpacing
 -- -----------------------------------------------------------------------
 
----
--- The <code>FontSpacing</code> datatype.
+-- | The @FontSpacing@ datatype.
 data FontSpacing = MonoSpace | Proportional
 
----
--- Internal.
+-- | Internal.
 instance Read FontSpacing where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) (map toLower b) of
         'm':xs -> [(MonoSpace,xs)]
         'p':xs -> [(Proportional,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show FontSpacing where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
         MonoSpace -> "M" 
         Proportional -> "P"
         ) ++ r
 
----
--- Internal.
+-- | Internal.
 instance GUIValue FontSpacing where
----
--- Internal.
+  -- | Internal.
   cdefault =  MonoSpace

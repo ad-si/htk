@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- This module exports basic types and classes on index positions, e.g.
+-- | This module exports basic types and classes on index positions, e.g.
 -- inside an editor or entry widget.
 module Index (
 
@@ -34,11 +23,9 @@ import Char
 -- HasIndex
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 class HasIndex w i b where
----
--- Internal.
+  -- | Internal.
   getBaseIndex :: w -> i -> IO b
 
 
@@ -46,32 +33,25 @@ class HasIndex w i b where
 -- Index: End of text
 -- -----------------------------------------------------------------------
 
----
--- The <code>EndOfText</code> datatype - a handle indexing the last
+-- | The @EndOfText@ datatype - a handle indexing the last
 -- position inside the concerned widget.
 data EndOfText = EndOfText deriving Eq
 
----
--- Internal.
+-- | Internal.
 instance Show EndOfText where
----
--- Internal.
+  -- | Internal.
   showsPrec d _ r = "end" ++ r 
 
----
--- Internal.
+-- | Internal.
 instance Read EndOfText where
----
--- Internal.
+  -- | Internal.
   readsPrec p str = 
     case str of ('e':'n':'d':xs) -> [(EndOfText,xs)]
                 _ -> []
 
----
--- Internal.
+-- | Internal.
 instance GUIValue EndOfText where
----
--- Internal.
+  -- | Internal.
   cdefault = EndOfText
 
 
@@ -79,16 +59,13 @@ instance GUIValue EndOfText where
 -- Index: Pixels i.e. @x,y for listbox and text widgets
 -- -----------------------------------------------------------------------
 
----
--- The <code>Pixels</code> datatype - a handle indexing a position inside
+-- | The @Pixels@ datatype - a handle indexing a position inside
 -- a widget with its coordinates.
 data Pixels = Pixels Distance Distance
 
----
--- Internal.
+-- | Internal.
 instance Show Pixels where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Pixels x y) r = "@" ++ show x ++ "," ++ show y ++ r
 
 
@@ -96,16 +73,13 @@ instance Show Pixels where
 -- Index: First, for entry and text widgets
 -- -----------------------------------------------------------------------
 
----
--- The <code>First</code> datatype - a handle indexing the first entry
+-- | The @First@ datatype - a handle indexing the first entry
 -- e.g. inside a listbox.
 data First = First 
 
----
--- Internal.
+-- | Internal.
 instance Show First where
----
--- Internal.
+   -- | Internal.
    showsPrec d _ r = "first" ++ r
         
 
@@ -113,16 +87,13 @@ instance Show First where
 -- Index: Last, for entry and text widgets
 -- -----------------------------------------------------------------------
 
----
--- The <code>Last</code> datatype - a handle indexing the last entry
+-- | The @Last@ datatype - a handle indexing the last entry
 -- e.g. inside a listbox.
 data Last = Last 
 
----
--- Internal.
+-- | Internal.
 instance Show Last where
----
--- Internal.
+   -- | Internal.
    showsPrec d _ r = "first" ++ r
         
 
@@ -130,37 +101,30 @@ instance Show Last where
 -- BaseIndex
 -- -----------------------------------------------------------------------
 
----
--- The <code>BaseIndex</code> datatype - an index handle specified by
+-- | The @BaseIndex@ datatype - an index handle specified by
 -- an index number, an index position (line, char) or an index text (see
 -- text marks).
 data BaseIndex =
-          IndexNo Int                   --' entries, listboxes
-        | IndexPos Position             --' text widgets
-        | IndexText String              --' listboxes, "end" etc.
+          IndexNo Int                   -- ^ entries, listboxes
+        | IndexPos Position             -- ^ text widgets
+        | IndexText String              -- ^ listboxes, "end" etc.
 
----
--- Internal.
+-- | Internal.
 instance GUIValue BaseIndex where
----
--- Internal.
+  -- | Internal.
   cdefault = IndexNo 0
 
----
--- Internal.
+-- | Internal.
 instance Show BaseIndex where
----
--- Internal.
+   -- | Internal.
    showsPrec d c r = cshow c ++ r where
         cshow (IndexNo i) = show i
         cshow (IndexPos (x,y)) = show x ++ "." ++ show y
         cshow (IndexText s) = s
 
----
--- Internal.
+-- | Internal.
 instance Read BaseIndex where
----
--- Internal.
+    -- | Internal.
     readsPrec p str = [(cread str,[])] where
         cread (s @ (x:l)) | isDigit x =
                 case map read (split (== '.') s) of

@@ -107,8 +107,7 @@ shutdown =
 -- --------------------------------------------------------------------------
 
 
----
--- register the given action to be done at shutdown.  The returned action
+-- | register the given action to be done at shutdown.  The returned action
 -- cancels the registration (without performing the given action).
 registerDestroyAct :: IO () -> IO (IO ())
 registerDestroyAct act =

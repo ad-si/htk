@@ -26,10 +26,9 @@ import MenuType
 -- The HTkMenu type
 -- ----------------------------------------------------------------------
 
----
--- Describes a menu to be compiled.  
+-- | Describes a menu to be compiled.  
 -- The value identifies the buttons in the menu so the client
---    can tell which was clicked.
+-- can tell which was clicked.
 -- The String is a title which is given to menu cascades.
 newtype HTkMenu value = HTkMenu (MenuPrim String value)
 
@@ -37,8 +36,7 @@ newtype HTkMenu value = HTkMenu (MenuPrim String value)
 -- compileHTkMenu
 -- ----------------------------------------------------------------------
 
----
--- compileHTkMenu compiles a menu to a MenuButton.  It does not display it;
+-- | compileHTkMenu compiles a menu to a MenuButton.  It does not display it;
 -- the caller should pack the MenuButton in the parent with whatever options
 -- are desired.
 compileHTkMenu :: Container parent => parent -> HTkMenu value 
@@ -52,8 +50,7 @@ compileHTkMenu parent htkMenu =
       clickEvents <- mapM (compileMenuPrim topMenu) subMenus
       return (menuButton,choose clickEvents)
 
----
--- normalise decomposes the menu into a title plus a list of submenus.
+-- | normalise decomposes the menu into a title plus a list of submenus.
 normalise :: HTkMenu value -> (String,[MenuPrim String value])
 normalise (HTkMenu menuPrim) = 
    case menuPrim of 
@@ -62,14 +59,12 @@ normalise (HTkMenu menuPrim) =
       Blank -> ("",[Blank])
 
 
----
--- Set tearoff if we want tearoff menus, which means ones which open a
+-- | Set tearoff if we want tearoff menus, which means ones which open a
 -- new top-level window.
 tearoff :: Bool
 tearoff = False
 
----
--- Compiles the menu and inserts it into the parent (which is itself a menu),
+-- | Compiles the menu and inserts it into the parent (which is itself a menu),
 -- returning the event click operation
 compileMenuPrim :: Menu -> MenuPrim String value -> IO (Event value)
 compileMenuPrim parent menuPrim =

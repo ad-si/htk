@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>ComboBox</strong>.<br>
+-- | HTk\'s /ComboBox/.
 -- Only available when using tixwish.
 module ComboBox (
 
@@ -36,8 +25,7 @@ import Tooltip
 -- datatype
 -- -----------------------------------------------------------------------
 
----
--- The <code>ComboBox</code> datatype.
+-- | The @ComboBox@ datatype.
 newtype GUIValue a => ComboBox a = ComboBox GUIOBJECT deriving Eq
 
 
@@ -45,15 +33,17 @@ newtype GUIValue a => ComboBox a = ComboBox GUIOBJECT deriving Eq
 -- combo box creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new combo box and returns a handler.
--- @param cnf      - the list of configuration options for this
---                 - combo box.
--- @param editable - true if the user should be allowed to type into the
---                 - entry of the ComboBox. 
--- @return result  - A combo box.
+-- | Constructs a new combo box and returns a handler.
 newComboBox :: (GUIValue a, Container par) =>
-               par -> Bool -> [Config (ComboBox a)] -> IO (ComboBox a)
+   par 
+   -- ^ the list of configuration options for this
+   -- combo box.
+   -> Bool 
+   -- ^ true if the user should be allowed to type into the
+   -- entry of the ComboBox. 
+   -> [Config (ComboBox a)] 
+   -> IO (ComboBox a)
+   -- ^ A combo box.
 newComboBox par editable cnf =
   do
     w <- createGUIObject (toGUIObject par) (COMBOBOX editable)
@@ -65,8 +55,7 @@ newComboBox par editable cnf =
 -- combo box specific commands and options
 -- -----------------------------------------------------------------------
 
----
--- Sets the index item in the listbox to be the current value of the
+-- | Sets the index item in the listbox to be the current value of the
 -- ComboBox.
 pick :: GUIValue a => Int -> Config (ComboBox a)
 pick i cb = execMethod cb (\nm -> tkPick nm i) >> return cb
@@ -92,66 +81,50 @@ comboBoxMethods = Methods (cgetCmd defMethods)
 -- combo box instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject (ComboBox a) where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (ComboBox f) = f
----
--- Internal.
+  -- | Internal.
   cname _ = "ComboBox"
 
----
--- The value of a combo box is the list of the displayed objects (these
--- are instances of class <code>GUIValue</code> and therefore instances
--- of class <code>Show</code>).
+-- | The value of a combo box is the list of the displayed objects (these
+-- are instances of class @GUIValue@ and therefore instances
+-- of class @Show@).
 instance (GUIValue a, GUIValue [a]) => HasValue (ComboBox a) [a] where
   value vals w =
     execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
----
--- Gets the list of displayed objects.
+  -- | Gets the list of displayed objects.
   getValue w = evalMethod w (\nm -> tkGet nm)
 
----
--- A combo box has standard widget properties (focus, cursor, ...).
+-- | A combo box has standard widget properties (focus, cursor, ...).
 instance Widget (ComboBox a)
 
----
--- A combo box widget can be destroyed.
+-- | A combo box widget can be destroyed.
 instance Destroyable (ComboBox a) where
----
--- Destroys a combo box widget.
+  -- | Destroys a combo box widget.
   destroy = destroy . toGUIObject
 
----
--- A combo box widget has a configureable border.
+-- | A combo box widget has a configureable border.
 instance HasBorder (ComboBox a)
 
----
--- A combo box widget has a text anchor.
+-- | A combo box widget has a text anchor.
 instance HasAnchor (ComboBox a)
 
----
--- A combo box widget has a background colour.
+-- | A combo box widget has a background colour.
 instance HasColour (ComboBox a) where 
----
--- Internal.
+  -- | Internal.
   legalColourID = hasBackGroundColour
 
----
--- You can specify the size of a combo box widget-
+-- | You can specify the size of a combo box widget-
 instance HasSize (ComboBox a)
 
----
--- You can synchronize on a combo box widget.
+-- | You can synchronize on a combo box widget.
 instance Synchronized (ComboBox a) where
----
--- Synchronizes on a combo box widget.
+  -- | Synchronizes on a combo box widget.
   synchronize = synchronize . toGUIObject
 
----
--- A combo box widget is a stateful widget, it can be enabled or disabled.
+-- | A combo box widget is a stateful widget, it can be enabled or disabled.
 instance HasEnable (ComboBox a)
 
 

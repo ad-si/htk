@@ -45,11 +45,10 @@ import View
 import MergeTypes
 import MergeReAssign
 
----
--- Do all the work of merging, checking out views before merging as
+-- | Do all the work of merging, checking out views before merging as
 -- necessary.
---
--- For the time being, we permit only ObjectVersion's to be merged.
+-- 
+-- For the time being, we permit only ObjectVersion\'s to be merged.
 -- The reason for this is we cannot guarantee that identical nodes have a 
 -- unique distinguishing originating version (as returned by 
 -- Link.getLastChange)

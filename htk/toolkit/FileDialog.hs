@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>file dialog box</strong>.
+-- | HTk\'s /file dialog box/.
 module FileDialog (
   fileDialogStr,
   newFileDialogStr,
@@ -336,58 +325,64 @@ confirmDeleteFile par fp childwindow ret =
        modalDialog main True listenDialog)
 
 
----
--- Opens a file dialog box for a file which is to be created.
--- @param title   - the window title of the file dialog box.
--- @param fp      - the filepath to browse.
--- @return result - An event (returning the selected FilePath if
---                  available) that is invoked when the file dialog is
---                  finished.
-newFileDialogStr :: String -> FilePath -> IO (Event (Maybe FilePath))
+-- | Opens a file dialog box for a file which is to be created.
+newFileDialogStr :: String 
+   -- ^ the window title of the file dialog box.
+   -> FilePath 
+   -- ^ the filepath to browse.
+   -> IO (Event (Maybe FilePath))
+   -- ^ An event (returning the selected FilePath if
+   -- available) that is invoked when the file dialog is
+   -- finished.
 newFileDialogStr title fp = do pr <- newRef fp 
                                fileDialog' True title pr
 
----
--- Opens a file dialog box for a file which should already exist.
--- @param title   - the window title of the file dialog box.
--- @param fp      - the filepath to browse.
--- @return result - An event (returning the selected FilePath if
---                  available) that is invoked when the file dialog is
---                  finished.
-fileDialogStr :: String -> FilePath -> IO (Event (Maybe FilePath))
+-- | Opens a file dialog box for a file which should already exist.
+fileDialogStr :: String 
+   -- ^ the window title of the file dialog box.
+   -> FilePath 
+   -- ^ the filepath to browse.
+   -> IO (Event (Maybe FilePath))
+   -- ^ An event (returning the selected FilePath if
+   -- available) that is invoked when the file dialog is
+   -- finished.
 fileDialogStr title fp = do pr <- newRef fp 
 			    fileDialog' False title pr
 
----
--- Opens a file dialog box for a file which is to be created.
--- @param title   - the window title of the file dialog box.
--- @param fp      - refernce to filepath to browse.
--- @return result - An event (returning the selected FilePath if
---                  available) that is invoked when the file dialog is
---                  finished.
-newFileDialog :: String -> Ref FilePath -> IO (Event (Maybe FilePath))
+-- | Opens a file dialog box for a file which is to be created.
+newFileDialog :: String 
+   -- ^ the window title of the file dialog box.
+   -> Ref FilePath 
+   -- ^ refernce to filepath to browse.
+   -> IO (Event (Maybe FilePath))
+   -- ^ An event (returning the selected FilePath if
+   -- available) that is invoked when the file dialog is
+   -- finished.
 newFileDialog = fileDialog' True
 
----
--- Opens a file dialog box for a file which should already exist.
--- @param title   - the window title of the file dialog box.
--- @param fp      - reference to filepath to browse.
--- @return result - An event (returning the selected FilePath if
---                  available) that is invoked when the file dialog is
---                  finished.
-fileDialog :: String -> Ref FilePath -> IO (Event (Maybe FilePath))
+-- | Opens a file dialog box for a file which should already exist.
+fileDialog :: String 
+   -- ^ the window title of the file dialog box.
+   -> Ref FilePath 
+   -- ^ reference to filepath to browse.
+   -> IO (Event (Maybe FilePath))
+   -- ^ An event (returning the selected FilePath if
+   -- available) that is invoked when the file dialog is
+   -- finished.
 fileDialog = fileDialog' False
 
 
----
--- Opens a file dialog box.
--- @param isNew   - True if the file is new, False if it should already exist.
--- @param title   - the window title of the file dialog box.
--- @param fpref   - reference to the filepath to browse.
--- @return result - An event (returning the selected FilePath if
---                  available) that is invoked when the file dialog is
---                  finished.
-fileDialog' :: Bool -> String -> Ref FilePath -> IO (Event (Maybe FilePath))
+-- | Opens a file dialog box.
+fileDialog' :: Bool 
+   -- ^ True if the file is new, False if it should already exist.
+   -> String 
+   -- ^ the window title of the file dialog box.
+   -> Ref FilePath 
+   -- ^ reference to the filepath to browse.
+   -> IO (Event (Maybe FilePath))
+   -- ^ An event (returning the selected FilePath if
+   -- available) that is invoked when the file dialog is
+   -- finished.
 fileDialog' isNew title pathref =
   do
     fp <- getRef pathref

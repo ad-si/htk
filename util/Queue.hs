@@ -119,13 +119,11 @@ insertAtEndQ (Queue fl rl) next = Queue fl (next:rl)
 -- --------------------------------------------------------------------------
 
 
----
--- Converts a list to a queue with the first element of the list the
+-- | Converts a list to a queue with the first element of the list the
 -- first element of the queue.
 listToQueue :: [a] -> Queue a
 listToQueue xs = foldl insertQ emptyQ xs 
 
----
--- Inverts listToQueue
+-- | Inverts listToQueue
 queueToList :: Queue a -> [a]
 queueToList (Queue fl rl) = rl ++ reverse fl

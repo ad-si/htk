@@ -26,9 +26,8 @@ import TextDisplay
 import HTk
 import DialogWin
 
----
--- Run a tool, return ExitCode and tool output.
---
+-- | Run a tool, return ExitCode and tool output.
+-- 
 -- The first String is the title of the tool.
 -- The second String is the command to run.
 runTool :: String-> String-> IO (ExitCode, String)
@@ -41,9 +40,8 @@ runTool title command =
       output   <- takeMVar toolOutputMVar
       return (exitCode, unlines (reverse output ))
 
----
--- Run a command; all output is considered error reporting,
---
+-- | Run a command; all output is considered error reporting,
+-- 
 -- We return True if the command succeeds; IE returns with exit code
 -- ExitSuccess.
 runCommand :: String -> String -> IO Bool

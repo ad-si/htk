@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Basic input window for record values and their fields.
+-- | Basic input window for record values and their fields.
 module InputWin (
         module InputForm,
 
@@ -36,8 +25,7 @@ import Separator
 -- Data Type
 -- ---------------------------------------------------------------------------
 
----
--- The <code>InputWin</code> datatype.
+-- | The @InputWin@ datatype.
 data InputWin a = InputWin {
                             fWindow :: Toplevel,
 		  	    fForm   :: InputForm a,
@@ -48,27 +36,27 @@ data InputWin a = InputWin {
 -- Instantiations
 -- ---------------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject (InputWin a) where
----
--- Internal.
+        -- | Internal.
         toGUIObject iwin = toGUIObject (fWindow iwin)
----
--- Internal.
+        -- | Internal.
         cname iwin = cname (fWindow iwin)
 
 -- ---------------------------------------------------------------------------
 -- Constructor
 -- ---------------------------------------------------------------------------
----
--- Create an <code>InputWindow</code> with a generic message box title
--- @param  msg      - the message for the headline
--- @param  hdconfs  - configs for the header message, e.g. font or aspect
--- @param  ifun     - the <code>InputForm</code>-function
--- @param  tpconfs  - configuration for the toplevel (e.g. title)
--- @return result   - the <code>InputWindow</code> and <code>InputForm</code>
-createInputWin' ::  String-> [Config Message]-> (Box -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a, InputForm a)
+-- | Create an @InputWindow@ with a generic message box title
+createInputWin' ::  String
+   -- ^ the message for the headline
+   -> [Config Message]
+   -- ^ configs for the header message, e.g. font or aspect
+   -> (Box -> IO (InputForm a)) 
+   -- ^ the @InputForm@-function
+   -> [Config Toplevel] 
+   -- ^ configuration for the toplevel (e.g. title)
+   -> IO (InputWin a, InputForm a)
+   -- ^ the @InputWindow@ and @InputForm@
 createInputWin' str hdconfs ifun tpconfs =
  delayWish $ do
   tp <- createToplevel ([text "Input Form Window"]++tpconfs)
@@ -128,23 +116,27 @@ createInputWin' str hdconfs ifun tpconfs =
 
 
 -- Create an <code>InputWindow</code>, title given as a string
--- @param  str      - the title
--- @param  ifun     - the <code>InputForm</code>-function
--- @param  tpconfs  - configuration for the toplevel
--- @return result   - the <code>InputWindow</code> and <code>InputForm</code>
-createInputWin :: String-> (Box -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a, InputForm a)
+createInputWin :: String
+   -- ^ the title
+   -> (Box -> IO (InputForm a)) 
+   -- ^ the @InputForm@-function
+   -> [Config Toplevel] 
+   -- ^ configuration for the toplevel
+   -> IO (InputWin a, InputForm a)
+   -- ^ the @InputWindow@ and @InputForm@
 createInputWin str =  createInputWin' str [] 
 
 
 -- ---------------------------------------------------------------------------
 -- Additional Funcitons
 -- ---------------------------------------------------------------------------
----
--- Wait for the user to end the dialog.
--- @param win       - the <code>InputWindow</code> to wait for
--- @param modality  - grep focus
--- @return result   - Nothing or Just (the data stored in the <code>IputForm</code>)
-wait :: InputWin a -> Bool -> IO (Maybe a)
+-- | Wait for the user to end the dialog.
+wait :: InputWin a 
+   -- ^ the @InputWindow@ to wait for
+   -> Bool 
+   -- ^ grep focus
+   -> IO (Maybe a)
+   -- ^ Nothing or Just (the data stored in the @IputForm@)
 wait win@(InputWin tp form@(InputForm b e) ev) modality = do
  -- before we can question a user we should fill all the fields with
  -- their initial values (to be done automatically)
@@ -152,13 +144,15 @@ wait win@(InputWin tp form@(InputForm b e) ev) modality = do
  initiate form (fFormValue fst)
  internalWait win (const (return True)) modality
 
----
--- Wait for the user to end the dialog, and validate the result
--- @param win       - the <code>InputWindow</code> to wait for
--- @param modality  - grep focus
--- @param validate  - check the value of the form
--- @return result   - Nothing or Just (the data stored in the <code>IputForm</code>)
-waitValidate :: InputWin a -> (a-> IO Bool)-> Bool -> IO (Maybe a)
+-- | Wait for the user to end the dialog, and validate the result
+waitValidate :: InputWin a 
+   -- ^ the @InputWindow@ to wait for
+   -> (a-> IO Bool)
+   -- ^ grep focus
+   -> Bool 
+   -- ^ check the value of the form
+   -> IO (Maybe a)
+   -- ^ Nothing or Just (the data stored in the @IputForm@)
 waitValidate win@(InputWin tp form@(InputForm b e) ev) validate  modality = do
  -- before we can question a user we should fill all the fields with
  -- their initial values (to be done automatically)

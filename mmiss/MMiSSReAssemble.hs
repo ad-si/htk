@@ -16,25 +16,24 @@ import MMiSSDTDAssumptions
 import MMiSSVariant
 import MMiSSElementInfo(changeLabel)
 
----
--- The first action function is to extract the Element and is allowed to 
+-- | The first action function is to extract the Element and is allowed to 
 -- return Nothing.  This 
--- means don't expand.   It will provoke an error if it does this for the
+-- means don\'t expand.   It will provoke an error if it does this for the
 -- very top element however, since then we have no Element to return.
---
+-- 
 -- The second action function is called for each reference to a graphics
 -- file within an element.
---
+-- 
 -- The search data is threaded down through containing elements.
 -- So for example if getElement name1 search1 generates (element2,search2),
 -- we apply getElement again on names contained in element2 with search2.
---
+-- 
 -- MMiSSObjects.printAction uses a horrible trick which assumes that the
 -- children of an Element are visited in the order supplied.
---
+-- 
 -- MMiSSObjects.printAction and MMiSSReadObject.readObject both assume that
--- the first time we call getElement is on the head element.  But that's
--- OK, as we couldn't do it any other way.
+-- the first time we call getElement is on the head element.  But that\'s
+-- OK, as we couldn\'t do it any other way.
 reAssemble :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 
       -> IO (WithError (Maybe (Element,searchData)))) 
@@ -169,8 +168,7 @@ reAssemble
             elementOptWE
             )
 
----
--- reAssembleNoRecursion is like reAssemble, but it also checks that there
+-- | reAssembleNoRecursion is like reAssemble, but it also checks that there
 -- are no names which are recursively expanded.
 reAssembleNoRecursion :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 

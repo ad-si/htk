@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>frame</strong> widget.<br>
+-- | HTk\'s /frame/ widget.
 -- A frame is a simple container for widgets.
 module Frame (
 
@@ -32,8 +21,7 @@ import Packer
 -- type Frame
 -- -----------------------------------------------------------------------
 
----
--- The <code>Frame</code> datatype.
+-- | The @Frame@ datatype.
 data Frame = Frame GUIOBJECT deriving Eq
 
 
@@ -41,13 +29,14 @@ data Frame = Frame GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new frame widget and returns a handler.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this frame.
--- @return result - A frame widget.
-newFrame :: Container par => par -> [Config Frame] -> IO Frame
+-- | Constructs a new frame widget and returns a handler.
+newFrame :: Container par => par 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   -> [Config Frame] 
+   -- ^ the list of configuration options for this frame.
+   -> IO Frame
+   -- ^ A frame widget.
 newFrame par confs =
   do
     w <- createWidget (toGUIObject par) FRAME
@@ -58,52 +47,39 @@ newFrame par confs =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject Frame where
----
--- Internal.
+  -- | Internal.
   toGUIObject (Frame w) = w 
----
--- Internal.
+  -- | Internal.
   cname _ = "Frame"
 
----
--- A frame widget can be destroyed.
+-- | A frame widget can be destroyed.
 instance Destroyable Frame where
----
--- Destroys a frame widget.
+  -- | Destroys a frame widget.
   destroy   = destroy . toGUIObject
 
----
--- A frame widget has standard widget properties
+-- | A frame widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget Frame
 
----
--- A frame widget is a container for widgets. You can pack widgets to
+-- | A frame widget is a container for widgets. You can pack widgets to
 -- a frame widget via pack or grid command in the
--- <code>module Packer</code>.
+-- @module Packer@.
 instance Container Frame
 
----
--- A frame widget has a configureable border.
+-- | A frame widget has a configureable border.
 instance HasBorder Frame
 
----
--- A frame widget has a background colour.
+-- | A frame widget has a background colour.
 instance HasColour Frame where 
----
--- Internal.
+  -- | Internal.
   legalColourID = hasBackGroundColour
 
----
--- You can specify the size of a frame.
+-- | You can specify the size of a frame.
 instance HasSize Frame
 
----
--- You can synchronize on a frame object.
+-- | You can synchronize on a frame object.
 instance Synchronized Frame where
----
--- Synchronizes on a frame object.
+  -- | Synchronizes on a frame object.
   synchronize = synchronize . toGUIObject

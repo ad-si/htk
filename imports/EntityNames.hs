@@ -75,28 +75,26 @@ import SimpleForm
 -- The types.
 -- ----------------------------------------------------------------------
 
----
--- Represented as a letter followed by a sequence of characters which may be 
--- letters, digits, '_', '-', ':' or '.'.  Letters and digits do not have to be
+-- | Represented as a letter followed by a sequence of characters which may be 
+-- letters, digits, \'_\', \'-\', \':\' or \'.\'.  Letters and digits do not have to be
 -- ASCII; any Unicode letters or digits are permitted.
---
--- "Root", "Parent" or "Current" are forbidden in the written representation.
+-- 
+-- \"Root\", \"Parent\" or \"Current\" are forbidden in the written representation.
 -- However they can arise internally though prefixing by a module which has
 -- such components in its name.
---
--- Example EntityName's: "a", "bc", "z9_", "þ1", "cxl.gif".
+-- 
+-- Example EntityName\'s: \"a\", \"bc\", \"z9_\", \"þ1\", \"cxl.gif\".
 newtype EntityName = EntityName String deriving (Eq,Ord,Typeable,Show)
 
----
--- An EntityFullName represents a path from an object to
+-- | An EntityFullName represents a path from an object to
 -- some object within it.
---
--- If the path is non-empty, it is represented as a sequence of EntityName's 
--- separated by '/' (but spaces are not allowed).
---
--- Example EntityFullName's: "a", "a/bc", "z9_/q".
---
--- If the path is empty it is represented by "Current" or "Root".
+-- 
+-- If the path is non-empty, it is represented as a sequence of EntityName\'s 
+-- separated by \'\/\' (but spaces are not allowed).
+-- 
+-- Example EntityFullName\'s: \"a\", \"a\/bc\", \"z9_\/q\".
+-- 
+-- If the path is empty it is represented by \"Current\" or \"Root\".
 -- 
 newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 

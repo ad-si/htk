@@ -880,8 +880,7 @@ fullTitle file = unsplitExtension (title file) (typeTag . mmissFileType $ file)
 typeTag :: MMiSSFileType -> String
 typeTag = fileTypeTag . fileType
 
----
--- Return the key in the global registry for objects with this tag
+-- | Return the key in the global registry for objects with this tag
 constructKey :: String -> GlobalKey
 constructKey tag = oneOffKey "MMiSSFiles" tag
 

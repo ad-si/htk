@@ -108,8 +108,7 @@ getExtentType :: EmacsSession -> String -> IO String
 getExtentType emacsSession this =
    evalEmacsQuick emacsSession (Prin ("uni-get-extent-id-type",this))
 
----
--- Like containerContents, but also returns a Bool for each link indicating 
+-- | Like containerContents, but also returns a Bool for each link indicating 
 -- True if the object is expanded here.
 containerFullContents :: EmacsSession -> String 
    -> IO (EmacsContent (Bool,String))
@@ -119,8 +118,7 @@ containerFullContents emacsSession this =
          (Prin ("uni-container-contents",this))
       return (parseEmacsContentGeneral str)
 
----
--- Returns True if a container is modified
+-- | Returns True if a container is modified
 isModified :: EmacsSession -> String -> IO Bool
 isModified emacsSession this =
    do
@@ -132,8 +130,7 @@ isModified emacsSession this =
          _ -> error ("Extents.isModified: unexpected Emacs return "++str)
          )
 
----
--- Unmodify a container
+-- | Unmodify a container
 unmodify :: EmacsSession -> String -> IO ()
 unmodify emacsSession this =
    execEmacs emacsSession ("uni-unmodify-container",this)

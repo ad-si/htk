@@ -90,8 +90,7 @@ compileFormatString str =
                )
             (compileFromEscape s2)
          
----
--- Return portion up to (not including) first %, and portion after it.
+-- | Return portion up to (not including) first %, and portion after it.
 splitToDollar :: String -> Maybe (String,String)
 splitToDollar "" = Nothing
 splitToDollar ('%':rest) = Just ("",rest)
@@ -178,8 +177,7 @@ chEmacsEscape ch =
                   "Character with enormous character code can't be emacs-escaped"
 
 
----
--- Converts character to representation.
+-- | Converts character to representation.
 toOctal :: Char -> String
 toOctal ch =
    -- We can't use Numeric.showOpt because GHC5.02.1 doesn't

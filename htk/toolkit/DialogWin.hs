@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Basic dialog window and a couple of predefined abstractions.
+-- | Basic dialog window and a couple of predefined abstractions.
 module DialogWin (
         Dialog,
 
@@ -52,13 +41,11 @@ import Separator
 --  Types 
 -- --------------------------------------------------------------------------
 
----
--- A <code>Choice</code> represents the name of a button (<code>String</code>) and the
+-- | A @Choice@ represents the name of a button (@String@) and the
 -- value returned when this button is pressed.
 type Choice a = (String,a)
 
----
--- The <code>Dialog</code> datatype.
+-- | The @Dialog@ datatype.
 data Dialog a = Dialog {
                         fWindow    :: Toplevel,
                         fEditor    :: Maybe Editor,  -- we only have 
@@ -71,23 +58,18 @@ data Dialog a = Dialog {
 -- --------------------------------------------------------------------------
 --  Instances 
 -- --------------------------------------------------------------------------            
----
--- Internal.
+-- | Internal.
 instance GUIObject (Dialog a) where
----
--- Internal.
+        -- | Internal.
         toGUIObject dlg = toGUIObject (fWindow dlg)
----
--- Internal.
+        -- | Internal.
         cname dlg = cname (fWindow dlg)
 
----
--- A dialog can have an image
+-- | A dialog can have an image
 instance HasPhoto (Dialog a) where
         photo p dlg = do {fLabel dlg # photo p; return dlg}
 
----
--- The programm message is displayed as <code>MarkupText</code>
+-- | The programm message is displayed as @MarkupText@
 instance HasMarkupText (Dialog a) where
   new t dlg = 
     case fEditor dlg of 
@@ -95,8 +77,7 @@ instance HasMarkupText (Dialog a) where
       _      -> return dlg
 
 
----
--- The message displayed as plain text.
+-- | The message displayed as plain text.
 instance GUIValue v=> HasText (Dialog a) v where
   text t dlg = 
     case fMsg dlg of 
@@ -137,10 +118,11 @@ scrollText1 size str =
 -- --------------------------------------------------------------------------
 --  Derived Dialog Window 
 -- --------------------------------------------------------------------------
----
--- Constructs an alert window with the given text
--- @param str     - the text to be displayed
-createAlertWin :: String -> [Config Toplevel] -> IO ()
+-- | Constructs an alert window with the given text
+createAlertWin :: String 
+   -- ^ the text to be displayed
+   -> [Config Toplevel] 
+   -> IO ()
 createAlertWin str wol = createFn choices Nothing confs (defs ++ wol)
    where
        choices = [("Continue",())]
@@ -150,20 +132,22 @@ createAlertWin str wol = createFn choices Nothing confs (defs ++ wol)
        confs = [scrollConf,photo warningImg]
        createFn = if complex then createDialogWin' else createDialogWin
 
----
--- Constructs an alert window with the given markuptext
--- @param str     - the markuptext to be displayed
-createAlertWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+-- | Constructs an alert window with the given markuptext
+createAlertWin' :: [MarkupText] 
+   -- ^ the markuptext to be displayed
+   -> [Config Toplevel] 
+   -> IO ()
 createAlertWin' str wol = 
  createDialogWin' choices Nothing (confs++[photo warningImg]) (defs ++ wol)
   where choices = [("Continue",())]
         defs    = [text "Alert Window"]
         confs   = [new str]
 
----
--- Constructs an error window with the given text
--- @param str     - the text to be displayed
-createErrorWin :: String -> [Config Toplevel] -> IO ()
+-- | Constructs an error window with the given text
+createErrorWin :: String 
+   -- ^ the text to be displayed
+   -> [Config Toplevel] 
+   -> IO ()
 createErrorWin str wol = createFn choices Nothing confs (defs++wol)
     where 
        choices = [("Continue",())]
@@ -173,10 +157,11 @@ createErrorWin str wol = createFn choices Nothing confs (defs++wol)
        confs = [scrollConf,photo errorImg]
        createFn = if complex then createDialogWin' else createDialogWin
 
----
--- Constructs an error window with the given markuptext
--- @param str     - the markuptext to be displayed
-createErrorWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+-- | Constructs an error window with the given markuptext
+createErrorWin' :: [MarkupText] 
+   -- ^ the markuptext to be displayed
+   -> [Config Toplevel] 
+   -> IO ()
 createErrorWin' str wol = 
  createDialogWin' choices Nothing (confs++[photo errorImg]) (defs++wol)
  where choices = [("Continue",())]
@@ -184,24 +169,27 @@ createErrorWin' str wol =
        confs = [new str]
        
 
----
--- Constructs an warning window with the given text
--- @param str     - the text to be displayed
-createWarningWin :: String -> [Config Toplevel] -> IO ()
+-- | Constructs an warning window with the given text
+createWarningWin :: String 
+   -- ^ the text to be displayed
+   -> [Config Toplevel] 
+   -> IO ()
 createWarningWin str confs = createAlertWin str (text "Warning Message": confs)
 
----
--- Constructs an warning window with the given markuptext
--- @param str     - the markuptext to be displayed
-createWarningWin' :: [MarkupText] -> [Config Toplevel] -> IO ()
+-- | Constructs an warning window with the given markuptext
+createWarningWin' :: [MarkupText] 
+   -- ^ the markuptext to be displayed
+   -> [Config Toplevel] 
+   -> IO ()
 createWarningWin' str confs = 
   createAlertWin' str (text "Warning Message": confs)
 
----
--- Constructs an confirm window with the given text
--- @param str     - the text to be displayed
--- @return result - True(Ok) or False(Cancel)
-createConfirmWin :: String -> [Config Toplevel] -> IO Bool
+-- | Constructs an confirm window with the given text
+createConfirmWin :: String 
+   -- ^ the text to be displayed
+   -> [Config Toplevel] 
+   -> IO Bool
+   -- ^ True(Ok) or False(Cancel)
 createConfirmWin str wol = createFn choices (Just 0) confs (defs ++ wol)
     where 
        choices = [("Ok",True),("Cancel",False)]
@@ -211,22 +199,24 @@ createConfirmWin str wol = createFn choices (Just 0) confs (defs ++ wol)
        confs = [scrollConf,photo questionImg]
        createFn = if complex then createDialogWin' else createDialogWin
 
----
--- Constructs an confirm window with the given markuptext
--- @param str     - the markuptext to be displayed
--- @return result - True(Ok) or False(Cancel)
-createConfirmWin' :: [MarkupText] -> [Config Toplevel] -> IO Bool
+-- | Constructs an confirm window with the given markuptext
+createConfirmWin' :: [MarkupText] 
+   -- ^ the markuptext to be displayed
+   -> [Config Toplevel] 
+   -> IO Bool
+   -- ^ True(Ok) or False(Cancel)
 createConfirmWin' str wol = 
  createDialogWin' choices (Just 0) (confs++[photo questionImg]) (defs ++ wol)
  where choices = [("Ok",True),("Cancel",False)]
        defs    = [text "Confirm Window"]
        confs   = [new str]
 
----
--- Constructs a message (info) window with the given markuptext
--- @param str     - the markup text to be displayed
--- @return result - ()
-createMessageWin' :: [MarkupText]-> [Config Toplevel]-> IO ()
+-- | Constructs a message (info) window with the given markuptext
+createMessageWin' :: [MarkupText]
+   -- ^ the markup text to be displayed
+   -> [Config Toplevel]
+   -> IO ()
+   -- ^ ()
 createMessageWin' str wol =
  createDialogWin' [("Dismiss", ())] Nothing 
 	          [new str, photo infoImg] 
@@ -234,11 +224,12 @@ createMessageWin' str wol =
 
 
             
----
--- Constructs a message (info) window with the given string.
--- @param str     - the string to be displayed
--- @return result - ()
-createMessageWin :: String-> [Config Toplevel]-> IO ()
+-- | Constructs a message (info) window with the given string.
+createMessageWin :: String
+   -- ^ the string to be displayed
+   -> [Config Toplevel]
+   -> IO ()
+   -- ^ ()
 createMessageWin str wol = createFn [("Dismiss", ())] Nothing confs
       (text "Information": wol)
    where
@@ -247,28 +238,34 @@ createMessageWin str wol = createFn [("Dismiss", ())] Nothing confs
       createFn = if complex then createDialogWin' else createDialogWin
        
 
----
--- Constructs a new dialogue window for plain text
--- @param choices     - the available buttons in this window
--- @param def         - default button
--- @param confs       - the list of configuration options for this separator
--- @param wol         - the list of configuration options for the window
--- @return result     - 
-createDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
+-- | Constructs a new dialogue window for plain text
+createDialogWin :: [Choice a] 
+   -- ^ the available buttons in this window
+   -> Maybe Int 
+   -- ^ default button
+   -> [Config (Dialog a)] 
+   -- ^ the list of configuration options for this separator
+   -> [Config Toplevel] 
+   -- ^ the list of configuration options for the window
+   -> IO a
+   -- ^ 
 createDialogWin choices def confs wol = 
    do 
       dlg <- dialog True choices def confs wol
       result <- modalInteraction (fWindow dlg) True True (fEvents dlg)
       return result
 
----
--- Constructs a new dialow window for markup text
--- @param choices     - the available buttons in this window
--- @param def         - default button
--- @param confs       - the list of configuration options for this separator
--- @param wol         - the list of configuration options for the window
--- @return result     - 
-createDialogWin' :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO a
+-- | Constructs a new dialow window for markup text
+createDialogWin' :: [Choice a] 
+   -- ^ the available buttons in this window
+   -> Maybe Int 
+   -- ^ default button
+   -> [Config (Dialog a)] 
+   -- ^ the list of configuration options for this separator
+   -> [Config Toplevel] 
+   -- ^ the list of configuration options for the window
+   -> IO a
+   -- ^ 
 createDialogWin' choices def confs wol = 
    do 
       dlg <- dialog False choices def confs wol
@@ -279,15 +276,19 @@ createDialogWin' choices def confs wol =
 -- --------------------------------------------------------------------------
 --  Base Dialog Window 
 -- --------------------------------------------------------------------------
----
--- Creates a new dialogue with its label, text and buttons.
--- @param choices     - the available button in this window
--- @param plain       - true if we just want a label to display message, false if we want a fancy read-only text editor
--- @param def         - default button
--- @param confs       - the list of configuration options for this separator
--- @param tpconfs     - the list of configuration options for the window
--- @return result     - a dialog
-dialog :: Bool-> [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Toplevel] -> IO (Dialog a)
+-- | Creates a new dialogue with its label, text and buttons.
+dialog :: Bool
+   -- ^ the available button in this window
+   -> [Choice a] 
+   -- ^ true if we just want a label to display message, false if we want a fancy read-only text editor
+   -> Maybe Int 
+   -- ^ default button
+   -> [Config (Dialog a)] 
+   -- ^ the list of configuration options for this separator
+   -> [Config Toplevel] 
+   -- ^ the list of configuration options for the window
+   -> IO (Dialog a)
+   -- ^ a dialog
 dialog plain choices def confs tpconfs =
    do
       (tp, emsg, lmsg, lbl, sb, ev) <- delayWish $

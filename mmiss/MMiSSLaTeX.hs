@@ -32,8 +32,7 @@ import MMiSSVariant
 import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSExportFiles
 
----
--- The first String is the name of the file; the second its contents.
+-- | The first String is the name of the file; the second its contents.
 mmissLaTeX :: View -> String -> String -> ExportFiles -> IO ()
 mmissLaTeX view fileName contents exportFiles0 =
    do

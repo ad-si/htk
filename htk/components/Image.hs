@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- This module provides access to image resources from files or base64
+-- | This module provides access to image resources from files or base64
 -- encoded strings.
 module Image (
 
@@ -40,14 +29,11 @@ import Packer
 -- class image
 -- -----------------------------------------------------------------------
 
----
--- Image containers instantiate the <code>class HasPhoto</code>.
+-- | Image containers instantiate the @class HasPhoto@.
 class GUIObject w => HasPhoto w where
----
--- Associates an image container (e.g. a label) with the given image.
+  -- | Associates an image container (e.g. a label) with the given image.
   photo           :: Image -> Config w
----
--- Gets the image associated with the given image container.
+  -- | Gets the image associated with the given image container.
   getPhoto        :: w -> IO (Maybe Image)
   photo img w     = imageToInt img >>= cset w "image"
   getPhoto w      = cget w "image" >>= intToImage 
@@ -57,8 +43,7 @@ class GUIObject w => HasPhoto w where
 -- type image
 -- -----------------------------------------------------------------------
 
----
--- The <code>Image</code> datatype.
+-- | The @Image@ datatype.
 newtype Image = Image GUIOBJECT deriving Eq
 
 
@@ -66,29 +51,27 @@ newtype Image = Image GUIOBJECT deriving Eq
 -- constructor
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new image object and returns a handler.<br>
+-- | Constructs a new image object and returns a handler.
 -- The image object can be packed like a widget, then it is implicitely
 -- displayed inside a label widget.
--- @param cnf     - the list of configuration options for this image
---                  object.
--- @return result - An image object.
-newImage :: [Config Image] -> IO Image
+newImage :: [Config Image] 
+   -- ^ the list of configuration options for this image
+   -- object.
+   -> IO Image
+   -- ^ An image object.
 newImage cnf =
   do
     w <- createWidget ROOT LABEL
     configure (Image w) cnf
 
----
--- Sets the image data from a base64 encoded string.
+-- | Sets the image data from a base64 encoded string.
 imgData :: Format -> String  -> Config Image
 imgData f str w =
     execTclScript [tkImageCreateFromData no f str] >> cset w "image" no
   where no = getObjectNo (toGUIObject w)
 
----
--- The <code>Format</code> datatype - represents the format of a base64
--- encoded image (see <code>Image.imgData</code>).
+-- | The @Format@ datatype - represents the format of a base64
+-- encoded image (see @Image.imgData@).
 data Format = GIF | PPM | PGM
 
 formatToString :: Format -> String
@@ -99,14 +82,12 @@ formatToString f =
     _   -> "PGM"
 
 
----
--- The <code>gamma</code> correction factor. Values less than one
+-- | The @gamma@ correction factor. Values less than one
 -- darken the image, values greater than one brighten up the image.
 imgGamma :: Double -> Config Image
 imgGamma g = tkImgConfig ("-gamma "++ show g)
 
----
--- The colour palette specifies a private palette for this image. 
+-- | The colour palette specifies a private palette for this image. 
 -- You can either specify a grayscale palette (of n shades of grey), or an
 -- RGB triple. 
 class PaletteSpec p where 
@@ -134,63 +115,49 @@ imgPalette p = tkImgConfig ("-palette "++ tkShowPalette p)
 -- instantiations
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject Image where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (Image w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "Image"
 
----
--- An image object can be destroyed.
+-- | An image object can be destroyed.
 instance Destroyable Image where
----
--- Destroys an image object.
+  -- | Destroys an image object.
   destroy = destroy . toGUIObject
 
----
--- An image object has standard widget properties
--- (concerning focus, cursor / if implicitely displayed inside a label
+-- | An image object has standard widget properties
+-- (concerning focus, cursor \/ if implicitely displayed inside a label
 -- widget).
 instance Widget Image
 
----
--- An image object has a configureable border (if implicitely displayed
+-- | An image object has a configureable border (if implicitely displayed
 -- inside a label widget).
 instance HasBorder Image
 
----
--- An image object has a configureable foreground and background colour
+-- | An image object has a configureable foreground and background colour
 -- (if implicitely displayed inside a label widget).
 instance HasColour Image where
   legalColourID = hasForeGroundColour
 
----
--- You can specify the size of the containing label, if the image is
+-- | You can specify the size of the containing label, if the image is
 -- implicitely displayed inside a label widget.
 instance HasSize Image
 
----
--- Images can be read from files.
+-- | Images can be read from files.
 instance HasFile Image where
----
--- Specifies the image file path.
+  -- | Specifies the image file path.
   filename str w =
     execTclScript [tkImageCreate no str] >> cset w "image" no
     where no = getObjectNo (toGUIObject w) 
----
--- Gets the image's file name.
+  -- | Gets the image\'s file name.
   getFileName w = evalTclScript [tkGetImageFile no] 
     where no = getObjectNo (toGUIObject w)
 
----
--- You can synchronize on an image object.
+-- | You can synchronize on an image object.
 instance Synchronized Image where
----
--- Synchronizes on an image object.
+  -- | Synchronizes on an image object.
   synchronize = synchronize . toGUIObject
 
 
@@ -198,8 +165,7 @@ instance Synchronized Image where
 -- auxiliary functions
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 intToImage :: Int -> IO (Maybe Image)
 intToImage 0 = return Nothing
 intToImage no = lookupGUIObject (ObjectID no) >>= return . Just . Image 
@@ -208,8 +174,7 @@ intToImage no = lookupGUIObject (ObjectID no) >>= return . Just . Image
    representation. Needed by several other image retrieval function.
 -}
 
----
--- Internal.
+-- | Internal.
 imageToInt :: Image -> IO Int
 imageToInt = return . getObjectNo . toGUIObject
 

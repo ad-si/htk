@@ -205,8 +205,7 @@ newtype MMiSSVariants = MMiSSVariants [(VariantAttribute,String)]
 -- Functions and Instances for MMiSSVariants
 -- ----------------------------------------------------------------------- 
 
----
--- Construct MMiSSVariants, given a list of pairs (key,value)
+-- | Construct MMiSSVariants, given a list of pairs (key,value)
 mkMMiSSVariants :: [(String,String)] -> MMiSSVariants
 mkMMiSSVariants theseVariants =
    MMiSSVariants (
@@ -382,8 +381,7 @@ emptyMMiSSVariantSearch = MMiSSVariantSearch emptyVariants
 emptyMMiSSVariantSpec :: MMiSSVariantSpec
 emptyMMiSSVariantSpec = MMiSSVariantSpec emptyVariants
 
----
--- NB.  We do not allow variant versions to be specified in XML!
+-- | NB.  We do not allow variant versions to be specified in XML!
 toMMiSSVariantsFromXml :: [Attribute] -> MMiSSVariants
 toMMiSSVariantsFromXml attributes =
    mkMMiSSVariants [ (key1,value) | 
@@ -488,8 +486,7 @@ toMMiSSVariants attributes =
            attributeKeys
      return (mkMMiSSVariants (catMaybes attributePairs))
 
----
--- Extracting an Attributes value from an MMiSSSearchObject
+-- | Extracting an Attributes value from an MMiSSSearchObject
 fromMMiSSVariants :: MMiSSVariants -> IO Attributes
 fromMMiSSVariants mmissVariants =
    do

@@ -47,8 +47,7 @@ instance HasMapMonadic EmacsContent where
             dataItems0
          return (EmacsContent dataItems1)
 
----
--- Extract the links from an EmacsContent
+-- | Extract the links from an EmacsContent
 toEmacsLinks :: EmacsContent l -> [l]
 toEmacsLinks (EmacsContent dataItems) =
    mapMaybe
@@ -59,15 +58,13 @@ toEmacsLinks (EmacsContent dataItems) =
       dataItems
 
 
----
--- Extract the contents as returned from sendmess.el's uni-container-contents
+-- | Extract the contents as returned from sendmess.el\'s uni-container-contents
 -- function
 parseEmacsContent :: String -> EmacsContent String
 parseEmacsContent str =
    fmap (\ (_,str) -> str) (parseEmacsContentGeneral str)
 
----
--- Extract the contents as returned from sendmess.el's uni-container-contents
+-- | Extract the contents as returned from sendmess.el\'s uni-container-contents
 -- and uni-container-children.  The Bool is True for included containers;
 -- False for included buttons.
 parseEmacsContentGeneral :: String -> EmacsContent (Bool,String)
@@ -93,8 +90,7 @@ parseEmacsContentGeneral str =
    in
       EmacsContent dataItems
 
----
--- Collapse adjacent EditableText parts together.
+-- | Collapse adjacent EditableText parts together.
 collapseEmacsContent :: EmacsContent linkType -> EmacsContent linkType
 collapseEmacsContent (EmacsContent list :: EmacsContent linkType) =
    let

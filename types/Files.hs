@@ -183,8 +183,7 @@ instance HasMerging File where
 -- The instance of ObjectType
 -- ------------------------------------------------------------------
 
----
--- Node type 
+-- | Node type 
 theNodeType :: NodeType
 theNodeType = fromString ""
 

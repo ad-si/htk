@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- A simple markup language for convenient writing into an editor widget.
+-- | A simple markup language for convenient writing into an editor widget.
 module MarkupText (
 
 -- type
@@ -191,8 +180,7 @@ addToState ed acts =
 -- types
 -- -----------------------------------------------------------------------
 
----
--- The <code>MarkupText</code> datatype.
+-- | The @MarkupText@ datatype.
 data MarkupText =
     MarkupText [MarkupText]
   | MarkupProse [String]
@@ -231,38 +219,31 @@ type EmbWindow = (Position, EmbWindowFun)
 -- combinators
 -- -----------------------------------------------------------------------
 
----
--- The markup prose combinator.
+-- | The markup prose combinator.
 prose :: String -> MarkupText
 prose str = MarkupProse (lines str)
 
----
--- The markup font combinator.
+-- | The markup font combinator.
 font :: FontDesignator f => f -> [MarkupText] -> MarkupText
 font f = MarkupFont (toFont f)
 
----
--- The markup newline combinator.
+-- | The markup newline combinator.
 newline :: MarkupText
 newline = MarkupNewline
 
----
--- The markup bold combinator.
+-- | The markup bold combinator.
 bold :: [MarkupText] -> MarkupText
 bold = MarkupBold
 
----
--- The markup underline combinator.
+-- | The markup underline combinator.
 underline :: [MarkupText] -> MarkupText
 underline = MarkupUnderline
 
----
--- Center this part of the text
+-- | Center this part of the text
 centered :: [MarkupText]-> MarkupText
 centered = MarkupJustify JustCenter
 
----
--- Flush this part of the against the left margin
+-- | Flush this part of the against the left margin
 flushleft :: [MarkupText]-> MarkupText
 flushleft = MarkupJustify JustLeft
 
@@ -271,81 +252,67 @@ flushleft = MarkupJustify JustLeft
 flushright :: [MarkupText]-> MarkupText
 flushright = MarkupJustify JustRight
 
----
--- The markup italics combinator.
+-- | The markup italics combinator.
 italics :: [MarkupText] -> MarkupText
 italics = MarkupItalics
 
----
--- The markup baseline offset combinator.
+-- | The markup baseline offset combinator.
 offset :: Int-> [MarkupText]-> MarkupText
 offset = MarkupOffset
 
----
--- The markup foreground colour combinator.
+-- | The markup foreground colour combinator.
 colour :: ColourDesignator c => c -> [MarkupText] -> MarkupText
 colour c = MarkupColour (toColour c)
 
----
--- The markup background colour combinator.
+-- | The markup background colour combinator.
 bgcolour :: ColourDesignator c => c -> [MarkupText] -> MarkupText
 bgcolour c = MarkupBgColour (toColour c)
 
----
--- The markup space combinator (a number of space characters).
+-- | The markup space combinator (a number of space characters).
 spaces :: Int -> MarkupText
 spaces n = MarkupProse [replicate n ' ']
 
----
--- The markup flipcolour combinator (flips the colour when the mouse
+-- | The markup flipcolour combinator (flips the colour when the mouse
 -- is over this text segment).
 flipcolour :: ColourDesignator c => c -> c -> [MarkupText] -> MarkupText
 flipcolour c1 c2 = MarkupFlipColour (toColour c1) (toColour c2)
 
----
--- The markup flipunderline combinator (underlines this text segment when 
+-- | The markup flipunderline combinator (underlines this text segment when 
 -- the mouse is over this segment).
 flipunderline :: [MarkupText] -> MarkupText
 flipunderline = MarkupFlipUnderline
 
----
--- The markup action combinator (binds an action for mouse clicks on this
+-- | The markup action combinator (binds an action for mouse clicks on this
 -- text segment).
 action :: IO () -> [MarkupText] -> MarkupText
 action = MarkupAction
 
----
--- The markup range action combinator (binds actions for entering and/or
+-- | The markup range action combinator (binds actions for entering and\/or
 -- leaving this text segment with the mouse cursor).
 rangeaction :: Maybe (IO ()) -> Maybe (IO ()) -> [MarkupText] ->
                MarkupText
 rangeaction = MarkupRangeAction
 
----
--- The markup clipup combinator (clips up a text segment on a mouse
+-- | The markup clipup combinator (clips up a text segment on a mouse
 -- click).
 clipup :: [MarkupText] -> [MarkupText] -> MarkupText
 clipup = MarkupClipUp
 
----
--- The markup left margin combinator (normal left intend for a line).
+-- | The markup left margin combinator (normal left intend for a line).
 leftmargin :: Int -> [MarkupText] -> MarkupText
 leftmargin = MarkupLeftMargin
 
----
--- The markup wrap margin combinator (intend for a part of a line
+-- | The markup wrap margin combinator (intend for a part of a line
 -- that gets wrapped).
 wrapmargin :: Int -> [MarkupText] -> MarkupText
 wrapmargin = MarkupWrapMargin
 
----
--- The markup right margin combinator.
+-- | The markup right margin combinator.
 rightmargin :: Int -> [MarkupText] -> MarkupText
 rightmargin = MarkupRightMargin
 
 
----
--- The markup window combinator (a widget container inside the editor
+-- | The markup window combinator (a widget container inside the editor
 -- widget).
 window1 :: Widget w => (Editor -> IO (w, IO())) -> MarkupText
 window1 = MarkupWindow
@@ -353,8 +320,7 @@ window1 = MarkupWindow
 window :: Widget w => IO (w, IO()) -> MarkupText
 window act = window1 (const act)
 
----
--- The markup href combinator (a link to another markup text).
+-- | The markup href combinator (a link to another markup text).
 href :: [MarkupText] -> [MarkupText] -> MarkupText
 href = MarkupHRef
 
@@ -365,143 +331,115 @@ href = MarkupHRef
 
 -- grk letters, lowercase
 
----
--- Special character.
+-- | Special character.
 alpha :: MarkupText
 alpha = symbchr 97
 
----
--- Special character.
+-- | Special character.
 beta :: MarkupText
 beta = symbchr 98
 
----
--- Special character.
+-- | Special character.
 chi ::MarkupText
 chi = symbchr 99
 
----
--- Special character.
+-- | Special character.
 delta :: MarkupText
 delta = symbchr 100
 
----
--- Special character.
+-- | Special character.
 epsilon :: MarkupText
 epsilon = symbchr 101
 
----
--- Special character.
+-- | Special character.
 phi :: MarkupText
 phi = symbchr 102
 
----
--- Special character.
+-- | Special character.
 gamma :: MarkupText
 gamma = symbchr 103
 
----
--- Special character.
+-- | Special character.
 eta :: MarkupText
 eta = symbchr 104
 
----
--- Special character.
+-- | Special character.
 varphi :: MarkupText
 varphi = symbchr 106
 
----
--- Special character.
+-- | Special character.
 iota :: MarkupText
 iota = symbchr 105
 
----
--- Special character.
+-- | Special character.
 kappa :: MarkupText
 kappa = symbchr 107
 
----
--- Special character.
+-- | Special character.
 lambda :: MarkupText
 lambda = symbchr 108
 
----
--- Special character.
+-- | Special character.
 mu :: MarkupText
 mu = symbchr 109
 
----
--- Special character.
+-- | Special character.
 nu :: MarkupText
 nu = symbchr 110
 
----
--- Special character.
+-- | Special character.
 omikron :: MarkupText
 omikron = symbchr 111 
 
----
--- Special character.
+-- | Special character.
 pi :: MarkupText
 pi = symbchr 112
 
----
--- Special character.
+-- | Special character.
 theta :: MarkupText
 theta = symbchr 113 
 
----
--- Special character.
+-- | Special character.
 vartheta :: MarkupText
 vartheta = symbchr 74 
 
----
--- Special character.
+-- | Special character.
 rho :: MarkupText
 rho = symbchr 114
 
----
--- Special character.
+-- | Special character.
 sigma :: MarkupText
 sigma = symbchr 115
 
----
--- Special character.
+-- | Special character.
 varsigma :: MarkupText
 varsigma = symbchr 86
 
----
--- Special character.
+-- | Special character.
 tau :: MarkupText
 tau = symbchr 116
 
----
--- Special character.
+-- | Special character.
 upsilon :: MarkupText
 upsilon = symbchr 117
 
----
--- Special character.
+-- | Special character.
 varpi :: MarkupText
 varpi = symbchr 118
 
----
--- Special character.
+-- | Special character.
 omega :: MarkupText
 omega = symbchr 119
 
----
--- Special character.
+-- | Special character.
 xi :: MarkupText
 xi = symbchr 120
 
----
--- Special character.
+-- | Special character.
 psi :: MarkupText
 psi = symbchr 121
 
----
--- Special character.
+-- | Special character.
 zeta :: MarkupText
 zeta = symbchr 122
 
@@ -509,123 +447,99 @@ zeta = symbchr 122
 
 -- grk letters, uppercase
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 aalpha :: MarkupText
 aalpha = symbchr 65
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 bbeta :: MarkupText
 bbeta = symbchr 66
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 cchi :: MarkupText
 cchi = symbchr 67
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ddelta :: MarkupText
 ddelta = symbchr 68
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 eeps :: MarkupText
 eeps = symbchr 69
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 pphi :: MarkupText
 pphi = symbchr 70
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ggamma :: MarkupText
 ggamma = symbchr 71 
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 eeta :: MarkupText
 eeta = symbchr 72
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 iiota :: MarkupText
 iiota = symbchr 73 
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 kkappa :: MarkupText
 kkappa = symbchr 75 
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 llambda :: MarkupText
 llambda = symbchr 76
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 mmu :: MarkupText
 mmu = symbchr 77
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 nnu :: MarkupText
 nnu = symbchr 78
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 oomikron :: MarkupText
 oomikron = symbchr 79
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ppi :: MarkupText
 ppi = symbchr 80
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ttheta :: MarkupText
 ttheta = symbchr 81
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 rrho :: MarkupText
 rrho = symbchr 82
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ssigma :: MarkupText
 ssigma = symbchr 83
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ttau :: MarkupText
 ttau = symbchr 84
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 uupsilon :: MarkupText
 uupsilon = symbchr 85 
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 oomega :: MarkupText
 oomega = symbchr 87
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 xxi :: MarkupText
 xxi = symbchr 88
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 ppsi :: MarkupText
 ppsi = symbchr 89
 
----
--- Special character (uppercase).
+-- | Special character (uppercase).
 zzeta :: MarkupText
 zzeta = symbchr 90
 
@@ -633,273 +547,222 @@ zzeta = symbchr 90
 
 -- quantifiers and junctors
 
----
--- Special character.
+-- | Special character.
 forallsmall :: MarkupText
 forallsmall = symbchr 34
 
----
--- Special character.
+-- | Special character.
 exists :: MarkupText
 exists = symbchr 36
 
----
--- Special character.
+-- | Special character.
 forallbig :: MarkupText
 forallbig = bigsymbchr 34
 
----
--- Special character.
+-- | Special character.
 eexists :: MarkupText
 eexists = bigsymbchr 36
 
----
--- Special character.
+-- | Special character.
 existsone :: MarkupText
 existsone = symbstr [36, 33]
 
----
--- Special character.
+-- | Special character.
 not :: MarkupText
 not = symbchr 216
 
----
--- Special character.
+-- | Special character.
 and :: MarkupText
 and = symbchr 217
 
----
--- Special character.
+-- | Special character.
 bigand :: MarkupText
 bigand = bigsymbchr 217
 
----
--- Special character.
+-- | Special character.
 or :: MarkupText
 or = symbchr 218
 
 
 -- other operations
 
----
--- Special character.
+-- | Special character.
 times :: MarkupText
 times = symbchr 180
 
----
--- Special character.
+-- | Special character.
 sum :: MarkupText
 sum = symbchr 229
 
----
--- Special character.
+-- | Special character.
 prod :: MarkupText
 prod = symbchr 213
 
----
--- Special character.
+-- | Special character.
 comp :: MarkupText
 comp = symbchr 183
 
----
--- Special character.
+-- | Special character.
 bullet :: MarkupText
 bullet = symbchr 183
 
----
--- Special character.
+-- | Special character.
 tensor :: MarkupText
 tensor = symbchr 196
 
----
--- Special character.
+-- | Special character.
 otimes :: MarkupText
 otimes = symbchr 196
 
----
--- Special character.
+-- | Special character.
 oplus :: MarkupText
 oplus = symbchr 197
 
----
--- Special character.
+-- | Special character.
 bot :: MarkupText
 bot = symbchr 94
 
 
 -- arrows
 
----
--- Special character.
+-- | Special character.
 rightarrow :: MarkupText
 rightarrow = symbchr 174
 
----
--- Special character.
+-- | Special character.
 rrightarrow :: MarkupText
 rrightarrow = symbchr 222
 
----
--- Special character.
+-- | Special character.
 longrightarrow :: MarkupText
 longrightarrow = symbstr [190, 174]
 
----
--- Special character.
+-- | Special character.
 llongrightarrow :: MarkupText
 llongrightarrow = symbstr [61, 222]
 
----
--- Special character.
+-- | Special character.
 leftrightarrow :: MarkupText
 leftrightarrow = symbchr 171
 
----
--- Special character.
+-- | Special character.
 lleftrightarrow :: MarkupText
 lleftrightarrow = symbchr 219
 
----
--- Special character.
+-- | Special character.
 ddownarrow :: MarkupText
 ddownarrow = symbchr 223
 
----
--- Special character.
+-- | Special character.
 uuparrow :: MarkupText
 uuparrow = symbchr 221
 
----
--- Special character.
+-- | Special character.
 vline :: MarkupText
 vline = symbchr 189
 
----
--- Special character.
+-- | Special character.
 hline :: MarkupText
 hline = symbchr 190
 
----
--- Special character.
+-- | Special character.
 rbrace1 :: MarkupText
 rbrace1 = symbchr 236
 
----
--- Special character.
+-- | Special character.
 rbrace2 :: MarkupText
 rbrace2 = symbchr 237
 
----
--- Special character.
+-- | Special character.
 rbrace3 :: MarkupText
 rbrace3 = symbchr 238
 
 
 -- set operations
 
----
--- Special character.
+-- | Special character.
 emptyset :: MarkupText
 emptyset = symbchr 198
 
----
--- Special character.
+-- | Special character.
 inset :: MarkupText
 inset = symbchr 206
 
----
--- Special character.
+-- | Special character.
 notin :: MarkupText
 notin = symbchr 207
 
----
--- Special character.
+-- | Special character.
 intersect :: MarkupText
 intersect = symbchr 199
 
----
--- Special character.
+-- | Special character.
 union :: MarkupText
 union = symbchr 200
 
----
--- Special character.
+-- | Special character.
 subset :: MarkupText
 subset = symbchr 204
 
----
--- Special character.
+-- | Special character.
 subseteq :: MarkupText
 subseteq = symbchr 205
 
----
--- Special character.
+-- | Special character.
 setminus :: MarkupText
 setminus = symbchr 164
 
----
--- Special character.
+-- | Special character.
 powerset :: MarkupText
 powerset = symbchr 195
 
----
--- Special character.
+-- | Special character.
 inf :: MarkupText
 inf = symbchr 165
 
----
--- Special character.
+-- | Special character.
 iintersect :: MarkupText
 iintersect = bigsymbchr 199
 
----
--- Special character.
+-- | Special character.
 uunion :: MarkupText
 uunion = bigsymbchr 200
 
 
 -- relations
 
----
--- Special character.
+-- | Special character.
 equiv :: MarkupText
 equiv = symbchr 186
 
----
--- Special character.
+-- | Special character.
 neq :: MarkupText
 neq = symbchr 185
 
----
--- Special character.
+-- | Special character.
 leq :: MarkupText
 leq = symbchr 163
 
----
--- Special character.
+-- | Special character.
 grteq :: MarkupText
 grteq = symbchr 179
 
----
--- Special character.
+-- | Special character.
 lsem :: MarkupText
 lsem = symbstr [91, 91]
 
----
--- Special character.
+-- | Special character.
 rsem :: MarkupText
 rsem = symbstr [93, 93]
 
 
 -- misc other symbols
 
----
--- Special character.
+-- | Special character.
 dots :: MarkupText
 dots = symbchr 188
 
----
--- Special character.
+-- | Special character.
 copyright :: MarkupText
 copyright = symbchr 227
 
@@ -1297,25 +1160,19 @@ parseMarkupText m f =
 -- class HasMarkupText
 -- -----------------------------------------------------------------------
 
----
--- Widgets that can contain markup text instantiate the
--- <code>class HasMarkupText</code>.
+-- | Widgets that can contain markup text instantiate the
+-- @class HasMarkupText@.
 class HasMarkupText w where
----
--- Clears the editor widget and inserts the given markup text.
+  -- | Clears the editor widget and inserts the given markup text.
   new :: [MarkupText] -> w -> IO w
----
--- Inserts the given markup text at the specified position.
+  -- | Inserts the given markup text at the specified position.
   insertAt :: [MarkupText] -> Position -> Config w
----
--- Clears the editor widget.
+  -- | Clears the editor widget.
   clear :: Config w
 
----
--- An editor widget is a container for markup text.
+-- | An editor widget is a container for markup text.
 instance HasMarkupText Editor where
----
--- Clears the editor widget and inserts the given markup text.
+  -- | Clears the editor widget and inserts the given markup text.
   new m ed =
     do
       st <- getState ed
@@ -1335,8 +1192,7 @@ instance HasMarkupText Editor where
            wins
       ed # state st -- restore state
       return ed
----
--- Inserts the given markup text at the specified position.
+  -- | Inserts the given markup text at the specified position.
   insertAt m pos@(line, char) ed =
     do
       f <- getFont ed
@@ -1369,8 +1225,7 @@ instance HasMarkupText Editor where
       shiftChar :: Distance -> Position -> Distance
       shiftChar pchar (line, char) =
         if line == 1 then char + pchar else char
----
--- Clears the editor widget.
+  -- | Clears the editor widget.
   clear ed =
     do
       let obj@(GUIOBJECT oid _) = toGUIObject ed

@@ -34,8 +34,7 @@ editorCommand = IOExts.unsafePerformIO (
    )
 {-# NOINLINE editorCommand #-}
 
----
--- Parses the editor string and calls the editor, returning when it's
+-- | Parses the editor string and calls the editor, returning when it\'s
 -- finished.  The first argument gives the location of the file;
 -- the second the name it should be called.
 callEditor :: FilePath -> String -> IO ()
@@ -56,8 +55,7 @@ callEditor filePath name =
             error ("CallEditor: "++command++" returned error "++show c)
          ExitSuccess -> done
 
----
--- Edits an object which instances HasFilePath and edits it.
+-- | Edits an object which instances HasFilePath and edits it.
 editObject :: (ObjectType objectType object,HasFilePath object)
    => View -> Link object -> IO ()
 editObject view link =

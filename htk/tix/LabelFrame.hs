@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>LabelFrame</strong> widget.
+-- | HTk\'s /LabelFrame/ widget.
 -- A labelled container for widgets. This widget is from the Tix library
 -- and therefore only available if Tix is installed. When Tix is not
 -- available, a normal frame widget will be used instead.
@@ -41,8 +30,7 @@ import Tooltip
 -- type LabelFrame
 -- -----------------------------------------------------------------------
 
----
--- The <code>LabelFrame</code> datatype.
+-- | The @LabelFrame@ datatype.
 newtype LabelFrame = LabelFrame GUIOBJECT deriving Eq
 
 
@@ -50,15 +38,16 @@ newtype LabelFrame = LabelFrame GUIOBJECT deriving Eq
 -- labelled frame creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new label frame and returns it as a value.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this labelled
---                - frame.
--- @return result - A labelled frame.
-newLabelFrame :: Container par => par -> [Config LabelFrame] ->
-                                  IO LabelFrame
+-- | Constructs a new label frame and returns it as a value.
+newLabelFrame :: Container par => par 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   -> [Config LabelFrame] 
+   -- ^ the list of configuration options for this labelled
+   -- frame.
+   ->
+   IO LabelFrame
+   -- ^ A labelled frame.
 newLabelFrame par cnf =
   do
     w <- createGUIObject (toGUIObject par) LABELFRAME labelFrameMethods
@@ -69,27 +58,22 @@ newLabelFrame par cnf =
 -- widget specific configuration options
 -- -----------------------------------------------------------------------
 
----
--- You can specify the side to display the label.
+-- | You can specify the side to display the label.
 labelSide :: LabelSide -> Config LabelFrame
 labelSide ls w = cset w "labelside" ls
 
----
--- Gets the side where the label is displayed.
+-- | Gets the side where the label is displayed.
 getLabelSide :: LabelFrame -> IO LabelSide
 getLabelSide w = cget w "labelside"
 
----
--- The <code>LabelSide</code> datatype.
+-- | The @LabelSide@ datatype.
 data LabelSide =
     TopLabel | LeftLabel | RightLabel | BottomLabel | NoLabel
   | AcrossTopLabel
 
----
--- Internal.
+-- | Internal.
 instance Read LabelSide where
----
--- Internal.
+  -- | Internal.
   readsPrec p b =
     case dropWhile isSpace b of
       't':'o':'p': xs -> [(TopLabel,xs)]
@@ -100,11 +84,9 @@ instance Read LabelSide where
       'a':'c':'r':'o':'s':'s':'t':'o':'p': xs -> [(AcrossTopLabel, xs)]
       _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show LabelSide where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r =
     (case p of TopLabel -> "top"
                LeftLabel -> "left"
@@ -113,11 +95,9 @@ instance Show LabelSide where
                NoLabel -> "none"
                AcrossTopLabel -> "acrosstop") ++ r
 
----
--- Internal.
+-- | Internal.
 instance GUIValue LabelSide where
----
--- Internal.
+  -- | Internal.
   cdefault = TopLabel
 
 
@@ -173,66 +153,49 @@ tkGridLabelFrame (LabelFrameName nm _) opts =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject LabelFrame where
----
--- Internal.
+  -- | Internal.
   toGUIObject (LabelFrame w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "LabelFrame"
 
----
--- A labelled frame can be destroyed.
+-- | A labelled frame can be destroyed.
 instance Destroyable LabelFrame where
----
--- Destroys a labelled frame widget.
+  -- | Destroys a labelled frame widget.
   destroy   = destroy . toGUIObject
 
----
--- A labelled frame has standard widget properties
+-- | A labelled frame has standard widget properties
 -- (concerning focus, cursor).
 instance Widget LabelFrame
 
----
--- A labelled frame is a container for widgets. You can pack widgets to
+-- | A labelled frame is a container for widgets. You can pack widgets to
 -- a labelled frame via pack or grid command in the
--- <code>module Packer</code>.
+-- @module Packer@.
 instance Container LabelFrame
 
----
--- A labelled frame has a configureable border.
+-- | A labelled frame has a configureable border.
 instance HasBorder LabelFrame
 
----
--- A labelled frame has a background colour.
+-- | A labelled frame has a background colour.
 instance HasColour LabelFrame where 
----
--- Internal.
+  -- | Internal.
   legalColourID = hasBackGroundColour
 
----
--- A labelled frame can have a tooltip.
+-- | A labelled frame can have a tooltip.
 instance HasTooltip LabelFrame
 
----
--- You can specify the size of a labelled frame.
+-- | You can specify the size of a labelled frame.
 instance HasSize LabelFrame
 
----
--- Sets and gets the string to display as a label for the frame.
+-- | Sets and gets the string to display as a label for the frame.
 instance GUIValue v => HasText LabelFrame v where
----
--- Sets the text to display with the frame.
+  -- | Sets the text to display with the frame.
   text s w  = cset w  "label" s
----
--- Returns the displayed text.
+  -- | Returns the displayed text.
   getText w = cget w "label"
 
----
--- You can synchronize on a labelled frame (in JAVA style).
+-- | You can synchronize on a labelled frame (in JAVA style).
 instance Synchronized LabelFrame where
----
--- Synchronizes on a label object.
+  -- | Synchronizes on a label object.
   synchronize = synchronize . toGUIObject

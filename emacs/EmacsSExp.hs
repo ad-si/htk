@@ -55,10 +55,9 @@ doParseInt input =
          Integer i -> fromIntegral i
          _ -> error ("EmacsSExp: expecting Integer but found "++input) 
 
----
--- Because the ParsecToken module seems to have a problem with
--- control characters (with charcode < 32) in strings, we replace them
--- by their Haskell representation.  However since they don't occur
+-- | Because the ParsecToken module seems to have a problem with
+-- control characters (with charcode \< 32) in strings, we replace them
+-- by their Haskell representation.  However since they don\'t occur
 -- all that often, we first check if they actually occur.
 doControlChars :: String -> String
 doControlChars str =
@@ -93,8 +92,7 @@ parseInteger =
       int <- P.integer lexer
       return (Integer int)
 
----
--- We special-case nil.
+-- | We special-case nil.
 parseId :: Parser SExp 
 parseId =
    do

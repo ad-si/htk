@@ -344,8 +344,7 @@ instance Ord WrappedLink where
 -- Unpacking wrapped types
 -- ----------------------------------------------------------------
 
----
--- Returns Nothing if the types don't match.
+-- | Returns Nothing if the types don\'t match.
 unpackWrappedLink :: ObjectType objectType object =>
    WrappedLink -> Maybe (Link object)
 unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
@@ -605,12 +604,10 @@ getObjectTypeByKeyOpt view key =
 -- Initialising and writing the Global Registries
 -- -----------------------------------------------------------------
 
----
--- The String is the key into the objectTypeTypeDataRegistry; 
+-- | The String is the key into the objectTypeTypeDataRegistry; 
 type ObjectTypeData = [(String,CodedValue)]
 
----
--- Decode all the object type data for this value and put it in the
+-- | Decode all the object type data for this value and put it in the
 -- object type registers.
 importObjectTypes :: CodedValue -> View -> IO ()
 importObjectTypes codedValue view =
@@ -627,10 +624,9 @@ importObjectTypes codedValue view =
             objectTypeData
          )
 
----
--- This decodes all the object types associated with a particular
+-- | This decodes all the object types associated with a particular
 -- Haskell type objectType, which is not looked at.  The codedValue represents
---  a list of type [objectType].
+-- a list of type [objectType].
 importOneObjectType :: ObjectType objectType object 
    => objectType -> CodedValue -> View -> IO ()
 importOneObjectType objectType codedValue view =
@@ -638,8 +634,7 @@ importOneObjectType objectType codedValue view =
       let globalRegistry = objectTypeGlobalRegistry objectType
       addViewToGlobalRegistry globalRegistry view codedValue 
 
----
--- Inverse to importObjectTypes, producing a CodedValue for all types
+-- | Inverse to importObjectTypes, producing a CodedValue for all types
 -- present in this view.
 exportObjectTypes :: View -> IO CodedValue
 exportObjectTypes view =
@@ -662,8 +657,7 @@ exportObjectTypes view =
          <- processObjectTypes allObjectTypes []
       doEncodeIO objectTypeData view
 
----
--- This is the inverse to importOneObjectType
+-- | This is the inverse to importOneObjectType
 exportOneObjectType :: ObjectType objectType object
    => objectType -> View -> IO (Maybe CodedValue)
 exportOneObjectType objectType view =
@@ -754,14 +748,12 @@ instance HasBinary WrappedObjectType CodingMonad where
 -- Similarly, we make WrappedLink an instance of HasCodedValue
 -- -----------------------------------------------------------------
 
----
--- The only important thing about the value returned by toObjectType is 
+-- | The only important thing about the value returned by toObjectType is 
 -- its types; the value itself are undefined.
 toObjectType :: ObjectType objectType object => Link object -> objectType
 toObjectType link = error "toObjectType"
 
----
--- toLinkType is similar in the other direction.
+-- | toLinkType is similar in the other direction.
 toLinkType :: ObjectType objectType object => objectType -> Link object
 toLinkType objectType = error "toLinkType"
 

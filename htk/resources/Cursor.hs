@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Basic types and classes associated with the mouse cursor.
+-- | Basic types and classes associated with the mouse cursor.
 module Cursor (
 
   GUIVALUE(..),
@@ -54,16 +43,13 @@ import Debug(debug)
 -- Cursor Type
 -- -----------------------------------------------------------------------
 
----
--- The general <code>Cursor</code> datatype.
+-- | The general @Cursor@ datatype.
 newtype Cursor = Cursor String
 
----
--- The <code>XCursor</code> dataype for predefined X cursors.
+-- | The @XCursor@ dataype for predefined X cursors.
 data XCursor = XCursor String (Maybe Colour) (Maybe Colour)
 
----
--- The <code>BCursor</code> datatype for bitmap cursors.
+-- | The @BCursor@ datatype for bitmap cursors.
 data BCursor = BCursor String (Maybe String) Colour (Maybe Colour)
 
 
@@ -71,65 +57,49 @@ data BCursor = BCursor String (Maybe String) Colour (Maybe Colour)
 -- Cursor Handle
 -- -----------------------------------------------------------------------
 
----
--- Datatypes that describe cursors instantiate the
--- <code>class CursorDesignator</code>.
+-- | Datatypes that describe cursors instantiate the
+-- @class CursorDesignator@.
 class CursorDesignator ch where
----
--- Internal.
+  -- | Internal.
   toCursor :: ch -> Cursor
 
----
--- A <code>Cursor</code> object itself describes a cursor.
+-- | A @Cursor@ object itself describes a cursor.
 instance CursorDesignator Cursor where
----
--- Internal.
+  -- | Internal.
   toCursor = id
 
----
--- An <code>XCursor</code> object describes a cursor (see type).
+-- | An @XCursor@ object describes a cursor (see type).
 instance  CursorDesignator XCursor where
----
--- Internal.
+  -- | Internal.
   toCursor = Cursor . show
 
----
--- A <code>BCursor</code> object describes a cursor (see type).
+-- | A @BCursor@ object describes a cursor (see type).
 instance CursorDesignator BCursor where
----
--- Internal.
+  -- | Internal.
   toCursor = Cursor . show
 
----
--- A <code>String</code> describes a standard X cursor.
+-- | A @String@ describes a standard X cursor.
 instance CursorDesignator String where
----
--- Internal.
+  -- | Internal.
   toCursor nm = toCursor (XCursor nm Nothing Nothing)
 
----
--- A tuple of <code>(String,Colour)</code> describes a coloured standard
+-- | A tuple of @(String,Colour)@ describes a coloured standard
 -- X cursor.
 instance CursorDesignator (String,Colour) where
----
--- Internal.
+  -- | Internal.
   toCursor (nm,fg) = toCursor (XCursor nm (Just fg) Nothing)
 
----
--- A tuple of <code>(String,Colour,Colour)</code> describes a standard
+-- | A tuple of @(String,Colour,Colour)@ describes a standard
 -- X cursor with foreground and background colour.
 instance CursorDesignator (String,Colour,Colour) where
----
--- Internal.
+  -- | Internal.
   toCursor (nm,fg,bg) =  toCursor (XCursor nm (Just fg) (Just bg))
 
----
--- A tuple of <code>(String,String,Colour,Colour)</code> describes a
+-- | A tuple of @(String,String,Colour,Colour)@ describes a
 -- bitmap cursor with its X bitmap filename, mask filename, foreground
 -- and background colour.
 instance CursorDesignator ([Char],[Char],Colour,Colour) where
----
--- Internal.
+  -- | Internal.
   toCursor (bfile,mfile,fg,bg) = 
     toCursor (BCursor bfile (Just mfile) fg (Just bg))
 
@@ -138,93 +108,75 @@ instance CursorDesignator ([Char],[Char],Colour,Colour) where
 -- Standard X Cursors
 -- -----------------------------------------------------------------------
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 arrow :: Cursor
 arrow = Cursor "arrow" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 circle :: Cursor
 circle = Cursor "circle" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 clock :: Cursor
 clock = Cursor "clock" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 diamondCross :: Cursor
 diamondCross = Cursor "diamondcross" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 dot :: Cursor
 dot = Cursor "dot"
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 drapedBox :: Cursor
 drapedBox = Cursor "drapedbox" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 exchange :: Cursor
 exchange = Cursor "exchange"
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 fleur :: Cursor
 fleur = Cursor "fleur"
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 gobbler :: Cursor
 gobbler = Cursor "gobbler" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 gumby :: Cursor
 gumby = Cursor "gumby" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 hand1 :: Cursor
 hand1 = Cursor "hand1" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 hand2 :: Cursor
 hand2 = Cursor "hand2" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 pencil :: Cursor
 pencil = Cursor "pencil" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 plus :: Cursor
 plus = Cursor "plus" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 spraycan :: Cursor
 spraycan = Cursor "spraycan" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 tcross :: Cursor
 tcross = Cursor "tcross" 
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 watch :: Cursor
 watch = Cursor "watch"
 
----
--- A standard X cursor.
+-- | A standard X cursor.
 xterm :: Cursor
 xterm = Cursor "xterm"
 
@@ -233,28 +185,22 @@ xterm = Cursor "xterm"
 -- Parsing/Unparsing 
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Cursor where
----
--- Internal.
+  -- | Internal.
   cdefault = Cursor "xterm"
 
----
--- Internal.
+-- | Internal.
 instance Read Cursor where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         ('{':xs) -> [(Cursor ("{" ++ (takeWhile (/= '}') xs) ++ "}"),"")]
         xs     -> [(Cursor (takeWhile (/= ' ') xs),"")]
 
----
--- Internal.
+-- | Internal.
 instance Show Cursor where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Cursor p) r = p ++ r
 
 
@@ -262,11 +208,9 @@ instance Show Cursor where
 -- XCursor
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance Show XCursor where
----
--- Internal.
+   -- | Internal.
    showsPrec d c r = cshow c ++ r
      where
         cshow (XCursor s Nothing Nothing) = s
@@ -280,11 +224,9 @@ instance Show XCursor where
 -- BCursor
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance Show BCursor where
----
--- Internal.
+   -- | Internal.
    showsPrec d c r = cshow c ++ r
      where
         cshow (BCursor fname Nothing fg Nothing) = 

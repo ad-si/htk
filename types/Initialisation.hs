@@ -45,8 +45,7 @@ openRepository = openRepositoryGeneral (\ view -> done)
 openRepositoryInternal :: VersionInfo.VersionState -> IO VersionDB.Repository
 openRepositoryInternal = openRepositoryGeneralInternal (\ view -> done)
 
----
--- More general initialisation, which provides an extra function
+-- | More general initialisation, which provides an extra function
 -- to be executed when the very first view is created. 
 initialiseGeneral :: (?server :: HostPort) 
    => (View -> IO ()) -> IO VersionDB.Repository
@@ -81,8 +80,7 @@ openRepositoryGeneralInternal initialiseView versionState =
          _ -> done -- the repository is already initialised
       return repository
 
----
--- Create the repository.
+-- | Create the repository.
 createRepository :: (View -> IO ()) -> VersionDB.Repository -> IO ()
 createRepository initialiseView repository =
    do

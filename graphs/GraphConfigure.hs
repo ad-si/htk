@@ -121,8 +121,7 @@ instance (Typeable value,HasConfigValue option configuration)
    ($$) = ($$$)
    configUsed = configUsed'
 
----
--- $$$? can be a useful abbreviation
+-- | $$$? can be a useful abbreviation
 ($$$?) :: (HasConfigValue option configuration,Typeable value)
     => Maybe (option value) -> configuration value -> configuration value
 ($$$?) Nothing configuration = configuration
@@ -178,8 +177,7 @@ instance HasCoMapIO LocalMenu where
             menuPrim
             )
 
----
--- As a service to MMiSS we provide a function which combines
+-- | As a service to MMiSS we provide a function which combines
 -- several GlobalMenus into one.
 combineGlobalMenus :: [GlobalMenu] -> GlobalMenu
 combineGlobalMenus globalMenus =

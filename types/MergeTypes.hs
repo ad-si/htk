@@ -58,10 +58,9 @@ concatObjectLinks l
    = ObjectLinks (concat (map (\ (ObjectLinks links) -> links) l))
 
 
----
--- This is the function objects need to provide.
---
--- The "Show" instance is used in error messages.  The Typeable instance
+-- | This is the function objects need to provide.
+-- 
+-- The \"Show\" instance is used in error messages.  The Typeable instance
 -- is needed to get the key out and compare it with other keys for the
 -- same object type in other views.
 data MergeLinks object = forall key . (Ord key,Show key,Typeable key) 
@@ -166,8 +165,7 @@ doPostMerge (PostMerge action) = action
 data WrappedMergeLink = forall object .
    (HasCodedValue object,HasMerging object) => WrappedMergeLink (Link object)
 
----
--- Returns Nothing if the types don't match.
+-- | Returns Nothing if the types don\'t match.
 unpackWrappedMergeLink :: HasMerging object =>
     WrappedMergeLink -> Maybe (Link object)
 unpackWrappedMergeLink (WrappedMergeLink link) = fromDyn (toDyn link) 

@@ -15,8 +15,7 @@ import Data.Set
 import Graph
 
 
----
---
+-- | 
 removeAncestors :: Graph graph => 
    graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> [Node]
@@ -34,9 +33,8 @@ removeAncestors graph nodes =
       removeAncestorsBy getChildren nodes
 
 
----
--- General removeAncestors function, which takes as argument the action
--- computing a Node's successors.
+-- | General removeAncestors function, which takes as argument the action
+-- computing a Node\'s successors.
 removeAncestorsBy :: (Ord node,Monad m) 
    => (node -> m [node]) -> [node] -> m [node]
 removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
@@ -109,8 +107,7 @@ removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
   
       return list
 
----
--- This describes the information kept about a node during the course of
+-- | This describes the information kept about a node during the course of
 -- removeAncestorsBy
 data NodeState = 
       Yes -- ^ there is a, possibly trivial, path from here to an element

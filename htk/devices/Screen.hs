@@ -1,17 +1,6 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- The <code>module Screen</code> exports general functionality on the
--- screen's properties.
+-- | The @module Screen@ exports general functionality on the
+-- screen\'s properties.
 module Screen (
 
   Distance,
@@ -35,8 +24,7 @@ import Window
 -- Screen
 -- -----------------------------------------------------------------------
 
----
--- The <code>Screen</code> datatype.
+-- | The @Screen@ datatype.
 newtype Screen w = Screen w
 
 
@@ -44,35 +32,35 @@ newtype Screen w = Screen w
 -- Screen dimensions
 -- -----------------------------------------------------------------------
 
----
--- Gets the height of the screen.
--- @param scr     - the concerned screen.
--- @return result - The screen's height.
-getScreenHeight :: Window a => Screen a -> IO Distance
+-- | Gets the height of the screen.
+getScreenHeight :: Window a => Screen a 
+   -- ^ the concerned screen.
+   -> IO Distance
+   -- ^ The screen\'s height.
 getScreenHeight scr@(Screen win) = 
         evalMethod win (\nm -> ["winfo screenheight " ++ show nm])
 
----
--- Gets the width of the screen.
--- @param scr     - the concerned screen.
--- @return result - The screen's width.
-getScreenWidth :: Window a => Screen a -> IO Distance
+-- | Gets the width of the screen.
+getScreenWidth :: Window a => Screen a 
+   -- ^ the concerned screen.
+   -> IO Distance
+   -- ^ The screen\'s width.
 getScreenWidth scr@(Screen win)= 
         evalMethod win (\nm -> ["winfo screenwidth " ++ show nm])
 
----
--- Gets the visual properties of the screen.
--- @param scr     - the concerned screen.
--- @return result - The visual properties.
-getScreenVisual :: Window a => Screen a -> IO VisualClass     
+-- | Gets the visual properties of the screen.
+getScreenVisual :: Window a => Screen a 
+   -- ^ the concerned screen.
+   -> IO VisualClass     
+   -- ^ The visual properties.
 getScreenVisual scr@(Screen win) = 
         evalMethod win (\nm -> ["winfo screenvisual " ++ show nm])      
 
----
--- Gets the screen manager from a screen.
--- @param scr     - the concerned screen.
--- @return result - A textual representation of the screen manager.
-getScreenManager :: Window a => Screen a -> IO String 
+-- | Gets the screen manager from a screen.
+getScreenManager :: Window a => Screen a 
+   -- ^ the concerned screen.
+   -> IO String 
+   -- ^ A textual representation of the screen manager.
 getScreenManager (Screen win) = 
         evalMethod win (\nm -> ["winfo manager " ++ show nm])   
         
@@ -81,9 +69,8 @@ getScreenManager (Screen win) =
 -- Screen Colours 
 -- -----------------------------------------------------------------------
 
----
--- The <code>VisualClass</code> datatype (see
--- <code>Screen.getScreenVisual</code>).
+-- | The @VisualClass@ datatype (see
+-- @Screen.getScreenVisual@).
 data VisualClass = 
           DirectColour
         | GrayScale
@@ -93,18 +80,14 @@ data VisualClass =
         | TrueColour
         deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue VisualClass where
----
--- Internal.
+        -- | Internal.
         cdefault = DirectColour
 
----
--- Internal.
+-- | Internal.
 instance Read VisualClass where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'd':'i':'r':'e':'c':'t':'c':'o':'l':'o':'r':xs -> [(DirectColour,xs)]
@@ -115,11 +98,9 @@ instance Read VisualClass where
         't':'r':'u':'e':'c':'o':'l':'o':'r':xs -> [(TrueColour,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show VisualClass where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
          DirectColour -> "directcolor"

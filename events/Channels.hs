@@ -43,8 +43,7 @@ import Concurrent
 import Toggle
 import Events
 
----
--- A synchronous channel
+-- | A synchronous channel
 newtype Channel a = Channel (MVar (Queue (Toggle,a,IO () -> IO ()),
    Queue (Toggle,IO a -> IO ()),Int))
 
@@ -54,8 +53,7 @@ data Res a = None | Anticipated | Found a
 cleanPar :: Int -- this is how high the counter has to get before we clean.
 cleanPar = 10
 
----
--- Create a new channel
+-- | Create a new channel
 newChannel :: IO (Channel a)
 newChannel =
    do

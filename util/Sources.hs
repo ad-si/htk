@@ -269,8 +269,7 @@ combineClients (Client clientFn1) (Client clientFn2) =
 attachClient :: Client d -> Source x d -> IO x
 attachClient client (Source addClient) = addClient client
 
----
--- attachClientTemporary is like attach, but additionally returns an
+-- | attachClientTemporary is like attach, but additionally returns an
 -- IO action which can be used to prevent any client being run after that
 -- IO action is called.
 attachClientTemporary :: Client d -> Source x d -> IO (x,IO ())
@@ -280,8 +279,7 @@ attachClientTemporary client source =
       x <- attachClient newClient source
       return (x,terminator)
 
----
--- mkTemporaryClient is used to map the client by attachClientTemporary.
+-- | mkTemporaryClient is used to map the client by attachClientTemporary.
 mkTemporaryClient :: Client d -> IO (Client d,IO ())
 mkTemporaryClient client =
    do
@@ -301,8 +299,7 @@ mkTemporaryClient client =
                      return Nothing
       return (newClient client,writeIORef ioRef False)
 
----
--- mkComputedClient computes a client using a value to be supplied via the
+-- | mkComputedClient computes a client using a value to be supplied via the
 -- returned function.  (Hopefully soon after, because of course the source
 -- will block until it is.)
 mkComputedClient :: (x -> Client d) -> IO (Client d,x -> IO ())
@@ -320,10 +317,9 @@ mkComputedClient getClient =
                realClientFn d
       return (client,putMVar mVar)
 
----
--- mkComputedClient is like mkComputedClient, but still more dangerously
+-- | mkComputedClient is like mkComputedClient, but still more dangerously
 -- allows an IO action to compute the client.
---
+-- 
 -- It also allows the supplied function to provide Nothing, indicating no
 -- client.
 mkComputedClientIO :: (x -> IO (Maybe (Client d))) -> IO (Client d,x -> IO ())
@@ -342,8 +338,7 @@ mkComputedClientIO getClient =
                   Just (Client realClientFn) -> realClientFn d
       return (client,putMVar mVar)
 
----
--- mkStaticClient is used by various functions to create from a client
+-- | mkStaticClient is used by various functions to create from a client
 -- a single static client which tracks its state using an MVar.
 mkStaticClient :: Client d -> IO (Client d)
 mkStaticClient client =
@@ -351,8 +346,7 @@ mkStaticClient client =
       (newClient,_) <- mkStaticClientGeneral client
       return newClient
 
----
--- mkStaticClientGeneral is like mkStaticClient except that it also returns
+-- | mkStaticClientGeneral is like mkStaticClient except that it also returns
 -- an action which determines if the client is still running.
 mkStaticClientGeneral :: Client d -> IO (Client d,IO Bool)
 mkStaticClientGeneral (client :: Client d) =
@@ -532,8 +526,7 @@ stepSource fromX fromD (Source addClient1) =
    in
       Source addClient2 
 
----
--- A Source combinator which "flattens" lists of updates.
+-- | A Source combinator which \"flattens\" lists of updates.
 flattenSource :: Source x [d] -> Source x d
 flattenSource (Source addClient1) =
    let
@@ -719,8 +712,7 @@ instance HasSource (SimpleSource x) x x where
 -- The readContents function
 -- -----------------------------------------------------------------
 
----
--- Get the current contents of the source, but don't specify any other
+-- | Get the current contents of the source, but don\'t specify any other
 -- action.
 readContents :: HasSource source x d => source -> IO x
 readContents hasSource =
@@ -754,8 +746,7 @@ instance HasSource hasSource x d => CanAddSinks hasSource x d where
 -- Other handy utilities
 -- -----------------------------------------------------------------
 
----
--- Pair two SimpleSource's.  This is probably better than using >>=, since it
+-- | Pair two SimpleSource\'s.  This is probably better than using >>=, since it
 -- does not require reregistering with the second SimpleSource
 pairSimpleSources :: SimpleSource x1 -> SimpleSource x2 -> SimpleSource (x1,x2)
 pairSimpleSources (SimpleSource source1) (SimpleSource source2) =
@@ -776,24 +767,21 @@ pairSimpleSources (SimpleSource source1) (SimpleSource source2) =
    in
       SimpleSource (map1 fst source)
 
----
--- Does a similar job to pairSimpleSources, so that the sources run
+-- | Does a similar job to pairSimpleSources, so that the sources run
 -- parallel.
 sequenceSimpleSource :: [SimpleSource x] -> SimpleSource [x]
 sequenceSimpleSource [] = return []
 sequenceSimpleSource (first:rest) =
    fmap (uncurry (:)) (pairSimpleSources first (sequenceSimpleSource rest))
 
----
--- For each update d, pairs it with its predecessor (given first).
+-- | For each update d, pairs it with its predecessor (given first).
 -- For the very first update, a value is given based on the initial x,
 -- mapped by the given function.
 mkHistorySource :: (x -> d) -> Source x d -> Source x (d,d)
 mkHistorySource getD source =
    map1 (\ (x,d) -> x) (foldSource getD (\ lastD d -> (d,(lastD,d))) source)
 
----
--- Like mkHistorySource but for SimpleSource's; the x returns the initial
+-- | Like mkHistorySource but for SimpleSource\'s; the x returns the initial
 -- value to compare with.
 mkHistorySimpleSource :: x -> SimpleSource x -> SimpleSource (x,x)
 mkHistorySimpleSource lastX (SimpleSource source) =
@@ -840,8 +828,7 @@ addNewSourceActions (source1 :: Source x d) actionX actionD sinkID parallelX =
 -- Trace functions
 -- -----------------------------------------------------------------
 
----
--- Outputs information about what comes through the source, turning
+-- | Outputs information about what comes through the source, turning
 -- it into a String with the supplied function.  (This is done once
 -- for each active client.)
 traceSimpleSource :: (a -> String) -> SimpleSource a -> SimpleSource a
@@ -902,8 +889,7 @@ noLoopSource tSem toX toD (Source addClient0 :: Source x d) =
    in
       Source addClient1
 
----
--- Used when we are worried that a SimpleSource recursively constructed
+-- | Used when we are worried that a SimpleSource recursively constructed
 -- by mapIOSeq, >>= and friends may actually try to call itself, and
 -- so loop forever.   The Strings identify the SimpleSource,
 -- and so the [String] is effectively a backtrace of the TSems, revealing what

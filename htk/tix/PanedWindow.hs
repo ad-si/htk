@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>PanedWindow</strong>.<br>
+-- | HTk\'s /PanedWindow/.
 -- A paned window is a container widget, that is divided into scaleable
 -- horizontal or vertical panes.
 module PanedWindow (
@@ -46,8 +35,7 @@ import Tooltip
 -- type PanedWindow
 -- -----------------------------------------------------------------------
 
----
--- The <code>PanedWindow</code> datatype.
+-- | The @PanedWindow@ datatype.
 newtype PanedWindow = PanedWindow GUIOBJECT deriving Eq
 
 
@@ -55,13 +43,15 @@ newtype PanedWindow = PanedWindow GUIOBJECT deriving Eq
 -- paned window creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new paned window and returns it as a value.
--- @param cnf     - the list of configuration options for this
---                - paned window.
--- @return result - A paned window.
-newPanedWindow :: Container par => par -> Orientation ->
-                                   [Config PanedWindow] -> IO PanedWindow
+-- | Constructs a new paned window and returns it as a value.
+newPanedWindow :: Container par => par 
+   -- ^ the list of configuration options for this
+   -- paned window.
+   -> Orientation 
+   ->
+   [Config PanedWindow] 
+   -> IO PanedWindow
+   -- ^ A paned window.
 newPanedWindow par or cnf =
   do
     w <- createGUIObject (toGUIObject par) (PANEDWINDOW or)
@@ -97,36 +87,27 @@ tkCreatePanedWindow _ _ _ _ _ = []
 -- paned window instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject PanedWindow where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (PanedWindow f) = f
----
--- Internal.
+  -- | Internal.
   cname _ = "PanedWindow"
 
----
--- You can specify the size of a paned window.
+-- | You can specify the size of a paned window.
 instance HasSize PanedWindow
 
----
--- A paned window can be destroyed.
+-- | A paned window can be destroyed.
 instance Destroyable PanedWindow where
----
--- Destroys a paned window.
+  -- | Destroys a paned window.
   destroy = destroy . toGUIObject
 
----
--- A paned window has standard widget properties (focus, cursor, ...).
+-- | A paned window has standard widget properties (focus, cursor, ...).
 instance Widget PanedWindow
 
----
--- You can synchronize on a paned window object (in JAVA style).
+-- | You can synchronize on a paned window object (in JAVA style).
 instance Synchronized PanedWindow where
----
--- Synchronizes on a paned window object.
+  -- | Synchronizes on a paned window object.
   synchronize = synchronize . toGUIObject
 
 
@@ -134,8 +115,7 @@ instance Synchronized PanedWindow where
 -- type Pane
 -- -----------------------------------------------------------------------
 
----
--- The <code>Pane</code> datatype - a pane inside a paned window.
+-- | The @Pane@ datatype - a pane inside a paned window.
 newtype Pane = Pane GUIOBJECT deriving Eq
 
 
@@ -143,14 +123,16 @@ newtype Pane = Pane GUIOBJECT deriving Eq
 -- pane creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new pane inside a paned window and returns it as a
+-- | Constructs a new pane inside a paned window and returns it as a
 -- value.
--- @param par     - the parent widget, which has to be a paned window.
--- @param cnf     - the list of configuration options for this pane.
--- @return result - A window pane.
-createPane :: PanedWindow -> [CreationConfig Pane]  -> [Config Pane] ->
-              IO Pane
+createPane :: PanedWindow 
+   -- ^ the parent widget, which has to be a paned window.
+   -> [CreationConfig Pane]  
+   -- ^ the list of configuration options for this pane.
+   -> [Config Pane] 
+   ->
+   IO Pane
+   -- ^ A window pane.
 createPane nb ccnf cnf =
   do
     ccnfstr <- showCreationConfigs ccnf
@@ -163,8 +145,7 @@ createPane nb ccnf cnf =
 -- pane creation options
 -- -----------------------------------------------------------------------
 
----
--- Specifies that the new pane should be placed after pane in the list of
+-- | Specifies that the new pane should be placed after pane in the list of
 -- panes in this PanedWindow widget
 -- (this is an initial configuration that cannot be changed later).
 after :: Pane -> CreationConfig Pane
@@ -172,8 +153,7 @@ after pane =
   do nm <- getObjectName (toGUIObject pane)
      return ("after " ++ show nm)
 
----
--- Specifies that the new pane should be placed before pane in the list of
+-- | Specifies that the new pane should be placed before pane in the list of
 -- panes in this PanedWindow widget
 -- (this is an initial configuration that cannot be changed later).
 before :: Pane -> CreationConfig Pane
@@ -181,40 +161,35 @@ before pane =
   do nm <- getObjectName (toGUIObject pane)
      return ("before " ++ show nm)
 
----
--- Specifies the position of the new pane in the list of panes in this
+-- | Specifies the position of the new pane in the list of panes in this
 -- PanedWindow widget. 0 means the first position, 1 means the second,
 -- and so on.
 at :: Int -> CreationConfig Pane
 at n = return ("at " ++ show n)
 
----
--- Specifies the expand/shrink factor of this pane as a non-negative
--- floating point number. The default value is 0.0. The expand/shrink
+-- | Specifies the expand\/shrink factor of this pane as a non-negative
+-- floating point number. The default value is 0.0. The expand\/shrink
 -- factor is used to calculate how much each pane should grow or shrink
 -- when the size of the PanedWindow main window is changed. When the main 
--- window expands/shrinks by n pixels, then pane i will grow/shrink by
--- about n * factor(i) / summation(factors), where factor(i) is the
--- expand/shrink factor of pane i and summation(factors) is the summation
--- of the expand/shrink factors of all the panes. If summation(factors) 
+-- window expands\/shrinks by n pixels, then pane i will grow\/shrink by
+-- about n \* factor(i) \/ summation(factors), where factor(i) is the
+-- expand\/shrink factor of pane i and summation(factors) is the summation
+-- of the expand\/shrink factors of all the panes. If summation(factors) 
 -- is 0.0, however, only the last visible pane will be grown or shrunk. 
 expand :: Double -> CreationConfig Pane
 expand d = return ("expand " ++ show d)
 
----
--- Specifies the minimum size, in pixels, of the new pane; the default
+-- | Specifies the minimum size, in pixels, of the new pane; the default
 -- is 0.
 minsize :: Int -> CreationConfig Pane
 minsize i = return ("min " ++ show i)
 
----
--- Specifies the maximum size, in pixels, of the new pane; the default is
+-- | Specifies the maximum size, in pixels, of the new pane; the default is
 -- 10000.
 maxsize :: Int -> CreationConfig Pane
 maxsize i = return ("max " ++ show i)
 
----
--- Specifies the size, in pixels, of the new pane; if the -size option is 
+-- | Specifies the size, in pixels, of the new pane; if the -size option is 
 -- not given, the PanedWindow widget will use the natural size of the pane
 -- subwidget. 
 initsize :: Int -> CreationConfig Pane
@@ -268,42 +243,31 @@ tkCreatePane _ _ _ _ _ _ = []
 -- window pane instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject Pane where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (Pane f) = f
----
--- Internal.
+  -- | Internal.
   cname _ = "Pane"
 
----
--- A pane can be destroyed.
+-- | A pane can be destroyed.
 instance Destroyable Pane where
----
--- Destroys a pane.
+  -- | Destroys a pane.
   destroy   = destroy . toGUIObject
 
----
--- A pane has standard widget properties (focus, cursor...).
+-- | A pane has standard widget properties (focus, cursor...).
 instance Widget Pane
 
----
--- A pane has a background colour.
+-- | A pane has a background colour.
 instance HasColour Pane where 
----
--- Internal.
+  -- | Internal.
   legalColourID = hasBackGroundColour
 
----
--- A pane is a container for widgets. You can pack widgets to a pane via
--- the pack or grid command in the <code>module Packer</code>.
+-- | A pane is a container for widgets. You can pack widgets to a pane via
+-- the pack or grid command in the @module Packer@.
 instance Container Pane
 
----
--- You can synchronize on a pane object (in JAVA style).
+-- | You can synchronize on a pane object (in JAVA style).
 instance Synchronized Pane where
----
--- Synchronizes on a pane object.
+  -- | Synchronizes on a pane object.
   synchronize = synchronize . toGUIObject

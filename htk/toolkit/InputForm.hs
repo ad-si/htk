@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- the inputform
+-- | the inputform
 module InputForm (
         InputForm(..),
         newInputForm,
@@ -69,8 +58,7 @@ class Variable a b where
 -- --------------------------------------------------------------------------
 -- InputForm Type 
 -- --------------------------------------------------------------------------           
----
--- The <code>InputForm</code> datatype.
+-- | The @InputForm@ datatype.
 data InputForm a = InputForm Box (Ref (FormState a))
 
 data FormState a = FormState {
@@ -96,13 +84,15 @@ data FieldInf a  = FieldInf {
 -- --------------------------------------------------------------------------
 -- Commands 
 -- --------------------------------------------------------------------------
----
--- Creates a new <code>InputForm</code> 
--- @param par       - parent container in which the form is embedded
--- @param val       - the datatype which contains the initial field values and the results
--- @param ol        - list of configuration options for this form
--- @return result   - a <code>InputForm</code>
-newInputForm :: Box -> Maybe a -> [Config (InputForm a)] -> IO (InputForm a)
+-- | Creates a new @InputForm@ 
+newInputForm :: Box 
+   -- ^ parent container in which the form is embedded
+   -> Maybe a 
+   -- ^ the datatype which contains the initial field values and the results
+   -> [Config (InputForm a)] 
+   -- ^ list of configuration options for this form
+   -> IO (InputForm a)
+   -- ^ a @InputForm@
 newInputForm par val ol = do {
         em <- newRef (FormState val Nothing Nothing Nothing Nothing Nothing []);
         configure (InputForm par em) ol
@@ -111,21 +101,16 @@ newInputForm par val ol = do {
 -- --------------------------------------------------------------------------
 -- InputForm Instances 
 -- --------------------------------------------------------------------------
----
--- Internal.
+-- | Internal.
 instance Eq (InputForm a) where 
----
--- Internal.
+        -- | Internal.
         w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
----
--- Internal.
+-- | Internal.
 instance GUIObject (InputForm a) where 
----
--- Internal.
+        -- | Internal.
         toGUIObject (InputForm b e) = toGUIObject b
----
--- Internal.
+        -- | Internal.
         cname _ = "InputForm"
 
 
@@ -229,16 +214,16 @@ undefinedFormValue = userError "form value is not defined"
 -- --------------------------------------------------------------------------
 --  Entry Fields  
 -- --------------------------------------------------------------------------
----
--- The <code>EntryField</code> datatype.
+-- | The @EntryField@ datatype.
 data EntryField a b = EntryField (Entry b) Label (Ref (FieldInf a))
 
----
--- Add a new <code>EntryField</code> to the form
--- @param form        - the form to which the field is added
--- @param confs       - a list of configuration options for this field
--- @return result     - a <code>EntryField</code>
-newEntryField :: GUIValue b => InputForm a -> [Config (EntryField a b)] -> IO (EntryField a b)
+-- | Add a new @EntryField@ to the form
+newEntryField :: GUIValue b => InputForm a 
+   -- ^ the form to which the field is added
+   -> [Config (EntryField a b)] 
+   -- ^ a list of configuration options for this field
+   -> IO (EntryField a b)
+   -- ^ a @EntryField@
 newEntryField form@(InputForm box field) confs = do {
         b <- newHBox box [];
 	pack b [Expand On, Fill X];
@@ -321,19 +306,21 @@ instance InputField EntryField where
 -- --------------------------------------------------------------------------
 --  Numeric Entry Fields  
 -- --------------------------------------------------------------------------
----
--- The <code>NumEntryField</code> datatype.
+-- | The @NumEntryField@ datatype.
 data NumEntryField a b = NumEntryField (Entry b) Label SpinButton 
                                        (Ref (FieldInf a))
 
----
--- Add a new <code>NumEntryField</code> to the form
--- @param form        - the form to which the field is added
--- @param bounds      - upper and lower bound (for the spin only)
--- @param delta       - increment/decrement for the spin button
--- @param confs       - a list of configuration options for this field
--- @return result     - a <code>NumEntryField</code>
-newNumEntryField :: (Ord b, Num b, GUIValue b) => InputForm a -> (b, b)-> b-> [Config (NumEntryField a b)] -> IO (NumEntryField a b)
+-- | Add a new @NumEntryField@ to the form
+newNumEntryField :: (Ord b, Num b, GUIValue b) => InputForm a 
+   -- ^ the form to which the field is added
+   -> (b, b)
+   -- ^ upper and lower bound (for the spin only)
+   -> b
+   -- ^ increment\/decrement for the spin button
+   -> [Config (NumEntryField a b)] 
+   -- ^ a list of configuration options for this field
+   -> IO (NumEntryField a b)
+   -- ^ a @NumEntryField@
 newNumEntryField form@(InputForm box field) (min, max) delta confs = 
      do let spin Up v   = if v+ delta <= max then v+delta else v
             spin Down v = if v- delta >= min then v-delta else v
@@ -423,8 +410,7 @@ instance InputField NumEntryField where
 					  case num of 
 					    Left _ -> do txt <- getText lbl
 					                 createErrorWin  
-					                   ("Not a numeric \
-							    \value for field "
+					                   ("Not a numeric 							    \value for field "
 							    ++ txt) []
 					    Right _ -> return (f r val) -}
                           }
@@ -434,17 +420,18 @@ instance InputField NumEntryField where
 -- --------------------------------------------------------------------------
 --  Checkbox Fields  
 -- --------------------------------------------------------------------------
----
--- The <code>CheckboxField</code> datatype.
+-- | The @CheckboxField@ datatype.
 data CheckboxField a b = CheckboxField (CheckButton b) Label (TkVariable b) (Ref (FieldInf a))
 
----
--- Add a new <code>CheckboxField</code> to the form
--- @param form        - the form to which the field is added
--- @param init        - initial value
--- @param confs       - a list of configuration options for this field
--- @return result     - a <code>CheckbuttonField</code>
-newCheckboxField :: GUIValue b=> InputForm a -> b-> [Config (CheckboxField a b)] -> IO (CheckboxField a b)
+-- | Add a new @CheckboxField@ to the form
+newCheckboxField :: GUIValue b=> InputForm a 
+   -- ^ the form to which the field is added
+   -> b
+   -- ^ initial value
+   -> [Config (CheckboxField a b)] 
+   -- ^ a list of configuration options for this field
+   -> IO (CheckboxField a b)
+   -- ^ a @CheckbuttonField@
 newCheckboxField form@(InputForm box field) init confs = do {
         b <- newHBox box [];
 	pack b [Expand On, Fill X];
@@ -529,16 +516,16 @@ instance InputField CheckboxField where
 -- --------------------------------------------------------------------------
 --  Text Fields  
 -- --------------------------------------------------------------------------           
----
--- The <code>TextField</code> datatype.
+-- | The @TextField@ datatype.
 data TextField a b = TextField Editor Label (Ref (FieldInf a))
 
----
--- Add a new <code>TextField</code> to the form
--- @param form        - the form to which the field is added
--- @param confs       - a list of configuration options for this field
--- @return result     - a <code>TextField</code>
-newTextField :: GUIValue b => InputForm a -> [Config (TextField a b)] -> IO (TextField a b)
+-- | Add a new @TextField@ to the form
+newTextField :: GUIValue b => InputForm a 
+   -- ^ the form to which the field is added
+   -> [Config (TextField a b)] 
+   -- ^ a list of configuration options for this field
+   -> IO (TextField a b)
+   -- ^ a @TextField@
 newTextField form@(InputForm box field) confs = 
  do
   b <- newVBox box []
@@ -621,17 +608,18 @@ instance InputField TextField where
 -- --------------------------------------------------------------------------
 --  Enumeration Fields  
 -- --------------------------------------------------------------------------           
----
--- The <code>EnumField</code> datatype.
+-- | The @EnumField@ datatype.
 data EnumField a b = EnumField (OptionMenu b) Label (Ref (FieldInf a))
 
----
--- Add a new <code>EnumField</code> to the form
--- @param form        - the form to which the field is added
--- @param choices     - the list of choices in this field
--- @param confs       - a list of configuration options for this field
--- @return result     - a <code>EnumField</code>
-newEnumField :: GUIValue b => InputForm a -> [b] -> [Config (EnumField a b)] -> IO (EnumField a b)
+-- | Add a new @EnumField@ to the form
+newEnumField :: GUIValue b => InputForm a 
+   -- ^ the form to which the field is added
+   -> [b] 
+   -- ^ the list of choices in this field
+   -> [Config (EnumField a b)] 
+   -- ^ a list of configuration options for this field
+   -> IO (EnumField a b)
+   -- ^ a @EnumField@
 newEnumField form@(InputForm box field) choices confs =
  do
   b <- newHBox box []

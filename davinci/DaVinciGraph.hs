@@ -164,8 +164,7 @@ signalDestruct :: DaVinciGraph -> IO ()
 signalDestruct daVinciGraph = 
    sync(noWait(send (destructionChannel daVinciGraph) ()))
 
----
--- We run a separate thread for redrawing.  The idea is that when more than
+-- | We run a separate thread for redrawing.  The idea is that when more than
 -- one redraw request arrives while daVinci is already redrawing, we only
 -- send one.  This means it is not too bad when we make a lot of changes,
 -- redrawing each one.
@@ -1476,8 +1475,7 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
 -- Setting node titles and font styles.
 -- -----------------------------------------------------------------------
 
----
--- This is called internally, by the function set up by newNodePrim.
+-- | This is called internally, by the function set up by newNodePrim.
 -- The function returns False to indicate that this function failed as
 -- the node has been deleted.
 setNodeTitle :: Typeable value => DaVinciGraph -> DaVinciNode value -> String

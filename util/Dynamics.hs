@@ -135,8 +135,7 @@ dynCastOpt value = fromDyn (toDyn value)
 -- ----------------------------------------------------------------------
 
 
----
--- A TyCon with arguments.
+-- | A TyCon with arguments.
 data TyRep = TyRep TyCon [TypeRep]
 
 appTyRep :: TyRep -> TypeRep -> TyRep

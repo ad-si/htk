@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>listbox widget</strong> .<br>
+-- | HTk\'s /listbox widget/ .
 -- A scrollable widget that displays a set of text lines with selection
 -- functionality.
 module ListBox (
@@ -54,8 +43,7 @@ import Tooltip
 -- type
 -- -----------------------------------------------------------------------
 
----
--- The <code>ListBox</code> datatype - parametrised over the type of
+-- | The @ListBox@ datatype - parametrised over the type of
 -- the list elements.
 newtype ListBox a = ListBox GUIOBJECT deriving Eq
 
@@ -64,16 +52,17 @@ newtype ListBox a = ListBox GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new listbox widget and returns a handler.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this listbox
---                  widget.
--- @return result - A listbox widget.
-newListBox :: (Container par, GUIValue a) => par ->
-                                             [Config (ListBox a)] ->
-                                             IO (ListBox a)
+-- | Constructs a new listbox widget and returns a handler.
+newListBox :: (Container par, GUIValue a) => par 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   ->
+   [Config (ListBox a)] 
+   -- ^ the list of configuration options for this listbox
+   -- widget.
+   ->
+   IO (ListBox a)
+   -- ^ A listbox widget.
 newListBox par cnf =
   do
     w <- createGUIObject (toGUIObject par) (LISTBOX []) lboxMethods 
@@ -84,75 +73,58 @@ newListBox par cnf =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject (ListBox a) where 
----
--- Internal.
+   -- | Internal.
    toGUIObject (ListBox w) = w
----
--- Internal.
+   -- | Internal.
    cname _ = "ListBox"
 
----
--- A listbox widget can be destroyed.
+-- | A listbox widget can be destroyed.
 instance Destroyable (ListBox a) where
----
--- Destroys a listbox widget
+   -- | Destroys a listbox widget
    destroy = destroy . toGUIObject
 
----
--- A listbox widget has standard widget properties
+-- | A listbox widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget (ListBox a)
 
----
--- You can synchronize on a listbox object (in JAVA style).
+-- | You can synchronize on a listbox object (in JAVA style).
 instance Synchronized (ListBox a) where
----
--- Synchronizes on a listbox object.
+  -- | Synchronizes on a listbox object.
   synchronize = synchronize . toGUIObject
 
----
--- A listbox widget has a configureable border.
+-- | A listbox widget has a configureable border.
 instance HasBorder (ListBox a)
 
----
--- A listbox widget has a foreground and background colour.
+-- | A listbox widget has a foreground and background colour.
 instance HasColour (ListBox a) where 
   legalColourID = hasForeGroundColour
 
----
--- A listbox is a stateful widget - it can be enabled or disabled.
+-- | A listbox is a stateful widget - it can be enabled or disabled.
 instance HasEnable (ListBox a)
 
----
--- You can specify the font of a listbox.
+-- | You can specify the font of a listbox.
 instance HasFont (ListBox a)
 
 instance HasGrid (ListBox a)
 
----
--- A listbox is a scrollable widget.
+-- | A listbox is a scrollable widget.
 instance HasScroller (ListBox a)
 
----
--- You can specify the size of a listbox.
+-- | You can specify the size of a listbox.
 instance HasSize (ListBox a)
 
----
--- The value of a listbox is the list of the displayed objects (these
--- are instances of class <code>GUIValue</code> and therefore instances
--- of class <code>Show</code>).
+-- | The value of a listbox is the list of the displayed objects (these
+-- are instances of class @GUIValue@ and therefore instances
+-- of class @Show@).
 instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a] where
   value vals w =
     execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
----
--- Gets the list of displayed objects.
+  -- | Gets the list of displayed objects.
   getValue w = evalMethod w (\nm -> tkGet nm)
 
----
--- A listbox can have a tooltip (only displayed if you are using tixwish).
+-- | A listbox can have a tooltip (only displayed if you are using tixwish).
 instance HasTooltip (ListBox a)
 
 
@@ -160,19 +132,20 @@ instance HasTooltip (ListBox a)
 -- ListBox configurations
 -- -----------------------------------------------------------------------
 
----
--- Sets the select mode of a listbox.
--- @param sm	  - the select mode to set.
--- @param lbox	  - the concerned listbox.
--- @return result - The concerned listbox.
-selectMode :: GUIValue a => SelectMode -> ListBox a -> IO (ListBox a)
+-- | Sets the select mode of a listbox.
+selectMode :: GUIValue a => SelectMode 
+   -- ^ the select mode to set.
+   -> ListBox a 
+   -- ^ the concerned listbox.
+   -> IO (ListBox a)
+   -- ^ The concerned listbox.
 selectMode sm lbox = cset lbox "selectmode" sm
 
----
--- Gets the set select mode from a listbox.
--- @param lbox	  - the concerned listbox.
--- @return result - The current select mode.
-getSelectMode :: GUIValue a => (ListBox a) -> IO SelectMode 
+-- | Gets the set select mode from a listbox.
+getSelectMode :: GUIValue a => (ListBox a) 
+   -- ^ the concerned listbox.
+   -> IO SelectMode 
+   -- ^ The current select mode.
 getSelectMode lbox = cget lbox "selectmode"
 
 
@@ -180,11 +153,9 @@ getSelectMode lbox = cget lbox "selectmode"
 -- BBox
 -- -----------------------------------------------------------------------
 
----
--- You can find out the bounding box of a list box element.
+-- | You can find out the bounding box of a list box element.
 instance HasIndex (ListBox a) i Int => HasBBox (ListBox a) i  where
----
--- Returns the bounding box of the element at the specified index.
+  -- | Returns the bounding box of the element at the specified index.
   bbox w i =
     do
       binx <- getBaseIndex w i
@@ -198,8 +169,7 @@ instance HasIndex (ListBox a) i Int => HasBBox (ListBox a) i  where
 -- Index
 -- -----------------------------------------------------------------------
 
----
--- The <code>ListBoxElem</code> datatype.
+-- | The @ListBoxElem@ datatype.
 data Eq a => ListBoxElem a = ListBoxElem a deriving Eq
 
 
@@ -207,34 +177,26 @@ data Eq a => ListBoxElem a = ListBoxElem a deriving Eq
 -- Has Index
 -- -----------------------------------------------------------------------
 
----
--- An integer value is a valid index position inside a listbox widget.
+-- | An integer value is a valid index position inside a listbox widget.
 instance HasIndex (ListBox a) Int Int where
----
--- Internal.
+  -- | Internal.
   getBaseIndex lb i = return i
 
----
--- The <code>EndOfText</code> index is a valid index position inside a
+-- | The @EndOfText@ index is a valid index position inside a
 -- listbox widget.
 instance HasIndex (ListBox a) EndOfText Int where
----
--- Internal.
+  -- | Internal.
   getBaseIndex lb _ = getIndexNumber lb "end"
 
----
--- A position in pixels is a valid index position inside an editor widget.
+-- | A position in pixels is a valid index position inside an editor widget.
 instance HasIndex (ListBox a) Pixels Int where
----
--- Internal.
+  -- | Internal.
   getBaseIndex lb p = getIndexNumber lb (show p)
 
----
--- A listbox element is a valid index position inside an editor widget.
+-- | A listbox element is a valid index position inside an editor widget.
 instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
                                         (ListBoxElem a) Int where 
----
--- Internal.
+  -- | Internal.
   getBaseIndex lb (ListBoxElem val) =
     do
       kind <- getObjectKind (toGUIObject lb)
@@ -245,12 +207,10 @@ instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
             Just i -> return i
     where val' = show (toGUIValue val)
 
----
--- Internal.
+-- | Internal.
 instance (Eq a, GUIValue a, GUIValue [a]) =>
          HasIndex (ListBox a) Int (ListBoxElem a) where 
----
--- Internal.
+  -- | Internal.
   getBaseIndex lb i =
     synchronize lb
       (do
@@ -269,38 +229,31 @@ getIndexNumber lb i =
 -- ListBox selection
 -- -----------------------------------------------------------------------
 
----
--- You can select entries inside a listbox widget.
+-- | You can select entries inside a listbox widget.
 instance HasSelection (ListBox a) where
----
--- Clears the listbox'es selection.
+  -- | Clears the listbox\'es selection.
   clearSelection lb = execMethod lb (\nm -> tkSelectionClearAll nm)
 
----
--- A listbox'es entries are selectable.
+-- | A listbox\'es entries are selectable.
 instance (HasIndex (ListBox a) i Int) =>
          HasSelectionIndex (ListBox a) i where
----
--- Selects the element at the specified index.
+  -- | Selects the element at the specified index.
   selection i lb =
     synchronize lb
       (do
          binx <- getBaseIndex lb i
          execMethod lb (\ nm -> tkSelectionSetItem nm binx)
          return lb)
----
--- Queries if the element at the specified index is selected.
+  -- | Queries if the element at the specified index is selected.
   isSelected lb i =
     synchronize lb
       (do
          binx <- getBaseIndex lb i
          evalMethod lb (\nm -> tkSelectionIncludes nm binx))
 
----
--- You can select a range of elements inside a listbox widget.
+-- | You can select a range of elements inside a listbox widget.
 instance HasSelectionBaseIndex (ListBox a) [Int] where
----
--- Gets the selection range inside the listbox.
+  -- | Gets the selection range inside the listbox.
   getSelection lb =
     do
       sel <- evalMethod lb (\ nm -> tkCurSelection nm)
@@ -308,12 +261,10 @@ instance HasSelectionBaseIndex (ListBox a) [Int] where
         [] -> return Nothing
         l -> return (Just l)
 
----
--- You can select a range of elements inside a listbox widget.
+-- | You can select a range of elements inside a listbox widget.
 instance (HasIndex (ListBox a) i1 Int, HasIndex (ListBox a) i2 Int) =>
          HasSelectionIndexRange (ListBox a) i1 i2  where
----
--- Sets the selection range inside the listbox widget.
+  -- | Sets the selection range inside the listbox widget.
   selectionRange start end lb =
     synchronize lb
       (do
@@ -322,19 +273,16 @@ instance (HasIndex (ListBox a) i1 Int, HasIndex (ListBox a) i2 Int) =>
          execMethod lb (\ nm -> tkSelectionSet nm start' end')
          return lb)
         
----
--- You can select a range of entries inside a listbox widget.
+-- | You can select a range of entries inside a listbox widget.
 instance HasSelectionBaseIndexRange (ListBox a) Int where
----
--- Gets the start index of the listbox'es selection.
+  -- | Gets the start index of the listbox\'es selection.
   getSelectionStart lb =
     do
       sel <- getSelection lb
       case sel of
         Nothing -> return Nothing 
         Just (v:_) -> return (Just v)
----
--- Gets the end index of the listbox'es selection.
+  -- | Gets the end index of the listbox\'es selection.
   getSelectionEnd lb =
     do
       sel <- getSelection lb
@@ -347,24 +295,26 @@ instance HasSelectionBaseIndexRange (ListBox a) Int where
 -- Other ListBox operations
 -- -----------------------------------------------------------------------
 
----
--- Activates the specified line.
--- @param lb	  - the concerned listbox.
--- @param i	  - the index of the line to activate.
--- @return result - Nothing.
-activateElem :: HasIndex (ListBox a) i Int => ListBox a -> i -> IO ()
+-- | Activates the specified line.
+activateElem :: HasIndex (ListBox a) i Int => ListBox a 
+   -- ^ the concerned listbox.
+   -> i 
+   -- ^ the index of the line to activate.
+   -> IO ()
+   -- ^ Nothing.
 activateElem lb i  =
   synchronize lb
     (do
        binx <- getBaseIndex lb i
        execMethod lb (\ nm -> tkActivate nm binx))
 
----
--- Anchors the selection at the specified line.
--- @param lb	  - the concerned listbox.
--- @param i	  - the index of the line to anchor the selection at.
--- @return result - Nothing.
-selectionAnchor :: HasIndex (ListBox a) i Int => ListBox a -> i -> IO ()
+-- | Anchors the selection at the specified line.
+selectionAnchor :: HasIndex (ListBox a) i Int => ListBox a 
+   -- ^ the concerned listbox.
+   -> i 
+   -- ^ the index of the line to anchor the selection at.
+   -> IO ()
+   -- ^ Nothing.
 selectionAnchor lb i =
   synchronize lb
     (do

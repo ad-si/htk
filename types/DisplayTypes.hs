@@ -218,12 +218,10 @@ instance DisplayType displayType
 -- Initialising and writing the Global Registries
 -- -----------------------------------------------------------------
 
----
--- The String is the key into the displayTypeDataRegistry; 
+-- | The String is the key into the displayTypeDataRegistry; 
 type DisplayTypeData = [(String,CodedValue)]
 
----
--- Decode all the display type data for this value and put it in the
+-- | Decode all the display type data for this value and put it in the
 -- display type registers.
 importDisplayTypes :: CodedValue -> View -> IO ()
 importDisplayTypes codedValue view =
@@ -241,10 +239,9 @@ importDisplayTypes codedValue view =
             displayTypeData
          )
 
----
--- This decodes all the display types associated with a particular
+-- | This decodes all the display types associated with a particular
 -- Haskell type displayType, which is not looked at.  The codedValue represents
---  a list of type [displayType].
+-- a list of type [displayType].
 importOneDisplayType :: DisplayType displayType
    => displayType -> CodedValue -> View -> IO ()
 importOneDisplayType displayType codedValue view =
@@ -252,8 +249,7 @@ importOneDisplayType displayType codedValue view =
       let globalRegistry = displayTypeGlobalRegistry displayType
       addViewToGlobalRegistry globalRegistry view codedValue
 
----
--- Inverse to importDisplayTypes, producing a CodedValue for all types
+-- | Inverse to importDisplayTypes, producing a CodedValue for all types
 -- present in this view.
 exportDisplayTypes :: View -> IO CodedValue
 exportDisplayTypes view =
@@ -276,8 +272,7 @@ exportDisplayTypes view =
          <- processDisplayTypes allDisplayTypes []
       doEncodeIO displayTypeData view
 
----
--- This is the inverse to importOneDisplayType
+-- | This is the inverse to importOneDisplayType
 exportOneDisplayType :: DisplayType displayType
    => displayType -> View -> IO (Maybe CodedValue)
 exportOneDisplayType displayType view =

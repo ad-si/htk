@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- A simple log window.
+-- | A simple log window.
 module LogWin (
 
   LogWin(..),
@@ -35,8 +24,7 @@ import System
 -- Type
 -- -----------------------------------------------------------------------
 
----
--- The <code>LogWin</code> datatype.
+-- | The @LogWin@ datatype.
 data LogWin = LogWin Toplevel Editor (IO ())
 
 
@@ -44,11 +32,11 @@ data LogWin = LogWin Toplevel Editor (IO ())
 -- Commands
 -- -----------------------------------------------------------------------
 
----
--- Creates a new log window and returns a handler.
--- @param cnf     - the list of configuration options for this log window.
--- @return result - A log window.
-createLogWin :: [Config Toplevel] -> IO LogWin
+-- | Creates a new log window and returns a handler.
+createLogWin :: [Config Toplevel] 
+   -- ^ the list of configuration options for this log window.
+   -> IO LogWin
+   -- ^ A log window.
 createLogWin cnf =
   do
     win <- createToplevel cnf
@@ -91,21 +79,16 @@ saveLog ed =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject LogWin where
----
--- Internal.
+  -- | Internal.
   toGUIObject (LogWin win _ _) = toGUIObject win
----
--- Internal.
+  -- | Internal.
   cname _ = "LogWin"
 
----
--- A log window can be destroyed.
+-- | A log window can be destroyed.
 instance Destroyable LogWin where
----
--- Destroys a log window.
+  -- | Destroys a log window.
   destroy (LogWin win _ death) = death >> destroy win
 
 
@@ -113,12 +96,13 @@ instance Destroyable LogWin where
 -- Write Log
 -- -----------------------------------------------------------------------
 
----
--- Writes into the log window.
--- @param lw      - the concerned log window.
--- @param str     - the text to write to the log window.
--- @return result - None.
-writeLogWin :: LogWin -> String -> IO ()
+-- | Writes into the log window.
+writeLogWin :: LogWin 
+   -- ^ the concerned log window.
+   -> String 
+   -- ^ the text to write to the log window.
+   -> IO ()
+   -- ^ None.
 writeLogWin lw@(LogWin _ ed _) str =
   do
     try (insertText ed EndOfText str)

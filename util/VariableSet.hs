@@ -54,8 +54,7 @@ lift :: (HasKey x1 key1,HasKey x2 key2)
 lift f x1 x2 = f (toKey . unKey $ x1) (toKey . unKey $ x2)
 
 
----
--- HasKey specifies the ordering to use (without committing us to
+-- | HasKey specifies the ordering to use (without committing us to
 -- a particular Ord instance elsewhere).
 instance HasKey x key => Eq (Keyed x) where
    (==) = lift (==)
@@ -74,14 +73,13 @@ instance HasKey x key => Ord (Keyed x) where
 
 newtype VariableSetData x = VariableSetData (Set (Keyed x))
 
----
--- Encodes the updates to a variable set.
+-- | Encodes the updates to a variable set.
 -- BeginGroup does not actually alter the set itself, but
 -- indicate that a group of updates is about to begin, terminated by EndGroup.  
 -- This prevents the client from trying to recalculate the state after every single
 -- update.
---
--- BeginGroup/EndGroup may be nested (though I don't have any application for that
+-- 
+-- BeginGroup\/EndGroup may be nested (though I don\'t have any application for that
 -- yet).
 data VariableSetUpdate x =
       AddElement x
@@ -122,16 +120,14 @@ newtype VariableSet x
 -- The provider's interface
 -- --------------------------------------------------------------------
 
----
--- Create a new empty variable set.
+-- | Create a new empty variable set.
 newEmptyVariableSet :: HasKey x key => IO (VariableSet x)
 newEmptyVariableSet = 
    do
       broadcaster <- newBroadcaster (VariableSetData emptySet)
       return (VariableSet broadcaster)
 
----
--- Create a new variable set with given contents
+-- | Create a new variable set with given contents
 newVariableSet :: HasKey x key => [x] -> IO (VariableSet x)
 newVariableSet contents =
    do
@@ -139,14 +135,12 @@ newVariableSet contents =
          <- newBroadcaster (VariableSetData (mkSet (map Keyed contents)))
       return (VariableSet broadcaster)
 
----
--- Update a variable set in some way.
+-- | Update a variable set in some way.
 updateSet :: HasKey x key => VariableSet x -> VariableSetUpdate x -> IO ()
 updateSet (VariableSet broadcaster) setUpdate 
    = applyUpdate broadcaster (update setUpdate)
 
----
--- Set the elements of the variable set.
+-- | Set the elements of the variable set.
 setVariableSet :: HasKey x key => VariableSet x -> [x] -> IO ()
 setVariableSet (VariableSet broadcaster) newList =
    do
@@ -293,8 +287,7 @@ singletonSetSource (source0 :: SimpleSource x) =
    in
       source4
 
----
--- Creates a VariableSetSource whose elements are the same as those of the
+-- | Creates a VariableSetSource whose elements are the same as those of the
 -- corresponding list.
 listToSetSource :: Ord x => SimpleSource [x] -> VariableSetSource x
 listToSetSource (simpleSource :: SimpleSource [x]) =

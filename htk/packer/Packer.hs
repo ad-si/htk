@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Packing of widgets - HTk supports Tk's standard packer and grid packer.
+-- | Packing of widgets - HTk supports Tk\'s standard packer and grid packer.
 module Packer (
 
   Container,
@@ -40,8 +29,7 @@ import Core
 -- abstract class Container
 -- -----------------------------------------------------------------------
 
----
--- Container widgets instantiate the abstract <code>class Container</code>
+-- | Container widgets instantiate the abstract @class Container@
 -- to enable packing.
 class GUIObject a => Container a
 
@@ -50,12 +38,13 @@ class GUIObject a => Container a
 -- grid packer
 -- -----------------------------------------------------------------------
 
----
--- Packs a widget via the grid geometry manager.
--- @param wid     - the widget to pack.
--- @param opts    - the grid pack options.
--- @return result - None.
-grid :: Widget w => w -> [GridPackOption] -> IO ()
+-- | Packs a widget via the grid geometry manager.
+grid :: Widget w => w 
+   -- ^ the widget to pack.
+   -> [GridPackOption] 
+   -- ^ the grid pack options.
+   -> IO ()
+   -- ^ None.
 grid wid opts =
   do
     let (GUIOBJECT _ ostref) = toGUIObject wid
@@ -68,12 +57,13 @@ grid wid opts =
 -- standard packer
 -- -----------------------------------------------------------------------
 
----
--- Packs a widget via the pack geometry manager.
--- @param wid     - the widget to pack.
--- @param opts    - the pack options.
--- @return result - None.
-pack :: Widget w => w -> [PackOption] -> IO ()
+-- | Packs a widget via the pack geometry manager.
+pack :: Widget w => w 
+   -- ^ the widget to pack.
+   -> [PackOption] 
+   -- ^ the pack options.
+   -> IO ()
+   -- ^ None.
 pack wid opts =
   do
     let obj = toGUIObject wid

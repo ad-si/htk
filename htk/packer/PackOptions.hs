@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Packing options for the pack geometry manager.
+-- | Packing options for the pack geometry manager.
 module PackOptions (
 
   PackOption(..),
@@ -28,49 +17,41 @@ import Geometry
 -- standard pack options
 -- -----------------------------------------------------------------------
 
----
--- The <code>SideSpec</code> datatype.
+-- | The @SideSpec@ datatype.
 data SideSpec = AtLeft | AtRight | AtTop | AtBottom
 
----
--- The <code>FillSpec</code> datatype.
+-- | The @FillSpec@ datatype.
 data FillSpec = X | Y | Both | None
 
----
--- Internal.
+-- | Internal.
 instance Show SideSpec where
----
--- Internal.
+  -- | Internal.
   showsPrec d AtLeft r = "left" ++ r
   showsPrec d AtRight r = "right" ++ r
   showsPrec d AtTop r = "top" ++ r
   showsPrec d AtBottom r = "bottom" ++ r
 
----
--- Internal.
+-- | Internal.
 instance Show FillSpec where
----
--- Internal.
+  -- | Internal.
   showsPrec d X r = "x" ++ r
   showsPrec d Y r = "y" ++ r
   showsPrec d Both r = "both" ++ r
   showsPrec d None r = "none" ++ r
 
 data PackOption =
-    Side SideSpec         --' side to pack the widget
-  | Fill FillSpec         --' orientations to fill.
-  | Expand Toggle         --' expand toggle
-  | IPadX Distance        --' inner horizontal pad
-  | IPadY Distance        --' inner vertical pad
-  | PadX Distance         --' horizontal pad
-  | PadY Distance         --' vertical pad
-  | Anchor Anchor         --' anchor position
+    Side SideSpec         -- ^ side to pack the widget
+  | Fill FillSpec         -- ^ orientations to fill.
+  | Expand Toggle         -- ^ expand toggle
+  | IPadX Distance        -- ^ inner horizontal pad
+  | IPadY Distance        -- ^ inner vertical pad
+  | PadX Distance         -- ^ horizontal pad
+  | PadY Distance         -- ^ vertical pad
+  | Anchor Anchor         -- ^ anchor position
 
----
--- Internal.
+-- | Internal.
 instance Show PackOption where
----
--- Internal.
+  -- | Internal.
   showsPrec d (Side spec) r = "side " ++ show spec ++ r
   showsPrec d (Fill spec) r = "fill " ++ show spec ++ r
   showsPrec d (Expand t) r = "expand " ++ show t ++ r
@@ -80,8 +61,7 @@ instance Show PackOption where
   showsPrec d (PadY i) r = "pady " ++ show i ++ r
   showsPrec d (Anchor a) r = "anchor " ++ show a ++ r
 
----
--- Internal.
+-- | Internal.
 showPackOptions :: [PackOption] -> String
 showPackOptions [] = ""
 showPackOptions (opt : opts) =

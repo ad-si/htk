@@ -147,8 +147,7 @@ import HTkMenu
 -- The EnteredForm type
 -- -------------------------------------------------------------------------
 
----
--- EnteredForm represents a form entry constructed in a given widget
+-- | EnteredForm represents a form entry constructed in a given widget
 -- The actions should be performed in the following sequence:
 -- packAction
 -- 0 or more uses of getFormValue

@@ -88,13 +88,11 @@ mmissObjectTypeMap =
          allLabelledElements
          )
 
----
--- Return the key in the global registry for objects with this tag
+-- | Return the key in the global registry for objects with this tag
 constructKey :: String -> GlobalKey
 constructKey xmlTag = oneOffKey "MMiSSObjectTypeList" xmlTag
 
----
--- Returns the object type for a given Xml tag.
+-- | Returns the object type for a given Xml tag.
 retrieveObjectType :: String -> MMiSSObjectType
 retrieveObjectType xmlTag =
    lookupWithDefaultFM mmissObjectTypeMap

@@ -197,8 +197,7 @@ instance KeyOpsRegistry Attributes String where
 -- HasAttributes
 -- ------------------------------------------------------------------------
 
----
--- The HasAttributes class is instanced by objects that contain an
+-- | The HasAttributes class is instanced by objects that contain an
 -- Attributes 
 class HasCodedValue object => HasAttributes object where
    ---
@@ -231,8 +230,7 @@ class HasCodedValue object => HasAttributes object where
 getMergeLinksSimpleFile :: SimpleFile -> ObjectLinks ()
 getMergeLinksSimpleFile _ = ObjectLinks []
 
----
--- Change the link inside a SimpleFile
+-- | Change the link inside a SimpleFile
 attemptMergeSimpleFile :: MergeTypes.LinkReAssigner -> View -> SimpleFile 
    -> SimpleFile
 attemptMergeSimpleFile linkReAssigner view simpleFile = simpleFile

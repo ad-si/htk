@@ -44,23 +44,19 @@ evalEmacsQuick emacsSession emacsCommand
 -- Instances of Emacs command
 -- -------------------------------------------------------------------------
 
----
--- A call to a function with no arguments.
+-- | A call to a function with no arguments.
 instance HasEmacsCommand String where
    toEmacsString funName = "("++funName++")"
 
----
--- A call to a function with one String argument.
+-- | A call to a function with one String argument.
 instance HasEmacsCommand (String,String) where
    toEmacsString (funName,arg) = toEmacsString (funName,[arg])  
 
----
--- A call to a function with one Int argument.
+-- | A call to a function with one Int argument.
 instance HasEmacsCommand (String,Int) where
    toEmacsString (funName,arg) = "(" ++ funName ++ " " ++ show arg ++ ")"
 
----
--- A call to a function with a number of arguments to be passed as 
+-- | A call to a function with a number of arguments to be passed as 
 -- Emacs Strings.
 instance HasEmacsCommand (String,[String]) where
    toEmacsString (funName,args) =

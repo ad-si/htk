@@ -1,13 +1,3 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
 module Core (
 
@@ -419,26 +409,22 @@ doBindSimple bindToTag wid wishEventType =
        doBind bindToTag wid [WishEvent [] wishEventType]
      return (event1 >>> done, deregister)
 
----
--- Binds an event for this widget.  The second action returned unbinds
+-- | Binds an event for this widget.  The second action returned unbinds
 -- the event.
 bind :: GUIObject wid => wid -> [WishEvent] -> IO (Event EventInfo,IO ())
 bind = doBind True
 
----
--- Simple version of bind for only one event and without modifiers.
+-- | Simple version of bind for only one event and without modifiers.
 bindSimple :: GUIObject wid => wid -> WishEventType ->
                                IO (Event (),IO ())
 bindSimple = doBindSimple True
 
----
--- Binds an event for this widget and its parent widgets. The second
+-- | Binds an event for this widget and its parent widgets. The second
 -- action returned unbinds the event.
 bindPath :: Widget wid => wid -> [WishEvent] -> IO (Event EventInfo,IO ())
 bindPath = doBind False
 
----
--- Simple version of bindPath for only one event and without modifiers.
+-- | Simple version of bindPath for only one event and without modifiers.
 bindPathSimple :: Widget wid => wid -> WishEventType ->
                                 IO (Event (), IO ())
 bindPathSimple = doBindSimple False

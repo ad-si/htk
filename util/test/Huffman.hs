@@ -7,8 +7,7 @@ module Huffman(
 
 import Queue
 
----
--- huffmanFold op l
+-- | huffmanFold op l
 -- where op is associative, l is a nonempty monotonically increasing list,
 -- and op has the property that (x1>=x2,y1>=y2) => (op x1 y1>=op x2 y2)
 -- computes the fold of l with op, by repeatedly folding the smallest two
@@ -43,20 +42,17 @@ huffmanFold op l =
 -- PointedList operations
 -- ------------------------------------------------------------------------
 
----
--- effectively a list with a pointer in the middle which can only be
+-- | effectively a list with a pointer in the middle which can only be
 -- moved right.  The list should always be in increasing order.
 data PointedList a = PointedList (Queue a)  [a]
 
 instance Show a => Show (PointedList a) where
    show (PointedList queue l) = show (queueToList queue, l)
----
--- pointList makes a new pointed list with the pointer at the left.
+-- | pointList makes a new pointed list with the pointer at the left.
 pointList :: [a] -> PointedList a
 pointList l = PointedList emptyQ l
 
----
--- removePointed gets the first element of a PointedList.  If the pointer
+-- | removePointed gets the first element of a PointedList.  If the pointer
 -- is at the start of the list, it is moved to the new head.
 removePointed :: PointedList a -> Maybe (a,PointedList a)
 removePointed (PointedList queue list) =
@@ -67,12 +63,11 @@ removePointed (PointedList queue list) =
             a:list' -> Just (a,PointedList emptyQ list')
       Just (a,queue') -> Just (a,PointedList queue' list)
 
----
--- insertAndMovePointer inserts an element to the right of the pointer,
+-- | insertAndMovePointer inserts an element to the right of the pointer,
 -- and moves the pointer after it.  It does this maintaining the invariant
 -- that the pointed list is ordered, and we assume that all elements to the
 -- left of the pointer are not more than the inserted element. 
---
+-- 
 -- If the pointer reaches the end of the list, we instead of returning a
 -- PointedList, return a queue containing the list contents.
 insertAndMovePointer :: Ord a => PointedList a -> a 

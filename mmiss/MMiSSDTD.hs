@@ -127,8 +127,7 @@ parseProcessingInstruction str =
 allElements :: [String]
 allElements = elements theDTD
 
----
--- allElements, filtering just those elements which have a "label"
+-- | allElements, filtering just those elements which have a \"label\"
 -- attribute.
 allLabelledElements :: [String]
 allLabelledElements = labelledElements theDTD
@@ -155,8 +154,7 @@ validateElement0 = simpleDTD theDTD
 -- We need to instance DeepSeq for Element
 -- -------------------------------------------------------------
 
----
--- The first argument is the file name; the second the string to
+-- | The first argument is the file name; the second the string to
 -- parse.
 xmlParseCheck :: String -> String -> IO (WithError Element)
 xmlParseCheck fName contents =

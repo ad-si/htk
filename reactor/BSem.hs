@@ -31,8 +31,7 @@ import Debug(debug)
 -- Type
 -- --------------------------------------------------------------------------
 
----
--- A simple lock.
+-- | A simple lock.
 newtype BSem = BSem (MVar ()) deriving Eq
 
 -- --------------------------------------------------------------------------
@@ -59,13 +58,11 @@ instance Synchronized BSem where
 -- Commands
 -- --------------------------------------------------------------------------
 
----
--- Create a new unlocked BSem
+-- | Create a new unlocked BSem
 newBSem :: IO BSem
 newBSem = newMVar () >>= return . BSem
 
----
--- Create a new locked BSem
+-- | Create a new locked BSem
 newLockedBSem   :: IO BSem
 newLockedBSem = newEmptyMVar >>= return . BSem
 
@@ -74,8 +71,7 @@ newLockedBSem = newEmptyMVar >>= return . BSem
 -- Utilities
 -- --------------------------------------------------------------------------
 
----
--- tryAcquireBSems attempts to acquire a list of BSems.  If successful it
+-- | tryAcquireBSems attempts to acquire a list of BSems.  If successful it
 -- returns the action to release them all again.  If unsuccessful it
 -- returns Nothing, and leaves all the BSems released.
 tryAcquireBSems :: [BSem] -> IO (Maybe (IO ()))
@@ -89,12 +85,11 @@ tryAcquireBSems bSems =
          Right act -> Just act
          )
 
----
--- tryAcquireBSemsWithError is a generalisation of tryAcquireBSems, which
+-- | tryAcquireBSemsWithError is a generalisation of tryAcquireBSems, which
 -- produces an error message
---
--- The first argument extracts an object's BSem; the second gets a String to
--- be used as a message if we can't get the object's lock.
+-- 
+-- The first argument extracts an object\'s BSem; the second gets a String to
+-- be used as a message if we can\'t get the object\'s lock.
 tryAcquireBSemsWithError :: (object -> BSem) -> (object -> IO String) 
    -> [object] -> IO (WithError (IO ()))
 tryAcquireBSemsWithError toBSem toMess objects =

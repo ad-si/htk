@@ -44,35 +44,30 @@ import MatchChannel
 
 
 
----
--- A channel of Strings, which can be matched by regular expression
+-- | A channel of Strings, which can be matched by regular expression
 newtype RegexChannel = RegexChannel (MatchChannel String)
 
 
----
--- Create a new RegexChannel
+-- | Create a new RegexChannel
 newRegexChannel :: IO RegexChannel
 newRegexChannel =
    do
       matchChannel <- newMatchChannel
       return (RegexChannel matchChannel)
 
----
--- Send a String along a RegexChannel.
+-- | Send a String along a RegexChannel.
 sendString :: RegexChannel -> String -> Event ()
 sendString (RegexChannel matchChannel) str = send matchChannel str
 
----
--- Class of things which may be converted to compiled regular expressions.
+-- | Class of things which may be converted to compiled regular expressions.
 -- This includes compiled regular expressions themselves and Strings.
 -- This allows the user to speed things up by precompiling regular
 -- expressions.
---
+-- 
 -- The syntax of the regular expressions themselves is summarised in the
--- comments to the source file util/RegularExpression.hs
+-- comments to the source file util\/RegularExpression.hs
 class HasRegularExpression ptn where
----
--- Compiles the given regular expression.
+   -- | Compiles the given regular expression.
    toRegularExpression :: ptn -> RegularExpression
 
 instance HasRegularExpression RegularExpression where
@@ -82,20 +77,17 @@ instance HasRegularExpression String where
    toRegularExpression = compile
 
 
----
--- Makes Event accepting Strings matching a particular pattern.
+-- | Makes Event accepting Strings matching a particular pattern.
 matchEvent :: HasRegularExpression ptn => ptn -> RegexChannel -> Event String
 matchEvent ptn = matchEventPrim (toRegularExpression ptn)
 {-# INLINE matchEvent #-}
 
----
--- Makes Event accepting any String at all.
+-- | Makes Event accepting any String at all.
 matchAny :: RegexChannel -> Event String
 matchAny = matchEvent ""
 
 
----
--- Makes Event accepting Strings matching a particular pattern, but
+-- | Makes Event accepting Strings matching a particular pattern, but
 -- carrying the actual MatchResult, allowing for example for 
 -- parts of the String matching parts of the regular expression to
 -- be returned.

@@ -45,9 +45,8 @@ import VSem
 -- The HasInvalidate
 -- -------------------------------------------------------------------------
 
----
--- The HasInvalidate class represents information sources which can be told
--- "No more, I'm not interested."
+-- | The HasInvalidate class represents information sources which can be told
+-- \"No more, I\'m not interested.\"
 class HasInvalidate source where
    invalidate :: source -> IO ()
 
@@ -73,8 +72,7 @@ newSinkID =
          interested = interested
          })
 
----
--- Returns True if sink is still interested
+-- | Returns True if sink is still interested
 isInterested :: SinkID -> IO Bool
 isInterested sinkID = readIORef (interested sinkID)
 
@@ -101,22 +99,19 @@ data Sink x = Sink {
 -- The consumer's interface
 -- -------------------------------------------------------------------------
 
----
--- Creates a new sink with its own SinkID
+-- | Creates a new sink with its own SinkID
 newSink :: (x -> IO ()) -> IO (Sink x)
 newSink action =
    do
       sinkID <- newSinkID
       newSinkGeneral sinkID action
 
----
--- Creates a new sink with a given SinkID.  This allows us to
+-- | Creates a new sink with a given SinkID.  This allows us to
 -- invalidate lots of sinks just by invalidating one sinkID.
 newSinkGeneral :: SinkID -> (x -> IO ()) -> IO (Sink x)
 newSinkGeneral sinkID action = return (Sink {sinkID = sinkID,action = action})
 
----
--- Or we can do so with HasInvalidate
+-- | Or we can do so with HasInvalidate
 instance HasInvalidate (Sink x) where
    invalidate sink = invalidate (sinkID sink)
 
@@ -124,8 +119,7 @@ instance HasInvalidate (Sink x) where
 -- The provider's interface
 -- -------------------------------------------------------------------------
 
----
--- Put a value into the sink, returning False if the sink id has been 
+-- | Put a value into the sink, returning False if the sink id has been 
 -- invalidated.
 putSink :: Sink x -> x -> IO Bool
 putSink sink x =
@@ -133,8 +127,7 @@ putSink sink x =
       interested <- isInterested (sinkID sink)
       if interested then (action sink x) else done
       return interested
----
--- Put a list of values into the sink, returning False if the sink id has been 
+-- | Put a list of values into the sink, returning False if the sink id has been 
 -- invalidated
 putSinkMultiple :: Sink x -> [x] -> IO Bool
 putSinkMultiple sink [] = return True
@@ -147,14 +140,12 @@ putSinkMultiple sink (x:xs) =
          else
             return interested
 
----
--- Convert a sink from one type to another
+-- | Convert a sink from one type to another
 coMapSink :: (y -> x) -> Sink x -> Sink y
 coMapSink fn (Sink {sinkID = sinkID,action = action}) =
    Sink {sinkID = sinkID,action = action . fn}
 
----
--- Another version which allows a transformation function to filter
+-- | Another version which allows a transformation function to filter
 -- certain elements
 coMapSink' :: (y -> Maybe x) -> Sink x -> Sink y
 coMapSink' fn (Sink {sinkID = sinkID,action = action}) =
@@ -165,8 +156,7 @@ coMapSink' fn (Sink {sinkID = sinkID,action = action}) =
    in
       Sink {sinkID = sinkID,action = action'}
 
----
--- A version which allows an IO action, which had better not take too long.
+-- | A version which allows an IO action, which had better not take too long.
 coMapIOSink' :: (y -> IO (Maybe x)) -> Sink x -> Sink y
 coMapIOSink' actFn (Sink {sinkID = sinkID,action = action}) =
     let
@@ -183,8 +173,7 @@ coMapIOSink' actFn (Sink {sinkID = sinkID,action = action}) =
 -- The CanAddSinks class.
 -- -------------------------------------------------------------------------
 
----
--- A class for things (in particular Source and SimpleSource) that can
+-- | A class for things (in particular Source and SimpleSource) that can
 -- output via sinks.  Each sink source is supposed to have a unique
 -- x, containing a representation of the current value, and delta,
 -- containing the (incremental) updates which are put in the sink.
@@ -268,8 +257,7 @@ class CanAddSinks sinkSource x delta | sinkSource -> x,sinkSource -> delta
    -- Adds a pre-existing sink.
    addOldSink :: sinkSource -> Sink delta -> IO x
 
----
--- Add an action to a sinkSource which is performed until the action returns
+-- | Add an action to a sinkSource which is performed until the action returns
 -- False.
 addNewAction :: CanAddSinks sinkSource x delta 
    => sinkSource -> (delta -> IO Bool) -> IO x
@@ -342,8 +330,7 @@ parallelExec (ParallelExec chan) act =
       acquireLocal parallelExecVSem
       writeChan chan act
 
----
--- Creates a new sink which executes actions in a parallelExec thread.
+-- | Creates a new sink which executes actions in a parallelExec thread.
 newParallelSink :: (x -> IO ()) -> IO (Sink x)
 newParallelSink action =
    do
@@ -355,8 +342,7 @@ newParallelSink action =
             if interested then action delta else done
          ))
 
----
--- Creates a new sink which executes actions in a parallelExec thread,
+-- | Creates a new sink which executes actions in a parallelExec thread,
 -- but allow the function generating these actions to be specified later,
 -- via the returned command.
 newParallelDelayedSink :: IO (Sink x,(x -> IO ()) -> IO ())

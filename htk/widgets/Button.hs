@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>button widget</strong>.<br>
+-- | HTk\'s /button widget/.
 -- A simple click button.
 module Button (
 
@@ -37,8 +26,7 @@ import Tooltip
 -- type
 -- -----------------------------------------------------------------------
 
----
--- The <code>Button</code> datatype.
+-- | The @Button@ datatype.
 newtype Button = Button GUIOBJECT deriving Eq
 
 
@@ -46,13 +34,14 @@ newtype Button = Button GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new button widget and returns a handler.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this button.
--- @return result - A button widget.
-newButton :: Container par => par -> [Config Button] -> IO Button
+-- | Constructs a new button widget and returns a handler.
+newButton :: Container par => par 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   -> [Config Button] 
+   -- ^ the list of configuration options for this button.
+   -> IO Button
+   -- ^ A button widget.
 newButton par cnf =
   do
     b <- createGUIObject (toGUIObject par) BUTTON defMethods
@@ -63,92 +52,69 @@ newButton par cnf =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject Button where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (Button w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "Button"
 
----
--- A button widget can be destroyed.
+-- | A button widget can be destroyed.
 instance Destroyable Button where
----
--- Destroys a button widget.
+  -- | Destroys a button widget.
   destroy = destroy . toGUIObject
 
----
--- A button widget has standard widget properties
+-- | A button widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget Button
 
----
--- A button widget can be flashed (redisplayed several times in
+-- | A button widget can be flashed (redisplayed several times in
 -- alternate colours) and invoked (the associated event).
 instance ButtonWidget Button
 
----
--- A button widget can contain a bitmap.
+-- | A button widget can contain a bitmap.
 instance HasBitMap Button
 
----
--- A button widget has a configureable border.
+-- | A button widget has a configureable border.
 instance HasBorder Button
 
----
--- A button widget has a normal foreground and background colour and an
--- active/disabled foreground and background colour.
+-- | A button widget has a normal foreground and background colour and an
+-- active\/disabled foreground and background colour.
 instance HasColour Button where
----
--- Internal.
+  -- | Internal.
   legalColourID = buttonColours
 
----
--- A button widget is a stateful widget, it can be enabled or disabled.
+-- | A button widget is a stateful widget, it can be enabled or disabled.
 instance HasEnable Button
 
----
--- You can specify the font of a button.
+-- | You can specify the font of a button.
 instance HasFont Button
 
----
--- A button has a configureable text justification.
+-- | A button has a configureable text justification.
 instance HasJustify Button
 
----
--- A button can contain an image.
+-- | A button can contain an image.
 instance HasPhoto Button
 
----
--- You can specify the size of a button.
+-- | You can specify the size of a button.
 instance HasSize Button
 
----
--- A button can contain text.
+-- | A button can contain text.
 instance GUIValue v => HasText Button v
 
----
--- You can set the index of a text character to underline.
+-- | You can set the index of a text character to underline.
 instance HasUnderline Button
 
----
--- You can synchronize on a button object.
+-- | You can synchronize on a button object.
 instance Synchronized Button where
----
--- Synchronizes on a button object.
+  -- | Synchronizes on a button object.
   synchronize = synchronize . toGUIObject
 
----
--- When a button is clicked, a corresponding event is invoked.
+-- | When a button is clicked, a corresponding event is invoked.
 instance HasCommand Button
 
----
--- A button can have a tooltip.
+-- | A button can have a tooltip.
 instance HasTooltip Button
 
----
--- A button has a text anchor.
+-- | A button has a text anchor.
 instance HasAnchor Button

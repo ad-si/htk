@@ -64,33 +64,31 @@ data ArcData node arc = ArcData {
    } deriving (Eq,Ord)
 
 
----
--- The following invariants are maintained, except when we are in the
+-- | The following invariants are maintained, except when we are in the
 -- middle of doing an update:
---
+-- 
 -- Arcs which are known about (returned by outArcs or inArcs) have either 
 -- mustFollow=True or mustFollow=False.
---
+-- 
 -- Nodes which are known about (at the end of an arc which is known about,
 -- or in the root set are either displayed or not displayed.
 -- 
 -- The nodes which are displayed are precisely those in the root set, or those
 -- which are the destination of some current arc with mustFollow=True.
---
--- For nodes which are "displayed" this means (a) we have called the 
+-- 
+-- For nodes which are \"displayed\" this means (a) we have called the 
 -- user-supplied updateFn to get the NodeData for that node; 
 -- (b) we have called the arcUpdate function to draw the arcs from it.
---
+-- 
 -- For a node which never has been displayed, neither of these will be true.
 -- It follows from the above rules that a node ceases to be displayed
 -- when it ceases to be in either the root set, or the destination of an
--- arc with mustFollow=True.  When this happens, we call the node's deleteNode
--- function, delete all arcs from the node, and forget about the outArcs/inArcs
+-- arc with mustFollow=True.  When this happens, we call the node\'s deleteNode
+-- function, delete all arcs from the node, and forget about the outArcs\/inArcs
 -- for the node (which may provoke further deletions).
 -- 
 
----
--- Here is the LinkDrawer itself.
+-- | Here is the LinkDrawer itself.
 data LinkDrawer node nodeArg arc pos = LinkDrawer {
    allNodes :: Registry node (NodeRecord node nodeArg arc pos),
       -- ^ Gives all information about nodes referenced so far, but not
@@ -126,15 +124,13 @@ data NodeDisplayed node nodeArg arc pos =
 -- The functions
 -- -----------------------------------------------------------------
 
----
--- Create an ArcData
+-- | Create an ArcData
 toArcData :: node -> arc -> Bool -> ArcData node arc
 toArcData destination arcInfo mustFollow = ArcData {
    destination = destination,arcInfo = arcInfo,mustFollow = mustFollow
    }
 
----
--- Create a link drawer 
+-- | Create a link drawer 
 newLinkDrawer :: (Ord pos,Ord node) 
   => VariableSetSource node -- ^ Set of root nodes.
   -> (node -> IO (NodeData node nodeArg arc pos))

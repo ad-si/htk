@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- A generic graphical user interface.
+-- | A generic graphical user interface.
 module GenGUI (
 
   GenGUI,        -- type
@@ -60,8 +49,7 @@ import Maybe
 -- external object representation
 --------------------------------------------------------------------------
 
----
--- External representation of gengui objects.
+-- | External representation of gengui objects.
 data NewItem c =
 
     LeafItem c (Maybe (Position,     -- position on notepad
@@ -72,14 +60,12 @@ data NewItem c =
                                      Bool  -- displayed in notepad
                                     ))
 
----
--- Gets the name of a newitem object.
+-- | Gets the name of a newitem object.
 getNameFromNewItem :: CItem c => NewItem c -> IO Name
 getNameFromNewItem (LeafItem c _) = getName c
 getNameFromNewItem (FolderItem c _ _) = getName c
 
----
--- Returns whether the given object is a folder or not.
+-- | Returns whether the given object is a folder or not.
 isNewItemFolder :: CItem c => NewItem c -> Bool
 isNewItemFolder (FolderItem _ _ _) = True
 isNewItemFolder _ = False
@@ -89,8 +75,7 @@ isNewItemFolder _ = False
 -- internal type & functionality
 --------------------------------------------------------------------------
 
----
--- internal object representation
+-- | internal object representation
 data Item c =
     IntFolderItem (NewItem c)                   -- external representation
                   (Ref [Item c])                               -- subitems
@@ -99,40 +84,33 @@ data Item c =
                 (Ref Bool)                          -- selected on notepad
   | Root (Ref [Item c])
 
----
--- Internal.
+-- | Internal.
 instance CItem c => Eq (Item c) where
----
--- Internal.
+  -- | Internal.
   item1 == item2 = content item1 == content item2
 
----
--- Objects must have a name and an icon.
+-- | Objects must have a name and an icon.
 instance CItem c => CItem (Item c) where
----
--- Gets the object's name.
+  -- | Gets the object\'s name.
   getName = getName . content
----
--- Gets the object's icon.
+  -- | Gets the object\'s icon.
   getIcon = getIcon . content
 
----
--- Returns whether an item is a folder or not.
--- @param it      - the concerned item.
--- @return result - <code>True</code> if the given item is a folder,
---                - otherwise <code>False</code>.
-isItemFolder :: Item c -> Bool
+-- | Returns whether an item is a folder or not.
+isItemFolder :: Item c 
+   -- ^ the concerned item.
+   -> Bool
+   -- ^ @True@ if the given item is a folder,
+   -- otherwise @False@.
 isItemFolder it@(IntFolderItem _ _) = True
 isItemFolder _ = False
 
 
----
--- Returns whether an item is a folder or not.
+-- | Returns whether an item is a folder or not.
 isItemLeaf :: Item c -> Bool
 isItemLeaf = Prelude.not . isItemFolder
 
----
--- Converts the external object representation to the internal object
+-- | Converts the external object representation to the internal object
 -- representation.
 toItem :: CItem c => NewItem c -> IO (Item c)
 toItem it@(FolderItem _ ch _) =
@@ -156,8 +134,7 @@ toItem it@(LeafItem _ (Just (pos, selected))) =
 -- external handle for root object
 --------------------------------------------------------------------------
 
----
--- GenGUI's root object.
+-- | GenGUI\'s root object.
 root :: CItem c => GenGUI c -> IO (Item c)
 root gui = return (Root (root_obj gui))
 
@@ -166,15 +143,14 @@ root gui = return (Root (root_obj gui))
 -- state import/export
 --------------------------------------------------------------------------
 
----
--- The gui's state.
+-- | The gui\'s state.
 type GenGUIState c = [NewItem c]
 
----
--- Exports the gui's state.
--- @param gui     - the concerned GenGUI.
--- @return result - the gui's state.
-exportGenGUIState :: CItem c => GenGUI c -> IO (GenGUIState c)
+-- | Exports the gui\'s state.
+exportGenGUIState :: CItem c => GenGUI c 
+   -- ^ the concerned GenGUI.
+   -> IO (GenGUIState c)
+   -- ^ the gui\'s state.
 exportGenGUIState gui =
   do
     saveNotepadItemStates gui
@@ -205,8 +181,7 @@ exportGenGUIState gui =
 -- type and constructor
 --------------------------------------------------------------------------
 
----
--- The <code>GenGUI</code> datatye.
+-- | The @GenGUI@ datatye.
 data GenGUI c =
   GenGUI
     { -- the treelist
@@ -246,13 +221,14 @@ data GenGUI c =
 -- construction
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new gui and returns a handler.
--- @param mstate           - an optional GenGUI state to recover.
--- @param showLeavesInTree - <code>True</code> if lleaves should be
---                           displayed in the tree list.
--- @return result - A gui.
-newGenGUI :: CItem c => Maybe (GenGUIState c) -> Bool -> IO (GenGUI c)
+-- | Constructs a new gui and returns a handler.
+newGenGUI :: CItem c => Maybe (GenGUIState c) 
+   -- ^ an optional GenGUI state to recover.
+   -> Bool 
+   -- ^ @True@ if lleaves should be
+   -- displayed in the tree list.
+   -> IO (GenGUI c)
+   -- ^ A gui.
 newGenGUI mstate showLeavesInTree =
   do
     -- main window
@@ -486,8 +462,7 @@ newGenGUI mstate showLeavesInTree =
 -- internal event handling
 --------------------------------------------------------------------------
 
----
--- Saves the state (position etc.) of the currently displayed notepad
+-- | Saves the state (position etc.) of the currently displayed notepad
 -- items.
 saveNotepadItemStates :: CItem c => GenGUI c -> IO ()
 saveNotepadItemStates gui =
@@ -496,8 +471,7 @@ saveNotepadItemStates gui =
     mapM (saveNotepadItemState gui) npitems
     done
 
----
--- Saves the state of a single currently displayed notepad item.
+-- | Saves the state of a single currently displayed notepad item.
 saveNotepadItemState :: CItem c => GenGUI c -> NotepadItem (Item c) ->
                                    IO ()
 saveNotepadItemState gui npitem =
@@ -508,8 +482,7 @@ saveNotepadItemState gui npitem =
     setRef posref pos
     setRef selref sel
 
----
--- Treelist selection event handler.
+-- | Treelist selection event handler.
 tlObjectSelected :: CItem c => GenGUI c ->
                                Maybe (TreeListObject (Item c)) -> IO ()
 tlObjectSelected gui mobj =
@@ -552,8 +525,7 @@ tlObjectSelected gui mobj =
                               done)
            setRef (open_obj gui) (Just (getTreeListObjectValue obj))
 
----
--- Treelist focus event handler.
+-- | Treelist focus event handler.
 tlObjectFocused :: CItem c => GenGUI c ->
                               Ref (Position, [Item c], Maybe (Item c)) ->
                               (Maybe (TreeListObject (Item c)),
@@ -596,8 +568,7 @@ tlObjectFocused gui clipboard (mobj, ev_inf) =
              Just ch -> syncNoWait (send ch (FocusTreeList Nothing))
              _ -> done
 
----
--- Moves the given leaf objects to another folder.
+-- | Moves the given leaf objects to another folder.
 moveItems :: CItem c => GenGUI c -> [Item c] -> Item c -> IO ()
 moveItems gui items target@(IntFolderItem _ subitemsref) =
   let initItem (IntLeafItem _ posref selref) =
@@ -626,8 +597,7 @@ moveItems gui items target@(IntFolderItem _ subitemsref) =
 -- notepad events
 --------------------------------------------------------------------------
 
----
--- Notepad selection event handler.
+-- | Notepad selection event handler.
 npItemSelected :: CItem c => GenGUI c -> (NotepadItem (Item c), Bool) ->
                              IO ()
 npItemSelected gui (npitem, b) =
@@ -640,8 +610,7 @@ npItemSelected gui (npitem, b) =
           syncNoWait (send ch (FocusNotepad (item, b)))
       _ -> done
 
----
--- Notepad drop event handler.
+-- | Notepad drop event handler.
 npDropEvent :: CItem c => GenGUI c ->
                           (NotepadItem (Item c),
                            [NotepadItem (Item c)]) -> IO ()
@@ -655,8 +624,7 @@ npDropEvent gui (npitem, npitems) =
                    syncNoWait (send ch (GenGUI.Dropped (item, items)))
       _ -> done
 
----
--- Notepad double click event handler.
+-- | Notepad double click event handler.
 npDoubleClick :: CItem c => GenGUI c -> NotepadItem (Item c) -> IO ()
 npDoubleClick gui npitem =
   do
@@ -667,8 +635,7 @@ npDoubleClick gui npitem =
                    syncNoWait (send ch (GenGUI.Doubleclick item))
       _ -> done
 
----
--- Notepad right click event handler.
+-- | Notepad right click event handler.
 npRightClick :: CItem c => GenGUI c -> [NotepadItem (Item c)] -> IO ()
 npRightClick gui npitems =
   do
@@ -684,13 +651,11 @@ npRightClick gui npitems =
 -- notepad item placement
 --------------------------------------------------------------------------
 
----
--- Gets the next free item position on the notepad.
+-- | Gets the next free item position on the notepad.
 getNewItemPosition :: CItem c => GenGUI c -> IO Position
 getNewItemPosition gui = getFreeItemPosition (notepad gui)
 
----
--- Sets the items position reference.
+-- | Sets the items position reference.
 setItemPosition :: CItem c => Item c -> Position -> IO ()
 setItemPosition (IntLeafItem _ posref _) pos = setRef posref pos
 
@@ -699,33 +664,27 @@ setItemPosition (IntLeafItem _ posref _) pos = setRef posref pos
 -- exported GenGUI functionality
 --------------------------------------------------------------------------
 
----
--- Sets the status label's text.
+-- | Sets the status label\'s text.
 setStatus :: CItem c => GenGUI c-> String-> IO ()
 setStatus gui txt = (status gui) # text txt >> done
 
----
--- Clears the status label.
+-- | Clears the status label.
 clearStatus :: CItem c => GenGUI c-> IO ()
 clearStatus gui = (status gui) # text "" >> done
 
----
--- Displays the given markup text on the editor pane.
+-- | Displays the given markup text on the editor pane.
 updateTextArea :: CItem c => GenGUI c-> [MarkupText] -> IO ()
 updateTextArea gui mtxt = (editor gui) # new mtxt >> done
 
----
--- Clears the editor pane.
+-- | Clears the editor pane.
 clearTextArea :: CItem c => GenGUI c-> IO ()
 clearTextArea gui = (editor gui) # clear >> done
 
----
--- Gets the gui's menu container.
+-- | Gets the gui\'s menu container.
 genGUIMainMenu :: CItem c => GenGUI c-> Menu
 genGUIMainMenu gui = topmenu gui
 
----
--- Gets the children from a folder item.
+-- | Gets the children from a folder item.
 children :: CItem c => Item c -> IO [Item c]
 children (IntFolderItem _ chref) = getRef chref
 children (Root chref) =
@@ -734,18 +693,19 @@ children (Root chref) =
     return items
 children _ = return []
 
----
--- Gets the item that is currently open (displayed on notepad).
+-- | Gets the item that is currently open (displayed on notepad).
 openedFolder :: CItem c=> GenGUI c-> IO (Maybe (Item c))
 openedFolder = getRef . open_obj
 
----
--- Adds a gengui object.
--- @param gui     - the concerned gui.
--- @param par     - the parent (folder) object.
--- @param newitem - the external representation of the new object.
--- @return result - the internal representation of the new object.
-addItem :: CItem c => GenGUI c -> Item c -> NewItem c -> IO (Item c)
+-- | Adds a gengui object.
+addItem :: CItem c => GenGUI c 
+   -- ^ the concerned gui.
+   -> Item c 
+   -- ^ the parent (folder) object.
+   -> NewItem c 
+   -- ^ the external representation of the new object.
+   -> IO (Item c)
+   -- ^ the internal representation of the new object.
 addItem gui par@(IntFolderItem (FolderItem c _ _)  chref) newitem =
   synchronize gui
     (do
@@ -813,8 +773,7 @@ addItem gui (Root chref) newitem =
        return item)
 addItem _ _ _ = error "GenGUI (addItem) : called for a leaf"
 
----
--- Returns the <code>CItem</code> content of an item.
+-- | Returns the @CItem@ content of an item.
 content :: CItem c => (Item c) -> c
 content (IntFolderItem (FolderItem c _ _) _) = c
 content (IntLeafItem (LeafItem c _) _ _) = c
@@ -825,8 +784,7 @@ content _ = error "GenGUI (content) : called for root"
 -- events
 --------------------------------------------------------------------------
 
----
--- The <code>GenGUIEvent</code> datatype.
+-- | The @GenGUIEvent@ datatype.
 data GenGUIEvent c =
     FocusTreeList (Maybe (Item c)) 
   | SelectTreeList (Maybe (Item c))
@@ -837,20 +795,19 @@ data GenGUIEvent c =
   | Addition (Item c)
   | DroppedOnTextArea [Item c]
 
----
--- Binds a listener for gengui events to the gengui and returns
+-- | Binds a listener for gengui events to the gengui and returns
 -- a corresponding event and an unbind action.
--- @param gui     - the concerned gui.
--- @return result - A pair of (event, unbind action).
-bindGenGUIEv :: CItem c => GenGUI c -> IO (Event (GenGUIEvent c), IO())
+bindGenGUIEv :: CItem c => GenGUI c 
+   -- ^ the concerned gui.
+   -> IO (Event (GenGUIEvent c), IO())
+   -- ^ A pair of (event, unbind action).
 bindGenGUIEv gui =
   do
     ch <- newChannel
     setRef (event_queue gui) (Just ch)
     return (receive ch, setRef (event_queue gui) Nothing)
 
----
--- Sends the given event if bound.
+-- | Sends the given event if bound.
 sendEv :: CItem c => GenGUI c -> GenGUIEvent c -> IO ()
 sendEv gui ev =
   do
@@ -864,8 +821,7 @@ sendEv gui ev =
 -- treelist children function
 --------------------------------------------------------------------------
 
----
--- Makes treelist objects from item.
+-- | Makes treelist objects from item.
 toTreeListObjects :: CItem c => Bool -> [Item c] ->
                                 IO [TreeListObject (Item c)]
 toTreeListObjects showLeavesInTree (it : items) =
@@ -879,8 +835,7 @@ toTreeListObjects showLeavesInTree (it : items) =
     return (newTreeListObject it nod : rest)
 toTreeListObjects _ _ = return []
 
----
--- The treelists children function.
+-- | The treelists children function.
 cfun :: CItem c => Bool -> ChildrenFun (Item c)
 cfun showLeavesInTree tlobj =
   do
@@ -894,52 +849,37 @@ cfun showLeavesInTree tlobj =
 -- instances
 --------------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance CItem c => Eq (GenGUI c) where
----
--- Internal.
+  -- | Internal.
   gui1 == gui2 = win gui1 == win gui2
 
----
--- Internal.
+-- | Internal.
 instance CItem c => GUIObject (GenGUI c) where
----
--- Internal.
+  -- | Internal.
   toGUIObject gui = toGUIObject (win gui)
----
--- Internal.
+  -- | Internal.
   cname _ = "GenGUI"
 
----
--- A <code>GenGUI</code> object can be destroyed.
+-- | A @GenGUI@ object can be destroyed.
 instance CItem c => Destroyable (GenGUI c) where
----
--- Destroys a <code>GenGUI</code> object.
+  -- | Destroys a @GenGUI@ object.
   destroy = destroy . toGUIObject
 
----
--- A <code>GenGUI</code> object is a window.
+-- | A @GenGUI@ object is a window.
 instance CItem c => Window (GenGUI c) where
----
--- Iconifies the gui.
+  -- | Iconifies the gui.
   iconify gui = iconify (win gui)
----
--- Deiconifies the gui.
+  -- | Deiconifies the gui.
   deiconify gui  = deiconify (win gui)
----
--- Withdraws the gui.
+  -- | Withdraws the gui.
   withdraw gui = withdraw (win gui)
----
--- Puts the gui window on top.
+  -- | Puts the gui window on top.
   putWinOnTop gui = putWinOnTop (win gui)
----
--- Puts the gui window at bottom-
+  -- | Puts the gui window at bottom-
   putWinAtBottom gui = putWinAtBottom (win gui)
 
----
--- You can synchronize on a gengui object.
+-- | You can synchronize on a gengui object.
 instance CItem c => Synchronized (GenGUI c) where
----
--- Synchronizes on a gengui object.
+  -- | Synchronizes on a gengui object.
   synchronize gui = synchronize (win gui)

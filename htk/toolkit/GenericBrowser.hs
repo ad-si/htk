@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- A generic data browser.
+-- | A generic data browser.
 module GenericBrowser (
 
   newGenericBrowser,
@@ -31,8 +20,7 @@ import Monad
 import ReferenceVariables
 import IOExts(unsafePerformIO)
 
----
--- Browsed data needs to instantiate the class <code>CItem</code>.
+-- | Browsed data needs to instantiate the class @CItem@.
 class CItem o => GBObject o where
   getChildren :: o -> IO [o]
   isObjectNode :: o -> IO Bool
@@ -65,8 +53,7 @@ getPos = do pos@(x,y) <- getRef posRef
 -- datatype
 -- -----------------------------------------------------------------------
 
----
--- The <code>GenericBrowser</code> datatype.
+-- | The @GenericBrowser@ datatype.
 data GBObject o => GenericBrowser o =
   GenericBrowser { container :: Frame,
                    treelist :: TreeList o,
@@ -81,17 +68,19 @@ data GBObject o => GenericBrowser o =
 -- construction
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new generic browser and returns a handler.
--- @param par        - the parent widget (which has to be a container
---                   - widget).
--- @param rootobjs   - the list of top level objects.
--- @param cnf        - the list of configuration options for this
---                   - generic browser.
--- @return result    - A generic browser.
+-- | Constructs a new generic browser and returns a handler.
 newGenericBrowser :: (GBObject o, Container par) =>
-                     par -> [o] -> [Config (GenericBrowser o)]  ->
-                     IO (GenericBrowser o)
+   par 
+   -- ^ the parent widget (which has to be a container
+   -- widget).
+   -> [o] 
+   -- ^ the list of top level objects.
+   -> [Config (GenericBrowser o)]  
+   -- ^ the list of configuration options for this
+   -- generic browser.
+   ->
+   IO (GenericBrowser o)
+   -- ^ A generic browser.
 newGenericBrowser par rootobjs cnf =
   do fr <- newFrame par []
      let toTreeListObject obj = do --ch <- getChildren obj
@@ -251,14 +240,14 @@ sendEv gb ev =
       Just ch -> syncNoWait (send ch ev)
       _ -> done
 
----
--- Binds a listener for generic browser events to the tree list and
+-- | Binds a listener for generic browser events to the tree list and
 -- returns a corresponding event and an unbind action.
--- @param np      - the concerned generic browser.
--- @return result - A pair of (event, unbind action).
-bindGenericBrowserEv :: GBObject o => GenericBrowser o ->
-                                      IO (Event (GenericBrowserEvent o),
-                                          IO ())
+bindGenericBrowserEv :: GBObject o => GenericBrowser o 
+   -- ^ the concerned generic browser.
+   ->
+   IO (Event (GenericBrowserEvent o),
+   IO ())
+   -- ^ A pair of (event, unbind action).
 bindGenericBrowserEv gb =
   do
     ch <- newChannel
@@ -270,13 +259,10 @@ bindGenericBrowserEv gb =
 -- instantiations
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GBObject o => GUIObject (GenericBrowser o) where
----
--- Internal.
+  -- | Internal.
   toGUIObject = toGUIObject . container
 
----
--- Internal.
+-- | Internal.
 instance GBObject o => Widget (GenericBrowser o)

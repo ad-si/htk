@@ -115,19 +115,18 @@ getBlockEntry blocker blockID =
                return (Just entry,entry)
          )
 
----
--- (setSource2,block) <- blockableVariableSet setSource1
---    returns a setSource2 which is in one of two states.  In one state it is
---    blocked, and empty.  In the other, it is unblocked, and its contents are 
---    the same as those of setSource1.  Initially it is blocked.  To switch 
---    from one to the other the block function is used.  "block True" blocks 
---    the set source; "block False" unblocks it.   Blocking if we are already 
---    blocked, or unblocking if we are already unblocked, is harmless and does
---    nothing.
---
---    This somewhat baroque function is required for arc sets from folders.
---    I have wasted a couple of days trying to think of a more elegant way of
---    doing this ...
+-- | (setSource2,block) \<- blockableVariableSet setSource1
+-- returns a setSource2 which is in one of two states.  In one state it is
+-- blocked, and empty.  In the other, it is unblocked, and its contents are 
+-- the same as those of setSource1.  Initially it is blocked.  To switch 
+-- from one to the other the block function is used.  \"block True\" blocks 
+-- the set source; \"block False\" unblocks it.   Blocking if we are already 
+-- blocked, or unblocking if we are already unblocked, is harmless and does
+-- nothing.
+-- 
+-- This somewhat baroque function is required for arc sets from folders.
+-- I have wasted a couple of days trying to think of a more elegant way of
+-- doing this ...
 blockableVariableSet :: HasKey a key 
    => VariableSetSource a -> IO (VariableSetSource a,Bool -> IO ())
 blockableVariableSet (setSource1 :: VariableSetSource a) =

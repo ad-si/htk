@@ -79,16 +79,14 @@ newUniqueString (UniqueStringSource mVar) =
       putMVar mVar nextUniqueStringCounter
       return str
 
----
--- readUniqueStringSource is used by types/CodedValue.hs to export values.
+-- | readUniqueStringSource is used by types\/CodedValue.hs to export values.
 readUniqueStringSource :: UniqueStringSource -> IO [Int]
 readUniqueStringSource (UniqueStringSource mVar) =
    do
       (UniqueStringCounter l) <- readMVar mVar
       return l
 
----
--- createUniqueStringSource is the inverse of readUniqueStringSource.
+-- | createUniqueStringSource is the inverse of readUniqueStringSource.
 createUniqueStringSource :: [Int] -> IO UniqueStringSource
 createUniqueStringSource l = 
    do
@@ -174,8 +172,7 @@ firstUniqueString =
 -- newNonUnique
 -- -------------------------------------------------------------------
 
----
--- Create non-conflicting string which cannot be produced by
+-- | Create non-conflicting string which cannot be produced by
 -- newUniqueString.  This is useful for exceptional cases.
 -- We add this by adding a character with integer value 0 at the end.
 newNonUnique :: String -> String

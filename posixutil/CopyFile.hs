@@ -70,8 +70,7 @@ copyFileWE source destination =
                   return(hasValue ())
 
 
----
--- At the moment this does a hard link.  We should perhaps consider
+-- | At the moment this does a hard link.  We should perhaps consider
 -- letting it do a soft link instead when a hard link is not possible
 linkFile :: String -> String -> IO ()
 linkFile source destination =
@@ -86,9 +85,8 @@ linkFile source destination =
                Left err ->
                   error ("CopyFile.linkFile failed with "++show err)
 
----
--- Reads in a file to a String.  NB - differs from readFile in that this
--- is done instantly, so we don't have to worry about semi-closed handles
+-- | Reads in a file to a String.  NB - differs from readFile in that this
+-- is done instantly, so we don\'t have to worry about semi-closed handles
 -- hanging around.
 copyFileToString :: FilePath -> IO String
 copyFileToString filePath =
@@ -100,8 +98,7 @@ copyFileToString filePath =
 --      free cString
       s `deepSeq` (return s)
 
----
--- Read in a file, catching certain errors 
+-- | Read in a file, catching certain errors 
 copyFileToStringCheck :: FilePath -> IO (WithError String)
 copyFileToStringCheck filePath =
    exceptionToError
@@ -166,10 +163,9 @@ copyICStringLenToFile icsl filePath =
       copyCStringLenToFile (cstr,i) filePath
       )
 
----
--- Write to a file, catching certain errors.
+-- | Write to a file, catching certain errors.
 -- (At the moment this is not very helpful, returning messages like
--- "system error").
+-- \"system error\").
 copyStringToFileCheck :: String -> FilePath -> IO (WithError ())
 copyStringToFileCheck str filePath =
    exceptionToError

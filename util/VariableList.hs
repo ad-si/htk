@@ -49,8 +49,7 @@ data ListDrawer a pos = ListDrawer {
       -- physically happen.
    }
 
----
--- Return the close action.
+-- | Return the close action.
 -- attachListOp :: ParallelExec -> VariableList a -> ListDrawer a -> IO (IO ()) 
 
 data VariableList a = VariableList {

@@ -115,8 +115,7 @@ import Dynamics
 -- Character operations
 -- ---------------------------------------------------------------------------
 
----
--- Remove trailing spaces (We try to avoid reconstructing the string,
+-- | Remove trailing spaces (We try to avoid reconstructing the string,
 -- on the assumption that there aren't often spaces)
 trimTrailing :: String -> String
 trimTrailing str = 
@@ -132,20 +131,16 @@ trimTrailing str =
             (j@(Just "")) -> if isSpace ch then j else Just [ch]
             Just trimmed -> Just (ch:trimmed)
 
----
--- Remove leading spaces
+-- | Remove leading spaces
 trimLeading :: String -> String
 trimLeading [] = []
 trimLeading (str@(ch:rest)) = if isSpace ch then trimLeading rest else str
 
----
--- Remove trailing and leading spaces
+-- | Remove trailing and leading spaces
 trimSpaces :: String -> String
 trimSpaces = trimTrailing . trimLeading
 
-
----
--- returns Just a if we can read a, and the rest is just spaces.
+-- | returns Just a if we can read a, and the rest is just spaces.
 readCheck :: Read a => String -> Maybe a
 readCheck str = case reads str of
    [(val,s)] | all isSpace s  -> Just val
@@ -156,10 +151,10 @@ readCheck str = case reads str of
 -- Monad Operations
 -- ---------------------------------------------------------------------------
 
-monadDot :: Monad m =>  (b -> m c) -> (a -> m b) -> (a -> m c)
--- The "." operator lifted to monads.   So like ., the arguments
+-- | The "." operator lifted to monads.   So like ., the arguments
 -- are given in the reverse order to that in which they should
 -- be executed. 
+monadDot :: Monad m =>  (b -> m c) -> (a -> m b) -> (a -> m c)
 monadDot f g x =
    do
       y <- g x
@@ -263,8 +258,7 @@ insertOrd p x ll@(e:l) =
       e : (insertOrd p x l)
 
 
----
--- insertOrdAlternate is similar to insertOrd except (1) it takes an Ordering
+-- | insertOrdAlternate is similar to insertOrd except (1) it takes an Ordering
 -- argument; (2) if it finds an argument that matches, it applies the
 -- given function to generate a new element, rather than inserting another.
 -- The new generated element should be EQ to the old one.
@@ -319,8 +313,7 @@ unsplitByChar0 ch l = unsplitByChar ch l
 -- Splitting to and after a character
 -- ------------------------------------------------------------------------
 
----
--- We split at the first occurrence of the character, returning the
+-- | We split at the first occurrence of the character, returning the
 -- string before and after.
 splitToChar :: Char -> String -> Maybe (String,String)
 splitToChar c = sTC
@@ -405,8 +398,7 @@ isPrefix _ _ = Nothing
 -- Folding a Tree
 -- ------------------------------------------------------------------------
 
----
--- node is the tree's node type.
+-- | node is the tree's node type.
 -- state is folded through every node of the tree (and is the result).
 -- We search the tree in depth-first order, applying visitNode at each
 --   node to update the state.
@@ -428,8 +420,7 @@ treeFold visitNode initialAncestor initialState node =
          newState
          children
 
----
--- Like treeFold, but using monads.
+-- | Like treeFold, but using monads.
 treeFoldM :: Monad m =>
    (ancestorInfo -> state -> node -> m (ancestorInfo,state,[node])) 
    -> ancestorInfo -> state -> node 
@@ -447,13 +438,11 @@ treeFoldM visitNode initialAncestor initialState node =
 -- Functions which make it easy to create new instances of Eq and Ord.
 -- ------------------------------------------------------------------------
 
----
--- Produce an equality function for b
+-- | Produce an equality function for b
 mapEq :: Eq a => (b -> a) -> (b -> b -> Bool)
 mapEq toA b1 b2 = (toA b1) == (toA b2)
 
----
--- Produce a compare function for b
+-- | Produce a compare function for b
 mapOrd :: Ord a => (b -> a) -> (b -> b -> Ordering)
 mapOrd toA b1 b2 = compare (toA b1) (toA b2)
 
@@ -461,12 +450,10 @@ mapOrd toA b1 b2 = compare (toA b1) (toA b2)
 -- Adding fall-out actions to IO actions
 -- ------------------------------------------------------------------------
 
----
--- A function indicating we want to escape from the current computation.
+-- | A function indicating we want to escape from the current computation.
 type BreakFn = (forall other . String -> other)
 
----
--- Intended use, EG
+-- |  Intended use, EG
 --    addFallOut (\ break ->
 --       do
 --          -- blah blah (normal IO a stuff) --
@@ -481,8 +468,7 @@ addFallOut getAct =
       (id,tryFn) <- newFallOut
       tryFn (getAct (mkBreakFn id))
 
----
--- Like addFallOut, but returns a WithError object instead.
+-- | Like addFallOut, but returns a WithError object instead.
 addFallOutWE :: (BreakFn -> IO a) -> IO (WithError a)
 addFallOutWE toAct =
    do

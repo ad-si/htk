@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- A simple prompt (a labelled entry field).
+-- | A simple prompt (a labelled entry field).
 module Prompt (
 
   Prompt,
@@ -30,8 +19,7 @@ import Entry
 -- datatype
 -- -----------------------------------------------------------------------
 
----
--- The <code>Prompt</code> datatype.
+-- | The @Prompt@ datatype.
 data Prompt a = Prompt Box Label (Entry a)
 
 
@@ -41,12 +29,13 @@ data Prompt a = Prompt Box Label (Entry a)
 
 -- i had problems creating a TkVariable of any kind here?!?
 
----
--- Construct a new prompt and returns a handler.
--- @param par     - the parent box.
--- @param cnf     - the list of configuration options for this prompt.
--- @return result - A prompt.
-newPrompt :: GUIValue a => Box -> [Config (Prompt a)] -> IO (Prompt a)
+-- | Construct a new prompt and returns a handler.
+newPrompt :: GUIValue a => Box 
+   -- ^ the parent box.
+   -> [Config (Prompt a)] 
+   -- ^ the list of configuration options for this prompt.
+   -> IO (Prompt a)
+   -- ^ A prompt.
 newPrompt par cnf =  do {
         b <- newHBox par [];
 	pack b [Expand On, Fill X];
@@ -62,29 +51,22 @@ newPrompt par cnf =  do {
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance Eq (Prompt a) where
----
--- Internal.
+  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
----
--- Internal.
+-- | Internal.
 instance GUIObject (Prompt a) where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (Prompt bx _ _) = toGUIObject bx
----
--- Internal.
+  -- | Internal.
   cname _ = "Prompt"
 
----
--- A prompt has standard widget properties
+-- | A prompt has standard widget properties
 -- (concerning focus, cursor).
 instance Widget (Prompt a) where 
----
--- Sets the mouse cursor for this prompt.
+  -- | Sets the mouse cursor for this prompt.
   cursor c pr @ (Prompt bx lbl ent) = 
     synchronize pr (do
                       cursor c bx
@@ -92,8 +74,7 @@ instance Widget (Prompt a) where
                       cursor c ent
                       return pr)
 
----
--- A prompt has a configureable border.
+-- | A prompt has a configureable border.
 instance HasBorder (Prompt a)
 
 {- not needed ?!?
@@ -102,68 +83,51 @@ instance HasSize (Prompt a) where
   getHeight _ = return 1
 -}
 
----
--- A prompt has a configureable foreground and background colour.
+-- | A prompt has a configureable foreground and background colour.
 instance HasColour (Prompt a) where
----
--- Internal.
+  -- | Internal.
   legalColourID _ _ = True
----
--- Internal.
+  -- | Internal.
   setColour pr @ (Prompt bx lbl en_) cid c = 
     synchronize pr (do
                       setColour bx cid c
                       setColour lbl cid c
                       return pr)
 
----
--- A propt has a configureable font.
+-- | A propt has a configureable font.
 instance HasFont (Prompt a) where
----
--- Sets the font of the prompt.
+  -- | Sets the font of the prompt.
   font f pr @ (Prompt bx lbl ent) = 
     synchronize pr (do
                       font f lbl
                       return pr)
----
--- Gets the font of the prompt.
+  -- | Gets the font of the prompt.
   getFont (Prompt bx lbl ent) = getFont lbl
 
----
--- A prompt has a configureable text.
+-- | A prompt has a configureable text.
 instance (GUIValue a, GUIValue b) => HasText (Prompt a) b where
----
--- Sets the prompt's text.
+  -- | Sets the prompt\'s text.
   text t pr @ (Prompt _ lbl _) = do {text t lbl; return pr}
----
--- Gets the prompt's text.
+  -- | Gets the prompt\'s text.
   getText (Prompt _ lbl _) = getText lbl
 
----
--- A prompt is a stateful component, it can be enabled or disabled.
+-- | A prompt is a stateful component, it can be enabled or disabled.
 instance HasEnable (Prompt a) where
----
--- Sets the prompt's state.
+  -- | Sets the prompt\'s state.
   state s pr @ (Prompt bx lbl ent) = do {state s ent; return pr}
----
--- Gets the prompt's state.
+  -- | Gets the prompt\'s state.
   getState (Prompt bx lbl ent) = getState ent
 
----
--- You can synchronize on a prompt object.
+-- | You can synchronize on a prompt object.
 instance Synchronized (Prompt a) where
----
--- Synchronizes on a prompt object.
+  -- | Synchronizes on a prompt object.
   synchronize w = synchronize (toGUIObject w)
         
----
--- A prompt widget has an (entered) value.
+-- | A prompt widget has an (entered) value.
 instance GUIValue a => HasValue (Prompt a) a where
----
--- Sets the prompt's value.
+  -- | Sets the prompt\'s value.
   value val p@(Prompt bx lbl ent) = value val p
----
--- Gets the prompt's value.
+  -- | Gets the prompt\'s value.
   getValue (Prompt bx lbl ent) = getValue ent
 
 
@@ -171,9 +135,9 @@ instance GUIValue a => HasValue (Prompt a) a where
 -- Entry Components 
 -- -----------------------------------------------------------------------
 
----
--- Gets the entry field of the prompt.
--- @param pr      - the concerned prompt.
--- @return result - the prompt's entry.
-getPromptEntry :: Prompt a -> Entry a
+-- | Gets the entry field of the prompt.
+getPromptEntry :: Prompt a 
+   -- ^ the concerned prompt.
+   -> Entry a
+   -- ^ the prompt\'s entry.
 getPromptEntry pr@(Prompt _ _ ent) = ent

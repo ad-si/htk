@@ -59,9 +59,8 @@ When checking kinds in `DisplayView.DisplayedView graph graphParms node nodeType
 When checking kinds in `Maybe (DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)'
 When checking kinds in `IO (Maybe (DisplayView.DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms))
 
----
--- Contains DisplayedObjectType for all object types in the view
--- We use a Registry as sometime we'll have to address the problem of
+-- | Contains DisplayedObjectType for all object types in the view
+-- We use a Registry as sometime we\'ll have to address the problem of
 -- dynamically adding types, perhaps.
 -- If an object type does not appear in the registry, it means values of
 -- that type are not to be displayed.
@@ -87,8 +86,7 @@ $(
 -- for all object types in a view.
 -- -----------------------------------------------------------------------
 
----
--- This is the data stored by a display for every stored object type.
+-- | This is the data stored by a display for every stored object type.
 -- They mostly have the same meaning as the records in NodeDisplayData
 data DisplayedObjectType objectType object graph node nodeType arcType =
    DisplayedObjectType {
@@ -110,8 +108,7 @@ instance HasTyRep6_000111 DisplayedObjectType where
    tyRep6_000111 _ = displayedObjectTypeTyRep
 
 
----
--- Constructs a AllDisplayedObjectTypes for a particular graph, view and
+-- | Constructs a AllDisplayedObjectTypes for a particular graph, view and
 -- wrapped display type.  Also compute all the top links for that type.
 -- It also takes as argument a sink for all subequently-created object types.
 getAllDisplayedObjectTypes :: 
@@ -483,8 +480,7 @@ displayView
 newCloseDownActions :: IO (MVar [IO ()])
 newCloseDownActions = newMVar []
 
----
--- Add an action to be done when the view is closed.
+-- | Add an action to be done when the view is closed.
 addCloseDownAction :: 
    DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType 
       arcTypeParms
@@ -495,8 +491,7 @@ addCloseDownAction displayedView action =
       list <- takeMVar mVar
       putMVar mVar (action : list)
 
----
--- Do all such actions.
+-- | Do all such actions.
 doCloseDownActions :: 
    DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType 
       arcTypeParms

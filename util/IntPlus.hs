@@ -8,8 +8,7 @@ module IntPlus(
 -- The datatype
 -- --------------------------------------------------------------------
 
----
--- The Bool is a sign, with True meaning positive infinity.
+-- | The Bool is a sign, with True meaning positive infinity.
 data IntPlus = Infinite Bool | Finite Integer deriving Eq
 
 -- --------------------------------------------------------------------

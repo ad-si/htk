@@ -479,9 +479,8 @@ setLink view x (Link location) =
 
       return versioned
                
----
--- setOrGetTopLink is somewhat safer than setTopLink and initialises the
--- top object, if that hasn't already been done, via the supplied action.
+-- | setOrGetTopLink is somewhat safer than setTopLink and initialises the
+-- top object, if that hasn\'t already been done, via the supplied action.
 -- Otherwise it (harmlessly) returns the existing object.
 setOrGetTopLink :: HasCodedValue x => View -> IO x -> IO (Versioned x)
 setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
@@ -553,14 +552,13 @@ createObjectGeneral1 view status location =
       objectCreated <- readIORef objectCreatedRef
       return (versioned,objectCreated)
 
----
--- This deletes an object from the View.
+-- | This deletes an object from the View.
 -- NB.  It is very important to make sure that the object has first
 -- been deleted from anything which references it by link (EG folders)
 -- or you will get the program crashing when someone tries to follow the
 -- link.  
---
--- Links provided by the LinkManager (and I don't know of any others) can
+-- 
+-- Links provided by the LinkManager (and I don\'t know of any others) can
 -- be deleted using LinkManager.deleteLinkedObject (which also calls
 -- deleteLink).
 deleteLink :: HasCodedValue x => View -> Link x -> IO ()

@@ -39,8 +39,7 @@ import MMiSSBundleUtils
 import {-# SOURCE #-} MMiSSExportFiles
 
 
----
--- Retrieve a single MMiSSObject's data (not any of its children)
+-- | Retrieve a single MMiSSObject\'s data (not any of its children)
 simpleReadFromMMiSSObject :: View -> Link MMiSSObject -> MMiSSVariantSearch
    -> IO (WithError (Cache,MMiSSObject))
 simpleReadFromMMiSSObject view objectLink variantSearch =
@@ -55,14 +54,13 @@ simpleReadFromMMiSSObject view objectLink variantSearch =
          Just cache 
             -> return (hasValue (cache,object))
 
----
--- Retrieve an object, expanding includes to a certain depth.  We also 
+-- | Retrieve an object, expanding includes to a certain depth.  We also 
 -- get links to all preambles and ExportFiles.
---
+-- 
 -- If allowNotFound is set, not found messages cause us to put up a warning
 -- window, otherwise they will be fatal.
---
--- If the VariantSearch is given we use that, otherwise we take the object's
+-- 
+-- If the VariantSearch is given we use that, otherwise we take the object\'s
 -- current one.
 readMMiSSObject :: View -> Link MMiSSObject -> Maybe MMiSSVariantSearch
    -> IntPlus -> Bool 
@@ -203,12 +201,11 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          return (element1,packageFolders,exportFiles)
       )
          
----
--- hackWithError allows us to use the break mechanism to pass back non-fatal
+-- | hackWithError allows us to use the break mechanism to pass back non-fatal
 -- error messages by passing back apparently fatal ones but prefixed with a
 -- special null character.
---
--- If the Bool is False this *disables* this mechanism, simply removing the
+-- 
+-- If the Bool is False this \*disables\* this mechanism, simply removing the
 -- null character.
 hackWithError :: a -> Bool -> WithError a -> IO (WithError a)
 hackWithError a enable aWE = case fromWithError aWE of

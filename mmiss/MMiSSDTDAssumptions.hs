@@ -161,10 +161,9 @@ classifyLink (Elem name attributes _)  =
 -- ----------------------------------------------------------------------
 -- ----------------------------------------------------------------------
 
----
--- How to distinguish those elements in the DTD which can be displayed
+-- | How to distinguish those elements in the DTD which can be displayed
 -- separately in the development graph.
--- Rule: those which have an attribute "label". 
+-- Rule: those which have an attribute \"label\". 
 findLabelledElements :: DocTypeDecl -> [String]
 findLabelledElements (DTD _ _ markups) =
    catMaybes
@@ -181,8 +180,7 @@ findLabelledElements (DTD _ _ markups) =
          markups
          )
 
----
--- We also use classifyLabelledTag to get the mini-type-letter, used by
+-- | We also use classifyLabelledTag to get the mini-type-letter, used by
 -- EmacsEdit.hs to colour magic buttons appropriately.
 getMiniType :: String -> Char
 getMiniType str = case classifyLabelledTag str of
@@ -190,8 +188,7 @@ getMiniType str = case classifyLabelledTag str of
    Nothing -> error ("Attempt to edit object with unclassifiable tag "++str)
 
 
----
--- Returns True if an element with this tag is to be treated as a package.
+-- | Returns True if an element with this tag is to be treated as a package.
 isPackageTag :: String -> Bool
 isPackageTag s = (s == "package")
 
@@ -200,8 +197,7 @@ isPackageTag s = (s == "package")
 -- Turning a (possible) link back into an element
 -- ----------------------------------------------------------------------
 
----
--- Given an Element which is an include, returns the contained label,
+-- | Given an Element which is an include, returns the contained label,
 -- the specific attributes for the include, and a 
 -- function which verifies that the given Element matches.  For other elements,
 -- returns Nothing.
@@ -239,8 +235,7 @@ unclassifyElement (Elem name attributes _) =
 -- Primitive functions for operating on attributes
 -- ----------------------------------------------------------------------
 
----
--- | Extract an attribute, which had better be a single String
+-- | | Extract an attribute, which had better be a single String
 getAttribute :: [Attribute] -> String -> Maybe String
 getAttribute attributes key =
    findJust

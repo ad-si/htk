@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>menu checkbutton</strong>.<br>
+-- | HTk\'s /menu checkbutton/.
 -- A simple checkbutton inside a menu associated with a polymorphic
 -- variable.
 module MenuCheckButton (
@@ -39,8 +28,7 @@ import TkVariables
 -- MenuCascade type
 -- -----------------------------------------------------------------------
 
----
--- The <code>MenuCheckButton</code> datatype.
+-- | The @MenuCheckButton@ datatype.
 newtype MenuCheckButton = MenuCheckButton GUIOBJECT
 
 
@@ -48,14 +36,15 @@ newtype MenuCheckButton = MenuCheckButton GUIOBJECT
 -- commands
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new menu checkbutton and returns a handler.
--- @param m       - the parent menu.
--- @param cnf     - the list of configuration options for this menu
---                  checkbutton.
--- @return result - A menu checkbutton.
-createMenuCheckButton :: Menu -> [Config MenuCheckButton] ->
-                         IO MenuCheckButton
+-- | Constructs a new menu checkbutton and returns a handler.
+createMenuCheckButton :: Menu 
+   -- ^ the parent menu.
+   -> [Config MenuCheckButton] 
+   -- ^ the list of configuration options for this menu
+   -- checkbutton.
+   ->
+   IO MenuCheckButton
+   -- ^ A menu checkbutton.
 createMenuCheckButton m cnf =
   createMenuItem m MENUCHECKBUTTON MenuCheckButton cnf
 
@@ -64,105 +53,79 @@ createMenuCheckButton m cnf =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- A menu checkbutton is a menu item (any menu item instantiates the
--- abstract <code>class MenuItem</code>).
+-- | A menu checkbutton is a menu item (any menu item instantiates the
+-- abstract @class MenuItem@).
 instance MenuItem MenuCheckButton
 
----
--- Internal.
+-- | Internal.
 instance Eq MenuCheckButton where
----
--- Internal.
+  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
----
--- Internal.
+-- | Internal.
 instance GUIObject MenuCheckButton where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (MenuCheckButton w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "MenuCheckButton"
 
----
--- You can synchronize on a menu checkbutton.
+-- | You can synchronize on a menu checkbutton.
 instance Synchronized MenuCheckButton where
----
--- Synchronizes on a menu checkbutton.
+  -- | Synchronizes on a menu checkbutton.
   synchronize = synchronize . toGUIObject
 
----
--- A menu checkbutton has an optional text to display as a reminder
+-- | A menu checkbutton has an optional text to display as a reminder
 -- about a keystroke binding.
 instance HasAccelerator MenuCheckButton
 
----
--- A menu checkbutton can contain a bitmap (instead of text or an image).
+-- | A menu checkbutton can contain a bitmap (instead of text or an image).
 instance HasBitMap MenuCheckButton
 
----
--- A menu checkbutton has a configureable border.
+-- | A menu checkbutton has a configureable border.
 instance HasBorder MenuCheckButton
 
----
--- A menu checkbutton has a normal foreground and background colour and
--- an active/disabled foreground and background colour.
+-- | A menu checkbutton has a normal foreground and background colour and
+-- an active\/disabled foreground and background colour.
 instance HasColour MenuCheckButton where 
----
--- Internal.
+  -- | Internal.
   legalColourID = buttonColours
 
----
--- A menu checkbutton is a stateful object, it can be enabled or
+-- | A menu checkbutton is a stateful object, it can be enabled or
 -- disabled.
 instance HasEnable MenuCheckButton
 
----
--- You can specify the font of a menu checkbutton.
+-- | You can specify the font of a menu checkbutton.
 instance HasFont MenuCheckButton
 
----
--- A menu checkbutton has a configureable text justification.
+-- | A menu checkbutton has a configureable text justification.
 instance HasJustify MenuCheckButton
 
----
--- You can display an indicator with a menu checkbutton.
+-- | You can display an indicator with a menu checkbutton.
 instance HasIndicator MenuCheckButton
 
----
--- A menu checkbutton can contain an image (instead of text or a bitmap).
+-- | A menu checkbutton can contain an image (instead of text or a bitmap).
 instance HasPhoto MenuCheckButton
 
----
--- You can specify the size of a menu checkbutton.
+-- | You can specify the size of a menu checkbutton.
 instance HasSize MenuCheckButton
 
----
--- A menu checkbutton can contain text (instead of an image or bitmap).
+-- | A menu checkbutton can contain text (instead of an image or bitmap).
 instance GUIValue v => HasText MenuCheckButton v where
----
--- Sets the text to display.
+  -- | Sets the text to display.
   text str w = cset w "label" str >> return w
----
--- Gets the displayed text.
+  -- | Gets the displayed text.
   getText w = cget w "label"
 
----
--- You can set the index of a text character to underline.
+-- | You can set the index of a text character to underline.
 instance HasUnderline MenuCheckButton
 
----
--- The polymorphic variable the menu checkbutton's value is associated
+-- | The polymorphic variable the menu checkbutton\'s value is associated
 -- with.
 instance HasVariable MenuCheckButton
 
----
--- A menu checkbutton has a value, that corresponds to a polymorphic
--- <code>TkVariable</code>.
+-- | A menu checkbutton has a value, that corresponds to a polymorphic
+-- @TkVariable@.
 instance GUIValue v => HasValue MenuCheckButton v
 
----
--- When a menu checkbutton is clicked, a corresponding event is invoked.
+-- | When a menu checkbutton is clicked, a corresponding event is invoked.
 instance HasCommand MenuCheckButton

@@ -27,11 +27,10 @@ safeSystem command =
    in
       safeSystemGeneral command outputSink
 
----
--- Run "command", displaying any output using the supplied
+-- | Run \"command\", displaying any output using the supplied
 -- outputSink function.  (This output had better not include
--- "EXITCODE [number]".)
---
+-- \"EXITCODE [number]\".)
+-- 
 -- outputSink is fed output line by line, and without the newlines.
 safeSystemGeneral :: String -> (String -> IO ()) -> IO ExitCode
 safeSystemGeneral command outputSink =

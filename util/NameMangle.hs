@@ -18,8 +18,7 @@ import UniqueString
 
 type MangledName = String
 
----
--- For now we just do this naively, with a Registry.  Since the names are
+-- | For now we just do this naively, with a Registry.  Since the names are
 -- generated sequentially a dynamic array would be more efficient, perhaps.
 data NameMangler ref = NameMangler {
    nameSource :: UniqueStringSource,

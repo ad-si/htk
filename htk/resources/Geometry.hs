@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- The <code>module Geometry</code> exports basic geometric types and
+-- | The @module Geometry@ exports basic geometric types and
 -- functionality.
 module Geometry (
 
@@ -34,40 +23,31 @@ import Debug(debug)
 -- Position/Size
 -- -----------------------------------------------------------------------
 
----
--- The <code>Position</code> - a pair of two <code>Distance</code> values.
+-- | The @Position@ - a pair of two @Distance@ values.
 type Position = (Distance, Distance) 
 
----
--- The <code>Size</code> datatype - a pair of two <code>Distance</code>
+-- | The @Size@ datatype - a pair of two @Distance@
 -- values.
 type Size = (Distance, Distance) 
 
----
--- The <code>Point</code> datatype.
+-- | The @Point@ datatype.
 data Point = Point (Distance, Distance) 
 
----
--- Internal.
+-- | Internal.
 instance GUIValue (Distance,Distance) where
----
--- Internal.
+  -- | Internal.
   cdefault = (cdefault,cdefault)
----
--- Internal.
+  -- | Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show (Point v))
----
--- Internal.
+  -- | Internal.
   maybeGUIValue (GUIVALUE _ s)     = 
     case [x | (Point x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
       _  -> Nothing
 
----
--- Internal.
+-- | Internal.
 instance Read Point where
----
--- Internal.
+   -- | Internal.
    readsPrec p b = 
         case (readsPrec p b) of
                 [(x,xs)] -> (case (readsPrec p xs) of
@@ -76,11 +56,9 @@ instance Read Point where
                             )
                 _        -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Point where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Point (x,y)) r = show x ++ " " ++ show y ++  r
 
 
@@ -88,42 +66,33 @@ instance Show Point where
 -- Geometry
 -- -----------------------------------------------------------------------
 
----
--- The Geometry datatype - normally representing position, width and
+-- | The Geometry datatype - normally representing position, width and
 -- height.
 type Geometry = (Distance, Distance, Distance, Distance)
 
 data Geometry' = Geometry' Geometry
 
----
--- Internal.
+-- | Internal.
 instance GUIValue (Distance, Distance, Distance, Distance) where
----
--- Internal.
+  -- | Internal.
   cdefault = (cdefault, cdefault, cdefault, cdefault)
----
--- Internal.
+  -- | Internal.
   toGUIValue v = GUIVALUE HaskellTk (show (Geometry' v))
----
--- Internal.
+  -- | Internal.
   maybeGUIValue (GUIVALUE _ s) =
     case [x | (Geometry' x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
       _ -> Nothing
 
----
--- Internal.
+-- | Internal.
 instance Show Geometry' where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Geometry' (w, h, x, y)) r =             
         show w ++ "x" ++ show h ++ "+" ++ show x ++ "+" ++ show y ++ r
 
----
--- Internal.
+-- | Internal.
 instance Read Geometry' where
----
--- Internal.
+   -- | Internal.
    readsPrec p str = 
          case readsPrec p str of
                 [(w,s')] -> readsPrecX1 p s' w
@@ -159,46 +128,36 @@ instance Read Geometry' where
 -- Coordinates
 -- -----------------------------------------------------------------------
 
----
--- The <code>Coord</code> datatype - e.g. representing the coords of
+-- | The @Coord@ datatype - e.g. representing the coords of
 -- a canvas item.
 type Coord = [Position]
 
----
--- Internal.
+-- | Internal.
 data Coord' = Coord' Coord
 
----
--- Internal.
+-- | Internal.
 instance GUIValue [(Distance,Distance)] where
----
--- Internal.
+  -- | Internal.
   cdefault = []
----
--- Internal.
+  -- | Internal.
   toGUIValue v = GUIVALUE HaskellTk (show (Coord' v))
----
--- Internal.
+  -- | Internal.
   maybeGUIValue (GUIVALUE _ s) =
     case [x | (Coord' x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
       _ -> Nothing
 
----
--- Internal.
+-- | Internal.
 instance Show Coord' where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Coord' []) r = 
         r
    showsPrec d (Coord' (x:l)) r = 
         show (toGUIValue x) ++ " " ++ showsPrec d (Coord' l) r
 
----
--- Internal.
+-- | Internal.
 instance Read Coord' where
----
--- Internal.
+  -- | Internal.
   readsPrec p s = 
         case (dropWhile isSpace s) of
                 [] -> [(Coord' [],[])]
@@ -218,82 +177,60 @@ instance Read Coord' where
 -- Distance
 -- -----------------------------------------------------------------------
 
----
--- The <code>Distance</code> datatype - general representation of
+-- | The @Distance@ datatype - general representation of
 -- distances in HTk.
 newtype Distance = Distance Int deriving (Eq, Ord)
 
----
--- Internal.
+-- | Internal.
 instance Show Distance where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Distance i) r = showsPrec d i r
 
----
--- Internal.
+-- | Internal.
 instance Read Distance where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case (readsPrec p b) of
         [(i,xs)] -> [(Distance (round (i::Double)),xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Distance where
----
--- Internal.
+  -- | Internal.
   cdefault = Distance (-100)
 
----
--- Internal.
+-- | Internal.
 instance Enum Distance where 
----
--- Internal.
+  -- | Internal.
   fromEnum (Distance d)= d
----
--- Internal.
+  -- | Internal.
   toEnum d = Distance d
 
----
--- Internal.
+-- | Internal.
 instance Num Distance where
----
--- Internal.
+  -- | Internal.
   (Distance p1) + (Distance p2) = Distance (p1 + p2)
----
--- Internal.
+  -- | Internal.
   (Distance p1) * (Distance p2) = Distance (p1 * p2)
----
--- Internal.
+  -- | Internal.
   negate (Distance p) = Distance (negate p)
----
--- Internal.
+  -- | Internal.
   abs (Distance p) = Distance (abs p)
----
--- Internal.
+  -- | Internal.
   signum (Distance p) = Distance (signum p)
----
--- Internal.
+  -- | Internal.
   fromInteger i = Distance (fromInteger i)
 
----
--- Internal.
+-- | Internal.
 instance Real Distance where
----
--- Internal.
+  -- | Internal.
   toRational (Distance i) = toRational i
 
----
--- Internal.
+-- | Internal.
 instance Integral Distance where
----
--- Internal.
+  -- | Internal.
   toInteger (Distance i) = toInteger i
----
--- Internal.
+  -- | Internal.
   (Distance d1) `quotRem` (Distance d2) = (Distance q, Distance d)
     where (q, d)= d1 `quotRem` d2
 
@@ -303,17 +240,13 @@ instance Integral Distance where
 
 data Distances = Distances [Distance]
  
----
--- Internal.
+-- | Internal.
 instance GUIValue [Distance] where
----
--- Internal.
+  -- | Internal.
   cdefault = []
----
--- Internal.
+  -- | Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show (Distances v))
----
--- Internal.
+  -- | Internal.
   maybeGUIValue (GUIVALUE _ s) =
     case [x | (Distances x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
@@ -345,32 +278,26 @@ instance Read Distances where
 -- Conversion
 -- -----------------------------------------------------------------------
 
----
--- Conversion from cm to <code>Distance</code>.
+-- | Conversion from cm to @Distance@.
 cm :: Double -> Distance
 cm c = (Distance . round) (c * 35.4)
 
----
--- Conversion from points to <code>Distance</code>.
+-- | Conversion from points to @Distance@.
 pp :: Double -> Distance
 pp i = ic (i / 72)
 
----
--- Conversion from mm to <code>Distance</code>.
+-- | Conversion from mm to @Distance@.
 mm :: Double -> Distance
 mm i = cm (i / 10)
 
----
--- Conversion from inch to <code>Distance</code>.
+-- | Conversion from inch to @Distance@.
 ic :: Double -> Distance
 ic i = (Distance . round) (i * 90.0)
 
----
--- Conversion from <code>Distance</code> to cm.
+-- | Conversion from @Distance@ to cm.
 tocm :: Distance -> Double
 tocm (Distance p) = (fromIntegral p) / 35.4  
 
----
--- Conversion from <code>Distance</code> to inch.
+-- | Conversion from @Distance@ to inch.
 toinch :: Distance -> Double
 toinch (Distance p) = (fromIntegral p) / 90.0

@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>option menu</strong> widget.<br>
+-- | HTk\'s /option menu/ widget.
 -- A simple clip up menu displaying a set of radiobuttons.
 module OptionMenu (
 
@@ -36,8 +25,7 @@ import Tooltip
 -- datatype
 -- -----------------------------------------------------------------------
 
----
--- The <code>OptionMenu</code> datatype.
+-- | The @OptionMenu@ datatype.
 newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 
 
@@ -45,15 +33,17 @@ newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 -- creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new option menu and returns a handler.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param el      - the list of selectable elements.
--- @return result - An option menu.
+-- | Constructs a new option menu and returns a handler.
 newOptionMenu :: (Container par, GUIValue a) =>
-                 par -> [a] -> [Config (OptionMenu a)] ->
-                 IO (OptionMenu a)
+   par 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   -> [a] 
+   -- ^ the list of selectable elements.
+   -> [Config (OptionMenu a)] 
+   ->
+   IO (OptionMenu a)
+   -- ^ An option menu.
 newOptionMenu par el cnf =
   do
     wid <- createGUIObject (toGUIObject par) (OPTIONMENU el')
@@ -66,71 +56,54 @@ newOptionMenu par el cnf =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject (OptionMenu a) where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (OptionMenu  w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "OptionMenu"
 
----
--- An option menu can be destroyed.
+-- | An option menu can be destroyed.
 instance Destroyable (OptionMenu a) where
----
--- Destroys an option menu.
+  -- | Destroys an option menu.
   destroy = destroy . toGUIObject
 
----
--- An option menu has standard widget properties
+-- | An option menu has standard widget properties
 -- (concerning focus, cursor).
 instance Widget (OptionMenu a)
 
----
--- An option menu has a configureable border.
+-- | An option menu has a configureable border.
 instance HasBorder (OptionMenu a)
 
----
--- An option menu has a normal foreground and background colour and an
--- active/disabled foreground and background colour.
+-- | An option menu has a normal foreground and background colour and an
+-- active\/disabled foreground and background colour.
 instance HasColour (OptionMenu a) where
----
--- Internal.
+  -- | Internal.
   legalColourID = buttonColours
 
----
--- An option menu is a stateful widget, it can be enabled or disabled.
+-- | An option menu is a stateful widget, it can be enabled or disabled.
 instance HasEnable (OptionMenu a)
 
----
--- You can specify the font of an option menu.
+-- | You can specify the font of an option menu.
 instance HasFont (OptionMenu a) 
 
----
--- You can specify the size of an option menu.
+-- | You can specify the size of an option menu.
 instance HasSize (OptionMenu a)
 
----
--- An option menu has a value (the selected element), that corresponds to
--- a polymorphic <code>TkVariable</code>.
+-- | An option menu has a value (the selected element), that corresponds to
+-- a polymorphic @TkVariable@.
 instance GUIValue a => HasValue (OptionMenu a) a where
----
--- Sets the option menu's value (the selected element).
+  -- | Sets the option menu\'s value (the selected element).
   value v w =
     setTclVariable ((tvarname . objectID . toGUIObject) w) v >> return w
----
--- Gets the option menu's value.
+  -- | Gets the option menu\'s value.
   getValue w = getTclVariable ((tvarname . objectID . toGUIObject) w)
 
----
--- An option menu can have a tooltip (only displayed if you are using
+-- | An option menu can have a tooltip (only displayed if you are using
 -- tixwish).
 instance HasTooltip (OptionMenu a)
 
----
--- An option menu has a text anchor.
+-- | An option menu has a text anchor.
 instance HasAnchor (OptionMenu a)
 
 

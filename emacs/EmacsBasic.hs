@@ -97,8 +97,7 @@ instance Destroyable EmacsSession where
          execEmacsString emacsSession "(kill-buffer (current-buffer))"
          closeAction emacsSession
 
----
--- destroys the EmacsSession itself, but assume any necessary
+-- | destroys the EmacsSession itself, but assume any necessary
 -- destruction on the Emacs side has been done.
 diyDestroy :: EmacsSession -> IO ()
 diyDestroy emacsSession = closeAction emacsSession
@@ -278,8 +277,7 @@ initialiseEmacsBasic =
 -- Calling gnuclient.
 -- ------------------------------------------------------------------------
 
----
--- Execute the given command via gnuclient.  We attempt to catch
+-- | Execute the given command via gnuclient.  We attempt to catch
 -- common errors, except for bracket-counting.
 execGnuClient :: String -> IO ()
 execGnuClient command =
@@ -301,8 +299,7 @@ execGnuClient command =
 -- Undoing escapes
 -- ------------------------------------------------------------------------
 
----
--- Undo the effects of sendmess.el's uni-escape function
+-- | Undo the effects of sendmess.el\'s uni-escape function
 unUniEscape :: String -> String
 unUniEscape "" = ""
 unUniEscape ('\\':'n':rest) = '\n':unUniEscape rest

@@ -23,8 +23,7 @@ import IOExtras
 -- Types
 -- ----------------------------------------------------------------------
 
----
--- This corresponds to a file name within the file system, with the top
+-- | This corresponds to a file name within the file system, with the top
 -- directory first.
 type FileSystemName = [String]
 
@@ -41,8 +40,7 @@ data FileSystem = FileSystem {
 -- ----------------------------------------------------------------------
 
 
----
--- Create a new empty file system
+-- | Create a new empty file system
 newFileSystem :: IO FileSystem
 newFileSystem =
    do
@@ -64,21 +62,18 @@ newFileSystem =
 class HasFileSystem fileSystem where
    getFileSystemLocation :: fileSystem -> FilePath
    
----
--- Get the location of the directory containing the FileSystem.
+-- | Get the location of the directory containing the FileSystem.
 instance HasFileSystem FileSystem where
    getFileSystemLocation (FileSystem {location = location}) = location
 
----
--- Get the location corresponding to a particular file in the file system
--- (It doesn't ensure it is present; for that you need ensureFile/ensureFiles).
+-- | Get the location corresponding to a particular file in the file system
+-- (It doesn\'t ensure it is present; for that you need ensureFile\/ensureFiles).
 getFileSystemNameLocation :: HasFileSystem fileSystem 
    => fileSystem -> FileSystemName -> FilePath
 getFileSystemNameLocation fileSystem fileSystemName =
    unbreakName ((getFileSystemLocation fileSystem):fileSystemName)
 
----
--- Returns the parent directories strictly containing the given 
+-- | Returns the parent directories strictly containing the given 
 -- file system name, from the immediate parent up to but not including
 -- the root.
 parentDirectories :: FileSystemName -> [FilePath]
@@ -94,8 +89,7 @@ parentDirectories parts =
    in
       pdReversed (reverse parts)
 
----
--- Ensure the directories containing a particular name are present.
+-- | Ensure the directories containing a particular name are present.
 ensureDirectories :: FileSystem -> FileSystemName -> IO ()
 ensureDirectories fileSystem fileSystemName =
    do
@@ -115,8 +109,7 @@ ensureDirectories fileSystem fileSystemName =
                   )
       doContainingDirs containingDirs
 
----
--- Ensure a particular file is present, calling the supplied action if
+-- | Ensure a particular file is present, calling the supplied action if
 -- necessary.  This action should retrieve the object to the specified FilePath
 -- (which will be the real location of the object).
 ensureFile :: FileSystem -> (FileSystemName -> FilePath -> IO ()) 
@@ -134,8 +127,7 @@ ensureFile fileSystem extractFn fileSystemName =
                   return (Just (),())
          )
 
----
--- ensureFile for zero or more fileSystemNames.
+-- | ensureFile for zero or more fileSystemNames.
 ensureFiles :: FileSystem -> (FileSystemName -> FilePath -> IO ()) 
    -> [FileSystemName] -> IO ()
 ensureFiles fileSystem extractFn fileSystemNames =

@@ -74,11 +74,10 @@ import {-# SOURCE #-} MMiSSExportFiles
 -- The types
 -- ----------------------------------------------------------------------
 
----
--- EditRef is the "ref" type passed to EmacsEdit. 
---
--- The extra fields (apart from the link and variants) mean we can get what's 
--- needed to do the Emacs buttons, on the basis of what's in the referencing 
+-- | EditRef is the \"ref\" type passed to EmacsEdit. 
+-- 
+-- The extra fields (apart from the link and variants) mean we can get what\'s 
+-- needed to do the Emacs buttons, on the basis of what\'s in the referencing 
 -- object, without having to dereference the link.
 data EditRef = 
       EditRef {
@@ -166,8 +165,7 @@ editMMiSSObjectInner formatConverter view link =
 -- Making the FS
 -- ----------------------------------------------------------------------
 
----
--- This function constructs the file-system itself.
+-- | This function constructs the file-system itself.
 mkEmacsFS :: View -> EditFormatConverter -> EmacsFS EditRef
 mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
    let
@@ -448,13 +446,11 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
    in
       emacsFS
 
----
--- Returns the miniType for an object.
+-- | Returns the miniType for an object.
 getObjectMiniType :: MMiSSObject -> Char
 getObjectMiniType object = getObjectTypeMiniType (mmissObjectType object)
 
----
--- Returns the miniType for an object type.
+-- | Returns the miniType for an object type.
 getObjectTypeMiniType :: MMiSSObjectType -> Char
 getObjectTypeMiniType objectType = getMiniType (xmlTag objectType)
 
@@ -656,8 +652,7 @@ doFile :: MVar ExportFiles -> MMiSSVariantSearch
 doFile mVar variantSearch0 (packageFolder0,_) file0 =
    modifyMVar_ mVar (return . ((packageFolder0,file0,variantSearch0) :))
 
----
--- Given an EditRef, extract a link to the referenced object.
+-- | Given an EditRef, extract a link to the referenced object.
 getEditRef :: View -> EditRef -> IO (WithError (Link MMiSSObject))
 getEditRef view editRef =
    lookupMMiSSObjectMustExist view (package editRef) (searchName editRef)
@@ -666,8 +661,7 @@ getEditRef view editRef =
 -- Other utility functions
 -- ----------------------------------------------------------------------
 
----
--- Return variants corresponding to an EditRef
+-- | Return variants corresponding to an EditRef
 toVariants :: EditRef -> MMiSSVariantSearch
 toVariants editRef =
    refineVariantSearch (outerVariants editRef) (linkVariants editRef)

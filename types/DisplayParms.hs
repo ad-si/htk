@@ -53,20 +53,17 @@ import View
 -- The Types and Datatypes
 -- -----------------------------------------------------------------------
 
----
--- Selects particular display types
+-- | Selects particular display types
 data DisplayTypeFilter =
-      AllDisplays  --' select every display
-   |  ThisDisplay WrappedDisplayType  --' select just this display
+      AllDisplays  -- ^ select every display
+   |  ThisDisplay WrappedDisplayType  -- ^ select just this display
 
 
----
--- NodeTypes is a list of display type filters with SimpleNodeAttributes
+-- | NodeTypes is a list of display type filters with SimpleNodeAttributes
 newtype NodeTypes value = 
    NodeTypes [(DisplayTypeFilter,SimpleNodeAttributes value)]
 
----
--- ArcTypes is a list of display type filters with SimpleArcAttributes
+-- | ArcTypes is a list of display type filters with SimpleArcAttributes
 newtype ArcTypes value = 
    ArcTypes [(DisplayTypeFilter,SimpleArcAttributes value)]
 
@@ -74,13 +71,11 @@ newtype ArcTypes value =
 -- The Datatypes
 -- -----------------------------------------------------------------------
 
----
--- Returns "Nothing" for any display type
+-- | Returns \"Nothing\" for any display type
 emptyNodeTypes :: NodeTypes value
 emptyNodeTypes = NodeTypes []
    
----
--- Returns "Nothing" for any display type
+-- | Returns \"Nothing\" for any display type
 emptyArcTypes :: ArcTypes value
 emptyArcTypes = ArcTypes []
 
@@ -143,22 +138,19 @@ instance HasBinary (ArcTypes value) CodingMonad where
 -- The external functions
 -- -----------------------------------------------------------------------
 
----
--- Add a node rule, taking priority over previous rules.
+-- | Add a node rule, taking priority over previous rules.
 addNodeRule :: DisplayTypeFilter -> SimpleNodeAttributes value 
    -> NodeTypes value -> NodeTypes value
 addNodeRule displayTypeFilter simpleNodeAttributes (NodeTypes l) =
    NodeTypes ((displayTypeFilter,simpleNodeAttributes):l)
 
----
--- Add a arc rule, taking priority over previous rules.
+-- | Add a arc rule, taking priority over previous rules.
 addArcRule :: DisplayTypeFilter -> SimpleArcAttributes value 
    -> ArcTypes value -> ArcTypes value
 addArcRule displayTypeFilter simpleArcAttributes (ArcTypes l) =
    ArcTypes ((displayTypeFilter,simpleArcAttributes):l)
 
----
--- getNodeTypeParms extracts the parameter for a particular display type.
+-- | getNodeTypeParms extracts the parameter for a particular display type.
 getNodeTypeParms :: (Typeable value,HasNodeTypeConfigs nodeTypeParms) 
    => WrappedDisplayType -> NodeTypes value -> Maybe (nodeTypeParms value)
 getNodeTypeParms wd1 (NodeTypes []) = Nothing
@@ -175,8 +167,7 @@ getNodeTypeParms wd1 (NodeTypes ((f1,atts1):rest)) =
          else
             getNodeTypeParms wd1 (NodeTypes rest)
 
----
--- getArcTypeParms extracts the parameter for a particular display type.
+-- | getArcTypeParms extracts the parameter for a particular display type.
 getArcTypeParms :: (Typeable value,HasArcTypeConfigs arcTypeParms) 
    => WrappedDisplayType -> ArcTypes value -> Maybe (arcTypeParms value)
 getArcTypeParms wd1 (ArcTypes []) = Nothing
@@ -217,17 +208,15 @@ mkArcTypeParms simpleArcAttributes =
 -- SimpleNodeAttributes and SimpleArcAttributes
 -- -----------------------------------------------------------------------
 
----
--- Encodes those attributes (shape, color and so on) which
--- don't depend on the value of the node.
+-- | Encodes those attributes (shape, color and so on) which
+-- don\'t depend on the value of the node.
 data SimpleNodeAttributes value = SimpleNodeAttributes {
    shape :: Maybe (Shape value),
    nodeColor :: Maybe (Color value)
    }
 
----
--- Encodes those attributes (edge pattern, color and so on) which
--- don't depend on the value of the arc.
+-- | Encodes those attributes (edge pattern, color and so on) which
+-- don\'t depend on the value of the arc.
 data SimpleArcAttributes value = SimpleArcAttributes {
    edgePattern :: Maybe (EdgePattern value),
    arcColor :: Maybe (Color value)
@@ -250,9 +239,8 @@ simpleNodeTypesForm =
          )
       (colorForm // shapeForm)
 
---- 
--- Select a colour 
--- We steal the following trick from htk/examples/toolkit/Mainsimpleform.hs
+-- | Select a colour 
+-- We steal the following trick from htk\/examples\/toolkit\/Mainsimpleform.hs
 data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet 
                deriving (Bounded,Enum,Read,Show)
 

@@ -46,8 +46,7 @@ import ViewType
 -- The ObjectNode type.
 -- -----------------------------------------------------------------
 
----
--- There is one ObjectNode for each link we need to put in the final
+-- | There is one ObjectNode for each link we need to put in the final
 -- view.
 data ObjectNode object key =
    ObjectNode {
@@ -86,7 +85,6 @@ toObjectNode (WrappedObjectNode (objectNode0 :: ObjectNode fromObject key1)) =
 -- The on-going state.
 -- -----------------------------------------------------------------
 
----
 data State 
    = State {
    registry 

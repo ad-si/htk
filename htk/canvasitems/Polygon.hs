@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>polygon</strong> canvas item.<br>
+-- | HTk\'s /polygon/ canvas item.
 -- A polygon object on a canvas widget.
 module Polygon (
 
@@ -34,8 +23,7 @@ import Destructible
 -- Polygon
 -- -----------------------------------------------------------------------
 
----
--- The <code>Polygon</code> datatype.
+-- | The @Polygon@ datatype.
 newtype Polygon = Polygon GUIOBJECT deriving Eq
 
 
@@ -43,13 +31,14 @@ newtype Polygon = Polygon GUIOBJECT deriving Eq
 -- Constructor
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new polygon item.
--- @param cnv     - the parent canvas.
--- @param cnf     - the list of configuration options for this polygon
---                  item.
--- @return result - A polygon item.
-createPolygon :: Canvas -> [Config Polygon] -> IO Polygon
+-- | Constructs a new polygon item.
+createPolygon :: Canvas 
+   -- ^ the parent canvas.
+   -> [Config Polygon] 
+   -- ^ the list of configuration options for this polygon
+   -- item.
+   -> IO Polygon
+   -- ^ A polygon item.
 createPolygon cnv cnf =
   createCanvasItem cnv POLYGON Polygon cnf [(-1,-1),(-1,-1),(-1,-1)]
 
@@ -58,46 +47,35 @@ createPolygon cnv cnf =
 -- Instantiations
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject Polygon where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (Polygon w) = w
----
--- Internal.
+  -- | Internal.
   cname _ = "Polygon"
 
----
--- An polygon item can be destroyed.
+-- | An polygon item can be destroyed.
 instance Destroyable Polygon where
----
--- Destroys a polygon item.
+  -- | Destroys a polygon item.
   destroy = destroy . toGUIObject
 
----
--- You can synchronize on a polygon item.
+-- | You can synchronize on a polygon item.
 instance Synchronized Polygon where
----
--- Synchronizes on a polygon item.
+  -- | Synchronizes on a polygon item.
   synchronize w = synchronize (toGUIObject w)
 
----
--- A polygon item is a canvas item (any canvas item is an instance of the
--- abstract <code>class CanvasItem</code>).
+-- | A polygon item is a canvas item (any canvas item is an instance of the
+-- abstract @class CanvasItem@).
 instance CanvasItem Polygon
 
----
--- A polygon item can have several tags (handlers for a set of canvas
+-- | A polygon item can have several tags (handlers for a set of canvas
 -- items).
 instance TaggedCanvasItem Polygon
 
----
--- A polygon item is a filled canvas item (it has filling, outline,
+-- | A polygon item is a filled canvas item (it has filling, outline,
 -- outline width, and stipple configurations).
 instance FilledCanvasItem Polygon
 
----
--- A line is a segmented canvas item. It has a splinesteps and smooth
+-- | A line is a segmented canvas item. It has a splinesteps and smooth
 -- configuration.
 instance SegmentedCanvasItem Polygon

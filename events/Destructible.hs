@@ -15,18 +15,15 @@ import Events
 import Toggle
 
 class Destroyable o where
----
--- Destroys an object
+   -- | Destroys an object
    destroy :: o -> IO ()
 
 class Destroyable o => Destructible o where
----
--- An event which occurs when the object is destroyed.
+   -- | An event which occurs when the object is destroyed.
    destroyed       :: o -> Event ()
 
----
--- doOnce can be used to produce an action which is identical
--- to its argument, except that if it's already been called, it
+-- | doOnce can be used to produce an action which is identical
+-- to its argument, except that if it\'s already been called, it
 -- does nothing.
 doOnce :: IO () -> IO (IO ())
 doOnce action =

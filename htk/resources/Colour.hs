@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Basic types and classes for coloured resources.
+-- | Basic types and classes for coloured resources.
 module Colour (
 
   ColourDesignator(..),
@@ -26,9 +15,8 @@ import Char
 -- Colour Designator
 -- -----------------------------------------------------------------------
 
----
--- Datatypes that describe a colour instantiate the
--- <code>class ColourDesignator</code>.
+-- | Datatypes that describe a colour instantiate the
+-- @class ColourDesignator@.
 class ColourDesignator c where
   toColour :: c -> Colour
 
@@ -37,32 +25,24 @@ class ColourDesignator c where
 -- instances 
 -- -----------------------------------------------------------------------
 
----
--- A colour itself describes a colour.
+-- | A colour itself describes a colour.
 instance ColourDesignator Colour where
----
--- Internal.
+  -- | Internal.
   toColour = id
 
----
--- Strings like "red", "blue" etc. decribe colours.
+-- | Strings like \"red\", \"blue\" etc. decribe colours.
 instance ColourDesignator [Char] where
----
--- Internal.
+  -- | Internal.
   toColour = Colour
 
----
--- A tuple of rgb values describes a colour.
+-- | A tuple of rgb values describes a colour.
 instance ColourDesignator (Int,Int,Int) where
----
--- Internal.
+  -- | Internal.
   toColour (r,g,b) = Colour (rgb r g b)
 
----
--- A tuple of rgb values describes a colour.
+-- | A tuple of rgb values describes a colour.
 instance ColourDesignator (Double,Double,Double) where
----
--- Internal.
+  -- | Internal.
   toColour (r,g,b) = Colour (rgb (iround r) (iround g) (iround b))
                      where iround :: Double -> Int
                            iround x = round x
@@ -72,31 +52,24 @@ instance ColourDesignator (Double,Double,Double) where
 -- datatype
 -- -----------------------------------------------------------------------
 
----
--- The <code>Colour</code> datatype.
+-- | The @Colour@ datatype.
 newtype Colour = Colour String 
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Colour where
----
--- Internal.
+  -- | Internal.
   cdefault = Colour "grey"
         
----
--- Internal.
+-- | Internal.
 instance Read Colour where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         xs -> [(Colour (takeWhile (/= ' ') xs),"")]
 
----
--- Internal.
+-- | Internal.
 instance Show Colour where
----
--- Internal.
+   -- | Internal.
    showsPrec d (Colour p) r = p ++ r
 
 

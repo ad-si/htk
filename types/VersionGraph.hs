@@ -105,8 +105,7 @@ data VersionGraph = VersionGraph {
       -- ^ described at the head of this module.
    }
 
----
--- Information we keep about working nodes.
+-- | Information we keep about working nodes.
 data ViewedNode = ViewedNode {
    thisView :: View, -- view for this node 
    bSem :: BSem -- locks commit operations.
@@ -740,28 +739,28 @@ toVersionGraphRepository = repository
 -- Get version parameters 
 -- --------------------------------------------------------------------
 
----
--- Calls getVersionPars for checking out a version
+-- | Calls getVersionPars for checking out a version
 getVersionParsCheckOut :: String -> String -> IO (Maybe String)
 getVersionParsCheckOut = getVersionPars "Checking Out"
 
----
--- calls getVersionPars for committing a version
+-- | calls getVersionPars for committing a version
 getVersionParsCommit :: String -> String -> IO (Maybe String)
 getVersionParsCommit = getVersionPars "Committing"
 
----
--- Get the parameters for a new version, which at present just consist
+-- | Get the parameters for a new version, which at present just consist
 -- of the String to display as the node title.
 -- If this returns Nothing, it means the user cancelled the operation.
 -- We use the title of the parent version as the default
--- @param operation -- "Checking out" or "Committing", describing the 
---    operation.
--- @param parentUserString -- user-defined String attached to the parent node
--- @param parentString -- result of nodeTitle for the parent node.  This will
---    be the parentUserString if that isn't "", otherwise the version string
---    for the node. 
-getVersionPars :: String -> String -> String -> IO (Maybe String)
+getVersionPars :: String 
+   -- ^ \"Checking out\" or \"Committing\", describing the 
+   -- operation.
+   -> String 
+   -- ^ user-defined String attached to the parent node
+   -> String 
+   -- ^ result of nodeTitle for the parent node.  This will
+   -- be the parentUserString if that isn\'t \"\", otherwise the version string
+   -- for the node. 
+   -> IO (Maybe String)
 getVersionPars operation parentUserString parentString =
    do
       let

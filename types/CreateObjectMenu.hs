@@ -18,8 +18,7 @@ import Link
 import LinkManager
 import ObjectTypes
 
----
--- puts up a menu which selects an object type and creates an object in
+-- | puts up a menu which selects an object type and creates an object in
 -- the given folder.
 createObjectMenu :: (HasLinkedObject parent,ObjectType parentType parent)
    => View -> Link parent -> IO Bool

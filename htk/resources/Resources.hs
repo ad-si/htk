@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Basic resources used with object configuration options.
+-- | Basic resources used with object configuration options.
 module Resources (
 
   State(..),
@@ -36,12 +25,10 @@ import Char
 --  creation configs
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 type CreationConfig w = IO String
 
----
--- Internal.
+-- | Internal.
 showCreationConfigs :: [CreationConfig a] -> IO String
 showCreationConfigs (c : cs) =
   do
@@ -55,23 +42,18 @@ showCreationConfigs _ = return ""
 -- state
 -- -----------------------------------------------------------------------
 
----
--- The <code>State</code> datatype - the state of certain widgets
+-- | The @State@ datatype - the state of certain widgets
 -- can be normal, disabled or active.
 data State = Disabled | Active | Normal deriving (Eq,Ord,Enum)
  
----
--- Internal.
+-- | Internal.
 instance GUIValue State where
----
--- Internal.
+  -- | Internal.
   cdefault = Disabled
 
----
--- Internal.
+-- | Internal.
 instance Read State where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'd':'i':'s':'a':'b':'l':'e':'d': xs -> [(Disabled,xs)]
@@ -79,11 +61,9 @@ instance Read State where
         'n':'o':'r':'m':'a':'l': xs -> [(Normal,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show State where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
           Disabled -> "disabled"
@@ -96,23 +76,18 @@ instance Show State where
 -- Justify
 -- -----------------------------------------------------------------------
 
----
--- The <code>Justify</code> datatype - representing a text justification.
+-- | The @Justify@ datatype - representing a text justification.
 data Justify = JustLeft | JustCenter | JustRight deriving (Eq,Ord,Enum)
 
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Justify where
----
--- Internal.
+  -- | Internal.
   cdefault = JustLeft
 
----
--- Internal.
+-- | Internal.
 instance Read Justify where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'l':'e':'f':'t':xs -> [(JustLeft,xs)]
@@ -120,11 +95,9 @@ instance Read Justify where
         'r':'i':'g':'h':'t':xs -> [(JustRight,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Justify where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        JustLeft -> "left"
@@ -136,24 +109,19 @@ instance Show Justify where
 -- relief
 -- -----------------------------------------------------------------------
 
----
--- The <code>Relief</code> datatype - represents the relief of certain
+-- | The @Relief@ datatype - represents the relief of certain
 -- widgets.
 data Relief =
   Groove | Ridge | Flat | Sunken | Raised deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Relief where
----
--- Internal.
+  -- | Internal.
   cdefault = Flat
 
----
--- Internal.
+-- | Internal.
 instance Read Relief where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'g':'r':'o':'o':'v':'e':xs -> [(Groove,xs)]
@@ -163,11 +131,9 @@ instance Read Relief where
         'r':'a':'i':'s':'e':'d':xs -> [(Raised,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Relief where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Groove -> "groove"
@@ -181,33 +147,26 @@ instance Show Relief where
 -- Orientation
 -- -----------------------------------------------------------------------
 
----
--- The <code>Orientation</code> datatype - used for different purposes.
+-- | The @Orientation@ datatype - used for different purposes.
 data Orientation = Horizontal | Vertical deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Orientation where
----
--- Internal.
+  -- | Internal.
   cdefault = Horizontal
 
----
--- Internal.
+-- | Internal.
 instance Read Orientation where
----
--- Internal.
+  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'h':'o':'r':'i':'z':'o':'n':'t':'a':'l':xs -> [(Horizontal,xs)]
       'v':'e':'r':'t':'i':'c':'a':'l':xs -> [(Vertical,xs)]
       _ -> []
  
----
--- Internal.
+-- | Internal.
 instance Show Orientation where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Horizontal -> "horizontal"
@@ -218,33 +177,26 @@ instance Show Orientation where
 -- Toggle
 -- -----------------------------------------------------------------------
 
----
--- A simple <code>Toggle</code> datatype - used for different purposes.
+-- | A simple @Toggle@ datatype - used for different purposes.
 data Toggle = Off | On deriving (Eq,Ord)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Toggle where
----
--- Internal.
+  -- | Internal.
   cdefault = Off
 
----
--- Internal.
+-- | Internal.
 instance Read Toggle where
----
--- Internal.
+  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       '0':xs -> [(Off,xs)]
       '1':xs -> [(On,xs)]
       _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Toggle where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Off -> "0" 
@@ -259,8 +211,7 @@ toggle Off = On
 -- Flexibility
 -- -----------------------------------------------------------------------
 
----
--- The <code>Flexibility</code> datatype - used in the context of boxes
+-- | The @Flexibility@ datatype - used in the context of boxes
 -- (see containers).
 data Flexibility = Rigid | Flexible
 
@@ -269,22 +220,17 @@ data Flexibility = Rigid | Flexible
 -- Alignment 
 -- -----------------------------------------------------------------------
 
----
--- The <code>Alignment</code> datatype - widget alignment etc.
+-- | The @Alignment@ datatype - widget alignment etc.
 data Alignment = Top | InCenter | Bottom | Baseline deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Alignment where
----
--- Internal.
+  -- | Internal.
   cdefault = Top
 
----
--- Internal.
+-- | Internal.
 instance Read Alignment where
----
--- Internal.
+  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'c':'e':'n':'t':'e':'r':xs -> [(InCenter,xs)]
@@ -293,11 +239,9 @@ instance Read Alignment where
       'b':'a':'s':'e':'l':'i':'n':'e':xs -> [(Baseline,xs)]
       _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Alignment where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Top -> "top"
@@ -310,8 +254,7 @@ instance Show Alignment where
 -- Anchor
 -- -----------------------------------------------------------------------
 
----
--- The <code>Anchor</code> datatype - used for different purposes, e.g.
+-- | The @Anchor@ datatype - used for different purposes, e.g.
 -- text anchors or anchor positions of canvas items.
 data Anchor =
           SouthEast 
@@ -325,18 +268,14 @@ data Anchor =
         | NorthWest
         deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Anchor where
----
--- Internal.
+  -- | Internal.
   cdefault = Center
 
----
--- Internal.
+-- | Internal.
 instance Read Anchor where
----
--- Internal.
+   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         's':'e':xs -> [(SouthEast,xs)]
@@ -350,11 +289,9 @@ instance Read Anchor where
         's': xs -> [(South,xs)]
         _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Anchor where
----
--- Internal.
+   -- | Internal.
    showsPrec d p r = 
       (case p of 
          SouthEast -> "se"

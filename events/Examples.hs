@@ -56,9 +56,8 @@ isEmptyEventSet (EventSet _ fmap) = isEmptyFM fmap
 -- Watchers
 -- ------------------------------------------------------------------
 
----
--- watch is used for events like mouse motion events where
--- if we can't find time we don't want them queued.
+-- | watch is used for events like mouse motion events where
+-- if we can\'t find time we don\'t want them queued.
 -- The event returned waits until the original event next happens and
 -- returns it.  A worker thread is needed to run this; the attached action
 -- should be used to stop that thread when we are no longer interested.
@@ -90,8 +89,7 @@ watch (event :: Event a) =
       return (receive channel,sync(send dieChannel ()))
 
 
----
--- spawnRepeatedEvent concurrently syncs on the event until the
+-- | spawnRepeatedEvent concurrently syncs on the event until the
 -- given action is used; it is somewhat safer than spawnEvent.
 -- It also never interrupts the handler event attached to
 -- the event.

@@ -213,8 +213,7 @@ instance HasBinary Folder CodingMonad where
          createFolder view folderTypeId attributes linkedObject
          )
 
----
--- Thus function is also used during merging.
+-- | Thus function is also used during merging.
 createFolder :: View -> GlobalKey -> Attributes -> LinkedObject -> IO Folder
 createFolder view folderTypeId attributes linkedObject =
    do
@@ -668,9 +667,8 @@ mkFolderType0 thisKey displayParms =
 -- Retrieving the top folder.
 -- ------------------------------------------------------------------
 
----
--- getTopFolder returns a link to the topFolder, creating it in the exceptional
--- circumstance that it doesn't already exist in the view. 
+-- | getTopFolder returns a link to the topFolder, creating it in the exceptional
+-- circumstance that it doesn\'t already exist in the view. 
 getTopFolder :: View -> IO (Link Folder)
 getTopFolder view =
    do
@@ -724,8 +722,7 @@ describeLinkedObject view linkedObject =
 {-# DEPRECATED getInFolder,lookupFileName "Use LinkManager functions instead" 
     #-}
 
----
--- getInFolder returns the wrapped link indexed in the folder by the given
+-- | getInFolder returns the wrapped link indexed in the folder by the given
 -- string, if it exists.
 getInFolder :: View -> Link Folder -> String -> IO (Maybe WrappedLink)
 getInFolder view link str =
@@ -734,8 +731,7 @@ getInFolder view link str =
       linkedObjectOpt <- lookupNameSimple (linkedObject folder) str
       return (fmap toWrappedLink linkedObjectOpt)
 
----
--- lookupLink looks up a link by file name, given by components, with
+-- | lookupLink looks up a link by file name, given by components, with
 -- the name in the highest directory first.
 lookupFileName :: View -> [String] -> IO (Maybe WrappedLink)
 lookupFileName view [] = return (Just (WrappedLink (topLink :: Link Folder)))
@@ -764,10 +760,9 @@ lookupFileName view (first:rest) =
 -- Updating the folder network.
 -- ------------------------------------------------------------------
 
----
--- Create a new empty folder in the view and insert it in
+-- | Create a new empty folder in the view and insert it in
 -- the given parent.
---
+-- 
 -- We use the inputAttributes method to get the attributes, and
 -- return False if the user cancels, or there was some other error.
 newEmptyFolder :: FolderType -> View -> LinkedObject 
@@ -834,8 +829,7 @@ writeEmptyFolder view folderLink typeKey =
                writeLink view folderLink folder
          else
             done
----
--- Making an insertion into a folder
+-- | Making an insertion into a folder
 mkFolderInsertion :: Folder -> EntityName -> Insertion
 mkFolderInsertion folder = mkInsertion (linkedObject folder)
 
@@ -922,8 +916,7 @@ createWithLinkedObjectIO view parentLink name getObject =
          )
       act
 
----
--- This function is like createWithLinkedObjectIO, but does not actually
+-- | This function is like createWithLinkedObjectIO, but does not actually
 -- insert the new object into the folder, instead inserting it nowhere.
 -- The action it returns DOES insert the object in the folder. 
 createWithLinkedObjectSplitIO :: ObjectType objectType object

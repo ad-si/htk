@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>toplevel</strong> widget.<br>
+-- | HTk\'s /toplevel/ widget.
 -- A toplevel widget is a toplevel container for widgets (a window).
 module Toplevel (
 
@@ -38,8 +27,7 @@ import Packer
 -- Toplevel widget
 -- -----------------------------------------------------------------------
 
----
--- The <code>Toplevel</code> datatype.
+-- | The @Toplevel@ datatype.
 newtype Toplevel = Toplevel GUIOBJECT deriving Eq
 
 
@@ -47,12 +35,12 @@ newtype Toplevel = Toplevel GUIOBJECT deriving Eq
 -- creation commands
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new toplevel widget and returns a handler.
--- @param cnf     - the list of configuration options for this toplevel
---                  widget.
--- @return result - A toplevel widget.
-createToplevel :: [Config Toplevel] -> IO Toplevel
+-- | Constructs a new toplevel widget and returns a handler.
+createToplevel :: [Config Toplevel] 
+   -- ^ the list of configuration options for this toplevel
+   -- widget.
+   -> IO Toplevel
+   -- ^ A toplevel widget.
 createToplevel cnf =
   do
     wid <- createGUIObject ROOT TOPLEVEL toplevelMethods
@@ -63,43 +51,33 @@ createToplevel cnf =
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject Toplevel where 
----
--- Internal.
+  -- | Internal.
   toGUIObject (Toplevel f) = f
----
--- Internal.
+  -- | Internal.
   cname _ = "Toplevel"
 
----
--- A toplevel widget can be destroyed.
+-- | A toplevel widget can be destroyed.
 instance Destroyable Toplevel where
----
--- Destroys a toplevel widget.
+  -- | Destroys a toplevel widget.
   destroy = destroy . toGUIObject
 
----
--- A toplevel widget has standard widget properties
+-- | A toplevel widget has standard widget properties
 -- (concerning focus, cursor).
 instance Widget Toplevel
 
----
--- A toplevel widget is a container for widgets. You can pack widgets to
+-- | A toplevel widget is a container for widgets. You can pack widgets to
 -- a toplevel widget via pack or grid command in the
--- <code>module Packer</code>.
+-- @module Packer@.
 instance Container Toplevel
 
----
--- You can synchronize on a toplevel object.
+-- | You can synchronize on a toplevel object.
 instance Synchronized Toplevel where
----
--- Synchronizes on a toplevel object.
+  -- | Synchronizes on a toplevel object.
   synchronize = synchronize . toGUIObject
 
----
--- A toplevel widget is a window (with various configurations and actions
+-- | A toplevel widget is a window (with various configurations and actions
 -- concerning its stacking order, display status, screen, aspect ratio
 -- etc.).
 instance Window Toplevel

@@ -1,17 +1,6 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's <strong>notebook</strong> and
--- <strong>notebook pages</strong>.
+-- | HTk\'s /notebook/ and
+-- /notebook pages/.
 -- This widget is from the Tix library and therefore only available if
 -- you are using tixwish.
 module NoteBook (
@@ -37,8 +26,7 @@ import Tooltip
 -- type NoteBook
 -- -----------------------------------------------------------------------
 
----
--- The <code>NoteBook</code> datatype.
+-- | The @NoteBook@ datatype.
 newtype NoteBook = NoteBook GUIOBJECT deriving Eq
 
 
@@ -46,13 +34,14 @@ newtype NoteBook = NoteBook GUIOBJECT deriving Eq
 -- notebook creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new notebook widget and returns it as a value.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this notebook.
--- @return result - A notebook widget.
-newNoteBook :: Container par => par -> [Config NoteBook] -> IO NoteBook
+-- | Constructs a new notebook widget and returns it as a value.
+newNoteBook :: Container par => par 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   -> [Config NoteBook] 
+   -- ^ the list of configuration options for this notebook.
+   -> IO NoteBook
+   -- ^ A notebook widget.
 newNoteBook par cnf =
   do
     w <- createWidget (toGUIObject par) NOTEBOOK
@@ -63,36 +52,27 @@ newNoteBook par cnf =
 -- notebook instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject NoteBook where
----
--- Internal.
+  -- | Internal.
   toGUIObject (NoteBook w) = w 
----
--- Internal.
+  -- | Internal.
   cname _ = "NoteBook"
 
----
--- You can specify the size of a notebook widget.
+-- | You can specify the size of a notebook widget.
 instance HasSize NoteBook
 
----
--- A notebook widget has standard widget properties (focus, cursor, ...).
+-- | A notebook widget has standard widget properties (focus, cursor, ...).
 instance Widget NoteBook
 
----
--- A notebook widget can be destroyed.
+-- | A notebook widget can be destroyed.
 instance Destroyable NoteBook where
----
--- Destroys a notebook widget.
+  -- | Destroys a notebook widget.
   destroy = destroy . toGUIObject
 
----
--- You can synchronize on a notebook object (in JAVA style).
+-- | You can synchronize on a notebook object (in JAVA style).
 instance Synchronized NoteBook where
----
--- Synchronizes on a notebook object.
+  -- | Synchronizes on a notebook object.
   synchronize = synchronize . toGUIObject
 
 
@@ -101,8 +81,7 @@ instance Synchronized NoteBook where
 -- type NoteBookPage
 -- -----------------------------------------------------------------------
 
----
--- The <code>NoteBookPage</code> datatype - a single page of a notebook.
+-- | The @NoteBookPage@ datatype - a single page of a notebook.
 newtype NoteBookPage = NoteBookPage GUIOBJECT deriving Eq
 
 
@@ -110,16 +89,18 @@ newtype NoteBookPage = NoteBookPage GUIOBJECT deriving Eq
 -- notebook page creation
 -- -----------------------------------------------------------------------
 
----
--- Constructs a new page inside a notebook widget and returns it as a
+-- | Constructs a new page inside a notebook widget and returns it as a
 -- value.
--- @param par     - the parent widget, which has to be a container widget
---                  (an instance of <code>class Container</code>).
--- @param cnf     - the list of configuration options for this notebook
---                  page.
--- @return result - A notebook page.
-createNoteBookPage :: NoteBook -> String -> [Config NoteBookPage] ->
-                      IO NoteBookPage
+createNoteBookPage :: NoteBook 
+   -- ^ the parent widget, which has to be a container widget
+   -- (an instance of @class Container@).
+   -> String 
+   -- ^ the list of configuration options for this notebook
+   -- page.
+   -> [Config NoteBookPage] 
+   ->
+   IO NoteBookPage
+   -- ^ A notebook page.
 createNoteBookPage nb title cnf =
   do
     w <- createGUIObject (toGUIObject nb) (NOTEBOOKPAGE title) pageMethods
@@ -173,58 +154,44 @@ tkCreateNoteBookPage parnm (NOTEBOOKPAGE title) _ oid args =
 -- notebook page instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance GUIObject NoteBookPage where
----
--- Internal.
+  -- | Internal.
   toGUIObject (NoteBookPage w) = w 
----
--- Internal.
+  -- | Internal.
   cname _ = "NoteBookPage"
 
----
--- A notebook page can be destroyed.
+-- | A notebook page can be destroyed.
 instance Destroyable NoteBookPage where
----
--- Destroys a notebook page.
+  -- | Destroys a notebook page.
   destroy   = destroy . toGUIObject
 
----
--- A notebook page has standard widget properties
+-- | A notebook page has standard widget properties
 -- (concerning focus, cursor).
 instance Widget NoteBookPage
 
----
--- A notebook page is a container for widgets. You can pack widgets to
+-- | A notebook page is a container for widgets. You can pack widgets to
 -- a notebook page via pack or grid command in the
--- <code>module Packer</code>.
+-- @module Packer@.
 instance Container NoteBookPage
 
----
--- A notebook page has a text label.
+-- | A notebook page has a text label.
 instance GUIValue a => HasText NoteBookPage a where
   text s w  = cset w  "label" s
   getText w = cget w "label"
 
----
--- A notebook page has a configureable border.
+-- | A notebook page has a configureable border.
 instance HasBorder NoteBookPage
 
----
--- A notebook page can have a tooltip.
+-- | A notebook page can have a tooltip.
 instance HasTooltip NoteBookPage
 
----
--- A notebook page has a background colour.
+-- | A notebook page has a background colour.
 instance HasColour NoteBookPage where 
----
--- Internal.
+  -- | Internal.
   legalColourID = hasBackGroundColour
 
----
--- You can synchronize on a notebook page (in JAVA style).
+-- | You can synchronize on a notebook page (in JAVA style).
 instance Synchronized NoteBookPage where
----
--- Synchronizes on a notebook page object.
+  -- | Synchronizes on a notebook page object.
   synchronize = synchronize . toGUIObject

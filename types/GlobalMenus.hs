@@ -30,8 +30,7 @@ import {-# SOURCE #-} DisplayView
 import {-# SOURCE #-} VersionGraph
 
 
----
--- newDefaultMenu is a recommended general-purpose menu for attaching
+-- | newDefaultMenu is a recommended general-purpose menu for attaching
 -- to view displays 
 newDefaultMenu :: 
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms
@@ -102,8 +101,7 @@ newDisplayTypeMenu view =
 
       return globalMenu
 
----
--- This action opens a new display and returns it 
+-- | This action opens a new display and returns it 
 openDisplayType ::
    GraphAllConfig graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms

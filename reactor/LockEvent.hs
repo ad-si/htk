@@ -19,8 +19,7 @@ import Lock
 -- The type
 -- -------------------------------------------------------------------------
 
----
--- Sending True locks the event, False unlocks it.
+-- | Sending True locks the event, False unlocks it.
 newtype EventLock = EventLock (Channel Bool)
 
 instance Lock EventLock where

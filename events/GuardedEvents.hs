@@ -15,8 +15,7 @@ module GuardedEvents(
 
 import Events
 
----
--- A GuardedEvent guard a represents a source of values of type a, which
+-- | A GuardedEvent guard a represents a source of values of type a, which
 -- may be selected from according to guards of type guard.
 data Guard guard => GuardedEvent guard a = 
    GuardedEvent !(guard -> Event a) !guard
@@ -25,8 +24,7 @@ data Guard guard => GuardedEvent guard a =
 -- The Guard class
 -- ----------------------------------------------------------------------
 
----
--- A Guard represents some condition on a value which we impose on
+-- | A Guard represents some condition on a value which we impose on
 -- a channel, selecting those values we are interested in.
 class Guard guard where
    -- NB.  Instances of this class should try to force evaluation as
@@ -34,13 +32,11 @@ class Guard guard where
    -- otherwise it has to be done while the channel is locked to
    -- everyone else.
 
----
--- this should be the guard that always matches
+   -- | this should be the guard that always matches
    nullGuard :: guard 
 
----
--- this should be the guard that corresponds to the conjunction
--- of the two given guards.
+   -- | this should be the guard that corresponds to the conjunction
+   -- of the two given guards.
    andGuard :: guard -> guard -> guard 
 
 -- ----------------------------------------------------------------------
@@ -60,8 +56,7 @@ class Guard guard => HasGuard eventType guard where
 -- The HasListen class
 -- ----------------------------------------------------------------------
 
----
--- Class of those channels which have guarded events.
+-- | Class of those channels which have guarded events.
 class HasListen chan where
    ---
    -- Generate a guarded event from a channel (which may then be

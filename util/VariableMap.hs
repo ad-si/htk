@@ -36,20 +36,17 @@ import Sources
 -- The datatype
 -- --------------------------------------------------------------------
 
----
--- Describes a map update.  For DelUpdate, the second parameter (the one
+-- | Describes a map update.  For DelUpdate, the second parameter (the one
 -- of type elt) is irrelevant and may be undefined.
 newtype VariableMapData key elt = VariableMapData (FiniteMap key elt)
 
----
--- We recycle the VariableSetUpdate type for this.
+-- | We recycle the VariableSetUpdate type for this.
 newtype VariableMapUpdate key elt = 
    VariableMapUpdate (VariableSetUpdate (key,elt))
 
----
--- The Bool indicates whether the operation was successfully carried out.
+-- | The Bool indicates whether the operation was successfully carried out.
 -- We block updating a value which is already in the map, or
--- deleting one that isn't.
+-- deleting one that isn\'t.
 update :: Ord key 
    => VariableMapUpdate key elt -> VariableMapData key elt 
    -> (VariableMapData key elt,[VariableMapUpdate key elt],Bool)
@@ -83,16 +80,14 @@ newtype VariableMap key elt =
 -- The provider's interface
 -- --------------------------------------------------------------------
 
----
--- Create a new empty variable map.
+-- | Create a new empty variable map.
 newEmptyVariableMap :: Ord key => IO (VariableMap key elt)
 newEmptyVariableMap = 
    do
       broadcaster <- newGeneralBroadcaster (VariableMapData emptyFM)
       return (VariableMap broadcaster)
 
----
--- Create a new variable map with given contents
+-- | Create a new variable map with given contents
 newVariableMap :: Ord key => [(key,elt)] -> IO (VariableMap key elt)
 newVariableMap contents = newVariableMapFromFM (listToFM contents)
 
@@ -104,8 +99,7 @@ newVariableMapFromFM fmap =
       return (VariableMap broadcaster)
       
 
----
--- Update a variable map in some way.  Returns True if the update was
+-- | Update a variable map in some way.  Returns True if the update was
 -- sucessful (so for insertions, the object is not already there; for
 -- deletions the object is not there).
 updateMap :: Ord key => VariableMap key elt -> VariableMapUpdate key elt 
@@ -119,8 +113,7 @@ updateMap (VariableMap broadcaster) mapUpdate =
 -- --------------------------------------------------------------------
 
 
----
--- Unlike VariableSet, the contents of a variable map are not returned in
+-- | Unlike VariableSet, the contents of a variable map are not returned in
 -- concrete form but as the abstract data type VariableMapData.  We provide
 -- functions for querying this.
 instance Ord key => HasSource (VariableMap key elt) 
@@ -151,8 +144,7 @@ data VariableMapSet key elt element = VariableMapSet {
    mkElement :: key -> elt -> element
    }
 
----
--- Given a variable map and conversion function, produce a VariableSetSource
+-- | Given a variable map and conversion function, produce a VariableSetSource
 mapToVariableSetSource :: Ord key => (key -> elt -> element) 
    -> VariableMap key elt -> VariableSetSource element
 mapToVariableSetSource mkElement variableMap = toSource (VariableMapSet 

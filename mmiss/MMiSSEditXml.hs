@@ -152,9 +152,8 @@ parseXmlString s0 =
       EmacsContent dataItems
 
                             
---- 
--- Our strategy is to extract all ClosedTags (tags all of whose attributes
--- are Strings, ending with />) and then filter them gradually).
+-- | Our strategy is to extract all ClosedTags (tags all of whose attributes
+-- are Strings, ending with \/>) and then filter them gradually).
 data ClosedTag = ClosedTag {
    name :: String,
    attributes :: [(String,String)],
@@ -210,8 +209,7 @@ extractClosedTags (token1:tokens) =
                                  closedTag : rest
       _ -> extractClosedTags tokens
             
----
--- Extract all tags which have names beginning "include", and for those
+-- | Extract all tags which have names beginning \"include\", and for those
 -- remove the include.
 extractIncludes :: [ClosedTag] -> [ClosedTag]
 extractIncludes = mapMaybe
@@ -220,8 +218,7 @@ extractIncludes = mapMaybe
       _ -> Nothing
       )
 
----
--- Extract all tags which have status=present and an included attribute set.
+-- | Extract all tags which have status=present and an included attribute set.
 extractPresent :: [ClosedTag] -> [ClosedTag]
 extractPresent = filter
    (\ closedTag -> case
@@ -231,8 +228,7 @@ extractPresent = filter
       _ -> False
       )
 
----
--- extractFromString extractStart extractEnd string
+-- | extractFromString extractStart extractEnd string
 -- assumes the string begins at position extractStart, extracts
 -- the portion of it up until extractEnd-1, and
 -- returns the string starting at extractEnd as well. 
@@ -254,15 +250,13 @@ extractFromString extractStart extractEnd string =
             GT -> GT
             EQ -> compare c1 c2
 
----
--- Given that the start of s is at posn, return the position after s.
+-- | Given that the start of s is at posn, return the position after s.
 stepString :: Posn -> String -> Posn
 stepString posn s = case s of
    [] -> posn
    (c:rest) -> stepString (step posn c) rest
 
----
--- Given that the position at char is at posn, this returns
+-- | Given that the position at char is at posn, this returns
 -- the position of the following character.  Each line is deemed to
 -- end with its newline character.
 step :: Posn -> Char -> Posn

@@ -1,12 +1,11 @@
----
--- Contributed by Isaac Jones (ijones@syntaxpolice.org).  From the README
+-- | Contributed by Isaac Jones (ijones\@syntaxpolice.org).  From the README
 -- file:
---
+-- 
 -- This simple program is released by Isaac Jones under a
--- "BSD-Style" license.
---
+-- \"BSD-Style\" license.
+-- 
 -- You may do with it as you like.
--- -----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
 
 
 module Main (main) where

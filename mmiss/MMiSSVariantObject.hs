@@ -192,8 +192,7 @@ data VariantObject object cache = VariantObject {
       -- This has to be Nothing during initialisation
    }
 
----
--- We basically need FrozenVariantObject because there isn't any way
+-- | We basically need FrozenVariantObject because there isn\'t any way
 -- of storing a function (converter) in the repository.
 data FrozenVariantObject object cache = FrozenVariantObject {
    dictionary' :: MMiSSVariantDict object,
@@ -204,8 +203,7 @@ data FrozenVariantObject object cache = FrozenVariantObject {
 -- Creating VariantObject's
 -- -----------------------------------------------------------------------
 
----
--- Create a new variant object with the given function for computing
+-- | Create a new variant object with the given function for computing
 -- cache items.
 newVariantObject :: (object -> IO cache) -> object -> MMiSSVariantSpec
    -> IO (VariantObject object cache)
@@ -261,8 +259,7 @@ newEmptyVariantObject1 converter1 =
       return variantObject
 
 
----
--- All VariantObject's are in fact created via this function.
+-- | All VariantObject\'s are in fact created via this function.
 unfreezeVariantObject :: (MMiSSVariantSpec -> object -> IO cache) 
    -> FrozenVariantObject object cache -> IO (VariantObject object cache)
 unfreezeVariantObject converter frozen =
@@ -432,8 +429,7 @@ toVariantObjectCache (variantObject :: VariantObject object cache) =
 -- Changing the VariantObject
 -- -----------------------------------------------------------------------
 
----
--- Writing a new object
+-- | Writing a new object
 writeVariantObject :: VariantObject object cache -> MMiSSVariantSpec -> object
    -> IO ()
 writeVariantObject variantObject variantSpec object =
@@ -451,8 +447,7 @@ writeVariantObject variantObject variantSpec object =
           return variantSpec1
        )  
 
----
--- Set the pointer of the variant object to the given MMiSSVariantSpec,
+-- | Set the pointer of the variant object to the given MMiSSVariantSpec,
 -- which had better exist in the dictionary.
 pointVariantObject :: VariantObject object cache -> MMiSSVariantSpec -> IO Bool
 pointVariantObject variantObject newVariantSpec =
@@ -499,8 +494,7 @@ getObject variantObject variantSpec =
             ++ " - point to non-existent variant.")) objectOpt
       return object
 
----
--- Writing a new object and make it current.
+-- | Writing a new object and make it current.
 writeVariantObjectAndPoint :: VariantObject object cache -> MMiSSVariantSpec 
    -> object -> IO ()
 writeVariantObjectAndPoint variantObject variantSpec object
@@ -513,12 +507,11 @@ writeVariantObjectAndPoint variantObject variantSpec object
           return variantSpec
        )         
 
----
--- This gives the user a chance to change the current variant object,
+-- | This gives the user a chance to change the current variant object,
 -- updating the cache as necessary.
---
+-- 
 -- The String should be the title of the object in question.
---
+-- 
 -- If we return False, that means no change was made.
 editMMiSSSearchObject :: String -> VariantObject object cache -> IO Bool
 editMMiSSSearchObject objectTitle variantObject =
@@ -564,8 +557,7 @@ editMMiSSSearchObject objectTitle variantObject =
             
 
 
----
--- Get the current variants, as a VariantSearch.
+-- | Get the current variants, as a VariantSearch.
 getCurrentVariantSearch :: VariantObject object cache -> IO MMiSSVariantSearch
 getCurrentVariantSearch variantObject =
    do

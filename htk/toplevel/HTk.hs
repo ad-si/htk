@@ -1,13 +1,3 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$  
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
 module HTk (
 
@@ -249,52 +239,40 @@ import Printer
 -- type HTk and its instances
 -- -----------------------------------------------------------------------
 
----
--- The <code>HTk</code> datatype - a handle for the wish instance and
+-- | The @HTk@ datatype - a handle for the wish instance and
 -- the main window.
 newtype HTk = HTk GUIOBJECT
 
----
--- Internal.
+-- | Internal.
 instance GUIObject HTk where
----
--- Internal.
+  -- | Internal.
   toGUIObject (HTk obj) = obj
----
--- Internal.
+  -- | Internal.
   cname _ = "HTk"
 
----
--- Internal.
+-- | Internal.
 instance Eq HTk where 
----
--- Internal.
+  -- | Internal.
   (HTk obj1) == (HTk obj2) = obj1 == obj2
 
----
--- The wish instance can be destroyed.
+-- | The wish instance can be destroyed.
 instance Destroyable HTk where
----
--- Destroys the wish instance.
+  -- | Destroys the wish instance.
   destroy = destroy . toGUIObject
 
----
--- The wish instance is associated with the main window (with various
+-- | The wish instance is associated with the main window (with various
 -- configurations and actions concerning its stacking order, display
 -- status, screen, aspect ratio etc.).
 instance Window HTk
 
----
--- The main window is a container for widgets. You can pack widgets to
+-- | The main window is a container for widgets. You can pack widgets to
 -- the main window via pack or grid command in the
--- <code>module Packer</code>.
+-- @module Packer@.
 instance Container HTk
 
----
--- You can synchronize on the wish instance.
+-- | You can synchronize on the wish instance.
 instance Synchronized HTk where
----
--- Synchronizes on the wish instance.
+  -- | Synchronizes on the wish instance.
   synchronize = synchronize . toGUIObject
 
 
@@ -311,12 +289,12 @@ theHTkMVar :: MVar (Maybe HTk)
 theHTkMVar = IOExts.unsafePerformIO (newMVar Nothing)
 {-# NOINLINE theHTkMVar #-} 
 
----
--- Initializes HTk.
--- @param cnf     - the list of configuration options for the wish
---                - instance / main window.
--- @return result - The wish instance.
-initHTk :: [Config HTk] -> IO HTk
+-- | Initializes HTk.
+initHTk :: [Config HTk] 
+   -- ^ the list of configuration options for the wish
+   -- instance \/ main window.
+   -> IO HTk
+   -- ^ The wish instance.
 initHTk cnf =
   do
     htkOpt <- takeMVar theHTkMVar
@@ -358,8 +336,7 @@ withdrawWish =
       htk <- getHTk
       withdraw htk
 
----
--- Withdraws the main window.
+-- | Withdraws the main window.
 withdrawMainWin :: Config HTk
 withdrawMainWin htk =
   do
@@ -408,13 +385,11 @@ htkMethods = Methods tkGetToplevelConfig
 -- application updates
 -- -----------------------------------------------------------------------
 
----
--- Updates all tasks.
+-- | Updates all tasks.
 updateAllTasks :: IO ()
 updateAllTasks = execTclScript ["update"]
 
----
--- Updates idle tasks.
+-- | Updates idle tasks.
 updateIdleTasks :: IO ()
 updateIdleTasks = execTclScript ["update idletasks"]
 
@@ -423,15 +398,12 @@ updateIdleTasks = execTclScript ["update idletasks"]
 -- application Name
 -- -----------------------------------------------------------------------
 
----
--- The wish instance has a value - the application name.
+-- | The wish instance has a value - the application name.
 instance GUIValue v => HasValue HTk v where
----
--- Sets the application name.
+  -- | Sets the application name.
   value aname htk =
     do
       execTclScript ["tk appname " ++ show aname]
       return htk
----
--- Gets the application name.
+  -- | Gets the application name.
   getValue _ = evalTclScript ["tk appname"] >>= creadTk

@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- Basic types and classes concerning toplevel window resources.
+-- | Basic types and classes concerning toplevel window resources.
 module Window (
 
   Window(..),
@@ -48,54 +37,38 @@ type Display = String
 -- class Window
 -- -----------------------------------------------------------------------
 
----
--- Toplevel windows instantiate the <code>class Window</code>.
+-- | Toplevel windows instantiate the @class Window@.
 class GUIObject w => Window w where
----
--- Iconifies the window.
+  -- | Iconifies the window.
   iconify :: w -> IO ()
----
--- Deiconifies the window.
+  -- | Deiconifies the window.
   deiconify :: w -> IO ()
----
--- Withdraws the window.
+  -- | Withdraws the window.
   withdraw :: w -> IO ()
----
--- Puts the window on top.
+  -- | Puts the window on top.
   putWinOnTop :: w -> IO ()
----
--- Puts the window at bottom.
+  -- | Puts the window at bottom.
   putWinAtBottom :: w -> IO ()
----
--- Sets the screen for this window.
+  -- | Sets the screen for this window.
   screen :: Display -> Config w
----
--- Gets the screen from this window.
+  -- | Gets the screen from this window.
   getScreen :: w -> IO (Display)
----
--- Returns the resource class of the given window.
+  -- | Returns the resource class of the given window.
   getClassName :: w -> IO String
----
--- Gets the current window state.
+  -- | Gets the current window state.
   getWindowState :: w -> IO WindowState
----
--- Sets the aspect ratio for the given window.
+  -- | Sets the aspect ratio for the given window.
   aspectRatio :: AspectRatio -> Config w
----
--- Gets the aspect ratio of the given window.
+  -- | Gets the aspect ratio of the given window.
   getAspectRatio :: w -> IO AspectRatio
----
--- Set '<code>Whom</code>' to be <code>Program</code> or
--- <code>User</code>.
+  -- | Set \'@Whom@\' to be @Program@ or
+  -- @User@.
   positionFrom :: Whom -> Config w
----
--- Gets the current setting.
+  -- | Gets the current setting.
   getPositionFrom :: w -> IO Whom
----
--- Set '<code>Whom</code>' to be <code>Program</code> or
+  -- | Set \'@Whom@\' to be @Program@ or
   sizeFrom :: Whom -> Config w
----
--- Gets the current setting.
+  -- | Gets the current setting.
   getSizeFrom :: w -> IO Whom
 
   iconify win = cset win "state" Iconified >> done
@@ -130,68 +103,52 @@ class GUIObject w => Window w where
 -- instances 
 -- -----------------------------------------------------------------------
 
----
--- A window has a configureable size and anchor position (geometry).
+-- | A window has a configureable size and anchor position (geometry).
 instance Window w => HasGeometry w where
----
--- Sets the window's geometry.
+  -- | Sets the window\'s geometry.
   geometry g win = cset win "geometry" g
----
--- Gets the current geometry of the given window.
+  -- | Gets the current geometry of the given window.
   getGeometry win = cget win "geometry"
 
----
--- A window has a configureable size.
+-- | A window has a configureable size.
 instance Window w => HasSize w where
----
--- Sets the window's width.
+  -- | Sets the window\'s width.
   width w win = getGeometry win >>= \(_,h,x,y) -> geometry (w,h,x,y) win
----
--- Gets the window's width.
+  -- | Gets the window\'s width.
   getWidth win = getGeometry win >>= \ (w,_,_,_) -> return w
----
--- Sets the window's height.
+  -- | Sets the window\'s height.
   height h win = getGeometry win >>= \(w,_,x,y) -> geometry (w,h,x,y) win
----
--- Gets the window's height.
+  -- | Gets the window\'s height.
   getHeight win =
     do
       (_,h,_, _) <- getGeometry win
       return h
----
--- Sets the window's width and height.
+  -- | Sets the window\'s width and height.
   size (w,h) win =
     do
       (_,_,x,y) <- getGeometry win
       geometry (w,h,x,y) win
----
--- Gets the window's width and height.
+  -- | Gets the window\'s width and height.
   getSize win = getGeometry win >>= \(w,h,_,_) -> return (w,h)
 
----
--- A window has a position on the associated screen.
+-- | A window has a position on the associated screen.
 instance Window w => HasPosition w where
----
--- Sets the window's position-
+  -- | Sets the window\'s position-
   position (x,y) win =
     do
       (w, h, _, _) <- getGeometry win
       geometry (w, h, x, y) win
----
--- Gets the window's position.
+  -- | Gets the window\'s position.
   getPosition win =
     do
       (_, _, x, y) <- getGeometry win
       return (x, y)
 
----
--- A window has a title.
+-- | A window has a title.
 instance (Window w, GUIValue v) => HasText w v where
----
--- Sets the window's title.
+  -- | Sets the window\'s title.
   text s win  = cset win "iconname" s >> cset win "title" s
----
--- Gets the window's title.
+  -- | Gets the window\'s title.
   getText win = cget win "title"
 
 
@@ -199,23 +156,19 @@ instance (Window w, GUIValue v) => HasText w v where
 -- maximum and minimum size's
 -- -----------------------------------------------------------------------
 
----
--- Constraints the maximum size of the window.
+-- | Constraints the maximum size of the window.
 maxSize :: Window w => Size -> Config w
 maxSize s win = cset win "maxsize" s
 
----
--- Gets the maximum size of the window.
+-- | Gets the maximum size of the window.
 getMaxSize :: Window w => w -> IO Size
 getMaxSize win = cget win "maxsize"
 
----
--- Constraints the minimum size of the window.
+-- | Constraints the minimum size of the window.
 minSize :: Window w => Size -> Config w
 minSize s win = cset win "minsize" s
 
----
--- Gets the minimum size of the window.
+-- | Gets the minimum size of the window.
 getMinSize :: Window w => w -> IO Size
 getMinSize win = cget win "minsize"
 
@@ -224,25 +177,27 @@ getMinSize win = cget win "minsize"
 -- stack order
 -- -----------------------------------------------------------------------
 
----
--- Puts the first given window just above the second given window
+-- | Puts the first given window just above the second given window
 -- in the stacking order.
--- @param w1      - the first window.
--- @param w2      - the second window.
--- @return result - None.
-raiseWin :: (Window w1, Window w2) => w1 -> w2 -> IO ()
+raiseWin :: (Window w1, Window w2) => w1 
+   -- ^ the first window.
+   -> w2 
+   -- ^ the second window.
+   -> IO ()
+   -- ^ None.
 raiseWin win1 win2 =
   do
     nm2 <- getObjectName (toGUIObject win2)
     execMethod win1 (\nm1 -> [tkRaise nm1 nm2])
 
----
--- Puts the first given window just below the second given window
+-- | Puts the first given window just below the second given window
 -- in the stacking order.
--- @param w1      - the first window.
--- @param w2      - the second window.
--- @return result - None.
-lowerWin :: (Window w1, Window w2) => w1 -> w2 -> IO ()
+lowerWin :: (Window w1, Window w2) => w1 
+   -- ^ the first window.
+   -> w2 
+   -- ^ the second window.
+   -> IO ()
+   -- ^ None.
 lowerWin win1 win2 =
   do
     nm2 <- getObjectName (toGUIObject win2)
@@ -253,23 +208,18 @@ lowerWin win1 win2 =
 -- WindowState
 -- -----------------------------------------------------------------------
 
----
--- The <code>WindowState</code> datatype.
+-- | The @WindowState@ datatype.
 data WindowState =
   Deiconified | Iconified | Withdrawn deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue WindowState where
----
--- Internal.
+  -- | Internal.
   cdefault = Deiconified
 
----
--- Internal.
+-- | Internal.
 instance Read WindowState where
----
--- Internal.
+  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'n':'o':'r':'m':'a':'l':xs -> [(Deiconified,xs)]
@@ -277,11 +227,9 @@ instance Read WindowState where
       'w':'i':'t':'h':'d':'r':'a':'w':xs -> [(Withdrawn,xs)]
       _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show WindowState where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Deiconified -> "deiconify"
@@ -293,41 +241,32 @@ instance Show WindowState where
 -- AspectRatio 
 -- -----------------------------------------------------------------------
 
----
--- The <code>AspectRatio</code> datatype.
+-- | The @AspectRatio@ datatype.
 data AspectRatio = AspectRatio Int Int Int Int deriving Eq
 
----
--- Internal.
+-- | Internal.
 instance GUIValue AspectRatio where
----
--- Internal.
+  -- | Internal.
   cdefault = AspectRatio 0 0 0 0
----
--- Internal.
+  -- | Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show v)
----
--- Internal.
+  -- | Internal.
   maybeGUIValue (GUIVALUE _ s)     = 
     case [x | (x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
       _ -> Nothing
 
----
--- Internal.
+-- | Internal.
 instance Show AspectRatio where
----
--- Internal.
+  -- | Internal.
   showsPrec d c r = cshow c ++ r
     where cshow (AspectRatio xt yt xf yf) = 
             (show xt) ++ " " ++ (show yt) ++ " " ++
             (show xf) ++ " " ++ (show yf)
 
----
--- Internal.
+-- | Internal.
 instance Read AspectRatio where
----
--- Internal.
+  -- | Internal.
   readsPrec p str = [(cread str,[])] 
     where cread str = AspectRatio (read xt) (read yt) (read xf) (read yf)
           [xt,yt,xf,yf] = words str 
@@ -337,33 +276,26 @@ instance Read AspectRatio where
 -- Whom
 -- -----------------------------------------------------------------------
 
----
--- The <code>Whom</code> datatype.
+-- | The @Whom@ datatype.
 data Whom = Program | User deriving (Eq,Ord,Enum)
 
----
--- Internal.
+-- | Internal.
 instance GUIValue Whom where
----
--- Internal.
+  -- | Internal.
   cdefault = Program
 
----
--- Internal.
+-- | Internal.
 instance Read Whom where
----
--- Internal.
+  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'u':'s':'e':'r':xs -> [(User,xs)]
       'p':'r':'o':'g':'r':'a':'m':xs -> [(Program,xs)]
       _ -> []
 
----
--- Internal.
+-- | Internal.
 instance Show Whom where
----
--- Internal.
+  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Program -> "program"
@@ -374,8 +306,7 @@ instance Show Whom where
 -- auxiliary functions
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 isWMConfig :: ConfigID -> Bool
 isWMConfig "state" = True
 isWMConfig "geometry" = True

@@ -1,16 +1,5 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
--- -----------------------------------------------------------------------
 
----
--- HTk's menuitem <strong>indicators</strong>.<br>
+-- | HTk\'s menuitem /indicators/.
 -- Indicators are displayed with menu checkbuttons, menu buttons and
 -- menu radiobuttons.
 module Indicator (
@@ -40,8 +29,7 @@ import Colour
 -- handle
 -- -----------------------------------------------------------------------
 
----
--- The <code>Indicator</code> datatype.
+-- | The @Indicator@ datatype.
 data Indicator a = Indicator a
 
 
@@ -49,16 +37,13 @@ data Indicator a = Indicator a
 -- class HasIndicator
 -- -----------------------------------------------------------------------
 
----
--- Menu items that can have an indicator instantiate the
--- <code>class HasIndicator</code>.
+-- | Menu items that can have an indicator instantiate the
+-- @class HasIndicator@.
 class GUIObject w => HasIndicator w where
----
--- Displays/unmaps the items indicator.
+  -- | Displays\/unmaps the items indicator.
   indicator       :: Toggle -> Config w
----
--- <code>On</code> if an indicator is displayed with the item, otherwise
--- <code>Off</code>.
+  -- | @On@ if an indicator is displayed with the item, otherwise
+  -- @Off@.
   getIndicator    :: w -> IO Toggle
   indicator i w    = cset w "indicatoron" i
   getIndicator w   = cget w "indicatoron"
@@ -68,33 +53,25 @@ class GUIObject w => HasIndicator w where
 -- instantiations
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance HasIndicator w => GUIObject (Indicator w) where
----
--- Internal.
+  -- | Internal.
   toGUIObject (Indicator w) = toGUIObject w
 
----
--- You can specify the colour for the selector of menu checkbuttons and
+-- | You can specify the colour for the selector of menu checkbuttons and
 -- menu radiobuttons.
 instance (HasIndicator w, SelectButton w) => HasColour (Indicator w) where
----
--- Sets the colour for the selector.
+  -- | Sets the colour for the selector.
   setColour w _ c = cset w "selectcolor" (toColour c)
----
--- Gets the colour for the selector.
+  -- | Gets the colour for the selector.
   getColour w _   = cget w "selectcolor"
 
----
--- You can specify specify an alternate image for the selector of menu
+-- | You can specify specify an alternate image for the selector of menu
 -- checkbuttons and menu radiobuttons.
 instance (HasIndicator w, SelectButton w) => HasPhoto (Indicator w) where
----
--- Sets the alternate image for the selector.
+  -- | Sets the alternate image for the selector.
   photo i w   = imageToInt i >>= cset w "selectimage"
----
--- Gets the alternate image for the selector.
+  -- | Gets the alternate image for the selector.
   getPhoto w  = cget w "selectimage" >>= intToImage
 
 
@@ -102,6 +79,5 @@ instance (HasIndicator w, SelectButton w) => HasPhoto (Indicator w) where
 -- instances
 -- -----------------------------------------------------------------------
 
----
--- Internal.
+-- | Internal.
 instance HasIndicator GUIOBJECT

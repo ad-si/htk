@@ -38,10 +38,9 @@ import MMiSSPackageFolder
 -- The types
 -- ----------------------------------------------------------------------
 
----
--- For EditFormatConvert, the String's are the file name (made available
+-- | For EditFormatConvert, the String\'s are the file name (made available
 -- for error messages).
---
+-- 
 data EditFormatConverter = EditFormatConverter {
    toEdit :: String -> Element 
       -> WithError (EmacsContent (TypedName,[Attribute])),

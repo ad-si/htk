@@ -271,8 +271,7 @@ diffST2 (a :: [v]) (b :: [v]) =
 {- -}
 
 
----
--- This version was posted to the Haskell mailing list by Gertjan Kamsteeg
+-- | This version was posted to the Haskell mailing list by Gertjan Kamsteeg
 -- on Sun, 15 Dec 2002.
 -- But it seems to be slightly slower than the others.
 {-

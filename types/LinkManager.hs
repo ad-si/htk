@@ -274,8 +274,7 @@ class HasLinkedObject object where
 instance HasLinkedObject LinkedObject where
    toLinkedObject linkedObject = linkedObject
 
----
--- Create a new LinkedObject.
+-- | Create a new LinkedObject.
 newLinkedObject :: View -> WrappedLink -> Maybe Insertion 
    -> IO (WithError LinkedObject)
 newLinkedObject view wrappedLink insertionOpt =
@@ -302,8 +301,7 @@ newLinkedPackageObject view wrappedLink insertionOpt =
             }
       createLinkedObject view True frozenLinkedObject
 
----
--- Get the contents of a LinkedObject (those objects contained in it,
+-- | Get the contents of a LinkedObject (those objects contained in it,
 -- like elements in a folder).
 objectContents :: LinkedObject -> VariableSetSource WrappedLink
 objectContents linkedObject =
@@ -354,8 +352,7 @@ lookupObjectContents linkedObject entityName =
       (fmap wrappedLinkInPtr)
       (lookupEntityName linkedObject entityName)
 
----
--- Delete an object including its record in the view and the parent
+-- | Delete an object including its record in the view and the parent
 -- folder and anywhere else (currently nowhere) where the Link is
 -- stored by the LinkManager. 
 deleteLinkedObject :: View -> LinkedObject -> IO ()
@@ -367,8 +364,7 @@ deleteLinkedObject view linkedObject =
       deleteWrappedLink :: WrappedLink -> IO ()
       deleteWrappedLink (WrappedLink link) = deleteLink view link
 
----
--- Create a new linked object, to be the child of the given linked 
+-- | Create a new linked object, to be the child of the given linked 
 -- object.  We return a link to the new object.  If there is an error
 -- we display the message. 
 createLinkedObjectChild :: ObjectType objectType object
@@ -390,8 +386,7 @@ createLinkedObjectChild view parentLinkedObject name getObject =
                         errorMess mess
                         return Nothing
 
----
--- Create a new linked object, to be the child of the given linked 
+-- | Create a new linked object, to be the child of the given linked 
 -- object.  We return a link to the new object.  However we do not 
 -- actually do the insertion, instead we return an action which does
 -- the insertion (or, possibly, fails).
@@ -435,8 +430,7 @@ setCommands linkedObject importCommands1 =
       Just broadcaster -> broadcast broadcaster importCommands1
          
 
----
--- Extract a single element in a linkedObject's contents by name.
+-- | Extract a single element in a linkedObject\'s contents by name.
 lookupNameSimple :: LinkedObject -> String -> IO (Maybe LinkedObject)
 lookupNameSimple linkedObject str =
    do
@@ -470,8 +464,7 @@ lookupNameInFolder linkedObject entityName =
          lookupEntityName linkedObject entityName)
       return (fmap fromLinkedObjectPtr linkedObjectPtrOpt)
 
----
--- Extract a full name as a sub object of a given object.
+-- | Extract a full name as a sub object of a given object.
 lookupFullNameInFolder :: LinkedObject -> EntityFullName 
    -> IO (Maybe LinkedObject)
 lookupFullNameInFolder linkedObject (EntityFullName names) 
@@ -488,8 +481,7 @@ lookupFullNameInFolder linkedObject (EntityFullName names)
                Just linkedObjectPtr 
                   -> lookup1 (fromLinkedObjectPtr linkedObjectPtr) names
 
----
--- Make an insertion
+-- | Make an insertion
 mkInsertion :: LinkedObject -> EntityName -> Insertion
 mkInsertion linkedObject entityName =
    Insertion {
@@ -497,8 +489,7 @@ mkInsertion linkedObject entityName =
       name = entityName
       }
 
----
--- Get the contents of an insertion
+-- | Get the contents of an insertion
 unmkInsertion :: Insertion -> (LinkedObject,EntityName)
 unmkInsertion (Insertion {parent = parent,name = name}) =
    (fromLinkedObjectPtr parent,name)
@@ -511,13 +502,11 @@ toInsertion = insertion
 getCurrentInsertion :: LinkedObject -> IO (Maybe Insertion)
 getCurrentInsertion linkedObject = readContents (insertion linkedObject)
 
----
--- Get the WrappedLink in a LinkedObject.
+-- | Get the WrappedLink in a LinkedObject.
 toWrappedLink :: LinkedObject -> WrappedLink
 toWrappedLink linkedObject = wrappedLinkInPtr (thisPtr linkedObject)
 
----
--- Get an object's Link, assuming that it's stored in its WrappedLink.
+-- | Get an object\'s Link, assuming that it\'s stored in its WrappedLink.
 toObjectLink :: (HasLinkedObject object,ObjectType objectType object)
    => object -> Link object
 toObjectLink object =
@@ -531,10 +520,9 @@ toObjectLink object =
                 "contain a link to it"))
          linkOpt
 
----
--- Extract the current parent of an object (as a Link object2) if it
+-- | Extract the current parent of an object (as a Link object2) if it
 -- exists, otherwise return Nothing.
---
+-- 
 -- If the parent exists but has the wrong type we return an error, via
 -- WithError.
 toParentLink :: (HasLinkedObject object1,ObjectType objectType2 object2)
@@ -553,16 +541,14 @@ toParentLink object1 =
                Just link -> hasValue (Just link)
          )
 
----
--- Extract the EntityName from the insertion in a LinkedObject.
+-- | Extract the EntityName from the insertion in a LinkedObject.
 -- The second argument is a default String to use, if the Insertion is
 -- Nothing.
 getLinkedObjectTitle :: LinkedObject -> EntityName -> SimpleSource EntityName
 getLinkedObjectTitle linkedObject def =
    fmap (fromMaybe def) (getLinkedObjectTitleOpt linkedObject)
 
----
--- Extract the EntityName from a LinkedObject, if any.
+-- | Extract the EntityName from a LinkedObject, if any.
 getLinkedObjectTitleOpt :: LinkedObject -> SimpleSource (Maybe EntityName)
 getLinkedObjectTitleOpt linkedObject =
    fmap (fmap name) (insertion linkedObject)
@@ -579,8 +565,7 @@ lookupLinkedObjectByFullName view fullName =
       source <- lookupFullName folders0 (root folders0) fullName
       readContents source
 
----
--- Looks up an object, returning the actual link if possible.
+-- | Looks up an object, returning the actual link if possible.
 -- We return Nothing if the object does not exist but cause an error if the
 -- object has the wrong type.
 lookupObject :: ObjectType objectType object 
@@ -643,8 +628,7 @@ bracketForImportErrors view act =
       bracketForImportErrors2 importsState act
 
 
----
--- (function not used any longer)
+-- | (function not used any longer)
 unpackLinkedObjectPtr :: ObjectType objectType object 
    => BreakFn -> Maybe LinkedObjectPtr -> IO (Maybe (Link object))
 unpackLinkedObjectPtr break Nothing = return Nothing
@@ -661,14 +645,12 @@ unpackLinkedObjectPtr break (Just linkedObjectPtr) =
 
       seq link (return (Just link))
 
----
--- Create a new LinkSource
+-- | Create a new LinkSource
 newLinkSource :: View -> LinkedObject -> [(EntitySearchName,value)] 
   -> IO (LinkSource value)
 newLinkSource = createLinkSourceGeneral
 
----
--- Obtain the pointed-to elements for a LinkSource.
+-- | Obtain the pointed-to elements for a LinkSource.
 listFromLinkSource :: LinkSource value -> SimpleSource [(LinkedObject,value)]
 listFromLinkSource linkSource = 
    fmap catMaybes (targetsSource linkSource)
@@ -802,17 +784,16 @@ freezeLinkedObject linkedObject =
          insertion' = insertion',contents' = contents',
          hasImportCommands = hasImportCommands})
 
----
--- Create a new linked object, given the FrozenLinkedObject.
+-- | Create a new linked object, given the FrozenLinkedObject.
 -- This can occur in two cases (1) when the linkedObject is absolutely new;
--- (2) when it is being decodeIO'd from the repository or created by a merge. 
+-- (2) when it is being decodeIO\'d from the repository or created by a merge. 
 -- The Bool indicates
 -- which of these applies; if True it means the linkedObject is absolutely new.
 -- In that case, we also attempt to insert it into the parent folder (if
 -- any).  
---
+-- 
 -- Renamings are synchronized on the view, which should mean that
--- commits can't happen half-way through.
+-- commits can\'t happen half-way through.
 createLinkedObject :: View -> Bool -> FrozenLinkedObject
     -> IO (WithError LinkedObject)
 createLinkedObject view isNew frozenLinkedObject =
@@ -1239,8 +1220,7 @@ getLinkedObjectMergeLinks =
 
    
 
----
--- The Link object gives the link where the LinkedObject is to be.
+-- | The Link object gives the link where the LinkedObject is to be.
 attemptLinkedObjectMerge :: ObjectType objectType object
    => MergeTypes.LinkReAssigner -> View -> 
    Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
@@ -1361,9 +1341,8 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
          coerceWithErrorOrBreakIO break linkedObjectWE
       )
 
----
--- Returns true if the CodedValue representations of the
--- two LinkedObject's are identical.  (The LinkedObject's are 
+-- | Returns true if the CodedValue representations of the
+-- two LinkedObject\'s are identical.  (The LinkedObject\'s are 
 -- likely enough in different views.)
 linkedObjectsSame :: LinkedObject -> LinkedObject -> IO Bool
 linkedObjectsSame linkedObject1 linkedObject2 =
