@@ -108,6 +108,8 @@ import SpecialNodeActions
 import MergeTypes
 import MergePrune
 
+import LaTeXParser(emptyMMiSSLatexPreamble)
+
 import MMiSSSubFolder
 import MMiSSFormat
 import MMiSSSplitLink
@@ -596,18 +598,21 @@ instance HasBundleNodeWrite MMiSSPackageFolder where
                   let
                      preambleLocation = preambleEntityName : thisLocation
 
-                  bundleNodeExtraData 
-                     <- case lookupFM (fm bundleNodeLocations) 
-                           preambleLocation of
-                        Just bundleNodeExtraData 
-                           -> return bundleNodeExtraData
-                        Nothing -> 
-                           importExportError
-                              "New package folder has no preamble"
+                  preambleLink <- case lookupFM (fm bundleNodeLocations) 
+                        preambleLocation of
+                     Just bundleNodeExtraData -> 
+                        let
+                           preambleWrappedLink = location bundleNodeExtraData
+                           Just preambleLink 
+                              = unpackWrappedLink preambleWrappedLink
+                        in
+                           return preambleLink
+                     Nothing -> 
+                        do
+                           warningMess 
+                              "No preamble found; inserting an empty one"
+                           createPreamble view emptyMMiSSLatexPreamble
 
-                  let
-                     preambleWrappedLink = location bundleNodeExtraData
-                     Just preambleLink = unpackWrappedLink preambleWrappedLink
 
                   (packageFolder,postMerge) 
                      <- createMMiSSPackageFolder view linkedObject preambleLink

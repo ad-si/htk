@@ -354,7 +354,10 @@ doInContextVeryGeneral daVinciCmd contextOpt =
                            (gotContextId,result) <- takeMVar responseMVar
                            if gotContextId /= newContextId
                               then
-                                 error "set_context returned wrong context"
+                                 do
+                                    putStrLn ("daVinci bug: " 
+                                       ++ "set_context returned wrong context")
+                                    failSafeSetContext newContextId
                               else
                                  done
                            daVinciSkip
@@ -367,14 +370,33 @@ doInContextVeryGeneral daVinciCmd contextOpt =
             putMVar currentContextIdMVar gotContextId
             case cIdOpt of
                Nothing -> done
-               Just newContextId -> 
+               Just newContextId ->
                   if gotContextId == newContextId
                      then
                         done
                   else
-                     error "DaVinciBasic: Mismatch in returned context"
+                     do
+                        putStrLn "daVinci bug: Mismatch in returned context"
+                        failSafeSetContext gotContextId
             return result
          )
+
+failSafeSetContext :: ContextId -> IO ()
+failSafeSetContext contextId =
+   do
+      putStrLn "Trying again with setContext"
+      sendMsg (childProcess daVinci) (show(Multi(SetContext contextId)))
+      (gotContextId,result) <- takeMVar (responseMVar daVinci)
+      if gotContextId /= contextId
+         then
+            do
+               putStrLn "Yet another mismatch; trying again with delay"
+               delay (secs 0.1)
+               failSafeSetContext contextId
+         else
+            done
+
+           
 
 forAllContexts :: (Context -> IO ()) -> IO ()
 forAllContexts contextAct =

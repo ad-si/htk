@@ -20,9 +20,10 @@ module MMiSSBundleConvert(
 
 import IO
 import Maybe
-import AtomString
 
+import AtomString
 import Computation
+import Messages
 
 import Text.XML.HaXml.Types
 
