@@ -342,7 +342,7 @@ data IndexModifier =
         | LineStart 
         | LineEnd 
         | WordStart 
-        | WorkEnd
+        | WordEnd
 
 
 instance Show IndexModifier where
@@ -353,7 +353,7 @@ instance Show IndexModifier where
    showsPrec d LineStart r = " linestart " ++ r
    showsPrec d LineEnd r = " lineend " ++ r
    showsPrec d WordStart r = " wordstart " ++ r
-   showsPrec d WorkEnd r = " wordend " ++ r
+   showsPrec d WordEnd r = " wordend " ++ r
 
 
 instance Show IndexModifiers where
