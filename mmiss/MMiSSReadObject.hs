@@ -136,14 +136,18 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                      (variable,object)
                         <- coerceWithErrorOrBreakIO hackBreak objectDataWE
 
+                     leWE <- getLinkEnvPreamble view object
+                     (linkEnvironment1,preamble1) <- coerceWithErrorOrBreakIO 
+                        hackBreak leWE
+                     
                      cache <- converter view (linkedObject object) variable
 
                      modifyMVar_ preambleLinksMVar 
                         (\ preambleLinks ->
-                           return (cachePreamble cache : preambleLinks))  
+                           return (preamble1 : preambleLinks))  
 
                      return (Just (cacheElement cache,
-                        (cacheLinkEnvironment cache,depth - 1)))
+                        (linkEnvironment1,depth - 1)))
                   )
 
          -- Construct the top data for reAssembleNoRecursion.
@@ -163,7 +167,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          element <- coerceWithErrorOrBreakIO break elementWE
 
          preambleLinks <- takeMVar preambleLinksMVar
-         return (element,preambleLinks)
+         return (element,uniqOrd preambleLinks)
       )
          
 ---

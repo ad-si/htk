@@ -86,10 +86,20 @@ module SimpleDB(
       -- Compare the given object version with the (presumably parent)
       -- object versions.
    Diff(..),
+
+   catchDBError, -- :: IO a -> IO (Either String a)
+   catchDBErrorWE, -- :: IO a -> IO (WithError a)
+      -- These functions may be used to catch errors, when the server 
+      -- returns something unexpected.
+   dbError, -- :: String -> a
+      -- Throw error to be caught by catchDBError.
+
    ) where
 
+import System.IO.Unsafe(unsafePerformIO)
+
 import Object
-import Computation(done)
+import Computation(done,WithError,toWithError)
 import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
@@ -194,7 +204,7 @@ initialise1 queryRepository1 closeDown =
             do
                response <- queryRepository1 command
                case response of
-                  IsError mess -> error ("Server error: mess")
+                  IsError mess -> dbError ("Server error: " ++ mess)
                   _ -> return response
 
       oID <- newObject
@@ -298,7 +308,7 @@ commit repository versionExtra redirects newStuff0 =
 
       case response of
          IsOK -> done
-         _ -> error ("Commit error: unexpected response")
+         _ -> dbError ("Commit error: unexpected response")
 
 
 modifyUserInfo repository userInfo =
@@ -306,7 +316,7 @@ modifyUserInfo repository userInfo =
       response <- queryRepository repository (ModifyUserInfo userInfo)
       case response of
          IsOK -> done
-         _ -> error ("ModifyUserInfo: unexpected response")
+         _ -> dbError ("ModifyUserInfo: unexpected response")
 
 retrieveVersionInfo :: Repository -> ObjectVersion -> IO VersionInfo 
 retrieveVersionInfo repository version =
@@ -314,7 +324,7 @@ retrieveVersionInfo repository version =
       response <- queryRepository repository (GetVersionInfo version)
       case response of
          IsVersionInfo v -> return v
-         _ -> error ("GetVersionInfo: unexpected response")
+         _ -> dbError ("GetVersionInfo: unexpected response")
 
 
 getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 
@@ -324,7 +334,7 @@ getDiffs repository version versions =
       response <- queryRepository repository (GetDiffs version versions)
       case response of
          IsDiffs diffs -> return diffs
-         _ -> error ("GetDiffs: unexpected response")
+         _ -> dbError ("GetDiffs: unexpected response")
 
 ----------------------------------------------------------------
 -- Unpacking SimpleDBResponse
@@ -346,9 +356,27 @@ toData :: SimpleDBResponse -> ICStringLen
 toData (IsData icsl) = icsl
 toData r = unpackError "object" r
 
-unpackError s r = error ("Expecting " ++ s ++ ": " ++ 
+unpackError s r = dbError ("Expecting " ++ s ++ ": " ++ 
    case r of
       IsError mess -> mess
       _ -> " but found something else"
    ) 
+
+----------------------------------------------------------------
+-- Handling errors
+----------------------------------------------------------------
+
+(dbFallOutId,catchDBError) = mkdbFallOut
+
+catchDBErrorWE :: IO a -> IO (WithError a)
+catchDBErrorWE act =
+   do 
+      result <- catchDBError act
+      return (toWithError result)
+
+dbError :: String -> a
+dbError = mkBreakFn dbFallOutId
+
+mkdbFallOut = unsafePerformIO newFallOut
+{-# NOINLINE mkdbFallOut #-}
 

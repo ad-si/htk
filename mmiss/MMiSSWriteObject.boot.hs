@@ -10,8 +10,7 @@ module MMiSSWriteObject where
 
 
 writeToMMiSSObject :: 
-   Link.Link MMiSSPreamble.MMiSSPreamble 
-   -> MMiSSObjectTypeType.MMiSSObjectType 
+   MMiSSObjectTypeType.MMiSSObjectType 
    -> ViewType.View 
    -> LinkManager.LinkedObject
    -> Data.Maybe.Maybe EntityNames.EntityFullName 

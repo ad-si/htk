@@ -51,6 +51,7 @@ import Dynamics
 import ICStringLen
 import ExtendedPrelude
 
+import VersionDB(dbError)
 import ViewType
 
 -- --------------------------------------------------------------------------
@@ -115,20 +116,14 @@ doEncodeIO1 desc (a ::  a) view =
 
       case encodeResult of
          Left excep ->
-            do
-               putStrLn ("Error " ++ show excep ++ " encoding "
-                  ++ desc)
-               throw excep
+            dbError ("Error " ++ show excep ++ " encoding " ++ desc)
          Right result -> return result 
    where
       wb1 :: WriteBinary (ArgMonad View StateBinArea)
       wb1 = writeBinaryToArgMonad writeBinaryBinArea
 
       wb2 :: WriteBinary CodingMonad
-      wb2 = WriteBinary {
-         writeByte = (\ b -> CodingMonad (writeByte wb1 b)),
-         writeBytes = (\ bs l -> CodingMonad (writeBytes wb1 bs l))
-         }
+      wb2 = liftWriteBinary CodingMonad wb1
 
 
 doDecodeIO :: HasCodedValue a => CodedValue -> View -> IO a
@@ -138,7 +133,6 @@ doDecodeIO codedValue view =
       desc = show (typeOf (undefinedIO act))
    in
       act
-
    where
        undefinedIO :: IO a -> a
        undefinedIO _ = error "CodedValue.undefinedIO"
@@ -178,10 +172,7 @@ doDecodeIO1 desc icsl view =
       rb1 = readBinaryToArgMonad readBinaryBinArea
 
       rb2 :: ReadBinary CodingMonad
-      rb2 = ReadBinary {
-         readByte = CodingMonad (readByte rb1),
-         readBytes = (\ l -> CodingMonad (readBytes rb1 l)) 
-         }
+      rb2 = liftReadBinary CodingMonad rb1
 
 equalByEncode :: HasCodedValue value => (View,value) -> (View,value) 
    -> IO Bool

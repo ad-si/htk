@@ -1,7 +1,7 @@
 PACKAGES = uni-types uni-htk uni-davinci
 
 SRCS       = MainServer.hs MainWorkbench.hs \
-   TestGetAttributesType.hs
+   TestGetAttributesType.hs TestCV.hs
 
 EXTRAEXPORTS = Server Makefile.in
 

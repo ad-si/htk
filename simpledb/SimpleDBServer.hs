@@ -180,12 +180,12 @@ type ChangeData = Either ICStringLen (Location,ObjectVersion)
 -- -----------------------------------------------------------------------
 
 instance Monad m => HasBinary Location m where
-   writeBin = mapWrite (\ (Location i) -> i)
-   readBin = mapRead Location
+   writeBin = mapWrite (\ (Location i) -> (Unsigned i))
+   readBin = mapRead (\ (Unsigned i) -> (Location i))
 
 instance Monad m => HasBinary PrimitiveLocation m where
-   writeBin = mapWrite (\ (PrimitiveLocation i) -> i)
-   readBin = mapRead PrimitiveLocation
+   writeBin = mapWrite (\ (PrimitiveLocation i) -> (Unsigned i))
+   readBin = mapRead (\ (Unsigned i) -> (PrimitiveLocation i))
 
 instance MonadIO m => HasWrapper SimpleDBCommand m where
    wraps = [
@@ -478,7 +478,9 @@ retrieveData simpledb location objectVersion =
       bdbKeyOptWE <- retrieveKeyOpt simpledb location objectVersion
       mapWithErrorIO' (
          \ bdbKeyOpt -> case bdbKeyOpt of
-            Nothing -> return (hasError "BDB key mysteriously not in database")
+            Nothing -> return (hasError ("BDB key for " 
+               ++ toString objectVersion ++ ":" ++ show location 
+               ++ " mysteriously not in database"))
             Just bdbKey ->
                do
                   Just icsl <- readBDB (bdb simpledb) bdbKey

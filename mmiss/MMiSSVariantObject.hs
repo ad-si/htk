@@ -114,7 +114,6 @@ module MMiSSVariantObject(
 import Maybe
 
 import Control.Concurrent.MVar
-import System.IO.Unsafe(unsafeInterleaveIO)
 
 import Dynamics
 import Computation (done)
@@ -149,8 +148,7 @@ data VariantObject object cache = VariantObject {
 -- of storing a function (converter) in the repository.
 data FrozenVariantObject object cache = FrozenVariantObject {
    dictionary' :: MMiSSVariantDict object,
-   currentVariantSpec' :: MMiSSVariantSpec,
-   cache' :: cache
+   currentVariantSpec' :: MMiSSVariantSpec
    }
 
 -- -----------------------------------------------------------------------
@@ -171,9 +169,8 @@ newVariantObject converter object variantSpec =
 
       let
          frozenVariantObject = FrozenVariantObject {
-            dictionary' = dictionary,
             currentVariantSpec' = variantSpec,
-            cache' = cache
+            dictionary' = dictionary
             }
 
       unfreezeVariantObject converter frozenVariantObject
@@ -186,20 +183,22 @@ newVariantObject converter object variantSpec =
 -- situation
 newEmptyVariantObject :: (object -> IO cache) 
    -> IO (VariantObject object cache)
-newEmptyVariantObject converter =
+newEmptyVariantObject converter1 =
    do
-      dictionary <- newEmptyVariantDict 
+      dictionary1 <- newEmptyVariantDict 
+
+      currentVariantSpec1 <- newMVar (error "MMiSSVariantObject.1")
+      cache1 <- newSimpleBroadcaster (error "MMiSSVariantObject.2")
 
       let
-         err = error "MMiSSVariantObject: premature attempt to inspect cache"
-
-         frozenVariantObject = FrozenVariantObject {
-            dictionary' = dictionary,
-            currentVariantSpec' = err,
-            cache' = err
+         variantObject = VariantObject {
+            dictionary = dictionary1,
+            converter = converter1,
+            currentVariantSpec = currentVariantSpec1,
+            cache = cache1
             }
 
-      unfreezeVariantObject converter frozenVariantObject
+      return variantObject
 
 
 ---
@@ -210,9 +209,22 @@ unfreezeVariantObject converter frozen =
    do
       let
          dictionary = dictionary' frozen
+         spec = currentVariantSpec' frozen
 
-      currentVariantSpec <- newMVar (currentVariantSpec' frozen)
-      cache <- newSimpleBroadcaster (cache' frozen)
+      currentVariantSpec <- newMVar spec
+
+      objectOpt <- variantDictSearch dictionary
+         (fromMMiSSSpecToSearch spec)
+
+      object <- case objectOpt of
+         Just object -> return object
+         Nothing -> error "unfreezeVariantObject failed"
+
+      cache1 <- converter object
+
+      cache <- newSimpleBroadcaster cache1
+
+      
       let
          variantObject = VariantObject {
             dictionary = dictionary,
@@ -229,12 +241,10 @@ freezeVariantObject variantObject =
       let
          dictionary' = dictionary variantObject
       currentVariantSpec' <- readMVar (currentVariantSpec variantObject)
-      cache' <- readContents (cache variantObject)
       let
          frozenVariantObject = FrozenVariantObject {
             dictionary' = dictionary',
-            currentVariantSpec' = currentVariantSpec',
-            cache' = cache'
+            currentVariantSpec' = currentVariantSpec'
             }
       return frozenVariantObject
 
@@ -246,25 +256,25 @@ frozenVariantObject_tyRep = mkTyRep "MMiSSVariantObject" "FrozenVariantObject"
 instance HasTyRep2 FrozenVariantObject where
    tyRep2 _ = frozenVariantObject_tyRep
 
-instance (HasBinary object CodingMonad,HasBinary cache CodingMonad) 
-      => HasBinary (FrozenVariantObject object cache) CodingMonad where
+instance HasBinary object CodingMonad 
+   => HasBinary (FrozenVariantObject object cache) CodingMonad where
 
    writeBin = mapWrite
       (\ (FrozenVariantObject {
          dictionary' = dictionary',
-         currentVariantSpec' = currentVariantSpec',
-         cache' = cache'}) 
+         currentVariantSpec' = currentVariantSpec'
+         }) 
          ->
-         (dictionary',currentVariantSpec',cache')
+         (dictionary',currentVariantSpec')
          )
 
 
    readBin = mapRead
-      (\ (dictionary',currentVariantSpec',cache') ->
+      (\ (dictionary',currentVariantSpec') ->
          (FrozenVariantObject {
             dictionary' = dictionary',
-            currentVariantSpec' = currentVariantSpec',
-            cache' = cache'}) 
+            currentVariantSpec' = currentVariantSpec'
+            }) 
          )
 
 -- -----------------------------------------------------------------------
@@ -457,17 +467,10 @@ attemptMergeVariantObject newConverter convertObject variantObjects =
       (Just object1) <- variantDictSearch dictionary1 
          (fromMMiSSSpecToSearch currentVariantSpec1)
 
-      -- we use unsafeInterleaveIO during the cache conversion since
-      -- the rest of the view might not be set up yet, so it's better to
-      -- delay computing the cache until we need it, which hopefully won't
-      -- be until the merge is complete.
-      cache1 <- unsafeInterleaveIO (newConverter object1)
-
       let
          frozenVariantObject = FrozenVariantObject {
             dictionary' = dictionary1,
-            currentVariantSpec' = currentVariantSpec1,
-            cache' = cache1
+            currentVariantSpec' = currentVariantSpec1
             }
 
       unfreezeVariantObject newConverter frozenVariantObject

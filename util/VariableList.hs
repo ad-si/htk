@@ -2,6 +2,7 @@ module VariableList(
    newVariableListFromSet, -- :: Ord a => VariableSetSource a -> VariableList a
    newVariableListFromList, -- :: Ord a => SimpleSource [a] -> VariableList a
    emptyVariableList, -- :: VariableList a
+   singletonList, -- :: a -> VariableList a
    VariableList,
    ListDrawer(..),
    attachListOp, -- :: VariableList a -> ListDrawer a -> IO (IO ()) 
@@ -124,6 +125,20 @@ emptyVariableList :: VariableList a
 emptyVariableList =
    let
       attachListOp _ _ = return done
+   in
+      VariableList attachListOp
+
+singletonList :: a -> VariableList a
+singletonList a =
+   let
+      attachListOp parallelX (listDrawer :: ListDrawer a pos) =
+         do
+            parallelExec parallelX (
+               do
+                  newPos listDrawer Nothing (Just a)
+                  done
+               )
+            return done
    in
       VariableList attachListOp
 

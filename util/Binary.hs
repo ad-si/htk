@@ -48,6 +48,13 @@ module Binary (
    readBinaryBinArea, -- :: ReadBinary StateBinArea
    -- check that the BinArea is completely read. 
    checkFullBinArea, -- :: BinArea -> IO ()
+
+
+   -- Functions for transforming WriteBinary/ReadBinary values.
+   liftWriteBinary, 
+      -- :: (forall a . m a -> n a) -> WriteBinary m -> WriteBinary n
+   liftReadBinary,
+      -- :: (forall a . m a -> n a) -> ReadBinary m -> ReadBinary n
   
    ) where
 
@@ -275,3 +282,24 @@ checkBinArea binArea newNext =
          error "Binary.checkBinArea - BinArea overflow on read"
       else
          return ()
+
+-- ----------------------------------------------------------------------
+-- Lifting writeBinary and readBinary instances.
+-- ----------------------------------------------------------------------
+
+liftWriteBinary :: (forall a . m a -> n a) -> WriteBinary m -> WriteBinary n
+liftWriteBinary lift wb =
+   let
+      writeByte2 b = lift (writeByte wb b)
+      writeBytes2 b i = lift (writeBytes wb b i)
+   in
+      WriteBinary {writeByte = writeByte2,writeBytes = writeBytes2}
+
+liftReadBinary :: (forall a . m a -> n a) -> ReadBinary m -> ReadBinary n
+liftReadBinary lift rb =
+   let
+      readByte2 = lift (readByte rb)
+      readBytes2 i = lift (readBytes rb i)
+   in
+      ReadBinary {readByte = readByte2,readBytes = readBytes2}
+

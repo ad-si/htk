@@ -25,12 +25,15 @@ module MMiSSObjectType(
    createMMiSSObject, -- all MMiSSObjects are created by this function.
 
    variablesSame,
-  
+
+   getLinkEnvPreamble,  
    ) where
 
 #include "config.h"
 
-import Computation(coerceWithErrorIO,fromWithError)
+import System.IO.Unsafe(unsafeInterleaveIO)
+
+import Computation(WithError,coerceWithErrorIO,fromWithError,mapWithError)
 import Sources
 import VariableSet
 import VariableSetBlocker
@@ -65,6 +68,7 @@ import MMiSSVariantObject
 import MMiSSContent
 import MMiSSPreamble
 import MMiSSObjectTypeType
+import {-# SOURCE #-} MMiSSPackageFolder
 
 -- ---------------------------------------------------------------------
 -- The types
@@ -89,6 +93,7 @@ data MMiSSObject = MMiSSObject {
    extraNodes :: Blocker (ArcData WrappedLink ArcType),
       -- Nodes which connect to this one but are not normally shown
       -- (Preamble, security manager and so on).
+      -- (currently defunct)
    variantObject :: VariantObject Variable Cache,
    editCount :: RefCount
       -- This counts the number of times variants of this objects
@@ -103,7 +108,6 @@ data Variable = Variable {
       -- For now we adopt the convention that the name of the element as given
       -- by its label attribute is always the last component of the name of 
       -- the MMiSS object
-   preamble :: Link MMiSSPreamble,
    editLock :: BSem
    }
 
@@ -112,9 +116,7 @@ data Variable = Variable {
 -- the current set of attributes.
 data Cache = Cache {
    cacheElement :: Element,
-   cacheLinkEnvironment :: LinkEnvironment,
-   cacheLinks :: LinkSource LinkType,
-   cachePreamble :: Link MMiSSPreamble
+   cacheLinks :: LinkSource LinkType
    }
 
 -- ---------------------------------------------------------------------
@@ -152,18 +154,8 @@ createMMiSSObject :: MMiSSObjectType -> LinkedObject
    -> IO MMiSSObject
 createMMiSSObject mmissObjectType linkedObject variantObject =
    do
-      let
-         extraNodeSource :: SimpleSource (ArcData WrappedLink ArcType)
-         extraNodeSource =
-            fmap
-               (\ cache ->
-                  toArcData (WrappedLink (cachePreamble cache))
-                     preambleArcType True
-                  )
-               (toVariantObjectCache variantObject)
-                  
       (extraNodes :: Blocker (ArcData WrappedLink ArcType))
-         <- newBlocker (singletonSetSource extraNodeSource)
+         <- newBlocker emptyVariableSetSource
 
       nodeActions <- newNodeActionSource
       editCount <- newRefCount
@@ -181,62 +173,31 @@ createMMiSSObject mmissObjectType linkedObject variantObject =
       return mmissObject
 
 -- ---------------------------------------------------------------------
--- Instances of HasCodedValue for Variable and Cache.
+-- Instances of HasCodedValue for Variable.
 -- ---------------------------------------------------------------------
 
 variable_tyRep = mkTyRep "MMiSSObjects" "Variable"
 instance HasTyRep Variable where
    tyRep _ = variable_tyRep
 
-cache_tyRep = mkTyRep "MMiSSObjects" "Cache"
-instance HasTyRep Cache where
-   tyRep _ = cache_tyRep
-
 instance HasBinary Variable CodingMonad where
    writeBin = mapWrite
       (\ (Variable {
-         element = element,
-         preamble = preamble
+         element = element
          }) 
       ->
-      (element,preamble)
+      element
       )
    readBin = mapReadIO
-      (\ (element,preamble) ->
+      (\ element ->
          do
             editLock <- newBSem
             let
                variable = Variable {
                   element = element,
-                  preamble = preamble,
                   editLock = editLock
                   }
             return variable
-         )
-
-instance HasBinary Cache CodingMonad where
-   writeBin = mapWrite
-      (\ (Cache {
-         cacheElement = cacheElement,
-         cacheLinkEnvironment = cacheLinkEnvironment,
-         cacheLinks = cacheLinks,
-         cachePreamble = cachePreamble
-         })
-         ->
-         (cacheElement,LinkSourceSet cacheLinkEnvironment [cacheLinks],
-            cachePreamble)
-         )
-
-   readBin = mapRead
-      (\ (cacheElement,LinkSourceSet cacheLinkEnvironment [cacheLinks],
-         cachePreamble)
-      ->
-         (Cache {
-            cacheElement = cacheElement,
-            cacheLinkEnvironment = cacheLinkEnvironment,
-            cacheLinks = cacheLinks,
-            cachePreamble = cachePreamble
-            })
          )
 
 -- ---------------------------------------------------------------------
@@ -248,42 +209,35 @@ instance HasBinary Cache CodingMonad where
 -- for the containing object.
 converter :: View -> LinkedObject -> Variable -> IO Cache
 converter view linkedObject variable =
-   do
-      cacheElement <- readLink view (element variable)
+   -- we wrap the operation in unsafeInterleaveIO so that we can
+   -- assume (or at least hope) that the function won't be called
+   -- until it is actually needed.
+   unsafeInterleaveIO (
+      do
+         cacheElement <- readLink view (element variable)
 
-      cachePath <- case fromWithError (getPath cacheElement) of
-         Left error -> 
-            do
-               createErrorWin (
-                  "Couldn't parse element's path: "
-                     ++ error ++ "\n Defaulting to"
-                     ++ toString trivialPath) []
-               return trivialPath
-         Right cachePath -> return cachePath
-               
-      cacheLinkEnvironment <- newLinkEnvironment linkedObject 
-         (raiseEntityPath cachePath)
-      let
-         structureContentsWE = structureContents cacheElement
-      structureContents <- coerceWithErrorIO structureContentsWE
-      let
-         cacheLinks0 = links (accContents structureContents)
-         cacheLinks1 = map
-            (\ (fullName,variantSearch,linkType) -> (fullName,linkType))
-            cacheLinks0
+         -- Get the LinkEnvironment for the containing MMiSSPackageFolder.
+         leWE <- getLinkEnvPreamble view linkedObject
+         (linkEnvironment,_) <- coerceWithErrorIO leWE
 
-      cacheLinks2 <- newLinkSource cacheLinkEnvironment cacheLinks1
-      let
-         cachePreamble = preamble variable
+         let
+            structureContentsWE = structureContents cacheElement
+         structureContents <- coerceWithErrorIO structureContentsWE
+         let
+            cacheLinks0 = links (accContents structureContents)
+            cacheLinks1 = map
+               (\ (fullName,variantSearch,linkType) -> (fullName,linkType))
+               cacheLinks0
 
-         cache = Cache {
-            cacheElement = cacheElement,
-            cacheLinkEnvironment = cacheLinkEnvironment,
-            cacheLinks = cacheLinks2,
-            cachePreamble = cachePreamble
-            }
+         cacheLinks2 <- newLinkSource linkEnvironment cacheLinks1
+         let
+            cache = Cache {
+               cacheElement = cacheElement,
+               cacheLinks = cacheLinks2
+               }
 
-      return cache
+         return cache
+      )
             
 -- ---------------------------------------------------------------------
 -- The ArcType values for the arcs out of an MMiSSObject.
@@ -332,5 +286,19 @@ objectName mmissObject = readContents (objectNameSource mmissObject)
 variablesSame :: Variable -> Variable -> Bool
 variablesSame variable1 variable2 =
    (element variable1 == element variable2)
-   &&
-   (preamble variable1 == preamble variable2)
+
+---
+-- Get an object's LinkEnvironment and preamble link
+getLinkEnvPreamble :: HasLinkedObject object => View -> object 
+   -> IO (WithError (LinkEnvironment,Link MMiSSPreamble))
+getLinkEnvPreamble view mmissObject =
+   do
+      packageFolderWE 
+         <- getMMiSSPackageFolder view (toLinkedObject mmissObject)
+      return (mapWithError 
+         (\ packageFolder 
+            -> (toLinkEnvironment packageFolder,
+               toMMiSSPreambleLink packageFolder)
+            )
+         packageFolderWE
+         )

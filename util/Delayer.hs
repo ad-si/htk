@@ -48,7 +48,7 @@ data DelayedAction = DelayedAction {
    }
 
 data DelayerState = DelayerState {
-   delayCount :: ! Int, -- ^ 0 when not delay'd.
+   delayCount ::  ! Int, -- ^ 0 when not delay'd.
    delayedActions :: Set DelayedAction
    }
 

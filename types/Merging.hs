@@ -21,6 +21,7 @@ import Registry
 import Delayer
 import DeepSeq
 import Thread
+import Debug(debug)
 
 import Destructible
 
@@ -208,7 +209,8 @@ mergeViews (views @ (firstView:_)) =
                                        linkOpt
                                  seq link done
                                  object <- unsafeInterleaveIO (
-                                    readLink view link)
+                                    readLink view link
+                                    )
                                  return (view,link,object)
                               )      
                            linkViewData0

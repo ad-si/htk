@@ -67,14 +67,17 @@ module ExtendedPrelude (
    newFallOut,
 
    EqIO(..),OrdIO(..),
+
+   uniqOrd,
    ) where
 
 import Char
 import Monad
 import Maybe
 
-import Exception
-import qualified IOExts(unsafePerformIO)
+import Data.Set
+import Control.Exception
+import System.IO.Unsafe
 
 import Object
 import Debug(debug)
@@ -441,7 +444,7 @@ addSimpleFallOut :: IO a -> IO (Either String a)
 
 (simpleFallOutId,addSimpleFallOut) = mkSimpleFallOut
 
-mkSimpleFallOut = IOExts.unsafePerformIO newFallOut
+mkSimpleFallOut = unsafePerformIO newFallOut
 {-# NOINLINE mkSimpleFallOut #-}
 
 data FallOutExcep = FallOutExcep {
@@ -492,3 +495,12 @@ class EqIO v where
 
 class EqIO v => OrdIO v where
    compareIO :: v -> v -> IO Ordering
+
+-- ------------------------------------------------------------------------
+-- Eq/Ord operations
+-- ------------------------------------------------------------------------
+
+---
+-- Remove duplicate elements from a list.
+uniqOrd :: Ord a => [a] -> [a]
+uniqOrd = setToList . mkSet

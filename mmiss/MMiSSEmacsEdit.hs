@@ -63,6 +63,7 @@ import MMiSSWriteObject
 import MMiSSReadObject
 import MMiSSReAssemble
 import MMiSSPreamble
+import MMiSSPackageFolder
 
 
 -- ----------------------------------------------------------------------
@@ -233,9 +234,8 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   Elem _ attributes _ = thisElement
 
                -- Extract a LinkEnvironment for the object.
-               cache <- converter view thisLinkedObject variable
-               let
-                  linkEnvironment1 = cacheLinkEnvironment cache
+               leWE <- getLinkEnvPreamble view object
+               (linkEnvironment1,_) <- coerceWithErrorOrBreakIO break2 leWE
                
                -- Create variants used for searching in this object,
                -- We refine the existing variants with the one given by the
@@ -331,7 +331,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                           let
                              element1 = setLabel element0 trivialFullName
 
-                          writeOutWE <- writeToMMiSSObject (preamble variable)
+                          writeOutWE <- writeToMMiSSObject
                              thisObjectType view thisLinkedObject Nothing
                              element1 False
 
@@ -449,11 +449,14 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                            objectLink outerVariants1
                         (variable,object) 
                            <- coerceWithErrorOrBreakIO break objectDataWE
-                        cache 
-                           <- converter view (toLinkedObject object) variable
-                        let
-                           linkEnvironment1 = cacheLinkEnvironment cache
 
+                        -- Get the LinkEnvironment for the containing 
+                        -- MMiSSPackageFolder.
+                        leWE <- getLinkEnvPreamble view object
+                        (linkEnvironment1,_) 
+                            <- coerceWithErrorOrBreakIO break leWE
+
+                        let
                            editRef = EditRef {
                               linkEnvironment = linkEnvironment1,
                               description = description1,
@@ -637,10 +640,11 @@ getPreambleLink view linkEnvironment fullName variantSearch =
       do
          objectLinkWE <- getMMiSSObjectLink linkEnvironment fullName
          objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
-         objectDataWE
-            <- simpleReadFromMMiSSObject view objectLink variantSearch
-         (variable,object) <- coerceWithErrorOrBreakIO break objectDataWE
-         return (preamble variable)
+         mmissObject <- readLink view objectLink 
+
+         leWE <- getLinkEnvPreamble view mmissObject
+         (_,preamble) <- coerceWithErrorOrBreakIO break leWE
+         return preamble
       )
 
 -- ----------------------------------------------------------------------

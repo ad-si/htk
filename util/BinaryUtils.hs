@@ -115,24 +115,10 @@ toArgMonad :: m a -> ArgMonad arg m a
 toArgMonad act = ArgMonad (const act)
 
 writeBinaryToArgMonad :: WriteBinary m -> WriteBinary (ArgMonad arg m)
-writeBinaryToArgMonad (WriteBinary {
-   writeByte = writeByte1,writeBytes = writeBytes1}) =
-
-   let
-      writeByte2 byte = toArgMonad (writeByte1 byte)
-      writeBytes2 bytes int = toArgMonad (writeBytes1 bytes int)
-   in
-      WriteBinary {writeByte = writeByte2,writeBytes = writeBytes2}
+writeBinaryToArgMonad = liftWriteBinary toArgMonad
 
 readBinaryToArgMonad :: ReadBinary m -> ReadBinary (ArgMonad arg m)
-readBinaryToArgMonad (ReadBinary {
-   readByte = readByte1,readBytes = readBytes1}) =
-
-   let
-      readByte2 = toArgMonad readByte1
-      readBytes2 len = toArgMonad (readBytes1 len)
-   in
-      ReadBinary {readByte = readByte2,readBytes = readBytes2}
+readBinaryToArgMonad = liftReadBinary toArgMonad
 
 runArgMonad :: arg -> ArgMonad arg m a -> m a
 runArgMonad arg (ArgMonad fn) = fn arg

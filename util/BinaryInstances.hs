@@ -10,11 +10,12 @@ module BinaryInstances(
    wrap0,wrap1,wrap2,wrap3,wrap4,
       -- used for instancing.
    
-
-
    ReadShow(..),
       -- A wrapper for things which are to be represented by their
       -- Read/Show instances.
+
+   Unsigned(..),
+      -- A wrapper for unsigned integral types.
    ) where
 
 import Char
@@ -263,6 +264,19 @@ decodeWord (CodedList (lPart : codedHigh)) =
       highPart = decodeWord (CodedList codedHigh) 
    in
       lowestPart + (highPart `shiftL` bitsPerByte)
+
+-- -----------------------------------------------------------------------
+-- We make the word encoding (which is slightly more efficient for 
+-- unsigned integers) available via the Unsigned type.
+-- -----------------------------------------------------------------------
+
+newtype Unsigned integral = Unsigned integral
+
+instance (Monad m,Integral integral,Bits integral) 
+   => HasBinary (Unsigned integral) m where
+
+   writeBin = mapWrite (\ (Unsigned i) -> encodeWord i)
+   readBin = mapRead (\ i -> Unsigned (decodeWord i))
 
 -- -----------------------------------------------------------------------
 -- Bit constants

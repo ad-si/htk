@@ -9,6 +9,7 @@ import Computation
 import ExtendedPrelude
 import WBFiles
 import FileNames
+import Delayer
 
 import Events
 
@@ -17,6 +18,7 @@ import DialogWin
 
 import CopyFile
 
+import ViewType
 import View
 import Link
 import LinkManager
@@ -34,21 +36,22 @@ import {-# SOURCE #-} MMiSSWriteObject
 -- Import a new object from a LaTeX file and attach it to the subdirectory
 -- of a given LinkedObject.
 --
+-- The preamble should be written to the link given by the first
+-- argument.
+--
 -- The complicated last argument constructs or retrieves the parent linked 
 -- object, given the name of the package.
-importMMiSSLaTeX :: MMiSSObjectType -> View
+importMMiSSLaTeX :: Link MMiSSPreamble -> MMiSSObjectType -> View
    -> (EntityName -> IO (WithError LinkedObject)) 
    -> IO (Maybe (Link MMiSSObject))
-importMMiSSLaTeX objectType view getLinkedObject =
+importMMiSSLaTeX preambleLink objectType view getLinkedObject =
    do
       result <- addFallOut (\ break ->
          do
 	    top <- getTOP 
             let
                fullName = unbreakName [top,"mmiss","test","files"]
-
             dialogEvent <- fileDialog "Import LaTeX sources" fullName
-
             filePathOpt <- sync dialogEvent
             case filePathOpt of
                Nothing -> return Nothing
@@ -81,9 +84,9 @@ importMMiSSLaTeX objectType view getLinkedObject =
                         Just preamble -> return preamble
                         Nothing -> break "Object has no preamble!"
 
-                     mmissPreamble <- createPreamble view preamble
+                     writePreamble preambleLink view preamble
 
-                     linkWE <- writeToMMiSSObject mmissPreamble objectType view
+                     linkWE <- writeToMMiSSObject objectType view
                         linkedObject Nothing element True
 
                      (link,_) <- coerceWithErrorOrBreakIO break linkWE

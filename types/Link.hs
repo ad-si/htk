@@ -171,7 +171,43 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
          (\ objectDataOpt ->
           do
             let
-               err mess = return (objectDataOpt,hasError mess) 
+               xName :: String
+               xName = show (typeOf (undefined :: x))
+
+               err mess = return (objectDataOpt,hasError (
+                  "fetchLink " ++ xName ++ ": " ++ mess))
+
+               readObject :: ObjectVersion -> Location 
+                  -> IO (Maybe ObjectData,WithError (Versioned x))
+               readObject oldVersion oldLocation =
+                  do
+                     (xOS :: Either String x) <-
+                        catchDBError (
+                           do
+                              osource <- retrieveObjectSource repository 
+                                 oldLocation oldVersion
+                              icsl <- exportICStringLen osource
+                              doDecodeIO icsl view
+                           )
+                     case xOS of
+                        Left mess -> err mess
+                        Right x ->
+                           do
+                              statusMVar <- newMVar (UpToDate x)
+                              let
+                                 versioned = Versioned {
+                                    location = location,
+                                    statusMVar = statusMVar
+                                    }
+                              return (Just(
+                                 PresentObject {
+                                    thisVersioned = toDyn versioned,
+                                    mkObjectSource 
+                                       = mkObjectSourceFn view versioned
+                                    }),
+                                 hasValue versioned
+                                 )
+                     
             case objectDataOpt of
                Nothing ->
                   do
@@ -180,55 +216,22 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                         Nothing -> error ("Attempt to retrieve non-existent "
                            ++ "link in uncommitted view.")
                         Just parentVersion -> return parentVersion
- 
-                     -- create a new versioned object
-                     (osource :: ObjectSource) <-
-                        retrieveObjectSource repository location parentVersion
-                     icsl <- exportICStringLen osource
-                     x <- doDecodeIO icsl view
-                     statusMVar <- newMVar (UpToDate x)
-                     let
-                        versioned = Versioned {
-                           location = location,
-                           statusMVar = statusMVar
-                           }
-                     return (Just(
-                        PresentObject {
-                           thisVersioned = toDyn versioned,
-                           mkObjectSource = mkObjectSourceFn view versioned
-                           }),
-                        hasValue versioned)
+
+                     readObject parentVersion location
                Just (PresentObject {thisVersioned = versionedDyn}) ->
                   case fromDyn versionedDyn of
                      Just versioned 
                         -> return (objectDataOpt,hasValue versioned)
                      Nothing ->
                         let
-                           xName = show (typeOf (undefined :: x))
                            yName = show versionedDyn
                         in
-                           err ("View.fetchLink - type error in link: "
-                              ++ "expecting " ++ xName ++ " in " ++ yName
+                           err ("fetchLink - type error in link: "
+                              ++ "found a " ++ yName
                               ++ " from " ++ show location)
                Just (ClonedObject {
                   sourceLocation = oldLocation,sourceVersion = oldVersion}) ->
-                     do
-                        -- create a new versioned object
-                        (str :: String) <- 
-                           retrieveString repository oldLocation oldVersion
-                        x <- doDecodeIO (fromString str) view
-                        statusMVar <- newMVar (Cloned x oldLocation oldVersion)
-                        let
-                           versioned = Versioned {
-                              location = location,
-                              statusMVar = statusMVar
-                              }
-                        return (Just(
-                           PresentObject {
-                              thisVersioned = toDyn versioned,
-                              mkObjectSource = mkObjectSourceFn view versioned
-                              }),
-                           hasValue versioned)
+                     readObject oldVersion oldLocation
             )
 
 readLink :: HasCodedValue x => View -> Link x -> IO x

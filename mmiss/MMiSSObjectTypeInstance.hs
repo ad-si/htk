@@ -125,10 +125,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
             toArcType LinkLink = linkedArcType
             toArcType ReferenceLink = referencedArcType
 
-            preambleArcParms =
-               Color "blue" $$$
-               emptyArcTypeParms
-
             theNodeType :: NodeType
             theNodeType = fromString ""
 
@@ -153,10 +149,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 #endif
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
-                     Button "Show Preamble Object"
-                        (\ link -> openAction link),
-                     Button "Hide Preamble Object"
-                        (\ link -> closeAction link),
                      Button "Delete" (deleteObject view)
 --                     Button "Add CASL variant" (\ link -> addCASLVariant view link)
                      ]
@@ -208,8 +200,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   arcTypes = [
                      (includedArcType,includedArcParms),
                      (referencedArcType,referencedArcParms),
-                     (linkedArcType,linkedArcParms),
-                     (preambleArcType,preambleArcParms)
+                     (linkedArcType,linkedArcParms)
                      ],
                   nodeTypes = [(theNodeType,newNodeTypeParms nodeTypeParms)],
                   getNodeType = (\ object -> theNodeType),
@@ -246,8 +237,7 @@ instance HasMerging MMiSSObject where
                variantObjectObjectLinks
                   (\ variable -> 
                      return (ObjectLinks [
-                        (WrappedMergeLink (element variable),Element),
-                        (WrappedMergeLink (preamble variable),Preamble)])
+                        (WrappedMergeLink (element variable),Element)])
                      )
                   (variantObject object)
       in
@@ -304,13 +294,10 @@ instance HasMerging MMiSSObject where
                      let
                         element1 
                            = mapLink linkReAssigner oldView (element variable)
-                        preamble1
-                           = mapLink linkReAssigner oldView (preamble variable)
                      editLock1 <- newBSem
                      let
                         variable1 = Variable {
                            element = element1,
-                           preamble = preamble1,
                            editLock = editLock1
                            }
                      return variable1
@@ -364,15 +351,16 @@ instance HasMerging Element where
          case vlosPruned of
             [(oldView,oldLink,element)] ->
                do
-                  cloneLink oldView newLink newView newLink
+                  cloneLink oldView oldLink newView newLink
                   return (hasValue ())
             _ ->
                return (hasError "Unexpected merge required of Element")
       )
 
 -- Key for the sake of merging that produces an intelligible backtrace
--- ("Element" or "Preamble")
-data CacheContentsMergeKey = Element | Preamble deriving (Eq,Ord,Show)
+-- "Element".  (Now trivial, since the choice of Preamble has been
+-- removed.)
+data CacheContentsMergeKey = Element deriving (Eq,Ord,Show)
 
 cacheContentsMergeKey_tyRep 
    = mkTyRep "MMiSSObjectTypeInstance" "CacheContentsMergeKey"

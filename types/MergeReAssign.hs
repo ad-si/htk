@@ -16,18 +16,23 @@ module MergeReAssign(
    ) where
 
 import Maybe
+import Monad
 
 import Data.FiniteMap
 import Data.IORef
+import Data.Set
 
 import Computation
 import ExtendedPrelude
 import Registry
 import Dynamics
 import VariableSet (toKey)
-import Debug(debug)
+import Debug(debug,debugString)
+import Sources(readContents)
+
 import VisitedSet
 import Thread
+import UnionFind
 
 
 import MergeTypes
@@ -99,6 +104,9 @@ data State
 -- The functions
 -- -----------------------------------------------------------------
 
+type NodeData = (ViewId,WrappedMergeLink,[String])
+   -- type abbreviation we use during mkLinkReAssigner.
+
 mkLinkReAssigner :: 
    [View] 
    -> [(WrappedObjectTypeTypeData,[(GlobalKey,[(View,WrappedObjectType)])])]
@@ -119,51 +127,18 @@ mkLinkReAssigner views allRelevantObjectTypes =
             views
          
          allNodesList <- readIORef (allNodes state)
-         -- (3) Construct the LinkReAssigner, also checking that no WrappedLink
-         -- referred to more than once.
-         -- The second argument is an accumulating parameter.
+
+         -- (3) Get the list of all the identifications we need to make
          let
             addObjectNode :: [WrappedObjectNode] 
-               -> LinkReAssigner
-               -> IO LinkReAssigner
-            addObjectNode [] linkReAssigner = return linkReAssigner
- 
-            addObjectNode 
-                  ((WrappedObjectNode (objectNode @ (ObjectNode {
-                        references = referencesA,
-                        pathHere = pathHereA})
-                     :: ObjectNode object key))
-                     : restObjectNodes)
-                  linkReAssigner0
-                        | linkAsDataObject objectNode =
-               do
-                   -- simple strategy when link can be treated as data.
-                  (references0 :: [(View,Link object)]) 
-                     <- readIORef referencesA
-
-                  let
-                     ((_,assignedLink):restRefs) = references0
-
-                  if all (\ (_,link) -> link == assignedLink) restRefs
-                     then
-                        done
-                     else
-                        break ("Clash on link-as-data reference.  " ++
-                           "Backtrace:\n" ++ show pathHereA)
-                  let
-                     linkReAssigner1  = addRef (WrappedMergeLink assignedLink)
-                        references0 linkReAssigner0
-                        
-                  addObjectNode restObjectNodes linkReAssigner1
-
+               -> [[NodeData]] -> IO [[NodeData]]
+            addObjectNode [] identifications = return identifications
             addObjectNode 
                   ((WrappedObjectNode ((ObjectNode {references = referencesA,
                         pathHere = pathHereA})
                      :: ObjectNode object key))
                      : restObjectNodes)
-                  (linkReAssigner0 @ (LinkReAssigner {
-                     linkMap = fmap0,
-                     allMergesMap = allMergesMap0})) =
+                  identifications0 =
                do
                   (references0 :: [(View,Link object)]) 
                      <- readIORef referencesA
@@ -178,91 +153,256 @@ mkLinkReAssigner views allRelevantObjectTypes =
                   -- In the long term we should probably use the union-find
                   -- algorithm here.
                   let
-                     references1 :: [(ViewId,WrappedMergeLink)]
+                     references1 :: [(ViewId,WrappedMergeLink,[String])]
                      references1 = map 
-                        (\ (view,link) -> (viewId view,WrappedMergeLink link)) 
+                        (\ (view,link) 
+                           -> (viewId view,WrappedMergeLink link,pathHereA)
+                           ) 
                         references0
 
-                     mapLinks :: [WrappedMergeLink]
-                     mapLinks = mapMaybe
-                        (\ key -> lookupFM fmap0 key)
-                        references1
+                     identifications1 = references1 : identifications0
 
-                  (assignedLink :: WrappedMergeLink)
-                     <- case mapLinks of
-                        [] -> 
-                           let
-                              ((_,headWrappedMergeLink) : _ ) = references1
-                           in
-                              case lookupFM allMergesMap0 headWrappedMergeLink
-                                    of
-                                 Nothing -> return headWrappedMergeLink
-                                 Just _ ->
-                                    do
-                                       (newLink :: Link object) 
-                                          <- absolutelyNewLink repository
-                                       return (WrappedMergeLink newLink)
+                  addObjectNode restObjectNodes identifications1
 
-                        link0 : restLinks ->
-                           if all (== link0) restLinks
-                              then
-                                 return link0
-                              else
-                                 break ("Merge failure: link occurs in " ++ 
-                                    "contradictory contexts.  Backtrace:\n" ++
-                                    show pathHereA)
+         (identifications0 :: [[NodeData]]) <- addObjectNode allNodesList []
+         let
+            allNodes :: [NodeData]
+            allNodes = concat identifications0
+
+            toKey :: NodeData -> (ViewId,WrappedMergeLink)
+            toKey (viewId,wml,_) = (viewId,wml)
+
+         (unionFinds :: FiniteMap (ViewId,WrappedMergeLink) 
+            (UnionFind NodeData)) <- foldM
+               (\ fm0 nodeData ->
+                  do
+                     let
+                        key = toKey nodeData
+                     if elemFM key fm0
+                        then
+                           return fm0 -- already done
+                        else
+                           do
+                              unionFind <- newElement nodeData
+                              return (addToFM fm0 key unionFind)
+                  )
+               emptyFM
+               allNodes
+
+         -- apply identifications
+         mapM_
+            (\ nds ->
+               do
                   let
-                     linkReAssigner1 = addRef assignedLink references0 
-                        linkReAssigner0
+                     (uf : ufs) = map
+                        (\ nd -> lookupWithDefaultFM unionFinds 
+                           (error "MergeReassign.1") (toKey nd)
+                           )
+                        nds
+                  mapM_ (\ uf1 -> UnionFind.union uf uf1) ufs
+               )
+            identifications0
+   
+         -- construct list of all identifications, using a set to keep track
+         -- of what has already been included.
+         let
+            mkIdentifications :: [[NodeData]] -> Set (ViewId,WrappedMergeLink) 
+               -> [[NodeData]] -> IO [[NodeData]]
+            mkIdentifications oldIdentifications visited newIdentifications =
+               case oldIdentifications of
+                  [] -> return newIdentifications
+                  (nd:_):oldIdentifications1 -> 
+                     let
+                        key = toKey nd
+                     in
+                        if elementOf key visited
+                           then -- done this one
+                              mkIdentifications oldIdentifications1 visited 
+                                 newIdentifications
+                           else
+                              do
+                                 let
+                                    (Just uf) = lookupFM unionFinds key
+                                    visited1 = addToSet visited key
+                                 sameElements1 <- sameElements uf
+                                 let
+                                    newIdentifications1 =
+                                       (map toValue sameElements1) 
+                                          : newIdentifications
+                                 mkIdentifications oldIdentifications1 
+                                    visited1 newIdentifications1
 
-                  addObjectNode restObjectNodes linkReAssigner1
- 
-         linkReAssigner <- addObjectNode allNodesList
-            (LinkReAssigner {linkMap = emptyFM,allMergesMap = emptyFM})
+         identifications1 <- mkIdentifications identifications0 emptySet []
 
-         return linkReAssigner
+         -- Check for link clashes, IE two links in the same view being 
+         -- identified.
+         let
+            -- check a single list
+            clashWE :: [NodeData] -> IO (WithError ())
+            clashWE nodes = clash nodes emptyFM
+               where
+                  clash :: [NodeData] -> FiniteMap ViewId [String] 
+                     -> IO (WithError ())
+                  clash [] _ = return (hasValue ())
+                  clash ((nd@(viewId,_,path)):nds) map0 =
+                     do
+                        case lookupFM map0 viewId of
+                           Just path2 ->
+                              do
+                                 viewString <- viewIdToString viewId
+                                 return (hasError (
+                                    "Merging would force identification of "
+                                       ++ show path ++ " with " ++ show path2
+                                       ++ " in the view " ++ viewString))
+                           Nothing -> 
+                              let
+                                 map1 = addToFM map0 viewId path
+                              in
+                                 clash nds map1
+
+
+                  viewIdToString :: ViewId -> IO String
+                  viewIdToString viewId0 =
+                     readContents (getViewTitleSource (toView viewId0)) 
+
+            -- Function for getting a View from a ViewId, which we need
+            -- now (and also later)
+            toView :: ViewId -> View
+            toView viewId0 =  
+               case findJust 
+                  (\ view -> 
+                     if viewId view == viewId0
+                        then
+                           Just view
+                        else 
+                           Nothing
+                     ) views of
+                  Just view -> view
+                  Nothing -> break "MergeReAssign.UNKNOWN VIEW"
+
+         (clashes :: [WithError ()]) <- mapM clashWE identifications1
+
+         coerceWithErrorOrBreakIO break (concatWithError clashes)
+         
+         --
+         -- We have now constructed the necessary identifications, as a list
+         -- of disjoint lists of nodes.  We now have to assign to each element
+         -- of this list an appropriate new link.
+         --
+         -- We do this in two passes over identifications1.  We thread
+         -- the LinkReAssigner being constructed as we do this.
+         let
+            (headView : _) = views
+            headViewId = viewId headView
+            -- headView is special, because it will be the parent version
+            -- in the merged view.  This means that all links to 
+            -- headView must map to themselves.
+
+            linkReAssigner0 = 
+               LinkReAssigner {linkMap = emptyFM,allMergesMap = emptyFM}
+
+            -- Add an assignment of one identified list to a particular
+            -- wrapped merge link.
+            addIdentifications ::  WrappedMergeLink -> [NodeData] 
+               -> LinkReAssigner -> LinkReAssigner
+            addIdentifications newLink [] linkReAssigner = linkReAssigner
+            addIdentifications newLink (nd : nds) 
+               (linkReAssigner0 @ (LinkReAssigner {
+                     linkMap = linkMap0,allMergesMap = allMergesMap0})) =
+                  let
+                     (viewId,wml,_) = nd
+
+                     ndPair1 = (viewId,wml)
+                     ndPair2 = (toView viewId,wml)
+
+                     linkMap1 = addToFM linkMap0 ndPair1 newLink
+
+                     ndPairList0 = lookupWithDefaultFM allMergesMap0 [] newLink
+                     allMergesMap1 = addToFM allMergesMap0 newLink 
+                        (ndPair2 : ndPairList0)
+   
+                     linkReAssigner1 = LinkReAssigner {
+                        linkMap = linkMap1,
+                        allMergesMap = allMergesMap1}
+                  in
+                     addIdentifications newLink nds linkReAssigner1
+
+            addHeadIdentifications 
+               :: [[NodeData]] -> LinkReAssigner -> LinkReAssigner            
+            addHeadIdentifications [] linkReAssigner = linkReAssigner
+            addHeadIdentifications (nds : ndss) linkReAssigner0 =
+               let
+                  linkReAssigner1 =
+                     case findJust  
+                        (\ (viewId,wml,_) -> 
+                           if viewId == headViewId
+                              then
+                                 Just wml
+                              else
+                                 Nothing
+                           )
+                        nds of
+
+                        Just headWML -> 
+                           addIdentifications headWML nds linkReAssigner0
+                        Nothing -> linkReAssigner0
+               in
+                  addHeadIdentifications ndss linkReAssigner1
+
+
+            addRemainingIdentifications :: [[NodeData]] -> LinkReAssigner 
+               -> IO LinkReAssigner
+            addRemainingIdentifications [] linkReAssigner0 
+               = return linkReAssigner0
+            addRemainingIdentifications (nds:ndss) linkReAssigner0 =
+               do
+                  let
+                     (nd @ (_,wml0,_) : _) = nds
+                  linkReAssigner1 <- 
+                        if elemFM (toKey nd) (linkMap linkReAssigner0)
+                     then
+                        -- we've done this one
+                        return linkReAssigner0
+                     else
+                        do
+                           -- generate a link to use, of appropriate type.
+                           let
+                              -- this takes the first link as argument,
+                              -- and uses it if possible.
+                              genLink :: HasMerging object => Link object
+                                 -> IO (Link object)
+                              genLink link0 = if
+                                    elemFM (WrappedMergeLink link0) 
+                                       (allMergesMap linkReAssigner0)
+                                 then
+                                    -- can't use link0 as it's already
+                                    -- taken.
+                                    absolutelyNewLink repository
+                                 else
+                                    return link0
+
+                              genWrappedLink :: WrappedMergeLink 
+                                 -> IO WrappedMergeLink
+                              genWrappedLink (WrappedMergeLink link0) =
+                                 do
+                                    link1 <- genLink link0
+                                    return (WrappedMergeLink link1)
+                           wml1 <- genWrappedLink wml0
+                           return (addIdentifications wml1 nds linkReAssigner0)
+                  addRemainingIdentifications ndss linkReAssigner1
+
+         let
+            linkReAssigner1 
+               = addHeadIdentifications identifications1 linkReAssigner0
+         linkReAssigner2
+            <- addRemainingIdentifications identifications1 linkReAssigner1
+
+--         debugString (debugLinkReAssigner linkReAssigner2)
+         return linkReAssigner2
       )
    where
       (View {repository = repository} : _ ) = views
 
-      linkAsDataObject :: HasMerging object => ObjectNode object key -> Bool
-      linkAsDataObject objectNode = linkAsData (badLink objectNode)
-         where
-            badLink :: HasMerging object => ObjectNode object key 
-               -> Link object
-            badLink _ = error "MergeReAssign.2"
-
-
-      addRef :: HasMerging object 
-         => WrappedMergeLink -> [(View,Link object)]
-         -> LinkReAssigner -> LinkReAssigner
-      addRef newLink [] linkReAssigner = linkReAssigner
-      addRef newLink (oldLinkPair:oldLinkPairs) 
-         (linkReAssigner0 @ (LinkReAssigner {
-               linkMap = linkMap0,allMergesMap = allMergesMap0})) =
-            let
-               (view,link) = oldLinkPair
-               oldLinkPair1 = (viewId view,WrappedMergeLink link)
-               oldLinkPair2 = (view,WrappedMergeLink link)
-
-               linkReAssigner1 =
-                  case lookupFM linkMap0 oldLinkPair1 of
-                     Nothing ->
-                        let
-                           linkMap1 = addToFM linkMap0 oldLinkPair1 newLink
-                           oldList 
-                              = lookupWithDefaultFM allMergesMap0 [] newLink
-                           allMergesMap1 = addToFM allMergesMap0 newLink 
-                              (oldLinkPair2 : oldList)   
-                           linkReAssigner1 = LinkReAssigner {
-                              linkMap = linkMap1,
-                              allMergesMap = allMergesMap1}
-                        in
-                           linkReAssigner1
-                     Just _ -> linkReAssigner0
-                        -- element is already assigned.
-            in
-               addRef newLink oldLinkPairs linkReAssigner1
 
 newState :: IO State
 newState =
@@ -525,6 +665,22 @@ assignView view (State {registry = registry,allNodes = allNodes})
 -- ------------------------------------------------------------------
 -- Functions for debugging
 -- ------------------------------------------------------------------
+
+debugLinkReAssigner :: LinkReAssigner -> String
+debugLinkReAssigner linkReAssign =
+   let
+      linkMap1 :: FiniteMap (ViewId,WrappedMergeLink) WrappedMergeLink
+      linkMap1 = linkMap linkReAssign
+
+      linkMap2 :: [((ViewId,WrappedMergeLink),WrappedMergeLink)]
+      linkMap2 = fmToList linkMap1
+
+      linkMap3 :: [((ViewId,String),String)]
+      linkMap3 = map
+         (\ ((vi,wml1),wml2) -> ((vi,debugWML wml1),debugWML wml2))
+         linkMap2
+   in
+      show linkMap3
 
 
 debugWML :: WrappedMergeLink -> String

@@ -4,6 +4,12 @@
 module MMiSSPackageFolder(
    MMiSSPackageFolder,
    MMiSSPackageFolderType,
+
+   toMMiSSPreambleLink, -- :: MMiSSPackageFolder -> Link MMiSSPreamble
+   getMMiSSPackageFolder,  
+      -- :: View -> LinkedObject -> IO (WithError MMiSSPackageFolder)
+   toLinkEnvironment, -- :: MMiSSPackageFolder -> LinkEnvironment
+
    ) where
 
 import Maybe
@@ -14,6 +20,7 @@ import Control.Concurrent.MVar
 import Computation
 import ExtendedPrelude
 import Dynamics
+import Sink
 import Sources
 import AtomString(fromString,toString)
 import VariableSet
@@ -44,6 +51,7 @@ import MMiSSObjectType hiding (linkedObject)
 import MMiSSObjectTypeType hiding (displayParms)
 import MMiSSImportLaTeX
 import MMiSSObjectTypeInstance
+import MMiSSPreamble
 
 -- ------------------------------------------------------------------------
 -- The MMiSSPackageFolderType type and its instance of HasCodedValue
@@ -75,8 +83,14 @@ data MMiSSPackageFolder = MMiSSPackageFolder {
    linkedObject :: LinkedObject,
    blocker1 :: Blocker WrappedLink,
       -- blocker for link to head package.
-   blocker2 :: Blocker WrappedLink
+   blocker2 :: Blocker WrappedLink,
       -- blocker for package contents.
+   blocker3 :: Blocker WrappedLink,
+      -- blocker for preamble link.
+   preambleLink :: Link MMiSSPreamble,
+      -- Link to this package's preamble.
+   linkEnvironment :: LinkEnvironment
+      -- Link to this package's link environment.
    }
 
 mmissPackageFolder_tyRep = mkTyRep "MMiSSPackageFolder" "MMiSSPackageFolder"
@@ -86,13 +100,17 @@ instance HasTyRep MMiSSPackageFolder where
 
 instance HasBinary MMiSSPackageFolder CodingMonad where
    writeBin = mapWrite
-      (\ (MMiSSPackageFolder {linkedObject = linkedObject})
-         -> linkedObject
+      (\ (MMiSSPackageFolder {
+            linkedObject = linkedObject,
+            preambleLink = preambleLink
+            })
+         -> (linkedObject,preambleLink)
          )
    readBin = mapReadViewIO
-      (\ view linkedObject ->
+      (\ view (linkedObject,preambleLink) ->
          do
-            mmissPackageFolder <- createMMiSSPackageFolder view linkedObject
+            mmissPackageFolder 
+               <- createMMiSSPackageFolder view linkedObject preambleLink
             return mmissPackageFolder
          )
 
@@ -100,11 +118,37 @@ instance HasLinkedObject MMiSSPackageFolder where
    toLinkedObject mmissPackageFolder = linkedObject mmissPackageFolder
 
 -- ------------------------------------------------------------------------
+-- Functions which need to go in the .boot.hs file.
+-- ------------------------------------------------------------------------
+
+toLinkEnvironment :: MMiSSPackageFolder -> LinkEnvironment
+toLinkEnvironment = linkEnvironment
+
+toMMiSSPreambleLink :: MMiSSPackageFolder -> Link MMiSSPreamble
+toMMiSSPreambleLink = preambleLink
+
+getMMiSSPackageFolder 
+   :: View -> LinkedObject -> IO (WithError MMiSSPackageFolder)
+getMMiSSPackageFolder view linkedObject = 
+   do 
+      packageFolderLinkOptWE <- toParentLink linkedObject
+      case fromWithError packageFolderLinkOptWE of
+         Left mess -> return (hasError 
+            "MMiSS object somehow not in an MMiSSPackageFolder")
+         Right Nothing -> return (hasError 
+            "MMiSS object somehow not contained anywhere")
+         Right (Just packageFolderLink) ->
+            do
+               packageFolder <- readLink view packageFolderLink
+               return (hasValue packageFolder)
+          
+-- ------------------------------------------------------------------------
 -- Constructing the MMiSSPackageFolder
 -- ------------------------------------------------------------------------
 
-createMMiSSPackageFolder :: View -> LinkedObject -> IO MMiSSPackageFolder
-createMMiSSPackageFolder view linkedObject =
+createMMiSSPackageFolder :: View -> LinkedObject -> Link MMiSSPreamble 
+   -> IO MMiSSPackageFolder
+createMMiSSPackageFolder view linkedObject preambleLink =
    do
      let
         -- Create blocker for link to head package
@@ -127,10 +171,39 @@ createMMiSSPackageFolder view linkedObject =
 
      blocker2 <- newBlocker contentsSet
 
+  
+     
+     -- Create the link environment.  We use unsafeInterleaveIO since
+     -- sometimes we need to create the link environment before the
+     -- preamble has actually been written to.
+     linkEnvironment <- unsafeInterleaveIO (
+        do
+           mmissPreamble <- readLink view preambleLink
+
+           -- we use Sink.newParallelDelayedSink to tie the loop 
+           -- of creating the LinkEnvironment and writing to it.
+           (sink,writeAction) <- newParallelDelayedSink
+
+           path0 <- addOldSink (toPackagePath mmissPreamble) sink
+           linkEnvironment <- newLinkEnvironment linkedObject path0
+           writeAction (\ path -> setPath linkEnvironment path)
+           return linkEnvironment
+        )
+
+     let
+        preambleSet :: VariableSetSource WrappedLink
+        preambleSet = singletonSetSource
+           (staticSimpleSource (WrappedLink preambleLink))
+
+     blocker3 <- newBlocker preambleSet
+
      return (MMiSSPackageFolder {
         linkedObject = linkedObject,
         blocker1 = blocker1,
-        blocker2 = blocker2
+        blocker2 = blocker2,
+        blocker3 = blocker3,
+        preambleLink = preambleLink,
+        linkEnvironment = linkEnvironment
         })
 
 ---
@@ -151,7 +224,16 @@ extractObjectSameName linkedObject =
 
 instance HasMerging MMiSSPackageFolder where
 
-   getMergeLinks = getLinkedObjectMergeLinks
+   getMergeLinks = 
+      let
+         -- need to process LinkedObject links to add on a link for the
+         -- preamble.
+         mergeLinks1 = getLinkedObjectMergeLinks
+         mergeLinks2 = singletonMergeLinks 
+            (\ mmissPackageFolder 
+               -> WrappedMergeLink (preambleLink mmissPackageFolder))
+      in
+         pairMergeLinks mergeLinks1 mergeLinks2
 
    attemptMerge linkReAssigner newView newLink vlos =
       addFallOutWE (\ break ->
@@ -160,6 +242,11 @@ instance HasMerging MMiSSPackageFolder where
             -- simple as we don't have attributes or more than one
             -- type.
             (vlosPruned @ ((view1,link1,folder1) : _)) <- mergePrune vlos
+
+            let
+               preambleLink1 = preambleLink folder1
+
+               preambleLink2 = mapLink linkReAssigner view1 preambleLink1
 
             newLinkedObjectWE <- attemptLinkedObjectMerge
                linkReAssigner newView newLink
@@ -177,8 +264,8 @@ instance HasMerging MMiSSPackageFolder where
                   cloneLink view1 link1 newView newLink
                else
                   do
-                     mmissPackageFolder 
-                        <- createMMiSSPackageFolder newView newLinkedObject
+                     mmissPackageFolder <- createMMiSSPackageFolder 
+                        newView newLinkedObject preambleLink2
                      setLink newView mmissPackageFolder newLink
                      done
       )
@@ -227,6 +314,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                      do
                         openBlocker (blocker1 folder) blockID
                         openBlocker (blocker2 folder) blockID
+                        openBlocker (blocker3 folder) blockID
                      )
 
             closeAction link =
@@ -234,6 +322,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   folder <- readLink view link
                   delay view (
                      do
+                        closeBlocker (blocker3 folder) blockID
                         closeBlocker (blocker2 folder) blockID
                         closeBlocker (blocker1 folder) blockID
                      )
@@ -251,9 +340,11 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   arcs1 <- toArcEnds (blocker1 folder) blockID theArcType
                   arcs2 
                      <- toArcEnds (blocker2 folder) blockID theInvisibleArcType
-
+                  arcs3 
+                     <- toArcEnds (blocker3 folder) blockID thePreambleArcType
                   let
-                     arcs = catVariableLists arcs1 arcs2
+                     arcs = catVariableLists arcs1 
+                        (catVariableLists arcs2 arcs3)
 
                   return arcs
 
@@ -267,11 +358,17 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                      (DoubleClickAction openAction) $$$
                      nodeTypeParms0
 
+                  preambleArcTypeParms =
+                     Color "blue" $$$
+                     emptyArcTypeParms
+ 
+
                   nodeDisplayData = NodeDisplayData {
                      topLinks = [],
                      arcTypes = [
                         (theArcType,Double $$$ emptyArcTypeParms),
-                        (theInvisibleArcType,invisibleArcTypeParms)],
+                        (theInvisibleArcType,invisibleArcTypeParms),
+                        (thePreambleArcType,preambleArcTypeParms)],
                      nodeTypes = [(theNodeType,nodeTypeParms1)],
                      getNodeType = const theNodeType,
                      getNodeLinks = getNodeLinks1,
@@ -317,6 +414,9 @@ theArcType = fromString "T"
 theInvisibleArcType :: ArcType
 theInvisibleArcType = fromString ""
 
+thePreambleArcType :: ArcType
+thePreambleArcType = fromString "B"
+
 -- ------------------------------------------------------------------------
 -- Importing a new package
 -- ------------------------------------------------------------------------
@@ -328,13 +428,18 @@ importMMiSSPackage view parentLinkedObject =
       -- We create the LinkedObject first of all, but without putting 
       -- anything in it, or putting it into anything, enabling us to 
       -- tie the knot.  However we do at least make sure that the link
-      -- points to a complete MMiSSPackage.  In the event of failure we will
-      -- delete this link.
+      -- points to a complete MMiSSPackage. 
+      --
+      -- We also create a link for the preamble.
+      -- Both links will get deleted if we fail.
       (link :: Link MMiSSPackageFolder) <- newEmptyLink view
+      (preambleLink1 :: Link MMiSSPreamble) <- newEmptyLink view
+     
       let
          error1 =
             do
                deleteLink view link
+               deleteLink view preambleLink1
                return Nothing
 
       linkedObjectWE <- newLinkedObject view (WrappedLink link) Nothing
@@ -344,7 +449,7 @@ importMMiSSPackage view parentLinkedObject =
                createErrorWin mess []
                error1
          Right linkedObject ->
-            (delay view) .
+--            (delay view) .
             (synchronizeView view) $ (
             do
                let
@@ -354,8 +459,8 @@ importMMiSSPackage view parentLinkedObject =
                         error1
                resultWE <- addFallOutWE (\ break ->
                   do
-                     mmissPackageFolder 
-                        <- createMMiSSPackageFolder view linkedObject
+                     mmissPackageFolder <- createMMiSSPackageFolder 
+                        view linkedObject preambleLink1
                      writeLink view link mmissPackageFolder
 
                      let
@@ -371,7 +476,8 @@ importMMiSSPackage view parentLinkedObject =
 
                         packageType = retrieveObjectType "package"
 
-                     importMMiSSLaTeX packageType view getLinkedObject
+                     importMMiSSLaTeX preambleLink1 packageType view 
+                        getLinkedObject
                   )          
 
                case fromWithError resultWE of

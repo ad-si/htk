@@ -16,11 +16,12 @@ import Computation
 import ExtendedPrelude
 import AtomString
 import Delayer
-import VariableSet (toKey)
+import VariableSet (toKey,emptyVariableSetSource)
 import VariableSetBlocker
 import Sources
 import ReferenceCount
 import Thread(mapMConcurrentExcep)
+
 
 import BSem
 
@@ -60,7 +61,7 @@ import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSObjectTypeInstance
 import MMiSSEditXml (toExportableXml)
-import MMiSSPackageFolder (MMiSSPackageFolder)
+import MMiSSPackageFolder
 
 ---
 -- Creates or update an object from an Xml Element.
@@ -84,14 +85,14 @@ import MMiSSPackageFolder (MMiSSPackageFolder)
 -- (1) a link to the new object; (2) if we split up the input element into
 -- multiple (more than one) output elements, we return the top element,
 -- namely the one that actually got written to the object.
-writeToMMiSSObject :: Link MMiSSPreamble -> MMiSSObjectType -> View 
+writeToMMiSSObject :: MMiSSObjectType -> View 
    -> LinkedObject -> Maybe EntityFullName -> Element -> Bool 
    -> IO (WithError (Link MMiSSObject,Maybe Element))
-writeToMMiSSObject preambleLink objectType view startLinkedObject 
+writeToMMiSSObject objectType view startLinkedObject 
    expectedLabel element checkThisEditLock =
-
-   addFallOutWE (\ break ->
-      (delay view) (do
+ 
+  addFallOutWE (\ break ->
+      (do
          -- (1) validate it.
          case validateElement (xmlTag objectType) element of
             (s@ (_:_)) -> break (unlines s)
@@ -306,7 +307,7 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
 
             -- The list, with the head object first.
             preObjectsList2 = headObject:preObjectsList1
- 
+
          -- (6) Attempt to grab all the editLocks for all variants which are
          --     already in existence, unless this one if checkThisEditLock
          --     is set.
@@ -354,7 +355,7 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
             synchronizeView view (
                Control.Exception.finally (
                   mapMConcurrentExcep
-                     (simpleWriteToMMiSSObject preambleLink view break) 
+                     (simpleWriteToMMiSSObject view break) 
                      preObjectsList2
                      )
                   releaseAct
@@ -374,10 +375,10 @@ writeToMMiSSObject preambleLink objectType view startLinkedObject
 
 ---
 -- Create a single object.  The contents list must be non-empty.
-simpleWriteToMMiSSObject :: Link MMiSSPreamble -> View -> BreakFn 
+simpleWriteToMMiSSObject :: View -> BreakFn 
    -> (ObjectLoc,[StructuredContent])
    -> IO (Link MMiSSObject)
-simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
+simpleWriteToMMiSSObject view break (objectLoc,contentsList) =
    do
       -- (1) Construct the object, if necessary.
       -- This does not actually insert the object in the folder, the reason
@@ -408,7 +409,8 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                      = retrieveObjectType (tag (head contentsList))
 
                nodeActions <- newNodeActionSource
-               extraNodes <- newExtraNodes preambleLink
+
+               extraNodes <- newBlocker emptyVariableSetSource
 
                creationResult <- createLinkedObjectChildSplit 
                   view parentLinkedObject entityName 
@@ -482,7 +484,6 @@ simpleWriteToMMiSSObject preambleLink view break (objectLoc,contentsList) =
                         let
                            variable = Variable {
                               element = elementLink,
-                              preamble = preambleLink,
                               editLock = editLock
                               }
 

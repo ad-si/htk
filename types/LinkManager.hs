@@ -9,11 +9,14 @@ module LinkManager(
       -- Instance of HasCodedValue, Eq, Ord.
    LinkEnvironment,
       -- This represents some context (a path and an object) in which
-      -- links are to be looked up.  Instance of Eq, Ord.
+      -- links are to be looked up.  Instance of Eq, Ord, HasCodedValue.
    LinkSource,
       -- This represents a set of links (EntityFullName's) to search for.
       -- We also carry (with the LinkSource) values of some type specified
       -- as a parameter to LinkSource.
+   FrozenLinkSource,
+      -- a way of storing a LinkSource.  Instance of HasCodedValue.
+   
 
    Insertion,
       -- This represents somewhere to put a LinkedObject.
@@ -158,6 +161,16 @@ module LinkManager(
       -- Return the EntityFullName's which cannot be matched for the 
       -- LinkSource.
 
+
+
+   freezeLinkSource,
+      -- :: LinkSource value -> IO (FrozenLinkSource value)
+      -- Freeze a LinkSource (used on encoding).
+
+   createLinkSource,
+      -- :: LinkEnvironment -> FrozenLinkSource value -> IO (LinkSource value)
+      -- Create a LinkSource given a FrozenLinkSource (used on decoding)
+
    mkArcEnds,
       -- :: Bool -> LinkSource value -> (value -> ArcType) -> ArcEnds
       -- Construct the ArcEnds for a linkSource (with their paired
@@ -223,10 +236,12 @@ import MergeTypes
 -- User interface
 -- ----------------------------------------------------------------------
 
--- those things which have a LinkedObject.  (No instances are
--- declared in this file.)
+-- those things which have a LinkedObject.
 class HasLinkedObject object where
    toLinkedObject :: object -> LinkedObject
+
+instance HasLinkedObject LinkedObject where
+   toLinkedObject linkedObject = linkedObject
 
 ---
 -- Create a new LinkedObject.
@@ -1013,6 +1028,12 @@ createLinkEnvironment (FrozenLinkEnvironment {linkedObject' = linkedObject',
          setPath newPath = broadcast path0 newPath
       return (LinkEnvironment {linkedObject = linkedObject,path = path,
          setPath = setPath,oID = oID})
+
+instance HasBinary LinkEnvironment CodingMonad where
+
+   writeBin = mapWriteIO freezeLinkEnvironment
+
+   readBin = mapReadIO createLinkEnvironment
 
 -- ----------------------------------------------------------------------
 -- FrozenLinkSource's and creating LinkSource's.

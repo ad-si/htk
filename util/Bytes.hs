@@ -161,6 +161,7 @@ bytesAlloca len fn = allocaBytes len (\ ptr -> fn (Bytes ptr))
 bytesFree :: Bytes -> IO ()
 bytesFree (Bytes ptr) = free ptr
 
+
 withBytesAsCChars :: Bytes -> (Ptr CChar -> IO a) -> IO a
 withBytesAsCChars (Bytes ptr) fn = fn ptr
 

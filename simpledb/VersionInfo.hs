@@ -172,8 +172,8 @@ instance StringClass ObjectVersion where
 -- ----------------------------------------------------------------------
    
 instance Monad m => HasBinary ObjectVersion m where
-   writeBin = mapWrite (\ (ObjectVersion i) -> i)
-   readBin = mapRead ObjectVersion
+   writeBin = mapWrite (\ (ObjectVersion i) -> (Unsigned i))
+   readBin = mapRead (\ (Unsigned i) -> (ObjectVersion i))
    
 instance Monad m => HasBinary UserInfo m where
    writeBin = mapWrite 

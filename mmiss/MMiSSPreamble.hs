@@ -7,8 +7,10 @@ module MMiSSPreamble(
 
    createPreamble, -- :: View -> MMiSSLatexPreamble -> IO (Link MMiSSPreamble)
    readPreamble, -- :: View -> Link MMiSSPreamble -> IO MMiSSLaTeXPreamble
---  readLinkEnvironment, -- :: View -> Link MMiSSPreamble 
--- -> IO LinkEnvironment
+   writePreamble, -- :: Link Preamble -> View -> MMiSSLaTeXPreamble -> IO ()
+
+
+   toPackagePath, -- :: MMiSSPreamble -> SimpleSource EntityPath
 
    ) where
 
@@ -21,6 +23,7 @@ import Dynamics
 import AtomString
 import VariableSet
 import Sources
+import Broadcaster
 
 import BSem
 
@@ -38,6 +41,7 @@ import Link
 import View
 import MergeTypes
 import MergePrune
+import EntityNames
 
 import EmacsEdit
 import EmacsContent
@@ -48,12 +52,7 @@ import LaTeXParser
 -- MMiSSPreambleType
 -- -------------------------------------------------------------------
 
-data MMiSSPreambleType = MMiSSPreambleType
-
-mmissPreambleType_tyRep = mkTyRep "MMiSSPreamble" "MMiSSPreambleType"
-
-instance HasTyRep MMiSSPreambleType where
-   tyRep _ = mmissPreambleType_tyRep
+data MMiSSPreambleType = MMiSSPreambleType deriving (Typeable)
 
 instance Monad m => HasBinary MMiSSPreambleType m where
    writeBin = mapWrite (\ MMiSSPreambleType -> ())
@@ -64,26 +63,21 @@ instance Monad m => HasBinary MMiSSPreambleType m where
 -- -------------------------------------------------------------------
 
 data MMiSSPreamble = MMiSSPreamble {
-   preamble :: IORef MMiSSLatexPreamble,
+   preamble :: SimpleBroadcaster MMiSSLatexPreamble,
    editLock :: BSem
-   }
-
-mmissPreamble_tyRep = mkTyRep "MMiSSPreamble" "MMiSSPreamble"
-
-instance HasTyRep MMiSSPreamble where
-   tyRep _ = mmissPreamble_tyRep
+   } deriving (Typeable)
 
 instance HasBinary MMiSSPreamble CodingMonad where
    writeBin = mapWriteIO
       (\ (MMiSSPreamble {preamble = preamble}) ->
          do
-            latexPreamble <- readIORef preamble
+            latexPreamble <- readContents preamble
             return latexPreamble
          )
    readBin = mapReadIO
       (\ latexPreamble ->
          do
-            preamble <- newIORef latexPreamble
+            preamble <- newSimpleBroadcaster latexPreamble
             editLock <- newBSem
             return (MMiSSPreamble {preamble = preamble,editLock = editLock})
          )
@@ -106,8 +100,6 @@ instance HasMerging MMiSSPreamble where
                do
                   cloneLink view preambleLink newView newLink
                   return (hasValue ())
-
-   linkAsData _ = True
 
 -- -------------------------------------------------------------------
 -- The instance of ObjectType.
@@ -173,7 +165,7 @@ preambleFS =
                lockGot <- tryAcquire editLock
                if lockGot then done else
                   break "Preamble is already being edited"
-               latexPreamble <- readIORef preamble
+               latexPreamble <- readContents preamble
                let
                   latexPreambleStr = toString latexPreamble
                   emacsContent = EmacsContent [EditableText latexPreambleStr]
@@ -184,7 +176,7 @@ preambleFS =
                         mapWithErrorIO
                            (\ latexPreamble -> 
                               do
-                                 writeIORef preamble latexPreamble
+                                 broadcast preamble latexPreamble
                                  return Nothing
                               )
                            latexPreambleWE
@@ -210,8 +202,7 @@ printAction = PrintAction
 -- We need to define an ordering on MMiSSPreamble's for EditFS, but since
 -- that only ever sees one preamble at a time we can afford to make it trivial.
 instance Eq MMiSSPreamble where
-   (==) (MMiSSPreamble {preamble = preamble1}) 
-      (MMiSSPreamble {preamble = preamble2}) = preamble1 == preamble2
+   (==) = mapEq editLock
 
 instance Ord MMiSSPreamble where
    compare preamble1 preamble2 =
@@ -222,10 +213,21 @@ instance Ord MMiSSPreamble where
 -- Creating and Reading Preambles
 -- -------------------------------------------------------------------
 
+writePreamble :: Link MMiSSPreamble -> View -> MMiSSLatexPreamble -> IO ()
+writePreamble preambleLink view latexPreamble =
+   do
+      preamble <- newSimpleBroadcaster latexPreamble
+      editLock <- newBSem
+      let
+         mmissPreamble 
+            = MMiSSPreamble {preamble = preamble,editLock = editLock}
+
+      writeLink view preambleLink mmissPreamble
+
 createPreamble :: View -> MMiSSLatexPreamble -> IO (Link MMiSSPreamble)
 createPreamble view latexPreamble =
    do
-      preamble <- newIORef latexPreamble
+      preamble <- newSimpleBroadcaster latexPreamble
       editLock <- newBSem
       let
          mmissPreamble 
@@ -239,16 +241,21 @@ readPreamble :: View -> Link MMiSSPreamble -> IO MMiSSLatexPreamble
 readPreamble view link =
    do
       mmissPreamble <- readLink view link
-      latexPreamble <- readIORef (preamble mmissPreamble)
+      latexPreamble <- readContents (preamble mmissPreamble)
       return latexPreamble
 
 -- -------------------------------------------------------------------
--- readLinkEnvironment
+-- Interface needed for MMiSSPackageFolder
 -- -------------------------------------------------------------------
 
----
--- Currently returns just the . link environment
--- readLinkEnvironment :: View -> Link MMiSSPreamble -> IO LinkEnvironment
+toPackagePath :: MMiSSPreamble -> SimpleSource EntityPath
+toPackagePath mmissPreamble = 
+   fmap toPath (toSimpleSource (preamble mmissPreamble))
+
+toPath :: MMiSSLatexPreamble -> EntityPath
+toPath _ = trivialPath
+   -- trivial for now.  When we change to new includes this will need
+   -- to be altered.
 
 -- -------------------------------------------------------------------
 -- The Global Registry.  This will in fact be empty.
