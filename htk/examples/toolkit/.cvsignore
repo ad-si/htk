@@ -1,0 +1,14 @@
+*.o
+*.hi
+.depend
+Makefile
+*%
+
+logwin
+filedialog
+markup
+dialog
+simpleform
+simplemenu
+spinbutton
+treelist

@@ -1,11 +1,8 @@
 LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
        $(TOP)/events/libevents.a $(TOP)/util/libutil.a
 
-SRCS       = MaingenGUIEx.hs\
-	     MaingenGUIFileBrowseEx.hs\
-             MaingenericBrowserEx.hs
-
-SUBDIRS = simple canvas tix toolkit
+SRCS       = Maintixwidgets.hs\
+             Mainpanedwindow.hs
 
 XHCDIRS = $(HTKDIRS)
 

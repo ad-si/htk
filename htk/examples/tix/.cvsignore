@@ -1,0 +1,8 @@
+*.o
+*.hi
+.depend
+Makefile
+*%
+
+panedwindow
+tixwidgets
