@@ -14,6 +14,12 @@ creadTK can't parse Bool? [cxl/crimson, 21.09.01]
      do v<- (createTkVariable True):: IO (TkVariable Bool)
         readTkVariable v
    leads to "NO PARSE: True".
+
+TkVariables [cxl, 17.09.01]
+ MenuCheckButtons can have TkVariables of any type. Using e.g. list of
+ string leads to 
+    Fail: invalid command name "abc"
+ presumably as wish tries to a evaluate "[abc]". 
   
 Font parsing [ludi, 17.08.01] 
  In resources/Font.hs, in the class instantiation of XFont for Read,
@@ -21,7 +27,6 @@ Font parsing [ludi, 17.08.01]
  all fields of the XFont). This is in particular happens in text
  widgets where the font is not specified explicitly-- 
  see examples/MainmarkupTextEx.hs
-
 
 
 
