@@ -17,6 +17,11 @@ module Graph(
    -- Nodes, Arc, NodeTypes, Arc
    Node, Arc, NodeType, ArcType,
    -- These are all instances of AtomString.StringClass (and so Read & Show).
+   -- This means that they are essentially strings; the different types
+   -- are just there to add a little abstraction.
+   -- They are also all instances of Eq and Ord.  However there
+   -- is no guarantee that the ordering will be the same as for the
+   -- corresponding strings.
 
    -- Updates
    Update(..),
@@ -71,11 +76,11 @@ class Graph graph where
    getTarget :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> Arc -> IO Node
    getArcLabel :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
-      -> Arc -> IO nodeLabel
+      -> Arc -> IO arcLabel
    getArcType :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> Arc -> IO ArcType
    getArcTypeLabel :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
-      -> ArcType -> IO nodeTypeLabel
+      -> ArcType -> IO arcTypeLabel
 
    shareGraph :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> 
       IO (GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
@@ -84,6 +89,7 @@ class Graph graph where
 
    update :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel 
       -> Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel -> IO ()
+      
 
 ------------------------------------------------------------------------
 -- GraphConnection
@@ -139,10 +145,12 @@ instance StringClass ArcType where
 
 data Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
       NewNodeType NodeType nodeTypeLabel
+   |  SetNodeTypeLabel NodeType nodeTypeLabel
    |  NewNode Node NodeType nodeLabel 
    |  DeleteNode Node
    |  SetNodeLabel Node nodeLabel
    |  NewArcType ArcType arcTypeLabel
+   |  SetArcTypeLabel ArcType arcTypeLabel
    |  NewArc Arc ArcType arcLabel Node Node
    |  DeleteArc Arc
    |  SetArcLabel Arc arcLabel

@@ -9,8 +9,10 @@ module Registry(
                 -- any Typeable values.
    NewRegistry(..),
    GetSetRegistry(..),
-   DeleteFromRegistry(..),
+   KeyOpsRegistry(..),
       -- These classes describe access operations for registries.
+   listRegistryContents,
+      -- :: Registry from to -> IO [(from,to)]
    ) where
 
 import IO
@@ -26,15 +28,17 @@ import Dynamics
 
 class NewRegistry registry where
    newRegistry :: IO registry
+   emptyRegistry :: registry -> IO ()
 
 class GetSetRegistry registry from to where
    getValue :: registry -> from -> IO to
-      -- should raise an IO error if the value is not defined or 
+      -- should raise an IO error if the value is not defined or- 
       -- (for UntypedRegistry) has the wrong type.
    setValue :: registry -> from -> to -> IO ()
 
-class DeleteFromRegistry registry from where
+class KeyOpsRegistry registry from where
    deleteFromRegistry :: registry -> from -> IO ()
+   listKeys :: registry -> IO [from]
 
 -- ----------------------------------------------------------------------
 -- Typed registries
@@ -47,6 +51,8 @@ instance Ord from => NewRegistry (Registry from to) where
       do
          mVar <- newMVar emptyFM
          return (Registry mVar)
+   emptyRegistry (Registry mVar) =
+      putMVar mVar emptyFM
 
 instance Ord from => GetSetRegistry (Registry from to) from to where
    getValue (Registry mVar) from =
@@ -62,11 +68,21 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
          putMVar mVar (addToFM map from to)
 
 
-instance Ord from => DeleteFromRegistry (Registry from to) from where
+instance Ord from => KeyOpsRegistry (Registry from to) from where
    deleteFromRegistry (Registry mVar) from =
       do
          map <- takeMVar mVar
          putMVar mVar (delFromFM map from)
+   listKeys (Registry mVar) =
+      do
+         map <- readMVar mVar
+         return (keysFM map)
+
+listRegistryContents :: Registry from to -> IO [(from,to)]
+listRegistryContents (Registry mVar) =
+   do
+      map <- readMVar mVar
+      return (fmToList map)
 
 -- ----------------------------------------------------------------------
 -- Untyped registries
@@ -79,6 +95,7 @@ instance Ord from => NewRegistry (UntypedRegistry from) where
       do
          registry <- newRegistry
          return (UntypedRegistry registry)
+   emptyRegistry (UntypedRegistry registry) = emptyRegistry registry
 
 instance (Ord from,Typeable to) 
    => GetSetRegistry (UntypedRegistry from) from to where
@@ -95,6 +112,7 @@ instance (Ord from,Typeable to)
             dyn = toDyn to
          setValue registry from dyn
 
-instance Ord from => DeleteFromRegistry (UntypedRegistry from) from where
+instance Ord from => KeyOpsRegistry (UntypedRegistry from) from where
    deleteFromRegistry (UntypedRegistry registry) from =
       deleteFromRegistry registry from
+   listKeys (UntypedRegistry registry) = listKeys registry

@@ -7,7 +7,8 @@
 module AtomString(
    AtomString, 
       -- represents a string.  Instance of Ord, Eq, StringClass, 
-      -- Read and Show.
+      -- Read and Show.  There is no guarantee that Ord on AtomString
+      -- corresponds to Ord on the corresponding String.
    StringClass(..),
       -- encodes that a type encodes strings in some way.
    ) where               
