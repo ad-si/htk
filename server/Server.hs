@@ -87,9 +87,11 @@ runServer portDesc serviceList =
                                     clientList <- readMVar clients
                                     sequence_ (
                                        map
-                                          (\ clientData -> 
-                                             hPutStrLn 
-                                                (handle clientData) message
+                                          (\ clientData ->
+                                             do 
+                                                hPutStrLn 
+                                                   (handle clientData) message
+                                                debug "Sent message"
                                              ) 
                                           clientList
                                        )
@@ -110,25 +112,25 @@ runServer portDesc serviceList =
                            putMVar stateMVar state
                            backupAction service state
                      -- Deal with BackupEvery-type backups
-                     backupTick = -- do after each update
-                        case backupDelay of
-                           BackupEvery howOft ->
-                              do 
-                                 counter <- newMVar howOft
-                                 let
-                                    backupTick =
-                                       do
-                                          cVal <- takeMVar counter
-                                          if cVal <= 0 
-                                             then
-                                                do
-                                                   doBackup
-                                                   putMVar counter howOft
-                                             else
-                                                putMVar counter (cVal - 1)
-                                 return backupTick
-  
-                           _ -> return done
+                  backupTick <- -- do after each update
+                     case backupDelay of
+                        BackupEvery howOft ->
+                           do 
+                              counter <- newMVar howOft
+                              let
+                                 backupTick =
+                                    do
+                                       cVal <- takeMVar counter
+                                       if cVal <= 0 
+                                          then
+                                             do
+                                                doBackup
+                                                putMVar counter howOft
+                                          else
+                                             putMVar counter (cVal - 1)
+                              return backupTick
+                  
+                        _ -> return done
 
                      -- Deal with BackupAfter type backups
                   case backupDelay of
@@ -191,17 +193,22 @@ runServer portDesc serviceList =
                                     debug ("Server read "++inLine)
                                     let
                                        input = read inLine
-                                    oldState <- takeMVar stateMVar 
+                                    oldState <- takeMVar stateMVar
+                                    debug ("Got state") 
                                     (output,newState) <- 
                                        protect
                                           (putMVar stateMVar oldState)
                                           (handleRequest service 
                                              (input,oldState))
+                                    putMVar stateMVar newState
+                                    debug ("Updated state")
                                     backupTick
+                                    debug "Done backup"
                                     let
                                        outLine = show output
                                     protect done 
                                        (broadcastAction handle outLine)
+                                    debug "done broadcast"
                                     clientReadAction
                            -- however it needs a wrapper so harmless
                            -- (EOF) errors don't cause any trouble.

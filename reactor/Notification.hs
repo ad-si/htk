@@ -65,7 +65,8 @@ mkNotifier hostDesc =
             do
                key <- receiveAction
                dispatch eventBroker (notifier,key) () done
-            
+               readerThread            
+
       forkIO readerThread
       registerTool notifier
       return notifier
