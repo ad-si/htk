@@ -354,10 +354,11 @@ class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
 
    arcTypeConfig :: Typeable value => 
       arcTypeConfig value -> arcTypeParms value -> arcTypeParms value
-      
-instance (ArcTypeConfigParms arcTypeConfig arcTypeParms,Typeable value)
-      => HasConfig (arcTypeConfig value) (arcTypeParms value) where
-   ($$) = arcTypeConfig
+  
+-- The following instance doesn't seem to work under GHC.    
+-- instance (ArcTypeConfigParms arcTypeConfig arcTypeParms,Typeable value)
+--       => HasConfig (arcTypeConfig value) (arcTypeParms value) where
+--   ($$) = arcTypeConfig
 
 ------------------------------------------------------------------------
 -- Menus and buttons
