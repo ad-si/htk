@@ -151,8 +151,8 @@ runServer serviceList =
                      doBackup =
                         do
                            state <- takeMVar stateMVar
-                           putMVar stateMVar state
                            backupAction service state
+                           putMVar stateMVar state
                      -- Deal with BackupEvery-type backups
                   backupTick <- -- do after each update
                      case backupDelay of
@@ -181,6 +181,7 @@ runServer serviceList =
                            backupThread =
                               do
                                  delay delayTime
+                                 doBackup
                                  backupThread
                         in
                            do

@@ -20,7 +20,11 @@
       replace SimpleGraph by something more complicated later . . .
    -}
 module SimpleGraph(
-   SimpleGraph -- implements Graph
+   SimpleGraph, -- implements Graph
+
+   getNameSource, 
+   -- :: SimpleGraph -> NameSource
+   -- We need to hack the name source as part of the backup process.
    ) where
 
 import List(delete)
@@ -63,6 +67,10 @@ data SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
          -- used to identify the graph (for InfoBus actually)
       bSem :: BSem -- All access operations should synchronize here.
       }
+
+getNameSource :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel ->
+   NameSource
+getNameSource simpleGraph = nameSource simpleGraph
 
 instance Synchronized 
       (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) where

@@ -1,14 +1,15 @@
 {- This provides a ServiceClass instance allowing our
    GraphEditor to be run across a network.  
-
-   There is no backing-up service, but there should be.  As it is
-   we start a new graph each time.
    -}
 module GraphEditorService(
    graphEditorService, -- :: pass to connectBroadcastOther to call server
    graphEditorServiceWrapped, -- pass to server
    FrozenGraph(..), -- What is sent (Showed) on client connect.
    ) where
+
+import Computation(done)
+
+import Thread(secs)
 
 import ServiceClass
 
@@ -20,8 +21,12 @@ import GraphEditor
 data FrozenGraph = FrozenGraph {
    graphState' :: DisplayableCannedGraph,
    nameSourceBranch' :: NameSourceBranch
-   } deriving (Read,Show)
+   } deriving (Read,Show) -- sent on branching
 
+data FrozenGraph2 = FrozenGraph2 {
+   graphState2 :: DisplayableCannedGraph,
+   nameSource2 :: FrozenNameSource
+   } deriving (Read,Show) -- used for backups.
 
 graphEditorServiceWrapped = Service graphEditorService
 
@@ -35,14 +40,12 @@ instance ServiceClass DisplayableUpdate DisplayableUpdate
 
    serviceMode _ = BroadcastOther
 
-   initialState _ = newEmptyGraph
-
    handleRequest _ (newUpdate,simpleGraph) =
       do
          update simpleGraph newUpdate
          return (newUpdate,simpleGraph)
 
-   getBackupDelay _ = return BackupNever
+   getBackupDelay _ = return (BackupAfter (secs 2.0))
 
    sendOnConnect _ simpleGraph =
       do
@@ -63,3 +66,52 @@ instance ServiceClass DisplayableUpdate DisplayableUpdate
             nameSourceBranch' = nameSourceBranch'
             }))
    
+   initialStateFromString _ Nothing = newEmptyGraph
+   initialStateFromString _ (Just frozenGraphString) =
+      do
+         let
+            FrozenGraph2 {
+               graphState2 = graphState,
+               nameSource2 = nameSource2
+               } = read frozenGraphString
+
+            graphConnection childUpdates =
+               return (GraphConnectionData {
+                  graphState = graphState,
+                  deRegister = done,
+                  graphUpdate = (\ _ -> done),
+                  nameSourceBranch = initialBranch
+                  })
+
+         graph <- newGraph graphConnection
+         -- Hack the name source
+         let
+            nameSource = getNameSource graph
+
+         defrostNameSource nameSource nameSource2
+
+         return graph
+
+   backupToString _ graph =
+      do
+         let
+            nameSource = getNameSource graph
+
+         frozenNameSource <- freezeNameSource nameSource
+         (GraphConnectionData {
+            graphState = graphState,
+            deRegister = deRegister,
+            graphUpdate = graphUpdate,
+            }) <- shareGraph graph (\ update -> done)
+
+         -- Avoid wasting a branch number
+         defrostNameSource nameSource frozenNameSource
+
+         deRegister
+
+         return (show (FrozenGraph2 {
+            graphState2 = graphState,
+            nameSource2 = frozenNameSource
+            }))
+
+         

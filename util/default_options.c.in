@@ -1,9 +1,5 @@
-/* default_options() returns a string representing the default
-   options to be compiled into UniForM.  The format of the
-   string is defined in WBFiles.hs.  The reason for
-   putting the default options in a C and not a Haskell file
-   is so that the default options can be changed easily without
-   having to recompile everything. */
+/* default_options is a string representing the default
+   options to be compiled into UniForM. */
 #include "default_options.h"
 
-const char *default_options ="@DEFAULTOPTIONS@";
+const char default_options[] = "@DEFAULTOPTIONS@";

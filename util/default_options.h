@@ -1,4 +1,4 @@
-/* default_options() returns a string representing the default
+/* default_options is a string representing the default
    options to be compiled into UniForM. */
 
-const char *default_options;
+extern const char default_options[];

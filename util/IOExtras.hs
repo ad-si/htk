@@ -15,6 +15,7 @@ import IO
 import qualified IOExts
 import qualified CString
 import Exception
+import Storable
 
 catchEOF :: IO a -> IO (Maybe a)
 catchEOF action =
@@ -45,7 +46,11 @@ readFileInstant :: FilePath -> IO String
 readFileInstant file =
    do
       (addr,len) <- IOExts.slurpFile file
-      CString.unpackCStringLenIO addr len
+      str <- CString.unpackCStringLenIO addr len
+      free addr 
+      -- unpackCStringLenIO is, according to Simon Marlow,
+      -- supposed to unpack the string at once.           
+      return str
 {-
    Another way
 readFileInstant :: String -> IO String

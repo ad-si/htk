@@ -10,5 +10,7 @@ include @TOP@/mk/boilerplate.mk
 
 object.o : object.h
 
+
+WBFiles.o : default_options.h
 default_options.o : default_options.h
 

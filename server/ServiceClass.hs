@@ -104,7 +104,8 @@ getBackupFile :: ServiceClass inType outType stateType =>
 getBackupFile service =
    do
       backupDir <- getBackupDir
-      return (combineNames (trimDir backupDir) (serviceId service))
+      return (combineNames (trimDir backupDir) ((serviceId service)
+         ++".backup"))
  
 data ServiceMode =
       Reply     -- Send output just to client sending input
