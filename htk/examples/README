@@ -6,6 +6,10 @@ be found at the website http://www.informatik.uni-bremen.de/htk; that
 document should also be your first port of call if you are in need of
 introductory information about HTk.
 
+The file canvas/MaingoBoard.hs was written by Isaac Jones 
+(ijones@syntaxpolice.org).  We liked it so much we included it with the
+standard distribution.
+
 Here's a brief run-down of the organisation of the examples: 
 
 - directory intro contains the examples from the "Short Introduction";
@@ -25,3 +29,5 @@ Here's a brief run-down of the organisation of the examples:
 
 -- Christoph Lüth <cxl@informatik.uni-bremen.de> 
    $Revision$ of $Date$
+
+
