@@ -875,8 +875,7 @@ simpleMathEnv =
   )
   <|>
     try( do char '$'
-            str <- plainText "$"
-            char '$'
+            str <- plainTextWithoutDollar ""
             return (Env ("$") (LParams [] [] Nothing Nothing) [(Other str)])
     )
 
@@ -896,6 +895,18 @@ continuePlainFormula l delimiter stopChars =
 
 
 plainText stopChars = many1 (noneOf stopChars)
+
+plainTextWithoutDollar str =
+  try (do char '$'
+          return str)
+  <|> try (do backslash
+              char '$'
+              plainTextWithoutDollar (str ++ "\\$"))
+  <|> try (do backslash
+              c <- anyChar
+              plainTextWithoutDollar (str ++ "\\" ++ [c]))
+  <|> try (do newstr <- many1 (noneOf ("\\$"))
+              plainTextWithoutDollar (str ++ newstr))
 
 
 -- frag erkennt Latex-Fragmente: Kommentare, Environments, Commands und Escaped Chars. 

@@ -34,6 +34,10 @@ import MMiSSDTD
 main =
    do hSetBuffering stdout NoBuffering
       args <- System.getArgs
+      if ((length args) == 0)
+        then do putStr "You must specify an input file. See testLaTeX --help for usage info\n"
+		exitWith ExitSuccess
+        else done
       fileName <- return(last args)
       if ((length (elemIndices "--help" args)) > 0)
         then do putStr "Structue checking tool for MMiSSLaTeX v0.1\n"
