@@ -108,6 +108,14 @@ performs the IO action after successful synchronisation. As with the
 monad composition, \texttt{(>>>)::Event a-> IO b-> Event b} is the
 derived version where the second function throws away its argument.
 
+We can thus prove $fmemoiemfoe$
+\begin{itemize}
+\item wergrewg
+\begin{code}
+f x y 
+\end{code}
+\end{itemize}
+
 Moreover, events form a monad, which allows us to build complex
 behaviour from basic behaviours in a compositional way by the monad's
 composition.
@@ -454,7 +462,7 @@ data EventInfo = EventInfo { x :: Distance,
                              y :: Distance,
                              xRoot :: Distance,
                              yRoot :: Distance,
-                             button :: Int  
+                             button :: Int }
 \end{xcode}
 The information here is the x and y component of the mouse position,
 both relative to the window in which the event occurs, and the root
@@ -477,9 +485,8 @@ implemented in Haskell; these can be found in the toolkit
 
 \subsection{Basic Widgets}
 
-\begin{itemize}
   
-\item Frames
+\subsubsection{Frames}
 
 \label{ssec:frames}
 
@@ -492,7 +499,7 @@ Moreover, when using a frame, we can use a different packer (see
 Sect.~\ref{sec:packing}) than in the parent widget; for example, we
 can use the grid packer inside a window using the standard packer.
 
-\item Boxes
+\subsubsection{Boxes}
   
   \href{Box.html}{Boxes} are mega-widgets, implemented using frames.
   They allow simple horizontal or vertical packing (widgets are placed
@@ -501,13 +508,13 @@ can use the grid packer inside a window using the standard packer.
   \texttt{newVBox} creates a rigid box with vertical packing, and
   \texttt{newHFBox} creates a flexible box with horizontal packing.
 
-\item Buttons
+\subsubsection{Buttons}
 
   A \href{Button.html}{button} is a simple widget which can be
   clicked. Buttons can have bitmaps, images (class \texttt{HasPhoto}),
   or text as labels. 
 
-\item Labels and Messages
+\subsubsection{Labels and Messages}
   
   A \href{Label.html}{label} is a simple widget for text, bitmaps or
   images. \href{Message.html}{Messages} are slightly more
@@ -516,9 +523,10 @@ can use the grid packer inside a window using the standard packer.
   and the justification (class \texttt{HasJustified}) can be
   specified.
 
+\input{Mainentry.lhs} %% Entry widgets.
+
 \input{Mainlist.lhs} %% Scrollbars, List boxes.
 
-\end{itemize}
 
 
 \subsection{The Editor}
@@ -706,7 +714,6 @@ The most important configurations, provided by all canvas items, are:
   the outline does nothing, but setting the filling colour sets the
   colour of the item. A stipple, incidentally, is a bitmap mask used
   to draw the item. 
-\item 
 \end{itemize}
 
 \subsubsection{Canvas Items} 
@@ -728,8 +735,7 @@ The following are the types of canvas items:
   \emph{bounding box}, i.e. the smallest rectangle enclosing it. If
   the bounding box is a square, the oval is a circle.\footnote{Except
     it usually won't \emph{look} like a circle on the screen, because
-    most screens pixels are rectangularly-shaped, so a ten by ten
-    pixel entity is not a square.}
+    on most screens pixels are rectangularly-shaped.}
 \item \texttt{Polygon}: a polygon is given by a list of
   vertices. Strangely, one cannot configure the join style of the
   polygon, but you can configure splines.
@@ -755,18 +761,104 @@ you can not only add canvas items explicitly to the tag, but also by
 the so-called \texttt{search specification}. 
 
 
+\subsection{Miscellenea}
+
+\begin{itemize}
+\item images
+\item window managers
+\item focus
+\end{itemize}
+
+\subsection{Tix Widgets}
+
+Using tix.
+
+Panes and notebooks.
 
 \section{The Toolkit}
 
 \label{sec:toolkit}
 
-\section{Larger Examples}
+The toolkit contains a number of so-called \emph{mega-widgets}; these
+are widgets which are implemented in Haskell rather than Tcl/Tk. We
+just mention the these widgets here, without explaining them in
+detail, and show some screen shots. For most of them, their usage is
+pretty obvious. 
 
-\input{MainHsMines.lhs}
+The examples mentioned below can be found in
+\texttt{examples/toolkit}.
+
+\begin{itemize}
+
+\item The module \texttt{DialogWin} contains an abstraction for
+  dialogue windows, and built on top of that, frequently used windows,
+  such as error, warning, information, and confirmation windows. See
+  the example in \texttt{Maindialog.hs}.
+
+\item The module \texttt{MarkupText} provides an easier, more abstract
+  and flexible way of filling an editor with markup text. For example,
+  you can simply write 
+\begin{xcode}
+ [prose "This is ", bold [prose "BOLD"], 
+  prose " and ", bgcolour [prose "yellow."]]
+\end{xcode}
+ without needing to count the indices for the text tags
+ manually. Hypertext, embedded widgets, mathematical symbols and much
+ more are also supported. See also the example in \texttt{Mainmarkup.hs}.
+ 
+\item A \texttt{SpinButton} is a entry with two arrows which can
+  increment or decrement the entry's value. See the example in
+  \texttt{Mainspinbutton.hs}.
+
+  
+\item A \texttt{TreeList} is a graphical representation of a tree
+  structure. It allows subtrees to be hidden or shown. One popular use
+  of this is to display the file system (see example
+  \texttt{Maintreelist}), but the possibilities are manyfold.
+  
+\item The \texttt{Notepad} is a canvas which displays \emph{items}. An
+  item is given by the class \texttt{CItem}; it has a name and an
+  icon. The notepad lets the user arrange the icons by dragging them
+  around, and allows drag-and-drop between items.
+
+\item The generic \texttt{GenGUI} interface allows the visualisation
+  of items which are arranged in a hierarchical structure. It uses a
+  tree list to display the hierarchy, a notepad to display all items,
+  and an editor to display a single item selectable by
+  double-clicking. See the examples in \texttt{examples/gengui}.
+
+\item The module \texttt{LogWin} implements a log window, a scrolled
+  toplevel in which text is displayed, to which the program can
+  append. The user can clear the whole text, or save it to a file. 
+
+\item \texttt{ModalDialog.hs} takes a toplevel (i.e. a window), and
+  implement a modal dialogue with it. A window is called \emph{modal}
+  if it has be answered before the program is allowed to proceed.
+
+
+\item Small mega-widgets: 
+  \begin{itemize}
+  \item A \texttt{ScrollBox} is a scrollable widget inside a box scroll
+    bars attached.
+  \item A \texttt{Separator} is a frame with relief and borderwidth,
+    to optically separate widgets.
+  \item A \texttt{SelectBox} is a container for a group of buttons,
+    one of which can be nominated as default button.
+  \item An \texttt{IconBar} is a bar containing a row of buttons
+    (ideally of the same size showing an image, but this is not
+    enforced.) 
+  \end{itemize}
+  
+\end{itemize}
 
 
 \bibliography{intro}
 \bibliographystyle{plain}
+
+\appendix{}
+
+\input{MainHsMines.lhs}
+
 
 
 \end{document}

@@ -1,4 +1,5 @@
 \section{The HsMines Game}
+
 As an example for more complex GUI programming, we will now develop a
 GUI for a Minesweeper like game called HsMines. Just in case you do
 not know Minesweeper or some of its many clones I'll give a short
@@ -454,7 +455,7 @@ responsible to create a number of \texttt{Buttons} and asigns them to
 \texttt{list of Buttons}.
 
 \begin{code}
-    mapM_ (\(xy, b)-> grid b 
+    delayWish $ mapM_ (\(xy, b)-> grid b 
           [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
 \end{code}
 %\)
@@ -671,11 +672,7 @@ created, \emph{start} just changed into \emph{play}.
            = do r <- choose leCl >>>= open bArr m
                 case r of Nothing -> always gameLost 
                             >> gameOver
-                          Just nu -> if all (not.untouched)
-                                            (elems nu) then 
-                                        always gameWon 
-                                           >> gameOver
-                                      else playOn nu
+                          Just nu -> playOn nu
              +>
              do r<- choose riCl >>>= flag bArr m
                 playOn r
@@ -714,11 +711,16 @@ these steps over and over again:
 \begin{code}
          playOn :: Mines-> Event ()
          playOn m = do always (sb # photo smCoolImg)
-                       play m       
+                       if all (not.untouched) (elems m) then 
+                                        do always gameWon 
+                                           gameOver
+                          else play m
 \end{code}
 
 \texttt{playOn} takes care of the smiley when we (de)flagged some field
-or explored it.
+or explored it. It also checks wether we have won with the previous
+move; this is the case if there are no untouched fields left (i.e. all
+fields are either cleared or flagged).
 
 \subsubsection{until it's over.}
 
