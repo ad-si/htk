@@ -1,0 +1,28 @@
+\documentclass[slide]{mmiss}
+
+% Specify a path alias
+\Path{AlgebraicSpecification}{Parent/AlgSpec}
+
+% Now import definition of signatures and algebras
+\Import[Rename{DefSignature=Signatures},
+        Rename{DefAlgebra=Algebra}]{AlgebraicSpecification}
+
+
+
+
+% The document proper
+\begin{document}
+
+\begin{Package}[Label={AlgCS}, Author={C.~L{\"u}th}, Title={Algebra for Computer Scientists}]
+
+\begin{Section}[Label={Basics}, Title={Basic Definitions}]
+
+\IncludeUnit{DefSignature}{status=present}
+
+\IncludeUnit{DefAlgebra}{status=present}
+    
+\end{Section}
+
+\end{Package}
+\end{document}
+

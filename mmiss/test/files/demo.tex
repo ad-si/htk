@@ -14,44 +14,43 @@
 \newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
 \newcommand{\annobrackets}{{\bf brackets}\ }
 \newcommand{\Nat}{\mbox{$\mathbb N$}} % this requires amssymb
-\def\ShortAuthor{C.~L\"uth, M.~Roggenbach}
+\def\ShortAuthor{C.~L{\"u}th, M.~Roggenbach}
 \def\ShortTitle{Algebraic Specification}
 \def\Title{Formal Program Development with Algebraic Specifications}
 
 
 \begin{document}
-\begin{Package}[Label=AlgSpec, 
-Title={Formal Program Development with Algebraic Specifications},
-Date=12.09.2002,
-Authors={Christoph Lüth, Markus Roggenbach},
-PriorAuthors={Markus Roggenbach, Michael Drouineaud},
-ShortAuthor={C.~Lüth, M.~Roggenbach},
-ShortTitle={Algebraic Specification},
-Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
+\begin{Package}[Label=AlgSpec,
+  Title={Formal Program Development with Algebraic Specifications},
+  Date=12.09.2002,
+  Authors={Christoph L{\"u}th, Markus Roggenbach},
+  PriorAuthors={Markus Roggenbach, Michael Drouineaud},
+  ShortAuthor={C.~L{\"u}th, M.~Roggenbach},
+  ShortTitle={Algebraic Specification},
+  Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
 
-\begin{Section}
-[Label=IntroAlgSpec, Title={Signatures, Terms and Algebras}]
+\begin{Section}[Label=IntroAlgSpec, Title={Signatures, Terms and Algebras}]
 
 \begin{Abstract}[Label=Abstract, Title=Overview]
 This section will introduce the basic mathematics of algebraic
 specifications, namely:
 \begin{Enumerate}
-  \Item \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
-  \Item and \Emphasis{algebras} give us the semantics.
+  \item \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
+  \item and \Emphasis{algebras} give us the semantics.
 \end{Enumerate}  
 \end{Abstract}
 
 \begin{Introduction}[Label=Intro, Title={Why Formal Specification?}]
 \begin{Itemize}
-\Item
+\item
 formal specifications are \Emphasis{precise}  \\
 (non formal and sometimes even semi formal \\
 specifications are open to re-interpretation)\pause
-\Item
+\item
 syntactical and semantical \Emphasis{correctness} \\ 
 independent of tools 
 \pause
-\Item{}
+\item{}
 \Emphasis{mathematical methods} \\
 (consistency, completeness)
 \end{Itemize}
@@ -65,37 +64,39 @@ Signatures allow us to define operations.
 \begin{Definition}[Label=DefSignature, Title=Signature]
 A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
 \begin{Itemize}
-    \Item a set $S$ of \Emphasis{sorts}, and 
-    \Item a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
+    \item a set $S$ of \Emphasis{sorts}, and 
+    \item a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
   \end{Itemize}
+What about \Reference[algebras]{DefAlgebra}?
 \end{Definition}
 
 An operation $\omega\in\Omega_{w,s}$ with $w=s_1\ldots s_n$ has
 argument sorts $s_1,\ldots,s_n$ and target sort $s$, also written
-$\omega:s_1\ldots s_n\rightarrow s$.
+$\omega:s_1\ldots s_n\to s$.
 \end{Paragraph}
 
 \begin{Paragraph}[Label=Algebra, Title=Algebra]
 
-Algebras are models of \Link[signatures]{Definition}{DefSignature}.
+Algebras are models of \Reference[signatures]{DefSignature}.
 \vspace{1cm}
 \begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
-  An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
+  An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a
+  \Reference[signatures]{DefSignature} 
   $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
   \begin{Itemize}
-    \Item
+    \item
     for each sort $s\in S$, a \Emphasis{carrier set} 
     $A_s\in S_A$;
-    \Item
-    for each operation $\omega:s_1\ldots s_n\rightarrow s$, an
-    operation $\omega_A:A_{s1}\ldots A_{sn}\rightarrow A_s$.
+    \item
+    for each operation $\omega:s_1\ldots s_n\to s$, an
+    operation $\omega_A:A_{s1}\ldots A_{sn}\to A_s$.
   \end{Itemize}
 \end{Definition}
 \end{Paragraph}
 
 
 \begin{Paragraph}[Label=Terms, Title={Terms over a Set}]
-Let $\Sigma=(S, \Omega)$ be a \Link[signature]{Definition}{DefSignature}.
+Let $\Sigma=(S, \Omega)$ be a \Reference[signature]{DefSignature}.
 
 An \Emphasis{$S$-sorted set of variables} is given by $X=
 \{X_s\}_{s\in S}$.
@@ -105,7 +106,7 @@ is closed under application of operations.
 \vspace{1cm}
 
 \begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
-Terms form an \Link[algebra]{Definition}{DefAlgebra}.  
+Terms form an \Reference[algebra]{DefAlgebra}.  
 \end{Lemma}
 
 \end{Paragraph}
@@ -129,19 +130,19 @@ Pos & \ ::= & \ suc(pre:Nat)
 \end{SpecDefn}
 \end{ProgramFragment}
 
-Note how $(\Nat, 0, +)$ form an \Link[algebra]{Definition}{DefAlgebra}.
+Note how $(\Nat, 0, +)$ form an \Reference[algebra]{DefAlgebra}.
 \end{Paragraph}
 
 \begin{Summary}[Label=Summary, Title={Summing Up}]
 In this section, we have encountered the following concepts:
 \begin{Itemize}
-\Item
+\item
 \emph{Signatures} allow to declare sorts and operations;
-\Item
+\item
 \emph{Terms} are build over signatures;
-\Item
+\item
 \emph{Algebras} give a semantics to signatures.
-\Item
+\item
 Further, we have seen how to specify natural numbers in the algebraic
 specification language CASL.
 \end{Itemize}

@@ -1,0 +1,153 @@
+\documentclass[landscape, slides, light]{mmiss}
+
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{casl}
+
+\newcommand{\gram}[1]{{\texttt{#1}}}
+\newcommand{\power}{\hat{\ }}
+\newcommand{\annoimplies}{\%{\bf implies}\ }
+\newcommand{\annodef}{\%{\bf def}\ }
+\newcommand{\annocons}{\%{\bf conservatively}\ }
+\newcommand{\annoprec}{\%{\bf prec}\ }
+\newcommand{\annorassoc}{\%{\bf right\ assoc}\ }
+\newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
+\newcommand{\annobrackets}{{\bf brackets}\ }
+\newcommand{\Nat}{\mbox{$\mathbb N$}} % this requires amssymb
+\def\ShortAuthor{C.~L{\"u}th, M.~Roggenbach}
+\def\ShortTitle{Algebraic Specification}
+\def\Title{Formal Program Development with Algebraic Specifications}
+
+
+\begin{document}
+\begin{Package}[Label=AlgSpec, 
+Title={Formal Program Development with Algebraic Specifications},
+Date=12.09.2002,
+Authors={Christoph L{\"u}th, Markus Roggenbach},
+PriorAuthors={Markus Roggenbach, Michael Drouineaud},
+ShortAuthor={C.~L{\"u}th, M.~Roggenbach},
+ShortTitle={Algebraic Specification},
+Language=de,LevelOfDetail=Lecture,InteractionLevel=Hyper]
+
+\begin{Section}
+[Label=IntroAlgSpec, Title={Signaturen, T{\"a}rme and Algebren}, Language=de]
+
+
+\begin{Paragraph}[Label=Signatures, Title=Signaturen]
+Mit Sichnaturen k{\"o}nnen wir Operationen definieren.
+\vspace{1cm}
+
+\begin{Definition}[Label=DefSignature, Title=Signatur]
+Eine \Emphasis{Signatur} $\Sigma=(S, \Omega)$ besteht aus
+\begin{Itemize}
+    \Item einer Mange $S$ von \Emphasis{Sorten}, und 
+    \Item einer Familie $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ von Operationen.
+  \end{Itemize}
+\end{Definition}
+
+Eine Operation $\omega\in\Omega_{w,s}$ with $w=s_1\ldots s_n$ mit
+Argumentsorten $s_1,\ldots,s_n$ und Zielsorte $s$ schreiben wir auch als
+$\omega:s_1\ldots s_n\to s$.
+\end{Paragraph}
+\end{Section}
+\end{Package}
+
+\begin{Package}[Label=AlgSpec, 
+Title={Formal Program Development with Algebraic Specifications},
+Date=12.09.2002,
+Authors={Christoph L{\"u}th, Markus Roggenbach},
+PriorAuthors={Markus Roggenbach, Michael Drouineaud},
+ShortAuthor={C.~L{\"u}th, M.~Roggenbach},
+ShortTitle={Algebraic Specification},
+Language=en-GB,LevelOfDetail=Lecture,InteractionLevel=Hyper]
+
+\begin{Section}
+[Label=IntroAlgSpec, Title={Signatures, Terms and Algebras}, Language=en-GB]
+
+
+\begin{Paragraph}[Label=Signatures, Title=Signatures]
+Signatures allow us to define operations.
+\vspace{1cm}
+
+\begin{Definition}[Label=DefSignature, Title=Signature]
+A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
+\begin{Itemize}
+    \Item a set $S$ of \Emphasis{sorts}, and 
+    \Item a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
+  \end{Itemize}
+\end{Definition}
+
+An operation $\omega\in\Omega_{w,s}$ with $w=s_1\ldots s_n$ has
+argument sorts $s_1,\ldots,s_n$ and target sort $s$, also written
+$\omega:s_1\ldots s_n\to s$.
+\end{Paragraph}
+
+\begin{Paragraph}[Label=Algebra, Title=Algebra]
+
+Algebras are models of \Link[signatures]{Definition}{DefSignature}.
+\vspace{1cm}
+\begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
+  An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
+  $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
+  \begin{Itemize}
+    \Item
+    for each sort $s\in S$, a \Emphasis{carrier set} 
+    $A_s\in S_A$;
+    \Item
+    for each operation $\omega:s_1\ldots s_n\to s$, an
+    operation $\omega_A:A_{s1}\ldots A_{sn}\to A_s$.
+  \end{Itemize}
+\end{Definition}
+\end{Paragraph}
+
+
+\begin{Paragraph}[Label=Terms, Title={Terms over a Set}]
+Let $\Sigma=(S, \Omega)$ be a \Link[signature]{Definition}{DefSignature}.
+
+An \Emphasis{$S$-sorted set of variables} is given by $X=
+\{X_s\}_{s\in S}$.
+
+Intuitively: terms are the smallest set containing the variables which
+is closed under application of operations.
+\vspace{1cm}
+
+\begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
+Terms form an \Link[algebra]{Definition}{DefAlgebra}.  
+\end{Lemma}
+
+\end{Paragraph}
+
+\end{Section}
+\end{Package}
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
