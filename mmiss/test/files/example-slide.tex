@@ -1,0 +1,63 @@
+%\documentclass[light-hb,landscape,slides]{mmisslides}
+%\documentclass[light-hb,landscape,slides]{mmiss}
+\documentclass[light-hb,slides]{mmiss}
+
+% \usepackage{times}
+\usepackage{amssymb}
+\usepackage{amsmath}
+% \usepackage{epsfig}
+\usepackage{isolatin1}
+\usepackage{german}
+% \usepackage{supertabular}
+% \usepackage{diagrams}
+\usepackage{verbatim}
+%\usepackage{pdf-effects}
+% wird durch mmiss.cls geladen - CK
+
+\input{../example-ontology}
+\input{mmiss-prelude}
+
+% \include{prelude}
+
+
+\begin{document}
+
+\begin{Package}[Title={Praktische Informatik 3}, Authors={Christoph
+                L{\"u}th}, Date={WS 02/03}, LevelOfDetail=Lecture,
+                Language=de, Label={Functional_Programming}]
+
+
+\scatterslidebody{}
+\setcounter{page}{30}
+
+\begin{Section}[Title={Introduction to functions},
+  ShortTitle={Functions}, Label={FuncIntro}]
+
+\begin{Paragraph}[Label=DefFunctions,
+Title={\Def[Definition of Functions]{FunctionDefinitionH}},
+Formalism=Haskell]
+How to declare and define a function:
+\begin{Itemize}[Label=List1]
+  \item \Def[Signature]{SignatureH} (optional):
+    \begin{ProgramFragment}[Label=SigMax]
+      max :: Int-> Int-> Int
+    \end{ProgramFragment}
+  \item \Def[Equation]{FunctionDeclarationH} (one or many):
+    \Def[]{MaxF} \Def[]{GreaterThanF} 
+    \Relate{calls}{MaxF}{GreaterThanF}
+    \begin{ProgramFragment}[Label=EqMax]
+      max x y = if x < y then y else x    
+    \end{ProgramFragment}
+  \begin{Itemize}[Label=List2]
+    \item \Def{LhsH}: head with parameters
+    \item \Def{RhsH}: body (usually more than one line)
+    \item Typical pattern: \Ref{CaseDistinctionH} and \Ref{Recursion}.
+  \end{Itemize}
+\end{Itemize}
+\end{Paragraph}
+
+\end{Section}
+\end{Package}
+
+\end{document}
+
