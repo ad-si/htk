@@ -97,13 +97,13 @@ instance UnixTool Interpreter where
 instance CommandTool Interpreter where 
         execCmd cmd t = do {evalCmd cmd t; done}
         evalCmd cmd (Interpreter oid av t _ pv) = withVar pv (\() -> do {
-                writeLog (">>" ++ cmd);
+                debug (">>" ++ cmd);
                 sendMsg t cmd;
                 res <- takeMVar av;
                 propagate res
                 })                              
         execOneWayCmd cmd (Interpreter _ av t _ pv) = withVar pv (\() -> do {
-                writeLog (">>" ++ cmd);
+                debug (">>" ++ cmd);
                 sendMsg t cmd
                 })
 
@@ -131,7 +131,7 @@ commandFailed = userError "command failed with exception"
 dispatcher :: Interpreter -> (String -> Interpreter -> IO ()) -> IO ()
 dispatcher intrp @ (Interpreter _ _ child _ _) handler = do {
         msg <- readMsg child;
-        writeLog ("<<" ++ msg);
+        debug ("<<" ++ msg);
         handler msg intrp;
         dispatcher intrp handler
         }

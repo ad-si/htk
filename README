@@ -27,24 +27,24 @@ The following are required or at least recommended.
 (1) A Unix box (probably it has to be Linux/x86 or Solaris).  Nearly
     all development has been done on Solaris so that is most likely to
     work.
-(2) gcc.  Ideally what I use -- gcc version 2.95.1.
+(2) gcc.  Ideally what I use -- gcc version 2.95.2.
     Do not use 2.8* versions since they are known not to work at all with 
     Glasgow Haskell.  Version 2.71 might work but I suspect Glasgow Haskell 
     will not support it for much longer.
 (3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
-(4) The very latest version of Glasgow Haskell.  This means downloading
-    the binary release (version 4.5) for your machine, getting the sources
-    from Glasgow Haskell's anoncvs repository (which is updated every evening)
-    and then using the binary release to bootstrap compiling the sources.
+(4) A recent version of Glasgow Haskell.  The latest binary
+    release (4.06) should probably do, though I use an even
+    later one.  If you want to use an up-to-the-minute GHC like me,
+    the best way is to download a recent binary release for your
+    machine, get the latest sources from Glasgow Haskell's anoncvs
+    repository (which is updated every evening), and then use the
+    binary release to compile the latest sources. 
     This is a painful process which is already done for you for Solaris.
-    The latest version for Solaris should be in 
+    The latest usable version for Solaris should be in 
        /usr/local/pub-bkb/ghc/ghc-latest
     and the sources should be in 
        /usr/local/pub-bkb/ghc/fptools.
-
-Alter mk/machinedep.mk as appropriate.  (At the moment the variables
-are set for Sparc/Solaris boxes on the Informatik network.) 
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
@@ -57,6 +57,23 @@ Informatik network)
    cvs checkout uni
 
 Type "man cvs" to find out other CVS commands.
+
+Local Configuration
+-------------------
+Alter mk/machinedep.mk as appropriate.  This should specify
+where to find ghc.  At the moment the variables
+are set for Sparc/Solaris boxes on the Informatik network. 
+
+Uni can be compiled optimised or unoptimised.
+If optimised, the resulting compiled code will run faster.
+If unoptimised, the compilation will be quicker and the compiled code
+will produce a number of debugging messages.  The CVS repository
+code is by default set to compile optimised.  To compile it 
+unoptimised, do
+   cp mk/local.mk.debug mk/local.mk
+The file mk/local.mk may also be used to set things up just for
+your machine - it is included if available by the Makefile
+mk/var.mk and should not appear in the CVS repository.
 
 Compiling
 ---------
@@ -79,3 +96,5 @@ Please report problems to me.  I am George Russell and my e-mail
 address is ger@tzi.de .
 
 Good luck!
+
+

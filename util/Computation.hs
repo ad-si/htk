@@ -60,6 +60,8 @@ module Computation (
         configure,
         config,
 
+        -- writeLog is now obsolescent.  Debug.debug should be used
+        -- instead.
         setLogFile,
         writeLog,
         setLogCommand,

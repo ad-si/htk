@@ -349,14 +349,14 @@ match exp p = interaction ev register unregister
          unregister iact = sendIO chr (deregisterPtn pattern ev iact)
 
          registerPtn pattern ev iact rst = do
-                writeLog ("Expect Register " ++ show ev)
+                debug ("Expect Register " ++ show ev)
                 (ptns,rs) <- registerListener ev iact rst
                 return (insertOrd higherPriority pattern ptns,rs)
          
          higherPriority (_,p1,_) (_,p2,_) = p1 > p2
 
          deregisterPtn (_,_,ptnStr) ev iact rst = do
-            writeLog ("Expect Deregister " ++ show ev)
+            debug ("Expect Deregister " ++ show ev)
             (ptns,rs) <- deregisterListener ev iact rst
             return (filter (\(_,_,ptnStr') -> ptnStr' /= ptnStr) ptns,rs)
 
@@ -475,14 +475,14 @@ matchPattern ((ptn,_,patStr) : ptns) str =
 -- --------------------------------------------------------------------------
 
 logMatch buf ptn newbuf = do {
-        writeLog ("Buffer = " ++ show buf);
-        writeLog ("Pattern = " ++ show ptn);
-        writeLog ("Rest = " ++ show newbuf);
+        debug ("Buffer = " ++ show buf);
+        debug ("Pattern = " ++ show ptn);
+        debug ("Rest = " ++ show newbuf);
 }
         
 logAck = do {
-        writeLog ("Dispatching Done");
-        writeLog ("----------------");
+        debug ("Dispatching Done");
+        debug ("----------------");
         }
 
 

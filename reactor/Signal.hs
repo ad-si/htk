@@ -158,13 +158,13 @@ signaled sig = awaitEvent brk ev Notice (regSig sig) (unregSig sig)
         ev    = toEventID (sdisp,sig)
         regSig :: Posix.Signal -> IO ()
         regSig signo = do {
-                writeLog ("registering " ++ show signo ++ "\n");
+                debug ("registering " ++ show signo ++ "\n");
                 _casm_ ``signal(%0,SendSignalFD);'' signo;
                 done
                 }
         unregSig :: Posix.Signal -> IO ()
         unregSig signo = do {
-                writeLog ("unregistering " ++ show signo ++ "\n");
+                debug ("unregistering " ++ show signo ++ "\n");
                 _casm_ ``signal(%0,SIG_DFL);'' signo;
                 done
                 }
