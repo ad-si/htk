@@ -16,7 +16,6 @@ module Core (
 
   TclCmd,
   TclScript,
-  TclResponse(..),
   TclMessageType(..),
 
   execCmd,

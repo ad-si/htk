@@ -7,6 +7,7 @@ GHC=ghc
 MAKE=make
 FIND=find
 CP=cp
+AR=ar
 
 if [ -z $SKIPINTRO ]
 then
@@ -32,4 +33,4 @@ $GHC --make EVERYTHING.hs -package concurrent -package data -package text -packa
 
 mkdir -p imports
 $CP `$FIND . -name "*.hi"` imports
-$GHC `$FIND . -name "*.o"` -o libhtkwin.a
+$AR `$FIND . -name "*.o"` -o libhtkwin.a

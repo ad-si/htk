@@ -8,7 +8,6 @@
 -- Last modification by $Author$
 --
 -- -----------------------------------------------------------------------
-
 module Wish (
 
   wish,
@@ -22,7 +21,6 @@ module Wish (
   Wish(..),
   TclCmd,
   TclScript,
-  TclResponse(..),
   TclMessageType(..),
   BindTag,
   bindTagS,
@@ -44,6 +42,25 @@ module Wish (
      -- may be delayed.  This can (allegedly) be faster.
 
 ) where
+
+-- The preprocessor symbol ASYNC_WISH_ERRORS, if non-zero, causes wish
+-- errors to be handled asynchronously.  This is done by default unless DEBUG
+-- is set.  
+-- This is an optimisation.  The possible bad consequences are that should
+-- wish itself produce an error,
+-- (1) we may execute some additional wish commands before detecting it.
+-- (2) it is hard to associate the error with the command which provoked it.
+-- On the other hand, it saves us having to wait for acknowledgment of
+-- commands, which particularly on Windows (where we have to access wish output
+-- by polling with the current version of ghc, 5.02.2) should save a lot of
+-- time.
+#ifndef ASYNC_WISH_ERRORS
+#ifdef DEBUG
+#define ASYNC_WISH_ERRORS 0
+#else
+#define ASYNC_WISH_ERRORS 1
+#endif
+#endif
 
 import Maybe
 import Char
@@ -98,9 +115,7 @@ evalTclScript script =
          (n,script) ->
             do
                putMVar buffer (n,[])
-               response <- evalCmdInner (reverse script)
-               doResponse response
-               done
+               execCmdInner (reverse script)
       -- (2) execute the command
       response <- evalCmdInner script
       doResponse response
@@ -123,7 +138,7 @@ execTclScript script =
          (0,_) -> -- just do it
             do
                putMVar buffer (0,[])
-               evalCmdInner script
+               execCmdInner script
                done
          (n,buffered) -> -- don't do it
             do
@@ -164,10 +179,8 @@ endBuffering =
       case bufferContents of
          (n,script) ->
             do
-               response <- evalCmdInner (reverse script)
+               execCmdInner (reverse script)
                putMVar buffer (n-1,[])
-               doResponse response 
-               done
 
 ---
 -- evalCmdInner takes a (possibly empty) TclScript and executes it,
@@ -177,19 +190,13 @@ evalCmdInner :: TclScript -> IO TclResponse
 evalCmdInner [] = return (OK "")
 evalCmdInner tclScript =
    do
-      let cmdString = prepareCmd tclScript
+      let
+         scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) tclScript
+         cmdString = "evS " ++ escape scriptString ++"\n"
+
       withCStringLen cmdString evalCmdPrim
 
--- This prepares a command, or sequence of commands, for evalCmdPrim.
--- The sequence must be non-empty
-prepareCmd :: TclScript -> String
-prepareCmd [] = error "Wish.prepareCmd with an empty argument!"
-prepareCmd script =
-      let
-         scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) script
-      in
-         "evS " ++ escape scriptString ++"\n"
---
+---
 -- This is the most primitive command evaluator and does not
 -- look at the buffer.  So it shouldn't be called from outside.
 evalCmdPrim :: CStringLen -> IO TclResponse
@@ -204,14 +211,49 @@ evalCmdPrim cStringLen =
             sync(
                   toEvent (rWish |> Eq OKType) >>>=
                      (\ (_,okString) -> return (OK okString))
+#if ! ASYNC_WISH_ERRORS
                +> toEvent (rWish |> Eq ERType) >>>=
                      (\ (_,erString) -> return (ER erString))
+#endif
                )
          )
 
+#if ASYNC_WISH_ERRORS
+---
+-- execCmdInner corresponds to evalCmdInner, but does not return a response.
+execCmdInner :: TclScript -> IO ()
+execCmdInner [] = done
+execCmdInner tclScript =
+   do
+      let
+         scriptString = foldr1 (\ cmd s -> cmd ++ (';':s)) tclScript
+         cmdString = "exS " ++ escape scriptString ++"\n"
+         -- The difference is we call "exS" and not "evS".
+
+      withCStringLen cmdString execCmdPrim
+
+---
+-- execCmdPrim corresponds to evalCmdPrim, but does not wait for a response.
+execCmdPrim :: CStringLen -> IO ()
+execCmdPrim cStringLen = writeWish wish cStringLen
+
+#else
+
+execCmdInner :: TclScript -> IO ()
+execCmdInner script = 
+   do
+      response <- evalCmdInner script
+      doResponse response
+      done
+
+#endif
+
+
 doResponse :: TclResponse -> IO String
 doResponse (OK res) = return res
+#if ! ASYNC_WISH_ERRORS
 doResponse (ER err) = error err
+#endif
 
 -- -----------------------------------------------------------------------
 -- wish datatypes
@@ -222,8 +264,6 @@ data Wish = Wish {
    -- commands contains the commands to execute.  Since all commands
    -- are of necessity single-threaded, we provide a single answer queue
    -- responses.  (But this may change!) 
-
-   responses :: Channel TclResponse,
 
    wishLock :: BSem,
       -- this locks wish when a command has been sent but not answer
@@ -266,7 +306,11 @@ data Wish = Wish {
 type TclCmd = String
 type TclScript = [TclCmd]
 
+#if ASYNC_WISH_ERRORS
+newtype TclResponse = OK String
+#else
 data TclResponse = OK String | ER String
+#endif
 
 data TclMessageType = OKType | ERType | COType | EVType deriving (Eq,Ord,Show)
 
@@ -311,11 +355,19 @@ newWish =
                "regsub -all \\n $res1 {\\\\n} res;" ++
                "return $res" ++
                "};" ++
+-- Execute the command, returning the result.
             "proc evS x {" ++
                "set status [catch {eval $x} res];" ++
                "set val [ConvertTkValue $res];" ++ 
                "if {$status == 0} {puts \"OK $val\"} else {puts \"ER $val\"}" ++
                "};" ++
+#if ASYNC_WISH_ERRORS
+-- Execute the command, not returning the result.
+            "proc exS x {" ++
+               "set status [catch {eval $x} res];" ++
+               "if {$status} {puts [concat \"ER \" [ConvertTkValue $res]]}" ++
+               "};" ++
+#endif
             "proc relay {evId val} {" ++ 
                "set res [ConvertTkValue $val];" ++
                "puts \"CO $evId $res\"" ++
@@ -344,7 +396,6 @@ newWish =
       (readWish,destroyReadWish) <- readWishEvent calledWish
       -- set up the channels
       commands <- newChannel
-      responses <- newChannel
       wishLock <- newBSem
       eventQueue <- newEqGuardedChannel
       coQueue <- newEqGuardedChannel
@@ -361,7 +412,6 @@ newWish =
       let
          wish = Wish {
             commands = commands,
-            responses = responses,
             wishLock = wishLock,
             eventQueue = eventQueue,
             coQueue = coQueue,
@@ -407,6 +457,13 @@ eventForwarder = forever handleEvent
                (_,coString) <- toEvent (rWish |> Eq COType)
                noWait(send (coQueue wish) (parseCallBack coString))
             )
+#if ASYNC_WISH_ERRORS 
+         +> (do
+               -- Handle wish errors
+               (_,erString) <- toEvent (rWish |> Eq ERType)
+               error("wish error: "++erString)
+            )
+#endif
 
 
 readWishEvent :: CalledWish 
