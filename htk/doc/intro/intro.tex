@@ -27,7 +27,7 @@
 
 %%% -- Configuration ----------------------------------------------------
 
-\hyperbaseurl{file://../hdoc/}
+\hyperbaseurl{file:///home/cxl/src/uni/htk/doc/hdoc/}
 
 %
 % Colour setup (to come?)
@@ -57,6 +57,7 @@
 \setlength{\parskip}{1ex}  
 
 % wider page
+\addtolength{\textheight}{1cm}
 \addtolength{\textwidth}{2cm}
 \addtolength{\evensidemargin}{-1cm} 
 \addtolength{\oddsidemargin}{-1cm}
@@ -93,7 +94,6 @@
 
 \ifx\pdfoutput\undefined\relax\else\pagebreak\fi
 
-\section{Getting Started}
 
 \subsection*{How to Read This Document}
 For maximum benefit, you should read this text in its PDF incarnation,
@@ -104,6 +104,8 @@ hyperlinks in this document should display the corresponding online
 reference material; \href{index.html}{this should take you to the
   index page}. The online reference material can also be found in
 \texttt{htk/doc/hdoc}.
+
+\section{Getting Started}
 
 \subsection{Basics}
 
@@ -892,8 +894,8 @@ To use tix, you pass the compiled program the command line option
 Tix' wish; try \texttt{which tixwish} at the command line, and if that
 says command not found in whatever language your shell is configured
 to talk to you to, you are out of luck I am afraid.) Thus, the source
-code does not change; from the point of \HTk, Tix is a conservative
-extension of Tcl/Tk, since it just offers more possibilities. 
+code does not change; Tix is a \emph{conservative
+extension} of Tcl/Tk.
 
 \begin{wrapfigure}[18]{r}{8cm}
   \begin{center}
