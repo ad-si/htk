@@ -12,6 +12,7 @@ following directories:
    reactor      |  The Reactor, for gluing processes together
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
                    See htk/examples for a few short introductory examples.
+   graphs       |  General framework for shared graphs.
    davinci      |  This is an encapsulation of DaVinci in Haskell
    www          |  Functions for manipulating HTML in Haskell
    tools        |  Encapsulations of some tools in Haskell.
