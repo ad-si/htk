@@ -115,7 +115,8 @@ data CItem a => TreeList a =
            (ChildrenFun a)                       -- node children function
            (Ref (Maybe (TREELISTOBJECT a)))             -- selected object
            (Channel (Maybe (TreeListObject a)))      -- selection notifier
-           (Channel (Maybe (TreeListObject a)))          -- focus notifier
+           (Channel (Maybe (TreeListObject a), EventInfo))
+                                                         -- focus notifier
 
 
 -- -----------------------------------------------------------------------
@@ -571,7 +572,7 @@ instance HasSize (TreeList a) where
 selectionEvent :: TreeList a -> Channel (Maybe (TreeListObject a))
 selectionEvent (TreeList _ _ _ _ _ msgQ _) = msgQ
 
-focusEvent :: TreeList a -> Channel (Maybe (TreeListObject a))
+focusEvent :: TreeList a -> Channel (Maybe (TreeListObject a), EventInfo)
 focusEvent (TreeList _ _ _ _ _ _ msgQ) = msgQ
 
 
@@ -963,7 +964,7 @@ mkTreeListObject treelist@(TreeList cnv _ _ cfun _ _ msgQ) val
     let obj = TREELISTOBJECT val treelist isnode plusminus
                              drawnstuff img txt emb unbind_actions
     foldl (>>=) (return obj) cnf
-    (enterTxt, ub) <- bindSimple txt Enter
+    (enterTxt, ub) <- bind txt [WishEvent [] Enter]
     addUnbindAction obj ub
     death1 <- newChannel
     addUnbindAction obj (syncNoWait (send death1 ()))
@@ -971,18 +972,18 @@ mkTreeListObject treelist@(TreeList cnv _ _ cfun _ _ msgQ) val
     let enterEv :: Event ()
         enterEv =
           do
-            enterTxt
+            ev_inf <- enterTxt
             always (do
                       b <- TreeList.isSelected treelist obj
                       if b then done else txt # bg "grey" >>
                                           txt # fg "white" >> done)
-            noWait(send msgQ (Just (TreeListObject
-                                      (val, if isnode then Node
-                                            else Leaf))))
+            noWait (send msgQ (Just (TreeListObject
+                                       (val, if isnode then Node
+                                             else Leaf)), ev_inf))
             enterEv
     spawnEvent (enterEv +> receive death1)
 
-    (leaveTxt, ub) <- bindSimple txt Leave
+    (leaveTxt, ub) <- bind txt [WishEvent [] Leave]
     addUnbindAction obj ub
     death2 <- newChannel
     addUnbindAction obj (syncNoWait (send death2 ()))
@@ -990,12 +991,12 @@ mkTreeListObject treelist@(TreeList cnv _ _ cfun _ _ msgQ) val
     let leaveEv :: Event ()
         leaveEv =
           do
-            leaveTxt
+            ev_inf <- leaveTxt
             always (do
                       b <- TreeList.isSelected treelist obj
                       if b then done else txt # bg "white" >>
                                           txt # fg "black" >> done)
-            noWait (send msgQ Nothing)
+            noWait (send msgQ (Nothing, ev_inf))
             leaveEv
     spawnEvent (leaveEv +> receive death2)
 

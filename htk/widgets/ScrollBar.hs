@@ -1,17 +1,13 @@
-{- #######################################################################
-
-MODULE        : ScrollBar
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Scrollbar Widget
-
-TO BE DONE    : Interaction for scrolled event
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module ScrollBar (
 
@@ -28,6 +24,7 @@ module ScrollBar (
   activateScrollBarElem,
   getActivatedElem,
 
+  Fraction,
   fraction,
   identify,
   setView
@@ -47,19 +44,42 @@ import Synchronized
 import ReferenceVariables
 import Packer
 import Tooltip
+import GUIValue
+import List(dropWhile, takeWhile)
+import Char(isSpace)
+
+
+-- -----------------------------------------------------------------------
+-- fraction type
+-- -----------------------------------------------------------------------
+
+type Fraction = Double
+
+instance GUIValue (Fraction, Fraction) where
+  cdefault = (0.0, 0.0)
+
+instance Show (Fraction, Fraction) where
+  showsPrec d (f1, f2) r = show f1 ++ " " ++ show f2 ++ r
+
+instance Read (Fraction, Fraction) where
+   readsPrec p b = 
+     case readsPrec p b of
+       [(x,xs)] -> case readsPrec p xs of
+                      [(y,ys)] -> [((x,y),ys)]
+                      _        -> []
+       _        -> []
 
 
 -- -----------------------------------------------------------------------
 -- classes
 -- -----------------------------------------------------------------------
 
-type Fraction = Double
-
 class Widget w => HasScroller w where
   isWfOrientation :: w -> Orientation -> Bool
   scrollbar       :: Orientation -> ScrollBar -> Config w
   moveto          :: Orientation -> w -> Fraction -> IO ()
   scroll          :: Orientation -> w -> Int -> ScrollUnit -> IO ()
+  view            :: Orientation -> w -> IO (Fraction, Fraction)
 
   isWfOrientation _ _ = True
 
@@ -86,6 +106,9 @@ class Widget w => HasScroller w where
   scroll ax w num what | isWfOrientation w ax =
     execMethod w (\nm -> [tkScroll ax nm num what])
   scroll ax w num what = done
+
+  -- added Oct. '01, still experimental (ludi)
+  view ax w = evalMethod w (tkView ax)
 
 
 -- -----------------------------------------------------------------------
@@ -266,6 +289,11 @@ tkDeclScrollVar w = "global sv" ++ ((show .getObjectNo . toGUIObject) w)
 tkScroll :: Orientation -> ObjectName -> Int -> ScrollUnit -> TclCmd
 tkScroll ax nm no what = show nm ++ " " ++ oshow ax ++ "view scroll " ++ show no ++ " " ++ show what
 {-# INLINE tkScroll #-}
+
+-- added Oct. '01, still experimental (ludi)
+tkView :: Orientation -> ObjectName -> TclScript
+tkView ax nm = [show nm ++ " " ++ oshow ax ++ "view"]
+{-# INLINE tkView #-}
 
 tkMoveTo :: Orientation -> ObjectName -> Fraction -> String
 tkMoveTo ax nm f = show nm ++ " " ++ oshow ax ++ "view moveto " ++ show f

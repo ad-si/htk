@@ -1,15 +1,13 @@
-{- #########################################################################
-
-MODULE        : Geometry
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Geometry specifications 
-
-
-   ######################################################################### -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Geometry (
         Distance(..),
@@ -169,7 +167,7 @@ instance Read Distance where
 
 
 instance GUIValue Distance where
-        cdefault = Distance 0
+        cdefault = Distance (-100)
 
 instance Enum Distance where 
 	fromEnum (Distance d)= d

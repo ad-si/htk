@@ -16,17 +16,6 @@ import Notepad
 import ScrollBox
 import Name
 import ReferenceVariables
-import IOExts(unsafePerformIO)
-
-idref :: Ref Int
-idref = unsafePerformIO (newRef 0)
-
-newID :: IO Int
-newID =
-  do
-    i <- getRef idref
-    setRef idref (i + 1)
-    return i
 
 type Id = Int
 
@@ -42,7 +31,16 @@ instance CItem MyItem where
 main :: IO ()
 main =
   do
-    win <- initHTk [text "Drag and drop example"]
+    idref <- newRef 0
+
+    let newID :: IO Int
+        newID = do
+                  i <- getRef idref
+                  setRef idref (i + 1)
+                  return i
+
+    win <- initHTk [text "notepad example", size (500, 500)]
+    logwin <- createToplevel [text "log", size (500, 200)]
 
     main <- newVFBox win []
     pack main []
@@ -51,44 +49,14 @@ main =
     pack box []
 
     notepad <- newNotepad box Scrolled (48, 48) Nothing
-                          [size (cm 15, cm 10), background "white"]
+                 [size (2000, 2000), background "white",
+                  npScrollRegion ((0, 0), (2000, 2000))]
     pack notepad []
 
-    (scrollbox, output) <- newScrollBox main
-                             (\ p -> newEditor p [width 40, height 6,
-                                                  state Disabled] ::
+    (scrollbox, output) <- newScrollBox logwin
+                             (\ p -> newEditor p [state Disabled] ::
                                      IO (Editor String)) []
-    pack scrollbox []
-
-    buttons <- newFrame box []
-    pack buttons [Fill X]
-
-    selectall <- newButton buttons [text "Select All", width 15]
-                   :: IO (Button String)
-    pack selectall [Side AtTop, PadX 10, PadY 5]
-    clickedselectall <- clicked selectall
-    spawnEvent (forever (clickedselectall >>
-                         always (selectAll notepad)))
-
-    deselectall <- newButton buttons [text "Deselect All", width 15]
-                     :: IO (Button String)
-    pack deselectall [Side AtTop, PadX 10, PadY 5]
-    clickeddeselectall <- clicked deselectall
-    spawnEvent (forever (clickeddeselectall >>
-                         always (deselectAll notepad)))
-
-    showselection <- newButton buttons [text "Show selection", width 15]
-                       :: IO (Button String)
-    pack showselection [Side AtTop, PadX 10, PadY 5]
-    clickedshowselection <- clicked showselection
-    spawnEvent (forever (clickedshowselection >>
-                         always (showSelectedItems notepad output)))
-
-    quit <- newButton buttons [text "Quit", width 15]
-              :: IO (Button String)
-    pack quit [Side AtTop, PadX 10, PadY 5]
-    clickedquit <- clicked quit
-    spawnEvent (forever (clickedquit >> always (destroy win)))
+    pack scrollbox [Fill Both, Expand On]
 
     item1_img <- newImage main [filename "./images/item1.gif"]
     item2_img <- newImage main [filename "./images/item2.gif"]
@@ -129,7 +97,10 @@ main =
 
     (np_event, _) <- bindNotepadEv notepad
 
-    spawnEvent (forever (do
+    (controla, _) <- bind win [WishEvent [Control]
+                                         (KeyPress (Just (KeySym "a")))]
+
+    spawnEvent (forever ((do
                            ev_inf <- np_event
                            always (case ev_inf of
                                      Selected item ->
@@ -152,42 +123,13 @@ main =
                                          showMsg output
                                              (str ++ " dropped on " ++
                                               full nm ++ "\n")
-                                     _ -> done)))
-
-{-
-    spawnEvent (forever (do
-                           (item, b) <- receive (selectionEvent notepad)
-                           always (do
-                                     val <- getItemValue item
-                                     showMsg output (val ++ " " ++
-                                                      showB b))))
-
-    spawnEvent (forever (do
-                           (item, items) <- receive (dropEvent notepad)
-                           always (do
-                                     val <- getItemValue item
-                                     str <- showItems items
-                                     showMsg output
-                                             (str ++ " dropped on " ++
-                                              val ++ "\n"))))
--}
-
-    (controla, _) <- bind win [WishEvent [Control]
-                                         (KeyPress (Just (KeySym "a")))]
-
-    let listenKeys :: Event ()
-        listenKeys = (controla >> always (selectAll notepad))
-    spawnEvent (forever listenKeys)
+                                     _ -> done)) +>
+                         (controla >> always (selectAll notepad))))
 
     (htk_destr, _) <- bindSimple main Destroy
     sync(htk_destr)
 
-  where showB :: Bool -> String
-        showB True  = " selected\n"
-        showB False = " deselected\n"
-        showSize (x, y) = "(" ++ show x ++ ", " ++ show y ++ ")"
-
-        showMsg :: Editor String -> String -> IO ()
+  where showMsg :: Editor String -> String -> IO ()
         showMsg ed txt =
           do
             ed # state Normal
@@ -204,14 +146,3 @@ main =
             return (full nm ++ (if length items > 0 then ", " else "")
                     ++ rest)
         showItems []             = return ""
-
-        showSelectedItems :: CItem a => Notepad a -> Editor String ->
-                                        IO ()
-        showSelectedItems notepad ed =
-          do
-            ed # state Normal
-            selecteditems <- getSelectedItems notepad
-            str <- showItems selecteditems
-            appendText ed ("Selected items: \n" ++ str ++ "\n\n")
-            ed # state Disabled
-            done

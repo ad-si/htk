@@ -1,16 +1,13 @@
-{- #######################################################################
-
-MODULE        : ScrollBox
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Composite widget for packing a scrollable widget together
-                with the relevant number of scrollbars!
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module ScrollBox (
 
@@ -24,6 +21,7 @@ module ScrollBox (
 
 import HTk
 import Core
+
 
 -- -----------------------------------------------------------------------
 -- type
@@ -124,6 +122,11 @@ instance HasScroller a => HasScroller (ScrollBox a) where
 
 instance Synchronized (ScrollBox a) where
   synchronize = synchronize . toGUIObject
+
+-- added Oct. '01 (ludi)
+instance HasSize (ScrollBox a) where
+  width w scb = fScrollFrame scb # width w >> return scb
+  height h scb = fScrollFrame scb # height h >> return scb
 
 
 -- -----------------------------------------------------------------------

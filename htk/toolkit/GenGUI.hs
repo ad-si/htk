@@ -48,7 +48,7 @@ import Notepad
 import ReferenceVariables
 import Name
 import Core
-import List(find)
+import List
 import MarkupText
 import PrelBase(not)
 import CItem
@@ -212,15 +212,12 @@ newGenGUI mstate =
     main # menu menubar
 
     -- references
-    putStrLn "constructing internal state"
     intstate <- case mstate of
                   Just state -> do
                                   state <- mapM toItem state
                                   newRef state
                   Nothing -> newRef []
-    guiref <- newRef Nothing
     displayref <- newRef Nothing
-    putStrLn "internal state constructed"
 
     -- construct main widgets
     let constructTreeListState intend
@@ -277,7 +274,7 @@ newGenGUI mstate =
                    _ -> newTreeList panev1 cfun [] [background "white"]
            pack tl [PadX 5, PadY 5, Fill Both, Expand On]
            np <- newNotepad panev2 Scrolled (12, 12) Nothing
-                            [background "white",
+                            [background "white", size (800, 800),
                              npScrollRegion ((0, 0), (800, 800))]
            pack np [PadX 5, PadY 5, Fill Both, Expand On]
            (edscr, ed) <- newScrollBox paneh2
@@ -330,10 +327,8 @@ newGenGUI mstate =
                        root_obj = intstate,
                        event_queue = evq }
 
-    setRef guiref (Just gui)
-
     -- listening events
-    clipboard <- newRef ((0,0), [])   -- drop on editor
+    clipboard <- newRef ((0,0), [])   -- drop on editor or treelist
     (enter_ed, _) <- bind ed [WishEvent [] Enter]
     (leave_np, _) <- bind np [WishEvent [] Leave]
 
@@ -357,7 +352,7 @@ newGenGUI mstate =
                          (receive (selectionEvent tl) >>>=
                             tlObjectSelected gui) +>
                          (receive (focusEvent tl) >>>=
-                            tlObjectFocused gui) +>
+                            tlObjectFocused gui clipboard) +>
                          (do
                             ev_inf <- enter_ed
                             always
@@ -399,15 +394,18 @@ saveNotepadItemStates :: CItem c => GenGUI c -> IO ()
 saveNotepadItemStates gui =
   do
     npitems <- getItems (notepad gui)
-    mapM saveState npitems
+    mapM (saveNotepadItemState gui) npitems
     done
-  where saveState npitem =
-          do
-            IntLeafItem _ posref selref <- getItemValue npitem
-            pos <- getPosition npitem
-            sel <- isNotepadItemSelected (notepad gui) npitem
-            setRef posref pos
-            setRef selref sel
+
+saveNotepadItemState :: CItem c => GenGUI c -> NotepadItem (Item c) ->
+                                   IO ()
+saveNotepadItemState gui npitem =
+  do
+    IntLeafItem _ posref selref <- getItemValue npitem
+    pos <- getPosition npitem
+    sel <- isNotepadItemSelected (notepad gui) npitem
+    setRef posref pos
+    setRef selref sel
 
 tlObjectSelected :: CItem c => GenGUI c ->
                                Maybe (TreeListObject (Item c)) -> IO ()
@@ -450,24 +448,56 @@ tlObjectSelected gui mobj =
                               done)
            setRef (open_obj gui) (Just (getTreeListObjectValue obj))
 
-tlObjectFocused :: CItem c => GenGUI c ->
-                              Maybe (TreeListObject (Item c)) -> IO ()
-tlObjectFocused gui mobj =
+tlObjectFocused :: CItem c => GenGUI c -> Ref (Position, [Item c]) ->
+                              (Maybe (TreeListObject (Item c)),
+                                     EventInfo) ->
+                              IO ()
+tlObjectFocused gui clipboard (mobj, ev_inf) =
   do
     mch <- getRef (event_queue gui)
     case mobj of
       Just obj -> do
-                    case mch of
-                      Just ch ->
-                        do
-                          let item = getTreeListObjectValue obj
-                          syncNoWait
-                            (send ch
-                               (FocusTreeList (Just item)))
-                      _ -> done
+                    ((x, y), items) <- getRef clipboard
+                    (if x == xRoot ev_inf &&
+                        y == yRoot ev_inf then
+                       do
+                         putStrLn "moving items"
+                         let item = getTreeListObjectValue obj
+                         undoLastMotion (notepad gui)
+                         selected_notepaditems <-
+                           getSelectedItems (notepad gui)
+                         mapM (saveNotepadItemState gui)
+                              selected_notepaditems
+                         moveItems gui items item
+                     else case mch of
+                            Just ch ->
+                              do
+                                let item = getTreeListObjectValue obj
+                                syncNoWait
+                                  (send ch
+                                     (FocusTreeList (Just item)))
+                            _ -> done)
       _ -> case mch of
              Just ch -> syncNoWait (send ch (FocusTreeList Nothing))
              _ -> done
+
+moveItems :: CItem c => GenGUI c -> [Item c] -> Item c -> IO ()
+moveItems gui items target@(IntFolderItem _ subitemsref) =
+  do
+    Just ditem@(IntFolderItem _ dsubitemsref) <- getRef (open_obj gui)
+    (if (ditem == target) then done
+     else do
+            dsubitems <- getRef dsubitemsref
+            setRef dsubitemsref (dsubitems \\ items)
+            subitems <- getRef subitemsref
+            setRef subitemsref (subitems ++ items)
+            npitems <- getItems (notepad gui)
+            mapM (\npitem -> do
+                               item <- getItemValue npitem
+                               let b = any (\item' -> item == item') items
+                               (if b then deleteItem (notepad gui) npitem
+                                else done)) npitems
+            done)
 
 
 --------------------------------------------------------------------------
