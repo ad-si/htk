@@ -1,6 +1,7 @@
 -- | This module controls the 
 module GroupFile(
    GroupOrUser(..),
+   GroupFile,
    groupOrUserParser,
    unparseGroupOrUser,
    getGroupFile,

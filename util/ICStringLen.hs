@@ -28,6 +28,10 @@ module ICStringLen(
    bytesFromICStringLen, -- :: ICStringLen -> (Bytes,Int)
    touchICStringLen, -- :: ICStringLen -> IO ()
 
+   -- Conversion to and from other objects
+   readICStringLen, -- :: HasBinary a StateBinArea => ICStringLen -> IO a
+   writeToICStringLen, -- :: HasBinary a StateBinArea => a -> IO ICStringLen
+
 
    ) where
 
@@ -215,4 +219,24 @@ instance MonadIO m => HasBinary ICStringLen m where
          bl <- readBin rb
          icsl <- liftIO (bytesToICStringLen bl)
          return icsl
+
+-- -------------------------------------------------------------------
+-- Conversion to and from other objects
+-- -------------------------------------------------------------------
+
+readICStringLen :: HasBinary a StateBinArea => ICStringLen -> IO a
+readICStringLen icsl =
+   do
+      let
+         bl = bytesFromICStringLen icsl
+
+      a <- readFromBytes bl
+      touchICStringLen icsl
+      return a
+ 
+writeToICStringLen :: HasBinary a StateBinArea => a -> IO ICStringLen
+writeToICStringLen a =
+   do
+      bl <- writeToBytes a
+      bytesToICStringLen bl
 

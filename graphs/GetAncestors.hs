@@ -24,10 +24,16 @@ module GetAncestors(
       -- -> node 
       -- -> IO [node]
       -- general function for doing the above.
-      
+
+   isAncestorPure, -- :: Ord node => (node -> [node]) -> node -> node -> Bool
+      -- Returns True if first node is ancestor or equal to the second.
+   getAncestorsPure,
+      -- :: Ord node => (node -> [node]) -> node -> [node]
+      -- This is a pure cut-down function for extracting a node's ancestors. 
    ) where
 
 import Monad
+import Maybe
 
 import Data.Set
 
@@ -126,3 +132,48 @@ getAncestorsGenericInnerStrict getParents f (state @ (visitedSet0,ancestors0))
          (getAncestorsGenericInner getParents f)
          (visitedSet0,ancestors0)                   
          parents
+
+-- | Returns True if first node is ancestor or equal to the second.
+isAncestorPure :: Ord node => (node -> [node]) -> node -> node -> Bool
+isAncestorPure getParents (node1 :: node) (node2 :: node) =
+   let
+      isAncestorPureInner :: Set node -> node -> Maybe (Set node)
+      isAncestorPureInner visitedSet0 node =
+         if elementOf node visitedSet0
+            then
+               if node == node1
+                  then
+                     Nothing
+                  else
+                     Just visitedSet0
+            else
+               let
+                  visitedSet1 :: Set node
+                  visitedSet1 = addToSet visitedSet0 node
+               in
+                  scanParents visitedSet1 (getParents node)
+
+      scanParents visitedSet0 [] = Just visitedSet0
+      scanParents visitedSet0 (node:nodes) =
+         case isAncestorPureInner visitedSet0 node of
+            Nothing -> Nothing
+            Just visitedSet1 -> scanParents visitedSet1 nodes
+   in         
+      not (isJust (isAncestorPureInner (unitSet node1) node2))
+
+getAncestorsPure :: Ord node => (node -> [node]) -> node -> [node]
+getAncestorsPure getParents (node0 :: node) =
+   let
+      getAncestorsPureInner :: Set node -> node -> Set node
+      getAncestorsPureInner visitedSet0 node =
+         if elementOf node visitedSet0
+            then
+               visitedSet0
+            else
+               let
+                  visitedSet1 = addToSet visitedSet0 node
+                  parents = getParents node
+               in
+                  foldl getAncestorsPureInner visitedSet1 parents
+   in
+      setToList (getAncestorsPureInner emptySet node0)

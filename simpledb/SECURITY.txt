@@ -76,6 +76,9 @@ list of permissions is deemed to grant access.
 permissions.  It is an error to grant or deny permissions access
 selectively by version, so "-group1:p:[4..]" would not be accepted.
 
+To *read* a set of permissions, we require that the user either
+have read access or permissions access to the corresponding object.
+
 Global Permissions
 ------------------
 

@@ -82,8 +82,6 @@ module SimpleDB(
       -- :: Repository -> UserInfo -> IO ()
    modifyVersionInfo,
       -- :: Repository -> VersionInfo -> IO ()
-   retrieveVersionInfo,
-      -- :: Repository -> ObjectVersion -> IO VersionInfo 
 
    getDiffs,
       -- :: Repository -> ObjectVersion -> [ObjectVersion] 
@@ -362,17 +360,6 @@ modifyVersionInfo repository versionInfo =
          IsOK -> done
          IsObjectVersion objectVersion -> alreadyExistsError objectVersion
          _ -> dbError ("ModifyVersionInfo: unexpected response")
-
-
-retrieveVersionInfo :: Repository -> ObjectVersion -> IO VersionInfo 
-retrieveVersionInfo repository version =
-   do
-      response <- queryRepository repository (GetVersionInfo version)
-      case response of
-         IsVersionInfo v -> return v
-         IsNotFound s -> notFoundError s
-         _ -> dbError ("GetVersionInfo: unexpected response")
-
 
 getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 
    -> IO [(Location,Diff)]

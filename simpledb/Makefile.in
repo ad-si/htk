@@ -1,13 +1,16 @@
 PACKAGE = uni-simpledb
-PACKAGES = uni-server bdb-package
-SRCS       = BDBOps.hs VersionInfo.hs VersionInfoService.hs \
-   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
-   VersionInfoFilter.hs AccessClass.hs \
+PACKAGES = uni-server uni-graphs bdb-package
+SRCS       = BDBOps.hs ServerErrors.hs VersionInfo.hs VersionInfoService.hs \
+   Permissions.hs ExaminePermissions.hs SimpleDBTypes.hs BDBExtras.hs \
+   PrimitiveLocation.hs VersionData.hs SecurityManagement.hs OpenSimpleDB.hs \
+   QuerySimpleDB.hs LocationAllocation.hs VersionAllocation.hs \
+   FlushSimpleDB.hs \
+
+#   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
+#   VersionInfoFilter.hs Permissions.hs \
 
 
 SUBDIRS = test
 SRCSC      = bdbclient.c bdbcommon.c
-
-BOOTSRCS = SimpleDBServer.boot.hs
 
 include @TOP@/mk/boilerplate.mk

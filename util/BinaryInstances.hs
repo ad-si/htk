@@ -16,6 +16,9 @@ module BinaryInstances(
    ReadShow(..),
       -- A wrapper for things which are to be represented by their
       -- Read/Show instances.
+   ViaEnum(..),
+      -- A wrapper for things which are to be represented by their
+      -- Enum instances.
 
    Unsigned(..),
       -- A wrapper for unsigned integral types.
@@ -28,6 +31,7 @@ import Monad
 import Data.Bits
 import Data.Word
 import GHC.Int(Int32)
+import Foreign.C.Types
 
 -- Our modules
 import Bytes
@@ -207,6 +211,10 @@ instance Monad m => HasBinary Word32 m where
 instance Monad m => HasBinary Integer m where
    writeBin = mapWrite encodeIntegral
    readBin = mapRead decodeIntegral
+
+instance Monad m => HasBinary CSize m where
+   writeBin = mapWrite encodeWord
+   readBin = mapRead decodeWord
 
 encodeIntegral :: (Integral integral,Bits integral) => integral -> CodedList
 encodeIntegral (i :: integral) = 
@@ -564,3 +572,16 @@ instance (Read a,Show a,Monad m) => HasBinary (ReadShow a) m where
          [(a,"")] -> ReadShow a
          _ -> error ("BinaryUtils.readBin -- couldn't parse " ++ show str)
       )
+
+-- ----------------------------------------------------------------------
+-- HasBinary via numbers for things that are instances of Enum.
+-- ----------------------------------------------------------------------
+
+
+newtype ViaEnum a = ViaEnum {enum :: a}
+
+instance (Monad m,Enum a) => HasBinary (ViaEnum a) m where
+   writeBin = mapWrite (\ (ViaEnum a) 
+      -> (fromEnum a) :: Int
+      )
+   readBin = mapRead (\ (aInt :: Int) -> ViaEnum (toEnum aInt)) 

@@ -1,9 +1,5 @@
 #include "db.h"
 
-/* Name given to the particular BDB database within the workbench. */
-#define DBNAME "Workbench"
-
-
 /* Print a message */
 void mess(const char *fmt,...);
 

@@ -4,13 +4,14 @@
 -- Functions we need for calling the Berkeley Database 
 module BDBOps(
    BDB, -- A connection to a Berkeley Database
-   openBDB, -- :: IO BDB
+   openBDB, -- :: String -> IO BDB
 
    BDBKey, -- Type of record numbers in the database.
-           -- Instance of HasBinaryIO, Eq, Ord.
+           -- Instance of HasBinaryIO, Eq, Ord, Integral.
    TXN, -- Handle to a transaction in the database.
 
    writeBDB, -- :: BDB -> TXN -> ICStringLen -> IO BDBKey
+   writeBDBHere, -- :: BDB -> TXN -> BDBKey -> ICStringLen -> IO ()
    readBDB, -- :: BDB -> BDBKey -> IO (Maybe ICStringLen)
       -- Nothing indicates that the key wasn't found.
    flushBDB, -- :: BDB -> IO ()
@@ -18,10 +19,17 @@ module BDBOps(
    beginTransaction, -- :: IO TXN
    endTransaction, -- :: TXN -> IO ()
    abortTransaction, -- :: TXN -> IO ()
+
+   -- * Cursors
+   Cursor,
+   mkCursor, -- :: BDB -> IO Cursor
+   readBDBAtCursor, -- :: Cursor -> IO (Maybe (BDBKey,ICStringLen))
+   closeCursor, -- :: Cursor -> IO ()
+   
    ) where
 
 import System.IO.Unsafe
-import Data.Word
+import Foreign.C.Types
 
 import Foreign.C.String
 import Foreign.Marshal.Alloc
@@ -40,12 +48,14 @@ import BSem
 -- How to create a BDB
 -- --------------------------------------------------------------
 
-openBDB :: IO BDB
-openBDB = 
+openBDB :: String -> IO BDB
+openBDB dbName = 
    do
       serverDir <- getServerDir
       withCString serverDir (\ serverDirCString 
-         -> dbConnect serverDirCString
+         -> withCString dbName (\ dbNameCString
+            -> dbConnect serverDirCString dbNameCString
+            )
          )
 
 -- --------------------------------------------------------------
@@ -56,7 +66,7 @@ writeBDB :: BDB -> TXN -> ICStringLen -> IO BDBKey
 writeBDB bdb txn icsl =
    withICStringLen icsl
       (\ len dataPtr ->
-         alloca (\ (recNoPtr :: Ptr Word32) ->
+         alloca (\ (recNoPtr :: Ptr CSize) ->
             do
                dbStore bdb txn dataPtr (fromIntegral len) recNoPtr
                
@@ -65,14 +75,21 @@ writeBDB bdb txn icsl =
             )
          )
 
+writeBDBHere :: BDB -> TXN -> BDBKey -> ICStringLen -> IO ()
+writeBDBHere bdb txn (BDBKey key) icsl =
+   withICStringLen icsl
+      (\ len dataPtr ->
+         dbStoreHere bdb txn dataPtr (fromIntegral len) key
+         )
+
 
 readBDB :: BDB -> BDBKey -> IO (Maybe ICStringLen)
 readBDB bdb (BDBKey key) =
-   synchronize readBDBLock (
+   synchronize readLock (
       alloca (\ (cStringPtr :: Ptr (Ptr CChar)) ->
          do
             len <- alloca
-               (\ (lenPtr :: Ptr Word32) ->
+               (\ (lenPtr :: Ptr CSize) ->
                   do
                      dbRetrieve bdb key cStringPtr lenPtr
                      peek lenPtr
@@ -95,32 +112,94 @@ readBDB bdb (BDBKey key) =
          )
       )
 
-readBDBLock :: BSem
-readBDBLock = unsafePerformIO newBSem
-{-# NOINLINE readBDBLock #-}
+-- --------------------------------------------------------------
+-- Cursor operations.
+-- --------------------------------------------------------------
+
+mkCursor :: BDB -> IO Cursor
+mkCursor bdb =
+   alloca (\ cursorPtr ->
+      do
+         mkCursor0 bdb cursorPtr
+         peek cursorPtr
+      )
+
+readBDBAtCursor :: Cursor -> IO (Maybe (BDBKey,ICStringLen))
+readBDBAtCursor cursor =
+   synchronize readLock (
+      alloca (\ (cStringPtr :: Ptr (Ptr CChar)) ->
+         alloca (\ (recNoPtr :: Ptr CSize) ->
+            alloca (\ (lenPtr :: Ptr CSize) ->
+               do
+                   readAtCursor cursor recNoPtr cStringPtr lenPtr
+                   (temporaryDataPtr :: Ptr CChar) <- peek cStringPtr
+                   if temporaryDataPtr == nullPtr
+                      then
+                         return Nothing
+                      else
+                         do
+                            (recNo :: CSize) <- peek recNoPtr
+                            (len :: CSize) <- peek lenPtr
+                            let
+                               lenInt = fromIntegral len
+
+                            cStringLen <- mkICStringLen lenInt
+                              (\ permanentDataPtr ->
+                                 copyArray permanentDataPtr temporaryDataPtr 
+                                    lenInt
+                                 )
+                            return (Just (BDBKey recNo,cStringLen))
+               ) 
+            )
+         )
+      )
+
+-- --------------------------------------------------------------
+-- The read lock
+-- --------------------------------------------------------------
     
+-- | We lock all reads.  This is because of the way BDB allocates
+-- memory for the the results of get operations, namely to
+-- provide a pointer, but only seems to guarantee that it points
+-- to something useful until the next read operation.
+readLock :: BSem
+readLock = unsafePerformIO newBSem
+{-# NOINLINE readLock #-}
+
 -- --------------------------------------------------------------
 -- The foreign function interface
 -- --------------------------------------------------------------
 
--- represents C type DB *.  The CChar is immaterial.
+-- | represents C type DB *.  The CChar is immaterial.
 newtype DB = DB CChar
 type BDB = Ptr DB
 
-newtype BDBKey = BDBKey Word32 deriving (Eq,Ord,Show)
+-- | Similar type for cursor
+newtype Cursor0 = Cursor0 CChar
+type Cursor = Ptr Cursor0
+
+newtype BDBKey = BDBKey CSize deriving (Eq,Ord,Show,Integral,Real,Enum,Num)
 
 instance Monad m => HasBinary BDBKey m where
    writeBin = mapWrite (\ (BDBKey w) -> w)
    readBin = mapRead BDBKey 
 
 foreign import ccall unsafe "bdbclient.h db_connect" dbConnect
-   :: CString -> IO BDB
+   :: CString -> CString -> IO BDB
 foreign import ccall unsafe "bdbclient.h db_store" dbStore
-   :: BDB -> TXN -> CString -> Word32 -> Ptr (Word32) -> IO ()
+   :: BDB -> TXN -> CString -> CSize -> Ptr (CSize) -> IO ()
+foreign import ccall unsafe "bdbclient.h db_store_here" dbStoreHere
+   :: BDB -> TXN -> CString -> CSize -> CSize -> IO ()
 foreign import ccall unsafe "bdbclient.h db_retrieve" dbRetrieve
-   :: BDB -> Word32 -> Ptr (CString) -> Ptr (Word32) -> IO ()
+   :: BDB -> CSize -> Ptr (CString) -> Ptr (CSize) -> IO ()
 foreign import ccall unsafe "bdbclient.h db_flush" flushBDB
    :: BDB -> IO ()
+foreign import ccall unsafe "bdbclient.h db_cursor" mkCursor0
+   :: BDB -> Ptr Cursor -> IO ()
+foreign import ccall unsafe "bdbclient.h db_read_cursor" readAtCursor
+   :: Cursor -> Ptr CSize -> Ptr CString -> Ptr CSize -> IO ()
+foreign import ccall unsafe "bdbclient.h db_close_cursor" closeCursor
+   :: Cursor -> IO ()
 
 -- --------------------------------------------------------------
 -- FFI (transactions)
