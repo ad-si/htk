@@ -451,11 +451,15 @@ testCanvas =
                 ]                                               >>= \ cir ->
         testImageItem cir                                       >>
 
-        newCanvasTag allItems [parent cv]                               >>= \ tg ->
-        moveItem tg 10 10                                       >>
+	(do
+           tg <- newCanvasTag [parent cv]      -- (ludi)
+	   addCanvasTag allItems tg
+           moveItem tg 10 10)                                      >>
 
-        newCanvasTag (withTag cir) [parent cv]                  >>= \ tg2 ->
-        moveItem tg2 100 100                                    >>
+        (do                                    -- (ludi)
+           tg2 <- newCanvasTag [parent cv]
+	   addCanvasTag (withTag cir) tg2
+           moveItem tg2 100 100)                                   >>
 
         controller cv  (\_ -> mouseMotion cv >>>= \ p -> do {
                 configure ov [position p];

@@ -56,7 +56,10 @@ import Debug(debug)
 
 class CanvasItem w => TaggedCanvasItem w where
         tags :: [CanvasTag] -> Config w
-        tags = undefined                        -- TBD
+        tags cts item =                            -- (ludi)
+          mapM (\ct -> do {Just (CanvasItemName name tid) <- getObjectName
+                                                              (toGUIObject ct);
+                           cset item "tag" (show tid)}) cts >> return item
 
                 
 -- --------------------------------------------------------------------------
@@ -70,10 +73,9 @@ newtype CanvasTag = CanvasTag GUIOBJECT
 -- Configuration Options
 -- --------------------------------------------------------------------------
 
-newCanvasTag :: SearchSpec -> [Config CanvasTag] -> IO CanvasTag
-newCanvasTag (SearchSpec cmd) ol = do
-        spec' <- cmd
-        wid <- createGUIObject (CANVASITEM (CANVASTAG spec') []) tagMethods
+newCanvasTag :: [Config CanvasTag] -> IO CanvasTag
+newCanvasTag ol = do
+        wid <- createGUIObject (CANVASITEM CANVASTAG []) tagMethods
         configure (CanvasTag wid) ol
 
                 
@@ -181,13 +183,9 @@ tagMethods = canvasitemMethods {createCmd = tkCreateTag}
 -- --------------------------------------------------------------------------
 
 tkCreateTag :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> TclScript
-tkCreateTag (CANVASITEM (CANVASTAG spec) []) (CanvasItemName name tid) oid _ = [
-        declVar tid, 
-        " set " ++ vname ++ " t" ++ show oid,
-        show name ++ " addtag " ++ show tid ++ " " ++ spec
-        ]       
+tkCreateTag (CANVASITEM CANVASTAG []) (CanvasItemName name tid) oid _ =
+	[declVar tid, " set " ++ vname ++ " t" ++ show oid]
         where vname = (drop 1 (show tid))
-
 
 tkAddTag :: ObjectName -> String -> TclScript
 tkAddTag (CanvasItemName name tid) spec =

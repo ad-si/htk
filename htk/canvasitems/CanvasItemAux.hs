@@ -154,17 +154,18 @@ tkGetCanvasItemConfig (CanvasItemName name tid) cid =
         [declVar tid, show name ++ " itemcget " ++ show tid ++ " -" ++ cid]
 tkGetCanvasItemConfig _ _ = []
 
-
-tkSetCanvasItemConfigs :: ObjectName -> [ConfigOption] -> TclScript
-tkSetCanvasItemConfigs _ [] = []
-tkSetCanvasItemConfigs (CanvasItemName name tid) [("coords",val)] =
-        [declVar tid,show name ++ " coords " ++ show tid ++ " " ++ show val]    
 tkSetCanvasItemConfigs (CanvasItemName name tid) args = 
-        [declVar tid, 
+        [declVar tid] ++ tagVariables args ++
+        [
         show name ++ " itemconfigure " ++ show tid ++ " " ++ showConfigs args
         ]
+	where tagVariables ((cid, cval) : ol) =
+                case cid of
+                  "tag" -> ["global \"" ++ (drop 2 (show cval))] ++
+                           tagVariables ol
+                  _     -> tagVariables ol
+              tagVariables _                  = []
 tkSetCanvasItemConfigs _ _ = []
-
 
 tkBindCanvasItem :: ObjectName -> ObjectID -> Binding -> TclScript
 tkBindCanvasItem (CanvasItemName name tid) (ObjectID no) (tkev,f) = 

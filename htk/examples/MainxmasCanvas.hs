@@ -80,7 +80,8 @@ main = do
    where  notmoving :: Canvas-> InterActor-> IA ()
 	  notmoving c iact = 
 		mouseButtonPress c 1 >>>=
-		   \(x, y)-> do {ct<- newCanvasTag (closest x y) [parent c];
+		   \(x, y)-> do {ct<- newCanvasTag [parent c];
+                                 addCanvasTag (closest x y) ct;
 				 become iact (moving c ct x y iact)}
 	  moving :: Canvas-> CanvasTag-> Distance-> Distance->InterActor-> IA ()
 	  moving c ct x0 y0 iact =

@@ -63,7 +63,7 @@ data CanvasItemKind =
         | BITMAPITEM 
         | IMAGEITEM
         | TEXTITEM
-        | CANVASTAG String                      -- searchspec
+        | CANVASTAG
         | EMBEDDEDCANVASWIN
 
 
@@ -99,7 +99,7 @@ instance Show ObjectKind where
                 (CANVASITEM BITMAPITEM _) -> "bitmap"
                 (CANVASITEM IMAGEITEM _) -> "image"
                 (CANVASITEM TEXTITEM _) -> "text"
-                (CANVASITEM (CANVASTAG _) _) -> "tag"
+                (CANVASITEM CANVASTAG _) -> "tag"
                 (CANVASITEM EMBEDDEDCANVASWIN _) -> "window"
                 (EMBEDDEDTEXTWIN _) -> "window"
                 (TEXTTAG _) -> "tag"

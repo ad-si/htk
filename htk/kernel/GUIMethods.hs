@@ -91,9 +91,16 @@ type ConfigOption = (ConfigID, GUIVALUE)
 
 showConfig (cid, cval) = "-" ++ cid ++ " " ++ show cval
 
+{-
+showConfig (cid, cval) =
+  "-" ++ cid ++ " " ++
+  case cid of
+    "tag" -> "\"" ++ (drop 3 (show cval))
+    _     -> show cval
+-}
+
 showConfigs [] = " "
 showConfigs (x : ol) = (showConfig x) ++ " " ++ (showConfigs ol)
-        
 
 -- --------------------------------------------------------------------------
 --  GUIObject Default Methods (for widgets and foreign objects mainly)
