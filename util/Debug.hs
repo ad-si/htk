@@ -31,6 +31,12 @@ module Debug(
      -- debug, in that debug will Haskell-escape the string and add
      -- a newline, while just writes to the file with no interpretation.
   (@@:),
+
+
+  wrapError, -- :: String -> a -> a
+     -- If debugging is on, transforms value so that when evaluated, if 
+     -- the evaluation calls an error call, the given String is prepended
+     -- to the evaluation.
   ) where
 import IO
 import qualified IOExts(unsafePerformIO)
@@ -116,6 +122,16 @@ alwaysDebugAct mess act =
 
 (@@:) = alwaysDebugAct
 
+wrapError :: String -> a -> a
+#ifdef DEBUG
+wrapError str value = IOExts.unsafePerformIO (wrapErrorIO str value)
+#else 
+wrapError str value = value
+#endif
 
-
+wrapErrorIO :: String -> a -> IO a
+wrapErrorIO str value =
+   Exception.catchJust errorCalls (value `seq` return value)
+      (\ mess -> error (str++":"++mess)) 
+      
       
