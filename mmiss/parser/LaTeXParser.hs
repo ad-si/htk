@@ -2,8 +2,8 @@
 module LaTeXParser where
 
 import Parsec
--- import ParsecToken
 import Char
+-- import Computation
 
 -- type LaTeXText = [Frag]
 
@@ -12,11 +12,9 @@ type Command = String
 type FormId = String
 type LabelId = String
 type Title = String
-type Attributes = [String]
+type Attributes = [(String, String)]
 type Other = String
 
--- data ComParams = ComParams [String]     deriving (Eq,Show)
--- data OptParams = OptParams [String]     deriving (Eq, Show)
 data SingleParam = SingleParam Frag Char    deriving Show
 
 {--------------------------------------------------------------------------------------------
@@ -45,53 +43,42 @@ mmiss2EnvIds = ["package","section","paragraph","view","example","exercise","def
                ["conjecture","lemma","corollary","assertion","development","proof","script"] ++
                ["programfragment","clause","step","bibentry","authorentry"]
 
-----------------------------------------------
+---------------------------------------------------------------------------------------------
 --
 -- Hier beginnen die Parser
 --
-----------------------------------------------
+---------------------------------------------------------------------------------------------
 
 backslash = char '\\'
 
 idParser = many (noneOf "}]")
 
--- idParser1 c = many (noneOf (c:[]))
 
 commaSep p = p `sepBy` (oneOf ",")
 
-
--- paramParser erkennt mit Komma getrennte Strings innerhalb von optionalen oder zwingenden
--- Befehlsargumenten.
-
-paramParser :: GenParser Char st [String]
-paramParser = commaSep (many (noneOf ",]}"))
+-- equalSep p = p `sepBy` (oneOf "=")
 
 
--- attParser :: GenParser Char st Attributes
+{- attParser parses the list of attributes belonging to an MMiSS-Environment -}
 
-{- attParser as = do manyTill anyChar (try (oneOf ",}"))
-                  a <- sepAttParser
-                  oneOf ",}"
-                  attParser (a:as)
-               <|> return (reverse as)
--}
+attParser = commaSep attribute
+            <|> return([])
 
-attParser = do  spaces
-                char '{'
-                l <- sepBy (many (noneOf ",}")) (char ',')
-                char '}'
-                return l
-            <|> do string "{}"
-                   return []
-            <|> return []
+attribute = do spaces
+               key <- try(many1(noneOf ",=}")) <?> "attribute name"
+               spaces
+               try(char '=') <?> "value for attribute '" ++ key ++ "'"
+               spaces
+               v <- try(choice ((delimitedValue key):(value:[]))) 
+                    <?> "value for attribute '" ++ key ++ "'"
+               return (key, v)
 
-{-
--- sepAttParser :: String -> GenParser Char st (String, String)
-sepAttParser = do key <- many (noneOf "=")
-                  key <- head l
-                  val <- head (tail l)
-                  return (key, val)       
--}
+delimitedValue key = between (char '{') (char '}') (value1 key)
+
+value = many1 (noneOf ",}")
+
+value1 key = try(many1 (noneOf "}")) <?> "value for attribute '" ++ key ++ "'" 
+
 
 {- genParam parses an arbitrary Parameter of a LaTeX-Environment or Command (no Parameter of
    MMiSSLaTeX-Environments - these are handled by "attParser".
@@ -135,23 +122,26 @@ continue l id = (try (end id) >>=
                
 beginBlock :: GenParser Char st Frag
 beginBlock = do id <- begin
-                params <- envParams id <?> "Parameter for Environment"
+                params <- envParams id
                 l <- continue [] id
                 return (Env id params (reverse l))
 
 
 envParams id = if ((map toLower id) `elem` mmiss2EnvIds) 
-                 then mEnvParams <?> ("Parameters for MMiSS-Environment <" ++ id ++ ">")
+                 then mEnvParams 
                  else lParams [] <?> ("Parameters for LaTeX-Environment <" ++ id ++ ">")
 
 
 mEnvParams = do formId  <-  option "" (try ( between (char '[') (char ']') idParser))
                 spaces
-                labelId <-  between (char '{') (char '}') idParser
+                labelId <-  try(between (char '{') (char '}') idParser)
+		            <?> "{labelID}{title}{attribute-list} for MMiSS-Environment"  
 		spaces
-                title <-   between (char '{') (char '}') idParser
+                title <- try(between (char '{') (char '}') idParser)
+                         <?> "{title}{attribute-list} for MMiSS-Environment"  
                 spaces
- 		attributes <- attParser <?> "attributes for MMiSS-Env"
+ 		attributes <- try(between (char '{') (char '}') attParser)
+                              <?> "{attribute-list} for MMiSS-Environment"
                 if formId == "" 
                   then return(MParams Nothing labelId title attributes)
                   else return(MParams (Just(formId)) labelId title attributes)
