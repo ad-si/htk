@@ -105,12 +105,9 @@ finishParseDepend (SemiParsedDepend dependencies) =
 drawDepend :: 
    (GraphAll graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms,
-    GraphConfigParms GraphTitle graphParms
-{-
-    ,
+    GraphConfigParms GraphTitle graphParms,
     NodeTypeConfigParms ValueTitle nodeTypeParms,
     NodeTypeConfigParms MenuButton nodeTypeParms
- -}
     ) 
    => (graph,graphParms,
       node Int,nodeType Int,nodeTypeParms Int,

@@ -246,11 +246,6 @@ class (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
    nodeTypeConfig :: Typeable value =>
       nodeTypeConfig value -> nodeTypeParms value -> nodeTypeParms value
 
-instance (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
-      NodeTypeConfigParms nodeTypeConfig nodeTypeParms where
-   nodeTypeConfigUsed _ _ = False
-   nodeTypeConfig _ parms = parms
-
 ------------------------------------------------------------------------
 -- Arcs
 ------------------------------------------------------------------------
