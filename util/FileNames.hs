@@ -35,15 +35,21 @@ module FileNames(
             
    ) where
 
-#include "config.h"
+import CompileFlags
 
-fileSep :: Char
-
-#if WINDOWS
-fileSep = '\\'
-#else
-fileSep = '/'
-#endif
+$(
+   if isWindows
+      then
+         [d|
+            fileSep :: Char
+            fileSep = '\\'
+         |]
+      else
+         [d|
+            fileSep :: Char
+            fileSep = '/'
+         |]
+   )
 
 trimDir :: String -> String
 trimDir [] = []
