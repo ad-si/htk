@@ -30,7 +30,8 @@ FIXED
 
 19) 04.09.02
 mmiss/test/{Makefile.in,runWorkbench.in} altered so that location of
-temporary files depends on user.
+temporary
+ files depends on user.
 FIXED
 
 18) 04.09.02
