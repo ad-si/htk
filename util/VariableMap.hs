@@ -6,10 +6,12 @@ module VariableMap(
    VariableMap,
    newEmptyVariableMap,
    newVariableMap,
+   newVariableMapFromFM,
    updateMap,
    lookupMap,
    lookupWithDefaultMap,
    mapToList,
+   mapToFM,
    mapToVariableSetSource,
 
    addToVariableMap,
@@ -21,7 +23,7 @@ module VariableMap(
 
 import Maybe
 
-import FiniteMap
+import Data.FiniteMap
 import Concurrent
 
 import Dynamics
@@ -90,10 +92,15 @@ newEmptyVariableMap =
 ---
 -- Create a new variable map with given contents
 newVariableMap :: Ord key => [(key,elt)] -> IO (VariableMap key elt)
-newVariableMap contents =
+newVariableMap contents = newVariableMapFromFM (listToFM contents)
+
+newVariableMapFromFM :: Ord key 
+   => FiniteMap key elt -> IO (VariableMap key elt)
+newVariableMapFromFM fmap =
    do
-      broadcaster <- newGeneralBroadcaster (VariableMapData (listToFM contents))
+      broadcaster <- newGeneralBroadcaster (VariableMapData fmap)
       return (VariableMap broadcaster)
+      
 
 ---
 -- Update a variable map in some way.  Returns True if the update was
@@ -127,7 +134,10 @@ lookupWithDefaultMap (VariableMapData map) def key
    = lookupWithDefaultFM map def key
 
 mapToList :: Ord key => VariableMapData key elt -> [(key,elt)]
-mapToList (VariableMapData map) = fmToList map
+mapToList = fmToList . mapToFM
+
+mapToFM :: Ord key => VariableMapData key elt -> FiniteMap key elt
+mapToFM (VariableMapData map) = map
 
 -- --------------------------------------------------------------------
 -- An interface to a VariableMap which makes it look like a variable

@@ -61,9 +61,13 @@ module Computation (
         -- unpack a WithError
         toWithError, -- :: Either String a -> WithError a
         -- pack a WithError
+        isError, -- :: WithError a -> Bool
+        -- returns True if this value indicates an error.
 
         mapWithError, -- :: (a -> b) -> WithError a -> WithError b
         mapWithError', -- :: (a -> WithError b) -> WithError a -> WithError b
+        mapWithErrorIO,
+        -- :: (a -> IO b) -> WithError a -> IO (WithError b)
         mapWithErrorIO',
         -- :: (a -> IO (WithError b)) -> WithError a -> IO (WithError b)
         pairWithError, -- :: WithError a -> WithError b -> WithError (a,b)
@@ -175,6 +179,10 @@ toWithError :: Either String a -> WithError a
 toWithError (Left s) = Error s
 toWithError (Right a) = Value a
 
+isError :: WithError a -> Bool
+isError (Error _) = True
+isError (Value _) = False
+
 fromWithError :: WithError a -> Either String a
 fromWithError (Error s) = Left s
 fromWithError (Value a) = Right a
@@ -186,6 +194,14 @@ mapWithError f (Value x) = Value (f x)
 mapWithError' :: (a -> WithError b) -> WithError a -> WithError b
 mapWithError' f (Error e) = Error e
 mapWithError' f (Value a) = f a
+
+
+mapWithErrorIO :: (a -> IO b) -> WithError a -> IO (WithError b)
+mapWithErrorIO f (Error e) = return (Error e)
+mapWithErrorIO f (Value a) =
+   do
+      b <- f a
+      return (Value b)
 
 mapWithErrorIO' :: (a -> IO (WithError b)) -> WithError a -> IO (WithError b)
 mapWithErrorIO' f (Error e) = return (Error e)
