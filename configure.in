@@ -45,6 +45,10 @@ if test -z "$CVS"; then
    CVS="/usr/bin/cvs"
 fi
 # 
+# Check for hdoc
+AC_PATH_PROGS(HDOC,hdoc)
+echo hdoc is used for providing browsable versions of the HTk sources.
+# 
 # Construct the default options, used by 
 # util/default_options.c
 # The format of these is described in util/WBFiles.hs.  We make a feeble
@@ -63,7 +67,8 @@ if test "$GOAHEAD" = YES; then
    $CC mk/mkEverything.c -o mk/mkEverything
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c)
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c htk/doc/generatedoc)
+   chmod +x htk/doc/generatedoc
    echo The default UniForM options, C-escaped, are in util/default_options.c
    echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
 fi
