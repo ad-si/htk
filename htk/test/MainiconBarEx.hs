@@ -22,7 +22,7 @@ main =
     f <- newFrame main []
     pack f [Side AtTop, Fill X]
 
-    ib <- newIconBar f [orient Horizontal] :: IO (IconBar Image)
+    ib <- newIconBar f [orient Horizontal]
     pack ib [Side AtLeft]
 
     img1 <- newImg
@@ -44,7 +44,7 @@ main =
     b6 <- addButton ib [photo img6]
     b7 <- addButton ib [photo img7]
 
-    ed <- newEditor main [bg "white"] :: IO (Editor String)
+    ed <- newEditor main [bg "white"]
     pack ed [Side AtBottom, Fill Both, Expand On]
 
     (htk_destr, _) <- bindSimple main Destroy
