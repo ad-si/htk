@@ -14,9 +14,12 @@ module Main(main) where
 
 import Char
 
+import qualified Configuration
+
 import HTk(withdrawWish)
 import SimpleForm
-import qualified Configuration
+import MenuType
+import HTkMenu
 
 data Colour = Red | Orange | Yellow | Green | Blue | Violet
 -- Indigo not a valid colour name!
@@ -39,8 +42,6 @@ main =
          email =
             guardForm hasAt "E-mail must contain an @"
                (newFormEntry "E-mail" "") 
-
-
          colour = 
             mapForm
                (\ radColour ->
@@ -49,6 +50,19 @@ main =
                      Radio (col :: Colour) -> Right col
                   )
                (newFormEntry "Favorite Colour" NoRadio)
+
+         language = HTkMenu(
+            Menu
+               (Just "Favorite Language") [
+               Button "English" 1,
+               Button "German" 2,
+               Blank,
+               Button "Spanish" 3,
+               Button "French" 4,
+               Blank,
+               Button "Hungarian" 5
+               ])
+
          form =
             name //
             newFormEntry "Address1" "" //
@@ -56,7 +70,9 @@ main =
             email //
             newFormEntry "Age" (0::Int) //
             colour //
-            newFormEntry "British Subject" False
+
+            newFormEntry "British Subject" False //
+            newFormMenu "Language" language 
 
       valueOpt <- doForm "Simple Form Test 1" form
       putStrLn (show valueOpt)

@@ -73,6 +73,9 @@ instance Window w => HasMenu w
 -- Menu Creation Command
 -- -----------------------------------------------------------------------
 
+---
+-- @param to -- tearoff.  If True, means menu will be displayed in a 
+-- separate top-level window.
 createMenu :: GUIObject par => par -> Bool -> [Config Menu] -> IO Menu
 createMenu par to ol =
   do

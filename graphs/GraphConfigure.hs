@@ -59,9 +59,6 @@ module GraphConfigure(
    -- ($$$?) is used for Maybe (option), where Nothing means
    -- "No change".
    ($$$?),
- 
-   -- HasMapM is used for mapping node and arc options.
-   HasMapIO(..),
    ) where
 
 import Computation(HasConfig(($$),configUsed))
@@ -98,16 +95,6 @@ instance (Typeable value,HasConfigValue option configuration)
 infixr 0 $$$?
 
 ------------------------------------------------------------------------
--- HasMapM
--- Various options node and arc options implement HasMapM, 
--- allowing them to be mapped between types given a converter function.
-------------------------------------------------------------------------
-
-class HasMapIO option where
-   mapIO :: (a -> IO b) -> option b -> option a
-
-
-------------------------------------------------------------------------
 -- Menus and buttons
 -- As in DaVinci, a menu is simply considered as a tree of buttons,
 -- allowing an elegant recursive definition.
@@ -127,25 +114,6 @@ instance ArcTypeConfig LocalMenu
 newtype LocalMenu value = 
    LocalMenu(MenuPrim (Maybe String) (value -> IO()))
 
-data MenuPrim subMenuValue value =
-      Button String value
-      -- first argument is text to put on button.
-      -- second argument generates an action to be performed when the
-      -- button is pressed.
-      -- The dynamic value is that supplied to the node/arc when it
-      -- was created.
-   |  Menu subMenuValue [MenuPrim subMenuValue value]
-      -- List of buttons with a possible title.
-   |  Blank
-      -- A Blank can be used to separate groups of menu buttons in the
-      -- same menu.     
-
-mapMenuPrim :: (a -> b) -> MenuPrim c a -> MenuPrim c b
-mapMenuPrim a2b (Button label a) = Button label (a2b a)
-mapMenuPrim a2b (Menu subMenuValue menuButtons) =
-   Menu subMenuValue (map (mapMenuPrim a2b) menuButtons)
-mapMenuPrim a2b Blank = Blank
-
 instance HasMapIO LocalMenu where
    mapIO a2bAct (LocalMenu menuPrim) =
       LocalMenu
@@ -160,34 +128,6 @@ instance HasMapIO LocalMenu where
             menuPrim
             )
 
-mapMenuPrim' :: (c -> d) -> MenuPrim c a -> MenuPrim d a
-mapMenuPrim' c2d (Button title action) = Button title action
-mapMenuPrim' c2d (Menu subMenuValue menuButtons) =
-   Menu (c2d subMenuValue) (map (mapMenuPrim' c2d) menuButtons)
-mapMenuPrim' c2d Blank = Blank
-
-mapMMenuPrim :: (Monad m) => (a -> m b) -> MenuPrim c a 
-   -> m (MenuPrim c b)
-mapMMenuPrim a2bAct (Button label a) =
-   do
-      b <- a2bAct a
-      return (Button label b)
-mapMMenuPrim a2bAct (Menu subMenuValue menuButtons) =
-   do
-      bMenuButtons <- mapM (mapMMenuPrim a2bAct) menuButtons
-      return (Menu subMenuValue bMenuButtons)
-mapMMenuPrim a2bAct Blank = return Blank
-
-mapMMenuPrim' :: (Monad m) => (c -> m d) -> MenuPrim c a 
-   -> m (MenuPrim d a)
-mapMMenuPrim' c2dAct (Button title action) = 
-   return (Button title action)
-mapMMenuPrim' c2dAct (Menu subMenuValue menuButtons) =
-   do
-      dMenuButtons <- mapM (mapMMenuPrim' c2dAct) menuButtons
-      dSubMenuValue <- c2dAct subMenuValue
-      return (Menu dSubMenuValue dMenuButtons) 
-mapMMenuPrim' c2dAct Blank = return Blank
 
 ------------------------------------------------------------------------
 -- Titles

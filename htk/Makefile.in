@@ -96,6 +96,8 @@ SRCS       = resources/Resources.hs\
 	     toolkit/Prompt.hs\
 	     toolkit/InputWin.hs\
 	     toolkit/InputForm.hs\
+             toolkit/MenuType.hs\
+             toolkit/HTkMenu.hs\
              toolkit/SimpleForm.hs\
 
 

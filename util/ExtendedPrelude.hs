@@ -18,7 +18,10 @@ module ExtendedPrelude (
    insertOrdGt,
    insertOrd,
    bottom,
-   ) where
+
+   -- Indicates that this type allows an IO-style map.
+   HasMapIO(..),
+    ) where
 
 import Debug(debug)
 
@@ -34,6 +37,13 @@ monadDot f g x =
    do
       y <- g x
       f y
+
+-- ---------------------------------------------------------------------------
+-- The HasMapIO class
+-- ---------------------------------------------------------------------------
+
+class HasMapIO option where
+   mapIO :: (a -> IO b) -> option b -> option a
 
 -- ---------------------------------------------------------------------------
 -- List Operations

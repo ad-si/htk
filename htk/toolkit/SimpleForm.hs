@@ -1,7 +1,3 @@
-#define label labxyz 
--- work-around GHC 5.02 bug which causes interface files to barf if you call a
--- type variable "label".
-
 {- This module defines SimpleForm.hs, which is intended as a simple interface
    to filling in forms using HTk.  (Indeed, it is simple enough that it might
    be ported to some other GUI sometime.) -}
@@ -13,7 +9,14 @@ module SimpleForm(
 
    newFormEntry, -- :: (FormLabel label,FormValue value) 
       -- => label -> value -> Form x
-      -- This creates a new form entry for a single item. 
+      -- This creates a new form with a single labelled entry. 
+      -- The FormValue class includes text fields and radio buttons.
+
+   newFormMenu, -- :: String -> HTkMenu value -> Form (Maybe value)
+      -- This creates a new form with a single labelled entry, selected
+      -- by a menu.  A value of Nothing indicates that the user did not
+      -- click this menu.
+      -- The String is used to label the menu button containing the menu.
 
    (//), -- :: Form value1 -> Form value2 -> Form (value1,value2)
       -- This combines two forms.  They will be displayed with one on top of
@@ -59,10 +62,19 @@ module SimpleForm(
 
 import Char
 
+import IORef
+
+import Events
+import Channels
+
+
 import HTk
 --import qualified UtilWin
 import DialogWin
+import MenuButton
 
+import MenuType
+import HTkMenu
 
 -- -------------------------------------------------------------------------
 -- The EnteredForm type
@@ -247,7 +259,8 @@ doForm title (Form enterForm) =
 -- newFormEntry
 -- -------------------------------------------------------------------------
 
-newFormEntry :: (FormLabel label,FormValue value) => label -> value -> Form value
+newFormEntry :: (FormLabel label,FormValue value) => label -> value 
+   -> Form value
 newFormEntry label value =
    let
       enterForm topLevel =
@@ -269,6 +282,65 @@ newFormEntry label value =
             return enteredForm
    in
       Form enterForm
+
+
+-- -------------------------------------------------------------------------
+-- newFormMenu
+-- -------------------------------------------------------------------------
+
+newFormMenu :: String -> HTkMenu value -> Form (Maybe value)
+newFormMenu label selections =
+   let
+      enterForm topLevel =
+         do
+            menuButton <- newMenuButton  topLevel [text label]
+            enteredForm1 <- makeFormMenuEntry menuButton selections
+
+            let
+               enteredForm = EnteredForm {
+                  packAction = (
+                     do
+                        packAction enteredForm1
+                        pack menuButton [Side AtTop,Fill X]
+                     ),
+                  getFormValue = getFormValue enteredForm1,
+                  destroyAction = destroyAction enteredForm1
+                  }
+            return enteredForm
+   in
+      Form enterForm
+
+makeFormMenuEntry :: MenuButton -> HTkMenu value 
+   -> IO (EnteredForm (Maybe (value)))
+makeFormMenuEntry menuButton htkMenu =
+   do
+      (compiledMenu,menuEvent) <- compileHTkMenu menuButton htkMenu
+      -- Set up things for the thread which watches for menu events so that
+      -- it picks up the last one.
+      resultRef <- newIORef Nothing -- put the result here!
+      killChannel <- newChannel -- terminate watcher thread here!
+      let
+         menuEventThread =
+               (do
+                  menuClick <- menuEvent
+                  always (writeIORef resultRef (Just menuClick))
+                  menuEventThread
+               )
+            +> receive killChannel
+
+      return (EnteredForm{
+         packAction = (
+            do
+               menuButton # menu compiledMenu
+               done
+            ),
+         getFormValue = ( 
+            do
+               valueOpt <- readIORef resultRef
+               return (Right valueOpt)
+            ),
+         destroyAction = sendIO killChannel ()
+         })
 
 -- -------------------------------------------------------------------------
 -- The FormLabel class
