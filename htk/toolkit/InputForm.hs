@@ -21,48 +21,268 @@ module InputForm (
         EntryField,
         newEntryField,
 
-        EnumField,
-        newEnumField,
+--        EnumField,
+--        newEnumField,
 
-        TextField,
-        newTextField,
+--        TextField,
+--        newTextField,
 
-        RecordField,
-        newRecordField,
+--        RecordField,
+--        newRecordField,
 
-        undefinedFormValue
+--       undefinedFormValue
 
         ) 
 where
 
-import Concurrency
+import Core
 import HTk
 import Prompt
 import Box
 import Label
 import DialogWin
 import OptionMenu
-import LabelBox
+--import LabelBox
 import ScrollBox
 import Editor
 import Keyboard
-import Separator
+--import Separator
 import Space
 import Debug(debug)
+import ReferenceVariables
 
 
 -- --------------------------------------------------------------------------
 -- Classes 
 -- --------------------------------------------------------------------------           
-class {- (ChildWidget (f a b), HasColour (f a b), HasFont (f a b)) => -} InputField f where
+class InputField f where
         selector :: GUIValue b => (a -> b) -> Config (f a b)
         modifier :: GUIValue b => (a -> b -> a) -> Config (f a b)
-
+    
+class Variable a b where
+        setVar :: a -> a -> IO ()
+	getVar :: a -> IO a
+	withVar:: a -> (a -> b) -> IO b
 
 -- --------------------------------------------------------------------------
 -- InputForm Type 
 -- --------------------------------------------------------------------------           
-data InputForm a = InputForm Box (PVar (FormState a))
+data InputForm a = InputForm Box (Ref (FormState a))
+
+data FormState a = FormState {
+        fFormValue      :: Maybe a,
+        fFormBg         :: Maybe Colour,
+        fFormFg         :: Maybe Colour,
+        fFormFont       :: Maybe Font,
+        fFormCursor     :: Maybe Cursor,
+        fFormState      :: Maybe State,
+        fRecordFields   :: [FieldInf a]
+        }
+
+data FieldInf a  = FieldInf {
+        fSetField       :: a -> IO (), 
+        fUpdField       :: a -> IO a,
+        fSetBgColour    :: Colour -> IO (),
+        fSetFgColour    :: Colour -> IO (),
+        fSetFont        :: Font -> IO (),
+        fSetCursor      :: Cursor -> IO (),
+        fSetState       :: State -> IO ()
+        }
+	
+-- --------------------------------------------------------------------------
+-- Commands 
+-- --------------------------------------------------------------------------           
+newInputForm :: Box -> [Config (InputForm a)] -> IO (InputForm a)
+newInputForm par ol = do {
+        em <- newRef (FormState Nothing Nothing Nothing Nothing Nothing Nothing []);
+        configure (InputForm par em) ol
+}
+
+-- --------------------------------------------------------------------------
+-- InputForm Instances 
+-- --------------------------------------------------------------------------           
+instance Eq (InputForm a) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (InputForm a) where 
+        toGUIObject (InputForm b e) = toGUIObject b
+        cname _ = "InputForm"
+
+instance HasSize (InputForm a)
+
+instance HasBorder (InputForm a)
+
+
+
+-- --------------------------------------------------------------------------
+--  Entry Fields  
+-- --------------------------------------------------------------------------           
+data GUIValue b => EntryField a b = EntryField (Prompt b) (Ref (FieldInf a))
+
+newEntryField :: GUIValue b => InputForm a -> [Config (EntryField a b)] -> IO (EntryField a b)
+newEntryField form@(InputForm box field) confs = do {
+        pr <- newPrompt box [];
+        pv <- newFieldInf
+                (\c -> do {bg (toColour c) pr; done})
+                (\c -> do {fg (toColour c) pr; done})
+                (\f -> do {font (toFont f) pr; done})
+                (\c -> do {cursor (toCursor c) pr; done})
+                (\s -> do {state s pr; done});
+        addNewField form pr pv;
+        configure (EntryField pr pv) confs;
+}
+
+instance Eq (EntryField a b) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (EntryField a b) where 
+        toGUIObject (EntryField pr _) = toGUIObject pr
+        cname _ = "EntryField"
+
+instance Synchronized (EntryField a b) where
+        synchronize fe = synchronize (toGUIObject fe)
+
+instance (GUIValue b,GUIValue c) => HasText (EntryField a b) c where
+        text v f@(EntryField pr _) = do {text v pr; return f}
+        getText (EntryField pr _) = getText pr
+
+--instance GUIValue a => Variable (EntryField a b) a where
+--        setVar fe@(EntryField pr pv) t = setVar pr t
+--        getVar (EntryField pr pv) = getVar pr
+--        withVar w f = synchronize w (do {v <- getVar w; f v}) 
+--        updRef w f = synchronize w (do {
+--                v <- getRef w;
+--                (v',r) <- f v;
+--                setRef w v';
+--                return r
+--                })
+
+--instance InputField EntryField where
+--        selector f fe@(EntryField _ pv) = synchronize fe (do {
+--                setSelectorCmd pv cmd;
+--                return fe
+--                }) where cmd r = do {value (f r) fe; done}
+--        modifier f fe@(EntryField _ pv) = synchronize fe (do {
+--                setReplacorCmd pv cmd;
+--                return fe
+--                }) where cmd r = do {
+--                        ans <- try (getValue fe);
+--                        case ans of
+--                                (Left e) -> do {
+--                                        nm <- getText fe;
+--                                        newErrorWin (nm ++ " illegal field value") [];
+--                                        raise illegalGUIValue
+--                                        }
+--                                (Right val) -> return (f r val) 
+--                        }
+
+
+-- --------------------------------------------------------------------------
+--  Text Fields  
+-- --------------------------------------------------------------------------           
+data GUIValue b => TextField a b = 
+        TextField (Editor b)    
+                  (Ref (FieldInf a))
+
+newTextField :: GUIValue b => InputForm a -> [Config (TextField a b)] -> IO (TextField a b)
+newTextField form@(InputForm box field) confs = do {
+        tp <- newEditor box [bg "white"];
+	pack tp [Expand On, Fill Both];
+        pv <- newFieldInf 
+                (\c -> do {done})
+                (\c -> do {done})
+                (\f -> do {done})
+                (\c -> do {done})
+                (\s -> do {state s tp; done});
+        configure (TextField tp pv) confs
+}
+
+instance Eq (TextField a b) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (TextField a b) where 
+        toGUIObject (TextField tp _) = toGUIObject tp
+        cname _ = "TextField"
+
+instance Synchronized (TextField a b) where
+        synchronize fe = synchronize (toGUIObject fe)
+
+-- --------------------------------------------------------------------------
+--  Auxiliary Computations for Field Information
+-- --------------------------------------------------------------------------
+type Field a = (Ref (FieldInf a))
+
+newFieldInf :: (Colour -> IO ()) 
+        -> (Colour -> IO ()) 
+        -> (Font -> IO ()) 
+        -> (Cursor -> IO ()) 
+        -> (State -> IO ())
+        -> IO (Field a)
+newFieldInf setBg setFg setFont setCursor setState = newRef inf
+        where inf = FieldInf (const done) return setBg setFg setFont setCursor setState
+
+
+addNewField :: InputForm a -> w -> Field a -> IO ()
+addNewField form@(InputForm b em) w pv = do {
+        fei <- getRef pv;
+        fst <- getRef em;
+        setDefaultAttrs fst fei; 
+        configure w [];
+        changeRef em (\fst -> fst {fRecordFields = (fRecordFields fst) ++ [fei]})
+        }
+
+setDefaultAttrs :: FormState a -> FieldInf a -> IO ()
+setDefaultAttrs fst fei = do {
+        incase (fFormBg fst) (fSetBgColour fei);
+        incase (fFormFg fst) (fSetFgColour fei);
+        incase (fFormFont fst) (fSetFont fei);
+        incase (fFormCursor fst) (fSetCursor fei);
+        incase (fFormState fst) (fSetState fei);
+        done
+        }
+
+setSelectorCmd :: Field a -> (a -> IO ()) -> IO ()
+setSelectorCmd pv cmd = changeRef pv (\fei -> fei{fSetField = cmd})
+
+
+setReplacorCmd :: Field a -> (a -> IO a) -> IO ()
+setReplacorCmd pv cmd = changeRef pv (\fei -> fei{fUpdField = cmd})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{-
+-- --------------------------------------------------------------------------
+-- Classes 
+-- --------------------------------------------------------------------------           
+class InputField f where
+        selector :: GUIValue b => (a -> b) -> Config (f a b)
+        modifier :: GUIValue b => (a -> b -> a) -> Config (f a b)
+
+class Variable a b where
+        setVar  :: a -> b -> IO ()
+	getVar  :: a -> IO a
+	withVar :: a -> a -> IO ()
+	updVar  :: a -> b -> IO (a)
+
+-- --------------------------------------------------------------------------
+-- InputForm Type 
+-- --------------------------------------------------------------------------           
+data InputForm a = InputForm Box (Ref (FormState a))
 
 data FormState a = FormState {
         fFormValue      :: Maybe a,
@@ -88,11 +308,11 @@ data FieldInf a  = FieldInf {
 -- --------------------------------------------------------------------------
 -- Commands 
 -- --------------------------------------------------------------------------           
-newInputForm :: [Config (InputForm a)] -> IO (InputForm a)
-newInputForm ol = do {
-        b <- newVBox [fill Horizontal];
-        em <- newPVar (FormState Nothing Nothing Nothing Nothing Nothing Nothing []);
-        configure (InputForm b em) ol
+-- FIXME:
+newInputForm :: Box -> [Config (InputForm a)] -> IO (InputForm a)
+newInputForm par ol = do {
+        em <- newRef (FormState Nothing Nothing Nothing Nothing Nothing Nothing []);
+        configure (InputForm par em) ol
 }
 
 
@@ -109,8 +329,6 @@ instance GUIObject (InputForm a) where
 instance Destructible (InputForm a) where
         destroy   = destroy . toGUIObject
         destroyed = destroyed . toGUIObject
-
-instance Interactive (InputForm a)
 
 instance HasColour (InputForm a) where
         legalColourID _ "foreground" = True
@@ -151,9 +369,6 @@ instance Widget (InputForm a) where
                 })
         getCursor form  = getFormConfig form fFormCursor
 
-        
-instance ChildWidget (InputForm a)
-        
 instance HasSize (InputForm a)
 
 instance HasBorder (InputForm a)
@@ -161,7 +376,7 @@ instance HasBorder (InputForm a)
 instance Synchronized (InputForm a) where
         synchronize w = synchronize (toGUIObject w)
         
-instance Variable InputForm a where
+instance Variable (InputForm a) b where
         setVar form val = setFormValue form val
         getVar form  = getFormValue form
         withVar w f = synchronize w (do {v <- getVar w; f v}) 
@@ -193,47 +408,51 @@ setFormValue form @ (InputForm b e) val = synchronize form (do {
         foreach (fRecordFields fst) (\fei -> (fSetField fei) val);
         })
 
-
+--FIXME: where do changeVar' and withVar' come from?
 setFormConfig :: (FormState a -> FormState a) -> Config (InputForm a)
 setFormConfig trans form@(InputForm b e) = do {
-        changeVar' e trans;
+--        changeVar' e trans;
         fst <- getVar e;
         foreach (fRecordFields fst) (setDefaultAttrs fst);
         return form
         } 
 
 getFormConfig :: GUIValue b => InputForm a -> (FormState a -> Maybe b) -> IO b
-getFormConfig form@(InputForm b e) fetch = do { 
-        mv <- withVar' e fetch;
-        case mv of
-                Nothing -> return cdefault
-                (Just c) -> return c
-        }
+getFormConfig form@(InputForm b e) fetch = return cdefault
+--do { 
+--        mv <- withVar' e fetch;
+--        case mv of
+--                Nothing -> return cdefault
+--                (Just c) -> return c
+--        }
 
 
 -- --------------------------------------------------------------------------
 --  Misc. Fields  
--- --------------------------------------------------------------------------           
-instance ParentWidget (InputForm a) Space where
-        parent form@(InputForm b em) w = synchronize form (do {
-                configure w [orient Horizontal, parent b] 
-                })
+-- --------------------------------------------------------------------------
+--FIXME: parent is no longer used
+--instance ParentWidget (InputForm a) Space where
+--        parent form@(InputForm b em) w = synchronize form (do {
+--                configure w [orient Horizontal, parent b] 
+--                })
 
-instance ParentWidget (InputForm a) Separator where
-        parent form@(InputForm b em) w = synchronize form (do {
-                configure w [orient Horizontal, parent b] 
-                })
+--FIXME: Separator does not exist
+--instance ParentWidget (InputForm a) Separator where
+--        parent form@(InputForm b em) w = synchronize form (do {
+--                configure w [orient Horizontal, parent b] 
+--                })
 
 
 
 -- --------------------------------------------------------------------------
 --  Entry Fields  
 -- --------------------------------------------------------------------------           
-data GUIValue b => EntryField a b = EntryField (Prompt b) (PVar (FieldInf a))
+data GUIValue b => EntryField a b = EntryField (Prompt b) (Ref (FieldInf a))
 
-newEntryField :: GUIValue b => [Config (EntryField a b)] -> IO (EntryField a b)
-newEntryField confs = do {
-        pr <- newPrompt [orient Vertical,fill Horizontal];
+--FIXME: parent is a parameter now
+newEntryField :: GUIValue b => InputForm a -> [Config (EntryField a b)] -> IO (EntryField a b)
+newEntryField (InputForm b field) confs = do {
+        pr <- newPrompt b [];
         pv <- newFieldInf
                 (\c -> do {bg (toColour c) pr; done})
                 (\c -> do {fg (toColour c) pr; done})
@@ -241,6 +460,7 @@ newEntryField confs = do {
                 (\c -> do {cursor (toCursor c) pr; done})
                 (\s -> do {state s pr; done});
         configure (EntryField pr pv) confs
+        addNewField (InputForm b field) pr pv;
 }
 
 instance Eq (EntryField a b) where 
@@ -250,7 +470,8 @@ instance GUIObject (EntryField a b) where
         toGUIObject (EntryField pr _) = toGUIObject pr
         cname _ = "EntryField"
 
-instance Interactive (EntryField a b) 
+--FIXME: im out
+--instance Interactive (EntryField a b) 
 
 instance Widget (EntryField a b) where
         cursor c fe@(EntryField pr _) = do {cursor c pr; return fe}
@@ -285,7 +506,7 @@ instance (GUIValue b,GUIValue c) => HasText (EntryField a b) c where
 instance Synchronized (EntryField a b) where
         synchronize fe = synchronize (toGUIObject fe)
 
-instance GUIValue a => Variable (EntryField b) a where
+instance GUIValue a => Variable (EntryField a b) a where
         setVar f@(EntryField pr _) v = setVar pr v
         getVar (EntryField pr _) = getVar pr
         withVar w f = synchronize w (do {v <- getVar w; f v}) 
@@ -295,7 +516,7 @@ instance GUIValue a => Variable (EntryField b) a where
                 setVar w v';
                 return r
                 })
-
+--FIXME: take a good look at this
 instance InputField EntryField where
         selector f fe@(EntryField _ pv) = synchronize fe (do {
                 setSelectorCmd pv cmd;
@@ -314,20 +535,22 @@ instance InputField EntryField where
                                         }
                                 (Right val) -> return (f r val) 
                         }
+-}
+--FIXME: parentwidget? (synchronize!!)
+--instance ParentWidget (InputForm a) (EntryField a b) where
+--        parent form fe@(EntryField pr pv) = synchronize form (do {
+--                addNewField form pr pv;
+--                setFieldValue form pv;
+--                return fe
+--                })
 
-instance ParentWidget (InputForm a) (EntryField a b) where
-        parent form fe@(EntryField pr pv) = synchronize form (do {
-                addNewField form pr pv;
-                setFieldValue form pv;
-                return fe
-                })
-
-
+{-
 -- --------------------------------------------------------------------------
 --  Enumeration Fields  
 -- --------------------------------------------------------------------------           
 data GUIValue b => EnumField a b = 
         EnumField (OptionMenu b) (LabelBox (OptionMenu b)) (PVar (FieldInf a))
+
 
 newEnumField :: GUIValue b => [b] -> [Config (EnumField a b)] -> IO (EnumField a b)
 newEnumField choices confs = do {
@@ -609,10 +832,11 @@ instance ParentWidget (InputForm a) (RecordField a b) where
                 })
 
 
+
 -- --------------------------------------------------------------------------
 --  Auxiliary Computations for Field Information
 -- --------------------------------------------------------------------------           
-type Field a = (PVar (FieldInf a))
+type Field a = (Ref (FieldInf a))
 
 newFieldInf :: (Colour -> IO ()) 
         -> (Colour -> IO ()) 
@@ -620,7 +844,7 @@ newFieldInf :: (Colour -> IO ())
         -> (Cursor -> IO ()) 
         -> (State -> IO ())
         -> IO (Field a)
-newFieldInf setBg setFg setFont setCursor setState = newPVar inf
+newFieldInf setBg setFg setFont setCursor setState = newRef inf
         where inf = FieldInf (const done) return setBg setFg setFont setCursor setState
 
 setFieldValue :: InputForm a -> Field a -> IO ()
@@ -633,13 +857,13 @@ setFieldValue (InputForm _ em) pv = do {
                 )
         }
 
-addNewField :: ChildWidget w => InputForm a -> w -> Field a -> IO ()
+addNewField :: InputForm a -> w -> Field a -> IO ()
 addNewField form@(InputForm b em) w pv = do {
         fei <- getVar pv;
         fst <- getVar em;
         setDefaultAttrs fst fei; 
-        configure w [parent b]; 
-        changeVar' em (\fst -> fst {fRecordFields = (fRecordFields fst) ++ [fei]})
+        configure w []; 
+        --changeVar' em (\fst -> fst {fRecordFields = (fRecordFields fst) ++ [fei]})
         }
 
 
@@ -655,11 +879,11 @@ setDefaultAttrs fst fei = do {
 
 
 setSelectorCmd :: Field a -> (a -> IO ()) -> IO ()
-setSelectorCmd pv cmd = changeVar' pv (\fei -> fei{fSetField = cmd})
+setSelectorCmd pv cmd = return () --changeVar' pv (\fei -> fei{fSetField = cmd})
 
 
 setReplacorCmd :: Field a -> (a -> IO a) -> IO ()
-setReplacorCmd pv cmd = changeVar' pv (\fei -> fei{fUpdField = cmd})
+setReplacorCmd pv cmd = return () --changeVar' pv (\fei -> fei{fUpdField = cmd})
 
 
 
@@ -668,3 +892,4 @@ setReplacorCmd pv cmd = changeVar' pv (\fei -> fei{fUpdField = cmd})
 -- --------------------------------------------------------------------------           
 undefinedFormValue :: IOError
 undefinedFormValue = userError "form value is not defined"
+-}

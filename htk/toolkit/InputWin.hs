@@ -22,130 +22,100 @@ TO BE DONE    : The handling of Returns within a form must be considered.
 
 
 module InputWin (
-        module InputForm,
-        forkDialog,
+--        module InputForm,
+--        forkDialog,
 
-        InputWin,
+        InputWin(..),
         newInputWin,
-        newInputDialog
+        newInputDialog,
 
+        wait
         ) where
 
-import Concurrency
+import Core
 import HTk
-import Message
-import Separator
-import Keyboard
-import Button
-import Font
 import Space
 import SelectBox
 import ModalDialog
-import InputForm
 import DialogWin
-import Debug(debug)
-
 
 -- ---------------------------------------------------------------------------
 -- Data Type
 -- ---------------------------------------------------------------------------
 
-data InputWin a = InputWin (Future a)
+data InputWin = InputWin {
+                          fWindow :: Toplevel,
+			  fForm   :: Box,
+			  fEvents :: (Event Bool)
+			 }
 
 -- ---------------------------------------------------------------------------
 -- Instantiations
 -- ---------------------------------------------------------------------------
 
-instance Reactive InputWin a where
-        triggered (InputWin fut) = lift(receive fut)
-
--- ---------------------------------------------------------------------------
--- Constructor
--- ---------------------------------------------------------------------------
-
-newInputWin :: String -> InputForm a -> Maybe (a -> IO (Maybe String)) -> 
-                [Config Window] -> IO (InputWin (Maybe a))
-newInputWin str form iswf wol = do {
-        b <- newVBox [fill Horizontal, relief Raised, borderwidth (cm 0.05) ];
-        newVBox [flexible,parent b];    -- provide fill area
-        newMessage [pad Horizontal (cm 0.5), 
-                (value str)::Config(Message String), 
-                flexible, 
-                width (cm 10), 
-                justify JustCenter,
-                font fmsg,
-                parent b
-                ];
-        newSpace (cm 0.3) [parent b];
-        newSeparator [fill Horizontal,parent b];
-        newSpace (cm 0.3) [parent b];
-        configure form [parent b, pad Horizontal (cm 0.5), fill Horizontal];
-        newSpace (cm 0.3) [parent b];
-        newSeparator [fill Horizontal,parent b];
-        newSpace (cm 0.3) [parent b];           
-        sb <- newSelectBox Nothing [fill Horizontal, anchor Center,parent b];
-                newButton [
-                        (text "Ok" :: Config (Button Bool)),
-                        pad Horizontal (cm 0.5),
-                        command (\() -> return True), 
-                        parent sb,
-                        side AtLeft
-                        ];
-                newButton [
-                        (text "Cancel" :: Config (Button Bool)),
-                        command (\() -> return False),
-                        pad Horizontal (cm 0.5),
-                        parent sb,
-                        side AtRight
-                        ];
-        newSpace (cm 0.3) [parent b];
-        win <- window b ([text "Input Form Window", sizeFrom Program] ++ wol);
-        fut <- newFuture ( do {
-                ans <- fetchValue win sb form iswf;
-                destroy win;
-                return ans
-                });
-        return (InputWin fut)
-} where fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
-
+instance GUIObject (InputWin) where
+        toGUIObject iwin = toGUIObject (fWindow iwin)
+        cname iwin = cname (fWindow iwin)
 
 -- ---------------------------------------------------------------------------
 -- Dialog
 -- ---------------------------------------------------------------------------
 
-newInputDialog :: String -> InputForm a -> Maybe (a -> IO (Maybe String)) -> 
-                [Config Window] -> IO (Maybe a)
-newInputDialog  str form iswf wol = do
-        iwin <- newInputWin str form iswf wol
-        sync(triggered iwin)
+newInputDialog :: String -> [Config Toplevel] -> IO (InputWin)
+newInputDialog  str tpconf = do
+        newInputWin str tpconf
 
 -- ---------------------------------------------------------------------------
--- Utility Function
+-- Constructor
 -- ---------------------------------------------------------------------------
 
-fetchValue :: Window -> SelectBox Bool -> InputForm a -> 
-                Maybe (a -> IO (Maybe String)) -> IO (Maybe a)
-fetchValue win sb form iswf = do {
-        sbe <- getTrigger sb;
-        ans <- modalInteraction win False (
-                        sbe
-                   +>   destroyed win >>> return False
---                 +>   keyPressed win "Return" >>> return True 
-                );
-        if ans then do {
-                val <- try (getValue form);
-                checkInput iswf val;
-                }
-        else
-                return Nothing
-} where checkInput _ (Left e) = fetchValue win sb form iswf  -- illegal field
-        checkInput Nothing (Right val) = return (Just val)   -- no check needed
-        checkInput (Just iswf) (Right val) = do {            -- check value
-                msg <- iswf val;
-                case msg of
-                        Nothing -> return (Just val)         -- value ok
-                        (Just msg) -> do {
-                                newErrorWin msg [];
-                                fetchValue win sb form (Just iswf)  -- try again
-                                }
-                }
+newInputWin :: String -> [Config Toplevel] -> IO (InputWin)
+newInputWin str tpconfs =
+ do
+  tp <- createToplevel (tpconfs++[text "Input Form Window"])
+  pack tp [Expand On, Fill Both]
+ 
+  b <- newVBox tp [relief Raised, borderwidth (cm 0.05)]
+  pack b [Expand On, Fill Both]
+ 
+  msg <- newMessage b [text str, font fmsg] :: IO (Message String)
+  pack msg [Expand Off, Fill X, PadX (cm 0.5), Side AtTop]
+
+  sp1 <- newSpace b (cm 0.3) []
+  pack sp1 [Expand Off, Fill X]
+ 
+  sp2 <- newSpace b (cm 0.3) []
+  pack sp2 [Expand Off, Fill X]
+
+  form <- newVBox b []
+  pack form [Expand On, Fill Both, PadX (cm 0.5)]
+
+  sp3 <- newSpace b (cm 0.3) []
+  pack sp3 [Expand Off, Fill X]
+ 
+  sp4 <- newSpace b (cm 0.3) []
+  pack sp4 [Expand Off, Fill X]
+
+  sb <- newSelectBox b Nothing [relief Ridge, borderwidth (cm 0.05)]
+  pack sb [Expand Off, Fill X, Side AtBottom]
+
+  but1 <- addButton sb [text "Ok"] [Expand On, Side AtRight] :: IO (Button String)
+  but2 <- addButton sb [text "Cancel"] [Expand On, Side AtRight] :: IO (Button String)
+  
+  clickedbut1 <- clicked but1
+  clickedbut2 <- clicked but2
+  
+  let ev = (clickedbut1 >> (always (return True))) +> (clickedbut2 >> (always (return False)))
+
+  sp5 <- newSpace b (cm 0.3) [];
+  pack sp5 [Fill X]
+
+  return (InputWin tp form ev)
+  where fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
+
+
+-- ---------------------------------------------------------------------------
+-- Additional Funcitons
+-- ---------------------------------------------------------------------------
+wait :: InputWin -> Bool -> IO (Bool)
+wait form@(InputWin tp _ ev) modality = modalInteraction tp True modality ev
