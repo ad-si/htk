@@ -4,6 +4,9 @@
 #undef NEW_GHC
 #endif
 
+#include "config.h"
+
+
 #ifndef NEW_GHC 
 {-# OPTIONS -#include "default_options.h" #-}
 #endif /* NEW_GHC */
@@ -195,8 +198,6 @@ import qualified Addr
 import qualified CString
 
 import FileNames
-
-#include "config.h"
 
 ------------------------------------------------------------------------
 -- Specific access functions.
