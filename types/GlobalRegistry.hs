@@ -30,10 +30,12 @@ module GlobalRegistry(
    oneOffKey,
    lookupInGlobalRegistry,
    addToGlobalRegistry,
+   addToGlobalRegistryOpt,
    getAllElements,
    getAllElementsSinked,
    ) where
 
+import Computation(done)
 import Dynamics
 import Registry
 import AtomString
@@ -224,6 +226,25 @@ addToGlobalRegistry globalRegistry view key objectType =
    do
       viewData <- lookupViewData globalRegistry view
       addToVariableMap (objectTypes viewData) key objectType
+
+---
+-- Like addToGlobalRegistry, but only adds the object type if there is
+-- nothing already in this map for this key.
+-- NB.  Not thread-safe.
+addToGlobalRegistryOpt :: GlobalRegistry objectType -> View -> GlobalKey ->
+      IO objectType -> IO ()
+addToGlobalRegistryOpt globalRegistry view key objectTypeAct =
+   do
+      viewData <- lookupViewData globalRegistry view
+      variableMapData <- readContents (objectTypes viewData)
+      let
+         previous = lookupMap variableMapData key
+      case previous of
+         Nothing -> 
+            do
+               objectType <- objectTypeAct
+               addToGlobalRegistry globalRegistry view key objectType
+         Just _ -> done
 
 ---
 -- (not exported but used in this section)
