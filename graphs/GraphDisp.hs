@@ -453,7 +453,7 @@ class (GraphClass graph,GraphParms graphParms)
    => NewGraph graph graphParms where
    newGraphPrim :: graphParms -> IO graph
 
-class GraphConfig graphConfig where
+class GraphConfig graphConfig
 -- empty to prevent just anything being usable for the graphConfig 
 -- function.
 

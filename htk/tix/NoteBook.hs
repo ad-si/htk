@@ -54,9 +54,7 @@ newNoteBook par cnf =
 
 -- | Internal.
 instance GUIObject NoteBook where
-  -- | Internal.
   toGUIObject (NoteBook w) = w 
-  -- | Internal.
   cname _ = "NoteBook"
 
 -- | You can specify the size of a notebook widget.
@@ -67,12 +65,12 @@ instance Widget NoteBook
 
 -- | A notebook widget can be destroyed.
 instance Destroyable NoteBook where
-  -- | Destroys a notebook widget.
+  -- Destroys a notebook widget.
   destroy = destroy . toGUIObject
 
 -- | You can synchronize on a notebook object (in JAVA style).
 instance Synchronized NoteBook where
-  -- | Synchronizes on a notebook object.
+  -- Synchronizes on a notebook object.
   synchronize = synchronize . toGUIObject
 
 
@@ -156,14 +154,12 @@ tkCreateNoteBookPage parnm (NOTEBOOKPAGE title) _ oid args =
 
 -- | Internal.
 instance GUIObject NoteBookPage where
-  -- | Internal.
   toGUIObject (NoteBookPage w) = w 
-  -- | Internal.
   cname _ = "NoteBookPage"
 
 -- | A notebook page can be destroyed.
 instance Destroyable NoteBookPage where
-  -- | Destroys a notebook page.
+  -- Destroys a notebook page.
   destroy   = destroy . toGUIObject
 
 -- | A notebook page has standard widget properties
@@ -188,10 +184,9 @@ instance HasTooltip NoteBookPage
 
 -- | A notebook page has a background colour.
 instance HasColour NoteBookPage where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | You can synchronize on a notebook page (in JAVA style).
 instance Synchronized NoteBookPage where
-  -- | Synchronizes on a notebook page object.
+  -- Synchronizes on a notebook page object.
   synchronize = synchronize . toGUIObject

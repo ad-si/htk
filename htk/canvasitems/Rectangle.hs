@@ -50,19 +50,17 @@ createRectangle cnv cnf =
 
 -- | Internal.
 instance GUIObject Rectangle where 
-  -- | Internal.
   toGUIObject (Rectangle w) = w
-  -- | Internal.
   cname _ = "Rectangle"
 
 -- | A rectangle item can be destroyed.
 instance Destroyable Rectangle where
-  -- | Destroys a rectangle item.
+  -- Destroys a rectangle item.
   destroy = destroy . toGUIObject
 
 -- | You can synchronize on a rectangle item.
 instance Synchronized Rectangle where
-  -- | Synchronize on a rectangle item.
+  -- Synchronize on a rectangle item.
   synchronize = synchronize . toGUIObject
 
 -- | A rectangle item is a canvas item (any canvas item is an instance of
@@ -79,29 +77,29 @@ instance FilledCanvasItem Rectangle
 
 -- | An alternative way to specify a rectangle\'s coords.
 instance HasGeometry Rectangle where
-  -- | Sets the geometry of a rectangle (width, height, upper left position).
+  -- Sets the geometry of a rectangle (width, height, upper left position).
   geometry = itemGeo
-  -- | Gets the geometry of a rectangle (width, height, upper left position).
+  -- Gets the geometry of a rectangle (width, height, upper left position).
   getGeometry = getGeo
 
 -- | You can specify the (upper left) position of a rectangle.
 instance HasPosition Rectangle where
-  -- | Sets the (upper left) position of a rectangle.
+  -- Sets the (upper left) position of a rectangle.
   position = itemPosition
-  -- | Gets the (upper left) position of a rectangle.
+  -- Gets the (upper left) position of a rectangle.
   getPosition = getItemPosition
 
 -- | You can specify the size of an rectangle item.
 instance HasSize Rectangle where
-  -- | Sets the width of a rectangle item.
+  -- Sets the width of a rectangle item.
   width = itemWidth
-  -- | Gets the width of a rectangle item.
+  -- Gets the width of a rectangle item.
   getWidth = getItemWidth
-  -- | Sets the height of a rectangle item.
+  -- Sets the height of a rectangle item.
   height = itemHeight
-  -- | Gets the height of a rectangle item.
+  -- Gets the height of a rectangle item.
   getHeight = getItemHeight
-  -- | Sets the size (width, height) of a rectangle item.
+  -- Sets the size (width, height) of a rectangle item.
   size = itemSize
-  -- | Gets the size (width, height) of a rectangle item.
+  -- Gets the size (width, height) of a rectangle item.
   getSize = getItemSize

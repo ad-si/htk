@@ -21,9 +21,16 @@ else
     HC_OPTIONS = -O
 endif
 
+# Option to specify that -cpp should be used, if required.
+ifdef DOCPP
+   CPPOPT = -cpp
+else
+   CPPOPT =
+endif
+
 HCSHORTFLAGS = \
    -recomp -fwarn-deprecations \
-   $(HC_OPTIONS) $(EXTRA_HC_OPTIONS) \
+   $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) \
    -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
 
 PACKAGESARGS = $(PACKAGES:%=-package %)

@@ -49,19 +49,17 @@ createPolygon cnv cnf =
 
 -- | Internal.
 instance GUIObject Polygon where 
-  -- | Internal.
   toGUIObject (Polygon w) = w
-  -- | Internal.
   cname _ = "Polygon"
 
 -- | An polygon item can be destroyed.
 instance Destroyable Polygon where
-  -- | Destroys a polygon item.
+  -- Destroys a polygon item.
   destroy = destroy . toGUIObject
 
 -- | You can synchronize on a polygon item.
 instance Synchronized Polygon where
-  -- | Synchronizes on a polygon item.
+  -- Synchronizes on a polygon item.
   synchronize w = synchronize (toGUIObject w)
 
 -- | A polygon item is a canvas item (any canvas item is an instance of the

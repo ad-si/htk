@@ -89,9 +89,7 @@ tkCreatePanedWindow _ _ _ _ _ = []
 
 -- | Internal.
 instance GUIObject PanedWindow where 
-  -- | Internal.
   toGUIObject (PanedWindow f) = f
-  -- | Internal.
   cname _ = "PanedWindow"
 
 -- | You can specify the size of a paned window.
@@ -99,7 +97,7 @@ instance HasSize PanedWindow
 
 -- | A paned window can be destroyed.
 instance Destroyable PanedWindow where
-  -- | Destroys a paned window.
+  -- Destroys a paned window.
   destroy = destroy . toGUIObject
 
 -- | A paned window has standard widget properties (focus, cursor, ...).
@@ -107,7 +105,7 @@ instance Widget PanedWindow
 
 -- | You can synchronize on a paned window object (in JAVA style).
 instance Synchronized PanedWindow where
-  -- | Synchronizes on a paned window object.
+  -- Synchronizes on a paned window object.
   synchronize = synchronize . toGUIObject
 
 
@@ -245,14 +243,12 @@ tkCreatePane _ _ _ _ _ _ = []
 
 -- | Internal.
 instance GUIObject Pane where 
-  -- | Internal.
   toGUIObject (Pane f) = f
-  -- | Internal.
   cname _ = "Pane"
 
 -- | A pane can be destroyed.
 instance Destroyable Pane where
-  -- | Destroys a pane.
+  -- Destroys a pane.
   destroy   = destroy . toGUIObject
 
 -- | A pane has standard widget properties (focus, cursor...).
@@ -260,7 +256,6 @@ instance Widget Pane
 
 -- | A pane has a background colour.
 instance HasColour Pane where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | A pane is a container for widgets. You can pack widgets to a pane via
@@ -269,5 +264,5 @@ instance Container Pane
 
 -- | You can synchronize on a pane object (in JAVA style).
 instance Synchronized Pane where
-  -- | Synchronizes on a pane object.
+  -- Synchronizes on a pane object.
   synchronize = synchronize . toGUIObject

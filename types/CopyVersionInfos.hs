@@ -454,5 +454,4 @@ data FixOldNew = FixOldNew {
       -- the version we tried to give it in the new version
    actualNewVersion :: ObjectVersion
       -- the version someone else had already saved it under.
-   
-   }
+   }

@@ -31,9 +31,9 @@ import Packer
 
 -- | Image containers instantiate the @class HasPhoto@.
 class GUIObject w => HasPhoto w where
-  -- | Associates an image container (e.g. a label) with the given image.
+  -- Associates an image container (e.g. a label) with the given image.
   photo           :: Image -> Config w
-  -- | Gets the image associated with the given image container.
+  -- Gets the image associated with the given image container.
   getPhoto        :: w -> IO (Maybe Image)
   photo img w     = imageToInt img >>= cset w "image"
   getPhoto w      = cget w "image" >>= intToImage 
@@ -117,14 +117,12 @@ imgPalette p = tkImgConfig ("-palette "++ tkShowPalette p)
 
 -- | Internal.
 instance GUIObject Image where 
-  -- | Internal.
   toGUIObject (Image w) = w
-  -- | Internal.
   cname _ = "Image"
 
 -- | An image object can be destroyed.
 instance Destroyable Image where
-  -- | Destroys an image object.
+  -- Destroys an image object.
   destroy = destroy . toGUIObject
 
 -- | An image object has standard widget properties
@@ -147,17 +145,17 @@ instance HasSize Image
 
 -- | Images can be read from files.
 instance HasFile Image where
-  -- | Specifies the image file path.
+  -- Specifies the image file path.
   filename str w =
     execTclScript [tkImageCreate no str] >> cset w "image" no
     where no = getObjectNo (toGUIObject w) 
-  -- | Gets the image\'s file name.
+  -- Gets the image\'s file name.
   getFileName w = evalTclScript [tkGetImageFile no] 
     where no = getObjectNo (toGUIObject w)
 
 -- | You can synchronize on an image object.
 instance Synchronized Image where
-  -- | Synchronizes on an image object.
+  -- Synchronizes on an image object.
   synchronize = synchronize . toGUIObject
 
 

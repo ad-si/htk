@@ -60,9 +60,7 @@ data Dialog a = Dialog {
 -- --------------------------------------------------------------------------            
 -- | Internal.
 instance GUIObject (Dialog a) where
-        -- | Internal.
         toGUIObject dlg = toGUIObject (fWindow dlg)
-        -- | Internal.
         cname dlg = cname (fWindow dlg)
 
 -- | A dialog can have an image

@@ -64,14 +64,12 @@ createEmbeddedCanvasWin cnv wid cnf =
 
 -- | Internal.
 instance GUIObject EmbeddedCanvasWin where 
-  -- | Internal.
   toGUIObject (EmbeddedCanvasWin w) = w
-  -- | Internal.
   cname _         = "EmbeddedCanvasWin"
 
 -- | An embedded canvas window can be destroyed.
 instance Destroyable EmbeddedCanvasWin where
-  -- | Destroys an embedded canvas window.
+  -- Destroys an embedded canvas window.
   destroy = destroy . toGUIObject
 
 -- | An embedded canvas window is a canvas item (any canvas item is an
@@ -84,9 +82,9 @@ instance TaggedCanvasItem EmbeddedCanvasWin
 
 -- | You can specify the position of a bitmap item.
 instance HasPosition EmbeddedCanvasWin where
-  -- | Sets the position of the embedded canvas window.
+  -- Sets the position of the embedded canvas window.
   position = itemPositionD2
-  -- | Gets the position of the embedded canvas window.
+  -- Gets the position of the embedded canvas window.
   getPosition  = getItemPositionD2
 
 -- | You can specify the size of an embedded canvas window.
@@ -101,12 +99,12 @@ instance Widget EmbeddedCanvasWin where
 
 -- | You can synchronize on an embedded canvas window.
 instance Synchronized EmbeddedCanvasWin where
-  -- | Synchronizes on an embedded canvas window.
+  -- Synchronizes on an embedded canvas window.
   synchronize = synchronize . toGUIObject
 
 -- | You can specify the anchor position of an embedded canvas window.
 instance HasCanvAnchor EmbeddedCanvasWin where
-  -- | Sets the anchor position of an embedded canvas window.
+  -- Sets the anchor position of an embedded canvas window.
   canvAnchor a w = cset w "anchor" a
-  -- | Gets the anchor position of an embedded canvas window.
+  -- Gets the anchor position of an embedded canvas window.
   getCanvAnchor w = cget w "anchor"

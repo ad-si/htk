@@ -38,7 +38,7 @@ class Widget w => HasInsertionCursor w
 -- | Widgets with an insertion cursor that can be set to a specific index
 -- instantiate the @class HasInsertionCursorIndexSet@.
 class HasInsertionCursor w => HasInsertionCursorIndexSet w i where
-  -- | Sets the index of the insertion Cursor.
+  -- Sets the index of the insertion Cursor.
   insertionCursor :: i -> Config w
 
 -- | Widgets from which you can get the index of the insertion cursor 
@@ -61,43 +61,38 @@ newtype ICursor w = ICursor w
 
 -- | Internal.
 instance GUIObject w => GUIObject (ICursor w) where
-  -- | Internal.
   toGUIObject (ICursor w) = toGUIObject w
-  -- | Internal.
   cname (ICursor w) = cname w
 
 -- | The insertion cursor has a configureable colour.
 instance (HasInsertionCursor w,Widget w) => HasColour (ICursor w) where
-  -- | Internal.
   legalColourID = hasBackGroundColour
-  -- | Internal.
   setColour w "bg" c = cset w "insertbackground" (toColour c)
   setColour w _ _ = return w
-  -- | Internal.
   getColour w "bg" = cget w "insertbackground"
   getColour _ _ = return cdefault
 
 -- | The insertion cursor has a configureable borderwidth (width for three
 -- dimensional appearence).
 instance (HasInsertionCursor w,Widget w) => HasBorder (ICursor w) where
-  -- | Sets the insertion cursor\'s borderwidth.
+  -- Sets the insertion cursor\'s borderwidth.
   borderwidth s w = cset w "insertborderwidth" s
-  -- | Gets the insertion cursor\'s borderwidth.
+  -- Gets the insertion cursor\'s borderwidth.
   getBorderwidth w = cget w "insertborderwidth"
-  -- | Dummy.
+  -- Dummy.
   relief _ w = return w
-  -- | Dummy.
+  -- Dummy.
   getRelief _ = return Raised 
 
 -- | The insertion cursor has a configureable width.
 instance (HasInsertionCursor w,Widget w) => HasSize (ICursor w) where
-  -- | Sets the width of the insertion cursor.
+  -- Sets the width of the insertion cursor.
   width s w   = cset w "insertwidth" s
-  -- | Gets the width of the insertion cursor.
+  -- Gets the width of the insertion cursor.
   getWidth w  = cget w "insertwidth"
-  -- | Dummy.
+  -- Dummy.
   height h w  = return w
-  -- | Dummy.
+  -- Dummy.
   getHeight w = return cdefault
 
 

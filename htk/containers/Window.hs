@@ -39,36 +39,36 @@ type Display = String
 
 -- | Toplevel windows instantiate the @class Window@.
 class GUIObject w => Window w where
-  -- | Iconifies the window.
+  -- Iconifies the window.
   iconify :: w -> IO ()
-  -- | Deiconifies the window.
+  -- Deiconifies the window.
   deiconify :: w -> IO ()
-  -- | Withdraws the window.
+  -- Withdraws the window.
   withdraw :: w -> IO ()
-  -- | Puts the window on top.
+  -- Puts the window on top.
   putWinOnTop :: w -> IO ()
-  -- | Puts the window at bottom.
+  -- Puts the window at bottom.
   putWinAtBottom :: w -> IO ()
-  -- | Sets the screen for this window.
+  -- Sets the screen for this window.
   screen :: Display -> Config w
-  -- | Gets the screen from this window.
+  -- Gets the screen from this window.
   getScreen :: w -> IO (Display)
-  -- | Returns the resource class of the given window.
+  -- Returns the resource class of the given window.
   getClassName :: w -> IO String
-  -- | Gets the current window state.
+  -- Gets the current window state.
   getWindowState :: w -> IO WindowState
-  -- | Sets the aspect ratio for the given window.
+  -- Sets the aspect ratio for the given window.
   aspectRatio :: AspectRatio -> Config w
-  -- | Gets the aspect ratio of the given window.
+  -- Gets the aspect ratio of the given window.
   getAspectRatio :: w -> IO AspectRatio
-  -- | Set \'@Whom@\' to be @Program@ or
+  -- Set \'@Whom@\' to be @Program@ or
   -- @User@.
   positionFrom :: Whom -> Config w
-  -- | Gets the current setting.
+  -- Gets the current setting.
   getPositionFrom :: w -> IO Whom
-  -- | Set \'@Whom@\' to be @Program@ or
+  -- Set \'@Whom@\' to be @Program@ or
   sizeFrom :: Whom -> Config w
-  -- | Gets the current setting.
+  -- Gets the current setting.
   getSizeFrom :: w -> IO Whom
 
   iconify win = cset win "state" Iconified >> done
@@ -105,40 +105,40 @@ class GUIObject w => Window w where
 
 -- | A window has a configureable size and anchor position (geometry).
 instance Window w => HasGeometry w where
-  -- | Sets the window\'s geometry.
+  --  Sets the window\'s geometry.
   geometry g win = cset win "geometry" g
-  -- | Gets the current geometry of the given window.
+  --  Gets the current geometry of the given window.
   getGeometry win = cget win "geometry"
 
 -- | A window has a configureable size.
 instance Window w => HasSize w where
-  -- | Sets the window\'s width.
+  --  Sets the window\'s width.
   width w win = getGeometry win >>= \(_,h,x,y) -> geometry (w,h,x,y) win
-  -- | Gets the window\'s width.
+  --  Gets the window\'s width.
   getWidth win = getGeometry win >>= \ (w,_,_,_) -> return w
-  -- | Sets the window\'s height.
+  --  Sets the window\'s height.
   height h win = getGeometry win >>= \(w,_,x,y) -> geometry (w,h,x,y) win
-  -- | Gets the window\'s height.
+  --  Gets the window\'s height.
   getHeight win =
     do
       (_,h,_, _) <- getGeometry win
       return h
-  -- | Sets the window\'s width and height.
+  --  Sets the window\'s width and height.
   size (w,h) win =
     do
       (_,_,x,y) <- getGeometry win
       geometry (w,h,x,y) win
-  -- | Gets the window\'s width and height.
+  --  Gets the window\'s width and height.
   getSize win = getGeometry win >>= \(w,h,_,_) -> return (w,h)
 
 -- | A window has a position on the associated screen.
 instance Window w => HasPosition w where
-  -- | Sets the window\'s position-
+  --  Sets the window\'s position-
   position (x,y) win =
     do
       (w, h, _, _) <- getGeometry win
       geometry (w, h, x, y) win
-  -- | Gets the window\'s position.
+  --  Gets the window\'s position.
   getPosition win =
     do
       (_, _, x, y) <- getGeometry win
@@ -146,9 +146,9 @@ instance Window w => HasPosition w where
 
 -- | A window has a title.
 instance (Window w, GUIValue v) => HasText w v where
-  -- | Sets the window\'s title.
+  --  Sets the window\'s title.
   text s win  = cset win "iconname" s >> cset win "title" s
-  -- | Gets the window\'s title.
+  --  Gets the window\'s title.
   getText win = cget win "title"
 
 
@@ -214,12 +214,10 @@ data WindowState =
 
 -- | Internal.
 instance GUIValue WindowState where
-  -- | Internal.
   cdefault = Deiconified
 
 -- | Internal.
 instance Read WindowState where
-  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'n':'o':'r':'m':'a':'l':xs -> [(Deiconified,xs)]
@@ -229,7 +227,6 @@ instance Read WindowState where
 
 -- | Internal.
 instance Show WindowState where
-  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Deiconified -> "deiconify"
@@ -246,11 +243,8 @@ data AspectRatio = AspectRatio Int Int Int Int deriving Eq
 
 -- | Internal.
 instance GUIValue AspectRatio where
-  -- | Internal.
   cdefault = AspectRatio 0 0 0 0
-  -- | Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show v)
-  -- | Internal.
   maybeGUIValue (GUIVALUE _ s)     = 
     case [x | (x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
@@ -258,7 +252,6 @@ instance GUIValue AspectRatio where
 
 -- | Internal.
 instance Show AspectRatio where
-  -- | Internal.
   showsPrec d c r = cshow c ++ r
     where cshow (AspectRatio xt yt xf yf) = 
             (show xt) ++ " " ++ (show yt) ++ " " ++
@@ -266,7 +259,6 @@ instance Show AspectRatio where
 
 -- | Internal.
 instance Read AspectRatio where
-  -- | Internal.
   readsPrec p str = [(cread str,[])] 
     where cread str = AspectRatio (read xt) (read yt) (read xf) (read yf)
           [xt,yt,xf,yf] = words str 
@@ -281,12 +273,10 @@ data Whom = Program | User deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue Whom where
-  -- | Internal.
   cdefault = Program
 
 -- | Internal.
 instance Read Whom where
-  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'u':'s':'e':'r':xs -> [(User,xs)]
@@ -295,7 +285,6 @@ instance Read Whom where
 
 -- | Internal.
 instance Show Whom where
-  -- | Internal.
   showsPrec d p r = 
     (case p of 
        Program -> "program"

@@ -104,24 +104,21 @@ newVFBox par cnf = newBox par Flexible ((orient Vertical) : cnf)
 
 -- | Internal.
 instance Eq Box where 
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject Box where 
-  -- | Internal.
   toGUIObject (Box w) = toGUIObject w
-  -- | Internal.
   cname _ = "Box"
 
 -- | A box can be destroyed.
 instance Destroyable Box where
-  -- | Destroys a box.
+  --  Destroys a box.
   destroy = destroy . toGUIObject
 
 -- | You can synchronize on a box object.
 instance Synchronized Box where
-  -- | Synchronizes on a box object.
+  --  Synchronizes on a box object.
   synchronize = synchronize . toGUIObject
 
 -- | A box has standard widget properties
@@ -137,18 +134,17 @@ instance HasBorder Box
 
 -- | A box has a configureable background colour.
 instance HasColour Box where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | A box\'es packing orientation is configureable.
 instance HasOrientation Box where
-  -- | Sets the box\'es packing orientation.
+  --  Sets the box\'es packing orientation.
   orient or box@(Box w) =
     do
       BOX or' fl <- getObjectKind w
       setObjectKind w (BOX or fl)
       return box
-  -- | Gets the box\'es packing orientation.
+  --  Gets the box\'es packing orientation.
   getOrient (Box w) =
     do
       BOX or _ <- getObjectKind w

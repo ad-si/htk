@@ -245,19 +245,16 @@ newtype HTk = HTk GUIOBJECT
 
 -- | Internal.
 instance GUIObject HTk where
-  -- | Internal.
   toGUIObject (HTk obj) = obj
-  -- | Internal.
   cname _ = "HTk"
 
 -- | Internal.
 instance Eq HTk where 
-  -- | Internal.
   (HTk obj1) == (HTk obj2) = obj1 == obj2
 
 -- | The wish instance can be destroyed.
 instance Destroyable HTk where
-  -- | Destroys the wish instance.
+  -- Destroys the wish instance.
   destroy = destroy . toGUIObject
 
 -- | The wish instance is associated with the main window (with various
@@ -272,7 +269,7 @@ instance Container HTk
 
 -- | You can synchronize on the wish instance.
 instance Synchronized HTk where
-  -- | Synchronizes on the wish instance.
+  -- Synchronizes on the wish instance.
   synchronize = synchronize . toGUIObject
 
 
@@ -400,10 +397,10 @@ updateIdleTasks = execTclScript ["update idletasks"]
 
 -- | The wish instance has a value - the application name.
 instance GUIValue v => HasValue HTk v where
-  -- | Sets the application name.
+  -- Sets the application name.
   value aname htk =
     do
       execTclScript ["tk appname " ++ show aname]
       return htk
-  -- | Gets the application name.
+  -- Gets the application name.
   getValue _ = evalTclScript ["tk appname"] >>= creadTk

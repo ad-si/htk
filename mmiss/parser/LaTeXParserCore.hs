@@ -103,12 +103,12 @@ data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimite
               deriving Show
 
 
--- ******************************************************************************************
+-- ------------------------------------------------------------------------------------------
 --
 -- Hauptfunktion:
 -- parseFrags parsiert einen MMiSSLatex-String.
 --
--- ******************************************************************************************
+-- ------------------------------------------------------------------------------------------
 parseFrags :: String -> Either ParseError [Frag]
 parseFrags str = parse (frags []) "" str
 
@@ -355,11 +355,11 @@ optionParser = commaSep singleOptParser
 singleOptParser = many (noneOf "],")
 
 
--- **************************************************************************************
+-- -------------------------------------------------------------------------------------
 --
 -- Hier beginnen die Parser für die Fragmente (Frag)
 --
--- **************************************************************************************
+-- -------------------------------------------------------------------------------------
 
 -- begin erkennt den Namen einer Umgebung (id)
 begin :: GenParser Char st String
@@ -692,11 +692,11 @@ frags l =
 
 
 
--- **********************************************************************************************
+-- ----------------------------------------------------------------------------------------
 --
 --  Einige Hilfsfunktionen für die Module, die mit Params und Frags umgehen müssen
 --
--- **********************************************************************************************
+-- ----------------------------------------------------------------------------------------
 
 -- makeTextElem converts the Frags back into strings.
 
@@ -805,7 +805,7 @@ elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd)
 
 
 
--- **********************************************************************************************
+-- ---------------------------------------------------------------------------------------
 --
 -- (EntityName, EntityFullName, EntitySearchName parsers now in EntityNames.hs, and the
 -- old code that used to be here has been deleted.  Note that we are now much stricter,
@@ -813,7 +813,8 @@ elemNameToLaTeX name = maybe "" fst (find ((name ==) . snd)
 -- (GER, 18/9/03)
 --
 -- Instead we include versions of the parsers which check that all the input is read.
--- **********************************************************************************************
+--
+-- ---------------------------------------------------------------------------------------
 
 entityNameParser1 :: GenParser Char st EntityName
 entityNameParser1 = isAll entityNameParser
@@ -833,8 +834,7 @@ isAll parser0 =
       eof
       return a
 
--- **********************************************************************************************
-
+-- ------------------------------------------------------------------------------------
 parseString :: Frag -> [Frag]
 
 parseString (Other str) =

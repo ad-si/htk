@@ -49,14 +49,12 @@ newFrame par confs =
 
 -- | Internal.
 instance GUIObject Frame where
-  -- | Internal.
   toGUIObject (Frame w) = w 
-  -- | Internal.
   cname _ = "Frame"
 
 -- | A frame widget can be destroyed.
 instance Destroyable Frame where
-  -- | Destroys a frame widget.
+  --  Destroys a frame widget.
   destroy   = destroy . toGUIObject
 
 -- | A frame widget has standard widget properties
@@ -73,7 +71,6 @@ instance HasBorder Frame
 
 -- | A frame widget has a background colour.
 instance HasColour Frame where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | You can specify the size of a frame.
@@ -81,5 +78,5 @@ instance HasSize Frame
 
 -- | You can synchronize on a frame object.
 instance Synchronized Frame where
-  -- | Synchronizes on a frame object.
+  --  Synchronizes on a frame object.
   synchronize = synchronize . toGUIObject

@@ -40,7 +40,7 @@ import Geometry
 -- | A canvas item can have several tags (handlers for a set of canvas
 -- items).
 class CanvasItem w => TaggedCanvasItem w where
-  -- | Sets the tags for the specified canvas item.
+  -- Sets the tags for the specified canvas item.
   tags :: [CanvasTag] -> Config w
   tags cts item =
     mapM (\ct -> do
@@ -86,14 +86,12 @@ instance Eq CanvasTag where
 
 -- | Internal.
 instance GUIObject CanvasTag where 
-  -- | Internal.
   toGUIObject (CanvasTag wid) = wid
-  -- | Internal.
   cname _ = "CanvasTag"
 
 -- | A canvas tag can be destroyed.
 instance Destroyable CanvasTag where
-  -- | Destroys a canvas tag.
+  -- Destroys a canvas tag.
   destroy = destroy . toGUIObject
 
 -- | A canvas tag is a canvas item (any canvas item is an instance of the
@@ -102,7 +100,7 @@ instance CanvasItem CanvasTag
 
 -- | You can synchronize on a canvas tag.
 instance Synchronized CanvasTag where
-  -- | Synchronizes on a canvas tag.
+  -- Synchronizes on a canvas tag.
   synchronize w = synchronize (toGUIObject w)
 
                 

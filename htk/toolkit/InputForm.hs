@@ -103,14 +103,11 @@ newInputForm par val ol = do {
 -- --------------------------------------------------------------------------
 -- | Internal.
 instance Eq (InputForm a) where 
-        -- | Internal.
         w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject (InputForm a) where 
-        -- | Internal.
         toGUIObject (InputForm b e) = toGUIObject b
-        -- | Internal.
         cname _ = "InputForm"
 
 

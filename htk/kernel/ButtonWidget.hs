@@ -19,9 +19,9 @@ import Configuration
 
 -- | Button widgets instantiate the @class ButtonWidget@.
 class Widget w => ButtonWidget w where
-  -- | Flashes the given button widget.
+  -- Flashes the given button widget.
   flash   :: w -> IO ()
-  -- | Invokes the given button widget.
+  -- Invokes the given button widget.
   invoke  :: w -> IO ()
   flash w  = do {try(execMethod w (\ nm -> tkFlash nm)); done}
   invoke w = execMethod (toGUIObject w) (\ nm -> tkInvoke nm)

@@ -35,11 +35,11 @@ data Point = Point (Distance, Distance)
 
 -- | Internal.
 instance GUIValue (Distance,Distance) where
-  -- | Internal.
+  -- Internal.
   cdefault = (cdefault,cdefault)
-  -- | Internal.
+  -- Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show (Point v))
-  -- | Internal.
+  -- Internal.
   maybeGUIValue (GUIVALUE _ s)     = 
     case [x | (Point x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
@@ -47,7 +47,7 @@ instance GUIValue (Distance,Distance) where
 
 -- | Internal.
 instance Read Point where
-   -- | Internal.
+   -- Internal.
    readsPrec p b = 
         case (readsPrec p b) of
                 [(x,xs)] -> (case (readsPrec p xs) of
@@ -58,7 +58,6 @@ instance Read Point where
 
 -- | Internal.
 instance Show Point where
-   -- | Internal.
    showsPrec d (Point (x,y)) r = show x ++ " " ++ show y ++  r
 
 
@@ -74,11 +73,8 @@ data Geometry' = Geometry' Geometry
 
 -- | Internal.
 instance GUIValue (Distance, Distance, Distance, Distance) where
-  -- | Internal.
   cdefault = (cdefault, cdefault, cdefault, cdefault)
-  -- | Internal.
   toGUIValue v = GUIVALUE HaskellTk (show (Geometry' v))
-  -- | Internal.
   maybeGUIValue (GUIVALUE _ s) =
     case [x | (Geometry' x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
@@ -86,13 +82,13 @@ instance GUIValue (Distance, Distance, Distance, Distance) where
 
 -- | Internal.
 instance Show Geometry' where
-   -- | Internal.
+   -- Internal.
    showsPrec d (Geometry' (w, h, x, y)) r =             
         show w ++ "x" ++ show h ++ "+" ++ show x ++ "+" ++ show y ++ r
 
 -- | Internal.
 instance Read Geometry' where
-   -- | Internal.
+   -- Internal.
    readsPrec p str = 
          case readsPrec p str of
                 [(w,s')] -> readsPrecX1 p s' w
@@ -137,11 +133,8 @@ data Coord' = Coord' Coord
 
 -- | Internal.
 instance GUIValue [(Distance,Distance)] where
-  -- | Internal.
   cdefault = []
-  -- | Internal.
   toGUIValue v = GUIVALUE HaskellTk (show (Coord' v))
-  -- | Internal.
   maybeGUIValue (GUIVALUE _ s) =
     case [x | (Coord' x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x
@@ -149,7 +142,7 @@ instance GUIValue [(Distance,Distance)] where
 
 -- | Internal.
 instance Show Coord' where
-   -- | Internal.
+   -- Internal.
    showsPrec d (Coord' []) r = 
         r
    showsPrec d (Coord' (x:l)) r = 
@@ -157,7 +150,6 @@ instance Show Coord' where
 
 -- | Internal.
 instance Read Coord' where
-  -- | Internal.
   readsPrec p s = 
         case (dropWhile isSpace s) of
                 [] -> [(Coord' [],[])]
@@ -183,12 +175,12 @@ newtype Distance = Distance Int deriving (Eq, Ord)
 
 -- | Internal.
 instance Show Distance where
-   -- | Internal.
+   -- Internal.
    showsPrec d (Distance i) r = showsPrec d i r
 
 -- | Internal.
 instance Read Distance where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case (readsPrec p b) of
         [(i,xs)] -> [(Distance (round (i::Double)),xs)]
@@ -196,41 +188,34 @@ instance Read Distance where
 
 -- | Internal.
 instance GUIValue Distance where
-  -- | Internal.
   cdefault = Distance (-100)
 
 -- | Internal.
 instance Enum Distance where 
-  -- | Internal.
   fromEnum (Distance d)= d
-  -- | Internal.
   toEnum d = Distance d
 
 -- | Internal.
 instance Num Distance where
-  -- | Internal.
   (Distance p1) + (Distance p2) = Distance (p1 + p2)
-  -- | Internal.
   (Distance p1) * (Distance p2) = Distance (p1 * p2)
-  -- | Internal.
   negate (Distance p) = Distance (negate p)
-  -- | Internal.
   abs (Distance p) = Distance (abs p)
-  -- | Internal.
+  -- Internal.
   signum (Distance p) = Distance (signum p)
-  -- | Internal.
+  -- Internal.
   fromInteger i = Distance (fromInteger i)
 
 -- | Internal.
 instance Real Distance where
-  -- | Internal.
+  -- Internal.
   toRational (Distance i) = toRational i
 
 -- | Internal.
 instance Integral Distance where
-  -- | Internal.
+  -- Internal.
   toInteger (Distance i) = toInteger i
-  -- | Internal.
+  -- Internal.
   (Distance d1) `quotRem` (Distance d2) = (Distance q, Distance d)
     where (q, d)= d1 `quotRem` d2
 
@@ -242,11 +227,11 @@ data Distances = Distances [Distance]
  
 -- | Internal.
 instance GUIValue [Distance] where
-  -- | Internal.
+  -- Internal.
   cdefault = []
-  -- | Internal.
+  -- Internal.
   toGUIValue v  = GUIVALUE HaskellTk (show (Distances v))
-  -- | Internal.
+  -- Internal.
   maybeGUIValue (GUIVALUE _ s) =
     case [x | (Distances x,t) <- reads s, ("","") <- lex t] of
       [x] -> Just x

@@ -47,12 +47,10 @@ data GrabStatus = Local | Global deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue GrabStatus where
-  -- | Internal.
   cdefault = Local
 
 -- | Internal.
 instance Read GrabStatus where
-  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'l':'o':'c':'a':'l':xs -> [(Local,xs)]
@@ -61,7 +59,6 @@ instance Read GrabStatus where
 
 -- | Internal.
 instance Show GrabStatus where
-  -- | Internal.
   showsPrec d p r = (case p of 
                        Local -> "local" 
                        Global -> "global") ++ r
@@ -81,14 +78,11 @@ data CurrentGrab = CurrentGrab GUIOBJECT deriving Eq
 
 -- | Internal.
 instance Object CurrentGrab where
-  -- | Internal.
   objectID (CurrentGrab obj) = objectID obj
 
 -- | Internal.
 instance GUIObject CurrentGrab where
-  -- | Internal.
   toGUIObject (CurrentGrab obj) = obj
-  -- | Internal.
   cname _ = ""
 
 -- | The current grab has standard widget properties
@@ -172,12 +166,10 @@ data FocusModel = ActiveFocus | PassiveFocus deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue FocusModel where
-  -- | Internal.
   cdefault = PassiveFocus
 
 -- | Internal.
 instance Read FocusModel where
-   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'a':'c':'t':'i':'v':'e':xs -> [(ActiveFocus,xs)]
@@ -186,7 +178,6 @@ instance Read FocusModel where
 
 -- | Internal.
 instance Show FocusModel where
-   -- | Internal.
    showsPrec d p r = 
       (case p of 
         ActiveFocus -> "active" 
@@ -221,14 +212,11 @@ data CurrentFocus = CurrentFocus GUIOBJECT
 
 -- | Internal.
 instance Object CurrentFocus where
-        -- | Internal.
         objectID (CurrentFocus obj) = objectID obj
 
 -- | Internal.
 instance GUIObject CurrentFocus where
-        -- | Internal.
         toGUIObject (CurrentFocus obj) = obj
-        -- | Internal.
         cname _ = ""
 
 -- | The current focus is always a widget and has standard widget properties

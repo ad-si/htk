@@ -81,14 +81,12 @@ saveLog ed =
 
 -- | Internal.
 instance GUIObject LogWin where
-  -- | Internal.
   toGUIObject (LogWin win _ _) = toGUIObject win
-  -- | Internal.
   cname _ = "LogWin"
 
 -- | A log window can be destroyed.
 instance Destroyable LogWin where
-  -- | Destroys a log window.
+  -- Destroys a log window.
   destroy (LogWin win _ death) = death >> destroy win
 
 

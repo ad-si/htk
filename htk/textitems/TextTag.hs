@@ -98,19 +98,16 @@ createTextTag ed i1 i2 cnf =
 
 -- | Internal.
 instance Eq TextTag where 
-  -- | Internal.
   (TextTag _ w1) == (TextTag _ w2) = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject TextTag where 
-  -- | Internal.
   toGUIObject (TextTag _ w) = w
-  -- | Internal.
   cname _ = "TextTag"
 
 -- | A text tag can be destroyed.
 instance Destroyable TextTag where
-  -- | Destroys a text tag.
+  -- Destroys a text tag.
   destroy = destroy . toGUIObject
 
 -- | A text tag has a configureable border.
@@ -118,7 +115,6 @@ instance HasBorder TextTag
 
 -- | A text tag has a configureable foregroud and background colour.
 instance HasColour TextTag where 
-  -- | Internal.
   legalColourID = hasForeGroundColour
 
 -- | A text tag has a configureable font.
@@ -135,7 +131,7 @@ instance HasTabulators TextTag
 
 -- | You can synchronize on a text tag object.
 instance Synchronized TextTag where
-  -- | Synchronizes on a text tag object.
+  -- Synchronizes on a text tag object.
   synchronize = synchronize . toGUIObject
 
 
@@ -272,7 +268,6 @@ getFgstipple tag = getBitMapHandle tag "fgstipple"
 
 -- | Internal.
 instance HasIndex Editor (TextTag, First) BaseIndex where
-  -- | Internal.
   getBaseIndex tp (tag,_) =
     synchronize tag (
       do
@@ -282,7 +277,6 @@ instance HasIndex Editor (TextTag, First) BaseIndex where
 
 -- | Internal.
 instance HasIndex Editor (TextTag, Last) BaseIndex where
-  -- | Internal.
   getBaseIndex tp (tag,_) =
     synchronize tag (
       do

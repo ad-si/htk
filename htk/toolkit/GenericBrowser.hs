@@ -261,7 +261,6 @@ bindGenericBrowserEv gb =
 
 -- | Internal.
 instance GBObject o => GUIObject (GenericBrowser o) where
-  -- | Internal.
   toGUIObject = toGUIObject . container
 
 -- | Internal.

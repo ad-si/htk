@@ -1,5 +1,5 @@
-{- This module defines the types EntityNames (and so on), as used by
-   the LinkManager. -}
+-- | This module defines the types EntityNames (and so on), as used by
+-- the LinkManager.
 module EntityNames(
    EntityName(..), 
       -- a name identifying a single item in a folder
@@ -113,7 +113,7 @@ newtype EntityFullName = EntityFullName [EntityName] deriving (Eq,Ord,Show)
 -- FromAbsolute is an absolute name, that always works within an object and
 -- ignores any environment.  It is (currently) only used internally and
 -- so has no readable parse syntax.  If displayed it is displayed as 
--- #ABSOLUTE/[fullName] or #ABSOLUTE.
+-- \#ABSOLUTE\/[fullName] or #ABSOLUTE.
 data EntitySearchName = 
       FromParent EntitySearchName -- go up one directory.
    |  FromHere EntityFullName
@@ -122,9 +122,9 @@ data EntitySearchName =
    |  FromAbsolute EntityFullName
    deriving (Eq,Ord,Show)
 
--- *************************************************************************
+-- -------------------------------------------------------------------------
 -- Changes for new import facilities:
--- *************************************************************************
+-- -------------------------------------------------------------------------
 
 -- A PackageName for a path alias is defined as follows:
 -- 

@@ -841,7 +841,8 @@ createNewFolderType :: View -> IO (Maybe FolderType)
 createNewFolderType view =
    do
       let
-         firstForm :: Form (String,NodeTypes (Link Folder)) =
+         firstForm :: Form (String,NodeTypes (Link Folder)) 
+         firstForm =
             titleForm //
             simpleNodeTypesForm
 

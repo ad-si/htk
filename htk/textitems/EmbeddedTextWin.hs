@@ -68,19 +68,17 @@ createEmbeddedTextWin ed i w cnf =
 
 -- | Internal.
 instance GUIObject EmbeddedTextWin where 
-  -- | Internal.
   toGUIObject (EmbeddedTextWin w) = w
-  -- | Internal.
   cname _ = "EmbeddedTextWin"
 
 -- | An embedded text window can be destroyed.
 instance Destroyable EmbeddedTextWin where
-  -- | Destroys an embedded text window.
+  -- Destroys an embedded text window.
   destroy = destroy . toGUIObject
 
 -- | You can synchronize on an embedded text window object.
 instance Synchronized EmbeddedTextWin where
-  -- | Synchronizes on an embedded text window object.
+  -- Synchronizes on an embedded text window object.
   synchronize = synchronize . toGUIObject
 
 
@@ -104,7 +102,6 @@ getStretch ew = cget ew "stretch"
 
 -- | Internal.
 instance HasIndex Editor EmbeddedTextWin BaseIndex where
-  -- | Internal.
   getBaseIndex tp win =
     synchronize win
       (do

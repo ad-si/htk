@@ -18,7 +18,7 @@ module Messages(
       -- :: IO Bool
       -- If True, indicates that the flag corresponding to a graphical mode
       -- has been set.  This is used occasionally for deciding whether to
-      -- ask the user something on stdout/stdin or via a window.
+      -- ask the user something on stdout, stdin or via a window.
 
    textQuery,
       -- :: String -> IO String
@@ -72,7 +72,7 @@ messageMess = getMessFn messageFn
 
 -- | If True, indicates that the flag corresponding to a graphical mode
 -- has been set.  This is used occasionally for deciding whether to
--- ask the user something on stdout/stdin or via a window.
+-- ask the user something on stdout, stdin or via a window.
 htkPresent :: IO Bool
 htkPresent = getMessValue htkPres
 

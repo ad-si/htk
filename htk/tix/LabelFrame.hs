@@ -73,7 +73,6 @@ data LabelSide =
 
 -- | Internal.
 instance Read LabelSide where
-  -- | Internal.
   readsPrec p b =
     case dropWhile isSpace b of
       't':'o':'p': xs -> [(TopLabel,xs)]
@@ -86,7 +85,6 @@ instance Read LabelSide where
 
 -- | Internal.
 instance Show LabelSide where
-  -- | Internal.
   showsPrec d p r =
     (case p of TopLabel -> "top"
                LeftLabel -> "left"
@@ -97,7 +95,6 @@ instance Show LabelSide where
 
 -- | Internal.
 instance GUIValue LabelSide where
-  -- | Internal.
   cdefault = TopLabel
 
 
@@ -155,14 +152,12 @@ tkGridLabelFrame (LabelFrameName nm _) opts =
 
 -- | Internal.
 instance GUIObject LabelFrame where
-  -- | Internal.
   toGUIObject (LabelFrame w) = w
-  -- | Internal.
   cname _ = "LabelFrame"
 
 -- | A labelled frame can be destroyed.
 instance Destroyable LabelFrame where
-  -- | Destroys a labelled frame widget.
+  -- Destroys a labelled frame widget.
   destroy   = destroy . toGUIObject
 
 -- | A labelled frame has standard widget properties
@@ -179,7 +174,6 @@ instance HasBorder LabelFrame
 
 -- | A labelled frame has a background colour.
 instance HasColour LabelFrame where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | A labelled frame can have a tooltip.
@@ -190,12 +184,12 @@ instance HasSize LabelFrame
 
 -- | Sets and gets the string to display as a label for the frame.
 instance GUIValue v => HasText LabelFrame v where
-  -- | Sets the text to display with the frame.
+  -- Sets the text to display with the frame.
   text s w  = cset w  "label" s
-  -- | Returns the displayed text.
+  -- Returns the displayed text.
   getText w = cget w "label"
 
 -- | You can synchronize on a labelled frame (in JAVA style).
 instance Synchronized LabelFrame where
-  -- | Synchronizes on a label object.
+  -- Synchronizes on a label object.
   synchronize = synchronize . toGUIObject

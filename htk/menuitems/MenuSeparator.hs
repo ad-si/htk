@@ -51,14 +51,12 @@ instance MenuItem MenuSeparator
 
 -- | Internal.
 instance GUIObject MenuSeparator where 
-  -- | Internal.
   toGUIObject (MenuSeparator w) = w
-  -- | Internal.
   cname w = "MenuSeparator"
 
 -- | You can synchronize on a menu separator.
 instance Synchronized MenuSeparator where
-  -- | Synchronizes on a menu separator.
+  -- Synchronizes on a menu separator.
   synchronize = synchronize . toGUIObject
 
 -- | A menu separator has a configureable border.
@@ -66,7 +64,7 @@ instance HasBorder MenuSeparator
 
 -- | A menu separator has either a vertival or a horizontal orientation.
 instance HasOrientation MenuSeparator where
-  -- | Sets the menu separators orientation.
+  -- Sets the menu separators orientation.
   orient Horizontal s = configure s [height 2] >> return s
   orient Vertical s = configure s [width 2] >> return s
 

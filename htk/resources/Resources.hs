@@ -48,12 +48,12 @@ data State = Disabled | Active | Normal deriving (Eq,Ord,Enum)
  
 -- | Internal.
 instance GUIValue State where
-  -- | Internal.
+  -- Internal.
   cdefault = Disabled
 
 -- | Internal.
 instance Read State where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'd':'i':'s':'a':'b':'l':'e':'d': xs -> [(Disabled,xs)]
@@ -63,7 +63,7 @@ instance Read State where
 
 -- | Internal.
 instance Show State where
-   -- | Internal.
+   -- Internal.
    showsPrec d p r = 
       (case p of 
           Disabled -> "disabled"
@@ -82,12 +82,12 @@ data Justify = JustLeft | JustCenter | JustRight deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue Justify where
-  -- | Internal.
+  -- Internal.
   cdefault = JustLeft
 
 -- | Internal.
 instance Read Justify where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'l':'e':'f':'t':xs -> [(JustLeft,xs)]
@@ -97,7 +97,7 @@ instance Read Justify where
 
 -- | Internal.
 instance Show Justify where
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
     (case p of 
        JustLeft -> "left"
@@ -116,12 +116,12 @@ data Relief =
 
 -- | Internal.
 instance GUIValue Relief where
-  -- | Internal.
+  -- Internal.
   cdefault = Flat
 
 -- | Internal.
 instance Read Relief where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'g':'r':'o':'o':'v':'e':xs -> [(Groove,xs)]
@@ -133,7 +133,7 @@ instance Read Relief where
 
 -- | Internal.
 instance Show Relief where
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
     (case p of 
        Groove -> "groove"
@@ -152,12 +152,12 @@ data Orientation = Horizontal | Vertical deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue Orientation where
-  -- | Internal.
+  -- Internal.
   cdefault = Horizontal
 
 -- | Internal.
 instance Read Orientation where
-  -- | Internal.
+  -- Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'h':'o':'r':'i':'z':'o':'n':'t':'a':'l':xs -> [(Horizontal,xs)]
@@ -166,7 +166,7 @@ instance Read Orientation where
  
 -- | Internal.
 instance Show Orientation where
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
     (case p of 
        Horizontal -> "horizontal"
@@ -182,12 +182,12 @@ data Toggle = Off | On deriving (Eq,Ord)
 
 -- | Internal.
 instance GUIValue Toggle where
-  -- | Internal.
+  -- Internal.
   cdefault = Off
 
 -- | Internal.
 instance Read Toggle where
-  -- | Internal.
+  -- Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       '0':xs -> [(Off,xs)]
@@ -196,7 +196,7 @@ instance Read Toggle where
 
 -- | Internal.
 instance Show Toggle where
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
     (case p of 
        Off -> "0" 
@@ -225,12 +225,12 @@ data Alignment = Top | InCenter | Bottom | Baseline deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue Alignment where
-  -- | Internal.
+  -- Internal.
   cdefault = Top
 
 -- | Internal.
 instance Read Alignment where
-  -- | Internal.
+  -- Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
       'c':'e':'n':'t':'e':'r':xs -> [(InCenter,xs)]
@@ -241,7 +241,7 @@ instance Read Alignment where
 
 -- | Internal.
 instance Show Alignment where
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
     (case p of 
        Top -> "top"
@@ -270,12 +270,12 @@ data Anchor =
 
 -- | Internal.
 instance GUIValue Anchor where
-  -- | Internal.
+  -- Internal.
   cdefault = Center
 
 -- | Internal.
 instance Read Anchor where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         's':'e':xs -> [(SouthEast,xs)]
@@ -291,7 +291,7 @@ instance Read Anchor where
 
 -- | Internal.
 instance Show Anchor where
-   -- | Internal.
+   -- Internal.
    showsPrec d p r = 
       (case p of 
          SouthEast -> "se"

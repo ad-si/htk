@@ -41,7 +41,7 @@ import Packer
 -- | Widgets that support postscript export instantiate the
 -- @class HasPostscript@.
 class GUIObject w => HasPostscript w where
-  -- | Exports postscript from the given widget.
+  -- Exports postscript from the given widget.
   postscript :: w -> [CreationConfig PostScript] -> IO ()
   postscript target confs =
     do
@@ -76,7 +76,6 @@ instance GUIValue ColourMode where
 
 -- | Internal.
 instance Read ColourMode where
-   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'c':'o':'l':'o':'r':xs -> [(FullColourMode,xs)]
@@ -86,7 +85,6 @@ instance Read ColourMode where
 
 -- | Internal.
 instance Show ColourMode where
-   -- | Internal.
    showsPrec d p r = 
       (case p of 
          FullColourMode -> "color"

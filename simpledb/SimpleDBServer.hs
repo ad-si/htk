@@ -97,7 +97,7 @@ data SimpleDBCommand =
          -- return IsData.
    |  Commit 
          VersionInformation
-             -- ^ extra data about this version.
+             -- extra data about this version.
              -- This includes a version number, which must be uniquely
              -- allocated by NewVersion, and the parent versions, which
              -- must already exist.  The first parent version we call the

@@ -250,36 +250,33 @@ getItemValue item = getRef (it_val item)
 
 -- | Internal.
 instance Eq (NotepadItem a) where
-  -- | Internal.
   item1 == item2 = it_img item1 == it_img item2
 
 -- | Internal.
 instance GUIObject (NotepadItem a) where
-  -- | Internal.
   toGUIObject item = toGUIObject (it_img item)
-  -- | Internal.
   cname _ = "NotepadItem"
 
 -- | You can synchronize on a notepad item.
 instance Synchronized (NotepadItem a) where
-  -- | Synchronizes on a notepad item.
+  -- Synchronizes on a notepad item.
   synchronize item = synchronize (toGUIObject (it_img item))
 
 -- | A notepad item has a position on the associated notepad.
 instance HasPosition (NotepadItem a) where
-  -- | Sets the notepad item\'s position.
+  -- Sets the notepad item\'s position.
   position p@(x, y) item =
     itemPositionD2 p (it_img item) >>
     let (Distance iwidth, Distance iheight) = it_img_size item
     in itemPositionD2 (x, y + Distance (div iheight 2 + text_gap))
                       (it_txt item) >>
        return item
-  -- | Gets the notepad item\'s position.
+  -- Gets the notepad item\'s position.
   getPosition item = getItemPositionD2 (it_img item)
 
 -- | A notepad item can be destroyed.
 instance Destroyable (NotepadItem a) where
-  -- | Destroys a notepad item.
+  -- Destroys a notepad item.
   destroy item =
     do
       destroy (it_img item)
@@ -1138,16 +1135,14 @@ updNotepadScrollRegion np =
 
 -- | Internal.
 instance GUIObject (Notepad a) where
-  -- | Internal.
   toGUIObject np =
     case (scrollbox np) of Nothing -> toGUIObject (canvas np)
                            Just box -> toGUIObject box
-  -- | Internal.
   cname _ = "Notepad"
 
 -- | A notepad can be destroyed.
 instance Destroyable (Notepad a) where
-  -- | Destroys a notepad.
+  -- Destroys a notepad.
   destroy = destroy . toGUIObject          -- TD : clean up !!!
 
 -- | A notepad has standard widget properties
@@ -1156,7 +1151,7 @@ instance Widget (Notepad a)
 
 -- | You can synchronize on a notepad object.
 instance Synchronized (Notepad a) where
-  -- | Synchronizes on a notepad object.
+  -- Synchronizes on a notepad object.
   synchronize w = synchronize (toGUIObject w)
 
 -- | A notepad has a configureable border.
@@ -1164,26 +1159,23 @@ instance HasBorder (Notepad a)
 
 -- | A notepad has a configureable background colour.
 instance HasColour (Notepad a) where
-  -- | Internal.
   legalColourID np = hasBackGroundColour (canvas np)
-  -- | Internal.
   setColour notepad cid col =
     setColour (canvas notepad) cid col >> return notepad
-  -- | Internal.
   getColour np cid = getColour (canvas np) cid
 
 -- | A notepad has a configureable size.
 instance HasSize (Notepad a) where
-  -- | Sets the notepad\'s width.
+  -- Sets the notepad\'s width.
   width s np =
     do
       (_, (_, sizey)) <- getScrollRegion (canvas np)
       canvas np # scrollRegion ((0, 0), (s, sizey))
       if isJust (scrollbox np) then done else canvas np # width s >> done
       return np
-  -- | Gets the notepad\'s width.
+  -- Gets the notepad\'s width.
   getWidth np = getWidth (canvas np)
-  -- | Sets the notepad\'s height.
+  -- Sets the notepad\'s height.
   height s np =
     do
       (_, (sizex, _)) <- getScrollRegion (canvas np)
@@ -1191,7 +1183,7 @@ instance HasSize (Notepad a) where
       (if (isJust (scrollbox np)) then done
        else canvas np # height s >> done)
       return np
-  -- | Gets the notepad\'s height.
+  -- Gets the notepad\'s height.
   getHeight np = getHeight (canvas np)
 
 

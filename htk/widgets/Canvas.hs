@@ -76,14 +76,12 @@ newCanvas par cnf = do
 
 -- | Internal.
 instance GUIObject Canvas where
-  -- | Internal.
   toGUIObject (Canvas w) = w 
-  -- | Internal.
   cname _ = "Canvas"
 
 -- | A canvas widget can be destroyed.
 instance Destroyable Canvas where
-  -- | Destroys a canvas widget.
+  --  Destroys a canvas widget.
   destroy   = destroy . toGUIObject
 
 -- | A canvas widget has standard widget properties
@@ -99,7 +97,6 @@ instance HasBorder Canvas
 
 -- | A canvas widget has a foreground and background colour.
 instance HasColour Canvas where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | A canvas widget is a stateful widget, it can be enabled or disabled.
@@ -116,7 +113,7 @@ instance HasPostscript Canvas
 
 -- | You can synchronize on a canvas object (in JAVA style).
 instance Synchronized Canvas where
-  -- | Synchronizes on a canvas object.
+  --  Synchronizes on a canvas object.
   synchronize = synchronize . toGUIObject
 
 -- | A canvas can have a tooltip (only displayed if you are using tixwish).

@@ -7,6 +7,9 @@
    This module provides "deepSeq" and "$!!" which correspond to "seq" and "$!"
    except that they try to evaluate everything in the argument.  For example,
    if a list is provided, the whole list must be evaluated.
+
+   For purposes of Haddock, empty instance declarations with "where"
+   have had the "where" deleted.
    -}
 
 module DeepSeq where
@@ -21,7 +24,7 @@ infixr 0 `deepSeq`, $!!
 f $!! x = x `deepSeq` f x
  
 
-instance  DeepSeq ()  where
+instance  DeepSeq ()
  
 instance  (DeepSeq a) => DeepSeq [a]  where
    deepSeq [] y = y
@@ -45,8 +48,9 @@ instance  (DeepSeq a,DeepSeq b,DeepSeq c,DeepSeq d,DeepSeq e,DeepSeq f) => DeepS
 instance  (DeepSeq a,DeepSeq b,DeepSeq c,DeepSeq d,DeepSeq e,DeepSeq f,DeepSeq g) => DeepSeq (a,b,c,d,e,f,g)  where
    deepSeq (a,b,c,d,e,f,g) y = deepSeq a $ deepSeq b $ deepSeq c $ deepSeq d $ deepSeq e $ deepSeq f $ deepSeq g y
  
-instance  DeepSeq Bool  where
-instance  DeepSeq Char  where
+instance  DeepSeq Bool
+
+instance  DeepSeq Char
  
 instance  (DeepSeq a) => DeepSeq (Maybe a)  where
    deepSeq Nothing y = y
@@ -56,9 +60,9 @@ instance  (DeepSeq a, DeepSeq b) => DeepSeq (Either a b)  where
    deepSeq (Left a) y = deepSeq a y
    deepSeq (Right b) y = deepSeq b y
  
-instance  DeepSeq Ordering  where
+instance  DeepSeq Ordering
  
-instance  DeepSeq Integer  where
-instance  DeepSeq Int  where
-instance  DeepSeq Float  where
-instance  DeepSeq Double  where
+instance  DeepSeq Integer
+instance  DeepSeq Int
+instance  DeepSeq Float
+instance  DeepSeq Double

@@ -623,14 +623,12 @@ packTreeListObject obj isroot pos@(x, y) =
 
 -- | Internal.
 instance CItem c => GUIObject (TreeList c) where
-  -- | Internal.
   toGUIObject tl = toGUIObject (scrollbox tl)
-  -- | Internal.
   cname _ = "TreeList"
 
 -- | A tree list can be destroyed.
 instance CItem c => Destroyable (TreeList c) where
-  -- | Destroys a tree list.
+  -- Destroys a tree list.
   destroy = destroy . toGUIObject
 
 -- | A tree list has standard widget properties
@@ -639,7 +637,7 @@ instance CItem c => Widget (TreeList c)
 
 -- | You can synchronize on a tree list.
 instance CItem c => Synchronized (TreeList c) where
-  -- | Synchronizes on a tree list.
+  -- Synchronizes on a tree list.
   synchronize = synchronize . toGUIObject
 
 -- | A tree list has a configureable border.

@@ -75,14 +75,12 @@ newListBox par cnf =
 
 -- | Internal.
 instance GUIObject (ListBox a) where 
-   -- | Internal.
    toGUIObject (ListBox w) = w
-   -- | Internal.
    cname _ = "ListBox"
 
 -- | A listbox widget can be destroyed.
 instance Destroyable (ListBox a) where
-   -- | Destroys a listbox widget
+   -- Destroys a listbox widget
    destroy = destroy . toGUIObject
 
 -- | A listbox widget has standard widget properties
@@ -91,7 +89,7 @@ instance Widget (ListBox a)
 
 -- | You can synchronize on a listbox object (in JAVA style).
 instance Synchronized (ListBox a) where
-  -- | Synchronizes on a listbox object.
+  -- Synchronizes on a listbox object.
   synchronize = synchronize . toGUIObject
 
 -- | A listbox widget has a configureable border.
@@ -121,7 +119,7 @@ instance HasSize (ListBox a)
 instance (GUIValue a, GUIValue [a]) => HasValue (ListBox a) [a] where
   value vals w =
     execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
-  -- | Gets the list of displayed objects.
+  -- Gets the list of displayed objects.
   getValue w = evalMethod w (\nm -> tkGet nm)
 
 -- | A listbox can have a tooltip (only displayed if you are using tixwish).
@@ -155,7 +153,7 @@ getSelectMode lbox = cget lbox "selectmode"
 
 -- | You can find out the bounding box of a list box element.
 instance HasIndex (ListBox a) i Int => HasBBox (ListBox a) i  where
-  -- | Returns the bounding box of the element at the specified index.
+  -- Returns the bounding box of the element at the specified index.
   bbox w i =
     do
       binx <- getBaseIndex w i
@@ -179,24 +177,20 @@ data Eq a => ListBoxElem a = ListBoxElem a deriving Eq
 
 -- | An integer value is a valid index position inside a listbox widget.
 instance HasIndex (ListBox a) Int Int where
-  -- | Internal.
   getBaseIndex lb i = return i
 
 -- | The @EndOfText@ index is a valid index position inside a
 -- listbox widget.
 instance HasIndex (ListBox a) EndOfText Int where
-  -- | Internal.
   getBaseIndex lb _ = getIndexNumber lb "end"
 
 -- | A position in pixels is a valid index position inside an editor widget.
 instance HasIndex (ListBox a) Pixels Int where
-  -- | Internal.
   getBaseIndex lb p = getIndexNumber lb (show p)
 
 -- | A listbox element is a valid index position inside an editor widget.
 instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
                                         (ListBoxElem a) Int where 
-  -- | Internal.
   getBaseIndex lb (ListBoxElem val) =
     do
       kind <- getObjectKind (toGUIObject lb)
@@ -210,7 +204,6 @@ instance (Eq a,GUIValue a) => HasIndex (ListBox [a])
 -- | Internal.
 instance (Eq a, GUIValue a, GUIValue [a]) =>
          HasIndex (ListBox a) Int (ListBoxElem a) where 
-  -- | Internal.
   getBaseIndex lb i =
     synchronize lb
       (do
@@ -231,20 +224,20 @@ getIndexNumber lb i =
 
 -- | You can select entries inside a listbox widget.
 instance HasSelection (ListBox a) where
-  -- | Clears the listbox\'es selection.
+  -- Clears the listbox\'es selection.
   clearSelection lb = execMethod lb (\nm -> tkSelectionClearAll nm)
 
 -- | A listbox\'es entries are selectable.
 instance (HasIndex (ListBox a) i Int) =>
          HasSelectionIndex (ListBox a) i where
-  -- | Selects the element at the specified index.
+  -- Selects the element at the specified index.
   selection i lb =
     synchronize lb
       (do
          binx <- getBaseIndex lb i
          execMethod lb (\ nm -> tkSelectionSetItem nm binx)
          return lb)
-  -- | Queries if the element at the specified index is selected.
+  -- Queries if the element at the specified index is selected.
   isSelected lb i =
     synchronize lb
       (do
@@ -253,7 +246,7 @@ instance (HasIndex (ListBox a) i Int) =>
 
 -- | You can select a range of elements inside a listbox widget.
 instance HasSelectionBaseIndex (ListBox a) [Int] where
-  -- | Gets the selection range inside the listbox.
+  -- Gets the selection range inside the listbox.
   getSelection lb =
     do
       sel <- evalMethod lb (\ nm -> tkCurSelection nm)
@@ -264,7 +257,7 @@ instance HasSelectionBaseIndex (ListBox a) [Int] where
 -- | You can select a range of elements inside a listbox widget.
 instance (HasIndex (ListBox a) i1 Int, HasIndex (ListBox a) i2 Int) =>
          HasSelectionIndexRange (ListBox a) i1 i2  where
-  -- | Sets the selection range inside the listbox widget.
+  -- Sets the selection range inside the listbox widget.
   selectionRange start end lb =
     synchronize lb
       (do
@@ -275,14 +268,14 @@ instance (HasIndex (ListBox a) i1 Int, HasIndex (ListBox a) i2 Int) =>
         
 -- | You can select a range of entries inside a listbox widget.
 instance HasSelectionBaseIndexRange (ListBox a) Int where
-  -- | Gets the start index of the listbox\'es selection.
+  -- Gets the start index of the listbox\'es selection.
   getSelectionStart lb =
     do
       sel <- getSelection lb
       case sel of
         Nothing -> return Nothing 
         Just (v:_) -> return (Just v)
-  -- | Gets the end index of the listbox\'es selection.
+  -- Gets the end index of the listbox\'es selection.
   getSelectionEnd lb =
     do
       sel <- getSelection lb

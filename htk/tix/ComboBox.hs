@@ -83,9 +83,7 @@ comboBoxMethods = Methods (cgetCmd defMethods)
 
 -- | Internal.
 instance GUIObject (ComboBox a) where 
-  -- | Internal.
   toGUIObject (ComboBox f) = f
-  -- | Internal.
   cname _ = "ComboBox"
 
 -- | The value of a combo box is the list of the displayed objects (these
@@ -94,7 +92,7 @@ instance GUIObject (ComboBox a) where
 instance (GUIValue a, GUIValue [a]) => HasValue (ComboBox a) [a] where
   value vals w =
     execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
-  -- | Gets the list of displayed objects.
+  -- Gets the list of displayed objects.
   getValue w = evalMethod w (\nm -> tkGet nm)
 
 -- | A combo box has standard widget properties (focus, cursor, ...).
@@ -102,7 +100,7 @@ instance Widget (ComboBox a)
 
 -- | A combo box widget can be destroyed.
 instance Destroyable (ComboBox a) where
-  -- | Destroys a combo box widget.
+  -- Destroys a combo box widget.
   destroy = destroy . toGUIObject
 
 -- | A combo box widget has a configureable border.
@@ -113,7 +111,6 @@ instance HasAnchor (ComboBox a)
 
 -- | A combo box widget has a background colour.
 instance HasColour (ComboBox a) where 
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | You can specify the size of a combo box widget-
@@ -121,7 +118,7 @@ instance HasSize (ComboBox a)
 
 -- | You can synchronize on a combo box widget.
 instance Synchronized (ComboBox a) where
-  -- | Synchronizes on a combo box widget.
+  -- Synchronizes on a combo box widget.
   synchronize = synchronize . toGUIObject
 
 -- | A combo box widget is a stateful widget, it can be enabled or disabled.

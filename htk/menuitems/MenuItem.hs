@@ -44,11 +44,11 @@ class GUIObject w => MenuItem w
 
 -- | A select button can be selected or not selected.
 class ButtonWidget w => SelectButton w where
-  -- | Sets the selection state of the select button.
+  -- Sets the selection state of the select button.
   selectionState    :: Toggle -> Config w
-  -- | Gets the selection state of the select button
+  -- Gets the selection state of the select button
   getSelectionState :: w -> IO Toggle
-  -- | Returns an event for selection actions.
+  -- Returns an event for selection actions.
   selectionStateSet :: w -> Event Toggle
 
   selectionState On w =
@@ -65,9 +65,9 @@ class ButtonWidget w => SelectButton w where
 -- | Menu items can have an optional text to display as a reminder
 -- about a keystroke binding.
 class GUIObject w => HasAccelerator w where
-  -- | Sets the accelerator text.
+  -- Sets the accelerator text.
   accelerator    :: String -> Config w
-  -- | Gets the accelerator text.
+  -- Gets the accelerator text.
   getAccelerator :: w -> IO String
   accelerator s w = cset w "accelerator" s
   getAccelerator w = cget w "accelerator"
@@ -79,7 +79,7 @@ class GUIObject w => HasAccelerator w where
 
 -- | The state of a @ToggleButton@ can be toggled.
 class SelectButton w => ToggleButton w where 
-  -- | Toggles the state of a toggle button.
+  -- Toggles the state of a toggle button.
   toggleButton   :: w -> IO ()
   toggleButton w =
     execMethod (toGUIObject w) (\ nm -> tkToggle nm)

@@ -59,14 +59,12 @@ instance MenuItem MenuRadioButton
 
 -- | Internal.
 instance GUIObject MenuRadioButton where 
-  -- | Internal.
   toGUIObject (MenuRadioButton w) = w
-  -- | Internal.
   cname _ = "MenuRadioButton"
 
 -- | You can synchronize on a menu radiobutton.
 instance Synchronized MenuRadioButton where
-  -- | Synchronizes on a menu radiobutton.
+  -- Synchronizes on a menu radiobutton.
   synchronize = synchronize . toGUIObject
 
 -- | A menu radiobutton has an optional text to display as a reminder
@@ -82,7 +80,6 @@ instance HasBorder MenuRadioButton
 -- | A menu radiobutton has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
 instance HasColour MenuRadioButton where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A menu radiobutton is a stateful object, it can be enabled or
@@ -106,9 +103,9 @@ instance HasSize MenuRadioButton
 
 -- | A menu radiobutton can contain text (instead of an image or bitmap).
 instance GUIValue v => HasText MenuRadioButton v where
-  -- | Sets the text to display.
+  -- Sets the text to display.
   text str w = cset w "label" str >> return w
-  -- | Gets the displayed text.
+  -- Gets the displayed text.
   getText w = cget w "label"
 
 -- | You can set the index of a text character to underline.

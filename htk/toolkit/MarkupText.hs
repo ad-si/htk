@@ -1163,16 +1163,16 @@ parseMarkupText m f =
 -- | Widgets that can contain markup text instantiate the
 -- @class HasMarkupText@.
 class HasMarkupText w where
-  -- | Clears the editor widget and inserts the given markup text.
+  -- Clears the editor widget and inserts the given markup text.
   new :: [MarkupText] -> w -> IO w
-  -- | Inserts the given markup text at the specified position.
+  -- Inserts the given markup text at the specified position.
   insertAt :: [MarkupText] -> Position -> Config w
-  -- | Clears the editor widget.
+  -- Clears the editor widget.
   clear :: Config w
 
 -- | An editor widget is a container for markup text.
 instance HasMarkupText Editor where
-  -- | Clears the editor widget and inserts the given markup text.
+  -- Clears the editor widget and inserts the given markup text.
   new m ed =
     do
       st <- getState ed
@@ -1192,7 +1192,7 @@ instance HasMarkupText Editor where
            wins
       ed # state st -- restore state
       return ed
-  -- | Inserts the given markup text at the specified position.
+  -- Inserts the given markup text at the specified position.
   insertAt m pos@(line, char) ed =
     do
       f <- getFont ed
@@ -1225,7 +1225,7 @@ instance HasMarkupText Editor where
       shiftChar :: Distance -> Position -> Distance
       shiftChar pchar (line, char) =
         if line == 1 then char + pchar else char
-  -- | Clears the editor widget.
+  -- Clears the editor widget.
   clear ed =
     do
       let obj@(GUIOBJECT oid _) = toGUIObject ed

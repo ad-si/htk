@@ -399,7 +399,8 @@ createNewFileType :: View -> IO (Maybe FileType)
 createNewFileType view =
    do
       let
-         firstForm :: Form (String,(Bool,NodeTypes (Link File))) =
+         firstForm :: Form (String,(Bool,NodeTypes (Link File))) 
+         firstForm =
             titleForm //
             canEditForm //
             simpleNodeTypesForm

@@ -49,39 +49,39 @@ class GUIObject w => CanvasItem w
 -- | You can set the coords (position \/ size) of a canvas item on the
 -- parent canvas.
 class HasCoords w where
-  -- | Sets the coord(s) of a canvas item on the parent canvas.
+  -- Sets the coord(s) of a canvas item on the parent canvas.
   coord           :: Coord -> Config w
-  -- | Gets the coord(s) of a canvas item on the parent canvas.
+  -- Gets the coord(s) of a canvas item on the parent canvas.
   getCoord        :: w -> IO Coord
 
 -- | Any canvas item has coords on the parent canvas.
 instance CanvasItem w => HasCoords w where
-  -- | Sets the coord(s) of a canvas item on the parent canvas.
+  -- Sets the coord(s) of a canvas item on the parent canvas.
   coord co item =
     do
       try (execMethod item (\nm -> tkCoordItem nm co))
       return item
-  -- | Gets the coord(s) of a canvas item on the parent canvas.
+  -- Gets the coord(s) of a canvas item on the parent canvas.
   getCoord item =  evalMethod item (\nm -> tkGetCoordItem nm)
 
 -- | Any canvas item has a filling, outline, outline width and stipple
 -- configuration.
 class CanvasItem w => FilledCanvasItem w where 
-  -- | Sets the filling of a canvas item.
+  -- Sets the filling of a canvas item.
   filling         :: ColourDesignator c => c -> Config w
-  -- | Gets the filling of a canvas item.
+  -- Gets the filling of a canvas item.
   getFilling      :: w -> IO Colour
-  -- | Sets the outline colour of a canvas item.
+  -- Sets the outline colour of a canvas item.
   outline         :: ColourDesignator c => c -> Config w
-  -- | Gets the outline colour of a canvas item.
+  -- Gets the outline colour of a canvas item.
   getOutline      :: w -> IO Colour
-  -- | Sets the stipple configuration of a canvas item.
+  -- Sets the stipple configuration of a canvas item.
   stipple         :: BitMapHandle -> Config w
-  -- | Gets the stipple configuration of a canvas item.
+  -- Gets the stipple configuration of a canvas item.
   getStipple      :: w -> IO BitMapHandle
-  -- | Sets the outline width of a canvas item.
+  -- Sets the outline width of a canvas item.
   outlinewidth    :: Distance -> Config w
-  -- | Gets the outline width of a canvas item.
+  -- Gets the outline width of a canvas item.
   getOutlineWidth :: w -> IO Distance
   filling c w      = cset w "fill" (toColour c)
   getFilling w     = cget w "fill"
@@ -94,14 +94,14 @@ class CanvasItem w => FilledCanvasItem w where
 
 -- | Segmented canvas items have a splinesteps and smooth configuration.
 class CanvasItem w => SegmentedCanvasItem w where
-  -- | Sets the number of line segments that approximate the spline.
+  -- Sets the number of line segments that approximate the spline.
   splinesteps     :: Int -> Config w
-  -- | Gets the number of line segments that approximate the spline.
+  -- Gets the number of line segments that approximate the spline.
   getSplinesteps  :: w -> IO Int
-  -- | Sets the smooth configuration (if @true@ a spline curve is
+  -- Sets the smooth configuration (if @true@ a spline curve is
   -- drawn around the points).
   smooth          :: Bool -> Config w
-  -- | Gets the actual smooth setting.
+  -- Gets the actual smooth setting.
   getSmooth       :: w -> IO Bool
   splinesteps c w  = cset w "splinesteps" c
   getSplinesteps w = cget w "splinesteps"

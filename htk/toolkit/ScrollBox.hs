@@ -86,19 +86,16 @@ newScrollBox par wfun cnf =
 
 -- | Internal.
 instance Eq (ScrollBox a) where 
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject (ScrollBox a) where 
-  -- | Internal.
   toGUIObject (ScrollBox w _ _ _) = toGUIObject w
-  -- | Internal.
   cname _ = "ScrollBox"
 
 -- | A scrollbox can be destroyed.
 instance Destroyable (ScrollBox a) where
-  -- | Destroys a scrollbox.
+  -- Destroys a scrollbox.
   destroy   = destroy . toGUIObject
 
 -- | A scrollbox has standard widget properties
@@ -114,9 +111,7 @@ instance (Widget a, HasScroller a) => Widget (ScrollBox a) where
         
 -- | A scrollbox has a configureable foreground and background colour.
 instance (HasColour a,HasScroller a) => HasColour (ScrollBox a) where
-  -- | Internal.
   legalColourID _ _ = True
-  -- | Internal.
   setColour sb cid c = 
     do
       foreach (fPadFrames sb) (\f -> setColour f cid c)
@@ -129,25 +124,24 @@ instance HasBorder (ScrollBox a)
 
 -- | A scrollbox has scrollbars.
 instance HasScroller a => HasScroller (ScrollBox a) where
-  -- | Internal.
   isWfOrientation (ScrollBox _ _ _ sw) axis = isWfOrientation sw axis
-  -- | Dummy.
+  -- Dummy.
   scrollbar _ _ sb = return sb                            -- already done
-  -- | Moves the given axis to the given fraction.
+  -- Moves the given axis to the given fraction.
   moveto axis (ScrollBox _ _ _ sw) fraction = moveto axis sw fraction
-  -- | Scrolls the given axis by the given amount.
+  -- Scrolls the given axis by the given amount.
   scroll axis (ScrollBox _ _ _ sw) step unit = scroll axis sw step unit
 
 -- | You can synchronize on a scrollbox.
 instance Synchronized (ScrollBox a) where
-  -- | Synchronizes on a scrollbox.
+  -- Synchronizes on a scrollbox.
   synchronize = synchronize . toGUIObject
 
 -- | A scrollbox has a configureable size.
 instance HasSize (ScrollBox a) where
-  -- | Sets the width of the scrollbox.
+  -- Sets the width of the scrollbox.
   width w scb = fScrollFrame scb # width w >> return scb
-  -- | Sets the height of the scrollbox.
+  -- Sets the height of the scrollbox.
   height h scb = fScrollFrame scb # height h >> return scb
 
 

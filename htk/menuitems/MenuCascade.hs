@@ -64,19 +64,16 @@ instance MenuItem MenuCascade
 
 -- | Internal.
 instance Eq MenuCascade where
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject MenuCascade where 
-  -- | Internal.
   toGUIObject (MenuCascade w) = w
-  -- | Internal.
   cname _ = "MenuCascade"
 
 -- | You can synchronize on a menu cascade item.
 instance Synchronized MenuCascade where
-  -- | Synchronizes on a menu cascade item.
+  -- Synchronizes on a menu cascade item.
   synchronize = synchronize . toGUIObject
 
 -- | A menu cascade item has an optional text to display as a reminder
@@ -92,7 +89,6 @@ instance HasBorder MenuCascade
 -- | A menu cascade item has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
 instance HasColour MenuCascade where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A menu cascade item is a stateful object, it can be enabled or
@@ -116,9 +112,9 @@ instance HasSize MenuCascade
 
 -- | A menu cascade item can contain text (instead of an image or bitmap).
 instance GUIValue v => HasText MenuCascade v where
-  -- | Sets the text to display.
+  -- Sets the text to display.
   text str w = cset w "label" str >> return w
-  -- | Gets the displayed text.
+  -- Gets the displayed text.
   getText w = cget w "label"
 
 -- | You can set the index of a text character to underline.

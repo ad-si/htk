@@ -19,9 +19,9 @@ import Computation
 
 -- | Widgets can have tooltips (if you are using tixwish).
 class GUIObject w => HasTooltip w where
-  -- | Sets the tooltip text for the given widget.
+  -- Sets the tooltip text for the given widget.
   tooltip :: String -> w -> IO w
-  -- | Destroys the tooltip of the given widget (if exists).
+  -- Destroys the tooltip of the given widget (if exists).
   destroyTooltip :: w -> IO ()
 
   tooltip str w =

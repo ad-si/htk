@@ -1,19 +1,5 @@
-{- #########################################################################
-
-MODULE        : Lock
-AUTHOR        : Einar W. Karlsen  George
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1998
-VERSION       : 0.2
-DESCRIPTION   : Lock class definition
-
-Lock is an instance of a typical thing we synchronize with.
-Possible instances are BSem and MSem.
-
-   ######################################################################### -}
-
-
+-- | Lock is an instance of a typical thing we synchronize with.
+-- Possible instances are 'BSem' and 'MSem'.
 module Lock (
         Synchronized(..),
         Lock(..),

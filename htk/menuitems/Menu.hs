@@ -107,19 +107,16 @@ tkPopup wn x y ent = ["tk_popup " ++ show wn ++ " " ++
 
 -- | Internal.
 instance Eq Menu where 
-  -- | Internal.
   w1 == w2 = toGUIObject w1 == toGUIObject w2
 
 -- | Internal.
 instance GUIObject Menu where 
-  -- | Internal.
   toGUIObject (Menu w _) = w
-  -- | Internal.
   cname _ = "Menu"
 
 -- | A menu can be destroyed.
 instance Destroyable Menu where
-  -- | Destroys a menu.
+  -- Destroys a menu.
   destroy = destroy . toGUIObject
 
 -- | A menu has standard widget properties
@@ -128,7 +125,7 @@ instance Widget Menu
 
 -- | You can synchronize on a menu object.
 instance Synchronized Menu where
-  -- | Synchronizes on a menu object.
+  -- Synchronizes on a menu object.
   synchronize w = synchronize (toGUIObject w)
 
 -- | A menu has a configureable border.
@@ -137,7 +134,6 @@ instance HasBorder Menu
 -- | A menu has a normal foreground and background colour and an
 -- active\/disabled foreground and background colour.
 instance HasColour Menu where
-  -- | Internal.
   legalColourID w "background" = True
   legalColourID w "foreground" = True
   legalColourID w "activebackground" = True

@@ -54,14 +54,12 @@ newButton par cnf =
 
 -- | Internal.
 instance GUIObject Button where 
-  -- | Internal.
   toGUIObject (Button w) = w
-  -- | Internal.
   cname _ = "Button"
 
 -- | A button widget can be destroyed.
 instance Destroyable Button where
-  -- | Destroys a button widget.
+  --  Destroys a button widget.
   destroy = destroy . toGUIObject
 
 -- | A button widget has standard widget properties
@@ -81,7 +79,6 @@ instance HasBorder Button
 -- | A button widget has a normal foreground and background colour and an
 -- active\/disabled foreground and background colour.
 instance HasColour Button where
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A button widget is a stateful widget, it can be enabled or disabled.
@@ -107,7 +104,7 @@ instance HasUnderline Button
 
 -- | You can synchronize on a button object.
 instance Synchronized Button where
-  -- | Synchronizes on a button object.
+  --  Synchronizes on a button object.
   synchronize = synchronize . toGUIObject
 
 -- | When a button is clicked, a corresponding event is invoked.

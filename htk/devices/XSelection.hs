@@ -30,9 +30,9 @@ import Window
 -- | Widgets that have an X selection instantiate the
 -- @class HasXSelection@.
 class HasSelection w => HasXSelection w where
-  -- | Sets whether the selection should be exported or not.
+  -- Sets whether the selection should be exported or not.
   exportSelection         :: Bool -> Config w
-  -- | Gets the current selection export setting.
+  -- Gets the current selection export setting.
   getExportSelection      :: w -> IO Bool
   exportSelection b w     = cset w "exportSelection" b
   getExportSelection w    = cget w "exportSelection"
@@ -54,7 +54,6 @@ type TargetType = String        -- STRING, ATOM, INTEGER ...
 
 -- | Internal.
 instance GUIValue XSelection where
-  -- | Internal.
   cdefault = PRIMARY
 
 

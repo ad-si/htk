@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding="utf-8"?>
+<checklist>
+<check name="Check1" success="Yes">
+   <message>Message1</message><mmissobject id="foo"/>
+</check>
+<check name="Check2" success="No">
+   <message>Message2</message>
+</check>
+</checklist>

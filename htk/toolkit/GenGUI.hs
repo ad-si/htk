@@ -86,14 +86,13 @@ data Item c =
 
 -- | Internal.
 instance CItem c => Eq (Item c) where
-  -- | Internal.
   item1 == item2 = content item1 == content item2
 
 -- | Objects must have a name and an icon.
 instance CItem c => CItem (Item c) where
-  -- | Gets the object\'s name.
+  -- Gets the object\'s name.
   getName = getName . content
-  -- | Gets the object\'s icon.
+  -- Gets the object\'s icon.
   getIcon = getIcon . content
 
 -- | Returns whether an item is a folder or not.
@@ -851,35 +850,32 @@ cfun showLeavesInTree tlobj =
 
 -- | Internal.
 instance CItem c => Eq (GenGUI c) where
-  -- | Internal.
   gui1 == gui2 = win gui1 == win gui2
 
 -- | Internal.
 instance CItem c => GUIObject (GenGUI c) where
-  -- | Internal.
   toGUIObject gui = toGUIObject (win gui)
-  -- | Internal.
   cname _ = "GenGUI"
 
 -- | A @GenGUI@ object can be destroyed.
 instance CItem c => Destroyable (GenGUI c) where
-  -- | Destroys a @GenGUI@ object.
+  -- Destroys a @GenGUI@ object.
   destroy = destroy . toGUIObject
 
 -- | A @GenGUI@ object is a window.
 instance CItem c => Window (GenGUI c) where
-  -- | Iconifies the gui.
+  -- Iconifies the gui.
   iconify gui = iconify (win gui)
-  -- | Deiconifies the gui.
+  -- Deiconifies the gui.
   deiconify gui  = deiconify (win gui)
-  -- | Withdraws the gui.
+  -- Withdraws the gui.
   withdraw gui = withdraw (win gui)
-  -- | Puts the gui window on top.
+  -- Puts the gui window on top.
   putWinOnTop gui = putWinOnTop (win gui)
-  -- | Puts the gui window at bottom-
+  -- Puts the gui window at bottom-
   putWinAtBottom gui = putWinAtBottom (win gui)
 
 -- | You can synchronize on a gengui object.
 instance CItem c => Synchronized (GenGUI c) where
-  -- | Synchronizes on a gengui object.
+  -- Synchronizes on a gengui object.
   synchronize gui = synchronize (win gui)

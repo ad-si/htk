@@ -82,12 +82,10 @@ data VisualClass =
 
 -- | Internal.
 instance GUIValue VisualClass where
-        -- | Internal.
         cdefault = DirectColour
 
 -- | Internal.
 instance Read VisualClass where
-   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'd':'i':'r':'e':'c':'t':'c':'o':'l':'o':'r':xs -> [(DirectColour,xs)]
@@ -100,7 +98,6 @@ instance Read VisualClass where
 
 -- | Internal.
 instance Show VisualClass where
-   -- | Internal.
    showsPrec d p r = 
       (case p of 
          DirectColour -> "directcolor"

@@ -52,14 +52,12 @@ newLabel par cnf =
 
 -- | Internal.
 instance GUIObject Label where 
-  -- | Internal.
   toGUIObject (Label w) = w
-  -- | Internal.
   cname _ = "Label"
 
 -- | A label widget can be destroyed.
 instance Destroyable Label where
-  -- | Destroys a label widget.
+  -- Destroys a label widget.
   destroy   = destroy . toGUIObject
 
 -- | A label widget has standard widget properties
@@ -71,7 +69,6 @@ instance HasBorder Label
 
 -- | A label widget has a foreground and background colour.
 instance HasColour Label where 
-  -- | Internal.
   legalColourID = hasForeGroundColour
 
 -- | You can specify the font of a label.
@@ -101,7 +98,7 @@ instance HasTooltip Label
 
 -- | You can synchronize on a label object.
 instance Synchronized Label where
-  -- | Synchronizes on a label object.
+  -- Synchronizes on a label object.
   synchronize = synchronize . toGUIObject
 
 -- | A label has a text anchor.

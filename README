@@ -19,7 +19,10 @@ down the list, the less reliable things will be!
                 | included by uni, but is completely unchanged from the
                 | official distribution, which is currently the responsibility
                 | of Malcolm Wallace. 
-  
+                |
+                | (Actually "completely unchanged" is a lie; I just changed
+                | two comments for Haddock.)
+                |
    HaXml        | We compile HaXml, if necessary, in this directory.
    server       |  Stuff for client-server relationships
    simpledb     |  A very simple database system.

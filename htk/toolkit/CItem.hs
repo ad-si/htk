@@ -16,7 +16,7 @@ import Name
 
 -- | Objects with a name and an icon.
 class Eq c => CItem c where
-  -- | Gets the object\'s name.
+  -- Gets the object\'s name.
   getName :: c -> IO Name
-  -- | Gets the object\'s icon.
+  -- Gets the object\'s icon.
   getIcon :: c -> IO Image

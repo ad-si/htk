@@ -65,11 +65,11 @@ data TokenT =
     | TokEndClose		-- ^   \/>
     | TokAnyOpen		-- ^   \<
     | TokAnyClose		-- ^   >
-    | TokSqOpen			-- ^   [
-    | TokSqClose		-- ^   ]
+    | TokSqOpen			-- ^   \[
+    | TokSqClose		-- ^   \]
     | TokEqual			-- ^   =
     | TokQuery			-- ^   ?
-    | TokStar			-- ^   *
+    | TokStar			-- ^   \*
     | TokPlus			-- ^   +
     | TokAmp			-- ^   &
     | TokSemi			-- ^   ;

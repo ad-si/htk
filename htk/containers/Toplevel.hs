@@ -53,14 +53,12 @@ createToplevel cnf =
 
 -- | Internal.
 instance GUIObject Toplevel where 
-  -- | Internal.
   toGUIObject (Toplevel f) = f
-  -- | Internal.
   cname _ = "Toplevel"
 
 -- | A toplevel widget can be destroyed.
 instance Destroyable Toplevel where
-  -- | Destroys a toplevel widget.
+  --  Destroys a toplevel widget.
   destroy = destroy . toGUIObject
 
 -- | A toplevel widget has standard widget properties
@@ -74,7 +72,7 @@ instance Container Toplevel
 
 -- | You can synchronize on a toplevel object.
 instance Synchronized Toplevel where
-  -- | Synchronizes on a toplevel object.
+  --  Synchronizes on a toplevel object.
   synchronize = synchronize . toGUIObject
 
 -- | A toplevel widget is a window (with various configurations and actions

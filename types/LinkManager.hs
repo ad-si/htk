@@ -1152,7 +1152,7 @@ createLinkSourceGeneral view linkedObject
 
          setLinks newPairs = broadcast linksBroadcaster newPairs
 
-         linksSource2 :: SimpleSource  [(LookupResult LinkedObject,value)]
+         linksSource2 :: SimpleSource [(LookupResult LinkedObject,value)]
          linksSource2 = mapIOSeq
             linksSource
             (\ searchData -> lookupNodes importsState linkedObject searchData)

@@ -58,14 +58,12 @@ newOptionMenu par el cnf =
 
 -- | Internal.
 instance GUIObject (OptionMenu a) where 
-  -- | Internal.
   toGUIObject (OptionMenu  w) = w
-  -- | Internal.
   cname _ = "OptionMenu"
 
 -- | An option menu can be destroyed.
 instance Destroyable (OptionMenu a) where
-  -- | Destroys an option menu.
+  -- Destroys an option menu.
   destroy = destroy . toGUIObject
 
 -- | An option menu has standard widget properties
@@ -78,7 +76,6 @@ instance HasBorder (OptionMenu a)
 -- | An option menu has a normal foreground and background colour and an
 -- active\/disabled foreground and background colour.
 instance HasColour (OptionMenu a) where
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | An option menu is a stateful widget, it can be enabled or disabled.
@@ -93,10 +90,10 @@ instance HasSize (OptionMenu a)
 -- | An option menu has a value (the selected element), that corresponds to
 -- a polymorphic @TkVariable@.
 instance GUIValue a => HasValue (OptionMenu a) a where
-  -- | Sets the option menu\'s value (the selected element).
+  -- Sets the option menu\'s value (the selected element).
   value v w =
     setTclVariable ((tvarname . objectID . toGUIObject) w) v >> return w
-  -- | Gets the option menu\'s value.
+  -- Gets the option menu\'s value.
   getValue w = getTclVariable ((tvarname . objectID . toGUIObject) w)
 
 -- | An option menu can have a tooltip (only displayed if you are using

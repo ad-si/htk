@@ -1,4 +1,3 @@
-
 -- | HTk\'s /arc/ canvas item.
 -- An arc object on a canvas widget.
 module Arc (
@@ -55,19 +54,17 @@ createArc cnv cnf =
 
 -- | Internal.
 instance GUIObject Arc where 
-  -- | Internal.
   toGUIObject (Arc w) = w
-  -- | Internal.
   cname _ = "Arc"
 
 -- | An arc item can be destroyed.
 instance Destroyable Arc where
-  -- | Destroys an arc item.
+  -- Destroys an arc item.
   destroy = destroy . toGUIObject
 
 -- | You can synchronize on an arc item.
 instance Synchronized Arc where
-  -- | Synchronizes on an arc item.
+  -- Synchronizes on an arc item.
   synchronize = synchronize . toGUIObject
 
 -- | An arc is a canvas item (any canvas item is an instance of the abstract
@@ -83,31 +80,31 @@ instance FilledCanvasItem Arc
 
 -- | An alternative way to specify arc\'s coords.
 instance HasGeometry Arc where
-  -- | Sets the arc\'s geometry (width, height, upper left position).
+  -- Sets the arc\'s geometry (width, height, upper left position).
   geometry    = itemGeo
-  -- | Gets the arcs geometry (width, height, upper left position).
+  -- Gets the arcs geometry (width, height, upper left position).
   getGeometry = getGeo
 
 -- | You can specify the (upper left) position of an arc.
 instance HasPosition Arc where
-  -- | Sets the arc\'s (upper left) position.
+  -- Sets the arc\'s (upper left) position.
   position    = itemPosition
-  -- | Gets the (upper left) position of the arc.
+  -- Gets the (upper left) position of the arc.
   getPosition = getItemPosition
 
 -- | You can specify the size of an arc.
 instance HasSize Arc where
-  -- | Sets the width of an arc.
+  -- Sets the width of an arc.
   width       = itemWidth
-  -- | Gets the width of an arc.
+  -- Gets the width of an arc.
   getWidth    = getItemWidth
-  -- | Sets the height of an arc.
+  -- Sets the height of an arc.
   height      = itemHeight
-  -- | Gets the height of an arc.
+  -- Gets the height of an arc.
   getHeight   = getItemHeight
-  -- | Sets the size (width, height) of an arc.
+  -- Sets the size (width, height) of an arc.
   size        = itemSize
-  -- | Gets the size (width, height) of an arc.
+  -- Gets the size (width, height) of an arc.
   getSize     = getItemSize
 
 

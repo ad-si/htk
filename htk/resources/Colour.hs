@@ -27,22 +27,22 @@ class ColourDesignator c where
 
 -- | A colour itself describes a colour.
 instance ColourDesignator Colour where
-  -- | Internal.
+  -- Internal.
   toColour = id
 
 -- | Strings like \"red\", \"blue\" etc. decribe colours.
 instance ColourDesignator [Char] where
-  -- | Internal.
+  -- Internal.
   toColour = Colour
 
 -- | A tuple of rgb values describes a colour.
 instance ColourDesignator (Int,Int,Int) where
-  -- | Internal.
+  -- Internal.
   toColour (r,g,b) = Colour (rgb r g b)
 
 -- | A tuple of rgb values describes a colour.
 instance ColourDesignator (Double,Double,Double) where
-  -- | Internal.
+  -- Internal.
   toColour (r,g,b) = Colour (rgb (iround r) (iround g) (iround b))
                      where iround :: Double -> Int
                            iround x = round x
@@ -57,19 +57,19 @@ newtype Colour = Colour String
 
 -- | Internal.
 instance GUIValue Colour where
-  -- | Internal.
+  -- Internal.
   cdefault = Colour "grey"
         
 -- | Internal.
 instance Read Colour where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         xs -> [(Colour (takeWhile (/= ' ') xs),"")]
 
 -- | Internal.
 instance Show Colour where
-   -- | Internal.
+   -- Internal.
    showsPrec d (Colour p) r = p ++ r
 
 

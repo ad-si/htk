@@ -49,17 +49,14 @@ data BitMapHandle =
 
 -- | Internal.
 class BitMapDesignator d where
-  -- | Internal.
   toBitMap :: d -> BitMapHandle
 
 -- | Internal.
 instance BitMapDesignator BitMapHandle where
-  -- | Internal.
   toBitMap = id
 
 -- | Internal.
 instance BitMapDesignator BitMap where
-  -- | Internal.
   toBitMap h = BitMapHandle h
 
 -- | A string is a handle for a bitmap file.
@@ -147,14 +144,12 @@ warning = Predefined "warning"
 
 -- | Internal.
 instance GUIObject BitMap where
-  -- | Internal.
   toGUIObject (BitMapWDG w) = w
-  -- | Internal.
   cname _ = "BitMap"
 
 -- | A bitmap object can be destroyed.
 instance Destroyable BitMap where
-  -- | Destroys a bitmap object.
+  -- Destroys a bitmap object.
   destroy = destroy . toGUIObject
 
 -- | A bitmap object has standard widget properties
@@ -177,17 +172,17 @@ instance HasSize BitMap
 
 -- | Bitmaps can be read from files.
 instance HasFile BitMap where
-  -- | Specifies the bitmap\'s file path.
+  -- Specifies the bitmap\'s file path.
   filename fname w =
     execTclScript [tkBitMapCreate no fname] >> cset w "image" no
     where no = getObjectNo (toGUIObject w)
-  -- | Gets the bitmap\'s file name.
+  -- Gets the bitmap\'s file name.
   getFileName w = evalTclScript [tkGetBitMapFile no]
     where no = getObjectNo (toGUIObject w)
 
 -- | You can synchronize on a bitmap object.
 instance Synchronized BitMap where
-  -- | Synchronizes on a bitmap object.
+  -- Synchronizes on a bitmap object.
   synchronize (BitMapWDG w) = synchronize w
 
 

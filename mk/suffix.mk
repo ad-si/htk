@@ -34,10 +34,6 @@
 #
 # BOOTSRCS Haskell source files which are sources for .hi-boot files.
 #
-# HTKLIBSUBDIRS Subdirectories which contain source files needed to
-# compile libhtk.a.
-# HTKNOTSRCS Files in SRCS which shouldn't be compiled for HTk.
-#
 # EXTRAEXPORTS Files in this directory which should be exported (in binary
 # distributions), in addition to those which are automatically picked up.
 #
@@ -85,6 +81,7 @@ OBJSEMACS = $(patsubst %.el,%.elc,$(SRCSEMACS))
 OBJS = $(OBJSALLHS)  $(OBJSC)
 LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
           $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
+HADDOCKSRCS = $(patsubst %,haddock/%,$(LIBSRCS))
 EXPORTSRCS = $(filter Test%.hs Main%.hs Test%.lhs Main%.lhs Test%.c Main%.c,$(SRCS) $(SRCSC)) $(SRCSEMACS)
 LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
@@ -149,7 +146,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
+.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci ghcihere libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick preparehaddock preparehaddockhere haddock haddockhere
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -222,7 +219,7 @@ ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
 endif
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
-ifeq ($(LIBOBJS),)
+ifeq "$(strip $(LIBOBJS))" ""
 # no library
    libhere :
 else
@@ -407,4 +404,34 @@ makefilequick :
 	$(TOP)/config.status --file=Makefile
 
 
+# running Haddock
+haddock : haddockhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) haddock && ) echo
+
+haddockhere : preparehaddockhere
+ifneq "$(strip $(LIBOBJS))" ""
+	PWD=`pwd`;SUFFIX=`expr $$PWD : "$(TOP)/\\\\(.*\\\\)"`; \
+           mkdir -p $(TOP)/www/$$SUFFIX; \
+           cd haddock; \
+           haddock -h --package $(PACKAGE) -o $(TOP)/www/$$SUFFIX \
+              -s http://uni/$$SUFFIX \
+              $(LIBSRCS)
+endif
+
+# Preparing file for Haddock
+preparehaddock : preparehaddockhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) preparehaddock && ) echo
+
+preparehaddockhere : $(HADDOCKSRCS)
+
+mkHaddock = $(TOP)/mk/RemoveSplices <$(1) | grep -v '{-\# SOURCE \#-}' >$(2) 
+
+$(HADDOCKSRCS) : haddock/%.hs : %.hs
+	$(MKDIR) -p `dirname $@`
+ifdef DOCPP
+	$(CPP) $< -optP-P -o /tmp/cpp.out
+	$(call mkHaddock,/tmp/cpp.out,$@)
+else
+	$(call mkHaddock,$<,$@)
+endif
 

@@ -53,17 +53,15 @@ type Fraction = Double
 
 -- | Internal.
 instance GUIValue (Fraction, Fraction) where
-  -- | Internal.
   cdefault = (0.0, 0.0)
 
 -- | Internal.
 instance Show (Fraction, Fraction) where
-  -- | Internal.
   showsPrec d (f1, f2) r = show f1 ++ " " ++ show f2 ++ r
 
 -- | Internal.
 instance Read (Fraction, Fraction) where
-   -- | Internal.
+   -- Internal.
    readsPrec p b = 
      case readsPrec p b of
        [(x,xs)] -> case readsPrec p xs of
@@ -78,18 +76,18 @@ instance Read (Fraction, Fraction) where
 
 -- | Scrollable widgets instantiate @class HasScroller@.
 class Widget w => HasScroller w where
-  -- | @True@ for widgets that are scrollable in the given
+  -- @True@ for widgets that are scrollable in the given
   -- orientation.
   isWfOrientation :: w -> Orientation -> Bool
-  -- | Associates a scrollbar with a scrollable widget.
+  -- Associates a scrollbar with a scrollable widget.
   scrollbar       :: Orientation -> ScrollBar -> Config w
-  -- | Positions the scrolled widget so the give @Fraction@ is
+  -- Positions the scrolled widget so the give @Fraction@ is
   -- off-screen to the left.
   moveto          :: Orientation -> w -> Fraction -> IO ()
-  -- | Scrolls the associated widget by n pages or units (depending on the
+  -- Scrolls the associated widget by n pages or units (depending on the
   -- given @ScrollUnit@).
   scroll          :: Orientation -> w -> Int -> ScrollUnit -> IO ()
-  -- | Returns two fractions between 0 and 1 that describe the amount of
+  -- Returns two fractions between 0 and 1 that describe the amount of
   -- the widget off-screen to the left and the amount of the widget visible.
   view            :: Orientation -> w -> IO (Fraction, Fraction)
 
@@ -155,14 +153,12 @@ newScrollBar par cnf =
 
 -- | Internal.
 instance GUIObject ScrollBar where 
-  -- | Internal.
   toGUIObject (ScrollBar w) = w
-  -- | Internal.
   cname _ = "ScrollBar"
 
 -- | A scrollbar widget can be destroyed.
 instance Destroyable ScrollBar where
-  -- | Destroys a scrollbar widget.
+  -- Destroys a scrollbar widget.
   destroy = destroy . toGUIObject
 
 -- | A scrollbar widget has standard widget properties
@@ -175,7 +171,6 @@ instance HasBorder ScrollBar
 -- | A scrollbar widget has a background and activebackground
 -- (regarding slider) colour.
 instance HasColour ScrollBar where
-  -- | Internal.
   legalColourID w "bg" = True
   legalColourID w "activebackground" = True -- regards slider actually
   legalColourID w _ = False
@@ -186,9 +181,9 @@ instance HasEnable ScrollBar
 
 -- | You can specify the width of a scrollbar.
 instance HasSize ScrollBar where
-  -- | Dummy.
+  -- Dummy.
   height _ w = return w
-  -- | Dummy.
+  -- Dummy.
   getHeight w = return cdefault
 
 -- | The scrollbar has a configureable slider component.
@@ -287,12 +282,10 @@ data ScrollBarElem =
 
 -- | Internal.
 instance GUIValue ScrollBarElem where
-  -- | Internal.
   cdefault = ScrollBarSlider
 
 -- | Internal.
 instance Read ScrollBarElem where
-  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
        'a':'r':'r':'o':'w':'1':xs -> [(Arrow1,xs)]
@@ -304,7 +297,6 @@ instance Read ScrollBarElem where
 
 -- | Internal.
 instance Show ScrollBarElem where
-  -- | Internal.
   showsPrec d p r = 
      (case p of 
          Arrow1 -> "arrow1"
@@ -324,12 +316,11 @@ data ScrollUnit = Units | Pages
 
 -- | Internal.
 instance GUIValue ScrollUnit where
-  -- | Internal.
   cdefault = Units
 
 -- | Internal.
 instance Read ScrollUnit where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'u':'n':'i':'t':'s':xs -> [(Units,xs)]
@@ -338,7 +329,7 @@ instance Read ScrollUnit where
 
 -- | Internal.
 instance Show ScrollUnit where
-   -- | Internal.
+   -- Internal.
    showsPrec d p r = 
       (case p of 
           Units -> "units"

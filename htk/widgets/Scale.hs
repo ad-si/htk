@@ -66,9 +66,7 @@ class (Num a, GUIValue a) => ScaleValue a where
 
 -- | A double value is a scale value.
 instance ScaleValue Double where
-  -- | Internal.
   toDouble = id
-  -- | Internal.
   fromDouble = id
 
         
@@ -99,14 +97,11 @@ newScale par cnf =
 
 -- | Internal.
 instance Eq (Scale a) where 
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject (Scale a) where 
-  -- | Internal.
   toGUIObject (Scale w _) = w
-  -- | Internal.
   cname _ = "Scale"
 
 -- | A scale widget can be destroyed.
@@ -119,7 +114,7 @@ instance Widget (Scale a)
 
 -- | You can synchronize on a scale widget.
 instance Synchronized (Scale a) where
-  -- | Synchronizes on a scale widget.
+  -- Synchronizes on a scale widget.
   synchronize = synchronize . toGUIObject
 
 -- | A scale widget has a configureable border.
@@ -128,7 +123,6 @@ instance HasBorder (Scale a)
 -- | A scale widget has a configureable foreground, background and
 -- activebackground colour.
 instance HasColour (Scale a) where
-  -- | Internal.
   legalColourID w "background" = True
   legalColourID w "foreground" = True
   legalColourID w "activebackground" = True
@@ -142,9 +136,9 @@ instance HasFont (Scale a)
 
 -- | A scale widget has a configureable incrementation interval.
 instance ScaleValue a => HasIncrement (Scale a) a where
-  -- | Sets the scale widget\'s incrementation interval.
+  -- Sets the scale widget\'s incrementation interval.
   increment d w  = cset w "tickinterval" (toDouble d)
-  -- | Gets the scale widget\'s incrementation interval.
+  -- Gets the scale widget\'s incrementation interval.
   getIncrement w = cget w "tickinterval" >>= return . fromDouble
 
 -- | A scale widget\'s orientation can either be vertical or horizontal.
@@ -152,9 +146,9 @@ instance HasOrientation (Scale a)
 
 -- | A scale widget has a configureable size.
 instance HasSize (Scale a) where
-  -- | Sets the scale widget\'s length.
+  -- Sets the scale widget\'s length.
   height d w  = cset w "length" d
-  -- | Gets the scale widget\'s length.
+  -- Gets the scale widget\'s length.
   getHeight w = cget w "length"
 
 -- | A scale widget has a configureable slider.
@@ -162,9 +156,9 @@ instance HasSlider (Scale a)
 
 -- | A scale widget has a text label.
 instance GUIValue v => HasText (Scale a) v where
-  -- | Sets the text of the scale widget\'s label.
+  -- Sets the text of the scale widget\'s label.
   text s w  = cset w  "label" s
-  -- | Gets the text of the scale widget\'s label.
+  -- Gets the text of the scale widget\'s label.
   getText w = cget w "label"
 
 -- | A scale widget can have a tooltip.
@@ -223,20 +217,20 @@ getInterval w =
 
 -- | A scale\'s slider has a configureable resulution.
 instance ScaleValue a => HasIncrement (Slider (Scale a)) a where
-        -- | Sets the slider\'s resolution.
+        -- Sets the slider\'s resolution.
         increment d w   = cset w "resolution" (toDouble d) 
-        -- | Gets the slider\'s resolution.
+        -- Gets the slider\'s resolution.
         getIncrement w  = cget w "resolution" >>= return . fromDouble
 
 -- | A scale\'s slider has a configureable size.
 instance HasSize (Slider (Scale a)) where
-        -- | Sets the sliders width.
+        -- Sets the sliders width.
         width d w       = cset w "width" d
-        -- | Gets the sliders width.
+        -- Gets the sliders width.
         getWidth w      = cget w "width"
-        -- | Sets the sliders height.
+        -- Sets the sliders height.
         height d w      = cset w "sliderlength" d
-        -- | Gets the sliders height.
+        -- Gets the sliders height.
         getHeight w     = cget w "sliderlength"  
 
 -- | Sets the coarse grain slider adjustment value.

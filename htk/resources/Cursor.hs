@@ -60,46 +60,45 @@ data BCursor = BCursor String (Maybe String) Colour (Maybe Colour)
 -- | Datatypes that describe cursors instantiate the
 -- @class CursorDesignator@.
 class CursorDesignator ch where
-  -- | Internal.
   toCursor :: ch -> Cursor
 
 -- | A @Cursor@ object itself describes a cursor.
 instance CursorDesignator Cursor where
-  -- | Internal.
+  -- Internal.
   toCursor = id
 
 -- | An @XCursor@ object describes a cursor (see type).
 instance  CursorDesignator XCursor where
-  -- | Internal.
+  -- Internal.
   toCursor = Cursor . show
 
 -- | A @BCursor@ object describes a cursor (see type).
 instance CursorDesignator BCursor where
-  -- | Internal.
+  -- Internal.
   toCursor = Cursor . show
 
 -- | A @String@ describes a standard X cursor.
 instance CursorDesignator String where
-  -- | Internal.
+  -- Internal.
   toCursor nm = toCursor (XCursor nm Nothing Nothing)
 
 -- | A tuple of @(String,Colour)@ describes a coloured standard
 -- X cursor.
 instance CursorDesignator (String,Colour) where
-  -- | Internal.
+  -- Internal.
   toCursor (nm,fg) = toCursor (XCursor nm (Just fg) Nothing)
 
 -- | A tuple of @(String,Colour,Colour)@ describes a standard
 -- X cursor with foreground and background colour.
 instance CursorDesignator (String,Colour,Colour) where
-  -- | Internal.
+  -- Internal.
   toCursor (nm,fg,bg) =  toCursor (XCursor nm (Just fg) (Just bg))
 
 -- | A tuple of @(String,String,Colour,Colour)@ describes a
 -- bitmap cursor with its X bitmap filename, mask filename, foreground
 -- and background colour.
 instance CursorDesignator ([Char],[Char],Colour,Colour) where
-  -- | Internal.
+  -- Internal.
   toCursor (bfile,mfile,fg,bg) = 
     toCursor (BCursor bfile (Just mfile) fg (Just bg))
 
@@ -187,12 +186,12 @@ xterm = Cursor "xterm"
 
 -- | Internal.
 instance GUIValue Cursor where
-  -- | Internal.
+  -- Internal.
   cdefault = Cursor "xterm"
 
 -- | Internal.
 instance Read Cursor where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         ('{':xs) -> [(Cursor ("{" ++ (takeWhile (/= '}') xs) ++ "}"),"")]
@@ -200,7 +199,7 @@ instance Read Cursor where
 
 -- | Internal.
 instance Show Cursor where
-   -- | Internal.
+   -- Internal.
    showsPrec d (Cursor p) r = p ++ r
 
 
@@ -210,7 +209,7 @@ instance Show Cursor where
 
 -- | Internal.
 instance Show XCursor where
-   -- | Internal.
+   -- Internal.
    showsPrec d c r = cshow c ++ r
      where
         cshow (XCursor s Nothing Nothing) = s
@@ -226,7 +225,7 @@ instance Show XCursor where
 
 -- | Internal.
 instance Show BCursor where
-   -- | Internal.
+   -- Internal.
    showsPrec d c r = cshow c ++ r
      where
         cshow (BCursor fname Nothing fg Nothing) = 

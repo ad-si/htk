@@ -28,7 +28,6 @@ data GridPackOption =
 
 -- | Internal.
 instance Show GridPackOption where
-  -- | Internal.
   showsPrec d (Row i) r = "row " ++ show i ++ r
   showsPrec d (Column i) r = "column " ++ show i ++ r
   showsPrec d (GridPos (i, j)) r =
@@ -50,7 +49,6 @@ data StickyKind =
 
 -- | Internal.
 instance Show StickyKind where
-  -- | Internal.
   showsPrec d N r = "n"
   showsPrec d S r = "s"
   showsPrec d E r = "e"

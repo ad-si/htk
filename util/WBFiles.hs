@@ -1,97 +1,104 @@
-{- #########################################################################
+-- | The WBFiles module is in charge of decoding information from the command
+-- line and making it available to the rest of the UniForM workbench.
+--
+-- All UniForM options have names beginning with "--uni".  It is hoped
+-- that this won't be a problem for programs that use the UniForM workbench.
+-- However, if it is, the function
+--    setAlternateArgs
+-- should be called before any of the functions in the UniForM workbench,
+-- as this will prevent the program arguments being read by UniForM.
+--
+-- The 
+-- @
+--    --uni
+-- @
+-- option prints a help message, as do other options beginning with
+-- --uni which are not understood.  
+--
+-- The 
+-- @
+--    --uni-parameters
+-- @
+-- option prints the parameters at the given position on the command
+-- line.
+--
+-- The
+-- @
+--    --uni-version
+-- @
+-- option prints the current version of uni.
+--
+-- @
+-- --uni-<option-name>:<option-value>
+-- @
+-- or equivalently
+-- @
+-- --uni-<option-name>=<option-value>
+-- @
+--
+-- All options can also be overridden by environment variables.
+-- The environment variable corresponding to <option-name> has the
+-- name @UNI<OPTION-NAME>@
+-- where @<OPTION-NAME>@ is the capitalised name of the option.
+--
+-- The default set of options are as follows:
+-- 
+-- option-name   explanation
+-- 
+-- wish          The filename of the wish program
+-- daVinci       The filename of daVinci
+-- gnuclient     The filename of gnuclient
+-- editor        A command to execute the text editor.  
+--               This uses the CommandStringSub format, with defined
+--               substitutions %F => where the file is to be found and
+--               %N => what the user-visible name (for example, of the
+--               buffer) should be.
+-- top           The directory in which UniForM is installed
+--
+-- daVinciIcons  The directory containing daVinci icons
+--
+-- workingDir    The directory used for temporary files.
+--
+-- server        The host name of the server
+-- user          The user-id to use connecting to the server
+-- password      The password to use connecting to the server
+-- port          The port on the server to connect to
+-- xmlPort       The port for the XML server (which has a different default)
+--
+-- debug         Where Debug.debug messages should go
+--
+-- serverDir     Where Server stores its files
+-- serverId      The unique identifier of the server.
+--               Since this really does have to be globally unique,
+--               it is by default constructed from a combination
+--               of the machine's hostname and the server port.
+--               You had better not change it unless you know what
+--               you are doing.
+--
+-- MMiSSDTD      Location of DTD file for MMiSS.
+--
+-- hosts         Location of hosts file.
+--
+-- toolTimeOut   Time-out waiting for responses from a tool when
+--               it starts up and we are doing challenge-response
+--               verification.
+-- windowsTick   (Windows only) time in microseconds we wait between
+--               polling Wish.
+--
+-- The options wish, daVinci, daVinciIcons, top 
+-- should all be set automatically by the configure procedure.  
+-- The configure procedure constructs a variable DEFAULTOPTIONS
+-- and writes it into the file default_options.c.
+--
+-- returns a string with exactly the same syntax as the command line
+-- so a typical one might be
+--    @
+--    --uni-wish:/usr/bin/wish --uni-daVinci:/usr/bin/daVinci
+--    @
+--    ... (and so on)
 
-   The WBFiles module is in charge of decoding information from the command
-   line and making it available to the rest of the UniForM workbench.
-
-   All UniForM options have names beginning with "--uni".  It is hoped
-   that this won't be a problem for programs that use the UniForM workbench.
-   However, if it is, the function
-      setAlternateArgs
-   should be called before any of the functions in the UniForM workbench,
-   as this will prevent the program arguments being read by UniForM.
-
-   The 
-      --uni
-   option prints a help message, as do other options beginning with
-   --uni which are not understood.  
-
-   The 
-      --uni-parameters
-   option prints the parameters at the given position on the command
-   line.
-
-   The
-      --uni-version
-   option prints the current version of uni.
-
-   --uni-<option-name>:<option-value>
-   or equivalently
-   --uni-<option-name>=<option-value>
-
-   All options can also be overridden by environment variables.
-   The environment variable corresponding to <option-name> has the
-   name UNI<OPTION-NAME>
-   where <OPTION-NAME> is the capitalised name of the option.
-
-   The default set of options are as follows:
-   
-   option-name   explanation
-   
-   wish          The filename of the wish program
-   daVinci       The filename of daVinci
-   gnuclient     The filename of gnuclient
-   editor        A command to execute the text editor.  
-                 This uses the CommandStringSub format, with defined
-                 substitutions %F => where the file is to be found and
-                 %N => what the user-visible name (for example, of the
-                 buffer) should be.
-   top           The directory in which UniForM is installed
-
-   daVinciIcons  The directory containing daVinci icons
-
-   workingDir    The directory used for temporary files.
-
-   server        The host name of the server
-   user          The user-id to use connecting to the server
-   password      The password to use connecting to the server
-   port          The port on the server to connect to
-   xmlPort       The port for the XML server (which has a different default)
-
-   debug         Where Debug.debug messages should go
-
-   serverDir     Where Server stores its files
-   serverId      The unique identifier of the server.
-                 Since this really does have to be globally unique,
-                 it is by default constructed from a combination
-                 of the machine's hostname and the server port.
-                 You had better not change it unless you know what
-                 you are doing.
-
-   MMiSSDTD      Location of DTD file for MMiSS.
-
-   hosts         Location of hosts file.
-
-   toolTimeOut   Time-out waiting for responses from a tool when
-                 it starts up and we are doing challenge-response
-                 verification.
-   windowsTick   (Windows only) time in microseconds we wait between
-                 polling Wish.
-
-   The options wish, daVinci, daVinciIcons, top 
-   should all be set automatically by the configure procedure.  
-   The configure procedure constructs a variable DEFAULTOPTIONS
-   and writes it into the file default_options.c.
-
-   returns a string with exactly the same syntax as the command line
-   (so a typical one might be
-      "--uni-wish:/usr/bin/wish --uni-daVinci:/usr/bin/daVinci ... (and so on)
-      )
-   
-   However one difference is that options which are not understood
-   in the default_options string are simply ignored.
-   
-   ######################################################################### -}
-
+-- However one difference is that options which are not understood
+-- in the default_options string are simply ignored.
 module WBFiles (
    -- Functions for reading the results of initialising WBFiles.
    -- Values for which we provide defaults either here or in the

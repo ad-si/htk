@@ -52,14 +52,12 @@ createBitMapItem cnv cnf =
 
 -- | Internal.
 instance GUIObject BitMapItem where 
-  -- | Internal.
   toGUIObject (BitMapItem w) = w
-  -- | Internal.
   cname _ = "BitMapItem"
 
 -- | A bitmap item can be destroyed.
 instance Destroyable BitMapItem where
-  -- | Destroys a bitmap item.
+  -- Destroys a bitmap item.
   destroy = destroy . toGUIObject
 
 -- | A bitmap item is a canvas item (any canvas item is an instance of the
@@ -72,36 +70,36 @@ instance TaggedCanvasItem BitMapItem
 
 -- | You can specify the position of a bitmap item.
 instance HasPosition BitMapItem where
-  -- | Sets the position of the bitmap item.
+  -- Sets the position of the bitmap item.
   position        = itemPositionD2
-  -- | Gets the position of the bitmap item.
+  -- Gets the position of the bitmap item.
   getPosition     = getItemPositionD2
 
 -- | You can specify the anchor position of a bitmap item.
 instance HasCanvAnchor BitMapItem where
-  -- | Sets the anchor position of a bitmap item.
+  -- Sets the anchor position of a bitmap item.
   canvAnchor a w = cset w "anchor" a
-  -- | Gets the anchor position of a bitmap item.
+  -- Gets the anchor position of a bitmap item.
   getCanvAnchor w = cget w "anchor"
 
 -- | A bitmap item is a filled canvas item (it has filling, outline,
 -- outline width, and stipple configurations).
 instance FilledCanvasItem BitMapItem where
-  -- | Sets the filling (foreground) of a bitmap item.
+  -- Sets the filling (foreground) of a bitmap item.
   filling c w       = cset w "foreground" (toColour c)
-  -- | Gets the filling (foreground) of a bitmap item.
+  -- Gets the filling (foreground) of a bitmap item.
   getFilling w      = cget w "foreground"
-  -- | Sets the outline (background) of a bitmap item.
+  -- Sets the outline (background) of a bitmap item.
   outline c w       = cset w "background" (toColour c)
-  -- | Gets the outline (background) of a bitmap item.
+  -- Gets the outline (background) of a bitmap item.
   getOutline w      = cget w "background"
-  -- | Dummy configuration (no effect).
+  -- Dummy configuration (no effect).
   outlinewidth c w  = return w
-  -- | Dummy configuration (no effect).
+  -- Dummy configuration (no effect).
   getOutlineWidth w = return cdefault
-  -- | Sets the bitmap handle for this item.
+  -- Sets the bitmap handle for this item.
   stipple b w       = setBitMapHandle w "bitmap" b True
-  -- | Gets the bitmap handle for this item.
+  -- Gets the bitmap handle for this item.
   getStipple w      = getBitMapHandle w "bitmap"
 
 -- | A bitmap item is a container for a bitmap object.
@@ -109,5 +107,5 @@ instance HasBitMap BitMapItem
 
 -- | You can synchronize on a bitmap item.
 instance Synchronized BitMapItem where
-  -- | Synchronizes on a bitmap item.
+  -- Synchronizes on a bitmap item.
   synchronize w = synchronize (toGUIObject w)

@@ -106,14 +106,14 @@ newEditor par cnf =
 
 -- | Internal.
 instance GUIObject Editor where 
-  -- | Internal.
+  -- Internal.
   toGUIObject (Editor w) = w
-  -- | Internal.
+  -- Internal.
   cname _                  = "Text"
 
 -- | An editor widget can be destroyed.
 instance Destroyable Editor where
-  -- | Destroys a check button widget.
+  -- Destroys a check button widget.
   destroy = destroy . toGUIObject
 
 -- | An editor widget has standard widget properties
@@ -129,7 +129,7 @@ instance HasBorder Editor
 
 -- | An editor widget has a foreground and background colour.
 instance HasColour Editor where 
-  -- | Internal.
+  -- Internal.
   legalColourID = hasForeGroundColour
 
 -- | You can specify the size of an editor widget.
@@ -153,14 +153,14 @@ instance HasScroller Editor
 
 -- | You can synchronize on an editor widget.
 instance Synchronized Editor where
-  -- | Synchronizes on an editor widget.
+  -- Synchronizes on an editor widget.
   synchronize = synchronize . toGUIObject
 
 -- | An editor widget has a value (its textual content).
 instance GUIValue a => HasValue Editor a where
-  -- | Sets the editor\'s value.
+  -- Sets the editor\'s value.
   value val w = setTextLines w val >> return w
-  -- | Gets the editor\'s value.
+  -- Gets the editor\'s value.
   getValue w = getTextLines w
 
 -- | An editor widget can have a tooltip.
@@ -327,7 +327,7 @@ readTextFromFile ed fnm =
 -- | You can find out the bounding box of characters inside an editor
 -- widget.
 instance (HasIndex Editor i BaseIndex) => HasBBox Editor i  where
-  -- | Returns the bounding box of the character at the specified index.
+  -- Returns the bounding box of the character at the specified index.
   bbox w i =
     do
       binx <- getBaseIndex w i
@@ -343,29 +343,29 @@ instance (HasIndex Editor i BaseIndex) => HasBBox Editor i  where
 
 -- | A base index is a valid index for an editor widget.
 instance HasIndex Editor BaseIndex BaseIndex where
-  -- | Internal.
+  -- Internal.
   getBaseIndex w i = return i
 
 -- | The @EndOfText@ index is a valid index for an editor widget.
 instance HasIndex Editor EndOfText BaseIndex where
-  -- | Internal.
+  -- Internal.
   getBaseIndex w _ = return (IndexText "end")
 
 -- | A position in pixels is a valid index for an editor widget.
 instance HasIndex Editor Pixels BaseIndex where
-  -- | Internal.
+  -- Internal.
   getBaseIndex w p = return (IndexText (show p))
 
 -- | A pair of line and character is a valid index for an editor widget.
 instance HasIndex Editor (Distance, Distance) BaseIndex where
-  -- | Internal.
+  -- Internal.
   getBaseIndex w pos = return (IndexPos pos)
 
 -- | A pair of a valid index and a list of index modifiers is a valid index
 -- for an editor widget.
 instance HasIndex Editor i BaseIndex => 
          HasIndex Editor (i,[IndexModifier]) BaseIndex where
-  -- | Internal.
+  -- Internal.
   getBaseIndex tp (i,ml) =
     do
       bi <- getBaseIndex tp i
@@ -376,7 +376,7 @@ instance HasIndex Editor i BaseIndex =>
 -- editor widget.
 instance HasIndex Editor i BaseIndex => 
          HasIndex Editor (i,IndexModifier) BaseIndex where
-  -- | Internal.
+  -- Internal.
   getBaseIndex tp (i,m) =
     do
       bi <- getBaseIndex tp i
@@ -385,7 +385,7 @@ instance HasIndex Editor i BaseIndex =>
 -- | Internal.
 instance HasIndex Editor i BaseIndex =>
          HasIndex Editor i (Distance,Distance) where
-  -- | Internal.
+  -- Internal.
   getBaseIndex = getIndexPosition 
 
 
@@ -409,7 +409,7 @@ data IndexModifier =
 
 -- | Internal.
 instance Show IndexModifier where
-   -- | Internal.
+   -- Internal.
    showsPrec d (ForwardChars counts) r = "+" ++ show counts ++ "chars " ++ r
    showsPrec d (BackwardChars counts) r = "-" ++ show counts ++ "chars " ++ r
    showsPrec d (ForwardLines counts) r = "+" ++ show counts ++ "lines " ++ r
@@ -421,7 +421,7 @@ instance Show IndexModifier where
 
 -- | Internal.
 instance Show IndexModifiers where
-   -- | Internal.
+   -- Internal.
    showsPrec d (IndexModifiers []) r = r
    showsPrec d (IndexModifiers (m:ml)) r = show m ++ " " ++ show (IndexModifiers ml) ++ r
 
@@ -475,7 +475,7 @@ compareIndices ed op i1 i2 = do
 
 -- | You can select text inside an editor widget.
 instance HasSelection Editor where
-        -- | Clears the editors selection.
+        -- Clears the editors selection.
         clearSelection tp = synchronize tp (do {
                 start <- getSelectionStart tp;
                 end <- getSelectionEnd tp;
@@ -491,13 +491,13 @@ instance HasSelection Editor where
 -- | An editor widget\'s characters are selectable.
 instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i 
   where
-        -- | Selects the character at the specified index.
+        -- Selects the character at the specified index.
         selection inx tp = synchronize tp (do {
                 binx <- getBaseIndex tp inx;
                 execMethod tp (\nm -> tkSelection nm binx);
                 return tp
                 })
-        -- | Queries if the character at the specified index is selected.
+        -- Queries if the character at the specified index is selected.
         isSelected tp inx = synchronize tp (do {
                 binx <- getBaseIndex tp inx;
                 start <- getSelectionStart tp;
@@ -509,13 +509,13 @@ instance (HasIndex Editor i BaseIndex) => HasSelectionIndex Editor i
 
 -- | You can select a text range inside an editor widget.
 instance HasSelectionBaseIndexRange Editor (Distance,Distance) where
-        -- | Gets the start index of the editor\'s selection.
+        -- Gets the start index of the editor\'s selection.
         getSelectionStart tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelFirst nm))
                 case mstart of
                         (Left e)  -> return Nothing -- actually a tk error
                         (Right v) -> (return . Just) v
-        -- | Gets the end index of the editor\'s selection.
+        -- Gets the end index of the editor\'s selection.
         getSelectionEnd tp = do
                 mstart <- try (evalMethod tp (\nm -> tkSelEnd nm))
                 case mstart of
@@ -528,7 +528,7 @@ instance (
         HasIndex Editor i2 BaseIndex
         ) => HasSelectionIndexRange Editor i1 i2
   where
-        -- | Sets the selection range inside the editor widget.
+        -- Sets the selection range inside the editor widget.
         selectionRange start end tp = synchronize tp (do {
                 start' <- getBaseIndex tp start;
                 end' <- getBaseIndex tp end;
@@ -538,7 +538,7 @@ instance (
 
 -- | You can select a text range inside an editor widget.
 instance HasSelectionBaseIndex Editor ((Distance,Distance),(Distance,Distance)) where
-        -- | Gets the selection range inside the editor widget.
+        -- Gets the selection range inside the editor widget.
         getSelection = getSelectionRange
 
 -- | An editor widget has an X selection.
@@ -556,7 +556,7 @@ instance HasInsertionCursor Editor
 instance ( HasIndex Editor i BaseIndex
         ) => HasInsertionCursorIndexSet Editor i 
   where
-        -- | Sets the position of the insertion cursor.
+        -- Sets the position of the insertion cursor.
         insertionCursor inx tp =  synchronize tp (do {
                 binx <- getBaseIndex tp inx;
                 execMethod tp (\nm -> tkSetInsertMark nm binx);
@@ -565,7 +565,7 @@ instance ( HasIndex Editor i BaseIndex
 
 -- | You can get the position of the insertion cursor of an editor widget.
 instance HasInsertionCursorIndexGet Editor (Distance,Distance) where
-        -- | Gets the position of the insertion cursor.
+        -- Gets the position of the insertion cursor.
         getInsertionCursor tp =  evalMethod tp (\nm -> tkGetInsertMark nm)
 
 
@@ -640,12 +640,12 @@ data WrapMode = NoWrap | CharWrap | WordWrap deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue WrapMode where
-        -- | Internal.
+        -- Internal.
         cdefault = NoWrap
 
 -- | Internal.
 instance Read WrapMode where
-   -- | Internal.
+   -- Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'n':'o':'n':'e':xs -> [(NoWrap,xs)]
@@ -655,7 +655,7 @@ instance Read WrapMode where
 
 -- | Internal.
 instance Show WrapMode where
-   -- | Internal.
+   -- Internal.
    showsPrec d p r = 
       (case p of 
          NoWrap -> "none"  
@@ -671,9 +671,9 @@ instance Show WrapMode where
 -- | Widgets with adjustable tab stops instantiate the
 -- @class HasTabulators@.
 class GUIObject w => HasTabulators w where
-        -- | Sets the tab stops.
+        -- Sets the tab stops.
         tabs            :: String -> Config w
-        -- | Gets the tab stops.
+        -- Gets the tab stops.
         getTabs         :: w -> IO String
         tabs s w        = cset w "tabs" s
         getTabs w       = cget w "tabs"
@@ -687,17 +687,17 @@ class GUIObject w => HasTabulators w where
 -- | Widgets with an adjustable line spacing instantiate the
 -- @class HasLineSpacing@.
 class GUIObject w => HasLineSpacing w where
-        -- | Sets the space above an unwrapped line.
+        -- Sets the space above an unwrapped line.
         spaceAbove      :: Distance -> Config w
-        -- | Gets the space above an unwrapped line.
+        -- Gets the space above an unwrapped line.
         getSpaceAbove   :: w -> IO Distance
-        -- | Sets the space above a wrapped line.
+        -- Sets the space above a wrapped line.
         spaceWrap       :: Distance -> Config w
-        -- | Gets the space above a wrapped line.
+        -- Gets the space above a wrapped line.
         getSpaceWrap    :: w -> IO Distance
-        -- | Sets the space below an unwrapped line.
+        -- Sets the space below an unwrapped line.
         spaceBelow      :: Distance -> Config w
-        -- | Sets the space below an unwrapped line.
+        -- Sets the space below an unwrapped line.
         getSpaceBelow   :: w -> IO Distance
         getSpaceAbove w = cget w "spacing1"
         spaceAbove d w  = cset w "spacing1" d
@@ -716,7 +716,7 @@ data SearchDirection = Forward | Backward deriving (Eq,Ord,Enum)
  
 -- | Internal.
 instance Show SearchDirection where 
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
       (case p of 
          Forward -> " -forward"  
@@ -728,7 +728,7 @@ data SearchMode = Exact | Nocase deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance Show SearchMode where 
-  -- | Internal.
+  -- Internal.
   showsPrec d p r = 
       (case p of 
          Exact -> " -exact"  
@@ -744,7 +744,7 @@ data SearchSwitch = SearchSwitch {
 
 -- | Internal.
 instance Show SearchSwitch where
-  -- | Internal.
+  -- Internal.
   showsPrec _ (SearchSwitch d m False) r = 
         show d ++ show m ++ r
   showsPrec _ (SearchSwitch d m True) r = 

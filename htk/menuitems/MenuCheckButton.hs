@@ -59,19 +59,16 @@ instance MenuItem MenuCheckButton
 
 -- | Internal.
 instance Eq MenuCheckButton where
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject MenuCheckButton where 
-  -- | Internal.
   toGUIObject (MenuCheckButton w) = w
-  -- | Internal.
   cname _ = "MenuCheckButton"
 
 -- | You can synchronize on a menu checkbutton.
 instance Synchronized MenuCheckButton where
-  -- | Synchronizes on a menu checkbutton.
+  -- Synchronizes on a menu checkbutton.
   synchronize = synchronize . toGUIObject
 
 -- | A menu checkbutton has an optional text to display as a reminder
@@ -87,7 +84,6 @@ instance HasBorder MenuCheckButton
 -- | A menu checkbutton has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
 instance HasColour MenuCheckButton where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A menu checkbutton is a stateful object, it can be enabled or
@@ -111,9 +107,9 @@ instance HasSize MenuCheckButton
 
 -- | A menu checkbutton can contain text (instead of an image or bitmap).
 instance GUIValue v => HasText MenuCheckButton v where
-  -- | Sets the text to display.
+  -- Sets the text to display.
   text str w = cset w "label" str >> return w
-  -- | Gets the displayed text.
+  -- Gets the displayed text.
   getText w = cget w "label"
 
 -- | You can set the index of a text character to underline.

@@ -60,14 +60,12 @@ newRadioButton par cnf =
 
 -- | Internal.
 instance GUIObject (RadioButton a) where 
-  -- | Internal.
   toGUIObject (RadioButton w) = w
-  -- | Internal.
   cname _ = "RadioButton"
 
 -- | A radiobutton widget can be destroyed.
 instance Destroyable (RadioButton a) where
-  -- | Destroys a radiobutton widget.
+  --  Destroys a radiobutton widget.
   destroy = destroy . toGUIObject
 
 -- | A radiobutton widget has standard widget properties
@@ -88,7 +86,6 @@ instance HasBorder (RadioButton a)
 -- | A radiobutton widget has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
 instance HasColour (RadioButton a) where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A radiobutton widget is a stateful widget, it can be enabled or
@@ -115,7 +112,7 @@ instance HasUnderline (RadioButton a)
 
 -- | You can synchronize on a radiobutton object.
 instance Synchronized (RadioButton a) where
-  -- | Synchronizes on a radiobutton object.
+  --  Synchronizes on a radiobutton object.
   synchronize = synchronize . toGUIObject
 
 -- | When a radiobutton is clicked, a corresponding event is invoked.

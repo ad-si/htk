@@ -69,24 +69,20 @@ newSelectBox par def@(Just i) ol =
 
 -- | Internal.
 instance Eq SelectBox where 
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | A select box can be destroyed.
 instance Destroyable SelectBox where
-  -- | Destroys a select box.
+  -- Destroys a select box.
   destroy = destroy . toGUIObject
 
 -- | Internal.
 instance GUIObject SelectBox where 
-  -- | Internal.
   toGUIObject (SelectBox b _ e) = toGUIObject b
-  -- | Internal.
   cname _ = "SelectBox"
 
 -- | A select box has a configureable foreground and background colour.
 instance HasColour SelectBox where 
-  -- | Internal.
   legalColourID = hasForeGroundColour
 
 -- | A select box has standard widget properties
@@ -101,17 +97,17 @@ instance HasBorder SelectBox
 
 -- | A select box is a stateful widget, it can be enabled or disabled.
 instance HasEnable SelectBox where
-  -- | Sets the select box\'es state.
+  -- Sets the select box\'es state.
   state st sb@(SelectBox b _ em) = 
     synchronize sb (do
                       ibs <- getRef em
                       foreach ibs (\ib -> configure ib [state st])
                       return sb)
-  -- | Gets the select box\'es state.
+  -- Gets the select box\'es state.
   getState sb = do
                   b <- isEnabled sb
                   if b then return Normal else return Disabled
-  -- | @True@, if the select box is enabled, otherwise
+  -- @True@, if the select box is enabled, otherwise
   -- @False@.
   isEnabled sb@(SelectBox b _ em) = 
     synchronize sb (do
@@ -121,7 +117,7 @@ instance HasEnable SelectBox where
 
 -- | You can synchronize on a select box.
 instance Synchronized SelectBox where
-  -- | Synchronizes on a select box.
+  -- Synchronizes on a select box.
   synchronize = synchronize . toGUIObject
 
 

@@ -55,7 +55,8 @@ data EmptyArcTypeParms value = EmptyArcTypeParms
 
 emptyGraphSort :: Graph EmptyGraph 
    EmptyGraphParms EmptyNode EmptyNodeType EmptyNodeTypeParms
-   EmptyArc EmptyArcType EmptyArcTypeParms = displaySort
+   EmptyArc EmptyArcType EmptyArcTypeParms 
+emptyGraphSort = displaySort
 
 instance GraphAllConfig EmptyGraph EmptyGraphParms 
    EmptyNode EmptyNodeType EmptyNodeTypeParms

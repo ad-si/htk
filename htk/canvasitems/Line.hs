@@ -70,14 +70,12 @@ createLine cnv cnf = createCanvasItem cnv LINE Line cnf [(-1,-1),(-1,-1)]
 
 -- | Internal.
 instance GUIObject Line where 
-  -- | Internal.
   toGUIObject (Line w) = w
-  -- | Internal.
   cname _ = "Line"
 
 -- | A line item can be destroyed.
 instance Destroyable Line where
-  -- | Destroys a line item.
+  -- Destroys a line item.
   destroy = destroy . toGUIObject
 
 -- | A line item is a canvas item (any canvas item is an instance of the
@@ -89,9 +87,9 @@ instance TaggedCanvasItem Line
 
 -- | A line item has filling, outline width and stipple configurations.
 instance FilledCanvasItem Line where
-  -- | Dummy.
+  -- Dummy.
   outline c w  = return w
-  -- | Dummy.
+  -- Dummy.
   getOutline w = return cdefault
 
 -- | A line is a segmented canvas item. It has a splinesteps and smooth
@@ -100,14 +98,14 @@ instance SegmentedCanvasItem Line
 
 -- | You can synchronize on a line item.
 instance Synchronized Line where
-  -- | Synchronizes on a line item.
+  -- Synchronizes on a line item.
   synchronize w = synchronize (toGUIObject w)
 
 -- | You can specify the width of the line.
 instance HasSize Line where
-  -- | Dummy.
+  -- Dummy.
   height _ w  = return w
-  -- | Dummy.
+  -- Dummy.
   getHeight _ = return cdefault
 
 
@@ -160,12 +158,10 @@ data ArrowHead =
 
 -- | Internal.
 instance GUIValue ArrowHead where
-  -- | Internal.
   cdefault = NoHead
 
 -- | Internal.
 instance Read ArrowHead where
-  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
        'b':'o':'t':'h':xs -> [(BothEnds,xs)]
@@ -176,7 +172,6 @@ instance Read ArrowHead where
 
 -- | Internal.
 instance Show ArrowHead where
-  -- | Internal.
   showsPrec d p r = (case p of 
                        BothEnds -> "both"
                        LastEnd -> "last"
@@ -193,12 +188,10 @@ data CapStyle = CapRound | CapProjecting | CapButt deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue CapStyle where
-  -- | Internal.
   cdefault = CapButt
 
 -- | Internal.
 instance Read CapStyle where
-  -- | Internal.
   readsPrec p b =
     case dropWhile (isSpace) b of
        'r':'o':'u':'n':'d':xs -> [(CapRound,xs)]
@@ -208,7 +201,6 @@ instance Read CapStyle where
 
 -- | Internal.
 instance Show CapStyle where
-  -- | Internal.
   showsPrec d p r = (case p of 
                        CapRound -> "round"
                        CapProjecting -> "projecting"
@@ -224,12 +216,10 @@ data JoinStyle = JoinRound | JoinMiter | JoinBevel deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance GUIValue JoinStyle where
-  -- | Internal.
   cdefault = JoinMiter
 
 -- | Internal.
 instance Read JoinStyle where
-  -- | Internal.
   readsPrec p b = case dropWhile (isSpace) b of
                     'r':'o':'u':'n':'d':xs -> [(JoinRound,xs)]
                     'm':'i':'t':'e':'r': xs -> [(JoinMiter,xs)]
@@ -238,7 +228,6 @@ instance Read JoinStyle where
 
 -- | Internal.
 instance Show JoinStyle where
-   -- | Internal.
    showsPrec d p r = (case p of 
                         JoinRound -> "round"
                         JoinMiter -> "miter"

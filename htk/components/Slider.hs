@@ -22,14 +22,14 @@ import Colour(toColour)
 -- | Widgets with sliders (scale widget, scrollbar) instantiate the
 -- @class HasSlider@.
 class Widget w => HasSlider w where
-  -- | Sets the time period between auto-repeat events.
+  -- Sets the time period between auto-repeat events.
   repeatInterval     :: Int -> Config (Slider w)
-  -- | Gets the time period between auto-repeat events.
+  -- Gets the time period between auto-repeat events.
   getRepeatInterval  :: (Slider w) -> IO Int
-  -- | Sets the delay before auto-repeat starts (e.g. when mouse button is
+  -- Sets the delay before auto-repeat starts (e.g. when mouse button is
   -- pressed).
   repeatDelay        :: Int -> Config (Slider w)
-  -- | Gets the delay before auto-repeat starts.
+  -- Gets the delay before auto-repeat starts.
   getRepeatDelay     :: (Slider w) -> IO Int
 
   repeatInterval c w  = cset w "repeatinterval" c
@@ -52,21 +52,16 @@ newtype Slider w = Slider w
 
 -- | Internal.
 instance GUIObject w => GUIObject (Slider w) where
-  -- | Internal.
   toGUIObject (Slider w)  = toGUIObject w
-  -- | Internal.
   cname (Slider w)        = cname w
 
 -- | The slider component has a configureable foreground and background
 -- colour.
 instance (HasSlider w,GUIObject w) => HasColour (Slider w) where
-  -- | Internal.
   legalColourID              = hasForeGroundColour
-  -- | Internal.
   setColour w "foreground" c = cset w "troughcolor" (toColour c)
   setColour w "background" c = cset w "activebackground" (toColour c)
   setColour w _ _            = return w
-  -- | Internal.
   getColour w "background"   = cget w "troughcolor"
   getColour w "foreground"   = cget w "activebackground"
   getColour _ _              = return cdefault

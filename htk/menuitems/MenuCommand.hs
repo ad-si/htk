@@ -55,19 +55,16 @@ instance MenuItem MenuCommand
 
 -- | Internal.
 instance Eq MenuCommand where
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject MenuCommand where 
-  -- | Internal.
   toGUIObject (MenuCommand w) = w
-  -- | Internal.
   cname _ = "MenuCommand"
                         
 -- | You can synchronize on a menu command.
 instance Synchronized MenuCommand where
-  -- | Synchronizes on a menu command.
+  -- Synchronizes on a menu command.
   synchronize = synchronize . toGUIObject
 
 -- | A menu command has an optional text to display as a reminder
@@ -83,7 +80,6 @@ instance HasBorder MenuCommand
 -- | A menu command has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
 instance HasColour MenuCommand where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A menu command is a stateful object, it can be enabled or
@@ -107,9 +103,9 @@ instance HasSize MenuCommand
 
 -- | A menu command can contain text (instead of an image or bitmap).
 instance GUIValue v => HasText MenuCommand v where
-  -- | Sets the text to display.
+  -- Sets the text to display.
   text str w = cset w "label" str >> return w
-  -- | Gets the displayed text.
+  -- Gets the displayed text.
   getText w = cget w "label"
 
 -- | You can set the index of a text character to underline.

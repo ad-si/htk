@@ -1,18 +1,4 @@
-{- #########################################################################
-
-MODULE        : Thread
-AUTHOR        : Einar W. Karlsen, George 
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1999
-VERSION       : 0.2
-DESCRIPTION   : Threads with identity. 
-
-
-
-   ######################################################################### -}
-
-
+-- | Basic Thread operations.
 module Thread (
    module Computation,
    

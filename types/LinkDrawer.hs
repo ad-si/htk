@@ -107,8 +107,9 @@ data NodeRecord node nodeArg arc pos = NodeRecord {
       -- All arcs pointing to this node with mustFollow = False.
    }
 
+-- | describes information about a node already displayed
 data NodeDisplayed node nodeArg arc pos = 
-   NodeDisplayed { -- ^ describes information about a node already displayed
+   NodeDisplayed {
       nodeData :: NodeData node nodeArg arc pos,
       listDrawer :: ListDrawer (ArcData node arc) pos,
       dependentArcs :: [(pos,ArcData node arc)],

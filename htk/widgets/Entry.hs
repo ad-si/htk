@@ -70,9 +70,7 @@ newEntry par cnf =
 
 -- | Internal.
 instance GUIObject (Entry a) where 
-  -- | Internal.
   toGUIObject (Entry  w) = w
-  -- | Internal.
   cname _ = "Entry"
 
 -- | An entry field has a configureable width (height config is ignored).
@@ -121,7 +119,6 @@ instance HasEnable (Entry a)
 
 -- | An entry field is scrollable in horizontal direction.
 instance HasScroller (Entry a) where
-  -- | Internal.
   isWfOrientation _ Horizontal = True
   isWfOrientation _ Vertical   = False
 
@@ -142,7 +139,6 @@ data XCoord = XCoord Distance
 
 -- | Internal.
 instance Show XCoord where
-   -- | Internal.
    showsPrec d (XCoord x) r = "@"++show x ++ r
 
 
@@ -152,12 +148,10 @@ instance Show XCoord where
 
 -- | An integer value is a valid index position for an entry widget.
 instance HasIndex (Entry a) Int BaseIndex where
-  -- | Internal.
   getBaseIndex w i = return (IndexNo i)
 
 -- | A base index is a valid index position for an entry widget.
 instance HasIndex (Entry a) BaseIndex BaseIndex where
-  -- | Internal.
   getBaseIndex w i = return i
 
 -- | The @EndOfText@ index is a valid index position for an
@@ -171,22 +165,18 @@ instance HasIndex (Entry a) XCoord BaseIndex where
         
 -- | The entries insertion cursor is a valid index for an entry widget.
 instance HasIndex (Entry a) (ICursor (Entry a)) BaseIndex where
-  -- | Internal.
   getBaseIndex ent i = return (IndexText "insert")
 
 -- | The selection start is a valid index position for an entry widget.
 instance HasIndex (Entry a) (Selection (Entry a),First) BaseIndex where
-  -- | Internal.
   getBaseIndex ent i = return (IndexText "sel.first")
 
 -- | The selection end is a valid index position for an entry widget.
 instance HasIndex (Entry a) (Selection (Entry a),Last) BaseIndex where
-  -- | Internal.
   getBaseIndex ent i = return (IndexText "sel.last")
 
 -- | Internal.
 instance HasIndex (Entry a) i BaseIndex => HasIndex (Entry a) i Int where
-  -- | Internal.
   getBaseIndex w i =
     do
       bi <- getBaseIndex w i
@@ -201,21 +191,21 @@ instance HasIndex (Entry a) i BaseIndex => HasIndex (Entry a) i Int where
 
 -- | You can select text inside an entry widget.
 instance HasSelection (Entry a) where
-  -- | Clears the entry\'s selection.
+  -- Clears the entry\'s selection.
   clearSelection ent =
     execMethod ent (\nm -> [show nm ++ " selection clear"])
 
 -- | An entry widget\'s characters are selectable.
 instance HasIndex (Entry a) i BaseIndex =>
            HasSelectionIndex (Entry a) i where
-  -- | Selects the character at the specified index.
+  -- Selects the character at the specified index.
   selection inx ent =
     synchronize ent
       (do
          binx <- getBaseIndex ent inx
          execMethod ent (\nm -> [tkSelection nm binx])
          return ent)
-  -- | Queries if the character at the specified index is selected.
+  -- Queries if the character at the specified index is selected.
   isSelected ent inx =
     synchronize ent
       (do
@@ -235,7 +225,7 @@ instance HasSelectionBaseIndex (Entry a) (Int,Int) where
 instance (HasIndex (Entry a) i1 BaseIndex,
           HasIndex (Entry a) i2 BaseIndex) =>
          HasSelectionIndexRange (Entry a) i1 i2 where
-  -- | Sets the selection range inside the entry widget.
+  -- Sets the selection range inside the entry widget.
   selectionRange start end ent =
     synchronize ent
       (do
@@ -253,7 +243,7 @@ instance HasSelectionBaseIndexRange (Entry a) Int where
       case mstart of
         Left e -> return Nothing     -- actually a tk error
         Right v -> return (Just v)
-  -- | Gets the end index of the entry\'s selection.
+  -- Gets the end index of the entry\'s selection.
   getSelectionEnd ent =
     do
       mend <-

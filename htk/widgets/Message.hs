@@ -54,7 +54,6 @@ newMessage par cnf =
 -- | Internal.
 instance GUIObject Message where 
   toGUIObject (Message w) = w
-  -- | Internal.
   cname _ = "Message"
 
 -- | A message widget can be destroyed.
@@ -70,7 +69,6 @@ instance HasBorder Message
 
 -- | A message widget has a foreground and background colour.
 instance HasColour Message where
-  -- | Internal.
   legalColourID = hasForeGroundColour
 
 -- | You can specify the font of a message widget.

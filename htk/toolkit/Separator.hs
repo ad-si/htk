@@ -63,14 +63,12 @@ newVSeparator par =
 -- --------------------------------------------------------------------------   
 -- | Internal.
 instance GUIObject Separator where 
-        -- | Internal.
         toGUIObject (Separator w) = toGUIObject w
-        -- | Internal.
         cname w = "Separator"
 	
 -- | A separator can be destroyed.
 instance Destroyable Separator where
-        -- | Destroys a separator widget.
+        -- Destroys a separator widget.
         destroy = destroy . toGUIObject
 
 -- | A separator widget has a configureable border.

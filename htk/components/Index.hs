@@ -25,7 +25,6 @@ import Char
 
 -- | Internal.
 class HasIndex w i b where
-  -- | Internal.
   getBaseIndex :: w -> i -> IO b
 
 
@@ -39,19 +38,16 @@ data EndOfText = EndOfText deriving Eq
 
 -- | Internal.
 instance Show EndOfText where
-  -- | Internal.
   showsPrec d _ r = "end" ++ r 
 
 -- | Internal.
 instance Read EndOfText where
-  -- | Internal.
   readsPrec p str = 
     case str of ('e':'n':'d':xs) -> [(EndOfText,xs)]
                 _ -> []
 
 -- | Internal.
 instance GUIValue EndOfText where
-  -- | Internal.
   cdefault = EndOfText
 
 
@@ -65,7 +61,6 @@ data Pixels = Pixels Distance Distance
 
 -- | Internal.
 instance Show Pixels where
-   -- | Internal.
    showsPrec d (Pixels x y) r = "@" ++ show x ++ "," ++ show y ++ r
 
 
@@ -79,7 +74,6 @@ data First = First
 
 -- | Internal.
 instance Show First where
-   -- | Internal.
    showsPrec d _ r = "first" ++ r
         
 
@@ -93,7 +87,6 @@ data Last = Last
 
 -- | Internal.
 instance Show Last where
-   -- | Internal.
    showsPrec d _ r = "first" ++ r
         
 
@@ -111,12 +104,10 @@ data BaseIndex =
 
 -- | Internal.
 instance GUIValue BaseIndex where
-  -- | Internal.
   cdefault = IndexNo 0
 
 -- | Internal.
 instance Show BaseIndex where
-   -- | Internal.
    showsPrec d c r = cshow c ++ r where
         cshow (IndexNo i) = show i
         cshow (IndexPos (x,y)) = show x ++ "." ++ show y
@@ -124,7 +115,6 @@ instance Show BaseIndex where
 
 -- | Internal.
 instance Read BaseIndex where
-    -- | Internal.
     readsPrec p str = [(cread str,[])] where
         cread (s @ (x:l)) | isDigit x =
                 case map read (split (== '.') s) of

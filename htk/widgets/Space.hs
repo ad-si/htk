@@ -58,19 +58,16 @@ newSpace par dist cnf =
 
 -- | Internal.
 instance Eq Space where
-  -- | Internal.
   (Space _ f1) == (Space _ f2) = f1 == f2
 
 -- | Internal.
 instance GUIObject Space where 
-  -- | Internal.
   toGUIObject (Space d f) = toGUIObject f
-  -- | Internal.
   cname _ = "Space"
 
 -- | A space widget can be destroyed.
 instance Destroyable Space where
-  -- | Destroys a space widget.
+  -- Destroys a space widget.
   destroy   = destroy . toGUIObject
 
 -- | A radiobutton widget has standard widget properties
@@ -79,18 +76,17 @@ instance Widget Space
 
 -- | You can synchronize on a space widget.
 instance Synchronized Space where
-  -- | Synchronizes on a space widget.
+  -- Synchronizes on a space widget.
   synchronize w = synchronize (toGUIObject w)
 
 -- | A space widget has a configureable background colour.
 instance HasColour Space where
-  -- | Internal.
   legalColourID = hasBackGroundColour
 
 -- | The space widgets orientation can either be @vertical@ or
 -- @Horizontal@.
 instance HasOrientation Space where
-  -- | Sets the orientation of the space widget.
+  -- Sets the orientation of the space widget.
   orient or s @ (Space d f) =
     configure f (case or of Horizontal -> [{-fill Vertical,-} width d,
                                            height 0]

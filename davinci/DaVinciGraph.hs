@@ -65,7 +65,8 @@ import DaVinciBasic
 
 daVinciSort :: Graph DaVinciGraph 
    DaVinciGraphParms DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
-   DaVinciArc DaVinciArcType DaVinciArcTypeParms = displaySort
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms 
+daVinciSort = displaySort
 
 instance GraphAllConfig DaVinciGraph DaVinciGraphParms 
    DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
@@ -728,14 +729,14 @@ instance DeleteNode DaVinciGraph DaVinciNode where
          withHandler newHandler (context daVinciGraph) act
 
 
-instance NodeClass DaVinciNode where
+instance NodeClass DaVinciNode
 
 daVinciNodeTyRep = mkTyRep "DaVinciGraph" "DaVinciNode"
 
 instance HasTyRep1 DaVinciNode where
    tyRep1 _ = daVinciNodeTyRep
 
-instance NodeTypeClass DaVinciNodeType where
+instance NodeTypeClass DaVinciNodeType
 
 daVinciNodeTypeTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciNodeType"
 
@@ -1067,7 +1068,7 @@ instance DeleteArc DaVinciGraph DaVinciArc where
             (\ (Just (ArcData edgeType _)) ->
                return (Just (ArcData edgeType (coDyn newValue)),()))
 
-instance ArcClass DaVinciArc where
+instance ArcClass DaVinciArc
 
 daVinciArcTyRep = mkTyRep "DaVinciGraphDisp" "DaVinciArc"
 

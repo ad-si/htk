@@ -24,9 +24,8 @@ createTextDisplayExt :: String
    -- ^ configuration options for the text editor
    -> IO()
    -- ^ action to be executed when the window is closed
-   -> IO (Toplevel,
+   -> IO (Toplevel,Editor)
    -- ^ the window in which the text is displayed
-								       Editor)
 createTextDisplayExt title txt conf unpost =
   do win <- createToplevel [text title]
      b   <- newFrame win  [relief Groove, borderwidth (cm 0.05)]    

@@ -55,14 +55,12 @@ newMenuButton par cnf =
 
 -- | Internal.
 instance GUIObject MenuButton where 
-  -- | Internal.
   toGUIObject (MenuButton w) = w
-  -- | Internal.
   cname _ = "MenuButton"
 
 -- | A menubutton widget can be destroyed.
 instance Destroyable MenuButton where
-  -- | Destroys a menubutton widget.
+  --  Destroys a menubutton widget.
   destroy   = destroy . toGUIObject
 
 -- | A menubutton widget has standard widget properties
@@ -82,7 +80,6 @@ instance HasBorder MenuButton
 -- | A menu button has a normal foreground and background colour and an
 -- active\/disabled foreground and background colour.
 instance HasColour MenuButton where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A menubutton widget is a stateful widget, it can be enabled or
@@ -109,7 +106,7 @@ instance HasUnderline MenuButton
 
 -- | You can synchronize on a menubutton object (in JAVA style).
 instance Synchronized MenuButton where
-  -- | Synchronizes on a menubutton object.
+  --  Synchronizes on a menubutton object.
   synchronize = synchronize . toGUIObject
 
 -- | When a menubutton is clicked, a corresponding event is invoked.

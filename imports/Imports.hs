@@ -593,9 +593,8 @@ mkLocalNodeData importsState (node :: node) globalNodeDataSource =
 
                            return localSource
                   )
-      let
-         -- we don't check for loops here, since a local import cannot
-         -- include another local import.
+      -- we don't check for loops here, since a local import cannot
+      -- include another local import.
 
       (localSource3,closeDown) <- mirrorSimpleSource localSource1 
 

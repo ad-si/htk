@@ -38,9 +38,7 @@ data InputWin a = InputWin {
 
 -- | Internal.
 instance GUIObject (InputWin a) where
-        -- | Internal.
         toGUIObject iwin = toGUIObject (fWindow iwin)
-        -- | Internal.
         cname iwin = cname (fWindow iwin)
 
 -- ---------------------------------------------------------------------------

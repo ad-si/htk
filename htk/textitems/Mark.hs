@@ -120,22 +120,18 @@ data MousePosition = MousePosition Editor
 
 -- | Internal.
 instance HasIndex Editor Mark BaseIndex where
-  -- | Internal.
   getBaseIndex w (Mark _ str) = return (IndexText str)
 
 -- | Internal.
 instance HasIndex Editor (Selection Editor) BaseIndex where
-  -- | Internal.
   getBaseIndex w p = return (IndexText "sel")
 
 -- | Internal.
 instance HasIndex Editor (ICursor Editor) BaseIndex where
-  -- | Internal.
   getBaseIndex w p = return (IndexText "insert")
 
 -- | Internal.
 instance HasIndex Editor MousePosition BaseIndex where
-  -- | Internal.
   getBaseIndex w p = return (IndexText "current")
 
 
@@ -148,7 +144,6 @@ data Gravity = ToLeft | ToRight deriving (Eq,Ord,Enum)
 
 -- | Internal.
 instance Read Gravity where
-   -- | Internal.
    readsPrec p b =
      case dropWhile (isSpace) b of
         'l':'e':'f':'t':xs -> [(ToLeft,xs)]
@@ -157,7 +152,6 @@ instance Read Gravity where
 
 -- | Internal.
 instance Show Gravity where
-   -- | Internal.
    showsPrec d p r = 
       (case p of 
          ToLeft -> "left"  
@@ -166,7 +160,6 @@ instance Show Gravity where
 
 -- | Internal.
 instance GUIValue Gravity where
-  -- | Internal.
   cdefault = ToLeft
 
 

@@ -1,4 +1,3 @@
-
 -- | Packing options for the pack geometry manager.
 module PackOptions (
 
@@ -25,7 +24,7 @@ data FillSpec = X | Y | Both | None
 
 -- | Internal.
 instance Show SideSpec where
-  -- | Internal.
+  -- Internal.
   showsPrec d AtLeft r = "left" ++ r
   showsPrec d AtRight r = "right" ++ r
   showsPrec d AtTop r = "top" ++ r
@@ -33,7 +32,7 @@ instance Show SideSpec where
 
 -- | Internal.
 instance Show FillSpec where
-  -- | Internal.
+  -- Internal.
   showsPrec d X r = "x" ++ r
   showsPrec d Y r = "y" ++ r
   showsPrec d Both r = "both" ++ r
@@ -51,7 +50,7 @@ data PackOption =
 
 -- | Internal.
 instance Show PackOption where
-  -- | Internal.
+  -- Internal.
   showsPrec d (Side spec) r = "side " ++ show spec ++ r
   showsPrec d (Fill spec) r = "fill " ++ show spec ++ r
   showsPrec d (Expand t) r = "expand " ++ show t ++ r

@@ -76,3 +76,9 @@ tarball.objects.tar.gz:
 wwwhere :
 	$(MKDIR) -p $(WWWPREFIX)/download
 	$(CP) $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip $(WWWPREFIX)/download
+
+# This needs to be done for Haddock.
+boothere : mk/RemoveSplices
+
+mk/RemoveSplices : mk/MainRemoveSplices.hs
+	$(HC) $< -o $@

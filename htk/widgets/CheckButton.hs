@@ -58,14 +58,12 @@ newCheckButton par cnf =
 
 -- | Internal.
 instance GUIObject (CheckButton a) where 
-  -- | Internal.
   toGUIObject (CheckButton w) = w
-  -- | Internal.
   cname _ = "CheckButton"
 
 -- | A checkbutton widget can be destroyed.
 instance Destroyable (CheckButton a) where
-  -- | Destroys a checkbutton widget.
+  --  Destroys a checkbutton widget.
   destroy   = destroy . toGUIObject
 
 -- | A checkbutton widget has standard widget properties
@@ -86,7 +84,6 @@ instance HasBorder (CheckButton a)
 -- | A checkbutton widget has a normal foreground and background colour and
 -- an active\/disabled foreground and background colour.
 instance HasColour (CheckButton a) where 
-  -- | Internal.
   legalColourID = buttonColours
 
 -- | A checkbutton widget is a stateful widget, it can be enabled or
@@ -113,7 +110,7 @@ instance HasUnderline (CheckButton a)
 
 -- | You can synchronize on a checkbutton object.
 instance Synchronized (CheckButton a) where
-  -- | Synchronizes on a checkbutton object.
+  --  Synchronizes on a checkbutton object.
   synchronize = synchronize . toGUIObject
 
 -- | When a checkbutton is clicked, a corresponding event is invoked.

@@ -1,11 +1,11 @@
-<?xml version=´1.0´ encoding="utf-8"?>
+<?xml version='1.0' encoding="utf-8"?>
 
 <!--
  
   This DTD specifies the format in which the MMiSS document checker 
   returns the results of its checks.
 
-  Serge Autexier, Christoph Lüth 11.12.03
+  Serge Autexier, Christoph Lueth 11.12.03
 
   $Id$
 

@@ -383,12 +383,13 @@ makeImportCmds [] importCmds = if ((genericLength importCmds) == 0)
                                  else hasValue(Just((ImportCommands importCmds)))
 
 
--- ***********************************************************************************************
+-- -------------------------------------------------------------------------------------------
 --
 -- Die nachfolgenden Parser werden zum parsen der Import-Statements in der Präambel benutzt:
 --
 -- simpleDirectiveParser erkennt die einfachen Import-Direktiven: Global, Local, Qualified, Unqualified:
--- ***********************************************************************************************
+--
+-- -------------------------------------------------------------------------------------------
 
 simpleDirectiveParser :: GenParser Char st [Directive]
 simpleDirectiveParser = 

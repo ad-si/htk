@@ -1,7 +1,6 @@
-{- This is the module which provides the MessFns value to be given to
-   Messages.setMessFns, and other basic functionality for accessing the
-   MMiSSSessionState.
-   -}
+-- | This is the module which provides the MessFns value to be given to
+-- Messages.setMessFns, and other basic functionality for accessing the
+-- MMiSSSessionState.
 module MMiSSMessages(
    apiMessFns, -- :: MMiSSSessionState -> MessFns
    getMessages, -- :: MMiSSSessionState -> IO Messages
@@ -25,10 +24,10 @@ import MMiSSSessionState
 apiMessFns :: MMiSSSessionState -> MessFns
 apiMessFns (state @ (MMiSSSessionState mVar)) =
    let
-      alertFn mess = addMessage (Messages_Alert (Alert mess))
-      warningFn mess = addMessage (Messages_Warning (Warning mess))
-      messageFn mess = addMessage (Messages_Message (Message mess))
-      errorFn mess = 
+      alertFn mess = addMessage (Messages_Alert (Alert mess))
+      warningFn mess = addMessage (Messages_Warning (Warning mess))
+      messageFn mess = addMessage (Messages_Message (Message mess))
+      errorFn mess =
          do
             addMessage (Messages_Error (Error mess))
             signalFailure state

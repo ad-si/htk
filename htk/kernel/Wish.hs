@@ -1,12 +1,4 @@
--- -----------------------------------------------------------------------
---
--- $Source$
---
--- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
---
--- $Revision$ from $Date$
--- Last modification by $Author$
---
+-- | HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
 -- -----------------------------------------------------------------------
 module Wish (
 

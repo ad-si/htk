@@ -65,24 +65,20 @@ newIconBar par cnf =
 
 -- | Internal.
 instance Eq IconBar where
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject IconBar where
-  -- | Internal.
   toGUIObject (IconBar b e) = toGUIObject b
-  -- | Internal.
   cname _ = "IconBar"
 
 -- | An icon bar can be destroyed.
 instance Destroyable IconBar where
-  -- | Destroys an icon bar.
+  -- Destroys an icon bar.
   destroy = destroy . toGUIObject
 
 -- | An icon bar has a configureable foreground and background colour.
 instance HasColour IconBar where
-  -- | Internal.
   legalColourID = hasForeGroundColour
 
 -- | An icon bar has standard widget properties
@@ -104,17 +100,17 @@ instance HasBorder IconBar
 
 -- | An icon bar is a stateful widget, it can be enabled or disabled.
 instance HasEnable IconBar where
-  -- | Sets the icon bar\'s state.
+  -- Sets the icon bar\'s state.
   state st ib = 
     synchronize ib (do
                       ibs <- getIconButtons ib
                       foreach ibs (\ib -> configure ib [state st])
                       return ib)
-  -- | Gets the icon bar\'s state.
+  -- Gets the icon bar\'s state.
   getState ib = do
                   b <- isEnabled ib
                   if b then return Normal else return Disabled
-  -- | @True@ if the icon bar is enabled.
+  -- @True@ if the icon bar is enabled.
   isEnabled ib =
     synchronize ib (do
                       ibs <- getIconButtons ib
@@ -123,17 +119,17 @@ instance HasEnable IconBar where
 
 -- | An icon bar has either a vertical or horizontal orientation.
 instance HasOrientation IconBar where 
-  -- | Sets the icon bar\'s orientation.
+  -- Sets the icon bar\'s orientation.
   orient o sb@(IconBar b bts) =
     do
       orient o b
       return sb
-  -- | Gets the icon bar\'s orientation.
+  -- Gets the icon bar\'s orientation.
   getOrient (IconBar b bts) = getOrient b
 
 -- | You can synchronize on an icon bar object.
 instance Synchronized IconBar where
-  -- | Synchronizes on an icon bar object.
+  -- Synchronizes on an icon bar object.
   synchronize w = synchronize (toGUIObject w)
 
 

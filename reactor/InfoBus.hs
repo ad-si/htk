@@ -1,21 +1,7 @@
-{- #########################################################################
-
-MODULE        : InfoBus
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : 
-   InfoBus implements the shutdown command.  This destroys all the
-   things registered via registerTool and not
-   subsequently registered via deregisterTool.  Tools are identified
-   by ObjectId's.
-
-
-   ######################################################################### -}
-
-
+-- | InfoBus implements the 'shutdown' command.  This destroys all the
+-- things registered via 'registerTool' and not
+-- subsequently registered via 'deregisterTool'.  Tools are identified
+-- by 'ObjectId'.
 module InfoBus (        
    registerTool,
    registerToolDebug,

@@ -74,19 +74,16 @@ newSpinButton par cmd cnf =
 
 -- | Internal.
 instance Eq SpinButton where 
-  -- | Internal.
   w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 -- | Internal.
 instance GUIObject SpinButton where 
-  -- | Internal.
   toGUIObject sb = toGUIObject (fContainer sb)
-  -- | Internal.
   cname _ = "SpinButton"
 
 -- | A spin button can be destroyed.
 instance Destroyable SpinButton where
-  -- | Destroys a spin button.
+  -- Destroys a spin button.
   destroy sb = fDeath sb >> destroy (toGUIObject sb)
 
 -- | A spin button has standard widget properties
@@ -95,7 +92,7 @@ instance Widget SpinButton
 
 -- | You can synchronize on a spin button.
 instance Synchronized SpinButton where
-  -- | Synchronizes on a spin button.
+  -- Synchronizes on a spin button.
   synchronize = synchronize . toGUIObject
 
 -- | A spin button has a normal foreground and background colour and an
@@ -115,22 +112,22 @@ instance HasBorder SpinButton
 
 -- | A spin button is a stateful widget, it can be enabled or disabled.
 instance HasEnable SpinButton where 
-  -- | Sets the spin button\'s state.
+  -- Sets the spin button\'s state.
   state s sb = 
     synchronize sb (do
                       foreach [fButtonUp sb, fButtonDown sb] (state s)
                       return sb)
-  -- | Gets the spin button\'s state.
+  -- Gets the spin button\'s state.
   getState sb = getState (fButtonUp sb)
 
 -- | A spin button has a configureable font.
 instance HasFont SpinButton where
-  -- | Sets the spin button\'s font.
+  -- Sets the spin button\'s font.
   font f sb = 
     synchronize sb (do
                       foreach [fButtonUp sb, fButtonDown sb] (font f)
                       return sb)
-  -- | Gets the spin button\'s font.
+  -- Gets the spin button\'s font.
   getFont sb = getFont (fButtonUp sb)
 
 -- | A spin button has a configureable size.
