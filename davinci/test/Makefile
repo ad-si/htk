@@ -4,6 +4,8 @@ LIBS = $(UNIDIR)/davinci/libdavinci.a $(UNIDIR)/htk/libhtk.a \
 
 SRCS = Test1.hs Test2.hs Test3.hs
 
+XHCDIRS= $(HTKDIRS)
+
 include top/mk/boilerplate.mk
 
 

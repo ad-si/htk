@@ -4,6 +4,8 @@ LIBS = $(UNIDIR)/www/libwww.a $(UNIDIR)/htk/libhtk.a \
 
 SRCS = Test1.hs
 
+XHCDIRS = $(HTKDIRS)
+
 include top/mk/boilerplate.mk
 
 
