@@ -5,14 +5,9 @@
    -}
 module CVSDB(
    Repository,
-   RepositoryParameter(HostString,WorkingDir),
-   -- ConnectionParameter contains various parameters required for
-   -- establishing contact with the repository.  The hostString
-   -- is a string of undefined format which represents the repository
-   -- location.  The workingDir is a directory for the private
+   RepositoryParameter(WorkingDir),
+   -- The workingDir is a directory for the private
    -- use of the CVSDB module.
-   -- While it should be avoided, ConnectionParameter is most likely to
-   -- change if the versioning system changes.
    initialise, -- :: [RepositoryParameter] -> IO Repository
    -- Where the same parameter is specified multiple times, the first
    -- setting in the list is used.   
@@ -100,6 +95,7 @@ import CTypesISO(CSize)
 import ST
 
 import Debug(debug)
+import WBFiles
 
 import Concurrent
 import Set
@@ -146,15 +142,7 @@ data Repository = Repository {
    -- Calls allocator service
    }
 
-data RepositoryParameter =
-      HostString String 
-      -- For CVS, the CVSROOT parameter.  We also need to contact the
-      -- notification server and new inode server; these are 
-      -- assumed to exist on the same
-      -- machine as the CVS server (for :pserver:) or on this machine,
-      -- if CVSROOT is not :pserver:.
-   |  WorkingDir String
-      -- Does NOT include module name.
+data RepositoryParameter = WorkingDir String 
 
 type Location = CVSFile
 
@@ -180,25 +168,13 @@ initialise options =
             Nothing -> 
                error "CVSDB.initialise - must specify working directory"
 
-      hostString <-
-         case (firstJust 
-            (map
-               (\ option -> 
-                  case option of 
-                     HostString hostString -> Just hostString
-                     _ -> Nothing
-                  ) 
-               options
-               )
-            ) of
-            Just hostString -> return hostString
-            Nothing -> getEnv "CVSROOT"
+      cvsRootOpt <- getCVSROOT
 
-      cvsLoc' <- newCVSLoc hostString workingDir'
+      cvsRoot <- case cvsRootOpt of
+         Just cvsRoot -> return cvsRoot
+         Nothing -> getEnv "CVSROOT"
 
-      hostName <- case getHost hostString of
-         Just hostName -> return hostName
-         Nothing -> BSD.getHostName
+      cvsLoc' <- newCVSLoc cvsRoot workingDir'
 
       dirExists <- doesDirectoryExist workingDir'
       if dirExists 
@@ -214,12 +190,11 @@ initialise options =
          workingDir = workingDir' ++ [fileSep] ++ cvsModuleName ++ 
             [fileSep]
 
-      cvsLoc <- newCVSLoc hostString workingDir
+      cvsLoc <- newCVSLoc cvsRoot workingDir
 
-      notifier <- mkNotifier hostName
+      notifier <- mkNotifier
 
-      (allocator,closeAction,header) <- 
-         connectReply allocateService hostName (11393::Int)
+      (allocator,closeAction,header) <- connectReply allocateService
 
       wDirContents <- newMVar emptyFM
       wDirDirs <- newMVar emptySet
@@ -233,13 +208,16 @@ initialise options =
          allocator = allocator
          }
    where
+{- This function is now defunct but may prove useful sometime in
+   the future . . .
+
       getHost :: String -> Maybe String
       -- getHost parses a String in CVSROOT format to extract the
       -- host name.  See cvs info page, section "The Repository".
       -- If getHost is Nothing that means the host is unspecified
       -- and so the local one.
-      getHost hostString =
-         case (breakColons hostString) of
+      getHost cvsRoot =
+         case (breakColons cvsRoot) of
             [[],"local",filename] -> Nothing
             [[],otherMethod,userHost,filename] ->
                case breakAt userHost of
@@ -253,7 +231,8 @@ initialise options =
             _ -> cantParse
          where
             cantParse :: a
-            cantParse = error ("Can't parse CVSROOT value: "++hostString)
+            cantParse = error ("Can't parse CVSROOT value: "++cvsRoot)
+-}
 
       breakColons :: String -> [String]
       -- breakColons breaks a list by colons

@@ -5,4 +5,4 @@ pkill -x AllocateService
 rm -rf /home/uniform/backup/repository/db
 mkdir /home/uniform/backup/repository/db
 top/cvs/AllocateService &
-top/versions/test/test1
+top/versions/test/test1 --uni-cvs=$CVSROOT

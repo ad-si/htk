@@ -49,7 +49,9 @@ module ChildProcess (
    workingdir,     -- :: FilePath -> Config PosixProcess           
    standarderrors, -- :: Bool -> Config PosixProcess
    -- if standarderrors is true, we send stderr to the childprocesses
-   -- out channel (of which there is only one).
+   -- out channel (of which there is only one).  Otherwise we
+   -- display them, with the name of the responsible process,
+   -- on our stderr.
    pollinterval,   -- :: Maybe Duration -> Config PosixProcess
    -- pollinterval is how often we attempt to get the status of the child
    -- process to see if it's finished yet.  Too long, and maybe the
@@ -83,9 +85,12 @@ module ChildProcess (
    ) 
 where
 
-import Object
+import qualified IO
 import qualified Posix
 import Posix(ProcessID,ProcessStatus(..),Fd,fdRead,fdWrite)
+
+import Object
+
 import Concurrency
 import Concurrent
 import Interaction
@@ -157,9 +162,12 @@ data ChildProcess =
                        -- indicates exit code when process finishes
       toolStatus :: (PVar ToolStatus), 
                        -- ditto
-      bufferVar :: (MVar String) 
+      bufferVar :: (MVar String), 
                        -- bufferVar of previous characters (only relevant
                        -- for line mode)
+      cleanUp :: IO () 
+         -- extra action to be done when the child process
+         -- is destroyed.              
       }
 
 -- -------------------------------------------------------------------------
@@ -178,14 +186,26 @@ newChildProcess path confs  =
       -- Pipe to send things to child
       (readOut,writeOut) <- Posix.createPipe 
       -- Pipe to read things back from child.
+      let
+         passOnStdErrs = stderr parms
+      readWriteErr <- 
+         if passOnStdErrs 
+            then
+               return Nothing
+            else
+               do
+                  (readErr,writeErr) <- Posix.createPipe
+                  return (Just (readErr,writeErr))
+
       mprocessID <- Posix.forkProcess 
-      connect writeIn readIn writeOut readOut mprocessID parms
+      connect writeIn readIn writeOut readOut readWriteErr mprocessID parms
    where
       -- We send an initial character over the Child Process output pipe
       -- before doing anything else.  I don't know why, but this
       -- seems to stop the first character of the child's output being
       -- lost.
-      connect writeIn readIn writeOut readOut (Just processID) parms = 
+      connect writeIn readIn writeOut readOut readWriteErr 
+            (Just processID) parms = 
          do -- parent process
             waitForInputFd readOut
             result <- fdRead readOut 1
@@ -207,6 +227,28 @@ newChildProcess path confs  =
             -- won't crash when the tool exits.  Unfortunately there
             -- doesn't seem to be another way of doing this.
             Posix.installHandler Posix.sigPIPE Posix.Ignore Nothing
+
+            cleanUp <-
+               case readWriteErr of
+                  Nothing ->
+                     return (
+                        do
+                           Posix.fdClose writeIn
+                           Posix.fdClose readOut
+                        )
+                  Just (readErr,writeErr) ->
+                     do
+                        displayProcess <- 
+                           forkIO (goesQuietly(displayStdErr path readErr))
+                        return (
+                           do
+                              killThread displayProcess
+
+                              Posix.fdClose readErr
+                              Posix.fdClose writeIn
+                              Posix.fdClose readOut
+                           )
+
             return (ChildProcess {
                childObjectID = childObjectID,
                lineMode = lmode parms,
@@ -215,13 +257,19 @@ newChildProcess path confs  =
                processID = processID,
                watchStatus = watchStatus,
                toolStatus = toolStatus,
-               bufferVar = bufferVar
+               bufferVar = bufferVar,
+               cleanUp = cleanUp
                })
-      connect writeIn readIn writeOut readOut Nothing parms =
+      connect writeIn readIn writeOut readOut readWriteErr Nothing parms =
          do -- child process
             Posix.dupTo readIn Posix.stdInput
             Posix.dupTo writeOut Posix.stdOutput
-      
+            case readWriteErr of
+               Nothing ->
+                  Posix.dupTo writeOut Posix.stdError
+               Just (_,writeErr) ->
+                  Posix.dupTo writeErr Posix.stdError
+ 
             nbytes <- Posix.fdWrite writeOut "#"
             if(nbytes/=1) 
                then
@@ -229,7 +277,6 @@ newChildProcess path confs  =
                else
                   done
 
-            when (stderr parms) (Posix.dupTo writeOut Posix.stdError)
             maybeChangeWd (wdir parms)
             Posix.executeFile path True (args parms) (env parms)
             raise (userError ("could not establish client: " ++ path))  
@@ -283,6 +330,7 @@ instance Destructible ChildProcess where
             Left error -> 
                debug "ChildProcess.destroy failed; destruction anticipated?"
             _ -> return ()
+         cleanUp child
 
    -- We can only wait for destruction if we set up a watchdog.
    destroyed child = 
@@ -366,6 +414,23 @@ closeChildProcessFds (ChildProcess{writeTo = writeTo,readFrom = readFrom}) =
    do 
       Posix.fdClose writeTo
       Posix.fdClose readFrom
+
+-- -------------------------------------------------------------------------
+-- Displaying stdErr output
+-- -------------------------------------------------------------------------
+
+displayStdErr :: FilePath -> Posix.Fd -> IO ()
+displayStdErr progName stdErrFd =
+   do
+      errOutput <- readChunk stdErrFd
+      let
+         errHead = progName++" error:"
+         -- Put errHead at the start of every line of output.
+         errPretty = unlines(map (errHead++) (lines errOutput))
+      IO.hPutStr IO.stderr errPretty
+      IO.hPutStr IO.stderr "\n"
+      IO.hFlush IO.stderr
+      displayStdErr progName stdErrFd
 
 -- -------------------------------------------------------------------------
 -- Reading and Writing Lines from Channels

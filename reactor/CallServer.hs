@@ -2,24 +2,22 @@
    to be in the server/ directory, except that it uses InfoBus. -}
 module CallServer(
    connectReply, -- :: 
-      -- (ServiceClass inType outType stateType,DescribesHost host,
-      --    DescribesPort port) =>
-      --    (inType,outType,stateType) -> host -> port ->     
+      -- (ServiceClass inType outType stateType) =>
+      --    (inType,outType,stateType) ->     
       --       IO (inType -> IO outType,IO (),String)
       -- connectReply should be used for Reply-type services.  It
-      -- attempts to connect to a server with the supplied
-      -- host and port.  If successful it returns a tuple consisting
+      -- attempts to connect to the server.
+      -- If successful it returns a tuple consisting
       -- (a) of an action which converts inType to outType by calling the
       --     server;
       -- (b) an action which will break the connection.
       -- (c) the header string sent by sendOnConnect.
    connectBroadcast, -- ::
-      -- (ServiceClass inType outType stateType,DescribesHost host,
-      --    DescribesPort port) =>
-      --    (inType,outType,stateType) -> host -> port ->     
+      -- (ServiceClass inType outType stateType) =>
+      --    (inType,outType,stateType) ->    
       --       IO (inType -> IO (),IO outType,IO (),String)
       -- connectBroadcast should be used for Broadcast-type services.
-      -- It attempts to connect to the server with supplied host and port.
+      -- It attempts to connect to the server.
       -- If successful it returns a tuple containing
       -- (a) a function generating an action for sending inType to the server;
       -- (b) an action which waits for the next outType from the server;
@@ -35,6 +33,7 @@ import IO
 import Computation
 import Debug(debug)
 import Object
+import WBFiles
 
 import BSem
 import SocketEV
@@ -44,15 +43,17 @@ import InfoBus
 
 import ServiceClass
 
-connectReply :: (ServiceClass inType outType stateType,DescribesHost host,
-      DescribesPort port) =>
-    (inType,outType,stateType) -> host -> port ->  
+connectReply :: (ServiceClass inType outType stateType) =>
+    (inType,outType,stateType) ->  
     IO (inType -> IO outType,IO (),String)
-connectReply service hostDesc portDesc =
+connectReply service =
    do
       case (serviceMode service) of
          Reply -> done
          _ -> ioError(userError("connectReply handed a non-Reply service"))
+
+      hostDesc <- getHost
+      portDesc <- getPort
       handle <- connect hostDesc portDesc
       connection <- newConnection handle
       registerTool connection
@@ -81,37 +82,35 @@ connectReply service hostDesc portDesc =
          closeAct = destroy connection
       return (sendMessage,closeAct,header)
    
-connectBroadcast :: (ServiceClass inType outType stateType,DescribesHost host,
-      DescribesPort port) =>
-      (inType,outType,stateType) -> host -> port ->     
+connectBroadcast :: (ServiceClass inType outType stateType) =>
+      (inType,outType,stateType) ->     
       IO (inType -> IO (),IO outType,IO (),String)
-connectBroadcast service hostDesc portDesc =
+connectBroadcast service =
    do
       case (serviceMode service) of
          Broadcast -> done
          _ -> ioError(userError(
            "connectBroadcast handed a non-Broadcast service"))
-      connectBroadcastGeneral service hostDesc portDesc
+      connectBroadcastGeneral service
 
-connectBroadcastOther :: (ServiceClass inType outType stateType,
-      DescribesHost host,DescribesPort port) =>
-      (inType,outType,stateType) -> host -> port ->     
+connectBroadcastOther :: (ServiceClass inType outType stateType) =>
+      (inType,outType,stateType) ->     
       IO (inType -> IO (),IO outType,IO (),String)
-connectBroadcastOther service hostDesc portDesc =
+connectBroadcastOther service =
    do
       case (serviceMode service) of
          BroadcastOther -> done
          _ -> ioError(userError(
            "connectBroadcast handed a non-Broadcast service"))
-      connectBroadcastGeneral service hostDesc portDesc
+      connectBroadcastGeneral service
 
-
-connectBroadcastGeneral :: (ServiceClass inType outType stateType,
-      DescribesHost host,DescribesPort port) =>
-      (inType,outType,stateType) -> host -> port ->     
+connectBroadcastGeneral :: (ServiceClass inType outType stateType) =>
+      (inType,outType,stateType) ->     
       IO (inType -> IO (),IO outType,IO (),String)
-connectBroadcastGeneral service hostDesc portDesc =
+connectBroadcastGeneral service =
    do
+      hostDesc <- getHost
+      portDesc <- getPort
       handle <- connect hostDesc portDesc
       connection <- newConnection handle
       registerTool connection
@@ -170,5 +169,17 @@ instance Destructible Connection where
       do
          deregisterTool connection
          hClose handle
+
+------------------------------------------------------------------------
+-- getHost is used by all of them
+------------------------------------------------------------------------
+
+getHost :: IO String
+getHost =
+   do
+      hostOpt <- getServer
+      case hostOpt of
+         Nothing -> error "CallServer: server unset"
+         Just host -> return host
 
 

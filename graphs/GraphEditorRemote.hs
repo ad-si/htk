@@ -1,5 +1,5 @@
 {- GraphEditorRemote sets up a graph editor attached to a remote server. 
-   We use the now fairly standard port 11393 . . .. -}
+   -}
 module GraphEditorRemote(graphEditorRemote) where
 
 import Concurrent(killThread)
@@ -23,17 +23,14 @@ import SimpleGraph
 graphEditorRemote :: -- does not return until editor is closed.
    (GraphConfigure.GraphAllConfig dispGraph graphParms 
       node nodeType nodeTypeParms arc arcType arcTypeParms,
-    HasConfigValue Shape nodeTypeParms,
-    DescribesHost server
-    )
+    HasConfigValue Shape nodeTypeParms)
    => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-   -> server
    -> IO ()
-graphEditorRemote displaySort server =
+graphEditorRemote displaySort =
    do
       (updateServer,getUpdate,closeConnection,initialState) <- 
-         connectBroadcastOther graphEditorService server (11393::Int)
+         connectBroadcastOther graphEditorService
       let
          FrozenGraph {
             graphState' = graphState,

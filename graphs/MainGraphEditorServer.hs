@@ -4,7 +4,12 @@ module Main(main) where
 
 import IO
 
+import WBFiles
+
 import Server
 import GraphEditorService
 
-main = runServer (11393::Int) [graphEditorServiceWrapped]
+main = 
+   do
+      parseArgumentsRequiring ["port"]
+      runServer [graphEditorServiceWrapped]

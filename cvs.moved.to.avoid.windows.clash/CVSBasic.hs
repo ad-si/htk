@@ -107,9 +107,10 @@ compileCVSCommand command =
 callCVS :: GlobalOptions -> CVSCommand -> IO Expect
 callCVS globalOptions command =
    do
+      cvsPath <- WBFiles.getCVSPath
       expect <-
          newExpect
-            WBFiles.cvsPath
+            cvsPath
             (  compileGlobalOptions globalOptions ++
                compileCVSCommand command
                )

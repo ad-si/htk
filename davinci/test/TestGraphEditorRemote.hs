@@ -4,6 +4,8 @@ module Main(main) where
 
 import System
 
+import WBFiles
+
 import InfoBus(shutdown)
 
 import GraphEditorRemote
@@ -11,6 +13,6 @@ import DaVinciGraphDisp
 
 main =
    do
-      [server] <- getArgs
-      graphEditorRemote daVinciSort server
+      parseArgumentsRequiring ["wish","daVinci","server","port"]
+      graphEditorRemote daVinciSort
       shutdown

@@ -105,8 +105,10 @@ import qualified Posix
 import qualified IOExts(unsafePerformIO)
 import FiniteMap
 
+
 import qualified ExtendedPrelude
 import qualified WBFiles
+import qualified FileNames
 import Object
 import Debug(debug)
 
@@ -262,9 +264,27 @@ startDaVinci =
    do
       contextVar <- newPVar 0 -- passed to the DaVinci dispatcher
       msgQueue <- newMsgQueue
+
+      daVinciPath <- WBFiles.getDaVinciPath
+      daVinciIconsOpt <- WBFiles.getDaVinciIcons
+      daVinciIcons <-
+         case daVinciIconsOpt of
+            Nothing ->
+               do
+                  top <- WBFiles.getTOP
+                  return (FileNames.trimDir top ++ "/database/icons")
+            Just daVinciIcons -> return daVinciIcons
+
+      let 
+         configs = [
+--            environment [("DAVINCI_ICONDIR",daVinciIcons)],
+            arguments ["-pipe"],
+            standarderrors False
+            ] 
+
       daVinciDispatcher <- 
-         newDispatcher WBFiles.daVinciPath [arguments ["-pipe"]] finaliser 
-            (handleEvent msgQueue)
+         newDispatcher daVinciPath configs
+            finaliser (handleEvent msgQueue)
       session <- newAbstractGUIObject
       daVinciState <- newPVar (
          DaVinciState{

@@ -4,7 +4,7 @@
    -}
 module Notification(
    Notifier,
-   mkNotifier, -- :: DescribesHost a => a -> IO Notifier
+   mkNotifier, -- :: IO Notifier
                -- connects
    notify, -- :: Notifier -> String -> IO()
            -- sends a notification
@@ -47,12 +47,12 @@ instance Destructible Notifier where
 instance EventDesignator (Notifier,String) where
    toEventID (notifier,key) = EventID (objectID notifier) key
 
-mkNotifier :: DescribesHost a => a -> IO Notifier
-mkNotifier hostDesc =
+mkNotifier :: IO Notifier
+mkNotifier =
    do
       oID <- newObject
       (writeAction,receiveAction,closeAction,header) <-
-         connectBroadcast echoService hostDesc (11393::Int)
+         connectBroadcast echoService
       eventBroker <- newEventBroker 
       let
          notifier = Notifier{

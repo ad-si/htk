@@ -12,7 +12,7 @@ module FileSys(
       -- :: [RepositoryParameter] -> IO ()
       -- Set up a repository for the very first time on the remote server
       -- This includes the first "version" which is totally empty.
-   RepositoryParameter(HostString,WorkingDir), 
+   RepositoryParameter(WorkingDir), 
       -- taken from CVSDB.
    FileSys, -- the type of a single File System.
    connectFileSys,

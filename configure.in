@@ -39,12 +39,26 @@ if test -z "$CVS"; then
    echo "Without cvs you cannot run any of UniForM's versioning programs."
    CVS="/usr/bin/cvs"
 fi
+# 
+# Construct the default options, used by 
+# util/default_options.c
+# The format of these is described in util/WBFiles.hs.  We make a feeble
+# and incomplete attempt to escape any funny characters so we can
+# put them into util/default_options.c.  Note that we have to double-double
+# escape \ characters, once for sed and once for sh.
+DEFAULTOPTIONS=`echo --uni-wish:$WISH --uni-cvs:$CVS --uni-daVinci:$DAVINCI --uni-daVinciIcons:$TOP/database/icons --uni-top:$TOP | sed -e 's+\\\\+\\\\\\\\+g
+s+"+\\\\"+g'`
+AC_SUBST(DEFAULTOPTIONS)
+
 # Find all files Makefile.in
 MAKEFILES=`find . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
    echo ''
    echo '------------------- Configuration Successful ------------------'
-   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/WBFiles.hs)
+   AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c)
+   echo The default UniForM options, C-escaped, are in util/default_options.c
    echo 'To compile UniForM type "gmake depend" followed by "gmake all"'
 fi
+
+

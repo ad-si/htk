@@ -100,7 +100,9 @@ instance CommandTool Wish where
 newWish :: IO Wish
 newWish = do {
         msq <- newMsgQueue;
-        intrp <- newDispatcher WBFiles.wishPath [] finalizer (dispatch msq);
+        wishPath <- WBFiles.getWishPath;
+        intrp <- newDispatcher wishPath [standarderrors False] 
+           finalizer (dispatch msq);
         forkIO (dispatcher msq intrp); 
         execOneWayCmd tkConvertTkValueProc intrp;
         execOneWayCmd tkDeclEvalScript intrp;

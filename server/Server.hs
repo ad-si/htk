@@ -11,8 +11,8 @@
    -}
 module Server(
    runServer 
-   -- :: DescribesPort port => port -> [Service] -> IO () 
-   -- runs a server on a particular port.  It does not return until
+   -- :: [Service] -> IO () 
+   -- runs a server on the standard port.  It does not return until
    -- the server is interrupted in some way.
    ) where
 
@@ -25,12 +25,13 @@ import Socket hiding (PortID(..))
 import Posix
 
 import Computation(done)
+import WBFiles(getPort)
 import Debug(debug)
 
 import Concurrent
 import Thread
 import Object
-import SocketEV(getPortNumber,DescribesPort(..))
+import SocketEV(getPortNumber)
 
 import ServiceClass
 
@@ -54,9 +55,10 @@ data ServiceData = ServiceData {
    disconnect :: IO ()
    }
 
-runServer :: DescribesPort port => port -> [Service] -> IO ()
-runServer portDesc serviceList =
+runServer :: [Service] -> IO ()
+runServer serviceList =
    do
+      portDesc <- getPort
       installHandler sigPIPE Ignore Nothing
 ------------------------------------------------------------------------
 -- This obscenely long function is divided as follows:

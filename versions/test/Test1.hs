@@ -17,6 +17,7 @@ import Directory
 import System
 
 import FileNames
+import WBFiles
 
 import InfoBus
 
@@ -25,13 +26,14 @@ import FileSys
 
 main =
    do
+      parseArgumentsRequiring ["cvs","cvsRoot","server","port"]
+
       directory <- getCurrentDirectory
-      hostString <- getEnv "CVSROOT"
       let
          (+++) = combineNames
          workingDir = directory +++ "A"
          ourDir = directory +++ "B"
-         parameters = [HostString hostString,WorkingDir workingDir]
+         parameters = [WorkingDir workingDir]
 
       makeFileSys parameters
 

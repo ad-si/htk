@@ -21,9 +21,7 @@ import AllocateService
 
 main =
    do
-      [host] <- getArgs
-      (queryFn,disconnect,header) <- connectReply allocateService host 
-         (11393 :: Int)
+      (queryFn,disconnect,header) <- connectReply allocateService
       putStrLn ("Connected "++header)
       catchEOF (doQueries queryFn)
       disconnect

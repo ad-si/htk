@@ -21,11 +21,11 @@ import Notification
 main :: IO ()
 main =
    do
-      [host,startingNo,stoppingNo] <- getArgs
+      [startingNo,stoppingNo] <- getArgs
       let 
          start = read startingNo :: Int
          stop = read stoppingNo :: Int
-      notifier <- mkNotifier host
+      notifier <- mkNotifier
       forkIO(action notifier start stop)
       quitMessage <- getLine
       done

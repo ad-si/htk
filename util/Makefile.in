@@ -2,11 +2,13 @@ LIB        = libutil.a
 
 SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs WBFiles.hs Object.hs Date.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \
  IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs
-SRCSC      = object.c
+SRCSC      = object.c default_options.c
 
 SUBDIRS = test
 
 include @TOP@/mk/boilerplate.mk
 
-object.c : object.h
+object.o : object.h
+
+default_options.o : default_options.h
 

@@ -6,4 +6,4 @@ import Server
 import EchoService
 import AllocateService
 
-main = runServer (11393::Int) [allocateServiceWrapped,echoServiceWrapped]
+main = runServer [allocateServiceWrapped,echoServiceWrapped]
