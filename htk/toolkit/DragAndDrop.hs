@@ -40,8 +40,6 @@ import Concurrency
 import Channels
 import GUICore
 import HTk
-import EmbeddedCanvasWin
-import Frame
 import Image
 import Canvas
 import CanvasItemAux
