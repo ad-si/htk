@@ -10,11 +10,15 @@ module LaTeXParser (
       -- :: Element -> Bool 
       -- -> [(MMiSSLatexPreamble,PackageId)]
       -- -> WithError (EmacsContent ((String,Char),[Attribute])) 
-      -- needed for Emacs
+      -- This is used for Emacs and also for other consumers of LaTeX text
+      -- expecting a single file, for example the MMiSS checker and the
+      -- XML API.
    writeMMiSSLatex, 
       -- :: FileSystem -> Element -> Bool
       -- -> [(MMiSSLatexPreamble,PackageId)]
-      -- -> IO (WithError ()) -- needed for export
+      -- -> IO (WithError ()) 
+      -- This is used for exporting the LaTeX text to a directory within
+      -- a file system, and may split up the element.
    mergePreambles, -- :: [MMiSSLatexPreamble] -> (MMiSSLatexPreamble,[String]) 
 
    mkLaTeXString, 
