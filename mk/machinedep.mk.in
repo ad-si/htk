@@ -3,5 +3,7 @@
 #
 # HC is the location of the GHC command
 # MV is the location of the "mv" command.
+# GFIND is the location of GNU find, hopefully.
 HC = @GHC@
 TOP = @TOP@
+GFIND = @GFIND@

@@ -202,16 +202,16 @@ getArcTypeParms wd1 (ArcTypes ((f1,atts1):rest)) =
 mkNodeTypeParms :: (Typeable nodeLabel,HasNodeTypeConfigs nodeTypeParms) =>
    SimpleNodeAttributes nodeLabel -> nodeTypeParms nodeLabel
 mkNodeTypeParms simpleNodeAttributes =
-   (toDash (shape simpleNodeAttributes)) $$$
-   (toDash (nodeColor simpleNodeAttributes)) $$$
+   (shape simpleNodeAttributes) $$$?
+   (nodeColor simpleNodeAttributes) $$$?
    emptyNodeTypeParms
      
 
 mkArcTypeParms :: (Typeable arcLabel,HasArcTypeConfigs arcTypeParms) =>
    SimpleArcAttributes arcLabel -> arcTypeParms arcLabel
 mkArcTypeParms simpleArcAttributes =
-   (toDash(edgePattern simpleArcAttributes)) $$$
-   (toDash(arcColor simpleArcAttributes)) $$$
+   (edgePattern simpleArcAttributes) $$$?
+   (arcColor simpleArcAttributes) $$$?
    emptyArcTypeParms
 
 -- -----------------------------------------------------------------------

@@ -20,6 +20,7 @@ import PackedString
 
 import Debug(debug)
 import QuickReadShow
+import Dynamics
 
 data AtomSource = AtomSource (MVar (FiniteMap PackedString AtomString))
    -- where AtomStrings come from
@@ -39,6 +40,10 @@ theAtomSource = IOExts.unsafePerformIO emptyAtomSource
 
 newtype AtomString = AtomString PackedString deriving (Ord,Eq)
 -- in fact Eq could be unsafePtrEq
+
+atomString_tyCon = mkTyCon "AtomString" "AtomString"
+instance HasTyCon AtomString where
+   tyCon _ = atomString_tyCon
 
 ------------------------------------------------------------------------
 -- StringClass

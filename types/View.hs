@@ -23,9 +23,11 @@ import Directory
 
 import Concurrent
 
+
 import Registry
 import Dynamics
 import AtomString(fromString)
+import Object
 
 import VersionDB
 import ViewType
@@ -49,15 +51,13 @@ newView repository =
    do
       objects <- newRegistry
       parentMVar <- newMVar Nothing
-      displayTypes <- newRegistry
-      objectTypes <- newRegistry
+      viewIdObj <- newObject
 
       return (View {
+         viewId = ViewId viewIdObj,
          repository = repository,
          objects = objects,
-         parentMVar = parentMVar,
-         displayTypes = displayTypes,
-         objectTypes = objectTypes
+         parentMVar = parentMVar
          })
 
 listViews :: Repository -> IO [ObjectVersion]
@@ -66,6 +66,9 @@ listViews repository = listVersions repository firstLocation
 getView :: Repository -> ObjectVersion -> IO View
 getView repository objectVersion =
    do
+      objectId <- newObject
+      let viewId = ViewId objectId
+
       viewString <- retrieveString repository firstLocation objectVersion
       let
          viewCodedValue = fromString viewString
@@ -81,8 +84,9 @@ getView repository objectVersion =
          objectTypesData = objectTypesData
          }) <- doDecodeIO viewCodedValue phantomView
 
-      -- Convert lists to registries.  objectsData requires special handling because
-      -- the registry is a LockedRegistry and doesn't have a direct function.
+      -- Convert lists to registries.  objectsData requires special handling 
+      -- because the registry is a LockedRegistry and doesn't have a direct 
+      -- function.
       objects <- newRegistry
       sequence_ (map
          (\ (location,objectVersion) -> 
@@ -91,26 +95,32 @@ getView repository objectVersion =
          objectsData
          )
 
-      displayTypes <- listToNewRegistry displayTypesData
-      objectTypes <- listToNewRegistry objectTypesData
-
       parentMVar <- newMVar (Just objectVersion)
-      
-      return (View {
-         repository = repository,
-         objects = objects,
-         parentMVar = parentMVar,
-         displayTypes = displayTypes,
-         objectTypes = objectTypes
-         })
+      let
+         view = View {
+            viewId = viewId,
+            repository = repository,
+            objects = objects,
+            parentMVar = parentMVar,
+            }
+
+      importDisplayTypes displayTypesData view
+      importObjectTypes objectTypesData view
+      return view
 
 commitView :: View -> IO ObjectVersion
-commitView (View {repository = repository,objects = objects,
-      parentMVar = parentMVar,displayTypes = displayTypes,objectTypes = objectTypes}) =
+commitView (view @ View {repository = repository,objects = objects,
+      parentMVar = parentMVar}) =
    -- NB - this ought to lock against updates, but at the moment doesn't.
    -- But we do lock against other commits using parentMVar.
    do
       parentOpt <- takeMVar parentMVar
+
+
+
+      displayTypesData <- exportDisplayTypes view
+      objectTypesData <- exportObjectTypes view
+
       locations <- listKeys objects
       (objectsData :: [(Location,ObjectVersion)]) <-
          mapM (\ location ->
@@ -122,8 +132,6 @@ commitView (View {repository = repository,objects = objects,
                return (location,objectVersion)
             )
             locations
-      displayTypesData <- listRegistryContents displayTypes
-      objectTypesData <- listRegistryContents objectTypes
       let
          viewData =
             ViewData {
@@ -150,8 +158,8 @@ commitView (View {repository = repository,objects = objects,
 -- which we store in the top file of a version.
 data ViewData = ViewData {
    objectsData :: [(Location,ObjectVersion)],
-   displayTypesData :: [(String,WrappedDisplayType)],
-   objectTypesData :: [(String,WrappedObjectType)]
+   displayTypesData :: CodedValue,
+   objectTypesData :: CodedValue
    }
 
 viewData_tyCon = mkTyCon "View" "ViewData"
@@ -159,7 +167,7 @@ instance HasTyCon ViewData where
    tyCon _ = viewData_tyCon
 
 -- Here's the real primitive type
-type Tuple = ([(Location,ObjectVersion)],[(String,WrappedDisplayType)],[(String,WrappedObjectType)])
+type Tuple = ([(Location,ObjectVersion)],CodedValue,CodedValue)
 
 mkTuple :: ViewData -> Tuple
 mkTuple (ViewData {objectsData = objectsData,displayTypesData = displayTypesData,

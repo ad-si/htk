@@ -70,7 +70,7 @@ ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean display ghci libfast libfasthere
+.PHONY : depend libhere lib testhere test all clean display ghci libfast libfasthere librealfast objsc
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -145,11 +145,17 @@ ifneq "$(strip $(LIBOBJS))" ""
 	$(AR) -r $(LIB) $(LIBOBJS)
 endif
 
+librealfast : objsc
+	$(TOP)/mk/mkEverything `$(MAKE) displayhs -s --no-print-directory`
+	$(HC) --make EVERYTHING.hs $(HCSHORTFLAGS) -i`$(GFIND) . -type d ! -name CVS -printf "%p:"`
+	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi		
+
+
 displaysrcshere :
 	@PWD=`pwd`;echo $(ALLFILESALL)
 
 displayhshere :
-	@PWD=`pwd`;echo $(HSFILESALL)
+	@PWD=`pwd`;echo $(LIBSRCS)
 
 displaysrcs : displaysrcshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displaysrcs && ) echo 
@@ -157,6 +163,9 @@ displaysrcs : displaysrcshere
 displayhs : displayhshere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) displayhs && ) echo
 
+objschere : $(OBJSC)
+objsc : objschere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) objsc && ) echo
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^

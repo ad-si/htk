@@ -48,6 +48,10 @@ fi
 # Check for hdoc
 AC_PATH_PROGS(HDOC,hdoc)
 echo hdoc is used for providing browsable versions of the HTk sources.
+#
+# Check for gfind
+AC_PATH_PROGS(GFIND,gfind,find)
+echo If you don't have GNU find, gmake librealfast won't work.
 # 
 # Construct the default options, used by 
 # util/default_options.c

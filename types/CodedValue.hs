@@ -56,8 +56,15 @@ module CodedValue(
    encode2IO, -- :: (HasCodedValue value1,HasCodedValue value2) 
       -- => value1 -> value2 -> CodedValue -> View -> IO CodedValue
    decode2IO, -- :: (HasCodedValue value1,HasCodedValue value2)
-      -- => CodedValue -> View -> IO ((value1,value2),CodedValue)
-    
+      -- => CodedValue -> View -> IO ((value1,value2),CodedValue
+
+   -- encoding and decoding multiple values
+   -- (This is different from encoding a list directly since we
+   -- don't use an accumulating list.)
+   doEncodeMultipleIO, 
+      -- :: HasCodedValue value => [value] -> View -> IO CodedValue
+   doDecodeMultipleIO,
+      -- :: HasCodedValue value => CodedValue -> View -> IO [value]
 
    HasPureCodedValue(..), -- "pure" coded values, which code without
       -- using IO or the repository.  HasCodedValue follows from this.
@@ -88,6 +95,7 @@ import Dynamics
 import Bits
 import Int
 
+import UniqueString
 import AtomString(StringClass(..))
 
 import VersionDB
@@ -117,6 +125,28 @@ addBoundary (CodedValue l) = CodedValue (Nothing : l)
 removeBoundary :: CodedValue -> CodedValue
 removeBoundary (CodedValue (Nothing : rest)) = CodedValue rest
 removeBoundary _ = formatError "Record does not end where expected"
+
+
+---
+-- prefix combines two codedValues into one codedValue.
+-- The format is [length of first codedValue] [codedValue1] [codedValue2]
+prefix :: CodedValue -> CodedValue -> CodedValue
+prefix (CodedValue l1) (CodedValue l2) =
+   let
+      len = length l1
+   in
+      encodePure len (CodedValue (l1 ++ l2))
+
+---
+-- unprefix inverts prefix
+unprefix :: CodedValue -> (CodedValue,CodedValue) 
+unprefix codedValue0 =
+   let
+      (len,CodedValue l) = decodePure codedValue0
+      (l1,l2) = splitAt len l
+   in
+      (CodedValue l1,CodedValue l2)
+
 
 ---------------------------------------------------------------------
 -- HasCodedValue
@@ -170,6 +200,27 @@ doDecodeIO codedValue repository =
             return value
          else
             formatError "Extra trailing junk"
+
+doEncodeMultipleIO :: HasCodedValue value => [value] -> View -> IO CodedValue
+doEncodeMultipleIO values view = doEncodeMultipleIO' values emptyCodedValue
+   where
+      doEncodeMultipleIO' [] codedValue = return codedValue
+      doEncodeMultipleIO' (h:t) codedValue0 =
+         do
+            codedValue1 <- encodeIO h codedValue0 view
+            doEncodeMultipleIO' t codedValue1
+
+doDecodeMultipleIO :: HasCodedValue value => CodedValue -> View -> IO [value]
+doDecodeMultipleIO codedValue view = doDecodeMultipleIO' codedValue []
+   where
+      doDecodeMultipleIO' codedValue0 l =
+         if isEmptyCodedValue codedValue0 
+         then 
+            return l
+         else
+            do
+              (value,codedValue1) <- decodeIO codedValue0 view
+              doDecodeMultipleIO' codedValue1 (value:l)
 
 class HasConverter value1 value2 where
    encode' :: value1 -> value2
@@ -409,6 +460,31 @@ instance HasPureCodedValue Bool where
       ch -> formatError ("Decoding bool, found an unexpected char "
          ++show ch)
       )
+
+-- We make CodedValue an instance itself
+
+codedValue_tyCon = mkTyCon "CodedValue" "CodedValue"
+instance HasTyCon CodedValue where
+   tyCon _ = codedValue_tyCon
+
+instance HasPureCodedValue CodedValue where
+   encodePure value codedValue = prefix value codedValue
+   decodePure codedValue = unprefix codedValue
+
+---------------------------------------------------------------------
+-- UniqueStringSource
+---------------------------------------------------------------------
+
+instance HasCodedValue UniqueStringSource where
+   encodeIO v codedValue view =
+      do
+         l <- readUniqueStringSource v
+         encodeIO l codedValue view
+   decodeIO codedValue0 view =
+      do
+         (l,codedValue1) <- decodeIO codedValue0 view
+         v <- createUniqueStringSource l
+         return (v,codedValue1)
 
 ---------------------------------------------------------------------
 -- Location and ObjectVersion (from CVSDB)

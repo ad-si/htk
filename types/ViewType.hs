@@ -9,10 +9,13 @@ module ViewType(
    ObjectData(..),
 
    getRepository, -- :: View -> Repository
+
+   ViewId(..),
    ) where
 
 import Concurrent
 
+import Object
 import Dynamics
 import Registry
 import UniqueFile
@@ -26,12 +29,10 @@ import {-# SOURCE #-} DisplayTypes
 import {-# SOURCE #-} ObjectTypes
 
 data View = View {
+   viewId :: ViewId,
    repository :: Repository,
    objects :: LockedRegistry Location ObjectData,
-   parentMVar :: MVar (Maybe ObjectVersion),
-   
-   displayTypes :: Registry String WrappedDisplayType,
-   objectTypes :: Registry String WrappedObjectType
+   parentMVar :: MVar (Maybe ObjectVersion)
    }
 
 data ObjectData =
@@ -44,4 +45,6 @@ data ObjectData =
 
 getRepository :: View -> Repository
 getRepository view = repository view
+
+newtype ViewId = ViewId ObjectID deriving (Eq,Ord)
 

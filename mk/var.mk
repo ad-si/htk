@@ -22,10 +22,12 @@ endif
 
 HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
 
-HCFLAGS = \
-   $(HCSYSLIBS) -i$(HCDIRS) -fglasgow-exts \
+HCSHORTFLAGS = \
+   $(HCSYSLIBS) -fglasgow-exts \
    -fallow-overlapping-instances -fallow-undecidable-instances \
    -cpp -ddump-hi-diffs -H25M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
+
+HCFLAGS = -i$(HCDIRS) $(HCSHORTFLAGS)
 
 # LINKFLAGS contains extra flags to be put at the end of the command line
 # when compiling executables.

@@ -3,7 +3,7 @@
    should not be too hard.  Periods are also not included, for the
    benefit of NewNames.hs. -}
 module UniqueString(
-   UniqueStringSource, -- A source of unique strings.
+   UniqueStringSource, -- A source of unique strings.  Instance of Typeable
    newUniqueStringSource, -- :: IO UniqueStringSource
    newUniqueString, -- :: UniqueStringSource -> IO String
 
@@ -16,11 +16,19 @@ module UniqueString(
    stepUniqueStringCounter, -- :: UniqueStringCounter 
       -- -> (String,UniqueStringCounter)
       -- and this is how you get a new String out.
+
+  
+   -- read/createUniqueStringSource are used by types/CodedValue
+   -- to import and export string sources.
+   readUniqueStringSource, -- :: UniqueStringSource -> IO [Int]
+   createUniqueStringSource, -- :: [Int] -> IO UniqueStringSource
+
    ) where
 
 import Array
 import Concurrent
 
+import Dynamics
 import QuickReadShow
 
 -- The list of "printable" characters that may occur in one of these
@@ -58,6 +66,28 @@ newUniqueString (UniqueStringSource mVar) =
             stepUniqueStringCounter uniqueStringCounter
       putMVar mVar nextUniqueStringCounter
       return str
+
+---
+-- readUniqueStringSource is used by types/CodedValue.hs to export values.
+readUniqueStringSource :: UniqueStringSource -> IO [Int]
+readUniqueStringSource (UniqueStringSource mVar) =
+   do
+      (UniqueStringCounter l) <- readMVar mVar
+      return l
+
+---
+-- createUniqueStringSource is the inverse of readUniqueStringSource.
+createUniqueStringSource :: [Int] -> IO UniqueStringSource
+createUniqueStringSource l = 
+   do
+      mVar <- newMVar (UniqueStringCounter l)
+      return (UniqueStringSource mVar)
+
+---
+-- The instance is used by types/CodedValue
+uniqueStringSource_tyCon = mkTyCon "UniqueString" "UniqueStringSource"
+instance HasTyCon UniqueStringSource where
+   tyCon _ = uniqueStringSource_tyCon
 
 -- -------------------------------------------------------------------
 -- The pure interface.

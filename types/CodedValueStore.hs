@@ -56,16 +56,4 @@ fromObjectSource objectSource =
       str <- exportString objectSource
       return (fromString str)
 
----------------------------------------------------------------------
--- CodedValue is an instance of HasCodedValue
----------------------------------------------------------------------
-
-codedValue_tyCon = mkTyCon "CodedValue" "CodedValue"
-
-instance HasTyCon CodedValue where
-   tyCon _ = codedValue_tyCon
-
-instance HasCodedValue CodedValue where
-   encodeIO = mapEncodeIO (\ codedValue -> Str codedValue)
-   decodeIO = mapDecodeIO (\ (Str codedValue) -> codedValue)
 
