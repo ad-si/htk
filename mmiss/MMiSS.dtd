@@ -8,6 +8,17 @@
   Comments are welcome! (send mail to amahnke@tzi.de)
 
   Root element is 'package'.
+
+  Rules for colours.  We supply colours for all things which can have a label.
+     These are for now
+        white for groups
+        green for units
+        yellow for atoms
+        red for text fragments.
+
+  They should be synchronized with MMiSS-colours in allmmiss.el, so that magic
+  buttons in Emacs have the same colour as their corresponding   
+
 -->
 
 <!-- ======================== ENTITIES ==================================== -->
