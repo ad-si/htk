@@ -192,7 +192,7 @@ envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract",
                [("Introduction", "introduction"),  ("Summary", "summary"), ("Program","program")] ++
 	       [("Exercise","exercise"), ("Example","example"),  ("Definition","definition")] ++
                [("Theory","theory"), ("Theorem", "theorem"), ("Development","development")] ++
-               [("Proof","proof"), ("Script","script"), ("ListItem", "listItem")] ++
+               [("Proof","proof"), ("Script","script"), ("item", "item"), ("ListItem", "item")] ++
                [("Conjecture", "conjecture"), ("Lemma", "lemma"), ("Corollary", "corollary")] ++
                [("Assertion", "assertion"), ("Text","text"), ("Assignment", "assignment")] ++
                [("Solution", "solution"),("Itemize", "itemize"), ("Enumerate","enumerate")] ++
@@ -222,12 +222,12 @@ embeddedElements = [("Emphasis","emphasis"), ("IncludeText","includeText")] ++
 
 listEnvs = [("Itemize", "itemize"), ("Description", "description"), ("Enumerate", "enumerate")]
 
-itemNames = ["ListItem", "Item", "item"]
+itemNames = ["ListItem", "item"]
 
 
 -- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
-mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands ++ listEnvs
+mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
 
 
 -- LaTeX-Environments, deren Inhalt nicht geparst werden soll:
@@ -501,7 +501,6 @@ lParams id l
  | (id `elem` itemNames) =
       do pos <- getPosition
          attributes <- option [] (try(between (char '[') (char ']') attParser))
-		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ "> "))
          if (attributes == []) 
            then return (LParams [] [] Nothing Nothing)
            else return (LParams [] attributes Nothing Nothing)
@@ -649,7 +648,7 @@ plainText stopChars = many1 (noneOf stopChars)
 frag :: GenParser Char st Frag
 frag = comment
 	 <|> do backslash
-		beginBlock <|> mathEnv <|> escapedChar <|> command  <|> return (Other "\\")
+		mathEnv <|> beginBlock <|> escapedChar <|> command  <|> return (Other "\\")
          <|> adhocEnvironment
          <|> simpleMathEnv
 	 <|> other
@@ -1294,7 +1293,7 @@ makeContent (f:frags) TextAllowed parentEnv =
 	(Other str) -> myConcatWithError (hasValue([(CMisc (PI (piInsertLaTeX, str)))])) (makeContent frags TextAllowed parentEnv)
 	(Env name ps fs) -> 
 	   if (name `elem` (map fst mmiss2EnvIds))
-	     then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a \\Item.")
+	     then hasError("Environment '" ++ name ++ "' is not allowed in lists. Wrap it up with a \\item.")
 	     else  -- No MMiSS-Env.
 	       let beginDelimStr = case ps of
 				     (LParams _ _ (Just delimStr) _) -> delimStr
@@ -1345,8 +1344,10 @@ makeContent (f:frags) TextAllowed parentEnv =
 	(Env name ps fs) -> 
 	  if (name `elem` (map fst plainTextAtoms))
 	    then
-	      let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
-		  text = makeTextElem fs ""
+	      let ename = if (name `elem` (map fst latexAtomFormulaEnvs))
+                            then "formula"
+                            else maybe "" snd (find ((name ==) . fst) plainTextAtoms)
+ 		  text = makeTextElem fs ""
 		  content = (hasValue([CString True text]))
 		  attribs = (makeAttribs ps name)
 	      in myConcatWithError
@@ -1659,7 +1660,9 @@ makeListItem params (f:frags) contentList =
      (Env name ps fs) -> 
         if (name `elem` (map fst plainTextAtoms))
           then
-            let ename = maybe "" snd (find ((name ==) . fst) plainTextAtoms)
+            let ename = if (name `elem` (map fst latexAtomFormulaEnvs))
+                          then "formula"
+                          else maybe "" snd (find ((name ==) . fst) plainTextAtoms)
                 text = makeTextElem fs "" 
                 attribs = (makeAttribs ps name)
             in  makeListItem params frags 
@@ -1744,7 +1747,7 @@ concatTextElems (e1:[]) = [e1]
 -- gehoert.
 detectTextMode :: String -> Textmode
 detectTextMode name = if (name `elem` (map fst (envsWithText ++ plainTextAtoms))) then TextAllowed
-                       else NoText
+                        else NoText
 
 
 -- getPathAttrib bekommt die in der Preamble aufgesammelten Fragmente und sucht darin
@@ -1786,9 +1789,8 @@ makeAttribs ps name =
 			 else if (name == "Def")
 			        then makeDefineAttribs ps
 				else if (name `elem` (map fst (latexEmbeddedFormulaEnvs ++ latexAtomFormulaEnvs)))
-                                       then let normalAttrs = case ps of
-				                                (LParams _ atts _ _) -> map convertAttrib atts
-                                                                _ -> []
+                                       then let (LParams _ atts _ _) = id ps
+				                normalAttrs = map convertAttrib atts
                                                 formulaAttrs = makeFormulaAttribs name
                                             in normalAttrs ++ formulaAttrs
                                        else case ps of
@@ -1961,7 +1963,7 @@ fillLatex out ((CElem (Elem "text" atts contents)):cs) inList =
   in fillLatex out cs (inList ++ items)
 
 fillLatex out ((CElem (Elem "item" atts contents)):cs) inList = 
-   let s1 = "\\Item" 
+   let s1 = "\\item" 
        attrStr = (getAttribs atts "" [])
        s2 = if (attrStr == "") then "" else "[" ++ attrStr ++ "] "
        items = [EditableText (s1 ++ s2)] ++ (fillLatex out contents [])
@@ -2311,24 +2313,7 @@ mapLabelledTag s =
       mapUpper [] = []
       mapUpper (c : cs) = toUpper c : cs      
 
-{--
-parseAndMakeMMiSSLatex :: SourceName -> Bool -> IO ()
-parseAndMakeMMiSSLatex name _ = 
-  do result <- parseMMiSSLatexFile name
-     case (fromWithError result) of
-       Left err -> print err
-       Right (e, mbPreamble) -> 
-         case (fromWithError (makeMMiSSLatex (e, True, []))) of
-           Left err -> print err
-           Right (EmacsContent l) ->  putStrLn (concat (map getStrOfEmacsDataItem l))
---}
 
-{--
-getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
-
-getStrOfEmacsDataItem (EditableText str) = str
-getStrOfEmacsDataItem (EmacsLink ((str,c), _)) = str ++ [c]                                   
---}
 
 append :: a -> [a] -> [a]
 append x xs = xs ++ [x]
