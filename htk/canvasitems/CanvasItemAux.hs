@@ -188,7 +188,7 @@ tkUnbindCanvasItem _ _ _ = []
 
 tkDestroyCanvasItem :: ObjectID -> ObjectName -> TclScript
 tkDestroyCanvasItem _ name @ (CanvasItemName _ tid) = 
-        [show name ++ " delete " ++ show tid]
+        [declVar tid, show name ++ " delete " ++ show tid]
 tkDestroyCanvasItem _ _ = []
 
 
