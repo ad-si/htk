@@ -44,6 +44,8 @@ Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
 your copies, here are details.  The Uni sources are kept in a 
 publicly accessible CVS repository at cvs-agbkb.informatik.uni-bremen.de.  
+For general details about this repository, see
+   http://www.informatik.uni-bremen.de/~ger/cvs/CVS.html
 So for example to get a complete set of the latest version of the sources you 
 type (in bash or sh)
 
