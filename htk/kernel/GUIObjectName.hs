@@ -34,7 +34,6 @@ data ObjectName =
         | TextPaneItemName ObjectName TextItemName      -- text item
         | NoteBookPageName ObjectID
         | LabelFrameName ObjectName ObjectID
---        | PanedWindowName ObjectName ObjectID
         | PaneName ObjectID
 
 data TextItemName =

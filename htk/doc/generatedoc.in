@@ -85,6 +85,7 @@ rm -f ./*.html
     ../tix/LabelFrame.hs\
     ../tix/NoteBook.hs\
     ../tix/PanedWindow.hs\
+    ../tix/ComboBox.hs\
 \
     ../toolkit/CItem.hs\
     ../toolkit/DialogWin.hs\

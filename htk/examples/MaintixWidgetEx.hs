@@ -37,12 +37,17 @@ main =
                         [tooltip "enter your name"] :: IO (Entry String)
          grid e1 [GridPos (1,0), GridPadX 5, GridPadY 5]
 
+
          l2 <- newLabel lf_pers [text "Age:", tooltip "enter your age"]
          grid l2 [GridPos (0,1), GridPadX 5, GridPadY 5]
 
          e2 <- newEntry lf_pers
                         [tooltip "enter your age"] :: IO (Entry String)
          grid e2 [GridPos (1,1), GridPadX 5, GridPadY 5]
+
+         (cb1 :: ComboBox String) <- newComboBox lf_pers
+                                       [value ["male", "female"], editable Off]
+         grid cb1 [GridPos (0,2), GridPadX 5, GridPadY 5, Columnspan 2]
 
          lf_web <- newLabelFrame page1 [text "WWW"]
          grid lf_web [GridPos (0,1), Sticky NSEW]

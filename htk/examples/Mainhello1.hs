@@ -26,6 +26,8 @@ main =
   do
     main <- initHTk []
 
+    Icon main # bitmap info
+
     l  <- newLabel main [height 5, text "Hello, world!"]
     pack l []
 

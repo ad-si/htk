@@ -67,7 +67,7 @@ module HTk (
   module NoteBook,
   module LabelFrame,
   module PanedWindow,
-
+  module ComboBox,
 
 -- devices submodules
 
@@ -229,6 +229,7 @@ import EmbeddedTextWin
 import NoteBook
 import LabelFrame
 import PanedWindow
+import ComboBox
 import Bell
 import Focus
 import Icon

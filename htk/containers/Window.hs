@@ -23,14 +23,6 @@ module Window (
   getMinSize,
   raiseWin,
   lowerWin,
---  WindowPool,
---  windowpool,
---  getWindowPool,
---  addWindowToPool,
---  addWindowToPool,
---  removeWindowFromPool,
---  getWindows,
---  lookupWindow,
   WindowState(..),
   AspectRatio,
   Whom,
@@ -59,8 +51,6 @@ class GUIObject w => Window w where
   withdraw :: w -> IO ()
   putWinOnTop :: w -> IO ()
   putWinAtBottom :: w -> IO ()
---  transient :: Config w
---  getTransient :: Config w
   screen :: Display -> Config w
   getScreen :: w -> IO (Display)
   getClassName :: w -> IO String
@@ -77,24 +67,6 @@ class GUIObject w => Window w where
   withdraw win = do {cset win "state" Withdrawn; done}
   putWinOnTop win  = execMethod win (\nm -> [tkPutOnTop nm])
   putWinAtBottom win = execMethod win (\nm -> [tkPutAtBottom nm])
-
-{- TD
-  transient :: Window -> Config Window
-  transient pwin twin @ (Window _ _ pv) = do {
-          onm <- getObjectName (toGUIObject pwin); 
-          case onm of
-                  (Just (ObjectName pname)) -> 
-                          synchronize twin (do {  
-                                  cset twin "transient" pname;
-                                  changeVar' pv (\(m,_) -> (m,Just pwin));
-                                  return twin
-                                  })
-                  _ -> raise objectNotPacked
-  }
-
-  getTransient :: Window -> IO (Maybe Window)
-  getTransient (Window _ _ pv) = withVar' pv (\(_,t) -> t)
--}
 
   screen "" win = cset win "screen" ":0.0"
   screen scr win = cset win "screen" scr
@@ -154,8 +126,6 @@ instance (Window w, GUIValue v) => HasText w v where
   text s win  = cset win "iconname" s >> cset win "title" s
   getText win = cget win "title"
 
---instance Window w => HasMenu w
-
 
 -- -----------------------------------------------------------------------
 -- maximum and minimum size's
@@ -189,43 +159,6 @@ lowerWin win1 win2 =
   do
     nm2 <- getObjectName (toGUIObject win2)
     execMethod win1 (\nm1 -> [tkLower nm1 nm2])
-
-{-
--- -----------------------------------------------------------------------
---  WindowPool
--- -----------------------------------------------------------------------
-
-type WindowPool = Ref [Window]
-
-windowpool :: WindowPool
-windowpool = IOExts.unsafePerformIO (newRef [])
-
-getWindowPool :: IO WindowPool
-getWindowPool = return windowpool
-
-addWindowToPool :: Window -> IO ()
-addWindowToPool win = changeRef windowpool (\wins -> win : wins)
-
-removeWindowFromPool :: Window -> IO ()
-removeWindowFromPool win =
-  changeRef windowpool (\wins -> filter (/= win) wins)
-
-getWindows :: IO [Window]
-getWindows = getRef windowpool
-
-lookupWindow :: String -> IO (Maybe Window)
-lookupWindow nm =
-  do
-    mobj <- lookupGUIObjectByName (WidgetName nm);
-    case mobj of
-      Nothing -> return Nothing
-      Just wid ->
-        do
-          wins <- getWindows
-          case (dropWhile (\win -> wid /= (toGUIObject win))) wins of
-            [] -> return Nothing
-            (win:_) -> return (Just win)
--}
 
 
 -- -----------------------------------------------------------------------
