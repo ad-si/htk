@@ -170,7 +170,7 @@ structureContents elem = case structureElement elem of
    Right _ -> error "Top-level in Xml does not have a label attribute"
 
 ---
--- If the "label" element is set we create a new StructuredContent item,
+-- If the "label" element is set we create a new StructuredContent item
 -- otherwise we return an AccContents.
 structureElement :: Element -> Either StructuredContent AccContents
 structureElement (Elem tag attributes contents0) =
@@ -181,24 +181,33 @@ structureElement (Elem tag attributes contents0) =
    in
       case labelOpt of
          Just label ->
-            Left (StructuredContent {
-               tag = tag,
-               label = label,
-               attributes = attributes,
-               accContents = accContents
-               })
+            Left (
+               StructuredContent {
+                  tag = tag,
+                  label = label,
+                  attributes = attributes,
+                  accContents = accContents
+                  }
+               )
          Nothing ->
             let
                newElem = Elem tag attributes (contents accContents)
                (includes1,references1) =
                   case tag of
-                     "include" -> case getAttributes "included" attributes of
-                        Just s -> ([s],[])
-                        Nothing -> error "included not specified"
+                     "include" -> 
+                        case (
+                           getAttributes "included" attributes,
+                           getAttributes "status" attributes) of
+                              (Just s,Just "present") -> ([s],[])
+                              (Just s,_) -> ([],[])
+                              (Nothing,_) -> error "included not specified"
                      "reference" -> 
-                        case getAttributes "referenced" attributes of
-                           Just s -> ([],[s])
-                           Nothing -> error "referenced not specified"
+                        case (
+                           getAttributes "referenced" attributes,
+                           getAttributes "status" attributes) of
+                              (Just s,Just "present") -> ([s],[])
+                              (Just s,_) -> ([],[])
+                              (Nothing,_) -> error "referenced not specified"
                      _ -> ([],[])
 
                toAdd = AccContents {
@@ -218,7 +227,24 @@ structureContent content =
    case content of
       CElem element -> case structureElement element of
          Left structuredContent -> 
-            nullAccContents {children = [structuredContent]}
+            let
+               lab = label structuredContent
+            in
+               nullAccContents {
+                  contents = [mkIncludeLink lab],
+                  children = [structuredContent],
+                  includes = [lab],
+                  references = []
+                  }
          Right contents -> contents
       other -> nullAccContents {contents = [other]}
+
+---
+-- Make an include reference which already exists
+mkIncludeLink :: String -> Content
+mkIncludeLink label 
+   = CElem (Elem "include" [
+      ("included",AttValue [Left label]),
+      ("status",AttValue [Left "present"])
+      ] [])
  

@@ -8,7 +8,7 @@ import Xml2Haskell
 data Atom = Atom Atom_Attrs Textfragment
 	  deriving (Eq , Show)
 data Atom_Attrs = Atom_Attrs
-    { atomAtomid :: (Maybe String)
+    { atomLabel :: (Maybe String)
     } deriving (Eq , Show)
 newtype Textfragment = Textfragment [Textfragment_] 		deriving (Eq , Show)
 data Textfragment_ = Textfragment_Str String
@@ -16,23 +16,31 @@ data Textfragment_ = Textfragment_Str String
 		   | Textfragment_Reference Reference
 		   deriving (Eq , Show)
 data Include = Include
-    { includeIncludedid :: String
+    { includeIncluded :: String
+    , includeStatus :: (Defaultable Include_Status)
     } deriving (Eq , Show)
+data Include_Status = Include_Status_Present  | 
+		      Include_Status_Absent
+		    deriving (Eq , Show)
 data Reference = Reference Reference_Attrs Textfragment
 	       deriving (Eq , Show)
 data Reference_Attrs = Reference_Attrs
-    { referenceReferenceid :: String
+    { referenceReferenced :: String
+    , referenceStatus :: (Defaultable Reference_Status)
     } deriving (Eq , Show)
+data Reference_Status = Reference_Status_Present  | 
+			Reference_Status_Absent
+		      deriving (Eq , Show)
 data Paragraph = Paragraph Paragraph_Attrs [Atom]
 	       deriving (Eq , Show)
 data Paragraph_Attrs = Paragraph_Attrs
-    { paragraphParaid :: (Maybe String)
+    { paragraphLabel :: (Maybe String)
     , paragraphParatitle :: (Maybe String)
     } deriving (Eq , Show)
 data Section = Section Section_Attrs [Section_]
 	     deriving (Eq , Show)
 data Section_Attrs = Section_Attrs
-    { sectionSectionid :: (Maybe String)
+    { sectionLabel :: (Maybe String)
     , sectionSectiontitle :: String
     } deriving (Eq , Show)
 data Section_ = Section_Package Package
@@ -42,7 +50,7 @@ data Section_ = Section_Package Package
 data Package = Package Package_Attrs [Section]
 	     deriving (Eq , Show)
 data Package_Attrs = Package_Attrs
-    { packagePackageid :: (Maybe String)
+    { packageLabel :: (Maybe String)
     , packagePackagetitle :: String
     } deriving (Eq , Show)
 
@@ -60,10 +68,10 @@ instance XmlContent Atom where
 instance XmlAttributes Atom_Attrs where
     fromAttrs as =
 	Atom_Attrs
-	  { atomAtomid = possibleA fromAttrToStr "atomid" as
+	  { atomLabel = possibleA fromAttrToStr "label" as
 	  }
     toAttrs v = catMaybes 
-	[ maybeToAttr toAttrFrStr "atomid" (atomAtomid v)
+	[ maybeToAttr toAttrFrStr "label" (atomLabel v)
 	]
 instance XmlContent Textfragment where
     fromElem (CElem (Elem "textfragment" [] c0):rest) =
@@ -98,11 +106,22 @@ instance XmlContent Include where
 instance XmlAttributes Include where
     fromAttrs as =
 	Include
-	  { includeIncludedid = definiteA fromAttrToStr "include" "includedid" as
+	  { includeIncluded = definiteA fromAttrToStr "include" "included" as
+	  , includeStatus = defaultA fromAttrToTyp Include_Status_Absent "status" as
 	  }
     toAttrs v = catMaybes 
-	[ toAttrFrStr "includedid" (includeIncludedid v)
+	[ toAttrFrStr "included" (includeIncluded v)
+	, defaultToAttr toAttrFrTyp "status" (includeStatus v)
 	]
+instance XmlAttrType Include_Status where
+    fromAttrToTyp n (n',v)
+	| n==n'     = translate (attr2str v)
+	| otherwise = Nothing
+      where translate "present" = Just Include_Status_Present
+	    translate "absent" = Just Include_Status_Absent
+	    translate _ = Nothing
+    toAttrFrTyp n Include_Status_Present = Just (n, str2attr "present")
+    toAttrFrTyp n Include_Status_Absent = Just (n, str2attr "absent")
 instance XmlContent Reference where
     fromElem (CElem (Elem "reference" as c0):rest) =
 	(\(a,ca)->
@@ -114,11 +133,22 @@ instance XmlContent Reference where
 instance XmlAttributes Reference_Attrs where
     fromAttrs as =
 	Reference_Attrs
-	  { referenceReferenceid = definiteA fromAttrToStr "reference" "referenceid" as
+	  { referenceReferenced = definiteA fromAttrToStr "reference" "referenced" as
+	  , referenceStatus = defaultA fromAttrToTyp Reference_Status_Absent "status" as
 	  }
     toAttrs v = catMaybes 
-	[ toAttrFrStr "referenceid" (referenceReferenceid v)
+	[ toAttrFrStr "referenced" (referenceReferenced v)
+	, defaultToAttr toAttrFrTyp "status" (referenceStatus v)
 	]
+instance XmlAttrType Reference_Status where
+    fromAttrToTyp n (n',v)
+	| n==n'     = translate (attr2str v)
+	| otherwise = Nothing
+      where translate "present" = Just Reference_Status_Present
+	    translate "absent" = Just Reference_Status_Absent
+	    translate _ = Nothing
+    toAttrFrTyp n Reference_Status_Present = Just (n, str2attr "present")
+    toAttrFrTyp n Reference_Status_Absent = Just (n, str2attr "absent")
 instance XmlContent Paragraph where
     fromElem (CElem (Elem "paragraph" as c0):rest) =
 	(\(a,ca)->
@@ -130,11 +160,11 @@ instance XmlContent Paragraph where
 instance XmlAttributes Paragraph_Attrs where
     fromAttrs as =
 	Paragraph_Attrs
-	  { paragraphParaid = possibleA fromAttrToStr "paraid" as
+	  { paragraphLabel = possibleA fromAttrToStr "label" as
 	  , paragraphParatitle = possibleA fromAttrToStr "paratitle" as
 	  }
     toAttrs v = catMaybes 
-	[ maybeToAttr toAttrFrStr "paraid" (paragraphParaid v)
+	[ maybeToAttr toAttrFrStr "label" (paragraphLabel v)
 	, maybeToAttr toAttrFrStr "paratitle" (paragraphParatitle v)
 	]
 instance XmlContent Section where
@@ -148,11 +178,11 @@ instance XmlContent Section where
 instance XmlAttributes Section_Attrs where
     fromAttrs as =
 	Section_Attrs
-	  { sectionSectionid = possibleA fromAttrToStr "sectionid" as
+	  { sectionLabel = possibleA fromAttrToStr "label" as
 	  , sectionSectiontitle = definiteA fromAttrToStr "section" "sectiontitle" as
 	  }
     toAttrs v = catMaybes 
-	[ maybeToAttr toAttrFrStr "sectionid" (sectionSectionid v)
+	[ maybeToAttr toAttrFrStr "label" (sectionLabel v)
 	, toAttrFrStr "sectiontitle" (sectionSectiontitle v)
 	]
 instance XmlContent Section_ where
@@ -182,11 +212,11 @@ instance XmlContent Package where
 instance XmlAttributes Package_Attrs where
     fromAttrs as =
 	Package_Attrs
-	  { packagePackageid = possibleA fromAttrToStr "packageid" as
+	  { packageLabel = possibleA fromAttrToStr "label" as
 	  , packagePackagetitle = definiteA fromAttrToStr "package" "packagetitle" as
 	  }
     toAttrs v = catMaybes 
-	[ maybeToAttr toAttrFrStr "packageid" (packagePackageid v)
+	[ maybeToAttr toAttrFrStr "label" (packageLabel v)
 	, toAttrFrStr "packagetitle" (packagePackagetitle v)
 	]
 

@@ -18,6 +18,7 @@ module MMiSSVariant(
    variantDictSearch,
    addToVariantDict,
    variantAttributesType,
+   mkVariantAttributes,
    ) where
 
 import Maybe
@@ -28,6 +29,7 @@ import Concurrent
 import ExtendedPrelude
 import Dynamics
 import Registry
+import Computation(done)
 
 import CodedValue
 import BasicObjects
@@ -195,3 +197,21 @@ instance HasCodedValue a => HasCodedValue (MMiSSVariantDict a) where
          (dict,codedValue1) <- decodeIO codedValue0 view
          mVar <- newMVar dict
          return (MMiSSVariantDict mVar,codedValue1)
+
+-- -------------------------------------------------------------------
+-- Other utility functions involving variant attributes
+-- -------------------------------------------------------------------
+
+---
+-- Filling out unset fields.  We replace these by "" for now.
+mkVariantAttributes :: Attributes -> IO ()
+mkVariantAttributes atts =
+   do
+      let
+         fillIn str =
+            do
+               valueOpt <- getValueOpt atts str
+               case valueOpt of
+                  Just ( _ :: String) -> done
+                  Nothing -> setValue atts str ""
+      mapM_ fillIn variantAttributes

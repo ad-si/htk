@@ -342,22 +342,18 @@ instance (HasCodedValue v1,HasCodedValue v2,HasCodedValue v3,HasCodedValue v4,
                do
                   (v :: v1,codedValue2) <- safeDecodeIO codedValue1 repository
                   return (Choice1 v,codedValue2)
-         case char of
             '2' ->
                do
                   (v :: v2,codedValue2) <- safeDecodeIO codedValue1 repository
                   return (Choice2 v,codedValue2)
-         case char of
             '3' ->
                do
                   (v :: v3,codedValue2) <- safeDecodeIO codedValue1 repository
                   return (Choice3 v,codedValue2)
-         case char of
             '4' ->
                do
                   (v :: v4,codedValue2) <- safeDecodeIO codedValue1 repository
                   return (Choice4 v,codedValue2)
-         case char of
             '5' ->
                do
                   (v :: v5,codedValue2) <- safeDecodeIO codedValue1 repository

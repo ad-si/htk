@@ -26,6 +26,7 @@ import BasicObjects
 import AttributesType
 
 import MMiSSPaths
+import MMiSSContent
 
 
 ---
@@ -61,28 +62,12 @@ class (ObjectType objectType object,HasAttributes object) =>
 -- The types describing the content of objects in MMiSS.
 -- ------------------------------------------------------------------   
    
-
-data MMiSSText =
-      Chars String
-   |  Include EntityName LinkDescriptor LinkStatus
-         -- Link to some other MMiSS object to be included as part of the 
-         -- containing document.
-   |  Reference EntityName LinkDescriptor LinkStatus
-         -- Link to something not included specifically as part of the
-         -- document.
-
-type LinkDescriptor = String -- describes user-appearance of the link.
-   -- It would be a good idea if this corresponded to the name field of
-   -- the linked-to object.
-   -- (Currently, the name of the corresponding button in Emacs)
-type LinkStatus = Bool 
-   -- indicates whether the entity is supposed to have already been defined.
-   -- This will initially be set by checking the current path.  If initially
-   -- False, upgrading it to True will require explicit action by the user.
-   -- (As part of the menu attached to the link in Emacs).  
-   -- Dependencies will only appear in the includedObjects set 
-   -- (and the corresponding objects displayed) when this becomes true.
-
+---
+-- This is quite similar to the StructuredContents
+data MMiSSText = MMiSSText {
+   
+   
+   
 
 -- ------------------------------------------------------------------   
 -- MMiSSText is an instance of HasCodedValue

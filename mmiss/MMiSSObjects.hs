@@ -12,6 +12,8 @@ import FiniteMap
 import Concurrent
 import qualified IOExts(unsafePerformIO)
 
+import XmlTypes
+
 import Dynamics
 import Sink
 import VariableSet
@@ -36,9 +38,10 @@ import DisplayView
 import EmacsContent
 
 import MMiSSPaths
-import MMiSSGeneric
 import MMiSSVerify
 import MMiSSObjectTypeList
+import MMiSSVariant
+import MMiSSContent
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObjectType type, and its instance of HasCodedValue and 
@@ -115,13 +118,16 @@ data MMiSSObject = MMiSSObject {
    name :: String, -- the user name for this.  NB - although this is
       -- currently fixed, we will probably change this.
    mmissObjectType :: MMiSSObjectType,
-   attributes :: Attributes,
+   variantAttributes :: Attributes, 
+      -- Current variant attributes for this object, IE those according to
+      -- which it is opened by default, or those taken from current contents.
       -- The object's path is only stored in attributes.
-   content :: Link [MMiSSText],
-      -- The content of the object (including strings and references)
+   objectContents :: MMiSSVariantDict (Link Element),
+      -- This contains all known variants of this object.
+      -- This should have no children.
    includedObjects :: VariableSet EntityName,
       -- Points to objects with True LinkStatus mention in Include's
-      -- in the content.
+      -- in the content last created (or null at the beginning).
    referencedObjects :: VariableSet EntityName
       -- Ditto Reference's.
    }
@@ -133,18 +139,20 @@ instance HasTyRep MMiSSObject where
 instance HasCodedValue MMiSSObject where
    encodeIO = mapEncodeIO 
       (\ (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
-         attributes = attributes,content = content}) ->
-         (name,typeId mmissObjectType,attributes,content)
+         objectContents = objectContents}) ->
+         (name,typeId mmissObjectType,objectContents)
          )
    decodeIO codedValue0 view =
       do
-         ((name,tId,attributes,content),codedValue1) <-
-            decodeIO codedValue0 view
+         ((name,tId,objectContents),codedValue1) <- decodeIO codedValue0 view
          mmissObjectType <- lookupInGlobalRegistry globalRegistry view tId
          includedObjects <- newEmptyVariableSet
          referencedObjects <- newEmptyVariableSet
+         variantAttributes <- newEmptyAttributes view
+         mkVariantAttributes variantAttributes
          return (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
-            attributes = attributes,content = content,
+            variantAttributes = variantAttributes,
+            objectContents = objectContents,
             includedObjects = includedObjects,
             referencedObjects = referencedObjects},codedValue1)
 
@@ -153,7 +161,7 @@ instance HasCodedValue MMiSSObject where
 -- ------------------------------------------------------------------
 
 instance HasAttributes MMiSSObject where
-   readPrimAttributes object = attributes object
+   readPrimAttributes object = variantAttributes object
 
 -- ------------------------------------------------------------------
 -- The instance of ObjectType

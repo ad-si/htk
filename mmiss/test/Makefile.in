@@ -1,0 +1,5 @@
+PACKAGES = uni-mmiss
+
+SRCS       = TestStructure.hs
+
+include @TOP@/mk/boilerplate.mk

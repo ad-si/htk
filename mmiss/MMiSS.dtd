@@ -9,29 +9,31 @@
 <!ENTITY % text         "(#PCDATA|%embeddeditem;)">
 
 <!ELEMENT atom %conceptualatom;>
-<!ATTLIST atom atomid CDATA #IMPLIED>
+<!ATTLIST atom label CDATA #IMPLIED>
 
 <!-- <!ELEMENT textfragment (%text;)*> -->
 <!ELEMENT textfragment (#PCDATA|%embeddeditem;)*> 
 
 <!ELEMENT include EMPTY>
-<!ATTLIST include includedid    CDATA #REQUIRED>
+<!ATTLIST include included    CDATA #REQUIRED
+                  status (present|absent) "absent">
 
 <!ELEMENT reference textfragment>
-<!ATTLIST reference referenceid CDATA #REQUIRED>
+<!ATTLIST reference referenced CDATA #REQUIRED
+                    status (present|absent) "absent">
 
 <!ENTITY % group  "package|section|paragraph">
 
 <!ELEMENT paragraph (%unit;)+>
-<!ATTLIST paragraph paraid    CDATA #IMPLIED
+<!ATTLIST paragraph label     CDATA #IMPLIED
                     paratitle CDATA #IMPLIED>
 
 <!ELEMENT section (%group;)+>
-<!ATTLIST section sectionid    CDATA #IMPLIED
+<!ATTLIST section label        CDATA #IMPLIED
                   sectiontitle CDATA #REQUIRED>
 
 <!ELEMENT package (section)+>
-<!ATTLIST package packageid    CDATA #IMPLIED
+<!ATTLIST package label        CDATA #IMPLIED
                   packagetitle CDATA #REQUIRED>
 
 
