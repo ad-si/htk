@@ -397,7 +397,7 @@ answerDispatcher (daVinci@DaVinci{
       forward :: DaVinciAnswer -> Context -> IO ()
       forward daVinciAnswer context =
          do
-            (handler context) daVinciAnswer
+            forkIO ((handler context) daVinciAnswer)
             case destroysContext daVinciAnswer of
                Yes -> sendIO (destructChannel context) ()
                No -> done

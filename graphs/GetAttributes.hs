@@ -20,7 +20,7 @@ import QuickReadShow
 import Dynamics
 import Registry
 
-import HTk hiding (Icon(..))
+import HTk
 import Button
 import Frame
 import Label

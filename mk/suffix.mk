@@ -126,10 +126,12 @@ testhere : $(TESTPROGS)
 mainhere : $(MAINPROGS)
 
 libfasthere : $(OBJSC)
+ifneq "$(strip $(LIBOBJS))" ""
 	$(TOP)/mk/mkEverything $(LIBSRCS)
 	$(HC) --make EVERYTHING.hs $(HCFLAGS)
 	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi
 	$(AR) -r $(LIB) $(LIBOBJS)
+endif
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^
