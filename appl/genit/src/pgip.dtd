@@ -104,7 +104,7 @@
 
 <!-- Messages sent to proof assistant (class "pa") -->
 
-<!ENTITY % provermsg	"proverconfig">
+<!ENTITY % provermsg	"%proverconfig;">
 
 <!-- Messages sent to PG Kit components -->
 
