@@ -360,11 +360,17 @@ initialiseLocation (repository@Repository{cvsLoc=cvsLoc})
       exportToCVSFile repository objectSource cvsFile
       cvsAddCheck cvsLoc cvsFile
       objectVersion <- updateDirContents repository cvsFile
-         (\ Nothing -> cvsCommitCheck cvsLoc cvsFile Nothing 
+         (\ Nothing -> 
+            do
+               objectVersionOpt <- cvsCommitCheck cvsLoc cvsFile Nothing
+               case objectVersionOpt of
+                  Just objectVersion -> return objectVersion
+                  -- Nothing indicates cvs claims an existing identical
+                  -- version, even though this should be the first one.
             )
          -- a match failure here means someone else in this process
-         -- is accessing the file    
-      return objectVersion
+         -- is accessing the file 
+      return objectVersion 
 
 ----------------------------------------------------------------
 -- commit and retrieveFile/retrieveString
@@ -397,10 +403,16 @@ commit (repository@Repository{cvsLoc=cvsLoc,notifier=notifier})
             newVersion <- retrieveGeneral repository cvsFile parentVersion 
                (do
                   exportToCVSFile repository objectSource cvsFile
-                  newVersion <- 
+                  newVersionOpt <- 
                      cvsCommitCheck cvsLoc cvsFile (Just commitVersion)
-                  notify notifier cvsFileName
-                  return newVersion
+                  case newVersionOpt of
+                     Nothing ->
+                        -- actually no change here
+                        return parentVersion
+                     Just newVersion ->
+                        do
+                           notify notifier cvsFileName
+                           return newVersion
                   )
             updateDirContents repository cvsFile
                (\ _ -> return newVersion)

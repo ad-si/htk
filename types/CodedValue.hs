@@ -264,7 +264,7 @@ instance HasCodedValue value => HasCodedValue [value]
                      if n<0
                         then 
                            formatError 
-                              "Bad list length in AttributeTypes.decode"
+                              "Bad list length in CodedValue.decodeIO"
                         else
                            return ([],codedValue0)
                   else
@@ -315,7 +315,7 @@ instance HasCodedValue value => HasCodedValue (ShortList value)
                      if n<0
                         then 
                            formatError 
-                              "Bad list length in AttributeTypes.decode"
+                              "Bad list length in CodedValue.decodeIO"
                         else
                            return ([],codedValue0)
                   else
@@ -501,7 +501,7 @@ instance (Integral integral,Bits integral)
 newtype FormatError = FormatError String
 
 formatErrorTag :: TyCon
-formatErrorTag = mkTyCon "AttributeTypes" "FormatError"
+formatErrorTag = mkTyCon "CodedValue" "FormatError"
 
 instance HasTyCon FormatError where
    tyCon _ = formatErrorTag

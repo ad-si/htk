@@ -29,15 +29,19 @@ module CVSHigh(
    cvsUpdateCheck, -- :: CVSLoc -> CVSFile -> CVSVersion -> IO ()
    cvsCommit, 
       -- :: CVSLoc -> CVSFile -> (Maybe CVSVersion) -> 
-      --   IO (Maybe CVSVersion,CVSReturn)
-      -- cvsCommit creates a new version of a file (first argument)
+      --   IO (Maybe (Maybe CVSVersion),CVSReturn)
+      -- cvsCommit tries to create a new version of a file (first argument)
       -- in the repository, taking it from the client's working directory.
       -- The second argument, if given, is a parent version of which this
-      -- is a revision.
-      -- In the event of a successful return, the String is the version
-      -- assigned to the new version.
+      -- is a revision.                         
+      -- If the first argument is Just Nothing, that means cvs 
+      -- returning successfully with no output, indicating that 
+      -- this commit was superfluous as the version is identical to 
+      -- the parent.
    cvsCommitCheck, -- :: CVSLoc -> CVSFile -> (Maybe CVSVersion) ->
-      --   IO CVSVersion
+      --   IO (Maybe CVSVersion)
+      -- Nothing indicates that the version is identical to the parent
+      -- one.
    cvsListVersions,
       -- :: CVSLoc -> CVSFile -> IO (Maybe [CVSVersion],CVSReturn)
       -- If successful, returns all versions known so far of the file 
@@ -234,7 +238,7 @@ cvsAdd (CVSLoc globalOptions) file =
          "\\`Directory .* added to the repository\\'"
 
 cvsCommit :: CVSLoc -> CVSFile -> (Maybe CVSVersion) -> 
-      IO (Maybe CVSVersion,CVSReturn)
+      IO (Maybe (Maybe CVSVersion),CVSReturn)
 cvsCommit (CVSLoc globalOptions) file maybeVersion =
    do
       exp <- callCVS globalOptions 
@@ -250,7 +254,7 @@ Checking in 1/3;
 initial revision: 1.1
 done
    -}
-         event1 :: Event CVSVersion =
+         event1 :: Event (Maybe CVSVersion) =
             do
                mat "\\`RCS file: "
                guard exp (mat "\\`done\\'")
@@ -264,7 +268,7 @@ done
                      )
                guard exp (mat "\\`done\\'")
                mustEOFHere exp
-               return (CVSVersion revision)         
+               return (Just (CVSVersion revision))        
 {-
    (2) for a commit of a revision of a file:
 Checking in 1/1;
@@ -272,7 +276,7 @@ Checking in 1/1;
 new revision: 1.2; previous revision: 1.1
 done
    -}
-         event2 :: Event CVSVersion = 
+         event2 :: Event (Maybe CVSVersion) = 
             do
                mat "\\`Checking in .*;\\'"
                guard exp (mat "")
@@ -284,20 +288,16 @@ done
                      )
                guard exp (mat "\\`done\\'")
                mustEOFHere exp
-               return (CVSVersion revision)
-{-  (3) when no changes were made to the file, and no version
-    was specified, or else the version was the same as the version
-    of the file, nothing is output.  But we don't handle
-    this because it isn't clear here what CVSVersion to return,
-    if none is supplied.  Should we handle it?
-    
-         event3 :: Event CVSVersion =
-            do
-               mustEOFHere
-               return ???
+               return (Just (CVSVersion revision))
+{-  (3) when no changes were made to the file, cvs indicates this
+        by returning nothing; we return Nothing.
     -}
+         event3 :: Event (Maybe CVSVersion) =
+            do
+               mustEOFHere exp
+               return Nothing
       -- (back to main "do" in cvsCommit function)
-      tryCVS "cvs commit" exp (guard exp (event1 +> event2))
+      tryCVS "cvs commit" exp (guard exp (event1 +> event2 +> event3))
 
 cvsUpdate :: CVSLoc -> CVSFile -> CVSVersion -> IO CVSReturn
 cvsUpdate (CVSLoc globalOptions) file version =
@@ -417,14 +417,14 @@ cvsAddCheck loc file = cvsAdd loc file >>= checkReturn
 cvsUpdateCheck :: CVSLoc -> CVSFile -> CVSVersion -> IO ()
 cvsUpdateCheck loc file version = cvsUpdate loc file version >>= checkReturn
 
-cvsCommitCheck :: CVSLoc -> CVSFile -> (Maybe CVSVersion) -> IO CVSVersion
+cvsCommitCheck :: CVSLoc -> CVSFile -> (Maybe CVSVersion) 
+   -> IO (Maybe CVSVersion)
 cvsCommitCheck loc file version =
    do
-      (cvsVersOpt,cvsReturn) <- cvsCommit loc file version
+      (cvsVersOptOpt,cvsReturn) <- cvsCommit loc file version
       checkReturn cvsReturn
-      let 
-         Just cvsVers = cvsVersOpt
-      return cvsVers
+      let Just cvsVersOpt = cvsVersOptOpt
+      return cvsVersOpt
 
 cvsListVersionsCheck :: CVSLoc -> CVSFile -> IO [CVSVersion]
 cvsListVersionsCheck loc file =
