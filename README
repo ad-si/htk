@@ -56,8 +56,8 @@ The following are required or at least recommended.
     patience).  250MB would be nice.  If you still get problems see the
     section on "Restarting compilation".
 (7) If you are unfortunate enough to be using Windows, you will also need
-    Cygwin.  The following instructions assume that you are in a 
-    Cygwin bash shell where the usual Unix utilities (sed, find and so on)
+    Cygwin or MinGW.  The following instructions assume that you are in a 
+    Cygwin or MinGW shell where the usual Unix utilities (sed, find and so on)
     are available.  However you will be glad to know that you do NOT need
     a version of GHC which is Cygwin-aware.  We convert filenames into their
     Windows equivalents (well, more or less) before passing them to GHC.
