@@ -32,6 +32,12 @@ module Folders(
       -- -> Blocker a -> BlockID -> (a -> ArcData WrappedLink ArcType) 
       -- -> IO ArcEnds
 
+
+   registerAsMoveable, 
+      -- :: (HasCodedValue object,HasLinkedObject object) 
+      -- => (object :: object) -> IO ()
+      -- Register that objects of this type may be moved into folders.
+      -- The value of the argument is ignored.
    ) where
 
 import Maybe
@@ -142,6 +148,9 @@ data FolderType = FolderType {
    allowAddFiles :: Bool,
       -- If this is set, allow new objects to be created within a folder of 
       -- this type by dragging from it using addFileGesture.
+      -- Also allows folders to be dragged into other files and for other
+      -- folders to be dragged into this one.  Maybe we need three bools
+      -- here rather than one but for now I can't be bothered.
    folderTypeLabel :: Maybe String,
       -- If set, allow folders of this type to be added with addFileGesture;
       -- the String will be the menu label the use selects. 
@@ -387,6 +396,12 @@ instance ObjectType FolderType Folder where
                               else
                                  Nothing
                               ) $$$?
+                           (if allowAddFiles folderType
+                              then 
+                                 Just (moveFileGesture view)
+                              else
+                                 Nothing
+                              ) $$$?
                            nodeTypeParms
                            )],
                      getNodeType = const theNodeType,
@@ -447,6 +462,80 @@ instance HasLinkedObject Folder where
    toLinkedObject folder = linkedObject folder
 
 -- ------------------------------------------------------------------
+-- Option allowing Folders to be moved into other Folders
+-- ------------------------------------------------------------------
+
+moveFileGesture :: View -> NodeDragAndDrop (Link Folder)
+moveFileGesture view =
+   let
+      moveFile dyn folderLink =
+         do
+            moveableList <- readIORef moveableListRef
+            let
+               scanMoveableList [] = return Nothing
+               scanMoveableList (getLinkedObject : moveableList1) =
+                  do
+                     linkedObjectOpt <- getLinkedObject view dyn
+                     case linkedObjectOpt of
+                        Just _ -> return linkedObjectOpt
+                        Nothing -> scanMoveableList moveableList1
+
+            linkedObjectOpt <- scanMoveableList moveableList
+            case linkedObjectOpt of
+               Nothing -> errorMess "You cannot move this object"
+               Just linkedObject ->
+                  do
+                     thisNameOpt <- readContents (
+                        getLinkedObjectTitleOpt linkedObject)
+                     case thisNameOpt of
+                        Nothing -> errorMess "You cannot move the root object"
+                        Just thisName ->
+                           do
+                              folder <- readLink view folderLink
+                              let
+                                 folderLinkedObject = toLinkedObject folder
+                              resultWE <- moveObject linkedObject
+                                 (Just (mkInsertion folderLinkedObject 
+                                    thisName))
+                              case fromWithError resultWE of
+                                 Left mess -> errorMess mess
+                                 Right () -> done
+   in
+      NodeDragAndDrop moveFile      
+
+
+moveableListRef :: IORef [View -> Dyn -> IO (Maybe LinkedObject)]
+moveableListRef = unsafePerformIO (newIORef [])
+{-# NOINLINE moveableListRef #-}
+
+registerAsMoveable :: 
+   (HasCodedValue object,HasLinkedObject object) 
+   => object -> IO ()
+registerAsMoveable = registerAsMoveable1 (const True)
+
+registerAsMoveable1 :: 
+   (HasCodedValue object,HasLinkedObject object) 
+   => (object -> Bool) -> object -> IO ()
+registerAsMoveable1 objectIsMoveable (_ :: object) =
+   do
+      let
+         getLinkedObject view linkDyn =
+            case fromDyn linkDyn of
+               Nothing -> return Nothing
+               Just (link :: Link object) ->
+                  do
+                     object <- readLink view link
+                     return (if objectIsMoveable object
+                        then
+                           Just (toLinkedObject object)
+                        else
+                           Nothing
+                        )
+      
+      atomicModifyIORef moveableListRef 
+         (\ moveableList -> (getLinkedObject : moveableList,()))
+
+-- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set
 -- ------------------------------------------------------------------
 
@@ -464,6 +553,8 @@ registerFolders =
       registerObjectType (error "Unknown FolderType" :: FolderType)
       registerDisplayType 
          (error "Unknown FolderDisplayType" :: FolderDisplayType)
+      registerAsMoveable1 (allowAddFiles . folderType)
+         (error "Unknown Folder" :: Folder)
 
 -- ------------------------------------------------------------------
 -- The list of extra folder types.

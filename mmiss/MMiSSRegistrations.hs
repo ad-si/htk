@@ -4,6 +4,7 @@
 module MMiSSRegistrations(doMMiSSRegistrations) where
 
 import ObjectTypes
+import Folders
 
 import MMiSSObjectTypeType
 
@@ -21,6 +22,7 @@ doMMiSSRegistrations =
       registerMMiSSObjects
       registerMMiSSDisplay
       registerMMiSSSubFolder
+      registerAsMoveable (error "Unknown PackageFolder" :: MMiSSPackageFolder)
 
 registerMMiSSObjects :: IO ()
 registerMMiSSObjects =

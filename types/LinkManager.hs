@@ -857,10 +857,19 @@ createLinkedObject view isNew frozenLinkedObject =
       previousMVar <- newMVar (if isNew then Nothing else insertion0)
 
       let
-         moveObject insertion = synchronizeView view (
+         moveObject insertionOpt = synchronizeView view (
             do
                previous <- takeMVar previousMVar
                let
+                  isDescendant1 newInsertion =
+                     let
+                        insertionObject :: LinkedObject
+                        insertionObject 
+                           = fromLinkedObjectPtr (parent newInsertion)
+                     in
+                        isDescendant insertionObject linkedObject
+                          
+
                   toContents insertion 
                      = contents (fromLinkedObjectPtr (parent insertion))
 
@@ -879,43 +888,70 @@ createLinkedObject view isNew frozenLinkedObject =
                                  (\ map -> (delFromFM map oldName,
                                     elemFM oldName map))
                               when success (dirtyInsertion oldInsertion) 
-               case insertion of
+               case insertionOpt of
                   Nothing -> -- this must be a deletion
                      do
                         removePrevious
-                        putMVar previousMVar insertion
+                        putMVar previousMVar insertionOpt
                         return (hasValue ())
                   Just newInsertion ->
                      do
                         let
                            newName = name newInsertion
 
-                        success <- applySimpleUpdate'
-                           (toContents newInsertion)
-                           (\ map -> 
-                              if elemFM newName map
-                                 then
-                                    (map,False)
-                                 else
-                                    (addToFM map newName thisPtr,True)
-                              )
-                        if success 
-                           then
+                           check1 :: IO (Maybe String)
+                           check1 =
+                              do
+                                 isCycle <- isDescendant1 newInsertion
+                                 return (if isCycle
+                                    then
+                                       Just 
+                                          "Cannot insert an object into itself"
+                                    else
+                                       Nothing
+                                    )
+
+                           check2 =
+                              do
+                                 success <- applySimpleUpdate'
+                                    (toContents newInsertion)
+                                    (\ map -> 
+                                       if elemFM newName map
+                                          then
+                                             (map,False)
+                                          else
+                                             (addToFM map newName thisPtr,True)
+                                       )
+                                 return (if success
+                                    then
+                                       Nothing
+                                    else
+                                       Just ("There is already an object "
+                                          ++ show (name newInsertion)
+                                          ++ " in the folder")
+                                    )
+
+                        (errorMessOpt :: Maybe String) <-
+                           do
+                              errorMess1Opt <- check1
+                              case errorMess1Opt of
+                                 Just _ -> return errorMess1Opt
+                                 Nothing -> check2
+
+                        case errorMessOpt of
+                           Nothing ->
                               do
                                  dirtyInsertion (newInsertion)
                                  dirtyLinkedObject linkedObject
 
                                  removePrevious
-                                 putMVar previousMVar insertion
-                                 broadcast insertionBroadcaster insertion
+                                 putMVar previousMVar insertionOpt
+                                 broadcast insertionBroadcaster insertionOpt
                                  return (hasValue ())
-                           else
+                           Just mess ->
                               do
                                  putMVar previousMVar previous
-                                 return (hasError (
-                                    "There is already an object "++
-                                    show (name newInsertion)++" in the folder"
-                                    ))
+                                 return (hasError mess)
             )
 
          dirtyInsertion :: Insertion -> IO ()
@@ -954,6 +990,20 @@ createLinkedObject view isNew frozenLinkedObject =
                return (mapWithError (\ () -> linkedObject) we)
          else
             return (hasValue linkedObject)
+
+isDescendant :: LinkedObject -> LinkedObject -> IO Bool
+isDescendant linkedObject1 linkedObject2 =
+   if linkedObject1 == linkedObject2 
+      then
+         return True
+      else
+         do
+            insertionOpt <- readContents (insertion linkedObject1)
+            case insertionOpt of
+               Nothing -> return False
+               Just insertion -> isDescendant 
+                  (fromLinkedObjectPtr (parent insertion)) 
+                  linkedObject2
 
 
 -- ----------------------------------------------------------------------
