@@ -1,0 +1,8 @@
+#!/bin/sh
+# Copy one file to another.
+# 
+# Argument 1 = working directory
+# Argument 2 = name of file (in this directory) to copy.
+# Argument 3 = name of destination.
+cd $1
+@CP@ $2 $3
