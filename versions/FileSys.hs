@@ -12,6 +12,8 @@ module FileSys(
       -- :: [RepositoryParameter] -> IO ()
       -- Set up a repository for the very first time on the remote server
       -- This includes the first "version" which is totally empty.
+   RepositoryParameter(HostString,WorkingDir), 
+      -- taken from CVSDB.
    FileSys, -- the type of a single File System.
    connectFileSys,
       -- :: [RepositoryParameter] -> IO FileSys
@@ -54,6 +56,11 @@ module FileSys(
       -- the first in the list taken first, and so on.
       -- If there are no changes, the version is in fact unchanged.
       -- (That may change . . )
+
+   getTypeDataBase,
+      -- :: FileSys -> UniTypeDataBase
+      -- This gets the type data base for the file system.
+      -- This allows further types to be registered.
    ) where
 
 import Directory
@@ -116,6 +123,9 @@ data FileSys = FileSys {
    typeDataBase :: UniTypeDataBase,
    folderType :: UniType
    }
+
+getTypeDataBase :: FileSys -> UniTypeDataBase
+getTypeDataBase = typeDataBase
 
 ------------------------------------------------------------------
 -- Reading and writing folders, and the folder type

@@ -8,6 +8,7 @@ add [File]
 update [File] [Version]
 commit [File]
 commit [File] [Version]
+checkout [File]
 list [File]
     It outputs the response (just using show).
     -}

@@ -219,7 +219,7 @@ cvsAdd (CVSLoc globalOptions) file =
       return result
    where
       fileAdded = high
-         "\\`cvs server: use 'cvs commit' to add this file permanently\\'"
+         "\\`cvs .*: use 'cvs commit' to add this file permanently\\'"
       directoryAdded = high
          "\\`Directory .* added to the repository\\'"
 

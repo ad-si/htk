@@ -58,7 +58,7 @@ newCollectibleObj =
                      try action
                      return done
                   )
-      foreignObj <- makeForeignObj nullAddr whenDone
+      foreignObj <- newForeignObj nullAddr whenDone
       return (CollectibleObj foreignObj storageVar)
 
 instance Eq CollectibleObj where

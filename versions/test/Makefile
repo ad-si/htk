@@ -1,5 +1,5 @@
 LIBS = $(UNIDIR)/versions/libversions.a $(UNIDIR)/cvs/libcvs.a \
-   $(UNIDIR)/reactor/libreactor.a $(UNIDIR)/concurrency/libconcurrency.a \ 
+   $(UNIDIR)/reactor/libreactor.a $(UNIDIR)/concurrency/libconcurrency.a \
    $(UNIDIR)/util/libutil.a
 SRCS = Test1.hs
 
