@@ -19,11 +19,13 @@ module Text.XML.HaXml.Parse
 import Prelude hiding (either,maybe,sequence)
 import Maybe hiding (maybe)
 import List (intersperse)	-- debugging only
-import Char (isSpace)
+import Char (isSpace,isDigit,isHexDigit)
+import Monad hiding (sequence)
+import Numeric (readDec,readHex)
+
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Lex
 import Text.ParserCombinators.HuttonMeijerWallace
-import Monad hiding (sequence)
 
 
 #if defined(__GLASGOW_HASKELL__) && ( __GLASGOW_HASKELL__ > 502 )
@@ -96,7 +98,7 @@ flattenEV (EntityValue evs) = concatMap flatten evs
   where
     flatten (EVString s)          = s
     flatten (EVRef (RefEntity r)) = "&" ++r++";"
-    flatten (EVRef (RefChar r))   = "&#"++r++";"
+    flatten (EVRef (RefChar r))   = "&#"++show r++";"
 
 
 ---- Misc ----
@@ -516,9 +518,19 @@ ignore = do
 ----
 
 reference :: Parser SymTabs Token Reference
+reference = do
+    bracket (tok TokAmp) (freetext >>= val) (tok TokSemi)
+  where
+    val ('#':'x':i) | all isHexDigit i
+                    = return . RefChar . fst . head . readHex $ i
+    val ('#':i)     | all isDigit i
+                    = return . RefChar . fst . head . readDec $ i
+    val name        = return . RefEntity $ name
+
+{-
 reference =
-    ( entityref >>= return . RefEntity) +++
-    ( charref >>= return . RefChar)
+    ( charref >>= return . RefChar) +++
+    ( entityref >>= return . RefEntity)
 
 entityref :: Parser SymTabs Token EntityRef
 entityref = do
@@ -526,7 +538,12 @@ entityref = do
 
 charref :: Parser SymTabs Token CharRef
 charref = do
-    bracket (tok TokAmp) freetext (tok TokSemi)
+    bracket (tok TokAmp) (freetext >>= readCharVal) (tok TokSemi)
+  where
+    readCharVal ('#':'x':i) = return . fst . head . readHex $ i
+    readCharVal ('#':i)     = return . fst . head . readDec $ i
+    readCharVal _           = mzero
+-}
 
 pereference :: Parser SymTabs Token PEReference
 pereference = do

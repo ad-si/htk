@@ -1,0 +1,212 @@
+<!--
+   XML Document Type Definition for requests to be sent to MMiSS.
+   -->
+
+
+<!-- Connecting to a particular server. 
+   If the serverRef is specified it is used to identify the server in
+   future operations, such as close.  Otherwise a serverRef is generated
+   automatically. 
+   -->
+<!ELEMENT connect (serverRef)? >
+<!ATTLIST connect
+   server CDATA "localhost"
+   user CDATA #IMPLIED
+   password CDATA #IMPLIED
+   >
+<!ELEMENT connectResponse (serverRef?,messages) >
+
+
+<!-- Closing the connection to a server. -->
+<!ELEMENT closeServer (serverRef) >
+<!ELEMENT closeServerResponse (messages) >
+
+
+<!-- Listing all known versions. -->
+<!ELEMENT listVersions (serverRef) >
+<!ELEMENT listVersionsResponse (versionInfo*,messages) >
+
+
+<!-- Checking out a version. -->
+<!ELEMENT checkOut (serverRef,versionRef?) >
+<!ATTLIST checkOut version CDATA #REQUIRED >
+<!ELEMENT checkOutResponse (versionRef?,messages) >
+
+<!-- Changing the user-info of a current checked-out version. -->
+<!ELEMENT changeUserInfo (versionRef,userInfo) >
+<!ELEMENT changeUserInfoResponse (messages) >
+
+<!-- Committing a checked-out version. -->
+<!ELEMENT commitVersion (versionRef) >
+<!ELEMENT commitVersionResponse (messages) >
+
+<!-- Closing a checked-out version. -->
+<!ELEMENT closeVersion (versionRef) >
+<!ELEMENT closeVersionResponse (messages) >
+
+<!-- Get the contents of an object in the repository. 
+     This will be implemented for (a) MMiSS objects; (b) MMiSS files;
+     (c) folders or MMiSSPackageFolders. 
+     -->
+<!ELEMENT getObject (versionRef,objectFullName,variants?) >
+<!ATTLIST getObject
+   what (locations | everything) "locations"
+   format (LaTeX | XML)  "LaTeX"
+   recurse (justThis | allIncluded) "justThis"
+   >
+<!-- Interpretation of the attributes.
+    "what" specifies what sort of data should be returned.  For "locations"
+    no fileVariants elements will be sent.   For "everything", each "file" 
+    element will contain all selected variants.
+
+    "format" specifies whether the content of MMiSS objects should be given
+    in LaTeX or XML.  They will be sent with an objectType with 
+    baseType=mmissFile, and extType=tex or xml.
+
+    "recurse" varies in meaning depending on what sort of object we
+    are retrieving.  It is ignored for MMiSS File's.
+    For MMiSS objects, we retrieve just the object, but not the imported
+    files, unless recurse=allIncluded.  For folders, we include just
+    the objects actually in the folder if recurse=justThis, otherwise we
+    also include the objects in all constituent folders.
+    -->
+
+<!ELEMENT getObjectResponse (files?,messages) >
+ 
+
+<!-- Attempt to import the given object(s) into the specified object in the
+     repository. -->
+<!ELEMENT putObject (versionRef,objectFullName,files) >
+<!ELEMENT putObjectResponse (messages) >
+
+<!--
+   Basic Data Types (shared with MMiSSReply.dtd)
+
+   -->
+
+<!-- References.  These are references to servers, versions & so on which
+     have already been opened. -->
+<!ENTITY % ref "ref CDATA #REQUIRED" >
+
+<!-- A server reference. -->
+<!ELEMENT serverRef EMPTY >
+<!ATTLIST serverRef %ref; >
+
+<!-- A version reference. -->
+<!ELEMENT versionRef EMPTY >
+<!ATTLIST versionRef %ref; >
+
+<!-- A collection of files. -->
+<!ELEMENT files (file)* >
+
+<!-- A file. -->
+<!ELEMENT file (fileLocation, ( fileVariants | files ) ? ) >
+<!ELEMENT fileLocation (objectName?,objectType)>
+   <!-- The objectName? needs to be optional because of objects, such as
+        preambles, which don't have them. -->
+
+<!-- A collection of variants. -->
+<!ELEMENT fileVariants (fileVariant)* >
+<!ELEMENT fileVariant ( variants? , fileContents ) >
+<!ELEMENT fileContents ( #PCDATA ) >
+
+<!-- The VersionInfo and friends. -->
+<!ELEMENT versionInfo (userInfo,serverInfo)>
+<!ATTLIST versionInfo 
+   isPresent (present | absent) "present"
+   >
+
+<!ELEMENT userInfo EMPTY>
+<!ATTLIST userInfo
+   label CDATA #IMPLIED
+   contents CDATA #IMPLIED
+   private (autoExport|noAutoExport) "autoExport"
+   version NMTOKEN #IMPLIED
+   parents NMTOKENS #IMPLIED
+   >
+<!-- version and parents should /not/ be set for changeUserInfo.
+     (This is just how the server structures them and I can't be bothered
+     to create an especial element for 
+     everything-the-user-is-allowed-to-change.) -->
+
+<!ELEMENT serverInfo EMPTY>
+<!ATTLIST serverInfo 
+   serverId CDATA #REQUIRED
+   serialNo NMTOKEN #REQUIRED
+   timeStamp CDATA #REQUIRED
+   userId CDATA #REQUIRED
+   >
+
+<!-- A name of an object in a folder, for example "A" -->
+<!ELEMENT objectName (#PCDATA) >
+
+<!-- Object Types. 
+   An object type is described by its baseType, sometimes additionally 
+   qualified by an extType.
+
+   The list of baseTypes given in this DTD may be extended later on.
+
+   Examples of extType's: 
+      "Package" / "Unit" etcetera for an mmissObject
+      "gif" / "jpeg" (or the appropriate extension) for an mmissFile
+      not specified for an mmissFolder or mmissPreamble.
+
+      The combination of baseType=mmissFile and extType="tex" or "xml" 
+      is reserved for MMiSS objects being exported.   
+   -->
+<!ELEMENT objectType EMPTY >
+<!ATTLIST objectType
+   baseType ( folder | plainFile 
+      | mmissFolder | mmissObject | mmissFile 
+      | mmissPreamble ) #REQUIRED
+   extType CDATA #IMPLIED
+   >
+
+<!-- A path of an object from some other object, for example "A/B". 
+     Where this is given as part of an MMiSS request, the path will be
+     from the top folder (there is no current directory).  Where 
+     this is given as part of a fileLocation, the path will be from the
+     object for which the request was initiated, EG the 
+     -->
+<!ELEMENT objectFullName (#PCDATA) >
+
+<!-- Variant objects. -->
+<!ELEMENT variant EMPTY >
+<!ATTLIST variant 
+   key CDATA #REQUIRED
+   value CDATA #REQUIRED
+   >
+
+<!ELEMENT variants (variant) >
+
+<!-- Messages 
+
+     Every request returns a messages object, which in addition
+     to providing messages of various levels, also contains a 
+     success/fail/panic indicator.
+-->
+
+<!ELEMENT messages (alert|error|warning|message)* >
+<!ATTLIST messages 
+   status (success | fail | panic) "success"
+   >
+
+<!-- 
+   "fail" means the operation was not successfully completed.
+   "panic" means that the session has somehow crashed and that further
+       communication within it should not be attempted.
+    -->
+
+<!ELEMENT alert (#PCDATA)>
+<!ELEMENT error (#PCDATA)>
+<!ELEMENT warning (#PCDATA)>
+<!ELEMENT message (#PCDATA)>
+
+
+<!-- Standard Predefined Entities (XML standard section 4.6). --> 
+<!ENTITY lt "&#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ENTITY apos "&#39;">
+<!ENTITY quot "&#34;">
+

@@ -7,7 +7,7 @@
 PACKAGE = uni-HaXml
 PACKAGES = text data uni-util
 
-HAXML = @TOP@/HaXml-1.09/src
+HAXML = @TOP@/HaXml-1.10/src
 
 # Disable DEBUG mode.  This is because Malcolm Wallace uses the same
 # flag, and so if it's left it I get lots and lots of Malcolm's trace
@@ -15,30 +15,33 @@ HAXML = @TOP@/HaXml-1.09/src
 EXTRA_HC_OPTIONS += -UDEBUG -cpp
 
 
-SRCS = $(HAXMLSRCS) XmlEscape.hs XmlFix.hs
+SRCS = $(HAXMLSRCS) XmlEscape.hs XmlFix.hs tools/MainDtdToHaskell.hs
 
-# Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in.
+# Taken from the setting for LIBSRCS in $(HAXML)/../Makefile.
 HAXMLSRCS = \
-	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs Text/XML/HaXml/Lex.hs \
+	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs \
+	Text/XML/HaXml/Lex.hs \
 	Text/XML/HaXml/Parse.hs Text/XML/HaXml/Pretty.hs \
 	Text/XML/HaXml/Types.hs Text/XML/HaXml/Validate.hs \
 	Text/XML/HaXml/Wrappers.hs Text/XML/HaXml/OneOfN.hs \
+	Text/XML/HaXml/Verbatim.hs Text/XML/HaXml/Escape.hs \
 	Text/XML/HaXml/Xml2Haskell.hs Text/XML/HaXml/Haskell2Xml.hs \
-	Text/XML/HaXml/Verbatim.hs \
 	Text/XML/HaXml/Html/Generate.hs Text/XML/HaXml/Html/Parse.hs \
 	Text/XML/HaXml/Html/Pretty.hs \
 	Text/XML/HaXml/Xtract/Combinators.hs \
 	Text/XML/HaXml/Xtract/Lex.hs \
 	Text/XML/HaXml/Xtract/Parse.hs \
+	Text/XML/HaXml/DtdToHaskell/TypeDef.hs \
 	Text/XML/HaXml/DtdToHaskell/Convert.hs \
 	Text/XML/HaXml/DtdToHaskell/Instance.hs \
-	Text/XML/HaXml/DtdToHaskell/TypeDef.hs \
 	Text/ParserCombinators/HuttonMeijerWallace.hs \
+	Text/PrettyPrint/HughesPJ.hs 
 
 
 include @TOP@/mk/boilerplate.mk
 
-lnsrcs : 
+lnsrcs : Makefile
+	$(RM) -rf Text
 	$(foreach file,$(HAXMLSRCS),\
            $(MKDIR) -p `dirname $(file)` \
            && $(LN) -s $(HAXML)/$(file) $(file) &&) \

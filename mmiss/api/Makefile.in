@@ -1,0 +1,9 @@
+PACKAGE = uni-mmiss-api
+PACKAGES = uni-mmiss
+
+SRCS = MMiSSAPI.hs MMiSSRequest.hs \
+
+include @TOP@/mk/boilerplate.mk
+
+MMiSSRequest.hs : MMiSSRequest.dtd
+	@TOP@/HaXml/tools/DtdToHaskell $< $@
