@@ -1,53 +1,60 @@
-{- #########################################################################
-
-MODULE        : EmbeddedTextWin
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Embedded Text Widget Windows
-
-TO BE DONE    : The destroyed event will probably not work work with
-                the current definition. Probably, some extra Tk interaction
-                is required to handle this case.
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module EmbeddedTextWin (
-        EmbeddedTextWin,
-        newEmbeddedTextWin,
 
-        stretch,
-        getStretch
-        ) where
+  EmbeddedTextWin,
+  createEmbeddedTextWin,
+
+  stretch,
+  getStretch
+
+) where
 
 import Core
 import Editor
---import Index
+import Frame
+import Index
+import Computation
+import Synchronized
+import Resources
+import Destructible
+import Geometry
+import BaseClasses(Widget)
+import Wish
+
 
 -- -----------------------------------------------------------------------
--- Window Items
+-- type EmbeddedTextWin
 -- -----------------------------------------------------------------------
 
 newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
--- constructor
+-- creation
 -- -----------------------------------------------------------------------
 
-newEmbeddedTextWin :: (HasIndex (Editor a) i BaseIndex, Widget w)
-                 => (Editor a) -> w -> i -> [Config EmbeddedTextWin] -> IO EmbeddedTextWin
-newEmbeddedTextWin tp w i ol = do {
-        binx <- getBaseIndex tp i;
-        pos <- getBaseIndex tp (binx::BaseIndex);
-        wid <- createGUIObject (EMBEDDEDTEXTWIN (unparse pos)) winMethods;
-        makeChildObject wid (toGUIObject w);
-        configure (EmbeddedTextWin wid) ((parent tp) :ol);
-} where unparse :: Position -> GUIVALUE
+createEmbeddedTextWin :: (HasIndex (Editor a) i BaseIndex, Widget w) =>
+                         (Editor a) -> i -> w ->
+                         [Config EmbeddedTextWin] -> IO EmbeddedTextWin
+createEmbeddedTextWin ed i w ol =
+  do
+    binx <- getBaseIndex ed i
+    pos <- getBaseIndex ed (binx::BaseIndex)
+    nm <- getObjectName (toGUIObject w)
+    wid <- createGUIObject (toGUIObject ed)
+             (EMBEDDEDTEXTWIN (unparse pos) nm) winMethods
+    configure (EmbeddedTextWin wid) ({-(parent ed) :-} ol)
+  where unparse :: Position -> GUIVALUE
         unparse (x,y) = toGUIValue (RawData (show x ++ "." ++ show y))
 
 
@@ -56,33 +63,31 @@ newEmbeddedTextWin tp w i ol = do {
 -- --------------------------------------------------------------------------
 
 instance GUIObject EmbeddedTextWin where 
-        toGUIObject (EmbeddedTextWin w) = w
-        cname _ = "EmbeddedTextWin"
+  toGUIObject (EmbeddedTextWin w) = w
+  cname _ = "EmbeddedTextWin"
 
-instance Destructible EmbeddedTextWin where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject             -- TBD
+instance Destroyable EmbeddedTextWin where
+  destroy = destroy . toGUIObject
 
-instance Interactive EmbeddedTextWin
+--instance HasPadding EmbeddedTextWin
 
-instance HasPadding EmbeddedTextWin
+--instance HasAlign EmbeddedTextWin
 
-instance HasAlign EmbeddedTextWin
-
+{-
 instance ParentWidget (Editor a) EmbeddedTextWin where
         parent tp item = do {
                 packTextWindowItem (toGUIObject tp) (toGUIObject item) (Just winMethods);
                 return item
                 }
-
+-}
 
 instance Synchronized EmbeddedTextWin where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize = synchronize . toGUIObject
 
 
--- --------------------------------------------------------------------------
--- Configuration Options
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- widget specific configuration options
+-- -----------------------------------------------------------------------
 
 stretch :: Toggle -> Config EmbeddedTextWin
 stretch t w = cset w "stretch" t
@@ -91,82 +96,62 @@ getStretch :: EmbeddedTextWin -> IO Toggle
 getStretch ew = cget ew "stretch"
 
 
--- --------------------------------------------------------------------------
--- Index 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- index
+-- -----------------------------------------------------------------------
 
 instance HasIndex (Editor a) EmbeddedTextWin BaseIndex where
-        getBaseIndex tp win = synchronize win (do {
-                name <- getObjectName (toGUIObject win);
-                case name of
-                        (Just (TextPaneItemName pnm (EmbeddedWindowName wnm))) -> 
-                                evalTclScript (tkWinIndex pnm wnm)
-                        _ -> raise objectNotPacked
-                })
+  getBaseIndex tp win =
+    synchronize win
+      (do
+         name <- getObjectName (toGUIObject win)
+         case name of
+           (TextPaneItemName pnm (EmbeddedWindowName wnm)) ->
+              do
+                str <- evalTclScript (tkWinIndex pnm wnm)
+                return (read str))
 
-
--- --------------------------------------------------------------------------
--- Text Item Methods 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Text Item Methods
+-- -----------------------------------------------------------------------
 
 winMethods = 
-        Methods
-                tkGetTextWinConfig
-                tkSetTextWinConfigs
-                tkCreateTextWin
-                tkPackTextWin
-                tkDestroyTextWin
-                tkCleanupTextWin
-                tkBindTextWin
-                tkUnbindTextWin
+  Methods tkGetTextWinConfig
+          tkSetTextWinConfigs
+          tkCreateTextWin
+          (packCmd voidMethods)
+          (gridCmd voidMethods)
+          (destroyCmd voidMethods)
+          (bindCmd voidMethods)
+          (unbindCmd voidMethods)
+          (cleanupCmd defMethods)
 
 
--- --------------------------------------------------------------------------
--- Unparsing of Text Window Commands 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Unparsing of Text Window Commands
+-- -----------------------------------------------------------------------
 
 tkGetTextWinConfig :: ObjectName -> ConfigID -> TclScript
 tkGetTextWinConfig (TextPaneItemName name qual) cid =   
         [(show name) ++ " window cget " ++ (show qual) ++ " -" ++ cid]
-tkGetTextWinConfig _ _ = []
-
+tkGetTextWinConfig _ _ = []   -- ich bin unschuldig, war so bei Einar!
+                              -- TD (ludi), geht überhaupt ??
+{-# INLINE tkGetTextWinConfig #-}
 
 tkSetTextWinConfigs :: ObjectName -> [ConfigOption] -> TclScript
 tkSetTextWinConfigs (TextPaneItemName name qual) args = 
-        [show name ++ " window configure " ++ show qual ++ " " ++ showConfigs args]
+  [show name ++ " window configure " ++ show qual ++ " " ++
+   showConfigs args]
 tkSetTextWinConfigs _ _ = []
+{-# INLINE tkSetTextWinConfigs #-}
 
-
-tkCreateTextWin :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> TclScript
-tkCreateTextWin (EMBEDDEDTEXTWIN pos) (TextPaneItemName name qual) _ confs =
-         [(show name) ++ " window create " ++ (show qual)]
-
-
-tkPackTextWin :: ObjectKind -> ObjectName -> ObjectName -> [ConfigOption] -> 
-                ObjectID -> [Binding] -> TclScript
-tkPackTextWin _ _ name _ oid binds = []
-
-
-
-tkBindTextWin :: ObjectName -> ObjectID -> Binding -> TclScript
-tkBindTextWin _ _ _ = []
-{-# INLINE tkBindTextWin #-}
-
-
-tkUnbindTextWin :: ObjectName -> ObjectID -> Binding -> TclScript
-tkUnbindTextWin wn _ _ = []
-{-# INLINE tkUnbindTextWin #-}
-
-
-tkDestroyTextWin :: ObjectID -> ObjectName -> TclScript
-tkDestroyTextWin oid name = []
-
-
-tkCleanupTextWin :: ObjectID -> ObjectName -> TclScript
-tkCleanupTextWin _ _ = []
-        
+tkCreateTextWin :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
+                   [ConfigOption] -> TclScript
+tkCreateTextWin _ (EMBEDDEDTEXTWIN pos wid) (TextPaneItemName name qual) _
+                confs =
+  [show name ++ " window create " ++ show pos ++ " -window " ++ show wid]
+{-# INLINE tkCreateTextWin #-}
 
 tkWinIndex :: ObjectName -> ObjectName -> TclScript
 tkWinIndex pnm wnm = [show pnm ++ " index " ++ show wnm] 
 {-# INLINE tkWinIndex #-}
-

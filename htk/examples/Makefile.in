@@ -18,7 +18,11 @@ SRCS       = Mainex1.hs\
              MaintixWidgetEx.hs\
              MainpanedWindowEx.hs\
              MainiconBarEx.hs\
-#            MaingenGUIEx.hs\
+             MainselectBoxEx.hs\
+             MainmarkupTextEx.hs\
+             MaingenGUIEx.hs\
+             MainutilWinEx.hs\
+             MaingenGUIEx.hs\
 
 XHCDIRS = $(HTKDIRS)
 

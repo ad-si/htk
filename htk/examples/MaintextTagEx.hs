@@ -1,11 +1,13 @@
-{- -----------------------------------------------------------------------
- -
- - HTk text tag example
- -
- - Author: ludi
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -20,7 +22,7 @@ main =
                           cursor xterm] :: IO (Editor String)
     pack ed [Fill Both, Expand On]
 
-    appendText ed "This is line1\nThis is line2\nThis is line3\nThis is line4\nThis is line5\n\nClick here to quit!"
+    appendText ed "This is line1\nThis is line2\nThis is line3\nThis is line4\nThis is line5\n\nClick here to quit!\n\n\n"
 
     ed # state Disabled
 
@@ -62,6 +64,10 @@ main =
                                                ed # cursor arrow >> done))
                          +> (left_quit >>> (quit # fg "blue" >>
                                             ed # cursor xterm >> done))))
+
+    but <- newButton ed [text "This is an embedded button widget"]
+             :: IO (Button String)
+    createEmbeddedTextWin ed (IndexPos (9,0)) but []
 
     (htk_destr, _) <- bindSimple main Destroy
     sync (htk_destr)

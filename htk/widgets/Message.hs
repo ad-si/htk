@@ -77,9 +77,11 @@ instance HasSize (Message a) where
   height _ w = return w
   getHeight _ = return 1
 
-instance GUIValue b => HasValue (Message a) b where
-  value t w   = cset w "text" t
-  getValue w  = cget w "text"
+instance GUIValue b => HasText (Message String) b where
+{-
+  text t w   = cset w "text" t
+  getText w  = cget w "text"
+-}
 
 instance Synchronized (Message a) where
   synchronize = synchronize . toGUIObject

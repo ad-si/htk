@@ -1,18 +1,13 @@
-{- #######################################################################
-
-MODULE        : Index
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : This is the type of indices for entry widgets,
-                listbox widgets, text widgets etc.
-
-                Base indices are used for entries and text widgets.
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Index (
 
@@ -23,7 +18,7 @@ module Index (
   BaseIndex(..),
   Pixels(..),
   First(..),
-  Last(..)
+  Last(..),
 
 ) where
 
@@ -123,4 +118,3 @@ instance Read BaseIndex where
                         [x,y] -> IndexPos (x,y)
                         _ -> error "illegal index specification"
         cread s = IndexText s
-

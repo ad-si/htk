@@ -21,6 +21,7 @@ import GUIValue
 import Geometry
 import Resources
 import ReferenceVariables
+import GUIObjectName
 
 
 -- -----------------------------------------------------------------------
@@ -46,8 +47,8 @@ data ObjectKind =
   | SCALE
   | SCROLLBAR     
   | TOPLEVEL
-  | TEXTTAG [GUIVALUE]                    -- initial position
-  | EMBEDDEDTEXTWIN GUIVALUE              -- initial position
+  | TEXTTAG [GUIVALUE]
+  | EMBEDDEDTEXTWIN GUIVALUE ObjectName
   | CANVASITEM CanvasItemKind Coord
   | POSTSCRIPT
   | SESSION
@@ -120,7 +121,7 @@ instance Show ObjectKind where
        (MENUITEM MENUCHECKBUTTON _) -> "checkbutton"
        (MENUITEM MENURADIOBUTTON _) -> "radiobutton"
        (MENUITEM MENUSEPARATOR _) -> "separator"
-       (EMBEDDEDTEXTWIN _) -> "window"
+       (EMBEDDEDTEXTWIN _ _) -> "window"
        (TEXTTAG _) -> "tag"
        (WIDGET kind) -> kind
        NOTEBOOK -> "tixNoteBook"

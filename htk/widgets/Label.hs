@@ -37,7 +37,8 @@ import Tooltip
 
 ---
 -- The <code>Label</code> datatype - a <code>Label String</code> contains
--- text, a <code>Label Image</code> contains an image.
+-- text, a <code>Label Image</code> contains an image, a
+-- <code>Label BitMap</code> contains a bitmap.
 newtype Label a = Label GUIOBJECT deriving Eq
 
 
@@ -106,6 +107,10 @@ instance HasJustify (Label a)
 ---
 -- A label can contain an image.
 instance HasPhoto (Label Image)
+
+---
+-- A label can contain a bitmap.
+instance HasBitMap (Label BitMap)
 
 ---
 -- You can specify the size of a label.

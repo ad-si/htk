@@ -1,15 +1,13 @@
-{- ####################################################################
-
-MODULE        : HTk
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Haskell Tk.
-
-   #################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module HTk (
 
@@ -32,6 +30,8 @@ module HTk (
 -- text items
 
   module TextTag,
+  module Mark,
+  module EmbeddedTextWin,
 
 
 -- window submodules
@@ -166,7 +166,6 @@ import Rectangle
 import ImageItem
 import BitMapItem
 import TextItem
-import TextTag
 import CanvasTag
 import EmbeddedCanvasWin
 import Image
@@ -198,6 +197,9 @@ import Spawn
 import Channels
 import Synchronized
 import TkVariables
+import TextTag
+import Mark
+import EmbeddedTextWin
 import NoteBook
 import LabelFrame
 import PanedWindow

@@ -1,64 +1,51 @@
-{- #########################################################################
-
-MODULE        : TextTag
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Text Tag
-
-To Be Done    : tag nextrange
-                tag names
-
-                The tag should be declared as a collectable object that
-                will be deleted from the local cache as soon as the
-                handle to it gets collected. In other words, by using
-                an extension of the foreign objects (not yet available).
-
-                The destroyed event for text tags is not applicable.
-
-                
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module TextTag (
-        module Index,
+
+  module Index,
         
-        TextTag,
-        createTextTag,
+  TextTag,
+  createTextTag,
 
-        addTextTag,
-        lowerTextTag,
-        raiseTextTag,
-        removeTextTag,
+  addTextTag,
+  lowerTextTag,
+  raiseTextTag,
+  removeTextTag,
 
-        lmargin1,
-        getLmargin1,
+  lmargin1,
+  getLmargin1,
 
-        lmargin2,
-        getLmargin2,
+  lmargin2,
+  getLmargin2,
 
-        rmargin,
-        getRmargin,
+  rmargin,
+  getRmargin,
 
-        offset,
-        getOffset,
+  offset,
+  getOffset,
 
-        overstrike,
-        getOverstrike,
+  overstrike,
+  getOverstrike,
 
-        underlined,
-        getUnderlined,
+  underlined,
+  getUnderlined,
 
-        bgstipple,
-        getBgstipple,
+  bgstipple,
+  getBgstipple,
 
-        fgstipple,
-        getFgstipple
+  fgstipple,
+  getFgstipple
 
-        ) where
+) where
 
 import Core
 import Resources
@@ -100,7 +87,8 @@ createTextTag ed i1 i2 ol =
                          tagMethods
     configure (TextTag ed w) ol
   where unparse (IndexNo _)   = GUIVALUE HaskellTk ""
-        unparse (IndexText s) = GUIVALUE HaskellTk  ("\\{" ++ s ++ "\\}")
+        unparse (IndexText s) = GUIVALUE HaskellTk  ("{" ++ s ++ "}")
+--        unparse (IndexText s) = GUIVALUE HaskellTk  ("\\{" ++ s ++ "\\}")
         unparse p             = GUIVALUE HaskellTk  (show p ++ " ")
 
 
@@ -308,7 +296,7 @@ tkCreateTextTag :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
 tkCreateTextTag _ (TEXTTAG il) (TextPaneItemName name tnm) _ args =
   [show name ++ " tag add " ++ show tnm ++ " " ++
    concat (map unfold il) ++ " " ++ (showConfigs args)]
-  where unfold (GUIVALUE _ str) = str
+  where unfold (GUIVALUE _ str) = str ++ " "
 --tkCreateTextTag _ _ _ _ _ = []
 {-# INLINE tkCreateTextTag #-}
 

@@ -45,7 +45,9 @@ SRCS       = resources/Resources.hs\
 	     components/Slider.hs\
 	     components/BitMap.hs\
 	     components/Image.hs\
+             textitems/EmbeddedTextWin.hs\
              textitems/TextTag.hs\
+             textitems/Mark.hs\
 	     devices/Mouse.hs\
 	     devices/Keyboard.hs\
 	     devices/XSelection.hs\
@@ -70,6 +72,8 @@ SRCS       = resources/Resources.hs\
              toolkit/FileDialog.hs\
              toolkit/IconBar.hs\
              toolkit/SelectBox.hs\
+             toolkit/MarkupText.hs\
+             toolkit/UtilWin.hs\
      	     menuitems/MenuItem.hs\
              menuitems/Menu.hs\
              menuitems/MenuCascade.hs\

@@ -1,16 +1,18 @@
-{- --------------------------------------------------------------------
- -
- - GenGUI example
- -
- - Author: ludi
- - $Revision$ from $Date$
- -
- - -------------------------------------------------------------------- -}
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
 import HTk
-import Property
+--import Property
 import GenGUI
 --import FileDialog
 import Name
@@ -19,7 +21,7 @@ import System
 import IOExts
 import Dynamic
 
-foldref :: Ref (Maybe Item)
+foldref :: Ref (Maybe (Item Obj))
 foldref = unsafePerformIO (newRef Nothing)
 
 imgpathref :: Ref (Maybe FilePath)
@@ -40,7 +42,7 @@ instance Typeable Image where
 -------------
 -- folders --
 -------------
-
+{-
 data MyContainer = MyContainer (Prop Name) (Prop ItemIcon) (Prop Value)
 
 instance HasProp MyContainer Name where
@@ -53,8 +55,8 @@ instance HasProp MyContainer Value where
   getProp (MyContainer _ _ p) = p
 
 instance CItem MyContainer
-
-
+-}
+{-
 -----------------
 -- object type --
 -----------------
@@ -77,15 +79,31 @@ instance HasProp MyObject Value where
   getProp (MyObject _ _ p) = p
 
 instance CItem MyObject
+-}
+
+data Col = Red | Green | Blue | Yellow deriving Eq
+
+type Obj = (Name, IO Image, MyObject)
+
+data MyObject =
+    MyContainer
+  | MyColor Col
+
+instance CItem Obj where
+  getIcon (_, ic, _) = ic
+  getName (nm, _, _) = return nm
 
 
 ----------------------------------------
 -- external adding of folders / items --
 ----------------------------------------
 
+{-
 addNum :: String -> String -> IO ()
 addNum nm ent = putStrLn ("not yet implemented")
+-}
 
+{-
 addTxt :: String -> String -> IO ()
 addTxt nm ent =
   do
@@ -98,28 +116,28 @@ addTxt nm ent =
                     addItem par (LeafItem (MyObject pname picon pval))
                     done
       _ -> done
+-}
 
 addCol :: String -> String -> IO ()
-addCol nm ent =
+addCol name ent =
   do
     mpar <- getRef foldref 
     case mpar of
       Just par -> 
         do
-          pval <- newProp (case ent of
-                             "Red" -> toDyn Red
-                             "Blue" -> toDyn Blue
-                             "Green" -> toDyn Green
-                             "Yellow" -> toDyn Yellow)
-          pname <- newProp (newName nm)
-          picon <- newProp (case ent of
-                              "Red" -> redImg
-                              "Blue" -> blueImg
-                              "Green" -> greenImg
-                              "Yellow" -> yellowImg)
-          addItem par (LeafItem (MyObject pname picon pval))
+          let nm = newName name
+              ic = case ent of "Red" -> redImg
+                               "Blue" -> blueImg
+                               "Green" -> greenImg
+                               "Yellow" -> yellowImg
+              val = MyColor (case ent of "Red" -> Red
+                                         "Blue" -> Blue
+                                         "Green" -> Green
+                                         "Yellow" -> Yellow)
+          addItem par (LeafItem (nm, ic, val) Nothing)
           done
-
+      _ -> done
+{-
 addImg :: String -> Maybe FilePath -> IO ()
 addImg nm mimgpath =
   do
@@ -137,7 +155,9 @@ addImg nm mimgpath =
                             done
           _ -> done
       _ -> done
+-}
 
+{-
 addFolder :: String -> IO ()
 addFolder nm =
   do
@@ -152,17 +172,22 @@ addFolder nm =
           addItem par (FolderItem (MyContainer pname picon pval) [])
           done
       _ -> done
+-}
 
 
 -------------------
 -- example items --
 -------------------
 
-addExampleFolders :: GenGUI -> IO ()
+addExampleFolders :: GenGUI Obj -> IO ()
 addExampleFolders gui =
-  let mkImgItem :: String -> (Int, (IO Image, ItemIcon)) -> IO NewItem
+  let 
+{-
+      mkImgItem :: String -> (Int, (IO Image, ItemIcon)) ->
+                   IO (NewItem MyObject)
       mkImgItem nm (i, (val, icon)) =
         do
+          
           pname <- newProp (newName (nm ++ show i))
           picon <- newProp icon
           pval <- newProp (toDyn val)
@@ -179,7 +204,8 @@ addExampleFolders gui =
                                                vals_icons)
           addItem par (FolderItem (MyContainer pname picon pval) items)
           done
-
+-}
+{-
       mkTxtItem :: String -> (Int, (String, ItemIcon)) -> IO NewItem
       mkTxtItem nm (i, (val, icon)) =
         do
@@ -199,7 +225,8 @@ addExampleFolders gui =
                                                vals_icons)
           addItem par (FolderItem (MyContainer pname picon pval) items)
           done
-
+-}
+{-
       mkNumItem :: String -> (Int, (Int, ItemIcon)) -> IO NewItem
       mkNumItem nm (i, (val, icon)) =
         do
@@ -219,37 +246,37 @@ addExampleFolders gui =
                                                vals_icons)
           addItem par (FolderItem (MyContainer pname picon pval) items)
           done
+-}
 
-      mkColItem :: String -> (Int, (MyColor, ItemIcon)) -> IO NewItem
-      mkColItem nm (i, (val, icon)) =
+      mkColItem :: String -> (Int, (Col, IO Image)) ->
+                   IO (NewItem Obj)
+      mkColItem name (i, (col, ic)) =
         do
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn val)
-          return (LeafItem (MyObject pname picon pval))
+          let val = MyColor col
+              nm = newName (name ++ show i)
+          return (LeafItem (nm, ic, val) Nothing)
 
-      addColFolder :: Item -> String -> ItemIcon -> String ->
-                      [(MyColor, ItemIcon)] -> Int -> IO ()
-      addColFolder par nm icon subnm vals_icons i =
+      addColFolder :: Item Obj -> String -> IO Image -> String ->
+                      [(Col, IO Image)] -> Int -> IO ()
+      addColFolder par name ic subnm vals_icons i =
         do
-          pname <- newProp (newName (nm ++ show i))
-          picon <- newProp icon
-          pval <- newProp (toDyn ())
+          let nm = newName (name ++ show i)
           items <- mapM (mkColItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (MyContainer pname picon pval) items)
+          addItem par (FolderItem (nm, ic, MyContainer) items Nothing)
           done
   in do
        guiroot <- root gui
-
+{-
        mapM (addImgFolder guiroot "images." imgfolderImg "image_item."
                          [(img1, imgImg), (img2, imgImg)]) [1]
-
-       pname1 <- newProp (newName ("example_folder.1"))
-       picon1 <- newProp folderImg
-       pval1 <- newProp (toDyn ())
+-}
+       let nm1 = newName ("example_folder.1")
        exfolder1 <- addItem guiroot
-                      (FolderItem (MyContainer pname1 picon1 pval1) [])
+                      (FolderItem (nm1, folderImg, MyContainer) []
+                                  Nothing)
+
+{-
        mapM (addTxtFolder guiroot "texts." txtfolderImg "text_item"
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
@@ -273,6 +300,7 @@ addExampleFolders gui =
                          [(25 :: Int, numImg), (17, numImg), (8, numImg), 
                           (73, numImg), (2451, numImg), (3, numImg),
                           (7182812, numImg), (2, numImg)]) [1..3]
+-}
        mapM (addColFolder guiroot "colors." colorfolderImg "color_item."
                          [(Red, redImg), (Yellow, yellowImg),
                           (Green, greenImg), (Yellow, yellowImg),
@@ -309,7 +337,7 @@ main =
   do
     main <- initHTk [text "GenGUI example"]
 
-    gui <- newGenGUI
+    gui <- newGenGUI :: IO (GenGUI Obj)
 
     top <- newVFBox main []
     pack top [PadX 5, PadY 5, Fill X, Expand On]
@@ -348,7 +376,7 @@ main =
                             parent imgvalbox, command (\ () -> return ())]
                    :: IO (Button String)
 -}
-
+{-
     boxtxt <- newFrame main []
     pack boxtxt [PadX 10, PadY 10, Fill X, Expand On]
     addtxt <- newButton boxtxt [height 3, text "add text item", width 28]
@@ -383,7 +411,7 @@ main =
                                    val <- readTkVariable txtval_var
                                    addTxt nm val
                                    done)))
-
+-}
 {-
     boxnum <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
     addnum <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
@@ -521,9 +549,9 @@ main =
                          selectedTl foldlab) +>
                       (doubleClickInNotepad gui >>>= doubleClickNp))
 -}
-    spawnEvent (forever ((receive (selectedItemInTreeList gui) >>>=
+    spawnEvent (forever ((selectedItemInTreeList gui >>>=
                             selectedTl foldlab) +>
-                         (receive (doubleClickInNotepad gui) >>>=
+                         (doubleClickInNotepad gui >>>=
                             doubleClickNp)))
     addExampleFolders gui
     (htk_destr, _) <- bindSimple main Destroy
@@ -540,21 +568,21 @@ imgSelected but img =
         setRef lastactiveref but
         setRef imgref img
 
-selectedTl :: Label String -> Maybe Item -> IO ()
+selectedTl :: Label String -> Maybe (Item Obj) -> IO ()
 selectedTl foldlab mitem =
   case mitem of
     Nothing -> foldlab # text "no folder selected" >> done
-    Just item -> let newitem = content item
-                 in case newitem of
-                      FolderItem ext _ ->
+    Just item -> let val = content item
+                 in case val of
+                      (nm, _, _) ->
                         do
-                          nm <- get ext
                           foldlab # text ("'" ++ full nm ++ "'")
                           setRef foldref (Just item)
                       _ -> setRef foldref Nothing
 
-doubleClickNp :: Item -> IO ()
-doubleClickNp item =
+doubleClickNp :: Item Obj -> IO ()
+doubleClickNp item = done
+{-
   let newitem = content item
   in case newitem of
        LeafItem ext ->
@@ -592,7 +620,7 @@ doubleClickNp item =
                                                 always (destroy main)))
                            done
              _ -> done
-           case fromDynamic val :: Maybe MyColor of
+           case fromDynamic val :: Maybe Col of
              Just mycolor -> do
                                main <- createToplevel [text "Color"]
                                lab <- newLabel main
@@ -638,7 +666,7 @@ doubleClickNp item =
                          done
              _ -> done
        _ -> done
-
+-}
 
 ------------
 -- images --

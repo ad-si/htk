@@ -139,6 +139,11 @@ instance Destroyable (Editor a) where
 instance Widget (Editor a)
 
 ---
+-- An editor is also a container for widgets, because it can contain
+-- widgets in embedded windows.
+instance Container (Editor a)
+
+---
 -- A editor widget has a configureable border.
 instance HasBorder (Editor a)
 
@@ -232,7 +237,7 @@ getTextRange tp start end =
 
 insertText :: (HasIndex (Editor String) i BaseIndex,GUIValue a) =>
               Editor String -> i -> a -> IO ()
-insertText tp i txt = 
+insertText tp i txt =
   do
     pos <- getBaseIndex tp i
     execMethod tp (\nm -> tkInsertText nm pos val)
@@ -332,7 +337,7 @@ instance HasIndex (Editor a) i BaseIndex =>
 
 newtype IndexModifiers = IndexModifiers [IndexModifier]
 
-data IndexModifier = 
+data IndexModifier =
           ForwardChars Int
         | BackwardChars Int
         | ForwardLines Int
@@ -564,7 +569,7 @@ class GUIObject w => HasLineSpacing w where
 
 
 -- -----------------------------------------------------------------------
--- Search Swithc
+-- Search Switch
 -- -----------------------------------------------------------------------
 
 data SearchDirection = Forward | Backward deriving (Eq,Ord,Enum)
@@ -658,7 +663,7 @@ tkGetText name pl1 (Just pl2) =
 
 tkInsertText :: ObjectName -> BaseIndex -> GUIVALUE -> TclScript
 tkInsertText name pl val = 
-        [show name ++ " insert " ++ ishow pl ++ " " ++ show val ++ " "]
+  [show name ++ " insert " ++ ishow pl ++ " " ++ show val ++ " "]
 {-# INLINE tkInsertText #-}
 
 tkInsertNewLine :: ObjectName -> TclScript
