@@ -121,7 +121,14 @@ else
   AC_SUBST(GhcMinVersion)
   AC_SUBST(GhcPatchLevel)
 
-GhcShortVersion=$GhcMajVersion$GhcMinVersion
+# Turn GhcMajVersion & GhcMinVersion into a single three-digit number we
+# can compare against.
+if test `expr length "$GhcMinVersion"` -eq 1
+then
+   GhcShortVersion=${GhcMajVersion}0$GhcMinVersion
+else
+   GhcShortVersion=$${GhcMajVersion}$GhcMinVersion
+fi
 
   echo GhcVersion=$GhcVersion GhcShortVersion=$GhcShortVersion GhcMajVersion=$GhcMajVersion GhcMinVersion=$GhcMinVersion GhcPatchLevel=$GhcPatchLevel
 fi
