@@ -34,7 +34,7 @@ module FileSys(
       -- :: FileSys -> FolderObj -> [((String,UniType),FileObj)]
    lookupInFolder,
       -- :: FileSys -> FolderObj -> String -> UniType -> Maybe FileObj
-   extractFileObj
+   extractFileObj,
       -- :: FileSys -> FileObj -> FilePath -> IO ()
       -- copies a whole FileObj into the specified location.
       -- (If a directory, the location should not end with the file
@@ -296,11 +296,11 @@ lookupLocalPath fileSys fileObj (inHere:rest) =
 
 commitVersion :: FileSys -> Version -> FilePath -> [Change] -> 
     IO Version
-commitVersion fileSys (Version objectVersion) filePath changes =
+commitVersion fileSys version filePath changes =
    do
       -- we first encode the changes in a change tree, also checking for
       -- errors.  Then we commit them.
-      changeTree <- encodeAndCheck fileSys objectVersion filePath changes
+      changeTree <- encodeAndCheck fileSys version filePath changes
       newObjectVersion <- commitTree fileSys changeTree
       return (Version newObjectVersion)
 
@@ -309,9 +309,9 @@ data ChangeTree =
       -- The idea is to contain only the contents of changed folders.
       ExistingObject FileObj
       -- version of file or folder already in database 
-   |  EditFile Original FilePath
+   |  UpdateFile Original FilePath
       -- new version of file, stored at FilePath
-   |  EditFolder Original ChangeFolder
+   |  UpdateFolder Original ChangeFolder
       -- new version of folder
 
 newtype ChangeFolder = ChangeFolder (FiniteMap (String,UniType) ChangeTree)
@@ -324,37 +324,36 @@ newtype Original = Original (Maybe (Location,ObjectVersion))
 -- Turning sequences of changes into change trees.
 ------------------------------------------------------------------
 
-encodeAndCheck :: FileSys -> Version -> FilePath -> Changes -> IO ChangeTree
+encodeAndCheck :: FileSys -> Version -> FilePath -> [Change] -> IO ChangeTree
 encodeAndCheck fileSys version filePath changes =
    do
-      top :: FileObj <- getTop fileSys version
+      (top :: FileObj) <- getTop fileSys version
       let
          initialChangeTree = ExistingObject top
          
-         encode :: Changes -> ChangeTree -> IO ChangeTree
-         encode [] changeTree = return ChangeTree
+         encode :: [Change] -> ChangeTree -> IO ChangeTree
+         encode [] changeTree = return changeTree
          encode (firstChange:restChanges) changeTree =
             do
-               newChangeTree <-
-                  case firstChange of
-                     NewFile brokenPath ->
-                        encodeFileChange 
-                           False filePath fileSys changeTree brokenPath
-                     NewFolder brokenPath ->
-                        encodeNewFolder fileSys changeTree brokenPath
-                     EditFile brokenPath ->
-                        encodeFileChange 
-                           True filePath fileSys changeTree brokenPath
-                     RMObject brokenPath ->
-                        encodeRMObject fileSys changeTree brokenPath
-                     MVObject brokenPathFrom brokenPathTo ->
-                        do 
-                           treeOfOld <- 
-                              getLocation fileSys brokenPathFrom changeTree
-                           withDelete <- encodeRMObject 
-                              fileSys changeTree brokenPathFrom
-                           encodeInsertion 
-                              treeOfOld fileSys withDelete brokenPathTo
+               case firstChange of
+                  NewFile brokenPath ->
+                     encodeFileChange 
+                        False filePath fileSys changeTree brokenPath
+                  NewFolder brokenPath ->
+                     encodeNewFolder fileSys changeTree brokenPath
+                  EditFile brokenPath ->
+                     encodeFileChange 
+                        True filePath fileSys changeTree brokenPath
+                  RMObject brokenPath ->
+                     encodeRMObject fileSys changeTree brokenPath
+                  MVObject brokenPathFrom brokenPathTo ->
+                     do 
+                        treeOfOld <- 
+                           getLocation fileSys brokenPathFrom changeTree
+                        withDelete <- encodeRMObject 
+                           fileSys changeTree brokenPathFrom
+                        encodeInsertion 
+                           treeOfOld fileSys withDelete brokenPathTo
 
       encode changes initialChangeTree
 
@@ -366,20 +365,20 @@ encodeAndCheck fileSys version filePath changes =
 -- apply the supplied function to the ChangeTree element corresponding to
 -- the last element of the BrokenPath, and then construct folders
 -- containing the resulting new element in its place.
-encodeChangeTreeUpdate ((String,UniType) -> ChangeFolder -> ChangeFolder) 
+encodeChangeTreeUpdate :: ((String,UniType) -> ChangeFolder -> ChangeFolder) 
    -> (FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree)
 encodeChangeTreeUpdate updateFn
       fileSys changeTree (brokenPath@(inHere:restPath)) =
    do
       (original,changeFolder@(ChangeFolder folderMap)) <-
-         getChangeFolder changeTree
+         getChangeFolder fileSys changeTree
       strType@(str,uniType) <- unmakeFileName (typeDataBase fileSys) inHere
       case restPath of
          [] ->
             let
                newChangeFolder = updateFn strType changeFolder
             in
-               return (EditFolder original newChangeFolder)
+               return (UpdateFolder original newChangeFolder)
          _ ->
             do 
                assert (uniType == folderType fileSys) 
@@ -389,11 +388,12 @@ encodeChangeTreeUpdate updateFn
                      Just innerChangeTree -> return innerChangeTree
                      Nothing -> fileSysError "encodeChangeTreeUpdate B"       
                newInnerTree <- 
-                  encodeChangeTreeAct 
-                     updateAct fileSys innerChangeTree restPath
+                  encodeChangeTreeUpdate
+                     updateFn fileSys innerChangeTree restPath
                let
                   newTree =
-                     EditFolder(original,ChangeFolder(
+                     UpdateFolder original 
+                       (ChangeFolder(
                         addToFM folderMap strType newInnerTree
                         ))
                return newTree
@@ -402,16 +402,17 @@ encodeChangeTreeUpdate updateFn
       -- a folder top, and returns the corresponding (Original,ChangeFolder)
       -- if it is.
       getChangeFolder :: FileSys -> ChangeTree -> IO (Original,ChangeFolder)
-      getChangeFolder fileSys (EditFile _ _) =
+      getChangeFolder fileSys (UpdateFile _ _) =
          fileSysError("getChangeError: no folder where one expected")
-      getChangeFolder fileSys (EditFolder original changeFolder) =
+      getChangeFolder fileSys (UpdateFolder original changeFolder) =
          return (original,changeFolder)
-      getChangeFolder fileSys (fileObj@(FileObj location objectVersion _)) =
+      getChangeFolder fileSys 
+            (ExistingObject (fileObj@(FileObj location objectVersion _ ))) =
          do 
             FolderObj map <- getFolderObj fileSys fileObj
             let
                changeMap = mapFM
-                  (\ key -> fileObj -> ExistingObject fileObj)
+                  (\ key fileObj -> ExistingObject fileObj)
                   map
             return 
                (Original(Just(location,objectVersion)),ChangeFolder changeMap)
@@ -426,7 +427,7 @@ encodeFileChange :: Bool -> FilePath -> FileSys -> ChangeTree ->
 encodeFileChange isNew filePath fileSys changeTree brokenPath =
    do
       let
-         completeName = unbreakNames (filePath : brokenPath)
+         completeName = unbreakName (filePath : brokenPath)
       exists <- doesFileExist completeName
       if exists
          then
@@ -447,11 +448,11 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
                            Just (ExistingObject 
                               (FileObj location objectVersion _)
                               ) -> Original(Just (location,objectVersion))
-                           Just (EditFile original _) -> original
+                           Just (UpdateFile original _) -> original
                            -- match error if file not in folder (so not
                            -- new) or this is a folder instead.
                newMap = addToFM folderMap strType  
-                  (EditFile original completeName)
+                  (UpdateFile original completeName)
             in
                ChangeFolder newMap
                
@@ -460,10 +461,10 @@ encodeFileChange isNew filePath fileSys changeTree brokenPath =
 encodeNewFolder :: FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree
 -- encodeNewFolder adds a new folder
 encodeNewFolder fileSys changeTree brokenPath =
-   encodeInsertion (EditFolder Nothing (ChangeFolder emptyFM))
+   encodeInsertion (UpdateFolder (Original Nothing) (ChangeFolder emptyFM))
       fileSys changeTree brokenPath
 
-encodeRMObject :: FileSys -> BrokenPath -> ChangeTree -> IO ChangeTree
+encodeRMObject :: FileSys -> ChangeTree -> BrokenPath -> IO ChangeTree
 encodeRMObject fileSys changeTree brokenPath =
 -- encodeRMObject removes an object
    let
@@ -471,7 +472,6 @@ encodeRMObject fileSys changeTree brokenPath =
       updateFn strType (ChangeFolder folderMap) =
          let
             newMap = delFromFM folderMap strType 
-               (EditFolder Nothing (ChangeFolder emptyFM))
          in
             ChangeFolder newMap
    in
@@ -500,13 +500,12 @@ getLocation fileSys brokenPath (ExistingObject fileObj) =
    do
       fileObj <- lookupLocalPath fileSys fileObj brokenPath
       return (ExistingObject fileObj)
-getLocation fileSys (inHere:rest) (EditFolder _ (ChangeFolder map)) =
+getLocation fileSys (inHere:rest) (UpdateFolder _ (ChangeFolder map)) =
    do
-      let
-         strType <- unmakeFileName (typeDataBase fileSys) inHere
+      strType <- unmakeFileName (typeDataBase fileSys) inHere
       case lookupFM map strType of
          Just changeTree -> getLocation fileSys rest changeTree
-getLocation fileSys (inHere:rest) (EditFile _ _) =
+getLocation fileSys (inHere:rest) (UpdateFile _ _) =
    fileSysError("getLocation B "++inHere)
 
 ------------------------------------------------------------------
@@ -532,19 +531,19 @@ commitTree' (fileSys@FileSys{repository=repository}) changeTree =
    case changeTree of
       ExistingObject (FileObj location objectVersion _) -> 
          return (location,objectVersion)
-      EditFile (Original Nothing) filePath ->
+      UpdateFile (Original Nothing) filePath ->
          do
             objectSource <- importFile filePath
             (location,objectVersion,_) <- 
                newLocation repository objectSource
             return (location,objectVersion)
-      EditFile (Original(Just(location,oldObjectVersion))) filePath ->
+      UpdateFile (Original(Just(location,oldObjectVersion))) filePath ->
          do
             objectSource <- importFile filePath
             objectVersion <- 
-               commit repository location (Just oldObjectVersion)
+               commit repository objectSource location (Just oldObjectVersion)
             return (location,objectVersion)
-      EditFolder (Original original) (ChangeFolder changeFolderMap) ->
+      UpdateFolder (Original original) (ChangeFolder changeFolderMap) ->
          do
             let
                folderContents :: [((String,UniType),ChangeTree)] =
@@ -559,8 +558,8 @@ commitTree' (fileSys@FileSys{repository=repository}) changeTree =
                            return (strType,location,objectVersion)
                         ) 
                      folderContents
-            folderContents3 :: [((String,UniType),Location,ObjectVersion)] <-
-               sequence_ folderContents2
+            (folderContents3 :: [((String,UniType),Location,ObjectVersion)])
+               <- sequence folderContents2
             objectSource <- writePrimitiveFolderObj folderContents3
             case original of
                Nothing ->
@@ -594,6 +593,3 @@ assert _ _ = done
 
 fileSysError :: String -> IO any
 fileSysError mess = ioError(userError("FileSys: "++mess++"\n"))
-
-
-   
