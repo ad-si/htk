@@ -30,12 +30,12 @@ findsources :
 	@echo @TOP@/configure.in 
 
 
-COMMONTOPEXPORTS = uni-package.conf.export mk/FixFileNames includes/*.h
+COMMONTOPEXPORTS = uni-package.conf.export includes/*.h
 
-ifeq "@WINDOWS" "1"
-TOPEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export $(COMMONTOPEXPORTS) 
+ifeq "@WINDOWS@" "1"
+TOPEXPORTS = INSTALL.CMD GHCHTK.CMD.export GHCIHTK.CMD.export mk/FixFileNames.exe $(COMMONTOPEXPORTS) 
 else
-TOPEXPORTS = install ghchtk.export ghcihtk.export $(COMMONTOPEXPORTS)
+TOPEXPORTS = install ghchtk.export ghcihtk.export mk/FixFileNames $(COMMONTOPEXPORTS)
 endif
 
 exports.tar.gz :
