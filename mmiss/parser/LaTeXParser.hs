@@ -1808,6 +1808,7 @@ fillLatex out ((CElem (Elem name atts contents)):cs) inList
         latexEnv = maybe "" fst (find ((envType ==) . snd) latexFormulaEnvs)
         (s1, s2) = case latexEnv of
                       "$" -> ("$", "$")
+                      "$$" -> ("$$", "$$")
                       "\\(" -> ("\\(", "\\)")
                       "\\[" -> ("\\[", "\\]")
                       otherwise -> ("\\begin{" ++ latexEnv ++ "}", "\\end{" ++ latexEnv ++ "}")
