@@ -24,7 +24,7 @@ else
    HC_OPTIONS = -recomp -O -O2-for-C
 endif
 
-HCSYSLIBS = -syslib concurrent -syslib data -syslib net -syslib posix -syslib text -syslib util -syslib lang
+HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
 # Version as it used to be before the GHC library names all changed
 # HCSYSLIBS = -syslib posix -syslib misc -syslib exts -syslib concurrent
 

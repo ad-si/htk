@@ -1,12 +1,19 @@
 # We establish the following conventions.
 # Haskell files end with ".hs", c with ".c".
-# Source files are divided into those which go into the library
-# and those which form a test case.  They are distinguished as
-# follows: the second class should have names beginning with "Test".
-# The purpose of compilation is to put the former class into the
-# library $(LIB).  The latter are compiled to an executable with the
-# same name except that the suffix has been stripped and the initial
-# "Test" has been replaced by "test".
+# Source files are distinguished by prefix.
+# Source files with names beginning "Test" are test files.
+#    These are assumed to be linkable to complete executables
+#    using only the libraries provided.  The resulting executable
+#    has a name obtained by replacing "Test" with "test" and removing
+#    the .hs prefix.  So "Test1.hs" goes to "test1".
+#
+# Source files with names beginning "Main" are main programs.
+#    The linking rules are the same as for test files.  The name
+#    of the resulting executable is obtained by removing "Main"
+#    and the ".hs" file.  So "Mainserver.hs" goes to "server".
+#
+# All other files go into the library for the directory,
+#    $(LIB).
 # The variables the Makefiles in the individual subdirectories
 # need to set, if non-null, are
 # SUBDIRS  the list of subdirectories to recurse to, which should
@@ -38,9 +45,11 @@
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
 OBJSC = $(patsubst %.c,%.o,$(SRCSC))
 OBJS = $(OBJSHS) $(OBJSC)
-LIBOBJS = $(filter-out Test%.o,$(OBJS))
+LIBOBJS = $(filter-out Test%.o Main%.o,$(OBJS))
 TESTOBJS = $(filter Test%.o,$(OBJS))
 TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
+MAINOBJS = $(filter Main%.o,$(OBJS))
+MAINPROGS = $(patsubst Main%.o,%,$(MAINOBJS))
 HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 #
 #
@@ -56,11 +65,14 @@ HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
 .SECONDARY : $(OBJS) $(HIFILES)
 
 # all is the default target anyway, by virtual of boilerplate.mk.
-all : testhere libhere
+all : testhere libhere mainhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
 
 test : testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
+
+main : mainhere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) main && ) echo Finished make main
 
 lib : libhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) lib && ) echo Finished make lib
@@ -95,10 +107,16 @@ endif
 
 testhere : $(TESTPROGS)
 
+mainhere : $(MAINPROGS)
+
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^
 
 $(TESTPROGS) : test% :  Test%.o $(LIBS) $(LIB)
+	$(RM) $@
+	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS)
+
+$(MAINPROGS) : % :  Main%.o $(LIBS) $(LIB)
 	$(RM) $@
 	$(HC) -o $@ $(HCFLAGS) $< $(LIB) $(LIBS)
 

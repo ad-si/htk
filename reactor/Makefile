@@ -21,7 +21,9 @@ SRCS       = Listener.hs\
 	     Collector.hs\
              RegularExpression.hs\
 	     Expect.hs\
-	     SIM.hs 
+             Notification.hs\
+	     SIM.hs\
+
 
 SRCSH      = signaldispatcher.h
 SRCSC      = signaldispatcher.c

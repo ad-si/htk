@@ -19,7 +19,10 @@ SRCS       = Thread.hs\
              TwoWayChannel.hs\
              EV.hs\
              Channels.hs\
+             FileEV.hs\
+             SocketEV.hs\
 
-SUBDIRS = test
+
+SUBDIRS = test server
 
 include top/mk/boilerplate.mk
