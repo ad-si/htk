@@ -1,6 +1,7 @@
 \documentclass[landscape, slides, light]{mmiss2}
 
 \usepackage{latexsym}
+\usepackage{amssymb}
 \usepackage{casl}
 
 \newcommand{\gram}[1]{{\texttt{#1}}}
@@ -12,566 +13,95 @@
 \newcommand{\annorassoc}{\%{\bf right\ assoc}\ }
 \newcommand{\annolassoc}{\%{\bf left\ assoc}\ }
 \newcommand{\annobrackets}{{\bf brackets}\ }
+\newcommand{\Nat}{\mbox{$\mathbb N$}} % this requires amssymb
 
 
 \begin{document}
-\begin{Package}[MMISS_Latex2]{pack1}{Algebraic
-Specification -- \\ adapted as example of ML2\\ by M. D.}{Date=12.09.2002,Version=5,PreviousVersion=4,Authors={Markus
-Roggenbach},PriorAuthors={Markus
-Roggenbach},ShortAuthor={M. Roggenbach},ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
+\begin{Package}[MMISS_Latex2]{Root}
+{Formal Program Development with Algebraic Specifications}
+{Date=12.09.2002,
+Authors={Christoph L\"uth, Markus Roggenbach},
+PriorAuthors={Markus Roggenbach, Michael Drouineaud},
+ShortAuthor={C.~L\"uth, M.~Roggenbach},
+ShortTitle={Algebraic Specification},
+Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
 
-\begin{Section}[MMISS_Latex2]{Chapter1}{Introduction}{Date=12.09.2002,Version=5,PreviousVersion=4,Authors={Markus
-Roggenbach},PriorAuthors={Markus
-Roggenbach},ShortAuthor={M. Roggenbach},ShortTitle={Algebraic Specification},Comment=Test,Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
+\begin{Section}{IntroAlgSpec}{Signatures, Terms and Algebras}{}
 
-\begin{Section}{Section1.1}{Formal Methods in Software Design}{}
-\begin{Paragraph}{para11}{}{}
-\begin{center}
-``Use of mathematics in software development''\\
-\end{center}
-main activities:
-\begin{List}{List1.1.1}{itemize}{}
+\begin{Abstract}{Abstract}{Overview}{}
+This section will introduce the basic mathematics of algebraic
+specifications, namely:
+\begin{List}{}{itemize}{}
+  \ListItem{} \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
+  \ListItem{} and \Emphasis{algebras} give us the semantics.
+\end{List}  
+\end{Abstract}
+
+\begin{Introduction}{Intro}{Why Formal Specification?}{}
+\begin{List}{Reasons}{itemize}{}
 \ListItem{}
-{\Emphasis{ writing} formal specifications  \pause}
+formal specifications are \Emphasis{precise}  \\
+(non formal and sometimes even semi formal \\
+specifications are open to re-interpretation)\pause
 \ListItem{}
-{\Emphasis{ proving} properties about formal specifications \pause}
+syntactical and semantical \Emphasis{correctness} \\ 
+independent of tools 
+\pause
 \ListItem{}
-{\Emphasis{ constructing} a program by mathematical \\
-            manipulation of a formal specification \pause}
-\ListItem{}
-{\Emphasis{ verifying} a program by mathematical argument}
+\Emphasis{mathematical methods} \\
+(consistency, completeness)
 \end{List}
+\end{Introduction}
+
+\begin{Paragraph}{Signatures}{Signatures}{}
+Signatures allow us to define operations.
+
+\begin{Definition}{DefSignatures}{Signatures}{}
+A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
+\begin{List}{SignatureComponents}{itemize}{}
+    \ListItem{} a set $S$ of \Emphasis{sorts}, and 
+    \ListItem{} a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
+  \end{List}
+\end{Definition}
+
+An operation $\omega\in\Omega_{w,s}$ with $w=s_1\ldots s_n$ has
+argument sorts $s_1,\ldots,s_n$ and target sort $s$, also written
+$\omega:s_1\ldots s_n\rightarrow s$.
 \end{Paragraph}
 
-\begin{Paragraph}{Paragraph1.1.1}{Non Formal, Semi Formal, Formal}{}
+\begin{Paragraph}{Algebras}{Algebras}{}
+Algebras are models of signatures.
 
-\begin{TextFragment}{TextFragment1.1.1}{}
-``It has been widely accepted that \Emphasis{ syntax} can be mathematically
-defined for quite some time, but there has been more resistance to the
-mathematical definition of \Emphasis{ semantics}.''
-\end{TextFragment}
-
-(quoted freely from \cite{bowen99})
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.1.2}{}{}
-\Emphasis{ non formal}:\\
-in natural languague \\
-(open to arbitrary new symbols)\\
-\newline
-\Emphasis{ formal}: \\
-in a (fixed) language with \\
-mathematically defined {\bf Syntax} and {\bf Semantics}\\
-
-\Emphasis{ semi formal}: \\
-in a language with
-\begin{List}{List1.1.2}{itemize}{}
-\ListItem{}
- {{\bf Syntax} definition by mathematical methods}
-\ListItem{} 
-{{\bf Semantics} definition in natural language or by tool}
-\end{List}
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.1.3}{Specifications}{}
-Specification: ``description by properties''\\
-
-Main question on specifications:\\
-``What happens if \dots'' \\ \\
-
-Specifications should be \pause
-\begin{List}{List1.1.3}{itemize}{}
-\ListItem{}
-{complete \pause}
-\ListItem{}
-{precise \pause}
-\ListItem{}
-{consistent (no contradictions)}
-\end{List}
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.1.4}{Why formal Specifications?}{}
-\begin{List}{List1.1.4}{itemize}{}
-\ListItem{}
-{formal specifications are \Emphasis{precise}  \\
-          (non formal and sometimes even semi formal \\
-          specifications are open to re-interpretation)\pause}
-
-
-\ListItem{}
-{syntactical and semantical \Emphasis{correctness} \\
-          independent of tools \pause}
-
-\ListItem{}
-{\Emphasis{mathematical methods} \\
-          (consistency, completeness)}
-\end{List}
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.1.5}{Limitations of Formal Methods}{}
-\begin{center}
-``The world is not a formal system.''
-\end{center}
-\hfill \\
-I. Modelling means Abstraction \\
-(only ``essentials'' are considered)\\
-\hfill \\
-II. Errors within Formalisms.
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.1.6}{}{}
-
-III. Behaviour of a Program depends on\\
-\begin{List}{List1.1.5}{itemize}{}
-\ListItem{}
-{Compiler}
-\ListItem{}
-{Operating System}
-\ListItem{}
-{Computer Hardware}
-\ListItem{}
-{Embedding in a Technical Process}
-\ListItem{}
-{Human Operator}
-\end{List}
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.1.7}{Waterfall Model}{}
-
-\begin{Table}{Table1.1.1}{Waterfall Model}{}
-{\small
-\begin{center}
-\begin{tabular}{lcl}
-
-               & Requirement Elicitation & \\ 
-               & and Analysis            &\\
-& $\uparrow$ $\downarrow$ &\\
-Nat.~Lang.   & Non Formal Specification &\\
-& $\uparrow$ $\downarrow$ & Validation \\
-
-\Emphasis{Spec.~Lang.}  & Formal Specification & \\
-& $\uparrow$ $\downarrow$ & ``Inv.~\& Verify'' or\\
-
-Progr.~Lang. & Implementation & Transformation \\
-& $\uparrow$ $\downarrow$ &\\
-
-& Test & \\
-
-& $\uparrow$ $\downarrow$ &\\
-
-& Maintenance& \\
-
-\end{tabular}
-\end{center}
-}
-\end{Table}
-
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.1.8}{Specification Languages}{}
-
-\begin{TextFragment}{TextFragment1.1.2}{}
-\begin{center}
-  ``No single technique is adequate to address \\
-  all issues of complex system development.''
-\end{center}
-\end{TextFragment}
-\hfill \\
-Classification of Specification Languages:\\
-
-\begin{List}{List1.1.6}{itemize}{}
-\ListItem{}
-{Model-oriented: Z, VDM}
-\ListItem{}
-{Property-oriented: Larch, OBJ, \Emphasis{CASL}}
-\ListItem{}
-{Process algebras:
-\begin{Table}{Table1.1.6.1}{Process algebras}{}
-\begin{tabular}[t]{l}
-CCS, \Emphasis{CSP}, $\pi$-calculus
-\end{tabular}
-\end{Table}}
-\end{List}
-\end{Paragraph}
-
-\bibliographystyle{abbrv}
-\bibliography{lecture.bib}
-
-\end{Section}
-
-\begin{Section}{Section1.2}{Elements of Formal Specifications}{}
-\begin{Paragraph}{para12}{}{}
-\begin{center}
-\Emphasis{ Aim of Formal Specifications}
-\end{center}
-\vspace{1cm}
-\begin{center}
-\begin{Table}{Table1.2.1}{Specification}{}
-\begin{tabular}{c}
-Non Formal Specification \\
-$\uparrow$ $\downarrow$ \\
-\Emphasis{Formal Specification}  \\
-$\uparrow$ $\downarrow$ \\
-Implementation \\
-\end{tabular}\\
-\end{Table}
-
-\end{center}
-\vspace{1cm}
-extract the ``essentials'' of
-\begin{List}{List1.2.1}{itemize}{}
-\ListItem{}
-{a non formal specification}
-\ListItem{}
-{all desirable implementations}
-\end{List}
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.2.1}{ Running Example: Database}{}
-Non Formal Specification:
-\\ \\
-Write a Java program that implements a database with \\
-$\bullet$ ``Name'' and \\
-$\bullet$ ``Telephone Number'' \\
-as entries.
-\end{Paragraph}
-
-\begin{Section}{Section1.2.1}{Example for Program}{}
-The following example demonstrates the Java implementation of a
-database.
-\begin{Paragraph}{Paragraph1.2.1.1}{How to begin?}{}
-A Java program usually starts with some declarations of classes and
-subroutines.
-\newline
-\hfill \\
-\hfill \\
-\hfill \\
-\IncludeProgramFragment{ProgramFragment1.2.1.3.1}{}
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.2.1.2}{How to proceed?}{}
-Having completed the list of declarations one usually continues with
-the source code of some auxiliary functions.
-\newline
-\hfill \\
-\hfill \\
-\hfill \\
-\IncludeProgramFragment{ProgramFragment1.2.1.3.2}{}
-\end{Paragraph}
-\begin{Paragraph}{Paragraph1.2.1.3}{The complete program}{}
-The source code would then look as follows.
-\newline
-\hfill \\
-\hfill \\
-\hfill \\
-\begin{Program}[Java_Prog]{Program1.2.1.1}{(Useless) Database}{}
-\begin{ProgramFragment}[Java_Prog]{ProgramFragment1.2.1.3.1}{}{}
-\tiny
-\begin{verbatim}
-import Useless.*;
-
-class T_dbu implements T_db_Interface {
-
-  private static final T_name name = new T_name();
-  private final T_num number = new T_num();
-  private final T_dbu next = this;
-
-  public void initial(){
-    return;
-  }
-
-  public T_num look_up(T_name search_name){
-    return number;
-  }
-
-  public void update(T_name ins_name, T_num ins_num){
-    return ;
-  }
-
-  public void remove(T_name rem_name){
-    return ;
-  }
-
-\end{verbatim}
-\normalsize
-\end{ProgramFragment}
-\begin{ProgramFragment}[Java_Prog]{ProgramFragment1.2.1.3.2}{}{}
-\tiny
-\begin{verbatim}
-  // Hilfs-Operationen
-
-  public static void opt() {
-    System.out.println("Choose one of the following options :\n");
-    System.out.println(" (1) initial - create an empty database");
-    System.out.println(" (2) update  - update or insert an entry");
-    System.out.println(" (3) look_up - search a number by name");
-    System.out.println(" (4) remove  - remove an entry");
-    System.out.println(" (5) quit    - leave this program \n");
-  }
-
-  public static T_name getName(){
-    System.out.print("\nPlease enter the name : ");
-    String input = Input.readString();
-    T_name t_name = new T_name();
-    //    t_name.setData(input);
-    return t_name;
-  }
-
-\end{verbatim}
-\normalsize
-\end{ProgramFragment}
-\begin{ProgramFragment}[Java_Prog]{ProgramFragment1.2.1.3.3}{}{}
-\tiny
-\begin{verbatim}
-  public static void main(String args[]) {
-    T_dbu data = new T_dbu();
-    boolean init = false;
-    boolean end = false;
-    System.out.println("Implementation of T_db_interface.java on list-structures:n");
-    System.out.println("Attention: You can work with one database at the time only.");
-    System.out.println("           If you create a new database, any old information is lost.\n");
-    do {
-      opt();
-      System.out.print("Your Choice : ");  
-      int input1 = Input.readInt();
-      switch(input1) {
-
-      case 1 :
-	System.out.println("Creating a new database ... \n");
-	data.initial();
-	init = true;
-	break;
-
-      case 2 :
-	if(init == false){
-	  System.out.println("Please create a new database first (1) !\n");
-	  break;
-	}
-	System.out.println("Update/insert an entry");
-	T_name up_name = getName();
-	int input2;
-	do {
-	  System.out.print("\nPlease enter the number : ");
-	  input2 = Input.readInt();
-	  if (input2 == 0)
-	    System.out.println("\n Sorry this is not a valid number!");
-	} while(input2 == 0);   
-	T_num up_num = new T_num();
-	//
-	data.update(up_name, up_num);
-	System.out.println("Done. \n");
-	break;
-      
-      case 3 :
-	if(init == false){
-	  System.out.println("Please create a new database first (1) !\n");
-	  break;
-	}
-	System.out.println("Search a number");  
-	T_name lo_name = getName();
-	int num1 = data.look_up(lo_name).getData();
-	System.out.println("The name is : "+lo_name.getData()+"\n"); 
-	System.out.println("The number is : "+num1+"\n"); 
-	break;
-
-      case 4 :
-	if(init == false){
-	  System.out.println("Please create a new database first (1) !\n");
-	  break;
-	}
-	System.out.println("Remove an entry");  
-	T_name rem_name = getName();
-	data.remove(rem_name);
-	System.out.println("Done. \n");
-	break;
-
-      case 5 :
-	System.out.print("Do you really want to quit (y/n)? ");
-	String input3 = Input.readString();
-	if (input3.equalsIgnoreCase("y"))
-	  end = true;
-	break;
-
-      default :
-	System.out.print("That's not a valid input. \n");
-      }
-    } while (end == false);
-    System.out.print("Bye...\n");
-  }
-}
-
-\end{verbatim}
-\normalsize
-\end{ProgramFragment}
-\end{Program}
-\end{Paragraph}
-\end{Section}
-
-\begin{Paragraph}{Paragraph1.2.2}{}{}
-\begin{center}
-{\Large Essential for Programs}
-\end{center}
-distinguish between functions of the
-\begin{List}{List1.2.2}{itemize}{}
-\ListItem{}
-{\Emphasis{interface} \\ (functions that can be used
-``safely'')}
-\ListItem{}
-{\Emphasis{implementation} \\ (functions that make sense \\
-           only in a particular realization)}
-\end{List}
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.2.3}{ Formal Specification -- First Element}{}
-Formal Specifications describe an \Emphasis{Interface} -- \\
-written down as \Emphasis{Signature}, i.e.~a list consisting of the\\
-\begin{List}{List1.2.3}{itemize}{}
-\ListItem{}
-{Name and}
-\ListItem{}
-{Profile}
-\end{List}
-of all functions.
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.2.4}{Interfaces and Programming Languages}{}
-PL supporting Interfaces: \\
-C++, Modula, ML, Haskell, Java, Eiffel, \dots \\ 
-PL not supporting Interfaces: \\
-Fortran, Pascal, C, Lisp, \dots
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.2.5}{Specifying the Interface in CASL}{}
-
-\vspace{1cm}
-
-\begin{ProgramFragment}[CASL_Spec]{CASL_Spec 2.1}{Database}{}
-
-\begin{SpecDefn}{Database} =
-\I{}
-\begin{Items}                 
-\I\Sorts \(\[ Database; String; Nat\] \)
-\I\Ops
-\( \[
-   initial  & ~:~ & Database;\\
-   look\_up & ~:~ & Database \* String \tfun Nat;\\
-   update   & ~:~ & Database \* String \* Nat \tfun Database\\
-\] \)
-\end{Items}
-\I\End
-\end{SpecDefn}
-
-\end{ProgramFragment}
-
+\begin{Definition}{DefAlgebra}{$\Sigma$-Algebra}{}
+  An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
+  $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
+  \begin{List}{AlgebraComponents}{itemize}{}
+    \ListItem{}
+    for each sort $s\in S$, a \Emphasis{carrier set} 
+    $A_s\in S_A$;
+    \ListItem{}
+    for each operation $\omega:s_1\ldots s_n\rightarrow s$, an
+    operation $\omega_A:A_{s1}\ldots A_{sn}\rightarrow A_s$.
+  \end{List}
+\end{Definition}
 \end{Paragraph}
 
 
-\begin{Paragraph}{Paragraph1.2.6}{}{}
-\begin{center}
-{\Large Formal Specifications -- Second Element}
-\end{center}
-\hfill \\
-A formal specification includes beside the \\
-\begin{Table}{Table1.2.2}{Formal Specification}{}
-\begin{tabular}{rl}
-(i)  & signature \\
-(ii) & a description of the functions' properties. \\
-\end{tabular}
-\end{Table}
-\\
-Programming Languages fail for (ii): \\
-Expressing properties of a function involves implementation details.
+\begin{Paragraph}{Terms}{Terms over a Set}{}
+Let $\Sigma=(S, \Omega)$ be a signature. 
+
+An \Emphasis{$S$-sorted set of variables} is given by $X=
+\{X_s\}_{s\in S}$.
+
+Intuitively: terms are the smallest set containing the variables which
+is closed under application of operations.                                
 \end{Paragraph}
 
-\begin{Paragraph}{Paragraph1.2.7}{}{}
-\begin{center}
-{\Large Interface and Properties in CASL}
-\end{center}
+\begin{Paragraph}{Example}{A Simple Example}{}
 
-\begin{ProgramFragment}[CASL_Spec]{CASL_Spec 2.2}{Database}{}
+An Example (in CASL): the natural numbers.
 
-\begin{SpecDefn}{Database} =
-\I{}
-\begin{Items}
-\I\Sort
-\( \[
-   Database; String; Nat\\
-\] \)
-
-\I\Ops
-
-\( \[
-   initial  & ~:~ & Database;\\
-   0        & ~:~ & Nat; \\
-   look\_up & ~:~ & Database \* String \tfun Nat;\\
-   update   & ~:~ & Database \* String \* Nat \tfun Database\\
-\] \)
-
-\I{}
-
-\I\Vars
-
-\( 
-   s    : Database;
-   n    :Nat;
-   v, w : String
-\)
-
-\I\. \%[initial] \( look\_up( initial, v ) ~=~ 0 \)
-
-\I\. \%[look\_up\_1]
-\( \[
-v ~=~ w ~\imp~ \\
-look\_up( update( s, v, n ), w ) ~=~ n 
-\]\)
-
-\I\. \%[look\_up\_2]
-\(\[ 
-\neg~ v ~=~ w ~\imp~ \\
-look\_up( update( s, v, n ), w ) ~=~ look\_up( s, w ) 
-\]\)
-
-\end{Items}                  
-\I\End
-\end{SpecDefn}
-
-\end{ProgramFragment}
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.2.8}{}{}
-\vfill
-\begin{center}
-{\Large Useless Database}
-\end{center}
-
-\vspace{1cm}
-\begin{center}
-\MMstartApplication{Start Database}{Applications/MBandt/imp2/start_xterm.sh}
-\end{center}
-
-\vfill
-\end{Paragraph}
-
-
-\begin{Paragraph}{Paragraph1.2.9}{}{}
-\begin{center}
-{\Large Formal Specifications =}\\
-{\Large Abstract Datatypes} (see also \cite{ehrich96})
-\end{center}
-\hfill \\
-An Abstract Datatype consists of a \\
-\begin{Table}{Table1.2.3}{Abstract Datatype}{}
-\begin{tabular}{rl}
-(i)   & Signature,\\
-(ii)  & a description of the functions' properties, \\
-(iii) & a description of the domains.
-\end{tabular}
-\end{Table}
-\end{Paragraph}
-
-\begin{Paragraph}{Paragraph1.2.10}{}{}
-\begin{center}
-{\Large A Domain Description in CASL}
-\end{center}
-
-\vspace{1cm}
-
-\begin{ProgramFragment}[CASL_Spec]{CASL_Spec 2.3}{Natural Numbers}{}
-
+\begin{ProgramFragment}[CASL_Spec]{CASL_Nats}{Natural Numbers}{}
 \begin{SpecDefn}{Nat} =
 \I{}
 \begin{Items}
@@ -583,66 +113,29 @@ Pos & \ ::= & \ suc(pre:Nat)
 \end{Items}
 \I\End
 \end{SpecDefn}
-
 \end{ProgramFragment}
 
+Note how structural induction on $\Nat$ corresponds to the usual
+natural induction.
 \end{Paragraph}
 
-\end{Section}
-
-\begin{Section}{Section1.3}{Bibliographic Remarks}{}
-\begin{Paragraph}{para13}{}{}
-\begin{List}{List1.3.1}{itemize}{}
+\begin{Summary}{Summary}{Summing Up}{}
+In this section, we have encountered the following concepts:
+\begin{List}{Concepts}{itemize}{}
 \ListItem{}
-Formal Methods: \\
-
-\begin{TextFragment}{TextFragment1.3.1}{}
-J.P.~Bowen, M.G.~Hinchey: {\it High-Integrity System Specification and Design,}
-Springer, 1999.
-\end{TextFragment}
-
+\emph{Signatures} allow to declare sorts and operations;
 \ListItem{}
-Algebraic Specification: Loeckx, Ehrich, Wolf: {\it
-Specification of Abstract Data Types,} Wiley \& Teubner, 1996.
+\emph{Terms} are build over signatures;
 \ListItem{}
-CASL und CoFI: 
-\begin{verbatim}
-http://www.brics.dk/Projects/CoFI/
-\end{verbatim}
+\emph{Algebras} give a semantics to signatures.
+\ListItem{}
+Further, we have seen how to specify natural numbers in the algebraic
+specification language CASL.
 \end{List}
-\end{Paragraph}
+\end{Summary}
 
 \end{Section}
 
-\begin{Section}{Section1.4}{Mathematical Preliminaries}{}
-\begin{Paragraph}{para14}{}{}
-\begin{Theorem}[Desperation]{Theorem1.4.1}{History and Murphy}{}
-In real life good times are most likely short and rare.
-\end{Theorem}
-
-\begin{Proof}[Empiric_Argument]{Proof1.4.1.1}{Human
-History}{}
-The statement is confirmed by the recorded human history of the last 2
-millenia.
-\end{Proof}
-
-\begin{Corollary}[obvious_implication]{Corollary1.4.1.1}{Human
-Inspiration}{}
-Human Inspiration is rare and does usually not last.
-\end{Corollary}
-
-\begin{Assertion}[linear_extrapolation]{Assertion1.4.1}{Human
-Future}{}
-The future of mankind will be difficult and hide dangers in abundance. 
-\end{Assertion}
-
-\begin{Conjecture}[Hypothesis]{Conjecture1.4.1}{Mankind}{}
-Mankind is a mistake of evolution.
-\end{Conjecture}
-\end{Paragraph}
-\end{Section}
-
-\end{Section}
 
 \end{Package}
 \end{document}
