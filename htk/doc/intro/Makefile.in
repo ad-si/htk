@@ -13,7 +13,7 @@ include @TOP@/mk/boilerplate.mk
 
 dochere : intro.pdf intro.ps
 
-intro.dvi: intro.bbl img/intro-title.eps  img/screenshot-simple1.eps img/screenshot-simple1a.eps img/screenshot-tixwidgets.eps img/hsMines/screenshot01.eps img/hsMines/screenshot02.eps img/hsMines/screenshot03.eps img/hsMines/screenshot04.eps img/hsMines/screenshot05.eps img/screenshot-canvas.eps img/screenshot-dialogs.eps img/screenshot-listbox.eps img/screenshot-toolkit.eps
+intro.dvi: intro.bbl img/screenshot-simple1.eps img/screenshot-simple1a.eps img/screenshot-tixwidgets.eps img/hsMines/screenshot01.eps img/hsMines/screenshot02.eps img/hsMines/screenshot03.eps img/hsMines/screenshot04.eps img/hsMines/screenshot05.eps img/screenshot-canvas.eps img/screenshot-dialogs.eps img/screenshot-listbox.eps img/screenshot-toolkit.eps
 
 intro.pdf: intro.bbl img/intro-title.png  img/screenshot-simple1.png img/screenshot-simple1a.png img/screenshot-tixwidgets.png img/hsMines/screenshot01.png img/hsMines/screenshot02.png img/hsMines/screenshot03.png img/hsMines/screenshot04.png img/hsMines/screenshot05.png img/screenshot-canvas.png img/screenshot-dialogs.png img/screenshot-listbox.png img/screenshot-toolkit.png
 
