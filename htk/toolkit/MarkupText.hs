@@ -1013,7 +1013,7 @@ instance HasMarkupText (Editor String) where
                             ew <- f ed pos'
                             addToState ed [putStrLn "destroying embedded window" >> destroy ew])
            wins
-      if st /= Disabled then ed # state st >> done else done
+      ed # state st -- restore state
       return ed
 
   insertAt m pos@(line, char) ed =
