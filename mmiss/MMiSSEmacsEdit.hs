@@ -49,6 +49,8 @@ import Text.XML.HaXml.Types
 import XmlTypes
 #endif
 
+import LaTeXParser(MMiSSExtraPreambleData(..))
+
 import MMiSSDTDAssumptions
 import MMiSSFormat
 import MMiSSEditFormatConverter
@@ -506,7 +508,9 @@ mkPrintAction view editFormatConverter =
                -> IO (WithError (EmacsContent (Bool,EditRef)))) =
          do
             -- To gather all the preambles we put them in this MVar.
-            (preambleLinksMVar :: MVar [Link MMiSSPreamble]) <- newMVar []
+            (preambleLinksMVar 
+               :: MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]) 
+               <- newMVar []
 
             let
 
@@ -555,10 +559,9 @@ mkPrintAction view editFormatConverter =
 -- and pass as search data an MVar containing the 
 -- (Bool,EditRef)'s.  The EntitySearchName it passes then 
 -- becomes irrelevant . . .
-reAssembleArg :: View -> MVar [Link MMiSSPreamble]
+reAssembleArg :: View -> MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]
    -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef))))        
    -> EditFormatConverter
-
    -> EntitySearchName
    -> MMiSSVariantSearch -> MVar [(Bool,EditRef)] 
    -> IO (WithError (Maybe (Element,MVar [(Bool,EditRef)])))
@@ -616,11 +619,11 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
                            nextMVar <- newMVar (toEmacsLinks content0)
 
                            let
-                              (content1 
-                                 :: EmacsContent (TypedName,
-                                    [Attribute]))= fmap 
+                              content1 :: EmacsContent (TypedName,[Attribute])
+                              content1 = fmap 
                                  (\ (b,editRef) -> 
-                                    ((name,miniType editRef),
+                                    ((toString (searchName editRef),
+                                          miniType editRef),
                                        fromMMiSSVariantSpecToXml (
                                           linkVariants editRef
                                           )
@@ -636,7 +639,22 @@ reAssembleArg view preambleLinksMVar getContent editFormatConverter
 
                            modifyMVar_ preambleLinksMVar 
                               (\ preambleLinks ->
-                                 return (preambleLink : preambleLinks))  
+                                 -- see preambleLinksMVar code in 
+                                 -- MMiSSReadObject.
+                                 let
+                                    callSite = case preambleLinks of
+                                       [] -> Nothing
+                                       _ -> Just entitySearchName
+
+                                    extraData = MMiSSExtraPreambleData {
+                                       callSite = callSite
+                                       }
+                                 in
+                                    return (
+                                       (preambleLink,extraData) 
+                                          : preambleLinks
+                                       )
+                                 )
 
                            return (Just (element,nextMVar))
                )                                  

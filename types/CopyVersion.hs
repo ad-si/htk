@@ -24,6 +24,7 @@ import Delayer(newDelayer)
 import VSem
 
 import VersionDB
+import qualified ObjectSource
 import VersionInfo
 
 import Link
@@ -54,7 +55,9 @@ copyVersion ::
    -> (ObjectVersion -> IO VersionInfo)
       -- ^ a map which will goes from an object version in the source 
       -- repository, to the corresponding VersionInfo in the destination graph.
-   -> IO ()
+   -> IO SimpleDBCommand
+      -- ^ the command to execute to do the copying.  (We do not actually
+      -- perform it.
 copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
      fromVersion toVersionInfo parents toNewVersionInfo =
   do
@@ -184,8 +187,8 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            diffs
 
      let         
-        commitChanges :: [(Location,CommitChange)]
-        commitChanges = catMaybes commitChanges0    
+        commitChanges1 :: [(Location,CommitChange)]
+        commitChanges1 = catMaybes commitChanges0    
 
         -- compute redirects for commit.
         toRedirect :: (Location,Diff) -> Maybe (Location,Maybe ObjectVersion)
@@ -196,7 +199,20 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
       
         redirects :: [(Location,Maybe ObjectVersion)]
         redirects = mapMaybe toRedirect diffs
- 
+
+     (commitChanges2 
+        :: [(Location,Either ICStringLen (Location,ObjectVersion))])
+        <- mapM
+            (\ (location,newItem) ->
+               case newItem of
+                  Left objectSource ->
+                     do
+                        icsl <- ObjectSource.exportICStringLen objectSource
+                        return (location,Left icsl)
+                  Right locVers -> return (location,Right locVers)
+               )
+            commitChanges1
+  
      -- (6) we can now commit.
      let
         headVersionOpt = case parents of
@@ -209,18 +225,10 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            Nothing -> Version1 version1
            Just headVersion -> Version1Plus version1 headVersion
      
+     let
+        command = Commit versionInformation redirects commitChanges2
 
-     sOrUnit <- catchOurExceps
-        (commit toRepository versionInformation redirects commitChanges)
-
-     case sOrUnit of
-        Left mess -> putStrLn mess
-        Right () -> done
-
-     -- an already-exists can happen when two people simultaneously try to
-     -- copy the same version to the same repository.
-     done
-
+     return command
 -- ------------------------------------------------------------------------
 -- Computing a dictionary of the accessible links within a view.
 -- We will use this (a) to filter out those links which do not need to

@@ -22,6 +22,7 @@ import FindCommonParents
 import HostsPorts(HostPort)
 
 import VersionInfo
+import VersionDB
 
 import VersionGraphClient
 import VersionGraph
@@ -131,6 +132,8 @@ copyVersions versionGraphFrom =
                graphFrom = toVersionGraphGraph versionGraphFrom
                graphTo = toVersionGraphGraph versionGraphTo
 
+               repositoryTo = toVersionGraphRepository versionGraphTo
+
                -- Construct GraphBack for purposes of findCommonParents.
 
                -- We need to assume all nodes which have isPresent = False
@@ -187,9 +190,10 @@ copyVersions versionGraphFrom =
                <- copyVersionInfos versionGraphFromTo versions
 
             let
-               -- Do one element of commonParents
+               -- Function for getting command for committing one element of 
+               -- commonParents
                copyOne :: (ObjectVersion,[(ObjectVersion,Maybe ObjectVersion)])
-                  -> IO ()
+                  -> IO SimpleDBCommand
                copyOne (fromVersion,parents) =
                    do
                       parentsFromTo <- mapM
@@ -210,6 +214,26 @@ copyVersions versionGraphFrom =
                       toVersionInfo <- toNewVersionInfo fromVersion
                       copyVersion versionGraphFromTo fromVersion toVersionInfo
                          parentsFromTo toNewVersionInfo
+
+            -- Copy simultaneously all the versions.  We bunch them up in
+            -- a single command. 
+            --
+            -- NB - the order is important, so that we don't try to add
+            -- a version before its parent.
+            commands <- mapM copyOne commonParents
+
+            (MultiResponse responses) <- queryRepository repositoryTo 
+               (MultiCommand commands)
+            mapM_ 
+               (\ response -> case response of
+                  IsOK -> done
+                  IsObjectVersion _ -> done 
+                     -- means this version already committed.  Can happen
+                     -- with a race condition.
+                  IsError mess -> error ("Server error: " ++ mess)
+                  _ -> error ("Mysterious server error")
+                  ) 
+               responses
 
             -- Copy simultaneously all the versions.  This will mean that
             -- if either server is a long way away and we have a lot of

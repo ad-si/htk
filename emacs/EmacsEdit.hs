@@ -778,6 +778,7 @@ unmangleContents (editorState :: EditorState ref) (EmacsContent list0) =
             do
                (l1,l2) <- doList rest
                ref <- readMangled mangledTypedName
+
                let
                   l2' = if b then (ref,mangledTypedName):l2 else l2
                return (EmacsLink (b,ref) : l1,l2')
@@ -856,7 +857,7 @@ newMangled state ref =
 
 data TypedNameMangler ref = TypedNameMangler (Registry Char (NameMangler ref))
 
-data MangledTypedName = MangledTypedName String Char
+data MangledTypedName = MangledTypedName String Char deriving (Show)
 
 newTypedNameMangler :: IO (TypedNameMangler ref)
 newTypedNameMangler = 

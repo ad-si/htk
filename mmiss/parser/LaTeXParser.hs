@@ -7,9 +7,15 @@ module LaTeXParser (
    -- new :: String -> WithError (Element, Maybe MMiSSLatexPreamble)
    -- The same, for a file.
    makeMMiSSLatex,
-   -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
+   -- :: (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
+   --   -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Turns an Element into a MMiSSLaTeX source
    -- If the Bool is set, attaches a preamble.
+   -- MMiSSExtraPreambleData contains extra information about the call-site
+   -- of the element containing a preamble.
+
+   MMiSSExtraPreambleData(..),
+   -- 
    importCommands,
    -- :: MMiSSLaTeXPreamble -> Maybe ImportCommands
 
@@ -1880,9 +1886,26 @@ applyTranslation outStr inStr (search, replaceStr) =
     umgesetzt, die im MMiSS-XEmacs-Mode speziell behandelt werden.
 --}
 
-makeMMiSSLatex :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
+newtype MMiSSExtraPreambleData = MMiSSExtraPreambleData {
+   callSite :: Maybe EntitySearchName
+      -- How the element to which this preamble belongs was referred to
+      -- originally by the user.
+      -- Nothing means that this is the head element.
+   }
 
-makeMMiSSLatex ((Elem name atts content), preOut, preambles) = 
+makeMMiSSLatex :: 
+   (Element, Bool, [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
+   -> WithError (EmacsContent ((String, Char), [Attribute]))
+   -- Each distinct preamble occurs once in the list, paired with a list
+   -- for each of its call-sites.
+makeMMiSSLatex (element,preOut,preambles') =
+   -- stub function that doesn't use MMiSSExtraPreambleData for now.
+   makeMMiSSLatex1 (element,preOut,map fst preambles')
+
+
+makeMMiSSLatex1 :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
+
+makeMMiSSLatex1 ((Elem name atts content), preOut, preambles) = 
   let items = fillLatex preOut [(CElem (Elem name atts content))] []
       p = unionPreambles preambles
       preambleItem = case p of

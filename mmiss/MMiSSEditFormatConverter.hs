@@ -13,7 +13,7 @@ module MMiSSEditFormatConverter(
 
 import Maybe
 
-import Data.Set
+import Data.FiniteMap
 
 import Computation 
 import Debug(debugString)
@@ -80,18 +80,31 @@ toEditFormatConverter LaTeX =
             )
       }
 
-exportElement :: View -> Format -> [Link MMiSSPreamble] -> Element 
+exportElement :: View -> Format 
+   -> [(Link MMiSSPreamble,MMiSSExtraPreambleData)] -> Element 
    -> IO (WithError String)
 exportElement _ XML _ element = return (hasValue (toExportableXml element))
 exportElement view LaTeX preambleLinks0 element =
    do
       -- Remove duplicate preamble links
       let 
-         preambleLinks1 = setToList (mkSet preambleLinks0)
+         preambleMap :: FiniteMap (Link MMiSSPreamble) [MMiSSExtraPreambleData]
+         preambleMap = foldl
+            (\ preambleMap0 (link,extraData) ->
+               addToFM preambleMap0 link
+                  (extraData : (lookupWithDefaultFM preambleMap0 [] link))
+               )
+            emptyFM
+            preambleLinks0
 
-      laTeXPreambles <- mapM
-         (\ preambleLink -> readPreamble view preambleLink)
-         preambleLinks1
+      (laTeXPreambles :: [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
+         <- mapM
+            (\ (preambleLink,extraDatas) -> 
+               do
+                  laTeXPreamble <- readPreamble view preambleLink
+                  return (laTeXPreamble,extraDatas)
+               )
+            (fmToList preambleMap)
 
       return (
          mapWithError 

@@ -21,5 +21,5 @@ readMMiSSObject ::
 #else
             XmlTypes.Element,
 #endif
-            [Link.Link MMiSSPreamble.MMiSSPreamble]))
+            [(Link.Link MMiSSPreamble.MMiSSPreamble,LaTeXParser.MMiSSExtraPreambleData)]))
 

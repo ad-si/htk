@@ -10,8 +10,6 @@
    (3) Where the list contains two elements (n1,ms1) and (n2,ms2), such that
        ms2 contains n1, then (n1,ms1) comes before (n2,ms2) in the list.
 
-   We also 
-
    The purpose of all this is to provide a list of the nodes to be constructed
    in G2 to extend it by V1 while preserving as much as possible of the path 
    structure in V1.  This is used for adding version graph information. -}

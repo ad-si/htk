@@ -32,6 +32,10 @@ import MMiSSVariant
 --
 -- MMiSSObjects.printAction uses a horrible trick which assumes that the
 -- children of an Element are visited in the order supplied.
+--
+-- MMiSSObjects.printAction and MMiSSReadObject.readObject both assume that
+-- the first time we call getElement is on the head element.  But that's
+-- OK, as we couldn't do it any other way.
 reAssemble :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 
    -> IO (WithError (Maybe (Element,searchData)))) 

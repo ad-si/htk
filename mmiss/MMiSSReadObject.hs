@@ -29,6 +29,8 @@ import Text.XML.HaXml.Types
 import XmlTypes
 #endif
 
+import LaTeXParser(MMiSSExtraPreambleData(..))
+
 import MMiSSVariant
 import MMiSSPreamble
 import MMiSSVariantObject
@@ -64,7 +66,8 @@ simpleReadFromMMiSSObject view objectLink variantSearch =
 -- If the VariantSearch is given we use that, otherwise we take the object's
 -- current one.
 readMMiSSObject :: View -> Link MMiSSObject -> Maybe MMiSSVariantSearch
-   -> IntPlus -> Bool -> IO (WithError (Element,[Link MMiSSPreamble]))
+   -> IntPlus -> Bool 
+   -> IO (WithError (Element,[(Link MMiSSPreamble,MMiSSExtraPreambleData)]))
 readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
    addFallOutWE (\ break ->
       do 
@@ -76,7 +79,9 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                done
 
          -- To gather all the preambles we put them in this MVar.
-         (preambleLinksMVar :: MVar [Link MMiSSPreamble]) <- newMVar []
+         (preambleLinksMVar 
+            :: MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]) 
+            <- newMVar []
 
          let
             -- getElement is the function to be passed to
@@ -133,8 +138,23 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
 
                      modifyMVar_ preambleLinksMVar 
                         (\ preambleLinks ->
-                           return (toMMiSSPreambleLink packageFolder 
-                              : preambleLinks)
+                           -- To determine if this is the head element,
+                           -- we look if preambleLinks is null or not.
+                           -- If it is, that means this is the first call
+                           -- to getElement, so this must be the head.
+                           let
+                              callSite = case preambleLinks of
+                                 [] -> Nothing
+                                 _ -> Just entitySearchName
+
+                              extraData = MMiSSExtraPreambleData {
+                                 callSite = callSite
+                                 }
+                           in
+                              return (
+                                 (toMMiSSPreambleLink packageFolder,extraData) 
+                                    : preambleLinks
+                                 )
                            )
 
                      return (Just (cacheElement cache,
@@ -167,7 +187,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
          element <- coerceWithErrorOrBreakIO break elementWE
 
          preambleLinks <- takeMVar preambleLinksMVar
-         return (element,uniqOrd preambleLinks)
+         return (element,preambleLinks)
       )
          
 ---
