@@ -4,6 +4,7 @@ module MMiSSObject(
    ) where
 
 import Concurrent
+import qualified IOExts(unsafePerformIO)
 
 import Dynamics
 import VariableSet
@@ -14,6 +15,7 @@ import ObjectTypes
 import BasicObjects
 import AttributesType
 import DisplayParms
+import GlobalRegistry
 
 import EmacsContent
 
@@ -28,6 +30,7 @@ data MMiSSObjectType = MMiSSObjectType {
    xmlTag :: String, 
       -- Describes the type.  This String should be identical with 
       -- corresponding XML Tag, eg "atom".
+   typeId :: GlobalKey,
    extraAttributes :: AttributesType,
       -- This describes the attributes peculiar to this MMiSS object type.
       -- All MMiSS objects additionally have the attributes
@@ -47,16 +50,16 @@ instance HasTyRep MMiSSObjectType where
 
 instance HasCodedValue MMiSSObjectType where
    encodeIO = mapEncodeIO
-      (\ (MMiSSObjectType {xmlTag = xmlTag,extraAttributes = extraAttributes,
-         displayParms = displayParms}) -> 
-         (xmlTag,extraAttributes,displayParms)
+      (\ (MMiSSObjectType {xmlTag = xmlTag,typeId = typeId,
+         extraAttributes = extraAttributes,displayParms = displayParms}) -> 
+         (xmlTag,typeId,extraAttributes,displayParms)
          )
    decodeIO codedValue0 view =
       do
-         ((xmlTag,extraAttributes,displayParms),codedValue1) 
+         ((xmlTag,typeId,extraAttributes,displayParms),codedValue1) 
             <- safeDecodeIO codedValue0 view
          knownObjects <- newEmptyVariableSet
-         return (MMiSSObjectType {xmlTag = xmlTag,
+         return (MMiSSObjectType {xmlTag = xmlTag,typeId = typeId,
             extraAttributes = extraAttributes,displayParms = displayParms,
             knownObjects = knownObjects},codedValue1)
          
@@ -70,7 +73,7 @@ data MMiSSObject = MMiSSObject {
    mmissObjectType :: MMiSSObjectType,
    attributes :: Attributes,
       -- The object's path is only stored in attributes.
-   content :: MVar [MMiSSText],
+   content :: Link [MMiSSText],
       -- The content of the object (including strings and references)
    includedObjects :: VariableSet EntityName,
       -- Points to objects with True LinkStatus mention in Include's
@@ -82,6 +85,35 @@ data MMiSSObject = MMiSSObject {
 mmissObject_tyRep = mkTyRep "MMiSSObject" "MMiSSObject"
 instance HasTyRep MMiSSObject where
    tyRep _ = mmissObject_tyRep
+
+instance HasCodedValue MMiSSObject where
+   encodeIO = mapEncodeIO 
+      (\ (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
+         attributes = attributes,content = content}) ->
+         (name,typeId mmissObjectType,attributes,content)
+         )
+   decodeIO codedValue0 view =
+      do
+         ((name,tId,attributes,content),codedValue1) <-
+            decodeIO codedValue0 view
+         mmissObjectType <- lookupInGlobalRegistry globalRegistry view tId
+         includedObjects <- newEmptyVariableSet
+         referencedObjects <- newEmptyVariableSet
+         return (MMiSSObject {name = name,mmissObjectType = mmissObjectType,
+            attributes = attributes,content = content,
+            includedObjects = includedObjects,
+            referencedObjects = referencedObjects},codedValue1)
+         
+
+-- ------------------------------------------------------------------
+-- The global registry and a permanently empty variable set
+-- ------------------------------------------------------------------
+
+globalRegistry :: GlobalRegistry MMiSSObjectType
+globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
+{-# NOINLINE globalRegistry #-}
+
+
 
       
    

@@ -14,6 +14,7 @@ module MMiSSGeneric(
 import ExtendedPrelude
 import VariableSet
 import Dynamics
+import Computation
 
 import SimpleForm
 
@@ -81,6 +82,39 @@ type LinkStatus = Bool
    -- (As part of the menu attached to the link in Emacs).  
    -- Dependencies will only appear in the includedObjects set 
    -- (and the corresponding objects displayed) when this becomes true.
+
+
+-- ------------------------------------------------------------------   
+-- MMiSSText is an instance of HasCodedValue
+-- ------------------------------------------------------------------   
+
+mmissText_tyRep = mkTyRep "MMiSSGeneric" "MMiSSText"
+instance HasTyRep MMiSSText where
+   tyRep _ = mmissText_tyRep
+instance HasCodedValue MMiSSText where
+   encodeIO (Chars str) codedValue repository =
+      encode2IO 'C' str codedValue repository
+   encodeIO (Include e d s) codedValue repository =
+      encode2IO 'I' (e,d,s) codedValue repository
+   encodeIO (Reference e d s) codedValue repository =
+      encode2IO 'R' (e,d,s) codedValue repository
+
+   decodeIO codedValue0 repository =
+      do
+         (letter,codedValue1) <- safeDecodeIO codedValue0 repository
+         case letter of
+            'C' -> 
+               do
+                  (str,codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Chars str,codedValue2)
+            'I' ->
+               do
+                  ((e,d,s),codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Include e d s,codedValue2)
+            'R' ->
+               do
+                  ((e,d,s),codedValue2) <- safeDecodeIO codedValue1 repository
+                  return (Reference e d s,codedValue2)
 
 -- ------------------------------------------------------------------   
 -- The AutoExpand attribute key.

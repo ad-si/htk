@@ -19,6 +19,7 @@ import ExtendedPrelude
 import Computation
 import AtomString
 import Dynamics
+import VariableSet
 
 import SimpleForm
 
@@ -200,3 +201,9 @@ registerMMiSSPaths =
       registerAttribute (e :: EntityName)
       registerAttribute (e :: EntityPath)
 
+-- ---------------------------------------------------------------------
+-- Make EntityName accessible by HasKey
+-- ---------------------------------------------------------------------
+
+instance HasKey EntityName [String] where
+   toKey (EntityName str) = str
