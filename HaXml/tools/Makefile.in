@@ -4,3 +4,8 @@ SRCS = MainDtdToHaskell.hs
 
 include @TOP@/mk/boilerplate.mk
 
+# force DtdToHaskell to be built when we build packages, since other parts
+# of the workbench need it.
+packageherequick : DtdToHaskell
+
+

@@ -40,6 +40,7 @@ HAXMLSRCS = \
 #	Text/PrettyPrint/HughesPJ.hs 
 # Commented out as it is now in GHC.
 
+SUBDIRS = tools
 
 include @TOP@/mk/boilerplate.mk
 
