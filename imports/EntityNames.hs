@@ -13,6 +13,8 @@ module EntityNames(
       -- Find the parent of the object, if there is one.
    entityBase, -- :: EntityFullName -> Maybe EntityName
       -- Find the name of the object within its parent.
+   combineDirBase, -- :: EntityFullName -> EntityName -> EntityFullName
+
    trivialFullName, -- :: EntityFullName
       -- Name with no components.
 
@@ -316,6 +318,10 @@ entityDir fullName = fmap fst (entityDirBase fullName)
  
 entityBase :: EntityFullName -> Maybe EntityName
 entityBase fullName = fmap snd (entityDirBase fullName)
+
+combineDirBase :: EntityFullName -> EntityName -> EntityFullName
+combineDirBase (EntityFullName names0) name 
+   = EntityFullName (names0 ++ [name])
 
 trivialFullName :: EntityFullName
 trivialFullName = EntityFullName []

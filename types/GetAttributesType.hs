@@ -1,5 +1,8 @@
 ---
 -- Contains code enabling the user to define an AttributesType
+-- NB.  At the moment this is disabled, and will always return the
+-- empty attributes.  It should not be renabled again unless and until
+-- bundles can handle attributes.
 module GetAttributesType(
    getAttributesType, -- :: IO AttributesType
    ) where
@@ -20,7 +23,11 @@ import MenuType
 import AttributesType
 
 getAttributesType :: IO (Maybe AttributesType)
-getAttributesType =
+getAttributesType = return (Just emptyAttributesType)
+
+-- what we used to do
+getAttributesType1 :: IO (Maybe AttributesType)
+getAttributesType1 =
    do
       (attributeTypeKeys :: [(AttributeTypeKey,String)])
          <- getAllAttributeTypeKeys

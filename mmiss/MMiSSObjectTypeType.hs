@@ -5,6 +5,7 @@ module MMiSSObjectTypeType(
    MMiSSObjectType(..),
    retrieveObjectType,
    allObjectTypes,
+   constructKey,
    ) where
 
 import Maybe

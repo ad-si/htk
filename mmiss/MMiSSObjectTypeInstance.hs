@@ -4,13 +4,24 @@
    (Really this should be two modules; it is one because GHC's rules of
    separating recursive modules would make any alternative too tricky.) 
    -}
-module MMiSSObjectTypeInstance() where
+module MMiSSObjectTypeInstance(
+   unpackWrappedLinkToMMiSSObject,
+   newEmptyLinkMMiSSObject,
+   wrapMMiSSObjectLink, -- :: Link MMiSSObject -> WrappedLink
+   linkToLinkedObjectMMiSSObject,
+      -- :: View -> Link MMiSSObject -> IO LinkedObject
+   lookupMMiSSObject, 
+      -- :: View -> MMiSSPackageFolder -> EntitySearchName
+      -- -> IO (WithError (Maybe (Link MMiSSObject)))
+   ) where
+
+import Maybe
 
 import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
-import AtomString(fromString,toString)
+import AtomString(fromString,toString,fromStringWE)
 import Sources
 import VariableSet(VariableSetSource,toKey)
 import VariableList
@@ -41,23 +52,27 @@ import LocalMenus
 
 import Text.XML.HaXml.Types hiding (MarkupDecl(Element))
 
+import EntityNames
+
+import MMiSSDTDAssumptions
 import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSVariant
 import MMiSSVariantObject
-import MMiSSContent
 import MMiSSPrint
 import MMiSSCheck
 import MMiSSActiveMath
+import MMiSSEditFormatConverter(exportElement)
 import MMiSSEditXml(toExportableXml)
 import MMiSSFileType
 import MMiSSBundle
--- import CASLFragments
+import MMiSSPackageFolder
+import MMiSSBundleSimpleUtils
+import MMiSSImportExportErrors
 
 import {-# SOURCE #-} MMiSSEmacsEdit
 import {-# SOURCE #-} MMiSSEditAttributes
 import {-# SOURCE #-} MMiSSExportLaTeX
-import {-# SOURCE #-} MMiSSPackageFolder
 
 -- -------------------------------------------------------------------------
 -- The instance
@@ -151,6 +166,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)
                      ] 
+
                   menu = LocalMenu (Menu Nothing editOptions)
                in
                   menu $$$
@@ -171,22 +187,34 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
                      objectLinks1 :: VariableList (WrappedLink,ArcType)
                      objectLinks1 = newVariableListFromList objectLinks0
-
+                     
                      fileLinks0 :: SimpleSource [String]
                      fileLinks0 =
                         do
                            cache <- toVariantObjectCache 
                               (variantObject mmissObject)
-                           return (uniqOrd (getAllElementFiles 
-                              (cacheElement cache)))
+                           return (getFiles (cacheElement cache))
+
+                     fileLinks1 :: SimpleSource [EntityFullName]
+                     fileLinks1 = fmap
+                        (\ nameStrs -> 
+                           mapMaybe
+                              (\ nameStr -> 
+                                 case fromWithError (fromStringWE nameStr) of
+                                    Left _ -> Nothing
+                                    Right name -> Just name
+                                 )
+                              nameStrs
+                           )
+                        fileLinks0
 
                      packageFolderLinkWE 
                         :: SimpleSource (WithError MMiSSPackageFolder)
                      packageFolderLinkWE 
                         = toMMiSSPackageFolder view mmissObject
 
-                     fileLinks1 :: SimpleSource [(WrappedLink,ArcType)]
-                     fileLinks1 =
+                     fileLinks2 :: SimpleSource [(WrappedLink,ArcType)]
+                     fileLinks2 =
                         mapIO
                            (\ (fileLinks,packageFolderWE) ->
                               case fromWithError packageFolderWE of
@@ -201,7 +229,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                                              toMMiSSPackageFolderLinkedObject
                                                 packageFolder
 
-                                       (found :: [[(Link MMiSSFile,String,
+                                       (found :: [[(Link MMiSSFile,
+                                             EntityFullName,
                                              String)]])
                                           <- mapM
                                              (\ fileLink ->
@@ -224,15 +253,15 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
                                        return allFound2
                               )
-                           (pairSimpleSources fileLinks0 packageFolderLinkWE)
+                           (pairSimpleSources fileLinks1 packageFolderLinkWE)
 
 
-                     fileLinks2 :: VariableList (WrappedLink,ArcType)
-                     fileLinks2 = newVariableListFromList fileLinks1
+                     fileLinks3 :: VariableList (WrappedLink,ArcType)
+                     fileLinks3 = newVariableListFromList fileLinks2
 
                      objectFileLinks1 :: VariableList (WrappedLink,ArcType)
                      objectFileLinks1 = catVariableLists
-                        objectLinks1 fileLinks2
+                        objectLinks1 fileLinks3
 
                      objectFileLinks2 
                         :: VariableList (ArcData WrappedLink ArcType)
@@ -441,7 +470,7 @@ instance HasTyRep CacheContentsMergeKey where
    tyRep _ = cacheContentsMergeKey_tyRep
 
 -- -------------------------------------------------------------------------
--- Instance of HasBundleNodeData
+-- Exporting objects to bundles
 -- -------------------------------------------------------------------------
 
 instance HasBundleNodeData MMiSSObject where
@@ -457,10 +486,49 @@ instance HasBundleNodeData MMiSSObject where
                         then
                            do
                               element1 <- readLink view (element variable)
-                              return (BundleElement element1)
+                              exportedStrWE <- exportElement
+                                 view (format exportOpts) [] element1
+                              exportedStr <- coerceImportExportIO exportedStrWE
+                              return (BundleString {
+                                 contents = fromString exportedStr,
+                                 charType = Unicode
+                                 })
                         else
                            return NoText
                      return (Just variantSpec,bundleText)
                   )
                allObjectVariants
          return (MMiSSBundle.Object variants)
+
+   getBundleNodeDataForVariant = error 
+      ("Don't use getBundleNodeDataForVariant for objects; use "
+         ++ "exportMMiSSObjectVariant instead, which also handles ExportFiles")
+
+
+-- -------------------------------------------------------------------------
+-- Functions exported for .hi-boot file.
+-- -------------------------------------------------------------------------
+
+unpackWrappedLinkToMMiSSObject :: WrappedLink -> Maybe (Link MMiSSObject)
+unpackWrappedLinkToMMiSSObject = unpackWrappedLink
+
+newEmptyLinkMMiSSObject :: View -> IO (Link MMiSSObject)
+newEmptyLinkMMiSSObject = newEmptyLink
+
+wrapMMiSSObjectLink :: Link MMiSSObject -> WrappedLink
+wrapMMiSSObjectLink = WrappedLink
+
+linkToLinkedObjectMMiSSObject
+   :: View -> Link MMiSSObject -> IO LinkedObject
+linkToLinkedObjectMMiSSObject view link =
+   do
+      object <- readLink view link
+      return (toLinkedObject object)
+
+
+lookupMMiSSObject 
+   :: View -> MMiSSPackageFolder -> EntitySearchName
+   -> IO (WithError (Maybe (Link MMiSSObject)))
+lookupMMiSSObject view packageFolder searchName 
+   = lookupObject view (toLinkedObject packageFolder) searchName
+

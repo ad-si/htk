@@ -4,8 +4,9 @@ module MMiSSLaTeX(
    mmissLaTeX,
    ) where
 
-import Maybe
 import Directory
+
+import Maybe
 import Char
 
 import WBFiles
@@ -13,6 +14,8 @@ import FileNames
 import Computation
 import CommandStringSub(bashEscape)
 import ExtendedPrelude
+
+import WithDir
 
 import SafeSystem
 import CopyFile
@@ -75,12 +78,7 @@ mmissLaTeX view fileName contents exportFiles0 =
                -- Copies one file to another
                copy :: String -> String -> IO Bool
                copy source destination =
-                  do
-                     currentDir <- getCurrentDirectory
-                     setCurrentDirectory laTeXDir
-                     success <- copyFileBool source destination
-                     setCurrentDirectory currentDir
-                     return success
+                  withDir laTeXDir (copyFileBool source destination)
 
                laTeXFile = fileName ++ ".tex"
 

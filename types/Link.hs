@@ -82,6 +82,9 @@ module Link(
       -- Like fetchLink but should not crash for deleted links.
    readLinkWE, -- :: HasCodedValue x => View -> Link x -> IO (WithError x)
       -- Like readLink but should not crash for deleted links.
+   isEmptyLink, -- :: View -> Link x -> IO Bool
+      -- returns True if the link is empty (for example, was created
+      -- by newEmptyLink and not yet set.
 
 
    eqLink, -- :: Link x -> Link x -> Ordering
@@ -146,6 +149,12 @@ fetchLink view link =
    do
       versionedWE <- fetchLinkWE view link
       return (coerceWithError versionedWE)
+
+isEmptyLink :: HasCodedValue x => View -> Link x -> IO Bool
+isEmptyLink view link =
+   do
+      versioned <- fetchLink view link
+      isEmptyObject versioned
 
 preFetchLinks :: HasCodedValue x => View -> [Link x] -> IO ()
 preFetchLinks view links =
@@ -384,7 +393,7 @@ mkObjectSourceFn :: HasCodedValue x => View
 -- This is the action that computes the ObjectSource to be committed to the
 -- repository.
 --
--- The supplied objectVersion is that of the containing view.
+-- The supplied objectVersion is that of the ncontaining view.
 -- The Maybe (Location,ObjectVersion) indicates, if set, that this is
 -- a cloned object, and so this should be used if the object is marked
 -- as UpToDate.
@@ -435,7 +444,6 @@ setLink view x (Link location) =
 
       return versioned
                
-
 ---
 -- setOrGetTopLink is somewhat safer than setTopLink and initialises the
 -- top object, if that hasn't already been done, via the supplied action.
@@ -464,6 +472,15 @@ newEmptyObject view =
    do
       location <- newLocation (repository view)
       createObjectGeneral view Empty location
+
+isEmptyObject :: Versioned x -> IO Bool
+isEmptyObject versioned =
+   do
+      status <- readMVar (statusMVar versioned)
+      return (case status of
+         Empty -> True
+         _ -> False
+         )
 
 -- createObjectGeneral creates a completely new object for an already-
 -- allocated location, given a Status (Virgin or Empty) to put in it.

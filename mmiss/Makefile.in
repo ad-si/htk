@@ -2,29 +2,36 @@ PACKAGE = uni-mmiss
 PACKAGES = uni-types uni-emacs uni-mmiss-parser
 
 SRCS = MMiSSDTDAssumptions.hs \
-   MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSVariantObject.hs \
+   MMiSSAttributes.hs MMiSSVariant.hs MMiSSVariantObject.hs \
    MMiSSDisplay.hs \
    MMiSSDTD.hs MMiSSObjectTypeType.hs MMiSSObjectType.hs \
-   MMiSSPreamble.hs MMiSSFormat.hs MMiSSLaTeXAssumptions.hs \
+   MMiSSPreamble.hs MMiSSFormat.hs \
    MMiSSEditXml.hs MMiSSEditFormatConverter.hs MMiSSEmacsEdit.hs \
    MMiSSObjectTypeInstance.hs MMiSSObjectExtract.hs \
-   MMiSSExportLaTeX.hs MMiSSPrint.hs MMiSSImportLaTeX.hs \
+   MMiSSExportLaTeX.hs MMiSSPrint.hs \
    MMiSSEditAttributes.hs \
-   MMiSSPreObjects.hs MMiSSWriteObject.hs MMiSSReadObject.hs \
+   MMiSSReadObject.hs \
    MMiSSReAssemble.hs MMiSSRunCommand.hs MMiSSLaTeX.hs\
    MMiSSPackageFolder.hs \
-   $(if @HAXML@,,XmlValidate.hs) \
    MMiSSRegistrations.hs MMiSSInitialise.hs \
    MMiSSFiles.hs MMiSSFileType.hs \
    MMiSSExportFiles.hs MMiSSCheck.hs MMiSSActiveMath.hs MMiSSCheck_DTD.hs \
    MMiSSBundle.hs MMiSSImportExportBundle.hs MMiSSSubFolder.hs \
+   MMiSSImportExportErrors.hs \
    MMiSSSplitLink.hs MMiSSExportEntireBundle.hs MMiSSBundleUtils.hs \
-   MMiSSExportVariantBundle.hs \
+   MMiSSExportVariantBundle.hs MMiSSBundleConvert.hs \
+   MMiSSBundleSimpleUtils.hs MMiSSBundleTypes.hs MMiSSElementInstances.hs \
+   MMiSSFileSystemExamples.hs MMiSSElementInfo.hs MMiSSBundleFillIn.hs \
+   MMiSSBundleDissect.hs MMiSSBundleValidate.hs MMiSSBundleReadFiles.hs \
+   MMiSSBundleNodeWriteClass.hs MMiSSBundleNodeCheckTypes.hs \
+   MMiSSBundleNodeWrite.hs MMiSSBundleNodeWriteObject.hs \
+   MMiSSBundleWrite.hs MMiSSInsertionPoint.hs
 
-BOOTSRCS = MMiSSReadObject.boot.hs MMiSSWriteObject.boot.hs \
+BOOTSRCS = MMiSSReadObject.boot.hs \
    MMiSSObjectType.boot.hs MMiSSEmacsEdit.boot.hs MMiSSEditAttributes.boot.hs \
-   MMiSSPackageFolder.boot.hs MMiSSImportLaTeX.boot.hs \
-   MMiSSExportLaTeX.boot.hs MMiSSExportFiles.boot.hs
+   MMiSSPackageFolder.boot.hs \
+   MMiSSExportLaTeX.boot.hs MMiSSExportFiles.boot.hs \
+   MMiSSObjectTypeInstance.boot.hs MMiSSBundleWrite.boot.hs
 
 SUBDIRS = api test
 

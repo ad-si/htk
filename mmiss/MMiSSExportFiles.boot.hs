@@ -1,7 +1,7 @@
 module MMiSSExportFiles where
 
 type ExportFiles = 
-   [(MMiSSPackageFolder.MMiSSPackageFolder,GHC.Base.String,
+   [(MMiSSPackageFolder.MMiSSPackageFolder,EntityNames.EntityFullName,
       MMiSSVariant.MMiSSVariantSearch)]
 
 exportFiles :: 

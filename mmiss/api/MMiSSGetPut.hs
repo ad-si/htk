@@ -15,13 +15,13 @@ import View
 
 import MMiSSVariant
 import MMiSSImportExportBundle
+import MMiSSImportExportErrors
 import MMiSSBundle
 
 import MMiSSRequest
 import MMiSSSessionState
 import MMiSSAPIBlock
 import MMiSSToFromBundle
-import {-# SOURCE #-} MMiSSDoXml
 
 -- ----------------------------------------------------------------------------
 -- Getting files
@@ -43,7 +43,7 @@ getObject state (GetObject attrs versionRef fullName variantsOpt)
             do
                let
                   variantSpecWE = fromVariants variants
-               variantSpec <- coerceWithErrorOrBreakIO ourError variantSpecWE
+               variantSpec <- coerceWithErrorOrBreakIO importExportError variantSpecWE
                return (Just (fromMMiSSSpecToSearch variantSpec))
 
       bundle <- exportBundle view linkedObject exportOpts variantSearchOpt
@@ -56,15 +56,24 @@ getObject state (GetObject attrs versionRef fullName variantsOpt)
 -- --------------------------------------------------------------------------
 
 putObject :: MMiSSSessionState -> PutObject -> Block -> IO PutObjectResponse
-putObject state (PutObject versionRef fullName files) block =
+putObject state 
+      (PutObject versionRef (ObjectFullName fullNameStr) packageIdOpt0 bundle0)
+      block =
    do
       let
-         bundleWE = toBundle block files 
-      bundle <- coerceWithErrorOrBreakIO ourError bundleWE
+         fullNameWE = fromStringWE fullNameStr
+
+         packageIdOpt1 = fmap toPackageId packageIdOpt0
+
+   
+      (fullName :: EntityFullName) 
+         <- coerceWithErrorOrBreakIO importExportError fullNameWE
+      let
+         bundleWE = toBundle block bundle0
+      bundle <- coerceWithErrorOrBreakIO importExportError bundleWE
 
       view <- lookupView state versionRef
-      linkedObject <- getLinkedObject view fullName
-      importBundle view linkedObject bundle
+      importBundle view fullName packageIdOpt1 bundle
       return PutObjectResponse
 
 -- ----------------------------------------------------------------------------
@@ -77,8 +86,9 @@ getLinkedObject view (ObjectFullName fullNameStr) =
       let
          fullNameWE = fromStringWE fullNameStr
       (fullName :: EntityFullName) 
-         <- coerceWithErrorOrBreakIO ourError fullNameWE
+         <- coerceWithErrorOrBreakIO importExportError fullNameWE
       linkedObjectOpt <- lookupLinkedObjectByFullName view fullName
       case linkedObjectOpt of
-         Nothing -> ourError ("Object " ++ fullNameStr ++ " not found")
+         Nothing -> importExportError ("Object " ++ fullNameStr 
+            ++ " not found")
          Just linkedObject -> return linkedObject 

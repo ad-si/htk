@@ -4,6 +4,9 @@
 module MMiSSExportEntireBundle(
    exportEntireLinkedObject,
       -- :: View -> LinkedObject -> ExportOpts -> IO Bundle
+   exportMMiSSPreamble,
+      -- :: View -> Link MMiSSPreamble -> Bool 
+      -- -> IO BundleNode
    ) where
 
 import Messages
@@ -19,7 +22,6 @@ import Files
 import LinkManager
 import BasicObjects
 
-import MMiSSPackageFolder
 import MMiSSObjectType
 import MMiSSFileType
 import MMiSSSplitLink
@@ -28,6 +30,7 @@ import MMiSSPreamble
 import MMiSSBundle
 import MMiSSBundleUtils
 import MMiSSObjectTypeInstance
+import MMiSSPackageFolder
 
 
 
@@ -83,7 +86,7 @@ exportEntirePackageFolder view packageFolderLink exportOpts =
             then
                do
                   preambleNode <- exportMMiSSPreamble view
-                     (toMMiSSPreambleLink packageFolder) (getText exportOpts)
+                     (toMMiSSPreambleLink packageFolder) exportOpts
                   return [preambleNode]
                   
             else
@@ -95,11 +98,11 @@ exportEntirePackageFolder view packageFolderLink exportOpts =
 -- Preambles
 -- --------------------------------------------------------------------------
 
-exportMMiSSPreamble :: View -> Link MMiSSPreamble -> Bool 
+exportMMiSSPreamble :: View -> Link MMiSSPreamble -> ExportOpts 
    -> IO BundleNode
-exportMMiSSPreamble view link getText1 = 
+exportMMiSSPreamble view link exportOpts = 
    do
-      bundleText1 <- if getText1
+      bundleText1 <- if (getText exportOpts)
          then
             do
                mmissLaTeXPreamble <- readPreamble view link
@@ -176,7 +179,8 @@ exportEntireMMiSSObject :: View -> Link MMiSSObject -> ExportOpts
 exportEntireMMiSSObject view link exportOpts =
    do
       mmissObject <- readLink view link
-      fileLoc1 <- getFileLoc view (toLinkedObject mmissObject)
+      fileLoc1 
+         <- getFileLocForExport view (toLinkedObject mmissObject) exportOpts
       bundleNodeData1 <- getBundleNodeData1 view mmissObject exportOpts
 
       return (BundleNode {

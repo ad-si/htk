@@ -13,6 +13,8 @@ module MMiSSImportExportBundle(
 import Messages
 import Computation
 
+import EntityNames
+
 import View
 import LinkManager
 import Folders
@@ -22,14 +24,21 @@ import MMiSSBundle
 import MMiSSVariant
 import MMiSSExportVariantBundle
 import MMiSSExportEntireBundle
+import MMiSSBundleWrite
+import MMiSSInsertionPoint
+import MMiSSImportExportErrors
 
 -- --------------------------------------------------------------------------
 -- Importing
 -- --------------------------------------------------------------------------
 
 -- | This corresponds to mmiss/MMiSSRequest.dtd's putObject element.
-importBundle :: View -> LinkedObject -> Bundle -> IO ()
-importBundle = error "TBD"
+importBundle :: View -> EntityFullName -> Maybe PackageId -> Bundle -> IO ()
+importBundle view fullName packageIdOpt bundle =
+   do
+      insertionPointWE <- getInsertionPoint view fullName 
+      insertionPoint <- coerceImportExportIO insertionPointWE
+      writeBundle bundle packageIdOpt Nothing view insertionPoint
 
 -- --------------------------------------------------------------------------
 -- Exporting

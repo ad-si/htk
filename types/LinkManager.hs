@@ -100,7 +100,7 @@ module LinkManager(
       -- :: LinkedObject -> EntityName -> IO (Maybe LinkedObject)
       -- Extract a single element in a linkedObject's contents by EntityName
    lookupObjectInFolder,
-      -- :: LinkedObject -> EntityName -> IO (Maybe LinkedObject)
+      -- :: LinkedObject -> EntityName -> IO (Maybe (Link object))
       -- Extract an object in a linkedObject's contents by EntityName
    lookupFullNameInFolder,
       -- :: LinkedObject -> EntityFullName -> IO (Maybe LinkedObject)
@@ -149,12 +149,19 @@ module LinkManager(
       -- Looks up an object, returning the actual link if possible.
       -- We return Nothing if the object does not exist but cause an error if 
       -- the object has the wrong type.
+   lookupLinkedObject,
+      -- :: View -> LinkedObject -> EntitySearchName 
+      -- -> IO (WithError (Maybe LinkedObject))
+      -- :: ObjectType objectType object 
+      -- => View -> LinkedObject -> EntitySearchName 
+      -- -> IO (Maybe LinkedObject)
+      -- Like lookupObject, but instead returns the LinkedObject.
 
 
    getFullName, 
        -- :: HasLinkedObject object => View -> object -> IO String
-       -- Returns the full name of an object within the view, for error 
-       -- messages.
+       -- Returns the full name of an object within the view.
+       -- Used for error messages and packageIds.
 
    -- FolderStructure functions.
    toFolderStructure,
@@ -559,6 +566,29 @@ lookupObject :: ObjectType objectType object
    -> IO (WithError (Maybe (Link object)))
 lookupObject view linkedObject searchName =
    do
+      linkedObjectOptWE <- lookupLinkedObject view linkedObject searchName
+      return (mapWithError'
+         (\ linkedObjectOpt ->
+            case linkedObjectOpt of
+               Nothing -> return Nothing
+               Just linkedObject ->
+                  let
+                     wrappedLink = wrappedLinkInPtr (thisPtr linkedObject)
+                     linkWE = unpackWrappedLinkWE wrappedLink
+                  in
+                     case fromWithError linkWE of
+                        Left mess -> hasError (toString searchName
+                           ++ ": " ++ mess)
+                        Right link -> hasValue (Just link)
+            )
+         linkedObjectOptWE
+         )
+
+-- | Like lookupObject, but instead returns the LinkedObject.
+lookupLinkedObject :: View -> LinkedObject -> EntitySearchName 
+   -> IO (WithError (Maybe LinkedObject))
+lookupLinkedObject view linkedObject searchName =
+   do
       importsState <- getImportsState view
       source <- lookupNode importsState linkedObject searchName
       lookupResult <- readContents source 
@@ -566,18 +596,12 @@ lookupObject view linkedObject searchName =
          NotFound -> hasValue Nothing
          Error -> hasError (toString searchName 
             ++ " cannot be found because of errors") 
-         Found linkedObject -> 
-            let
-               wrappedLink = wrappedLinkInPtr (thisPtr linkedObject)
-               linkOpt = unpackWrappedLink wrappedLink
-            in
-               case linkOpt of
-                  Nothing -> hasError (toString searchName 
-                     ++ " has wrong type: " ++ wrappedLinkTypeName wrappedLink)
-                  Just link -> hasValue (Just link)
+         Found linkedObject -> hasValue (Just linkedObject)
          )
 
--- | Returns the full name of an object within the view, for error messages.
+
+-- | Returns the full name of an object within the view.
+-- Used for error messages and packageIds.
 getFullName :: HasLinkedObject object => View -> object -> IO String
 getFullName view object =
    do

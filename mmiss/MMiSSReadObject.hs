@@ -40,17 +40,18 @@ import {-# SOURCE #-} MMiSSExportFiles
 ---
 -- Retrieve a single MMiSSObject's data (not any of its children)
 simpleReadFromMMiSSObject :: View -> Link MMiSSObject -> MMiSSVariantSearch
-   -> IO (WithError (Variable,MMiSSObject))
+   -> IO (WithError (Cache,MMiSSObject))
 simpleReadFromMMiSSObject view objectLink variantSearch =
    do
       object <- readLink view objectLink
-      variableOpt <- lookupVariantObject (variantObject object) variantSearch
-      case variableOpt of
+      cacheOpt <- lookupVariantObjectCache (variantObject object) variantSearch
+      case cacheOpt of
          Nothing -> 
             do
-               title <- nodeTitleIOPrim object
+               title <- getFullName view object
                return (hasError ("No matching variant found for "++title))
-         Just variable -> return (hasValue (variable,object))
+         Just cache 
+            -> return (hasValue (cache,object))
 
 ---
 -- Retrieve an object, expanding includes to a certain depth.  We also 
@@ -63,8 +64,7 @@ simpleReadFromMMiSSObject view objectLink variantSearch =
 -- current one.
 readMMiSSObject :: View -> Link MMiSSObject -> Maybe MMiSSVariantSearch
    -> IntPlus -> Bool 
-   -> IO (WithError (Element,[(Link MMiSSPreamble,MMiSSExtraPreambleData)],
-      ExportFiles))
+   -> IO (WithError (Element,[MMiSSPackageFolder],ExportFiles))
 readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
    addFallOutWE (\ break ->
       do 
@@ -76,9 +76,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                done
 
          -- To gather all the preambles we put them in this MVar.
-         (preambleLinksMVar 
-            :: MVar [(Link MMiSSPreamble,MMiSSExtraPreambleData)]) 
-            <- newMVar []
+         (packageFoldersMVar :: MVar [MMiSSPackageFolder]) <- newMVar []
 
          -- And to gather all ExportFiles we put them here:
          (exportFilesMVar :: MVar ExportFiles) <- newMVar []
@@ -126,35 +124,17 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
                      objectDataWE 
                         <- simpleReadFromMMiSSObject view link variantSearch
 
-                     (variable,object)
+                     (cache,object)
                         <- coerceWithErrorOrBreakIO hackBreak objectDataWE
-
-                     cache <- converter view (linkedObject object) variable
 
                      packageFolderWE <- getMMiSSPackageFolder view
                         (toLinkedObject object) 
                      packageFolder 
                         <- coerceWithErrorOrBreakIO break packageFolderWE
 
-                     modifyMVar_ preambleLinksMVar 
-                        (\ preambleLinks ->
-                           -- To determine if this is the head element,
-                           -- we look if preambleLinks is null or not.
-                           -- If it is, that means this is the first call
-                           -- to getElement, so this must be the head.
-                           let
-                              callSite = case preambleLinks of
-                                 [] -> Nothing
-                                 _ -> Just entitySearchName
-
-                              extraData = MMiSSExtraPreambleData {
-                                 callSite = callSite
-                                 }
-                           in
-                              return (
-                                 (toMMiSSPreambleLink packageFolder,extraData) 
-                                    : preambleLinks
-                                 )
+                     modifyMVar_ packageFoldersMVar 
+                        (\ packageFolders 
+                           -> return (packageFolder : packageFolders)
                            )
 
                      return (Just (cacheElement cache,
@@ -165,7 +145,7 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
             -- doFile is the second function to be passed to 
             -- reAssembleNoRecursion.
             doFile :: MMiSSVariantSearch -> (MMiSSPackageFolder,IntPlus) 
-               -> String -> IO ()
+               -> EntityFullName -> IO ()
             doFile variantSearch0 (packageFolder0,_) file =
                modifyMVar_ exportFilesMVar
                   (return . ((packageFolder0,file,variantSearch0) :))
@@ -195,10 +175,15 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
 
          element <- coerceWithErrorOrBreakIO break elementWE
 
-         preambleLinks <- takeMVar preambleLinksMVar
+         packageFolders1 <- takeMVar packageFoldersMVar
+         let
+            packageFolders =
+               uniqOrdByKey
+                  toLinkedObject
+                  packageFolders1
 
          exportFiles <- takeMVar exportFilesMVar
-         return (element,preambleLinks,exportFiles)
+         return (element,packageFolders,exportFiles)
       )
          
 ---

@@ -12,6 +12,7 @@ module MMiSSDTD(
    allElements,
    allLabelledElements,
    validateElement,
+   validateElement0, -- :: Element -> [String]
    getDisplayInstruction,
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
    xmlParseWE, -- :: String -> String -> WithError Element
@@ -144,7 +145,10 @@ validateElement elementName (element @ (Elem name _ _)) =
       then
          ["Expected a "++elementName++" but found a "++name]
       else
-          (simpleDTD theDTD) element
+         validateElement0 element
+
+validateElement0 :: Element -> [String]
+validateElement0 = simpleDTD theDTD
 
 -- -------------------------------------------------------------
 -- Parsing a String containing Xml, with error control.

@@ -22,25 +22,25 @@ import ObjectTypes
 -- puts up a menu which selects an object type and creates an object in
 -- the given folder.
 createObjectMenu :: (HasLinkedObject parent,ObjectType parentType parent)
-   => View -> Link parent -> IO (Maybe WrappedLink)
+   => View -> Link parent -> IO Bool
 createObjectMenu view (parentLink :: Link parent) =
    do
       allObjectTypes <- getAllObjectTypes view
       let
          (allObjectTypeMenuItems :: 
-            [(String,View -> LinkedObject -> IO (Maybe WrappedLink))]) =
+            [(String,View -> LinkedObject -> IO Bool)]) =
             mapMaybe
                createObjectMenuItem
                allObjectTypes
 
-         (form :: Form (View -> LinkedObject -> IO (Maybe WrappedLink))) = 
+         (form :: Form (View -> LinkedObject -> IO Bool)) = 
             case allObjectTypes of 
                [] -> error "No available object types" 
                   -- unlikely, Folder should be available at least.
                _ -> newFormOptionMenu2 allObjectTypeMenuItems
       createFnOpt <- doForm "Object Type selection" form
       case createFnOpt of
-         Nothing -> return Nothing
+         Nothing -> return False
          Just createFn -> 
             do
                parent <- readLink view parentLink

@@ -3,7 +3,7 @@
    forgets about them.
    -}
 module ICStringLen(
-   ICStringLen, -- instance of AtomString
+   ICStringLen, -- instance of AtomString and Eq.
 
    UTF8(..), 
       -- newtype alias.  UTF8 ICStringLen is also an instance of AtomString,
@@ -189,6 +189,13 @@ instance EqIO ICStringLen where
       do
          ord <- compareIO icsl1 icsl2
          return (ord == EQ)
+
+-- -------------------------------------------------------------------
+-- Oh very well.  We implement Eq for ICStringLen, using unsafePerformIO.
+-- -------------------------------------------------------------------
+
+instance Eq ICStringLen where
+   (==) icsl1 icsl2 = unsafePerformIO (eqIO icsl1 icsl2)
 
 -- -------------------------------------------------------------------
 -- Instance of HasBinary

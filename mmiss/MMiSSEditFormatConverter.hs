@@ -5,7 +5,7 @@ module MMiSSEditFormatConverter(
    toEditFormatConverter, -- :: Format -> EditFormatConverter
 
    exportElement,
-      -- :: View -> Format -> [Link MMiSSPreamble] -> Element 
+      -- :: View -> Format -> [MMiSSPackageFolder] -> Element 
       -- -> IO (WithError String)
    ) where
 
@@ -18,6 +18,7 @@ import Debug(debugString)
 
 import ViewType
 import Link
+import LinkManager
 
 import EmacsContent
 
@@ -28,8 +29,9 @@ import LaTeXParser
 import MMiSSEditXml(TypedName)
 import MMiSSFormat
 import MMiSSEditXml
-import MMiSSLaTeXAssumptions
 import MMiSSPreamble
+import MMiSSFileSystemExamples
+import MMiSSPackageFolder
 
 -- ----------------------------------------------------------------------
 -- The types
@@ -58,52 +60,53 @@ toEditFormatConverter XML =
       }
 toEditFormatConverter LaTeX =
    EditFormatConverter {
-      toEdit = (\ preambleOpt element -> makeMMiSSLatex (element,False,[])),
-      fromEdit = (\ string content 
+      toEdit = (\ preambleOpt element -> makeMMiSSLatexContent element False []),
+      fromEdit = (\ fileName content 
          ->
             do
                let 
                   str = mkLaTeXString content
 
---               debugString ("START|"++str++"|END")
+                  fileSystem = oneFileFileSystem fileName str
+
+
+               parsedWE <- parseMMiSSLatex fileSystem fileName
+
+--             debugString ("START|"++str++"|END")
 
                return (mapWithError 
                   (\ (element,_) -> element) 
-                  (parseMMiSSLatex str)
+                  parsedWE
                   )
-            )
+         )
       }
 
 exportElement :: View -> Format 
-   -> [(Link MMiSSPreamble,MMiSSExtraPreambleData)] -> Element 
-   -> IO (WithError String)
+   -> [MMiSSPackageFolder] -> Element -> IO (WithError String)
 exportElement _ XML _ element = return (hasValue (toExportableXml element))
-exportElement view LaTeX preambleLinks0 element =
+exportElement view LaTeX packageFolders element =
    do
-      -- Remove duplicate preamble links
-      let 
-         preambleMap :: FiniteMap (Link MMiSSPreamble) [MMiSSExtraPreambleData]
-         preambleMap = foldl
-            (\ preambleMap0 (link,extraData) ->
-               addToFM preambleMap0 link
-                  (extraData : (lookupWithDefaultFM preambleMap0 [] link))
-               )
-            emptyFM
-            preambleLinks0
-
-      (laTeXPreambles :: [(MMiSSLatexPreamble,[MMiSSExtraPreambleData])]) 
+      (laTeXPreambles :: [(MMiSSLatexPreamble,PackageId)]) 
          <- mapM
-            (\ (preambleLink,extraDatas) -> 
+            (\ packageFolder -> 
                do
+                  let
+                     preambleLink = toMMiSSPreambleLink packageFolder
                   laTeXPreamble <- readPreamble view preambleLink
-                  return (laTeXPreamble,extraDatas)
-               )
-            (fmToList preambleMap)
 
-      return (
-         mapWithError 
-            (\ content -> mkLaTeXString content)
-            (makeMMiSSLatex (element,True,laTeXPreambles))
+                  packageIdStr1 <- getFullName view packageFolder
+                  let
+                     packageId = PackageId {packageIdStr = packageIdStr1}
+
+                  return (laTeXPreamble,packageId)
+               )
+            packageFolders
+
+      let
+         emacsContentWE = makeMMiSSLatexContent element True laTeXPreambles
+      return (mapWithError
+         (\ emacsContent -> mkLaTeXString emacsContent)
+         emacsContentWE
          )
 
       

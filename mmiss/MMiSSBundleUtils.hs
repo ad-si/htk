@@ -1,13 +1,14 @@
 {- This module contains various utilities for manipulating MMiSSBundles. -}
 module MMiSSBundleUtils(
    bundleToICSL, -- :: BundleText -> Maybe (ICStringLen,CharType)
-   bundleToElement, -- :: BundleText -> WithError Element
-   nameFileLoc, -- :: FileLoc -> WithError EntityName
-   describeFileLoc, -- :: FileLoc -> String
 
    mkPackageId, -- :: View -> LinkedObject -> IO PackageId
 
    getFileLoc, -- :: View -> LinkedObject -> I0 FileLoc
+   getFileLocForExport, -- :: View -> LinkedObject -> ExportOpts -> IO FileLoc
+      -- getFileLocForExport is different in that for MMiSS objects it
+      -- returns a file type with appropriate extension.
+   getFileLocAndParent, -- :: View -> LinkedObject -> IO (FileLoc,Maybe LinkedObject)
    getUnknownBundleNode, -- :: LinkedObject -> IO BundleNode
    preambleFileLoc, -- :: FileLoc
 
@@ -40,6 +41,8 @@ import MMiSSDTD
 import MMiSSFormat
 import MMiSSSplitLink
 import MMiSSBundle
+import MMiSSBundleTypes
+import MMiSSImportExportErrors
 
 -- --------------------------------------------------------------------------
 -- BundleText functions
@@ -48,20 +51,9 @@ import MMiSSBundle
 bundleToICSL :: BundleText -> Maybe (ICStringLen,CharType)
 bundleToICSL (BundleString {contents = contents,charType = charType}) =
    Just (contents,charType)
-bundleToICSL (BundleElement element) = 
-   Just (fromString (toExportableXml element),Byte)
+bundleToICSL (BundleDyn {}) 
+   = importExportError "API bug: Untranslated BundleDyn in exported bundle"
 bundleToICSL NoText = Nothing
- 
-
-bundleToElement :: BundleText -> WithError Element
-bundleToElement (BundleElement element) = return element
-bundleToElement (BundleString {contents = contents,charType = charType}) =
-   do
-      contentsStr <- case charType of
-         Byte -> return (toString contents)
-         Unicode -> fromUTF8WE (toString contents)
-      xmlParseWE "MMiSS Bundle" contentsStr
-bundleToElement NoText = fail "No text supplied for file"
 
 -- --------------------------------------------------------------------------
 -- Constructing PackageId's
@@ -73,48 +65,6 @@ mkPackageId view linkedObject =
       packageIdStr <- describeLinkedObject view linkedObject
       return (PackageId packageIdStr)
 
--- --------------------------------------------------------------------------
--- FileLoc functions
--- --------------------------------------------------------------------------
-
-strFileLoc :: FileLoc -> Maybe String
-strFileLoc fileLoc =
-   case name fileLoc of
-      Nothing -> Nothing
-      Just name0 -> case ext (objectType fileLoc) of
-         Nothing -> Just name0
-         Just ext0 -> Just (name0 ++ [specialChar] ++ ext0)
-
-nameFileLoc :: FileLoc -> WithError EntityName
-nameFileLoc fileLoc = 
-   do
-      str <- case strFileLoc fileLoc of
-         Nothing -> fail "Attempt to write file where no name is specified"
-         Just str -> return str
-      fromStringWE str
-
-describeFileLoc :: FileLoc -> String
-describeFileLoc fileLoc =
-   fromMaybe
-      (fallBack fileLoc)
-      (strFileLoc fileLoc)
-   where
-      fallBack :: FileLoc -> String
-      fallBack fileLoc =
-         case ext (objectType fileLoc) of
-            Just ext1 -> "Unnamed object with extension " ++ ext1
-          
-
-describeBundleTypeEnum :: BundleTypeEnum -> String
-describeBundleTypeEnum bte = case bte of
-   FolderEnum -> "simple folder"
-   FileEnum -> "simple file"
-   MMiSSFolderEnum -> "MMiSS package folder"
-   MMiSSObjectEnum -> "MMiSS object"
-   MMiSSFileEnum -> "MMiSS file"
-   MMiSSPreambleEnum -> "MMiSS preamble"
-   UnknownType -> "Object of unknown type"
-
 -- -------------------------------------------------------------------------
 -- Constructing the FileLoc part of a LinkedObject
 -- -------------------------------------------------------------------------
@@ -122,44 +72,72 @@ describeBundleTypeEnum bte = case bte of
 getFileLoc :: View -> LinkedObject -> IO FileLoc
 getFileLoc view linkedObject =
    do
-      name0Opt <- getNameOpt linkedObject
+      (fileLoc,parentOpt) <- getFileLocAndParent view linkedObject
+      return fileLoc
+
+getFileLocForExport :: View -> LinkedObject -> ExportOpts -> IO FileLoc
+getFileLocForExport view linkedObject exportOpts =
+   do
+      fileLoc0 <- getFileLoc view linkedObject
+      let
+         objectType0 = objectType fileLoc0
+         objectType1 = case base objectType0 of
+            MMiSSObjectEnum -> mmissObjectAsFileType (format exportOpts)
+            _ -> objectType0
+
+         fileLoc1 = fileLoc0 {objectType = objectType1}
+      return fileLoc0
+
+getFileLocAndParent :: View -> LinkedObject -> IO (FileLoc,Maybe LinkedObject)
+getFileLocAndParent view linkedObject =
+   do
+      nameAndParentOpt <- getNameAndParentOpt linkedObject
       extra1 <- getExtra view linkedObject
       let
-         (name1,ext1) = case name0Opt of
-            Nothing -> (Nothing,Nothing)
-            Just name0 
-               | Just (name1,ext0) <- splitExtension name0
-               -> (Just name1,Just ext0)
-               | True -> (Just name0,Nothing)
- 
-         mkBundleType base1 =
-            BundleType {base = base1,ext = ext1,extra = Just extra1} 
+         getExtraY :: IO (Maybe String)
+            -- used for those types where we supply an extra.
+         getExtraY =
+            do
+               extra1 <- getExtra view linkedObject
+               return (Just extra1)
 
-         base1 = case splitLinkedObject linkedObject of
-            FileC _ -> FileEnum
-            FolderC _ -> FolderEnum
-            MMiSSPreambleC _ -> MMiSSPreambleEnum
-            MMiSSPackageFolderC _ -> MMiSSFolderEnum
-            MMiSSObjectC _ -> MMiSSObjectEnum 
-            MMiSSFileC _ -> MMiSSFileEnum
-            UnknownLinkC -> UnknownType
+         getExtraN :: IO (Maybe String)
+            -- used for those where we don't.
+         getExtraN = return Nothing
+
+         (name1,ext1,parentOpt) = case nameAndParentOpt of
+            Nothing -> (Nothing,Nothing,Nothing)
+            Just (name0,parent) 
+               | Just (name1,ext0) <- splitExtension name0
+               -> (Just name1,Just ext0,Just parent)
+               | True -> (Just name0,Nothing,Just parent)
+ 
+         (base1,getExt) = case splitLinkedObject linkedObject of
+            FileC _ -> (FileEnum,getExtraY)
+            FolderC _ -> (FolderEnum,getExtraY)
+            UnknownLinkC -> (UnknownType,getExtraY)
+            MMiSSPreambleC _ -> (MMiSSPreambleEnum,getExtraN)
+            MMiSSPackageFolderC _ -> (MMiSSFolderEnum,getExtraN)
+            MMiSSObjectC _ -> (MMiSSObjectEnum,getExtraN) 
+            MMiSSFileC _ -> (MMiSSFileEnum,getExtraN)
+
+      extra1 <- getExt
+
+      let
+         bundleType = BundleType {base = base1,ext = ext1,extra = extra1} 
 
          fileLoc = FileLoc {
             name = name1,
-            objectType = mkBundleType base1
+            objectType = bundleType
             }
 
-      return fileLoc
+      return (fileLoc,parentOpt)
 
 preambleFileLoc :: FileLoc
 preambleFileLoc =
    FileLoc {
       name = Nothing,
-      objectType = BundleType {
-         base = MMiSSPreambleEnum,
-         ext = Nothing,
-         extra = Nothing
-         }
+      objectType = mmissPreambleType
       }
                
  
@@ -191,14 +169,25 @@ getUnknownBundleNode view linkedObject =
             bundleNodeData = NoData
             }
       return bundleNode
- 
+
 getNameOpt :: LinkedObject -> IO (Maybe String)
 getNameOpt linkedObject =
+   do
+      nameAndParentOpt <- getNameAndParentOpt linkedObject
+      return (fmap fst nameAndParentOpt)
+
+getNameAndParentOpt :: LinkedObject -> IO (Maybe (String,LinkedObject))
+getNameAndParentOpt linkedObject =
    do
       insertionOpt <- getCurrentInsertion linkedObject
       let
          name1 = fmap
-            (toString . snd . unmkInsertion)
+            (\ insertion ->
+               let
+                  (parent,name) = unmkInsertion insertion
+               in
+                  (toString name,parent)
+               )
             insertionOpt
 
       return name1

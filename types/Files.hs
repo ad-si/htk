@@ -6,11 +6,23 @@ module Files(
       -- to be done at initialisation
    File,
       -- instance of HasAttributes, HasFilePath
-   FileType,
+   FileType(requiredAttributes),
    newEmptyFile,
+   plainFileType, -- :: FileType
+
+   writeToFile, 
+      -- :: View -> Link File -> GlobalKey -> ICStringLen 
+      --  -> IO ()
+      -- write to a file link, which may be empty.  If it is empty,
+      -- create it using the type specified by the 
+      -- given key.
+      -- We assume that the type exists in the view, that there are no errors
+      -- creating the LinkedObject, and that the file type has no attributes
    ) where
 
-import qualified IOExts(unsafePerformIO)
+import Maybe
+
+import System.IO.Unsafe
 
 import Dynamics
 import Computation
@@ -20,8 +32,11 @@ import Sources
 import Broadcaster
 import VariableSet
 import UniqueString
+import ICStringLen
 
 import SimpleForm
+
+import CopyFile
 
 import GraphDisp
 import GraphConfigure
@@ -37,7 +52,7 @@ import DisplayParms
 import GlobalRegistry
 import CallEditor
 import GetAttributesType
-import Folders
+import Folders hiding (requiredAttributes)
 import LocalMenus
 import EntityNames
 import LinkManager
@@ -258,12 +273,53 @@ instance HasFilePath File where
 instance HasContents File where
    getAsICSL view file = getAsICSL view (simpleFile file)
 
+-- | write to a file link, which may be empty.  If it is empty,
+-- create it using the type specified by the 
+-- given key.
+-- We assume that the type exists in the view, that there are no errors
+-- creating the LinkedObject, and that the file type has no attributes
+writeToFile :: View -> Link File -> GlobalKey -> ICStringLen 
+   -> IO ()
+writeToFile view fileLink typeKey icsl =
+   do
+      isEmpty <- isEmptyLink view fileLink
+      simpleFile <- if isEmpty
+         then
+            do
+               simpleFile <- newSimpleFile view
+               linkedObjectWE <- newLinkedObject view (WrappedLink fileLink)
+                  Nothing
+               let
+                  linkedObject = coerceWithError linkedObjectWE
+               attributes <- newEmptyAttributes view
+               fileType <- getObjectTypeByKey view typeKey 
+               let
+                  file =
+                     File {
+                        fileType = fileType,
+                        attributes = attributes,
+                        linkedObject = linkedObject,
+                        simpleFile = simpleFile
+                        }
+               writeLink view fileLink file
+               return simpleFile
+         else
+            do
+               file <- readLink view fileLink
+               return (simpleFile file)
+       
+      copyICStringLenToFile icsl (toFilePath simpleFile)
+      dirtyLink view fileLink
+ 
+               
+                     
+
 -- ------------------------------------------------------------------
 -- The global registry
 -- ------------------------------------------------------------------
 
 globalRegistry :: GlobalRegistry FileType
-globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
+globalRegistry = unsafePerformIO createGlobalRegistry
 {-# NOINLINE globalRegistry #-}
          
 -- ------------------------------------------------------------------
@@ -272,8 +328,8 @@ globalRegistry = IOExts.unsafePerformIO createGlobalRegistry
 
 -- Creating a new empty file with the given name
 -- We use the inputAttributes method to get the attributes, and
--- return Nothing if the user cancels.
-newEmptyFile :: FileType -> View -> LinkedObject -> IO (Maybe (Link File))
+-- return False if unsuccessful.
+newEmptyFile :: FileType -> View -> LinkedObject -> IO Bool
 newEmptyFile fileType view parentLinkedObject =
    do
       -- Construct an extraFormItem for the name.
@@ -284,12 +340,12 @@ newEmptyFile fileType view parentLinkedObject =
       attributesOpt <- inputAttributes view (requiredAttributes fileType)
          (Just extraFormItem)
       case attributesOpt of
-         Nothing -> return Nothing
+         Nothing -> return False
          Just attributes ->
             do
                name <- readExtraFormItem extraFormItem
                simpleFile <- newSimpleFile view
-               createLinkedObjectChild view parentLinkedObject name
+               linkOpt <- createLinkedObjectChild view parentLinkedObject name
                   (\ linkedObject ->
                      return (
                         File {
@@ -300,6 +356,7 @@ newEmptyFile fileType view parentLinkedObject =
                            }
                         )
                      )
+               return (isJust linkOpt)
 
 -- ------------------------------------------------------------------
 -- Registering the file type

@@ -65,9 +65,7 @@ exportMMiSSObjectGeneral format view link =
 
                      -- Write the attached files.
                      let
-                        writeDir = case splitName filePath of
-                           Nothing -> thisDir
-                           Just (writeDir,_) -> writeDir
+                        writeDir = fst (splitName filePath)
                      exportFiles view writeDir exportFiles0 
                Nothing -> messageMess "Export cancelled"
          )

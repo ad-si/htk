@@ -4,7 +4,7 @@ module Folders(
    registerFolders, -- :: IO ()
       -- to be done at initialisation
    Folder,
-   FolderType,
+   FolderType(requiredAttributes),
    getTopFolder,
    getTopLinkedObject,
    getImportsState,
@@ -22,6 +22,10 @@ module Folders(
    mkFolderType0, -- :: GlobalKey -> NodeTypes (Link Folder) -> FolderType
 
    describeLinkedObject, -- :: View -> LinkedObject -> IO String
+   plainFolderType, -- :: FolderType
+
+   writeEmptyFolder,
+      -- :: View -> Link Folder -> GlobalKey -> IO ()
    ) where
 
 import Maybe
@@ -307,7 +311,7 @@ instance ObjectType FolderType Folder where
 
    getObjectTypePrim folder = folderType folder
    nodeTitleSourcePrim folder = fmap toString 
-      (getLinkedObjectTitle (linkedObject folder) (fromString "TOP"))
+      (getLinkedObjectTitle (linkedObject folder) (fromString "Root"))
 
    createObjectTypeMenuItemNoInsert =
       Just ("Folder type",createNewFolderType)
@@ -430,10 +434,12 @@ addFileGesture view =
    let
       addFile folderLink =
          do
-            objectCreation <- createObjectMenu view folderLink
-            case objectCreation of
-               Nothing -> alertMess "Object creation cancelled"
-               Just newLink -> done 
+            objectCreated <- createObjectMenu view folderLink
+            if objectCreated 
+               then
+                  done
+               else
+                  alertMess "Object creation cancelled"
    in
       NodeGesture addFile
 
@@ -672,9 +678,9 @@ lookupFileName view (first:rest) =
 -- the given parent.
 --
 -- We use the inputAttributes method to get the attributes, and
--- return Nothing if the user cancels, or there was some other error.
+-- return False if the user cancels, or there was some other error.
 newEmptyFolder :: FolderType -> View -> LinkedObject 
-   -> IO (Maybe (Link Folder))
+   -> IO Bool
 newEmptyFolder folderType view parentLinkedObject =
    do
       -- Construct an extraFormItem for the name.
@@ -685,12 +691,12 @@ newEmptyFolder folderType view parentLinkedObject =
       attributesOpt <- inputAttributes view (requiredAttributes folderType)
          (Just extraFormItem)
       case attributesOpt of
-         Nothing -> return Nothing
+         Nothing -> return False
          Just attributes ->
             do
                name <- readExtraFormItem extraFormItem
                hideFolderArcs <- mkArcsHiddenSource
-               createLinkedObjectChild view parentLinkedObject name
+               linkOpt <- createLinkedObjectChild view parentLinkedObject name
                   (\ linkedObject ->
                      do
                         openContents <- newOpenContents view linkedObject
@@ -705,7 +711,38 @@ newEmptyFolder folderType view parentLinkedObject =
                                  }
                         return folder
                      )
+               return (isJust linkOpt)
 
+
+-- | If the FolderLink is empty, create a new empty folder with the given
+-- key and with empty attributes.
+writeEmptyFolder :: View -> Link Folder -> GlobalKey -> IO ()
+writeEmptyFolder view folderLink typeKey =
+   do
+      isEmpty <- isEmptyLink view folderLink
+      if isEmpty
+         then
+            do
+               linkedObjectWE <- newLinkedObject view (WrappedLink folderLink) 
+                  Nothing
+               let
+                  linkedObject = coerceWithError linkedObjectWE
+               attributes <- newEmptyAttributes view
+               folderType <- getObjectTypeByKey view typeKey
+               openContents <- newOpenContents view linkedObject
+               hideFolderArcs <- mkArcsHiddenSource
+               let
+                  folder =
+                     Folder {
+                        folderType = folderType,
+                        attributes = attributes,
+                        linkedObject = linkedObject,
+                        openContents = openContents,
+                        hideFolderArcs = hideFolderArcs
+                        }
+               writeLink view folderLink folder
+         else
+            done
 ---
 -- Making an insertion into a folder
 mkFolderInsertion :: Folder -> EntityName -> Insertion

@@ -14,7 +14,7 @@ module MMiSSPackageFolder(
       -- -> SimpleSource (WithError MMiSSPackageFolder)
    getMMiSSPackageFolderAndName,
       -- :: HasLinkedObject object => View -> object 
-      -- -> IO (WithError (MMiSSPackageFolder,EntityName))
+      -- -> IO (WithError (MMiSSPackageFolder,EntityFullName))
    toMMiSSPackageFolderLinkedObject, 
      -- :: MMiSSPackageFolder -> LinkManager.LinkedObject
 
@@ -22,6 +22,7 @@ module MMiSSPackageFolder(
       -- :: View -> MMiSSPackageFolder -> EntitySearchName 
       -- -> IO (WithError (Maybe (Link MMiSSObject)))
       -- Look up a particular object, starting from a folder.
+      -- (Actually is now implemented in MMiSSObjectTypeInstance)
    lookupMMiSSObjectMustExist,
       --  :: View -> MMiSSPackageFolder -> EntitySearchName 
       -- -> IO (WithError (Link MMiSSObject))
@@ -32,11 +33,25 @@ module MMiSSPackageFolder(
       -- -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
       -- Get a package-folder from another one by search name.
 
+   unpackWrappedLinkToMMiSSPackageFolder,
+      -- :: WrappedLink -> Maybe (Link MMiSSPackageFolder)
+      -- version of unpackWrappedLink for the .hi-boot file.
+   newEmptyLinkMMiSSPackageFolder,
+      -- :: View -> IO (Link MMiSSPackageFolder)
+      -- version of newEmptyLink for the .hi-boot file.
+   wrapMMiSSPackageFolderLink,
+      -- :: Link MMiSSPackageFolder -> WrappedLink
+      -- version of WrappedLink for the .hi-boot file.
+   linkToLinkedObjectMMiSSPackageFolder,
+      -- :: View -> Link MMiSSPackageFolder -> IO LinkedObject
+      -- Yet another function for the .hi-boot file (sigh).
+
    importMMiSSPackage1,
       -- :: View -> LinkedObject -> Maybe String
-      -- -> IO (Maybe (Link MMiSSPackageFolder))
+      -- -> IO Bool
       -- Import a new MMiSSPackage into a folder designated by a LinkedObject.
       -- The String, if supplied, is the file-path to read it from.
+      -- returns True if successful.
 
    reimportMMiSSPackage1,
       -- :: View -> Link MMiSSPackageFolder -> Maybe String -> IO ()
@@ -50,9 +65,11 @@ import Maybe
 
 import System.IO.Unsafe
 import Control.Concurrent.MVar
+import Data.FiniteMap
 
 import Computation
 import ExtendedPrelude
+import FileNames
 import Dynamics
 import Sink
 import Sources
@@ -62,13 +79,21 @@ import VariableSetBlocker
 import VariableList
 import Delayer(delay)
 import Messages
+import WBFiles
+
+import Events(sync)
+
+import WithDir
 
 import MenuType
+import SimpleForm
+import FileDialog
 
 import GraphDisp
 import GraphConfigure
 
 import View
+import Folders
 import Link
 import LinkDrawer
 import LinkManager
@@ -81,11 +106,20 @@ import SpecialNodeActions
 import MergeTypes
 import MergePrune
 
+import MMiSSSubFolder
+import MMiSSFormat
+import MMiSSSplitLink
+import MMiSSFileSystemExamples
 import MMiSSObjectType hiding (linkedObject)
 import MMiSSObjectTypeType hiding (displayParms)
-import MMiSSObjectTypeInstance
 import MMiSSPreamble
-import {-# SOURCE #-} MMiSSImportLaTeX
+import MMiSSImportExportErrors
+import MMiSSBundleSimpleUtils
+import MMiSSBundleNodeWriteClass
+import MMiSSBundleConvert
+
+import {-# SOURCE #-} MMiSSObjectTypeInstance
+import {-# SOURCE #-} MMiSSBundleWrite
 
 -- ------------------------------------------------------------------------
 -- The MMiSSPackageFolderType type and its instance of HasCodedValue
@@ -159,6 +193,13 @@ instance HasLinkedObject MMiSSPackageFolder where
 toMMiSSPreambleLink :: MMiSSPackageFolder -> Link MMiSSPreamble
 toMMiSSPreambleLink = preambleLink
 
+linkToMMiSSPreambleLink 
+   :: View -> Link MMiSSPackageFolder -> IO (Link MMiSSPreamble)
+linkToMMiSSPreambleLink view link =
+   do
+      packageFolder <- readLink view link
+      return (preambleLink packageFolder)
+
 
 toMMiSSPackageFolderLinkedObject 
    :: MMiSSPackageFolder -> LinkManager.LinkedObject
@@ -196,19 +237,11 @@ getMMiSSPackageFolder :: HasLinkedObject object
    => View -> object -> IO (WithError MMiSSPackageFolder)
 getMMiSSPackageFolder view object = 
    do 
-      packageFolderLinkOptWE <- toParentLink (toLinkedObject object)
-      case fromWithError packageFolderLinkOptWE of
-         Left mess -> return (hasError 
-            "MMiSS object somehow not in an MMiSSPackageFolder")
-         Right Nothing -> return (hasError 
-            "MMiSS object somehow not contained anywhere")
-         Right (Just packageFolderLink) ->
-            do
-               packageFolder <- readLink view packageFolderLink
-               return (hasValue packageFolder)
+      resultWE <- getMMiSSPackageFolderAndName view object
+      return (mapWithError fst resultWE)
 
 getMMiSSPackageFolderAndName :: HasLinkedObject object
-   => View -> object -> IO (WithError (MMiSSPackageFolder,EntityName))
+   => View -> object -> IO (WithError (MMiSSPackageFolder,EntityFullName))
 getMMiSSPackageFolderAndName view object =
    do
       insertionOpt <- getCurrentInsertion (toLinkedObject object)
@@ -217,14 +250,57 @@ getMMiSSPackageFolderAndName view object =
          Just insertion ->
             let
                (parentLinkedObject,thisName) = unmkInsertion insertion
-               wrappedLink = toWrappedLink parentLinkedObject     
             in
-               case unpackWrappedLink wrappedLink of
-                  Just (link :: (Link MMiSSPackageFolder)) ->
+               case splitLinkedObject parentLinkedObject of
+                  MMiSSPackageFolderC packageFolderLink ->
                      do
-                        packageFolder <- readLink view link
-                        return (hasValue (packageFolder,thisName))
-                  Nothing -> return (hasError ("object not in package folder"))
+                        packageFolder <- readLink view packageFolderLink 
+                        return (hasValue 
+                           (packageFolder,EntityFullName [thisName]))
+                  FolderC folderLink ->
+                     do
+                        (folder :: Folder) <- readLink view folderLink
+                        let
+                           folderType :: FolderType
+                           folderType = getObjectTypePrim folder
+
+                        if objectTypeIdPrim folderType 
+                              == objectTypeIdPrim mmissSubFolderType
+                           then
+                              do
+                                 recurseWE <- getMMiSSPackageFolderAndName
+                                    view folder
+                                 return (mapWithError
+                                    (\ (packageFolder,fullName0) ->
+                                       (packageFolder,
+                                          combineDirBase fullName0 thisName
+                                          )
+                                       )
+                                    recurseWE
+                                    )
+                           else
+                              notInFolder  
+                  _ -> notInFolder
+   where
+      notInFolder = return (hasError ("object not in package folder"))
+
+
+unpackWrappedLinkToMMiSSPackageFolder 
+   :: WrappedLink -> Maybe (Link MMiSSPackageFolder)
+unpackWrappedLinkToMMiSSPackageFolder = unpackWrappedLink
+
+wrapMMiSSPackageFolderLink :: Link MMiSSPackageFolder -> WrappedLink
+wrapMMiSSPackageFolderLink = WrappedLink
+
+newEmptyLinkMMiSSPackageFolder :: View -> IO (Link MMiSSPackageFolder)
+newEmptyLinkMMiSSPackageFolder = newEmptyLink
+
+linkToLinkedObjectMMiSSPackageFolder
+   :: View -> Link MMiSSPackageFolder -> IO LinkedObject
+linkToLinkedObjectMMiSSPackageFolder view link =
+   do
+      object <- readLink view link
+      return (toLinkedObject object)
 
           
 -- ------------------------------------------------------------------------
@@ -473,6 +549,30 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   return (Just nodeDisplayData)   
 
 -- ------------------------------------------------------------------------
+-- The instance of HasBundleNodeWrite
+-- ------------------------------------------------------------------------
+
+instance HasBundleNodeWrite MMiSSPackageFolder where
+   bundleNodeWrite1 view bundleNodeLocations thisLocation node 
+         packageFolderLink =
+      do
+         linkedObjectWE <- newLinkedPackageObject view 
+            (WrappedLink packageFolderLink) Nothing
+         linkedObject <- coerceImportExportIO linkedObjectWE
+
+         let
+            preambleLocation = preambleEntityName : thisLocation
+            Just bundleNodeExtraData 
+               = lookupFM (fm bundleNodeLocations) preambleLocation
+            preambleWrappedLink = location bundleNodeExtraData
+            Just preambleLink = unpackWrappedLink preambleWrappedLink
+
+         (packageFolder,postMerge) 
+            <- createMMiSSPackageFolder view linkedObject preambleLink
+         writeLink view packageFolderLink packageFolder
+         return (doPostMerge postMerge)
+
+-- ------------------------------------------------------------------------
 -- The global registry (currently unused)
 -- ------------------------------------------------------------------------
 
@@ -515,152 +615,95 @@ thePreambleArcType = fromString "B"
 -- Importing a new package
 -- ------------------------------------------------------------------------
 
-importMMiSSPackage :: View -> LinkedObject 
-   -> IO (Maybe (Link MMiSSPackageFolder))
+importMMiSSPackage :: View -> LinkedObject -> IO Bool
 importMMiSSPackage view linkedObject 
    = importMMiSSPackage1 view linkedObject Nothing
 
 -- The last argument is the file path to import the file from.  If Nothing,
 -- as for importMMiSSPackage, we will prompt the user.
-importMMiSSPackage1 :: View -> LinkedObject -> Maybe String
-   -> IO (Maybe (Link MMiSSPackageFolder))
-importMMiSSPackage1 view parentLinkedObject filePathOpt =
-   do
-      -- We create the LinkedObject first of all, but without putting 
-      -- anything in it, or putting it into anything, enabling us to 
-      -- tie the knot.  However we do at least make sure that the link
-      -- points to a complete MMiSSPackage. 
-      --
-      -- We also create a link for the preamble.
-      -- Both links will get deleted if we fail.
-      (link :: Link MMiSSPackageFolder) <- newEmptyLink view
-      (preambleLink1 :: Link MMiSSPreamble) <- newEmptyLink view
-     
-      let
-         error1 =
-            do
-               deleteLink view link
-               deleteLink view preambleLink1
-               return Nothing
+importMMiSSPackage1 :: View -> LinkedObject -> Maybe String -> IO Bool
+importMMiSSPackage1 view parentLinkedObject filePathOpt0 =
+   displayImportExportErrors False (
+      do
+         folderLink <- case splitLinkedObject parentLinkedObject of
+            FolderC folderLink -> return folderLink
+            _ -> importExportError 
+               "You may only import a package into a folder"
+       
+         (whereIsData :: Maybe (FilePath,Format)) <- 
+            findData filePathOpt0
+                    
+         case whereIsData of
+            Nothing -> return False
+            Just (filePath,format) ->
+               do
+                  let
+                     (dirPath,_) = splitName filePath
 
-      linkedObjectWE <- newLinkedPackageObject view (WrappedLink link) Nothing
-      case fromWithError linkedObjectWE of
-         Left mess -> 
-            do
-               errorMess mess
-               error1
-         Right linkedObject ->
---            (delay view) .
-            (synchronizeView view) $ (
-            do
-               let
-                  error2 =
-                     do
-                        moveObject linkedObject Nothing
-                        error1
-               resultWE <- addFallOutWE (\ break ->
-                  do
-                     (packageFolder,postMerge) <- createMMiSSPackageFolder 
-                        view linkedObject preambleLink1
-                     writeLink view link packageFolder
-
-                     let
-                        -- This is the function passed to importMMiSSLaTeX
-                        getLinkedObject :: EntityName 
-                           -> IO (WithError MMiSSPackageFolder)
-                        getLinkedObject entityName =
-                           do
-                              successWE <- moveObject linkedObject (Just 
-                                 (mkInsertion parentLinkedObject entityName))
-                              return (mapWithError 
-                                 (\ () -> packageFolder) successWE)
-
-                        packageType = retrieveObjectType "package"
-
-                     result <- importMMiSSLaTeX preambleLink1 packageType view 
-                        getLinkedObject filePathOpt
-
-                     if isJust result
-                        then
-                           doPostMerge postMerge
-                        else
-                           done
-
-                     return result
-                  )          
-
-               case fromWithError resultWE of
-                  Left mess -> 
-                     do
-                        errorMess mess
-                        error2
-                  Right Nothing -> error2
-                  Right result -> return (Just link)
-            )
+                  bundle <- parseBundle format standardFileSystem filePath
+                  writeBundle bundle Nothing (Just dirPath) view 
+                     (Right folderLink) 
+                  return True
+      )
 
 -- Import a new version into an existing MMiSS package.
--- This function is implemented like a (very) stripped-down version of
--- importMMiSSPackage.
 reimportMMiSSPackage :: View -> Link MMiSSPackageFolder -> IO ()
 reimportMMiSSPackage view packageFolderLink = 
    reimportMMiSSPackage1 view packageFolderLink Nothing
 
 reimportMMiSSPackage1 :: View -> Link MMiSSPackageFolder -> Maybe String 
    -> IO ()
-reimportMMiSSPackage1 view packageFolderLink filePathOpt =
+reimportMMiSSPackage1 view packageFolderLink filePathOpt0 =
+   displayImportExportErrors () (
+      do
+         packageFolder <- readLink view packageFolderLink
+
+         (whereIsData :: Maybe (FilePath,Format)) <- 
+            findData filePathOpt0
+                    
+         case whereIsData of
+            Nothing -> done
+            Just (filePath,format) ->
+               do
+                  let
+                     (dirPath,_) = splitName filePath
+
+                  bundle <- parseBundle format standardFileSystem filePath
+                  writeBundle bundle Nothing (Just dirPath) view 
+                     (Left (toLinkedObject packageFolder))
+      )
+
+findData :: Maybe FilePath -> IO (Maybe (FilePath,Format))
+findData filePathOpt0 =
    do
-      resultWE <- addFallOutWE (\ break ->
-         do
-            packageFolder <- readLink view packageFolderLink
-            
-            (nameOpt :: Maybe EntityName) 
-               <- readContents (getLinkedObjectTitleOpt 
-                  (toLinkedObject packageFolder))
-            name <- case nameOpt of
-               Nothing -> break 
-                  "Can't import to package which hasn't been inserted"
-               Just name -> return name
-            let
-               -- function for importMMiSSLaTeX
-               getLinkedObject :: EntityName 
-                  -> IO (WithError MMiSSPackageFolder)
-               getLinkedObject name1 =
-                  return (if name == name1 
-                     then
-                        hasValue packageFolder
-                     else
-                        hasError ("File contains wrong package: "
-                           ++ toString name1 ++ ", not "
-                           ++ toString name)
-                     )
+      filePathOpt <- case filePathOpt0 of
+         Just _ -> return filePathOpt0
+         Nothing ->
+            do
+               top <- getTOP 
+               let
+                  fullName = unbreakName [top,"mmiss","test","files"]
+               dialogEvent <- fileDialog "Import Sources" fullName
+               sync dialogEvent
+      case filePathOpt of
+         Nothing -> return Nothing
+         Just filePath ->
+            do
+               formatOpt <- case splitExtension filePath of
+                  Just (_,"tex") -> return (Just LaTeX)
+                  Just (_,"xml") -> return (Just XML)
+                  Just (_,"omdox") -> return (Just XML)
+                  _ ->
+                     doForm "Format of file" formatForm
+               return (fmap
+                  (\ format -> (filePath,format))
+                  formatOpt
+                  )
 
-               packageType = retrieveObjectType "package"
-
-            result <- importMMiSSLaTeX (preambleLink packageFolder)
-               packageType view getLinkedObject filePathOpt
-            -- don't care if errors, as any errors will already have been
-            -- shown.
-            done
-         )
-
-      case fromWithError resultWE of
-         Right () -> done
-         Left mess -> errorMess mess
 
 -- ------------------------------------------------------------------------
 -- Miscellaneous Functions
 -- ------------------------------------------------------------------------
-
-lookupMMiSSObject :: View -> MMiSSPackageFolder -> EntitySearchName 
-    -> IO (WithError (Maybe (Link MMiSSObject)))
-lookupMMiSSObject view packageFolder searchName =
-   do
-      objectLinkOptWE <- lookupObject view 
-         (toMMiSSPackageFolderLinkedObject packageFolder) searchName
-      case fromWithError objectLinkOptWE of
-         Left mess -> return (hasError (
-            "Error looking for MMiSS object: " ++ mess))
-         Right _ -> return objectLinkOptWE
 
 lookupMMiSSPackageFolder :: View -> MMiSSPackageFolder -> EntitySearchName 
     -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
@@ -677,7 +720,8 @@ lookupMMiSSObjectMustExist :: View -> MMiSSPackageFolder -> EntitySearchName
     -> IO (WithError (Link MMiSSObject))
 lookupMMiSSObjectMustExist view packageFolder searchName =
    do
-      objectLinkOptWE <- lookupMMiSSObject view packageFolder searchName
+      objectLinkOptWE 
+         <- lookupMMiSSObject view packageFolder searchName
       return (mapWithError'
          (\ objectLinkOpt -> case objectLinkOpt of
             Just objectLink -> hasValue objectLink

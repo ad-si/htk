@@ -49,6 +49,11 @@ import EmacsContent
 
 import LaTeXParser
 
+import MMiSSImportExportErrors
+import MMiSSBundle
+import MMiSSBundleSimpleUtils
+import MMiSSBundleNodeWriteClass
+
 -- -------------------------------------------------------------------
 -- MMiSSPreambleType
 -- -------------------------------------------------------------------
@@ -248,6 +253,17 @@ readPreamble view link =
       mmissPreamble <- readLink view link
       latexPreamble <- readContents (preamble mmissPreamble)
       return latexPreamble
+
+instance HasBundleNodeWrite MMiSSPreamble where
+   bundleNodeWrite view bundleNode preambleLink =
+      do
+         let 
+            MMiSSBundle.Object [(_,preambleText)] = bundleNodeData bundleNode
+
+         preamble <- coerceWithErrorOrBreakIO importExportError
+               (fromBundleTextWE preambleText)
+         writePreamble preambleLink view preamble
+       
 
 -- -------------------------------------------------------------------
 -- Interface needed for MMiSSPackageFolder

@@ -14,9 +14,24 @@ module MMiSSVariantObject(
       --    IO (VariantObject object cache)
       -- Create a new variant object with the given function for computing
       -- cache items.
-   newEmptyVariantObject, 
-      -- :: (object -> IO cache) -> IO (VariantObject object cache)
-      -- Create a new variant object with NO current element.
+
+   newEmptyVariantObject,
+      -- :: (object -> IO cache) 
+      -- -> IO (VariantObject object cache)
+      -- Create a new variant object with NO current element.  
+      --
+      -- NB.  This function is dangerous because the cache is set to error.
+      -- This means that if anyone tries to look at it, there will be an error.
+      -- writeVariantObjectAndPoint should be used to rectify this undesirable
+      -- situation
+
+   newEmptyVariantObject1, 
+      -- :: (MMiSSVariantSpec -> object -> IO cache) 
+      -- -> IO (VariantObject object cache)
+      -- Create a new variant object with NO current element.  This variant
+      -- also allows the conversion function to take the VariantSpec of the
+      -- variant actually found as an argument.
+      --
       -- NB.  This function is dangerous because the cache is set to error.
       -- This means that if anyone tries to look at it, there will be an error.
       -- writeVariantObjectAndPoint should be used to rectify this undesirable
@@ -149,7 +164,7 @@ import MMiSSVariant
 
 data VariantObject object cache = VariantObject {
    dictionary :: MMiSSVariantDict object,
-   converter :: object -> IO cache,
+   converter :: MMiSSVariantSpec -> object -> IO cache,
    currentVariantSpec :: MVar MMiSSVariantSpec,
       -- This is also used as a lock on editMMiSSSearchObject
    cache :: SimpleBroadcaster cache
@@ -183,17 +198,30 @@ newVariantObject converter object variantSpec =
             dictionary' = dictionary
             }
 
-      unfreezeVariantObject converter frozenVariantObject
+      unfreezeVariantObject (const converter) frozenVariantObject
 
----
--- Create a new variant object with NO current element.
+
+-- | Create a new variant object with NO current element.  
+--
 -- NB.  This function is dangerous because the cache is set to error.
 -- This means that if anyone tries to look at it, there will be an error.
 -- writeVariantObjectAndPoint should be used to rectify this undesirable
 -- situation
 newEmptyVariantObject :: (object -> IO cache) 
    -> IO (VariantObject object cache)
-newEmptyVariantObject converter1 =
+newEmptyVariantObject converter = newEmptyVariantObject1 (const converter)
+
+-- | Create a new variant object with NO current element.  This variant
+-- also allows the conversion function to take the VariantSpec of the
+-- variant actually found as an argument.
+--
+-- NB.  This function is dangerous because the cache is set to error.
+-- This means that if anyone tries to look at it, there will be an error.
+-- writeVariantObjectAndPoint should be used to rectify this undesirable
+-- situation
+newEmptyVariantObject1 :: (MMiSSVariantSpec -> object -> IO cache) 
+   -> IO (VariantObject object cache)
+newEmptyVariantObject1 converter1 =
    do
       dictionary1 <- newEmptyVariantDict 
 
@@ -213,7 +241,7 @@ newEmptyVariantObject converter1 =
 
 ---
 -- All VariantObject's are in fact created via this function.
-unfreezeVariantObject :: (object -> IO cache) 
+unfreezeVariantObject :: (MMiSSVariantSpec -> object -> IO cache) 
    -> FrozenVariantObject object cache -> IO (VariantObject object cache)
 unfreezeVariantObject converter frozen =
    do
@@ -230,7 +258,7 @@ unfreezeVariantObject converter frozen =
          Just object -> return object
          Nothing -> error "unfreezeVariantObject failed"
 
-      cache1 <- unsafeInterleaveIO (converter object)
+      cache1 <- unsafeInterleaveIO (converter spec object)
          -- the cache won't be needed for copyVariantObject, for example,
          -- and as it requires getting the element it would be a pity to
          -- compute it unnecessarily.
@@ -313,12 +341,12 @@ lookupVariantObjectCache :: VariantObject object cache -> MMiSSVariantSearch
    -> IO (Maybe cache)
 lookupVariantObjectCache variantObject variantSearch =
    do
-      objectOpt <- lookupVariantObject variantObject variantSearch
+      objectOpt <- lookupVariantObjectWithSpec variantObject variantSearch
       case objectOpt of
          Nothing -> return Nothing
-         Just object -> 
+         Just (object,spec) -> 
             do
-               cache <- (converter variantObject) object
+               cache <- converter variantObject spec object
                return (Just cache)
 
 lookupVariantObjectExact :: VariantObject object cache -> MMiSSVariantSpec 
@@ -336,7 +364,7 @@ lookupVariantObjectCacheExact variantObject variantSpec =
          Nothing -> return Nothing
          Just object -> 
             do
-               cache <- (converter variantObject) object
+               cache <- converter variantObject variantSpec object
                return (Just cache)
 
 toVariantObjectCache :: VariantObject object cache -> SimpleSource cache
@@ -359,7 +387,7 @@ writeVariantObject variantObject variantSpec object =
           if variantSpec == variantSpec1
              then
                 do
-                   cache1 <- (converter variantObject) object
+                   cache1 <- converter variantObject variantSpec object
                    broadcast (cache variantObject) cache1
              else
                 done
@@ -379,7 +407,7 @@ pointVariantObject variantObject newVariantSpec =
          let
             object = fromMaybe (error ("MMiSSVariantObject.pointVariant object"
                ++ " - point to non-existent variant.")) objectOpt
-         newCache <- (converter variantObject) object
+         newCache <- converter variantObject newVariantSpec object
          broadcast (cache variantObject) newCache
          return newVariantSpec
       )
@@ -393,7 +421,7 @@ writeVariantObjectAndPoint variantObject variantSpec object
    modifyMVar_ (currentVariantSpec variantObject) (\ variantSpec1 ->
        do
           addToVariantDict (dictionary variantObject) variantSpec object
-          cache1 <- (converter variantObject) object
+          cache1 <- converter variantObject variantSpec object
           broadcast (cache variantObject) cache1
           return variantSpec
        )         
@@ -470,7 +498,8 @@ variantObjectObjectLinks getIndividualObjectLinks variantObject =
 -- The first argument is the new converter, the second the function to
 -- be used to map old objects to new objects.
 attemptMergeVariantObject
-   :: (object -> IO cache) -> (View -> object -> IO object) 
+   :: (MMiSSVariantSpec -> object -> IO cache) 
+   -> (View -> object -> IO object) 
    -> [(View,VariantObject object cache)]
    -> IO (VariantObject object cache)
 attemptMergeVariantObject newConverter convertObject variantObjects =

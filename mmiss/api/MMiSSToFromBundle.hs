@@ -12,6 +12,8 @@ module MMiSSToFromBundle(
 
    toExportOpts, -- :: MMiSSRequest.GetObject_Attrs -> MMiSSBundle.ExportOpts
 
+   toPackageId, -- :: MMiSSRequest.PackageId -> LaTeXParser.PackageId
+
    fromVariants, -- :: MMiSSRequest.Variants -> WithError MMiSSVariantSpec
    toVariants, -- :: MMiSSVariantSpec -> MMiSSRequest.Variants
    ) where
@@ -29,6 +31,8 @@ import IntPlus
 
 import XmlExtras
 import MMiSSVariant
+
+import LaTeXParser(PackageId(..))
 
 import MMiSSRequest
 import MMiSSFormat
@@ -338,3 +342,10 @@ toExportOpts attrs =
          recurseDepth = recurseDepth1
          }
 
+-- ---------------------------------------------------------------------------
+-- Converting PackageId's
+-- ---------------------------------------------------------------------------
+
+toPackageId :: MMiSSRequest.PackageId -> LaTeXParser.PackageId
+toPackageId packageId 
+   = LaTeXParser.PackageId (MMiSSRequest.packageIdId packageId)

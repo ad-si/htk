@@ -101,6 +101,7 @@ mainHandle handle hostName  =
 
                   putStrLn (userId user ++ "@" ++ hostName ++ ":"
                      ++ calendarTimeToString calendarTime) 
+                  hFlush stdin
                   hFlush handle         
 
                   doXml handle user

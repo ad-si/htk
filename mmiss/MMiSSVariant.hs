@@ -41,6 +41,8 @@ module MMiSSVariant(
    emptyMMiSSVariantSpec,
 
    variantAttributesType2,
+   variantAttributes2, -- :: [String]
+   -- List of all variant attributes including also the version attribute
 
    -- Merging
    getMMiSSVariantDictObjectLinks, 
@@ -60,6 +62,12 @@ module MMiSSVariant(
    HasGetAllVariants(..),
       -- Is possible to get all variants of this dictionary.  MMiSSVariantDict
       -- instances it.
+
+   mergeMMiSSVariantSpecStrict,
+      -- :: MMiSSVariantSpec -> MMiSSVariantSpec
+      -- -> WithError MMiSSVariantSpec
+      -- Merge two variantSpecs, or complain when the same key is given
+      -- two identical values.
    ) where
 
 import Maybe
@@ -409,6 +417,11 @@ toMMiSSVariantSpecFromAttributes attributes =
    do
       variants <- toMMiSSVariants attributes
       return (MMiSSVariantSpec variants)
+
+
+-- | List of all variant attributes including also the version attribute
+variantAttributes2 :: [String]
+variantAttributes2 = (key versionVariant) : variantAttributes
 
 -- | Type of variant attributes including also the version attribute
 variantAttributesType2 :: AttributesType
@@ -860,3 +873,40 @@ instance HasGetAllVariants (MMiSSVariantDict object) object where
                   (\ (vars,object) -> (MMiSSVariantSpec vars,object))
                   contents0 
          return contents1
+
+-- -----------------------------------------------------------------------
+-- Merging MMiSSVariant(Specs) where we insist no attribute is specified
+-- twice.
+-- -----------------------------------------------------------------------
+
+mergeMMiSSVariantsStrict :: MMiSSVariants -> MMiSSVariants 
+   -> WithError MMiSSVariants 
+mergeMMiSSVariantsStrict variants1 variants2 =
+   do
+      (combinedList1 :: [(VariantAttribute,Maybe String)]) <-
+         zipWithM
+            (\ (va1,val1Opt) (_,val2Opt) -> case (val1Opt,val2Opt) of
+               (Just val1,Just val2) | val1 /= val2
+                  -> fail ("Multiply-specified variant " ++ key va1 
+                     ++ " has incompatible values " ++ val1 ++ " and "
+                     ++ val2)
+               (Just val1,_) -> return (va1,val1Opt)
+               _ -> return (va1,val2Opt)
+               )
+            (getAsList variants1)
+            (getAsList variants2)
+        
+      let
+         combinedList2 :: [(VariantAttribute,String)]
+         combinedList2 = mapMaybe
+            (\ (va,valOpt) -> fmap (\ val -> (va,val)) valOpt)
+            combinedList1
+      return (MMiSSVariants combinedList2)
+
+mergeMMiSSVariantSpecStrict :: MMiSSVariantSpec -> MMiSSVariantSpec
+   -> WithError MMiSSVariantSpec
+mergeMMiSSVariantSpecStrict (MMiSSVariantSpec variants1) 
+      (MMiSSVariantSpec variants2) =
+   do
+      variants <- mergeMMiSSVariantsStrict variants1 variants2
+      return (MMiSSVariantSpec variants)

@@ -16,6 +16,8 @@ import Computation
 import ExtendedPrelude
 import Messages
 
+import EntityNames
+
 import View(View)
 import Link
 
@@ -24,7 +26,7 @@ import MMiSSFileType
 import MMiSSVariant
 
 
-type ExportFiles = [(MMiSSPackageFolder,String,MMiSSVariantSearch)]
+type ExportFiles = [(MMiSSPackageFolder,EntityFullName,MMiSSVariantSearch)]
 
 -- | Export the given ExportFiles to the directory by the given filePath.
 -- NB.  We do not abort this operation, instead complaining from time to
@@ -38,24 +40,26 @@ exportFiles view dir0 exportFiles0 =
          exportFiles1 = uniqOrd exportFiles0
 
       -- Get the list of all matching files to export, and a 
-      (exportFiles2 :: [((String,String),(Link MMiSSFile,MMiSSVariantSearch))],
-            notFound1 :: [String])
+      (exportFiles2 :: 
+           [((EntityFullName,String),
+              (Link MMiSSFile,MMiSSVariantSearch))],
+         notFound1 :: [EntityFullName])
          <- foldM
-            (\ (found0,notFound0) (packageFolder,str,variantSearch) ->
+            (\ (found0,notFound0) (packageFolder,name0,variantSearch) ->
                do
-                  files0 <- findMMiSSFilesInRepository packageFolder str
+                  files0 <- findMMiSSFilesInRepository packageFolder name0
                   return (case files0 of
-                     [] -> (found0,str : notFound0)
+                     [] -> (found0,name0 : notFound0)
                      _ ->
                         let
                            files1 :: [(
-                              (String,String),
+                              (EntityFullName,String),
                               (Link MMiSSFile,MMiSSVariantSearch)
                               )]
                            files1 =
                               map
-                                 (\ (link,name,ext) -> 
-                                    ((name,ext),(link,variantSearch))
+                                 (\ (link,name1,ext) -> 
+                                    ((name1,ext),(link,variantSearch))
                                     )
                                  files0
                         in
@@ -69,14 +73,14 @@ exportFiles view dir0 exportFiles0 =
          [] -> done
          _ -> errorMess
             ("Unable to find files in repository: " 
-               ++ (concat (map (\ file -> "\n   " ++ file) notFound1))
+               ++ (concat (map (\ file -> "\n   " ++ show file) notFound1))
                )
 
       -- Check for duplicates and construct map
       let
-         (exportFiles3 :: FiniteMap (String,String) 
+         (exportFiles3 :: FiniteMap (EntityFullName,String) 
                  (Link MMiSSFile,MMiSSVariantSearch),
-               duplicates :: [(String,String)])
+               duplicates :: [(EntityFullName,String)])
             = foldl
                (\ (exportFiles0,duplicates0) (nameExt,linkVariant) ->
                   case lookupFM exportFiles0 nameExt of
@@ -93,7 +97,7 @@ exportFiles view dir0 exportFiles0 =
          _ -> errorMess 
             ("Multiple variants of the same file cannot be printed; sorry:"
                ++ (concat (map (\ (name,ext) -> "\n   "
-                  ++ unsplitExtension name ext) duplicates))
+                  ++ unsplitExtension (show name) ext) duplicates))
                )
 
       -- Now do the export

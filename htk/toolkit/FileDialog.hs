@@ -108,10 +108,6 @@ dropLast path = dropLast' (tail (reverse path))
           if c == '/' then reverse (c : cs) else dropLast' cs
         dropLast' _ = []
 
--- dropLast path = case FileNames.splitName path of
---    Just (dirName,_) -> dirName
---    Nothing -> path
-
 updPathMenu :: MenuButton -> Ref (Maybe Menu) ->
                FilePath -> Ref [FilePath] -> Ref [FilePath] ->
                Ref FilePath -> ListBox FilePath ->

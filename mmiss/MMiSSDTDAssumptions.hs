@@ -1,14 +1,20 @@
 {- In this module we collect the various assumptions the Haskell code makes
    about the MMiSS DTD, which are not explicitly read from it. 
 
-   See also MMiSSContent.hs.  But hopefully that is less dependent on the DTD
-   itself. 
+   See also MMiSSBundleDissect.hs.  But hopefully that is less dependent on 
+   the DTD itself. 
    -}
 module MMiSSDTDAssumptions(
    findLabelledElements, -- :: DocTypeDecl -> [String]
 
-   ClassifiedElement(..),
-   classifyElement, -- :: Element -> WithError ClassifiedElement
+   mkIncludeElement, -- :: Element -> Maybe Element
+
+
+   LinkType(..),
+   classifyLink, -- :: Element -> Maybe (LinkType,String)
+
+
+
    unclassifyElement, 
       -- :: Element -> Maybe (String,[Attribute],Element -> WithError ())
 
@@ -16,20 +22,36 @@ module MMiSSDTDAssumptions(
    toIncludeStr, -- :: Char -> String
    fromIncludeStr, -- :: String -> Char
 
+   getAttribute, -- :: [Attribute] -> String -> Maybe String
+   setAttribute, -- :: [Attribute] -> String -> String -> [Attribute]
+
+   setAttribute0, -- :: [Attribute] -> String -> String -> [Attribute]
+      -- Only to be used when it is known that the attribute being added
+      -- does not occur in the input attributes.
+
    getLabel, -- :: Element -> WithError EntitySearchName
       -- Get an Element's label.
    setLabel, -- :: Element -> EntitySearchName -> Element
       -- Set an Element's label. 
    delLabel, -- :: Element -> Element
       -- Delete an Element's label.
+   getPackagePath,
+      -- :: Element -> WithError EntityFullName
+
+   getPackageId, -- :: Element -> Maybe PackageId
+      -- Get an Element's packageId, if any.
+   setPackageId, -- :: Element -> PackageId -> Element
+      -- Set an Element's packageId. 
+   delPackageId, -- :: Element -> Element
+      -- Delete an Element's packageId.
 
    getPriorityAttributes, -- :: [Attribute] -> String
    getPriority, -- :: Element -> String
    setPriority, -- :: Element -> String -> Element
       -- get/set an element's priority.
-     
-   setPriorityAttributes', -- :: [Attributes] -> String -> [Attributes]
-      -- this assumes the attributes have no existing priority.
+
+   setPriorityAttributes', -- :: [Attribute] -> String -> [Attribute]
+
 
    variantAttributes, -- :: [String]
    variantAttributesType, -- :: AttributesType
@@ -50,14 +72,99 @@ import Char
 import ExtendedPrelude
 import Computation
 import AtomString
+import Dynamics(Typeable)
+import BinaryAll
 
 import Text.XML.HaXml.Types
+import XmlExtras
 
 import AttributesType
 
 import EntityNames
 
-import LaTeXParser(classifyLabelledTag,fromIncludeStr,toIncludeStr)
+import LaTeXParser(classifyLabelledTag,fromIncludeStr,toIncludeStr,
+   PackageId(..))
+
+-- ----------------------------------------------------------------------
+-- LinkType
+-- ----------------------------------------------------------------------
+
+-- | Type of a link/reference/include from a document, output by
+data LinkType = IncludeLink | LinkLink | ReferenceLink deriving (Typeable)
+
+-- ----------------------------------------------------------------------
+-- Instances for LinkType
+-- ----------------------------------------------------------------------
+
+instance Monad m => HasBinary LinkType m where
+   writeBin = mapWrite (\ linkType -> case linkType of
+      IncludeLink -> 'I'
+      ReferenceLink -> 'R'
+      LinkLink -> 'L'
+      )
+   readBin = mapRead (\ char -> case char of
+      'I' -> IncludeLink
+      'R' -> ReferenceLink
+      'L' -> LinkLink
+      _ -> error ("MMiSSDTDAssumptions: unexpected char "++show char)
+      )
+
+-- ----------------------------------------------------------------------
+-- Determining if an Element can be referenced by an includeXXX element,
+-- and if so, by what.
+-- ----------------------------------------------------------------------
+
+mkIncludeElement :: Element -> Maybe Element
+mkIncludeElement (Elem name atts contents) =
+   case (getAttribute atts "label",classifyLabelledTag name) of
+      (Just labelString,Just includeChar) ->
+         Just (
+            Elem 
+              ("include" ++ toIncludeStr includeChar) 
+              [
+                  ("included",AttValue [Left labelString]),
+                  ("status",AttValue [Left "present"]),
+                  ("priority",AttValue [Left "1"])
+                  ]
+              []
+            )
+      _ -> Nothing 
+
+
+-- ----------------------------------------------------------------------
+-- Determine whether an element is link, reference or include and
+-- if so and status is "present", extract the corresponding LinkType and label.
+-- ----------------------------------------------------------------------
+
+-- | ACHTUNG.  This function assumes that the Element has already been
+-- validated against the DTD.
+classifyLink :: Element -> Maybe (LinkType,String)
+classifyLink (Elem name attributes _)  =
+   let
+      generalRef 
+         :: String -> LinkType -> Maybe (LinkType,String)
+      generalRef refAttName linkType =
+         case getAttribute attributes refAttName of
+            Just labelString -> case getAttribute attributes "status" of
+               Just "present" -> Just (linkType,labelString)
+               Nothing -> Nothing
+  in
+     case name of
+         -- Links
+         "link" -> generalRef "linked" LinkLink
+
+         -- References
+         "reference" -> generalRef "referenced" ReferenceLink
+
+         -- Includes
+         'i':'n':'c':'l':'u':'d':'e':_ -> generalRef "included" IncludeLink
+
+         -- everything else
+         _ -> Nothing
+
+
+-- ----------------------------------------------------------------------
+-- ----------------------------------------------------------------------
 
 ---
 -- How to distinguish those elements in the DTD which can be displayed
@@ -78,111 +185,6 @@ findLabelledElements (DTD _ _ markups) =
             )
          markups
          )
-
----
--- This contains the output of classifyElement, which describes how the 
--- supplied Element should be structured and, if necessary, replaced.
---
--- Absent links get classified as "Other"; this is because the user is
--- supposed to explicitly change them to "present" before we attempt to
--- resolve them.
-data ClassifiedElement =
-      Link EntitySearchName --  present link to entity with this label
-   |  Reference EntitySearchName -- present reference to entity with this label
-   |  Include EntitySearchName 
-         -- present include of an entity with this label.  The 
-         -- element itself was the import
-   |  DirectInclude EntitySearchName Element
-         -- The Element was an entity with this label.  The Element returned
-         -- is an include pointer to it.
-   |  Other
-
-classifyElement :: Element -> WithError ClassifiedElement
-classifyElement (Elem name attributes content) =
--- The various assumptions made by this function about attributes being 
--- present should be enforced by the DTD.
-   let
-      -- abbreviations
-      getAtt key = getAttribute attributes key
-      
-
-      cErr str = error ("MMiSSDTDAssumptions.classifyElement: "++str)
-      -- cErr should only be used for "This-can't-happen" errors, so things
-      -- that should not happen if XML matched the DTD.
-
-      -- General code for handling includes/links/references.  It assumes
-      -- the attribute for the referenced object (the first argument) exists.
-      generalRef :: String -> (EntitySearchName -> ClassifiedElement) 
-         -> WithError ClassifiedElement
-      generalRef refName constructor =
-         case getAtt refName of
-            Just linkedString -> 
-               -- We check that the link is an EntitySearchName 
-               -- even if the link is absent
-               mapWithError
-                  (\ linked -> case getAtt "status" of
-                     Just "present" -> constructor linked
-                     Just "absent" -> Other
-                     Nothing -> Other
-                     )
-                  (fromStringWE linkedString)
-            Nothing -> cErr (refName++" attribute is not defined")
-
-      -- Code for links.  We assume the attribute "linked" refers to the
-      -- linked object
-      link = generalRef "linked" Link
-
-      -- Code for references.  We assume the attribute "referenced" refers to
-      -- the referenced object.
-      reference = generalRef "referenced" Reference
-
-      -- Includes.  We assume the "included" and "status" attributes exist
-      include = generalRef "included" Include
-
-      -- Direct Includes.  These are most complicated as they involve
-      -- converting the included element into a reference to it.
-      --
-      -- Such converted elements should be valid, wherever the original 
-      -- element is, except that they do not need to be valid at the top-level
-      -- of a document.
-     
-      -- How to convert.
-      --    If there is no "label" attribute defined, Other is returned.
-      --
-      --
-      -- Rules for mapping entity names: encoded by mapLabelledTag.
-      --
-      --    The returned element has an Xml tag taken from the corresponding
-      --    RHS, with empty content and two attributes.  First attribute is 
-      --    "included" pointing to the value of the supplied label attribute.  
-      --    Second attribute is "status=present".
-      mkInclude includeChar = case getAtt "label" of
-         Nothing -> hasValue Other
-         Just labelString ->
-            mapWithError (\ label ->
-               DirectInclude label 
-                  (Elem ("include" ++ toIncludeStr includeChar) [
-                  ("included",AttValue [Left labelString]),
-                  ("status",AttValue [Left "present"]),
-                  ("priority",AttValue [Left "1"])
-                  ] [])
-               )
-               (fromStringWE labelString)
-
-   in
-      case name of
-         -- Links
-         "link" -> link
-
-         -- References
-         "reference" -> reference
-
-         -- Includes
-         'i':'n':'c':'l':'u':'d':'e':_ -> include
-
-         _ -> case classifyLabelledTag name of
-            Just c -> mkInclude c
-            Nothing -> hasValue Other
 
 ---
 -- We also use classifyLabelledTag to get the mini-type-letter, used by
@@ -239,11 +241,11 @@ unclassifyElement (Elem name attributes _) =
          includeSort
 
 -- ----------------------------------------------------------------------
--- Functions for operating on attributes
+-- Primitive functions for operating on attributes
 -- ----------------------------------------------------------------------
 
 ---
--- Extract an attribute, which had better be a single String
+-- | Extract an attribute, which had better be a single String
 getAttribute :: [Attribute] -> String -> Maybe String
 getAttribute attributes key =
    findJust
@@ -259,41 +261,110 @@ getAttribute attributes key =
          )
       attributes
 
----
--- Get an Element's label, assuming it was of DirectInclude type.
+-- | Delete an attribute with a given key, if one is present
+delAttribute :: [Attribute] -> String -> [Attribute]
+delAttribute attributes0 key =
+   deleteFirstOpt (\ (key1,_) -> key1 == key) attributes0
+
+-- | Set an attribute
+setAttribute :: [Attribute] -> String -> String -> [Attribute]
+setAttribute attributes0 key value =
+   let
+      attributes1 = delAttribute attributes0 key
+      attributes2 = setAttribute0 attributes1 key value
+   in
+      attributes2
+
+
+-- | Only to be used when it is known that the attribute being added
+-- does not occur in the input attributes.
+setAttribute0 :: [Attribute] -> String -> String -> [Attribute]
+setAttribute0 attributes0 key value =
+   (key,AttValue [Left value]) : attributes0
+   
+
+
+-- | Get an Element's attribute
+getAtt :: String -> Element -> Maybe String
+getAtt key (Elem _ atts _) = getAttribute atts key
+
+-- | Delete an Element's attribute (or nothing, if it isn't set)
+delAtt :: String -> Element -> Element
+delAtt key (Elem name atts0 content) =
+   let
+      atts1 = delAttribute atts0 key
+   in
+      Elem name atts1 content
+      
+-- | Set an Element's attribute
+setAtt :: String -> Element -> String -> Element
+setAtt key (Elem name atts0 content) value =
+   let
+      atts1 = setAttribute atts0 key value
+   in
+      (Elem name atts1 content)
+
+-- ----------------------------------------------------------------------
+-- Functions for accessing particular attributes
+-- ----------------------------------------------------------------------
+
+-- | Get an Element's label.
 getLabel :: Element -> WithError EntitySearchName
-getLabel element@(Elem name _ _) = 
-   mapWithError' 
-      (\ classified -> case classified of
-         (DirectInclude label _) -> hasValue label
-         _ -> hasError ("Element " ++ name ++ " has no label!")
-         )
-      (classifyElement element)
+getLabel (elem @ (Elem name _ _)) =
+   let
+      labelOpt = getAtt "label" elem
+   in
+      case labelOpt of
+         Nothing -> hasError ("Element " ++ name ++ " has no label!")
+         Just labelStr -> fromStringWE labelStr
 
----
--- Set an Element's label, assuming it was of DirectInclude type.
+-- | Set an Element's label.
 setLabel :: Element -> EntitySearchName -> Element
-setLabel (Elem name attributes0 content) entitySearchName =
-   let
-      attributes1 = deleteFirstOpt (\ (key,_) -> key == "label") attributes0
-      attributes2 = ("label",AttValue [Left (toString entitySearchName)])
-         : attributes1
-   in
-      Elem name attributes2 content
+setLabel elem entitySearchName =
+   setAtt "label" elem (toString entitySearchName)
 
----
--- Delete an Element's label, assuming it was of DirectInclude type.
+-- | Delete an Element's label.
 delLabel :: Element -> Element
-delLabel (Elem name attributes0 content) =
-   let
-      attributes1 = deleteFirstOpt (\ (key,_) -> key == "label") attributes0
-   in
-      Elem name attributes1 content
+delLabel = delAtt "label"
 
+getPackageId :: Element -> Maybe PackageId
+getPackageId elem =
+   fmap
+      PackageId 
+      (getAtt "packageId" elem)
+
+getPackagePath :: Element -> WithError EntityFullName
+getPackagePath elem =
+   case (getAtt "packagePath" elem,getLabel elem) of
+         (Just packagePathStr,_) -> fromStringWE packagePathStr
+         (Nothing,entitySearchNameWE) ->
+            do
+               entitySearchName <- entitySearchNameWE
+               case entitySearchName of
+                  FromHere fullName -> return fullName
+                  _ -> fail ("No package path or valid label found for " ++
+                    toString entitySearchName)
+
+setPackageId :: Element -> PackageId -> Element
+setPackageId elem (PackageId packageIdStr) =
+   setAtt "packageId" elem packageIdStr
+
+delPackageId :: Element -> Element
+delPackageId = delAtt "packageId"
 
 getFiles :: Element -> [String]
-getFiles (Elem _ attributes _)
-   = case getAttribute attributes "files" of
+getFiles element =
+   uniqOrd (
+      concat
+         (map
+            getFiles1
+            (getAllElements1 element)
+            )
+      )
+
+getFiles1 :: Element -> [String]
+getFiles1 elem
+   = case getAtt "files" elem of
       Nothing -> []
       Just files -> splitByChar '.' files
 
@@ -306,14 +377,9 @@ getPriorityAttributes attributes
    = fromMaybe "0" (getAttribute attributes "priority")
 
 setPriority :: Element -> String -> Element
-setPriority (Elem name attributes0 content) priority =
-   let
-      attributes1 = deleteFirstOpt (\ (key,_) -> key == "priority") attributes0
-      attributes2 = setPriorityAttributes' attributes1 priority
-   in
-      Elem name attributes2 content
+setPriority elem priority =
+   setAtt "priority" elem priority
 
-setPriorityAttributes' :: [Attribute] -> String -> [Attribute]
 setPriorityAttributes' attributes priority =
    ("priority",AttValue [Left priority]) : attributes
 

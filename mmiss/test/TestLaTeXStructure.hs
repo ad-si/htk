@@ -19,9 +19,9 @@ import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Pretty
 
-import MMiSSContent
 import MMiSSDTD
 import MMiSSEditXml
+import MMiSSFileSystemExamples
 
 main =
    do
@@ -33,7 +33,10 @@ main =
 
       doc <- getContents
       let
-         elEither = parseMMiSSLatex doc
+         fileName = "stdin"
+         fileSystem = oneFileFileSystem fileName doc
+
+      elEither <- parseMMiSSLatex fileSystem fileName
       el <- case  fromWithError elEither of
          Left str -> ioError (userError str)
          Right (el,_) -> return el
@@ -43,10 +46,3 @@ main =
       case verified of
          [] -> done
          errors -> error (unlines errors)
-      {-
-      let
-         unparsedWE = makeMMiSSLatex (el,False)
-         unparsed = coerceWithError unparsedWE
-
-      putStrLn (mkLaTeXString unparsed)         
-      -}

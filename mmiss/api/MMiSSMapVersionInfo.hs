@@ -19,9 +19,9 @@ import qualified VersionInfo
 
 import XmlExtras
 
+import MMiSSImportExportErrors
 
 import MMiSSRequest
-import {-# SOURCE #-} MMiSSDoXml
 
 -- -----------------------------------------------------------------------
 -- Converting from our VersionInfo's.
@@ -104,7 +104,7 @@ toOurUserInfo defaultUser user0 =
 
       sToV :: String -> VersionInfo.ObjectVersion
       sToV s = case fromWithError (fromStringWE s) of
-         Left mess -> ourError (show s ++ " is not a valid version")
+         Left mess -> importExportError (show s ++ " is not a valid version")
          Right v -> v
 
    in

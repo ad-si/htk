@@ -11,10 +11,8 @@ module FileNames(
             -- trim file separator from end of name if there.
             -- (intended for directories)
    splitName,
-            -- :: String -> Maybe(String,String)
-            -- If path name contains both a directory and a file name
-            -- portion, return them.  None of the names should end with
-            -- the file separator. 
+            -- :: String -> (String,String)
+            -- Returns the directory and file part of a name.
    combineNames,
             -- :: String -> String -> String
             -- combines a directory and file name.
@@ -68,10 +66,20 @@ trimDir (name@[c])
    | True = name
 trimDir (first:rest) = first:trimDir rest
 
-splitName :: String -> Maybe(String,String)
-splitName [] = Nothing
-splitName (first:remainder) =
-   case splitName remainder of
+splitName :: String -> (String,String)
+splitName filePath0 = 
+   let
+      filePath1 = trimDir filePath0
+   in
+      case splitName1 filePath1 of
+         Nothing -> (thisDir,filePath1)
+         Just ("",filePath2) -> (topDir,filePath2)
+         Just simple -> simple
+
+splitName1 :: String -> Maybe(String,String)
+splitName1 [] = Nothing
+splitName1 (first:remainder) =
+   case splitName1 remainder of
       Nothing
          | first == fileSep -> Just([],remainder)
          | True -> Nothing

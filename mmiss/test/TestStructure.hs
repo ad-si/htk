@@ -16,7 +16,6 @@ import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Pretty
 import Text.PrettyPrint.HughesPJ
 
-import MMiSSContent
 import MMiSSDTD
 
 
@@ -37,6 +36,8 @@ main =
       case verified of
          [] -> done
          errors -> error (unlines errors)
+{-
+   -- obsolete for now (it depends on obsolete MMiSSContent module).
       let
          structured = coerceWithError (structureContents el)
          (contents1 :: [Content]) = contents (accContents structured)
@@ -44,3 +45,4 @@ main =
       putStrLn (toString coded1)
       (contents2 :: [Content]) <- doDecodeIO coded1 undefined
       putStrLn (render (vcat (map content contents2)))
+-}

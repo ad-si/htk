@@ -26,9 +26,9 @@ module MMiSSObjectType(
    createMMiSSObject, -- all MMiSSObjects are created by this function.
 
    variablesSame,
-
-   getParentLinkedObjectPreamble,
    ) where
+
+import Maybe
 
 import System.IO.Unsafe(unsafeInterleaveIO)
 
@@ -37,8 +37,9 @@ import Sources
 import VariableSet
 import VariableSetBlocker
 import Dynamics
-import AtomString (fromString,toString)
+import AtomString (toString,fromString,fromStringWE)
 import ReferenceCount
+import Messages
 
 import BSem
 
@@ -47,6 +48,9 @@ import DialogWin
 import Graph(ArcType)
 
 import Text.XML.HaXml.Types
+
+import XmlExtras
+
 
 import VersionDB (Location)
 import ViewType
@@ -59,10 +63,12 @@ import EntityNames
 import SpecialNodeActions
 
 import MMiSSDTDAssumptions
+import MMiSSVariant
 import MMiSSVariantObject
-import MMiSSContent
 import MMiSSPreamble
 import MMiSSObjectTypeType
+import MMiSSElementInstances
+import MMiSSElementInfo
 import {-# SOURCE #-} MMiSSPackageFolder
 
 -- ---------------------------------------------------------------------
@@ -111,7 +117,8 @@ data Variable = Variable {
 -- the current set of attributes.
 data Cache = Cache {
    cacheElement :: Element,
-   cacheLinks :: LinkSource LinkType
+   cacheLinks :: LinkSource LinkType,
+   cacheEditLock :: BSem
    }
 
 -- ---------------------------------------------------------------------
@@ -202,33 +209,63 @@ instance HasBinary Variable CodingMonad where
 ---
 -- Converter function.  This also needs to know the view and LinkedObject
 -- for the containing object.
-converter :: View -> LinkedObject -> Variable -> IO Cache
-converter view linkedObject variable =
+converter :: View -> LinkedObject -> MMiSSVariantSpec -> Variable -> IO Cache
+converter view linkedObject variantSpec variable =
    -- we wrap the operation in unsafeInterleaveIO so that we can
    -- assume (or at least hope) that the function won't be called
    -- until it is actually needed.
    unsafeInterleaveIO (
       do
-         cacheElement <- readLink view (element variable)
+         cacheElement0 <- readLink view (element variable)
+
+         packageFolderAndNameWE 
+            <- getMMiSSPackageFolderAndName view linkedObject
+         (packageFolder,name) <- coerceWithErrorIO packageFolderAndNameWE
+
+         let
+            cacheElement1WE = setElementInfoStrict
+               cacheElement0
+               (ElementInfo {
+                  packageIdOpt = Nothing,
+                  packagePathOpt1 = Just name,
+                  labelOpt = Nothing,
+                  variants = variantSpec
+                  })
+         cacheElement1 <- case fromWithError cacheElement1WE of
+            Left mess ->
+               do
+                  alertMess ("Unable to set variants: " ++ mess)
+                  return cacheElement0
+            Right cacheElement1 -> return cacheElement1
 
          -- Get the LinkedObject for the containing MMiSSPackageFolder.
-         leWE <- getParentLinkedObjectPreamble view linkedObject
-         (parentLinkedObject,_) <- coerceWithErrorIO leWE
-
          let
-            accContentsWE = toAccContents cacheElement
-         accContents <- coerceWithErrorIO accContentsWE
-         let
-            cacheLinks0 = links accContents
-            cacheLinks1 = map
-               (\ (fullName,variantSearch,linkType) -> (fullName,linkType))
-               cacheLinks0
+            packageLinkedObject 
+               = toMMiSSPackageFolderLinkedObject packageFolder
 
-         cacheLinks2 <- newLinkSource view parentLinkedObject cacheLinks1
+         -- Get the links for the element.
+         let
+            allSubElements = getAllElements1 cacheElement1
+
+            links0 :: [(LinkType,String)]
+            links0 = mapMaybe classifyLink allSubElements
+
+         (links1 :: [(EntitySearchName,LinkType)]) <-
+            mapM
+               (\ (linkType,searchNameStr) ->
+                  do
+                     searchName 
+                        <- coerceWithErrorIO (fromStringWE searchNameStr)
+                     return (searchName,linkType)
+                  )
+               links0
+
+         cacheLinks2 <- newLinkSource view packageLinkedObject links1
          let
             cache = Cache {
-               cacheElement = cacheElement,
-               cacheLinks = cacheLinks2
+               cacheElement = cacheElement1,
+               cacheLinks = cacheLinks2,
+               cacheEditLock = editLock variable 
                }
 
          return cache
@@ -287,18 +324,3 @@ variablesSame :: Variable -> Variable -> Bool
 variablesSame variable1 variable2 =
    (element variable1 == element variable2)
 
----
--- Get an object's parent package object and preamble link
-getParentLinkedObjectPreamble :: HasLinkedObject object => View -> object 
-   -> IO (WithError (LinkedObject,Link MMiSSPreamble))
-getParentLinkedObjectPreamble view mmissObject =
-   do
-      packageFolderWE 
-         <- getMMiSSPackageFolder view (toLinkedObject mmissObject)
-      return (mapWithError 
-         (\ packageFolder 
-            -> (toMMiSSPackageFolderLinkedObject packageFolder,
-               toMMiSSPreambleLink packageFolder)
-            )
-         packageFolderWE
-         )

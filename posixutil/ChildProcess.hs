@@ -377,8 +377,7 @@ newChildProcess path confs  =
          toolTitle = 
             case (toolname parms,splitName path) of
                (Just toolTitle,_) -> toolTitle
-               (Nothing,Just (dir,toolTitle)) -> toolTitle
-               (Nothing,Nothing) -> path
+               (Nothing,(dir,toolTitle)) -> toolTitle
 
          newChild = ChildProcess {
             childObjectID = childObjectID,

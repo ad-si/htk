@@ -65,6 +65,9 @@ module ObjectTypes(
    -- Unpacking wrapped types.
    unpackWrappedLink,  -- :: ObjectType objectType object =>
      -- WrappedLink -> Maybe (Link object)
+   unpackWrappedLinkWE, 
+      -- :: ObjectType objectType object =>
+      -- WrappedLink -> WithError (Link object) 
    toWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink
    fromWrappedMergeLink, -- :: WrappedLink -> WrappedMergeLink -> WrappedLink
    wrappedLinkTypeName, -- :: WrappedLink -> String
@@ -98,16 +101,19 @@ module ObjectTypes(
    fixedLinks, -- :: View -> WrappedObjectType -> IO [WrappedLink]
 
    -- Get the object type's entry in the object creation menu.
-   -- The object creation function is returned.  The object should be inserted
+   -- We return True if the object was created.  The object should be inserted
    -- in the folder.
    createObjectMenuItem, -- :: WrappedObjectType 
-   -- -> Maybe (String,View -> LinkedObject -> IO (Maybe WrappedLink))
+   -- -> Maybe (String,View -> LinkedObject -> IO Bool
 
    -- How to save references to object types
    ShortObjectType(..),
 
    getObjectTypeByKey, 
       -- :: ObjectType objectType object => View -> GlobalKey -> IO objectType
+   getObjectTypeByKeyOpt,
+      -- :: ObjectType objectType object => View -> GlobalKey 
+      -- -> IO (Maybe objectType)
       -- How to look up an object by its global key.
 
    -- These functions are used (by the View module) to import and export object
@@ -207,10 +213,10 @@ class (HasCodedValue objectType,HasCodedValue object,HasMerging object)
       --      
 
    createObjectMenuItemPrim :: objectType 
-      -> Maybe (String,View -> LinkedObject -> IO (Maybe (Link object)))
+      -> Maybe (String,View -> LinkedObject -> IO Bool)
       -- This is a menu item (label + creation function) which creates
       -- a link to an object of this type in the supplied linked object, and 
-      -- inserts it in the folder.
+      -- inserts it in the folder, returning True if successful.
 
    toLinkedObjectOpt :: object -> Maybe LinkManager.LinkedObject
       -- Extract the object's LinkedObject, if any.
@@ -340,8 +346,26 @@ instance Ord WrappedLink where
 ---
 -- Returns Nothing if the types don't match.
 unpackWrappedLink :: ObjectType objectType object =>
-    WrappedLink -> Maybe (Link object)
+   WrappedLink -> Maybe (Link object)
 unpackWrappedLink (WrappedLink link) = fromDyn (toDyn link) 
+
+unpackWrappedLinkWE :: ObjectType objectType object =>
+   WrappedLink -> WithError (Link object) 
+unpackWrappedLinkWE (WrappedLink link) =
+   case fromDyn (toDyn link) of
+      Just link2 -> hasValue link2
+      (Nothing :: Maybe link2Type) ->
+         hasError ("Type failure: looking for a " 
+            ++ showLink (undefined :: link2Type)
+            ++ " but found a " ++ showLink link
+            )
+   where
+      showLink :: ObjectType objectType object => Link object -> String
+      showLink link = objectTypeTypeIdPrim (typeHack link)
+ 
+      typeHack :: ObjectType objectType object => Link object -> objectType
+      typeHack = undefined
+   
 
 toWrappedMergeLink :: WrappedLink -> WrappedMergeLink
 toWrappedMergeLink (WrappedLink link) = WrappedMergeLink link
@@ -395,22 +419,9 @@ fixedLinks view (WrappedObjectType objectType) =
       return (map WrappedMergeLink links)
 
 createObjectMenuItem :: WrappedObjectType 
-   -> Maybe (String,View -> LinkedObject -> IO (Maybe WrappedLink))
-createObjectMenuItem (WrappedObjectType objectType) =
-   fmap
-      (\ (str,fn) ->
-         let
-            newfn view linkedObject =
-               do
-                  resultOpt <- fn view linkedObject
-                  return (fmap
-                     (\ link -> WrappedLink link)
-                     resultOpt
-                     )
-         in
-            (str,newfn)
-         ) 
-      (createObjectMenuItemPrim objectType)
+   -> Maybe (String,View -> LinkedObject -> IO Bool)
+createObjectMenuItem (WrappedObjectType objectType) 
+   = createObjectMenuItemPrim objectType
 
 -- ----------------------------------------------------------------
 -- NodeDisplayData
@@ -552,12 +563,27 @@ getObjectTypeByKey
    :: ObjectType objectType object => View -> GlobalKey -> IO objectType
 getObjectTypeByKey view key =
    do
+      objectTypeOpt <- getObjectTypeByKeyOpt view key
+      case objectTypeOpt of
+         Just objectType -> return objectType
+         Nothing ->
+            error ("Error in ObjectTypes.getObjectTypeByKey: "
+               ++ "no type with key " ++ describeGlobalKey key
+               ++ " found in registry or extraObjectTypes"
+               )
+
+
+getObjectTypeByKeyOpt
+   :: ObjectType objectType object => View -> GlobalKey 
+   -> IO (Maybe objectType)
+getObjectTypeByKeyOpt view key =
+   do
       let 
          globalRegistry = objectTypeGlobalRegistry 
             (error "Don't look at me" :: objectType)
       objectTypeOpt  <- lookupInGlobalRegistryOpt globalRegistry view key
       case objectTypeOpt of
-         Just objectType -> return objectType
+         Just objectType -> return (Just objectType)
          Nothing ->
             do
                objectTypes <- extraObjectTypes
@@ -571,13 +597,8 @@ getObjectTypeByKey view key =
                               Nothing
                         )
                      objectTypes
-               case objectTypeOpt of
-                  Just objectType -> return objectType
-                  Nothing ->
-                     error ("Error in ObjectTypes.getObjectTypeByKey: "
-                        ++ "no type with key " ++ describeGlobalKey key
-                        ++ " found in registry or extraObjectTypes"
-                        )
+
+               return objectTypeOpt
     
 -- -----------------------------------------------------------------
 -- Initialising and writing the Global Registries

@@ -152,6 +152,7 @@ import AtomString
 import Messages
 import FileNames
 import VariableSet(HasKey(..))
+import IntPlus
 
 import HostsPorts
 
@@ -178,6 +179,7 @@ import Link
 import ObjectTypes
 import Registrations
 
+import MMiSSBundle
 import MMiSSRegistrations
 import MMiSSPackageFolder
 import MMiSSVariant
@@ -576,8 +578,15 @@ getFormat format name =
 
          -- (2) extractMMiSSObject
          (Variant variantSearch) <- getCurrentVariants
-         extracted0 <- extractMMiSSObject1 (Just variantSearch) view 
-            mmissObjectLink format
+         let
+            exportOpts = ExportOpts {
+               getText = True,
+               format = format,
+               recurseDepth = infinity
+               }
+               
+         extracted0 <- extractMMiSSObject1 view mmissObjectLink
+            (Just variantSearch) exportOpts                
          (fileContents,exportedFiles) <- case fromWithError extracted0 of
             Left mess -> apiError mess
             Right extracted1 -> return extracted1
@@ -617,11 +626,12 @@ put fileName =
          dir <- getCurrentDir version
          linkedObject <- getLinkedObject view dir
        
-         packageFolderLinkOpt 
-            <- importMMiSSPackage1 view linkedObject (Just fileName)
-         case packageFolderLinkOpt of
-            Nothing -> apiError "Put not successful"
-            Just _ -> done
+         success <- importMMiSSPackage1 view linkedObject (Just fileName)
+         if success
+            then
+               apiError "Put not successful"
+            else
+               done
       )
 
 -- | Read the given file into the current directory, which should

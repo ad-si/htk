@@ -14,7 +14,6 @@ import Text.XML.HaXml.Types
 
 import MMiSSDTDAssumptions
 import MMiSSVariant
-import MMiSSContent(getAllElementFiles)
 import MMiSSDTD(toExportableXml) -- DEBUG
 
 ---
@@ -39,13 +38,13 @@ import MMiSSDTD(toExportableXml) -- DEBUG
 reAssemble :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 
       -> IO (WithError (Maybe (Element,searchData)))) 
-   -> (MMiSSVariantSearch -> searchData -> String -> IO ())
+   -> (MMiSSVariantSearch -> searchData -> EntityFullName -> IO ())
    -> EntitySearchName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
 reAssemble 
       (getElement :: EntitySearchName -> MMiSSVariantSearch -> searchData 
          -> IO (WithError (Maybe (Element,searchData))))
-      (doFile :: MMiSSVariantSearch -> searchData -> String -> IO ())
+      (doFile :: MMiSSVariantSearch -> searchData -> EntityFullName -> IO ())
       (topName :: EntitySearchName)
       (topVariantSearch :: MMiSSVariantSearch) 
       (topSearchData :: searchData)
@@ -108,7 +107,7 @@ reAssemble
                variantSearch1 
                   = refineVariantSearch variantSearch0 attributesSpec
 
-               doThisFile :: String -> IO ()
+               doThisFile :: EntityFullName -> IO ()
                doThisFile file = doFile variantSearch0 searchData0 file
 
                doContents :: [Content] -> MonadWithError IO [Content]
@@ -147,7 +146,13 @@ reAssemble
                                  Nothing -> return content
                      _ -> return content
 
-            toMonadWithError (mapM_ doThisFile (getAllElementFiles element0))
+            mapM_
+               (\ fileStr0 ->
+                   do
+                      file0 <- monadifyWithError (fromStringWE fileStr0)
+                      toMonadWithError (doThisFile file0)
+                   )    
+               (getFiles element0)
 
             contents1 <- doContents contents0
             return (Elem name attributes contents1)
@@ -169,7 +174,7 @@ reAssemble
 reAssembleNoRecursion :: 
    (EntitySearchName -> MMiSSVariantSearch -> searchData 
       -> IO (WithError (Maybe (Element,searchData)))) 
-   -> (MMiSSVariantSearch -> searchData -> String -> IO ())
+   -> (MMiSSVariantSearch -> searchData -> EntityFullName -> IO ())
    -> EntitySearchName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
 reAssembleNoRecursion getElement doFile entityName variantSearch searchData =

@@ -39,9 +39,10 @@ import ViewType
 
 import Text.XML.HaXml.Xml2Haskell
 
+import MMiSSImportExportErrors
+
 import MMiSSRequest
 import MMiSSAPIBasics
-import {-# SOURCE #-} MMiSSDoXml
 
 -- --------------------------------------------------------------------------
 -- Datatypes
@@ -91,7 +92,7 @@ lookupVersionGraph state serverRef =
    do
       servers0 <- readState state servers
       case lookupFM servers0 serverRef of
-         Nothing -> ourError "Server not known"
+         Nothing -> importExportError "Server not known"
          Just versionGraph -> return versionGraph
 
 deleteVersionGraph :: MMiSSSessionState -> ServerRef -> IO ()
@@ -102,7 +103,7 @@ deleteVersionGraph (MMiSSSessionState mVar) serverRef =
             let
                servers0 = servers state
             case lookupFM servers0 serverRef of
-               Nothing -> ourError "Server not known"
+               Nothing -> importExportError "Server not known"
                Just versionGraph -> destroy versionGraph
             let
                servers1 = delFromFM servers0 serverRef
@@ -150,7 +151,7 @@ lookupView state versionRef =
    do
       versions0 <- readState state versions
       case lookupFM versions0 versionRef of
-         Nothing -> ourError "Version not known"
+         Nothing -> importExportError "Version not known"
          Just view -> return view
 
 deleteView :: MMiSSSessionState -> VersionRef -> IO ()
@@ -161,7 +162,7 @@ deleteView (MMiSSSessionState mVar) versionRef =
             let
                versions0 = versions state
             case lookupFM versions0 versionRef of
-               Nothing -> ourError "Version not known"
+               Nothing -> importExportError "Version not known"
                Just versionGraph -> destroy versionGraph
             let
                versions1 = delFromFM versions0 versionRef

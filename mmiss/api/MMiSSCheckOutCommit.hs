@@ -21,11 +21,12 @@ import View hiding (setUserInfo)
    -- ours here also allows default labels and so on 
 import ViewType
 
+import MMiSSImportExportErrors
+
 import MMiSSRequest
 import MMiSSSessionState
 import MMiSSMapVersionInfo
 
-import {-# SOURCE #-} MMiSSDoXml
 
 -- ----------------------------------------------------------------------------
 -- Checking out
@@ -38,7 +39,7 @@ checkOut state (CheckOut (CheckOut_Attrs {checkOutVersion = versionStr} )
       let
          objectVersionWE = fromStringWE versionStr
       objectVersion <- case fromWithError objectVersionWE of
-         Left _ -> ourError "Version must be a number"
+         Left _ -> importExportError "Version must be a number"
          Right objectVersion -> return objectVersion
 
       versionGraph <- lookupVersionGraph state serverRef
@@ -49,7 +50,7 @@ checkOut state (CheckOut (CheckOut_Attrs {checkOutVersion = versionStr} )
       viewOpt <- catchNotFound (
          getView repository versionSimpleGraph objectVersion)
       versionRef <- case viewOpt of
-         Nothing -> ourError "Version not found"
+         Nothing -> importExportError "Version not found"
          Just view -> setView state versionRefOpt view
       return (CheckOutResponse versionRef)
 
@@ -115,5 +116,5 @@ checkUserInfo :: UserInfo -> IO ()
 checkUserInfo userInfo =
    case (userInfoVersion userInfo,userInfoParents userInfo) of
       (Nothing,Nothing) -> done
-      _ -> ourError 
+      _ -> importExportError 
          "You aren't allowed to set the version number or parents of a version"

@@ -28,8 +28,11 @@ import Text.XML.HaXml.Types
 
 import ICStringLen
 import IntPlus
+import Dynamics
 
 import View
+
+import LaTeXParser(PackageId(..))
 
 import MMiSSVariant
 import MMiSSFormat
@@ -38,13 +41,12 @@ import MMiSSFormat
 -- Datatypes
 -- --------------------------------------------------------------------------
 
-newtype PackageId = PackageId {packageIdStr :: String} deriving (Eq,Ord)
-
 newtype Bundle = Bundle [(PackageId,BundleNode)]
 
 data FileLoc = FileLoc {
    name :: Maybe String, 
-      -- Nothing for the preamble
+      -- Nothing for the preamble and in some other cases, for example
+      -- when we haven't worked out the name of a package yet.
    objectType :: BundleType
    } deriving (Ord,Eq)
    
@@ -52,6 +54,8 @@ data BundleType = BundleType {
    base :: BundleTypeEnum,
    ext :: Maybe String,
    extra :: Maybe String
+      -- extra is used for cases where the object type cannot be worked out
+      -- otherwise; specifically for plain files and plain folders.
    } deriving (Ord,Eq)
 
 data BundleTypeEnum = FolderEnum | FileEnum 
@@ -73,14 +77,21 @@ data BundleNodeData =
          -- data left out for some reason.
 
 data BundleText = 
-      BundleString { 
+      BundleString {
          contents :: ICStringLen,
          charType :: CharType
+            -- how to write this.
          }
-   |  BundleElement Element
+   |  BundleDyn {
+         dyn :: Dyn,
+            -- this can be used to stash a pre-parsed element,
+            -- for example an Element or MMiSSLatexPreamble.
+         eqFn :: Dyn -> Bool
+            -- returns True if this element is equal to the given one.
+         }
    |  NoText
 
-data CharType = Byte | Unicode
+data CharType = Byte | Unicode deriving (Eq)
 
 data ExportOpts = ExportOpts {
    getText :: Bool, -- ^ Get the text of everything (not just the locations)

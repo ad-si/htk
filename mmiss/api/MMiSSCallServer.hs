@@ -30,7 +30,7 @@ import MMiSSRequest
 import MMiSSSessionState
 import MMiSSMapVersionInfo
 
-import {-# SOURCE #-} MMiSSDoXml
+import MMiSSImportExportErrors
 
 -- ----------------------------------------------------------------------------
 -- Connecting
@@ -44,7 +44,7 @@ connect state (Connect attrs serverRefOpt) user =
          <- case (connectServer attrs,connectPassword attrs) of
             (Just serverStr,Just password) ->
                return (serverStr,password)
-            _ -> ourError "Server and password must both be specified!"
+            _ -> importExportError "Server and password must both be specified!"
                -- this may change if allow no server (for the internal server)
                -- or no password (if inherited from this session or internal)
       let
@@ -57,7 +57,7 @@ connect state (Connect attrs serverRefOpt) user =
             HostsPorts.password = password
             })
 
-      hostPort <- coerceWithErrorOrBreakIO ourError hostPortWE
+      hostPort <- coerceWithErrorOrBreakIO importExportError hostPortWE
       versionGraph <-
          let
             ?server = hostPort
@@ -65,7 +65,7 @@ connect state (Connect attrs serverRefOpt) user =
             do
                errOrRepository <- tryConnect VersionDB.initialise
                repository <- case errOrRepository of
-                  Left err -> ourError err
+                  Left err -> importExportError err
                   Right repository -> return repository
 
                newVersionGraph emptyGraphSort repository

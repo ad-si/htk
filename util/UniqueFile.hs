@@ -158,22 +158,22 @@ ensureDirectories (uniqueFileStore @ UniqueFileStore {directory = directory,
       createDirAct = createDirAct,
       alreadyExistsRegistry = alreadyExistsRegistry}) fullName =
    case splitName fullName of
-      Nothing -> done
-         -- no subdirectories required.
-      Just (subDir,rest) ->
-         transformValue alreadyExistsRegistry subDir
-            (\ existsOpt -> 
-               do
-                  case existsOpt of
-                     Just () -> -- no action required
-                        done
-                     Nothing ->
-                        do
-                           ensureDirectories uniqueFileStore subDir
-                           catchAlreadyExists (createDirAct subDir)
+      (subDir,rest) 
+         | subDir == thisDir -> done -- no subdirectories required.
+         | True ->
+            transformValue alreadyExistsRegistry subDir
+               (\ existsOpt -> 
+                  do
+                     case existsOpt of
+                        Just () -> -- no action required
                            done
-                  return (Just (),())
-               )
+                        Nothing ->
+                           do
+                              ensureDirectories uniqueFileStore subDir
+                              catchAlreadyExists (createDirAct subDir)
+                              done
+                     return (Just (),())
+                  )
 
 
 getFilePath :: UniqueFileStore -> String -> FilePath

@@ -2,9 +2,6 @@
    distributes XML requests. -}
 module MMiSSDoXml(
    doXml, -- :: Handle -> IO ()
-
-   ourError, -- :: BreakFn
-
    ) where
 
 import IO
@@ -40,6 +37,8 @@ import MMiSSDTD hiding (validateElement)
 import MMiSSCallServer
 import MMiSSCheckOutCommit
 import MMiSSGetPut
+import MMiSSImportExportErrors
+
 
 import MMiSSRequest
 import MMiSSSessionState
@@ -162,19 +161,10 @@ requestLock = unsafePerformIO newBSem
 -- Handling parsing errors and so on.
 -- --------------------------------------------------------------------------
 
-ourErrorFallOut :: (ObjectID,IO a -> IO (Either String a))
-ourErrorFallOut = unsafePerformIO newFallOut
-{-# NOINLINE ourErrorFallOut #-}
-
-ourError :: BreakFn
-ourError = mkBreakFn (fst ourErrorFallOut)
-
-catchErrors1 :: IO a -> IO (Either String a)
-catchErrors1 = snd ourErrorFallOut
-
 -- catchErrors also catches other Haskell exceptions.
 catchErrors :: IO a -> IO (Either String a)
-catchErrors act = catchErrors1 (breakOtherExceps ourError act)
+catchErrors act = catchImportExportErrors (
+   breakOtherExceps importExportError act)
 
 -- --------------------------------------------------------------------------
 -- Displaying errors
@@ -211,8 +201,8 @@ readRequest handle =
       requestStr <- case lookupBlockData block 0 of
          Just (BlockData {blockType = 0,blockText = icsl}) -> 
             return (toString icsl)
-         _ ->
-            ourError "Request block does not begin with an XML element"
+         _ -> importExportError 
+            "Request block does not begin with an XML element"
       let
          Document _ _ elementE = xmlParse "MMiSS API input" requestStr
 
@@ -220,12 +210,14 @@ readRequest handle =
 
       case validateElement "request" element of
          [] -> done
-         errors -> ourError (unlines errors)
+         errors -> importExportError (unlines errors)
 
       case fromElem [CElem element] of
          (Just request,[]) -> return (request,block)
-         (Nothing,_) -> ourError ("No request found in " ++ requestStr)
-         (_,_) -> ourError ("Unwanted extra input found in " ++ requestStr) 
+         (Nothing,_) -> importExportError ("No request found in " 
+            ++ requestStr)
+         (_,_) -> importExportError ("Unwanted extra input found in " 
+            ++ requestStr) 
 
 
 writeResponse :: Handle -> Block -> IO ()

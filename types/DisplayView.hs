@@ -15,6 +15,7 @@ import Chan
 import IOExts
 import FiniteMap
 import Concurrent
+import CompileFlags
 
 import Dynamics
 import ExtendedPrelude(mapEq,mapOrd)
@@ -44,6 +45,32 @@ import qualified LinkDrawer
 import View
 
 -- -----------------------------------------------------------------------
+-- Data types
+-- -----------------------------------------------------------------------
+
+---
+-- Contains DisplayedObjectType for all object types in the view
+-- We use a Registry as sometime we'll have to address the problem of
+-- dynamically adding types, perhaps.
+-- If an object type does not appear in the registry, it means values of
+-- that type are not to be displayed.
+$(
+   if ghcShortVersion >= 603
+      then
+         [d|
+            newtype AllDisplayedObjectTypes =
+               AllDisplayedObjectTypes (UntypedRegistry (
+               Keyed WrappedObjectType))
+         |]
+      else
+         [d|
+            newtype AllDisplayedObjectTypes =
+               AllDisplayedObjectTypes (UnsafeRegistry (
+               Keyed WrappedObjectType))
+         |]
+   )
+
+-- -----------------------------------------------------------------------
 -- DisplayedObjectType and DisplayedObjectTypes is the information we need 
 -- for all object types in a view.
 -- -----------------------------------------------------------------------
@@ -70,14 +97,6 @@ displayedObjectTypeTyRep = mkTyRep "DisplayView" "DisplayedObjectType"
 instance HasTyRep6_000111 DisplayedObjectType where
    tyRep6_000111 _ = displayedObjectTypeTyRep
 
----
--- Contains DisplayedObjectType for all object types in the view
--- We use a Registry as sometime we'll have to address the problem of
--- dynamically adding types, perhaps.
--- If an object type does not appear in the registry, it means values of
--- that type are not to be displayed.
-newtype AllDisplayedObjectTypes =
-   AllDisplayedObjectTypes (UnsafeRegistry (Keyed WrappedObjectType))
 
 ---
 -- Constructs a AllDisplayedObjectTypes for a particular graph, view and
@@ -495,7 +514,7 @@ openGeneralDisplay ::
       arc arcType arcTypeParms) 
    -> displayType 
    -> View
-   -> IO (Maybe (DisplayView.DisplayedView graph graphParms node 
+   -> IO (Maybe (DisplayedView graph graphParms node 
       nodeType nodeTypeParms arc arcType arcTypeParms))
 openGeneralDisplay displaySort displayType view =
    do

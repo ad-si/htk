@@ -99,9 +99,13 @@
 <!ELEMENT getObjectResponse (bundle) >
  
 
-<!-- Attempt to import the given object(s) into the specified object in the
-     repository. -->
-<!ELEMENT putObject (versionRef,objectFullName,bundle) >
+<!-- Attempt to import those objects in the bundle with the given packageId
+     into the specified object in the repository, which must be a folder or 
+     package folder.  
+
+     If packageId is not specified, we simply take the first <packageId> in
+     the bundle. -->
+<!ELEMENT putObject (versionRef,objectFullName,packageId?,bundle) >
 <!ELEMENT putObjectResponse EMPTY >
 
 <!--
@@ -122,6 +126,8 @@
 <!ATTLIST versionRef %ref; >
 
 <!-- A collection of files, each of which has a packageId attached to it. -->
+<!-- Each <file> element at the top level must specify a <files> element
+     (not <fileVariants>). -->
 <!ELEMENT bundle (packageId,file)* >
 
 <!-- A packageId -->
@@ -209,7 +215,7 @@
       not specified for an mmissFolder, mmissPreamble or mmissObject.
 
       The combination of baseType=mmissFile and extType="tex" or "xml" 
-      is reserved for MMiSS objects being exported.
+      is reserved for MMiSS objects being imported or exported.
 
    The extra data contains extra information identifying particular    
    -->

@@ -64,7 +64,8 @@ data GetObject_recurse = GetObject_recurse_justThis  |
 			 GetObject_recurse_allIncluded
 		       deriving (Eq,Show)
 newtype GetObjectResponse = GetObjectResponse Bundle 		deriving (Eq,Show)
-data PutObject = PutObject VersionRef ObjectFullName Bundle
+data PutObject = PutObject VersionRef ObjectFullName
+			   (Maybe PackageId) Bundle
 	       deriving (Eq,Show)
 data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
 data ServerRef = ServerRef
@@ -423,14 +424,17 @@ instance XmlContent PutObject where
 	(\(a,ca)->
 	   (\(b,cb)->
 	      (\(c,cc)->
-		 (Just (PutObject a b c), rest))
-	      (definite fromElem "<bundle>" "putObject" cb))
+		 (\(d,cd)->
+		    (Just (PutObject a b c d), rest))
+		 (definite fromElem "<bundle>" "putObject" cc))
+	      (fromElem cb))
 	   (definite fromElem "<objectFullName>" "putObject" ca))
 	(definite fromElem "<versionRef>" "putObject" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem (PutObject a b c) =
-	[CElem (Elem "putObject" [] (toElem a ++ toElem b ++ toElem c))]
+    toElem (PutObject a b c d) =
+	[CElem (Elem "putObject" [] (toElem a ++ toElem b ++
+				     maybe [] toElem c ++ toElem d))]
 instance XmlContent PutObjectResponse where
     fromElem (CElem (Elem "putObjectResponse" [] []):rest) =
 	(Just PutObjectResponse, rest)

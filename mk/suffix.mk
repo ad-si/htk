@@ -319,7 +319,7 @@ doc : dochere
 dochere :
 
 $(LIB) : $(LIBOBJS)
-	$(RM) $@ ; $(AR) -r $@ $^
+	$(RM) $@ ; $(AR) -rs $@ $^
 
 $(TESTPROGS) : test% :  Test%.o 
 	$(RM) $@
