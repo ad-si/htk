@@ -37,6 +37,9 @@
 # compile libhtk.a.
 # HTKNOTSRCS Files in SRCS which shouldn't be compiled for HTk.
 #
+# EXTRAEXPORTS Files in this directory which should be exported (in binary
+# distributions), in addition to those which are automatically picked up.
+#
 # Other options which aren't used here (but in var.mk) and which
 # can be useful:
 #  
@@ -59,6 +62,9 @@
 # displayhtkhs displays all Haskell source files needed for HTk.
 #
 # libfast  should be like lib but faster, since it uses ghc --make.
+#
+# exports.tar.gz Makes a tarball of all files to be exported contained
+#          in this subdirectory.
 #
 # We also define trivial targets doc and dochere.  The subdirectory
 # Makefiles should implement appropriate dependencies for dochere, if any!!
@@ -98,6 +104,8 @@ HSFILESALL = $(patsubst %.hs,$$PWD/%.hs,$(SRCS)) \
 EXPORTSRCSFULL = $(patsubst %,$$PWD/%,$(EXPORTSRCS))
 EXPORTHIFILES = $(patsubst %,$$PWD/%,$(HILIBFILES))
 
+EXTRAEXPORTSFULL = $(patsubst %,$$PWD/%,$(EXTRAEXPORTS))
+
 # Can't be bothered to have a special variable for C header files.
 # Instead we decree that all C files must have an associated header
 # file.
@@ -130,7 +138,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean
+.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames exports.tar.gz exports.zip
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -257,9 +265,9 @@ prepareexports : prepareexportshere
 
 displayexportshere :
 ifeq "$(PACKAGE)" ""
-	@PWD=`pwd`;echo $(EXPORTSRCSFULL)
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL)
 else
-	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ)
+	@PWD=`pwd`;echo $(EXPORTSRCSFULL) $(EXTRAEXPORTSFULL) $$PWD/$(LIB) $$PWD/$(GHCIOBJ)
 ifeq "$(DOIMPORTS)" ""
 	@PWD=`pwd`;echo $(EXPORTHIFILES)
 else
@@ -354,6 +362,15 @@ endif
 # The dependencies file from the current directory.
 # (trick stolen from GHC make files - setting FAST will sneakily
 # prevent Make trying to recompile any of the dependent files.)
+
+exportnames :
+	($(MAKE) -s --no-print-directory displayexports) | $(SED) "s+^$(TOP)/+uni/+;s+ $(TOP)/+ uni/+g;"
+
+exports.tar.gz :
+	DIR=`pwd`;cd $(TOP)/..;$(TAR) -czf $$DIR/exports.tar.gz `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
+
+exports.zip :
+	DIR=`pwd`;cd $(TOP)/..;$(ZIP) -9 $$DIR/exports.zip `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
 
 
 

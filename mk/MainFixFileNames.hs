@@ -1,6 +1,7 @@
 {- This program converts stdin to stdout.  It replaces all occurrences of
    the string "#PWD" in stdin with the current directory in which it is
-   executed, C escaped.  Everything else is left unchanged.
+   executed, C escaped.  The string "#pwd" is similarly replaced, except that
+   it is not escaped.   Everything else is left unchanged.
 
    If an argument is supplied, this is used instead of the current
    directory.  
@@ -41,6 +42,7 @@ main =
             
          transform [] = []
          transform ('#':'P':'W':'D':rest) = quoted ++ transform rest
+         transform ('#':'p':'w':'d':rest) = toInsert ++ transform rest
          transform (c:rest) = c:transform rest
       putStr . transform  $ input
 

@@ -249,10 +249,11 @@ and prepare a .tar.gz archive containing the documentation with the
 following:
 # cd to the documentation directory.  This is the only one at present.
    cd htk/doc
-# Make a tarball
-   tar -czf htkdocs.tar.gz `gmake -s --no-print-directory displayexports`
-Then ungz the htkdocs.tar.gz file in the htk/docs directory, instead of
-doing gmake doc.
+# Make the exports for just this directory
+   gmake exports.tar.gz
+Then ungz the exports.tar.gz file for the machine you are compiling on
+(you will need to do this from directory containing the uni distribution),
+instead of doing gmake doc.
 
 Restarting compilation
 ----------------------

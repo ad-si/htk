@@ -1,2 +1,2 @@
 @REM Batch file that executes GHCi with the HTK package
-GHCI -package-conf #PWD/uni-package.conf -package uni-htk %*
+GHCI -package-conf #pwd\uni-package.conf -package uni-htk %*
