@@ -52,7 +52,7 @@ class (Show a, Read a) => GUIValue a where
         toGUIValue                      :: a -> GUIVALUE
         maybeGUIValue                   :: GUIVALUE -> (Maybe a)
         fromGUIValue                    :: GUIVALUE -> a
-        toGUIValue v                     = 
+        toGUIValue v                     =
                 GUIVALUE HaskellTk (toTkString (show v))
         maybeGUIValue (GUIVALUE HaskellTk s)     = 
                 case [x | (x,t) <- reads (fromTkString s), ("","") <- lex t] of

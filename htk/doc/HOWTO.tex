@@ -83,33 +83,65 @@ instance GUIObject (Label a) where
   cname _ = "Label"
 \end{verbatim}
 
-So kann durch die Klassenmethode \verb|toGUIObject| der externe Typ
-in die interne Repräsentation gewandelt werden. Die \verb|cname|-Methode
-liefert lediglich eine Textuelle Repräsentation des Objekttyps und kann
-z.B. für Debug-Ausgaben benutzt werden.
-
-...
+So kann bei Bedarf durch die Klassenmethode \verb|toGUIObject| der
+externe Typ in die interne Repräsentation gewandelt werden. Die
+\verb|cname|-Methode liefert lediglich eine Textuelle Repräsentation des
+Objekttyps und kann z.B. für Debug-Ausgaben benutzt werden.
 
 
 \section{Konfigurationsoptionen}
 
 \subsection{Der Typ GUIVALUE und die Klasse GUIValue}
+Eine ähnliche Verallgemeinerung wie beim Umgangs mit Objekten gibt es auch
+für Werte, die die verschiedenen Konfigurationsoptionen der Tk-Objekte
+annehmen können. Hierzu gibt es zunächst wieder \emph{einen} Typen, durch
+den alle Werte dieser Art intern dargestellt werden. Dies ist der Typ
+\verb|GUIVALUE|:
 \begin{verbatim}
 data Generator = HaskellTk | Tk
 data GUIVALUE = GUIVALUE Generator String
 \end{verbatim}
-
-...
-
+Entsprechend gibt es auch wieder eine Klasse \verb|GUIValue|, die im
+wesentlichen zum Wandeln in die interne Repräsentation und Angabe von
+default-Werten dient. Der Typ eines Konfigurationswertes muß also immer
+eine Instanz der Klasse \verb|GUIValue| sein:
 \begin{verbatim}
 class (Show a, Read a) => GUIValue a where
-        cdefault      :: a
-        toGUIValue    :: a -> GUIVALUE
-        maybeGUIValue :: GUIVALUE -> (Maybe a)
-        fromGUIValue  :: GUIVALUE -> a
+        cdefault      :: a             -- default-Wert
+        toGUIValue    :: a -> GUIVALUE -- wandeln in GUIVALUE
+                                       -- für gängige Falle vordefiniert
+        maybeGUIValue :: GUIVALUE -> (Maybe a) -- intern, vordefiniert
+        fromGUIValue  :: GUIVALUE -> a         -- intern, vordefiniert
 \end{verbatim}
+Der Typ \verb|Generator| ist hier eigentlich uninteressant. Er wird nur
+intern bei der Rückgabe von Tk-Werten, die ja immer als Strings von der
+Wish gelesen werden, benutzt. Bei der Implementierung der Methode
+\verb|toGUIValue| in der \verb|GUIVALUE|-Instanz wird man also immer
+\verb|HaskellTk| als \verb|Generator| angeben. Das zweite Feld des
+\verb|GUIVALUE|-Konstruktors muß die Tk-Repräsentation des entsprechenden
+Wertes als String, genau so wie dieser auf die Wish ausgegeben werden
+soll, enthalten. Diese Repräsentation sollte die \verb|Show|-Instanz, die
+von der \verb|GUIValue|-Instanz vorausgesetzt wird liefern (falls dies aus
+irgendwelchen Gründen einmal anders ist, reicht es allerdings, die
+\verb|toGUIObject|-Methode entsprechend zu implementieren). Umgekehrt
+\emph{muß} die ebenfalls vorausgesetzte \verb|Read|-Instanz die
+Tcl-Repräsentation in den zugehörigen HTk-Wert wandeln.
 
-...
+Die \verb|toGUIValue| Methode muß man allerdings in der Regel nicht
+überschreiben. Sie benutzt sonst einfach die vorausgesetzte \verb|Show|-
+Instanz und liefert einen entsprechenden \verb|GUIVALUE| mit
+\verb|HaskellTk| als \verb|Generator|. Zu beachten ist dabei allerdings,
+daß gewisse Zeichen durch entsprechende Escape-Sequenzen ersetzt werden
+und die Zeichenkette in Anführungszeichen gesetzt wird, damit keine
+Probleme mit enthaltenen Leerzeichen auftreten. Normalerweise ist
+dies so gewollt, kann aber in bestimmten Situation auch unerwünscht sein,
+so daß dann die \verb|toGUIValue|-Methode überschrieben werden muß.
+
+Die \verb|cdefault|-Methode liefert schließlich einen default-Wert für
+diesen Typen. Normalerweise stehen hier die Tcl-Defaults. Soll ein
+default-Wert abweichend davon gelten, muß dieser bei der Erzeugung mit
+gesetzt werden (dazu siehe Objekt-Methoden $\rightarrow$
+\verb|createCmd|).
 
 \subsection{Interne Repräsentation}
 \begin{verbatim}
@@ -119,7 +151,21 @@ type ConfigOption = (ConfigID, GUIVALUE)
 
 ...
 
+
+\subsection{Externe Repräsentation}
+\begin{verbatim}
+type Config w = w -> IO w
+\end{verbatim}
+...
+
+
+\subsection{cset und cget}
+
+...
+
 \subsection{Vordefinierte Klassen}
+Für Konfigurationsoptionen, die für mehrere Objekte benutzt werden,
+gibt es im Modul \verb|Configuration| vordefinierte Klassen.
 
 ...
 
@@ -131,7 +177,7 @@ Der interne \verb|GUIOBJECT|-Wert wird für Widgets durch die Funktion
 \begin{verbatim}
 createGUIObject :: GUIOBJECT ->     -- Vaterobjekt
                    ObjectKind ->    -- Objekttyp
-                   Methods ->       -- Widget spezifische Zugriffsmethoden
+                   Methods ->       -- Objekt-spezifische Zugriffsmethoden
                    IO GUIOBJECT
 \end{verbatim}
 im Modul \verb|Core| erzuegt werden. Hierbei müssen die folgenden
@@ -252,47 +298,161 @@ execCmd :: TclCmd -> IO ()          -- Ausführen eines einzelnen Kommandos
 Der \verb|Methods|-Typ hat die folgenden Felder:
 \begin{verbatim}
 data Methods =
-  Methods { cgetCmd     :: ObjectName -> ConfigID -> TclScript,
+  Methods { -- Konfigurationsoption abfragen
+            cgetCmd     :: ObjectName -> ConfigID -> TclScript,
+
+            -- eine List von Konfigurationen setzen
             csetCmd     :: ObjectName -> [ConfigOption] -> TclScript,
+
+            -- das Objekt erzeugen
             createCmd   :: ObjectName -> ObjectKind -> ObjectName ->
                            ObjectID -> [ConfigOption] -> TclScript,
+
+            -- das Objekt mit Tk's "pack geometry manager" packen
+            -- für "nicht-Widgets" leer
             packCmd     :: ObjectName -> [PackOption] -> TclScript,
+
+            -- das Objekt mit Tk's "grid geometry manager" packen
+            -- für "nicht-Widgets" leer
             gridCmd     :: ObjectName -> [GridPackOption] -> TclScript,
+
+            -- das Objekt zerstören
             destroyCmd  :: ObjectName -> TclScript,
+
+            -- ein Event an dieses Objekt binden
             bindCmd     :: ObjectName -> BindTag -> [WishEvent] ->
                            EventInfoSet -> TclScript,
+
+            -- Event-Bindung verwerfen
             unbindCmd   :: ObjectName -> BindTag -> [WishEvent] ->
                            TclScript,
+
+             -- zum aufräumen bei der Zerstörung, i.d.R. leer
             cleanupCmd  :: ObjectID -> ObjectName -> TclScript }
 \end{verbatim}
 Auf den Typ \verb|ObjectName| möchte ich hier nicht weiter eingehen. Er
 wird durch die oben erwähnten \verb|GUIOBJECT|-Konstruktoren automatisch
 erzeugt und enthält den Tcl-Pfad des entsprechenden Objektes. Es reicht zu
 wissen, daß er eine Instanz der Klasse \verb|Show| ist und so auf den
-Tcl-Bezeichner des Objektes zugegriffen werden kann.
+Tcl-Bezeichner des Objektes zugegriffen werden kann. Weiter wäre
+anzumerken, daß nicht für jedes Objekt tatsächlich \emph{alle} obigen
+Parameter gebraucht werden. Dies ist vor allem Abhängig von der Art
+der Tk-Objekte (so braucht man z.B. das Vater-Objekte bei der Erzeugung
+nur zum Zugriff auf Text-Items).
 \begin{itemize}
 \item \textbf{cgetCmd:} \newline
 Erzeugt ein Tcl-Skript, daß den Wert einer Konfigurationsoption eines
-Objektes abfragt.
-Ein Beispiel (die Default-Methode):
+Objektes abfragt. Da korrespondierende Wert immer eine Instanz der Klasse
+GUIValue ist, die eine \verb|Show| und \verb|Read|-Instanz voraussetzt,
+kann er immer parsiert und zurückgegeben werden. \newline
+\textbf{Beispiel} (die Default-Methode):
 \begin{verbatim}
-tkGetWidgetConfig :: ObjectName -> ConfigID -> TclScript
+tkGetWidgetConfig :: ObjectName ->  -- Tcl-Pfad des Objektes
+                     ConfigID ->    -- Tcl-Bezeichner der Konfiguration
+                     TclScript
 tkGetWidgetConfig name cid = [(show name) ++ " cget -" ++ cid]
 \end{verbatim}
 \item \textbf{csetCmd:} \newline
-...
+Erzeugt ein Tcl-Skript, das eine Liste von Konfigurationen setzt. Der Typ
+\verb|ConfigOption| ist einfach ein Tupel aus \verb|ConfigID|
+(= \verb|String|) und \verb|GUIVALUE|. \newline
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkSetWidgetConfigs :: ObjectName ->       -- Tcl-Pfad des Objektes
+                      [ConfigOption] ->   -- Liste der Konfigurationen
+                      TclScript
+tkSetWidgetConfigs _ [] = []
+tkSetWidgetConfigs name args =
+  [show name ++ " configure " ++ showConfigs args]
+\end{verbatim}
+Die Funktion \verb|showConfigs| kann zur bequemen Ausgabe einer Liste
+von Konfigurationen in den korrespondierenden Tcl-\verb|String| verwendet
+werden:
+\begin{verbatim}
+showConfigs :: [(ConfigID, GUIVALUE)] -> String
+\end{verbatim}
 \item \textbf{createCmd:} \newline
-...
+Erzeugt ein Tcl-Skript, das das korrespondierende Tk-Objekt konstruiert.
+Die dabei übergebene Liste von Konfigurationen kann benutzt werden, um
+intern bestimmte vom Tk-Default abweichende Konfigurationen für dieses
+Objekt vorzudefinieren. Die im HTk-Konstruktor übergebenen Konfigurationen
+werden hier nicht verarbeitet (dies geht aus Gründen, die ich hier nicht
+näher erläutern will auch gar nicht). \newline
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkCreateWidget :: ObjectName ->   -- Tcl-Pfad des Vaterobjektes (noch nötig ???)
+                  ObjectKind ->   -- Objekttyp
+                  ObjectName ->   -- Tcl-Pfad des Objektes
+                  ObjectID ->     -- ID des Objektes auf HTk-Seite
+                  [ConfigOption] -> TclScript
+tkCreateWidget _ kind name _ opts =
+  [show kind ++ " " ++ show name ++ " " ++ showConfigs opts]
+\end{verbatim}
 \item \textbf{packCmd:} \newline
-...
+Erzeugt ein Tcl-Skript, das ein bereits auf Tk-Seite existierendes
+\emph{Widget} mit dem \emph{pack geometry manager} packt. Diese Methode
+wird man niemals überschreiben, denn das Packen eines Widgets ist auf
+Tk-Seite einheitlich. Für nicht-Widgets sollte das erzuegte Skript leer
+sein.\newline
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkPack :: ObjectName ->     -- Tcl-Pfad des Objektes
+          [PackOption] ->   -- Liste der Optionen für den geometry manager
+          TclScript
+tkPack name opts = ["pack " ++ show name ++ " " ++ showPackOptions opts]
+\end{verbatim}
 \item \textbf{gridCmd:} \newline
-...
+Erzeugt ein Tcl-Skript, das ein bereits auf Tk-Seite existierendes
+\emph{Widget} mit dem \emph{grid geometry manager} packt. Auch diese Methode
+wird man niemals überschreiben, denn das Packen eines Widgets ist auf
+Tk-Seite einheitlich. Für nicht-Widgets sollte das erzeugte Skript leer
+sein.\newline
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkGrid :: ObjectName ->        -- Tcl-Pfad des Objektes
+          [GridPackOption] ->  -- Liste der Optionen für den geometry manager
+          TclScript
+tkGrid name opts =
+  ["grid " ++ show name ++ " " ++ showGridPackOptions opts]
+\end{verbatim}
 \item \textbf{destroyCmd:} \newline
-...
+Erzeugt ein Tcl-Skript, das ein Tk-Objekt zerstört. \newline
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkDestroyWidget :: ObjectName ->   -- Tcl-Pfad des Objektes
+                   TclScript
+tkDestroyWidget name = ["destroy " ++ show name]
+\end{verbatim}
+\item \textbf{bindCmd:} \newline
+... \newline
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkBindWidget :: ObjectName ->      -- Tcl-Pfad des Objektes
+                BindTag ->         -- alt, rausnehmen ???
+                [WishEvent] ->     -- ... 
+                EventInfoSet ->    -- ...
+                TclScript
+tkBindWidget nm bindTag wishEvents eventInfoSet =
+  let doBind = "bind " ++ show nm ++ " " ++
+               delimitString (foldr (\ event soFar -> showP event soFar)
+                                    "" wishEvents) ++ " " ++
+               mkBoundCmdArg bindTag eventInfoSet
+  in [doBind]
+\end{verbatim}
 \item \textbf{unbindCmd:} \newline
 ...
+\textbf{Beispiel} (die Default-Methode):
+\begin{verbatim}
+tkUnbindWidget :: ObjectName -> BindTag -> [WishEvent] -> TclScript
+tkUnbindWidget nm bindTag wishEvents =
+  let doUnBind = "bind " ++ show nm ++ " " ++
+                 delimitString (foldr (\ event soFar -> showP event soFar)
+                                      "" wishEvents) ++ " {}"
+  in [doUnBind]
+\end{verbatim}
 \item \textbf{cleanupCmd:} \newline
-...
+... (wird bisher nicht benutzt, rausnehmen ??)
+
 \end{itemize}
 
 \end{document}
