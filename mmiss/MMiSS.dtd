@@ -91,11 +91,14 @@
 
 <!ENTITY % paedagogic-attr " ">
 
+<!ENTITY % misc-attr  "files  CDATA  #IMPLIED">
+
 <!ENTITY % attributes "%structure-attr;
                        %version-attr; 
                        %variant-attr; 
                        %layout-attr;
-                       %paedagogic-attr;">
+                       %paedagogic-attr;
+                       %misc-attr;">
 
 <!-- Standard Predefined Entities (XML standard section 4.6). --> 
 <!ENTITY lt "&#38;#60;">
