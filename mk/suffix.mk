@@ -48,6 +48,8 @@
 # These variables should be set before suffix.mk is read.
 # The following targets are provided:
 #
+# There is another more detailed list of targets in uni/MAKE.TARGETS.
+# 
 # boot     does set
 # depend   sets up dependencies between Haskell files 
 #             (which may need to be done before anything else)
@@ -59,7 +61,6 @@
 # clean    cleans all compiled test programs, object files and libraries.
 # display  displays Make environment variables
 # displayhs displays all Haskell source files needed for libraries.
-# displayhtkhs displays all Haskell source files needed for HTk.
 #
 # libfast  should be like lib but faster, since it uses ghc --make.
 #
@@ -144,7 +145,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
+.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes

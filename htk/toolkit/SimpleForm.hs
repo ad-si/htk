@@ -22,6 +22,11 @@ module SimpleForm(
       -- click this menu.
       -- The String is used to label the menu button containing the menu.
 
+   newFormOptionMenu, -- :: (GuiValue a) => [a] -> Form a
+      -- This creates an "option menu" button.  The 
+      -- advantage this has over a normal menu is that the value is shown.
+      -- The first value in the list functions as a default value.
+
    (//), -- :: Form value1 -> Form value2 -> Form (value1,value2)
       -- This combines two forms.  They will be displayed with one on top of
       -- the other.
@@ -408,6 +413,28 @@ makeFormMenuEntry frame htkMenu =
          destroyAction = sync (send killChannel ())
          })
 
+-- -------------------------------------------------------------------------
+-- newFormOptionMenu
+-- -------------------------------------------------------------------------
+
+newFormOptionMenu :: (GUIValue a) => [a] -> Form a
+newFormOptionMenu options =
+   let
+      enterForm container =
+         do
+            optionMenu <- newOptionMenu container options []
+            return (EnteredForm {
+               packAction = pack optionMenu [],
+               getFormValue = (
+                  do
+                     val <- getValue optionMenu
+                     return (Right val)
+                  ),
+               destroyAction = done
+               }) 
+   in
+      Form enterForm            
+      
 -- -------------------------------------------------------------------------
 -- The FormLabel class
 -- This is used for labels of fields in the form, and also for labels

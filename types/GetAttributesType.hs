@@ -5,8 +5,10 @@ module GetAttributesType(
    ) where
 
 import Maybe
+import qualified List
 
 import Set
+import FiniteMap
 
 import Computation
 import ExtendedPrelude
@@ -23,42 +25,76 @@ getAttributesType =
       (attributeTypeKeys :: [(AttributeTypeKey,String)])
          <- getAllAttributeTypeKeys
       let
-         -- Define a suitable menu
-         attributeTypeMenu :: HTkMenu AttributeTypeKey
-         attributeTypeMenu = 
-            HTkMenu (Menu "Type" (map 
-               (\ (typeKey,title) -> Button title typeKey) attributeTypeKeys))
+         -- Construct a map from strings to types (we will need this for
+         -- unparsing the types as they come back from HTk)
+         attributeTypeMap :: FiniteMap String AttributeTypeKey
+         attributeTypeMap 
+            = listToFM (map (\ (key,s) -> (s,key)) attributeTypeKeys)
 
-         attributeTypeForm :: Form (Maybe AttributeTypeKey)
-         attributeTypeForm = newFormMenu EmptyLabel attributeTypeMenu
+         attributeStringDefault :: String
+         attributeStringDefault = snd defaultAttributeTypeKey
+
+         attributeStringList1 :: [String]
+         attributeStringList1 = map snd attributeTypeKeys
+
+         -- Put the default string at the head of the list
+
+         attributeStringList2 :: [String]
+         attributeStringList2 = (attributeStringDefault : 
+            List.delete attributeStringDefault attributeStringList1)
+
+         -- Pad the strings so that they all have the same length.  This
+         -- prevents wish having to resize everything when we select a new
+         -- type
+         maxLen :: Int
+         maxLen = foldl max 0 (map length attributeStringList2)
+
+         attributeStringList3 :: [String]
+         attributeStringList3 =
+            map 
+               (\ s -> s++replicate (maxLen - length s) ' ') 
+               attributeStringList2
+
+         -- Define the option menu for the type
+         attributeTypeStringForm :: Form String
+         attributeTypeStringForm = newFormOptionMenu attributeStringList3
+
+         -- Convert it to a type
+         attributeTypeForm :: Form AttributeTypeKey
+         attributeTypeForm =
+            fmap
+               (\ answer ->
+                  lookupWithDefaultFM 
+                     attributeTypeMap 
+                     (error 
+                        "GetAttributesType: wish returned unexpected string")
+                     (trimTrailing answer)
+                  )
+               attributeTypeStringForm
 
          -- Form for the key string
          keyStringForm :: Form String
          keyStringForm = newFormEntry "Name" ""
 
-         -- Form line for a key string + type
-         oneAttributeForm :: Form (String,Maybe AttributeTypeKey)
-         oneAttributeForm = keyStringForm \\ attributeTypeForm
+         -- Form for the key string with spaces trimmed
+         keyStringFormTrimmed :: Form String
+         keyStringFormTrimmed = fmap trimSpaces keyStringForm
 
-         -- We check this ensuring that if the String is non-empty
-         -- the attribute type key must be.  (We also trim spaces from
-         -- the String here.)
+         -- Form line for a key string + type
+         oneAttributeForm :: Form (String,AttributeTypeKey)
+         oneAttributeForm = keyStringFormTrimmed \\ attributeTypeForm
+
+         -- Form in which empty key strings go to Nothing
          oneAttributeChecked :: Form (Maybe (String,AttributeTypeKey))
          oneAttributeChecked = 
-            mapForm
-               (\ (key,attributeOpt) ->
-                  case (trimSpaces key,attributeOpt) of
-                     ("",_) -> Right Nothing
-                     (key,Just attributeTypeKey) 
-                        -> Right (Just (key,attributeTypeKey))
-                     (key,Nothing) 
-                        -> Left ("No type specified for "++show key)
-                  )
+            fmap
+               (\ ktk@(keyString,typeKey) -> if keyString == "" then Nothing
+                  else Just ktk)
                oneAttributeForm
          
          -- All the attributes we ask for in one go.
          allAttributesForm :: Form [Maybe(String,AttributeTypeKey)]
-         allAttributesForm = column [oneAttributeChecked | _ <- [1..10] ]
+         allAttributesForm = column (replicate 10 oneAttributeChecked)
 
          -- List of all attributes actually set on this form
          condenseAttributesForm :: Form [(String,AttributeTypeKey)]

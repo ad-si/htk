@@ -16,6 +16,7 @@ module AttributesType(
 
    registerAttribute,
    getAllAttributeTypeKeys,
+   defaultAttributeTypeKey,
    registerAttributes,
 
    ExtraFormItem,
@@ -292,15 +293,31 @@ getAllAttributeTypeKeys =
    do
       allKeys <- listKeys attributeTypeKeyRegistry
       let
-         getLastPart [] = []
-         getLastPart ('.':rest) = 
-            case getLastPart rest of
-               [] -> rest
-               s -> s
-         getLastPart (_:rest) = getLastPart rest
-
          getPair (atk @ (AttributeTypeKey s)) = (atk,getLastPart s)
       return (map getPair allKeys)
+
+---
+-- This is the attribute type which should be used if none other is
+-- specified, corresponding to String, in the same format as 
+-- getAllAttributeTypeKeys
+-- Needless to say this key should have been registered.
+defaultAttributeTypeKey :: (AttributeTypeKey,String)
+defaultAttributeTypeKey =
+   let
+      atk@(AttributeTypeKey str) = attributeTypeKey ""
+   in
+      (atk,getLastPart str)
+
+---
+-- Internal function which extracts the title from an attribute
+-- string.
+getLastPart :: String -> String
+getLastPart [] = []
+getLastPart ('.':rest) = 
+   case getLastPart rest of
+      [] -> rest
+      s -> s
+getLastPart (_:rest) = getLastPart rest
 
 ---
 -- registerAttributes registers all instances of AttributeValue declared
@@ -309,10 +326,10 @@ registerAttributes :: IO ()
 registerAttributes =
    do
       let e = error "registerAttributes"
+      registerAttribute (e :: String)
       registerAttribute (e :: Int)
       registerAttribute (e :: Integer)
       registerAttribute (e :: Bool)
-      registerAttribute (e :: String)
 
 
 
