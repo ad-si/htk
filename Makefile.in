@@ -13,8 +13,12 @@ else
 ifeq "@BDBDIR@" ""
    SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci 
 else
-   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci \
-             simpledb imports types emacs mmiss/parser mmiss 
+ifeq ($(findstring het,$(MAKECMDGOALS)),)
+   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs \
+          davinci simpledb imports types emacs mmiss/parser mmiss 
+else
+   SUBDIRS = util events reactor posixutil htk @HAXML@ server graphs davinci 
+endif
 endif
 endif
 
@@ -35,7 +39,15 @@ include @TOP@/mk/boilerplate.mk
 # By making tarball.tar.gz and tarball.objects.tar.gz .PHONY we
 # ensure that they always get remade whenever "gmake tarball.tar.gz"
 # or "gmake tarball.objects.tar.gz" are executed.
-.PHONY : tarball.tar.gz tarball.objects.tar.gz findsources 
+.PHONY : tarball.tar.gz tarball.objects.tar.gz findsources het
+
+
+het :
+ifeq ($(MAKECMDGOALS),het)
+	@$(MAKE) het all
+else
+	@echo
+endif
 
 findsources :
 	@$(MAKE) displaysrcs -s --no-print-directory
