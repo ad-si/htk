@@ -74,8 +74,8 @@ main =
                        parent buttons, text "Quit", width 15,
                        command (\ ()-> destroy win)]
 
-    interactor (\i-> triggered quit +> triggered selectall +>
-                     triggered deselectall +> triggered showselection)
+    interactor (\i -> triggered quit +> triggered selectall +>
+                      triggered deselectall +> triggered showselection)
 
     scrollbox <- newScrollBox output [parent main]
 
@@ -86,35 +86,39 @@ main =
     item5_img <- newImage [filename "./images/item3.gif"]
     item6_img <- newImage [filename "./images/item1.gif"]
 
-    newNotepadItem "item1" notepad
-                   [position (cm 2, cm 2), photo item1_img,
-                    name (ItemName { full  = "NotepadItem1",
-                                     short = \n -> take n "item1" })]
+    item1 <- newNotepadItem "item1" notepad
+                            [position (cm 2, cm 2), photo item1_img,
+                             name (ItemName { full  = "NotepadItem1",
+                                              short = \n -> take n "item1" })]
 
-    newNotepadItem "item2" notepad
-                   [position (cm 5, cm 2), photo item2_img,
-                    name (ItemName { full  = "NotepadItem2",
-                                     short = \n -> take n "item2" })]
+    item2 <- newNotepadItem "item2" notepad
+                            [position (cm 5, cm 2), photo item2_img,
+                             name (ItemName { full  = "NotepadItem2",
+                                              short = \n -> take n "item2" })]
 
-    newNotepadItem "item3" notepad
-                   [position (cm 8, cm 2), photo item3_img,
-                    name (ItemName { full  = "NotepadItem3",
-                                     short = \n -> take n "item3" })]
+    item3 <- newNotepadItem "item3" notepad
+                            [position (cm 8, cm 2), photo item3_img,
+                             name (ItemName { full  = "NotepadItem3",
+                                              short = \n -> take n "item3" })]
 
-    newNotepadItem "item4" notepad
-                   [position (cm 2, cm 5), photo item4_img,
-                    name (ItemName { full  = "NotepadItem4",
-                                     short = \n -> take n "item4" })]
+    item4 <- newNotepadItem "item4" notepad
+                            [position (cm 2, cm 5), photo item4_img,
+                             name (ItemName { full  = "NotepadItem4",
+                                              short = \n -> take n "item4" })]
 
-    newNotepadItem "item5" notepad
-                   [position (cm 5, cm 5), photo item5_img,
-                    name (ItemName { full  = "NotepadItem5",
-                                     short = \n -> take n "item5" })]
+    item5 <- newNotepadItem "item5" notepad
+                            [position (cm 5, cm 5), photo item5_img,
+                             name (ItemName { full  = "NotepadItem5",
+                                              short = \n -> take n "item5" })]
 
-    newNotepadItem "item6" notepad
-                   [position (cm 8, cm 5), photo item6_img,
-                    name (ItemName { full  = "NotepadItem6",
-                                     short = \n -> take n "item6" })]
-
+    item6 <- newNotepadItem "item6" notepad
+                            [position (cm 8, cm 5), photo item6_img,
+                             name (ItemName { full  = "NotepadItem6",
+                                              short = \n -> take n "item6" })]
+{-
+    interactor
+      ((selectionEvent item1 >>> appendText output "item 1 selected") +>
+       (selectionEvent item2 >>> appendText output "item 2 selected"))
+-}
 
     sync (destroyed win)
