@@ -433,22 +433,23 @@ highlight cnv item =
       Nothing -> do
                    (x, y) <- getPosition item
                    rect1 <- createRectangle cnv
-                              [coord [(x - Distance (div iwidth 2 + 1),
-                                       y - Distance (div iheight 2 + 1)),
-                                      (x + Distance (div iwidth 2),
-                                       y + Distance (div iheight 2))],
-                               filling "blue", outline "blue"]
+                              [filling "blue", outline "blue"]
                    putItemAtBottom rect1
+                   rect1 # coord [(x - Distance (div iwidth 2 + 1),
+                                   y - Distance (div iheight 2 + 1)),
+                                  (x + Distance (div iwidth 2),
+                                   y + Distance (div iheight 2))]
                    rect2 <- createRectangle cnv
-                              [coord [(x - Distance
-                                             (max (div iwidth 2 + 40) 40),
-                                       y + Distance (div iheight 2 + 4)),
-                                      (x + Distance
-                                             (max (div iwidth 2 + 40) 40),
-                                       y + Distance
-                                             (div iheight 2 + 18))],
-                               filling "blue", outline "blue"]
+                              [filling "blue", outline "blue"]
                    putItemAtBottom rect2
+                   rect2 #
+                     coord [(x - Distance
+                                   (max (div iwidth 2 + 40) 40),
+                                    y + Distance (div iheight 2 + 4)),
+                                   (x + Distance
+                                          (max (div iwidth 2 + 40) 40),
+                                    y + Distance
+                                          (div iheight 2 + 18))]
                    setRef (it_bg item) (Just (rect1, rect2))
       Just _  -> done
 
