@@ -1,3 +1,5 @@
+{- work round GHC bug -}
+#define label labxyz 
 {- Encodes AttributesType.  The interface to this module is documented with
    HDoc.
    -}
@@ -272,11 +274,51 @@ instance (HasCodedValue value,HasAttributeTypeKey value,FormTextField value)
 ---
 -- Instance 2: Bools
 instance AttributeValue Bool where
-   newFormEntry' label boolOpt =
+   newFormEntry' lab boolOpt =
       let
          bool = fromMaybe False boolOpt
       in
-         fmap Just (newFormEntry label bool)
+         fmap Just (newFormEntry lab bool)
+---
+-- Instance 3 - Radio Buttons.  
+instance (HasConfigRadioButton value,Bounded value,Enum value,
+      HasCodedValue value,HasAttributeTypeKey (Radio value)) 
+      => AttributeValue (Radio value) where
+
+   newFormEntry' lab valueOpt =
+      let
+         form0 = newFormEntry lab 
+            (case valueOpt of 
+               Nothing -> NoRadio
+               Just value -> value
+               )
+      in
+         fmap
+            (\ radio -> case radio of
+                  NoRadio -> Nothing
+                  Radio _ -> Just radio
+               )
+            form0 
+            
+
+---
+-- At this point we find it useful to define HasCodedValue for Radio.
+radio_tyCon = mkTyCon "AttributesType" "Radio"
+instance HasTyCon1 Radio where
+   tyCon1 _ = radio_tyCon
+
+instance HasCodedValue value => HasCodedValue (Radio value) where
+   encodeIO = mapEncodeIO (\ radio ->
+      case radio of 
+         NoRadio -> Nothing
+         Radio value -> Just value
+      )
+   decodeIO = mapDecodeIO (\ valueOpt ->
+      case valueOpt of
+         Nothing -> NoRadio
+         Just value -> Radio value
+       )
+
          
 
 
