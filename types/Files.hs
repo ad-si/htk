@@ -40,6 +40,7 @@ import GlobalRegistry
 import CallEditor
 import GetAttributesType
 import Folders
+import LocalMenus
 import EntityNames
 import LinkManager
 import MergeTypes
@@ -208,7 +209,8 @@ instance ObjectType FileType File where
 
                            editOptions1 = [
                               Button "Edit Attributes" 
-                                 (\ link -> editObjectAttributes view link)
+                                 (\ link -> editObjectAttributes view link),
+                              Button "Delete" (deleteObject view)
                                  ]
 
                            editOptions2 =

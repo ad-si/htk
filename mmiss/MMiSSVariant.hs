@@ -237,7 +237,7 @@ setVersion (MMiSSVariants list0) value =
       list1 = case list0 of
          ((VariantAttribute {key = key1},_) : rest) 
             | key1 == key versionVariant  -> rest
-         _ -> list1
+         _ -> list0
    in
       MMiSSVariants ((versionVariant,value) : list1)
 
@@ -469,7 +469,8 @@ variantDictSearchExact (MMiSSVariantDict registry) (MMiSSVariantSpec variants)
 
 addToVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> a -> IO ()
 addToVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) a 
-  = setValue registry variants a
+  = 
+    setValue registry variants a
 
 delFromVariantDict :: MMiSSVariantDict a -> MMiSSVariantSpec -> IO ()
 delFromVariantDict (MMiSSVariantDict registry) (MMiSSVariantSpec variants) =

@@ -712,7 +712,7 @@ instance (HasCodedValue from,HasCodedValue to,Ord from)
    encodeIO value codedValue view =
       do
          contents <- listRegistryContents value
-         encodeIO value codedValue view
+         encodeIO contents codedValue view
    decodeIO codedValue0 view =
       do
          (contents,codedValue1) <- safeDecodeIO codedValue0 view

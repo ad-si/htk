@@ -140,10 +140,8 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
          (theNodeType :: NodeType) = fromString ""
 
          editOptions = [
-#if 0
             Button "Edit Preamble" (\ link 
                -> editPreamble view link)
-#endif
             ]
 
          menu = LocalMenu (Menu (Just "Preamble options") editOptions)
@@ -167,13 +165,10 @@ instance ObjectType MMiSSPreambleType MMiSSPreamble where
 
 -- -------------------------------------------------------------------
 -- Editing the Preamble
--- (Currently disabled until we find a way of converting 
--- MMiSSPreamble to and from String.)
 --
 -- We do this via EmacsEdit, providing a rather trivial file system.
 -- -------------------------------------------------------------------
 
-#if 0
 editPreamble :: View -> Link MMiSSPreamble -> IO ()
 editPreamble view link =
    do
@@ -191,11 +186,17 @@ preambleFS =
                   break "Preamble is already being edited"
                latexPreamble <- readIORef preamble
                let
-                  emacsContent = EmacsContent [EditableText latexPreamble]
-                  writeData (EmacsContent [EditableText latexPreamble]) =
+                  latexPreambleStr = toString latexPreamble
+                  emacsContent = EmacsContent [EditableText latexPreambleStr]
+                  writeData (EmacsContent [EditableText latexPreambleStr]) =
                      do
-                        writeIORef preamble latexPreamble
-                        return (hasValue ())
+                        let
+                           latexPreambleWE = fromStringWE latexPreambleStr
+                        mapWithErrorIO
+                           (\ latexPreamble -> 
+                              writeIORef preamble latexPreamble
+                              )
+                           latexPreambleWE
                   writeData _ = error "MMiSSPreamble.bug 1"
                   finishEdit = release editLock
                return (emacsContent,EditedFile {
@@ -224,8 +225,6 @@ instance Ord MMiSSPreamble where
    compare preamble1 preamble2 =
       if preamble1 == preamble2 then EQ else
          error "MMiSSPreamble: Bug 2"
-
-#endif
 
 -- -------------------------------------------------------------------
 -- Creating and Reading Preambles

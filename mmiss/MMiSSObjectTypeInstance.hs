@@ -35,6 +35,7 @@ import SpecialNodeActions
 import MergeTypes
 import MergePrune
 import View
+import LocalMenus
 
 import Text.XML.HaXml.Types
 
@@ -143,7 +144,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      Button "Show Preamble Object"
                         (\ link -> openAction link),
                      Button "Hide Preamble Object"
-                        (\ link -> closeAction link)
+                        (\ link -> closeAction link),
+                     Button "Delete" (deleteObject view)
                      ]
                   menu = LocalMenu (Menu Nothing editOptions)
                in

@@ -9,7 +9,7 @@ SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    GetAttributesType.hs GlobalMenus.hs \
    SpecialNodeActions.hs EntityNames.hs LinkManager.hs \
    MergeTypes.hs Merging.hs MergeReAssign.hs MergePrune.hs \
-   VersionGraphClient.hs \
+   VersionGraphClient.hs LocalMenus.hs \
 
 SUBDIRS    = test
 

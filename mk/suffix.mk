@@ -390,7 +390,7 @@ EXPORTPREFIX = uni-$(UNIVERSION)-$(OSTITLE)-ghc-$(GhcVersion)
 exports : $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip
 
 $(EXPORTPREFIX).tar.gz :
-	DIR=`pwd`;cd $(TOP)/..;$(TAR) -czf $$DIR/$@ `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
+	DIR=`pwd`;cd $(TOP)/..;$(TAR) -czhf $$DIR/$@ `$(MAKE) -s --no-print-directory -C $$DIR exportnames`
 
 $(EXPORTPREFIX).zip :
 	DIR=`pwd`;cd $(TOP)/..;$(ZIP) -9 $$DIR/$@ `$(MAKE) -s --no-print-directory -C $$DIR exportnames`

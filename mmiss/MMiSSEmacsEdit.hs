@@ -76,23 +76,36 @@ import MMiSSPreamble
 -- The extra fields (apart from the link and variants) mean we can get what's 
 -- needed to do the Emacs buttons, on the basis of what's in the referencing 
 -- object, without having to dereference the link.
-data EditRef = EditRef {
-   objectLink :: Link MMiSSObject,
-   outerVariants :: MMiSSVariantSearch,
-      -- ^ The outer variants attached to the document containing this link.
-      -- It is assumed (or at least hoped) that these will not change.
-   linkVariants :: MMiSSVariantSpec,
-      -- ^ Variants attached to this particular link.  These may somehow be
-      -- edited (though there is no facility for doing that at the moment). 
-   miniType :: Char,
-   description :: EntityFullName
-   }
+data EditRef = 
+      EditRef {
+         objectLink :: Link MMiSSObject,
+         outerVariants :: MMiSSVariantSearch,
+            -- ^ The outer variants attached to the document containing this 
+            -- link.  It is assumed (or at least hoped) that these will not 
+            -- change.
+         linkVariants :: MMiSSVariantSpec,
+            -- ^ Variants attached to this particular link.  These may somehow
+            -- be edited (though there is no facility for doing that at the 
+            -- moment). 
+         miniType :: Char,
+         description :: EntityFullName
+         }
+   |  BadLink {
+         outerVariants :: MMiSSVariantSearch,
+         linkVariants :: MMiSSVariantSpec,
+         miniType :: Char,
+         description :: EntityFullName
+         }
+
+compareOpt :: EditRef -> (EntityFullName,MMiSSVariantSearch,MMiSSVariantSpec)
+compareOpt editRef = 
+   (description editRef,outerVariants editRef,linkVariants editRef)
 
 instance Eq EditRef where
-   (==) = mapEq objectLink
+   (==) = mapEq compareOpt
 
 instance Ord EditRef where
-   compare = mapOrd objectLink
+   compare = mapOrd compareOpt
 
 -- ----------------------------------------------------------------------
 -- The exported functions
@@ -235,23 +248,26 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                         objectLinkOpt 
                            <- coerceWithErrorOrBreakIO break2 objectLinkOptWE
 
-                        objectLink <- case objectLinkOpt of
-                           Nothing -> break2 ("Object "++string++" not found!")
-                           Just objectLink -> return objectLink
-
                         let
-                           linkVariants1  
+                           linkVariants1 
                               = toMMiSSVariantSpecFromXml includeAttributes
-
-                           editRef = EditRef {
-                              objectLink = objectLink,
-                              outerVariants = outerVariants1,
-                              linkVariants = linkVariants1,
-                              miniType = miniType,
-                              description =  fullName
-                              }
-
-                        return editRef
+                        return (case objectLinkOpt of
+                           Nothing ->
+                              BadLink {
+                                 outerVariants = outerVariants1,
+                                 linkVariants = linkVariants1,
+                                 miniType = miniType,
+                                 description =  fullName
+                                 }
+                           Just objectLink ->
+                              EditRef {
+                                 objectLink = objectLink,
+                                 outerVariants = outerVariants1,
+                                 linkVariants = linkVariants1,
+                                 miniType = miniType,
+                                 description =  fullName
+                                 }
+                           )
                      )
                   content0
                
@@ -326,6 +342,9 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                return (content,editedFile)
             )
+      editFS (editRef @ BadLink {description = description0}) =
+         return (hasError ("Reference to " ++ toString description0
+            ++ " cannot be resolved")) 
 
       emacsFS = EmacsFS {
          editFS = editFS,
@@ -399,7 +418,14 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
                   -> IO (WithError (Maybe (Element,MVar [(Bool,EditRef)])))
                reAssembleArg entityFullName variantSearch0 mVar =
                   do
-                     ((doExpand,editRef):rest) <- takeMVar mVar
+                     ((doExpand0,editRef):rest) <- takeMVar mVar
+                     let
+                        doExpand = doExpand0 && (
+                           case editRef of
+                              EditRef _ _ _ _ _ -> True
+                              BadLink _ _ _ _ -> False
+                           )
+
                      putMVar mVar rest
                      assert (entityFullName == description editRef) done
 

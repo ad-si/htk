@@ -227,6 +227,7 @@ instance HasTyRep2 FrozenVariantObject where
 
 instance (HasCodedValue object,HasCodedValue cache) 
       => HasCodedValue (FrozenVariantObject object cache) where
+
    encodeIO = mapEncodeIO (\ 
       (FrozenVariantObject {
          dictionary' = dictionary',
@@ -235,6 +236,7 @@ instance (HasCodedValue object,HasCodedValue cache)
       ->
       (dictionary',currentVariantSpec',cache')
       )
+
 
    decodeIO = mapDecodeIO (\ (dictionary',currentVariantSpec',cache') ->
       (FrozenVariantObject {

@@ -123,11 +123,12 @@ instance HasTyRep MMiSSObject where
 instance HasCodedValue MMiSSObject where
    encodeIO (MMiSSObject {mmissObjectType = mmissObjectType,
       linkedObject = linkedObject,variantObject = variantObject}) 
-         view codedValue0 =
+         codedValue0 view =
       do
          frozenVariantObject <- freezeVariantObject variantObject
          encodeIO (mmissObjectType,linkedObject,frozenVariantObject)
-            view codedValue0
+            codedValue0 view
+
    decodeIO codedValue0 view =
       do
          ((mmissObjectType,linkedObject,frozenVariantObject),codedValue1) 
@@ -206,6 +207,7 @@ instance HasCodedValue Variable where
          return (variable,codedValue1)
 
 instance HasCodedValue Cache where
+
    encodeIO = mapEncodeIO (\ 
       (Cache {
          cacheElement = cacheElement,

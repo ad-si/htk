@@ -79,17 +79,28 @@ connect hostDesc portDesc =
       return handle
 
 repeatConnectTo :: HostName -> PortID -> IO Handle
-repeatConnectTo hostName portNumber =
-   do
-      result <- Control.Exception.try (connectTo hostName portNumber)
-      case result of
-         Right handle -> return handle
-         Left excep ->
-            do
-               putStrLn ("Attempt to connect server failed: "++ show excep
-                  ++ "\n Retrying in 0.5 seconds")
-               delay (secs 0.5)
-               repeatConnectTo hostName portNumber
+repeatConnectTo = innerConnect True
+   where
+      innerConnect :: Bool -> HostName -> PortID -> IO Handle
+      innerConnect firstTime hostName portNumber =
+         do
+            result <- Control.Exception.try (connectTo hostName portNumber)
+            case result of
+               Right handle -> 
+                  do
+                     if firstTime
+                        then
+                           done
+                        else
+                           putStrLn "Attempt to connect to server succeeded!" 
+                     return handle
+               Left excep ->
+                  do
+                     putStrLn ("Attempt to connect to server failed: "
+                        ++ show excep
+                        ++ "\n Retrying in 0.5 seconds")
+                     delay (secs 0.5)
+                     innerConnect False hostName portNumber
  
 
 hPutStrLnFlush :: Handle -> String -> IO ()

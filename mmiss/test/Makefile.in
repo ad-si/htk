@@ -22,15 +22,10 @@ STOREDIR = $(WORKINGDIR)/storeDir
 BACKUPDIR = $(WORKINGDIR)/backup
 
 runServer :
-	@MKDIR@ -p $(DBDIR)
-	@MKDIR@ -p $(BACKUPDIR)
-	@BDBDIR@/bin/berkeley_db_svc -h $(DBDIR) &
-	LD_LIBRARY_PATH=@BDBDIR@/lib:$$LD_LIBRARY_PATH ../../types/test/Server --uni-debug=s.debug --uni-backupDir=$(BACKUPDIR) --uni-storeDir=$(STOREDIR) &
+	UNIDEBUG=$$PWD/s.debug $(MAKE) -r -C $(TOP)/types/test runServer
 
 killServer :
-	(pkill "^berkeley_db_svc$$" || echo not running)
-	(pkill "^Server$$" || echo not running)
-	rm -rf $(WORKINGDIR)
+	$(MAKE) -r -C $(TOP)/types/test killServer
 
 killRestartServer :
 	(pkill "^berkeley_db_svc$$" || echo not running)

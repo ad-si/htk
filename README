@@ -17,7 +17,11 @@ The source of Uni is in the following directories:
    davinci      |  This is an encapsulation of DaVinci in Haskell
    (from here on, things aren't known to work yet)
    simpledb     |  A very simple database system.
-   types        |  Repository (UNDER CONSTRUCTION)
+   types        |  Repository
+   emacs        |  Contains the code for editing MMiSS objects with XEmacs
+   mmiss/parser |  (Un)Parses LaTeX sources for MMiSS objects.
+   mmiss        |  General code for MMiSS objects.
+
    appl         |  Stand-alone UniForM applications
 
    HaXml-1.08   | This contains the complete source of HaXml.  This is
@@ -43,7 +47,8 @@ The following are required or at least recommended.
     Do not use 2.8* versions since they are known not to work at all with 
     Glasgow Haskell.  Version 2.71 might work but I suspect Glasgow Haskell 
     will not support it for much longer.  I have had problems with version
-    3.*
+    3.*.  I think the current situation (March 2003) is that Glasgow Haskell
+    can probably work with gcc 3.* on Linux, but not on Solaris.
 (3) GNU make.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
 (4) A recent version of Glasgow Haskell.  You should try to get the
@@ -62,17 +67,30 @@ The following are required or at least recommended.
     a version of GHC which is Cygwin-aware.  We convert filenames into their
     Windows equivalents (well, more or less) before passing them to GHC.
 (8) If you want to compile the repository stuff (not needed for HTk or
-    daVinci) you will need to install the Berkeley Database.  You can get
-    this from 
+    daVinci) you will need to compile and install the Berkeley Database.  You 
+    can get this from 
        http://www.sleepycat.com
-    It needs to be installed to enable RPC connections.  This means that if
-    you compile it from source for Unix you will need to use the
-    --enable-rpc option when you ./configure for Berkeley Database.  Once
-    you've compiled and installed Berkeley Database, you will probably
-    need to tell uni how to access it.  You can do this by setting the 
-    environment variable BDBDIR when you run ./configure for uni, or else by 
-    adding the option --with-bdb=[directory path] when you run ./configure for
-    uni.
+    BDB's configure needs two special options, --enable-rpc, and 
+    --disable-shared.  The former sets things up so the BDB can be called
+    remotely via RPC; the latter creates static objects, so that MMiSS is
+    statically linked with BDB.  Thus, in BDB's directory 
+    [BDB source]/dist you might use the command
+       ../build_unix/configure --enable-rpc --disable-shared
+    You might also want a "--prefix" option, to specify a directory BDB
+    should write its compiled stuff to, if you do not have write access to
+    the standard system directories.
+
+    UniForM does also of course need to know where to find the compiled BDB
+    stuff, if they are not in the standard place.  You can tell it either
+    by setting the environment variable BDBDIR, or by giving UniForM's
+    ./configure script an option --with-bdb=[directory path].
+(9) To run MMiSS and TeX the output, you will need MMiSS TeX.  This is 
+    *not* currently in the public domain.  However assuming you have it,
+    and have configure'd it, UniForM again needs to know where to find it.
+    It will guess /usr/local/MMISS/tex, but if MMiSS-LaTeX is not there
+    you can specify its location with the environment variable MMISSLATEXDIR,
+    or by a ./configure option --with-MMiSS-LaTeX=[MMiSS-LaTeX directory]).
+    (The name of this directory will most likely end "MMISS/tex".)
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
