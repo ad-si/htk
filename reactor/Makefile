@@ -23,6 +23,7 @@ SRCS       = Listener.hs\
 	     Expect.hs\
              Notification.hs\
 	     SIM.hs\
+             CallServer.hs\
 
 
 SRCSH      = signaldispatcher.h

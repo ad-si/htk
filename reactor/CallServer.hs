@@ -1,4 +1,5 @@
-{- CallServer does the job of calling up a server -}
+{- CallServer does the job of calling up a server.  This really ought
+   to be in the server/ directory, except that it uses InfoBus. -}
 module CallServer(
    connectReply, -- :: 
       -- (ServiceClass inType outType stateType,DescribesHost host,
