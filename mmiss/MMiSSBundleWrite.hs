@@ -12,11 +12,10 @@ import IO
 import List
 import Maybe
 
-import Delayer
-
 import EntityNames
 
 import View
+import LinkManager
 
 import LaTeXParser(PackageId(..))
 
@@ -66,7 +65,7 @@ writeBundle1 (Bundle []) _ _ _ _ _ =
    importExportError "Attempt to write empty bundle"
 writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
       packageIdOpt filePathOpt view lockSet insertionPoint =
-   delay view (
+   bracketForImportErrors view (
       do
          let
             packageId = fromMaybe packageId0 packageIdOpt
@@ -99,7 +98,5 @@ writeBundle1 (bundle0 @ (Bundle ((packageId0,_):_)))
          finally
             (writeBundleNode view insertionPoint bundleNode)
             releaseAct
-      )
-
-       
+       )
             

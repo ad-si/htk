@@ -46,6 +46,8 @@ import DisplayParms(fontStyleSource)
 
 import EntityNames
 
+import LinkManager (bracketForImportErrors)
+
 import EmacsEdit
 import EmacsContent
 
@@ -82,32 +84,43 @@ instance HasBinary MMiSSPreamble CodingMonad where
             latexPreamble <- readContents preamble
             return latexPreamble
          )
-   readBin = mapReadIO
-      (\ latexPreamble ->
-         do
-            preamble <- newSimpleBroadcaster latexPreamble
-            editLock <- newBSem
-            return (MMiSSPreamble {preamble = preamble,editLock = editLock})
-         )
+   readBin = mapReadIO createPreamble1
 
 -- -------------------------------------------------------------------
 -- Merging
 -- -------------------------------------------------------------------
 
 instance HasMerging MMiSSPreamble where
-
-   -- We allow only trivial merging, for now.
    getMergeLinks = emptyMergeLinks
 
    attemptMerge linkReAssigner newView newLink vlos =
       do
          vlosPruned <- mergePrune vlos
-         case vlosPruned of
-            a:b:_ -> return (hasError "Sorry, can't merge preambles")
-            [(view,preambleLink,oldPreamble)] ->
+         let 
+            (headView,headLink,headObject):vlosRest = vlosPruned
+
+         (preambles :: [MMiSSLatexPreamble]) <-
+            mapM
+               (\ (_,_,preamble0) -> readContents (preamble preamble0)) 
+               vlosPruned
+
+         let
+            (mergedPreamble,errors) = mergePreambles preambles
+
+         case errors of
+            _:_ -> return (fail (unlines errors))
+            [] ->
                do
-                  cloneLink view preambleLink newView newLink
-                  return (hasValue ())
+                  if mergedPreamble == head preambles
+                     then
+                        cloneLink headView headLink newView newLink 
+                     else
+                        do
+                           preamble1 <- createPreamble1 mergedPreamble
+                           setLink newView preamble1 newLink
+                           done 
+                  return (return ())
+                           
 
 -- -------------------------------------------------------------------
 -- The instance of ObjectType.
@@ -188,7 +201,8 @@ mkPreambleFS view link =
                         mapWithErrorIO
                            (\ latexPreamble -> 
                               do
-                                 broadcast preamble latexPreamble
+                                 bracketForImportErrors view (
+                                    broadcast preamble latexPreamble)
                                  dirtyLink view link
                                  return Nothing
                               )
@@ -233,11 +247,7 @@ writePreamble preambleLink view latexPreamble =
       if isNew 
          then
             do   
-               preamble <- newSimpleBroadcaster latexPreamble
-               editLock <- newBSem
-               let
-                  mmissPreamble 
-                     = MMiSSPreamble {preamble = preamble,editLock = editLock}
+               mmissPreamble <- createPreamble1 latexPreamble
                writeLink view preambleLink mmissPreamble
          else
             do
@@ -254,15 +264,17 @@ writePreamble preambleLink view latexPreamble =
 createPreamble :: View -> MMiSSLatexPreamble -> IO (Link MMiSSPreamble)
 createPreamble view latexPreamble =
    do
-      preamble <- newSimpleBroadcaster latexPreamble
-      editLock <- newBSem
-      let
-         mmissPreamble 
-            = MMiSSPreamble {preamble = preamble,editLock = editLock}
-
+      mmissPreamble <- createPreamble1 latexPreamble
       preambleVers <- createObject view mmissPreamble
       link <- makeLink view preambleVers
       return link
+
+createPreamble1 :: MMiSSLatexPreamble -> IO MMiSSPreamble
+createPreamble1 mmissLatexPreamble =
+   do
+      preamble <- newSimpleBroadcaster mmissLatexPreamble
+      editLock <- newBSem
+      return (MMiSSPreamble {preamble = preamble,editLock = editLock})
 
 readPreamble :: View -> Link MMiSSPreamble -> IO MMiSSLatexPreamble
 readPreamble view link =

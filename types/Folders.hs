@@ -63,7 +63,7 @@ import Graph(ArcType,NodeType)
 import FolderStructure(getName)
 import Imports
 
-import ViewType(getViewTitleSource,importsState)
+import ViewType(getViewTitleSource,importsState,delayer)
 import View
 import CodedValue
 import Link
@@ -340,7 +340,8 @@ instance ObjectType FolderType Folder where
             openAction link = 
                do
                   folder <- readLink view link
-                  delay view (openBlocker (openContents folder) blockID)
+                  bracketForImportErrors view
+                     (openBlocker (openContents folder) blockID)
 
             closeAction link = 
                do
@@ -620,7 +621,7 @@ getImportsState view =
          folder <- readLink view folderLink
          let
             folderStructure = toFolderStructure (linkedObject folder)
-         newImportsState folderStructure (\ mess -> errorMess mess)
+         newImportsState folderStructure (delayer view) 
          )
       (importsState view)
 

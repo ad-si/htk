@@ -116,7 +116,7 @@ exportMMiSSPreamble view link exportOpts =
 
                   bundleText1 = BundleString {
                      contents = preambleICSL,
-                     charType = Byte
+                     charType = Unicode
                      }
                return bundleText1
          else

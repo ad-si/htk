@@ -13,6 +13,7 @@ import AtomString
 import Sources
 import ExtendedPrelude
 import Sink
+import Delayer
 
 import EntityNames
 import FolderStructure
@@ -203,6 +204,10 @@ getNode str =
          )
 
 importsState :: ImportsState Int
-importsState = unsafePerformIO (newImportsState folderStructure putStrLn)
+importsState = unsafePerformIO (
+   do
+      delayer <- newDelayer
+      newImportsState folderStructure putStrLn delayer
+   )
 {-# NOINLINE importsState #-}
 

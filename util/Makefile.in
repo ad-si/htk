@@ -25,7 +25,7 @@ SRCS       = \
   ICStringLen.hs VisitedSet.hs StrError.hs HostName.hs \
   Bytes.hs Binary.hs BinaryUtils.hs BinaryInstances.hs BinaryExtras.hs \
   BinaryAll.hs StringSkip.hs ThreadDict.hs TSem.hs Store.hs Messages.hs \
-  ClockTimeToString.hs UTF8.hs \
+  ClockTimeToString.hs UTF8.hs VSem.hs \
 
 SRCSC      = new_object.c default_options.c copy_file.c
 

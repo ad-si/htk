@@ -3,10 +3,12 @@
 module Imports(
    ImportsState(folders),
 
-   newImportsState, 
-      -- :: FolderStructure node -> (String -> IO ()) -> IO (ImportsState node)
+   newImportsState,
+      -- :: Ord node => FolderStructure node 
+      -- -> Delayer -> IO (ImportsState node)
       -- Construct a new ImportsState.
-      -- The second argument is a function for reporting error messages.
+      -- The second argument is a Delayer for preventing unnecessary error
+      -- messages during node updates.
 
    LookupResult(..),
 
@@ -20,12 +22,17 @@ module Imports(
       -- :: ImportsState node -> node -> EntitySearchName 
       -- -> IO (SimpleSource (LookupResult node))
 
+   bracketForImportErrors2,
+      -- :: Ord node => ImportsState node -> IO a -> IO a
 
 --   getGlobalNodeData,GlobalNodeData(..), -- DEBUG
 --   getLocalNodeData,LocalNodeData(..), -- DEBUG
    ) where
 
 import Maybe
+
+import Data.IORef
+import Control.Concurrent.MVar
 
 import Computation
 import Registry
@@ -34,9 +41,12 @@ import Broadcaster
 import AtomString
 import ExtendedPrelude
 import TSem
+import Delayer
+import Sink
 
 import EntityNames
 import ErrorReporting
+import ErrorManagement
 import Aliases
 import FolderStructure
 import Environment
@@ -74,25 +84,91 @@ data ImportsState node = ImportsState {
       :: LockedRegistry node (SimpleSource (WithError (GlobalNodeData node))),
    localState
       :: LockedRegistry node (SimpleSource (WithError (LocalNodeData node))),
-   reportError :: String -> IO ()
+   errorManagementState :: ErrorManagementState node,
+   delayer :: Delayer,
+   errorMessageCache :: IORef String
    }
 
 -- ------------------------------------------------------------------------
 -- External Functions
 -- ------------------------------------------------------------------------
 
-newImportsState :: Ord node => FolderStructure node -> (String -> IO ()) 
-   -> IO (ImportsState node)
-newImportsState folders reportError =
+newImportsState :: Ord node => FolderStructure node 
+   -> Delayer -> IO (ImportsState node)
+newImportsState (folders :: FolderStructure node) delayer =
    do
       globalState <- newRegistry
       localState <- newRegistry
-      return (ImportsState {
-         folders = folders,
-         globalState = globalState,
-         localState = localState,
-         reportError = reportError
-         })         
+
+      importsStateMVar <- newEmptyMVar
+         -- we need to tie the knot.
+
+      errorMessageCache <- newIORef ""
+ 
+      let
+         getImportsState = readMVar importsStateMVar
+
+         mkError :: node -> String -> IO (Maybe String)
+         mkError node mess0 =
+           do
+              name <- getName folders node
+              let
+                 mess1 = lines mess0
+                 mess2 = map ((toString name ++ ":") ++) mess1
+              return (Just (unlines mess2))
+
+
+         checkErrorLocation :: ErrorLocation node -> IO (Maybe String)
+         checkErrorLocation (GlobalError node) =
+            do
+               importsState <- getImportsState
+               globalNodeDataSource <- getGlobalNodeData importsState node
+               case globalNodeDataSource of
+                  Nothing -> mkError node notMMiSSPackageError
+                  Just source ->
+                     do
+                        gWE <- readContents source
+                        case fromWithError gWE of
+                           Left mess -> mkError node mess
+                           Right _ -> return Nothing
+         checkErrorLocation (LocalError node) =
+            do
+               importsState <- getImportsState
+               localNodeDataSource <- getLocalNodeData importsState node
+               case localNodeDataSource of
+                  Nothing -> mkError node notMMiSSPackageError
+                  Just source ->
+                     do
+                        lWE <- readContents source
+                        case fromWithError lWE of
+                           Left mess -> mkError node mess
+                           Right _ -> return Nothing
+         checkErrorLocation (SearchError node searchName) =
+            do
+               importsState <- getImportsState
+               searchResultSource <- lookupNode importsState node searchName
+               searchResult <- readContents searchResultSource
+               case searchResult of
+                  Error ->
+                     do
+                        errorMessage <- readIORef errorMessageCache
+                        mkError node errorMessage
+
+      errorManagementState 
+         <- newErrorManagementState delayer checkErrorLocation
+
+      let 
+         importsState = ImportsState {
+            folders = folders,
+            globalState = globalState,
+            localState = localState,
+            errorManagementState = errorManagementState,
+            errorMessageCache = errorMessageCache,
+            delayer = delayer
+            }
+      putMVar importsStateMVar importsState
+ 
+      return importsState
 
 lookupNodes :: Ord node => ImportsState node -> node 
    -> [(EntitySearchName,value)] 
@@ -176,8 +252,7 @@ lookupNodes importsState (node :: node)
          Nothing -> 
             do
                name <- getName (folders importsState) node
-               reportError importsState
-                  (toString name ++ " is not an MMiSS package")
+               notMMiSSPackage importsState node
                getGlobalError
          Just (source :: SimpleSource (WithError (LocalNodeData node))) ->
             return (mapIOSeq
@@ -187,7 +262,9 @@ lookupNodes importsState (node :: node)
                      do
                         if mess /= reported
                            then
-                              reportError importsState mess
+                              do
+                                 localError importsState node mess
+                                 done
                            else
                               done
                         getGlobalError
@@ -235,15 +312,25 @@ lookupNode importsState (node :: node) searchName =
          Nothing -> 
             do
                name <- getName (folders importsState) node
-               reportError importsState
-                  (toString name ++ " is not an MMiSS package")
+               notMMiSSPackage importsState node
                return (staticSimpleSource Error)
          Just source ->
             return (
                do
                   localNodeDataWE <- source
                   case fromWithError localNodeDataWE of
-                     Left mess -> return Error
+                     Left mess -> mkIOSimpleSource (
+                        do
+                           if mess /= reported
+                              then
+                                 do
+                                    localError importsState node mess
+                                    done
+                              else
+                                 done
+
+                           return (staticSimpleSource Error)
+                        )
                      Right (localNodeData :: LocalNodeData node) -> 
                         let
                            source1 :: SimpleSource (Maybe (Env node))
@@ -268,14 +355,16 @@ mkLookupResult importsState (parentNode :: node) searchName envOpt =
       Just env ->
          case thisOpt env of
             Just node -> return (Found node)
-            Nothing ->
+            Nothing -> 
                do
-                  name <- getName (folders importsState) parentNode
-                  reportError importsState
-                     (toString name ++ ": Name " 
-                        ++ toString searchName ++ " is incomplete"
-                        )
+                  searchError importsState parentNode searchName
+                     "Name is incomplete"
                   return Error
+
+bracketForImportErrors2 :: Ord node => ImportsState node -> IO a -> IO a
+bracketForImportErrors2 importsState 
+   = bracketForImportErrors1 (errorManagementState importsState)
+
 
 -- ------------------------------------------------------------------------
 -- Constructing the Global Data.
@@ -291,7 +380,8 @@ getGlobalNodeData importsState node =
          Right sourceOpt -> return sourceOpt
          Left _ -> 
             do
-               source <- mkError importsState node "attempts to import itself"
+               source 
+                  <- globalError importsState node "attempts to import itself"
                return (Just source)
 
 getGlobalNodeData1 :: Ord node => ImportsState node -> node 
@@ -346,13 +436,7 @@ mkGlobalNodeData importsState (node :: node) importCommandsSource =
                   do
                      case fromWithError (mkAliases importCommands) of
                         Left mess -> 
-                           do
-                              if mess /= reported
-                                 then
-                                    reportError importsState mess
-                                 else
-                                    done
-                              return (staticSimpleSource reportedError)
+                           return (staticSimpleSource (fail mess))
                         Right aliases ->
                            do
                               let
@@ -399,11 +483,9 @@ mkGlobalNodeData importsState (node :: node) importCommandsSource =
       let
          globalSource2 = noLoop tSem globalSource1
 
-         globalSource3 = reportErrors importsState globalSource2
+      (globalSource3,closeDown) <- mirrorSimpleSource globalSource2
 
-      (globalSource,closeDown) <- mirrorSimpleSource globalSource3
-
-      return globalSource
+      return globalSource3
 
 -- ------------------------------------------------------------------------
 -- Constructing the Local Data.
@@ -419,7 +501,7 @@ getLocalNodeData importsState node =
          Right sourceOpt -> return sourceOpt
          Left _ -> 
             do
-               source <- mkError importsState node "getLocalNodeData bug?"
+               source <- localError importsState node "getLocalNodeData bug?"
                return (Just source)
 
 getLocalNodeData1 :: Ord node => ImportsState node -> node 
@@ -465,13 +547,7 @@ mkLocalNodeData importsState (node :: node) globalNodeDataSource =
                (\ globalNodeDataWE ->
                   case fromWithError globalNodeDataWE of
                      Left mess -> 
-                        do
-                           if mess /= reported
-                              then
-                                 reportError importsState mess
-                              else
-                                 done
-                           return (staticSimpleSource reportedError)
+                        return (staticSimpleSource (fail mess))
                      Right globalNodeData ->
                         do
                            let
@@ -521,11 +597,9 @@ mkLocalNodeData importsState (node :: node) globalNodeDataSource =
          -- we don't check for loops here, since a local import cannot
          -- include another local import.
 
-         localSource3 = reportErrors importsState localSource1
+      (localSource3,closeDown) <- mirrorSimpleSource localSource1 
 
-      (localSource,closeDown) <- mirrorSimpleSource localSource3
-
-      return localSource
+      return localSource3
 
 -- ------------------------------------------------------------------------
 -- Functions for interpreting import directives
@@ -572,7 +646,7 @@ mkNodeImport importsState (node0 :: node) aliases directives searchName1 =
             nodeSource
             (\ nodeOpt -> case nodeOpt of
                Nothing -> 
-                  mkError importsState node0 ("Could not find " 
+                  globalError importsState node0 ("Could not find " 
                      ++ toString searchName2)
                Just node1 ->
                   do
@@ -588,7 +662,7 @@ mkNodeImport importsState (node0 :: node) aliases directives searchName1 =
                                  mapWithError globalEnv globalNodeDataWE)
                               globalNodeDataSource
                               )
-                        Nothing -> mkError importsState node0 
+                        Nothing -> globalError importsState node0 
                            ("Target of " ++ toString searchName2 ++
                               " is not an MMiSS object")
                )
@@ -636,37 +710,46 @@ mkNodeImport importsState (node0 :: node) aliases directives searchName1 =
 
       return eSource4
 
+
 -- ------------------------------------------------------------------------
--- Error control functions
+-- Error reporting functions
 -- ------------------------------------------------------------------------
 
-reportErrors 
-   :: ImportsState node -> SimpleSource (WithError a) 
-      -> SimpleSource (WithError a)
--- This function does reports the errors on the SimpleSource, which are
--- replaced by "REPORTED".  Errors already "REPORTED" are ignored.
-reportErrors importsState simpleSource =
-   mapIO
-      (\ aWE ->
-         case fromWithError aWE of
-            Left mess | mess /= reported ->
-               do
-                  -- Remove duplicate lines
-                  let
-                     mess2 = unlines . uniqOrd . lines $ mess
-                  reportError importsState mess2
-                  return reportedError
-            _ -> return aWE
-          )
-      simpleSource
-
-mkError :: Ord node => ImportsState node -> node -> String 
+globalError :: Ord node => ImportsState node -> node -> String 
    -> IO (SimpleSource (WithError a))
-mkError importsState node mess =
+globalError importsState node mess =
    do
-      name <- getName (folders importsState) node
-      return (staticSimpleSource (hasError 
-         (toString name ++ ": " ++ mess)))
+      recordError (errorManagementState importsState) (GlobalError node)
+      return (staticSimpleSource (fail mess))
+
+notMMiSSPackage :: Ord node 
+   => ImportsState node -> node -> IO (SimpleSource (WithError a))
+notMMiSSPackage importsState node = globalError importsState node 
+   notMMiSSPackageError
+
+notMMiSSPackageError :: String
+notMMiSSPackageError = "not an MMiSS package"
+
+localError :: Ord node => ImportsState node -> node -> String 
+   -> IO (SimpleSource (WithError a))
+localError importsState node mess =
+   do
+      recordError (errorManagementState importsState) (LocalError node)
+      return (staticSimpleSource (fail mess))
+
+searchError :: Ord node => ImportsState node -> node -> EntitySearchName 
+   -> String -> IO (SimpleSource (WithError a))
+searchError importsState node searchName mess =
+   do
+      recordError (errorManagementState importsState) 
+         (SearchError node searchName)
+      let
+         errorMessage = "Searching for " ++ toString searchName ++ ", " ++ mess
+
+      writeIORef (errorMessageCache importsState) errorMessage
+
+      return (staticSimpleSource (fail errorMessage))
+
 
 -- ------------------------------------------------------------------------
 -- Miscellanous utility functions

@@ -39,6 +39,9 @@ module VSem(
 
    synchronizeLocal,
    synchronizeGlobal,
+
+   acquireLocal, -- :: VSem -> IO ()
+   releaseLocal, -- :: VSem -> IO ()
    ) where
      
 import Concurrent

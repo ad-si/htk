@@ -25,6 +25,11 @@ module Messages(
       -- queries the user on stdout getting the answer from stdin.
       -- Leading and trailing spaces are trimmed from the result.
 
+   errorMess2,
+      -- :: String -> IO ()
+      -- Attempt to reduce the number of error messages displayed by the
+      -- imports stuff.
+
    -- Interface used by HTk for setting a graphical mode
 
    MessFns(..),  -- versions of the above functions
@@ -34,9 +39,11 @@ module Messages(
 import IO
 import Char
 
+import Data.Set
 import Control.Concurrent.MVar
 import System.IO.Unsafe
 
+import Computation(done)
 import ExtendedPrelude
 
 -- ------------------------------------------------------------------------
@@ -171,3 +178,53 @@ defaultConfirm str =
 
 defaultMessage :: String -> IO ()
 defaultMessage = putStrLn
+
+-- ------------------------------------------------------------------------
+-- Reducing the number of error messages.  
+-- ------------------------------------------------------------------------
+
+pendingErrorMessagesMVar :: MVar [String]
+pendingErrorMessagesMVar = unsafePerformIO (newMVar [])
+{-# NOINLINE pendingErrorMessagesMVar #-}
+
+-- | Display a series of one-line messages, separated by newline characters,
+-- attempting to combine them together and eliminate duplicates as much as
+-- possible.  If other identical messages come in while the error message
+-- is being delayed, we throw them away.
+errorMess2 :: String -> IO ()
+errorMess2 message0 =
+   do
+      let
+         messages1 = reverse (lines message0)
+
+      modifyMVar_ pendingErrorMessagesMVar 
+         (\ messages -> return (messages1 ++ messages))
+      clearPendingErrorMessages
+
+clearPendingErrorMessages :: IO ()
+clearPendingErrorMessages = cpe emptySet
+   where
+      cpe :: Set String -> IO ()
+      cpe alreadyDisplayedSet0 =
+         do
+            messages0 <- readMVar pendingErrorMessagesMVar
+            putStrLn (show (messages0,setToList alreadyDisplayedSet0))
+            let
+               messages1 = filter
+                  (\ message -> not (elementOf message alreadyDisplayedSet0))
+                  messages0
+
+               messages2 = uniqOrdOrder messages1
+
+            case messages2 of
+               [] -> done
+               _ ->
+                  do
+                     errorMess (unlines (reverse messages2))
+
+                     let
+                        alreadyDisplayedSet1 = 
+                           union alreadyDisplayedSet0 (mkSet messages2)
+
+                     cpe alreadyDisplayedSet1
+

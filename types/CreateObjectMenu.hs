@@ -44,4 +44,5 @@ createObjectMenu view (parentLink :: Link parent) =
          Just createFn -> 
             do
                parent <- readLink view parentLink
-               createFn view (toLinkedObject parent) 
+               bracketForImportErrors view (
+                  createFn view (toLinkedObject parent)) 

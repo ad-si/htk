@@ -163,6 +163,11 @@ module LinkManager(
        -- Returns the full name of an object within the view.
        -- Used for error messages and packageIds.
 
+   bracketForImportErrors,
+      -- :: View -> IO a -> IO a
+      -- Wrap around a user action which changes the topology of the links,
+      -- to catch and report potential import errors.
+
    -- FolderStructure functions.
    toFolderStructure,
       -- :: LinkedObject -> FolderStructure LinkedObject
@@ -609,6 +614,15 @@ getFullName view object =
       fullName <- getName (folders importsState) (toLinkedObject object)
       return (toString fullName) 
 
+-- | Wrap around a user action which changes the topology of the links,
+-- to catch and report potential import errors.
+bracketForImportErrors :: View -> IO a -> IO a
+bracketForImportErrors view act =
+   do
+      importsState <- getImportsState view
+      bracketForImportErrors2 importsState act
+
+
 ---
 -- (function not used any longer)
 unpackLinkedObjectPtr :: ObjectType objectType object 
@@ -693,7 +707,12 @@ data LinkedObject = LinkedObject {
    insertion :: SimpleSource (Maybe Insertion),
    contents :: SimpleBroadcaster (FiniteMap EntityName LinkedObjectPtr),
    moveObject :: Maybe Insertion -> IO (WithError ()),
-   importCommands :: Maybe (SimpleBroadcaster ImportCommands)
+   importCommands :: Maybe (SimpleBroadcaster ImportCommands),
+
+   contentsSource :: SimpleSource (FiniteMap EntityName LinkedObjectPtr),
+   importCommandsSource ::Maybe (SimpleSource ImportCommands)
+
+
    }
 
 
@@ -721,10 +740,10 @@ toFolderStructure root =
             (fmap
                (mapFM (\ _ -> fromLinkedObjectPtr))
                )
-            . toSimpleSource . contents $ linkedObject
+            . contentsSource $ linkedObject
 
       getImportCommands linkedObject = 
-         return . (fmap toSimpleSource) . importCommands $ linkedObject
+         return . importCommandsSource $ linkedObject
 
       getParent linkedObject =
          return 
@@ -783,16 +802,9 @@ createLinkedObject view isNew frozenLinkedObject =
          insertion0 = insertion' frozenLinkedObject
 
       insertionBroadcaster <- newSimpleBroadcaster insertion0
-      let
-         insertion = toSimpleSource insertionBroadcaster
 
       contents1 
          <- newSimpleBroadcaster (listToFM (contents' frozenLinkedObject))
-
-      -- previousMVar contains the last insertion (or initially Nothing);
-      -- it is also used as a lock to prevent moveObject being used 
-      -- twice simultaneously on the same LinkedObject.
-      previousMVar <- newMVar (if isNew then Nothing else insertion0)
 
       importCommands <-
          if hasImportCommands frozenLinkedObject
@@ -802,6 +814,28 @@ createLinkedObject view isNew frozenLinkedObject =
                   return (Just broadcaster)
             else
                return Nothing      
+
+      -- Create mirrored delayed versions of sources (for the FolderStructure
+      -- we will create).
+
+      (insertion,_) <- mirrorSimpleSourceWithDelayer (delayer view)
+         (toSimpleSource insertionBroadcaster)
+
+      (contentsSource,_) <- mirrorSimpleSourceWithDelayer (delayer view) 
+         (toSimpleSource contents1)
+
+      importCommandsSource <- case importCommands of
+         Nothing -> return Nothing
+         Just importCommands1 ->
+            do
+               (importCommandsSource1,_) <- mirrorSimpleSourceWithDelayer
+                  (delayer view) (toSimpleSource importCommands1)
+               return (Just importCommandsSource1)
+      -- previousMVar contains the last insertion (or initially Nothing);
+      -- it is also used as a lock to prevent moveObject being used 
+      -- twice simultaneously on the same LinkedObject.
+      previousMVar <- newMVar (if isNew then Nothing else insertion0)
+
       let
          moveObject insertion = synchronizeView view (
             do
@@ -883,7 +917,9 @@ createLinkedObject view isNew frozenLinkedObject =
             insertion = insertion,
             contents = contents1,
             moveObject = moveObject,
-            importCommands = importCommands
+            importCommands = importCommands,
+            contentsSource = contentsSource,
+            importCommandsSource = importCommandsSource
             }
 
          thisPtr = LinkedObjectPtr {

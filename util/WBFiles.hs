@@ -702,6 +702,8 @@ parseTheseArgumentsRequiring' arguments required =
                "--uni-version" -> 
                      do
                         printToErr ("uni's version is "++uniVersion)
+                        -- The MMiSS installer relies on the exact text of
+                        -- this message.
                         return (newExit ExitSuccess,prevMap)
                "--uni-parameters" ->
                   do

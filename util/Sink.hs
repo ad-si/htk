@@ -24,18 +24,22 @@ module Sink(
    ParallelExec,
    newParallelExec,
    parallelExec,
+   parallelExecVSem,
    ) where
 
 import Monad
 
-import Concurrent
-import IOExts
+import Control.Concurrent
+import System.IO.Unsafe
+import Data.IORef
 import Control.Concurrent.Chan
+
 
 import Computation
 import Object
 import ExtendedPrelude
 import Thread
+import VSem
 
 -- -------------------------------------------------------------------------
 -- The HasInvalidate
@@ -296,9 +300,16 @@ addNewAction sinkSource action =
 -- each time, it also guarantees the order of the actions.
 --
 -- The Thread can be stopped with simpleFallOut.
+-- 
+-- We also provide a VSem which is locked locally when a parallelExec action
+-- is pending.
 -- -------------------------------------------------------------------------
 
 newtype ParallelExec = ParallelExec (Chan (IO ()))
+
+parallelExecVSem :: VSem
+parallelExecVSem = unsafePerformIO newVSem
+{-# NOINLINE parallelExecVSem #-}
 
 newParallelExec :: IO ParallelExec
 newParallelExec =
@@ -308,7 +319,12 @@ newParallelExec =
          parallelExecThread0 =
             do
                act <- readChan chan
-               act
+               result <- try act
+               case result of
+                  Left excep -> putStrLn ("Exception detected: " ++ show excep)
+                  Right () -> done
+               releaseLocal parallelExecVSem
+
                parallelExecThread0
 
          parallelExecThread =
@@ -320,7 +336,10 @@ newParallelExec =
       return (ParallelExec chan)
 
 parallelExec :: ParallelExec -> IO () -> IO ()
-parallelExec (ParallelExec chan) act = writeChan chan act
+parallelExec (ParallelExec chan) act = 
+   do 
+      acquireLocal parallelExecVSem
+      writeChan chan act
 
 ---
 -- Creates a new sink which executes actions in a parallelExec thread.

@@ -496,7 +496,7 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
             openAction link =
                do
                   folder <- readLink view link
-                  delay view (
+                  bracketForImportErrors view (
                      do
                         openBlocker (blocker2 folder) blockID
                         openBlocker (blocker3 folder) blockID

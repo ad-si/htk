@@ -34,16 +34,22 @@ module Broadcaster(
       -- Replace a SimpleSource by another which mirrors it, but only copies
       -- from it once, hopefully saving CPU time.
       -- The IO action stops the mirroring.
-      -- We use unsafeInterleaveIO to prevent the mirroring beginning before it
-      -- is actually needed.  However we don't provide any means to stop the
-      -- mirroring when it is no longer needed, yet.
+
+   mirrorSimpleSourceWithDelayer,
+      -- :: Delayer -> (a -> IO ()) -> SimpleSource a 
+      -- -> IO (SimpleSource a,IO ())
+      -- Replace a SimpleSource by another which mirrors it, but only copies
+      -- from it once, hopefully saving CPU time.  In addition, block all 
+      -- update while the Delayer is delaying things. 
 
    ) where
 
+import Data.IORef
 import qualified Control.Concurrent.MVar as MVar
 
 import Sink
 import Sources
+import Delayer
 
 -- -----------------------------------------------------------------
 -- Datatypes
@@ -176,7 +182,7 @@ switchOffSimpleSource simpleSource =
       return (newSource,switchOff)
 
 -- -----------------------------------------------------------------
--- mirrorSimpleSource
+-- mirrorSimpleSource and mirrorSimpleSourceWithDelayer
 -- -----------------------------------------------------------------
 
 -- | Replace a SimpleSource by another which mirrors it, but only copies
@@ -221,3 +227,36 @@ mirrorSimpleSource (simpleSource :: SimpleSource a) =
       source <- getSource
 
       return (source,invalidate sinkId)
+
+
+-- | Replace a SimpleSource by another which mirrors it, but only copies
+-- from it once, hopefully saving CPU time.  In addition, block all 
+-- update while the Delayer is delaying things. 
+mirrorSimpleSourceWithDelayer :: Delayer -> SimpleSource a -> IO (SimpleSource a,IO ())
+mirrorSimpleSourceWithDelayer delayer (simpleSource :: SimpleSource a) =
+   do
+      sinkId <- newSinkID
+      parallelX <- newParallelExec
+      broadcaster <- newSimpleBroadcaster (error "mirrorSimpleSource: 2")
+      ref <- newIORef (error "mirrorSimpleSource: 3")
+
+      let
+         writeAct val = writeIORef ref val
+
+         bumpAct =
+            do
+               val <- readIORef ref
+               broadcast broadcaster val
+
+      delayedBumpAct <- newDelayedAction bumpAct
+
+      let
+         updateAct val =
+            do
+               writeAct val
+               delayedAct delayer delayedBumpAct
+
+      addNewSourceActions (toSource simpleSource) 
+         (broadcast broadcaster) updateAct sinkId parallelX
+
+      return (toSimpleSource broadcaster,invalidate sinkId)
