@@ -131,14 +131,15 @@ data Expect =
       eofChannel      :: Channel (),           -- eof signal  
       -- the reader sends a message along this channel when it
       -- gets an error.
-      regChannel      :: MsgQueue (RST -> IO RST), 
+      regChannel      :: Channel (RST -> IO RST), 
       -- Registration changes.  A registration change is a function
       -- from RST to IO RST which you send along regChannel and which
       -- is read by the matcher thread.  The function had better be
       -- quickly handled.
-      -- Why a queue and not a channel?  Because we terminate the
-      -- matcher thread when EOF is received, so there is no-one
-      -- at home to receive any final registration changes.
+      -- We use a channel and not a message queue so that registration
+      -- changes are properly sequenced.  In other words, when an
+      -- application (namely Interaction.sync) has finished registering
+      -- it can be sure that Expect knows about it.
       collectable     :: Maybe CollectibleObj
       }
 
@@ -165,7 +166,7 @@ newExpect tool confs =
    do 
       childOutput <- newChannel
       eofChannel <- newChannel
-      regChannel <- newMsgQueue
+      regChannel <- newChannel
       child <- newChildProcess tool ((linemode True) : confs)
          -- this means the child process runs with linemode True
          -- UNLESS the configurations say otherwise.  However that
@@ -228,6 +229,8 @@ matcher
       +> receive eofChannel >>> 
            do
               delegateEOF expect rst
+      +> registrationChanged regChannel rst >>>=
+            (\newRst -> matcher expect newRst)
       )
 
 -- attemptMatch finds and handles all the non-overlapping matched
@@ -293,20 +296,21 @@ delegateEvent
       let
          toWaitFor = receive nextLineQueue
          toSend bool = send nextLineQueue bool
-      nextLine <- sync (
-         choose (map
-            (\ listener -> oneway listener eID (matchResult,toSend)) 
-            listeners)
-            >>>= -- wait until one of the listeners accepts the event.
-               (\ ev ->
-                   -- this is the event to wait for for an acknowledgment.
-                  do
-                     sync ev
-                     nextLine <- sync toWaitFor
-                     logAck
-                     return nextLine
-                  )
+         sagc = syncAndGetChanges regChannel
+
+      (listenerAck,rst) <- sagc rst (  
+      -- broadcast event.
+         choose 
+            (map
+               (\ listener -> oneway listener eID (matchResult,toSend))
+               listeners
+               )
          )
+      -- wait for listener acknowledgement
+      ((),rst) <- sagc rst listenerAck
+      -- find out if listener wants us to go to the next chunk
+      (nextLine,rst) <- sagc rst toWaitFor
+      logAck
       if nextLine
          then
             matcher expect rst
@@ -324,36 +328,47 @@ delegateEOF :: Expect -> RST -> IO ()
 -- to do as attemptMatch has just done it.
 delegateEOF expect @ (Expect{regChannel=regChannel}) oldRst =
    do 
+      debug "DEOF1"
       rst <- getPendingChanges regChannel oldRst
       let 
          eID = toEventID (expect,EOF)
          listeners = getListeners eID rst
-      sync (  
-         choose (map (\ listener -> oneway listener eID ()) listeners) >>>= 
-            (\ ev -> -- this is the event to wait for for an acknowledgment. 
-               do
-                  sync ev
-                  logAck
+         sagc = syncAndGetChanges regChannel
+
+      debug "DEOF2"
+      (listenerAck,rst) <- sagc rst (  
+      -- broadcast event.
+         choose 
+            (map
+               (\ listener -> oneway listener eID ())
+               listeners
                )
          )
-      done
+      debug "DEOF3"
+
+      -- wait for listener acknowledgement
+      ((),rst) <- sagc rst listenerAck
+      debug "DEOF4"
+      logAck
+      debug "DEOF5"
+      matcher expect rst      
 
 -- --------------------------------------------------------------------------
 -- Actions which receive and process registration events
 -- --------------------------------------------------------------------------
 
 -- getOneChange waits for one change
-getOneChange :: MsgQueue (RST -> IO RST) -> RST -> IO RST
+getOneChange :: Channel (RST -> IO RST) -> RST -> IO RST
 getOneChange regChannel rst = sync (registrationChanged regChannel rst)
 
-registrationChanged :: MsgQueue (RST -> IO RST) -> RST -> EV RST
+registrationChanged :: Channel (RST -> IO RST) -> RST -> EV RST
 registrationChanged regChannel rst = 
    receive regChannel >>>= 
       (\ registrationChange -> registrationChange rst )
 
 
 -- getPendingChanges gets all pending changes.
-getPendingChanges :: MsgQueue (RST -> IO RST) -> RST -> IO RST 
+getPendingChanges :: Channel (RST -> IO RST) -> RST -> IO RST 
 getPendingChanges regChannel rst =
    do 
       optionalChange <- poll(receive regChannel)
@@ -362,7 +377,19 @@ getPendingChanges regChannel rst =
          Just registrationChange ->
             do
                newRst <- registrationChange rst 
-               getPendingChanges regChannel newRst 
+               getPendingChanges regChannel newRst
+
+-- syncAndGetChanges waits for an event while simultaneously
+-- getting any RST changes
+syncAndGetChanges :: Channel (RST -> IO RST) -> RST -> EV message -> 
+   IO (message,RST)
+syncAndGetChanges regChannel rst event =
+   sync(
+         event >>>= (\ message -> return (message,rst))
+      +> registrationChanged regChannel rst >>>=
+            (\ newRst -> 
+               syncAndGetChanges regChannel newRst event)
+         )
 
 
 -- --------------------------------------------------------------------------
@@ -424,7 +451,10 @@ instance UnixTool Expect where
 instance CommandTool Expect where 
     execCmd cmd expect = execOneWayCmd cmd expect
     evalCmd cmd expect = error "Expect.evalCmd not implemented"       
-    execOneWayCmd cmd expect  = sendMsg (child expect) cmd 
+    execOneWayCmd cmd expect  = 
+       do
+          debug ("execOneWayCmd "++cmd)
+          sendMsg (child expect) cmd 
 
 
 -- --------------------------------------------------------------------------

@@ -30,10 +30,10 @@ main =
       exp <- newExpect "csh" [arguments ["-sf"]];
       inter <- newInterActor 
          (\iact -> 
-               match exp ("^PERL") >>> 
+               match exp ("^PERL",1::Int) >>> 
                   do
                      debug "caught perl"
-            +> match exp ("^awk") >>> 
+            +> match exp ("^awk",1::Int) >>> 
                   do
                      debug "caught awk"
             +> matchLine exp >>>=
@@ -59,6 +59,7 @@ main =
       debug "End of delay"
       execCmd "exit\n" exp
       sync(destroyed inter)
+      debug "Destroyed"
 
 
 

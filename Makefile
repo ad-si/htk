@@ -10,5 +10,17 @@ SUBDIRS=$(UTILDIR) $(CONCDIR) $(REACTORDIR) $(HTKDIR) $(DAVINCIDIR) $(WWWDIR) $(
 
 include top/mk/boilerplate.mk 
 
+# By making tarball.tar.gz and tarball.objects.tar.gz .PHONY we
+# ensure that they always get remade whenever "gmake tarball.tar.gz"
+# or "gmake tarball.objects.tar.gz" are executed.
+.PHONY : tarball.tar.gz tarball.objects.tar.gz 
+
+# tar of all source files
 tarball.tar.gz:
 	gtar -czf tarball.tar.gz `gfind . '(' -name '*.hs' -o -name '*.c' -o -name '*.h' -o -name '*.mk' -o -name Makefile -o -name 'README' ')' ` 
+
+# tar of all object and .hi files (but not .depend/library/exec files which 
+# are cheaper to regenerated)
+tarball.objects.tar.gz:
+	gtar -czf tarball.objects.tar.gz `gfind . '(' -name '*.o' -o -name '*.hi' ')' `
+
