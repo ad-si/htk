@@ -394,8 +394,10 @@ readChunk size fd =
             return input
 
 sendMsg :: ChildProcess -> String -> IO ()
-sendMsg (ChildProcess{lineMode = True,writeTo = writeTo}) str  = 
-   writeLine writeTo str
+sendMsg (child @ ChildProcess{lineMode = True,writeTo = writeTo}) str  = 
+   do
+      debugWrite child (str++"\n")
+      writeLine writeTo str
 sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  = 
    do 
       debugWrite child (str ++ "\n") 

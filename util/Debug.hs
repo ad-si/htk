@@ -44,8 +44,12 @@ openDebugFile :: IO (Maybe Handle)
 openDebugFile =
    do
       debugFileName <- getDebugFileName
-      IO.catch 
-         (openFile debugFileName WriteMode >>= return . Just)
+      IO.catch ( 
+         do
+             handle <- openFile debugFileName WriteMode 
+             hSetBuffering handle NoBuffering
+             return (Just handle)
+         ) 
          (\ _-> return Nothing)
 
 debugFile = IOExts.unsafePerformIO openDebugFile
@@ -61,8 +65,8 @@ debugString s =
 debug :: Show a => a -> IO()
 debug s = 
    case debugFile of 
-     Just f  -> IO.hPutStrLn f (show s)>> IO.hFlush f
-     Nothing -> return ()
+      Just f  -> IO.hPutStrLn f (show s)
+      Nothing -> return ()
 
 debugAct :: String -> IO a -> IO a
 debugAct mess act =
@@ -96,8 +100,8 @@ debugAct _ act = act
 alwaysDebug :: Show a => a -> IO()
 alwaysDebug s = 
    case debugFile of 
-     Just f  -> IO.hPutStrLn f (show s)>> IO.hFlush f
-     Nothing -> return ()
+      Just f  -> IO.hPutStrLn f (show s)
+      Nothing -> return ()
 
 alwaysDebugAct :: String -> IO a -> IO a
 alwaysDebugAct mess act =

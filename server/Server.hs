@@ -41,7 +41,7 @@ import Posix
 
 import Computation(done)
 import WBFiles(getPort)
-import Debug(debug)
+import Debug
 
 import Concurrent
 import Thread
@@ -86,13 +86,11 @@ runServer serviceList =
 -- For each service to provide . . .
 -- (1) set up initial variables
 ------------------------------------------------------------------------
-                  debug ("registering "++(serviceId service))
                   let
                      serviceKey = serviceId service
 
                   clients <- newMVar []
                   initial <- initialState service 
-                  debug "Initial1"
                   stateMVar <- newMVar initial
 ------------------------------------------------------------------------
 -- Note on concurrency.  We have two MVars, stateMVar and clients.
@@ -154,7 +152,6 @@ runServer serviceList =
                                        Left error ->
                                           deleteClient clientData
                                        Right () -> done
-                                    debug "Sent message"
                                  ) 
                               clientList
                            )
@@ -211,7 +208,6 @@ runServer serviceList =
                   let
                      newClientAction handle =
                         do
-                           debug "Registering client"
                            oid <- newObject
                            let
                               clientData = ClientData {oid=oid,handle=handle}
@@ -255,17 +251,16 @@ runServer serviceList =
                               clientReadAction :: IO ()
                               clientReadAction =
                                  do
-                                    debug "Waiting"
                                     inLine <- hGetLine handle
                                     -- An error in this hGetLine will
                                     -- probably mean the handle is
                                     -- invalid, but we don't try to pick
                                     -- that up until we try to write it.
-                                    debug ("Server read "++inLine)
+                                    debugRead service inLine
+
                                     let
                                        input = read inLine
                                     oldState <- takeMVar stateMVar
-                                    debug ("Got state") 
                                     newState <- 
                                        protect
                                           (putMVar stateMVar oldState)
@@ -275,15 +270,13 @@ runServer serviceList =
                                                    (input,oldState)
                                              let
                                                 outLine = show output
+                                             debugWrite service outLine
                                              broadcastAction clientData 
                                                 outLine
-                                             debug "done broadcast"
                                              return newState
                                              )
                                     putMVar stateMVar newState
-                                    debug ("Updated state")
                                     backupTick
-                                    debug "Done backup"
                                     clientReadAction
                            -- however it needs a wrapper so harmless
                            -- (EOF) errors don't cause any trouble.
@@ -389,3 +382,20 @@ runServer serviceList =
             (fmToList serviceMap)
             )
 
+
+------------------------------------------------------------------------
+-- Debugging functions
+------------------------------------------------------------------------
+
+debugWrite :: ServiceClass inType outType stateType => 
+   (inType,outType,stateType) -> String -> IO ()
+debugRead :: ServiceClass inType outType stateType => 
+   (inType,outType,stateType) -> String -> IO ()
+
+#ifdef DEBUG
+debugWrite service mess = debugString (serviceId service++"]"++mess++"\n")
+debugRead service mess = debugString (serviceId service++"["++mess++"\n")
+#else
+debugWrite _ _ = done
+debugRead _ _ = done
+#endif

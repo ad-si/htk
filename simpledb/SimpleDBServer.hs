@@ -195,7 +195,7 @@ initialiseSimpleDB =
             foldFM
                (\ (Location this,_) _ current ->
                   if this>=current then this+1 else current)
-               0
+               2
                objectDictionaryVal
          -- Ditto for nextVersions, only it's more complicated.
          (nextVersionsVal :: FiniteMap Location Int) =

@@ -16,6 +16,8 @@ module CopyFile(
    copyFileToString,
    ) where
 
+import qualified IO
+
 import PackedString
 import CTypesISO(CSize)
 import ST
@@ -105,6 +107,37 @@ copyStringToFileAlternative string destination =
 -- hanging around.
 copyFileToString :: FilePath -> IO String
 copyFileToString file =
+#if __GLASGOW_HASKELL__ <= 503
+-- We catch ioErrors which don't match certain criteria and return 
+-- the null string.  This is because IOExts.slurpFile fails on files 
+-- of zero length with an IOError which doesn't pass any of the
+-- standard test functions
+   do
+      let
+         selector ex =
+            case ioErrors ex of
+               Nothing -> Nothing
+               Just (ioError :: IOError) ->
+                  let
+                     testFuns = [
+                        IO.isAlreadyExistsError,
+                        IO.isDoesNotExistError,
+                        IO.isAlreadyInUseError,
+                        IO.isFullError,
+                        IO.isEOFError,
+                        IO.isIllegalOperation,
+                        IO.isPermissionError,
+                        IO.isUserError
+                        ]
+                     isStandard = any id (map ($ ioError) testFuns)
+                  in
+                     if isStandard then Nothing else Just ()
+
+      catchJust selector (copyFileToString' file) (\ () -> return "")
+
+
+copyFileToString' file =      
+#endif
    do
       (ptr,len) <- IOExts.slurpFile file
       str <- CString.peekCStringLen (Ptr.castPtr ptr,len)
