@@ -47,6 +47,22 @@ import TemplateHaskellHelps
 
 data ICStringLen = ICStringLen (ForeignPtr CChar) Int deriving (Typeable)
 
+-- -------------------------------------------------------------------
+-- Extracting a ForeignPtr's components.
+-- -------------------------------------------------------------------
+
+$(
+   if ghcShortVersion <= 601
+      then
+         [d|
+            unsafeForeignPtrToPtr = $(dynName "foreignPtrToPtr")
+         |]
+      else
+         [d|
+            template = "haskell" -- null declaration for now
+         |]
+   )
+
 -- ------------------------------------------------------------------
 -- Creation and reading
 -- ------------------------------------------------------------------
@@ -113,17 +129,7 @@ bytesToICStringLen (bytes,i) = createICStringLen (unMkBytes bytes) i
 
 bytesFromICStringLen :: ICStringLen -> (Bytes,Int)
 bytesFromICStringLen (ICStringLen foreignPtr len) 
-   = 
-   (mkBytes (
-      $(
-         if ghcShortVersion <= 601
-            then
-               dynName "foreignPtrToPtr"
-            else
-               dynName "unsafeForeignPtrToPtr"
-         ) foreignPtr)
-      ,len
-      )
+   = (mkBytes (unsafeForeignPtrToPtr foreignPtr),len)
 
 touchICStringLen :: ICStringLen -> IO ()
 touchICStringLen (ICStringLen foreignPtr _) = touchForeignPtr foreignPtr
@@ -137,8 +143,8 @@ instance OrdIO ICStringLen where
       case compare len1 len2 of
          LT -> return LT
          GT -> return GT
-         EQ -> compareBytes (mkBytes (foreignPtrToPtr fptr1)) 
-            (mkBytes (foreignPtrToPtr fptr2)) len1
+         EQ -> compareBytes (mkBytes (unsafeForeignPtrToPtr fptr1)) 
+            (mkBytes (unsafeForeignPtrToPtr fptr2)) len1
 
 instance EqIO ICStringLen where
    eqIO icsl1 icsl2 =
