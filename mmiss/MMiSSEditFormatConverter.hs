@@ -80,7 +80,6 @@ toEditFormatConverter LaTeX =
             )
       }
 
-
 exportElement :: View -> Format -> [Link MMiSSPreamble] -> Element 
    -> IO (WithError String)
 exportElement _ XML _ element = return (hasValue (toExportableXml element))

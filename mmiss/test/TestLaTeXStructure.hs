@@ -6,6 +6,7 @@ module Main(main) where
 #include "config.h"
 
 import IO
+import System
 
 import Pretty
 
@@ -32,6 +33,12 @@ import MMiSSEditXml
 
 main =
    do
+      args <- getArgs
+      docType <- case args of
+         [] -> return "package"
+         [arg] -> return arg
+         _ -> error "Must have at most one argument, the document type"
+
       doc <- getContents
       let
          elEither = parseMMiSSLatex doc
@@ -40,7 +47,7 @@ main =
          Right (el,_) -> return el
       putStr (toExportableXml el)
 
-      let verified = validateElement "package" el
+      let verified = validateElement docType el
       case verified of
          [] -> done
          errors -> error (unlines errors)

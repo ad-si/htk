@@ -97,6 +97,18 @@
                        %layout-attr;
                        %paedagogic-attr;">
 
+<!-- Standard Predefined Entities (XML standard section 4.6). --> 
+<!ENTITY lt "&#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ENTITY apos "&#39;">
+<!ENTITY quot "&#34;">
+
+<!ENTITY % include-attributes "included CDATA #REQUIRED
+                               status  (present | absent) #IMPLIED
+                               priority CDATA #IMPLIED
+                               %variant-attr;">
+
 
 <!--
   ***********************************************************************
@@ -336,93 +348,57 @@
     the referred element. -->
 
 <!ELEMENT includeGroup EMPTY>
-<!ATTLIST includeGroup included    CDATA #REQUIRED
-                       status  (present | absent) "absent"
-                       %variant-attr;>
+<!ATTLIST includeGroup %include-attributes;>
 
 <!ELEMENT includeSection  EMPTY>
-<!ATTLIST includeSection included    CDATA #REQUIRED
-                         status  (present | absent) "absent"
-                         %variant-attr;>
+<!ATTLIST includeSection %include-attributes;>
 
 <!ELEMENT includeAbstract EMPTY>
-<!ATTLIST includeAbstract included    CDATA #REQUIRED
-                          status  (present | absent) "absent"
-                          %variant-attr;>
+<!ATTLIST includeAbstract %include-attributes;>
 
 <!ELEMENT includeIntroduction EMPTY>
-<!ATTLIST includeIntroduction included    CDATA #REQUIRED
-                              status  (present | absent) "absent"
-                              %variant-attr;>
+<!ATTLIST includeIntroduction %include-attributes;>
 
 <!ELEMENT includeSummary EMPTY>
-<!ATTLIST includeSummary included    CDATA #REQUIRED
-                         status  (present | absent) "absent"
-                         %variant-attr;>
+<!ATTLIST includeSummary %include-attributes;>
 
 <!ELEMENT includeUnit EMPTY>
-<!ATTLIST includeUnit included    CDATA #REQUIRED
-                      status  (present | absent) "absent"
-                      %variant-attr;>
+<!ATTLIST includeUnit %include-attributes;>
 
 <!ELEMENT includeFormalUnit EMPTY>
-<!ATTLIST includeFormalUnit included    CDATA #REQUIRED
-                            status  (present | absent) "absent"
-                            %variant-attr;>
+<!ATTLIST includeFormalUnit %include-attributes;>
 
 <!ELEMENT includeConceptualUnit EMPTY>
-<!ATTLIST includeConceptualUnit included    CDATA #REQUIRED
-                                status  (present | absent) "absent"
-                                %variant-attr;>
+<!ATTLIST includeConceptualUnit %include-attributes;>
 
 <!ELEMENT includeAtom EMPTY>
-<!ATTLIST includeAtom included    CDATA #REQUIRED
-                      status  (present | absent) "absent"
-                      %variant-attr;>
+<!ATTLIST includeAtom %include-attributes;>
 
 <!ELEMENT includeConceptualAtom EMPTY>
-<!ATTLIST includeConceptualAtom included    CDATA #REQUIRED
-                                status  (present | absent) "absent"
-                                %variant-attr;>
+<!ATTLIST includeConceptualAtom %include-attributes;>
 
 <!ELEMENT includeProgramFragment EMPTY>
-<!ATTLIST includeProgramFragment included    CDATA #REQUIRED
-                                 status  (present | absent) "absent"
-                                 %variant-attr;>
+<!ATTLIST includeProgramFragment %include-attributes;>
 
 <!ELEMENT includeProgram EMPTY>
-<!ATTLIST includeProgram included    CDATA #REQUIRED
-                         status  (present | absent) "absent"
-                         %variant-attr;>
+<!ATTLIST includeProgram %include-attributes;>
 
 <!ELEMENT includeClause EMPTY>
-<!ATTLIST includeClause included    CDATA #REQUIRED
-                        status  (present | absent) "absent"
-                        %variant-attr;>
+<!ATTLIST includeClause %include-attributes;>
 
 <!ELEMENT includeTheory EMPTY>
-<!ATTLIST includeTheory included    CDATA #REQUIRED
-                        status  (present | absent) "absent"
-                        %variant-attr;>
+<!ATTLIST includeTheory %include-attributes;>
 
 <!ELEMENT includeStep EMPTY>
-<!ATTLIST includeStep included    CDATA #REQUIRED
-                      status  (present | absent) "absent"
-                      %variant-attr;>
+<!ATTLIST includeStep %include-attributes;>
 
 <!ELEMENT includeProof EMPTY>
-<!ATTLIST includeProof included    CDATA #REQUIRED
-                       status  (present | absent) "absent"
-                       %variant-attr;>
+<!ATTLIST includeProof %include-attributes;>
 
 <!ELEMENT includeScript EMPTY>
-<!ATTLIST includeScript included    CDATA #REQUIRED
-                        status  (present | absent) "absent"
-                        %variant-attr;>
+<!ATTLIST includeScript %include-attributes;>
 
 <!ELEMENT includeDevelopment EMPTY>
-<!ATTLIST includeDevelopment included    CDATA #REQUIRED
-                             status  (present | absent) "absent"
-                             %variant-attr;> 
+<!ATTLIST includeDevelopment %include-attributes;>
 
 

@@ -29,21 +29,24 @@ mkLaTeXString (EmacsContent dataItems) =
          EmacsLink ((included,ch),attributes) -> 
             "\\Include"
             ++ toIncludeStr ch
-            ++ toLaTeXAttributes attributes
-            ++ "{" ++ included ++ "}{status=present}"
+            ++ "{" ++ included ++ "}"
+            ++ toLaTeXAttributes (attributes ++ [statusAttribute])
          )     
       dataItems
 
 toLaTeXAttributes :: [Attribute] -> String
 toLaTeXAttributes [] = ""
 toLaTeXAttributes attributes =
-   "["
+   "{"
    ++ unsplitByChar ',' (map
       (\ (name,attValue) ->
          case attValue of
-            AttValue [Left value] -> value
+            AttValue [Left value] -> name ++ "=" ++ value
          )
       attributes   
       )
    ++
-   "]"
+   "}"
+
+statusAttribute :: Attribute
+statusAttribute = ("status",AttValue [Left "present"])
