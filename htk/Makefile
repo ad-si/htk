@@ -1,12 +1,3 @@
-THIS	   = htk
-IMPS	   = */*.hi
-
-HCINC      = 
-
-LIBS       = $(REACTORDIR)/libreactor.a\
-	     $(CONCDIR)/libconcurrency.a\
-	     $(UTILDIR)/libutil.a\
-
 LIB        = libhtk.a
 
 SRCS       = \
@@ -97,36 +88,13 @@ SRCS       = \
 	 toolkit/LogWin.hs\
 	 toolkit/MatrixBox.hs\
       
-SRCSH      = 
-
-SRCSC      = 
-
-PGMS       = 
-
-PGM_OBJS   =  
-
-EXTRA_DEPS =  
-
-
 EXTRA_HC_OPTIONS += -Onot -H30M
+
+SUBDIRS = test
 
 include top/mk/boilerplate.mk
 
 HCDIRS := resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:$(HCDIRS)
-
-cleanhtk:
-	rm -f pgm
-	rm -f *.hi
-	rm -f *.o
-	rm -f *%
-	rm -f */pgm
-	rm -f */*.o
-	rm -f */*.hi
-	rm -f */*%
-	rm -f yum.log canvas.ps
-	rm -f libguikernel.a
-
-
 # DO NOT DELETE: Beginning of Haskell dependencies
 resources/GUIValue.o : resources/GUIValue.hs
 resources/GUIValue.o : top/util/Computation.hi

@@ -1,15 +1,3 @@
-THIS	   = tools
-IMPS	   = *.hi
-
-HCINC      = 
-
-LIBS       = $(TOOLSDIR)/libtools.a\
-	     $(HTKDIR)/libhtk.a\
-	     $(REACTORDIR)/libreactor.a\
-	     $(CONCDIR)/libconcurrency.a\
-	     $(UTILDIR)/libutil.a\
-	     $(REGEXPLIBDIR)/libRegexp.a\
-
 LIB        = libtools.a
 
 SRCS       = \
@@ -27,19 +15,8 @@ SRCS       = \
 	 Tas.hs\
 	 TextEdit.hs\
 	 XDvi.hs\
- 
-      
-SRCSH      = 
 
-SRCSC      = 
-            
-PGMS       = 
-
-PGM_OBJS   =  
-
-EXTRA_DEPS =  
-
-EXTRA_HC_OPTIONS += -O -H30M
+SUBDIRS = test
 
 include top/mk/boilerplate.mk
 

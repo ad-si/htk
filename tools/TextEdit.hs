@@ -27,7 +27,9 @@ module TextEdit (
 
 import WB
 import Debug(debug)
-
+import SIMClasses
+import Expect
+import Collector
 
 
 -- --------------------------------------------------------------------------

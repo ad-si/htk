@@ -1,11 +1,4 @@
-HCINC      = '-\#include "signaldispatcher.h"'  '-\#include "collector.h"'
-
-
-THIS	   = reactor
-IMPS	   = *.hi
-
-LIBS       = $(CONCDIR)/libconcurrency.a\
-	     $(UTILDIR)/libutil.a\
+EXTRA_HC_OPTIONS += '-\#include "signaldispatcher.h"'  '-\#include "collector.h"'
 
 LIB        = libreactor.a
 
@@ -33,23 +26,16 @@ SRCS       = Listener.hs\
 # are now obsolete.
 #	     Sensor.hs\
 #	     NameSpace.hs\
+
+SUBDIRS = test
       
 SRCSH      = signaldispatcher.h collector.h
 
 SRCSC      = signaldispatcher.c collector.c
 
-PGMS       = pgm
-PGM_OBJS   = test/Main.hs
-EXTRA_DEPS = 
-
-
 EXTRA_HC_OPTIONS += -O -H30M
 
 include top/mk/boilerplate.mk
-
-pgm:    $(LIBS) $(LIB) test/Main.o 
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) test/Main.o $(LIB) $(LIBS)
 
 # DO NOT DELETE: Beginning of Haskell dependencies
 Listener.o : Listener.hs

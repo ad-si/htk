@@ -4,8 +4,31 @@
    -}
 
 module WB(
-   getWBToolFilePath
+   getWBToolFilePath,
+   interactor,newInterActor,stop, -- from InterActor
+   toolFailed, -- from SIMClasses
+   text, -- from HasText
+   IA, -- from ExternalEvent
+   linemode,arguments,environment,workingdir,standarderrors,pollinterval,
+      PosixProcess, -- from ChildProcess
+
+   module Object,
+   module Selective,
+   module Computation,
+   module InfoBus
    ) where
 
-getWBToolFilePath :: String -> String
-getWBToolFilePath s = s
+import Object
+import Selective
+import Computation
+import Debug(debug)
+import ExternalEvent(IA)
+import InterActor(interactor,newInterActor,stop)
+import ChildProcess(linemode,arguments,environment,workingdir,standarderrors,pollinterval,PosixProcess)
+import InfoBus
+import SIMClasses(toolFailed)
+
+import GUIBaseClasses(HasText(..))
+
+getWBToolFilePath :: String -> IO String
+getWBToolFilePath s = return s

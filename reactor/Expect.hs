@@ -454,23 +454,40 @@ readWholeLine expect eofAct = readWholeLineAcc []
       -- so far read, in reverse order.
       readWholeLineAcc soFar =
          sync(
-               match' expect "\\`(.*)\n" >>>=
-                  ( \ (matchResult,nextLine) ->
+               matchWithNewLine >>>=
+                  ( \ line ->
                      do
-                        sync(nextLine False)
-                        let head : _ = getSubStrings matchResult
-                        let result = concat(reverse(head:soFar))
+                        let result = concat(reverse(line:soFar))
                         debug result
                         return result
-                     )
-            +> match' expect "\\`.*\\'" >>>=
-                  ( \ (matchResult,nextLine) ->
-                     do
-                        sync(nextLine True)
-                        readWholeLineAcc ((getMatched matchResult):soFar)
+                     )                     
+            +> matchWithoutNewLine >>>=
+                  ( \ line -> 
+                     readWholeLineAcc (line:soFar)
                      )
             +> matchEOF expect >>> eofAct (concat(reverse soFar))
             )
+
+      matchWithNewLine :: IA String 
+         -- match newline and don't advance
+      matchWithNewLine  =
+         match' expect "\\`(.*)\n" >>>=
+            ( \ (matchResult,nextLine) ->
+               do
+                  sync(nextLine False)
+                  let head : _ = getSubStrings matchResult
+                  return head
+               )
+      matchWithoutNewLine :: IA String 
+         -- match whole of remaining buffer if without newline, and do
+         -- advance
+      matchWithoutNewLine =
+         match' expect "\\`.*\\'" >>>=
+            ( \ (matchResult,nextLine) ->
+               do
+                  sync(nextLine True)
+                  return(getMatched matchResult)
+               )
 
 matchLongLine = error "Expect.matchLongLine used"
 {- 

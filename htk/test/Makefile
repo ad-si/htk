@@ -1,73 +1,276 @@
-HCINC      = 
-
-LIBS       = ../libhtk.a\
+LIBS       = $(HTKDIR)/libhtk.a\
 	     $(REACTORDIR)/libreactor.a\
 	     $(CONCDIR)/libconcurrency.a\
 	     $(UTILDIR)/libutil.a
 
-LIB        = 
+SRCS = Test1.hs Test2.hs Test3.hs Test9.hs Test10.hs TestBug3.hs Counter.hs Util.hs
 
-SRCS       = 
-      
-SRCSH      = 
-
-SRCSC      = 
-
-OLDOBJS       = 
-
-PGMS       = test1 test2 test3 test9 test10
-
-PGM_OBJS   = Counter.o\
-	 TestUtil.o\
-	 Test1.o\
-	 Test2.o\
-	 Test3.o\
- 	 Test9.o\
-         Test10.o\
-
-
-EXTRA_DEPS =  Counter.hs\
-	 TestUtil.hs\
-	 Test1.hs\
-	 Test2.hs\
-	 Test3.hs\
- 	 Test9.hs\
-         Test10.hs
-
-
-EXTRA_HC_OPTIONS += -H30M
-
-
-all: $(PGMS)
+LIB = libhtkTest.a
 
 include top/mk/boilerplate.mk
 
-test0:    $(LIBS) $(LIB) Counter.o TestUtil.o Test0.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) Counter.o TestUtil.o Test0.o $(LIB) $(LIBS)
-
-test1:    $(LIBS) $(LIB) Counter.o TestUtil.o Test1.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) Counter.o TestUtil.o Test1.o $(LIB) $(LIBS)
-
-test2:    $(LIBS) $(LIB) Counter.o TestUtil.o Test2.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) Counter.o TestUtil.o  Test2.o $(LIB) $(LIBS)
-
-test3:    $(LIBS) $(LIB) Counter.o TestUtil.o Test3.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) Counter.o TestUtil.o Test3.o $(LIB) $(LIBS)
-
-test9:    $(LIBS) $(LIB) TestUtil.o Counter.o Test9.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestUtil.o Counter.o  Test9.o $(LIB) $(LIBS)
-
-test10:    $(LIBS) $(LIB) TestUtil.o Counter.o Test10.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestUtil.o Counter.o  Test10.o $(LIB) $(LIBS)
-
-bug3:      $(LIBS) $(LIB) Bug3.o
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) Bug3.o $(LIB) $(LIBS)
 # DO NOT DELETE: Beginning of Haskell dependencies
+Test1.o : Test1.hs
+Test1.o : top/htk/toplevel/HTk.hi
+Test1.o : top/concurrency/Concurrency.hi
+Test1.o : ./Counter.hi
+Test1.o : top/htk/toolkit/Prompt.hi
+Test1.o : top/htk/toolkit/DialogWin.hi
+Test1.o : top/htk/resources/Font.hi
+Test1.o : top/htk/devices/Mouse.hi
+Test1.o : top/htk/devices/Screen.hi
+Test1.o : top/htk/devices/Printer.hi
+Test1.o : top/htk/components/Index.hi
+Test1.o : top/htk/components/Selection.hi
+Test1.o : top/htk/components/ICursor.hi
+Test1.o : top/htk/components/Slider.hi
+Test1.o : top/htk/components/Icon.hi
+Test1.o : top/htk/devices/Keyboard.hi
+Test1.o : top/htk/devices/Bell.hi
+Test1.o : top/htk/containers/Frame.hi
+Test1.o : top/htk/containers/Box.hi
+Test1.o : top/htk/widgets/Label.hi
+Test1.o : top/htk/components/Image.hi
+Test1.o : top/htk/components/BitMap.hi
+Test1.o : top/htk/widgets/Message.hi
+Test1.o : top/htk/widgets/Entry.hi
+Test1.o : top/htk/widgets/ListBox.hi
+Test1.o : top/htk/widgets/Scale.hi
+Test1.o : top/htk/widgets/ScrollBar.hi
+Test1.o : top/htk/menuitems/Button.hi
+Test1.o : top/htk/menuitems/RadioButton.hi
+Test1.o : top/htk/menuitems/CheckButton.hi
+Test1.o : top/htk/menuitems/MenuButton.hi
+Test1.o : top/htk/menuitems/Separator.hi
+Test1.o : top/htk/menuitems/Menu.hi
+Test1.o : top/htk/menuitems/PulldownMenu.hi
+Test1.o : top/htk/widgets/Canvas.hi
+Test1.o : top/htk/canvasitems/CanvasItem.hi
+Test1.o : top/htk/canvasitems/CanvasTag.hi
+Test1.o : top/htk/canvasitems/Arc.hi
+Test1.o : top/htk/canvasitems/Line.hi
+Test1.o : top/htk/canvasitems/Oval.hi
+Test1.o : top/htk/canvasitems/Polygon.hi
+Test1.o : top/htk/canvasitems/Rectangle.hi
+Test1.o : top/htk/canvasitems/EmbeddedCanvasWin.hi
+Test1.o : top/htk/canvasitems/TextItem.hi
+Test1.o : top/htk/canvasitems/BitMapItem.hi
+Test1.o : top/htk/canvasitems/ImageItem.hi
+Test1.o : top/htk/widgets/Editor.hi
+Test1.o : top/htk/textitems/TextTag.hi
+Test1.o : top/htk/textitems/EmbeddedTextWin.hi
+Test1.o : ./Util.hi
+Test1.o : top/util/Debug.hi
+Test2.o : Test2.hs
+Test2.o : top/htk/toplevel/HTk.hi
+Test2.o : top/htk/kernel/GUICore.hi
+Test2.o : top/reactor/SIM.hi
+Test2.o : top/util/Dynamics.hi
+Test2.o : top/htk/widgets/Editor.hi
+Test2.o : top/htk/widgets/Entry.hi
+Test2.o : top/htk/widgets/Label.hi
+Test2.o : top/htk/devices/Keyboard.hi
+Test2.o : top/htk/devices/Mouse.hi
+Test2.o : top/htk/widgets/ListBox.hi
+Test2.o : top/htk/components/Selection.hi
+Test2.o : top/htk/toolkit/MatrixBox.hi
+Test2.o : top/htk/widgets/Editor.hi
+Test2.o : top/htk/textitems/Mark.hi
+Test2.o : top/htk/textitems/TextTag.hi
+Test2.o : top/htk/textitems/EmbeddedTextWin.hi
+Test2.o : top/htk/menuitems/PulldownMenu.hi
+Test2.o : top/htk/widgets/Scale.hi
+Test2.o : top/htk/widgets/Canvas.hi
+Test2.o : top/htk/menuitems/Separator.hi
+Test2.o : top/htk/widgets/Message.hi
+Test2.o : top/htk/menuitems/Button.hi
+Test2.o : top/htk/toolkit/LabelBox.hi
+Test2.o : top/htk/widgets/ScrollBar.hi
+Test2.o : top/htk/canvasitems/CanvasItem.hi
+Test2.o : top/htk/canvasitems/Rectangle.hi
+Test2.o : top/htk/canvasitems/Oval.hi
+Test2.o : top/htk/containers/Frame.hi
+Test2.o : top/htk/canvasitems/Line.hi
+Test2.o : top/htk/toolkit/DialogWin.hi
+Test2.o : ./Counter.hi
+Test2.o : top/htk/devices/Bell.hi
+Test2.o : ./Util.hi
+Test2.o : top/util/Debug.hi
+Test3.o : Test3.hs
+Test3.o : top/concurrency/Concurrency.hi
+Test3.o : top/util/Dynamics.hi
+Test3.o : top/htk/toplevel/HTk.hi
+Test3.o : ./Counter.hi
+Test3.o : top/htk/toolkit/Prompt.hi
+Test3.o : top/htk/toolkit/RadioGroup.hi
+Test3.o : top/htk/toolkit/DialogWin.hi
+Test3.o : top/htk/devices/Mouse.hi
+Test3.o : top/htk/devices/Screen.hi
+Test3.o : top/htk/devices/Printer.hi
+Test3.o : top/htk/components/Index.hi
+Test3.o : top/htk/components/Selection.hi
+Test3.o : top/htk/components/ICursor.hi
+Test3.o : top/htk/components/Slider.hi
+Test3.o : top/htk/components/Icon.hi
+Test3.o : top/htk/devices/Keyboard.hi
+Test3.o : top/htk/devices/Bell.hi
+Test3.o : top/htk/containers/Frame.hi
+Test3.o : top/htk/containers/Box.hi
+Test3.o : top/htk/widgets/Label.hi
+Test3.o : top/htk/components/Image.hi
+Test3.o : top/htk/components/BitMap.hi
+Test3.o : top/htk/widgets/Message.hi
+Test3.o : top/htk/widgets/Entry.hi
+Test3.o : top/htk/widgets/ListBox.hi
+Test3.o : top/htk/widgets/Scale.hi
+Test3.o : top/htk/widgets/ScrollBar.hi
+Test3.o : top/htk/menuitems/Button.hi
+Test3.o : top/htk/menuitems/RadioButton.hi
+Test3.o : top/htk/menuitems/CheckButton.hi
+Test3.o : top/htk/menuitems/MenuButton.hi
+Test3.o : top/htk/menuitems/Separator.hi
+Test3.o : top/htk/menuitems/Menu.hi
+Test3.o : top/htk/menuitems/PulldownMenu.hi
+Test3.o : top/htk/widgets/Canvas.hi
+Test3.o : top/htk/canvasitems/CanvasItem.hi
+Test3.o : top/htk/canvasitems/CanvasTag.hi
+Test3.o : top/htk/canvasitems/Arc.hi
+Test3.o : top/htk/canvasitems/Line.hi
+Test3.o : top/htk/canvasitems/Oval.hi
+Test3.o : top/htk/canvasitems/Polygon.hi
+Test3.o : top/htk/canvasitems/Rectangle.hi
+Test3.o : top/htk/canvasitems/EmbeddedCanvasWin.hi
+Test3.o : top/htk/canvasitems/TextItem.hi
+Test3.o : top/htk/canvasitems/BitMapItem.hi
+Test3.o : top/htk/canvasitems/ImageItem.hi
+Test3.o : top/htk/widgets/Editor.hi
+Test3.o : top/htk/textitems/TextTag.hi
+Test3.o : top/htk/textitems/EmbeddedTextWin.hi
+Test3.o : ./Util.hi
+Test3.o : top/util/Debug.hi
+Test9.o : Test9.hs
+Test9.o : top/htk/toplevel/HTk.hi
+Test9.o : top/concurrency/Concurrency.hi
+Test9.o : ./Counter.hi
+Test9.o : top/htk/devices/Bell.hi
+Test9.o : top/htk/menuitems/PulldownMenu.hi
+Test9.o : top/htk/kernel/GUIObject.hi
+Test9.o : top/util/Debug.hi
+Test10.o : Test10.hs
+Test10.o : top/htk/toplevel/HTk.hi
+Test10.o : top/concurrency/Concurrency.hi
+Test10.o : ./Counter.hi
+Test10.o : top/htk/toolkit/Prompt.hi
+Test10.o : top/htk/toolkit/DialogWin.hi
+Test10.o : top/htk/resources/Font.hi
+Test10.o : top/htk/devices/Mouse.hi
+Test10.o : top/htk/devices/Screen.hi
+Test10.o : top/htk/devices/Printer.hi
+Test10.o : top/htk/components/Index.hi
+Test10.o : top/htk/components/Selection.hi
+Test10.o : top/htk/components/ICursor.hi
+Test10.o : top/htk/components/Slider.hi
+Test10.o : top/htk/components/Icon.hi
+Test10.o : top/htk/devices/Keyboard.hi
+Test10.o : top/htk/devices/Bell.hi
+Test10.o : top/htk/containers/Frame.hi
+Test10.o : top/htk/containers/Box.hi
+Test10.o : top/htk/widgets/Label.hi
+Test10.o : top/htk/components/Image.hi
+Test10.o : top/htk/components/BitMap.hi
+Test10.o : top/htk/widgets/Message.hi
+Test10.o : top/htk/widgets/Entry.hi
+Test10.o : top/htk/widgets/ListBox.hi
+Test10.o : top/htk/widgets/Scale.hi
+Test10.o : top/htk/widgets/ScrollBar.hi
+Test10.o : top/htk/menuitems/Button.hi
+Test10.o : top/htk/menuitems/RadioButton.hi
+Test10.o : top/htk/menuitems/CheckButton.hi
+Test10.o : top/htk/menuitems/MenuButton.hi
+Test10.o : top/htk/menuitems/Separator.hi
+Test10.o : top/htk/menuitems/Menu.hi
+Test10.o : top/htk/menuitems/PulldownMenu.hi
+Test10.o : top/htk/widgets/Canvas.hi
+Test10.o : top/htk/canvasitems/CanvasItem.hi
+Test10.o : top/htk/canvasitems/CanvasTag.hi
+Test10.o : top/htk/canvasitems/Arc.hi
+Test10.o : top/htk/canvasitems/Line.hi
+Test10.o : top/htk/canvasitems/Oval.hi
+Test10.o : top/htk/canvasitems/Polygon.hi
+Test10.o : top/htk/canvasitems/Rectangle.hi
+Test10.o : top/htk/canvasitems/EmbeddedCanvasWin.hi
+Test10.o : top/htk/canvasitems/TextItem.hi
+Test10.o : top/htk/canvasitems/BitMapItem.hi
+Test10.o : top/htk/canvasitems/ImageItem.hi
+Test10.o : top/htk/widgets/Editor.hi
+Test10.o : top/htk/textitems/TextTag.hi
+Test10.o : top/htk/textitems/EmbeddedTextWin.hi
+Test10.o : ./Util.hi
+Test10.o : top/util/Debug.hi
+TestBug3.o : TestBug3.hs
+TestBug3.o : top/htk/toplevel/HTk.hi
+TestBug3.o : top/concurrency/Concurrency.hi
+TestBug3.o : top/htk/menuitems/PulldownMenu.hi
+TestBug3.o : top/htk/containers/Frame.hi
+TestBug3.o : top/htk/widgets/Label.hi
+TestBug3.o : top/htk/widgets/Entry.hi
+TestBug3.o : top/htk/devices/Keyboard.hi
+TestBug3.o : top/htk/toolkit/DialogWin.hi
+TestBug3.o : top/concurrency/Selective.hi
+TestBug3.o : top/util/Debug.hi
+Counter.o : Counter.hs
+Counter.o : top/htk/toplevel/HTk.hi
+Counter.o : top/htk/toolkit/Prompt.hi
+Counter.o : top/htk/menuitems/Button.hi
+Counter.o : top/util/Debug.hi
+Util.o : Util.hs
+Util.o : top/htk/toplevel/HTk.hi
+Util.o : top/concurrency/Concurrency.hi
+Util.o : ./Counter.hi
+Util.o : top/htk/toolkit/Prompt.hi
+Util.o : top/htk/toolkit/DialogWin.hi
+Util.o : top/htk/resources/Font.hi
+Util.o : top/htk/devices/Mouse.hi
+Util.o : top/htk/devices/Screen.hi
+Util.o : top/htk/devices/Printer.hi
+Util.o : top/htk/components/Index.hi
+Util.o : top/htk/components/Selection.hi
+Util.o : top/htk/components/ICursor.hi
+Util.o : top/htk/components/Slider.hi
+Util.o : top/htk/components/Icon.hi
+Util.o : top/htk/devices/Keyboard.hi
+Util.o : top/htk/devices/Bell.hi
+Util.o : top/htk/containers/Frame.hi
+Util.o : top/htk/containers/Box.hi
+Util.o : top/htk/widgets/Label.hi
+Util.o : top/htk/components/Image.hi
+Util.o : top/htk/components/BitMap.hi
+Util.o : top/htk/widgets/Message.hi
+Util.o : top/htk/widgets/Entry.hi
+Util.o : top/htk/widgets/ListBox.hi
+Util.o : top/htk/widgets/Scale.hi
+Util.o : top/htk/widgets/ScrollBar.hi
+Util.o : top/htk/menuitems/Button.hi
+Util.o : top/htk/menuitems/RadioButton.hi
+Util.o : top/htk/menuitems/CheckButton.hi
+Util.o : top/htk/menuitems/MenuButton.hi
+Util.o : top/htk/menuitems/Separator.hi
+Util.o : top/htk/menuitems/Menu.hi
+Util.o : top/htk/menuitems/PulldownMenu.hi
+Util.o : top/htk/widgets/Canvas.hi
+Util.o : top/htk/canvasitems/CanvasItem.hi
+Util.o : top/htk/canvasitems/CanvasTag.hi
+Util.o : top/htk/canvasitems/Arc.hi
+Util.o : top/htk/canvasitems/Line.hi
+Util.o : top/htk/canvasitems/Oval.hi
+Util.o : top/htk/canvasitems/Polygon.hi
+Util.o : top/htk/canvasitems/Rectangle.hi
+Util.o : top/htk/canvasitems/EmbeddedCanvasWin.hi
+Util.o : top/htk/canvasitems/TextItem.hi
+Util.o : top/htk/canvasitems/BitMapItem.hi
+Util.o : top/htk/canvasitems/ImageItem.hi
+Util.o : top/htk/widgets/Editor.hi
+Util.o : top/htk/textitems/TextTag.hi
+Util.o : top/htk/textitems/EmbeddedTextWin.hi
+Util.o : top/util/Debug.hi
 # DO NOT DELETE: End of Haskell dependencies

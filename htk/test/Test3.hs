@@ -74,7 +74,7 @@ import Editor
 import TextTag
 import EmbeddedTextWin
 
-import TestUtil (logout)
+import Util (logout)
 import Debug(debug)
 
 

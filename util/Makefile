@@ -1,41 +1,8 @@
-HCINC      =
-
-IMPS	   = *.hi
-
-LIBS       =
-
-THIS	   = util
-
 LIB        = libutil.a
 
 SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs WBFiles.hs Object.hs Date.hs Debug.hs Maybes.hs
   
-SRCSH      = 
-SRCSC      = 
-
-PGMS       = 
-PGM_OBJS   = 
-EXTRA_DEPS = 
-
-
-EXTRA_HC_OPTIONS += -O -H30M
-
 include top/mk/boilerplate.mk
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # DO NOT DELETE: Beginning of Haskell dependencies
 Queue.o : Queue.hs

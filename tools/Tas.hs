@@ -27,7 +27,8 @@ import DialogWin
 import Expect
 import ExtendedPrelude
 import Debug(debug)
-
+import Thread
+import EventStream
 
 -- --------------------------------------------------------------------------
 -- Semantic Domains

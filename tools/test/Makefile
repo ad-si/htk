@@ -1,109 +1,56 @@
-HCINC      = 
-
-LIBS       = ../libtools.a\
+LIBS       = $(TOOLSDIR)/libtools.a\
 	     $(HTKDIR)/libhtk.a\
 	     $(REACTORDIR)/libreactor.a\
 	     $(CONCDIR)/libconcurrency.a\
 	     $(UTILDIR)/libutil.a\
-	     $(REGEXPLIBDIR)/libRegexp.a\
 
-LIB        = 
+SRCS = Test3.hs TestDiff.hs TestGrep.hs TestHolCSP.hs TestHolZ.hs TestHugs1.hs TestHugs2.hs TestLatex.hs TestMoby.hs TestTextEdit.hs
 
-SRCS       = 
-      
-SRCSH      = 
-
-SRCSC      = 
-
-OLDOBJS       = 
-
-PGMS       = testdiff\
-		testgrep\
-		testholcsp\
-		testholz\
-		testhugs1\
-		testhugs2\
-		testlatex\
-		testmoby\
-		testtextedit\
+include top/mk/boilerplate.mk
 
 
-PGM_OBJS   = TestDiff.o\
-	 TestGrep.o\
-	 TestHolCSP.o\
-	 TestHolZ.o\
-	 TestHugs1.o\
-	 TestHugs2.o\
-	 TestLatex.o\
-	 TestMoby.o\
-	 TestTextEdit.o\
 
 
-EXTRA_DEPS =  TestDiff.hs\
-	 TestGrep.hs\
-	 TestHolCSP.hs\
-	 TestHolZ.hs\
-	 TestHugs1.hs\
-	 TestHugs2.hs\
-	 TestLatex.hs\
-	 TestMoby.hs\
-	 TestTextEdit.hs\
-
-
-EXTRA_HC_OPTIONS += -H30M
-
-
-all:
-	$(MAKE) testdiff
-	$(MAKE) testgrep
-	$(MAKE) testholcsp
-	$(MAKE) testholz
-	$(MAKE) testhugs1
-	$(MAKE) testhugs2
-	$(MAKE) testlatex
-	$(MAKE) testmoby
-	$(MAKE) testtextedit
-
-
-testdiff:    $(LIBS) $(LIB) TestDiff.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestDiff.o $(LIB) $(LIBS)
-
-
-testgrep:    $(LIBS) $(LIB) TestGrep.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestGrep.o $(LIB) $(LIBS)
-
-
-testholcsp:    $(LIBS) $(LIB) TestHolCSP.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestHolCSP.o $(LIB) $(LIBS)
-
-
-testholz:    $(LIBS) $(LIB) TestHolZ.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestHolZ.o $(LIB) $(LIBS)
-
-
-testhugs1:    $(LIBS) $(LIB) TestHugs1.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestHugs1.o $(LIB) $(LIBS)
-
-
-testhugs2:    $(LIBS) $(LIB) TestHugs2.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestHugs2.o $(LIB) $(LIBS)
-
-testlatex:    $(LIBS) $(LIB) TestLatex.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestLatex.o $(LIB) $(LIBS)
-
-testmoby:    $(LIBS) $(LIB) TestMoby.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestMoby.o $(LIB) $(LIBS)
-
-testtextedit:    $(LIBS) $(LIB) TestTextEdit.o  
-	$(RM) $@
-	$(HC) -o $@ $(HCFLAGS) TestTextEdit.o $(LIB) $(LIBS)
-
-
+# DO NOT DELETE: Beginning of Haskell dependencies
+Test3.o : Test3.hs
+Test3.o : top/tools/WB.hi
+Test3.o : top/tools/Tas.hi
+Test3.o : top/util/Debug.hi
+TestDiff.o : TestDiff.hs
+TestDiff.o : top/tools/WB.hi
+TestDiff.o : top/tools/Diff.hi
+TestDiff.o : top/util/Debug.hi
+TestGrep.o : TestGrep.hs
+TestGrep.o : top/tools/WB.hi
+TestGrep.o : top/tools/Grep.hi
+TestGrep.o : top/util/Debug.hi
+TestHolCSP.o : TestHolCSP.hs
+TestHolCSP.o : top/tools/WB.hi
+TestHolCSP.o : top/tools/HolCSP.hi
+TestHolCSP.o : top/util/Debug.hi
+TestHolZ.o : TestHolZ.hs
+TestHolZ.o : top/tools/WB.hi
+TestHolZ.o : top/tools/HolZ.hi
+TestHolZ.o : top/util/Debug.hi
+TestHugs1.o : TestHugs1.hs
+TestHugs1.o : top/tools/WB.hi
+TestHugs1.o : top/tools/Hugs.hi
+TestHugs1.o : top/util/Debug.hi
+TestHugs2.o : TestHugs2.hs
+TestHugs2.o : top/tools/WB.hi
+TestHugs2.o : top/tools/Hugs.hi
+TestHugs2.o : top/util/Debug.hi
+TestLatex.o : TestLatex.hs
+TestLatex.o : top/tools/WB.hi
+TestLatex.o : top/tools/Latex.hi
+TestLatex.o : top/tools/Dvips.hi
+TestLatex.o : top/htk/toolkit/DialogWin.hi
+TestLatex.o : top/util/Debug.hi
+TestMoby.o : TestMoby.hs
+TestMoby.o : top/tools/WB.hi
+TestMoby.o : top/tools/Moby.hi
+TestMoby.o : top/util/Debug.hi
+TestTextEdit.o : TestTextEdit.hs
+TestTextEdit.o : top/tools/WB.hi
+TestTextEdit.o : top/util/Debug.hi
+# DO NOT DELETE: End of Haskell dependencies

@@ -1,16 +1,7 @@
-THIS	   = davinci
-IMPS	   = *.hi
-
-HCINC      = 
-
-LIBS       = $(HTKDIR)/libhtk.a\
-	     $(REACTORDIR)/libreactor.a\
-	     $(CONCDIR)/libconcurrency.a\
-	     $(UTILDIR)/libutil.a\
-
 LIB        = libdavinci.a
 
-SRCS       = DaVinciGraphTerm.hs\
+SRCS       =
+         DaVinciGraphTerm.hs\
 	 DaVinciEvent.hs\
 	 DaVinciCore.hs\
 	 DaVinciMenu.hs\
@@ -30,21 +21,10 @@ SRCS       = DaVinciGraphTerm.hs\
 	 WidgetTreeView.hs\
 	 GraphEditor.hs\
 
- 
-      
-SRCSH      = 
-
-SRCSC      = 
-
-PGMS       = 
-
-PGM_OBJS   =  
-
-EXTRA_DEPS =  
-
-EXTRA_HC_OPTIONS += -O -H30M
+SUBDIRS = test
 
 include top/mk/boilerplate.mk
+
 
 # DO NOT DELETE: Beginning of Haskell dependencies
 DaVinciGraphTerm.o : DaVinciGraphTerm.hs

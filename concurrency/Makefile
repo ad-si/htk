@@ -1,8 +1,3 @@
-THIS	   = concurrency
-IMPS	   = *.hi
-
-LIBS       = $(UTILDIR)/libutil.a
-
 LIB        = libconcurrency.a
 
 SRCS       = Thread.hs\
@@ -24,24 +19,10 @@ SRCS       = Thread.hs\
              TwoWayChannel.hs\
              EV.hs\
              Channels.hs\
-#	     Buffer.hs\
 
-SRCSC      = 
-SRCSH      =
-
-PGMS       = 
-
-PGM_OBJS   =
-
-EXTRA_DEPS = 
-
-
-EXTRA_HC_OPTIONS += -O -H30M
+SUBDIRS = test
 
 include top/mk/boilerplate.mk
-
-ThreadWait : Time.h
-
 
 # DO NOT DELETE: Beginning of Haskell dependencies
 Thread.o : Thread.hs

@@ -24,6 +24,8 @@ module Moby (
         ) where
 
 import WB
+import SIMClasses
+import Observer
 import Debug(debug)
 
 

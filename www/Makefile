@@ -1,17 +1,7 @@
-THIS 	   = www
-
-IMPS	   = *.hi
-
-HCINC      = 
-
-LIBS       = $(HTKDIR)/libhtk.a\
-	     $(REACTORDIR)/libreactor.a\
-	     $(CONCDIR)/libconcurrency.a\
-	     $(UTILDIR)/libutil.a\
-
 LIB        = libwww.a
 
-SRCS       = HtmlTypes.hs\
+SRCS       = \
+         HtmlTypes.hs\
 	 HtmlClasses.hs\
 	 HtmlKernel.hs\
 	 HtmlList.hs\
@@ -25,34 +15,8 @@ SRCS       = HtmlTypes.hs\
 	 HtmlFrame.hs\
 	 Html.hs\
 	 TableGen.hs
- 
-      
-SRCSH      = 
 
-SRCSC      = 
-
-OBJS       = HtmlTypes.o\
-	 HtmlClasses.o\
-	 HtmlKernel.o\
-	 HtmlList.o\
-	 HtmlBlock.o\
-	 HtmlText.o\
-	 HtmlLink.o\
-	 HtmlMeta.o\
-	 HtmlForm.o\
-	 HtmlApplet.o\
-	 HtmlTable.o\
-	 HtmlFrame.o\
-	 Html.o\
-	 TableGen.o            
-
-PGMS       = 
-
-PGM_OBJS   =  
-
-EXTRA_DEPS =  
-
-EXTRA_HC_OPTIONS += -H30M
+SUBDIRS = test
 
 include top/mk/boilerplate.mk
 

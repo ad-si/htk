@@ -56,7 +56,7 @@ import DialogWin
 import Counter
 import Bell
 
-import TestUtil (logout)
+import Util (logout)
 import Debug(debug)
 
 

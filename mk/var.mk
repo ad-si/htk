@@ -13,14 +13,12 @@ include top/mk/machinedep.mk # set variables which depend on the machine
 # HCHOME set in machinedep.mk
 HC               = $(HCHOME)/bin/ghc
 DEPEND           = $(HCHOME)/bin/ghc -M -optdep
-# GHCINCDIR        = -I$(HCHOME)/lib/includes -I/usr/local/lang/gnu/lib/gcc-lib/sparc-sun-solaris2.6/2.7.2.3/include
 GHCINCDIR        = -I$(HCHOME)/lib/includes 
-# GHCINCDIR        = -I$(HCHOME)/lib/includes 
 
 ifdef DEBUG
-   EXTRA_HC_OPTIONS = -recomp -Onot -DDEBUG
+   HC_OPTIONS = -recomp -Onot -DDEBUG
 else
-   EXTRA_HC_OPTIONS = -recomp -O -O2-for-C
+   HC_OPTIONS = -recomp -O -O2-for-C
 endif
 
 HCSYSLIBS = -syslib concurrent -syslib data -syslib net -syslib posix -syslib text -syslib util -syslib lang
@@ -32,23 +30,18 @@ HCLIBSACTUAL = $(HCHOME)/lib/libHSposix.a $(HCHOME)/lib/libHSposix_cbits.a $(HCH
 HCFLAGS = $(HCSYSLIBS) \
           -i$(HCDIRS) \
           -fglasgow-exts \
-          -fallow-undecidable-instances \
           -fallow-overlapping-instances \
 	  -cpp -hi-diffs -fvia-C \
 	  $(GHCINCDIR) \
-	  -H25M -K5M $(EXTRA_HC_OPTIONS) $(HCDEFS) $(HCINC)
+	  -H25M -K5M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
+# Try to live without:
+# -fallow-undecidable-instances \
 
 # Gnu C compiler.  NB - the GHC installation is hardwired to
 # a particular version of gcc, so don't go changing this unless
 # you change the GHC installation.  
 CC               = gcc
 CFLAGS           = $(GHCINCDIR)
-
-# mustmake script.  gmake always assume a file has been touched
-# when it is remade, without checking the date stamp.  This is
-# bad for example for .hi files.  So we use the mustmake script
-# to explicitly check the dependencies.
-MUSTMAKE = top/bin/mustmake
 
 # Subdirectories
 # . is automatically included by mkdependHS anyway (I don't

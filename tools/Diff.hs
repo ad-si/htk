@@ -13,27 +13,30 @@ DESCRIPTION   : diff encapsulation.
 
 
 module Diff (
-        Object(..),
-        Tool(..),
+   Object(..),
+   Tool(..),
+   
+   FilePath,
+   DiffSourceObj(..),
+   Diff
+   
+   ) where
 
-        FilePath,
-        DiffSourceObj(..),
-        Diff
+import Debug(debug)
 
-        ) where
+import Expect
 
-import WB
 import DialogWin
 import LogWin
-import Expect
-import Debug(debug)
+
+import WB
 
 -- --------------------------------------------------------------------------
 --  Classes
 -- --------------------------------------------------------------------------
 
 class DiffSourceObj o1 o2 where
-        newDiff :: o1 -> o2 -> [Config PosixProcess] -> IO Diff
+   newDiff :: o1 -> o2 -> [Config PosixProcess] -> IO Diff
 
 -- --------------------------------------------------------------------------
 -- Semantic Domains
@@ -46,17 +49,19 @@ data Diff = Diff Expect LogWin
 -- --------------------------------------------------------------------------
 
 instance DiffSourceObj FilePath FilePath where
-        newDiff fname1 fname2 confs = do {      
-                difffp <- getWBToolFilePath "diff";
-                exp <- newExpect difffp confs';
-                win <- newLogWin [text "diff"];
-                dtool <- return (Diff exp win);
-                interactor (\iact ->
-                        matchLine exp >>>= (writeLogWin win)
-                   +>   matchEOF exp  >>> stop iact
-                );
-                return dtool;
-                } where confs' = confs ++ [arguments ["-C","5",fname1,fname2]]
+   newDiff fname1 fname2 confs = 
+      do    
+         difffp <- getWBToolFilePath "diff"
+         exp <- newExpect difffp confs'
+         win <- newLogWin [text "diff"]
+         let dtool = Diff exp win
+         interactor (\iact ->
+               matchLine exp >>>= (writeLogWin win)
+            +> matchEOF exp  >>> stop iact
+               )
+         return dtool
+      where 
+         confs' = confs ++ [arguments ["-C","5",fname1,fname2]]
 
 
 
@@ -65,18 +70,22 @@ instance DiffSourceObj FilePath FilePath where
 -- --------------------------------------------------------------------------
 
 instance Object Diff where
-        objectID (Diff tool _) = objectID tool
+   objectID (Diff tool _) = objectID tool
 
 instance Tool Diff where
-        getToolStatus (Diff tool _) = getToolStatus tool
+   getToolStatus (Diff tool _) = getToolStatus tool
 
 instance UnixTool Diff where
-        getUnixProcessID (Diff tool _) = getUnixProcessID tool
+   getUnixProcessID (Diff tool _) = getUnixProcessID tool
 
 instance Destructible Diff where
-        destroy (Diff tool win) =  do {
-                destroy tool;
-                try(destroy win);
-                done
-                }
-        destroyed (Diff tool win) = destroyed win
+   destroy (Diff tool win) =  
+      do
+         destroy tool
+         try(destroy win)
+         done
+   destroyed (Diff tool win) = destroyed win
+
+
+
+

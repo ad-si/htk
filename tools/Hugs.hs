@@ -96,7 +96,10 @@ import WBFiles
 import Expect
 import Debug(debug)
 
-
+import EventStream
+import Variable
+import HTk
+import Thread
 -- --------------------------------------------------------------------------
 -- Semantic Domains
 -- --------------------------------------------------------------------------

@@ -28,7 +28,10 @@ import Editor
 import PromptWin
 import Interaction()
 import Debug(debug)
-
+import Expect
+import Variable
+import SIMClasses
+import Window(transient,modal)
 
 -- --------------------------------------------------------------------------
 -- Semantic Domains
@@ -46,9 +49,9 @@ newLatex fname wd = do {
         lwin @ (LogWin win _) <- newLogWin [text "Latex Log"];
         pv <- newPVar "";
         interactor (\iact -> 
-                expect ltx ("^.*LaTeX Error: File.*\n", 1::Int, [Case_Insensitive]) >>>= 
+                expect ltx ("^.*LaTeX Error: File.*\n", 1::Int) >>>= 
                         (setVar pv)
-           +>   expect ltx ("^Enter file name: ",1::Int,[Case_Insensitive]) >>> do {
+           +>   expect ltx ("^Enter file name: ",1::Int) >>> do {
                         msg <- getVar pv;
                         mfname <- newPromptDialog (take (length msg -1) msg) "" [
                                         text "Latex Error",

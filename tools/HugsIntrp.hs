@@ -18,10 +18,13 @@ module HugsIntrp (
 
         ) where
 
-import WB
+import Mutex
+
+import EventStream
 import Expect
 import Debug(debug)
 
+import WB
 
 
 -- --------------------------------------------------------------------------

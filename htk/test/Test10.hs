@@ -60,7 +60,7 @@ import Editor
 import TextTag
 import EmbeddedTextWin
 
-import TestUtil
+import Util
 import IO(stdout)
 import Debug(debug)
 

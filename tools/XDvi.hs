@@ -27,7 +27,8 @@ import LogWin
 import Editor
 import PromptWin
 import Debug(debug)
-
+import Expect
+import SIMClasses
 
 -- --------------------------------------------------------------------------
 -- Semantic Domains
