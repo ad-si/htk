@@ -321,8 +321,8 @@ lParams id l
 
   | id == "Properties" =
       do pos <- getPosition
-	 attributes <- try(between (char '{') (char '}') attParser)
-		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">")) 
+	 attributes <- try(between (char '[') (char ']') attParser)
+		       <?> (appendSourcePos pos ("[attribute-list] for Command <" ++ id ++ ">")) 
          return (LParams [] attributes Nothing Nothing)
 
   | id `elem` (map fst includeCommands) =
@@ -582,20 +582,18 @@ findFirstEnv :: [Frag] -> [Frag] -> Bool -> WithError (Element, Maybe MMiSSLatex
 
 findFirstEnv ((Env "Root" _ fs):[]) preambleFs _  = findFirstEnv fs preambleFs True
 findFirstEnv ((Env "document" _ fs):_) preambleFs _ = findFirstEnv fs preambleFs False
-findFirstEnv ((Env "Package" ps fs):_) preambleFs _ = 
-  let propAtts = case (getProperties preambleFs) of
-                   Just(propPs) -> makeAttribs propPs "Package"
+findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs _ = 
+  let propAtts = case (getProperties preambleFs) of 
+                   Just((LParams _ atts _ _)) -> atts
                    Nothing -> []
-      packAtts = makeAttribs ps "Package" 
       atts1 = unionAttributes propAtts packAtts
-      atts2 = case (getPathAttrib preambleFs) of
-                (Just a) -> [a]
-                Nothing -> []
-      atts = atts1 ++ atts2
+      atts2 = getPathAttrib preambleFs
+      xmlAtts = map convertAttrib (atts1 ++ atts2)
       content = makeContent fs NoText "package"
-      preamble = makePreamble preambleFs
+      newPropertiesFrag = (Command "Properties" (LParams [] atts1 Nothing Nothing))
+      preamble = makePreamble ((filterProperties preambleFs) ++ [newPropertiesFrag])
   in case (fromWithError content) of
-       Right c -> pairWithError (hasValue(Elem "package" atts c)) preamble
+       Right c -> pairWithError (hasValue(Elem "package" xmlAtts c)) preamble
        Left err -> pairWithError (hasError(err)) preamble
 
 findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
@@ -881,8 +879,12 @@ makeTextElem (f:fs) =
 {-- lparamsToString formatiert Params (Command-Parameter) in die ursprüngliche Latex-Form --}
 lparamsToString :: Params -> String
 lparamsToString (LParams singleParams atts _ _) = 
-  (concat (map singleParamToString singleParams)) 
-  ++ (getAttribs (map convertAttrib atts) "" [])
+  let pStr = (concat (map singleParamToString singleParams)) 
+      attStr = (getAttribs (map convertAttrib atts) "" [])
+      resultStr = if (attStr == "") 
+                    then pStr
+                    else pStr ++ "[" ++ attStr ++ "]"  
+  in resultStr 
 
 singleParamToString :: SingleParam -> String
 singleParamToString (SingleParam f '{') = "{" ++ (makeTextElem f) ++ "}"
@@ -1124,18 +1126,23 @@ detectTextMode name = if (name `elem` (map fst (envsWithText ++ plainTextAtoms))
 -- getPathAttrib bekommt die in der Preamble aufgesammelten Fragmente und sucht darin
 -- das \Import-Kommando, mit dem der Searchpath für importierte Elemente angebenen wird:
 
-getPathAttrib :: [Frag] -> Maybe Attribute
+getPathAttrib :: [Frag] -> Attributes
 
 getPathAttrib ((Command "Import" ps):fs) = 
   case ps of
-    (LParams ((SingleParam ((Other str):[]) _):sps) _ _ _) -> Just(("path", (AttValue [Left str])))
-    otherwise -> Nothing
+    (LParams ((SingleParam ((Other str):[]) _):sps) _ _ _) -> [("path", str)]
+    otherwise -> []
 getPathAttrib (f:fs) = getPathAttrib fs
-getPathAttrib [] = Nothing 
+getPathAttrib [] = []
+
+
+filterProperties :: [Frag] -> [Frag]
+filterProperties ((Command "Properties" _):fs) = fs
+filterProperties (f:fs) = [f] ++ (filterProperties fs)
+filterProperties [] = []
 
 
 getProperties :: [Frag] -> Maybe Params
-
 getProperties ((Command "Properties" ps):fs) = Just(ps)
 getProperties (f:fs) = getProperties fs
 getProperties [] = Nothing
@@ -1189,11 +1196,16 @@ makeDefineAttribs (LParams ((SingleParam ((Other labelId):[]) _):_) atts _ _) =
    [("label", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
 makeDefineAttribs _ = []
 
-
+{--
 unionAttributes :: [Attribute] -> [Attribute] -> [Attribute]
 unionAttributes xs ys = unionBy (eqAttPair) xs ys
+--}
 
-eqAttPair a b = (fst a) == (fst b)
+unionAttributes :: Attributes -> Attributes -> Attributes
+unionAttributes xs ys = unionBy (eqAttPair) xs ys
+
+eqAttPair :: Eq a => (a, b) -> (a, b) -> Bool 
+eqAttPair x y = (fst x) == (fst y)
 
 -- getLinkText erwartet die Params eines Link oder Reference-Elementes und extrahiert daraus
 -- den LinkText, der im ersten SingleParam steht und leer sein kann.
