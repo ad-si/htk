@@ -37,7 +37,7 @@ main =
          elEither = parseMMiSSLatex doc
       el <- case  fromWithError elEither of
          Left str -> ioError (userError str)
-         Right (el,_) -> return el
+         Right (el,_,_) -> return el
       putStr (toExportableXml el)
 {-
       let verified = validateElement "package" el
