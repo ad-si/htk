@@ -83,17 +83,17 @@ endif
 testhere : $(TESTPROGS)
 
 test : testhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir) test && ) echo Finished make test
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
 
 lib : libhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir) lib && ) echo Finished make lib
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) lib && ) echo Finished make lib
 
 all : testhere libhere
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir) all && ) echo Finished make all
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
 
 clean:
 	$(RM) -f $(TESTPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
-	$(foreach subdir,$(SUBDIRS),$(MAKE) -C $(subdir) clean && ) echo Finished make clean
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^
