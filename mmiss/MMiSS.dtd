@@ -122,20 +122,23 @@
 
 <!-- Views are not defined yet. -->
 
-<!ENTITY % group  "package | section | paragraph | view | includeGroup">
+<!ENTITY % group  "package | section | paragraph | view | includeGroup 
+                   | includeSection">
 
-<!ENTITY % conceptualAtom  "textFragment | table | figure 
+<!ENTITY % conceptualAtom  "textFragment | table | figure | includeTextFragment
                             | glossaryEntry | bibentry | includeConceptualAtom">
 
-<!ENTITY % formalAtom  "programFragment | clause | step">
+<!ENTITY % formalAtom  "programFragment | clause | step | includeProgramFragment
+                        | includeClause | includeStep">
 
 <!ENTITY % atom  "%conceptualAtom; | %formalAtom; | includeAtom">
 
-<!ENTITY % conceptualUnit  "example | exercise | definition">
+<!ENTITY % conceptualUnit  "example | exercise | definition | includeConceptualUnit">
 
 <!ENTITY % formalUnit  "program | theory | theorem | conjecture | lemma 
                         | corollary | assertion | development | proof 
-                        | script | includeFormalUnit">
+                        | script | includeProgram | includeTheory | includeScript
+                        | includeDevelopment | includeProof | includeFormalUnit">
 
 <!ENTITY % unit   "%conceptualUnit; | %formalUnit; | list | %atom; | includeUnit">
 
@@ -414,6 +417,11 @@
 <!ATTLIST includeFormalUnit included    CDATA #REQUIRED
                             status  (present | absent) "absent"
                             %attributes;>
+
+<!ELEMENT includeConceptualUnit EMPTY>
+<!ATTLIST includeConceptualUnit included    CDATA #REQUIRED
+                                status  (present | absent) "absent"
+                                %attributes;>
 
 <!ELEMENT includeAtom EMPTY>
 <!ATTLIST includeAtom included    CDATA #REQUIRED
