@@ -78,6 +78,7 @@ SRCS       = resources/Resources.hs\
 	     toolkit/ModalDialog.hs\
              toolkit/Separator.hs\
 	     toolkit/DialogWin.hs\
+             toolkit/SpinButton.hs\
 	     menuitems/Indicator.hs\
 	     menuitems/MenuItem.hs\
              menuitems/Menu.hs\

@@ -353,7 +353,8 @@ tkCleanupEntry oid _ = []
 {-# INLINE tkCleanupEntry #-}
 
 tkSetText :: ObjectName -> GUIVALUE -> TclScript
-tkSetText nm val = [show nm ++ " insert 0 " ++ show val]
+tkSetText nm val = [show nm ++ " delete 0 end",
+                    show nm ++ " insert 0 " ++ show val]
 {-# INLINE tkSetText #-}
 
 tkGetText :: ObjectName -> TclScript

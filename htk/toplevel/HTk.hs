@@ -253,6 +253,9 @@ instance Window HTk
 
 instance Container HTk
 
+instance Synchronized HTk where
+  synchronize = synchronize . toGUIObject
+
 
 -- -----------------------------------------------------------------------
 -- commands
