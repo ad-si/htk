@@ -6,6 +6,10 @@
 module GraphConfigure(
    GraphAllConfig, -- this is a subclass of GraphAll plus ALL configuration
                    -- options in this file.
+   HasGraphConfigs, -- all options for configuring graphs
+   HasNodeTypeConfigs, -- ditto node types
+   HasArcTypeConfigs, -- ditto arc types
+
    HasConfig(($$),configUsed), -- from Computation
    HasConfigValue(($$$),configUsed'), 
                    -- HasConfig lifted to options/configurations of kind
@@ -267,27 +271,65 @@ newtype AllowDragging = AllowDragging Bool
 instance GraphConfig AllowDragging
 
 ------------------------------------------------------------------------
+-- Grouping options
 -- GraphAllConfig
 ------------------------------------------------------------------------
 
-class 
-   (GraphAll graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms,
-   HasConfig GlobalMenu graphParms,
-   HasConfig GraphTitle graphParms,
-   HasConfig GraphGesture graphParms,
-   HasConfig OptimiseLayout graphParms,
-   HasConfig SurveyView graphParms,
-   HasConfig AllowDragging graphParms,
-   
+class (
+   HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
+   HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
+   HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms)
+   => HasGraphConfigs graphParms
+
+instance (
+   HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
+   HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
+   HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms)
+   => HasGraphConfigs graphParms
+
+class (
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
--- HasConfigValue Shape nodeTypeParms,
+   HasConfigValue Shape nodeTypeParms)
+   => HasNodeTypeConfigs nodeTypeParms
 
+instance (
+   HasConfigValue LocalMenu nodeTypeParms,
+   HasConfigValue ValueTitle nodeTypeParms,
+   HasConfigValue NodeGesture nodeTypeParms,
+   HasConfigValue NodeDragAndDrop nodeTypeParms,
+   HasConfigValue Shape nodeTypeParms)
+   => HasNodeTypeConfigs nodeTypeParms
+
+
+class (
    HasConfigValue LocalMenu arcTypeParms,
-   HasConfigValue ValueTitle arcTypeParms
+   HasConfigValue ValueTitle arcTypeParms)
+   => HasArcTypeConfigs arcTypeParms
+
+instance (
+   HasConfigValue LocalMenu arcTypeParms,
+   HasConfigValue ValueTitle arcTypeParms)
+   => HasArcTypeConfigs arcTypeParms
+
+class 
+   (GraphAll graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms,
+   HasGraphConfigs graphParms,
+   HasNodeTypeConfigs nodeTypeParms,
+   HasArcTypeConfigs arcTypeParms
+   ) 
+   => GraphAllConfig graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms  
+
+instance 
+   (GraphAll graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms,
+   HasGraphConfigs graphParms,
+   HasNodeTypeConfigs nodeTypeParms,
+   HasArcTypeConfigs arcTypeParms
    ) 
    => GraphAllConfig graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms  

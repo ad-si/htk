@@ -17,7 +17,7 @@ import qualified IOExts(unsafePerformIO)
 import Debug(debug,(@:))
 import Object
 
-data Toggle = Toggle ObjectID (Concurrent.MVar Bool)
+data Toggle = Toggle !ObjectID !(Concurrent.MVar Bool)
 
 newToggle :: IO Toggle
 newToggle = 
@@ -31,7 +31,7 @@ toggle1 :: Toggle -> IO Bool
 toggle1 (Toggle _ switch) =
    do
       oldVal <- Concurrent.takeMVar switch
-      "50" @: Concurrent.putMVar switch False
+      Concurrent.putMVar switch False
       return oldVal
 
 toggle2 :: (Toggle,Toggle) -> IO(Maybe(Bool,Bool))
@@ -76,8 +76,8 @@ toggle2 (Toggle unique1 switch1,Toggle unique2 switch2) =
                            opair = (oldVal1,oldVal2)
                         in
                            (opair,Just opair)
-            "51" @: Concurrent.putMVar switch1 newVal1
-            "52" @: Concurrent.putMVar switch2 newVal2
+            Concurrent.putMVar switch1 newVal1
+            Concurrent.putMVar switch2 newVal2
             return result
  
 

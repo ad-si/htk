@@ -149,11 +149,10 @@ emptyEVSet = EVSet inaction
 addEVSet :: EV a -> EVSet a -> EVSet a
 addEVSet new already =
    EVSet (
-         new >>>= 
-            (\ value -> return (value,already))
-      +>
          (getEVSetEvent already) >>>=
             (\ (value,remaining) -> return (value,addEVSet new remaining))
+      +> new >>>= 
+            (\ value -> return (value,already))
       )
 
 
