@@ -1,4 +1,3 @@
-
 module LaTeXParser (
    parseMMiSSLatex, -- :: String -> WithError Element
    -- Turn MMiSSLaTeX into an Element.   
@@ -55,15 +54,8 @@ data Params = MParams (Maybe FormId) LabelId Title Attributes   -- Parameter of 
             | LParams [SingleParam] (Maybe Attributes)          -- Parameter of LateX-Envs
               deriving Show
 
--- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
-{--
-mmiss2EnvIds = ["Package","Section","Paragraph","View","Example","Exercise","Definition"] ++
-               ["TextFragment","Table","Figure","GlossaryEntry", "Program","Theory","Theorem"] ++
-               ["Conjecture","Lemma","Corollary","Assertion","Development","Proof","Script"] ++
-               ["ProgramFragment","Clause","Step","Bibentry","Authorentry","List","Listitem"] ++
-               ["Emphasis"]
---}
+
 plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
                  [("Clause", "clause"), ("Step", "step"), ("Authorentry", "authorEntry")]
@@ -79,7 +71,15 @@ envsWithText = [("Section", "section"), ("Paragraph", "paragraph"), ("Abstract",
 envsWithoutText = [("Package", "package")]
 
 includeCommands =  [("IncludeGroup", "includeGroup"), ("IncludeUnit", "includeUnit")] ++
-                   [("IncludeAtom", "includeAtom"), ("IncludeTextFragment","includeTextFragment")]
+                   [("IncludeAtom", "includeAtom"), ("IncludeTextFragment","includeTextFragment")] ++
+		   [("IncludeSection", "includeSection"), ("IncludeAbstract","includeAbstract")] ++
+                   [("IncludeIntroduction", "includeIntroduction"), ("IncludeSummary","includeSummary")] ++
+                   [("IncludeFormalUnit", "includeFormalUnit"), ("IncludeAtom","includeAtom")] ++
+                   [("IncludeConceptualAtom", "includeConceptualAtom"), ("IncludeProgramFragment","includeProgramFragment")] ++
+                   [("IncludeProgram", "includeProgram"), ("IncludeClause","includeClause")] ++
+                   [("IncludeTheory", "includeTheory"), ("IncludeStep","includeStep")] ++
+                   [("IncludeProof", "includeProof"), ("IncludeScript","includeScript")] ++
+                   [("IncludeDevelopment", "includeDevelopment")]
 
 linkAndRefCommands = [("Link", "link"), ("ForwardLink","link"), ("Reference","reference")] ++
                      [("ForwardReference", "reference")]
@@ -87,6 +87,9 @@ linkAndRefCommands = [("Link", "link"), ("ForwardLink","link"), ("Reference","re
 embeddedElements = [("Emphasis","emphasis"), ("IncludeTextFragment","includeTextFragment")] ++
 		   [("Link","link") , ("Define", "define"), ("Reference", "reference")] ++
                    [("ForwardLink","link"), ("ForwardReference", "reference")]
+
+
+-- mmiss2EnvIds enthaelt alle gueltigen Environment-Ids.
 
 mmiss2EnvIds = plainTextAtoms ++ envsWithText ++ envsWithoutText ++ linkAndRefCommands
 
@@ -492,7 +495,7 @@ findFirstEnv [] _ _  = hasError("No root environment ('package' or some other en
 
 addPreamble :: Content -> Content -> Content
 addPreamble preambleElem (CElem (Elem name atts content))  = 
-  if (name `elem` (map snd includeCommands)) 
+  if ((name `elem` (map snd includeCommands)) || (name == "figure")) 
     then CElem (Elem name atts content)
     else CElem (Elem name atts ((map (addPreamble preambleElem) content) ++ [preambleElem]))
 addPreamble _ e = e
@@ -934,6 +937,76 @@ fillLatex ((CElem (Elem "includeTextFragment" atts _)):cs) inList =
        item = [EmacsLink (labelId, 'T')]
    in fillLatex cs (inList ++ item)
 
+fillLatex ((CElem (Elem "includeSection" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'S')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeAbstract" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'a')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeIntroduction" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'I')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeTextSummary" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 's')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeFormalUnit" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'F')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeConceptualAtom" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'C')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeProgramFragment" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'p')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeProgram" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'P')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeClause" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'c')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeTheory" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 't')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeStep" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'x')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeProof" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'y')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeScript" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'z')]
+   in fillLatex cs (inList ++ item)
+
+fillLatex ((CElem (Elem "includeDevelopment" atts _)):cs) inList = 
+   let labelId = getParam "included" atts
+       item = [EmacsLink (labelId, 'D')]
+   in fillLatex cs (inList ++ item)
+
 fillLatex ((CElem (Elem name atts contents)):cs) inList
   | (name `elem` (map snd linkAndRefCommands)) =  
     let forwardStr = if ((getParam "status" atts) == "absent")
@@ -1032,7 +1105,7 @@ parseMakeParse name = do root <- parseMMiSSLatexFile name
 getStrOfEmacsDataItem :: EmacsDataItem (String, Char) -> String
 
 getStrOfEmacsDataItem (EditableText str) = str
-getStrOfEmacsDataItem (EmacsLink (str,c)) = str                                   
+getStrOfEmacsDataItem (EmacsLink (str,c)) = str ++ [c]                                   
 
 
 append :: a -> [a] -> [a]
