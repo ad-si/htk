@@ -13,28 +13,32 @@ DESCRIPTION   :
 
 
 module DaVinciNodeType (
-        module DaVinciClasses,
+   module DaVinciClasses,
+   
+   NodeTypeDesignator(..), 
+   
+   getDefaultNodeType,
+   
+   NodeType,
+   newNodeType,
+   configNodeTypeMenu, -- :: LocalMenu Node -> NodeType -> IO NodeType
 
-        NodeTypeDesignator(..), 
+   nodetype,
+   getNodeType,
+   
+   illegalDaVinciBitMap
+   
+   ) where
 
-        getDefaultNodeType,
-
-        NodeType,
-        newNodeType,
-
-        nodetype,
-        getNodeType,
-
-        illegalDaVinciBitMap
-
-        ) where
+import Char(isSpace,toLower)
 
 import HTk
 import GUICore
 import Font
 import BitMap
 
-import Char(isSpace,toLower)
+import qualified GraphDisp
+
 import Line(ArrowHead(..))
 
 import DaVinciCore
@@ -121,15 +125,6 @@ instance DaVinciObject NodeType where
         getGraphContext (NodeType g _ _) = return g
         getDaVinciObjectID (NodeType _ _ (TypeId tnm)) = return tnm
 
-
-instance HasMenu NodeType where
-        menu mn nt@(NodeType g _ tid) = synchronize nt (do {
-                attrs <- lookupConfigs (toGUIObject nt);                
-                installNodeTypeMenu mn g tid (assocs attrs);
-                return nt
-                }) where assocs = map (\(cid,val) -> AttrAssoc cid val)
-
-
 instance Synchronized NodeType where
         synchronize nt = synchronize (toGUIObject nt)
 
@@ -154,6 +149,36 @@ instance HasBitMap NodeType where
                 (return . BitMapFile) str
                 }
 
+-- ---------------------------------------------------------------------------
+-- Install Menus
+-- ---------------------------------------------------------------------------
+
+configNodeTypeMenu :: GraphDisp.LocalMenu Node -> NodeType -> IO NodeType
+configNodeTypeMenu (GraphDisp.LocalMenu menuPrim) 
+      nodeType@(NodeType graph _ typeId) =
+   let
+      menuPrimId = -- menu with NodeId -> IO() rather than Node -> IO ().
+         GraphDisp.mapMenuPrim
+            (\ action ->
+               let
+                  actionId nodeId =
+                     do
+                        node <- getNode graph nodeId
+                        action node
+               in
+                  actionId
+               )
+            menuPrim
+      localId = GraphDisp.LocalMenu menuPrimId
+   in
+      synchronize nodeType (
+         do
+            attributes <- lookupConfigs (toGUIObject nodeType)
+            let
+               assocs = map (\ (cid,val) -> AttrAssoc cid val) attributes
+            installNodeTypeMenu localId graph typeId assocs
+            return nodeType
+         )
 
 -- ---------------------------------------------------------------------------
 --  Configure Options
@@ -169,7 +194,6 @@ getNodeType :: Node -> IO NodeType
 getNodeType (Node g (TypeId tnm) nid _) = 
         toNodeTypeDesignator (g,tnm)
         
-
 
 -- ---------------------------------------------------------------------------
 --  Bitmaps

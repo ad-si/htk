@@ -66,16 +66,18 @@ instance SIM.Destructible DaVinciGraph where
       )
 
 
-newtype DaVinciGraphParms = DaVinciGraphParms [Config DaVinci.Graph]
+newtype DaVinciGraphParms = DaVinciGraphParms {
+   graphConfigs :: [Config DaVinci.Graph]
+   }
 
 instance Graph DaVinciGraph where
    redraw (DaVinciGraph graph _) = DaVinci.redrawGraph graph
 
 instance NewGraph DaVinciGraph DaVinciGraphParms where
-   newGraph (DaVinciGraphParms graphParms) =
+   newGraph (DaVinciGraphParms {graphConfigs = graphConfigs}) =
       do
          (daVinci :: DaVinci.DaVinci) <- DaVinci.davinci []
-         graph <- DaVinci.newGraph (graphParms ++ [
+         graph <- DaVinci.newGraph (graphConfigs ++ [
             DaVinci.gapwidth 4,
             DaVinci.gapheight 40,
             DaVinci.dragging DaVinci.On
@@ -87,12 +89,15 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
          return (DaVinciGraph graph daVinci)
 
 instance GraphParms DaVinciGraphParms where
-   emptyGraphParms = DaVinciGraphParms []
+   emptyGraphParms = DaVinciGraphParms {graphConfigs = []}
 
 instance GraphConfigParms GraphTitle DaVinciGraphParms where
-   graphConfigUsed graphConfig graphParms = True
-   graphConfig (GraphTitle graphTitle) (DaVinciGraphParms graphParms) =
-      DaVinciGraphParms (HTk.text graphTitle : graphParms)
+   graphConfigUsed _ _  = True
+   graphConfig (GraphTitle graphTitle) daVinciGraphParms =
+      daVinciGraphParms {
+         graphConfigs = HTk.text graphTitle : 
+            (graphConfigs daVinciGraphParms)
+            }
 
 instance GraphConfig graphConfig 
    => GraphConfigParms graphConfig DaVinciGraphParms where
@@ -123,7 +128,7 @@ instance Typeable value => Typeable (DaVinciNodeType value) where
 data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
       nodeText :: (value -> IO String),
-      nodeMenuConfig :: Maybe (DaVinciGraph -> IO (Config DaVinci.NodeType))
+      nodeTypeConfigs :: [Config DaVinci.NodeType]
          -- config option for node type which if present configures a menu
          -- for this node type.
       }
@@ -161,22 +166,16 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
    newNodeType (daVinciGraph@(DaVinciGraph graph daVinci)) 
          (DaVinciNodeTypeParms {
             nodeText = nodeText,
-            nodeMenuConfig = nodeMenuConfig
+            nodeTypeConfigs = nodeTypeConfigs
             }) =
       do
-         configList <- case nodeMenuConfig of
-            Nothing -> return []
-            Just getConfig ->
-               do
-                  config <- getConfig daVinciGraph
-                  return [config] 
-         nodeType <- DaVinci.newNodeType graph Nothing configList
+         nodeType <- DaVinci.newNodeType graph Nothing nodeTypeConfigs
          return (DaVinciNodeType nodeType nodeText)
 
 instance NodeTypeParms DaVinciNodeTypeParms where
    emptyNodeTypeParms = DaVinciNodeTypeParms {
       nodeText = (\ value -> return ""),
-      nodeMenuConfig = Nothing
+      nodeTypeConfigs = []
       }
 
 instance NodeTypeConfig graphConfig 
@@ -202,7 +201,7 @@ newtype DaVinciArcType value = DaVinciArcType DaVinci.EdgeType
 
 data DaVinciArcTypeParms value = 
    DaVinciArcTypeParms {
-      arcMenuConfig :: Maybe (DaVinciGraph -> IO (Config DaVinci.EdgeType))
+      arcTypeConfigs :: [Config DaVinci.EdgeType]
          -- config option for arc type which if present configures a menu
          -- for this node type.  
       }
@@ -251,22 +250,16 @@ instance ArcType DaVinciArcType where
 instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
    newArcType (daVinciGraph@(DaVinciGraph graph daVinci)) 
          (DaVinciArcTypeParms {
-            arcMenuConfig = arcMenuConfig
+            arcTypeConfigs = arcTypeConfigs
             }) =
       do
-         configList <- case arcMenuConfig of
-            Nothing -> return []
-            Just getConfig ->
-               do
-                  config <- getConfig daVinciGraph
-                  return [config]
-         edgeType <- DaVinci.newEdgeType graph Nothing configList
+         edgeType <- DaVinci.newEdgeType graph Nothing arcTypeConfigs
 
          return (DaVinciArcType edgeType)
 
 instance ArcTypeParms DaVinciArcTypeParms where
    emptyArcTypeParms = DaVinciArcTypeParms {
-      arcMenuConfig = Nothing
+      arcTypeConfigs = []
       }
 
 instance ArcTypeConfig arcTypeConfig 
@@ -279,138 +272,69 @@ instance ArcTypeConfig arcTypeConfig
 -- Menus
 ------------------------------------------------------------------------
 
-instance NodeTypeConfigParms MenuButton DaVinciNodeTypeParms where
+instance GraphConfigParms GlobalMenu DaVinciGraphParms where
+   graphConfigUsed _ _ = True
+   graphConfig globalMenu daVinciGraphParms =
+      daVinciGraphParms {
+         graphConfigs = (DaVinci.configGraphMenu globalMenu) :
+            (graphConfigs daVinciGraphParms)
+         }
+
+instance NodeTypeConfigParms LocalMenu DaVinciNodeTypeParms where
    nodeTypeConfigUsed _ _ = True
 
-   nodeTypeConfig menuButton daVinciNodeTypeParms =
+   nodeTypeConfig localMenu daVinciNodeTypeParms =
       daVinciNodeTypeParms {
-         nodeMenuConfig =
-            Just(
-               \ (DaVinciGraph graph daVinci) ->
-                  do
-                     newMenu <- convertMenuButton menuButton nodeLookup
-                     DaVinci.popupInterActor daVinci graph newMenu 
-                        Nothing DaVinci.popupSelectionNode
-                     return (DaVinci.menu newMenu)
-               )
-         }
+         nodeTypeConfigs =
+            (DaVinci.configNodeTypeMenu (convertNodeButton localMenu)) :
+               (nodeTypeConfigs daVinciNodeTypeParms)
+            }
 
-instance ArcTypeConfigParms MenuButton DaVinciArcTypeParms where
+instance ArcTypeConfigParms LocalMenu DaVinciArcTypeParms where
    arcTypeConfigUsed _ _ = True
 
-   arcTypeConfig menuButton daVinciArcTypeParms =
+   arcTypeConfig localMenu daVinciArcTypeParms =
       daVinciArcTypeParms {
-         arcMenuConfig =
-            Just(
-               \ (DaVinciGraph graph daVinci) ->
+         arcTypeConfigs =
+            (DaVinci.configEdgeTypeMenu (convertEdgeButton localMenu)) :
+               (arcTypeConfigs daVinciArcTypeParms)
+            }
+
+
+convertNodeButton :: Typeable value => LocalMenu value 
+   -> LocalMenu DaVinci.Node
+convertNodeButton (LocalMenu menuPrim) =
+   LocalMenu(
+      mapMenuPrim
+         (\ action ->
+            let
+               actionNode node =
                   do
-                     newMenu <- convertMenuButton menuButton edgeLookup
-                     DaVinci.popupInterActor daVinci graph newMenu 
-                        Nothing DaVinci.popupSelectionEdge
-                     return (DaVinci.menu newMenu)
-               )
-         }
+                     value <- nodeLookup node
+                     action value
+            in
+               actionNode
+            )   
+         menuPrim
+         )
 
+convertEdgeButton :: Typeable value => LocalMenu value 
+   -> LocalMenu DaVinci.Edge
+convertEdgeButton (LocalMenu menuPrim) =
+   LocalMenu(
+      mapMenuPrim
+         (\ action ->
+            let
+               actionEdge edge =
+                  do
+                     value <- edgeLookup edge
+                     action value
+            in
+               actionEdge
+            )   
+         menuPrim
+      )
 
-convertMenuButton :: Typeable value 
-   => MenuButton value -> (object -> IO value) 
-   -> IO (DaVinci.AppMenu object)
-   -- object is either DaVinci.Node or DaVinci.Edge and the function
-   -- will be nodeLookup or edgeLookup.
-convertMenuButton (Button label valueSink) objectToValue =
--- We special-case just one button by making it a menu with no
--- name and just one button.  This is because NodeType and EdgeType
--- are instances of HasMenu but nothing else useful that I can see.
-   do
-      menu <- makeMenu Nothing Nothing
-      attachButton menu objectToValue label valueSink
-      return menu
-convertMenuButton (Menu textOpt menuButtons) objectToValue =
-   do
-      menu <- makeMenu textOpt Nothing
-      attachMenuButtons menu objectToValue menuButtons
-      return menu
-
-attachButton :: 
-      (PulldownMenu.Menu (DaVinci.Graph -> object -> IO ())) -> 
-      (object -> IO value) -> String -> (value -> IO ()) -> IO ()
--- attachButton menu objectToValue label valueSink
--- attaches a new button to the menu to be attached to the
--- think of type "object".  The button is to have label "label".
--- When the button is clicked on the object, we get the corresponding
--- value using objectToValue and then execute the action obtained from
--- valueSink.
-attachButton menu objectToValue label valueSink =
-   do
-      let
-         objectSink object =
-            do
-               value <- objectToValue object
-               valueSink value
-      Button.newButton [
-         HTk.text label,
-         makeCommand objectSink,
-         HTk.parent menu
-         ]
-      done
-
-attachMenuButtons :: 
-      (PulldownMenu.Menu (DaVinci.Graph -> object -> IO ())) -> 
-      (object -> IO value) -> [MenuButton value] -> IO ()
--- attachMenuButtons menu objectToValue menuButtons
--- converts a list of MenuButton objects to the enclosing menu, passing the
--- objectToValue function to the attachButton function when it converts a
--- button.
-attachMenuButtons menu objectToValue [] = done
-attachMenuButtons menu objectToValue (menuButton : rest) =
-   do
-      case menuButton of
-         Button label valueSink -> 
-            attachButton menu objectToValue label valueSink
-         Menu textOpt menuButtons ->
-            do
-               innerMenu <- makeMenu textOpt (Just menu)
-               attachMenuButtons innerMenu objectToValue menuButtons
-      attachMenuButtons menu objectToValue rest
-
-makeCommand :: (object -> IO ()) -> 
-      Config (DaVinci.Button (DaVinci.Graph -> object -> IO ()))
--- HTk (and DaVinci?) allow a 
---    Button (DaVinci.Graph -> object -> IO ())
--- to have a command attached to it using the
---    command :: ( () -> IO (DaVinci.Graph -> object -> IO ()) ) ->
---        Config (Button (DaVinci.Graph -> object -> IO ()))
--- function (which comes out of
---    instance HasCommand () Button a
---    )
--- We construct such a config using the supplied action, to be 
--- executed when the object (a DaVinci node or edge) is clicked.
-makeCommand objectSink =
-   let
-      graphObjectSink graph object = objectSink object
-   in
-      HTk.command (\ () -> return graphObjectSink)
-
-makeMenu :: Maybe String -> Maybe (HTk.Menu a) -> IO (HTk.Menu a)
--- Makes a menu with header text (if specified) and parent menu
-makeMenu textOpt (Just (parentMenu :: HTk.Menu a)) =
-   do
-      let
-         confs1 = case textOpt of
-            Nothing -> []
-            Just text -> [HTk.text text]
-         confs2 = (HTk.parent parentMenu) : confs1
-      (menuButton::MenuButton.MenuButton a) <- MenuButton.newMenuButton confs2
-      menu <- PulldownMenu.newMenu [HTk.parent menuButton]
-      return menu
-makeMenu Nothing Nothing = PulldownMenu.newMenu []
-makeMenu (Just title) Nothing =
--- no real provision for this in HTk.  We create a sub-menu with the title.
-   do
-      menu <- PulldownMenu.newMenu []
-      makeMenu (Just title) (Just menu)
-   
-      
 ------------------------------------------------------------------------
 -- Dynamic data
 -- We need to keep dynamic data for the following reasons:

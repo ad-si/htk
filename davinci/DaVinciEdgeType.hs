@@ -13,25 +13,29 @@ DESCRIPTION   :
 
 
 module DaVinciEdgeType (
-        module DaVinciClasses,
+   module DaVinciClasses,
+   
+   EdgeTypeDesignator(..), 
+   
+   getDefaultEdgeType,
+   
+   EdgeType,
+   newEdgeType,
+   configEdgeTypeMenu, 
+       -- :: GraphDisp.LocalMenu Edge -> EdgeType -> IO EdgeType
+   
+   edgetype,
+   getEdgeType
+   
+   ) where
 
-        EdgeTypeDesignator(..), 
-
-        getDefaultEdgeType,
-
-        EdgeType,
-        newEdgeType,
-
-        edgetype,
-        getEdgeType
-
-        ) where
+import Char(isSpace,toLower)
 
 import HTk
 import Font
 import GUICore
 
-import Char(isSpace,toLower)
+import qualified GraphDisp
 
 import DaVinciCore
 import DaVinciGraphTerm
@@ -110,13 +114,6 @@ instance Destructible EdgeType where
         destroyed (EdgeType g o tnm) = destroyed o
 
 
-instance HasMenu EdgeType where
-        menu mn et@(EdgeType g _ tid) = synchronize et (do {
-                attrs <- lookupConfigs (toGUIObject et);                
-                installEdgeTypeMenu mn g tid (assocs attrs);
-                return et
-                }) where assocs = map (\(cid,val) -> AttrAssoc cid val)
-
 instance DaVinciObject EdgeType where
         getGraphContext (EdgeType g _ _) = return g
         getDaVinciObjectID (EdgeType g _ (TypeId tnm)) = return tnm
@@ -132,6 +129,38 @@ instance HasColour EdgeType where
         getColour nt cid        = cget nt "EDGECOLOR"
 
 -- ---------------------------------------------------------------------------
+-- Install Menus
+-- ---------------------------------------------------------------------------
+
+configEdgeTypeMenu :: GraphDisp.LocalMenu Edge -> EdgeType -> IO EdgeType
+configEdgeTypeMenu (GraphDisp.LocalMenu menuPrim) 
+      edgeType@(EdgeType graph _ typeId) =
+   let
+      menuPrimId = -- menu with EdgeId -> IO() rather than Edge -> IO ().
+         GraphDisp.mapMenuPrim
+            (\ action ->
+               let
+                  actionId edgeId =
+                     do
+                        edge <- getEdge graph edgeId
+                        action edge
+               in
+                  actionId
+               )
+            menuPrim
+      localId = GraphDisp.LocalMenu menuPrimId
+   in
+      synchronize edgeType (
+         do
+            attributes <- lookupConfigs (toGUIObject edgeType)
+            let
+               assocs = map (\ (cid,val) -> AttrAssoc cid val) attributes
+            installEdgeTypeMenu localId graph typeId assocs
+            return edgeType
+         )
+
+
+-- ---------------------------------------------------------------------------
 --  Configure Options
 -- ---------------------------------------------------------------------------
 
@@ -145,3 +174,5 @@ getEdgeType :: Edge -> IO EdgeType
 getEdgeType (Edge g (TypeId tnm) eid _) = 
         toEdgeTypeDesignator (g,tnm)
         
+
+

@@ -32,10 +32,6 @@ cirtical section of daVinci.
 
 
 module DaVinciCore (
-   Object(..),
-   Tool(..),
-   ToolStatus(..),
-   
    DaVinci(..),
    withDaVinci,
    withDaVinciOneWay,
@@ -53,7 +49,7 @@ module DaVinciCore (
    cleanupGraph,
    fDaVinci,
    fGraphObj,
-   
+   fRegister,
    newType,
    delType,
    getType,
@@ -66,8 +62,6 @@ module DaVinciCore (
    
    EventID,
    EventDesignator(..),
-   
-   module DaVinciEvent,
    
    listenDaVinci,
    
@@ -103,23 +97,27 @@ module DaVinciCore (
    
    ) where
 
-import SIM
-import qualified ExtendedPrelude
+import List
+import IO
+
 import qualified Posix
 import qualified IOExts(unsafePerformIO)
-
-import ChildProcess
-import GUICore                          
 import FiniteMap
-import MenuItem
 
+import qualified ExtendedPrelude
+import WBFiles
+import Object
+import Debug(debug)
+
+import SIM
+import ChildProcess
+
+import GUICore                         
 
 import DaVinciGraphTerm
 import DaVinciEvent
+import DaVinciActions
 
-import WBFiles
-
-import Debug(debug)
 
 -- ---------------------------------------------------------------------------
 -- DaVinci Data Definition & instantiations
@@ -128,14 +126,17 @@ import Debug(debug)
 data DaVinci = 
    DaVinci {
       fDispatcher     :: (Dispatcher DaVinciEventInfo),
-      fSession        :: GUIOBJECT,
-      fDaVinciState   :: (PVar DaVinciState)
+      fDaVinciState   :: (PVar DaVinciState),
+      fSession        :: GUIOBJECT 
+         -- only used to construct an event designator for DaVinci events,
+         -- so far as I know.
       }
 
-data DaVinciState = DaVinciState {
-                fContextID :: (Maybe ContextID),
-                fGraphs    :: [Graph]
-                }
+data DaVinciState = 
+   DaVinciState {
+      fContextID :: (Maybe ContextID),
+      fGraphs    :: [Graph]
+      }
 
 type ContextID = Int
 
@@ -144,81 +145,81 @@ type ContextID = Int
 -- ---------------------------------------------------------------------------
 
 data Graph = 
-        Graph {
-                fDaVinci    :: DaVinci,
-                fGraphObj   :: GUIOBJECT,
-                fGraphState :: (RVar GST),
-                fTypes      :: (PVar (FiniteMap TypeId GUIOBJECT))
-                }
+   Graph {
+      fDaVinci    :: DaVinci,
+      fGraphObj   :: GUIOBJECT, 
+         -- The object id number also identifies the graph context. 
+      fGraphState :: (RVar GraphState),
+      fTypes      :: (PVar (FiniteMap TypeId GUIOBJECT)),
+      fRegister   :: DaVinciActions.Register
+      }
 
-data GST =
-        GST {
-                fNextId         :: Int,
-                fNodeUpd        :: [NodeUpd],
-                fEdgeUpd        :: [EdgeUpd],
-                fAttrUpd        :: [AttrUpd],
-                fNodes          :: [Node],
-                fLinks          :: [Link],
-                fMenus          :: [MenuId],
-                fNodeSelection  :: [Node],
-                fEdgeSelection  :: [Edge]
-                }
+data GraphState =
+   GraphState {
+      fNextId         :: Int,
+      fNodeUpd        :: [NodeUpd],
+      fEdgeUpd        :: [EdgeUpd],
+      fAttrUpd        :: [AttrUpd],
+      fNodes          :: [Node],
+      fLinks          :: [Link],
+      fMenus          :: [MenuId],
+      fNodeSelection  :: [Node],
+      fEdgeSelection  :: [Edge]
+      }
 
 
 type Link = (Edge, Node, Node)  -- (edge, source, target)
 
 type MenuId = String
 
-emptyGST = GST 0 [] [] [] [] [] [] [] []
+emptyGraphState = GraphState 0 [] [] [] [] [] [] [] []
 
 -- ---------------------------------------------------------------------------
 -- Instances
 -- ---------------------------------------------------------------------------
 
-
 instance Object DaVinci where
-        objectID dav = objectID (fSession dav)
-
+   objectID daVinci = objectID(fSession daVinci)
  
 instance SingleInstanceTool DaVinci where 
-        getToolInstance = getDaVinciHandle
-
+   getToolInstance = getDaVinciHandle
 
 instance Destructible DaVinci where
-         destroy dav = shutdownDaVinci dav                                      
-         destroyed dav = 
-                        destroyed (fDispatcher dav)
-                  +>    disconnected dav
-          where disconnected :: DaVinci -> IA ()
-                disconnected dav =  
-                   (listenDaVinci (dav,DisConnect) :: IA DaVinciEventInfo) >>>= 
-                        \_ -> do {try (destroy dav); done}
- 
+   destroy daVinci = shutdownDaVinci daVinci 
+   destroyed daVinci = 
+            destroyed (fDispatcher daVinci)
+         +> disconnected daVinci
+      where 
+         disconnected :: DaVinci -> IA ()
+         disconnected daVinci =  
+            (listenDaVinci (daVinci,DisConnect) :: IA DaVinciEventInfo) >>> 
+               (do 
+                  try (destroy daVinci)
+                  done
+                )
 
 instance Tool DaVinci where
-         getToolStatus dav = getToolStatus (fDispatcher dav)
+   getToolStatus daVinci = getToolStatus (fDispatcher daVinci)
 
 instance UnixTool DaVinci where
-         getUnixProcessID dav = getUnixProcessID (fDispatcher dav)
-
+   getUnixProcessID daVinci = getUnixProcessID (fDispatcher daVinci)
 
 instance CommandTool DaVinci where
-        evalCmd cmd dav = evalCmd cmd (fDispatcher dav)
-        execCmd cmd dav = execCmd cmd (fDispatcher dav)
-        execOneWayCmd cmd dav = execOneWayCmd cmd (fDispatcher dav)
-
+   evalCmd cmd daVinci = evalCmd cmd (fDispatcher daVinci)
+   execCmd cmd daVinci = execCmd cmd (fDispatcher daVinci)
+   execOneWayCmd cmd daVinci = execOneWayCmd cmd (fDispatcher daVinci)
 
 instance Object Graph where 
-         objectID g = objectID (fGraphObj g)
+   objectID g = objectID(fGraphObj g)
 
 instance Eq Graph where
-        g1 == g2 = (objectID g1) == (objectID g2)
+    g1 == g2 = (objectID g1) == (objectID g2)
 
 instance Ord Graph where
-        g1 <= g2 = (objectID g1) <= (objectID g2)
+    g1 <= g2 = (objectID g1) <= (objectID g2)
 
 instance Synchronized Graph where
-        synchronize g = synchronize (fGraphObj g)
+    synchronize g = synchronize (fGraphObj g)
 
 
 -- ---------------------------------------------------------------------------
@@ -251,25 +252,36 @@ instance Eq Edge where
 instance Ord Edge where
         e1 <= e2 = (fEdgeObject e1) <= (fEdgeObject e2)
 
-
-
 -- ---------------------------------------------------------------------------
 --  Startup and Shutdown DaVinci
 -- ---------------------------------------------------------------------------
 
 startDaVinci :: IO DaVinci
-startDaVinci = do {
-        gobj <- newAbstractGUIObject;
-        cntx <- newPVar 0;
-        mq <- newMsgQueue;
-        tname <- getWBToolFilePath "daVinci";   
-        dist <- newDispatcher tname [arguments ["-pipe"]] fin (handleEvent mq);
-        mtx <- newPVar (DaVinciState Nothing []);
-        dav <- return (DaVinci dist gobj mtx);
-        forkIO(dispatcher dav mq cntx True);
-        return dav
-} where fin :: Dispatcher DaVinciEventInfo -> IO ()
-        fin = execOneWayCmd "menu(file(exit))" 
+startDaVinci = 
+   do
+      contextVar <- newPVar 0 -- passed to the DaVinci dispatcher
+      msgQueue <- newMsgQueue
+      toolName <- getWBToolFilePath "daVinci"   
+      daVinciDispatcher <- 
+         newDispatcher toolName [arguments ["-pipe"]] finaliser 
+            (handleEvent msgQueue)
+      session <- newAbstractGUIObject
+      daVinciState <- newPVar (
+         DaVinciState{
+            fContextID = Nothing,
+            fGraphs = []
+            })
+      daVinci <- return( 
+         DaVinci{
+            fDispatcher = daVinciDispatcher,
+            fDaVinciState = daVinciState,
+            fSession = session
+            })
+      forkIO(dispatcher daVinci msgQueue contextVar True)
+      return daVinci
+   where
+      finaliser :: Dispatcher DaVinciEventInfo -> IO ()
+      finaliser = execOneWayCmd "menu(file(exit))" 
 
 
 -- ---------------------------------------------------------------------------
@@ -277,36 +289,46 @@ startDaVinci = do {
 -- ---------------------------------------------------------------------------
 
 shutdownDaVinci :: DaVinci -> IO ()
-shutdownDaVinci dav = do {                                      
-        graphs <- updVar (fDaVinciState dav) (\dst -> do {
-                destroy (fDispatcher dav); 
-                destroy (fSession dav);
-                return (DaVinciState Nothing [],fGraphs dst)
-                });
-        foreach graphs cleanupGraph;
-        done
-        }
-
+shutdownDaVinci daVinci = 
+   do                                      
+      graphs <- 
+         updVar (fDaVinciState daVinci) 
+            (\ daVinciState -> 
+               do
+                  destroy (fDispatcher daVinci)
+                  destroy (fSession daVinci) 
+                  return (DaVinciState Nothing [],fGraphs daVinciState)
+               )
+      foreach graphs cleanupGraph
+      done
 
 -- ---------------------------------------------------------------------------
 --  Sending DaVinci Commands
 -- ---------------------------------------------------------------------------
 
 withDaVinci :: IO String -> IO ()
-withDaVinci beh = do {
-        dav <- getDaVinciHandle;
-        withVar (fDaVinciState dav) (\ _ -> do {msg <- beh; evalCmd msg dav});
-        done
-        }
+withDaVinci commandAct =
+   do
+      daVinci <- getDaVinciHandle
+      withVar (fDaVinciState daVinci) 
+         (\ _ -> 
+            do 
+               command <- commandAct
+               evalCmd command daVinci
+            )            
+      done
 
 withDaVinciOneWay :: IO String -> IO ()
-withDaVinciOneWay beh = do {
-        dav <- getDaVinciHandle;
-        withVar (fDaVinciState dav) (\_ -> do {msg <- beh;execOneWayCmd msg dav });
-        done
-        }
-
-
+withDaVinciOneWay commandAct = 
+   do
+      daVinci <- getDaVinciHandle
+      withVar (fDaVinciState daVinci) 
+         (\ _ -> 
+            do
+               command <- commandAct
+               execOneWayCmd command daVinci
+            )
+      done
 
 -- ---------------------------------------------------------------------------
 -- TYPES/RULES
@@ -342,21 +364,33 @@ typeNotFound = userError "daVinci type not found"
 -- ---------------------------------------------------------------------------
 
 createGraph :: IO Graph
-createGraph = do {
-        dav <- getDaVinciHandle;
-        gobj <- createGUIObject GRAPH defMethods;
-        mv <- newRVar (emptyGST);
-        types <- newPVar emptyFM;
-        g <- return (Graph dav gobj mv types);
-        newType g (Just "");
-        insertGraph dav g;
-        openContext (contextID g);
-        return g
-} where insertGraph :: DaVinci -> Graph -> IO ()
-        insertGraph dav g = changeVar' (fDaVinciState dav) (\dst -> 
-                dst{fGraphs = g:(fGraphs dst)})
+createGraph = 
+   do 
+      daVinci <- getDaVinciHandle
+      graphObj <- createGUIObject GRAPH defMethods
+      graphState <- newRVar emptyGraphState
+      types <- newPVar emptyFM
+      register <- newRegister
 
-
+      graph <- 
+         return (Graph {
+            fDaVinci = daVinci,
+            fGraphObj = graphObj,
+            fGraphState = graphState,
+            fTypes = types,
+            fRegister = register
+            })
+      newType graph (Just "")
+      insertGraph daVinci graph
+      openContext (contextID graph)
+      return graph
+   where
+      insertGraph :: DaVinci -> Graph -> IO ()
+      insertGraph daVinci graph = 
+         changeVar' (fDaVinciState daVinci) 
+            (\ daVinciState -> 
+               daVinciState {fGraphs = graph:(fGraphs daVinciState)}
+               )
 
 withGraph ::  Graph -> IO String -> IO Graph
 withGraph graph commandAct = 
@@ -377,35 +411,63 @@ withGraph graph commandAct =
       daVinci = fDaVinci graph
 
 withGraphOneWay ::  Graph -> IO String -> IO Graph
-withGraphOneWay g beh = synchronize g (do {
-        changeVar (fDaVinciState dav) (\dst -> do {
-                cmd <- beh;
-                cntx' <- changeContext dav (fContextID dst) g;
-                execOneWayCmd cmd (fDispatcher dav);
-                return (dst{fContextID = Just cntx'})
-                });
-        return g
-}) where dav = fDaVinci g
-
+withGraphOneWay graph commandAct = 
+   synchronize graph (
+      do
+         changeVar (fDaVinciState daVinci) 
+            (\ daVinciState -> 
+               do
+                  command <- commandAct
+                  newContext <- 
+                     changeContext daVinci (fContextID daVinciState) graph
+                  execOneWayCmd command (fDispatcher daVinci)
+                  return (daVinciState {fContextID = Just newContext})
+               )
+         return graph
+      )
+   where 
+      daVinci = fDaVinci graph
 
 getGraphs :: DaVinci -> IO [Graph]
-getGraphs dav = withVar' (fDaVinciState dav) fGraphs
+getGraphs daVinci = withVar' (fDaVinciState daVinci) fGraphs
 
+lookupByContext :: DaVinci -> ContextID -> IO Graph
+lookupByContext daVinci contextID =
+   do
+     
+      let
+         thisObjectID = ObjectID contextID
+      daVinciState <- getVar (fDaVinciState daVinci)
+      let
+         graphs = fGraphs daVinciState
+      case find (\ graph -> objectID graph == thisObjectID ) graphs of
+         Just graph -> return graph
+         Nothing -> ioError (userError "DaVinciCore.lookupByContext")
 
 -- ---------------------------------------------------------------------------
 -- Redisplay
 -- ---------------------------------------------------------------------------
 
 redrawGraph :: Graph -> IO ()
-redrawGraph g @ (Graph dav _ gst _) = synchronize g (
-    changeVar gst (\gs -> do {
-        changeVar (fDaVinciState dav) ( \dst -> do {
-                cntx' <- changeContext dav (fContextID dst) g;
-                flushCmds (fNodeUpd gs) (fEdgeUpd gs) (fAttrUpd gs) dav;
-                return (dst{fContextID = Just cntx'})
-                });
-        return (gs{fNodeUpd = [],fEdgeUpd = [],fAttrUpd = []})
-        }))
+redrawGraph graph = 
+   synchronize graph (
+       changeVar (fGraphState graph)
+          (\ graphState -> 
+             do
+                let
+                   daVinci = fDaVinci graph
+                changeVar (fDaVinciState daVinci) 
+                   (\ daVinciState -> 
+                      do
+                         newContext <- changeContext daVinci 
+                            (fContextID daVinciState) graph
+                         flushCmds (fNodeUpd graphState) 
+                            (fEdgeUpd graphState) (fAttrUpd graphState) 
+                            daVinci
+                         return (daVinciState{fContextID = Just newContext})
+                      )
+                return (graphState{fNodeUpd = [],fEdgeUpd = [],fAttrUpd = []})
+             ))
 
 
 flushCmds [] [] [] dav = done
@@ -445,21 +507,24 @@ setContext dav cid = do {
 
 
 openContext :: ContextID -> IO ()
-openContext cntx = 
-        withDaVinci (return ("multi(open_context("++show (show cntx)++"))"))
+openContext context = 
+   withDaVinci (return ("multi(open_context("++show (show context)++"))"))
 
 
-contextID :: Object w => w -> Int 
-contextID w = let (ObjectID n) = objectID w in n
-
+contextID :: Graph -> ContextID 
+contextID graph = 
+   let 
+      ObjectID objectId = objectID graph 
+   in
+      objectId
 
 -- ---------------------------------------------------------------------------
 -- Close Graph
 -- ---------------------------------------------------------------------------
 
 closeGraph :: Graph -> IO ()
-closeGraph g = changeVar gst (\gs -> do {
-        destroy (fGraphObj g);
+closeGraph g = 
+   changeVar graphState (\gs -> do {
         changeVar (fDaVinciState dav) ( \dst -> do {
                 cntx' <- changeContext dav (fContextID dst) g;
                 try(execOneWayCmd "menu(file(close))" dav);
@@ -467,23 +532,20 @@ closeGraph g = changeVar gst (\gs -> do {
                                 fGraphs = filter (/= g) (fGraphs dst)
                                 })
                 });
-        return emptyGST
+        return emptyGraphState
         })
  where  dav  = fDaVinci g
-        gst  = fGraphState g
-        guio = fGraphObj
+        graphState  = fGraphState g
                 
 
 
 cleanupGraph :: Graph -> IO ()
-cleanupGraph g = changeVar gst (\gs -> do {
+cleanupGraph g = changeVar graphState (\gs -> do {
         changeVar' (fDaVinciState (fDaVinci g)) ( \dst -> 
                 dst{fGraphs = filter (/= g) (fGraphs dst)});
-        try(destroy guio);
-        return emptyGST
+        return emptyGraphState
         }) 
- where  gst = fGraphState g
-        guio = fGraphObj g
+ where  graphState = fGraphState g
                 
 
 
@@ -506,10 +568,10 @@ newEdgeId g meid = getNewId meid g >>= return . EdgeId
 
 
 createEdge :: Graph -> Edge -> Node -> Node -> IO ()
-createEdge g e@(Edge _ tid eid _) src trg = changeVar' gst (\gs ->
+createEdge g e@(Edge _ tid eid _) src trg = changeVar' graphState (\gs ->
         gs{fLinks = (e,src,trg) : (fLinks gs), fEdgeUpd = eupd : (fEdgeUpd gs)})
   where eupd = EdgeUpd eid tid [] (fNodeId src) (fNodeId trg)
-        gst  = fGraphState g
+        graphState  = fGraphState g
 
 
 
@@ -733,7 +795,7 @@ instance EventDesignator (ObjectID,DaVinciEvent) where
         toEventID (oid,dev) =  EventID oid (show dev)
 
 instance EventDesignator (Graph,DaVinciFileEvent) where
-        toEventID ((Graph _ guio _ _),dev) =  EventID (objectID guio) (show dev)
+   toEventID (graph,dev) =  EventID (objectID graph) (show dev)
 
 instance EventDesignator (ObjectID,DaVinciFileEvent) where
         toEventID (oid,dev) =  EventID oid (show dev)
@@ -742,7 +804,7 @@ instance EventDesignator (Graph,DaVinciEvent) where
         toEventID (g,dev) =  EventID (objectID g) (show dev)
 
 instance EventDesignator (DaVinci,DaVinciEvent) where
-        toEventID (dav,dev) =  EventID (objectID dav) (show dev)
+   toEventID (daVinci,dev) =  EventID (objectID daVinci) (show dev)
 
 
 listenDaVinci :: EventDesignator e => e -> IA DaVinciEventInfo
@@ -758,13 +820,14 @@ listenDaVinci e = interaction e reg unreg
 -- ---------------------------------------------------------------------------
 
 handleEvent :: MsgQueue DaVinciAnswer -> String -> Dispatcher DaVinciEventInfo -> IO ()
-handleEvent mq str _ = do {     
-        sendIO mq ans;
-        case ans of
-                (DaVinciAnswer DisConnect _) -> deadlock
-                (DaVinciAnswer InternalError _) -> deadlock
-                _ -> done
-} where ans = read str
+handleEvent msgQueue string _ = 
+   do
+      answer <- decodeDaVinciAnswer string     
+      sendIO msgQueue answer
+      case answer of
+         (DaVinciAnswer DisConnect _) -> deadlock
+         (DaVinciAnswer InternalError _) -> deadlock
+         _ -> done
 
 
 -- ---------------------------------------------------------------------------
@@ -868,14 +931,16 @@ dispatchDav daVinci contextVar alreadyReplied answer =
          do
             context <- getVar contextVar
             sendEvent (ObjectID context,EdgeSelectionLabel) edgesel
-      DaVinciAnswer IconSelection (MenuInvocation iid) -> 
+      DaVinciAnswer IconSelection (MenuInvocation menuItemId) -> 
          do
-            butt <- lookupGUIObject (ObjectID iid)
-            invoke butt
-      DaVinciAnswer MenuSelection (MenuInvocation iid) ->
+            context <- getVar contextVar
+            graph <- lookupByContext daVinci context
+            invokeGlobalEvent (fRegister graph) menuItemId 
+      DaVinciAnswer MenuSelection (MenuInvocation menuItemId) ->
          do 
-            butt <- lookupGUIObject (ObjectID iid)
-            invoke butt
+            context <- getVar contextVar
+            graph <- lookupByContext daVinci context
+            invokeGlobalEvent (fRegister graph) menuItemId
       DaVinciAnswer FileMenuSelection (FileMenuInvocation m) ->  
          do
             context <- getVar contextVar
@@ -885,18 +950,20 @@ dispatchDav daVinci contextVar alreadyReplied answer =
             debug "DDAV2"
             debug str
             sendEvent (daVinci,DisConnect) NoDaVinciEventInfo
-      DaVinciAnswer PopupSelectionNode inf@(PopupSelectionNodeInf _ iid) ->
+      DaVinciAnswer PopupSelectionNode 
+            inf@(PopupSelectionNodeInf nodeId menuItemId) ->
          do 
             context <- getVar contextVar
             sendEvent (ObjectID context,PopupSelectionNode) inf
-            butt <- lookupGUIObject (ObjectID iid)
-            invoke butt
-      DaVinciAnswer PopupSelectionEdge inf@(PopupSelectionEdgeInf _ iid) ->
+            graph <- lookupByContext daVinci context
+            invokeNodeEvent (fRegister graph) nodeId menuItemId
+      DaVinciAnswer PopupSelectionEdge 
+            inf@(PopupSelectionEdgeInf edgeId menuItemId) ->
          do 
             context <- getVar contextVar
             sendEvent (ObjectID context,PopupSelectionEdge) inf
-            butt <- lookupGUIObject (ObjectID iid)
-            invoke butt
+            graph <- lookupByContext daVinci context
+            invokeEdgeEvent (fRegister graph) edgeId menuItemId
       DaVinciAnswer CreateNode nodesel -> 
          do
             context <- getVar contextVar

@@ -17,7 +17,6 @@ module DaVinciClasses (
 
         DaVinciObject(..),
         TypedDaVinciObject(..),
-        HasMenu(..),
 
         DaVinciNode(..),
         Shape(..),
@@ -29,7 +28,9 @@ module DaVinciClasses (
 
         ) where
 
-import HTk
+import Computation
+
+import GUICore
 import Font
 
 import Char(isSpace,toLower)
@@ -53,14 +54,6 @@ class GUIObject w => TypedDaVinciObject w where
         typename        :: String -> Config w
         getTypeName     :: w -> IO String
         
-
--- ---------------------------------------------------------------------------
---  DaVinci Node
--- ---------------------------------------------------------------------------
-
-class DaVinciObject w => HasMenu w where
-        menu :: Menu a -> Config w
-
 
 -- ---------------------------------------------------------------------------
 --  DaVinci Node

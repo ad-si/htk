@@ -127,7 +127,7 @@ drawDepend ::
       arc arcType arcTypeParms,
     GraphConfigParms GraphTitle graphParms,
     NodeTypeConfigParms ValueTitle nodeTypeParms,
-    NodeTypeConfigParms MenuButton nodeTypeParms
+    NodeTypeConfigParms LocalMenu nodeTypeParms
     ) 
    => (graph,graphParms,
       node Int,nodeType Int,nodeTypeParms Int,
@@ -144,13 +144,16 @@ drawDepend (_::
          (dependencies :: [(String,[String])]) = fmToList dependMap
 
       let
-         (graphParms :: graphParms) = graphConfigs [
-            GConfig(GraphTitle "Haskell Dependencies")
-            ] 
+         nullGraphParms = emptyGraphParms :: graphParms
+         graphParms =
+            (graphConfig (GraphTitle "Haskell Dependencies")) $
+               nullGraphParms
+
          (nullNodeParms :: nodeTypeParms String) = emptyNodeTypeParms
          nodeTypeParms =
             (nodeTypeConfig (ValueTitle (\ title -> return title ))) .
-            (nodeTypeConfig (Button "Type1" (\ _ -> done)))
+            (nodeTypeConfig (LocalMenu (Button "Type1" 
+                  (\ title -> putStrLn title))))
                $ nullNodeParms
    
          (nullArcParms :: arcTypeParms ()) = emptyArcTypeParms

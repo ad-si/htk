@@ -27,7 +27,8 @@ module DaVinciGraphTerm (
         NodeId(..),        
         NodeDescr(..),     
         NodeUpd(..),
-        TypeId(..),
+        TypeId(..), -- id of a DaVinci type.  Implements Eq,Ord
+        MenuItemId(..), -- id of a menu item.  Implements Eq,Ord 
  
         -- callDaVinci writes a DaVinci function call.
         callDaVinci,
@@ -70,7 +71,7 @@ data NodeUpd    = NodeUpd NodeId TypeId [AttrAssoc]
 
 newtype TypeId  = TypeId String deriving (Eq, Ord)
 
-
+newtype MenuItemId = MenuItemId Int deriving (Eq,Ord)
 
 -- ---------------------------------------------------------------------------
 -- Unparsing Rules
@@ -81,6 +82,9 @@ instance Show NodeId where
 
 instance Show EdgeId where
    showsPrec d (EdgeId p) r = showsPrec d p r
+
+instance Show MenuItemId where
+   showsPrec d (MenuItemId p) r = showsPrec d p r
 
 instance Show AttrUpd where
    showsPrec _ (NodeAttrUpd nid ats) = 

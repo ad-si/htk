@@ -14,9 +14,6 @@ DESCRIPTION   : Management of DaVinci Graphs.
 
 
 module DaVinciGraph (
-        Object(..),
-        Synchronized(..),
-
         GraphOrientation(..),
 
         Graph,
@@ -69,7 +66,9 @@ module DaVinciGraph (
         illegalEdgeRadius,
         illegalFontSize,
         illegalGapWidth,
-        illegalGapHeight
+        illegalGapHeight,
+
+        configGraphMenu, -- defined in DaVinciMenu.
 
         ) where
 
@@ -110,21 +109,6 @@ newGraph opts = do
 --  Instantiations
 -- ---------------------------------------------------------------------------
 
-instance GUIObject Graph where
-        toGUIObject g = (fGraphObj g) 
-        cname _ = "Graph"
-        cset g cid val = do {
-                setConfigValue (toGUIObject g) cid (toGUIValue val);
-                return g
-                }
-        cget g cid =  do {
-                val <- getConfigValue (toGUIObject g) cid ;
-                case val of
-                        Nothing -> return cdefault
-                        (Just cv) -> return (fromGUIValue cv)
-                }
-
-
 instance Destructible Graph where
         destroy g = closeGraph g
         destroyed g = 
@@ -161,8 +145,19 @@ instance GUIValue v => HasText Graph v where
         getText g = cget g "title"
 
 
-instance HasMenu Graph where
-        menu mn g = do {installGraphMenu mn g; return g}        
+instance GUIObject Graph where
+        toGUIObject g = (fGraphObj g) 
+        cname _ = "Graph"
+        cset g cid val = do {
+                setConfigValue (toGUIObject g) cid (toGUIValue val);
+                return g
+                }
+        cget g cid =  do {
+                val <- getConfigValue (toGUIObject g) cid ;
+                case val of
+                        Nothing -> return cdefault
+                        (Just cv) -> return (fromGUIValue cv)
+                }
 
 
 -- ---------------------------------------------------------------------------
@@ -258,7 +253,6 @@ showmsg t g = withGraph g (
 
 getShowMsg :: Graph -> IO String
 getShowMsg g = cget g "showmsg"
-
 
 -- ---------------------------------------------------------------------------
 -- Misc. Commands

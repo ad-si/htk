@@ -52,7 +52,7 @@
 
    The functionality provided in this file is inspired by that
    provided by DaVinci.  However we extend it by allowing
-   nodes to have labels provided in the form of Dynamic values.
+   nodes to have labels.
 
    Additional Notes
    ----------------
@@ -68,8 +68,6 @@ module GraphDisp(
    GraphConfig,
    GraphParms(..),
    GraphConfigParms(..),
-   GConfig(..),
-   graphConfigs,
 
    NewNode(..),
    DeleteNode(..),
@@ -93,12 +91,30 @@ module GraphDisp(
    ArcTypeParms(..),
    ArcTypeConfigParms(..),
 
-   MenuButton(..),
+   -- LocalMenu describes menus or buttons for objects that carry a value,
+   -- IE nodes or arcs.
+   LocalMenu(..),
+
+   -- GlobalMenu describes menus or buttons for objects that don't carry a
+   -- value, IE graphs.
+   GlobalMenu(..),
+
+   -- MenuPrim is supposed to be the generalised Menu/Button type.
+   MenuPrim(..), -- a type with TWO parameters.  We provide maps
+                       -- and monadic methods for both.
+   mapMenuPrim,
+   mapMenuPrim',
+   mapMMenuPrim,
+   mapMMenuPrim',
+   
+
    GraphTitle(..),
-   ValueTitle(..)
+   ValueTitle(..),
    ) where
 
 import Dynamics
+import ExtendedPrelude(monadDot)
+
 import SIM(IA,Destructible)
 
 ------------------------------------------------------------------------
@@ -188,17 +204,6 @@ class (GraphConfig graphConfig,GraphParms graphParms)
    -- instance.
 
    graphConfig :: graphConfig -> graphParms -> graphParms
-
-data (GraphParms graphParms) 
-   => GConfig graphParms = 
-      forall graphConfig . GraphConfigParms graphConfig graphParms 
-   => GConfig graphConfig
-
-graphConfigs :: (GraphParms graphParms)
-   => [GConfig graphParms] -> graphParms
-graphConfigs [] = emptyGraphParms
-graphConfigs ((GConfig gConfig):rest) =
-   graphConfig gConfig (graphConfigs rest)
 
 ------------------------------------------------------------------------
 -- Nodes
@@ -324,22 +329,69 @@ class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
 -- Menus and buttons
 -- As in DaVinci, a menu is simply considered as a tree of buttons,
 -- allowing an elegant recursive definition.
+-- We define MenuPrim as it may be useful for
+-- implementations, so they don't have to define their own datatypes
+-- for menus.
 ------------------------------------------------------------------------
 
-instance NodeTypeConfig MenuButton
+instance GraphConfig GlobalMenu
 
-instance ArcTypeConfig MenuButton
+newtype GlobalMenu = GlobalMenu(MenuPrim (Maybe String) (IO ()))
 
-data Typeable value => MenuButton value =
-      Button String (value -> IO ())
+instance NodeTypeConfig LocalMenu
+
+instance ArcTypeConfig LocalMenu
+
+newtype LocalMenu value = 
+   LocalMenu(MenuPrim (Maybe String) (value -> IO()))
+
+data MenuPrim subMenuValue value =
+      Button String value
       -- first argument is text to put on button.
       -- second argument generates an action to be performed when the
       -- button is pressed.
       -- The dynamic value is that supplied to the node/arc when it
       -- was created.
-   |  Menu (Maybe String) [MenuButton value]
-      -- List of buttons with a possible title..
+   |  Menu subMenuValue [MenuPrim subMenuValue value]
+      -- List of buttons with a possible title.
+   |  Blank
+      -- A Blank can be used to separate groups of menu buttons in the
+      -- same menu.     
 
+mapMenuPrim :: (a -> b) -> MenuPrim c a -> MenuPrim c b
+mapMenuPrim a2b (Button label a) = Button label (a2b a)
+mapMenuPrim a2b (Menu subMenuValue menuButtons) =
+   Menu subMenuValue (map (mapMenuPrim a2b) menuButtons)
+mapMenuPrim a2b Blank = Blank
+
+mapMenuPrim' :: (c -> d) -> MenuPrim c a -> MenuPrim d a
+mapMenuPrim' c2d (Button title action) = Button title action
+mapMenuPrim' c2d (Menu subMenuValue menuButtons) =
+   Menu (c2d subMenuValue) (map (mapMenuPrim' c2d) menuButtons)
+mapMenuPrim' c2d Blank = Blank
+
+mapMMenuPrim :: (Monad m) => (a -> m b) -> MenuPrim c a 
+   -> m (MenuPrim c b)
+mapMMenuPrim a2bAct (Button label a) =
+   do
+      b <- a2bAct a
+      return (Button label b)
+mapMMenuPrim a2bAct (Menu subMenuValue menuButtons) =
+   do
+      bMenuButtons <- mapM (mapMMenuPrim a2bAct) menuButtons
+      return (Menu subMenuValue bMenuButtons)
+mapMMenuPrim a2bAct Blank = return Blank
+
+mapMMenuPrim' :: (Monad m) => (c -> m d) -> MenuPrim c a 
+   -> m (MenuPrim d a)
+mapMMenuPrim' c2dAct (Button title action) = 
+   return (Button title action)
+mapMMenuPrim' c2dAct (Menu subMenuValue menuButtons) =
+   do
+      dMenuButtons <- mapM (mapMMenuPrim' c2dAct) menuButtons
+      dSubMenuValue <- c2dAct subMenuValue
+      return (Menu dSubMenuValue dMenuButtons) 
+mapMMenuPrim' c2dAct Blank = return Blank
 ------------------------------------------------------------------------
 -- Titles
 ------------------------------------------------------------------------

@@ -1,21 +1,16 @@
 {- #########################################################################
 
-MODULE        : DaVinciMenu
-AUTHOR        : Carla Blanck Purper,
-                Einar W. Karlsen 
-                University of Bremen
-                email:  {ewk,cpurper}@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : beta
-DESCRIPTION   : Encapsulation of DaVinci Menus.
-
-TO BE DONE    : Accelerators
-
-                File menu events are always disabled. Their enabling
-                conflicts with the enabling of application menus.
-
-                We do not associate menus with individual objects. 
-                This must be done on the type level!!!
+   This module implements primitive events, handling the installation
+   of items of type
+      GlobalMenu
+         (for global events),
+      LocalMenu NodeId
+         (for node events)
+      LocalMenu EdgeId
+         (for edge events)
+   Hence the latter two are not quite the user-level menu installation
+   commands, since they take NodeId/EdgeId parameters rather than
+   Nodes or Edges.  
 
 
    ######################################################################### -}
@@ -23,52 +18,58 @@ TO BE DONE    : Accelerators
 module DaVinciMenu (
 
    Graph,
-   
-   Menu,
-   installGraphMenu,
-   installNodeTypeMenu,
-   installEdgeTypeMenu
-   
-      
+
+   configGraphMenu,    -- :: GlobalMenu -> Graph -> IO Graph
+   installNodeTypeMenu, -- :: MenuPrim (Maybe String) (NodeId -> IO()) 
+                        --       -> Graph -> TypeId -> [AttrAssoc] -> IO ()
+   installEdgeTypeMenu  -- :: MenuPrim (Maybe String) (EdgeId -> IO())
+                        --       -> Graph -> TypeId -> [AttrAssoc] -> IO ()
+
    ) where
 
-import SIM
-import GUICore
-import HTk
-import Menu
-import MenuItem
-import Button
-import GUIIntrinsics
+import Char
+import IO
 
-import DaVinciGraphTerm
-import DaVinciCore
-import DaVinciEvent
-
+import Computation(done)
 import Debug(debug)
 
+import GraphDisp(MenuPrim(..),mapMMenuPrim,mapMMenuPrim',
+   GlobalMenu(..),LocalMenu(..))
+
+import DaVinciGraphTerm
+import DaVinciActions
+import DaVinciCore
 
 -- ---------------------------------------------------------------------------
 -- Install Menu
 -- ---------------------------------------------------------------------------
 
-installGraphMenu :: Menu a -> Graph -> IO ()
-installGraphMenu menu graph = 
+configGraphMenu :: GlobalMenu -> Graph -> IO Graph
+configGraphMenu (GlobalMenu menuPrim) graph = 
     do
-       menuParts <- getChildObjects (toGUIObject menu)
-       menuTypes <- sequence (map toMenuType menuParts)
-       withGraph graph (return (createMenus menuTypes))
-       withGraph graph (return (activateMenus menuTypes))
-       done
+       compiledMenu <- makeGraphMenu menuPrim graph
+       withGraph graph (return (createMenus [compiledMenu]))
+       withGraph graph (return (activateMenus [compiledMenu]))
+       return graph
 
 -- For specifications of the arguments see installNodeOrEdgeTypeMenu
-installNodeTypeMenu :: Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO ()
-installNodeTypeMenu = installNodeOrEdgeTypeMenu "nr"
+installNodeTypeMenu :: LocalMenu NodeId -> Graph -> TypeId -> [AttrAssoc]
+   -> IO ()
+installNodeTypeMenu (LocalMenu menuPrim) graph typeId assocs = 
+   do
+      compiledMenu <- makeNodeMenu menuPrim graph
+      installNodeOrEdgeTypeMenu "nr" compiledMenu graph typeId assocs
 
-installEdgeTypeMenu :: Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO ()
-installEdgeTypeMenu = installNodeOrEdgeTypeMenu "er" 
+installEdgeTypeMenu :: LocalMenu EdgeId -> Graph -> TypeId -> [AttrAssoc]
+    -> IO ()
+installEdgeTypeMenu (LocalMenu menu) graph typeId assocs = 
+   do
+      compiledMenu <- makeEdgeMenu menu graph
+      installNodeOrEdgeTypeMenu "er" compiledMenu graph typeId assocs
 
 installNodeOrEdgeTypeMenu :: 
-   String -> Menu a -> Graph -> TypeId -> [AttrAssoc] -> IO()
+   String -> MenuPrim (String,MenuItemId) MenuItemId
+   -> Graph -> TypeId -> [AttrAssoc] -> IO()
 -- installNodeOrEdgeMenu is used for installing a new menu for
 -- a DaVinci node or edge type.
 -- Arguments:
@@ -79,8 +80,11 @@ installNodeOrEdgeTypeMenu ::
 --    5. AttrAssoc settings.
 installNodeOrEdgeTypeMenu nodeOrEdge menu graph typeId assocs =
    do
-      menuParts <- getChildObjects (toGUIObject menu)
-      menuTypes <- sequence (map toMenuType menuParts)
+      let
+         menus = case menu of
+            Menu (title,menuItemId) menus 
+               | (all isSpace title) -> menus
+            _ -> [menu]
       withGraph graph (return (
          callDaVinci "visual" [
             innerCallDaVinci "add_rules" [
@@ -89,7 +93,7 @@ installNodeOrEdgeTypeMenu nodeOrEdge menu graph typeId assocs =
                      Arg typeId,
                      Arg ((
                         innerCallDaVinci "m" [
-                           Arg menuTypes
+                           Arg menus
                            ]
                         ) :
                         (map Arg assocs)
@@ -110,28 +114,53 @@ installNodeOrEdgeTypeMenu nodeOrEdge menu graph typeId assocs =
 -- Generate DaVinci Menu Definition
 -- ---------------------------------------------------------------------------
 
-toMenuType :: GUIOBJECT -> IO MenuType
-toMenuType guiObject = 
-   do
-      text <- getText guiObject
-      kind <- getObjectKind guiObject
-      makeMenu guiObject kind (show (objectID guiObject)) text 
+makeGraphMenu :: (MenuPrim (Maybe String) (IO())) -> Graph
+   -> IO (MenuPrim (String,MenuItemId) MenuItemId)
+makeGraphMenu menu graph =
+   makeGeneralMenu
+      (\ action -> newGlobalEvent (fRegister graph) action)
+      menu
+      graph
 
-makeMenu :: GUIOBJECT -> ObjectKind -> String -> String  -> IO MenuType
-makeMenu guiObject CLICKBUTTON objectId text = 
-   return (MenuType objectId text Nothing Nothing)
-makeMenu guiObject SEPARATOR objectId text = 
-   return Blank
-makeMenu guiObject MENUBUTTON objectId text = 
+makeNodeMenu :: (MenuPrim (Maybe String) (NodeId -> IO())) -> Graph
+   -> IO (MenuPrim (String,MenuItemId) MenuItemId)
+makeNodeMenu menu graph =
+   makeGeneralMenu 
+      (\ action -> newNodeEvent (fRegister graph) action)
+      menu
+      graph
+
+makeEdgeMenu :: (MenuPrim (Maybe String) (EdgeId -> IO())) -> Graph 
+   -> IO (MenuPrim (String,MenuItemId) MenuItemId)
+makeEdgeMenu menu graph =
+   makeGeneralMenu
+      (\ action -> newEdgeEvent (fRegister graph) action)
+      menu
+      graph
+
+makeGeneralMenu :: (menuAction -> IO MenuItemId)
+   -> (MenuPrim (Maybe String) menuAction) -> Graph 
+   -> IO (MenuPrim (String,MenuItemId) MenuItemId) 
+makeGeneralMenu registerAct menu0 graph =
    do
-      children <- getChildObjects (toGUIObject guiObject)
-      case children of
-         [] -> return Blank
-         [menu] -> 
-            do
-               menuParts <- getChildObjects (toGUIObject menu)
-               menuTypes <- sequence (map toMenuType menuParts)
-               return (SubMenuType objectId text menuTypes Nothing)
+      (menu1 :: MenuPrim (Maybe String) MenuItemId) <-
+         mapMMenuPrim registerAct menu0
+      (menu2 :: MenuPrim (String,MenuItemId) MenuItemId) <-
+         mapMMenuPrim' 
+            (\ stringOpt ->
+               do
+                  let
+                     title = case stringOpt of
+                        Nothing -> " "
+                        Just title -> title
+                  menuItemId <- newGlobalEvent (fRegister graph)
+                     (ioError(userError(
+                        "DaVinciMenu: daVinci returned event for submenu id??"
+                        )))
+                  return (title,menuItemId)
+               ) 
+            menu1
+      return menu2  
 
 -- ---------------------------------------------------------------------------
 -- DaVinci commands for activating and creating menus.
@@ -143,81 +172,34 @@ activateMenus :: [MenuType] -> String
 activateMenus menus = 
    callDaVinci "app_menu" [
       innerCallDaVinci "activate_menus" [
-         Arg (getMenuIds menus)
+         Arg (getMenuItemIds menus)
          ]]
         
-getMenuIds :: [MenuType] -> [MenuId]
-getMenuIds [] = []
-getMenuIds ((MenuType menuId _ _ _):rest) = menuId : getMenuIds rest
-getMenuIds ((SubMenuType menuId _ menus _):rest) = 
-   menuId : (getMenuIds menus ++ getMenuIds rest)
-getMenuIds (Blank : rest) = getMenuIds rest
+getMenuItemIds :: [MenuType] -> [MenuItemId]
+getMenuItemIds [] = []
+getMenuItemIds ((Button _ menuItemId):rest) = menuItemId : getMenuItemIds rest
+getMenuItemIds ((Menu (_,menuItemId) menus):rest) = 
+   menuItemId : (getMenuItemIds menus ++ getMenuItemIds rest)
+getMenuItemIds (Blank:rest) = getMenuItemIds rest
 
 createMenus :: [MenuType] -> String
 createMenus x =
    callDaVinci "app_menu" [innerCallDaVinci "create_menus" [Arg x]]
 
 -- ---------------------------------------------------------------------------
--- DaVinci Menu Definitions
+-- Compiling a Menu into DaVinci form.
 -- ---------------------------------------------------------------------------
 
-data MenuType = 
-      MenuType MenuId MenuLabel MenuMne MenuAcc
-      -- a single button. 
-   |  SubMenuType MenuId MenuLabel [MenuType] MenuMne
-      -- a submenu
-   |  Blank
-      -- a gap (left on a menu to separate menu items)
-
-type MenuId     =  String
--- For MenuType the MenuId is the string sent by daVinci when the menu 
--- button is pressed.  For both MenuType and SubMenuType, the MenuId
--- can be used to disable the item.
-
-type MenuLabel    = String
--- The MenuLabel is the string displayed to the user on the menu.
-
--- For MenuType MenuMod and MenuMod (if set, and they should both be
--- set if either is set) give a keyboard shortcut.
-
-data MenuMod    = NoMenuMod | MenuMod Modifier
--- A Modifier is described in htk/resources/GUIEvent.hs.  It is Control,
--- Shift, Meta or Alt.  It is the key to be pressed with a MenuAcc
--- to shortcut the menu.
--- Unused.
-
-type MenuAcc    = Maybe (MenuMod,String)
--- The String in MenuAcc should have precisely one character.
--- This is always Nothing
-
-type MenuMne    = Maybe String
--- This is a "Motif mnemonic" whatever that is.  It's always Nothing.
-
-
--- ---------------------------------------------------------------------------
--- Unparsing of DaVinci Menu Definitions
--- ---------------------------------------------------------------------------
+-- MenuType represents a menu in which the menu items have been 
+-- allocated MenuItemId's.
+type MenuType = MenuPrim (String,MenuItemId) MenuItemId
 
 instance Show MenuType where
-   showsPrec d  (MenuType menuId menuLabel Nothing Nothing) =
-      callDaVinciAcc "menu_entry" [Arg menuId,Arg menuLabel]
-   showsPrec d  (MenuType menuId menuLabel (Just mne) (Just (mmod,macc))) =
-      callDaVinciAcc "menu_entry_mne" 
-         [Arg menuId,Arg menuLabel,Arg mne,Arg mmod,Arg macc]
-   showsPrec d (SubMenuType menuId menuLabel mtypes Nothing) =
-      callDaVinciAcc "submenu_entry"
-         [Arg menuId,Arg menuLabel,Arg mtypes]
-   showsPrec d (SubMenuType menuId menuLabel mtypes (Just mne)) =
-      callDaVinciAcc "submenu_entry_mne"
-         [Arg menuId,Arg menuLabel,Arg mtypes,Arg mne]
-   showsPrec d Blank = ("blank"++)
-
-instance Show MenuMod where
-   showsPrec d  (MenuMod Alt)  r           = "alt" ++ r
-   showsPrec d  (MenuMod Shift)  r         = "shift" ++ r
-   showsPrec d  (MenuMod Control) r        = "control" ++ r
-   showsPrec d  (MenuMod Meta) r           = "meta" ++ r
-   showsPrec d  NoMenuMod  r               = "none" ++ r
+   showsPrec _ (Button menuLabel menuItemId) =
+      callDaVinciAcc "menu_entry" [Arg menuItemId,Arg menuLabel]
+   showsPrec _ Blank = ("blank"++)
+   showsPrec _ (Menu (menuLabel,menuItemId) menus) =
+      callDaVinciAcc "submenu_entry" [Arg menuItemId,Arg menuLabel,Arg menus]
 
 
 

@@ -54,13 +54,13 @@ module DaVinciNode (
 import SIM
 import GUICore
 import BitMap
+
 import DaVinciCore
 import DaVinciClasses
 import DaVinciGraph
 import DaVinciGraphTerm
 import DaVinciNodeType
 import Char(isLower,isSpace,toLower)
-
 
 import Debug(debug)
 
@@ -227,4 +227,7 @@ getSiblings n = synchronize n (do {
 
 isRootNode :: Node -> IO Bool
 isRootNode n = getIncoming n >>= return . (/= [])
+
+
+
 

@@ -8,27 +8,29 @@ DATE          : 1996
 VERSION       : beta
 DESCRIPTION   : DaVinci Events.
 
+FileMenuInvocation's look bugged.  Change the read action.
 
    ######################################################################### -}
 
 
 module DaVinciEvent (
         DaVinciAnswer(..),
+        decodeDaVinciAnswer, -- :: String -> IO DaVinciAnswer
         DaVinciEvent(..),
         DaVinciFileEvent(..),
-
-        NodeId,
-        EdgeId,
         DaVinciEventInfo(..)
         ) where
 
-import SIM
-import Dynamics
-import DaVinciGraphTerm(NodeId(..), EdgeId(..))
-import Char(isSpace)
-import ExtendedPrelude
+-- import Char(isSpace)
+import Exception
 
+import Dynamics
+import ExtendedPrelude
 import Debug(debug)
+
+import SIM
+
+import DaVinciGraphTerm(NodeId(..),EdgeId(..),MenuItemId(..))
 
 
 -- ---------------------------------------------------------------------------
@@ -66,9 +68,9 @@ data DaVinciEventInfo =
           NoDaVinciEventInfo
         | NodeSelection [NodeId]
         | EdgeSelection EdgeId
-        | MenuInvocation Int
-        | PopupSelectionNodeInf NodeId Int
-        | PopupSelectionEdgeInf EdgeId Int
+        | MenuInvocation MenuItemId
+        | PopupSelectionNodeInf NodeId MenuItemId
+        | PopupSelectionEdgeInf EdgeId MenuItemId
         | FileMenuInvocation DaVinciFileEvent
         | Context Int
         | Reply String
@@ -77,7 +79,7 @@ daVinciEventInfoT :: TyCon
 daVinciEventInfoT = mkTyCon "DaVinciEvent" "DaVinciEventInfo"
 
 instance Typeable DaVinciEventInfo where
-        typeOf _ = mkTypeTag daVinciEventInfoT []
+   typeOf _ = mkTypeTag daVinciEventInfoT []
         
 
 
@@ -87,98 +89,113 @@ instance Typeable DaVinciEventInfo where
 
 data DaVinciAnswer = DaVinciAnswer DaVinciEvent DaVinciEventInfo
 
-instance Read DaVinciAnswer where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        'o':'k':xs -> 
-                [(DaVinciAnswer Ok (Reply xs),"")]
-
-        'q':'u':'i':'t':xs -> 
-                [(DaVinciAnswer DisConnect NoDaVinciEventInfo,"")]
-
-        'd':'i':'s':'c':'o':'n':'n':'e':'c':'t': xs -> 
-                [(DaVinciAnswer DisConnect NoDaVinciEventInfo,"")]
-        
-        'c':'l': 'o':'s':'e':xs -> 
-                [(DaVinciAnswer Close NoDaVinciEventInfo,"")]
-
-        'c':'o':'n':'t':'e':'x':'t':'(':xs -> 
-                [(DaVinciAnswer ContextChanged (Context cid),"")]
-                where cid = (read . read) (takeWhile (\ch -> ch /= ')') xs)
-
-        'n':'o':'d':'e':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'s':
-           '_':'l':'a':'b':'e':'l':'s':'(':'[':xs  -> 
-                [(DaVinciAnswer NodeSelectionLabels (NodeSelection nids),"")]
-                where   labels = split (== ',') (takeWhile (\ch -> ch /= ']') xs)
-                        nids = map (NodeId . read) labels
-
-        'e':'d':'g':'e':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'_':
-           'l':'a':'b':'e':'l':'(': xs  -> 
-                [(DaVinciAnswer EdgeSelectionLabel (EdgeSelection eid),"")]
-                where eid = EdgeId (read (takeWhile (/= ')') xs))
-
-        'n':'o':'d':'e':'_':'d':'o':'u':'b':'l':'e':'_':
-           'c':'l':'i':'c':'k':xs  -> 
-                [(DaVinciAnswer NodeDoubleClick NoDaVinciEventInfo,"")]
-
-        'e':'d':'g':'e':'_':'d':'o':'u':'b':'l':'e':'_':
-           'c':'l':'i':'c':'k':xs  -> 
-                [(DaVinciAnswer EdgeDoubleClick NoDaVinciEventInfo,"")]
-
-        'i':'c':'o':'n':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'(': xs ->
-                [(DaVinciAnswer IconSelection (MenuInvocation iid),"")]
-                where iid = (read . read) (takeWhile (\ch -> ch /= ')') xs)
-
-        'p':'o':'p':'u':'p':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'_':
-           'n':'o':'d':'e':'(':xs -> 
-                [(DaVinciAnswer PopupSelectionNode (PopupSelectionNodeInf nid mid),"")]
-                where inf = takeWhile (\ch -> ch /= ')') xs
-                      [snid,smid] = split (== ',') inf
-                      nid = NodeId (read snid)
-                      mid = (read . read) smid
-
-        'p':'o':'p':'u':'p':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'_':
-           'e':'d':'g':'e':'(':xs -> 
-                [(DaVinciAnswer PopupSelectionEdge (PopupSelectionEdgeInf nid mid),"")]
-                where inf = takeWhile (\ch -> ch /= ')') xs
-                      [snid,smid] = split (== ',') inf
-                      nid = EdgeId (read snid)
-                      mid = (read . read) smid
-
-        'm':'e':'n':'u':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'(': 
-           '#':xs -> 
-                [(DaVinciAnswer FileMenuSelection (MenuInvocation fid),"")]
-                where fid = read( (takeWhile (\ch -> ch /= ')') xs))
-                        
-                        
-        'm':'e':'n':'u':'_':'s':'e':'l':'e':'c':'t':'i':'o':'n':'(':xs ->
-                [(DaVinciAnswer MenuSelection (MenuInvocation iid),"")]
-                where iid = (read . read) (takeWhile (\ch -> ch /= ')') xs)
+decodeDaVinciAnswer :: String -> IO DaVinciAnswer
+decodeDaVinciAnswer daVinciAnswerStr =
+   do 
+      exceptionOrResult <- tryAll doParse
+      case exceptionOrResult of 
+         Left exception ->
+            return (DaVinciAnswer InternalError (Reply
+               (daVinciAnswerStr ++ "\n" ++ (show exception))
+               ))
+         Right result -> return result
+   where
+      menuItem :: String -> MenuItemId
+      menuItem str = MenuItemId (read str) 
+      menuInvocation :: String -> DaVinciEventInfo
+      menuInvocation str = MenuInvocation(menuItem str)
+      
+      doParse = case daVinciParse daVinciAnswerStr of
+         ("ok",[]) -> DaVinciAnswer Ok (Reply "")
+         ("quit",[]) -> DaVinciAnswer DisConnect NoDaVinciEventInfo
+         ("disconnect",[]) -> 
+            DaVinciAnswer DisConnect NoDaVinciEventInfo
+         ("close",[]) -> DaVinciAnswer Close NoDaVinciEventInfo
+         ("context",[cNumber]) ->
+            DaVinciAnswer ContextChanged (Context (read cNumber))
+         ("node_selections_labels",nodeLabelStrings) ->
+            DaVinciAnswer NodeSelectionLabels 
+               (NodeSelection (map NodeId nodeLabelStrings))
+         ("edge_selection_label",[edgeLabelString]) ->
+            DaVinciAnswer EdgeSelectionLabel 
+               (EdgeSelection (EdgeId edgeLabelString))
+         ("node_double_click",[]) ->
+            DaVinciAnswer NodeDoubleClick NoDaVinciEventInfo
+         ("edge_double_click",[]) ->
+            DaVinciAnswer EdgeDoubleClick NoDaVinciEventInfo
+         ("icon_selection",[iconString]) ->
+            DaVinciAnswer IconSelection (menuInvocation iconString)
+         ("popup_selection_node",[nodeLabelString,menuItemString]) ->
+            DaVinciAnswer PopupSelectionNode 
+               (PopupSelectionNodeInf 
+                  (NodeId nodeLabelString) (menuItem menuItemString))
+         ("popup_selection_edge",[edgeLabelString,menuItemString]) ->
+            DaVinciAnswer PopupSelectionEdge
+               (PopupSelectionEdgeInf 
+                  (EdgeId edgeLabelString) (menuItem menuItemString))
+         ("menu_selection",[menuItemString]) ->
+               case menuItemString of
+                  '#':fileEventStr ->
+                     DaVinciAnswer FileMenuSelection
+                        (FileMenuInvocation (read fileEventStr))
+                  _ -> DaVinciAnswer MenuSelection 
+                     (menuInvocation menuItemString)
+         ("create_node_and_edge",[nodeIdString]) ->
+             DaVinciAnswer CreateNodeAndEdge 
+                (NodeSelection [NodeId nodeIdString])
+         ("create_node",[]) -> 
+            DaVinciAnswer CreateNode NoDaVinciEventInfo
+         ("create_edge",nodeIdStrings) ->
+            DaVinciAnswer CreateEdge 
+               (NodeSelection (map NodeId nodeIdStrings))
+         ("communication_error",[comError]) ->
+               DaVinciAnswer ComError (Reply comError)
+         _ -> error "can't parse daVinci answer (2)"
 
 
-        'c':'r':'e':'a':'t':'e':'_':'n':'o':'d':'e':'_':'a':'n':'d':'_':
-            'e':'d':'g':'e':'(':xs  -> 
-                [(DaVinciAnswer CreateNodeAndEdge (NodeSelection [nid]),"")]
-                where   label = takeWhile (\ch -> ch /= ')') xs
-                        nid = (NodeId . read) label
+daVinciParse :: String -> (String,[String])
+-- All DaVinci Strings have one of the following forms:
+-- (a) a string containing no left parentheses, in which case daVinciParse
+--     the string with an empty list
+-- (b) a string with no left parentheses, followed by (, a sequence of
+--     one or more C strings separated by commas, followed by ),
+--     in which case we return the first string, paired with the paired
+--     C strings
+-- (c) a string with no left parentheses, followed by ([, a sequence
+--     of one or more C strings separated by commans, followed by )].
+--     In which case we return as in (b).  (This case only occurs for
+--     node_selections_labels.)
+-- In effect we merge (b) and (c) together by ignoring a single [ or ]
+-- at the start and end of the arguments, respectively.
+-- When we have errors we raise "error".
 
+daVinciParse "" = ("",[])
+daVinciParse ('(':rest) =
+   let
+      args =
+         case rest of
+           '[':argsString -> parseArgs argsString
+           argsString -> parseArgs argsString
+   in
+      ("",args)
+   where
+      parseArgs :: String -> [String]
+      parseArgs argsString =
+         case reads argsString of
+            [(str,")")] -> [str]
+            [(str,")]")] -> [str]
+            [(str,',':rest)] ->
+               let
+                  restArgs = parseArgs rest
+               in
+                  (str:restArgs)
+            _ -> error "can't parse daVinci answer (1)"
+daVinciParse (ch:rest) =
+   let
+      (fname,args) = daVinciParse rest
+   in
+      (ch:fname,args)
 
-        'c':'r':'e':'a':'t':'e':'_':'n':'o':'d':'e':xs  -> 
-                [(DaVinciAnswer CreateNode NoDaVinciEventInfo,"")]
-
-
-        'c':'r':'e':'a':'t':'e':'_':'e':'d':'g':'e':'(':xs  -> 
-                [(DaVinciAnswer CreateEdge (NodeSelection nids),"")]
-                where   labels = split (== ',') (takeWhile (\ch -> ch /= ')') xs)
-                        nids = map (NodeId . read) labels
-
-        'c':'o':'m':'m':'u':'n':'i':'c':'a':'t':'i':'o':'n':'_':
-           'e':'r':'r':'o':'r':'(':xs -> 
-                [(DaVinciAnswer ComError (Reply msg),"")]
-                where msg = takeWhile (\ch -> ch /= ')') xs
-        xs ->
-                
-                [(DaVinciAnswer InternalError (Reply xs),"")]
 
 
 -- ---------------------------------------------------------------------------
@@ -194,10 +211,12 @@ data DaVinciFileEvent =
         | FileClose
         | FileExit
         deriving (Eq, Ord)
+-- Example answer for this:
+-- menu_selection("#%new")
 
 instance Read DaVinciFileEvent where
    readsPrec p b =
-     case dropWhile (isSpace) b of
+     case b of
         '%':'n':'e':'w':xs -> [(FileNew,xs)]
         '%':'o':'p':'e':'n':xs -> [(FileOpen,xs)]
         '%':'s':'a':'v':'e':'a':'s':xs -> [(FileSave,xs)]
@@ -218,3 +237,7 @@ instance Show DaVinciFileEvent where
         FileClose -> "%close"
         FileExit -> "%exit"
         ) ++ r
+
+
+
+

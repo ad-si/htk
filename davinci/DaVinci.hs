@@ -174,8 +174,6 @@ instance GUIObject DaVinci  where
 instance Synchronized DaVinci where
         synchronize w = synchronize (toGUIObject w)
 
-
-
 -- ---------------------------------------------------------------------------
 --  Commands
 -- ---------------------------------------------------------------------------
