@@ -1,3 +1,5 @@
+% This file contains a lot of -*- mode: Latex -*-
+%
 \subsection{A First Example}
 
 To make this more concrete, consider a very simple example. We want to
@@ -40,9 +42,6 @@ This introduces three important concepts in \HTk:
     se}. To display it, we have to explicitly place it on the screen;
   this is done with the \texttt{pack} command. This command also takes
   a list of configurations as arguments; more on that below.
-
-\textbf{There's also the business with Button String. For the rest of
-  this note, I'll assume we are going to drop this (i.e. just have Button).}
 \end{itemize}
 
 To specify the dynamic behaviour, we need two ingredients: firstly, we

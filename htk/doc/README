@@ -4,4 +4,4 @@ This directory contains documentation about HTk, in particular:
 
 - hdoc is the reference manual generated with the HDoc utility;
 
-- internal is documentation containing HTk's internal workings.
+- internal is documentation pertaining to HTk's internal workings.

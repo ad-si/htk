@@ -1,3 +1,5 @@
+% This file contains a lot of -*- mode: Latex -*-
+%
 \subsection{A Second Example}
 
 \begin{comment}

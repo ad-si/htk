@@ -75,7 +75,7 @@ peek b m (xy:rest) =
    let adjMines :: Int
        adjMines = sum (map (mines. (m !)) (adjacents m xy))
        nu       = m // [(xy, Cleared adjMines)]
-   in do (b!xy)#(text (show adjMines))
+   in do (b!xy)# text (show adjMines) >>= relief Flat
          if adjMines == 0 then 
             peek b nu (rest `union` (filter (untouched. (m !))
                                             (adjacents m xy)))
@@ -100,7 +100,7 @@ flag b m xy =
   case m!xy of
     Cleared _ -> return m
     s@(Unexplored{flagged= f})-> 
-        do b!xy # (if f then text "X" else text " ")
+        do b!xy # (if not f then text "X" else text " ")
            return (m // [(xy, s{flagged= not f})])
                                  
 -- create all buttons, and set up the handlers for them.
@@ -108,7 +108,8 @@ flag b m xy =
 buttons :: Container par=> par-> Button-> Event() -> (Int, Int)
                            -> IO [((Int, Int), Button)]
 buttons par sb startEv (size@(xmax, ymax)) =
-  do buttons <- mapM (\xy-> do b<- newButton par [text "?"]
+  do buttons <- mapM (\xy-> do b<- newButton par [text "?", relief Raised,
+                                                  width 1, height 1]
                                return (xy, b)) [(x, y) | x <- [1.. xmax],
                                                          y <- [1.. ymax]]
      let bArr = array ((1,1), size) buttons
@@ -143,6 +144,7 @@ buttons par sb startEv (size@(xmax, ymax)) =
                   do r<- choose riCl >>>= flag bArr m
                      playOn r
                   +>
+		  -- make smiley frown when we press a mouse button
                   do choose press 
 		     always (sb # photo smWorriedImg >> done) 
                      play m
@@ -150,7 +152,8 @@ buttons par sb startEv (size@(xmax, ymax)) =
                   start 
          start :: Event ()
          start = startEv >>> do m <- createMines (snd (bounds bArr))
-                                mapM_ (text " ") (elems bArr)
+			        sb # photo smSmileImg
+                                mapM_ (\b-> b # text " " >>= relief Raised) (elems bArr)
                                 sync (play m)
          gameOver :: Event ()
          gameOver = start 
@@ -194,7 +197,7 @@ main =
 
     pack sm [Side AtTop, PadY 20, PadX 20, Anchor North]
     pack bfr [Side AtTop, PadX 15] 
-    mapM_ (\(xy, b)-> grid b [GridPos xy]) allbuttons
+    mapM_ (\(xy, b)-> grid b [GridPos xy, GridPadX 1, GridPadY 1]) allbuttons
     
     -- start the menu handler
     spawnEvent (forever (restartClick >>> sendIO restartCh ()

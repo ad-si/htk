@@ -1,3 +1,6 @@
+% This file contains a lot of -*- mode: Latex -*-
+%
+
 \item Scrollbars
   
   I assume the esteemed reader has already seen a scrollbar. In HTk
@@ -61,6 +64,6 @@ main =
      "Eighteen", "Nineteen", "Twenty"]
 \end{code}
 
-\textbf{To be done: show a screenshot here.}
+\ToBeDone{Show a screenshot here.}
 
 

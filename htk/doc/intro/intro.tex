@@ -49,7 +49,7 @@
 % \renewcommand{\texttt}[1]{\textcolor{codecol}{\MMTextTT{#1}}}
 
 
-\title{An Introduction to \HTk \\
+\title{A Short Introduction to \HTk \\
   Graphical User Interfaces for Haskell Programs}
 
 \author{Christoph Lüth \\ FB 3 -- Mathematik und Informatik,
@@ -57,6 +57,7 @@
 
 \newcommand{\HTk}{\textsc{HTk}\xspace}
 
+\newcommand{\ToBeDone}[1]{\textbf{TBD: #1}}
 
 \begin{document}
 
@@ -113,9 +114,9 @@ Further, events allow the user interface to be concurrent in a natural
 and controlled way, which allows for a reasonable degree of
 concurrency which is still tractable.
 
-\input{simple1}
+\input{Mainsimple1.lhs}
 
-\input{simple2}
+\input{Mainsimple2.lhs}
 
 \subsection{Structure of this Paper}
 
@@ -483,11 +484,11 @@ can use the grid packer inside a window using the standard packer.
   \texttt{HasFont}) and the justification (class
   \texttt{HasJustified}) can be specified. 
 
-\input{MainlistEx.lhs} %% Scrollbars, List boxes.
+\input{Mainlist.lhs} %% Scrollbars, List boxes.
 
 \end{itemize}
 
-\subsection{Menues}
+\input{Mainmenu.lhs} %% Menues 
 
 \subsection{The Textwidget}
 

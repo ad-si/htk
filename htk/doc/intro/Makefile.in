@@ -3,7 +3,8 @@ LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
 
 SRCSLHS       = Mainsimple1.lhs \
                 Mainsimple2.lhs \
-		MainlistEx.lhs \
+		Mainlist.lhs \
+		Mainmenu.lhs \
                 MainhsMines.lhs
 
 XHCDIRS = $(HTKDIRS)
