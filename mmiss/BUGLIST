@@ -4,6 +4,22 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+66) 27.03.03
+When an object is inserted manually in XEmacs, it does not get converted into
+a magic button when the containing object is saved, meaning that we can't
+write to it a second time.
+
+Also, EditRef should probably not contain the object link, but instead 
+recompute it each time we need to resolve the reference.
+
+65) 27.03.03
+Italicisation of objects that indicates editing is lost when the containing
+package is closed and opened again.
+
+-- -------------------------------------------------------------------
+(Memoirs restarted after a long gap and a number of changes)
+-- -------------------------------------------------------------------
+
 64) 4.12.02
 I am implementing the folders (after a major change in the object model with
 a memory leak which means that elements of the openContents registry in the
