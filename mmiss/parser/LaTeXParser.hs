@@ -273,6 +273,7 @@ plainText = many1 (noneOf "\\")
                
 beginBlock :: GenParser Char st Frag
 beginBlock = do id <- begin
+                spaces
                 p <- envParams id
 --                beginDelim <-  option "" (try (many1 space))
 --                l <- continue [] id
