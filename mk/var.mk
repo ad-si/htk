@@ -51,4 +51,13 @@ CPP              = $(CC) -E -P -x c -traditional -D__GLASGOW_HASKELL__=$(GhcMajV
 # The package configuration directory
 PACKAGECONF = $(GHCTOP)/uni-package.conf
 
+# The directory containing C includes
 CINCLUDES       = $(TOP)/includes
+
+# GHCPKG option with --force if necessary
+ifeq "$(GhcMajVersion).$(GhcMinVersion)" "5.02"
+GHCPKGOPTS =
+else
+GHCPKGOPTS = --force
+endif
+

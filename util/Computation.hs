@@ -65,7 +65,6 @@ import Maybes -- load this from util if Hugs, in GHC it's part of the
               -- standard library
 import Monad
 
-import IOExts(unsafePerformIO)
 import Concurrent
 import Exception
 
