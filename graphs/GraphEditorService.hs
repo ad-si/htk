@@ -17,6 +17,7 @@ import NewNames
 import Graph
 import SimpleGraph
 import GraphEditor
+import Debug(debug)
 
 data FrozenGraph = FrozenGraph {
    graphState' :: DisplayableCannedGraph,
@@ -82,7 +83,6 @@ instance ServiceClass DisplayableUpdate DisplayableUpdate
                   graphUpdate = (\ _ -> done),
                   nameSourceBranch = initialBranch
                   })
-
          graph <- newGraph graphConnection
          -- Hack the name source
          let
@@ -96,7 +96,6 @@ instance ServiceClass DisplayableUpdate DisplayableUpdate
       do
          let
             nameSource = getNameSource graph
-
          frozenNameSource <- freezeNameSource nameSource
          (GraphConnectionData {
             graphState = graphState,
@@ -106,9 +105,7 @@ instance ServiceClass DisplayableUpdate DisplayableUpdate
 
          -- Avoid wasting a branch number
          defrostNameSource nameSource frozenNameSource
-
          deRegister
-
          return (show (FrozenGraph2 {
             graphState2 = graphState,
             nameSource2 = frozenNameSource

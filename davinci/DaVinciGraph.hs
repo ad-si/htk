@@ -1,400 +1,885 @@
-{- #########################################################################
+{- This is the implementation of modules GraphDisp and GraphConfigure for 
+   daVinci.   See those files for explanation of the names. 
+   We encode, for example, the type parameter node as DaVinciNode,
+   and so on for other type parameters, prefixing with "DaVinci" and
+   capitalising the next letter.  But the only variable you should normally
+   need from this module is daVinciSort.
+   -}
+module DaVinciGraph(
+   daVinciSort, -- Magic type parameter indicating we want to use daVinci.
 
-MODULE        : DaVinciGraph
-AUTHOR        : Carla Blanck Purper
-                Einar Karlsen,  
-                University of Bremen
-                email:  {cpurper,ewk}@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Management of DaVinci Graphs.
+   DaVinciGraph,
+   DaVinciGraphParms,
 
+   DaVinciNode,
+   DaVinciNodeType,
+   DaVinciNodeTypeParms,
 
-   ######################################################################### -}
+   DaVinciArc,
+   DaVinciArcType,
+   DaVinciArcTypeParms
+   ) where
 
+import Maybe
 
-module DaVinciGraph (
-        GraphOrientation(..),
-
-        Graph,
-
-        newGraph,
-
-        lastGraphClosed,
-
-        compact,
-
-        edgedistance,
-        getEdgeDistance,
-
-        edgeradius,
-        getEdgeRadius,
-
-        fontsize,
-        getFontSize,
-
-        gapheight,
-        getGapHeight,
-
-        gapwidth,
-        getGapWidth,
-
-        statusmsg,
-        getStatusMsg,
-
-        showmsg,
-        getShowMsg,
-
-        graphorientation,
-        getGraphOrientation,    
-
-        keepNodesAtAllLevels,
-        restoreAllSubGraphs,
-        redrawGraph,
-
-        improveAll,
-        improveVisible,
-
-        printGraph,
-        saveGraph,
-        saveGraphLayout,
-
-        getNodes,
-        getEdges,
-
-        illegalEdgeGap,
-        illegalEdgeRadius,
-        illegalFontSize,
-        illegalGapWidth,
-        illegalGapHeight,
-
-        configGraphMenu, -- defined in DaVinciMenu.
-
-        ) where
-
-import SIM
-import GUICore
+import IOExts
+import Set
 import FiniteMap
-import DaVinciCore
-import DaVinciEvent
-import DaVinciGraphTerm
-import DaVinciClasses
-import DaVinciMenu
-import Char(isSpace)
+import Concurrent
 
+import Dynamics
+import Registry
+import Computation
 import Debug(debug)
 
+import Channels
+import Events
+import Destructible
+
+import GraphDisp
+import GraphConfigure
+
+import DaVinciTypes
+import DaVinciBasic
+
+------------------------------------------------------------------------
+-- How you refer to everything
+------------------------------------------------------------------------
+
+daVinciSort :: Graph DaVinciGraph 
+   DaVinciGraphParms DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms = displaySort
+
+instance GraphAllConfig DaVinciGraph DaVinciGraphParms 
+   DaVinciNode DaVinciNodeType DaVinciNodeTypeParms
+   DaVinciArc DaVinciArcType DaVinciArcTypeParms 
+
+-- -----------------------------------------------------------------------
+-- Graphs.
+-- -----------------------------------------------------------------------
+
+data DaVinciGraph = DaVinciGraph {
+   context :: Context,
+
+   -- For each node and edge we give (a) its type, (b) its value. 
+   nodes :: Registry NodeId NodeData,
+   edges :: Registry EdgeId ArcData,
+
+   pendingChangesMVar :: MVar [MixedUpdate],
+      -- This refers to changes to the structure of the graph
+      -- which haven't yet been sent to daVinci.  Only some
+      -- changes can be delayed in this way, namely
+      -- node and edge additions and deletions.
+      -- Changes to types are not delayed.  Changes to attribute values,
+      -- EG setNodeValuePrim, cause this list to be flushed, as does
+      -- redrawPrim.
+
+   globalMenuActions :: Registry MenuId (IO ()),
+   otherActions :: Registry DaVinciAnswer (IO ()),
+   -- The node and edge types contain other event handlers.
+
+   lastSelectionRef :: IORef LastSelection,
+
+   doImprove :: Bool,
+   -- improveAll on redrawing graph.
+
+   destructionChannel :: Channel ()
+   }
+
+data LastSelection = LastNone | LastNode NodeId | LastEdge EdgeId
+
+data DaVinciGraphParms = DaVinciGraphParms {
+   graphConfigs :: [DaVinciGraph -> IO ()], -- General setups
+   surveyView :: Bool,
+   configDoImprove :: Bool
+   }
+
+instance Destroyable DaVinciGraph where
+   destroy (daVinciGraph @ DaVinciGraph {
+         context = context,nodes = nodes,edges = edges,
+         globalMenuActions = globalMenuActions,otherActions = otherActions}) =
+      do
+         destroy context
+         emptyRegistry nodes
+         emptyRegistry edges
+         emptyRegistry globalMenuActions
+         emptyRegistry otherActions
+         signalDestruct daVinciGraph
+
+instance Destructible DaVinciGraph where
+   destroyed (DaVinciGraph {destructionChannel = destructionChannel}) = 
+      receive destructionChannel
+
+signalDestruct :: DaVinciGraph -> IO ()
+signalDestruct daVinciGraph = 
+   sync(noWait(send (destructionChannel daVinciGraph) ()))
+
+instance GraphClass DaVinciGraph where
+   redrawPrim (daVinciGraph @ DaVinciGraph{
+         context = context,doImprove = doImprove}) = 
+      do
+         flushPendingChanges daVinciGraph
+         if doImprove
+            then
+               doInContext (DaVinciTypes.Menu(Layout(ImproveAll))) context 
+            else
+               done
+
+instance NewGraph DaVinciGraph DaVinciGraphParms where
+   newGraphPrim (DaVinciGraphParms {graphConfigs=graphConfigs,
+         configDoImprove=configDoImprove,surveyView=surveyView}) =
+      do
+         nodes <- newRegistry
+         edges <- newRegistry
+         globalMenuActions <- newRegistry
+         otherActions <- newRegistry
+         lastSelectionRef <- newIORef LastNone
+         
+         let
+            -- We now come to write the handler function for
+            -- the context.  This is quite complex so we handle the
+            -- various cases one by one, in separate functions.
+            handler :: DaVinciAnswer -> IO ()
+            -- In general, the rule is that if we don't find
+            -- a handler function, we do nothing.  We do, however,
+            -- assume that where a menuId is quoted, there is
+            -- an associated handler.  If not, this is (probably)
+            -- a bug in daVinci.
+            handler daVinciAnswer = case daVinciAnswer of
+               NodeSelectionsLabels nodes -> actNodeSelections nodes
+               NodeDoubleClick -> nodeDoubleClick
+               EdgeSelectionLabel edge -> actEdgeSelections edge
+               EdgeDoubleClick -> edgeDoubleClick
+               MenuSelection menuId -> actGlobalMenu menuId
+               PopupSelectionNode nodeId menuId ->
+                  actNodeMenu nodeId menuId
+               PopupSelectionEdge edgeId menuId ->
+                  actEdgeMenu edgeId menuId
+               CreateNodeAndEdge nodeId -> actCreateNodeAndEdge nodeId
+               CreateEdge nodeFrom nodeTo -> actCreateEdge nodeFrom nodeTo
+               _ -> 
+                  do
+                     action <- getValueDefault done otherActions daVinciAnswer
+                     action
+            -- Update lastSelectionRef.  This contains the
+            -- last selected node or edge, in case we are about to
+            -- double-click or call a menu.
+            actNodeSelections :: [NodeId] -> IO ()
+            actNodeSelections [nodeId] = 
+               writeIORef lastSelectionRef (LastNode nodeId)
+            actNodeSelections _ = done -- not a double-click.
+
+            actEdgeSelections :: EdgeId -> IO ()
+            actEdgeSelections edgeId = 
+               writeIORef lastSelectionRef (LastEdge edgeId)
+
+            -- With node and edge double clicks we also expect the 
+            -- node or edge to be recently selected and in lastSelectionRef
+            nodeDoubleClick :: IO ()
+            nodeDoubleClick =
+               do
+                  lastSelection <- readIORef lastSelectionRef
+                  case lastSelection of
+                     LastNode nodeId ->
+                        do
+                           NodeData nodeType nodeValue <- getValue nodes nodeId
+                           (nodeDoubleClickAction nodeType) nodeValue
+                     _ -> error "DaVinciGraph: confusing node double click"
+  
+            edgeDoubleClick :: IO ()
+            edgeDoubleClick =
+               do
+                  lastSelection <- readIORef lastSelectionRef
+                  case lastSelection of
+                     LastEdge edgeId ->
+                        do
+                           ArcData arcType arcValue <- getValue edges edgeId
+                           (arcDoubleClickAction arcType) arcValue
+                     _ -> error "DaVinciGraph: confusing edge double click"
+
+            actGlobalMenu :: MenuId -> IO ()
+            actGlobalMenu menuId =
+               do
+                  action <- getValue globalMenuActions menuId
+                  action
+
+            actNodeMenu :: NodeId -> MenuId -> IO ()
+            actNodeMenu nodeId menuId =
+               do
+                  NodeData nodeType nodeValue <- getValue nodes nodeId
+                  menuAction <- getValue (nodeMenuActions nodeType) menuId
+                  menuAction nodeValue
+
+            actEdgeMenu :: EdgeId -> MenuId -> IO ()
+            actEdgeMenu edgeId menuId =
+               do
+                  ArcData arcType arcValue <- getValue edges edgeId
+                  menuAction <- getValue (arcMenuActions arcType) menuId
+                  menuAction arcValue
+
+            -- We now do the drag-and-drops.  There is no special
+            -- handler for the create node action, since this is
+            -- done by the otherActions handler. 
+            actCreateNodeAndEdge nodeId =
+               do
+                  NodeData nodeType nodeValue <- getValue nodes nodeId
+                  (createNodeAndEdgeAction nodeType) nodeValue
+
+            actCreateEdge :: NodeId -> NodeId -> IO ()
+            actCreateEdge nodeId1 nodeId2 =
+               do
+                  NodeData nodeType2 nodeValue2 <- getValue nodes nodeId2
+                  NodeData _ nodeValue1 <- getValue nodes nodeId1
+                  (createEdgeAction nodeType2) (toDyn nodeValue1) nodeValue2
+
+         context <- newContext handler
+         pendingChangesMVar <- newMVar []
+         destructionChannel <- newChannel
+
+         let
+            daVinciGraph =
+               DaVinciGraph {
+                  context = context,
+                  nodes = nodes,
+                  edges = edges,
+                  globalMenuActions = globalMenuActions,
+                  otherActions = otherActions,
+                  pendingChangesMVar = pendingChangesMVar,
+                  doImprove = configDoImprove,
+                  lastSelectionRef = lastSelectionRef,
+                  destructionChannel = destructionChannel
+                  }
+
+         setValue otherActions Closed (signalDestruct daVinciGraph)
+         setValue otherActions Quit (signalDestruct daVinciGraph)
+
+         sequence_ (map ($ daVinciGraph) (reverse graphConfigs))
+
+         -- Do some initial commands.
+         doInContext (DVSet(GapWidth 4)) context
+         doInContext (DVSet(GapHeight 40)) context
+         if surveyView
+            then
+               doInContext (DaVinciTypes.Menu(View(OpenSurveyView))) context
+            else
+               done
+
+         return daVinciGraph
+
+instance GraphParms DaVinciGraphParms where
+   emptyGraphParms = DaVinciGraphParms {
+      graphConfigs = [],configDoImprove = False,surveyView = False
+      }
+
+addGraphConfigCmd :: DaVinciCmd -> DaVinciGraphParms -> DaVinciGraphParms
+addGraphConfigCmd daVinciCmd daVinciGraphParms =
+   daVinciGraphParms {
+      graphConfigs = (\ daVinciGraph ->
+         doInContext daVinciCmd (context daVinciGraph)) 
+         : (graphConfigs daVinciGraphParms)
+         }
+
+instance HasConfig GraphTitle DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) (GraphTitle graphTitle) =
+      addGraphConfigCmd (Window(Title graphTitle))
+
+instance HasConfig OptimiseLayout DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) (OptimiseLayout configDoImprove) daVinciGraphParms =
+      daVinciGraphParms {configDoImprove = configDoImprove}
+
+instance HasConfig SurveyView DaVinciGraphParms where
+   configUsed _ _  = True
+   ($$) (SurveyView surveyView) daVinciGraphParms =
+      daVinciGraphParms {surveyView = surveyView}
+
+instance HasConfig AllowDragging DaVinciGraphParms where
+   configUsed _ _  = True
+
+   ($$) (AllowDragging allowDragging) =
+      addGraphConfigCmd (DragAndDrop 
+         (if allowDragging then DraggingOn else DraggingOff))
+
+instance HasConfig GlobalMenu DaVinciGraphParms where
+   configUsed _ _ = True
+   ($$) globalMenu graphParms =
+      graphParms {
+         graphConfigs =
+            (\ daVinciGraph ->
+               do
+                  menuEntries <- encodeGlobalMenu globalMenu daVinciGraph
+                  doInContext (AppMenu(CreateMenus menuEntries))
+                     (context daVinciGraph)
+               ) : (graphConfigs graphParms)
+         }
+
+instance HasConfig GraphGesture DaVinciGraphParms where
+   configUsed _ _ = True
+   ($$) (GraphGesture action) graphParms =
+      graphParms {
+         graphConfigs =
+            (\ daVinciGraph ->
+               setValue (otherActions daVinciGraph) CreateNode action
+               ) : (graphConfigs graphParms)
+         }
+                  
+
+instance GraphConfig graphConfig 
+   => HasConfig graphConfig DaVinciGraphParms where
+
+   configUsed graphConfig graphParms = False
+   ($$) graphConfig graphParms = graphParms
+
+-- -----------------------------------------------------------------------
+-- Nodes
+-- -----------------------------------------------------------------------
+
+data DaVinciNode value = DaVinciNode NodeId
+
+-- Tiresomely we need to make the "real" node type untyped.
+-- This is so that the interactor which handles drag-and-drop
+-- can get the type out without knowing what it is.
+data DaVinciNodeType value = DaVinciNodeType {
+   nodeType :: Type,
+   nodeText :: value -> IO String,
+      -- how to compute the displayed name of the node
+   nodeMenuActions :: Registry MenuId (value -> IO ()),
+   nodeDoubleClickAction :: value -> IO (),
+   createNodeAndEdgeAction :: value -> IO (),
+   createEdgeAction :: Dyn -> value -> IO () 
+   }
+
+data NodeData = forall value . Typeable value => 
+   NodeData (DaVinciNodeType value) value
+
+data DaVinciNodeTypeParms value = 
+   DaVinciNodeTypeParms {
+      nodeAttributes :: Attributes value,
+      configNodeText :: value -> IO String,
+      configNodeDoubleClickAction :: value -> IO (),
+      configCreateNodeAndEdgeAction :: value -> IO (),
+      configCreateEdgeAction :: Dyn -> value -> IO ()
+      }
+
+instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
+   newNodePrim
+         (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
+         (nodeType @ DaVinciNodeType {
+            nodeType = daVinciNodeType,nodeText = nodeText})
+         value =
+      do
+         thisNodeText <- nodeText value
+         nodeId <- newNodeId context
+         setValue nodes nodeId (NodeData nodeType value)
+         addNodeUpdate daVinciGraph (
+            NewNode nodeId daVinciNodeType [A "OBJECT" thisNodeText])
+         return (DaVinciNode nodeId)
+
+instance DeleteNode DaVinciGraph DaVinciNode where
+   deleteNodePrim (daVinciGraph @ 
+            DaVinciGraph {context = context,nodes = nodes})
+         (DaVinciNode nodeId) = 
+      do
+         addNodeUpdate daVinciGraph (DeleteNode nodeId) 
+
+   setNodeValuePrim (daVinciGraph @ DaVinciGraph {
+         context = context,nodes = nodes}) (DaVinciNode nodeId) newValue =
+      do
+         flushPendingChanges daVinciGraph
+         newTitle <- transformValue nodes nodeId
+            (\ (Just (NodeData nodeType _)) -> 
+               do
+                  let newValue' = coDyn newValue
+                  -- newValue' is actually the same as newValue but we
+                  -- need this to make the types work.
+                  newTitle <- (nodeText nodeType) newValue'
+                  return (Just (NodeData nodeType newValue'),newTitle)
+               )
+         doInContext (DaVinciTypes.Graph(
+               ChangeAttr[Node nodeId [A "OBJECT" newTitle]]))
+            context
+
+instance NodeClass DaVinciNode where
+
+daVinciNodeTyCon = mkTyCon "DaVinciGraph" "DaVinciNode"
+
+instance HasTyCon1 DaVinciNode where
+   tyCon1 _ = daVinciNodeTyCon
+
+instance NodeTypeClass DaVinciNodeType where
+
+-- Although it isn't obligatory, we make DaVinciNodeType things
+-- Typeable so that we can save them dynamically.
+daVinciNodeTypeTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciNodeType"
+
+instance HasTyCon1 DaVinciNodeType where
+   tyCon1 _ = daVinciNodeTypeTyCon
+
+instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
+   newNodeTypePrim 
+         (daVinciGraph@(DaVinciGraph {context = context}))
+         (DaVinciNodeTypeParms {
+            nodeAttributes = nodeAttributes,
+            configNodeText = configNodeText,
+            configNodeDoubleClickAction = configNodeDoubleClickAction,
+            configCreateNodeAndEdgeAction 
+               = configCreateNodeAndEdgeAction,
+            configCreateEdgeAction = configCreateEdgeAction
+            }) =
+      do
+         nodeType <- newType context
+         (nodeMenuActions,daVinciAttributes) <-
+            encodeAttributes nodeAttributes daVinciGraph
+         doInContext (Visual(AddRules [NR nodeType daVinciAttributes])) context
+
+         let
+            nodeText = configNodeText
+            nodeDoubleClickAction = configNodeDoubleClickAction
+            createNodeAndEdgeAction = configCreateNodeAndEdgeAction
+            createEdgeAction = configCreateEdgeAction
+         return (DaVinciNodeType {
+            nodeType = nodeType,
+            nodeText = nodeText,
+            nodeMenuActions = nodeMenuActions,
+            nodeDoubleClickAction = nodeDoubleClickAction,
+            createNodeAndEdgeAction = createNodeAndEdgeAction,
+            createEdgeAction = createEdgeAction
+            })
+
+instance NodeTypeParms DaVinciNodeTypeParms where
+   emptyNodeTypeParms = DaVinciNodeTypeParms {
+      nodeAttributes = emptyAttributes,
+      configNodeText = const (return ""),
+      configNodeDoubleClickAction = const done,
+      configCreateNodeAndEdgeAction = const done,
+      configCreateEdgeAction = const (const done)
+      }
+
+instance NodeTypeConfig graphConfig 
+   => HasConfigValue graphConfig DaVinciNodeTypeParms where
+
+   configUsed' nodeTypeConfig nodeTypeParms = False
+   ($$$) nodeTypeConfig nodeTypeParms = nodeTypeParms
+
+------------------------------------------------------------------------
+-- Node type configs for titles, shapes, and so on.
+------------------------------------------------------------------------
+
+instance HasConfigValue ValueTitle DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (ValueTitle nodeText) parms = 
+      parms { configNodeText = nodeText }
+
+instance HasConfigValue Shape DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) shape parms =
+      let
+         nodeAttributes0 = nodeAttributes parms
+         shaped shape = Att "_GO" shape $$$ nodeAttributes0
+         nodeAttributes1 =
+            case shape of
+               Box -> shaped "box"
+               Circle -> shaped "circle"
+               Ellipse -> shaped "ellipse"
+               Rhombus -> shaped "rhombus"
+               Triangle -> shaped "triangle"
+               Icon filePath ->
+                  Att "ICONFILE" filePath $$$
+                  shaped "icon"
+      in 
+         parms {nodeAttributes = nodeAttributes1}
+
+instance HasConfigValue Color DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (Color colorName) parms =
+      parms {nodeAttributes = (Att "COLOR" colorName) $$$ 
+         (nodeAttributes parms)}
+
+instance HasConfigValue LocalMenu DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) localMenu parms =
+      parms {nodeAttributes = localMenu $$$ (nodeAttributes parms)}
+
+instance HasConfigValue DoubleClickAction DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (DoubleClickAction action) parms =
+      parms {configNodeDoubleClickAction = action}
+
+------------------------------------------------------------------------
+-- Node type configs for drag and drop
+------------------------------------------------------------------------
+
+instance HasConfigValue NodeGesture DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (NodeGesture actFn) nodeTypeParms =
+      nodeTypeParms {configCreateNodeAndEdgeAction = actFn}
+
+instance HasConfigValue NodeDragAndDrop DaVinciNodeTypeParms where
+   configUsed' _ _ = True
+   ($$$) (NodeDragAndDrop actFn) nodeTypeParms =
+      nodeTypeParms {configCreateEdgeAction = actFn}
+
+-- -----------------------------------------------------------------------
+-- Arcs
+-- -----------------------------------------------------------------------
+
+data DaVinciArc value = DaVinciArc EdgeId
+
+-- Like nodes, the "real" type is monomorphic.
+data DaVinciArcType value = DaVinciArcType {
+   arcType :: Type,
+   arcMenuActions :: Registry MenuId (value -> IO ()),
+   arcDoubleClickAction :: value -> IO ()
+   }
+
+data DaVinciArcTypeParms value = DaVinciArcTypeParms {
+   arcAttributes :: Attributes value,
+   configArcDoubleClickAction :: value -> IO ()
+   }
+
+data ArcData = forall value . Typeable value 
+   => ArcData (DaVinciArcType value) value
+
+instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc DaVinciArcType
+      where
+   newArcPrim 
+         (daVinciGraph @ DaVinciGraph {context = context,edges = edges}) 
+         daVinciArcType
+         value (DaVinciNode nodeFrom) (DaVinciNode nodeTo) =
+      do
+         edgeId <- newEdgeId context
+         setValue edges edgeId (ArcData daVinciArcType value)
+         addEdgeUpdate daVinciGraph 
+            (NewEdge edgeId (arcType daVinciArcType) [] nodeFrom nodeTo)
+         return (DaVinciArc edgeId)
+
+instance DeleteArc DaVinciGraph DaVinciArc where
+   deleteArcPrim (daVinciGraph @ DaVinciGraph {edges=edges,context = context})
+         (DaVinciArc edgeId) =
+      do
+         addEdgeUpdate daVinciGraph (DeleteEdge edgeId)
+         deleteFromRegistry edges edgeId
+
+   setArcValuePrim (daVinciGraph @ DaVinciGraph {
+         context = context,edges = edges}) (DaVinciArc edgeId) newValue =
+      do
+         flushPendingChanges daVinciGraph
+         transformValue edges edgeId
+            (\ (Just (ArcData edgeType _)) ->
+               return (Just (ArcData edgeType (coDyn newValue)),()))
+
+instance ArcClass DaVinciArc where
+
+daVinciArcTyCon = mkTyCon "DaVinciGraphDisp" "DaVinciArc"
+
+instance HasTyCon1 DaVinciArc where
+   tyCon1 _ = daVinciArcTyCon
+
+instance ArcTypeClass DaVinciArcType where
+
+instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
+   newArcTypePrim
+         (daVinciGraph@DaVinciGraph{context = context})
+         (DaVinciArcTypeParms{arcAttributes = arcAttributes,
+            configArcDoubleClickAction = configArcDoubleClickAction
+            }) =
+      do
+         arcType <- newType context
+         (arcMenuActions,attributes) 
+            <- encodeAttributes arcAttributes daVinciGraph
+         doInContext (Visual(AddRules [ER arcType attributes])) context 
+         let
+            arcDoubleClickAction = configArcDoubleClickAction
+         return (DaVinciArcType {
+            arcType = arcType,
+            arcMenuActions = arcMenuActions,
+            arcDoubleClickAction = arcDoubleClickAction
+            })
+
+instance ArcTypeParms DaVinciArcTypeParms where
+   emptyArcTypeParms = DaVinciArcTypeParms {
+      arcAttributes = emptyAttributes,
+      configArcDoubleClickAction = const done
+      }
+
+instance HasConfigValue Color DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (Color colorName) parms =
+      parms {arcAttributes = (Att "EDGECOLOR" colorName) $$$ 
+         (arcAttributes parms)}
+
+instance HasConfigValue EdgePattern DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) edgePattern parms =
+      let
+         pattern = case edgePattern of
+            Solid -> "solid"
+            Dotted -> "dotted"
+            Dashed -> "dashed"
+            Thick -> "thick"
+            Double -> "double"
+      in
+         parms {arcAttributes = (Att "EDGEPATTERN" pattern) $$$ 
+            (arcAttributes parms)}
+
+instance HasConfigValue LocalMenu DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) localMenu parms =
+      parms {arcAttributes = localMenu $$$ (arcAttributes parms)}
+
+instance ArcTypeConfig arcTypeConfig 
+   => HasConfigValue arcTypeConfig DaVinciArcTypeParms where
+
+   configUsed' arcTypeConfig arcTypeParms = False
+   ($$$) arcTypeConfig arcTypeParms = arcTypeParms
 
 
--- ---------------------------------------------------------------------------
---  Graph Creation
--- ---------------------------------------------------------------------------
+instance HasConfigValue DoubleClickAction DaVinciArcTypeParms where
+   configUsed' _ _ = True
+   ($$$) (DoubleClickAction action) parms =
+      parms {configArcDoubleClickAction = action}
+
+------------------------------------------------------------------------
+-- Attributes in general
+-- The Attributes type encodes the attributes in a DaVinciNodeTypeParms
+-- or a DaVinciArcTypeParms
+------------------------------------------------------------------------
+
+data Attributes value = Attributes {
+   options :: FiniteMap String String,
+   menuOpt :: Maybe (LocalMenu value)
+   }
+
+emptyAttributes :: Attributes value
+emptyAttributes = Attributes {
+   options = emptyFM,
+   menuOpt = Nothing
+   }
+
+data Att value = Att String String
+-- An attribute
+
+instance HasConfigValue Att Attributes where
+   configUsed' _ _ = True
+   ($$$) (Att key value) attributes =
+      attributes {
+         options = addToFM (options attributes) key value
+         }
+
+instance HasConfigValue LocalMenu Attributes where
+   configUsed' _ _ = True
+   ($$$) localMenu attributes =
+      attributes {menuOpt = Just localMenu}
+
+encodeAttributes :: Typeable value => Attributes value -> DaVinciGraph
+   -> IO (Registry MenuId (value -> IO ()),[Attribute])
+encodeAttributes attributes daVinciGraph =
+   do
+      let
+         keysPart =
+            map
+               (\ (key,value) -> A key value)
+               (fmToList (options attributes))
+      case menuOpt attributes of
+         Nothing -> return (
+            error "MenuId returned by daVinci for object with no menu!",
+            keysPart)
+         Just localMenu ->
+            do
+               (registry,menuEntries) <- 
+                  encodeLocalMenu localMenu daVinciGraph         
+               return (registry,M menuEntries : keysPart)
+
+------------------------------------------------------------------------
+-- Menus
+------------------------------------------------------------------------
+
+encodeLocalMenu :: Typeable value => LocalMenu value -> DaVinciGraph 
+   -> IO (Registry MenuId (value -> IO ()),[MenuEntry])
+-- Construct a local menu associated with a particular type,
+-- returning (a) a registry mapping MenuId's to actions;
+-- (b) the [MenuEntry] to be passed to daVinci.
+encodeLocalMenu 
+      (LocalMenu (menuPrim0 :: MenuPrim (Maybe String) (value -> IO ()))) 
+      (DaVinciGraph {context = context}) =
+   do
+      registry <- newRegistry
+      (menuPrim1 :: MenuPrim (Maybe String) MenuId) <-
+         mapMMenuPrim
+            (\ valueToAct ->
+               do
+                  menuId <- newMenuId context
+                  setValue registry menuId valueToAct
+                  return menuId
+               )    
+            menuPrim0   
+      (menuPrim2 :: MenuPrim (Maybe String,MenuId) MenuId) <-
+         mapMMenuPrim'
+            (\ stringOpt ->
+               do
+                  menuId <- newMenuId context
+                  return (stringOpt,menuId)
+               )
+            menuPrim1
+      return (registry,encodeDaVinciMenu menuPrim2)
+
+encodeGlobalMenu :: GlobalMenu -> DaVinciGraph -> IO [MenuEntry]
+-- This constructs a global menu.  The menuId actions are written
+-- directly into the graphs globalMenuActions registry. 
+encodeGlobalMenu (GlobalMenu (menuPrim0 :: MenuPrim (Maybe String) (IO ())))
+      (DaVinciGraph {context = context,globalMenuActions = globalMenuActions})
+       =
+   do
+      (menuPrim1 :: MenuPrim (Maybe String) MenuId) <-
+         mapMMenuPrim
+            (\ action ->
+               do
+                  menuId <- newMenuId context
+                  setValue globalMenuActions menuId action
+                  return menuId
+               )
+            menuPrim0
+      (menuPrim2 :: MenuPrim (Maybe String,MenuId) MenuId) <-
+         mapMMenuPrim'
+            (\ stringOpt ->
+               do
+                  menuId <- newMenuId context
+                  return (stringOpt,menuId)
+               )
+            menuPrim1
+      return (encodeDaVinciMenu menuPrim2)
+
+encodeDaVinciMenu :: MenuPrim (Maybe String,MenuId) MenuId -> [MenuEntry]
+-- Used for encoding all menus.  The MenuId in the first argument is
+-- used as all submenus need to have a unique menuId, even though
+-- daVinci can't send that as an event.
+encodeDaVinciMenu menuHead =
+   case menuHead of
+      GraphConfigure.Menu (Nothing,_) menuPrims -> 
+         encodeMenuList menuPrims
+      GraphConfigure.Menu (Just label,menuId) menuPrims ->
+         [SubmenuEntry menuId (MenuLabel label) (encodeMenuList menuPrims)]
+      single -> [encodeMenuItem single]
+
+   where
+      encodeMenuList :: [MenuPrim (Maybe String,MenuId) MenuId] -> [MenuEntry]
+      encodeMenuList menuPrims = map encodeMenuItem menuPrims
+
+      encodeMenuItem :: MenuPrim (Maybe String,MenuId) MenuId  -> MenuEntry
+      encodeMenuItem (Button label menuId) = MenuEntry menuId (MenuLabel label)
+      encodeMenuItem (GraphConfigure.Menu (labelOpt,menuId) menuItems) =
+         SubmenuEntry menuId (MenuLabel (fromMaybe "" labelOpt)) 
+            (encodeMenuList menuItems)
+      encodeMenuItem Blank = BlankMenuEntry 
+      
+-- -----------------------------------------------------------------------
+-- Handling pending changes
+-- -----------------------------------------------------------------------
+
+addNodeUpdate :: DaVinciGraph -> NodeUpdate -> IO ()
+addNodeUpdate (DaVinciGraph {pendingChangesMVar = pendingChangesMVar}) 
+      nodeUpdate =
+   do
+      pendingChanges <- takeMVar pendingChangesMVar
+      putMVar pendingChangesMVar (NU nodeUpdate : pendingChanges)
+
+
+addEdgeUpdate :: DaVinciGraph -> EdgeUpdate -> IO ()
+addEdgeUpdate (DaVinciGraph {pendingChangesMVar = pendingChangesMVar})
+      edgeUpdate =
+   do
+      pendingChanges <- takeMVar pendingChangesMVar
+      putMVar pendingChangesMVar (EU edgeUpdate : pendingChanges)
+
+sortPendingChanges :: [MixedUpdate] -> DaVinciCmd
+-- This is tricky because for daVinci 2.1 mixed updates don't work properly,
+-- so we need to feed the updates as a list of node updates followed by
+-- a list of edge updates.
+sortPendingChanges pendingChanges =
+   if isJust daVinciVersion
+      then
+         -- daVinci has version at least 3.0, and so multi_update works. 
+         DaVinciTypes.Graph(UpdateMixed (reverse pendingChanges))
+      else
+         let
+            (newNodes,deleteNodes,newEdges,deleteEdges) =
+               foldl
+                  (\ (nnSF,dnSF,neSF,deSF) change -> 
+                     case change of
+                        NU(nn @ (NewNode _ _ _)) -> (nn:nnSF,dnSF,neSF,deSF)
+                        NU(dn @ (DeleteNode _)) -> (nnSF,dn:dnSF,neSF,deSF)
+                        EU(ne @ (NewEdge _ _ _ _ _)) ->
+                           (nnSF,dnSF,ne:neSF,deSF)
+                        EU(de @ (DeleteEdge _)) -> (nnSF,dnSF,neSF,de:deSF)
+                     )
+                  ([],[],[],[])
+                  pendingChanges
+         -- The changes will be given in order
+         -- newNodes ++ deleteNodes ++ newEdges ++ deleteEdges
+         -- except that we need to filter newEdges to eliminate edges
+         -- containing deleted nodes, and deleteEdges to eliminate
+         -- edges filtered.
+            (newEdges2,deleteEdges2) =
+               if (null deleteNodes) || (null newEdges)
+                  then
+                     (newEdges,deleteEdges)
+                  else -- edges involving deleted nodes must be excised
+                     let
+                        deletedNodes = 
+                           mkSet(map (\ (DeleteNode nodeId) -> nodeId) 
+                              deleteNodes)
+                        (newEdges2,obsoleteEdges) =
+                           foldl
+                              (\ (nE2sF,oEsF) (ne @ 
+                                    (NewEdge edgeId _ _ nodeFrom nodeTo)) -> 
+                                 if (elementOf nodeFrom deletedNodes) ||
+                                    (elementOf nodeTo deletedNodes)
+                                    then (nE2sF,addToSet oEsF edgeId)
+                                    else (ne:nE2sF,oEsF)
+                                 )
+                              ([],emptySet)
+                              newEdges
+                        deleteEdges2 = filter (\ (DeleteEdge edgeId) -> 
+                           not (elementOf edgeId obsoleteEdges)) deleteEdges 
+                     in
+                        (newEdges2,deleteEdges2)
+         in
+            DaVinciTypes.Graph(Update (newNodes ++ deleteNodes)
+                     (newEdges2 ++ deleteEdges2))
+
+flushPendingChanges :: DaVinciGraph -> IO ()
+flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
+      edges = edges,pendingChangesMVar = pendingChangesMVar}) =
+   do
+      pendingChanges <- takeMVar pendingChangesMVar
+      case pendingChanges of
+         [] -> done
+         _ -> 
+            doInContext (sortPendingChanges pendingChanges) context
+      putMVar pendingChangesMVar []
+      -- Delete all now-irrelevant node and edge entries.
+      sequence_ (map
+         (\ pendingChange -> case pendingChange of
+            NU (DeleteNode nodeId) -> deleteFromRegistry nodes nodeId
+            EU (DeleteEdge edgeId) -> deleteFromRegistry edges edgeId
+            _ -> done
+            )
+         pendingChanges
+         )
  
-newGraph :: [Config Graph] -> IO Graph 
-newGraph opts = do
-        grp <- createGraph
-        configure grp graphdefaults
-        configure grp opts
-        return grp
- where graphdefaults = [
-                graphorientation TopDown,
-                fontsize 12,
-                gapwidth 20,
-                gapheight 60,
-                edgedistance 10,
-                edgeradius 16   
-                ]
-
-
--- ---------------------------------------------------------------------------
---  Instantiations
--- ---------------------------------------------------------------------------
-
-instance Destructible Graph where
-        destroy g = closeGraph g
-        destroyed g = 
-                ((listenDaVinci (g,Close)) :: IA DaVinciEventInfo) >>> do {
-                        cleanupGraph g;
-                        dav <- getToolInstance;
-                        graphs <- getGraphs dav;
-                        when (graphs == []) (
-                                dispatch (fDispatcher dav) 
-                                              (dav,LastGraphClosed)     
-                                              NoDaVinciEventInfo
-                                              done
-                                )
-                        }
-
-instance DaVinciObject Graph where
-        getGraphContext = return . id
-        getDaVinciObjectID = return . show . objectID
-
-instance HasFile Graph where
-        filename fnm g =  
-            withGraph g ( do {
-                cset g "filename" fnm; 
-                return ("menu(file(open_graph("++ show fnm ++")))")
-                })
-        getFileName g  = cget g "filename"
-
-
-instance GUIValue v => HasText Graph v where
-        text t g = withGraph g ( do {
-                        cset g "title" t; 
-                        return ("window(title("++show t++"))")
-                        })
-        getText g = cget g "title"
-
-
-instance GUIObject Graph where
-        toGUIObject g = (fGraphObj g) 
-        cname _ = "Graph"
-        cset g cid val = do {
-                setConfigValue (toGUIObject g) cid (toGUIValue val);
-                return g
-                }
-        cget g cid =  do {
-                val <- getConfigValue (toGUIObject g) cid ;
-                case val of
-                        Nothing -> return cdefault
-                        (Just cv) -> return (fromGUIValue cv)
-                }
-
-
--- ---------------------------------------------------------------------------
---  Events
--- ---------------------------------------------------------------------------
-
-lastGraphClosed :: DaVinci -> IA ()
-lastGraphClosed dav = listenDaVinci (dav,LastGraphClosed) >>> done
-
--- ---------------------------------------------------------------------------
---  Graph Specific Configure Options
--- ---------------------------------------------------------------------------
-
-edgedistance :: Int -> Config Graph 
-edgedistance s g = do {
-        unless ((2<=s) && (s<=40)) (raise illegalEdgeGap);
-        withGraph g (
-                cset g "edgedistance" s >> 
-                return ("set(multi_edge_gap("++show s++"))")
-        )}
-
-getEdgeDistance :: Graph -> IO Int
-getEdgeDistance g = cget g "edgedistance"
-
-edgeradius :: Int -> Config Graph 
-edgeradius s g = do {
-        unless ((8<=s) && (s<=60)) (raise illegalEdgeRadius);
-        withGraph g (
-                cset g "edgeradius" s >> 
-                return ("set(self_edge_radius("++show s++"))")
-        )}
-
-getEdgeRadius :: Graph -> IO Int
-getEdgeRadius g = cget g "edgeradius"
-
-fontsize :: Int -> Config Graph 
-fontsize s g = do {
-        unless (elem s [6,8,10,12,14,18,24,36]) (raise illegalFontSize);
-        withGraph g (
-                cset g "fontsize" s >> 
-                return ("set(font_size("++show s++"))")
-        )} 
-
-getFontSize :: Graph -> IO Int
-getFontSize g = cget g "fontsize"
-
-gapheight :: Int -> Config Graph
-gapheight s g = do {
-        unless ((4<=s) && (s<=300)) (raise illegalGapHeight);
-        withGraph g (
-                cset g "gapheight" s >> 
-                return ("set(gap_height("++show s++"))")
-        )}
-
-getGapHeight :: Graph -> IO Int
-getGapHeight g = cget g "gapheight"
-
-gapwidth :: Int -> Config Graph 
-gapwidth s g = do {
-        unless ((4<=s) && (s<=300)) (raise illegalGapWidth) ;
-        withGraph g (
-                cset g "gapwidth" s >> 
-                return ("set(gap_width("++show s++"))")
-        )}
-
-getGapWidth :: Graph -> IO Int 
-getGapWidth g = cget g "gapwidth"
-
-graphorientation :: GraphOrientation -> Config Graph 
-graphorientation s g = withGraph g (
-        cset g "orientation" s >> 
-        return ("menu(layout(orientation("++show s++")))")
-        )
-
-
-getGraphOrientation :: Graph -> IO GraphOrientation 
-getGraphOrientation g = cget g "orientation"
-
-statusmsg :: String -> Config Graph                             
-statusmsg t g = withGraph g (
-        cset g "status" t >> 
-        return ("window(show_status("++show t++"))")
-        )
-
-getStatusMsg :: Graph -> IO String
-getStatusMsg g = cget g "status"
-
-showmsg :: String -> Config Graph
-showmsg t g = withGraph g (
-        cset g "showmsg" t >> 
-        return ("window(show_message("++show t++"))")
-        )
-
-getShowMsg :: Graph -> IO String
-getShowMsg g = cget g "showmsg"
-
--- ---------------------------------------------------------------------------
--- Misc. Commands
--- ---------------------------------------------------------------------------
-
-keepNodesAtAllLevels :: Bool -> Config Graph 
-keepNodesAtAllLevels b g = 
-        withGraph g (return "nothing")   {- TBD -} >>
-        return g
-
-
-restoreAllSubGraphs :: Graph -> IO () 
-restoreAllSubGraphs g = do {
-        redrawGraph g;
-        withGraph g (return "menu(abstraction(restore_all_subgraphs))");
-        done
-        }
-
-compact :: Toggle -> Config Graph
-compact Off g = return g
-compact On  g = withGraph g (return "menu(layout(compact_all))")
-
-
--- ---------------------------------------------------------------------------
--- Redisplay
--- ---------------------------------------------------------------------------
-
-improveAll :: Graph -> IO ()                                    
-improveAll g = do {
-        withGraph g (return "menu(layout(improve_all))");
-        done
-        }
-
-improveVisible :: Graph -> IO ()                                        
-improveVisible g = do {
-        withGraph g (return "menu(layout(improve_visible))");
-        done
-        }
-
-
-
--- ---------------------------------------------------------------------------
--- Files
--- ---------------------------------------------------------------------------
-
-printGraph :: Maybe FilePath -> Graph -> IO ()
-printGraph (Just fnm) g =  do {
-        redrawGraph g;
-        withGraph g (return ("menu(file(print("++show fnm ++")))"));
-        done
-        }
-printGraph Nothing g =  do {
-        redrawGraph g;
-        withGraph g (return "menu(file(print))");
-        done
-        }
-
-
-saveGraph :: FilePath -> Graph -> IO ()
-saveGraph fnm g =  do {
-        redrawGraph g;
-        withGraph g (return ("menu(file(save_graph("++show fnm ++")))"));
-        done
-        }
-
-
-saveGraphLayout :: FilePath -> Graph -> IO ()
-saveGraphLayout fnm g = do { 
-        redrawGraph g;
-        withGraph g (return ("menu(file(save_status("++show fnm ++")))"));
-        done
-        }
-
-
--- ---------------------------------------------------------------------------
---  Other DaVinci Commands
--- ---------------------------------------------------------------------------
-
-newFile :: IO ()                        
-newFile = withDaVinci (return "menu(file(new))")
-
-openGraphPlaced:: FilePath -> IO ()
-openGraphPlaced file = 
-        withDaVinci (return ("menu(file(open_graph_placed("++show file++")))"))
-
-openStatus:: FilePath -> IO ()
-openStatus file = 
-        withDaVinci (return ("menu(file(open_status("++show file++")))"))
-
-
--- ---------------------------------------------------------------------------
--- GraphOrientation
--- ---------------------------------------------------------------------------
-
-data GraphOrientation = TopDown | BottomUp | RightToLeft | LeftToRight
-
-instance GUIValue GraphOrientation where
-        cdefault = TopDown
-
-
-instance Read GraphOrientation where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        't':'o':'p':'_':'d':'o':'w':'n':xs -> [(TopDown,xs)]
-        'b':'o':'t':'t':'o':'m':'_':'u':'p':xs -> [(BottomUp,xs)]
-        'r':'i':'g':'h':'t':'_':'l':'e':'f':'t':xs -> [(RightToLeft,xs)]
-        'l':'e':'f':'t':'_':'r':'i':'g':'h':'t':xs -> [(LeftToRight,xs)]
-        _ -> []
-
-instance Show GraphOrientation where
-   showsPrec d p r = 
-      (case p of 
-        TopDown -> "top_down" 
-        BottomUp -> "bottom_up"
-        RightToLeft -> "right_left"
-        LeftToRight -> "left_right"
-        ) ++ r
-
--- ---------------------------------------------------------------------------
--- IOErrors
--- ---------------------------------------------------------------------------
-
-illegalEdgeGap :: IOError                       
-illegalEdgeGap = userError "Multi edge gap out of range 2..40"          
-
-illegalEdgeRadius :: IOError                    
-illegalEdgeRadius = userError  "Self edge radius out of range 8..60" 
-
-illegalFontSize :: IOError                      
-illegalFontSize = userError "FontSize not in [6,8,10,12,14,18,24,36]"            
-illegalGapWidth :: IOError                      
-illegalGapWidth = userError "Gap width out of range 4..300"        
-
-illegalGapHeight :: IOError                     
-illegalGapHeight = userError "Gap height out of range 4..300" 
-
-
--- ---------------------------------------------------------------------------
--- Auxiliary
--- ---------------------------------------------------------------------------
-
-dist2Int :: Distance -> Int 
-dist2Int (Distance i) = i
-
+-- -----------------------------------------------------------------------
+-- Miscellaneous functions
+-- -----------------------------------------------------------------------
+
+-- Transforming one type to another when we know they are
+-- actually identical . . .
+coDyn :: (Typeable a,Typeable b) => a -> b
+coDyn valueA =
+   let
+      dyn = toDyn valueA
+   in
+      case fromDyn dyn of
+         Just valueB -> valueB
+
+      

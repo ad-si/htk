@@ -1,0 +1,27 @@
+#!/usr/bin/perl -w
+
+use MIME::Base64 ();
+
+if (not open(FH, "< $ARGV[0]")) {
+  print "Error: cannot open $ARGV[0]\n";
+} else {
+
+  local $/;
+  $file = <FH>;
+  close FH;
+
+  $decoded = MIME::Base64::decode($file);
+  
+  if ($ARGV[1]) {
+    
+    if (not open(FH, "> $ARGV[1]")) {
+      print "Error: cannot create $ARGV[1]\n";
+    } else {
+      print FH $decoded;
+      print "$ARGV[1] created\n";
+    }
+    
+  } else {
+      print "Error: missing argument";
+  }
+}

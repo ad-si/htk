@@ -1,11 +1,24 @@
-LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a\
-   $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
+LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
+       $(TOP)/events/libevents.a $(TOP)/util/libutil.a
 
-SRCS       = Mainblobs.hs MaincanvasEx.hs MainfileDialogEx.hs MaineventTrack.hs\
-             Mainhello1.hs Mainhello2.hs Mainhello3.hs \
-             MainlistEx.hs MainmenuEx.hs MainreliefEx.hs MaintestWidEx.hs \
-             MainxmasCanvas.hs MaindragAndDrop.hs MaintreeListEx.hs \
-             MainuserInteractionTest.hs MaingenGUIEx.hs
+SRCS       = Mainex1.hs\
+             MaincanvasEx.hs\
+             MainxmasCanvas.hs\
+             MaintreeListEx.hs\
+             Mainhello1.hs\
+             Mainhello2.hs\
+             Mainhello3.hs\
+             Mainblobs.hs\
+             MaindragAndDrop.hs\
+             MainlistEx.hs\
+             MainfileBrowseEx.hs\
+             MainmenuEx.hs\
+             MainfileDialogEx.hs\
+             MaintextTagEx.hs\
+             MaintixWidgetEx.hs\
+             MainpanedWindowEx.hs\
+             MainiconBarEx.hs\
+#            MaingenGUIEx.hs\
 
 XHCDIRS = $(HTKDIRS)
 

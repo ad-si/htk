@@ -52,22 +52,24 @@ module ChildProcess (
    -- out channel (of which there is only one).  Otherwise we
    -- display them, with the name of the responsible process,
    -- on our stderr.
-   pollinterval,   -- :: Maybe Duration -> Config PosixProcess
-   -- pollinterval is how often we attempt to get the status of the child
-   -- process to see if it's finished yet.  Too long, and maybe the
-   -- OS will have forgotten about the child process.
-   -- If Nothing we won't check at all, which can be awkward; in particular
-   -- it means we won't be able to get a destructible event when/if the
-   -- tool closes.
 
    -- the settings encoded in (parms::[Config PosixProcess]) can be
    -- decoded, with a standard set of defaults, using
    -- Computation.configure defaultPosixProcess parms 
    defaultPosixProcess, -- :: PosixProcess
    
-   newChildProcess,
-   sendMsg,
-   readMsg,
+   newChildProcess, -- :: FilePath -> [Config PosixProcess] -> IO ChildProcess
+
+
+   sendMsg, -- :: ChildProcess -> String -> IO ()
+   -- sendMsg sends a String to the ChildProcess, adding a new line
+   -- for line mode.
+
+   sendMsgRaw, -- :: ChildProcess -> ByteArray Int -> Int -> IO ()
+   -- sendMsgRaw writes a direct byte array, as (bytes,length) 
+   -- to the child process.  It does not append a newline.
+
+   readMsg, -- :: ChildProcess -> IO String
    closeChildProcessFds,
    
    ProcessStatus(..),
@@ -88,19 +90,22 @@ where
 import qualified IO
 import qualified Posix
 import Posix(ProcessID,ProcessStatus(..),Fd,fdRead,fdWrite)
+import ByteArray
+import qualified CString
 
+import Computation
 import Object
+import Debug(debug)
+import Thread
 
-import Concurrency
 import Concurrent
-import Interaction
-import WatchDog
 import Maybes
 import ExtendedPrelude
-import ThreadWait
-import SIMClasses
 
-import Debug(debug,(@:))
+import Destructible
+
+import ProcessClasses
+import FdRead
 
 -- --------------------------------------------------------------------------
 --  Posix Tool Parameters
@@ -112,8 +117,7 @@ data PosixProcess =
       env             :: Maybe [(String, String)],
       wdir            :: Maybe FilePath,
       lmode           :: Bool, -- line mode
-      stderr          :: Bool, -- include stderr
-      pinterval       :: Maybe Duration
+      stderr          :: Bool -- include stderr
      }
 
 defaultPosixProcess :: PosixProcess
@@ -123,8 +127,7 @@ defaultPosixProcess =
       env = Nothing, 
       wdir = Nothing, 
       lmode = True,
-      stderr = True,
-      pinterval = Just (secs 2)
+      stderr = True
       }
 
 
@@ -134,14 +137,12 @@ appendArguments :: [String] -> Config PosixProcess
 environment     :: [(String,String)] -> Config PosixProcess
 workingdir      :: FilePath -> Config PosixProcess
 standarderrors  :: Bool -> Config PosixProcess
-pollinterval    :: Maybe Duration -> Config PosixProcess
 
 linemode lm' parms = return parms{lmode = lm'}
 arguments args' parms = return parms{args = args'}
 environment env' parms = return parms{env = Just env'}
 workingdir wdir' parms = return parms{wdir = Just wdir'}
 standarderrors err' parms = return parms{stderr = err'}
-pollinterval err' parms = return parms{pinterval = err'}
 
 appendArguments args' parms = return parms{args = (args parms) ++ args'}
 
@@ -161,10 +162,6 @@ data ChildProcess =
 
       processID :: Posix.ProcessID,
                        -- process id of child
-      watchStatus :: (Maybe (WatchDog ProcessStatus)), 
-                       -- indicates exit code when process finishes
-      toolStatus :: (PVar ToolStatus), 
-                       -- ditto
       bufferVar :: (MVar String) 
                        -- bufferVar of previous characters (only relevant
                        -- for line mode)     
@@ -216,9 +213,6 @@ newChildProcess path confs  =
                   done
 
             childObjectID <- newObject
-            toolStatus <- newPVar Nothing
-            watchStatus <- 
-               terminationWatchDog (pinterval parms) toolStatus processID
             bufferVar <- newMVar ""
 
             Posix.fdClose readIn
@@ -255,8 +249,6 @@ newChildProcess path confs  =
                writeTo = writeIn,
                readFrom = readOut,
                processID = processID,
-               watchStatus = watchStatus,
-               toolStatus = toolStatus,
                bufferVar = bufferVar,
                closeAction = closeAction
                })
@@ -284,18 +276,12 @@ newChildProcess path confs  =
       
       maybeChangeWd Nothing = done
       maybeChangeWd (Just wd) = Posix.changeWorkingDirectory wd
-      
-      terminationWatchDog Nothing toolStatusPVar pid = 
-         return Nothing
-      terminationWatchDog (Just t) toolStatusPVar pid = 
-         newWatchdog t (getStatus toolStatusPVar pid) >>= return . Just
-                
 
-getStatus :: PVar ToolStatus -> Posix.ProcessID -> IO ToolStatus
--- Immediately return Nothing if tool hasn't yet finished (or if no
--- watchdog is running for it and we didn't call getStatus in time), 
--- otherwise return Just (its exit status).
-getStatus toolStatusPVar pid = 
+getStatus :: Posix.ProcessID -> IO ToolStatus
+-- Immediately return Nothing if tool hasn't yet finished, or if
+-- it finished too long ago and the system has forgotten its
+-- status; otherwise return Just (its exit status).
+getStatus pid = 
    do
       ans <- try(Posix.getProcessStatus False True pid)
       -- translation: call waitpid on process specifying
@@ -305,15 +291,9 @@ getStatus toolStatusPVar pid =
       --     childprocesses if they haven't previously
       --     been reported.
       case ans of
-         Left e -> getVar toolStatusPVar
+         Left e -> return Nothing
          -- Error.  Process must have terminated and disappeared.
-         -- Use the last reported value (or Nothing if getStatus wasn't
-         -- called in time).
-         Right status ->
-         -- success
-            do
-               setVar toolStatusPVar status 
-               return status
+         Right status -> return status
 
 -- --------------------------------------------------------------------------
 --  Tool Instance
@@ -322,7 +302,7 @@ getStatus toolStatusPVar pid =
 instance Object ChildProcess where
    objectID = childObjectID
 
-instance Destructible ChildProcess where
+instance Destroyable ChildProcess where
    destroy child = 
       do
          res <- try(Posix.signalProcess Posix.sigKILL (processID child))
@@ -331,18 +311,8 @@ instance Destructible ChildProcess where
                debug "ChildProcess.destroy failed; destruction anticipated?"
             _ -> return ()
 
-   -- We can only wait for destruction if we set up a watchdog.
-   destroyed child = 
-      let
-         Just watchDog = watchStatus child
-      in 
-         receive watchDog |>> done 
-
-
 instance Tool ChildProcess where
-   getToolStatus 
-         (ChildProcess {processID = processID,toolStatus = toolStatus}) = 
-      getStatus toolStatus processID
+   getToolStatus (ChildProcess {processID = processID}) = getStatus processID
 
 
 instance UnixTool ChildProcess where
@@ -395,7 +365,7 @@ sendMsg (ChildProcess{lineMode = True,writeTo = writeTo}) str  =
    writeLine writeTo str
 sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  = 
    do 
-      debug("sendMsg sending " ++ str)
+      debug("ChildProcess>" ++ str ++ "\n")
       count <- Posix.fdWrite writeTo str
       -- see man -s 2 write for when write() returns 0.
       if count < 0 
@@ -407,6 +377,19 @@ sendMsg (child @ (ChildProcess{lineMode = False,writeTo = writeTo})) str  =
             return ()
    where l = length str
 
+-- sendMsgRaw writes a direct byte array, as (bytes,length) 
+-- to the child process.  It does not append a newline.
+sendMsgRaw :: ChildProcess -> ByteArray Int -> Int -> IO ()
+sendMsgRaw (ChildProcess{writeTo = writeTo}) ba len =
+   do
+      debug (
+         let
+            toWrite = CString.unpackNBytesBA ba len
+         in
+            "ChildProcess>"++toWrite
+         )
+      fdWritePrim writeTo ba len
+      done
 
 closeChildProcessFds  :: ChildProcess -> IO ()
 closeChildProcessFds (ChildProcess{closeAction = closeAction}) = 
@@ -474,9 +457,16 @@ writeLine fd str =
             done
    where msg = str ++ "\n" 
 
-
 readLineError :: IOError
 readLineError = userError "ChildProcess: read line error"
 
 writeLineError :: IOError
 writeLineError = userError "ChildProcess: write line error"
+
+-- -------------------------------------------------------------------------
+-- Waiting for input on an Fd.
+-- -------------------------------------------------------------------------
+
+waitForInputFd :: Posix.Fd -> IO()
+waitForInputFd fd  = threadWaitRead(Posix.fdToInt fd)
+

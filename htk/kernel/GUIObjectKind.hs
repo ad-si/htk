@@ -1,108 +1,131 @@
-{- #########################################################################
-
-MODULE        : GUIObjectKind
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : Defines the possible set of GUIObjects (widgets etc).
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module GUIObjectKind (
-        ObjectKind(..), 
-        CanvasItemKind(..)
-        ) where
 
+  ObjectKind(..), 
+  CanvasItemKind(..),
+  MenuItemKind(..)
 
+) where
+
+import GUIValue
+import Geometry
 import Resources
-import Debug(debug)
+import ReferenceVariables
 
-  
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
 --  OBJECT Kind
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 data ObjectKind =
-          FRAME 
-        | LABEL 
-        | MESSAGE 
-        | CLICKBUTTON 
-        | CHECKBUTTON Toggle
-        | RADIOBUTTON Toggle
-        | MENUBUTTON
-        | MENU 
-        | OPTIONMENU [GUIVALUE]                 -- unpacked elements 
-        | LISTBOX [GUIVALUE]                    -- unpacked elements
-        | SEPARATOR  
-        | ENTRY 
-        | TEXT GUIVALUE                         -- unpacked lines of text
-        | CANVAS 
-        | SCALE
-        | SCROLLBAR     
-        | TOPLEVEL
-        | TEXTTAG [GUIVALUE]                    -- initial position
-        | EMBEDDEDTEXTWIN GUIVALUE              -- initial position
-        | CANVASITEM CanvasItemKind Coord
-        | POSTSCRIPT
-        | SESSION
-        | GRAPH
-        | ABSTRACT
-        | WIDGET String
-
+    FRAME
+  | LABEL
+  | MESSAGE
+  | BUTTON
+  | CHECKBUTTON
+  | RADIOBUTTON
+  | MENUBUTTON
+  | MENU
+  | MENUITEM MenuItemKind Int             -- Tcl ID
+  | OPTIONMENU [GUIVALUE]                 -- unpacked elements
+  | LISTBOX [GUIVALUE]                    -- unpacked elements
+  | SEPARATOR
+  | ENTRY
+  | TEXT GUIVALUE                         -- unpacked lines of text
+  | CANVAS 
+  | SCALE
+  | SCROLLBAR     
+  | TOPLEVEL
+  | TEXTTAG [GUIVALUE]                    -- initial position
+  | EMBEDDEDTEXTWIN GUIVALUE              -- initial position
+  | CANVASITEM CanvasItemKind Coord
+  | POSTSCRIPT
+  | SESSION
+  | GRAPH
+  | ABSTRACT
+  | WIDGET String
+  | NOTEBOOK
+  | NOTEBOOKPAGE String                   -- title
+  | LABELFRAME
+  | PANEDWINDOW Orientation               -- orientation of panes
+  | WINDOWPANE
+  | BOX Orientation Flexibility
 
 data CanvasItemKind = 
-          ARC 
-        | LINE 
-        | POLYGON
-        | RECTANGLE
-        | OVAL
-        | BITMAPITEM 
-        | IMAGEITEM
-        | TEXTITEM
-        | CANVASTAG
-        | EMBEDDEDCANVASWIN
+    ARC
+  | LINE 
+  | POLYGON
+  | RECTANGLE
+  | OVAL
+  | BITMAPITEM 
+  | IMAGEITEM
+  | TEXTITEM
+  | CANVASTAG
+  | EMBEDDEDCANVASWIN
+
+data MenuItemKind =
+    MENUCASCADE
+  | MENUCOMMAND
+  | MENUCHECKBUTTON
+  | MENURADIOBUTTON
+  | MENUSEPARATOR
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 --  Unparsing of Widget Kind
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 instance Show ObjectKind where
-   showsPrec d p r = 
-      (case p of 
-                FRAME -> "frame" 
-                LABEL -> "label"
-                MESSAGE -> "message"
-                (CHECKBUTTON _) -> "checkbutton"
-                CLICKBUTTON -> "button"
-                (RADIOBUTTON _) -> "radiobutton"
-                MENUBUTTON -> "menubutton"
-                MENU -> "menu"
-                (OPTIONMENU _) -> "tk_optionMenu" 
-                (LISTBOX _) -> "listbox"
-                SEPARATOR -> "separator"  
-                ENTRY -> "entry"
-                (TEXT _) -> "text"
-                CANVAS -> "canvas"
-                SCALE -> "scale"
-                SCROLLBAR -> "scrollbar"        
-                TOPLEVEL -> "toplevel"
-                (CANVASITEM ARC _) -> "arc"
-                (CANVASITEM LINE _) -> "line"
-                (CANVASITEM POLYGON _) -> "polygon"
-                (CANVASITEM RECTANGLE _) -> "rectangle"
-                (CANVASITEM OVAL _) -> "oval"
-                (CANVASITEM BITMAPITEM _) -> "bitmap"
-                (CANVASITEM IMAGEITEM _) -> "image"
-                (CANVASITEM TEXTITEM _) -> "text"
-                (CANVASITEM CANVASTAG _) -> "tag"
-                (CANVASITEM EMBEDDEDCANVASWIN _) -> "window"
-                (EMBEDDEDTEXTWIN _) -> "window"
-                (TEXTTAG _) -> "tag"
-                (WIDGET kind) -> kind
-        ) ++ r
-
+  showsPrec d p r =
+    (case p of
+       FRAME -> "frame"
+       LABEL -> "label"
+       MESSAGE -> "message"
+       CHECKBUTTON -> "checkbutton"
+       BUTTON -> "button"
+       RADIOBUTTON -> "radiobutton"
+       MENUBUTTON -> "menubutton"
+       MENU -> "menu"
+       (OPTIONMENU _) -> "tk_optionMenu"
+       (LISTBOX _) -> "listbox"
+       SEPARATOR -> "separator"
+       ENTRY -> "entry"
+       (TEXT _) -> "text"
+       CANVAS -> "canvas"
+       SCALE -> "scale"
+       SCROLLBAR -> "scrollbar"        
+       TOPLEVEL -> "toplevel"
+       (CANVASITEM ARC _) -> "arc"
+       (CANVASITEM LINE _) -> "line"
+       (CANVASITEM POLYGON _) -> "polygon"
+       (CANVASITEM RECTANGLE _) -> "rectangle"
+       (CANVASITEM OVAL _) -> "oval"
+       (CANVASITEM BITMAPITEM _) -> "bitmap"
+       (CANVASITEM IMAGEITEM _) -> "image"
+       (CANVASITEM TEXTITEM _) -> "text"
+       (CANVASITEM CANVASTAG _) -> "tag"
+       (CANVASITEM EMBEDDEDCANVASWIN _) -> "window"
+       (MENUITEM MENUCASCADE _) -> "cascade"
+       (MENUITEM MENUCOMMAND _) -> "command"
+       (MENUITEM MENUCHECKBUTTON _) -> "checkbutton"
+       (MENUITEM MENURADIOBUTTON _) -> "radiobutton"
+       (MENUITEM MENUSEPARATOR _) -> "separator"
+       (EMBEDDEDTEXTWIN _) -> "window"
+       (TEXTTAG _) -> "tag"
+       (WIDGET kind) -> kind
+       NOTEBOOK -> "tixNoteBook"
+       NOTEBOOKPAGE _ -> ""
+       LABELFRAME -> "tixLabelFrame"
+       PANEDWINDOW _ -> "tixPanedWindow"
+       WINDOWPANE -> ""
+       BOX _ _ -> "frame") ++ r

@@ -1,4 +1,4 @@
-{- ------------------------------------------------------------------------
+{- ----------------------------------------------------------------------
  -
  - HTk Examples: Canvas #2
  -
@@ -7,66 +7,64 @@
  - Author: cxl 
  - $Revision$ from $Date$  
  -
- - ------------------------------------------------------------------------ -}
+ - -------------------------------------------------------------------- -}
 
 module Main (main) where
 
 import HTk
-import Line
-import Arc
-import Image
-import ImageItem
-import TextItem
-import EmbeddedCanvasWin
-import Mouse
-import Canvas
-import Button
-import CanvasTag
 
 main :: IO ()
-main = do
-        tk <- htk []
-	c <- newCanvas [size (cm 20, cm 15), background "white"]
-	win <- window c [text "HTk CanvasExample"]
+main =
+  do
+    main <- initHTk [text "HTk CanvasExample"]
+    c <- newCanvas main [size (cm 20, cm 15), background "white"]
+    pack c []
 
-	santa <- newImage  [filename "./images/santa.gif"]
-	frosty <- newImage [filename "./images/snowman.gif"]
-	jingle<- newImage  [filename "./images/bells.gif"]
+    santa <- newImage main [filename "./images/santa.gif"]
+    frosty <- newImage NONE [filename "./images/snowman.gif"]
+    jingle<- newImage main [filename "./images/bells.gif"]
 
-	newImageItem [position (cm 3, cm 5), photo santa, parent c]
-	newImageItem [position (cm 7, cm 5), photo frosty, parent c]
-	newImageItem [position (cm 10, cm 5), photo jingle, parent c]
+    createImageItem c [position (cm 3, cm 5), photo santa]
+    createImageItem c [position (cm 7, cm 5), photo frosty]
+    createImageItem c [position (cm 10, cm 5), photo jingle]
 
-	newTextItem  [position (cm 4, cm 2), value "Merry Xmas!",
-			font (Helvetica, Bold, 24::Int), parent c]
-	newLine [coord [(cm 2, cm 8), (cm 3, cm 9), 
-			(cm 3, cm 8), (cm 2, cm 9), (cm 4, cm 8.5)],
-		 capstyle CapRound, joinstyle JoinMiter, outlinewidth (mm 1),
-		 arrowstyle LastEnd, filling "red", parent c]
-	newArc  [position (cm 5, cm 8), size (cm 1.5, cm 1.5), extent 110,
-		 filling "green", outlinewidth (mm 1), 
-		 outline "black", parent c]
+    createTextItem  c [position (cm 4, cm 2), text "Merry Xmas!",
+                       font (Helvetica, Bold, 24::Int)]
 
-	b<- newButton [text "Click me!", relief Raised]
-	eb <- newEmbeddedCanvasWin b [position (cm 2, cm 12), parent c]
-	b # (command (\()-> destroy eb))
+    createLine c [coord [(cm 2, cm 8), (cm 3, cm 9), 
+                         (cm 3, cm 8), (cm 2, cm 9), (cm 4, cm 8.5)],
+                  capstyle CapRound, joinstyle JoinMiter,
+                  outlinewidth (mm 1), arrowstyle LastEnd, filling "red"]
 
-	interactor (\i-> triggered b)
-	interactor (\i-> notmoving c i)
+    createArc c [position (cm 5, cm 8), size (cm 1.5, cm 1.5), extent 110,
+                 filling "green", outlinewidth (mm 1), outline "black"]
 
-	sync (destroyed win)
-        destroy tk
+    b <- newButton c [text "Click me!", relief Raised]
+           :: IO (Button String)
+    eb <- createEmbeddedCanvasWin c b [position (cm 2, cm 12)]
+    clickedb <- clicked b
+    spawnEvent (forever (clickedb >> always (putStrLn "click")))
+    (press, _) <- bind c [WishEvent [] (ButtonPress (Just (BNo 1)))]
+    (move, _) <- bind c [WishEvent [Button1] Motion]
+    (release, _) <- bindSimple c (ButtonRelease (Just (BNo 1)))
 
-   where  notmoving :: Canvas-> InterActor-> IA ()
-	  notmoving c iact = 
-		mouseButtonPress c 1 >>>=
-		   \(x, y)-> do {ct<- newCanvasTag [parent c];
-                                 addCanvasTag (closest x y) ct;
-				 become iact (moving c ct x y iact)}
-	  moving :: Canvas-> CanvasTag-> Distance-> Distance->InterActor-> IA ()
-	  moving c ct x0 y0 iact =
-		 (mouseEvent c (Button1, Motion) >>>=
-		   \((x, y), _)-> do {moveItem ct (x- x0) (y- y0) >>
-				      become iact (moving c ct x y iact)})
-		+> (mouseEvent c (ButtonRelease Nothing)
-		    >>> do { become iact (notmoving c iact)})
+    let moving :: Distance -> Distance -> CanvasTag -> Event () 
+        moving x0 y0 ct =
+             (do
+                (x, y) <- move >>>= \i-> return (x i, y i)
+                always (moveItem ct (x - x0) (y - y0))
+                moving x y ct)
+          +> (release >> notmoving)
+
+        notmoving :: Event ()
+        notmoving = do
+                      (x, y) <- press >>>= \i-> return (x i, y i)
+                      ct <- always (do ct<- createCanvasTag c []
+                                       addCanvasTag (closest x y) ct
+				       return ct)   
+                      moving x y ct         
+
+    spawnEvent (forever notmoving)
+
+    (htk_destr, _) <- bindSimple main Destroy
+    sync(htk_destr)

@@ -8,46 +8,56 @@ module GuardedEvents(
       -- IsBaseEvent (and hence IsEvent), HasContinuation, HasChoice
       -- 
    HasGuard(..), -- the class implementing |>
+   Guard(..), -- the class of guards.
+
+   HasListen(..), -- the class of (guarded) channels implementing listen.
    ) where
 
-import GuardBasics
-import EventClasses
+import Events
 
 data Guard guard => GuardedEvent guard a = 
-   GuardedEvent !(guard -> PrimEvent a) !guard
+   GuardedEvent !(guard -> Event a) !guard
         
+-- ----------------------------------------------------------------------
+-- The Guard class
+-- ----------------------------------------------------------------------
+
+class Guard guard where
+   -- NB.  Instances of this class should try to force evaluation as
+   -- much as possible before returning the guard value, because
+   -- otherwise it has to be done while the channel is locked to
+   -- everyone else.
+   nullGuard :: guard 
+      -- this should be the guard that always matches
+   andGuard :: guard -> guard -> guard 
+      -- this should be the guard that corresponds to the conjunction
+      -- of the two given guards.
+
 -- ----------------------------------------------------------------------
 -- The HasGuard class
 -- ----------------------------------------------------------------------
 
-infixl 2 |> 
--- So higher precedence than >>>/>>>= or +>, and unlike them
--- done from the left, so a |> guard1 |> guard2 works sensibly.
+infixr 2 |> 
+-- So higher precedence than >>>/>>>= or +>
 
 class Guard guard => HasGuard eventType guard where
    (|>) :: eventType a -> guard -> eventType a
+
+-- ----------------------------------------------------------------------
+-- The HasListen class
+-- ----------------------------------------------------------------------
+
+class HasListen chan where
+   listen :: Guard guard => chan guard a -> GuardedEvent guard a
 
 -- ----------------------------------------------------------------------
 -- Instances
 -- ----------------------------------------------------------------------
 
 instance Guard guard => HasGuard (GuardedEvent guard) guard where
-   (|>) (GuardedEvent getPrimEvent guard1) guard2 =
-      GuardedEvent getPrimEvent (guard2 `andGuard` guard1)
+   (|>) (GuardedEvent getEvent guard1) guard2 =
+      GuardedEvent getEvent (guard2 `andGuard` guard1)
 
-toPrimEvent :: GuardedEvent guard a -> PrimEvent a
-toPrimEvent (GuardedEvent getPrimEvent guard) = getPrimEvent guard
+instance Guard guard => HasEvent (GuardedEvent guard) where
+   toEvent (GuardedEvent getEvent guard) = getEvent guard
 
-instance IsBaseEvent (GuardedEvent guard) where
-   toBaseEvent guardedEvent = toBaseEvent (toPrimEvent guardedEvent)
-
-instance HasChoice (GuardedEvent guard) where
-   choose guardedEvent events = choose (toBaseEvent guardedEvent) events
-
-instance HasContinuation (GuardedEvent guard) where
-   (>>>=) guardedEvent continuation = 
-      (toBaseEvent guardedEvent) >>>= continuation
-
-instance HasSync (GuardedEvent guard) where
-   sync guardedEvent = sync (toBaseEvent guardedEvent)
-   

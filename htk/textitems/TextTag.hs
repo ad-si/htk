@@ -27,7 +27,7 @@ module TextTag (
         module Index,
         
         TextTag,
-        newTextTag,
+        createTextTag,
 
         addTextTag,
         lowerTextTag,
@@ -60,65 +60,71 @@ module TextTag (
 
         ) where
 
-import Concurrency
-import GUICore
+import Core
+import Resources
+import Colour
+import Font
+import Geometry
+import Configuration
 import Editor
 import BitMap
 import Selection
 import Index
-import Interaction()
-import Debug(debug)
+import Computation
+import Synchronized
+import Destructible
+import Tooltip
 
--- --------------------------------------------------------------------------
--- Tags
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+-- TextTag type
+-- -----------------------------------------------------------------------
 
 data TextTag a = TextTag (Editor a) GUIOBJECT
 
 
--- --------------------------------------------------------------------------
--- Constructor
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- construction
+-- -----------------------------------------------------------------------
 
-newTextTag :: (
-        HasIndex (Editor a) i1 BaseIndex,
-        HasIndex (Editor a) i2 BaseIndex 
-        ) => Editor a -> i1 -> i2 -> [Config (TextTag a)] -> IO (TextTag a)
-newTextTag ed i1 i2 ol = do {
-        bi1 <- getBaseIndex ed i1;
-        bi2 <- getBaseIndex ed i2;      
-        w <- createGUIObject (TEXTTAG (map unparse [bi1::BaseIndex,bi2])) tagMethods;
-        packTextTagItem (toGUIObject ed) w Nothing;
-        configure (TextTag ed w) ol
-} where unparse (IndexNo _)   = GUIVALUE HaskellTk ""
+createTextTag :: (HasIndex (Editor a) i1 BaseIndex,
+                  HasIndex (Editor a) i2 BaseIndex) =>
+                 Editor a -> i1 -> i2 -> [Config (TextTag a)] ->
+                 IO (TextTag a)
+createTextTag ed i1 i2 ol =
+  do
+    bi1 <- getBaseIndex ed i1
+    bi2 <- getBaseIndex ed i2
+    w <- createGUIObject (toGUIObject ed)
+                         (TEXTTAG (map unparse [bi1::BaseIndex,bi2]))
+                         tagMethods
+    configure (TextTag ed w) ol
+  where unparse (IndexNo _)   = GUIVALUE HaskellTk ""
         unparse (IndexText s) = GUIVALUE HaskellTk  ("\\{" ++ s ++ "\\}")
         unparse p             = GUIVALUE HaskellTk  (show p ++ " ")
 
 
--- --------------------------------------------------------------------------
--- Instances
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance Eq (TextTag a) where 
-        (TextTag _ w1) == (TextTag _ w2) = (toGUIObject w1) == (toGUIObject w2)
+  (TextTag _ w1) == (TextTag _ w2) = (toGUIObject w1) == (toGUIObject w2)
 
 instance GUIObject (TextTag a) where 
-        toGUIObject (TextTag _ w) = w
-        cname _ = "TextTag"
+  toGUIObject (TextTag _ w) = w
+  cname _ = "TextTag"
 
-instance Destructible (TextTag a) where
-        destroy     = destroy . toGUIObject
-        destroyed _ = inaction
-
-instance Interactive (TextTag a)
+instance Destroyable (TextTag a) where
+  destroy = destroy . toGUIObject
 
 instance HasBorder (TextTag a)
 
 instance HasColour (TextTag a) where 
-        legalColourID = hasForeGroundColour
+  legalColourID = hasForeGroundColour
 
 instance HasFont (TextTag a)
-        
+
 instance HasJustify (TextTag a)
 
 instance HasLineSpacing (TextTag a)
@@ -126,46 +132,45 @@ instance HasLineSpacing (TextTag a)
 instance HasTabulators (TextTag a)
 
 instance Synchronized (TextTag a) where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize = synchronize . toGUIObject
 
-        
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
 -- Tag Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
-addTextTag :: (
-        HasIndex (Editor a) i1 BaseIndex,
-        HasIndex (Editor a) i2 BaseIndex 
-        ) => TextTag a -> i1 -> i2 -> IO ()
+addTextTag :: (HasIndex (Editor a) i1 BaseIndex,
+               HasIndex (Editor a) i2 BaseIndex) =>
+              TextTag a -> i1 -> i2 -> IO ()
 addTextTag tag @ (TextTag tp _) start end =
-        synchronize tag (do {
-                start' <- getBaseIndex tp start;
-                end' <- getBaseIndex tp end;
-                execMethod tag (\nm -> tkTagAdd nm start' end')
-                })
+  synchronize tag (
+    do
+      start' <- getBaseIndex tp start
+      end' <- getBaseIndex tp end
+      execMethod tag (\nm -> tkTagAdd nm start' end')
+  )
 
-removeTextTag :: (
-        HasIndex (Editor a) i1 BaseIndex,
-        HasIndex (Editor a) i2 BaseIndex 
-        ) => TextTag a -> i1 -> i2 -> IO ()
+removeTextTag :: (HasIndex (Editor a) i1 BaseIndex,
+                  HasIndex (Editor a) i2 BaseIndex) =>
+                 TextTag a -> i1 -> i2 -> IO ()
 removeTextTag tag @ (TextTag tp _) start end = 
-        synchronize tag (do {   
-                start' <- getBaseIndex tp start;
-                end' <- getBaseIndex tp end;
-                execMethod tag (\nm -> tkTagRemove nm start' end')
-                })
+  synchronize tag (
+    do
+      start' <- getBaseIndex tp start;
+      end' <- getBaseIndex tp end;
+      execMethod tag (\nm -> tkTagRemove nm start' end')
+  )
 
 lowerTextTag :: TextTag a -> IO ()
 lowerTextTag tag = execMethod tag (\nm -> tkTagLower nm)
-
 
 raiseTextTag :: TextTag a -> IO ()
 raiseTextTag tag = execMethod tag (\nm -> tkTagRaise nm)
 
         
--- --------------------------------------------------------------------------
--- Tag Configure Options
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- tag configure options
+-- -----------------------------------------------------------------------
 
 lmargin1 :: Distance -> Config (TextTag a)
 lmargin1 s tag = cset tag "lmargin1" s
@@ -213,138 +218,178 @@ fgstipple :: BitMapHandle -> Config (TextTag a)
 fgstipple s tag = setBitMapHandle tag "fgstipple" s False
 
 getFgstipple :: (TextTag a) -> IO BitMapHandle
-getFgstipple tag =  getBitMapHandle tag "fgstipple"
+getFgstipple tag = getBitMapHandle tag "fgstipple"
 
 
--- --------------------------------------------------------------------------
--- Index: Tag First and Last 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Index: Tag First and Last
+-- -----------------------------------------------------------------------
 
-instance HasIndex (Editor a) (TextTag a,First) BaseIndex where
-        getBaseIndex tp (tag,_) = synchronize tag (do {
-                (pnm,tnm) <- getTagName tag;
-                return (IndexText (show tnm ++ ".first"))
-                })
+instance HasIndex (Editor a) (TextTag a, First) BaseIndex where
+  getBaseIndex tp (tag,_) =
+    synchronize tag (
+      do
+        (pnm, tnm) <- getTagName tag
+        return (IndexText (show tnm ++ ".first"))
+    )
 
-instance HasIndex (Editor a) (TextTag a,Last) BaseIndex where
-        getBaseIndex tp (tag,_) = synchronize tag (do {
-                (pnm,tnm) <- getTagName tag;
-                return (IndexText (show tnm ++ ".last"))
-                })
+instance HasIndex (Editor a) (TextTag a, Last) BaseIndex where
+  getBaseIndex tp (tag,_) =
+    synchronize tag (
+      do
+        (pnm, tnm) <- getTagName tag
+        return (IndexText (show tnm ++ ".last"))
+    )
+
+getTagName :: GUIObject w => w -> IO (ObjectName, TextItemName)
+getTagName tag =
+  do
+    TextPaneItemName pnm tid <- getObjectName (toGUIObject tag)
+    return (pnm, tid)
 
 
-getTagName :: GUIObject w => w -> IO (ObjectName,TextItemName)
-getTagName tag = do {
-        tnm <- getObjectName (toGUIObject tag);
-        case tnm of
-                (Just (TextPaneItemName pnm tid)) -> return (pnm,tid)
-                _ -> raise objectNotPacked 
-        } 
-
-
--- --------------------------------------------------------------------------
--- TagMethods 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- tag methods
+-- -----------------------------------------------------------------------
 
 tagMethods = 
         Methods
                 tkGetTextTagConfig
                 tkSetTextTagConfigs
                 tkCreateTextTag
-                tkPackTextTag
+                (packCmd voidMethods)
+                (gridCmd voidMethods)
                 tkTagDelete
-                (cleanupCmd defMethods)
                 tkBindTextTag
                 tkUnbindTextTag
+                (cleanupCmd defMethods)
 
 
 
--- --------------------------------------------------------------------------
--- Unparsing of Tag Commands 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- unparsing of tag commands
+-- -----------------------------------------------------------------------
 
-tkPackTextTag :: ObjectKind -> ObjectName -> ObjectName -> [ConfigOption] -> 
-                ObjectID -> [Binding] -> TclScript
-tkPackTextTag _ _ name _ oid binds = concatMap (tkBindTextTag name oid) binds
+{-
+tkPackTextTag :: ObjectKind -> ObjectName -> ObjectName ->
+                 [ConfigOption] -> ObjectID -> [Binding] -> TclScript
+tkPackTextTag _ _ name _ oid binds =
+  concatMap (tkBindTextTag name oid) binds
+-}
 
+tkGetTextTagConfig :: ObjectName -> ConfigID -> TclScript
+tkGetTextTagConfig (TextPaneItemName name tnm) cid =
+  [(show name) ++ " tag cget " ++ (show tnm) ++ " -" ++ cid]
+tkGetTextTagConfig _ _ = []
 
+{-
 tkGetTextTagConfig :: ObjectName -> ConfigID -> TclScript
 tkGetTextTagConfig (TextPaneItemName name tnm) cid =            
         [(show name) ++ " tag cget " ++ (show tnm) ++ " -" ++ cid]
 tkGetTextTagConfig _ _ = []
+-}
 
+tkSetTextTagConfigs :: ObjectName -> [ConfigOption] -> TclScript
+tkSetTextTagConfigs _ [] = []
+tkSetTextTagConfigs (TextPaneItemName name (tnm @ (TextTagID k))) args = 
+  [show name ++ " tag configure " ++ show tnm ++ " " ++ showConfigs args]
+tkSetTextTagConfigs _ _ = []
 
-
+{-
 tkSetTextTagConfigs :: ObjectName -> [ConfigOption] -> TclScript
 tkSetTextTagConfigs _ [] = []
 tkSetTextTagConfigs (TextPaneItemName name (tnm @ (TextTagID k))) args = 
         [show name ++ " tag configure " ++ show tnm ++ " " ++ showConfigs args]
 tkSetTextTagConfigs _ _ = []
+-}
 
+tkCreateTextTag :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
+                   [ConfigOption] -> TclScript
+tkCreateTextTag _ (TEXTTAG il) (TextPaneItemName name tnm) _ args =
+  [show name ++ " tag add " ++ show tnm ++ " " ++
+   concat (map unfold il) ++ " " ++ (showConfigs args)]
+  where unfold (GUIVALUE _ str) = str
+--tkCreateTextTag _ _ _ _ _ = []
+{-# INLINE tkCreateTextTag #-}
 
-
+{-
 tkCreateTextTag :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> TclScript
 tkCreateTextTag (TEXTTAG il) (TextPaneItemName name tnm) oid args =
          [show name ++ " tag add " ++ show tnm ++ " " ++ concat (map unfold il)
          ++ " " ++ (showConfigs args)]
  where unfold (GUIVALUE _ str) = str
 tkCreateTextTag _ _ _ _ = []
-{-# INLINE tkCreateTextTag #-}
-
-
+-}
 
 tkTagAdd :: ObjectName -> BaseIndex -> BaseIndex -> TclScript
 tkTagAdd (TextPaneItemName name tnm) start end =
-         [show name ++ " tag add " ++ show tnm ++ " " ++ 
-         show start ++ " " ++ show end]
+  [show name ++ " tag add " ++ show tnm ++ " " ++ show start ++ " " ++
+   show end]
 tkTagAdd _ _ _ = []
 {-# INLINE tkTagAdd #-}
 
-
-
-tkTagDelete :: ObjectID -> ObjectName -> TclScript
-tkTagDelete oid (TextPaneItemName name tnm) =
-         [show name ++ " tag delete " ++ show tnm]
-tkTagDelete _ _ = []
+tkTagDelete :: ObjectName -> TclScript
+tkTagDelete (TextPaneItemName name tnm) =
+  [show name ++ " tag delete " ++ show tnm]
+tkTagDelete _ = []
 {-# INLINE tkTagDelete #-}
 
+{-
+tkTagDelete :: ObjectID -> ObjectName -> TclScript
+tkTagDelete oid (TextPaneItemName name tnm) =
+  [show name ++ " tag delete " ++ show tnm]
+tkTagDelete _ _ = []
+-}
 
-
-tkBindTextTag :: ObjectName -> ObjectID -> Binding -> TclScript
-tkBindTextTag (TextPaneItemName name tnm) (ObjectID no) (tkev,fields) = 
-        [show name ++ " tag bind " ++ show tnm ++ " " ++ tkev ++ 
-        " {puts stdout {EV " ++ show no ++ " " ++ tkev ++ " " ++
-        show fields ++ " }; flush stdout};"]
-tkBindTextTag _ _ _ = []
+tkBindTextTag :: ObjectName -> BindTag -> [WishEvent] -> EventInfoSet ->
+                 TclScript
+tkBindTextTag (TextPaneItemName name tnm) bindTag wishEvents
+              eventInfoSet =
+  let doBind = show name ++ " tag bind " ++ show tnm ++ " " ++
+               delimitString (foldr (\ event soFar -> showP event soFar)
+                                    "" wishEvents) ++ " " ++
+               mkBoundCmdArg bindTag eventInfoSet
+  in [doBind]
 {-# INLINE tkBindTextTag #-}
 
+{-
+tkBindTextTag :: ObjectName -> ObjectID -> Binding -> TclScript
+tkBindTextTag (TextPaneItemName name tnm) (ObjectID no) (tkev,fields) = 
+  [show name ++ " tag bind " ++ show tnm ++ " " ++ tkev ++ 
+   " {puts stdout {EV " ++ show no ++ " " ++ tkev ++ " " ++
+   show fields ++ " }; flush stdout};"]
+tkBindTextTag _ _ _ = []
+-}
 
-
-tkUnbindTextTag :: ObjectName -> ObjectID -> Binding -> TclScript
-tkUnbindTextTag (TextPaneItemName name tnm) _ (tkev,_) = 
-        [show name ++ " tag bind " ++ show tnm ++ " " ++ tkev ++ " {}"]
+tkUnbindTextTag :: ObjectName -> BindTag -> [WishEvent] -> TclScript
+tkUnbindTextTag (TextPaneItemName name tnm) bindTag wishEvents = 
+ [show name ++ " tag bind " ++ show tnm ++ " " ++
+  delimitString (foldr (\ event soFar -> showP event soFar)
+                       "" wishEvents) ++ " {}"]
 {-# INLINE tkUnbindTextTag #-}
 
-
+{-
+tkUnbindTextTag :: ObjectName -> ObjectID -> Binding -> TclScript
+tkUnbindTextTag (TextPaneItemName name tnm) _ (tkev,_) = 
+  [show name ++ " tag bind " ++ show tnm ++ " " ++ tkev ++ " {}"]
+-}
 
 tkTagLower :: ObjectName -> TclScript
 tkTagLower (TextPaneItemName name tnm) =
-         [show name ++ " tag lower " ++ show tnm]
+  [show name ++ " tag lower " ++ show tnm]
 tkTagLower _ = []
 {-# INLINE tkTagLower #-}
 
-
 tkTagRaise :: ObjectName -> TclScript
 tkTagRaise (TextPaneItemName name tnm) =
-         [show name ++ " tag raise " ++ show tnm]
+  [show name ++ " tag raise " ++ show tnm]
 tkTagRaise _ = []
 {-# INLINE tkTagRaise #-}
 
-
 tkTagRemove :: ObjectName -> BaseIndex -> BaseIndex -> TclScript
 tkTagRemove (TextPaneItemName name tnm) start end =
-         [show name ++ " tag remove " ++ show tnm ++ " " ++ 
-         show start ++ " " ++ show end]
+  [show name ++ " tag remove " ++ show tnm ++ " " ++ show start ++ " " ++
+   show end]
 tkTagRemove _ _ _ = []
 {-# INLINE tkTagRemove #-}
 

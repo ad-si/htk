@@ -30,7 +30,7 @@ module SimpleGraph(
 import List(delete)
 
 import Concurrent
-import Exception(tryAllIO)
+import Exception(try)
 
 import Debug(debug)
 import Computation (done)
@@ -38,10 +38,12 @@ import Object
 import Registry
 import AtomString
 
-import Selective
+import Destructible
+import Events
+import Channels
+
 import BSem
 
-import SIMClasses(Destructible(..))
 import InfoBus
 
 import NewNames
@@ -170,13 +172,13 @@ instance Graph SimpleGraph where
 
    newGraph getGraphConnection =
       do
-         graphUpdatesQueue <- newMsgQueue
+         graphUpdatesQueue <- newChannel
          GraphConnectionData {
             graphState = graphState,
             deRegister = deRegister,
             graphUpdate = graphUpdate,
             nameSourceBranch = nameSourceBranch
-            } <- getGraphConnection (sendIO graphUpdatesQueue)
+            } <- getGraphConnection (sync . noWait . (send graphUpdatesQueue))
          
          graph <- uncannGraph graphState deRegister nameSourceBranch
          let
@@ -267,7 +269,7 @@ getArcInfo converter graph arc =
 -- to destroy a graph before its children have been destroyed!
 ------------------------------------------------------------------------
 
-instance Destructible
+instance Destroyable
       (SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) where
    destroy graph =
       do
@@ -287,10 +289,6 @@ instance Destructible
                takeMVar mVar
                putMVar mVar []
             ) -- end of synchronization
-
-   destroyed graph =
-      error "SimpleGraph: sorry, destructible event not implemented"  
-               
 
 ------------------------------------------------------------------------
 -- Updates
@@ -324,7 +322,7 @@ applyUpdate graph update proceedFn =
                if proceedFn clientData
                   then
                      do
-                        result <- tryAllIO (clientSink clientData update) 
+                        result <- Exception.try (clientSink clientData update) 
                         case result of
                            Left exception ->
                               putStrLn ("Client error "++(show exception))

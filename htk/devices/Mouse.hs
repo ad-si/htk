@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Mouse
 AUTHOR        : Einar Karlsen,  
@@ -8,106 +8,101 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Defines some archetypical mouse events.
 
+   #################################################################### -}
 
-   ######################################################################### -}
 
 module Mouse (
-        GrabStatus(..),
 
-        CurrentGrab(..),
-        grabLocal, 
-        grabGlobal, 
-        releaseGrab,
-        returnGrab,
-        getGrabStatus,
-        getCurrentGrab,
+  GrabStatus(..),
 
-        mouseEvent,
-        mouseEvent',
-        mouseMotion,
-        mouseEnter,
-        mouseLeave,
-        mouseButtonPress,
-        mouseButtonRelease
-        ) where
+  CurrentGrab(..),
+  grabLocal, 
+  grabGlobal, 
+  releaseGrab,
+  returnGrab,
+  getGrabStatus,
+  getCurrentGrab,
 
-import SIM
-import GUICore
+) where
+
+import Core
+import BaseClasses(Widget)
 import Char(isSpace)
-import Debug(debug)
+import Computation
 
-import UserInteraction
+-- -----------------------------------------------------------------------
+-- Grab Status
+-- -----------------------------------------------------------------------
 
--- --------------------------------------------------------------------------
--- Grab Status 
--- --------------------------------------------------------------------------           
 data GrabStatus = Local | Global deriving (Eq,Ord,Enum)
 
 
--- --------------------------------------------------------------------------
--- Instantiations 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
+
 instance GUIValue GrabStatus where
-        cdefault = Local
+  cdefault = Local
 
 instance Read GrabStatus where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        'l':'o':'c':'a':'l':xs -> [(Local,xs)]
-        'g':'l':'o':'b':'a':'l':xs -> [(Global,xs)]
-        _ -> []
+  readsPrec p b =
+    case dropWhile (isSpace) b of
+      'l':'o':'c':'a':'l':xs -> [(Local,xs)]
+      'g':'l':'o':'b':'a':'l':xs -> [(Global,xs)]
+      _ -> []
 
 instance Show GrabStatus where
-   showsPrec d p r = 
-      (case p of 
-        Local -> "local" 
-        Global -> "global"
-        ) ++ r
+  showsPrec d p r = (case p of 
+                       Local -> "local" 
+                       Global -> "global") ++ r
 
 
--- --------------------------------------------------------------------------
--- Current Grab 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- current grab
+-- -----------------------------------------------------------------------
 
 data CurrentGrab = CurrentGrab GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Instantiations 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
 
 instance Object CurrentGrab where
-        objectID (CurrentGrab obj) = objectID obj
+  objectID (CurrentGrab obj) = objectID obj
 
 instance GUIObject CurrentGrab where
-        toGUIObject (CurrentGrab obj) = obj
-        cname _ = ""
+  toGUIObject (CurrentGrab obj) = obj
+  cname _ = ""
 
 instance Widget CurrentGrab  
 
 
--- --------------------------------------------------------------------------
--- Window Grabs 
--- --------------------------------------------------------------------------           
-grabLocal :: (Interactive w, Widget w) => w -> IO ()
+-- -----------------------------------------------------------------------
+-- window grabs
+-- -----------------------------------------------------------------------
+
+grabLocal :: Widget w => w -> IO ()
 grabLocal win = execMethod win (\name -> [tkGrabLocal name])
 
-grabGlobal :: (Interactive w, Widget w) => w -> IO ()
-grabGlobal win = execMethod win (\name -> ["grab set -global " ++ show name])
+grabGlobal :: Widget w => w -> IO ()
+grabGlobal win =
+  execMethod win (\name -> ["grab set -global " ++ show name])
 
-releaseGrab :: (Interactive w, Widget w) => w -> IO ()
+releaseGrab :: Widget w => w -> IO ()
 releaseGrab win = execMethod win (\name -> ["grab release " ++ show name])
 
-getGrabStatus :: (Interactive w, Widget w) => w -> IO (Maybe GrabStatus)
-getGrabStatus win = do {
-        (RawData str) <- evalMethod win (\nm -> ["grab status " ++ show nm]);
-        case dropWhile (isSpace) str of
-                ('n':'o':'n':'e':_) -> return Nothing
-                s          -> do {v <- creadTk s; return (Just v)} 
-        }   
+getGrabStatus :: Widget w => w -> IO (Maybe GrabStatus)
+getGrabStatus win =
+  do
+    (RawData str) <- evalMethod win (\nm -> ["grab status " ++ show nm])
+    case dropWhile isSpace str of
+      ('n':'o':'n':'e':_) -> return Nothing
+      s          -> do {v <- creadTk s; return (Just v)}
 
 getCurrentGrab :: IO (Maybe CurrentGrab)
-getCurrentGrab = evalTclScript ["grab current "] >>= toCurrentGrab . WidgetName
+getCurrentGrab =
+  evalTclScript ["grab current "] >>= toCurrentGrab . WidgetName
 
 returnGrab :: Maybe CurrentGrab -> IO ()
 returnGrab Nothing = done
@@ -122,42 +117,9 @@ toCurrentGrab name = do {
 }
 
 
--- --------------------------------------------------------------------------
--- Mouse Inter Action 
--- --------------------------------------------------------------------------
-
-mouseEvent :: (Interactive w,GUIEventDesignator e)  
-           => w -> e -> IA (Position,Int)
-mouseEvent w e = userinteraction w e Request >>>= return . getMouseEventInfo
-    where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
-
--- Experimental code: user interactions (see kernel/UserInteraction.hs)
--- Don't use this yet.
-mouseEvent' :: (Interactive w,GUIEventDesignator e)  
-           => w -> e -> UIA (Position,Int)
-mouseEvent' w e = UIA(userinteraction w e Request, [toGUIObject w]) >>>= return . getMouseEventInfo
-    where getMouseEventInfo info = ((xfield info,yfield info),buttonno info)
-
-
-mouseMotion :: Interactive w => w -> IA Position
-mouseMotion w = mouseEvent w Motion >>>= return . fst
-
-mouseEnter :: Interactive w => w -> IA Position
-mouseEnter w = mouseEvent w Enter >>>= return . fst
-
-mouseLeave :: Interactive w => w -> IA Position
-mouseLeave w = mouseEvent w Leave >>>= return . fst
-
-mouseButtonPress :: Interactive w => w -> Int -> IA Position
-mouseButtonPress w i = mouseEvent w (ButtonPress (Just i)) >>>= return . fst
-
-mouseButtonRelease :: Interactive w => w -> Int -> IA Position
-mouseButtonRelease w i = mouseEvent w (ButtonRelease (Just i)) >>>= return . fst
-
-
--- --------------------------------------------------------------------------
--- Tk Commands 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Tk Commands
+-- -----------------------------------------------------------------------
 
 tkGrabLocal :: ObjectName -> TclCmd
 tkGrabLocal name = "grab set " ++ show name

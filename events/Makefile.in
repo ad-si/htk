@@ -1,11 +1,36 @@
 LIB        = libevents.a
 
-SRCS       = GuardBasics.hs\
-             EventClasses.hs\
-             PrimGuardedChannels.hs\
+SRCS       = Toggle.hs\
+             Events.hs\
+             After.hs\
+             Cells.hs\
              GuardedEvents.hs\
              GuardedChannels.hs\
+             DeleteQueue.hs\
+             NullGuard.hs\
+             FMQueue.hs\
+             EqGuard.hs\
+             Spawn.hs\
+             WrapIO.hs\
+             Destructible.hs\
+             Channels.hs\
+             Examples.hs\
+             RefQueue.hs\
+             MatchChannel.hs\
+             RegexChannel.hs\
+             Synchronized.hs\
+	     Mutex.hs\
+	     ReferenceVariables.hs\
 
-SUBDIRS = 
+SUBDIRS = test
+
+# Hackery to insert file-specific flags, in this case to stop
+# GuardedChannel.hi file containing existential type unfoldings
+# which ghc4.08.2 can't handle.  (Bug reported 22/2/2001.)
+EXTRA_HC_OPTIONS += $($*_HC_OPTIONS)
+
+# -- this option unknown in ghc5.00.1
+# GuardedChannels_HC_OPTIONS = -funfolding-interface-threshold0 
+
 
 include @TOP@/mk/boilerplate.mk

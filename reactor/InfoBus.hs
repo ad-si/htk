@@ -23,21 +23,22 @@ module InfoBus (
    ) where
 
 
-import Concurrency
-import Dynamics
-import EventBroker
-import Object
+import Concurrent
 import FiniteMap
-import SIMClasses
-import Interaction(EventID(..),interaction,EventDesignator(..),IA,EventListener(..))
 import qualified IOExts(unsafePerformIO,performGC)
+
+import Computation
+import Dynamics
+import Object
 import Debug(debug)
+
+import Destructible
 
 -- --------------------------------------------------------------------------
 --  Tool Manager State
 -- --------------------------------------------------------------------------
 
-type ToolManager = PVar Tools
+type ToolManager = MVar Tools
 
 type Tools = FiniteMap ObjectID (IO ())
 
@@ -47,17 +48,18 @@ type Tools = FiniteMap ObjectID (IO ())
 -- --------------------------------------------------------------------------
 
 toolmanager :: ToolManager
-toolmanager = IOExts.unsafePerformIO (newPVar emptyFM)
+toolmanager = IOExts.unsafePerformIO (newMVar emptyFM)
 
 
 -- --------------------------------------------------------------------------
 --  Client Commands
 -- --------------------------------------------------------------------------
 
-registerTool :: (Object t, Destructible t) => t -> IO ()
+registerTool :: (Object t, Destroyable t) => t -> IO ()
 registerTool t = 
    do 
-      changeVar' toolmanager (\ts -> addToFM ts (objectID t) (destroy t))
+      map <- takeMVar toolmanager 
+      putMVar toolmanager (addToFM map (objectID t) (destroy t))
       done          
 
 
@@ -67,17 +69,18 @@ deregisterTool t =
       let oid = objectID t
       try( -- ignore exceptions if they occur.  I don't see how they can
            -- actually.
-         updVar' 
-            toolmanager 
-            ( \ts -> 
-               (delFromFM ts oid, lookupWithDefaultFM ts done oid))
+         do
+            map <- takeMVar toolmanager
+            putMVar toolmanager (delFromFM map oid)
          )
       done
 
 shutdown :: IO ()
 shutdown = 
    do
-      cmds <- updVar' toolmanager (\ts -> (emptyFM, eltsFM ts))
+      map <- takeMVar toolmanager
+      let cmds = eltsFM map
+      putMVar toolmanager emptyFM
       foreach cmds (\cmd -> try cmd)
       IOExts.performGC
 

@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : CanvasTag
 AUTHOR        : Einar Karlsen,  
@@ -14,116 +14,115 @@ TO BE DONE    : The canvas tag must maintain information on the constituent
 
                 The tags configure option must be implemented.
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module CanvasTag (
-        module CanvasItem,
 
-        CanvasTag,
+  module CanvasItem,
 
-        TaggedCanvasItem(..),
+  CanvasTag,
 
-        SearchSpec,
-        allItems,
-        aboveItem,
-        belowItem,
-        withTag,
-        closest,
-        enclosed,
-        overlapping,
+  TaggedCanvasItem(..),
 
-        newCanvasTag,
+  SearchSpec,
+  allItems,
+  aboveItem,
+  belowItem,
+  withTag,
+  closest,
+  enclosed,
+  overlapping,
 
-        addCanvasTag,
-        removeCanvasTag
-        
+  createCanvasTag,
 
-        ) where
+  addCanvasTag,
+  removeCanvasTag
 
-import Concurrency
-import GUICore
+) where
+
+import Core
 import Canvas
 import CanvasItem
 import CanvasItemAux
-import Debug(debug)
+import Destructible
+import Synchronized
+import Computation
+import Geometry
 
 
--- --------------------------------------------------------------------------
--- Class TaggedCanvasItem
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- class TaggedCanvasItem
+-- -----------------------------------------------------------------------
 
 class CanvasItem w => TaggedCanvasItem w where
         tags :: [CanvasTag] -> Config w
-        tags cts item =                            -- (ludi)
-          mapM (\ct -> do {Just (CanvasItemName name tid) <- getObjectName
-                                                              (toGUIObject ct);
-                           cset item "tag" (show tid)}) cts >> return item
+        tags cts item =
+          mapM (\ct -> do
+                         CanvasItemName name tid <-
+                           getObjectName (toGUIObject ct)
+                         cset item "tag" (show tid)) cts >> return item
 
-                
--- --------------------------------------------------------------------------
--- Tags
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+-- tags
+-- -----------------------------------------------------------------------
 
 newtype CanvasTag = CanvasTag GUIOBJECT
 
 
--- --------------------------------------------------------------------------
--- Configuration Options
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- configuration options
+-- -----------------------------------------------------------------------
 
-newCanvasTag :: [Config CanvasTag] -> IO CanvasTag
-newCanvasTag ol = do
-        wid <- createGUIObject (CANVASITEM CANVASTAG []) tagMethods
-        configure (CanvasTag wid) ol
+createCanvasTag :: Canvas -> [Config CanvasTag] -> IO CanvasTag
+createCanvasTag cnv ol =
+  do
+    wid <- createGUIObject (toGUIObject cnv) (CANVASITEM CANVASTAG [])
+                           tagMethods
+    configure (CanvasTag wid) ol
 
                 
--- --------------------------------------------------------------------------
--- Instances
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance Eq CanvasTag where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+  w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 instance GUIObject CanvasTag where 
-        toGUIObject (CanvasTag wid) = wid
-        cname _ = "CanvasTag"
+  toGUIObject (CanvasTag wid) = wid
+  cname _ = "CanvasTag"
 
-instance Destructible CanvasTag where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive CanvasTag
+instance Destroyable CanvasTag where
+  destroy   = destroy . toGUIObject
 
 instance CanvasItem CanvasTag
 
 instance Synchronized CanvasTag where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize w = synchronize (toGUIObject w)
 
                 
--- --------------------------------------------------------------------------
--- Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- commands
+-- -----------------------------------------------------------------------
 
 addCanvasTag :: CanvasItem w => SearchSpec -> w -> IO ()
-addCanvasTag (SearchSpec cmd) tag = do {
-        spec' <- cmd;
-        execMethod tag (\tnm -> tkAddTag tnm spec')
-        }
-
+addCanvasTag (SearchSpec cmd) tag =
+  do
+    spec' <- cmd
+    execMethod tag (\tnm -> tkAddTag tnm spec')
 
 removeCanvasTag :: CanvasItem i => i -> CanvasTag -> IO () 
-removeCanvasTag ci tag = do {
-        mtname <- getObjectName (toGUIObject tag);
-        incase mtname (\tnm -> execMethod ci (\cnm -> tkDTag cnm tnm))
-        }
+removeCanvasTag ci tag =
+  do
+    tnm <- getObjectName (toGUIObject tag)
+    execMethod ci (\cnm -> tkDTag cnm tnm)
 
 
-                
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 --  SearchSpec
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 data SearchSpec = SearchSpec (IO String)
 
@@ -163,42 +162,40 @@ overlapping p1 p2 =
 
 
 getCanvasTagOrID :: GUIOBJECT -> IO CanvasTagOrID
-getCanvasTagOrID wid = do {
-        nm <- getObjectName wid;
-        case nm of
-                (Just (CanvasItemName name tid)) -> return tid  
-                _ -> raise objectNotPacked      
-}
+getCanvasTagOrID wid =
+  do
+    nm <- getObjectName wid
+    case nm of
+      CanvasItemName name tid -> return tid  
+      _ -> error "CanvasTag (getCanvasTagOrID) : not a canvas item name"
 
 
--- --------------------------------------------------------------------------
--- Methods
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- methods
+-- -----------------------------------------------------------------------
 
 tagMethods = canvasitemMethods {createCmd = tkCreateTag}
 
 
--- --------------------------------------------------------------------------
--- Unparsing of Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- unparsing of commands
+-- -----------------------------------------------------------------------
 
-tkCreateTag :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> TclScript
-tkCreateTag (CANVASITEM CANVASTAG []) (CanvasItemName name tid) oid _ =
-	[declVar tid, " set " ++ vname ++ " t" ++ show oid]
-        where vname = (drop 1 (show tid))
+tkCreateTag :: ObjectName -> ObjectKind -> ObjectName -> ObjectID ->
+               [ConfigOption] -> TclScript
+tkCreateTag _ (CANVASITEM CANVASTAG []) (CanvasItemName name tid) oid _ =
+  [declVar tid, " set " ++ vname ++ " t" ++ show oid]
+  where vname = (drop 1 (show tid))
 
 tkAddTag :: ObjectName -> String -> TclScript
 tkAddTag (CanvasItemName name tid) spec =
-         [declVar tid, show name ++ " addtag " ++ show tid ++ " " ++ spec]
+  [declVar tid, show name ++ " addtag " ++ show tid ++ " " ++ spec]
 
 
 tkDTag :: ObjectName -> ObjectName -> TclScript
-tkDTag (CanvasItemName name cid) (CanvasItemName _ tid) = [
-        declVar tid, 
-        declVar cid, 
-        show name ++ " dtag " ++ show cid ++ " " ++ show tid
-        ]
-
+tkDTag (CanvasItemName name cid) (CanvasItemName _ tid) =
+  [declVar tid, declVar cid, 
+   show name ++ " dtag " ++ show cid ++ " " ++ show tid]
 
 declVar :: CanvasTagOrID -> TclCmd
 declVar tid = "global " ++ (drop 1 (show tid))

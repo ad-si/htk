@@ -1,5 +1,9 @@
 LIB        = libtypes.a
-SRCS       = AttributeRepresentation.hs AttributeType.hs
+LIBS = \
+   $(TOP)/cvs/libcvs.a $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
+   $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
+SRCS       = VersionDB.hs View.hs CodedValue.hs CodedValueType.hs \
+   CodedValueStore.hs Versioning.hs 
 SUBDIRS    = test
 
 include @TOP@/mk/boilerplate.mk

@@ -10,27 +10,37 @@
 module Main (main) where
 
 import HTk
-import PulldownMenu
-import Label
-import Entry
-import Keyboard
 
 main :: IO ()
-main = do
-        tk <- htk []
-        f   <- newVBox []        
-	win <- window f [text "My third HTk Program"]
-	mbt <- newMenuButton  [text "File", parent f, side AtLeft]
-        mn  <- newPulldownMenu (mbt::MenuButton ()) [tearOff Off]
-        bt  <- newButton  [text "Quit",
-			   command (\()-> destroy win),
-	                   parent mn]
-	f1  <- newHBox [parent f]
-        l   <- newLabel [value "Rename: ", parent f1, 
-			 pad Horizontal (cm 1), side AtLeft]
-        e   <- (newEntry [side AtRight, parent f1]):: IO (Entry String)
-	interactor (\iact -> keyPressed e "Return"
-	                     >>> do {txt<- getVar e; win # text txt; done})
-        interactor (\iact -> triggered bt >>> stop iact)
-	sync (destroyed win)
-	destroy tk
+main = 
+  do main <- initHTk [text "My third HTk Program"]
+
+     mb <- createMenu main False []
+     main # menu mb
+
+     pulldown1 <- createMenuCascade mb [text "File"]
+
+     m <- createMenu mb False []
+     pulldown1 # menu m
+     qb <- createMenuCommand m [text "Quit"]
+
+     f <- newFrame main []
+     v1 <- createTkVariable ""
+     l <- newLabel f [text "Rename: "]
+     e <- (newEntry f [variable v1])::IO (Entry String)
+	
+     pack f []
+     pack l [PadX 10, Side AtLeft]
+     pack e [PadX 10, Side AtRight]
+
+     clickedqb <- clicked qb
+
+     spawnEvent (clickedqb >>> destroy main)
+
+     (entered, _) <- bind e [WishEvent [] (KeyPress (Just (KeySym "Return")))]
+
+     spawnEvent (forever (entered >>> do txt <- readTkVariable v1
+				         main # text txt))
+
+     (main_destr, _) <- bindSimple main Destroy
+     sync main_destr

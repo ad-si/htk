@@ -1,126 +1,104 @@
-{- #########################################################################
-
-MODULE        : Box
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : A simple horizontal/vertical box for widgets.
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Box (
-        Flexibility(..),
-        Box,
 
-        newBox,
-        newHBox,
-        newVBox,
-        newHFBox,
-        newVFBox        
+  Flexibility(..),
+  Box,
+
+  newBox,
+  newHBox,
+  newVBox,
+  newHFBox,
+  newVFBox        
 
 ) where
 
-import Concurrency
-import GUICore
-import Packer
+import Core
+import BaseClasses(Widget)
+import Configuration
+import Resources
 import Frame
-import Debug(debug)
-
--- --------------------------------------------------------------------------
--- Horizontal/Vertical Box 
--- --------------------------------------------------------------------------           
-data Flexibility = Rigid | Flexible
-
-data Box = Box Frame (PVar Orientation) Flexibility 
+import Destructible
+import Computation
+import Synchronized
+import ReferenceVariables
+import Packer
 
 
--- --------------------------------------------------------------------------
--- Commands 
--- --------------------------------------------------------------------------           
-newBox :: Flexibility -> [Config Box] -> IO Box
-newBox fl confs = do 
-        f <- newFrame []
-        pv <- newPVar cdefault 
-        configure (Box f pv fl) confs
+-- -----------------------------------------------------------------------
+-- horizontal/vertical box 
+-- -----------------------------------------------------------------------
 
-                
-newHBox :: [Config Box] -> IO Box
-newHBox ol = newBox Rigid ((orient Horizontal) : ol)                                     
-newVBox :: [Config Box] -> IO Box
-newVBox ol = newBox Rigid ((orient Vertical) : ol)
-
-newHFBox :: [Config Box] -> IO Box
-newHFBox ol = newBox Flexible ((orient Horizontal) : ol)
-
-newVFBox :: [Config Box] -> IO Box
-newVFBox ol = newBox Flexible ((orient Vertical) : ol)
+data Box = Box GUIOBJECT
 
 
--- --------------------------------------------------------------------------
--- Instances 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- commands
+-- -----------------------------------------------------------------------
+
+newBox :: Container par => par -> Flexibility -> [Config Box] -> IO Box
+newBox par fl confs =
+  do
+    w <- createWidget (toGUIObject par) (BOX cdefault fl)
+    configure (Box  w) confs
+
+newHBox :: Container par => par -> [Config Box] -> IO Box
+newHBox par ol = newBox par Rigid ((orient Horizontal) : ol)
+
+newVBox :: Container par => par -> [Config Box] -> IO Box
+newVBox par ol = newBox par Rigid ((orient Vertical) : ol)
+
+newHFBox :: Container par => par -> [Config Box] -> IO Box
+newHFBox par ol = newBox par Flexible ((orient Horizontal) : ol)
+
+newVFBox :: Container par => par -> [Config Box] -> IO Box
+newVFBox par ol = newBox par Flexible ((orient Vertical) : ol)
+
+
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
+
 instance Eq Box where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+  w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 instance GUIObject Box where 
-        toGUIObject (Box f _ _) = toGUIObject f
-        cname _ = "Box"
+  toGUIObject (Box w) = toGUIObject w
+  cname _ = "Box"
 
-instance Destructible Box where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive Box
+instance Destroyable Box where
+  destroy   = destroy . toGUIObject
 
 instance Synchronized Box where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize = synchronize . toGUIObject
 
 instance Widget Box
 
-instance ChildWidget Box
-
-instance (Widget wc,ChildWidget wc) => ParentWidget Box wc where
-        parent (Box f pv fl) wc = do {
-                packW wc;
-                o <- getVar pv; 
-                packInBox f o fl wc;
-                return wc
-                }
+instance Container Box
 
 instance HasBorder Box
 
 instance HasColour Box where 
-        legalColourID = hasBackGroundColour
+  legalColourID = hasBackGroundColour
 
 instance HasOrientation Box where
-        orient o b @ (Box f pv s) = do {setVar pv o; return b}
-        getOrient (Box f pv s) = getVar pv
+  orient or box@(Box w) =
+    do
+      BOX or' fl <- getObjectKind w
+      setObjectKind w (BOX or fl)
+      return box
+  getOrient (Box w) =
+    do
+      BOX or _ <- getObjectKind w
+      return or
 
 instance HasSize Box
-
-
--- --------------------------------------------------------------------------
--- Pack Command 
--- --------------------------------------------------------------------------           
-packInBox :: (Widget wc, ChildWidget wc) => 
-                Frame -> Orientation -> Flexibility -> wc -> IO () 
-packInBox f Horizontal Rigid wc = 
-        mpack wc (do {configure wc [side AtLeft]; parent f wc; done})
-packInBox f Vertical Rigid wc = 
-        mpack wc (do {configure wc [side AtTop]; parent f wc; done})
-packInBox f Horizontal _ wc = 
-        mpack wc (do {configure wc [side AtLeft,flexible]; parent f wc; done})
-packInBox f Vertical _ wc = 
-        mpack wc (do {configure wc [side AtTop,flexible]; parent f wc; done})
-
-mpack :: (Widget wc, ChildWidget wc) => wc -> IO () -> IO ()
-mpack w cmd = do {
-        t <- hasParentObject (toGUIObject w);
-        unless t cmd
-        }
-
-

@@ -1,173 +1,166 @@
-{- #########################################################################
-
-MODULE        : SelectBox
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   : SelectBox Abstraction
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module SelectBox (
-        SelectBox,
-        newSelectBox,
 
-        getDefault,
-        selectDefault
-        ) 
-where
+  SelectBox,
+  newSelectBox,
 
-import Concurrency
+  addButton,
+  addSpace,
+
+  getDefault,
+  selectDefault
+
+) where
+
 import HTk
+import GUIObject
+import BaseClasses(Widget)
 import Frame
 import Button
 import Space
-import Interaction
-
-import GUIIntrinsics
-import Debug(debug)
+import ReferenceVariables
+import Packer
 
 
--- --------------------------------------------------------------------------
--- SelectBox Type 
--- --------------------------------------------------------------------------           
-data SelectBox a = SelectBox Box (Maybe (Frame,Int)) (PVar [Button a])
+-- -----------------------------------------------------------------------
+-- SelectBox type
+-- -----------------------------------------------------------------------
+
+data SelectBox a = SelectBox Box (Maybe (Frame,Int)) (Ref [Button a])
 
 type Elements a = [Button a]
 
 
--- --------------------------------------------------------------------------
--- Commands 
--- --------------------------------------------------------------------------           
-newSelectBox :: Maybe Int -> [Config (SelectBox a)] -> IO (SelectBox a)
-newSelectBox Nothing ol = do {
-        b <- newHBox [expand On, fill Horizontal];
-        em <- newPVar [];
-        configure (SelectBox b Nothing em) ol
-}
-newSelectBox (Just i) ol = do {
-        b <- newHBox [expand On, fill Horizontal];
-        em <- newPVar [];
-        f <- newFrame [expand On,side AtLeft, relief Sunken, borderwidth 1];
-        configure (SelectBox b (Just (f,i)) em) ol
-}
+-- -----------------------------------------------------------------------
+-- creation
+-- -----------------------------------------------------------------------
+
+newSelectBox :: Container par =>
+                par -> Maybe Int -> [Config (SelectBox a)] ->
+                IO (SelectBox a)
+newSelectBox par Nothing ol =
+  do
+    b <- newHBox par []
+    em <- newRef []
+    configure (SelectBox b Nothing em) ol
+newSelectBox par (Just i) ol =
+  do
+    b <- newHBox par []
+    em <- newRef []
+    f <- newFrame b [relief Sunken, borderwidth 1]
+    configure (SelectBox b (Just (f,i)) em) ol
 
 
--- --------------------------------------------------------------------------
--- SelectBox Instances 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- SelectBox instances
+-- -----------------------------------------------------------------------
+
 instance Eq (SelectBox a) where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+  w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
-instance Destructible (SelectBox a) where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+instance Destroyable (SelectBox a) where
+  destroy = destroy . toGUIObject
 
 instance GUIObject (SelectBox a) where 
-        toGUIObject (SelectBox b _ e) = toGUIObject b
-        cname _ = "SelectBox"
-
-instance Interactive (SelectBox a)
+  toGUIObject (SelectBox b _ e) = toGUIObject b
+  cname _ = "SelectBox"
 
 instance HasColour (SelectBox a) where 
-        legalColourID = hasForeGroundColour
+  legalColourID = hasForeGroundColour
 
 instance Widget (SelectBox a)
-        
-instance ChildWidget (SelectBox a)      
-
-instance ParentWidget (SelectBox a) (Button a) where
-        parent = addSB
-
-instance ParentWidget (SelectBox a) Space 
 
 instance HasSize (SelectBox a)
 
 instance HasBorder (SelectBox a)
 
 instance HasEnable (SelectBox a) where
-        state st sb@(SelectBox b _ em) = 
-                synchronize sb (do {
-                        ibs <- getVar em;
-                        foreach ibs (\ib -> configure ib [state st]);
-                        return sb
-                        })
-        getState sb = do {
-                b <- isEnabled sb;
-                if b then return Normal else return Disabled
-                }
-        isEnabled sb@(SelectBox b _ em) = 
-                synchronize sb (do{
-                        ibs <- getVar em;
-                        sl <- sequence (map getState ibs);
-                        return (foldr (||) False (map (/= Disabled) sl)) 
-                        })
-
+  state st sb@(SelectBox b _ em) = 
+    synchronize sb (do
+                      ibs <- getRef em
+                      foreach ibs (\ib -> configure ib [state st])
+                      return sb)
+  getState sb = do
+                  b <- isEnabled sb
+                  if b then return Normal else return Disabled
+  isEnabled sb@(SelectBox b _ em) = 
+    synchronize sb (do
+                      ibs <- getRef em
+                      sl <- sequence (map getState ibs)
+                      return (foldr (||) False (map (/= Disabled) sl)))
 
 instance Synchronized (SelectBox a) where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize = synchronize . toGUIObject
 
 
--- --------------------------------------------------------------------------
---  Selection 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- selection
+-- -----------------------------------------------------------------------
+
 selectDefault :: SelectBox a -> IO ()
-selectDefault sb = do {
-        mbt <- getDefault sb;
-        incase mbt (\bt -> do {flash bt;invoke bt})
-        }
-
+selectDefault sb =
+  do
+    mbt <- getDefault sb
+    incase mbt (\bt -> flash bt >> invoke bt)
 
 getDefault :: SelectBox a -> IO (Maybe (Button a))
 getDefault (SelectBox b Nothing em) = return Nothing
-getDefault (SelectBox b (Just (f,i)) em) = do {
-        bts <- getVar em;
-        return (Just (bts !! i));
-        }
+getDefault (SelectBox b (Just (f,i)) em) =
+  do
+    bts <- getRef em
+    return (Just (bts !! i))
 
 
+-- -----------------------------------------------------------------------
+-- elements
+-- -----------------------------------------------------------------------
 
--- --------------------------------------------------------------------------
---  Elements 
--- --------------------------------------------------------------------------           
-addSB :: (SelectBox a) -> Config (Button a)
-addSB sb@(SelectBox b Nothing em) bt = 
-        synchronize sb (do {
-                changeVar em (\el -> do {
-                        configure bt [parent b]; 
-                        return (el ++ [bt])
-                        });
-                return bt
-                })
-addSB sb@(SelectBox b (Just (f,i)) em) bt = 
-        synchronize sb (do {
-                changeVar em (\el -> do {
-                        if i == (length el - 1) then do {
-                                configure bt [side AtLeft, parent b]; 
-                                return (el ++ [bt])
-                                }
-                        else {- this is the default button -} do {
-                                xp <- getPad Horizontal bt;
-                                yp <- getPad Vertical bt;
-                                configure f [pad Horizontal xp, pad Vertical yp, parent b];
-                                configure bt [side AtLeft, pad Horizontal (cm 0.2), pad Vertical (cm 0.1),
-                                                parent f];
-                                return (el ++ [bt])
-                                }
-                        });
-                return bt
-                })
+addSpace :: SelectBox a -> Distance -> IO Space
+addSpace sb@(SelectBox b _ em) dist =
+  do
+    s <- newSpace b dist [orient Horizontal]
+    pack s []
+    return s
 
+addButton :: SelectBox a -> [Config (Button a)] -> [PackOption] ->
+             IO (Button a)
+addButton sb@(SelectBox b Nothing em) cnf pcnf =
+  synchronize sb (do
+                    bt <- newButton b cnf
+                    pack bt []
+                    changeRef em (\el -> el ++ [bt])
+                    return bt)
+addButton sb@(SelectBox b (Just (f,i)) em) cnf pcnf =
+  synchronize sb (do
+                    el <- getRef em
+                    let is_default = (i == length el + 1)
 
+                    putStrLn (show (length el) ++"\n")
 
--- --------------------------------------------------------------------------
--- Trigger 
--- --------------------------------------------------------------------------           
-instance HasTrigger SelectBox a where 
-        getTrigger (SelectBox b _ em) = do
-                bts <- getVar em
-                return (choose (map triggered bts))
+                    if is_default then putStrLn "default" else done
 
+                    bt <- if is_default then newButton f cnf
+                          else newButton b cnf
+                    (if is_default then
+                       do
+                         bt <- newButton f cnf
+                         pack bt [Side AtLeft, PadX (cm 0.2),
+                                  PadY (cm 0.1)]
+                         pack f (pcnf ++ [Side AtLeft, PadX (cm 0.2),
+                                          PadY (cm 0.1)])
+                     else
+                       do
+                         bt <- newButton b cnf
+                         pack bt (Side AtLeft : pcnf))
+                    setRef em (el ++ [bt])
+                    return bt)

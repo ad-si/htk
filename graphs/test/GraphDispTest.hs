@@ -9,23 +9,16 @@ import Concurrent
 
 import Debug(debug)
 
-import Selective
-import SIM(Destructible(..),lift)
+import Events
+import Destructible
+import Channels
 
 import GraphDisp
 import GraphConfigure
 
 setUpGraph :: 
-   (GraphAll graph graphParms node nodeType nodeTypeParms
-      arc arcType arcTypeParms
-      ,
-    HasConfig GraphTitle graphParms,
-    HasConfig OptimiseLayout graphParms,
-    HasConfigValue LocalMenu nodeTypeParms,
-    HasConfigValue Shape nodeTypeParms,
-    HasConfigValue ValueTitle nodeTypeParms,
-    HasConfigValue LocalMenu arcTypeParms
-    ) 
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms)
    => (Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
    -> IO ()
@@ -53,7 +46,8 @@ setUpGraph
          nodeType1Parms = 
             nodeMenu1 $$$ 
             Rhombus $$$
-            ValueTitle (\ value -> return ("Type 1"++show value)) $$$ 
+            ValueTitle (\ value -> return ("Type 1"++show value)) $$$
+            Color "light steel blue" $$$ 
             nullNodeParms
 
          nodeMenu2 = LocalMenu(Menu(Just "Type2") [
@@ -68,7 +62,8 @@ setUpGraph
          nodeType2Parms =
             nodeMenu2 $$$
             Icon "mawe.xbm" $$$
-            ValueTitle (\ _ -> return "Type 2") $$$ 
+            ValueTitle (\ _ -> return "Type 2") $$$
+            Color "purple" $$$
             nullNodeParms
 
          buttonChar =
@@ -80,6 +75,7 @@ setUpGraph
 
          (nodeTypeCharParms :: nodeTypeParms Char) =
             buttonChar $$$
+            DoubleClickAction (\ char -> putStrLn ("clicked "++[char])) $$$
             Triangle $$$
             ValueTitle (
                \ char -> return [char]
@@ -118,25 +114,34 @@ setUpGraph
       let
          arcMenu1 = LocalMenu(Button "ArcType1" (disp "ArcType1"))
 
-         arcType1Parms = arcMenu1 $$$ emptyArcTypeParms
+         arcType1Parms = 
+            arcMenu1 $$$
+            Color "red" $$$
+            emptyArcTypeParms
+
+         arcType2Parms =
+            arcMenu1 $$$
+            Dotted $$$
+            emptyArcTypeParms
 
       arcType1 <- newArcType graph arcType1Parms
+      arcType2 <- newArcType graph arcType2Parms
 
       arcA <- newArc graph arcType1 "Arc A" nodeC2 nodeA1
       arcB <- newArc graph arcType1 "Arc B" nodeC2 nodeB1
 
       arcWrite <- newArc graph arcType1 "" nodeA1 nodeWrite
 
-      (arcChars :: [arc String Int Char]) <-
-         mapM (newArc graph arcType1 "" nodeA1) nodeChars
+      (arcChars :: [arc String]) <-
+         mapM (newArc graph arcType2 "" nodeA1) nodeChars
 
       redraw graph
 
       sync(
-            (lift(receive killChannel) >>> 
+            (receive killChannel) >>> 
                do
                   putStrLn "Destroy graph"
                   destroy graph
-               )
+               
          +> (destroyed graph)
          )

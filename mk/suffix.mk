@@ -98,7 +98,9 @@ display :
 	@echo HCDIRS = $(HCDIRS)
 
 depend : $(SRCS) 
+ifneq "$(strip $(SRCS))" ""
 	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS)
+endif
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) depend && ) echo Finished make depend
 
 ifeq ($(LIBOBJS),)

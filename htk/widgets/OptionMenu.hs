@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : OptionMenu
 AUTHOR        : Einar Karlsen,  
@@ -13,65 +13,68 @@ TO BE DONE    : should be an instance of class Reactive so that
                 that are due to the user and not the application (we
                 got valueSet for the latter).
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module OptionMenu (
-        OptionMenu,
-        newOptionMenu
 
-        ) where
+  OptionMenu,
+  newOptionMenu
 
-import Concurrency
-import GUICore
+) where
+
+import Core
+import BaseClasses(Widget)
+import Configuration
 import GUIValue
-import Packer
 import Button
 import MenuItem
-import Debug(debug)
+import Destructible
+import Computation
+import Synchronized
+import Packer
+import Tooltip
 
 
--- --------------------------------------------------------------------------
--- Data Type
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- datatype
+-- -----------------------------------------------------------------------
 
 newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Creation
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- creation
+-- -----------------------------------------------------------------------
 
-newOptionMenu :: GUIValue a => [a] -> [Config (OptionMenu a)] -> IO (OptionMenu a)
-newOptionMenu el confs = do {
-        wid <- createGUIObject (OPTIONMENU el') optionMenuMethods;
-        configure (OptionMenu wid) confs;
-}       where el' = map toGUIValue el
+newOptionMenu :: (Container par, GUIValue a) =>
+                 par -> [a] -> [Config (OptionMenu a)] ->
+                 IO (OptionMenu a)
+newOptionMenu par el confs =
+  do
+    wid <- createGUIObject (toGUIObject par) (OPTIONMENU el')
+                           optionMenuMethods
+    configure (OptionMenu wid) confs
+  where el' = map toGUIValue el
 
 
--- --------------------------------------------------------------------------
--- Instances
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance GUIObject (OptionMenu a) where 
-        toGUIObject (OptionMenu  w) = w
-        cname _ = "OptionMenu"
+  toGUIObject (OptionMenu  w) = w
+  cname _ = "OptionMenu"
 
-instance Destructible (OptionMenu a) where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive (OptionMenu a)
+instance Destroyable (OptionMenu a) where
+  destroy   = destroy . toGUIObject
  
 instance Widget (OptionMenu a)
-
-instance ChildWidget (OptionMenu a)
 
 instance HasBorder (OptionMenu a)
 
 instance HasColour (OptionMenu a) where
-        legalColourID = buttonColours
+  legalColourID = buttonColours
 
 instance HasEnable (OptionMenu a)
 
@@ -79,74 +82,58 @@ instance HasFont (OptionMenu a)
 
 instance HasSize (OptionMenu a)
 
-instance GUIValue a => Variable OptionMenu a where
-        setVar w v      = synchronize w (
-                setTclVariable ((tvarname . objectID . toGUIObject) w) v)
-        getVar w        = synchronize w (
-                getTclVariable ((tvarname . objectID . toGUIObject) w) )
-        withVar w f = synchronize w (do {v <- getVar w; f v}) 
-        updVar w f = synchronize w (do {
-                v <- getVar w;
-                (v',r) <- f v;
-                setVar w v';
-                return r
-                })
+instance GUIValue a => HasValue (OptionMenu a) a where
+  value v w =
+    setTclVariable ((tvarname . objectID . toGUIObject) w) v >> return w
+  getValue w = getTclVariable ((tvarname . objectID . toGUIObject) w)
+
+---
+-- An option menu can have a tooltip.
+instance HasTooltip (OptionMenu a)
 
 
-instance Synchronized (OptionMenu a) where
-        synchronize w = synchronize (toGUIObject w)
+-- -----------------------------------------------------------------------
+-- OptionMenu methods
+-- -----------------------------------------------------------------------
+
+optionMenuMethods = defMethods { cleanupCmd = tkCleanupOptionMenu,
+                                 createCmd = tkCreateOptionMenu,
+                                 csetCmd = tkSetOptionMenuConfigs }
 
 
--- --------------------------------------------------------------------------
--- OptionMenu Methods
--- --------------------------------------------------------------------------
-
-optionMenuMethods = defMethods {
-                cleanupCmd = tkCleanupOptionMenu,
-                createCmd = tkCreateOptionMenu,
-                csetCmd = tkSetOptionMenuConfigs
-                }
-
-
--- --------------------------------------------------------------------------
--- Unparsing of Tk Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Unparsing of Tk commands
+-- -----------------------------------------------------------------------
 
 tvarname :: ObjectID -> String
 tvarname oid = "v" ++ (show oid)
 
-
 tkDeclOptionMenuVar :: GUIOBJECT -> WidgetName
-tkDeclOptionMenuVar = WidgetName . tvarname . objectID 
-        
+tkDeclOptionMenuVar = WidgetName . tvarname . objectID
 
-tkCreateOptionMenu :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> 
-                        TclScript
-tkCreateOptionMenu (OPTIONMENU els) name oid confs = [
-        "set " ++ tvarname oid ++ " " ++ firstElem els,
-        "tk_optionMenu " ++ show name ++ " " ++ tvarname oid ++ " " ++
-          (concatMap (++ " ") (map show els))
-        ] ++
-        tkSetOptionMenuConfigs name confs
-        where firstElem [] = ""
-              firstElem ((GUIVALUE _ x):l) = x
-
+tkCreateOptionMenu :: ObjectName -> ObjectKind -> ObjectName ->
+                      ObjectID -> [ConfigOption] -> TclScript
+tkCreateOptionMenu _ (OPTIONMENU els) name oid confs =
+  ["set " ++ tvarname oid ++ " " ++ firstElem els,
+   "tk_optionMenu " ++ show name ++ " " ++ tvarname oid ++ " " ++
+   concatMap (++ " ") (map show els)] ++
+  tkSetOptionMenuConfigs name confs
+  where firstElem [] = ""
+        firstElem ((GUIVALUE _ x):l) = x
 
 tkSetOptionMenuConfigs :: ObjectName -> [ConfigOption] -> TclScript
 tkSetOptionMenuConfigs name @ (ObjectName wname) confs = 
-        (csetCmd defMethods) name confs ++
-        (csetCmd defMethods) (ObjectName (wname ++ ".menu")) 
-                                (filter isMenuConfig confs)
-        where   isMenuConfig ("foreground",_) = True
-                isMenuConfig ("background",_) = True
-                isMenuConfig ("activebackground",_) = True
-                isMenuConfig ("activeforeground",_) = True
-                isMenuConfig ("disabledforeground",_) = True
-                isMenuConfig ("font",_) = True
-                isMenuConfig (_,_) = False
-                
+  (csetCmd defMethods) name confs ++
+  (csetCmd defMethods) (ObjectName (wname ++ ".menu")) 
+                       (filter isMenuConfig confs)
+  where isMenuConfig ("foreground",_) = True
+        isMenuConfig ("background",_) = True
+        isMenuConfig ("activebackground",_) = True
+        isMenuConfig ("activeforeground",_) = True
+        isMenuConfig ("disabledforeground",_) = True
+        isMenuConfig ("font",_) = True
+        isMenuConfig (_,_) = False
 
 tkCleanupOptionMenu :: ObjectID -> ObjectName -> TclScript
 tkCleanupOptionMenu oid _ = tkUndeclVar (tvarname oid) 
 {-# INLINE tkCleanupOptionMenu #-}
-

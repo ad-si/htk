@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : CanvasItemAux
 AUTHOR        : Einar Karlsen,  
@@ -9,49 +9,50 @@ VERSION       : alpha
 DESCRIPTION   : Canvas Items - Auxiliary functions
 
 
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module CanvasItemAux (
-        Canvas,
+  Canvas,
 
-	HasCoords(..),
-        CanvasItem,
+  HasCoords(..),
+  CanvasItem,
 
-        createCanvasItem,
+  createCanvasItem,
 
-        itemGeo,
-        getGeo,
-        setGeo,
+  itemGeo,
+  getGeo,
+  setGeo,
 
-        itemWidth,
-        getItemWidth,
+  itemWidth,
+  getItemWidth,
 
-        itemHeight,
-        getItemHeight,
+  itemHeight,
+  getItemHeight,
 
-        itemSize,
-        getItemSize,
+  itemSize,
+  getItemSize,
 
-        itemPosition,
-        getItemPosition,
+  itemPosition,
+  getItemPosition,
 
-        itemPositionD2,
-        getItemPositionD2,
+  itemPositionD2,
+  getItemPositionD2,
 
-        canvasitemMethods
-        ) where
+  canvasitemMethods
 
-import Concurrency
-import GUICore
+) where
+
+import Core
+import Geometry
 import Canvas
 import CanvasItem
-import Debug(debug)
+import Computation
 
 
--- --------------------------------------------------------------------------
--- Geometry
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- geometry
+-- -----------------------------------------------------------------------
 
 itemGeo :: CanvasItem w => Geometry -> Config w
 itemGeo (w,h,x,y) = coord [(x,y),(x+w,y+h)]
@@ -93,108 +94,101 @@ getItemPositionD2 :: CanvasItem w => w -> IO (Distance,Distance)
 getItemPositionD2 w = getCoord w >>= return . head
 
 
--- --------------------------------------------------------------------------
--- Auxiliary
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- auxiliary
+-- -----------------------------------------------------------------------
 
-createCanvasItem :: CanvasItem w => CanvasItemKind -> (GUIOBJECT -> w) -> 
-                        [Config w] -> IO w
-createCanvasItem kind wrap ol = do {
-        w <- createGUIObject (CANVASITEM kind []) canvasitemMethods;
-        ci <- return(wrap w);
-        configure ci ((coord (defaultCoord ci)) :ol);
-}
-
+createCanvasItem :: CanvasItem w => Canvas -> CanvasItemKind ->
+                                    (GUIOBJECT -> w) -> [Config w] ->
+                                    Coord -> IO w
+createCanvasItem cnv kind wrap ol co =
+  do
+    w <- createGUIObject (toGUIObject cnv) (CANVASITEM kind co)
+                         canvasitemMethods
+    let ci = wrap w
+    configure ci ol
 
 coordToGeo ((x1,y1) :(x2,y2) : tl) = return (x2-x1,y2-y1,x1,y1)
 coordToGeo _ = raise (userError "illegal geometry specification")
-                                                      
--- --------------------------------------------------------------------------
---  Canvas Item Methods
--- --------------------------------------------------------------------------
-
-canvasitemMethods = 
-        Methods 
-                tkGetCanvasItemConfig
-                tkSetCanvasItemConfigs
-                tkCreateCanvasItem 
-                tkPackCanvasItem
-                tkDestroyCanvasItem 
-                tkCleanupCanvasItem 
-                tkBindCanvasItem
-                tkUnbindCanvasItem
 
 
--- --------------------------------------------------------------------------
--- Unparsing of Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+--  canvas item methods
+-- -----------------------------------------------------------------------
 
-tkCreateCanvasItem :: ObjectKind -> ObjectName -> ObjectID -> [ConfigOption] -> TclScript
-tkCreateCanvasItem (k @ (CANVASITEM _ cds)) (cinm @ (CanvasItemName cnm tid)) _ args =
+canvasitemMethods = Methods tkGetCanvasItemConfig
+                            tkSetCanvasItemConfigs
+                            tkCreateCanvasItem
+                            (packCmd voidMethods)
+                            (gridCmd voidMethods)
+                            tkDestroyCanvasItem
+                            tkBindCanvasItem
+                            tkUnbindCanvasItem
+                            tkCleanupCanvasItem
+
+
+-- -----------------------------------------------------------------------
+-- unparsing of commands
+-- -----------------------------------------------------------------------
+
+tkCreateCanvasItem :: ObjectName -> ObjectKind -> ObjectName ->
+                      ObjectID -> [ConfigOption] -> TclScript
+tkCreateCanvasItem _ k@(CANVASITEM _ cds)
+                   (cinm @ (CanvasItemName cnm tid)) _ args =
    [declVar tid, " set " ++ vname ++ " [" ++ cmd ++ "] "]
    where vname = (drop 1 (show tid))
-         cmd = show cnm ++ " create " ++ show k ++ " " ++ show (toGUIValue cds) ++ " "
-               ++ showConfigs args
-tkCreateCanvasItem _ _ _ _ = []
-
+         cmd = show cnm ++ " create " ++ show k ++ " " ++
+               show (toGUIValue cds) ++ " " ++ showConfigs args
+tkCreateCanvasItem _ _ _ _ _ = error "CanvasItemAux (tkCreateCanvasItem)"
 
 declVar :: CanvasTagOrID -> TclCmd
 declVar tid = "global " ++ (drop 1 (show tid))
- 
-
-tkPackCanvasItem :: ObjectKind -> ObjectName -> ObjectName -> [ConfigOption] -> 
-                ObjectID -> [Binding] -> [TclCmd]
-tkPackCanvasItem _ _ name _ oid binds = (tkDeclBindings name oid binds)
-
 
 tkGetCanvasItemConfig :: ObjectName -> ConfigID -> TclScript
 tkGetCanvasItemConfig (CanvasItemName name tid) "coords" =
-        [declVar tid, show name ++ " coords " ++ show tid] 
+  [declVar tid, show name ++ " coords " ++ show tid]
 tkGetCanvasItemConfig (CanvasItemName name tid) cid =   
-        [declVar tid, show name ++ " itemcget " ++ show tid ++ " -" ++ cid]
+  [declVar tid, show name ++ " itemcget " ++ show tid ++ " -" ++ cid]
 tkGetCanvasItemConfig _ _ = []
 
 tkSetCanvasItemConfigs (CanvasItemName name tid) args = 
-        [declVar tid] ++ tagVariables args ++
-        [
-        show name ++ " itemconfigure " ++ show tid ++ " " ++ showConfigs args
-        ]
-	where tagVariables ((cid, cval) : ol) =
-                case cid of
-                  "tag" -> ["global \"" ++ (drop 3 (show cval))] ++
-                           tagVariables ol
-                  _     -> tagVariables ol
-              tagVariables _                  = []
+  [declVar tid] ++ tagVariables args ++
+  [show name ++ " itemconfigure " ++ show tid ++ " " ++ showConfigs args]
+  where tagVariables ((cid, cval) : ol) =
+          case cid of
+            "tag" -> ["global \"" ++ (drop 3 (show cval))] ++
+                     tagVariables ol
+            _     -> tagVariables ol
+        tagVariables _                  = []
 tkSetCanvasItemConfigs _ _ = []
 
-tkBindCanvasItem :: ObjectName -> ObjectID -> Binding -> TclScript
-tkBindCanvasItem (CanvasItemName name tid) (ObjectID no) (tkev,f) = 
-        [declVar tid, 
-        show name ++ " bind " ++ show tid ++ " " ++ tkev ++ 
-        " {puts stdout {EV " ++ show no ++ " " ++ tkev ++ " " ++
-        show f ++ " }; flush stdout}"
-        ]
-tkBindCanvasItem _ _ _ = []
-{-# INLINE tkBindCanvasItem #-}
+tkDestroyCanvasItem :: ObjectName -> TclScript
+tkDestroyCanvasItem name@(CanvasItemName _ tid) =
+  [declVar tid, show name ++ " delete " ++ show tid]
+tkDestroyCanvasItem _ = []
 
+tkBindCanvasItem :: ObjectName -> BindTag -> [WishEvent] ->
+                    EventInfoSet -> TclScript
+tkBindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents
+                 eventInfoSet =
+  ["global " ++ drop 1 (show cid),
+   show cnvnm ++ " bind " ++ show cid ++ " " ++
+   delimitString (foldr (\ event soFar -> showP event soFar)
+                        "" wishEvents) ++ " " ++
+   mkBoundCmdArg bindTag eventInfoSet]
 
-tkUnbindCanvasItem :: ObjectName -> ObjectID -> Binding -> TclScript
-tkUnbindCanvasItem (CanvasItemName name tid) (ObjectID no) (tkev,_) = 
-        [declVar tid, 
-        show name ++ " bind " ++ show tid ++ " " ++ tkev ++ " {}"
-        ]
-tkUnbindCanvasItem _ _ _ = []
-{-# INLINE tkUnbindCanvasItem #-}
-
-
-tkDestroyCanvasItem :: ObjectID -> ObjectName -> TclScript
-tkDestroyCanvasItem _ name @ (CanvasItemName _ tid) = 
-        [declVar tid, show name ++ " delete " ++ show tid]
-tkDestroyCanvasItem _ _ = []
+tkUnbindCanvasItem :: ObjectName -> BindTag -> [WishEvent] -> TclScript
+tkUnbindCanvasItem (CanvasItemName cnvnm cid) bindTag wishEvents = []
+{-
+  let doRm = "rmtag " ++ show nm ++ bindTagS bindTag
+      doUnBind = "bind " ++ bindTagS bindTag ++ " " ++
+                 delimitString (foldr (\ event soFar -> showP event soFar)
+                                      "" wishEvents) ++ " {}"
+  in [doRm, doUnBind]
+-}
 
 
 tkCleanupCanvasItem :: ObjectID -> ObjectName -> TclScript
-tkCleanupCanvasItem _ (CanvasItemName _ tid) = 
-        [declVar tid, " unset " ++ (drop 1 (show tid))]
+tkCleanupCanvasItem _ (CanvasItemName _ tid) =
+  [declVar tid, " unset " ++ (drop 1 (show tid))]
 tkCleanupCanvasItem _ _ = []
-

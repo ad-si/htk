@@ -1,73 +1,180 @@
-{- ------------------------------------------------------------------------
+{- -----------------------------------------------------------------------
  -
  - HTk Examples: Menus
  -
  - Author: cxl 
  - $Revision$ from $Date$  
  -
- - ------------------------------------------------------------------------ -}
+ - -------------------------------------------------------------------- -}
 
 
 module Main (main) where
 
 import HTk
-import PulldownMenu
-import RadioGroup
-import Separator
-import Bell(bell)
 
 main :: IO ()
-main = do
-	tk <- htk []
+main =
+  do
+    main <- initHTk [text "Menus!", size(300, 300)]
 
-        f   <- newHFBox []        
-	win <- window f [text "Menus!"]
+    menubar <- createMenu main False []
+    main # menu menubar
 
-        mb <- newMenuButton [text "First Menu", parent f]
-        m  <- newPulldownMenu mb [tearOff Off]
-        c1 <- newCheckItem m [text "Check", command (selected "C1")]
-        b1 <- newMenuItem m [text "Menu Item", command (clicked "B1")]
-        newSeparator [parent m]
-	cm <- newCascadeMenu [text "Cascade", parent m]
-     	r1 <- newRadioButton [text "Select 1", parent (cm::Menu()),
-			      command (selected "R1")]
-	r2 <- newRadioButton [text "Select 2", parent cm,		
-			      command (selected "R2")]
-	r3 <- newRadioButton [text "Select 3", parent cm,		
-			      command (selected "R3")]
+    pulldown1 <- createMenuCascade menubar [text "First Menu"]
+    m <- createMenu main True []
+    pulldown1 # menu m
 
-	g1 <- radiogroup [r1, r2, r3]
+    v1 <- createTkVariable "1"
+    c1 <- createMenuCheckButton m [text "MenuCheckButton", variable v1]
+    clickedc1 <- clicked c1
+    spawnEvent (forever (clickedc1 >> always (selected "c1" v1)))
 
-	-- The three radiobuttons should actually be mutually exclusive
-	-- (selecting deselects the others) -- but they are not! 
-	-- I think this is a bug in HTk.
+    b1 <- createMenuCommand m [text "b1"]
+    clickedb1 <- clicked b1
+    spawnEvent (forever (clickedb1 >> always (click "b1")))
+
+    createMenuSeparator m []
+
+    c <- createMenuCascade m [text "Cascade"]
+    cm <- createMenu main True []
+    c # menu cm
+
+    v2 <- createTkVariable "r2"
+    r1 <- createMenuRadioButton cm [text "Select 1", value "r1",
+                                    variable v2]
+    r2 <- createMenuRadioButton cm [text "Select 2", value "r2",
+                                    variable v2]
+    r3 <- createMenuRadioButton cm [text "Select 3", value "r3",
+                                    variable v2]
+
+    clickedr1 <- clicked r1
+    spawnEvent (forever (clickedr1 >> always (selected "r1"  v2)))
+    clickedr2 <- clicked r2
+    spawnEvent (forever (clickedr2 >> always (selected "r2"  v2)))
+    clickedr3 <- clicked r3
+    spawnEvent (forever (clickedr3 >> always (selected "r3"  v2)))
+
+    v3 <- createTkVariable "1"
+    c2 <- createMenuCheckButton m [text "Check", variable v3]
+    clickedc2 <- clicked c2
+    spawnEvent (forever (clickedc2 >> always (selected "c2" v3)))
+
+    pulldown2 <- createMenuCascade menubar [text "Second Menu"]
+    m2 <- createMenu main False []
+    pulldown2 # menu m2
+
+    b2 <- createMenuCommand m2 [text "Some Text Item"]
+    clickedb2 <- clicked b2
+    spawnEvent (forever (clickedb2 >> always (click "b2")))
+
+    b3 <- createMenuCommand m2 [text "Some Other Item"]
+    clickedb3 <- clicked b3
+    spawnEvent (forever (clickedb3 >> always (click "b3")))
+
+    v4 <- createTkVariable (0 :: Int)
+    ra <- createMenuRadioButton m2 [text "Select A", value (1 :: Int),
+                                    variable v4]
+    clickedra <- clicked ra
+    spawnEvent (forever (clickedra >> always (selected "ra" v4)))
+    rb <- createMenuRadioButton m2 [text "Select B", value (2 :: Int),
+                                    variable v4]
+    clickedrb <- clicked rb
+    spawnEvent (forever (clickedrb >> always (selected "rb" v4)))
+
+    v5 <- createTkVariable (0.2 :: Double)
+
+    b <- newButton main [text "show selection above"]
+           :: IO (Button String)
+    pack b [Side AtBottom, PadY 10]
+    clickedb <- clicked b
+    spawnEvent (forever (clickedb >>
+                         always (do
+                                   i <- readTkVariable v5
+                                   putStrLn ("value is " ++ show i))))
+
+    rw1 <- newRadioButton main [text "RadioButton 1", variable v5,
+                                value (0.1 :: Double)]
+    rw2 <- newRadioButton main [text "RadioButton 2", variable v5,
+                                value (0.2 :: Double)]
+    rw3 <- newRadioButton main [text "RadioButton 3", variable v5,
+                                value (0.3 :: Double)]
+    pack rw3 [Side AtBottom]
+    pack rw2 [Side AtBottom]
+    pack rw1 [Side AtBottom]
+
+    v6 <- createTkVariable True
+    cw <- newCheckButton main [text "CheckButton", variable v6]
+            :: IO (CheckButton String String)
+    pack cw [Side AtBottom, PadY 10]
+    clickedcw <- clicked cw
+    spawnEvent (forever (clickedcw >> always (selected "cw" v6)))
+
+    mbutton <- newMenuButton main [text "MenuButton"]
+    pack mbutton [Side AtBottom]
+
+    buttonmenu <- createMenu mbutton True []
+    cmd1 <- createMenuCommand buttonmenu [text "command1"]
+    cmd2 <- createMenuCommand buttonmenu [text "command2"]
+    cmd3 <- createMenuCommand buttonmenu [text "command3"]
+    mbutton # menu buttonmenu
+
+    clickedcmd1 <- clicked cmd1
+    spawnEvent (forever (clickedcmd1 >> always (click "cmd1")))
+    clickedcmd2 <- clicked cmd2
+    spawnEvent (forever (clickedcmd2 >> always (click "cmd2")))
+    clickedcmd3 <- clicked cmd3
+    spawnEvent (forever (clickedcmd3 >> always (click "cmd3")))
+
+    men <- createMenu main False []
+
+    cmda <- createMenuCommand men [text "command a"]
+    cmdb <- createMenuCommand men [text "command b"]
+    cmdc <- createMenuCommand men [text "command c"]
+
+    casc <- createMenuCascade men [text "Cascade Menu"]
+    cascmenu <- createMenu casc False []
+    var1 <- createTkVariable "r2"
+    rad1 <- createMenuRadioButton cascmenu [text "Select 1", value "r1",
+                                            variable var1]
+    rad2 <- createMenuRadioButton cascmenu [text "Select 2", value "r2",
+                                            variable var1]
+    rad3 <- createMenuRadioButton cascmenu [text "Select 3", value "r3",
+                                            variable var1]
+    casc # menu cascmenu
+
+    ca <- clicked cmda
+    cb <- clicked cmdb
+    cc <- clicked cmdc
+
+    let menusel = ca >>> click "A" +> cb >>> click "B" +> cc >>> click "C"
+                  
+    (press, _) <- bind main [WishEvent [] (ButtonPress (Just (BNo 3)))]
 
 
-        c2 <- newCheckItem m [text "Check", command (selected "C2")]
+     -- A pop-up menu can finish without it doing anything, hence we
+     -- cannot just sync on menusel above after popping up. 
+     -- In particular, the following does not occur when the pop-up
+     -- menu disappears:
+     -- (eop, _) <- bindSimple men Destroy 
+     -- Solution: have one thread handle the pop-up menu exclusively.
 
-	mb2 <- newMenuButton [text "Second Menu", parent f, side AtRight]
-        m2 <- newPulldownMenu mb2 [tearOff Off]
-        b2 <- newMenuItem m2 [text "Some Text Item", command (clicked "B2")]
-	b3 <- newMenuItem m2 [text "Some Other Item",	command (clicked "B3")]
-	
-	ra <- newRadioButton [text "Select A", parent m2]		
-			      -- command (selected "RA")]
-	rb <- newRadioButton [text "Select B", parent m2]		
-			      -- command (selected "RB")]
+    spawnEvent (forever menusel)
 
-	g2 <- radiogroup [(ra::RadioButton()), rb]	
+    spawnEvent (forever (press >>>=
+                           \eventInfo ->
+                             do popup men (xRoot eventInfo, yRoot eventInfo)
+                                          (Nothing :: Maybe HTk)
 
-	interactor (const (triggered b1 +> triggered c1 +> triggered c2
-		        +> triggered r1 +> triggered r2 +> triggered r3
-	                +> triggered b2 +> triggered b3))
+				putStrLn "We've popped up"))
 
-	t1<- getTrigger g1; t2<- getTrigger g2
-        interactor (const (t1 >>> done))
-	
-	sync(destroyed win)
-        destroy tk
+    (htk_destr, _) <- bindSimple main Destroy
+    sync htk_destr
 
-	where selected nm t = putStrLn (case t of On -> nm ++ " selected!"
-	                                          Off-> nm ++ " deselected!")
-	                      >> bell 
-	      clicked nm () = putStrLn (nm ++ " clicked!") >> bell
+  where selected :: GUIValue a => String -> TkVariable a -> IO ()
+        selected nm var =
+          do
+            val <- readTkVariable var
+            putStrLn (nm ++ " " ++ show val) -- >> bell
+
+        click :: String -> IO ()
+        click nm = putStrLn (nm ++ " clicked") -- >> bell

@@ -20,8 +20,8 @@ module TreeList (
   TreeList,
   TreeListObject,
   Style(..),
-  ObjectType(..),
-  ObjectName,
+  TreeListObjectType(..),
+  TreeListObjectName,
 
   isLeaf,
   isNode,
@@ -29,7 +29,7 @@ module TreeList (
   mkNode,
 
   getObjectValue,
-  getObjectName,
+  getTreeListObjectName,
   getObjectType,
 
   ChildrenFun,
@@ -44,25 +44,17 @@ module TreeList (
 ) where
 
 import HTk
-import Image
-import Canvas
-import EmbeddedCanvasWin
-import Line
-import Rectangle
-import Label
-import Mouse
 import ScrollBox
-import Concurrency
-import Channels
-import RVar
 import List
+import ReferenceVariables
+import Core
 import Maybe
 
-debug = True
-debugMsg str = if debug then putStr(">>> " ++ str ++ "\n\n") else done
+tldebug = True
+debugMsg str = if tldebug then putStr(">>> " ++ str ++ "\n\n") else done
 
 debugPrintState ((StateEntry obj open intend _) : ents) =
-  if debug then
+  if tldebug then
     do
       objname <- getName obj
       putStrLn (objname ++ "   Open: " ++ show open ++
@@ -71,7 +63,6 @@ debugPrintState ((StateEntry obj open intend _) : ents) =
   else done
 debugPrintState [] = putStr "\n\n"
 
-white = "#f6f6f6"  -- ?!?   :)
 intendation = 19
 lineheight = 20
 cwidth = 15
@@ -94,36 +85,39 @@ data Eq a => TreeList a =
   TreeList Canvas
            (ScrollBox Canvas)
            Style                                         -- treelist style
-           (RVar [StateEntry a])                         -- treelist state
+           (Ref [StateEntry a])                          -- treelist state
            (ChildrenFun a)                       -- node children function
            (ImageFun a)                           -- object image function
-           (RVar (Maybe (TREELISTOBJECT a)))            -- selected object
-           (MsgQueue (Maybe (TreeListObject a)))     -- selection notifier
-           (MsgQueue (Maybe (TreeListObject a)))         -- focus notifier
+           (Ref (Maybe (TREELISTOBJECT a)))             -- selected object
+           (Channel (Maybe (TreeListObject a)))      -- selection notifier
+           (Channel (Maybe (TreeListObject a)))          -- focus notifier
 
-newTreeList :: Eq a => Style -> ChildrenFun a -> ImageFun a ->
-                       TreeListObject a -> [Config (TreeList a)] ->
-                       IO (TreeList a)
-newTreeList style cfun ifun rt@(TreeListObject (val, nm, objtype)) cnf =
+newTreeList :: (Container par, Eq a) =>
+               par -> Style -> ChildrenFun a -> ImageFun a ->
+               TreeListObject a -> [Config (TreeList a)] ->
+               IO (TreeList a)
+newTreeList par style cfun ifun rt@(TreeListObject (val, nm, objtype))
+            cnf =
   do
-    cnv <- newCanvas []
-    scr <- newScrollBox cnv []
-    stateref <- newRVar []
-    selref <- newRVar Nothing
-    selectionMsgQ <- newMsgQueue
-    focusMsgQ <- newMsgQueue
+    (scr, cnv) <- newScrollBox par (\p -> newCanvas p []) []
+    stateref <- newRef []
+    selref <- newRef Nothing
+    selectionMsgQ <- newChannel
+    focusMsgQ <- newChannel
     let treelist = TreeList cnv scr style stateref cfun ifun selref
                             selectionMsgQ focusMsgQ
     foldl (>>=) (return treelist) cnf
-    root@(TREELISTOBJECT _ _ _ _ drawnstuff img _ emb) <-
+    root@(TREELISTOBJECT _ _ _ _ _ drawnstuff img _ emb _) <-
       mkTreeListObject treelist val
                        (if objtype == Node then True else False)
                        False [name nm]
-    setVar stateref [StateEntry root False 0 []]
+    setRef stateref [StateEntry root False 0 []]
     pho <- ifun rt
     img # photo pho
     packTreeListObject root True (5, 5)
     updScrollRegion cnv stateref
+    (press, _) <- bindSimple cnv (ButtonPress (Just (BNo 1)))
+    spawnEvent (forever (press >> always (deselect treelist)))
     pressed root
     return treelist
 
@@ -131,14 +125,14 @@ getObjectFromTreeList :: Eq a => TreeList a -> a ->
                                  IO (Maybe (TREELISTOBJECT a))
 getObjectFromTreeList (TreeList _ _ _ stateref _ _ _ _ _) val =
   do
-    state <- getVar stateref
+    state <- getRef stateref
     let msentry = find (entryEqualsObject val) state
     case msentry of
       Just (StateEntry obj _ _ _) -> return (Just obj)
       _ -> return Nothing
   where entryEqualsObject :: Eq a => a -> StateEntry a -> Bool
         entryEqualsObject val (StateEntry (TREELISTOBJECT val' _ _ _ _ _ _
-                                                           _) _ _ _) =
+                                                          _ _ _) _ _ _) =
           val == val'
 
 isNode :: Eq a => TreeList a -> a -> IO (Maybe Bool)
@@ -146,7 +140,8 @@ isNode tl val =
   do
     mobj <- getObjectFromTreeList tl val
     return (case mobj of
-              Just (TREELISTOBJECT _ _ isnode _ _ _ _ _) -> Just isnode
+              Just (TREELISTOBJECT _ _ isnode _ _ _ _ _ _ _) ->
+                Just isnode
               _ -> Nothing)
 
 isLeaf :: Eq a => TreeList a -> a -> IO (Maybe Bool)
@@ -164,12 +159,12 @@ mkNode tl@(TreeList _ _ style _ _ ifun _ _ _) val =
     case mleaf of
       Just True ->
         do
-          Just obj@(TREELISTOBJECT _ _ _ _ _ _ _ emb) <-
+          Just obj@(TREELISTOBJECT _ _ _ _ _ _ _ _ emb _) <-
             getObjectFromTreeList tl val
           nm <- getName obj
           [(x, y)] <- getCoord emb
           removeObject tl obj
-          nuobj@(TREELISTOBJECT _ _ _ _ _ img _ _) <-
+          nuobj@(TREELISTOBJECT _ _ _ _ _ _ img _ _ _) <-
             mkTreeListObject tl val True False [name nm]
           objectChanged tl obj nuobj
           pho <- ifun (TreeListObject (val, nm, Node))
@@ -185,7 +180,7 @@ mkLeaf tl@(TreeList _ _ style _ _ ifun _ _ _) val =
     case mnode of
       Just True ->
         do
-          Just obj@(TREELISTOBJECT _ _ _ _ _ _ _ emb) <-
+          Just obj@(TREELISTOBJECT _ _ _ _ _ _ _ _ emb _) <-
             getObjectFromTreeList tl val
           Just (ch, _) <- getChildrenAndUpper tl val
           (if null ch then done
@@ -193,7 +188,7 @@ mkLeaf tl@(TreeList _ _ style _ _ ifun _ _ _) val =
           nm <- getName obj
           [(x, y)] <- getCoord emb
           removeObject tl obj
-          nuobj@(TREELISTOBJECT _ _ _ _ _ img _ _) <-
+          nuobj@(TREELISTOBJECT _ _ _ _ _ _ img _ _ _) <-
             mkTreeListObject tl val False False [name nm]
           objectChanged tl obj nuobj
           pho <- ifun (TreeListObject (val, nm, Node))
@@ -222,7 +217,7 @@ getChildrenAndUpper (TreeList _ _ _ stateref _ _ _ _ _) val =
                                       Maybe ([TREELISTOBJECT a],
                                              [TREELISTOBJECT a])
       getChildrenAndUpper' val ((StateEntry (TREELISTOBJECT val' _ _ _ _ _
-                                                                 _ _)
+                                                            _ _ _ _)
                                             _ intend _) : ents) =
         if val' == val then Just (getChildrenAndUpper'' ents intend [])
         else getChildrenAndUpper' val ents
@@ -238,7 +233,7 @@ getChildrenAndUpper (TreeList _ _ _ stateref _ _ _ _ _) val =
                                                        (ch ++ [obj])
         else (ch, map (\ (StateEntry obj _ _ _) -> obj) ents)
   in do
-       state <- getVar stateref
+       state <- getRef stateref
        return (getChildrenAndUpper' val state)
 
 objectChanged :: Eq a => TreeList a -> TREELISTOBJECT a ->
@@ -250,14 +245,14 @@ objectChanged (TreeList _ _ _ stateref _ _ _ _ _) obj nuobj =
         else ent : objectChanged' ents
       objectChanged' _ = []
   in do
-       state <- getVar stateref
-       setVar stateref (objectChanged' state)
+       state <- getRef stateref
+       setRef stateref (objectChanged' state)
 
 updateTreeList :: Eq a => TreeList a -> IO ()
 updateTreeList tl@(TreeList _ _ _ stateref _ _ _ _ _) =
   synchronize tl
     (do
-       state <- getVar stateref
+       state <- getRef stateref
        let (StateEntry root isopen _ _) = (head state)
        if isopen then pressed root >> pressed root else done)
 
@@ -267,14 +262,14 @@ addTreeListObject tl@(TreeList cnv _ style stateref _ ifun _ _ _) parval
                   obj@(TreeListObject (val, nm, objtype)) =
   synchronize tl
     (do
-       state <- getVar stateref
+       state <- getRef stateref
        (if visibleAndOpen state parval then
           do
             (lowerobj, upperobj, parintend, y) <- sep state parval
-            intobj@(TREELISTOBJECT _ _ _ _ drawnstuff img _ emb) <-
+            intobj@(TREELISTOBJECT _ _ _ _ _ drawnstuff img _ emb _) <-
               mkTreeListObject tl val (if objtype == Node then True
                                        else False) False [name nm]
-            setVar stateref (lowerobj ++
+            setRef stateref (lowerobj ++
                              [StateEntry intobj False (parintend + 1)
                                          []] ++
                              upperobj)
@@ -291,7 +286,7 @@ addTreeListObject tl@(TreeList cnv _ style stateref _ ifun _ _ _) parval
   where visibleAndOpen :: Eq a => [StateEntry a] -> a -> Bool
         visibleAndOpen state parval =
           let msentry = find (\ (StateEntry (TREELISTOBJECT val _ _ _ _ _
-                                                             _ _)
+                                                            _ _ _ _)
                                             _ _ _) ->
                                 val == parval) state
           in case msentry of
@@ -304,7 +299,7 @@ addTreeListObject tl@(TreeList cnv _ style stateref _ ifun _ _ _) parval
 
         sep1 :: Eq a => [StateEntry a] -> a -> [StateEntry a] ->
                         IO ([StateEntry a], [StateEntry a], Int, Distance)
-        sep1 (ent@(StateEntry (TREELISTOBJECT val _ _ _ _ _ _ emb) _
+        sep1 (ent@(StateEntry (TREELISTOBJECT val _ _ _ _ _ _ _ emb _) _
                               intend _) : ents) parval lower =
           if val == parval then
             do
@@ -315,7 +310,8 @@ addTreeListObject tl@(TreeList cnv _ style stateref _ ifun _ _ _) parval
         sep2 :: Eq a => [StateEntry a] -> Int -> [StateEntry a] ->
                         Distance ->
                         IO ([StateEntry a], [StateEntry a], Int, Distance)
-        sep2 (ent@(StateEntry (TREELISTOBJECT  _ _ _ _ drawnstuff _ _ emb)
+        sep2 (ent@(StateEntry (TREELISTOBJECT _ _ _ _ _ drawnstuff _ _
+                                              emb _)
                               _ intend' _) : ents) intend lower _ =
           case ents of
             [] -> do
@@ -325,42 +321,41 @@ addTreeListObject tl@(TreeList cnv _ style stateref _ ifun _ _ _) parval
               if intend' > intend  then sep2 ents intend
                                              (lower ++ [ent]) 0
               else do
-{-
-                     coords <- getCoord (selVLine drawnstuff)
-                     hlinelength <- vLineLength obj
-                     (let (x, y) = selLower coords
-                      in (selVLine drawnstuff) #
-                           coord [(x, y), (x, y - hlinelength -
-                                           if isnode then 5 else 9)])
--}
                      [(_, y)] <- getCoord emb
-                     return (lower, ent : ents, intend, y - Distance lineheight)
+                     return (lower, ent : ents, intend,
+                             y - Distance lineheight)
         sep2 _ intend lower y =
           return (lower, [], intend, y)
 
 startObjectInteractor ::  Eq a => Style -> TREELISTOBJECT a -> IO ()
-startObjectInteractor style obj@(TREELISTOBJECT _ treelist _ arrow
-                                                drawnstuff _ _ _) =
+startObjectInteractor style obj@(TREELISTOBJECT _ _ _ arrow plusminus _ _
+                                                _ _ _) =
   do
     (if style == Fast then
-       interactor (\i -> mouseButtonPress (fromJust arrow) 1 >>>
-                         pressed obj)
+       do
+         (press, ub) <- bindSimple (fromJust arrow)
+                                   (ButtonPress (Just (BNo 1)))
+         addUnbindAction obj ub
+         spawnEvent (forever (press >> always(pressed obj)))
      else
-       let plusminus = selPlusMinus drawnstuff
-       in interactor (\i -> (mouseButtonPress
-                               (selRect drawnstuff) 1 >>>
-                             pressed obj) +>
-                            (mouseButtonPress (head(tail plusminus)) 1 >>>
-                             pressed obj) +>
-                            (mouseButtonPress (head plusminus) 1 >>>
-                             pressed obj)))
+       do
+         (press, ub) <- bindSimple (fromJust plusminus)
+                                   (ButtonPress (Just (BNo 1)))
+         addUnbindAction obj ub
+         spawnEvent (forever (press >> always(pressed obj))))
     done
+
+addUnbindAction :: Eq a => TREELISTOBJECT a -> IO () -> IO ()
+addUnbindAction (TREELISTOBJECT _ _ _ _ _ _ _ _ _ ubref) ub =
+  do
+    ubs <- getRef ubref
+    setRef ubref (ub : ubs)
 
 vLineLength :: TREELISTOBJECT a -> IO Distance
 vLineLength obj@(TREELISTOBJECT _ (TreeList _ _ _ stateref _ _ _ _ _) _ _ 
-                                _ _ _ _) =
+                                _ _ _ _ _ _) =
   do
-    state <- getVar stateref
+    state <- getRef stateref
     return(start obj (reverse state))
   where start :: TREELISTOBJECT a -> [StateEntry a] ->
                  Distance
@@ -368,8 +363,9 @@ vLineLength obj@(TREELISTOBJECT _ (TreeList _ _ _ stateref _ _ _ _ _) _ _
           if obj' == obj then inner intend 0 sentries
           else start obj sentries
         inner :: Int -> Int -> [StateEntry a] ->  Distance
-        inner intend n(StateEntry (TREELISTOBJECT _ _ isnode _ _ _ _ _) _
-                                  intend' _ : sentries) =
+        inner intend n(StateEntry (TREELISTOBJECT _ _ isnode _ _ _ _ _ _
+                                                  _)
+                                  _ intend' _ : sentries) =
           if intend' <= intend then
             (Distance (n * lineheight) +
              Distance (if isnode then lineheight - 13
@@ -377,10 +373,12 @@ vLineLength obj@(TREELISTOBJECT _ (TreeList _ _ _ stateref _ _ _ _ _) _ _
           else inner intend (n + 1) sentries
         inner _ _ _ = Distance (lineheight - 13)
 
-packTreeListObject :: Eq a => TREELISTOBJECT a -> Bool -> Position -> IO ()
+packTreeListObject :: Eq a => TREELISTOBJECT a -> Bool -> Position ->
+                              IO ()
 packTreeListObject obj@(TREELISTOBJECT _ (TreeList cnv _ style _ _ _ _ _
                                                          _)
-                                       isnode _ drawnstuff img _ emb)
+                                       isnode _ plusminus drawnstuff img _
+                                       emb _)
                    isroot pos@(x, y) =
   do
     (if style == Fast then
@@ -393,21 +391,12 @@ packTreeListObject obj@(TREELISTOBJECT _ (TreeList cnv _ style _ _ _ _ _
            emb # coord [(x + 15, y)]
            dist <- vLineLength obj
            (if isnode then
-              let rect = (selRect drawnstuff)
-                  plusminus = (selPlusMinus drawnstuff)
-              in do
-                   rect # position (x, y + 5)
-                   rect # parent cnv
-                   head plusminus # coord [(x + 4, y + 7),
-                                           (x + 4, y + 12)]
-                   head (tail plusminus) #
-                     coord [(x + 2, y + 9), (x + 7, y + 9)]
-                   mapM (\l -> l # parent cnv) plusminus
-                   hline # coord [(x + 9, y + 9), (x + 13, y + 9)]
-                   (if not isroot then
-                      vline # coord [(x + 4, y + 5),
-                                     (x + 4, y - dist)] >> done
-                    else done)
+              do
+                fromJust plusminus # position (x, y + 5)
+                hline # coord [(x + 9, y + 9), (x + 13, y + 9)]
+                if not isroot then
+                  vline # coord [(x + 4, y + 5),
+                                 (x + 4, y - dist)] >> done else done
             else
               do
                 hline # coord [(x + 4, y + 9), (x + 13, y + 9)]
@@ -416,10 +405,7 @@ packTreeListObject obj@(TREELISTOBJECT _ (TreeList cnv _ style _ _ _ _ _
                    done
                  else done)
                 done)
-           hline # parent cnv
-           vline # parent cnv
            done)
-    emb # parent cnv
     if isnode then startObjectInteractor style obj else done
     done
 
@@ -427,13 +413,10 @@ instance GUIObject (TreeList a) where
   toGUIObject (TreeList _ scr _ _ _ _ _ _ _) = toGUIObject scr
   cname _ = "TreeList"
 
-instance Destructible (TreeList a) where
+instance Destroyable (TreeList a) where
   destroy = destroy . toGUIObject
-  destroyed = destroyed . toGUIObject
 
 instance Widget (TreeList a)
-
-instance ChildWidget (TreeList a)
 
 instance Synchronized (TreeList a) where
   synchronize = synchronize . toGUIObject
@@ -454,41 +437,48 @@ instance HasSize (TreeList a) where
     cnv # height s >> return treelist
   getHeight (TreeList cnv _ _ _ _ _ _ _ _) = getHeight cnv
 
-selectionEvent :: TreeList a -> IA (Maybe (TreeListObject a))
-selectionEvent (TreeList _ _ _ _ _ _ _ msgQ _) = lift (receive msgQ)
+selectionEvent :: TreeList a -> Channel (Maybe (TreeListObject a))
+selectionEvent (TreeList _ _ _ _ _ _ _ msgQ _) = msgQ
 
-focusEvent :: TreeList a -> IA (Maybe (TreeListObject a))
-focusEvent (TreeList _ _ _ _ _ _ _ _ msgQ) = lift (receive msgQ)
+focusEvent :: TreeList a -> Channel (Maybe (TreeListObject a))
+focusEvent (TreeList _ _ _ _ _ _ _ _ msgQ) = msgQ
+
+--selectionEvent :: TreeList a -> IA (Maybe (TreeListObject a))
+--selectionEvent (TreeList _ _ _ _ _ _ _ msgQ _) = lift (receive msgQ)
+
+--focusEvent :: TreeList a -> IA (Maybe (TreeListObject a))
+--focusEvent (TreeList _ _ _ _ _ _ _ _ msgQ) = lift (receive msgQ)
 
 
 -- tree list objects --
 
-data ObjectType = Node | Leaf deriving Eq
+data TreeListObjectType = Node | Leaf deriving Eq
 
-type ObjectName = String
+type TreeListObjectName = String
 
-newtype TreeListObject a = TreeListObject (a, ObjectName, ObjectType)
+newtype TreeListObject a = TreeListObject (a, TreeListObjectName, TreeListObjectType)
 
 getObjectValue :: TreeListObject a -> a
 getObjectValue (TreeListObject (val, _, _)) = val
 
-getObjectName :: TreeListObject a -> ObjectName
-getObjectName (TreeListObject (_, nm, _)) = nm
+getTreeListObjectName :: TreeListObject a -> TreeListObjectName
+getTreeListObjectName (TreeListObject (_, nm, _)) = nm
 
-getObjectType :: TreeListObject a -> ObjectType
+getObjectType :: TreeListObject a -> TreeListObjectType
 getObjectType (TreeListObject (_, _, objtype)) = objtype
 
-newTreeListObject :: Eq a => a -> String -> ObjectType -> TreeListObject a
+newTreeListObject :: Eq a => a -> String -> TreeListObjectType ->
+                             TreeListObject a
 newTreeListObject val nm objtype = TreeListObject (val, nm, objtype)
 
 setImage :: Eq a => TreeList a -> a -> Image -> IO ()
 setImage (TreeList _ _ _ stateref _ _ _ _ _) val img =
   do
-    state <- getVar stateref
+    state <- getRef stateref
     setImage' state val img
   where setImage' :: Eq a => [StateEntry a] -> a -> Image -> IO ()
-        setImage' ((StateEntry (TREELISTOBJECT val _ _ _ _ imglab _ _) _ _
-                               _) : ents) val' img =
+        setImage' ((StateEntry (TREELISTOBJECT val _ _ _ _ _ imglab _ _ _)
+                               _ _ _) : ents) val' img =
           if val == val' then imglab # photo img >> done
           else setImage' ents val' img
         setImage' _ _ _ = done
@@ -496,12 +486,12 @@ setImage (TreeList _ _ _ stateref _ _ _ _ _) val img =
 setName :: Eq a => TreeList a -> a -> String -> IO ()
 setName (TreeList _ _ _ stateref _ _ _ _ _) val txt =
   do
-    state <- getVar stateref
+    state <- getRef stateref
     setName' state val txt
   where setName' :: Eq a => [StateEntry a] -> a -> String -> IO ()
-        setName' ((StateEntry (TREELISTOBJECT val _ _ _ _ _ namelab _) _ _
-                              _) : ents) val' txt =
-          if val == val' then namelab # value txt >> done
+        setName' ((StateEntry (TREELISTOBJECT val _ _ _ _ _ _ namelab _ _)
+                               _ _ _) : ents) val' txt =
+          if val == val' then namelab # text txt >> done
           else setName' ents val' txt
         setName' _ _ _ = done
 
@@ -510,36 +500,32 @@ data Eq a => TREELISTOBJECT a =           -- ** internal representation **
                  (TreeList a)                                    -- parent
                  Bool                                      -- true if node
                  (Maybe (Label Image))           -- arrow if style is fast
-                 (Maybe (Maybe Rectangle, [Line],
-                         Line, Line))             -- drawn stuff if pretty
+                 (Maybe ImageItem)                  -- plusminus if pretty
+                 (Maybe (Line, Line))                   -- lines if pretty
                  (Label Image)                             -- object image
                  (Label String)                             -- object name
                  EmbeddedCanvasWin                           -- main frame
+                 (Ref [IO ()])                           -- unbind actions
 
 shiftObject :: Style -> Int -> StateEntry a -> IO ()
 shiftObject style dy (StateEntry obj@(TREELISTOBJECT _ _ isnode _
-                                                     drawnstuff _ _ emb)
+                                                     plusminus drawnstuff
+                                                     _ _ emb _)
                                  _ _ _) =
-  do
-    (if style == Pretty then
-       do
-         (if isnode then
-            let plusminus = selPlusMinus drawnstuff
-                rect = selRect drawnstuff
-            in mapM (\it -> moveItem it 0 (Distance dy)) plusminus >>
-               moveItem rect 0 (Distance dy) >> done
-          else done)
-         moveItem (selHLine drawnstuff) 0 (Distance dy)
-         moveItem (selVLine drawnstuff) 0 (Distance dy) >> done
-         coords <- getCoord (selVLine drawnstuff)
-         hlinelength <- vLineLength obj
-         (let (x, y) = selLower coords
-          in (selVLine drawnstuff) #
-               coord [(x, y), (x, y - hlinelength -
-                                  if isnode then 5 else 9)])
-         done
-     else done)
-    moveItem emb 0 (Distance dy)
+  (if style == Pretty then
+     do
+       if isnode then
+         moveItem (fromJust plusminus) 0 (Distance dy) >> done else done
+       moveItem (selHLine drawnstuff) 0 (Distance dy)
+       moveItem (selVLine drawnstuff) 0 (Distance dy)
+       coords <- getCoord (selVLine drawnstuff)
+       hlinelength <- vLineLength obj
+       (let (x, y) = selLower coords
+        in (selVLine drawnstuff) #
+             coord [(x, y), (x, y - hlinelength -
+                                if isnode then 5 else 9)])
+       done
+   else done) >> moveItem emb 0 (Distance dy)
 
 selLower :: Coord -> Position
 selLower coords = selLower' (head coords) (tail coords)
@@ -548,16 +534,16 @@ selLower coords = selLower' (head coords) (tail coords)
           if y > yl then selLower' c cs else selLower' l cs
         selLower' l _ = l
 
-updScrollRegion :: Canvas -> RVar [StateEntry a] -> IO ()
+updScrollRegion :: Canvas -> Ref [StateEntry a] -> IO ()
 updScrollRegion cnv stateref =
   do
-    state <- getVar stateref
+    state <- getRef stateref
     updScrollRegion' cnv 0 0 state
   where updScrollRegion' :: Canvas -> Distance -> Distance ->
                             [StateEntry a] -> IO ()
         updScrollRegion' cnv x y
-                         ((StateEntry obj@(TREELISTOBJECT _ _ _ _ _ _ _
-                                                          emb) _ _ _) :
+                         ((StateEntry obj@(TREELISTOBJECT _ _ _ _ _ _ _ _
+                                                          emb _) _ _ _) :
                           sentries) =
           do
             [(cx, cy)] <- getCoord emb
@@ -573,13 +559,14 @@ insertObjects :: Eq a => TreeList a -> Position ->
 insertObjects treelist@(TreeList cnv _ style stateref _ ifun _ _ _) (x, y)
               chobjs =
   do
-    state <- getVar stateref
+    state <- getRef stateref
     insertObjects' cnv ifun (x, y + Distance lineheight) chobjs
   where insertObjects' :: Eq a => Canvas -> ImageFun a -> Position ->
                                   [(Int, Bool, TREELISTOBJECT a)] -> IO ()
         insertObjects' cnv ifun (x, y)
-                       ((i, _, obj@(TREELISTOBJECT val _ isnode _
-                                                   drawnstuff img _ emb))
+                       ((i, _, obj@(TREELISTOBJECT val _ isnode _ _
+                                                   drawnstuff img _ emb
+                                                   _))
                         : objs) =
           do
             nm <- getName obj
@@ -593,16 +580,19 @@ insertObjects treelist@(TreeList cnv _ style stateref _ ifun _ _ _) (x, y)
 
 removeObject :: TreeList a -> TREELISTOBJECT a -> IO ()
 removeObject (TreeList _ _ style _ _ _ _ _ _)
-             (TREELISTOBJECT _ _ isnode _ drawnstuff _ _ emb) =
+             (TREELISTOBJECT _ _ isnode _ plusminus drawnstuff _ _ emb
+                             ubref) =
   destroy emb >>
   if style == Pretty then
     (if isnode then
-       destroy (selRect drawnstuff) >>
-       mapM destroy (selPlusMinus drawnstuff) >> done
+       destroy (fromJust plusminus)
      else done) >>
     destroy (selHLine drawnstuff) >>
     destroy (selVLine drawnstuff)
-  else done
+  else done >>
+  do
+    ubs <- getRef ubref
+    mapM (\act -> act) ubs >> done
 
 getObjInfo :: TREELISTOBJECT a -> [StateEntry a] -> IO (Int, Bool, [a])
 getObjInfo obj (StateEntry obj' isopen i prevopen : entries) =
@@ -619,7 +609,7 @@ getChildren state obj = getChildren' state obj (-1) [] []
                         [TREELISTOBJECT a] -> [a] ->
                         IO ([TREELISTOBJECT a], [a])
         getChildren' (st@(StateEntry obj'@(TREELISTOBJECT val _ _ _ _ _ _ 
-                                                          _)
+                                                          _ _ _)
                                      isopen intend _) : es)
                      obj i objs opensubobjvals =
           if (i == -1 && obj /= obj') then
@@ -643,10 +633,13 @@ reopenSubObjects :: Eq a => ChildrenFun a -> [a] ->
                             [(Int, TREELISTOBJECT a)] ->
                             IO [(Int, Bool, TREELISTOBJECT a)]
 reopenSubObjects cfun prevopen
-                 ((i, tlobj@(TREELISTOBJECT val tl isnode _ _ _ _ _)) :
+                 ((i, tlobj@(TREELISTOBJECT val tl isnode _ plusminus _ _
+                                             _ _ _)) :
                   objs) =
   if elem val prevopen then
     do
+      minus <- minusImg
+      fromJust plusminus # photo minus
       nm <- getName tlobj
       ch <- cfun (TreeListObject (val, nm, if isnode then Node else Leaf))
       thisobjch <- mkTreeListObjects tl ch (i + 1) prevopen
@@ -662,92 +655,97 @@ reopenSubObjects _ _ _ = return []
 pressed :: Eq a => TREELISTOBJECT a -> IO ()
 pressed obj@(TREELISTOBJECT val (treelist@(TreeList cnv _ style stateref
                                                     cfun _ _ _ _))
-                            isnode arrow drawnstuff _ _ emb) =
-  synchronize treelist
-    (do
-       state <- getVar stateref
-       c <- getCoord emb
-       index <-
-         return
-           ((fromJust
-             (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj)
-                        state))) + 1)
-       (i, isopen, prevopen) <- getObjInfo obj state
-       (if isopen then
-          do                                              -- *** close ***
-            (if style == Fast then
-               do
-                 pho <- closedImg
-                 fromJust arrow # photo pho
-                 done
-             else head (selPlusMinus drawnstuff) #
-                    filling "black" >> done)
-            (children, opensubobjvals) <- getChildren state obj
-            mapM (removeObject treelist) children
-            setVar stateref (take (index - 1) state ++
-                             [StateEntry obj False i opensubobjvals] ++
-                             drop (index + length children) state)
-            mapM (shiftObject style (-(length children) * lineheight))
-                 (drop (index + length children) state)
-            done
-        else
-          do                                               -- *** open ***
-            (if style == Fast then
-               do
-                 pho <- openImg
-                 fromJust arrow # photo pho
-                 done
-             else head (selPlusMinus drawnstuff) #
-                    filling white >> done)
-            nm <- getName obj
-            ch <- cfun (TreeListObject (val, nm, if isnode then Node
-                                                 else Leaf))
-            thisobjch <- mkTreeListObjects treelist ch (i + 1) prevopen
-            chobjs <- reopenSubObjects cfun prevopen thisobjch
-            setVar stateref (take (index - 1) state ++
-                             [StateEntry obj True i []] ++
-                             map mkEntry chobjs ++
-                             drop index state)
-            mapM (shiftObject style ((length chobjs) * lineheight))
-                 (drop index state)
-            insertObjects treelist (head c) chobjs
-            done)
-       updScrollRegion cnv stateref)
+                            isnode arrow plusminus drawnstuff _ _ emb _) =
+  do
+    state <- getRef stateref
+    c <- getCoord emb
+    index <-
+      return
+        ((fromJust
+            (elemIndex obj (map (\ (StateEntry obj _ _ _) -> obj)
+                       state))) + 1)
+    (i, isopen, prevopen) <- getObjInfo obj state
+    (if isopen then
+       do                                                 -- *** close ***
+         (if style == Fast then
+            do
+              pho <- closedImg
+              fromJust arrow # photo pho >> done
+          else
+            do
+              pho <- plusImg
+              fromJust plusminus # photo pho >> done)
+         (children, opensubobjvals) <- getChildren state obj
+         mapM (removeObject treelist) children
+         setRef stateref (take (index - 1) state ++
+                          [StateEntry obj False i opensubobjvals] ++
+                          drop (index + length children) state)
+         mapM (shiftObject style (-(length children) * lineheight))
+              (drop (index + length children) state)
+         done
+     else
+       do                                                  -- *** open ***
+         (if style == Fast then
+            do
+              pho <- openImg
+              fromJust arrow # photo pho
+              done
+          else
+            do
+              pho <- minusImg
+              fromJust plusminus # photo pho >> done)
+         nm <- getName obj
+         ch <- cfun (TreeListObject (val, nm, if isnode then Node
+                                              else Leaf))
+         thisobjch <- mkTreeListObjects treelist ch (i + 1) prevopen
+         chobjs <- reopenSubObjects cfun prevopen thisobjch
+         setRef stateref (take (index - 1) state ++
+                          [StateEntry obj True i []] ++
+                          map mkEntry chobjs ++
+                          drop index state)
+         mapM (shiftObject style ((length chobjs) * lineheight))
+              (drop index state)
+         insertObjects treelist (head c) chobjs
+         done)
+    updScrollRegion cnv stateref
 
 unmarkSelectedObject :: TreeList a -> IO ()
 unmarkSelectedObject (TreeList _ _ _ _ _ _ selref _ _) =
   do
-    sel <- getVar selref
+    sel <- getRef selref
     case sel of
-      Just (TREELISTOBJECT _ _ _ _ _ _ txt _) -> do
-                                                   txt # fg "black"
-                                                   txt # bg "white"
-                                                   done
+      Just (TREELISTOBJECT _ _ _ _ _ _ _ txt _ _) -> do
+                                                       txt # fg "black"
+                                                       txt # bg "white"
+                                                       done
       _ -> done
 
 selectObject :: TreeList a -> TREELISTOBJECT a -> IO ()
 selectObject treelist@(TreeList _ _ _ _ _ _ selref msgQ _)
-             obj@(TREELISTOBJECT val _ isnode _ _ _ txt _) =
+             obj@(TREELISTOBJECT val _ isnode _ _ _ _ txt _ _) =
   do
     unmarkSelectedObject treelist
-    setVar selref (Just obj)
+    setRef selref (Just obj)
     txt # fg "white"
     txt # bg "blue"
     nm <- getName obj
-    sendIO msgQ (Just (TreeListObject (val, nm, if isnode then Node
-                                                else Leaf)))
+    syncNoWait (send msgQ (Just (TreeListObject
+                                   (val, nm, if isnode then Node
+                                             else Leaf))))
+    done
 
 deselect :: TreeList a -> IO ()
 deselect treelist@(TreeList _ _ _ _ _ _ selref msgQ _) =
   do
     unmarkSelectedObject treelist
-    setVar selref Nothing
-    sendIO msgQ Nothing
+    setRef selref Nothing
+    syncNoWait (send msgQ Nothing)
+    done
 
 isSelected :: TreeList a -> TREELISTOBJECT a -> IO Bool
 isSelected (TreeList _ _ _ _ _ _ selref _ _) obj =
   do
-    sel <- getVar selref
+    sel <- getRef selref
     case sel of
       Just s -> return (s == obj)
       _ -> return False
@@ -771,103 +769,116 @@ mkTreeListObject :: Eq a => TreeList a -> a -> Bool -> Bool ->
 mkTreeListObject treelist@(TreeList cnv _ style _ cfun _ _ _ msgQ) val
                  isnode isopen cnf =
   do
-    box <- newHBox [background "white"]
+    box <- newHBox cnv [background "white"]
     arrow <- if style == Fast then
                do
                  pho <- if not isnode then leafImg
                         else if isopen then openImg else closedImg
-                 arrow' <- newLabel [background "white", photo pho,
-                                     parent box]
+                 arrow' <- newLabel box [background "white", photo pho]
+                 pack arrow' [Side AtLeft]
                  return (Just arrow')
              else return Nothing
     drawnstuff <-
       if style == Fast then return Nothing
       else
-        if isnode  then
-          do
-            rect <- newRectangle [size(8, 8), outline "black",
-                                  filling white]
-            plusmin1 <- newLine []
-            plusmin2 <- newLine []
-            hline <- newLine []
-            vline <- newLine []
-            if isopen then plusmin1 # filling white >> done else done
-            return (Just (Just rect, [plusmin1, plusmin2], hline, vline))
-        else
-          do
-            let rect = Nothing
-            hline <- newLine []
-            vline <- newLine []
-            return (Just (rect, [], hline, vline))
-    img <- newLabel [background "white", parent box]
-    txt <- newLabel [background "white", parent box,
-                     font (Lucida, 12::Int)]
-    emb <- newEmbeddedCanvasWin box [anchor NorthWest]
-    let obj = TREELISTOBJECT val treelist isnode arrow drawnstuff img txt
-                             emb
+        do
+          hline <- createLine cnv [coord [(-50, -50), (-50, -50)]]
+          vline <- createLine cnv [coord [(-50, -50), (-50, -50)]]
+          return (Just (hline, vline))
+    pho <- if isopen then minusImg else plusImg
+    plusminus <- if style == Fast then return Nothing
+                 else do
+                        plus <- plusImg
+                        i <- createImageItem cnv [coord [(-50, -50)],
+                                                  photo plus,
+                                                  canvAnchor NorthWest]
+                        return (Just i)
+    img <- newLabel box [background "white"]
+    pack img [Side AtLeft]
+    txt <- newLabel box [background "white", font (Lucida, 12::Int)]
+    pack txt [Side AtRight]
+    emb <- createEmbeddedCanvasWin cnv box [canvAnchor NorthWest,
+                                            coord [(-50, -50)]]
+    unbind_actions <- newRef []
+    let obj = TREELISTOBJECT val treelist isnode arrow plusminus
+                             drawnstuff img txt emb unbind_actions
     foldl (>>=) (return obj) cnf
     nm <- getName obj
-    interactor (\i -> (mouseEnter txt >>>
-                         do
-                           b <- isSelected treelist obj
-                           (if b then done
-                            else
-                              txt # bg "grey" >>
-                              txt # fg "white" >> 
-                              sendIO msgQ
-                                     (Just (TreeListObject
-                                              (val, nm,
-                                               if isnode then Node
-                                               else Leaf))) >>
-                              done)) +>
-                      (mouseLeave txt >>>
-                         do
-                           b <- isSelected treelist obj
-                           (if b then done
-                            else
-                              txt # bg "white" >>
-                              txt # fg "black" >>
-                              sendIO msgQ Nothing >>
-                              done)) +>
-                      (mouseButtonPress txt 1 >>>
-                         selectObject treelist obj) +>
-                      (mouseButtonPress cnv 1 >>>
-                         deselect treelist))
+    (enterTxt, ub) <- bindSimple txt Enter
+    addUnbindAction obj ub
+    death1 <- newChannel
+    addUnbindAction obj (syncNoWait (send death1 ()))
+
+    let enterEv :: Event ()
+        enterEv =
+          do
+            enterTxt
+            always (do
+                      b <- TreeList.isSelected treelist obj
+                      if b then done else txt # bg "grey" >>
+                                          txt # fg "white" >> done)
+            noWait(send msgQ (Just (TreeListObject
+                                      (val, nm, if isnode then Node
+                                                else Leaf))))
+            enterEv
+    spawnEvent (enterEv +> receive death1)
+
+    (leaveTxt, ub) <- bindSimple txt Leave
+    addUnbindAction obj ub
+    death2 <- newChannel
+    addUnbindAction obj (syncNoWait (send death2 ()))
+
+    let leaveEv :: Event ()
+        leaveEv =
+          do
+            leaveTxt
+            always (do
+                      b <- TreeList.isSelected treelist obj
+                      if b then done else txt # bg "white" >>
+                                          txt # fg "black" >> done)
+            noWait (send msgQ Nothing)
+            leaveEv
+    spawnEvent (leaveEv +> receive death2)
+
+    (pressTxt, ub) <- bindSimple txt (ButtonPress (Just (BNo 1)))
+    addUnbindAction obj ub
+    death3 <- newChannel
+    addUnbindAction obj (syncNoWait (send death3 ()))
+
+    let pressEv :: Event ()
+        pressEv =
+          pressTxt >> always (selectObject treelist obj) >> pressEv
+    spawnEvent (pressEv +> receive death3)
+
     return obj
 
-selRect :: Maybe (Maybe Rectangle, [Line], Line, Line) -> Rectangle
-selRect (Just (Just rect, _, _, _)) = rect
+selHLine :: Maybe (Line, Line) -> Line
+selHLine (Just (hline, _)) = hline
 
-selPlusMinus :: Maybe (Maybe Rectangle, [Line], Line, Line) -> [Line]
-selPlusMinus (Just (_, plusminus, _, _)) = plusminus
-
-selHLine :: Maybe (Maybe Rectangle, [Line], Line, Line) -> Line
-selHLine (Just (_, _, hline, _)) = hline
-
-selVLine :: Maybe (Maybe Rectangle, [Line], Line, Line) -> Line
-selVLine (Just (_, _, _, vline)) = vline
+selVLine :: Maybe (Line, Line) -> Line
+selVLine (Just (_, vline)) = vline
 
 instance Eq (TREELISTOBJECT a) where
-  (TREELISTOBJECT _ _ _ _ _ _ txt1 _) ==
-    (TREELISTOBJECT _ _ _ _ _ _ txt2 _) = txt1 == txt2
+  (TREELISTOBJECT _ _ _ _ _ _ _ txt1 _ _) ==
+    (TREELISTOBJECT _ _ _ _ _ _ _ txt2 _ _) = txt1 == txt2
 
 instance GUIObject (TREELISTOBJECT a) where
-  toGUIObject (TREELISTOBJECT _ _ _ _ _ _ _ emb) = toGUIObject emb
+  toGUIObject (TREELISTOBJECT _ _ _ _ _ _ _ _ emb _) = toGUIObject emb
   cname _ = "TREELISTOBJECT"
 
 instance HasPhoto (TREELISTOBJECT a) where
-  photo i obj@(TREELISTOBJECT _ _ _ _ _ img _ _) =
+  photo i obj@(TREELISTOBJECT _ _ _ _ _ _ img _ _ _) =
     img # photo i >> return obj
-  getPhoto (TREELISTOBJECT _ _ _ _ _ img _ _) = getPhoto img
+  getPhoto (TREELISTOBJECT _ _ _ _ _ _ img _ _ _) = getPhoto img
 
-name :: ObjectName -> Config (TREELISTOBJECT a)
-name nm obj@(TREELISTOBJECT _ _ _ _ _ _ txt _) =
-  txt # value nm >> return obj
+name :: TreeListObjectName -> Config (TREELISTOBJECT a)
+name nm obj@(TREELISTOBJECT _ _ _ _ _ _ _ txt _ _) =
+  txt # text nm >> return obj
 
 getName :: TREELISTOBJECT a -> IO String
-getName (TREELISTOBJECT _ _ _ _ _ _ txt _) = getValue txt
+getName (TREELISTOBJECT _ _ _ _ _ _ _ txt _ _) = getText txt
 
-closedImg = newImage  [imgData GIF "R0lGODdhDAAMAPAAAAAA/wD//ywAAAAADAAMAMfAwMD///8AAAD///8AAAAAAAAAAAAAAAAAAAAA
+closedImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPAAAAAA/wD//ywAAAAADAAMAMfAwMD///8AAAD///8AAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -883,7 +894,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI
 JwADCBxIsCCAgwUJHkSYMADDhg4XAmg4EaLAihYXZpRIUWNHiyADAgA7"]
 
-openImg = newImage [imgData GIF "R0lGODdhDAAMAPAAAAAA/wD//ywAAAAADAAMAMfAwMD///8AAAD///8AAAAAAAAAAAAAAAAAAAAA
+openImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPAAAAAA/wD//ywAAAAADAAMAMfAwMD///8AAAD///8AAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -899,7 +910,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI
 IgADCBxIsKDBggASKkx4sOHAhQ4jRlxIEQDBig0ZStxYMCAAOw=="]
 
-leafImg = newImage [imgData GIF "R0lGODdhDAAMAPAAAAAA/wD//ywAAAAADAAMAMf///8AAAD///8AAAAAAAAAAAAAAAAAAAAAAAAA
+leafImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPAAAAAA/wD//ywAAAAADAAMAMf///8AAAD///8AAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -914,3 +925,8 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI
 FgABCBxIsKDBgwgTKlzIsKHDhxARBgQAOw=="]
+
+plusImg = newImage NONE [imgData GIF "R0lGODlhCQAJAJEAAP///9Dc4H6LjwAAACwAAAAACQAJAEACFJSPiTHdYYIcEopKZax1s35NINcV
+ADs="]
+
+minusImg = newImage NONE [imgData GIF "R0lGODlhCQAJAJEAAP///9Dc4H6LjwAAACwAAAAACQAJAEACEZSPiTHdYYKcUNAZb9Vb5ysUADs="]

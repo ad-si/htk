@@ -10,12 +10,8 @@
 module Main (main) where
 
 import HTk
-import Image
 import TreeList
-import Button
-import Editor
 import ScrollBox
-import Maybe
 
 logMsg :: Editor String -> String -> IO ()
 logMsg ed txt =
@@ -71,35 +67,44 @@ ifun obj = folderImg
 main :: IO ()
 main =
   do
-    tk <- htk []
-    main <- newVFBox []
-    box <- newHBox [parent main]
-    win <- window main [text "Tree list example"]
-    treelist <- newTreeList Pretty cfun ifun (newTreeListObject "/" "/" Node)
-                            [parent box, background "white",
-                             size (cm 15, cm 8)]
-    quit <- newButton [side AtBottom,  pad Horizontal 10, pad Vertical 5,
-                       parent box, text "Quit", width 15,
-                       command (\ ()-> destroy tk)]
-    output <- newEditor [width 40, height 6,
-                         state Disabled] :: IO (Editor String)
-    scrollbox <- newScrollBox output [parent main]
-    interactor (\i -> triggered quit +>
-                      (selectionEvent treelist >>>=
-                         \mobj -> logMsg output
-                                         ((case mobj of
-                                             Just obj -> getObjectName obj
-                                             _ -> "Nothing") ++
-                                          " selected")) +>
-                      (focusEvent treelist >>>=
-                         \mobj -> logMsg output
-                                         ((case mobj of
-                                             Just obj -> getObjectName obj
-                                             _ -> "no object") ++
-                                                " focused")))
-    sync (destroyed win)
-    destroy tk
+    main <- initHTk [text "treelist example"]
 
-folderImg = newImage [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
+    treelist <- newTreeList main Pretty cfun ifun
+                            (newTreeListObject "/" "/" Node)
+                            [background "white", size (cm 15, cm 8)]
+    pack treelist []
+
+    quit <- newButton main [text "Quit", width 15] :: IO (Button String)
+    pack quit [Side AtBottom, PadX 10, PadY 10]
+
+    let out p = newEditor p [width 75, height 6,
+                             state Disabled] :: IO (Editor String)
+
+    (scrollbox, output) <- newScrollBox main out []
+    pack scrollbox [PadX 10, PadY 10]
+
+    clickedquit <- clicked quit
+    spawnEvent (forever ((do
+                            mobj <- receive (focusEvent treelist)
+                            always (logMsg output
+                                           ((case mobj of
+                                               Just obj ->
+                                                 getTreeListObjectName obj
+                                               _ -> "no object") ++
+                                            " focused"))) +>
+                         (clickedquit >> always (destroy main)) +>
+                         (do
+                            mobj <- receive (selectionEvent treelist)
+                            always (logMsg output
+                                           ((case mobj of
+                                               Just obj ->
+                                                 getTreeListObjectName obj
+                                               _ -> "Nothing") ++
+                                            " selected")))))
+
+    (htk_destr, _) <- bindSimple main Destroy
+    sync (htk_destr)
+
+folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7
 "]

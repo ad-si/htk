@@ -18,33 +18,27 @@ module Property (
 ) where
 
 import HTk
-import RVar
-import Concurrency
-import Channels
+import ReferenceVariables
 
-data Prop a = Prop (MsgQueue a) (RVar a)
+data Prop a = Prop (Channel a) (Ref a)
 
-class HasProp i a where                                 -- items just need to
-  getProp :: i -> Prop a                                -- instantiate this
+class HasProp i a where                              -- items just need to
+  getProp :: i -> Prop a                               -- instantiate this
 
 instance HasProp i a => HasProperty i a where
   set i p = let Prop q v = getProp i
-            in sendIO q p >> setVar v p
-
-  changed i = let Prop q _ = getProp i
-              in lift (receive q)
-
-  get i = let Prop _ v = getProp i
-          in getVar v
+            in syncNoWait (send q p) >> setRef v p
+  changed i = let Prop q _ = getProp i in q
+  get i = let Prop _ v = getProp i in getRef v
 
 newProp :: a -> IO (Prop a)
 newProp a =
   do
-    q <- newMsgQueue
-    v <- newRVar a
+    q <- newChannel
+    v <- newRef a
     return (Prop q v)
 
 class HasProperty i p where
   set :: i -> p -> IO ()
-  changed :: i -> IA p
+  changed :: i -> Channel p
   get :: i -> IO p

@@ -35,10 +35,11 @@ import Debug(debug)
 import Object
 import WBFiles
 
-import BSem
-import SocketEV
+import Destructible
 
-import SIM (Destructible(..))
+import HostsPorts
+
+import BSem
 import InfoBus
 
 import ServiceClass
@@ -164,7 +165,7 @@ newConnection handle =
 instance Object Connection where
    objectID (Connection {oId = oId}) = oId
    
-instance Destructible Connection where
+instance Destroyable Connection where
    destroy (connection@Connection {handle = handle}) =
       do
          deregisterTool connection

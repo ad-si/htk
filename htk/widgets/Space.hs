@@ -1,79 +1,79 @@
-{- #########################################################################
-
-MODULE        : Space
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1997
-VERSION       : alpha
-DESCRIPTION   : A space widget, inspired by the Haggis approach to
-                defining layout.
-
-                The space if only effective if used within a container.
-                This container is assumed to be a box.
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Space (
-        Space,
-        newSpace
-        ) where
 
-import HTk
+  Space,
+  newSpace,
+
+) where
+
+import Core
 import Frame
-import Debug(debug)
+import Configuration
+import Resources
+import GUIObject
+import Destructible
+import Synchronized
+import Geometry
+import Computation
+import BaseClasses(Widget)
+import Packer
 
--- --------------------------------------------------------------------------
--- Space Space 
--- --------------------------------------------------------------------------           
+
+-- -----------------------------------------------------------------------
+-- Space type
+-- -----------------------------------------------------------------------
+
 data Space = Space Distance Frame
 
--- --------------------------------------------------------------------------
--- Commands 
--- --------------------------------------------------------------------------           
-newSpace :: Distance -> [Config Space] -> IO Space
-newSpace d ol = do {
-        f <- newFrame []; 
-        configure (Space d f) (defaults : ol)
-} where defaults = orient Vertical
+
+-- -----------------------------------------------------------------------
+-- creation
+-- -----------------------------------------------------------------------
+
+newSpace :: Container par => par -> Distance -> [Config Space] -> IO Space
+newSpace par d ol =
+  do
+    f <- newFrame par []
+    configure (Space d f) (defaults : ol)
+  where defaults = orient Vertical
 
 
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
--- --------------------------------------------------------------------------
--- Instances 
--- --------------------------------------------------------------------------           
 instance Eq Space where
-        (Space _ f1) == (Space _ f2) = f1 == f2
+  (Space _ f1) == (Space _ f2) = f1 == f2
 
 instance GUIObject Space where 
-        toGUIObject (Space d f) = toGUIObject f
-        cname _ = "Space"
+  toGUIObject (Space d f) = toGUIObject f
+  cname _ = "Space"
 
-instance Destructible Space where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive Space
+instance Destroyable Space where
+  destroy   = destroy . toGUIObject
 
 instance Widget Space
 
-instance ChildWidget Space 
-
 instance Synchronized Space where
-        synchronize w = synchronize (toGUIObject w)
-        
+  synchronize w = synchronize (toGUIObject w)
+
 instance HasColour Space where
-        legalColourID = hasBackGroundColour
+  legalColourID = hasBackGroundColour
 
 instance HasOrientation Space where
-        orient Horizontal s @ (Space d f) = do {
-                 configure f [fill Vertical, width d];
-                 return s
-                }
-        orient Vertical s @ (Space d f) = do {
-                 configure f [fill Horizontal, height d];
-                 return s
-                }
-
-
+  orient or s @ (Space d f) =
+    configure f (case or of Horizontal -> [{-fill Vertical,-} width d,
+                                           height 0]
+                            Vertical -> [{-fill Horizontal,-} height d,
+                                         width 0]) >> 
+    return s

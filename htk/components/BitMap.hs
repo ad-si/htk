@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : BitMap
 AUTHOR        : Einar Karlsen,  
@@ -8,43 +8,48 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Bitmap Item
 
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module BitMap (
-        BitMap,
-        newBitMap,
 
-        BitMapHandle(..),
-        HasBitMap(..),
-        BitMapDesignator(..),
+  BitMap,
+  newBitMap,
 
-        errmap, 
-        gray50, 
-        gray25, 
-        hourglass, 
-        info, 
-        questhead, 
-        question, 
-        warning,
+  BitMapHandle(..),
+  HasBitMap(..),
+  BitMapDesignator(..),
 
-        setBitMapHandle,
-        getBitMapHandle,
-        stringToBitMapHandle
+  errmap, 
+  gray50, 
+  gray25, 
+  hourglass, 
+  info, 
+  questhead, 
+  question, 
+  warning,
 
-        ) where
+  setBitMapHandle,
+  getBitMapHandle,
+  stringToBitMapHandle
 
-import Concurrency
+) where
+
 import GUIValue
-import GUICore
+import Core
+import BaseClasses(Widget)
+import Configuration
 import Char(isDigit)
 import qualified Posix (getEnvVar)
-import Debug(debug)
+import Computation
+import Synchronized
+import Destructible
+import Packer
 
 
--- --------------------------------------------------------------------------
--- BitMap Designators 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- BitMap designators
+-- -----------------------------------------------------------------------
 
 data BitMapHandle = 
           Predefined String 
@@ -52,47 +57,51 @@ data BitMapHandle =
         | BitMapFile String
 
 class BitMapDesignator d where
-        toBitMap :: d -> BitMapHandle
+  toBitMap :: d -> BitMapHandle
 
 instance BitMapDesignator BitMapHandle where
-        toBitMap = id
+  toBitMap = id
 
 instance BitMapDesignator BitMap where
-        toBitMap h = BitMapHandle h
+  toBitMap h = BitMapHandle h
 
 instance BitMapDesignator [Char] where
-        toBitMap h = BitMapFile h
+  toBitMap h = BitMapFile h
 
 
--- --------------------------------------------------------------------------
--- BitMap'ed Widgets  
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- BitMap'ed widgets  
+-- -----------------------------------------------------------------------
 
 class GUIObject w => HasBitMap w where
-        bitmap          :: BitMapDesignator d => d -> Config w
-        getBitMap       :: w -> IO BitMapHandle
-        bitmap d w      = setBitMapHandle w "bitmap" (toBitMap d) True 
-        getBitMap w     = getBitMapHandle w "bitmap"
-        
+  bitmap          :: BitMapDesignator d => d -> Config w
+  getBitMap       :: w -> IO BitMapHandle
+  bitmap d w      = setBitMapHandle w "bitmap" (toBitMap d) True 
+  getBitMap w     = getBitMapHandle w "bitmap"
 
--- --------------------------------------------------------------------------
--- Type BitMap 
--- --------------------------------------------------------------------------           
+
+-- -----------------------------------------------------------------------
+-- type BitMap 
+-- -----------------------------------------------------------------------
+
 newtype BitMap = BitMapWDG GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Commands 
--- --------------------------------------------------------------------------           
-newBitMap :: [Config BitMap] -> IO BitMap
-newBitMap confs = do
-        w <- createWidget LABEL 
-        configure (BitMapWDG w) confs
+-- -----------------------------------------------------------------------
+-- commands
+-- -----------------------------------------------------------------------
+
+newBitMap :: Container par => par -> [Config BitMap] -> IO BitMap
+newBitMap par confs =
+  do
+    w <- createWidget (toGUIObject par) LABEL 
+    configure (BitMapWDG w) confs
 
 
--- --------------------------------------------------------------------------
--- Predefined Tk BitMaps 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- predefined Tk BitMaps
+-- -----------------------------------------------------------------------
+
 errmap, gray50, gray25, hourglass, info, questhead, question, warning :: BitMapHandle
 
 errmap = Predefined "error" 
@@ -105,58 +114,52 @@ question = Predefined "question"
 warning = Predefined "warning"
 
 
--- --------------------------------------------------------------------------
--- Configuration Options 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- configuration options
+-- -----------------------------------------------------------------------
+
 instance GUIObject BitMap where 
         toGUIObject (BitMapWDG w) = w
         cname _ = "BitMap"
 
-instance Destructible BitMap where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+instance Destroyable BitMap where
+  destroy   = destroy . toGUIObject
 
 instance Widget BitMap
-
-instance ChildWidget BitMap
 
 instance HasBorder BitMap
 
 instance HasColour BitMap where 
-        legalColourID = hasForeGroundColour
+  legalColourID = hasForeGroundColour
 
 instance HasSize BitMap
 
 instance HasFile BitMap where
-        filename fname w =
-                synchronize w (do {
-                        execTclScript [tkBitMapCreate no fname] >>
-                        cset w "image" no
-                        }) where no = getObjectNo (toGUIObject w)
-        getFileName w = evalTclScript [tkGetBitMapFile no]
-                where no = getObjectNo (toGUIObject w)
+  filename fname w =
+    execTclScript [tkBitMapCreate no fname] >> cset w "image" no
+    where no = getObjectNo (toGUIObject w)
+  getFileName w = evalTclScript [tkGetBitMapFile no]
+    where no = getObjectNo (toGUIObject w)
 
 instance Synchronized BitMap where
-        synchronize (BitMapWDG w) = synchronize w
+  synchronize (BitMapWDG w) = synchronize w
 
 
--- --------------------------------------------------------------------------
--- Auxiliary Functions 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- auxiliary functions
+-- -----------------------------------------------------------------------
 
-setBitMapHandle :: GUIObject w => w -> ConfigID -> BitMapHandle -> Bool -> IO w
-setBitMapHandle w cnm (Predefined d) _ = 
-        cset w cnm d 
-setBitMapHandle w cnm (BitMapFile f) _ = 
-        cset w cnm ('@':f)
-setBitMapHandle w _ (BitMapHandle h) True = 
-        cset w "image" (getObjectNo (toGUIObject h))
-setBitMapHandle w cnm (BitMapHandle h) False = do {
-        fname <- getFileName h;
-        setBitMapHandle w cnm (BitMapFile fname) False;
-        return w
-        }
- 
+setBitMapHandle :: GUIObject w => w -> ConfigID -> BitMapHandle ->
+                   Bool -> IO w
+setBitMapHandle w cnm (Predefined d) _ = cset w cnm d 
+setBitMapHandle w cnm (BitMapFile f) _ = cset w cnm ('@':f)
+setBitMapHandle w _ (BitMapHandle h) True =
+  cset w "image" (getObjectNo (toGUIObject h))
+setBitMapHandle w cnm (BitMapHandle h) False =
+  do
+    fname <- getFileName h
+    setBitMapHandle w cnm (BitMapFile fname) False
+    return w
 {- 
    the last parameter determines whether integer numbers are acceptable
    as bitmap denotations or not. If not, we use the corresponding file
@@ -171,14 +174,14 @@ stringToBitMapHandle :: String -> IO BitMapHandle
 stringToBitMapHandle "" = return (Predefined "")
 stringToBitMapHandle ('@':tl) = return (BitMapFile tl)          
 stringToBitMapHandle (str @ (x:tl)) | isDigit x = 
-        lookupGUIObject (read str)      >>=
-        return . BitMapHandle . BitMapWDG 
+  lookupGUIObject (read str)      >>= return . BitMapHandle . BitMapWDG 
 stringToBitMapHandle str = return (Predefined str)
 
 
--- --------------------------------------------------------------------------
--- Tk Commands 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- Tk commands
+-- -----------------------------------------------------------------------
+
 tkBitMapCreate :: Int -> String -> String
 tkBitMapCreate no f = "image create bitmap " ++ show no ++ " -file " ++ show f
 {-# INLINE tkBitMapCreate #-}

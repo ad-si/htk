@@ -6,7 +6,6 @@ import Server
 import EchoService
 
 main = runServer [echoServiceWrapped]
-      
 
 
 

@@ -2,6 +2,6 @@
 module Main(main) where
 
 import DrawDepend
-import DaVinciGraphDisp
+import DaVinciGraph
 
 main = drawDepend daVinciSort

@@ -18,7 +18,8 @@ import Dynamics(fromDyn)
 
 import RegularExpression
 import InfoBus
-import SIM(Destructible(..),sync)
+import Events
+import Destructible
 import WBFiles
 
 import GraphDisp

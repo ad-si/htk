@@ -6,12 +6,12 @@ import Concurrent(killThread)
 
 import Computation(done)
 
-import Concurrency
 import Thread
-import SocketEV
+import HostsPorts
 
 import CallServer
-import SIM(destroyed,sync)
+import Destructible
+import Events
 
 import Graph
 import GraphDisp

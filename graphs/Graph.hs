@@ -56,9 +56,6 @@ module Graph(
 import AtomString
 import Computation(done)
 import Dynamics
-
-import Selective(EV,inaction)
-
 import NewNames
 
 class Graph graph where

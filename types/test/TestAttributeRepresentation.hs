@@ -7,7 +7,9 @@ import Exception
 
 import Computation
 
-import AttributeRepresentation
+import CodedValue
+
+import CodedValueStore
 
 stringify :: CodedValue -> [String]
 -- crude representation of a coded value as a list of records.
@@ -29,11 +31,14 @@ stringify (CodedValue l) =
 
 testValue :: (HasCodedValue value,Show value,Eq value) => value -> IO ()
 testValue value =
-   catchDyn (
+   catchFormatError (
       do
-         let 
-            encoded = doEncode value
-            decoded = doDecode encoded
+         let repository = error "Repository not defined"
+         encoded <- doEncodeIO value repository
+         str <- toObjectSource encoded
+         encoded2 <- fromObjectSource str
+         decoded <- doDecodeIO encoded repository
+
          if decoded == value
             then
                done
@@ -43,11 +48,11 @@ testValue value =
                      (show decoded) ++ " with " ++ 
                         (show (stringify encoded)) ++ "\n")
       )
-      (\ (FormatError mess) ->
+      (\ mess ->
          message
             ("Couldn't decode value coming from " ++
                (show value) ++ " message " ++ mess ++ "\n")
-         )  
+         )
 
 main =
    do
@@ -76,8 +81,13 @@ main =
       message "T11"
       testValue ([Left 9999,Right (919,"foo"),Left 64,Right (99999999,"bar"),
          Left 63,Right (919,"")] :: [Either Int (Int,String)])
-      message "T11"
+      message "T12"
+      testValue (Just False,3 :: Int,"Hello",
+         (Nothing :: Maybe String,Just "F",Just (Just "G")))
+      message "T13"
       testValue ([] :: [Int])
+      message "T14"
+      testValue "Fooo\nBar\\\n\n"
       message "Test Completed"
 
 message :: String -> IO ()

@@ -13,27 +13,27 @@ DESCRIPTION   : Defines a simple behavioural abstraction for modal dialogs
 
 
 module ModalDialog (
-        modalDialog,
-        modalInteraction
 
-        ) where
+  modalDialog,
+  modalInteraction
+
+) where
 
 import Computation (try)
-import Interaction()
 import HTk
 import Mouse
-import Debug(debug)
-import qualified Selective
+--import qualified Selective
 
 
--- --------------------------------------------------------------------------
--- Basic Behaviours for modelling Modals Dialogs
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- Basic Behaviours for modelling Modal Dialogs
+-- -----------------------------------------------------------------------
+
 modalDialog :: Window -> IO a -> IO a
-modalDialog win beh = do {
-        modality <- getModal win;
-        maybeModalDialog True modality win beh
-        }
+modalDialog win beh =
+  do
+    modality <- getModal win
+    maybeModalDialog True modality win beh
 
 
 maybeModalDialog :: Bool -> Bool -> Window -> IO a -> IO a

@@ -8,7 +8,7 @@ module Notification(
                -- connects
    notify, -- :: Notifier -> String -> IO()
            -- sends a notification
-   isNotified   -- :: Notifier -> String -> IA ()
+   isNotified   -- :: Notifier -> String -> Event ()
                 -- when someone sends a notification with this String.
    ) where
 
@@ -16,17 +16,17 @@ import IO
 
 import Object
 
-import Thread
-import Selective
-import SocketEV(DescribesHost)
+import Events
+import GuardedEvents
+import GuardedChannels
+import EqGuard
 
+import Thread
+import HostsPorts
 import EchoService
 import CallServer
 
-import Listener
-import ExternalEvent
-import EventBroker
-import SIMClasses(Destructible(..))
+import Destructible
 import InfoBus
 
 data Notifier =
@@ -34,18 +34,15 @@ data Notifier =
       oID :: ObjectID,
       writeAction :: String -> IO (),
       closeAction :: IO(),
-      eventBroker :: EventBroker () 
-         -- we use an EventBroker to handle registrations.
+      
+      eventChannel :: EqGuardedChannel String ()
       }
 
 instance Object Notifier where
    objectID notifier = oID notifier
 
-instance Destructible Notifier where
+instance Destroyable Notifier where
    destroy(Notifier{closeAction=closeAction}) = closeAction
-
-instance EventDesignator (Notifier,String) where
-   toEventID (notifier,key) = EventID (objectID notifier) key
 
 mkNotifier :: IO Notifier
 mkNotifier =
@@ -53,18 +50,19 @@ mkNotifier =
       oID <- newObject
       (writeAction,receiveAction,closeAction,header) <-
          connectBroadcast echoService
-      eventBroker <- newEventBroker 
+      eventChannel <- newEqGuardedChannel
       let
          notifier = Notifier{
             oID = oID,
             writeAction=writeAction,
             closeAction=closeAction,
-            eventBroker=eventBroker
+            eventChannel=eventChannel
             }
+
          readerThread =
             do
                key <- receiveAction
-               dispatch eventBroker (notifier,key) () done
+               sync (send eventChannel (key,()))
                readerThread            
 
       forkIO readerThread
@@ -74,8 +72,8 @@ mkNotifier =
 notify :: Notifier -> String -> IO()
 notify (Notifier{writeAction=writeAction}) key = writeAction key
 
-isNotified :: Notifier -> String -> IA ()
-isNotified notifier@(Notifier{eventBroker=eventBroker}) key =
-   awaitEvent eventBroker (notifier,key) Oneway done done
+isNotified :: Notifier -> String -> Event ()
+isNotified notifier@(Notifier{eventChannel=eventChannel}) key =
+   toEvent (listen eventChannel |> Eq key) >> done
 
 

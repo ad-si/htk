@@ -1,6 +1,5 @@
-This directory contains Uni, the central part of the UniForM workbench
-(that is, minus the repository manager).  The source of Uni is in the
-following directories:
+This directory contains Uni, the central part of the UniForM workbench.
+The source of Uni is in the following directories:
 
 
    directory    |  contents
@@ -8,22 +7,20 @@ following directories:
    mk           |  Makefile magic which set up default rules and variables
    bin          |  Shell scripts which might be needed for building Uni
    util         |  Miscellanous Haskell functions used all over Uni
-   concurrency  |  Concurrency functions
-   reactor      |  The Reactor, for gluing processes together
+   events       |  Events, providing a way for concurrent events to 
+                |  communicated
+   server       |  Stuff for client-server relationships
+   reactor      |  Miscellaneous things for running processes and tools
    htk          |  This is an encapsulation of Tcl/Tk in Haskell
                    See htk/examples for a few short introductory examples.
    graphs       |  General framework for shared graphs.
    davinci      |  This is an encapsulation of DaVinci in Haskell
-   www          |  Functions for manipulating HTML in Haskell
+   (from here on, things aren't known to work yet)
+   cvs          |  encapsulation of cvs
+   types        |  Repository (UNDER CONSTRUCTION)
    tools        |  Encapsulations of some tools in Haskell.
-
+   appl         |  Stand-alone UniForM applications
    database     |  Data for various Uni components
-
-It is intended to make the remainder of UniForM available later on.
-However the repository manager is currently in a very unsatisfactory
-state and needs a great deal more work before this can be done.  However
-we hope this fragment will be of interest to show what the guts of a
-real Haskell program look like.
 
 Requirements
 ------------
@@ -39,7 +36,7 @@ The following are required or at least recommended.
 (3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
 (4) A recent version of Glasgow Haskell.  You should try to get the
-    latest binary release, which is currently 4.08.1.
+    latest binary release, which is currently 5.00.2.
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
@@ -98,8 +95,6 @@ it, assuming that you are in the same directory as this README file
 gmake depend
 # Compile Uni
 gmake all
-# Compile test programs
-gmake testprgs
 
 Please report problems to me.  I am George Russell and my e-mail
 address is ger@tzi.de .

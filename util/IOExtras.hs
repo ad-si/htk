@@ -20,16 +20,16 @@ import Storable
 catchEOF :: IO a -> IO (Maybe a)
 catchEOF action =
    do
-      result <- tryIO
+      result <- tryJust
          (\ excep -> 
-            case excep of
-               IOException ioErr ->
-                  if isEOFError ioErr 
+            case ioErrors excep of
+               Nothing -> Nothing
+               Just ioError -> 
+                  if isEOFError ioError
                      then
                         Just ()
                      else
                         Nothing
-               _ -> Nothing
             )
          action
       case result of
@@ -42,17 +42,20 @@ hGetLineR handle =
       line <- hGetLine handle
       return (read line)
 
+{-
 readFileInstant :: FilePath -> IO String
 readFileInstant file =
    do
       (addr,len) <- IOExts.slurpFile file
       str <- CString.unpackCStringLenIO addr len
-      free addr 
+      IOExts.freeHaskellFunctionPtr addr 
       -- unpackCStringLenIO is, according to Simon Marlow,
       -- supposed to unpack the string at once.           
       return str
-{-
+
    Another way
+-}
+
 readFileInstant :: String -> IO String
 readFileInstant file =
    do
@@ -64,5 +67,5 @@ readFileInstant file =
       -- hClose should make it unnecessary, but it breaks
       -- the Versions test on Linux.
       return contents
--}
+
       

@@ -24,22 +24,20 @@ module EmbeddedTextWin (
         getStretch
         ) where
 
-import Concurrency
-import GUICore
+import Core
 import Editor
-import Index
-import Debug(debug)
+--import Index
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Window Items
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 newtype EmbeddedTextWin = EmbeddedTextWin GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Constructor
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- constructor
+-- -----------------------------------------------------------------------
 
 newEmbeddedTextWin :: (HasIndex (Editor a) i BaseIndex, Widget w)
                  => (Editor a) -> w -> i -> [Config EmbeddedTextWin] -> IO EmbeddedTextWin

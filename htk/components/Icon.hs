@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Icon
 AUTHOR        : Einar Karlsen,  
@@ -9,60 +9,63 @@ VERSION       : alpha
 DESCRIPTION   :  
 
 
-   ######################################################################### -}
+   #################################################################### -}
 
 module Icon (
-        Window, 
 
-        Icon(..),
-        iconMask,
-        getIconMask
+  Window, 
 
-        ) where
+  Icon(..),
+  iconMask,
+  getIconMask
 
-import Concurrency
-import GUICore
+) where
+
+import Core
 import BitMap
-import Debug(debug)
+import Computation
+import Synchronized
 
+-- -----------------------------------------------------------------------
+-- type icon's
+-- -----------------------------------------------------------------------
 
--- --------------------------------------------------------------------------
--- Type Icon's 
--- --------------------------------------------------------------------------           
 newtype Icon = Icon Window deriving (Eq,Ord)
 
--- --------------------------------------------------------------------------
--- Instantions 
--- --------------------------------------------------------------------------           
-instance GUIObject Icon where
-        toGUIObject (Icon win) = toGUIObject win
-        cname _ = "Icon"
-        cset (Icon win) cid val = cset win cid val >> return (Icon win)
-        cget (Icon win) cid = cget win cid
 
-instance Destructible Icon where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+-- -----------------------------------------------------------------------
+-- instantions 
+-- -----------------------------------------------------------------------
+
+instance GUIObject Icon where
+  toGUIObject (Icon win) = toGUIObject win
+  cname _ = "Icon"
+  cset (Icon win) cid val = cset win cid val >> return (Icon win)
+  cget (Icon win) cid = cget win cid
+
+instance Destroyable Icon where
+  destroy   = destroy . toGUIObject
 
 instance HasBitMap Icon where
-        bitmap s icon   = setBitMapHandle icon "iconbitmap" (toBitMap s) False
-        getBitMap icon  = getBitMapHandle icon "iconbitmap"
+  bitmap s icon   = setBitMapHandle icon "iconbitmap" (toBitMap s) False
+  getBitMap icon  = getBitMapHandle icon "iconbitmap"
 
 instance GUIValue v => HasText Icon v where
-        text s icon  = cset icon "iconname" s
-        getText icon = cget icon "iconname"
+  text s icon  = cset icon "iconname" s
+  getText icon = cget icon "iconname"
 
 instance HasPosition Icon where
-        position p icon = cset icon "iconposition" p
-        getPosition icon = tkcget icon "iconposition"
+  position p icon = cset icon "iconposition" p
+  getPosition icon = tkcget icon "iconposition"
 
 instance Synchronized Icon where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize w = synchronize (toGUIObject w)
                                         
 
--- --------------------------------------------------------------------------
--- Config Options 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- config options
+-- -----------------------------------------------------------------------
+
 iconMask :: BitMapDesignator h => h -> Config Icon
 iconMask s icon =  setBitMapHandle icon "iconmask" (toBitMap s) False
 

@@ -17,7 +17,7 @@ module Bell (
         
         ) where
 
-import Concurrency
+--import Concurrency
 import GUICore
 import Debug(debug)
 

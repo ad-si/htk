@@ -7,13 +7,15 @@ SRCS       = \
 	 Grep.hs\
 	 HolCSP.hs\
 	 HolZ.hs\
-	 HugsIntrp.hs\
-	 Hugs.hs\
 	 Latex.hs\
 	 Moby.hs\
 	 Tas.hs\
 	 TextEdit.hs\
 	 XDvi.hs\
+
+#	 HugsIntrp.hs\
+#	 Hugs.hs\
+
 
 SUBDIRS = test
 

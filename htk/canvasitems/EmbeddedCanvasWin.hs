@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : EmbeddedCanvasWin
 AUTHOR        : Einar Karlsen,  
@@ -8,85 +8,83 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Canvas Embedded Windows
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module EmbeddedCanvasWin (
-        module CanvasItem,
 
-        EmbeddedCanvasWin,
-        newEmbeddedCanvasWin 
-        ) where
+  module CanvasItem,
 
-import Concurrency
-import GUICore
+  EmbeddedCanvasWin,
+  createEmbeddedCanvasWin 
+
+) where
+
+import Core
+import BaseClasses
+import Configuration
 import CanvasItem
 import CanvasTag
 import CanvasItemAux
-import Debug(debug)
+import Computation
+import Synchronized
+import Destructible
+import ReferenceVariables
 
 
--- --------------------------------------------------------------------------
--- Embedded Window
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- embedded window
+-- -----------------------------------------------------------------------
 
 newtype EmbeddedCanvasWin = EmbeddedCanvasWin GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Construction
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- construction
+-- -----------------------------------------------------------------------
 
-newEmbeddedCanvasWin :: Widget w => w -> [Config EmbeddedCanvasWin] -> 
-                        IO EmbeddedCanvasWin 
-newEmbeddedCanvasWin w ol = do {
-        wid <- createGUIObject 
-                        (CANVASITEM EMBEDDEDCANVASWIN []) canvasitemMethods;
-        makeChildObject wid (toGUIObject w);
-        ewin <- return (EmbeddedCanvasWin wid);
-        configure ewin ((coord (defaultCoord ewin)) :ol);
-}
+createEmbeddedCanvasWin :: Widget w => Canvas -> w ->
+                                       [Config EmbeddedCanvasWin] ->
+                                       IO EmbeddedCanvasWin 
+createEmbeddedCanvasWin cnv w ol =
+  do
+    cit <- createCanvasItem cnv EMBEDDEDCANVASWIN EmbeddedCanvasWin ol
+                            [(0,0)]
+    let (GUIOBJECT _ ostref) = toGUIObject w
+    nm <- withRef ostref objectname
+    cset cit "window" (show nm)
 
 
--- --------------------------------------------------------------------------
--- Instances
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance GUIObject EmbeddedCanvasWin where 
-        toGUIObject (EmbeddedCanvasWin w) = w
-        cname _         = "EmbeddedCanvasWin"
+  toGUIObject (EmbeddedCanvasWin w) = w
+  cname _         = "EmbeddedCanvasWin"
 
-instance Destructible EmbeddedCanvasWin where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+instance Destroyable EmbeddedCanvasWin where
+  destroy   = destroy . toGUIObject
 
-instance Interactive EmbeddedCanvasWin
-
-instance CanvasItem EmbeddedCanvasWin where 
-        defaultCoord w  = [(0,0)]
+instance CanvasItem EmbeddedCanvasWin
 
 instance TaggedCanvasItem EmbeddedCanvasWin
 
 instance HasPosition EmbeddedCanvasWin where
-        position        = itemPositionD2
-        getPosition     = getItemPositionD2
+  position = itemPositionD2
+  getPosition  = getItemPositionD2
 
 instance HasSize EmbeddedCanvasWin
 
 instance Widget EmbeddedCanvasWin where
-        cursor s w      = return w
-        getCursor w     = return cdefault
-        takeFocus b w   = return w
-        getTakeFocus w  = return cdefault
-        fill f w        = return w
-        expand b w      = return w
-        anchor a w      = cset w "anchor" a
-        getAnchor w     = cget w "anchor"
+  cursor s w      = return w
+  getCursor w     = return cdefault
+  takeFocus b w   = return w
+  getTakeFocus w  = return cdefault
 
 instance Synchronized EmbeddedCanvasWin where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize w = synchronize (toGUIObject w)
 
-
-
-
+instance HasCanvAnchor EmbeddedCanvasWin where
+  canvAnchor a w = cset w "anchor" a
+  getCanvAnchor w = cget w "anchor"

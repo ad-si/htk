@@ -1,57 +1,44 @@
-{- #########################################################################
-
-MODULE        : Resources
-
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1997
-VERSION       : alpha
-DESCRIPTION   : Misc. resource types of relevance for Haskell-Tk.
-
-
-   ######################################################################### -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Resources (
-        module Colour,
-        module Cursor,
-        module Font,
-        module GUIEvent,
-        module GUIValue,
-        module Geometry,
 
-        State(..),
-
-        Justify(..),
-
-        Relief(..),
-        
-        Anchor(..),
-
-        Toggle(..),
-        toggle,
-
-        Orientation(..),
-
-        Alignment(..)
+  State(..),
+  Justify(..),
+  Relief(..),
+  Anchor(..),
+  Toggle(..),
+  toggle,
+  Orientation(..),
+  Alignment(..),
+  CreationConfig,
+  Flexibility(..)
 
 ) where
 
-import Colour
-import Cursor
-import Font
-import Geometry
 import GUIValue
-import GUIEvent
 import Char
 import Dynamics
-import Debug(debug)
 
 
--- --------------------------------------------------------------------------
---  State 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+--  creation configs
+-- -----------------------------------------------------------------------
+
+type CreationConfig w = IO String
+
+
+-- -----------------------------------------------------------------------
+-- state
+-- -----------------------------------------------------------------------
 
 data State = Disabled | Active | Normal deriving (Eq,Ord,Enum)
  
@@ -75,10 +62,9 @@ instance Show State where
         ) ++ r
 
 
-
--- --------------------------------------------------------------------------
---  Justify 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Justify
+-- -----------------------------------------------------------------------
 
 data Justify = JustLeft | JustCenter | JustRight deriving (Eq,Ord,Enum)
 
@@ -94,22 +80,22 @@ instance Read Justify where
         _ -> []
 
 instance Show Justify where
-   showsPrec d p r = 
-      (case p of 
-        JustLeft -> "left"
-        JustCenter -> "center"
-        JustRight -> "right"
-        ) ++ r
+  showsPrec d p r = 
+    (case p of 
+       JustLeft -> "left"
+       JustCenter -> "center"
+       JustRight -> "right") ++ r
 
 
--- --------------------------------------------------------------------------
---  Relief 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- relief
+-- -----------------------------------------------------------------------
 
-data Relief = Groove | Ridge | Flat | Sunken | Raised deriving (Eq,Ord,Enum)
+data Relief =
+  Groove | Ridge | Flat | Sunken | Raised deriving (Eq,Ord,Enum)
 
 instance GUIValue Relief where
-        cdefault = Flat
+  cdefault = Flat
 
 instance Read Relief where
    readsPrec p b =
@@ -122,108 +108,110 @@ instance Read Relief where
         _ -> []
 
 instance Show Relief where
-   showsPrec d p r = 
-      (case p of 
-        Groove -> "groove"
-        Ridge -> "ridge"
-        Flat -> "flat"
-        Sunken -> "sunken"
-        Raised -> "raised"
-        ) ++ r
+  showsPrec d p r = 
+    (case p of 
+       Groove -> "groove"
+       Ridge -> "ridge"
+       Flat -> "flat"
+       Sunken -> "sunken"
+       Raised -> "raised") ++ r
 
 
--- --------------------------------------------------------------------------
---  Orientation 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Orientation
+-- -----------------------------------------------------------------------
 
 data Orientation = Horizontal | Vertical deriving (Eq,Ord,Enum)
 
 instance GUIValue Orientation where
-        cdefault = Horizontal
+  cdefault = Horizontal
 
 instance Read Orientation where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        'h':'o':'r':'i':'z':'o':'n':'t':'a':'l':xs -> [(Horizontal,xs)]
-        'v':'e':'r':'t':'i':'c':'a':'l':xs -> [(Vertical,xs)]
-        _ -> []
+  readsPrec p b =
+    case dropWhile (isSpace) b of
+      'h':'o':'r':'i':'z':'o':'n':'t':'a':'l':xs -> [(Horizontal,xs)]
+      'v':'e':'r':'t':'i':'c':'a':'l':xs -> [(Vertical,xs)]
+      _ -> []
  
 instance Show Orientation where
-   showsPrec d p r = 
-      (case p of 
-        Horizontal -> "horizontal"
-        Vertical -> "vertical"
-        ) ++ r
+  showsPrec d p r = 
+    (case p of 
+       Horizontal -> "horizontal"
+       Vertical -> "vertical") ++ r
 
 
--- --------------------------------------------------------------------------
---  Toggle 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- Toggle
+-- -----------------------------------------------------------------------
 
 data Toggle = Off | On deriving (Eq,Ord)
 
 instance GUIValue Toggle where
-        cdefault = Off
+  cdefault = Off
 
 instance Read Toggle where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        '0':xs -> [(Off,xs)]
-        '1':xs -> [(On,xs)]
-        _ -> []
+  readsPrec p b =
+    case dropWhile (isSpace) b of
+      '0':xs -> [(Off,xs)]
+      '1':xs -> [(On,xs)]
+      _ -> []
 
 instance Show Toggle where
-   showsPrec d p r = 
-      (case p of 
-        Off -> "0" 
-        On -> "1"
-        ) ++ r
-
+  showsPrec d p r = 
+    (case p of 
+       Off -> "0" 
+       On -> "1") ++ r
 
 toggleT :: TyCon 
 toggleT = mkTyCon "Resources" "Toggle"
 
 instance Typeable Toggle where
-        typeOf _ = mkTypeTag toggleT []
-
+  typeOf _ = mkTypeTag toggleT []
 
 toggle :: Toggle -> Toggle
 toggle On = Off
 toggle Off = On
 
+-- -----------------------------------------------------------------------
+-- Flexibility
+-- -----------------------------------------------------------------------
 
--- --------------------------------------------------------------------------
---  Alignment 
--- --------------------------------------------------------------------------
+data Flexibility = Rigid | Flexible
+
+
+-- -----------------------------------------------------------------------
+-- Alignment 
+-- -----------------------------------------------------------------------
 
 data Alignment = Top | InCenter | Bottom | Baseline deriving (Eq,Ord,Enum)
 
 instance GUIValue Alignment where
-        cdefault = Top                                  -- Check
+  cdefault = Top                                  -- Check
 
 instance Read Alignment where
-   readsPrec p b =
-     case dropWhile (isSpace) b of
-        'c':'e':'n':'t':'e':'r':xs -> [(InCenter,xs)]
-        't':'o':'p': xs -> [(Top,xs)]
-        'b':'o':'t':'t':'o':'m':xs -> [(Bottom,xs)]
-        'b':'a':'s':'e':'l':'i':'n':'e':xs -> [(Baseline,xs)]
-        _ -> []
+  readsPrec p b =
+    case dropWhile (isSpace) b of
+      'c':'e':'n':'t':'e':'r':xs -> [(InCenter,xs)]
+      't':'o':'p': xs -> [(Top,xs)]
+      'b':'o':'t':'t':'o':'m':xs -> [(Bottom,xs)]
+      'b':'a':'s':'e':'l':'i':'n':'e':xs -> [(Baseline,xs)]
+      _ -> []
 
 instance Show Alignment where
-   showsPrec d p r = 
-      (case p of 
-        Top -> "top"
-        InCenter -> "center"
-        Bottom -> "bottom"
-        Baseline -> "baseline"
-        ) ++ r
+  showsPrec d p r = 
+    (case p of 
+       Top -> "top"
+       InCenter -> "center"
+       Bottom -> "bottom"
+       Baseline -> "baseline") ++ r
 
--- --------------------------------------------------------------------------
---  Anchor 
--- --------------------------------------------------------------------------
 
-data Anchor = SouthEast 
+-- -----------------------------------------------------------------------
+-- Anchor
+-- -----------------------------------------------------------------------
+
+data Anchor =
+          SouthEast 
         | South 
         | SouthWest  
         | East 
@@ -233,7 +221,6 @@ data Anchor = SouthEast
         | North 
         | NorthWest
         deriving (Eq,Ord,Enum)
-
 
 instance GUIValue Anchor where
         cdefault = Center
@@ -265,5 +252,3 @@ instance Show Anchor where
          North -> "n" 
          NorthWest -> "nw"
         ) ++ r
-
-

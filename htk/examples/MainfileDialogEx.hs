@@ -1,48 +1,41 @@
-{- ------------------------------------------------------------------------
+{- -----------------------------------------------------------------------
  -
  - File dialog example
  -
  - Author: ludi
  - $Revision$ from $Date$  
  -
- - ------------------------------------------------------------------------ -}
+ - -------------------------------------------------------------------- -}
 
 module Main (main) where
 
 import HTk
-import Button
-import Label
 import FileDialog
 import System
 
 main :: IO ()
 main =
   do
+    args <- getArgs
     homedir <- getEnv "HOME"
-    tk <- htk []
-    main <- newVFBox []
-    win <- window main [text "file dialog example"]
-    open <- newButton [pad Horizontal 10, pad Vertical 5, parent main,
-                       text "Open file dialog", width 60]
-    openModal <- newButton [pad Horizontal 10, pad Vertical 5, parent main,
-                            text "Open modal file dialog"]
-    msg <- newLabel [pad Horizontal 10, pad Vertical 5, value "Welcome",
-                     font (Lucida, 12::Int), relief Sunken, bg "white",
-                     height 2, parent main]
-    quit <- newButton [pad Horizontal 10, pad Vertical 5, parent main,
-                       text "Quit", command (\ () -> destroy win)]
-    open # command (\ () -> do
-                              fd <- fileDialog "Open file" homedir
-                              interactor
-                                (\i -> fileChosen fd >>>=
-                                         \mfp ->
-                                           case mfp of
-                                             Just fp ->
-                                               msg # value ("selected " ++
-                                                              fp) >> done
-                                             _ -> msg # value
-                                                          "dialog canceled" >>
-                                                        done))
-    interactor (\i -> triggered open +> triggered quit)
-    sync (destroyed win)
-    destroy tk
+    let dir = case args of a:_ -> a; [] -> homedir
+    main <- initHTk [text "file dialog example"]
+    open <- newButton main [text ("Open file dialog ("++ dir++ ")"),
+		            width 60] :: IO (Button String)
+    pack open [PadX 10, PadY 5]
+    msg <- newLabel main [text "Welcome", font (Lucida, 12::Int),
+                          height 2, relief Sunken, bg "white"]
+    pack msg [PadX 10, PadY 5, Fill X, Expand On]
+    quit <- newButton main [text "Quit"]
+              :: IO (Button String)
+    pack quit [PadX 10, PadY 5, Fill X, Expand On]
+    clickedquit <- clicked quit
+    clickedopen <- clicked open
+    spawnEvent (forever (clickedquit >> always (destroy main)))
+    spawnEvent (forever (clickedopen >>>
+                      do selev <- fileDialog "Open file" dir
+			 file  <- sync selev
+			 case file of Just fp ->msg # text ("selected " ++ fp)
+                                      _ -> msg # text "dialog canceled"))
+    (win_destr, _) <- bindSimple main Destroy
+    sync win_destr

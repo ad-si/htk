@@ -1,1 +1,0 @@
-hdoc -e -d doc -i.:resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:filebrowser toplevel/HTk.hs toplevel/GUIIntrinsics.hs

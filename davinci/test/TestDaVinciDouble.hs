@@ -1,11 +1,15 @@
 {- Runs GraphDispTest using DaVinci -}
 module Main(main) where
 
-import GraphDispTest
-import DaVinciGraphDisp
-import SIM(shutdown)
 import Concurrent
+
 import WBFiles(parseArguments)
+
+import InfoBus(shutdown)
+
+import GraphDispTest
+
+import DaVinciGraph
 
 main = 
    do

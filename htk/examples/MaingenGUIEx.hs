@@ -10,58 +10,49 @@
 module Main (main) where
 
 import HTk
-import Button
-import Entry
-import Label
-import Image
-import OptionMenu
 import Property
 import GenGUI
-import FileDialog
+--import FileDialog
 import Name
-import RVar
+import ReferenceVariables
 import System
 import IOExts
 import Dynamic
 
-foldref :: RVar (Maybe Item)
-foldref = unsafePerformIO (newRVar Nothing)
+foldref :: Ref (Maybe Item)
+foldref = unsafePerformIO (newRef Nothing)
 
-imgpathref :: RVar (Maybe FilePath)
+imgpathref :: Ref (Maybe FilePath)
 imgpathref =
-  unsafePerformIO (newRVar Nothing)
+  unsafePerformIO (newRef Nothing)
 
-lastactiveref :: RVar (Button ())
-lastactiveref = unsafePerformIO (newRVar (unsafePerformIO (newButton [])))
+lastactiveref :: Ref (Button ())
+lastactiveref = unsafePerformIO (newRef (unsafePerformIO
+                                           (newButton NONE [])))
 
-imgref :: RVar (IO Image)
-imgref = unsafePerformIO (newRVar folderImg)
+imgref :: Ref (IO Image)
+imgref = unsafePerformIO (newRef folderImg)
 
 instance Typeable Image where
-  typeOf i = typeOf ()           -- ??
-
-{-
-instance HasTyCon Image where
-  tyCon i = mkTyCon "Image"
--}
+  typeOf i = typeOf ()
 
 
 -------------
 -- folders --
 -------------
 
-data Container = Container (Prop Name) (Prop ItemIcon) (Prop Value)
+data MyContainer = MyContainer (Prop Name) (Prop ItemIcon) (Prop Value)
 
-instance HasProp Container Name where
-  getProp (Container p _ _) = p
+instance HasProp MyContainer Name where
+  getProp (MyContainer p _ _) = p
 
-instance HasProp Container ItemIcon where
-  getProp (Container _ p _) = p
+instance HasProp MyContainer ItemIcon where
+  getProp (MyContainer _ p _) = p
 
-instance HasProp Container Value where
-  getProp (Container _ _ p) = p
+instance HasProp MyContainer Value where
+  getProp (MyContainer _ _ p) = p
 
-instance CItem Container
+instance CItem MyContainer
 
 
 -----------------
@@ -98,7 +89,7 @@ addNum nm ent = putStrLn ("not yet implemented")
 addTxt :: String -> String -> IO ()
 addTxt nm ent =
   do
-    mpar <- getVar foldref
+    mpar <- getRef foldref
     case mpar of
       Just par -> do
                     pname <- newProp (newName nm)
@@ -111,7 +102,7 @@ addTxt nm ent =
 addCol :: String -> String -> IO ()
 addCol nm ent =
   do
-    mpar <- getVar foldref 
+    mpar <- getRef foldref 
     case mpar of
       Just par -> 
         do
@@ -132,12 +123,12 @@ addCol nm ent =
 addImg :: String -> Maybe FilePath -> IO ()
 addImg nm mimgpath =
   do
-    mpar <- getVar foldref
+    mpar <- getRef foldref
     case mpar of
       Just par ->
         case mimgpath of
           Just imgpath -> do
-                            let img = newImage [filename imgpath]
+                            let img = newImage NONE [filename imgpath]
                             pval <- newProp (toDyn img)
                             pname <- newProp (newName nm)
                             picon <- newProp imgImg
@@ -150,15 +141,15 @@ addImg nm mimgpath =
 addFolder :: String -> IO ()
 addFolder nm =
   do
-    mpar <- getVar foldref
+    mpar <- getRef foldref
     case mpar of
       Just par ->
         do
           pval <- newProp (toDyn nm)
           pname <- newProp (newName nm)
-          img <- getVar imgref
+          img <- getRef imgref
           picon <- newProp img
-          addItem par (FolderItem (Container pname picon pval) [])
+          addItem par (FolderItem (MyContainer pname picon pval) [])
           done
       _ -> done
 
@@ -186,7 +177,7 @@ addExampleFolders gui =
           picon <- newProp icon
           items <- mapM (mkImgItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon pval) items)
+          addItem par (FolderItem (MyContainer pname picon pval) items)
           done
 
       mkTxtItem :: String -> (Int, (String, ItemIcon)) -> IO NewItem
@@ -206,7 +197,7 @@ addExampleFolders gui =
           pval <- newProp (toDyn ())
           items <- mapM (mkTxtItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon pval) items)
+          addItem par (FolderItem (MyContainer pname picon pval) items)
           done
 
       mkNumItem :: String -> (Int, (Int, ItemIcon)) -> IO NewItem
@@ -226,7 +217,7 @@ addExampleFolders gui =
           pval <- newProp (toDyn ())
           items <- mapM (mkNumItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon pval) items)
+          addItem par (FolderItem (MyContainer pname picon pval) items)
           done
 
       mkColItem :: String -> (Int, (MyColor, ItemIcon)) -> IO NewItem
@@ -246,7 +237,7 @@ addExampleFolders gui =
           pval <- newProp (toDyn ())
           items <- mapM (mkColItem subnm) (zip [1..(length vals_icons)]
                                                vals_icons)
-          addItem par (FolderItem (Container pname picon pval) items)
+          addItem par (FolderItem (MyContainer pname picon pval) items)
           done
   in do
        guiroot <- root gui
@@ -258,7 +249,7 @@ addExampleFolders gui =
        picon1 <- newProp folderImg
        pval1 <- newProp (toDyn ())
        exfolder1 <- addItem guiroot
-                      (FolderItem (Container pname1 picon1 pval1) [])
+                      (FolderItem (MyContainer pname1 picon1 pval1) [])
        mapM (addTxtFolder guiroot "texts." txtfolderImg "text_item"
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
@@ -290,7 +281,7 @@ addExampleFolders gui =
                           (Blue, blueImg)]) [1..3]
        done
 
-
+{-
 chooseImageFile :: Button () -> IO ()
 chooseImageFile b =
   do
@@ -299,13 +290,15 @@ chooseImageFile b =
     interactor (\i -> fileChosen fd >>>= \mfp -> case mfp of
                                                    Just fp ->
                                                      b # text(short fp) >>
-                                                     setVar imgpathref
+                                                     setRef imgpathref
                                                             (Just fp)
                                                    _ -> done)
   where short :: String -> String
         short str =
           if length str > 20 then (".."  ++ drop (length str - 18) str)
           else str
+-}
+
 
 ----------
 -- init --
@@ -314,144 +307,203 @@ chooseImageFile b =
 main :: IO ()
 main =
   do
-    tk <- htk []
-    main <- newVFBox []
-    win <- window main [text "GenGUI example"]
-    gui <- newGenGUI
-    top <- newVFBox [pad Horizontal 5, pad Vertical 5, parent main]
-    newLabel [value "add items to selected folder:",
-              font (Helvetica, 12 :: Int), parent top]
-    foldlab <- newLabel [value "no folder selected", relief Sunken,
-                         fg "blue", pad Horizontal 10, parent top]
+    main <- initHTk [text "GenGUI example"]
 
-    boximg <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addimg <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
-                         text "add image item", width 28, parent boximg,
-                         command (\ () -> return ())]
-    imgentries <- newVBox [parent boximg]
-    imgnmbox <- newHBox [parent imgentries]
-    newLabel [value "name:", font (Helvetica, 12::Int), width 8,
-              parent imgnmbox]
+    gui <- newGenGUI
+
+    top <- newVFBox main []
+    pack top [PadX 5, PadY 5, Fill X, Expand On]
+
+    l <- newLabel top [text "add items to selected folder:",
+                       font (Helvetica, 12 :: Int)]
+    pack l [Fill X, Expand On]
+
+    foldlab <- newLabel top [text "no folder selected", relief Sunken,
+                             fg "blue"]
+    pack foldlab [PadX 10, Fill X, Expand On]
+
+{-
+    boximg <- newHFBox main []
+    pack boximg [PadX 10, PadY 10]
+
+    addimg <- newButton boximg [pad Vertical 5, pad Horizontal 5,
+                                height 3, text "add image item", width 28]
+                :: IO (Button String)
+    pack addimg
+
+    imgentries <- newVBox boximg []
+    pack imgentries []
+
+    imgnmbox <- newHBox []
+    pack imgnmbox []
+
+    l <- newLabel [text "name:", font (Helvetica, 12::Int), width 8]
+    pack l []
+
     imgnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
                        background "white", parent imgnmbox,
-                       value "(default)"] :: IO (Entry String)
+                       text "(default)"] :: IO (Entry String)
     imgvalbox <- newHBox [parent imgentries]
     imgbutton <- newButton [text "choose image", width 30,
                             parent imgvalbox, command (\ () -> return ())]
+                   :: IO (Button String)
+-}
 
-    boxtxt <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addtxt <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
-                         text "add text item", width 28, parent boxtxt,
-                         command (\ () -> return ())]
-    txtentries <- newVBox [parent boxtxt]
-    txtnmbox <- newHBox [parent txtentries]
-    newLabel [value "name:", font (Helvetica, 12::Int), width 8,
-              parent txtnmbox]
-    txtnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                       background "white", parent txtnmbox,
-                       value "(default)"]
-    txtvalbox <- newHBox [parent txtentries]
-    newLabel [value "content:", font (Helvetica, 12 :: Int),
-              width 8, parent txtvalbox]
-    txtval <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                        background "white", parent txtvalbox] :: IO (Entry String)
+    boxtxt <- newFrame main []
+    pack boxtxt [PadX 10, PadY 10, Fill X, Expand On]
+    addtxt <- newButton boxtxt [height 3, text "add text item", width 28]
+                :: IO (Button String)
+    pack addtxt [PadX 5, PadY 5, Side AtLeft]
 
+    txtentries <- newFrame boxtxt []
+    pack txtentries [Side AtRight]
+    txtnmbox <- newFrame txtentries []
+    pack txtnmbox []
+    lab <- newLabel txtnmbox [text "name:", font (Helvetica, 12::Int),
+                              width 8]
+    pack lab [Side AtLeft]
+    txtnm_var <- createTkVariable "(default)"
+    txtnm <- newEntry txtnmbox [width 30, background "white",
+                                variable txtnm_var] :: IO (Entry String)
+    pack txtnm [PadX 5, PadY 5, Side AtRight]
+
+    txtvalbox <- newFrame txtentries []
+    pack txtvalbox []
+    lab <- newLabel txtvalbox [text "content:",
+                               font (Helvetica, 12 :: Int), width 8]
+    pack lab [Side AtLeft]
+    txtval_var <- createTkVariable ""
+    txtval <- newEntry txtvalbox [width 30, variable txtval_var,
+                                  background "white"] :: IO (Entry String)
+    pack txtval [PadX 5, PadY 5, Side AtRight]
+    clickedaddtxt <- clicked addtxt
+    spawnEvent (forever (clickedaddtxt >>
+                         always (do
+                                   nm <- readTkVariable txtnm_var
+                                   val <- readTkVariable txtval_var
+                                   addTxt nm val
+                                   done)))
+
+{-
     boxnum <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
     addnum <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
                          text "add number item", width 28, parent boxnum,
                          command (\ () -> return ())]
+                :: IO (Button String)
     numentries <- newVBox [parent boxnum]
     numnmbox <- newHBox [parent numentries]
-    newLabel [value "name:", font (Helvetica, 12 :: Int), width 8,
+    newLabel [text "name:", font (Helvetica, 12 :: Int), width 8,
               parent numnmbox]
     numnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
                        background "white", parent numnmbox,
-                       value "(default)"]
+                       text "(default)"]
     numvalbox <- newHBox [parent numentries]
-    newLabel [value "value:", font (Helvetica, 12 :: Int), width 8,
+    newLabel [text "value:", font (Helvetica, 12 :: Int), width 8,
               parent numvalbox]
     numval <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
                         background "white", parent numvalbox] :: IO (Entry String)
+-}
 
-    boxcol <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
-    addcol <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
-                         text "add color item", width 28, parent boxcol,
-                         command (\ () -> return ())]
-    colentries <- newVBox [parent boxcol]
-    colnmbox <- newHBox [parent colentries]
-    newLabel [value "name:", font (Helvetica, 12 :: Int), width 8,
-              parent colnmbox]
-    colnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
-                       background "white", parent colnmbox,
-                       value "(default)"] :: IO (Entry String)
-    colmenu <- newOptionMenu ["Red", "Green", "Blue", "Yellow"]
-                             [width 20, parent colentries]
-
+    boxcol <- newFrame main []
+    pack boxcol [PadX 10, PadY 10, Fill X, Expand On]
+    addcol <- newButton boxcol [height 3, text "add color item", width 28]
+                :: IO (Button String)
+    pack addcol [PadX 10, PadY 10, Side AtLeft]
+    colentries <- newFrame boxcol []
+    pack colentries [Side AtRight]
+    colnmbox <- newFrame colentries []
+    pack colnmbox []
+    lab <- newLabel colnmbox [text "name:", font (Helvetica, 12 :: Int),
+                              width 8]
+    pack lab [Side AtLeft]
+    colnm_var <- createTkVariable "(default)"
+    colnm <- newEntry colnmbox [width 30, background "white",
+                                variable colnm_var] :: IO (Entry String)
+    pack colnm [PadX 5, PadY 5, Side AtRight]
+    colmenu <- newOptionMenu colentries ["Red", "Green", "Blue", "Yellow"]
+                                        [width 20]
+    pack colmenu []
+    clickedaddcol <- clicked addcol
+    spawnEvent (forever (clickedaddcol >>
+                         always (do
+                                   nm <- readTkVariable colnm_var
+                                   val <- getValue colmenu
+                                   addCol nm val)))
+{-
     boxfold <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
     addfold <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
                           text "add folder", width 28,
                           parent boxfold,
                           command (\ () -> return ())]
+                :: IO (Button String)
     foldentries <- newVBox [parent boxfold]
     foldnmbox <- newHBox [parent foldentries]
-    newLabel [value "name:", font (Helvetica, 12 :: Int), width 8,
+    newLabel [text "name:", font (Helvetica, 12 :: Int), width 8,
               parent foldnmbox]
     foldnm <- newEntry [pad Vertical 5, pad Horizontal 5, width 30,
                         background "white", parent foldnmbox,
-                        value "(default)"] :: IO (Entry String)
+                        text "(default)"] :: IO (Entry String)
     foldimgbox <- newHBox [parent foldentries]
     folderImg' <- folderImg
     standardfoldimg <- newButton [size (18, 18),
                                   pad Horizontal 3, photo folderImg',
                                   parent foldimgbox,
                                   command (\ () -> return ())]
-    setVar lastactiveref standardfoldimg
+                         :: IO (Button String)
+    setRef lastactiveref standardfoldimg
     imgfolderImg' <- imgfolderImg
     imgfoldimg <- newButton [size (18, 18),
                              pad Horizontal 3, relief Sunken,
                              photo imgfolderImg', parent foldimgbox,
                              command (\ () -> return ())]
+                    :: IO (Button String)
     txtfolderImg' <- txtfolderImg
     txtfoldimg <- newButton [size (18, 18),
                              pad Horizontal 3, relief Sunken,
                              photo txtfolderImg', parent foldimgbox,
                              command (\ () -> return ())]
+                    :: IO (Button String)
     colorfolderImg' <- colorfolderImg
     colfoldimg <- newButton [size (18, 18),
                              pad Horizontal 3, relief Sunken,
                              photo colorfolderImg', parent foldimgbox,
                              command (\ () -> return ())]
+                    :: IO (Button String)
     numfolderImg' <- numfolderImg
     numfoldimg <- newButton [size (18, 18),
                              pad Horizontal 3, relief Sunken,
                              photo numfolderImg', parent foldimgbox,
                              command (\ () -> return ())]
-    quit <- newButton [pad Vertical 5, pad Horizontal 10, text "Quit",
-                       parent main, command (\ () -> return ())]
-
+                    :: IO (Button String)
+-}
+    quit <- newButton main [text "Quit"]  :: IO (Button String)
+    pack quit [PadX 10, PadY 5, Fill X, Expand On]
+    clickedquit <- clicked quit
+    spawnEvent (forever (clickedquit >> always (destroy main)))
+{-
     interactor (\i -> (triggered addimg >>> do
-                                              nm <- getValue imgnm
-                                              val <- getVar imgpathref
+                                              nm <- getText imgnm
+                                              val <- getRef imgpathref
                                               addImg nm val) +>
                       (triggered addtxt >>> do
-                                              nm <- getValue txtnm
-                                              val <- getValue txtval
+                                              nm <- getText txtnm
+                                              val <- getText txtval
                                               addTxt nm val
                                               done) +>
                       (triggered addnum >>> do
-                                              nm <- getValue numnm
-                                              --val <- getValue numval
+                                              nm <- getText numnm
+                                              --val <- getText numval
                                               {-addNum nm val-}
                                               done) +>
                       (triggered addcol >>> do
-                                              nm <- getValue colnm
-                                              val <- getValue colmenu
+                                              nm <- getText colnm
+                                              val <- getText colmenu
                                               addCol nm val
                                               done) +>
                       (triggered imgbutton >>> chooseImageFile
                                                  imgbutton) +>
                       (triggered addfold >>> do
-                                               nm <- getValue foldnm
+                                               nm <- getText foldnm
                                                addFolder nm
                                                done) +>
                       (triggered standardfoldimg >>>
@@ -468,33 +520,38 @@ main =
                       (selectedItemInTreeList gui >>>=
                          selectedTl foldlab) +>
                       (doubleClickInNotepad gui >>>= doubleClickNp))
+-}
+    spawnEvent (forever ((receive (selectedItemInTreeList gui) >>>=
+                            selectedTl foldlab) +>
+                         (receive (doubleClickInNotepad gui) >>>=
+                            doubleClickNp)))
     addExampleFolders gui
-    sync (destroyed win)
-    destroy tk
+    (htk_destr, _) <- bindSimple main Destroy
+    sync (htk_destr)
 
 imgSelected :: Button () -> IO Image -> IO ()
 imgSelected but img =
   do
-    but' <- getVar lastactiveref
+    but' <- getRef lastactiveref
     if but' == but then done else
       do
         but' # relief Sunken
         but # relief Raised
-        setVar lastactiveref but
-        setVar imgref img
+        setRef lastactiveref but
+        setRef imgref img
 
 selectedTl :: Label String -> Maybe Item -> IO ()
 selectedTl foldlab mitem =
   case mitem of
-    Nothing -> foldlab # value "no folder selected" >> done
+    Nothing -> foldlab # text "no folder selected" >> done
     Just item -> let newitem = content item
                  in case newitem of
                       FolderItem ext _ ->
                         do
                           nm <- get ext
-                          foldlab # value ("'" ++ full nm ++ "'")
-                          setVar foldref (Just item)
-                      _ -> setVar foldref Nothing
+                          foldlab # text ("'" ++ full nm ++ "'")
+                          setRef foldref (Just item)
+                      _ -> setRef foldref Nothing
 
 doubleClickNp :: Item -> IO ()
 doubleClickNp item =
@@ -505,69 +562,80 @@ doubleClickNp item =
            val <- get ext :: IO Dynamic
            case fromDynamic val :: Maybe (IO Image) of
              Just ioimg -> do
-                             main <- newVBox []
-                             win <- window main [text "Image"]
+                             main <- createToplevel [text "Image"]
                              img <- ioimg
-                             newLabel [photo img, parent main] ::
-                               IO (Label Image)
-                             quit <- newButton
-                                       [text "Close", parent main,
-                                        command (\ () -> return ())]
-                             interactor (\i -> triggered quit >>>
-                                                 destroy win)
+                             lab <- newLabel main [photo img] ::
+                                      IO (Label Image)
+                             pack lab []
+                             quit <- newButton main [text "Close"]
+                                       :: IO (Button String)
+                             pack quit []
+                             clickedquit <- clicked quit
+                             spawnEvent (forever (clickedquit >>
+                                                  always (destroy main)))
+                             done
              _ -> done
            case fromDynamic val :: Maybe String of
              Just str -> do
-                           main <- newVBox []
-                           win <- window main [text "Text"]
-                           newLabel [value ("     " ++ str ++ "     "),
-                                     parent main, height 5,
-                                     relief Sunken,
+                           main <- createToplevel [text "Text"]
+                           lab <- newLabel main
+                                    [text ("     " ++ str ++ "     "),
+                                     height 5, relief Sunken,
                                      font (Helvetica, 12 :: Int)] ::
-                             IO (Label String)
-                           quit <- newButton
-                                     [text "Close", parent main,
-                                      command (\ () -> return ())]
-                           interactor (\i -> triggered quit >>>
-                                               destroy win)
+                                  IO (Label String)
+                           pack lab []
+                           quit <- newButton main [text "Close"]
+                                     :: IO (Button String)
+                           pack quit []
+                           clickedquit <- clicked quit
+                           spawnEvent (forever (clickedquit >>
+                                                always (destroy main)))
+                           done
              _ -> done
            case fromDynamic val :: Maybe MyColor of
              Just mycolor -> do
-                               main <- newVBox []
-                               win <- window main [text "Color"]
-                               newLabel [parent main,
-                                         relief Sunken, size (20,8),
+                               main <- createToplevel [text "Color"]
+                               lab <- newLabel main
+                                        [relief Sunken, size (20,8),
                                          font (Helvetica, 18 :: Int),
                                          bg (case mycolor of
                                                Red -> "red"
                                                Green -> "green"
                                                Blue -> "blue"
                                                Yellow -> "yellow"),
-                                         value (case mycolor of
+                                         text (case mycolor of
                                                   Red -> "Red"
                                                   Green -> "Green"
                                                   Blue -> "Blue"
                                                   Yellow -> "Yellow")]
-                                 :: IO (Label String)
-                               quit <- newButton
-                                         [text "Close", parent main,
-                                          command (\ () -> return ())]
-                               interactor (\i -> triggered quit >>>
-                                                   destroy win)
+                                        :: IO (Label String)
+                               pack lab []
+                               quit <- newButton main [text "Close"]
+                                         :: IO (Button String)
+                               pack quit []
+                               clickedquit <- clicked quit
+                               spawnEvent
+                                 (forever (clickedquit >>
+                                           always (destroy main)))
+                               done
+
              _ -> done
            case fromDynamic val :: Maybe Int of
              Just n -> do
-                         main <- newVBox []
-                         win <- window main [text "Number"]
-                         newLabel [value (show n), relief Sunken,
+                         main <- createToplevel [text "Number"]
+                         lab <- newLabel main
+                                  [text (show n), relief Sunken,
                                    size (20,8),
-                                   font (Helvetica, 18 :: Int),
-                                   parent main] ::
-                           IO (Label String)
-                         quit <- newButton [text "Close", parent main,
-                                            command (\ () -> return ())]
-                         interactor (\i -> triggered quit >>>
-                                             destroy win)
+                                   font (Helvetica, 18 :: Int)] ::
+                                IO (Label String)
+                         pack lab []
+                         quit <- newButton main [text "Close"]
+                                   :: IO (Button String)
+                         pack quit []
+                         clickedquit <- clicked quit
+                         spawnEvent (forever (clickedquit >>
+                                              always (destroy main)))
+                         done
              _ -> done
        _ -> done
 
@@ -576,59 +644,59 @@ doubleClickNp item =
 -- images --
 ------------
 
-yellowImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAOfkFuTgHOHdId3aJtrXLNbTMdPQNtDNPMzKQcnGRsXDS8LAUb+9Vru5W7i2
+yellowImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAOfkFuTgHOHdId3aJtrXLNbTMdPQNtDNPMzKQcnGRsXDS8LAUb+9Vru5W7i2
 YbSzZrGva62scKqpdqeme6OigKCfhpyci5aWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-greenImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAAD/IQb6Jgz2KxLxMBntNR/pOiXkPyvgQzLcSDjXTT7TUkTOV0vKXFHGYFfB
+greenImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAAD/IQb6Jgz2KxLxMBntNR/pOiXkPyvgQzLcSDjXTT7TUkTOV0vKXFHGYFfB
 ZV29amS4b2q0dHCweXarfX2ngoOjh4mejJaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-blueImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAAA//wZC+gxG9hJJ8RlN7R9R6SVU5CtY4DJc3Dhf1z5j00RmzktqylFuxldx
+blueImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAAA//wZC+gxG9hJJ8RlN7R9R6SVU5CtY4DJc3Dhf1z5j00RmzktqylFuxldx
 wV11vWR5uGp8tHCAsHaDq32Hp4OLo4mOnpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-redImg = newImage [imgData GIF "R0lGODlhDAAMAIQAAP8UAPoaBvYfDPElEu0qGekvH+Q1JeA6K9xAMtdFONNKPs5QRMpVS8ZaUcFg
+redImg = newImage NONE [imgData GIF "R0lGODlhDAAMAIQAAP8UAPoaBvYfDPElEu0qGekvH+Q1JeA6K9xAMtdFONNKPs5QRMpVS8ZaUcFg
 V71lXbhrZLRwarB1cKt7dqeAfaOFg56LiZaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWliH+FUNy
 ZWF0ZWQgd2l0aCBUaGUgR0lNUAAh+QQBCgAfACwAAAAADAAMAAAFPyAQCANRGAeSKMtYnum6MKSJ
 qizTvLesO7ZYruF4wHAz4gPSGxYhEWHyGZEgf8vqxKeESiYUZ/ZLqUzH4IolBAA7"]
 
-txtImg = newImage [imgData GIF "R0lGODlhDAAMAKEAAAAAAP///9jY2NjY2CH5BAEKAAIALAAAAAAMAAwAAAIjlIEJduEflgAwxUXh
+txtImg = newImage NONE [imgData GIF "R0lGODlhDAAMAKEAAAAAAP///9jY2NjY2CH5BAEKAAIALAAAAAAMAAwAAAIjlIEJduEflgAwxUXh
 Q/Pa22kORyEemIlk5JWYOErKLE00UgAAOw=="]
 
-numImg = newImage [imgData GIF "R0lGODlhDAAMAKUAAP////v7+/j4+PX19fHx8e7u7uvr6+jo6OXl5eHh4d7e3tvb2/ba2vWgoPOe
+numImg = newImage NONE [imgData GIF "R0lGODlhDAAMAKUAAP////v7+/j4+PX19fHx8e7u7uvr6+jo6OXl5eHh4d7e3tvb2/ba2vWgoPOe
 nvGcnOTIyOWtrfw2Nvs1Nf8AAO21teuWlvRKSv03N/LW1vkzM/vf3/tRUfdNTfNmZumUlPynp/sZ
 GfVLS/e/v/KBge59feKqqv0bG/S8vPOCguqysu5hYfjc3PptbflPT+rOzueSktjY2NjY2NjY2NjY
 2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2CH5BAEKAD8ALAAAAAAMAAwAAAZlQEBA
 MCAUDAdEQrEQChgNxyMJiTSHkomDUkFYLleMJHPUIChgwIbCMRo6HsqnCaIUjwdKyAqo35EUIkx9
 FCNuJBQlg3VtRx2BCiZCFCcoBSkUKiEXK0IsLScuFC9eFDBOf0lLC0EAOw=="]
 
-imgImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAHq86Oz8FP///wAAAHqk/yrMS1XRYP///yH+FUNyZWF0ZWQgd2l0aCBUaGUg
+imgImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAHq86Oz8FP///wAAAHqk/yrMS1XRYP///yH+FUNyZWF0ZWQgd2l0aCBUaGUg
 R0lNUAAh+QQBCgAHACwAAAAADAAMAAADL3i6vPAwKhjimyBoIQ8YBCEI4nUMYCiAZlGgMNEWRl0P
 ra3jiuvqhkHPR3Q1jooEADs="]
 
-folderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAAP///////////////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
+folderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAAP///////////////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
 R0lNUAAh+QQBCgAEACwAAAAADAAMAEADLUi6vCAihDjBIA9qaBWYAtBgkESFF6Cu7OWpI3myXlSW
 3QPueTmZHcJgSCwmAAA7"]
 
-imgfolderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgHqk/+z8FP///wAAAFXRYP///////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
+imgfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgHqk/+z8FP///wAAAFXRYP///////yH+FUNyZWF0ZWQgd2l0aCBUaGUg
 R0lNUAAh+QQBCgAHACwAAAAADAAMAAADMHi63PBtgSACiFPo8eABRBAMw2gRXygOKvgVRByLLlDc
 eFzjPLHzuFpn+EAdZEhZAgA7"]
 
-txtfolderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAANjY2NjY2NjY2NjY2CH5BAEKAAEALAAAAAAMAAwAAAMo
+txtfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgP//AP///wAAANjY2NjY2NjY2NjY2CH5BAEKAAEALAAAAAAMAAwAAAMo
 GLrc8G0BQUGctD4b5viZAAxdGI7lIHyqSGKmm66sDJvopm9kwP6sBAA7"]
 
-numfolderImg = newImage [imgData GIF "R0lGODlhDAAMAOMAAICAgP///wAAAP/j4/+Ojv9ycv+qqv/Hx/9VVdjY2NjY2NjY2NjY2NjY2NjY
+numfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAOMAAICAgP///wAAAP/j4/+Ojv9ycv+qqv/Hx/9VVdjY2NjY2NjY2NjY2NjY2NjY
 2NjY2CH5BAEKAA8ALAAAAAAMAAwAAAQz8MlJK7h1gsBB3lx3eQ8YhoBQBgNRGEenbogRIOh827i8
 Gi+CLZBanXKlkfKiegie0GgEADs="]
 
-colorfolderImg = newImage [imgData GIF "R0lGODlhDAAMAMIAAICAgP////8AAD3yKQAAAP//AAAz/9jY2CH5BAEKAAcALAAAAAAMAAwAAAMy
+colorfolderImg = newImage NONE [imgData GIF "R0lGODlhDAAMAMIAAICAgP////8AAD3yKQAAAP//AAAz/9jY2CH5BAEKAAcALAAAAAAMAAwAAAMy
 eLrc8G2BQEGctD57sPjDEABE9wlBGBSkmYZFYbSTKhtjCcB3pVM9X2dDfJQOhKRymQAAOw=="]
 
-img1 = newImage [imgData GIF "R0lGODlhyACHAOcAAAIGAu32/pyytXqanVFnPgwyDEg/I9Tn8zBSKyIzGAMWBMHe7Fl/gCxLIwIi
+img1 = newImage NONE [imgData GIF "R0lGODlhyACHAOcAAAIGAu32/pyytXqanVFnPgwyDEg/I9Tn8zBSKyIzGAMWBMHe7Fl/gCxLIwIi
 B9TMyjw5IrXX5klVMiAtFSI/GsS7sp+cmnlqTAwyJWNZPRclD4OIdrm4tgcqCiI+MIWjpfLm6WqK
 jHBpSxQyJDU/JVRTNz1VNShLQe3g4RQyD15wWPT2/QgtJh0/J6S0tzM5Ij1MLJGrrvX6/kpVPgIK
 AiM1KAUqFxIlDxw/GAMaBUJiXClEIldiOUJeMgQmG2h1ZKKiofzw82hnSyRDJ0lGLHWDd6i7v22O
@@ -983,7 +1051,7 @@ o/5kIkNHH3IBGYihBYjhGLrBE66AArbmC1huJ3DCgvgCLeNgL6po76aLRGKteZxnFHShH8zNMgtA
 Ab6AeJqrgr4ARXxBAnaMm+LAJnABLbVpiaghEkhFL9ihUiRAAsRCMJIyD5QBAaTgVFLgXfrqvtDk
 OLCNIwICADs="]
 
-img2 = newImage [imgData GIF "R0lGODlhyACHAOcAAAICApGmqVZ0cjxeXA5CPgkzKtGohtJ7WAUqH6x2WgQiFIpfSYCWlgMaCeKo
+img2 = newImage NONE [imgData GIF "R0lGODlhyACHAOcAAAICApGmqVZ0cjxeXA5CPgkzKtGohtJ7WAUqH6x2WgQiFIpfSYCWlgMaCeKo
 g3FZRIdyVAISBaymmFRJOv65czg8LaqLagIOAlZWSuS2lzstGDpEOXGMjSwyLIeMf662tvzBmWx2
 aM25qgIGAi0tHNWPaVRuaba4tRY1LE1ubuPDryQrISUlGZ6Wg3BsYLNrTa2Ud0tqaN6PaEtJOl5Y
 S/7Oh6W2uerFsKB0W8zAuG98chwsH4aGdOyofBwkF52pqDlKQAIKAsaUb8SqkV5gVLi+vbp2WqRs

@@ -1,6 +1,0 @@
-LIBS = $(TOP)/reactor/libreactor.a $(TOP)/server/libserver.a \
-   $(TOP)/concurrency/libconcurrency.a $(TOP)/util/libutil.a
-
-SRCS = Test0.hs Test1.hs Test10.hs Test2.hs Test3.hs Test4.hs Test5.hs Test6.hs Test7.hs Test8.hs Test9.hs TestRegularExpression.hs TestNotification.hs
-# Test11.hs isn't a self-contained test program.
-include @TOP@/mk/boilerplate.mk

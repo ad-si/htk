@@ -38,10 +38,19 @@ module GraphConfigure(
    -- Shapes for nodes
    Shape(..),
 
+   -- Colours
+   Color(..),
+
+   -- Edge patterns
+   EdgePattern(..),
+
    -- Drag and Drop actions.
    GraphGesture(..),
    NodeGesture(..),
    NodeDragAndDrop(..),
+
+   -- Double click actions
+   DoubleClickAction(..),
 
    -- Graph Miscellaneous Flags
    OptimiseLayout(..),   
@@ -233,7 +242,13 @@ data NodeDragAndDrop value = NodeDragAndDrop (Dyn -> value -> IO ())
 instance NodeTypeConfig NodeDragAndDrop
 
 ------------------------------------------------------------------------
--- Shapes etcetera
+-- Double click actions
+------------------------------------------------------------------------
+
+newtype DoubleClickAction value = DoubleClickAction (value -> IO ())
+
+------------------------------------------------------------------------
+-- Shape, colours, and edge patterns
 ------------------------------------------------------------------------
 
 -- This datatype is based on DaVinciClasses.hs, including several
@@ -243,6 +258,24 @@ data Shape value = Box | Circle | Ellipse | Rhombus | Triangle |
    Icon FilePath deriving (Read,Show)
 
 instance NodeTypeConfig Shape
+
+newtype Color value = Color String deriving (Read,Show)
+-- The user is responsible for making sure this String is properly
+-- formatted.  To quote from the daVinci documentation:
+-- > Can be used to define the background color of a node. The value of this 
+-- > attribute may be any X-Window colorname (see file lib/rgb.txt in your X11
+-- > directory) or any RGB color specification in a format like "#0f331e", 
+-- > where 0f is the hexadecimal value for the red part of the color, 33 is 
+-- > the green part and 1e is the blue.  Hence, a pallet of 16.7 million 
+-- > colors is supported. The default color for nodes is "white".  
+-- There is a function for constructing "RGB color specification"s in
+-- htk/resources/Colour.hs
+instance NodeTypeConfig Color
+
+instance ArcTypeConfig Color
+
+data EdgePattern value = Solid | Dotted | Dashed | Thick | Double 
+   deriving (Read,Show)
 
 ------------------------------------------------------------------------
 -- Graph Miscellaneous Flags.
@@ -276,42 +309,58 @@ instance GraphConfig AllowDragging
 ------------------------------------------------------------------------
 
 class (
+   GraphParms graphParms,
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms)
    => HasGraphConfigs graphParms
 
 instance (
+   GraphParms graphParms,
    HasConfig GlobalMenu graphParms,HasConfig GraphTitle graphParms,
    HasConfig GraphGesture graphParms,HasConfig OptimiseLayout graphParms,
    HasConfig SurveyView graphParms,HasConfig AllowDragging graphParms)
    => HasGraphConfigs graphParms
 
 class (
+   NodeTypeParms nodeTypeParms,
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
-   HasConfigValue Shape nodeTypeParms)
+   HasConfigValue DoubleClickAction nodeTypeParms,
+   HasConfigValue Shape nodeTypeParms,
+   HasConfigValue Color nodeTypeParms)
    => HasNodeTypeConfigs nodeTypeParms
 
 instance (
+   NodeTypeParms nodeTypeParms,
    HasConfigValue LocalMenu nodeTypeParms,
    HasConfigValue ValueTitle nodeTypeParms,
    HasConfigValue NodeGesture nodeTypeParms,
    HasConfigValue NodeDragAndDrop nodeTypeParms,
-   HasConfigValue Shape nodeTypeParms)
+   HasConfigValue DoubleClickAction nodeTypeParms,
+   HasConfigValue Shape nodeTypeParms,
+   HasConfigValue Color nodeTypeParms)
    => HasNodeTypeConfigs nodeTypeParms
 
 
 class (
+   ArcTypeParms arcTypeParms,
+   HasConfigValue DoubleClickAction arcTypeParms,
    HasConfigValue LocalMenu arcTypeParms,
-   HasConfigValue ValueTitle arcTypeParms)
+   HasConfigValue ValueTitle arcTypeParms,
+   HasConfigValue Color arcTypeParms,
+   HasConfigValue EdgePattern arcTypeParms)
    => HasArcTypeConfigs arcTypeParms
 
 instance (
+   ArcTypeParms arcTypeParms,
+   HasConfigValue DoubleClickAction arcTypeParms,
    HasConfigValue LocalMenu arcTypeParms,
-   HasConfigValue ValueTitle arcTypeParms)
+   HasConfigValue ValueTitle arcTypeParms,
+   HasConfigValue Color arcTypeParms,
+   HasConfigValue EdgePattern arcTypeParms)
    => HasArcTypeConfigs arcTypeParms
 
 class 

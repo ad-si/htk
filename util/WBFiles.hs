@@ -70,6 +70,8 @@ module WBFiles (
    -- configuration file can be accessed without Maybe.
    getWishPath, -- :: IO String 
       -- gets the path for wish
+   getTixwishPath, -- :: IO String
+      -- gets the path for tixwish
    getCVSPath, -- ditto cvs
    getDaVinciPath, -- ditto daVinci
    getTOP, -- ditto
@@ -157,6 +159,9 @@ valOf action =
       case valueOpt of
          Just a -> return a
          Nothing -> error ("An option is surprisingly unset")
+
+getTixwishPath :: IO String
+getTixwishPath = valOf (getArgString "tixwish")
 
 getWishPath :: IO String 
 getWishPath = valOf (getArgString "wish")

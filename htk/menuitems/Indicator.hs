@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Indicator
 AUTHOR        : Einar Karlsen,  
@@ -13,61 +13,57 @@ DESCRIPTION   :
 
 module Indicator (
 
-        Indicator(..),
+  Indicator(..),
 
-        HasColour(..),
-        HasPhoto(..),
-        SelectButton(..),
-        HasIndicator(..),
-        ) where
+  HasColour(..),
+  HasPhoto(..),
+--        SelectButton(..),
+  HasIndicator(..),
 
+) where
 
-import Concurrency
 import GUICore
-
-import EventLoop
 import Image
 import BitMap
-import Packer
 import MenuItem
-import Debug(debug)
 
 
--- --------------------------------------------------------------------------
--- Handle
--- --------------------------------------------------------------------------   
+-- -----------------------------------------------------------------------
+-- handle
+-- -----------------------------------------------------------------------
 
 data Indicator a = Indicator a
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Class HasIndicator
--- --------------------------------------------------------------------------   
+-- -----------------------------------------------------------------------
 
 class Widget w => HasIndicator w where
-        indicator       :: Toggle -> Config w
-        getIndicator    :: w -> IO Toggle
-        indicator i w    = cset w "indicatoron" i
-        getIndicator w   = cget w "indicatoron"
+  indicator       :: Toggle -> Config w
+  getIndicator    :: w -> IO Toggle
+  indicator i w    = cset w "indicatoron" i
+  getIndicator w   = cget w "indicatoron"
 
--- --------------------------------------------------------------------------
--- Instantiations
--- --------------------------------------------------------------------------   
+
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
 
 instance HasIndicator w => GUIObject (Indicator w) where
-        toGUIObject (Indicator w) = toGUIObject w
+  toGUIObject (Indicator w) = toGUIObject w
 
 instance (HasIndicator w, SelectButton w) => HasColour (Indicator w) where
-        setColour w _ c = cset w "selectcolor" (toColour c)
-        getColour w _   = cget w "selectcolor"
+  setColour w _ c = cset w "selectcolor" (toColour c)
+  getColour w _   = cget w "selectcolor"
 
 instance (HasIndicator w, SelectButton w) => HasPhoto (Indicator w) where
-        photo i w   = imageToInt i >>= cset w "selectimage"
-        getPhoto w  = cget w "selectimage" >>= intToImage
+  photo i w   = imageToInt i >>= cset w "selectimage"
+  getPhoto w  = cget w "selectimage" >>= intToImage
 
--- --------------------------------------------------------------------------
---  Instances
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance HasIndicator GUIOBJECT
-

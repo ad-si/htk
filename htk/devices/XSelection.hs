@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : XSelection
 AUTHOR        : Einar Karlsen,  
@@ -10,8 +10,7 @@ DESCRIPTION   : XSelections
 
 TO BE DONE    : Events that signals that the selection has been changed!
 
-
-   ######################################################################### -}
+   ################################################################### -}
 
 
 module XSelection (
@@ -24,66 +23,66 @@ module XSelection (
 
         clearXSelection,
         getXSelection,
-        getXSelectionOwner,
-        setXSelectionOwner,
+--        getXSelectionOwner,
+--        setXSelectionOwner,
 
-        lostXSelection
+--        lostXSelection
 
 ) where
 
-import SIM
-import GUICore
+import Core
 import Index
 import Selection
 import Screen
 import Char
-import Debug(debug)
+import Computation
+import Window
 
 
--- --------------------------------------------------------------------------
--- Class HasXSelection 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- class HasXSelection
+-- -----------------------------------------------------------------------
 
 class HasSelection w => HasXSelection w where
-        exportSelection         :: Bool -> Config w
-        getExportSelection      :: w -> IO Bool
-        exportSelection b w     = cset w "exportSelection" b
-        getExportSelection w    = cget w "exportSelection"
+  exportSelection         :: Bool -> Config w
+  getExportSelection      :: w -> IO Bool
+  exportSelection b w     = cset w "exportSelection" b
+  getExportSelection w    = cget w "exportSelection"
 
 
--- --------------------------------------------------------------------------
--- Types
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- types
+-- -----------------------------------------------------------------------
 
 data XSelection = PRIMARY | CLIPBOARD deriving (Eq, Ord, Show, Read)
 
 type TargetType = String        -- STRING, ATOM, INTEGER ...
 
 
-
--- --------------------------------------------------------------------------
--- Instances
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance GUIValue XSelection where
         cdefault = PRIMARY
 
 
--- --------------------------------------------------------------------------
--- XSelection Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- XSelection commands
+-- -----------------------------------------------------------------------
 
-clearXSelection :: Screen -> XSelection -> IO ()
+clearXSelection :: GUIObject a => Screen a -> XSelection -> IO ()
 clearXSelection (Screen win) sel = 
         execMethod win (\nm  ->  ["selection clear -displayof " ++ show nm ++ " -selection " ++ show sel])
 
-
-getXSelection :: GUIValue a => Screen -> XSelection -> TargetType -> IO a
+getXSelection :: (GUIObject a, GUIValue b) =>
+                 Screen a-> XSelection -> TargetType -> IO b
 getXSelection (Screen win) sel tp = 
         evalMethod win (\nm  ->  ["selection get -displayof " ++ show nm ++ " -selection " ++ show sel ++ " -type " ++ tp])
 
-
-getXSelectionOwner :: Screen -> XSelection -> IO (Maybe Window)
+{- TD (ludi)
+getXSelectionOwner :: (GUIObject a, Window w) => Screen a -> XSelection ->
+                                                 IO (Maybe w)
 getXSelectionOwner (Screen win) sel = do {
         str <- evalMethod win (\nm -> ["selection own -displayof " ++ show nm ++ " -selection "]);
         case dropWhile (isSpace) str of
@@ -91,27 +90,19 @@ getXSelectionOwner (Screen win) sel = do {
                 nm -> lookupWindow nm
         }
 
-
-setXSelectionOwner :: Window -> XSelection -> IO ()
+setXSelectionOwner :: Window w => w -> XSelection -> IO ()
 setXSelectionOwner win sel = 
         execMethod win (\nm  -> 
            ["selection own -selection -command {} " ++ show sel ++ " " ++ show nm])
+-}
 
+{- TD (ludi)
 
--- --------------------------------------------------------------------------
--- XSelection Events
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- XSelection events
+-- -----------------------------------------------------------------------
 
 lostXSelection :: Window -> IA ()
 lostXSelection win = userinteraction win "LostXSelection" Notice >>> done
 
-
-
-
-
-
-
-
-
-
-
+-}

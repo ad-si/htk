@@ -112,25 +112,17 @@ module GraphDisp(
    GraphParms(emptyGraphParms),
 
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
-   getNodeType,  -- :: Graph ... -> node value -> IO (nodeType value)
    deleteNode,   -- :: Graph ... -> node value -> IO ()
-   getNodeValue, -- :: Graph ... -> node value -> IO value
    setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
    newNodeType,  -- :: Graph ... -> nodeTypeParms value -> IO (nodeType value)
    NodeTypeParms(emptyNodeTypeParms),
 
    newArc,      -- :: Graph ... -> arcType value -> value 
                 --    -> node nodeFromValue -> node nodeToValue
-                --    -> IO (arc value nodeFromValue nodeToValue)
-   getFrom,     -- :: Graph ... -> arc value nodeFromValue nodeToValue ->
-                --    -> IO (node nodeFromValue)
-   getTo,       -- :: Graph ... -> arc value nodeFromValue nodeToValue ->
-                --    -> IO (node nodeToValue)
-   deleteArc,   -- :: Graph ... -> arc value nodeFromValue nodeToValue 
+                --    -> IO (arc value)
+   deleteArc,   -- :: Graph ... -> arc value 
                 --    -> IO ()
-   getArcValue, -- :: Graph ... -> arc value nodeFromValue nodeToValue
-                --    -> IO value
-   setArcValue, -- :: Graph ... -> arc value nodeFromValue nodeToValue
+   setArcValue, -- :: Graph ... -> arc value
                 --    -> value -> IO ()
    newArcType,  -- :: Graph ... -> arcTypeParms value -> IO (arcType value)
    ArcTypeParms(emptyArcTypeParms),
@@ -149,9 +141,6 @@ module GraphDisp(
    NodeTypeConfig,
 
    NewArc(..),
-   GetFrom(..),
-   GetTo(..),
-   GetArcType(..),
    DeleteArc(..),
    ArcClass,
    ArcTypeClass,
@@ -164,7 +153,7 @@ import Dynamics
 import ExtendedPrelude(monadDot)
 import Computation(HasConfig(..))
 
-import SIM(IA,Destructible(..))
+import Destructible
 
 ------------------------------------------------------------------------
 -- This is the start of the user-friendly interface.
@@ -179,12 +168,18 @@ newtype
       arcTypeParms
    = Graph graph
 
+
+instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
+   arcTypeParms) 
+   => Destroyable (Graph graph graphParms node nodeType nodeTypeParms arc
+      arcType arcTypeParms) where
+   destroy (Graph graph) = destroy graph
+
+
 instance (GraphAll graph graphParms node nodeType nodeTypeParms arc arcType
    arcTypeParms) 
    => Destructible (Graph graph graphParms node nodeType nodeTypeParms arc
       arcType arcTypeParms) where
-
-   destroy (Graph graph) = destroy graph
    destroyed (Graph graph) = destroyed graph
 
 -- The argument to newGraph can be obtained from displaySort
@@ -233,16 +228,6 @@ newNode
    (nodeType :: nodeType value) 
    (value :: value) = (newNodePrim graph nodeType value) :: IO (node value)
 
-getNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value) =>
-   (Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   -> node value -> IO (nodeType value)
-getNodeType
-   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
-      arcType arcTypeParms))
-   (node :: node value) = (getNodeTypePrim graph node) :: IO (nodeType value) 
-
 deleteNode :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                  arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
@@ -252,16 +237,6 @@ deleteNode
    ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
       arcType arcTypeParms))
    (node :: node value) = deleteNodePrim graph node
-
-getNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                   arc arcType arcTypeParms,Typeable value) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   -> node value -> IO value
-getNodeValue 
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   (node :: node value) = getNodeValuePrim graph node
 
 setNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                    arc arcType arcTypeParms,Typeable value) => 
@@ -298,7 +273,7 @@ newArc :: (GraphAll graph graphParms node nodeType nodeTypeParms
    (Graph graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms)
    -> arcType value -> value -> node nodeFromValue -> node nodeToValue
-   -> IO (arc value nodeFromValue nodeToValue)  
+   -> IO (arc value)  
 newArc
    (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms)
@@ -306,69 +281,26 @@ newArc
    (value :: value)
    (nodeFrom :: node nodeFromValue)
    (nodeTo :: node nodeToValue) =
-   (newArcPrim graph arcType value nodeFrom nodeTo) ::
-      IO (arc value nodeFromValue nodeToValue)
-
-getFrom :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-              arc arcType arcTypeParms,
-              Typeable value,Typeable nodeFromValue,Typeable nodeToValue) => 
-   (Graph graph graphParms node nodeType nodeTypeParms
-       arc arcType arcTypeParms)
-   -> arc value nodeFromValue nodeToValue -> IO (node nodeFromValue)
-getFrom
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
-      arcType arcTypeParms)
-   (arc :: arc value nodeFromValue nodeToValue) =
-      (getFromPrim graph arc) :: IO (node nodeFromValue)
-
-getTo :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-            arc arcType arcTypeParms,
-            Typeable value,Typeable nodeFromValue,Typeable nodeToValue) => 
-   (Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   -> arc value nodeFromValue nodeToValue -> IO (node nodeToValue) 
-getTo
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
-      arcType arcTypeParms)
-   (arc :: arc value nodeFromValue nodeToValue) =
-      (getToPrim graph arc) :: IO (node nodeToValue)
+   (newArcPrim graph arcType value nodeFrom nodeTo) :: IO (arc value)
 
 deleteArc :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                 arc arcType arcTypeParms,
-                Typeable value,Typeable nodeFromValue,Typeable nodeToValue)=> 
+                Typeable value)=> 
    (Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   ->  arc value nodeFromValue nodeToValue -> IO ()
+      arc arcType arcTypeParms) ->  arc value -> IO ()
 deleteArc 
    (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
       arcType arcTypeParms)
-   (arc :: arc value nodeFromValue nodeToValue) =
-      deleteArcPrim graph arc
-
-getArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value,
-                  Typeable nodeFromValue,Typeable nodeToValue) => 
-   (Graph graph graphParms node nodeType nodeTypeParms arc arcType 
-      arcTypeParms)
-   -> arc value nodeFromValue nodeToValue -> IO value
-getArcValue
-   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   (arc :: arc value nodeFromValue nodeToValue) =
-      getArcValuePrim graph arc
+   (arc :: arc value) = deleteArcPrim graph arc
 
 setArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
-                  arc arcType arcTypeParms,Typeable value,
-                  Typeable nodeFromValue,Typeable nodeToValue) => 
+                  arc arcType arcTypeParms,Typeable value) => 
    (Graph graph graphParms node nodeType nodeTypeParms 
-      arc arcType arcTypeParms)
-   -> arc value nodeFromValue nodeToValue 
-   -> value -> IO ()
+      arc arcType arcTypeParms) -> arc value -> value -> IO ()
 setArcValue
    (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
       arcType arcTypeParms)
-   (arc :: arc value nodeFromValue nodeToValue)
-   (value :: value) = setArcValuePrim graph arc value
+   (arc :: arc value) (value :: value) = setArcValuePrim graph arc value
 
 newArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                  arc arcType arcTypeParms,Typeable value) =>
@@ -396,9 +328,8 @@ class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NodeClass node,HasTyCon1 node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
-   GetFrom graph node arc,GetTo graph node arc,
-   GetArcType graph arc arcType,DeleteArc graph arc,
-   ArcClass arc,HasTyCon3 arc,ArcTypeClass arcType,
+   DeleteArc graph arc,
+   ArcClass arc,HasTyCon1 arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
    GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -416,8 +347,7 @@ instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NodeClass node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
-   GetFrom graph node arc,GetTo graph node arc,
-   GetArcType graph arc arcType,DeleteArc graph arc,
+   DeleteArc graph arc,
    ArcClass arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
    ) => 
@@ -450,15 +380,11 @@ class (GraphClass graph,NodeClass node,NodeTypeClass nodeType) =>
       NewNode graph node nodeType where
    newNodePrim :: Typeable value => 
       graph -> nodeType value -> value -> IO (node value)
-   getNodeTypePrim :: Typeable value =>
-      graph -> node value -> IO (nodeType value)
 
 class (GraphClass graph,NodeClass node) =>
       DeleteNode graph node where
    deleteNodePrim :: Typeable value =>
       graph -> node value -> IO ()
-   getNodeValuePrim :: Typeable value =>
-      graph -> node value -> IO value
    setNodeValuePrim :: Typeable value =>
       graph -> node value -> value -> IO ()
 
@@ -486,43 +412,13 @@ class (GraphClass graph,NodeClass nodeFrom,NodeClass nodeTo,ArcClass arc,
       (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
       => graph -> arcType value -> value 
       -> nodeFrom nodeFromValue -> nodeTo nodeToValue
-      -> IO (arc value nodeFromValue nodeToValue)
-
-class (GraphClass graph,NodeClass nodeFrom,ArcClass arc) 
-   => GetFrom graph nodeFrom arc where
-   getFromPrim :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph -> arc value nodeFromValue nodeToValue 
-      -> IO (nodeFrom nodeFromValue)
-
-class (GraphClass graph,NodeClass nodeTo,ArcClass arc) 
-   => GetTo graph nodeTo arc where
-   getToPrim :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph
-      -> arc value nodeFromValue nodeToValue 
-      -> IO (nodeTo nodeToValue)
-
-class (GraphClass graph,ArcClass arc,ArcTypeClass arcType) 
-   => GetArcType graph arc arcType where
-   getArcTypePrim ::
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph
-      -> arc value nodeFromValue nodeToValue
-      -> IO (arcType value)
+      -> IO (arc value)
 
 class (GraphClass graph,ArcClass arc) => DeleteArc graph arc where
-   deleteArcPrim :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph -> arc value nodeFromValue nodeToValue -> IO ()
-   getArcValuePrim :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph -> arc value nodeFromValue nodeToValue -> IO value
-   setArcValuePrim  :: 
-      (Typeable value,Typeable nodeFromValue,Typeable nodeToValue) 
-      => graph -> arc value nodeFromValue nodeToValue -> value -> IO ()
+   deleteArcPrim :: (Typeable value) => graph -> arc value -> IO ()
+   setArcValuePrim  :: Typeable value => graph -> arc value -> value -> IO ()
 
-class HasTyCon3 arc => ArcClass arc
+class HasTyCon1 arc => ArcClass arc
 
 class Kind1 arcType => ArcTypeClass arcType
 

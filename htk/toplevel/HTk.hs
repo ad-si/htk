@@ -1,4 +1,4 @@
-{- #########################################################################
+{- ####################################################################
 
 MODULE        : HTk
 AUTHOR        : Einar Karlsen,  
@@ -8,130 +8,271 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Haskell Tk.
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module HTk (
-        HTk,
-        GUIOBJECT,
 
-        module Computation,
-        module Event,
-        module InterActor,
-        module Interaction,
-        module EventStream,
+-- basic ressources
 
-        module EventLoop,
-        module GUIBaseClasses,
-        module GUIInteraction,
-        module Resources,
-        module GUIValue,
-        module GUIEvent,
-        module Geometry,
-        module Colour,
-        module Window,
-        module Packer,
-        module Geometry,
+  module Resources,
+  module GUIValue,
+  module Font,
+  module Geometry,
+  module Colour,
+  module Tooltip,
+  module TkVariables,
+  module Synchronized,
+  module Computation,
+  module Configuration,
+  module BaseClasses,
+  module Cursor,
 
-        module Icon,
-        module Box,
 
-        Menu,
-         
-        objectNotPacked,
-        parentNotPacked,
-        objectAlreadyPacked,
+-- text items
 
-        WidgetName,
+  module TextTag,
 
-        GUI,
-        Tool(..),
-        SingleInstanceTool(..),
-        Object(..),
-        Synchronized(..),
 
-        htk,
+-- window submodules
 
-        updateAllTasks,
-        updateIdleTasks, 
+  module Window,
+  module Toplevel,
 
-        Destructible(..),
-        controller,
-        controller',
-        attach
-        
-        ) where
 
-import SIM
-import Computation
+-- widget submodules
 
-import Event
-import EventLoop
-import InterActor
-import Interaction
-import EventStream
+  module Frame,
+  module Label,
+  module Message,
+  module Entry,
+  module Button,
+  module CheckButton,
+  module RadioButton,
+  module MenuButton,
+  module Canvas,
+  module Editor,
+  module ListBox,
+  module OptionMenu,
+  module Scale,
+  module ScrollBar,
+  module Screen,
 
-import SIM(controller, controller', Destructible(..), attach)
+  module Box,    -- TD: does not work properly yet!!
 
-import GUIBaseClasses
-import GUIInteraction
-import Window
+
+-- tix submodules
+
+  module NoteBook,
+  module LabelFrame,
+  module PanedWindow,
+
+
+-- menu / menuitem submodules
+
+  module Menu,
+  module MenuCascade,
+  module MenuCommand,
+  module MenuCheckButton,
+  module MenuRadioButton,
+  module MenuSeparator,
+
+
+-- canvasitem submodules
+
+  module CanvasItem,
+  module Arc,
+  module Line,
+  module Oval,
+  module Polygon,
+  module Rectangle,
+  module ImageItem,
+  module BitMapItem,
+  module TextItem,
+  module CanvasTag,
+  module EmbeddedCanvasWin,
+
+
+-- image submodules
+
+  module BitMap,
+  module Image,
+
+
+-- widget packing
+
+  module Packer,
+  module PackOptions,
+  module GridPackOptions,
+
+
+-- events
+
+  module Events,
+  module EventInfo,
+  module Spawn,
+  module Channels,
+  WishEvent(..),
+  WishEventType(..),
+  WishEventModifier(..),
+  BNo(..),
+  KeySym(..),
+  bind,
+  bindSimple,
+  HasCommand(..),
+
+
+-- other basic stuff     // TD: sort out!
+
+  initHTk,
+  HTk,
+  AbstractWidget(..),    -- TD: needed ?
+
+  updateAllTasks,
+  updateIdleTasks, 
+
+  Destructible(..),
+  Destroyable(..),
+
+  done,
+) where
+
+import Frame
+import Label
+import Message
+import Entry
+import Button
+import CheckButton
+import RadioButton
+import MenuButton
+import Canvas
+import Editor
+import ListBox
+import OptionMenu
+import Scale
+import ScrollBar
+import Menu
+import MenuCascade
+import MenuCommand
+import MenuCheckButton
+import MenuRadioButton
+import MenuSeparator
+import CanvasItem
+import Arc
+import Line
+import Oval
+import Polygon
+import Rectangle
+import ImageItem
+import BitMapItem
+import TextItem
+import TextTag
+import CanvasTag
+import EmbeddedCanvasWin
+import Image
+import BitMap
+import Configuration
 import Packer
+import PackOptions
+import GridPackOptions
+import Screen
+import Cursor
+import Computation
 import Geometry
 import Resources
-import Geometry
+import Tooltip
+import Font
 import Colour
 import GUIValue
-import GUIEvent
-import GUIObject(objectAlreadyPacked, WidgetName,Object(..))
-import GUIState(GUIOBJECT)
-import GUIRealise(objectNotPacked,parentNotPacked)
-
-import GUICore
-import Menu(Menu)
-import Icon
+import Core
+import BaseClasses
+--import Icon
 import Box
-import Debug(debug)
+import Toplevel
+import Window
+import ReferenceVariables
+import Destructible
+import EventInfo
+import Events
+import Spawn
+import Channels
+import Synchronized
+import TkVariables
+import NoteBook
+import LabelFrame
+import PanedWindow
+
+data AbstractWidget = NONE
+instance GUIObject AbstractWidget where
+  toGUIObject _ = ROOT
+instance Container AbstractWidget
 
 
--- --------------------------------------------------------------------------
--- Type
--- --------------------------------------------------------------------------
-                                
-type HTk = GUI
+-- -----------------------------------------------------------------------
+-- type HTk and its instances
+-- -----------------------------------------------------------------------
+
+newtype HTk = HTk GUIOBJECT
+
+instance GUIObject HTk where
+  toGUIObject (HTk obj) = obj
+  cname _ = "HTk"
+
+instance Eq HTk where 
+  (HTk obj1) == (HTk obj2) = obj1 == obj2
+
+instance Destroyable HTk where
+  destroy = destroy . toGUIObject
+
+instance Window HTk
+
+instance Container HTk
 
 
--- --------------------------------------------------------------------------
--- Commands
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- commands
+-- -----------------------------------------------------------------------
 
-htk :: [Config HTk] -> IO HTk
-htk confs =  do {
-        gui <- getToolInstance;
-        ses <- configure gui confs;
-        return ses
-        } 
+initHTk :: [Config HTk] -> IO HTk
+initHTk opts =                            -- config (TD)
+  do
+    obj <- createHTkObject htkMethods
+    configure (HTk obj) opts
+    return (HTk obj)
 
--- --------------------------------------------------------------------------
--- Application updates
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- HTk methods
+-- -----------------------------------------------------------------------
+
+htkMethods = Methods tkGetToplevelConfig
+                     tkSetToplevelConfigs
+                     (createCmd voidMethods)
+                     (packCmd voidMethods)
+                     (gridCmd voidMethods)
+                     (destroyCmd defMethods)
+                     (bindCmd defMethods)
+                     (unbindCmd defMethods)
+                     (cleanupCmd defMethods)
+
+
+-- -----------------------------------------------------------------------
+-- application updates
+-- -----------------------------------------------------------------------
 
 updateAllTasks :: IO ()
 updateAllTasks = execTclScript ["update"]
-
 
 updateIdleTasks :: IO ()
 updateIdleTasks = execTclScript ["update idletasks"]
 
 
--- --------------------------------------------------------------------------
--- Application Name
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- application Name
+-- -----------------------------------------------------------------------
 
-instance GUIValue v => HasText GUI v where
-        text aname gui = do {
-                execTclScript ["tk appname " ++ show aname];
-                return gui
-                }
-        getText _ = evalTclScript ["tk appname"]
+instance GUIValue v => HasValue HTk v where
+  value aname htk =
+    do
+      execTclScript ["tk appname " ++ show aname]
+      return htk
+  getValue _ = evalTclScript ["tk appname"] >>= creadTk

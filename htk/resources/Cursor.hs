@@ -39,7 +39,8 @@ module Cursor (
         plus, 
         spraycan, 
         tcross, 
-        watch
+        watch,
+        xterm
         
         ) where
 
@@ -98,7 +99,7 @@ instance CursorDesignator ([Char],[Char],Colour,Colour) where
 
 arrow, circle, clock, diamondCross, dot, drapedBox, exchange :: Cursor
 fleur, gobbler, gumby, hand1, hand2, pencil, plus, spraycan :: Cursor
-tcross, watch :: Cursor
+tcross, watch, xterm :: Cursor
 
 arrow           = Cursor "arrow" 
 circle          = Cursor "circle" 
@@ -117,6 +118,7 @@ plus            = Cursor "plus"
 spraycan        = Cursor "spraycan" 
 tcross          = Cursor "tcross" 
 watch           = Cursor "watch"
+xterm           = Cursor "xterm"
 
 
 -- --------------------------------------------------------------------------

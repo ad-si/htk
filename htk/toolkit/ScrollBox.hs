@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : ScrollBox
 AUTHOR        : Einar Karlsen,  
@@ -9,30 +9,25 @@ VERSION       : alpha
 DESCRIPTION   : Composite widget for packing a scrollable widget together
                 with the relevant number of scrollbars!
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module ScrollBox (
-        ScrollBox(..),
-        newScrollBox,
 
-        getScrolledWidget,
-        getScrollBars
+  ScrollBox(..),
+  newScrollBox,
 
-        ) where
+  getScrolledWidget,
+  getScrollBars
 
-import Concurrency
+) where
+
 import HTk
-import ScrollBar
-import Frame
-import Debug(debug)
+import Core
 
-
-                
--- --------------------------------------------------------------------------
---  Type
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- type
+-- -----------------------------------------------------------------------
 
 {- HasScroller a requirement removed. -}
 data ScrollBox a = 
@@ -44,116 +39,99 @@ data ScrollBox a =
                 }
 
                 
--- --------------------------------------------------------------------------
---  Commands (Layout)
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- constructor
+-- -----------------------------------------------------------------------
 
-newScrollBox :: (ChildWidget a,HasScroller a)
-          => a -> [Config (ScrollBox a)] -> IO (ScrollBox a)
-newScrollBox w ol = do {
-        f <- newFrame [];
-        fl <- newFrame [width sz', side AtRight, fill Vertical,parent f];
-        (sf,sby) <- if scrollY then do {
-                        sb <- newScrollBar [
-                                width sz, 
-                                orient Vertical, 
-                                expand On,
-                                fill Vertical,
-                                side AtTop,
-                                parent fl];
-                        configure w [scrollbar Vertical sb];
-                        sf <- newFrame [ width sz, 
-                                height (cm 0.5), 
-                                side AtBottom, 
-                                parent fl
-                                ];
-                        return ([sf],[sb])
-                        }
-                else 
-                        return ([],[]);
-        sbx <- if scrollX then do {
-                        sb <- newScrollBar [
-                                width sz, 
-                                orient Horizontal, 
-                                side AtBottom,
-                                fill Horizontal,
-                                parent f];
-                        configure w [scrollbar Horizontal sb];
-                        return [sb]
-                        }
-                else 
-                        return [];
-        configure w [fill Both, expand On, parent f];
-        configure (ScrollBox f (fl:sf) (sbx ++ sby) w) ol
-} where sz = cm 0.4
+newScrollBox :: (Widget wid, HasScroller wid, Container par) =>
+                par -> (Frame -> IO wid) ->
+                [Config (ScrollBox wid)] ->
+                IO (ScrollBox wid, wid)
+newScrollBox par wfun ol =
+  do
+    f <- newFrame par []
+    w <- wfun f
+    let sz = cm 0.4
         sz' = if scrollY then sz else 0         -- width of y scrollbar
         scrollY = (isWfOrientation w Vertical)
         scrollX = (isWfOrientation w Horizontal)
+    fl <- newFrame f [width sz']
+    pack fl [Fill Y, Side AtRight]
+    (sf,sby) <-
+      if scrollY then
+        do
+          sb <- newScrollBar fl [width sz, orient Vertical]
+          pack sb [Expand On, Fill Y, Side AtTop]
+          configure w [scrollbar Vertical sb]
+          sf <- newFrame fl [width sz, height (cm 0.5)]
+          pack sf [Side AtBottom]
+          return ([sf],[sb])
+      else
+        return ([],[])
+    sbx <- if scrollX then
+             do
+               sb <- newScrollBar f [width sz, orient Horizontal]
+               pack sb [Side AtBottom, Fill X]
+               configure w [scrollbar Horizontal sb]
+               return [sb]
+           else
+             return []
+    let sbox = (ScrollBox f (fl:sf) (sbx ++ sby) w)
+    configure sbox ol
+    pack w [Fill Both, Expand On]
+    return (sbox, w)
 
-                
--- --------------------------------------------------------------------------
---  Instances
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+-- instances
+-- -----------------------------------------------------------------------
 
 instance Eq (ScrollBox a) where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+  w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
 
 instance GUIObject (ScrollBox a) where 
-        toGUIObject (ScrollBox w _ _ _) = toGUIObject w
-        cname _ = "ScrollBox"
+  toGUIObject (ScrollBox w _ _ _) = toGUIObject w
+  cname _ = "ScrollBox"
 
-instance Destructible (ScrollBox a) where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+instance Destroyable (ScrollBox a) where
+  destroy   = destroy . toGUIObject
 
-instance Interactive (ScrollBox a)
-
-instance (Widget a,HasScroller a) => Widget (ScrollBox a) where
-        cursor c sb = 
-                synchronize sb (do { 
-                        foreach (fPadFrames sb) (cursor c);
-                        cursor c (fScrollFrame sb); 
-                        foreach (fScrollBars sb) (cursor c); 
-                        cursor c (fScrolledWidget sb); 
-                        return sb
-                        })
-
-instance (Widget a,HasScroller a) => ChildWidget (ScrollBox a)
+instance (Widget a, HasScroller a) => Widget (ScrollBox a) where
+  cursor c sb = 
+    do
+      foreach (fPadFrames sb) (cursor c)
+      cursor c (fScrollFrame sb)
+      foreach (fScrollBars sb) (cursor c)
+      cursor c (fScrolledWidget sb)
+      return sb
         
 instance (HasColour a,HasScroller a) => HasColour (ScrollBox a) where
-        legalColourID _ _ = True
-        setColour sb cid c = 
-                synchronize sb (do {
-                        foreach (fPadFrames sb) (\f -> setColour f cid c);
-                        setColour (fScrollFrame sb) cid c; 
-                        foreach (fScrollBars sb) (\s -> setColour s cid c); 
-                        return sb
-                        })
+  legalColourID _ _ = True
+  setColour sb cid c = 
+    do
+      foreach (fPadFrames sb) (\f -> setColour f cid c)
+      setColour (fScrollFrame sb) cid c
+      foreach (fScrollBars sb) (\s -> setColour s cid c)
+      return sb
 
- 
 instance HasBorder (ScrollBox a)
 
 instance HasScroller a => HasScroller (ScrollBox a) where
-        isWfOrientation (ScrollBox _ _ _ sw) axis = isWfOrientation sw axis
-        scrollbar _ _ sb = return sb                            -- already done
-        moveto axis (ScrollBox _ _ _ sw) fraction = 
-                moveto axis sw fraction
-        scroll axis (ScrollBox _ _ _ sw) step unit =
-                scroll axis sw step unit
+  isWfOrientation (ScrollBox _ _ _ sw) axis = isWfOrientation sw axis
+  scrollbar _ _ sb = return sb                            -- already done
+  moveto axis (ScrollBox _ _ _ sw) fraction = moveto axis sw fraction
+  scroll axis (ScrollBox _ _ _ sw) step unit = scroll axis sw step unit
 
 instance Synchronized (ScrollBox a) where
-        synchronize w = synchronize (toGUIObject w)
-        
+  synchronize = synchronize . toGUIObject
 
-                
--- --------------------------------------------------------------------------
---  Selector
--- --------------------------------------------------------------------------
 
-getScrolledWidget :: (Widget a, ChildWidget a,HasScroller a) => 
-   ScrollBox a -> a
+-- -----------------------------------------------------------------------
+-- selectors
+-- -----------------------------------------------------------------------
+
+getScrolledWidget :: (Widget a, HasScroller a) => ScrollBox a -> a
 getScrolledWidget = fScrolledWidget
 
-getScrollBars :: HasScroller a => ScrollBox a ->  [ScrollBar]
+getScrollBars :: HasScroller a => ScrollBox a -> [ScrollBar]
 getScrollBars = fScrollBars
-

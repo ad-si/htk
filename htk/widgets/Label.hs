@@ -1,94 +1,131 @@
-{- #########################################################################
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
-MODULE        : Label
-AUTHOR        : Einar Karlsen,  
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1996
-VERSION       : alpha
-DESCRIPTION   :  
-
-
-   ######################################################################### -}
-
-
+---
+-- HTk's <strong>label widget</strong>.<br>
+-- A label is a simple container for text or images.
 module Label (
-        Label,
 
-        newLabel
+  Label,
+  newLabel
 
-        ) where
+) where
 
-import Concurrency
-import GUICore
-import Packer
+import Core
+import BaseClasses(Widget)
+import Configuration
 import Image
 import BitMap
-import Debug(debug)
+import Computation
+import Destructible
+import Synchronized
+import Packer
+import Tooltip
 
--- --------------------------------------------------------------------------
--- Type Label 
--- --------------------------------------------------------------------------           
+
+-- -----------------------------------------------------------------------
+-- type Label 
+-- -----------------------------------------------------------------------
+
+---
+-- The <code>Label</code> datatype - a <code>Label String</code> contains
+-- text, a <code>Label Image</code> contains an image.
 newtype Label a = Label GUIOBJECT deriving Eq
 
--- --------------------------------------------------------------------------
--- Commands 
--- --------------------------------------------------------------------------           
-newLabel :: [Config (Label a)] -> IO (Label a)
-newLabel ol = do 
-        w <- createWidget LABEL
-        configure (Label w) ol
 
-                                
--- --------------------------------------------------------------------------
--- Instantiations 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- creation
+-- -----------------------------------------------------------------------
+
+---
+-- Constructs a new label widget and returns a handler as a value.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param cnf     - the list of configuration options for this label.
+-- @return result - A label widget.
+newLabel :: Container par => par -> [Config (Label a)] -> IO (Label a)
+newLabel par cnf =
+  do
+    w <- createWidget (toGUIObject par) LABEL
+    configure (Label w) cnf
+
+
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
+
+---
+-- Internal.
 instance GUIObject (Label a) where 
-        toGUIObject (Label w) = w
-        cname _ = "Label"
+---
+-- Internal.
+  toGUIObject (Label w) = w
+---
+-- Internal.
+  cname _ = "Label"
 
-instance Destructible (Label a) where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+---
+-- A label widget can be destroyed.
+instance Destroyable (Label a) where
+---
+-- Destroys a label widget.
+  destroy   = destroy . toGUIObject
 
-instance Interactive (Label a)
-
+---
+-- A label widget has standard widget properties
+-- (concerning focus, cursor).
 instance Widget (Label a)
 
-instance ChildWidget (Label a)
-
-instance Synchronized (Label a) where
-        synchronize w = synchronize (toGUIObject w)
-
-instance HasBitMap (Label BitMap)
-
+---
+-- A label widget has a configureable border.
 instance HasBorder (Label a)
 
+---
+-- A label widget has a foreground and background colour.
 instance HasColour (Label a) where 
-        legalColourID = hasForeGroundColour
+---
+-- Internal.
+  legalColourID = hasForeGroundColour
 
+---
+-- You can specify the font of a label.
 instance HasFont (Label a)
 
+---
+-- A label has a text justification configuration.
 instance HasJustify (Label a)
 
+---
+-- A label can contain an image.
 instance HasPhoto (Label Image)
 
+---
+-- You can specify the size of a label.
 instance HasSize (Label a)
 
+---
+-- A label can contain underlined text.
 instance HasUnderline (Label a)
 
-instance GUIValue a => Variable Label a where
-        setVar w t = cset w "text" t >> done
-        getVar w   = cget w "text"
-        withVar w f = synchronize w (do {v <- getVar w; f v}) 
-        updVar w f = synchronize w (do {
-                v <- getVar w;
-                (v',r) <- f v;
-                setVar w v';
-                return r
-                })
+---
+-- A label can contain text.
+instance GUIValue b => HasText (Label a) b
 
-instance GUIValue b => HasText (Label a) b where -- only for the brave
-        text t w   = cset w "text" t
-        getText w  = cget w "text"
+---
+-- A label widget can have a tooltip.
+instance HasTooltip (Label a)
 
+---
+-- You can synchronize on a label object (in JAVA style).
+instance Synchronized (Label a) where
+---
+-- Synchronizes on a label object.
+  synchronize = synchronize . toGUIObject

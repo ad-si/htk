@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Polygon
 AUTHOR        : Einar Karlsen,  
@@ -8,64 +8,59 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : 
 
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module Polygon (
         module CanvasItem,
 
         Polygon,
-        newPolygon
+        createPolygon
         ) where
 
-import Concurrency
-import GUICore
-
+import Core
 import CanvasItem
 import CanvasTag
 import CanvasItemAux
-import Debug(debug)
+import Synchronized
+import Computation
+import Destructible
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Polygon
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 newtype Polygon = Polygon GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Constructor
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
-newPolygon :: [Config Polygon] -> IO Polygon
-newPolygon ol = createCanvasItem POLYGON Polygon ol
+createPolygon :: Canvas -> [Config Polygon] -> IO Polygon
+createPolygon cnv ol =
+  createCanvasItem cnv POLYGON Polygon ol [(0,0),(0,0),(0,0)]
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Instantiations
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 instance GUIObject Polygon where 
         toGUIObject (Polygon w) = w
         cname _ = "Polygon"
 
-instance Destructible Polygon where
+instance Destroyable Polygon where
         destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive Polygon
 
 instance Synchronized Polygon where
         synchronize w = synchronize (toGUIObject w)
 
-instance CanvasItem Polygon where 
-        defaultCoord w = [(0,0),(0,0),(0,0)]
+instance CanvasItem Polygon
 
 instance TaggedCanvasItem Polygon
 
 instance FilledCanvasItem Polygon
 
 instance SegmentedCanvasItem Polygon
-
-

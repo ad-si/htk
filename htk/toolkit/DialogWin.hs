@@ -41,8 +41,7 @@ import Font
 import Space
 import SelectBox
 import ModalDialog
-import Interaction()
-import Debug(debug)
+
 
 -- --------------------------------------------------------------------------
 --  Types 

@@ -31,7 +31,7 @@ import Debug(debug)
 import Concurrent
 import Thread
 import Object
-import SocketEV(getPortNumber)
+import HostsPorts
 
 import ServiceClass
 
@@ -71,11 +71,13 @@ runServer serviceList =
 -- For each service to provide . . .
 -- (1) set up initial variables
 ------------------------------------------------------------------------
+                  debug ("registering "++(serviceId service))
                   let
                      serviceKey = serviceId service
 
                   clients <- newMVar []
                   initial <- initialState service 
+                  debug "Initial1"
                   stateMVar <- newMVar initial
 ------------------------------------------------------------------------
 -- Note on concurrency.  We have two MVars, stateMVar and clients.
@@ -145,7 +147,6 @@ runServer serviceList =
 ------------------------------------------------------------------------
 -- (2) set up backups.
 ------------------------------------------------------------------------
-
                   backupDelay <- getBackupDelay service
                   let
                      doBackup =
@@ -209,7 +210,7 @@ runServer serviceList =
                               -- deleteClient, then do cleanUp, then pass
                               -- on the exception
                                  do
-                                    result <- tryAllIO toDo
+                                    result <- Exception.try toDo
                                     case result of
                                        Right correct -> return correct
                                        Left exception ->
@@ -274,12 +275,14 @@ runServer serviceList =
                            forkIO(
                               do
                                  clientStartup
-                                 Left exception <- tryAllIO clientReadAction
+                                 Left exception 
+                                    <- Exception.try clientReadAction
                                  -- clientReadAction cannot return otherwise
                                  let
-                                    isHarmless (IOException ioError) = 
-                                       isEOFError ioError
-                                    isHarmless _ = False
+                                    isHarmless exception = 
+                                       case ioErrors exception of
+                                          Nothing -> False
+                                          Just ioError -> isEOFError ioError
                                  if isHarmless exception
                                     then
                                        done
@@ -349,7 +352,7 @@ runServer serviceList =
          serverAction =
             do
                (handle,_,_) <- accept socket
-               registration <- tryAllIO (lookupService handle)
+               registration <- Exception.try (lookupService handle)
                case registration of
                   Right () -> done
                   Left exception ->
@@ -358,7 +361,7 @@ runServer serviceList =
                         debug exception   
                serverAction  
 
-      tryAllIO serverAction
+      Exception.try serverAction
       -- disconnect everything
 ------------------------------------------------------------------------
 -- (6) serverAction ended mysteriously, perhaps someone has interrupted

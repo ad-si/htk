@@ -29,10 +29,9 @@ import Object
 import Debug(debug)
 import Dynamics
 
-import Selective
-
 import InfoBus
-import SIM(lift,Destructible(..),IA)
+import Events
+import Destructible
 
 import DisplayGraph
 import Graph
@@ -149,14 +148,16 @@ newGraphEditor
 data GraphEditor = GraphEditor {
    oID :: ObjectID,
    destroyAction :: IO (), -- run this to end everything
-   destroyedEvent :: IA ()
+   destroyedEvent :: Event ()
    }
 
 instance Object GraphEditor where
    objectID graphEditor = oID graphEditor
 
-instance Destructible GraphEditor where
+instance Destroyable GraphEditor where
    destroy graphEditor = destroyAction graphEditor
+
+instance Destructible GraphEditor where
    destroyed graphEditor = destroyedEvent graphEditor
 
 

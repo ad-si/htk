@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Image
 AUTHOR        : Einar Karlsen,  
@@ -9,56 +9,63 @@ VERSION       : alpha
 DESCRIPTION   : Image's in the sense of Tk
 
 
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module Image (
-        HasPhoto(..),
-        Image,  
-        newImage,
 
-        intToImage,
-        imageToInt,
+  HasPhoto(..),
+  Image,  
+  newImage,
 
-	Format(..),
-	imgData
+  intToImage,
+  imageToInt,
 
-        ) where
+  Format(..),
+  imgData
 
-import Concurrency
-import GUICore
+) where
+
+import Core
+import BaseClasses(Widget)
+import Configuration
+import Computation
+import Synchronized
+import Destructible
 import Packer
-import Debug(debug)
 
--- --------------------------------------------------------------------------
--- Class Image 
--- --------------------------------------------------------------------------            
+
+-- -----------------------------------------------------------------------
+-- class image
+-- -----------------------------------------------------------------------
+
 class GUIObject w => HasPhoto w where
-        photo           :: Image -> Config w
-        getPhoto        :: w -> IO (Maybe Image)
-        photo img w     = imageToInt img >>= cset w "image"
-        getPhoto w      = cget w "image" >>= intToImage 
+  photo           :: Image -> Config w
+  getPhoto        :: w -> IO (Maybe Image)
+  photo img w     = imageToInt img >>= cset w "image"
+  getPhoto w      = cget w "image" >>= intToImage 
 
 
--- --------------------------------------------------------------------------
--- Type Image 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- type image
+-- -----------------------------------------------------------------------
+
 newtype Image = Image GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Constructor 
--- --------------------------------------------------------------------------           
-newImage :: [Config Image] -> IO Image
-newImage ol = do
-        w <- createWidget LABEL
-        configure (Image w) ol
+-- -----------------------------------------------------------------------
+-- constructor
+-- -----------------------------------------------------------------------
+
+newImage :: Container par => par -> [Config Image] -> IO Image
+newImage par ol =
+  do
+    w <- createWidget (toGUIObject par) LABEL
+    configure (Image w) ol
 
 imgData :: Format -> String  -> Config Image
 imgData f str w =
-  synchronize w (do {
-	execTclScript [tkImageCreateFromData no f str] >>
-        cset w "image" no})
+    execTclScript [tkImageCreateFromData no f str] >> cset w "image" no
   where no = getObjectNo (toGUIObject w)
 
 data Format = GIF | PPM | PGM
@@ -71,44 +78,40 @@ formatToString f =
     _   -> "PGM"
 
 
--- --------------------------------------------------------------------------
--- Instantiations 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
+
 instance GUIObject Image where 
         toGUIObject (Image w) = w; cname _ = "Image"
 
-instance Destructible Image where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+instance Destroyable Image where
+  destroy   = destroy . toGUIObject
 
 instance Widget Image
- 
-instance ChildWidget Image 
 
 instance HasBorder Image
 
-instance HasColour Image where 
-        legalColourID = hasForeGroundColour
+instance HasColour Image where
+  legalColourID = hasForeGroundColour
 
 instance HasSize Image
 
 instance HasFile Image where
-        filename str w = 
-                synchronize w (do {                     
-                        execTclScript [tkImageCreate no str] >>
-                        cset w "image" no
-                        }) 
-                where no = getObjectNo (toGUIObject w) 
-        getFileName w = evalTclScript [tkGetImageFile no] 
-                where no = getObjectNo (toGUIObject w)
+  filename str w =
+    execTclScript [tkImageCreate no str] >> cset w "image" no
+    where no = getObjectNo (toGUIObject w) 
+  getFileName w = evalTclScript [tkGetImageFile no] 
+    where no = getObjectNo (toGUIObject w)
 
 instance Synchronized Image where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize w = synchronize (toGUIObject w)
 
 
--- --------------------------------------------------------------------------
--- Auxiliary Functions 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- auxiliary functions
+-- -----------------------------------------------------------------------
+
 intToImage :: Int -> IO (Maybe Image)
 intToImage 0 = return Nothing
 intToImage no = lookupGUIObject (ObjectID no) >>= return . Just . Image 
@@ -120,9 +123,10 @@ intToImage no = lookupGUIObject (ObjectID no) >>= return . Just . Image
 imageToInt :: Image -> IO Int
 imageToInt = return . getObjectNo . toGUIObject
 
--- --------------------------------------------------------------------------
--- Tk Commands 
--- --------------------------------------------------------------------------           
+-- -----------------------------------------------------------------------
+-- Tk Commands
+-- -----------------------------------------------------------------------
+
 tkImageCreate :: Int -> String -> String
 tkImageCreate no file = "image create photo " ++ show no ++ " -file " ++ show file
 {-# INLINE tkImageCreate #-}

@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Slider
 AUTHOR        : Einar Karlsen,  
@@ -8,23 +8,25 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Basic classes for slider elements. 
 
-
-   ######################################################################### -}
-
+   #################################################################### -}
 
 module Slider (
-        Slider(..),
-        HasSlider(..)
+
+  Slider(..),
+  HasSlider(..)
 
 ) where
 
-import Concurrency
-import GUICore
-import Debug(debug)
+import Core
+import Configuration
+import Computation
+import BaseClasses(Widget)
+import Colour(toColour)
 
--- --------------------------------------------------------------------------
---  Classes 
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+--  Classes
+-- -----------------------------------------------------------------------
 
 class Widget w => HasSlider w where             -- for sliders
         repeatInterval     :: Int -> Config (Slider w)
@@ -35,28 +37,31 @@ class Widget w => HasSlider w where             -- for sliders
         getRepeatInterval w = cget w "repeatinterval" 
         repeatDelay c w     = cset w "repeatdelay" c
         getRepeatDelay w    = cget w "repeatdelay"    
+-- TD:
+-- this is from Einar's implementation
+-- I dont't think this makes sense for all widgets
 
 
--- --------------------------------------------------------------------------
---  Handle 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+--  Handle
+-- -----------------------------------------------------------------------
 
 newtype HasSlider w => Slider w = Slider w
 
 
--- --------------------------------------------------------------------------
---  Instantiations 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+--  Instantiations
+-- -----------------------------------------------------------------------
 
 instance GUIObject w => GUIObject (Slider w) where
         toGUIObject (Slider w)  = toGUIObject w
         cname (Slider w)        = cname w
 
-
 instance (HasSlider w,GUIObject w) => HasColour (Slider w) where
         legalColourID             = hasForeGroundColour
         setColour w "foreground" c = cset w "troughcolor" (toColour c)
-        setColour w "background" c = cset w "activebackground" (toColour c)
+        setColour w "background" c =
+          cset w "activebackground" (toColour c)
         setColour w _ _            = return w
         getColour w "background"   = cget w "troughcolor"
         getColour w "foreground"   = cget w "activebackground"

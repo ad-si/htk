@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Screen
 AUTHOR        : Einar Karlsen,  
@@ -8,55 +8,60 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Screen specific properties 
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module Screen (
-        Distance,
-        Screen(..),
-        getScreenHeight,
-        getScreenWidth,
-        getScreenManager,
 
-        VisualClass(..),
-        getScreenVisual
+  Distance,
+  Screen(..),
+  getScreenHeight,
+  getScreenWidth,
+  getScreenManager,
 
-        ) where
+  VisualClass(..),
+  getScreenVisual
 
-import Thread
-import GUICore 
+) where
+
+import Core
+import Geometry(Distance)
 import Char(isSpace)
-import Debug(debug)
+import Window
 
--- --------------------------------------------------------------------------
--- Screen 
--- --------------------------------------------------------------------------            
-data Screen = Screen Window
 
--- --------------------------------------------------------------------------
--- Screen Dimensions 
--- --------------------------------------------------------------------------            
-getScreenHeight :: Screen -> IO Distance
+-- -----------------------------------------------------------------------
+-- Screen
+-- -----------------------------------------------------------------------
+
+newtype Window w => Screen w = Screen w
+
+
+-- -----------------------------------------------------------------------
+-- Screen dimensions
+-- -----------------------------------------------------------------------
+
+getScreenHeight :: GUIObject a => Screen a -> IO Distance
 getScreenHeight (Screen win) = 
         evalMethod win (\nm -> ["winfo screenheight " ++ show nm])
 
-getScreenWidth :: Screen -> IO Distance
+getScreenWidth :: GUIObject a => Screen a -> IO Distance
 getScreenWidth (Screen win)= 
         evalMethod win (\nm -> ["winfo screenwidth " ++ show nm])
 
-getScreenVisual :: Screen -> IO VisualClass     
+getScreenVisual :: GUIObject a => Screen a -> IO VisualClass     
 getScreenVisual (Screen win) = 
         evalMethod win (\nm -> ["winfo screenvisual " ++ show nm])      
         
-getScreenManager :: Screen -> IO String 
+getScreenManager :: GUIObject a => Screen a -> IO String 
 getScreenManager (Screen win) = 
         evalMethod win (\nm -> ["winfo manager " ++ show nm])   
         
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Screen Colours 
--- --------------------------------------------------------------------------            
+-- -----------------------------------------------------------------------
+
 data VisualClass = 
           DirectColour
         | GrayScale

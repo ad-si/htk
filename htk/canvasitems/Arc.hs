@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Arc
 AUTHOR        : Einar Karlsen,  
@@ -8,63 +8,61 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Arc Item
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module Arc (
-        module CanvasItem,
+  module CanvasItem,
 
-        Arc,
-        newArc,
+  Arc,
+  createArc,
 
-        extent,
-        getExtent,
+  extent,
+  getExtent,
 
-        start,
-        getStart
+  start,
+  getStart
 
-        ) where
+) where
 
-import Concurrency
-import GUICore
+import Core
+import Configuration
 import CanvasItem
 import CanvasTag
 import CanvasItemAux
-import Debug(debug)
+import Computation
+import Synchronized
+import Destructible
 
-        
--- --------------------------------------------------------------------------
--- Arc
--- --------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------
+-- arc
+-- -----------------------------------------------------------------------
 
 data Arc = Arc GUIOBJECT
 
-        
--- --------------------------------------------------------------------------
--- Constructor
--- --------------------------------------------------------------------------
 
-newArc :: [Config Arc] -> IO Arc
-newArc ol = createCanvasItem ARC Arc ol
+-- -----------------------------------------------------------------------
+-- constructor
+-- -----------------------------------------------------------------------
 
-        
--- --------------------------------------------------------------------------
--- Instantiations
--- --------------------------------------------------------------------------
+createArc :: Canvas -> [Config Arc] -> IO Arc
+createArc cnv ol = createCanvasItem cnv ARC Arc ol [(0,0),(0,0)]
+
+
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
 
 instance GUIObject Arc where 
-        toGUIObject (Arc w) = w
-        cname _ = "Arc"
+  toGUIObject (Arc w) = w
+  cname _ = "Arc"
 
-instance Destructible Arc where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive Arc
+instance Destroyable Arc where
+  destroy   = destroy . toGUIObject
 
 instance Synchronized Arc where
-        synchronize w = synchronize (toGUIObject w)
+  synchronize w = synchronize (toGUIObject w)
 
 instance CanvasItem Arc
 
@@ -73,27 +71,27 @@ instance TaggedCanvasItem Arc
 instance FilledCanvasItem Arc
 
 instance HasGeometry Arc where
-        geometry    = itemGeo
-        getGeometry = getGeo
+  geometry    = itemGeo
+  getGeometry = getGeo
 
 instance HasPosition Arc where
-        position    = itemPosition
-        getPosition = getItemPosition
+  position    = itemPosition
+  getPosition = getItemPosition
 
 instance HasSize Arc where
-        width       = itemWidth
-        getWidth    = getItemWidth
-        height      = itemHeight
-        getHeight   = getItemHeight
-        size        = itemSize
-        getSize     = getItemSize
+  width       = itemWidth
+  getWidth    = getItemWidth
+  height      = itemHeight
+  getHeight   = getItemHeight
+  size        = itemSize
+  getSize     = getItemSize
 
-        
--- --------------------------------------------------------------------------
--- Config Options
--- --------------------------------------------------------------------------
 
-type Degree = Double 
+-- -----------------------------------------------------------------------
+-- config options
+-- -----------------------------------------------------------------------
+
+type Degree = Double
 
 extent :: Degree -> Config Arc
 extent d w = cset w "extent" d

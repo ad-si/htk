@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Keyboard
 AUTHOR        : Einar Karlsen,  
@@ -8,44 +8,45 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   :  
 
-   ######################################################################### -}
+   #################################################################### -}
 
 module Keyboard (
-        Window,
 
-        CurrentFocus,
+-- Window,
 
-        FocusModel(..), 
-        focusModel,
-        getFocusModel,
-        getFocus,       
-        setFocus,
-        forceFocus,
-        getRecentFocus,
+  CurrentFocus,
 
-        keystroke,
-        anyKeyPressed,
-        anyKeyReleased,
-        keyPressed,
-        keyReleased
+  FocusModel(..), 
+  focusModel,
+  getFocusModel,
+  getFocus,       
+  setFocus,
+  forceFocus,
+  getRecentFocus,
 
-        ) where
+--  keystroke,
+--  anyKeyPressed,
+--  anyKeyReleased,
+--  keyPressed,
+--  keyReleased
 
-import SIM
-import GUICore
+) where
+
+import Core
+import BaseClasses(Widget)
 import Char(isSpace)
-import Debug(debug)
+import Computation
+import Window
 
 
-
--- --------------------------------------------------------------------------
---  FocusModel 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- FocusModel
+-- -----------------------------------------------------------------------
 
 data FocusModel = ActiveFocus | PassiveFocus deriving (Eq,Ord,Enum)
 
 instance GUIValue FocusModel where
-        cdefault = PassiveFocus
+  cdefault = PassiveFocus
 
 instance Read FocusModel where
    readsPrec p b =
@@ -62,26 +63,27 @@ instance Show FocusModel where
         ) ++ r
 
 
--- --------------------------------------------------------------------------
--- Window Focus 
--- --------------------------------------------------------------------------           
-focusModel :: FocusModel -> Config Window
+-- -----------------------------------------------------------------------
+-- window focus
+-- -----------------------------------------------------------------------
+
+focusModel :: Window w => FocusModel -> Config w
 focusModel fm win = cset win "focusmodel" fm
 
-getFocusModel :: Window -> IO FocusModel
+getFocusModel :: Window w => w -> IO FocusModel
 getFocusModel win = cget win "focusmodel" 
 
 
--- --------------------------------------------------------------------------
--- Current Focus 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- current focus
+-- -----------------------------------------------------------------------
 
 data CurrentFocus = CurrentFocus GUIOBJECT
 
 
--- --------------------------------------------------------------------------
--- Instantiations 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
 
 instance Object CurrentFocus where
         objectID (CurrentFocus obj) = objectID obj
@@ -93,39 +95,38 @@ instance GUIObject CurrentFocus where
 instance Widget CurrentFocus  
 
 
--- --------------------------------------------------------------------------
--- Input Focus 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- input focus
+-- -----------------------------------------------------------------------
 
-getFocus :: Window -> IO (Maybe CurrentFocus)
+getFocus :: Window w => w -> IO (Maybe CurrentFocus)
 getFocus win = 
-        evalMethod win (\wn -> ["focus -displayof " ++ show wn]) >>= 
-        toCurrentFocus . WidgetName
+  evalMethod win (\wn -> ["focus -displayof " ++ show wn]) >>= 
+  toCurrentFocus . WidgetName
 
-setFocus :: (Interactive w,Widget w) => w -> IO ()
+setFocus :: Widget w => w -> IO ()
 setFocus w = execMethod w (\wn -> ["focus " ++ show wn])
 
-forceFocus :: (Interactive w,Widget w) => w -> IO ()
+forceFocus :: Widget w => w -> IO ()
 forceFocus w = execMethod w (\wn -> ["focus -force " ++ show wn])
 
-getRecentFocus :: Window -> IO (Maybe CurrentFocus)
+getRecentFocus :: Window w => w -> IO (Maybe CurrentFocus)
 getRecentFocus w =
-        evalMethod w (\wn -> ["focus -lastfor " ++ show wn])    >>= 
-        toCurrentFocus . WidgetName
-
+  evalMethod w (\wn -> ["focus -lastfor " ++ show wn])    >>= 
+  toCurrentFocus . WidgetName
 
 toCurrentFocus :: WidgetName -> IO (Maybe CurrentFocus)
-toCurrentFocus name = do {
-        obj <- lookupGUIObjectByName name;
-        case obj of
-                Nothing -> return Nothing
+toCurrentFocus name =
+  do
+    obj <- lookupGUIObjectByName name
+    case obj of Nothing -> return Nothing
                 (Just o) -> (return . Just . CurrentFocus) o
-}
 
 
--- --------------------------------------------------------------------------
--- Archetypical Keyboard Events 
--- --------------------------------------------------------------------------
+{-
+-- -----------------------------------------------------------------------
+-- archetypical keyboard events
+-- -----------------------------------------------------------------------
 
 keystroke :: (Interactive w, GUIEventDesignator e)  => 
                 w -> e -> IA (Position,String)
@@ -143,3 +144,4 @@ keyPressed w k = keystroke w (KeyPress (Just k)) >>>= return . fst
 
 keyReleased :: Interactive w => w -> String -> IA Position
 keyReleased w k = keystroke w (KeyRelease (Just k)) >>>= return . fst
+-}

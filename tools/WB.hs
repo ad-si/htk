@@ -29,5 +29,6 @@ import InterActor(interactor,newInterActor,stop)
 import ChildProcess(linemode,arguments,environment,workingdir,standarderrors,pollinterval,PosixProcess)
 import InfoBus
 import SIMClasses(toolFailed)
-import GUIBaseClasses(HasText(..))
+--import GUIBaseClasses(HasText(..))
+import Core(HasText(..))
 import HTk(htk,destroyed)

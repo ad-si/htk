@@ -6,7 +6,10 @@
 # SUBDIRS is a list of all directories containing code to be compiled to
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
-SUBDIRS=$(UTILDIR) $(CONCDIR) $(SERVERDIR) $(REACTORDIR) $(HTKDIR) $(GRAPHSDIR) $(DAVINCIDIR) $(TOOLSDIR) $(CVSDIR) $(VERSIONSDIR) 
+SUBDIRS=$(UTILDIR) $(EVENTSDIR) $(SERVERDIR) $(REACTORDIR) $(HTKDIR) $(GRAPHSDIR) $(DAVINCIDIR) 
+# tools, cvs and types are still being worked on and not contained in this
+# release
+# $(TOOLSDIR) $(CVSDIR) $(TYPESDIR)
 
 include @TOP@/mk/boilerplate.mk 
 
@@ -20,7 +23,7 @@ include @TOP@/mk/boilerplate.mk
 .PHONY : tarball.tar.gz tarball.objects.tar.gz 
 
 tarball.tar.gz:
-	gtar -czf tarball.tar.gz `gfind . '(' -name '*.hs' -o -name '*.c' -o -name '*.h' -o -name '*.mk' -o -name Makefile -o -name 'README' ')' ` 
+	gtar -czf tarball.tar.gz `gfind . '(' -name '*.hs' -o -name '*.c' -o -name '*.h' -o -name '*.mk' -o -name Makefile -o -name 'README' -o -name '*.in' -o -name configure ')' ` 
 
 # tar of all object and .hi files (but not .depend/library/exec files which 
 # are cheaper to regenerate)

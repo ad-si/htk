@@ -12,10 +12,11 @@ import Registry
 import Computation (done)
 import Object
 
-import Selective
-
 import InfoBus
-import SIM(lift,Destructible(..),IA)
+
+import Events
+import Channels
+import Destructible
 
 import GraphDisp
 import Graph
@@ -53,20 +54,20 @@ displayGraph
    (getArcParms :: DisplayGraph -> ArcType -> arcTypeLabel
       -> IO (arcTypeParms Arc)) =
    do
-      msgQueue <- newMsgQueue
+      msgQueue <- newChannel
 
       let graphConnection = shareGraph graph
 
       GraphConnectionData {
          graphState = CannedGraph { updates = updates },
          deRegister = deRegister
-         } <- graphConnection (sendIO msgQueue)
+         } <- graphConnection (sync. noWait . (send msgQueue))
 
 -- The nodes of the graph display will have the following types:
 #define DispNodeType (nodeType Node)
 #define DispNode (node Node)
 #define DispArcType (arcType Arc)
-#define DispArc (arc Arc Node Node)
+#define DispArc (arc Arc)
 
       (nodeRegister :: Registry Node DispNode) <- newRegistry
       (nodeTypeRegister :: Registry NodeType DispNodeType)
@@ -85,7 +86,7 @@ displayGraph
          displayGraph = DisplayGraph {
             oID = oID,
             destroyAction = destroy dispGraph,
-            destroyedEvent = lift (receive destructionChannel)
+            destroyedEvent = receive destructionChannel
             }
 
          handleUpdate :: Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel
@@ -149,7 +150,7 @@ displayGraph
       let
          monitorThread =
             sync(
-                  (lift (receive msgQueue)) >>>=
+                  (receive msgQueue) >>>=
                      (\ update ->
                         do
                            handleUpdate update
@@ -179,14 +180,17 @@ displayGraph
 data DisplayGraph = DisplayGraph {
    oID :: ObjectID,
    destroyAction :: IO (), -- run this to end everything
-   destroyedEvent :: IA ()
+   destroyedEvent :: Event ()
    }
 
 instance Object DisplayGraph where
    objectID displayGraph = oID displayGraph
 
-instance Destructible DisplayGraph where
+
+instance Destroyable DisplayGraph where
    destroy displayGraph = destroyAction displayGraph
+
+instance Destructible DisplayGraph where
    destroyed displayGraph = destroyedEvent displayGraph
 
 

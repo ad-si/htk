@@ -1,7 +1,8 @@
 LIB        = libutil.a
 
 SRCS       = Queue.hs ExtendedPrelude.hs Computation.hs Dynamics.hs WBFiles.hs Object.hs Date.hs Debug.hs Maybes.hs LineShow.hs Cache.hs FileNames.hs \
- IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs
+ IOExtras.hs QuickReadShow.hs AtomString.hs SmallSet.hs Registry.hs RegularExpression.hs DelSet.hs Thread.hs UniqueString.hs \
+
 SRCSC      = object.c default_options.c
 
 SUBDIRS = test
@@ -10,6 +11,7 @@ include @TOP@/mk/boilerplate.mk
 
 object.o : object.h
 
+# WBFiles_HC_OPTIONS = -Onot
 
 WBFiles.o : default_options.h
 default_options.o : default_options.h

@@ -1,0 +1,12 @@
+LIBS = $(TOP)/htk/libhtk.a\
+       $(TOP)/events/libevents.a\
+       $(TOP)/util/libutil.a
+
+SRCS = src/XGit.hs
+
+XHCDIRS = $(HTKDIRS)
+
+include @TOP@/mk/boilerplate.mk
+
+
+

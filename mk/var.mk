@@ -26,8 +26,8 @@ HCFLAGS = $(HCSYSLIBS) \
           -fglasgow-exts \
           -fallow-overlapping-instances \
           -fallow-undecidable-instances \
-	  -cpp -hi-diffs \
-	  -H25M -K5M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
+ 	  -cpp -ddump-hi-diffs \
+ 	  -H25M $(HC_OPTIONS) $(EXTRA_HC_OPTIONS)
 
 # Gnu C compiler.  NB - the GHC installation is hardwired to
 # a particular version of gcc, so don't go changing this unless
@@ -43,7 +43,7 @@ CFLAGS           = $(GHCINCDIR)
 # same directory, so that gmake properly identifies them.
 # NB.  XHCDIRS can be used to add extra directories.  It should
 # end with a colon.
-HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(CONCDIR):$(REACTORDIR):$(SERVERDIR):$(HTKDIR):$(DAVINCIDIR):$(GRAPHSDIR):$(TOOLSDIR):$(CVSDIR):$(TYPESDIR):$(VERSIONSDIR)
+HCDIRS =  .:$(XHCDIRS)$(UTILDIR):$(EVENTSDIR):$(CONCDIR):$(REACTORDIR):$(SERVERDIR):$(HTKDIR):$(DAVINCIDIR):$(GRAPHSDIR):$(TOOLSDIR):$(CVSDIR):$(TYPESDIR):$(VERSIONSDIR)
 # $(OMSCDIR):$(OMSNOTIDIR):$(OMSDIR):$(WBDIR):$(TOOLSDIR):$(DEMODIR):$(SCHEMADIR):$(IDLDIR)
 
 UTILDIR    	= $(TOP)/util
@@ -52,6 +52,7 @@ EVENTSDIR       = $(TOP)/events
 REACTORDIR 	= $(TOP)/reactor
 SERVERDIR       = $(TOP)/server
 HTKDIR          = $(TOP)/htk
+HTKPACKERDIR    = $(HTKDIR)/packer
 HTKRESOURCEDIR  = $(HTKDIR)/resources
 HTKCANVASITEMDIR= $(HTKDIR)/canvasitems
 HTKKERNELDIR    = $(HTKDIR)/kernel
@@ -63,6 +64,7 @@ HTKTOPLEVELDIR  = $(HTKDIR)/toplevel
 HTKWIDGETSDIR   = $(HTKDIR)/widgets
 HTKDEVICESDIR   = $(HTKDIR)/devices
 HTKTEXTITEMDIR  = $(HTKDIR)/textitems
+HTKTIXDIR       = $(HTKDIR)/tix
 DAVINCIDIR      = $(TOP)/davinci
 GRAPHSDIR       = $(TOP)/graphs
 TOOLSDIR        = $(TOP)/tools
@@ -74,10 +76,6 @@ VERSIONSINODEDIR= $(CVSDIR)/inodeserver
 
 # HTKDIRS and HTKSDIRS contain the HTK .hi files.  HTKSDIR gives the
 # view from the htk directory.
-HTKDIRS = $(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):
+HTKDIRS = $(HTKPACKERDIR):$(HTKRESOURCEDIR):$(HTKCANVASITEMDIR):$(HTKKERNELDIR):$(HTKCONTAINERDIR):$(HTKMENUITEMDIR):$(HTKTOOLKITDIR):$(HTKCOMPONENTSDIR):$(HTKTOPLEVELDIR):$(HTKWIDGETSDIR):$(HTKDEVICESDIR):$(HTKTEXTITEMDIR):$(HTKTIXDIR):
 
-HTKSDIRS = resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:
-
-
-
-
+HTKSDIRS = packer:resources:canvasitems:kernel:containers:menuitems:toolkit:components:toplevel:widgets:devices:textitems:tix:

@@ -2,8 +2,8 @@
 module Main(main) where
 
 import GraphDispTest
-import DaVinciGraphDisp
-import SIM(shutdown)
+import DaVinciGraph
+import InfoBus(shutdown)
 import WBFiles(parseArguments)
 
 main = 

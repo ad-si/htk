@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : ImageItem
 AUTHOR        : Einar Karlsen,  
@@ -8,73 +8,71 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : 
 
-TO BE dONE    : anchor config option
+TO BE DONE    : anchor config option
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module ImageItem (
-        module CanvasItem,
 
-        ImageItem,
-        newImageItem
+  module CanvasItem,
+
+  ImageItem,
+  createImageItem
  
-        ) where
+) where
 
-import Concurrency
-import GUICore
+import Core
+import Configuration
 import CanvasItem
 import CanvasTag
 import CanvasItemAux
 import Image
-import Debug(debug)
+import Computation
+import Synchronized
+import Destructible
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- ImageItem
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 newtype ImageItem = ImageItem GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
--- Constructor
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- constructor
+-- -----------------------------------------------------------------------
 
-newImageItem :: [Config ImageItem] -> IO ImageItem
-newImageItem ol = createCanvasItem IMAGEITEM ImageItem ol
+createImageItem :: Canvas -> [Config ImageItem] -> IO ImageItem
+createImageItem cnv ol =
+  createCanvasItem cnv IMAGEITEM ImageItem ol [(0,0)]
 
 
--- --------------------------------------------------------------------------
--- Instantiations
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
+-- instantiations
+-- -----------------------------------------------------------------------
 
 instance GUIObject ImageItem where 
-        toGUIObject (ImageItem w) = w
-        cname _ = "ImageItem"
+  toGUIObject (ImageItem w) = w
+  cname _ = "ImageItem"
 
-instance Destructible ImageItem where
-        destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
+instance Destroyable ImageItem where
+  destroy   = destroy . toGUIObject
 
-instance Interactive ImageItem
-
-instance CanvasItem ImageItem where 
-        defaultCoord w = [(0,0)]
+instance CanvasItem ImageItem
 
 instance TaggedCanvasItem ImageItem
 
 instance HasPosition ImageItem where
-        position    = itemPositionD2
-        getPosition = getItemPositionD2
+  position    = itemPositionD2
+  getPosition = getItemPositionD2
 
 instance HasCanvAnchor ImageItem where
-	canvAnchor a w = cset w "anchor" a
-	getCanvAnchor w = cget w "anchor"
+  canvAnchor a w = cset w "anchor" a
+  getCanvAnchor w = cget w "anchor"
 
 instance HasPhoto ImageItem
 
 instance Synchronized ImageItem where
-        synchronize w = synchronize (toGUIObject w)
-
+  synchronize w = synchronize (toGUIObject w)

@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Rectangle
 AUTHOR        : Einar Karlsen,  
@@ -8,45 +8,47 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : 
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module Rectangle (
-        module CanvasItem,
 
-        Rectangle,
-        newRectangle
+  module CanvasItem,
 
-        ) where
+  Rectangle,
+  createRectangle
 
-import Concurrency
-import GUICore
+) where
 
+import Core
+import Configuration
 import CanvasItem
 import CanvasTag
 import CanvasItemAux
-import Debug(debug)
+import Destructible
+import Computation
+import Synchronized
         
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Rectangle
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 data Rectangle = Rectangle GUIOBJECT
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Constructor
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
-newRectangle :: [Config Rectangle] -> IO Rectangle
-newRectangle ol = createCanvasItem RECTANGLE Rectangle ol
+createRectangle :: Canvas -> [Config Rectangle] -> IO Rectangle
+createRectangle cnv ol =
+  createCanvasItem cnv RECTANGLE Rectangle ol [(0,0),(0,0)]
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Instantiations
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 instance Eq Rectangle where 
         w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
@@ -55,11 +57,8 @@ instance GUIObject Rectangle where
         toGUIObject (Rectangle w) = w
         cname _ = "Rectangle"
 
-instance Destructible Rectangle where
+instance Destroyable Rectangle where
         destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive Rectangle
 
 instance Synchronized Rectangle where
         synchronize w = synchronize (toGUIObject w)
@@ -85,4 +84,3 @@ instance HasSize Rectangle where
         getHeight   = getItemHeight
         size        = itemSize
         getSize     = getItemSize
-

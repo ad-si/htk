@@ -1,4 +1,4 @@
-{- #########################################################################
+{- #######################################################################
 
 MODULE        : Oval
 AUTHOR        : Einar Karlsen,  
@@ -8,55 +8,53 @@ DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : Canvas Widget & Canvas Tags & Embedded Windows
 
-
-   ######################################################################### -}
+   #################################################################### -}
 
 
 module Oval (
+
         module CanvasItem,
 
         Oval,
-        newOval
+        createOval
 
         ) where
 
-import Concurrency
-import GUICore
-
+import Core
+import Configuration
 import CanvasItem
 import CanvasTag
 import CanvasItemAux
-import Debug(debug)
+import Destructible
+import Computation
+import Synchronized
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Oval
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 newtype Oval = Oval GUIOBJECT deriving Eq
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Constructor
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
-newOval :: [Config Oval] -> IO Oval
-newOval ol = createCanvasItem OVAL Oval ol
+createOval :: Canvas -> [Config Oval] -> IO Oval
+createOval cnv ol = createCanvasItem cnv OVAL Oval ol [(0,0),(0,0)]
 
 
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 -- Instantiations
--- --------------------------------------------------------------------------
+-- -----------------------------------------------------------------------
 
 instance GUIObject Oval where 
         toGUIObject (Oval w) = w
         cname _ = "Oval"
 
-instance Destructible Oval where
+instance Destroyable Oval where
         destroy   = destroy . toGUIObject
-        destroyed = destroyed . toGUIObject
-
-instance Interactive Oval
 
 instance Synchronized Oval where
         synchronize w = synchronize (toGUIObject w)
@@ -82,5 +80,3 @@ instance HasSize Oval where
         getHeight   = getItemHeight
         size        = itemSize
         getSize     = getItemSize
-
-
