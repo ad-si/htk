@@ -1,0 +1,81 @@
+This directory contains Uni, the central part of the UniForM workbench
+(that is, minus the repository manager).  The source of Uni is in the
+following directories:
+
+
+   directory    |  contents
+   
+   mk           |  Makefile magic which set up default rules and variables
+   bin          |  Shell scripts which might be needed for building Uni
+   util         |  Miscellanous Haskell functions used all over Uni
+   concurrency  |  Concurrency functions
+   reactor      |  The Reactor, for gluings processes together
+   htk          |  This is an encapsulation of Tcl/Tk in Haskell
+   davinci      |  This is an encapsulation of DaVinci in Haskell
+   www          |  Functions for manipulating HTML in Haskell
+
+It is intended to make the remainder of UniForM available later on.
+However the repository manager is currently in a very unsatisfactory
+state and needs a great deal more work before this can be done.  However
+we hope this fragment will be of interest to show what the guts of a
+real Haskell program look like.
+
+Requirements
+------------
+
+The following are required or at least recommended. 
+(1) A Unix box (probably it has to be Linux/x86 or Solaris).  Nearly
+    all development has been done on Solaris so that is most likely to
+    work.
+(2) gcc.  Ideally what I use -- gcc version 2.95.1.
+    Do not use 2.8* versions since they are known not to work at all with 
+    Glasgow Haskell.  Version 2.71 might work but I suspect Glasgow Haskell 
+    will not support it for much longer.
+(3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
+    ones may well work.
+(4) The very latest version of Glasgow Haskell.  This means downloading
+    the binary release (version 4.5) for your machine, getting the sources
+    from Glasgow Haskell's anoncvs repository (which is updated every evening)
+    and then using the binary release to bootstrap compiling the sources.
+    This is a painful process which is already done for you for Solaris.
+    The latest version for Solaris should be in 
+       /usr/local/pub-bkb/ghc/ghc-latest
+    and the sources should be in 
+       /usr/local/pub-bkb/ghc/fptools.
+
+Alter mk/machinedep.mk as appropriate.  (At the moment the variables
+are set for Sparc/Solaris boxes on the Informatik network.) 
+
+Of course you also need the sources to Uni!  They should be with this
+README file, but in case they are not, or in case you want to update
+your copies, here are details.  The Uni sources are kept in a 
+CVS repository in /home/uniform/repository.  So for example to get
+a complete set of the latest version of the sources you type (on the 
+Informatik network)
+
+   export CVSROOT=/home/uniform/repository
+   cvs checkout uni
+
+Type "man cvs" to find out other CVS commands.
+
+Compiling
+---------
+
+Once you've got all that, compiling Uni and the test programs that
+come with it should be easy.  The following commands are supposed to do
+it, assuming that you are in the same directory as this README file
+(that is, at the top of the Uni distribution).
+   
+# Configure file system
+./CONFIG
+# Work out what order to do compilation in
+gmake depend
+# Compile Uni
+gmake all
+# Compile test programs
+gmake testprgs
+
+Please report problems to me.  I am George Russell and my e-mail
+address is ger@tzi.de .
+
+Good luck!

@@ -1,0 +1,10 @@
+#!/bin/sh
+# This script needs to be run before any of the make files, to
+# set up the links.
+UNIDIR=`dirname $0`
+cd $UNIDIR
+FULLUNIDIR=$PWD
+for i in `find . -type d ! -name CVS`
+do
+   ln -s $FULLUNIDIR $i/top
+done

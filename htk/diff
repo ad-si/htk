@@ -1,0 +1,838 @@
+./canvasitems/Arc.hs
+./canvasitems/CanvasItem.hs
+./canvasitems/CanvasItemAux.hs
+./canvasitems/CanvasTag.hs
+./canvasitems/EmbeddedCanvasWin.hs
+./canvasitems/ImageItem.hs
+./canvasitems/Line.hs
+./canvasitems/Oval.hs
+./canvasitems/Polygon.hs
+./canvasitems/Rectangle.hs
+./canvasitems/TextItem.hs
+./canvasitems/BitMapItem.hs
+./components/ICursor.hs
+./components/Icon.hs
+./components/Image.hs
+./components/Index.hs
+./components/Selection.hs
+./components/Slider.hs
+./components/BitMap.hs
+./containers/Box.hs
+./containers/Frame.hs
+./containers/Window.hs
+./containers/Toplevel.hs
+./containers/Packer.hs
+./devices/Bell.hs
+./devices/Printer.hs
+./devices/Screen.hs
+./devices/XSelection.hs
+./devices/Mouse.hs
+./devices/Keyboard.hs
+./kernel/GUIMethods.hs
+./kernel/GUIObject.hs
+./kernel/GUIObjectKind.hs
+./kernel/GUIObjectName.hs
+./kernel/GUIState.hs
+./kernel/GUICore.hs
+./kernel/GUIBaseClasses.hs
+./kernel/GUIWish.hs
+40c40
+< import ChildProcess
+---
+> import IM
+45d44
+< import WBFiles
+96,97c95
+< 	tname <- getWBToolFilePath "wish";	
+< 	intrp <- newDispatcher tname [] finalizer (dispatch msq);
+---
+> 	intrp <- newDispatcher "wish" [] finalizer (dispatch msq);
+./kernel/GUIInteraction.hs
+./kernel/GUIRealise.hs
+./menuitems/Indicator.hs
+./menuitems/Menu.hs
+./menuitems/MenuButton.hs
+./menuitems/PulldownMenu.hs
+./menuitems/RadioButton.hs
+./menuitems/Separator.hs
+./menuitems/MenuItem.hs
+./menuitems/Button.hs
+./menuitems/CheckButton.hs
+./resources/Colour.hs
+./resources/Cursor.hs
+./resources/Font.hs
+./resources/GUIEvent.hs
+./resources/GUIValue.hs
+./resources/Resources.hs
+./resources/Geometry.hs
+./test/Test0.hs
+105c105,108
+<               errWin e = newErrorWin ("Haskell-Tk error occured: " ++ show e)[]
+---
+>               errWin e = do {
+> 			win <- newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True];
+> 			forkDialog win (const done)
+> 			}
+116c119
+< 	controller' win1 (inaction :: EV ())			>>
+---
+> 	controller' win1 (inaction :: IA ())			>>
+121c124
+< 	controller' win2 (inaction :: EV ())			>>
+---
+> 	controller' win2 (inaction :: IA ())			>>
+166c169
+< 			try(sync(receive b));
+---
+> 			try(sync(triggered b));
+323c326
+< 	registerCB el (receive b1 >>> do {
+---
+> 	registerCB el (triggered b1 >>> do {
+336c339
+< 			registerCB el (receive bc >>> bell) bc >>
+---
+> 			registerCB el (triggered bc >>> bell) bc >>
+371c374
+< 		action el (receive @>> bell)]			>>= \ btn ->
+---
+> 		action el (triggered @>> bell)]			>>= \ btn ->
+390c393
+< 		action el (receive @>> bell)]			>>= \ btn ->
+---
+> 		action el (triggered @>> bell)]			>>= \ btn ->
+401c404
+< 		action el (receive @>> done)]			>>= \cv ->
+---
+> 		action el (triggered @>> done)]			>>= \cv ->
+414c417
+< 	registerCB el  (receive cnt ?>>= ccond >>> bell) cnt	>>= \ ev' ->
+---
+> 	registerCB el  (triggered cnt >>>= \v -> when (ccond v) bell) cnt	>>= \ ev' ->
+419,420c422,423
+< 	where ccond :: Int -> IO Bool
+< 	      ccond x = if (x < 2) && (x > -2) then return True else return False
+---
+> 	where ccond :: Int -> Bool
+> 	      ccond x = if (x < 2) && (x > -2) then True else False
+449c452
+< 	      control1 :: Button () -> Button () -> Image -> Image -> InterActor -> EV ()
+---
+> 	      control1 :: Button () -> Button () -> Image -> Image -> InterActor -> IA ()
+451c454
+< 		     receive bt2 >>> do {
+---
+> 		     triggered bt2 >>> do {
+455c458
+< 		 +>  receive bt1 >>> do {
+---
+> 		 +>  triggered bt1 >>> do {
+457c460
+< 			become iact (control1 bt1 bt2 cb2 cb1)
+---
+> 			become iact (control1 bt1 bt2 cb2 cb1 iact)
+486,487c489,490
+< 		  receive b1 >>> do {wbfilename flagup bm ; done} 
+< 	       +> receive b2 >>> do {wbfilename flagdown bm; done}
+---
+> 		  triggered b1 >>> do {wbfilename flagup bm ; done} 
+> 	       +> triggered b2 >>> do {wbfilename flagdown bm; done}
+497c500
+< 	registerCB el (receive cnt >>> done) cnt			>>
+---
+> 	registerCB el (triggered cnt >>> done) cnt			>>
+538,539c541,542
+< 	fetchC win getText					>>
+< 	fetchC (Icon win) getText				>>	
+---
+> --	fetchC win getText					>>
+> --	fetchC (Icon win) getText				>>	
+558,559c561,564
+< testRemoteWindow disp =
+< 	forkIO(newAlertWin newMessage [modal True]) 
+---
+> testRemoteWindow disp = do {
+> 	win <- newAlertWin newMessage [modal True];
+> 	sync(triggered win)
+> 	}
+571,572c576,577
+< 		receive cb >>> done
+< 	  +>	timeout (secs 5) >>> bell
+---
+> 		triggered cb >>> done
+> 	  +>	timeout (secs 5) |>> bell
+586c591
+< 		action el (receive @>> setFocus e1)]	 	>>
+---
+> 		action el (triggered @>> setFocus e1)]	 	>>
+588c593
+< 		action el (receive @>> setFocus e2) ]    		>>
+---
+> 		action el (triggered @>> setFocus e2) ]    		>>
+590c595
+< 		action el (receive @>> forceFocus e1)]	 	>>
+---
+> 		action el (triggered @>> forceFocus e1)]	 	>>
+592c597
+< 		action el (receive @>> forceFocus e2) ]    	>>
+---
+> 		action el (triggered @>> forceFocus e2) ]    	>>
+597,598c602,603
+< 	registerCB el (receive b1 >>> do {showRecentFocus win lbl; done}) b1 >>
+< 	registerCB el (receive b2 >>> do {showFocus win lbl; done}) b2	>>
+---
+> 	registerCB el (triggered b1 >>> do {showRecentFocus win lbl; done}) b1 >>
+> 	registerCB el (triggered b2 >>> do {showFocus win lbl; done}) b2	>>
+643c648
+< (@>>) :: ( w -> EV a) -> IO () -> (w -> EV ())
+---
+> (@>>) :: ( w -> IA a) -> IO () -> (w -> IA ())
+647c652
+< action :: GUIObject w => EventLoop GUIOBJECT -> (w -> EV ()) -> Config w
+---
+> action :: GUIObject w => EventLoop GUIOBJECT -> (w -> IA ()) -> Config w
+./test/Test1.hs
+101c101
+< 			newErrorWin ("Haskell-Tk error occured: " ++ show e)[]
+---
+> 			newErrorDialog ("Haskell-Tk error occured: " ++ show e)[]
+516c516
+< 	b' <- return (map (\_ -> ()) b);
+---
+> 	b' <- mapTrigger (\_ -> return ()) b;
+523c523
+< 	b' <- return (map (\_ -> ()) b);
+---
+> 	b' <- mapTrigger (\_ -> return ()) b;
+./test/Test2.hs
+./test/Test3.hs
+113c113
+< trackCursor :: Canvas -> Prompt Int  -> EV ()
+---
+> trackCursor :: Canvas -> Prompt Int  -> IA ()
+135,139c135,139
+< 	controller' win (inaction :: EV ())			>>= \ iact ->
+< 	interactor (\iact -> (receive b +> destroyed b )>>> stop iact)	>>
+< 	controller' c1 (receive c1 >>> done)			>>
+< 	controller' c2 (receive c2 >>> done)			>>
+< 	controller' c3 (receive c3 >>> done)			>>
+---
+> 	controller' win (inaction :: IA ())			>>= \ iact ->
+> 	interactor (\iact -> (triggered b +> destroyed b )>>> stop iact)	>>
+> 	controller' c1 (triggered c1 >>> done)			>>
+> 	controller' c2 (triggered c2 >>> done)			>>
+> 	controller' c3 (triggered c3 >>> done)			>>
+156c156
+< wmCounter :: Window -> Counter Int -> Channel () -> InterActor -> EV ()
+---
+> wmCounter :: Window -> Counter Int -> Channel () -> InterActor -> IA ()
+158,159c158,159
+< 	   receive cnt >>> done
+< 	+> receive ch >>> become iact (\iact -> destroyed win >>> stop iact)
+---
+> 	   triggered cnt >>> done
+> 	+> receive ch |>> become iact (destroyed win >>> do {stop iact;done})
+173c173
+< 		return (receive butt >>> forkIO (sendIO ch ()))
+---
+> 		return (triggered butt >>> forkIO (sendIO ch ()))
+176c176
+< terminate :: [EV ()] -> Button () -> EV ()
+---
+> terminate :: [IA ()] -> Button () -> IA ()
+179c179
+< 	+>  receive bq >>> do {forkIO logout; done} 
+---
+> 	+>  triggered bq >>> do {forkIO logout; done} 
+232c232
+< 			return (map (\_ -> ()) b)
+---
+> 			mapTrigger (\_ -> return ()) b
+237c237
+< 			return (map (\_ -> ()) b)
+---
+> 			mapTrigger (\_ -> return ()) b
+259,262c259,262
+< 		receive me1 >>> do { value "Find and Replace" lbl; done}
+< 	   +>	receive me2 >>> do { value "Forward" lbl; done}
+< 	   +>	receive me3 >>> do { value "Backward" lbl; done}
+< 	   +>   receive me4 >>> do { value "Find Marked Text" lbl; done}
+---
+> 		triggered me1 >>> do { value "Find and Replace" lbl; done}
+> 	   +>	triggered me2 >>> do { value "Forward" lbl; done}
+> 	   +>	triggered me3 >>> do { value "Backward" lbl; done}
+> 	   +>   triggered me4 >>> do { value "Find Marked Text" lbl; done}
+274,276c274,277
+< testutil =
+< 	newAlertWin "Press button to continue test" [modal True]	>>
+< 	done
+---
+> testutil = do {
+> 	win <- newAlertWin "Press button to continue test" [modal True];
+> 	sync (triggered win)
+> 	}
+279,280d279
+< 
+< 
+./test/Test4.hs
+85c85
+< 	testmvc1;
+---
+> --	testmvc1;
+93c93
+< 	testmvc;
+---
+> --	testmvc;
+134c134
+< 		receive cnt >>> done
+---
+> 		triggered cnt >>> done
+142c142
+< 
+---
+> {-
+151c151
+< 	registerView c (receive cnt,\v -> do{value v cnt; done},destroyed win);
+---
+> 	registerView c (triggered cnt,\v -> do{value v cnt; done},destroyed win);
+164c164
+< 	registerView c (receive cnt,\v -> do {try (value v cnt);done},destroyed cnt);
+---
+> 	registerView c (triggered cnt,\v -> do {try (value v cnt);done},destroyed cnt);
+167c167
+< {-		receive cnt >>> become (receive cnt >>> done)
+---
+> {-		triggered cnt >>> become (triggered cnt >>> done)
+169,170c169,170
+< 	   +>		receive bt >>> copyMVC c
+< 	   +>		receive bt2 >>> do {logout; stop iact} 
+---
+> 	   +>		triggered bt >>> copyMVC c
+> 	   +>		triggered bt2 >>> do {logout; stop iact} 
+174a175
+> -}
+176d176
+< 
+193c193
+< 	sync ( receive butt >>> done)				>>
+---
+> 	sync ( triggered butt >>> done)				>>
+247c247,248
+< 	controller' win (receive ib >>> bell )
+---
+> 	ev <- getTrigger ib;
+> 	controller' win (ev >>> bell )
+263c264
+< 			receive bt >>>= \ ans -> do {
+---
+> 			triggered bt >>>= \ ans -> do {
+265c266,269
+< 				   Left e -> newErrorWin "Illegal Input" [modal True]
+---
+> 				   Left e -> do {
+> 					ewin <- newErrorWin "Illegal Input" [modal True];
+> 					forkDialog ewin (const done)
+> 					}
+283c287,288
+< 	controller' win (receive rg >>>= (\ c -> foreach [b1,b2,b3] (fg c) >> done));
+---
+> 	ev <- getTrigger rg;
+> 	controller' win (ev >>>= (\ c -> foreach [b1,b2,b3] (fg c) >> done));
+292c297
+< 		replacor (\r -> \no -> r{no}), 
+---
+> 		modifier (\r -> \no -> r{no}), 
+298c303
+< 		replacor (\r -> \nm -> r{nm}),
+---
+> 		modifier (\r -> \nm -> r{nm}),
+304c309
+< 		replacor (\r -> \t -> r{descr = t}),
+---
+> 		modifier (\r -> \t -> r{descr = t}),
+309c314,315
+< 	ans <- newInputWin "Enter Input" form Nothing [];
+---
+> 	iwin <- newInputWin "Enter Input" form Nothing [];
+> 	ans <- sync(triggered iwin);
+322c328
+< editZDescr :: ZDescr -> IO (Maybe ZDescr)
+---
+> editZDescr :: ZDescr -> IO (InputWin (Maybe ZDescr))
+328c334
+< 		replacor (\r fName -> r{fName}),
+---
+> 		modifier (\r fName -> r{fName}),
+334c340
+< 		replacor (\r fKind -> r{fKind}), 
+---
+> 		modifier (\r fKind -> r{fKind}), 
+339c345
+< 		replacor (\r fDate -> r{fDate}),
+---
+> 		modifier (\r fDate -> r{fDate}),
+344c350
+< 		replacor (\r t -> r{fText = t}),
+---
+> 		modifier (\r t -> r{fText = t}),
+350d355
+< 	
+364c369,370
+< 	ans <- newPromptWin "Enter Integer" (cdefault::Int) [];
+---
+> 	pwin <- newPromptWin "Enter Integer" (cdefault::Int) [];
+> 	ans <- sync(triggered pwin);
+425,426c431,432
+< 	el # registerEH b1 (receive b1 >>> bell);
+< 	el # registerEH b2 (receive b2 >>> bell);
+---
+> 	el # registerEH b1 (triggered b1 >>> bell);
+> 	el # registerEH b2 (triggered b2 >>> bell);
+449c455
+< spinned :: SpinButton Spin -> Entry Int -> EV Int
+---
+> spinned :: SpinButton Spin -> Entry Int -> IA Int
+451c457
+< 	receive sb >>>= \s -> 
+---
+> 	triggered sb >>>= \s -> 
+495c501
+< 	controller' win (receive (fListBox cb));
+---
+> 	controller' win (triggered (fListBox cb));
+535,538c541,544
+< 		receive b1 >>>= (\f -> updValue cnt f >> done)
+< 	    +>	receive b2 >>>= (\f -> updValue cnt f >> done)
+< 	    +>	receive b3 >>>= (\f -> updValue cnt f >> done)
+< 	    +>	receive cnt >>> done
+---
+> 		triggered b1 >>>= (\f -> updValue cnt f >> done)
+> 	    +>	triggered b2 >>>= (\f -> updValue cnt f >> done)
+> 	    +>	triggered b3 >>>= (\f -> updValue cnt f >> done)
+> 	    +>	triggered cnt >>> done
+./test/Test5.hs
+95c95
+< 	mkController;
+---
+> --	mkController;
+100,101c100,103
+< } where errWin e = 
+< 		newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True]
+---
+> } where errWin e = do {
+> 		ewin <- newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True];
+> 		forkDialog ewin (const done)
+> 		}
+112c114,115
+< 	controller' win (receive mn >>>= \f -> f ed)	
+---
+> 	ev <- getTrigger mn
+> 	controller' win (ev >>>= \f -> f ed)	
+129c132,133
+< 		fnm <- newPromptWin "File Name" "" [modal True]
+---
+> 		pwin <- newPromptWin "File Name" "" [modal True]
+> 		fnm <- sync( triggered pwin)
+145c149
+< 	controller' win (receive bt >>> updValue e succ)	
+---
+> 	controller' win (triggered bt >>> updValue e succ)	
+186,189c190,192
+< 		receive b >>> do {
+< 			ans <- newConfirmWin "Do you really want to end the session" 
+< 				  [modal True];
+< 			when ans (do {logout; stop iact})
+---
+> 		triggered b >>> do {
+> 			cwin <- newConfirmWin "Do you really want to end the session"  [modal True];
+> 			forkDialog cwin (\ans -> when ans (do {logout; stop iact}))
+201,204c204,206
+< 		receive b >>> do {
+< 			ans <- newConfirmWin "Do you really want to end the session" 
+< 				  [modal True];
+< 			when ans (do {logout; stop iact})
+---
+> 		triggered b >>> do {
+> 			cwin <- newConfirmWin "Do you really want to end the session" [modal True];
+> 			forkDialog cwin (\ans -> when ans (do {logout; stop iact}))
+213c215
+< 	controller' win ((receive b1 +> receive b2) >>>= updValue l)
+---
+> 	controller' win ((triggered b1 +> triggered b2) >>>= updValue l)
+223c225
+< 	controller' win (choose (map receive [b1,b2]) >>>= \newFont -> 
+---
+> 	controller' win (choose (map triggered [b1,b2]) >>>= \newFont -> 
+250c252,253
+< 	controller' win (receive rg >>>= flip justify e) 
+---
+> 	ev <- getTrigger rg
+> 	controller' win (ev >>>= flip justify e) 
+267c270,271
+< 	controller' win (receive mn)
+---
+> 	ev <- getTrigger mn
+> 	controller' win ev
+282c286
+< 	+>	receive sb >>>= \s -> do {
+---
+> 	+>	triggered sb >>>= \s -> do {
+298c302
+< 	scaled :: Frame -> [Scale Double] -> EV ()
+---
+> 	scaled :: Frame -> [Scale Double] -> IA ()
+300c304
+< 		choose (map receive scs) >>> do { 
+---
+> 		choose (map triggered scs) >>> do { 
+314c318
+<  where	selectionChanged :: GUIValue a => ListBox [a] -> EV [a]
+---
+>  where	selectionChanged :: GUIValue a => ListBox [a] -> IA [a]
+335c339
+< 	configure e [scroller Horizontal s]
+---
+> 	configure e [scrollbar Horizontal s]
+345c349
+< 	controller' win (receive b >>>= startEditor)
+---
+> 	controller' win (triggered b >>>= startEditor)
+365c369
+< 	mevents <- getReceiveEvent mb0
+---
+> 	mevents <- getTrigger mb0
+380c384,385
+< 	controller' win (receive mb >>>= flip bg mb)
+---
+> 	ev <- getTrigger mb
+> 	controller' win (ev >>>= flip bg mb)
+394c399
+<     controller' w (receive cnt)
+---
+>     controller' w (triggered cnt)
+396c401
+< 
+---
+> {-
+403c408
+<     		registerView c (receive cnt,setValue cnt,destroyed w)
+---
+>     		registerView c (triggered cnt,setValue cnt,destroyed w)
+404a410
+> -}
+405a412,415
+> mkDialogue = do {
+> 	ewin <- newErrorWin "Illegal integer value" [modal True];
+> 	forkDialog ewin (const done)
+> 	}
+407,410d416
+< mkDialogue = do
+< 	newErrorWin "Illegal integer value" [modal True]
+< 	done
+< 
+442c448
+< 		replacor (\r street -> r{street}),
+---
+> 		modifier (\r street -> r{street}),
+449c455
+< 		replacor (\r city -> r{city}),
+---
+> 		modifier (\r city -> r{city}),
+457c463
+< 		replacor (\r zipcode -> r{zipcode}),
+---
+> 		modifier (\r zipcode -> r{zipcode}),
+463c469
+< 		replacor (\r country -> r{country}),
+---
+> 		modifier (\r country -> r{country}),
+477c483
+< 		replacor (\r -> \nm -> r{nm}),
+---
+> 		modifier (\r -> \nm -> r{nm}),
+485c491
+< 		replacor (\r -> \no -> r{no}),
+---
+> 		modifier (\r -> \no -> r{no}),
+492c498
+< 		replacor (\r -> \gender -> r{gender}),
+---
+> 		modifier (\r -> \gender -> r{gender}),
+498c504
+< 		replacor (\r cv -> r{cv}),
+---
+> 		modifier (\r cv -> r{cv}),
+510c516
+< 		replacor (\r addr -> r{addr}),
+---
+> 		modifier (\r addr -> r{addr}),
+515c521,522
+< 	ans <- newInputWin "Enter Input" form Nothing [];
+---
+> 	iwin <- newInputWin "Enter Input" form Nothing [];
+> 	ans <- sync (triggered iwin);
+535c542
+< 		replacor (\r fName -> r{fName}),
+---
+> 		modifier (\r fName -> r{fName}),
+540c547
+< 		replacor (\r fVersion -> r{fVersion}),
+---
+> 		modifier (\r fVersion -> r{fVersion}),
+545c552
+< 		replacor (\r t -> r{fText = t}),
+---
+> 		modifier (\r t -> r{fText = t}),
+553c560
+< 		replacor (\r fKind -> r{fKind}), 
+---
+> 		modifier (\r fKind -> r{fKind}), 
+556c563,564
+< 	newInputWin "Haskell-File" form Nothing [modal True];	
+---
+> 	iwin <- newInputWin "Haskell-File" form Nothing [modal True];	
+> 	sync (triggered iwin)
+576,578c584,586
+<     b1 <- button [text "+", parent b]
+<     b2 <- button [text "-", parent b]
+<     return (Counter b e [map (f succ) b1,map (f pred) b2])
+---
+>     b1 <- newButton [text "+", parent b, command (\() -> return succ)]
+>     b2 <- newButton [text "-", command (\() -> return pred), parent b]
+>     return (Counter b e [b1,b2])
+591,593c599,601
+< instance GUIValue a => HasReceiveEV Counter a where
+< 	receive (Counter _ e bts) = 
+< 		choose (map receive bts) >>>= updValue e
+---
+> instance GUIValue a => Reactive Counter a where
+> 	triggered (Counter _ e bts) = 
+> 		choose (map triggered bts) >>>= updValue e
+595,597c603,604
+< instance GUIValue a => HasValue Counter a where
+< 	value v c@(Counter _ ent _) = value v ent >> return c
+< 	getValue c@(Counter _ ent _) = getValue ent
+---
+> instance GUIValue a => Variable Counter a where
+> 	updVar c@(Counter _ ent _) f  = updVar ent f
+./test/Test6.hs
+72c72,75
+< } where errWin e = newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True]
+---
+> } where errWin e = do {
+> 	ewin <- newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True];
+> 	forkDialog ewin (const done)
+> 	}
+83,84c86,87
+< 		receive bt >>> do{updValue e succ; done}
+< 	   +>	receive bt2 >>> do{forkIO(do{flash bt;bell});done}
+---
+> 		triggered bt >>> do{updValue e succ; done}
+> 	   +>	triggered bt2 >>> do{forkIO(do{flash bt;bell});done}
+./test/Test7.hs
+79,80c79,82
+< errWin e = 
+< 	newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True]
+---
+> errWin e = do {
+> 	ewin <- newErrorWin ("Haskell-Tk error occured: " ++ show e)[modal True];
+> 	forkDialog ewin (const done)
+> 	}
+94c96,97
+< 	controller' win (receive mn >>>= \f -> f ed)	
+---
+> 	ev <- getTrigger mn
+> 	controller' win (ev >>>= \f -> f ed)	
+128c131,132
+< 	ans <- newPromptWin msg cdefault [modal True]
+---
+> 	pwin <- newPromptWin msg cdefault [modal True]
+> 	ans <- sync(triggered pwin)
+141c145
+< 	controller' win (receive b >>>= startEditor)
+---
+> 	controller' win (triggered b >>>= startEditor)
+159c163,164
+< 	controller' win (receive mb >>>= flip bg mb)
+---
+> 	ev <- getTrigger mb
+> 	controller' win (ev >>>= flip bg mb)
+204,205c209,210
+< instance GUIValue a => HasReceiveEV OptionMenu a where
+< 	receive (OptionMenu mb mn bts) = receive mb
+---
+> instance GUIValue a => HasTrigger OptionMenu a where
+> 	getTrigger (OptionMenu mb mn bts) = getTrigger mb
+228c233
+< 		replacor (\r fName -> r{fName}),
+---
+> 		modifier (\r fName -> r{fName}),
+233c238
+< 		replacor (\r fVersion -> r{fVersion}),
+---
+> 		modifier (\r fVersion -> r{fVersion}),
+238c243
+< 		replacor (\r t -> r{fText = t}),
+---
+> 		modifier (\r t -> r{fText = t}),
+246c251
+< 		replacor (\r fKind -> r{fKind}), 
+---
+> 		modifier (\r fKind -> r{fKind}), 
+249c254,255
+< 	newInputWin "Haskell-File" form Nothing [modal True]
+---
+> 	iwin <- newInputWin "Haskell-File" form Nothing [modal True]
+> 	sync(triggered iwin)
+./test/TestUtil.hs
+./test/Counter.hs
+./test/Test8.hs
+112c112
+< 	controller' win (receive b >>>= startEditor)
+---
+> 	controller' win (triggered b >>>= startEditor)
+131c131,132
+< 	controller' win (receive mb >>> done)
+---
+> 	ev <- getTrigger mb
+> 	controller' win (ev >>> done)
+190c191,192
+< 	controller win (const (receive sb))
+---
+> 	ev <- getTrigger sb
+> 	controller win (const ev)
+215c217,218
+< 	controller' win (receive ib >>> bell )
+---
+> 	ev <- getTrigger ib;
+> 	controller' win (ev >>> bell )
+219c222
+< 	forkIO (newWarningWin "Transaction Completed" [] >> done)
+---
+> 	forkIO (newWarningDialog "Transaction Completed" [modal True] >> done)
+222c225
+< 	forkIO (newConfirmWin "File has been edited\nDo You really want to quit?" [] >> done)
+---
+> 	forkIO (newConfirmDialog "File has been edited\nDo You really want to quit?" [modal True] >> done)
+225c228
+< 	forkIO (newPromptWin "Enter File Name" "" [] >> done)
+---
+> 	forkIO (newPromptDialog "Enter File Name" "" [modal True] >> done)
+./test/Test9.hs
+./textitems/Mark.hs
+./textitems/TextTag.hs
+./textitems/EmbeddedTextWin.hs
+./toolkit/IconBar.hs
+./toolkit/InputForm.hs
+311c311,312
+< 					newErrorWin (nm ++ " illegal field value") [];
+---
+> 					ewin <- newErrorWin (nm ++ " illegal field value") [modal True];
+> 					forkDialog ewin (const done);
+500c501,502
+< 					newErrorWin (nm ++ " illegal text field value") [];
+---
+> 					ewin <- newErrorWin (nm ++ " illegal text field value") [modal True];
+> 					forkDialog ewin (const done);
+./toolkit/LabelBox.hs
+./toolkit/LogWin.hs
+./toolkit/MatrixBox.hs
+./toolkit/ModalDialog.hs
+./toolkit/Prompt.hs
+./toolkit/PromptWin.hs
+./toolkit/RadioGroup.hs
+./toolkit/ScrollBox.hs
+./toolkit/SelectBox.hs
+./toolkit/InputWin.hs
+./toolkit/ComboBox.hs
+./toolkit/SpinButton.hs
+./toolkit/DialogWin.hs
+20d19
+< 
+25d23
+< 	newDialogWin,
+26a25,30
+> 	newAlertDialog,
+> 	newErrorDialog,
+> 	newWarningDialog,
+> 	newConfirmDialog,
+> 	newDialog,
+> 
+94a99,120
+> --  Derived Dialog Windows 
+> -- --------------------------------------------------------------------------		
+> newAlertWin :: String -> [Config Window] -> IO (Dialog ())
+> newAlertWin str wol = dialog choices Nothing [text str] (defs ++ wol)
+>  where choices = [("Continue",())]
+>        defs = [text "Alert Window"]
+> 
+> newErrorWin :: String -> [Config Window] -> IO (Dialog ())
+> newErrorWin str confs = newAlertWin str ([text "Error Message"] ++ confs)
+> 
+> newWarningWin :: String -> [Config Window] -> IO (Dialog ())
+> newWarningWin str confs = newAlertWin str ([text "Warning Message"] ++ confs)
+> 
+> newConfirmWin :: String -> [Config Window] -> IO (Dialog Bool)
+> newConfirmWin str wol = dialog choices (Just 0) confs (defs ++ wol)
+>  where choices = [("Ok",True),("Cancel",False)]
+>        defs = [text "Confirm Window"]
+>        confs = [text str,bitmap question]
+> 
+> 
+> 
+> -- --------------------------------------------------------------------------
+105c131
+< --  Derived Dialog Window 
+---
+> --  Derived Dialogs 
+107,108c133,134
+< newAlertWin :: String -> [Config Window] -> IO ()
+< newAlertWin str wol = newDialogWin choices Nothing [text str] (defs ++ wol)
+---
+> newAlertDialog :: String -> [Config Window] -> IO ()
+> newAlertDialog str wol = newDialog choices Nothing [text str] (defs ++ wol)
+113,114c139,140
+< newErrorWin :: String -> [Config Window] -> IO ()
+< newErrorWin str confs = newAlertWin str ([text "Error Message"] ++ confs)
+---
+> newErrorDialog :: String -> [Config Window] -> IO ()
+> newErrorDialog str confs = newAlertDialog str ([text "Error Message"] ++ confs)
+116,117c142,143
+< newWarningWin :: String -> [Config Window] -> IO ()
+< newWarningWin str confs = newAlertWin str ([text "Warning Message"] ++ confs)
+---
+> newWarningDialog :: String -> [Config Window] -> IO ()
+> newWarningDialog str confs = newAlertDialog str ([text "Warning Message"] ++ confs)
+119,120c145,146
+< newConfirmWin :: String -> [Config Window] -> IO Bool
+< newConfirmWin str wol = newDialogWin choices (Just 0) confs (defs ++ wol)
+---
+> newConfirmDialog :: String -> [Config Window] -> IO Bool
+> newConfirmDialog str wol = newDialog choices (Just 0) confs (defs ++ wol)
+125,126c151,152
+< newDialogWin :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Window ] -> IO a
+< newDialogWin choices def confs wol = do {
+---
+> newDialog :: [Choice a] -> Maybe Int -> [Config (Dialog a)] -> [Config Window ] -> IO a
+> newDialog choices def confs wol = do {
+./toplevel/HTk.hs
+./toplevel/GUIIntrinsics.hs
+./widgets/Editor.hs
+344c344
+< 	| WorkEnd
+---
+> 	| WordEnd
+355c355
+<    showsPrec d WorkEnd r = " wordend " ++ r
+---
+>    showsPrec d WordEnd r = " wordend " ++ r
+./widgets/Entry.hs
+./widgets/Label.hs
+./widgets/Message.hs
+./widgets/OptionMenu.hs
+./widgets/ScrollBar.hs
+./widgets/Space.hs
+./widgets/ListBox.hs
+./widgets/Canvas.hs
+./widgets/Scale.hs
+./a.hs

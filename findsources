@@ -1,0 +1,3 @@
+#!/usr/local/bin/bash
+gfind . -name "Makefile" -or -name "*.mk" -or -name "*.hs" -or -name "*.c" -or -name "*.h" -or -name "*.cc" -or -name "*.hh" -or -name "*.astra"
+

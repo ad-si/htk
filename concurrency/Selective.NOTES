@@ -1,0 +1,23 @@
+Types used in Selective.hs
+--------------------------
+
+data Selection = Selection (MVar Bool) (MVar (Int,VOID)) ThreadID
+(typeunsafe version).
+data Selection = Selection (MVar Bool) (MVar Int) ThreadID
+(typesafe version).
+
+MVar Bool - has communication occurred?
+MVar Int - Index number of 
+
+
+Documented in EWK thesis, Appendix A:
+
+Each {\tt sync} command has an associated {\em selection object} that
+records: 1) whether communication is still possible or not, 2) if a
+rendezvous has occurred, the index number of the guard that has been
+selected and 3) the identity of the thread involved in the
+communication. Each guard is, in turn, uniquely identified (world-wide)
+by a tuple consisting of the selection object of the thread combined
+with the index number.
+
+

@@ -1,0 +1,9 @@
+pgm
+*.o
+*.hi
+.depend
+Makefile.bak
+*%
+backup*
+notes
+graph_example.daVinci
