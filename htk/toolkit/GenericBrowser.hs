@@ -100,12 +100,23 @@ newGenericBrowser par rootobjs cnf =
      initBrowser gb rootobjs
      return gb
 
+containsSubNodes :: GBObject o => o -> IO Bool
+containsSubNodes obj =
+  let containsSubNodes' (obj : objs) =
+        do b <- isObjectNode obj
+           if b then return True else containsSubNodes' objs
+      containsSubNodes' _ = return False
+  in do ch <- getChildren obj
+        containsSubNodes' ch
+
 initBrowser :: GBObject o => GenericBrowser o -> [o] -> IO ()
 initBrowser gb rootobjs =
   let addObject obj =
         do b <- isObjectNode obj
-           if b then addTreeListRootObject (treelist gb)
-                       (newTreeListObject obj Node)
+           if b then do b <- containsSubNodes obj
+                        addTreeListRootObject (treelist gb)
+                          (newTreeListObject obj
+                             (if b then Node else Leaf))
                 else done
   in mapM addObject rootobjs >> done
 

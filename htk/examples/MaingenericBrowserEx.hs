@@ -19,6 +19,7 @@ import GenericBrowser
 import Directory
 import IOExts(unsafePerformIO)
 import Posix
+import Char(toLower)
 
 
 -- -----------------------------------------------------------------------
@@ -40,7 +41,10 @@ fileTypes = [(["hs", "lhs"], ("Haskell source file", "haskell.gif")),
              (["bib"], ("BibTeX file", "bib.gif")),
              (["ps"], ("PostScript", "postscript.gif")),
              (["tar"], ("TAR archive", "archive.gif")),
-             (["gz"], ("GZ archive", "archive.gif"))]
+             (["gz"], ("GZ archive", "archive.gif")),
+             (["zip"], ("ZIP archive", "archive.gif")),
+             (["rar"], ("RAR archive", "archive.gif")),
+             (["html", "htm"], ("Hypertext document", "html.gif"))]
 
 unknown :: FileType
 unknown = ("Unknown", "unknown.gif")
@@ -98,7 +102,7 @@ getFileType nm =
                      else ""
       extension' (c : cs) = if c == '.' then [] else c : extension' cs
       extension' _ = ""
-      ext = extension nm
+      ext = map toLower (extension nm)
   in getFileTypeByExtension ext
 
 toFileObject :: FilePath -> FilePath -> IO FileObject
@@ -191,8 +195,14 @@ main = do htk <- initHTk [size(800, 500), text "GenericBrowser example"]
           (gb :: GenericBrowser FileObject) <-
             newGenericBrowser htk root_objs []
           pack gb [Fill Both, Expand On]
-          quit <- newButton htk [text "Quit"]
+          bottom <- newFrame htk []
+          status <- newLabel bottom
+                      [relief Sunken, font (Helvetica, 10::Int),
+                       text "Welcome"]
+          pack status [Side AtTop, Fill X]
+          quit <- newButton bottom [text "Quit"]
           clicked_quit <- clicked quit
           spawnEvent (clicked_quit >>> destroy htk)
-          pack quit [Side AtBottom, Fill X]
+          pack quit [Side AtBottom, Fill X, PadY 5, PadX 50]
+          pack bottom [Side AtBottom, Fill X]
           finishHTk
