@@ -8,11 +8,14 @@ import WBFiles
 
 import InfoBus(shutdown)
 
+import HostsPorts
+
 import GraphEditorRemote
 import DaVinciGraph
 
 main =
    do
       parseArgumentsRequiring ["wish","daVinci","server","port"]
-      graphEditorRemote daVinciSort
+      server <- getDefaultHostPort
+      let ?server = server in graphEditorRemote daVinciSort
       shutdown

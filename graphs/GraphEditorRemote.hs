@@ -22,8 +22,9 @@ import GraphEditorService
 import SimpleGraph
 
 graphEditorRemote :: -- does not return until editor is closed.
-   (GraphConfigure.GraphAllConfig dispGraph graphParms 
-      node nodeType nodeTypeParms arc arcType arcTypeParms,
+   (?server :: HostPort,
+      GraphConfigure.GraphAllConfig dispGraph graphParms 
+         node nodeType nodeTypeParms arc arcType arcTypeParms,
     HasConfigValue Shape nodeTypeParms)
    => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)

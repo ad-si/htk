@@ -35,6 +35,8 @@ import Delayer
 
 import VSem
 
+import SimpleGraph
+
 import VersionInfo
 import VersionDB
 
@@ -61,7 +63,10 @@ data View = View {
 
    -- If set, this means we are in the middle of a commit, and the
    -- view is going to have this version.
-   committingVersion :: MVar (Maybe ObjectVersion)
+   committingVersion :: MVar (Maybe ObjectVersion),
+
+   -- This is a version graph for the repository.
+   versionGraph1 :: SimpleGraph VersionInfo () () ()
    }
 
 data ObjectData =

@@ -2,8 +2,12 @@
    -}
 module SimpleDB(
    Repository,
+      -- represents a connection to a particular server.
+      -- Instance of Ord/Eq.
 
-   initialise, -- :: IO Repository
+   initialise, -- :: (?server :: HostPort) => IO Repository
+   toServer, -- :: Repository -> HostPort
+      -- extract the HostPort with which this Repository was created.
 
    ObjectVersion, 
    -- type of versions of objects in the repository
@@ -67,6 +71,12 @@ module SimpleDB(
    modifyUserInfo,
       -- :: Repository -> UserInfo -> IO ()
 
+   getDiffs,
+      -- :: Repository -> ObjectVersion -> [ObjectVersion] 
+      -- -> IO [(Location,Diff)]
+      -- Compare the given object version with the (presumably parent)
+      -- object versions.
+   Diff(..),
    ) where
 
 import Object
@@ -74,11 +84,13 @@ import Computation(done)
 import BinaryIO
 import ICStringLen
 import Debug(debug)
+import ExtendedPrelude
 
 import Destructible
 
 import InfoBus
 
+import HostsPorts
 import CallServer
 import MultiPlexer
 
@@ -86,7 +98,7 @@ import CopyFile
 
 import SimpleDBServer
 import SimpleDBService
-import VersionInfo
+import VersionInfo hiding (server)
 import ObjectSource hiding (getICSL,fromICSL)
    -- that prevents those two functions being exported
 import qualified ObjectSource
@@ -99,10 +111,11 @@ import qualified ObjectSource
 data Repository = Repository {
    queryRepository :: SimpleDBCommand -> IO SimpleDBResponse,
    closeDown :: IO (),
-   oID :: ObjectID
+   oID :: ObjectID,
+   server :: HostPort
    }
 
-initialise :: IO Repository
+initialise :: (?server :: HostPort) => IO Repository
 initialise =
    do
       (queryRepository0,closeDown,"") <- connectReply simpleDBService
@@ -149,18 +162,28 @@ initialise =
          repository = Repository {
             queryRepository = queryRepository3,
             closeDown = closeDown,
-            oID = oID
+            oID = oID,
+            server = ?server
             }
 
       registerTool repository
       return repository
+
+toServer :: Repository -> HostPort
+toServer = server
 
 instance Object Repository where
    objectID repository = oID repository
 
 instance Destroyable Repository where
    destroy repository = closeDown repository
-   
+
+instance Eq Repository where
+   (==) = mapEq oID
+
+instance Ord Repository where
+   compare = mapOrd oID
+
 ----------------------------------------------------------------
 -- Query functions
 ----------------------------------------------------------------
@@ -245,6 +268,16 @@ modifyUserInfo repository userInfo =
       case response of
          IsOK -> done
          _ -> error ("ModifyUserInfo: unexpected response")
+
+
+getDiffs :: Repository -> ObjectVersion -> [ObjectVersion] 
+   -> IO [(Location,Diff)]
+getDiffs repository version versions =
+   do
+      response <- queryRepository repository (GetDiffs version versions)
+      case response of
+         IsDiffs diffs -> return diffs
+         _ -> error ("GetDiffs: unexpected response")
 
 ----------------------------------------------------------------
 -- Unpacking SimpleDBResponse

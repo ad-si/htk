@@ -46,8 +46,15 @@ instance Object Notifier where
 instance Destroyable Notifier where
    destroy(Notifier{closeAction=closeAction}) = closeAction
 
+
 mkNotifier :: IO Notifier
 mkNotifier =
+   do
+      server <- getDefaultHostPort
+      let ?server = server in mkNotifier1
+
+mkNotifier1 :: (?server :: HostPort) => IO Notifier
+mkNotifier1 =
    do
       oID <- newObject
       (writeAction,receiveAction,closeAction,header :: String) <-

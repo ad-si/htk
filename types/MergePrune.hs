@@ -13,6 +13,7 @@ module MergePrune(
       -- :: [(View,Link object,object)] -> IO [(View,Link object,object)]
       -- The type of the list is chosen to be compatible with that of
       -- ObjectTypes.attemptMerge.  The objects should match the links.
+      -- All the views should, of course, come from the same repository.
    ) where
 
 import Monad
@@ -25,12 +26,19 @@ import Graph(Node)
 import Link
 import CodedValue
 import View
+import ViewType
 import VersionGraphClient
 
 mergePrune :: HasCodedValue object
    => [(View,Link object,object)] -> IO [(View,Link object,object)]
-mergePrune (linkList0 :: [(View,Link object,object)]) =
+mergePrune [] = return []
+mergePrune [oneItem] = return [oneItem]
+mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
    do
+      -- (0) get the version graph
+      let
+         versionGraph = versionGraph1 firstView
+
       -- (1) cluster identical Link values together, to reorganise the
       -- list to have type [[(View,Link object,object)]]
       let
@@ -48,7 +56,7 @@ mergePrune (linkList0 :: [(View,Link object,object)]) =
 
       -- (2) Do the job for the individual lists.
       (linkList2 :: [[(View,Link object,object)]]) <-
-         mapM mergePruneInner linkList1
+         mapM (mergePruneInner versionGraph) linkList1
 
       -- (3) un-cluster linkList2.
       let
@@ -58,8 +66,9 @@ mergePrune (linkList0 :: [(View,Link object,object)]) =
       return linkList3
 
 mergePruneInner :: HasCodedValue object
-   => [(View,Link object,object)] -> IO [(View,Link object,object)]
-mergePruneInner (linkList0 :: [(View,Link object,object)])
+   => VersionSimpleGraph -> [(View,Link object,object)] 
+   -> IO [(View,Link object,object)]
+mergePruneInner versionGraph (linkList0 :: [(View,Link object,object)])
       =
    do
       -- Turn the linkList0 into a map from Nodes in the version graph

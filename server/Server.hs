@@ -18,6 +18,7 @@ module Server(
 
 import IO
 import List
+import Time
 
 import Control.Exception hiding (handle)
 
@@ -455,5 +456,17 @@ initialConnect serviceMap handle =
                     putStrLn ("IO error in initial connect " ++ show excep)
                hClose handle
                return Nothing
-         Right result -> return result
+         Right result -> 
+            do
+               case result of
+                  Just (serviceData,user) ->
+                     do
+                        clockTime <- getClockTime
+                        calendarTime <- toCalendarTime clockTime
+
+                        putStrLn (userId user ++ ":"
+                           ++ calendarTimeToString calendarTime) 
+                        hFlush stdout         
+                  Nothing -> done
+               return result
 

@@ -1,10 +1,13 @@
-{- CallServer does the job of calling up a server.  This really ought
-   to be in the server/ directory, except that it uses InfoBus. -}
+{- CallServer does the job of calling up a server.  -}
 module CallServer(
+   -- The context of all these functions is the same and is omitted from
+   -- the following signature declarations.
+   -- (?server :: HostPort,ServiceClass inType outType stateType,
+   --       HasBinaryIO header)
+
+
    connectReply, -- :: 
-      -- (ServiceClass inType outType stateType,HasBinaryIO header) =>
-      --    (inType,outType,stateType) ->     
-      --       IO (inType -> IO outType,IO (),header)
+      --  (inType,outType,stateType) -> IO (inType -> IO outType,IO (),header)
       -- connectReply should be used for Reply-type services.  It
       -- attempts to connect to the server.
       -- If successful it returns a tuple consisting
@@ -13,9 +16,8 @@ module CallServer(
       -- (b) an action which will break the connection.
       -- (c) the header string sent by sendOnConnect.
    connectBroadcast, -- ::
-      -- (ServiceClass inType outType stateType,HasBinaryIO header) =>
-      --    (inType,outType,stateType) ->    
-      --       IO (inType -> IO (),IO outType,IO (),header)
+      --  (inType,outType,stateType) ->    
+      --     IO (inType -> IO (),IO outType,IO (),header)
       -- connectBroadcast should be used for Broadcast-type services.
       -- It attempts to connect to the server.
       -- If successful it returns a tuple containing
@@ -27,9 +29,7 @@ module CallServer(
       -- Identical to connectBroadcast except it connects to a 
       -- BroadcastOther-type service.
    connectExternal, -- ::
-      -- (ServiceClass inType outType stateType,HasBinaryIO header) =>
-      --    (inType,outType,stateType) ->
-      --       IO (IO outType,IO (),header)
+      -- (inType,outType,stateType) -> IO (IO outType,IO (),header)
       -- Connect to an External service.
    ) where
 
@@ -56,9 +56,11 @@ import InfoBus
 
 import ServiceClass
 
-connectReply :: (ServiceClass inType outType stateType,HasBinaryIO header) =>
-    (inType,outType,stateType) ->  
-    IO (inType -> IO outType,IO (),header)
+connectReply :: 
+   (?server :: HostPort,
+      ServiceClass inType outType stateType,HasBinaryIO header)
+   => (inType,outType,stateType)  
+   -> IO (inType -> IO outType,IO (),header)
 connectReply service =
    do
       case (serviceMode service) of
@@ -80,9 +82,11 @@ connectReply service =
          closeAct = destroy connection
       return (sendMessage,closeAct,header)
    
-connectBroadcast :: (ServiceClass inType outType stateType,HasBinaryIO header)
-      => (inType,outType,stateType) ->     
-      IO (inType -> IO (),IO outType,IO (),header)
+connectBroadcast :: 
+   (?server :: HostPort,
+      ServiceClass inType outType stateType,HasBinaryIO header)
+   => (inType,outType,stateType)     
+   -> IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcast service =
    do
       case (serviceMode service) of
@@ -91,9 +95,10 @@ connectBroadcast service =
            "connectBroadcast handed a non-Broadcast service"))
       connectBroadcastGeneral service
 
-connectBroadcastOther :: (ServiceClass inType outType stateType,
-         HasBinaryIO header) =>
-      (inType,outType,stateType) ->     
+connectBroadcastOther :: 
+   (?server :: HostPort,
+      ServiceClass inType outType stateType,HasBinaryIO header)
+   => (inType,outType,stateType) ->     
       IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastOther service =
    do
@@ -103,9 +108,11 @@ connectBroadcastOther service =
            "connectBroadcast handed a non-Broadcast service"))
       connectBroadcastGeneral service
 
-connectExternal :: (ServiceClass inType outType stateType,HasBinaryIO header) 
-      => (inType,outType,stateType) ->     
-      IO (IO outType,IO (),header)
+connectExternal :: 
+   (?server :: HostPort,
+      ServiceClass inType outType stateType,HasBinaryIO header)
+   => (inType,outType,stateType) 
+   -> IO (IO outType,IO (),header)
 connectExternal service =
    do
       case (serviceMode service) of
@@ -115,10 +122,11 @@ connectExternal service =
       (_,getNext,closeDown,header) <- connectBroadcastGeneral service
       return (getNext,closeDown,header)
 
-connectBroadcastGeneral :: (ServiceClass inType outType stateType,
-         HasBinaryIO header) =>
-      (inType,outType,stateType) ->     
-      IO (inType -> IO (),IO outType,IO (),header)
+connectBroadcastGeneral :: 
+   (?server :: HostPort,
+      ServiceClass inType outType stateType,HasBinaryIO header)
+   => (inType,outType,stateType)     
+   -> IO (inType -> IO (),IO outType,IO (),header)
 connectBroadcastGeneral service =
    do
       (connection@ Connection {handle = handle}) <- connectBasic service
@@ -185,12 +193,12 @@ getHost =
 -- and password, and so on.
 ------------------------------------------------------------------------
 
-connectBasic :: (ServiceClass inType outType stateType) 
+connectBasic :: 
+   (?server :: HostPort,
+      ServiceClass inType outType stateType)
    => (inType,outType,stateType) -> IO Connection
 connectBasic service =
    do
-      hostDesc <- getHost
-      portDesc <- getPort
       let
          serviceKey = serviceId service
 
@@ -199,7 +207,7 @@ connectBasic service =
          connectBasic :: Bool -> IO Connection
          connectBasic firstTime =
             do    
-               handle <- connect hostDesc portDesc
+               handle <- connect
 
                hSetBuffering handle (BlockBuffering (Just 4096))
                   -- since we may well be doing the connection via SSL,

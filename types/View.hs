@@ -19,9 +19,13 @@ module View(
    commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
       -- a global version.
-   commitView1, -- :: ObjectVersion -> View -> IO Version
+   commitView1, -- :: Bool -> ObjectVersion -> View -> IO Version
       -- Slightly more general version where the object version is
       -- pre-allocated.
+      -- If the Bool is True (it isn't except when copying the view during
+      -- session management) we preserve the system information (such
+      -- as serverId and so on), and everything else in the View's 
+      -- viewInfoBroadcaster except for the objectVersion.
 
    synchronizeView, -- :: View -> IO b -> IO b
       -- Perform some action during which no commit should take place.
@@ -111,14 +115,16 @@ newView repository =
          fileSystem = fileSystem,
          commitLock = commitLock,
          delayer = delayer,
-         committingVersion = committingVersion
+         committingVersion = committingVersion,
+         versionGraph1 = error 
+            "Attempt to read version graph during initialisation"
          })
 
 listViews :: Repository -> IO [Version]
 listViews repository = listVersions repository
 
-getView :: Repository -> Version -> IO View
-getView repository objectVersion =
+getView :: Repository -> VersionSimpleGraph -> Version -> IO View
+getView repository versionGraph objectVersion =
    do
       objectId <- newObject
       let viewId = ViewId objectId
@@ -136,7 +142,7 @@ getView repository objectVersion =
          objectTypesData = objectTypesData
          }) <- doDecodeIO viewCodedValue phantomView
 
-      viewInfo0 <- getVersionInfo (versionToNode objectVersion)
+      viewInfo0 <- getVersionInfo versionGraph (versionToNode objectVersion)
       let
          user0 = user viewInfo0
 
@@ -159,7 +165,8 @@ getView repository objectVersion =
             fileSystem = fileSystem,
             commitLock = commitLock,
             delayer = delayer,
-            committingVersion = committingVersion
+            committingVersion = committingVersion,
+            versionGraph1 = versionGraph
             }
 
       importDisplayTypes displayTypesData view
@@ -170,10 +177,10 @@ commitView :: View -> IO Version
 commitView view =
    do
       newVersion1 <- newVersion (repository view)
-      commitView1 newVersion1 view
+      commitView1 False newVersion1 view
 
-commitView1 :: ObjectVersion -> View -> IO Version
-commitView1 newVersion1 
+commitView1 :: Bool -> ObjectVersion -> View -> IO Version
+commitView1 preserveVersion newVersion1 
    (view @ View {repository = repository,objects = objects,
       commitLock = commitLock}) =
    synchronizeGlobal commitLock (
@@ -215,9 +222,6 @@ commitView1 newVersion1
          viewInfo0 <- readContents (viewInfoBroadcaster view)
                
          let
-            user0 = user viewInfo0
-            user1 = user0 {version = newVersion1}
-
             viewData =
                ViewData {
                   displayTypesData = displayTypesData,
@@ -234,7 +238,17 @@ commitView1 newVersion1
             objectsData2 = (specialLocation1,Left viewObjectSource) 
                : objectsData1
 
-         commit repository (Left user1) objectsData2
+            user0 = user viewInfo0
+            user1 = user0 {version = newVersion1}
+
+            versionArg = 
+              if preserveVersion
+                 then
+                    Right (viewInfo0 {user = user1})
+                 else
+                    Left user1
+
+         commit repository versionArg objectsData2
 
          let
             user2 = user1 {parents = [newVersion1]}

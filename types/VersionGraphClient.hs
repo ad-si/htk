@@ -2,8 +2,11 @@
    (defined in simpledb) and constructs a graph.  It also defines 
    functions for packing and unpacking Node values. -}
 module VersionGraphClient(
-   versionGraph, -- :: VersionTypes SimpleGraph
+   -- Get the VersionGraph, and arrange for the connection to be closed
+   -- when the program ends.
+   mkVersionSimpleGraph, -- :: (?server :: HostPort) => IO (VersionSimpleGraph)
    VersionTypes,
+   VersionSimpleGraph, -- alias for VersionSimpleGraph
 
    -- Node functions
    VersionGraphNode(..),
@@ -22,11 +25,9 @@ module VersionGraphClient(
    checkedInType, workingType, -- :: NodeType
    checkedInArcType, workingArcType, -- :: ArcType
 
-   getVersionInfo, -- :: Node -> IO VersionInfo
+   getVersionInfo, -- :: VersionSimpleGraph -> Node -> IO VersionInfo
       -- Get the version Info for a node.
    ) where
-
-import System.IO.Unsafe
 
 import AtomString
 import UniqueString
@@ -38,6 +39,7 @@ import Debug
 
 import InfoBus
 
+import HostsPorts
 import CallServer
 
 import Graph
@@ -67,21 +69,17 @@ type VersionTypes dataSort = dataSort VersionInfo () () ()
    -- plus the additional String which is supplied; this String
    -- can be used to provide additional information about the version.
 
-type VersionGraph = VersionTypes SimpleGraph
+type VersionSimpleGraph = VersionTypes SimpleGraph
 
 -- ------------------------------------------------------------------------
 -- Connecting to the Server
 -- ------------------------------------------------------------------------
 
-versionGraph :: VersionTypes SimpleGraph
-versionGraph = unsafePerformIO mkVersionGraph
-{-# NOINLINE mkVersionGraph #-}
-
 ---
 -- Get the VersionGraph, and arrange for the connection to be closed
 -- when the program ends.
-mkVersionGraph :: IO (VersionTypes SimpleGraph)
-mkVersionGraph =
+mkVersionSimpleGraph :: (?server :: HostPort) => IO (VersionTypes SimpleGraph)
+mkVersionSimpleGraph =
    do
       (versionGraph,terminator) <- connectToServer
       registerDestroyAct terminator
@@ -89,8 +87,8 @@ mkVersionGraph =
 
 ---
 -- retrieve the VersionInfo corresponding to a given version.
-getVersionInfo :: Node -> IO VersionInfo
-getVersionInfo node = getNodeLabel versionGraph node
+getVersionInfo :: VersionTypes SimpleGraph -> Node -> IO VersionInfo
+getVersionInfo versionGraph node = getNodeLabel versionGraph node
 
 
 ---
@@ -98,7 +96,7 @@ getVersionInfo node = getNodeLabel versionGraph node
 -- graph in the server.  Updates to this graph do not get passed to
 -- the server.
 -- The returned action closes the server connection.
-connectToServer :: IO (VersionTypes SimpleGraph,IO ())
+connectToServer :: (?server :: HostPort) => IO (VersionSimpleGraph,IO ())
 connectToServer =
    do
       (getNextUpdate,closeConnection,initialVersionInfos) 

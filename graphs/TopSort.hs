@@ -2,7 +2,7 @@ module TopSort(
    topSort -- :: Ord a => [(a,a)] -> [a]
    ) where
 
-import FiniteMap
+import Data.FiniteMap
 
 -- Based on the Art of Computer Programming
 -- Chapter 1, 2.2.3.

@@ -3,7 +3,8 @@ module BDBClient(
    BDB, -- A connection to a Berkeley Database
    openBDB, -- :: IO BDB
 
-   BDBKey, -- Type of record numbers in the database.  Instance of Read/Show.
+   BDBKey, -- Type of record numbers in the database.
+           -- Instance of HasBinaryIO, Eq, Ord.
    TXN, -- Handle to a transaction in the database.
 
    writeBDB, -- :: BDB -> TXN -> ICStringLen -> IO BDBKey
@@ -103,7 +104,7 @@ readBDBLock = unsafePerformIO newBSem
 newtype DB = DB CChar
 type BDB = Ptr DB
 
-newtype BDBKey = BDBKey Word32 deriving (HasBinaryIO,Eq)
+newtype BDBKey = BDBKey Word32 deriving (HasBinaryIO,Eq,Ord)
 
 foreign import ccall unsafe "bdbclient.h db_connect" dbConnect
    :: CString -> IO BDB

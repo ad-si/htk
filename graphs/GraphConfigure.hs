@@ -490,4 +490,3 @@ instance
    ) 
    => GraphAllConfig graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms  
-

@@ -10,9 +10,13 @@ module SimpleDBServer(
 
    -- SimpleDBCommand/Response are the types of queries and responses
    -- to the DB.
-   -- Each is an instance of Read and Show.
+   -- Each is an instance of Show.
    SimpleDBCommand(..),
    SimpleDBResponse(..),
+
+   Diff(..),
+      -- used in SimpleDBResponse to encode the difference between a version
+      -- and (presumably, earlier) versions.
 
    -- Location of objects.
    Location,
@@ -36,6 +40,7 @@ import Maybe
 import Monad
 
 import Data.FiniteMap
+import Data.Set
 
 import Computation
 import ExtendedPrelude
@@ -116,6 +121,9 @@ data SimpleDBCommand =
          -- by that given. 
          --    This will not change the head parent version on any account.
          -- Returns IsOK.
+   |  GetDiffs ObjectVersion [ObjectVersion]
+         -- Produce a list of changes between the given object version
+         -- and the parents, in the format IsDiffs.
    |  MultiCommand [SimpleDBCommand]
          -- A group of commands to be executed one after another.
          -- Returns MultiResponse with the corresponding responses.
@@ -128,6 +136,7 @@ data SimpleDBResponse =
    |  IsObjectVersion ObjectVersion
    |  IsObjectVersions [ObjectVersion]
    |  IsData ICStringLen
+   |  IsDiffs [(Location,Diff)]
    |  IsError String
    |  IsOK
    |  MultiResponse [SimpleDBResponse]
@@ -135,8 +144,32 @@ data SimpleDBResponse =
    deriving (Show)
 #endif
 
+data Diff = 
+   -- returned from GetDiffs command.  
+   -- The "parent versions" are the versions in the second argument of
+   --    GetDiffs.
+   -- The "parent version" is the first element of this list (if any).
+      IsOld -- Location exists in parent version, and is unchanged.
+   |  IsChanged {changed :: Maybe (Location,ObjectVersion)}
+         -- Location exists in one of the parent versions, but has been
+         -- changed.
+   |  IsNew {changed :: Maybe (Location,ObjectVersion)}
+         -- Location exists in none of the parent versions.
+   -- If changed is Just (location,objectVersion) then
+   -- "objectVersion" is a parentVersion, and the contents in the subject
+   -- version are identical with those in (location,objectVersion);
+   -- indeed the contents are not just byte-for-byte identical, but
+   -- can be deduced to be identical from the rules that 
+   -- (a) locations in views created by "Commit" are unchanged unless
+   --     otherwise specified;
+   -- (b) locations whose contents are specified as (location,version1)
+   --     on commit have identical contents to those of (location,version1).
+#ifdef DEBUG
+   deriving (Show)
+#endif
+
 -- -----------------------------------------------------------------------
--- SimpleDBCommand/Response as instances of HasBinaryIO
+-- SimpleDBCommand/Response & Diff as instances of HasBinaryIO
 -- -----------------------------------------------------------------------
 
 instance HasWrapper SimpleDBCommand where
@@ -148,6 +181,7 @@ instance HasWrapper SimpleDBCommand where
       wrap2 'c' LastChange,
       wrap2 'C' Commit,
       wrap1 'm' ModifyUserInfo,
+      wrap2 'd' GetDiffs,
       wrap1 'M' MultiCommand
       ]
    unWrap = (\ wrapper -> case wrapper of
@@ -158,6 +192,7 @@ instance HasWrapper SimpleDBCommand where
       LastChange l v -> UnWrap 'c' (l,v)
       Commit v n -> UnWrap 'C' (v,n)
       ModifyUserInfo v -> UnWrap 'm' v
+      GetDiffs v vs -> UnWrap 'd' (v,vs)
       MultiCommand l -> UnWrap 'M' l
       )
 
@@ -168,6 +203,7 @@ instance HasWrapper SimpleDBResponse where
       wrap1 'O' IsObjectVersions,
       wrap1 'D' IsData,
       wrap1 'E' IsError,
+      wrap1 'd' IsDiffs,
       wrap0 'K' IsOK,
       wrap1 'M' MultiResponse
       ]
@@ -176,9 +212,23 @@ instance HasWrapper SimpleDBResponse where
       IsObjectVersion v -> UnWrap 'o' v
       IsObjectVersions vs -> UnWrap 'O' vs
       IsData d -> UnWrap 'D' d
+      IsDiffs ds -> UnWrap 'd' ds
       IsError e -> UnWrap 'E' e
       IsOK -> UnWrap 'K' ()
       MultiResponse l -> UnWrap 'M' l
+      )
+
+instance HasWrapper Diff where
+   wraps = [
+      wrap0 'O' IsOld,
+      wrap1 'C' IsChanged,
+      wrap1 'N' IsNew
+      ]
+
+   unWrap = (\ wrapper -> case wrapper of
+      IsOld -> UnWrap 'O' ()
+      IsChanged c -> UnWrap 'C' c
+      IsNew c -> UnWrap 'N' c
       )
 
 -- -------------------------------------------------------------------
@@ -370,6 +420,13 @@ querySimpleDB user
                               addVersionInfo versionState (True,versionInfo1)
                               return IsOK
                         Left mess -> return (IsError mess)
+      GetDiffs version versions ->
+         do
+            diffsWE <- getDiffs simpleDB version versions
+            return (case fromWithError diffsWE of
+               Left mess -> IsError mess
+               Right diffs -> IsDiffs diffs
+               )
       MultiCommand commands ->
          do
             responses <- mapM (querySimpleDB user simpleDB) commands
@@ -651,3 +708,77 @@ applyFrozenVersionData simpleDB frozenVersionData =
          unitWE
 
 
+-- -------------------------------------------------------------------
+-- Extract differences
+-- -------------------------------------------------------------------
+
+getDiffs :: SimpleDB -> ObjectVersion -> [ObjectVersion] 
+   -> IO (WithError [(Location,Diff)])
+getDiffs db version0 versions = addFallOutWE (\ break ->
+   do
+      vDict <- readIORef (versionDictionary db)
+      let
+         lookup version = case lookupFM vDict version of
+            Just versionData -> return versionData
+            Nothing -> break ("Version "++show version++" not found")
+      vData0 <- lookup version0
+      vDatas <- mapM lookup versions
+      return (case vDatas of
+         [] -> -- we just have to return IsNew for everything
+            map 
+               (\ location -> (location,IsNew {changed = Nothing}))   
+               (keysFM (objectDictionary vData0))
+         (headVData :_) ->
+            let
+               -- Construct a map back from BDBKey -> (Location,ObjectVersion)
+               -- for the parents.
+               bdbDict :: FiniteMap BDBKey (Location,ObjectVersion)
+               bdbDict = foldl
+                  (\ map0 vData ->
+                     let
+                        version = thisVersion vData
+                     in
+                        foldFM
+                           (\ location bdbKey map0 
+                              -> addToFM map0 bdbKey (location,version)
+                              )
+                           map0
+                           (objectDictionary vData)
+                     ) 
+                  emptyFM
+                  vDatas
+
+               -- Construct the set of all Locations in parent versions.
+               locationSet :: Set Location
+               locationSet = foldl
+                  (\ set0 vData ->
+                     foldFM
+                        (\ location _ set0 -> addToSet set0 location)
+                        set0
+                        (objectDictionary vData)
+                     )
+                  emptySet
+                  vDatas 
+
+               -- Function constructing Diff for a particular item in the 
+               -- new version's object dictionary
+               mkDiff :: (Location,BDBKey) -> Diff
+               mkDiff (location,key1) =
+                  case lookupFM (objectDictionary headVData) location of
+                     Just key2 | key1 == key2 
+                        -> IsOld
+                     _ -> 
+                        let
+                           changed = lookupFM bdbDict key1
+                        in
+                           if elementOf location locationSet
+                              then
+                                 IsNew {changed = changed}
+                              else
+                                 IsChanged {changed = changed}
+            in
+               map
+                  (\ (lb @ (location,bdbKey)) -> (location,mkDiff lb))
+                  (fmToList (objectDictionary vData0))
+         )
+   )

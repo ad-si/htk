@@ -5,13 +5,15 @@ module MMiSSInitialise(
 
 import Computation(done)
 
+import HostsPorts
+
 import VersionDB
 import Initialisation
 import View
 
 import MMiSSRegistrations
 
-mmissInitialise :: IO Repository
+mmissInitialise :: (?server :: HostPort) => IO Repository
 mmissInitialise =
    do
       doMMiSSRegistrations -- register MMiSS types

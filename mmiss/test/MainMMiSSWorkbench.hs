@@ -18,6 +18,8 @@ import DialogWin
 
 import DaVinciGraph
 
+import HostsPorts
+
 import VersionGraph
 
 import EmacsBasic
@@ -37,7 +39,15 @@ main =
 
       withdrawWish
       seq loadHTkImages done 
-      repository <- mmissInitialise
+
+      server <- getDefaultHostPort
+
+      repository <- 
+         let
+            ?server = server
+         in
+            mmissInitialise
+
       versionGraph <- newVersionGraph daVinciSort repository
       sync (destroyed versionGraph)
       cleanupWish

@@ -1,27 +1,21 @@
 {- HostPorts provides an abstract interface for describing hosts and
    ports. -}
 module HostsPorts(
-   -- general functions
-   HostDesc, -- description of the host, instance of Show
-   
-   getHostString, -- :: DescribesHost host => host -> IO String
+   HostPort, -- description of a host and port
 
-   DescribesHost(makeHost), -- :: a -> IO HostDesc
-      -- defined for Strings and HostDesc
-   PortDesc, -- description of the port, instance of Show
-   DescribesPort(makePort), -- :: a -> IO PortDesc
-      -- defined for Int and PortDesc
+   DescribesHost, -- class.  Instanced for Strings
+   DescribesPort, -- class.  Instanced for Ints
+
+   mkHostPort, 
+      -- :: (DescribesHost host,DescribesPort port)
+      -- => host -> port -> IO HostPort
+
+   connect, -- :: (? server :: HostPort) => IO Handle
 
    getPortNumber, -- :: DescribesPort port => port -> IO PortNumber
-   -- functions for a server
 
-   -- connect to a socket
-   connect, -- :: (DescribesHost host,DescribesPort port) => 
-   -- host -> port -> IO Handle
-
-   -- write and then flush 
-   hPutStrLnFlush, -- :: Handle -> String -> IO ()
-
+   getDefaultHostPort, -- :: IO HostPort
+      -- extract HostPort from WBFiles settings.
    ) where
 
 import IO
@@ -30,9 +24,26 @@ import Socket
 import Control.Exception
 
 import Debug
+import WBFiles
 import Thread
 
+-- -------------------------------------------------------------------
+-- The datatypes
+-- -------------------------------------------------------------------
+
+data HostPort = HostPort {
+   host :: String,
+   port :: PortID
+   }
+
 newtype HostDesc = HostDesc String deriving Show
+
+
+newtype PortDesc = PortDesc Int deriving Show
+
+-- -------------------------------------------------------------------
+-- The classes and instances
+-- -------------------------------------------------------------------
 
 class DescribesHost a where
    makeHost :: a -> IO HostDesc
@@ -43,14 +54,6 @@ instance DescribesHost String where
 instance DescribesHost HostDesc where
    makeHost = return
 
-getHostString :: DescribesHost host => host -> IO String
-getHostString hostDesc =
-   do
-      HostDesc name <- makeHost hostDesc
-      return name
-
-newtype PortDesc = PortDesc Int deriving Show
-
 class DescribesPort a where
    makePort :: a -> IO PortDesc
 
@@ -60,23 +63,33 @@ instance DescribesPort Int where
 instance DescribesPort PortDesc where
    makePort = return
 
+-- -------------------------------------------------------------------
+-- The functions
+-- -------------------------------------------------------------------
+
+mkHostPort :: (DescribesHost host,DescribesPort port) 
+   => host -> port -> IO HostPort
+mkHostPort host port =
+   do
+      (HostDesc hostStr) <- makeHost host
+      portID <- getPortNumber port
+      return (HostPort {host = hostStr,port = portID})
+
+
+getHostString :: DescribesHost host => host -> IO String
+getHostString hostDesc =
+   do
+      HostDesc name <- makeHost hostDesc
+      return name
+
 getPortNumber :: DescribesPort port => port -> IO PortID
 getPortNumber portDesc =
    do
       PortDesc portNo <- makePort portDesc
-      debug portNo
       return (PortNumber(fromIntegral portNo))
 
-connect :: (DescribesHost host,DescribesPort port) => 
-   host -> port -> IO Handle
-connect hostDesc portDesc =
-   do
-      hostName <- getHostString hostDesc
-      debug hostName
-      portNumber <- getPortNumber portDesc
-      handle <- repeatConnectTo hostName portNumber
---      hSetBuffering handle NoBuffering
-      return handle
+connect :: (?server :: HostPort) => IO Handle
+connect = repeatConnectTo (host ?server) (port ?server)
 
 repeatConnectTo :: HostName -> PortID -> IO Handle
 repeatConnectTo = innerConnect True
@@ -101,10 +114,14 @@ repeatConnectTo = innerConnect True
                         ++ "\n Retrying in 0.5 seconds")
                      delay (secs 0.5)
                      innerConnect False hostName portNumber
- 
 
-hPutStrLnFlush :: Handle -> String -> IO ()
-hPutStrLnFlush handle string =
+
+getDefaultHostPort :: IO HostPort
+getDefaultHostPort =
    do
-      hPutStrLn handle string
-      hFlush handle
+      hostOpt <- getServer
+      port <- getPort
+      host <- case hostOpt of
+         Nothing -> error "server not specified!"
+         Just host -> return host
+      mkHostPort host port

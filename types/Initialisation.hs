@@ -9,6 +9,7 @@ import Debug(debug)
 import Computation
 import BinaryIO
 
+import HostsPorts
 import CallServer
 
 import Graph
@@ -22,13 +23,14 @@ import Registrations
 
 ---
 -- Connect to the repository, if necessary initialising it.
-initialise :: IO VersionDB.Repository
+initialise :: (?server :: HostPort) => IO VersionDB.Repository
 initialise = initialiseGeneral (\ view -> done)
 
 ---
 -- More general initialisation, which provides an extra function
 -- to be executed when the very first view is created. 
-initialiseGeneral :: (View -> IO ()) -> IO VersionDB.Repository
+initialiseGeneral :: (?server :: HostPort) 
+   => (View -> IO ()) -> IO VersionDB.Repository
 initialiseGeneral initialiseView =
    do
       doRegistrations
@@ -60,7 +62,7 @@ createRepository initialiseView repository =
       if version == VersionDB.firstVersion
          then
             do
-               commitView view
+               commitView1 True version view
                done
          else
             -- Someone else has simultaneously initialised the repository!

@@ -36,6 +36,7 @@ import Events
 import Channels
 
 import BSem
+import HostsPorts
 import CallServer
 import Lock
 
@@ -107,8 +108,15 @@ newVersionGraph
       -- graph which is connected to the server and will (via displayGraph)
       -- be displayed.  We will update the version graph by displaying
       -- this graph.
+
+      graph <- 
+         let
+            ?server = toServer repository
+         in
+            mkVersionSimpleGraph
+
       let
-         graph = versionGraph
+         getVersionInfo1 = getVersionInfo graph
 
       -- This MVar will contain the actual displayed graph, when set up.
       dispGraphMVar <- newEmptyMVar
@@ -179,7 +187,7 @@ newVersionGraph
             case nodeToVersion node of
                Just version ->
                   do
-                     versionInfo0 <- getVersionInfo node
+                     versionInfo0 <- getVersionInfo1 node
                      let
                         versionInfo1 = cleanVersionInfo versionInfo0
 
@@ -193,7 +201,7 @@ newVersionGraph
          reallyCheckOutNode :: UserInfo -> Node -> Version -> IO ()
          reallyCheckOutNode userInfo parentNode version =
             do
-               view <- getView repository version
+               view <- getView repository graph version
                setUserInfo view userInfo
                let 
                   versionGraphNode = WorkingNode view
@@ -224,7 +232,7 @@ newVersionGraph
                viewedNodeOp viewedNodeOpt
                   (\ view ->
                      do
-                        viewInfo0 <- getVersionInfo node
+                        viewInfo0 <- getVersionInfo1 node
                         userInfo1Opt <- editVersionInfo
                            "Commit Version" viewInfo0
                         case userInfo1Opt of
@@ -274,7 +282,7 @@ newVersionGraph
                viewedNodeOp viewedNodeOpt
                   (\ view ->
                      do
-                        viewInfo0 <- getVersionInfo node
+                        viewInfo0 <- getVersionInfo1 node
                         userInfo1Opt <- editVersionInfo  "Edit Info" viewInfo0
                         case userInfo1Opt of
                            Nothing -> done
@@ -293,7 +301,7 @@ newVersionGraph
                viewedNodeOp viewedNodeOpt
                   (\ view ->
                      do
-                        viewInfo <- getVersionInfo node
+                        viewInfo <- getVersionInfo1 node
                         -- don't occupy the node lock while doing the display.
                         forkIO (displayVersionInfo False viewInfo)
                         done
@@ -303,7 +311,7 @@ newVersionGraph
          editCheckedInNode :: Node -> IO ()
          editCheckedInNode node =
             do
-               versionInfo0 <- getVersionInfo node
+               versionInfo0 <- getVersionInfo1 node
                userInfo1Opt <- editVersionInfo "Edit Info" 
                   versionInfo0
                case userInfo1Opt of
@@ -314,14 +322,14 @@ newVersionGraph
          viewCheckedInNode :: Node -> IO ()
          viewCheckedInNode node =
             do       
-               versionInfo0 <- getVersionInfo node
+               versionInfo0 <- getVersionInfo1 node
                displayVersionInfo True versionInfo0
 
          -- Extract the title for a node
          nodeTitle :: Node -> IO String
          nodeTitle node =
             do
-               versionInfo0 <- getVersionInfo node
+               versionInfo0 <- getVersionInfo1 node
                let
                   user0 = user versionInfo0
                   label0 = label user0
@@ -471,7 +479,7 @@ newVersionGraph
                   Just mergeCandidates ->
                      do
                         -- Go ahead.
-                        viewWE <- mergeNodes repository (
+                        viewWE <- mergeNodes repository graph (
                            map (Right . mergeVersion) mergeCandidates)
                         case fromWithError viewWE of
                            Left mess -> createErrorWin mess []
