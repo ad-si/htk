@@ -14,7 +14,9 @@ DEPEND           = $(HCHOME)/bin/ghc -M -optdep
 GHCINCDIR        = -I$(HCHOME)/lib/includes 
 EXTRA_HC_OPTIONS = -recomp -Onot
 
-HCSYSLIBS = -syslib posix -syslib misc -syslib exts -syslib concurrent
+HCSYSLIBS = -syslib concurrent -syslib data -syslib net -syslib posix -syslib text -syslib util
+# Version as it used to be before the GHC library names all changed
+# HCSYSLIBS = -syslib posix -syslib misc -syslib exts -syslib concurrent
 
 HCLIBSACTUAL = $(HCHOME)/lib/libHSposix.a $(HCHOME)/lib/libHSposix_cbits.a $(HCHOME)/lib/libHSmisc.a $(HCHOME)/lib/libHSmisc_cbits.a $(HCHOME)/lib/libHSexts.a $(HCHOME)/lib/libHSconcurrent.a $(HCHOME)/lib/libHS.a $(HCHOME)/lib/libHS_cbits.a $(HCHOME)/lib/libHSrts.a $(HCHOME)/lib/libgmp.a -lc -lm
 
