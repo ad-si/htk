@@ -9,18 +9,26 @@ module AtomString(
       -- represents a string.  Instance of Ord, Eq, StringClass, 
       -- Read and Show.  There is no guarantee that Ord on AtomString
       -- corresponds to Ord on the corresponding String.
+
    StringClass(..),
       -- encodes that a type encodes strings in some way.
+
+   fromStringWE,
+   fromStringError,
+      -- provide a primitive way for decoding String's to return an error.
    ) where               
 
 import Concurrent
 import FiniteMap
 import qualified IOExts(unsafePerformIO)
 import PackedString
+import Exception
 
 import Debug(debug)
 import QuickReadShow
 import Dynamics
+import DeepSeq
+import Computation
 
 data AtomSource = AtomSource (MVar (FiniteMap PackedString AtomString))
    -- where AtomStrings come from
@@ -62,6 +70,39 @@ instance StringClass stringClass => QuickRead stringClass where
 
 instance StringClass stringClass => QuickShow stringClass where
    quickShow = WrapShow toString
+
+------------------------------------------------------------------------
+-- We provide a way for instances of StringClass to return errors from
+-- fromString by using the usual dreadful hack with Exception.
+------------------------------------------------------------------------
+
+fromStringWE :: (StringClass stringClass,DeepSeq stringClass) 
+   => String -> IO (WithError stringClass)
+fromStringWE str =
+   do
+      either <- tryJust
+         (\ exception -> case dynExceptions exception of
+            Nothing -> Nothing -- don't handle this as it's not even a dyn.
+            Just dyn ->
+               case fromDyn dyn of
+                  Nothing -> Nothing -- not a fromStringError.
+                  Just (FromStringExcep mess) -> Just mess
+            )
+         (do
+             let
+                value = fromString str
+             deepSeq value done
+             return value
+         )
+      return (toWithError either)
+
+fromStringError mess = throwDyn (FromStringExcep mess)
+            
+newtype FromStringExcep = FromStringExcep String
+
+fromStringExcep_tyRep = mkTyRep "ExtendedPrelude" "FromStringExcep"
+instance HasTyRep FromStringExcep where
+   tyRep _ = fromStringExcep_tyRep
 
 ------------------------------------------------------------------------
 -- StringClass instance

@@ -12,4 +12,6 @@ BOOTSRCS = MMiSSObjects.boot.hs
 
 SUBDIRS = test
 
+EXTRAEXPORTS = MMiSS.dtd
+
 include @TOP@/mk/boilerplate.mk

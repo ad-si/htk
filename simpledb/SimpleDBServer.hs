@@ -67,7 +67,13 @@ firstVersion = ObjectVersion 0
 
 data SimpleDBCommand =
       NewLocation -- returns with IsLocation
+#if (__GLASGOW_HASKELL__ == 504)
+      -- Work around ghc5.04.1 bug
+   |  Commit {bdbKey :: BDBKey,location :: Location,
+         objectVersionOpt :: Maybe ObjectVersion} 
+#else
    |  Commit BDBKey Location (Maybe ObjectVersion)
+#endif
           -- commits a new version to the repository.  To ease storage,
           -- the parent version is supplied UNLESS this is the first time
           -- we commit to the location.  

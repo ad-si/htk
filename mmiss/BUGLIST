@@ -4,6 +4,11 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+63) 8.10.02
+There seems to be an erratic bug in daVinci version 2 which causes it not to 
+respond to multi(set_context("_C")) commands.  This causes the whole program
+to hang in some circumstances but this seems to be not reliably reproducible.
+
 62) 1.10.02
 Italicisation added when MMiSS objects are modified.
 FIXED.

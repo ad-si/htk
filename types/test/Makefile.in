@@ -3,9 +3,13 @@ PACKAGES = uni-types uni-htk uni-davinci
 SRCS       = TestAttributeRepresentation.hs MainServer.hs MainWorkbench.hs \
    TestGetAttributesType.hs
 
+EXTRAEXPORTS = Server
+
 include @TOP@/mk/boilerplate.mk
 
 .PHONY : runServer runWorkbench killServer killWorkbench
+
+prepareexports : Server
 
 runServer :
 	@MKDIR@ -p /var/tmp/simpledb

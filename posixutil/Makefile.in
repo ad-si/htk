@@ -12,6 +12,8 @@ endif
 
 SRCSC = MainrunCommand.c forkExec.c Mainlog.c
 
+EXTRAEXPORTS = runCommand
+
 # For runCommand we link with -no-hs-main since it's not actually a Haskell
 # program.
 EXTRA_HC_OPTIONS += $($*_HC_OPTIONS)
@@ -19,3 +21,5 @@ runCommand_HC_OPTIONS = -no-hs-main
 log_HC_OPTIONS = -no-hs-main
 
 include @TOP@/mk/boilerplate.mk
+
+prepareexports : MMiSSWorkbench

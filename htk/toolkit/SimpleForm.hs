@@ -83,7 +83,7 @@ module SimpleForm(
       -- for being read with radio buttons, for example a small enumeration.
    FormTextField(..), -- This class is used for types which can be
       -- read in using a text field.
-
+   FormTextFieldIO(..), -- Slightly more general version allowing IO actions.
    FormLabel(..), -- This class represents things which can be used for
       -- labels in the form.  Instances include String and Image.
    EmptyLabel(EmptyLabel),
@@ -589,17 +589,29 @@ instance (Num a,Show a,Read a) => FormTextField a where
       [(value,rest)] | allSpaces rest -> hasValue value
       _ -> hasError (show str ++ " is not a number")
 
-instance FormTextField value => FormValue value where
+instance FormTextField value => FormTextFieldIO value where
+   makeFormStringIO value = return (makeFormString value)
+   readFormStringIO value = return (readFormString value)
+
+-- -------------------------------------------------------------------------
+-- Instance #1A - FormTextFieldIO's, where IO actions are allowed 
+-- -------------------------------------------------------------------------
+
+class FormTextFieldIO value where
+   makeFormStringIO :: value -> IO String
+   readFormStringIO :: String -> IO (WithError value)
+
+instance FormTextFieldIO value => FormValue value where
    makeFormEntry frame defaultVal =
       do
-         let defaultString = makeFormString defaultVal
+         defaultString <- makeFormStringIO defaultVal
          contentsVariable <- createTkVariable defaultString
          (entry :: Entry String) <- newEntry frame [variable contentsVariable]
          let 
             getFormValue =
                do
                   (contents :: String) <- readTkVariable contentsVariable
-                  return (readFormString contents)
+                  readFormStringIO contents
          let
             enteredForm = EnteredForm {
                packAction = pack entry [Side AtRight,Fill X],
