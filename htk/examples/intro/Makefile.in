@@ -1,0 +1,10 @@
+PACKAGES = uni-htk
+
+SRCS       = Mainsimple1.hs \
+             Mainsimple2.hs \
+	     Mainlist.hs \
+	     Mainentry.hs\
+	     Mainmenu.hs \
+             MainhsMines.hs
+
+include @TOP@/mk/boilerplate.mk

@@ -2,13 +2,16 @@ uni/htk/examples
 
 This directory contains examples for HTk. Their arrangment is
 described in more detail in the "Short Introduction" to HTk, which can
-be found in ../doc/intro; that document should also be your first port
-of call if you are in need of introductory information about HTk.
+be found at the website http://www.informatik.uni-bremen.de/htk; that
+document should also be your first port of call if you are in need of
+introductory information about HTk.
 
 Here's a brief run-down of the organisation of the examples: 
 
+- directory intro contains the examples from the "Short Introduction";
+
 - directory simple contains simple examples (rather unsurprisingly);
- 
+
 - directory canvas contains examples dealing with the canvas widget;
 
 - directory tix contains examples showing how to use the tix widgets
