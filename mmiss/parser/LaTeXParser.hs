@@ -50,9 +50,11 @@ import qualified XmlPP as PP
 import Pretty hiding (char, spaces, space)
 #endif
 
+import qualified Dynamics
 import Computation hiding (try)
 import ParsecError
 import EmacsContent
+import qualified CodedValue
 -- import EmacsEdit(TypedName)
 
 -- type MMiSSLatexPreamble = String
@@ -76,7 +78,6 @@ data Package = Package Options PackageName Versiondate deriving Show
 type DocumentClass = Package
 
 data MMiSSLatexPreamble = Preamble DocumentClass [Package] String deriving Show
-
 
 {--------------------------------------------------------------------------------------------
 
@@ -1560,4 +1561,29 @@ appendSourcePos pos str = str ++ "in Line "
                           ++ (show (sourceLine pos)) ++ " Column " 
                           ++ (show (sourceColumn pos)) ++ "."
 
+
+-- ----------------------------------------------------------------------------------
+-- Instances of Typeable & HasCodedValue for Preamble and MMiSSLatexPreamble 
+-- (added by George)
+-- ----------------------------------------------------------------------------------
+
+package_tyRep = Dynamics.mkTyRep "LaTeXParser" "Package"
+instance Dynamics.HasTyRep Package where
+   tyRep _ = package_tyRep
+
+instance CodedValue.HasCodedValue Package where
+   encodeIO = CodedValue.mapEncodeIO 
+      (\ (Package options packageName versionData) -> (options,packageName,versionData))
+   decodeIO = CodedValue.mapDecodeIO
+      (\ (options,packageName,versionData) -> Package options packageName versionData)
+
+preamble_tyRep = Dynamics.mkTyRep "LaTeXParser" "MMiSSLatexPreamble"
+instance Dynamics.HasTyRep MMiSSLatexPreamble where
+   tyRep _ = preamble_tyRep
+
+instance CodedValue.HasCodedValue MMiSSLatexPreamble where
+   encodeIO = CodedValue.mapEncodeIO
+      (\ (Preamble documentClass packages string) -> (documentClass,packages,string))
+   decodeIO = CodedValue.mapDecodeIO
+      (\ (documentClass,packages,string) -> Preamble documentClass packages string)
 
