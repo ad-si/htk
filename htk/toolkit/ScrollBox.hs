@@ -59,7 +59,7 @@ newScrollBox par wfun cnf =
   do
     f <- newFrame par []
     w <- wfun f
-    let sz = cm 0.4
+    let sz = cm 0.3
         sz' = if scrollY then sz else 0         -- width of y scrollbar
         scrollY = (isWfOrientation w Vertical)
         scrollX = (isWfOrientation w Horizontal)
