@@ -20,35 +20,33 @@
 
 
 \begin{document}
-\begin{Package}[MMISS_Latex2]{AlgSpec}
-{Formal Program Development with Algebraic Specifications}
-{Date=12.09.2002,
+\begin{Package}[Label=AlgSpec, 
+Title={Formal Program Development with Algebraic Specifications}
+Date=12.09.2002,
 Authors={Christoph L\"uth, Markus Roggenbach},
 PriorAuthors={Markus Roggenbach, Michael Drouineaud},
 ShortAuthor={C.~L\"uth, M.~Roggenbach},
 ShortTitle={Algebraic Specification},
-Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
+Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper]
 
-\begin{Section}{IntroAlgSpec}{Signatures, Terms and Algebras}{}
+\begin{Section}[Label=IntroAlgSpec, Title={Signatures, Terms and Algebras}]
 
-
-
-\begin{Abstract}{Abstract}{Overview}{}
+\begin{Abstract}[Label=Abstract, Title=Overview]
 This section will introduce the basic mathematics of algebraic
 specifications, namely:
-\begin{List}{}{itemize}{}
-  \ListItem{} \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
-  \ListItem{} and \Emphasis{algebras} give us the semantics.
+\begin{List}[ListType=itemize]
+  \ListItem \Emphasis{signatures} and \Emphasis{terms} give us the syntax,
+  \ListItem and \Emphasis{algebras} give us the semantics.
 \end{List}  
 \end{Abstract}
 
-\begin{Introduction}{Intro}{Why Formal Specification?}{}
-\begin{List}{Reasons}{itemize}{}
-\ListItem{}
+\begin{Introduction}[Label=Intro, Title=Why Formal Specification?]
+\begin{List}[Label=Reasons, ListType=itemize]
+\ListItem
 formal specifications are \Emphasis{precise}  \\
 (non formal and sometimes even semi formal \\
 specifications are open to re-interpretation)\pause
-\ListItem{}
+\ListItem
 syntactical and semantical \Emphasis{correctness} \\ 
 independent of tools 
 \pause
@@ -58,14 +56,14 @@ independent of tools
 \end{List}
 \end{Introduction}
 
-\begin{Paragraph}{Signatures}{Signatures}{}
+\begin{Paragraph}[Label=Signatures, Title=Signatures]
 Signatures allow us to define operations.
 
-\begin{Definition}{DefSignature}{Signature}{}
+\begin{Definition}[Label=DefSignature, Title=Signature]
 A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
-\begin{List}{SignatureComponents}{itemize}{}
-    \ListItem{} a set $S$ of \Emphasis{sorts}, and 
-    \ListItem{} a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
+\begin{List}[Label=SignatureComponents, ListType=itemize]
+    \ListItem a set $S$ of \Emphasis{sorts}, and 
+    \ListItem a family $\{\Omega_{w,s}\}_{w\in S^{*},s\in S}$ of operations. 
   \end{List}
 \end{Definition}
 
@@ -74,18 +72,18 @@ argument sorts $s_1,\ldots,s_n$ and target sort $s$, also written
 $\omega:s_1\ldots s_n\rightarrow s$.
 \end{Paragraph}
 
-\begin{Paragraph}{Algebra}{Algebra}{}
+\begin{Paragraph}[Label=Algebra, Title=Algebra]
 
 Algebras are models of \Link[signatures]{DefSignature}{}.
 \vfill{}
-\begin{Definition}{DefAlgebra}{$\Sigma$-Algebra}{}
+\begin{Definition}[Label=DefAlgebra, Title={$\Sigma$-Algebra}]
   An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
   $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
-  \begin{List}{AlgebraComponents}{itemize}{}
-    \ListItem{}
+  \begin{List}[Label=AlgebraComponents, ListType=itemize]
+    \ListItem
     for each sort $s\in S$, a \Emphasis{carrier set} 
     $A_s\in S_A$;
-    \ListItem{}
+    \ListItem
     for each operation $\omega:s_1\ldots s_n\rightarrow s$, an
     operation $\omega_A:A_{s1}\ldots A_{sn}\rightarrow A_s$.
   \end{List}
@@ -93,7 +91,7 @@ Algebras are models of \Link[signatures]{DefSignature}{}.
 \end{Paragraph}
 
 
-\begin{Paragraph}{Terms}{Terms over a Set}{}
+\begin{Paragraph}[Label=Terms, Title=Terms over a Set]
 Let $\Sigma=(S, \Omega)$ be a \Link[signature]{DefSignature}{}.
 
 An \Emphasis{$S$-sorted set of variables} is given by $X=
@@ -102,18 +100,18 @@ An \Emphasis{$S$-sorted set of variables} is given by $X=
 Intuitively: terms are the smallest set containing the variables which
 is closed under application of operations.
 
-\begin{Lemma}{TermAlgebra}{The Term Algebra}{}
+\begin{Lemma}[Label=TermAlgebra, Title={The Term Algebra}]
 Terms form an \Link[algebra]{DefAlgebra}{}.  
 \end{Lemma}
 
 \end{Paragraph}
 
-\begin{Paragraph}{Example}{A Simple Example}{}
+\begin{Paragraph}[Label=Example, Title=A Simple Example]
 
 An Example (in CASL): the natural numbers.
 
 %% \IncludeProgramFragment{CASL_Nats}{}
-\begin{ProgramFragment}[CASL_Spec]{CASL_Nats}{Natural Numbers}{}
+\begin{ProgramFragment}[Notation=CASL_Spec, Label=CASL_Nats, Title={Natural Numbers}]
 \begin{SpecDefn}{Nat} =
 \I{}
 \begin{Items}
@@ -130,26 +128,21 @@ Pos & \ ::= & \ suc(pre:Nat)
 Note how $(\Nat, 0, +)$ form an \Link[algebra]{DefAlgebra}{}.
 \end{Paragraph}
 
-\begin{Summary}{Summary}{Summing Up}{}
+\begin{Summary}[Label=Summary, Title=Summing Up]
 In this section, we have encountered the following concepts:
-\begin{List}{Concepts}{itemize}{}
-\ListItem{}
+\begin{List}[Label=Concepts, ListType=itemize]
+\ListItem
 \emph{Signatures} allow to declare sorts and operations;
-\ListItem{}
+\ListItem
 \emph{Terms} are build over signatures;
-\ListItem{}
+\ListItem
 \emph{Algebras} give a semantics to signatures.
-\ListItem{}
+\ListItem
 Further, we have seen how to specify natural numbers in the algebraic
 specification language CASL.
 \end{List}
 \end{Summary}
-
-
-  
 \end{Section}
-
-
 \end{Package}
 \end{document}
 
