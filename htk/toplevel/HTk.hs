@@ -11,7 +11,11 @@
 
 module HTk (
 
+  requirePackage,
+  forgetPackage,
+  isPackageAvailable,
   isTixAvailable,
+
 
 -- basic ressources
 

@@ -11,7 +11,7 @@
 
 ---
 -- HTk's <strong>PanedWindow</strong>.<br>
--- A paned window is a container widget, that is devided into scaleable
+-- A paned window is a container widget, that is divided into scaleable
 -- horizontal or vertical panes.
 module PanedWindow (
 
@@ -237,7 +237,7 @@ windowPaneMethods ccnf = Methods tkGetPaneConfig
 
 
 -- -----------------------------------------------------------------------
--- unparsing of notebook page commands
+-- unparsing of pane commands
 -- -----------------------------------------------------------------------
 
 tkGetPaneConfig :: ObjectName -> ConfigID -> TclScript

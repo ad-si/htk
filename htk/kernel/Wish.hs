@@ -33,8 +33,11 @@ module Wish (
   CallBackId(..),
   showP,
 
-  isTixAvailable, -- :: IO Bool.  True if we are using tixwish.
-  tixAvailable,   -- ::    Bool.  True if we are using tixwish.
+  requirePackage,	-- :: String -> IO(Bool).  Try to load a package.
+  forgetPackage,	-- :: String -> IO().	   Forget a package.
+  isPackageAvailable,	-- :: String -> IO(Bool).  True if package loaded.
+  isTixAvailable,	-- :: IO Bool.  True if we are using tixwish, which
+			-- means it was successfully loaded with requirePackage
   cleanupWish,
 
   delayWish, -- :: IO a -> IO a
@@ -65,7 +68,7 @@ module Wish (
 
 import Maybe
 import Char
-import List(find)
+import List(find,union,delete)
 
 import IOExts
 import Concurrent
@@ -333,10 +336,6 @@ wish = IOExts.unsafePerformIO newWish
 cleanupWish :: IO ()
 cleanupWish = destroy wish
 
-tixAvailable :: Bool
-tixAvailable = IOExts.unsafePerformIO isTixAvailable
-{-# NOINLINE tixAvailable #-}
-
 newWish :: IO Wish
 newWish =
    do
@@ -423,18 +422,6 @@ newWish =
 
       return wish
 
--- isTixAvailable is used to determine if Tix is available . . .
-isTixAvailable :: IO Bool
-isTixAvailable =
-   do
-      response <- evalCmd "info commands tix"
-      case response of
-         "tix" -> return True
-         "" -> return False
-         _ -> error ("Wish.isTixAvailable - "++show response)
-         -- Match failure here indicates more than one string matching
-         -- "tix", which is puzzling.
-
 eventForwarder :: Event ()
 eventForwarder = forever handleEvent
    where
@@ -512,6 +499,43 @@ typeWishAnswer str =
 
 parseError :: String -> a
 parseError str = error ("Wish: couldn't parse wish response "++ (show str))
+
+
+-- -----------------------------------------------------------------------
+-- Interface to wish packages
+-- -----------------------------------------------------------------------
+
+loadedPackages :: Ref [String]
+loadedPackages = IOExts.unsafePerformIO (newRef [])
+{-# NOINLINE loadedPackages #-}
+
+-- Require a package, returning flag for success
+requirePackage :: String -> IO (Bool)
+requirePackage package =
+       do response <- evalCmd ("package require " ++ package)
+	  if response == ("can't find package " ++ package)
+	     then return False
+	     else do loaded <- getRef loadedPackages
+		     setRef loadedPackages ([package] `union` loaded)
+		     return True
+
+forgetPackage :: String -> IO ()
+forgetPackage package = 
+       do evalCmd ("package forget " ++ package)
+	  loaded <- getRef loadedPackages
+	  setRef loadedPackages (delete package loaded)
+	  return ()
+
+-- isPackageAvailable is used to determine if a package is loaded
+-- (must use requirePackage to load it first, if desired)
+isPackageAvailable :: String -> IO Bool
+isPackageAvailable package =
+   do loaded <- getRef loadedPackages
+      return (package `elem` loaded)
+
+-- isTixAvailable is used to determine if Tix is available . . .
+isTixAvailable :: IO Bool
+isTixAvailable = isPackageAvailable "Tix"
 
 
 -- -----------------------------------------------------------------------

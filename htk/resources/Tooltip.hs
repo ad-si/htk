@@ -38,19 +38,21 @@ class GUIObject w => HasTooltip w where
   destroyTooltip :: w -> IO ()
 
   tooltip str w =
-    (if tixAvailable then 
-       do
-         nm <- getObjectName (toGUIObject w)
-         execTclScript
-           ["destroy " ++ show nm ++ "ttip",
-            "tixBalloon " ++ show nm ++ "ttip",
-            show nm ++ "ttip bind " ++ show nm ++" -msg \"" ++ 
-            str ++ "\""]
-     else done) >> return w
+     do tixAvailable <- isTixAvailable
+     	(if tixAvailable then 
+     	  do
+     	    nm <- getObjectName (toGUIObject w)
+     	    execTclScript
+     	      ["destroy " ++ show nm ++ "ttip",
+     	       "tixBalloon " ++ show nm ++ "ttip",
+     	       show nm ++ "ttip bind " ++ show nm ++" -msg \"" ++ 
+     	       str ++ "\""]
+     	 else done) >> return w
 
   destroyTooltip w =
-    if tixAvailable then
-      do
-        nm <- getObjectName (toGUIObject w)
-        execTclScript ["destroy " ++ show nm ++ "ttip"]
-    else done
+     do tixAvailable <- isTixAvailable
+     	(if tixAvailable then
+     	  do
+     	   nm <- getObjectName (toGUIObject w)
+     	   execTclScript ["destroy " ++ show nm ++ "ttip"]
+         else done)
