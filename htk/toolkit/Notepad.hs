@@ -81,13 +81,12 @@ data NotepadItem a =
 -- handler for enter events
 enteredItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 enteredItem notepad item =
---  synchronize notepad
+  synchronize item
     (do
        v <- getRef (it_val item)
        nm <- getName v
        let fullnm = full nm
        it_txt item # text fullnm
-       setRef (entered_item notepad) (Just item)
        mlast_bg <- getRef (it_long_name_bg item)
        case mlast_bg of
          Nothing -> do
@@ -109,20 +108,20 @@ enteredItem notepad item =
 -- handler for leave events
 leftItem :: CItem c => Notepad c -> NotepadItem c -> IO ()
 leftItem notepad item =
-  do
-    let (Distance dx, _) = img_size notepad
-        len = div (dx + 80) char_px
-    v <- getRef (it_val item)
-    nm <- getName v
-    let shortnm = short nm len
-    setRef (entered_item notepad) Nothing
-    it_txt item # text shortnm
-    mlast_bg <- getRef (it_long_name_bg item)
-    case mlast_bg of
-      Just last_bg -> destroy last_bg >>
-                      setRef (it_long_name_bg item) Nothing
-      _ -> done
-    done
+  synchronize item
+    (do
+       let (Distance dx, _) = img_size notepad
+           len = div (dx + 80) char_px
+       v <- getRef (it_val item)
+       nm <- getName v
+       let shortnm = short nm len
+       it_txt item # text shortnm
+       mlast_bg <- getRef (it_long_name_bg item)
+       case mlast_bg of
+         Just last_bg -> destroy last_bg >>
+                         setRef (it_long_name_bg item) Nothing
+         _ -> done
+       done)
 
 -- constructor
 createNotepadItem :: CItem c => c -> Notepad c ->
@@ -148,23 +147,21 @@ createNotepadItem val notepad cnf =
                              it_bg = itemsel }
     foldl (>>=) (return item) cnf
 
+{-
     (enter1, _) <- bindSimple img Enter
     (leave1, _) <- bindSimple img Leave
-{-
     (enter2, _) <- bindSimple txt Enter
     (leave2, _) <- bindSimple txt Leave
--}
 
     let listenItem :: Event ()
         listenItem =
              (enter1 >>> enteredItem notepad item)
           +> (leave1 >>> leftItem notepad item)
-{-
           +> (enter2 >>> enteredItem notepad item)
           +> (leave2 >>> leftItem notepad item)
--}
 
     spawnEvent (forever listenItem)
+-}
 
     addItemToState notepad item
     return item
@@ -489,6 +486,8 @@ newNotepad par scrolltype imgsize mstate cnf =
     (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just (BNo 1)))]
     (rightclick, _) <- bind cnv
                             [WishEvent [] (ButtonPress (Just (BNo 2)))]
+    (motion', _) <- bind cnv [WishEvent [] Motion]
+    (motion, _) <- Examples.watch motion'
     (clickmotion', _) <- bind cnv [WishEvent [Button1] Motion]
     (clickmotion, _) <- Examples.watch clickmotion'
     (doubleclick, _) <- bind cnv [WishEvent [Double]
@@ -571,7 +570,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                 do
                   (x_it, y_it) <- getPosition (it_img item)
                   return (if x_it - 30 < x && x_it + 30 > x &&
-                             y_it - 30 < y && y_it + 30 > y then True
+                             y_it - 10 < y && y_it + 30 > y then True
                           else False)
 
               checkDropZones' (item : items) =
@@ -670,9 +669,59 @@ newNotepad par scrolltype imgsize mstate cnf =
                                  (if b then done
                                   else undoLastMotion notepad)))
 
+        checkEnteredItem (x, y) =
+          let overItem item =
+                do
+                  (x_it, y_it) <- getPosition (it_img item)
+                  return (if x_it - 30 < x && x_it + 30 > x &&
+                             y_it - 10 < y && y_it + 30 > y then True
+                          else False)
+              checkItems (item : items) =
+                do
+                  b <- overItem item
+                  (if b then setRef entereditemref (Just item)
+                   else checkItems items)
+              checkItems _  = setRef entereditemref Nothing
+          in do
+               last <- getRef entereditemref
+               items <- getRef notepaditemsref
+               checkItems items
+               new <- getRef entereditemref
+               (if isJust last then
+                  if isJust new then
+                    if fromJust last == fromJust new then done
+                    else
+                      leftItem notepad (fromJust last) >>
+                      enteredItem notepad (fromJust new)
+                  else
+                    leftItem notepad (fromJust last)
+                else
+                  if isJust new then
+                    enteredItem notepad (fromJust new)
+                  else
+                    done)
+
+{-
+               case last of
+                 Just item -> if isJust new then
+                                let newitem = fromJust new
+                                in if item /= fromJust new then
+                                     leftItem notepad item >>
+                                     enteredItem notepad newitem
+                                   else leftItem notepad item
+                              else done
+                 _ -> if isJust new then enteredItem notepad
+                                                     (fromJust new)
+                      else done
+-}
+
         listenNotepad :: Event ()
         listenNotepad =
              (do
+                (x, y) <- motion >>>= getCoords
+                always (checkEnteredItem (x, y))
+                listenNotepad)
+          +> (do
                 (x, y) <- click >>>= getCoords
                 always
                   (do
@@ -691,6 +740,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                        Just item ->
                          do
                            Just entereditem <- getRef entereditemref
+                           leftItem notepad entereditem
                            b <- isNotepadItemSelected notepad item
                            if b then done else selectItem notepad item
                            t <- createTagFromSelection notepad

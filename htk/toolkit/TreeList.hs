@@ -740,12 +740,8 @@ updScrollRegion cnv stateref =
         updScrollRegion' cnv x y
                          ((StateEntry obj _ _ _) : sentries) =
           do
-            [(cx, cy)] <- getCoord (embedded_win obj)
-            nm <- getTreeListObjectName obj
-            updScrollRegion' cnv
-                             (max x (cx + Distance
-                                            (cwidth * length (full nm))))
-                             (max y (cy + Distance lineheight)) sentries
+            Just (_, _, x', y') <- bbox cnv (embedded_win obj)
+            updScrollRegion' cnv (max x x') (max y y') sentries
         updScrollRegion' cnv x y _ =
           (cnv # scrollRegion ((0, 0), (x, y))) >> done
 

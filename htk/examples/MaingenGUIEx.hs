@@ -266,8 +266,8 @@ addExampleFolders newID gui =
                            ("content of text item 7", txtImg),
                            ("content of text item 8", txtImg)]) [1..2]
 
-       mapM (addTxtFolder newID gui guiroot "texts." txtfolderImg
-                          "text_item_with_long_name."
+       mapM (addTxtFolder newID gui guiroot "text_items_with_long_names."
+                          txtfolderImg "text_item_with_a_long_name."
                           [("content of text item 1", txtImg),
                            ("content of text item 2", txtImg),
                            ("content of text item 3", txtImg),
@@ -275,7 +275,7 @@ addExampleFolders newID gui =
                            ("content of text item 5", txtImg),
                            ("content of text item 6", txtImg),
                            ("content of text item 7", txtImg),
-                           ("content of text item 8", txtImg)]) [1..2]
+                           ("content of text item 8", txtImg)]) [1]
 
        mapM (addNumFolder newID gui exfolder1 "numbers." numfolderImg
                           "number_item."
@@ -616,7 +616,8 @@ doubleClickNp item =
        MyImage _ ioimg -> do
                             main <- createToplevel [text "Image"]
                             img <- ioimg
-                            lab <- newLabel main [photo img] ::
+                            lab <- newLabel main [anchor Center,
+                                                  photo img] ::
                                      IO (Label Image)
                             pack lab []
                             quit <- newButton main [text "Close"]
@@ -628,7 +629,8 @@ doubleClickNp item =
        MyTxt _ str -> do
                         main <- createToplevel [text "Text"]
                         lab <- newLabel main
-                                 [text ("     " ++ str ++ "     "),
+                                 [anchor Center,
+                                  text ("     " ++ str ++ "     "),
                                   height 5, relief Sunken,
                                   font (Helvetica, 12 :: Int)] ::
                                IO (Label String)
@@ -643,6 +645,7 @@ doubleClickNp item =
                             main <- createToplevel [text "Color"]
                             lab <- newLabel main
                                      [relief Sunken, size (20,8),
+                                      anchor Center,
                                       font (Helvetica, 18 :: Int),
                                       bg (case mycol of
                                             Red -> "red"
@@ -665,8 +668,8 @@ doubleClickNp item =
        MyNum _ n -> do
                       main <- createToplevel [text "Number"]
                       lab <- newLabel main
-                               [text (show n), relief Sunken,
-                                size (20,8),
+                               [anchor Center, text (show n),
+                                relief Sunken, size (20,8),
                                 font (Helvetica, 18 :: Int)] ::
                              IO (Label String)
                       pack lab []

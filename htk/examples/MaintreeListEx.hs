@@ -97,7 +97,7 @@ cfun obj =
 main :: IO ()
 main =
   do
-    main <- initHTk [text "file browse example", size (cm 9, cm 10)]
+    main <- initHTk [text "treelist example", size (cm 9, cm 10)]
     tl <- newTreeList main cfun
             [newTreeListObject (FileObject "/" "/" folderImg) Node]
             [background "white"]

@@ -21,7 +21,7 @@ instance Eq MyObj where
   MyObj path1 _ _ == MyObj path2 _ _ = path1 == path2
 
 instance CItem MyObj where
-  getName (MyObj _ nm _) = return (newName nm)
+  getName (MyObj _ nm _) = return (createName nm)
   getIcon (MyObj _ _ img) = img
 
 cfun :: ChildrenFun MyObj
