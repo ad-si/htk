@@ -1,6 +1,0 @@
-# Set the environment variable WB_ROOT to the link to the wish which is
-# set in uni/bin/wish. 
-# This file needs to be source'd, not executed.
-WB_ROOT=`(cd ../../; pwd)`
-export WB_ROOT
-
