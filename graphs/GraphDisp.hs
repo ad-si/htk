@@ -129,6 +129,7 @@ module GraphDisp(
 
 import Dynamics
 import ExtendedPrelude(monadDot)
+import Computation(HasConfig(..))
 
 import SIM(IA,Destructible)
 
@@ -220,6 +221,10 @@ class (GraphConfig graphConfig,GraphParms graphParms)
 
    graphConfig :: graphConfig -> graphParms -> graphParms
 
+instance GraphConfigParms graphConfig graphParms
+   => HasConfig graphConfig graphParms where
+   ($$) = graphConfig
+
 ------------------------------------------------------------------------
 -- Nodes
 ------------------------------------------------------------------------
@@ -267,6 +272,11 @@ class (NodeTypeConfig nodeTypeConfig,NodeTypeParms nodeTypeParms) =>
 
    nodeTypeConfig :: Typeable value =>
       nodeTypeConfig value -> nodeTypeParms value -> nodeTypeParms value
+
+instance (NodeTypeConfigParms nodeTypeConfig nodeTypeParms,Typeable value)
+      => HasConfig (nodeTypeConfig value) (nodeTypeParms value) where
+   ($$) = nodeTypeConfig
+
 
 ------------------------------------------------------------------------
 -- Arcs
@@ -345,6 +355,10 @@ class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
    arcTypeConfig :: Typeable value => 
       arcTypeConfig value -> arcTypeParms value -> arcTypeParms value
       
+instance (ArcTypeConfigParms arcTypeConfig arcTypeParms,Typeable value)
+      => HasConfig (arcTypeConfig value) (arcTypeParms value) where
+   ($$) = arcTypeConfig
+
 ------------------------------------------------------------------------
 -- Menus and buttons
 -- As in DaVinci, a menu is simply considered as a tree of buttons,
@@ -352,7 +366,7 @@ class (ArcTypeConfig arcTypeConfig,ArcTypeParms arcTypeParms) =>
 -- We define MenuPrim as it may be useful for
 -- implementations, so they don't have to define their own datatypes
 -- for menus.
-------------------------------------------------------------------------
+------------------------------------------------------------------------276
 
 instance GraphConfig GlobalMenu
 

@@ -60,6 +60,9 @@ module Computation (
         configure,
         config,
 
+        -- The new-style configuration command
+        HasConfig(..),
+
         -- writeLog is now obsolescent.  Debug.debug should be used
         -- instead.
         setLogFile,
@@ -257,6 +260,18 @@ configure w (c:cl) = do {w' <- c w; configure w' cl}
 config :: IO () -> Config w
 config f w = f >> return w
 
+
+-- --------------------------------------------------------------------------
+-- New-style configuration
+-- Where HasConfig is defined you can type
+--     option1  $$ option2 $$ ... $$ initial_configuration
+-- -------------------------------------------------------------------------- 
+
+class HasConfig option configuration where
+   ($$) :: option -> configuration -> configuration
+
+infixr 0 $$
+-- This makes $$ have fixity like $. 
 
 -- --------------------------------------------------------------------------
 -- Logfile Commands
