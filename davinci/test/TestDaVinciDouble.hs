@@ -1,7 +1,7 @@
 {- Runs GraphDispTest using DaVinci -}
 module Main(main) where
 
-import Concurrent
+import Control.Concurrent
 
 import WBFiles(parseArguments)
 

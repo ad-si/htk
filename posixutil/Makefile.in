@@ -1,5 +1,5 @@
 PACKAGE = uni-posixutil
-PACKAGES = uni-events posix
+PACKAGES = uni-events unix
 
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
    Expect.hs SafeSystem.hs

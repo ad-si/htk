@@ -36,7 +36,6 @@ import Broadcaster
 
 import Graph
 import PureGraph 
-import SimpleGraph(ClientData(..))
 import FindCommonParents
 import NewNames
 import PureGraphPrune

@@ -9,7 +9,9 @@ Package {
    c_includes = [],
    package_deps = [],
    extra_ghc_opts = ["-fglasgow-exts","-fallow-overlapping-instances", 
-      "-fallow-undecidable-instances"],
+      "-fallow-undecidable-instances",
+      "-fwarn-unused-imports",
+      "-fwarn-missing-signatures","-fwarn-unused-binds"],
    extra_cc_opts = [],
    extra_ld_opts = []
    }

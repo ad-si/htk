@@ -21,6 +21,8 @@ import Char
 import List
 
 import Data.Bits
+import Data.Word
+import Control.Monad.Error
 
 import Computation
 
@@ -29,23 +31,22 @@ import Computation
 -- --------------------------------------------------------------------------
 
 -- | Converts a String into its UTF8 representation.
-toUTF8 :: String -> String
+toUTF8 :: Enum byte => String -> [byte]
 toUTF8 [] = []
 toUTF8 (x:xs) =
    let
       xs1 = toUTF8 xs
       ox = ord x
 
-      mkUTF8 :: Int -> String -> Int -> Int -> String
       mkUTF8 x0 xs0 xmask0 xmax0 =
          let
             xbot = 0x80 .|. (x0 .&. 0x3f)
             x1 = x0 `shiftR` 6
-            xs1 = chr xbot : xs0
+            xs1 = toEnum xbot : xs0
          in
             if x1 < xmax0
               then
-                 chr (xmask0 .|. x1) : xs1
+                 toEnum (xmask0 .|. x1) : xs1
               else
                  let
                     xmask1 = xmask0 .|. xmax0
@@ -55,7 +56,7 @@ toUTF8 (x:xs) =
    in
       if ox <= 0x7f 
          then 
-            x : xs1
+            toEnum ox : xs1
          else
            if ox `shiftR` 31 /= 0
               then
@@ -63,6 +64,9 @@ toUTF8 (x:xs) =
                     " detected in string being converted to UTF8.")
               else
                  mkUTF8 ox xs1 0xc0 0x20
+
+{-# SPECIALIZE toUTF8 :: String -> [Char] #-}
+{-# SPECIALIZE toUTF8 :: String -> [Word8] #-}
 
 -- | Converts a UTF8 representation of a String back into the String,
 -- catching all possible format errors.
@@ -72,17 +76,17 @@ toUTF8 (x:xs) =
 -- (fromUTF8WE :: String -> Either String String)
 -- to get a conversion function which either succeeds (Right) or 
 -- returns an error message (Left). 
-fromUTF8WE :: Monad m => String -> m String
+fromUTF8WE :: (Enum byte,Monad m) => [byte] -> m String
 fromUTF8WE [] = return []
 fromUTF8WE (x0 : xs0) =
    let
-      ox = ord x0
+      ox = fromEnum x0
    in
       case topZero8 ox of
          7 -> 
             do
                xs1 <- fromUTF8WE xs0
-               return (x0 : xs1)
+               return (chr ox : xs1)
          6 -> 
             fail "UTF8 escape sequence starts 10xxxxxx"
          0 ->
@@ -108,7 +112,7 @@ fromUTF8WE (x0 : xs0) =
                mkx (ch : xs1) x0 count0 =
                   do
                      let
-                        och = ord ch
+                        och = fromEnum ch
                      if och .&. 0x80 /= 0x80
                         then
                            fail ("UTF8 escape sequence contains continuing "
@@ -134,9 +138,12 @@ fromUTF8WE (x0 : xs0) =
                      else
                         do
                            xs2 <- fromUTF8WE xs1
-                           return (chr x : xs2)           
+                           return (toEnum x : xs2)           
 
 {-# SPECIALIZE fromUTF8WE :: String -> WithError String #-}
+{-# SPECIALIZE fromUTF8WE :: [Word8] -> WithError String #-}
+{-# SPECIALIZE fromUTF8WE :: String -> Either String String #-}
+{-# SPECIALIZE fromUTF8WE :: [Word8] -> Either String String #-}
 
 
 -- --------------------------------------------------------------------------

@@ -13,13 +13,10 @@ module Notification(
 
 import IO
 
-import Debug
 import Object
-import Binary
 
 import Events
 import GuardedEvents
-import GuardedChannels
 import EqGuard
 
 import Thread

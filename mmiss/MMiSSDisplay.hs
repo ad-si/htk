@@ -4,7 +4,7 @@ module MMiSSDisplay(
    registerMMiSSDisplay, -- :: IO ()
    ) where
 
-import qualified IOExts(unsafePerformIO)
+import System.IO.Unsafe
 
 import Dynamics
 import Computation
@@ -115,5 +115,5 @@ registerMMiSSDisplay =
 -- -----------------------------------------------------------------
 
 displayTypeRegistry :: GlobalRegistry MMiSSDisplayType
-displayTypeRegistry = IOExts.unsafePerformIO createGlobalRegistry
+displayTypeRegistry = unsafePerformIO createGlobalRegistry
 {-# NOINLINE displayTypeRegistry #-}

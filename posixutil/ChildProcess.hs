@@ -96,7 +96,7 @@ import Control.Exception
 
 import Computation
 import Object
-import Debug(debug,debugString,alwaysDebug)
+import Debug(debug,debugString)
 import Thread
 import FileNames
 import WBFiles
@@ -104,8 +104,6 @@ import DeepSeq
 import IOExtras
 import CompileFlags
 import TemplateHaskellHelps
-import Maybes
-import ExtendedPrelude
 
 import Destructible
 import WrapIO

@@ -16,8 +16,6 @@ module TSem(
 import System.IO.Unsafe
 import Control.Exception
 
-import Data.Set
-
 import Object
 import ExtendedPrelude
 

@@ -194,7 +194,7 @@ diffST2 (a :: [v]) (b :: [v]) =
                let
                   y = x - k
 
-                  (x',y') = scan x y
+                  (x',_) = scan x y
 
                   l1 = 
                      if x' == x

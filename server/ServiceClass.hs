@@ -11,12 +11,9 @@ module ServiceClass(
 
 import Directory
 
-import FileNames
 import WBFiles
 import CopyFile
-import Binary
-import BinaryUtils(WrappedBinary(..))
-import BinaryInstances()
+import BinaryAll
 
 import Thread
 

@@ -45,11 +45,11 @@ module LaTeXParserCore (
 
 -- module LaTeXParserCore where
 
-import IOExts
 import List
-import Parsec
 import Char
 import Monad
+
+import Text.ParserCombinators.Parsec
 
 import Dynamics
 import Computation hiding (try)

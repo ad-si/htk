@@ -39,8 +39,6 @@ module UniqueFile(
 import Directory
 import Char
 
-import Control.Concurrent
-
 import IOExtras
 import Registry
 import FileNames
@@ -79,6 +77,7 @@ stepUniqueFileCounter (UniqueFileCounter ilist) =
       (toString ilist,UniqueFileCounter (increment ilist)) 
    where
       toString :: [Int] -> String
+      toString [] = error "UniqueFile.toString"
       toString (first:rest) = tS [encodeChar first] rest
          where
             tS :: String -> [Int] -> String
@@ -96,6 +95,7 @@ stepUniqueFileCounter (UniqueFileCounter ilist) =
          else case i of
             62 -> '@'
             63 -> '+'
+            _ -> error "UniqueFile.encodeChar"
       
       increment :: [Int] -> [Int]
       increment (file:rest) =

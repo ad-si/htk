@@ -53,7 +53,7 @@ module SimpleDB(
    commit,
       --  :: Repository 
       --  -> VersionInformation
-      --  -> [(Location,Maybe ObjectVersion)]
+      --  -> [(Location,Either ObjectVersion (Maybe Location))]
       --  -> [(Location,CommitChange)] -> IO ()
       -- Commit a complete new version to the repository.
       --
@@ -61,6 +61,7 @@ module SimpleDB(
       --    contains the additional information for this commit
       --    (the ObjectVersion for the new version, parent versions,
       --       version title, and so on.)
+      -- [(Location,Either ObjectVersion (Maybe Location))]
       -- [(Location,Maybe ObjectVersion)]
       --    redirects.  I can't be bothered to explain them now, see
       --    definition of SimpleDBServer.Commit.  For normal (non-session
@@ -119,6 +120,7 @@ module SimpleDB(
    ) where
 
 import System.IO.Unsafe(unsafePerformIO)
+import Control.Concurrent.MVar
 
 import Object
 import Computation(done,WithError,toWithError,fromWithError)
@@ -140,11 +142,10 @@ import CallServer
 import MultiPlexer
 import PasswordFile
 
-import CopyFile
-
 import SimpleDBServer
 import SimpleDBService
 import VersionInfo hiding (server)
+import VersionState
 import ObjectSource
    -- that prevents those two functions being exported
 import qualified ObjectSource
@@ -203,6 +204,8 @@ initialiseInternal versionState =
 
       bSem <- newBSem
 
+      adminMVar <- newMVar False
+
       seq defaultUser done
       let
          userId1 = defaultUser
@@ -210,7 +213,7 @@ initialiseInternal versionState =
          user = User {
             PasswordFile.userId = userId1,
             encryptedPassword = "",
-            isAdmin = True,
+            adminMVar = adminMVar,
             other = ""
             }
 
@@ -260,10 +263,10 @@ instance Ord Repository where
 -- Query functions
 ----------------------------------------------------------------
 
-newLocation :: Repository -> IO Location
-newLocation repository =
+newLocation :: Repository -> Maybe (ObjectVersion,Location) -> IO Location
+newLocation repository parentOpt =
    do
-      response <- queryRepository repository (NewLocation)
+      response <- queryRepository repository (NewLocation parentOpt)
       return (toLocation response)
 
 newVersion :: Repository -> IO ObjectVersion
@@ -272,11 +275,11 @@ newVersion repository =
       response <- queryRepository repository (NewVersion)
       return (toObjectVersion response)
 
-lastChange :: Repository -> Location -> ObjectVersion -> IO ObjectVersion
-lastChange repository location objectVersion =
+lastChange :: Repository -> ObjectVersion -> Location -> IO ObjectVersion
+lastChange repository objectVersion location =
    do
       response 
-         <- queryRepository repository (LastChange location objectVersion)
+         <- queryRepository repository (LastChange objectVersion location)
       return (toObjectVersion response)
 
 listVersions :: Repository -> IO [ObjectVersion]
@@ -285,39 +288,39 @@ listVersions repository =
       response <- queryRepository repository ListVersions 
       return (toObjectVersions response)
 
-retrieveObjectSource :: Repository -> Location -> ObjectVersion 
+retrieveObjectSource :: Repository -> ObjectVersion -> Location 
    -> IO ObjectSource
-retrieveObjectSource repository location objectVersion =
+retrieveObjectSource repository objectVersion location =
    do
-      response <- queryRepository repository (Retrieve location objectVersion)
+      response <- queryRepository repository (Retrieve objectVersion location)
       let
          icsl = toData response
       seq icsl done
 
       importICStringLen icsl
 
-retrieveString :: Repository -> Location -> ObjectVersion -> IO String
-retrieveString repository location objectVersion =
+retrieveString :: Repository -> ObjectVersion -> Location -> IO String
+retrieveString repository objectVersion location =
    do
-      objectSource <- retrieveObjectSource repository location objectVersion
+      objectSource <- retrieveObjectSource repository objectVersion location
       exportString objectSource
 
-retrieveFile :: Repository -> Location -> ObjectVersion -> FilePath -> IO ()
-retrieveFile repository location objectVersion filePath =
+retrieveFile :: Repository -> ObjectVersion -> Location -> FilePath -> IO ()
+retrieveFile repository objectVersion location filePath =
    do
-      objectSource <- retrieveObjectSource repository location objectVersion
+      objectSource <- retrieveObjectSource repository objectVersion location
       exportFile objectSource filePath
 
-type CommitChange = Either ObjectSource (Location,ObjectVersion)
+type CommitChange = Either ObjectSource (ObjectVersion,Location)
 
 commit :: Repository 
    -> VersionInformation
-   -> [(Location,Maybe ObjectVersion)]
+   -> [(Location,Either ObjectVersion (Maybe Location))]
    -> [(Location,CommitChange)] -> IO ()
 commit repository versionInformation redirects newStuff0 =
    do
       (newStuff1 
-            :: [(Location,Either ICStringLen (Location,ObjectVersion))]) <-
+            :: [(Location,Either ICStringLen (ObjectVersion,Location))]) <-
          mapM
             (\ (location,newItem) ->
                case newItem of

@@ -4,7 +4,9 @@ SRCS       = BDBOps.hs ServerErrors.hs VersionInfo.hs VersionInfoService.hs \
    Permissions.hs ExaminePermissions.hs SimpleDBTypes.hs BDBExtras.hs \
    PrimitiveLocation.hs VersionData.hs SecurityManagement.hs OpenSimpleDB.hs \
    QuerySimpleDB.hs LocationAllocation.hs VersionAllocation.hs \
-   FlushSimpleDB.hs \
+   FlushSimpleDB.hs VersionState.hs ModifyUserInfo.hs LastChange.hs \
+   GetDiffs.hs SetGetSecurityData.hs Retrieve.hs Commit.hs \
+   SimpleDBServer.hs SimpleDBService.hs SimpleDB.hs ObjectSource.hs \
 
 #   SimpleDBServer.hs SimpleDBService.hs ObjectSource.hs SimpleDB.hs \
 #   VersionInfoFilter.hs Permissions.hs \
@@ -12,5 +14,7 @@ SRCS       = BDBOps.hs ServerErrors.hs VersionInfo.hs VersionInfoService.hs \
 
 SUBDIRS = test
 SRCSC      = bdbclient.c bdbcommon.c
+
+BOOTSRCS = VersionState.boot.hs
 
 include @TOP@/mk/boilerplate.mk

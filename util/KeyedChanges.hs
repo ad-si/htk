@@ -22,10 +22,7 @@ module KeyedChanges(
    -- instance Ord key => HasSource (KeyedChanges key delta) [delta] delta
    ) where
 
-import Control.Concurrent
 import Data.FiniteMap
-
-import Computation(done)
 
 import Sources
 import Broadcaster

@@ -52,37 +52,6 @@ module VersionInfo(
    cleanVersionInfo, 
       -- :: VersionInfo -> VersionInfo
       -- Clear settable fields (used on checkout).
-
-   VersionState,
-
-   mkVersionState, -- :: Bool -> IO VersionState
-      -- The Bool should be True for an internal server, False otherwise.
-   addVersionInfo, 
-      -- :: VersionState -> VersionInfo -> IO (WithError ())
-      -- Modify the VersionInfos. 
-   lookupVersionInfo,
-      -- :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
-   lookupServerInfo,
-      -- :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion) 
-   versionIsAncestor,
-      -- :: VersionState -> ObjectVersion -> ObjectVersion -> IO Bool
-
-   getVersionInfos, -- :: VersionState -> IO [VersionInfo]
-      -- get all the version infos, in undefined order.
-
-
-   registerAct, -- :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
-      -- Register an action to be done each time we add a new versionInfo.
-      -- NB.  The action must always execute its argument exactly once.
-
-
-   registerAndGet, 
-      -- :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) 
-      -- -> IO [VersionInfo]
-      -- Combine getVersionInfos and registerAct, so that even with 
-      -- concurrency, we can be sure no other updates will be allowed to get 
-      -- inbetween the two actions.
-
    --
    -- Client-side interface
    --
@@ -113,24 +82,16 @@ module VersionInfo(
    
    ) where
 
-import IO
 import Time
-import Maybe
 import List (intersperse)
 
-import System.IO.Unsafe
-import Data.IORef
+import Data.Typeable
 import Data.FiniteMap
-import Control.Concurrent.Chan
-import Control.Concurrent.MVar
 
 import Computation
 import BinaryAll
-import WBFiles
 import ExtendedPrelude
 import Dynamics
-import HostName
-import Posix(getProcessID)
 import AtomString(StringClass(..))
 import CommandStringSub
 import Messages
@@ -141,12 +102,10 @@ import SimpleForm
 import MarkupText
 import HTk(text,height,width,value,background)
 
-import GetAncestors(isAncestorPure)
-
 import qualified PasswordFile
 
-import LogFile
 import ServerErrors
+import {-# SOURCE #-} VersionState
 
 -- ----------------------------------------------------------------------
 -- The datatypes
@@ -333,6 +292,8 @@ instance Ord VersionAttributes where
    compare = mapOrd (\ (VersionAttributes fm) -> fmToList fm)
 
 
+userInfoMap :: Full UserInfo -> (String,String,ObjectVersion,[ObjectVersion],
+   VersionAttributes)
 userInfoMap (Full user) 
    = (label user,contents user,version user,parents user,
       versionAttributes user)
@@ -343,6 +304,8 @@ instance Eq (Full UserInfo) where
 instance Ord (Full UserInfo) where
    compare = mapOrd userInfoMap
 
+
+serverInfoMap :: Full ServerInfo -> (String,Integer,ClockTime,String)
 serverInfoMap (Full serverInfo) 
    = (serverId serverInfo,serialNo serverInfo,timeStamp serverInfo,
       userId serverInfo)
@@ -353,6 +316,7 @@ instance Eq (Full ServerInfo) where
 instance Ord (Full ServerInfo) where
    compare = mapOrd serverInfoMap
 
+versionInfoMap :: Full VersionInfo -> (Full UserInfo,Full ServerInfo,Bool)
 versionInfoMap (Full versionInfo) =
    (Full (user versionInfo),Full (server versionInfo),isPresent versionInfo)
 
@@ -441,186 +405,6 @@ changeVersionInfo user1 versionInfo0 versionInfo1 =
                "Cannot change fundamental system parameters of version"
          else
             changeUserInfo user1 versionInfo0 (user versionInfo1)
-
--- ----------------------------------------------------------------------
--- Accessing the version data
--- ----------------------------------------------------------------------
-
-data VersionState = VersionState {
-   versionInfosRef :: MVar VersionInfosMaps,
-      -- all VersionInfos so far.
-      -- also used as a lock on various operations.
-   versionInfoActRef :: IORef ( IO (Bool,VersionInfo) -> IO ()),
-   logFile :: LogFile VersionInfo,
-   thisServerId :: String
-   }
-
-data VersionInfosMaps = VersionInfosMaps {
-   fromVersion :: FiniteMap ObjectVersion VersionInfo,
-   fromServer :: FiniteMap ServerInfo ObjectVersion
-   }
-
-objectVersion :: VersionInfo -> ObjectVersion 
-objectVersion = version . user
-
-mkVersionState :: Bool -> IO VersionState
-mkVersionState isInternal =
-   do
-      (logFile,versionInfosList) <- openLog "versionInfos"
-      let
-         -- we have to be careful here that later elements of the list override
-         -- earlier ones.
-         fromVersion1 = foldl
-            (\ fromVersion0 versionInfo 
-               -> addToFM fromVersion0 (objectVersion versionInfo) 
-                  versionInfo
-               )
-            emptyFM
-            versionInfosList
-
-         fromServer1 = foldl
-            (\ fromVersion0 versionInfo
-               -> addToFM fromVersion0 (server versionInfo) 
-                  (version (user versionInfo))
-               )
-            emptyFM
-            versionInfosList
-
-         versionInfosMaps = VersionInfosMaps {
-            fromVersion = fromVersion1,
-            fromServer = fromServer1
-            }
-
-      versionInfosRef <- newMVar versionInfosMaps
-      versionInfoActRef <- newIORef (\ act 
-         -> do
-               act
-               done
-         )
-
-      thisServerId <- mkServerId isInternal
-
-      return (VersionState {
-         versionInfosRef = versionInfosRef,
-         versionInfoActRef = versionInfoActRef,
-         logFile = logFile,
-         thisServerId = thisServerId
-         })
-
--- | We include a well-ordered check.  This means we can assume the
--- version numbers are well-ordered for versionIsAncestor.
-addVersionInfo :: VersionState -> VersionInfo -> IO (WithError ())
-addVersionInfo versionState versionInfo =
-   if versionInfoIsWellOrdered versionInfo
-      then
-         do
-            -- We do everything inside the "External" action, thus ensuring 
-            -- that we do not conflict with any simultaneous client action.
-            -- This also means we can be sure the access to versionInfosRef
-            -- will not deadlock.
-            versionInfoAct <- readIORef (versionInfoActRef versionState)
-            versionInfoAct
-               (do
-                  writeLog (logFile versionState) versionInfo
-                  isEdit <- modifyMVar (versionInfosRef versionState) 
-                     (\ versionInfosMaps0 ->
-                        return (
-                           let
-                              objectVersion = version (user versionInfo)
-
-                              fromVersion0 = fromVersion versionInfosMaps0
-
-                              isEdit 
-                                 = isJust (lookupFM fromVersion0 objectVersion)
-
-                              fromVersion1 = addToFM fromVersion0 
-                                 objectVersion versionInfo
-                              fromServer1 
-                                 = addToFM (fromServer versionInfosMaps0) 
-                                 (server versionInfo) objectVersion
-
-                              versionInfoMaps1 = VersionInfosMaps {
-                                 fromVersion = fromVersion1,
-                                 fromServer = fromServer1}
-                           in
-                              (versionInfoMaps1,isEdit)
-                           )
-                        )
-                  return (isEdit,versionInfo)
-                  )
-            return (hasValue ())  
-      else
-         fail "Attempt to add VersionInfo whose parents precede it"
-
-versionInfoIsWellOrdered :: VersionInfo -> Bool
-versionInfoIsWellOrdered versionInfo =
-   let
-      user0 = user versionInfo
-   in
-      all (\ parentVersion -> parentVersion < version user0) (parents user0)
-
-lookupVersionInfo :: VersionState -> ObjectVersion -> IO (Maybe VersionInfo)
-lookupVersionInfo versionState objectVersion =
-   do
-      versionInfosMaps <- readMVar (versionInfosRef versionState)
-      return (lookupFM (fromVersion versionInfosMaps) objectVersion)   
-
-lookupServerInfo :: VersionState -> ServerInfo -> IO (Maybe ObjectVersion) 
-lookupServerInfo versionState serverInfo =
-   do
-      versionInfosMaps <- readMVar (versionInfosRef versionState)
-      return (lookupFM (fromServer versionInfosMaps) serverInfo)   
-
-
-getVersionInfos :: VersionState -> IO [VersionInfo]
-getVersionInfos versionState = 
-   do
-      versionInfosMaps <- readMVar (versionInfosRef versionState)
-      return (eltsFM (fromVersion versionInfosMaps))
-
-registerAct :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> IO ()
-registerAct versionState actFn =
-   modifyMVar_ (versionInfosRef versionState) 
-      (\ versionInfosMaps0 ->
-         do
-            writeIORef (versionInfoActRef versionState) actFn
-            return versionInfosMaps0
-         )
-
-registerAndGet :: VersionState -> (IO (Bool,VersionInfo) -> IO ()) -> 
-   IO [VersionInfo]
-registerAndGet versionState actFn =
-   modifyMVar (versionInfosRef versionState) 
-      (\ versionInfosMaps0 ->
-         do
-            writeIORef (versionInfoActRef versionState) actFn
-            return (versionInfosMaps0,eltsFM (fromVersion versionInfosMaps0))
-         )
-
--- | Returns 'True' if the first 'ObjectVersion' is an ancestor of the
--- second, or identical with it.
-versionIsAncestor :: VersionState -> ObjectVersion -> ObjectVersion -> IO Bool
-versionIsAncestor versionState objectVersion1 objectVersion2 =
-   do
-      versionInfosMaps <- readMVar (versionInfosRef versionState)
-      let
-         fromVersionMap :: FiniteMap ObjectVersion VersionInfo
-         fromVersionMap = fromVersion versionInfosMaps
-
-         toParents objectVersion = 
-            if objectVersion <= objectVersion1
-               then
-                  [] -- no point going this way
-               else
-                  case lookupFM fromVersionMap objectVersion of 
-                     Nothing -> []
-                     Just versionInfo -> parents . user $ versionInfo
-
-      return (isAncestorPure toParents objectVersion1 objectVersion2)   
-      
-                     
-
-
 
 -- ----------------------------------------------------------------------
 -- Creating, Viewing and Editing the VersionInfo
@@ -798,34 +582,6 @@ editVersionInfoGraphic title versionInfo =
                   Just user1
          )
 
--- ----------------------------------------------------------------------
--- Generating a unique server identifier.
--- ----------------------------------------------------------------------
-
--- | The argument specifies whether the server is internal or not.
-mkServerId :: Bool -> IO String
-mkServerId isInternal =
-   do
-      serverIdOpt <- getServerId
-      case serverIdOpt of
-         Just serverId -> return serverId
-         Nothing ->
-            do
-               fullHostName <- getFullHostName
-               if isInternal
-                  then
-                     do
-                        pID <- getProcessID
-                        return(fullHostName ++ ":#" ++ show pID)
-                  else
-                     do
-                        port <- getPort
-                        return (if port == 11393
-                           then
-                              fullHostName
-                           else
-                              fullHostName ++ ":" ++ show port
-                           )
 -- ----------------------------------------------------------------------
 -- VersionAttributes function
 -- ----------------------------------------------------------------------

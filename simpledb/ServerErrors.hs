@@ -65,6 +65,7 @@ encodeError errorType mess =
       c:mess
 
 decodeError :: String -> (ErrorType,String)
+decodeError "" = error "Missing error type"
 decodeError (c:mess) =
    let
       errorType = case c of
@@ -72,5 +73,6 @@ decodeError (c:mess) =
          'N' -> NotFoundError
          'I' -> InternalError
          'M' -> MiscError
+         _ -> error "Unknown error type"
    in
       (errorType,mess)         

@@ -91,7 +91,6 @@ type Dyn = Data.Dynamic.Dynamic
 toDyn :: Typeable a => a -> Dyn
 toDyn = Data.Dynamic.toDyn
 
-type TypeTag = Data.Dynamic.TypeRep
 type TyCon = Data.Dynamic.TyCon
 
 mkTyRep :: String -> String -> TyRep
@@ -332,6 +331,7 @@ instance (HasTyRep6_000111 ty,Typeable value)
 
 data Dummy x = Dummy x
 
+dummy_tyRep :: TyRep
 dummy_tyRep = mkTyRep "Dynamics" "Dummy"
 instance (HasTyRep1 Dummy) where
    tyRep1 _ = dummy_tyRep
@@ -342,6 +342,7 @@ instance (HasTyRep1 Dummy) where
 -- ------------------------------------------------------------
 
 
+finiteMap_tyRep :: TyRep
 finiteMap_tyRep = mkTyRep "Dynamics" "FiniteMap"
 
 instance HasTyRep2 Data.FiniteMap.FiniteMap where

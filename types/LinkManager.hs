@@ -233,7 +233,7 @@ module LinkManager(
 
 import Maybe
 
-import IOExts
+import System.IO.Unsafe
 import Control.Concurrent.MVar
 import Data.FiniteMap
 

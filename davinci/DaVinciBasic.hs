@@ -520,6 +520,7 @@ getMultiAnswer childProcess =
          _ -> error ("Unexpected daVinci answer expecting contextId: "
             ++ show answer1)
 
+{- unused
 simpleExec :: ChildProcess -> DaVinciCmd -> IO ()
    -- used during initialisation, before we've entered multi-mode.
    -- If the result isn't OK we provoke an error.
@@ -531,6 +532,7 @@ simpleExec childProcess cmd =
          Ok -> done
          _ -> error ("daVinci failure: command " ++ show cmd ++ " returned "
             ++ show answer)
+   -}
 
 getNextAnswer :: ChildProcess -> IO DaVinciAnswer
 getNextAnswer childProcess =

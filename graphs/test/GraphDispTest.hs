@@ -5,7 +5,7 @@ module GraphDispTest(
    setUpGraph,
    ) where
 
-import Concurrent
+import Control.Concurrent
 
 import Debug(debug)
 

@@ -21,9 +21,6 @@ import Control.Concurrent.MVar
 import Thread
 import Lock
 
-import Computation
-import Debug(debug)
-
 -- --------------------------------------------------------------------------
 -- Type
 -- --------------------------------------------------------------------------

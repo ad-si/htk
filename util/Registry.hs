@@ -68,7 +68,6 @@ import Maybe
 
 import Control.Monad.Trans
 import System.IO.Unsafe
-import Data.IORef
 import Data.FiniteMap
 import Data.Set
 import Control.Concurrent
@@ -82,6 +81,7 @@ import Dynamics
 import BinaryAll
 import Thread
 import CompileFlags
+import Object(ObjectID)
 
 
 -- ----------------------------------------------------------------------
@@ -149,6 +149,7 @@ class KeyOpsRegistry registry from where
 -- ----------------------------------------------------------------------
 
 newtype Ord from => Registry from to = Registry (MVar (FiniteMap from to))
+   deriving (Typeable)
 
 instance Ord from => NewRegistry (Registry from to) where
    newRegistry =
@@ -369,6 +370,7 @@ instance KeyOpsRegistry (registry from Obj) from
 
 newtype LockedRegistry from to 
    = Locked (Registry from (MVar (Maybe to),Set ThreadId))
+   deriving (Typeable)
 
 type UntypedLockedRegistry from = Untyped LockedRegistry from
 
@@ -429,8 +431,11 @@ putVal (Locked registry) from toOpt =
       
 
 lockedRegistryCheck :: IO a -> IO (Either String a)
+
+lockedFallOutId :: ObjectID
 (lockedFallOutId,lockedRegistryCheck) = lockedCheckBreak
 
+lockedCheckBreak :: (ObjectID,IO a -> IO (Either String a))
 lockedCheckBreak = unsafePerformIO newFallOut
 {-# NOINLINE lockedCheckBreak #-}
 
@@ -457,27 +462,10 @@ instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where
          return (isJust toOpt)
    listKeys (Locked registry) = listKeys registry
 
-
--- ----------------------------------------------------------------------
--- Typeable instances
--- We make Registry and LockedRegistry instances of Typeable.
--- The others don't need to be since they are type synonyms, not
--- type constructors.
--- ----------------------------------------------------------------------
-
-registry_tyRep = mkTyRep "Registry" "Registry"
-instance HasTyRep2 Registry where
-   tyRep2 _ = registry_tyRep
-
-lockedRegistry_tyRep = mkTyRep "Registry" "LockedRegistry"
-instance HasTyRep2 LockedRegistry where
-   tyRep2 _ = lockedRegistry_tyRep
-
 -- ----------------------------------------------------------------------
 -- Function to be preferred to getValue when it is not absolutely certain
 -- if a value is there, since it prints the label if things go wrong.
 -- ----------------------------------------------------------------------
-
 
 getValueSafe :: GetSetRegistry registry from to 
    => String -> registry -> from -> IO to
@@ -499,6 +487,8 @@ getValue' =
             )
       else
          (\ label -> getValue)
+
+
 
 -- ----------------------------------------------------------------------
 -- Instance of HasBinary for monads which have IO.

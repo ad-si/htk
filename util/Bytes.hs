@@ -77,7 +77,6 @@ import Char
 
 -- FFI imports
 import Foreign.C.Types
-import Foreign.ForeignPtr
 import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.Ptr

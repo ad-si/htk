@@ -23,8 +23,6 @@ import Maybe
 import Data.FiniteMap
 import Data.Set
 
-import ExtendedPrelude
-
 import TopSort
 
 -- ----------------------------------------------------------------------------

@@ -13,18 +13,23 @@ import Computation
 import PasswordFile
 
 
-import BDBOps
 import Permissions
 import SimpleDBTypes
 import ServerErrors
 import SecurityManagement
-import VersionData
-import PrimitiveLocation
+import LocationAllocation
+import VersionAllocation
+import ModifyUserInfo
+import LastChange
+import GetDiffs
+import Retrieve
+import SetGetSecurityData
+import Commit
 
 
 querySimpleDB :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB user simpleDB simpleDBCommand =
-   catchError (querySimpleDB user simpleDB simpleDBCommand)
+   catchError (querySimpleDB1 user simpleDB simpleDBCommand)
       (\ errorType mess -> case errorType of
          AccessError -> IsAccess mess
          NotFoundError -> IsNotFound mess
@@ -34,72 +39,68 @@ querySimpleDB user simpleDB simpleDBCommand =
 
 querySimpleDB1 :: User -> SimpleDB -> SimpleDBCommand -> IO SimpleDBResponse
 querySimpleDB1 user simpleDB command = case command of
-   NewLocation parentOpt -> error "TBD"
-   NewVersion -> error "TBD"
+   NewLocation parentOpt ->
+      do
+         permissions <- getGlobalPermissions simpleDB
+         verifyGlobalAccess user permissions WriteActivity
+         location <- getNextLocation simpleDB parentOpt
+         return (IsLocation location)
+   NewVersion ->
+      do
+         permissions <- getGlobalPermissions simpleDB
+         verifyGlobalAccess user permissions WriteActivity
+         version <- allocVersion simpleDB user
+         return (IsObjectVersion version)
    ListVersions ->
       do
          versionDataMap <- readIORef (versionData simpleDB)
          return (IsObjectVersions (keysFM versionDataMap)) 
    Retrieve location version -> 
       do
+         icsl <- retrieve simpleDB user location version
+         return (IsData icsl)
+   LastChange version location -> 
+      do
          verifyAccess simpleDB user version (Just location)
             ReadActivity
-         versionData <- getVersionData simpleDB version
-         let
-            primitiveLocation = retrievePrimitiveLocation versionData location
-         key <- retrieveKey versionData primitiveLocation
-         dataOpt <- readBDB (dataDB simpleDB) key
-         case dataOpt of
-            Nothing -> throwError InternalError "Unexpected missing data key"
-            Just icsl -> return (IsData icsl)
-   LastChange _ _ -> error "TBD"
-   Commit _ _ _ -> error "TBD"
-   ModifyUserInfo versionInfo -> error "TBD"
-   GetDiffs _ _ -> error "TBD"
-   GetPermissions Nothing -> 
+         lastChangeVersion <- lastChange simpleDB version location
+         return (IsObjectVersion lastChangeVersion)
+   Commit versionInformation redirects changeData ->
+      do
+         objectVersionOpt <- commit simpleDB user versionInformation redirects
+            changeData
+         return (case objectVersionOpt of
+            Nothing -> IsOK
+            Just objectVersion -> IsObjectVersion objectVersion
+            )
+   ModifyUserInfo versionInformation ->
       do
          permissions <- getGlobalPermissions simpleDB
-         verifyGlobalGetPermissionsAccess user permissions
+         verifyGlobalAccess user permissions WriteActivity
+         case versionInformation of
+            Version1 _ ->
+               throwError MiscError "ModifyUserInfo may not specify Version1"
+            Version1Plus _ _ -> throwError MiscError 
+               "ModifyUserInfo may not specify Version1Plus"
+            _ -> modifyUserInfo simpleDB user versionInformation
+   GetDiffs objectVersion parentVersions ->
+      do
+         diffs <- getDiffs simpleDB user objectVersion parentVersions
+         return (IsDiffs diffs)
+   GetPermissions ovLocOpt ->
+      do
+         permissions <- getPermissions simpleDB user ovLocOpt
          return (IsPermissions permissions)
-   GetPermissions (Just (version,location)) ->
+   SetPermissions ovLocOpt permissions ->
       do
-         verifyGetPermissionsAccess simpleDB user version (Just location)
-         versionData <- getVersionData simpleDB version
-         let
-            primitiveLocation = retrievePrimitiveLocation versionData location
-         securityData <- getSecurityData simpleDB primitiveLocation
-         return (IsPermissions (permissions securityData))
-   SetPermissions Nothing permissions ->
+         setPermissions simpleDB user ovLocOpt permissions
+         return (IsOK)
+   GetParentLocation ov ->
       do
-         permissionsValidCheck permissions
-         permissions0 <- getGlobalPermissions simpleDB
-         verifyGlobalAccess user permissions0 PermissionsActivity
-         setGlobalPermissions simpleDB permissions
-         return IsOK
-   SetPermissions (Just (version,location)) permissions ->
-      do
-         permissionsValidCheck permissions
-         verifyAccess simpleDB user version (Just location) PermissionsActivity
-         versionData <- getVersionData simpleDB version
-         let
-            primitiveLocation = retrievePrimitiveLocation versionData location
-         securityData0 <- getSecurityData simpleDB primitiveLocation
-         let
-            securityData1 = securityData0 {permissions = permissions}
-         setSecurityData simpleDB primitiveLocation securityData1
-         return IsOK
-   GetParentLocation (version,location) ->
-      do
-         verifyGetPermissionsAccess simpleDB user version (Just location)
-         versionData <- getVersionData simpleDB version
-         let
-            pLocation = retrievePrimitiveLocation versionData location
-
-         securityData <- getSecurityData simpleDB pLocation
-         case parentOpt securityData of
+         parentLocationOpt <- getParentLocation simpleDB user ov
+         case parentLocationOpt of
             Nothing -> return IsOK
-            Just pLocation2 ->
-               return (IsLocation (retrieveLocation versionData pLocation2))
+            Just parentLocation -> return (IsLocation parentLocation)
    ClaimAdmin wantAdmin ->
       do
          if wantAdmin
@@ -123,23 +124,7 @@ querySimpleDB1 user simpleDB command = case command of
          responses <- mapM (querySimpleDB user simpleDB) commands
          return (MultiResponse responses)
 
--- ----------------------------------------------------------------------------
--- Miscellaneous functions we need
--- ----------------------------------------------------------------------------
 
-permissionsValidCheck :: Permissions -> IO ()
-permissionsValidCheck permissions =
-   if permissionsValid permissions
-      then
-         done
-      else
-         throwError MiscError "Permissions are invalid"
-
-versionInformationToVersion :: VersionInformation -> ObjectVersion
-versionInformationToVersion versionInformation = case versionInformation of
-   UserInfo1 userInfo -> version userInfo
-   VersionInfo1 versionInfo -> version (user versionInfo)
-   Version1 objectVersion -> objectVersion
 
 
 

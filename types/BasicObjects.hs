@@ -40,8 +40,7 @@ module BasicObjects(
 
 import IO
 
-import qualified IOExts(unsafePerformIO)
-import Concurrent
+import Control.Concurrent
 
 import Computation(done)
 import Dynamics

@@ -6,9 +6,6 @@ module Lock (
         illegalLockRelease,
         ) where
 
-import Computation
-import Debug(debug,(@:))
-
 import Synchronized
 
 

@@ -156,9 +156,7 @@ import Maybe
 import Control.Concurrent
 import Data.IORef
 
-import Computation(done)
-import ExtendedPrelude(HasMapIO(..),addGeneralFallOut,GeneralBreakFn(..),
-   GeneralCatchFn(..))
+import ExtendedPrelude(HasMapIO(..))
 import Sink
 import TSem
 import Debug(debug)

@@ -19,8 +19,6 @@ module Examples(
 
 import Data.FiniteMap
 
-import Object
-import Spawn
 import Events
 import Channels
 

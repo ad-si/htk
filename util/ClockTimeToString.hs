@@ -22,3 +22,4 @@ clockTimeToString (TOD n1 n2) = show n1 ++ "+" ++ show n2
 stringToClockTime :: String -> ClockTime
 stringToClockTime s = case splitByChar '+' s of
    [n1s,n2s] -> TOD (read n1s) (read n2s) 
+   _ -> error "Badly formatted clock time"

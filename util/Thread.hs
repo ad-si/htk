@@ -56,10 +56,9 @@ import Control.Concurrent
 import Data.HashTable
 import Data.Int
 
-import Maybes
 import Computation
 
-import Debug(debug,(@:))
+import Debug(debug)
 import ExtendedPrelude
 
 -- --------------------------------------------------------------------------

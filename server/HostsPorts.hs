@@ -54,9 +54,6 @@ import Maybe
 import IO
 import Network
 
-import Control.Exception
-
-import Debug
 import WBFiles
 import Thread
 import ExtendedPrelude
@@ -189,11 +186,13 @@ toLoginInfo = loginInfo
 defaultPort :: Num portNo => portNo
 defaultPort = 11393
 
+{- unused
 getHostString :: DescribesHost host => host -> IO String
 getHostString hostDesc =
    do
       HostDesc name <- makeHost hostDesc
       return name
+-}
 
 getPortNumber :: DescribesPort port => port -> IO PortNumber
 getPortNumber portDesc =

@@ -169,7 +169,9 @@ connectToServerInternal versionState =
                update <- updateAct
                putMVar updateMVar update
 
-      versionInfos <- registerAndGet versionState updateFn
+      registerAct versionState updateFn
+
+      versionInfos <- getVersionInfos versionState
       let
          getNextUpdate = takeMVar updateMVar
 

@@ -215,7 +215,6 @@ import System.IO.Unsafe
 import Foreign.C.String
 
 import FileNames
-import HostName
 
 ------------------------------------------------------------------------
 -- Specific access functions.
@@ -507,6 +506,7 @@ parseArgValue BOOL str =
          "no" -> false
          _ -> Nothing
 
+showArgValue :: ArgValue -> String
 showArgValue (StringValue str) = str
 showArgValue (IntValue i) = show i
 showArgValue (BoolValue b) = if b then "+" else "-"
@@ -863,12 +863,13 @@ $(
    if  isWindows
       then
         [d|
+           getWindowsTick :: IO Int
            getWindowsTick = valOf "windowsTick" (getArgInt "windowsTick")
         |]
       else
-         [d|
-            getWindowsTick = error "getWindowsTick does not exist"
-         |]
+        [d|
+           getWindowsTick :: IO Int
+           getWindowsTick = error "getWindowsTick does not exist"
+        |]
   )
-getWindowsTick :: IO Int
 

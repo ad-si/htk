@@ -42,16 +42,14 @@ module CallServer(
 
 import IO
 
-import Control.Concurrent.MVar
 import System.IO.Unsafe
 
 import Computation
-import Debug(debug)
 import Object
-import WBFiles
 import ExtendedPrelude
 import BinaryAll
 import Messages
+import WBFiles(getServer)
 
 import Destructible
 

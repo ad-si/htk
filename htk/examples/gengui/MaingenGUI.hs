@@ -1,12 +1,13 @@
 
 module Main (main) where
 
+import System.IO.Unsafe
+
 import HTk
 import GenGUI
 import Name
 import ReferenceVariables
 import System
-import IOExts
 import DialogWin
 
 foldref :: Ref (Maybe (Item Obj))

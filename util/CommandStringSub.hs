@@ -55,7 +55,6 @@ module CommandStringSub(
    ) where
 
 import Char
-import Numeric
 
 import Computation
 

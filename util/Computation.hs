@@ -102,11 +102,8 @@ module Computation (
 where
 
 import IO hiding (try,catch)
-import Maybes -- load this from util if Hugs, in GHC it's part of the 
-              -- standard library
 import Monad
 
-import Control.Concurrent
 import Control.Exception
 
 import Debug(debug)

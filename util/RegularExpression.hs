@@ -51,9 +51,6 @@ module RegularExpression(
 import Text.Regex
 
 import Dynamics
-import Debug(debug)
-import CompileFlags
-import TemplateHaskellHelps
 
 -- Since the regular expression implementation is now changing for the
 -- third time, we provide the following interface.

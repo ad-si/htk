@@ -28,7 +28,6 @@ module DeleteQueue(
 
 import Queue
 import Cells
-import GuardedChannels
 
 newtype DeleteQueue v = DeleteQueue (Queue (Cell v))
 

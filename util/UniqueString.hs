@@ -42,7 +42,6 @@ import Control.Concurrent
 
 import ExtendedPrelude
 import Dynamics
-import QuickReadShow
 
 -- The list of "printable" characters that may occur in one of these
 -- strings.
@@ -98,6 +97,7 @@ createUniqueStringSource l =
       return (UniqueStringSource mVar)
 
 
+{- unused
 compareUniqueStringSource :: UniqueStringSource -> UniqueStringSource 
    -> IO Ordering
 compareUniqueStringSource (UniqueStringSource mVar1) (UniqueStringSource mVar2)
@@ -106,6 +106,7 @@ compareUniqueStringSource (UniqueStringSource mVar1) (UniqueStringSource mVar2)
       c1 <- readMVar mVar1
       c2 <- readMVar mVar2
       return (compare c1 c2)
+-}
 
 maxUniqueStringSources :: [UniqueStringSource] -> IO UniqueStringSource
 maxUniqueStringSources stringSources =

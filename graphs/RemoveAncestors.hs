@@ -13,7 +13,6 @@ import Monad
 
 import Control.Monad.Identity
 import Data.FiniteMap
-import Data.Set
 
 import Graph
 

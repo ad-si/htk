@@ -30,8 +30,6 @@ module Queue (
         queueToList,
         ) where
 
-import Maybes
-
 -- --------------------------------------------------------------------------
 -- Data Type
 -- --------------------------------------------------------------------------
@@ -67,21 +65,23 @@ isEmptyQ (Queue [] []) = True
 isEmptyQ _ = False
 
 
-lengthQ :: Queue a -> Int
-lengthQ (Queue fl rl) = length fl + length rl
-
 
 insertQ :: Queue a -> a -> Queue a
 insertQ (Queue fl rl) e = Queue (e:fl) rl
 
 
+
+{-
+
+lengthQ :: Queue a -> Int
+lengthQ (Queue fl rl) = length fl + length rl
+
 headQ :: Queue a -> a
 headQ (Queue fl []) = (head (reverse fl))
 headQ (Queue _ rl) = (head rl)
 
-
 tailQ :: Queue a -> Queue a
-tailQ (Queue fl [] ) = Queue [] tl where (x : tl) = reverse fl
+tailQ (Queue fl [] ) = Queue [] tl where (_ : tl) = reverse fl
 tailQ (Queue fl rl ) = Queue fl (tail rl)
 
 
@@ -89,6 +89,8 @@ frontQ :: Queue a -> Maybe a
 frontQ (Queue [] []) = Nothing
 frontQ (Queue fl []) = Just (head (reverse fl))
 frontQ (Queue _ rl) = Just (head rl)
+
+-}
 
 removeQ :: Queue a -> Maybe (a, Queue a)
 removeQ (Queue [] [] ) = Nothing 

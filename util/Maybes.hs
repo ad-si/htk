@@ -14,8 +14,6 @@ module Maybes (
 
 import Maybe -- renamer will tell us if there are any conflicts
 
-import Debug(debug)
-
 firstJust :: [Maybe a] -> Maybe a
 firstJust [] = Nothing
 firstJust (Just x  : _) = Just x

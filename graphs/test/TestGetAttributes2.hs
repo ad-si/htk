@@ -5,9 +5,9 @@
    I'm getting rather a lot of now . . . -}
 module Main(main) where
 
-import qualified IOExts
-
 import Registry
+
+import System.Mem
 
 import InfoBus
 

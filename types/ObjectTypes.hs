@@ -139,7 +139,7 @@ module ObjectTypes(
    toObjectValue, -- :: ObjectType objectType type :: objectType -> object
    ) where
 
-import qualified IOExts(unsafePerformIO)
+import System.IO.Unsafe
 
 import Registry
 import Computation
@@ -488,7 +488,7 @@ data WrappedObjectTypeTypeData = forall objectType object .
    ObjectType objectType object => WrappedObjectTypeTypeData objectType
 
 objectTypeTypeDataRegistry :: Registry String WrappedObjectTypeTypeData
-objectTypeTypeDataRegistry = IOExts.unsafePerformIO newRegistry
+objectTypeTypeDataRegistry = unsafePerformIO newRegistry
 {-# NOINLINE objectTypeTypeDataRegistry #-}
 
 registerObjectType :: ObjectType objectType object => objectType -> IO ()

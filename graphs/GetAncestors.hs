@@ -27,6 +27,8 @@ module GetAncestors(
 
    isAncestorPure, -- :: Ord node => (node -> [node]) -> node -> node -> Bool
       -- Returns True if first node is ancestor or equal to the second.
+   isAncestor, -- :: (Monad m,Ord node) => (node -> m [node]) -> node -> node 
+      -- -> m Bool
    getAncestorsPure,
       -- :: Ord node => (node -> [node]) -> node -> [node]
       -- This is a pure cut-down function for extracting a node's ancestors. 
@@ -132,6 +134,47 @@ getAncestorsGenericInnerStrict getParents f (state @ (visitedSet0,ancestors0))
          (getAncestorsGenericInner getParents f)
          (visitedSet0,ancestors0)                   
          parents
+
+-- | Returns True if first node is ancestor or equal to the second.
+isAncestor :: (Monad m,Ord node) => (node -> m [node]) -> node -> node 
+   -> m Bool
+isAncestor (getParents :: node -> m [node]) (node1 :: node) (node2 :: node) =
+   let
+      isAncestorInner :: Set node -> node -> m (Maybe (Set node))
+      isAncestorInner visitedSet0 node =
+         if elementOf node visitedSet0
+            then
+               return (
+                  if node == node1
+                     then
+                        Nothing
+                     else
+                        Just visitedSet0
+                  )
+            else
+               let
+                  visitedSet1 :: Set node
+                  visitedSet1 = addToSet visitedSet0 node
+               in
+                  do
+                     parents <- getParents node
+                     scanParents visitedSet1 parents
+
+      scanParents :: Set node -> [node] -> m (Maybe (Set node))
+      scanParents visitedSet0 [] = return (Just visitedSet0)
+      scanParents visitedSet0 (node:nodes) =
+         do
+            search1Result <- isAncestorInner visitedSet0 node
+            case search1Result of
+               Nothing -> return Nothing
+               Just visitedSet1 -> scanParents visitedSet1 nodes
+   in
+      do
+         searchResultOpt <- isAncestorInner (unitSet node1) node2          
+         return (not (isJust searchResultOpt))
+{-# SPECIALIZE isAncestor 
+   :: (Integer -> IO [Integer]) -> Integer -> Integer -> IO Bool #-}
+-- this will be used for VersionState.versionIsAncestor
 
 -- | Returns True if first node is ancestor or equal to the second.
 isAncestorPure :: Ord node => (node -> [node]) -> node -> node -> Bool

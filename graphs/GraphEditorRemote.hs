@@ -1,7 +1,7 @@
 -- | GraphEditorRemote sets up a graph editor attached to a remote server. 
 module GraphEditorRemote(graphEditorRemote) where
 
-import Concurrent
+import Control.Concurrent
 
 import Computation(done)
 import BinaryAll

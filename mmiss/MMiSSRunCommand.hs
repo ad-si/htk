@@ -13,7 +13,7 @@ module MMiSSRunCommand(
 
 import System
 
-import Concurrent
+import Control.Concurrent
 
 import Computation
 import Messages

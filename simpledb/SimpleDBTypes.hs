@@ -22,6 +22,7 @@ import Data.IORef
 import Data.FiniteMap
 import GHC.Weak
 
+import DeepSeq
 import ICStringLen
 import BinaryAll
 
@@ -30,18 +31,19 @@ import PasswordFile (User)
 import Permissions
 import VersionInfo
 import BDBOps
+import {-# SOURCE #-} VersionState
 
 -- -------------------------------------------------------------------
 -- The query types.
 -- -------------------------------------------------------------------
 
 newtype Location = Location Integer 
-   deriving (Eq,Ord,Show,Typeable,Integral,Real,Enum,Num)
+   deriving (Eq,Ord,Show,Typeable,Integral,Real,Enum,Num,DeepSeq)
 
 data SimpleDBCommand =
    -- All commands may additionally return IsError or IsAccess except
    -- where stated.
-      NewLocation (Maybe (Location,ObjectVersion)) 
+      NewLocation (Maybe (ObjectVersion,Location)) 
          -- ^ returns a new location (IsLocation),
          -- If a (location,objectVersion) is supplied, that means this
          -- location should have a parent, given by the location.
@@ -51,9 +53,9 @@ data SimpleDBCommand =
    |  NewVersion -- ^ a new object version (IsObjectVersion).
    |  ListVersions -- ^ returns list of all known objects
          -- ^ return with IsObjectVersions
-   |  Retrieve Location ObjectVersion
+   |  Retrieve ObjectVersion Location
          -- ^ returns IsData or IsNotFound.
-   |  LastChange Location ObjectVersion
+   |  LastChange ObjectVersion Location
          -- ^ Return the ObjectVersion (IsObjectVersion) in which this
          -- object (Location inside ObjectVersion) was last changed,
          -- or IsResponse with an error message.
@@ -86,8 +88,6 @@ data SimpleDBCommand =
    |  ModifyUserInfo VersionInformation
          -- ^ If the version already exists, replace its VersionInfo by
          -- that supplied, assuming the permissions permit it.
-         -- (to replace VersionInfo requires ADMIN permission or ownership
-         -- of the version).
          -- If the version does not exist create it.  But the ObjectVersion
          -- should have been allocated by NewVersion.
          --    This will not change the head parent version on any account.
@@ -188,11 +188,11 @@ data Diff =
    --     on commit have identical contents to those of (location,version1).
    deriving (Show)
 
-type ChangeData = Either ICStringLen (Location,ObjectVersion)
+type ChangeData = Either ICStringLen (ObjectVersion,Location)
    -- This indicates the contents of a changed item.  
    -- If (Left ...) this is raw data.
    -- If (Right ...) this means this item is in fact exactly the
-   --    same as the one in (Location,ObjectVersion), a situation which
+   --    same as the one in (ObjectVersion,Location), a situation which
    --    arises, for example, during merging.
 
 -- -------------------------------------------------------------------
@@ -226,7 +226,9 @@ data SimpleDB = SimpleDB {
       -- version).
    openVersions :: IORef (FiniteMap ObjectVersion (Weak User)),
       -- ^ This map contains current version numbers allocated by
-      -- NewVersion (by user) which have not yet been committed.
+      -- NewVersion (by user) which have not yet had UserInfo
+      -- assigned to them by Commit or ModifyUserInfo.
+      -- 
       -- This allows us to block attempts to hijack a version number
       -- allocated to someone else, or to commit to a version already
       -- committed to.
@@ -256,11 +258,11 @@ data FrozenVersion =
    FrozenVersion { 
       parent' :: Maybe ObjectVersion,
       thisVersion' :: ObjectVersion,
-      objectChanges :: [(Location,Either BDBKey (Location,ObjectVersion))],
+      objectChanges :: [(Location,Either BDBKey (ObjectVersion,Location))],
          -- a BDBKey means completely new data.
-          -- (Location,ObjectVersion) means it so happens this is exactly the
+          -- (ObjectVersion,Location) means it so happens this is exactly the
           --    contents of this object are the same as those in 
-          --    (Location,ObjectVersion)
+          --    (ObjectVersion,Location)
       redirects' :: [(Location,Either ObjectVersion PrimitiveLocation)]
           -- this gives redirects.  Note that this list does not have to 
           -- contain locations which are the same as the corresponding 

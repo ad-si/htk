@@ -11,12 +11,9 @@ module CallWish(
    destroyCalledWish, -- :: CalledWish -> IO ()
    ) where
 
-import Foreign
 import Foreign.C
-import Control.Concurrent
 
 import WBFiles
-import Debug
 import CompileFlags
 
 #include "config.h"

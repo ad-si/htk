@@ -38,7 +38,6 @@ module Debug(
   ) where
 import IO
 import System.IO.Unsafe
-import Data.Dynamic
 import Control.Exception
 
 import CompileFlags
@@ -57,6 +56,7 @@ openDebugFile =
          (\ _-> return Nothing)
 
 debugFile = unsafePerformIO openDebugFile
+debugFile :: Maybe Handle
 {-# NOINLINE debugFile #-} 
 
 $(

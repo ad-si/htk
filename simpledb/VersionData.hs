@@ -61,16 +61,17 @@ createVersionData bdb =
                         fm1 <- updateVersionData fm0 objectVersion1 
                            frozenVersion
                         getVersionData fm1
-      getVersionData emptyFM
+      fm <- getVersionData emptyFM
+      closeCursor cursor
+      return fm
 
 -- --------------------------------------------------------------------  
 -- --------------------------------------------------------------------  
 
 -- | Update VersionData, and simultaneously update the database.
--- NB.  This does not change the versionData field of 'SimpleDB',
--- which should be altered by the caller when or if the commit is successful. 
+-- NB.  Once this function returns it is assumed the commit will succeed.
 modifyVersionData :: SimpleDB -> ObjectVersion -> FrozenVersion -> TXN 
-   -> IO (FiniteMap ObjectVersion VersionData)
+   -> IO ()
 modifyVersionData simpleDB (objectVersion @ (ObjectVersion ovN)) 
       frozenVersion txn =
    do
@@ -78,7 +79,8 @@ modifyVersionData simpleDB (objectVersion @ (ObjectVersion ovN))
          bdbKey = fromIntegral ovN
       setObjectHere1 (versionDB simpleDB) bdbKey txn frozenVersion
       versionFM0 <- readIORef (versionData simpleDB)
-      updateVersionData versionFM0 objectVersion frozenVersion
+      versionFM1 <- updateVersionData versionFM0 objectVersion frozenVersion
+      writeIORef (versionData simpleDB) versionFM1
 
 
 -- -------------------------------------------------------------------
@@ -141,13 +143,13 @@ updateVersionData fm thisObjectVersion frozenVersion =
       let
          addObjectKey 
             :: FiniteMap PrimitiveLocation BDBKey
-            -> (Location,Either BDBKey (Location,ObjectVersion))
+            -> (Location,Either BDBKey (ObjectVersion,Location))
             -> IO (FiniteMap PrimitiveLocation BDBKey)
          addObjectKey fm0 (location,keySource) =
             do
                bdbKey <- case keySource of
                   Left bdbKey -> return bdbKey
-                  Right (location1,objectVersion1) ->
+                  Right (objectVersion1,location1) ->
                      do
                         versionData1 <- lookupVersion objectVersion1
                         let

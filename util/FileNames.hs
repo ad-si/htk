@@ -44,14 +44,15 @@ $(
    if isWindows
       then
          [d|
+            fileSep :: Char
             fileSep = '\\'
          |]
       else
          [d|
+            fileSep :: Char
             fileSep = '/'
          |]
    )
-fileSep :: Char
 
 topDir :: String
 topDir = [fileSep]
@@ -95,7 +96,7 @@ breakName (first : rest)
    | True =
       case breakName rest of
          firstName : restNames -> (first:firstName) : restNames
-
+         [] -> error "breakName"
 
 unbreakName :: [String] -> String
 unbreakName [] = ""

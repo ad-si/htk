@@ -9,7 +9,9 @@ else
 TEMPLATEHASKELLPACKAGE = haskell-src
 endif
 
-PACKAGES = uni-options $(TEMPLATEHASKELLPACKAGE) concurrent lang data network text
+PACKAGES = uni-options $(TEMPLATEHASKELLPACKAGE) network parsec
+# Sadly can't do without parsec package for ghc-6.2, since 
+# Text.ParserCombinators.Parsec seems to depend on it.
 
 SRCS       = \
   TemplateHaskellHelps.hs CompileFlags.hs \

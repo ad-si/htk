@@ -5,7 +5,8 @@ import Array
 import List (union, nub)
 import System
 import Monad (foldM)
-import IOExts (unsafePerformIO)
+
+import System.IO.Unsafe
 
 import HTk hiding (State)
 import DialogWin (createAlertWin,createMessageWin)

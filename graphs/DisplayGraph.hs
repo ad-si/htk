@@ -10,7 +10,8 @@ module DisplayGraph(
    DisplayGraph
    ) where
 
-import Concurrent(forkIO,killThread)
+import Control.Concurrent(forkIO,killThread)
+
 import Dynamics
 import Registry
 import Computation (done)

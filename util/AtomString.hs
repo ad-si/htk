@@ -39,14 +39,11 @@ import Control.Exception
 import Text.ParserCombinators.Parsec 
 
 
-import Debug(debug)
 import QuickReadShow
 import Dynamics
 import DeepSeq
 import Computation
-import Binary
-import BinaryUtils
-import BinaryInstances
+import BinaryAll
 
 data AtomSource = AtomSource (MVar (FiniteMap PackedString AtomString))
    -- where AtomStrings come from

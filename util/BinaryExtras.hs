@@ -15,11 +15,11 @@ import System.Time
 
 import Binary
 import BinaryUtils
-import BinaryInstances
 
 import Computation
 import ExtendedPrelude
 import IOExtras
+import BinaryInstances()
 
 -- | Read something, but throw an exception if there is an attempt to
 -- read too many characters. 

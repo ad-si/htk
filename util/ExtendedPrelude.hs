@@ -75,6 +75,7 @@ module ExtendedPrelude (
    addGeneralFallOut,
    GeneralBreakFn(..),GeneralCatchFn(..),
    catchOurExceps, -- :: IO a -> IO (Either String a) 
+   catchAllExceps, -- :: IO a -> IO (Either String a)
    errorOurExceps, -- :: IO a -> IO a
    ourExcepToMess, -- :: Exception -> Maybe String
    breakOtherExceps, -- :: BreakFn -> IO a -> IO a
@@ -111,7 +112,6 @@ import Control.Exception
 import System.IO.Unsafe
 
 import Object
-import Debug(debug)
 import Computation
 import Dynamics
 
@@ -497,7 +497,7 @@ simpleFallOut :: BreakFn
 simpleFallOut = mkBreakFn simpleFallOutId
 
 addSimpleFallOut :: IO a -> IO (Either String a)
-
+simpleFallOutId :: ObjectID
 
 (simpleFallOutId,addSimpleFallOut) = mkSimpleFallOut
 
@@ -607,6 +607,15 @@ showException2 exception =
 catchOurExceps :: IO a -> IO (Either String a) 
 catchOurExceps act =
    tryJust ourExcepToMess act
+
+catchAllExceps :: IO a -> IO (Either String a)
+catchAllExceps act =
+   do
+      result <- Control.Exception.try act
+      return (case result of
+         Left excep -> Left (showException2 excep)
+         Right a -> Right a
+         )
 
 errorOurExceps :: IO a -> IO a
 errorOurExceps act =

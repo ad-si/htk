@@ -24,10 +24,8 @@ module VariableMap(
 import Maybe
 
 import Data.FiniteMap
-import Control.Concurrent
 
 import Dynamics
-import Sink
 import Broadcaster
 import VariableSet
 import Sources
@@ -75,6 +73,7 @@ update (variableUpdate @ (VariableMapUpdate update))
 newtype VariableMap key elt = 
    VariableMap (GeneralBroadcaster (VariableMapData key elt) 
       (VariableMapUpdate key elt))
+   deriving (Typeable)
 
 -- --------------------------------------------------------------------
 -- The provider's interface
@@ -227,10 +226,3 @@ getVariableMapByKey variableMap key =
    in
       SimpleSource source2
 
--- --------------------------------------------------------------------
--- Make VariableMap Typeable
--- --------------------------------------------------------------------
-
-variableMap_tyRep = mkTyRep "VariableMap" "VariableMap"
-instance HasTyRep2 VariableMap where
-   tyRep2 _ = variableMap_tyRep

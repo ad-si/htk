@@ -7,7 +7,7 @@ module CallEditor(
 
 import System
 
-import qualified IOExts(unsafePerformIO)
+import System.IO.Unsafe
 
 import Computation
 import CommandStringSub
@@ -22,7 +22,7 @@ import View
 import BasicObjects
 
 editorCommand :: CompiledFormatString
-editorCommand = IOExts.unsafePerformIO (
+editorCommand = unsafePerformIO (
    do
       editorStringOpt <- getEditorString
       case editorStringOpt of

@@ -27,12 +27,9 @@ module VariableSet(
 import Maybe
 
 import Data.Set
-import Control.Concurrent
 
 import Computation
-import Registry
 import Dynamics
-import Sink
 import Sources
 import Broadcaster
 
@@ -115,6 +112,7 @@ update setUpdate (variableSet @ (VariableSetData set)) =
 
 newtype VariableSet x 
    = VariableSet (Broadcaster (VariableSetData x) (VariableSetUpdate x))
+   deriving (Typeable)
 
 -- --------------------------------------------------------------------
 -- The provider's interface
@@ -170,14 +168,6 @@ instance HasKey x key => HasSource (VariableSet x) [x] (VariableSetUpdate x)
       map1
          (\ (VariableSetData set) -> map unKey (setToList set))
          (toSource broadcaster)
-
--- --------------------------------------------------------------------
--- Make VariableSet Typeable
--- --------------------------------------------------------------------
-
-variableSet_tyRep = mkTyRep "VariableSet" "VariableSet"
-instance HasTyRep1 VariableSet where
-   tyRep1 _ = variableSet_tyRep
 
 -- --------------------------------------------------------------------
 -- Type with the clients interface to a variable set (but which may be

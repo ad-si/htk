@@ -17,7 +17,6 @@ import System.IO.Unsafe
 import System.Mem(performGC)
 
 import Computation
-import Dynamics
 import Object
 import Debug(debug)
 

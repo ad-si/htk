@@ -18,7 +18,7 @@ module GraphEditor (
    DisplayableCannedGraph,
    ) where
 
-import Concurrent(forkIO,killThread)
+import Control.Concurrent(forkIO,killThread)
 
 import Registry
 import Computation(done)

@@ -16,9 +16,12 @@ module PrimitiveLocation(
    locationsSame,
    retrievePrimitiveLocation,
    retrievePrimitiveLocation1,
+   toPrimitiveLocation,
    retrieveKey,
    retrieveKey1,
+   retrieveKeyOpt,
    retrieveLocation,
+   getLocations,
    ) where
 
 import Maybe
@@ -40,20 +43,31 @@ retrievePrimitiveLocation versionData =
    retrievePrimitiveLocation1 (redirects versionData)
 
 -- | Get the 'PrimitiveLocation' corresponding to a given 'Location',
+-- when we know there are no redirects.
+toPrimitiveLocation :: Location -> PrimitiveLocation
+toPrimitiveLocation (Location lNo) = PrimitiveLocation lNo
+
+-- | Get the 'PrimitiveLocation' corresponding to a given 'Location',
 -- given the 'redirects' map from the 'VersionData'.
+
 retrievePrimitiveLocation1 :: FiniteMap Location PrimitiveLocation 
     -> Location -> PrimitiveLocation
-retrievePrimitiveLocation1 map (location @ (Location locNo)) =
-   lookupWithDefaultFM map (PrimitiveLocation locNo) location
+retrievePrimitiveLocation1 map location =
+   lookupWithDefaultFM map (toPrimitiveLocation location) location
 
 -- | Get the 'BDBKey' for a 'PrimitiveLocation' in a particular version.
 retrieveKey :: VersionData -> PrimitiveLocation -> IO BDBKey
 retrieveKey versionData = retrieveKey1 (objectDictionary versionData)
 
+-- | Get the 'BDBKey' for a 'PrimitiveLocation' in a particular version,
+-- or 'Nothing' if it doesn't exist.
+retrieveKeyOpt :: VersionData -> PrimitiveLocation -> Maybe BDBKey
+retrieveKeyOpt versionData = retrieveKeyOpt1 (objectDictionary versionData)
+
 retrieveKey1 :: FiniteMap PrimitiveLocation BDBKey 
    -> PrimitiveLocation -> IO BDBKey
 retrieveKey1 fm primitiveLocation =
-   case lookupFM fm primitiveLocation of
+   case retrieveKeyOpt1 fm primitiveLocation of
       Just bdbKey -> return bdbKey
       Nothing -> throwError NotFoundError (
          "Version does not contain location "
@@ -61,6 +75,11 @@ retrieveKey1 fm primitiveLocation =
    where
       guessedLocation = Location loc
       PrimitiveLocation loc = primitiveLocation
+
+retrieveKeyOpt1 :: FiniteMap PrimitiveLocation BDBKey 
+   -> PrimitiveLocation -> Maybe BDBKey
+retrieveKeyOpt1 fm primitiveLocation =
+   lookupFM fm primitiveLocation
 
 -- | Reverse the redirects to extract the 'Location' for a particular
 -- 'PrimitiveLocation'
@@ -84,3 +103,23 @@ retrieveLocation versionData (pLocation @ (PrimitiveLocation lNo)) =
          redirects1
    in
       fromMaybe (Location lNo) redirectedOpt
+
+-- | Retrieve all Locations accessible to a VersionData.
+getLocations :: VersionData -> [Location]
+getLocations versionData =
+   let
+      redirectLocs = keysFM (redirects versionData)
+      redirectPrimLocs = eltsFM (redirects versionData)
+
+      objectDictMinusRedirects =
+         foldl
+            (\ map0 primLoc -> delFromFM map0 primLoc)
+            (objectDictionary versionData)
+            redirectPrimLocs
+
+      otherPrimLocs = keysFM objectDictMinusRedirects
+      otherLocs = map
+         (\ (PrimitiveLocation locNo) -> Location locNo)
+         otherPrimLocs
+   in
+      redirectLocs ++ otherLocs

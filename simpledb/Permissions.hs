@@ -7,6 +7,7 @@ module Permissions(
    Activity(..),
    Permissions,
    permissionsValid,
+   permissionsValidCheck,
    editPermissions,
    parsePermissions,
    unparsePermissions,
@@ -17,16 +18,15 @@ import Maybe
 
 import Text.ParserCombinators.Parsec
 
-import Bytes
 import BinaryAll
 import Computation 
-import ExtendedPrelude
 
 import SimpleForm
 
 import GroupFile
 
 import VersionInfo
+import ServerErrors
 
 
 -- -------------------------------------------------------------------------
@@ -120,6 +120,14 @@ permissionValid permission =
       (False,_,_) -> True
       (_,Nothing,Nothing) -> True
       _ -> False
+
+permissionsValidCheck :: Permissions -> IO ()
+permissionsValidCheck permissions =
+   if permissionsValid permissions
+      then
+         done
+      else
+         throwError MiscError "Permissions are invalid"
 
 -- -------------------------------------------------------------------------
 -- Reading permissions

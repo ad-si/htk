@@ -13,7 +13,6 @@ import Data.FiniteMap
 import Control.Concurrent
 
 import Computation
-import Debug(debug)
 
 data Ord key => 
    Cache key elt = Cache (MVar(FiniteMap key (MVar elt))) (key -> IO elt)

@@ -44,13 +44,11 @@ import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.C.Types
 import Control.Monad.Trans
-import Data.Bits
 
 import AtomString
 import Bytes
 import Binary
 import Computation
-import BinaryInstances
 import ExtendedPrelude
 import Dynamics
 import CompileFlags

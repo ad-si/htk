@@ -1,14 +1,15 @@
 
 module Main(main) where
 
+import Directory
+
+import System.IO.Unsafe
+
 import HTk
 import Name
 import CItem
 import ReferenceVariables
 import GenericBrowser
-import Directory
-import IOExts(unsafePerformIO)
-import Posix
 import Char(toLower)
 
 

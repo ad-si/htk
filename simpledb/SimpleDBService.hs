@@ -2,6 +2,7 @@
 -- an external server. 
 module SimpleDBService(
    simpleDBService,
+   simpleDBServiceWrapped,
    mkSimpleDBServices,
    ) where
 
@@ -11,8 +12,8 @@ import ServiceClass
 
 import SimpleDBServer
 
-import VersionInfo
 import VersionInfoService
+import VersionState
 
 mkSimpleDBServices :: IO [Service]
 mkSimpleDBServices =

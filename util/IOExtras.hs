@@ -28,7 +28,6 @@ import IO
 
 import Data.IORef
 import Control.Exception
-import Storable
 
 catchEOF :: IO a -> IO (Maybe a)
 catchEOF action = catchGeneral isEOFError action

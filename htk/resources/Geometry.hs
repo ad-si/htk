@@ -15,7 +15,6 @@ module Geometry (
 
 import GUIValue
 import Char
-import Debug(debug)
 
 
 -- -----------------------------------------------------------------------

@@ -1,4 +1,5 @@
 -- | This module handles the allocation of 'ObjectVersion's.
+-- In addition this manages the openVersions database.
 module VersionAllocation(
    initVersions,
    allocVersion,

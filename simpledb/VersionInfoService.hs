@@ -8,6 +8,7 @@ import BinaryAll
 import ServiceClass
 
 import VersionInfo
+import VersionState
 
 -- This service is unusual as it needs to be created dynamically.
 

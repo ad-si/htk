@@ -52,7 +52,6 @@ module StringSkip (
 import List
 import Maybe
 
-import Debug.Trace
 import ExtendedPrelude
 
 -- -------------------------------------------------------------------------

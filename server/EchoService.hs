@@ -5,8 +5,6 @@ module EchoService(
    echoServiceWrapped -- :: pass to runServer to run server.
    ) where
 
-import BinaryAll
-
 import ServiceClass
 
 newtype EchoState = EchoState ()

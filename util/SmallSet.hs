@@ -71,9 +71,8 @@ removeSmallSet :: Ord elt => elt -> SmallSet elt -> SmallSet elt
 removeSmallSet elt (SmallSet eltList) =
       SmallSet (remove eltList)
    where
+      remove [] = error "removeSmallSet called on element not in set"
       remove (first:rest) =
-      -- pattern match error here means removeSmallSet is called
-      -- on an element which isn't in the set.
          if first == elt
             then
                rest

@@ -9,8 +9,8 @@ module GetAttributesType(
 import Maybe
 import qualified List
 
-import Set
-import FiniteMap
+import Data.Set
+import Data.FiniteMap
 
 import Computation
 import ExtendedPrelude

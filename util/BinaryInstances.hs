@@ -242,6 +242,7 @@ encodeIntegral (i :: integral) =
 
 
 decodeIntegral :: (Integral integral,Bits integral) => CodedList -> integral
+decodeIntegral (CodedList []) = error "empty CodedList"
 decodeIntegral (CodedList [wpped]) =
    let
       wrapped = fromIntegral wpped
@@ -278,6 +279,7 @@ encodeWord (i :: integral) =
       isLarge = (\ i -> i >= topBit)
 
 decodeWord :: (Integral integral,Bits integral) => CodedList -> integral
+decodeWord (CodedList []) = error "empty CodedList2"
 decodeWord (CodedList [wpped]) =
    let
       wrapped = fromIntegral wpped
@@ -341,6 +343,7 @@ newtype CodedList = CodedList [Byte]
 -- We code them by setting the top bit of all but the last item.
 
 instance Monad m => HasBinary CodedList m where
+   writeBin _ (CodedList []) = error "empty CodedList3"
    writeBin (WriteBinary {writeByte = writeByte}) (CodedList [b]) =
       writeByte b
    writeBin (wb @ WriteBinary {writeByte = writeByte}) (CodedList (b:bs)) =

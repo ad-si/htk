@@ -62,12 +62,12 @@ module LaTeXParser (
 
 import IO(FilePath)
 
-import IOExts
 import List
-import Parsec
-import ParsecError
 import Char
 import Monad
+
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Error
 
 import Text.XML.HaXml.Types
 import qualified Text.XML.HaXml.Pretty as PP

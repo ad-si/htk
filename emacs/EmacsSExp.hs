@@ -10,9 +10,8 @@ module EmacsSExp (
 import Char
 import Maybe
 
-import Parsec
-import qualified ParsecToken as P
-
+import Text.ParserCombinators.Parsec
+import qualified Text.ParserCombinators.Parsec.Token as P
 
 -- datatype representing those bits of an sexp we are interested in.
 data SExp =

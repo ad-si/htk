@@ -20,7 +20,6 @@ import qualified IO
 import GHC.IO
 import Foreign.C
 import Foreign.Ptr
-import Control.Monad.ST
 import Control.Exception
 import System.Posix
 

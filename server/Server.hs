@@ -28,11 +28,11 @@ import Data.FiniteMap
 import Network hiding (Service)
 
 import System.Posix.Signals
+import Control.Concurrent
 
 import Computation
 import ExtendedPrelude
 import WBFiles(getPort)
-import Concurrent
 import Thread
 import Object
 import BinaryAll

@@ -7,10 +7,10 @@ module ExaminePermissions(
    ) where
 
 import GroupFile
-import PasswordFile
 
 import Permissions
 import VersionInfo
+import {-# SOURCE #-} VersionState
 
 examinePermissions :: VersionState -> GroupFile -> String
    -> ObjectVersion -> Activity -> Permissions -> IO Bool

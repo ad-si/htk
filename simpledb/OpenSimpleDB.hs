@@ -17,6 +17,7 @@ import Permissions
 import SecurityManagement
 import LocationAllocation
 import VersionAllocation
+import VersionState
 
 -- -------------------------------------------------------------------
 -- Creating a new SimpleDB
@@ -42,7 +43,14 @@ openSimpleDB versionState =
             versionDB = versionDB,
             securityDB = securityDB,
             keyDB = keyDB,
-            dataDB = dataDB
+            dataDB = dataDB,
+
+            -- fill in extra fields to avoid irritating GHC warning.
+            versionData = error "1",
+            openVersions = error "2",
+            versionState = error "3",
+            nextLocation = error "4",
+            nextVersion = error "5"
             }
 
       -- (2) Do the initialisations which need to be done if the

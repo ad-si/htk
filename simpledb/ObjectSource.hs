@@ -25,7 +25,6 @@ module ObjectSource(
 import AtomString
 import ICStringLen
 
-import FdRead
 import CopyFile
 
 -- --------------------------------------------------------------

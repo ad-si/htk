@@ -16,8 +16,6 @@ module DelSet (
 
 import Data.FiniteMap
 
-import Object -- we get our keys from here.
-
 data DelSet a = DelSet !Int (FiniteMap Int a)
 
 newtype DelSetKey = DelSetKey Int

@@ -36,7 +36,7 @@ module DisplayTypes(
    ) where
 
 
-import qualified IOExts(unsafePerformIO)
+import System.IO.Unsafe
 
 import Registry
 import Computation
@@ -162,7 +162,7 @@ instance Eq WrappedDisplayType where
 -- ------------------------------------------------------------------
 
 displayTypeDataRegistry :: Registry String WrappedDisplayType
-displayTypeDataRegistry = IOExts.unsafePerformIO newRegistry
+displayTypeDataRegistry = unsafePerformIO newRegistry
 {-# NOINLINE displayTypeDataRegistry #-}
 
 registerDisplayType :: DisplayType displayType => displayType -> IO ()

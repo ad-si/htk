@@ -23,8 +23,6 @@ import Maybe
 import Data.IORef
 import System.IO.Unsafe
 
-import Network
-
 import Computation
 import WBFiles
 import ExtendedPrelude
