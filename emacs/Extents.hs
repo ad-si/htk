@@ -25,6 +25,7 @@ module Extents(
    setColourHack,
    clearModifiedFlag,
    getModifiedFlag,
+   extentExists,
 
    pointAfterExtent,
    deleteFromPoint,
@@ -185,6 +186,12 @@ getModifiedFlag :: EmacsSession -> IO Bool
 getModifiedFlag emacsSession =
    do
       str <- evalEmacsQuick emacsSession (Prin "buffer-modified-p")
+      return (doParseBool str)
+
+extentExists :: EmacsSession -> String -> IO Bool
+extentExists emacsSession extentId =
+   do
+      str <- evalEmacsQuick emacsSession (Prin ("uni-extent-exists",extentId))
       return (doParseBool str)
 
 --

@@ -180,6 +180,19 @@
       )
    )
 
+; Determine if an extent actually exists and is in the buffer.
+(defun uni-extent-exists (extent-id)
+   (let ((extent (gethash extent-id uni-extent-hash-table)))
+      (if extent
+         (let ((start-pos (extent-start-position extent)))
+            (not (null start-pos))
+            )
+         nil
+         )
+      )
+   )
+
+
 ; Delete a button or container extent
 (defun uni-delete-extent (extent-id)
    (let* (

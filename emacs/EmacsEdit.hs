@@ -372,12 +372,19 @@ handleEvents (editorState :: EditorState ref) =
             )
       +> (do
             str <- event "BUTTON"
-            case parseButton str of
-               Normal mangledName ->
+
+            -- boilerplate: check that the button exists.  (It could not,
+            -- if for example the user queued two button click events, the
+            -- first of which was a delete.)
+            extentExists <- always (extentExists session str)
+            
+            case (extentExists,parseButton str) of
+               (False,_) -> iterate
+               (True,Normal mangledName) ->
                   do
                      always (buttonMenu mangledName)
                      iterate
-               Head mangledName ->
+               (True,Head mangledName) ->
                   always (
                      do
                         let
