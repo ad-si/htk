@@ -3,10 +3,11 @@
 \usepackage{isolatin1}
 \usepackage{verbatim}
 \usepackage{palatino}
+\usepackage{wrapfig}
 \usepackage{color}
 \usepackage{xspace}
-\usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{hyperref}
 
 %%% -- Useful macros ----------------------------------------------------
 
@@ -412,26 +413,37 @@ a photo. An image is created with the function
 \begin{xcode}
 newImage :: [Config Image] -> IO Image  
 \end{xcode}
-Once created, an image can be used (via the \texttt{photo}
-configuration, class \texttt{HasPhoto}) to attach images to labels,
-buttons, and canvas items. The configuration gives the image's data,
-either via the \texttt{filename} configuration, where a file is given
-which contains the image data, or via the \texttt{imgData}
-configuration, which passes the data directly as Base64 encoded
-string. (You can use e.g. the \texttt{mimencode(1)} utility to produce
-such a string.) As can be seen from the \texttt{Format} datatype,
-\HTk{} supports GIF, PPM and PGM formats. The latter method of giving
-the image data is preferably, since it makes the compiled executable
-independent of image data files; if you pass a filename, you need to
-make sure that the image file is to be found at that path at the
-\emph{runtime} of the program!
+Once created, an image can be attached (via the \texttt{photo}
+configuration, class \texttt{HasPhoto}) to labels, buttons, and canvas
+items. The configuration gives the image's data, either via the
+\texttt{filename} configuration, where a file is specified which
+contains the image data, or via the \texttt{imgData} configuration,
+which passes the data directly as Base64 encoded string. (You can use
+e.g.  the \texttt{mimencode(1)} utility to produce such a string.) As
+can be seen from the \texttt{Format} datatype, \HTk{} supports GIF,
+PPM and PGM formats. The latter method of giving the image data is
+preferable, since it makes the compiled executable independent of
+image data files; if you pass a filename, you need to make sure that
+the image file is to be found at that path during the \emph{runtime}
+of the program!
 
 \href{BitMap.html}{Bitmaps} have a foreground and a background. The
 difference between images and bitmaps is that bitmaps are more
 versatile, e.g. you can change the foreground and background. There is
 also a number of predefined bitmaps (\texttt{Hourglass, Questhead},
-etc.) Apart from that, they are quite boring.
+etc.) Apart from that, bitmaps are quite boring.
 
+\subsubsection{Cursors} 
+
+Any widget can change the shape of the cursor, i.e. the shape
+displayed by the cursor while over this widget, by using the
+\href{BaseClasses.html#BaseClasses.cursor}{\texttt{cursor}}
+configuration. The class \texttt{CursorDesignator} from the module
+\href{Cursor.html}{Cursor} module allows cursors to be specified in an
+overloaded way (like Fonts). The simplest way to get a cursor is to
+avail yourself of some of the predefined ones (at least under X
+windows), but you can build your own cursor by giving a bitmap, a
+mask, and colours.
 
 \section{Events}
 
@@ -862,8 +874,7 @@ For more on canvasses, see the examples under
 \texttt{examples/canvas}. \texttt{MainxmasCanvas.hs} shows a variety
 of canvas items, and how to set up a cheap and cheerful drag-and-drop.
 
-
-\subsection{Miscellenea}
+\subsection{Window Managers and the Focus}
 
 \begin{itemize}
 \item window managers
@@ -872,9 +883,70 @@ of canvas items, and how to set up a cheap and cheerful drag-and-drop.
 
 \subsection{Tix Widgets}
 
-Using tix.
+Tix is an enhanced version of Tcl/Tk; in particular, it replaces
+Tcl/Tk's rustic default looks by something a bit more
+modern, and it has a lot more widgets built in. 
 
-Panes and notebooks.
+To use tix, you pass the compiled program the command line option
+\texttt{--uni-wish=tixwish} (where \texttt{tixwish} is the name of
+Tix' wish; try \texttt{which tixwish} at the command line, and if that
+says command not found in whatever language your shell is configured
+to talk to you to, you are out of luck I am afraid.) Thus, the source
+code does not change; from the point of \HTk, Tix is a conservative
+extension of Tcl/Tk, since it just offers more possibilities. 
+
+\begin{wrapfigure}[18]{r}{8cm}
+  \begin{center}
+    \includegraphics[width=7cm]{img/screenshot-tixwidgets}    
+  \end{center}
+  \caption{Tix Widgets}
+  \label{fig:tix-widgets}
+\end{wrapfigure}
+
+To find out whether the \HTk program is currently running under a Tix
+wish, use the function \texttt{isTixAvailable:: IO Bool}; a return
+value \texttt{True} indicates Tix.
+
+Here is an overview over the Tix widgets encapsulated by \HTk:
+
+\begin{itemize}
+\item The class \texttt{HasTooltip}, instantiated by all widgets,
+  allows tooltips: text which is attached to the widget, and appears
+  in a wee yellow box if the mouse hovers over the widget for a short
+  while. Personally, I find this sort of thing immensely helpful.
+
+\item A \emph{paned window} is a window divided into vertical or
+  horizontal panes, which can be resized by the user. A well-known 
+  example of this is Netscape's mail interface, or
+  Adobe's acrobat reader, where you can change the size of the pane on
+  the left (the mailboxes or the bookmarks) by grabbing the dividing
+  line and moving it horizontally. For its usage, see
+  \href{PanedWindow.html}{\texttt{PanedWindow}} and the example
+  \texttt{MainPanedWindow.hs} in \texttt{examples/tix}.
+
+\item A \href{NoteBook.html}{note book} has a number of pages
+  with tabs on top. It displays one page at a time, selected by the
+  tab. The pages are represented by the type \texttt{NoteBookPage},
+  which is an instance of the \texttt{Container} class, so you can
+  pack widgets into them.
+
+\item A \href{LabelFrame.html}{\texttt{LabelFrame}} is a frame with a
+  label; useful for grouping information together. 
+
+\item A \href{ComboBox.html}{combo box} is a combination of an entry
+  and a list box, and as such has a value. Used much like list boxes,
+  but with not quite as versatile selection schemes. 
+\end{itemize}
+
+Fig.~\ref{fig:tix-widgets} shows notebooks, labelled frames and combo
+boxen. 
+
+There are many more Tix widgets, but we have found not all of them as
+immediately useful as the ones above. Feel free to encapsulate more
+(it should not be too hard). However, if you want to use Tix' tree
+widgets, consider using the tree list from the toolkit (see below),
+which is much nicer.
+
 
 \section{The Toolkit}
 
@@ -910,7 +982,6 @@ The examples mentioned below can be found in
 \item A \texttt{SpinButton} is a entry with two arrows which can
   increment or decrement the entry's value. See the example in
   \texttt{Mainspinbutton.hs}.
-
   
 \item A \texttt{TreeList} is a graphical representation of a tree
   structure. It allows subtrees to be hidden or shown. One popular use
@@ -958,7 +1029,7 @@ The examples mentioned below can be found in
 
 \appendix{}
 
-\input{MainHsMines.lhs}
+\input{MainhsMines.lhs}
 
 
 

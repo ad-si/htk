@@ -234,7 +234,7 @@ The last line is necessary to clean up all we've kicked loose so far.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.6]{img/Screenshot01}
+\includegraphics[scale=0.6]{img/hsMines/screenshot01}
 \caption{The hsMines window}
 \end{center}
 \end{figure}
@@ -379,7 +379,7 @@ selected -- "`\texttt{clicked}"'.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.6]{img/Screenshot02}
+\includegraphics[scale=0.6]{img/hsMines/screenshot02}
 \caption{The hsMines main window with an open Prefs/Size menu}
 \end{center}
 \end{figure}
@@ -471,7 +471,7 @@ each \texttt{Button}.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.3]{img/Screenshot03}
+\includegraphics[scale=0.3]{img/hsMines/screenshot03}
 \caption{The uninitialised hsMines field}
 \end{center}
 \end{figure}
@@ -881,7 +881,7 @@ the playfield.
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.3]{img/Screenshot04}
+\includegraphics[scale=0.3]{img/hsMines/screenshot04}
 \caption{The hsMines field after a single lucky Click}
 \end{center}
 \end{figure}
@@ -891,7 +891,7 @@ And just in case you don't believe this for real I finished the game
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[scale=0.3]{img/Screenshot05}
+\includegraphics[scale=0.3]{img/hsMines/screenshot05}
 \caption{The same field a few lucky Clicks later}
 \end{center}
 \end{figure}
