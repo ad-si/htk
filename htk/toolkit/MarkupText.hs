@@ -40,6 +40,7 @@ module MarkupText (
   flushleft,
   href,
   window,
+  window1,
 
 -- special characters
   alpha,
@@ -345,8 +346,11 @@ rightmargin = MarkupRightMargin
 ---
 -- The markup window combinator (a widget container inside the editor
 -- widget).
-window :: Widget w => (Editor -> IO (w, IO())) -> MarkupText
-window = MarkupWindow
+window1 :: Widget w => (Editor -> IO (w, IO())) -> MarkupText
+window1 = MarkupWindow
+
+window :: Widget w => IO (w, IO()) -> MarkupText
+window act = window1 (const act)
 
 ---
 -- The markup href combinator (a link to another markup text).
@@ -1402,4 +1406,4 @@ scrollMarkupText size1 markups =
             return (editorFrame,destroy editorFrame)
 
    in
-      window action
+      window1 action

@@ -63,6 +63,7 @@ import BSem
 import InfoBus
 
 import ServiceClass
+import HostsList
 
 connectReply :: 
    (?server :: HostPort,
@@ -220,8 +221,12 @@ connectBasic service =
                hSetBuffering handle (BlockBuffering (Just 4096))
                   -- since we may well be doing the connection via SSL,
                   -- we use a big buffer, and only flush when necessary.
-                              
-               (user,password) <- getUserPasswordGeneral firstTime
+
+               userPasswordOpt <- getUserPassword (not firstTime) (?server)
+               (user,password) <- case userPasswordOpt of
+                  Nothing -> connectFailure "Server connection cancelled"
+                  Just (user,password) -> return (user,password)
+
                hPut handle serviceKey
                hPut handle user
                hPut handle password
@@ -243,77 +248,9 @@ connectBasic service =
               
       connectBasic True
 
-------------------------------------------------------------------------
--- Code for maintaining the user and password.
--- We keep a current user-id and password, initialised from WBFiles,
--- and only prompt for a new one if either is not yet specified, or a 
--- connection fails.
-------------------------------------------------------------------------
-
--- Get the user and password.
-getUserPassword :: IO (String,String)
-getUserPassword = getUserPasswordGeneral True
-
--- Get the user and password, but do not accept the current values whatever
--- they are.
-getNewUserPassword :: IO (String,String)
-getNewUserPassword = getUserPasswordGeneral False
-
-currentUserPasswordMVar :: MVar (Maybe String,Maybe String)
-currentUserPasswordMVar = unsafePerformIO (getCurrentUserPasswordMVar)
-{-# NOINLINE currentUserPasswordMVar #-}
-
-getCurrentUserPasswordMVar :: IO (MVar (Maybe String,Maybe String))
-getCurrentUserPasswordMVar =
-   do
-      userOpt <- getUser
-      passwordOpt <- getPassword
-      newMVar (userOpt,passwordOpt)
-
-getUserPasswordGeneral  :: Bool -> IO (String,String)
-getUserPasswordGeneral acceptOld = modifyMVar currentUserPasswordMVar
-   (\ up -> case up of 
-      (Just user,Just password) | acceptOld -> return (up,(user,password))
-      (user0,password0) -> 
-         do
-            (user,password) <- getUserPassword0 user0 password0
-            return ((Just user,Just password),(user,password))
-      )
-      
-
-getUserPassword0 :: Maybe String -> Maybe String -> IO (String,String)
-getUserPassword0 user0 password0 =
-   do
-      let
-         userEntry1 :: Form (Maybe String)
-         userEntry1 = newFormEntry "User" user0 
-
-         userEntry2 :: Form String
-         userEntry2 = mapForm
-            (\ userOpt -> case userOpt of
-               Just user -> hasValue user
-               Nothing -> hasError "User must be specified"
-               ) 
-            userEntry1
-
-         passwordEntry1 :: Form (Password (Maybe String))
-         passwordEntry1 = newFormEntry "Password" (Password password0)
-
-         passwordEntry2 :: Form String
-         passwordEntry2 = mapForm
-            (\ (Password passwordOpt) -> case passwordOpt of
-               Just password -> hasValue password
-               Nothing -> hasError "Password must be specified"
-               )
-            passwordEntry1
-
-         form :: Form (String,String)
-         form = userEntry2 // passwordEntry2
-
-      resultOpt <- doForm "Connecting to Server" form
-      case resultOpt of
-         Just result -> return result
-         Nothing -> connectFailure "Server connection cancelled"
+-- -------------------------------------------------------------------
+-- Error functions.
+-- -------------------------------------------------------------------
 
 tryConnect :: IO a -> IO (Either String a)
 

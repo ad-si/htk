@@ -1,7 +1,7 @@
 {- HostPorts provides an abstract interface for describing hosts and
    ports. -}
 module HostsPorts(
-   HostPort, 
+   HostPort(..), 
       -- description of a host and port
       -- instance of Eq,Ord,Show.
 
@@ -11,6 +11,11 @@ module HostsPorts(
    mkHostPort, 
       -- :: (DescribesHost host,DescribesPort port)
       -- => host -> port -> IO HostPort
+
+   mkHostDescription,
+      -- :: String -> Int -> String
+      -- Function for getting the textual description of a host, if none
+      -- is already known.
 
    connect, -- :: (? server :: HostPort) => IO Handle
 
@@ -22,6 +27,8 @@ module HostsPorts(
    hostPortForm, -- :: Maybe String -> Maybe Int -> Form HostPort
       -- Form for entering a host and port.
 
+   HostKey, -- instance of Eq, Ord.
+   mapHostPort, -- :: HostPort -> HostKey
    ) where
 
 import IO
@@ -43,7 +50,8 @@ import SimpleForm
 
 data HostPort = HostPort {
    host :: String,
-   port :: PortID
+   port :: PortNumber,
+   description :: String
    }
 
 newtype HostDesc = HostDesc String deriving Show
@@ -73,11 +81,11 @@ instance DescribesPort Int where
 instance DescribesPort PortDesc where
    makePort = return
 
-mapHostPort :: HostPort -> (String,PortNumber)
-mapHostPort (HostPort {host = host,port = PortNumber port}) =
+type HostKey = (String,PortNumber) -- must be an instance of Eq,Ord.
+
+mapHostPort :: HostPort -> HostKey
+mapHostPort (HostPort {host = host,port = port}) =
    (host,port)
-   -- we may have to handle the other constructors one day, but not yet,
-   -- since there is no way of constructing a HostPort with them.
 
 instance Eq HostPort where
    (==) = mapEq mapHostPort
@@ -86,11 +94,7 @@ instance Ord HostPort where
    compare = mapOrd mapHostPort
 
 instance Show HostPort where
-   showsPrec n hostPort acc =
-      let
-         (str,i) = mapHostPort hostPort
-      in    
-         (str ++) . (':' :) . (showsPrec n i) $ acc
+   showsPrec n hostPort acc = description hostPort ++ acc
 
 -- -------------------------------------------------------------------
 -- The functions
@@ -101,8 +105,19 @@ mkHostPort :: (DescribesHost host,DescribesPort port)
 mkHostPort host port =
    do
       (HostDesc hostStr) <- makeHost host
-      portID <- getPortNumber port
-      return (HostPort {host = hostStr,port = portID})
+      portNumber  <- getPortNumber port
+      let
+         description = mkHostDescription hostStr portNumber
+      return (HostPort {
+         host = hostStr,port = portNumber,description = description})
+
+mkHostDescription :: (Show portNo,Num portNo) => String -> portNo -> String
+mkHostDescription hostStr i =
+   if i == 11393 
+      then
+         hostStr
+      else
+         hostStr ++ ":" ++ show i
 
 
 getHostString :: DescribesHost host => host -> IO String
@@ -111,14 +126,14 @@ getHostString hostDesc =
       HostDesc name <- makeHost hostDesc
       return name
 
-getPortNumber :: DescribesPort port => port -> IO PortID
+getPortNumber :: DescribesPort port => port -> IO PortNumber
 getPortNumber portDesc =
    do
       PortDesc portNo <- makePort portDesc
-      return (PortNumber(fromIntegral portNo))
+      return (fromIntegral portNo)
 
 connect :: (?server :: HostPort) => IO Handle
-connect = connectTo (host ?server) (port ?server)
+connect = connectTo (host ?server) (PortNumber (port ?server))
 
 getDefaultHostPort :: IO HostPort
 getDefaultHostPort =

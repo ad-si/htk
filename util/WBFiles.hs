@@ -68,6 +68,8 @@
 
    MMiSSDTD      Location of DTD file for MMiSS.
 
+   hosts         Location of hosts file.
+
    toolTimeOut   Time-out waiting for responses from a tool when
                  it starts up and we are doing challenge-response
                  verification.
@@ -115,6 +117,10 @@ module WBFiles (
       -- returns editor string, if set.
    getMMiSSDTD, -- :: IO (Maybe String)
       -- returns location of MMiSSDTD, if set.
+
+   getHosts, -- :: IO String
+      -- returns location of hosts file.
+
    getPort, -- IO Int
 
    -- getWorkingDir trims a right-file-separator from its argument, if any.
@@ -231,6 +237,18 @@ getMMiSSDTD =
             do
                top <- getTOP
                return (Just (top++"/mmiss/MMiSS.dtd"))
+
+getHosts :: IO String
+getHosts =
+   do
+      hostsOpt <- getArgString "Hosts"
+      case hostsOpt of
+         Just hosts -> return hosts
+         Nothing ->
+            do
+               top <- getTOP
+               return (top++"/server/Hosts.xml")
+   
 
 getDaVinciPath :: IO String
 getDaVinciPath = valOf (getArgString "daVinci")
@@ -363,7 +381,14 @@ usualProgramArguments = [
       defaultVal = Nothing,
       argType = STRING
       },
-
+   ProgramArgument{
+      -- We make getHosts return a default of TOP/server/Hosts.xml if
+      -- Nothing is set.
+      optionName = "Hosts",
+      optionHelp = "File containing list of hosts",
+      defaultVal = Nothing,
+      argType = STRING
+      },
    ProgramArgument{
       optionName = "top",
       optionHelp = "path where UniForM was installed",

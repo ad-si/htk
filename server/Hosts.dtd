@@ -1,0 +1,8 @@
+<!ELEMENT hosts (host)*>
+
+<!ELEMENT host EMPTY>
+<!ATTLIST host hostName CDATA #REQUIRED
+               port CDATA "11393"
+               description CDATA #IMPLIED
+               user CDATA #IMPLIED
+>

@@ -91,7 +91,6 @@ import BinaryIO
 import ICStringLen
 import Debug(debug)
 import ExtendedPrelude
-import WBFiles(getUser)
 
 import Destructible
 import BSem
@@ -100,6 +99,7 @@ import Synchronized
 import InfoBus
 
 import HostsPorts
+import HostsList(defaultUser)
 import CallServer
 import MultiPlexer
 import PasswordFile
@@ -163,13 +163,11 @@ initialiseInternal versionState =
    do
       simpleDB <- openSimpleDB versionState
 
-      userOpt <- getUser
-
       bSem <- newBSem
+
+      seq defaultUser done
       let
-         userId1 = case userOpt of 
-            Just userId1 -> userId1
-            Nothing -> "root"
+         userId1 = defaultUser
 
          user = User {
             PasswordFile.userId = userId1,

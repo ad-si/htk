@@ -50,6 +50,8 @@ module SimpleForm(
       -- This displays a form.  The first string is the title;
       -- the second the form.  As well as the entries in the form,
       -- "OK" and "Cancel" buttons are displayed.
+   doFormMust, -- :: String -> Form value -> IO value
+      -- Like doForm, but the user is not provided with a cancel button.
 
    doFormList, 
       -- :: String -> [(Form x,String)] -> IO (Event (WithError x),IO ())
@@ -362,29 +364,44 @@ row forms =
 -- The doForm action 
 -- -------------------------------------------------------------------------
 
-doForm :: String -> Form value -> IO (Maybe value)
-doForm title (Form enterForm) =
+doFormMust :: String -> Form value -> IO value
+doFormMust title form =
    do
-      (toplevel,enteredForm,okButton,cancelButton) <- delayWish (
+      (Just value) <- doForm1 False title form
+      return value
+
+doForm :: String -> Form value -> IO (Maybe value)
+doForm = doForm1 True
+
+doForm1 :: Bool -> String -> Form value -> IO (Maybe value)
+doForm1 canCancel title (Form enterForm) =
+   do
+      (toplevel,enteredForm,okEvent,cancelEvent) <- delayWish (
          do
             toplevel <- createToplevel [text title]
             enteredForm <- enterForm toplevel
             -- create frame for "OK" and "Cancel" buttons.
             frame <- newFrame toplevel []
             okButton <- newButton frame [text "OK"]
-            cancelButton <- newButton frame [text "Cancel"]
-      
-            -- Pack everything
+            okEvent <- clicked okButton
+
             packAction enteredForm
             pack okButton [Side AtLeft]
-            pack cancelButton [Side AtRight]
+
+            cancelEvent <-
+               if canCancel 
+                  then
+                     do
+                        cancelButton <- newButton frame [text "Cancel"]
+                        pack cancelButton [Side AtRight]
+                        clicked cancelButton
+                  else
+                     return never
+
             pack frame [Side AtTop]
-            return (toplevel,enteredForm,okButton,cancelButton)
+            return (toplevel,enteredForm,okEvent,cancelEvent)
          )
 
-      -- Monitor ok and cancel buttons
-      okEvent <- clicked okButton
-      cancelEvent <- clicked cancelButton
       let
          handler =
                (do

@@ -8,12 +8,9 @@ cd @TOP@/mmiss/test
 TOP=@TOP@ @TOP@/mmiss/test/testfiles
 
 # Test script for running the workbench.
-export UNIEDITOR UNISERVER UNISERVERDIR UNIWORKINGDIR UNIPORT
+export UNIEDITOR UNISERVERDIR UNIWORKINGDIR 
 
 UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
-UNISERVER=denebola.informatik.uni-bremen.de
-# 11395 is used by the remote server.
-UNIPORT=11395
 
 UNISERVERDIR=${UNISERVERDIR:-`./TempDir /tmp/uni.$USER.server.`}
 echo Using $UNISERVERDIR for the internal server.  Set UNISERVERDIR next time to reuse it.

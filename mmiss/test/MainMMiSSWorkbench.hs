@@ -22,6 +22,7 @@ import DialogWin
 import DaVinciGraph
 
 import HostsPorts
+import HostsList
 
 import VersionGraph
 import VersionGraphList
@@ -35,7 +36,6 @@ main =
    do
       parseArgumentsRequiring [
          "top",
-         "server",
          "editor"
          ]
 
@@ -59,29 +59,26 @@ data UserAction =
 mainWindow :: IO ()
 mainWindow =
    do
-      serverOpt <- getServer
-     
-      (remoteServer :: Maybe (Form HostPort,String)) <- case serverOpt of
-         Nothing -> return Nothing
-         Just server ->
-            do
-               hostPort <- getDefaultHostPort
-               let
-                  serverName = case splitToChar '.' server of
-                     Nothing -> server
-                     Just (serverName,_) -> serverName
-
-                  remoteForm = fmap
-                     (\ () -> hostPort)
-                     (nullForm serverName)
-               return (Just (remoteForm,"Connect"))
-
+      hostPorts <- getHostPorts
       let
-         (otherServer :: Maybe (Form HostPort,String)) =
-            Just (hostPortForm Nothing Nothing,"Connect")
+         remoteServers :: [(Form HostPort,String)]
+         remoteServers = 
+            map
+               (\ hostPort ->
+                  let
+                     form = fmap
+                        (\ () -> hostPort)
+                        (nullForm (description hostPort))
+                  in
+                     (form,"Connect")
+                  )
+               hostPorts
+
+         otherServer :: (Form HostPort,String)
+         otherServer = (hostPortForm Nothing Nothing,"Connect")
 
          serverForms :: [(Form HostPort,String)]
-         serverForms = catMaybes [remoteServer,otherServer]
+         serverForms = remoteServers ++ [otherServer]
 
          map' :: (a -> b) -> (Form a,String) -> (Form b,String)
          map' fn (form,s) = (fmap fn form,s)

@@ -23,7 +23,7 @@ import Time
 import Control.Exception hiding (handle)
 
 import Data.FiniteMap
-import Network hiding (PortID(..))
+import Network hiding (Service)
 
 import Posix
 
@@ -351,7 +351,7 @@ runServer serviceList =
          serviceMap = listToFM serviceDataList
  
       portNumber <- getPortNumber portDesc
-      socket <- listenOn portNumber
+      socket <- listenOn (PortNumber portNumber)
       let
          serverAction =
             do

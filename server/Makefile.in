@@ -12,10 +12,16 @@ PACKAGES = net posix uni-reactor uni-posixutil uni-htk \
 
 SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    EchoService.hs CallServer.hs Notification.hs MultiServer.hs \
-   Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs \
+   Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs DTD_Hosts.hs \
+   HostsList.hs
 
 include @TOP@/mk/boilerplate.mk
 
+
+# Hack to work around fact that my current version of DtdToHaskell doesn't
+# quite match our version of HaXml.
+DTD_Hosts.hs : Hosts.hs
+	$(SED) -e 's/Xml2Haskell/Text.XML.HaXml.Xml2Haskell/g' <$< >$@
 
 Hosts.hs : Hosts.dtd
 	DtdToHaskell $< $@

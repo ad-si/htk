@@ -1,0 +1,4 @@
+<hosts>
+   <host hostName="denebola.informatik.uni-bremen.de" 
+      port="11395" description="denebola (Bremen)"/>
+</hosts>
