@@ -79,7 +79,7 @@ instance Object EmacsSession where
 instance Destroyable EmacsSession where
    destroy emacsSession = 
       do
-         execEmacs emacsSession "(uni-kill-buffer)"
+         execEmacs emacsSession "(kill-buffer (current-buffer))"
          closeAction emacsSession
 
 -- ------------------------------------------------------------------------
