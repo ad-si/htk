@@ -71,8 +71,8 @@
   ;;; Effect  : 
   ;;; Value   : 
 
-  (write-line (xml-make.xmldecl 1.0) output-stream)
-  (write-line (xml-make.doctypedecl "checklist" "MMiSSCheck.dtd") output-stream)
+;  (write-line (xml-make.xmldecl 1.0) output-stream)
+;  (write-line (xml-make.doctypedecl "checklist" "MMiSSCheck.dtd") output-stream)
   (xml-entity.print
    (xml-entity.create 
     "checklist" 

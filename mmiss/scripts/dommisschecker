@@ -6,7 +6,7 @@
 # Argument 2 = name of XML file
 #
 
-`dirname $0`/../checker/bin/mmiss-checker $1/$2 
+`dirname $0`/../checker/bin/mmiss-checker $1/$2 references acyclic-definitions
 
 # echo '
 # <checklist>
