@@ -36,7 +36,7 @@ main =
          fileName = "stdin"
          fileSystem = oneFileFileSystem fileName doc
 
-      elEither <- parseMMiSSLatex fileSystem fileName
+      elEither <- parseMMiSSLatex fileSystem fileName True
       el <- case  fromWithError elEither of
          Left str -> ioError (userError str)
          Right (el,_) -> return el
