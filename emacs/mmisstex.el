@@ -6,7 +6,6 @@
 ;; put the following progn. body into your .emacs file to be evaluated on startup.
 (progn 
   (put 'erase-buffer 'disabled nil)
-test
   (defun MMiSS-init (string)
     (load-file "./mmisstex.el")
     (setq LaTeX-mode-hook        'mmiss-mode)  
@@ -65,7 +64,6 @@ test
           )
       nil)))
 
-
 (defun MMiSS-top-environment-id ()
   (interactive)
   (let ((regexp (concat (regexp-quote TeX-esc) "\\(begin\\)\\b"))
@@ -76,7 +74,7 @@ test
       (beginning-of-buffer)
       (re-search-forward regexp nil t)
       (forward-char 1)
-      (skip-chars-forward "a-zA-Z \t\n}")
+      (skip-chars-forward "a-zA-Z[] \t\n}")
       (forward-char 1)
       (setq startid (point))
       (skip-chars-forward "a-zA-Z0-9")
@@ -97,6 +95,46 @@ test
   (interactive)
   (uni-ev "QUIT" "")
   )
+
+
+(defun MMiSS-edit-text (master text)
+  
+  ;; 1. create the buffer-file
+  ;; 2. Create master file 
+  ;; 3. Insert Text into the empty buffer + texmaster infos
+  ;; 4. Save buffer
+
+  (unless (buffer-file-name)
+    (setf (buffer-file-name) (buffer-name)))
+  (setq uni-allow-changes t)
+  (let* ((tex-file-name (buffer-name))
+	 (tex-master-file-name (concatenate 'string (TeX-strip-extension buffer-file-name '("mtex"))
+					   "Master" ".mtex")))
+    (save-excursion
+      (insert text)
+      (insert "\n\n;;; Master: " 
+	      tex-master-file-name
+	      "\n")
+      (setf TeX-master tex-master-file-name)
+      (setf font-lock-mode t)
+      (font-lock-fontify-buffer)
+      )
+    (let ((master-buffer (generate-new-buffer tex-master-file-name)))
+      (save-excursion
+	(set-buffer master-buffer)
+	(setq uni-allow-changes t)
+	(setf (buffer-file-name) tex-master-file-name)
+	(insert master 
+		"\n\n"
+		"\\input{"
+		tex-file-name
+		"}\n\n"
+		"\\end{document}\n")
+	(save-buffer)
+	(delete-buffer)
+	))
+    (save-buffer)
+    ))
 
 
 (defun MMiSS-environment (environment)
@@ -129,76 +167,60 @@ c       Clause
 st      Step
 Any other reply is used exactly as entered."
   (interactive "MMMiSS environment type: ")
-  (let ((environment-string ""))
-    (if (equal environment "p")
-        (setq environment-string "Package")
-      (if (equal environment "s")
-          (setq environment-string "Section")
-        (if (equal environment "§")
-            (setq environment-string "Paragraph")
-          (if (equal environment "v")
-              (setq environment-string "View")
-            (if (equal environment "e")
-                (setq environment-string "Example")
-              (if (equal environment "x")
-                  (setq environment-string "Exercise")
-                (if (equal environment "def")
-                    (setq environment-string "Definition")
-                  (if (equal environment "tf")
-                      (setq environment-string "TextFragment")
-                    (if (equal environment "t")
-                        (setq environment-string "Table")
-                      (if (equal environment "f")
-                          (setq environment-string "Figure")
-                        (if (equal environment "ge")
-                            (setq environment-string "GlossaryEntry")
-                          (if (equal environment "pm")
-                              (setq environment-string "Program")
-                            (if (equal environment "thy")
-                                (setq environment-string "Theory")
-                              (if (equal environment "thm")
-                                  (setq environment-string "Theorem")
-                                (if (equal environment "cj")
-                                    (setq environment-string "Conjecture")
-                                  (if (equal environment "l")
-                                      (setq environment-string "Lemma")
-                                    (if (equal environment "cr")
-                                        (setq environment-string "Corollary")
-                                      (if (equal environment "a")
-                                          (setq environment-string "Assertion")
-                                        (if (equal environment "dev")
-                                            (setq environment-string "Development")
-                                          (if (equal environment "pf")
-                                              (setq environment-string "Proof")
-                                            (if (equal environment "sc")
-                                                (setq environment-string "Script")
-                                              (if (equal environment "pmf")
-                                                  (setq environment-string "ProgramFragment")
-                                                (if (equal environment "c")
-                                                    (setq environment-string "Clause")
-                                                  (if (equal environment "st")
-                                                      (setq environment-string "Step")
-                                                    (if (equal environment "be")
-                                                        (setq environment-string "BibEntry")
-                                                      (if (equal environment "ae")
-                                                          (setq environment-string "AuthorEntry")
-                                                        (setq environment-string environment)))))))))))))))))))))))))))
+  (let* ((environment-string "")
+	 (title-optional-p   nil)
+	 (environment-mapping 
+	  '(
+	    ("p"    . ("Package"       t))
+	    ("s"    . ("Section"       t))
+	    ("§"    . ("Paragraph"     nil))
+	    ("v"    . ("View"          t))
+	    ("e"    . ("Example"       nil))
+	    ("x"    . ("Exercise"      nil))
+	    ("def"  . ("Definition"    nil))
+	    ("tf"   . ("TextFragment"  nil))
+	    ("t"    . ("Table"         nil))
+	    ("f"    . ("Figure"        nil))
+	    ("ge"   . ("GlossaryEntry" nil))
+	    ("pm"   . ("Program"       nil))
+	    ("thy"  . ("Theory"        nil))
+	    ("thm"  . ("Theorem"       nil))
+	    ("cj"   . ("Conjecture"    nil))
+	    ("l"    . ("Lemma"         nil))
+	    ("cr"   . ("Corollary"     nil))
+	    ("a"    . ( "Assertion"    nil))
+	    ("dev"  . ("Development"   nil))
+	    ("pf"   . ("Proof"         nil))
+	    ("sc"   . ("Script"        nil))
+	    ("pmf"  . ("ProgramFragment" nil))
+	    ("c"    . ("Clause"        nil))
+	    ("st"   . ("Step"          nil))
+	    ("be"   . ("BibEntry"      nil))
+	    ("ae"   . ("AuthorEntry"  nil))
+	    ))
+	 (result (cdr (assoc-ignore-case environment environment-mapping)))
+	 )
+
+    (cond (result
+	   (setf environment-string (first result))
+	   (setf title-optional-p   (second result)))
+	  (t 
+	   (setf environment-string environment)
+	   (setf title-optional-p   t)))
 
     (insert "\n\\begin{" 
             environment-string 
             "}"
-            ;"[ ]"                              ;only if you want a full generic format
-            "\n"
-             ;"% LabelID, Title:\n { }"         ;only if you want a full generic format
-            "{ }\n"
-            ;"% Attribute:\n"                   ;only if you want a full generic format
-            ;"{ }\n"                            ;only if you want a full generic format
+            (if title-optional-p "" "[<Title>]")
+            "{<Id>}\n"
             "\n\\end{" 
             environment-string 
             "}\n")
-    )
-  (forward-line -2)
-  )
+    (forward-line -3)
+    (goto-char (if title-optional-p (- (point-at-eol) 5) 
+		 (- (point-at-eol) 14)))
+    ))
+
 
 ;Full reference list for shortcuts and menues:
 (defun MMiSS-env-Package ()
@@ -380,11 +402,25 @@ Any other reply is used exactly as entered."
   LaTeX-mode "MMiSSTeX"
   "Major mode for MMiSSTeX.
 \\{MMiSSTeX-mode-map}"
-  (setq MMiSSTeX-mode-hook 'mmiss-mode))
+  (progn 
+    (setf MMiSSTeX-mode-hook 'mmiss-mode)
+    (put 'MMiSSTeX-mode    'font-lock-keywords 'tex-font-lock-keywords)
 
+    (push (list "MMiSSLaTeX" "misslatex '\\nonstopmode\\input{%t}'"
+		'TeX-run-interactive nil t) 
+	  TeX-command-list)
+    (push (list "View" "acroread %s.pdf"
+		'TeX-run-silent nil t)
+	  TeX-command-list)
+    (font-lock-mode t)
+    (setf TeX-command-default "MMiSSLaTeX")
+    (easy-menu-remove  LaTeX-mode-menu)     
+    (easy-menu-remove  TeX-mode-menu)     
+    ))
 
 (setq auto-mode-alist (append 
-                       '( ("\\.mtex" . MMiSSTeX-mode))
+                       '( ("\\.mtex" . MMiSSTeX-mode) 
+			  ("\\.tex" . MMiSSTeX-mode))
                        auto-mode-alist))
 
 
@@ -419,6 +455,7 @@ Any other reply is used exactly as entered."
    (define-key LaTeX-mode-map "\e\e\ee"          'MMiSS-env-Step)
    (define-key LaTeX-mode-map "\e\e\eb"          'MMiSS-env-BibEntry)
    (define-key LaTeX-mode-map "\e\e\ea"          'MMiSS-env-AuthorEntry)
+   (define-key LaTeX-mode-map "\C-c\C-c"         'TeX-command-master)
    
    (make-mmiss-menu)
 )
@@ -467,6 +504,8 @@ Any other reply is used exactly as entered."
          ["Close Environment"            MMiSS-close-environment]
          ["Beginning of Environment"     MMiSS-find-matching-begin]
          ["End of Environment"           MMiSS-find-matching-end]
+	 "-"
+	 ["MMiSSLaTeX"                   TeX-command-master]
          "-"
 ;        ["Request Enlarged Environment" MMiSS-request]     
          ["Commit" MMiSS-commit]     
