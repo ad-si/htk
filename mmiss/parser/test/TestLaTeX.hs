@@ -100,8 +100,8 @@ main =
               (p:ps) -> (makeMMiSSLatex (el, True, [((fst p),[emptyPreambleData])]), (toString (fst p)))               
           (EmacsContent l) = coerceWithError emacsCont
       if (xmlOutput == True) 
-        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (render (element el))) 
---                        then putStr( "<?xml version='1.0' encoding='ISO-8859-1'?>" ++ (render (element el))) 
+--        then putStr( "<?xml version='1.0' encoding='UTF-8'?>\n<!DOCTYPE package SYSTEM 'file:///home/amahnke/uni/mmiss/MMiSS.dtd'>" ++ (toExportableXml el)) 
+        then putStr( "<?xml version='1.0' encoding='UTF-8'?>" ++ (render (element el))) 
         else if (latexOutput)
                then putStr (concat (map getStrOfEmacsDataItem l))
                else if (latexWithPreOutput) 
