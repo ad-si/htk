@@ -64,11 +64,12 @@ main = do
 		 filling "green", outlinewidth (mm 1), 
 		 outline "black", parent c]
 
-	b<- newButton [text "Click me!", relief Raised,
-		       command (\()-> destroy win)]
+	b<- newButton [text "Click me!", relief Raised]
 
 
-	newEmbeddedCanvasWin b [position (cm 2, cm 12), parent c] 	
+	eb <- newEmbeddedCanvasWin b [position (cm 2, cm 12), parent c] 	
+
+	b # (command (\()-> destroy eb))
 
 	interactor (\i-> triggered b)
 

@@ -18,6 +18,8 @@ import Editor
 import ScrollBox
 import Maybe
 
+--import Grep
+
 logMsg :: Editor String -> String -> IO ()
 logMsg ed txt =
   do

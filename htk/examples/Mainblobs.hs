@@ -25,6 +25,8 @@ import Rectangle
 import CanvasItem
 import Mouse
 import Canvas
+import InfoBus(shutdown)
+
 import Random(randomRIO)
 
 import IO(stdout)
@@ -62,7 +64,9 @@ main = do
 					      c<- colourDot cnv x y col
 					      forkIO (sparkle c (x,y) col 0 255)
 					      done)
-        block
+        sync (destroyed win)
+	shutdown
+
    where colourDot cnv x y col = newOval [parent cnv, filling col,
 	  		         	  size (2, 2), position (x-1, y-1)]
 	 sparkle p (x,y) col cnt fade = 

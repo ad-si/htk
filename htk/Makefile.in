@@ -88,6 +88,7 @@ SRCS       = \
          toolkit/DragAndDrop.hs\
 	 toolkit/LogWin.hs\
 	 toolkit/MatrixBox.hs\
+	 toolkit/FileDialog.hs\
 	 filebrowser/TreeListPath.hs\
 	 filebrowser/FileActions.hs\
 

@@ -97,10 +97,8 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
         createNewMenuItem :: Menu FilePath -> FilePath ->
                              IO (Button FilePath)
         createNewMenuItem pathmenu fp =
-          newMenuItem pathmenu [text fp]
-                                {- command ( \() -> putStrLn "Hallo")]-}
-                                {- command (selected fp)]-}
-        selected :: FilePath -> () -> IO ()
+          newMenuItem pathmenu [text fp, command (selected fp)]
+        selected :: FilePath -> () -> IO FilePath
         selected fp () =
           do
             status # value "Reading...     "
@@ -114,8 +112,9 @@ updPathMenu pathmenubutton menuref path foldersref filesref pathref
                  updPathMenu pathmenubutton menuref nupath foldersref
                    filesref pathref folderslb fileslb fileEntry status
                    showhiddenref
+                 return fp
              else
-               status # value "Permission denied!" >> done)
+               status # value "Permission denied!" >> return fp)
 
 changeToFolder :: FilePath -> RVar [FilePath] -> RVar [FilePath] ->
                   RVar FilePath -> ListBox [FilePath] ->
