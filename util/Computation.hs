@@ -284,6 +284,11 @@ exceptionToError testFn action =
       )
       (\ str -> return (hasError str))
 
+instance Monad WithError where
+   return v = hasValue v
+   (>>=) aWE toBWe =
+      mapWithError' toBWe aWE
+   fail s = hasError s
 
 newtype MonadWithError m a = MonadWithError (m (WithError a))
 

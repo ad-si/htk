@@ -105,6 +105,10 @@ module LinkManager(
    lookupFullNameInFolder,
       -- :: LinkedObject -> EntityFullName -> IO (Maybe LinkedObject)
       -- Extract a full name as a sub object of a given object.
+   lookupLinkedObjectByFullName, 
+      -- :: View -> EntityFullName -> IO (Maybe LinkedObject)
+      -- Look up an object in a view by full name.
+      -- We return Nothing if the object does not exist.
  
    toWrappedLink,
       -- :: LinkedObject -> WrappedLink
@@ -533,6 +537,18 @@ getLinkedObjectTitle linkedObject def =
 getLinkedObjectTitleOpt :: LinkedObject -> SimpleSource (Maybe EntityName)
 getLinkedObjectTitleOpt linkedObject =
    fmap (fmap name) (insertion linkedObject)
+
+-- | Look up an object in a view by full name.
+-- We return Nothing if the object does not exist.
+lookupLinkedObjectByFullName :: View -> EntityFullName 
+   -> IO (Maybe LinkedObject)
+lookupLinkedObjectByFullName view fullName =
+   do
+      importsState <- getImportsState view
+      let
+         folders0 = folders importsState
+      source <- lookupFullName folders0 (root folders0) fullName
+      readContents source
 
 ---
 -- Looks up an object, returning the actual link if possible.

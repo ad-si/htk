@@ -37,7 +37,7 @@ data CheckOut = CheckOut CheckOut_Attrs ServerRef
 data CheckOut_Attrs = CheckOut_Attrs
     { checkOutVersion :: String
     } deriving (Eq,Show)
-newtype CheckOutResponse = CheckOutResponse (Maybe VersionRef) 		deriving (Eq,Show)
+newtype CheckOutResponse = CheckOutResponse VersionRef 		deriving (Eq,Show)
 data ChangeUserInfo = ChangeUserInfo VersionRef UserInfo
 		    deriving (Eq,Show)
 data ChangeUserInfoResponse = ChangeUserInfoResponse 		deriving (Eq,Show)
@@ -63,7 +63,7 @@ data GetObject_format = GetObject_format_LaTeX  |
 data GetObject_recurse = GetObject_recurse_justThis  | 
 			 GetObject_recurse_allIncluded
 		       deriving (Eq,Show)
-newtype GetObjectResponse = GetObjectResponse (Maybe Files) 		deriving (Eq,Show)
+newtype GetObjectResponse = GetObjectResponse Files 		deriving (Eq,Show)
 data PutObject = PutObject VersionRef ObjectFullName Files
 	       deriving (Eq,Show)
 data PutObjectResponse = PutObjectResponse 		deriving (Eq,Show)
@@ -128,7 +128,7 @@ data Variant = Variant
     { variantKey :: String
     , variantValue :: String
     } deriving (Eq,Show)
-newtype Variants = Variants Variant 		deriving (Eq,Show)
+newtype Variants = Variants [Variant] 		deriving (Eq,Show)
 data Messages = Messages Messages_Attrs [Messages_]
 	      deriving (Eq,Show)
 data Messages_Attrs = Messages_Attrs
@@ -290,11 +290,11 @@ instance XmlContent CheckOutResponse where
     fromElem (CElem (Elem "checkOutResponse" [] c0):rest) =
 	(\(a,ca)->
 	   (Just (CheckOutResponse a), rest))
-	(fromElem c0)
+	(definite fromElem "<versionRef>" "checkOutResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (CheckOutResponse a) =
-	[CElem (Elem "checkOutResponse" [] (maybe [] toElem a))]
+	[CElem (Elem "checkOutResponse" [] (toElem a))]
 instance XmlContent ChangeUserInfo where
     fromElem (CElem (Elem "changeUserInfo" [] c0):rest) =
 	(\(a,ca)->
@@ -404,11 +404,11 @@ instance XmlContent GetObjectResponse where
     fromElem (CElem (Elem "getObjectResponse" [] c0):rest) =
 	(\(a,ca)->
 	   (Just (GetObjectResponse a), rest))
-	(fromElem c0)
+	(definite fromElem "<files>" "getObjectResponse" c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (GetObjectResponse a) =
-	[CElem (Elem "getObjectResponse" [] (maybe [] toElem a))]
+	[CElem (Elem "getObjectResponse" [] (toElem a))]
 instance XmlContent PutObject where
     fromElem (CElem (Elem "putObject" [] c0):rest) =
 	(\(a,ca)->
@@ -690,11 +690,11 @@ instance XmlContent Variants where
     fromElem (CElem (Elem "variants" [] c0):rest) =
 	(\(a,ca)->
 	   (Just (Variants a), rest))
-	(definite fromElem "<variant>" "variants" c0)
+	(many fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Variants a) =
-	[CElem (Elem "variants" [] (toElem a))]
+	[CElem (Elem "variants" [] (concatMap toElem a))]
 instance XmlContent Messages where
     fromElem (CElem (Elem "messages" as c0):rest) =
 	(\(a,ca)->

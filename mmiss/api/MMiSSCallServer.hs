@@ -8,9 +8,7 @@ module MMiSSCallServer(
 
 import Messages
 import Computation
-import AtomString
 import ExtendedPrelude
-import ClockTimeToString
 
 import Destructible
 
@@ -30,6 +28,7 @@ import VersionGraphClient
 
 import MMiSSRequest
 import MMiSSSessionState
+import MMiSSMapVersionInfo
 
 import {-# SOURCE #-} MMiSSDoXml
 
@@ -100,52 +99,8 @@ listVersions state (ListVersions serverRef) =
       (nodes :: [Node]) <- getNodes simpleGraph
       (versionInfos0 :: [VersionInfo.VersionInfo]) 
          <- mapM (getNodeLabel simpleGraph) nodes
+
       let
-         mapVersionInfo :: VersionInfo.VersionInfo 
-            -> MMiSSRequest.VersionInfo
-         mapVersionInfo versionInfo0 =
-            let
-               versionInfoIsPresent1 = 
-                  if VersionInfo.isPresent versionInfo0
-                     then
-                        Default VersionInfo_isPresent_present
-                     else
-                        NonDefault VersionInfo_isPresent_absent
-
-               user0 = VersionInfo.user versionInfo0
-
-               private1 = if VersionInfo.private user0
-                  then
-                     NonDefault UserInfo_private_noAutoExport
-                  else
-                     Default UserInfo_private_autoExport
-
-               user1 = UserInfo {
-                  userInfoLabel = Just (VersionInfo.label user0),
-                  userInfoContents = Just (VersionInfo.contents user0),
-                  userInfoPrivate = private1,
-                  userInfoVersion 
-                     = Just (toString (VersionInfo.version user0)),
-                  userInfoParents 
-                     = Just (unsplitByChar0 ' '
-                        (map toString (VersionInfo.parents user0)))
-                     }
-
-               server0 = VersionInfo.server versionInfo0
-
-               server1 = ServerInfo {
-                  serverInfoServerId = VersionInfo.serverId server0,
-                  serverInfoSerialNo = show (VersionInfo.serialNo server0),
-                  serverInfoTimeStamp 
-                     = clockTimeToString (VersionInfo.timeStamp server0),
-                  serverInfoUserId = VersionInfo.userId server0
-                  }
-            in
-               VersionInfo 
-                  (VersionInfo_Attrs {
-                     versionInfoIsPresent = versionInfoIsPresent1})
-                  user1 server1
-
-         versionInfos1 = map mapVersionInfo versionInfos0
+         versionInfos1 = map fromOurVersionInfo versionInfos0
 
       return (ListVersionsResponse versionInfos1)

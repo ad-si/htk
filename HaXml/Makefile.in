@@ -15,7 +15,7 @@ HAXML = @TOP@/HaXml-1.11/src
 EXTRA_HC_OPTIONS += -UDEBUG -cpp
 
 
-SRCS = $(HAXMLSRCS) XmlFix.hs
+SRCS = $(HAXMLSRCS) XmlFix.hs XmlExtras.hs
 
 # Taken from the setting for LIBSRCS in $(HAXML)/../Makefile.
 HAXMLSRCS = \

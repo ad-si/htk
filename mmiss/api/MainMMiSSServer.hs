@@ -24,12 +24,19 @@ import Crypt
 import PasswordFile
 import HostsPorts
 
+import Registrations
+
+import MMiSSRegistrations
+
 import MMiSSDoXml
 
 main :: IO ()
 main =
    do
       installHandler sigPIPE Ignore Nothing
+
+      doRegistrations
+      doMMiSSRegistrations
 
       portDesc <- getXMLPort
       portNumber <- getPortNumber portDesc

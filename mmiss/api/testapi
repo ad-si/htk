@@ -1,0 +1,3 @@
+#!/bin/sh
+export UNISERVER=denebola.informatik.uni-bremen.de
+./testMMiSSServer

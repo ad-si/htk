@@ -14,6 +14,9 @@ module MMiSSDTD(
    validateElement,
    getDisplayInstruction,
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
+   xmlParseWE, -- :: String -> String -> WithError Element
+      -- variant of xmlParseCheck which cheats using unsafePerformIO
+      -- (Should work anyway.)
    toExportableXml, -- :: Element -> String
 
    -- General interface for reading in and validating against a DTD.
@@ -26,9 +29,9 @@ module MMiSSDTD(
 import IO
 import Maybe
 
-import FiniteMap
-import qualified IOExts (unsafePerformIO)
-import qualified Exception
+import Data.FiniteMap
+import System.IO.Unsafe
+import Control.Exception
 
 import WBFiles
 import IOExtras
@@ -65,7 +68,7 @@ data MMiSSDTD = MMiSSDTD {
 
 
 theDTD :: MMiSSDTD
-theDTD = IOExts.unsafePerformIO readTheDTD
+theDTD = unsafePerformIO readTheDTD
 {-# NOINLINE theDTD #-}
 
 readTheDTD :: IO MMiSSDTD
@@ -79,7 +82,7 @@ readTheDTD =
 readDTD :: FilePath -> IO MMiSSDTD
 readDTD filePath =
    do
-      handleEither <- Exception.try (openFile filePath ReadMode)
+      handleEither <- Control.Exception.try (openFile filePath ReadMode)
       let
          handle = case handleEither of
             Left excep ->
@@ -163,6 +166,10 @@ xmlParseCheck fName contents =
          Left parseError -> hasError ("Parse error: "++parseError)
          Right el -> hasValue (xmlUnEscape stdXmlEscaper el)
          )
+
+-- | Another version of xmlParse which checks for errors.  
+xmlParseWE :: String -> String -> WithError Element
+xmlParseWE fName contents = unsafePerformIO (xmlParseCheck fName contents)
 
 instance DeepSeq Element where
    deepSeq (Elem name attributes contents) =

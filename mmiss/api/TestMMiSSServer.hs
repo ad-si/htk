@@ -8,6 +8,7 @@ import Messages
 import Computation
 import ICStringLen
 import AtomString
+import WBFiles
 
 import Control.Concurrent
 import Network
@@ -20,7 +21,8 @@ main =
    do
       user <- textQuery "User?"
       password <- textQuery "Password?"
-      handle <- connectTo "localhost" (PortNumber 11396)
+      port <- getXMLPort
+      handle <- connectTo "localhost" (PortNumber (fromIntegral port))
       hWrite handle "MMiSS-XML"
       hWrite handle user
       hWrite handle password

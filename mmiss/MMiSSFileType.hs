@@ -73,6 +73,7 @@ import GlobalRegistry
 import DisplayView(DisplayedView)
 
 import Text.XML.HaXml.Xml2Haskell
+import XmlExtras
 
 import MMiSSVariantObject
 import MMiSSVariant
@@ -741,10 +742,6 @@ typeTag = fileTypeTag . fileType
 -- Return the key in the global registry for objects with this tag
 constructKey :: String -> GlobalKey
 constructKey tag = oneOffKey "MMiSSFiles" tag
-
-fromDefaultable :: Defaultable a -> a
-fromDefaultable (Default a) = a
-fromDefaultable (NonDefault a) = a
 
 -- Make a name for an MMiSSFile, as known to the LinkManager.  We use the
 -- EntityName specialChar.

@@ -52,7 +52,7 @@
 
 <!-- The version itself is represented by a sequence of digits -->
 
-<!ELEMENT checkOutResponse (versionRef?) >
+<!ELEMENT checkOutResponse (versionRef) >
 
 <!-- Changing the user-info of a current checked-out version. -->
 <!ELEMENT changeUserInfo (versionRef,userInfo) >
@@ -94,7 +94,7 @@
     also include the objects in all constituent folders.
     -->
 
-<!ELEMENT getObjectResponse (files?) >
+<!ELEMENT getObjectResponse (files) >
  
 
 <!-- Attempt to import the given object(s) into the specified object in the
@@ -122,7 +122,9 @@
 <!-- A collection of files. -->
 <!ELEMENT files (file)* >
 
-<!-- A file. -->
+<!-- A file. 
+     Either a fileVariants or a files element must be present, in input
+     sent with the "putObject" command. -->
 <!ELEMENT file (fileLocation, (fileVariants | files)? ) >
 <!ELEMENT fileLocation (objectName?,objectType)>
    <!-- The objectName? needs to be optional because of objects, such as
@@ -173,7 +175,7 @@
    userId CDATA #REQUIRED
    >
 <!-- The timestamp has the format
-        <digits>+<digits>
+        <optional sign><digits>+<digits>
      where the digits encode two integers N1 and N2 (in order) representing
      the time elapsed since 00:00:00 UTC on 1 Jan 1970.  This will be
      N1 + (N2 / 10^12) seconds.  0<=N2<10^12.
@@ -190,9 +192,8 @@
    The list of baseTypes given in this DTD may be extended later on.
 
    Examples of extType's: 
-      "Package" / "Unit" etcetera for an mmissObject
       "gif" / "jpeg" (or the appropriate extension) for an mmissFile
-      not specified for an mmissFolder or mmissPreamble.
+      not specified for an mmissFolder, mmissPreamble or mmissObject.
 
       The combination of baseType=mmissFile and extType="tex" or "xml" 
       is reserved for MMiSS objects being exported.   
@@ -220,7 +221,7 @@
    value CDATA #REQUIRED
    >
 
-<!ELEMENT variants (variant) >
+<!ELEMENT variants (variant)* >
 
 <!-- Messages 
 

@@ -86,6 +86,7 @@ module ExtendedPrelude (
    uniqOrd,
    uniqOrdOrder,
    allSame,
+   findDuplicate, -- :: Ord a => (b -> a) -> [b] -> Maybe b
 
    fmToList_GE_1,
    maxFM_1,
@@ -651,6 +652,22 @@ uniqOrdOrder list = mkList emptySet list
                mkList set as
             else
                a : mkList (addToSet set a) as
+
+-- | If there are two elements of the list with the same (a), return one,
+-- otherwise Nothing.
+findDuplicate :: Ord a => (b -> a) -> [b] -> Maybe b
+findDuplicate toA bs = fd emptySet bs
+   where
+      fd _ [] = Nothing
+      fd aSet0 (b:bs) =
+         let
+            a = toA b
+         in
+            if elementOf a aSet0
+               then
+                  Just b
+               else
+                  fd (addToSet aSet0 a) bs 
 
 -- | Return Just True if all the elements give True, Just False if all False,
 -- Nothing otherwise (or list is empty).

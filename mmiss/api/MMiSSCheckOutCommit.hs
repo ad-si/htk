@@ -7,15 +7,51 @@ module MMiSSCheckOutCommit (
    closeVersion,
    ) where
 
+import AtomString
+import Computation
+import ExtendedPrelude
+import Broadcaster
+import Sources
+
+import qualified VersionInfo
+
+import VersionDB
+import VersionGraph
+import View hiding (setUserInfo) 
+   -- ours here also allows default labels and so on 
+import ViewType
+
 import MMiSSRequest
 import MMiSSSessionState
+import MMiSSMapVersionInfo
+
+import {-# SOURCE #-} MMiSSDoXml
 
 -- ----------------------------------------------------------------------------
 -- Checking out
 -- --------------------------------------------------------------------------
 
 checkOut :: MMiSSSessionState -> CheckOut -> IO CheckOutResponse
-checkOut = error "TBD"
+checkOut state (CheckOut (CheckOut_Attrs {checkOutVersion = versionStr} )
+      serverRef versionRefOpt) =
+   do
+      let
+         objectVersionWE = fromStringWE versionStr
+      objectVersion <- case fromWithError objectVersionWE of
+         Left _ -> ourError "Version must be a number"
+         Right objectVersion -> return objectVersion
+
+      versionGraph <- lookupVersionGraph state serverRef
+      let
+         repository = toVersionGraphRepository versionGraph
+         versionSimpleGraph = toVersionGraphGraph versionGraph
+
+      viewOpt <- catchNotFound (
+         getView repository versionSimpleGraph objectVersion)
+      versionRef <- case viewOpt of
+         Nothing -> ourError "Version not found"
+         Just view -> setView state versionRefOpt view
+      return (CheckOutResponse versionRef)
 
 -- ----------------------------------------------------------------------------
 -- Changing the User Info
@@ -23,14 +59,25 @@ checkOut = error "TBD"
 
 changeUserInfo :: MMiSSSessionState -> ChangeUserInfo 
    -> IO ChangeUserInfoResponse
-changeUserInfo = error "TBD"
+changeUserInfo state (ChangeUserInfo versionRef userInfo) =
+   do
+      view <- lookupView state versionRef
+      setUserInfo view userInfo
+      return ChangeUserInfoResponse
 
 -- ----------------------------------------------------------------------------
 -- Committing
 -- --------------------------------------------------------------------------
 
 commitVersion :: MMiSSSessionState -> CommitVersion -> IO CommitVersionResponse
-commitVersion = error "TBD"
+commitVersion state (CommitVersion versionRef userInfoOpt) =
+   do
+      view <- lookupView state versionRef
+      case userInfoOpt of
+         Nothing -> done
+         Just userInfo -> setUserInfo view userInfo
+      commitView view
+      return CommitVersionResponse
 
 -- ----------------------------------------------------------------------------
 -- Closing a version
@@ -42,3 +89,31 @@ closeVersion state (CloseVersion versionRef) =
       deleteView state versionRef
       return CloseVersionResponse
 
+-- ----------------------------------------------------------------------------
+-- Setting UserInfo
+-- ----------------------------------------------------------------------------
+
+setUserInfo :: View -> UserInfo -> IO ()
+setUserInfo view userInfo1 =
+   -- NB.  We won't get a concurrency problem here because two threads
+   -- don't have access to the same view.
+   do
+      checkUserInfo userInfo1
+      let
+         broadcaster = viewInfoBroadcaster view
+      viewInfo0 <- readContents broadcaster
+      let
+         user0 = VersionInfo.user viewInfo0
+         user1 = toOurUserInfo user0 userInfo1
+
+      user1 `seq` done 
+         -- make sure any parsing errors get picked up in time. 
+
+      broadcast broadcaster (viewInfo0 {VersionInfo.user = user1})
+
+checkUserInfo :: UserInfo -> IO ()
+checkUserInfo userInfo =
+   case (userInfoVersion userInfo,userInfoParents userInfo) of
+      (Nothing,Nothing) -> done
+      _ -> ourError 
+         "You aren't allowed to set the version number or parents of a version"

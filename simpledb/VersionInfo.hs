@@ -121,6 +121,7 @@ import Posix(getProcessID)
 import AtomString(StringClass(..))
 import CommandStringSub
 import Messages
+import DeepSeq
 
 import DialogWin
 import SimpleForm
@@ -135,7 +136,7 @@ import LogFile
 -- The datatypes
 -- ----------------------------------------------------------------------
 
-newtype ObjectVersion = ObjectVersion Int deriving (Eq,Ord,Typeable)
+newtype ObjectVersion = ObjectVersion Int deriving (Eq,Ord,Typeable,DeepSeq)
    -- Type of handle referring to a version.
 
 firstVersion :: ObjectVersion

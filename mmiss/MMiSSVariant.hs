@@ -33,6 +33,9 @@ module MMiSSVariant(
    toMMiSSVariantSpecFromAttributes,
    fromMMiSSSpecToSearch,
 
+   fromMMiSSVariantSpec,
+   toMMiSSVariantSpec,
+
    emptyMMiSSVariantSearch,
    emptyMMiSSVariantSpec,
 
@@ -274,6 +277,37 @@ getVersionAndUnset (MMiSSVariants list0) = case list0 of
       | key1 == key versionVariant  -> Just (value,MMiSSVariants list1)
    _ -> Nothing
 
+-- ------------------------------------------------------------------------
+-- Converting MMiSSVariantSpec to and from lists of Strings.
+-- ------------------------------------------------------------------------
+
+fromMMiSSVariantSpec :: MMiSSVariantSpec -> [(String,String)]
+fromMMiSSVariantSpec (MMiSSVariantSpec variants) =
+   unmkMMiSSVariants variants
+   
+toMMiSSVariantSpec :: [(String,String)] -> WithError MMiSSVariantSpec
+toMMiSSVariantSpec strs =
+   do
+      checkValid strs
+      return (MMiSSVariantSpec (mkMMiSSVariants strs))
+
+checkValid :: [(String,String)] -> WithError ()
+checkValid strs =
+   do
+      mapM_
+         (\ (key0,_) ->
+            if any (\ va -> key va == key0) variants
+               then
+                  done
+               else
+                  fail ("Unknown variant attribute " ++ key0)
+            )
+         strs
+      case findDuplicate fst strs of
+         Just (key0,_) -> fail ("Key " ++ key0 ++ " occurs more than once")
+         Nothing -> done
+     
+      
 
 -- ------------------------------------------------------------------------
 -- More sophisticated functions for manipulating MMiSSVariantSpec and
