@@ -233,14 +233,14 @@ instance NodeTypeConfig MenuButton where
 instance ArcTypeConfig MenuButton where
 
 data MenuButton =
-      Button String (IA Dyn)
-      -- first argument is text to put on button
-      -- second is event for when button is pressed.
+      Button String (Dyn -> IO ())
+      -- first argument is text to put on button.
+      -- second argument generates an action to be performed when the
+      -- button is pressed.
       -- The dynamic value is that supplied to the node/arc when it
       -- was created.
    |  Menu (Maybe String) [MenuButton]
-      -- first argument is title for menu, if any
-      -- second argument is list of buttons.
+      -- List of buttons with a possible title..
 
 
 
