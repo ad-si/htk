@@ -27,9 +27,9 @@ displayClassGraph :: MMiSSOntology -> Maybe String -> IO ()
 displayClassGraph onto startClass =
   do ginfo <- A.initgraphs
      classGraph <- case startClass of 
-                     Nothing -> return (getClassGraph onto)
+                     Nothing -> return (getPureClassGraph (getClassGraph onto))
                      Just(className) -> case (gsel (\(p,v,(l,_,_),s) -> l == className) (getClassGraph onto)) of
-                                          [] -> return (getClassGraph onto)
+                                          [] -> return (getPureClassGraph (getClassGraph onto))
                                           ((p,v,l,s):_) -> return(([],v,l,[]) & empty)
      A.Result gid err <-
        A.makegraph (getOntologyName onto)
@@ -161,26 +161,24 @@ showObjectsForVisible onto gv (name,descr,gid) =
             let classesInOldGraph = map (\(_,_,(className,_,_),_) -> className)
                                         (filter (\(_,_,(_,_,objectType),_) -> objectType == OntoClass)  
                                              (map (context oldGraph) (nodes oldGraph)))
-                objectList = filter (findObjectsOfClass classesInOldGraph) (labNodes (getObjectGraph onto))
-                newObjGr = insNodes objectList empty   
-                objectLinks = filter (findInlineEdges (map (\(nodeID, _) -> nodeID) objectList))
-                                       (labEdges (getObjectGraph onto))
-                newObjGr2 = insEdges objectLinks newObjGr
-            putStr (show newObjGr2)
-            updateDaVinciGraph (makeObjectGraph oldGraph (getClassGraph onto) newObjGr) gid gv
+                objectList = map (\(nid,_) -> nid) 
+                                 (filter (findObjectsOfClass classesInOldGraph) 
+                                            (getTypedNodes (getClassGraph onto) OntoObject))
+                objectGr = nfilter (`elem` objectList) (getClassGraph onto)
+            updateDaVinciGraph (makeObjectGraph oldGraph (getPureClassGraph (getClassGraph onto)) objectGr) gid gv
+            A.redisplay gid gv
+            return () 
   where
-    findObjectsOfClass classList (_,(objectName,className,_)) = className `elem` classList
-    findInlineEdges objectNodes (node1,node2,label) = 
-      if (node1 `elem` objectNodes) && (node2 `elem` objectNodes)
-        then True
-        else False
+    findObjectsOfClass classList (_,(_,className,_)) = className `elem` classList
 
 
 showWholeObjectGraph :: MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
 showWholeObjectGraph onto gv (name,descr,gid) = 
   do oldGv <- readIORef gv
      (A.Result descr error) <- purgeGraph gid gv
-     updateDaVinciGraph (makeObjectGraph empty (getClassGraph onto) (getObjectGraph onto)) gid gv
+     let objectList = map (\(nid,_) -> nid) (getTypedNodes (getClassGraph onto) OntoObject)
+         objectGraph = nfilter (`elem` objectList) (getClassGraph onto)
+     updateDaVinciGraph (makeObjectGraph empty (getClassGraph onto) objectGraph) gid gv
      case error of
        Just _ -> do writeIORef gv oldGv
 		    return ()
@@ -225,11 +223,11 @@ makeObjectGraph oldGr classGr objectGr =
         Just(objectNodeID) -> insEdge (objectNodeID, classNodeID, "instanceOf") gr  
 
 
-showWholeGraph :: MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
-showWholeGraph onto gv (name, descr, gid) = 
+showWholeClassGraph :: MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
+showWholeClassGraph onto gv (name, descr, gid) = 
   do oldGv <- readIORef gv
      (A.Result descr error) <- purgeGraph gid gv
-     updateDaVinciGraph (getClassGraph onto) gid gv
+     updateDaVinciGraph (getPureClassGraph (getClassGraph onto)) gid gv
      case error of
        Just _ -> do writeIORef gv oldGv
 		    return ()
@@ -388,6 +386,22 @@ getSubSuperClosure g showSuper newGr name =
                (Nothing, _) -> (isaAdj, nodeID, (label,"",OntoClass), []) & ng1       
                (Just(_),_) -> ng1
 
+
+
+hideObjectsForVisible :: MMiSSOntology -> A.GraphInfo -> (String, Int, Int) -> IO ()
+hideObjectsForVisible onto gv (name,descr,gid) = 
+  do (gs,_) <- readIORef gv
+     case lookup gid gs of
+       Nothing -> return()
+       Just g ->
+         do oldGraph <- return(A.ontoGraph g)
+            let objectNodeIDs = map (\(_,v,_,_) -> v) (gsel (\(_,_,(_,_,t),_) -> t == OntoClass) oldGraph)
+            updateDaVinciGraph (nfilter (`notElem` objectNodeIDs) oldGraph) gid gv
+            A.redisplay gid gv
+            return () 
+    
+
+
 createEdgeTypes ::  Gr (String,String,OntoObjectType) String -> [(String,DaVinciArcTypeParms (String,A.Descr))]
 createEdgeTypes g = map createEdgeType ((nub (map (\(_,_,l) -> l) (labEdges g))) ++ ["instanceOf"])
   where
@@ -430,7 +444,9 @@ createLocalMenu onto ginfo =
                           ,(Menu (Just "Show adjacent") 
                              [Button "Subclasses" (showSuperSubClassesForVisible onto ginfo False False),
                               Button "Sub/Superclasses" (showSuperSubClassesForVisible onto ginfo True False)])
+                          ,Blank
                           ,Button "Show objects" (showObjectsForVisible onto ginfo)
+                          ,Button "Hide objects" (hideObjectsForVisible onto ginfo)
                         ]
                       ),
                       (Menu (Just "Show relations") 
@@ -438,7 +454,7 @@ createLocalMenu onto ginfo =
                           Blank]
                           ++ (createRelationMenuButtons (getRelationNames onto) onto ginfo))
                       ),
-                      Button "Show whole class graph" (showWholeGraph onto ginfo),
+                      Button "Show whole class graph" (showWholeClassGraph onto ginfo),
                       Button "Show whole object graph" (showWholeObjectGraph onto ginfo),
                       Button "Reduce to this node" (reduceToThisNode onto ginfo)
                       ]
@@ -478,3 +494,25 @@ myGetNodes gid gv =
        Just g -> return(map (\(_,(name,_,_)) -> name) (labNodes (A.ontoGraph g)))
 --       Just g -> return (map (\(_,(name,_)) -> name) (A.nodes g))
        Nothing -> return([])
+
+
+getPureClassGraph :: Gr (String,String,OntoObjectType) String -> Gr (String,String,OntoObjectType) String
+-- getPureClassGraph g = efilter (\(_,_,edgeType) -> edgeType == "isa") g
+getPureClassGraph g = 
+  let classNodeList = map (\(nid,_) -> nid) (getTypedNodes g OntoClass)
+  in nfilter (`elem` classNodeList) g
+
+
+nfilter :: DynGraph gr => (Node -> Bool) -> gr a b -> gr a b 
+nfilter f = ufold cfilter empty
+            where cfilter (p,v,l,s) g = if (f v) 
+                                          then (p',v,l,s') & g
+                                          else g
+                   where p' = filter (\(b,u)->f u) p
+                         s' = filter (\(b,w)->f w) s
+
+
+getTypedNodes :: Gr (String,String,OntoObjectType) String -> OntoObjectType 
+                 -> [LNode (String, String, OntoObjectType)]
+getTypedNodes g t = 
+  map labNode' (gsel (\(_,_,(_,_,objType),_) -> objType == t) g)

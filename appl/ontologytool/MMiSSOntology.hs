@@ -87,9 +87,6 @@ module MMiSSOntology (
   getClassGraph,
   -- :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
 
-  getObjectGraph,
-  -- :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
-
   getRelationGraph,
   -- :: MMiSSOntology -> Gr String String
   
@@ -133,7 +130,6 @@ data MMiSSOntology = MMiSSOntology {
   objectLinks :: [ObjectLink],
   mode :: InsertMode,
   classGraph :: Gr (String, String, OntoObjectType) String,
-  objectGraph :: Gr (String, String, OntoObjectType) String,
   relationGraph :: Gr String String
 }
 
@@ -173,7 +169,6 @@ emptyMMiSSOntology ontoName insertMode =
     objectLinks = [],
     mode = insertMode,
     classGraph = empty,
-    objectGraph = empty,
     relationGraph = empty
   }
 
@@ -186,9 +181,6 @@ getOntologyName o = name o
 
 getClassGraph :: MMiSSOntology -> Gr (String, String, OntoObjectType) String
 getClassGraph o = classGraph o
-
-getObjectGraph :: MMiSSOntology -> Gr (String,String,OntoObjectType) String
-getObjectGraph o = objectGraph o
 
 getRelationGraph :: MMiSSOntology -> Gr String String
 getRelationGraph o = relationGraph o
@@ -255,7 +247,6 @@ insertClass onto className optText maybeSuper =
 			          objectLinks = objectLinks onto,
 			          mode = mode onto,
                                   classGraph = newgraph,
-                                  objectGraph = objectGraph onto,
                                   relationGraph = relationGraph onto} )
 
 {--
@@ -300,7 +291,6 @@ insertBaseRelation onto relName defText superRel card =
 			        objectLinks = objectLinks onto,
 			        mode = mode onto,
                                 classGraph = classGraph onto,
-                                objectGraph = objectGraph onto,
                                 relationGraph = relationGraph onto} )
 
 
@@ -330,7 +320,6 @@ insertRelationType onto relName source target =
 			        objectLinks = objectLinks o,
 			        mode = mode o,
                                 classGraph = foldl addClassNodeWithoutDecl (classGraph o) cList ,
-                                objectGraph = objectGraph onto,
                                 relationGraph = relationGraph onto}
 
     addRelations o rList = 
@@ -341,7 +330,6 @@ insertRelationType onto relName source target =
 			        objectLinks = objectLinks o,
 			        mode = mode o, 
                                 classGraph = classGraph o,
-                                objectGraph = objectGraph onto,
                                 relationGraph = relationGraph onto} 
 
     lookupClass o className =
@@ -374,7 +362,6 @@ insertRelationType onto relName source target =
 			                              objectLinks = objectLinks onto,
 			                              mode = mode onto,
                                                       classGraph = newg,
-                                                      objectGraph = objectGraph onto,
                                                       relationGraph = relationGraph onto} )
 
 
@@ -396,8 +383,7 @@ insertObject onto objectName defText className =
 			    relations = relations onto,
 			    objectLinks = objectLinks onto,
 			    mode = mode onto,
-                            classGraph = classGraph onto,
-                            objectGraph = addObjectToGraph objectName className (objectGraph onto), 
+                            classGraph = addObjectToGraph objectName className (classGraph onto),
                             relationGraph = relationGraph onto} )
   where
     addClasses o cList = 
@@ -408,7 +394,6 @@ insertObject onto objectName defText className =
 			        objectLinks = objectLinks o,
 			        mode = mode o,
                                 classGraph = foldl addClassNodeWithoutDecl (classGraph onto) cList,
-                                objectGraph = objectGraph onto,
                                 relationGraph = relationGraph onto}
     lookupClass o className =
        case lookupFM (classes o) className of
@@ -418,12 +403,12 @@ insertObject onto objectName defText className =
                                         ++ " doesn't exist in the Ontology.\n")
          Just(_) -> return o
 
-    addObjectToGraph name className og = 
-       case (findLNode og name) of
-         Nothing -> let n = head (newNodes 1 og)
-                        newOG = (insNode (n, (("_" ++ name ++ "_"), className, OntoObject)) og)
-                    in newOG
-         Just(node) -> og
+    addObjectToGraph name className g = 
+       case (findLNode g name) of
+         Nothing -> let n = head (newNodes 1 g)
+                        newG = (insNode (n, (("_" ++ name ++ "_"), className, OntoObject)) g)
+                    in newG
+         Just(node) -> g
 
 
 insertLink onto source target relName =
@@ -445,8 +430,7 @@ insertLink onto source target relName =
 			    relations = relations o3,
 			    objectLinks = (objectLinks o3) ++ [(ObjectLink source target relName)],
 			    mode = mode o3,
-                            classGraph = classGraph onto,
-                            objectGraph = addObjectLinkToGraph source target relName (objectGraph onto),
+                            classGraph = addObjectLinkToGraph source target relName (classGraph onto),
                             relationGraph = relationGraph onto} )
   where
     addObjectLinkToGraph source target relName g =
