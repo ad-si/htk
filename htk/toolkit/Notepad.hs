@@ -428,8 +428,10 @@ clearNotepad np =
 
 scrollTo :: CItem c => Notepad c -> NotepadItem c -> IO ()
 scrollTo notepad item = done
+{-
   do
     (dx, dy) <- 
+-}
 
 undoLastMotion :: Notepad a -> IO ()
 undoLastMotion np =
