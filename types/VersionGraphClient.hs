@@ -97,11 +97,11 @@ data VersionInfo1 = VersionInfo1 {
    viewOpt :: Maybe View
    } deriving (Typeable)
 
-newtype VersionGraphClient = VersionGraphClient {
+-- use data declaration to work around ghc6.2.1 bug.
+data VersionGraphClient = VersionGraphClient {
    versionDag :: VersionDag VersionGraphNode VersionInfo1 Bool
       -- ^ the Bool is True for a checked-in version
    }
-
  
 type VersionTypes dataSort = dataSort VersionInfo1 () Bool ()
 
