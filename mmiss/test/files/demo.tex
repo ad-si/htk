@@ -20,7 +20,7 @@
 
 
 \begin{document}
-\begin{Package}[MMISS_Latex2]{Root}
+\begin{Package}[MMISS_Latex2]{AlgSpec}
 {Formal Program Development with Algebraic Specifications}
 {Date=12.09.2002,
 Authors={Christoph L\"uth, Markus Roggenbach},
@@ -30,6 +30,8 @@ ShortTitle={Algebraic Specification},
 Language=en-GB,LevelOfDetail=LectureNotes,InteractionLevel=Hyper}
 
 \begin{Section}{IntroAlgSpec}{Signatures, Terms and Algebras}{}
+
+
 
 \begin{Abstract}{Abstract}{Overview}{}
 This section will introduce the basic mathematics of algebraic
@@ -59,7 +61,7 @@ independent of tools
 \begin{Paragraph}{Signatures}{Signatures}{}
 Signatures allow us to define operations.
 
-\begin{Definition}{DefSignatures}{Signatures}{}
+\begin{Definition}{DefSignature}{Signature}{}
 A \Emphasis{Signature} $\Sigma=(S, \Omega)$ is given by 
 \begin{List}{SignatureComponents}{itemize}{}
     \ListItem{} a set $S$ of \Emphasis{sorts}, and 
@@ -72,9 +74,10 @@ argument sorts $s_1,\ldots,s_n$ and target sort $s$, also written
 $\omega:s_1\ldots s_n\rightarrow s$.
 \end{Paragraph}
 
-\begin{Paragraph}{Algebras}{Algebras}{}
-Algebras are models of signatures.
+\begin{Paragraph}{Algebra}{Algebra}{}
 
+Algebras are models of \Link[signatures]{DefSignature}{}.
+\vfill{}
 \begin{Definition}{DefAlgebra}{$\Sigma$-Algebra}{}
   An \Emphasis{Algebra} $A= (S_A, \Omega_A)$ for a signature
   $\Sigma=(S, \Omega)$ ($\Sigma$-Algebra) is given by 
@@ -91,19 +94,25 @@ Algebras are models of signatures.
 
 
 \begin{Paragraph}{Terms}{Terms over a Set}{}
-Let $\Sigma=(S, \Omega)$ be a signature. 
+Let $\Sigma=(S, \Omega)$ be a \Link[signature]{DefSignature}{}.
 
 An \Emphasis{$S$-sorted set of variables} is given by $X=
 \{X_s\}_{s\in S}$.
 
 Intuitively: terms are the smallest set containing the variables which
-is closed under application of operations.                                
+is closed under application of operations.
+
+\begin{Lemma}{TermAlgebra}{The Term Algebra}{}
+Terms form an \Link[algebra]{DefAlgebra}{}.  
+\end{Lemma}
+
 \end{Paragraph}
 
 \begin{Paragraph}{Example}{A Simple Example}{}
 
 An Example (in CASL): the natural numbers.
 
+%% \IncludeProgramFragment{CASL_Nats}{}
 \begin{ProgramFragment}[CASL_Spec]{CASL_Nats}{Natural Numbers}{}
 \begin{SpecDefn}{Nat} =
 \I{}
@@ -118,8 +127,7 @@ Pos & \ ::= & \ suc(pre:Nat)
 \end{SpecDefn}
 \end{ProgramFragment}
 
-Note how structural induction on $\Nat$ corresponds to the usual
-natural induction.
+Note how $(\Nat, 0, +)$ form an \Link[algebra]{DefAlgebra}{}.
 \end{Paragraph}
 
 \begin{Summary}{Summary}{Summing Up}{}
@@ -137,6 +145,8 @@ specification language CASL.
 \end{List}
 \end{Summary}
 
+
+  
 \end{Section}
 
 
