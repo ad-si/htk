@@ -8,12 +8,11 @@ module MMiSSEditXml(
    parseXmlString, -- exported for debugging purposes
 
    toExportableXml, -- :: Element -> String
+      -- actually defined in MMiSSDTD.
 
    TypedName,
 
    ) where
-
-#include "config.h"
 
 import Maybe
 
@@ -23,17 +22,8 @@ import Debug(debug)
 
 import EmacsContent
 
-#if HAXMLINT
 import Text.XML.HaXml.Types
-import Text.XML.HaXml.Pretty
-import Text.PrettyPrint.HughesPJ hiding (char)
 import Text.XML.HaXml.Lex
-#else
-import XmlTypes
-import XmlPP
-import Pretty
-import XmlLex
-#endif
 
 import MMiSSDTD
 import MMiSSDTDAssumptions
@@ -66,9 +56,6 @@ toEditableXml fName elem =
       xmlString = toExportableXml elem
    in
       parseXmlString xmlString
-
-toExportableXml :: Element -> String
-toExportableXml elem = render (element elem)
 
 -- -------------------------------------------------------------------
 -- Functions for extracting the includes from XML.

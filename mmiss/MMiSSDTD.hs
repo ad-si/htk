@@ -14,9 +14,8 @@ module MMiSSDTD(
    validateElement,
    getDisplayInstruction,
    xmlParseCheck, -- :: String -> String -> IO (WithError Element)
+   toExportableXml, -- :: Element -> String
    ) where
-
-#include "config.h"
 
 import IO
 import Maybe
@@ -33,16 +32,16 @@ import Computation
 
 import DisplayParms
 
-#if HAXMLINT
+import Pretty
+import XmlFix
+import XmlEscape
+import Text.XML.HaXml.Pretty
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Parse
 import Text.XML.HaXml.Validate
-#else
-import XmlParse
-import XmlTypes
 
-import XmlValidate
-#endif
+
+import XmlEscape
 
 import MMiSSDTDAssumptions
 
@@ -91,11 +90,7 @@ readDTD filePath =
             _ -> error ("Error reading MMiSS DTD from "++filePath++
              ": couldn't parse it")
 
-#if HAXMLINT
          simpleDTD = partialValidate dtd
-#else
-         simpleDTD = validate dtd
-#endif
 
          elements = [element | Element (ElementDecl element _) <- markups]
     
@@ -163,7 +158,7 @@ xmlParseCheck fName contents =
          )
       return (case result of
          Left parseError -> hasError ("Parse error: "++parseError)
-         Right el -> hasValue el
+         Right el -> hasValue (xmlUnEscape stdXmlEscaper el)
          )
 
 instance DeepSeq Element where
@@ -186,6 +181,15 @@ instance DeepSeq Content where
 instance DeepSeq Misc where
    deepSeq (Comment c) = deepSeq c
    deepSeq (PI p) = deepSeq p
+
+-- -------------------------------------------------------------
+-- UnParsing XML
+-- -------------------------------------------------------------
+
+
+toExportableXml :: Element -> String
+toExportableXml elem = 
+  xmlFix . render . element . (xmlEscape stdXmlEscaper) $ elem
 
 
 

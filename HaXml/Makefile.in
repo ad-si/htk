@@ -5,7 +5,7 @@
 
 
 PACKAGE = uni-HaXml
-PACKAGES = text data uni-options
+PACKAGES = text data uni-util
 
 HAXML = @TOP@/HaXml-1.09/src
 
@@ -15,10 +15,10 @@ HAXML = @TOP@/HaXml-1.09/src
 EXTRA_HC_OPTIONS = -UDEBUG
 
 
+SRCS = $(HAXMLSRCS) XmlEscape.hs XmlFix.hs
+
 # Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in.
-# However we comment out everything that is in GHC (5.06)'s distribution
-# already.
-SRCS = \
+HAXMLSRCS = \
 	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs Text/XML/HaXml/Lex.hs \
 	Text/XML/HaXml/Parse.hs Text/XML/HaXml/Pretty.hs \
 	Text/XML/HaXml/Types.hs Text/XML/HaXml/Validate.hs \
@@ -30,11 +30,11 @@ SRCS = \
 	Text/XML/HaXml/Xtract/Combinators.hs \
 	Text/XML/HaXml/Xtract/Lex.hs \
 	Text/XML/HaXml/Xtract/Parse.hs \
-	Text/ParserCombinators/HuttonMeijerWallace.hs
+	Text/ParserCombinators/HuttonMeijerWallace.hs 
 
 include @TOP@/mk/boilerplate.mk
 
 lnsrcs : 
-	$(foreach file,$(SRCS),\
+	$(foreach file,$(HAXMLSRCS),\
            $(MKDIR) -p `dirname $(file)` \
            && $(LN) -s $(HAXML)/$(file) $(file) &&) echo "Don't copy again" >lnsrcs
