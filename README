@@ -40,6 +40,9 @@ The following are required or at least recommended.
     whose homepage is
        http://www.fmi.uni-passau.de/~groessli/hdoc/
     You will need version 0.8.1 or later.
+(6) A lot of memory will help during HTk (or virtual memory and a lot of
+    patience).  250MB would be nice.  If you still get problems see the
+    section on "Restarting compilation".
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
@@ -202,28 +205,88 @@ to reset the package file.  You will also need to run
    gmake depend
 if the import dependencies between the files you are working on have changed.
  
-Making hdoc documentation
+Making documentation
 -------------------------
 
-hdoc is a system for annotating Haskell source files with comments in a 
-special format so that documentation can in HTML format can be generated 
-automatically.  Not all source files in UniForM are annotated in this way;
-however the ones you need for the HTk interface are.  To generate the HTML
-files, do
-./configure 
-(if you haven't already done so) followed by
-htk/doc/generatedoc
+
+gmake doc should work.
+
+In HTk this uses hdoc.   hdoc is a system for annotating Haskell source 
+files with comments in a special format so that documentation can in HTML 
+format can be generated automatically.  Not all source files in UniForM are 
+annotated in this way; however the ones you need for the HTk interface are.  
 
 hdoc can take a long time, especially on large files, so be patient.
+
+How to Make a Binary Distribution
+---------------------------------
+
+The following (should) work.
+
+# of course you can skip the next three commands if you've already done them
+   ./configure
+   gmake boot
+   gmake packages
+#
+   gmake doc
+   gmake prepareexports
+   gmake exports.tar.gz
+
+Then exports.tar.gz will be the binary distribution.  You should afterwards
+re-run ./configure as gmake prepareexports (currently) alters the 
+default_options code in util, to put in generic locations for wish, daVinci 
+& co.
+
+For systems where hdoc & LaTeX are not installed you could for example
+find a machine where you CAN build the documentation, do it there,
+and prepare a .tar.gz archive containing the documentation with the
+following:
+# cd to the documentation directory.  This is the only one at present.
+   cd htk/doc
+# Make a tarball
+   tar -czf htkdocs.tar.gz `gmake -s --no-print-directory displayexports`
+Then ungz the htkdocs.tar.gz file in the htk/docs directory, instead of
+doing gmake doc.
+
+Restarting compilation
+----------------------
+
+If you try to compile HTk with too little memory, Glasgow Haskell will
+fall over, because it is trying to compile too many files at once, and suddenly
+comes across a really big one it can't handle.  You can try making the
+individual object file which GHC gave up on:
+   cd htk
+   gmake toolkit/Notepad.o
+where instead of toolkit/Notepad you put whatever module caused the problems.
+Then restart with
+   gmake packages
+and hope the problem doesn't reoccur.
+
+If this fails you can go back to the old method of compiling the modules
+one by one.  The simplest way is probably to do (from the top directory)
+   gmake packagesquick # Needed if you haven't already completed a build
+   gmake depend # Sets up .depend files for Make
+   gmake lib # Compiles everything, but one by one.
+   gmake packagesquick # Complete the build.  (Yes, you've already done this.)
+
+In theory object files produced by this method should be just the same 
+as those produced by the new one.
 
 Other documentation
 -------------------
 
-htk/doc/HOWTO.tex contains a description of the internals of the HTk
-encapsulation; this will be most useful if you want to modify this
-encapsulation in some way.  It is in German, but we may make an English
-version available if there is sufficient demand, so let us know if you
-want one. 
+The htk/doc directory contains various documentation about htk.
+
+You should start with htk/doc/intro, which is an introduction.
+
+htk/doc/hdoc contains hdoc-style information indexing modules, variables,
+   classes and so on.  The files (once documentation is made) are in HTML.
+
+htk/doc/internal/HOWTO.tex contains a description of the internals of the HTk
+   encapsulation; this will be most useful if you want to modify this
+   encapsulation in some way.  Hence it is heavily technical.  Just to make
+   things more fun, it is in German.  Do let us know if you want a translation.
+
 
 docs/future contains some notes on the future development of UniForM
 (some of which has already happened).
