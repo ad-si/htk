@@ -19,6 +19,6 @@ LD = @LD@
 GHCPKG = @GHCPKG@
 SED = @SED@
 WINDOWS = @WINDOWS@
-GhcVersion = @GhcVeresion@
+GhcVersion = @GhcVersion@
 GhcMajVersion = @GhcMajVersion@
 GhcMinVersion = @GhcMinVersion@
