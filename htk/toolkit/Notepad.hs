@@ -29,7 +29,9 @@ module Notepad (
   selectAnotherItem,
   selectItemsWithin,
   deselectItem,
+  getItems,
   getSelectedItems,
+  isNotepadItemSelected,
   deleteItem,
   clearNotepad,
   undoLastMotion,
@@ -328,7 +330,7 @@ selectAll np =
     notepaditems <- getRef (items np)
     mapM (highlight (canvas np)) notepaditems
     mapM (\item -> do
-                     b <- Notepad.isSelected np item
+                     b <- isNotepadItemSelected np item
                      if b then done else sendEv np (Selected item))
          notepaditems
     setRef (selected_items np) notepaditems
@@ -340,7 +342,7 @@ deselectAll np =
     selecteditems <- getRef (selected_items np)
     mapM deHighlight selecteditems
     mapM (\item -> do
-                     b <- Notepad.isSelected np item
+                     b <- isNotepadItemSelected np item
                      if b then sendEv np (Deselected item) else done)
          notepaditems
     setRef (selected_items np) []
@@ -372,8 +374,8 @@ undoLastMotion np =
                                         act'
                       _ -> done)
 
-isSelected :: Notepad a -> NotepadItem a -> IO Bool
-isSelected np item =
+isNotepadItemSelected :: Notepad a -> NotepadItem a -> IO Bool
+isNotepadItemSelected np item =
   do
     selecteditems <- getRef (selected_items np)
     return (any ((==) item) selecteditems)
@@ -391,17 +393,17 @@ selectItemsWithin (x0, y0) (x1, y1) np =
                       if within pos then
                         selectAnotherItem np item
                         else do
-                               b <- Notepad.isSelected np item
+                               b <- isNotepadItemSelected np item
                                if b then done
                                  else deselectItem np item)
          notepaditems
     done
 
+getItems :: Notepad a -> IO [NotepadItem a]
+getItems np = getRef (items np)
+
 getSelectedItems :: Notepad a -> IO [NotepadItem a]
-getSelectedItems np =
-  do
-    selecteditems <- getRef (selected_items np)
-    return selecteditems
+getSelectedItems np = getRef (selected_items np)
 
 
 --------------------------------------------------------------------------
@@ -612,7 +614,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                                      done
                         Just item@(NotepadItem img _ _ _ _) ->
                           do
-                            b <- Notepad.isSelected notepad item
+                            b <- isNotepadItemSelected notepad item
                             if b then done else selectItem notepad item
                             t <- createTagFromSelection notepad
                             spawnEvent (moveSelectedItems (x, y) (x, y) t)
@@ -628,8 +630,8 @@ newNotepad par scrolltype imgsize mstate cnf =
                                     sendEv notepad (Rightclick [])
                        Just entereditem ->
                          do
-                           b <- Notepad.isSelected notepad
-                                                       entereditem
+                           b <- isNotepadItemSelected notepad
+                                                      entereditem
                            (if b then
                               do
                                 selecteditems <- getRef selecteditemsref
@@ -652,7 +654,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                                       case entereditem of
                                         Just item ->
                                           do
-                                            b <- Notepad.isSelected
+                                            b <- isNotepadItemSelected
                                                    notepad item
                                             if b then deselectItem notepad
                                                         item
@@ -733,7 +735,7 @@ exportNotepadState np =
           do
             val' <- getRef val
             pos <- getPosition img
-            is_selected <- Notepad.isSelected np item
+            is_selected <- isNotepadItemSelected np item
             rest <- exportNotepadState' np items
             return (NotepadExportItem { val = val',
                                         pos = pos,

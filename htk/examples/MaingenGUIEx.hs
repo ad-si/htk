@@ -84,8 +84,8 @@ addTxt nm ent =
       _ -> done
 -}
 
-addCol :: IO Id -> String -> String -> IO ()
-addCol newID name ent =
+addCol :: IO Id -> GenGUI Obj -> String -> String -> IO ()
+addCol newID gui name ent =
   do
     mpar <- getRef foldref 
     case mpar of
@@ -101,7 +101,7 @@ addCol newID name ent =
                                             "Blue" -> Blue
                                             "Green" -> Green
                                             "Yellow" -> Yellow)
-          addItem par (LeafItem (nm, ic, val) Nothing)
+          addItem gui par (LeafItem (nm, ic, val) Nothing)
           done
       _ -> done
 
@@ -201,15 +201,17 @@ addExampleFolders newID gui =
               nm = newName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
-      addImgFolder :: IO Id -> Item Obj -> String -> IO Image -> String ->
-                      [(IO Image, IO Image)] -> Int -> IO ()
-      addImgFolder newID par name ic subnm vals_icons i =
+      addImgFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
+                      IO Image -> String -> [(IO Image, IO Image)] ->
+                      Int -> IO ()
+      addImgFolder newID gui par name ic subnm vals_icons i =
         do
           let nm = newName (name ++ show i)
           items <- mapM (mkImgItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
-          addItem par (FolderItem (nm, ic, MyContainer id) items Nothing)
+          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+                                      Nothing)
           done
 
       mkColItem :: IO Id -> String -> (Int, (Col, IO Image)) ->
@@ -221,27 +223,29 @@ addExampleFolders newID gui =
               nm = newName (name ++ show i)
           return (LeafItem (nm, ic, val) Nothing)
 
-      addColFolder :: IO Id -> Item Obj -> String -> IO Image -> String ->
-                      [(Col, IO Image)] -> Int -> IO ()
-      addColFolder newID par name ic subnm vals_icons i =
+      addColFolder :: IO Id -> GenGUI Obj -> Item Obj -> String ->
+                      IO Image -> String -> [(Col, IO Image)] -> Int ->
+                      IO ()
+      addColFolder newID gui par name ic subnm vals_icons i =
         do
           let nm = newName (name ++ show i)
           items <- mapM (mkColItem newID subnm)
                         (zip [1..(length vals_icons)] vals_icons)
           id <- newID
-          addItem par (FolderItem (nm, ic, MyContainer id) items Nothing)
+          addItem gui par (FolderItem (nm, ic, MyContainer id) items
+                                      Nothing)
           done
   in do
        guiroot <- root gui
 
-       mapM (addImgFolder newID guiroot "images." imgfolderImg
+       mapM (addImgFolder newID gui guiroot "images." imgfolderImg
                           "image_item."
                           [(img1, imgImg), (img2, imgImg)]) [1]
 
        let nm1 = newName ("example_folder.1")
        exfolder1 <- do
                       id <- newID
-                      addItem guiroot
+                      addItem gui guiroot
                         (FolderItem (nm1, folderImg, MyContainer id) []
                                     Nothing)
 
@@ -270,7 +274,7 @@ addExampleFolders newID gui =
                           (73, numImg), (2451, numImg), (3, numImg),
                           (7182812, numImg), (2, numImg)]) [1..3]
 -}
-       mapM (addColFolder newID guiroot "colors." colorfolderImg
+       mapM (addColFolder newID gui guiroot "colors." colorfolderImg
                           "color_item."
                           [(Red, redImg), (Yellow, yellowImg),
                            (Green, greenImg), (Yellow, yellowImg),
@@ -444,7 +448,7 @@ main =
                          always (do
                                    nm <- readTkVariable colnm_var
                                    val <- getValue colmenu
-                                   addCol newID nm val)))
+                                   addCol newID gui nm val)))
 {-
     boxfold <- newHFBox [pad Vertical 10, pad Horizontal 10, parent main]
     addfold <- newButton [pad Vertical 5, pad Horizontal 5, height 3,
@@ -686,15 +690,14 @@ doubleClickNp item = done
 -}
 
 
-exportState :: CItem c => GenGUI c -> IO ()
-exportState gui = done
-{-
+exportState :: GenGUI Obj -> IO ()
+exportState gui =
   do
     st <- exportGenGUIState gui
     putStrLn "state exported"
     gui_clone <- newGenGUI (Just st)
     putStrLn "state imported"
--}
+
 
 ------------
 -- images --
