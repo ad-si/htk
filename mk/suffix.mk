@@ -21,6 +21,7 @@
 #             can be compiled.
 # SRCS     all Haskell source files
 # SRCSC    all C source files
+# SRCSEMACS all Emacs Lisp files
 # PACKAGE  the name of this package
 # PACKAGES the name of packages we depend on (we only need direct
 #          dependencies here).
@@ -80,6 +81,7 @@ OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
 OBJSLHS = $(patsubst %.lhs,%.o,$(SRCSLHS))
 OBJSALLHS = $(OBJSHS) $(OBJSLHS)
 OBJSC = $(patsubst %.c,%.o,$(SRCSC))
+OBJSEMACS = $(patsubst %.el,%.elc,$(SRCSEMACS))
 OBJS = $(OBJSALLHS)  $(OBJSC)
 LIBSRCS = $(filter-out Test%.hs Main%.hs,$(SRCS)) \
           $(filter-out Test%.lhs Main%.lhs,$(SRCSLHS))
@@ -117,6 +119,7 @@ EXTRAEXPORTSFULL = $(patsubst %,$$PWD/%,$(EXTRAEXPORTS))
 # Instead we decree that all C files must have an associated header
 # file.
 OTHERSALL = $(patsubst %.c,$$PWD/%.c,$(SRCSC))  \
+            $(patsubst %.el,$$PWD/%.el,$(SRCSEMACS)) \
             $(patsubst %.c,$(CINCLUDES)/%.h,$(SRCSC)) \
             $$PWD/Makefile.in
 ALLFILESALL = $(HSFILESALL) $(OTHERSALL)
@@ -145,7 +148,7 @@ DEPS = $(DEPS':COMMA=,)
 #
 
 # Specify that these targets don't correspond to files.
-.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
+.PHONY : depend libhere lib testhere test mainhere main all clean cleanprogs ghci libfast libfasthere displaysrcshere displayhshere displaysrcs displayhs objsc objschere objsemacs objsemacshere packageherequick packagehere packages packagesquick boot boothere prepareexports prepareexportshere displayexports displayexportshere oldclean exportnames $(EXPORTPREFIX).tar.gz $(EXPORTPREFIX).zip exports www wwwtest wwwhere makefilequick
 
 # The following gmake-3.77ism prevents gmake deleting all the
 # object files once it has finished with them, so remakes
@@ -156,9 +159,9 @@ DEPS = $(DEPS':COMMA=,)
 all : packagehere mainhere testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) all && ) echo Finished make all
 
-# ghci starts up GHC interactively.
+# ghci starts up GHC interactively, with the current package if any
 ghci :
-	$(HC) $(HCFLAGS)  --interactive
+	$(HC) $(TESTFLAGS)  --interactive -fglasgow-exts -fallow-overlapping-instances -fallow-undecidable-instances
  
 test : testhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) test && ) echo Finished make test
@@ -194,6 +197,7 @@ display :
 	@echo OBJSHS = $(OBJSHS)
 	@echo OBJSLHS = $(OBJSLHS)
 	@echo OBJSC = $(OBJSC)
+	@echo OBJSEMACS = $(OBJSEMACS)
 	@echo OBJS = $(OBJS)
 	@echo LIBOBJS = $(LIBOBJS)
 	@echo TESTOBJS = $(TESTOBJS)
@@ -300,6 +304,10 @@ objschere : $(OBJSC)
 objsc : objschere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) objsc && ) echo
 
+objsemacshere : $(OBJSEMACS)
+objsemacs : objsemacshere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) objsemacs && ) echo
+
 doc : dochere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) doc && ) echo 
 
@@ -360,6 +368,10 @@ $(TESTOBJSLHS) $(MAINOBJSLHS) : %.o : %.lhs
 # of this one.
 $(OBJSC) : %.o : %.c
 	$(CCH) $(CFLAGS) -c $< -o $@
+
+$(OBJSEMACS) : %.elc : %.el
+	$(GNUCLIENT) -batch -eval '(byte-compile-file "'$$PWD'/$<")'
+
 
 ifndef FAST
 -include .depend

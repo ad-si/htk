@@ -22,9 +22,12 @@ module EmacsBasic(
    execEmacsString, -- :: EmacsSession -> String -> IO ()
       -- Evaluate the given Emacs Lisp expression.  Any result is ignored.
 
-   emacsEvent, -- :: EmacsSession -> String -> EV ()
+   emacsEvent, -- :: EmacsSession -> String -> EV String
       -- Event sent by the Emacs Lisp uni-ev function (used for example
       -- when extents are added) with a particular key.
+
+   unUniEscape, -- :: String -> String
+   -- Undo the effects of sendmess.el's uni-escape function
    ) where
 
 import IO
@@ -39,6 +42,8 @@ import Computation(done)
 import WBFiles
 import CommandStringSub(emacsEscape)
 import IOExtras(catchEOF)
+import DeepSeq
+import ExtendedPrelude
 
 import GuardedEvents
 import EqGuard
@@ -65,9 +70,7 @@ data EmacsSession = EmacsSession {
    emacsResponse :: MVar String,
 
    -- events 
-   -- For the time being events don't need to carry any data, so we just
-   -- attach ().  This may change.
-   eventChannel :: EqGuardedChannel String (),
+   eventChannel :: EqGuardedChannel String String,
    
    oID :: ObjectID,
    closeAction :: IO ()
@@ -149,8 +152,16 @@ readEmacsOutput emacsSession =
                   'E':'R':' ':rest -> 
                      error ("EmacsBasic: XEmacs error: "++unUniEscape rest)
                   'E':'V':' ':rest ->
-                     sync(noWait(send (eventChannel emacsSession) 
-                        (unUniEscape rest,())))
+                     let
+                        (key,value) =
+                           case splitToChar ' ' rest of
+                              Nothing -> error "EmacsBasic: bad event"
+                              Just (key,unEscaped) 
+                                 -> (key,unUniEscape unEscaped)
+                     in
+                        sync(noWait(send (eventChannel emacsSession) 
+                           (key,value)))
+
                   _ -> parseError line
                readEmacsOutput emacsSession
 
@@ -167,33 +178,33 @@ parseError line =
 ---Emacs.
 execEmacsString :: EmacsSession -> String -> IO ()
 execEmacsString emacsSession command =
-   seqList command `seq` 
-      synchronize (emacsLock emacsSession) 
-         (writeEmacs emacsSession command)
+   deepSeq command 
+      (synchronize (emacsLock emacsSession) 
+         (writeEmacs emacsSession command))
         
 
 evalEmacsString :: EmacsSession -> String -> IO String
 evalEmacsString emacsSession expression =
-   seqList expression `seq`
-      synchronize (emacsLock emacsSession) (
+   deepSeq expression
+      (synchronize (emacsLock emacsSession) (
          do
             let
                command' = "(uni-ok "++expression++")"
             writeEmacs emacsSession command'
             str <- takeMVar (emacsResponse emacsSession)
             return (unUniEscape str)
-         )
+         ))
 
 evalEmacsStringQuick :: EmacsSession -> String -> IO String
 evalEmacsStringQuick emacsSession expression =
-   seqList expression `seq`
-      synchronize (emacsLock emacsSession) (
+   deepSeq expression 
+      (synchronize (emacsLock emacsSession) (
          do
             let
                command' = "(uni-ok-quick "++expression++")"
             writeEmacs emacsSession command'
             takeMVar (emacsResponse emacsSession)
-         )
+         ))
 
 writeEmacs :: EmacsSession -> String -> IO ()
 writeEmacs emacsSession command =
@@ -204,17 +215,11 @@ writeEmacs emacsSession command =
       hPutStrLn hand command
       hFlush hand
 
--- We need to make sure strings are fully evaluating before acquiring
--- the EmacsSession lock, so we spend as little time as possible inside
--- the lock.
-seqList :: [a] -> ()
-seqList [] = ()
-seqList (h:t) = h `seq` seqList t
 
-
-emacsEvent :: EmacsSession -> String -> Event ()
+emacsEvent :: EmacsSession -> String -> Event String
 emacsEvent emacsSession key =
-   toEvent (listen (eventChannel emacsSession) |> (Eq key)) >>> done
+   toEvent (listen (eventChannel emacsSession) |> (Eq key)) >>>=
+      (\ (_,rest) -> return rest)
 
 
 -- ------------------------------------------------------------------------
@@ -240,13 +245,19 @@ emacsMultiServer :: MultiServer
 emacsMultiServer = IOExts.unsafePerformIO initialiseEmacsBasic
 {-# NOINLINE emacsMultiServer #-}
 
--- Start the multi-server and tell Emacs to load the sendmess library.
+-- Start the multi-server and tell Emacs to load the required library.
 initialiseEmacsBasic :: IO MultiServer
 initialiseEmacsBasic =
    do 
       multiServer <- newMultiServer False Nothing
       top <- getTOP
-      execGnuClient ("(load-library \""++top++"/emacs/sendmess.elc\")")
+      let 
+         load :: String -> String
+         load name = " (load \"" ++ top ++ "/emacs/" ++ name ++ ".elc\")"
+      execGnuClient (
+         "(progn "++load "sendmess"++load "mmisstex"++load "extents"++
+            load "allmmiss"++")"
+         )
       return multiServer
 
 -- ------------------------------------------------------------------------

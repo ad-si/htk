@@ -65,8 +65,11 @@ module ObjectTypes(
    nodeTitle, -- :: WrappedObject -> String
 
    -- Get the object type's entry in the object creation menu.
+   -- The object creation function is returned.  This also returns a Bool
+   -- which means, if set, that the function has already been entered into
+   -- the folder.
    createObjectMenuItem, -- :: WrappedObjectType 
-   -- -> Maybe (String,View -> IO (Maybe WrappedLink))
+   -- -> Maybe (String,View -> Link Folder -> IO (Maybe (WrappedLink,Bool)))
 
    -- How to save references to object types
    ShortObjectType(..),
@@ -114,6 +117,7 @@ import ViewType
 import Link
 import GlobalRegistry
 import {-# SOURCE #-} DisplayView
+import {-# SOURCE #-} Folders
 
 -- ----------------------------------------------------------------
 -- The ObjectType class
@@ -163,9 +167,12 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       --      
 
    createObjectMenuItemPrim :: objectType 
-      -> Maybe (String,View -> IO (Maybe (Link object)))
+      -> Maybe (String,View -> Link Folder -> IO (Maybe (Link object,Bool)))
       -- This is a menu item (label + creation function) which creates
-      -- a link to an object of this type.
+      -- a link to an object of this type in the supplied folder, and 
+      -- inserts it in the folder.
+      -- If the returned Bool is True, that means the object has been inserted
+      -- in the folder, otherwise that still has to be done.
 
    copyObject :: object -> FilePath -> IO ()
       -- copy object into given file path for the benefit of tools.
@@ -217,6 +224,7 @@ class (HasCodedValue objectType,HasCodedValue object) =>
    createObjectTypeMenuItemNoInsert = Nothing
       -- Don't provide any way for the user to create new types.
 
+   createObjectMenuItemPrim objectType = Nothing
 
 toObjectValue :: ObjectType objectType object => objectType -> object
 toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"
@@ -259,13 +267,18 @@ nodeTitle :: WrappedObject -> String
 nodeTitle (WrappedObject object) = nodeTitlePrim object
 
 createObjectMenuItem :: WrappedObjectType 
-   -> Maybe (String,View -> IO (Maybe WrappedLink))
+   -> Maybe (String,View -> Link Folder -> IO (Maybe (WrappedLink,Bool)))
 createObjectMenuItem (WrappedObjectType objectType) =
    fmap
       (\ (str,fn) ->
          let
-            newfn view =
-               fmap (fmap WrappedLink) (fn view)
+            newfn view folder =
+               do
+                  resultOpt <- fn view folder
+                  return (fmap
+                     (\ (link,bool) -> (WrappedLink link,bool))
+                     resultOpt
+                     )
          in
             (str,newfn)
          ) 

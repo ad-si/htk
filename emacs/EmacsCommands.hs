@@ -40,6 +40,12 @@ evalEmacsQuick emacsSession emacsCommand
 -- -------------------------------------------------------------------------
 
 ---
+-- A call to a function with no arguments.
+instance HasEmacsCommand String where
+   toEmacsString funName = "("++funName++")"
+   
+
+---
 -- A call to a function with a number of arguments to be passed as 
 -- Emacs Strings.
 instance HasEmacsCommand (String,[String]) where

@@ -10,7 +10,7 @@ SRCS       = VersionDB.hs ViewType.hs CodedValue.hs \
 
 SUBDIRS    = test
 
-BOOTSRCS = DisplayView.boot.hs
+BOOTSRCS = DisplayView.boot.hs Folders.boot.hs
 
 include @TOP@/mk/boilerplate.mk
 

@@ -1,6 +1,6 @@
 PACKAGE = uni-reactor
 PACKAGES = uni-events
 
-SRCS = Lock.hs BSem.hs InfoBus.hs MainParseDebug.hs 
+SRCS = Lock.hs BSem.hs InfoBus.hs MainParseDebug.hs LockEvent.hs
 
 include @TOP@/mk/boilerplate.mk

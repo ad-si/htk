@@ -10,11 +10,14 @@ module Folders(
    lookupFileName,
    newEmptyFolder,
    insertInFolder,
+   insertInFolderCheck,
    getPlainFolderType,
    plainFolderKey,
 
    FolderDisplayType(FolderDisplayType),
    folderDisplayKey,
+
+   HasParent(..),
    ) where
 
 import Maybe
@@ -268,18 +271,18 @@ addFileGesture view =
    let
       addFile (_,folderLink) =
          do
-            newLinkOpt <- createObjectMenu view
-            case newLinkOpt of
+            objectCreation <- createObjectMenu view folderLink
+            case objectCreation of
                Nothing -> createAlertWin "Object creation cancelled" []
-               Just newLink -> 
+               Just (newLink,inserted) -> 
                   do
-                     success <- insertInFolder view folderLink newLink
-                     if success 
+                     if inserted 
                         then
                            done
                         else
-                           createErrorWin 
-                           "Object with this name already exists in folder" []
+                           do
+                              insertInFolderCheck view folderLink newLink
+                              done
    in
       NodeGesture addFile
 
@@ -437,8 +440,9 @@ lookupFileName view (first:rest) =
 -- Create a new empty folder in the view.
 -- We use the inputAttributes method to get the attributes, and
 -- return Nothing if the user cancels.
-newEmptyFolder :: FolderType -> View -> IO (Maybe (Link Folder))
-newEmptyFolder folderType view =
+newEmptyFolder :: FolderType -> View -> Link Folder 
+   -> IO (Maybe (Link Folder,Bool))
+newEmptyFolder folderType view _ =
    do
       -- Construct an extraFormItem for the name.
       extraFormItem <- mkExtraFormItem (newFormEntry "Name" "")
@@ -461,7 +465,7 @@ newEmptyFolder folderType view =
                      }
                versioned <- createObject view folder
                link <- makeLink view versioned
-               return (Just link)
+               return (Just (link,False))
 
 ---
 -- insertInFolder attempts to insert an object into a folder.  It
@@ -490,6 +494,24 @@ insertInFolder view folderLink wrappedLink =
                         (VariableMapUpdate (AddElement (name,wrappedLink)))
                      return True
          )
+
+---
+-- Like insertInFolder, but also displays a message when it fails
+insertInFolderCheck :: View -> Link Folder -> WrappedLink -> IO Bool
+insertInFolderCheck view folderLink wrappedLink =
+   do
+      success <- insertInFolder view folderLink wrappedLink
+      if success 
+         then 
+            done 
+         else                       
+            do
+               wrappedObject <- wrapReadLink view wrappedLink
+               let
+                  name = nodeTitle wrappedObject
+               createErrorWin 
+                  ("Object " ++ name ++ "already exists in folder") []
+      return success  
 
 -- ------------------------------------------------------------------
 -- creating a new folder type
@@ -527,3 +549,12 @@ createNewFolderType view =
                            topFolderLinkOpt = Nothing,
                            knownFolders = knownFolders
                            }))
+
+-- ------------------------------------------------------------------
+-- The HasParent class
+-- Implemented for MMiSS objects.
+-- ------------------------------------------------------------------
+
+class HasParent object where
+   toParent :: object -> Maybe (Link Folder)
+   -- Nothing might indicate, for example, the top folder.

@@ -14,6 +14,7 @@ module CopyFile(
    linkFile,
    copyStringToFile,
    copyFileToString,
+   copyFileToStringCheck,
 
    copyCStringLenToFile,
    copyFileToCStringLen,
@@ -89,6 +90,29 @@ copyFileToString filePath =
       string <- peekCStringLen (cString,len)
       free cString
       return string
+
+---
+-- Read in a file, catching certain errors 
+copyFileToStringCheck :: FilePath -> IO (WithError String)
+copyFileToStringCheck filePath =
+   exceptionToError
+      (\ exception ->
+         case Exception.ioErrors exception of
+         Nothing -> Nothing
+         Just ioError ->
+            if IO.isDoesNotExistError ioError
+            then
+               Just "File does not exist"
+            else if IO.isAlreadyInUseError ioError
+            then
+               Just "File is already in use"
+            else if IO.isPermissionError ioError
+            then
+               Just "No read access to file"
+            else
+               Nothing     
+         )
+      (copyFileToString filePath)
 
 copyFileToCStringLen :: FilePath -> IO CStringLen
 copyFileToCStringLen file =

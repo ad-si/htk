@@ -7,14 +7,18 @@ module Extents(
    addText,
    boundContainer,
    deleteExtent,
-   boundContainer,
+   expand,
    collapse,
    containerContents,
+   listContainers,
    ) where
+
+import DeepSeq
 
 import EmacsBasic
 import EmacsCommands
 import EmacsContent
+import EmacsSExp
 
 addContainerBuffer :: EmacsSession -> String -> IO ()
 addContainerBuffer emacsSession str =
@@ -57,5 +61,23 @@ containerContents emacsSession this =
       str <- evalEmacsQuick emacsSession 
          (Prin ("uni-container-contents",[this]))
       return (parseEmacsContent str)
+
+listContainers :: EmacsSession -> IO [String]
+listContainers emacsSession =
+   do
+      str <- evalEmacsQuick emacsSession (Prin "uni-list-containers")
+      let
+         bad = error ("listContainers: couldn't parse Emacs response "++str)
+         result =
+            case doParse str of
+               List sexps ->
+                  map
+                     (\ sexp -> case sexp of
+                        String s -> s
+                        _ -> bad
+                        ) 
+                     sexps
+               _ -> bad
+      result `deepSeq` (return result)   
 
 

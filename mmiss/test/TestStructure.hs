@@ -23,12 +23,14 @@ import MMiSSDTD
 main =
    do
       doc <- getContents
-      let 
-         (Document _ _ el) = xmlParse "Foo" doc
-      verified <- validateElement "package" el
+      elEither <- xmlParseCheck "stdin" doc
+      el <- case  fromWithError elEither of
+         Left str -> ioError (userError str)
+         Right str -> return str
+      let verified = validateElement "package" el
       case verified of
          [] -> done
-         errors -> error (unlines mess)
+         errors -> error (unlines errors)
       let
          structured = structureContents el
          (contents1 :: [Content]) = contents (accContents structured)

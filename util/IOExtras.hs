@@ -10,6 +10,10 @@ module IOExtras(
    -- If unsuccessful because of an isAlreadyExists error return Nothing
    -- otherwise pass on error.
 
+   catchErrorCalls, -- :: IO a -> IO (Either String a)
+   -- Catch all calls to the error function.
+   
+
    hGetLineR, -- :: Read a => Handle -> IO a
    -- hGetLine and then read. 
    ) where
@@ -43,6 +47,9 @@ catchGeneral discriminator action =
       case result of
          Left () -> return Nothing
          Right success -> return (Just success) 
+
+catchErrorCalls :: IO a -> IO (Either String a)
+catchErrorCalls action =  tryJust errorCalls action
 
 hGetLineR :: Read a => Handle -> IO a
 hGetLineR handle =

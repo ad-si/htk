@@ -12,6 +12,7 @@ module MMiSSDTD(
    allElements,
    validateElement,
    getDisplayInstruction,
+   xmlParseCheck, -- :: String -> String -> IO (Either String Element)
    ) where
 
 import IO
@@ -24,7 +25,10 @@ import XmlParse
 import XmlTypes
 
 import WBFiles
+import IOExtras
 import ExtendedPrelude
+import DeepSeq
+import Computation
 
 import DisplayParms
 
@@ -106,4 +110,50 @@ validateElement elementName (element @ (Elem name _ _)) =
       else
           validate (simpleDTD theDTD) (CElem element)
 
+-- -------------------------------------------------------------
+-- Parsing a String containing Xml, with error control.
+-- We need to instance DeepSeq for Element
+-- -------------------------------------------------------------
+
+---
+-- The first argument is the file name; the second the string to
+-- parse.
+xmlParseCheck :: String -> String -> IO (WithError Element)
+xmlParseCheck fName contents =
+   do
+      result <- catchErrorCalls (
+         let
+            (Document _ _ el) = xmlParse fName contents
+         in
+            el `deepSeq` return el
+         )
+      return (case result of
+         Left parseError -> hasError ("Parse error: "++parseError)
+         Right el -> hasValue el
+         )
+
+instance DeepSeq Element where
+   deepSeq (Elem name attributes contents) =
+      deepSeq (name,attributes,contents) 
+
+instance DeepSeq AttValue where
+   deepSeq (AttValue l) = deepSeq l
+
+instance DeepSeq Reference where
+   deepSeq (RefEntity e) = deepSeq e
+   deepSeq (RefChar c) = deepSeq c
+   
+instance DeepSeq Content where
+   deepSeq (CElem e) = deepSeq e
+   deepSeq (CString b c) = deepSeq (b,c)
+   deepSeq (CRef r) = deepSeq r
+   deepSeq (CMisc m) = deepSeq m
+
+instance DeepSeq Misc where
+   deepSeq (Comment c) = deepSeq c
+   deepSeq (PI p) = deepSeq p
+
+
+
+      
     

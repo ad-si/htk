@@ -16,6 +16,7 @@ import qualified IOExts(unsafePerformIO)
 
 import XmlTypes
 import XmlValidate
+import XmlParse
 
 import Dynamics
 import Sink
@@ -25,6 +26,9 @@ import AtomString
 import ExtendedPrelude
 
 import DialogWin
+import SimpleForm
+
+import CopyFile
 
 import GraphDisp
 import GraphConfigure
@@ -169,11 +173,14 @@ instance HasCodedValue MMiSSObject where
             parentFolder = parentFolder},codedValue1)
 
 -- ------------------------------------------------------------------
--- The instance of HasAttributes
+-- The instances of HasAttributes and HasParents
 -- ------------------------------------------------------------------
 
 instance HasAttributes MMiSSObject where
    readPrimAttributes object = variantAttributes object
+
+instance HasParent MMiSSObject where
+   toParent mmissObject = Just (parentFolder mmissObject)
 
 -- ------------------------------------------------------------------
 -- The instance of ObjectType
@@ -191,7 +198,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
    nodeTitlePrim object = name object
 
    createObjectMenuItemPrim objectType = 
-      Just (xmlTag objectType,\ view -> createMMiSSObject objectType view)
+      Just (xmlTag objectType,\ view folder 
+         -> createMMiSSObject objectType view folder)
 
    getNodeDisplayData view wrappedDisplayType objectType getDisplayedView
          = return (
@@ -233,11 +241,12 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                (DoubleClickAction focusAction) $$$
                nodeTypeParms
 
-         focus link = error "Focus not written"
-            {- 
+         focus link =
             do
                updateSet (knownObjects objectType) (AddElement link)
                mmissObject <- readLink view link
+               let
+                  folder = parentFolder mmissObject
                let
                   includedNames :: VariableSetSource EntityName
                   includedNames = SinkSource (includedObjects mmissObject)
@@ -247,10 +256,10 @@ instance ObjectType MMiSSObjectType MMiSSObject where
  
                   arcEntityName :: ArcType -> EntityName 
                      -> IO (Maybe (WrappedLink,ArcType))
-                  arcEntityName arcType entityName = 
+                  arcEntityName arcType name = 
                      do
                         linkOpt <- checkLookup 
-                           (lookupByObject view mmissObject) entityName
+                           (lookupByObject view mmissObject) name
                         return (fmap
                            (\ link -> (link,arcType))
                            linkOpt
@@ -270,7 +279,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   allLinks = concatVariableSetSource includedLinks 
                      referencedLinks                  
                return (allLinks,staticSinkSource [])
-               -}
       in
          case getNodeTypeParms wrappedDisplayType (displayParms objectType) of
             Nothing -> Nothing
@@ -300,7 +308,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 -- The MMiSSObjectType is the expected type of the object.
 -- @param objectType
 writeToMMiSSObject :: MMiSSObjectType -> View -> Link Folder -> 
-   Maybe String -> Element -> IO (Either String MMiSSObject)
+   Maybe String -> Element -> IO (Either String (Link MMiSSObject))
 writeToMMiSSObject objectType view folderLink expectedLabel element =
    addFallOut (\ break ->
       do
@@ -366,8 +374,8 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
 
          -- (7) Create map to all defined objects already existing in
          --     the repository, also checking their types.
-         (alreadyExisting :: [Maybe (String,MMiSSObject)]) <-
-            mapM
+         (alreadyExisting :: [Maybe (String,(Link MMiSSObject,MMiSSObject))]) 
+            <- mapM
                (\ (name,structuredContent) -> 
                      do
                         gotMMiSSObject <- getMMiSSObject view folderLink name
@@ -386,11 +394,12 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
                                     (break ("Object you define "++name++
                                       "already exists, but with type "++
                                       oldTag++" rather than "++newTag))
-                                 return (Just (name,object))    
+                                 return (Just (name,(link,object)))    
                   )
                definedObjects
          let
-            alreadyExistingMap :: FiniteMap String MMiSSObject
+            alreadyExistingMap 
+               :: FiniteMap String (Link MMiSSObject,MMiSSObject)
             alreadyExistingMap = listToFM (catMaybes alreadyExisting)
 
          -- (8) Verify that all included or referenced objects exist
@@ -435,7 +444,7 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
                      else
                         case lookupFM alreadyExistingMap thisLabel of
                            Nothing -> done
-                           Just object ->
+                           Just (_,object) ->
                               do
                                  canInsert 
                                     <- queryInsert (objectContents object)
@@ -455,14 +464,14 @@ writeToMMiSSObject objectType view folderLink expectedLabel element =
          -- (10) (Finally) add all the objects.  We take them in definedObjects
          -- order, since that means no parent is added before its children,
          -- so we never add an undefined reference
-         newObjects <- mapM
+         newLinks <- mapM
             (\ (name,structuredContent) ->
                simpleWriteToMMiSSObject break view folderLink
                   (lookupFM alreadyExistingMap name) structuredContent
                )
             definedObjects
 
-         return (last newObjects)
+         return (last newLinks)
       )
 
 data GotMMiSSObject =
@@ -486,11 +495,12 @@ getMMiSSObject view folderLink name =
 ---
 -- Construct or update an MMiSSObject in a folder given its 
 -- StructuredContents, assuming all references exist.
--- If an MMiSSObject is supplied this is the existing reference to the
--- object
+-- If a pair (link,MMiSSObject) is supplied this is the existing reference to 
+-- the object and its link.
 -- We also take a break function argument for indicating an error
 simpleWriteToMMiSSObject :: BreakFn -> View -> Link Folder 
-   -> Maybe MMiSSObject -> StructuredContent -> IO MMiSSObject
+   -> Maybe (Link MMiSSObject,MMiSSObject) -> StructuredContent 
+   -> IO (Link MMiSSObject)
 simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
    do
       let
@@ -498,15 +508,15 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
             (attributes structuredContent)
       -- (1) construct and register the actual object, if it doesn't already 
       --     exist, and also get a place to put the new contents in.
-      (versioned,object) <- case maybeObject of
-         Just object ->
+      (versioned,objectLink,object) <- case maybeObject of
+         Just (objectLink,object) ->
             do
                linkOpt <- variantDictSearchExact (objectContents object) 
                   searchObject
                versioned <- case linkOpt of
                   Just link -> fetchLink view link
                   Nothing -> newEmptyObject view
-               return (versioned,object)          
+               return (versioned,objectLink,object)          
          Nothing ->
             do
                mmissObjectType <- retrieveObjectType view 
@@ -514,11 +524,10 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                variantAttributesWE <- fromXmlAttributes view
                   (extractVariantAttributes (attributes structuredContent))
                objectContents <- newEmptyVariantDict
-               includedObjects <- newVariableSet
-                  (map fromString (includes (accContents structuredContent)))
-               referencedObjects <- newVariableSet
-                  (map fromString 
-                     (references (accContents structuredContent)))
+               includedObjects <- newVariableSet (map fromString
+                  (includes (accContents structuredContent)))
+               referencedObjects <- newVariableSet (map fromString
+                  (references (accContents structuredContent)))
                let
                   name = label structuredContent
 
@@ -541,7 +550,7 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
                  -- but could happen if someone is trying to update the
                  -- object twice simultaneously.
                versioned <- newEmptyObject view
-               return (versioned,object)
+               return (versioned,objectLink,object)
 
       -- (2) Construct the new element and insert it in the variant
       --     dictionary
@@ -556,14 +565,50 @@ simpleWriteToMMiSSObject break view folderLink maybeObject structuredContent =
          dict = objectContents object
       
       addToVariantDict dict searchObject link
-      return object
+      return objectLink
 
 -- ------------------------------------------------------------------
 -- Creating new MMiSSObjects
 -- ------------------------------------------------------------------
 
-createMMiSSObject :: MMiSSObjectType -> View -> IO (Maybe (Link MMiSSObject))
-createMMiSSObject _ _ = return Nothing -- for now.
+createMMiSSObject :: MMiSSObjectType -> View -> Link Folder 
+   -> IO (Maybe (Link MMiSSObject,Bool))
+createMMiSSObject objectType view folder =
+   do
+      result <- addFallOut (\ break ->
+         do
+            let
+               createMMiSSForm :: Form String
+               createMMiSSForm = newFormEntry "Read Xml from" ""
+            detailsOpt <- doForm
+               ("Creating new "++xmlTag objectType)
+               createMMiSSForm
+            let
+               xmlPath = case detailsOpt of
+                  Nothing -> break "Creation cancelled"
+                  Just path -> path
+            xmlStringWE <- copyFileToStringCheck xmlPath
+            let
+               xmlString = coerceWithErrorOrBreak break xmlStringWE
+
+            xmlElementWE <- xmlParseCheck xmlPath xmlString
+            let
+               xmlElement = coerceWithErrorOrBreak break xmlElementWE
+
+            linkEither <- writeToMMiSSObject objectType view folder Nothing
+               xmlElement
+
+            case linkEither of
+               Left str -> break str
+               Right link -> return link
+         )
+      case result of
+         Left str ->
+            do
+               createMessageWin str []
+               return Nothing
+         Right link -> return (Just (link,True))
+            -- True because the object has already been entered
 
 -- ------------------------------------------------------------------
 -- Editing MMiSSObjects

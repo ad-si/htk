@@ -72,11 +72,20 @@ module Computation (
         coerceWithError, -- :: WithError a -> a
         -- get out result or throw error.
 
+        coerceWithErrorOrBreak, -- :: (String -> a) -> WithError a -> a
+        -- coerce or use the supplied break function (to be used with 
+        -- ExtendedPrelude.addFallOut)
+
         concatWithError, -- :: [WithError a] -> WithError [a]
         -- like pair but using lists.
 
         swapIOWithError, -- :: WithError (IO a) -> IO (WithError a)
         -- Intended for use on result of mapWithError, for example.
+
+        exceptionToError,
+        -- :: (Exception -> Maybe String) -> IO a -> IO (WithError a)
+        -- Exception wrapper that turns those exceptions which map to
+        -- (Just message) into an error.
         ) 
 where
 
@@ -181,6 +190,12 @@ coerceWithError :: WithError a -> a
 coerceWithError (Value a) = a
 coerceWithError (Error err) = error err
 
+-- coerce or use the supplied break function (to be used with 
+-- ExtendedPrelude.addFallOut)
+coerceWithErrorOrBreak :: (String -> a) -> WithError a -> a
+coerceWithErrorOrBreak breakFn (Value a) = a
+coerceWithErrorOrBreak breakFn (Error s) = breakFn s
+
 concatWithError :: [WithError a] -> WithError [a]
 concatWithError withErrors =
    foldl
@@ -194,6 +209,16 @@ swapIOWithError (Value act) =
    do
       v <- act
       return (Value v)
+
+exceptionToError :: (Exception -> Maybe String) -> IO a -> IO (WithError a)
+exceptionToError testFn action =
+   catchJust
+      testFn
+      (do
+          val <- action
+          return (hasValue val)
+      )
+      (\ str -> return (hasError str))
 
 -- --------------------------------------------------------------------------
 -- Derived Control Abstractions: Iteration

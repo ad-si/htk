@@ -37,6 +37,7 @@ import DisplayParms
 import GlobalRegistry
 import CallEditor
 import GetAttributesType
+import {-# SOURCE #-} Folders
 
 -- ------------------------------------------------------------------
 -- FileType and its instance of HasCodedValue and HasAttributesType
@@ -222,8 +223,8 @@ emptyVariableSet = IOExts.unsafePerformIO newEmptyVariableSet
 -- Creating a new empty file with the given name
 -- We use the inputAttributes method to get the attributes, and
 -- return Nothing if the user cancels.
-newEmptyFile :: FileType -> View -> IO (Maybe (Link File))
-newEmptyFile fileType view =
+newEmptyFile :: FileType -> View -> Link Folder -> IO (Maybe (Link File,Bool))
+newEmptyFile fileType view _ =
    do
       -- Construct an extraFormItem for the name.
       extraFormItem <- mkExtraFormItem (newFormEntry "Name" "")
@@ -244,7 +245,7 @@ newEmptyFile fileType view =
                      }
                versioned <- createObject view file
                link <- makeLink view versioned
-               return (Just link)
+               return (Just (link,False))
 
 -- ------------------------------------------------------------------
 -- Registering the file type

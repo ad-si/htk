@@ -1,13 +1,11 @@
 PACKAGE = uni-emacs
-PACKAGES = uni-server
+PACKAGES = uni-server uni-htk
 
-SRCS = EmacsBasic.hs EmacsCommands.hs EmacsSExp.hs EmacsContent.hs Extents.hs
+SRCS = EmacsBasic.hs EmacsCommands.hs EmacsSExp.hs EmacsContent.hs \
+   Extents.hs EmacsEdit.hs
 
-SRCSC = 
+SRCSEMACS = sendmess.el mmisstex.el extents.el allmmiss.el
 
 SUBDIRS = test
 
 include @TOP@/mk/boilerplate.mk
-
-sendmess.elc : sendmess.el
-	@GNUCLIENT@ -batch -eval '(byte-compile-file "@TOP@/emacs/sendmess.el")'
