@@ -1,3 +1,6 @@
+{- A DisplayType is a particular way of graphing objects.
+   See the file RECURSION.
+   -}
 module DisplayTypes(
    DisplayType(..), -- The class of possible DisplayTypes
    WrappedDisplayType(..), -- existential type containing something that

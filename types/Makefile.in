@@ -7,4 +7,8 @@ SRCS       = VersionDB.hs ViewType.hs CodedValue.hs CodedValueType.hs \
 
 SUBDIRS    = test
 
+# Used for recursion, see the file RECURSION
+BOOTSRCS = DisplayTypes.boot.hs ObjectTypes.boot.hs
+
 include @TOP@/mk/boilerplate.mk
+

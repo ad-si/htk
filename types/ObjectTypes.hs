@@ -13,11 +13,12 @@
    We do not fix the available objectTypes in this part of the
    repository.  Instead, we provide a register function, which
    is passed a type parameter.
-   
-   
+      
    Both objectTypes and objects must be instances of HasCodedValue.
+
+   See the file RECURSION
    -}
-module ObjectType(
+module ObjectTypes(
    ObjectType(..), 
       -- the class giving ALL the methods (thank heaven for functional
       -- dependencies).
@@ -46,7 +47,6 @@ module ObjectType(
 
    wrapFetchLink, -- :: View -> WrappedLink -> IO WrapVersioned
    wrapReadObject, -- :: View -> WrappedVersioned -> IO WrappedObject
-
    ) where
 
 import qualified IOExts(unsafePerformIO)

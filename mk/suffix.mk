@@ -24,6 +24,8 @@
 # LIB      the name of the desired library
 # LIBS     libraries required by the test programs (if any).
 #
+# BOOTSRCS Haskell source files which are sources for .hi-boot files.
+#
 # Other options which aren't used here (but in var.mk) and which
 # can be useful:
 #  
@@ -54,6 +56,7 @@ TESTPROGS = $(patsubst Test%.o,test%,$(TESTOBJS))
 MAINOBJS = $(filter Main%.o,$(OBJS))
 MAINPROGS = $(patsubst Main%.o,%,$(MAINOBJS))
 HIFILES = $(patsubst %.hs,%.hi,$(SRCS))
+HIBOOTFILES = $(patsubst %.boot.hs,%.hi-boot,$(BOOTSRCS))
 #
 #
 # Here are some phony targets
@@ -88,11 +91,12 @@ libfast : libfasthere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) libfast && ) echo Finished make libfast
 
 clean:
-	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
+	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(HIBOOTFILES) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
 
 display :
 	@echo SRCS = $(SRCS)
+	@echo BOOTSRCS = $(BOOTSRCS)
 	@echo SRCSC = $(SRCSC)
 	@echo LIB = $(LIB)
 	@echo LIBS = $(LIBS)
@@ -105,10 +109,11 @@ display :
 	@echo MAINOBJS = $(MAINOBJS)
 	@echo MAINPROGS = $(MAINPROGS)
 	@echo HIFILES = $(HIFILES)
+	@echo HIBOOTFILES = $(HIBOOTFILES)
 	@echo HCDIRS = $(HCDIRS)
 
 
-depend : $(SRCS) 
+depend : $(SRCS) $(HIBOOTFILES)
 ifneq "$(strip $(SRCS))" ""
 	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS)
 endif
@@ -146,6 +151,11 @@ $(MAINPROGS) : % :  Main%.o $(LIBS) $(LIB)
 
 $(HIFILES) : %.hi : %.o
 	@:
+
+$(HIBOOTFILES) : %.hi-boot : %.boot.hs
+	$(RM) $@
+	$(HC) -c $< $(HCFLAGS) -no-recomp -o /dev/null  
+	$(MV) $*.hi $*.hi-boot
 
 $(OBJSHS) : %.o : %.hs
 	$(HC) -c $< $(HCFLAGS) 

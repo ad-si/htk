@@ -1,0 +1,7 @@
+The module ObjectTypes depends on CodedValue depends on View depends on
+CodedValue depends on ViewType depends on the types WrappedObjectType and 
+WrappedDisplayType.  To break this circularity, we create a DisplayTypes.hi-boot 
+file and an ObjectTypes.hi-boot file, as described in the GHC manual ("How to 
+compile mutually recursive modules").  These files are themselves produced by 
+compiling the files ObjectTypes.boot.hs and DisplayTypes.boot.hs, and moving the 
+resulting .hi files.

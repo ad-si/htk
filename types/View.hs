@@ -98,10 +98,15 @@ newView repository =
    do
       objects <- newRegistry
       parentMVar <- newMVar Nothing
+      displayTypes <- newRegistry
+      objectTypes <- newRegistry
+
       return (View {
          repository = repository,
          objects = objects,
-         parentMVar = parentMVar
+         parentMVar = parentMVar,
+         displayTypes = displayTypes,
+         objectTypes = objectTypes
          })
 
 listViews :: Repository -> IO [ObjectVersion]
@@ -128,6 +133,7 @@ getView repository objectVersion =
          objectsList
          )
       parentMVar <- newMVar (Just objectVersion)
+      
       return (View {
          repository = repository,
          objects = objects,
