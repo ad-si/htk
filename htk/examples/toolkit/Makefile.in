@@ -8,6 +8,7 @@ SRCS       = Mainfiledialog.hs\
              Mainsimplemenu.hs\
              Mainspinbutton.hs\
              Maintreelist.hs\
+             MainsimpleListBox.hs\
 
 include @TOP@/mk/boilerplate.mk
 

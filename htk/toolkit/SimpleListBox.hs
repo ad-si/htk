@@ -21,10 +21,13 @@ module SimpleListBox(
 
    bindSelection,
       -- :: SimpleListBox value 
-      --   -> IO (Event (Maybe (SimpleListBoxItem value)),IO ())
-      -- Returns an event for clicks in this list box.  (Nothing
-      -- indicates that no list box was present here.)
+      --   -> IO (Event [SimpleListBoxItem value]),IO ())
+      -- Returns an event for selections in this list box.  ([] can happen,
+      -- for example, if the user selects or clicks an area into which no
+      -- item has yet been added.)
    ) where
+
+import Maybe
 
 import Control.Concurrent.MVar
 
@@ -155,7 +158,7 @@ deleteItem simpleListBox simpleListBoxItem =
       done
       
 bindSelection :: SimpleListBox val 
-   -> IO (Event (Maybe (SimpleListBoxItem val)),IO ())
+   -> IO (Event [SimpleListBoxItem val],IO ())
 bindSelection simpleListBox =
    do   
       (press,terminator) 
@@ -168,15 +171,20 @@ bindSelection simpleListBox =
                   indexOpt <- getSelection (listBox simpleListBox)
                   contents0 <- readMVar (contentsMVar simpleListBox)
                   return (case indexOpt of
-                     Nothing -> Nothing
-                     Just [] -> Nothing
-                     Just (index : _) -> 
-                        if index >= length contents0 
-                           then
-                              -- possible at least if element got prematurely
-                              -- deleted
-                              Nothing
-                           else
-                              Just (contents0 !! index)
+                     Nothing -> []
+                     Just items ->
+                        let
+                           max = length contents0
+                        in 
+                           mapMaybe
+                              (\ index -> if index >= max 
+                                 then 
+                                    Nothing
+                                    -- can happen if events and a deletion
+                                    -- get processed in the wrong order.
+                                 else
+                                    Just (contents0 !! index)
+                                 )
+                              items
                      )
       return (event,terminator)
