@@ -304,106 +304,152 @@ innerApplyUpdate ::
 innerApplyUpdate 
       (graph :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
       update =
-   do
+   let
+      passOnUpdate = readMVar (clientsMVar graph)
+      killUpdate = return []
+      arcRegistry = arcData graph
+      nodeRegistry = nodeData graph
+   in
+      -- The following cases need special treatment, in case
+      -- someone else has deleted a relevant Node or Arc before
+      -- we get there: SetNodeLabel, SetArcLabel, DeleteNode, DeleteArc.
+      -- In these cases we (a) do nothing;
+      -- (b) return a null client list, to prevent the update
+      -- being passed on to anyone else.
+      -- We don't give 
       case update of
          NewNodeType nodeType nodeTypeLabel ->
-            setValue (nodeTypeData graph) nodeType nodeTypeLabel
+            do
+               setValue (nodeTypeData graph) nodeType nodeTypeLabel
+               passOnUpdate
          SetNodeTypeLabel nodeType nodeTypeLabel ->
-            setValue (nodeTypeData graph) nodeType nodeTypeLabel
+            do
+               setValue (nodeTypeData graph) nodeType nodeTypeLabel
+               passOnUpdate
          NewNode node nodeType nodeLabel ->
-            setValue (nodeData graph) node
-               (NodeData {
-                  nodeLabel = nodeLabel,
-                  nodeType = nodeType,
-                  arcsIn = [],
-                  arcsOut = []
-                  })
+            do
+               setValue (nodeData graph) node
+                  (NodeData {
+                     nodeLabel = nodeLabel,
+                     nodeType = nodeType,
+                     arcsIn = [],
+                     arcsOut = []
+                     })
+               passOnUpdate
          DeleteNode node -> 
             do
-               let
-                  nodeRegistry = nodeData graph
-                  arcRegistry = arcData graph
-               (NodeData {arcsIn = arcsIn,arcsOut = arcsOut}
-                     :: NodeData nodeLabel) <-
-                  getValue nodeRegistry node
-               sequence_
-                  (map
-                     (\ arc -> innerApplyUpdate graph (DeleteArc arc))
-                     (arcsIn ++ arcsOut)
-                     )
-               deleteFromRegistry (nodeData graph) node
+               nodeDataOpt <- getValueOpt nodeRegistry node
+               case nodeDataOpt of
+                  Nothing -> killUpdate
+                  Just (NodeData {arcsIn = arcsIn,arcsOut = arcsOut}
+                     :: NodeData nodeLabel) ->
+                     do
+                        sequence_
+                           (map
+                              (\ arc -> 
+                                 innerApplyUpdate graph (DeleteArc arc))
+                              (arcsIn ++ arcsOut)
+                              )
+                        deleteFromRegistry nodeRegistry node
+                        passOnUpdate
          SetNodeLabel node nodeLabel ->
             do
-               let
-                  registry = nodeData graph
-               (nodeData :: NodeData nodeLabel) <- 
-                  getValue registry node
-               setValue registry node (nodeData {nodeLabel = nodeLabel})
+               nodeDataOpt <- getValueOpt nodeRegistry node
+               case nodeDataOpt of
+                  Nothing -> killUpdate
+                  Just (nodeData :: NodeData nodeLabel) -> 
+                     do
+                        setValue nodeRegistry node 
+                           (nodeData {nodeLabel = nodeLabel})
+                        passOnUpdate
          NewArcType arcType arcTypeLabel ->
-            setValue (arcTypeData graph) arcType arcTypeLabel
+            do
+               setValue (arcTypeData graph) arcType arcTypeLabel
+               passOnUpdate
          SetArcTypeLabel arcType arcTypeLabel ->
-            setValue (arcTypeData graph) arcType arcTypeLabel
+            do
+               setValue (arcTypeData graph) arcType arcTypeLabel
+               passOnUpdate
          NewArc arc arcType arcLabel nodeSource nodeTarget ->
             do
-               let
-                  arcRegistry = arcData graph
-                  nodeRegistry = nodeData graph
-                  newArcData = ArcData {
-                     arcLabel = arcLabel,
-                     arcType = arcType,
-                     source = nodeSource,
-                     target = nodeTarget
-                     }
-               setValue arcRegistry arc newArcData
-   
-               (nodeSourceData :: NodeData nodeLabel)
-                  <- getValue nodeRegistry nodeSource
-               let
-                  newNodeSourceData = nodeSourceData {
-                     arcsOut = arc : (arcsOut nodeSourceData)
-                     }
-               setValue nodeRegistry nodeSource newNodeSourceData
-   
-               (nodeTargetData :: NodeData nodeLabel) 
-                  <- getValue nodeRegistry nodeTarget
-               let
-                  newNodeTargetData = nodeTargetData {
-                     arcsIn = arc : (arcsIn nodeTargetData)
-                     }
-               setValue nodeRegistry nodeTarget newNodeTargetData
+               nodeSourceDataOpt <- getValueOpt nodeRegistry nodeSource
+               nodeTargetDataOpt <- getValueOpt nodeRegistry nodeTarget
+               case (nodeSourceDataOpt,nodeTargetDataOpt) of
+                  (Just (nodeSourceData :: NodeData nodeLabel),
+                   Just (nodeTargetData :: NodeData nodeLabel)) ->
+                     do
+                        let
+                           newArcData = ArcData {
+                              arcLabel = arcLabel,
+                              arcType = arcType,
+                              source = nodeSource,
+                              target = nodeTarget
+                              }
+                        setValue arcRegistry arc newArcData
+                        if (nodeSource == nodeTarget) 
+                           then
+                              do
+                                 let
+                                    newNodeSourceData = nodeSourceData {
+                                       arcsOut = 
+                                          arc : arc : (arcsOut nodeSourceData)
+                                       }
+                                 setValue nodeRegistry nodeSource 
+                                    newNodeSourceData
+                           else
+                              do
+                                 let
+                                    newNodeSourceData = nodeSourceData {
+                                       arcsOut = arc : 
+                                          (arcsOut nodeSourceData)
+                                       }
+                                    newNodeTargetData = nodeTargetData {
+                                       arcsIn = arc : (arcsIn nodeTargetData)
+                                       }
+                                 setValue nodeRegistry nodeSource 
+                                    newNodeSourceData
+                                 setValue nodeRegistry nodeTarget 
+                                    newNodeTargetData
+                        passOnUpdate
+                  _ -> killUpdate
          DeleteArc arc ->
             do
-               let
-                  arcRegistry = arcData graph
-                  nodeRegistry = nodeData graph
-               (ArcData {source = source,target = target} 
-                  :: ArcData arcLabel)
-                  <- getValue arcRegistry arc
-               deleteFromRegistry arcRegistry arc
-   
-               (nodeSourceData :: NodeData nodeLabel) 
-                  <- getValue nodeRegistry source
-               let
-                  newNodeSourceData = nodeSourceData {
-                     arcsOut = delete arc (arcsOut nodeSourceData)
-                     }
-               setValue nodeRegistry source newNodeSourceData
-   
-               (nodeTargetData :: NodeData nodeLabel)
-                  <- getValue nodeRegistry target
-               let
-                  newNodeTargetData = nodeTargetData {
-                     arcsIn = delete arc (arcsIn nodeTargetData)
-                     }
-               setValue nodeRegistry target newNodeTargetData
+               arcDataOpt <- getValueOpt arcRegistry arc
+               case arcDataOpt of
+                  Nothing -> killUpdate
+                  Just (ArcData {source = source,target = target} 
+                     :: ArcData arcLabel) ->
+                     do
+                        -- The getValue operations for the source and
+                        -- target must succeed, because if the arc is
+                        -- still there, the nodes must also still be there.
+                        deleteFromRegistry arcRegistry arc
+                        (nodeSourceData :: NodeData nodeLabel) 
+                           <- getValue nodeRegistry source
+                        let
+                           newNodeSourceData = nodeSourceData {
+                              arcsOut = delete arc (arcsOut nodeSourceData)
+                              }
+                        setValue nodeRegistry source newNodeSourceData
+               
+                        (nodeTargetData :: NodeData nodeLabel)
+                           <- getValue nodeRegistry target
+                        let
+                           newNodeTargetData = nodeTargetData {
+                              arcsIn = delete arc (arcsIn nodeTargetData)
+                              }
+                        setValue nodeRegistry target newNodeTargetData
+                        passOnUpdate
          SetArcLabel arc arcLabel ->
             do
-               let
-                  registry = arcData graph
-               (arcData :: ArcData arcLabel) <- getValue registry arc
-               setValue registry arc (arcData {arcLabel = arcLabel})
-   
-      readMVar (clientsMVar graph)
+               arcDataOpt <- getValueOpt arcRegistry arc
+               case arcDataOpt of
+                  Just (arcData :: ArcData arcLabel) ->
+                     do
+                        setValue arcRegistry arc 
+                           (arcData {arcLabel = arcLabel})
+                        passOnUpdate
+                  Nothing -> killUpdate
 
 ------------------------------------------------------------------------
 -- Canning and Uncanning

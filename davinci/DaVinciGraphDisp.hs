@@ -81,11 +81,11 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
    newGraph (DaVinciGraphParms {graphConfigs=graphConfigs}) =
       do
          (daVinci :: DaVinci.DaVinci) <- DaVinci.davinci []
-         graph <- DaVinci.newGraph (graphConfigs ++ [
+         graph <- DaVinci.newGraph ([
             DaVinci.gapwidth 4,
             DaVinci.gapheight 40,
             DaVinci.dragging DaVinci.On
-            ])
+            ] ++ (reverse graphConfigs))
 
          DaVinci.displayGraph graph
          DaVinci.newSurveyView graph
@@ -148,7 +148,6 @@ instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
          setValue nodeTypes node daVinciNodeType
          configure node [
             HTk.text nodeText,
-            DaVinci.shape DaVinci.cdefault,
             DaVinci.border DaVinci.cdefault
             ]
          return (DaVinciNode node)
@@ -208,7 +207,7 @@ instance NewNodeType DaVinciGraph DaVinciNodeType DaVinciNodeTypeParms where
                map 
                   (\ mkConfig -> mkConfig daVinciGraph) 
                   nodeTypeConfigs
-         nodeType <- DaVinci.newNodeType graph Nothing configs
+         nodeType <- DaVinci.newNodeType graph Nothing (reverse configs)
          return (DaVinciNodeType nodeType nodeText)
 
 instance NodeTypeParms DaVinciNodeTypeParms where
@@ -223,10 +222,37 @@ instance NodeTypeConfig graphConfig
    nodeTypeConfigUsed nodeTypeConfig nodeTypeParms = False
    nodeTypeConfig nodeTypeConfig nodeTypeParms = nodeTypeParms
 
+------------------------------------------------------------------------
+-- Node type configs for titles and shapes.
+------------------------------------------------------------------------
+
 instance NodeTypeConfigParms ValueTitle DaVinciNodeTypeParms where
    nodeTypeConfigUsed _ _ = True
    nodeTypeConfig (ValueTitle nodeText) parms = 
       parms { nodeText = nodeText }
+
+instance NodeTypeConfigParms Shape DaVinciNodeTypeParms where
+   nodeTypeConfigUsed _ _ = True
+   nodeTypeConfig shape parms =
+      let
+         oldConfigs = nodeTypeConfigs parms
+         mkConfig :: String -> String -> (DaVinciGraph ->
+            Config DaVinci.NodeType)
+         mkConfig attributeName attributeValue _ nodeType =
+            HTk.cset nodeType attributeName (HTk.RawData attributeValue)
+         mkShape shapeName = mkConfig "_GO" shapeName
+
+         newConfigs =
+            case shape of
+               Box -> (mkShape "box") : oldConfigs
+               Circle -> (mkShape "circle") : oldConfigs
+               Ellipse -> (mkShape "ellipse") : oldConfigs
+               Rhombus -> (mkShape "rhombus") : oldConfigs
+               Triangle -> (mkShape "triangle") : oldConfigs
+               Icon filePath -> (mkShape "icon") :
+                  (mkConfig "ICONFILE" filePath) : oldConfigs
+      in
+         parms {nodeTypeConfigs = newConfigs} 
 
 ------------------------------------------------------------------------
 -- Arcs
@@ -310,7 +336,7 @@ instance NewArcType DaVinciGraph DaVinciArcType DaVinciArcTypeParms where
                map 
                   (\ mkConfig -> mkConfig daVinciGraph) 
                   arcTypeConfigs
-         edgeType <- DaVinci.newEdgeType graph Nothing configs
+         edgeType <- DaVinci.newEdgeType graph Nothing (reverse configs)
 
          return (DaVinciArcType edgeType)
 

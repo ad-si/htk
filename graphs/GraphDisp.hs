@@ -116,6 +116,7 @@ module GraphDisp(
 
    GraphTitle(..),
    ValueTitle(..),
+   Shape(..),
    ) where
 
 import Dynamics
@@ -418,6 +419,18 @@ data ValueTitle value = ValueTitle (value -> IO String)
 instance NodeTypeConfig ValueTitle
 
 instance ArcTypeConfig ValueTitle
+
+------------------------------------------------------------------------
+-- Shapes etcetera
+------------------------------------------------------------------------
+
+-- This datatype is based on DaVinciClasses.hs, including several
+-- name clashes.  However we omit Textual, add the file argument
+-- to iconic and the shape Triangle.  This datatype may get bigger!
+data Shape nodeLabel = Box | Circle | Ellipse | Rhombus | Triangle | 
+   Icon FilePath
+
+instance NodeTypeConfig Shape
 
 ------------------------------------------------------------------------
 -- The Kind* classes are a silly hack so that we 

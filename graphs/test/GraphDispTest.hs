@@ -19,6 +19,7 @@ setUpGraph ::
       arc arcType arcTypeParms,
     GraphConfigParms GraphTitle graphParms,
     NodeTypeConfigParms LocalMenu nodeTypeParms,
+    NodeTypeConfigParms Shape nodeTypeParms,
     NodeTypeConfigParms ValueTitle nodeTypeParms,
     ArcTypeConfigParms LocalMenu arcTypeParms
     ) 
@@ -56,6 +57,7 @@ setUpGraph (_::
          nodeMenu1 = LocalMenu(Button "Type1" (disp "Type1"))   
          nodeType1Parms = 
             (nodeTypeConfig nodeMenu1) .
+            (nodeTypeConfig Rhombus) .
             (nodeTypeConfig (ValueTitle (
                \ value -> return ("Type 1"++show value)
                ))) $ nullNodeParms
@@ -71,6 +73,7 @@ setUpGraph (_::
 
          nodeType2Parms =
             (nodeTypeConfig nodeMenu2) .
+            (nodeTypeConfig (Icon "mawe.xbm")) .
             (nodeTypeConfig (ValueTitle (
                \ _ -> return "Type 2"
                ))) $ nullNodeParms
@@ -84,6 +87,7 @@ setUpGraph (_::
 
          (nodeTypeCharParms :: nodeTypeParms Char) =
             (nodeTypeConfig buttonChar) .
+            (nodeTypeConfig Triangle) .
             (nodeTypeConfig (ValueTitle (
                \ char -> return [char]
                ))) $ emptyNodeTypeParms
@@ -98,6 +102,7 @@ setUpGraph (_::
 
          (nodeTypeWriteParms :: nodeTypeParms ()) =
             (nodeTypeConfig buttonWrite) .
+            (nodeTypeConfig Ellipse) .
             (nodeTypeConfig (ValueTitle (\ _ -> return "Write"))) 
               $ emptyNodeTypeParms
 

@@ -41,6 +41,8 @@ class GetSetRegistry registry from to where
 
 class KeyOpsRegistry registry from where
    deleteFromRegistry :: registry -> from -> IO ()
+   -- This should fail silently if the key does not
+   -- exist in the map.
    listKeys :: registry -> IO [from]
 
 -- ----------------------------------------------------------------------
