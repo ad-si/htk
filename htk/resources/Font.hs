@@ -139,19 +139,8 @@ instance Show XFont where
 instance Read XFont where
    readsPrec p str = [(cread (dropWhile isSpace str),[])] 
      where
-        cread s @ ('-':str) = toXFont (split (== '-') str)
-{-
-        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs, y] _ =
-                XFont fo (mread fa) (mread we) (mread sl) (mread sw)
-                        (mread pi) (mread po) (mread xr) (mread yr)
-                        (mread sp) (mread cw) (mread cs)
-        toXFont [fo, fa, we, sl, sw, pi, po, xr, yr, sp, cw, cs, y, _] _ =
-                 XFont fo (mread fa) (mread we) (mread sl) (mread sw)
-                        (mread pi) (mread po) (mread xr) (mread yr)
-                        (mread sp) (mread cw) (mread cs)
-        toXFont _ str = XFontAlias str
--}
-
+        cread s@('-':str) = toXFont (split (== '-') str)
+        cread str = XFontAlias str
         toXFont (fo : fa : we : sl : sw : pi : po : xr : yr : sp : cw : cs : y : _) =
                 XFont fo (mread fa) (mread we) (mread sl) (mread sw)
                         (mread pi) (mread po) (mread xr) (mread yr)

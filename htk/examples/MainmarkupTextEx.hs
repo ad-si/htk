@@ -23,9 +23,6 @@ main =
             IO (Editor String)
     pack ed [Fill Both, Expand On]
 
-    Font str <- getFont ed
-    putStrLn ("Font: "++ str)
-
     let
       link :: String -> MarkupText
       link str = flipcolour "#4756ff" "#4c90ff"

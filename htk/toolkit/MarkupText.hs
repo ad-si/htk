@@ -628,11 +628,26 @@ symbstr is = MarkupText (map symbchr is)
 checkfont :: Font -> Bool -> Bool -> Font
 checkfont f@(Font str) bold italics =
   let xf = read str
+  in case xf of
+       XFontAlias _ -> f
+       _ ->
+         case (bold, italics) of
+           (True, True) -> toFont xf {weight = Just Bold,
+                                      slant = Just Italic}
+           (True, False) -> toFont xf {weight = Just Bold}
+           (False, True) -> toFont xf {slant = Just Italic}
+           _ -> f
+
+{-
+checkfont :: Font -> Bool -> Bool -> Font
+checkfont f@(Font str) bold italics =
+  let xf = read str
   in case (bold, italics) of
        (True, True) -> toFont xf {weight = Just Bold, slant = Just Italic}
        (True, False) -> toFont xf {weight = Just Bold}
        (False, True) -> toFont xf {slant = Just Italic}
        _ -> f
+-}
 
 clipact :: Editor String -> Mark String -> Mark String -> Ref Bool ->
            Ref [TextTag String] -> String -> [Tag] -> IO ()
@@ -751,7 +766,6 @@ parseMarkupText m f =
                                f
 
             let (Font fstr) = f
-            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -768,7 +782,6 @@ parseMarkupText m f =
                                current_font
 
             let (Font fstr) = current_font
---            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -785,7 +798,6 @@ parseMarkupText m f =
                                current_font
 
             let (Font fstr) = current_font
---            putStrLn fstr
 
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -930,7 +942,6 @@ parseMarkupText m f =
                              bindSimple tag (ButtonPress (Just (BNo 1)))
                            open <- newRef False
                            settags <- newRef []
--- windows erzeugen!
                            death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
@@ -962,9 +973,7 @@ parseMarkupText m f =
                                listenTag =
                                     (click >>
                                      always (ed # clear >>
-                                             putStrLn "editor cleared" >>
-                                             ed # new linktext >>
-                                             putStrLn "linktext set") >>
+                                             ed # new linktext) >>
                                      listenTag)
                                  +> receive death
                            spawnEvent listenTag
@@ -1005,10 +1014,7 @@ instance HasMarkupText (Editor String) where
       if st == Disabled then ed # state Normal >> done else done
       f <- getFont ed
       (txt, wins, tags) <- parseMarkupText m f
---      putStrLn "Hallo1"
---      threadDelay(5000000)
       ed # value txt
---      putStrLn "Hallo2"
       mapM (\ (pos1, pos2, f) -> do
                                    pos1' <- getBaseIndex ed pos1
                                    pos2' <- getBaseIndex ed pos2
@@ -1065,21 +1071,6 @@ instance HasMarkupText (Editor String) where
            unbinds'
       setRef unbinds []
       return ed
-{-
-    do
-      let obj@(GUIOBJECT oid _) = toGUIObject ed
-      unbinds' <- getRef unbinds
-      mapM (\ (oid', ubs) -> if oid == oid' then
-                               (mapM (\ act -> act) ubs) >> done
-                             else done)
-           unbinds'
-      setRef unbinds []
-      putStrLn "unbinds performed"
-      deleteTextRange ed (IndexPos (1,0)) EndOfText
-      nm <- getObjectName obj
-      execCmd (show nm ++ " tag delete [" ++ show nm ++ " tag names]")
-      return ed
--}
 
 fromDistance :: Distance -> Int
 fromDistance (Distance i) = i

@@ -330,6 +330,7 @@ newGenGUI mstate =
     clipboard <- newRef ((0,0), [])   -- drop on editor or treelist
     (enter_ed, _) <- bind ed [WishEvent [] Enter]
     (leave_np, _) <- bind np [WishEvent [] Leave]
+--    (leave_np, _) <- bind np [WishEvent [] (ButtonRelease (Just (BNo 1)))]
 
     (np_ev, _) <- bindNotepadEv np
     (tl_ev, _) <- bindTreeListEv tl
