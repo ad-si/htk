@@ -91,7 +91,11 @@ readDTD filePath =
             _ -> error ("Error reading MMiSS DTD from "++filePath++
              ": couldn't parse it")
 
+#if HAXMLINT
+         simpleDTD = partialValidate dtd
+#else
          simpleDTD = validate dtd
+#endif
 
          elements = [element | Element (ElementDecl element _) <- markups]
     
