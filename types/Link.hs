@@ -101,7 +101,6 @@ fetchLink (view@View{repository = repository,objects = objects})
             case objectDataOpt of
                Nothing -> error "View.fetchLink: Link to object not in view!!"
                Just (PresentObject versionedDyn _) ->
-                do
                   case fromDyn versionedDyn of
                      Just versioned -> return (objectDataOpt,versioned)
                      Nothing -> error "View.fetchLink - type error in link"
@@ -198,6 +197,7 @@ setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
                          makeObjectData view (Virgin x) secondLocation
                      return (Just objectData,return versioned)
                Just objectData ->
+                do
                   -- Is in repository.  So we just return something
                   -- to get the topLink
                   return (Just objectData,fetchLink view topLink)
@@ -241,7 +241,7 @@ makeObjectData view (status :: Status x) location =
 
 
 updateObject :: HasCodedValue x => View -> x -> Versioned x -> IO ()
-updateObject view x (Versioned{statusMVar = statusMVar}) =
+updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
    do
       status <- takeMVar statusMVar
       let
@@ -250,20 +250,21 @@ updateObject view x (Versioned{statusMVar = statusMVar}) =
             Virgin _ -> Virgin x
             UpToDate _ objectVersion -> Dirty x objectVersion
             Dirty _ objectVersion -> Dirty x objectVersion
-      putMVar statusMVar status
+      putMVar statusMVar newStatus
 
 dirtyObject :: HasCodedValue x => View -> Versioned x -> IO ()
-dirtyObject view (Versioned {statusMVar = statusMVar}) =
+dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
    do
       status <- takeMVar statusMVar
       let
          newStatus = case status of
-            UpToDate x objectVersion -> Dirty x objectVersion
+            UpToDate x objectVersion ->
+               Dirty x objectVersion
             _ -> status
-      putMVar statusMVar status
+      putMVar statusMVar newStatus
 
 readObject :: HasCodedValue x => View -> Versioned x -> IO x
-readObject view (Versioned{statusMVar = statusMVar}) =
+readObject view (versioned@Versioned{statusMVar = statusMVar}) =
    do
       status <- readMVar statusMVar
       case status of

@@ -127,8 +127,6 @@ commitView (view @ View {repository = repository,objects = objects,
    do
       parentOpt <- takeMVar parentMVar
 
-
-
       displayTypesData <- exportDisplayTypes view
 
       objectTypesData <- exportObjectTypes view

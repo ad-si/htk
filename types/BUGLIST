@@ -1,4 +1,5 @@
-(1/2/2002) Things aren't actually saved to the repository
+(2/2/2002) After committing out an empty version with no changes, unable to
+   modify anything.
 (1/2/2002) Folders display should display the name of the version
 
 (old)
@@ -6,3 +7,9 @@ View.commitView should prevent anyone doing any updates while
 it commits.  For this we need a special kind of lock by which
 commitView can lock out any updates, but updates can't lock out
 each other.
+
+
+Fixed bugs
+----------
+
+(1/2/2002) Things aren't actually saved to the repository (FIXED 2/2)
