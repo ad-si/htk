@@ -128,11 +128,13 @@ readFromWish =
 
 readFromWish =
    do
+      windowsTick <- getWindowsTick 
+
       let 
          bufferSize = 100 
          -- absurdly large for most answers from Wish we will need, in fact
 
-         waitTick = Concurrent.threadDelay POLLWISH
+         waitTick = Concurrent.threadDelay windowsTick
 
          readToBuffer (buffer :: Ptr CChar) =
             do
