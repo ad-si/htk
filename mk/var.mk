@@ -29,7 +29,6 @@ else
 endif
 
 HCSHORTFLAGS = \
-   -recomp -fwarn-deprecations \
    $(HC_OPTIONS) $(CPPOPT) $(EXTRA_HC_OPTIONS) \
    -package-conf $(PACKAGECONF) $($*_HC_OPTIONS)
 

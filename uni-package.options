@@ -8,10 +8,13 @@ Package {
    include_dirs = ["#PWD/includes"],
    c_includes = [],
    package_deps = [],
-   extra_ghc_opts = ["-fglasgow-exts","-fallow-overlapping-instances", 
+   extra_ghc_opts = [
+      "-fglasgow-exts","-fallow-overlapping-instances", 
       "-fallow-undecidable-instances",
       "-fwarn-unused-imports",
-      "-fwarn-missing-signatures","-fwarn-unused-binds"],
+      "-fwarn-missing-signatures","-fwarn-unused-binds",
+      "-fwarn-deprecations","-recomp"
+      ],
    extra_cc_opts = [],
    extra_ld_opts = []
    }
