@@ -39,7 +39,7 @@ import CallEditor
 import GetAttributesType
 
 -- ------------------------------------------------------------------
--- FileType and its instance of HasCodedValue
+-- FileType and its instance of HasCodedValue and HasAttributesType
 -- ------------------------------------------------------------------
 
 data FileType = FileType {
@@ -75,6 +75,8 @@ instance HasCodedValue FileType where
             displayParms = displayParms,
             knownFiles = knownFiles,canEdit = canEdit},codedValue1)
 
+instance HasAttributesType FileType where
+   toAttributesType fileType = requiredAttributes fileType
 
 -- ------------------------------------------------------------------
 -- File and its instance of HasAttributes and HasCodedValue
@@ -148,19 +150,39 @@ instance ObjectType FileType File where
                      arcTypes = [],
                      nodeTypes = 
                         let
+                           allowTextEdit = canEdit fileType
+
+                           textEdit (_,link) = editObject view link
+
+                           editOptions1 = [
+                              Button "Edit Attributes" 
+                                 (\ (_,link) -> editObjectAttributes view link)
+                                 ]
+
+                           editOptions2 =
+                              if allowTextEdit
+                                 then
+                                    (Button "Edit Text" textEdit) 
+                                       : editOptions1
+                                 else
+                                    editOptions1
+
+                           menu = 
+                              LocalMenu (Menu (Just "File edits") editOptions2)
+
                            parms1 = 
+                              menu $$$ 
                               ValueTitle (\ (str,_) -> return str) $$$
                               nodeTypeParms
-                        in
-                           [(theNodeType,
-                              if canEdit fileType
+
+                           parms2 =
+                              if allowTextEdit 
                                  then
-                                    DoubleClickAction 
-                                       (\ (_,link) -> editObject view link) $$$
-                                    parms1
+                                    (DoubleClickAction textEdit) $$$ parms1
                                  else
                                     parms1
-                              )],
+                        in
+                           [(theNodeType,parms2)],
                      getNodeType = const theNodeType,
                      knownSet = SinkSource (knownFiles fileType),
                      mustFocus = (\ _ -> return False),
@@ -318,3 +340,4 @@ createNewFileType view =
                            knownFiles = knownFiles,
                            canEdit = canEdit
                            }))
+

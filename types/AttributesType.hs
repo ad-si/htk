@@ -3,6 +3,7 @@
    -}
 module AttributesType(
    AttributesType,
+   AttributesState(..),
    inputAttributes,
    updateAttributes,
    emptyAttributesType,
@@ -22,6 +23,9 @@ module AttributesType(
    ExtraFormItem,
    mkExtraFormItem,
    readExtraFormItem,
+
+   HasAttributesType(..),
+   editObjectAttributes,   
    ) where
 
 import Maybe
@@ -35,10 +39,23 @@ import Computation
 import SimpleForm
 
 import ViewType
+import Link
 import CodedValue 
 import BasicObjects
+import ObjectTypes
+
 
 ---
+-- AttributesState describes a possible return from an attributes setting
+-- or updating function.
+data AttributesState =
+      NoForm    -- No attributes or extra form was specified, and no form was
+                -- displayed
+   |  Cancelled -- The user pressed Cancel, so no changes were made
+   |  Changed   -- The user pressed Ok, so changes were (or at least may have
+                -- been) made.
+ 
+--- 
 -- An AttributesType gives conditions that a particular set of attributes
 -- needs to satisfy (such as having an attribute with a given name and
 -- a given type).  It also encodes the input method for that attribute.
@@ -55,9 +72,13 @@ instance HasCodedValue AttributesType where
    decodeIO = mapDecodeIO (\ list -> AttributesType list)
 
 ---
--- inputAttributes 
--- returns an Attributes value corresponding to this attributesType,
--- or Nothing if the user pressed Cancel.
+-- inputAttributes view attributesType extraFormItemOpt
+-- constructs a new set of Attributes given the AttributesType and an
+-- optional extra form item.  It returns Nothing if the user presses
+-- Cancel.
+--
+-- If extraFormItemOpt is Nothing and the attributes type is empty we return
+-- True.
 inputAttributes :: View -> AttributesType -> Maybe (ExtraFormItem x) 
    -> IO (Maybe Attributes)
 inputAttributes view attributesType extraFormItemOpt =
@@ -66,14 +87,19 @@ inputAttributes view attributesType extraFormItemOpt =
       attributes <- newEmptyAttributes view
       success <- updateAttributesPrim "New Attributes" attributes 
          attributesType extraFormItemOpt
-      return (if success then Just attributes else Nothing)
+      case success of
+         Cancelled -> return Nothing
+         _ -> return (Just attributes)
 
 ---
--- updateAttributes attributes attributesType
--- puts up a form allowing the user to update the attributes,
--- which should have type attributesType
+-- updateAttributes attributes attributesType extraFormItemOpt
+-- puts up a form allowing the user to update the attributes
+-- which should have type attributesType.
+--
+-- If extraFormItemOpt is Nothing and the attributes type is empty we don't
+-- put any form up 
 updateAttributes :: Attributes -> AttributesType -> Maybe (ExtraFormItem x) 
-   -> IO Bool
+   -> IO AttributesState
 updateAttributes attributes attributesType extraFormItemOpt = 
    updateAttributesPrim "Update Attributes" attributes attributesType 
       extraFormItemOpt
@@ -83,7 +109,7 @@ updateAttributes attributes attributesType extraFormItemOpt =
 -- as argument the String to be used as the title window, allowing
 -- it also to be used for inputAttributes
 updateAttributesPrim :: String -> Attributes -> AttributesType 
-   -> Maybe (ExtraFormItem x) -> IO Bool
+   -> Maybe (ExtraFormItem x) -> IO AttributesState
 updateAttributesPrim title attributes (AttributesType attributesList) 
       extraFormItemOpt =
    do
@@ -113,18 +139,18 @@ updateAttributesPrim title attributes (AttributesType attributesList)
          (///) form1 form2 = fmap (uncurry (>>)) (form1 // form2)
 
       case forms of 
-         [] -> return True
+         [] -> return NoForm
          _ ->
             do 
                let form = foldr1 (///) forms
                -- Now open the window. 
                actOpt <- doForm title form
                case actOpt of
-                  Nothing -> return False
+                  Nothing -> return Cancelled
                   Just act ->
                      do
                         act -- set the attributes.
-                        return True
+                        return Changed
 
 ---
 -- corresponds to an attributesType with no conditions on the attributes.
@@ -439,7 +465,24 @@ instance HasCodedValue value => HasCodedValue (Radio value) where
          Just value -> Radio value
        )
 
-         
+-- -------------------------------------------------------------------
+-- The HasAttributesType class and the editObjectAttributes class.
+-- -------------------------------------------------------------------
 
+class HasAttributesType objectType where
+   toAttributesType :: objectType -> AttributesType
 
-
+editObjectAttributes :: (ObjectType objectType object,HasAttributes object,
+   HasAttributesType objectType) 
+   => View -> Link object -> IO ()
+editObjectAttributes view link =
+   do
+      versioned <- fetchLink view link
+      object <- readObject view versioned
+      let 
+         attributes = readPrimAttributes object
+      success <- updateAttributes attributes (toAttributesType 
+         (getObjectTypePrim object)) Nothing
+      case success of
+         Changed -> dirtyObject view versioned
+         _ -> done

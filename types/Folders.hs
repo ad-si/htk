@@ -114,7 +114,7 @@ newObjectTypeMenu view =
       return globalMenu
 
 -- ------------------------------------------------------------------
--- FolderType and its instance of HasCodedValue
+-- FolderType and its instance of HasCodedValue and HasAttributesType
 -- ------------------------------------------------------------------
 
 data FolderType = FolderType {
@@ -150,6 +150,10 @@ instance HasCodedValue FolderType where
             requiredAttributes = requiredAttributes,
             displayParms = displayParms,topFolderLinkOpt = topFolderLinkOpt,
             knownFolders = knownFolders},codedValue1)
+
+
+instance HasAttributesType FolderType where
+   toAttributesType folderType = requiredAttributes folderType
 
 
 -- ------------------------------------------------------------------
@@ -233,12 +237,22 @@ instance ObjectType FolderType Folder where
                         Nothing -> []
                         Just link -> [link],
                      arcTypes = [(theArcType,emptyArcTypeParms)],
-                     nodeTypes = [(theNodeType,
-                        ValueTitle (\ (str,_) -> return str) $$$
-                        (DoubleClickAction focusAction) $$$
-                        addFileGesture view $$$
-                        nodeTypeParms
-                        )],
+                     nodeTypes = 
+                        let
+                           editOptions1 = [
+                              Button "Edit Attributes" 
+                                 (\ (_,link) -> editObjectAttributes view link)
+                                 ]
+                           menu = LocalMenu (Menu (Just "Folder edits") 
+                              editOptions1)
+                        in
+                          [(theNodeType,
+                           menu $$$
+                           ValueTitle (\ (str,_) -> return str) $$$
+                           (DoubleClickAction focusAction) $$$
+                           addFileGesture view $$$
+                           nodeTypeParms
+                           )],
                      getNodeType = const theNodeType,
                      knownSet = SinkSource (knownFolders folderType),
                      mustFocus = (\ _ -> return False),

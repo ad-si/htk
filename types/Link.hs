@@ -42,7 +42,7 @@ module Link(
    -- marks it to be stored anew.
    dirtyObject, -- :: HasCodedValue x => View -> Versioned x -> IO ()
    -- This marks the x value to be stored anew, even though it hasn't
-   -- been change.  This is needed, for example, when x points to a file,
+   -- been changed.  This is needed, for example, when x points to a file,
    -- which has been updated on the side.
    readObject, -- :: HasCodedValue x => View -> Versioned x -> IO x
    -- get the current contents of the object.
