@@ -1,4 +1,4 @@
-EXTRA_HC_OPTIONS += '-\#include "signaldispatcher.h"'  '-\#include "collector.h"'
+EXTRA_HC_OPTIONS += '-\#include "signaldispatcher.h"' 
 
 LIB        = libreactor.a
 
@@ -22,16 +22,12 @@ SRCS       = Listener.hs\
              RegularExpression.hs\
 	     Expect.hs\
 	     SIM.hs 
-# the following modules don't seem to be used anywhere and
-# are now obsolete.
-#	     Sensor.hs\
-#	     NameSpace.hs\
+
+SRCSH      = signaldispatcher.h
+SRCSC      = signaldispatcher.c
+
 
 SUBDIRS = test
-      
-SRCSH      = signaldispatcher.h collector.h
-
-SRCSC      = signaldispatcher.c collector.c
 
 EXTRA_HC_OPTIONS += -O -H30M
 
