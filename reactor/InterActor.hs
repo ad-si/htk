@@ -34,15 +34,23 @@ import EventStream
 import Interaction
 import Dynamics
 import Debug(debug)
+import SIMClasses(Destructible(..))
 
 -- --------------------------------------------------------------------------
 --  Interactor Handle
 -- --------------------------------------------------------------------------
 
-data InterActor = InterActor {self::ThreadID, eventstream:: (EventStream ())}
+data InterActor = 
+   InterActor {
+      self::ThreadID, 
+      eventstream::EventStream (),
+      destruction::Channel ()
+      }
 -- self comes from a special thread which is forked for the purpose.
 -- This provides a unique identifier.  But
 -- the Ord and Eq implementations don't use it!
+-- The destruction queue is written to once when and if the interactor is
+-- stopped.
 
 -- --------------------------------------------------------------------------
 --  Instances
@@ -85,7 +93,10 @@ newInterActor f =
          do
             es <- newEventStream
             tid <- getThreadID
-            let iact = InterActor {self = tid,eventstream = es}
+            destruction <- newChannel
+            let 
+               iact = InterActor 
+                  {self = tid,eventstream = es,destruction=destruction}
             become iact (f iact) 
             putMVar mv iact
             -- this thread is now ready to handle the requests.  Do so
@@ -102,7 +113,10 @@ interactor f =
          do
             es <- newEventStream
             tid <- getThreadID
-            iact <- return (InterActor {self = tid,eventstream = es});
+            destruction <- newChannel
+            let
+               iact = InterActor 
+                  {self = tid,eventstream = es,destruction = destruction}
             become iact (f iact) 
             dispatch iact
          )
@@ -118,8 +132,16 @@ stop iact = do
    become iact (inaction :: IA ())
    -- that should deregister everything.
    reply iact
+   sendIO (destruction iact) ()
    deadlock
 
+-- --------------------------------------------------------------------------
+--  Destructor for Interactor
+-- --------------------------------------------------------------------------
+
+instance Destructible InterActor where
+   destroy = stop
+   destroyed interactor = lift (receive (destruction interactor)) 
 
 -- --------------------------------------------------------------------------
 --  Event Dispatching/Iterative Choice
@@ -131,3 +153,5 @@ dispatch iact @ (InterActor {eventstream=es}) =
       -- if there is an error in the action stop immediately.
       catch (receiveIO es) (const (stop iact))
       dispatch iact
+
+

@@ -26,28 +26,25 @@ import Frame
 import DialogWin
 import Debug(debug)
 
-main = do
-        gui <- htk [{-logfile (1::Int)-}]
-        dav <- davinci []
-        setErrorHandler err
-{-
-        b <- newMenuButton [text "Pop-up Menu"]
-        mn <- newMenu [tearOff On, parent (b::MenuButton ())]
-        button [text "Create",parent (mn::Menu ())]
-        button [text "Delete",parent mn]
-        button [text "Edit",parent mn]
-
-        win <- window b []
-
-        sync(receive b)
--}
-
-        newGraphEditor dav
-        interactor(\iact -> 
-                destroyed dav       >>> do {destroy gui; stop iact}
-           +>   lastGraphClosed dav >>> do {destroy gui; destroy dav; stop iact}
-                )
-        done 
+main = 
+   do
+      gui <- htk []
+      dav <- davinci []
+      setErrorHandler err
+      newGraphEditor dav
+      interactor <- newInterActor(
+         \iact -> 
+               destroyed dav >>> 
+                  do 
+                     destroy gui
+                     stop iact
+            +> lastGraphClosed dav >>> 
+                  do 
+                     destroy gui 
+                     destroy dav
+                     stop iact
+            )
+      sync(destroyed interactor)
 
 err e = newErrorWin (show e) []
 

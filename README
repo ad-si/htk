@@ -14,6 +14,8 @@ following directories:
    davinci      |  This is an encapsulation of DaVinci in Haskell
    www          |  Functions for manipulating HTML in Haskell
 
+   database     |  Data for various Uni components
+
 It is intended to make the remainder of UniForM available later on.
 However the repository manager is currently in a very unsatisfactory
 state and needs a great deal more work before this can be done.  However
@@ -91,6 +93,18 @@ gmake depend
 gmake all
 # Compile test programs
 gmake testprgs
+
+Further Configuration for HTk or DaVinci
+----------------------------------------
+
+If you want to use HTk or the DaVinci encapsulation, you will need to 
+install wish (version 8.0) and of course daVinci.  You should then alter
+the filenames in the scripts in database/bin/{wish,daVinci} to point to
+where you have installed them.  To run programs involving HTk or DaVinci
+you need to set the environment variable WB_ROOT to the full pathname of
+database.  (For example using Bash I use
+  export WB_ROOT=/home/ger/uniform/database
+  )
 
 Please report problems to me.  I am George Russell and my e-mail
 address is ger@tzi.de .

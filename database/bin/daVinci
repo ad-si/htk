@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /home/davinci/bin/daVinci_V2.1_beta -pipe

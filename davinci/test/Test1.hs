@@ -33,29 +33,31 @@ import ScrollBox
 import LogWin
 import IO
 import Debug(debug)
+import Concurrent
 
-main = do {
-        gui <- htk [];
-        setLogFile (Just stdout);
-        dav <- davinci [];
---      (win,b) <- newTextEditor;
-        win <- newLogWin [text "Log Window"];
-        g <- newWidgetTreeView win;
-        interactor (\iact ->
-                destroyed g >>> print "hello"
-           +>   lastGraphClosed dav >>> do {
-                        print "stopping";
-                        destroy gui;
-                        destroy dav;
-                        stop iact
-                        }
-           +>   destroyed dav >>> do {
-                        print "shutdown";
-                        destroy gui; stop iact
-                        }                                               
-                );
-        done
-} 
+main = do
+   gui <- htk []
+   dav <- davinci []
+-- (win,b) <- newTextEditor
+   win <- newLogWin [text "Log Window"]
+   g <- newWidgetTreeView win
+   interactor <- newInterActor
+       (\iact ->
+             destroyed g >>> print "hello"
+          +> lastGraphClosed dav >>> 
+                do
+                   print "stopping"
+                   destroy gui
+                   destroy dav
+                   stop iact
+                  
+          +> destroyed dav >>> 
+                do
+                   print "shutdown"
+                   destroy gui 
+                   stop iact                                               
+          )
+   sync(destroyed interactor)
 
 {-
 -- ---------------------------------------------------------------------------
