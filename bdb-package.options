@@ -1,0 +1,4 @@
+name: bdb-package
+library-dirs: "#BDBLIB"
+extra-libraries: db
+include-dirs: "#BDBINCLUDE"
