@@ -27,10 +27,14 @@ module BasicObjects(
 
    newEmptyAttributes, -- :: View -> IO Attributes
 
+   HasAttributes(..), -- a class for things containing a set of attributes
+
    ) where
 
+import qualified IOExts(unsafePerformIO)
 import Concurrent
 
+import Computation(done)
 import Dynamics
 import TempFile
 import Registry
@@ -116,16 +120,19 @@ instance HasFilePath SimpleFile where
 -- Attributes
 -- ------------------------------------------------------------------------
 
+-- dirtyAction contains an action which should be executed every time the
+-- attributes are changed.
 data Attributes = Attributes {
    view :: View,
-   registry :: Registry String CodedValue
+   registry :: Registry String CodedValue,
+   dirtyAction :: IO ()
    }
 
 newEmptyAttributes :: View -> IO Attributes
 newEmptyAttributes view =
    do
       registry <- newRegistry
-      return (Attributes {view = view,registry = registry})
+      return (Attributes {view = view,registry = registry,dirtyAction = done})
 
 attributes_tyCon = mkTyCon "BasicObjects" "Attributes"
 
@@ -143,11 +150,17 @@ instance HasCodedValue Attributes where
       do
          (contents,codedValue1) <- decodeIO codedValue0 view
          registry <- listToNewRegistry contents
-         let attributes = Attributes {view = view,registry = registry}
+         let 
+            attributes = Attributes {
+               view = view,
+               registry = registry,
+               dirtyAction = done
+               }
          return (attributes,codedValue1)
 
 instance HasCodedValue to => GetSetRegistry Attributes String to where
-   transformValue (Attributes{view = view,registry = registry}) from
+   transformValue (Attributes{view = view,registry = registry,dirtyAction =
+         dirtyAction}) from
          transformer =
       let
          transformIn Nothing = return Nothing
@@ -166,6 +179,11 @@ instance HasCodedValue to => GetSetRegistry Attributes String to where
                toValInOpt <- transformIn codedValueInOpt
                (toValOutOpt,extra) <- transformer toValInOpt
                codedValueOutOpt <- transformOut toValOutOpt
+               if codedValueInOpt /= codedValueOutOpt
+                  then
+                     dirtyAction
+                  else
+                     done
                return (codedValueOutOpt,extra)
             )
 
@@ -179,10 +197,12 @@ instance HasCodedValue to => GetSetRegistry Attributes String to where
                   toVal <- doDecodeIO codedValue view
                   return (Just toVal)
             
-   setValue (Attributes{view = view,registry = registry}) from to =
+   setValue (Attributes{view = view,registry = registry,dirtyAction =
+         dirtyAction}) from to =
       do
          codedValue <- doEncodeIO to view
          setValue registry from codedValue
+         dirtyAction
 
 instance KeyOpsRegistry Attributes String where
    deleteFromRegistryBool (Attributes {registry = registry}) from =
@@ -192,4 +212,35 @@ instance KeyOpsRegistry Attributes String where
       deleteFromRegistry registry from
 
    listKeys (Attributes {registry = registry}) = listKeys registry
+
+-- ------------------------------------------------------------------------
+-- HasAttributes
+-- ------------------------------------------------------------------------
+
+---
+-- The HasAttributes class is instanced by objects that contain an
+-- Attributes 
+class HasCodedValue object => HasAttributes object where
+   ---
+   -- readAttributes extracts the attributes for an object
+   readAttributes :: View -> Link object -> Attributes
+
+   ---
+   -- readPrimAttributes does this without setting a dirty action.
+   --    This should ONLY be used from the readAttributes function definition
+   --    which is about to follow.  Objects which define their own version
+   --    of readAttributes need therefore not bother defining this function.
+   readPrimAttributes :: object -> Attributes
+
+   readAttributes view link = 
+      IOExts.unsafePerformIO (
+         do
+            versioned <- fetchLink view link
+            object <- readObject view versioned
+            let attributes0 = readPrimAttributes object
+            return (attributes0 {
+               dirtyAction = dirtyObject view versioned
+               })
+         )
+
 

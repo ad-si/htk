@@ -109,7 +109,7 @@ import ViewType
 -- CodedValue's and operations on them.
 ---------------------------------------------------------------------
 
-newtype CodedValue = CodedValue [Maybe Char]
+newtype CodedValue = CodedValue [Maybe Char] deriving (Eq)
 -- Why not just String?  Because CVS does versioning better when data
 -- is considered in a record-based way.  Thus we try to represent each
 -- "large" bit of data, IE more than 2 or 3 characters or so,

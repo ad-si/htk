@@ -3,6 +3,8 @@
 module Folders(
    registerFolders, -- :: IO ()
       -- to be done at initialisation
+   Folder,
+   FolderType,
    getTopFolder, 
    getInFolder,
    lookupFileName,
@@ -104,7 +106,7 @@ instance HasCodedValue FolderType where
 
 
 -- ------------------------------------------------------------------
--- Folder and its instance of HasCodedValue
+-- Folder and its instance of HasAttributes and HasCodedValue
 -- ------------------------------------------------------------------
 
 
@@ -120,6 +122,9 @@ data Folder = Folder {
 folder_tyCon = mkTyCon "Folders" "Folder"
 instance HasTyCon Folder where
    tyCon _ = folder_tyCon
+
+instance HasAttributes Folder where
+   readPrimAttributes object = attributes object
 
 instance HasCodedValue Folder where
    encodeIO = mapEncodeIO 
