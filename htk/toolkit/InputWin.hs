@@ -27,8 +27,12 @@ module InputWin (
 
         InputWin(..),
         newInputWin,
-        newInputDialog,
+--        newInputDialog,
 
+--      addEntryField,
+--	addTextField,
+--	addEnumField,
+	
         wait
         ) where
 
@@ -63,16 +67,16 @@ instance GUIObject (InputWin a) where
 -- Dialog
 -- ---------------------------------------------------------------------------
 
-newInputDialog :: String -> Maybe a -> [Config Toplevel] -> IO (InputWin a)
-newInputDialog  str val tpconf = do
-        newInputWin str val tpconf
+--newInputDialog :: String -> (Container a -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a)
+--newInputDialog  str val tpconf = do
+--        newInputWin str val tpconf
 
 -- ---------------------------------------------------------------------------
 -- Constructor
 -- ---------------------------------------------------------------------------
 
-newInputWin :: String -> Maybe a -> [Config Toplevel] -> IO (InputWin a)
-newInputWin str val tpconfs =
+newInputWin :: String -> (Box -> IO (InputForm a)) -> [Config Toplevel] -> IO (InputWin a, InputForm a)
+newInputWin str ifun tpconfs =
  do
   tp <- createToplevel (tpconfs++[text "Input Form Window"])
   pack tp [Expand On, Fill Both]
@@ -92,6 +96,8 @@ newInputWin str val tpconfs =
   formbox <- newVBox b []
   pack formbox [Expand On, Fill Both, PadX (cm 0.5)]
 
+  form <- ifun formbox
+  
   sp3 <- newSpace b (cm 0.3) []
   pack sp3 [Expand Off, Fill X]
  
@@ -112,14 +118,17 @@ newInputWin str val tpconfs =
   sp5 <- newSpace b (cm 0.3) []
   pack sp5 [Fill X]
 
-  form <- newInputForm formbox val []
+  --form <- newInputForm formbox val []
 
-  case val of
-   Nothing -> return (InputWin tp form ev)
-   Just val' -> do
-                 return (InputWin tp form ev)
+  --case val of
+  -- Nothing -> return (InputWin tp form ev)
+  -- Just val' -> do
+  return ((InputWin tp form ev), form)
   where fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
 
+--
+-- Fields
+--
 
 -- ---------------------------------------------------------------------------
 -- Additional Funcitons
@@ -130,6 +139,10 @@ wait win@(InputWin tp form@(InputForm b e) ev) modality = do
  -- their initial values (to be done automatically)
  fst <- getRef e
  initiate form (fFormValue fst)
+ internalWait win modality
+
+internalWait :: InputWin a -> Bool -> IO (Maybe a)
+internalWait win@(InputWin tp form ev) modality = do
  ans <- modalInteraction tp False modality ev
  case ans of
   False -> do 
@@ -138,7 +151,7 @@ wait win@(InputWin tp form@(InputForm b e) ev) modality = do
   True  -> do 
             res <- try (getFormValue form)
 	    case res of 
-	     Left e -> wait win modality
+	     Left e -> internalWait win modality
 	     Right res' -> do
                             destroy win	    
                             return (Just res')

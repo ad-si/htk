@@ -53,41 +53,45 @@ main =
  
   clickedbut5 <- clicked but5
   spawnEvent (forever (clickedbut5 >> always (do 
-                                               newAlertWin [bold [prose "An Alert Window has been triggered."], newline, 
-                                                            prose "This would be the place to put some warning or so!"] []  
+                                               newAlertWin "An Alert Window has been triggered.\nThis would be the place to put some warning or so!" []  
 					       putStrLn "done with AlertWin"
 					       )))
  
   clickedbut6 <- clicked but6
   spawnEvent (forever (clickedbut6 >> always (do 
-                                               newErrorWin [bold [prose "An Error Window has been triggered."], newline,
-                                                            prose "This would be the place where to find the error message!"] []  
+                                               newErrorWin "An Error Window has been triggered.\nThis would be the place where to find the error message!" []  
 					       putStrLn "done with ErrorWin"
 					       )))
  
   clickedbut7 <- clicked but7
   spawnEvent (forever (clickedbut7 >> always (do 
-                                               newWarningWin [bold [prose "A Warning Window has been triggered."], newline,
-                                                              prose "This text here could be a warning!"] []
+                                               newWarningWin "A Warning Window has been triggered.\nThis text here could be a warning!" []
 					       putStrLn "done with WarningWin"
 					       )))
  
   clickedbut8 <- clicked but8
   spawnEvent (forever (clickedbut8 >> always (do 
-                                               res <- newConfirmWin [bold [prose "A Confirm Window has been triggered."], newline,
-                                                                     prose "Here the action to be confirmed would be found!"] []  
+                                               res <- newConfirmWin "A Confirm Window has been triggered.\nHere the action to be confirmed would be found!" []  
 					       putStr "done with ConfirmWinWin: "
 					       putStrLn (show res)
 					       )))
 
   clickedbut9 <- clicked but9
-  spawnEvent (forever (clickedbut9 >> always (do 
-                                               let def = Test{ent1="HALLO WELT!\n rofl", ent2="TEST", enu1=5, ent3=42}
-                                               iwin <- newInputWin "HELLO THERE" (Just def) []
-					       newTextField (iwin # fForm) [size (5,5),selector ent1, 
+  spawnEvent (forever (clickedbut9 >> always (do
+                                               -- one adt to store the entered information and the initial field values
+                                               let def = Test{ent1="HALLO WELT!", ent2="TEST", enu1=5, ent3=42}
+					       -- create the InputForm (as a function so there is no parent)
+					       -- give as value (Just a) or Nothing
+					       let iform p = newInputForm p (Just def) []
+					       -- create the InputWindow with the formfunction
+					       -- returns the InputWindow and the InputForm (which can be filled now)
+                                               (iwin,form) <- newInputWin "HELLO THERE" iform []
+					       -- add various fields here to the InputForm
+					       newTextField form [size (5,5), selector ent1, text "Editor String",
 					                           modifier (\ old val -> old {ent1=val})] :: IO (TextField Test String)
-					       newEntryField (iwin # fForm) [text "Entry Int", selector ent3, modifier (\ old val -> (old {ent3=val}))] :: IO (EntryField Test Int)
-					       newEnumField (iwin # fForm) [0,1,2,3,4,5] [selector enu1, modifier (\ old val -> old {enu1=val})] :: IO (EnumField Test Int)
+					       newEntryField form [text "Entry Int", selector ent3, modifier (\ old val -> (old {ent3=val}))] :: IO (EntryField Test Int)
+					       newEnumField form [0,1,2,3,4,5] [text "Option Int", selector enu1, modifier (\ old val -> old {enu1=val})] :: IO (EnumField Test Int)
+                                               -- wait 					       
 					       res <- wait iwin True
                                                case res of
 					        Nothing -> putStrLn "canceled"
