@@ -32,7 +32,7 @@ main =
          [] -> done
          errors -> error (unlines errors)
       let
-         structured = structureContents el
+         structured = coerceWithError (structureContents el)
          (contents1 :: [Content]) = contents (accContents structured)
       coded1 <- doEncodeIO contents1 undefined
       putStrLn (toString coded1)

@@ -4,9 +4,30 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+14) 02.09.02
+Intermittently VersionGraph does not start up properly.
+
+03.09.02
+After a lengthy investigation it turns out that the reason is that
+after ChildProcess.newChildProcess does Posix.forkProcess, we now have
+various worker threads doing things like communicating with the server
+in both the child and parent process, until the child process manages to
+exexve the new process.  This bug has been around ever since Einar's day
+at least, but has only emerged now (and partially in item 11) because
+I would guess of either the increased complexity (and number of worker threads)
+of MMiSSWorkbench, or changes in ghc5.04's scheduler.
+
+This has necessitated a complete rewrite of ChildProcess.newChildProcess's
+mechanism for starting a new process, converting it from Haskell into C.
+But it's worth it, and the problem seems to be 
+FIXED
+
 13) 28.08.02
 DTD needs to be modified to allow includes everywhere where atoms and other
 insertable items can appear.
+
+Solution agreed 02.09.02.
+FIXED
 
 12) 28.08.02
    The button inside dtd/mmiss-paragraph.1.xml is getting inserted into
@@ -36,7 +57,7 @@ function called by ChildProcess and used to start daVinci somehow pangles
 unevaluated environment and argument values.  Why this has only been noticed
 now I don't know; perhaps something to do with the large size of the 
 executable?  
-FIXED
+FIXED but see item (14).
 
 10) 27.08.02
 Need to alter MMiSSContent/MMiSSObjects to handle both links and references.

@@ -2,9 +2,9 @@ PACKAGE = uni-posixutil
 PACKAGES = posix uni-events
 
 SRCS = CopyFile.hs ProcessClasses.hs FdRead.hs ChildProcess.hs \
-   Expect.hs SafeSystem.hs
+   Expect.hs SafeSystem.hs ForkExec.hs
 
-SRCSC = MainrunCommand.c
+SRCSC = MainrunCommand.c forkExec.c
 
 # For runCommand we link with -no-hs-main since it's not actually a Haskell
 # program.

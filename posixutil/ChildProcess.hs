@@ -46,7 +46,9 @@ module ChildProcess (
    arguments,      -- :: [String] -> Config PosixProcess
    appendArguments,-- :: [String] -> Config PosixProcess
    environment,    -- :: [(String,String)] -> Config PosixProcess  
-   workingdir,     -- :: FilePath -> Config PosixProcess           
+   -- workingdir,     -- :: FilePath -> Config PosixProcess
+   -- workingdir is removed because it involves getting the child process
+   -- to do some work.
    chunksize,      -- :: Int-> Config PosixProcess
    -- the maximal size of one "chunk" of characters read from the 
    -- child process at one time (default 1000).
@@ -124,6 +126,7 @@ import WrapIO
 
 import ProcessClasses
 import FdRead
+import ForkExec
 
 -- --------------------------------------------------------------------------
 --  Posix Tool Parameters
@@ -159,7 +162,7 @@ linemode        :: Bool -> Config PosixProcess
 arguments       :: [String] -> Config PosixProcess
 appendArguments :: [String] -> Config PosixProcess
 environment     :: [(String,String)] -> Config PosixProcess
-workingdir      :: FilePath -> Config PosixProcess
+-- workingdir      :: FilePath -> Config PosixProcess
 chunksize       :: Int-> Config PosixProcess
 standarderrors  :: Bool -> Config PosixProcess
 challengeResponse :: (String,String) -> Config PosixProcess
@@ -168,7 +171,7 @@ toolName :: String -> Config PosixProcess
 linemode lm' parms = return parms{lmode = lm'}
 arguments args' parms = return parms{args = args'}
 environment env' parms = return parms{env = Just env'}
-workingdir wdir' parms = return parms{wdir = Just wdir'}
+-- workingdir wdir' parms = return parms{wdir = Just wdir'}
 chunksize size' parms = return parms{chksize= size' }
 standarderrors err' parms = return parms{stderr = err'}
 challengeResponse cr parms = return parms {cresponse = Just cr}
@@ -211,6 +214,34 @@ data ChildProcess =
 newChildProcess :: FilePath -> [Config PosixProcess] -> IO ChildProcess
 newChildProcess path confs  =
    do                     -- (write,read)
+      --
+      -- Implementation Note
+      --
+      -- Ever since Einar's day up to 2nd September 2002, this function was 
+      -- implemented using the GHC Posix primitives fork and exec.  This caused
+      -- a serious problem when there were worker threads around communicating
+      -- with the outside world (eg servers), since the threads were cloned
+      -- by the fork and so the child would "steal" responses intended for the
+      -- server.  I added an apparently pointless operation which I think 
+      -- worked because it tricked the GHC scheduler into not running such
+      -- threads in the time it took for the thread to run exec.  This worked
+      -- quite well, but for some reason, whether because of changes in 
+      -- ghc5.04, or because of the increased complexity of MMiSSWorkbench,
+      -- it is not working any longer.  The effect with the MMiSSWorkbench was
+      -- that about 50% of the time it would not start up properly at all.
+      -- 
+      -- There is no way I can discover to prevent the child process running
+      -- all other threads until the exec operation has completed.  Therefore
+      -- I have adopted the drastic solution of implementing fork and exec
+      -- as a single operation in C.  GHC does not of course do anything else
+      -- while it is running C functions, so this solves the problem.
+      --
+      -- The change from the old approach explains the somewhat odd 
+      -- arrangement of this function.  There used to be a single "connect"
+      -- function defined in "where" which defined the parent and child actions
+      -- after the fork.  Now only the parent half of connect survives,
+      -- since the child actions are done in C.
+
       parms <- configure defaultPosixProcess confs
 
       debug("newChildProcess:")
@@ -222,6 +253,7 @@ newChildProcess path confs  =
       -- Pipe to read things back from child.
       let
          passOnStdErrs = stderr parms
+
       readWriteErr <- 
          if passOnStdErrs 
             then
@@ -231,24 +263,23 @@ newChildProcess path confs  =
                   (readErr,writeErr) <- Posix.createPipe
                   return (Just (readErr,writeErr))
 
-      mprocessID <- Posix.forkProcess 
-      connect writeIn readIn writeOut readOut readWriteErr mprocessID parms
-   where
-      -- We send an initial character over the Child Process output pipe
-      -- before doing anything else.  I don't know why, but this
-      -- seems to stop the first character of the child's output being
-      -- lost.
-      connect writeIn readIn writeOut readOut readWriteErr 
-            (Just processID) parms = 
-         do -- parent process
-            waitForInputFd readOut
-            result <- fdRead readOut 1
-            if (result /= ("#",1))
-               then
-                  raise(userError ("ChildProcess.newChildProcess bug 1"))
-               else
-                  done
 
+      processOpt <- forkExec path (args parms) (env parms)
+         readIn writeOut 
+         (case readWriteErr of
+            Nothing -> writeOut
+            Just (_,writeErr) -> writeErr
+            )
+ 
+      case processOpt of
+         Nothing -> error "Couldn't fork process"
+         Just processID -> -- parent process
+            parentConnect writeIn readIn writeOut readOut 
+               readWriteErr parms processID
+   where
+      parentConnect writeIn readIn writeOut readOut readWriteErr 
+            parms processID =
+         do -- parent process
             childObjectID <- newObject
             bufferVar <- newMVar ""
 
@@ -382,44 +413,9 @@ newChildProcess path confs  =
                                     Exception.throw exception
                         ) 
             return newChild
-      connect writeIn readIn writeOut readOut readWriteErr Nothing parms =
-         do -- child process
-            Posix.dupTo readIn Posix.stdInput
-            Posix.dupTo writeOut Posix.stdOutput
-            case readWriteErr of
-               Nothing ->
-                  Posix.dupTo writeOut Posix.stdError
-               Just (_,writeErr) ->
-                  Posix.dupTo writeErr Posix.stdError
- 
-            nbytes <- Posix.fdWrite writeOut "#"
-            if(nbytes/=1) 
-               then
-                  raise (userError ("ChildProcess.newChildProcess bug 2"))
-               else
-                  done
 
-            maybeChangeWd (wdir parms)
-
-            -- The following deepSeq's seem to fix a mysterious bug.  I don't
-            -- have time to work out why.
-            deepSeq (args parms) done
-            deepSeq (env parms) done
-            Exception.catch 
-               (Posix.executeFile path True (args parms) (env parms))
-               (\ error ->
-                  do
-                     putStrLn (errorResponse++show error)
-                     Exception.throw error
-                  ) 
-            error "This can't happen"
-
-      errorResponse :: String 
-      errorResponse = "Attempt to start program: "++path++
-         "\n failed with GHC error: "
-      
-      maybeChangeWd Nothing = done
-      maybeChangeWd (Just wd) = Posix.changeWorkingDirectory wd
+      errorResponse :: String
+      errorResponse = "Attempt to start program "++path++" failed: "
 
 getStatus :: Posix.ProcessID -> IO ToolStatus
 -- Immediately return Nothing if tool hasn't yet finished, or if
