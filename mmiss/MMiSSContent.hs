@@ -186,7 +186,7 @@ structureElement (element @ (Elem tag attributes contents0)) =
       -- code for handling include/link/reference's.
       newElem = Elem tag attributes (contents accContents)
 
-      wrapContents = Right (nullAccContents {contents = [CElem newElem]})
+      wrapContents = Right (accContents {contents = [CElem newElem]})
 
       addPointer newPtr =
          Right (addAccContents 

@@ -69,9 +69,11 @@ mmissLaTeX fileName contents =
 
                laTeXFile = fileName ++ ".tex"
                dviFile = fileName ++ ".dvi"
-            
+
+               fullLaTeXFile = (trimDir laTeXDir) `combineNames` laTeXFile
+
             -- Write the String to a file.
-            copyStringToFile contents laTeXFile
+            copyStringToFile contents fullLaTeXFile
 
             -- Run it through LaTeX
             success <- run ("LaTeX "++fileName) "latex" [laTeXFile]

@@ -4,13 +4,18 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+45) 19.09.02
+Fixed a bug in MMiSSStructureContents which meant some included content
+was getting lost.
+FIXED
+
 44) 17.09.02
 TODO: (1) Export LaTeX and pass it through a filter so it can be displayed on screen.
 (2) Add a menu option for the editor which displays exactly what can be seen on the
 screen.
 
 18.09.02
-(1) FIXED.
+(1) FIXED.  There are still some minor problems, like it can't find mmiss2.
 
 43) 17.09.02
 Add an option to export LaTeX/XML to a file.
