@@ -6,13 +6,14 @@ module Main(main) where
 
 import IO
 import System
+import List
 
 -- import Pretty
 
 import Computation
 import AtomString
 
-import CodedValue
+-- import CodedValue
 
 import LaTeXParser
 import EmacsContent
@@ -32,9 +33,13 @@ main =
       hSetBuffering stdout NoBuffering
       args <- System.getArgs
       let
-         expected = case args of
-            [] -> "package"
-            [arg] -> arg
+         mbRoot = find (isPrefixOf "-root=") args 
+         expected = case mbRoot of
+                      (Just rootOpt) -> drop 6 rootOpt 
+                      Nothing -> "package"
+         xmlOutput   = if ((elemIndices "-xml" args) == []) then False else True
+         latexOutput = if ((elemIndices "-latex" args) == []) then False else True
+         latexWithPreOutput = if ((elemIndices "-preamble" args) == []) then False else True
 
       doc <- getContents
       --
@@ -42,7 +47,8 @@ main =
       --
       let elEither = parseMMiSSLatex doc
       (el, preamble) <- case fromWithError elEither of
-                          Left str -> ioError (userError str)
+                          Left message -> let str = "Parse: The following errors occured:\n\n" 
+                                          in ioError (userError (message ++ str))
                           Right a -> return a
       --
       -- validate the XML-Element 
@@ -51,7 +57,10 @@ main =
       case verified of
          [] -> done
          errors -> do putStr(render (element el))
-                      error (unlines errors)
+                      let  
+                         str1 = "\nParse: Successfull\n"
+                         str2 = "Validate XML: The following errors occured:\n\n"
+                      error (unlines ([str1] ++ [str2] ++ errors))
       --
       -- Reconstruct LaTeX from XML-Element and Preamble 
       --
@@ -61,13 +70,15 @@ main =
               Nothing -> (makeMMiSSLatex (el, True, []), "")
               (Just(a)) -> (makeMMiSSLatex (el, True, [(a,[emptyPreambleData])]), (toString a))               
           (EmacsContent l) = coerceWithError emacsCont
-      putStr ("\n**************** XML:\n" ++
---                     (toExportableXml el) ++
-                     (render (element el)) ++ 
-                     "\n**************** Reconstructed LaTeX:\n" ++
-                     (concat (map getStrOfEmacsDataItem l)) ++ 
-                     "\n\n************** Preamble:\n" ++ preambleStr ++ 
-                     "\nMMiSSLaTeX source parsing and validation was successfull!\n")
+      if (xmlOutput == True) 
+        then putStr (render (element el)) 
+        else if (latexOutput)
+               then putStr (concat (map getStrOfEmacsDataItem l))
+               else if (latexWithPreOutput) 
+                      then putStr ((concat (map getStrOfEmacsDataItem l)) 
+                           ++ "\n\n************** Preamble:\n" ++ preambleStr)
+                      else done 
+      hPutStr stderr "\nParse: Successfull\nValidate XML: Successfull\n"
 
 
 getStrOfEmacsDataItem :: EmacsDataItem ((String, Char), [Attribute]) -> String
