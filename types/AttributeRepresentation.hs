@@ -22,6 +22,9 @@ module AttributeRepresentation(
       -- A FormatError is thrown (using throwDyn) when for some reason
       -- the message can't be decoded.
       -- Hence you can catch errors cleanly using catchDyn.
+
+   ShortList(..), 
+      -- provides a sort of list which is encoded without record boundaries.
    ) where
 
 import Bits
@@ -32,7 +35,7 @@ import Exception
 import Dynamics
 
 ---------------------------------------------------------------------
--- HashedValue's and operations on them.
+-- CodedValue's and operations on them.
 ---------------------------------------------------------------------
 
 newtype CodedValue = CodedValue [Maybe Char]
@@ -337,3 +340,42 @@ formatError :: String -> a
 formatError message = throwDyn (FormatError (
    "Attribute format error: "++message))
 
+---------------------------------------------------------------------------
+-- Encoding lists without record boundaries.
+-- (For lists of short items)
+---------------------------------------------------------------------------
+
+newtype ShortList item = ShortList [item]
+
+instance HasCodedValue value => HasCodedValue (ShortList value) where
+   encode (ShortList values) codedValue0 =
+      let
+         l = length values
+         codedValue1 = 
+            foldr
+               (\ value codedValue -> encode value codedValue)
+               codedValue0
+               values
+      in
+         encode l codedValue1
+   decode codedValue0 =
+      let
+         (l :: Int,codedValue1) = decode codedValue0
+         decodeNValues :: Int -> CodedValue -> ([value],CodedValue)
+         decodeNValues n codedValue0 =
+            if n<=0 
+               then
+                  if n<0
+                     then 
+                        formatError "Bad list length in AttributeTypes.decode"
+                     else
+                        ([],codedValue0)
+               else
+                  let
+                     (value1,codedValue1) = decode codedValue0
+                     (values,codedValue2) = decodeNValues (n-1) codedValue1
+                  in
+                     (value1 : values,codedValue2)
+         (values,codedValue2) = decodeNValues l codedValue1
+      in
+         (ShortList values,codedValue2)

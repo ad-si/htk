@@ -16,7 +16,8 @@ module ExtendedPrelude (
    split,
    insertOrdLt,
    insertOrdGt,
-   insertOrd
+   insertOrd,
+   bottom,
    ) where
 
 import Debug(debug)
@@ -63,3 +64,9 @@ insertOrd p x ll@(e:l) =
    else
       e : (insertOrd p x l)
 
+-- ---------------------------------------------------------------------------
+-- bottom
+-- ---------------------------------------------------------------------------
+
+bottom :: a
+bottom = error "Attempted to evaluate ExtendedPrelude.bottom"
