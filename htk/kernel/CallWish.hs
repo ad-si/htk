@@ -46,6 +46,7 @@ import Storable
 import Concurrent
 
 import WBFiles
+import Debug
 
 -- -----------------------------------------------------------------------
 -- Foreign function interface to the three C functions
@@ -152,8 +153,11 @@ readFromWish =
 
       -- We allocate the buffer using allocArray, which hopefully is more
       -- efficient than mallocArray/free.
-      allocaArray bufferSize readToBuffer
-
+      str <- allocaArray bufferSize readToBuffer
+#ifdef DEBUG
+      debugString("wish<"++str++"\n")
+#endif
+      return str
 #endif
 
 
@@ -175,7 +179,12 @@ callWish =
 
 sendCalledWish :: CalledWish -> CStringLen -> IO ()
 sendCalledWish _ (cString,len) =
-   writeToWishPrim cString (fromIntegral len)
+   do
+#ifdef DEBUG
+      str <- peekCStringLen (cString,len)
+      debugString ("wish>"++str)
+#endif
+      writeToWishPrim cString (fromIntegral len)
 
 -- I don't know how you destroy a child process in Windows.  Hopefully
 -- asking it nicely will work.
