@@ -231,19 +231,12 @@ runServer serviceList =
                                              throw exception
 
                            state <- takeMVar stateMVar
-                           -- add client to client list
+                           -- Send initial stuff and add client to client list
+                           header <- sendOnConnect service state
+                           hPutStrLnFlush handle (show header)
                            oldClients <- takeMVar clients
                            putMVar clients (clientData:oldClients)
                            putMVar stateMVar state
-                           let
-                              clientStartup = 
-                              -- we delay doing this to the client thread,
-                              -- since it might take some time.
-                                 do
-                                    state <- takeMVar stateMVar
-                                    header <- sendOnConnect service state
-                                    hPutStrLnFlush handle (show header)
-                                    putMVar stateMVar state
 
                            -- clientReadAction is basically thread for 
                            -- reading client output
@@ -282,7 +275,6 @@ runServer serviceList =
                            -- (EOF) errors don't cause any trouble.
                            forkIO(
                               do
-                                 clientStartup
                                  Left exception 
                                     <- Exception.try clientReadAction
                                  -- clientReadAction cannot return otherwise
