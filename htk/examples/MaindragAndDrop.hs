@@ -32,9 +32,9 @@ showItems (item : items) =
   do
     itemname <- getName item
     rest <- showItems items
-    return (full itemname ++ (if length items > 0 then ", " else ".")
+    return (full itemname ++ (if length items > 0 then ", " else "")
             ++ rest)
-showItems []             = return "\n\n"
+showItems []             = return ""
 
 showSelectedItems :: Notepad a -> Editor String -> IO ()
 showSelectedItems notepad ed =
@@ -42,14 +42,13 @@ showSelectedItems notepad ed =
     ed # state Normal
     selecteditems <- getSelectedItems notepad
     str <- showItems selecteditems
-    appendText ed ("Selected items: \n" ++ str)
+    appendText ed ("Selected items: \n" ++ str ++ "\n\n")
     ed # state Disabled
     done
 
 main =
   do
     win <- htk []
---    setLogFile (Just stdout)
     main <- newVFBox []
     box <- newHFBox [parent main]
     win <- window main [text "Drag and drop example"]
@@ -120,6 +119,43 @@ main =
                                                                showB b)) +>
              (selectionEvent item6 >>>= \b -> showText output ("item 6 " ++
                                                                showB b)))
+    interactor
+      (\i -> (dropEvent item1 >>>= \items ->
+                                     do
+                                       str <- showItems items
+                                       showText output
+                                                (str ++
+                                                 " dropped on item 1\n\n")) +>
+             (dropEvent item2 >>>= \items ->
+                                     do
+                                       str <- showItems items
+                                       showText output
+                                                (str ++
+                                                 " dropped on item 2\n\n")) +>
+             (dropEvent item3 >>>= \items ->
+                                     do
+                                       str <- showItems items
+                                       showText output
+                                                (str ++
+                                                 " dropped on item 3\n\n")) +>
+             (dropEvent item4 >>>= \items ->
+                                     do
+                                       str <- showItems items
+                                       showText output
+                                                (str ++
+                                                 " dropped on item 4\n\n")) +>
+             (dropEvent item5 >>>= \items ->
+                                     do
+                                       str <- showItems items
+                                       showText output
+                                                (str ++
+                                                 " dropped on item 5\n\n")) +>
+             (dropEvent item6 >>>= \items ->
+                                     do
+                                       str <- showItems items
+                                       showText output
+                                                (str ++
+                                                 " dropped on item 6\n\n")))
     sync (destroyed win)
   where showB :: Bool -> String
         showB True  = " selected\n"

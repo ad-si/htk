@@ -89,7 +89,7 @@ main = do
 		   \((x, y), _)-> do {moveItem ct (x- x0) (y- y0) >>
 				      become iact (moving c ct x y iact)})
 		+> (mouseEvent c (ButtonRelease Nothing)
-		    >>> do { destroy ct; become iact (notmoving c iact)})
+		    >>> do { {-destroy ct;-} become iact (notmoving c iact)})
 		
 	  
 
