@@ -1,5 +1,5 @@
 {- Functions we need for calling the Berkeley Database -}
-module BDBClient(
+module BDBOps(
    BDB, -- A connection to a Berkeley Database
    openBDB, -- :: IO BDB
 

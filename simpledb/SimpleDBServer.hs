@@ -65,7 +65,7 @@ import WBFiles
 import PasswordFile
 import LogFile
 
-import BDBClient
+import BDBOps
 import VersionInfo
 
 -- -------------------------------------------------------------------
