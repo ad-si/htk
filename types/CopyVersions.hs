@@ -10,6 +10,7 @@ import Computation
 import ExtendedPrelude
 import Registry
 import Thread(mapMConcurrentExcep)
+import Messages
 
 import HTk(text,photo)
 import SimpleForm
@@ -118,7 +119,7 @@ copyVersions versionGraphFrom =
             case versions of 
                [] -> 
                   do
-                     createMessageWin "Cancelling copy operation" []
+                     messageMess "Cancelling copy operation"
                      break "2"
                _ -> done
 
