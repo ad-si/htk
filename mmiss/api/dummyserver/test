@@ -3,9 +3,10 @@ cd `dirname $0`
 pkill MMiSSAPITestServer
 rm -rf MMiSSAPITestServer
 ln -sf ../MMiSSServer MMiSSAPITestServer
-UNISERVERDIR=$PWD
+UNISERVERDIR=`pwd`
 UNISERVER=localhost
 UNIXMLPORT=11397
-export UNISERVERDIR UNISERVER UNIXMLPORT
+UNITOP=`pwd | sed -e s+/mmiss/api/dummyserver$++`
+export UNISERVERDIR UNISERVER UNIXMLPORT UNITOP
 ./MMiSSAPITestServer &
 ../testMMiSSServer
