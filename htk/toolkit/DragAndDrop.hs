@@ -92,10 +92,14 @@ newNotepadItem val notepad@(Notepad cnv _ _ _ _) cnf =
   where inside :: ImageItem -> Notepad a -> NotepadItem a ->
                   InterActor -> IA ()
         inside img notepad@(Notepad _ _ _ _ entereditemref) item iact =
-             (mouseEnter img >>> (debugMsg "entered item" >>
-                                  setVar entereditemref (Just item)))
-          +> (mouseLeave img >>> (debugMsg "left item" >>
-                                  setVar entereditemref Nothing))
+             (mouseEnter img >>> (do
+                                    nm <- getName item
+                                    debugMsg("entered item: " ++ full nm)
+                                    setVar entereditemref (Just item)))
+          +> (mouseLeave img >>> (do
+                                    nm <- getName item
+                                    debugMsg("left item: " ++ full nm)
+                                    setVar entereditemref Nothing))
 
 
 -- instances --
