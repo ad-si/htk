@@ -4,7 +4,7 @@
    Current filtering allows filtering by (a) date; (b) deletion count.
    -}
 module VersionInfoFilter(
-   VersionInfoFilter,
+   VersionInfoFilter(..),
 
    defaultVersionInfoFilter, 
       -- :: VersionInfoFilter
@@ -21,6 +21,7 @@ module VersionInfoFilter(
 
 import Debug.Trace
 
+import Maybe(catMaybes)
 import Char
 import Time
 
@@ -37,16 +38,17 @@ import VersionInfo
 -- Data types
 -- ----------------------------------------------------------------------
 
-data VersionInfoFilter = VersionInfoFilter {
-   maxAllowedDeletionCount :: Int,
-   notBefore :: ClockTime
-   } deriving (Show)
+data VersionInfoFilter =
+      AndFilter [VersionInfoFilter] 
+   |  OrFilter [VersionInfoFilter]
+   |  NotFilter VersionInfoFilter
+   |  SinceTimeFilter ClockTime
+   |  MaxDeletionCountFilter Int
+   |  IsPresentFilter
+   deriving (Show)
 
 defaultVersionInfoFilter :: VersionInfoFilter
-defaultVersionInfoFilter = VersionInfoFilter {
-   maxAllowedDeletionCount = 0,
-   notBefore = initialClockTime
-   }
+defaultVersionInfoFilter = AndFilter [MaxDeletionCountFilter 0,IsPresentFilter]
 
 -- ----------------------------------------------------------------------
 -- Applying the filter
@@ -56,12 +58,23 @@ defaultVersionInfoFilter = VersionInfoFilter {
 filterVersionInfo :: VersionInfoFilter -> VersionInfo -> Bool
 filterVersionInfo filter versionInfo =
    let
-      dcount = case fromWithError (toDeletionCount versionInfo) of
-         Left mess -> trace ("Error reading deletion count: " ++ mess) 0
-         Right count -> count
+      f filter =
+         case filter of
+            AndFilter filters -> and (map f filters)
+            OrFilter filters -> or (map f filters)
+            NotFilter filter -> not (f filter)
+            SinceTimeFilter ct -> (timeStamp . server $ versionInfo) > ct
+            MaxDeletionCountFilter i ->        
+               let
+                  dcount = case fromWithError (toDeletionCount versionInfo) of
+                     Left mess -> trace (
+                        "Error reading deletion count: " ++ mess) 0
+                     Right count -> count
+               in
+                  dcount <= i
+            IsPresentFilter -> isPresent versionInfo
    in
-      (dcount <= maxAllowedDeletionCount filter)
-      && ((timeStamp . server $ versionInfo) >= notBefore filter)
+      f filter
 
 -- ----------------------------------------------------------------------
 -- Reading the VersionInfoFilter
@@ -75,12 +88,20 @@ readVersionInfoFilter =
 versionInfoFilterForm :: Form VersionInfoFilter
 versionInfoFilterForm =
    fmap
-      (\ (dcount,((),notBefore)) -> VersionInfoFilter {
-         maxAllowedDeletionCount = dcount,
-         notBefore = notBefore
-         })
+      (\ (dcount,(((),sinceTime),includeAbsent)) ->
+         AndFilter (catMaybes [
+            Just (MaxDeletionCountFilter dcount),
+            Just (SinceTimeFilter sinceTime),
+            if includeAbsent
+               then
+                  Nothing
+               else
+                  Just IsPresentFilter
+            ])
+         )
       (deletionCountForm //
-         (nullForm "Not before" \\ dateForm))
+         ((nullForm "Not before" \\ dateForm) //
+            includeAbsentForm))
 
 -- ----------------------------------------------------------------------
 -- Deletion Count Form
@@ -95,6 +116,13 @@ deletionCountForm =
       (>=0) 
       "Maximum Allowed Deletion Count must be at least 0"
       deletionCountForm0
+
+-- ----------------------------------------------------------------------
+-- IncludeAbsent form
+-- ----------------------------------------------------------------------
+
+includeAbsentForm :: Form Bool
+includeAbsentForm = newFormEntry "Include absent parent versions" False
 
 -- ----------------------------------------------------------------------
 -- Simple form for prompting for a date

@@ -255,6 +255,7 @@ connectToServer1 getNextUpdate closeConnection initialVersionInfos =
 -- Modifying the graph
 -- ------------------------------------------------------------------------
 
+-- | Create a new working version in the graph
 newWorkingVersion :: VersionGraphClient -> View -> IO VersionGraphNode
 newWorkingVersion versionGraphClient view =
    do
@@ -272,14 +273,18 @@ newWorkingVersion versionGraphClient view =
 
 
          updateAct :: VersionInfo -> IO ()
-         updateAct versionInfo = case parents . user $ versionInfo of
-            [parent] ->
-               doWhenVersionExists versionGraphClient parent
-                  (setNodeInfo (versionDag versionGraphClient) 
-                     (mkVersionInfo1 versionInfo))
-            _ -> error (
-               "VersionGraphClient: attempt to change parents of working "
-               ++ "version to list of length not 1")
+         updateAct versionInfo = 
+            setNodeInfo 
+                (versionDag versionGraphClient) 
+               (mkVersionInfo1 versionInfo)
+--         case parents . user $ versionInfo of
+--            [parent] ->
+--               doWhenVersionExists versionGraphClient parent
+--                  (setNodeInfo (versionDag versionGraphClient) 
+--                     (mkVersionInfo1 versionInfo))
+--            _ -> error (
+--               "VersionGraphClient: attempt to change parents of working "
+--               ++ "version to list of length not 1")
 
       sinkID <- newSinkID
       parallelX <- newParallelExec

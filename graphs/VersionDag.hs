@@ -41,6 +41,7 @@ import FindCommonParents
 import NewNames
 import PureGraphPrune
 import PureGraphToGraph
+import PureGraphMakeConsistent
 
 -- --------------------------------------------------------------------------
 -- Data types
@@ -219,8 +220,11 @@ toDisplayedGraph (versionDag :: VersionDag nodeKey nodeInfo arcInfo) =
                in
                   (nodeInfo,isHidden0 nodeInfo)
 
+            inPureGraph0 = inPureGraph state
+            inPureGraph1 = pureGraphMakeConsistent inPureGraph0
+
             outPureGraph :: PureGraph nodeKey (Maybe arcInfo)
-            outPureGraph = pureGraphPrune isHidden1 (inPureGraph state)
+            outPureGraph = pureGraphPrune isHidden1 inPureGraph1
          in
             (outPureGraph,toNodeInfo1)
    in

@@ -5,6 +5,7 @@ module CopyVersions (
    ) where
 
 import Maybe
+import List
 
 import Computation
 import ExtendedPrelude
@@ -23,6 +24,7 @@ import FindCommonParents
 import HostsPorts(HostPort)
 
 import VersionInfo
+import VersionInfoFilter
 import VersionDB
 
 import VersionGraphClient
@@ -35,7 +37,7 @@ import CopyVersionInfos
 
 data HowToSelect =
       All
-   |  AllMarked
+   |  ByFilter
    |  Selected
    |  Cancel
 
@@ -68,7 +70,7 @@ copyVersions versionGraphFrom =
             -- Get the versions to copy.
             select <-
                createDialogWin 
-                  [("All",All),("Marked",AllMarked),("Selected",Selected),
+                  [("All",All),("By Filter",ByFilter),("Selected",Selected),
                      ("Cancel",Cancel)]
                   (Just 0)
                   [text "Which new versions should be copied",
@@ -85,6 +87,24 @@ copyVersions versionGraphFrom =
                      versionInfos <- VersionGraphClient.getVersionInfos 
                         versionGraphClientFrom
                      return (map (version . user . toVersionInfo) versionInfos)
+               ByFilter ->
+                  do
+                     filterOpt <- readVersionInfoFilter
+                     case filterOpt of
+                        Nothing -> return []
+                        Just filter ->
+                           do
+                              versionInfos0 
+                                 <- VersionGraphClient.getVersionInfos 
+                                    versionGraphClientFrom
+                              let
+                                 versionInfos1 
+                                    = map toVersionInfo versionInfos0
+
+                                 versionInfos2 = List.filter 
+                                    (filterVersionInfo filter) 
+                                    versionInfos1
+                              return (map (version . user) versionInfos2)
                Selected ->
                   do
                      versionsOpt <- selectCheckedInVersions versionGraphFrom
