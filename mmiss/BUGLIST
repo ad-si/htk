@@ -4,6 +4,33 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+18) 04.09.02
+Compiled unoptimised with Linux doesn't start at all but produces
+a message saying "Prelude.read: no parse". 
+
+Turns out to be a concurrency bug in the Server code.
+FIXED
+
+17) 04.09.02
+Compiled optimised with Linux we get a segmentation fault when trying to
+display version graph.
+
+Also true when unoptimised, at least after fix for 18 has been applied.
+At least that should make it easier to debug.
+
+16) 04.09.02
+Totally useless puthash commands in emacs/extents.el corrected (as the
+arguments were wrong) and commented out (as puthash should already have
+been done).
+FIXED
+
+15) 04.09.02
+Clicking magic button in dtd/mmiss-paragraph.1.xml (a) fails because it
+claims the file is already being edited when it isn't; (b) fails to put button
+back when it has failed.
+(b) is due to EmacsEdit.openFile not returning a success code and no-one
+being prepared to handle its failure; now fixed.
+
 14) 02.09.02
 Intermittently VersionGraph does not start up properly.
 
@@ -40,6 +67,12 @@ XEmacs>(uni-add-button "Npara1" "Npara1" "para1")
 XEmacs>(uni-add-text "Npara1" "</paragraph>")
 XEmacs>(uni-bound-container "Npara1")
    so it is wrongly called Npara1, duplicating the name of the container.
+
+04.09.02.
+This turns out to be a really simple typo in EmacsEdit.hs.  If only all bugs
+were as easy to remove as this.
+
+FIXED
 
 11) 27.08.02
 For some reason the workbench has started having trouble
