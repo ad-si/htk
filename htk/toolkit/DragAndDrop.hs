@@ -37,7 +37,11 @@ selectItemsWithin {- :: Position -> Position -> Notepad a -> IO () -},
 
 deselectItem {- :: Notepad a -> NotepadItem a -> IO () -},
 
-getSelectedItems {- :: Notepad a -> NotepadItem a -> IO () -}
+getSelectedItems {- :: Notepad a -> NotepadItem a -> IO () -},
+
+--dropEvent {- :: NotepadItem a -> IA [(NotepadItem a)] -},
+
+selectionEvent {- :: NotepadItem a -> IA () -}
 
 ) where
 
@@ -142,7 +146,9 @@ getName (NotepadItem _ _ _ nm _) =
 
 --dropEvent :: NotepadItem a -> IA [(NotepadItem a)]
 
---selectionEvent :: NotepadItem a -> IA ()
+selectionEvent :: NotepadItem a -> IA ()
+selectionEvent (NotepadItem img _ _ _ _) =
+  mouseButtonPress img 1 >>>= \ _ -> return ()
 
 
 -------------
