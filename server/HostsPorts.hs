@@ -27,7 +27,10 @@ module HostsPorts(
 import IO
 import Socket
 
+import Control.Exception
+
 import Debug
+import Thread
 
 newtype HostDesc = HostDesc String deriving Show
 
@@ -71,9 +74,23 @@ connect hostDesc portDesc =
       hostName <- getHostString hostDesc
       debug hostName
       portNumber <- getPortNumber portDesc
-      handle <- connectTo hostName portNumber
+      handle <- repeatConnectTo hostName portNumber
 --      hSetBuffering handle NoBuffering
       return handle
+
+repeatConnectTo :: HostName -> PortID -> IO Handle
+repeatConnectTo hostName portNumber =
+   do
+      result <- Control.Exception.try (connectTo hostName portNumber)
+      case result of
+         Right handle -> return handle
+         Left excep ->
+            do
+               putStrLn ("Attempt to connect server failed: "++ show excep
+                  ++ "\n Retrying in 0.5 seconds")
+               delay (secs 0.5)
+               repeatConnectTo hostName portNumber
+ 
 
 hPutStrLnFlush :: Handle -> String -> IO ()
 hPutStrLnFlush handle string =

@@ -142,7 +142,10 @@ displayGraph0
                dispNode <- getRegistryValue nodeRegister node
                deleteNode dispGraph dispNode
                deleteFromRegistry nodeRegister node
-         handleUpdate (SetNodeLabel node nodeLabel) = done
+         handleUpdate (SetNodeLabel node nodeLabel) =
+            do 
+               dispNode <- getRegistryValue nodeRegister node
+               setNodeValue dispGraph dispNode node
          handleUpdate (NewArcType arcType arcTypeLabel) =
             do
                arcTypeParms <- 

@@ -136,6 +136,8 @@ newVersionGraph
                   Box $$$
                   (DoubleClickAction checkOutNode) $$$
                   (ValueTitle nodeTitle) $$$
+                  (LocalMenu (Menu Nothing [
+                     Button "Checkout" checkOutNode])) $$$
                   emptyNodeTypeParms                                 
                else if nodeType == workingType
                then
@@ -143,6 +145,9 @@ newVersionGraph
                   Circle $$$
                   (DoubleClickAction commitNode) $$$ 
                   (ValueTitle nodeTitle) $$$
+                  (LocalMenu (Menu Nothing [
+                     Button "Commit" commitNode,
+                     Button "Rename" renameNode])) $$$
                   emptyNodeTypeParms
                else
                   error "VersionGraph: unrecognised NodeType" 
@@ -294,6 +299,28 @@ newVersionGraph
                            newNode thisNode)
 
                         broadcast titleSource title
+
+         -- rename a working version
+         renameNode :: Node -> IO ()
+         renameNode node =
+            do
+               viewedNodeOpt <- getValueOpt workingNodeRegistry node
+               case viewedNodeOpt of
+                  Nothing -> done -- could happen with committed nodes.
+                  Just viewedNode ->
+                     do
+                        let
+                           titleSource0 = titleSource (thisView viewedNode)
+                        title0 <- readContents titleSource0
+                        let
+                           titleForm = newFormEntry "New Title" title0
+                        title1Opt <- doForm "Change View Title" titleForm
+                        case title1Opt of
+                           Nothing -> done
+                           Just title1 -> 
+                              do
+                                 broadcast titleSource0 title1
+                                 update graph (SetNodeLabel node title1)
 
          -- Function to be executed when the user requests a merge.
          doMerge :: IO ()

@@ -130,6 +130,7 @@ filterUpdate (DeleteNode node) = nodeIsCheckedIn node
 filterUpdate (NewArc arc arcType arcLabel nodeFrom nodeTo) =
    arcIsCheckedIn arc
 filterUpdate (DeleteArc arc) = arcIsCheckedIn arc
+filterUpdate (SetNodeLabel node _) = nodeIsCheckedIn node
 filterUpdate update = 
    error ("VersionGraph error: update "++show update++" not handled")
 

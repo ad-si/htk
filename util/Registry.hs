@@ -369,9 +369,12 @@ instance Ord from => GetSetRegistry (LockedRegistry from to) from to where
          (valOutOpt,extra) <- transformer valInOpt
          case valOutOpt of
             Just valOut -> putMVar mVar valOut
-            Nothing -> 
-               error 
-                  "Register.transformValue on a LockedRegister has attempted to delete!"
+            Nothing ->
+               do
+                  case valInOpt of
+                     Just valIn -> putMVar mVar valIn
+                     Nothing -> done
+                  deleteFromRegistry registry from 
          return extra 
 
 instance Ord from => KeyOpsRegistry (LockedRegistry from to) from where

@@ -120,6 +120,7 @@ getView repository objectVersion =
          -- can't be defined for HasPureCodedValue to avoid a nasty instance
          -- overlap.
       (ViewData {
+         title = title,
          objectsData = objectsData,
          displayTypesData = displayTypesData,
          objectTypesData = objectTypesData
@@ -143,7 +144,7 @@ getView repository objectVersion =
 
       parentsMVar <- newMVar [objectVersion]
       fileSystem <- newFileSystem
-      titleSource <- newSimpleBroadcaster ""
+      titleSource <- newSimpleBroadcaster title
       commitLock <- newVSem
       delayer <- newDelayer
       committingVersion <- newMVar Nothing
@@ -205,10 +206,13 @@ commitView (view @ View {repository = repository,objects = objects,
                      return (location,objectVersion,viewVersion)
                   )
                   locations
+
+         title <- readContents (titleSource view)
                
          let
             viewData =
                ViewData {
+                  title = title,
                   objectsData = objectsData,
                   displayTypesData = displayTypesData,
                   objectTypesData = objectTypesData
@@ -238,6 +242,7 @@ parentVersions view = readMVar (parentsMVar view)
 -- ViewData is the information needed to construct a view
 -- which we store in the top file of a version.
 data ViewData = ViewData {
+   title :: String,
    objectsData :: [(Location,ObjectVersion,ObjectVersion)],
       -- The location, object version, and the version in which this object
       -- was last changed.
@@ -250,17 +255,19 @@ instance HasTyRep ViewData where
    tyRep _ = viewData_tyRep
 
 -- Here's the real primitive type
-type Tuple = ([(Location,ObjectVersion,ObjectVersion)],CodedValue,CodedValue)
+type Tuple 
+   = (String,[(Location,ObjectVersion,ObjectVersion)],CodedValue,CodedValue)
 
 mkTuple :: ViewData -> Tuple
-mkTuple (ViewData {objectsData = objectsData,displayTypesData = displayTypesData,
+mkTuple (ViewData {title = title,objectsData = objectsData,
+   displayTypesData = displayTypesData,
    objectTypesData = objectTypesData}) =
-      (objectsData,displayTypesData,objectTypesData)
+      (title,objectsData,displayTypesData,objectTypesData)
 
 unmkTuple :: Tuple -> ViewData
-unmkTuple (objectsData,displayTypesData,objectTypesData) =
-   ViewData {objectsData = objectsData,displayTypesData = displayTypesData,
-   objectTypesData = objectTypesData}
+unmkTuple (title,objectsData,displayTypesData,objectTypesData) =
+   ViewData {title = title,objectsData = objectsData,
+      displayTypesData = displayTypesData,objectTypesData = objectTypesData}
 
 instance HasCodedValue ViewData where
    encodeIO = mapEncodeIO mkTuple 

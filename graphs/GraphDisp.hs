@@ -118,6 +118,10 @@ module GraphDisp(
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
    deleteNode,   -- :: Graph ... -> node value -> IO ()
    getNodeValue, -- :: Graph ... -> node value -> IO value
+   setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
+      -- WARNING.  setNodeValue should not be used with nodes with
+      -- types which specify ValueTitleSource, as the results are 
+      -- undefined.
    newNodeType,  -- :: Graph ... -> nodeTypeParms value -> IO (nodeType value)
    NodeTypeParms(..),
 
@@ -279,6 +283,17 @@ getNodeValue
    (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
       arc arcType arcTypeParms)
    (node :: node value) = getNodeValuePrim graph node
+
+
+setNodeValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+                   arc arcType arcTypeParms,Typeable value) => 
+   (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms)
+   -> node value -> value -> IO ()
+setNodeValue
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms
+      arc arcType arcTypeParms)
+   (node :: node value) value = setNodeValuePrim graph node value
 
 newNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                   arc arcType arcTypeParms,Typeable value) => 
@@ -457,6 +472,12 @@ class (GraphClass graph,NodeClass node) =>
       graph -> node value -> IO ()
    getNodeValuePrim :: Typeable value =>
       graph -> node value -> IO value
+   setNodeValuePrim :: Typeable value =>
+      graph -> node value -> value -> IO ()
+
+      -- WARNING.  setNodeValuePrim should not be used with nodes with
+      -- types which specify ValueTitleSource, as the results are 
+      -- undefined.
 
    getMultipleNodesPrim :: graph -> (Event (WrappedNode node) -> IO a) -> IO a
    -- Running this function disables all other user interaction on

@@ -13,6 +13,7 @@ import qualified IOExts(unsafePerformIO)
 import Computation
 import CommandStringSub
 import WBFiles
+import Sources
 
 import SafeSystem
 
@@ -63,5 +64,6 @@ editObject view link =
    do
       versioned <- fetchLink view link
       object <- readObject view versioned
-      callEditor (toFilePath object) (nodeTitlePrim object)
+      title <- readContents (nodeTitleSourcePrim object)
+      callEditor (toFilePath object) title
       dirtyObject view versioned

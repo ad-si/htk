@@ -523,6 +523,31 @@ instance DeleteNode DaVinciGraph DaVinciNode where
          (Just (NodeData _ nodeValue)) <- getValueOpt nodes nodeId
          return (coDyn nodeValue)
 
+   setNodeValuePrim 
+         (daVinciGraph @ DaVinciGraph {context = context,nodes = nodes}) 
+         (daVinciNode @ (DaVinciNode nodeId)) 
+         newValue =
+      do
+         typeOpt <- transformValue nodes nodeId
+            (\ nodeDataOpt -> 
+               return (
+                  case nodeDataOpt of
+                     Nothing -> (nodeDataOpt,Nothing)
+                     Just (NodeData nodeType _) ->
+                        (Just (NodeData nodeType (coDyn newValue)),
+                           Just (coDyn nodeType))
+                  )
+               )
+
+         case typeOpt of
+            Nothing -> done -- node has disappeared
+            Just nodeType ->
+               do
+                  newTitleSource <- nodeText nodeType newValue
+                  newTitle <- readContents newTitleSource
+                  setNodeTitle daVinciGraph daVinciNode newTitle
+                  done
+
    getMultipleNodesPrim daVinciGraph mkAct =
       do
          channel <- newChannel

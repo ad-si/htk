@@ -142,8 +142,8 @@ mkLinkReAssigner views allRelevantObjectTypes =
                   -- we take a new link
                   newWrappedMergeLink 
                      <- case lookupFM allMergesMap0 headWrappedMergeLink of
-                        Just _ -> return headWrappedMergeLink
-                        Nothing ->
+                        Nothing -> return headWrappedMergeLink
+                        Just _ ->
                            do
                               (newLink :: Link object) 
                                  <- absolutelyNewLink repository
