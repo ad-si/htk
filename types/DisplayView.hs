@@ -11,6 +11,7 @@ module DisplayView(
    displayView,
    focusLink,
    addCloseDownAction,
+   addNewObjectType,
    ) where
 
 import IOExts
@@ -93,66 +94,116 @@ getAllDisplayedObjectTypes
       objectTypes <- getAllObjectTypes view
       -- (2) initialise the registry
       (registry :: UnsafeRegistry (Keyed WrappedObjectType)) <- newRegistry
+      let
+         allDisplayedObjectTypes = AllDisplayedObjectTypes registry
       -- (3) Now compute it.
-      (topLinksList :: [[WrappedLink]]) <- mapM
-         (\ (wrappedObjectType @ (WrappedObjectType 
-               (objectType :: objectType))) ->
-            do
-               nodeDisplayDataOpt <- getNodeDisplayData view 
-                  wrappedDisplayType objectType displayedViewAction
-               case nodeDisplayDataOpt of
-                  Nothing -> return []
-                  Just (nodeDisplayData :: NodeDisplayData nodeTypeParms 
-                        arcTypeParms objectType object) ->
-                     do
-                        -- Create node types map
-                        let 
-                           nodeTypesList = nodeTypes nodeDisplayData
-                        graphNodeTypes <- mapM
-                           (\ (nodeTypeRep,nodeTypeParms) ->
-                              do
-                                 nodeType <- newNodeType graph nodeTypeParms
-                                 return (nodeTypeRep,nodeType)
-                              )
-                           nodeTypesList
-                        let 
-                           nodeTypes' = listToFM graphNodeTypes
+      (topLinksList :: [[WrappedLink]]) <- mapM (addNewObjectTypeInner graph view
+         allDisplayedObjectTypes wrappedDisplayType displayedViewAction) 
+         objectTypes
 
-                        -- Create arc types map
-                        let 
-                           arcTypesList = arcTypes nodeDisplayData
-                        graphArcTypes <- mapM
-                           (\ (arcTypeRep,arcTypeParms) ->
-                              do
-                                 arcType <- newArcType graph arcTypeParms
-                                 return (arcTypeRep,arcType)
-                              )
-                           arcTypesList
-                        let 
-                           arcTypes' = listToFM graphArcTypes
-
-                           displayedObjectType :: DisplayedObjectType 
-                                 objectType object 
-                                 nodeType arcType
-                           displayedObjectType = DisplayedObjectType {
-                              nodeTypes' = nodeTypes',
-                              arcTypes' = arcTypes',
-                              getNodeType' = getNodeType nodeDisplayData,
-                              mustFocus' = mustFocus nodeDisplayData,
-                              focus' = focus nodeDisplayData,
-                              closeDown' = closeDown nodeDisplayData
-                              }
-
-                           wrappedLinks :: [WrappedLink]
-                           wrappedLinks = 
-                              map WrappedLink (topLinks nodeDisplayData)
-                        setValue registry (Keyed wrappedObjectType) 
-                           displayedObjectType
-                        return wrappedLinks
-            )
-            objectTypes                  
       -- And return it.                      
       return (AllDisplayedObjectTypes registry,concat topLinksList) 
+
+-- ----------------------------------------------------------------------
+-- Add an object type to AllDisplayedObjectTypes and compute its
+-- top links
+-- -----------------------------------------------------------------------
+
+addNewObjectTypeInner ::
+   GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms
+   => (Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms) 
+   -> View
+   -> AllDisplayedObjectTypes 
+   -> WrappedDisplayType
+   -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+   -> WrappedObjectType
+   -> IO [WrappedLink]
+addNewObjectTypeInner 
+      (graph :: Graph graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms) 
+      view (AllDisplayedObjectTypes registry) wrappedDisplayType 
+      displayedViewAction
+      ((wrappedObjectType @ (WrappedObjectType (objectType :: objectType)))) 
+      =
+   do
+      nodeDisplayDataOpt <- getNodeDisplayData view 
+         wrappedDisplayType objectType displayedViewAction
+      case nodeDisplayDataOpt of
+         Nothing -> return []
+         Just (nodeDisplayData :: NodeDisplayData nodeTypeParms 
+               arcTypeParms objectType object) ->
+            do
+               -- Create node types map
+               let 
+                  nodeTypesList = nodeTypes nodeDisplayData
+               graphNodeTypes <- mapM
+                  (\ (nodeTypeRep,nodeTypeParms) ->
+                     do
+                        nodeType <- newNodeType graph nodeTypeParms
+                        return (nodeTypeRep,nodeType)
+                     )
+                  nodeTypesList
+               let 
+                  nodeTypes' = listToFM graphNodeTypes
+
+               -- Create arc types map
+               let 
+                  arcTypesList = arcTypes nodeDisplayData
+               graphArcTypes <- mapM
+                  (\ (arcTypeRep,arcTypeParms) ->
+                     do
+                        arcType <- newArcType graph arcTypeParms
+                        return (arcTypeRep,arcType)
+                     )
+                  arcTypesList
+               let 
+                  arcTypes' = listToFM graphArcTypes
+
+                  displayedObjectType :: DisplayedObjectType 
+                        objectType object 
+                        nodeType arcType
+                  displayedObjectType = DisplayedObjectType {
+                     nodeTypes' = nodeTypes',
+                     arcTypes' = arcTypes',
+                     getNodeType' = getNodeType nodeDisplayData,
+                     mustFocus' = mustFocus nodeDisplayData,
+                     focus' = focus nodeDisplayData,
+                     closeDown' = closeDown nodeDisplayData
+                     }
+
+                  wrappedLinks :: [WrappedLink]
+                  wrappedLinks = 
+                     map WrappedLink (topLinks nodeDisplayData)
+               setValue registry (Keyed wrappedObjectType) 
+                  displayedObjectType
+               return wrappedLinks
+
+-- ----------------------------------------------------------------------
+-- Add a new object type once the displayed view is constructed
+-- -----------------------------------------------------------------------
+
+addNewObjectType :: 
+   GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms
+   => DisplayedView graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms
+   -> WrappedObjectType 
+   -> IO ()
+addNewObjectType (displayedView @ DisplayedView {
+      graph = graph,
+      view = view,
+      allDisplayedObjectTypes = allDisplayedObjectTypes,
+      wrappedDisplayType = wrappedDisplayType
+      }) wrappedObjectType =
+   do
+      topLinks <- addNewObjectTypeInner graph view allDisplayedObjectTypes
+         wrappedDisplayType (return displayedView) wrappedObjectType
+
+      mapM_ (displayNode displayedView) topLinks
+      redraw graph
 
 -- -----------------------------------------------------------------------
 -- DisplayedView is the type representing a single displayed view, possibly
@@ -177,9 +228,10 @@ data DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType
          -- when the node is deleted, we can stop the arc sets being
          -- deleted.
       allDisplayedObjectTypes :: AllDisplayedObjectTypes,
-      closeDownActions :: MVar [IO ()]
+      closeDownActions :: MVar [IO ()],
          -- Actions to be done when the graph is closed.  (We repeatedly
          -- remove an action from the list and do it until the list is empty).
+      wrappedDisplayType :: WrappedDisplayType
       }
 
 
@@ -238,7 +290,8 @@ displayView
             view = view,
             nodes = nodes,
             allDisplayedObjectTypes = allDisplayedObjectTypes,
-            closeDownActions = closeDownActions
+            closeDownActions = closeDownActions,
+            wrappedDisplayType = wrappedDisplayType
             }
 
       putMVar displayedViewMVar displayedView
@@ -525,4 +578,5 @@ doCloseDownActions displayedView =
                putMVar mVar rest
                action
                doCloseDownActions displayedView
+
 

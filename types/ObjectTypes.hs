@@ -202,7 +202,7 @@ class (HasCodedValue objectType,HasCodedValue object) =>
                            do
                               let 
                                  registry = objectTypeGlobalRegistry objectType
-                              key <- newKey registry view
+                                 key = objectTypeIdPrim objectType
                               addToGlobalRegistry registry view key objectType
             in
                (label,createAct1)

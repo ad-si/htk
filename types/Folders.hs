@@ -50,6 +50,7 @@ import DisplayParms
 import GlobalRegistry
 import CreateObjectMenu
 import DisplayView
+import GetAttributesType
 
 ------------------------------------------------
 -- The Display Type
@@ -205,6 +206,9 @@ instance ObjectType FolderType Folder where
    objectTypeGlobalRegistry _ = globalRegistry
    getObjectTypePrim folder = folderType folder
    nodeTitlePrim folder = name folder 
+
+   createObjectTypeMenuItemNoInsert =
+      Just ("Folder type",createNewFolderType)
 
    createObjectMenuItemPrim folderType =
       fmap
@@ -487,3 +491,40 @@ insertInFolder view folderLink wrappedLink =
                         (VariableMapUpdate (AddElement (name,wrappedLink)))
                      return True
          )
+
+-- ------------------------------------------------------------------
+-- creating a new folder type
+-- ------------------------------------------------------------------
+
+createNewFolderType :: View -> IO (Maybe FolderType)
+createNewFolderType view =
+   do
+      let
+         firstForm :: Form (String,NodeTypes (String,Link Folder)) =
+            titleForm //
+            simpleNodeTypesForm
+
+         titleForm0 :: Form String
+         titleForm0 = newFormEntry "Title" "" 
+
+         titleForm = guardForm (/= "") "Title must be non-empty" titleForm0
+      typeData1Opt <- doForm "Node Type Appearance" firstForm
+      case typeData1Opt of
+         Nothing -> return Nothing
+         Just (title,displayParms) ->
+            do
+               requiredAttributesOpt <- getAttributesType 
+               case requiredAttributesOpt of
+                  Nothing -> return Nothing
+                  Just requiredAttributes ->
+                     do
+                        folderTypeId <- newKey globalRegistry view
+                        knownFolders <- newEmptyVariableSet
+                        return (Just(FolderType {
+                           folderTypeId = folderTypeId,
+                           folderTypeLabel = Just title,
+                           requiredAttributes = requiredAttributes,
+                           displayParms = displayParms,
+                           topFolderLinkOpt = Nothing,
+                           knownFolders = knownFolders
+                           }))

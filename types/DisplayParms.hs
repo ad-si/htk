@@ -18,12 +18,20 @@ module DisplayParms(
 
    SimpleNodeAttributes(..),
    SimpleArcAttributes(..),
+
+   simpleNodeTypesForm,
    ) where
 
 import Computation
 import Dynamics
 
-import GraphConfigure
+import HTk
+import SimpleForm
+
+import GraphConfigure hiding (Shape(..))
+import GraphConfigure (Shape)
+import qualified GraphConfigure
+
 import GraphDisp
 
 import DisplayTypes
@@ -236,3 +244,62 @@ data SimpleArcAttributes value = SimpleArcAttributes {
    edgePattern :: Maybe (EdgePattern value),
    arcColor :: Maybe (Color value)
    }
+
+-- -----------------------------------------------------------------------
+-- Forms for attributes
+-- -----------------------------------------------------------------------
+
+----
+-- Allows the user to select for shape and colour.
+simpleNodeTypesForm :: Form (NodeTypes value)
+simpleNodeTypesForm =
+   fmap
+      (\ (color,shape) -> 
+         addNodeRule
+            AllDisplays
+            (SimpleNodeAttributes {nodeColor = Just color,shape = Just shape})
+            emptyNodeTypes
+         )
+      (colorForm // shapeForm)
+
+--- 
+-- Select a colour 
+-- We steal the following trick from htk/examples/toolkit/Mainsimpleform.hs
+data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet 
+   deriving (Bounded,Enum,Show)
+
+instance HasConfigRadioButton OurColour where
+   configRadioButton colour = HTk.background (show colour)
+
+colorForm :: Form (GraphConfigure.Color value)
+colorForm = 
+   mapForm
+      (\ radColour ->
+         case radColour of
+            NoRadio -> Left "No colour specified"
+            Radio (col :: OurColour) -> Right (GraphConfigure.Color (show col))
+         )
+      (newFormEntry EmptyLabel NoRadio)
+
+--- 
+-- Select a shape.  For this we need our own shape type, as we exclude
+-- GraphConfigure's Icon option.
+data OurShape = Box | Circle | Ellipse | Rhombus | Triangle 
+   deriving (Show,Bounded,Enum)
+
+convertShape :: OurShape -> Shape value 
+convertShape Box = GraphConfigure.Box
+convertShape Circle = GraphConfigure.Circle
+convertShape Ellipse = GraphConfigure.Ellipse
+convertShape Rhombus = GraphConfigure.Rhombus
+convertShape Triangle = GraphConfigure.Triangle
+
+shapeForm :: Form (Shape value)
+shapeForm = 
+   mapForm
+      (\ radShape ->
+         case radShape of
+            NoRadio -> Left "No shape specified"
+            Radio (shape :: OurShape) -> Right (convertShape shape)
+         )
+      (newFormEntry EmptyLabel NoRadio)
