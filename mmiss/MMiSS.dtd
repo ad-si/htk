@@ -2,10 +2,9 @@
   XML Document Type Definition for MMiSSLatex 2
   Version 0.95
   Initial Version: George Russell (2002-June)
-  Current Version: Achim Mahnke   (2003-12-10)
+  Current Version: Achim Mahnke   (2004-01-06)
 
-  This DTD is still work in progress.
-  Comments are welcome! (send mail to amahnke@tzi.de)
+  This DTD is still unfinished. Comments are welcome! (send mail to amahnke@tzi.de)
 
   Root element is 'package'.
 
@@ -32,25 +31,17 @@
 
 -->
 
-<!-- ======================== ONTOLOGIES ================================== -->
-<!ENTITY % MMiSS.ontology.dtd SYSTEM 'MMiSSOntology.dtd' >
-
-<!-- ======================== ENTITIES ==================================== -->
+<!-- ======================== ATTRIBUTES ==================================== -->
 
 <!ENTITY % structure-attr "label        CDATA  #IMPLIED
                            title        CDATA  #IMPLIED
-                           priority     CDATA  #IMPLIED">
-
-
-<!ENTITY % version-attr "version          CDATA  #IMPLIED
-                         date             CDATA  #IMPLIED
-                         comment          CDATA  #IMPLIED
-                         previousVersion  CDATA  #IMPLIED
-                         authors          CDATA  #IMPLIED
-                         institute        CDATA  #IMPLIED
-                         priorAuthors     CDATA  #IMPLIED">
-
-                         
+                           authors      CDATA  #IMPLIED
+                           date   CDATA  #IMPLIED">
+                           
+<!ENTITY % system-attr "priorAuthors    CDATA  #IMPLIED
+                        version         CDATA  #IMPLIED
+                        priority        CDATA  #IMPLIED
+                        files           CDATA  #IMPLIED">
 
 <!-- The special xml:lang-Attribute holds values defined by IETF RFC 1766
     which are constructed from the two-letter codes of ISO 639 and the
@@ -63,45 +54,56 @@
                      lv|mg|mi|mk|ml|mn|mo|mr|ms|mt|my|na|ne|nl|no|oc|om|or|
                      pa|pl|ps|pt|qu|rm|rn|ro|ru|rw|sa|sd|sg|sh|si|sk|sl|sm|
                      sn|so|sq|sr|ss|st|su|sv|sw|ta|te|tg|th|ti|tk|tl|tn|to|
-                     tr|ts|tt|tw|ug|uk|ur|uz|vi|vo|wo|xh|yi|yo|za|zh|zu)">
+                     tr|ts|tt|tw|ug|uk|ur|uz|vi|vo|wo|xh|yi|yo|za|zh|zu|ANY)">
 
 
-<!-- level-of-detail and interaction-level attributes will be enumeration
-     types in the final version. -->
+<!-- Variant attributes  -->
 
-<!ENTITY % level-of-detail-matter  "levelOfDetail  CDATA #IMPLIED">
+<!ENTITY % detail-matter  "levelOfDetail  CDATA #IMPLIED">
 
-<!ENTITY % interaction-level-matter  "interactionLevel  CDATA #IMPLIED">
+<!ENTITY % presentation-matter  "interactionLevel  CDATA #IMPLIED">
 
 
-<!-- notation should be a union of formalismIds and formatIds which have
-     to be defined. -->
+<!ENTITY % format-matter     "format      CDATA  #IMPLIED">
+<!ENTITY % formalism-matter  "formalism   CDATA  #IMPLIED">
 
-<!ENTITY % notation-matter  "format      CDATA  #IMPLIED
-                             formalism   CDATA  #IMPLIED">
+<!ENTITY % pedagogical-matter "">
 
 <!ENTITY % variant-attr "xml:lang  %RFC1766; 'en-GB'
-                         %notation-matter;
-                         %level-of-detail-matter;
-                         %interaction-level-matter;">
+                         %format-matter;
+                         %formalism-matter;
+                         %detail-matter;
+                         %presentation-matter;
+                         %pedagogical-matter;">
 
 
-<!-- Layout and paedagogic attributes still have to be defined. Will be
-     enumerations.  -->
+<!--  Layout and animation (for displaying nested lists and matrices) control attributes: -->
 
-<!ENTITY % layout-attr "shortAuthor      CDATA  #IMPLIED
-                        shortTitle       CDATA  #IMPLIED">
 
-<!ENTITY % paedagogic-attr " ">
+<!ENTITY % list-layout-attr  "listLayout  (nested | matrix) #IMPLIED">
 
-<!ENTITY % misc-attr  "files  CDATA  #IMPLIED">
+<!ENTITY % layout-attr  "shortAuthor      CDATA  #IMPLIED
+                         shortTitle       CDATA  #IMPLIED
+                         %list-layout-attr;">
 
-<!ENTITY % attributes "%structure-attr;
-                       %version-attr; 
-                       %variant-attr; 
-                       %layout-attr;
-                       %paedagogic-attr;
-                       %misc-attr;">
+
+<!ENTITY % list-animation-attr    "listAnimation  (rollout | flip | none) 'none'">
+<!ENTITY % matrix-animation-attr  "matrixAnimation  (right | down | left | downLeft | none) 'none'">
+
+<!ENTITY % animation-attr  "%list-animation-attr;
+                            %matrix-animation-attr;">
+
+<!ENTITY % all-attributes "%structure-attr;
+                           %system-attr;
+                           %variant-attr; 
+                           %layout-attr;">
+
+
+<!ENTITY % include-attributes "included CDATA #REQUIRED
+                               status  (present | absent) #IMPLIED
+                               priority CDATA #IMPLIED
+                               %variant-attr;">
+
 
 <!-- Standard Predefined Entities (XML standard section 4.6). --> 
 <!ENTITY lt "&#38;#60;">
@@ -110,307 +112,487 @@
 <!ENTITY apos "&#39;">
 <!ENTITY quot "&#34;">
 
-<!ENTITY % include-attributes "included CDATA #REQUIRED
-                               status  (present | absent) #IMPLIED
-                               priority CDATA #IMPLIED
-                               %variant-attr;">
+
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Embedded  Elements                                               **
+  **                                                                   **
+  ***********************************************************************
+ -->
+
+<!ENTITY % m.structurePtr.class  "includeText | link">
+
+<!ENTITY % m.ontologyDef.class  "define | relate">
+<!ENTITY % m.ontologyPtr.class  "reference | refRelation">
+<!ENTITY % m.bibPtr.class  "cite">
+
+
+<!ENTITY % embeddedElement "%m.structurePtr.class; | %m.ontologyDef.class; | %m.ontologyPtr.class; 
+                           | emphasis | formula | %m.bibPtr.class;">
 
 
 <!--
   ***********************************************************************
   **                                                                   **
-  **  Text and embedded items                                          **
+  **  Element classes                                                  **
+  **                                                                   **
+  ***********************************************************************
+
+  Elements are grouped into classes according to their position in 
+  content models. Those elements who appears together in an choice clause
+  of a content model belongs to the same class. 
+ -->
+
+<!-- ************************  Atoms  ********************************* --> 
+
+<!ENTITY % m.source.class   "source">
+<!ENTITY % m.text.class   "text">
+<!ENTITY % m.textFragment.class   "%m.text.class; | %m.source.class; | includeText">
+<!ENTITY % m.programFragment.class   "programFragment">
+
+<!ENTITY % m.formula.class  "formula">
+<!ENTITY % m.rule.class     "rule">
+<!ENTITY % m.term.class     "%m.formula.class; | %m.rule.class; | includeTerm">
+
+<!ENTITY % m.axiom.class   "axiom">
+<!ENTITY % m.declaration.class   "declaration">
+
+<!ENTITY % m.proofStep.class         "proofStep | includeProofStep">
+<!ENTITY % m.developmentStep.class   "developmentStep | includeDevelopmentStep">
+<!ENTITY % m.step.class   "%m.proofStep.class; | %m.developmentStep.class;">
+<!ENTITY % m.theoryFragment.class   "%m.declaration.class; | %m.axiom.class; 
+                                     | %m.term.class; | %m.step.class;">
+
+<!ENTITY % m.figure.class   "figure | includeFigure">
+<!ENTITY % m.table.class    "table | includeTable">
+                                     
+<!ENTITY % m.atom.class   "%m.textFragment.class; | %m.theoryFragment.class; 
+                           | %m.figure.class; | %m.table.class;
+                           | %m.programFragment.class; | includeAtom">
+
+
+<!-- **********************  Components  *************************** --> 
+
+<!ENTITY % m.item.class   "item">
+
+<!ENTITY % m.comment.class     "comment">
+<!ENTITY % m.note.class        "note">
+<!ENTITY % m.warning.class     "warning">
+<!ENTITY % m.error.class       "error">
+<!ENTITY % m.message.class     "%m.warning.class; | %m.error.class;">
+<!ENTITY % m.glossary.class    "glossary">
+<!ENTITY % m.annotation.class  "%m.comment.class; | %m.note.class; | %m.message.class; 
+                                | %m.glossary.class; | includeAnnotation">
+
+<!-- **********************  Units  ******************************** --> 
+
+<!ENTITY % m.abstract.class   "abstract">
+<!ENTITY % m.introduction.class   "introduction">
+<!ENTITY % m.summary.class   "summary">
+<!ENTITY % m.paragraph.class   "paragraph | %m.abstract.class; | %m.introduction.class;
+                            | %m.summary.class;">
+
+<!ENTITY % m.theory.class   "theory">
+
+<!ENTITY % m.problem.class   "exercise | assignment">
+<!ENTITY % m.solution.class   "solution">
+
+<!ENTITY % m.list.class   "itemize | enumerate | description">
+<!ENTITY % m.definition.class   "definition">
+<!ENTITY % m.assertion.class   "theorem | proposition | lemma | corollary | conjecture | falseConjecture">
+<!ENTITY % m.proof.class   "proof | includeProof">
+<!ENTITY % m.program.class   "program">
+<!ENTITY % m.development.class   "development">
+
+<!ENTITY % m.example.class  "example">
+<!ENTITY % m.illustration.class  "illustration">
+
+<!ENTITY % m.closedUnit.class  "%m.paragraph.class; | %m.theory.class; | %m.program.class;">
+<!ENTITY % m.compositeUnit.class  "%m.list.class; | %m.assertion.class; | %m.definition.class;
+                                  | %m.proof.class; | %m.development.class;
+                                  | %m.problem.class; | %m.solution.class; | %m.example.class; 
+                                  | %m.illustration.class; | includeCompositeUnit">
+
+<!ENTITY % m.unit.class   "%m.closedUnit.class; | %m.compositeUnit.class; | includeUnit">
+
+<!ENTITY % m.section.class  "section | includeSection">
+
+
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Content model classes                                            **
   **                                                                   **
   ***********************************************************************
  -->
 
-<!ENTITY % structuralElement "includeTextFragment | link">
 
-<!ENTITY % semanticElement "define | reference">
+<!ENTITY % m.package.mix  "%m.section.class;">
+<!ENTITY % m.section.mix  "%m.section.class; | %m.unit.class; | %m.atom.class;">
 
-<!ENTITY % embeddedElement "%structuralElement; | %semanticElement; | emphasis | formula">
+<!ENTITY % m.closedUnit.mix  "%m.compositeUnit.class; | %m.atom.class; | %m.annotation.class;">
+<!ENTITY % m.compositeUnit.mix  "%m.textFragment.class; | %m.annotation.class;">
 
-<!ENTITY % text         "(#PCDATA | %embeddedElement;)*">
+<!ENTITY % m.paragraph.mix      "%m.closedUnit.mix;">
+<!ENTITY % m.abstract.mix       "%m.closedUnit.mix;">
+<!ENTITY % m.introduction.mix   "%m.closedUnit.mix;">
+<!ENTITY % m.summary.mix        "%m.closedUnit.mix;">
+<!ENTITY % m.theory.mix         "%m.closedUnit.mix;">
+<!ENTITY % m.program.mix        "%m.closedUnit.mix;">
+
+<!ENTITY % m.problem.mix   "%m.compositeUnit.class;">
+<!ENTITY % m.solution.mix  "%m.compositeUnit.class;">
+<!ENTITY % m.example.mix   "%m.compositeUnit.mix;">
+
+<!ENTITY % m.exercise.mix    "%m.problem.mix;">
+<!ENTITY % m.assignment.mix  "%m.problem.mix;">
+
+<!ENTITY % m.illustration.mix "%m.table.class; | %m.figure.class; | %m.compositeUnit.mix;">
+
+<!ENTITY % m.list.mix         "%m.item.class; | %m.compositeUnit.mix;">
+<!ENTITY % m.itemize.mix      "%m.list.mix;">
+<!ENTITY % m.enumerate.mix    "%m.list.mix;">
+<!ENTITY % m.description.mix  "%m.list.mix;">
+
+<!ENTITY % m.definition.mix    "%m.theoryFragment.class; | %m.compositeUnit.mix; | %m.list.class;">
+
+<!ENTITY % m.assertion.mix        "%m.term.class; | %m.compositeUnit.mix;">
+<!ENTITY % m.theorem.mix          "%m.assertion.mix;">
+<!ENTITY % m.proposition.mix      "%m.assertion.mix;">
+<!ENTITY % m.lemma.mix            "%m.assertion.mix;">
+<!ENTITY % m.corollary.mix        "%m.assertion.mix;">
+<!ENTITY % m.conjecture.mix       "%m.assertion.mix;">
+<!ENTITY % m.falseConjecture.mix  "%m.assertion.mix;">
+
+<!ENTITY % m.proof.mix    "%m.proof.class; | %m.proofStep.class; | %m.compositeUnit.mix;">
+
+<!ENTITY % m.development.mix  "%m.development.class; | %m.developmentStep.class; 
+                              | %m.compositeUnit.mix;">
+
+<!ENTITY % m.annotation.mix  "%m.compositeUnit.class; | %m.textFragment.class;">
+<!ENTITY % m.comment.mix     "%m.annotation.mix;">
+<!ENTITY % m.note.mix        "%m.annotation.mix;">
+<!ENTITY % m.message.mix     "%m.annotation.mix;">
+<!ENTITY % m.warning.mix     "%m.message.mix;">
+<!ENTITY % m.error.mix       "%m.message.mix;">
+<!ENTITY % m.glossary.mix    "%m.annotation.mix;">
 
 
-<!ELEMENT includeTextFragment EMPTY>
-<!ATTLIST includeTextFragment included    CDATA #REQUIRED
-                              status  (present | absent) "absent"
-                              %variant-attr;>
+<!-- ************************  Atoms  ************************************* --> 
 
-<!ELEMENT link (#PCDATA)>
-<!ATTLIST link linked    CDATA #REQUIRED
-               status  (present | absent) "absent"
-               %variant-attr;>
+<!ENTITY % m.textual_content.mix  "#PCDATA | %embeddedElement;">
 
-<!ELEMENT define (#PCDATA)>
-<!ATTLIST define %attributes;>
-               
-<!ELEMENT reference (#PCDATA)>
-<!ATTLIST reference referenced  CDATA #REQUIRED
-                    status  (present | absent) "absent"
-                    %variant-attr;>
+<!ENTITY % m.text.mix             "%m.textual_content.mix;">
+<!ENTITY % m.source.mix           "(#PCDATA)">
+<!ENTITY % m.programFragment.mix  "(#PCDATA)">
+<!ENTITY % m.theoryFragment.mix   "(#PCDATA)">
+<!ENTITY % m.figure.mix           "(#PCDATA)">
+<!ENTITY % m.table.mix            "(#PCDATA)">
+
+<!ENTITY % m.declaration.mix       "%m.theoryFragment.mix;">
+<!ENTITY % m.axiom.mix             "%m.theoryFragment.mix;">
+<!ENTITY % m.formula.mix           "%m.theoryFragment.mix;">
+<!ENTITY % m.rule.mix              "%m.theoryFragment.mix;">
+<!ENTITY % m.proofStep.mix         "%m.theoryFragment.mix;">
+<!ENTITY % m.developmentStep.mix   "%m.theoryFragment.mix;">
+
+
+<!-- ********************  Components  ****************************** --> 
+
+<!ENTITY % m.item.mix    "%m.list.class; | %m.atom.class;">
+
+
+<!--
+  ***********************************************************************
+  **                                                                   **
+  **  Element definitions                                              **
+  **                                                                   **
+  ***********************************************************************
+ -->
+
+<!ELEMENT  package  (%m.package.mix;)*>
+<!ATTLIST  package  %all-attributes;
+           path    CDATA  #IMPLIED>
+<?MMiSSDisplay package : yellow box ?>
+
+<!ELEMENT  section  (%m.section.mix;)*>
+<!ATTLIST  section  %all-attributes;
+                    isAbstract  (yes | no) 'no'>
+<?MMiSSDisplay section : yellow box ?>
+
+<!ELEMENT  paragraph    (%m.paragraph.mix;)*>
+<!ATTLIST  paragraph  %all-attributes;>
+<?MMiSSDisplay paragraph : Green box ?>
+
+<!ELEMENT  abstract  (%m.abstract.mix;)*>
+<!ATTLIST  abstract  %all-attributes;>
+<?MMiSSDisplay abstract : Green box ?>
+
+<!ELEMENT  introduction  (%m.introduction.mix;)*>
+<!ATTLIST  introduction  %all-attributes;>
+<?MMiSSDisplay introduction : Green box ?>
+
+<!ELEMENT  summary  (%m.summary.mix;)*>
+<!ATTLIST  summary  %all-attributes;>
+<?MMiSSDisplay summay : Green box ?>
+
+<!ELEMENT  example  (%m.example.mix;)*>
+<!ATTLIST  example  %all-attributes;>
+<?MMiSSDisplay example : Green box ?>
+
+<!ELEMENT  theory  (%m.theory.mix;)*>
+<!ATTLIST  theory  %all-attributes;>
+<?MMiSSDisplay theory : Green box ?>
+
+<!ELEMENT  exercise  (%m.exercise.mix;)*>
+<!ATTLIST  exercise  %all-attributes;>
+<?MMiSSDisplay exercise : Green box ?>
+
+<!ELEMENT  assignment  (%m.assignment.mix;)*>
+<!ATTLIST  assignment  %all-attributes;>
+<?MMiSSDisplay assignment : Green box ?>
+
+<!ELEMENT  solution  (%m.solution.mix;)*>
+<!ATTLIST  solution  %all-attributes;>
+<?MMiSSDisplay solution : Green box ?>
+
+<!ELEMENT  illustration  (%m.illustration.mix;)*>
+<!ATTLIST  illustration  %all-attributes;>
+<?MMiSSDisplay illustration : Green box ?>
+
+<!ELEMENT  itemize  (%m.itemize.mix;)*>
+<!ATTLIST  itemize  numeringPattern   CDATA  #IMPLIED
+                   %all-attributes;
+                   %animation-attr;>
+<?MMiSSDisplay itemize : White box ?>
+
+<!ELEMENT  enumerate  (%m.enumerate.mix;)*>
+<!ATTLIST  enumerate  numeringPattern   CDATA  #IMPLIED
+                     %all-attributes;
+                     %animation-attr;>
+<?MMiSSDisplay enumerate : White box ?>
+
+<!ELEMENT  description  (%m.description.mix;)*>
+<!ATTLIST  description  numeringPattern   CDATA  #IMPLIED
+                       %all-attributes;
+                       %animation-attr;>
+<?MMiSSDisplay description : White box ?>
+
+
+<!ELEMENT  definition  (%m.definition.mix;)*>
+<!ATTLIST  definition  %all-attributes;>
+<?MMiSSDisplay definition : Green box ?>
+
+
+<!ELEMENT  theorem  (%m.theorem.mix;)*>
+<!ATTLIST  theorem  %all-attributes;>
+<?MMiSSDisplay theorem : Green box ?>
+
+<!ELEMENT  proposition  (%m.proposition.mix;)*>
+<!ATTLIST  proposition  %all-attributes;>
+<?MMiSSDisplay proposition : Green box ?>
+
+<!ELEMENT  lemma  (%m.lemma.mix;)*>
+<!ATTLIST  lemma  %all-attributes;>
+<?MMiSSDisplay lemma : Green box ?>
+
+<!ELEMENT  corollary  (%m.corollary.mix;)*>
+<!ATTLIST  corollary  %all-attributes;>
+<?MMiSSDisplay corollary : Green box ?>
+
+<!ELEMENT  conjecture  (%m.conjecture.mix;)*>
+<!ATTLIST  conjecture  %all-attributes;>
+<?MMiSSDisplay conjecture : Green box ?>
+
+<!ELEMENT  falseConjecture  (%m.falseConjecture.mix;)*>
+<!ATTLIST  falseConjecture  %all-attributes;>
+<?MMiSSDisplay falseConjecture : Green box ?>
+
+
+<!ELEMENT  proof  (%m.proof.mix;)*>
+<!ATTLIST  proof  %all-attributes;>
+<?MMiSSDisplay proof : Green box ?>
+
+<!ELEMENT  program  (%m.program.mix;)*>
+<!ATTLIST  program  %all-attributes;>
+<?MMiSSDisplay program : Green box ?>
+
+<!ELEMENT  development  (%m.development.mix;)*>
+<!ATTLIST  development  %all-attributes;>
+<?MMiSSDisplay development : Green box ?>
+
+<!ELEMENT item (%m.item.mix;)*>
+<!ATTLIST item descItem   CDATA  #IMPLIED
+               %structure-attr;
+               %system-attr;>
+
+<!ELEMENT  comment  (%m.comment.mix;)*>
+<!ATTLIST  comment  %all-attributes;>
+<?MMiSSDisplay comment : Green box ?>
+
+<!ELEMENT  note  (%m.note.mix;)*>
+<!ATTLIST  note  %all-attributes;>
+<?MMiSSDisplay note : Green box ?>
+
+<!ELEMENT  warning  (%m.warning.mix;)*>
+<!ATTLIST  warning  %all-attributes;>
+<?MMiSSDisplay warning : Green box ?>
+
+<!ELEMENT  error  (%m.error.mix;)*>
+<!ATTLIST  error  %all-attributes;>
+<?MMiSSDisplay error : Green box ?>
+
+<!ELEMENT  glossary  (%m.glossary.mix;)*>
+<!ATTLIST  glossary  %all-attributes;>
+<?MMiSSDisplay glossary : Green box ?>
+
+
+<!-- ***************************  Atoms  ****************************** --> 
+
+<!ELEMENT text  (%m.text.mix;)*>
+<!ATTLIST text  %structure-attr;
+                %system-attr;
+                %variant-attr;>
+<?MMiSSDisplay text : White box ?>
+
+<!ELEMENT source  %m.source.mix;>
+<!ATTLIST source  %structure-attr;
+                  %system-attr;
+                  %variant-attr;>
+<?MMiSSDisplay source : White box ?>
+
+<!ELEMENT  figure  %m.figure.mix;>
+<!ATTLIST  figure  %structure-attr;
+                   %system-attr;
+                   %variant-attr;>
+<?MMiSSDisplay figure : White box ?>
+
+<!ELEMENT  table  %m.table.mix;>
+<!ATTLIST  table  %structure-attr;
+                  %system-attr;
+                  %variant-attr;>
+<?MMiSSDisplay table : White box ?>
+
+<!ELEMENT programFragment  %m.programFragment.mix;>
+<!ATTLIST programFragment  %structure-attr;
+                           %system-attr;
+                           %variant-attr;>
+<?MMiSSDisplay programFragment : White box ?>
+
+<!ELEMENT declaration  %m.declaration.mix;>
+<!ATTLIST declaration  %structure-attr;
+                       %system-attr;
+                       %variant-attr;>
+<?MMiSSDisplay declaration : White box ?>
+
+<!ELEMENT axiom  %m.axiom.mix;>
+<!ATTLIST axiom  %structure-attr;
+                 %system-attr;
+                 %variant-attr;>
+<?MMiSSDisplay axiom : White box ?>
+
+<!ELEMENT formula  %m.formula.mix;>
+<!ATTLIST formula  %structure-attr;
+                   %system-attr;
+                   %variant-attr;
+                   latexEnv   (math | shortMathDollar | shortMathParens | displaymath 
+                               | shortDisplaymath | shortDisplaymathDollar 
+                               | equation) #REQUIRED>
+
+<!ELEMENT rule  %m.rule.mix;>
+<!ATTLIST rule  %structure-attr;
+                %system-attr;
+                %variant-attr;>
+<?MMiSSDisplay rule : White box ?>
+
+<!ELEMENT proofStep  %m.proofStep.mix;>
+<!ATTLIST proofStep  %structure-attr;
+                     %system-attr;
+                     %variant-attr;>
+<?MMiSSDisplay proofStep : White box ?>
+
+<!ELEMENT developmentStep  %m.developmentStep.mix;>
+<!ATTLIST developmentStep  %structure-attr;
+                           %system-attr;
+                           %variant-attr;>
+<?MMiSSDisplay developmentStep : White box ?>
+
+
+<!-- ************************  Embedded elements  ******************************** --> 
 
 <!ELEMENT emphasis (#PCDATA)>
 
-
-<!--
-  ***********************************************************************
-  **                                                                   **
-  **  Groups                                                           **
-  **                                                                   **
-  ***********************************************************************
- -->
-
-<!-- Views are not defined yet. -->
-
-<!ENTITY % group  "package | section | paragraph | includeGroup 
-                   | includeSection">
-
-<!ENTITY % conceptualAtom  "textFragment | list | table | figure 
-                            | includeTextFragment
-                            | glossaryEntry | bibEntry 
-                            | includeConceptualAtom">
-
-<!ENTITY % formalAtom  "programFragment | clause | step | includeProgramFragment
-                        | includeClause | includeStep">
-
-<!ENTITY % atom  "%conceptualAtom; | %formalAtom; | includeAtom">
-
-<!ENTITY % conceptualUnit  "example | exercise | definition | paragraph | includeConceptualUnit">
-
-<!ENTITY % formalUnit  "program | theory | theorem | conjecture | lemma 
-                        | corollary | assertion | development | proof 
-                        | script | includeProgram | includeTheory | includeScript
-                        | includeDevelopment | includeProof | includeFormalUnit">
-
-<!ENTITY % unit   "%conceptualUnit; | %formalUnit; | %atom; | includeUnit">
+<!ELEMENT cite EMPTY>
+<!ATTLIST cite cited   CDATA #REQUIRED
+               status  (present | absent)  "absent">
 
 
-<!ELEMENT package (section | includeSection)+>
-<!ATTLIST package %attributes;
-          path    CDATA  #IMPLIED>
-<?MMiSSDisplay package : yellow box ?>
+<!ELEMENT link (#PCDATA)>
+<!ATTLIST link linked    CDATA #REQUIRED
+               type      CDATA #IMPLIED
+               status    (present | absent) "absent"
+               %variant-attr;>
 
-<!ELEMENT section ((%unit;)*,
-                  (abstract |includeAbstract)?,
-                  (introduction | includeIntroduction)?,
-                  (%group; | %unit;)*, 
-                  (summary | includeSummary)?,
-                  (%unit;)*)>
-<!ATTLIST section %attributes;>
-<?MMiSSDisplay section : yellow box ?>
+<!ELEMENT define (#PCDATA)>
+<!ATTLIST define defined   CDATA #REQUIRED
+                 status    (present | absent) "absent">
+               
+<!ELEMENT reference (#PCDATA)>
+<!ATTLIST reference referenced  CDATA #REQUIRED
+                    status      (present | absent) "absent"
+                    type        (macro | long | short) "short">
 
-<!ELEMENT paragraph (%unit;)*>
-<!ATTLIST paragraph %attributes;>
-<?MMiSSDisplay paragraph : Green box ?>
+<!ELEMENT refRelation (#PCDATA)>
+<!ATTLIST refRelation referenced  CDATA #REQUIRED
+                      status      (present | absent) "absent"
+                      type        (macro | long | short | parameters) "short"
+                      parameter1  CDATA #IMPLIED
+                      parameter2  CDATA #IMPLIED>
 
-
-<!--
-  ***********************************************************************
-  **                                                                   **
-  **  Conceptual units and atoms                                       **
-  **                                                                   **
-  ***********************************************************************
- -->
-
-<!ELEMENT abstract (%unit;)*>
-<!ATTLIST abstract %attributes;>
-<?MMiSSDisplay abstract : Green box ?>
+<!ELEMENT relate EMPTY>
+<!ATTLIST relate relation    CDATA #REQUIRED
+                 object1     CDATA #IMPLIED
+                 object2     CDATA #IMPLIED>
 
 
-<!ELEMENT introduction (%unit;)*>
-<!ATTLIST introduction %attributes;>
-<?MMiSSDisplay introduction : Green box ?>
-
-<!ELEMENT summary (%unit;)*>
-<!ATTLIST summary %attributes;>
-<?MMiSSDisplay summary : Green box ?>
-
-<!ELEMENT example (%unit;)*>
-<!ATTLIST example %attributes;>
-<?MMiSSDisplay example : Green box ?>
-
-
-<!ELEMENT exercise (%unit;)*>
-<!ATTLIST exercise %attributes;>
-<?MMiSSDisplay exercise : Green box ?>
-
-<!ELEMENT definition (%unit;)*>
-<!ATTLIST definition %attributes;>
-<?MMiSSDisplay definition : Green box ?>
-
-<!ELEMENT textFragment %text;>
-<!ATTLIST textFragment %attributes;>
-<?MMiSSDisplay textFragment : White box ?>
-
-<!ELEMENT table %text;>
-<!ATTLIST table caption    CDATA  #IMPLIED
-                %attributes;>
-<?MMiSSDisplay table : White box ?>
-
-<!ELEMENT figure  %text;>
-<!ATTLIST figure  caption    CDATA  #IMPLIED
-                  %attributes;>
-<?MMiSSDisplay figure : White box ?>
-
-<!ELEMENT glossaryEntry  %text;>
-<!ATTLIST glossaryEntry  %attributes;>
-<?MMiSSDisplay glossaryEntry : White box ?>
-
-<!ELEMENT bibEntry  %text;>
-<!ATTLIST bibEntry  %attributes;>
-<?MMiSSDisplay bibEntry : White box ?>
-
-<!ELEMENT list  (listItem)*>
-<!ATTLIST list  listType  (itemize | enumerate | description)  #IMPLIED
-                numeringPattern   CDATA  #IMPLIED
-                %attributes;>
-<?MMiSSDisplay list : White box ?>
-
-
-<!ELEMENT listItem  (list | %atom;)*>
-<!ATTLIST listItem descItem   CDATA  #IMPLIED
-                   %attributes;>
-
-<!ELEMENT formula (#PCDATA)>
-<!ATTLIST formula latexEnv   (math | shortMathDollar | shortMathParens | displaymath | shortDisplaymath | shortDisplaymathDollar | equation) #REQUIRED
-                  %variant-attr;>
-
-
-<!--
-  ***********************************************************************
-  **                                                                   **
-  **  Formal units and atoms                                           **
-  **                                                                   **
-  ***********************************************************************
- -->
-
-<!ELEMENT program (%conceptualAtom; | programFragment | program
-                  | includeProgramFragment | includeProgram)*>
-<!ATTLIST program %attributes;>
-<?MMiSSDisplay program : Green box ?>
-
-<!ELEMENT theory (%conceptualAtom; | clause | theory
-                  | includeClause | includeTheory)*>
-<!ATTLIST theory %attributes;>
-<?MMiSSDisplay theory : Green box ?>
-
-<!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)*>
-<!ATTLIST theorem %attributes;>
-<?MMiSSDisplay theorem : Green box ?>
-
-<!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)*>
-<!ATTLIST conjecture %attributes;>
-<?MMiSSDisplay conjecture : Green box ?>
-
-<!ELEMENT lemma (%conceptualAtom; | clause | includeClause)*>
-<!ATTLIST lemma %attributes;>
-<?MMiSSDisplay lemma : Green box ?>
-
-<!ELEMENT corollary (%conceptualAtom; | clause | includeClause)*>
-<!ATTLIST corollary %attributes;>
-<?MMiSSDisplay corollary : Green box ?>
-
-<!ELEMENT assertion (%conceptualAtom; | clause | includeClause)*>
-<!ATTLIST assertion %attributes;>
-<?MMiSSDisplay assertion : Green box ?>
-
-<!ELEMENT proof (%conceptualAtom; | step | script | proof
-                 | includeStep | includeScript | includeProof)*>
-<!ATTLIST proof %attributes;>
-<?MMiSSDisplay proof : Green box ?>
-
-<!ELEMENT development  (%conceptualAtom; | step | script | development
-                        | includeStep | includeScript | includeDevelopment)*>
-<!ATTLIST development  %attributes;>
-<?MMiSSDisplay development : Green box ?>
-
-
-<!ELEMENT script  (%conceptualAtom; | step | script
-                   | includeStep | includeScript)*>
-<!ATTLIST script %attributes;>
-<?MMiSSDisplay development : Green box ?>
-
-<!ELEMENT programFragment  (#PCDATA)>
-<!ATTLIST programFragment  %attributes;>
-<?MMiSSDisplay programFragment : White box ?>
-
-<!ELEMENT clause  (#PCDATA)>
-<!ATTLIST clause  %attributes;>
-<?MMiSSDisplay clause : White box ?>
-
-
-<!ELEMENT step  (#PCDATA)>
-<!ATTLIST step  %attributes;>
-<?MMiSSDisplay step : White box ?>
-
-
-
-<!--
-  ***********************************************************************
-  **                                                                   **
-  **  Elements for Inclusion                                           **
-  **                                                                   **
-  ***********************************************************************
- -->
-
-<!-- All include elements (includeTextFragment above also) have attributes 
-    for specifying the referred variant. 'included' gives the label of 
-    the referred element. -->
-
-<!ELEMENT includeGroup EMPTY>
-<!ATTLIST includeGroup %include-attributes;>
+<!-- **********************  Inclusion elements  ************************* --> 
 
 <!ELEMENT includeSection  EMPTY>
 <!ATTLIST includeSection %include-attributes;>
 
-<!ELEMENT includeAbstract EMPTY>
-<!ATTLIST includeAbstract %include-attributes;>
-
-<!ELEMENT includeIntroduction EMPTY>
-<!ATTLIST includeIntroduction %include-attributes;>
-
-<!ELEMENT includeSummary EMPTY>
-<!ATTLIST includeSummary %include-attributes;>
-
 <!ELEMENT includeUnit EMPTY>
 <!ATTLIST includeUnit %include-attributes;>
-
-<!ELEMENT includeFormalUnit EMPTY>
-<!ATTLIST includeFormalUnit %include-attributes;>
-
-<!ELEMENT includeConceptualUnit EMPTY>
-<!ATTLIST includeConceptualUnit %include-attributes;>
 
 <!ELEMENT includeAtom EMPTY>
 <!ATTLIST includeAtom %include-attributes;>
 
-<!ELEMENT includeConceptualAtom EMPTY>
-<!ATTLIST includeConceptualAtom %include-attributes;>
+<!ELEMENT includeCompositeUnit EMPTY>
+<!ATTLIST includeCompositeUnit %include-attributes;>
 
-<!ELEMENT includeProgramFragment EMPTY>
-<!ATTLIST includeProgramFragment %include-attributes;>
+<!ELEMENT includeText EMPTY>
+<!ATTLIST includeText %include-attributes;>
 
-<!ELEMENT includeProgram EMPTY>
-<!ATTLIST includeProgram %include-attributes;>
-
-<!ELEMENT includeClause EMPTY>
-<!ATTLIST includeClause %include-attributes;>
-
-<!ELEMENT includeTheory EMPTY>
-<!ATTLIST includeTheory %include-attributes;>
-
-<!ELEMENT includeStep EMPTY>
-<!ATTLIST includeStep %include-attributes;>
+<!ELEMENT includeTerm EMPTY>
+<!ATTLIST includeTerm %include-attributes;>
 
 <!ELEMENT includeProof EMPTY>
 <!ATTLIST includeProof %include-attributes;>
 
-<!ELEMENT includeScript EMPTY>
-<!ATTLIST includeScript %include-attributes;>
+<!ELEMENT includeProofStep EMPTY>
+<!ATTLIST includeProofStep %include-attributes;>
 
-<!ELEMENT includeDevelopment EMPTY>
-<!ATTLIST includeDevelopment %include-attributes;>
+<!ELEMENT includeProgramComponent EMPTY>
+<!ATTLIST includeProgramComponent %include-attributes;>
 
+<!ELEMENT includeDevelopmentStep EMPTY>
+<!ATTLIST includeDevelopmentStep %include-attributes;>
 
+<!ELEMENT includeTable EMPTY>
+<!ATTLIST includeTable %include-attributes;>
+
+<!ELEMENT includeFigure EMPTY>
+<!ATTLIST includeFigure %include-attributes;>
+
+<!ELEMENT includeAnnotation EMPTY>
+<!ATTLIST includeAnnotation %include-attributes;>
