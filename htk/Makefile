@@ -88,7 +88,8 @@ SRCS       = \
 	 toolkit/LogWin.hs\
 	 toolkit/MatrixBox.hs\
 	 filebrowser/TreeListPath.hs\
-      
+	 filebrowser/FileActions.hs\
+
 EXTRA_HC_OPTIONS += -Onot -H30M
 
 SUBDIRS = test examples
