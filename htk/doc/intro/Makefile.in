@@ -7,7 +7,7 @@ SRCSLHS       = Mainsimple1.lhs \
 		Mainlist.lhs \
 	        Mainentry.lhs\
 		Mainmenu.lhs \
-                MainHsMines.lhs
+                MainhsMines.lhs
 
 include @TOP@/mk/boilerplate.mk
 
