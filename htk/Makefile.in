@@ -1,5 +1,11 @@
 PACKAGE    = uni-htk
-PACKAGES   = uni-posixutil uni-reactor
+
+ifeq "@WINDOWS@" "1"
+   PACKAGES = uni-reactor
+else
+   PACKAGES = uni-posixutil uni-reactor
+endif
+
 DOIMPORTS  = YES
 
 # I think the next line shouldn't really be necessary, but it seems to work
@@ -80,7 +86,6 @@ SRCS       = resources/Resources.hs\
              toolkit/TreeList.hs\
              toolkit/Notepad.hs\
              toolkit/GenGUI.hs\
-             toolkit/FileDialog.hs\
              toolkit/IconBar.hs\
              toolkit/SelectBox.hs\
              toolkit/MarkupText.hs\
@@ -88,7 +93,6 @@ SRCS       = resources/Resources.hs\
              toolkit/Separator.hs\
 	     toolkit/DialogWin.hs\
              toolkit/SpinButton.hs\
-             toolkit/LogWin.hs\
 	     menuitems/Indicator.hs\
 	     menuitems/MenuItem.hs\
              menuitems/Menu.hs\
@@ -108,9 +112,15 @@ SRCS       = resources/Resources.hs\
              toolkit/HTkMenu.hs\
              toolkit/SimpleForm.hs\
              toolkit/GenericBrowser.hs\
-ifneq "$(WINDOWS)" "1"
-             toolkit/FileDialog.hs\
-             toolkit/LogWin.hs
+             $(UNIXSRCS)
+
+ifeq "@WINDOWS@" "1"
+UNIXSRCS =
+
+SRCSC = kernel/runWish.c
+else
+UNIXSRCS =   toolkit/FileDialog.hs toolkit/LogWin.hs
+
 endif
 
 SUBDIRS = test examples

@@ -32,7 +32,7 @@ module FileNames(
 fileSep :: Char
 
 #if WINDOWS
-fileSep = '\\`
+fileSep = '\\'
 #else
 fileSep = '/'
 #endif

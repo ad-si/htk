@@ -6,7 +6,7 @@
 # SUBDIRS is a list of all directories containing code to be compiled to
 # form the UniForM workbench, in an order in which they can be compiled
 # by recursively calling $(MAKE) -C (subdir) lib.
-ifeq "$(WINDOWS)" "1"
+ifeq "@WINDOWS@" "1"
    SUBDIRS = util events reactor htk
 else
    SUBDIRS=util events reactor posixutil htk server graphs davinci cvs types

@@ -3,14 +3,19 @@
 #
 # HC is the location of the GHC command
 # CC is the location of the C compiler
-# MV is the location of the "mv" command.
 # GFIND is the location of GNU find, hopefully.
+# TOP is the top directory of the installation
+# GHCTOP is the top directory, in a form suitable for passing to GHC
+#  (so it should be the DOS form of the pathname for Windows)
+# GHCPKG is the location of GHC's ghc-pkg command.
 HC = @GHC@
 CC = @CC@
 TOP = @TOP@
+GHCTOP = @GHCTOP@
 GFIND = @GFIND@
 CP = @CP@
 MKDIR = @MKDIR@
 LD = @LD@
 GHCPKG = @GHCPKG@
 SED = @SED@
+WINDOWS = @WINDOWS@

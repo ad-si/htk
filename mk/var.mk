@@ -40,14 +40,12 @@ FIXFILENAMES = $(TOP)/mk/FixFileNames
 # LINKFLAGS = -lreadline
 LINKFLAGS =
 
-# Gnu C compiler.  NB - the GHC installation is hardwired to
-# a particular version of gcc, so don't go changing this unless
-# you change the GHC installation.  
+# Gnu C compiler.  We access this via GHC, for now.  
 CC               = $(HC)
-CFLAGS           = $(GHCINCDIR)
+CFLAGS           = -package-conf $(PACKAGECONF) -package uni-options
 
 # The package configuration directory
-PACKAGECONF = $(TOP)/uni-package.conf
+PACKAGECONF = $(GHCTOP)/uni-package.conf
 
 # Subdirectories
 # . is automatically included by mkdependHS anyway (I don't

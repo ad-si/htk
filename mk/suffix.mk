@@ -172,6 +172,7 @@ display :
 	@echo HCDIRS = $(HCDIRS)
 	@echo DEPS = '$(DEPS)'
 	@echo PACKAGES = $(PACKAGES)
+	@echo WINDOWS = $(WINDOWS)
 
 depend : $(SRCS) $(SRCSLHS) $(HIBOOTFILES)
 ifneq "$(strip $(SRCS) $(SRCSLHS))" ""
@@ -279,8 +280,11 @@ $(TESTOBJSHS) $(MAINOBJSHS) : %.o : %.hs
 $(TESTOBJSLHS) $(MAINOBJSLHS) : %.o : %.lhs
 	$(HC) -c $< $(HCFLAGS) $(THISPACKAGE)
 
-$(OBJSC) : %.o : %.c $(CINCLUDES)/%.h
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(CINCLUDES)
+# C objects ought to depend on the header file as well,
+# but this is tricky when the C file is inside a subdirectory
+# of this one.
+$(OBJSC) : %.o : %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 ifndef FAST
 -include .depend

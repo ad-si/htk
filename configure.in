@@ -11,6 +11,7 @@ TOP=`pwd`
 echo ""
 echo "The top of the UniForM build tree is: $TOP"
 AC_SUBST(TOP)
+# 
 #
 # Are we running Windows or Unix?
 case `uname` in
@@ -120,6 +121,12 @@ if test "$GOAHEAD" = YES; then
 
    mk/FixFileNames <uni-package.options | $GHCPKG --config-file uni-package.conf --add-package 
 #
+   # Find out what GHC thinks this directory is (this will not necessarily be 
+   # the same as TOP on Windows).  This string is escaped.
+   GHCTOP=`echo '$PWD' | mk/FixFileNames`
+   echo GHC calls this directory $GHCTOP
+   AC_SUBST(GHCTOP)
+
    echo ''
    echo '------------------- Configuration Successful ------------------'
    AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk $MAKEFILES htk/doc/hdoc/generatedoc includes/config.h)
