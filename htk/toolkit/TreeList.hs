@@ -22,6 +22,8 @@ module TreeList (
                          IO (Event (TreeListEvent c), IO ())            -}
   TreeListEvent(..),
 
+  removeTreeListObject, {- :: Eq a=> TreeList a-> a-> IO () -}
+
   updateTreeList,        {- :: Eq a => TreeList a -> IO ()              -}
   addTreeListRootObject, {- :: Eq a => TreeList a ->
                                        TreeListObject a -> IO ()        -}
@@ -381,7 +383,7 @@ mkLeaf tl val =
       _ -> done
 
 ---
--- Removes the corresponding objects to a gibven tree list object value
+-- Removes the corresponding objects to a given tree list object value
 -- from the tree list.
 -- @param tl      - the concerned tree list.
 -- @param val     - the concerned tree list object's value.
@@ -389,13 +391,15 @@ mkLeaf tl val =
 removeTreeListObject :: CItem a => TreeList a -> a -> IO ()
 removeTreeListObject tl val =
   do
-    Just (obj, _) <- getObjectFromTreeList tl val
-    mch <- getChildrenAndUpper tl val
-    case mch of
-      Just (ch, upper) ->
-        do
-          mapM removeObject (obj : ch)
-          done
+    mobj <- getObjectFromTreeList tl val
+    case mobj of 
+      Just (obj, _) -> 
+        do mch <- getChildrenAndUpper tl val
+           case mch of
+             Just (ch, upper) ->
+               do mapM removeObject (obj : ch)
+                  done
+             _ -> done
       _ -> done
 
 getChildrenAndUpper :: CItem a => TreeList a -> a ->
