@@ -241,7 +241,7 @@ callWish =
       return (CalledWish childProcess)
 
 challengeResponsePair :: (String,String)
-challengeResponsePair = ("if {[info command button] == \"button\"} {puts \"This is wish  \"} else {puts \"Is this tclsh?\"}","This is wish  \n")
+challengeResponsePair = ("fconfigure stdout -translation lf;if {[info command button] == \"button\"} {puts \"This is wish  \"} else {puts \"Is this tclsh?\"}","This is wish  \n")
 
 sendCalledWish :: CalledWish -> CStringLen -> IO ()
 sendCalledWish (CalledWish childProcess) cStringLen =
