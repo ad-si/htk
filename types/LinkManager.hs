@@ -988,6 +988,7 @@ createLinkSourceGeneral view linkedObject
                      list
                   )
                linksSource2
+
       return (
          LinkSource {
             object = linkedObject,

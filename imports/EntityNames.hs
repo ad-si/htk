@@ -407,14 +407,25 @@ mkEntityFullName strs =
 
 mkEntitySearchName :: [String] -> Maybe EntitySearchName
 mkEntitySearchName [] = Nothing
-mkEntitySearchName ["Current"] = Just (FromCurrent (EntityFullName []))
-mkEntitySearchName ("Current" : strs) =
-   fmap FromCurrent (mkEntityFullName strs)
-mkEntitySearchName ["Root"] = Just (FromRoot (EntityFullName []))
-mkEntitySearchName ("Root" : strs) =
-   fmap FromRoot (mkEntityFullName strs)
-mkEntitySearchName ["Parent"] = Just (FromParent (FromHere (EntityFullName [])))
-mkEntitySearchName ("Parent" : strs) =
-   fmap FromParent (mkEntitySearchName strs)
-mkEntitySearchName strs =
-   fmap FromHere (mkEntityFullName strs)
+mkEntitySearchName strs0 =
+   let
+      (prefixFn,strs1) = searchNamePrefix strs0
+
+      fullNameOpt = case strs1 of
+         [] -> Just (EntityFullName [])
+         _ -> mkEntityFullName strs1
+   in
+      fmap prefixFn fullNameOpt 
+
+searchNamePrefix :: [String] -> (EntityFullName -> EntitySearchName,[String])
+searchNamePrefix ("Current" : strs) = (FromCurrent,strs)
+searchNamePrefix ("Root" : strs) = (FromRoot,strs)
+searchNamePrefix strs = getParents strs
+   where
+      getParents :: [String] -> (EntityFullName -> EntitySearchName,[String])
+      getParents ("Parent" : strs0) =
+         let
+            (prefixFn0,strs1) = getParents strs0
+         in
+            (FromParent . prefixFn0,strs1)
+      getParents strs = (FromHere,strs)

@@ -404,41 +404,42 @@ Any other reply is used exactly as entered."
                        auto-mode-alist))
 
 
+(define-key MMiSSTeX-mode-map "\e\em"            'MMiSS-environment)
+(define-key MMiSSTeX-mode-map "\e\ec"            'MMiSS-close-environment)
+(define-key MMiSSTeX-mode-map "\e\eb"            'MMiSS-find-matching-begin)
+(define-key MMiSSTeX-mode-map "\e\ee"            'MMiSS-find-matching-end)
+(define-key MMiSSTeX-mode-map "\e\ep"            'MMiSS-env-Package)
+(define-key MMiSSTeX-mode-map "\e\es"            'MMiSS-env-Section)
+(define-key MMiSSTeX-mode-map "\e\eh"            'MMiSS-env-Paragraph)
+(define-key MMiSSTeX-mode-map "\e\ev"            'MMiSS-env-View)
+(define-key MMiSSTeX-mode-map "\e\ex"            'MMiSS-env-Example)
+(define-key MMiSSTeX-mode-map "\e\e\ex"          'MMiSS-env-Exercise)
+(define-key MMiSSTeX-mode-map "\e\ed"            'MMiSS-env-Definition)
+(define-key MMiSSTeX-mode-map "\e\e\ef"          'MMiSS-env-TextFragment)
+(define-key MMiSSTeX-mode-map "\e\e\et"          'MMiSS-env-Table)
+(define-key MMiSSTeX-mode-map "\e\ef"            'MMiSS-env-Figure)
+(define-key MMiSSTeX-mode-map "\e\eg"            'MMiSS-env-GlossaryEntry)
+(define-key MMiSSTeX-mode-map "\e\er"            'MMiSS-env-Program)
+(define-key MMiSSTeX-mode-map "\e\ey"            'MMiSS-env-Theory)
+(define-key MMiSSTeX-mode-map "\e\et"            'MMiSS-env-Theorem)
+(define-key MMiSSTeX-mode-map "\e\ej"            'MMiSS-env-Conjecture)
+(define-key MMiSSTeX-mode-map "\e\el"            'MMiSS-env-Lemma)
+(define-key MMiSSTeX-mode-map "\e\e\ec"          'MMiSS-env-Corollary)
+(define-key MMiSSTeX-mode-map "\e\ea"            'MMiSS-env-Assertion)
+(define-key MMiSSTeX-mode-map "\e\e\ed"          'MMiSS-env-Development)
+(define-key MMiSSTeX-mode-map "\e\e\er"          'MMiSS-env-Proof)
+(define-key MMiSSTeX-mode-map "\e\e\es"          'MMiSS-env-Script)
+(define-key MMiSSTeX-mode-map "\e\e\ep"          'MMiSS-env-ProgramFragment)
+(define-key MMiSSTeX-mode-map "\e\e\el"          'MMiSS-env-Clause)
+(define-key MMiSSTeX-mode-map "\e\e\ee"          'MMiSS-env-Step)
+(define-key MMiSSTeX-mode-map "\e\e\eb"          'MMiSS-env-BibEntry)
+(define-key MMiSSTeX-mode-map "\e\e\ea"          'MMiSS-env-AuthorEntry)
+
+(define-key MMiSSTeX-mode-map [(control x) (control s)] 'MMiSS-commit)
+(define-key MMiSSTeX-mode-map [(control x) k]    'MMiSS-quit)
+(define-key MMiSSTeX-mode-map [(control x) ! k]  'MMiSS-delete)
+
 (defun mmiss-mode ()
-   (define-key LaTeX-mode-map "\e\em"            'MMiSS-environment)
-   (define-key LaTeX-mode-map "\e\ec"            'MMiSS-close-environment)
-   (define-key LaTeX-mode-map "\e\eb"            'MMiSS-find-matching-begin)
-   (define-key LaTeX-mode-map "\e\ee"            'MMiSS-find-matching-end)
-   (define-key LaTeX-mode-map "\e\ep"            'MMiSS-env-Package)
-   (define-key LaTeX-mode-map "\e\es"            'MMiSS-env-Section)
-   (define-key LaTeX-mode-map "\e\eh"            'MMiSS-env-Paragraph)
-   (define-key LaTeX-mode-map "\e\ev"            'MMiSS-env-View)
-   (define-key LaTeX-mode-map "\e\ex"            'MMiSS-env-Example)
-   (define-key LaTeX-mode-map "\e\e\ex"          'MMiSS-env-Exercise)
-   (define-key LaTeX-mode-map "\e\ed"            'MMiSS-env-Definition)
-   (define-key LaTeX-mode-map "\e\e\ef"          'MMiSS-env-TextFragment)
-   (define-key LaTeX-mode-map "\e\e\et"          'MMiSS-env-Table)
-   (define-key LaTeX-mode-map "\e\ef"            'MMiSS-env-Figure)
-   (define-key LaTeX-mode-map "\e\eg"            'MMiSS-env-GlossaryEntry)
-   (define-key LaTeX-mode-map "\e\er"            'MMiSS-env-Program)
-   (define-key LaTeX-mode-map "\e\ey"            'MMiSS-env-Theory)
-   (define-key LaTeX-mode-map "\e\et"            'MMiSS-env-Theorem)
-   (define-key LaTeX-mode-map "\e\ej"            'MMiSS-env-Conjecture)
-   (define-key LaTeX-mode-map "\e\el"            'MMiSS-env-Lemma)
-   (define-key LaTeX-mode-map "\e\e\ec"          'MMiSS-env-Corollary)
-   (define-key LaTeX-mode-map "\e\ea"            'MMiSS-env-Assertion)
-   (define-key LaTeX-mode-map "\e\e\ed"          'MMiSS-env-Development)
-   (define-key LaTeX-mode-map "\e\e\er"          'MMiSS-env-Proof)
-   (define-key LaTeX-mode-map "\e\e\es"          'MMiSS-env-Script)
-   (define-key LaTeX-mode-map "\e\e\ep"          'MMiSS-env-ProgramFragment)
-   (define-key LaTeX-mode-map "\e\e\el"          'MMiSS-env-Clause)
-   (define-key LaTeX-mode-map "\e\e\ee"          'MMiSS-env-Step)
-   (define-key LaTeX-mode-map "\e\e\eb"          'MMiSS-env-BibEntry)
-   (define-key LaTeX-mode-map "\e\e\ea"          'MMiSS-env-AuthorEntry)
-   
-   (define-key LaTeX-mode-map [(control x) (control s)] 'MMiSS-commit)
-   (define-key LaTeX-mode-map [(control x) k]    'MMiSS-quit)
-   (define-key LaTeX-mode-map [(control x) ! k]  'MMiSS-delete)
    (make-mmiss-menu)
 )
 ;//
@@ -450,7 +451,7 @@ Any other reply is used exactly as entered."
   (interactive)
   (easy-menu-define 
    MMiSS-menu-symbol
-   LaTeX-mode-map
+   MMiSSTeX-mode-map
    "MMiSSTeX configuration menu" 
    (list "MMiSSTeX"
          ;;"Environments"
@@ -494,5 +495,5 @@ Any other reply is used exactly as entered."
          ["Print" MMiSS-print]     
          ["Quit" MMiSS-quit]     
          ))
-  (easy-menu-add MMiSS-menu-symbol LaTeX-mode-map)
+  (easy-menu-add MMiSS-menu-symbol MMiSSTeX-mode-map)
   )
