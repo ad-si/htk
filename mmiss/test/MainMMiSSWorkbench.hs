@@ -4,8 +4,6 @@ module Main(main) where
 import Maybe
 import System
 
-import System.Posix hiding (Quit)
-
 import WBFiles
 import Computation
 import ExtendedPrelude
@@ -146,7 +144,7 @@ mainWindow =
                            versionGraphList
                         cleanupWish
                         shutdown
-                        exitImmediately ExitSuccess
+                        exitWith ExitSuccess
                   else
                      mainLoop
 
