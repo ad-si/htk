@@ -17,13 +17,13 @@ Font parsing [ludi, 17.08.01]
  widgets where the font is not specified explicitly-- 
  see examples/MainmarkupTextEx.hs
 
-BNo should by a type synonym, not a newtype [cxl]
- kernel/Wish.hs.
-
-
 ---------------------------------------------------------------------------
 
 Fixed bugs:
+
+BNo should by a type synonym, not a newtype [cxl]
+ kernel/Wish.hs.
+Fixed - cxl, 02.02
 
 Text Editors become enabled [mclee, 14.09.01]
   Inserting markup text into a text editor leaves it enabled. The
@@ -37,7 +37,6 @@ creadTK can't parse Bool? [cxl/crimson, 21.09.01]
      do v<- (createTkVariable True):: IO (TkVariable Bool)
         readTkVariable v
    leads to "NO PARSE: True".
-
 Fixed - ludi/cxl, 28.09.01
 
 

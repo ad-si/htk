@@ -207,6 +207,13 @@ instance GUIValue Int where
 instance GUIValue Double where
         cdefault = 0.0
 
+-- --------------------------------------------------------------------------
+-- Tuples
+-- --------------------------------------------------------------------------
+
+instance (GUIValue a, GUIValue b)=> GUIValue (a, b) where
+        cdefault = (cdefault, cdefault)
+
 
 
 -- --------------------------------------------------------------------------
