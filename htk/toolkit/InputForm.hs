@@ -13,16 +13,17 @@ DESCRIPTION   : InputForm Abstraction
 
 
 module InputForm (
-        InputForm,
+        InputForm(..),
         newInputForm,
 
         InputField(..), 
+        FormState(fFormValue),	
 
---        EntryField,
---        newEntryField,
+        EntryField,
+        newEntryField,
 
---        EnumField,
---        newEnumField,
+        EnumField,
+        newEnumField,
 
         TextField,
         newTextField,
@@ -52,6 +53,7 @@ import Keyboard
 import Space
 import Debug(debug)
 import ReferenceVariables
+import MarkupText
 
 
 -- --------------------------------------------------------------------------
@@ -128,7 +130,7 @@ instance HasColour (InputForm a) where
         getColour _ _ = return cdefault
 
 instance HasFont (InputForm a) where
-        font f form@(InputForm b e) = synchronize form (
+        HTk.font f form@(InputForm b e) = synchronize form (
                 setFormConfig (\fst -> fst{fFormFont = Just (toFont f)}) form
                 )
         getFont form    = getFormConfig form fFormFont
@@ -212,6 +214,97 @@ undefinedFormValue :: IOError
 undefinedFormValue = userError "form value is not defined"
 
 -- --------------------------------------------------------------------------
+--  Entry Fields  
+-- --------------------------------------------------------------------------           
+data GUIValue b => EntryField a b = EntryField (Entry b) (Label b) (Ref (FieldInf a))
+
+--FIXME: parent is a parameter now
+newEntryField :: GUIValue b => InputForm a -> [Config (EntryField a b)] -> IO (EntryField a b)
+newEntryField form@(InputForm box field) confs = do {
+        b <- newHBox box [];
+	pack b [Expand On, Fill X];
+        lbl <- newLabel b []; 
+	pack lbl [Expand Off, Fill X];
+        pr <- newEntry b [];
+        pack pr [Fill X, Expand On];
+
+        -- :: IO (Prompt ?), convert to what when we do getValue
+        --pr <- newPrompt b [];
+        --pr <- newEntry b [];
+	--pack pr [Expand On, Fill X];
+        pv <- newFieldInf
+                (\c -> do {bg (toColour c) pr; done})
+                (\c -> do {fg (toColour c) pr; done})
+                (\f -> do {HTk.font (toFont f) pr; done})
+                (\c -> do {cursor (toCursor c) pr; done})
+                (\s -> do {state s pr; done});
+        configure (EntryField pr lbl pv) confs;
+        addNewField form pr pv;
+        return (EntryField pr lbl pv)
+}
+
+instance Eq (EntryField a b) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (EntryField a b) where 
+        toGUIObject (EntryField pr _ _) = toGUIObject pr
+        cname _ = "EntryField"
+
+instance Widget (EntryField a b) where
+        cursor c fe@(EntryField pr _ _) = do {cursor c pr; return fe}
+        getCursor (EntryField pr _ _) = getCursor pr 
+{-
+instance HasColour (EntryField a b) where
+        legalColourID _ _ = True
+        setColour fe@(EntryField pr _) cid c = do {
+                setColour (getPromptEntry pr) cid c; return fe}
+        getColour (EntryField pr _) cid = getColour (getPromptEntry pr) cid
+-}
+instance HasBorder (EntryField a b)
+
+instance HasSize (EntryField a b)  where
+        width w fe @ (EntryField pr _ _)  = do {width w pr; return fe}
+        getWidth (EntryField pr _ _)      = getWidth pr
+        height h fe @ (EntryField pr _ _) = do {height h pr; return fe}
+        getHeight fe @ (EntryField pr _ _)= getHeight pr
+
+        
+instance HasFont (EntryField a b) 
+
+instance HasEnable (EntryField a b) where 
+        state v f@(EntryField pr _ _) = do {state v pr; return f}
+        getState (EntryField pr _ _) = getState pr
+
+instance (GUIValue b,GUIValue c) => HasText (EntryField a b) c where
+        text v f@(EntryField pr lbl _) = do {text v lbl; return f}
+        getText (EntryField pr lbl _) = getText lbl
+
+
+instance Synchronized (EntryField a b) where
+        synchronize fe = synchronize (toGUIObject fe)
+
+instance GUIValue b => Variable (EntryField a b) b where
+        setVar f@(EntryField pr _ _) val = do {value val pr; done}
+        getVar (EntryField pr _ _) = getValue pr
+        --withVar w f = synchronize w (do {v <- getVar w; f v}) 
+
+instance InputField EntryField where
+        selector f fe@(EntryField pr lbl pv) = synchronize fe (do {
+                setSelectorCmd pv cmd;
+                return fe
+                }) where cmd r = do {value (f r) pr; done}
+        modifier f fe@(EntryField pr lbl pv) = synchronize fe (do {
+                setReplacorCmd pv cmd;
+                return fe
+                }) where cmd r = do {
+                        ans <- try (getVar fe);
+                        case ans of
+                                (Left e) -> do {txt <- getText lbl; newErrorWin [prose txt] []; raise illegalGUIValue}
+                                (Right val) -> return (f r val) 
+                        }
+
+
+-- --------------------------------------------------------------------------
 --  Text Fields  
 -- --------------------------------------------------------------------------           
 data GUIValue b => TextField a b = 
@@ -231,7 +324,7 @@ newTextField form@(InputForm box field) confs = do {
                 (\s -> do {state s tp; done});
         configure (TextField tp pv) confs;
 	addNewField form tp pv;
-        configure (TextField tp pv) []
+        return (TextField tp pv)
 }
 
 instance Eq (TextField a b) where 
@@ -258,7 +351,7 @@ instance HasSize (TextField a b) where
         getHeight fe @ (TextField ed _)= getHeight ed
 
 instance HasFont (TextField a b) where 
-        font f fe@(TextField ed _) = do {font f ed; return fe}
+        HTk.font f fe@(TextField ed _) = do {HTk.font f ed; return fe}
         getFont (TextField ed _) = getFont ed
 
 instance HasEnable (TextField a b) where 
@@ -267,31 +360,99 @@ instance HasEnable (TextField a b) where
 	
 instance GUIValue b => Variable (TextField a b) b where
         setVar fe @ (TextField tp _) t = do {value t tp; done}
-	-- getValue tp causes following error:
-	--  Fail: invalid command name ".133.146.201.289"
-        getVar (TextField tp _) = do {putStrLn("??");getValue tp}
+        getVar (TextField tp _) = getValue tp
 --        withVar w f = synchronize w (do {v <- getVar w; f v}) 
---        updVar w f = synchronize w (do {
---                v <- getVar w;
---                (v',r) <- f v;
---                setVar w v';
---                return r
---                })
 
 instance InputField TextField where
         selector f fe@(TextField tp pv) = synchronize fe (do {
                 setSelectorCmd pv cmd;
                 return fe
                 }) where cmd r = do {value (f r) tp; done}
-        modifier f fe@(TextField tp pv) = synchronize fe (do {
-                setReplacorCmd pv cmd;
+	modifier f fe@(TextField tp pv) = synchronize fe (do {
+		setReplacorCmd pv cmd;
                 return fe
                 }) where cmd r = do {
-                        putStrLn("HELLO!");
-			val <- getVar fe;
-                        putStrLn("HELLO!");
-			return (f r val)
+			ans <- try (getVar fe);
+			case ans of
+			 Left err -> raise illegalGUIValue
+			 Right val -> return (f r val)
                         }
+
+
+-- --------------------------------------------------------------------------
+--  Enumeration Fields  
+-- --------------------------------------------------------------------------           
+data GUIValue b => EnumField a b = 
+        EnumField (OptionMenu b) (Ref (FieldInf a))
+
+
+newEnumField :: GUIValue b => InputForm a -> [b] -> [Config (EnumField a b)] -> IO (EnumField a b)
+newEnumField form@(InputForm box field) choices confs = do {
+        mn <- newOptionMenu box choices [];
+	pack mn [Expand On, Fill Both];
+        pv <- newFieldInf
+                (\c -> do {bg (toColour c) mn; done})
+                (\c -> do {fg (toColour c) mn; done})
+                (\f -> do {HTk.font (toFont f) mn; done})
+                (\c -> do {cursor (toCursor c) mn; done})
+                (\s -> do {state s mn; done});
+        configure (EnumField mn pv) confs;
+        addNewField form mn pv;	
+	return (EnumField mn pv)
+}
+
+instance Eq (EnumField a b) where 
+        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
+
+instance GUIObject (EnumField a b) where 
+        toGUIObject (EnumField mn pv) = toGUIObject mn
+        cname _ = "EnumField"
+
+instance Widget (EnumField a b) where
+        cursor c fe@(EnumField mn _) = do {cursor c mn; return fe}
+        getCursor (EnumField mn _) = getCursor mn 
+
+instance HasColour (EnumField a b) where
+        legalColourID _ _ = True
+        setColour fe@(EnumField mn _) cid c = do {setColour mn cid c; return fe}
+        getColour (EnumField mn _) cid = getColour mn cid
+
+instance HasBorder (EnumField a b)
+
+instance HasSize (EnumField a b)
+        
+instance HasFont (EnumField a b) where 
+        HTk.font f fe@(EnumField mn _) = do {HTk.font f mn; return fe}
+        getFont (EnumField mn _) = getFont mn
+
+instance HasEnable (EnumField a b) where 
+        state v f@(EnumField mn _) = do {state v mn; return f}
+        getState (EnumField mn _) = getState mn
+
+-- FIXME: label will come back
+--instance GUIValue c => HasText (EnumField a b) c where
+--        text v fe @ (EnumField mn lb pv) = do {text v lb; return fe} 
+--        getText fe@(EnumField mn lb pv) = getText lb
+
+instance Synchronized (EnumField a b) where
+        synchronize fe = synchronize (toGUIObject fe)
+
+instance GUIValue b => Variable (EnumField a b) b where
+        setVar fe@(EnumField mn pv) v = do {value v mn; done} 
+        getVar fe@(EnumField mn pv) = getValue mn
+--        withVar w f = synchronize w (do {v <- getVar w; f v}) 
+
+instance InputField EnumField where
+        selector f fe@(EnumField mn pv) = synchronize fe (do {
+                setSelectorCmd pv cmd;
+                return fe
+                }) where cmd r = do {value (f r) mn; done}
+        modifier f fe@(EnumField mn pv) = synchronize fe (do {
+                setReplacorCmd pv cmd;
+                return fe
+                }) where cmd r = do {val <- getValue mn;return (f r val)}
+
+
 
 -- --------------------------------------------------------------------------
 --  Auxiliary Computations for Field Information
@@ -626,206 +787,7 @@ instance InputField EntryField where
                                 (Right val) -> return (f r val) 
                         }
 -}
---FIXME: parentwidget? (synchronize!!)
---instance ParentWidget (InputForm a) (EntryField a b) where
---        parent form fe@(EntryField pr pv) = synchronize form (do {
---                addNewField form pr pv;
---                setFieldValue form pv;
---                return fe
---                })
-
 {-
--- --------------------------------------------------------------------------
---  Enumeration Fields  
--- --------------------------------------------------------------------------           
-data GUIValue b => EnumField a b = 
-        EnumField (OptionMenu b) (LabelBox (OptionMenu b)) (PVar (FieldInf a))
-
-
-newEnumField :: GUIValue b => [b] -> [Config (EnumField a b)] -> IO (EnumField a b)
-newEnumField choices confs = do {
-        mn <- newOptionMenu choices [fill Horizontal];
-        lb <- newLabelBox mn [orient Vertical, fill Horizontal];
-        pv <- newFieldInf
-                (\c -> do {bg (toColour c) lb; done})
-                (\c -> do {fg (toColour c) lb; done})
-                (\f -> do {font (toFont f) lb; done})
-                (\c -> do {cursor (toCursor c) lb; done})
-                (\s -> do {state s mn; done});
-        configure (EnumField mn lb pv) confs
-}
-
-instance Eq (EnumField a b) where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
-
-instance GUIObject (EnumField a b) where 
-        toGUIObject (EnumField mn lb pv) = toGUIObject lb
-        cname _ = "EnumField"
-
-instance Interactive (EnumField a b) 
-
-instance Widget (EnumField a b) where
-        cursor c fe@(EnumField mn lb _) = do {cursor c lb; return fe}
-        getCursor (EnumField mn lb _) = getCursor lb 
-
-instance HasColour (EnumField a b) where
-        legalColourID _ _ = True
-        setColour fe@(EnumField mn _ _) cid c = do {setColour mn cid c; return fe}
-        getColour (EnumField mn _ _) cid = getColour mn cid
-
-instance HasBorder (EnumField a b)
-
-instance HasSize (EnumField a b)
-        
-instance HasFont (EnumField a b) where 
-        font f fe@(EnumField mn _ _) = do {font f mn; return fe}
-        getFont (EnumField mn _ _) = getFont mn
-
-instance HasEnable (EnumField a b) where 
-        state v f@(EnumField mn _ _) = do {state v mn; return f}
-        getState (EnumField mn _ _) = getState mn
-
-instance GUIValue c => HasText (EnumField a b) c where
-        text v fe @ (EnumField mn lb pv) = do {text v lb; return fe} 
-        getText fe@(EnumField mn lb pv) = getText lb
-
-instance Synchronized (EnumField a b) where
-        synchronize fe = synchronize (toGUIObject fe)
-
-instance GUIValue a => Variable (EnumField b) a where
-        setVar fe @ (EnumField mn lb pv) v = do {value v mn; done} 
-        getVar fe@(EnumField mn lb pv) = getVar mn
-        withVar w f = synchronize w (do {v <- getVar w; f v}) 
-        updVar w f = synchronize w (do {
-                v <- getVar w;
-                (v',r) <- f v;
-                setVar w v';
-                return r
-                })
-
-instance InputField EnumField where
-        selector f fe@(EnumField mn lb pv) = synchronize fe (do {
-                setSelectorCmd pv cmd;
-                return fe
-                }) where cmd r = do {value (f r) fe; done}
-        modifier f fe@(EnumField mn lb pv) = synchronize fe (do {
-                setReplacorCmd pv cmd;
-                return fe
-                }) where cmd r = do {val <- getValue fe;return (f r val)}
-
-instance ParentWidget (InputForm a) (EnumField a b) where
-        parent form fe@(EnumField mn lb pv) = synchronize form (do {
-                addNewField form lb pv;
-                setFieldValue form pv;
-                return fe
-                })
-
-
-
--- --------------------------------------------------------------------------
---  Text Fields  
--- --------------------------------------------------------------------------           
-data GUIValue b => TextField a b = 
-        TextField (Editor b)    
-                  (LabelBox(ScrollBox(Editor b)))
-                  (PVar (FieldInf a))
-
-
-newTextField :: GUIValue b => [Config (TextField a b)] -> IO (TextField a b)
-newTextField confs = do {
-        tp <- newEditor [bg "white", flexible];
-        sb <- newScrollBox tp [flexible];
-        lb <- newLabelBox sb [orient Vertical, flexible];
-        pv <- newFieldInf 
-                (\c -> do {bg (toColour c) lb; bg (toColour c) sb;done})
-                (\c -> do {fg (toColour c) lb; done})
-                (\f -> do {font (toFont f) lb; done})
-                (\c -> do {cursor (toCursor c) lb; cursor (toCursor c) sb;done})
-                (\s -> do {state s tp; done});
-        configure (TextField tp lb pv) confs
-}
-
-
-instance Eq (TextField a b) where 
-        w1 == w2 = (toGUIObject w1) == (toGUIObject w2)
-
-instance GUIObject (TextField a b) where 
-        toGUIObject (TextField tp lb _) = toGUIObject lb
-        cname _ = "TextField"
-
-instance Interactive (TextField a b) 
-
-instance Widget (TextField a b) where
-        cursor c fe@(TextField tp lb _) = do {cursor c lb; return fe}
-        getCursor (TextField tp lb _) = getCursor lb 
-
-instance HasColour (TextField a b) where
-        legalColourID _ _ = True
-        setColour fe@(TextField tp _ _) cid c = do {setColour tp cid c; return fe}
-        getColour (TextField tp _ _) cid = getColour tp cid
-
-instance HasBorder (TextField a b)
-
-instance HasSize (TextField a b) where
-        width w fe @ (TextField tp lb _) = do {width w tp; return fe}
-        getWidth (TextField tp lb _)    = getWidth tp
-        height h fe @ (TextField tp lb _) = do {height h tp; return fe}
-        getHeight fe @ (TextField tp lb _)= getHeight tp
-
-instance HasFont (TextField a b) where 
-        font f fe@(TextField tp _ _) = do {font f tp; return fe}
-        getFont (TextField tp _ _) = getFont tp
-
-instance HasEnable (TextField a b) where 
-        state v f@(TextField tp _ _) = do {state v tp; return f}
-        getState (TextField tp _ _) = getState tp
-
-instance (GUIValue b, GUIValue c) => HasText (TextField a b) c where
-        text t fe @ (TextField tp lb _) = do {text t lb; return fe}
-        getText (TextField tp lb _)     = getText lb
-
-instance Synchronized (TextField a b) where
-        synchronize fe = synchronize (toGUIObject fe)
-
-instance GUIValue a => Variable (TextField b) a where
-        setVar fe @ (TextField tp lb _) t = setVar tp t
-        getVar (TextField tp lb _) = getVar tp
-        withVar w f = synchronize w (do {v <- getVar w; f v}) 
-        updVar w f = synchronize w (do {
-                v <- getVar w;
-                (v',r) <- f v;
-                setVar w v';
-                return r
-                })
-
-instance InputField TextField where
-        selector f fe@(TextField tp lb pv) = synchronize fe (do {
-                setSelectorCmd pv cmd;
-                return fe
-                }) where cmd r = do {value (f r) fe; done}
-        modifier f fe@(TextField tp lb pv) = synchronize fe (do {
-                setReplacorCmd pv cmd;
-                return fe
-                }) where cmd r = do {
-                        ans <- try (getValue fe);
-                        case ans of
-                                (Left e) -> do {
-                                        nm <- getText fe;
-                                        newErrorWin (nm ++ " illegal text field value") [];
-                                        raise illegalGUIValue
-                                        }
-                                (Right val) -> return (f r val) 
-                        }
-
-instance ParentWidget (InputForm a) (TextField a b) where
-        parent form fe@(TextField tp lb pv) = synchronize form (do {
-                addNewField form lb pv;
-                setFieldValue form pv;
-                return fe
-                })
-
-
-
 -- --------------------------------------------------------------------------
 --  Record Fields  
 -- --------------------------------------------------------------------------           

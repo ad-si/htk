@@ -38,22 +38,24 @@ import Space
 import SelectBox
 import ModalDialog
 import DialogWin
+import InputForm
+import ReferenceVariables
 
 -- ---------------------------------------------------------------------------
 -- Data Type
 -- ---------------------------------------------------------------------------
 
-data InputWin = InputWin {
-                          fWindow :: Toplevel,
-			  fForm   :: Box,
-			  fEvents :: (Event Bool)
-			 }
+data InputWin a = InputWin {
+                            fWindow :: Toplevel,
+		  	    fForm   :: InputForm a,
+			    fEvents :: (Event Bool)  
+			    }
 
 -- ---------------------------------------------------------------------------
 -- Instantiations
 -- ---------------------------------------------------------------------------
 
-instance GUIObject (InputWin) where
+instance GUIObject (InputWin a) where
         toGUIObject iwin = toGUIObject (fWindow iwin)
         cname iwin = cname (fWindow iwin)
 
@@ -61,16 +63,16 @@ instance GUIObject (InputWin) where
 -- Dialog
 -- ---------------------------------------------------------------------------
 
-newInputDialog :: String -> [Config Toplevel] -> IO (InputWin)
-newInputDialog  str tpconf = do
-        newInputWin str tpconf
+newInputDialog :: String -> Maybe a -> [Config Toplevel] -> IO (InputWin a)
+newInputDialog  str val tpconf = do
+        newInputWin str val tpconf
 
 -- ---------------------------------------------------------------------------
 -- Constructor
 -- ---------------------------------------------------------------------------
 
-newInputWin :: String -> [Config Toplevel] -> IO (InputWin)
-newInputWin str tpconfs =
+newInputWin :: String -> Maybe a -> [Config Toplevel] -> IO (InputWin a)
+newInputWin str val tpconfs =
  do
   tp <- createToplevel (tpconfs++[text "Input Form Window"])
   pack tp [Expand On, Fill Both]
@@ -87,8 +89,8 @@ newInputWin str tpconfs =
   sp2 <- newSpace b (cm 0.3) []
   pack sp2 [Expand Off, Fill X]
 
-  form <- newVBox b []
-  pack form [Expand On, Fill Both, PadX (cm 0.5)]
+  formbox <- newVBox b []
+  pack formbox [Expand On, Fill Both, PadX (cm 0.5)]
 
   sp3 <- newSpace b (cm 0.3) []
   pack sp3 [Expand Off, Fill X]
@@ -107,15 +109,40 @@ newInputWin str tpconfs =
   
   let ev = (clickedbut1 >> (always (return True))) +> (clickedbut2 >> (always (return False)))
 
-  sp5 <- newSpace b (cm 0.3) [];
+  sp5 <- newSpace b (cm 0.3) []
   pack sp5 [Fill X]
 
-  return (InputWin tp form ev)
+  form <- newInputForm formbox val []
+
+  case val of
+   Nothing -> return (InputWin tp form ev)
+   Just val' -> do
+                 return (InputWin tp form ev)
   where fmsg = xfont {family = Just Times, weight = Just Bold, points = (Just 180)}
 
 
 -- ---------------------------------------------------------------------------
 -- Additional Funcitons
 -- ---------------------------------------------------------------------------
-wait :: InputWin -> Bool -> IO (Bool)
-wait form@(InputWin tp _ ev) modality = modalInteraction tp True modality ev
+wait :: InputWin a -> Bool -> IO (Maybe a)
+wait win@(InputWin tp form@(InputForm b e) ev) modality = do
+ -- before we can question a user we should fill all the fields with
+ -- their initial values (to be done automatically)
+ fst <- getRef e
+ initiate form (fFormValue fst)
+ ans <- modalInteraction tp False modality ev
+ case ans of
+  False -> do 
+            destroy win
+            return Nothing
+  True  -> do 
+            res <- try (getFormValue form)
+	    case res of 
+	     Left e -> wait win modality
+	     Right res' -> do
+                            destroy win	    
+                            return (Just res')
+
+initiate :: InputForm a -> Maybe a -> IO ()
+initiate form Nothing = done
+initiate form (Just val) = setFormValue form val

@@ -7,7 +7,7 @@ import MarkupText
 import InputWin
 import InputForm
 
-data Test = Test {ent1 :: String, ent2 :: String}  
+data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int}  
 
 main :: IO ()
 main =
@@ -82,18 +82,16 @@ main =
 
   clickedbut9 <- clicked but9
   spawnEvent (forever (clickedbut9 >> always (do 
-                                               let def = Test{ent1="HALLO WELT!\n rofl", ent2="TEST"}
-                                               iwin <- newInputWin "HELLO THERE" []
-					       form <- newInputForm (iwin # fForm) (Just def) []
-					       newTextField form [size (5,5),selector ent1, 
+                                               let def = Test{ent1="HALLO WELT!\n rofl", ent2="TEST", enu1=5, ent3=42}
+                                               iwin <- newInputWin "HELLO THERE" (Just def) []
+					       newTextField (iwin # fForm) [size (5,5),selector ent1, 
 					                           modifier (\ old val -> old {ent1=val})] :: IO (TextField Test String)
-					       newTextField form [size (5,5),selector ent2, modifier (\ old val -> (old {ent2=val}))] :: IO (TextField Test String)
-					       setFormValue form def
+					       newEntryField (iwin # fForm) [text "Entry Int", selector ent3, modifier (\ old val -> (old {ent3=val}))] :: IO (EntryField Test Int)
+					       newEnumField (iwin # fForm) [0,1,2,3,4,5] [selector enu1, modifier (\ old val -> old {enu1=val})] :: IO (EnumField Test Int)
 					       res <- wait iwin True
-                                               putStrLn(show(res))
-					       def2 <- getFormValue form
-					       putStrLn(show(def2 # ent1)++" "++show(def2 # ent2))
-					       putStrLn(show(def # ent1)++" "++show(def # ent2))
+                                               case res of
+					        Nothing -> putStrLn "canceled"
+						Just val -> putStrLn(show(val # ent1)++" "++show(val # ent3)++" "++show(val # enu1))
 					       )))
  
   clickedbut2 <- clicked but2
