@@ -41,6 +41,8 @@
 # all      makes both library and test programs in all subdirectories
 # clean    cleans all compiled test programs, object files and libraries.
 # display  displays Make environment variables
+#
+# libfast  should be like lib but faster, since it uses ghc --make.
 
 OBJSHS = $(patsubst %.hs,%.o,$(SRCS))
 OBJSC = $(patsubst %.c,%.o,$(SRCSC))
@@ -81,6 +83,9 @@ main : mainhere
 lib : libhere
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) lib && ) echo Finished make lib
 
+libfast : libfasthere
+	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) libfast && ) echo Finished make libfast
+
 clean:
 	$(RM) -f $(TESTPROGS) $(MAINPROGS) $(OBJS) $(LIB) $(patsubst %.o,%.hi,$(OBJS))
 	$(foreach subdir,$(SUBDIRS),$(MAKE) -r -C $(subdir) clean && ) echo Finished make clean
@@ -101,6 +106,7 @@ display :
 	@echo HIFILES = $(HIFILES)
 	@echo HCDIRS = $(HCDIRS)
 
+
 depend : $(SRCS) 
 ifneq "$(strip $(SRCS))" ""
 	$(DEPEND) $(HCSYSLIBS) -i$(HCDIRS) $(SRCS)
@@ -117,6 +123,12 @@ endif
 testhere : $(TESTPROGS)
 
 mainhere : $(MAINPROGS)
+
+libfasthere : $(OBJSC)
+	$(TOP)/mk/mkEverything $(SRCS)
+	$(HC) --make EVERYTHING.hs $(HCFLAGS)
+	$(RM) EVERYTHING.hs EVERYTHING.o EVERYTHING.hi
+	$(AR) -r $(LIB) $(LIBOBJS)
 
 $(LIB) : $(LIBOBJS)
 	$(RM) $@ ; $(AR) -r $@ $^

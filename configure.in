@@ -12,6 +12,10 @@ echo ""
 echo "The top of the UniForM build tree is: $TOP"
 AC_SUBST(TOP)
 #
+# Find a C compiler (we only need this for mkEverything.c at the
+# time of writing, but it seems reasonable to assume everyone has
+# one somewhere).
+AC_PATH_PROGS(CC,gcc,cc)
 # Check for ghc
 AC_PATH_PROGS(GHC,ghc)
 if test -z "$GHC"; then
@@ -54,6 +58,8 @@ AC_SUBST(DEFAULTOPTIONS)
 MAKEFILES=`find . -name "Makefile.in" | sed -e "s/.in$//"`
 #
 if test "$GOAHEAD" = YES; then
+# Compiling mkEverything.c, used for libfasthere.
+   $CC mk/mkEverything.c -o mk/mkEverything
    echo ''
    echo '------------------- Configuration Successful ------------------'
    AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk Makefile $MAKEFILES util/default_options.c)
