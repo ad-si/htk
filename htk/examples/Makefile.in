@@ -22,6 +22,9 @@ SRCS       = Mainex1.hs\
              MainmarkupTextEx.hs\
              MainutilWinEx.hs\
              MaingenGUIEx.hs\
+             MaindragAndDropStateEx.hs\
+             MaintreeListStateEx.hs\
+             MaintreeListStateEx2.hs\
 
 XHCDIRS = $(HTKDIRS)
 

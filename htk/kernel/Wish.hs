@@ -99,6 +99,11 @@ execCmd cmd =
 evalCmd :: TclCmd -> IO TclResponse
 evalCmd cmd =
    do
+
+{-
+      putStrLn ("TCL << " ++ cmd)
+-}
+
       let
          str = "evS "++ escape cmd ++ "\n"
          -- We go to some trouble to pack the string first,
@@ -117,6 +122,14 @@ evalCmd cmd =
          +> toEvent (rWish |> Eq ERType) >>>=
                (\ (_,erString) -> return (ER erString))
          )
+
+
+{-
+      case result of OK str -> putStrLn ("OK >> " ++ str)
+                     ER str -> putStrLn ("ER >> " ++ str)
+-}
+
+
       putMVar wWishMVar wWish
       return result
 

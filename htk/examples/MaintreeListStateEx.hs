@@ -13,15 +13,6 @@ module Main (main) where
 
 import HTk
 import TreeList
-import ScrollBox
-
-logMsg :: Editor String -> String -> IO ()
-logMsg ed txt =
-  do
-    ed # state Normal
-    appendText ed (txt ++ "\n")
-    ed # state Disabled
-    done
 
 cfun :: ChildrenFun String
 cfun obj =
@@ -71,43 +62,41 @@ ifun obj = folderImg
 main :: IO ()
 main =
   do
-    main <- initHTk [text "treelist example"]
+    win1 <- initHTk [text "treelist1"]
+    win2 <- createToplevel [text "treelist2"]
 
-    treelist <- newTreeList main cfun ifun
-                            (newTreeListObject "/" "/" Node)
-                            [background "white", size (cm 15, cm 8)]
-    pack treelist []
+    tl1 <- newTreeList win1 cfun ifun (newTreeListObject "/" "/" Node)
+                       [background "white", size (cm 8, cm 10)]
+    pack tl1 []
 
-    quit <- newButton main [text "Quit", width 15] :: IO (Button String)
-    pack quit [Side AtBottom, PadX 10, PadY 10]
+    b1 <- newButton win1 [text "import other state"] :: IO (Button String)
+    pack b1 [Fill X]
+    clickedb1 <- clicked b1
 
-    let out p = newEditor p [width 75, height 6,
-                             state Disabled] :: IO (Editor String)
+    tl2 <- newTreeList win2 cfun ifun (newTreeListObject "/" "/" Node)
+                       [background "white", size (cm 8, cm 10)]
+    pack tl2 []
 
-    (scrollbox, output) <- newScrollBox main out []
-    pack scrollbox [PadX 10, PadY 10]
+    b2 <- newButton win2 [text "import other state"] :: IO (Button String)
+    pack b2 [Fill X]
+    clickedb2 <- clicked b2
 
-    clickedquit <- clicked quit
-    spawnEvent (forever ((do
-                            mobj <- receive (focusEvent treelist)
-                            always (logMsg output
-                                           ((case mobj of
-                                               Just obj ->
-                                                 getTreeListObjectName obj
-                                               _ -> "no object") ++
-                                            " focused"))) +>
-                         (clickedquit >> always (destroy main)) +>
-                         (do
-                            mobj <- receive (selectionEvent treelist)
-                            always (logMsg output
-                                           ((case mobj of
-                                               Just obj ->
-                                                 getTreeListObjectName obj
-                                               _ -> "Nothing") ++
-                                            " selected")))))
+    (htk_destr, _) <- bindSimple win1 Destroy
+    (win2_destr, _) <- bindSimple win2 Destroy
 
-    (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
+    spawnEvent ((win2_destr >>> destroy win1) +>
+                (clickedb1 >>> do
+                                 st <- exportTreeListState tl2
+                                 putStrLn "state exported"
+                                 importTreeListState tl1 st
+                                 putStrLn "state imported") +>
+                (clickedb2 >>> do
+                                 st <- exportTreeListState tl1
+                                 putStrLn "state exported"
+                                 importTreeListState tl2 st
+                                 putStrLn "state imported"))
+
+    sync htk_destr
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7"]

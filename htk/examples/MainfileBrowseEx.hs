@@ -69,7 +69,7 @@ toTreeListObjects _ _ = return []
 cfun :: ChildrenFun String
 cfun obj =
   do
-    let val = getObjectValue obj
+    let val = getTreeListObjectValue obj
     dcontents <- getDirectoryContents val
     matched_files <- getMatchedFiles dcontents val
     objs <- toTreeListObjects val matched_files
@@ -82,8 +82,7 @@ main :: IO ()
 main =
   do
     main <- initHTk [text "file browse example"]
-
-    treelist <- newTreeList main Pretty cfun ifun
+    treelist <- newTreeList main cfun ifun
                             (newTreeListObject "/" "/" Node)
                             [background "white", size (cm 9, cm 10)]
     pack treelist []
@@ -96,7 +95,7 @@ main =
 
     (htk_destr, _) <- bindSimple main Destroy
     sync htk_destr
-    destroy main    -- TD: Wish bleibt manchmal liegen. So gehts! Bug ??
+    destroy main    -- TD: Wish bleibt manchmal liegen. So gehts? Bug!
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7

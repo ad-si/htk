@@ -1,14 +1,13 @@
-{- --------------------------------------------------------------------
- -
- - Module DragAndDrop
- -
- - Scrolled canvases with drag and drop support.
- -
- - Author: cxl/ludi
- - $Revision$ from $Date$
- -
- - -------------------------------------------------------------------- -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module DragAndDrop (
 
@@ -42,7 +41,12 @@ module DragAndDrop (
   dropEvent,
   selectionEvent,
   doubleClickEvent,
-  rightClickEvent
+  rightClickEvent,
+
+  ExportItem(..),
+  NotepadState,
+  exportState,
+  importState
 
 ) where
 
@@ -53,6 +57,7 @@ import ReferenceVariables
 import Name
 import Examples(watch)
 import Core
+import Maybe
 
 getCoords :: EventInfo -> IO (Distance, Distance)
 getCoords eventInfo = return (x eventInfo, y eventInfo)
@@ -76,14 +81,14 @@ data NotepadItem a =
 -- constructor --
 
 createNotepadItem :: a -> Notepad a -> [Config (NotepadItem a)] ->
-                  IO (NotepadItem a)
+                     IO (NotepadItem a)
 createNotepadItem val notepad@(Notepad cnv _ imgsize _ _ entereditemref _ 
                                        _ _ _ _) cnf =
   do
     img <- createImageItem cnv []
-    txt <- createTextItem cnv [font (Helvetica, 10 :: Int)]
+    txt <- createTextItem cnv [font (Helvetica, 10 :: Int), text "unnamed"]
     itemval <- newRef val
-    itemname <- newRef (newName "")
+    itemname <- newRef (newName "unnamed")
     itemsel <- newRef Nothing
     let item = NotepadItem img imgsize txt itemval itemname itemsel
     foldl (>>=) (return item) cnf
@@ -120,7 +125,7 @@ instance GUIObject (NotepadItem a) where
   cname _ = "NotepadItem"
 
 instance Synchronized (NotepadItem a) where
-  synchronize w = synchronize (toGUIObject w)
+  synchronize = synchronize . toGUIObject
 
 instance HasPosition (NotepadItem a) where
   position p@(x, y) n@(NotepadItem img imgsize txt _ _ _) =
@@ -176,6 +181,8 @@ rightClickEvent :: Notepad a -> Channel [NotepadItem a]
 rightClickEvent (Notepad _ _ _ _ _ _ _ _ _ _ rightclickmsgQ) =
   rightclickmsgQ
 
+
+
 -------------
 -- Notepad --
 -------------
@@ -194,7 +201,7 @@ data Notepad a =
           (Channel (NotepadItem a, Bool))         -- selection event queue
           (Channel (NotepadItem a, [NotepadItem a]))    -- dnd event queue
           (Channel (NotepadItem a))             -- doubleclick event queue
-          (Channel [NotepadItem a])             -- rightclick event queue
+          (Channel [NotepadItem a])              -- rightclick event queue
   deriving Eq
 
 data ScrollType = Scrolled | NotScrolled deriving Eq
@@ -638,6 +645,58 @@ instance HasSize (Notepad a) where
   getHeight (Notepad cnv _ _ _ _ _ _ _ _ _ _) = getHeight cnv
 
 
--- state export --
+-- -----------------------------------------------------------------------
+-- state import / export
+-- -----------------------------------------------------------------------
 
---getItems :: Notepad a -> IO [Config (NotepadItem a)]   -- TD (ludi)
+data ExportItem a = ExportItem { nm :: Name,
+                                 img :: Maybe Image,
+                                 val :: a,
+                                 pos :: Position,
+                                 selected :: Bool }
+
+type NotepadState a = [ExportItem a]
+
+exportState :: Notepad a -> IO (NotepadState a)
+exportState np@(Notepad _ _ _ items _ _ _ _ _ _ _) =
+  do
+    items' <- getRef items
+    exportState' np items'
+  where exportState' :: Notepad a -> [NotepadItem a] ->
+                        IO (NotepadState a)
+        exportState' np (item@(NotepadItem img _ txt val nm _) : items) =
+          do
+            nm' <- getRef nm
+            putStr "getting photo ... "
+            img' <- getPhoto img
+            putStrLn "got the photo"
+            val' <- getRef val
+            pos <- getPosition img
+            is_selected <- DragAndDrop.isSelected np item
+            rest <- exportState' np items
+            return (ExportItem { nm = nm',
+                                 img = img',
+                                 val = val',
+                                 pos = pos,
+                                 selected = is_selected } : rest)
+        exportState' _ _ = return []
+
+importState :: Notepad a -> NotepadState a -> IO ()
+importState np st =
+  do
+    clearNotepad np
+    addItems np st
+  where addItems :: Notepad a -> NotepadState a -> IO ()
+        addItems np (it : items) =
+          do
+            new_it <- createNotepadItem (val it) np
+                        [position (pos it), name (nm it)]
+            (if (isJust (img it)) then
+               new_it # photo (fromJust (img it)) >> done
+             else done)
+            if selected it then selectAnotherItem np new_it else done
+            addItems np items
+        addItems _ _ = done
+
+-- geht so nicht, wg. Typ (Config a) :
+-- getItems :: Notepad a -> IO [Config (NotepadItem a)]

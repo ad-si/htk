@@ -13,15 +13,7 @@ module Main (main) where
 
 import HTk
 import TreeList
-import ScrollBox
-
-logMsg :: Editor String -> String -> IO ()
-logMsg ed txt =
-  do
-    ed # state Normal
-    appendText ed (txt ++ "\n")
-    ed # state Disabled
-    done
+import ReferenceVariables
 
 cfun :: ChildrenFun String
 cfun obj =
@@ -71,43 +63,25 @@ ifun obj = folderImg
 main :: IO ()
 main =
   do
-    main <- initHTk [text "treelist example"]
-
-    treelist <- newTreeList main cfun ifun
-                            (newTreeListObject "/" "/" Node)
-                            [background "white", size (cm 15, cm 8)]
-    pack treelist []
-
-    quit <- newButton main [text "Quit", width 15] :: IO (Button String)
-    pack quit [Side AtBottom, PadX 10, PadY 10]
-
-    let out p = newEditor p [width 75, height 6,
-                             state Disabled] :: IO (Editor String)
-
-    (scrollbox, output) <- newScrollBox main out []
-    pack scrollbox [PadX 10, PadY 10]
-
-    clickedquit <- clicked quit
-    spawnEvent (forever ((do
-                            mobj <- receive (focusEvent treelist)
-                            always (logMsg output
-                                           ((case mobj of
-                                               Just obj ->
-                                                 getTreeListObjectName obj
-                                               _ -> "no object") ++
-                                            " focused"))) +>
-                         (clickedquit >> always (destroy main)) +>
-                         (do
-                            mobj <- receive (selectionEvent treelist)
-                            always (logMsg output
-                                           ((case mobj of
-                                               Just obj ->
-                                                 getTreeListObjectName obj
-                                               _ -> "Nothing") ++
-                                            " selected")))))
-
-    (htk_destr, _) <- bindSimple main Destroy
-    sync (htk_destr)
+    win <- initHTk [text "treelist"]
+    tl <- newTreeList win cfun ifun (newTreeListObject "/" "/" Node)
+                      [background "white", size (cm 8, cm 10)]
+    pack tl []
+    b <- newButton win [text "export state"] :: IO (Button String)
+    pack b [Fill X]
+    clickedb <- clicked b
+    (htk_destr, _) <- bindSimple win Destroy
+    spawnEvent (forever (clickedb >>>
+                           do
+                             st <- exportTreeListState tl
+                             putStrLn "state exported"
+                             t <- createToplevel [text "recovered state"]
+                             tl' <- recoverTreeList t cfun ifun st
+                                      [background "white",
+                                       size (cm 5, cm 10)]
+                             pack tl' []
+                             putStrLn "state imported"))
+    sync htk_destr
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7"]

@@ -63,11 +63,9 @@ setConfig (GUIOBJECT _ ostref) cid val =
 getConfig :: GUIValue a => GUIOBJECT -> ConfigID -> IO a
 getConfig (GUIOBJECT _ ostref) cid =
   do
-    ost <- getRef ostref   -- TD (ludi) : wm configs !!!
-    resp <- evalCmd (head(((cgetCmd (methods ost)) (objectname ost) cid)))
-    case resp of
-      ER str -> error str
-      OK str -> creadTk str
+    ost <- getRef ostref
+    resp <- evalTclScript ((cgetCmd (methods ost)) (objectname ost) cid)
+    creadTk resp
 
 
 -- -----------------------------------------------------------------------

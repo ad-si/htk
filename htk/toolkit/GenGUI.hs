@@ -103,7 +103,7 @@ getGenGUI (Root _ mguiref) =
 
 getItemImage :: CItem c => TreeListObject (Item c) -> IO Image
 getItemImage tlobj =
-  case (getObjectValue tlobj) of
+  case (getTreeListObjectValue tlobj) of
     IntFolderItem _ _ (FolderItem c _ _) _ -> getIcon c {-do
                                                 ioimg <- get ext
                                                 ioimg-}
@@ -203,7 +203,7 @@ newGenGUI =
            pane1 <- createPane objects [initsize 200] []
            pane2 <- createPane objects [initsize 300] []
            pack objects [Side AtLeft, Fill X, Expand On]
-           tl <- newTreeList pane1 Pretty cfun getItemImage
+           tl <- newTreeList pane1 cfun getItemImage
                              (newTreeListObject (Root id guiref)
                                                 "object root" Node)
                              [background "white"{-, size (500, 250)-}]
@@ -216,7 +216,7 @@ newGenGUI =
          do
            objects <- newFrame main []
            pack objects [Side AtLeft, Fill X, Expand On]
-           tl <- newTreeList objects Pretty cfun getItemImage
+           tl <- newTreeList objects cfun getItemImage
                              (newTreeListObject (Root id guiref)
                                                 "object root" Node)
                              [background "white", size (500, 250)]
@@ -266,7 +266,7 @@ tlObjectSelected tlselmsgQ posref mobj =
   in case mobj of
        Nothing -> syncNoWait (send tlselmsgQ Nothing)
        Just obj ->
-         let item = getObjectValue obj
+         let item = getTreeListObjectValue obj
          in do
               gui@(GenGUI _ _ _ _ _ _ displayref _ _ _ _ _ _ _ _ _) <-
                 getGenGUI item
@@ -286,7 +286,8 @@ tlObjectFocused :: Channel (Maybe (Item c)) ->
                    IO ()
 tlObjectFocused tlfocusmsgQ mobj =
   case mobj of
-    Just obj -> syncNoWait (send tlfocusmsgQ (Just (getObjectValue obj)))
+    Just obj -> syncNoWait (send tlfocusmsgQ
+                                 (Just (getTreeListObjectValue obj)))
     _ -> syncNoWait (send tlfocusmsgQ Nothing)
 
 npItemSelected :: CItem c => Channel (Item c, Bool) ->
@@ -497,7 +498,7 @@ toTreeListObjects _ = return []
 cfun :: CItem c => ChildrenFun (Item c)
 cfun obj =
   do
-    ch <- children (getObjectValue obj)
+    ch <- children (getTreeListObjectValue obj)
     toTreeListObjects (filter isItemFolder ch)
 
 

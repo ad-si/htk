@@ -1,12 +1,13 @@
-{- --------------------------------------------------------------------
- -
- - HTk Examples: Drag and drop module
- -
- - Author: ludi
- - $Revision$ from $Date$  
- -
- - -------------------------------------------------------------------- -}
-
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
 module Main (main) where
 
@@ -100,10 +101,10 @@ main =
     item6_img <- newImage main [filename "./images/item1.gif"]
 
     item1 <- createNotepadItem "item1" notepad
-                               [position (cm 2, cm 2), photo item1_img,
+                               [position (cm 2, cm 2) {-, photo item1_img,
                                 name (Name { full  = "NotepadItem1",
                                              short = \n ->
-                                                       take n "item1" })]
+                                                       take n "item1" })-}]
     item2 <- createNotepadItem "item2" notepad
                                [position (cm 5, cm 2), photo item2_img,
                                 name (Name { full  = "NotepadItem2",
