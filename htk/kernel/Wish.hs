@@ -264,7 +264,7 @@ doResponse1 (OK res) = return ()
 #if ! ASYNC_WISH_ERRORS
 doResponse1 (ER err) =
    do 
-      always (fingersCrossed err)
+      fingersCrossed err
       done
 #endif
 
@@ -458,7 +458,7 @@ eventForwarder = forever handleEvent
          +> (do
                -- Handle wish errors
                (_,erString) <- toEvent (rWish |> Eq ERType)
-               fingersCrossed erString
+               always (fingersCrossed erString)
             )
 #endif
 
