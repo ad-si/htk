@@ -15,6 +15,11 @@ SRCS       = HostsPorts.hs ServiceClass.hs Server.hs Testserver.hs \
    Crypt.hs PasswordFile.hs MultiPlexer.hs LogFile.hs DTD_Hosts.hs \
    HostsList.hs
 
+EXTRAEXPORTS = Hosts.xml
+
+displayextrasrcs :
+	@echo @TOP@/server/Hosts.xml
+
 include @TOP@/mk/boilerplate.mk
 
 
