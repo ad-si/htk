@@ -230,9 +230,9 @@ if test "$GOAHEAD" = YES; then
    echo ''
    echo '------------------- Configuration Successful ------------------'
    if test "$BINARY" = NO; then
-      SCRIPTS="types/test/runWorkbench types/test/rerunWorkbench mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp server/runServer"
+      SCRIPTS="mmiss/test/runWorkbenchRemote mmiss/test/runWorkbench mmiss/test/rerunWorkbench posixutil/daVinci.debug posixutil/wish.debug mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp server/runServer"
    else
-      SCRIPTS="mmiss/test/runWorkbench mmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp mmiss/scripts/docp"
+      SCRIPTS="mmiss/test/runWorkbenchRemote mmiss/test/runWorkbench types/testmmiss/test/rerunWorkbench mmiss/scripts/domisslatex mmiss/scripts/doxdvi mmiss/scripts/doacroread mmiss/scripts/dolp"
    fi
 
    AC_OUTPUT(mk/machinedep.mk mk/boilerplate.mk includes/config.h bdb-package.options $MAKEFILES $SCRIPTS)

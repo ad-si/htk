@@ -1,6 +1,7 @@
 {- This contains functions for copying to and from files -}
 module CopyFile(
    copyFile,
+   copyFileWE,
    linkFile,
    copyStringToFile,
    copyStringToFileCheck,
@@ -34,9 +35,15 @@ foreign import ccall unsafe "copy_file.h copy_file" copyFilePrim
 
 copyFile :: String -> String -> IO ()
 copyFile source destination =
+   do
+      unitWE <- copyFileWE source destination
+      coerceWithErrorIO unitWE
+
+copyFileWE :: String -> String -> IO (WithError ())
+copyFileWE source destination =
    if source == destination 
       then
-         done
+         return (hasValue ())
       else
          do
             code <-
@@ -47,10 +54,18 @@ copyFile source destination =
                   )
             if (code<0)
                then
-                  ioError(userError("CVSDB: Can't copy "++source++" to "++
-                     destination++" with error "++show code))
+                  let
+                     codeStr = case code of
+                        -- see includes/copy_file.h
+                        -1 -> "Can't write to "++destination
+                        -2 -> "Can't read from "++source
+                        -3 -> "Not enough memory to allocate buffer"
+                        _ -> "Unknown error!!"
+                  in
+                     return(hasError codeStr)
                else
-                  return ()
+                  return(hasValue ())
+
 
 ---
 -- At the moment this does a hard link.  We should perhaps consider

@@ -26,9 +26,13 @@ module VersionGraphService(
       -- only bind two checkedInType nodes.
    ) where
 
+import IO
+
 import AtomString
-import Computation(done)
+import Computation
+import IOExtras
 import BinaryIO
+import WBFiles
 
 import Thread(secs)
 
@@ -62,15 +66,10 @@ data FrozenGraph = FrozenGraph {
    nameSourceBranch' :: NameSourceBranch
    } deriving (Read,Show) -- sent on branching
 
-data FrozenGraph2 = FrozenGraph2 {
-   graphState2 :: CannedVersionGraph,
-   nameSource2 :: FrozenNameSource
-   } deriving (Read,Show) -- used for backups.
-
 versionGraphServiceWrapped = Service versionGraphService
 
-versionGraphService 
-   = serviceArg :: (ReadShow VersionUpdate,ReadShow VersionUpdate,VersionGraph)
+versionGraphService = serviceArg 
+   :: (ReadShow VersionUpdate,ReadShow VersionUpdate,VersionGraphDB)
 
 
 ------------------------------------------------------------------------------
@@ -100,23 +99,25 @@ workingArcType = fromString "W"
 ------------------------------------------------------------------------------
 
 instance ServiceClass (ReadShow VersionUpdate) (ReadShow VersionUpdate) 
-      VersionGraph where
+      VersionGraphDB where
 
    serviceId _ = "VersionGraph"
 
    serviceMode _ = BroadcastOther
 
-   handleRequest _ _ (ReadShow newUpdate,simpleGraph) =
+   handleRequest _ _ (ReadShow newUpdate,versionGraphDB) =
       do
-         update simpleGraph newUpdate
-         return (ReadShow newUpdate,simpleGraph)
+         updateVersionGraphDB versionGraphDB newUpdate
+         return (ReadShow newUpdate,versionGraphDB)
 
-   getBackupDelay _ = return (BackupEvery 1)
+   getBackupDelay _ = return BackupNever
 
-   sendOnConnect _ _ simpleGraph =
+   sendOnConnect _ _ (versionGraphDB @ (VersionGraphDB {graph = graph})) =
       do
+         recordBranch versionGraphDB
+
          let
-             graphConnection = shareGraph simpleGraph
+             graphConnection = shareGraph graph
              newUpdate _ = error "Update in mid-sendOnConnect!"
          -- shouldn't happen because we deregister updates
          -- and handleRequest won't be called again until sendOnConnect
@@ -132,56 +133,89 @@ instance ServiceClass (ReadShow VersionUpdate) (ReadShow VersionUpdate)
             nameSourceBranch' = nameSourceBranch'
             }))
    
-   initialStateFromString _ Nothing = 
-      do
-         graph <- newEmptyGraph
-         -- The Initialise module creates the full initial state.
-         return graph
+   initialStateFromString _ _ = newVersionGraphDB 
 
-   initialStateFromString _ (Just frozenGraphString) =
-      do
-         let
-            FrozenGraph2 {
-               graphState2 = graphState,
-               nameSource2 = nameSource2
-               } = read frozenGraphString
+------------------------------------------------------------------------------
+-- The backup file.  (We do not use the standard backup procedure.)
+------------------------------------------------------------------------------
 
-            graphConnection childUpdates =
-               return (GraphConnectionData {
-                  graphState = graphState,
-                  deRegister = done,
-                  graphUpdate = (\ _ -> done),
-                  nameSourceBranch = initialBranch
-                  })
+data VersionGraphDB = VersionGraphDB {
+   graph :: VersionGraph,
+   backupFile :: Handle
+   }
 
-         graph <- newGraph graphConnection
-         -- Hack the name source
-         let
-            nameSource = getNameSource graph
+newVersionGraphDB :: IO VersionGraphDB 
+newVersionGraphDB =
+   do
+      -- (1) Create the graph
+      graph <- newEmptyGraph
 
-         defrostNameSource nameSource nameSource2
+      -- (2) Read in the updates from the backup file.
+      fpath <- getServerFile "versionGraph"
+      handle <- openFile fpath ReadWriteMode
+      readUpdates handle graph
 
-         return graph
+      let
+         versionGraphDB = VersionGraphDB {
+            graph = graph,
+            backupFile = handle
+            }
+      return versionGraphDB
 
-   backupToString _ graph =
-      do
-         let
-            nameSource = getNameSource graph
+-- This type records the things we put in the update file.
+data GraphUpdate = 
+      VersionUpdate VersionUpdate -- topological changes
+   |  Branch 
+         -- record a new client branch.  We need to do this so that
+         -- names get uniquely allocated.
+   deriving (Read,Show)
 
-         frozenNameSource <- freezeNameSource nameSource
-         (GraphConnectionData {
-            graphState = graphState,
-            deRegister = deRegister,
-            graphUpdate = graphUpdate,
-            }) <- shareGraph graph (\ update -> done)
 
-         -- Avoid wasting a branch number
-         defrostNameSource nameSource frozenNameSource
+updateVersionGraphDB :: VersionGraphDB -> VersionUpdate -> IO ()
+updateVersionGraphDB (VersionGraphDB {graph = graph,backupFile = handle}) 
+      update1 =
+   do
+      hPut handle (ReadShow (VersionUpdate update1))
+      hFlush handle
+      update graph update1
 
-         deRegister
+recordBranch :: VersionGraphDB -> IO ()
+recordBranch (VersionGraphDB {backupFile = handle}) =
+   do
+      hPut handle (ReadShow Branch)
+      hFlush handle
 
-         return (show (FrozenGraph2 {
-            graphState2 = graphState,
-            nameSource2 = frozenNameSource
-            }))
+readUpdates :: Handle -> VersionGraph -> IO ()
+readUpdates handle graph =
+   -- based on SimpleDBServer.readFrozenVersionDatas
+   do
+      let
+         nameSource = getNameSource graph
 
+      pos1 <- hGetPosn handle
+      updateWEOpt <- catchEOF (hGetWE handle)
+      case updateWEOpt of
+         Nothing -> -- EOF
+            do
+               pos2 <- hGetPosn handle
+               unless (pos1 == pos2)
+                  (do 
+                     putStrLn 
+                        "Restarting server: incomplete commit discarded"
+                     hSetPosn pos1
+                  )
+               done -- this is how we normally end.
+         Just updateWE -> 
+            case fromWithError updateWE of
+               Left mess ->
+                  error (
+                     "Server could not be restarted due to error reading "
+                     ++ "version graph file: " ++ mess)
+               Right (ReadShow (VersionUpdate update1)) ->
+                  do
+                     update graph update1
+                     readUpdates handle graph
+               Right (ReadShow Branch) ->
+                  do
+                     branch nameSource
+                     readUpdates handle graph

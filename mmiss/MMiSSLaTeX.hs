@@ -130,7 +130,7 @@ mmissLaTeX fileName contents =
                         Just (True,_) ->
                            run "xdvi" "xdvi" [dviFile]
                         Just (False,fPath) ->
-                           run "cp" "cp" [dviFile,fPath]
+                           copyFile dviFile fPath
                      done
 
                pdfLoop :: IO ()
@@ -162,7 +162,7 @@ mmissLaTeX fileName contents =
                         Just (True,_) ->
                            run "Acroread" "acroread" [pdfFile]
                         Just (False,fPath) ->
-                           run "cp" "cp" [pdfFile,fPath]
+                           copyFile pdfFile fPath
                      done
 
                psLoop :: IO ()
@@ -190,7 +190,7 @@ mmissLaTeX fileName contents =
                               | emptyName fPath ->
                            run "Printing" "lp" [psFile,printer]
                         Just (_,fPath) ->
-                           run "cp" "cp" [psFile,fPath]
+                           copyFile psFile fPath
                      done
 
             forever (case format of

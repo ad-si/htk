@@ -52,6 +52,8 @@ import Data.Bits
 import Data.Word
 import GHC.Int(Int32)
 import GHC.IO hiding (hGetChar)
+import System.IO.Error
+import Control.Exception
 
 import Computation
 import ExtendedPrelude
@@ -98,15 +100,20 @@ class HasBinaryIO value where
 newtype ReadShow a = ReadShow a
 
 instance (Read a,Show a) => HasBinaryIO (ReadShow a) where
-   hPut handle (ReadShow value) = hPutStrLn handle (show value)
+   hPut handle (ReadShow value) = hPut handle (show value)
    hGetWE handle =
       do
-         str <- hGetLine handle
-         case readsPrec 0 str of
-            [(value,"")] -> return (hasValue (ReadShow value))
-            [(value,extra)] -> return (hasError (
-               "Extra characters parsing " ++ show str))
-            _ -> return (hasError ("Couldn't parse " ++ show str))
+         strWE <- hGetWE handle
+         return (mapWithError'
+            (\ str -> case readsPrec 0 str of
+               [(value,"")] -> hasValue (ReadShow value)
+               [(value,extra)] -> hasError (
+                  "Extra characters parsing " ++ show str)
+               _ -> hasError ("Couldn't parse " ++ show str)
+               )
+            strWE
+            )
+         
 
 
 -- ---------------------------------------------------------------------------
@@ -178,12 +185,17 @@ instance HasBinaryIO ICStringLen where
                               (\ cString ->
                                   do
                                      lenRead <- hGetBuf handle cString len
-                                     return (if lenRead < len
+                                     if lenRead < len
                                         then
-                                          hasError "EOF within BinaryIO"
+                                           let
+                                              eofError =
+                                                 mkIOError eofErrorType
+                                                    "BinaryIO" (Just handle)
+                                                    Nothing
+                                           in
+                                              throw eofError
                                         else
-                                          hasValue ()
-                                        )
+                                           return (hasValue ()) 
                                   )
                            return (mapWithError (\ () -> icsl) unitWE)
                )

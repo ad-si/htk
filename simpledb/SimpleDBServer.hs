@@ -277,14 +277,16 @@ querySimpleDB
                         Just icsl -> return (IsData icsl)
       Commit parentVersionOpt thisVersion newStuff0 ->
          do
+            txn <- beginTransaction
             -- enter the new stuff in the BDB repository
             newStuff1 <- mapM
                (\ (location,icsl) ->
                   do
-                     bdbKey <- writeBDB bdb icsl
+                     bdbKey <- writeBDB bdb txn icsl
                      return (location,bdbKey)
                   )
                newStuff0
+            endTransaction txn
 
             flushBDB bdb
 
@@ -501,7 +503,7 @@ readFrozenVersionDatas handle =
                         "Restarting server: incomplete commit discarded"
                      hSetPosn pos1
                   )
-               return [] -- this is how
+               return [] -- this is how we normally end.
          Just frozenVersionDataWE -> 
             case fromWithError frozenVersionDataWE of
                Left mess ->

@@ -20,7 +20,8 @@ DB *db_connect(const char *database);
 
    The recno of the allocated record is returned in the third argument. 
    */
-void db_store(DB *db,const char *data,uint32 length,uint32 *recno);
+void db_store(DB *db,DB_TXN *txn,const char *data,uint32 length,
+   uint32 *recno);
 
 /* Flush cached information to disk */
 void db_flush(DB *db);
@@ -36,6 +37,13 @@ void db_flush(DB *db);
    database.  Therefore we should copy the data somewhere else before
    using db_retrieve again. */
 void db_retrieve(DB *db,uint32 recno,char **datap,uint32 *length);
+
+
+/* Begin a new transaction, returning a handle to it */
+DB_TXN *db_begin_trans(); 
+
+/* Commit a transaction */
+void db_end_trans(DB_TXN *trans);
 
 #endif
 

@@ -3,12 +3,16 @@ module BDBClient(
    BDB, -- A connection to a Berkeley Database
    openBDB, -- :: IO BDB
 
-   BDBKey, -- Type of record numbers in the database.  Instance of Read/Show.  
-   writeBDB, -- :: BDB -> ICStringLen -> IO BDBKey
+   BDBKey, -- Type of record numbers in the database.  Instance of Read/Show.
+   TXN, -- Handle to a transaction in the database.
+
+   writeBDB, -- :: BDB -> TXN -> ICStringLen -> IO BDBKey
    readBDB, -- :: BDB -> BDBKey -> IO (Maybe ICStringLen)
       -- Nothing indicates that the key wasn't found.
    flushBDB, -- :: BDB -> IO ()
 
+   beginTransaction, -- :: IO TXN
+   endTransaction, -- :: TXN -> IO ()
    ) where
 
 import System.IO.Unsafe
@@ -43,13 +47,14 @@ openBDB =
 -- Writing and Reading from BDB's.
 -- --------------------------------------------------------------
 
-writeBDB :: BDB -> ICStringLen -> IO BDBKey
-writeBDB bdb icsl =
+writeBDB :: BDB -> TXN -> ICStringLen -> IO BDBKey
+writeBDB bdb txn icsl =
    withICStringLen icsl
       (\ len dataPtr ->
          alloca (\ (recNoPtr :: Ptr Word32) ->
             do
-               dbStore bdb dataPtr (fromIntegral len) recNoPtr
+               dbStore bdb txn dataPtr (fromIntegral len) recNoPtr
+               
                key <- peek recNoPtr
                return (BDBKey key)
             )
@@ -97,19 +102,27 @@ readBDBLock = unsafePerformIO newBSem
 newtype DB = DB CChar
 type BDB = Ptr DB
 
-{-
--- represents C type DB_TXN *, ditto.
-newtype XN = TXN CChar
-type TXN = Ptr XN
--}
-
 newtype BDBKey = BDBKey Word32 deriving (HasBinaryIO,Eq)
 
 foreign import ccall unsafe "bdbclient.h db_connect" dbConnect
    :: CString -> IO BDB
 foreign import ccall unsafe "bdbclient.h db_store" dbStore
-   :: BDB -> CString -> Word32 -> Ptr (Word32) -> IO ()
+   :: BDB -> TXN -> CString -> Word32 -> Ptr (Word32) -> IO ()
 foreign import ccall unsafe "bdbclient.h db_retrieve" dbRetrieve
    :: BDB -> Word32 -> Ptr (CString) -> Ptr (Word32) -> IO ()
 foreign import ccall unsafe "bdbclient.h db_flush" flushBDB
    :: BDB -> IO ()
+
+-- --------------------------------------------------------------
+-- FFI (transactions)
+-- --------------------------------------------------------------
+
+-- represents C type DB_TXN *, like (B)DB types
+newtype XN = TXN CChar
+type TXN = Ptr XN
+
+foreign import ccall unsafe "bdbclient.h db_begin_trans" beginTransaction
+   :: IO TXN
+
+foreign import ccall unsafe "bdbclient.h db_end_trans" endTransaction
+   :: TXN -> IO ()

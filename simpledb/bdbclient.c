@@ -26,12 +26,13 @@ DB * db_connect(const char *database) {
 
 #if ( (DB_VERSION_MAJOR > 4) || ((DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR >= 1))) 
    run_db("db_open",
-      db->open(db,NULL,DBNAME,NULL,DB_RECNO,DB_CREATE,0664));
+      db->open(db,NULL,DBNAME,NULL,DB_RECNO,DB_CREATE | DB_AUTO_COMMIT,0664));
 
 #else
    run_db("db_open",
-      db->open(db,DBNAME,NULL,DB_RECNO,DB_CREATE,0664));
+      db->open(db,DBNAME,NULL,DB_RECNO,DB_CREATE | DB_AUTO_COMMIT,0664));
 #endif
+
 
    return db;
    }
@@ -40,30 +41,31 @@ void ensure_db_env (const char *database) {
    if (!db_env) {
       run_db("db_env_create",
          db_env_create(&db_env,0));
+
+      db_env->set_errfile(db_env,stderr);
+
       run_db("db_env->open",
          db_env->open(db_env,database,
-            DB_CREATE | DB_RECOVER | DB_INIT_MPOOL,0));
+            DB_CREATE | DB_RECOVER | DB_INIT_LOCK | DB_INIT_TXN
+               | DB_INIT_MPOOL | DB_INIT_LOG ,0)); 
       }
    }
 
-void db_store(DB *db,const char *data,uint32 length,
+void db_store(DB *db,DB_TXN *txn,const char *data,uint32 length,
       uint32 *recno) {
    DBT key_dbt,data_dbt;
    db_recno_t db_recno;
 
    memset(&key_dbt, 0, sizeof(key_dbt));
    memset(&data_dbt, 0, sizeof(data_dbt));
+
    key_dbt.data = &db_recno;
    key_dbt.size = sizeof(db_recno);
-
    data_dbt.data=data;
    data_dbt.size=length;
    run_db("DB->put",
-#if 0
-      db->put(db,NULL,&key_dbt,&data_dbt,DB_APPEND | DB_AUTO_COMMIT));
-#else
-      db->put(db,NULL,&key_dbt,&data_dbt,DB_APPEND ));
-#endif
+      db->put(db,txn,&key_dbt,&data_dbt,DB_APPEND));
+
    *recno = * ((uint32 *) key_dbt.data);
    }
 
@@ -113,5 +115,17 @@ void debug (uint32 recno,const char *data,uint32 length) {
    fprintf (stderr,"\n");
    }
 
-     
+/* Transactions */
+
+DB_TXN *db_begin_trans() {
+   DB_TXN *result;
+   run_db("DB_ENV->txn_begin",
+      db_env->txn_begin(db_env,NULL,&result,0));
+   return result;
+   }
+
+void db_end_trans(DB_TXN *trans) {
+   run_db("DB_TXN->commit",
+      trans->commit(trans,0));
+   }
 

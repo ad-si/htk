@@ -1,0 +1,34 @@
+#!/bin/sh
+
+set -e
+
+# Check that files are here
+TOP=@TOP@ @TOP@/mmiss/test/testfiles
+
+export UNISERVER UNIPORT UNIWORKINGDIR UNIEDITOR 
+
+UNISERVER=$HOSTNAME
+UNIPORT=11394
+REMOTESERVER=denebola.informatik.uni-bremen.de
+
+# If no-one is listening on 11394 connect this port up to the remote server.
+isConnected $UNISERVER 11394 || \
+   xterm -title "SSH session to establish tunnel to $REMOTESERVER" -e \
+      ssh2 -R 11394:$REMOTESERVER:11395 $REMOTESERVER &
+
+UNIEDITOR="@GNUCLIENT@ -eval '(setq stored-name \"%beN\")' \"%bF\""
+UNISERVER=`hostname`
+UNIWORKINGDIR=/tmp/uni.temp.$USER
+
+# The following variables have to be set since in the binary release they
+# cannot (at the moment) be hardwired into the binaries.
+    export UNIWISH UNIDAVINCI UNIDAVINCIICONS UNIGNUCLIENT UNITOP 
+
+UNIWISH=${UNIWISH:-@WISH@}
+UNIDAVINCI=${UNIDAVINCI:-@DAVINCI@}
+UNIDAVINCIICONS=${UNIDAVINCIICONS:-@TOP@/database/icons}
+UNIGNUCLIENT=${UNIGNUCLIENT:-@GNUCLIENT@}
+UNITOP=${UNITOP:-@TOP@}
+
+gmake killWorkbench
+gmake runWorkbench

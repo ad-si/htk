@@ -58,3 +58,15 @@ errorWin title code output =
             createTextDisplay (title ++ ": output") (unlines output) []
          else
             done
+
+-- Equivalent action, using CopyFile.copyFile, for copying a file.
+copyFileBool :: String -> String -> IO Bool
+copyFileBool source destination =
+   do
+      unitWE <- copyFileWE source destination
+      case (fromWithError unitWE) of
+         Right () -> return True
+         Left mess -> 
+            do
+               createErrorWin mess []
+               return False

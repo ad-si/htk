@@ -415,6 +415,10 @@ initialConnect serviceMap handle =
                      hPutStrLn handle "OK"
                      hFlush handle
                      return (Just result)
+               Left "" -> -- null service key
+                  do
+                     hClose handle
+                     return Nothing
                Left mess -> 
                   do
                      hPutStrLn handle mess
@@ -425,7 +429,13 @@ initialConnect serviceMap handle =
       case resultOrExcep of
          Left excep -> 
             do
-               putStrLn ("IO error in initial connect " ++ show excep)
+               if isEOFError excep
+                 then 
+                    done 
+                       -- we ignore this, because mmiss/test/IsConnected
+                       -- provokes it.
+                 else
+                    putStrLn ("IO error in initial connect " ++ show excep)
                hClose handle
                return Nothing
          Right result -> return result
