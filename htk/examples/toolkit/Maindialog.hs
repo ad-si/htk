@@ -17,6 +17,7 @@ import DialogWin
 import MarkupText
 import InputWin
 import InputForm
+import TextDisplay
 
 data Test = Test {ent1 :: String, ent2 :: String, enu1 :: Int, ent3 :: Int}
 
@@ -33,9 +34,11 @@ main =
   but8a <- newButton htk [text "Information"] 
   but9 <- newButton htk [text "Input window"] 
   but2 <- newButton htk [text " Quit example "]
+  but35 <- newButton htk [text "Simple text display"]
 
   pack but1 []
   pack but4 []
+  pack but35 []
   pack but5 []  
   pack but6 []  
   pack but7 []  
@@ -53,6 +56,12 @@ main =
         test <- modalDialog tp True (clickedbut3 >> 
 	                             (always (return "ModalDialogOk")))
 	putStrLn test)))
+
+  clickedbut35 <- clicked but35
+  spawnEvent (forever (clickedbut35 >>>
+    (do f  <- readFile "/etc/passwd"
+        createTextDisplay "Display /etc/passwd" f [] )))
+	
 
   clickedbut4 <- clicked but4
   spawnEvent (forever (clickedbut4 >>>
