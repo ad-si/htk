@@ -37,6 +37,7 @@ module Wish (
   showP,
 
   tixAvailable, -- :: Bool.  True if we are using tixwish.
+  cleanupWish
 
 ) where
 
@@ -195,6 +196,9 @@ wish :: Wish
 wish = IOExts.unsafePerformIO newWish
 {-# NOINLINE wish #-}
 
+cleanupWish :: IO ()
+cleanupWish = destroy wish
+
 tixAvailable :: Bool
 tixAvailable = IOExts.unsafePerformIO isTixAvailable
 
@@ -320,10 +324,9 @@ readWishEvent childProcess =
    do
       wishInChannel <- newEqGuardedChannel
       destroy <- spawnEvent(forever(
-         do
-            next <- always (readMsg childProcess)
-            send wishInChannel (typeWishAnswer next)
-         ))
+               (do next <- always (catch (readMsg childProcess) (\_-> return "OK Terminated"))
+                   send wishInChannel (typeWishAnswer next))
+               ))
       return (listen wishInChannel,destroy)
 
 -- typeWishAnswer parses answers from Wish.

@@ -129,6 +129,9 @@ module HTk (
   initHTk, -- :: [Config HTk] -> IO HTk
   -- initHTk initialises HTk.
 
+  finishHTk, -- :: Htk-> IO ()
+  -- waits for all wish to finish and then terminates
+
   withdrawWish, -- :: IO ()
   -- withdrawWish withdraws the wish window.
 
@@ -142,6 +145,7 @@ module HTk (
   Destroyable(..),
 
   done,
+  cleanupWish
 ) where
 
 import Concurrent
@@ -295,6 +299,19 @@ withdrawWish =
    do
       htk <- getHTk
       withdraw htk
+
+
+--- @doc finishHTk
+-- waits for HTk to finish, and calls cleanupWish to clean up. 
+-- This rebinds the Destroy event of the main window, so 
+-- do not call this function if you have bound anything to that.
+-- In that case, call cleanupWish after you have finished with wish.
+finishHTk :: HTk-> IO ()
+finishHTk main =
+   do (htk_destr, _) <- bindSimple main Destroy
+      sync htk_destr
+      cleanupWish
+
 
 -- -----------------------------------------------------------------------
 -- HTk methods
