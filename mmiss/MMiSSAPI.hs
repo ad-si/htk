@@ -52,10 +52,22 @@ module MMiSSAPI(
       -- :: Int -> IO Version
       -- check out a version and make it current, with the current directory
       -- the top object.
+   changeVersionInfo,
+      -- :: IO ()
+      -- Allow the user to change the version information (label and
+      -- description) of the current version.
+   commitVersion,
+      -- :: IO ()
+      -- Commit the current version
+   commitVersion1,
+      -- :: Version -> IO ()
+      -- Commit the version
+
    cdVersion,
       -- :: Version -> IO ()
       -- Change current version.  (This will not change the current
       -- server or current variants.)
+
    ls, 
       -- :: IO ()
       -- List contents of current directory in version.
@@ -145,7 +157,7 @@ import GraphDisp
 import GraphConfigure
 import EmptyGraphSort
 
-import VersionInfo
+import VersionInfo hiding (changeVersionInfo)
 import VersionDB hiding (listVersions)
 
 import EntityNames
@@ -217,9 +229,13 @@ initialState = State {
    currentVariant = Variant emptyMMiSSVariantSearch,
    currentVersion = Nothing,
    currentDirs = emptyFM,
-   versionInfoFormat = coerceWithError (checkVersionInfoFormat "%V %L %P\n"),
+   versionInfoFormat = initialVersionInfoFormat,
    registrationsDone = False
    }
+
+initialVersionInfoFormat :: CompiledFormatString
+initialVersionInfoFormat = coerceWithError (checkVersionInfoFormat (
+   "Version: %V Label: %L Date: %T\n"))
 
 getState :: IO State
 getState = readMVar stateMVar
@@ -714,7 +730,7 @@ whereami =
                fullName <- getLinkedObjectName view linkedObject
 
                return ("Version: " ++ versionStr ++ "\n Dir " 
-                  ++ toString fullName 
+                  ++ toString (FromRoot fullName) 
                   )
 
       let
@@ -726,14 +742,62 @@ whereami =
          variantsStr])
 
 -- --------------------------------------------------------------------------
+-- Editing the current version information
+-- --------------------------------------------------------------------------
+
+-- | Allow the user to change the version information (label and
+-- description) of the current version.
+changeVersionInfo :: IO ()
+changeVersionInfo =
+   printError (
+      modifyMVar_ stateMVar
+         (\ state -> 
+            case currentVersion state of
+               Nothing -> apiError "No current checked-out version"
+               Just (Version view) ->
+                  do
+                     versionInfo0 <- readContents (viewInfoBroadcaster view)
+                     userInfo1Opt <- editVersionInfo "Change version info:"
+                        versionInfo0
+                     case userInfo1Opt of
+                        Nothing -> done
+                        Just userInfo1 -> setUserInfo view userInfo1
+                     return state
+            )
+         )
+
+-- --------------------------------------------------------------------------
+-- Committing the current version
+-- --------------------------------------------------------------------------
+
+-- | Commit the current version
+commitVersion :: IO ()
+commitVersion =
+   printError (
+      do
+         version <- getCurrentVersion
+         commitVersion1' version
+      )
+
+-- | Commit the version
+commitVersion1 :: Version -> IO ()
+commitVersion1 version = printError (commitVersion1' version)
+
+commitVersion1' :: Version -> IO ()
+commitVersion1' (Version view) =
+   do
+      commitView view
+      done
+
+-- --------------------------------------------------------------------------
 -- System commands
 -- --------------------------------------------------------------------------
 
--- Change directory on the local (Unix or whatever) filing system.
+-- | Change directory on the local (Unix or whatever) filing system.
 lcd :: String -> IO ()
 lcd newDir = (printError . anyErrorToAPI) (setCurrentDirectory newDir)
 
--- Execute the given String in a shell on the current system.
+-- | Execute the given String in a shell on the current system.
 shell :: String -> IO ()
 shell command = 
    (printError . anyErrorToAPI) (

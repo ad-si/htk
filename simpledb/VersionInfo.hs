@@ -120,6 +120,7 @@ import HostName
 import Posix(getProcessID)
 import AtomString(StringClass(..))
 import CommandStringSub
+import Messages
 
 import DialogWin
 import SimpleForm
@@ -611,7 +612,38 @@ cleanVersionInfo versionInfo0 =
 -- It only returns a UserInfo, since the rest of a 
 -- VersionInfo is uneditable.
 editVersionInfo :: String -> VersionInfo -> IO (Maybe UserInfo)
-editVersionInfo title versionInfo = 
+editVersionInfo text versionInfo =
+   do
+      htkPres <- htkPresent
+      (if htkPres then editVersionInfoGraphic else editVersionInfoText)
+         text versionInfo        
+
+editVersionInfoText :: String -> VersionInfo -> IO (Maybe UserInfo)
+editVersionInfoText title versionInfo =
+   do
+      let
+         user0 = user versionInfo
+         label0 = label user0
+         contents0 = contents user0
+
+      messageMess title
+      label1 <- textQuery ("New title, or just hit ENTER for " ++ show label0)
+      let
+         label2 = if label1 == "" then label0 else label1
+
+      contents1 <- textQuery ("New description, or just hit ENTER for "
+         ++ show contents0)
+      let
+         contents2 = if contents1 == "" then contents0 else contents1
+
+         user1 = user0 {label = label2,contents=contents2}
+
+      return (Just user1)
+
+      
+   
+editVersionInfoGraphic :: String -> VersionInfo -> IO (Maybe UserInfo)
+editVersionInfoGraphic title versionInfo = 
    do
       let
          user0 = user versionInfo
