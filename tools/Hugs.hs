@@ -25,52 +25,52 @@ TO BE DONE    : Underlines, accelerators and key bindings!
 
 
 module Hugs (
-        Object(..),
-        Tool(..),
-
-        Toggle(..),
-
-        Hugs,
-        FilePath,
-        HugsSourceObj(..),
-
-        getImports,
-
-        Config,
-        printStatistics,
-        printTypeAfterEval,
-        terminateOnError,
-        gcNotification,
-        literateModules,
-        listFilesLoaded,
-        displayDotsWhileLoading,
-        useShowToDisplayResults,
-        detailedKindErrors,
-        importChasing,
-        setPrompt,
-        getPrompt,
-        setRepeatString,
-        getRepeatString,
-
-        interruptHugs,
-        shellEscape,
-        changeModule,
-        changeDirectory,
-        forceGC,
-        exitHugs,
-        loadDefinitions,
-        loadAdditionalFiles,
-        repeatLastLoad,
-        loadProject,
-        editLoadedFile,
-        editLastFile,
-        findDefinition,
-        listNames,
-        listCommands,
-        printTypeOfExpr,
-        displayInfoAboutNames,
-
-        ) where
+   Object(..),
+   Tool(..),
+   
+   Toggle(..),
+   
+   Hugs,
+   FilePath,
+   HugsSourceObj(..),
+   
+   getImports,
+   
+   Config,
+   printStatistics,
+   printTypeAfterEval,
+   terminateOnError,
+   gcNotification,
+   literateModules,
+   listFilesLoaded,
+   displayDotsWhileLoading,
+   useShowToDisplayResults,
+   detailedKindErrors,
+   importChasing,
+   setPrompt,
+   getPrompt,
+   setRepeatString,
+   getRepeatString,
+   
+   interruptHugs,
+   shellEscape,
+   changeModule,
+   changeDirectory,
+   forceGC,
+   exitHugs,
+   loadDefinitions,
+   loadAdditionalFiles,
+   repeatLastLoad,
+   loadProject,
+   editLoadedFile,
+   editLastFile,
+   findDefinition,
+   listNames,
+   listCommands,
+   printTypeOfExpr,
+   displayInfoAboutNames,
+   
+   ) where
 
 import WB
 import EventLoop
@@ -104,12 +104,13 @@ import Thread
 -- Semantic Domains
 -- --------------------------------------------------------------------------
 
-data Hugs = Hugs 
-                Expect                          -- background intrp
-                Window                          -- main window
-                (Editor String)                 -- text widget
-                (EventStream ())                -- event dispatcher
-                (PVar (String,String))          -- prompt, repeat string  ...
+data Hugs = 
+   Hugs 
+      Expect                          -- background intrp
+      Window                          -- main window
+      (Editor String)                 -- text widget
+      (EventStream ())                -- event dispatcher
+      (PVar (String,String))          -- prompt, repeat string  ...
 
 
 
@@ -118,7 +119,7 @@ data Hugs = Hugs
 -- --------------------------------------------------------------------------
 
 class HugsSourceObj o where
-        newHugs :: o -> [Config PosixProcess] -> IO Hugs
+   newHugs :: o -> [Config PosixProcess] -> IO Hugs
 
                 
 -- --------------------------------------------------------------------------
@@ -126,19 +127,20 @@ class HugsSourceObj o where
 -- --------------------------------------------------------------------------
 
 instance Object Hugs where
-        objectID (Hugs tool _ _ _ _) = objectID tool
+   objectID (Hugs tool _ _ _ _) = objectID tool
 
 
 instance Destructible Hugs where
-        destroy (Hugs tool win _ _ _) =  do {
-                destroy tool;
-                try (destroy win);
-                done
-                }
-        destroyed (Hugs tool _ _ _ _) = destroyed tool
+   destroy (Hugs tool win _ _ _) =  
+      do
+         destroy tool
+         try (destroy win)
+         done
+
+   destroyed (Hugs tool _ _ _ _) = destroyed tool
 
 instance Tool Hugs where
-        getToolStatus (Hugs tool _ _ _ _) = getToolStatus tool
+   getToolStatus (Hugs tool _ _ _ _) = getToolStatus tool
 
                 
 -- --------------------------------------------------------------------------
@@ -146,22 +148,25 @@ instance Tool Hugs where
 -- --------------------------------------------------------------------------
 
 instance HugsSourceObj [FilePath] where
-        newHugs files confs = do {      
-                exp <- newExpect "hugs" (confs++[standarderrors False, args]);
-                state <- newPVar ("Prelude>","$$");
-                es <- newEventStream;
+   newHugs files confs = 
+      do     
+         exp <- newExpect "hugs" (confs++[standarderrors False, args]);
+         state <- newPVar ("Prelude>","$$")
+         es <- newEventStream
 
-                (win,tp,bm) <- newHugsWindow exp;
-                hugs <- return (Hugs exp win tp es state);
-                newHugsMenu hugs tp bm;
+         (win,tp,bm) <- newHugsWindow exp
+         -- win :: Window, tp :: Editor String, bm :: Box
+         let hugs = Hugs exp win tp es state)
 
-                matchUntilPrompt exp win tp;
+         newHugsMenu hugs tp bm
 
-                when (files /= []) (hugs # loadDefinitions files);
+         matchUntilPrompt exp win tp
 
-                interactor (\iact ->
-                        receive es  |>> done
-                 +>     matchPrompt exp tp "Prelude> " >>> done
+         when (files /= []) (hugs # loadDefinitions files)
+
+         interactor (\iact ->
+               receive es  |>> done
+            +> matchPrompt exp tp "Prelude> " >>> done
                  +>     expect exp ("^.*\n",2::Int) >>>= appendText tp
                  +>     expect exp (".+", 1::Int) >>>= appendText tp 
                  +>     match exp ("\n",0::Int) >>> insertNewline tp
@@ -203,25 +208,31 @@ getCommand tp = do
 
 
 matchUntilPrompt :: Expect -> Window -> Editor String -> IO Bool
-matchUntilPrompt exp win tp  = do 
-   es <- newEventStream
-   become es (
-           matchLine exp     >>>= (\str -> do {
-                (case str of 
-                   'P':'a':'r':'s':'i':_ -> done
-                   _ -> appendText tp str); 
-                return True
-                })
-        +> expect exp "^Prelude> " >>>= (\str -> do {
-                appendText tp str;
-                become es (inaction :: IA Bool); 
-                return False
-                })
-        +> terminated exp win >>> do {
-                become es (inaction :: IA Bool); 
-                raise hugsFailed
-                }
-       )
+matchUntilPrompt exp win tp  = 
+   do 
+      es <- newEventStream
+      become es (
+            matchLine exp  >>>= ( \ line ->
+               do
+                  (case line of 
+                     'P':'a':'r':'s':'i':_ -> done
+                      _ -> appendText tp (line ++ "\n")
+                      )
+                  return True
+               )
+         +> expect exp ("^Prelude> $",2) >>>= (\ line -> 
+               do
+                   appendText tp (line ++ "\n")
+                   become es (inaction :: IA Bool)
+                   return False
+               )
+         +> terminated exp win >>> 
+               do
+                  become es (inaction :: IA Bool) 
+                  raise hugsFailed
+               
+         )
+
    while (receiveIO es) id
 
 hugsFailed = toolFailed "hugs"
@@ -405,16 +416,19 @@ setSearchPath fnms hugs = done
 -- --------------------------------------------------------------------------
 
 newHugsWindow :: Expect -> IO (Window,Editor String,Box)
-newHugsWindow exp = do {
-        tp <- newEditor [bg "white", height 32, flexible, wrap WordWrap];
-        b <- newVBox[flexible];
-        bm <- newHBox ((parent b): opts);
-        newScrollBox tp [flexible,parent b];
-        newFrame ((parent b): opts);
-        win <- window b [text "Hugs WorkBench Interpreter", minSize (cm 11,cm 11)];
-        return (win,tp,bm)
-} where opts :: (Widget w,HasSize w,HasColour w,HasBorder w) => [Config w]
-        opts = [fill Horizontal,height (cm 0.7),relief Groove, borderwidth (cm 0.05),bg "grey"]
+newHugsWindow exp = 
+   do
+      tp <- newEditor [bg "white", height 32, flexible, wrap WordWrap];
+      b <- newVBox[flexible]
+      bm <- newHBox ((parent b): opts)
+      newScrollBox tp [flexible,parent b]
+      newFrame ((parent b): opts)
+      win <- 
+         window b [text "Hugs WorkBench Interpreter", minSize (cm 11,cm 11)]
+      return (win,tp,bm)
+   where 
+      opts :: (Widget w,HasSize w,HasColour w,HasBorder w) => [Config w]
+      opts = [fill Horizontal,height (cm 0.7),relief Groove, borderwidth (cm 0.05),bg "grey"]
 
 
                 

@@ -1,0 +1,109 @@
+Expect Users Guide
+------------------
+
+Expect is a tool for operating interactive command-line tools from a Haskell
+program.
+
+To start a new instance of a process using Expect you call the function
+
+newExpect :: FilePath -> [Config PosixProcess] -> IO Expect
+
+Here the FilePath is a String referring to the location of the program.
+The [Config PosixProcess] contains a series of options, for examples
+arguments to be given to the program.  Possible options are listed
+in ChildProcess.hs.  
+
+newExpect starts up the process.  Sending a command to the process
+is easy - you call the function
+   execCmd :: String -> Expect -> IO()
+   execCmd cmd expect
+where cmd is the (String) you want to send.
+
+The tricky thing is dealing with the output.  For this we need
+to understand line mode and non-line mode
+
+Line Mode and Non-Line Mode
+---------------------------
+
+Expect divides up the output of the tool into what we will call
+"Chunks".  Somehow Expect has to know where a chunk ends.
+The simplest and default way is line mode.  Here a chunk is
+a sequence of characters ending with a newline.  Expect receives
+each complete line as it comes in (minus the terminating newline,
+which is removed as it is now redundant).  This, it is hoped,
+will suffice in most cases since it is the simplest strategy.
+
+However this won't do if the tool insists on expecting input from
+lines which haven't been completed yet; EG prompts which don't
+end with newline.  (An example is TeX.)  To set this add the
+(linemode False) to the Config PosixProcess list passed to newExpect
+when you start the tool.  Then you get each (non-empty) block of 
+characters as it comes in.
+
+However I think that a better solution, if available, is to change
+the prompt of the tool to end with a new line.  For example,
+for hugs, add the argument 
+  -p "%s> \n"
+(you can set this using the "arguments" option.)  For SML/NJ
+set  the variables 
+   Compiler.Control.primaryPrompt
+and
+   Compiler.Control.secondaryPrompt
+
+Handling Chunks
+---------------
+
+An Expect program (seen from the point of view of the expect tool)
+repeatedly receives a chunk, matches it against the interactions
+supplied by the user, and then moves on.  
+
+Each chunk must be matched at least once.  If the program is not
+currently syncing on an expect event with a pattern that matches,
+no further input will be processed until it does.
+
+Where a chunk is matched by several patterns, the most important
+thing is the priority.  Patterns have a priority which is an integer.  
+If you specify a pattern by a String, its priority is 0.  However
+you may also specify a pattern as a pair (String,Int) and then
+the integer is the priority.  A "Pattern Designator" is either
+a String or a (String,Int), which represents a pattern in this way. 
+
+Here then are some ways of making expect events.
+
+expect,expectStay :: PatternDesignator ptn => Expect -> ptn -> IA String
+expect takes an expect instance and a pattern designator, and
+returns an interactor.  Once this event is matched, expect
+doesn't match this chunk any more, but moves onto the next one.
+
+expectStay is like expect but once the event is matched, expect
+continues with the remainder of the chunk (even if it is empty)
+waiting for another match.
+
+expect' :: PatternDesignator ptn => Expect -> ptn -> IA (String,Bool -> EV ())
+expect' allows you to choose dynamically between continuing with
+the remainder of the chunk, or moving onto a new line.  When you handle
+this event, you get as well as the String, a function 
+nextChunk :: Bool -> EV ().
+If you want to move onto the next chunk, you should sync(nextChunk True);
+otherwise you should sync(nextChunk False).
+
+match,matchStay ::  PatternDesignator ptn => Expect -> ptn -> IA MatchResult
+match' :: PatternDesignator ptn => Expect -> ptn -> IA MatchResult
+These are like expect/expectStay/expect' except that you get
+more information when there is a match; specifically the MatchResult
+value (defined in the class RegularExpression).  From this you can,
+for example, find out the strings which matched particular parts of
+a regular expression.
+
+matchLine :: Expect -> IA String
+matchLine in line mode matches a complete line and then moves on to the
+next line.
+
+readWholeLine :: Expect -> (String -> IO String) -> IO String
+readWholeLine is used in non line mode when you need to read a whole
+line anyway.  It waits until one is available and returns the whole line.
+It does not advance to the next chunk.
+
+
+
+

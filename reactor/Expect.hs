@@ -11,7 +11,9 @@ AUTHOR        : Einar Karlsen,
 DATE          : 1996
 VERSION       : alpha
 DESCRIPTION   : (Einar's commments are now somewhat out of date.  See below
-                for changes.)
+                for changes.  Also see Expect.NOTES in this directory,
+                test cases which import Expect in the test directory,
+                and the uni/tools directory.)
 
 
                 Provides similar functionality as the expect tool documented 
@@ -432,6 +434,12 @@ expect exp ptn =
       ( \ matchResult -> return (getMatched matchResult))
  
 
+expectStay :: PatternDesignator ptn => Expect -> ptn -> IA String
+expectStay exp ptn = 
+   matchStay exp ptn >>>=
+      ( \ matchResult -> return (getMatched matchResult))
+ 
+
 expect' :: PatternDesignator ptn => Expect -> ptn -> 
    IA (String,Bool -> EV ())
 expect' exp ptn = 
@@ -543,6 +551,15 @@ match expect ptn  =
       (\ (matchResult,nextLine) ->
          do
             sync(nextLine True)
+            return matchResult
+         )
+
+matchStay :: PatternDesignator ptn => Expect -> ptn -> IA MatchResult 
+matchStay expect ptn  =
+   match' expect ptn >>>=
+      (\ (matchResult,nextLine) ->
+         do
+            sync(nextLine False)
             return matchResult
          )
 
