@@ -117,6 +117,9 @@ module WBFiles (
       -- returns editor string, if set.
    getMMiSSDTD, -- :: IO (Maybe String)
       -- returns location of MMiSSDTD, if set.
+   getMMiSSAPIDTD, -- :: IO (Maybe String)
+      -- returns location of DTD for API requests, if set.
+      -- (does not correspond to an option at present, we get it from TOP)
 
    getHosts, -- :: IO String
       -- returns location of hosts file.
@@ -233,6 +236,14 @@ getMMiSSDTD =
             do
                path <- getTOPPath ["mmiss","MMiSS.dtd"]
                return (Just path)
+
+getMMiSSAPIDTD :: IO (Maybe String)
+getMMiSSAPIDTD =
+   do
+      path <- getTOPPath ["mmiss","api","MMiSSRequest.dtd"]
+      return (Just path)
+
+      -- returns location of DTD for API requests, if set.
 
 getHosts :: IO String
 getHosts =

@@ -5,6 +5,10 @@
 module ICStringLen(
    ICStringLen, -- instance of AtomString
 
+   UTF8(..), 
+      -- newtype alias.  UTF8 ICStringLen is also an instance of AtomString,
+      -- but we assume the characters are UTF8-encoded.
+
    -- general creation and reading.
    mkICStringLen, -- :: Int -> (Ptr CChar -> IO()) -> IO ICStringLen
    mkICStringLenExtra, 
@@ -22,6 +26,8 @@ module ICStringLen(
 
    ) where
 
+import Char
+
 import System.IO.Unsafe
 import Foreign.C.String
 import Foreign.ForeignPtr
@@ -29,7 +35,7 @@ import Foreign.Marshal.Array
 import Foreign.Marshal.Alloc
 import Foreign.C.Types
 import Control.Monad.Trans
-
+import Data.Bits
 import AtomString
 
 import Bytes
@@ -46,6 +52,8 @@ import TemplateHaskellHelps
 -- ------------------------------------------------------------------
 
 data ICStringLen = ICStringLen (ForeignPtr CChar) Int deriving (Typeable)
+
+newtype UTF8 bytes = UTF8 bytes
 
 -- -------------------------------------------------------------------
 -- Extracting a ForeignPtr's components.
@@ -107,6 +115,11 @@ instance StringClass ICStringLen where
                      cchars <- peekArray len ptr
                      return (map castCCharToChar cchars)
                   )
+
+
+instance StringClass (UTF8 ICStringLen) where
+   fromString str = UTF8 (fromString (toUTF str))
+   toString (UTF8 icsl) = fromUTF (toString icsl)
 
 -- -------------------------------------------------------------------
 -- General functions for Creating and reading ICStringLen's.
@@ -186,3 +199,46 @@ instance MonadIO m => HasBinary ICStringLen m where
          bl <- readBin rb
          icsl <- liftIO (bytesToICStringLen bl)
          return icsl
+
+-- -------------------------------------------------------------------
+-- Unicode conversion
+-- (code stolen from Axel Simon's post):
+--    http://www.haskell.org/pipermail/haskell/2003-July/012252.html
+-- -------------------------------------------------------------------
+
+-- Convert Unicode characters to UTF-8.
+--
+toUTF :: String -> String
+toUTF [] = []
+toUTF (x:xs) | ord x<=0x007F = x:toUTF xs
+             | ord x<=0x07FF = chr (0xC0 .|. ((ord x `shift` (-6)) .&. 0x1F)):
+                               chr (0x80 .|. (ord x .&. 0x3F)):
+                               toUTF xs
+             | otherwise     = chr (0xE0 .|. ((ord x `shift` (-12)) .&. 0x0F)):
+                               chr (0x80 .|. ((ord x `shift` (-6)) .&. 0x3F)):
+                               chr (0x80 .|. (ord x .&. 0x3F)):
+                               toUTF xs
+
+-- Convert UTF-8 to Unicode.
+--
+fromUTF :: String -> String
+fromUTF [] = []
+fromUTF (all@(x:xs)) | ord x<=0x7F = x:fromUTF xs
+                     | ord x<=0xBF = err
+                     | ord x<=0xDF = twoBytes all
+                     | ord x<=0xEF = threeBytes all
+                     | otherwise   = err
+  where
+    twoBytes (x1:x2:xs) = chr (((ord x1 .&. 0x1F) `shift` 6) .|.
+                               (ord x2 .&. 0x3F)):fromUTF xs
+    twoBytes _ = error "Unicode decode: illegal two byte sequence"
+
+    threeBytes (x1:x2:x3:xs) = chr (((ord x1 .&. 0x0F) `shift` 12) .|.
+                                    ((ord x2 .&. 0x3F) `shift` 6) .|.
+                                    (ord x3 .&. 0x3F)):fromUTF xs
+    threeBytes _ = error "Unicode decode: illegal three byte sequence" 
+    
+    err = error "Unicode decode: illegal UTF-8 character"
+
+
+
