@@ -646,6 +646,7 @@ newNotepad par scrolltype imgsize mstate cnf =
                 (do
                    ev_inf <- release
                    always (do
+                             putStrLn "Notepad: buttonrelease (selection by rectangle)"
                              (dx, dy) <- getD
                              (x1,y1) <- getCoords ev_inf
                              sendEv notepad (Release ev_inf)
@@ -700,29 +701,32 @@ newNotepad par scrolltype imgsize mstate cnf =
                                                         (rooty - y0)))
                           moveItem t (x - x0) (y - y0))
                 moveSelectedItems rpos (x, y) t)
-          +> (release >>
-              always (do
-                        drop <- getRef dropref
-                        case drop of
-                          Just (item, rect1, rect2) ->
-                            do
-                              act <- getRef (undo_last_motion notepad)
-                              case act of
-                                Performed -> done
-                                _ -> do
-                                       undoLastMotion notepad
-                                       selecteditems <-
-                                         getRef selecteditemsref
-                                       sendEv notepad
-                                              (Dropped (item,
-                                                        selecteditems))
-                              setRef dropref Nothing
-                              destroy rect1 
-                              destroy rect2
-                          _ -> do
-                                 selecteditems <- getRef selecteditemsref
-                                 (dx, dy) <- checkPositions selecteditems
-                                 moveItem t (-dx) (-dy)))
+          +> (do
+                ev_inf <- release
+                always (do
+                          putStrLn "Notepad: buttonrelease (items movement)"
+                          sendEv notepad (Release ev_inf)
+                          drop <- getRef dropref
+                          case drop of
+                            Just (item, rect1, rect2) ->
+                              do
+                                act <- getRef (undo_last_motion notepad)
+                                case act of
+                                  Performed -> done
+                                  _ -> do
+                                         undoLastMotion notepad
+                                         selecteditems <-
+                                           getRef selecteditemsref
+                                         sendEv notepad
+                                                (Dropped (item,
+                                                          selecteditems))
+                                setRef dropref Nothing
+                                destroy rect1 
+                                destroy rect2
+                            _ -> do
+                                   selecteditems <- getRef selecteditemsref
+                                   (dx, dy) <- checkPositions selecteditems
+                                   moveItem t (-dx) (-dy)))
 
         checkEnteredItem (x, y) =
           let overItem item =

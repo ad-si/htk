@@ -329,7 +329,7 @@ newGenGUI mstate =
     -- listening events
     clipboard <- newRef ((0,0), [])   -- drop on editor or treelist
     (enter_ed, _) <- bind ed [WishEvent [] Enter]
-    (leave_np, _) <- bind np [WishEvent [] Leave]
+--    (leave_np, _) <- bind np [WishEvent [] Leave]
 --    (leave_np, _) <- bind np [WishEvent [] (ButtonRelease (Just (BNo 1)))]
 
     (np_ev, _) <- bindNotepadEv np
@@ -349,6 +349,16 @@ newGenGUI mstate =
                                    npDoubleClick gui inf
                                  Notepad.Rightclick inf ->
                                    npRightClick gui inf
+                                 Notepad.Release ev_inf ->
+                                   do
+                                     selected_notepaditems <-
+                                       getSelectedItems np
+                                     selected_items <-
+                                       mapM getItemValue
+                                            selected_notepaditems
+                                     setRef clipboard
+                                       ((xRoot ev_inf, yRoot ev_inf),
+                                        selected_items)
                                  _ -> done)) +>
                          (do
                             ev <- tl_ev
@@ -363,6 +373,7 @@ newGenGUI mstate =
                             ev_inf <- enter_ed
                             always
                               (do
+                                 putStrLn "editor entered"
                                  ((x, y), items) <- getRef clipboard
                                  (if x == xRoot ev_inf &&
                                      y == yRoot ev_inf then
@@ -370,7 +381,8 @@ newGenGUI mstate =
                                       putStrLn "drag and drop action"
                                       sendEv gui (DroppedOnTextArea items)
                                       undoLastMotion np
-                                  else done))) +>
+                                  else done)))))
+{-
                          (do
                             ev_inf <- leave_np
                             always
@@ -382,7 +394,7 @@ newGenGUI mstate =
                                  setRef clipboard
                                    ((xRoot ev_inf, yRoot ev_inf),
                                     selected_items)))))
-
+-}
     ditem <- getRef displayref
     case ditem of
       Just item ->
