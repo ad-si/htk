@@ -1,20 +1,18 @@
-{- #######################################################################
+-- -----------------------------------------------------------------------
+--
+-- $Source$
+--
+-- HTk - a GUI toolkit for Haskell  -  (c) Universitaet Bremen
+--
+-- $Revision$ from $Date$  
+-- Last modification by $Author$
+--
+-- -----------------------------------------------------------------------
 
-MODULE        : ListBox
-AUTHOR        : Einar Karlsen,  George
-                University of Bremen
-                email:  ewk@informatik.uni-bremen.de
-DATE          : 1999
-VERSION       : alpha
-DESCRIPTION   : Listbox Widget. Fortunately, Haskell and Tk agree on one
-                thing: indices start with 0.
-
-TO BE DONE    : Nearest command
-                valueSet operation
-
-   #################################################################### -}
-
-
+---
+-- HTk's <strong>listbox widget</strong> .<br>
+-- A scrollable widget that displays a set of text lines with selection
+-- functionality.
 module ListBox (
 
   module Selection,
@@ -53,63 +51,113 @@ import Tooltip
 
 
 -- -----------------------------------------------------------------------
--- ListBox type
+-- type
 -- -----------------------------------------------------------------------
 
+---
+-- The <code>ListBox</code> datatype - parametrised over the type of
+-- the list elements.
 newtype ListBox a = ListBox GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
--- ListBox Creation
+-- creation
 -- -----------------------------------------------------------------------
 
+---
+-- Constructs a new listbox widget and returns a handler.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param cnf     - the list of configuration options for this listbox
+--                  widget.
+-- @return result - A listbox widget.
 newListBox :: (Container par, GUIValue a) => par ->
                                              [Config (ListBox [a])] ->
                                              IO (ListBox [a])
-newListBox par ol =
+newListBox par cnf =
   do
     w <- createGUIObject (toGUIObject par) (LISTBOX []) lboxMethods 
-    configure (ListBox w) ol
+    configure (ListBox w) cnf
 
 
 -- -----------------------------------------------------------------------
--- ListBox instantiations
+-- instances
 -- -----------------------------------------------------------------------
 
+---
+-- Internal.
 instance GUIObject (ListBox a) where 
+---
+-- Internal.
    toGUIObject (ListBox w) = w
+---
+-- Internal.
    cname _ = "ListBox"
 
+---
+-- A listbox widget can be destroyed.
 instance Destroyable (ListBox a) where
-   destroy   = destroy . toGUIObject
+---
+-- Destroys a listbox widget
+   destroy = destroy . toGUIObject
 
+---
+-- A listbox widget has standard widget properties
+-- (concerning focus, cursor).
 instance Widget (ListBox a)
 
+---
+-- You can synchronize on a listbox object (in JAVA style).
 instance Synchronized (ListBox a) where
+---
+-- Synchronizes on a listbox object.
   synchronize = synchronize . toGUIObject
 
+---
+-- A listbox widget has a configureable border.
 instance HasBorder (ListBox a)
 
+---
+-- A listbox widget has a foreground and background colour.
 instance HasColour (ListBox a) where 
   legalColourID = hasForeGroundColour
 
+---
+-- A listbox is a stateful widget - it can be enabled or disabled.
 instance HasEnable (ListBox a)
 
+---
+-- You can specify the font of a listbox.
 instance HasFont (ListBox a)
 
 instance HasGrid (ListBox a)
 
+---
+-- A listbox is a scrollable widget.
 instance HasScroller (ListBox a)
 
+---
+-- You can specify the size of a listbox.
 instance HasSize (ListBox a)
 
+---
+-- The value of a listbox is the list of the displayed objects (these
+-- are instances of class <code>GUIValue</code> and therefore instances
+-- of class <code>Show</code>)
 instance (GUIValue a, GUIValue [a]) => HasValue (ListBox [a]) [a] where
-  value val w =
-    execMethod w (\nm -> tkInsert nm 0 (map toGUIValue val)) >> return w
+---
+-- Sets the list of displayed objects.
+-- @param vals	  - the list of objects to display.
+-- @param w	  - the concerned listbox.
+-- @return result - The concerned listbox.
+  value vals w =
+    execMethod w (\nm -> tkInsert nm 0 (map toGUIValue vals)) >> return w
+---
+-- Gets the list of displayed objects.
   getValue w = evalMethod w (\nm -> tkGet nm)
 
 ---
--- A listbox can have a tooltip.
+-- A listbox can have a tooltip (only displayed if you are using tixwish).
 instance HasTooltip (ListBox a)
 
 
@@ -117,9 +165,18 @@ instance HasTooltip (ListBox a)
 -- ListBox configurations
 -- -----------------------------------------------------------------------
 
-selectMode :: GUIValue a => SelectMode -> Config (ListBox a)
+---
+-- Sets the select mode of a listbox.
+-- @param sm	  - the select mode to set.
+-- @param lbox	  - the concerned listbox.
+-- @return result - The concerned listbox.
+selectMode :: GUIValue a => SelectMode -> ListBox a -> IO (ListBox a)
 selectMode sm lbox = cset lbox "selectmode" sm
 
+---
+-- Gets the set select mode from a listbox.
+-- @param lbox	  - the concerned listbox.
+-- @return result - The current select mode.
 getSelectMode :: GUIValue a => (ListBox a) -> IO SelectMode 
 getSelectMode lbox = cget lbox "selectmode"
 
@@ -244,18 +301,28 @@ instance HasSelectionBaseIndexRange (ListBox a) Int where
 -- Other ListBox operations
 -- -----------------------------------------------------------------------
 
+---
+-- Activates the specified line.
+-- @param lb	  - the concerned listbox.
+-- @param i	  - the index of the line to activate.
+-- @return result - Nothing.
 activateElem :: HasIndex (ListBox a) i Int => ListBox a -> i -> IO ()
-activateElem lb inx  =
+activateElem lb i  =
   synchronize lb
     (do
-       binx <- getBaseIndex lb inx
+       binx <- getBaseIndex lb i
        execMethod lb (\ nm -> tkActivate nm binx))
 
+---
+-- Anchors the selection at the specified line.
+-- @param lb	  - the concerned listbox.
+-- @param i	  - the index of the line to anchor the selection at.
+-- @return result - Nothing.
 selectionAnchor :: HasIndex (ListBox a) i Int => ListBox a -> i -> IO ()
-selectionAnchor lb inx =
+selectionAnchor lb i =
   synchronize lb
     (do
-       binx <- getBaseIndex lb inx
+       binx <- getBaseIndex lb i
        execMethod lb (\nm -> tkSelectionAnchor nm binx)
        done)
 
@@ -304,15 +371,7 @@ elemNotFound = userError "listbox element not found"
 lboxMethods :: Methods
 lboxMethods =
   defMethods{ cleanupCmd = tkCleanupListBox,
-              createCmd = tkCreateListBox {-,
-              packCmd = packListBox -} }
-{-
-  where packListBox (LISTBOX el) pn nm cp oid binds = 
-          (packCmd defMethods) (LISTBOX el) pn nm cp oid binds ++ 
-          tkCreateListBoxElems nm el
-        packListBox _ pn nm cp oid binds =
-          error "illegal pack command for listbox"
--}
+              createCmd = tkCreateListBox }
 
 -- -----------------------------------------------------------------------
 -- Tk commands

@@ -134,8 +134,12 @@ tkCreateCanvasItem _ k@(CANVASITEM _ cds)
                    (cinm @ (CanvasItemName cnm tid)) _ args =
    [declVar tid, " set " ++ vname ++ " [" ++ cmd ++ "] "]
    where vname = (drop 1 (show tid))
+         cmd = show cnm ++ " create " ++ show k ++ " " ++
+               show (toGUIValue cds) ++ " " ++ showConfigs args
+{-
          cmd = show cnm ++ " create " ++ show k ++ " - coord " ++
                show (toGUIValue cds) ++ " " ++ showConfigs args
+-}
 tkCreateCanvasItem _ _ _ _ _ = error "CanvasItemAux (tkCreateCanvasItem)"
 
 declVar :: CanvasTagOrID -> TclCmd

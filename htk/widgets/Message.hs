@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>message widget</strong>.<br>
+-- A message widget is a simple container for text.
 module Message (
 
   Message,
@@ -30,32 +33,39 @@ import Tooltip
 
 
 -- -----------------------------------------------------------------------
--- type Message 
+-- type
 -- -----------------------------------------------------------------------
 
-newtype Message a = Message GUIOBJECT deriving Eq
+---
+-- The <code>Message</code> datatype.
+newtype Message = Message GUIOBJECT deriving Eq
 
 
 -- -----------------------------------------------------------------------
--- commands
+-- construction
 -- -----------------------------------------------------------------------
 
-newMessage :: (Container par, GUIValue a) => par ->
-                                             [Config (Message a)] ->
-                                             IO (Message a)
-newMessage par ol =
+---
+-- Constructs a new message widget and returns a handler.
+-- @param par     - the parent widget, which has to be a container widget
+--                  (an instance of <code>class Container</code>).
+-- @param cnf     - the list of configuration options for this message
+--                  widget.
+-- @return result - A message widget.
+newMessage :: Container par => par -> [Config Message] -> IO Message
+newMessage par cnf =
   do
     w <- createWidget (toGUIObject par) MESSAGE
-    configure (Message w) (aspect 150 : ol)
+    configure (Message w) cnf
 
 
 -- -----------------------------------------------------------------------
--- instantiations
+-- instances
 -- -----------------------------------------------------------------------
 
 ---
 -- Internal.
-instance GUIObject (Message a) where 
+instance GUIObject Message where 
 ---
 -- Internal.
   toGUIObject (Message w) = w
@@ -64,47 +74,90 @@ instance GUIObject (Message a) where
   cname _ = "Message"
 
 ---
--- A separator can be destroyed.
-instance Destroyable (Message a) where
+-- A message widget can be destroyed.
+instance Destroyable Message where
+---
+-- Destroys a message widget.
   destroy   = destroy . toGUIObject
 
-instance Widget (Message a)
+---
+-- A message widget has standard widget properties
+-- (concerning focus, cursor).
+instance Widget Message
 
-instance HasBorder (Message a)
+---
+-- A message widget has a configureable border.
+instance HasBorder Message
 
-instance HasColour (Message a) where
+---
+-- A message widget has a foreground and background colour.
+instance HasColour Message where
+---
+-- Internal.
   legalColourID = hasForeGroundColour
 
-instance HasFont (Message a)
+---
+-- You can specify the font of a message widget.
+instance HasFont Message
 
-instance HasJustify (Message a)
+---
+-- A message widget has a configureable text justification.
+instance HasJustify Message
 
-instance HasSize (Message a) where
+---
+-- You can specify the width of a message widget (height configuration
+-- is ignored).
+instance HasSize Message where
   height _ w = return w
   getHeight _ = return 1
 
-instance GUIValue b => HasText (Message String) b where
+---
+-- A message widget can contain text.
+instance GUIValue b => HasText Message b where
+---
+-- Sets the text of the message widget.
+-- @param t	  - the text to set.
+-- @param w	  - the concerned message widget.
+-- @return result - The concerned message widget.
   text t w   = cset w "text" t
+---
+-- Gets the text from a message widget.
+-- @param w	  - the concerned message widget.
+-- @return result - the set text.
   getText w  = cget w "text"
 
-instance Synchronized (Message a) where
+---
+-- You can synchronize on a message object (in JAVA style).
+instance Synchronized Message where
+---
+-- Synchronizes on a message object.
   synchronize = synchronize . toGUIObject
 
 ---
--- A message widget can have a tooltip.
-instance HasTooltip (Message a)
+-- A message widget can have a tooltip (only displayed if you are using
+-- tixwish).
+instance HasTooltip Message
 
 ---
--- An message widget has an anchor.
-instance HasAnchor (Message a)
+-- An message widget has a text anchor.
+instance HasAnchor Message
 
 
 -- -----------------------------------------------------------------------
 -- configuration options
 -- -----------------------------------------------------------------------
 
-aspect :: Int -> Config (Message a)
-aspect i w = cset w "aspect" i
+---
+-- Sets the aspect of a message widget (100 * width / height).
+-- @param i	  - the aspect to set.
+-- @param mes	  - the concerned message widget.
+-- @return result - The concerned message widget.
+aspect :: Int -> Config Message
+aspect i mes = cset mes "aspect" i
 
-getAspect :: Message a -> IO Int
-getAspect w = cget w "aspect"
+---
+-- Gets the aspect froma message widget.
+-- @param mes	  - the concerned message widget.
+-- @return result - The current aspect of this message widget.
+getAspect :: Message -> IO Int
+getAspect mes = cget mes "aspect"

@@ -49,7 +49,7 @@ newtype Button a = Button GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 ---
--- Constructs a new button widget and returns it as a value.
+-- Constructs a new button widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this button.
@@ -80,7 +80,7 @@ instance GUIObject (Button a) where
 instance Destroyable (Button a) where
 ---
 -- Destroys a button widget.
-  destroy   = destroy . toGUIObject
+  destroy = destroy . toGUIObject
 
 ---
 -- A button widget has standard widget properties
@@ -89,7 +89,7 @@ instance Widget (Button a)
 
 ---
 -- A button widget can be flashed (redisplayed several times in
--- alternate colours) and invoked (associated event).
+-- alternate colours) and invoked (the associated event).
 instance ButtonWidget (Button a)
 
 ---
@@ -101,8 +101,9 @@ instance HasBitMap (Button BitMap)
 instance HasBorder (Button a)
 
 ---
--- A button widget has a foreground and background colour.
-instance HasColour (Button a) where 
+-- A button widget has a normal foreground and background colour and an
+-- active/disabled foreground and background colour.
+instance HasColour (Button a) where
 ---
 -- Internal.
   legalColourID = buttonColours
@@ -116,7 +117,7 @@ instance HasEnable (Button a)
 instance HasFont (Button String)
 
 ---
--- A button has a text justification configuration.
+-- A button has a configureable text justification.
 instance HasJustify (Button a)
 
 ---
@@ -132,7 +133,7 @@ instance HasSize (Button a)
 instance GUIValue v => HasText (Button String) v
 
 ---
--- A button can contain underlined text.
+-- You can set the index of a text character to underline.
 instance HasUnderline (Button String)
 
 ---
@@ -151,5 +152,5 @@ instance HasCommand (Button a)
 instance HasTooltip (Button a)
 
 ---
--- A label has an anchor.
+-- A label has a text anchor.
 instance HasAnchor (Button a)

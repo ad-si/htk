@@ -271,25 +271,7 @@ clearTreeList :: CItem c => TreeList c -> IO ()
 clearTreeList tl =
   do
     state <- getRef (internal_state tl)
-    putStr "deleting "
-    mapM (\ (StateEntry obj _ _ _) -> do
-                                        let (line1, line2) = obj_lines obj
-                                        putStr "."
-                                        acts' <- getRef (ub_acts obj)
-                                        mapM id acts'
-                                        putStr "*"
-                                        destroy (obj_img obj)
-                                        putStr "!"
-                                        destroy line1
-                                        putStr "!"
-                                        destroy line2
-                                        putStr "!"
-                                        destroy (obj_img obj)
-                                        putStr "!"
-                                        destroy (obj_nm obj)
-                                        putStr "!"
-                                        destroy (embedded_win obj)
-                                        putStr "!") state
+    mapM (\ (StateEntry obj _ _ _) -> removeObject obj) state
     setRef (internal_state tl) []
 
 getObjectFromTreeList :: CItem a => TreeList a -> a ->
@@ -332,7 +314,7 @@ mkNode tl val =
           Just (obj, isroot) <- getObjectFromTreeList tl val
           nm <- getTreeListObjectName obj
           [(x, y)] <- getCoord (embedded_win obj)
-          removeObject tl obj
+          removeObject obj
           nuobj <- mkTreeListObject tl val True False [name nm]
           objectChanged tl obj nuobj
           pho <- getIcon val
@@ -353,7 +335,7 @@ mkLeaf tl val =
            else error "TreeList (mkLeaf) : node is not empty")
           nm <- getTreeListObjectName obj
           [(x, y)] <- getCoord (embedded_win obj)
-          removeObject tl obj
+          removeObject obj
           nuobj <- mkTreeListObject tl val False False [name nm]
           objectChanged tl obj nuobj
           pho <- getIcon val
@@ -369,7 +351,7 @@ removeTreeListObject tl val =
     case mch of
       Just (ch, upper) ->
         do
-          mapM (removeObject tl) (obj : ch)
+          mapM removeObject (obj : ch)
           done
       _ -> done
 
@@ -787,15 +769,15 @@ insertObjects tl (x, y) chobjs =
         insertObjects' _ (x, y) _ = done
 
 -- removes an object from the treelist
-removeObject :: CItem a => TreeList a -> TREELISTOBJECT a -> IO ()
-removeObject _ obj =
+removeObject :: CItem a => TREELISTOBJECT a -> IO ()
+removeObject obj =
   do
+    ubs <- getRef (ub_acts obj)
+    mapM id ubs
     destroy (embedded_win obj)
     if (is_node obj) then destroy (plusminus obj) else done
     destroy (selHLine (obj_lines obj))
     destroy (selVLine (obj_lines obj))
-    ubs <- getRef (ub_acts obj)
-    mapM id ubs
     setRef (ub_acts obj) []
     done
 
@@ -877,7 +859,7 @@ pressed obj =
             pho <- plusImg
             plusminus obj # photo pho
             (children, opensubobjvals) <- getChildren state obj
-            mapM (removeObject (treelist obj)) children
+            mapM removeObject children
             setRef (internal_state (treelist obj))
                    (take (index - 1) state ++
                     [StateEntry obj False i opensubobjvals] ++
@@ -1028,12 +1010,6 @@ mkTreeListObject tl val isnode isopen cnf =
                                                 (val,
                                                  if isnode then Node
                                                  else Leaf)), ev_inf)))
-{-
-                noWait (send (focus_ch tl)
-                             (Just (TreeListObject
-                                      (val, if isnode then Node
-                                            else Leaf)), ev_inf))
--}
                 listenObject)
           +> receive death
     spawnEvent listenObject
@@ -1079,17 +1055,18 @@ getTreeListObjectName obj =
 
 importTreeListState :: CItem a => TreeList a -> TreeListState a -> IO ()
 importTreeListState tl st =
-  do
-    putStrLn "clearing treelist"
-    clearTreeList tl
-    putStrLn "making entries"
-    state <- mkEntries tl st
-    setRef (internal_state tl) state
-    let StateEntry root _ _ _ = head state
-    putStrLn "packing root"
-    packTreeListObject root True (5, 5)
-    putStrLn "inserting objects"
-    insertObjects tl (5, 5 + Distance lineheight) (toObjects (tail state))
+  synchronize tl
+    (do
+       clearTreeList tl
+       state <- mkEntries tl st
+       setRef (internal_state tl) state
+       let StateEntry root _ _ _ = head state
+       packTreeListObject root True (5, 5)
+       pho <- getIcon (val root)
+       obj_img root # photo pho
+       insertObjects tl (5 + Distance intendation, 5)
+                        (toObjects (tail state))
+       updScrollRegion (cnv tl) (internal_state tl))
 
 toObjects :: [StateEntry a] -> [(Int, Bool, TREELISTOBJECT a)]
 toObjects (StateEntry obj isopen intend _  : ents) =
@@ -1119,9 +1096,10 @@ type TreeListState a = [TreeListExportItem a]
 
 exportTreeListState :: CItem c => TreeList c -> IO (TreeListState c)
 exportTreeListState tl =
-  do
-    state <- getRef (internal_state tl)
-    exportTreeListState' tl state
+  synchronize tl
+    (do
+       state <- getRef (internal_state tl)
+       exportTreeListState' tl state)
   where exportTreeListState' :: CItem c =>
                                 TreeList c -> [StateEntry c] ->
                                 IO (TreeListState c)

@@ -144,8 +144,8 @@ removeTextTag :: (HasIndex (Editor a) i1 BaseIndex,
 removeTextTag tag @ (TextTag tp _) start end = 
   synchronize tag (
     do
-      start' <- getBaseIndex tp start;
-      end' <- getBaseIndex tp end;
+      start' <- getBaseIndex tp start
+      end' <- getBaseIndex tp end
       execMethod tag (\nm -> tkTagRemove nm start' end')
   )
 

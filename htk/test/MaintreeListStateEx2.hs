@@ -17,6 +17,7 @@ import ReferenceVariables
 
 cfun :: ChildrenFun String
 cfun obj =
+{-
   case getTreeListObjectValue obj of
       "/" ->
         return [newTreeListObject "/home" "home" Node,

@@ -3,7 +3,7 @@ LIBS = $(TOP)/htk/libhtk.a $(TOP)/reactor/libreactor.a \
 
 SRCS       = MainnotepadStateEx.hs\
              MainwithdrawConfigTest.hs\
-#             MaintreeListStateEx.hs\
+             MaintreeListStateEx.hs\
 #             MaintreeListStateEx2.hs\
 
 XHCDIRS = $(HTKDIRS)

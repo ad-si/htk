@@ -22,6 +22,7 @@ import ReferenceVariables
 import System
 import Maybe
 import TkVariables
+import ModalDialog
 
 tlDebug = False
 debugMsg str = if tlDebug then putStr (">>> " ++ str ++ "\n") else done
@@ -121,7 +122,7 @@ changeToFolder path foldersref filesref pathref folderslb fileslb
                file_var showhidden =
   do
     let path' = if path == "" then "/" else path
-    acc <- system ("access -rx " ++ path')
+    acc <- system ("access -rx \"" ++ path' ++ "\"")
     (if acc == ExitSuccess then
        do
          setRef pathref path
@@ -185,115 +186,117 @@ selectFile i filesref file_var =
     files <- getRef filesref
     setTkVariable file_var (files !! i)
 
-createFolder :: Toplevel -> Ref (Maybe String) -> IO ()
-createFolder par ret =
-  do
-    (w, h, x, y) <- getGeometry par
-    let w' = 400
-        h' = 100
-    main <- createToplevel [text "Create a new folder",
-                            geometry (w', h',
-                                      x + (div w 2) - (div w' 2),
-                                      y + (div h 2) - (div h' 2))]
+createFolder :: Toplevel -> Ref (Maybe Toplevel) -> Ref (Maybe String) ->
+                IO ()
+createFolder par childwindow ret =
+  synchronize par
+    (do
+       (w, h, x, y) <- getGeometry par
+       let w' = 400
+           h' = 100
+       main <- createToplevel [text "Create a new folder",
+                               geometry (w', h',
+                                         x + (div w 2) - (div w' 2),
+                                         y + (div h 2) - (div h' 2))]
+       setRef childwindow (Just main)
+       (main_destr, main_destr_ub) <- bindSimple main Destroy
 
-    entnlab <- newFrame main []
-    pack entnlab [PadX 10, PadY 5]
+       entnlab <- newFrame main []
+       pack entnlab [PadX 10, PadY 5]
 
-    lab <- newLabel entnlab [font (Lucida, 12::Int), text "Enter name:"]
-    pack lab []
+       lab <- newLabel entnlab [font (Lucida, 12::Int),
+                                text "Enter name:"]
+       pack lab []
 
-    ent_var <- createTkVariable ""
-    ent <- newEntry entnlab [bg "white", width 40, variable ent_var]
-             :: IO (Entry String)
-    pack ent [PadX 10, PadY 5]
+       ent_var <- createTkVariable ""
+       ent <- newEntry entnlab [bg "white", width 40, variable ent_var]
+                :: IO (Entry String)
+       pack ent [PadX 10, PadY 5]
 
-    buttons <- newFrame main []
-    pack buttons [PadX 10, PadY 5, Side AtBottom]
+       buttons <- newFrame main []
+       pack buttons [PadX 10, PadY 5, Side AtBottom]
 
-    ok <- newButton buttons [text "Ok", width 12] :: IO (Button String)
-    pack ok [PadX 5, Side AtLeft]
+       ok <- newButton buttons [text "Ok", width 12] :: IO (Button String)
+       pack ok [PadX 5, Side AtLeft]
 
-    quit <- newButton buttons [text "Cancel",
-                               width 12] :: IO (Button String)
-    pack quit [PadX 5, Side AtLeft]
+       quit <- newButton buttons [text "Cancel",
+                                  width 12] :: IO (Button String)
+       pack quit [PadX 5, Side AtLeft]
 
-    clickedok <- clicked ok
-    clickedquit <- clicked quit
-    (filer_destr, unbind_filer_destr) <- bindSimple par Destroy
-    (win_destr, unbind_win_destr) <- bindSimple main Destroy
+       clickedok <- clicked ok
+       clickedquit <- clicked quit
 
-    let cleanUp :: IO ()
-        cleanUp = setRef ret Nothing >> unbind_filer_destr >>
-                  unbind_win_destr
+       let cleanUp :: IO ()
+           cleanUp = main_destr_ub >> setRef childwindow Nothing
 
-        listenDialog :: Event ()
-        listenDialog =
-             (clickedquit >> always (cleanUp >> destroy main))
-          +> (win_destr >> always cleanUp)
-          +> (filer_destr >> always (cleanUp >> destroy main))
-          +> (clickedok >> always (do
-                                     cleanUp
-                                     nm <- readTkVariable ent_var
-                                     setRef ret (Just nm)
-                                     destroy main))
+           listenDialog :: Event ()
+           listenDialog =
+                (clickedquit >> always (cleanUp >> destroy main))
+             +> (clickedok >> always (do
+                                        cleanUp
+                                        nm <- readTkVariable ent_var
+                                        setRef ret (Just nm)
+                                        destroy main))
+             +> (main_destr >> always (cleanUp))
 
-    spawnEvent listenDialog
-    sync win_destr
+       modalDialog main True listenDialog)
 
-confirmDeleteFile :: Toplevel -> FilePath -> Ref Bool -> IO ()
-confirmDeleteFile par fp ret =
-  do
-    (w, h, x, y) <- getGeometry par
-    let w' = 400
-        h' = 100
-    main <- createToplevel [text "Delete file",
-                            geometry (w', h',
-                                      x + (div w 2) - (div w' 2),
-                                      y + (div h 2) - (div h' 2))]
+confirmDeleteFile :: Toplevel -> FilePath -> Ref (Maybe Toplevel) ->
+                     Ref Bool -> IO ()
+confirmDeleteFile par fp childwindow ret =
+  synchronize par
+    (do
+       (w, h, x, y) <- getGeometry par
+       let w' = 400
+           h' = 100
+       main <- createToplevel [text "Delete file",
+                               geometry (w', h',
+                                         x + (div w 2) - (div w' 2),
+                                         y + (div h 2) - (div h' 2))]
+       setRef childwindow (Just main)
+       (main_destr, main_destr_ub) <- bindSimple main Destroy
 
-    lab <- newLabel main
-             [font (Lucida, 12::Int),
-              text ("Do you really want to delete the file \n'" ++
-                    fp ++ "' ?")]
-    pack lab [PadX 10, PadY 5]
+       lab <- newLabel main
+                [font (Lucida, 12::Int),
+                 text ("Do you really want to delete the file \n'" ++
+                       fp ++ "' ?")]
+       pack lab [PadX 10, PadY 5]
 
-    buttons <- newFrame main []
-    pack buttons [PadX 10, PadY 5, Side AtBottom]
+       buttons <- newFrame main []
+       pack buttons [PadX 10, PadY 5, Side AtBottom]
 
-    ok <- newButton buttons [text "Ok", width 15] :: IO (Button String)
-    pack ok [PadX 5, Side AtLeft]
+       ok <- newButton buttons [text "Ok", width 15] :: IO (Button String)
+       pack ok [PadX 5, Side AtLeft]
 
+       quit <- newButton buttons [text "Cancel", width 15]
+                 :: IO (Button String)
+       pack quit [PadX 5, Side AtLeft]
 
-    quit <- newButton buttons [text "Cancel", width 15]
-              :: IO (Button String)
-    pack quit [PadX 5, Side AtLeft]
+       clickedok <- clicked ok
+       clickedquit <- clicked quit
 
-    clickedok <- clicked ok
-    clickedquit <- clicked quit
-    (win_destr, win_destr_unbind) <- bindSimple main Destroy
-    (filer_destr, filer_destr_unbind) <- bindSimple par Destroy
+       let cleanUp :: IO ()
+           cleanUp = main_destr_ub >> setRef childwindow Nothing
 
-    let cleanUp :: IO ()
-        cleanUp = win_destr_unbind >> filer_destr_unbind
+           listenDialog :: Event ()
+           listenDialog =
+                (clickedok >> always (cleanUp >> setRef ret True >>
+                                      destroy main))
+             +> (clickedquit >> always (setRef ret False >> cleanUp >>
+                                        destroy main))
+             +> (main_destr >> always (cleanUp))
 
-        listenDialog :: Event ()
-        listenDialog =
-             (clickedok >> always (setRef ret True >> cleanUp >>
-                                   destroy main))
-          +> (clickedquit >> always (setRef ret False >> cleanUp >>
-                                     destroy main))
-          +> (filer_destr >> always (cleanUp >> destroy main))
-
-    spawnEvent listenDialog
-    sync win_destr
-
+       modalDialog main True listenDialog)
 
 fileDialog :: String -> FilePath -> IO (Event (Maybe FilePath))
 fileDialog title path' =
   do
     let path = if last path' == '/' then path' else path' ++ "/"
 
+    childwindow <- newRef Nothing
+
     main <- createToplevel [text title]
+    (main_destr, main_destr_ub) <- bindSimple main Destroy
 
     let w' = 680
         h' = 400
@@ -336,7 +339,7 @@ fileDialog title path' =
                           :: IO (Button Image)
     pack deletefilebutton [PadX 2, Side AtLeft]
 
-    showHiddenFiles <- newCheckButton actions [text "Show hidden files"]
+    showHiddenFiles <- newCheckButton actions [text "hidden files"]
                          :: IO (CheckButton a String)
     pack showHiddenFiles [PadX 10, Side AtLeft]
 
@@ -364,8 +367,8 @@ fileDialog title path' =
     filesscb <- newScrollBar fileslist []
     pack filesscb [Side AtRight, Fill Y]
     fileslb # scrollbar Vertical filesscb
-    status <- newLabel boxesnmsg [text "Welcome", relief Sunken,
-                                  font (Lucida, 12::Int)]
+    status <- newLabel boxesnmsg [text "Welcome", relief Raised,
+                                  font (Lucida, 12::Int), anchor Center]
     pack status [PadX 10, Fill X, Expand On]
 
     file_var <- createTkVariable ""
@@ -388,7 +391,6 @@ fileDialog title path' =
 
 
     -- events
-
     clickeddeletefilebutton <- clicked deletefilebutton
     clickedshowHiddenFiles <- clicked showHiddenFiles
     clickedupbutton <- clicked upbutton
@@ -396,13 +398,13 @@ fileDialog title path' =
     clickednewfolderbutton <- clicked newfolderbutton
     clickedok <- clicked ok
     clickedquit <- clicked quit
-    (fbpress, fbpress_unbind) <- bindSimple folderslb
-                                   (ButtonPress (Just (BNo 1)))
-    (flpress, flpress_unbind) <- bindSimple fileslb
-                                   (ButtonPress (Just (BNo 1)))
+    (fbpress, fbpress_ub) <- bindSimple folderslb
+                              (ButtonPress (Just (BNo 1)))
+    (flpress, flpress_ub) <- bindSimple fileslb
+                               (ButtonPress (Just (BNo 1)))
 
     let cleanUp :: IO ()
-        cleanUp = flpress_unbind >> fbpress_unbind
+        cleanUp = flpress_ub >> fbpress_ub >> main_destr_ub
 
         listenDialog :: Event ()
         listenDialog =
@@ -457,7 +459,7 @@ fileDialog title path' =
               always
                 (do
                    ret <- newRef Nothing
-                   createFolder main ret
+                   createFolder main childwindow ret
                    ret' <- getRef ret
                    case ret' of
                      Just nm ->
@@ -525,7 +527,8 @@ fileDialog title path' =
                       do
                         ret <- newRef False
                         path <- getRef pathref
-                        confirmDeleteFile main (path ++ nm) ret
+                        confirmDeleteFile main (path ++ nm) childwindow
+                                          ret
                         ret' <- getRef ret
                         (if ret' then
                            do
@@ -541,12 +544,21 @@ fileDialog title path' =
                                Left _ ->
                                  status #
                                    text
-                                     ("Error: Couldn't delete file '" ++
+                                     ("Error: Could not delete file '" ++
                                       nm ++ "'") >> done
                          else status # text "cancelled file deletion" >>
                               done))) >>
               listenDialog)
     spawnEvent listenDialog
+
+    spawnEvent (main_destr >> always (do
+                                        mchildwindow <- getRef childwindow
+                                        case mchildwindow of
+                                          Just win -> destroy win
+                                          _ -> done
+                                        cleanUp
+                                        syncNoWait (send msgQ Nothing)))
+
     return (receive msgQ)
 
 upImg = newImage NONE [imgData GIF "R0lGODlhFAAUAKEAAP//////AAAAAP///yH5BAEAAAMALAAAAAAUABQAAAJAnI+py+0Po1Si2iiC

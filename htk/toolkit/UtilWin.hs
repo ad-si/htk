@@ -100,7 +100,7 @@ simplestWin title bm txt =
          box <- newHBox win []
          img <- newLabel box [bitmap bm] :: IO (Label BitMap)
          pack img [PadX 20]
-         mes <- newMessage box [text txt, width 280] :: IO (Message String)
+         mes <- newMessage box [text txt, width 280]
          pack mes [PadX 20]
          pack box [PadY 10]
          return win

@@ -9,6 +9,9 @@
 --
 -- -----------------------------------------------------------------------
 
+---
+-- HTk's <strong>option menu</strong> widget.<br>
+-- A simple clip up menu displaying radiobuttons to 
 module OptionMenu (
 
   OptionMenu,
@@ -32,6 +35,7 @@ import Tooltip
 -- -----------------------------------------------------------------------
 -- datatype
 -- -----------------------------------------------------------------------
+
 
 newtype OptionMenu a = OptionMenu GUIOBJECT deriving Eq
 
@@ -81,12 +85,14 @@ instance GUIValue a => HasValue (OptionMenu a) a where
   getValue w = getTclVariable ((tvarname . objectID . toGUIObject) w)
 
 ---
--- An option menu can have a tooltip.
+-- An option menu can have a tooltip (only displayed if you are using
+-- tixwish).
 instance HasTooltip (OptionMenu a)
 
 ---
--- An option menu has an anchor.
+-- An option menu has a text anchor.
 instance HasAnchor (OptionMenu a)
+
 
 -- -----------------------------------------------------------------------
 -- OptionMenu methods

@@ -11,7 +11,7 @@
 
 ---
 -- HTk's <strong>check button widget</strong>.<br>
--- A simple check button which corresponds to a polymorphic variable.
+-- A simple check button associated with a polymorphic variable.
 module CheckButton (
 
   CheckButton,
@@ -40,7 +40,7 @@ import Tooltip
 
 ---
 -- The <code>CheckButton</code> datatpe - it is associated with a
--- polymorphic <code>TkVariable</code> (first parameter); a
+-- polymorphic <code>TkVariable</code> (first type parameter); a
 -- <code>CheckButton a String</code> contains text, a
 -- <code>CheckButton a Image</code> contains an image,
 -- <code>CheckButton a Bitmap</code> contains a bitmap.
@@ -52,7 +52,7 @@ newtype CheckButton a b = CheckButton GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 ---
--- Constructs a new check button widget and returns it as a value.
+-- Constructs a new check button widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this check
@@ -94,7 +94,7 @@ instance Widget (CheckButton a b)
 
 ---
 -- A check button widget can be flashed (redisplayed several times in
--- alternate colours) and invoked (associated event) as any button
+-- alternate colours) and invoked (the associated event) as any button
 -- widget.
 instance ButtonWidget (CheckButton a b)
 
@@ -107,7 +107,8 @@ instance HasBitMap (CheckButton a BitMap)
 instance HasBorder (CheckButton a b)
 
 ---
--- A check button widget has a foreground and background colour.
+-- A button widget has a normal foreground and background colour and an
+-- active/disabled foreground and background colour.
 instance HasColour (CheckButton a b) where 
 ---
 -- Internal.
@@ -139,7 +140,7 @@ instance HasSize (CheckButton a b)
 instance GUIValue v => HasText (CheckButton a String) v
 
 ---
--- A check button can contain underlined text.
+-- You can set the index of a text character to underline.
 instance HasUnderline (CheckButton a String)
 
 ---
@@ -152,19 +153,19 @@ instance Synchronized (CheckButton a b) where
 instance HasCommand (CheckButton a b)
 
 ---
--- A checkbutton has a value, which corresponds to a polymorphic
+-- A checkbutton has a value, that corresponds to a polymorphic
 -- <code>TkVariable</code>.
 instance GUIValue a => HasValue (CheckButton a b) a
 
 ---
--- The polymorphic variable, to which the check button's value
--- corresponds.
+-- The polymorphic variable the check button's value is associated with.
 instance HasVariable (CheckButton a b)
 
 ---
--- An checkbutton can have a tooltip.
+-- An checkbutton can have a tooltip (only displayed if you are using
+-- tixwish).
 instance HasTooltip (CheckButton a b)
 
 ---
--- A checkbutton has an anchor.
+-- A checkbutton has a text anchor.
 instance HasAnchor (CheckButton a b)

@@ -11,7 +11,7 @@
 
 ---
 -- HTk's <strong>label widget</strong>.<br>
--- A label is a simple container for text or images.
+-- A label is a simple container for text or images/bitmaps.
 module Label (
 
   Label,
@@ -47,7 +47,7 @@ newtype Label a = Label GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 ---
--- Constructs a new label widget and returns a handler as a value.
+-- Constructs a new label widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this label.
@@ -101,7 +101,7 @@ instance HasColour (Label a) where
 instance HasFont (Label a)
 
 ---
--- A label has a text justification configuration.
+-- A label has a configureable text justification.
 instance HasJustify (Label a)
 
 ---
@@ -117,7 +117,7 @@ instance HasBitMap (Label BitMap)
 instance HasSize (Label a)
 
 ---
--- A label can contain underlined text.
+-- You can set the index of a text character to underline.
 instance HasUnderline (Label a)
 
 ---
@@ -125,7 +125,8 @@ instance HasUnderline (Label a)
 instance GUIValue b => HasText (Label a) b
 
 ---
--- A label widget can have a tooltip.
+-- A label widget can have a tooltip (only displayed if you are using
+-- tixwish).
 instance HasTooltip (Label a)
 
 ---
@@ -136,5 +137,5 @@ instance Synchronized (Label a) where
   synchronize = synchronize . toGUIObject
 
 ---
--- A label has an anchor.
+-- A label has a text anchor.
 instance HasAnchor (Label a)

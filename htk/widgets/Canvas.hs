@@ -13,7 +13,7 @@
 -- HTk's <strong>canvas widget</strong>.<br>
 -- A canvas is a drawing pad, that can also contain widgets in embedded
 -- windows.<br>
--- A canvas widget containts <strong>canvas items</strong>.
+-- A canvas widget contains <strong>canvas items</strong>.
 module Canvas (
 
 --  HasPostscript(..),   -- TD: ps export
@@ -71,7 +71,7 @@ newtype Canvas = Canvas GUIOBJECT deriving Eq
 -- -----------------------------------------------------------------------
 
 ---
--- Constructs a new canvas widget and returns it as a value.
+-- Constructs a new canvas widget and returns a handler.
 -- @param par     - the parent widget, which has to be a container widget
 --                  (an instance of <code>class Container</code>).
 -- @param cnf     - the list of configuration options for this canvas.
@@ -120,6 +120,8 @@ instance HasBorder Canvas
 ---
 -- A canvas widget has a foreground and background colour.
 instance HasColour Canvas where 
+---
+-- Internal.
   legalColourID = hasBackGroundColour
 
 ---
@@ -144,7 +146,7 @@ instance Synchronized Canvas where
   synchronize = synchronize . toGUIObject
 
 ---
--- A canvas can have a tooltip.
+-- A canvas can have a tooltip (only displayed if you are using tixwish).
 instance HasTooltip Canvas
 
 
@@ -153,8 +155,7 @@ instance HasTooltip Canvas
 -- -----------------------------------------------------------------------
 
 ---
--- Distance from mouse to an overlapping object
--- (canvas specific configuration option).
+-- Sets the maximum distance from the mouse to an overlapped object.
 -- @param dist    - the distance to be set.
 -- @param cnv     - the canvas to apply this configuration.
 -- @return result - The concerned canvas.
@@ -162,28 +163,27 @@ closeEnough :: Double -> Canvas -> IO Canvas
 closeEnough dist cnv = cset cnv "closeenough" dist
 
 ---
--- Selector for distance from mouse to an overlapping object
--- (canvas specific configuration option).
+-- Selector for the maximum distance from the mouse to an overlapped
+-- object.
 -- @param cnv     - the canvas to get this configuration from.
 -- @return result - The requested distance.
 getCloseEnough :: Canvas -> IO Double
 getCloseEnough cnv = cget cnv "closeenough"
 
 ---
--- <code>True</code> constraints view to the scroll region
--- (canvas specific configuration option).
--- @param b       - <code>Bool</code> parameter (see above).
+-- <code>True</code> constraints view to the scroll region.
+-- @param b       - <code>Bool</code>, see above.
 -- @param cnv     - the canvas to apply this configuration.
 -- @return result - The concerned canvas.
 confine :: Bool -> Canvas -> IO Canvas
 confine b cnv = cset cnv "confine" b
 
 ---
--- Selector for confine configuration, constraints view to the scroll
--- region if <code>True</code> (canvas specific configuration option).
+-- Selector for the <code>confine</code> configuration, constraints view
+-- to the scroll region if <code>True</code>.
 -- @param cnv     - the canvas to get this configuration from.
 -- @return result - The confine configuration as a <code>Bool</code>
---                  value (see above).
+--                  value (see <code>confine</code>).
 getConfine :: Canvas -> IO Bool
 getConfine w = cget w "confine"
 
@@ -213,13 +213,12 @@ screenToCanvasCoord cnv orient dist grid =
 -- -----------------------------------------------------------------------
 
 ---
--- The <code>ScrollRegion</code> datatype (scrollable region of a canvas
+-- The <code>ScrollRegion</code> datatype (scrollable region of the canvas
 -- widget).
 type ScrollRegion = (Position, Position)
 
 ---
--- Sets the scrollable region for a canvas widget
--- (canvas specific configuration option).
+-- Sets the scrollable region for a canvas widget.
 -- @param reg     - the scroll region to set.
 -- @param cnv     - the canvas widget to apply this scrollregion.
 -- @return result - The concerned canvas.
@@ -230,8 +229,7 @@ scrollRegion reg@((x1, y1), (x2, y2)) cnv =
   in cset cnv ("scrollregion" ++ reg) ([] :: [Position])
 
 ---
--- Gets the applied scroll region from a canvas widget
--- (canvas specific configuration option).
+-- Gets the applied scroll region from a canvas widget.
 -- @param cnv     - the canvas widget to get the applied scroll region
 --                  from.
 -- @return result - The requested scroll region.
@@ -243,12 +241,11 @@ getScrollRegion cnv =
                                     _ -> return ((0,0), (0,0))
 
 ---
--- Sets the minimum scrolling distance
--- (canvas specific configuration option).
+-- Sets the distance for one scrolling unit.
 -- @param orient  - the orientation 
 --                  (<code>Vertical</code> or <code>Horizontal</code>).
--- @param dist    - the minimum scrolling distance to set.
--- @param cnv     - the canvas widget to apply this minimum scrolling
+-- @param dist    - the distance to set.
+-- @param cnv     - the canvas widget to apply this scrolling
 --                  distance.
 -- @return result - The concerned canvas.
 scrollIncrement :: Orientation -> Distance -> Canvas -> IO Canvas
@@ -257,8 +254,7 @@ scrollIncrement orient dist cnv =
                  _ -> cset cnv "yscrollincrement" dist
 
 ---
--- Gets the applied minimum scrolling distance from a canvas widget
--- (canvas specific configuration option).
+-- Gets the applied minimum scrolling distance from a canvas widget.
 -- @param orient  - the orientation
 --                  (<code>Vertical</code> or <code>Horizontal</code>).
 -- @param cnv     - the canvas widget to get the applied minimum

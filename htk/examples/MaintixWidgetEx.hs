@@ -66,7 +66,7 @@ main =
          lf_inf <- newLabelFrame page2 [text "Info"]
          grid lf_inf [GridPos (0,0), Sticky NSEW]
 
-         inf2 <- newMessage lf_inf [text "This is an example for widgets, that are only available with tixwish.\nYou can get information about which wish you are using via the tixAvailbale flag.", tooltip "tix widget example info"] :: IO (Message String)
+         inf2 <- newMessage lf_inf [text "This is an example for widgets, that are only available with tixwish.\nYou can get information about which wish you are using via the tixAvailbale flag.", tooltip "tix widget example info"]
          grid inf2 [GridPos (0,0), Sticky NSEW]
 
          finishHTk main

@@ -13,90 +13,95 @@ module Main (main) where
 
 import HTk
 import TreeList
+import Name
 
-cfun :: ChildrenFun String
+data MyObj = MyObj String String (IO Image)
+
+instance Eq MyObj where
+  MyObj path1 _ _ == MyObj path2 _ _ = path1 == path2
+
+instance CItem MyObj where
+  getName (MyObj _ nm _) = return (newName nm)
+  getIcon (MyObj _ _ img) = img
+
+cfun :: ChildrenFun MyObj
 cfun obj =
-  case getTreeListObjectValue obj of
+  let (MyObj path _ _) = getTreeListObjectValue obj in
+  case path of
       "/" ->
-        return [newTreeListObject "/home" "home" Node,
-                newTreeListObject "/usr" "usr" Node,
-                newTreeListObject "/tmp" "tmp" Leaf,
-                newTreeListObject "/floppy" "floppy" Leaf,
-                newTreeListObject "/opt" "opt" Node,
-                newTreeListObject "/etc" "etc" Node]
+        return [newTreeListObject (MyObj "/home" "home" folderImg) Node,
+                newTreeListObject (MyObj "/usr" "usr" folderImg) Node,
+                newTreeListObject (MyObj "/tmp" "tmp" folderImg) Leaf,
+                newTreeListObject (MyObj "/floppy" "floppy" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt" "opt" folderImg) Node,
+                newTreeListObject (MyObj "/etc" "etc" folderImg) Node]
       "/home" ->
-        return [newTreeListObject "/home/ludi" "ludi" Node]
+        return [newTreeListObject (MyObj "/home/ludi" "ludi" folderImg) Node]
       "/usr" ->
-        return [newTreeListObject "/usr/bin" "bin" Leaf,
-                newTreeListObject "/usr/lib" "lib" Leaf,
-                newTreeListObject "/usr/share" "share" Leaf]
+        return [newTreeListObject (MyObj "/usr/bin" "bin" folderImg) Leaf,
+                newTreeListObject (MyObj "/usr/lib" "lib" folderImg) Leaf,
+                newTreeListObject (MyObj "/usr/share" "share" folderImg) Leaf]
       "/opt" ->
-        return [newTreeListObject "/opt/Office51" "Office51" Leaf,
-                newTreeListObject "/opt/fsuite" "fsuite" Leaf,
-                newTreeListObject "/opt/gnome" "gnome" Leaf,
-                newTreeListObject "/opt/kde" "kde" Leaf,
-                newTreeListObject "/opt/netscape" "netscape" Leaf,
-                newTreeListObject "/opt/nps" "nps" Leaf,
-                newTreeListObject "/opt/oracle" "oracle" Leaf,
-                newTreeListObject "/opt/skyrix" "skyrix" Leaf]
+        return [newTreeListObject (MyObj "/opt/Office51" "Office51" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/fsuite" "fsuite" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/gnome" "gnome" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/kde" "kde" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/netscape" "netscape" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/nps" "nps" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/oracle" "oracle" folderImg) Leaf,
+                newTreeListObject (MyObj "/opt/skyrix" "skyrix" folderImg) Leaf]
       "/etc" ->
-        return [newTreeListObject "/etc/WindowMaker" "WindowMaker" Leaf,
-                newTreeListObject "/etc/X11" "X11" Leaf,
-                newTreeListObject "/etc/httpd" "httpd" Leaf,
-                newTreeListObject "/etc/texmf" "texmf" Leaf,
-                newTreeListObject "/etc/isdn" "isdn" Leaf,
-                newTreeListObject "/etc/ssh" "ssh" Leaf]
+        return [newTreeListObject (MyObj "/etc/WindowMaker" "WindowMaker" folderImg) Leaf,
+                newTreeListObject (MyObj "/etc/X11" "X11" folderImg) Leaf,
+                newTreeListObject (MyObj "/etc/httpd" "httpd" folderImg) Leaf,
+                newTreeListObject (MyObj "/etc/texmf" "texmf" folderImg) Leaf,
+                newTreeListObject (MyObj "/etc/isdn" "isdn" folderImg) Leaf,
+                newTreeListObject (MyObj "/etc/ssh" "ssh" folderImg) Leaf]
       "/home/ludi" ->
-        return [newTreeListObject "/home/ludi/www" "www" Leaf,
-                newTreeListObject "/home/ludi/archiv" "archiv" Node]
+        return [newTreeListObject (MyObj "/home/ludi/www" "www" folderImg) Leaf,
+                newTreeListObject (MyObj "/home/ludi/archiv" "archiv" folderImg) Node]
       "/home/ludi/archiv" ->
-        return [newTreeListObject "/home/ludi/archiv/download" "download" 
+        return [newTreeListObject (MyObj "/home/ludi/archiv/download" "download" folderImg)
                                   Leaf,
-                newTreeListObject "/home/ludi/archiv/uni" "uni" Leaf,
-                newTreeListObject "/home/ludi/archiv/haskell" "haskell"
+                newTreeListObject (MyObj "/home/ludi/archiv/uni" "uni" folderImg) Leaf,
+                newTreeListObject (MyObj "/home/ludi/archiv/haskell" "haskell" folderImg)
                                   Leaf]
-
-ifun :: ImageFun String
-ifun obj = folderImg
 
 main :: IO ()
 main =
   do
-    win1 <- initHTk [text "treelist1"]
+    main <- initHTk [text "treelist1"]
     win2 <- createToplevel [text "treelist2"]
 
-    tl1 <- newTreeList win1 cfun ifun [newTreeListObject "/" "/" Node]
+    tl1 <- newTreeList main cfun [newTreeListObject (MyObj "/" "/" folderImg) Node]
                        [background "white", size (cm 8, cm 10)]
     pack tl1 []
 
-    b1 <- newButton win1 [text "import other state"] :: IO (Button String)
+    b1 <- newButton main [text "import other state"] :: IO (Button String)
     pack b1 [Fill X]
     clickedb1 <- clicked b1
 
-    tl2 <- newTreeList win2 cfun ifun [newTreeListObject "/" "/" Node]
+    tl2 <- newTreeList win2 cfun [newTreeListObject (MyObj "/" "/" folderImg) Node]
                        [background "white", size (cm 8, cm 10)]
     pack tl2 []
 
     b2 <- newButton win2 [text "import other state"] :: IO (Button String)
     pack b2 [Fill X]
     clickedb2 <- clicked b2
-
-    (htk_destr, _) <- bindSimple win1 Destroy
     (win2_destr, _) <- bindSimple win2 Destroy
 
-    spawnEvent ((win2_destr >>> destroy win1) +>
-                (clickedb1 >>> do
-                                 st <- exportTreeListState tl2
-                                 putStrLn "state exported"
-                                 importTreeListState tl1 st
-                                 putStrLn "state imported") +>
-                (clickedb2 >>> do
-                                 st <- exportTreeListState tl1
-                                 putStrLn "state exported"
-                                 importTreeListState tl2 st
-                                 putStrLn "state imported"))
-
-    sync htk_destr
+    spawnEvent (forever ((win2_destr >>> destroy main) +>
+                         (clickedb1 >>> do
+                                          st <- exportTreeListState tl2
+                                          putStrLn "state exported"
+                                          importTreeListState tl1 st
+                                          putStrLn "state imported") +>
+                         (clickedb2 >>> do
+                                          st <- exportTreeListState tl1
+                                          putStrLn "state exported"
+                                          importTreeListState tl2 st
+                                          putStrLn "state imported")))
+    finishHTk main
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7"]

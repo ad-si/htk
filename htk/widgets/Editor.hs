@@ -12,7 +12,7 @@
 ---
 -- HTk's <strong>editor widget</strong>.<br>
 -- A text container for editing purposes. An editor widget can contain
--- text tags, to which you can make bindings, and also embedded windows.
+-- text tags, to which you can bind events, and also embedded windows.
 module Editor (
 
   module Selection,
@@ -267,12 +267,16 @@ appendText tp str =
 -- Editor to/from files
 -- -----------------------------------------------------------------------
 
+---
+-- Writes the contained text to a file.
 writeTextToFile :: Editor String -> FilePath -> IO ()
 writeTextToFile tp fnm =
   do
     str <- getValue tp
     writeFile fnm str
 
+---
+-- Reads a text from a file and inserts it into the editor pane.
 readTextFromFile :: Editor String -> FilePath -> IO ()
 readTextFromFile tp fnm =
   do
