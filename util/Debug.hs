@@ -12,7 +12,6 @@
 
 module Debug(
   debug, -- show something to log file if debugging is turned on.
-  debugTest, -- test a condition, if debugging is turned on.
 
   debugAct, 
   -- If an action fails print out a message before
@@ -65,20 +64,16 @@ $(
    if isDebug
       then
          [d|
-
-            debugString :: String -> IO ()
             debugString s =
                case debugFile of
                   Just f -> IO.hPutStr f s
                   Nothing -> return ()
 
-            debug :: Show a => a -> IO()
             debug s = 
                case debugFile of 
                   Just f  -> IO.hPutStrLn f (show s)
                   Nothing -> return ()
 
-            debugAct :: String -> IO a -> IO a
             debugAct mess act =
                do
                   res <- Control.Exception.try act
@@ -89,39 +84,44 @@ $(
                            throw error
                      Right success -> return success
 
-            debugTest :: Show a => Bool -> a -> IO ()
-            debugTest True val = return ()
-            debugTest False val = hPutStr stderr ("Debug.debugCond: "++show val)
-
          |]
       else
          [d|
-            debugString :: String -> IO ()
             debugString _ = return ()
 
-            debug :: Show a => a -> IO()
             debug _ = return ()
 
-            debugTest :: Show a => Bool -> a -> IO ()
-            debugTest _ _ = return ()
-
-            debugAct :: String -> IO a -> IO a
             debugAct _ act = act
 
             {-# inline debug #-}
-            {-# inline debugTest #-}
             {-# inline debugAct #-}
          |]
    )
 
+-- | show something to log file if debugging is turned on.
+debug :: Show a => a -> IO()
+
+-- | Send a string to the debug file.  This differs from
+-- debug, in that debug will Haskell-escape the string and add
+-- a newline, while just writes to the file with no interpretation.
+debugString :: String -> IO ()
+
+-- | If an action fails print out a message before
+-- propagating message.  
+debugAct :: String -> IO a -> IO a
+
+(@:) :: String -> IO a -> IO a
 (@:) = debugAct
 
+
+-- | always show something to the log file 
 alwaysDebug :: Show a => a -> IO()
 alwaysDebug s = 
    case debugFile of 
       Just f  -> IO.hPutStrLn f (show s)
       Nothing -> return ()
 
+-- | always print out a message if action fails.
 alwaysDebugAct :: String -> IO a -> IO a
 alwaysDebugAct mess act =
    do
@@ -133,6 +133,7 @@ alwaysDebugAct mess act =
                throw error
          Right success -> return success
 
+(@@:) :: String -> IO a -> IO a
 (@@:) = alwaysDebugAct
 
 wrapError :: String -> a -> a
