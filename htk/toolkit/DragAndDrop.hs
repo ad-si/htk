@@ -69,7 +69,7 @@ debugMsg str = if debug then putStr(">>> " ++ str ++ "\n\n") else done
 
 data NotepadItem a =
   NotepadItem ImageItem (TextItem String) (RVar a) (RVar ItemName)
-    (RVar (Maybe (Rectangle, Rectangle))) (MsgQueue (NotepadItem a))
+    (RVar (Maybe (Rectangle, Rectangle))) (MsgQueue (Bool))
 
 
 -- constructor --
@@ -83,7 +83,7 @@ newNotepadItem val notepad@(Notepad cnv _ _ _ _) cnf =
     itemval <- newRVar val
     itemname <- newRVar (ItemName { short = \_ -> "", full = "" })
     itemsel <- newRVar Nothing
-    msgQ <- newMsgQueue :: IO (MsgQueue (NotepadItem a))
+    msgQ <- newMsgQueue :: IO (MsgQueue Bool)
     item <- return(NotepadItem img txt itemval itemname itemsel msgQ)
     foldl (>>=) (return item) cnf
     interactor(inside img notepad item)
@@ -143,7 +143,7 @@ getName (NotepadItem _ _ _ nm _ _) =
 
 -- dropEvent :: NotepadItem a -> IA [(NotepadItem a)]
 
-selectionEvent :: NotepadItem a -> IA (NotepadItem a)
+selectionEvent :: NotepadItem a -> IA (Bool)
 selectionEvent (NotepadItem _ _ _ _ _ msgQ) = lift(receive msgQ)
 
 {-
@@ -210,7 +210,7 @@ selectItem notepad@(Notepad cnv _ _ selecteditemsref _)
     highlight cnv item
     selecteditems <- getVar selecteditemsref
     setVar selecteditemsref (item : selecteditems)
-    sendIO msgQ item
+    sendIO msgQ True
 
 selectAnotherItem :: Notepad a -> NotepadItem a -> IO ()
 selectAnotherItem (Notepad cnv _ _ selecteditemsref msgQ) item =

@@ -97,10 +97,16 @@ main =
                              name (ItemName { full  = "NotepadItem6",
                                               short = \n -> take n "item6" })]
     interactor
-      (\i -> (selectionEvent item1 >>> appendText output "item 1 selected") +>
-             (selectionEvent item2 >>> appendText output "item 2 selected") +>
-             (selectionEvent item3 >>> appendText output "item 3 selected") +>
-             (selectionEvent item4 >>> appendText output "item 4 selected") +>
-             (selectionEvent item5 >>> appendText output "item 5 selected") +>
-             (selectionEvent item6 >>> appendText output "item 6 selected"))
+      (\i -> (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
+                                                                 show b)) +>
+             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
+                                                                 show b)) +>
+             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
+                                                                 show b)) +>
+             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
+                                                                 show b)) +>
+             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
+                                                                 show b)) +>
+             (selectionEvent item1 >>>= \b -> appendText output ("item 1 " ++
+                                                                 show b)))
     sync (destroyed win)
