@@ -69,8 +69,8 @@ In this list, earlier entries always override later ones; thus the
 above list gives user "user1" write access to all versions, even if
 "user1" belongs to "group1".
 
-When there is no applicable permission in a list of permissions, the
-list of permissions is deemed to grant access.
+Thus a list of permissions either grants a user access, or denies a
+user access, or says nothing.
 
 "permissions" access is special; it allows those who have it to change
 permissions.  It is an error to grant or deny permissions access
@@ -103,21 +103,22 @@ Objects in the repository have an individual Location.  The Location
 identifies the individual object, and remains the same through different
 versions.* 
 
-Each Location also has a parent Location, except for one Location in each
-view, that corresponding to the TOP folder.
+Each Location in a checked-in version also has a parent Location, except for 
+one Location in each version, that corresponding to the TOP folder.
 
 Each Location has a list of permissions associated with it.  (By default
 this is empty).
 
-For the server to permit an activity ("read", "write" or "permissions") on
-a location all the following permissions must grant it.
-(a) the location's own permissions.
-(b) the permissions on all the locations ancestors.
-(c) the global permissions.
-
-Note that to change the permissions on a location you need all of (a),
-(b) & (c); it is not enough for just the location's own permissions
-to change it.
+Suppose we want to determine if the server grants permission to a particular
+activity ("read", "write" or "permissions") on a particular location in
+a certain version.  We compute (1) the list containing the location and its 
+ancestors in the version.  The location itself is the first element of
+the list, then each element in the list is followed by its parent (if any).
+(2) for each location we find its permissions, so we get a list of permissions.
+(3) at the end of this list of permissions, we append the global permissions.
+(4) we look for the first permission in this list to either grant the user
+access or deny it and then grant access or deny access accordingly.  If there
+is no such permission, we grant access.
 
 * actually this is a slight lie.  It is possible for the same location to
 refer to different objects in different versions, after versions have
