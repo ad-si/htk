@@ -20,7 +20,8 @@ module LaTeXParser (
    parseAndMakeMMiSSLatex,  -- SourceName -> Bool -> IO ()
    -- parseAndMakeMMiSSLatex parses a MMiSSLatex file and converts it back to MMiSSLatex
    -- combination of parseMMiSSLatexFile and makeMMiSSLatex 
-   showElement -- WithError Element -> String
+   showElement, -- WithError Element -> String
+   mapLabelledTag 
    )
  where
 
