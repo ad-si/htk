@@ -37,10 +37,10 @@ import ParsecError
 main =
    do
       doc <- getContents
-      let result = parse (latexDoc []) "" doc
+      let result = parse (frags []) "" doc
       str <- case result of
                Left err -> ioError (userError (concat (map messageString (errorMessages(err)))))
-               Right ast -> return(show ast)
+               Right fs -> return(show (Env "Root" (LParams [] [] Nothing Nothing) fs))
       putStr str
 
 

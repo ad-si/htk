@@ -61,10 +61,11 @@ main =
       --
       -- Reconstruct LaTeX from XML-Element and Preamble 
       --
-      let (emacsCont, preambleStr) = 
+      let emptyPreambleData = MMiSSExtraPreambleData {callSite = Nothing}
+          (emacsCont, preambleStr) = 
             case preamble of
               Nothing -> (makeMMiSSLatex (el, True, []), "")
-              (Just(a)) -> (makeMMiSSLatex (el, True, [a]), (toString a))               
+              (Just(a)) -> (makeMMiSSLatex (el, True, [(a,[emptyPreambleData])]), (toString a))               
           (EmacsContent l) = coerceWithError emacsCont
       putStr ("\n**************** XML:\n" ++
 --                     (toExportableXml el) ++
