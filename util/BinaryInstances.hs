@@ -78,6 +78,7 @@ instance (Monad m,HasBinary v1 m,HasBinary (v2,v3,v4,v5,v6,v7) m)
 
 -- -----------------------------------------------------------------------
 -- Encoding Byte and (Bytes,Int).
+-- NB.  We assume that the (Int) is non-negative!!!
 -- -----------------------------------------------------------------------
 
 instance HasBinary Byte m where
@@ -87,11 +88,13 @@ instance HasBinary Byte m where
 instance Monad m => HasBinary (Bytes,Int) m where
    writeBin wb (bytes,len) =
       do
-         writeBin wb len
+         writeBin wb ( (fromIntegral len) :: Word)
          writeBytes wb bytes len
    readBin wb =
       do
-         len <- readBin wb
+         (lenW :: Word) <- readBin wb
+         let
+            len = fromIntegral lenW
          bytes <- readBytes wb len
          return (bytes,len)
 
