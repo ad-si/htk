@@ -163,6 +163,7 @@ instance Ord from => GetSetRegistry (Registry from to) from to where
          map <- takeMVar mVar
          putMVar mVar (addToFM map from to)
 
+
 getRegistryValue :: Ord from => Registry from to -> from -> IO to
 getRegistryValue registry from = getValue registry from
 
@@ -176,7 +177,10 @@ instance Ord from => KeyOpsRegistry (Registry from to) from where
                   putMVar mVar (delFromFM map from)
                   return True
             else
-               return False
+               do
+                  putMVar mVar map
+                  return False
+
    deleteFromRegistry (Registry mVar) from =
       do
          map <- takeMVar mVar

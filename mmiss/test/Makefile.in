@@ -12,7 +12,7 @@ displaysrcshere : displayextrasrcs
 
 displayextrasrcs :
 	@echo @TOP@/mmiss/test/rerunWorkbench.in @TOP@/mmiss/test/runWorkbench.in
-	@echo @TOP@/mmiss/test/restartWorkbench.in
+	@echo @TOP@/mmiss/test/restartWorkbench.in @TOP@/mmiss/test/testfiles
 
 .PHONY : runServer runWorkbench killServer killWorkbench displayextrasrcs
 

@@ -570,32 +570,42 @@ seqSource (source1 :: Source x1 x1) (getSource2 :: x1 -> Source x2 d2) =
    let
       addClient client2 =
          do
-            (staticClient2,clientRunning) <- mkStaticClientGeneral client2
+            (staticClient2 @ (Client staticClientFn),clientRunning) 
+               <- mkStaticClientGeneral client2
 
             let
                getClient1 :: (IO (),x1) -> Client x1
                getClient1 (oldTerminator,x1) =
                   let
-                     source2 = getSource2 x1
+--                     source2 = getSource2 x1
 
                      client1 terminator = Client (clientFn1 terminator)
 
                      clientFn1 oldTerminator x1 =
                         do
+                           let
+                              source2 = getSource2 x1
+
                            oldTerminator
                            continue <- clientRunning
                            if continue
                               then
                                  do
+                                    (staticClient2',write) 
+                                       <- mkComputedClient 
+                                          (const staticClient2)
+
                                     (x2,newTerminator) 
                                        <- attachClientTemporary 
-                                             staticClient2 source2
+                                             staticClient2' source2
+                                    staticClientFn x2
+                                    write ()
                                     return (Just (client1 newTerminator))
                               else
                                  return Nothing
                   in
                      client1 oldTerminator
-                          
+
             (client1',write) <- mkComputedClient getClient1
             x1 <- attachClient client1' source1
             let

@@ -605,20 +605,6 @@ data LinkSource value = LinkSource {
 mapOneName :: LinkedObject -> EntityPath -> EntityFullName 
    -> SimpleSource (Maybe LinkedObject)
 mapOneName linkedObject path fullName =
-  traceSimpleSource
-   (\ loOpt ->
-      ("Map "++toString path++" "++toString fullName++" "++
-          case loOpt of 
-             Nothing -> "failed"
-             Just _ -> "succeeded"
-          )
-      )
-   (mapOneName0 linkedObject path fullName)
-
-
-mapOneName0 :: LinkedObject -> EntityPath -> EntityFullName 
-   -> SimpleSource (Maybe LinkedObject)
-mapOneName0 linkedObject path fullName =
    fmap
       (fmap linkedObjectInPtr)
       (mapOneNamePtr (thisPtr linkedObject) path fullName)

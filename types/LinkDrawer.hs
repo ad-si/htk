@@ -352,9 +352,6 @@ newLinkDrawer
                            do
                               nodeArgOpt 
                                  <- getNodeArgOpt (destination arcData)
-                              case nodeArgOpt of
-                                 Just _ -> putStrLn "AFound"
-                                 Nothing  -> putStrLn "ANotFound"
                               pos <- newPos0 posOpt
                                  (fmap
                                     (\ nodeArg -> (nodeArg,arcInfo arcData))
