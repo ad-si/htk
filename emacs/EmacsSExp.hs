@@ -64,11 +64,13 @@ parseInteger =
       int <- P.integer lexer
       return (Integer int)
 
+---
+-- We special-case nil.
 parseId :: Parser SExp 
 parseId =
    do
       id <- P.identifier lexer
-      return (Id id)
+      return (if id == "nil" then List [] else Id id)
 
 
 parseList :: Parser SExp 

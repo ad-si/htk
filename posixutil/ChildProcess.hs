@@ -288,8 +288,9 @@ newChildProcess path confs  =
                childObjectID <- newObject
                bufferVar <- newMVar ""
 
-               Posix.fdClose readIn
-               Posix.fdClose writeOut
+-- Closing these seems to confuse GHCi, when we run wish more than once.
+--               Posix.fdClose readIn
+--               Posix.fdClose writeOut
 
                closeAction <-
                   case readWriteErr of
