@@ -135,6 +135,7 @@ import Link
 import GlobalRegistry
 import {-# SOURCE #-} DisplayView
 import {-# SOURCE #-} LinkManager
+import MergeTypes
 
 -- ----------------------------------------------------------------
 -- The ObjectType class
@@ -196,6 +197,15 @@ class (HasCodedValue objectType,HasCodedValue object) =>
 
    nodeTitleSourcePrim :: object -> SimpleSource String
       -- Returns a title, which may change.
+
+   mergeLinks :: View -> object -> MergeTypes.ObjectLinks
+      -- Returns all links which need to be preserved by merging, for
+      -- this object.
+
+   attemptMerge :: MergeTypes.LinkReAssigner -> View -> Link object
+      -> [(View,Link object,object)] -> IO (WithError ())
+      -- Attempt to merge the links supplied in the last argument to produce
+      -- a single object in (View,Link object), or return an error message.
 
    nodeTitleSourcePrim object = staticSimpleSource (nodeTitlePrim object)
 

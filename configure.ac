@@ -26,6 +26,7 @@ AC_SUBST(TOP)
 # Are we running Windows or Unix?
 case `uname` in
    CYGWIN* ) WINDOWS=1 ; OSTITLE=windows ;;
+   MINGW32* ) WINDOWS=1 ; OSTITLE=windows ;;
    Linux* ) WINDOWS=0 ; OSTITLE=linux ;;
    SunOS* ) WINDOWS=0 ; OSTITLE=solaris ;;
    FreeBSD* ) WINDOWS=0 ; OSTITLE=freebsd ;;

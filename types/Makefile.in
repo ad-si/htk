@@ -7,11 +7,13 @@ SRCS       = LinkDrawer.hs VersionDB.hs ViewType.hs CodedValue.hs \
    DisplayView.hs Files.hs VersionGraphService.hs VersionGraph.hs \
    Initialisation.hs CallEditor.hs CreateObjectMenu.hs Registrations.hs \
    GetAttributesType.hs GlobalMenus.hs \
-   SpecialNodeActions.hs EntityNames.hs LinkManager.hs
+   SpecialNodeActions.hs EntityNames.hs LinkManager.hs \
+   MergeTypes.hs
 
 SUBDIRS    = test
 
-BOOTSRCS = DisplayView.boot.hs Folders.boot.hs LinkManager.boot.hs
+BOOTSRCS = DisplayView.boot.hs Folders.boot.hs LinkManager.boot.hs \
+   ObjectTypes.boot.hs
 
 include @TOP@/mk/boilerplate.mk
 
