@@ -106,6 +106,7 @@ SRCS       = resources/Resources.hs\
              tix/LabelFrame.hs\
              tix/PanedWindow.hs\
              tix/ComboBox.hs\
+             tix/Subwidget.hs\
 	     toolkit/Prompt.hs\
 	     toolkit/InputWin.hs\
 	     toolkit/InputForm.hs\
