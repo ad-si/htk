@@ -43,9 +43,9 @@ main =
     eb <- createEmbeddedCanvasWin c b [position (cm 2, cm 12)]
     clickedb <- clicked b
     spawnEvent (forever (clickedb >> always (putStrLn "click" >> bell)))
-    (press, _) <- bind c [WishEvent [] (ButtonPress (Just (BNo 1)))]
+    (press, _) <- bind c [WishEvent [] (ButtonPress (Just 1))]
     (move, _) <- bind c [WishEvent [Button1] Motion]
-    (release, _) <- bindSimple c (ButtonRelease (Just (BNo 1)))
+    (release, _) <- bindSimple c (ButtonRelease (Just 1))
 
     let moving :: Distance -> Distance -> CanvasTag -> Event () 
         moving x0 y0 ct =

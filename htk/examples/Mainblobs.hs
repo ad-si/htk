@@ -44,7 +44,7 @@ main =
 		           background "black"]
     pack cnv []
 
-    (press, _) <- bind cnv [WishEvent [] (ButtonPress (Just (BNo 1)))]
+    (press, _) <- bind cnv [WishEvent [] (ButtonPress (Just 1))]
     spawnEvent (forever (do
                            (x, y) <- press >>>= \i-> return (x i, y i)
                            always (do

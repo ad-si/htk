@@ -174,7 +174,7 @@ newTreeList par cfun objs cnf =
          packObjs (5, 5 + Distance lineheight) (tail rootobjs)
          updScrollRegion cnv stateref
      else done)
-    (press, ub) <- bindSimple cnv (ButtonPress (Just (BNo 1)))
+    (press, ub) <- bindSimple cnv (ButtonPress (Just 1))
     death <- newChannel
     let listenCnv :: Event ()
         listenCnv =
@@ -258,7 +258,7 @@ recoverTreeList par cfun st cnf =
     insertObjects tl (5 + Distance intendation, 5)
                   (toObjects (tail state))
     updScrollRegion cnv stateref
-    (press, ub) <- bindSimple cnv (ButtonPress (Just (BNo 1)))
+    (press, ub) <- bindSimple cnv (ButtonPress (Just 1))
     death <- newChannel
     let listenCnv :: Event ()
         listenCnv = (press >> always (deselect tl) >> listenCnv) +>
@@ -548,7 +548,7 @@ addTreeListRootObject tl obj@(TreeListObject (val, objtype)) =
 startObjectInteractor ::  CItem a => TREELISTOBJECT a -> IO ()
 startObjectInteractor obj =
   do
-    (press, ub) <- bindSimple (plusminus obj) (ButtonPress (Just (BNo 1)))
+    (press, ub) <- bindSimple (plusminus obj) (ButtonPress (Just 1))
     addUnbindAction obj ub
     death <- newChannel
     let listenObject :: Event ()
@@ -1062,7 +1062,7 @@ mkTreeListObject tl val isnode isopen cnf =
     addUnbindAction obj (syncNoWait (send death ()))
     (leaveTxt, ub) <- bind txt [WishEvent [] Leave]
     addUnbindAction obj ub
-    (pressTxt, ub) <- bindSimple txt (ButtonPress (Just (BNo 1)))
+    (pressTxt, ub) <- bindSimple txt (ButtonPress (Just 1))
     addUnbindAction obj ub
     let listenObject :: Event ()
         listenObject =

@@ -664,18 +664,18 @@ newNotepad par scrolltype imgsize mstate cnf =
                                             undo_last_motion = ulm,
                                             clean_up = [] })
 
-    (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just (BNo 1)))]
+    (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just 1))]
     (rightclick, _) <- bind cnv
-                            [WishEvent [] (ButtonPress (Just (BNo 2)))]
+                            [WishEvent [] (ButtonPress (Just 2))]
     (motion', _) <- bind cnv [WishEvent [] Motion]
     (motion, _) <- Examples.watch motion'
     (clickmotion', _) <- bind cnv [WishEvent [Button1] Motion]
     (clickmotion, _) <- Examples.watch clickmotion'
     (doubleclick, _) <- bind cnv [WishEvent [Double]
-                                            (ButtonPress (Just (BNo 1)))]
+                                            (ButtonPress (Just 1))]
     (shiftclick, _) <- bind cnv [WishEvent [Shift]
-                                           (ButtonPress (Just (BNo 1)))]
-    (release, _) <- bind cnv [WishEvent [] (ButtonRelease (Just (BNo 1)))]
+                                           (ButtonPress (Just 1))]
+    (release, _) <- bind cnv [WishEvent [] (ButtonRelease (Just 1))]
     (leave, _) <- bindSimple cnv Leave
 
     stopListening <- newChannel

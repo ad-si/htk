@@ -37,7 +37,7 @@ main =
     but <- newButton main [text "PS export"]
     clickedbut <- clicked but
     pack but [Fill X, Expand On]
-    (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just (BNo 3)))]
+    (click, _) <- bind cnv [WishEvent [] (ButtonPress (Just 3))]
     let listenMouseClicks :: Event ()
         listenMouseClicks = do
                               (x, y) <- click >>>= \i-> return(x i, y i)

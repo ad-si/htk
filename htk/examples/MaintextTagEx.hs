@@ -53,7 +53,7 @@ main =
     le4 <- line_event 3
     le5 <- line_event 4
 
-    (quit_event, _) <- bindSimple quit (ButtonPress (Just (BNo 1)))
+    (quit_event, _) <- bindSimple quit (ButtonPress (Just 1))
     (entered_quit, _) <- bindSimple quit Enter
     (left_quit, _) <- bindSimple quit Leave
 

@@ -1126,7 +1126,7 @@ parseMarkupText m f =
                          do
                            tag <- createTextTag ed pos1 pos2 []
                            (click, u_click) <-
-                             bindSimple tag (ButtonPress (Just (BNo 1)))
+                             bindSimple tag (ButtonPress (Just 1))
                            death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
@@ -1191,7 +1191,7 @@ parseMarkupText m f =
                                                (pos1, [ForwardLines 1])
                            tag <- createTextTag ed pos1 pos2 []
                            (click, u_click) <-
-                             bindSimple tag (ButtonPress (Just (BNo 1)))
+                             bindSimple tag (ButtonPress (Just 1))
                            open <- newRef False
                            settags <- newRef []
                            death <- newChannel
@@ -1219,7 +1219,7 @@ parseMarkupText m f =
                          do
                            tag <- createTextTag ed pos1 pos2 []
                            (click, u_click) <-
-                             bindSimple tag (ButtonPress (Just (BNo 1)))
+                             bindSimple tag (ButtonPress (Just 1))
                            death <- newChannel
                            let listenTag :: Event ()
                                listenTag =

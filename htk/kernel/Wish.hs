@@ -32,7 +32,6 @@ module Wish (
   WishEventType(..),
   mkBoundCmdArg,
   KeySym(..),
-  BNo(..),
   CallBackId(..),
   showP,
 
@@ -588,11 +587,11 @@ ksToStringP Nothing acc = acc
 ksToStringP (Just (KeySym keySym)) acc =
    '-':((escapeString keySym)++acc)
 
-newtype BNo = BNo Int deriving (Eq,Ord,Show) -- used for buttons
+type BNo = Int -- used for buttons
 
 bNoToStringP :: Maybe BNo -> String -> String
 bNoToStringP Nothing acc = acc
-bNoToStringP (Just (BNo bNo)) acc = '-':(showP bNo acc)
+bNoToStringP (Just bNo) acc = '-':(showP bNo acc)
 
 typeToStringP :: WishEventType -> String -> String
 typeToStringP (ButtonPress bNo) acc = 

@@ -23,7 +23,7 @@ main =
     scb <- newScrollBar main []
     pack scb [Side AtRight, Fill Y]
     lb # scrollbar Vertical scb
-    (press, _) <- bindSimple lb (ButtonPress (Just (BNo 1)))
+    (press, _) <- bindSimple lb (ButtonPress (Just 1))
     spawnEvent (forever
                   (press >> always (do
                                       sel<- getSelection lb;

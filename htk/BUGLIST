@@ -17,6 +17,8 @@ Font parsing [ludi, 17.08.01]
  widgets where the font is not specified explicitly-- 
  see examples/MainmarkupTextEx.hs
 
+BNo should by a type synonym, not a newtype [cxl]
+ kernel/Wish.hs.
 
 
 ---------------------------------------------------------------------------

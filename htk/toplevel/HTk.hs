@@ -124,7 +124,6 @@ module HTk (
   WishEvent(..),
   WishEventType(..),
   WishEventModifier(..),
-  BNo(..),
   KeySym(..),
   bind,
   bindSimple,

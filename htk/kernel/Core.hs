@@ -94,7 +94,6 @@ module Core (
   WishEventType(..),
   WishEventModifier(..),
   KeySym(..),
-  BNo(..),
   bind,
   bindSimple,
   bindPath,

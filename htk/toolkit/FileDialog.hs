@@ -402,9 +402,9 @@ fileDialog title fp =
     clickedok <- clicked ok
     clickedquit <- clicked quit
     (fbpress, fbpress_ub) <- bindSimple folderslb
-                              (ButtonPress (Just (BNo 1)))
+                              (ButtonPress (Just 1))
     (flpress, flpress_ub) <- bindSimple fileslb
-                               (ButtonPress (Just (BNo 1)))
+                               (ButtonPress (Just 1))
 
     let cleanUp :: IO ()
         cleanUp = flpress_ub >> fbpress_ub >> main_destr_ub

@@ -131,8 +131,19 @@ rm -f ./*.html
     ${TOPDIR}/util/Computation.hs\
     ${TOPDIR}/util/Thread.hs\
 
+#### Do not parse with HDoc
 #    ${HTKDIR}/toolkit/MarkupText.hs\
 #    ${HTKDIR}/toolkit/SimpleForm.hs\
+#    ${HTKDIR}/kernel/EventInfo.hs\
 #    ${TOPDIR}/events/GuardedChannels.hs\
 #    ${TOPDIR}/events/GuardedEvents.hs\
 #    ${TOPDIR}/events/Examples.hs\
+
+
+#### Internal -- don't show in reference manual
+#    ${HTKDIR}/kernel/Core.hs\
+#    ${HTKDIR}/kernel/GUIObject.hs\
+#    ${HTKDIR}/kernel/GUIObjectKind.hs\
+#    ${HTKDIR}/kernel/GUIObjectName.hs\
+#    ${HTKDIR}/kernel/TkVariables.hs\
+#    ${HTKDIR}/kernel/Wish.hs\

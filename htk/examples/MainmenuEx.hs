@@ -129,7 +129,7 @@ main =
 
     let menusel = ca >>> click "A" +> cb >>> click "B" +> cc >>> click "C"
                   
-    (press, _) <- bind main [WishEvent [] (ButtonPress (Just (BNo 3)))]
+    (press, _) <- bind main [WishEvent [] (ButtonPress (Just 3))]
 
 
      -- A pop-up menu can finish without it doing anything, hence we
