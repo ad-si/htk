@@ -23,6 +23,9 @@ main =
             IO (Editor String)
     pack ed [Fill Both, Expand On]
 
+    but <- newButton ed [text "This is an embedded button widget"]
+             :: IO (Button String)
+
     let
       link :: String -> MarkupText
       link str = flipcolour "#4756ff" "#4c90ff"
@@ -108,7 +111,9 @@ main =
          MarkupText.or, prose ", ",
          MarkupText.sum,
          newline, newline,
-         href [link "A link to another MarkupText"] txt2]
+         href [link "A link to another MarkupText"] txt2,
+         newline, newline{-,
+         window but-}]
 
       add_txt :: [MarkupText]
       add_txt =

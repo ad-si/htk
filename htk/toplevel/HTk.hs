@@ -11,6 +11,8 @@
 
 module HTk (
 
+  tixAvailable,
+
 -- basic ressources
 
   module Resources,
@@ -199,10 +201,12 @@ import Synchronized
 import TkVariables
 import TextTag
 import Mark
+import Wish
 import EmbeddedTextWin
 import NoteBook
 import LabelFrame
 import PanedWindow
+
 
 data AbstractWidget = NONE
 instance GUIObject AbstractWidget where

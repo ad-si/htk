@@ -33,6 +33,7 @@ module MarkupText (
   wrapmargin,
   rightmargin,
   href,
+  window,
 --  image,
 --  bitmap,
 
@@ -205,11 +206,17 @@ data MarkupText =
   | MarkupImage Image
   | MarkupBitMap BitMapHandle
   | MarkupHRef [MarkupText] [MarkupText]
+  | forall w . Widget w => MarkupWindow w
 
 type TagFun =
   Editor String -> BaseIndex -> BaseIndex -> IO (TextTag String)
 
 type Tag = (Position, Position, TagFun)
+
+type EmbWindowFun =
+  Editor String -> BaseIndex -> IO EmbeddedTextWin
+
+type EmbWindow = (Position, EmbWindowFun)
 
 
 -- ----------------------------------------------------------------------
@@ -267,6 +274,9 @@ wrapmargin = MarkupWrapMargin
 
 rightmargin :: Int -> [MarkupText] -> MarkupText
 rightmargin = MarkupRightMargin
+
+window :: Widget w => w -> MarkupText
+window = MarkupWindow
 
 image :: Image -> MarkupText
 image = MarkupImage
@@ -658,76 +668,80 @@ clipact ed mark1 mark2 open settags txt tags =
             return (tag : tags)
         insertTags _ = return []
 
-parseMarkupText :: [MarkupText] -> Font -> IO (String, [Tag])
+parseMarkupText :: [MarkupText] -> Font -> IO (String, [EmbWindow], [Tag])
 parseMarkupText m f =
   do
-    (ret, _) <- parseMarkupText' m [] [] (1,0) False False f
+    (ret, _) <- parseMarkupText' m [] [] [] (1,0) False False f
     return ret
   where
     simpleProperty :: [MarkupText] -> [MarkupText] -> String ->
-                      [Tag] -> Position -> Bool -> Bool -> Font ->
-                      [Config (TextTag String)] ->
-                      IO ((String, [Tag]), Position)
-    simpleProperty ms m'  txt tags (line, char) bold italics current_font
-                   cnf =
+                      [Tag] -> [EmbWindow] -> Position -> Bool -> Bool ->
+                      Font -> [Config (TextTag String)] ->
+                      IO ((String, [EmbWindow], [Tag]), Position)
+    simpleProperty ms m' txt tags wins (line, char) bold italics
+                   current_font cnf =
       do
-        ((txt', tags'), (line', char')) <-
-          parseMarkupText' m' txt tags (line, char) bold italics
+        ((txt', wins', tags'), (line', char')) <-
+          parseMarkupText' m' txt tags wins (line, char) bold italics
                            current_font
         let tag = ((line, char), (line', char'),
                    \ed pos1 pos2 ->
                      createTextTag ed pos1 pos2 cnf)
-        parseMarkupText' ms txt' (tag : tags') (line', char') bold italics
-                         current_font
+        parseMarkupText' ms txt' (tag : tags') wins' (line', char') bold
+                         italics current_font
 
-    parseMarkupText' :: [MarkupText] -> String -> [Tag] -> Position ->
-                        Bool -> Bool -> Font ->
-                        IO ((String, [Tag]), Position)
-    parseMarkupText' (m : ms) txt tags (line, char) bold italics
+    parseMarkupText' :: [MarkupText] -> String -> [Tag] -> [EmbWindow] -> 
+                        Position -> Bool -> Bool -> Font ->
+                        IO ((String, [EmbWindow], [Tag]), Position)
+    parseMarkupText' (m : ms) txt tags wins (line, char) bold italics
                      current_font =
       case m of
 
-        MarkupText m' -> parseMarkupText' (m' ++ ms) txt tags (line, char)
-                                          bold italics current_font
+        MarkupText m' -> parseMarkupText' (m' ++ ms) txt tags wins
+                                          (line, char) bold italics
+                                          current_font
 
-        MarkupProse str -> parseMarkupText' ms (txt ++ str) tags
+        MarkupProse str -> parseMarkupText' ms (txt ++ str) tags wins
                              (line, char + Distance (length str)) bold
                              italics current_font
 
         MarkupSpecialChar f i ->
           parseMarkupText' (MarkupFont f [prose [chr i]] : ms) txt tags
-                           (line, char) bold italics current_font
+                           wins (line, char) bold italics current_font
 
-        MarkupNewline -> parseMarkupText' ms (txt ++ "\n") tags
+        MarkupNewline -> parseMarkupText' ms (txt ++ "\n") tags wins
                                           (line + 1, 0) bold italics
                                           current_font
 
-        MarkupColour c m' -> simpleProperty ms m' txt tags (line, char)
-                               bold italics current_font [fg c]
+        MarkupColour c m' -> simpleProperty ms m' txt tags wins
+                               (line, char) bold italics current_font
+                               [fg c]
 
-        MarkupBgColour c m' -> simpleProperty ms m' txt tags (line, char)
-                                 bold italics current_font [bg c]
+        MarkupBgColour c m' -> simpleProperty ms m' txt tags wins
+                                 (line, char) bold italics current_font
+                                 [bg c]
 
         MarkupLeftMargin i m' ->
-          simpleProperty ms m' txt tags (line, char)
+          simpleProperty ms m' txt tags wins (line, char)
                          bold italics current_font [lmargin1 (Distance i)]
 
         MarkupWrapMargin i m' ->
-          simpleProperty ms m' txt tags (line, char)
+          simpleProperty ms m' txt tags wins (line, char)
                          bold italics current_font [lmargin2 (Distance i)]
 
         MarkupRightMargin i m' ->
-          simpleProperty ms m' txt tags (line, char)
+          simpleProperty ms m' txt tags wins (line, char)
                          bold italics current_font [rmargin (Distance i)]
 
         MarkupUnderline m' ->
-          simpleProperty ms m' txt tags (line, char)
+          simpleProperty ms m' txt tags wins (line, char)
                          bold italics current_font [underlined On]
 
         MarkupFont f m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics f
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold italics
+                               f
 
             let (Font fstr) = f
             putStrLn fstr
@@ -737,13 +751,13 @@ parseMarkupText m f =
                          createTextTag ed pos1 pos2
                            [Configuration.font
                               (checkfont f bold italics)])
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupBold m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) True italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) True italics
                                current_font
 
             let (Font fstr) = current_font
@@ -754,13 +768,13 @@ parseMarkupText m f =
                          createTextTag ed pos1 pos2
                            [Configuration.font
                               (checkfont current_font True italics)])
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupItalics m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold True
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold True
                                current_font
 
             let (Font fstr) = current_font
@@ -771,13 +785,13 @@ parseMarkupText m f =
                          createTextTag ed pos1 pos2
                            [Configuration.font
                               (checkfont current_font bold True)])
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupFlipColour c1 c2 m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold italics
                                current_font
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -800,13 +814,13 @@ parseMarkupText m f =
                            addToState ed [u_entered, u_left,
                                           syncNoWait(send death ())]
                            return tag)
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupFlipUnderline m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold italics
                                current_font
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -828,13 +842,13 @@ parseMarkupText m f =
                            addToState ed [u_entered, u_left,
                                           syncNoWait (send death ())]
                            return tag)
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupAction act m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold italics
                                current_font
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -851,13 +865,13 @@ parseMarkupText m f =
                            addToState ed [u_click,
                                           syncNoWait (send death ())]
                            return tag)
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupRangeAction menteract mleaveact m' ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold italics
                                current_font
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -881,22 +895,22 @@ parseMarkupText m f =
                            addToState ed [enter_u, leave_u,
                                           syncNoWait (send death ())]
                            return tag)
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold italics current_font
 
         MarkupClipUp m' cliptext ->
           do
             let pos = (if char > 0 then line + 1 else line, 0)
                 s = if char > 0 then "\n" else ""
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' (s ++ txt) tags pos bold italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' (s ++ txt) tags wins pos bold italics
                                current_font
             let tag = (pos, (line', char'),
                        \ed pos1 pos2 ->
                          do
-                           ((txt', tags'), (line', char')) <-
+                           ((txt', wins', tags'), (line', char')) <-
                              parseMarkupText' (cliptext ++ [newline]) ""
-                                              [] (0, 0) bold italics f
+                                              [] [] (0, 0) bold italics f
                            oid1 <- newObject
                            mark1 <- createMark ed ("m" ++ show oid1)
                                                (pos1, [ForwardLines 1])
@@ -909,6 +923,7 @@ parseMarkupText m f =
                              bindSimple tag (ButtonPress (Just (BNo 1)))
                            open <- newRef False
                            settags <- newRef []
+-- windows erzeugen!
                            death <- newChannel
                            let listenTag :: Event ()
                                listenTag =
@@ -921,13 +936,13 @@ parseMarkupText m f =
                            addToState ed [u_click,
                                           syncNoWait (send death ())]
                            return tag)
-            parseMarkupText' ms (txt' ++ "\n") (tag : tags')
+            parseMarkupText' ms (txt' ++ "\n") (tag : tags') wins'
                              (line' + 1, 0) bold italics current_font
 
         MarkupHRef m' linktext ->
           do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics
+            ((txt', wins', tags'), (line', char')) <-
+              parseMarkupText' m' txt tags wins (line, char) bold italics
                                current_font
             let tag = ((line, char), (line', char'),
                        \ed pos1 pos2 ->
@@ -947,37 +962,18 @@ parseMarkupText m f =
                            addToState ed [u_click,
                                           syncNoWait (send death ())]
                            return tag)
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
+            parseMarkupText' ms txt' (tag : tags') wins' (line', char')
+                             bold
                              italics current_font
 
+        MarkupWindow wid ->
+          let win = ((line, char),
+                     \ed pos -> createEmbeddedTextWin ed pos wid [])
+          in parseMarkupText' ms txt tags (win : wins) (line, char)
+                              bold italics current_font
 
-{-
-        MarkupImage img ->
-          do
-            ((txt', tags'), (line', char')) <-
-              parseMarkupText' m' txt tags (line, char) bold italics
-                               current_font
-            let tag = ((line, char), (line', char'),
-                       \ed pos1 pos2 ->
-                         do
-                           tag <- createTextTag ed pos1 pos2 []
-                           (click, u_click) <-
-                             bindSimple tag (ButtonPress (Just (BNo 1)))
-                           death <- newChannel
-                           let listenTag :: Event ()
-                               listenTag =
-                                    (click >> always act >> listenTag)
-                                 +> receive death
-                           spawnEvent listenTag
-                           addToState ed [u_click,
-                                          syncNoWait (send death ())]
-                           return tag)
-            parseMarkupText' ms txt' (tag : tags') (line', char') bold
-                             italics current_font
--}
-
-    parseMarkupText' _ txt tags (line, char) _ _ _ =
-      return ((txt, tags), (line, char))
+    parseMarkupText' _ txt tags wins (line, char) _ _ _ =
+      return ((txt, wins, tags), (line, char))
 
 
 -- -----------------------------------------------------------------------
@@ -992,23 +988,29 @@ class HasMarkupText w where
 instance HasMarkupText (Editor String) where
   new m ed =
     do
+      putStrLn "new"
       st <- getState ed
       if st == Disabled then ed # state Normal >> done else done
       f <- getFont ed
-      (txt, tags) <- parseMarkupText m f
+      (txt, wins, tags) <- parseMarkupText m f
       ed # value txt
       mapM (\ (pos1, pos2, f) -> do
                                    pos1' <- getBaseIndex ed pos1
                                    pos2' <- getBaseIndex ed pos2
                                    f ed pos1' pos2')
            tags
+      mapM (\ (pos, f) -> do
+                            pos' <- getBaseIndex ed pos
+                            ew <- f ed pos'
+                            addToState ed [putStrLn "destroying embedded window" >> destroy ew])
+           wins
       if st /= Disabled then ed # state st >> done else done
       return ed
 
   insertAt m pos@(line, char) ed =
     do
       f <- getFont ed
-      (txt, tags) <- parseMarkupText m f
+      (txt, wins, tags) <- parseMarkupText m f
       l <- getTextLine ed pos
       insertText ed pos (replicate (fromDistance char - length l) ' ' ++
                          txt)
@@ -1037,6 +1039,7 @@ instance HasMarkupText (Editor String) where
 
   clear ed =
     do
+      putStrLn "clear"
       let obj@(GUIOBJECT oid _) = toGUIObject ed
       unbinds' <- getRef unbinds
       mapM (\ (oid', ubs) -> if oid == oid' then

@@ -185,8 +185,6 @@ newGenGUI :: CItem c => IO (GenGUI c)
 newGenGUI =
   do
     main <- createToplevel [text "GenGUI"]
-    objects <- newFrame main []
-    pack objects [Side AtLeft, Fill X, Expand On]
     intstate <- newRef []
     idref <- newRef 0
     id <- newID idref
@@ -198,14 +196,35 @@ newGenGUI =
     npdropmsgQ <- newChannel
     npdoubleclmsgQ <- newChannel
     nprightclmsgQ <- newChannel
-    tl <- newTreeList objects Pretty cfun getItemImage
-                      (newTreeListObject (Root id guiref)
-                                         "object root" Node)
-                      [background "white", size (500, 250)]
-    pack tl [PadX 5, PadY 5]
-    np <- newNotepad objects Scrolled (12, 12)
-                     [size (500, 280), background "white"]
-    pack np [PadX 5, PadY 5]
+    (tl, np) <-
+      (if tixAvailable then
+         do
+           objects <- newPanedWindow main Vertical []
+           pane1 <- createPane objects [initsize 200] []
+           pane2 <- createPane objects [initsize 300] []
+           pack objects [Side AtLeft, Fill X, Expand On]
+           tl <- newTreeList pane1 Pretty cfun getItemImage
+                             (newTreeListObject (Root id guiref)
+                                                "object root" Node)
+                             [background "white"{-, size (500, 250)-}]
+           pack tl [PadX 5, PadY 5, Fill Both, Expand On]
+           np <- newNotepad pane2 Scrolled (12, 12)
+                            [{-size (500, 280),-} background "white"]
+           pack np [PadX 5, PadY 5, Fill Both, Expand On]
+           return (tl, np)
+       else
+         do
+           objects <- newFrame main []
+           pack objects [Side AtLeft, Fill X, Expand On]
+           tl <- newTreeList objects Pretty cfun getItemImage
+                             (newTreeListObject (Root id guiref)
+                                                "object root" Node)
+                             [background "white", size (500, 250)]
+           pack tl [PadX 5, PadY 5]
+           np <- newNotepad objects Scrolled (12, 12)
+                            [size (500, 280), background "white"]
+           pack np [PadX 5, PadY 5]
+           return (tl, np))
     (edscr, ed) <- newScrollBox main (\par -> newEditor par [width 60]) []
     pack edscr [PadX 5, PadY 5, Fill Y, Expand On]
     appendText ed "textual representation of objects"
