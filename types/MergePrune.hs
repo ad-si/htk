@@ -19,9 +19,11 @@ import Monad
 
 import Data.FiniteMap
 
+import FindCommonParents(GraphBack(..))
 import RemoveAncestors
 import Graph(Node)
 
+import VersionDB(ObjectVersion)
 import Link
 import CodedValue
 import View
@@ -36,7 +38,7 @@ mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
    do
       -- (0) get the version graph
       let
-         versionGraph = versionGraph1 firstView
+         graphClient = graphClient1 firstView
 
       -- (1) cluster identical Link values together, to reorganise the
       -- list to have type [[(View,Link object,object)]]
@@ -55,7 +57,7 @@ mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
 
       -- (2) Do the job for the individual lists.
       (linkList2 :: [[(View,Link object,object)]]) <-
-         mapM (mergePruneInner versionGraph) linkList1
+         mapM (mergePruneInner graphClient) linkList1
 
       -- (3) un-cluster linkList2.
       let
@@ -65,11 +67,27 @@ mergePrune ((linkList0 @ ((firstView,_,_):_)) :: [(View,Link object,object)]) =
       return linkList3
 
 mergePruneInner :: HasCodedValue object
-   => VersionSimpleGraph -> [(View,Link object,object)] 
+   => VersionGraphClient -> [(View,Link object,object)] 
    -> IO [(View,Link object,object)]
-mergePruneInner versionGraph (linkList0 :: [(View,Link object,object)])
+mergePruneInner graphClient (linkList0 :: [(View,Link object,object)])
       =
    do
+      -- We use an inputGraphBack to find out what parents an ObjectVersion
+      -- has.
+      (inputGraphBack :: GraphBack VersionGraphNode ())
+         <- getInputGraphBack graphClient (\ _ _ -> ())
+      let
+         getVersionParents :: ObjectVersion -> [ObjectVersion]
+         getVersionParents ov = case getParents inputGraphBack 
+               (CheckedInNode ov) of
+            Nothing -> error ("MergePrune.mergePruneInner: View not in "
+               ++ "version graph")
+            Just parents -> map
+               (\ parentNode -> case parentNode of
+                  CheckedInNode ov -> ov
+                  )
+               parents
+
       -- Turn the linkList0 into a map from Nodes in the version graph
       -- to the corresponding element of linkList0.
       --
@@ -77,29 +95,25 @@ mergePruneInner versionGraph (linkList0 :: [(View,Link object,object)])
       -- This will mean that an object is unchanged in several views.  In
       -- that case we drop all but one of those elements.  Thus this is the
       -- first stage of pruning.
-      (nodeMap :: FiniteMap Node (View,Link object,object)) <- foldM
+      (nodeMap :: FiniteMap ObjectVersion (View,Link object,object)) <- foldM
          (\ map0 (vlo@(view,link,object))->
             do
                origVersion <- getVersion view link
-               let
-                  node = versionToNode origVersion
-               return (addToFM map0 node vlo)
+               return (addToFM map0 origVersion vlo)
             )
          emptyFM
          linkList0
 
       -- Do the pruning
       let
-         nodes = keysFM nodeMap
+         versions = keysFM nodeMap
 
-      prunedNodes <- removeAncestors versionGraph nodes
+         prunedVersions = removeAncestorsByPure getVersionParents versions
 
-      let
          result = 
             map
-               (\ node 
-                  -> lookupWithDefaultFM nodeMap (error "MergePrune.1") node)
-               prunedNodes
+               (lookupWithDefaultFM nodeMap (error "MergePrune.1")) 
+               prunedVersions
 
       return result
 

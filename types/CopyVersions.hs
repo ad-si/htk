@@ -75,41 +75,16 @@ copyVersions versionGraphFrom =
                      photo questionImg]
                   [text "Method of Selection"]
 
+            let
+               versionGraphClientFrom = toVersionGraphClient versionGraphFrom
+
             (versions :: [ObjectVersion]) <- case select of
                Cancel -> return []
                All ->
                   do
-                     let
-                        graph = toVersionGraphGraph versionGraphFrom
-                     nodes <- getNodes graph
-                     let
-                        versions = mapMaybe nodeToVersion nodes
-                     return versions
-               AllMarked ->
-                  do
-                      let
-                         graph = toVersionGraphGraph versionGraphFrom
-                      (nodes1 :: [Node]) <- getNodes graph
-                      let
-                         versionNodes :: [Node]
-                         versionNodes = filter
-                            (\ node -> isJust (nodeToVersion node))
-                            nodes1
-                      (versionInfos1 :: [VersionInfo]) <- mapM
-                         (\ node -> getNodeLabel graph node)
-                         versionNodes
-
-                      let
-                         versions = mapMaybe
-                            (\ versionInfo 
-                               -> if private (user versionInfo)
-                                  then
-                                     Nothing
-                                  else 
-                                     Just (version (user versionInfo))
-                               )   
-                            versionInfos1   
-                      return versions
+                     versionInfos <- VersionGraphClient.getVersionInfos 
+                        versionGraphClientFrom
+                     return (map (version . user . toVersionInfo) versionInfos)
                Selected ->
                   do
                      versionsOpt <- selectCheckedInVersions versionGraphFrom
@@ -130,8 +105,7 @@ copyVersions versionGraphFrom =
                   to = versionGraphTo
                   } 
 
-               graphFrom = toVersionGraphGraph versionGraphFrom
-               graphTo = toVersionGraphGraph versionGraphTo
+               versionGraphClientTo = toVersionGraphClient versionGraphTo
 
                repositoryTo = toVersionGraphRepository versionGraphTo
 
@@ -147,44 +121,56 @@ copyVersions versionGraphFrom =
                --    2 if isPresent = False and mkGraphBack = True,
                -- so ensuring that two nodes from different graphs will only 
                -- compare equal if they both have isPresent = True 
-               mkGraphBack :: Bool -> VersionTypes SimpleGraph ->
-                  GraphBack ObjectVersion (VersionInfoKey,Int)
-               mkGraphBack whichGraph graph = GraphBack {
-                  getAllNodes = 
-                     (do
-                        nodes <- getNodes graph
-                        return (mapMaybe nodeToVersion nodes)
-                     ),
-                  getKey = (\ version ->
-                     do
-                        let
-                           node = versionToNode version
+               graphBackArg :: Bool 
+                  -> VersionGraphNode -> VersionInfo1 
+                  -> (VersionInfoKey,Int)
+               graphBackArg whichGraph versionGraphNode versionInfo1 =
+                  let
+                     versionInfo = toVersionInfo versionInfo1
+                     extraKey 
+                        = if isPresent versionInfo
+                           then
+                              0
+                           else
+                              if whichGraph then 2 else 1
+                  in
+                     (mapVersionInfo versionInfo,extraKey)
 
-                        versionInfo <- getNodeLabel graph node
-                        let
-                           extraKey = 
-                              if isPresent versionInfo
-                                 then
-                                    0
-                                 else
-                                    if whichGraph then 2 else 1
-                        return (Just (mapVersionInfo versionInfo,extraKey))
-                     ),
-                  getParents = (\ version ->
-                     do
-                        let
-                           node = versionToNode version
+            graphBackFrom <- getInputGraphBack versionGraphClientFrom
+               (graphBackArg False)
 
-                        versionInfo <- getNodeLabel graph node
-                        return (Just (parents (user versionInfo)))
+            graphBackTo <- getInputGraphBack versionGraphClientTo
+               (graphBackArg True)
+
+            let
+               versionGraphNodes :: [VersionGraphNode]
+               versionGraphNodes = map CheckedInNode versions
+
+               commonParentsAsNodes 
+                  :: [(VersionGraphNode,
+                     [(VersionGraphNode,Maybe VersionGraphNode)])]
+               commonParentsAsNodes = findCommonParents 
+                  graphBackFrom graphBackTo versionGraphNodes
+
+               commonParents :: [(ObjectVersion,
+                  [(ObjectVersion,Maybe ObjectVersion)])]
+               commonParents = map
+                  (\ (vgn1,parentData) ->
+                     (toVersion vgn1,
+                        map
+                           (\ (vgn2,vgn3Opt) 
+                              -> (toVersion vgn2,fmap toVersion vgn3Opt)
+                              )
+                           parentData
+                        )
                      )
-                  }
+                  commonParentsAsNodes
 
-
-            (commonParents 
-               :: [(ObjectVersion,[(ObjectVersion,Maybe ObjectVersion)])])
-               <- findCommonParents (mkGraphBack False graphFrom) 
-                  (mkGraphBack True graphTo) versions
+               toVersion :: VersionGraphNode -> ObjectVersion
+               toVersion vgn = case vgn of
+                  CheckedInNode ov -> ov
+                  _ -> error ("CopyVersions.toVersion: unexpected view found "
+                     ++ "in version graph")
 
             -- Now copy the VersionInfos
             (toNewVersionInfo :: ObjectVersion -> IO VersionInfo)

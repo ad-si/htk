@@ -388,7 +388,8 @@ newChildProcess path confs  =
                      badResponse mess =
                         do
                            putStrLn ("Challenge response starting "
-                              ++toolTitle++" failed")
+                              ++toolTitle++" from path \""++path
+                              ++"\"  failed")
                            putStrLn mess
                            dumpPending
                            error "Challenge-Response failed"

@@ -143,6 +143,7 @@ instance NewNode EmptyGraph EmptyNode EmptyNodeType where
          let
             node = EmptyNode {ioRefN = ioRef,oIdN = oId}
          return node
+   setNodeTypePrim _ _ _ = done
 
 instance DeleteNode EmptyGraph EmptyNode where
    deleteNodePrim _ _ = done
@@ -222,6 +223,9 @@ instance NewArc EmptyGraph EmptyNode EmptyNode EmptyArc EmptyArcType where
          return (EmptyArc {ioRefE = ioRef,oIdE = oId})
 
    newArcListDrawerPrim _ _ = listDrawer
+
+instance SetArcType EmptyGraph EmptyArc EmptyArcType where
+   setArcTypePrim _ _ _ = done
 
 listDrawer :: ListDrawer 
    (EmptyArcType value,value,WrappedNode EmptyNode) (EmptyArc value)

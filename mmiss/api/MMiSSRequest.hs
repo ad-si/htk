@@ -105,16 +105,14 @@ data VersionInfo_Attrs = VersionInfo_Attrs
 data VersionInfo_isPresent = VersionInfo_isPresent_present  | 
 			     VersionInfo_isPresent_absent
 			   deriving (Eq,Show)
-data UserInfo = UserInfo
+data UserInfo = UserInfo UserInfo_Attrs (Maybe Attributes)
+	      deriving (Eq,Show)
+data UserInfo_Attrs = UserInfo_Attrs
     { userInfoLabel :: (Maybe String)
     , userInfoContents :: (Maybe String)
-    , userInfoPrivate :: (Defaultable UserInfo_private)
     , userInfoVersion :: (Maybe String)
     , userInfoParents :: (Maybe String)
     } deriving (Eq,Show)
-data UserInfo_private = UserInfo_private_autoExport  | 
-			UserInfo_private_noAutoExport
-		      deriving (Eq,Show)
 data ServerInfo = ServerInfo
     { serverInfoServerId :: String
     , serverInfoSerialNo :: String
@@ -139,6 +137,11 @@ data Variant = Variant
     , variantValue :: String
     } deriving (Eq,Show)
 newtype Variants = Variants [Variant] 		deriving (Eq,Show)
+data Attribute = Attribute
+    { attributeKey :: String
+    , attributeValue :: String
+    } deriving (Eq,Show)
+newtype Attributes = Attributes [Attribute] 		deriving (Eq,Show)
 data Messages = Messages Messages_Attrs [Messages_]
 	      deriving (Eq,Show)
 data Messages_Attrs = Messages_Attrs
@@ -615,37 +618,28 @@ instance XmlAttrType VersionInfo_isPresent where
     toAttrFrTyp n VersionInfo_isPresent_present = Just (n, str2attr "present")
     toAttrFrTyp n VersionInfo_isPresent_absent = Just (n, str2attr "absent")
 instance XmlContent UserInfo where
-    fromElem (CElem (Elem "userInfo" as []):rest) =
-	(Just (fromAttrs as), rest)
+    fromElem (CElem (Elem "userInfo" as c0):rest) =
+	(\(a,ca)->
+	   (Just (UserInfo (fromAttrs as) a), rest))
+	(fromElem c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
-    toElem as =
-	[CElem (Elem "userInfo" (toAttrs as) [])]
-instance XmlAttributes UserInfo where
+    toElem (UserInfo as a) =
+	[CElem (Elem "userInfo" (toAttrs as) (maybe [] toElem a))]
+instance XmlAttributes UserInfo_Attrs where
     fromAttrs as =
-	UserInfo
+	UserInfo_Attrs
 	  { userInfoLabel = possibleA fromAttrToStr "label" as
 	  , userInfoContents = possibleA fromAttrToStr "contents" as
-	  , userInfoPrivate = defaultA fromAttrToTyp UserInfo_private_autoExport "private" as
 	  , userInfoVersion = possibleA fromAttrToStr "version" as
 	  , userInfoParents = possibleA fromAttrToStr "parents" as
 	  }
     toAttrs v = catMaybes 
 	[ maybeToAttr toAttrFrStr "label" (userInfoLabel v)
 	, maybeToAttr toAttrFrStr "contents" (userInfoContents v)
-	, defaultToAttr toAttrFrTyp "private" (userInfoPrivate v)
 	, maybeToAttr toAttrFrStr "version" (userInfoVersion v)
 	, maybeToAttr toAttrFrStr "parents" (userInfoParents v)
 	]
-instance XmlAttrType UserInfo_private where
-    fromAttrToTyp n (n',v)
-	| n==n'     = translate (attr2str v)
-	| otherwise = Nothing
-      where translate "autoExport" = Just UserInfo_private_autoExport
-	    translate "noAutoExport" = Just UserInfo_private_noAutoExport
-	    translate _ = Nothing
-    toAttrFrTyp n UserInfo_private_autoExport = Just (n, str2attr "autoExport")
-    toAttrFrTyp n UserInfo_private_noAutoExport = Just (n, str2attr "noAutoExport")
 instance XmlContent ServerInfo where
     fromElem (CElem (Elem "serverInfo" as []):rest) =
 	(Just (fromAttrs as), rest)
@@ -749,6 +743,32 @@ instance XmlContent Variants where
     fromElem rest = (Nothing, rest)
     toElem (Variants a) =
 	[CElem (Elem "variants" [] (concatMap toElem a))]
+instance XmlContent Attribute where
+    fromElem (CElem (Elem "attribute" as []):rest) =
+	(Just (fromAttrs as), rest)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem as =
+	[CElem (Elem "attribute" (toAttrs as) [])]
+instance XmlAttributes Attribute where
+    fromAttrs as =
+	Attribute
+	  { attributeKey = definiteA fromAttrToStr "attribute" "key" as
+	  , attributeValue = definiteA fromAttrToStr "attribute" "value" as
+	  }
+    toAttrs v = catMaybes 
+	[ toAttrFrStr "key" (attributeKey v)
+	, toAttrFrStr "value" (attributeValue v)
+	]
+instance XmlContent Attributes where
+    fromElem (CElem (Elem "attributes" [] c0):rest) =
+	(\(a,ca)->
+	   (Just (Attributes a), rest))
+	(many fromElem c0)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem (Attributes a) =
+	[CElem (Elem "attributes" [] (concatMap toElem a))]
 instance XmlContent Messages where
     fromElem (CElem (Elem "messages" as c0):rest) =
 	(\(a,ca)->

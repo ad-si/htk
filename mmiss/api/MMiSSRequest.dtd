@@ -161,11 +161,10 @@
    isPresent (present | absent) "present"
    >
 
-<!ELEMENT userInfo EMPTY>
+<!ELEMENT userInfo (attributes)? >
 <!ATTLIST userInfo
    label CDATA #IMPLIED
    contents CDATA #IMPLIED
-   private (autoExport|noAutoExport) "autoExport"
    version NMTOKEN #IMPLIED
    parents NMTOKENS #IMPLIED
    >
@@ -245,6 +244,15 @@
    >
 
 <!ELEMENT variants (variant)* >
+
+<!-- Other general attributes. -->
+<!ELEMENT attribute EMPTY >
+<!ATTLIST attribute 
+   key CDATA #REQUIRED
+   value CDATA #REQUIRED
+   >
+
+<!ELEMENT attributes (attribute)* >
 
 <!-- Messages 
 

@@ -130,6 +130,9 @@ module Sources(
       -- it into a String with the supplied function.  (This is done once
       -- for each active client.)
 
+   traceSource,
+      -- :: (a -> String) -> (d -> String) -> Source a d -> Source a d
+      -- Like traceSimpleSource but for Source's.
 
    noLoopSimpleSource,
       -- :: TSem -> ([String] -> a) -> SimpleSource a -> SimpleSource a
@@ -886,6 +889,29 @@ traceSimpleSource toS (SimpleSource source) =
       $
       source
       )
+
+-- | Outputs information about what comes through the source, turning
+-- it into a String with the supplied function.  (This is done once
+-- for each active client.)
+traceSource :: (a -> String) -> (d -> String) -> Source a d -> Source a d
+traceSource toS1 toS2 source =
+   (map1IO 
+      (\ a ->
+         do
+            putStrLn ("Initialising "++toS1 a)
+            return a
+         )
+      )
+   .
+   (filter2IO 
+      (\ d ->
+         do
+            putStrLn ("Updating "++toS2 d)
+            return (Just d)
+         )
+      )
+   $
+   source
 
 -- -----------------------------------------------------------------
 -- noLoop functions.  (Only noLoopSimpleSource is exported, for now.)

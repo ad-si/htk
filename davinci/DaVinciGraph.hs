@@ -16,7 +16,7 @@ module DaVinciGraph(
 
    DaVinciArc,
    DaVinciArcType,
-   DaVinciArcTypeParms
+   DaVinciArcTypeParms,
    ) where
 
 import Maybe
@@ -267,8 +267,9 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
                   case lastSelection of
                      LastNode nodeId ->
                         do
-                           NodeData nodeType nodeValue <- getValueHere nodes nodeId
-                           (nodeDoubleClickAction nodeType) nodeValue
+                           NodeData nodeDataData <- getValueHere nodes nodeId
+                           (nodeDoubleClickAction (typeData nodeDataData))
+                              (valueData nodeDataData)
                      _ -> error "DaVinciGraph: confusing node double click"
   
             edgeDoubleClick :: IO ()
@@ -310,9 +311,10 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             actNodeMenu :: NodeId -> MenuId -> IO ()
             actNodeMenu nodeId menuId =
                do
-                  NodeData nodeType nodeValue <- getValueHere nodes nodeId
-                  menuAction <- getValueHere (nodeMenuActions nodeType) menuId
-                  menuAction nodeValue
+                  NodeData nodeDataData <- getValueHere nodes nodeId
+                  menuAction <- getValueHere (
+                     nodeMenuActions (typeData nodeDataData)) menuId
+                  menuAction (valueData nodeDataData)
 
             actEdgeMenu :: EdgeId -> MenuId -> IO ()
             actEdgeMenu edgeId menuId =
@@ -326,15 +328,19 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             -- done by the otherActions handler. 
             actCreateNodeAndEdge nodeId =
                do
-                  NodeData nodeType nodeValue <- getValueHere nodes nodeId
-                  (createNodeAndEdgeAction nodeType) nodeValue
+                  NodeData nodeDataData <- getValueHere nodes nodeId
+                  (createNodeAndEdgeAction (typeData nodeDataData)) 
+                     (valueData nodeDataData)
 
             actCreateEdge :: NodeId -> NodeId -> IO ()
             actCreateEdge nodeId1 nodeId2 =
                do
-                  NodeData nodeType2 nodeValue2 <- getValueHere nodes nodeId2
-                  NodeData _ nodeValue1 <- getValueHere nodes nodeId1
-                  (createEdgeAction nodeType2) (toDyn nodeValue1) nodeValue2
+                  NodeData nodeDataData1 <- getValueHere nodes nodeId2
+                  NodeData nodeDataData2 <- getValueHere nodes nodeId1
+  
+                  (createEdgeAction (typeData nodeDataData2))
+                     (toDyn (valueData nodeDataData1)) 
+                     (valueData nodeDataData2)
 
          context <- newContext handler
 
@@ -558,7 +564,15 @@ data DaVinciNodeType value = DaVinciNodeType {
    }
 
 data NodeData = forall value . Typeable value => 
-   NodeData (DaVinciNodeType value) value
+   NodeData (NodeDataData value)
+   
+-- Extra type is necessary because GHC forbids named typed fields with
+-- an existential type.
+data NodeDataData value = NodeDataData {
+   typeData :: DaVinciNodeType value,
+   valueData :: value,
+   sink :: SinkID
+   }
 
 data DaVinciNodeTypeParms value = 
    DaVinciNodeTypeParms {
@@ -577,76 +591,171 @@ instance Eq1 DaVinciNode where
 instance Ord1 DaVinciNode where
    compare1 (DaVinciNode n1) (DaVinciNode n2) = compare n1 n2 
 
-instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
-   newNodePrim
-         (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
-         (nodeType @ DaVinciNodeType {
-            nodeType = daVinciNodeType,nodeText = nodeText,
-            fontStyle = fontStyle,border = border})
-         (value :: value) =
-      do
-         thisNodeTextSource <- nodeText value
-         fontStyleSourceOpt <- case fontStyle of
-            Nothing -> return Nothing
-            Just getFontStyleSource -> 
-               do
-                  fontStyleSource <- getFontStyleSource value
-                  return (Just fontStyleSource)
+instance Eq1 DaVinciNodeType where
+   eq1 = mapEq nodeType
 
-         borderSourceOpt <- case border of
-            Nothing -> return Nothing
-            Just getBorderSource -> 
-               do
-                  borderSource <- getBorderSource value
-                  return (Just borderSource)
 
-         nodeId <- newNodeId context
-         let
-            (daVinciNode :: DaVinciNode value) = DaVinciNode nodeId
-         setValue nodes nodeId (NodeData nodeType value)
-         synchronize (pendingChangesLock daVinciGraph) (
+newNodePrim1 :: Typeable value
+   => DaVinciGraph -> DaVinciNodeType value -> value -> NodeId
+   -> IO (DaVinciNode value)
+newNodePrim1 (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
+      nodeType1
+      (value :: value) nodeId =
+   do
+      attributes <- setUpNodeType daVinciGraph nodeType1 value nodeId
+      let
+         (daVinciNode :: DaVinciNode value) = DaVinciNode nodeId
+
+      synchronize (pendingChangesLock daVinciGraph) (
+            addNodeUpdate daVinciGraph (
+               NewNode nodeId (nodeType nodeType1) attributes)
+         )
+      return daVinciNode
+
+-- | setUpNodeType is used for doing Haskell-side initialisations
+-- either after (a) a new node has been created, or (b) we have changed
+-- the type.
+setUpNodeType :: Typeable value
+   => DaVinciGraph -> DaVinciNodeType value -> value -> NodeId 
+   -> IO [Attribute]
+setUpNodeType (daVinciGraph @ DaVinciGraph {context=context,nodes=nodes}) 
+      (nodeType @ DaVinciNodeType {
+         nodeType = daVinciNodeType,nodeText = nodeText,
+         fontStyle = fontStyle,border = border})
+      (value :: value) nodeId =
+   do
+      thisNodeTextSource <- nodeText value
+      fontStyleSourceOpt <- case fontStyle of
+         Nothing -> return Nothing
+         Just getFontStyleSource -> 
             do
-               thisNodeText <- addNewAction thisNodeTextSource 
-                  (setNodeTitle daVinciGraph daVinciNode)
+               fontStyleSource <- getFontStyleSource value
+               return (Just fontStyleSource)
+
+      borderSourceOpt <- case border of
+         Nothing -> return Nothing
+         Just getBorderSource -> 
+            do
+               borderSource <- getBorderSource value
+               return (Just borderSource)
+      let
+         (daVinciNode :: DaVinciNode value) = DaVinciNode nodeId
+      sinkID <- newSinkID
+      transformValue nodes nodeId (\ nodeDataOpt ->
+         do
+            case nodeDataOpt of
+               Nothing -> done
+               Just (NodeData oldNodeData) -> invalidate (sink oldNodeData)
+                  -- this prevents any more updates to these nodes.
+            let
+               newNodeData = NodeDataData {
+                  typeData = nodeType,
+                  valueData = value,
+                  sink = sinkID
+                  }
+            return (Just (NodeData newNodeData),())
+         )
+      let
+         addNodeAction 
+            :: SimpleSource a 
+            -> (DaVinciGraph -> DaVinciNode value -> a -> IO b) 
+            -> IO a
+         addNodeAction source actFun =
+            do
                let
-                  attributes1 = [titleAttribute thisNodeText]
+                  updateFn a = 
+                     do
+                        actFun daVinciGraph daVinciNode a
+                        done
+               (a,_) <- addNewSinkGeneral source updateFn sinkID
+               return a
 
-               attributes2 <-
-                  case fontStyleSourceOpt of
-                     Nothing -> return attributes1
-                     Just fontStyleSource ->
-                        do
-                            thisFontStyle <- addNewAction fontStyleSource
-                               (setFontStyle daVinciGraph daVinciNode)
-                            return (fontStyleAttribute thisFontStyle 
-                               : attributes1)
-               attributes3 <-
-                  case borderSourceOpt of
-                     Nothing -> return attributes2
-                     Just borderSource ->
-                        do
-                            thisBorder <- addNewAction borderSource
-                               (setBorder daVinciGraph daVinciNode)
-                            return (borderAttribute thisBorder 
-                               : attributes2)
+      synchronize (pendingChangesLock daVinciGraph) (
+         do
+            thisNodeText <- addNodeAction thisNodeTextSource setNodeTitle
+            let
+               attributes1 = [titleAttribute thisNodeText]
 
-               addNodeUpdate daVinciGraph (
-                  NewNode nodeId daVinciNodeType attributes3)
-            )
-         return daVinciNode
+            attributes2 <-
+               case fontStyleSourceOpt of
+                  Nothing -> return attributes1
+                  Just fontStyleSource ->
+                     do
+                         thisFontStyle 
+                            <- addNodeAction fontStyleSource setFontStyle
+                         return (fontStyleAttribute thisFontStyle 
+                            : attributes1)
+            attributes3 <-
+               case borderSourceOpt of
+                  Nothing -> return attributes2
+                  Just borderSource ->
+                     do
+                         thisBorder <- addNodeAction borderSource setBorder
+                         return (borderAttribute thisBorder 
+                            : attributes2)
+            return attributes3
+         )
+
+instance NewNode DaVinciGraph DaVinciNode DaVinciNodeType where
+   newNodePrim graph nodeType value =
+      do
+         nodeId <- newNodeId (context graph)
+         newNodePrim1 graph nodeType value nodeId
+
+   setNodeTypePrim graph (node@ (DaVinciNode nodeId) :: DaVinciNode value) 
+         nodeType1 =
+      do
+         -- Check first to see if the type really needs changing.
+         goAhead <- 
+            do
+               nodeDataOpt <- getValueOpt (nodes graph) nodeId
+               return (case nodeDataOpt of
+                  Nothing -> False -- Node seems to have been deleted anyway
+                  Just (NodeData nodeData) ->
+                     let
+                        nodeType0 = typeData nodeData
+                     in
+                        nodeType nodeType0 /= nodeType nodeType1
+                  )
+         if goAhead
+            then
+               do 
+                  flushPendingChanges graph
+                  value <- getNodeValuePrim graph node
+                  attributes <- setUpNodeType graph nodeType1 value nodeId
+                  synchronize (pendingChangesLock graph) (
+                     do
+                        doInContext 
+                           (DaVinciTypes.Graph (ChangeType 
+                              [NodeType nodeId (nodeType nodeType1)]))
+                           (context graph)
+                        doInContext 
+                           (DaVinciTypes.Graph (ChangeAttr [
+                              Node nodeId attributes]))
+                           (context graph)
+                     )
+            else
+               done
 
 instance DeleteNode DaVinciGraph DaVinciNode where
    deleteNodePrim (daVinciGraph @ 
             DaVinciGraph {context = context,nodes = nodes})
          (DaVinciNode nodeId) = 
-      do
-         addNodeUpdate daVinciGraph (DeleteNode nodeId) 
+      transformValue nodes nodeId (\ nodeDataOpt ->
+         case nodeDataOpt of
+            Nothing -> return (nodeDataOpt,())
+            Just (NodeData nodeDataData) ->
+               do
+                  invalidate (sink nodeDataData)
+                  addNodeUpdate daVinciGraph (DeleteNode nodeId) 
+                  return (Nothing,())
+            )
 
    getNodeValuePrim (daVinciGraph @ DaVinciGraph {
          context = context,nodes = nodes}) (DaVinciNode nodeId) =
       do
-         (Just (NodeData _ nodeValue)) <- getValueOpt nodes nodeId
-         return (coDyn nodeValue)
+         (Just (NodeData nodeDataData)) <- getValueOpt nodes nodeId
+         return (coDyn (valueData nodeDataData))
 
    setNodeValuePrim 
          (daVinciGraph @ DaVinciGraph {context = context,nodes = nodes}) 
@@ -658,9 +767,13 @@ instance DeleteNode DaVinciGraph DaVinciNode where
                return (
                   case nodeDataOpt of
                      Nothing -> (nodeDataOpt,Nothing)
-                     Just (NodeData nodeType _) ->
-                        (Just (NodeData nodeType (coDyn newValue)),
-                           Just (coDyn nodeType))
+                     Just (NodeData nodeDataData0) ->
+                       let
+                          nodeDataData1 = nodeDataData0 {
+                             valueData = coDyn newValue}  
+                       in 
+                          (Just (NodeData nodeDataData1),
+                              Just (coDyn (typeData nodeDataData1)))
                   )
                )
 
@@ -706,11 +819,12 @@ instance DeleteNode DaVinciGraph DaVinciNode where
                               case nodeDataOpt of
                                  Nothing -> errorMess
                                     "Confusing node selection ignored (2)"
-                                 Just (NodeData nodeType _) ->
+                                 Just (NodeData nodeDataData) ->
                                     do
                                        let
                                           wrappedNode = WrappedNode 
-                                             (mapNode nodeId nodeType)
+                                             (mapNode nodeId (
+                                                typeData nodeDataData))
                                        sync(noWait(send channel wrappedNode))
 
                EdgeSelectionLabel _ -> done
@@ -1043,6 +1157,11 @@ instance NewArc DaVinciGraph DaVinciNode DaVinciNode DaVinciArc
             VariableList.delPos = delPos,VariableList.redraw = redraw'}
       in
          listDrawer
+
+instance SetArcType DaVinciGraph DaVinciArc DaVinciArcType where
+   setArcTypePrim daVinciGraph (davinciArc@(DaVinciArc edgeId)) 
+         daVinciArcType =
+      error "Sorry, setArcType is not implemented for daVinci"
 
 instance DeleteArc DaVinciGraph DaVinciArc where
    deleteArcPrim (daVinciGraph @ DaVinciGraph {edges=edges,context = context})
@@ -1394,51 +1513,58 @@ sortPendingChanges pendingChanges =
          -- daVinci has version at least 3.0, and so multi_update works. 
          DaVinciTypes.Graph(UpdateMixed (reverse pendingChanges))
       else
-         let
-            (newNodes,deleteNodes,newEdges,deleteEdges) =
-               foldr -- so that the nodes are in the same order as in list.
-                  (\ change (nnSF,dnSF,neSF,deSF) -> 
-                     case change of
-                        NU(nn @ (NewNode _ _ _)) -> (nn:nnSF,dnSF,neSF,deSF)
-                        NU(dn @ (DeleteNode _)) -> (nnSF,dn:dnSF,neSF,deSF)
-                        EU(ne @ (NewEdge _ _ _ _ _)) ->
-                           (nnSF,dnSF,ne:neSF,deSF)
-                        EU(de @ (DeleteEdge _)) -> (nnSF,dnSF,neSF,de:deSF)
-                     )
-                  ([],[],[],[])
-                  pendingChanges
-         -- The changes will be given in order
-         -- newNodes ++ deleteNodes ++ newEdges ++ deleteEdges
-         -- except that we need to filter newEdges to eliminate edges
-         -- containing deleted nodes, and deleteEdges to eliminate
-         -- edges filtered.
-            (newEdges2,deleteEdges2) =
-               if (null deleteNodes) || (null newEdges)
-                  then
-                     (newEdges,deleteEdges)
-                  else -- edges involving deleted nodes must be excised
-                     let
-                        deletedNodes = 
-                           mkSet(map (\ (DeleteNode nodeId) -> nodeId) 
-                              deleteNodes)
-                        (newEdges2,obsoleteEdges) =
-                           foldl
-                              (\ (nE2sF,oEsF) (ne @ 
-                                    (NewEdge edgeId _ _ nodeFrom nodeTo)) -> 
-                                 if (elementOf nodeFrom deletedNodes) ||
-                                    (elementOf nodeTo deletedNodes)
-                                    then (nE2sF,addToSet oEsF edgeId)
-                                    else (ne:nE2sF,oEsF)
-                                 )
-                              ([],emptySet)
-                              newEdges
-                        deleteEdges2 = filter (\ (DeleteEdge edgeId) -> 
-                           not (elementOf edgeId obsoleteEdges)) deleteEdges 
-                     in
-                        (newEdges2,deleteEdges2)
-         in
-            DaVinciTypes.Graph(Update (newNodes ++ deleteNodes)
-                     (newEdges2 ++ deleteEdges2))
+         sortPendingChanges1 pendingChanges
+
+sortPendingChanges1 :: [MixedUpdate] -> DaVinciCmd
+sortPendingChanges1 pendingChanges =
+   let
+      (nodeUpdates :: [NodeUpdate],edgeUpdates1 :: [EdgeUpdate]) =
+         foldr -- so that the nodes are in the same order as in list.
+            (\ change (nodesSF,edgesSF) -> 
+               case change of
+                  NU(n @ (NewNode _ _ _)) -> (n:nodesSF,edgesSF)
+                  NU(n @ (DeleteNode _)) -> (n:nodesSF,edgesSF)
+                  EU(e @ (NewEdge _ _ _ _ _)) -> (nodesSF,e:edgesSF)
+                  EU(e @ (DeleteEdge _)) -> (nodesSF,e:edgesSF)
+               )
+            ([],[])
+            pendingChanges
+
+      -- We need to eliminate NewEdge updates for edges
+      -- containing deleted nodes, and DeleteEdge updates for these 
+      -- eliminated edges.
+      finalState = toFinalState pendingChanges
+
+      deletedNodes :: Set NodeId
+      deletedNodes = mkSet (mapMaybe
+         (\ update -> case update of 
+               NU (DeleteNode nodeId) -> Just nodeId
+               _ -> Nothing
+            )
+         finalState
+         )
+
+      (edgeUpdates2 :: [EdgeUpdate],obsoleteEdges :: Set EdgeId) =
+         foldl
+            (\ (eSF,oSF) e -> case e of
+               (NewEdge edgeId _ _ nodeFrom nodeTo) -> 
+                  if (elementOf nodeFrom deletedNodes) ||
+                     (elementOf nodeTo deletedNodes)
+                     then (eSF,addToSet oSF edgeId)
+                     else (e:eSF,oSF)
+               _ -> (e:eSF,oSF)
+               )
+            ([],emptySet)
+            edgeUpdates1
+
+      (edgeUpdates3 :: [EdgeUpdate]) = filter
+         (\ e -> case e of
+            DeleteEdge edgeId -> not (elementOf edgeId obsoleteEdges)
+            _ -> True
+            ) 
+         (reverse edgeUpdates2)
+      in
+         DaVinciTypes.Graph(Update nodeUpdates edgeUpdates3)
 
 flushPendingChanges :: DaVinciGraph -> IO ()
 flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
@@ -1452,17 +1578,34 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
             [] -> done
             _ -> 
                doInContext (sortPendingChanges pendingChanges) context
-         -- Delete all now-irrelevant node and edge entries.
+         -- Delete registry entries for all now-irrelevant node and edge 
+         -- entries.
+         -- NB.  This will miss deleting entries for edges which are 
+         -- attached to nodes which get deleted without being
+         -- deleted themselves, but I can't be bothered now to do 
+         -- anything about this.
          sequence_ (map
             (\ pendingChange -> case pendingChange of
                NU (DeleteNode nodeId) -> deleteFromRegistry nodes nodeId
                EU (DeleteEdge edgeId) -> deleteFromRegistry edges edgeId
                _ -> done
                )
-            pendingChanges
+            (toFinalState pendingChanges)
             )
       )
 
+-- For each node or edge created or destroyed in the list, delete all but
+-- the first operation applied to it (== the last added to the list)
+toFinalState :: [MixedUpdate] -> [MixedUpdate]
+toFinalState = uniqOrdByKeyOrder toId
+   where
+      toId :: MixedUpdate -> Either NodeId EdgeId
+      toId (NU (DeleteNode nodeId)) = Left nodeId
+      toId (NU (NewNode nodeId _ _)) = Left nodeId
+      toId (EU (DeleteEdge edgeId)) = Right edgeId
+      toId (EU (NewEdge edgeId _ _ _ _)) = Right edgeId
+      toId (EU (NewEdgeBehind _ edgeId _ _ _  _)) = Right edgeId
+ 
 -- -----------------------------------------------------------------------
 -- Setting node titles and font styles.
 -- -----------------------------------------------------------------------
@@ -1470,6 +1613,8 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
 -- | This is called internally, by the function set up by newNodePrim.
 -- The function returns False to indicate that this function failed as
 -- the node has been deleted.
+-- (This behaviour may now be useless anyway but I can't be bothered
+-- to change it.)
 setNodeTitle :: Typeable value => DaVinciGraph -> DaVinciNode value -> String
    -> IO Bool
 setNodeTitle daVinciGraph (daVinciNode@(DaVinciNode nodeId)) newTitle =

@@ -19,7 +19,6 @@ module FindCommonParents(
    ) where
 
 import Maybe
-import Monad       
 
 import Data.FiniteMap
 import Data.Set
@@ -31,18 +30,20 @@ import TopSort
 -- ----------------------------------------------------------------------------
 -- GraphBack
 -- encoded information about a graph needed for this operation
+-- 
+-- NB.  GraphBack is now used for other purposes in other modules.
 -- ----------------------------------------------------------------------------
 
 data GraphBack node nodeKey = GraphBack {
-   getAllNodes :: IO [node],
+   getAllNodes :: [node],
       -- ^ Get all nodes in the graph
-   getKey :: node -> IO (Maybe nodeKey),
-      -- ^ If the node does not exist in the graph return 'Nothing'.  
-      -- If it does return Just key where key is a \"nodeKey\", an ordered key
+   getKey :: node -> (Maybe nodeKey),
+      -- ^ If the node does not exist in the graph 'Nothing'.  
+      -- Otherwise 'Just' key where key is a \"nodeKey\", an ordered key
       -- uniquely distinguishing the node (and used to detect common elements 
       -- in the two graphs)
-   getParents :: node -> IO (Maybe [node])
-      -- ^If node does not exist return Nothing, otherwise return immediate 
+   getParents :: node -> (Maybe [node])
+      -- ^If node does not exist Nothing, otherwise immediate 
       -- parents of node.
    }
 
@@ -52,7 +53,7 @@ data GraphBack node nodeKey = GraphBack {
 
 findCommonParents :: (Show node1,Show node2,Show nodeKey,Ord nodeKey) 
    => GraphBack node1 nodeKey -> GraphBack node2 nodeKey -> [node1] 
-   -> IO [(node1,[(node1,Maybe node2)])]
+   -> [(node1,[(node1,Maybe node2)])]
    -- G1, G2 and V1.
    -- Note that the nodes are kept distinct, even by type; they can only be 
    --    compared by nodeKey. 
@@ -63,121 +64,131 @@ findCommonParents :: (Show node1,Show node2,Show nodeKey,Ord nodeKey)
 findCommonParents 
       (g1 :: GraphBack node1 nodeKey) (g2 :: GraphBack node2 nodeKey) 
       (v1 :: [node1]) =
-   do
-      let
-         getKey1 = getKey g1
-         getKey2 = getKey g2
+   let
+      getKey1 = getKey g1
+      getKey2 = getKey g2
 
-         getParents1 = getParents g1
+      getParents1 = getParents g1
 
       -- (1) construct dictionaries by NodeKey for all nodes in g2 and v1.
-      (v1Dict :: FiniteMap nodeKey node1) <-
-         foldM
+      v1Dict :: FiniteMap nodeKey node1
+      v1Dict = 
+         foldl
             (\ map0 v1Node ->
-               do
-                  Just nodeKey <- getKey1 v1Node
+               let
+                  Just nodeKey = getKey1 v1Node
                      -- Nothing here indicates an element of v1 not in G1.
-                  return (addToFM map0 nodeKey v1Node)
+               in
+                  addToFM map0 nodeKey v1Node
                )
             emptyFM
             v1
 
-      (g2Nodes :: [node2]) <- getAllNodes g2
+      g2Nodes :: [node2]
+      g2Nodes = getAllNodes g2
 
-      (g2Dict :: FiniteMap nodeKey node2) <-
-         foldM
+      g2Dict :: FiniteMap nodeKey node2
+      g2Dict =
+         foldl
             (\ map0 g2Node ->
-              do
-                 Just nodeKey <- getKey2 g2Node
+              let
+                 Just nodeKey = getKey2 g2Node
                     -- Nothing here indicates an element of g2Nodes not in g2.
-                 return (addToFM map0 nodeKey g2Node)
+              in
+                 addToFM map0 nodeKey g2Node
               )
            emptyFM
            g2Nodes
 
-      let
-         -- doNode gets the list for the given node, or Nothing if it is 
-         -- already in G2.
-         doNode :: node1 -> IO (Maybe [(node1,Maybe node2)])
-         doNode node =
-            do
-               Just nodeKey <- getKey1 node
-               case lookupFM g2Dict nodeKey of
-                  Just _ -> return Nothing -- already is G2.
-                  Nothing ->
-                     do
-                        Just nodes <- getParents1 node                         
-                        (_,list) <- doNodes nodes emptySet []
-                        return (Just (reverse list))
-            where
-               -- 
-               -- The following functions have the job of scanning back
-               -- through g1, looking for parents also in g2, or which
-               -- will be by merit of being copied.
-               doNodes :: [node1] -> Set nodeKey -> [(node1,Maybe node2)]
-                  -> IO (Set nodeKey,[(node1,Maybe node2)])
-               -- Set is visited set.
-               -- list is accumulating parameter.
-               doNodes nodes visited0 acc0 =
-                  foldM
-                     (\ (visited0,acc0) node -> doNode1 node visited0 acc0)
-                     (visited0,acc0)
-                     nodes
+      -- doNode gets the list for the given node, or Nothing if it is 
+      -- already in G2.
+      doNode :: node1 -> Maybe [(node1,Maybe node2)]
+      doNode node =
+         let
+            Just nodeKey = getKey1 node
+         in
+            case lookupFM g2Dict nodeKey of
+               Just _ -> Nothing -- already is G2.
+               Nothing ->
+                  let
+                     Just nodes = getParents1 node                         
+                     (_,list) = doNodes nodes emptySet []
+                  in
+                     Just (reverse list)
+         where
+            -- 
+            -- The following functions have the job of scanning back
+            -- through g1, looking for parents also in g2, or which
+            -- will be by merit of being copied.
+            doNodes :: [node1] -> Set nodeKey -> [(node1,Maybe node2)]
+               -> (Set nodeKey,[(node1,Maybe node2)])
+            -- Set is visited set.
+            -- list is accumulating parameter.
+            doNodes nodes visited0 acc0 =
+               foldl
+                  (\ (visited0,acc0) node -> doNode1 node visited0 acc0)
+                  (visited0,acc0)
+                  nodes
 
-               doNode1 :: node1 -> Set nodeKey -> [(node1,Maybe node2)] 
-                  -> IO (Set nodeKey,[(node1,Maybe node2)])
-               -- Set is visited set, ancestors already visited.
-               -- list is accumulating parameter.
-               doNode1 node1 visited0 acc0 = 
-                  -- Examine node1 to see if it is common ancestor.
-                  do
-                     Just nodeKey <- getKey1 node1      
-                     if elementOf nodeKey visited0
-                        then 
-                           return (visited0,acc0)
-                        else
-                           do
-                              let
-                                 visited1 = addToSet visited0 nodeKey
-                              case (lookupFM g2Dict nodeKey,
-                                    lookupFM v1Dict nodeKey) of
-                                 (Just node2,_) ->
-                                    -- Node is in g2.  Since node was found
-                                    -- by scanning back in graph1,
-                                    -- it is also in graph1.  Hence this is
-                                    -- a common node.
-                                    return (visited1,(node1,Just node2) : acc0)
-                                 (Nothing,Just node1) -> 
-                                    -- This node is in v, but not g2 yet.
-                                    return (visited1,(node1,Nothing) : acc0)
-                                 (Nothing,Nothing) ->
-                                    -- Have to scan back to this node's
-                                    -- ancestors.
-                                    do
-                                       Just nodes <- getParents1 node1
-                                       doNodes nodes visited1 acc0
+            doNode1 :: node1 -> Set nodeKey -> [(node1,Maybe node2)] 
+               -> (Set nodeKey,[(node1,Maybe node2)])
+            -- Set is visited set, ancestors already visited.
+            -- list is accumulating parameter.
+            doNode1 node1 visited0 acc0 = 
+               -- Examine node1 to see if it is common ancestor.
+               let
+                  Just nodeKey = getKey1 node1
+               in      
+                  if elementOf nodeKey visited0
+                     then 
+                        (visited0,acc0)
+                     else
+                        let
+                           visited1 = addToSet visited0 nodeKey
+                        in
+                           case (lookupFM g2Dict nodeKey,
+                                 lookupFM v1Dict nodeKey) of
+                              (Just node2,_) ->
+                                 -- Node is in g2.  Since node was found
+                                 -- by scanning back in graph1,
+                                 -- it is also in graph1.  Hence this is
+                                 -- a common node.
+                                 (visited1,(node1,Just node2) : acc0)
+                              (Nothing,Just node1) -> 
+                                 -- This node is in v, but not g2 yet.
+                                 (visited1,(node1,Nothing) : acc0)
+                              (Nothing,Nothing) ->
+                                 -- Have to scan back to this node's
+                                 -- ancestors.
+                                 let
+                                    Just nodes = getParents1 node1
+                                 in
+                                    doNodes nodes visited1 acc0
 
       -- (2) Get the list, but don't sort out the order yet.
-      (nodes1Opt :: [Maybe (node1,[(node1,Maybe node2)])]) <-
-         mapM
+      nodes1Opt :: [Maybe (node1,[(node1,Maybe node2)])]
+      nodes1Opt =
+         map
             (\ v1Node ->
-               do
-                  nodesOpt <- doNode v1Node
-                  return (fmap (\ nodes -> (v1Node,nodes)) nodesOpt)
+               let
+                  nodesOpt = doNode v1Node
+               in
+                  (fmap (\ nodes -> (v1Node,nodes)) nodesOpt)
                )
             v1
 
-      let
-         nodes1 :: [(node1,[(node1,Maybe node2)])]
-         nodes1 = catMaybes nodes1Opt
+      nodes1 :: [(node1,[(node1,Maybe node2)])]
+      nodes1 = catMaybes nodes1Opt
 
       -- (3) Construct a map from nodeKey to the elements of this list. 
-      (nodeKeyMap :: FiniteMap nodeKey (node1,[(node1,Maybe node2)])) <- foldM
+      nodeKeyMap :: FiniteMap nodeKey (node1,[(node1,Maybe node2)])
+      nodeKeyMap = foldl
          (\ map0 (nodeData @ (node1,nodes)) ->
-            do
-               Just nodeKey <- getKey1 node1
-               return (addToFM map0 nodeKey nodeData)
-            ) 
+            let
+               Just nodeKey = getKey1 node1
+            in
+               addToFM map0 nodeKey nodeData
+            )
          emptyFM
          nodes1
 
@@ -185,53 +196,57 @@ findCommonParents
       -- [(nodeKey,nodeKey)], ready to feed to TopSort.topSort.  Hence the key
       -- that needs to come first in the result -- the ancestor -- 
       -- needs to go first in the pair.
-      (relations1 :: [(nodeKey,[nodeKey])]) <-
-         mapM
+      relations1 :: [(nodeKey,[nodeKey])]
+      relations1 =
+         map
             (\ (node,nodes) ->
-               do
-                  Just nodeKey <- getKey1 node
-                  (nodeKeysOpt :: [Maybe nodeKey]) <- mapM
+               let
+                  Just nodeKey = getKey1 node
+
+                  nodeKeysOpt :: [Maybe nodeKey]
+                  nodeKeysOpt = map
                      (\ nodeItem -> case nodeItem of
                         (node1,Nothing) ->
-                           do
-                              Just nodeKey2 <- getKey1 node1
-                              return (Just nodeKey2)
-                        (node1,Just _) -> return Nothing
+                           let
+                              Just nodeKey2 = getKey1 node1
+                           in
+                              Just nodeKey2
+                        (node1,Just _) -> Nothing
                         )
                      nodes
-                  return (nodeKey,catMaybes nodeKeysOpt)
+               in
+                  (nodeKey,catMaybes nodeKeysOpt)
                )  
             nodes1
 
-      let
-         relations :: [(nodeKey,nodeKey)]
-         relations = concat
-            (map
-                (\ (thisNodeKey,nodeKeys) ->
-                   map
-                      (\ parentNodeKey -> (parentNodeKey,thisNodeKey))
-                      nodeKeys
-                   )
-                relations1
+      relations :: [(nodeKey,nodeKey)]
+      relations = concat
+         (map
+             (\ (thisNodeKey,nodeKeys) ->
+                map
+                   (\ parentNodeKey -> (parentNodeKey,thisNodeKey))
+                   nodeKeys
                 )
+             relations1
+             )
 
-         nodeKeys :: [nodeKey]
-         nodeKeys = map (\ (thisNodeKey,_) -> thisNodeKey) relations1
+      nodeKeys :: [nodeKey]
+      nodeKeys = map (\ (thisNodeKey,_) -> thisNodeKey) relations1
 
-         -- (5) do a topological sort.
-         nodeKeysInOrder :: [nodeKey]
-         nodeKeysInOrder = topSort1 relations nodeKeys
+      -- (5) do a topological sort.
+      nodeKeysInOrder :: [nodeKey]
+      nodeKeysInOrder = topSort1 relations nodeKeys
 
-         -- (6) Put the output together
-         nodesOut :: [(node1,[(node1,Maybe node2)])]
-         nodesOut =
-            map
-               (\ nodeKey ->
-                  let
-                     Just nodeData = lookupFM nodeKeyMap nodeKey
-                  in
-                     nodeData
-                  )
-               nodeKeysInOrder
-
-      return nodesOut 
+      -- (6) Put the output together
+      nodesOut :: [(node1,[(node1,Maybe node2)])]
+      nodesOut =
+         map
+            (\ nodeKey ->
+               let
+                  Just nodeData = lookupFM nodeKeyMap nodeKey
+               in
+                  nodeData
+               )
+            nodeKeysInOrder
+   in
+      nodesOut 

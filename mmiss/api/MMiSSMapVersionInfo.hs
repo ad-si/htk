@@ -49,17 +49,9 @@ fromOurVersionInfo versionInfo0 =
 
 fromOurUserInfo :: VersionInfo.UserInfo -> MMiSSRequest.UserInfo
 fromOurUserInfo user0 =
-   let
-      private1 = if VersionInfo.private user0
-         then
-            NonDefault UserInfo_private_noAutoExport
-         else
-            Default UserInfo_private_autoExport
-   in
       UserInfo {
          userInfoLabel = Just (VersionInfo.label user0),
          userInfoContents = Just (VersionInfo.contents user0),
-         userInfoPrivate = private1,
          userInfoVersion 
             = Just (toString (VersionInfo.version user0)),
          userInfoParents 
@@ -78,10 +70,6 @@ toOurUserInfo defaultUser user0 =
 
       contents1 = fromMaybe (VersionInfo.contents defaultUser) 
          (userInfoContents user0)
-
-      private1 = case fromDefaultable (userInfoPrivate user0) of
-         UserInfo_private_autoExport -> False
-         UserInfo_private_noAutoExport -> True
 
       version1 = 
          fromMaybe (VersionInfo.version defaultUser)
@@ -112,7 +100,6 @@ toOurUserInfo defaultUser user0 =
          (VersionInfo.UserInfo {
             VersionInfo.label = label1,
             VersionInfo.contents = contents1,
-            VersionInfo.private = private1,
             VersionInfo.version = version1,
             VersionInfo.parents = parents1
             })

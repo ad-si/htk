@@ -5,17 +5,21 @@
 module RemoveAncestors(
    removeAncestors,
    removeAncestorsBy,
+   removeAncestorsByPure,
    ) where
 
 import Monad
 
+
+import Control.Monad.Identity
 import Data.FiniteMap
 import Data.Set
 
 import Graph
 
 
--- | 
+-- | Takes a graph G and a list of nodes N and computes N' = { n in N |
+-- there does not exist an m in N and a non-trivial path n -> m }.
 removeAncestors :: Graph graph => 
    graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel
    -> [Node]
@@ -107,6 +111,15 @@ removeAncestorsBy (getChildren :: node -> m [node]) (nodes :: [node]) =
   
       return list
 
+-- | Pure version of 'removeAncestorsBy'.
+removeAncestorsByPure :: Ord node => (node -> [node]) -> [node] -> [node]
+removeAncestorsByPure (toParents0 :: node -> [node]) nodes =
+   let
+      toParents1 :: node -> Identity [node]
+      toParents1 = Identity . toParents0
+   in
+      runIdentity (removeAncestorsBy toParents1 nodes)
+
 -- | This describes the information kept about a node during the course of
 -- removeAncestorsBy
 data NodeState = 
@@ -115,5 +128,3 @@ data NodeState =
    |  No  -- ^ the opposite of Yes.
    |  Cycle -- ^ we are already searching from this element.
 
-{- SPECIALIZE removeAncestorsBy 
-   ::  (Node -> IO [Node]) -> [Node] -> IO [Node] -}

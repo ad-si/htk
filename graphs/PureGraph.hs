@@ -13,6 +13,10 @@ module PureGraph(
       -- => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)] 
       -- -> PureGraph nodeInfo arcInfo
 
+   deleteNode, -- :: Ord nodeInfo
+      -- => PureGraph nodeInfo arcInfo -> nodeInfo 
+      -- -> PureGraph nodeInfo arcInfo
+
    mapArcInfo,
       -- :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1 
       -- -> PureGraph nodeInfo arcInfo2
@@ -20,9 +24,21 @@ module PureGraph(
    parentNodes,
       -- :: NodeData nodeInfo arcInfo -> [nodeInfo]
 
+
+
+   toAllNodes, -- :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
+   toNodeParents, 
+      -- :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo 
+      -- -> Maybe [nodeInfo]
+      -- returns Nothing if the node does not exist.
+
+   nodeExists, -- :: PureGraph nodeInfo arcInfo -> nodeInfo -> Bool
+
    ) where
 
 import Data.FiniteMap
+
+import Graph(PartialShow(..))
 
 -- ------------------------------------------------------------------------
 -- Datatypes
@@ -36,7 +52,7 @@ newtype PureGraph nodeInfo arcInfo = PureGraph {
 
 data NodeData nodeInfo arcInfo = NodeData {
    parents :: [ArcData nodeInfo arcInfo]
-   } deriving (Show) 
+   } deriving (Show,Eq,Ord) 
 
 data ArcData nodeInfo arcInfo = ArcData {
    arcInfo :: arcInfo,
@@ -47,10 +63,17 @@ data ArcData nodeInfo arcInfo = ArcData {
 -- Instances
 -- ---------------------------------------------------------------------------
 
--- The Show instance is mainly there for debugging purposes.
+-- The Show instances are mainly there for debugging purposes.
 instance (Show nodeInfo,Show arcInfo)  
       => Show (PureGraph nodeInfo arcInfo) where
    show (PureGraph fm) = show (fmToList fm)
+
+instance Show (PartialShow (PureGraph nodeInfo arcInfo)) where
+   show (PartialShow (PureGraph fm)) = "NParents dump :" 
+      ++ show (PartialShow (eltsFM fm))
+
+instance Show (PartialShow (NodeData nodeInfo arcInfo)) where
+   show (PartialShow nodeData) = "#"++show (length (parents nodeData))
 
 -- ---------------------------------------------------------------------------
 -- Creating and modifying graphs
@@ -59,6 +82,7 @@ instance (Show nodeInfo,Show arcInfo)
 emptyPureGraph :: Ord nodeInfo => PureGraph nodeInfo arcInfo
 emptyPureGraph = PureGraph emptyFM
 
+-- | add a node with given parent arcs from it.
 addNode :: Ord nodeInfo 
    => PureGraph nodeInfo arcInfo -> nodeInfo -> [(arcInfo,nodeInfo)] 
    -> PureGraph nodeInfo arcInfo
@@ -72,10 +96,29 @@ addNode (PureGraph fm) newNode newArcs =
          })
       )
 
+-- | NB.  The graph will end up ill-formed if you delete a node which
+-- has parent arcs pointing to it.
+deleteNode :: Ord nodeInfo
+   => PureGraph nodeInfo arcInfo -> nodeInfo -> PureGraph nodeInfo arcInfo
+deleteNode (PureGraph fm) node = PureGraph (delFromFM fm node)
+
+
 -- ---------------------------------------------------------------------------
 -- Other Elementary functions
 -- ---------------------------------------------------------------------------
 
+toAllNodes :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> [nodeInfo]
+toAllNodes (PureGraph fm) = keysFM fm
+
+toNodeParents :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo 
+   -> Maybe [nodeInfo]
+toNodeParents (PureGraph fm) nodeInfo =
+   do
+      nodeData <- lookupFM fm nodeInfo
+      return (parentNodes nodeData)
+
+nodeExists :: Ord nodeInfo => PureGraph nodeInfo arcInfo -> nodeInfo -> Bool
+nodeExists (PureGraph fm) nodeInfo = elemFM nodeInfo fm
 
 mapArcInfo :: (arcInfo1 -> arcInfo2) -> PureGraph nodeInfo arcInfo1 
    -> PureGraph nodeInfo arcInfo2

@@ -86,6 +86,7 @@ module ExtendedPrelude (
    uniqOrdOrder,
 
    uniqOrdByKey, -- :: Ord b => (a -> b) -> [a] -> [a]
+   uniqOrdByKeyOrder, -- :: Ord b => (a -> b) -> [a] -> [a]
    -- Remove duplicate elements from a list where the key function is supplied.
    allSame,
    allEq, -- :: Eq a => [a] -> Bool
@@ -646,6 +647,25 @@ uniqOrdByKey (getKey :: a -> b) (as :: [a]) =
             )
   in
      map snd (Data.FiniteMap.fmToList fm)
+
+-- | Remove duplicate elements from a list where the key function is supplied.
+-- The list order is preserved and of the duplicates, it is the first in the
+-- list which is not deleted.
+uniqOrdByKeyOrder :: Ord b => (a -> b) -> [a] -> [a]
+uniqOrdByKeyOrder (getKey :: a -> b) =
+   let
+      u :: Set b -> [a] -> [a]
+      u visited [] = []
+      u visited (a:as) = 
+         if elementOf key visited
+            then
+               u visited as
+            else
+               a : u (addToSet visited key) as
+         where
+            key = getKey a
+   in
+      u emptySet
 
 -- ¦ Like uniqOrd, except that we specify the output order of the list.
 -- The resulting list is that obtained by deleting all duplicate elements

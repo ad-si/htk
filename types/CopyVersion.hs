@@ -65,8 +65,10 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
         fromRepository = toVersionGraphRepository fromVersionGraph
         toRepository = toVersionGraphRepository toVersionGraph
 
-        fromVersionSimpleGraph = toVersionGraphGraph fromVersionGraph
-        toVersionSimpleGraph = toVersionGraphGraph toVersionGraph
+        fromVersionGraphClient 
+           = VersionGraph.toVersionGraphClient fromVersionGraph
+        toVersionGraphClient 
+           = VersionGraph.toVersionGraphClient toVersionGraph
 
         parentsMap :: FiniteMap ObjectVersion ObjectVersion
         parentsMap = listToFM (map
@@ -80,7 +82,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            Just toVersion -> toVersion
 
      -- (1) Get a View for the old version.
-     view0 <- getView fromRepository fromVersionSimpleGraph fromVersion
+     view0 <- getView fromRepository fromVersionGraphClient fromVersion
 
      -- (2) get diffs for fromVersion from its parents.
      (diffs :: [(Location,Diff)])
@@ -106,7 +108,7 @@ copyVersion (FromTo {from = fromVersionGraph,to = toVersionGraph})
            commitLock = commitLock1,
            delayer = delayer1,
            committingVersion = committingVersion1,
-           versionGraph1 = toVersionSimpleGraph,
+           graphClient1 = toVersionGraphClient,
            importsState = importsState1
            }
 

@@ -4,108 +4,144 @@
 module VersionGraphClient(
    -- Get the VersionGraph, and arrange for the connection to be closed
    -- when the program ends.
-   mkVersionSimpleGraph, -- :: (?server :: HostPort) => IO (VersionSimpleGraph)
-   mkVersionSimpleGraphInternal,
-      -- :: VersionState -> IO (VersionTypes SimpleGraph)
+
+   -- types
+   VersionGraphClient, -- contains the graph
+   VersionGraphNode(..), -- represents a node in the graph 
+   VersionInfo1, -- generalised VersionInfo that can also contain the view.
+
+   mkVersionGraphClient, -- :: (?server :: HostPort) => IO VersionGraphClient
+   mkVersionGraphClientInternal, -- :: VersionState -> IO VersionGraphClient
+
+   -- operations for modifying the graph.
+   -- NB.  Changes to the committed versions are not given by this functions,
+   -- but come from the server.
+   newWorkingVersion, 
+      -- :: VersionGraphClient -> View 
+      -- -> IO VersionGraphNode
+      -- The parents are changed, and updated, from the view's 
+      -- viewInfoBroadcaster
+   deleteWorkingVersion,
+      -- :: VersionGraphClient -> View -> IO ()
+
+
+   changeIsHidden,
+      -- :: VersionGraphClient -> (VersionInfo -> Bool) -> IO ()
+    
+
+   toVersionGraphConnection,  
+      -- :: VersionGraphClient -> GraphConnection VersionInfo1 () () ()
+      -- How to draw the graph.
 
    VersionTypes,
-   VersionSimpleGraph, -- alias for VersionSimpleGraph
+   getInputGraphBack,
 
-   -- Node functions
-   VersionGraphNode(..),
-   toNode, -- :: VersionGraphNode -> Node
-   versionToNode, -- :: ObjectVersion -> Node
-   nodeToVersion, -- :: Node -> Maybe Version
-   nodeIsCheckedIn, -- :: Node -> Bool
 
-   -- Arc functions 
-   newCheckedInArc, -- :: VersionTypes SimpleGraph -> IO Arc
-   newWorkingArc, -- :: UniqueStringSource -> IO Arc
-   arcIsCheckedIn, -- :: Arc -> Bool
+   toVersionInfo, -- :: VersionInfo1 -> VersionInfo
+   toViewOpt, -- :: VersionInfo1 -> Maybe View
+      -- How to take apart what you get from toversionGraphConnection
 
- 
-   -- The pre-defined types.
-   checkedInType, workingType, -- :: NodeType
-   checkedInArcType, workingArcType, -- :: ArcType
+   getVersionInfo,
+      -- :: VersionGraphClient -> ObjectVersion -> (IO VersionInfo)
+   getVersionInfos,
+      -- :: VersionGraphClient -> IO [VersionInfo1]
 
-   getVersionInfo, -- :: VersionSimpleGraph -> Node -> IO VersionInfo
-      -- Get the version Info for a node.
+   -- node and arc types
+   checkedInType, workingType, checkedInTypeHidden, workingTypeHidden,
+      -- :: NodeType
+   checkedInArcType, workingArcType, arcTypeHidden, 
+      -- :: ArcType
    ) where
+
+import Maybe
 
 import Control.Concurrent.MVar
 
 import AtomString
-import UniqueString
-import Computation
-import Spawn
-import NewNames
-import Debug
+import Registry
+import Thread
+import Sources
+import Sink
+import Dynamics
 
 import InfoBus
 
 import HostsPorts hiding (user)
 import CallServer
 
+import FindCommonParents(GraphBack)
 import Graph
-import SimpleGraph
+import GraphConnection
+import VersionDag hiding (changeIsHidden,getInputGraphBack)
+import qualified VersionDag
 
-import VersionInfo
+import VersionDB hiding (VersionInfo1)
+import ViewType
+import VersionInfo hiding (getVersionInfos)
+
 import VersionInfoService
 
-import VersionDB
-import ViewType
-
 -- ------------------------------------------------------------------------
--- Types
+-- Datatypes
 -- ------------------------------------------------------------------------
 
--- | A VersionGraphNode represents either a checked-in version or a view.
--- Only the checked-in nodes are sent to the server.
-data VersionGraphNode =
+data VersionGraphNode = 
       CheckedInNode ObjectVersion
    |  WorkingNode View
+   deriving (Eq,Ord)
 
-type VersionTypes dataSort = dataSort VersionInfo () () () 
-   -- change to alter node/nodetype/arc/arctypes.
-   -- The NodeType uses as String the string representation of
-   -- the version.  Thus each node has attached to it the NodeType
-   -- plus the additional String which is supplied; this String
-   -- can be used to provide additional information about the version.
+data VersionInfo1 = VersionInfo1 {
+   versionInfo :: VersionInfo,
+   viewOpt :: Maybe View
+   } deriving (Eq,Ord,Typeable)
 
-type VersionSimpleGraph = VersionTypes SimpleGraph
+data VersionGraphClient = VersionGraphClient {
+   versionDag :: VersionDag VersionGraphNode VersionInfo1 Bool,
+      -- ^ the Bool is True for a checked-in version
+   newNodeActions :: Registry ObjectVersion (IO ())
+      -- ^ Actions to be performed after a new node is created by the server.
+      -- (This is used to rewire the parent of a working version after it is
+      -- checked in.)
+   }
+
+ 
+type VersionTypes dataSort = dataSort VersionInfo1 () Bool ()
 
 -- ------------------------------------------------------------------------
--- Connecting to the Server
+-- Instances
+-- ------------------------------------------------------------------------
+
+instance Show VersionGraphNode where -- this is mainly used for debugging
+   show (CheckedInNode ov) = "Checked in node:" ++ show ov
+   show (WorkingNode _) = "Unknown view" 
+
+-- ------------------------------------------------------------------------
+-- Creating VersionGraphClient's.
 -- ------------------------------------------------------------------------
 
 -- | Get the VersionGraph, and arrange for the connection to be closed
 -- when the program ends.
-mkVersionSimpleGraph :: (?server :: HostPort) => IO (VersionTypes SimpleGraph)
-mkVersionSimpleGraph =
+mkVersionGraphClient :: (?server :: HostPort) => IO VersionGraphClient
+mkVersionGraphClient =
    do
       (versionGraph,terminator) <- connectToServer
       registerDestroyAct terminator
       return versionGraph
 
--- | Get the VersionGraph (internal version), and arrange for the connection to 
+-- | Get the VersionGraph (internal version), and arrange for the connection to
 -- be closed when the program ends.
-mkVersionSimpleGraphInternal :: VersionState -> IO (VersionTypes SimpleGraph)
-mkVersionSimpleGraphInternal versionState =
+mkVersionGraphClientInternal :: VersionState -> IO VersionGraphClient
+mkVersionGraphClientInternal versionState =
    do
       (versionGraph,terminator) <- connectToServerInternal versionState
       registerDestroyAct terminator
       return versionGraph
 
--- | retrieve the VersionInfo corresponding to a given version.
-getVersionInfo :: VersionTypes SimpleGraph -> Node -> IO VersionInfo
-getVersionInfo versionGraph node = getNodeLabel versionGraph node
-
-
 -- | connectToServer generates a new graph connected to the version
 -- graph in the server.  Updates to this graph do not get passed to
 -- the server.
 -- The returned action closes the server connection.
-connectToServer :: (?server :: HostPort) => IO (VersionSimpleGraph,IO ())
+connectToServer :: (?server :: HostPort) => IO (VersionGraphClient,IO ())
 connectToServer =
    do
       (getNextUpdate,closeConnection,initialVersionInfos) 
@@ -113,7 +149,7 @@ connectToServer =
       connectToServer1 getNextUpdate closeConnection initialVersionInfos
 
 -- | connectToServerInternal connects to the internal server.
-connectToServerInternal :: VersionState -> IO (VersionSimpleGraph,IO ())
+connectToServerInternal :: VersionState -> IO (VersionGraphClient,IO ())
 connectToServerInternal versionState =
    do
       (updateMVar :: MVar (Bool,VersionInfo)) <- newEmptyMVar
@@ -132,82 +168,252 @@ connectToServerInternal versionState =
 -- | This is the general version-graph construction function, for
 -- external and internal version graphs.  
 connectToServer1 :: 
-   IO (Bool,VersionInfo) -- ^ source of updates.
+   IO (Bool,VersionInfo) 
+       -- ^ source of updates.  The Bool indicates that a version info is
+       -- not new, but simply being changed.
    -> IO () -- ^ close action
    -> [VersionInfo] -- ^ initial versionInfos
-   -> IO (VersionSimpleGraph,IO ())
+   -> IO (VersionGraphClient,IO ())
 connectToServer1 getNextUpdate closeConnection initialVersionInfos =
    do
-      (graph :: VersionTypes SimpleGraph) <- newEmptyGraph
+      let
+         isHidden0 :: VersionInfo1 -> Bool
+         isHidden0 versionInfo1 = not . isPresent . versionInfo $ versionInfo1
 
-      debug initialVersionInfos
+         toNodeKey :: VersionInfo1 -> VersionGraphNode
+         toNodeKey versionInfo1 = case viewOpt versionInfo1 of
+            Just view -> WorkingNode view
+            Nothing -> CheckedInNode (
+               version . user . versionInfo $ versionInfo1)
 
-      update graph (NewNodeType checkedInType ())
-      update graph (NewNodeType workingType ())
-      update graph (NewArcType checkedInArcType ())
-      update graph (NewArcType workingArcType ())
+         toParents :: VersionInfo1 -> [(Bool,VersionGraphNode)]
+         toParents versionInfo1 =
+            let
+               isWorking = isJust . viewOpt $ versionInfo1 
+            in
+               map 
+                  (\ parent -> (isWorking,CheckedInNode parent))
+                  (parents . user . versionInfo $ versionInfo1) 
+
+      versionDag <- newVersionDag isHidden0 toNodeKey toParents
+
+      newNodeActions <- newRegistry
 
       let
-         -- The action returned adds the arcs, if this is a new node.
-         -- It needs to be done after all new nodes have been added.
-         addVersionInfo :: (Bool,VersionInfo) -> IO (IO ())
-         addVersionInfo (isModify,versionInfo) =
-            do
-               let
-                  node = versionToNode (version (user versionInfo))
+         mkVersionInfoFromServer :: VersionInfo -> VersionInfo1
+         mkVersionInfoFromServer versionInfo =
+            VersionInfo1 {
+               versionInfo = versionInfo,
+               viewOpt = Nothing
+               }
 
-               if isModify
-                 then
-                    do
-                       update graph (SetNodeLabel node versionInfo)
-                       -- For now we do *not* modify the parents shown,
-                       -- if VersionInfo says so.  The user shouldn't be able
-                       -- to provoke that anyway.
-                       return done
-                 else
-                    do
-                       update graph (NewNode node checkedInType versionInfo)
-                       let
-                          act = 
-                           mapM_
-                              (\ parent ->
-                                 newArc graph checkedInArcType () 
-                                    (versionToNode parent) node
-                                 ) 
-                              (parents (user versionInfo))
-                       return act
+      addVersions versionDag (map mkVersionInfoFromServer initialVersionInfos)
 
-      acts <- mapM 
-         (\ versionInfo -> addVersionInfo (False,versionInfo))
+      let
+         versionGraphClient = VersionGraphClient {
+            versionDag = versionDag,
+            newNodeActions = newNodeActions
+            }
+
+      mapM ((newNodeAction versionGraphClient) . version . user) 
          initialVersionInfos
-
-      sequence_ acts
+         -- OK so this is a waste of time but never mind
 
       let
-         updateThread =
+         newVersionsThread =
             do
-               versionInfo <- getNextUpdate
-               debug versionInfo
-               act <- addVersionInfo versionInfo
-               act
-               updateThread
+               (isChange,versionInfo) <- getNextUpdate
+               (if isChange then setNodeInfo else addVersion) versionDag
+                  (mkVersionInfoFromServer versionInfo)
 
-               -- If closeConnection is executed (as it should be, when the
-               -- versionGraph window is closed) the following things should
-               -- happen: (1) GHC closes the Handle containing updates from
-               -- the server; (2) GHC notices that getNextUpdate is never 
-               -- going to be fulfilled and updateThread is therefore
-               -- permanently blocked; (3) the updateThread is silently
-               -- killed and garbage-collected.  This means "graph" may
-               -- also be GC'd, if no-one else is currently referencing it.
+               if not isChange 
+                  then
+                     newNodeAction versionGraphClient 
+                        (version . user $ versionInfo)
+                  else
+                     done
 
-      spawn updateThread
+               newVersionsThread
 
-      return (graph,closeConnection)
+      forkIODebug newVersionsThread
 
--- -----------------------------------------------------------------------
--- The NodeType/ArcType values.  Clients should not define any others.
--- -----------------------------------------------------------------------
+      return (versionGraphClient,closeConnection)
+
+-- ------------------------------------------------------------------------
+-- Modifying the graph
+-- ------------------------------------------------------------------------
+
+newWorkingVersion :: VersionGraphClient -> View -> IO VersionGraphNode
+newWorkingVersion versionGraphClient view =
+   do
+      let 
+         mkVersionInfo1 versionInfo = VersionInfo1 {
+            versionInfo = versionInfo,
+            viewOpt = Just view
+            }
+
+
+         initialAct :: VersionInfo -> IO ()
+         initialAct versionInfo =
+            addVersion (versionDag versionGraphClient) 
+               (mkVersionInfo1 versionInfo)
+
+
+         updateAct :: VersionInfo -> IO ()
+         updateAct versionInfo = case parents . user $ versionInfo of
+            [parent] ->
+               doWhenVersionExists versionGraphClient parent
+                  (setNodeInfo (versionDag versionGraphClient) 
+                     (mkVersionInfo1 versionInfo))
+            _ -> error (
+               "VersionGraphClient: attempt to change parents of working "
+               ++ "version to list of length not 1")
+
+      sinkID <- newSinkID
+      parallelX <- newParallelExec
+
+      addNewSinkWithInitial (toSimpleSource (viewInfoBroadcaster view))
+         initialAct updateAct sinkID parallelX
+      return (WorkingNode view)
+
+deleteWorkingVersion :: VersionGraphClient -> View -> IO ()
+deleteWorkingVersion versionGraphClient view =
+   deleteVersion (versionDag versionGraphClient) (WorkingNode view)
+
+changeIsHidden :: VersionGraphClient -> (VersionInfo -> Bool) -> IO ()
+changeIsHidden versionGraphClient isHidden =
+   VersionDag.changeIsHidden 
+      (versionDag versionGraphClient) (isHidden . versionInfo)
+
+-- ------------------------------------------------------------------------
+-- Extracting the graph
+-- ------------------------------------------------------------------------
+
+-- | Get the graph corresponding to a version graph, which can then be
+-- displayed.
+toVersionGraphConnection :: VersionGraphClient 
+   -> GraphConnection VersionInfo1 () () ()
+toVersionGraphConnection versionGraphClient =
+   let
+      displayedGraph1 :: GraphConnection (VersionInfo1,Bool) () (Maybe Bool) ()
+      displayedGraph1 = toDisplayedGraph (versionDag versionGraphClient)
+
+      mapNode :: (VersionInfo1,Bool) -> (VersionInfo1,NodeType)
+      mapNode (versionInfo1,isHidden) = 
+         let
+            nodeType = case (isJust (viewOpt versionInfo1),isHidden) of
+               (False,False) -> checkedInType
+               (False,True) -> checkedInTypeHidden
+               (True,False) -> workingType
+               (True,True) -> workingTypeHidden
+         in
+            (versionInfo1,nodeType)
+
+      mapArc :: Maybe Bool -> ((),ArcType)
+      mapArc b =
+         let
+            arcType = case b of
+               Just True -> workingArcType
+               Just False -> checkedInArcType
+               Nothing -> arcTypeHidden
+         in
+            ((),arcType) 
+
+      initialUpdates = [
+         NewNodeType checkedInType (),
+         NewNodeType workingType (),
+         NewNodeType checkedInTypeHidden (),
+         NewNodeType workingTypeHidden (),
+         NewArcType checkedInArcType (),
+         NewArcType workingArcType (),
+         NewArcType arcTypeHidden ()
+         ]
+   in
+      mapGraphConnection mapNode mapArc initialUpdates displayedGraph1  
+
+-- | Get the input graph, including all nodes, even deleted ones.
+toInputGraphConnection :: VersionGraphClient 
+   -> VersionTypes GraphConnection 
+toInputGraphConnection versionGraphClient =
+   toInputGraph (versionDag versionGraphClient)
+
+-- | Extract GraphBack structure representing all the nodes in the
+-- graph (including deleted ones).
+getInputGraphBack :: VersionGraphClient 
+   -> (VersionGraphNode -> VersionInfo1 -> graphBackNodeKey)
+   -> IO (GraphBack VersionGraphNode graphBackNodeKey)
+getInputGraphBack versionGraphClient toGraphBackNodeKey =
+   VersionDag.getInputGraphBack (versionDag versionGraphClient) 
+      toGraphBackNodeKey
+
+-- ------------------------------------------------------------------------
+-- Accessing VersionInfo1's
+-- ------------------------------------------------------------------------
+
+toVersionInfo :: VersionInfo1 -> VersionInfo
+toVersionInfo = versionInfo
+
+toViewOpt :: VersionInfo1 -> Maybe View
+toViewOpt = viewOpt
+
+-- ------------------------------------------------------------------------
+-- Query operations
+-- ------------------------------------------------------------------------
+
+getVersionInfo :: VersionGraphClient -> ObjectVersion -> IO VersionInfo
+getVersionInfo versionGraphClient version =
+   do
+      versionInfo1Opt <- lookupNodeKey (versionDag versionGraphClient)
+         (CheckedInNode version)
+      case versionInfo1Opt of
+         Nothing -> error ("VersionGraphClient.getVersionInfo: "
+            ++ "unknown version " ++ show version ++ ".")
+         Just versionInfo1 -> return (versionInfo versionInfo1)
+
+getVersionInfos :: VersionGraphClient -> IO [VersionInfo1]
+getVersionInfos versionGraphClient 
+   = getNodeInfos (versionDag versionGraphClient)
+         
+
+-- ------------------------------------------------------------------------
+-- Maintaining the newNodeActions
+-- ------------------------------------------------------------------------
+   
+newNodeAction :: VersionGraphClient -> ObjectVersion -> IO ()
+newNodeAction versionGraphClient objectVersion =
+    transformValue (newNodeActions versionGraphClient) objectVersion
+       (\ actionOpt ->
+          do
+             case actionOpt of
+                Just action -> action
+                Nothing -> done
+             return (Nothing,())
+          )
+
+doWhenVersionExists :: VersionGraphClient -> ObjectVersion -> IO () -> IO ()
+doWhenVersionExists versionGraphClient objectVersion action1 =
+   do
+      doNow <- transformValue (newNodeActions versionGraphClient) objectVersion
+         (\ actionOpt ->
+            case actionOpt of
+               Just action2 -> return (Just (action2 >> action1), done)
+               Nothing ->
+                  do
+                     nodeAlreadyExists <- nodeKeyExists 
+                        (versionDag versionGraphClient) 
+                        (CheckedInNode objectVersion)
+                     if nodeAlreadyExists
+                        then
+                           return (Nothing,action1)
+                        else
+                           return (Just action1,done)
+               )
+      doNow
+   
+
+-- ------------------------------------------------------------------------
+-- The node and arc types
+-- ------------------------------------------------------------------------
 
 checkedInType :: NodeType
 checkedInType = fromString "C"
@@ -215,72 +421,17 @@ checkedInType = fromString "C"
 workingType :: NodeType
 workingType = fromString "W"
 
+checkedInTypeHidden :: NodeType
+checkedInTypeHidden = fromString "c"
+
+workingTypeHidden :: NodeType
+workingTypeHidden = fromString "w"
+
 checkedInArcType :: ArcType
 checkedInArcType = fromString "C"
 
 workingArcType :: ArcType
 workingArcType = fromString "W"
 
--- -----------------------------------------------------------------------
--- Functions for packing and unpacking Node and Arc values.
--- -----------------------------------------------------------------------
-
-
--- | Each Node contains a String.  This Node has the following format:
--- \"C[version]\" for checked-in versions
--- \"W[viewid]\" for views.
--- Map a VersionGraphNode to the corresponding node
-toNode :: VersionGraphNode -> Node
-toNode (CheckedInNode version) = fromString . ('C' :) . toString $ version
-toNode (WorkingNode view) = fromString . ('W' :) . show . viewId $ view
-
--- | Returns the node associated with a version
-versionToNode :: ObjectVersion -> Node
-versionToNode version = toNode (CheckedInNode version)
-
--- | Returns the version associated with a node, if it is checked in.
-nodeToVersion :: Node -> Maybe ObjectVersion
-nodeToVersion node =
-   case toString node of
-      'C' : versionString -> Just (fromString versionString)
-      _ -> Nothing
-
--- | Check if node is checked in
-nodeIsCheckedIn :: Node -> Bool
-nodeIsCheckedIn node = 
-   case toString node of
-      'C' : versionString -> True
-      _ -> False
-
-
--- | The format of Arcs is as follows.  Checked-in arcs are generated with
--- names from getNewName on the name source branch, so their names begin
--- with \".\".  For other arcs, these Strings are generated by 
--- UniqueString.newUniqueString (and so cannot begin with a period).
--- 
--- Generate a new checked-in arc.
-newCheckedInArc :: VersionTypes SimpleGraph -> IO Arc
-newCheckedInArc simpleGraph =
-   do
-      let nameSource = getNameSource simpleGraph
-      str <- getNewName nameSource
-      return (fromString str)
-
--- | newWorkingArc generates a new working arc.  For this we
--- need a UniqueStringSource
-newWorkingArc :: UniqueStringSource -> IO Arc
-newWorkingArc uniqueStringSource =
-   do
-      str <- newUniqueString uniqueStringSource
-      return (fromString str)
-
-
--- | Check if Arc is checked in
-arcIsCheckedIn :: Arc -> Bool
-arcIsCheckedIn arc =
-   case toString arc of
-      '.':_ -> True
-      _ -> False      
-
-
-
+arcTypeHidden :: ArcType
+arcTypeHidden = fromString "h"

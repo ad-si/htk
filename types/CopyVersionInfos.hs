@@ -76,9 +76,12 @@ copyVersionInfos
 copyVersionInfos (FromTo {from = fromGraph,to = toGraph}) oldVersions =
    do
       let
+         fromClient = toVersionGraphClient fromGraph
+         toClient = toVersionGraphClient toGraph
+
          fromTo = FromTo {
-            from = toVersionGraphGraph fromGraph,
-            to = toVersionGraphGraph toGraph
+            from = fromClient,
+            to = toClient
             }
 
       (protoState,serverInfoDict) <- prepareVersions fromTo oldVersions
@@ -93,18 +96,15 @@ copyVersionInfos (FromTo {from = fromGraph,to = toGraph}) oldVersions =
                Just versionInfo -> return versionInfo
                Nothing ->
                   do
-                     fromVersionInfo <- getNodeLabel 
-                        (toVersionGraphGraph fromGraph) 
-                        (versionToNode fromVersion)
+                     fromVersionInfo <- getVersionInfo fromClient fromVersion
                      case lookupServerInfo serverInfoDict 
                            (server fromVersionInfo) of
                         Nothing -> error ("CopyVersionInfo bug: unknown or "
                            ++ "uncopied version " ++ toString fromVersion)
                         Just toVersion ->
                            do
-                              toVersionInfo <- getNodeLabel
-                                 (toVersionGraphGraph toGraph)
-                                 (versionToNode toVersion)
+                              toVersionInfo 
+                                 <- getVersionInfo toClient toVersion
                               return toVersionInfo
       return resultMap 
 
@@ -112,7 +112,7 @@ copyVersionInfos (FromTo {from = fromGraph,to = toGraph}) oldVersions =
 -- Initial pass for all the versions
 -- ------------------------------------------------------------------------
 
-prepareVersions :: FromTo VersionSimpleGraph -> [ObjectVersion] 
+prepareVersions :: FromTo VersionGraphClient -> [ObjectVersion] 
    -> IO (ProtoState,ServerInfoDict)
 prepareVersions (FromTo {from = fromGraph,to = toGraph}) versions =
    do
@@ -140,11 +140,11 @@ prepareVersions (FromTo {from = fromGraph,to = toGraph}) versions =
 -- Initial pass for one version
 -- ------------------------------------------------------------------------
 
-prepareOneVersion :: VersionSimpleGraph -> ServerInfoDict -> ProtoState
+prepareOneVersion :: VersionGraphClient -> ServerInfoDict -> ProtoState
    -> ObjectVersion -> IO (ProtoState,Either ObjectVersion ObjectVersion)
 prepareOneVersion fromGraph serverInfoDict protoState0 fromVersion =
    do
-      versionInfo <- getNodeLabel fromGraph (versionToNode fromVersion)
+      versionInfo <- getVersionInfo fromGraph fromVersion
       let
          serverInfo = server versionInfo
       case lookupServerInfo serverInfoDict serverInfo of
@@ -196,24 +196,24 @@ lookupVersion protoState = lookupFM (fm protoState)
 lookupServerInfo :: ServerInfoDict -> ServerInfo -> Maybe ObjectVersion
 lookupServerInfo (ServerInfoDict map) = lookupFM map
 
-mkServerInfoDict :: VersionSimpleGraph -> IO ServerInfoDict
-mkServerInfoDict versionSimpleGraph =
+mkServerInfoDict :: VersionGraphClient -> IO ServerInfoDict
+mkServerInfoDict versionGraphClient =
    do
-      nodes <- getNodes versionSimpleGraph
-      (versionInfoOpts :: [Maybe VersionInfo]) <- mapM
-         (\ node -> case nodeToVersion node of
-            Nothing -> return Nothing -- only a View, ignore it.
-            Just version ->
-               do
-                  versionInfo <- getNodeLabel versionSimpleGraph node
-                  return (Just versionInfo)
-            )       
-         nodes
+      versionInfo1s <- VersionGraphClient.getVersionInfos versionGraphClient
+      let
+         -- eliminate all versions with a View attached.
+         versionInfos :: [VersionInfo]
+         versionInfos = mapMaybe
+            (\ versionInfo1 -> case toViewOpt versionInfo1 of
+               Just _ -> Nothing
+               Nothing -> Just (toVersionInfo versionInfo1)
+               )
+            versionInfo1s
 
       return (ServerInfoDict (listToFM (
          map
             (\ versionInfo -> (server versionInfo,version (user versionInfo)))
-            (catMaybes versionInfoOpts)
+            versionInfos
          )))
 
 -- ------------------------------------------------------------------------

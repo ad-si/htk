@@ -13,7 +13,7 @@ module View(
       -- (global) versions.
    Version, 
       -- type of the version of a view
-   getView, -- :: Repository -> VersionSimpleGraph -> Version -> IO View
+   getView, -- :: Repository -> VersionGraphClient -> Version -> IO View
       -- This checks out a particular view.
    commitView, -- :: View -> IO Version
       -- This commits all the objects in a particular view, returning
@@ -116,7 +116,7 @@ newView repository =
          commitLock = commitLock,
          delayer = delayer,
          committingVersion = committingVersion,
-         versionGraph1 = error 
+         graphClient1 = error 
             "Attempt to read version graph during initialisation",
          importsState = importsState
          })
@@ -124,8 +124,8 @@ newView repository =
 listViews :: Repository -> IO [Version]
 listViews repository = listVersions repository
 
-getView :: Repository -> VersionSimpleGraph -> Version -> IO View
-getView repository versionGraph objectVersion =
+getView :: Repository -> VersionGraphClient -> Version -> IO View
+getView repository graphClient objectVersion =
    do
       objectId <- newObject
       let viewId = ViewId objectId
@@ -143,7 +143,7 @@ getView repository versionGraph objectVersion =
          objectTypesData = objectTypesData
          }) <- doDecodeIO viewCodedValue phantomView
 
-      viewInfo0 <- getVersionInfo versionGraph (versionToNode objectVersion)
+      viewInfo0 <- getVersionInfo graphClient objectVersion
       let
          user0 = user viewInfo0
 
@@ -166,7 +166,7 @@ getView repository versionGraph objectVersion =
             commitLock = commitLock,
             delayer = delayer,
             committingVersion = committingVersion,
-            versionGraph1 = versionGraph,
+            graphClient1 = graphClient,
             importsState = importsState
             }
 
@@ -309,8 +309,7 @@ setUserInfo view userInfo =
             user0 = user versionInfo0
             user1 = user0 {
                label = label userInfo,
-               contents = contents userInfo,
-               private = private userInfo
+               contents = contents userInfo
                }
             versionInfo1 = versionInfo0 {user = user1}
          in

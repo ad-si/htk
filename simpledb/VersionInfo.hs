@@ -148,8 +148,6 @@ data UserInfo = UserInfo {
       -- ^ Label for this version in the graph.
    contents :: String, 
       -- ^ More detailed text about this version
-   private :: Bool,
-      -- ^ If set, do not send this version to other servers automatically.
    version :: ObjectVersion,
       -- ^ The objectVersion for this commit.
    parents :: [ObjectVersion]
@@ -211,15 +209,15 @@ instance Monad m => HasBinary ObjectVersion m where
    
 instance Monad m => HasBinary UserInfo m where
    writeBin = mapWrite 
-      (\ (UserInfo {label = label,contents = contents,private = private,
+      (\ (UserInfo {label = label,contents = contents,
             version = version,parents = parents}) 
          ->
-         (label,contents,private,version,parents)
+         (label,contents,version,parents)
          )
    readBin = mapRead
-      (\ (label,contents,private,version,parents) 
+      (\ (label,contents,version,parents) 
          ->
-         (UserInfo {label = label,contents = contents,private = private,
+         (UserInfo {label = label,contents = contents,
             version = version,parents = parents}) 
          )
 
@@ -517,7 +515,6 @@ topVersionInfo = VersionInfo {
    user = UserInfo {
       label = "EMPTY",
       contents = "Initial empty version",
-      private = False,
       version = firstVersion,
       parents = []
       },
@@ -561,8 +558,7 @@ displayVersionInfo allowSystem versionInfo =
          Nothing
          (scroll [
             b (label user1),newline,
-            n (contents user1),newline,
-            n (if private user1 then "not for export" else "for export")
+            n (contents user1),newline
             ])
          [text "Version Info"]
 
@@ -662,30 +658,16 @@ editVersionInfoGraphic title versionInfo =
                          value (contents user0)]
                    )
 
-         privateForm :: Form Bool
-         privateForm =
-            let
-               entry1 = ("Export",False)
-               entry2 = ("Don't Export",True)
-            in
-               newFormOptionMenu2
-                  (if private user0
-                     then
-                        [entry2,entry1]
-                     else
-                        [entry1,entry2]
-                     )
-
       newInfoOpt <- doForm title
-         (labelForm // contentsForm // privateForm)
+         (labelForm // contentsForm)
 
       return (
          case newInfoOpt of
             Nothing -> Nothing
-            Just (label1,(contents1,private1)) ->
+            Just (label1,contents1) ->
                let
                   user1 = user0 {
-                     label = label1,contents = contents1,private = private1}
+                     label = label1,contents = contents1}
                in
                   Just user1
          )

@@ -5,9 +5,9 @@ import FindCommonParents
 
 graph1 :: GraphBack Int Int
 graph1 = GraphBack {
-   getAllNodes = return [1..9],
-   getKey = (\ i -> return (Just i)),
-   getParents = (\ i -> return (Just (case i of
+   getAllNodes =  [1..9],
+   getKey = (\ i ->  (Just i)),
+   getParents = (\ i ->  (Just (case i of
       1 -> []
       2 -> [1]
       3 -> [1,9]
@@ -22,9 +22,9 @@ graph1 = GraphBack {
 
 graph2 :: GraphBack Int Int
 graph2 = GraphBack {
-   getAllNodes = return [2,6,7,9,10,11],
-   getKey = (\ i -> return (Just i)),
-   getParents = (\ i -> return (Just (case i of
+   getAllNodes =  [2,6,7,9,10,11],
+   getKey = (\ i ->  (Just i)),
+   getParents = (\ i ->  (Just (case i of
       2 -> []
       6 -> [9]
       7 -> [2,10]
@@ -36,9 +36,9 @@ graph2 = GraphBack {
 
 graph3 :: GraphBack Int Int
 graph3 = GraphBack {
-   getAllNodes = return [1,2,3,4,5],
-   getKey = (\ i -> return (Just i)),
-   getParents = (\ i -> return (Just (case i of
+   getAllNodes =  [1,2,3,4,5],
+   getKey = (\ i ->  (Just i)),
+   getParents = (\ i ->  (Just (case i of
       1 -> []
       2 -> [1]
       3 -> [1]
@@ -49,13 +49,14 @@ graph3 = GraphBack {
 
 graph4 :: GraphBack Int Int
 graph4 = GraphBack {
-   getAllNodes = return [1],
-   getKey = (\ i -> return (Just i)),
-   getParents = (\ i -> return (Just []))
+   getAllNodes =  [1],
+   getKey = (\ i ->  (Just i)),
+   getParents = (\ i ->  (Just []))
    }
 
 t34 :: IO ()
 t34 =
    do
-      l <- findCommonParents graph3 graph4 [4]
+      let
+         l = findCommonParents graph3 graph4 [4]
       putStrLn (show l)

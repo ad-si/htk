@@ -43,6 +43,7 @@ import Imports(ImportsState)
 import VersionInfo
 import VersionDB
 import {-# SOURCE #-} LinkManager
+import {-# SOURCE #-} VersionGraphClient
 
 data View = View {
    viewId :: ViewId,
@@ -67,7 +68,7 @@ data View = View {
    committingVersion :: MVar (Maybe ObjectVersion),
 
    -- This is a version graph for the repository.
-   versionGraph1 :: SimpleGraph VersionInfo () () (),
+   graphClient1 :: VersionGraphClient,
 
    -- This is an imports state, or will be when it's initialised.
    importsState :: Store (ImportsState LinkedObject)

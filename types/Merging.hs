@@ -32,6 +32,7 @@ import Destructible
 import VSem
 
 import Graph
+import SimpleGraph
 
 import VersionInfo
 import VersionGraphClient
@@ -52,7 +53,8 @@ import MergeReAssign
 -- The reason for this is we cannot guarantee that identical nodes have a 
 -- unique distinguishing originating version (as returned by 
 -- Link.getLastChange)
-mergeNodes :: Repository -> VersionSimpleGraph -> [Either View ObjectVersion] 
+mergeNodes :: Repository -> VersionGraphClient
+   -> [Either View ObjectVersion] 
    -> IO (WithError View)
 mergeNodes repository versionGraph nodes =
    addFallOutWE (\ break ->
@@ -106,7 +108,7 @@ mergeViews (views @ (firstView:_)) =
             -- (1) generate the easy things.
             let
                repository1 = repository firstView
-               versionGraph1a = versionGraph1 firstView
+               graphClient = graphClient1 firstView
 
             objects1 <- newRegistry
             commitLock1 <- newVSem
@@ -141,7 +143,7 @@ mergeViews (views @ (firstView:_)) =
                   commitLock = commitLock1,
                   delayer = delayer1,
                   committingVersion = committingVersion,
-                  versionGraph1 = versionGraph1a,
+                  graphClient1 = graphClient,
                   importsState = importsState
                   }
 

@@ -125,6 +125,7 @@ module GraphDisp(
    GraphParms(emptyGraphParms),
 
    newNode,      -- :: Graph ... -> nodeType value -> value -> IO (node value)
+   setNodeType,  -- :: Graph ... -> node value -> nodeType value -> IO ()
    deleteNode,   -- :: Graph ... -> node value -> IO ()
    getNodeValue, -- :: Graph ... -> node value -> IO value
    setNodeValue, -- :: Graph ... -> node value -> value -> IO ()
@@ -148,6 +149,9 @@ module GraphDisp(
                 --    -> IO ()
    setArcValue, -- :: Graph ... -> arc value
                 --    -> value -> IO ()
+   setArcType,  -- :: Graph ... -> arc value -> value -> IO () 
+      -- WARNING.  For daVinci at least, this function is not currently
+      -- implemented
    getArcValue, -- :: Graph ... -> arc value
                 --    -> IO value
    newArcType,  -- :: Graph ... -> arcTypeParms value -> IO (arcType value)
@@ -172,6 +176,7 @@ module GraphDisp(
    NodeTypeConfig,
 
    NewArc(..),
+   SetArcType(..),
    DeleteArc(..),
    ArcClass,
    ArcTypeClass(..),
@@ -280,6 +285,19 @@ newNode
       arcType arcTypeParms))
    (nodeType :: nodeType value) 
    (value :: value) = (newNodePrim graph nodeType value) :: IO (node value)
+
+-- | set a node's type
+setNodeType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+              arc arcType arcTypeParms,Typeable value) => 
+   (Graph graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms)
+   -> node value -> nodeType value -> IO ()
+setNodeType
+   ((Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+      arcType arcTypeParms))
+   (node :: node value) 
+   (nodeType :: nodeType value) 
+      = (setNodeTypePrim graph node nodeType) :: IO ()
+
 
 -- | delete a node
 deleteNode :: (GraphAll graph graphParms node nodeType nodeTypeParms 
@@ -391,6 +409,16 @@ setArcValue
       arcType arcTypeParms)
    (arc :: arc value) (value :: value) = setArcValuePrim graph arc value
 
+setArcType :: (GraphAll graph graphParms node nodeType nodeTypeParms 
+                  arc arcType arcTypeParms,Typeable value) => 
+   (Graph graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms) -> arc value -> arcType value -> IO ()
+setArcType
+   (Graph graph :: Graph graph graphParms node nodeType nodeTypeParms arc 
+      arcType arcTypeParms)
+   (arc :: arc value) (arcType :: arcType value) 
+      = setArcTypePrim graph arc arcType
+
 -- | get the value associated with an arc
 getArcValue :: (GraphAll graph graphParms node nodeType nodeTypeParms 
                   arc arcType arcTypeParms,Typeable value) => 
@@ -436,6 +464,7 @@ class (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NodeClass node,HasTyRep1 node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
+   SetArcType graph arc arcType,
    DeleteArc graph arc,
    ArcClass arc,HasTyRep1 arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
@@ -455,6 +484,7 @@ instance (GraphClass graph,NewGraph graph graphParms,GraphParms graphParms,
    NodeClass node,NodeTypeClass nodeType,
    NewNodeType graph nodeType nodeTypeParms,NodeTypeParms nodeTypeParms,
    NewArc graph node node arc arcType,
+   SetArcType graph arc arcType,
    DeleteArc graph arc,
    ArcClass arc,ArcTypeClass arcType,
    NewArcType graph arcType arcTypeParms
@@ -492,6 +522,8 @@ class (GraphClass graph,NodeClass node,NodeTypeClass nodeType) =>
       NewNode graph node nodeType where
    newNodePrim :: Typeable value => 
       graph -> nodeType value -> value -> IO (node value)
+   setNodeTypePrim :: Typeable value => 
+      graph -> node value -> nodeType value -> IO ()
 
 class (GraphClass graph,NodeClass node) =>
       DeleteNode graph node where
@@ -540,11 +572,14 @@ class (GraphClass graph,NodeClass nodeFrom,NodeClass nodeTo,ArcClass arc,
       => graph -> arcType value -> value 
       -> nodeFrom nodeFromValue -> nodeTo nodeToValue
       -> IO (arc value)
-
    newArcListDrawerPrim ::
       (Typeable value,Typeable nodeFromValue)
       => graph -> nodeFrom nodeFromValue 
       -> ListDrawer (arcType value,value,WrappedNode nodeTo) (arc value)
+
+class (ArcClass arc,ArcTypeClass arcType) => SetArcType graph arc arcType where
+   setArcTypePrim :: 
+      Typeable value => graph -> arc value -> arcType value -> IO () 
 
 data WrappedNode node = forall value . Typeable value 
    => WrappedNode (node value)

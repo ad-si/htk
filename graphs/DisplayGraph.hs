@@ -5,6 +5,8 @@
 module DisplayGraph(
    displayGraph,
    displayGraph0,
+   displayGraph1,
+   
    DisplayGraph
    ) where
 
@@ -79,31 +81,76 @@ displayGraph0 ::
                  -- see previous argument.
    -> IO (DisplayGraph,GraphDisp.Graph dispGraph graphParms 
       node nodeType nodeTypeParms arc arcType arcTypeParms)
-displayGraph0
+displayGraph0 displaySort 
+   (graph :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
+   graphParms 
+   (getNodeParms0 :: DisplayGraph -> NodeType -> nodeTypeLabel 
+      -> IO (nodeTypeParms Node))
+   (getArcParms0 :: DisplayGraph -> ArcType -> arcTypeLabel
+      -> IO (arcTypeParms Arc)) =
+   let
+      getNodeParms1 :: DisplayGraph -> NodeType -> nodeTypeLabel 
+         -> IO (nodeTypeParms (Node,nodeLabel))
+      getNodeParms1 graph nodeType nodeTypeLabel =
+         do
+            nodeParms0 <- getNodeParms0 graph nodeType nodeTypeLabel
+            return (coMapNodeTypeParms fst nodeParms0)
+
+      getArcParms1 :: DisplayGraph -> ArcType -> arcTypeLabel
+         -> IO (arcTypeParms (Arc,arcLabel))
+      getArcParms1 graph arcType arcTypeLabel =
+         do
+            arcParms0 <- getArcParms0 graph arcType arcTypeLabel
+            return (coMapArcTypeParms fst arcParms0)
+   in
+      displayGraph1 displaySort (shareGraph graph) graphParms getNodeParms1 
+         getArcParms1
+
+displayGraph1 ::
+      (GraphAll dispGraph graphParms node nodeType nodeTypeParms 
+            arc arcType arcTypeParms,
+         Typeable nodeLabel,Typeable nodeTypeLabel,Typeable arcLabel,
+         Typeable arcTypeLabel)
+   => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
+          arc arcType arcTypeParms)
+   -> (GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
+   -> graphParms -- these are the parameters to use setting up the graph
+   -> (DisplayGraph -> NodeType -> nodeTypeLabel 
+          -> IO (nodeTypeParms (Node,nodeLabel)))
+                 -- this gets parameters for setting up a node type.
+                 -- NB - we don't (and can't) recompute the parameters
+                 -- if we get a SetNodeTypeLabel or SetArcTypeLabel update.
+                 -- We provide the function with the DisplayGraph
+                 -- this function will return, to make tying the knot easier
+                 -- in versions/VersionGraph.hs
+   -> (DisplayGraph -> ArcType -> arcTypeLabel 
+         -> IO (arcTypeParms (Arc,arcLabel)))
+                 -- see previous argument.
+   -> IO (DisplayGraph,GraphDisp.Graph dispGraph graphParms 
+      node nodeType nodeTypeParms arc arcType arcTypeParms)
+displayGraph1
    (displaySort ::
        GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms arc 
           arcType arcTypeParms)
-   (graph :: graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
+   (graphConnection 
+      :: GraphConnection nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
    graphParms 
    (getNodeParms :: DisplayGraph -> NodeType -> nodeTypeLabel 
-      -> IO (nodeTypeParms Node))
+      -> IO (nodeTypeParms (Node,nodeLabel)))
    (getArcParms :: DisplayGraph -> ArcType -> arcTypeLabel
-      -> IO (arcTypeParms Arc)) =
+      -> IO (arcTypeParms (Arc,arcLabel))) =
    do
       msgQueue <- newChannel
-
-      let graphConnection = shareGraph graph
-
       GraphConnectionData {
          graphState = CannedGraph { updates = updates },
          deRegister = deRegister
          } <- graphConnection (sync. noWait . (send msgQueue))
 
 -- The nodes of the graph display will have the following types:
-#define DispNodeType (nodeType Node)
-#define DispNode (node Node)
-#define DispArcType (arcType Arc)
-#define DispArc (arc Arc)
+#define DispNodeType (nodeType (Node,nodeLabel))
+#define DispNode (node (Node,nodeLabel))
+#define DispArcType (arcType (Arc,arcLabel))
+#define DispArc (arc (Arc,arcLabel))
 
       (nodeRegister :: Registry Node DispNode) <- newRegistry
       (nodeTypeRegister :: Registry NodeType DispNodeType)
@@ -138,7 +185,7 @@ displayGraph0
             do
                dispNodeType <- getRegistryValue nodeTypeRegister nodeType
                dispNode <- 
-                  GraphDisp.newNode dispGraph dispNodeType node
+                  GraphDisp.newNode dispGraph dispNodeType (node,nodeLabel)
                setValue nodeRegister node dispNode
          handleUpdate (DeleteNode node) =
             do
@@ -148,7 +195,12 @@ displayGraph0
          handleUpdate (SetNodeLabel node nodeLabel) =
             do 
                dispNode <- getRegistryValue nodeRegister node
-               setNodeValue dispGraph dispNode node
+               setNodeValue dispGraph dispNode (node,nodeLabel)
+         handleUpdate (SetNodeType node nodeType) =
+            do 
+               dispNode <- getRegistryValue nodeRegister node
+               dispNodeType <- getRegistryValue nodeTypeRegister nodeType
+               setNodeType dispGraph dispNode dispNodeType
          handleUpdate (NewArcType arcType arcTypeLabel) =
             do
                arcTypeParms <- 
@@ -162,14 +214,17 @@ displayGraph0
                dispTarget <- getRegistryValue nodeRegister target
                dispArcType <- getRegistryValue arcTypeRegister arcType
                dispArc <- GraphDisp.newArc dispGraph dispArcType  
-                  arc dispSource dispTarget
+                  (arc,arcLabel) dispSource dispTarget
                setValue arcRegister arc dispArc
          handleUpdate (DeleteArc arc) =
             do
                dispArc <- getRegistryValue arcRegister arc
                deleteArc dispGraph dispArc
                deleteFromRegistry arcRegister arc
-         handleUpdate (SetArcLabel arc arcLabel) = done
+         handleUpdate (SetArcLabel arc arcLabel) = 
+            do 
+               dispArc <- getRegistryValue arcRegister arc
+               setArcValue dispGraph dispArc (arc,arcLabel)
          handleUpdate (MultiUpdate updates) = mapM_ handleUpdate updates
 
       sequence_ (map handleUpdate updates)

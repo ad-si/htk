@@ -53,6 +53,11 @@ module Graph(
    -- :: Graph graph =>
    --    IO (graph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)
 
+   PartialShow(..),
+      -- newtype alias for showing updates.
+      -- NB.  This type might get moved into ExtendedPrelude if it proves
+      -- useful elsewhere.
+
    ) where
 
 import Control.Concurrent.MVar
@@ -215,15 +220,62 @@ data Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
    |  NewNode Node NodeType nodeLabel 
    |  DeleteNode Node
    |  SetNodeLabel Node nodeLabel
+   |  SetNodeType Node NodeType
    |  NewArcType ArcType arcTypeLabel
    |  SetArcTypeLabel ArcType arcTypeLabel
    |  NewArc Arc ArcType arcLabel Node Node
    |  DeleteArc Arc
    |  SetArcLabel Arc arcLabel
+   |  SetArcType Arc ArcType
    |  MultiUpdate [Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel]
       -- can be used to present unnecessary redrawing when making big
       -- updates.
    deriving (Read,Show)
+
+-- ---------------------------------------------------------------------
+-- Show instance which does not require argument types to be showable
+-- ---------------------------------------------------------------------
+
+newtype PartialShow a = PartialShow a
+
+instance Show (PartialShow a) => Show (PartialShow [a]) where
+   show (PartialShow as) = show (map PartialShow as)
+
+instance Show (PartialShow (
+      Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel)) where
+   show (PartialShow update) = case update of
+      NewNodeType nodeType nodeTypeLabel ->
+         "NewNodeType " ++ show nodeType
+      SetNodeTypeLabel nodeType nodeTypeLabel ->
+         "SetNodeTypeLabel " ++ show nodeType 
+      NewNode node nodeType nodeLabel ->
+         "NewNode " ++ show node ++ "::" ++ show nodeType
+      DeleteNode node ->
+         "DeleteNode " ++ show node
+      SetNodeLabel node nodeLabel ->
+         "SetNodeLabel " ++ show node
+      SetNodeType node nodeType ->
+         "SetNodeType " ++ show node ++ "::" ++ show nodeType
+      NewArcType arcType arcTypeLabel ->
+         "NewArcType " ++ show arcType
+      SetArcTypeLabel arcType arcTypeLabel ->
+         "SetArcTypeLabel " ++ show arcType
+      NewArc arc arcType arcLabel node1 node2 ->
+         "NewArc " ++ show arc ++ "::" ++ show arcType ++ " " ++ show node1 
+             ++ "->" ++ show node2
+      DeleteArc arc -> 
+         "DeleteArc " ++ show arc
+      SetArcLabel arc arcLabel ->
+         "SetArcLabel " ++ show arc
+      SetArcType arc arcType ->
+         "SetArcType " ++ show arc ++ "::" ++ show arcType
+      MultiUpdate updates -> "MultiUpdate " ++ show (PartialShow updates)
+
+instance Show (PartialShow (
+      CannedGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel)) where
+   show (PartialShow (CannedGraph {updates = updates})) =
+      "CannedGraph " ++ show (PartialShow updates)
+  
 
 ------------------------------------------------------------------------
 -- CannedGraph

@@ -289,7 +289,9 @@ execGnuClient command =
             "\""++okMess++"\") (error (format \"gnuclient error: %s\" err)))"
       gnuClientPath <- getGnuClientPath
      
+
       gnuClient <- newChildProcess gnuClientPath [
+         toolName "XEmacs",
          arguments ["-batch","-eval",toEval],
          linemode False,
          challengeResponse ("",okMess++"\n")

@@ -414,6 +414,16 @@ innerApplyUpdate
                         setValue nodeRegistry node 
                            (nodeData {nodeLabel = nodeLabel})
                         passOnUpdate
+         SetNodeType node nodeType ->
+            do
+               nodeDataOpt <- getValueOpt nodeRegistry node
+               case nodeDataOpt of
+                  Nothing -> killUpdate
+                  Just (nodeData :: NodeData nodeLabel) -> 
+                     do
+                        setValue nodeRegistry node 
+                           (nodeData {nodeType = nodeType})
+                        passOnUpdate
          NewArcType arcType arcTypeLabel ->
             do
                setValue (arcTypeData graph) arcType arcTypeLabel
@@ -500,6 +510,16 @@ innerApplyUpdate
                      do
                         setValue arcRegistry arc 
                            (arcData {arcLabel = arcLabel})
+                        passOnUpdate
+                  Nothing -> killUpdate
+         SetArcType arc arcType ->
+            do
+               arcDataOpt <- getValueOpt arcRegistry arc
+               case arcDataOpt of
+                  Just (arcData :: ArcData arcLabel) ->
+                     do
+                        setValue arcRegistry arc 
+                           (arcData {arcType = arcType})
                         passOnUpdate
                   Nothing -> killUpdate
          MultiUpdate updates -> 
