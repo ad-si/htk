@@ -1,7 +1,0 @@
-SUBDIRS = intro internal hdoc
-
-include @TOP@/mk/boilerplate.mk
-
-wwwhere :
-	$(GFIND) . -type d ! -name CVS -exec $(MKDIR) -p $(WWWPREFIX)/{} \;
-	$(GFIND) . -type f \( -name '*.gif' -o -name '*.html' -o -name '*.css' -o -name '*.eps' -o -name "*.pdf" \) -exec $(CP) {} $(WWWPREFIX)/{} \; 

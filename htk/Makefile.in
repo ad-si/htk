@@ -127,22 +127,6 @@ SUBDIRS = test examples
 
 include @TOP@/mk/boilerplate.mk
 
-# The doc directory isn't part of the main Make tree, but the following
-# rules make it so for the purposes of the www and doc targets.
-doc : docdir
-
-.PHONY : docdir displayexportsdoc
-
-docdir :
-	$(MAKE) -C doc doc
-
-wwwhere :
-	$(MAKE) -C doc www
-
-displayexports : displayexportsdoc
-
-displayexportsdoc  :
-	$(MAKE) -C doc displayexports
 
 
 

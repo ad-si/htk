@@ -1,9 +1,0 @@
-*.o
-*.hi
-*.aux
-*.dvi
-.depend
-Makefile
-Makefile.bak
-*%
-*.html

@@ -201,7 +201,6 @@ display :
 	@echo MAINPROGS = $(MAINPROGS)
 	@echo HIFILES = $(HIFILES)
 	@echo HIBOOTFILES = $(HIBOOTFILES)
-	@echo HCDIRS = $(HCDIRS)
 	@echo DEPS = '$(DEPS)'
 	@echo PACKAGES = $(PACKAGES)
 	@echo WINDOWS = $(WINDOWS)

@@ -1,7 +1,0 @@
-This directory contains documentation about HTk, in particular: 
-
-- intro contains an introduction to HTk;
-
-- hdoc is the reference manual generated with the HDoc utility;
-
-- internal is documentation pertaining to HTk's internal workings.
