@@ -560,8 +560,8 @@ makeContent (f:frags) NoText parentEnv =
                              (makeContent frags NoText parentEnv)
                  else  -- No MMiSS-Env.
                    let begin = hasValue([(CMisc (Comment 
-                                                 ("\n\\begin{" ++ name ++ "}" ++ (lparamsToString ps))))])
-                       end =  hasValue([(CMisc (Comment ("\n\\end{" ++ name ++ "}")))])
+                                                 ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ "\n")))])
+                       end =  hasValue([(CMisc (Comment ("\\end{" ++ name ++ "}")))])
 	   	       body = (makeContent fs NoText parentEnv)
                        whole = myConcatWithError (myConcatWithError begin body) end
                    in myConcatWithError whole (makeContent frags NoText parentEnv)
@@ -621,8 +621,8 @@ makeContent (f:frags) TextAllowed parentEnv =
                                            (makeContent frags TextAllowed parentEnv)
                  else  -- No MMiSS-Env.
                    let begin = hasValue([(CMisc (Comment 
-                                                 ("\n\\begin{" ++ name ++ "}" ++ (lparamsToString ps))))])
-                       end =  hasValue([(CMisc (Comment ("\n\\end{" ++ name ++ "}")))])
+                                                 ("\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ "\n")))])
+                       end =  hasValue([(CMisc (Comment ("\\end{" ++ name ++ "}")))])
 	   	       body = (makeContent fs TextAllowed parentEnv)
                        whole = myConcatWithError (myConcatWithError begin body) end
                    in myConcatWithError whole (makeContent frags TextAllowed parentEnv)
@@ -650,7 +650,7 @@ makeTextElem (f:fs) =
     (EscapedChar c) -> "\\" ++ (if (c == '\\') then "\\" else [c]) ++ (makeTextElem fs)
     (Other str) -> str ++ (makeTextElem fs)
     (Command name ps) -> "\\" ++ name ++ (lparamsToString ps) ++ (makeTextElem fs)
-    (Env name ps content) -> "\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++
+    (Env name ps content) -> "\\begin{" ++ name ++ "}" ++ (lparamsToString ps) ++ "\n" ++ 
 				(makeTextElem content) ++
 			     "\\end{" ++ name ++ "}" ++ (makeTextElem fs) 
 
@@ -735,8 +735,8 @@ makeTextFragment parentEnv name params (f:frags) content =
          let newElem = CMisc (Comment ("\\" ++ cname ++ (lparamsToString ps)))
  	 in  makeTextFragment parentEnv name params frags (content ++ [newElem])
     (Env ename ps fs) -> 
-         let begin = [CMisc (Comment ("\n\\begin{" ++ ename ++ "}\\n" ++ (lparamsToString ps)))]
-             end =  [CMisc (Comment ("\n\\end{" ++ ename ++ "}"))]
+         let begin = [CMisc (Comment ("\\begin{" ++ ename ++ "}\n" ++ (lparamsToString ps)))]
+             end =  [CMisc (Comment ("\\end{" ++ ename ++ "}"))]
              (CElem (Elem _ _ c)) = makeTextFragment "TextFragment" name params fs []
          in makeTextFragment parentEnv name params frags (content ++ begin ++ c ++ end)
     _ -> makeTextFragment parentEnv name params frags content                         
@@ -903,11 +903,11 @@ makeRefAttribs _ = []
 
 
 makeDefineAttribs :: Params -> [Attribute]
-makeDefineAttribs (LParams ((SingleParam (Other labelId) _):(SingleParam (Other body) _):_) atts) =
+makeDefineAttribs (LParams ((SingleParam (Other labelId) _):_) atts) =
   let attList = case atts of
                   Just(a) -> (map convertAttrib a)
                   Nothing -> []
-  in [("label", (AttValue [Left labelId])), ("body", (AttValue [Left body]))] ++ attList
+  in [("label", (AttValue [Left labelId]))] ++ attList
 makeDefineAttribs _ = []
 
 
