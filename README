@@ -31,11 +31,16 @@ The following are required or at least recommended.
 (2) gcc.  Ideally what I use -- gcc version 2.95.2.
     Do not use 2.8* versions since they are known not to work at all with 
     Glasgow Haskell.  Version 2.71 might work but I suspect Glasgow Haskell 
-    will not support it for much longer.
+    will not support it for much longer.  I have had problems with version
+    3.*
 (3) gmake.  Again, use the latest one - 3.77.  But I think slightly earlier
     ones may well work.
 (4) A recent version of Glasgow Haskell.  You should try to get the
     latest binary release, which is currently 5.02.1.
+(5) If you want to compile the HTk documentation, you will need hdoc
+    whose homepage is
+       http://www.fmi.uni-passau.de/~groessli/hdoc/
+    You will need version 0.8.1 or later.
 
 Of course you also need the sources to Uni!  They should be with this
 README file, but in case they are not, or in case you want to update
@@ -94,6 +99,21 @@ it, assuming that you are in the same directory as this README file
 gmake depend
 # Compile Uni
 gmake all
+
+Making hdoc documentation
+-------------------------
+
+hdoc is a system for annotating Haskell source files with comments in a 
+special format so that documentation can in HTML format can be generated 
+automatically.  Not all source files in UniForM are annotated in this way;
+however the ones you need for the HTk interface are.  To generate the HTML
+files, do
+./configure 
+(if you haven't already done so) followed by
+htk/doc/generatedoc
+
+hdoc can take a long time, especially on large files, so be patient.
+
 
 More information about Make targets
 -----------------------------------
