@@ -199,6 +199,8 @@ instance HasTyCon ArcType where
 ------------------------------------------------------------------------
 
 data Update nodeLabel nodeTypeLabel arcLabel arcTypeLabel =
+   -- NB.  For various reasons, we decree that DeleteNode and DeleteArc should
+   -- return normally, doing nothing, should the node already be deleted.
       NewNodeType NodeType nodeTypeLabel
    |  SetNodeTypeLabel NodeType nodeTypeLabel
    |  NewNode Node NodeType nodeLabel 
