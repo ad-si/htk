@@ -9,7 +9,9 @@ PACKAGES = text data uni-options
 
 HAXML = @TOP@/HaXml-1.07b/src
 
-# Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in
+# Taken from the setting for LIBSRCS in $(HAXML)/Makefile.in.
+# However we comment out everything that is in GHC (5.05)'s distribution
+# already.
 SRCS = \
 	Text/XML/HaXml.hs Text/XML/HaXml/Combinators.hs Text/XML/HaXml/Lex.hs \
 	Text/XML/HaXml/Parse.hs Text/XML/HaXml/Pretty.hs \
@@ -19,7 +21,8 @@ SRCS = \
 	Text/XML/HaXml/Html/Generate.hs Text/XML/HaXml/Html/Parse.hs \
 	Text/XML/HaXml/Html/Pretty.hs \
 	Text/ParserCombinators/HuttonMeijerWallace.hs \
-	Text/PrettyPrint/HughesPJ.hs
+
+#	Text/PrettyPrint/HughesPJ.hs
 
 include @TOP@/mk/boilerplate.mk
 
