@@ -1,0 +1,1312 @@
+%%%% input replacer: Start von root.tex %%%%
+%\documentclass[light-hb,landscape,slides]{mmisslides}
+%\documentclass[light-hb,landscape,slides]{mmiss}
+\documentclass[light-hb,slides]{mmiss}
+
+% \usepackage{times}
+\usepackage{amssymb}
+\usepackage{amsmath}
+% \usepackage{epsfig}
+\usepackage{isolatin1}
+\usepackage{german}
+\usepackage{supertabular}
+\usepackage{diagrams}
+\usepackage{verbatim}
+%\usepackage{pdf-effects}
+% wird durch mmiss.cls geladen - CK
+
+%%%% input replacer: Start von ontology.tex %%%%
+\DeclClass{Domain}{Domain}{}
+
+
+\DeclClass{PROGLAN}{Programmiersprachen}{Domain}
+     \DeclClass{DeclarPROGLAN}{Deklarative Programmiersprachen}
+               {PROGLAN}
+          \DeclClass{FunctPROGLAN}{Funktionale Programmiersprachen}
+                    {DeclarPROGLAN}
+               \DeclObject{Haskell}{Haskell}{FunctPROGLAN}
+     \DeclClass{ImperatPROGLAN}{Imperative Programmiersprachen}
+               {PROGLAN}
+
+
+\DeclClass{FUN}{Funktionen}{Domain}
+     \DeclClass{FUNDef}{Funktionsdefinitionen}{FUN}
+          \DeclClass{PATTERN}{Muster}{FUNDef}
+          \DeclClass{REC}{Rekursion}{FUNDef}
+          \DeclClass{LISTCOMPREHENSION}{Listenkomprehension}{FUNDef}
+     \DeclClass{HOF}{Funktionen h\"{o}herer Ordnung}{FUN}
+          \DeclClass{AnonymFUN}{Anonyme Funktionen}{HOF}
+          \DeclClass{PartAPPL}{Partielle Applikation}{HOF}
+
+
+\DeclClass{TYP}{Typen}{Domain}
+     \DeclClass{BasDatTYP}{Basisdatentypen}{TYP}
+          \DeclObject{BOOL}{Datentyp Bool}{BasDatTYP}
+          \DeclClass{NUM}{Numerische Daten}{BasDatTYP}
+               \DeclObject{NAT}{Nat\"{u}rliche Zahlen}{NUM}
+               \DeclObject{INT}{Ganze Zahlen}{NUM}
+               \DeclObject{INTEGER}{Beliebig grosse ganze Zahlen}{NUM}
+               \DeclObject{RAT}{Rationale Zahlen}{NUM}
+               \DeclObject{REAL}{Reelle Zahlen}{NUM}
+          \DeclClass{ALPHANUM}{Alphanumerische Daten}{BasDatTYP}
+               \DeclObject{CHAR}{Einzelzeichen}{ALPHANUM}
+               \DeclObject{STRING}{Zeichenkette}{ALPHANUM}
+     \DeclClass{AlgDatTYP}{Algebraische Datentypen}{TYP}
+          \DeclClass{RECDat}{Rekursive Datentypen}{AlgDatTYP}
+               \DeclObject{LIST}{Liste}{RECDat}
+          \DeclClass{POLYMORPH}{Polymorphe Datentypen}{AlgDatTYP}
+               \DeclObject{LIST}{Liste}{POLYMORPH}
+          \DeclClass{NonRECDat}{Nichtrekursive Datentypen}{AlgDatTYP}
+               \DeclClass{ENUM}{Aufz\"{a}hlungen}{NonRECDat}
+               \DeclClass{PROD}{Produkte}{NonRECDat}
+               \DeclClass{PLUS}{Additionen}{NonRECDat}
+     \DeclClass{TYPClass}{Typklassen}{TYP}
+          \DeclClass{CONSTRClass}{Konstruktorklassen}{TYPClass}
+               \DeclObject{IO}{Input/Output}{CONSTRClass}
+          \DeclClass{DerivClassINST}{Abgeleitete Klasseninstanzen}
+                    {TYP_Class}
+               \DeclObject{SHOW}{Darstellung}{DerivClassINST}
+               \DeclObject{EQ}{Gleichung}{DerivClassINST}
+
+
+
+\DeclClass{FM}{Formale Methoden}{Domain}
+     \DeclClass{VERIFICATION}{Verifikation}{FM}
+          \DeclClass{PROOF}{Beweisprinzipien}{VERIFICATION}
+               \DeclClass{INDUCT}{Induktionen}{PROOF}
+                    \DeclClass{NatINDUCT}{Nat\"{u}rliche Induktion}{INDUCT}
+                    \DeclClass{StructINDUCT}{Strukturelle Induktion}{INDUCT}
+                    \DeclClass{FixedptINDUCT}{Fixpunktinduktion}{INDUCT}
+
+
+
+\DeclClass{AbstrDatTYP}{Abstrakte Datentypen}{Domain}
+     \DeclClass{MODULE}{Module}{AbstrDatTYP}
+          \DeclObject{HaskellMODULE}{Modul in Haskell}{MODULE}
+          \DeclObject{EXPORT}{Export}{MODULE}
+
+
+\DeclClass{EVAL}{Auswertungen}{Domain}
+     \DeclClass{LazyEVAL}{Verz\"{o}gerte Auswertungen}{EVAL}
+          \DeclClass{InfinitDatSTRUCT}{Unendliche Datenstrukturen}
+                    {LazyEVAL}
+     \DeclClass{ACTION}{Aktionen}{EVAL}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%% input replacer: Ende von ontology.tex %%%%
+
+\clearpage %%%% input replacer: Start von mmiss-prelude.tex %%%%
+%%
+%% More MMiSS-related stuff.
+%%
+
+%% \MMdarklogo{\MMimgdir/uni-hb-logo-dark}
+%% \MMlightlogo{\MMimgdir/uni-hb-logo-light}
+
+
+%%
+%% Experimental MMiSS extensions.
+%%
+\newcommand{\ShowFile}[2]{\MMlinkApplication{#2}{scripts/show-#1}}
+\newcommand{\ShowFileAt}[3][0]{\MMlinkApplication{#3}{scripts/show-#2-#1}}
+\newcommand{\RunFile}[2] {\MMlinkApplication{#2}{scripts/run-#1}}
+\newcommand{\RunXTerm}[1] {\MMlinkApplication{#1}{scripts/xterm}}
+
+%% Typesetting Literate Haskell
+
+%% This has gone into the big colour scheme of things?
+% \ifthenelse{\boolean{light}}
+%  {\definecolor{codecol}{rgb}{0.05,0.05,0.3}} %% dark blue (for light)
+%  {\definecolor{codecol}{rgb}{0.72,0.72,0.32}} %% orangeish (for dark)
+%% The code environment typesets its contents verbatim,
+%% but coloured in codecol. Also useful with e.g. literal Haskell
+%% scripts, you can actually run your slides -- no more embarrassing
+%% type errors :-)
+\def\code{\color{codecol}\verbatim}
+\def\endcode{\endverbatim{\color{txtcol}}}
+%% For longer code, we need to typeset it a wee bit smaller
+\def\scode{\color{codecol}\small\verbatim}
+\def\endscode{\endverbatim{\color{txtcol}}}
+%\def\code{\color{codecol}\renewcommand{\normalcolor}{\color{codecol}}\verbatim}
+%\def\endcode{\endverbatim\renewcommand{\normalcolor}{\color{txtcol}}}
+%% Same typesetting as code, but different name; this is
+%% for code you do not want to show up in literal scripts. 
+%% (i.e. the code with syntax errors in it)
+\def\xcode{\color{codecol}\verbatim}
+\def\endxcode{\endverbatim}
+%% Code snippets in the text:
+\def\codetxt{\textcolor{codecol}\verb} %% hmm...
+\let\MMTextTT=\texttt{}
+\renewcommand{\texttt}[1]{\textcolor{codecol}{\MMTextTT{#1}}}
+%% Put code you want to run but not show up on your slides in a comment
+%% environment, e.g.
+%% \begin{comment}
+%% \begin{code}
+%%  import Prelude hiding (map)
+%% \end{code} 
+%% \end{comment}
+%% This is clumsy, but defining a LaTeX environment here would be of
+%% no use, since Haskell scans for \begin{code}/\end{code}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "root"
+%%% End: 
+%%%% input replacer: Ende von mmiss-prelude.tex %%%%
+\clearpage 
+
+\include{prelude}
+
+%\includeonly{slides-13}
+
+\begin{document}
+
+\begin{Package}[Title={Praktische Informatik 3}, Authors={Christoph
+                Lüth}, Date={WS 02/03}, LevelOfDetail=Lecture,
+                Language=de, Label={root}]
+
+
+\scatterslidebody{}
+
+\clearpage %%%% input replacer: Start von slides-1.tex %%%%
+%%
+%% Praktische Informatik 3 - First lecture
+%%
+
+\begin{Section}[Title={Vorlesung vom 21.10.2002: Einführung},
+                Label={chapter1}]
+% "\\" aus Title entfernt - CK
+
+\begin{Section}[Title={Organisatorisches}, ShortTitle={Organisatorisches}, Label={section1_1_organisatorisches}]
+
+\begin{Introduction}[Title={Inhalt der Veranstaltung}, Label=para1_1_4_veranst_inhalt]
+
+\begin{List}[ListType=itemize]
+\ListItem \emph{Deklarative} und \emph{funktionale} Programmierung 
+  \begin{List}[ListType=itemize]
+  \ListItem Betonung auf Konzepten und Methodik
+  \end{List}
+\ListItem Bis Weihnachten: Grundlagen 
+  \begin{List}[ListType=itemize]
+  \ListItem Funktionen, Typen, Funktionen höherer Ordnung, Polymorphie
+  \end{List}
+\ListItem Nach Weihnachten: Ausweitung und Anwendung 
+  \begin{List}[ListType=itemize]
+  \ListItem Prolog und Logik; Nebenläufigkeit/GUIs; Grafik und Animation
+  \end{List}
+\ListItem Lektüre: \\
+    Simon Thompson: \textit{Haskell --- The Craft of Functional
+      Programming} (Addison-Wesley, 1999)    
+\end{List}
+
+\end{Introduction}
+
+
+\begin{Paragraph}[Title={Scheinrelevanz}, Label=para1_1_5_scheinrel]
+
+\begin{quote}
+\small{}
+ "`Der in der DPO'93 aufgeführte prüfungsrelevante PI3-Schein kann nicht
+ nur über das SWP sondern alternativ auch über PI3 abgedeckt werden.
+ Die in der DPO zusätzlich aufgeführte Forderung der erfolgreichen
+ Teilnahme am SWP bleibt davon unberührt."'
+\end{quote} \pause{}
+Mit anderen Worten:
+\begin{List}[ListType=itemize]
+\ListItem \emph{Entweder} prüfungsrelevante Studienleistung in PI3 sowie erfolgreiche
+  Teilnahme an SWP
+\ListItem \emph{oder} Prüfungsrelevante Studienleistung in SWP % (und \emph{kein} PI3)
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Scheinkriterien --- Vorschlag:}, Label=para1_1_6_scheinkrit]
+
+\begin{List}[ListType=itemize]
+\ListItem Ein Übungsblatt ist \emph{bearbeitet}, wenn mindestens 20\% der
+  Punktzahl erreicht wurden.
+\ListItem Alle Übungsblätter bearbeitet und mindestens 60\% der Punktzahl
+  erreicht. 
+\ListItem Individualität der Leistung wird sichergestellt durch:
+  \begin{List}[ListType=itemize]
+  \ListItem Vorstellung einer Lösung im Tutorium
+  \ListItem Beteiligung im Tutorium
+  \ListItem Ggf. Prüfungsgespräch (auch auf Wunsch)
+  \end{List}
+\end{List}
+
+\end{Paragraph}
+
+
+\end{Section} % end section 1_1 (Organisatorisches)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{Section}[Title={Einführung in die Funktionale Programmierung},
+    ShortTitle={Einführung in die FP}, Label={section1_2_einfuehrung_fp}]
+
+\begin{Paragraph}[Title={Einführung in FP}, Label=para1_2_1_einfuehrung_fp]
+
+Warum funktionale Programmierung lernen?
+\begin{List}[ListType=itemize]
+\ListItem Abstraktion \\
+  \begin{List}[ListType=itemize]
+  \ListItem  Denken in Algorithmen, nicht in Programmiersprachen
+  \end{List}
+
+\ListItem FP konzentriert sich auf \emph{wesentlichen} Elemente moderner 
+  Programmierung: \\
+  \begin{List}[ListType=itemize]
+  \ListItem Datenabstraktion
+  \ListItem Modularisierung und Dekomposition
+  \ListItem Typisierung und Spezifikation
+  \end{List}
+
+\ListItem Blick über den Tellerrand --- Blick in die Zukunft \\
+  \begin{List}[ListType=itemize]
+  \ListItem Studium $\neq$ Programmierkurs--- was kommt in 10 Jahren?
+  \end{List}
+
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Referentielle Transparenz}, Label=para1_2_2_ref_transp]
+
+\begin{List}[ListType=itemize]
+\ListItem Programme als Funktionen 
+  \eqn{P:\mathit{Eingabe} \rightarrow \mathit{Ausgabe}}
+
+\ListItem Keine Variablen --- keine Zustände
+
+\ListItem  Alle Abhängigkeiten explizit:
+
+\ListItem Rückgabewert hängt
+ausschließlich von Werten der Argumente ab, nicht vom Aufrufkontext:\\
+{\flushright \emph{Referentielle Transparenz}} \\
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Geschichtliches}, Label=para1_2_3_geschichte]
+
+\begin{List}[ListType=itemize]
+\ListItem Grundlagen 1920/30 \\
+  \begin{List}[ListType=itemize]
+  \ListItem Kombinatorlogik und $\lambda$-Kalkül (Schönfinkel, Curry, Church)
+  \end{List}
+\ListItem Erste Sprachen 1960 \\
+  \begin{List}[ListType=itemize]
+  \ListItem LISP (McCarthy), ISWIM (Landin)
+  \end{List}
+\ListItem Weitere Sprachen 1970-- 80 \\
+  \begin{List}[ListType=itemize]
+  \ListItem FP (Backus); ML (Milner, Gordon), später SML und
+  CAML; Hope (Burstall); Miranda (Turner)
+  \end{List}
+\ListItem 1990: Haskell als \emph{Standardsprache}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Funktionen als Programme}, Label=para1_2_4_funk_prg]
+
+Programmieren durch Rechnen mit Symbolen:
+\begin{eqnarray*}
+5*(7-3)+4*3 & = & 5*4+12 \\
+ & = & 20+12 \\
+ & = & 32 \\
+\end{eqnarray*}
+Benutzt \emph{Gleichheiten} ($7-3= 4$ etc.), die durch Definition von
+$+$, $*$, $-$, \dots gelten.
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Programmieren mit Funktionen}, Label=para1_2_5_prg_funk]
+
+\begin{List}[ListType=itemize]
+\ListItem  \emph{Programme} werden durch \emph{Gleichungen} definiert:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_gleichungen]
+\begin{xcode}
+  inc x = x+ 1
+  addDouble x y = 2*(x+ y)
+\end{xcode}
+\end{ProgramFragment}
+\ListItem Auswertung durch \emph{Reduktion} von \emph{Ausdrücken}: \\[1ex]
+    \texttt{addDouble 6 4} 
+    \pause\Reduces \texttt{2*(6+ 4)}
+    \pause\Reduces \texttt{20}
+
+\ListItem Nichtreduzierbare Ausdrücke sind \emph{Werte}
+
+  \begin{List}[ListType=itemize]
+  \ListItem Zahlen, Zeichenketten, Wahrheitswerte, \ldots
+  \end{List}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Auswertungsstrategie}, Label=para1_2_6_auswert_strat]
+\begin{List}[ListType=itemize]
+\ListItem Von \emph{außen} nach \emph{innen}, \emph{links} nach
+  \emph{rechts}. 
+
+  \texttt{inc (addDouble (inc 3) 4)}
+
+  \Reduces\pause
+  \texttt{(addDouble (inc 3) 4)+ 1} 
+
+  \Reduces\pause
+  \texttt{2*(inc 3+ 4)+ 1} 
+
+  \Reduces\pause
+  \texttt{2*(3+ 1+ 4)+ 1} 
+
+  \Reduces\pause
+  \texttt{2*8+1} \Reduces 17
+
+\ListItem Entspricht \emph{call-by-need} (verzögerte Auswertung)
+  \begin{List}[ListType=itemize]
+  \ListItem Argumentwerte werden erst ausgewertet, wenn sie benötigt
+    werden.
+  \end{List}
+
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Nichtnumerische Werte}, Label=para1_2_7_nichtnum_werte]
+\begin{List}[ListType=itemize]
+\ListItem 
+Rechnen mit Zeichenketten:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_repeat]
+\begin{xcode}
+  repeat s = s ++ s 
+\end{xcode}
+\end{ProgramFragment}
+
+  \verb!repeat (repeat "hallo ")! 
+
+  \Reduces\pause
+  \verb!repeat "hallo"++ repeat "hello"! \par
+
+  \Reduces\pause
+  \verb!("hallo "++ "hallo ")++("hallo "++ "hallo ")!
+
+  \Reduces\pause
+  \verb!"hallo hallo hallo hallo"!  
+
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Typisierung}, Label=para1_2_8_typisierung]
+
+\emph{Typen} unterscheiden Arten von Ausdrücken
+
+\begin{List}[ListType=itemize]
+\ListItem Basistypen
+\ListItem strukturierte Typen (Listen, Tupel, etc)
+\end{List}
+
+Wozu Typen?
+\begin{List}[ListType=itemize]
+\ListItem Typüberprüfung während Übersetzung erspart Laufzeitfehler
+\ListItem Programmsicherheit
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Übersicht: Typen in Haskell}, Label=para1_2_9_typen_in_haskell]
+
+\begin{tabular}[t]{lll}
+Ganze Zahlen & \texttt{Int} & {\tt 0} {\tt 94} {\tt -45} \\
+Fließkomma & \texttt{Double} & {\tt 3.0} {\tt 3.141592} \\
+Zeichen & \texttt{Char} & \verb!'a'! \verb!'x'! \verb!'\034'! \verb!'\n'! \\
+Zeichenketten & \texttt{String} & \verb!"yuck"! \verb!"hi\nho\"\n"! \\
+Wahrheitswerte & \texttt{Bool} & {\tt True} {\tt False} \\[1em]
+Listen & \texttt{[a]} & \verb![6, 9, 20]!\\
+ & & \verb!["oh", "dear"]! \\
+Tupel  & \texttt{(a, b)} & \verb!(1, 'a')! \verb!('a', 4)! \\
+Funktionen & \texttt{a-> b} \\
+\end{tabular}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Definition von Funktionen}, Label=para1_2_10_def_funkt]
+\begin{List}[ListType=itemize]
+\ListItem Zwei wesentliche Konstrukte: 
+\begin{List}[ListType=itemize]
+\ListItem Fallunterscheidung
+\ListItem Rekursion
+\end{List}
+
+\ListItem 
+%Beispiel:
+\begin{Example}[Title={}, Label=example_fac]
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgfrag_def_funkt]
+\begin{code}
+fac :: Int-> Int
+fac n = if n == 0 then 1 
+        else n * (fac (n-1))
+\end{code}
+\end{ProgramFragment}
+\end{Example}
+
+\ListItem 
+Auswertung kann \emph{divergieren}!
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Haskell in Aktion: \texttt{hugs}}, Label=para1_2_11_hugs]
+
+\begin{List}[ListType=itemize]
+\ListItem \texttt{hugs} ist ein Haskell-Interpreter
+  \begin{List}[ListType=itemize]
+  \ListItem Klein, schnelle Übersetzung, gemächliche Ausführung.
+  \end{List}
+
+%\item \texttt{ghc} ist ein Haskell-\emph{Compiler}:
+%  \begin{itemize}
+%  \item Groß, braucht viel Platz, schnelle Ausführung.
+%  \end{itemize}
+
+\ListItem Funktionsweise:
+\begin{List}[ListType=itemize]
+\ListItem \texttt{hugs} liest \emph{Definitionen} (Programme, Typen,
+  \dots) aus Datei (\emph{Skript})
+\ListItem Kommandozeilenmodus: Reduktion von Ausdrücken
+\ListItem Keine Definitionen in der Kommandozeile
+\ListItem \MMstartApplication{Hugs in Aktion.}{scripts/xterm}
+\end{List}
+
+\end{List}
+
+\end{Paragraph}
+
+\end{Section} % end Einführung in die FP
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Zusammenfassung der äußeren Section (chapter), nicht der 2nd-level Sections!
+
+\begin{Summary}[Title={Zusammenfassung}, ShortTitle={Zusammenfassung},
+  Label=para1_0_1_zusammenfassung]
+
+\begin{List}[ListType=itemize]
+\ListItem Haskell ist eine \emph{funktionale Programmiersprache}
+\ListItem \emph{Programme} sind \emph{Funktionen}, definiert durch \emph{Gleichungen} \\
+  \SingleItem{Referentielle Transparenz --- keine Zustände oder Variablen}
+\ListItem \emph{Ausführung} durch \emph{Reduktion} von Ausdrücken
+\ListItem Typisierung: 
+  \begin{List}[ListType=itemize]
+    \ListItem Basistypen: Zahlen, Zeichen(ketten), Wahrheitswerte
+    \ListItem Strukturierte Typen: Listen, Tupel 
+    \ListItem Jede Funktion \texttt{f} hat eine Signatur \verb!f :: a-> b!
+  \end{List}
+\end{List}
+
+\end{Summary}
+
+
+
+\end{Section} % end Vorlesung 1
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "root"
+%%% End: 
+%%%% input replacer: Ende von slides-1.tex %%%%
+\clearpage 
+\clearpage %%%% input replacer: Start von slides-2.tex %%%%
+%%
+%% Praktische Informatik 3 - Second lecture
+%%
+
+
+\begin{Section}[Title={Vorlesung vom 28.10.2001: Funktionen und
+      Typen}, ShortTitle={Funktionen und Typen}, Label={chapter2}]
+
+\begin{Introduction}[Title={Inhalt}, ShortTitle={Inhalt},
+    Label=para2_0_1_inhalt]
+\begin{List}[ListType=itemize]
+\ListItem Wie definiere ich eine Funktion?
+  \begin{List}[ListType=itemize]
+  \ListItem Syntaktische Feinheiten
+  \ListItem Von der Spezifikation zum Programm    
+  \end{List}
+\ListItem Basisdatentypen: \\
+  Wahrheitswerte, numerische und alphanumerische Typen
+\ListItem Strukturierte Datentypen: \\
+  Listen und Tupel
+\end{List}
+
+\end{Introduction}
+
+
+\begin{Section}[Title={Funktionsdefinition},
+  ShortTitle={Funktionsdefinition}, Label={section2_1_funk_def}]
+
+\begin{Paragraph}[Title={Funktionsdefinition}, Label=para2_1_1_funk_def]
+
+{Wie definiere ich eine Funktion?}
+
+Generelle Form:
+\begin{List}[ListType=itemize]
+\ListItem \emph{Signatur:}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_signatur]
+\begin{xcode}
+  max :: Int-> Int-> Int
+\end{xcode}
+\end{ProgramFragment}
+\ListItem \emph{Definition}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_definition]
+\begin{xcode}
+  max x y = if x < y then y else x    
+\end{xcode}
+\end{ProgramFragment}
+\begin{List}[ListType=itemize]
+\ListItem Kopf, mit Parametern
+\ListItem Rumpf (evtl. länger, mehrere Zeilen)
+\ListItem Typisches Muster: Fallunterscheidung, dann rekursiver Aufruf
+\end{List}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Die Abseitsregel}, Label=para2_1_2_abseitsregel]
+\begin{center}
+$\mathtt{f} \mathtt{x}_1\;\mathtt{x}_2 \ldots \mathtt{x}_n = \mathtt{E}$  
+\end{center}
+\begin{List}[ListType=itemize]
+\ListItem \emph{Gültigkeitsbereich} der Definition von \texttt{f}:\\
+  alles, was gegenüber \texttt{f} eingerückt ist.
+\ListItem
+%Beispiel:
+\begin{Example}[Title={}]
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_gueltbereich]
+\begin{xcode}
+f x = hier faengts an
+  und hier gehts weiter 
+      immer weiter
+g y z = und hier faengt was neues an
+\end{xcode}
+\end{ProgramFragment}
+\end{Example}
+\ListItem Gilt auch verschachtelt.
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Bedingte Definitionen}, Label=para2_1_3_bedingte_def]
+\begin{List}[ListType=itemize]
+\ListItem 
+Statt verschachtelter Fallunterscheidungen \dots{}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_versch_fall]
+\begin{xcode}
+f x y = if B1 then P else 
+        if B2 then Q else ...
+\end{xcode}
+\end{ProgramFragment}
+\dots{}\emph{bedingte Gleichungen}:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_bed_gleich]
+\begin{xcode}
+f x y
+  | B1 = ...
+  | B2 = ...
+\end{xcode}
+\end{ProgramFragment}
+
+\ListItem Auswertung der Bedingungen von oben nach unten
+
+\ListItem Wenn keine Bedingung wahr ist: \emph{Laufzeitfehler}! Deshalb: 
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_laufzeitfehler]
+\begin{xcode}
+  | otherwise = ...        
+\end{xcode}
+\end{ProgramFragment}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Kommentare}, Label=para2_1_4_kommentare]
+
+\begin{List}[ListType=itemize]
+\ListItem Pro Zeile: Ab \texttt{--} bis Ende der Zeile
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_kommentar1]
+\begin{xcode}
+f x y = irgendwas  -- und hier der Kommentar!
+\end{xcode}
+\end{ProgramFragment}
+\ListItem Über mehrere Zeilen: Anfang \texttt{\{-}, Ende \texttt{-\}}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_kommentar2]
+\begin{xcode}
+{- 
+   Hier fängt der Kommentar an 
+   erstreckt sich über mehrere Zeilen
+   bis hier                               -}
+f x y = irgendwas
+\end{xcode}
+\end{ProgramFragment}
+\begin{List}[ListType=itemize]
+\ListItem Kann geschachtelt werden.
+\end{List}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Die Alternative: Literate Programming},
+    Label=para2_1_5_lit_prog]
+
+\begin{List}[ListType=itemize]
+\ListItem Literate Haskell (\texttt{.lhs}):
+Quellcode besteht hauptsächlich aus Kommentar, Programmcode
+ausgezeichnet. 
+\ListItem In Haskell zwei Stile:
+  \begin{List}[ListType=itemize]
+  \ListItem Alle Programmzeilen mit \texttt{>} kennzeichnen. 
+  \ListItem Programmzeilen in \texttt{$\backslash$begin\{code\}} \ldots{}
+    \texttt{$\backslash$end\{code\}} einschließen
+  \end{List}
+  \ListItem Umgebung \texttt{code} in \LaTeX{} definieren:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgsfrag_code_latex]
+\begin{scode}
+\def\code{\verbatim} 
+\def\endcode{\endverbatim}
+\end{scode}
+\end{ProgramFragment}
+  \ListItem Mit \LaTeX{} setzen, mit Haskell ausführen. 
+    \ShowFile{slides-2.tex}{(Beispiel)}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Funktionaler Entwurf und Entwicklung},
+    Label=para2_1_6_funk_entwurf]
+
+\begin{List}[ListType=itemize]
+\ListItem Spezifikation: 
+  \begin{List}[ListType=itemize]
+  \ListItem Definitionsbereich (Eingabewerte)
+  \ListItem Wertebereich (Ausgabewerte)
+  \ListItem Vor/Nachbedingungen?
+  \end{List}
+  $\LeadsTo$ \emph{Signatur}
+\pause{}
+\ListItem Programmentwurf:
+  \begin{List}[ListType=itemize]
+  \ListItem Gibt es ein ähnliches (gelöstes) Problem? 
+  \ListItem Wie kann das Problem in Teilprobleme zerlegt werden?
+  \ListItem Wie können Teillösungen zusammengesetzt werden?
+  \end{List}
+  $\LeadsTo$ \emph{Erster Entwurf} 
+
+% erzeuge neues slide ohne neuen Paragraph,
+% da die beiden inhaltlich zusammengehören - CK
+\newpage
+
+\ListItem Implementierung:
+  \begin{List}[ListType=itemize]
+  \ListItem Termination?
+  \ListItem Effizienz? Geht es besser? Mögliche Verallgemeinerungen?
+  \ListItem Gibt es hilfreiche Büchereifunktionen?
+  \ListItem Wie würde man die Korrektheitheit zeigen?
+  \end{List}
+  $\LeadsTo$ \emph{Lauffähige Implementierung}
+\pause{}
+\ListItem Test: 
+  \begin{List}[ListType=itemize]
+  \ListItem \emph{Black-box Test:} Testdaten aus der Spezifikation 
+  \ListItem \emph{White-box Test:} Testdaten aus der Implementierung
+  \ListItem Testdaten: hohe \emph{Abdeckung}, \emph{Randfälle} beachten.
+  \end{List}
+\end{List}
+\end{Paragraph}
+
+
+\begin{comment}
+
+\begin{Paragraph}[Title={Ein Beispiel}, Label=para2_1_6_2_verstecktes_beispiel]
+Zu berechnen: der größte gemeinsame Teiler.
+\begin{List}[ListType=itemize]
+\ListItem Eingabebereich: \texttt{Int}\quad{} Ausgabebereich: \texttt{Int}
+\pause{}
+\ListItem Analyse des Problems
+  \begin{List}[ListType=itemize]
+  \ListItem Reduktion auf kleineres Teilproblem?
+  \end{List}
+\pause{}
+\ListItem 
+\end{List}  
+\end{Paragraph}
+
+\end{comment}
+
+
+\begin{Paragraph}[Title={Ein Beispiel: das Nim-Spiel}, Label=para2_1_7_nim_spiel]
+
+\begin{List}[ListType=itemize]
+\ListItem Zwei Spieler nehmen abwechselnd 1--3 Hölzchen.
+\ListItem \emph{Verloren} hat derjenige, der das letzte Hölzchen nimmt.
+\ListItem Ziel: Programm, das entscheidet, ob ein Zug gewinnt.
+\pause{}
+\ListItem Eingabe: Anzahl Hölzchen gesamt, Zug
+\ListItem Zug = Anzahl genommener Hölzchen
+\ListItem Ausgabe: Gewonnen, ja oder nein.
+\begin{ProgramFragment}[Title={}, Formalism=Haskell,
+    Label=prgfrag_nim_win_move]
+\begin{code}
+type Move= Int
+winningMove :: Int-> Move-> Bool
+\end{code}
+\end{ProgramFragment}
+\end{List}
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Erste Verfeinerung}, Label=para2_1_8_verfeinerung]
+\begin{List}[ListType=itemize]
+
+\ListItem Gewonnen, wenn Zug legal \&
+  Gegner kann nicht gewinnen:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgfrag_verfeinerung]
+\begin{code}
+winningMove total move = 
+  legalMove total move && 
+  mustLose (total-move)
+\end{code}
+\end{ProgramFragment}
+\ListItem Überprüfung, ob Zug legal:
+\pause{}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgfrag_move_legal]
+\begin{code}
+legalMove :: Int-> Int-> Bool
+legalMove total m = 
+   (m<= total) && (1<= m) && (m<= 3)
+\end{code}
+\end{ProgramFragment}
+
+\newpage
+
+\ListItem Gegner kann nicht gewinnen, wenn
+  \begin{List}[ListType=itemize]
+  \ListItem nur noch ein Hölzchen über, oder
+  \ListItem kann nur Züge machen, bei denen es Antwort gibt, wo wir
+            gewinnen \pause{}
+  \end{List}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgfrag_must_loose]
+\begin{code}
+mustLose :: Int-> Bool
+mustLose n
+  | n == 1    = True
+  | otherwise = canWin n 1 && 
+                canWin n 2 && 
+                canWin n 3
+\end{code}
+\end{ProgramFragment}
+
+\newpage
+
+\ListItem Wir gewinnen, wenn es legalen, gewinnenden Zug gibt:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgfrag_win_move]
+\begin{code}              
+canWin :: Int-> Int-> Bool
+canWin total move = 
+  winningMove (total- move) 1 ||
+  winningMove (total- move) 2 || 
+  winningMove (total- move) 3
+\end{code}
+\end{ProgramFragment}
+
+\newpage
+
+\ListItem Analyse:
+  \begin{List}[ListType=itemize]
+  \ListItem Effizienz: unnötige Überprüfung bei \texttt{canWin}
+  \ListItem Testfälle: Gewinn, Verlust, Randfälle
+  \end{List}
+
+\ListItem Korrektheit: 
+  \begin{List}[ListType=itemize]
+  \ListItem Vermutung: Mit $4n+1$ Hölzchen verloren, ansonsten gewonnen.
+  \ListItem Beweis durch Induktion $\LeadsTo$ später.
+  \end{List}
+\end{List}  
+
+\end{Paragraph}
+\end{Section}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{Section}[Title={Der Basisdatentyp \texttt{Bool}},
+  ShortTitle={Basisdatentyp \texttt{Bool}}, Label={section2_2}]
+
+\begin{Paragraph}[Title={Wahrheitswerte: \texttt{Bool}}, Label={para2_2_1}]
+
+\begin{List}[ListType=itemize]
+\ListItem Werte \texttt{True} und \texttt{False}
+\ListItem Funktionen:
+  \begin{tabular}[t]{ll}
+    \verb!not :: Bool-> Bool        ! & Negation \\
+    \verb!&&  :: Bool-> Bool-> Bool ! & Konjunktion \\
+    \verb!||  :: Bool-> Bool-> Bool ! & Disjunktion \\
+  \end{tabular}
+\ListItem Beispiel: ausschließende Disjunktion: 
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_bool]
+\begin{xcode}
+exOr :: Bool-> Bool-> Bool
+exOr x y = (x || y) && (not (x && y))
+\end{xcode}
+\end{ProgramFragment}
+
+\newpage
+
+\ListItem Alternative: 
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_bool_alt]
+\begin{xcode}
+exOr x y 
+  | x == True  = if y == False then True 
+                               else False
+  | x == False = if y == True  then True 
+                               else False
+\end{xcode}
+\end{ProgramFragment}
+\pause{}
+\ListItem \emph{Igitt!} Besser: Definition mit \emph{pattern matching}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell,
+    Label=prgxfrag_bool_pat_match]
+\begin{xcode}
+exOr True  y = not y
+exOr False y = y
+\end{xcode}
+\end{ProgramFragment}
+\end{List}
+
+\end{Paragraph}
+\end{Section}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{Section}[Title={Numerische Basisdatentypen}, ShortTitle={Numerische Basisdatentypen}, Label={section2_3}]
+
+\begin{Paragraph}[Title={Das Rechnen mit Zahlen},
+    Label=para2_3_1_rechnen_zahlen]
+% \SingleItem{Grundsätzliches Problem: es gibt so viele \dots{}} 
+\[\begin{array}[c]{c}
+\text{Beschränkte Genauigkeit,} \\
+\text{konstanter Aufwand}
+\end{array}
+\longleftrightarrow 
+\begin{array}[c]{c}
+\text{beliebige Genauigkeit}, \\
+\text{wachsender Aufwand}
+\end{array}
+\]
+\pause{}
+Haskell bietet die Auswahl:
+  \begin{List}[ListType=itemize]
+  \ListItem \texttt{Int} - ganze Zahlen als Maschinenworte ($\geq$ 31 Bit)
+  \ListItem \texttt{Integer} - beliebig große ganze Zahlen
+  \ListItem \texttt{Rational} - beliebig genaue rationale Zahlen
+  \ListItem \texttt{Float} - Fließkommazahlen (reelle Zahlen) 
+  \end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Ganze Zahlen: \texttt{Int} und
+  \texttt{Integer}}, Label=para2_3_2_ganze_zahlen]
+
+\begin{List}[ListType=itemize]
+\ListItem Nützliche Funktionen (\emph{überladen}, auch für \texttt{Integer}):
+\begin{ProgramFragment}[Title={}, Formalism=Haskell,
+    Label=prgxfrag_integer_funkt]
+\begin{xcode}
++, *, ^, - :: Int-> Int-> Int
+abs   :: Int-> Int -- Betrag
+div   :: Int-> Int-> Int 
+mod   :: Int-> Int-> Int 
+\end{xcode}
+\end{ProgramFragment}
+%Es gilt \texttt{x `div` y)*y + x `mod` y == x}
+% `(' vor x eingefügt - CK
+Es gilt \texttt{(x `div` y)*y + x `mod` y == x}
+\ListItem Vergleich durch \texttt{==}, \texttt{/=}, \texttt{<=}, \texttt{<},
+  \ldots{}
+\ListItem \emph{Achtung:} Unäres Minus
+  \begin{List}[ListType=itemize]
+  \ListItem Unterschied zum Infix-Operator \texttt{-}
+  \ListItem Im Zweifelsfall klammern: \texttt{abs (-34)}
+  \end{List}
+%\item Fallweise Definitionen möglich:
+%\begin{xcode}
+%fac 0 = 1
+%fac n = n* (fac (n-1))
+%\end{xcode}
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Fließkommazahlen: \texttt{Double}},
+  Label=para2_3_3_fliesskommazahlen]
+
+\begin{List}[ListType=itemize]
+\ListItem Doppeltgenaue Fließkommazahlen (IEEE 754 und 854)
+  \begin{List}[ListType=itemize]
+  \ListItem Logarithmen, Wurzel, Exponentation, $\pi$ und $e$, trigonometrische Funktionen
+  \ListItem siehe Thompson S. 44
+  \end{List}
+\ListItem Konversion in ganze Zahlen: 
+  \begin{List}[ListType=itemize]
+  \ListItem \texttt{fromInt :: Int-> Double}
+  \ListItem \texttt{fromInteger :: Integer-> Double}
+  \ListItem \texttt{round, truncate :: Double-> Int}, \texttt{Integer}
+  \ListItem Überladungen mit Typannotation auflösen:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_round]
+\begin{xcode}
+   round (fromInt 10) :: Int 
+\end{xcode}
+\end{ProgramFragment}
+  \end{List}
+\ListItem \emph{Rundungsfehler!}
+\end{List}
+
+\end{Paragraph}
+\end{Section}
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{Section}[Title={Strukturierte Datentypen: Tupel und Listen},
+    Label={section2_4}]
+
+\begin{Paragraph}[Title={Tupel und Listen}, Label=para2_4_1_tupel_listen]
+
+\begin{List}[ListType=itemize]
+\ListItem \emph{Tupel} sind das kartesische Produkt: \par
+\texttt{(t1, t2)} = alle möglichen Kombinationen von Werten aus
+\texttt{t1} und \texttt{t2}. 
+
+\ListItem 
+\emph{Listen} sind Sequenzen: \par
+\texttt{[t]} = endliche Folgen von Werten aus \texttt{t} 
+
+%\begin{itemize}
+%\item Sequenz ist wie eine Menge, aber mit einer Ordnung, mit
+%  doppelten Elemente, und endlich.
+%%% Eine Sequenz ist wie ein Auto, aber ohne Räder, ohne Motor, und
+%%%  man auch nicht damit fahren ?!?
+%\end{itemize} 
+
+\ListItem 
+\emph{Strukturierte Typen}: konstruieren aus bestehenden Typen neue Typen. 
+
+\newpage
+
+\ListItem Beispiel: Modellierung eines Einkaufswagens 
+  \begin{List}[ListType=itemize]
+  \ListItem Inhalt: Menge von Dingen mit Namen und Preis
+  \end{List}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_bsp_tupel]
+\begin{xcode}
+type Item   = (String, Int)
+type Basket = [Item]
+\end{xcode}
+\end{ProgramFragment}
+
+\pause{}
+
+\ListItem Beispiel: Punkte, Rechtecke, Polygone
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_bsp_geo_obj]
+\begin{xcode}
+type Point   = (Int, Int)
+type Line    = (Point, Point)
+type Polygon = [Point] 
+\end{xcode}
+\end{ProgramFragment}
+
+\end{List}
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Funktionen über Listen und Tupeln}, Label=para2_4_2_funk_tupel_listen]
+
+\begin{List}[ListType=itemize]
+
+\ListItem 
+Funktionsdefinition durch \emph{pattern matching}:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell,
+    Label=prgxfrag_kompweise_add]
+\begin{xcode}
+add :: Point-> Point-> Point
+add (a, b) (c, d) = (a+ c, b+ d)
+\end{xcode}
+\end{ProgramFragment}
+\ListItem Für Listen:
+\begin{List}[ListType=itemize]
+\ListItem entweder leer
+\ListItem oder bestehend aus einem \emph{Kopf} und einem \emph{Rest}
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_concat_list]
+\begin{xcode}
+sumList :: [Int]-> Int
+sumList []     = 0
+sumList (x:xs) = x + sumList xs
+\end{xcode}
+\end{ProgramFragment}
+\ListItem Hier hat \texttt{x} den Typ \texttt{Int}, \texttt{xs} den Typ
+  \texttt{[Int]}. 
+\end{List}
+
+\newpage
+
+\ListItem Gesamtpreis des Einkaufs:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_einkauf]
+\begin{xcode}
+total :: Basket -> Int
+total [] = 0
+total ((name, price):rest) = price + total rest
+\end{xcode}
+\end{ProgramFragment}
+\pause{}
+
+\ListItem Translation eines Polygons:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_poly_transl]
+\begin{xcode}
+move :: Polygon-> Point-> Polygon
+move [] p                 = []
+move ((x, y):ps) (px, py) = (x+ px, y+ py):
+                              (move ps (px, py))
+\end{xcode}
+\end{ProgramFragment}
+
+\end{List}
+
+\end{Paragraph}
+\end{Section}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{Section}[Title={Alphanumerische Basisdatentypen},
+    ShortTitle={Alphanumerische Basisdatentypen}, Label={section2_5}]
+
+\begin{Paragraph}[Title={Einzelne Zeichen: \texttt{Char}},
+    Label=para2_5_1_einz_zeichen]
+
+\begin{List}[ListType=itemize]
+\ListItem Notation für einzelne Zeichen: \verb!'a'!,\ldots{}
+  \begin{List}[ListType=itemize]
+  \ListItem NB. Kein Unicode.
+  \end{List}
+\ListItem Nützliche Funktionen:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_nuetzl_funk]
+\begin{xcode}
+ord :: Char -> Int
+chr :: Int -> Char
+
+toLower :: Char-> Char
+toUpper :: Char-> Char
+isDigit :: Char-> Bool
+isAlpha :: Char-> Bool
+\end{xcode}
+\end{ProgramFragment}
+\end{List}
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Zeichenketten: \texttt{String}},
+    Label=para2_5_2_zeich_ketten]
+
+\begin{List}[ListType=itemize]
+\ListItem \texttt{String} sind Sequenzen von Zeichenketten:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_string_type]
+\begin{xcode}
+type String = [Char] 
+\end{xcode}
+\end{ProgramFragment}
+
+\ListItem Alle vordefinierten Funktionen auf Listen verfügbar.
+
+\ListItem Syntaktischer Zucker zur Eingabe:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_string_zucker]
+\begin{xcode}
+['y','o','h','o'] == "yoho" 
+\end{xcode}
+\end{ProgramFragment}
+
+\ListItem Beispiel:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_bsp_count]
+\begin{xcode}
+count :: Char-> String-> Int
+count c []     = 0
+count c (x:xs) = if (c== x) then 1+ count c xs
+                 else count c xs
+\end{xcode}
+\end{ProgramFragment}
+\end{List}
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Beispiel: Palindrome}, Label=para2_5_3_palindrome]
+
+\begin{List}[ListType=itemize]
+\ListItem \emph{Palindrom}: vorwärts und rückwärts
+  gelesen gleich (z.B. Otto, Reliefpfeiler)
+\pause{}
+
+\ListItem Signatur: 
+\begin{ProgramFragment}[Title={}, Formalism=Haskell,
+    Label=prgxfrag_palindrom_signatur]
+\begin{xcode}
+palindrom :: String-> Bool
+\end{xcode}
+\end{ProgramFragment}
+\pause{}
+
+\ListItem Entwurf: 
+  \begin{List}[ListType=itemize]
+  \ListItem Rekursive Formulierung: \\
+    erster Buchstabe = letzer Buchstabe, und Rest auch Palindrom
+  \ListItem Leeres Wort und monoliterales Wort sind Palindrome
+  \ListItem Hilfsfunktionen: \\
+    \verb!last: String-> Char!, \verb!init: String-> String!
+  \end{List}
+
+\newpage
+
+\ListItem Implementierung:
+\begin{ProgramFragment}[Title={}, Formalism=Haskell,
+    Label=prgfrag_palindrom_string_bool]
+\begin{code}
+palindrom :: String-> Bool
+palindrom []     = True
+palindrom [x]    = True
+palindrom (x:xs) = (x == last xs) 
+                   && palindrom (init xs)
+\end{code}
+\end{ProgramFragment}
+\pause{}
+\ListItem Kritik: 
+  \begin{List}[ListType=itemize]
+  \ListItem Unterschied zwischen Groß- und kleinschreibung
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_gross_klein]
+\begin{xcode}
+palindrom (x:xs) = (toLower x == toLower (last xs)) 
+                   && palindrom (init xs)
+\end{xcode}
+\end{ProgramFragment}
+  \ListItem Nichtbuchstaben sollten nicht berücksichtigt werden.
+  \end{List}
+
+\end{List}
+
+\end{Paragraph}
+
+
+\begin{Paragraph}[Title={Exkurs: Operatoren in Haskell},
+    Label=para2_5_4_operatoren]
+\begin{List}[ListType=itemize]
+\ListItem \emph{Operatoren}: Namen aus Sonderzeichen \verb"!$%&/?+^" \ldots
+% $ ignore this - emacs fontify problem - CK
+\ListItem Werden \emph{infix} geschrieben: \verb!x && y!
+\ListItem Ansonsten normale Funktion.
+\ListItem Andere Funktion infix benutzen: 
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_infix]
+\begin{xcode}
+x `exOr` y 
+\end{xcode}
+\end{ProgramFragment}
+\SingleItem{In Apostrophen einschließen.}
+\ListItem Operatoren in Nicht-Infixschreibweise (präfix): 
+\begin{ProgramFragment}[Title={}, Formalism=Haskell, Label=prgxfrag_nicht_infix]
+\begin{xcode}
+(&&) :: Bool-> Bool-> Bool
+\end{xcode}
+\end{ProgramFragment}
+\SingleItem{In Klammern einschließen.}
+\end{List}
+
+\end{Paragraph}
+
+\end{Section}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Zusammenfassung ist die Zus.fas. der _äußeren_ Section (chapter 2)
+
+\begin{Summary}[Title={Zusammenfassung}, ShortTitle={Zusammenfassung},
+    Label=para2_0_2_zusammenfassung]
+
+\begin{List}[ListType=itemize]
+\ListItem Funktionsdefinitionen:
+  \begin{List}[ListType=itemize]
+  \ListItem Abseitsregel, bedingte Definition, \textit{pattern matching}
+  \end{List}
+\ListItem Numerische Basisdatentypen:
+  \begin{List}[ListType=itemize]
+  \ListItem \texttt{Int}, \texttt{Integer}, \texttt{Rational} und \texttt{Double}
+  \end{List}
+\ListItem Funktionaler Entwurf und Entwicklung
+  \begin{List}[ListType=itemize]
+  \ListItem Spezifikation der Ein- und Ausgabe $\LeadsTo$ Signatur
+  \ListItem Problem rekursiv formulieren $\LeadsTo$ Implementation
+  \ListItem Test und Korrektheit
+  \end{List}
+\ListItem Strukturierte Datentypen: Tupel und Listen
+\ListItem Alphanumerische Basisdatentypen: \texttt{Char} und
+  \texttt{String}
+  \begin{List}[ListType=itemize]
+  \ListItem \texttt{type String = [Char]}
+  \end{List}
+\end{List}
+
+\end{Summary}
+
+\end{Section} % end Vorlesung 2
+
+\end{Package}
+\end{document}
