@@ -1,8 +1,7 @@
 #!/usr/local/bin/bash
 export CVSROOT=/home/uniform/backup/repository
 rm -rf A B 1 2 22 3 4
-pkill -x allocate
-pkill -x server
+pkill -x AllocateService
 rm -rf /home/uniform/backup/repository/db
 mkdir /home/uniform/backup/repository/db
 top/cvs/AllocateService &
