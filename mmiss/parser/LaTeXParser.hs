@@ -143,6 +143,13 @@ data Params = LParams [SingleParam] Attributes (Maybe Delimiter) (Maybe Delimite
 
 
 
+-- The search/replace strings listed in latexToUnicodeTranslations are applied to attribute values when
+-- they are stored in XML-attribute instances:
+
+latexToUnicodeTranslations = [("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("'", "&apos;"), ("\"", "&quot;")]
+                          ++ [("\\\"a", "&#xE4;"), ("\\\"u", "&#xFC;"), ("\\\"o", "&#xF6;")]
+                          ++ [("\\\"A", "&#xC4;"), ("\\\"U", "&#xDC;"), ("\\\"O", "&#xD6;")] 
+                          ++ [("\\ss", "&#xDF;")]
 
 plainTextAtoms = [("Table","table"), ("Glossaryentry", "glossaryEntry"), ("Bibentry", "bibEntry")] ++
                  [("Figure", "figure"), ("ProgramFragment", "programFragment")] ++
@@ -564,16 +571,14 @@ latexDoc l =  do f <-  frag <?> "Fragment"
 	      <|> return (Env "Root" (LParams [] [] Nothing Nothing) (reverse l))
 
 
-
-
 -- **********************************************************************************************
 --
--- Die nachfolgenden Parser werden werden zum Parsen der Path-Statements aus der Import-Präambel
--- benutzt
+-- Die nachfolgenden Parser werden zum Parsen von Entity-Namen in Path- und Import-Statements.
 --
 -- entityNameParser erkennt einen EntityName, der aus Buchstaben und anderen Zeichen bestehen
 -- darf, ausser: ".\\{}"  Die {}-Klammern und der Backslash sind nicht erlaubt, weil sie 
 -- in LaTeX zum Kennzeichnen von Token benutzt werden.
+-- **********************************************************************************************
 
 entityNameParser :: GenParser Char st String
 entityNameParser = many1 (noneOf ".\\{},= \t\n")
@@ -598,10 +603,12 @@ entityFullNameParser l =
 
 
 -- ***********************************************************************************************
----
+--
 -- Die nachfolgenden Parser werden zum parsen der Import-Statements in der Präambel benutzt:
 --
 -- simpleDirectiveParser erkennt die einfachen Import-Direktiven: Global, Local, Qualified, Unqualified:
+-- ***********************************************************************************************
+
 simpleDirectiveParser :: GenParser Char st [Directive]
 simpleDirectiveParser = 
   try(do spaces
@@ -780,8 +787,7 @@ findFirstEnv ((Env "Package" ps@(LParams _ packAtts _ _) fs):_) preambleFs _ =
   let (newPreambleFs, atts1) = addPropertiesFrag preambleFs packAtts
       latexPre = makePreamble (filterGeneratedPreambleParts newPreambleFs)
       importCmds = makeImportCmds newPreambleFs []
-      atts2 = getPathAttrib preambleFs
-      xmlAtts = map convertAttrib (atts1 ++ atts2)
+      xmlAtts = map convertAttrib atts1
       content = makeContent fs NoText "package"
   in case (fromWithError content) of
        Right c -> pairWithError elem mmissPreamble 
@@ -1555,13 +1561,28 @@ getDefineText  (LParams ps _ _ _) =
     else []
 
 convertAttrib :: (String, String) -> Attribute
-convertAttrib (l, r) = ((attNameToXML l), AttValue [Left r])
+convertAttrib (l, r) = ((attNameToXML l), AttValue [Left (latexToUnicode r)])
 
 
 getEmphasisText :: Params -> String
 getEmphasisText (LParams [] _ _ _) = ""
 getEmphasisText (LParams ((SingleParam ((Other s):[]) _):ps) _ _ _) = s
 
+
+
+latexToUnicode :: String -> String
+latexToUnicode inStr = foldl (applyTranslation "") inStr latexToUnicodeTranslations
+
+applyTranslation :: String -> String -> (String, String) -> String
+applyTranslation outStr inStr (search, replaceStr) =
+   if lenInStr < lenSearch 
+     then outStr ++ inStr
+     else if (isPrefixOf search inStr)
+            then applyTranslation (outStr ++ replaceStr) (drop lenSearch inStr)  (search, replaceStr)
+            else applyTranslation (outStr ++ (take 1 inStr)) (drop 1 inStr)  (search, replaceStr)
+   where
+   lenInStr = genericLength inStr
+   lenSearch = genericLength search   
 
 
 {-- makeMMiSSLatex erzeugt aus einem XML-Element die zugehoerige MMiSSLatex-Repraesentation.
@@ -1715,7 +1736,7 @@ makePreambleText mmissPreamble =
       str2 = case impCmds of
                Just(cmds) -> makeImportsText cmds
                Nothing -> ""
-  in str1 ++ "\n\n" ++ str2 ++ "\n"
+  in str1 ++ "\n" ++ str2 ++ "\n"
 
 makePackageText :: String -> Package -> String
 makePackageText commandName (Package options name versiondate) =
