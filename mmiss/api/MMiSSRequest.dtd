@@ -9,6 +9,7 @@
       connect | closeServer | listVersions 
       | checkOut | changeUserInfo | commitVersion 
       | closeVersion | getObject | putObject 
+      | getPermissions | setPermissions
       )
    >
 
@@ -19,6 +20,7 @@
      (connectResponse | closeServerResponse | listVersionsResponse
       | checkOutResponse | changeUserInfoResponse | commitVersionResponse
       | closeVersionResponse | getObjectResponse | putObjectResponse
+      | getPermissionsResponse | setPermissionsResponse
       )? )
    >
 
@@ -107,6 +109,17 @@
      the bundle. -->
 <!ELEMENT putObject (versionRef,objectFullName,packageId?,bundle) >
 <!ELEMENT putObjectResponse EMPTY >
+
+<!-- Security Operations -->
+
+<!-- Get either the global permissions for a server (serverRef) or
+     the permissions for an object (versionRef,objectFullName) -->
+<!ELEMENT getPermissions (whichPermissions) >
+<!ELEMENT getPermissionsResponse (permissions) >
+
+<!ELEMENT setPermissions (whichPermissions,permissions) >
+<!ELEMENT setPermissionsResponse EMPTY >
+
 
 <!--
    Basic Data Types (shared with MMiSSReply.dtd)
@@ -235,6 +248,14 @@
      object for which the request was initiated, EG the 
      -->
 <!ELEMENT objectFullName (#PCDATA) >
+
+<!-- whichPermissions designates some permissions to be set or changed;
+     either the global permissions for a server (serverRef) or the
+     permissions for an object in a checked-out version
+     (versionRef,objectFullName) -->
+<!ELEMENT whichPermissions (serverRef | (versionRef,objectFullName)) >
+<!ELEMENT permissions (#PCDATA) >
+
 
 <!-- Variant objects. -->
 <!ELEMENT variant EMPTY >
