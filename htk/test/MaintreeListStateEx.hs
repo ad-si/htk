@@ -101,7 +101,7 @@ main =
                                           putStrLn "state exported"
                                           importTreeListState tl2 st
                                           putStrLn "state imported")))
-    finishHTk main
+    finishHTk
 
 folderImg = newImage NONE [imgData GIF "R0lGODdhDAAMAPEAAP///4CAgP//AAAAACwAAAAADAAMAAACJ4SPGZsXYkKTQMDFAJ1DVwNVQUdZ
 1UV+qjB659uWkBlj9tIBw873BQA7"]

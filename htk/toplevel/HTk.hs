@@ -133,7 +133,7 @@ module HTk (
   withdrawMainWin, -- :: Config HTk
   -- withDraw as a configuration
 
-  finishHTk, -- :: Htk-> IO ()
+  finishHTk, -- :: IO ()
   -- waits for all wish to finish and then terminates
 
   withdrawWish, -- :: IO ()

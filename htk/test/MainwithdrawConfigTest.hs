@@ -20,4 +20,4 @@ main =
     pack b []
     clickedb <- clicked b
     spawnEvent (clickedb >>> destroy htk)
-    finishHTk htk
+    finishHTk

@@ -17,7 +17,7 @@ ifdef DEBUG
    HC_OPTIONS = -recomp -fwarn-deprecations -Onot -DDEBUG
 else
 #    HC_OPTIONS = -recomp -fwarn-deprecations -O -fasm
-    HC_OPTIONS = -recomp -fwarn-deprecations -O -O2-for-C
+    HC_OPTIONS = -recomp -fwarn-deprecations -O
 endif
 
 HCSYSLIBS = -package concurrent -package data -package net -package posix -package text -package util -package lang
