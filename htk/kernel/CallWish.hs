@@ -230,7 +230,7 @@ callWish =
       return (CalledWish childProcess)
 
 challengeResponsePair :: (String,String)
-challengeResponsePair = ("puts [wm focusmodel .]","passive\n")
+challengeResponsePair = ("if {[info command button] == \"button\"} {puts \"This is wish  \"} else {puts \"Is this tclsh?\"}","This is wish  \n")
 
 sendCalledWish :: CalledWish -> CStringLen -> IO ()
 sendCalledWish (CalledWish childProcess) cStringLen =
