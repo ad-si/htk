@@ -25,6 +25,8 @@ module CVSDB(
    -- type of versions of attributes in the repository.
    -- (Each object has an associated set of attributes, which
    -- are separately versioned)
+   initialAttributeVersion, -- :: AttributeVersion
+   -- initial version allocated to attributes.
 
    ObjectSource,
    -- type of data as retrieved from the repository.
@@ -275,6 +277,9 @@ type ObjectVersion = CVSVersion
 
 type AttributeVersion = CVSVersion
 -- ditto
+
+initialAttributeVersion :: AttributeVersion
+initialAttributeVersion = CVSVersion "1.1"
 
 data ObjectSource = 
       FileObject String
