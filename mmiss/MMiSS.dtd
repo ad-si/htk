@@ -65,7 +65,6 @@
 <!ENTITY % formalism-matter  "notationID  CDATA  #IMPLIED">  
 
 
-
 <!--
   ***********************************************************************
   **                                                                   **
@@ -74,9 +73,9 @@
   ***********************************************************************
  -->
 
-<!ENTITY % structuralElement "include | link | forwardLink">
+<!ENTITY % structuralElement "include | link">
 
-<!ENTITY % semanticElement "define | reference | forwardReference">
+<!ENTITY % semanticElement "define | reference">
 
 <!ENTITY % embeddedElement "%structuralElement; | %semanticElement;">
 
@@ -84,24 +83,19 @@
 
 
 <!ELEMENT include EMPTY>
-<!ATTLIST include included    CDATA #REQUIRED>
+<!ATTLIST include included    CDATA #REQUIRED
+                  status  (present | absent) "absent">
 
 <!ELEMENT link (#PCDATA)>
-<!ATTLIST link linked    CDATA #REQUIRED>
-
-<!ELEMENT forwardLink (#PCDATA)>
-<!ATTLIST forwardLink linked    CDATA #REQUIRED>
-
+<!ATTLIST link linked    CDATA #REQUIRED
+               status  (present | absent) "absent">
 
 <!ELEMENT define (#PCDATA)>
 <!ATTLIST define %label-matter;>
                
 <!ELEMENT reference (#PCDATA)>
-<!ATTLIST reference referenced  CDATA #REQUIRED>
-
-<!ELEMENT forwardReference (#PCDATA)>
-<!ATTLIST forwardReference referenced  CDATA #REQUIRED>
-
+<!ATTLIST reference referenced  CDATA #REQUIRED
+                    status  (present | absent) "absent">
 
 <!--
   ***********************************************************************
