@@ -8,7 +8,7 @@ endif
 
 DOIMPORTS  = YES
 
-EXTRA_HC_OPTIONS = -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets -H200M
+EXTRA_HC_OPTIONS += -icanvasitems:components:containers:devices:kernel:menuitems:packer:resources:textitems:tix:toolkit:toplevel:widgets -H200M
 
 SRCS       = resources/Resources.hs\
              resources/GUIValue.hs\
