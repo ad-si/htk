@@ -23,7 +23,7 @@ set_link ()
      if [ -n $BINARY ]; then ln -s $BINARY bin/$1; echo Linked $UNIDIR/bin/$1 to $BINARY.
      else echo WARNING: no binary for $1. Set link in bin/$1 manually.
      fi
-  fi }
+  fi; }
 
 set_link wish
 
