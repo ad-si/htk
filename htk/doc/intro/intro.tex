@@ -75,7 +75,14 @@ information and background to get them started on their first HTk
 programs, to know which parts of HTk might be potentially useful in
 the applications they have in mind, what is feasible to build with HTk
 and what not, and finally to enable them to find further information
-quickly in the \href{index.html}{online reference material}.
+quickly in the \href{index.html}{online reference material}. 
+
+For maximum benefit, you should read this text in its PDF incarnation,
+and enable your acrobat reader to display weblinks (menu
+\texttt{File}, submenu \texttt{Preferences}, submenu
+\texttt{Weblink}). If you have configured HTk correctly, then the
+hyperlinks in this document should display the corresponding online
+material; \href{index.html}{this should take you to the index page.}
 
 \subsection{Basics}
 
@@ -156,7 +163,6 @@ used frequently in HTk to impose a typing discipline onto Tk's untyped
 GUI element structure, with the benefit that type checking can prevent
 run time errors.
 
-
 \subsection{Configurations and Resources}
 
 Above, the text of the button was set with a \emph{configuration
@@ -235,7 +241,8 @@ HTk's internal consumption only.)
 \subsubsection{Fonts}
 
 Fonts are implemented in the module
-\href{Font.html}{\texttt{Font}}. They are specified in the usual way,
+\href{Font.html}{\texttt{Font}}. The datatype \texttt{Font} represents
+the specification of exactly one font in the usual (X-style) way,
 by giving a family, slant, spacing, width and weight. For example, the
 family is given by 
 \begin{xcode}
@@ -246,12 +253,34 @@ where the five enumerated types are available on most systems. With
 \texttt{Other}, you can directly give a more exotic family such as
 \texttt{clearlyu alternate glyphs}. 
 
+The class
+\href{Font.html#Font.FontDesignator}{\texttt{FontDesignator}} allows
+fonts to be specified in a flexible manner by overloading. This is
+used whenever a font has to be specified, e.g. in a text tag or as a
+configuration for a label widget. Its main instances are the following:
+\begin{xcode}
+instance FontDesignator FontFamily where
+instance FontDesignator (FontFamily,Int) where
+instance FontDesignator (FontFamily,FontWeight,Int) where
+instance FontDesignator (FontFamily,FontSlant,Int) where
+instance FontDesignator String where
+instance FontDesignator XFont where
+\end{xcode}
+The first three allows fonts to be specified by the font family, plus
+the size, plus the weight or the slant, respectively; the second from
+last allows an X-style string
+(e.g.
+\texttt{-adobe-courier-bold-o-normal-*-14-*-*-*-*-*-iso8859-*-}), and
+the last an X-style specification as an abstract datatype. 
+
 Be warned that fonts are, in principle, not very portable under X,
 since the available fonts are determined by the fonts of the X server
 the programm is running on. It is best to stick to well-known font
 families such as the above, and usual sizes. 
 
 \subsection{Packing}
+
+\label{sec:packing}
 
 As mentioned above, after widgets have been created (with e.g.
 \texttt{newButton}), they will not be displayed yet; this only happens
@@ -326,6 +355,8 @@ algorithms. The first widget packed into a container defines the
 packing for this container.
 
 \section{Events}
+
+\label{sec:events}
 
 In general, events are an abstract datatype for communication and
 synchronisation, much in the spirit of process algebras such as CCS
@@ -476,23 +507,157 @@ can use the grid packer inside a window using the standard packer.
   or text as labels. 
 
 \item Labels and Messages
-
+  
   A \href{Label.html}{label} is a simple widget for text, bitmaps or
   images. \href{Message.html}{Messages} are slightly more
-  sophisticated widgets for longer text messages; messages line-break 
-  the text. For both, the font of the text (class
-  \texttt{HasFont}) and the justification (class
-  \texttt{HasJustified}) can be specified. 
+  sophisticated widgets for longer text messages; messages linebreak
+  the text. For both, the font of the text (class \texttt{HasFont})
+  and the justification (class \texttt{HasJustified}) can be
+  specified.
 
 \input{Mainlist.lhs} %% Scrollbars, List boxes.
 
 \end{itemize}
 
-\input{Mainmenu.lhs} %% Menues 
 
-\subsection{The Textwidget}
+\subsection{The Editor}
+
+\label{ssec:textwidget}
+
+A editor (also called a text widget). As opposed to labels
+and messages, is scrollable (i.e. an instance of class
+\href{ScrollBar.html#ScrollBar.HasScroller}{HasScroller}), but its
+chief difference to labels and messages are that it can be
+\emph{edited} and has \emph{text tags}, which make into one of Tk's
+most powerful widgets.
+
+Besides the usual configuration options, you can also
+\begin{itemize}
+\item set the spacing with the
+  methods of the class
+  \href{Editor.HasLineSpacing}{\texttt{HasLineSpacing}},
+\item set the wrap mode (character, word, or no wrap) with the function
+  \href{Editor.html#Editor.wrap}{\texttt{wrap}},
+\item and set tabulators with the class
+  \href{Editor.html#Editor.HasTabulators}{\texttt{HasTabulators}}. 
+  \ToBeDone{How are tabulators specified?}
+\end{itemize}
+
+Text can be appended (\texttt{appendText}) or inserted at a specified
+position into the editor with the function
+\href{Editor.html#Editor.insertText}{\texttt{insertText}}: 
+\begin{xcode}
+insertText::(HasIndex Editor i BaseIndex, GUIValue a) => 
+            Editor -> i -> a -> IO ()
+\end{xcode}
+The position where the text is inserted is specified by the class
+\texttt{HasIndex}.
+
+\subsubsection{Indices}
+
+\label{ssec:indices}
+
+The type \texttt{BaseIndex} also models indices into list boxes, entry
+widgets \textit{etc.}, but for editors only the constructor
+\texttt{IndexPos} is important:
+\begin{xcode}
+data BaseIndex =
+  IndexNo Int | IndexPos Position | IndexText String 
+\end{xcode}
+The class \texttt{HasIndex} models which way of indexing a position
+inside a widget is valid. For text widgets, we have 
+\begin{xcode}
+instance HasIndex Editor BaseIndex BaseIndex  
+\end{xcode}
+so we can just speciqfy the index as a position (i.e. a row and column
+number), but we can also specify the index by the constant
+\texttt{EndOfText} (only constructor of the data type
+\texttt{EndOfText}), or by its screen coordinates (\texttt{Pixels}),
+or by \emph{modifying} one of the other indices:
+\begin{xcode}
+instance HasIndex Editor EndOfText BaseIndex
+instance HasIndex Editor Pixels BaseIndex
+instance HasIndex Editor i BaseIndex => 
+         HasIndex Editor (i, [IndexModifier]) BaseIndex
+instance HasIndex Editor i BaseIndex => 
+         HasIndex Editor (i, IndexModifier) BaseIndex  
+\end{xcode}
+
+Index modifiers are modelled by type
+\href{Editor.html#Editor.IndexModifier}{\texttt{IndexModifier}}, and
+specify things like ''three words forward'', or a ''one line
+backwards''. 
+
+
+\subsubsection{Text Tags}
+
+A text tag is a way of marking a specified section of the text. One
+text tag can mark a list of ranges, which are specified by a start and
+an end index: 
+\begin{xcode}
+createTextTag :: (HasIndex Editor i1 BaseIndex,
+                  HasIndex Editor i2 BaseIndex) =>
+                 Editor -> i1 -> i2 -> [Config TextTag] -> IO TextTag  
+\end{xcode}
+Once we have a text tag, we can \href{TextTag.html}{configure
+ it}. It has a font, colour, cursor, justification, line spacing,
+wrapping, tabulators and so on. Moreover, you can bind events to a
+text tag, making it active; so when the mouse moves over the text, or
+the user clicks the text, something exciting happens. This allows you
+very easily to implement hypertext, references and so on. 
+
+When you insert into an editor, the text tags are accommodated
+appropriately; i.e. if you insert into the middle of a text widget,
+then the end of the tag is moved.
+
+As mentioned above, a text widget can be edited, i.e. the user can
+type text into the widget. This feature can be considered just as a
+conveniently set up set of key bindings (e.g. the key \texttt{a} is
+bound to the function which inserts an \texttt{a} at the current
+cursor position). You can switch off the editing behaviour with the
+function \texttt{disable} from the class
+\href{Configuration.html#Configuration.HasEnable}{\texttt{HasEnable}},
+but be warned: \emph{You can only change the text of enabled editors!}
+Trying to insert text into a disabled editor is one of the most Tk
+errors; it will not generate a run-time error but just silently fail
+to change the text of the editor.
+
+The example \texttt{simple/Maintexttag.hs} shows what you can do with
+text tags, and how to use them. The module \texttt{MarkupText} allows
+a more abstract approach to displaying text with differents fonts,
+hyperreferences and so on (see below).
+
+\subsubsection{Marks and More}
+
+To keep track of positions within an editor, you can use marks
+(\href{Mark.html}{\texttt{Mark}}). Essentially, you can put a mark
+into an editor at a specified position (with \texttt{createMark}), and
+query its position later (\texttt{getBaseIndex}). The gravity of the
+mark specifies wether when text is inserted at the exact position of
+the text, it should move to the left, or the right.\footnote{The first
+  one to send us an email saying ''Shouldn't this type have been
+  renamed to Euro?'' will be forcefed on Perl scripts until his mind
+  explodes into a regular expression. You have been warned.} 
+
+There's more you can do with an editor. For one, you can also insert
+widgets into the text (this is called an embedded window), so you can
+have buttons (and yes, even another editor) inside an editor. 
+
+Further, you can search the text inside an editor (with the
+\texttt{search} function), read and write the contents to and from a
+file, scroll the contents to a specific position, and much more as can
+be seen in the module \texttt{Editor.html}{\texttt{Editor}}.
 
 \subsection{The Canvas Widget}
+
+A canvas is a widget to draw on. By drawing, I mean we can put
+graphical objects on it (lines, polygons, circles and ellipses, wee
+images, and even whole widgets) at a specified position. A canvas is
+scrollable, so its drawing area can be far larger than the displayed
+area. 
+
+The graphical objects are represented by the datatype 
+
 
 \section{The Toolkit}
 

@@ -2,6 +2,8 @@
 %
 \subsection{A First Example}
 
+\label{ssec:ex1}
+
 To make this more concrete, consider a very simple example. We want to
 open a window which contains just one button, which should be labelled
 \textit{Press me!}. Whenever the user obligingly presses the button,
