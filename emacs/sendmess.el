@@ -85,11 +85,14 @@
 ;;;
 
 ; Change to the given buffer, and perform the action, then change back.
-; This also disables uni-check-change
+; This also disables uni-check-change and enables read-only.
+;
 (defun uni-set-buffer (buffer action)
    (save-excursion
       (set-buffer buffer)
-      (let ((uni-allow-changes t)) (funcall action))
+      (let ((uni-allow-changes t))
+         (funcall action)
+         )
       )
    )
 

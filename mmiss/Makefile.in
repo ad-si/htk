@@ -4,7 +4,8 @@ PACKAGES = uni-types uni-emacs uni-mmiss-parser
 SRCS = MMiSSPaths.hs MMiSSDTDAssumptions.hs MMiSSRegistrations.hs \
    MMiSSAttributes.hs MMiSSContent.hs MMiSSVariant.hs MMiSSDisplay.hs \
    XmlValidate.hs MMiSSDTD.hs MMiSSObjectTypeList.hs \
-   MMiSSPathsSimple.hs MMiSSObjects.hs MMiSSEditXml.hs MMiSSInitialise.hs
+   MMiSSPathsSimple.hs MMiSSObjects.hs MMiSSEditXml.hs MMiSSInitialise.hs \
+   MMiSSReAssemble.hs
 
 BOOTSRCS = MMiSSObjects.boot.hs
 

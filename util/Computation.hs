@@ -72,6 +72,12 @@ module Computation (
         coerceWithError, -- :: WithError a -> a
         -- get out result or throw error.
 
+        MonadWithError(..),
+        -- newtype which wraps a monadic action returning a WithError a.
+        -- This is itself an instance of Monad, allowing functions defined
+        -- on monads, such as mapM, work on them.
+        monadifyWithError, -- :: Monad m => WithError a -> MonadWithError m a
+
         coerceWithErrorOrBreak, -- :: (String -> a) -> WithError a -> a
         -- coerce or use the supplied break function (to be used with 
         -- ExtendedPrelude.addFallOut)
@@ -219,6 +225,28 @@ exceptionToError testFn action =
           return (hasValue val)
       )
       (\ str -> return (hasError str))
+
+
+newtype MonadWithError m a = MonadWithError (m (WithError a))
+
+instance Monad m => Monad (MonadWithError m) where
+   return v = MonadWithError (return (Value v))
+   (>>=) (MonadWithError act1) getAct2 =
+      MonadWithError (
+         do
+            valWithError <- act1
+            case valWithError of
+               Value v ->
+                  let
+                     (MonadWithError act2) = getAct2 v
+                  in
+                     act2
+               Error s -> return (Error s)
+         )
+   fail s = MonadWithError (return (Error s))
+
+monadifyWithError :: Monad m => WithError a -> MonadWithError m a
+monadifyWithError we = MonadWithError (return we)
 
 -- --------------------------------------------------------------------------
 -- Derived Control Abstractions: Iteration

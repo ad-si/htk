@@ -1,6 +1,8 @@
 {- Haskell interface to the high-level extent functions in extents.el-}
 module Extents(
    initBuffer,
+   lockBuffer,
+   unlockBuffer,
    addContainerBuffer,
    prependContainerBuffer,
    addContainer,
@@ -11,9 +13,13 @@ module Extents(
    expand,
    collapse,
    containerContents,
+   ContainerChild(..),
+   containerChildren,
    listContainers,
    setColourHack,
    ) where
+
+import Maybe
 
 import DeepSeq
 
@@ -22,7 +28,7 @@ import EmacsCommands
 import EmacsContent
 import EmacsSExp
 
-initBuffer :: EmacsSession-> IO ()
+initBuffer :: EmacsSession -> IO ()
 initBuffer es = execEmacs es ("uni-initialise-extents")
 
 addContainerBuffer :: EmacsSession -> String -> IO ()
@@ -71,6 +77,25 @@ containerContents emacsSession this =
          (Prin ("uni-container-contents",[this]))
       return (parseEmacsContent str)
 
+data ContainerChild = Button String | Container String
+
+containerChildren :: EmacsSession -> String -> IO [ContainerChild]
+containerChildren emacsSession this =
+   do
+      str <- evalEmacsQuick emacsSession 
+         (Prin ("uni-container-children",[this]))
+      let
+         List children = doParse str
+         result = mapMaybe
+            (\ (DotList [Id objectType] (String childName)) ->
+               case objectType of
+                  "button" -> Just (Button childName)
+                  "container" -> Just (Container childName)
+                  _ -> Nothing
+               )
+            children
+      return result
+
 listContainers :: EmacsSession -> IO [String]
 listContainers emacsSession =
    do
@@ -88,6 +113,12 @@ listContainers emacsSession =
                      sexps
                _ -> bad
       result `deepSeq` (return result)   
+
+lockBuffer :: EmacsSession -> IO ()
+lockBuffer es = execEmacs es ("uni-lock-buffer")
+
+unlockBuffer :: EmacsSession -> IO ()
+unlockBuffer es = execEmacs es ("uni-unlock-buffer")
 
 
 

@@ -8,6 +8,8 @@ module EmacsEdit(
    TypedName,
    ) where
 
+import Maybe
+
 import Computation
 import Registry
 
@@ -89,6 +91,7 @@ editEmacs emacsFS name =
                -- (1) Initialise Emacs and MMiSS-TeX.
                emacsSession <- newEmacsSession (describe name)
                execEmacs emacsSession "MMiSS-init"
+               lockBuffer emacsSession
                setColourHack emacsSession
 
                -- (2) Construct the container.
@@ -110,9 +113,11 @@ editEmacs emacsFS name =
       editorStateOpt <- openFile emacsFS parentAction name
 
       case editorStateOpt of
-         Just editorState -> 
-             -- (5) Handle the Emacs events, until the user quits.
-            sync (handleEvents editorState)
+         Just editorState ->
+            do
+               unlockBuffer (emacsSession editorState)
+               -- (5) Handle the Emacs events, until the user quits.
+               sync (handleEvents editorState)
          Nothing -> done
 
 -- ----------------------------------------------------------------------
@@ -193,6 +198,7 @@ handleEvents editorState =
          (do
             str <- event "COMMIT"
             confirm ("Commit?") (always (do
+               lockBuffer session
                containers <- listContainers session
                mapM_
                   (\ hContainer ->
@@ -235,8 +241,9 @@ handleEvents editorState =
                            Right () -> done
                      )
                   containers
+               unlockBuffer session
                sync iterate
-              ))
+               ))
          )
       +> (do
             str <- event "BUTTON"
@@ -251,23 +258,45 @@ handleEvents editorState =
                      in
                         always (
                            do
+                              lockBuffer session
                               openFile (emacsFS editorState) parentAction name
+                              unlockBuffer session
                               sync iterate
                            )
                      )
                Head name ->
                   confirm ("Collapse "++describe name++" without saving?") (
                      always (do
-                        collapse session (normalName name) (describe name)
-                        transformValue (openFiles editorState) (key name)
-                           (\ stateOpt ->
+                        lockBuffer session 
+                        children <- containerChildren session (normalName name)
+                        let
+                           childContainers = mapMaybe
+                              (\ child -> case child of
+                                 Button _ -> Nothing
+                                 Container str -> Just str
+                                 ) 
+                              children
+                        case childContainers of
+                           [] ->
                               do
-                                 case stateOpt of
-                                    Just state -> finishEdit state
-                                    Nothing -> putStrLn ("Odd - "
-                                       ++describe name++" already collapsed")
-                                 return (Nothing,())
-                              ) 
+                                  collapse session (normalName name) 
+                                     (describe name)
+                                  transformValue (openFiles editorState) 
+                                         (key name)
+                                     (\ stateOpt ->
+                                        do
+                                           case stateOpt of
+                                              Just state -> finishEdit state
+                                              Nothing -> putStrLn ("Odd - "
+                                                 ++describe name
+                                                 ++" already collapsed")
+                                           return (Nothing,())
+                                        ) 
+                           (str:_) -> case parseButton str of
+                              Normal name2 -> 
+                                 createErrorWin ("Collapse " ++ describe name2
+                                    ++ " first!") []
+                        unlockBuffer session
                         sync iterate
                         )
                      )

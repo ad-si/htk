@@ -5,8 +5,10 @@
    like MMiSSPaths.hs
    -}
 module MMiSSPathsSimple(
-   EntityName, -- Instance of HasCodedValue, StringClass
+   EntityName, -- Instance of HasCodedValue, StringClass, Eq
    lookupByObject, -- look up an entity for an object
+   lookupByObjectWithError, -- look up an entity for an object returning a
+      -- WithError.
    checkLookup, -- check a lookup.
    registerMMiSSPaths, -- registration function.
    ) where
@@ -31,7 +33,7 @@ import ObjectTypes
 -- MMiSS entity
 -- ---------------------------------------------------------------------
 
-newtype EntityName = EntityName String
+newtype EntityName = EntityName String deriving Eq
 
 -- ---------------------------------------------------------------------
 -- Turning these into strings and back.  (We don't use Read/Show because
@@ -93,6 +95,21 @@ lookupByObject view object (EntityName name) =
       Nothing -> error ("MMiSSPathsSimple: object doesn't have a parent!")
       Just folderLink -> getInFolder view folderLink name
  
+lookupByObjectWithError :: HasParent object => View -> object -> EntityName 
+   -> IO (WithError WrappedLink)
+lookupByObjectWithError view object (EntityName name) =
+   case toParent object of
+      Nothing -> return (hasError(
+         "MMiSSPathsSimple: object doesn't have a parent!"))
+      Just folderLink -> 
+         do
+            wrappedLinkOpt <- getInFolder view folderLink name
+            return (case wrappedLinkOpt of
+               Nothing -> hasError
+                     ("MMiSS object "++name++" cannot be found")
+               Just wrappedLink -> hasValue wrappedLink
+               )
+
 -- ---------------------------------------------------------------------
 -- Used for providing an error message
 -- ---------------------------------------------------------------------

@@ -4,6 +4,26 @@ Bug and to-do list for MMiSS Workbench
 Xml standard == "Extensible Markup Language (XML) 1.0 (Second Edition)"
 (available from W3C).
 
+44) 17.09.02
+TODO: (1) Export LaTeX and pass it through a filter so it can be displayed on screen.
+(2) Add a menu option for the editor which displays exactly what can be seen on the
+screen.
+
+43) 17.09.02
+Add an option to export LaTeX/XML to a file.
+FIXED
+
+42) 17.09.02
+Emacs improvements (bug fixes indeed).
+(1) Collapsing a container which contains other containers is now banned.
+    It used to be allowed, but this would cause the inner container to be
+    left locked.
+(2) We add Emacs functions for locking/unlocking the buffer making it
+    impossible for the user to modify it (at least unless the user hacks
+    around the feature) and use them while making modifications.
+
+FIXED
+
 41) 16.09.02
 Editing Achim's test file emacs/parser/test_2.tex as XML causes an
 Emacs error.

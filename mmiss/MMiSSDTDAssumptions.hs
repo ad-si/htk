@@ -9,6 +9,7 @@ module MMiSSDTDAssumptions(
 
    ClassifiedElement(..),
    classifyElement, -- :: Element -> ClassifiedElement
+   unclassifyElement, -- :: Element -> Maybe (String,Element -> WithError ())
 
    getMiniType, -- :: String -> Char
    toIncludeStr, -- :: Char -> String
@@ -25,6 +26,7 @@ import Maybe
 import XmlTypes
 
 import ExtendedPrelude
+import Computation
 
 import AttributesType
 
@@ -154,6 +156,7 @@ data LabelledTag =
    |  UnitTag
    |  AtomTag
    |  TextFragmentTag
+   deriving Eq
 
 classifyLabelledTag :: String -> Maybe LabelledTag
 classifyLabelledTag str = case str of
@@ -214,6 +217,45 @@ fromIncludeStr _ = error
    "MMiSSDTDAssumptions.fromIncludeStr - bad include string"
 
 -- ----------------------------------------------------------------------
+-- Turning a (possible) link back into an element
+-- ----------------------------------------------------------------------
+
+---
+-- Given an Element which is an include, returns the contained label and a 
+-- function which verifies that the given Element matches.  For other elements,
+-- returns Nothing.
+unclassifyElement :: Element -> Maybe (String,Element -> WithError ())
+unclassifyElement (Elem name attributes _) =
+   let
+      includeSort :: Maybe LabelledTag
+      includeSort =
+         case name of
+            "includeGroup" -> Just GroupTag
+            "includeUnit" -> Just UnitTag
+            "includeAtom" -> Just AtomTag
+            "includeTextFragment" -> Just TextFragmentTag
+            _ -> Nothing
+   in
+      fmap
+         (\ tag ->
+            (
+               fromMaybe 
+                  (error ("MMiSSDTDAssumptions: "++name
+                     ++" element has no included attribute"))
+                  (getAttribute attributes "included"),
+               (\ (Elem newName _ _) ->
+                  if includeSort == classifyLabelledTag newName
+                     then
+                        hasValue ()
+                     else
+                        hasError ("The element "++newName
+                           ++" does not match the reference "++name)
+                  )
+               )
+            )
+         includeSort
+
+-- ----------------------------------------------------------------------
 -- Functions for operating on attributes
 -- ----------------------------------------------------------------------
 
@@ -250,7 +292,7 @@ getLabel (Elem xmlTag attributes _) = getAttribute attributes "label"
 -- All the attributes we provide are the same.
 variantAttributes :: [String]
 variantAttributes = 
-   ["xml:lang","notationId","levelOfDetailId","interactionLevelId"]
+   ["xml:lang","levelOfDetail","interactionLevel"]
 
 variantAttributesType :: AttributesType
 variantAttributesType =

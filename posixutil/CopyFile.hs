@@ -13,6 +13,7 @@ module CopyFile(
    copyFile,
    linkFile,
    copyStringToFile,
+   copyStringToFileCheck,
    copyFileToString,
    copyFileToStringCheck,
 
@@ -151,6 +152,20 @@ copyFileToCStringLen' file =
    do
       (ptr,len) <- IOExts.slurpFile file
       return (Ptr.castPtr ptr,len)
+
+---
+-- Write to a file, catching certain errors.
+-- (At the moment this is not very helpful, returning messages like
+-- "system error").
+copyStringToFileCheck :: String -> FilePath -> IO (WithError ())
+copyStringToFileCheck str filePath =
+   exceptionToError
+      (\ exception ->
+         case Exception.ioErrors exception of
+            Nothing -> Nothing
+            Just ioError -> Just (show ioError) 
+         )
+      (copyStringToFile str filePath)
 
 copyStringToFile :: String -> FilePath -> IO ()
 copyStringToFile str filePath =

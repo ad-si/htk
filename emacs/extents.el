@@ -58,6 +58,12 @@
    ; Set variable indicating if we are to have coloured magic buttons
    ; (No until uni-set-colour-hack is called)
    (make-local-variable 'uni-do-colour-hack)
+
+   ; Set counter indicating how many times Haskell wants to lock this
+   ; buffer, to prevent the user from making changes to it.  (Normally I
+   ; suppose this variable will be 0 or 1.)
+   (make-local-variable 'uni-buffer-lock-counter)
+   (setq uni-buffer-lock-counter 0)
    )
 
 
@@ -209,6 +215,8 @@
 ; indicates the type ('button, 'container or 'boundary).  For button and
 ; container extents the String gives the identifier; for boundary extents
 ; null is provided.
+;
+; duplicates code with uni-container-children.
 (defun uni-container-contents (extent-id)
    (let* (
          (container (gethash extent-id uni-extent-hash-table))
@@ -241,6 +249,29 @@
          ((< last-text container-end) 
             (setq list-so-far (cons (buffer-string last-text container-end)
                list-so-far)))
+         )
+      (nreverse list-so-far)
+      )
+   )
+
+; uni-container-children is like uni-container-contents, except that
+; it doesn't return the text, just the included extents.
+;
+; duplicates code with uni-container-contents.
+(defun uni-container-children (extent-id)
+   (let* (
+         (container (gethash extent-id uni-extent-hash-table))
+         (list-so-far nil)
+         )
+      ; We build up the list in list-so-far using map-extent-children
+      ; It is built up in reverse order
+      (map-extent-children
+         (lambda (extent maparg)
+            (setq list-so-far 
+               (cons (uni-get-extent-descriptor extent) list-so-far))
+            nil
+            )
+         container nil nil nil nil 'uni-extent-type
          )
       (nreverse list-so-far)
       )
@@ -342,6 +373,8 @@
    (cond 
       ((null uni-allow-changes)
          (cond
+            ((> uni-buffer-lock-counter 0) 
+               (error "Buffer is locked by Haskell"))
             ((eq from 1) (error "Cannot modify start of a buffer"))
             ((eq from to) ;; this is an insertion
                (let* (
@@ -392,7 +425,17 @@
       (t ())
       )
    )
-             
+
+
+; We also provide uni-lock-buffer and uni-unlock-buffer to make the buffer
+; read-only while Haskell is altering it.
+(defun uni-lock-buffer ()
+   (setq uni-buffer-lock-counter (1+ uni-buffer-lock-counter))
+   )
+
+(defun uni-unlock-buffer ()
+   (setq uni-buffer-lock-counter (1- uni-buffer-lock-counter))
+   )
        
 
 ; Get an extent's id

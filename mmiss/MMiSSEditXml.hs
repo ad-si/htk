@@ -5,6 +5,9 @@ module MMiSSEditXml(
    fromEditableXml, -- :: String -> EmacsContent TypedName 
      -- -> IO (WithError Element)
    parseXmlString, -- exported for debugging purposes
+
+   toExportableXml, -- :: Element -> String
+
    ) where
 
 import XmlPP
@@ -42,10 +45,12 @@ fromEditableXml fName (EmacsContent dataItems) =
 toEditableXml :: String -> Element -> EmacsContent TypedName
 toEditableXml fName elem =
    let
-      xmlString = render (element elem)
+      xmlString = toExportableXml elem
    in
       parseXmlString xmlString
 
+toExportableXml :: Element -> String
+toExportableXml elem = render (element elem)
 
 ---
 -- This function is split off partly for debugging purposes.

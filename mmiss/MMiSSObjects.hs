@@ -53,7 +53,7 @@ import Folders
 import EmacsEdit
 import EmacsContent
 
-import LaTeXParser
+import qualified LaTeXParser
 
 import MMiSSDTDAssumptions(getMiniType)
 import MMiSSAttributes
@@ -63,6 +63,7 @@ import MMiSSVariant
 import MMiSSContent
 import MMiSSDTD
 import MMiSSEditXml
+import MMiSSReAssemble
 
 -- ------------------------------------------------------------------------
 -- The MMiSSObjectType type, and its instance of HasCodedValue and 
@@ -148,7 +149,7 @@ data MMiSSObject = MMiSSObject {
    name :: String, -- the user name for this.  NB - although this is
       -- currently fixed, we will probably change this.
    mmissObjectType :: MMiSSObjectType,
-   variantAttributes :: BasicObjects.Attributes, 
+   variantAttributes :: Attributes, 
       -- Current variant attributes for this object, IE those according to
       -- which it is opened by default, or those taken from current contents.
    objectContents :: MMiSSVariantDict (Link Element),
@@ -705,7 +706,7 @@ createMMiSSObject objectType view folder =
             xmlElementWE <- 
                case format of
                   XML ->  xmlParseCheck filePath inputString
-                  LaTeX -> return (parseMMiSSLatex inputString)
+                  LaTeX -> return (LaTeXParser.parseMMiSSLatex inputString)
             let
                xmlElement = coerceWithErrorOrBreak break xmlElementWE
 
@@ -849,9 +850,87 @@ getObjectMiniType object = getMiniType (xmlTag (mmissObjectType object))
 -- ------------------------------------------------------------------
 
 exportMMiSSObject :: View -> Link MMiSSObject -> IO ()
-exportMMiSSObject view link = done
+exportMMiSSObject view link =
+   do
+      result <- addFallOut (\ break ->
+         do
+            object <- readLink view link
 
+            let
+               exportMMiSSForm :: Form (Format,String)
+               exportMMiSSForm =
+                  fmap 
+                     (\ ((),details) -> details)
+                     (nullForm "Write" 
+                        SimpleForm.\\ 
+                        (formatForm 
+                           SimpleForm.\\ 
+                        newFormEntry "to" ""
+                        ))
+            detailsOpt <- doForm
+               ("Exporting "++name object)
+               exportMMiSSForm
+            let
+               (format,filePath) = case detailsOpt of
+                  Nothing -> break "Export cancelled"
+                  Just details -> details
 
+               -- getElement is the function to be passed to
+               -- MMiSSReAssemble.reAssembleNoRecursion.
+               getElement :: EntityName -> MMiSSSearchObject
+                  -> IO (WithError (Maybe (Element,MMiSSSearchObject)))
+               getElement entityName searchObject = 
+                  addFallOutWE (\ break ->
+                     do
+                        wrappedLinkWE
+                           <- lookupByObjectWithError view object entityName
+                        let
+                           wrappedLink = coerceWithErrorOrBreak break wrappedLinkWE
+                           link = case unpackWrappedLink wrappedLink of
+                              Nothing -> break ("Object "++toString entityName
+                                 ++ " is not an MMiSS object")
+                              Just link -> link
+                        object <- readLink view link
+                        elementLinkOpt <- variantDictSearch 
+                           (objectContents object) searchObject
+                        let
+                           elementLink = case elementLinkOpt of
+                              Nothing -> break ("Object "++toString entityName
+                                 ++ " has no version with matching attributes")
+                              Just elementLink -> elementLink
+                        (element @ (Elem _ attributes _)) <- readLink view elementLink
+                        let
+                           searchObject2 =
+                              mergeMMiSSSearchObjects
+                                 searchObject 
+                                 (toMMiSSSearchObjectFromXml attributes) 
+                        return (Just (element,searchObject2))
+                     )
+
+            initialSearchObject 
+               <- toMMiSSSearchObject (variantAttributes object)
+
+            completeElementWE <- reAssembleNoRecursion getElement 
+               (fromString (name object)) initialSearchObject
+
+            let
+               completeElement = coerceWithErrorOrBreak break completeElementWE
+
+               stringWE = exportElement format completeElement
+               string = coerceWithErrorOrBreak break stringWE
+
+            -- Catch any errors so far
+            seq string done
+
+            -- Write to the file
+            resultWE <- copyStringToFileCheck string filePath
+            seq (coerceWithErrorOrBreak break resultWE) done
+         )
+
+      case result of
+         Right () -> done
+         Left mess -> createErrorWin mess []
+          
 -- ------------------------------------------------------------------
 -- Selecting the format of files
 -- ------------------------------------------------------------------
@@ -860,6 +939,11 @@ data Format = LaTeX | XML
 
 formatForm :: Form Format
 formatForm = newFormOptionMenu2 [("LaTeX",LaTeX),("XML",XML)]
+
+
+-- ------------------------------------------------------------------
+-- Turning a Format into conversion functions for editing
+-- ------------------------------------------------------------------
 
 ---
 -- For EditFormatConvert, the String's are the file name (made available
@@ -875,14 +959,14 @@ toEditFormatConverter XML = EditFormatConverter {
    fromEdit = fromEditableXml
    }
 toEditFormatConverter LaTeX = EditFormatConverter {
-   toEdit = (\ _ element -> makeMMiSSLatex (element,False)),
+   toEdit = (\ _ element -> LaTeXParser.makeMMiSSLatex (element,False)),
    fromEdit = (\ string content 
       ->
          do
             let 
                str = mkLaTeXString content
             debugString ("START|"++str++"|END")
-            return (parseMMiSSLatex str)
+            return (LaTeXParser.parseMMiSSLatex str)
          )
    }
       
@@ -905,7 +989,16 @@ mkLaTeXString (EmacsContent dataItems) =
          )     
       dataItems
    
+-- ------------------------------------------------------------------
+-- Turning a Format into conversion functions for exporting
+-- ------------------------------------------------------------------
 
+exportElement :: Format -> Element -> WithError String
+exportElement XML element = hasValue (toExportableXml element)
+exportElement LaTeX element =
+   mapWithError 
+      mkLaTeXString      
+      (LaTeXParser.makeMMiSSLatex (element,True))
 
 -- ------------------------------------------------------------------
 -- The global registry and a permanently empty variable set
