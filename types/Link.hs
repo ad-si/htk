@@ -16,6 +16,11 @@ module Link(
       -- This initialises the top link to a particular value.  It should
       -- only be used once, in setting up the repository.
 
+   setOrGetTopLink, -- :: HasCodedValue x => View -> IO x -> IO (Versioned x)
+      -- setOrGetTopLink is somewhat safer than setTopLink and initialises the
+      -- top object, if that hasn't already been done, via the supplied action.
+      -- Otherwise it (harmlessly) returns the existing object.
+
    -- Versioned values
    -- A Versioned x is a box containing an actual x which can be
    -- stored in the repository.  The x needs to be an instance of 
@@ -167,12 +172,35 @@ data Status x =
    |  Dirty x ObjectVersion -- This object committed, but since modified
    |  Virgin x -- Object never committed.
 
-   
-      -- This link points to the "top object".  This needs to be
-      -- created 
-
 setTopLink :: HasCodedValue x => View -> x -> IO (Versioned x)
 setTopLink view x = createObjectGeneral view (Virgin x) secondLocation
+
+---
+-- setOrGetTopLink is somewhat safer than setTopLink and initialises the
+-- top object, if that hasn't already been done, via the supplied action.
+-- Otherwise it (harmlessly) returns the existing object.
+setOrGetTopLink :: HasCodedValue x => View -> IO x -> IO (Versioned x)
+setOrGetTopLink (view@View{repository = repository,objects = objects}) action =
+   do
+      -- We delay using versionedAct doing things that don't need to be
+      -- done inside transformValue, the reason being that then we
+      -- can use fetchLink (which needs transformValue to have finished).
+      versionedAct <- transformValue objects secondLocation
+         (\ objectDataOpt ->
+            case objectDataOpt of
+               Nothing ->
+                  do
+                     -- Not in repository, create.
+                     x <- action
+                     (versioned,objectData) <-
+                         makeObjectData view (Virgin x) secondLocation
+                     return (Just objectData,return versioned)
+               Just objectData ->
+                  -- Is in repository.  So we just return something
+                  -- to get the topLink
+                  return (Just objectData,fetchLink view topLink)
+            )
+      versionedAct   
 
 createObject :: HasCodedValue x => View -> x -> IO (Versioned x)
 createObject view x =
@@ -192,11 +220,23 @@ createObjectGeneral :: HasCodedValue x => View -> Status x -> Location
 -- allocated location, given a Status (Virgin or Empty) to put in it.
 createObjectGeneral view status location =
    do
+      (versioned,objectData) <- makeObjectData view status location
+      setValue (objects view) location objectData
+      return versioned
+
+---
+-- As with createObjectGeneral, create the versioned object and 
+-- object data to put in the objects registry.  (All objects eventually
+-- are created via this function.)
+makeObjectData :: HasCodedValue x => View -> Status x -> Location 
+   -> IO (Versioned x,ObjectData)
+makeObjectData view status location =
+   do
       statusMVar <- newMVar status
       let versioned = Versioned {location = location,statusMVar = statusMVar}
-      setValue (objects view) location 
-         (PresentObject (toDyn versioned) (commitVersioned view versioned))
-      return versioned
+      return (versioned,
+         (PresentObject (toDyn versioned) (commitVersioned view versioned))) 
+
 
 updateObject :: HasCodedValue x => View -> x -> Versioned x -> IO ()
 updateObject view x (Versioned{statusMVar = statusMVar}) =

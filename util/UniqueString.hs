@@ -23,6 +23,9 @@ module UniqueString(
    readUniqueStringSource, -- :: UniqueStringSource -> IO [Int]
    createUniqueStringSource, -- :: [Int] -> IO UniqueStringSource
 
+   -- Create non-conflicting string which cannot be produced by
+   -- newUniqueString.  This is useful for exceptional cases.
+   newNonUnique, -- :: String -> String
    ) where
 
 import Array
@@ -95,6 +98,7 @@ instance HasTyCon UniqueStringSource where
 
 
 -- UniqueStringCounter is a list of numbers from 0 to printableCharsLen-1.
+-- The last number is at least 1.
 newtype UniqueStringCounter = UniqueStringCounter [Int]
 
 firstUniqueStringCounter :: UniqueStringCounter
@@ -105,7 +109,7 @@ stepUniqueStringCounter (uniqueStringCounter @ (UniqueStringCounter ilist)) =
       (toStringUniqueStringCounter uniqueStringCounter,
          UniqueStringCounter (step ilist))
    where
-      step [] = [0]
+      step [] = [1]
       step (first:rest) =
          if first == printableCharsLen -1
             then 
@@ -116,3 +120,14 @@ stepUniqueStringCounter (uniqueStringCounter @ (UniqueStringCounter ilist)) =
 toStringUniqueStringCounter :: UniqueStringCounter -> String
 toStringUniqueStringCounter (UniqueStringCounter ilist) =
    map (\ i -> printableCharsArr ! i) ilist
+
+-- -------------------------------------------------------------------
+-- newNonUnique
+-- -------------------------------------------------------------------
+
+---
+-- Create non-conflicting string which cannot be produced by
+-- newUniqueString.  This is useful for exceptional cases.
+-- We add this by adding a character with integer value 0 at the end.
+newNonUnique :: String -> String
+newNonUnique str = str ++ [printableCharsArr ! 0]

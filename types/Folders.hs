@@ -3,6 +3,8 @@
 module Folders(
    registerFolders, -- :: IO ()
       -- to be done at initialisation
+   getTopFolder, 
+   getInFolder,
    ) where
 
 import FiniteMap
@@ -14,11 +16,13 @@ import AtomString
 import Sink
 import VariableSet
 import VariableMap
+import UniqueString
 
 import GraphDisp
 import GraphConfigure
 import Graph(ArcType,NodeType)
 
+import View
 import CodedValue
 import Link
 import BasicObjects
@@ -28,7 +32,7 @@ import ObjectTypes
 import DisplayParms
 import GlobalRegistry
 
--- ------------------------------------------------------------------
+------------------------------------------------
 -- The Display Type
 -- ------------------------------------------------------------------
 
@@ -202,5 +206,65 @@ registerFolders =
 
 
 
-   
-   
+-- ------------------------------------------------------------------
+-- The plain folder type
+-- ------------------------------------------------------------------
+
+---
+-- mkPlainFolderType is used to construct the folder type
+-- when the repository is initialised (in getTopFolder),
+-- and add it to the global registry.
+getPlainFolderType :: View -> IO FolderType
+getPlainFolderType view = 
+   do
+      knownFolders <- newEmptyVariableSet
+      key <- newKey globalRegistry view
+      let 
+         folderType = FolderType {
+            folderTypeId = key,
+            requiredAttributes = emptyAttributesType,
+            displayParms = emptyNodeTypes,
+            topFolderLinkOpt = Just topLink,
+            knownFolders = knownFolders
+            }
+      addToGlobalRegistry globalRegistry view key folderType
+      return folderType
+
+-- ------------------------------------------------------------------
+-- Retrieving the top folder.
+-- ------------------------------------------------------------------
+
+---
+-- getTopFolder returns a link to the topFolder, creating it in the exceptional
+-- circumstance that it doesn't already exist in the view. 
+getTopFolder :: View -> IO (Link Folder)
+getTopFolder view =
+   do
+      versioned <- setOrGetTopLink view (
+         do
+            -- Create the topFolder.
+            folderType <- getPlainFolderType view
+            attributes <- newEmptyAttributes view
+            contents <- newEmptyVariableMap
+            return (Folder {
+               folderType = folderType,
+               attributes = attributes,
+               name = "TOP",
+               contents = contents
+               })               
+         )
+      makeLink view versioned
+
+-- ------------------------------------------------------------------
+-- Indexing in a folder
+-- ------------------------------------------------------------------
+
+---
+-- getInFolder returns the wrapped link indexed in the folder by the given
+-- string, if it exists.
+getInFolder :: View -> Link Folder -> String -> IO (Maybe WrappedLink)
+getInFolder view link str =
+   do
+      folder <- readLink view link
+      map <- readContents (contents folder)
+      return (lookupMap map str)
