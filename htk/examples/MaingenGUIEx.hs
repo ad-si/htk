@@ -45,6 +45,7 @@ idref = unsafePerformIO (newRef 0)
 newID :: IO Id
 newID = do
           id <- getRef idref
+          putStrLn ("creating new ID: id = " ++ show id)
           setRef idref (id + 1)
           return id
 
@@ -501,7 +502,14 @@ main =
     (gui_ev, _) <- bindGenGUIEv gui
 
     let --react :: GenGUIEvent c -> IO ()
-        react (SelectTreeList mitem) = selectedTl foldlab mitem
+        react (SelectTreeList mitem) =
+          do
+            case mitem of
+              Just item -> let (_, _, obj) = content item
+                           in putStrLn ("id = " ++ show (getID obj) ++
+                                        "\n")
+              _ -> done
+            selectedTl foldlab mitem
         react (Doubleclick item) = doubleClickNp item
         react _ = done
 
