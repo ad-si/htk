@@ -52,6 +52,8 @@ import Text.XML.HaXml.Types hiding (MarkupDecl(Element))
 
 import EntityNames
 
+import ManagePermissions
+
 import MMiSSDTDAssumptions
 import MMiSSObjectTypeType
 import MMiSSObjectType
@@ -162,7 +164,8 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                      Button "Print or Preview Object"
                         (\ link -> printMMiSSObject view link),
                      Button "Delete" (deleteObject view)
-                     ] 
+                     ]
+                     ++ permissionsMenu view 
 
                   menu = LocalMenu (Menu Nothing editOptions)
 

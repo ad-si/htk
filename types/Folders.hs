@@ -89,6 +89,7 @@ import LinkDrawer (toArcData,ArcData)
 import LinkManager
 import MergeTypes
 import MergePrune
+import ManagePermissions
 
 ------------------------------------------------
 -- The Display Type
@@ -367,8 +368,9 @@ instance ObjectType FolderType Folder where
                               Button "Reveal Links" (\ link ->
                                  hideAction link False
                                  )
-                              ] ++
-                              if isEmptyAttributesType 
+                              ]
+                              ++ permissionsMenu view
+                              ++ if isEmptyAttributesType 
                                     (requiredAttributes folderType)
                                  then
                                     []

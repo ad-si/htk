@@ -72,6 +72,8 @@ import DisplayView
 import VersionGraphClient
 import Folders
 import Merging
+import ToggleAdminStatus
+import ManagePermissions
 import {-# SOURCE #-} CopyVersions
 
 -- --------------------------------------------------------------------
@@ -151,6 +153,8 @@ newVersionGraph1
       -- version was originally displayed.  Thus the original Node does not
       -- change. 
 
+      adminStatus <- newAdminStatus repository
+
       let
          -- Parameters for displayGraph
          graphParms = 
@@ -158,7 +162,10 @@ newVersionGraph1
             (GlobalMenu (Menu Nothing [
                Button "Merge" doMerge,
                Button "Copy Versions To ..." copyVersions1,
-               Button "Select Versions to View" (setNewFilter graphClient)
+               Button "Select Versions to View" (setNewFilter graphClient),
+               Button "View or Edit Global Permissions" (
+                  editGlobalPermissions repository),
+               Button "Toggle Admin Status" (toggleAdminStatus adminStatus)
                ])) $$
             (if isInternal
                then

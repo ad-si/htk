@@ -24,6 +24,8 @@ data Menu_Attrs = Menu_Attrs
     } deriving (Eq,Show)
 data Menu_ = Menu_DisplayVariants DisplayVariants
 	   | Menu_SelectVariants SelectVariants
+	   | Menu_EditPermissions EditPermissions
+	   | Menu_ViewAllPermissions ViewAllPermissions
 	   | Menu_SubMenu SubMenu
 	   | Menu_Separator Separator
 	   | Menu_Command Command
@@ -33,6 +35,12 @@ data DisplayVariants = DisplayVariants
     } deriving (Eq,Show)
 data SelectVariants = SelectVariants
     { selectVariantsTitle :: (Defaultable String)
+    } deriving (Eq,Show)
+data EditPermissions = EditPermissions
+    { editPermissionsTitle :: (Defaultable String)
+    } deriving (Eq,Show)
+data ViewAllPermissions = ViewAllPermissions
+    { viewAllPermissionsTitle :: (Defaultable String)
     } deriving (Eq,Show)
 data SubMenu = SubMenu
     { subMenuMenu :: String
@@ -118,19 +126,27 @@ instance XmlContent Menu_ where
 		(Just a,rest) -> (Just (Menu_SelectVariants a), rest)
 		(_,_) ->
 			case (fromElem c0) of
-			(Just a,rest) -> (Just (Menu_SubMenu a), rest)
+			(Just a,rest) -> (Just (Menu_EditPermissions a), rest)
 			(_,_) ->
 				case (fromElem c0) of
-				(Just a,rest) -> (Just (Menu_Separator a), rest)
+				(Just a,rest) -> (Just (Menu_ViewAllPermissions a), rest)
 				(_,_) ->
 					case (fromElem c0) of
-					(Just a,rest) -> (Just (Menu_Command a), rest)
+					(Just a,rest) -> (Just (Menu_SubMenu a), rest)
 					(_,_) ->
-					    (Nothing, c0)
+						case (fromElem c0) of
+						(Just a,rest) -> (Just (Menu_Separator a), rest)
+						(_,_) ->
+							case (fromElem c0) of
+							(Just a,rest) -> (Just (Menu_Command a), rest)
+							(_,_) ->
+							    (Nothing, c0)
     fromElem (CMisc _:rest) = fromElem rest
     fromElem rest = (Nothing, rest)
     toElem (Menu_DisplayVariants a) = toElem a
     toElem (Menu_SelectVariants a) = toElem a
+    toElem (Menu_EditPermissions a) = toElem a
+    toElem (Menu_ViewAllPermissions a) = toElem a
     toElem (Menu_SubMenu a) = toElem a
     toElem (Menu_Separator a) = toElem a
     toElem (Menu_Command a) = toElem a
@@ -163,6 +179,36 @@ instance XmlAttributes SelectVariants where
 	  }
     toAttrs v = catMaybes 
 	[ defaultToAttr toAttrFrStr "title" (selectVariantsTitle v)
+	]
+instance XmlContent EditPermissions where
+    fromElem (CElem (Elem "editPermissions" as []):rest) =
+	(Just (fromAttrs as), rest)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem as =
+	[CElem (Elem "editPermissions" (toAttrs as) [])]
+instance XmlAttributes EditPermissions where
+    fromAttrs as =
+	EditPermissions
+	  { editPermissionsTitle = defaultA fromAttrToStr "Edit Permissions" "title" as
+	  }
+    toAttrs v = catMaybes 
+	[ defaultToAttr toAttrFrStr "title" (editPermissionsTitle v)
+	]
+instance XmlContent ViewAllPermissions where
+    fromElem (CElem (Elem "viewAllPermissions" as []):rest) =
+	(Just (fromAttrs as), rest)
+    fromElem (CMisc _:rest) = fromElem rest
+    fromElem rest = (Nothing, rest)
+    toElem as =
+	[CElem (Elem "viewAllPermissions" (toAttrs as) [])]
+instance XmlAttributes ViewAllPermissions where
+    fromAttrs as =
+	ViewAllPermissions
+	  { viewAllPermissionsTitle = defaultA fromAttrToStr "View All Permissions" "title" as
+	  }
+    toAttrs v = catMaybes 
+	[ defaultToAttr toAttrFrStr "title" (viewAllPermissionsTitle v)
 	]
 instance XmlContent SubMenu where
     fromElem (CElem (Elem "subMenu" as []):rest) =

@@ -122,6 +122,11 @@ module SimpleDB(
       -- :: IO a -> IO (Maybe a)
       -- Detect a NotFound error and replacing it by 'Nothing'.
 
+   catchAccessError,
+      -- :: IO a -> IO (Maybe a)
+      -- Catch any Access errors and report them to the user.
+
+
    ) where
 
 import Control.Concurrent.MVar
@@ -133,6 +138,7 @@ import Debug(debug)
 import ExtendedPrelude
 import AtomString
 import CompileFlags
+import Messages
 
 import Destructible
 import BSem
@@ -478,3 +484,25 @@ catchNotFound act =
             )
       seq aOpt (return aOpt)
          -- this now so throwError gets done.
+
+-- | Catch any Access errors and report them to the user.
+catchAccessError :: IO a -> IO (Maybe a)
+catchAccessError (act :: IO a) =
+   do
+      aOrMess <- catchError
+         (do
+            a <- act
+            return ((Right a) :: Either String a)
+            )
+         (\ errorType mess -> case errorType of
+            AccessError -> Left mess
+            _ -> throwError errorType mess
+            )
+
+      case aOrMess of
+         Right a -> return (Just a)
+         Left mess ->
+            do
+               errorMess ("Access Denied: " ++ mess)
+               return Nothing
+    

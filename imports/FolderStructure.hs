@@ -81,8 +81,10 @@ lookupFullName  folderStructure (node :: node) (EntityFullName names) =
                 )
 
 getName :: Ord node => FolderStructure node -> node -> IO EntityFullName
--- only used for error messages.  For detached nodes we generate
+-- For detached nodes we generate
 -- an (illegal) name of the form #DETACHED.[blah]
+-- Current uses (22/9/2004) are (1) error messages; (2) package ids; 
+-- (3) displaying permissions.
 getName (FolderStructure {getParent = getParent1,root = root1}) (node :: node) =
    do
       names <- getName1 [] node

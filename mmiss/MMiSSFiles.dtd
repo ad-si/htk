@@ -20,7 +20,8 @@
      -->
 
 <!-- A menu to be hung onto one or more file buttons. -->
-<!ELEMENT menu (displayVariants|selectVariants|subMenu|separator|command)* >
+<!ELEMENT menu (displayVariants|selectVariants|editPermissions
+    |viewAllPermissions|subMenu|separator|command)* >
 <!ATTLIST menu
    id ID #REQUIRED
    title CDATA #IMPLIED
@@ -36,6 +37,16 @@
 <!ATTLIST selectVariants
    title CDATA "Select Variants" >
 
+<!-- An "Edit Permissions" button -->
+<!ELEMENT editPermissions EMPTY>
+<!ATTLIST editPermissions
+   title CDATA "Edit Permissions" >
+
+<!-- A "View All Permissions" button -->
+<!ELEMENT viewAllPermissions EMPTY>
+<!ATTLIST viewAllPermissions
+   title CDATA "View All Permissions" >
+  
 <!-- A submenu -->
 <!ELEMENT subMenu EMPTY>
 <!ATTLIST subMenu 

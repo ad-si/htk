@@ -9,14 +9,20 @@
    <command title="view" command="xv %F"/>
    <separator/>
    <subMenu menu="variants"/>
+   <subMenu menu="permissions"/>
 </menu>
 <menu id="pdfmenu">
    <command title="view" command="xpdf %F"/>
    <separator/>
    <subMenu menu="variants"/>
+   <subMenu menu="permissions"/>
 </menu>
 <menu id="variants" title="Variants">
    <displayVariants title="Display"/>
    <selectVariants title="Select"/>
+</menu>
+<menu id="permissions" title="Permissions">
+   <editPermissions title="Edit"/>
+   <viewAllPermissions title="View All"/>
 </menu>
 </fileTypes>

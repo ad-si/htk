@@ -52,6 +52,7 @@ import LocalMenus
 import LinkManager
 import MergeTypes
 import MergePrune
+import ManagePermissions
 
 
 -- ------------------------------------------------------------------
@@ -219,7 +220,8 @@ instance ObjectType FileType File where
                               Button "Edit Attributes" 
                                  (\ link -> editObjectAttributes view link),
                               Button "Delete" (deleteObject view)
-                                 ]
+                              ] 
+                              ++ permissionsMenu view
 
                            editOptions2 =
                               if allowTextEdit

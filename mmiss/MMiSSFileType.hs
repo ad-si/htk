@@ -85,6 +85,7 @@ import MergePrune
 import GlobalRegistry
 import DisplayView(DisplayedView)
 import DisplayParms(fontStyleSource)
+import ManagePermissions
 
 import Text.XML.HaXml.Xml2Haskell
 import XmlExtras
@@ -730,6 +731,12 @@ getFilesNodeDisplayData view displayType mmissFileType
          mkSubMenu (Menu_SelectVariants 
                (SelectVariants {selectVariantsTitle = title})) =
              Button (fromDefaultable title) (selectVariants view)
+         mkSubMenu (Menu_EditPermissions 
+               (EditPermissions {editPermissionsTitle = title})) =
+             Button (fromDefaultable title) (editObjectPermissions view)
+         mkSubMenu (Menu_ViewAllPermissions 
+               (ViewAllPermissions {viewAllPermissionsTitle = title})) = 
+             Button (fromDefaultable title) (showAllPermissions view)
          mkSubMenu (Menu_SubMenu (SubMenu {subMenuMenu = subMenuMenu})) =
             mkMenu subMenuMenu
          mkSubMenu (Menu_Separator Separator) = Blank
