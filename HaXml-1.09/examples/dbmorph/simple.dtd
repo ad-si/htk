@@ -1,9 +1,0 @@
-<!DOCTYPE article [
-<!ELEMENT article  ((title,subtitle?)?, (abstract+|section*))>
-<!ELEMENT title    (#PCDATA)>
-<!ELEMENT subtitle (#PCDATA)>
-<!ELEMENT abstract (#PCDATA)>
-<!ELEMENT section  (title?,para*)>
-<!ELEMENT para     (#PCDATA|computeroutput)*>
-<!ELEMENT computeroutput (#PCDATA)>
-]>
