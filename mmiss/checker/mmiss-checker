@@ -1,0 +1,3 @@
+#!/bin/tcsh -f
+set HERE=`dirname $0`
+${HERE}/.lisp.`uname -s` -core  ${HERE}/.mmiss-checker.dxl.`uname -s` $*
