@@ -548,7 +548,7 @@ mkPrintAction view editFormatConverter =
 
                      -- We do the actual printing in a separate thread,
                      -- so the user can continue editing.
-                     forkIO (
+                     forkIODebug (
                         do
                            stringWE <- exportElement view LaTeX 
                               packageFolders element

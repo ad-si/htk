@@ -52,6 +52,7 @@ import Broadcaster
 import Dynamics
 import ExtendedPrelude(mapEq,mapOrd)
 import Messages
+import Thread(forkIODebug)
 
 import Spawn
 import Destructible
@@ -385,7 +386,7 @@ newVersionGraph1
                      do
                         viewInfo <- getVersionInfo1 node
                         -- don't occupy the node lock while doing the display.
-                        forkIO (displayVersionInfo False viewInfo)
+                        forkIODebug (displayVersionInfo False viewInfo)
                         done
                      )
 

@@ -424,9 +424,7 @@ instance NewGraph DaVinciGraph DaVinciGraphParms where
             else
                done
 
-         -- We don't bother to explicitly destroy this thread, because
-         -- when the 
-         forkIOquiet "daVinci redraw thread" (redrawThread daVinciGraph)
+         forkIODebug (redrawThread daVinciGraph)
 
          return daVinciGraph
 

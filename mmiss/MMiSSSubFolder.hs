@@ -24,7 +24,7 @@ mmissSubFolderType :: FolderType
 mmissSubFolderType =
    let
       key = oneOffKey "MMiSSSubFolder" ""
-      displayParms =  readDisplay "green rhombus"
+      displayParms =  readDisplay "white rhombus"
    in
       mkFolderType0 key displayParms
    

@@ -57,6 +57,7 @@ import ByteArray
 import CString
 import System.Posix.Env as Posix
 import Data.IORef
+import Thread(forkIODebug)
 
 import Object
 import Computation
@@ -454,7 +455,7 @@ answerDispatcher (daVinci@DaVinci{
       forward daVinciAnswer context =
          do
             handler <- readIORef (handlerIORef context)
-            forkIO (handler daVinciAnswer)
+            forkIODebug (handler daVinciAnswer)
             case destroysContext daVinciAnswer of
                Yes -> 
                   do

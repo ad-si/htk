@@ -247,7 +247,7 @@ execCmdInner :: TclScript -> IO ()
 execCmdInner script = 
    do
       response <- evalCmdInner script
-      doResponse response
+      doResponse1 response
       done
 
 #endif
@@ -258,6 +258,20 @@ doResponse (OK res) = return res
 #if ! ASYNC_WISH_ERRORS
 doResponse (ER err) = error err
 #endif
+
+doResponse1 :: TclResponse -> IO ()
+doResponse1 (OK res) = return ()
+#if ! ASYNC_WISH_ERRORS
+doResponse1 (ER err) =
+   do 
+      fingersCrossed err
+      done
+#endif
+
+fingersCrossed :: String -> IO ()
+fingersCrossed err =
+   putStrLn ("Unexpected error " ++ err ++ " returned from wish\n"
+      ++ "Continuing, with fingers crossed")
 
 -- -----------------------------------------------------------------------
 -- wish datatypes
@@ -361,7 +375,7 @@ newWish =
 -- Execute the command, not returning the result.
             "proc exS x {" ++
                "set status [catch {eval $x} res];" ++
-               "if {$status} {puts [concat \"ER \" [ConvertTkValue $res]]}" ++
+               "if {$status} {puts [concat \"EX \" [ConvertTkValue $res]]}" ++
                "};" ++
 #endif
             "proc relay {evId val} {" ++ 
@@ -444,7 +458,7 @@ eventForwarder = forever handleEvent
          +> (do
                -- Handle wish errors
                (_,erString) <- toEvent (rWish |> Eq ERType)
-               error("wish error: "++erString)
+               fingersCrossed erString
             )
 #endif
 

@@ -23,12 +23,18 @@ module Thread (
    -- thread creation
    forkIO, -- identical with standard action.
 
+   forkIODebug, -- :: IO () -> IO ThreadId
+      -- Try to be more helpful about catching exceptions.
+
+
    forkIOquiet, 
       -- ALMOST identical with standard action.
       -- The differences are (a) that it takes an extra string argument
       -- (which goes first); (b) if the thread fails because of 
       -- "BlockedOnDeadMVar" nothing is printed, but we output a 
       -- message to "debug" which includes the label.
+      -- NB.  This function no longer seems to be necessary in recent
+      -- versions of GHC (current is 6.02.1) so please don't use it.
    goesQuietly,
    -- :: IO () -> IO ()
    -- This wraps an action so that if killed nothing is printed and it
@@ -68,6 +74,7 @@ import Maybes
 import Computation
 
 import Debug(debug,(@:))
+import ExtendedPrelude
 
 -- --------------------------------------------------------------------------
 -- Delay Thread Execution
@@ -118,7 +125,14 @@ goesQuietly action =
       case result of
          Left () -> return ()
          Right () -> return ()
-               
+
+-- --------------------------------------------------------------------------
+-- forkIOSafe
+-- --------------------------------------------------------------------------
+             
+forkIODebug :: IO () -> IO ThreadId
+forkIODebug = forkIO . errorOurExceps
+
 -- --------------------------------------------------------------------------
 -- forkIOquiet
 -- --------------------------------------------------------------------------

@@ -35,6 +35,7 @@ import Control.Concurrent.Chan
 import Computation
 import Object
 import ExtendedPrelude
+import Thread
 
 -- -------------------------------------------------------------------------
 -- The HasInvalidate
@@ -315,7 +316,7 @@ newParallelExec =
                addSimpleFallOut parallelExecThread0
                done
 
-      forkIO parallelExecThread
+      forkIODebug parallelExecThread
       return (ParallelExec chan)
 
 parallelExec :: ParallelExec -> IO () -> IO ()

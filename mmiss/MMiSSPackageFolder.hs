@@ -72,6 +72,7 @@ import Computation
 import ExtendedPrelude
 import FileNames
 import Dynamics
+import Broadcaster
 import Sink
 import Sources
 import AtomString(fromString,toString,fromStringWE)
@@ -151,12 +152,13 @@ instance Monad m => HasBinary MMiSSPackageFolderType m where
 
 data MMiSSPackageFolder = MMiSSPackageFolder {
    linkedObject :: LinkedObject,
-   blocker1 :: Blocker WrappedLink,
-      -- blocker for link to head package.
    blocker2 :: Blocker WrappedLink,
       -- blocker for package contents.
    blocker3 :: Blocker WrappedLink,
       -- blocker for preamble link.
+   hideFolderArcs :: SimpleBroadcaster (Maybe NodeArcsHidden),
+      -- Used for hiding the package folder (a similar mechanism to that
+      -- used for plain folders).
    preambleLink :: Link MMiSSPreamble
       -- Link to this package's preamble.
    } deriving (Typeable)
@@ -210,30 +212,38 @@ toMMiSSPackageFolderLinkedObject = linkedObject
 toMMiSSPackageFolder :: HasLinkedObject object => View -> object 
    -> SimpleSource (WithError MMiSSPackageFolder)
 toMMiSSPackageFolder view object =
-   let
-      insertionOptSource :: SimpleSource (Maybe Insertion)
-      insertionOptSource = toInsertion (toLinkedObject object)
-   in
-      mapIO
-         (\ insertionOpt -> case insertionOpt of
-            Nothing -> return (hasError 
-               "MMiSS object somehow not contained anywhere")
-            Just insertion -> 
-               let
-                  (parentLinkedObject,_) = unmkInsertion insertion
-                  wrappedLink = toWrappedLink parentLinkedObject
-               in
-                  case unpackWrappedLink wrappedLink of
-                     Nothing ->
-                        return (hasError 
-                            "MMiSS object somehow not in an MMiSSPackageFolder"
-                            )
-                     Just packageFolderLink ->
-                        do
-                           packageFolder <- readLink view packageFolderLink
-                           return (hasValue packageFolder)
-            )
-         insertionOptSource
+      toMMiSSPackageFolder1 (toLinkedObject object)
+   where
+      toMMiSSPackageFolder1 
+         :: LinkedObject -> SimpleSource (WithError MMiSSPackageFolder)
+      toMMiSSPackageFolder1 linkedObject =
+         case toMMiSSPackageFolder2 linkedObject of
+            Just packageFolderLink ->
+               mkIOSimpleSource (
+                 do
+                    packageFolder <- readLink view packageFolderLink
+                    return . return . return $ packageFolder
+                 )
+            Nothing ->
+               do
+                  insertionOpt <- toInsertion linkedObject
+                  case insertionOpt of
+                     Nothing -> 
+                        mkIOSimpleSource (
+                           do
+                              fullName <- getFullName view object
+                              return . return . fail $
+                                 ("MMiSS object " ++ fullName 
+                                    ++ " somehow not in an MMiSSPackageFolder")
+                           )
+                     Just insertion ->
+                        let
+                           (parentLinkedObject,_) = unmkInsertion insertion
+                        in
+                           toMMiSSPackageFolder1 parentLinkedObject
+
+      toMMiSSPackageFolder2 :: LinkedObject -> Maybe (Link MMiSSPackageFolder)
+      toMMiSSPackageFolder2 = unpackWrappedLink . toWrappedLink
 
 getMMiSSPackageFolder :: HasLinkedObject object 
    => View -> object -> IO (WithError MMiSSPackageFolder)
@@ -324,9 +334,6 @@ createMMiSSPackageFolder view linkedObject preambleLink =
         packageLinkSet :: VariableSetSource WrappedLink
         packageLinkSet = listToSetSource packageLinks
 
-     blocker1 
-        <- newBlockerWithPreAction packageLinkSet (wrapPreFetchLinks view)
-
      let
         -- Create blocker for links to contents.
         contentsSet :: VariableSetSource WrappedLink
@@ -365,11 +372,17 @@ createMMiSSPackageFolder view linkedObject preambleLink =
 
      blocker3 <- newBlocker preambleSet
 
+     let
+        mkArcsHiddenSource :: IO (SimpleBroadcaster (Maybe NodeArcsHidden))
+        mkArcsHiddenSource = newSimpleBroadcaster Nothing
+
+     hideFolderArcs <- mkArcsHiddenSource
+
      return (MMiSSPackageFolder {
         linkedObject = linkedObject,
-        blocker1 = blocker1,
         blocker2 = blocker2,
         blocker3 = blocker3,
+        hideFolderArcs = hideFolderArcs,
         preambleLink = preambleLink
         }, newPostMerge postMergeAct
         )
@@ -482,7 +495,6 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   folder <- readLink view link
                   delay view (
                      do
-                        openBlocker (blocker1 folder) blockID
                         openBlocker (blocker2 folder) blockID
                         openBlocker (blocker3 folder) blockID
                      )
@@ -494,14 +506,15 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                      do
                         closeBlocker (blocker3 folder) blockID
                         closeBlocker (blocker2 folder) blockID
-                        closeBlocker (blocker1 folder) blockID
                      )
 
             menuOptions = [
                Button "Open Package" (\ link -> openAction link),
                Button "Close Package" (\ link -> closeAction link),
                Button "Reimport Package" (\ link 
-                  -> reimportMMiSSPackage view link)
+                  -> reimportMMiSSPackage view link),
+               Button "Hide Links" (\ link -> hideAction link True),
+               Button "Reveal Links" (\ link -> hideAction link False)
                ]
 
             menu = LocalMenu (Menu Nothing menuOptions)
@@ -509,14 +522,12 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
             getNodeLinks1 link =
                do 
                   folder <- readLink view link
-                  arcs1 <- toArcEnds (blocker1 folder) blockID theArcType
                   arcs2 
-                     <- toArcEnds (blocker2 folder) blockID theInvisibleArcType
+                     <- toArcEnds (blocker2 folder) blockID theArcType
                   arcs3 
                      <- toArcEnds (blocker3 folder) blockID thePreambleArcType
                   let
-                     arcs = catVariableLists arcs1 
-                        (catVariableLists arcs2 arcs3)
+                     arcs = catVariableLists arcs2 arcs3
 
                   return arcs
 
@@ -538,17 +549,32 @@ instance ObjectType MMiSSPackageFolderType MMiSSPackageFolder where
                   nodeDisplayData = NodeDisplayData {
                      topLinks = [],
                      arcTypes = [
-                        (theArcType,Double $$$ emptyArcTypeParms),
-                        (theInvisibleArcType,invisibleArcTypeParms),
+                        (theArcType,emptyArcTypeParms),
                         (thePreambleArcType,preambleArcTypeParms)],
                      nodeTypes = [(theNodeType,nodeTypeParms1)],
                      getNodeType = const theNodeType,
                      getNodeLinks = getNodeLinks1,
                      closeDown = done,
-                     specialNodeActions = const emptyNodeActions
+                     specialNodeActions =
+                        (\ object ->
+                           fmap
+                              (\ arcsHidden ->
+                                 (\ graph node ->
+                                    modify arcsHidden graph node
+                                    )
+                                 )
+                              (toSimpleSource (hideFolderArcs object))
+                           )
+                 
                      }
                in
-                  return (Just nodeDisplayData)   
+                  return (Just nodeDisplayData)
+      where
+         hideAction :: Link MMiSSPackageFolder -> Bool -> IO () 
+         hideAction link bool =
+            do
+               folder <- readLink view link
+               broadcast (hideFolderArcs folder) (Just (NodeArcsHidden bool))
 
 -- ------------------------------------------------------------------------
 -- The instance of HasBundleNodeWrite
@@ -664,6 +690,8 @@ importMMiSSPackage1 view parentLinkedObject filePathOpt0 =
                   name <- coerceImportExportIO nameWE
                   writeBundle bundle (Just packageId) (Just dirPath) view 
                      (Right (folderLink,name)) 
+                  messageMess ("Import of " ++ toString name ++
+                     " successful")
                   return True
       )
 
@@ -726,6 +754,8 @@ reimportMMiSSPackage1 view packageFolderLink filePathOpt0 =
                      <- parseBundle format standardFileSystem filePath
                   writeBundle bundle (Just packageId) (Just dirPath) view 
                      (Left (toLinkedObject packageFolder))
+                  fullName <- getFullName view packageFolder
+                  messageMess ("Reimport of " ++ fullName ++ "successful")
       )
 
 findData :: Maybe FilePath -> IO (Maybe (FilePath,Format))

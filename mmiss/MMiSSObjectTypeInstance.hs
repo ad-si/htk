@@ -109,7 +109,7 @@ instance ObjectType MMiSSObjectType MMiSSObject where
                   closeBlocker (extraNodes object) blockID
 
             includedArcParms =
---               Color "red" $$$
+               Color "red" $$$
                Head "arrow" $$$
                Solid $$$
                emptyArcTypeParms
@@ -118,13 +118,13 @@ instance ObjectType MMiSSObjectType MMiSSObject where
             referencedArcType = fromString "R"
 
             referencedArcParms =
---               Color "red" $$$
+               Color "red" $$$
                Dotted $$$
                Head "arrow" $$$
                emptyArcTypeParms
 
             linkedArcParms =
---               Color "red" $$$
+               Color "red" $$$
                Dashed $$$
                Head "arrow" $$$
                emptyArcTypeParms
