@@ -108,13 +108,11 @@ try_to_read x = case reads x of
 
 -- answer to commands
 
-cmd_fails cid msg val = do
+cmd_fails cid msg = do
   putStrLn ("(ANSWER "++cid++" NIL \""++msg++"\" )")
-  return val
 
-cmd_succeeds cid res val = do
+cmd_succeeds cid res = do
   putStrLn ("(ANSWER "++cid++" T "++res++")")
-  return val
 
 send_request gid name =
   putStrLn ("(REQUEST "++show gid++" "++name++")")
@@ -264,19 +262,15 @@ showIt _ _ graphs = do
   return_fail graphs "showIt: illegal argument format"
 
 
-command "makegraph" cid args graphs = Main.makegraph cid (parseList args) graphs
+command "makegraph" cid args gv = Main.makegraph cid (parseList args) gv
 --command "delgraph" cid (gid:_) graphs = delgraph cid gid graphs
-command "quit" cid _ (gs,ev_cnt) = do
-  destroy_all gs 
-  cmd_succeeds cid "" ([],0) 
-  where
-    destroy_all [] = return ()
-    destroy_all ((gid,_):gs) = do
-         Result (gs',_) _ _ <- AbstractGraphView.delgraph gid (gs,ev_cnt)
-         destroy_all gs
-command c cid [] graphs = 
-   cmd_fails cid (c++" needs a graph id") graphs
-command c cid (gid:args) graphs = do
+command "quit" cid _ gv = do
+  delallgraphs gv
+  cmd_succeeds cid ""
+
+command c cid [] gv = 
+   cmd_fails cid (c++" needs a graph id")
+command c cid (gid:args) gv = do
   case (try_to_read gid,
         lookup c
         [("delgraph",Main.delgraph),
@@ -289,29 +283,30 @@ command c cid (gid:args) graphs = do
          ("abstractnodes",Main.abstractnodes),
          ("show",Main.showIt),
          ("hideedges",Main.hideedges)]) of
-    (_,Nothing) -> cmd_fails cid ("unknown command: "++c) graphs
-    (Nothing,_) -> cmd_fails cid ("illegal graph id: "++gid) graphs
+    (_,Nothing) -> cmd_fails cid ("unknown command: "++c)
+    (Nothing,_) -> cmd_fails cid ("illegal graph id: "++gid)
     (Just gid', Just cmd) -> do 
-       Result graphs' descr err <- cmd gid' (parseList args) graphs
+       Result descr err <- cmd gid' (parseList args) gv
        case err of
-         Nothing -> cmd_succeeds cid (show descr) graphs'
-         Just e -> cmd_fails cid e graphs'
+         Nothing -> cmd_succeeds cid (show descr)
+         Just e -> cmd_fails cid e
 
-command_loop graphs =
+command_loop gv =
   do s <- getLine
      let lexres = lexer s
-     graphs' <- case lexres of
-                 "(":c:cid:args -> command (map toLower c) cid args graphs
-                 otherwise -> return graphs
+     case lexres of
+        "(":c:cid:args -> command (map toLower c) cid args gv
+        otherwise -> return ()
      case lexres of
        "(":"quit":_ -> return ()
-       otherwise -> command_loop graphs'
+       otherwise -> command_loop gv
                            
  
 main = do
   hSetBuffering stdout LineBuffering
   putStrLn "(ANSWER T \"This is the abstraction viewer for daVinci\")"
-  command_loop ([],0)
+  gv <- initgraphs
+  command_loop gv
 
 
 
