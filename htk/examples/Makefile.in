@@ -20,7 +20,6 @@ SRCS       = Mainex1.hs\
              MainiconBarEx.hs\
              MainselectBoxEx.hs\
              MainmarkupTextEx.hs\
-             MaingenGUIEx.hs\
              MainutilWinEx.hs\
              MaingenGUIEx.hs\
 
