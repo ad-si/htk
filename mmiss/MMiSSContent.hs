@@ -2,6 +2,7 @@
    type. -}
 module MMiSSContent(
    structureContents,
+   toAccContents, 
    StructuredContent(..),
    AccContents(..),
    LinkType(..),
@@ -37,10 +38,7 @@ import MMiSSVariant
 
 -- (1) Attributes
 
-newtype XmlAttributes = XmlAttributes [Attribute]
-attributes_tyRep = mkTyRep "MMiSSContent" "XmlAttributes"
-instance HasTyRep XmlAttributes where
-   tyRep _ = attributes_tyRep
+newtype XmlAttributes = XmlAttributes [Attribute] deriving (Typeable)
 
 instance HasBinary XmlAttributes CodingMonad where
    writeBin = mapWriteViewIO 
@@ -151,8 +149,7 @@ instance Monad m => HasBinary LinkType m where
 
 data StructuredContent = StructuredContent {
    tag :: String, -- The Xml Tag of the head of this object.
-   label :: EntityFullName, -- The object's label
-   path :: EntityPath, -- The path, if specified.
+   label :: EntitySearchName, -- The object's label
    variantSpec :: MMiSSVariantSpec,
       -- The variants of this object.
    attributes :: [Attribute],
@@ -168,7 +165,7 @@ data AccContents = AccContents {
    contents :: [Content], -- what's inside the object
    children :: [StructuredContent],
       -- other nodes split off from this one.
-   links :: [(EntityFullName,MMiSSVariantSearch,LinkType)] 
+   links :: [(EntitySearchName,MMiSSVariantSearch,LinkType)] 
       -- all included, linked or referenced entities in this object in
       -- order.
       --
@@ -199,12 +196,24 @@ addAccContents
 -- Structuring Contents
 -- ----------------------------------------------------------------------
 
+
 structureContents :: Element -> WithError StructuredContent
 structureContents element = 
    mapWithError'
       (\ structured -> case structured of
          Left (_,_,structuredContent) -> hasValue structuredContent
          Right _ -> hasError "Top-level in Xml does not have a label attribute"
+         )
+      (structureElement element)
+
+toAccContents :: Element -> WithError AccContents
+-- Extract AccContents for an Element, but don't care if it is a complete
+-- includable Element or not.
+toAccContents element =
+   mapWithError
+      (\ structured -> case structured of
+         Left (_,_,structuredContent) -> accContents structuredContent
+         Right accContents -> accContents
          )
       (structureElement element)
 
@@ -216,7 +225,7 @@ structureContents element =
 -- For other items, we return AccContents corresponding to the content of
 -- the item.
 structureElement :: Element 
-   -> WithError (Either (EntityFullName,Element,StructuredContent) AccContents)
+   -> WithError (Either (EntitySearchName,Element,StructuredContent) AccContents)
 structureElement (element @ (Elem tag attributes contents0)) =
    (flip mapWithError')
       (concatWithError (map structureContent contents0))
@@ -240,8 +249,8 @@ structureElement (element @ (Elem tag attributes contents0)) =
             variantSpec = toMMiSSVariantSpecFromXml attributes
          in
             (flip mapWithError')
-               (pairWithError (classifyElement element) (getPath element))
-               (\ (classifiedElement,path) ->
+               (classifyElement element)
+               (\ classifiedElement ->
                   case classifiedElement of
                      DirectInclude label element ->
                         hasValue (Left (
@@ -250,7 +259,6 @@ structureElement (element @ (Elem tag attributes contents0)) =
                            StructuredContent {
                               tag = tag,
                               label = label,
-                              path = path,
                               variantSpec = variantSpec,
                               attributes = attributes,
                               accContents = accContents

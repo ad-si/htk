@@ -195,7 +195,7 @@ mergeViews (views @ (firstView:_)) =
             -- (4) Do merging
             let
                mergeOne :: (WrappedMergeLink,[(View,WrappedMergeLink)]) 
-                  -> IO ()
+                  -> IO PostMerge
                mergeOne (WrappedMergeLink (newLink :: Link object),
                     linkViewData0) =
                   do
@@ -219,16 +219,22 @@ mergeViews (views @ (firstView:_)) =
                               )      
                            linkViewData0
 
-                     unitWE <- attemptMerge linkReAssigner newView newLink 
-                        linkViewData1
-                     coerceWithErrorOrBreakIO break unitWE
+                     postMergeWE <- attemptMergeWithPostMerge linkReAssigner 
+                        newView newLink linkViewData1
+                     coerceWithErrorOrBreakIO break postMergeWE
 
-            breaks <- mapMConcurrent 
+            postMergesOrExcep <- mapMConcurrent 
                (\ wrappedMergeLink 
                   -> Control.Exception.try (mergeOne wrappedMergeLink))
                (fmToList (allMergesMap linkReAssigner))
 
-            mapM_ propagate breaks
+            mapM_ 
+               (\ postMergeOrExcep ->
+                  do
+                     postMerge <- propagate postMergeOrExcep
+                     doPostMerge postMerge
+                  )
+               postMergesOrExcep
 
             return newView
          )

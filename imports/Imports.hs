@@ -1,7 +1,7 @@
 {- This is the module which has the job of co-ordinating the construction of
    Environment.Env values and their use. -}
 module Imports(
-   ImportsState,
+   ImportsState(folders),
 
    newImportsState, 
       -- :: FolderStructure node -> (String -> IO ()) -> IO (ImportsState node)

@@ -72,18 +72,17 @@ import MMiSSPackageFolder
 
 ---
 -- EditRef is the "ref" type passed to EmacsEdit. 
--- We expect it to be (possibly) made more 
--- complicated later when we handle variant attributes properly (allowing
--- the same object to be edited in multiple variants simultaneously), hence
--- the need to make it abstract.
 --
 -- The extra fields (apart from the link and variants) mean we can get what's 
 -- needed to do the Emacs buttons, on the basis of what's in the referencing 
 -- object, without having to dereference the link.
 data EditRef = 
       EditRef {
-         linkEnvironment :: LinkEnvironment,
-         description :: EntityFullName,
+         package :: MMiSSPackageFolder,
+         searchName :: EntitySearchName,
+           -- ^ "package" and "searchName" represent the way in which the
+           -- referenced object is to be searched for, using the
+           -- lookupXXX functions in MMiSSPackageFolder.
          outerVariants :: MMiSSVariantSearch,
             -- ^ The outer variants attached to the document containing this 
             -- link.  It is assumed (or at least hoped) that these will not 
@@ -98,9 +97,9 @@ data EditRef =
          }
 
 compareOpt :: EditRef 
-   -> (EntityFullName,LinkEnvironment,MMiSSVariantSearch,MMiSSVariantSpec)
+   -> (EntitySearchName,MMiSSPackageFolder,MMiSSVariantSearch,MMiSSVariantSpec)
 compareOpt editRef = 
-   (description editRef,linkEnvironment editRef,
+   (searchName editRef,package editRef,
       outerVariants editRef,linkVariants editRef)
 
 instance Eq EditRef where
@@ -131,32 +130,30 @@ editMMiSSObjectInner formatConverter view link =
       object <- readLink view link
       variantSearch <- getCurrentVariantSearch (variantObject object)
 
-      thisInsertionOpt <- getCurrentInsertion (toLinkedObject object)
+      packageAndNameWE 
+         <- getMMiSSPackageFolderAndName view (toLinkedObject object)
 
-      case thisInsertionOpt of
-         Nothing ->
+      case fromWithError packageAndNameWE of
+         Left mess ->
             do
-               createErrorWin (
-                  "Object is not current inserted anywhere and cannot be "
-                  ++ "edited!") []
+               createErrorWin mess []
                done
-         Just insertion ->
+         Right (package,name) ->
             do
                let
-                  (parentLinkedObject,name) = unmkInsertion insertion
-               linkEnvironment 
-                  <- newLinkEnvironment parentLinkedObject trivialPath 
-               let
+                  searchName :: EntitySearchName
+                  searchName = FromHere (EntityFullName [name])
+
                   emacsFS = mkEmacsFS view formatConverter 
                   printAction = mkPrintAction view formatConverter 
 
                   topEditRef = EditRef {
-                     linkEnvironment = linkEnvironment,
+                     package = package,
+                     searchName = searchName,
                      outerVariants = variantSearch,
                      linkVariants = emptyMMiSSVariantSpec,
                      miniType = getObjectMiniType object,
-                     priority = "1", 
-                     description = EntityFullName [name]
+                     priority = "1"
                      }
             
                editEmacs emacsFS printAction topEditRef
@@ -171,24 +168,21 @@ mkEmacsFS :: View -> EditFormatConverter -> EmacsFS EditRef
 mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
    let
       toDescription :: EditRef -> String
-      toDescription = toString . description
+      toDescription = toString . searchName
 
       -- Now for the difficult one.
       editFS :: EditRef 
          -> IO (WithError (EmacsContent EditRef,EditedFile EditRef))
-      editFS (editRef @ EditRef {linkEnvironment = linkEnvironment0,
-            miniType = miniType0,description = description0}) =
+      editFS (editRef @ EditRef {
+            searchName = searchName0,miniType = miniType0}) =
          addFallOutWE (\ break -> 
             do
                let
-                  name = toString description0
-
+                  name = toString searchName0
                   variants = toVariants editRef
 
-               -- a censored version of the following occurs in the createRef
-               -- function.
-               objectLinkWE <- getMMiSSObjectLink linkEnvironment0 description0
-
+               -- Get the object data
+               objectLinkWE <- getEditRef view editRef
                objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
          
                -- retrieve the object data.
@@ -201,8 +195,6 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   thisElementLink = element variable
                   thisLinkedObject = linkedObject object
                   thisObjectType = mmissObjectType object
-
-               -- get the object's parent.
 
                if getObjectTypeMiniType thisObjectType == miniType0
                   then
@@ -233,9 +225,16 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                let
                   Elem _ attributes _ = thisElement
 
-               -- Extract a LinkEnvironment for the object.
-               leWE <- getLinkEnvPreamble view object
-               (linkEnvironment1,_) <- coerceWithErrorOrBreakIO break2 leWE
+               
+               -- Extract a parent MMiSSPackageFolder and name for the object,
+               -- to be used partly for looking up includes within the object,
+               -- and also to provide a static way of writing back to the
+               -- object. 
+               packageAndName1WE 
+                  <- getMMiSSPackageFolderAndName view thisLinkedObject
+
+               (package1,name1) 
+                  <- coerceWithErrorOrBreakIO break2 packageAndName1WE
                
                -- Create variants used for searching in this object,
                -- We refine the existing variants with the one given by the
@@ -259,7 +258,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                   mapContent = mapMonadic
                      (\ ((string,miniType),includeAttributes) ->
                         do
-                           (fullName :: EntityFullName) 
+                           (searchName1 :: EntitySearchName) 
                               <- coerceWithErrorOrBreakIO break2 
                                  (fromStringWE string)
                            let
@@ -268,13 +267,13 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                               editRef =
                                  EditRef {
-                                    linkEnvironment = linkEnvironment1,
+                                    package = package1,
+                                    searchName = searchName1, 
                                     outerVariants = outerVariants1,
                                     linkVariants = linkVariants1,
                                     miniType = miniType,
                                     priority = getPriorityAttributes 
-                                       includeAttributes,
-                                    description =  fullName
+                                       includeAttributes
                                     }
 
                            return editRef 
@@ -293,7 +292,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                    [Attribute])) =
                                 fmap
                                    (\ editRef -> 
-                                      ((toString (description editRef),
+                                      ((toString (searchName editRef),
                                          miniType editRef),
                                          setPriorityAttributes'
                                             (fromMMiSSVariantSpecToXml
@@ -306,33 +305,19 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
 
                           elementWE <- fromEdit name emacsContent1
 
-                          -- We now play games with the element.  Specifically,
-                          -- we change its label to ".", first checking that
-                          -- the user hasn't changed it.
                           element0 <- coerceWithErrorOrBreakIO break elementWE
 
                           let
-                             description1WE = getLabel element0
+                             -- We will write the object back into its
+                             -- actual parent folder, with original name.
+                             -- This means things won't get upset, even if,
+                             -- say, the including object alters its preamble.
 
-                          description1 <- case fromWithError description1WE of
-                             Left _ -> break ("Object "++name
-                                ++" has somehow lost its label")
-                             Right description1 -> return description1
-
-                          if entityBase description1 == entityBase description0
-                             then
-                                done
-                             else
-                                break ("Label of object "++name
-                                   ++" has been illegally changed to "
-                                   ++toString description1
-                                   )
-
-                          let
-                             element1 = setLabel element0 trivialFullName
+                             element1 = setLabel element0
+                                (FromHere (EntityFullName [name1]))
 
                           writeOutWE <- writeToMMiSSObject
-                             thisObjectType view thisLinkedObject Nothing
+                             thisObjectType view package1 Nothing
                              element1 False
 
                           (link,elementOpt) 
@@ -347,7 +332,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                                 do
                                    let
                                       newElement1 
-                                         = setLabel newElement0 description1
+                                         = setLabel newElement0 searchName0
 
                                       contentWE :: WithError 
                                          (EmacsContent (TypedName,[Attribute]))
@@ -387,20 +372,27 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
             )
 
       createRef :: EditRef -> IO (WithError (Maybe EditRef))
-      createRef (editRef @ EditRef {
-            linkEnvironment = linkEnvironment0,description = description0}) =
+      createRef editRef =
          addFallOutWE (\ break ->
             do
+               -- We first attempt to access the outer referenced object, so
+               -- we can get at the appropriate package.
+               outerObjectLinkWE <- getEditRef view editRef
+               outerObjectLink
+                  <- coerceWithErrorOrBreakIO break outerObjectLinkWE
+               outerObject <- readLink view outerObjectLink
+               package1WE <- getMMiSSPackageFolder view outerObject 
+               package1 <- coerceWithErrorOrBreakIO break package1WE
+
                let
                   outerVariants1 = toVariants editRef
 
-               -- Prompt for the variant, description and type.  We get the
-               -- description via an ExtraFormItem
-               let
+                  -- Prompt for the variant, search name and type.  We get the
+                  -- search name via an ExtraFormItem
                   form0 :: Form String
                   form0 = newFormEntry "Name" ""
 
-                  form1 :: Form EntityFullName
+                  form1 :: Form EntitySearchName
                   form1 = mapForm fromStringWE form0
 
                   form2 :: Form String
@@ -423,7 +415,7 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                       form4
 
 
-                  extraForm :: Form (EntityFullName,(Char,String))
+                  extraForm :: Form (EntitySearchName,(Char,String))
                   extraForm = form1 // (form3 // form5)
 
                extraFormItem <- mkExtraFormItem extraForm
@@ -436,30 +428,12 @@ mkEmacsFS view (EditFormatConverter {toEdit = toEdit,fromEdit = fromEdit}) =
                      do
                         linkVariants1 
                            <- toMMiSSVariantSpecFromAttributes attributes
-                        (description1,(miniType1,priority1)) 
+                        (searchName1,(miniType1,priority1)) 
                            <- readExtraFormItem extraFormItem
-
-                        -- construct the inner link environment.  This code is 
-                        -- censored from the functions in the editFS function.
-                        objectLinkWE <- getMMiSSObjectLink linkEnvironment0 
-                           description0
-                        objectLink 
-                           <- coerceWithErrorOrBreakIO break objectLinkWE
-                        objectDataWE <- simpleReadFromMMiSSObject view 
-                           objectLink outerVariants1
-                        (variable,object) 
-                           <- coerceWithErrorOrBreakIO break objectDataWE
-
-                        -- Get the LinkEnvironment for the containing 
-                        -- MMiSSPackageFolder.
-                        leWE <- getLinkEnvPreamble view object
-                        (linkEnvironment1,_) 
-                            <- coerceWithErrorOrBreakIO break leWE
-
                         let
                            editRef = EditRef {
-                              linkEnvironment = linkEnvironment1,
-                              description = description1,
+                              package = package1,
+                              searchName = searchName1,
                               outerVariants = outerVariants1,
                               linkVariants = linkVariants1,
                               priority = priority1,
@@ -517,7 +491,7 @@ remEdit object =
 
 
 mkPrintAction :: View -> EditFormatConverter -> PrintAction EditRef
-mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
+mkPrintAction view editFormatConverter =
    let
       printAction :: EditRef 
          -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef)))) 
@@ -530,76 +504,6 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
             (preambleLinksMVar :: MVar [Link MMiSSPreamble]) <- newMVar []
 
             let
-               -- Unfortunately reAssemble doesn't do exactly what we want;
-               -- it gives us the Element, but what we want is the
-               -- (Bool,EditRef).  To work around this we *assume* that
-               -- reAssembleArg visits the children of each node in order,
-               -- and pass as search data an MVar containing the 
-               -- (Bool,EditRef)'s.  The EntityFullName it passes then becomes
-               -- irrelevant . . .
-               reAssembleArg :: EntityFullName -> MMiSSVariantSearch
-                  -> MVar [(Bool,EditRef)] 
-                  -> IO (WithError (Maybe (Element,MVar [(Bool,EditRef)])))
-               reAssembleArg entityFullName variantSearch0 mVar =
-                  do
-                     ((doExpand,editRef):rest) <- takeMVar mVar
-
-                     putMVar mVar rest
-                     assert (entityFullName == description editRef) done
-
-                     if doExpand
-                        then
-                           addFallOutWE (\ break ->
-                              do
-                                 (content0WE :: WithError
-                                    (EmacsContent (Bool,EditRef)))
-                                    <- getContent editRef
-
-                                 content0 <- coerceWithErrorOrBreakIO break
-                                    content0WE
-
-                                 nextMVar <- newMVar (toEmacsLinks content0)
-
-                                 let
-                                    (content1 :: EmacsContent (TypedName,
-                                          [Attribute]))= fmap 
-                                       (\ (b,editRef) -> 
-                                          ((toString (description editRef),
-                                             miniType editRef),
-                                             fromMMiSSVariantSpecToXml (
-                                                linkVariants editRef
-                                                )
-                                             )
-                                          )
-                                       content0
-
-                                    name = toString entityFullName
-
-                                 elementWE <- fromEdit name content1
-
-                                 element <- coerceWithErrorOrBreakIO break 
-                                    elementWE
-
-                                 -- Also retrieve the object's preamble.  This
-                                 -- requires us to look at the object again.
-                                 preambleLinkWE <- 
-                                    getPreambleLink 
-                                       view 
-                                       (linkEnvironment editRef)
-                                       (description editRef)
-                                       (toVariants editRef)
-
-                                 preambleLink <- coerceWithErrorOrBreakIO 
-                                    break preambleLinkWE
-                                     
-                                 modifyMVar_ preambleLinksMVar 
-                                    (\ preambleLinks ->
-                                       return (preambleLink : preambleLinks))  
-
-                                 return (Just (element,nextMVar))
-                              )                                  
-                        else
-                           return (hasValue Nothing)
 
             topMVar <- newMVar [(True,topRef)]
 
@@ -607,8 +511,11 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
                variantSearch = refineVariantSearch (outerVariants topRef)
                   (linkVariants topRef)
 
-            elementWE <- reAssemble reAssembleArg 
-               (description topRef) variantSearch topMVar
+            elementWE <- reAssemble 
+               (reAssembleArg view preambleLinksMVar getContent 
+                  editFormatConverter) 
+               (searchName topRef) variantSearch topMVar
+
             case fromWithError elementWE of
                Left error -> createErrorWin error []
                Right element ->
@@ -625,27 +532,117 @@ mkPrintAction view (EditFormatConverter {fromEdit = fromEdit}) =
                            case fromWithError stringWE of
                               Left error -> createErrorWin error []
                               Right str -> mmissLaTeX (
-                                 toString (description topRef)) str
+                                 toString (searchName topRef)) str
                         )
                      done
    in
       PrintAction printAction
 
----
--- Extract a link to an object's preamble.
-getPreambleLink :: View -> LinkEnvironment -> EntityFullName 
-   -> MMiSSVariantSearch -> IO (WithError (Link MMiSSPreamble))
-getPreambleLink view linkEnvironment fullName variantSearch =
-   addFallOutWE (\ break ->
-      do
-         objectLinkWE <- getMMiSSObjectLink linkEnvironment fullName
-         objectLink <- coerceWithErrorOrBreakIO break objectLinkWE
-         mmissObject <- readLink view objectLink 
+-- Function to be passed to the reAssemble function.  This needs 
+-- four arguments in addition to those provided by reAssemble:
+-- the view, an MVar for writing preamble links to, the
+-- getContent function, and the EditFormatConverter.
+--
+-- Unfortunately reAssemble doesn't do exactly what we want;
+-- it gives us the Element, but what we want is the
+-- (Bool,EditRef).  To work around this we *assume* that
+-- reAssembleArg visits the children of each node in order,
+-- and pass as search data an MVar containing the 
+-- (Bool,EditRef)'s.  The EntitySearchName it passes then 
+-- becomes irrelevant . . .
+reAssembleArg :: View -> MVar [Link MMiSSPreamble]
+   -> (EditRef -> IO (WithError (EmacsContent (Bool,EditRef))))        
+   -> EditFormatConverter
 
-         leWE <- getLinkEnvPreamble view mmissObject
-         (_,preamble) <- coerceWithErrorOrBreakIO break leWE
-         return preamble
-      )
+   -> EntitySearchName
+   -> MMiSSVariantSearch -> MVar [(Bool,EditRef)] 
+   -> IO (WithError (Maybe (Element,MVar [(Bool,EditRef)])))
+reAssembleArg view preambleLinksMVar getContent editFormatConverter
+      entitySearchName variantSearch0 mVar =
+   do
+      ((doExpand,editRef):rest) <- takeMVar mVar
+
+      putMVar mVar rest
+      assert (entitySearchName == searchName editRef) done
+
+      let
+         name = toString (searchName editRef)
+
+         preambleAct :: IO (WithError (Link MMiSSPreamble))
+         preambleAct =
+            do
+               objectLinkWE <- getEditRef view editRef
+               mapWithErrorIO'
+                  (\ objectLink ->
+                     do
+                        mmissObject 
+                           <- readLink view objectLink
+                        packageFolderWE <- getMMiSSPackageFolder
+                           view mmissObject
+                        return (mapWithError
+                           toMMiSSPreambleLink
+                           packageFolderWE
+                           )
+                     )
+                  objectLinkWE
+
+      if doExpand
+         then
+            addFallOutWE (\ break ->
+               do
+                  -- Get the preamble link first of all,
+                  -- as if we can't get the preamble we
+                  -- can't print the object.
+                  preambleLinkWE <- preambleAct
+                  case fromWithError preambleLinkWE of
+                     Left mess ->
+                        do
+                           createErrorWin (name ++ ": " ++ mess) []
+                           return Nothing
+                     Right preambleLink ->
+                        do
+                           (content0WE 
+                                 :: WithError (EmacsContent (Bool,EditRef)))
+                              <- getContent editRef
+
+                           content0 <- coerceWithErrorOrBreakIO break
+                              content0WE
+
+                           nextMVar <- newMVar (toEmacsLinks content0)
+
+                           let
+                              (content1 
+                                 :: EmacsContent (TypedName,
+                                    [Attribute]))= fmap 
+                                 (\ (b,editRef) -> 
+                                    ((name,miniType editRef),
+                                       fromMMiSSVariantSpecToXml (
+                                          linkVariants editRef
+                                          )
+                                       )
+                                    )
+                                 content0
+
+                           elementWE 
+                              <- fromEdit editFormatConverter name content1
+
+                           element <- coerceWithErrorOrBreakIO break 
+                              elementWE
+
+                           modifyMVar_ preambleLinksMVar 
+                              (\ preambleLinks ->
+                                 return (preambleLink : preambleLinks))  
+
+                           return (Just (element,nextMVar))
+               )                                  
+         else
+            return (hasValue Nothing)
+
+---
+-- Given an EditRef, extract a link to the referenced object.
+getEditRef :: View -> EditRef -> IO (WithError (Link MMiSSObject))
+getEditRef view editRef =
+   lookupMMiSSObjectMustExist view (package editRef) (searchName editRef)
 
 -- ----------------------------------------------------------------------
 -- Other utility functions

@@ -7,8 +7,27 @@ module MMiSSPackageFolder(
 
    toMMiSSPreambleLink, -- :: MMiSSPackageFolder -> Link MMiSSPreamble
    getMMiSSPackageFolder,  
-      -- :: View -> LinkedObject -> IO (WithError MMiSSPackageFolder)
-   toLinkEnvironment, -- :: MMiSSPackageFolder -> LinkEnvironment
+      -- :: HasLinkedObject object => View -> object 
+      -- -> IO (WithError MMiSSPackageFolder)
+   getMMiSSPackageFolderAndName,
+      -- :: HasLinkedObject object => View -> object 
+      -- -> IO (WithError (MMiSSPackageFolder,EntityName))
+   toMMiSSPackageFolderLinkedObject, 
+     -- :: MMiSSPackageFolder -> LinkManager.LinkedObject
+
+   lookupMMiSSObject,
+      -- :: View -> MMiSSPackageFolder -> EntitySearchName 
+      -- -> IO (WithError (Maybe (Link MMiSSObject)))
+      -- Look up a particular object, starting from a folder.
+   lookupMMiSSObjectMustExist,
+      --  :: View -> MMiSSPackageFolder -> EntitySearchName 
+      -- -> IO (WithError (Link MMiSSObject))
+      -- Like lookupMMiSSObject, but returns an error if the object does not
+      -- exist.
+   lookupMMiSSPackageFolder,
+      -- :: View -> MMiSSPackageFolder -> EntitySearchName 
+      -- -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
+      -- Get a package-folder from another one by search name.
 
    ) where
 
@@ -76,7 +95,7 @@ instance Monad m => HasBinary MMiSSPackageFolderType m where
    readBin = mapRead (\ () -> theMMiSSPackageFolderType)
 
 -- ------------------------------------------------------------------------
--- The MMiSSPackageFolder type and its instance of HasCodedValue
+-- The MMiSSPackageFolder type and its instances of Eq, Ord and HasBinary
 -- ------------------------------------------------------------------------
 
 data MMiSSPackageFolder = MMiSSPackageFolder {
@@ -87,16 +106,16 @@ data MMiSSPackageFolder = MMiSSPackageFolder {
       -- blocker for package contents.
    blocker3 :: Blocker WrappedLink,
       -- blocker for preamble link.
-   preambleLink :: Link MMiSSPreamble,
+   preambleLink :: Link MMiSSPreamble
       -- Link to this package's preamble.
-   linkEnvironment :: LinkEnvironment
-      -- Link to this package's link environment.
-   }
+   } deriving (Typeable)
 
-mmissPackageFolder_tyRep = mkTyRep "MMiSSPackageFolder" "MMiSSPackageFolder"
+instance Eq MMiSSPackageFolder where
+   (==) = mapEq linkedObject
 
-instance HasTyRep MMiSSPackageFolder where
-   tyRep _ = mmissPackageFolder_tyRep
+
+instance Ord MMiSSPackageFolder where
+   compare = mapOrd linkedObject
 
 instance HasBinary MMiSSPackageFolder CodingMonad where
    writeBin = mapWrite
@@ -109,8 +128,9 @@ instance HasBinary MMiSSPackageFolder CodingMonad where
    readBin = mapReadViewIO
       (\ view (linkedObject,preambleLink) ->
          do
-            mmissPackageFolder 
+            (mmissPackageFolder,postMerge) 
                <- createMMiSSPackageFolder view linkedObject preambleLink
+            doPostMerge postMerge
             return mmissPackageFolder
          )
 
@@ -121,17 +141,20 @@ instance HasLinkedObject MMiSSPackageFolder where
 -- Functions which need to go in the .boot.hs file.
 -- ------------------------------------------------------------------------
 
-toLinkEnvironment :: MMiSSPackageFolder -> LinkEnvironment
-toLinkEnvironment = linkEnvironment
-
 toMMiSSPreambleLink :: MMiSSPackageFolder -> Link MMiSSPreamble
 toMMiSSPreambleLink = preambleLink
 
-getMMiSSPackageFolder 
-   :: View -> LinkedObject -> IO (WithError MMiSSPackageFolder)
-getMMiSSPackageFolder view linkedObject = 
+
+toMMiSSPackageFolderLinkedObject 
+   :: MMiSSPackageFolder -> LinkManager.LinkedObject
+toMMiSSPackageFolderLinkedObject = linkedObject
+
+
+getMMiSSPackageFolder :: HasLinkedObject object 
+   => View -> object -> IO (WithError MMiSSPackageFolder)
+getMMiSSPackageFolder view object = 
    do 
-      packageFolderLinkOptWE <- toParentLink linkedObject
+      packageFolderLinkOptWE <- toParentLink (toLinkedObject object)
       case fromWithError packageFolderLinkOptWE of
          Left mess -> return (hasError 
             "MMiSS object somehow not in an MMiSSPackageFolder")
@@ -141,13 +164,33 @@ getMMiSSPackageFolder view linkedObject =
             do
                packageFolder <- readLink view packageFolderLink
                return (hasValue packageFolder)
+
+getMMiSSPackageFolderAndName :: HasLinkedObject object
+   => View -> object -> IO (WithError (MMiSSPackageFolder,EntityName))
+getMMiSSPackageFolderAndName view object =
+   do
+      insertionOpt <- getCurrentInsertion (toLinkedObject object)
+      case insertionOpt of
+         Nothing -> return (hasError ("object mysteriously detached"))
+         Just insertion ->
+            let
+               (parentLinkedObject,thisName) = unmkInsertion insertion
+               wrappedLink = toWrappedLink parentLinkedObject     
+            in
+               case unpackWrappedLink wrappedLink of
+                  Just (link :: (Link MMiSSPackageFolder)) ->
+                     do
+                        packageFolder <- readLink view link
+                        return (hasValue (packageFolder,thisName))
+                  Nothing -> return (hasError ("object not in package folder"))
+
           
 -- ------------------------------------------------------------------------
 -- Constructing the MMiSSPackageFolder
 -- ------------------------------------------------------------------------
 
 createMMiSSPackageFolder :: View -> LinkedObject -> Link MMiSSPreamble 
-   -> IO MMiSSPackageFolder
+   -> IO (MMiSSPackageFolder,PostMerge)
 createMMiSSPackageFolder view linkedObject preambleLink =
    do
      let
@@ -171,26 +214,31 @@ createMMiSSPackageFolder view linkedObject preambleLink =
 
      blocker2 <- newBlocker contentsSet
 
-  
-     
-     -- Create the link environment.  We use unsafeInterleaveIO since
-     -- sometimes we need to create the link environment before the
-     -- preamble has actually been written to.
-     linkEnvironment <- unsafeInterleaveIO (
-        do
-           mmissPreamble <- readLink view preambleLink
-
-           -- we use Sink.newParallelDelayedSink to tie the loop 
-           -- of creating the LinkEnvironment and writing to it.
-           (sink,writeAction) <- newParallelDelayedSink
-
-           path0 <- addOldSink (toPackagePath mmissPreamble) sink
-           linkEnvironment <- newLinkEnvironment linkedObject path0
-           writeAction (\ path -> setPath linkEnvironment path)
-           return linkEnvironment
-        )
-
      let
+        postMergeAct :: IO ()
+        -- Create an action which is only to be done after the view has been
+        -- fully initialised.  This will monitor changes to the preamble,
+        -- and make corresponding changes to the import commands of the 
+        -- linkedObject
+        postMergeAct =
+           do
+              mmissPreamble <- readLink view preambleLink
+              let
+                 importCommands :: SimpleSource ImportCommands
+                 importCommands = toImportCommands mmissPreamble              
+
+                 setCommands' commands =
+                    setCommands linkedObject commands
+
+              sinkID <- newSinkID
+              parallelX <- newParallelExec
+
+              addNewSourceActions (toSource importCommands)
+                 setCommands' setCommands' sinkID parallelX
+
+              done
+
+
         preambleSet :: VariableSetSource WrappedLink
         preambleSet = singletonSetSource
            (staticSimpleSource (WrappedLink preambleLink))
@@ -202,9 +250,9 @@ createMMiSSPackageFolder view linkedObject preambleLink =
         blocker1 = blocker1,
         blocker2 = blocker2,
         blocker3 = blocker3,
-        preambleLink = preambleLink,
-        linkEnvironment = linkEnvironment
-        })
+        preambleLink = preambleLink
+        }, newPostMerge postMergeAct
+        )
 
 ---
 -- Extract from a LinkedObject the wrappedLink for the sub-object with the
@@ -235,7 +283,7 @@ instance HasMerging MMiSSPackageFolder where
       in
          pairMergeLinks mergeLinks1 mergeLinks2
 
-   attemptMerge linkReAssigner newView newLink vlos =
+   attemptMergeWithPostMerge linkReAssigner newView newLink vlos =
       addFallOutWE (\ break ->
          do
             -- compare with similar code in Folders.  But this is
@@ -261,13 +309,15 @@ instance HasMerging MMiSSPackageFolder where
                <- linkedObjectsSame newLinkedObject (toLinkedObject folder1)
             if isSame 
                then
-                  cloneLink view1 link1 newView newLink
+                  do
+                     cloneLink view1 link1 newView newLink
+                     return (newPostMerge done)
                else
                   do
-                     mmissPackageFolder <- createMMiSSPackageFolder 
+                     (mmissPackageFolder,postMerge) <- createMMiSSPackageFolder 
                         newView newLinkedObject preambleLink2
                      setLink newView mmissPackageFolder newLink
-                     done
+                     return postMerge
       )
 
       
@@ -442,7 +492,7 @@ importMMiSSPackage view parentLinkedObject =
                deleteLink view preambleLink1
                return Nothing
 
-      linkedObjectWE <- newLinkedObject view (WrappedLink link) Nothing
+      linkedObjectWE <- newLinkedPackageObject view (WrappedLink link) Nothing
       case fromWithError linkedObjectWE of
          Left mess -> 
             do
@@ -459,25 +509,27 @@ importMMiSSPackage view parentLinkedObject =
                         error1
                resultWE <- addFallOutWE (\ break ->
                   do
-                     mmissPackageFolder <- createMMiSSPackageFolder 
+                     (packageFolder,postMerge) <- createMMiSSPackageFolder 
                         view linkedObject preambleLink1
-                     writeLink view link mmissPackageFolder
+                     writeLink view link packageFolder
 
                      let
                         -- This is the function passed to importMMiSSLaTeX
                         getLinkedObject :: EntityName 
-                           -> IO (WithError LinkedObject)
+                           -> IO (WithError MMiSSPackageFolder)
                         getLinkedObject entityName =
                            do
                               successWE <- moveObject linkedObject (Just 
                                  (mkInsertion parentLinkedObject entityName))
                               return (mapWithError 
-                                 (\ () -> linkedObject) successWE)
+                                 (\ () -> packageFolder) successWE)
 
                         packageType = retrieveObjectType "package"
 
-                     importMMiSSLaTeX preambleLink1 packageType view 
+                     result <- importMMiSSLaTeX preambleLink1 packageType view 
                         getLinkedObject
+                     doPostMerge postMerge
+                     return result
                   )          
 
                case fromWithError resultWE of
@@ -488,3 +540,44 @@ importMMiSSPackage view parentLinkedObject =
                   Right Nothing -> error2
                   Right result -> return (Just link)
             )
+
+-- ------------------------------------------------------------------------
+-- Miscellaneous Functions
+-- ------------------------------------------------------------------------
+
+lookupMMiSSObject :: View -> MMiSSPackageFolder -> EntitySearchName 
+    -> IO (WithError (Maybe (Link MMiSSObject)))
+lookupMMiSSObject view packageFolder searchName =
+   do
+      objectLinkOptWE <- lookupObject view 
+         (toMMiSSPackageFolderLinkedObject packageFolder) searchName
+      case fromWithError objectLinkOptWE of
+         Left mess -> return (hasError (
+            "Object " ++ toString searchName ++ " is not an MMiSS object"))
+         Right _ -> return objectLinkOptWE
+
+lookupMMiSSPackageFolder :: View -> MMiSSPackageFolder -> EntitySearchName 
+    -> IO (WithError (Maybe (Link MMiSSPackageFolder)))
+lookupMMiSSPackageFolder view packageFolder searchName =
+   do
+      objectLinkOptWE <- lookupObject view 
+         (toMMiSSPackageFolderLinkedObject packageFolder) searchName
+      case fromWithError objectLinkOptWE of
+         Left mess -> return (hasError (
+            "Object " ++ toString searchName 
+               ++ " is not an MMiSS package folder"))
+         Right _ -> return objectLinkOptWE
+
+lookupMMiSSObjectMustExist :: View -> MMiSSPackageFolder -> EntitySearchName 
+    -> IO (WithError (Link MMiSSObject))
+lookupMMiSSObjectMustExist view packageFolder searchName =
+   do
+      objectLinkOptWE <- lookupMMiSSObject view packageFolder searchName
+      return (mapWithError'
+         (\ objectLinkOpt -> case objectLinkOpt of
+            Just objectLink -> hasValue objectLink
+            Nothing -> hasError
+               ("Object " ++ toString searchName ++ " does not exist")
+            )
+         objectLinkOptWE
+         )

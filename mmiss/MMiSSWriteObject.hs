@@ -72,23 +72,22 @@ import MMiSSPackageFolder
 -- of the top object, if it already exists.  In any case we get the edit lock
 -- of all included objects.
 --
--- The linked object supplied together with the element's label specify 
+-- The package folder supplied together with the element's label specifies 
 -- the object's new location.
 -- Thus if the linked object is A and the label is B.C, the eventual location
 -- will be A.B.C.  If an expectedLabel is supplied, this is checked against
 -- the element's label, but it does not otherwise influence the function.
 --
--- We support the following hack: if the Element's name is "." then
--- we write directly to the linked object itself.
---
 -- writeToMMiSSObject returns two things if successful. 
 -- (1) a link to the new object; (2) if we split up the input element into
 -- multiple (more than one) output elements, we return the top element,
--- namely the one that actually got written to the object.
+-- namely the one that actually got written to the object.  (This is used
+-- to update the XEmacs buffer when we write an object that has new included
+-- objects.)
 writeToMMiSSObject :: MMiSSObjectType -> View 
-   -> LinkedObject -> Maybe EntityFullName -> Element -> Bool 
+   -> MMiSSPackageFolder -> Maybe EntitySearchName -> Element -> Bool 
    -> IO (WithError (Link MMiSSObject,Maybe Element))
-writeToMMiSSObject objectType view startLinkedObject 
+writeToMMiSSObject objectType view packageFolder 
    expectedLabel element checkThisEditLock =
  
   addFallOutWE (\ break ->
@@ -111,7 +110,8 @@ writeToMMiSSObject objectType view startLinkedObject
             -- a StructuredContent object.
             childs object = children (accContents object)
 
-         -- (3) get and check the object's label
+            -- (3) get and check the object's label
+            objectLabel :: EntitySearchName
             objectLabel = label contents
 
          case expectedLabel of
@@ -124,252 +124,89 @@ writeToMMiSSObject objectType view startLinkedObject
                      break ("Expected label is "++toString lab++" but "
                         ++toString objectLabel++" found")
 
-         -- (3a) Get a link to the object, if it exists, and use it
-         -- to construct a function which tells us if an ObjectLoc is the
-         -- "Head" object.  We need this to identify the head object in
-         -- the deconstructed PreObjects list.
+         -- (4) Get the ObjectLoc for the head object.  This is used
+         -- (a) because if that doesn't work we might as well abort now.
+         -- (b) we can use it to identify the head object in the list of
+         --     PreObjects.
+         headObjectLocOpt <- getObjectLoc view break packageFolder objectLabel
+         headObjectLoc <- case headObjectLocOpt of
+            Just headObjectLoc -> return headObjectLoc
+            Nothing -> break ("Unable to write to " ++ toString objectLabel
+               ++ " because package folder not found")
+
+         -- (5) Construct PreObjects for contents.
+         -- We use treeFoldM, with type variables 
+         --    ancestorInfo = MMiSSPackageFolder
+         --    state = PreObjects
+         --    node = StructureContent
+         --    mm = IO
          let
-            -- (3a(i)) get the linked object for the containing dir of the
-            -- object to be (which must exist).
-            -- for this we use the following handy function, which will be
-            -- reused.
-            getContainingDir :: LinkedObject -> EntityFullName 
-               -> IO LinkedObject
-            getContainingDir linkedObject entityFullName =
-               do
-                  containingDirName <- case entityDir entityFullName of
-                     Nothing -> break 
-                        "Attempt to write to object with name \"\""
-                     Just containingDirName -> return containingDirName
-                   
-                  containingDirOpt <- lookupFullNameInFolder linkedObject 
-                     containingDirName
-
-                  containingDir <- case containingDirOpt of
-                     Nothing -> break ("Folder containing object "
-                        ++toString entityFullName++" does not exist")
-                     Just containingDir -> return containingDir
-
-                  return containingDir
-
-         -- Function to tell us if this is the head object.
-         (isThisObject :: ObjectLoc -> Bool) <- 
-            case entityBase objectLabel of
-               Nothing -> 
-                  let
-                     isThisObject (NewObject _ _) = False
-                     isThisObject (OldObject _ object) =
-                        startLinkedObject == toLinkedObject object
-                  in
-                     return isThisObject
-               Just objectLabelBase ->
-                  do
-                     containingDir 
-                        <- getContainingDir startLinkedObject objectLabel
-                     linkedObjectOpt <- lookupNameSimple containingDir
-                        (toString objectLabelBase)
-                     let
-                        isThisObject :: ObjectLoc -> Bool
-                        isThisObject objectLoc = 
-                           case (linkedObjectOpt,objectLoc) of
-                              (Just linkedObject,OldObject link2 _) -> 
-                                 (toWrappedLink linkedObject) 
-                                 == (WrappedLink link2)
-                              (Nothing,NewObject containingDir2 entityName) ->
-                                 entityName == objectLabelBase 
-                                    && containingDir2 == containingDir
-                              _ -> False
-                     return isThisObject
-
-         -- (4) Construct a PreObjects for all the constituent objects.
-
-         -- We also (since it is now easy to do) check that the objects
-         -- being written to have the right XML tag.
-         let
-            -- We use treeFoldM.  In its type,
-            -- ancestorInfo is the (LinkedObject,EntityPath) with respect to
-            -- which we look up the object, using lookupObjectByPath.
-            --   (N.B. That means that for a path belonging to an object,
-            --   the path needs to be raised if the corresponding object
-            --   is passed, since for example the path "." attached to an 
-            --   MMiSSObject means "Start from the *parent* of the object".
-            -- state is the above list
-            -- node is the structured contents.
-
-            -- So we need the following function.
-            treeFoldFn :: 
-               (LinkedObject,EntityPath) -> PreObjects -> StructuredContent
-               -> IO ((LinkedObject,EntityPath),PreObjects,
-                  [StructuredContent])
-            treeFoldFn (linkedObject,entityPath) preObjects0
-               structuredContent =
+            treeFoldFn :: MMiSSPackageFolder -> PreObjects -> StructuredContent
+               -> IO (MMiSSPackageFolder,PreObjects,[StructuredContent])
+            treeFoldFn packageFolder0 preObjects0 structuredContent =
                do
                   let
-                     name = label structuredContent
-                  -- We need to find the object.  Our strategy is as follows
-                  -- (1) we attempt to find the object.
-                  -- (2) if it doesn't exist, we look for the containing 
-                  --     folder (where we will have to construct the object).
-                  (objectLinkOptWE :: WithError (Maybe (Link MMiSSObject)))
-                     <- lookupObjectByPath linkedObject entityPath name
-                  let
-                     objectLinkOpt = coerceWithErrorOrBreak break 
-                        objectLinkOptWE
-
-                     thisPath = path structuredContent
- 
-                  -- Obtain the first element of PreObject, and an object and
-                  -- path to look up the children.
-                  --
-                  -- If the object does not yet exist we use the parent.
-                  (objectLoc,linkedObject,path) <- case objectLinkOpt of
-                     Nothing ->
+                     searchName = label structuredContent
+                  objectLocOpt 
+                     <- getObjectLoc view break packageFolder searchName 
+                  case objectLocOpt of
+                     Nothing -> -- can't insert this object at all
+                        return (packageFolder0,preObjects0,[])
+                     Just objectLoc ->
                         do
-                           (dirName,baseName) <- 
-                              case (entityDir name,entityBase name) of
-                                 (Just dirName,Just baseName) ->
-                                    return (dirName,baseName)
-                                 _ -> break 
-                                    "Attempt to write to object with name \"\""
-                           containingDirLinkOptWE <- lookupObjectByPath 
-                              linkedObject entityPath dirName
-                           (containingDirLink :: Link MMiSSPackageFolder) <-
-                              case fromWithError containingDirLinkOptWE of
-                                 Left mess 
-                                    -> break ("Attempt to create object "
-                                       ++ toString name 
-                                       ++ " in directory not an MMiSS Package "
-                                       ++ " Folder: " ++ mess
-                                       )
-                                 Right Nothing 
-                                    -> break ("Attempt to create object "
-                                       ++ toString name 
-                                       ++ " in non-existent directory")
-                                 Right (Just containingDirLink) 
-                                    -> return containingDirLink
-
-                           containingDir <- readLink view containingDirLink 
-
                            let
-                              containingLinkedObject 
-                                 = toLinkedObject containingDir
+                              preObjects1WE = addObject objectLoc 
+                                 structuredContent preObjects0
+                           preObjects1 
+                              <- coerceWithErrorOrBreakIO break preObjects1WE
+                           return (package objectLoc,preObjects1,
+                              childs structuredContent)
 
-                              objectLoc = NewObject 
-                                 containingLinkedObject baseName
-
-                           return (objectLoc,containingLinkedObject,thisPath)
-                     Just objectLink ->
-                        do
-                           object <- readLink view objectLink
-
-                           let
-                              oldTag = xmlTag (mmissObjectType object)
-                              newTag = tag structuredContent
-                           unless (oldTag == newTag)
-                              (break ("Object you define "++toString name++
-                                "already exists, but with type "++
-                                oldTag++" rather than "++newTag))
-   
-                           let
-                              objectLoc = OldObject objectLink object 
-                           return (objectLoc,
-                              toLinkedObject object,raiseEntityPath thisPath)
-
-                  preObjects1 <- coerceWithErrorOrBreakIO break (
-                     addObject objectLoc structuredContent preObjects0)
-
-                  return ((linkedObject,path),preObjects1,
-                     childs structuredContent)
-
-         -- Now run treeFoldM.
-         (preObjects :: PreObjects) <- treeFoldM treeFoldFn 
-            (startLinkedObject,trivialPath)
-            emptyPreObjects contents
-
-         -- (5) Get list of objects-to-be.
+         preObjects 
+            <- treeFoldM treeFoldFn packageFolder emptyPreObjects contents
          let
-            preObjectsList0 :: [(ObjectLoc,[StructuredContent])]
-            preObjectsList0 = listPreObjects preObjects
+            preObjectsWithoutHead = 
+               removeObject headObjectLoc contents preObjects
 
-            -- Rearrange it to extract the "head" object.
-            splitOpt = splitToElemGeneral 
-               (\ (objectLoc,_) ->
-                  isThisObject objectLoc
-                  )
-               preObjectsList0
-            
-            (preHead,headObject,postHead) = case splitOpt of
-               Just split -> split
-               Nothing -> break "MMiSSWriteObject bug; no head object found!"
-      
-            -- The list, without the head object,
-            preObjectsList1 = preHead ++ postHead
+         -- (6) Check that the objects have appropriate tags
+         unitWE <- checkPreObjectTags view preObjects
+         coerceWithErrorOrBreakIO break unitWE
 
-            -- The list, with the head object first.
-            preObjectsList2 = headObject:preObjectsList1
-
-         -- (6) Attempt to grab all the editLocks for all variants which are
-         --     already in existence, unless this one if checkThisEditLock
-         --     is set.
+         -- (7) Get the edit locks for the objects, excluding the head object
+         -- if checkThisEditLock is set.
          let
-            preObjectsToLock =
-              if checkThisEditLock then preObjectsList2 else preObjectsList1
+            preObjectsToLock = 
+               if checkThisEditLock
+                  then
+                     preObjects
+                  else
+                     preObjectsWithoutHead
 
-         (bSems0 :: [[Maybe (BSem,String)]]) <-
-            mapM
-               (\ (objectLoc,contentsList) -> case objectLoc of
-                  NewObject _ _ -> return []
-                  OldObject _ object ->
-                     do
-                        -- We use unsafeInterleaveIO to prevent the expensive
-                        -- computation of the name until the
-                        -- String is needed.
-                        name <- unsafeInterleaveIO (objectName object)
-                        mapM
-                           (\ contents -> 
-                              do
-                                 variableOpt <- lookupVariantObjectExact 
-                                    (variantObject object) 
-                                    (variantSpec contents)
-
-                                 return (fmap
-                                    (\ variable -> 
-                                         (editLock variable,name))
-                                    variableOpt
-                                    )
-                              )
-                           contentsList
-                  )
-               preObjectsToLock
-
-         let
-            bSems1 :: [(BSem,String)] 
-            bSems1 = concat (map catMaybes bSems0)
-
-         releaseActWE <- tryAcquireBSemsWithError fst snd bSems1
+         releaseActWE <- acquireEditLocks view preObjectsToLock
          releaseAct <- coerceWithErrorOrBreakIO break releaseActWE
 
-         -- (7) Add all objects, return links to them with the head object 
-         --     first.
-         newLinks <- 
-            synchronizeView view (
-               Control.Exception.finally (
+         -- (8) Add all objects.
+         headLink <- synchronizeView view (
+            Control.Exception.finally (
+               do
                   mapMConcurrentExcep
                      (simpleWriteToMMiSSObject view break) 
-                     preObjectsList2
-                     )
-                  releaseAct
-                  )
+                     (listPreObjects preObjectsWithoutHead)
+                  simpleWriteToMMiSSObject view break 
+                     (headObjectLoc,[contents])
+               )
+               releaseAct
+            )
+    
 
          -- Compute the value to return
          let
-            link = head newLinks
             newElementOpt = case children (accContents contents) of
                [] -> Nothing
                _ -> Just (toTopElement contents)
 
-         -- (8) return a link to the head object
-         return (link,newElementOpt)
+         -- (9) return a link to the head object
+         return (headLink,newElementOpt)
       ))
 
 
@@ -387,29 +224,24 @@ simpleWriteToMMiSSObject view break (objectLoc,contentsList) =
       -- Instead we return "afterAct", which does precisely that.
       -- We also return an "dirty" action which, for old objects, dirties it
       -- (indicating it has changed), and the object's name in the object.
-      (objectLink,object,dirtyAct :: IO (),afterAct :: IO (WithError ()),
-               entityName :: EntityName) 
-            <- case objectLoc of
-         OldObject objectLink object -> 
+      (objectLink,object,dirtyAct :: IO (),afterAct :: IO (WithError ()))
+            <- case ifExists objectLoc of
+         Just objectLink ->
             do
                versioned <- fetchLink view objectLink
-               insertionOpt <- getCurrentInsertion (toLinkedObject object)
-               insertion <- case insertionOpt of
-                  Nothing -> break "Attempt to write to deleted object!!"
-                  Just insertion -> return insertion
-               let
-                  (_,entityName) = unmkInsertion insertion
-
+               object <- readObject view versioned
                return (objectLink,object,dirtyObject view versioned,
-                  return (hasValue ()),entityName)
-         NewObject parentLinkedObject entityName ->
+                  return (hasValue ()))
+         Nothing ->
             do
                let
+                  parentLinkedObject = toLinkedObject (package objectLoc)
+                  entityName = name objectLoc
+
                   mmissObjectType 
                      = retrieveObjectType (tag (head contentsList))
 
                nodeActions <- newNodeActionSource
-
                extraNodes <- newBlocker emptyVariableSetSource
 
                creationResult <- createLinkedObjectChildSplit 
@@ -439,7 +271,7 @@ simpleWriteToMMiSSObject view break (objectLoc,contentsList) =
                seq objectLink done
 
                object <- readLink view objectLink
-               return (objectLink,object,done,afterAct,entityName)
+               return (objectLink,object,done,afterAct)
 
 
       let
@@ -452,14 +284,14 @@ simpleWriteToMMiSSObject view break (objectLoc,contentsList) =
          varObject = variantObject object
 
          ---
-         -- Function for inserting a contents item.  The Bool indicates whether
-         -- we make it the current item or not.
+         -- Function for inserting a contents item.  The Bool indicates
+         -- whether we make it the current item or not.
          insertItem :: Bool -> StructuredContent -> IO ()
          insertItem doPoint content =
             do
                let
                   element0 = toTopElement content 
-                  element = setLabel element0 (EntityFullName [entityName])
+                  element = delLabel element0
 
                oldVariableOpt <- lookupVariantObjectExact varObject
                   (variantSpec content)
@@ -514,6 +346,174 @@ simpleWriteToMMiSSObject view break (objectLoc,contentsList) =
 -- ---------------------------------------------------------------------
 -- Some small helpful utilities
 -- ---------------------------------------------------------------------
+
+-- Get the objectLoc for an object about to be inserted or
+-- modified.
+getObjectLoc :: View -> BreakFn -> MMiSSPackageFolder -> EntitySearchName
+   -> IO (Maybe ObjectLoc)
+getObjectLoc view break packageFolder searchName =
+   do
+      objectLinkOptWE <- lookupMMiSSObject view packageFolder searchName
+      case fromWithError objectLinkOptWE of
+         Left mess -> -- type error
+            break ("Can't insert " ++ toString searchName
+               ++ " because non-MMiSS object with same "
+               ++ " name in path")
+         Right Nothing -> 
+            -- not found
+            -- try getting a package directory by looking up one
+            -- level.
+            do
+               (parentSearchName,thisName) <-
+                  case searchNameDirBase searchName of
+                     Just (parentSearchName,Just thisName)
+                        -> return (parentSearchName,thisName)
+                     Nothing -> break (
+                        "Attempt to insert object in "
+                        ++ "illegal place " ++ toString searchName
+                        )
+               mmissPackageFolderLinkOptWE 
+                  <- lookupMMiSSPackageFolder view packageFolder 
+                     parentSearchName
+               mmissPackageFolderLinkOpt <- case fromWithError
+                     mmissPackageFolderLinkOptWE of
+                  Left mess -> break ("Attempt to insert object "
+                     ++ "in " ++ toString parentSearchName 
+                     ++ " which is not a package folder")
+                  Right mmissPackageFolderLinkOpt ->
+                     return mmissPackageFolderLinkOpt
+               case mmissPackageFolderLinkOpt of
+                  Nothing -> -- give up
+                     return Nothing
+                  Just mmissPackageFolderLink ->
+                     do
+                        mmissPackageFolder 
+                           <- readLink view mmissPackageFolderLink
+                        let
+                           objectLoc = ObjectLoc {
+                              package = mmissPackageFolder,
+                              name = thisName,
+                              ifExists = Nothing
+                              }
+                        return (Just objectLoc)
+         Right (Just objectLink) ->
+            do
+               mmissObject <- readLink view objectLink
+
+               packageFolderAndNameWE <- getMMiSSPackageFolderAndName
+                  view (toLinkedObject mmissObject)
+
+               (packageFolder,name) 
+                     <- case fromWithError packageFolderAndNameWE of
+                  Left mess -> break mess
+                  Right success -> return success
+
+               let
+                  objectLoc = ObjectLoc {
+                     package = packageFolder,
+                     name = name,
+                     ifExists = Just objectLink
+                     }
+
+               return (Just objectLoc)
+
+-- | checkPreObjectTags checks that the objects which already exist in 
+-- a PreObjects have
+-- appropriate tags.
+checkPreObjectTags :: View -> PreObjects -> IO (WithError ())
+checkPreObjectTags view preObjects =
+   do
+      let
+         objectsToBe :: [(ObjectLoc,[StructuredContent])]
+         objectsToBe = listPreObjects preObjects
+
+         listUnitWithError :: [WithError ()] -> WithError ()
+         listUnitWithError errors 
+            = mapWithError (const ()) (listWithError errors)
+
+         checkObjectToBe :: (ObjectLoc,[StructuredContent]) 
+            -> IO (WithError ())
+         checkObjectToBe (ObjectLoc {ifExists = Nothing},contents) =
+            return (hasValue ())
+         checkObjectToBe (ObjectLoc {ifExists = Just link},contents) =
+            do
+               object <- readLink view link
+               let
+                  oldTag = xmlTag (mmissObjectType object)
+
+                  checkContent :: StructuredContent -> WithError ()
+                  checkContent structuredContent =
+                     let
+                        newTag = tag structuredContent
+                     in
+                        if oldTag == newTag
+                           then
+                              hasValue ()
+                           else
+                              hasError ("Object you define "
+                                 ++ toString (label structuredContent) ++
+                                "already exists, but with type " ++
+                                oldTag ++ " rather than " ++ newTag)
+                  errors :: [WithError ()]
+                  errors = map checkContent contents
+
+               return (listUnitWithError errors)
+
+      (errors :: [WithError ()]) <- mapM checkObjectToBe objectsToBe
+
+      return (listUnitWithError errors)
+
+-- | Attempt to acquire the edit locks of all variants in the given 
+-- PreObjects.  If successful, return an action for releasing those locks.
+acquireEditLocks :: View -> PreObjects -> IO (WithError (IO ()))
+acquireEditLocks view preObjects =
+   do
+      let
+         preObjectsList :: [(ObjectLoc,[StructuredContent])]
+         preObjectsList = listPreObjects preObjects
+
+         getLock :: (ObjectLoc,[StructuredContent]) 
+            -> IO (Maybe [(BSem,IO String)])
+         getLock (ObjectLoc {ifExists = Nothing},_) = return Nothing
+         getLock (ObjectLoc {ifExists = Just link},contents) =
+            do
+               object <- readLink view link
+               let
+                  messAct variants =
+                     do
+                        objectName <- getFullName view object
+                        return (
+                           "Unable to acquire edit lock for "
+                           ++ objectName
+                           ++ ": " ++ show variants
+                           )
+
+               (resultList :: [Maybe (BSem,IO String)])
+                  <- mapM
+                     (\ content ->
+                        do
+                           let
+                              variants = variantSpec content
+
+                           variableOpt <- lookupVariantObjectExact
+                             (variantObject object)
+                             variants
+                           return (fmap
+                              (\ variable ->
+                                 (editLock variable,messAct variants))
+                              variableOpt
+                              )
+                        )
+                     contents
+               return (Just (catMaybes resultList))
+
+      (locks1 :: [Maybe [(BSem,IO String)]]) 
+         <- mapM getLock preObjectsList
+
+      let
+         (locks2 :: [(BSem,IO String)]) = concat (catMaybes locks1)
+
+      tryAcquireBSemsWithError fst snd locks2
 
 ---
 -- newExtraNodes returns a suitable value for the extra nodes,

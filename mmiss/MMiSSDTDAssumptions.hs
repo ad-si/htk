@@ -16,15 +16,12 @@ module MMiSSDTDAssumptions(
    toIncludeStr, -- :: Char -> String
    fromIncludeStr, -- :: String -> Char
 
-   getLabel, -- :: Element -> String
+   getLabel, -- :: Element -> WithError EntitySearchName
       -- Get an Element's label.
-   setLabel, -- :: Element -> String -> Element
+   setLabel, -- :: Element -> EntitySearchName -> Element
       -- Set an Element's label. 
-     
-   getPath, -- :: Element -> WithError EntityPath
-      -- Get an Element's path.  This must be a single String and defaults to 
-      -- "."
-
+   delLabel, -- :: Element -> Element
+      -- Delete an Element's label.
 
    getPriorityAttributes, -- :: [Attribute] -> String
    getPriority, -- :: Element -> String
@@ -93,12 +90,12 @@ findLabelledElements (DTD _ _ markups) =
 -- supposed to explicitly change them to "present" before we attempt to
 -- resolve them.
 data ClassifiedElement =
-      Link EntityFullName --  present link to entity with this label
-   |  Reference EntityFullName -- present reference to entity with this label
-   |  Include EntityFullName 
+      Link EntitySearchName --  present link to entity with this label
+   |  Reference EntitySearchName -- present reference to entity with this label
+   |  Include EntitySearchName 
          -- present include of an entity with this label.  The 
          -- element itself was the import
-   |  DirectInclude EntityFullName Element
+   |  DirectInclude EntitySearchName Element
          -- The Element was an entity with this label.  The Element returned
          -- is an include pointer to it.
    |  Other
@@ -118,12 +115,12 @@ classifyElement (Elem name attributes content) =
 
       -- General code for handling includes/links/references.  It assumes
       -- the attribute for the referenced object (the first argument) exists.
-      generalRef :: String -> (EntityFullName -> ClassifiedElement) 
+      generalRef :: String -> (EntitySearchName -> ClassifiedElement) 
          -> WithError ClassifiedElement
       generalRef refName constructor =
          case getAtt refName of
             Just linkedString -> 
-               -- We check that the link is an EntityFullName 
+               -- We check that the link is an EntitySearchName 
                -- even if the link is absent
                mapWithError
                   (\ linked -> case getAtt "status" of
@@ -267,7 +264,7 @@ getAttribute attributes key =
 
 ---
 -- Get an Element's label, assuming it was of DirectInclude type.
-getLabel :: Element -> WithError EntityFullName
+getLabel :: Element -> WithError EntitySearchName
 getLabel element = 
    mapWithError' 
       (\ classified -> case classified of
@@ -278,24 +275,23 @@ getLabel element =
 
 ---
 -- Set an Element's label, assuming it was of DirectInclude type.
-setLabel :: Element -> EntityFullName -> Element
-setLabel (Elem name attributes0 content) entityFullName =
+setLabel :: Element -> EntitySearchName -> Element
+setLabel (Elem name attributes0 content) entitySearchName =
    let
       attributes1 = deleteFirstOpt (\ (key,_) -> key == "label") attributes0
-      attributes2 = ("label",AttValue [Left (toString entityFullName)])
+      attributes2 = ("label",AttValue [Left (toString entitySearchName)])
          : attributes1
    in
       Elem name attributes2 content
-    
----
--- Get an Element's path.  This must be a single String and defaults to "."
-getPath :: Element -> WithError EntityPath
-getPath (Elem xmlTag attributes _) = 
-   let
-      pathString = fromMaybe "." (getAttribute attributes "path")
-   in
-      fromStringWE pathString 
 
+---
+-- Delete an Element's label, assuming it was of DirectInclude type.
+delLabel :: Element -> Element
+delLabel (Elem name attributes0 content) =
+   let
+      attributes1 = deleteFirstOpt (\ (key,_) -> key == "label") attributes0
+   in
+      Elem name attributes1 content
 
 getPriority :: Element -> String
 getPriority (Elem _ attributes _) 

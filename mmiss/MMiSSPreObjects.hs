@@ -8,6 +8,7 @@ module MMiSSPreObjects(
    emptyPreObjects,
    addObject,
    listPreObjects,
+   removeObject,
    ) where
 
 import Data.FiniteMap
@@ -26,6 +27,7 @@ import EntityNames
 import MMiSSVariant
 import MMiSSContent
 import MMiSSObjectType
+import MMiSSPackageFolder
 
 
 -- ------------------------------------------------------------------
@@ -43,20 +45,21 @@ newtype PreObjects = PreObjects (
 ---
 -- This represents some object where changes are to be made.
 data ObjectLoc = 
-      NewObject LinkedObject EntityName
-         -- A new object, specified by its entity name and the linked object
-         -- in which it is to be inserted.
-   |  OldObject (Link MMiSSObject) MMiSSObject
-         -- An old object.  For efficiency reasons we give both a link to it
-         -- and the object itself.
+   ObjectLoc {
+      package :: MMiSSPackageFolder,
+         -- package in which object lies
+      name :: EntityName,
+         -- name of object
+      ifExists :: Maybe (Link MMiSSObject)
+         -- if the object already exists, a link to it.
+      }
 
 -- ------------------------------------------------------------------
 -- The instances
 -- ------------------------------------------------------------------
 
-idObjectLoc :: ObjectLoc -> Either (LinkedObject,EntityName) (Link MMiSSObject)
-idObjectLoc (NewObject linkedObject name) = Left (linkedObject,name)
-idObjectLoc (OldObject link _) = Right link
+idObjectLoc :: ObjectLoc -> (MMiSSPackageFolder,EntityName)
+idObjectLoc objectLoc = (package objectLoc,name objectLoc)
 
 instance Eq ObjectLoc where
    (==) = mapEq idObjectLoc
@@ -104,3 +107,20 @@ listPreObjects (PreObjects fm1) =
       (\ (objectLoc,fm2) -> (objectLoc,eltsFM fm2))
       (fmToList fm1)
 
+removeObject :: ObjectLoc -> StructuredContent -> PreObjects -> PreObjects
+-- Removing an object which isn't there will simply cause error to be 
+-- raised or a pattern failure, since we don't expect this to happen.
+removeObject objectLoc content (PreObjects fm1) =
+   let
+      fm2 :: FiniteMap MMiSSVariantSpec StructuredContent
+      (Just fm2) = lookupFM fm1 objectLoc
+      fm2' = delFromFM fm2 (variantSpec content)
+  
+      fm1' = 
+         if isEmptyFM fm2'
+            then
+               delFromFM fm1 objectLoc
+            else
+               addToFM fm1 objectLoc fm2'
+   in
+      PreObjects fm1'

@@ -16,9 +16,20 @@ module EntityNames(
    trivialFullName, -- :: EntityFullName
       -- Name with no components.
 
+   searchNameDirBase, 
+      -- :: EntitySearchName -> Maybe (EntitySearchName,Maybe EntityName)
+      -- Split a search-name by its last component.
+ 
+   toFullName, -- :: EntitySearchName -> Maybe EntityFullName
+      -- return the corresponding EntityFullName, if there is one.
+
    ImportCommands(..),
    ImportCommand(..),
    Directive(..),
+
+   trivialImportCommands, -- :: ImportCommands
+      -- commands which import nothing.
+
 
    -- parsers
    entityNameParser, -- :: GenParser Char st EntityName
@@ -131,6 +142,9 @@ data Directive =
                oldName :: EntityFullName
              }
    deriving (Eq,Ord)
+
+trivialImportCommands :: ImportCommands
+trivialImportCommands = ImportCommands []
 
 -- ----------------------------------------------------------------------
 -- Instances of HasBinary
@@ -252,14 +266,43 @@ instance Monad m => HasBinary EntitySearchName m where
 -- Miscellaneous functions.
 -- ----------------------------------------------------------------------
 
-entityDir :: EntityFullName -> Maybe EntityFullName
-entityDir (EntityFullName names) = fmap EntityFullName (chop 1 names)
+-- Split off a final component from a name.
+entityDirBase :: EntityFullName -> Maybe (EntityFullName,EntityName)
+entityDirBase (EntityFullName []) = Nothing
+entityDirBase (EntityFullName (name0 : names0)) =
+   case entityDirBase (EntityFullName names0) of
+      Nothing -> Just (EntityFullName [],name0)
+      Just (EntityFullName names1,name1) 
+         -> Just (EntityFullName (name0 : names1),name1)
 
+entityDir :: EntityFullName -> Maybe EntityFullName
+entityDir fullName = fmap fst (entityDirBase fullName)
+ 
 entityBase :: EntityFullName -> Maybe EntityName
-entityBase (EntityFullName names) = lastOpt names
+entityBase fullName = fmap snd (entityDirBase fullName)
 
 trivialFullName :: EntityFullName
 trivialFullName = EntityFullName []
+
+toFullName :: EntitySearchName -> Maybe EntityFullName
+toFullName (FromHere fullName) = Just fullName
+toFullName (FromCurrent fullName) = Just fullName
+toFullName _ = Nothing
+
+searchNameDirBase 
+   :: EntitySearchName -> Maybe (EntitySearchName,Maybe EntityName)
+searchNameDirBase (FromRoot fname0) = case entityDirBase fname0 of
+   Just (fname1,name) -> Just (FromRoot fname1,Just name)
+   Nothing -> Nothing
+searchNameDirBase (FromHere fname0) = case entityDirBase fname0 of
+   Just (fname1,name) -> Just (FromHere fname1,Just name)
+   Nothing -> Just (FromParent (FromHere trivialFullName),Nothing)
+searchNameDirBase (FromCurrent fname0) = case entityDirBase fname0 of
+   Just (fname1,name) -> Just (FromCurrent fname1,Just name)
+   Nothing -> Just (FromParent (FromCurrent trivialFullName),Nothing)
+searchNameDirBase (FromParent sname0) = case searchNameDirBase sname0 of
+   Just (sname1,nameOpt) -> Just (FromParent sname1,nameOpt)
+
 
 -- ----------------------------------------------------------------------
 -- Parser functions for EntityName, EntityFullName and EntitySearchName
@@ -269,8 +312,14 @@ simpleNameParser :: GenParser Char st String
 simpleNameParser =
    do
      c <- letter
-     cs <- many alphaNum
+     cs <- many simpleNameCharParser
      return (c : cs)
+
+simpleNameCharParser :: GenParser Char st Char
+-- Characters allowed after the first character of a simpleName.
+simpleNameCharParser =
+   satisfy
+      (\ ch -> isAlphaNum ch || (ch == '_') || (ch == ':'))
 
 simpleNamesParser :: GenParser Char st [String]
 simpleNamesParser =
@@ -293,7 +342,8 @@ entityFullNameParser =
       spaces
       strs <- simpleNamesParser
       case mkEntityFullName strs of
-         Nothing -> fail (show (unsplitByChar0 '.' strs)  ++ " is not a valid entity full name")
+         Nothing -> fail (show (unsplitByChar0 '.' strs)  
+            ++ " is not a valid entity full name")
          Just name -> return name 
 
 entitySearchNameParser :: GenParser Char st EntitySearchName
@@ -302,14 +352,15 @@ entitySearchNameParser =
       spaces
       strs <- simpleNamesParser
       case mkEntitySearchName strs of
-         Nothing -> fail (show (unsplitByChar0 '.' strs)  ++ " is not a valid entity search name")
+         Nothing -> fail (show (unsplitByChar0 '.' strs)  
+            ++ " is not a valid entity search name")
          Just name -> return name 
 
 
 
--- ---------------------------------------------------------------------------------------
+-- --------------------------------------------------------------------------
 -- Utility functions for parser
--- ---------------------------------------------------------------------------------------
+-- --------------------------------------------------------------------------
 
 mkEntityName :: String -> Maybe EntityName
 mkEntityName name =
@@ -344,10 +395,13 @@ mkEntityFullName strs =
 
 mkEntitySearchName :: [String] -> Maybe EntitySearchName
 mkEntitySearchName [] = Nothing
+mkEntitySearchName ["Current"] = Just (FromCurrent (EntityFullName []))
 mkEntitySearchName ("Current" : strs) =
    fmap FromCurrent (mkEntityFullName strs)
+mkEntitySearchName ["Root"] = Just (FromRoot (EntityFullName []))
 mkEntitySearchName ("Root" : strs) =
    fmap FromRoot (mkEntityFullName strs)
+mkEntitySearchName ["Parent"] = Just (FromParent (FromHere (EntityFullName [])))
 mkEntitySearchName ("Parent" : strs) =
    fmap FromParent (mkEntitySearchName strs)
 mkEntitySearchName strs =

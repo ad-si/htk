@@ -28,10 +28,14 @@ module LinkManager(
       -- to the object containing the LinkedObject.  In particular, when the
       -- linked object is changed, we dirty the WrappedLink.
    newLinkedPackageObject,
-      -- :: View -> WrappedLink -> Maybe Insertion -> ImportCommands
-      -- -> IO (WithError LinkedObject)
+      -- :: View -> WrappedLink -> Maybe Insertion 
+      -- ->IO (WithError LinkedObject)
       -- Similar to newLinkedObject, but for a LinkedObject which will
       -- represent a package object, for example an MMiSS package folder.
+      -- A newLinkedPackageObject always starts off with trivialImportCommands,
+      -- whether after newLinkedPackageObject or decoding or merging.  
+      -- The ImportCommands must be set by setCommands.
+
    moveObject,
       -- :: LinkedObject -> Maybe Insertion -> IO (WithError ())
       -- Change the location of a LinkedObject
@@ -126,6 +130,12 @@ module LinkManager(
       -- Looks up an object, returning the actual link if possible.
       -- We return Nothing if the object does not exist but cause an error if 
       -- the object has the wrong type.
+
+
+   getFullName, 
+       -- :: HasLinkedObject object => View -> object -> IO String
+       -- Returns the full name of an object within the view, for error 
+       -- messages.
 
    -- FolderStructure functions.
    toFolderStructure,
@@ -240,20 +250,20 @@ newLinkedObject view wrappedLink insertionOpt =
             wrappedLink' = wrappedLink,
             insertion' = insertionOpt,
             contents' = [],
-            importCommands' = Nothing
+            hasImportCommands = False
             }
       createLinkedObject view True frozenLinkedObject
 
 newLinkedPackageObject :: View -> WrappedLink -> Maybe Insertion 
-   -> ImportCommands -> IO (WithError LinkedObject)
-newLinkedPackageObject view wrappedLink insertionOpt importCommands =
+   -> IO (WithError LinkedObject)
+newLinkedPackageObject view wrappedLink insertionOpt =
    do
       let
          frozenLinkedObject = FrozenLinkedObject {
             wrappedLink' = wrappedLink,
             insertion' = insertionOpt,
             contents' = [],
-            importCommands' = Just importCommands
+            hasImportCommands = True
             }
       createLinkedObject view True frozenLinkedObject
 
@@ -497,7 +507,14 @@ lookupObject view linkedObject searchName =
                   Just link -> hasValue (Just link)
          )
 
-        
+-- | Returns the full name of an object within the view, for error messages.
+getFullName :: HasLinkedObject object => View -> object -> IO String
+getFullName view object =
+   do
+      importsState <- getImportsState view
+      fullName <- getName (folders importsState) (toLinkedObject object)
+      return (toString fullName) 
+
 ---
 -- (function not used any longer)
 unpackLinkedObjectPtr :: ObjectType objectType object 
@@ -646,16 +663,11 @@ freezeLinkedObject linkedObject =
       contentsData <- readContents (contents linkedObject)
       let
          (contents' :: [(EntityName,LinkedObjectPtr)]) = fmToList contentsData
-      importCommands' <- case importCommands linkedObject of
-         Nothing -> return Nothing
-         Just broadcaster -> 
-            do
-               importCommands1 <- readContents broadcaster
-               return (Just importCommands1)
+         hasImportCommands = isJust (importCommands linkedObject)
 
       return (FrozenLinkedObject {wrappedLink' = wrappedLink',
          insertion' = insertion',contents' = contents',
-         importCommands' = importCommands'})
+         hasImportCommands = hasImportCommands})
 
 ---
 -- Create a new linked object, given the FrozenLinkedObject.
@@ -688,13 +700,14 @@ createLinkedObject view isNew frozenLinkedObject =
       -- twice simultaneously on the same LinkedObject.
       previousMVar <- newMVar (if isNew then Nothing else insertion0)
 
-      importCommands <- case importCommands' frozenLinkedObject of
-         Nothing -> return Nothing
-         Just commands -> 
-            do
-               broadcaster <- newSimpleBroadcaster commands
-               return (Just broadcaster)
-      
+      importCommands <-
+         if hasImportCommands frozenLinkedObject
+            then
+               do
+                  broadcaster <- newSimpleBroadcaster trivialImportCommands
+                  return (Just broadcaster)
+            else
+               return Nothing      
       let
          moveObject insertion = synchronizeView view (
             do
@@ -804,17 +817,17 @@ data FrozenLinkedObject = FrozenLinkedObject {
    wrappedLink' :: WrappedLink,
    insertion' :: Maybe Insertion,
    contents' :: [(EntityName,LinkedObjectPtr)],
-   importCommands' :: Maybe ImportCommands
+   hasImportCommands :: Bool
    } deriving (Eq,Typeable)
 
 instance HasBinary FrozenLinkedObject CodingMonad where
    writeBin = mapWrite (\ (FrozenLinkedObject {wrappedLink' = wrappedLink,
       insertion' = insertion,contents' = contents,
-      importCommands' = importCommands})
-      -> (wrappedLink,insertion,contents,importCommands))
-   readBin = mapRead (\ (wrappedLink,insertion,contents,importCommands) ->
+      hasImportCommands = hasImportCommands})
+      -> (wrappedLink,insertion,contents,hasImportCommands))
+   readBin = mapRead (\ (wrappedLink,insertion,contents,hasImportCommands) ->
       (FrozenLinkedObject {wrappedLink' = wrappedLink,insertion' = insertion,
-         contents' = contents,importCommands' = importCommands}))
+         contents' = contents,hasImportCommands = hasImportCommands}))
 
 -- ----------------------------------------------------------------------
 -- Instances of HasCodedValue via a FrozenLinkedObject
@@ -1097,33 +1110,16 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
 
          let
             -- (5) construct ImportCommands.
-            importCommandsList :: [Maybe ImportCommands]
-            importCommandsList =
+            hasImportCommandsList :: [Bool]
+            hasImportCommandsList =
                map
-                  (\ (_,frozen) -> importCommands' frozen)
+                  (\ (_,frozen) -> hasImportCommands frozen)
                   frozenLinkedObjects
 
-         importCommands' <- case allSame isJust importCommandsList of
+         hasImportCommands <- case allSame id hasImportCommandsList of
             Nothing -> break
                "LinkManager: importCommand status could not be determined"
-            Just False -> return Nothing
-            Just True ->
-               let
-                  importCommandsList2 :: [ImportCommands]
-                  importCommandsList2 = catMaybes importCommandsList
-
-
-                  importCommands :: [ImportCommand]
-                  importCommands =
-                     (concat
-                        (map
-                           (\ (ImportCommands l) -> l) 
-                           importCommandsList2
-                           )
-                        )
-
-               in
-                  return (Just (ImportCommands (uniqOrdOrder importCommands)))
+            Just b -> return b
 
          let         
             -- (5) Construct contents.  Since we specified that these links
@@ -1155,7 +1151,7 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
                wrappedLink' = newWrappedLink',
                insertion' = newInsertion',
                contents' = newContents',
-               importCommands' = importCommands'
+               hasImportCommands = hasImportCommands
                }
 
          linkedObjectWE 

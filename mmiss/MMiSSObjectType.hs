@@ -26,7 +26,7 @@ module MMiSSObjectType(
 
    variablesSame,
 
-   getLinkEnvPreamble,  
+   getParentLinkedObjectPreamble,
    ) where
 
 #include "config.h"
@@ -216,20 +216,20 @@ converter view linkedObject variable =
       do
          cacheElement <- readLink view (element variable)
 
-         -- Get the LinkEnvironment for the containing MMiSSPackageFolder.
-         leWE <- getLinkEnvPreamble view linkedObject
-         (linkEnvironment,_) <- coerceWithErrorIO leWE
+         -- Get the LinkedObject for the containing MMiSSPackageFolder.
+         leWE <- getParentLinkedObjectPreamble view linkedObject
+         (parentLinkedObject,_) <- coerceWithErrorIO leWE
 
          let
-            structureContentsWE = structureContents cacheElement
-         structureContents <- coerceWithErrorIO structureContentsWE
+            accContentsWE = toAccContents cacheElement
+         accContents <- coerceWithErrorIO accContentsWE
          let
-            cacheLinks0 = links (accContents structureContents)
+            cacheLinks0 = links accContents
             cacheLinks1 = map
                (\ (fullName,variantSearch,linkType) -> (fullName,linkType))
                cacheLinks0
 
-         cacheLinks2 <- newLinkSource linkEnvironment cacheLinks1
+         cacheLinks2 <- newLinkSource view parentLinkedObject cacheLinks1
          let
             cache = Cache {
                cacheElement = cacheElement,
@@ -288,16 +288,16 @@ variablesSame variable1 variable2 =
    (element variable1 == element variable2)
 
 ---
--- Get an object's LinkEnvironment and preamble link
-getLinkEnvPreamble :: HasLinkedObject object => View -> object 
-   -> IO (WithError (LinkEnvironment,Link MMiSSPreamble))
-getLinkEnvPreamble view mmissObject =
+-- Get an object's parent package object and preamble link
+getParentLinkedObjectPreamble :: HasLinkedObject object => View -> object 
+   -> IO (WithError (LinkedObject,Link MMiSSPreamble))
+getParentLinkedObjectPreamble view mmissObject =
    do
       packageFolderWE 
          <- getMMiSSPackageFolder view (toLinkedObject mmissObject)
       return (mapWithError 
          (\ packageFolder 
-            -> (toLinkEnvironment packageFolder,
+            -> (toMMiSSPackageFolderLinkedObject packageFolder,
                toMMiSSPreambleLink packageFolder)
             )
          packageFolderWE

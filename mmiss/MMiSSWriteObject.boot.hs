@@ -8,12 +8,11 @@ module MMiSSWriteObject where
 #define ELEMENT XmlTypes.Element
 #endif
 
-
 writeToMMiSSObject :: 
    MMiSSObjectTypeType.MMiSSObjectType 
    -> ViewType.View 
-   -> LinkManager.LinkedObject
-   -> Data.Maybe.Maybe EntityNames.EntityFullName 
+   -> MMiSSPackageFolder.MMiSSPackageFolder   
+   -> Data.Maybe.Maybe EntityNames.EntitySearchName 
    -> ELEMENT
    -> GHC.Base.Bool 
    -> GHC.IOBase.IO (Computation.WithError (

@@ -3,8 +3,9 @@ module MMiSSPackageFolder where
 data MMiSSPackageFolder
 
 getMMiSSPackageFolder ::
-   ViewType.View 
-   -> LinkManager.LinkedObject 
+   LinkManager.HasLinkedObject object
+   => ViewType.View 
+   -> object 
    -> GHC.IOBase.IO (Computation.WithError MMiSSPackageFolder)
 
 toMMiSSPreambleLink ::
@@ -12,4 +13,5 @@ toMMiSSPreambleLink ::
    -> Link.Link MMiSSPreamble.MMiSSPreamble
 
 
-toLinkEnvironment :: MMiSSPackageFolder -> LinkManager.LinkEnvironment
+toMMiSSPackageFolderLinkedObject 
+   :: MMiSSPackageFolder -> LinkManager.LinkedObject

@@ -69,17 +69,6 @@ instance ObjectType MMiSSObjectType MMiSSObject where
 
    getObjectTypePrim object = mmissObjectType object
 
-{- Now commented out.  The ONLY way of creating objects is via
-   MMiSSPackageFolder.
-   createObjectMenuItemPrim objectType = 
-      if xmlTag objectType == "package"
-         then
-            Just (xmlTag objectType,\ view linkedObject
-               -> importMMiSSLaTeX objectType view linkedObject)
-         else
-            Nothing
-   -}
-
    nodeTitleSourcePrim object = objectNameSource object
 
    toLinkedObjectOpt object = Just (toLinkedObject object)

@@ -10,12 +10,14 @@ module MMiSSPreamble(
    writePreamble, -- :: Link Preamble -> View -> MMiSSLaTeXPreamble -> IO ()
 
 
-   toPackagePath, -- :: MMiSSPreamble -> SimpleSource EntityPath
+   toImportCommands, -- :: MMiSSPreamble -> SimpleSource ImportCommands
 
    ) where
 
-import Concurrent
-import IOExts
+import Maybe
+
+import Control.Concurrent
+import System.IO.Unsafe
 
 import Computation
 import ExtendedPrelude
@@ -252,21 +254,20 @@ readPreamble view link =
 -- Interface needed for MMiSSPackageFolder
 -- -------------------------------------------------------------------
 
-toPackagePath :: MMiSSPreamble -> SimpleSource EntityPath
-toPackagePath mmissPreamble = 
-   fmap toPath (toSimpleSource (preamble mmissPreamble))
-
-toPath :: MMiSSLatexPreamble -> EntityPath
-toPath _ = trivialPath
-   -- trivial for now.  When we change to new includes this will need
-   -- to be altered.
+toImportCommands :: MMiSSPreamble -> SimpleSource ImportCommands
+toImportCommands mmissPreamble = 
+   fmap 
+      (\ mmissLaTeXPreamble -> fromMaybe trivialImportCommands
+         (importCommands mmissLaTeXPreamble))
+      (toSimpleSource (preamble mmissPreamble))
+   
 
 -- -------------------------------------------------------------------
 -- The Global Registry.  This will in fact be empty.
 -- -------------------------------------------------------------------
 
 globalRegistry :: GlobalRegistry MMiSSPreambleType
-globalRegistry = IOExts.unsafePerformIO mkGlobalRegistry
+globalRegistry = unsafePerformIO mkGlobalRegistry
 {-# NOINLINE globalRegistry #-}
 
 mmissPreambleTypeKey :: GlobalKey

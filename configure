@@ -1551,7 +1551,12 @@ if test -z "$WISH"; then
 fi
 #
 # Check for daVinci
-for ac_prog in daVinci
+if test -n "$DAVINCIHOME"; then
+   DAVINCI=$DAVINCIHOME/bin/daVinci
+   echo Assuming DAVINCI=$DAVINCI because of variable \$DAVINCIHOME
+
+else
+   for ac_prog in daVinci
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -1594,6 +1599,8 @@ fi
 
   test -n "$DAVINCI" && break
 done
+
+fi
 
 if test -z "$DAVINCI"; then
     echo "Without daVinci you cannot run any of UniForM's graph-drawing programs"
@@ -2884,6 +2891,7 @@ s,@GhcPatchLevel@,$GhcPatchLevel,;t t
 s,@GhcShortVersion@,$GhcShortVersion,;t t
 s,@GHCPKG@,$GHCPKG,;t t
 s,@WISH@,$WISH,;t t
+s,@daVinci@,$daVinci,;t t
 s,@DAVINCI@,$DAVINCI,;t t
 s,@TAR@,$TAR,;t t
 s,@ZIP@,$ZIP,;t t

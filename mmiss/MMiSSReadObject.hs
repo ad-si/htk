@@ -3,7 +3,6 @@
 module MMiSSReadObject(
    simpleReadFromMMiSSObject,
    readMMiSSObject,
-   getMMiSSObjectLink,
 
    ) where
 #include "config.h"
@@ -14,6 +13,7 @@ import Computation
 import ExtendedPrelude
 import IntPlus
 import AtomString(toString)
+import Sources (readContents)
 
 import DialogWin
 
@@ -36,20 +36,8 @@ import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSObjectTypeInstance
 import MMiSSReAssemble
+import MMiSSPackageFolder
 
----
--- Get an object's link.
-getMMiSSObjectLink :: LinkEnvironment -> EntityFullName 
-   -> IO (WithError (Link MMiSSObject))
-getMMiSSObjectLink linkEnvironment fullName =
-   do
-      objectLinkOptWE <- lookupObject linkEnvironment fullName
-      case fromWithError objectLinkOptWE of
-         Left mess -> return (hasError (
-            "Object " ++ toString fullName ++ " is not an MMiSS object"))
-         Right Nothing -> return (hasError (
-            "Object " ++ toString fullName ++ " does not exist"))
-         Right (Just objectLink) -> return (hasValue objectLink)
 
 ---
 -- Retrieve a single MMiSSObject's data (not any of its children)
@@ -94,75 +82,87 @@ readMMiSSObject view link variantSearchOpt depth0 allowNotFound =
             -- getElement is the function to be passed to
             -- MMiSSReAssemble.reAssembleNoRecursion.  
 
-            -- The LinkEnvironment and EntityFullName themselves specify
-            -- how the object is to be found; the IntPlus is the depth to
-            -- go down.
+            -- The MMiSSPackageFolder is the folder to look from.  
+            -- The EntitySearchName specifies what to look for.
+            -- The IntPlus is the depth to go down.
 
             -- We use the hackWithError mechanism to deal with not-found cases,
             -- and split the function into two, to avoid the indentation depth
             -- becoming unbearable.
-            getElement :: EntityFullName -> MMiSSVariantSearch 
-               -> (LinkEnvironment,IntPlus)
-               -> IO (WithError (Maybe (Element,(LinkEnvironment,IntPlus))))
-            getElement entityFullName variantSearch searchData =
+            getElement :: EntitySearchName -> MMiSSVariantSearch 
+               -> (MMiSSPackageFolder,IntPlus)
+               -> IO (WithError (Maybe (Element,(MMiSSPackageFolder,IntPlus))))
+            getElement entitySearchName variantSearch searchData =
                do
-                  weData <- getElement0 entityFullName variantSearch searchData
+                  weData 
+                     <- getElement0 entitySearchName variantSearch searchData
                   hackWithError Nothing allowNotFound weData
 
-            getElement0 :: EntityFullName -> MMiSSVariantSearch 
-               -> (LinkEnvironment,IntPlus)
-               -> IO (WithError (Maybe (Element,(LinkEnvironment,IntPlus))))
-            getElement0 entityFullName variantSearch (_,0) 
+            getElement0 :: EntitySearchName -> MMiSSVariantSearch 
+               -> (MMiSSPackageFolder,IntPlus)
+               -> IO (WithError (Maybe (Element,(MMiSSPackageFolder,IntPlus))))
+            getElement0 entitySearchName variantSearch (_,0) 
                = return (hasValue Nothing)
-            getElement0 entityFullName variantSearch (linkEnvironment,depth) =
+            getElement0 entitySearchName variantSearch (packageFolder,depth) =
                addFallOutWE (\ break ->
                   do
                      let
                         hackBreak = break . hackMess
 
-                     linkOptWE <- lookupObject linkEnvironment entityFullName
+                     linkOptWE <- lookupMMiSSObject view packageFolder 
+                        entitySearchName
+
                      link <- case fromWithError linkOptWE of
-                        Left _ -> break ("Object "++toString entityFullName
-                           ++ " is not an MMiSSObject")
-                        Right Nothing -> 
-                           hackBreak ("Object "++toString entityFullName
-                              ++" could not be found")
                         Right (Just link) -> return link
-     
-                     
+                        Right Nothing -> hackBreak ("Object "
+                           ++ toString entitySearchName ++ " does not exist")
+                        Left mess -> break mess
+                          
                      objectDataWE 
                         <- simpleReadFromMMiSSObject view link variantSearch
 
                      (variable,object)
                         <- coerceWithErrorOrBreakIO hackBreak objectDataWE
 
-                     leWE <- getLinkEnvPreamble view object
-                     (linkEnvironment1,preamble1) <- coerceWithErrorOrBreakIO 
-                        hackBreak leWE
-                     
                      cache <- converter view (linkedObject object) variable
+
+                     packageFolderWE <- getMMiSSPackageFolder view
+                        (toLinkedObject object) 
+                     packageFolder 
+                        <- coerceWithErrorOrBreakIO break packageFolderWE
 
                      modifyMVar_ preambleLinksMVar 
                         (\ preambleLinks ->
-                           return (preamble1 : preambleLinks))  
+                           return (toMMiSSPreambleLink packageFolder 
+                              : preambleLinks)
+                           )
 
                      return (Just (cacheElement cache,
-                        (linkEnvironment1,depth - 1)))
+                        (packageFolder,depth - 1)))
                   )
 
          -- Construct the top data for reAssembleNoRecursion.
 
-         -- We construct a special LinkEnvironment to find the top object.
+         -- we need to get the object's package folder and a search name for
+         -- it.
          object <- readLink view link
-         linkEnvironment 
-            <- newLinkEnvironment (linkedObject object) trivialPath
+         packageFolderWE <- getMMiSSPackageFolder view (toLinkedObject object)
+         packageFolder <- coerceWithErrorOrBreakIO break packageFolderWE
+
+         objectNameOpt <- readContents (getLinkedObjectTitleOpt 
+            (toLinkedObject object))
+         objectName <- case objectNameOpt of
+            Nothing -> break "Attempt to read deleted object?"
+            Just objectName -> return objectName
+         let
+            searchName = FromHere (EntityFullName [objectName])
 
          thisVariantSearch <- case variantSearchOpt of
             Just thisVariantSearch -> return thisVariantSearch
             Nothing -> getCurrentVariantSearch (variantObject object)
 
-         elementWE <- reAssembleNoRecursion getElement trivialFullName
-            thisVariantSearch (linkEnvironment,depth0)
+         elementWE <- reAssembleNoRecursion getElement searchName
+            thisVariantSearch (packageFolder,depth0)
 
          element <- coerceWithErrorOrBreakIO break elementWE
 

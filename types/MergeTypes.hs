@@ -1,6 +1,35 @@
 {- This describes the various types relevant to the interface between the
    repository and object implementations and merging. -}
-module MergeTypes where
+module MergeTypes(
+   ObjectLinks(..),
+   concatObjectLinks, -- :: [ObjectLinks key] -> ObjectLinks key
+   
+   MergeLinks(..),
+   emptyMergeLinks, -- :: MergeLinks object
+   singletonMergeLinks, 
+      -- :: HasCodedValue object 
+      -- => (object -> WrappedMergeLink) -> MergeLinks object
+
+   pairMergeLinks,
+      -- :: MergeLinks object -> MergeLinks object -> MergeLinks object
+
+   LinkReAssigner(..),
+   HasMerging(..),
+   WrappedMergeLink(..),
+   unpackWrappedMergeLink,
+      -- :: HasMerging object => WrappedMergeLink -> Maybe (Link object)
+   
+
+   mapLink,
+      -- :: HasMerging object => LinkReAssigner -> View -> Link object 
+      -- -> Link object
+
+   PostMerge,
+   newPostMerge, -- :: IO () -> PostMerge
+
+   doPostMerge, -- :: PostMerge -> IO ()
+   )
+ where
 
 import Data.FiniteMap
 
@@ -89,6 +118,27 @@ class HasCodedValue object => HasMerging object where
       -> [(View,Link object,object)] -> IO (WithError ())
       -- Attempt to merge the links supplied in the last argument to produce
       -- a single object in (View,Link object), or return an error message.
+
+   attemptMergeWithPostMerge :: LinkReAssigner -> View -> Link object
+      -> [(View,Link object,object)] -> IO (WithError PostMerge)
+      -- a more general version of attemptMerge, where the merge may return
+      -- a PostMerge object, containing additional things (currently just an
+      -- action) to be done after all the objects in the view have been merged.
+
+   attemptMergeWithPostMerge linkReAssigner view link vlos =
+      do
+         unitWE <- attemptMerge linkReAssigner view link vlos
+         return (mapWithError
+            (\ () -> newPostMerge (return ()))
+            unitWE
+            )
+
+newtype PostMerge = PostMerge (IO ()) -- abstract type
+
+newPostMerge :: IO () -> PostMerge
+newPostMerge action = PostMerge action
+
+doPostMerge (PostMerge action) = action
 
 data WrappedMergeLink = forall object .
    (HasCodedValue object,HasMerging object) => WrappedMergeLink (Link object)

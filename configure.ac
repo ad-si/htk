@@ -105,7 +105,14 @@ if test -z "$WISH"; then
 fi
 #
 # Check for daVinci
-AC_PATH_PROGS(DAVINCI,daVinci)
+if test -n "$DAVINCIHOME"; then
+   DAVINCI=$DAVINCIHOME/bin/daVinci
+   echo Assuming DAVINCI=$DAVINCI because of variable \$DAVINCIHOME
+   AC_SUBST(daVinci)
+else
+   AC_PATH_PROGS(DAVINCI,daVinci)
+fi
+
 if test -z "$DAVINCI"; then
     echo "Without daVinci you cannot run any of UniForM's graph-drawing programs"
     DAVINCI="/usr/bin/davinci"

@@ -488,11 +488,13 @@ dirtyObject view (versioned@Versioned {statusMVar = statusMVar}) =
       putMVar statusMVar newStatus
 
 readObject :: HasCodedValue x => View -> Versioned x -> IO x
-readObject view (versioned@Versioned{statusMVar = statusMVar}) =
+readObject view (versioned@Versioned{statusMVar = statusMVar} :: Versioned x) =
    do
       status <- readMVar statusMVar
       case status of
-         Empty -> error "View.readObject on uninitialised object"
+         Empty -> 
+            error ("View.readObject on uninitialised object of type: "
+               ++ show (typeOf (undefined :: x)))
          Virgin x -> return x
          Cloned x _ _ -> return x
          UpToDate x -> return x

@@ -10,6 +10,8 @@ module LaTeXParser (
    -- :: (Element, Bool, [MMiSSLatexPreamble]) -> WithError (EmacsContent ((String, Char), [Attribute]))
    -- Turns an Element into a MMiSSLaTeX source
    -- If the Bool is set, attaches a preamble.
+   importCommands,
+   -- :: MMiSSLaTeXPreamble -> Maybe ImportCommands
 
    classifyLabelledTag, -- :: String -> Maybe Char
    -- Maps an Xml tag to its corresponding mini-type if it has one.

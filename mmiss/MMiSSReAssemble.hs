@@ -33,23 +33,23 @@ import MMiSSVariant
 -- MMiSSObjects.printAction uses a horrible trick which assumes that the
 -- children of an Element are visited in the order supplied.
 reAssemble :: 
-   (EntityFullName -> MMiSSVariantSearch -> searchData 
+   (EntitySearchName -> MMiSSVariantSearch -> searchData 
    -> IO (WithError (Maybe (Element,searchData)))) 
-   -> EntityFullName -> MMiSSVariantSearch -> searchData
+   -> EntitySearchName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
 reAssemble 
-      (getElement :: EntityFullName -> MMiSSVariantSearch -> searchData 
+      (getElement :: EntitySearchName -> MMiSSVariantSearch -> searchData 
          -> IO (WithError (Maybe (Element,searchData)))) 
-      (topName :: EntityFullName)
+      (topName :: EntitySearchName)
       (topVariantSearch :: MMiSSVariantSearch) 
       (topSearchData :: searchData)
       =
    -- We make heavy use of Computation.MonadWithError here 
    let
-      getElementWE :: EntityFullName -> MMiSSVariantSearch -> searchData -> 
+      getElementWE :: EntitySearchName -> MMiSSVariantSearch -> searchData -> 
          MonadWithError IO (Maybe (Element,searchData))
-      getElementWE entityName variantSearch searchData 
-         = MonadWithError (getElement entityName variantSearch searchData)
+      getElementWE searchName variantSearch searchData 
+         = MonadWithError (getElement searchName variantSearch searchData)
 
       -- reAssembleWhole does the whole reassembly of the top element.
       MonadWithError (reAssembleWhole :: IO (WithError (Maybe Element))) 
@@ -60,19 +60,24 @@ reAssemble
       -- no element of this name can be found.
       -- The last argument designates a check to be carried out
       -- (for example, to determine if the element has appropriate type).
-      reAssembleName :: EntityFullName -> MMiSSVariantSearch -> searchData
+      reAssembleName :: EntitySearchName -> MMiSSVariantSearch -> searchData
          -> (Element -> WithError ()) -> MonadWithError IO (Maybe Element)
-      reAssembleName fullName variantSearch0 searchData0 check =
+      reAssembleName searchName variantSearch0 searchData0 check =
          do
-            elementOpt <- getElementWE fullName variantSearch0 searchData0
+            elementOpt <- getElementWE searchName variantSearch0 searchData0
             case elementOpt of
                Nothing -> return Nothing
                Just (element0,searchData1) ->
                   do
                      monadifyWithError (check element0)
-                     element1 <- reAssembleElement variantSearch0 
-                        searchData1 element0
-                     return (Just element1)
+
+                     -- Set the Element to have the original EntitySearchName.
+                     let
+                        element1 = setLabel element0 searchName
+
+                     element2 <- reAssembleElement variantSearch0 
+                        searchData1 element1
+                     return (Just element2)
 
       -- Reassemble an element, which is not itself an include.
       reAssembleElement :: MMiSSVariantSearch -> searchData -> Element 
@@ -95,7 +100,7 @@ reAssemble
                         Nothing -> return content
                         Just (referredNameString,linkAttributes,check) ->
                            do
-                              (referredName :: EntityFullName)
+                              (referredName :: EntitySearchName)
                                  <- monadifyWithError (
                                     fromStringWE referredNameString)
                               let
@@ -135,9 +140,9 @@ reAssemble
 -- reAssembleNoRecursion is like reAssemble, but it also checks that there
 -- are no names which are recursively expanded.
 reAssembleNoRecursion :: 
-   (EntityFullName -> MMiSSVariantSearch -> searchData 
+   (EntitySearchName -> MMiSSVariantSearch -> searchData 
       -> IO (WithError (Maybe (Element,searchData)))) 
-   -> EntityFullName -> MMiSSVariantSearch -> searchData
+   -> EntitySearchName -> MMiSSVariantSearch -> searchData
    -> IO (WithError Element)
 reAssembleNoRecursion getElement entityName variantSearch searchData =
    let

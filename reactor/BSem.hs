@@ -103,10 +103,10 @@ tryAcquireBSems (bsem:bsems) =
 -- tryAcquireBSemsWithError is a generalisation of tryAcquireBSems, which
 -- produces an error message
 --
--- The first argument extracts an object's BSem; the second a String to
+-- The first argument extracts an object's BSem; the second gets a String to
 -- be used as a message if we can't get the object's lock.
-tryAcquireBSemsWithError :: (object -> BSem) -> (object -> String) -> [object]
-   -> IO (WithError (IO ()))
+tryAcquireBSemsWithError :: (object -> BSem) -> (object -> IO String) 
+   -> [object] -> IO (WithError (IO ()))
 tryAcquireBSemsWithError _ _ [] = return (hasValue done)
 tryAcquireBSemsWithError toBSem toMess (object:objects) =
    do
@@ -129,5 +129,7 @@ tryAcquireBSemsWithError toBSem toMess (object:objects) =
                         release bsem
                         return acquires
          else
-            return (hasError (toMess object))
+            do
+               errorMess <- toMess object
+               return (hasError errorMess)
    

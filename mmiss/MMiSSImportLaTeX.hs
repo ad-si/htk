@@ -30,11 +30,12 @@ import MMiSSDTDAssumptions
 import MMiSSObjectTypeType
 import MMiSSObjectType
 import MMiSSPreamble
+import {-# SOURCE #-} MMiSSPackageFolder
 import {-# SOURCE #-} MMiSSWriteObject
 
 ---
 -- Import a new object from a LaTeX file and attach it to the subdirectory
--- of a given LinkedObject.
+-- of a given PackageFolder.
 --
 -- The preamble should be written to the link given by the first
 -- argument.
@@ -42,9 +43,9 @@ import {-# SOURCE #-} MMiSSWriteObject
 -- The complicated last argument constructs or retrieves the parent linked 
 -- object, given the name of the package.
 importMMiSSLaTeX :: Link MMiSSPreamble -> MMiSSObjectType -> View
-   -> (EntityName -> IO (WithError LinkedObject)) 
+   -> (EntityName -> IO (WithError MMiSSPackageFolder)) 
    -> IO (Maybe (Link MMiSSObject))
-importMMiSSLaTeX preambleLink objectType view getLinkedObject =
+importMMiSSLaTeX preambleLink objectType view getPackageFolder =
    do
       result <- addFallOut (\ break ->
          do
@@ -66,8 +67,14 @@ importMMiSSLaTeX preambleLink objectType view getLinkedObject =
                      (element,preambleOpt) 
                         <- coerceWithErrorOrBreakIO break parseResultWE
 
-                     fullLabel 
+                     (fullLabelSearch :: EntitySearchName)
                         <- coerceWithErrorOrBreakIO break (getLabel element)
+
+                     (fullLabel :: EntityFullName)
+                        <- case toFullName fullLabelSearch of
+                           Just fullLabel -> return fullLabel
+                           Nothing -> (break 
+                              "Element label is not within current directory")
 
                      let
                         baseLabel = fromMaybe
@@ -76,9 +83,9 @@ importMMiSSLaTeX preambleLink objectType view getLinkedObject =
 
                      seq baseLabel done
 
-                     linkedObjectWE <- getLinkedObject baseLabel
-                     linkedObject 
-                        <- coerceWithErrorOrBreakIO break linkedObjectWE
+                     packageFolderWE <- getPackageFolder baseLabel
+                     packageFolder 
+                        <- coerceWithErrorOrBreakIO break packageFolderWE
 
                      preamble <- case preambleOpt of
                         Just preamble -> return preamble
@@ -87,7 +94,7 @@ importMMiSSLaTeX preambleLink objectType view getLinkedObject =
                      writePreamble preambleLink view preamble
 
                      linkWE <- writeToMMiSSObject objectType view
-                        linkedObject Nothing element True
+                        packageFolder Nothing element True
 
                      (link,_) <- coerceWithErrorOrBreakIO break linkWE
                      return (Just link)
