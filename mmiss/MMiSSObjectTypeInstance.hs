@@ -257,7 +257,7 @@ instance HasMerging MMiSSObject where
             -- (1) Get the type of the first object, and check that the
             -- other objects also have this test.
             let
-               ((_,_,headObject):vlosRest) = vlos1
+               ((headView,headLink,headObject):vlosRest) = vlos1
 
                tag = xmlTag . mmissObjectType
 
@@ -315,13 +315,35 @@ instance HasMerging MMiSSObject where
                reAssign
                (map (\ (view,_,object) -> (view,variantObject object)) vlos1)
 
-            -- (4) Create the object, and put it in the view.
-            mmissObject1 <- createMMiSSObject 
-               mmissObjectType1 linkedObject1 variantObject1
+            canClone <- case vlosRest of
+               [] ->
+                  do
+                     linkedsSame <- linkedObjectsSame linkedObject1 
+                        (toLinkedObject headObject)
+                     if linkedsSame
+                        then
+                           do
+                              variantsSame <- variantObjectsSame
+                                 variablesSame
+                                 variantObject1 (variantObject headObject)
+                              return variantsSame
+                         else
+                            return False
+               _ -> return False 
+                            
 
-            setLink newView mmissObject1 newLink
+            if canClone
+               then
+                  cloneLink headView headLink newView newLink
+               else
+                  do
+                     -- (4) Create the object, and put it in the view.
+                     mmissObject1 <- createMMiSSObject 
+                        mmissObjectType1 linkedObject1 variantObject1
 
-            done
+                     setLink newView mmissObject1 newLink
+
+                     done
          )
       )
 
@@ -335,15 +357,10 @@ instance HasMerging Element where
       do
          vlosPruned <- mergePrune vlos
          case vlosPruned of
-            [(oldView,oldLink,element)] 
-               | oldLink == newLink ->
-                  do
-                     cloneLink oldView newLink newView
-                     return (hasValue ())
-               | True ->
-                  do
-                     setLink newView element newLink
-                     return (hasValue ())
+            [(oldView,oldLink,element)] ->
+               do
+                  cloneLink oldView newLink newView newLink
+                  return (hasValue ())
             _ ->
                return (hasError "Unexpected merge required of Element")
       )

@@ -57,8 +57,8 @@ copyFileWE source destination =
                   let
                      codeStr = case code of
                         -- see includes/copy_file.h
-                        -1 -> "Can't write to "++destination
-                        -2 -> "Can't read from "++source
+                        -1 -> "Can't read from "++source
+                        -2 -> "Can't write to "++destination
                         -3 -> "Not enough memory to allocate buffer"
                         _ -> "Unknown error!!"
                   in

@@ -71,13 +71,19 @@ data ObjectData =
          -- Object is checked out.
          thisVersioned :: Dyn,
             -- Versioned x for it.
-         mkObjectSource :: ObjectVersion -> IO (Maybe ObjectSource)
-            -- action that constructs the ObjectSource for the object.
+         mkObjectSource :: ObjectVersion -> IO (Maybe CommitChange)
+            -- action that constructs the information to commit for the object.
+            -- (For the meaning of the Either, see VersionDB.commit.)
             -- The supplied ObjectVersion is that belonging to the
             -- containing view.
+            
             --
             -- If it returns Nothing, that means the object does not
             -- need to be updated, as this version is up-to-date.
+         }
+   |  ClonedObject {
+         sourceLocation :: Location,
+         sourceVersion :: ObjectVersion
          }
 
 getRepository :: View -> Repository

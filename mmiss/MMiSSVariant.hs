@@ -39,6 +39,7 @@ module MMiSSVariant(
    -- Merging
    getMMiSSVariantDictObjectLinks, 
    attemptMergeMMiSSVariantDict,
+   variantDictsSame,
    MMiSSVariants,
 
    displayMMiSSVariantDictKeys, -- :: MMiSSVariantDict object -> IO ()
@@ -641,6 +642,23 @@ attemptMergeMMiSSVariantDict converter
 
       registry <- listToNewRegistry (concat converted)
       return (MMiSSVariantDict registry)
+
+variantDictsSame :: (a -> a -> Bool) 
+   -> MMiSSVariantDict a -> MMiSSVariantDict a -> IO Bool
+variantDictsSame testEq (MMiSSVariantDict registry1) 
+      (MMiSSVariantDict registry2) =
+   do
+      (list1 :: [(MMiSSVariants,a)]) <- listRegistryContents registry1
+      (list2 :: [(MMiSSVariants,a)]) <- listRegistryContents registry2
+
+      return (
+         and (zipWith 
+               (\ (var1,a1) (var2,a2) -> var1 == var2 && testEq a1 a2)
+               list1 list2
+               )
+         &&  
+            (length list1 == length list2)
+         )
 
 -- ------------------------------------------------------------------------
 -- Converting things to String's.

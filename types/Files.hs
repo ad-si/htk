@@ -145,23 +145,33 @@ instance HasMerging File where
                   let
                      fileType1 = fileType file
                      attributes1 = attributes file
+                     linkedObject0 = linkedObject file
+
                   linkedObject1WE <- attemptLinkedObjectMerge
                      linkReAssigner newView newLink [(view,linkedObject file)]
                   mapWithErrorIO
                      (\ linkedObject1 ->
                         do
-                           let
-                              simpleFile1 = attemptMergeSimpleFile 
-                                 linkReAssigner newView (simpleFile file)
+                           isSame 
+                              <- linkedObjectsSame linkedObject0 linkedObject1
+                           if isSame
+                              then
+                                 cloneLink view fileLink newView newLink
+                              else
+                                 do
+                                    let
+                                       simpleFile1 = attemptMergeSimpleFile 
+                                          linkReAssigner newView 
+                                             (simpleFile file)
 
-                              newFile = File {
-                                 fileType = fileType1,
-                                 attributes = attributes1,
-                                 simpleFile = simpleFile1,
-                                 linkedObject = linkedObject1
-                                 }
-                           setLink newView newFile newLink
-                           done
+                                       newFile = File {
+                                          fileType = fileType1,
+                                          attributes = attributes1,
+                                          simpleFile = simpleFile1,
+                                          linkedObject = linkedObject1
+                                          }
+                                    setLink newView newFile newLink
+                                    done
                         )
                      linkedObject1WE
       )              

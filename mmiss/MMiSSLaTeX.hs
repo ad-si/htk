@@ -68,6 +68,16 @@ mmissLaTeX fileName contents =
                         command = unwords commandArgsEscaped
                      runCommand title command
 
+               -- Copies one file to another
+               copy :: String -> String -> IO Bool
+               copy source destination =
+                  do
+                     currentDir <- getCurrentDirectory
+                     setCurrentDirectory laTeXDir
+                     success <- copyFileBool source destination
+                     setCurrentDirectory currentDir
+                     return success
+
                laTeXFile = fileName ++ ".tex"
 
                fullLaTeXFile = (trimDir laTeXDir) `combineNames` laTeXFile
@@ -130,7 +140,7 @@ mmissLaTeX fileName contents =
                         Just (True,_) ->
                            run "xdvi" "xdvi" [dviFile]
                         Just (False,fPath) ->
-                           copyFileBool dviFile fPath
+                           copy dviFile fPath
                      done
 
                pdfLoop :: IO ()
@@ -162,7 +172,7 @@ mmissLaTeX fileName contents =
                         Just (True,_) ->
                            run "Acroread" "acroread" [pdfFile]
                         Just (False,fPath) ->
-                           copyFileBool pdfFile fPath
+                           copy pdfFile fPath
                      done
 
                psLoop :: IO ()
@@ -190,7 +200,7 @@ mmissLaTeX fileName contents =
                               | emptyName fPath ->
                            run "Printing" "lp" [psFile,printer]
                         Just (_,fPath) ->
-                           copyFileBool psFile fPath
+                           copy psFile fPath
                      done
 
             forever (case format of

@@ -33,6 +33,7 @@ module SimpleDBServer(
 
 import IO
 import Maybe
+import Monad
 
 import Data.FiniteMap
 
@@ -92,12 +93,18 @@ data SimpleDBCommand =
          -- or IsResponse with an error message.
          -- retrieve version ObjectVersion from the repository
          -- return IsData.
-   |  Commit (Maybe ObjectVersion) ObjectVersion [(Location,ICStringLen)]
+   |  Commit (Maybe ObjectVersion) ObjectVersion [(Location,
+            Either ICStringLen (Location,ObjectVersion))]
          -- The first argument is a parent version, if any, which should
          -- be something already committed.  The second is the ObjectVersion
          -- which should be uniquely allocated for this ObjectVersion;
          -- this can be firstVersion (when we are initialising the
          -- repository) or else something allocated by NewVersion.
+         -- The third contains the new stuff in the version, by Location.
+         -- Normally, the list items will be Left ICStringLen, for new data. 
+         -- But because of merges, we also need 
+         -- Right (Location,ObjectVersion), which indicates a pre-existing 
+         -- item in the database given by this location and object version.
          --
          -- Returns IsOK.
          --
@@ -222,7 +229,7 @@ data VersionData = VersionData {
 data FrozenVersionData = FrozenVersionData {
    parent' :: Maybe ObjectVersion,
    thisVersion' :: ObjectVersion,
-   objectChanges :: [(Location,BDBKey)]
+   objectChanges :: [(Location,Either BDBKey (Location,ObjectVersion))]
    }
 
 -- -------------------------------------------------------------------
@@ -278,14 +285,20 @@ querySimpleDB
       Commit parentVersionOpt thisVersion newStuff0 ->
          do
             txn <- beginTransaction
-            -- enter the new stuff in the BDB repository
-            newStuff1 <- mapM
-               (\ (location,icsl) ->
-                  do
-                     bdbKey <- writeBDB bdb txn icsl
-                     return (location,bdbKey)
+
+            -- enter the new stuff in the BDB repository 
+            (newStuff1 :: [(Location,Either BDBKey (Location,ObjectVersion))])
+                  <- mapM
+               (\ (location,newItem) ->
+                  case newItem of
+                     Left icsl ->
+                        do
+                           bdbKey <- writeBDB bdb txn icsl
+                           return (location,Left bdbKey)
+                     Right objectLoc -> return (location,Right objectLoc)
                   )
                newStuff0
+
             endTransaction txn
 
             flushBDB bdb
@@ -469,13 +482,24 @@ addFrozenVersionData simpleDB frozenVersionData =
                   Nothing -> break "Parent version does not exist on server"
          seq parentDictionary done
 
-         let
-            objectDictionary =
-               foldl
-                  (\ map0 (location,bdbKey) -> addToFM map0 location bdbKey)
-                  parentDictionary
-                  (objectChanges frozenVersionData)
+         objectDictionary <-
+            foldM
+               (\ map0 (location,change) ->
+                  do
+                     bdbKey <- case change of
+                        Left bdbKey -> return bdbKey
+                        Right (location,objectVersion) ->
+                           do
+                              bdbKeyWE 
+                                 <- retrieveKey simpleDB location objectVersion
+                              bdbKey <- coerceWithErrorOrBreakIO break bdbKeyWE
+                              return bdbKey
+                     return (addToFM map0 location bdbKey)
+                  )
+               parentDictionary
+               (objectChanges frozenVersionData)
 
+         let
             versionData = VersionData {
                parent = parent,
                thisVersion = thisVersion,

@@ -158,7 +158,7 @@ instance HasMerging MMiSSPackageFolder where
             -- compare with similar code in Folders.  But this is
             -- simple as we don't have attributes or more than one
             -- type.
-            vlosPruned <- mergePrune vlos
+            (vlosPruned @ ((view1,link1,folder1) : _)) <- mergePrune vlos
 
             newLinkedObjectWE <- attemptLinkedObjectMerge
                linkReAssigner newView newLink
@@ -169,12 +169,17 @@ instance HasMerging MMiSSPackageFolder where
 
             newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
 
-            mmissPackageFolder 
-               <- createMMiSSPackageFolder newView newLinkedObject
-
-            setLink newView mmissPackageFolder newLink
-
-            done
+            isSame 
+               <- linkedObjectsSame newLinkedObject (toLinkedObject folder1)
+            if isSame 
+               then
+                  cloneLink view1 link1 newView newLink
+               else
+                  do
+                     mmissPackageFolder 
+                        <- createMMiSSPackageFolder newView newLinkedObject
+                     setLink newView mmissPackageFolder newLink
+                     done
       )
 
       

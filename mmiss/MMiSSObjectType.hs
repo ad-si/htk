@@ -23,6 +23,8 @@ module MMiSSObjectType(
    converter,
 
    createMMiSSObject, -- all MMiSSObjects are created by this function.
+
+   variablesSame,
   
    ) where
 
@@ -325,3 +327,11 @@ objectNameSource mmissObject =
 -- Extract an object's current name.  (Mainly needed for error messages.)
 objectName :: MMiSSObject -> IO String
 objectName mmissObject = readContents (objectNameSource mmissObject)
+
+---
+-- Compare if two Variables are the same for the purposes of merging.
+variablesSame :: Variable -> Variable -> Bool
+variablesSame variable1 variable2 =
+   (element variable1 == element variable2)
+   &&
+   (preamble variable1 == preamble variable2)

@@ -181,6 +181,12 @@ module LinkManager(
       -- Link object -> [(View,LinkedObject)] -> IO (WithError LinkedObject)
       -- Merge several versions of a LinkedObject.  To be used in conjunction
       -- with getLinkedObjectMergeLinks.
+
+   linkedObjectsSame,
+      -- :: LinkedObject -> LinkedObject -> IO Bool
+      -- Returns true if the CodedValue representations of the
+      -- two LinkedObject's are identical.  (The LinkedObject's are 
+      -- likely enough in different views.)
    ) where
 
 import Maybe
@@ -866,7 +872,7 @@ data FrozenLinkedObject = FrozenLinkedObject {
    wrappedLink' :: WrappedLink,
    insertion' :: Maybe Insertion,
    contents' :: [(EntityName,LinkedObjectPtr)]
-   }
+   } deriving (Eq)
 
 frozenLinkedObject_tyRep = mkTyRep "LinkManager" "FrozenLinkedObject"
 instance HasTyRep FrozenLinkedObject where
@@ -1170,7 +1176,9 @@ getLinkedObjectMergeLinks =
             return (ObjectLinks contents3)
    in
       MergeLinks fn
-               
+
+   
+
 ---
 -- The Link object gives the link where the LinkedObject is to be.
 attemptLinkedObjectMerge :: ObjectType objectType object
@@ -1278,3 +1286,14 @@ attemptLinkedObjectMerge linkReAssigner newView targetLink sourceLinkedObjects
 
          coerceWithErrorOrBreakIO break linkedObjectWE
       )
+
+---
+-- Returns true if the CodedValue representations of the
+-- two LinkedObject's are identical.  (The LinkedObject's are 
+-- likely enough in different views.)
+linkedObjectsSame :: LinkedObject -> LinkedObject -> IO Bool
+linkedObjectsSame linkedObject1 linkedObject2 =
+   do
+      frozen1 <- freezeLinkedObject linkedObject1
+      frozen2 <- freezeLinkedObject linkedObject2
+      return (frozen1 == frozen2)

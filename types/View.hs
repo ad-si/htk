@@ -165,13 +165,22 @@ commitView (view @ View {repository = repository,objects = objects,
 
          locations <- listKeys objects
 
-         (objectsData0 :: [Maybe (Location,ObjectSource)]) <-
+         let
+            mkCommitChange :: ObjectData -> ObjectVersion 
+               -> IO (Maybe CommitChange)
+            mkCommitChange (PresentObject {mkObjectSource = mkObjectSource})
+               objectVersion = mkObjectSource objectVersion
+            mkCommitChange (ClonedObject {sourceLocation = sourceLocation,
+               sourceVersion = sourceVersion}) _
+                  = return (Just (Right (sourceLocation,sourceVersion)))
+
+         (objectsData0 :: [Maybe (Location,CommitChange)]) <-
             -- compute the data for objects to commit.
             mapM
                (\ location ->
                   do
                      objectData <- getValue objects location
-                     objectSourceOpt <- mkObjectSource objectData newVersion1
+                     objectSourceOpt <- mkCommitChange objectData newVersion1
                      return (fmap
                         (\ objectSource -> (location,objectSource))
                         objectSourceOpt
@@ -179,7 +188,7 @@ commitView (view @ View {repository = repository,objects = objects,
                   )
                locations
          let
-            objectsData1 :: [(Location,ObjectSource)]
+            objectsData1 :: [(Location,CommitChange)]
             objectsData1 = catMaybes objectsData0
 
          title <- readContents (titleSource view)
@@ -198,8 +207,9 @@ commitView (view @ View {repository = repository,objects = objects,
          viewObjectSource <- toObjectSource viewCodedValue 
 
          let
-            objectsData2 :: [(Location,ObjectSource)]
-            objectsData2 = (specialLocation1,viewObjectSource) : objectsData1
+            objectsData2 :: [(Location,CommitChange)]
+            objectsData2 = (specialLocation1,Left viewObjectSource) 
+               : objectsData1
 
          parentOpt <- getParentVersion view 
 

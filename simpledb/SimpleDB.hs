@@ -44,7 +44,7 @@ module SimpleDB(
 
    commit,
       --  :: Repository -> Maybe ObjectVersion -> ObjectVersion
-      -- -> [(Location,ObjectSource)] -> IO ()
+      -- -> [(Location,CommitChange)] -> IO ()
       -- Commit a complete new version to the repository.
       --
       -- Maybe ObjectVersion
@@ -54,9 +54,18 @@ module SimpleDB(
       --    is the version for this commit.  This must be unique and
       --    either firstVersion, for the very first version, or else
       --    allocated by newVersion
-      -- [(Location,ObjectSource)] 
+      -- [(Location,Either ObjectSource (Location,ObjectVersion))] 
       --    is the list of updates.  Later updates take priority over
-      --    earlier ones.
+      --    earlier ones. 
+      --    An update is either Left ObjectSource, for completely new text,
+      --    or Right (loc,version), indicating the same text of an existing
+      --    version.  
+      --       NB.  The locations list ONLY has to contain what's different
+      --       from the parent version, if any.  The Right .. option is
+      --       normally only used during merging.
+
+   CommitChange, -- = Either ObjectSource (Location,ObjectVersion)
+
    ) where
 
 import Object
@@ -201,16 +210,22 @@ retrieveFile repository location objectVersion filePath =
       objectSource <- retrieveObjectSource repository location objectVersion
       exportFile objectSource filePath
 
+type CommitChange = Either ObjectSource (Location,ObjectVersion)
+
 commit :: Repository -> Maybe ObjectVersion -> ObjectVersion
-   -> [(Location,ObjectSource)] -> IO ()
+   -> [(Location,CommitChange)] -> IO ()
 commit repository parentVersionOpt thisVersion newStuff0 =
    do
-      (newStuff1 :: [(Location,ICStringLen)]) <-
+      (newStuff1 
+            :: [(Location,Either ICStringLen (Location,ObjectVersion))]) <-
          mapM
-            (\ (location,objectSource) ->
-               do
-                  icsl <- ObjectSource.getICSL objectSource
-                  return (location,icsl)
+            (\ (location,newItem) ->
+               case newItem of
+                  Left objectSource ->
+                     do
+                        icsl <- ObjectSource.getICSL objectSource
+                        return (location,Left icsl)
+                  Right locVers -> return (location,Right locVers)
                )
             newStuff0
 

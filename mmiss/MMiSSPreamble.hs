@@ -107,17 +107,7 @@ instance HasMerging MMiSSPreamble where
             a:b:_ -> return (hasError "Sorry, can't merge preambles")
             [(view,preambleLink,oldPreamble)] ->
                do
-                  preambleContents <- readIORef (preamble oldPreamble)
-                  preamble1 <- newIORef preambleContents
-
-                  editLock1 <- newBSem
-                  let
-                     newPreamble = MMiSSPreamble {
-                        preamble = preamble1,
-                        editLock = editLock1
-                        }
-
-                  setLink newView newPreamble newLink
+                  cloneLink view preambleLink newView newLink
                   return (hasValue ())
 
    linkAsData _ = True

@@ -38,8 +38,11 @@ module Link(
    -- The LinkManager.deleteLinkedObject takes care of this for any links
    -- it stores.
 
-   cloneLink, -- :: HasCodedValue x => View -> Link x -> View -> IO ()
-   -- Copy a link with its contents from the old to the new view.
+   cloneLink, 
+      -- :: HasCodedValue x => View -> Link x -> View -> Link x -> IO ()
+      -- cloneLink view1 link1 view2 link2
+      -- *requires* that (a) link1 is not changed in view1; (b) link2 does
+      -- not exist in view2.  It creates a copy of link1 in view2, as link2.
 
    newEmptyObject, -- :: HasCodedValue x => View -> IO (Versioned x)
    -- This creates an object with no contents as a stop-gap so you can
@@ -203,6 +206,25 @@ fetchLinkWE (view@View{repository = repository,objects = objects})
                      Just versioned 
                         -> return (objectDataOpt,hasValue versioned)
                      Nothing -> err "View.fetchLink - type error in link"
+               Just (ClonedObject {
+                  sourceLocation = oldLocation,sourceVersion = oldVersion}) ->
+                     do
+                        -- create a new versioned object
+                        (str :: String) <- 
+                           retrieveString repository oldLocation oldVersion
+                        x <- doDecodeIO (fromString str) view
+                        statusMVar <- newMVar (Cloned x oldLocation oldVersion)
+                        let
+                           versioned = Versioned {
+                              location = location,
+                              statusMVar = statusMVar
+                              }
+                        return (Just(
+                           PresentObject {
+                              thisVersioned = toDyn versioned,
+                              mkObjectSource = mkObjectSourceFn view versioned
+                              }),
+                           hasValue versioned)
             )
 
 readLink :: HasCodedValue x => View -> Link x -> IO x
@@ -261,13 +283,38 @@ eqLink (Link loc1) (Link loc2) = loc1 == loc2
 compareLink :: Link x -> Link y -> Ordering
 compareLink (Link loc1) (Link loc2) = compare loc1 loc2
 
-cloneLink :: HasCodedValue x => View -> Link x -> View -> IO ()
-cloneLink oldView link newView =
+cloneLink :: HasCodedValue x => View -> Link x -> View -> Link x -> IO ()
+cloneLink view1 (Link location1) view2 (Link location2) =
    do
-      oldVersioned <- fetchLink oldView link
-      cloneObject oldView oldVersioned newView
-      done
+      oldVersionOpt <- getParentVersion view1
+      oldVersion <- case oldVersionOpt of
+         Nothing -> error "Link.cloneLink - used on virgin link."
+         Just oldVersion -> return oldVersion
 
+      isAlreadyDone <- 
+         if location1 == location2 
+            then
+               do
+                  thisVersionOpt <- getParentVersion view2
+                  return (case thisVersionOpt of
+                     Just thisVersion -> thisVersion == oldVersion
+                     Nothing -> False
+                     )
+             else
+                return False
+      unless isAlreadyDone (
+         transformValue (objects view2) location2 (\ objectDataOpt ->
+            case objectDataOpt of
+               Just _ -> error "Link.cloneLink - link already exists."
+               Nothing -> return (Just (ClonedObject {
+                  sourceLocation = location1,
+                  sourceVersion = oldVersion
+                  }),()
+                  )
+            )
+         )
+               
+      
 -- ----------------------------------------------------------------------
 -- Versioned
 -- ----------------------------------------------------------------------
@@ -284,7 +331,7 @@ instance HasTyRep1 Versioned where
    tyRep1 _ = versioned_tyRep
 
 mkObjectSourceFn :: HasCodedValue x => View -> Versioned x -> ObjectVersion
-   -> IO (Maybe ObjectSource)
+   -> IO (Maybe CommitChange)
 -- This is the action that computes the ObjectSource to be committed to the
 -- repository.
 --
@@ -299,11 +346,13 @@ mkObjectSourceFn (view@View{repository = repository})
             do
                xCodedValue <- doEncodeIO x view
                xObjectSource <- toObjectSource xCodedValue
-               return (x,Just xObjectSource)
+               return (x,Just (Left xObjectSource))
 
       (x,objectSourceOpt) <- case status of
          Empty -> error "Attempt to commit Empty object!!!"
          UpToDate x -> return (x,Nothing)
+         Cloned x oldLocation oldVersion 
+            -> return (x,Just (Right (oldLocation,oldVersion)))
          Dirty x -> commitX x 
          Virgin x -> commitX x
       putMVar statusMVar (UpToDate x)
@@ -312,6 +361,8 @@ mkObjectSourceFn (view@View{repository = repository})
 data Status x = 
       Empty -- created by newEmptyObject
    |  UpToDate x -- This object committed and up-to-date
+   |  Cloned x Location ObjectVersion
+         -- This object 
    |  Dirty x -- This object committed, but since modified
    |  Virgin x -- Object never committed.
 
@@ -412,6 +463,7 @@ updateObject view x (versioned@Versioned{statusMVar = statusMVar}) =
       newStatus <- case status of
          Empty -> return (Virgin x)
          Virgin _ -> return (Virgin x)
+         Cloned _ _ _ -> return (Virgin x)
          UpToDate _ -> return (Dirty x)
          Dirty _ -> return (Dirty x)
       putMVar statusMVar newStatus
@@ -434,17 +486,9 @@ readObject view (versioned@Versioned{statusMVar = statusMVar}) =
       case status of
          Empty -> error "View.readObject on uninitialised object"
          Virgin x -> return x
+         Cloned x _ _ -> return x
          UpToDate x -> return x
          Dirty x -> return x
-
-cloneObject 
-   :: HasCodedValue x => View -> Versioned x -> View -> IO (Versioned x)
-cloneObject oldView oldVersioned newView =
-   do
-      status <- readMVar (statusMVar oldVersioned)
-      let
-         loc = location oldVersioned
-      createObjectGeneral newView status loc
 
 -- ----------------------------------------------------------------------
 -- Access to the lastChange
@@ -473,4 +517,6 @@ getLastChange view (Link location :: Link object) =
                         Empty -> return Nothing
                         Virgin _ -> return Nothing
                         Dirty _ -> return Nothing
+                        Cloned _ _ _ -> return Nothing
                         UpToDate _ -> repositoryLastChange
+         Just (ClonedObject _ _) -> return Nothing

@@ -255,13 +255,20 @@ instance HasMerging Folder where
 
             newLinkedObject <- coerceWithErrorOrBreakIO break newLinkedObjectWE
 
-            -- (4) and create ...
-            folder <- createFolder newView newFolderTypeId newAttributes 
-               newLinkedObject
+            isSame 
+               <- linkedObjectsSame (toLinkedObject folder1) newLinkedObject
 
-            setLink newView folder newLink
+            if isSame
+               then
+                  cloneLink view1 link1 newView newLink
+               else
+                  do
+                     -- (4) create ...
+                     folder <- createFolder newView newFolderTypeId 
+                        newAttributes newLinkedObject
 
-            done
+                     setLink newView folder newLink
+                     done
       )
 
 

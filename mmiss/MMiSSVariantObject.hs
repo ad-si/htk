@@ -100,6 +100,12 @@ module MMiSSVariantObject(
       -- The first argument is the new converter, the second the function to
       -- be used to map old objects to new objects.
 
+   variantObjectsSame,
+      -- :: (object -> object -> Bool) 
+      -- -> VariantObject object cache -> VariantObject object cache -> IO Bool
+      --
+      -- Compare the contents of two variant objects (but not the pointer!)
+
    displayObjectVariants,
       -- :: VariantObject object cache -> IO ()
 
@@ -464,6 +470,12 @@ attemptMergeVariantObject newConverter convertObject variantObjects =
             }
 
       unfreezeVariantObject newConverter frozenVariantObject
+
+variantObjectsSame :: (object -> object -> Bool) 
+   -> VariantObject object cache -> VariantObject object cache -> IO Bool
+variantObjectsSame testEq variantObject1 variantObject2 =
+   variantDictsSame testEq 
+      (dictionary variantObject1) (dictionary variantObject2)
 
 -- -----------------------------------------------------------------------
 -- Displaying
