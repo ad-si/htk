@@ -68,9 +68,13 @@ module HTk (
   module LabelFrame,
   module PanedWindow,
 
+
 -- devices submodules
 
   module Bell,
+
+
+--
 
 
 -- menu / menuitem submodules
@@ -98,11 +102,11 @@ module HTk (
   module EmbeddedCanvasWin,
 
 
--- image submodules
+-- components submodules
 
   module BitMap,
   module Image,
-
+  module Focus,
 
 -- widget packing
 
@@ -225,6 +229,7 @@ import NoteBook
 import LabelFrame
 import PanedWindow
 import Bell
+import Focus
 
 
 data AbstractWidget = NONE

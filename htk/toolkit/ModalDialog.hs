@@ -18,7 +18,7 @@ module ModalDialog (
 
 import Computation (try)
 import HTk
-import Mouse
+import Focus
 
 -- -----------------------------------------------------------------------
 -- Basic Behaviours for modelling Modal Dialogs

@@ -69,14 +69,13 @@ rm -f ./*.html
     ../components/Image.hs\
     ../components/BitMap.hs\
     ../components/Selection.hs\
+    ../components/Focus.hs\
 \
     ../kernel/BaseClasses.hs\
     ../kernel/ButtonWidget.hs\
     ../kernel/Configuration.hs\
 \
     ../devices/Screen.hs\
-    ../devices/Mouse.hs\
-    ../devices/Keyboard.hs\
     ../devices/XSelection.hs\
 \
     ../packer/Packer.hs\

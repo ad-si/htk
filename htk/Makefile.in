@@ -45,12 +45,11 @@ SRCS       = resources/Resources.hs\
 	     components/Slider.hs\
 	     components/BitMap.hs\
 	     components/Image.hs\
+             components/Focus.hs\
              textitems/EmbeddedTextWin.hs\
              textitems/TextTag.hs\
              textitems/Mark.hs\
              devices/Bell.hs\
-	     devices/Mouse.hs\
-	     devices/Keyboard.hs\
 	     devices/XSelection.hs\
 	     devices/Screen.hs\
 	     canvasitems/CanvasItem.hs\

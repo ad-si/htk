@@ -77,7 +77,7 @@ main =
                        [background "white", size (cm 8, cm 10)]
     pack tl1 []
 
-    b1 <- newButton main [text "import other state"] :: IO (Button String)
+    b1 <- newButton main [text "import other state"]
     pack b1 [Fill X]
     clickedb1 <- clicked b1
 
@@ -85,7 +85,7 @@ main =
                        [background "white", size (cm 8, cm 10)]
     pack tl2 []
 
-    b2 <- newButton win2 [text "import other state"] :: IO (Button String)
+    b2 <- newButton win2 [text "import other state"]
     pack b2 [Fill X]
     clickedb2 <- clicked b2
     (win2_destr, _) <- bindSimple win2 Destroy

@@ -26,7 +26,7 @@ import Concurrency
 import HTk
 import Message
 import Separator
-import Keyboard
+import Focus
 import Button
 import Font
 import Space

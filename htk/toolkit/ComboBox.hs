@@ -29,8 +29,7 @@ import Entry
 import ListBox
 import ScrollBar
 import ScrollBox
-import Mouse
-import Keyboard
+import Focus
 import Space
 
 import Interaction()

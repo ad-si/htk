@@ -41,7 +41,7 @@ import ScrollBar
 import Index
 import Selection
 import Char(isSpace)
-import Mouse
+import Focus
 import XSelection
 import Synchronized
 import Computation

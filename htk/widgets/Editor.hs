@@ -74,7 +74,7 @@ import Selection
 import XSelection
 import ICursor
 import Char(isSpace)
-import Keyboard
+import Focus
 import Computation
 import Destructible
 import Synchronized
