@@ -15,7 +15,6 @@ SRCS       = MaincanvasEx.hs\
              MainpanedWindowEx.hs\
              MainselectBoxEx.hs\
              MainmarkupTextEx.hs\
-             MainutilWinEx.hs\
              MaingenGUIEx.hs\
 	     MainmodalDialogTest.hs\
              MainnotepadEx.hs\
