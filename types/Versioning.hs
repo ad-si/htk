@@ -2,10 +2,10 @@
    versioned objects. -}
 module Versioning(
    Versioned, -- a "Versioned x" is an x under version control.
+      -- A Versioned is an instance of Typeable
    VersionedPtr, -- a "VersionedPtr x" is a pointer to an x under
       -- version control in the view.
       -- A VersionedPtr is an instance of HasCodedValue.
-
    newVersioned, -- :: View -> x -> Versioned x
    store, -- :: HasCodedValue x => View -> Versioned x -> IO (VersionedPtr x)
    restore, -- :: HasCodedValue x => View -> VersionedPtr x -> IO (Versioned x)
@@ -19,9 +19,13 @@ module Versioning(
    -- updating the value.  This is only useful when the value
    -- itself refers to something that needs to be re-stored.
 
+   HasLocation(..), -- allows us to extract the location.
+
+   mkVersionedPtr, -- :: Location -> ObjectVersion -> VersionedPtr x 
    ) where
 
 import Concurrent
+import Dynamics
 
 import AtomString
 
@@ -136,10 +140,37 @@ dirty (Versioned {status = status}) =
             Dirty version -> stat
          )
 
--- ---------------------------------------------------------- 
--- VersionedPtr as an instance of HasCodedValue
--- ---------------------------------------------------------- 
+-- --------------------------------------------------------------------------
+-- VersionedPtr as an instance of HasCodedValue, and creating VersionedPtrs.
+-- --------------------------------------------------------------------------
 
 instance HasCodedValue (VersionedPtr x) where
    encodeIO = mapEncodeIO (\ (VersionedPtr x y) -> (Str x,Str y))
    decodeIO = mapDecodeIO (\ (Str x,Str y) -> (VersionedPtr x y))
+
+
+mkVersionedPtr :: Location -> ObjectVersion -> VersionedPtr x
+mkVersionedPtr = VersionedPtr 
+
+-- ---------------------------------------------------------- 
+-- Versioned as an instance of Typeable
+-- ---------------------------------------------------------- 
+
+versioned_tyCo :: TyCon
+versioned_tyCo = mkTyCon "Versioning" "Versioned"
+
+instance HasTyCon1 Versioned where
+   tyCon1 _ = versioned_tyCo
+
+-- ---------------------------------------------------------- 
+-- A useful class for later
+-- ---------------------------------------------------------- 
+
+class HasLocation v where
+   toLocation :: v x -> Location
+
+instance HasLocation Versioned where
+   toLocation versioned = location versioned
+
+instance HasLocation VersionedPtr where
+   toLocation (VersionedPtr location _) = location
