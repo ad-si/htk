@@ -271,7 +271,7 @@ simpleNodeTypesForm =
 -- Select a colour 
 -- We steal the following trick from htk/examples/toolkit/Mainsimpleform.hs
 data OurColour = White | Black| Red | Orange | Yellow | Green | Blue | Violet 
-   deriving (Bounded,Enum,Read,Show)
+               deriving (Bounded,Enum,Read,Show)
 
 instance HasConfigRadioButton OurColour where
    configRadioButton colour = HTk.background (show colour)
@@ -288,9 +288,11 @@ colorForm =
       (newFormEntry EmptyLabel NoRadio)
 
 convertColour :: OurColour -> GraphConfigure.Color a
+convertColour Green = GraphConfigure.Color ("#98ecb2")
+convertColour Blue  = GraphConfigure.Color ("#98ceda")
 convertColour col = GraphConfigure.Color (show col)
 
---- 
+-- 
 -- Select a shape.  For this we need our own shape type, as we exclude
 -- GraphConfigure's Icon option.
 data OurShape = Box | Circle | Ellipse | Rhombus | Triangle 

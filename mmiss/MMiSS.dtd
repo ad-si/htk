@@ -9,15 +9,26 @@
 
   Root element is 'package'.
 
-  Rules for colours.  We supply colours for all things which can have a label.
-     These are for now
-        orange for groups
-        green for units
-        yellow for atoms
-        red for text fragments.
+  Colours and shapes:
+  Group        yellow box 
+  - Package    orange box
+  Units
+  - formal     light blue box
+  - conceptual light green box
+  Atoms 
+  -formal      light blue ellipse
+  -conceptual  light green ellipse
 
-  They should be synchronized with MMiSS-colours in allmmiss.el, so that magic
-  buttons in Emacs have the same colour as their corresponding   
+  Colour RGB values:
+  Yellow       #ffff60
+  Orange       #feb872
+  Light green  #98ecb2
+  Light blue   #98ceda
+
+  The RGB values are set in types/DisplayParms.hs.
+
+  Colours should be synchronized with MMiSS-colours in allmmiss.el, so that magic
+  buttons in Emacs have the same colour as their corresponding element.   
 
 -->
 
@@ -158,7 +169,7 @@
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay section : orange circle ?>
+<?MMiSSDisplay section : yellow box ?>
 
 
 <!ELEMENT paragraph (%unit;)+>
@@ -166,7 +177,7 @@
                     %title-matter;
                     %formalism-matter;
                     %attributes;>
-<?MMiSSDisplay paragraph : orange triangle ?>
+<?MMiSSDisplay paragraph : yellow box ?>
 
 
 <!--
@@ -182,7 +193,7 @@
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
-<?MMiSSDisplay abstract : green triangle ?>
+<?MMiSSDisplay abstract : Blue box ?>
 
 
 <!ELEMENT introduction (%unit;)+>
@@ -190,67 +201,67 @@
                        %title-matter;
                        %formalism-matter;
                        %attributes;>
-<?MMiSSDisplay introduction : green rhombus ?>
+<?MMiSSDisplay introduction : Blue box ?>
 
 <!ELEMENT summary  (%unit;)+>
 <!ATTLIST summary  %label-matter;
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
-<?MMiSSDisplay summary : green box ?>
+<?MMiSSDisplay summary : Blue box ?>
 
-<!ELEMENT example  ((%atom;) | %formalUnit;)+>
+<!ELEMENT example  (%unit;)+>
 <!ATTLIST example %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay example : green circle ?>
+<?MMiSSDisplay example : Blue box ?>
 
 
-<!ELEMENT exercise  ((%atom;) | %formalUnit;)+>
+<!ELEMENT exercise  (%unit;)+>
 <!ATTLIST exercise %label-matter;
                    %title-matter;
                    %formalism-matter;
                    %attributes;>
-<?MMiSSDisplay exercise : green box ?>
+<?MMiSSDisplay exercise : Blue box ?>
 
-<!ELEMENT definition  ((%atom;) | %formalUnit;)+>
+<!ELEMENT definition  (%unit;)+>
 <!ATTLIST definition %label-matter;
                      %title-matter;
                      %formalism-matter;
                      %attributes;>
-<?MMiSSDisplay definition : green triangle ?>
+<?MMiSSDisplay definition : Blue box ?>
 
 <!ELEMENT textFragment %text;>
 <!ATTLIST textFragment %label-matter;
                        %formalism-matter;
                        %attributes;>
-<?MMiSSDisplay textFragment : red box ?>
+<?MMiSSDisplay textFragment : Blue box ?>
 
 <!ELEMENT table %text;>
 <!ATTLIST table %label-matter;
                 %title-matter;
                 %formalism-matter;
                 %attributes;>
-<?MMiSSDisplay table : yellow box ?>
+<?MMiSSDisplay table : Green ellipse ?>
 
 <!ELEMENT figure  EMPTY>
 <!ATTLIST figure %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
-<?MMiSSDisplay figure : yellow circle ?>
+<?MMiSSDisplay figure : Green ellipse ?>
 
 <!ELEMENT glossaryEntry  %text;>
 <!ATTLIST glossaryEntry %label-matter;
                         %title-matter;
                         %attributes;>
-<?MMiSSDisplay glossaryEntry : yellow rhombus ?>
+<?MMiSSDisplay glossaryEntry : Green ellipse ?>
 
 <!ELEMENT bibEntry  %text;>
 <!ATTLIST bibEntry  %label-matter;
                     %attributes;>
-<?MMiSSDisplay bibEntry : yellow ellipse ?>
+<?MMiSSDisplay bibEntry : Green ellipse ?>
 
 <!ELEMENT list  (listItem)+>
 <!ATTLIST list  %label-matter;
@@ -258,7 +269,7 @@
                 type  (itemize | enumeration)  #IMPLIED
                 numeringPattern   CDATA  #IMPLIED
                 %attributes;>
-<?MMiSSDisplay list : green ellipse ?>
+<?MMiSSDisplay list : Green ellipse ?>
 
 
 <!ELEMENT listItem  (list | %atom;)+>
@@ -282,7 +293,7 @@
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay program : green circle ?>
+<?MMiSSDisplay program : Blue box ?>
 
 <!ELEMENT theory (%conceptualAtom; | clause | theory
                   | includeClause | includeTheory)+>
@@ -290,38 +301,42 @@
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
-<?MMiSSDisplay theory : green box ?>
+<?MMiSSDisplay theory : Blue box ?>
 
 <!ELEMENT theorem  (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST theorem %label-matter;
                   %title-matter;
                   %formalism-matter;
                   %attributes;>
-<?MMiSSDisplay theorem : green circle ?>
+<?MMiSSDisplay theorem : Blue box ?>
 
 <!ELEMENT conjecture (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST conjecture %label-matter;
                      %title-matter;
                      %formalism-matter;
                      %attributes;>
+<?MMiSSDisplay conjecture : Blue box ?>
 
 <!ELEMENT lemma (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST lemma %label-matter;
                 %title-matter;
                 %formalism-matter;
                 %attributes;>
+<?MMiSSDisplay lemma : Blue box ?>
 
 <!ELEMENT corollary (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST corollary %label-matter;
                     %title-matter;
                     %formalism-matter;
                     %attributes;>
+<?MMiSSDisplay corollary : Blue box ?>
 
 <!ELEMENT assertion (%conceptualAtom; | clause | includeClause)+>
 <!ATTLIST assertion %label-matter;
                     %title-matter;
                     %formalism-matter;
                     %attributes;>
+<?MMiSSDisplay assertion : Blue box ?>
 
 <!ELEMENT proof (%conceptualAtom; | step | script | proof
                  | includeStep | includeScript | includeProof)+>
@@ -329,6 +344,7 @@
                 %title-matter;
                 %formalism-matter;
                 %attributes;>
+<?MMiSSDisplay proof : Blue box ?>
 
 <!ELEMENT development  (%conceptualAtom; | step | script | development
                         | includeStep | includeScript | includeDevelopment)+>
@@ -336,7 +352,8 @@
                       %title-matter;
                       %formalism-matter;
                       %attributes;>
-<?MMiSSDisplay development : green rhombus ?>
+<?MMiSSDisplay development : Blue box ?>
+
 
 <!ELEMENT script  (%conceptualAtom; | step | script
                    | includeStep | includeScript)+>
@@ -344,22 +361,21 @@
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
-<?MMiSSDisplay script : yellow circle ?>
-
+<?MMiSSDisplay development : Blue box ?>
 
 <!ELEMENT programFragment  (#PCDATA)>
 <!ATTLIST programFragment %label-matter;
                           %title-matter;
                           %formalism-matter;
                           %attributes;>
-<?MMiSSDisplay programFragment : yellow ellipse ?>
+<?MMiSSDisplay programFragment : Blue ellipse ?>
 
 <!ELEMENT clause  (#PCDATA)>
 <!ATTLIST clause %label-matter;
                  %title-matter;
                  %formalism-matter;
                  %attributes;>
-<?MMiSSDisplay clause : yellow triangle ?>
+<?MMiSSDisplay clause : Blue ellipse ?>
 
 
 <!ELEMENT step  (#PCDATA)>
@@ -367,7 +383,7 @@
                %title-matter;
                %formalism-matter;
                %attributes;>
-<?MMiSSDisplay theory : yellow ellipse ?>
+<?MMiSSDisplay step : Blue ellipse ?>
 
 
 
