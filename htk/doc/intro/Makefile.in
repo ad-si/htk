@@ -25,4 +25,4 @@ intro.pdf: intro.bbl img/intro-title.png img/screenshot-tixwidgets.eps img/hsMin
 displayexportshere : displaytheseexports
 
 displaytheseexports :
-	@PWD=`pwd`;echo $$PWD/*.lhs $$PWD/intro.tex $$PWD/intro.bib $$PWD/intro.pdf $$PWD/intro.ps $$PWD/img/Screenshot*.eps $$PWD/img/Screenshot*.png $$PWD/img/intro-title.png
+	@PWD=`pwd`;echo $$PWD/*.lhs $$PWD/intro.tex $$PWD/intro.bib $$PWD/intro.pdf $$PWD/intro.ps $$PWD/img/hsMines/screenshot* $$PWD/img/intro-title.png
