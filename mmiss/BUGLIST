@@ -75,6 +75,9 @@ by adding the daVinci rules.  This can usually be "fixed" by trying
 again later.  It may only happen when we restart immediately after
 quitting.
 
+See item (14).
+FIXED
+
 7) 27.08.02
 Improved error handling for bad/non-existent. UNIMMISSDTD files.
 FIXED
