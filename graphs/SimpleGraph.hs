@@ -28,6 +28,7 @@ import List(delete)
 import Concurrent
 import Exception(tryAllIO)
 
+import Debug(debug)
 import Computation (done)
 import Object
 import Registry
@@ -168,10 +169,11 @@ instance Graph SimpleGraph where
             graphUpdate = graphUpdate,
             nameSourceBranch = nameSourceBranch
             } <- getGraphConnection (sendIO graphUpdatesQueue)
-
+         
          graph <- uncannGraph graphState deRegister nameSourceBranch
          let
             mVar = clientsMVar graph
+
          -- modify client list  
          (oldClients@[]) <- takeMVar mVar
          -- if uncannGraph is later changed to add clients,
@@ -183,6 +185,7 @@ instance Graph SimpleGraph where
             clientData = ClientData 
                {clientID = clientID,clientSink = clientSink}
          putMVar mVar (clientData : oldClients)
+
          -- set up thread to listen to changes from parent.
          let
             receiveChanges =
@@ -271,7 +274,10 @@ instance Destructible
                emptyRegistry (nodeTypeData graph)
                emptyRegistry (arcData graph)
                emptyRegistry (arcTypeData graph)
-               putMVar (clientsMVar graph) []
+               let
+                  mVar = clientsMVar graph
+               takeMVar mVar
+               putMVar mVar []
             ) -- end of synchronization
 
    destroyed graph =
@@ -540,7 +546,7 @@ uncannGraph
       (graph' :: SimpleGraph nodeLabel nodeTypeLabel arcLabel arcTypeLabel) 
          <- newEmptyGraphWithSource nameSourceBranch
       let
-         graph = graph {parentDeRegister = parentDeRegister}
+         graph = graph' {parentDeRegister = parentDeRegister}
       sequence_ (map (update graph) updates)
       return graph
 

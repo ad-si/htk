@@ -8,6 +8,7 @@
 
 module GraphEditor (
    newGraphEditor,
+   Displayable,
    GraphEditor,
    ) where
 
@@ -33,8 +34,8 @@ import qualified GraphDisp
 import GraphConfigure
 import GetAttributes
 
--- We use macros again as an abbreviation
-#define GRAPH (graph String (NodeTypeAttributes Node) () ArcTypeAttributes)
+type Displayable graph = 
+   graph String (NodeTypeAttributes Node) () ArcTypeAttributes
 
 newGraphEditor :: 
    (GraphDisp.GraphAll dispGraph graphParms node nodeType nodeTypeParms 
@@ -53,12 +54,12 @@ newGraphEditor ::
     Graph graph) 
    => (GraphDisp.Graph dispGraph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms)
-   -> GRAPH
+   -> Displayable graph
    -> IO GraphEditor
 newGraphEditor 
       (displaySort :: GraphDisp.Graph dispGraph graphParms 
          node nodeType nodeTypeParms arc arcType arcTypeParms)
-      (graph :: GRAPH) =
+      (graph :: Displayable graph) =
    do
       registry <- newNodeArcTypeRegistry graph
 
@@ -148,7 +149,7 @@ instance Destructible GraphEditor where
 
 -- This action is used when the user requests a new type
 makeNewNodeType :: Graph graph 
-   => GRAPH
+   => Displayable graph
    -> NodeArcTypeRegistry
    -> IO ()
 makeNewNodeType graph registry =
@@ -165,7 +166,7 @@ makeNewNodeType graph registry =
 -- This action is used to construct a new node.
 -- (This is sometimes used as part of a node-and-edge construction)
 makeNewNode :: Graph graph
-   => GRAPH
+   => Displayable graph
    -> NodeArcTypeRegistry
    -> IO (Maybe Node)
 makeNewNode graph registry =
@@ -185,7 +186,7 @@ makeNewNode graph registry =
 
 -- This action is used when the user requests a new type
 makeNewArcType :: Graph graph 
-   => GRAPH
+   => Displayable graph
    -> NodeArcTypeRegistry
    -> IO ()
 makeNewArcType graph registry =
@@ -201,7 +202,7 @@ makeNewArcType graph registry =
 
 -- This action makes a new arc between two nodes.
 makeNewArc :: Graph graph 
-   => GRAPH
+   => Displayable graph
    -> NodeArcTypeRegistry
    -> Node -> Node -> IO ()
 makeNewArc graph registry source target =
@@ -215,7 +216,7 @@ makeNewArc graph registry source target =
                done
 -- This action makes a new node hanging from another one.
 makeNewNodeArc :: Graph graph
-   => GRAPH
+   => Displayable graph
    -> NodeArcTypeRegistry
    -> Node -> IO ()
 makeNewNodeArc graph registry source =
@@ -242,7 +243,7 @@ data NodeArcTypeRegistry = NodeArcTypeRegistry {
    }
 
 newNodeArcTypeRegistry :: Graph graph 
-   => GRAPH
+   => Displayable graph
    -> IO NodeArcTypeRegistry
 newNodeArcTypeRegistry graph =
    do
