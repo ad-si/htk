@@ -1,9 +1,8 @@
 {- Allocate is used by the allocator to generate new
    versions and CVS file names. 
 
-   It is here because firstCVSFile and secondCVSFile are also used by CVSDB.
-
-   For testing purposes this module should be compilable by Hugs.
+   It is here because firstCVSFile, secondCVSFile and firstCVSVersion
+   are also used by CVSDB.
    -}
 module Allocate(
    AllocateState, -- things known about.  Instance of Show and Read.
@@ -20,6 +19,9 @@ module Allocate(
    firstCVSFile, -- :: CVSFile
    secondCVSFile, -- :: CVSFile
    -- These are the first two CVSFiles allocated.
+
+   firstCVSVersion, -- :: CVSVersion
+   -- This should be the very first version a CVS file receives, IE 1.1
    ) where
 import Char
 
@@ -63,6 +65,10 @@ secondCVSFile = snd allocateResult2
 
 initialAllocateState :: AllocateState
 initialAllocateState = fst allocateResult2
+
+
+firstCVSVersion :: CVSVersion
+firstCVSVersion = CVSVersion "1.1"
 
 ---------------------------------------------------------------------
 -- Allocating a new CVSFile.

@@ -10,6 +10,12 @@ module VersionGraph(
    newVersionGraph, 
       -- :: Repository -> IO VersionGraph
       -- The server is taken from the WBFiles --uni-server parameter.
+
+   versionToNode,
+      -- :: ObjectVersion -> Node
+      -- Converts an object version to its corresponding node.  This is only
+      -- used by the Initialisation module; we don't want anyone else mucking
+      -- around with the version graph!
    ) where
 
 import Computation
@@ -79,6 +85,12 @@ nodeIsCheckedIn node =
    case toString node of
       'C' : versionString -> True
       _ -> False
+
+
+---
+-- Returns the node associated with a version
+versionToNode :: ObjectVersion -> Node
+versionToNode version = toNode (CheckedInNode version)
 
 ---
 -- Returns the version associated with a node, if it is checked in.

@@ -5,9 +5,7 @@
    -}
 module CVSDB(
    Repository,
-   RepositoryParameter(WorkingDir),
-   -- The workingDir is a directory for the private
-   -- use of the CVSDB module.
+
    initialise, -- :: IO Repository
 
    ObjectVersion, 
@@ -33,6 +31,10 @@ module CVSDB(
    secondLocation, -- :: Location
    -- These two locations are special.  They are already allocated,
    -- and may be used as the user desires.
+
+   firstVersion, -- :: ObjectVersion
+   -- This should be the very first version the firstLocation object
+   -- receives.
 
    newLocation, -- :: Repository -> IO Location
    -- allocate a new unique location in the repository.
@@ -108,7 +110,7 @@ import LineShow
 import AllocateService
 import CallServer
 
-import qualified Allocate(firstCVSFile,secondCVSFile)
+import qualified Allocate(firstCVSFile,secondCVSFile,firstCVSVersion)
 
 data Repository = Repository {
    cvsLoc :: CVSLoc, -- CVSHigh location of repository.
@@ -124,8 +126,6 @@ data Repository = Repository {
    allocator :: AllocateRequest -> IO AllocateAnswer
    -- Calls allocator service
    }
-
-data RepositoryParameter = WorkingDir String 
 
 type Location = CVSFile
 
@@ -316,6 +316,9 @@ firstLocation = Allocate.firstCVSFile
 
 secondLocation :: Location
 secondLocation = Allocate.secondCVSFile
+
+firstVersion :: ObjectVersion
+firstVersion = Allocate.firstCVSVersion
 
 getCVSFilePath :: Repository -> CVSFile -> IO FilePath
 getCVSFilePath repository cvsFile =

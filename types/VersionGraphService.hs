@@ -14,12 +14,14 @@ module VersionGraphService(
    FrozenGraph(..), -- What is sent (Showed) on client connect.
    VersionTypes, -- abbreviations for the type of things.
 
+   -- The following types are in fact initialised by the Initialisation
+   -- module
    checkedInType,workingType, -- :: NodeType
       -- These are types of nodes in the graph.  As a matter of fact,
       -- all the nodes the server sees will have type "checkedInType",
       -- but we provide workingType as well, and both types are part of the
       -- graph.
-   checkedInArcType,workingArcType -- :: ArcType
+   checkedInArcType,workingArcType, -- :: ArcType
       -- Similar to checkedInType and workingType; a checkedInArcType should
       -- only bind two checkedInType nodes.
    ) where
@@ -130,8 +132,7 @@ instance ServiceClass VersionUpdate VersionUpdate VersionGraph where
    initialStateFromString _ Nothing = 
       do
          graph <- newEmptyGraph
-         update graph (NewNodeType checkedInType ())
-         update graph (NewNodeType workingType ())
+         -- The Initialise module creates the full initial state.
          return graph
 
    initialStateFromString _ (Just frozenGraphString) =
