@@ -299,12 +299,20 @@ mparse fname = do result <- parseFromFile (latexDoc []) fname
 {-- Main function: Parses the given MMiSSLatex-string and returns an Element which holds the
     XML-structure.  --}
 
-parseMMiSSLatex :: SourceName -> IO (WithError Element)
+parseMMiSSLatex :: String -> WithError Element
 
-parseMMiSSLatex s = do result <- parseFromFile (latexDoc []) s
- 		       case result of
-			   Right ast  -> return(makeXML ast)
-			   Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
+parseMMiSSLatex s = let result = parse (latexDoc []) "" s
+		    in case result of
+			 Right ast  -> makeXML ast
+			 Left err -> hasError (concat (map messageString (errorMessages(err))))
+
+
+parseMMiSSLatexFile :: SourceName -> IO (WithError Element)
+
+parseMMiSSLatexFile s = do result <- parseFromFile (latexDoc []) s
+ 		           case result of
+			     Right ast  -> return(makeXML ast)
+			     Left err -> return(hasError (concat (map messageString (errorMessages(err)))))
 
 
 showElement :: WithError Element -> String
