@@ -20,12 +20,10 @@ module SpinButton (
 
 )  where
 
+import IOExts(unsafePerformIO)
 import Core
 import HTk
-import Button
-import BitMap
-import Destructible
-import WBFiles
+
 
 
 -- -----------------------------------------------------------------------
@@ -63,10 +61,10 @@ newSpinButton :: Container par => par -> (Spin -> IO a) ->
 newSpinButton par cmd cnf =
   do
     b <- newVFBox par []
-    bup <- newButton b [htkbitmap "ms_up_arrow.bm"]
+    bup <- newButton b [photo msUpButtonImg]
     clicked_bup <- clicked bup
     pack bup []
-    bdown <- newButton b [htkbitmap "ms_down_arrow.bm"]
+    bdown <- newButton b [photo msDownButtonImg]
     clicked_bdown <- clicked bdown
     pack bdown []
     death <- newChannel
@@ -170,12 +168,17 @@ instance HasSize SpinButton
 
 
 -- -----------------------------------------------------------------------
--- The bitmaps
+-- The images
 -- -----------------------------------------------------------------------
 
-htkbitmap :: HasBitMap w => String -> Config w
-htkbitmap fnm w =
-  do
-    path <- getWBImageFilePath fnm
-    configure w [bitmap path]
-    return w
+msDownButtonImg :: Image
+msDownButtonImg = 
+  unsafePerformIO (newImage NONE [imgData GIF 
+     "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPoRvHnRRys5oCADs="])
+{-# NOINLINE msDownButtonImg #-}
+
+msUpButtonImg :: Image
+msUpButtonImg = 
+  unsafePerformIO (newImage NONE [imgData GIF 
+     "R0lGODdhCQAGAPAAAP///wAAACwAAAAACQAGAAACC4SPF2nh6aKKkp0CADs"])
+{-# NOINLINE msUpButtonImg #-}
