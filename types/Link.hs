@@ -97,9 +97,11 @@ fetchLink (view@View{repository = repository,objects = objects})
    do
       transformValue objects location 
          (\ objectDataOpt ->
+          do
             case objectDataOpt of
                Nothing -> error "View.fetchLink: Link to object not in view!!"
                Just (PresentObject versionedDyn _) ->
+                do
                   case fromDyn versionedDyn of
                      Just versioned -> return (objectDataOpt,versioned)
                      Nothing -> error "View.fetchLink - type error in link"
@@ -230,7 +232,7 @@ createObjectGeneral view status location =
 -- are created via this function.)
 makeObjectData :: HasCodedValue x => View -> Status x -> Location 
    -> IO (Versioned x,ObjectData)
-makeObjectData view status location =
+makeObjectData view (status :: Status x) location =
    do
       statusMVar <- newMVar status
       let versioned = Versioned {location = location,statusMVar = statusMVar}

@@ -38,11 +38,18 @@ module Registry(
 
    getValueDefault, -- :: ... => to -> registry -> from -> IO to
 
+
+   -- Unsafe/UnsafeRegistry are equivalent to Untyped/UntypedRegistry except 
+   -- for the additional functionality of causing a core-dump if misused,
+   -- and not requiring Typeable.
+   Unsafe,
+   UnsafeRegistry,
    ) where
 
 import IO
 import Maybes
 
+import qualified GlaExts(unsafeCoerce#)
 import IOExts(newIORef,readIORef,writeIORef)
 import FiniteMap
 import Concurrent
@@ -251,6 +258,55 @@ instance GetSetRegistry (registry from Dyn) from Dyn
       setValue registry from dyn
    getValueAsDyn (Untyped registry) from =
       getValue registry from
+
+-- ----------------------------------------------------------------------
+-- Unsafe Registries
+-- To be used only in dire emergency where GHC's obscure multi-parameter
+-- type rules aren't able to infer Typeable, these will cause core dumps
+-- if the types are wrong.
+-- ----------------------------------------------------------------------
+
+type UnsafeRegistry from = Unsafe Registry from
+
+data Obj = Obj
+ -- to hold the value, which may be of any type.
+
+toObj :: a -> Obj
+toObj = GlaExts.unsafeCoerce#
+
+fromObj :: Obj -> a
+fromObj = GlaExts.unsafeCoerce#
+
+newtype Unsafe registry from = Unsafe (registry from Obj)
+
+instance NewRegistry (registry from Obj) 
+   => NewRegistry (Unsafe registry from) where
+   newRegistry =
+      do
+         registry <- newRegistry
+         return (Unsafe registry)
+   emptyRegistry (Unsafe registry) = emptyRegistry registry
+
+instance (GetSetRegistry (registry from Obj) from Obj) 
+   => GetSetRegistry (Unsafe registry from) from to where
+   transformValue (Unsafe registry) from transformer =
+      do
+         let
+            transformerObj objInOpt =
+               do
+                  let valInOpt = (fmap fromObj) objInOpt
+                  (valOutOpt,extra) <- transformer valInOpt
+                  let objOutOpt = (fmap toObj) valOutOpt
+                  return (objOutOpt,extra)
+         transformValue registry from transformerObj 
+
+instance KeyOpsRegistry (registry from Obj) from 
+   => KeyOpsRegistry (Unsafe registry from) from where
+   deleteFromRegistryBool (Unsafe registry) from =
+      deleteFromRegistryBool registry from
+   deleteFromRegistry (Unsafe registry) from =
+      deleteFromRegistry registry from
+   listKeys (Unsafe registry) = listKeys registry
 
 -- ----------------------------------------------------------------------
 -- Locked registries.  These improve on the previous model in

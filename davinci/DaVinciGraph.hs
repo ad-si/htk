@@ -930,7 +930,7 @@ flushPendingChanges (DaVinciGraph {context = context,nodes = nodes,
             )
          pendingChanges
          )
- 
+
 -- -----------------------------------------------------------------------
 -- Miscellaneous functions
 -- -----------------------------------------------------------------------

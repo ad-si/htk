@@ -274,6 +274,7 @@ newVersionGraph
                   parentNode thisNode) 
                displayView displaySort (WrappedDisplayType FolderDisplayType) 
                   view
+               done
 
          commitNode :: Node -> IO ()
          commitNode node =

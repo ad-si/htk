@@ -1,7 +1,9 @@
 {- DisplayView displays all the objects in a particular view according to a 
    particular display type. -}
 module DisplayView(
+   DisplayedView,
    displayView,
+   focusLink,
    ) where
 
 import IOExts
@@ -59,7 +61,7 @@ instance HasTyCon40011 DisplayedObjectType where
 -- If an object type does not appear in the registry, it means values of
 -- that type are not to be displayed.
 newtype AllDisplayedObjectTypes =
-   AllDisplayedObjectTypes (UntypedRegistry (Keyed WrappedObjectType))
+   AllDisplayedObjectTypes (UnsafeRegistry (Keyed WrappedObjectType))
 
 ---
 -- Constructs a AllDisplayedObjectTypes for a particular graph, view and
@@ -70,31 +72,30 @@ getAllDisplayedObjectTypes ::
    => (Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
    -> View -> WrappedDisplayType 
+   -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
    -> IO (AllDisplayedObjectTypes,[WrappedLink])
 getAllDisplayedObjectTypes 
       (graph :: Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
-      view wrappedDisplayType =
+      view wrappedDisplayType displayedViewAction =
    do  
       -- (1) get all object types
       objectTypes <- getAllObjectTypes view
       -- (2) initialise the registry
-      (registry :: UntypedRegistry (Keyed WrappedObjectType)) <- newRegistry
+      (registry :: UnsafeRegistry (Keyed WrappedObjectType)) <- newRegistry
       -- (3) Now compute it.
       (topLinksList :: [[WrappedLink]]) <- mapM
          (\ (wrappedObjectType @ (WrappedObjectType 
                (objectType :: objectType))) ->
             do
-               putStrLn "tl1" 
-               nodeDisplayDataOpt 
-                  <- getNodeDisplayData view wrappedDisplayType objectType
-               putStrLn "tlx"
+               nodeDisplayDataOpt <- getNodeDisplayData view 
+                  wrappedDisplayType objectType displayedViewAction
                case nodeDisplayDataOpt of
                   Nothing -> return []
                   Just (nodeDisplayData :: NodeDisplayData nodeTypeParms 
                         arcTypeParms objectType object) ->
                      do
-                        putStrLn "tl2" 
                         -- Create node types map
                         let 
                            nodeTypesList = nodeTypes nodeDisplayData
@@ -105,14 +106,12 @@ getAllDisplayedObjectTypes
                                  return (nodeTypeTag,nodeType)
                               )
                            nodeTypesList
-                        putStrLn "tl3" 
                         let 
                            nodeTypes' = listToFM graphNodeTypes
 
                         -- Create arc types map
                         let 
                            arcTypesList = arcTypes nodeDisplayData
-                        putStrLn "tl4" 
                         graphArcTypes <- mapM
                            (\ (arcTypeTag,arcTypeParms) ->
                               do
@@ -120,7 +119,6 @@ getAllDisplayedObjectTypes
                                  return (arcTypeTag,arcType)
                               )
                            arcTypesList
-                        putStrLn "tl5" 
                         let 
                            arcTypes' = listToFM graphArcTypes
 
@@ -139,7 +137,6 @@ getAllDisplayedObjectTypes
                            wrappedLinks :: [WrappedLink]
                            wrappedLinks = 
                               map WrappedLink (topLinks nodeDisplayData)
-                        putStrLn (show(length wrappedLinks) ++ " top links") 
                         setValue registry (Keyed wrappedObjectType) 
                            displayedObjectType
                         return wrappedLinks
@@ -147,16 +144,13 @@ getAllDisplayedObjectTypes
             objectTypes                  
       -- And return it.                      
       return (AllDisplayedObjectTypes registry,concat topLinksList) 
-                               
+
 -- -----------------------------------------------------------------------
 -- DisplayedView is the type representing a single displayed view, possibly
 -- under construction.
 -- -----------------------------------------------------------------------
 
-
-data WrappedNode node = 
-   forall object objectType . ObjectType objectType object 
-   => WrappedNode (node (String,Link object))
+type NodeData node object = (node (String,Link object),MVar Bool,SinkID)
 
 data DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType 
       arcTypeParms = 
@@ -164,8 +158,10 @@ data DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType
       graph :: Graph graph graphParms node nodeType nodeTypeParms 
          arc arcType arcTypeParms,
       view :: View,
-      nodes :: Registry (Keyed WrappedLink) 
-            (WrappedNode node,MVar Bool,SinkID),
+      nodes :: UnsafeRegistry (Keyed WrappedLink), 
+         -- The registry should map to values of type
+         -- NodeData node object
+
          -- all nodes in the graph displayed so far.
          -- The MVar indicates if the node has been focussed.
          -- We attach the SinkID to variable sets containing arcs, so that
@@ -178,6 +174,14 @@ data DisplayedView graph graphParms node nodeType nodeTypeParms arc arcType
       }
 
 
+-- -----------------------------------------------------------------------
+-- WrappedNode
+-- -----------------------------------------------------------------------
+
+data WrappedNode node = 
+   forall object objectType . (HasTyCon1 node,ObjectType objectType object) 
+   => WrappedNode (node (String,Link object))
+                                  
 -- ----------------------------------------------------------------------
 -- Functions for manipulating DisplayedView
 -- -----------------------------------------------------------------------
@@ -187,12 +191,17 @@ displayView ::
       arc arcType arcTypeParms
    => (Graph graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
-   -> WrappedDisplayType -> View -> IO ()
+   -> WrappedDisplayType -> View 
+   -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms 
+         arc arcType arcTypeParms)
 displayView 
       (displaySort :: Graph 
       graph graphParms node nodeType nodeTypeParms arc arcType arcTypeParms) 
       wrappedDisplayType view =
    do
+      -- (0) Where the displayed view will go, when we've got it
+      displayedViewMVar <- newEmptyMVar
+
       -- (1) set up the graph
       graph <- newGraph displaySort (graphParms wrappedDisplayType)
 
@@ -202,13 +211,10 @@ displayView
       -- (3) construct allDisplayedObjectTypes and get the top links.
       (allDisplayedObjectTypes,allTopLinks) 
          <- getAllDisplayedObjectTypes graph view wrappedDisplayType
-
-      putStrLn ("Got "++show(length allTopLinks)++ " toplinks")
+            (readMVar displayedViewMVar)
 
       -- (4) construct closeDownActions.
       closeDownActions <- newCloseDownActions
-
-      putStrLn "c1"
 
       let 
          displayedView = DisplayedView {
@@ -219,12 +225,13 @@ displayView
             closeDownActions = closeDownActions
             }
 
-      putStrLn "c2"
+      putMVar displayedViewMVar displayedView
 
       -- (5) display the nodes.
       mapM_ (displayNode displayedView) allTopLinks
 
-      putStrLn "c3"
+      -- (6) redraw
+      redraw graph
 
       -- (6) Handle destruction of the window
       forkIO (
@@ -232,7 +239,7 @@ displayView
             sync (destroyed graph)
             doCloseDownActions displayedView
          )
-      done 
+      return displayedView
 
 ---
 -- Displays a particular node.  In detail
@@ -249,9 +256,7 @@ displayNode ::
    -> WrappedLink -> IO (Maybe (WrappedNode node))
 displayNode displayedView (WrappedLink link) =
    do
-      putStrLn "d1"
       nodeOpt <- displayNodeUnWrapped displayedView link
-      putStrLn "d2"
       case nodeOpt of
          Nothing -> return Nothing
          Just node -> return (Just (WrappedNode node))
@@ -269,9 +274,7 @@ displayNodeUnWrapped
             arcType arcTypeParms) 
       (link :: Link object) =
    do
-      putStrLn "d3"
       object <- readLink view link
-      putStrLn "d4"
       let 
          wrappedObjectType = WrappedObjectType (getObjectTypePrim object)
 
@@ -280,14 +283,9 @@ displayNodeUnWrapped
          getDisplayedObjectTypeOpt = 
             getValueOpt nodeTypesRegistry (Keyed wrappedObjectType)
 
-      putStrLn "d5"
       displayedObjectTypeOpt <- getDisplayedObjectTypeOpt
-      putStrLn "d6"
       case displayedObjectTypeOpt of
-         Nothing -> 
-            do
-               putStrLn "dno"
-               return Nothing
+         Nothing -> return Nothing
          Just (displayedObjectType @ DisplayedObjectType{
             arcTypes' = arcTypes',
             nodeTypes' = nodeTypes',
@@ -297,14 +295,13 @@ displayNodeUnWrapped
             closeDown' = closeDown'
             } :: DisplayedObjectType objectType object nodeType arcType) ->
             do
-               putStrLn "d7"
                (graphNode :: node (String,Link object),considerFocus) <- 
                   transformValue nodes (Keyed (WrappedLink link))
-                  (\ wrappedNodeOpt ->
-                     case wrappedNodeOpt of
-                        Just (WrappedNode graphNode,_,_) ->
-                           return (wrappedNodeOpt,
-                              (dynCast "DisplayView" graphNode,False))
+                  (\ (nodeDataOpt :: Maybe (NodeData node object)) ->
+                     case nodeDataOpt of
+                        Just (graphNode,_,_) ->
+                           return (nodeDataOpt,
+                              (graphNode,False))
                         Nothing ->
                            do
                               let
@@ -314,43 +311,69 @@ displayNodeUnWrapped
                                     Nothing -> error 
                                        "DisplayView: unmatched node type tag"
                                     Just nodeType -> nodeType
-                              putStrLn "d8"
                               graphNode <- 
                                  newNode graph nodeType 
                                     (nodeTitlePrim object,link)
-                              putStrLn "d9"
                               mVar <- newMVar False
-                              putStrLn "d10"
                               sinkID <- newSinkID
-                              putStrLn "d11"
-                              return (Just (WrappedNode graphNode,mVar,sinkID),
+                              return (Just (graphNode,mVar,sinkID),
                                  (graphNode,True))
                      )
-               putStrLn "d12"
                doFocus <- if considerFocus 
                   then
                      mustFocus' link
                   else
                      return False
-               putStrLn "d13"
                if doFocus
                   then
-                     focusLink displayedView displayedObjectType link graphNode
+                     focusLinkInner displayedView displayedObjectType link 
+                        graphNode
                   else
                      done
-               putStrLn "d14"
                return (Just graphNode)
 
 ---
--- focusLink focusses a particular node, if that hasn't already been done.
+-- focusLink is the version of focusLinkInner to be used externally.  It
+-- also extracts the node type and graph node.
 focusLink :: 
+   (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+      arc arcType arcTypeParms,ObjectType objectType object)
+   => (DisplayedView graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms) 
+   -> Link object -> IO ()
+focusLink       
+      (displayedView@DisplayedView{graph=graph,view=view,nodes=nodes,
+            allDisplayedObjectTypes = AllDisplayedObjectTypes nodeTypeRegister
+            } 
+         :: DisplayedView graph graphParms node nodeType nodeTypeParms arc 
+            arcType arcTypeParms) 
+      (link :: Link object) =
+   do
+      let
+         wrappedLink = WrappedLink link
+      wrappedObject <- wrapReadLink view wrappedLink
+      let
+         wrappedObjectType = getObjectType wrappedObject
+      (Just displayedObjectType) <- getValueOpt nodeTypeRegister 
+         (Keyed wrappedObjectType)
+
+      Just ((graphNode,_,_) :: NodeData node object)
+         <- getValueOpt nodes (Keyed wrappedLink)
+
+      focusLinkInner displayedView displayedObjectType link graphNode
+      redraw graph
+
+
+---
+-- focusLinkInner focusses a particular node, if that hasn't already been done.
+focusLinkInner :: 
    (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
       arc arcType arcTypeParms,ObjectType objectType object)
    => (DisplayedView graph graphParms node nodeType nodeTypeParms
          arc arcType arcTypeParms) 
    -> DisplayedObjectType objectType object nodeType arcType
    -> Link object -> node (String,Link object) -> IO ()
-focusLink       
+focusLinkInner       
       (displayedView@DisplayedView{view=view,graph=graph,nodes=nodes,
          allDisplayedObjectTypes=AllDisplayedObjectTypes nodeTypesRegistry} 
          :: DisplayedView graph graphParms node nodeType nodeTypeParms arc 
@@ -360,7 +383,8 @@ focusLink
    do
       nodeInfoOpt <- getValueOpt nodes (Keyed (WrappedLink link))
       (mVar,sinkID) <- case nodeInfoOpt of
-         Just (_ :: WrappedNode node,mVar,sinkID) -> return (mVar,sinkID)
+         Just ((_,mVar,sinkID) :: NodeData node object)
+            -> return (mVar,sinkID)
       nodeFocussed <- takeMVar mVar
       putMVar mVar True
       if nodeFocussed 
@@ -433,6 +457,7 @@ focusLink
                                  acquire arcsBSem
                                  release arcsBSem
                                  handleArc update
+                                 redraw graph
 
                         acquire arcsBSem
                         (currentArcs,sink) 
@@ -441,6 +466,7 @@ focusLink
                            (\ arc -> handleArc (AddElement arc))
                            currentArcs
                         release arcsBSem
+                        redraw graph
                         addCloseDownAction displayedView (invalidate sink)
                processArcs arcsFrom 
                   (\ arcType node2 -> newArc graph arcType () node node2) 

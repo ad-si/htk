@@ -3,7 +3,7 @@
 rm -rf /home/ger/repository/db/*,v GraphEditor.backup VersionGraph.backup
 export UNICVSROOT=/home/ger/repository
 export UNISERVER=`hostname`
-export UNIEDITOR="gnuclient -eval '(setq stored-name \"%beN\")' \"%bF\""
+export UNIEDITOR="/usr/local/pub-bkb/xemacs/bin/gnuclient -eval '(setq stored-name \"%beN\")' \"%bF\""
 pkill -x Server
 rm -rf /tmp/db
 export UNIDEBUG=/home/ger/uni/types/test/s.debug

@@ -12,7 +12,7 @@ SRCS       = VersionDB.hs ViewType.hs CodedValue.hs \
 SUBDIRS    = test
 
 # Used for recursion, see the file RECURSION
-BOOTSRCS = DisplayTypes.boot.hs ObjectTypes.boot.hs
+BOOTSRCS = DisplayView.boot.hs DisplayTypes.boot.hs ObjectTypes.boot.hs
 
 XHCDIRS = $(HTKDIRS)
 

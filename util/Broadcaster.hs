@@ -65,7 +65,7 @@ updateBroadcaster (Broadcaster {apply = apply,mVar = mVar}) delta =
          x1opt = apply x0 delta
 
          processClients [] clients = return clients
-         processClientS (sink:rest) clients0 =
+         processClients (sink:rest) clients0 =
             do
                interested <- putSink sink delta
                processClients rest 
@@ -75,7 +75,6 @@ updateBroadcaster (Broadcaster {apply = apply,mVar = mVar}) delta =
          Just x1 ->
             do
                clients1 <- processClients clients0 []
-               
                putMVar mVar (x1,clients1)
 
 -- -------------------------------------------------------------------------

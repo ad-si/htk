@@ -55,10 +55,30 @@ module Dynamics (
         ) 
 where
 
+import qualified GlaExts(unsafeCoerce#)
 import qualified Dynamic
 import Dynamic(Typeable(..))
-
+import PrelDynamic(Dynamic(..))
 import Debug(debug)
+
+
+-- -----------------------------------------------------------------------
+-- The fromDyn/toDyn hack
+-- -----------------------------------------------------------------------
+
+type Dyn = Dynamic
+
+tyRep = error "Tyrep accessed"
+
+fromDyn :: Typeable a => Dyn -> Maybe a
+fromDyn (Dynamic _ o) = Just (GlaExts.unsafeCoerce# o)
+
+toDyn :: Typeable a => a -> Dyn
+toDyn d = Dynamic tyRep (GlaExts.unsafeCoerce# d)
+
+-- -----------------------------------------------------------------------
+-- End of hack
+-- -----------------------------------------------------------------------
 
 type TypeTag = Dynamic.TypeRep
 type TyCon = Dynamic.TyCon
@@ -68,14 +88,6 @@ mkTyCon mname tname = Dynamic.mkTyCon (mname ++ "." ++ tname)
 
 mkTypeTag :: TyCon -> [TypeTag] -> TypeTag
 mkTypeTag tycon targs = Dynamic.mkAppTy tycon targs
-
-type Dyn = Dynamic.Dynamic
-
-fromDyn :: Typeable a => Dyn -> Maybe a
-fromDyn = Dynamic.fromDynamic
-
-toDyn :: Typeable a => a -> Dyn
-toDyn = Dynamic.toDyn
 
 coerce  :: Typeable a => Dyn -> a
 coerce d = 
@@ -88,7 +100,6 @@ coerceIO d =
       Nothing ->
          do 
             debug "Dynamics.coerceIO failure"
-            debug d
             ioError typeMismatch
       (Just x) -> return x
 
@@ -112,7 +123,7 @@ class HasTyCon typeCon where
 instance HasTyCon typeCon => Typeable typeCon where
    typeOf _ =
       let
-         (tC :: typeCon) = tC
+         (tC :: typeCon) = error "Dynamics.1"
       in
          mkTypeTag (tyCon tC) []
 
@@ -122,8 +133,8 @@ class HasTyCon1 typeCon where
 instance (HasTyCon1 typeCon,Typeable value) => Typeable (typeCon value) where
    typeOf _ =
       let
-         (tC :: typeCon value) = tC
-         (v :: value) = v
+         (tC :: typeCon value) = error "Dynamics.2"
+         (v :: value) = error "Dynamics.3"
       in
          mkTypeTag (tyCon1 tC) [typeOf v]
  
@@ -135,9 +146,9 @@ instance (HasTyCon2 typeCon,Typeable value1,Typeable value2)
       => Typeable (typeCon value1 value2) where
    typeOf _ =
       let
-         (tC :: typeCon value1 value2) = tC
-         (v1 :: value1) = v1
-         (v2 :: value2) = v2
+         (tC :: typeCon value1 value2) = error "Dynamics.4"
+         (v1 :: value1) = error "Dynamics.5"
+         (v2 :: value2) = error "Dynamics.6"
       in
          mkTypeTag (tyCon2 tC) [typeOf v1,typeOf v2]
 
@@ -149,10 +160,10 @@ instance (HasTyCon3 typeCon,Typeable value1,Typeable value2,Typeable value3)
       => Typeable (typeCon value1 value2 value3) where
    typeOf _ =
       let
-         (tC :: typeCon value1 value2 value3) = tC
-         (v1 :: value1) = v1
-         (v2 :: value2) = v2
-         (v3 :: value3) = v3
+         (tC :: typeCon value1 value2 value3) = error "Dynamics.7"
+         (v1 :: value1) = error "Dynamics.8"
+         (v2 :: value2) = error "Dynamics.9"
+         (v3 :: value3) = error "Dynamics.10"
       in
          mkTypeTag (tyCon3 tC) [typeOf v1,typeOf v2,typeOf v3]
 
@@ -164,11 +175,11 @@ instance (HasTyCon4 typeCon,Typeable value1,Typeable value2,Typeable value3,
       Typeable value4) => Typeable (typeCon value1 value2 value3 value4) where
    typeOf _ =
       let
-         (tC :: typeCon value1 value2 value3 value4) = tC
-         (v1 :: value1) = v1
-         (v2 :: value2) = v2
-         (v3 :: value3) = v3
-         (v4 :: value4) = v4
+         (tC :: typeCon value1 value2 value3 value4) = error "Dynamics.11"
+         (v1 :: value1) = error "Dynamics.12"
+         (v2 :: value2) = error "Dynamics.13"
+         (v3 :: value3) = error "Dynamics.14"
+         (v4 :: value4) = error "Dynamics.15"
       in
          mkTypeTag (tyCon4 tC) [typeOf v1,typeOf v2,typeOf v3,typeOf v4]
 

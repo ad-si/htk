@@ -130,7 +130,7 @@ instance ObjectType FileType File where
          (\ label -> (label,newEmptyFile fileType))
          (fileTypeLabel fileType)
 
-   getNodeDisplayData view wrappedDisplayType fileType =
+   getNodeDisplayData view wrappedDisplayType fileType displayedViewAction =
       return (
          let
             nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 

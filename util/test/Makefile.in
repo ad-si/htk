@@ -1,4 +1,4 @@
-SRCS = TestObject.hs TestDynamics.hs TestOptions.hs Huffman.hs TestFact.hs
+SRCS = TestObject.hs TestDynamics.hs TestDynamics2.hs TestOptions.hs Huffman.hs TestFact.hs
 LIB = libtestutil.a
 LIBS = $(TOP)/util/libutil.a
 

@@ -101,6 +101,7 @@ import DisplayTypes
 import ViewType
 import Link
 import GlobalRegistry
+import {-# SOURCE #-} DisplayView
 
 -- ----------------------------------------------------------------
 -- The ObjectType class
@@ -141,10 +142,13 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- a link to an object of this type.
 
    getNodeDisplayData :: 
-      (HasNodeTypeConfigs nodeTypeParms,HasArcTypeConfigs arcTypeParms) 
-      => View -> WrappedDisplayType -> objectType ->
-         IO (Maybe
-           (NodeDisplayData nodeTypeParms arcTypeParms objectType object))
+      (GraphAllConfig graph graphParms node nodeType nodeTypeParms 
+         arc arcType arcTypeParms)
+      => View -> WrappedDisplayType -> objectType 
+      -> IO (DisplayedView graph graphParms node nodeType nodeTypeParms
+         arc arcType arcTypeParms)
+      -> IO (Maybe 
+         (NodeDisplayData nodeTypeParms arcTypeParms objectType object))
       -- Get everything we need to display objects of this type.
       -- This will be called for each existing object type
       -- when we start a new display.
@@ -153,6 +157,13 @@ class (HasCodedValue objectType,HasCodedValue object) =>
       -- NB.  Although this is an IO action, the display code assumes that
       -- the result is a constant; once you've returned a value for a
       -- particular WrappedDisplayType, it's fixed.
+
+      -- The IO DisplayedView action returns the DisplayedView in which
+      -- this node is being displayed.  However it should not be executed
+      -- to produce the NodeDisplayData or we will get deadlock; it should only
+      -- be executed as part of the actions attached to nodes and edges, when
+      -- it will return quickly (provided the displayed view has actually been
+      -- set up.
 
 toObjectValue :: ObjectType objectType object => objectType -> object
 toObjectValue _ = error "ObjectTypes.toObjectValue value evaluted!"

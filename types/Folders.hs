@@ -47,6 +47,7 @@ import ObjectTypes
 import DisplayParms
 import GlobalRegistry
 import CreateObjectMenu
+import DisplayView
 
 ------------------------------------------------
 -- The Display Type
@@ -68,6 +69,7 @@ instance DisplayType FolderDisplayType where
    displayTypeTypeIdPrim _  = "Folders"
 
    graphParmsPrim FolderDisplayType = 
+      AllowDragging True $$
       GraphTitle "Directory Listing" $$
       -- We will need to add more options later for menus.
       emptyGraphParms
@@ -179,11 +181,16 @@ instance ObjectType FolderType Folder where
          (\ label -> (label,newEmptyFolder folderType))
          (folderTypeLabel folderType)
 
-   getNodeDisplayData view wrappedDisplayType folderType =
+   getNodeDisplayData view wrappedDisplayType folderType 
+         displayedViewAction =
       return (
          let
             nodeTypeParmsOpt = getNodeTypeParms wrappedDisplayType 
                (displayParms folderType)
+            focusAction (_,link) =
+               do
+                  displayedView <- displayedViewAction
+                  focusLink displayedView link 
          in
             case nodeTypeParmsOpt of
                Just nodeTypeParms ->
@@ -194,6 +201,7 @@ instance ObjectType FolderType Folder where
                      arcTypes = [(theArcType,emptyArcTypeParms)],
                      nodeTypes = [(theNodeType,
                         ValueTitle (\ (str,_) -> return str) $$$
+                        (DoubleClickAction focusAction) $$$
                         addFileGesture view $$$
                         nodeTypeParms
                         )],
