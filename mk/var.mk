@@ -54,10 +54,4 @@ CPP = $(HC) -E -cpp -I$(CINCLUDES) $(EXTRA_HC_OPTIONS)
 # The directory containing C includes
 CINCLUDES       = $(TOP)/includes
 
-# GHCPKG option with --force if necessary
-ifeq "$(GhcMajVersion).$(GhcMinVersion)" "5.02"
-GHCPKGOPTS =
-else
-GHCPKGOPTS = --force
-endif
 
