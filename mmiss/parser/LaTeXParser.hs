@@ -173,60 +173,67 @@ attribute = do spaces
                spaces
                char '=' <?> "value for attribute '" ++ key ++ "'"
                spaces
---               v <- try(choice ((delimitedValue key):(value:[]))) 
-               v <- value 
+               v <- choice ((delimitedValue key):((value ",]"):[])) 
                     <?> "value for attribute '" ++ key ++ "'"
                return (key, v)
 
 delimitedValue :: String -> GenParser Char st String
--- delimitedValue key = between (char '{') (char '}') (value1 key)
-delimitedValue key = between (char '{') (char '}') value
+delimitedValue key = between (char '{') (char '}') (value "")
 
-value :: GenParser Char st String
-value = try(do s1 <- try(many (noneOf ",{}[]\\"))
-               s2 <- try(between (char '{') (char '}') (try(value1)))
-               s3 <- option "" (try value)
-               return (s1 ++ "{" ++ s2 ++ "}" ++ s3))
-        <|> try(do s1 <- try(many (noneOf ",{}[]\\"))
-                   s2 <- try(between (char '[') (char ']') (try(value)))
-                   s3 <- option "" (try value)
-                   return (s1 ++ "[" ++ s2 ++ "]" ++ s3))
-        <|> try(do s1 <- try(many (noneOf ",{}[]\\"))
-                   s2 <- char '\\'
-                   s3 <- anyChar
-                   s4 <- option "" (try value)
-                   return (s1 ++ [s2] ++ [s3] ++ s4))
-	<|> do s1 <- try(many (noneOf ",{}[]\\"))
-               return s1
-
-value1 :: GenParser Char st String
-value1 = try(do s1 <- try(many (noneOf "{}[]\\"))
-                s2 <- try(between (char '{') (char '}') (try(value1)))
-                s3 <- option "" (try value1)
-                return (s1 ++ "{" ++ s2 ++ "}" ++ s3))
-         <|> try(do s1 <- try(many (noneOf "{}[]\\"))
-                    s2 <- try(between (char '[') (char ']') (try(value1)))
-                    s3 <- option "" (try value1)
-                    return (s1 ++ "[" ++ s2 ++ "]" ++ s3))
-         <|> try(do s1 <- try(many (noneOf "{}[]\\"))
-                    s2 <- char '\\'
-                    s3 <- anyChar
-                    s4 <- option "" (try value1)
-                    return (s1 ++ [s2] ++ [s3] ++ s4))
-	 <|> do s1 <- try(many (noneOf "{}[]\\"))
-                return s1
+value :: String -> GenParser Char st String
+value rightClosure = 
+  try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
+         s2 <- try(between (char '{') (char '}') (try(value rightClosure)))
+         s3 <- option "" (value rightClosure)
+         return (s1 ++ "{" ++ s2 ++ "}" ++ s3))
+  <|> try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
+             s2 <- try(string "{}")
+             s3 <- option "" (value rightClosure)
+             return (s1 ++ "{}" ++ s3))
+  <|> try(do s1 <- try(many (noneOf ("{}\\" ++ rightClosure)))
+             s2 <- char '\\'
+             s3 <- anyChar
+             s4 <- option "" (value rightClosure)
+             return (s1 ++ [s2] ++ [s3] ++ s4))
+  <|> try(do s1 <- try(many1 (noneOf ("{}\\" ++ rightClosure)))
+             return s1)
 
 
--- value1 :: String -> GenParser Char st String
--- value1 key = try(many1 (noneOf "}]")) <?> "value for attribute '" ++ key ++ "'" 
-
-
-{- genParam parses an arbitrary Parameter of a LaTeX-Environment or Command (no Parameter of
+{- bracedValue parses an arbitrary Parameter of a LaTeX-Environment or Command (no Parameter of
    MMiSSLaTeX-Environments - these are handled by "attParser".
    Because LaTeX-Environment-Parameters can be delimited by either '{' or '[' or '('
-   (the latter since LaTeX 2e I think), the l und r parameters to genParam
-   hold the delimiter character, to look out for. e.g. l = '{', r = '}'  -}
+   (the latter since LaTeX 2e I think), the l und r parameters to bracedValue
+   hold the delimiter character, to look out for. e.g. l = '{', r = '}' 
+-}
 
+bracedValue :: Char -> Char -> GenParser Char st String
+bracedValue l r = 
+  try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
+         s2 <- try(between (char l) (char r) (bracedValue l r))
+         s3 <- option "" (bracedValue l r)
+         return (s1 ++ [l] ++ s2 ++ [r] ++ s3))
+  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
+             s2 <- try(string ([l] ++ [r]))
+             s3 <- option "" (bracedValue l r)
+             return (s1 ++ [l] ++ [r] ++ s3))
+  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
+             s2 <- try(between (char '{') (char '}') (bracedValue l r))
+             s3 <- option "" (bracedValue l r)
+             return (s1 ++ [l] ++ [r] ++ s3))
+  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
+             s2 <- try(string "{}")
+             s3 <- option "" (bracedValue l r)
+             return (s1 ++ "{}" ++ s3))
+  <|> try(do s1 <- try(many (noneOf ([l] ++ [r] ++ "{}\\")))
+             s2 <- char '\\'
+             s3 <- anyChar
+             s4 <- option "" (bracedValue l r)
+             return (s1 ++ [s2] ++ [s3] ++ s4))
+  <|> try(do s1 <- try(many1 (noneOf ([l] ++ [r] ++ "{}\\")))
+             return s1)
+
+
+{-
 genParam :: Char -> Char -> GenParser Char st [Frag]
 -- genParam l r = between (char l) (char r) (otherDelim r) <?> ("fragment between " ++ [l] ++ " and " ++ [r])
 genParam l r = do char l
@@ -238,6 +245,8 @@ continueParam :: [Frag] -> GenParser Char st [Frag]
 continueParam fs = do f <- frag 
                       continueParam (f:fs)
                    <|> return (reverse fs)
+-}
+
 
 -- other konsumiert solange Text, bis ein Backslash oder Kommentarzeichen auftaucht und
 -- generiert ein Other-Fragment mit diesem Text.
@@ -353,7 +362,8 @@ mEnvParams id =
 lParams :: String -> [SingleParam] -> GenParser Char st Params
 lParams id l
   | id == "Emphasis" = do spaces
-                          p <- try ( genParam '{' '}' )
+                          str <- try (between (char '{') (char '}') (value ""))
+                          p <- return [(Other str)]
                           return (LParams [(SingleParam p '{')] [] Nothing Nothing)
 
   | id `elem` (map fst includeCommands) =
@@ -369,7 +379,8 @@ lParams id l
 
   | id `elem` (map fst linkAndRefCommands) =
       do pos <- getPosition
-         optFrag <-  option [(Other "")] (try ( genParam '[' ']' ))
+         str <-  option "" (try (between (char '[') (char ']') (value "]")))
+         optFrag <- return [(Other str)]
          spaces
 	 labelId <-  try(between (char '{') (char '}') idParser)
 	             <?> (appendSourcePos pos ("[text]{referencedLabelID}{attribute-list} for Command <" ++ id ++ ">"))
@@ -387,8 +398,9 @@ lParams id l
          labelId <-  try(between (char '{') (char '}') idParser)
 	             <?> (appendSourcePos pos ("{labelID}{definedName}{attribute-list} for Command <" ++ id ++ ">"))
          spaces
-	 definedName <-  (try ( genParam '{' '}' ))
-	                 <?> (appendSourcePos pos ("{labelID}{definedName}{attribute-list} for Command <" ++ id ++ ">"))
+	 str <-  (try (between (char '{') (char '}') (value "")))
+	         <?> (appendSourcePos pos ("{labelID}{definedName}{attribute-list} for Command <" ++ id ++ ">"))
+         definedName <- return ([(Other str)])
    	 spaces
 	 attributes <- try(between (char '{') (char '}') attParser)
 		       <?> (appendSourcePos pos ("{attribute-list} for Command <" ++ id ++ ">"))   
@@ -424,11 +436,14 @@ lParams id l
                 <?> ("Missing Argument for \\ImportPath.")
          return (LParams [(SingleParam [(Other p)] '{')] [] Nothing Nothing)
 
- | otherwise = do p <- try ( genParam '{' '}' )
+ | otherwise = do str <- try (try (between (char '{') (char '}') (value "")))
+                  p <- return [(Other str)]
                   lParams id ((SingleParam p '{'):l)  
-               <|>  do p <- try ( genParam '[' ']' )
+               <|>  do str <- try (try (between (char '[') (char ']') (value "]")))
+                       p <- return [(Other str)]
                        lParams id ((SingleParam p '['):l)
-               <|>  do p <- try ( genParam '(' ')' )
+               <|>  do str <- try (try (between (char '(') (char ')') (value ")")))
+                       p <- return [(Other str)]
                        lParams id ((SingleParam p '('):l)
                <|>  return (LParams (reverse l) [] Nothing Nothing)
 
