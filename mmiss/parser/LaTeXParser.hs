@@ -496,15 +496,17 @@ findFirstEnv ((Env "Package" ps fs):_) preambleFs _ =
 findFirstEnv ((Env name ps fs):rest) preambleFs beforeDocument = 
   if (name `elem` (map fst (plainTextAtoms ++ envsWithText ++ envsWithoutText))) then
     let c1 = makeContent [(Env name ps fs)] (detectTextMode name) "Root"
-        c2 = fromWithError c1
-    in case c2 of
+        preamblePI = (CMisc (PI ("LaTeXParser:preamble", makeTextElem preambleFs)))
+	c2 = mapWithError (map (addPreamble preamblePI)) c1
+        c3 = fromWithError c2
+    in case c3 of
          (Left str) -> hasError(str)
          (Right cs) -> if ((genericLength cs) == 0) 
 		         then hasError("Internal Error: no XML content could be genereated for topmost Env. '" ++ name ++ "'")
                          else let ce = head cs
-			      in case ce of 
-				    (CElem e) -> hasValue(e)
-				    _ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
+                              in case ce of 
+			           (CElem e) -> hasValue(e)
+			           _ -> hasError("Internal Error: no XML element could be genereated for topmost Env. '" ++ name ++ "'")
     else if (name `elem` (map fst mmiss2EnvIds)) 
            then findFirstEnv rest preambleFs beforeDocument
            else if (not beforeDocument)
@@ -854,8 +856,12 @@ makeRefAttribs _ = []
 
 
 makeDefineAttribs :: Params -> [Attribute]
-makeDefineAttribs (LParams ((SingleParam (Other labelId) _):_) (Just(atts))) =
-  [("label", (AttValue [Left labelId]))] ++ (map convertAttrib atts)
+makeDefineAttribs (LParams ((SingleParam (Other labelId) _):_) atts) =
+  let attList = case atts of
+                  Just(a) -> (map convertAttrib a)
+                  Nothing -> []
+  in [("label", (AttValue [Left labelId]))] ++ attList
+makeDefineAttribs _ = []
 
 
 -- getLinkText erwartet die Params eines Link oder Reference-Elementes und extrahiert daraus
@@ -899,9 +905,10 @@ makeMMiSSLatex ((Elem name atts content), preOut) =
                         (CMisc (PI (_ ,str))) -> str
                         _ -> ""
       preambleItem = [(EditableText preambleText)]
-  in if preOut then 
-       let beginDocument = [EditableText "\\begin{document}\n"]
-           endDocument = [EditableText "\\end{document}"]
+  in if preOut 
+       then 
+         let beginDocument = [EditableText "\\begin{document}\n"]
+             endDocument = [EditableText "\\end{document}"]
          in hasValue((EmacsContent (preambleItem ++ beginDocument ++ items ++ endDocument)), preambleText)
        else hasValue((EmacsContent items), preambleText)
 
