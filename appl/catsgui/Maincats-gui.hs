@@ -172,15 +172,15 @@ createMenuBar win =
 
   ---
   -- Create list containing filenames
-  box <- newHFBox win []
+  box <- newHBox win []
   pack box [Fill Both, Side AtLeft, Expand On]
   
   namelist <- cdataToStrList cdata
   lb <- newListBox box [size (15,10), value namelist] :: IO (ListBox [String])
-  pack lb [Side AtLeft, Fill Y]
+  pack lb [Side AtLeft, Fill Both, Expand On]
   
   scb1 <- newScrollBar box []
-  pack scb1 [Side AtLeft, Fill Y]
+  pack scb1 [Side AtLeft, Fill Y, Expand Off]
   lb # scrollbar Vertical scb1
 
   (press,_) <- bindSimple lb (ButtonPress (Just (BNo 1)))
@@ -193,24 +193,24 @@ createMenuBar win =
   pack textboxes [Fill Both, Side AtRight, Expand On]
   ---
   -- add textarea for CATS-output
-  edbox <- newHFBox textboxes []
-  pack edbox [Fill X, Side AtTop, Expand Off]
+  edbox <- newHBox textboxes []
+  pack edbox [Fill X, Side AtTop, Expand On]
   ed <- newEditor edbox [size (50,10)] :: IO (Editor String)
-  pack ed [Side AtLeft, Fill X]
+  pack ed [Side AtLeft, Fill X, Expand On]
   
   scb2 <- newScrollBar edbox []
-  pack scb2 [Side AtRight, Fill Y]
+  pack scb2 [Side AtRight, Fill Y, Expand Off]
   ed # scrollbar Vertical scb2
 
   ---
   -- add textarea for generated aterm-files
-  atbox <- newHFBox textboxes []
+  atbox <- newHBox textboxes []
   pack atbox [Fill Both, Side AtTop, Expand On]
   at <- newEditor atbox [size (50,20)] :: IO (Editor String)
-  pack at [Side AtLeft, Fill Both]
+  pack at [Side AtLeft, Fill Both, Expand On]
   
   scb3 <- newScrollBar atbox []
-  pack scb3 [Side AtRight, Fill Y]
+  pack scb3 [Side AtRight, Fill Y, Expand Off]
   at # scrollbar Vertical scb3
 
   ---
